@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensor Tattoo Fix | Tecnologia Ótica 3N20</title>
-    <link rel="stylesheet" href="style.css?v=1.7">
+    <link rel="stylesheet" href="style.css?v=1.12">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -24,7 +24,7 @@
                 <li><a href="#paliativos"><i class="fas fa-times" style="color: #ff4444;"></i> Paliativos</a></li>
                 <li><a href="#produtos"><i class="fas fa-check" style="color: #00c851;"></i> Nossos Produtos</a></li>
                 <li><a href="#contato">Contato</a></li>
-                <li><a href="https://produto.mercadolivre.com.br/MLB-6664779166-pelicula-sensor-smartwatch-restaura-funcoes-em-pele-tatuada-_JM" class="btn-nav">Comprar no ML</a></li>
+                <li><a href="#onde-comprar" class="btn-nav">Onde Comprar</a></li>
             </ul>
         </nav>
     </header>
@@ -37,7 +37,7 @@
                 <p>Restaure as funções de saúde e impeça o travamento automático do seu watch em peles tatuadas com a precisão da 3N20.</p>
                 <div class="hero-btns">
                     <a href="#produtos" class="btn-primary">Conhecer a Solução</a>
-                    <a href="https://produto.mercadolivre.com.br/MLB-6664779166-pelicula-sensor-smartwatch-restaura-funcoes-em-pele-tatuada-_JM" class="btn-primary ml-btn">Comprar no Mercado Livre</a>
+                    <a href="#onde-comprar" class="btn-primary" style="background: #fff; color: #000;">Onde Comprar</a>
                 </div>
             </div>
             <div class="hero-visual">
@@ -133,24 +133,51 @@
         </div>
     </section>
 
-    <section id="contato" class="content-section">
+    <!-- SEÇÃO ONDE COMPRAR COM O LINK DA SHOPEE CORRIGIDO -->
+    <section id="onde-comprar" class="content-section">
+        <div class="container">
+            <h2 class="section-title">Onde Comprar</h2>
+            <div class="problem-grid">
+                <!-- MERCADO LIVRE -->
+                <a href="https://produto.mercadolivre.com.br/MLB-6664779166-pelicula-sensor-smartwatch-restaura-funcoes-em-pele-tatuada-_JM" target="_blank" style="text-decoration:none;">
+                    <div class="card" style="background: #FFE600; color: #2D3277; border:none; padding: 40px 20px;">
+                        <i class="fas fa-shopping-cart" style="color:#2D3277; font-size: 2.5rem;"></i>
+                        <h3 style="color:#2D3277; margin-top: 15px;">Mercado Livre</h3>
+                        <p style="color:#2D3277; font-size: 0.9rem;">Loja Oficial</p>
+                    </div>
+                </a>
+                <!-- SHOPEE (LINK REAL CORRIGIDO) -->
+                <a href="https://shopee.com.br/product/479290797/58259628035/" target="_blank" style="text-decoration:none;">
+                    <div class="card" style="background: #EE4D2D; color: #fff; border:none; padding: 40px 20px;">
+                        <i class="fas fa-bag-shopping" style="color:#fff; font-size: 2.5rem;"></i>
+                        <h3 style="color:#fff; margin-top: 15px;">Shopee</h3>
+                        <p style="color:#fff; font-size: 0.9rem;">Cupons e Vantagens</p>
+                    </div>
+                </a>
+                <!-- AMAZON -->
+                <a href="https://www.amazon.com.br/dp/B0GYVBRGZS" target="_blank" style="text-decoration:none;">
+                    <div class="card" style="background: #232F3E; color: #FF9900; border:none; padding: 40px 20px;">
+                        <i class="fab fa-amazon" style="color:#FF9900; font-size: 2.5rem;"></i>
+                        <h3 style="color:#FF9900; margin-top: 15px;">Amazon</h3>
+                        <p style="color:#fff; font-size: 0.9rem;">Envio Prime</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="contato" class="content-section grey-bg">
         <div class="container">
             <div class="contact-box">
                 <h2 class="section-title">Fale Conosco</h2>
-                <p>Envie sua mensagem e retornaremos em breve no seu e-mail.</p>
-                
                 <form action="https://formsubmit.co/f.nardoni@outlook.com.br" method="POST" class="contact-form">
-                    
                     <input type="hidden" name="_next" value="https://sensortattoofix.com.br">
                     <input type="hidden" name="_captcha" value="false">
                     <input type="hidden" name="_subject" value="Novo Contato - Sensor Tattoo Fix">
-
                     <input type="text" name="name" placeholder="Seu Nome" required>
                     <input type="email" name="email" placeholder="Seu E-mail" required>
                     <textarea name="message" placeholder="Como podemos ajudar?" required></textarea>
-                    
                     <button type="submit" class="btn-primary">Enviar Mensagem</button>
-
                     <a href="https://wa.me/5511984215176" class="btn-whatsapp-inline" target="_blank">
                         <i class="fab fa-whatsapp"></i> Conversar pelo WhatsApp
                     </a>
@@ -164,6 +191,5 @@
             <p>&copy; 2026 Sensor Tattoo Fix. Tecnologia 3N20 Soluções Óticas.</p>
         </div>
     </footer>
-
 </body>
 </html>

@@ -53,7 +53,7 @@ nav { display: flex; justify-content: space-between; align-items: center; }
 .grey-bg { background: #080808; }
 .section-title { font-size: 3rem; text-align: center; margin-bottom: 40px; font-weight: 900; }
 
-/* PALIATIVOS - X GRANDES */
+/* PALIATIVOS */
 .fail-list { list-style: none; margin-top: 30px; }
 .fail-list li { margin-bottom: 30px; display: flex; align-items: flex-start; gap: 20px; }
 .fail-list i { color: var(--danger); font-size: 2.5rem; }
@@ -75,6 +75,13 @@ nav { display: flex; justify-content: space-between; align-items: center; }
 .problem-grid, .product-benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
 .card, .benefit-card { background: var(--card); padding: 50px; border-radius: 25px; border: 1px solid #222; text-align: center; }
 .card i, .benefit-card i { font-size: 3rem; color: var(--primary); margin-bottom: 25px; }
+
+/* KIT BOX - FALTAVA NO CSS ANTERIOR */
+.kit-box { background: #1a1a1a; padding: 40px; border-radius: 20px; margin-top: 50px; border-left: 5px solid var(--primary); text-align: left; }
+.kit-box h3 { margin-bottom: 20px; }
+.kit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+.kit-feature { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.kit-feature i { color: var(--primary); }
 
 footer { padding: 50px 0; text-align: center; border-top: 1px solid #111; color: var(--gray); }
 
