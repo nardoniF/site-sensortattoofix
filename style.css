@@ -12,6 +12,8 @@ html { scroll-behavior: smooth; scroll-padding-top: 100px; }
 body { background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
 .container { max-width: 1200px; margin: auto; padding: 0 25px; }
 
+img { max-width: 100%; height: auto; }
+
 /* WHATSAPP FLUTUANTE */
 .whatsapp-float {
     position: fixed; width: 60px; height: 60px; bottom: 40px; right: 40px;
@@ -19,18 +21,70 @@ body { background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: 
     font-size: 35px; box-shadow: 2px 2px 10px rgba(0,0,0,0.5); z-index: 1001;
     display: flex; align-items: center; justify-content: center; text-decoration: none; transition: 0.3s;
 }
-.whatsapp-float:hover { transform: scale(1.1); background-color: #128c7e; }
 
-/* HEADER */
-header { padding: 15px 0; border-bottom: 1px solid #222; background: rgba(0,0,0,0.95); position: sticky; top:0; z-index: 1000; }
-nav { display: flex; justify-content: space-between; align-items: center; }
-.logo-area { display: flex; align-items: center; gap: 15px; }
-.main-logo-img { height: 75px; width: auto; }
+/* HEADER - AJUSTADO PARA LOGO 130% */
+header { 
+    padding: 5px 0; 
+    border-bottom: 1px solid #222; 
+    background: rgba(0,0,0,0.95); 
+    position: sticky; 
+    top:0; 
+    z-index: 1000; 
+    min-height: 110px; 
+    display: flex;
+    align-items: center;
+}
+
+nav { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    width: 100%;
+}
+
+.logo-area { 
+    display: flex; 
+    align-items: center; 
+    gap: 15px; 
+    flex-shrink: 0;
+}
+
+.main-logo-img { 
+    height: 98px; /* 75px original + 30% */
+    width: auto; 
+    display: block;
+}
+
 .logo-text { font-size: 1.6rem; font-weight: 900; }
 .logo-text span { color: var(--primary); }
-.nav-links { display: flex; list-style: none; gap: 25px; align-items: center; }
-.nav-links a { color: #fff; text-decoration: none; font-size: 0.9rem; font-weight: 600; }
-.btn-nav { background: var(--primary); color: #000 !important; padding: 10px 20px; border-radius: 5px; }
+
+.nav-links { 
+    display: flex; 
+    list-style: none; 
+    gap: 18px; 
+    align-items: center; 
+}
+
+.nav-links a { color: #fff; text-decoration: none; font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
+.btn-nav { background: var(--primary); color: #000 !important; padding: 10px 18px; border-radius: 5px; }
+
+/* REDES SOCIAIS HEADER */
+.social-header {
+    display: flex;
+    gap: 12px;
+    margin: 0 10px;
+    border-left: 1px solid #333;
+    border-right: 1px solid #333;
+    padding: 0 15px;
+}
+.social-header a i {
+    font-size: 1.1rem;
+    color: #fff;
+    transition: 0.3s;
+}
+.social-header a:hover i {
+    color: var(--primary);
+}
 
 /* HERO */
 .hero { padding: 120px 0; background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a); }
@@ -39,54 +93,73 @@ nav { display: flex; justify-content: space-between; align-items: center; }
 .hero h1 { font-size: 3.5rem; font-weight: 900; line-height: 1.1; margin: 25px 0; }
 .hero p { font-size: 1.2rem; color: var(--gray); margin-bottom: 40px; }
 .hero-btns { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-.btn-primary { 
-    background: var(--primary); color: #000 !important; padding: 18px 30px; 
-    border-radius: 12px; text-decoration: none; font-weight: 800; 
-    display: inline-block; transition: 0.3s; text-align: center; border: none; min-width: 240px; cursor: pointer;
-}
-.btn-primary.ml-btn { background: #ffffff !important; }
-.btn-primary:hover { transform: scale(1.05); filter: brightness(1.1); }
+.btn-primary { background: var(--primary); color: #000 !important; padding: 18px 30px; border-radius: 12px; text-decoration: none; font-weight: 800; display: inline-block; transition: 0.3s; text-align: center; border: none; min-width: 240px; cursor: pointer; }
 .product-img { width: 100%; border-radius: 20px; border: 1px solid #222; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
 
-/* SEÇÕES */
+/* SEÇÕES GERAIS */
 .content-section { padding: 100px 0; }
 .grey-bg { background: #080808; }
 .section-title { font-size: 3rem; text-align: center; margin-bottom: 40px; font-weight: 900; }
+.problem-intro { text-align: center; max-width: 800px; margin: 0 auto 50px; font-size: 1.2rem; color: var(--gray); }
+
+.problem-grid, .product-benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+.card, .benefit-card { background: var(--card); padding: 50px; border-radius: 25px; border: 1px solid #222; text-align: center; height: 100%; transition: 0.3s; }
+.card i, .benefit-card i { font-size: 3rem; color: var(--primary); margin-bottom: 25px; }
+.card h3, .benefit-card h3 { margin-bottom: 15px; font-size: 1.5rem; }
 
 /* PALIATIVOS */
+.flex-row { display: flex; align-items: center; gap: 50px; }
+.text-block { flex: 1; }
 .fail-list { list-style: none; margin-top: 30px; }
 .fail-list li { margin-bottom: 30px; display: flex; align-items: flex-start; gap: 20px; }
 .fail-list i { color: var(--danger); font-size: 2.5rem; }
-.danger-box { border: 3px dashed var(--danger); color: var(--danger); padding: 50px; font-weight: 900; text-transform: uppercase; font-size: 1.5rem; transform: rotate(-8deg); text-align: center; }
+.warning-visual { flex: 1; display: flex; justify-content: center; }
+.danger-box { border: 3px dashed var(--danger); color: var(--danger); padding: 50px; font-weight: 900; text-transform: uppercase; font-size: 1.5rem; transform: rotate(-8deg); text-align: center; width: fit-content; }
 
-/* CONTATO FORMULÁRIO */
-.contact-box { background: var(--card); padding: 60px; border-radius: 30px; border: 1px solid #222; text-align: center; max-width: 700px; margin: auto; }
-.contact-form { display: flex; flex-direction: column; gap: 20px; margin-top: 30px; }
-.contact-form input, .contact-form textarea {
-    padding: 15px; background: #0a0a0a; border: 1px solid #333; color: white; border-radius: 8px; font-size: 1rem;
-}
-.contact-form textarea { height: 150px; resize: none; }
-.btn-whatsapp-inline {
-    margin-top: 10px; background: #25d366; color: white; padding: 15px; 
-    border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px;
-}
-
-/* GRIDS E CARDS */
-.problem-grid, .product-benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
-.card, .benefit-card { background: var(--card); padding: 50px; border-radius: 25px; border: 1px solid #222; text-align: center; }
-.card i, .benefit-card i { font-size: 3rem; color: var(--primary); margin-bottom: 25px; }
-
-/* KIT BOX - FALTAVA NO CSS ANTERIOR */
+/* KIT BOX */
 .kit-box { background: #1a1a1a; padding: 40px; border-radius: 20px; margin-top: 50px; border-left: 5px solid var(--primary); text-align: left; }
-.kit-box h3 { margin-bottom: 20px; }
+.kit-box h3 { margin-bottom: 25px; color: var(--primary); }
 .kit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
 .kit-feature { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 .kit-feature i { color: var(--primary); }
 
-footer { padding: 50px 0; text-align: center; border-top: 1px solid #111; color: var(--gray); }
+/* CONTATO */
+.contact-box { background: var(--card); padding: 60px; border-radius: 30px; border: 1px solid #222; text-align: center; max-width: 700px; margin: auto; }
+.contact-box p { color: var(--gray); margin-bottom: 30px; }
+.contact-form { display: flex; flex-direction: column; gap: 20px; }
+.contact-form input, .contact-form textarea { padding: 15px; background: #0a0a0a; border: 1px solid #333; color: white; border-radius: 8px; font-size: 1rem; width: 100%; }
+.contact-form button { cursor: pointer; border: none; }
+.btn-whatsapp-inline { background: #25d366; color: white !important; padding: 15px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
+
+/* FOOTER */
+footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color: var(--gray); }
+.footer-social { margin-bottom: 35px; }
+.footer-social h4 { margin-bottom: 20px; text-transform: uppercase; color: var(--gray); font-size: 0.8rem; letter-spacing: 2px; }
+.social-icons-footer { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
+.social-link { color: #fff; text-decoration: none; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+.social-link:hover { color: var(--primary); }
+
+/* RESPONSIVIDADE */
+@media (max-width: 1024px) {
+    .social-header { display: none; }
+    .hero h1 { font-size: 2.8rem; }
+}
 
 @media (max-width: 768px) {
-    .hero-grid { grid-template-columns: 1fr; text-align: center; }
-    .hero h1 { font-size: 2.5rem; }
-    .btn-primary { min-width: 100%; }
+    header { min-height: auto; padding: 15px 0; }
+    nav { flex-direction: column; gap: 15px; }
+    .main-logo-img { height: 75px; } /* Logo um pouco menor no mobile para não ocupar a tela toda */
+    .nav-links { flex-wrap: wrap; justify-content: center; gap: 12px; }
+    
+    .hero-grid { grid-template-columns: 1fr; text-align: center; padding-top: 40px; }
+    .hero h1 { font-size: 2.2rem; }
+    .hero-btns { flex-direction: column; width: 100%; }
+    .btn-primary { width: 100%; min-width: unset; }
+    
+    .flex-row { flex-direction: column; }
+    .danger-box { transform: rotate(0deg); width: 100%; margin-top: 20px; }
+    
+    .section-title { font-size: 2.2rem; }
+    .card, .benefit-card { padding: 30px; }
+    .contact-box { padding: 30px; }
 }
