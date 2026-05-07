@@ -148,7 +148,7 @@ footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color:
 @media (max-width: 768px) {
     header { min-height: auto; padding: 15px 0; }
     nav { flex-direction: column; gap: 15px; }
-    .main-logo-img { height: 75px; } /* Logo um pouco menor no mobile para não ocupar a tela toda */
+    .main-logo-img { height: 75px; } 
     .nav-links { flex-wrap: wrap; justify-content: center; gap: 12px; }
     
     .hero-grid { grid-template-columns: 1fr; text-align: center; padding-top: 40px; }
