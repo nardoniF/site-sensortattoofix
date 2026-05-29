@@ -7,7 +7,7 @@
     --danger: #ff4444;
 }
 
-html { scroll-behavior: smooth; scroll-padding-top: 100px; }
+html { scroll-behavior: smooth; scroll-padding-top: 70px; }
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
 body { background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
 .container { max-width: 1200px; margin: auto; padding: 0 25px; }
@@ -87,25 +87,65 @@ nav {
 }
 
 /* HERO */
-.hero { padding: 120px 0; background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a); }
-.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
-.badge { color: var(--primary); font-weight: 800; text-transform: uppercase; border: 1px solid var(--primary); padding: 5px 12px; border-radius: 50px; font-size: 0.8rem; }
-.hero h1 { font-size: 3.5rem; font-weight: 900; line-height: 1.1; margin: 25px 0; }
-.hero p { font-size: 1.2rem; color: var(--gray); margin-bottom: 40px; }
-.hero-btns { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-.btn-primary { background: var(--primary); color: #000 !important; padding: 18px 30px; border-radius: 12px; text-decoration: none; font-weight: 800; display: inline-block; transition: 0.3s; text-align: center; border: none; min-width: 240px; cursor: pointer; }
+.hero { padding: 80px 0 90px; background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a); }
+.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 55px; align-items: center; }
+.badge { color: var(--primary); font-weight: 800; text-transform: uppercase; border: 1px solid var(--primary); padding: 6px 14px; border-radius: 50px; font-size: 0.9rem; }
+.hero h1 { font-size: 3.5rem; font-weight: 900; line-height: 1.05; margin: 28px 0; }
+.hero p { font-size: 1.1rem; color: var(--gray); margin-bottom: 38px; }
+.hero-btns { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.btn-primary { background: var(--primary); color: #000 !important; padding: 16px 26px; border-radius: 12px; text-decoration: none; font-weight: 800; display: inline-block; transition: 0.3s; text-align: center; border: none; min-width: 220px; cursor: pointer; }
 .product-img { width: 100%; border-radius: 20px; border: 1px solid #222; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
 
-/* SEÇÕES GERAIS */
-.content-section { padding: 100px 0; }
-.grey-bg { background: #080808; }
-.section-title { font-size: 3rem; text-align: center; margin-bottom: 40px; font-weight: 900; }
-.problem-intro { text-align: center; max-width: 800px; margin: 0 auto 50px; font-size: 1.2rem; color: var(--gray); }
+#produtos .product-image-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    max-width: 380px;
+    margin: 0 auto;
+}
 
-.problem-grid, .product-benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
-.card, .benefit-card { background: var(--card); padding: 50px; border-radius: 25px; border: 1px solid #222; text-align: center; height: 100%; transition: 0.3s; }
-.card i, .benefit-card i { font-size: 3rem; color: var(--primary); margin-bottom: 25px; }
-.card h3, .benefit-card h3 { margin-bottom: 15px; font-size: 1.5rem; }
+#produtos .product-image-wrap img {
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+    border-radius: 12px;
+    object-fit: contain;
+}
+
+#produtos .product-benefits-grid .benefit-card {
+    width: 100%;
+    padding: 16px 14px;
+    text-align: center;
+}
+
+#produtos .product-benefits-grid .benefit-card i {
+    margin-bottom: 12px;
+}
+
+#produtos .product-benefits-grid .benefit-card h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+}
+
+#produtos .product-benefits-grid .benefit-card p {
+    font-size: 0.85rem;
+}
+
+/* SEÇÕES GERAIS */
+.content-section { padding: 60px 0; }
+#paliativos { padding-top: 90px; }
+.grey-bg { background: #080808; }
+.section-title { font-size: 2.5rem; text-align: center; margin-bottom: 30px; font-weight: 900; }
+.problem-intro { text-align: center; max-width: 800px; margin: 0 auto 40px; font-size: 1.05rem; color: var(--gray); }
+
+.problem-grid, .product-benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.card, .benefit-card { background: var(--card); padding: 28px; border-radius: 25px; border: 1px solid #222; text-align: center; height: 100%; transition: 0.3s; }
+.card i, .benefit-card i { font-size: 2.25rem; color: var(--primary); margin-bottom: 18px; }
+.card h3, .benefit-card h3 { margin-bottom: 10px; font-size: 1.25rem; }
 
 /* PALIATIVOS */
 .flex-row { display: flex; align-items: center; gap: 50px; }
@@ -117,19 +157,25 @@ nav {
 .danger-box { border: 3px dashed var(--danger); color: var(--danger); padding: 50px; font-weight: 900; text-transform: uppercase; font-size: 1.5rem; transform: rotate(-8deg); text-align: center; width: fit-content; }
 
 /* KIT BOX */
-.kit-box { background: #1a1a1a; padding: 40px; border-radius: 20px; margin-top: 50px; border-left: 5px solid var(--primary); text-align: left; }
-.kit-box h3 { margin-bottom: 25px; color: var(--primary); }
-.kit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+.kit-box { background: #1a1a1a; padding: 24px; border-radius: 20px; margin-top: 30px; border-left: 5px solid var(--primary); text-align: left; }
+.kit-box h3 { margin-bottom: 16px; color: var(--primary); }
+.kit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
 .kit-feature { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 .kit-feature i { color: var(--primary); }
 
 /* CONTATO */
-.contact-box { background: var(--card); padding: 60px; border-radius: 30px; border: 1px solid #222; text-align: center; max-width: 700px; margin: auto; }
-.contact-box p { color: var(--gray); margin-bottom: 30px; }
-.contact-form { display: flex; flex-direction: column; gap: 20px; }
-.contact-form input, .contact-form textarea { padding: 15px; background: #0a0a0a; border: 1px solid #333; color: white; border-radius: 8px; font-size: 1rem; width: 100%; }
+.contact-box { background: var(--card); padding: 28px; border-radius: 30px; border: 1px solid #222; text-align: center; max-width: 700px; margin: auto; }
+.contact-box p { color: var(--gray); margin-bottom: 18px; }
+.contact-form { display: flex; flex-direction: column; gap: 14px; }
+.contact-form input, .contact-form textarea { padding: 12px; background: #0a0a0a; border: 1px solid #333; color: white; border-radius: 8px; font-size: 0.95rem; width: 100%; }
 .contact-form button { cursor: pointer; border: none; }
-.btn-whatsapp-inline { background: #25d366; color: white !important; padding: 15px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
+.btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
+
+#onde-comprar { padding: 100px 0; }
+#onde-comprar .problem-grid { gap: 36px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+#onde-comprar .card { padding: 55px; min-height: 320px; }
+#onde-comprar .card h3 { font-size: 1.75rem; }
+#onde-comprar .card p { font-size: 1.05rem; }
 
 /* FOOTER */
 footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color: var(--gray); }
@@ -160,6 +206,7 @@ footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color:
     .danger-box { transform: rotate(0deg); width: 100%; margin-top: 20px; }
     
     .section-title { font-size: 2.2rem; }
+    .content-section { padding: 60px 0; }
     .card, .benefit-card { padding: 30px; }
     .contact-box { padding: 30px; }
 }
