@@ -201,13 +201,14 @@ footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color:
 }
 
 @media (max-width: 768px) {
-    header { min-height: auto; padding: 15px 0; }
-    nav { position: relative; flex-direction: row; justify-content: space-between; flex-wrap: nowrap; gap: 12px; align-items: center; }
-    .logo-area { width: auto; flex: 1 1 auto; min-width: 0; gap: 8px; }
+    header { position: fixed; top: 0; left: 0; width: 100%; min-height: auto; padding: 15px 0; }
+    body { padding-top: 90px; }
+    nav { position: relative; flex-direction: row; justify-content: flex-start; flex-wrap: nowrap; gap: 10px; align-items: center; }
+    .logo-area { width: auto; flex: 0 0 auto; min-width: 0; gap: 8px; }
     .main-logo-img { height: 58px; } 
     .logo-text { font-size: 1.05rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .mobile-menu-checkbox { display: none; }
-    .mobile-menu-icon { display: flex; order: 2; margin-left: auto; }
+    .mobile-menu-icon { display: flex; order: 2; margin-left: 8px; }
 
     .nav-links {
         position: absolute;
