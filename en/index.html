@@ -29,6 +29,10 @@
                 <a href="#"><img src="../logo.jpg" alt="Logo" class="main-logo-img"></a>
                 <div class="logo-text">SENSOR<span>TATTOOFIX</span></div>
             </div>
+            <input type="checkbox" id="mobile-menu-toggle" class="mobile-menu-checkbox" aria-hidden="true">
+            <label for="mobile-menu-toggle" class="mobile-menu-icon" aria-label="Open menu">
+                <i class="fas fa-bars"></i>
+            </label>
             <ul class="nav-links">
                 <li><a href="#problema">The Problem</a></li>
                 <li><a href="#paliativos">DIY Failures</a></li>
@@ -303,5 +307,15 @@
             <p style="text-align: center;">&copy; 2026 Sensor Tattoo Fix. N20 Soluções Tecnologicas. Patent Pending: BR 20 2026 010875 3.</p>
         </div>
     </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toggle = document.getElementById('mobile-menu-toggle');
+            document.querySelectorAll('.nav-links a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (toggle) toggle.checked = false;
+                });
+            });
+        });
+    </script>
 </body>
 </html>
