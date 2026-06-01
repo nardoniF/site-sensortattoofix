@@ -208,6 +208,9 @@ footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color:
     .hero h1 { font-size: 2.2rem; }
     .hero-btns { flex-direction: column; width: 100%; }
     .btn-primary { width: 100%; min-width: unset; }
+    .product-showcase { grid-template-columns: 1fr; }
+    .product-image-wrap { max-width: 100%; margin-top: 20px; }
+    .product-image-wrap img { max-width: 100%; }
     
     .flex-row { flex-direction: column; }
     .danger-box { transform: rotate(0deg); width: 100%; margin-top: 20px; }
