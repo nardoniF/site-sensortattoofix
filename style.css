@@ -202,15 +202,17 @@ footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color:
 
 @media (max-width: 768px) {
     header { min-height: auto; padding: 15px 0; }
-    nav { position: relative; flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: center; }
-    .logo-area { width: auto; }
-    .main-logo-img { height: 75px; } 
+    nav { position: relative; flex-direction: row; justify-content: space-between; flex-wrap: nowrap; gap: 12px; align-items: center; }
+    .logo-area { width: auto; flex: 0 0 auto; gap: 10px; }
+    .main-logo-img { height: 68px; } 
     .mobile-menu-checkbox { display: none; }
-    .mobile-menu-icon { display: flex; }
+    .mobile-menu-icon { display: flex; order: 2; margin-left: auto; }
 
     .nav-links {
         position: absolute;
-        right: 14px;
+        right: 12px;
+        left: auto;
+        transform: none;
         top: calc(100% + 8px);
         background: rgba(10, 10, 10, 0.88);
         backdrop-filter: blur(16px);
