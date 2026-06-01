@@ -269,7 +269,19 @@ footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color:
     .hero-btns { flex-direction: column; width: 100%; }
     .btn-primary { width: auto; min-width: unset; max-width: 220px; }
     .btn-primary, .btn-secondary { margin-left: auto; margin-right: auto; }
-    #produtos > .container > div { grid-template-columns: 1fr !important; }
+    #produtos > .container > div { grid-template-columns: 1fr !important; gap: 24px !important; }
+    #produtos .product-benefits-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 16px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+    #produtos .product-benefits-grid > .benefit-card {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
     #produtos > .container > div > .product-image-wrap { max-width: 100%; margin-top: 20px; justify-self: center; }
     #produtos > .container > div > .product-image-wrap img { max-width: 100%; }
     
