@@ -244,7 +244,7 @@ footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color:
         white-space: nowrap;
     }
     .nav-links li:not(.social-header) a { color: #fff; }
-    .nav-links li .btn-nav { width: 100%; }
+    .nav-links li .btn-nav { width: auto; margin: 0 16px; }
     .btn-nav { justify-content: center; }
     .mobile-menu-icon {
         align-items: center;
