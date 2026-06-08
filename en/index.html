@@ -247,7 +247,7 @@
             <p class="onde-comprar-intro">Partner marketplaces or buy direct from our site at the best price.</p>
 
             <div class="stores-layout">
-                <a href="../comprar.html" class="store-official-bar">
+                <a href="../comprar.html?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=onde_comprar&amp;utm_content=loja_oficial" class="store-official-bar">
                     <span class="store-icon-circle">
                         <img src="../logo.jpg" alt="Sensor Tattoo Fix">
                     </span>
@@ -259,21 +259,21 @@
                 </a>
 
                 <div class="stores-grid-3">
-                    <a href="https://produto.mercadolivre.com.br/MLB-6664779166-pelicula-sensor-smartwatch-restaura-funcoes-em-pele-tatuada-_JM" target="_blank" rel="noopener" class="store-link">
+                    <a href="https://produto.mercadolivre.com.br/MLB-6664779166-pelicula-sensor-smartwatch-restaura-funcoes-em-pele-tatuada-_JM?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=onde_comprar&amp;utm_content=mercado_livre" target="_blank" rel="noopener" class="store-link">
                         <div class="card store-card store-ml">
                             <i class="fas fa-shopping-cart"></i>
                             <h3>Mercado Libre</h3>
                             <p>Fast Delivery</p>
                         </div>
                     </a>
-                    <a href="https://shopee.com.br/product/479290797/58259628035/" target="_blank" rel="noopener" class="store-link">
+                    <a href="https://shopee.com.br/product/479290797/58259628035/?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=onde_comprar&amp;utm_content=shopee" target="_blank" rel="noopener" class="store-link">
                         <div class="card store-card store-shopee">
                             <i class="fas fa-bag-shopping"></i>
                             <h3>Shopee</h3>
                             <p>Best Deals</p>
                         </div>
                     </a>
-                    <a href="https://www.amazon.com.br/dp/B0GYVBRGZS" target="_blank" rel="noopener" class="store-link">
+                    <a href="https://www.amazon.com.br/dp/B0GYVBRGZS?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=onde_comprar&amp;utm_content=amazon" target="_blank" rel="noopener" class="store-link">
                         <div class="card store-card store-amazon">
                             <i class="fab fa-amazon"></i>
                             <h3>Amazon</h3>
@@ -321,12 +321,23 @@
             <p style="text-align: center;">&copy; 2026 Sensor Tattoo Fix. N20 Soluções Tecnologicas. Patent Pending: BR 20 2026 010875 3.</p>
         </div>
     </footer>
+    <script src="../js/analytics.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var toggle = document.getElementById('mobile-menu-toggle');
             document.querySelectorAll('.nav-links a').forEach(function(link) {
                 link.addEventListener('click', function() {
                     if (toggle) toggle.checked = false;
+                });
+            });
+            document.querySelectorAll('#onde-comprar a[href]').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    var label = (link.querySelector('h3, strong') || {}).textContent || link.hostname || 'loja';
+                    window.STF_ANALYTICS?.track('select_promotion', {
+                        promotion_name: label.trim(),
+                        creative_name: link.href.includes('comprar.html') ? 'loja_oficial' : 'marketplace',
+                        location_id: 'onde_comprar'
+                    });
                 });
             });
         });
