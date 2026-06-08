@@ -29,12 +29,24 @@
       .slice(0, max);
   }
 
-  function generatePixPayload({ key, merchantName, merchantCity, amount, txid }) {
+  function normalizePixKey(key, keyType) {
+    const raw = (key || '').trim();
+    if (keyType === 'cpf' || keyType === 'cnpj' || keyType === 'phone') {
+      return raw.replace(/\D/g, '');
+    }
+    if (/^\d{11}$/.test(raw.replace(/\D/g, '')) && !raw.includes('@')) {
+      return raw.replace(/\D/g, '');
+    }
+    return raw;
+  }
+
+  function generatePixPayload({ key, keyType, merchantName, merchantCity, amount, txid }) {
     const name = sanitize(merchantName, 25);
     const city = sanitize(merchantCity, 15);
     const reference = (txid || 'STF' + Date.now()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 25);
+    const pixKey = normalizePixKey(key, keyType);
 
-    const merchantAccount = tlv('00', 'br.gov.bcb.pix') + tlv('01', key);
+    const merchantAccount = tlv('00', 'br.gov.bcb.pix') + tlv('01', pixKey);
     let payload =
       tlv('00', '01') +
       tlv('26', merchantAccount) +

@@ -1,6 +1,6 @@
 (function () {
-  const cfg = window.CHECKOUT_CONFIG;
-  const product = cfg.product;
+  let cfg;
+  let product;
 
   const els = {
     form: document.getElementById('checkout-form'),
@@ -182,6 +182,7 @@
   function renderPixQr(data) {
     const payload = PixGenerator.generatePixPayload({
       key: cfg.pix.key,
+      keyType: cfg.pix.keyType,
       merchantName: cfg.pix.merchantName,
       merchantCity: cfg.pix.merchantCity,
       amount: data.total,
@@ -362,11 +363,20 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    updateSummary();
-    initMpOption();
-    showReturnStatus();
-    bindEvents();
-    showStep(1);
-  });
+  async function boot() {
+    try {
+      cfg = await StoreConfig.load();
+      product = cfg.product;
+      updateSummary();
+      initMpOption();
+      showReturnStatus();
+      bindEvents();
+      showStep(1);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao carregar a loja. Tente recarregar a página.');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', boot);
 })();

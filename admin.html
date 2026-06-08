@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin — Sensor TattooFix</title>
+    <link rel="stylesheet" href="style.css?v=1.44">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="admin-page">
+
+    <header>
+        <nav class="container">
+            <div class="logo-area">
+                <a href="index.html"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
+                <div class="logo-text">ADMIN<span>PANEL</span></div>
+            </div>
+            <ul class="nav-links checkout-nav">
+                <li><a href="comprar.html"><i class="fas fa-store"></i> Ver loja</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="admin-main">
+        <div class="container admin-container">
+
+            <section id="admin-login" class="admin-card">
+                <h1><i class="fas fa-lock"></i> Painel Administrativo</h1>
+                <p class="admin-intro">Gerencie preço, PIX, frete e contatos da loja oficial.</p>
+                <form id="admin-login-form" class="admin-form">
+                    <label>URL da API (Cloudflare Worker)
+                        <input type="url" id="login-api-url" name="apiUrl" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
+                        <small>Opcional se já estiver em js/config-bootstrap.js</small>
+                    </label>
+                    <label>Usuário
+                        <input type="text" name="username" value="admin" required autocomplete="username">
+                    </label>
+                    <label>Senha
+                        <input type="password" name="password" required autocomplete="current-password" placeholder="Senha definida no Worker">
+                    </label>
+                    <button type="submit" class="btn-primary">Entrar</button>
+                    <button type="button" id="btn-offline-mode" class="btn-secondary" style="margin-top:8px;">Editar sem API (modo offline)</button>
+                </form>
+                <p id="admin-status" class="admin-status" hidden></p>
+            </section>
+
+            <section id="admin-panel" class="admin-card" hidden>
+                <div class="admin-panel-header">
+                    <div>
+                        <h1>Configurações da Loja</h1>
+                        <p id="config-updated-at" class="admin-meta"></p>
+                    </div>
+                    <div class="admin-panel-actions">
+                        <span id="admin-mode" class="admin-mode-badge offline">Modo arquivo local</span>
+                        <button type="button" id="admin-logout" class="btn-secondary">Sair</button>
+                    </div>
+                </div>
+
+                <form id="admin-config-form" class="admin-form">
+                    <fieldset>
+                        <legend><i class="fas fa-box"></i> Produto</legend>
+                        <div class="form-grid">
+                            <label class="full">Nome
+                                <input type="text" name="productName" required>
+                            </label>
+                            <label class="full">Descrição
+                                <textarea name="productDescription" rows="2"></textarea>
+                            </label>
+                            <label>Preço (R$)
+                                <input type="number" name="productPrice" step="0.01" min="0" required>
+                            </label>
+                            <label>Frete (R$)
+                                <input type="number" name="productShipping" step="0.01" min="0" value="0">
+                                <small>Use 0 para frete grátis</small>
+                            </label>
+                            <label class="full">URL da imagem
+                                <input type="url" name="productImage">
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-qrcode"></i> PIX</legend>
+                        <div class="form-grid">
+                            <label class="full">Chave PIX
+                                <input type="text" name="pixKey" required placeholder="CPF, e-mail, telefone ou chave aleatória">
+                            </label>
+                            <label>Tipo da chave
+                                <select name="pixKeyType">
+                                    <option value="cpf">CPF</option>
+                                    <option value="email">E-mail</option>
+                                    <option value="phone">Telefone</option>
+                                    <option value="cnpj">CNPJ</option>
+                                    <option value="random">Aleatória</option>
+                                </select>
+                            </label>
+                            <label>Nome no PIX (máx. 25 caracteres)
+                                <input type="text" name="pixMerchantName" maxlength="25" required>
+                            </label>
+                            <label>Cidade (máx. 15 caracteres)
+                                <input type="text" name="pixMerchantCity" maxlength="15" required>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-headset"></i> Contato e pedidos</legend>
+                        <div class="form-grid">
+                            <label>WhatsApp (somente números)
+                                <input type="text" name="whatsapp" required placeholder="5511999999999">
+                            </label>
+                            <label>E-mail dos pedidos (FormSubmit)
+                                <input type="email" name="formsubmitEmail" required>
+                            </label>
+                            <label class="full">Assunto do e-mail de pedido
+                                <input type="text" name="formsubmitSubject" required>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-server"></i> API</legend>
+                        <div class="form-grid">
+                            <label class="full">URL do Worker Cloudflare
+                                <input type="url" name="apiBaseUrl" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
+                                <small>Salvar online exige API configurada e login. Sem API, use “Baixar backup”.</small>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <div class="admin-form-actions">
+                        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar alterações</button>
+                        <button type="button" id="btn-download-config" class="btn-secondary"><i class="fas fa-download"></i> Baixar backup JSON</button>
+                    </div>
+                </form>
+                <p id="admin-status-panel" class="admin-status" hidden></p>
+            </section>
+
+        </div>
+    </main>
+
+    <script src="js/config-bootstrap.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

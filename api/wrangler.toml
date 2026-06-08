@@ -4,7 +4,11 @@ compatibility_date = "2024-01-01"
 
 # Após o deploy, a URL será algo como:
 # https://sensortattoofix-payments.SEU-USUARIO.workers.dev
+# Cole essa URL em js/config-bootstrap.js → configApiUrl
+
+[[kv_namespaces]]
+binding = "STORE_KV"
+id = "SUBSTITUA_PELO_ID_DO_KV"
 
 [vars]
-# Opcional: URL para webhooks de confirmação automática de pagamento
-# MP_WEBHOOK_URL = "https://..."
+ADMIN_USERNAME = "admin"

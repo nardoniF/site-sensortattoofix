@@ -1,0 +1,271 @@
+(function () {
+  const SESSION_KEY = 'stf_admin_token';
+  const bootstrap = window.CONFIG_BOOTSTRAP || {};
+
+  const els = {
+    loginScreen: document.getElementById('admin-login'),
+    panelScreen: document.getElementById('admin-panel'),
+    loginForm: document.getElementById('admin-login-form'),
+    configForm: document.getElementById('admin-config-form'),
+    logoutBtn: document.getElementById('admin-logout'),
+    statusMsg: document.getElementById('admin-status'),
+    statusPanel: document.getElementById('admin-status-panel'),
+    modeBadge: document.getElementById('admin-mode'),
+    btnDownload: document.getElementById('btn-download-config'),
+    updatedAt: document.getElementById('config-updated-at'),
+    loginApiUrl: document.getElementById('login-api-url')
+  };
+
+  let currentConfig = null;
+
+  function apiBase() {
+    const url = (
+      els.configForm?.apiBaseUrl?.value ||
+      els.loginApiUrl?.value ||
+      bootstrap.configApiUrl ||
+      ''
+    ).trim();
+    return url.replace(/\/$/, '');
+  }
+
+  function showStatus(text, type, target) {
+    const el = target === 'panel' ? els.statusPanel : els.statusMsg;
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'admin-status ' + (type || '');
+    el.hidden = !text;
+  }
+
+  function setModeBadge(online) {
+    if (!els.modeBadge) return;
+    els.modeBadge.textContent = online ? 'API conectada' : 'Modo arquivo local';
+    els.modeBadge.className = 'admin-mode-badge ' + (online ? 'online' : 'offline');
+  }
+
+  async function loadConfig() {
+    const base = apiBase();
+    if (base) {
+      try {
+        const res = await fetch(base + '/config', { cache: 'no-store' });
+        if (res.ok) {
+          currentConfig = await res.json();
+          setModeBadge(true);
+          return currentConfig;
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    const res = await fetch('/data/store-config.json?v=' + Date.now());
+    currentConfig = await res.json();
+    setModeBadge(false);
+    return currentConfig;
+  }
+
+  function fillForm(config) {
+    const f = els.configForm;
+    f.productName.value = config.product.name;
+    f.productDescription.value = config.product.description;
+    f.productPrice.value = config.product.price;
+    f.productShipping.value = config.product.shipping;
+    f.productImage.value = config.product.image;
+    f.pixKey.value = config.pix.key;
+    if (f.pixKeyType) f.pixKeyType.value = config.pix.keyType || 'cpf';
+    f.pixMerchantName.value = config.pix.merchantName;
+    f.pixMerchantCity.value = config.pix.merchantCity;
+    f.whatsapp.value = config.whatsapp;
+    f.formsubmitEmail.value = config.formsubmit.email;
+    f.formsubmitSubject.value = config.formsubmit.subject;
+    f.apiBaseUrl.value = (config.api && config.api.baseUrl) || bootstrap.configApiUrl || '';
+    if (els.updatedAt) {
+      els.updatedAt.textContent = config.updatedAt
+        ? 'Última atualização: ' + new Date(config.updatedAt).toLocaleString('pt-BR')
+        : '';
+    }
+  }
+
+  function collectForm() {
+    const f = els.configForm;
+    return {
+      product: {
+        name: f.productName.value.trim(),
+        description: f.productDescription.value.trim(),
+        price: parseFloat(f.productPrice.value) || 0,
+        shipping: parseFloat(f.productShipping.value) || 0,
+        image: f.productImage.value.trim()
+      },
+      pix: {
+        key: f.pixKey.value.trim(),
+        keyType: f.pixKeyType?.value || 'cpf',
+        merchantName: f.pixMerchantName.value.trim(),
+        merchantCity: f.pixMerchantCity.value.trim()
+      },
+      mercadoPago: {
+        apiUrl: '',
+        successUrl: currentConfig.mercadoPago.successUrl,
+        pendingUrl: currentConfig.mercadoPago.pendingUrl,
+        failureUrl: currentConfig.mercadoPago.failureUrl
+      },
+      formsubmit: {
+        email: f.formsubmitEmail.value.trim(),
+        subject: f.formsubmitSubject.value.trim()
+      },
+      whatsapp: f.whatsapp.value.replace(/\D/g, ''),
+      siteUrl: currentConfig.siteUrl,
+      api: {
+        baseUrl: f.apiBaseUrl.value.trim()
+      },
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function showPanel() {
+    els.loginScreen.hidden = true;
+    els.panelScreen.hidden = false;
+  }
+
+  function showLogin() {
+    els.loginScreen.hidden = false;
+    els.panelScreen.hidden = true;
+    sessionStorage.removeItem(SESSION_KEY);
+  }
+
+  async function tryLogin(username, password) {
+    const base = apiBase();
+    if (!base) {
+      showStatus('Configure a URL da API para fazer login.', 'error');
+      return false;
+    }
+
+    const res = await fetch(base.replace(/\/$/, '') + '/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Usuário ou senha incorretos.');
+    }
+
+    const data = await res.json();
+    sessionStorage.setItem(SESSION_KEY, data.token);
+    return true;
+  }
+
+  async function saveConfig(config) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase() || bootstrap.configApiUrl;
+    if (!base || !token) {
+      throw new Error('Faça login com a API configurada para salvar online.');
+    }
+
+    const res = await fetch(base.replace(/\/$/, '') + '/config', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token
+      },
+      body: JSON.stringify(config)
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        showLogin();
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Erro ao salvar configuração.');
+    }
+
+    return await res.json();
+  }
+
+  function downloadConfig(config) {
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'store-config.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function initPanel() {
+    await loadConfig();
+    fillForm(currentConfig);
+  }
+
+  els.loginForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showStatus('Entrando...', '');
+    try {
+      const fd = new FormData(els.loginForm);
+      await tryLogin(fd.get('username'), fd.get('password'));
+      showPanel();
+      await initPanel();
+      showStatus('Login realizado com sucesso.', 'success');
+    } catch (err) {
+      showStatus(err.message, 'error');
+    }
+  });
+
+  els.configForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showStatus('Salvando...', '');
+    try {
+      const config = collectForm();
+      const base = apiBase() || bootstrap.configApiUrl;
+
+      if (base && sessionStorage.getItem(SESSION_KEY)) {
+        const saved = await saveConfig(config);
+        currentConfig = saved;
+        fillForm(saved);
+        showStatus('Configuração salva! O site já usa os novos valores.', 'success', 'panel');
+      } else {
+        downloadConfig(config);
+        showStatus(
+          'Arquivo baixado. Substitua data/store-config.json no GitHub e faça deploy, ou configure a API para salvar online.',
+          'warning',
+          'panel'
+        );
+      }
+    } catch (err) {
+      showStatus(err.message, 'error', 'panel');
+    }
+  });
+
+  els.btnDownload?.addEventListener('click', () => {
+    downloadConfig(collectForm());
+    showStatus('Backup JSON baixado.', 'success', 'panel');
+  });
+
+  els.logoutBtn?.addEventListener('click', () => {
+    showLogin();
+    showStatus('', '');
+    showStatus('', '', 'panel');
+  });
+
+  document.getElementById('btn-offline-mode')?.addEventListener('click', async () => {
+    showPanel();
+    await initPanel();
+    showStatus('Modo offline: altere os campos e use Salvar ou Baixar backup JSON.', 'warning', 'panel');
+  });
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (els.loginApiUrl && bootstrap.configApiUrl) {
+      els.loginApiUrl.value = bootstrap.configApiUrl;
+    }
+
+    const token = sessionStorage.getItem(SESSION_KEY);
+    if (token && apiBase()) {
+      showPanel();
+      try {
+        await initPanel();
+      } catch (err) {
+        showLogin();
+        showStatus(err.message, 'error');
+      }
+    }
+  });
+})();
