@@ -602,7 +602,7 @@ async function notifyEmail(env, config, to, subject, fields, replyTo) {
 }
 
 async function notifyShop(env, config, subject, fields) {
-  await notifyEmail(env, config, config.formsubmit?.email, subject, fields);
+  return notifyEmail(env, config, config.formsubmit?.email, subject, fields);
 }
 
 async function notifyCustomer(env, config, order, subject, fields) {
@@ -743,13 +743,16 @@ async function handlePaymentConfirmed(env, order, payment) {
   await saveOrder(env, order);
 
   const config = await getConfig(env);
-  await notifyShop(env, config, '✅ PAGO — ' + order.orderId, {
+  const shopPaid = await notifyShop(env, config, 'PAGO — ' + order.orderId, {
     Pedido: order.orderId, Status: 'PAGO', Cliente: order.nome,
+    'E-mail cliente': order.email, Telefone: order.telefone,
+    Pagamento: order.pagamento || payment?.billingType || '—',
     Smartwatch: order.smartwatch, Valor: formatBRL(value),
     Endereço: order.endereco, Envio: order.shippingService
   });
+  if (!shopPaid?.ok) console.error('E-mail PAGO loja falhou:', JSON.stringify(shopPaid));
 
-  await notifyCustomer(env, config, order, `✅ Pagamento confirmado — ${order.orderId}`, {
+  await notifyCustomer(env, config, order, `Pagamento confirmado — ${order.orderId}`, {
     Pedido: order.orderId,
     Status: 'PAGO',
     Valor: formatBRL(value),

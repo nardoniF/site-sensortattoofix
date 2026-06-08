@@ -17,6 +17,7 @@
                 <div class="logo-text">ADMIN<span>PANEL</span></div>
             </div>
             <ul class="nav-links checkout-nav">
+                <li><a href="pedidos.html"><i class="fas fa-list"></i> Pedidos</a></li>
                 <li><a href="comprar.html"><i class="fas fa-store"></i> Ver loja</a></li>
             </ul>
         </nav>
@@ -161,8 +162,9 @@
 
                 <fieldset class="admin-orders-section">
                     <legend><i class="fas fa-list"></i> Pedidos salvos</legend>
-                    <p class="admin-meta">Exporte todos os pedidos registrados pela API (requer login + Worker configurado).</p>
+                    <p class="admin-meta">Veja e gerencie pedidos na lista interativa — usa o mesmo login deste painel.</p>
                     <div class="admin-form-actions">
+                        <a href="pedidos.html" class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;"><i class="fas fa-list"></i> Abrir pedidos</a>
                         <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> Exportar JSON</button>
                         <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-file-csv"></i> Exportar CSV</button>
                     </div>
