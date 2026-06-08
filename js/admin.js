@@ -139,6 +139,17 @@
     sessionStorage.removeItem(SESSION_KEY);
   }
 
+  async function validateSession() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) return false;
+    const res = await fetch(base + '/admin/session', {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    return res.ok;
+  }
+
   async function tryLogin(username, password) {
     const base = apiBase();
     if (!base) {
@@ -254,12 +265,6 @@
     showStatus('', '', 'panel');
   });
 
-  document.getElementById('btn-offline-mode')?.addEventListener('click', async () => {
-    showPanel();
-    await initPanel();
-    showStatus('Modo offline: altere os campos e use Salvar ou Baixar backup JSON.', 'warning', 'panel');
-  });
-
   async function exportOrders(format) {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -293,10 +298,16 @@
 
     const token = sessionStorage.getItem(SESSION_KEY);
     if (token && apiBase()) {
-      showPanel();
       try {
-        await initPanel();
+        if (await validateSession()) {
+          showPanel();
+          await initPanel();
+        } else {
+          sessionStorage.removeItem(SESSION_KEY);
+          showLogin();
+        }
       } catch (err) {
+        sessionStorage.removeItem(SESSION_KEY);
         showLogin();
         showStatus(err.message, 'error');
       }

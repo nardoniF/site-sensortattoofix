@@ -23,14 +23,76 @@ const DEFAULT_CONFIG = {
   api: { baseUrl: '' }
 };
 
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_SEC = 1800;
+
 function corsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin);
-  return {
-    'Access-Control-Allow-Origin': allowed ? origin : ALLOWED_ORIGINS[0],
+  const headers = {
     'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, asaas-access-token',
     'Access-Control-Max-Age': '86400'
   };
+  if (allowed) headers['Access-Control-Allow-Origin'] = origin;
+  return headers;
+}
+
+function clientIp(request) {
+  return request.headers.get('CF-Connecting-IP') ||
+    (request.headers.get('X-Forwarded-For') || '').split(',')[0].trim() ||
+    'unknown';
+}
+
+function generateOrderId() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase();
+  return `STF-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${suffix}`;
+}
+
+function publicOrderView(order) {
+  return {
+    orderId: order.orderId,
+    status: order.status,
+    total: order.total,
+    frete: order.frete,
+    valorProduto: order.valorProduto,
+    pagamento: order.pagamento,
+    paidAt: order.paidAt || null
+  };
+}
+
+async function getLoginLock(env, ip) {
+  const raw = await env.STORE_KV.get('login:' + ip);
+  if (!raw) return null;
+  try {
+    const data = JSON.parse(raw);
+    if (data.lockedUntil && Date.now() < data.lockedUntil) return data;
+    if (data.lockedUntil && Date.now() >= data.lockedUntil) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function recordLoginFailure(env, ip) {
+  const key = 'login:' + ip;
+  const current = (await getLoginLock(env, ip)) || { attempts: 0 };
+  if (current.lockedUntil && Date.now() < current.lockedUntil) return current;
+  const attempts = (current.attempts || 0) + 1;
+  const data = attempts >= LOGIN_MAX_ATTEMPTS
+    ? { attempts: 0, lockedUntil: Date.now() + LOGIN_LOCKOUT_SEC * 1000 }
+    : { attempts };
+  await env.STORE_KV.put(key, JSON.stringify(data), { expirationTtl: LOGIN_LOCKOUT_SEC });
+  return data;
+}
+
+async function clearLoginFailures(env, ip) {
+  await env.STORE_KV.delete('login:' + ip);
+}
+
+function bearerToken(request) {
+  return (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
 }
 
 function json(data, status, origin) {
@@ -315,7 +377,8 @@ async function handleCreateOrder(request, env, origin) {
   const pagamentoLabel = billingType === 'CREDIT_CARD' ? 'Cartão de crédito' : 'PIX';
 
   const order = {
-    orderId: body.orderId || 'STF-' + Date.now(),
+    orderId: generateOrderId(),
+    accessToken: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     status: 'pending_payment',
     nome: body.nome,
@@ -373,7 +436,11 @@ async function handleCreateOrder(request, env, origin) {
 
   await notifyWhatsApp(env, config, order, 'order');
 
-  return json({ order, payment: payment || { provider: 'static_pix', billingType: 'PIX', autoConfirm: false } }, 200, origin);
+  return json({
+    order: publicOrderView(order),
+    accessToken: order.accessToken,
+    payment: payment || { provider: 'static_pix', billingType: 'PIX', autoConfirm: false }
+  }, 200, origin);
 }
 
 async function handlePaymentConfirmed(env, order, payment) {
@@ -408,16 +475,56 @@ async function handleAsaasWebhook(request, env, origin) {
 
 async function handleLogin(request, env, origin) {
   if (!env.ADMIN_PASSWORD) return json({ error: 'ADMIN_PASSWORD não configurado.' }, 500, origin);
+
+  const ip = clientIp(request);
+  const lock = await getLoginLock(env, ip);
+  if (lock?.lockedUntil && Date.now() < lock.lockedUntil) {
+    const retryAfter = Math.ceil((lock.lockedUntil - Date.now()) / 1000);
+    return new Response(JSON.stringify({ error: 'Muitas tentativas. Tente novamente em alguns minutos.' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(retryAfter),
+        ...corsHeaders(origin)
+      }
+    });
+  }
+
   const body = await request.json();
   if ((body.username || '').trim() !== (env.ADMIN_USERNAME || 'admin') || body.password !== env.ADMIN_PASSWORD) {
+    await recordLoginFailure(env, ip);
     return json({ error: 'Usuário ou senha incorretos.' }, 401, origin);
   }
+
+  await clearLoginFailures(env, ip);
   return json({ token: await createSession(env), username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
 }
 
+async function handleSession(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  return json({ ok: true, username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
+}
+
+async function handleGetOrder(request, env, origin, orderId) {
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Não encontrado.' }, 404, origin);
+
+  if (await isValidSession(env, bearerToken(request))) {
+    return json(order, 200, origin);
+  }
+
+  const accessToken = new URL(request.url).searchParams.get('token') || '';
+  if (accessToken && order.accessToken && accessToken === order.accessToken) {
+    return json(publicOrderView(order), 200, origin);
+  }
+
+  return json({ error: 'Não autorizado.' }, 401, origin);
+}
+
 async function handlePutConfig(request, env, origin) {
-  const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-  if (!(await isValidSession(env, token))) return json({ error: 'Não autorizado.' }, 401, origin);
+  if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
   const body = await request.json();
   const current = await getConfig(env);
   const merged = {
@@ -434,8 +541,7 @@ async function handlePutConfig(request, env, origin) {
 }
 
 async function handleListOrders(request, env, origin) {
-  const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-  if (!(await isValidSession(env, token))) return json({ error: 'Não autorizado.' }, 401, origin);
+  if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
 
   const format = new URL(request.url).searchParams.get('format') || 'json';
   const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
@@ -470,16 +576,14 @@ export default {
       if (path === '/config' && request.method === 'GET') return json(await getConfig(env), 200, origin);
       if (path === '/config' && request.method === 'PUT') return handlePutConfig(request, env, origin);
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
+      if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/shipping/quote' && request.method === 'GET') return handleShippingQuote(request, env, origin);
       if (path === '/orders' && request.method === 'POST') return handleCreateOrder(request, env, origin);
       if (path === '/orders' && request.method === 'GET') return handleListOrders(request, env, origin);
       if (path === '/webhook/asaas' && request.method === 'POST') return handleAsaasWebhook(request, env, origin);
 
       const m = path.match(/^\/orders\/([^/]+)$/);
-      if (m && request.method === 'GET') {
-        const order = await getOrder(env, m[1]);
-        return order ? json(order, 200, origin) : json({ error: 'Não encontrado' }, 404, origin);
-      }
+      if (m && request.method === 'GET') return handleGetOrder(request, env, origin, m[1]);
       return json({ error: 'Rota não encontrada.' }, 404, origin);
     } catch (err) {
       return json({ error: err.message }, 500, origin);

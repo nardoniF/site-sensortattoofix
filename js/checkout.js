@@ -190,7 +190,6 @@
     const endereco = `${data.rua}, ${data.numero}${comp} — ${data.bairro}, ${data.cidade}/${data.uf} — ${paisLabel} ${data.cep}`;
 
     return {
-      orderId: generateOrderId(),
       nome: f.nome.value.trim(), email: f.email.value.trim(),
       telefone: f.telefone.value.trim(), cpf: f.cpf.value.trim(),
       smartwatch: f.smartwatch.value,
@@ -236,14 +235,15 @@
       return res.json();
     }
 
+    const orderId = generateOrderId();
     const body = new FormData();
     body.append('_subject', cfg.formsubmit.subject);
     body.append('_captcha', 'false');
     body.append('_template', 'table');
-    Object.entries({ Pedido: orderData.orderId, Nome: orderData.nome, Smartwatch: orderData.smartwatch,
+    Object.entries({ Pedido: orderId, Nome: orderData.nome, Smartwatch: orderData.smartwatch,
       Total: formatBRL(product.price + orderData.frete), Endereço: orderData.endereco }).forEach(([k,v]) => body.append(k,v));
     await fetch(`https://formsubmit.co/ajax/${cfg.formsubmit.email}`, { method: 'POST', body, headers: { Accept: 'application/json' } });
-    return { order: { ...orderData, total: product.price + orderData.frete }, payment: { provider: 'static_pix', billingType: 'PIX' } };
+    return { order: { ...orderData, orderId, total: product.price + orderData.frete }, payment: { provider: 'static_pix', billingType: 'PIX' } };
   }
 
   function renderPix(orderId, total, payment) {
@@ -277,12 +277,13 @@
     els.confirmHint.textContent = 'Clique no botão abaixo para pagar com cartão de forma segura.';
   }
 
-  function startPolling(orderId) {
+  function startPolling(orderId, accessToken) {
     const base = apiBase();
-    if (!base) return;
+    if (!base || !accessToken) return;
     pollTimer = setInterval(async () => {
       try {
-        const res = await fetch(`${base}/orders/${orderId}`, { cache: 'no-store' });
+        const url = `${base}/orders/${encodeURIComponent(orderId)}?token=${encodeURIComponent(accessToken)}`;
+        const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) return;
         const order = await res.json();
         if (order.status === 'paid') {
@@ -302,8 +303,10 @@
       const orderData = collectOrderData();
       const result = await createOrder(orderData);
       const total = result.order?.total || (product.price + orderData.frete);
-      const orderId = result.order?.orderId || orderData.orderId;
+      const orderId = result.order?.orderId;
+      const accessToken = result.accessToken;
       const payment = result.payment || {};
+      if (!orderId) throw new Error('Resposta inválida da API ao registrar pedido.');
 
       els.pixAmount.textContent = formatBRL(total);
       els.orderId.textContent = orderId;
@@ -317,7 +320,7 @@
         renderPix(orderId, total, payment);
       }
 
-      startPolling(orderId);
+      startPolling(orderId, accessToken);
       showStep(3);
     } catch (err) {
       alert(err.message || 'Erro ao processar pedido.');

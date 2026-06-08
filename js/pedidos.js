@@ -85,6 +85,17 @@
     renderTable(filtered);
   }
 
+  async function validateSession() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) return false;
+    const res = await fetch(base + '/admin/session', {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    return res.ok;
+  }
+
   async function loadOrders() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -145,9 +156,19 @@
   document.addEventListener('DOMContentLoaded', () => {
     if (bootstrap.configApiUrl && els.apiUrl) els.apiUrl.value = bootstrap.configApiUrl;
     if (sessionStorage.getItem(SESSION_KEY) && apiBase()) {
-      els.login.hidden = true;
-      els.panel.hidden = false;
-      loadOrders().catch(() => sessionStorage.removeItem(SESSION_KEY));
+      validateSession().then((ok) => {
+        if (!ok) {
+          sessionStorage.removeItem(SESSION_KEY);
+          return;
+        }
+        els.login.hidden = true;
+        els.panel.hidden = false;
+        loadOrders().catch(() => {
+          sessionStorage.removeItem(SESSION_KEY);
+          els.panel.hidden = true;
+          els.login.hidden = false;
+        });
+      });
     }
   });
 })();
