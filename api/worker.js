@@ -266,10 +266,21 @@ async function saveOrder(env, order) {
   await env.STORE_KV.put(ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
 }
 
+function normalizeWhatsAppPhone(phone) {
+  let digits = onlyDigits(phone);
+  if (!digits) return '';
+  if (digits.length >= 12 && digits.startsWith('55')) return digits;
+  if (digits.length === 10 || digits.length === 11) return '55' + digits;
+  return digits;
+}
+
 async function sendWhatsApp(env, phone, message) {
   const instance = env.ZAPI_INSTANCE_ID;
   const token = env.ZAPI_TOKEN;
   if (!instance || !token) return false;
+
+  const to = normalizeWhatsAppPhone(phone);
+  if (!to) return false;
 
   const headers = { 'Content-Type': 'application/json' };
   if (env.ZAPI_CLIENT_TOKEN) headers['Client-Token'] = env.ZAPI_CLIENT_TOKEN;
@@ -279,9 +290,13 @@ async function sendWhatsApp(env, phone, message) {
     {
       method: 'POST',
       headers,
-      body: JSON.stringify({ phone: onlyDigits(phone), message })
+      body: JSON.stringify({ phone: to, message })
     }
   );
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    console.error('Z-API:', res.status, errText);
+  }
   return res.ok;
 }
 
