@@ -2,13 +2,17 @@ name = "sensortattoofix-payments"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-# Após o deploy, a URL será algo como:
-# https://sensortattoofix-payments.SEU-USUARIO.workers.dev
-# Cole essa URL em js/config-bootstrap.js → configApiUrl
-
 [[kv_namespaces]]
 binding = "STORE_KV"
 id = "SUBSTITUA_PELO_ID_DO_KV"
 
 [vars]
 ADMIN_USERNAME = "admin"
+
+# Secrets (wrangler secret put NOME):
+# ADMIN_PASSWORD       — senha do painel /admin.html
+# ASAAS_API_KEY        — confirmação PIX automática (asaas.com)
+# ASAAS_WEBHOOK_TOKEN  — token do webhook Asaas
+# CORREIOS_USER        — usuário API Correios (Meu Correios)
+# CORREIOS_PASSWORD    — código de acesso API Correios
+# CORREIOS_CONTRACT    — número do contrato/cartão postagem (opcional)

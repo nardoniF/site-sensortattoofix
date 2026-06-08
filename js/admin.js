@@ -68,10 +68,16 @@
     f.productName.value = config.product.name;
     f.productDescription.value = config.product.description;
     f.productPrice.value = config.product.price;
-    f.productShipping.value = config.product.shipping;
     f.productImage.value = config.product.image;
+    const ship = config.shipping || {};
+    if (f.shippingOriginCep) f.shippingOriginCep.value = ship.originCep || '';
+    if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams || 120;
+    if (f.shippingServiceCode) f.shippingServiceCode.value = ship.serviceCode || '04227';
+    if (f.shippingLength) f.shippingLength.value = ship.lengthCm || 16;
+    if (f.shippingWidth) f.shippingWidth.value = ship.widthCm || 12;
+    if (f.shippingHeight) f.shippingHeight.value = ship.heightCm || 3;
     f.pixKey.value = config.pix.key;
-    if (f.pixKeyType) f.pixKeyType.value = config.pix.keyType || 'cpf';
+    if (f.pixKeyType) f.pixKeyType.value = config.pix.keyType || 'cnpj';
     f.pixMerchantName.value = config.pix.merchantName;
     f.pixMerchantCity.value = config.pix.merchantCity;
     f.whatsapp.value = config.whatsapp;
@@ -92,20 +98,22 @@
         name: f.productName.value.trim(),
         description: f.productDescription.value.trim(),
         price: parseFloat(f.productPrice.value) || 0,
-        shipping: parseFloat(f.productShipping.value) || 0,
         image: f.productImage.value.trim()
+      },
+      shipping: {
+        originCep: (f.shippingOriginCep?.value || '').replace(/\D/g, ''),
+        weightGrams: parseInt(f.shippingWeight?.value, 10) || 120,
+        lengthCm: parseFloat(f.shippingLength?.value) || 16,
+        widthCm: parseFloat(f.shippingWidth?.value) || 12,
+        heightCm: parseFloat(f.shippingHeight?.value) || 3,
+        serviceCode: f.shippingServiceCode?.value.trim() || '04227',
+        serviceName: 'Mini Envios'
       },
       pix: {
         key: f.pixKey.value.trim(),
-        keyType: f.pixKeyType?.value || 'cpf',
+        keyType: f.pixKeyType?.value || 'cnpj',
         merchantName: f.pixMerchantName.value.trim(),
         merchantCity: f.pixMerchantCity.value.trim()
-      },
-      mercadoPago: {
-        apiUrl: '',
-        successUrl: currentConfig.mercadoPago.successUrl,
-        pendingUrl: currentConfig.mercadoPago.pendingUrl,
-        failureUrl: currentConfig.mercadoPago.failureUrl
       },
       formsubmit: {
         email: f.formsubmitEmail.value.trim(),
@@ -251,6 +259,32 @@
     await initPanel();
     showStatus('Modo offline: altere os campos e use Salvar ou Baixar backup JSON.', 'warning', 'panel');
   });
+
+  async function exportOrders(format) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      showStatus('Faça login com a API para exportar pedidos.', 'error', 'panel');
+      return;
+    }
+    const res = await fetch(`${base}/orders?format=${format}`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      showStatus('Erro ao exportar pedidos.', 'error', 'panel');
+      return;
+    }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = format === 'csv' ? 'pedidos.csv' : 'pedidos.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showStatus('Pedidos exportados!', 'success', 'panel');
+  }
+
+  document.getElementById('btn-export-json')?.addEventListener('click', () => exportOrders('json'));
+  document.getElementById('btn-export-csv')?.addEventListener('click', () => exportOrders('csv'));
 
   document.addEventListener('DOMContentLoaded', async () => {
     if (els.loginApiUrl && bootstrap.configApiUrl) {

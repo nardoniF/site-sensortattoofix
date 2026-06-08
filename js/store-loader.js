@@ -7,10 +7,6 @@ window.StoreConfig = (function () {
   }
 
   function applyDerivedFields(config) {
-    const apiUrl = resolveApiUrl(config);
-    if (apiUrl && !config.mercadoPago.apiUrl) {
-      config.mercadoPago.apiUrl = apiUrl.replace(/\/$/, '') + '/payment';
-    }
     return config;
   }
 

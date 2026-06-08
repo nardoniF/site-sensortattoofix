@@ -34,9 +34,8 @@
     if (keyType === 'cpf' || keyType === 'cnpj' || keyType === 'phone') {
       return raw.replace(/\D/g, '');
     }
-    if (/^\d{11}$/.test(raw.replace(/\D/g, '')) && !raw.includes('@')) {
-      return raw.replace(/\D/g, '');
-    }
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 14 || digits.length === 11) return digits;
     return raw;
   }
 

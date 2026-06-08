@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comprar Direto | Sensor TattooFix — Loja Oficial</title>
-    <meta name="description" content="Compre o Kit Sensor TattooFix direto no site. Pagamento via PIX ou Mercado Pago. Envio pelos Correios para todo o Brasil.">
-    <link rel="stylesheet" href="style.css?v=1.45">
+    <meta name="description" content="Compre o Kit Sensor TattooFix direto no site. Pagamento via PIX com confirmação automática. Envio Mini Envios Correios.">
+    <link rel="stylesheet" href="style.css?v=1.46">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script>
@@ -38,9 +38,9 @@
 
             <aside class="checkout-sidebar">
                 <div class="checkout-product-card">
-                    <img src="logo.jpg" alt="Sensor TattooFix" class="checkout-logo">
+                    <img src="sensortattoofix.jpg" alt="Kit Sensor TattooFix" class="checkout-product-img">
                     <h2>Kit Sensor TattooFix</h2>
-                    <p class="checkout-product-desc">Lente ótica + aplicador + solução de fixação + manual. Envio pelos Correios.</p>
+                    <p class="checkout-product-desc">Lente ótica + aplicador + solução de fixação + manual. Envio Mini Envios.</p>
                     <ul class="checkout-kit-list">
                         <li><i class="fas fa-check"></i> Lente de polímero sob medida</li>
                         <li><i class="fas fa-check"></i> Solução de alta fixação</li>
@@ -49,13 +49,13 @@
                     </ul>
                     <div class="checkout-summary">
                         <div class="summary-row"><span>Produto</span><strong id="summary-product">—</strong></div>
-                        <div class="summary-row"><span>Frete PAC (Correios)</span><strong id="summary-shipping">—</strong></div>
+                        <div class="summary-row"><span>Frete Mini Envios</span><strong id="summary-shipping">—</strong></div>
                         <div class="summary-row total"><span>Total</span><strong id="summary-total">—</strong></div>
                     </div>
                     <div class="checkout-trust">
-                        <span><i class="fas fa-lock"></i> Pagamento seguro</span>
-                        <span><i class="fas fa-truck"></i> Envio nacional</span>
-                        <span><i class="fas fa-certificate"></i> Patente INPI</span>
+                        <span><i class="fas fa-lock"></i> PIX seguro</span>
+                        <span><i class="fas fa-truck"></i> Correios Mini Envios</span>
+                        <span><i class="fas fa-check"></i> Confirmação automática</span>
                     </div>
                 </div>
             </aside>
@@ -65,13 +65,12 @@
 
                 <div class="checkout-steps-bar">
                     <div class="step-indicator active" data-step="1"><span>1</span> Dados e entrega</div>
-                    <div class="step-indicator" data-step="2"><span>2</span> Pagamento</div>
+                    <div class="step-indicator" data-step="2"><span>2</span> Pagamento PIX</div>
                     <div class="step-indicator" data-step="3"><span>3</span> Confirmação</div>
                 </div>
 
                 <form id="checkout-form" class="checkout-form" novalidate>
 
-                    <!-- Etapa 1 -->
                     <div class="checkout-step active" data-step="1">
                         <h3>Seus dados</h3>
                         <div class="form-grid">
@@ -92,7 +91,7 @@
                             </label>
                         </div>
 
-                        <h3>Endereço para envio (Correios)</h3>
+                        <h3>Endereço para envio (Correios Mini Envios)</h3>
                         <div class="form-grid">
                             <label>CEP *
                                 <input type="text" name="cep" id="cep" required inputmode="numeric" placeholder="00000-000">
@@ -125,58 +124,32 @@
                                 </select>
                             </label>
                         </div>
+                        <p id="shipping-hint" class="shipping-hint">Informe o CEP para calcular o frete Mini Envios.</p>
                     </div>
 
-                    <!-- Etapa 2 -->
                     <div class="checkout-step" data-step="2">
-                        <h3>Forma de pagamento</h3>
-                        <p class="checkout-hint">Escolha como prefere pagar. O pedido é enviado para nosso e-mail automaticamente.</p>
-
-                        <div class="payment-options">
-                            <label class="payment-option">
-                                <input type="radio" name="pagamento" id="pay-pix" value="pix" checked>
-                                <div class="payment-card">
-                                    <i class="fas fa-qrcode"></i>
-                                    <div>
-                                        <strong>PIX</strong>
-                                        <small>Gratuito · Confirmação em segundos · QR Code na hora</small>
-                                    </div>
-                                </div>
-                            </label>
-                            <label class="payment-option">
-                                <input type="radio" name="pagamento" id="pay-mercadopago" value="mercadopago">
-                                <div class="payment-card">
-                                    <i class="fas fa-credit-card"></i>
-                                    <div>
-                                        <strong>Mercado Pago</strong>
-                                        <small>PIX, cartão ou boleto · Checkout seguro</small>
-                                    </div>
-                                </div>
-                            </label>
-                        </div>
+                        <h3>Pagamento via PIX</h3>
+                        <p class="checkout-hint">Ao finalizar, geramos o QR Code PIX. A confirmação do pagamento é automática — você não precisa enviar comprovante.</p>
 
                         <div class="checkout-notice">
                             <i class="fas fa-info-circle"></i>
-                            Após a confirmação do pagamento, postamos seu kit nos Correios em até 2 dias úteis e enviamos o código de rastreio por e-mail e WhatsApp.
+                            Produto R$ 59,90 + frete Mini Envios calculado no passo anterior. Após confirmação do PIX, postamos em até 2 dias úteis.
                         </div>
                     </div>
 
-                    <!-- Etapa 3 -->
                     <div class="checkout-step" data-step="3">
                         <div id="pix-panel" class="pix-panel">
-                            <div class="pix-success-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="pix-success-icon"><i class="fas fa-qrcode"></i></div>
                             <h3>Pedido registrado!</h3>
-                            <p>Pedido <strong id="order-id">—</strong> — pague via PIX para confirmar:</p>
-                            <p class="pix-amount-label">Valor: <strong id="pix-amount">—</strong></p>
+                            <p>Pedido <strong id="order-id">—</strong></p>
+                            <p class="pix-amount-label">Total: <strong id="pix-amount">—</strong></p>
+                            <div id="payment-status" class="payment-status waiting" hidden></div>
                             <div id="pix-qr" class="pix-qr-wrap"></div>
                             <div class="pix-copy-area">
                                 <input type="text" id="pix-copy" readonly aria-label="Código PIX copia e cola">
                                 <button type="button" id="btn-copy-pix" class="btn-primary">Copiar código PIX</button>
                             </div>
-                            <p class="checkout-hint">Abra o app do seu banco, escolha PIX → Copia e Cola ou escaneie o QR Code.</p>
-                            <a id="whatsapp-confirm" href="#" class="btn-whatsapp-inline" target="_blank" rel="noopener">
-                                <i class="fab fa-whatsapp"></i> Enviar comprovante no WhatsApp
-                            </a>
+                            <p class="checkout-hint">Escaneie o QR Code ou copie o código no app do banco. A confirmação é automática.</p>
                         </div>
                     </div>
 
@@ -188,7 +161,7 @@
                             Continuar <i class="fas fa-arrow-right"></i>
                         </button>
                         <button type="button" id="btn-pay" class="btn-primary" style="display:none">
-                            Finalizar pedido
+                            Gerar PIX e finalizar
                         </button>
                     </div>
                 </form>
