@@ -327,15 +327,27 @@
       els.orderId.textContent = orderId;
       els.paymentStatus.hidden = false;
       els.paymentStatus.className = 'payment-status waiting';
-      els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação automática...';
 
       if (payment.billingType === 'CREDIT_CARD' && payment.invoiceUrl) {
         showCardPayment(payment.invoiceUrl);
+        els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação do cartão...';
       } else {
         renderPix(orderId, total, payment);
+        if (payment.autoConfirm) {
+          els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação automática do PIX...';
+        } else {
+          const wa = (cfg.whatsapp || '5511913394665').replace(/\D/g, '');
+          const waText = encodeURIComponent(`Olá! Paguei o PIX do pedido ${orderId} (${formatBRL(total)}). Segue o comprovante.`);
+          els.paymentStatus.innerHTML =
+            `<p><strong>Pedido ${orderId} registrado!</strong></p>` +
+            `<p>O PIX é na conta da loja — a confirmação é manual (não automática).</p>` +
+            `<p><a class="btn-whatsapp-proof" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">` +
+            `<i class="fab fa-whatsapp"></i> Enviar comprovante no WhatsApp</a></p>` +
+            `<p class="payment-hint-small">Esta página atualiza quando a loja confirmar o pagamento.</p>`;
+        }
       }
 
-      startPolling(orderId, accessToken);
+      if (accessToken) startPolling(orderId, accessToken);
       showStep(3);
     } catch (err) {
       alert(err.message || 'Erro ao processar pedido.');

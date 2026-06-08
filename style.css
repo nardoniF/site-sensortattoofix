@@ -867,3 +867,29 @@ line-height:1.8;
 }
 .status-badge.paid { background: rgba(37,211,102,0.15); color: #25d366; }
 .status-badge.pending_payment { background: rgba(255,193,7,0.15); color: var(--primary); }
+.pedidos-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.btn-confirm-pay {
+    background: #25d366;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.btn-confirm-pay:hover { filter: brightness(1.1); }
+.btn-whatsapp-proof {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #25d366;
+    color: #000;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    margin-top: 8px;
+}
+.btn-whatsapp-proof:hover { filter: brightness(1.05); }
+.payment-hint-small { font-size: 0.85rem; color: var(--gray); margin-top: 8px; }

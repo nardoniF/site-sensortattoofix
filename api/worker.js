@@ -244,10 +244,20 @@ async function sendWhatsApp(env, phone, message) {
   return res.ok;
 }
 
+function pixCustomerHint(order, shopPhone) {
+  if (order.paymentProvider === 'static_pix') {
+    const wa = onlyDigits(shopPhone);
+    return `Pague o PIX exibido no site e envie o comprovante no WhatsApp da loja: ${wa || '5511913394665'}. A loja confirma o pagamento em seguida.`;
+  }
+  return order.pagamento === 'PIX'
+    ? 'Pague o PIX gerado no site. A confirmação é automática.'
+    : 'Finalize o pagamento no link seguro.';
+}
+
 async function notifyWhatsApp(env, config, order, type) {
   const shopPhone = config.whatsapp || env.SHOP_WHATSAPP;
   const msgs = {
-    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\nSmartwatch: ${order.smartwatch}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${order.pagamento === 'PIX' ? 'Pague o PIX gerado no site. A confirmação é automática.' : 'Finalize o pagamento no link seguro.'}\n\nObrigado!`,
+    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\nSmartwatch: ${order.smartwatch}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
     order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n⌚ ${order.smartwatch}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
     paid_customer: `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail e WhatsApp.\n\nSensor TattooFix`,
     paid_shop: `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n⌚ ${order.smartwatch}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
@@ -512,16 +522,47 @@ async function handleCreateOrder(request, env, origin) {
 async function handlePaymentConfirmed(env, order, payment) {
   order.status = 'paid';
   order.paidAt = new Date().toISOString();
-  order.paymentProof = { provider: 'asaas', paymentId: payment.id, value: payment.value, billingType: payment.billingType };
+  const value = payment?.value ?? order.total;
+  if (payment?.id) {
+    order.paymentProof = {
+      provider: 'asaas',
+      paymentId: payment.id,
+      value,
+      billingType: payment.billingType
+    };
+  } else {
+    order.paymentProof = {
+      provider: payment?.provider || order.paymentProvider || 'manual',
+      value,
+      confirmedBy: payment?.confirmedBy || 'admin',
+      confirmedAt: order.paidAt
+    };
+  }
   await saveOrder(env, order);
 
   const config = await getConfig(env);
   await notifyEmail(config, '✅ PAGO — ' + order.orderId, {
     Pedido: order.orderId, Status: 'PAGO', Cliente: order.nome,
-    Smartwatch: order.smartwatch, Valor: formatBRL(payment.value),
+    Smartwatch: order.smartwatch, Valor: formatBRL(value),
     Endereço: order.endereco, Envio: order.shippingService
   });
   await notifyWhatsApp(env, config, order, 'paid');
+}
+
+async function handleConfirmOrder(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  if (order.status === 'paid') return json(order, 200, origin);
+
+  await handlePaymentConfirmed(env, order, {
+    provider: order.paymentProvider || 'manual',
+    value: order.total,
+    confirmedBy: 'admin'
+  });
+  return json(await getOrder(env, orderId), 200, origin);
 }
 
 async function handleAsaasWebhook(request, env, origin) {
@@ -647,6 +688,11 @@ export default {
       if (path === '/orders' && request.method === 'POST') return handleCreateOrder(request, env, origin);
       if (path === '/orders' && request.method === 'GET') return handleListOrders(request, env, origin);
       if (path === '/webhook/asaas' && request.method === 'POST') return handleAsaasWebhook(request, env, origin);
+
+      const confirmMatch = path.match(/^\/orders\/([^/]+)\/confirm$/);
+      if (confirmMatch && request.method === 'POST') {
+        return handleConfirmOrder(request, env, origin, confirmMatch[1]);
+      }
 
       const m = path.match(/^\/orders\/([^/]+)$/);
       if (m && request.method === 'GET') return handleGetOrder(request, env, origin, m[1]);

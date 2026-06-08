@@ -57,8 +57,28 @@
         <td>${o.pais || '—'}</td>
         <td>${o.pagamento || '—'}</td>
         <td>${formatBRL(o.total)}</td>
-        <td><span class="status-badge ${o.status}">${statusLabel(o.status)}</span></td>
+        <td class="pedidos-actions">
+          <span class="status-badge ${o.status}">${statusLabel(o.status)}</span>
+          ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
+        </td>
       `;
+      tr.querySelector('.btn-confirm-pay')?.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        const orderId = ev.currentTarget.dataset.orderId;
+        if (!confirm(`Confirmar pagamento do pedido ${orderId}?`)) return;
+        try {
+          const token = sessionStorage.getItem(SESSION_KEY);
+          const res = await fetch(`${apiBase()}/orders/${encodeURIComponent(orderId)}/confirm`, {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          if (!res.ok) throw new Error('Não foi possível confirmar.');
+          showStatus(`Pedido ${orderId} marcado como pago.`, 'success');
+          await loadOrders();
+        } catch (err) {
+          showStatus(err.message, 'error');
+        }
+      });
       tr.addEventListener('click', () => {
         alert(
           `Pedido: ${o.orderId}\n` +
