@@ -437,6 +437,10 @@
     updateSummary();
     bindEvents();
     showStep(1);
+    trackGa('stf_checkout', {
+      currency: 'BRL',
+      value: product?.price || 59.9
+    });
     trackGa('begin_checkout', {
       currency: 'BRL',
       value: product?.price || 59.9,

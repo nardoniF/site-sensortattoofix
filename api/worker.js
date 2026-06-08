@@ -761,6 +761,49 @@ async function handlePaymentConfirmed(env, order, payment) {
   });
 
   await notifyWhatsApp(env, config, order, 'paid');
+  await trackGa4Purchase(env, order, payment);
+}
+
+async function trackGa4Purchase(env, order, payment) {
+  const apiSecret = (env.GA4_API_SECRET || '').trim();
+  if (!apiSecret) return;
+
+  const measurementId = (env.GA4_MEASUREMENT_ID || 'G-TFLZHJG9RN').trim();
+  const value = Number(payment?.value ?? order.total) || 0;
+  const paymentType = order.pagamento || payment?.billingType || 'unknown';
+  const itemName = order.produto || 'Kit Sensor Tattoo Fix';
+
+  const payload = {
+    client_id: order.orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 36) || 'server',
+    events: [
+      {
+        name: 'purchase',
+        params: {
+          transaction_id: order.orderId,
+          value,
+          currency: 'BRL',
+          payment_type: paymentType,
+          items: [{ item_id: 'kit-sensor-tattoo-fix', item_name: itemName, price: value, quantity: 1 }]
+        }
+      },
+      {
+        name: 'stf_compra',
+        params: { transaction_id: order.orderId, value, currency: 'BRL', payment_type: paymentType }
+      }
+    ]
+  };
+
+  try {
+    const url = `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) console.error('GA4 MP:', res.status, await res.text().catch(() => ''));
+  } catch (err) {
+    console.error('GA4 MP:', err.message);
+  }
 }
 
 async function handleConfirmOrder(request, env, origin, orderId) {

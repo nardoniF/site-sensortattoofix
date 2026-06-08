@@ -16,7 +16,7 @@
     if (sessionStorage.getItem(sentKey)) return;
     sessionStorage.setItem(sentKey, '1');
 
-    track('purchase', {
+    const params = {
       transaction_id: orderId,
       value: Number(total) || 0,
       currency: 'BRL',
@@ -27,7 +27,9 @@
         price: Number(total) || 0,
         quantity: 1
       }]
-    });
+    };
+    track('purchase', params);
+    track('stf_compra', params);
   }
 
   window.STF_ANALYTICS = { track, trackPurchase };

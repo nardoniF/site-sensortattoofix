@@ -18,3 +18,5 @@ ADMIN_USERNAME = "admin"
 # CORREIOS_CONTRACT    — número do contrato/cartão postagem (opcional)
 # RESEND_API_KEY       — e-mails com remetente profissional (resend.com, grátis até 3k/mês)
 # EMAIL_FROM           — opcional: Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>
+# GA4_API_SECRET       — secret do Measurement Protocol (GA4 → Fluxos de dados → seu site)
+# GA4_MEASUREMENT_ID   — opcional: G-TFLZHJG9RN
