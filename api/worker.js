@@ -3,7 +3,12 @@
  * PIX + Cartão (Asaas) · WhatsApp · Correios · Internacional · Pedidos
  */
 
-const ALLOWED_ORIGINS = ['https://sensortattoofix.com.br', 'http://localhost:8080', 'http://127.0.0.1:5500'];
+const ALLOWED_ORIGINS = [
+  'https://sensortattoofix.com.br',
+  'https://www.sensortattoofix.com.br',
+  'http://localhost:8080',
+  'http://127.0.0.1:5500'
+];
 const CONFIG_KEY = 'store-config';
 const ORDERS_INDEX = 'orders:index';
 

@@ -103,17 +103,29 @@
     return { price: 24.9, days: 14, service: 'Mini Envios', source: 'estimate' };
   }
 
+  async function fetchShippingQuote(url) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.warn('Cotação API indisponível, usando estimativa local.', e);
+      return null;
+    }
+  }
+
   async function quoteShipping() {
     const base = apiBase();
     try {
       if (isInternational) {
         const code = els.paisCode.value;
         if (base) {
-          const res = await fetch(`${base}/shipping/quote?country=${code}`, { cache: 'no-store' });
-          if (res.ok) { shippingInfo = await res.json(); shippingCost = shippingInfo.price; }
+          const data = await fetchShippingQuote(`${base}/shipping/quote?country=${code}`);
+          if (data?.price) { shippingInfo = data; shippingCost = data.price; }
         }
         if (!shippingCost) {
           const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
+          if (!z) throw new Error('País não atendido');
           shippingInfo = { price: z.price, days: z.days, service: 'Internacional — ' + z.label, source: 'config' };
           shippingCost = z.price;
         }
@@ -121,10 +133,13 @@
         const cep = onlyDigits(els.cep.value);
         if (cep.length !== 8) return;
         if (base) {
-          const res = await fetch(`${base}/shipping/quote?country=BR&cep=${cep}`, { cache: 'no-store' });
-          if (res.ok) { shippingInfo = await res.json(); shippingCost = shippingInfo.price; }
+          const data = await fetchShippingQuote(`${base}/shipping/quote?country=BR&cep=${cep}`);
+          if (data?.price) { shippingInfo = data; shippingCost = data.price; }
         }
-        if (!shippingCost) shippingInfo = estimateBR(cep), shippingCost = shippingInfo.price;
+        if (!shippingCost) {
+          shippingInfo = estimateBR(cep);
+          shippingCost = shippingInfo.price;
+        }
       }
       updateSummary();
       const src = shippingInfo.source === 'correios' ? 'Correios' : (shippingInfo.source === 'international' ? 'Internacional' : 'estimativa');
