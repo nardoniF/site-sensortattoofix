@@ -398,8 +398,13 @@ async function createAsaasPayment(env, order, config, billingType) {
   if (!res.ok) throw new Error(payment.errors?.[0]?.description || 'Erro pagamento Asaas');
 
   if (billingType === 'PIX') {
-    const qrRes = await fetch(base + '/payments/' + payment.id + '/pixQrCode', { headers: { access_token: apiKey } });
+    const qrRes = await fetch(base + '/payments/' + payment.id + '/pixQrCode', {
+      headers: { access_token: apiKey, Accept: 'application/json' }
+    });
     const qr = await qrRes.json();
+    if (!qrRes.ok || !qr.payload) {
+      throw new Error(qr.errors?.[0]?.description || 'Não foi possível gerar QR Code PIX no Asaas. Cadastre uma chave PIX no painel Asaas.');
+    }
     return {
       provider: 'asaas',
       billingType: 'PIX',
@@ -483,10 +488,18 @@ async function handleCreateOrder(request, env, origin) {
   };
 
   let payment = null;
+  const hasAsaas = !!env.ASAAS_API_KEY;
   try {
     payment = await createAsaasPayment(env, order, config, billingType);
   } catch (err) {
     console.error('Asaas:', err.message);
+    if (hasAsaas) {
+      return json({
+        error: billingType === 'CREDIT_CARD'
+          ? 'Cartão indisponível: ' + err.message
+          : 'PIX Asaas indisponível: ' + err.message
+      }, 400, origin);
+    }
     if (billingType === 'CREDIT_CARD') {
       return json({ error: 'Cartão indisponível. Configure ASAAS_API_KEY ou escolha PIX.' }, 400, origin);
     }
@@ -496,6 +509,8 @@ async function handleCreateOrder(request, env, origin) {
     order.paymentProvider = 'asaas';
     order.asaasPaymentId = payment.paymentId;
     order.autoConfirm = true;
+  } else if (hasAsaas) {
+    return json({ error: 'Não foi possível criar cobrança no Asaas. Verifique chave PIX cadastrada no painel.' }, 400, origin);
   } else {
     order.paymentProvider = 'static_pix';
     order.autoConfirm = false;
