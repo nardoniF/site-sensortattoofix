@@ -800,6 +800,16 @@ line-height:1.8;
     align-items: center;
     gap: 8px;
 }
+.admin-email-tests {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.admin-email-tests small {
+    flex: 1 1 100%;
+    margin-top: 4px;
+}
 .admin-status {
     margin-top: 16px;
     padding: 12px 16px;

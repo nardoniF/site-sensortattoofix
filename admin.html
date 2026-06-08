@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.44">
+    <link rel="stylesheet" href="style.css?v=1.50">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -147,9 +147,11 @@
                                 <input type="url" name="apiBaseUrl" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
                                 <small>Salvar online exige API configurada e login.</small>
                             </label>
-                            <div class="full">
-                                <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail (sem pedido)</button>
-                                <small>Envia teste para o e-mail dos pedidos via Resend — não gera cobrança.</small>
+                            <div class="full admin-email-tests">
+                                <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
+                                <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
+                                <button type="button" id="btn-test-email-paid" class="btn-secondary"><i class="fas fa-check-circle"></i> Testar e-mail PAGO</button>
+                                <small>Envia para o e-mail dos pedidos via Resend — não gera cobrança nem pedido real.</small>
                             </div>
                         </div>
                     </fieldset>
@@ -177,6 +179,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js"></script>
+    <script src="js/admin.js?v=2"></script>
 </body>
 </html>

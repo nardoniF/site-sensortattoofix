@@ -837,13 +837,44 @@ async function handleTestEmail(request, env, origin) {
   const to = (body.email || config.formsubmit?.email || '').trim();
   if (!to) return json({ error: 'E-mail de destino não configurado.' }, 400, origin);
 
-  const result = await notifyEmail(env, config, to, 'Teste — Sensor Tattoo Fix', {
-    Teste: 'Envio de e-mail da loja',
-    Horário: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-    Remetente: emailFrom(env, config)
-  }, config.formsubmit?.email);
+  const type = body.type || 'generic';
+  let result;
 
-  return json(result, result.ok ? 200 : 502, origin);
+  if (type === 'paid') {
+    const orderId = 'STF-TESTE-' + new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    result = await notifyShop(env, config, 'PAGO — ' + orderId, {
+      Pedido: orderId,
+      Status: 'PAGO (TESTE — não é pedido real)',
+      Cliente: 'Cliente Teste',
+      'E-mail cliente': 'cliente@exemplo.com',
+      Telefone: '(11) 99999-9999',
+      Pagamento: 'Cartão de crédito',
+      Smartwatch: 'Apple Watch Series 9 (41mm)',
+      Valor: formatBRL(config.product?.price || 59.9),
+      Endereço: 'Av Paulista, 1000 — Bela Vista, São Paulo/SP — Brasil 01310100',
+      Envio: 'Mini Envios'
+    });
+  } else if (type === 'order') {
+    result = await notifyShop(env, config, config.formsubmit?.subject || 'Novo pedido — teste', {
+      Pedido: 'STF-TESTE-' + Date.now(),
+      Status: 'pending_payment (TESTE)',
+      Nome: 'Cliente Teste',
+      'E-mail': 'cliente@exemplo.com',
+      Telefone: '(11) 99999-9999',
+      Smartwatch: 'Apple Watch Series 9 (41mm)',
+      País: 'Brasil',
+      Pagamento: 'PIX',
+      Total: formatBRL((config.product?.price || 59.9) + 11.9)
+    });
+  } else {
+    result = await notifyEmail(env, config, to, 'Teste — Sensor Tattoo Fix', {
+      Teste: 'Envio de e-mail da loja',
+      Horário: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+      Remetente: emailFrom(env, config)
+    }, config.formsubmit?.email);
+  }
+
+  return json({ ...result, type }, result?.ok ? 200 : 502, origin);
 }
 
 async function handleGetOrder(request, env, origin, orderId) {
