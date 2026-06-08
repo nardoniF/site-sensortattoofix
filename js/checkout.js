@@ -25,6 +25,9 @@
     orderId: document.getElementById('order-id'),
     paymentStatus: document.getElementById('payment-status'),
     cardPayLink: document.getElementById('card-pay-link'),
+    pixUi: document.getElementById('pix-ui'),
+    cardUi: document.getElementById('card-ui'),
+    paymentPanel: document.getElementById('payment-panel'),
     confirmTitle: document.getElementById('confirm-title'),
     confirmHint: document.getElementById('confirm-hint')
   };
@@ -261,10 +264,23 @@
     return { order: { ...orderData, orderId, total: product.price + orderData.frete }, payment: { provider: 'static_pix', billingType: 'PIX' } };
   }
 
+  function showPixUi() {
+    if (els.pixUi) els.pixUi.hidden = false;
+    if (els.cardUi) els.cardUi.hidden = true;
+    els.paymentPanel?.classList.remove('mode-card');
+    els.paymentPanel?.classList.add('mode-pix');
+  }
+
+  function showCardUi() {
+    if (els.pixUi) els.pixUi.hidden = true;
+    if (els.cardUi) els.cardUi.hidden = false;
+    els.paymentPanel?.classList.remove('mode-pix');
+    els.paymentPanel?.classList.add('mode-card');
+  }
+
   function renderPix(orderId, total, payment) {
+    showPixUi();
     els.pixQr.innerHTML = '';
-    els.pixCopyArea.hidden = false;
-    els.cardPayLink.hidden = true;
 
     if (payment.pixQrEncoded) {
       const img = document.createElement('img');
@@ -284,12 +300,11 @@
   }
 
   function showCardPayment(url) {
+    showCardUi();
     els.pixQr.innerHTML = '';
-    els.pixCopyArea.hidden = true;
-    els.cardPayLink.hidden = false;
     els.cardPayLink.href = url;
     els.confirmTitle.textContent = 'Pedido registrado — finalize o pagamento';
-    els.confirmHint.textContent = 'Clique no botão abaixo para pagar com cartão de forma segura.';
+    els.confirmHint.textContent = 'Após pagar no Asaas, volte a esta página. A confirmação é automática.';
   }
 
   function startPolling(orderId, accessToken) {

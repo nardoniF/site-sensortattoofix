@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comprar Direto | Sensor TattooFix — Loja Oficial</title>
     <meta name="description" content="Kit Sensor TattooFix — PIX, cartão, envio nacional e internacional. Confirmação automática.">
-    <link rel="stylesheet" href="style.css?v=1.48">
+    <link rel="stylesheet" href="style.css?v=1.49">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="checkout-page">
@@ -120,12 +120,23 @@
                             <p>Pedido <strong id="order-id">—</strong></p>
                             <p class="pix-amount-label">Total: <strong id="pix-amount">—</strong></p>
                             <div id="payment-status" class="payment-status waiting" hidden></div>
-                            <div id="pix-qr" class="pix-qr-wrap"></div>
-                            <div id="pix-copy-area" class="pix-copy-area">
-                                <input type="text" id="pix-copy" readonly>
-                                <button type="button" id="btn-copy-pix" class="btn-primary">Copiar PIX</button>
+
+                            <div id="pix-ui" class="checkout-pix-ui">
+                                <div id="pix-qr" class="pix-qr-wrap"></div>
+                                <div id="pix-copy-area" class="pix-copy-area">
+                                    <input type="text" id="pix-copy" readonly>
+                                    <button type="button" id="btn-copy-pix" class="btn-primary">Copiar PIX</button>
+                                </div>
                             </div>
-                            <a id="card-pay-link" href="#" class="btn-primary" target="_blank" rel="noopener" hidden style="margin-top:16px;display:inline-flex;gap:8px;align-items:center;"><i class="fas fa-lock"></i> Pagar com cartão</a>
+
+                            <div id="card-ui" class="checkout-card-ui" hidden>
+                                <div class="card-pay-icon"><i class="fas fa-credit-card"></i></div>
+                                <p class="card-pay-text">Pagamento seguro processado pelo Asaas.</p>
+                                <a id="card-pay-link" href="#" class="btn-primary card-pay-btn" target="_blank" rel="noopener">
+                                    <i class="fas fa-lock"></i> Abrir pagamento com cartão
+                                </a>
+                            </div>
+
                             <p class="checkout-hint" id="confirm-hint">A confirmação é enviada automaticamente por e-mail.</p>
                         </div>
                     </div>
@@ -146,6 +157,6 @@
     <script src="js/store-loader.js"></script>
     <script src="js/pix.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="js/checkout.js"></script>
+    <script src="js/checkout.js?v=2"></script>
 </body>
 </html>

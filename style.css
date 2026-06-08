@@ -658,6 +658,32 @@ line-height:1.8;
     gap: 8px;
 }
 .pix-panel { text-align: center; padding: 10px 0; }
+.pix-panel.mode-card .checkout-pix-ui { display: none !important; }
+.pix-panel.mode-pix .checkout-card-ui { display: none !important; }
+.checkout-card-ui {
+    margin: 20px auto;
+    max-width: 420px;
+    padding: 24px 20px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 16px;
+}
+.card-pay-icon {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+.card-pay-text {
+    color: #ccc;
+    margin: 0 0 20px;
+    font-size: 0.95rem;
+}
+.card-pay-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    margin: 0 auto;
+}
 .pix-success-icon { font-size: 3rem; color: #25d366; margin-bottom: 12px; }
 .pix-amount-label { font-size: 1.2rem; margin: 16px 0; }
 .pix-qr-wrap {
