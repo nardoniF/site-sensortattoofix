@@ -304,7 +304,7 @@
         if (order.status === 'paid') {
           clearInterval(pollTimer);
           els.paymentStatus.className = 'payment-status confirmed';
-          els.paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i> Pagamento confirmado! Você receberá WhatsApp em instantes.';
+          els.paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i> Pagamento confirmado! Você receberá a confirmação por e-mail em instantes.';
           els.confirmTitle.textContent = 'Pagamento confirmado!';
         }
       } catch (e) { console.warn(e); }
