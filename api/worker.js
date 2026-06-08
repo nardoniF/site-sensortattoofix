@@ -773,24 +773,20 @@ async function trackGa4Purchase(env, order, payment) {
   const paymentType = order.pagamento || payment?.billingType || 'unknown';
   const itemName = order.produto || 'Kit Sensor Tattoo Fix';
 
+  const forma = String(paymentType).toLowerCase().includes('card') || String(paymentType).toLowerCase().includes('cart')
+    ? 'cartao' : 'pix';
+
   const payload = {
     client_id: order.orderId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 36) || 'server',
-    events: [
-      {
-        name: 'purchase',
-        params: {
-          transaction_id: order.orderId,
-          value,
-          currency: 'BRL',
-          payment_type: paymentType,
-          items: [{ item_id: 'kit-sensor-tattoo-fix', item_name: itemName, price: value, quantity: 1 }]
-        }
-      },
-      {
-        name: 'stf_compra',
-        params: { transaction_id: order.orderId, value, currency: 'BRL', payment_type: paymentType }
+    events: [{
+      name: 'venda_confirmada',
+      params: {
+        pedido: order.orderId,
+        valor: value,
+        moeda: 'BRL',
+        pagamento: forma
       }
-    ]
+    }]
   };
 
   try {

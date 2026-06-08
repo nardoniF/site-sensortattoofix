@@ -18,7 +18,7 @@
 </head>
 <body>
 
-    <a href="https://wa.me/5511913394665" class="whatsapp-float" target="_blank">
+    <a href="https://wa.me/5511913394665" class="whatsapp-float" target="_blank" data-evento="clique_whatsapp" data-rotulo="WhatsApp flutuante">
         <i class="fab fa-whatsapp"></i>
     </a>
 
@@ -43,7 +43,7 @@
                     <a href="https://www.tiktok.com/@sensortattoofixofc" target="_blank"><i class="fab fa-tiktok"></i></a>
                     <a href="https://youtube.com/@sensortattoofix-ofc?si=_h4gAZXia1fZP_U1" target="_blank"><i class="fab fa-youtube"></i></a>
                 </li>
-                <li><a href="#onde-comprar" class="btn-nav" title="Comprar" aria-label="Comprar"><i class="fas fa-shopping-cart"></i></a></li>
+                <li><a href="#onde-comprar" class="btn-nav" title="Comprar" aria-label="Comprar" data-evento="clique_menu_comprar" data-rotulo="Menu comprar"><i class="fas fa-shopping-cart"></i></a></li>
                 <li>
                     <a href="en/index.html" title="English Version" style="display: flex; align-items: center; gap: 5px; color: #fff;">
                         <img src="https://flagcdn.com/w20/us.png" width="20" alt="USA Flag"> 
@@ -62,7 +62,7 @@
                 <p>Restaure as funções de saúde e impeça o travamento automático do seu watch em peles tatuadas com a precisão da tecnologia 3N20.</p>
                 <div class="hero-btns">
                     <a href="#produtos" class="btn-primary">Conhecer a Solução</a>
-                    <a href="#onde-comprar" class="btn-primary" style="background: #fff; color: #000;">Onde Comprar</a>
+                    <a href="#onde-comprar" class="btn-primary" style="background: #fff; color: #000;" data-evento="clique_onde_comprar" data-rotulo="Hero onde comprar">Onde Comprar</a>
                 </div>
             </div>
             <div class="hero-visual">
@@ -162,6 +162,8 @@
     </div>
 
     <a href="#onde-comprar"
+       data-evento="clique_onde_comprar"
+       data-rotulo="Botao produto onde comprar"
        style="
        display:inline-block;
        margin-top:20px;
@@ -332,23 +334,13 @@
             <p>&copy; 2026 Sensor Tattoo Fix. 3N20 Soluções Tecnológicas. Patente Requerida: BR 20 2026 010875 3. Todos os direitos reservados.</p>
         </div>
     </footer>
-    <script src="js/analytics.js"></script>
+    <script src="js/analytics.js?v=2"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var toggle = document.getElementById('mobile-menu-toggle');
             document.querySelectorAll('.nav-links a').forEach(function(link) {
                 link.addEventListener('click', function() {
                     if (toggle) toggle.checked = false;
-                });
-            });
-            document.querySelectorAll('#onde-comprar a[href]').forEach(function(link) {
-                link.addEventListener('click', function() {
-                    var label = (link.querySelector('h3, strong') || {}).textContent || link.hostname || 'loja';
-                    window.STF_ANALYTICS?.track('select_promotion', {
-                        promotion_name: label.trim(),
-                        creative_name: link.href.includes('comprar.html') ? 'loja_oficial' : 'marketplace',
-                        location_id: 'onde_comprar'
-                    });
                 });
             });
         });

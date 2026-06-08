@@ -378,11 +378,11 @@
         }
       }
 
-      trackGa('add_payment_info', {
-        currency: 'BRL',
-        value: total,
-        payment_type: lastPaymentMethod,
-        items: [{ item_id: 'kit-sensor-tattoo-fix', item_name: product?.name || 'Kit Sensor Tattoo Fix', price: total, quantity: 1 }]
+      trackGa('pedido_criado', {
+        pedido: orderId,
+        valor: total,
+        moeda: 'BRL',
+        pagamento: lastPaymentMethod === 'credit_card' ? 'cartao' : 'pix'
       });
 
       if (accessToken) startPolling(orderId, accessToken, total);
@@ -437,14 +437,9 @@
     updateSummary();
     bindEvents();
     showStep(1);
-    trackGa('stf_checkout', {
-      currency: 'BRL',
-      value: product?.price || 59.9
-    });
-    trackGa('begin_checkout', {
-      currency: 'BRL',
-      value: product?.price || 59.9,
-      items: [{ item_id: 'kit-sensor-tattoo-fix', item_name: product?.name || 'Kit Sensor Tattoo Fix', price: product?.price || 59.9, quantity: 1 }]
+    trackGa('entrou_loja', {
+      valor_produto: product?.price || 59.9,
+      moeda: 'BRL'
     });
   }
 

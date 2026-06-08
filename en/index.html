@@ -19,7 +19,7 @@
 </head>
 <body>
 
-    <a href="https://wa.me/5511913394665" class="whatsapp-float" target="_blank">
+    <a href="https://wa.me/5511913394665" class="whatsapp-float" target="_blank" data-evento="clique_whatsapp" data-rotulo="WhatsApp flutuante EN">
         <i class="fab fa-whatsapp"></i>
     </a>
 
@@ -44,7 +44,7 @@
                     <a href="https://www.tiktok.com/@sensortattoofixofc" target="_blank"><i class="fab fa-tiktok"></i></a>
                     <a href="https://youtube.com/@sensortattoofix-ofc?si=_h4gAZXia1fZP_U1" target="_blank"><i class="fab fa-youtube"></i></a>
                 </li>
-                <li><a href="#onde-comprar" class="btn-nav" title="Buy" aria-label="Buy"><i class="fas fa-shopping-cart"></i></a></li>
+                <li><a href="#onde-comprar" class="btn-nav" title="Buy" aria-label="Buy" data-evento="clique_menu_comprar" data-rotulo="Menu comprar EN"><i class="fas fa-shopping-cart"></i></a></li>
                 <li>
                     <a href="../index.html" title="Versão em Português" style="display: flex; align-items: center; gap: 5px; color: #fff;">
                         <img src="https://flagcdn.com/w20/br.png" width="20" alt="Brazil Flag"> 
@@ -63,7 +63,7 @@
                 <p>Restore health features and stop auto-locking on tattooed skin with 3N20 precision optical technology.</p>
                 <div class="hero-btns">
                     <a href="#produtos" class="btn-primary">Discover the Solution</a>
-                    <a href="#onde-comprar" class="btn-primary" style="background: #fff; color: #000;">Where to Buy</a>
+                    <a href="#onde-comprar" class="btn-primary" style="background: #fff; color: #000;" data-evento="clique_onde_comprar" data-rotulo="Hero onde comprar EN">Where to Buy</a>
                 </div>
             </div>
             <div class="hero-visual">
@@ -158,7 +158,7 @@
                 <div class="product-image-wrap" style="flex-direction: column; align-items: center; max-width: 300px;">
                     <img src="../sensortattoofix.jpg" alt="Application" class="product-img" style="max-width: 300px;" />
                     <div style="text-align:center; margin-top:16px; width: 100%;">
-                        <a href="#onde-comprar" class="btn-primary" style="min-width:180px;">Buy Now</a>
+                        <a href="#onde-comprar" class="btn-primary" style="min-width:180px;" data-evento="clique_onde_comprar" data-rotulo="Botao produto EN">Buy Now</a>
                     </div>
                 </div>
             </div>
@@ -321,23 +321,13 @@
             <p style="text-align: center;">&copy; 2026 Sensor Tattoo Fix. N20 Soluções Tecnologicas. Patent Pending: BR 20 2026 010875 3.</p>
         </div>
     </footer>
-    <script src="../js/analytics.js"></script>
+    <script src="../js/analytics.js?v=2"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var toggle = document.getElementById('mobile-menu-toggle');
             document.querySelectorAll('.nav-links a').forEach(function(link) {
                 link.addEventListener('click', function() {
                     if (toggle) toggle.checked = false;
-                });
-            });
-            document.querySelectorAll('#onde-comprar a[href]').forEach(function(link) {
-                link.addEventListener('click', function() {
-                    var label = (link.querySelector('h3, strong') || {}).textContent || link.hostname || 'loja';
-                    window.STF_ANALYTICS?.track('select_promotion', {
-                        promotion_name: label.trim(),
-                        creative_name: link.href.includes('comprar.html') ? 'loja_oficial' : 'marketplace',
-                        location_id: 'onde_comprar'
-                    });
                 });
             });
         });
