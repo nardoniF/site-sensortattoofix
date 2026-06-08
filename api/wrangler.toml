@@ -4,7 +4,7 @@ compatibility_date = "2024-01-01"
 
 [[kv_namespaces]]
 binding = "STORE_KV"
-id = "SUBSTITUA_PELO_ID_DO_KV"
+id = "4184c034aab941e58ce5cc1e3abaecdc"
 
 [vars]
 ADMIN_USERNAME = "admin"

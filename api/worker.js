@@ -366,7 +366,7 @@ async function handleCreateOrder(request, env, origin) {
 
   await notifyEmail(config, config.formsubmit.subject, {
     Pedido: order.orderId, Status: order.status, Nome: order.nome,
-    E-mail: order.email, Telefone: order.telefone, Smartwatch: order.smartwatch,
+    'E-mail': order.email, Telefone: order.telefone, Smartwatch: order.smartwatch,
     País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
     Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total)
   });

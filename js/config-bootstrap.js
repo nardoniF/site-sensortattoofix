@@ -4,5 +4,5 @@
  * Exemplo: https://sensortattoofix-payments.SEU-USUARIO.workers.dev
  */
 window.CONFIG_BOOTSTRAP = {
-  configApiUrl: ''
+  configApiUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev'
 };
