@@ -498,11 +498,25 @@ async function createAsaasPayment(env, order, config, billingType) {
     };
   }
 
+  let invoiceUrl = payment.invoiceUrl || payment.bankSlipUrl;
+  if (!invoiceUrl) {
+    const detailRes = await fetch(`${base}/payments/${payment.id}`, {
+      headers: asaasHeaders(apiKey)
+    });
+    const detail = await asaasReadJson(detailRes, 'Consultar cobrança Asaas');
+    invoiceUrl = detail.invoiceUrl || detail.bankSlipUrl;
+  }
+  if (!invoiceUrl) {
+    throw new Error(
+      'Link de pagamento com cartão não foi gerado. No Asaas, ative Cartão de crédito em Configurações → Cobranças e aguarde aprovação da conta.'
+    );
+  }
+
   return {
     provider: 'asaas',
     billingType: 'CREDIT_CARD',
     paymentId: payment.id,
-    invoiceUrl: payment.invoiceUrl || payment.bankSlipUrl,
+    invoiceUrl,
     autoConfirm: true
   };
 }

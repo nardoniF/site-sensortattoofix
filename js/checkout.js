@@ -316,6 +316,7 @@
     els.btnPay.textContent = 'Processando...';
     try {
       const orderData = collectOrderData();
+      const wantsCard = orderData.pagamento === 'CARTAO';
       const result = await createOrder(orderData);
       const total = result.order?.total || (product.price + orderData.frete);
       const orderId = result.order?.orderId;
@@ -328,9 +329,16 @@
       els.paymentStatus.hidden = false;
       els.paymentStatus.className = 'payment-status waiting';
 
-      if (payment.billingType === 'CREDIT_CARD' && payment.invoiceUrl) {
+      if (wantsCard) {
+        if (payment.billingType !== 'CREDIT_CARD' || !payment.invoiceUrl) {
+          throw new Error(
+            'Pagamento com cartão indisponível no momento. Escolha PIX ou tente mais tarde.'
+          );
+        }
         showCardPayment(payment.invoiceUrl);
-        els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação do cartão...';
+        els.paymentStatus.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Abra a janela do Asaas, pague com cartão e volte aqui — a confirmação é automática.';
+        try { window.open(payment.invoiceUrl, '_blank', 'noopener,noreferrer'); } catch (_) { /* link visível no botão */ }
       } else {
         renderPix(orderId, total, payment);
         if (payment.autoConfirm) {
