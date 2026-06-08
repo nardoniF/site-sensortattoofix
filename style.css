@@ -813,3 +813,57 @@ line-height:1.8;
     font-weight: 800;
     padding: 0 8px;
 }
+
+/* PEDIDOS */
+.pedidos-container { max-width: 1100px; }
+.pedidos-filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.pedidos-filters input,
+.pedidos-filters select {
+    flex: 1;
+    min-width: 180px;
+    padding: 10px 12px;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    color: #fff;
+    border-radius: 8px;
+}
+.pedidos-table-wrap { overflow-x: auto; }
+.pedidos-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.pedidos-table th,
+.pedidos-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #2a2a2a;
+    text-align: left;
+    vertical-align: top;
+}
+.pedidos-table th {
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+.pedidos-table tbody tr {
+    cursor: pointer;
+    transition: 0.15s;
+}
+.pedidos-table tbody tr:hover { background: #141414; }
+.pedidos-table small { color: var(--gray); }
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.status-badge.paid { background: rgba(37,211,102,0.15); color: #25d366; }
+.status-badge.pending_payment { background: rgba(255,193,7,0.15); color: var(--primary); }

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Pedidos | Sensor TattooFix</title>
+    <link rel="stylesheet" href="style.css?v=1.48">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="admin-page pedidos-page">
+
+    <header>
+        <nav class="container">
+            <div class="logo-area">
+                <a href="index.html"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
+                <div class="logo-text">PEDIDOS</div>
+            </div>
+            <ul class="nav-links checkout-nav">
+                <li><a href="admin.html"><i class="fas fa-cog"></i> Config</a></li>
+                <li><a href="comprar.html"><i class="fas fa-store"></i> Loja</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="admin-main">
+        <div class="container admin-container pedidos-container">
+
+            <section id="pedidos-login" class="admin-card">
+                <h1><i class="fas fa-list"></i> Base de Pedidos</h1>
+                <p class="admin-intro">Lista simples de todos os pedidos da loja oficial. Requer API Cloudflare configurada.</p>
+                <form id="pedidos-login-form" class="admin-form">
+                    <label>URL da API<input type="url" id="pedidos-api-url" placeholder="https://sensortattoofix-payments.xxx.workers.dev"></label>
+                    <label>Usuário<input type="text" name="username" value="admin" required></label>
+                    <label>Senha<input type="password" name="password" required></label>
+                    <button type="submit" class="btn-primary">Entrar</button>
+                </form>
+                <p id="pedidos-status" class="admin-status" hidden></p>
+            </section>
+
+            <section id="pedidos-panel" class="admin-card" hidden>
+                <div class="admin-panel-header">
+                    <div>
+                        <h1>Pedidos</h1>
+                        <p id="pedidos-count" class="admin-meta"></p>
+                    </div>
+                    <div class="admin-panel-actions">
+                        <button type="button" id="btn-refresh" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar</button>
+                        <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-download"></i> CSV</button>
+                        <button type="button" id="btn-logout-pedidos" class="btn-secondary">Sair</button>
+                    </div>
+                </div>
+
+                <div class="pedidos-filters">
+                    <input type="search" id="filter-search" placeholder="Buscar nome, pedido, smartwatch...">
+                    <select id="filter-status">
+                        <option value="">Todos os status</option>
+                        <option value="pending_payment">Aguardando pagamento</option>
+                        <option value="paid">Pago</option>
+                    </select>
+                </div>
+
+                <div class="pedidos-table-wrap">
+                    <table class="pedidos-table" id="pedidos-table">
+                        <thead>
+                            <tr>
+                                <th>Pedido</th>
+                                <th>Data</th>
+                                <th>Cliente</th>
+                                <th>Smartwatch</th>
+                                <th>País</th>
+                                <th>Pagamento</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pedidos-tbody"></tbody>
+                    </table>
+                </div>
+                <p id="pedidos-empty" class="admin-meta" hidden>Nenhum pedido encontrado.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="js/config-bootstrap.js"></script>
+    <script src="js/pedidos.js"></script>
+</body>
+</html>

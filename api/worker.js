@@ -1,15 +1,6 @@
 /**
  * API Sensor TattooFix — Cloudflare Worker
- *
- * Rotas:
- *   GET  /config
- *   PUT  /config              (admin)
- *   POST /admin/login
- *   GET  /shipping/quote      ?cep=destino
- *   POST /orders              criar pedido + PIX
- *   GET  /orders/:id          status do pedido
- *   GET  /orders              listar/exportar (admin)
- *   POST /webhook/asaas       confirmação PIX automática
+ * PIX + Cartão (Asaas) · WhatsApp · Correios · Internacional · Pedidos
  */
 
 const ALLOWED_ORIGINS = ['https://sensortattoofix.com.br', 'http://localhost:8080', 'http://127.0.0.1:5500'];
@@ -17,35 +8,19 @@ const CONFIG_KEY = 'store-config';
 const ORDERS_INDEX = 'orders:index';
 
 const DEFAULT_CONFIG = {
-  product: {
-    name: 'Kit Sensor TattooFix',
-    description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
-    price: 59.9,
-    image: 'https://sensortattoofix.com.br/sensortattoofix.jpg'
+  product: { name: 'Kit Sensor TattooFix', description: 'Lente ótica para smartwatch', price: 59.9, image: '' },
+  pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
+  shipping: { originCep: '01153000', weightGrams: 120, lengthCm: 16, widthCm: 12, heightCm: 3, serviceCode: '04227', serviceName: 'Mini Envios' },
+  internationalShipping: {
+    US: { label: 'Estados Unidos', price: 89.9, days: 15 },
+    PT: { label: 'Portugal', price: 79.9, days: 12 },
+    OTHER: { label: 'Outro país', price: 119.9, days: 25 }
   },
-  pix: {
-    key: '29321223000132',
-    keyType: 'cnpj',
-    merchantName: '3N20 SOLUCOES TEC',
-    merchantCity: 'SAO PAULO'
-  },
-  shipping: {
-    originCep: '01153000',
-    weightGrams: 120,
-    lengthCm: 16,
-    widthCm: 12,
-    heightCm: 3,
-    serviceCode: '04227',
-    serviceName: 'Mini Envios'
-  },
-  formsubmit: {
-    email: 'sensortattoofix@gmail.com',
-    subject: 'Novo pedido — Loja Oficial Sensor TattooFix'
-  },
+  smartwatchModels: [],
+  formsubmit: { email: 'sensortattoofix@gmail.com', subject: 'Novo pedido — Sensor TattooFix' },
   whatsapp: '5511913394665',
   siteUrl: 'https://sensortattoofix.com.br',
-  api: { baseUrl: '' },
-  updatedAt: new Date().toISOString()
+  api: { baseUrl: '' }
 };
 
 function corsHeaders(origin) {
@@ -65,18 +40,20 @@ function json(data, status, origin) {
   });
 }
 
-function onlyDigits(v) {
-  return (v || '').replace(/\D/g, '');
+function onlyDigits(v) { return (v || '').replace(/\D/g, ''); }
+
+function formatBRL(n) {
+  return 'R$ ' + Number(n || 0).toFixed(2).replace('.', ',');
+}
+
+function asaasBase(env) {
+  return env.ASAAS_SANDBOX === 'true' ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/api/v3';
 }
 
 async function getConfig(env) {
   const raw = await env.STORE_KV.get(CONFIG_KEY);
   if (!raw) return structuredClone(DEFAULT_CONFIG);
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return structuredClone(DEFAULT_CONFIG);
-  }
+  try { return JSON.parse(raw); } catch { return structuredClone(DEFAULT_CONFIG); }
 }
 
 async function saveConfig(env, config) {
@@ -92,8 +69,7 @@ async function createSession(env) {
 }
 
 async function isValidSession(env, token) {
-  if (!token) return false;
-  return !!(await env.STORE_KV.get('session:' + token));
+  return !!(token && await env.STORE_KV.get('session:' + token));
 }
 
 async function getOrder(env, orderId) {
@@ -112,9 +88,48 @@ async function saveOrder(env, order) {
     total: order.total,
     nome: order.nome,
     email: order.email,
-    frete: order.frete
+    telefone: order.telefone,
+    frete: order.frete,
+    smartwatch: order.smartwatch,
+    pais: order.pais,
+    pagamento: order.pagamento
   });
-  await env.STORE_KV.put(ORDERS_INDEX, JSON.stringify(filtered.slice(0, 1000)));
+  await env.STORE_KV.put(ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
+}
+
+async function sendWhatsApp(env, phone, message) {
+  const instance = env.ZAPI_INSTANCE_ID;
+  const token = env.ZAPI_TOKEN;
+  if (!instance || !token) return false;
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (env.ZAPI_CLIENT_TOKEN) headers['Client-Token'] = env.ZAPI_CLIENT_TOKEN;
+
+  const res = await fetch(
+    `https://api.z-api.io/instances/${instance}/token/${token}/send-text`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ phone: onlyDigits(phone), message })
+    }
+  );
+  return res.ok;
+}
+
+async function notifyWhatsApp(env, config, order, type) {
+  const shopPhone = config.whatsapp || env.SHOP_WHATSAPP;
+  const msgs = {
+    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\nSmartwatch: ${order.smartwatch}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${order.pagamento === 'PIX' ? 'Pague o PIX gerado no site. A confirmação é automática.' : 'Finalize o pagamento no link seguro.'}\n\nObrigado!`,
+    order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n⌚ ${order.smartwatch}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
+    paid_customer: `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail e WhatsApp.\n\nSensor TattooFix`,
+    paid_shop: `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n⌚ ${order.smartwatch}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
+  };
+
+  const customerMsg = msgs[type + '_customer'];
+  const shopMsg = msgs[type + '_shop'];
+
+  if (customerMsg && order.telefone) await sendWhatsApp(env, order.telefone, customerMsg);
+  if (shopMsg && shopPhone) await sendWhatsApp(env, shopPhone, shopMsg);
 }
 
 async function getCorreiosToken(env) {
@@ -123,46 +138,37 @@ async function getCorreiosToken(env) {
     const data = JSON.parse(cached);
     if (data.expiresAt > Date.now()) return data.token;
   }
-
   const user = env.CORREIOS_USER;
   const password = env.CORREIOS_PASSWORD;
-  const contract = env.CORREIOS_CONTRACT;
   if (!user || !password) return null;
 
   const basic = btoa(user + ':' + password);
-  let res;
-  if (contract) {
-    res = await fetch('https://api.correios.com.br/token/v1/autentica/cartaopostagem', {
+  const contract = env.CORREIOS_CONTRACT;
+  const res = await fetch(
+    contract ? 'https://api.correios.com.br/token/v1/autentica/cartaopostagem' : 'https://api.correios.com.br/token/v1/autentica',
+    {
       method: 'POST',
-      headers: {
-        Authorization: 'Basic ' + basic,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ numero: contract })
-    });
-  } else {
-    res = await fetch('https://api.correios.com.br/token/v1/autentica', {
-      method: 'POST',
-      headers: { Authorization: 'Basic ' + basic }
-    });
-  }
-
+      headers: { Authorization: 'Basic ' + basic, 'Content-Type': 'application/json' },
+      body: contract ? JSON.stringify({ numero: contract }) : undefined
+    }
+  );
   if (!res.ok) return null;
   const data = await res.json();
-  const token = data.token;
-  const expiresAt = Date.now() + (Number(data.expiraEm || 3600) - 60) * 1000;
-  await env.STORE_KV.put('correios:token', JSON.stringify({ token, expiresAt }));
-  return token;
+  await env.STORE_KV.put('correios:token', JSON.stringify({
+    token: data.token,
+    expiresAt: Date.now() + (Number(data.expiraEm || 3600) - 60) * 1000
+  }));
+  return data.token;
 }
 
-function estimateShipping(originCep, destCep) {
+function estimateBR(originCep, destCep) {
   const o = parseInt(onlyDigits(originCep).slice(0, 5), 10) || 0;
   const d = parseInt(onlyDigits(destCep).slice(0, 5), 10) || 0;
   const diff = Math.abs(o - d);
-  if (diff < 800) return { price: 11.9, days: 8, source: 'estimate' };
-  if (diff < 3000) return { price: 15.9, days: 10, source: 'estimate' };
-  if (diff < 8000) return { price: 19.9, days: 12, source: 'estimate' };
-  return { price: 24.9, days: 14, source: 'estimate' };
+  if (diff < 800) return { price: 11.9, days: 8 };
+  if (diff < 3000) return { price: 15.9, days: 10 };
+  if (diff < 8000) return { price: 19.9, days: 12 };
+  return { price: 24.9, days: 14 };
 }
 
 async function quoteCorreios(env, config, destCep) {
@@ -174,128 +180,113 @@ async function quoteCorreios(env, config, destCep) {
   const token = await getCorreiosToken(env);
   if (token && ship.serviceCode) {
     const params = new URLSearchParams({
-      cepDestino: dest,
-      cepOrigem: origin,
-      psObjeto: String(ship.weightGrams || 120),
-      tpObjeto: '2',
-      comprimento: String(ship.lengthCm || 16),
-      largura: String(ship.widthCm || 12),
-      altura: String(ship.heightCm || 3),
-      vlDeclarado: String(config.product.price || 59.9)
+      cepDestino: dest, cepOrigem: origin,
+      psObjeto: String(ship.weightGrams || 120), tpObjeto: '2',
+      comprimento: String(ship.lengthCm || 16), largura: String(ship.widthCm || 12),
+      altura: String(ship.heightCm || 3), vlDeclarado: String(config.product.price || 59.9)
     });
-
-    const url = `https://api.correios.com.br/preco/v1/nacional/${ship.serviceCode}?${params}`;
-    const res = await fetch(url, {
+    const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${ship.serviceCode}?${params}`, {
       headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
     });
-
     if (res.ok) {
       const data = await res.json();
       const price = parseFloat(String(data.pcFinal || data.vlTotal || '0').replace(',', '.'));
       if (price > 0) {
-        return {
-          price,
-          days: Number(data.prazoEntrega || data.prazo || 12),
-          service: ship.serviceName || 'Mini Envios',
-          serviceCode: ship.serviceCode,
-          source: 'correios'
-        };
+        return { price, days: Number(data.prazoEntrega || data.prazo || 12), service: ship.serviceName || 'Mini Envios', source: 'correios' };
       }
     }
   }
+  const est = estimateBR(origin, dest);
+  return { price: est.price, days: est.days, service: ship.serviceName || 'Mini Envios', source: 'estimate' };
+}
 
-  const est = estimateShipping(origin, dest);
+function quoteInternational(config, countryCode) {
+  const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
+  const zone = zones[countryCode] || zones.OTHER;
+  if (!zone) throw new Error('País não atendido');
   return {
-    price: est.price,
-    days: est.days,
-    service: ship.serviceName || 'Mini Envios',
-    serviceCode: ship.serviceCode,
-    source: est.source
+    price: zone.price,
+    days: zone.days,
+    service: 'Correios Internacional — ' + zone.label,
+    source: 'international',
+    country: countryCode,
+    countryLabel: zone.label
   };
 }
 
-async function createAsaasPix(env, order, config) {
-  const apiKey = env.ASAAS_API_KEY;
-  if (!apiKey) return null;
-
-  const base = env.ASAAS_SANDBOX === 'true'
-    ? 'https://sandbox.asaas.com/api/v3'
-    : 'https://api.asaas.com/api/v3';
-
-  const customerRes = await fetch(base + '/customers', {
+async function createAsaasCustomer(base, apiKey, order) {
+  const res = await fetch(base + '/customers', {
     method: 'POST',
-    headers: {
-      access_token: apiKey,
-      'Content-Type': 'application/json'
-    },
+    headers: { access_token: apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: order.nome,
       email: order.email,
-      cpfCnpj: onlyDigits(order.cpf),
+      cpfCnpj: onlyDigits(order.cpf) || '00000000000',
       mobilePhone: onlyDigits(order.telefone),
-      postalCode: onlyDigits(order.cep),
-      address: order.rua,
-      addressNumber: order.numero,
+      postalCode: onlyDigits(order.cep) || '01310100',
+      address: order.rua || 'N/A',
+      addressNumber: order.numero || 'S/N',
       complement: order.complemento || undefined,
-      province: order.bairro,
+      province: order.bairro || order.cidade || 'N/A',
       externalReference: order.orderId
     })
   });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.errors?.[0]?.description || 'Erro cliente Asaas');
+  return data.id;
+}
 
-  const customer = await customerRes.json();
-  if (!customerRes.ok) throw new Error(customer.errors?.[0]?.description || 'Erro ao criar cliente Asaas');
+async function createAsaasPayment(env, order, config, billingType) {
+  const apiKey = env.ASAAS_API_KEY;
+  if (!apiKey) return null;
 
+  const base = asaasBase(env);
+  const customerId = await createAsaasCustomer(base, apiKey, order);
   const due = new Date().toISOString().slice(0, 10);
-  const payRes = await fetch(base + '/payments', {
+
+  const res = await fetch(base + '/payments', {
     method: 'POST',
-    headers: {
-      access_token: apiKey,
-      'Content-Type': 'application/json'
-    },
+    headers: { access_token: apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      customer: customer.id,
-      billingType: 'PIX',
+      customer: customerId,
+      billingType,
       value: order.total,
       dueDate: due,
-      description: config.product.name + ' — ' + order.orderId,
+      description: `${config.product.name} — ${order.smartwatch} — ${order.orderId}`,
       externalReference: order.orderId
     })
   });
+  const payment = await res.json();
+  if (!res.ok) throw new Error(payment.errors?.[0]?.description || 'Erro pagamento Asaas');
 
-  const payment = await payRes.json();
-  if (!payRes.ok) throw new Error(payment.errors?.[0]?.description || 'Erro ao criar PIX Asaas');
-
-  const qrRes = await fetch(base + '/payments/' + payment.id + '/pixQrCode', {
-    headers: { access_token: apiKey }
-  });
-  const qr = await qrRes.json();
+  if (billingType === 'PIX') {
+    const qrRes = await fetch(base + '/payments/' + payment.id + '/pixQrCode', { headers: { access_token: apiKey } });
+    const qr = await qrRes.json();
+    return {
+      provider: 'asaas',
+      billingType: 'PIX',
+      paymentId: payment.id,
+      pixCopyPaste: qr.payload,
+      pixQrEncoded: qr.encodedImage,
+      autoConfirm: true
+    };
+  }
 
   return {
     provider: 'asaas',
+    billingType: 'CREDIT_CARD',
     paymentId: payment.id,
-    pixCopyPaste: qr.payload,
-    pixQrEncoded: qr.encodedImage,
+    invoiceUrl: payment.invoiceUrl || payment.bankSlipUrl,
     autoConfirm: true
   };
 }
 
-async function notifyFormSubmit(config, order) {
+async function notifyEmail(config, subject, fields) {
   const body = new URLSearchParams();
-  body.append('_subject', config.formsubmit.subject);
+  body.append('_subject', subject);
   body.append('_captcha', 'false');
   body.append('_template', 'table');
-  body.append('Pedido', order.orderId);
-  body.append('Status', order.status);
-  body.append('Nome', order.nome);
-  body.append('E-mail', order.email);
-  body.append('Telefone', order.telefone);
-  body.append('CPF', order.cpf);
-  body.append('Endereço', order.endereco);
-  body.append('Produto', order.produto);
-  body.append('Valor produto', 'R$ ' + order.valorProduto.toFixed(2));
-  body.append('Frete Mini Envios', 'R$ ' + order.frete.toFixed(2));
-  body.append('Total', 'R$ ' + order.total.toFixed(2));
-
+  Object.entries(fields).forEach(([k, v]) => body.append(k, String(v ?? '')));
   await fetch('https://formsubmit.co/ajax/' + config.formsubmit.email, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -303,40 +294,16 @@ async function notifyFormSubmit(config, order) {
   });
 }
 
-async function handleLogin(request, env, origin) {
-  if (!env.ADMIN_PASSWORD) return json({ error: 'ADMIN_PASSWORD não configurado.' }, 500, origin);
-  const body = await request.json();
-  const adminUser = env.ADMIN_USERNAME || 'admin';
-  if ((body.username || '').trim() !== adminUser || body.password !== env.ADMIN_PASSWORD) {
-    return json({ error: 'Usuário ou senha incorretos.' }, 401, origin);
-  }
-  const token = await createSession(env);
-  return json({ token, username: adminUser }, 200, origin);
-}
-
-async function handlePutConfig(request, env, origin) {
-  const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-  if (!(await isValidSession(env, token))) return json({ error: 'Não autorizado.' }, 401, origin);
-
-  const body = await request.json();
-  const current = await getConfig(env);
-  const merged = {
-    ...current,
-    ...body,
-    product: { ...current.product, ...body.product },
-    pix: { ...current.pix, ...body.pix },
-    shipping: { ...current.shipping, ...body.shipping },
-    formsubmit: { ...current.formsubmit, ...body.formsubmit },
-    api: { ...current.api, ...body.api }
-  };
-  return json(await saveConfig(env, merged), 200, origin);
-}
-
 async function handleShippingQuote(request, env, origin) {
-  const cep = new URL(request.url).searchParams.get('cep');
+  const url = new URL(request.url);
+  const country = (url.searchParams.get('country') || 'BR').toUpperCase();
   const config = await getConfig(env);
-  const quote = await quoteCorreios(env, config, cep);
-  return json(quote, 200, origin);
+
+  if (country !== 'BR') {
+    return json(quoteInternational(config, country), 200, origin);
+  }
+  const cep = url.searchParams.get('cep');
+  return json(await quoteCorreios(env, config, cep), 200, origin);
 }
 
 async function handleCreateOrder(request, env, origin) {
@@ -344,58 +311,126 @@ async function handleCreateOrder(request, env, origin) {
   const config = await getConfig(env);
   const frete = Number(body.frete) || 0;
   const valorProduto = Number(config.product.price) || 59.9;
+  const billingType = body.pagamento === 'CARTAO' ? 'CREDIT_CARD' : 'PIX';
+  const pagamentoLabel = billingType === 'CREDIT_CARD' ? 'Cartão de crédito' : 'PIX';
 
   const order = {
-    orderId: body.orderId || ('STF-' + Date.now()),
+    orderId: body.orderId || 'STF-' + Date.now(),
     createdAt: new Date().toISOString(),
     status: 'pending_payment',
     nome: body.nome,
     email: body.email,
     telefone: body.telefone,
     cpf: body.cpf,
-    smartwatch: body.smartwatch || '',
-    cep: body.cep,
-    rua: body.rua,
-    numero: body.numero,
+    smartwatch: body.smartwatch || 'Não informado',
+    pais: body.pais || 'Brasil',
+    paisCode: body.paisCode || 'BR',
+    cep: body.cep || '',
+    rua: body.rua || '',
+    numero: body.numero || '',
     complemento: body.complemento || '',
-    bairro: body.bairro,
-    cidade: body.cidade,
-    uf: body.uf,
+    bairro: body.bairro || '',
+    cidade: body.cidade || '',
+    uf: body.uf || '',
     endereco: body.endereco,
+    observacoes: body.observacoes || '',
     produto: config.product.name,
     valorProduto,
     frete,
     total: valorProduto + frete,
-    shippingService: body.shippingService || config.shipping?.serviceName,
+    shippingService: body.shippingService || 'Mini Envios',
     shippingDays: body.shippingDays || null,
-    pagamento: 'PIX'
+    pagamento: pagamentoLabel
   };
 
+  let payment = null;
   try {
-    const asaasPix = await createAsaasPix(env, order, config);
-    if (asaasPix) {
-      order.pixProvider = 'asaas';
-      order.asaasPaymentId = asaasPix.paymentId;
-      order.autoConfirm = true;
-      await saveOrder(env, order);
-      await notifyFormSubmit(config, order);
-      return json({ order, pix: asaasPix }, 200, origin);
-    }
+    payment = await createAsaasPayment(env, order, config, billingType);
   } catch (err) {
-    console.error('Asaas error:', err.message);
+    console.error('Asaas:', err.message);
+    if (billingType === 'CREDIT_CARD') {
+      return json({ error: 'Cartão indisponível. Configure ASAAS_API_KEY ou escolha PIX.' }, 400, origin);
+    }
   }
 
-  order.pixProvider = 'static';
-  order.autoConfirm = false;
+  if (payment) {
+    order.paymentProvider = 'asaas';
+    order.asaasPaymentId = payment.paymentId;
+    order.autoConfirm = true;
+  } else {
+    order.paymentProvider = 'static_pix';
+    order.autoConfirm = false;
+  }
+
   await saveOrder(env, order);
-  await notifyFormSubmit(config, order);
-  return json({ order, pix: { provider: 'static', autoConfirm: false } }, 200, origin);
+
+  await notifyEmail(config, config.formsubmit.subject, {
+    Pedido: order.orderId, Status: order.status, Nome: order.nome,
+    E-mail: order.email, Telefone: order.telefone, Smartwatch: order.smartwatch,
+    País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
+    Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total)
+  });
+
+  await notifyWhatsApp(env, config, order, 'order');
+
+  return json({ order, payment: payment || { provider: 'static_pix', billingType: 'PIX', autoConfirm: false } }, 200, origin);
 }
 
-async function handleGetOrder(orderId, env, origin) {
-  const order = await getOrder(env, orderId);
-  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
-  return json(order, 200, origin);
+async function handlePaymentConfirmed(env, order, payment) {
+  order.status = 'paid';
+  order.paidAt = new Date().toISOString();
+  order.paymentProof = { provider: 'asaas', paymentId: payment.id, value: payment.value, billingType: payment.billingType };
+  await saveOrder(env, order);
+
+  const config = await getConfig(env);
+  await notifyEmail(config, '✅ PAGO — ' + order.orderId, {
+    Pedido: order.orderId, Status: 'PAGO', Cliente: order.nome,
+    Smartwatch: order.smartwatch, Valor: formatBRL(payment.value),
+    Endereço: order.endereco, Envio: order.shippingService
+  });
+  await notifyWhatsApp(env, config, order, 'paid');
+}
+
+async function handleAsaasWebhook(request, env, origin) {
+  const token = request.headers.get('asaas-access-token');
+  if (env.ASAAS_WEBHOOK_TOKEN && token !== env.ASAAS_WEBHOOK_TOKEN) {
+    return json({ error: 'Token inválido.' }, 401, origin);
+  }
+  const body = await request.json();
+  if ((body.event === 'PAYMENT_RECEIVED' || body.event === 'PAYMENT_CONFIRMED') && body.payment?.externalReference) {
+    const order = await getOrder(env, body.payment.externalReference);
+    if (order && order.status !== 'paid') {
+      await handlePaymentConfirmed(env, order, body.payment);
+    }
+  }
+  return json({ ok: true }, 200, origin);
+}
+
+async function handleLogin(request, env, origin) {
+  if (!env.ADMIN_PASSWORD) return json({ error: 'ADMIN_PASSWORD não configurado.' }, 500, origin);
+  const body = await request.json();
+  if ((body.username || '').trim() !== (env.ADMIN_USERNAME || 'admin') || body.password !== env.ADMIN_PASSWORD) {
+    return json({ error: 'Usuário ou senha incorretos.' }, 401, origin);
+  }
+  return json({ token: await createSession(env), username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
+}
+
+async function handlePutConfig(request, env, origin) {
+  const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  if (!(await isValidSession(env, token))) return json({ error: 'Não autorizado.' }, 401, origin);
+  const body = await request.json();
+  const current = await getConfig(env);
+  const merged = {
+    ...current, ...body,
+    product: { ...current.product, ...body.product },
+    pix: { ...current.pix, ...body.pix },
+    shipping: { ...current.shipping, ...body.shipping },
+    internationalShipping: { ...current.internationalShipping, ...body.internationalShipping },
+    smartwatchModels: body.smartwatchModels || current.smartwatchModels,
+    formsubmit: { ...current.formsubmit, ...body.formsubmit },
+    api: { ...current.api, ...body.api }
+  };
+  return json(await saveConfig(env, merged), 200, origin);
 }
 
 async function handleListOrders(request, env, origin) {
@@ -406,86 +441,30 @@ async function handleListOrders(request, env, origin) {
   const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
 
   if (format === 'csv') {
-    const header = 'orderId,createdAt,status,nome,email,total,frete\n';
+    const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,pais,pagamento,total,frete\n';
     const rows = index.map((o) =>
-      [o.orderId, o.createdAt, o.status, o.nome, o.email, o.total, o.frete]
-        .map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"')
-        .join(',')
+      [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.pais, o.pagamento, o.total, o.frete]
+        .map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')
     ).join('\n');
     return new Response(header + rows, {
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': 'attachment; filename=pedidos.csv',
-        ...corsHeaders(origin)
-      }
+      headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename=pedidos.csv', ...corsHeaders(origin) }
     });
   }
 
   const orders = [];
-  for (const item of index.slice(0, 200)) {
+  for (const item of index.slice(0, 500)) {
     const full = await getOrder(env, item.orderId);
     if (full) orders.push(full);
   }
   return json(orders, 200, origin);
 }
 
-async function handleAsaasWebhook(request, env, origin) {
-  const token = request.headers.get('asaas-access-token');
-  if (env.ASAAS_WEBHOOK_TOKEN && token !== env.ASAAS_WEBHOOK_TOKEN) {
-    return json({ error: 'Token inválido.' }, 401, origin);
-  }
-
-  const body = await request.json();
-  const event = body.event;
-  const payment = body.payment;
-  if (!payment?.externalReference) return json({ ok: true }, 200, origin);
-
-  if (event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED') {
-    const order = await getOrder(env, payment.externalReference);
-    if (order) {
-      order.status = 'paid';
-      order.paidAt = new Date().toISOString();
-      order.paymentProof = {
-        provider: 'asaas',
-        paymentId: payment.id,
-        value: payment.value,
-        confirmedAt: order.paidAt
-      };
-      await saveOrder(env, order);
-
-      const config = await getConfig(env);
-      const proofBody = new URLSearchParams();
-      proofBody.append('_subject', '✅ PIX CONFIRMADO — ' + order.orderId);
-      proofBody.append('_captcha', 'false');
-      proofBody.append('_template', 'table');
-      proofBody.append('Pedido', order.orderId);
-      proofBody.append('Status', 'PAGO');
-      proofBody.append('Valor recebido', 'R$ ' + Number(payment.value).toFixed(2));
-      proofBody.append('Cliente', order.nome);
-      proofBody.append('E-mail', order.email);
-      proofBody.append('Endereço', order.endereco);
-      proofBody.append('Postar via', order.shippingService || 'Mini Envios');
-
-      await fetch('https://formsubmit.co/ajax/' + config.formsubmit.email, {
-        method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: proofBody.toString()
-      });
-    }
-  }
-
-  return json({ ok: true }, 200, origin);
-}
-
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || ALLOWED_ORIGINS[0];
-    const url = new URL(request.url);
-    const path = url.pathname.replace(/\/$/, '') || '/';
+    const path = new URL(request.url).pathname.replace(/\/$/, '') || '/';
 
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(origin) });
-    }
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
 
     try {
       if (path === '/config' && request.method === 'GET') return json(await getConfig(env), 200, origin);
@@ -496,11 +475,11 @@ export default {
       if (path === '/orders' && request.method === 'GET') return handleListOrders(request, env, origin);
       if (path === '/webhook/asaas' && request.method === 'POST') return handleAsaasWebhook(request, env, origin);
 
-      const orderMatch = path.match(/^\/orders\/([^/]+)$/);
-      if (orderMatch && request.method === 'GET') {
-        return handleGetOrder(orderMatch[1], env, origin);
+      const m = path.match(/^\/orders\/([^/]+)$/);
+      if (m && request.method === 'GET') {
+        const order = await getOrder(env, m[1]);
+        return order ? json(order, 200, origin) : json({ error: 'Não encontrado' }, 404, origin);
       }
-
       return json({ error: 'Rota não encontrada.' }, 404, origin);
     } catch (err) {
       return json({ error: err.message }, 500, origin);
