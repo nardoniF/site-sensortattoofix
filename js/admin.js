@@ -124,6 +124,8 @@
       api: {
         baseUrl: f.apiBaseUrl.value.trim()
       },
+      smartwatchModels: currentConfig?.smartwatchModels || [],
+      internationalShipping: currentConfig?.internationalShipping || {},
       updatedAt: new Date().toISOString()
     };
   }

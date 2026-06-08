@@ -13,20 +13,81 @@ const CONFIG_KEY = 'store-config';
 const ORDERS_INDEX = 'orders:index';
 
 const DEFAULT_CONFIG = {
-  product: { name: 'Kit Sensor TattooFix', description: 'Lente ótica para smartwatch', price: 59.9, image: '' },
+  product: {
+    name: 'Kit Sensor TattooFix',
+    description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
+    price: 59.9,
+    image: 'https://sensortattoofix.com.br/sensortattoofix.jpg'
+  },
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: { originCep: '01153000', weightGrams: 120, lengthCm: 16, widthCm: 12, heightCm: 3, serviceCode: '04227', serviceName: 'Mini Envios' },
   internationalShipping: {
-    US: { label: 'Estados Unidos', price: 89.9, days: 15 },
-    PT: { label: 'Portugal', price: 79.9, days: 12 },
-    OTHER: { label: 'Outro país', price: 119.9, days: 25 }
+    US: { label: 'Estados Unidos', price: 89.9, days: 15, currency: 'BRL' },
+    PT: { label: 'Portugal', price: 79.9, days: 12, currency: 'BRL' },
+    AR: { label: 'Argentina', price: 69.9, days: 10, currency: 'BRL' },
+    MX: { label: 'México', price: 74.9, days: 12, currency: 'BRL' },
+    GB: { label: 'Reino Unido', price: 94.9, days: 18, currency: 'BRL' },
+    DE: { label: 'Alemanha', price: 94.9, days: 18, currency: 'BRL' },
+    FR: { label: 'França', price: 94.9, days: 18, currency: 'BRL' },
+    IT: { label: 'Itália', price: 94.9, days: 18, currency: 'BRL' },
+    ES: { label: 'Espanha', price: 84.9, days: 14, currency: 'BRL' },
+    CA: { label: 'Canadá', price: 89.9, days: 16, currency: 'BRL' },
+    CL: { label: 'Chile', price: 64.9, days: 10, currency: 'BRL' },
+    CO: { label: 'Colômbia', price: 64.9, days: 10, currency: 'BRL' },
+    UY: { label: 'Uruguai', price: 59.9, days: 8, currency: 'BRL' },
+    PY: { label: 'Paraguai', price: 54.9, days: 8, currency: 'BRL' },
+    OTHER: { label: 'Outro país', price: 119.9, days: 25, currency: 'BRL' }
   },
-  smartwatchModels: [],
-  formsubmit: { email: 'sensortattoofix@gmail.com', subject: 'Novo pedido — Sensor TattooFix' },
+  smartwatchModels: [
+    'Apple Watch SE (40mm)',
+    'Apple Watch SE (44mm)',
+    'Apple Watch Series 9 (41mm)',
+    'Apple Watch Series 9 (45mm)',
+    'Apple Watch Series 10 (42mm)',
+    'Apple Watch Series 10 (46mm)',
+    'Apple Watch Ultra / Ultra 2',
+    'Samsung Galaxy Watch 4 (40mm)',
+    'Samsung Galaxy Watch 4 (44mm)',
+    'Samsung Galaxy Watch 5 (40mm)',
+    'Samsung Galaxy Watch 5 (44mm)',
+    'Samsung Galaxy Watch 6 (40mm)',
+    'Samsung Galaxy Watch 6 (44mm)',
+    'Samsung Galaxy Watch 7 (40mm)',
+    'Samsung Galaxy Watch 7 (44mm)',
+    'Garmin Forerunner',
+    'Garmin Fenix',
+    'Garmin Venu',
+    'Garmin Vivoactive',
+    'Huawei Watch GT',
+    'Huawei Watch Fit',
+    'Xiaomi Watch S1 / S3',
+    'Amazfit GTR / GTS',
+    'Outro modelo (informar nas observações)'
+  ],
+  formsubmit: { email: 'sensortattoofix@gmail.com', subject: 'Novo pedido — Loja Oficial Sensor TattooFix' },
   whatsapp: '5511913394665',
   siteUrl: 'https://sensortattoofix.com.br',
-  api: { baseUrl: '' }
+  api: { baseUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev' }
 };
+
+function withConfigDefaults(stored) {
+  const base = structuredClone(DEFAULT_CONFIG);
+  if (!stored || typeof stored !== 'object') return base;
+
+  return {
+    ...base,
+    ...stored,
+    product: { ...base.product, ...(stored.product || {}) },
+    pix: { ...base.pix, ...(stored.pix || {}) },
+    shipping: { ...base.shipping, ...(stored.shipping || {}) },
+    formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
+    api: { ...base.api, ...(stored.api || {}) },
+    internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },
+    smartwatchModels: (stored.smartwatchModels && stored.smartwatchModels.length)
+      ? stored.smartwatchModels
+      : base.smartwatchModels
+  };
+}
 
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_SEC = 1800;
@@ -120,7 +181,7 @@ function asaasBase(env) {
 async function getConfig(env) {
   const raw = await env.STORE_KV.get(CONFIG_KEY);
   if (!raw) return structuredClone(DEFAULT_CONFIG);
-  try { return JSON.parse(raw); } catch { return structuredClone(DEFAULT_CONFIG); }
+  try { return withConfigDefaults(JSON.parse(raw)); } catch { return structuredClone(DEFAULT_CONFIG); }
 }
 
 async function saveConfig(env, config) {

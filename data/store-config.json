@@ -70,7 +70,7 @@
   "whatsapp": "5511913394665",
   "siteUrl": "https://sensortattoofix.com.br",
   "api": {
-    "baseUrl": ""
+    "baseUrl": "https://sensortattoofix-payments.sensortattoofix.workers.dev"
   },
   "updatedAt": "2026-06-08T12:00:00.000Z"
 }
