@@ -508,27 +508,34 @@ async function createAsaasPayment(env, order, config, billingType) {
 }
 
 function emailFrom(env, config) {
-  return env.EMAIL_FROM || config.emailFrom || 'Sensor TattooFix <pedidos@sensortattoofix.com.br>';
+  return env.EMAIL_FROM || config.emailFrom || 'Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>';
 }
 
 function fieldsToHtml(fields) {
   const rows = Object.entries(fields)
     .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${k}</td><td style="padding:8px;border:1px solid #ddd">${String(v ?? '').replace(/</g, '&lt;')}</td></tr>`)
     .join('');
-  return `<div style="font-family:Arial,sans-serif;max-width:560px"><table style="border-collapse:collapse;width:100%">${rows}</table><p style="color:#666;font-size:12px;margin-top:16px">Sensor TattooFix — sensortattoofix.com.br</p></div>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:560px"><table style="border-collapse:collapse;width:100%">${rows}</table><p style="color:#666;font-size:12px;margin-top:16px">Sensor Tattoo Fix — sensortattoofix.com.br</p></div>`;
 }
 
-async function sendViaResend(env, to, subject, fields, replyTo) {
+function fieldsToText(fields) {
+  return Object.entries(fields)
+    .map(([k, v]) => `${k}: ${String(v ?? '')}`)
+    .join('\n');
+}
+
+async function sendViaResend(env, config, to, subject, fields, replyTo) {
   const apiKey = (env.RESEND_API_KEY || '').trim();
-  if (!apiKey) return false;
+  if (!apiKey) return { ok: false, error: 'RESEND_API_KEY não configurada' };
 
   const payload = {
-    from: emailFrom(env, {}),
+    from: emailFrom(env, config),
     to: [to],
     subject,
-    html: fieldsToHtml(fields)
+    html: fieldsToHtml(fields),
+    text: fieldsToText(fields)
   };
-  if (replyTo) payload.reply_to = replyTo;
+  if (replyTo) payload.reply_to = [replyTo];
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -538,12 +545,13 @@ async function sendViaResend(env, to, subject, fields, replyTo) {
     },
     body: JSON.stringify(payload)
   });
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = await res.text().catch(() => '');
-    console.error('Resend:', res.status, err);
-    return false;
+    const msg = data.message || data.error || res.statusText || 'Erro Resend';
+    console.error('Resend:', res.status, msg, JSON.stringify(data));
+    return { ok: false, status: res.status, error: msg };
   }
-  return true;
+  return { ok: true, id: data.id };
 }
 
 async function sendViaFormSubmit(to, subject, fields) {
@@ -557,16 +565,25 @@ async function sendViaFormSubmit(to, subject, fields) {
     headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString()
   });
-  return res.ok;
+  const data = await res.json().catch(() => ({}));
+  const ok = res.ok && data.success !== false;
+  if (!ok) console.error('FormSubmit:', res.status, JSON.stringify(data));
+  return { ok, status: res.status, data };
 }
 
 async function notifyEmail(env, config, to, subject, fields, replyTo) {
-  if (!to) return;
+  if (!to) return { ok: false, error: 'Destinatário vazio' };
   try {
-    const sent = await sendViaResend(env, to, subject, fields, replyTo);
-    if (!sent) await sendViaFormSubmit(to, subject, fields);
+    const resend = await sendViaResend(env, config, to, subject, fields, replyTo);
+    if (resend.ok) return { ok: true, provider: 'resend', id: resend.id };
+
+    const formsubmit = await sendViaFormSubmit(to, subject, fields);
+    if (formsubmit.ok) return { ok: true, provider: 'formsubmit' };
+
+    return { ok: false, resend, formsubmit };
   } catch (err) {
     console.error('E-mail:', err.message);
+    return { ok: false, error: err.message };
   }
 }
 
@@ -590,7 +607,7 @@ async function handleShippingQuote(request, env, origin) {
   return json(await quoteCorreios(env, config, cep), 200, origin);
 }
 
-async function handleCreateOrder(request, env, origin) {
+async function handleCreateOrder(request, env, origin, ctx) {
   const body = await request.json();
   const config = await getConfig(env);
   const frete = Number(body.frete) || 0;
@@ -659,23 +676,29 @@ async function handleCreateOrder(request, env, origin) {
 
   await saveOrder(env, order);
 
-  await notifyShop(env, config, config.formsubmit.subject, {
-    Pedido: order.orderId, Status: order.status, Nome: order.nome,
-    'E-mail': order.email, Telefone: order.telefone, Smartwatch: order.smartwatch,
-    País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
-    Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total)
+  const emailWork = Promise.all([
+    notifyShop(env, config, config.formsubmit.subject, {
+      Pedido: order.orderId, Status: order.status, Nome: order.nome,
+      'E-mail': order.email, Telefone: order.telefone, Smartwatch: order.smartwatch,
+      País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
+      Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total)
+    }),
+    notifyCustomer(env, config, order, `Pedido ${order.orderId} registrado — Sensor Tattoo Fix`, {
+      Pedido: order.orderId,
+      Status: 'Aguardando pagamento',
+      Smartwatch: order.smartwatch,
+      Total: formatBRL(order.total),
+      Pagamento: order.pagamento,
+      Mensagem: 'Finalize o pagamento no site. Você receberá outro e-mail quando o pagamento for confirmado.'
+    }),
+    notifyWhatsApp(env, config, order, 'order')
+  ]).then((results) => {
+    results.slice(0, 2).forEach((r, i) => {
+      if (r && !r.ok) console.error('E-mail pedido falhou:', i === 0 ? 'loja' : 'cliente', JSON.stringify(r));
+    });
   });
 
-  await notifyCustomer(env, config, order, `Pedido ${order.orderId} registrado — Sensor TattooFix`, {
-    Pedido: order.orderId,
-    Status: 'Aguardando pagamento',
-    Smartwatch: order.smartwatch,
-    Total: formatBRL(order.total),
-    Pagamento: order.pagamento,
-    Mensagem: 'Finalize o pagamento no site. Você receberá outro e-mail quando o pagamento for confirmado.'
-  });
-
-  await notifyWhatsApp(env, config, order, 'order');
+  if (ctx) ctx.waitUntil(emailWork);
 
   return json({
     order: publicOrderView(order),
@@ -788,6 +811,24 @@ async function handleSession(request, env, origin) {
   return json({ ok: true, username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
 }
 
+async function handleTestEmail(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const config = await getConfig(env);
+  const body = await request.json().catch(() => ({}));
+  const to = (body.email || config.formsubmit?.email || '').trim();
+  if (!to) return json({ error: 'E-mail de destino não configurado.' }, 400, origin);
+
+  const result = await notifyEmail(env, config, to, 'Teste — Sensor Tattoo Fix', {
+    Teste: 'Envio de e-mail da loja',
+    Horário: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+    Remetente: emailFrom(env, config)
+  }, config.formsubmit?.email);
+
+  return json(result, result.ok ? 200 : 502, origin);
+}
+
 async function handleGetOrder(request, env, origin, orderId) {
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Não encontrado.' }, 404, origin);
@@ -847,7 +888,7 @@ async function handleListOrders(request, env, origin) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || ALLOWED_ORIGINS[0];
     const path = new URL(request.url).pathname.replace(/\/$/, '') || '/';
 
@@ -858,8 +899,9 @@ export default {
       if (path === '/config' && request.method === 'PUT') return handlePutConfig(request, env, origin);
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
+      if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
       if (path === '/shipping/quote' && request.method === 'GET') return handleShippingQuote(request, env, origin);
-      if (path === '/orders' && request.method === 'POST') return handleCreateOrder(request, env, origin);
+      if (path === '/orders' && request.method === 'POST') return handleCreateOrder(request, env, origin, ctx);
       if (path === '/orders' && request.method === 'GET') return handleListOrders(request, env, origin);
       if (path === '/webhook/asaas' && request.method === 'POST') return handleAsaasWebhook(request, env, origin);
 

@@ -293,6 +293,36 @@
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportOrders('json'));
   document.getElementById('btn-export-csv')?.addEventListener('click', () => exportOrders('csv'));
 
+  document.getElementById('btn-test-email')?.addEventListener('click', async () => {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      showStatus('Faça login com a API para testar e-mail.', 'error', 'panel');
+      return;
+    }
+    showStatus('Enviando e-mail de teste...', '', 'panel');
+    try {
+      const email = els.configForm?.formsubmitEmail?.value?.trim();
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token
+        },
+        body: JSON.stringify(email ? { email } : {})
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        showStatus(`E-mail enviado via ${data.provider || 'resend'}! Confira a caixa de entrada.`, 'success', 'panel');
+      } else {
+        const err = data.resend?.error || data.error || data.formsubmit?.data?.message || 'Falha no envio';
+        showStatus('Erro: ' + err, 'error', 'panel');
+      }
+    } catch (err) {
+      showStatus(err.message, 'error', 'panel');
+    }
+  });
+
   document.addEventListener('DOMContentLoaded', async () => {
     if (els.loginApiUrl && bootstrap.configApiUrl) {
       els.loginApiUrl.value = bootstrap.configApiUrl;
