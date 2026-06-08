@@ -175,7 +175,48 @@ function formatBRL(n) {
 }
 
 function asaasBase(env) {
-  return env.ASAAS_SANDBOX === 'true' ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/api/v3';
+  return env.ASAAS_SANDBOX === 'true'
+    ? 'https://api-sandbox.asaas.com/v3'
+    : 'https://api.asaas.com/v3';
+}
+
+function asaasApiKey(env) {
+  return (env.ASAAS_API_KEY || '').trim();
+}
+
+function asaasHeaders(apiKey) {
+  return {
+    access_token: apiKey,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'SensorTattooFix/1.0'
+  };
+}
+
+function normalizePhoneBR(phone) {
+  let digits = onlyDigits(phone);
+  if (digits.length >= 12 && digits.startsWith('55')) digits = digits.slice(2);
+  return digits;
+}
+
+async function asaasReadJson(res, step) {
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`${step}: resposta inválida do Asaas (HTTP ${res.status})`);
+    }
+  }
+  if (!res.ok) {
+    const msg = data?.errors?.[0]?.description || text || `HTTP ${res.status}`;
+    throw new Error(`${step}: ${msg}`);
+  }
+  if (!data) {
+    throw new Error(`${step}: resposta vazia do Asaas (HTTP ${res.status})`);
+  }
+  return data;
 }
 
 async function getConfig(env) {
@@ -352,30 +393,64 @@ function quoteInternational(config, countryCode) {
   };
 }
 
+async function findAsaasCustomerByCpf(base, apiKey, cpfCnpj) {
+  const res = await fetch(`${base}/customers?cpfCnpj=${encodeURIComponent(cpfCnpj)}&limit=1`, {
+    headers: asaasHeaders(apiKey)
+  });
+  const data = await asaasReadJson(res, 'Buscar cliente Asaas');
+  return data.data?.[0]?.id || null;
+}
+
 async function createAsaasCustomer(base, apiKey, order) {
+  const cpfCnpj = onlyDigits(order.cpf);
+  if (!cpfCnpj || (cpfCnpj.length !== 11 && cpfCnpj.length !== 14)) {
+    throw new Error('CPF/CNPJ inválido para cobrança Asaas.');
+  }
+
+  const existingId = await findAsaasCustomerByCpf(base, apiKey, cpfCnpj);
+  if (existingId) return existingId;
+
   const res = await fetch(base + '/customers', {
     method: 'POST',
-    headers: { access_token: apiKey, 'Content-Type': 'application/json' },
+    headers: asaasHeaders(apiKey),
     body: JSON.stringify({
       name: order.nome,
       email: order.email,
-      cpfCnpj: onlyDigits(order.cpf) || '00000000000',
-      mobilePhone: onlyDigits(order.telefone),
+      cpfCnpj,
+      mobilePhone: normalizePhoneBR(order.telefone),
       postalCode: onlyDigits(order.cep) || '01310100',
-      address: order.rua || 'N/A',
+      address: order.rua || 'Av Paulista',
       addressNumber: order.numero || 'S/N',
       complement: order.complemento || undefined,
-      province: order.bairro || order.cidade || 'N/A',
-      externalReference: order.orderId
+      province: order.bairro || order.cidade || 'Centro',
+      externalReference: order.orderId,
+      notificationDisabled: true
     })
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.errors?.[0]?.description || 'Erro cliente Asaas');
+  const data = await asaasReadJson(res, 'Criar cliente Asaas');
   return data.id;
 }
 
+async function fetchAsaasPixQr(base, apiKey, paymentId) {
+  let lastError = 'Não foi possível gerar QR Code PIX no Asaas.';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const qrRes = await fetch(`${base}/payments/${paymentId}/pixQrCode`, {
+      headers: { access_token: apiKey, Accept: 'application/json', 'User-Agent': 'SensorTattooFix/1.0' }
+    });
+    const text = await qrRes.text();
+    let qr = null;
+    if (text) {
+      try { qr = JSON.parse(text); } catch { /* retry */ }
+    }
+    if (qrRes.ok && qr?.payload) return qr;
+    lastError = qr?.errors?.[0]?.description || text || `HTTP ${qrRes.status}`;
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 400));
+  }
+  throw new Error(lastError + ' Cadastre uma chave PIX no painel Asaas.');
+}
+
 async function createAsaasPayment(env, order, config, billingType) {
-  const apiKey = env.ASAAS_API_KEY;
+  const apiKey = asaasApiKey(env);
   if (!apiKey) return null;
 
   const base = asaasBase(env);
@@ -384,27 +459,20 @@ async function createAsaasPayment(env, order, config, billingType) {
 
   const res = await fetch(base + '/payments', {
     method: 'POST',
-    headers: { access_token: apiKey, 'Content-Type': 'application/json' },
+    headers: asaasHeaders(apiKey),
     body: JSON.stringify({
       customer: customerId,
       billingType,
-      value: order.total,
+      value: Number(order.total.toFixed(2)),
       dueDate: due,
-      description: `${config.product.name} — ${order.smartwatch} — ${order.orderId}`,
+      description: `${config.product.name} — ${order.smartwatch} — ${order.orderId}`.slice(0, 500),
       externalReference: order.orderId
     })
   });
-  const payment = await res.json();
-  if (!res.ok) throw new Error(payment.errors?.[0]?.description || 'Erro pagamento Asaas');
+  const payment = await asaasReadJson(res, 'Criar cobrança Asaas');
 
   if (billingType === 'PIX') {
-    const qrRes = await fetch(base + '/payments/' + payment.id + '/pixQrCode', {
-      headers: { access_token: apiKey, Accept: 'application/json' }
-    });
-    const qr = await qrRes.json();
-    if (!qrRes.ok || !qr.payload) {
-      throw new Error(qr.errors?.[0]?.description || 'Não foi possível gerar QR Code PIX no Asaas. Cadastre uma chave PIX no painel Asaas.');
-    }
+    const qr = await fetchAsaasPixQr(base, apiKey, payment.id);
     return {
       provider: 'asaas',
       billingType: 'PIX',
@@ -488,7 +556,7 @@ async function handleCreateOrder(request, env, origin) {
   };
 
   let payment = null;
-  const hasAsaas = !!env.ASAAS_API_KEY;
+  const hasAsaas = !!asaasApiKey(env);
   try {
     payment = await createAsaasPayment(env, order, config, billingType);
   } catch (err) {
