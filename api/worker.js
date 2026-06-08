@@ -507,17 +507,30 @@ async function createAsaasPayment(env, order, config, billingType) {
   };
 }
 
-async function notifyEmail(config, subject, fields) {
+async function notifyEmail(to, subject, fields) {
+  if (!to) return;
   const body = new URLSearchParams();
   body.append('_subject', subject);
   body.append('_captcha', 'false');
   body.append('_template', 'table');
   Object.entries(fields).forEach(([k, v]) => body.append(k, String(v ?? '')));
-  await fetch('https://formsubmit.co/ajax/' + config.formsubmit.email, {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString()
-  });
+  try {
+    await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(to), {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+  } catch (err) {
+    console.error('E-mail:', err.message);
+  }
+}
+
+async function notifyShop(config, subject, fields) {
+  await notifyEmail(config.formsubmit?.email, subject, fields);
+}
+
+async function notifyCustomer(order, subject, fields) {
+  await notifyEmail(order.email, subject, { Cliente: order.nome, ...fields });
 }
 
 async function handleShippingQuote(request, env, origin) {
@@ -601,11 +614,20 @@ async function handleCreateOrder(request, env, origin) {
 
   await saveOrder(env, order);
 
-  await notifyEmail(config, config.formsubmit.subject, {
+  await notifyShop(config, config.formsubmit.subject, {
     Pedido: order.orderId, Status: order.status, Nome: order.nome,
     'E-mail': order.email, Telefone: order.telefone, Smartwatch: order.smartwatch,
     País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
     Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total)
+  });
+
+  await notifyCustomer(order, `Pedido ${order.orderId} registrado — Sensor TattooFix`, {
+    Pedido: order.orderId,
+    Status: 'Aguardando pagamento',
+    Smartwatch: order.smartwatch,
+    Total: formatBRL(order.total),
+    Pagamento: order.pagamento,
+    Mensagem: 'Finalize o pagamento no site. Você receberá outro e-mail quando o pagamento for confirmado.'
   });
 
   await notifyWhatsApp(env, config, order, 'order');
@@ -639,11 +661,20 @@ async function handlePaymentConfirmed(env, order, payment) {
   await saveOrder(env, order);
 
   const config = await getConfig(env);
-  await notifyEmail(config, '✅ PAGO — ' + order.orderId, {
+  await notifyShop(config, '✅ PAGO — ' + order.orderId, {
     Pedido: order.orderId, Status: 'PAGO', Cliente: order.nome,
     Smartwatch: order.smartwatch, Valor: formatBRL(value),
     Endereço: order.endereco, Envio: order.shippingService
   });
+
+  await notifyCustomer(order, `✅ Pagamento confirmado — ${order.orderId}`, {
+    Pedido: order.orderId,
+    Status: 'PAGO',
+    Valor: formatBRL(value),
+    Smartwatch: order.smartwatch,
+    Mensagem: 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.'
+  });
+
   await notifyWhatsApp(env, config, order, 'paid');
 }
 
