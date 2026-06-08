@@ -332,12 +332,23 @@
             <p>&copy; 2026 Sensor Tattoo Fix. 3N20 Soluções Tecnológicas. Patente Requerida: BR 20 2026 010875 3. Todos os direitos reservados.</p>
         </div>
     </footer>
+    <script src="js/analytics.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var toggle = document.getElementById('mobile-menu-toggle');
             document.querySelectorAll('.nav-links a').forEach(function(link) {
                 link.addEventListener('click', function() {
                     if (toggle) toggle.checked = false;
+                });
+            });
+            document.querySelectorAll('#onde-comprar a[href]').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    var label = (link.querySelector('h3, strong') || {}).textContent || link.hostname || 'loja';
+                    window.STF_ANALYTICS?.track('select_promotion', {
+                        promotion_name: label.trim(),
+                        creative_name: link.href.includes('comprar.html') ? 'loja_oficial' : 'marketplace',
+                        location_id: 'onde_comprar'
+                    });
                 });
             });
         });

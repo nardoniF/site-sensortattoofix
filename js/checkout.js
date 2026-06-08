@@ -307,7 +307,13 @@
     els.confirmHint.textContent = 'Após pagar no Asaas, volte a esta página. A confirmação é automática.';
   }
 
-  function startPolling(orderId, accessToken) {
+  let lastPaymentMethod = 'PIX';
+
+  function trackGa(event, params) {
+    window.STF_ANALYTICS?.track(event, params);
+  }
+
+  function startPolling(orderId, accessToken, total) {
     const base = apiBase();
     if (!base || !accessToken) return;
     pollTimer = setInterval(async () => {
@@ -321,6 +327,7 @@
           els.paymentStatus.className = 'payment-status confirmed';
           els.paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i> Pagamento confirmado! Você receberá a confirmação por e-mail em instantes.';
           els.confirmTitle.textContent = 'Pagamento confirmado!';
+          window.STF_ANALYTICS?.trackPurchase(orderId, total || order.total, lastPaymentMethod);
         }
       } catch (e) { console.warn(e); }
     }, 3000);
@@ -332,6 +339,7 @@
     try {
       const orderData = collectOrderData();
       const wantsCard = orderData.pagamento === 'CARTAO';
+      lastPaymentMethod = wantsCard ? 'credit_card' : 'pix';
       const result = await createOrder(orderData);
       const total = result.order?.total || (product.price + orderData.frete);
       const orderId = result.order?.orderId;
@@ -370,7 +378,14 @@
         }
       }
 
-      if (accessToken) startPolling(orderId, accessToken);
+      trackGa('add_payment_info', {
+        currency: 'BRL',
+        value: total,
+        payment_type: lastPaymentMethod,
+        items: [{ item_id: 'kit-sensor-tattoo-fix', item_name: product?.name || 'Kit Sensor Tattoo Fix', price: total, quantity: 1 }]
+      });
+
+      if (accessToken) startPolling(orderId, accessToken, total);
       showStep(3);
     } catch (err) {
       alert(err.message || 'Erro ao processar pedido.');
@@ -422,6 +437,11 @@
     updateSummary();
     bindEvents();
     showStep(1);
+    trackGa('begin_checkout', {
+      currency: 'BRL',
+      value: product?.price || 59.9,
+      items: [{ item_id: 'kit-sensor-tattoo-fix', item_name: product?.name || 'Kit Sensor Tattoo Fix', price: product?.price || 59.9, quantity: 1 }]
+    });
   }
 
   document.addEventListener('DOMContentLoaded', boot);
