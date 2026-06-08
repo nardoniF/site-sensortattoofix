@@ -16,3 +16,5 @@ ADMIN_USERNAME = "admin"
 # CORREIOS_USER        — usuário API Correios (Meu Correios)
 # CORREIOS_PASSWORD    — código de acesso API Correios
 # CORREIOS_CONTRACT    — número do contrato/cartão postagem (opcional)
+# RESEND_API_KEY       — e-mails com remetente profissional (resend.com, grátis até 3k/mês)
+# EMAIL_FROM           — opcional: Sensor TattooFix <pedidos@sensortattoofix.com.br>

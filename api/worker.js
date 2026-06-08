@@ -507,30 +507,75 @@ async function createAsaasPayment(env, order, config, billingType) {
   };
 }
 
-async function notifyEmail(to, subject, fields) {
-  if (!to) return;
+function emailFrom(env, config) {
+  return env.EMAIL_FROM || config.emailFrom || 'Sensor TattooFix <pedidos@sensortattoofix.com.br>';
+}
+
+function fieldsToHtml(fields) {
+  const rows = Object.entries(fields)
+    .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${k}</td><td style="padding:8px;border:1px solid #ddd">${String(v ?? '').replace(/</g, '&lt;')}</td></tr>`)
+    .join('');
+  return `<div style="font-family:Arial,sans-serif;max-width:560px"><table style="border-collapse:collapse;width:100%">${rows}</table><p style="color:#666;font-size:12px;margin-top:16px">Sensor TattooFix — sensortattoofix.com.br</p></div>`;
+}
+
+async function sendViaResend(env, to, subject, fields, replyTo) {
+  const apiKey = (env.RESEND_API_KEY || '').trim();
+  if (!apiKey) return false;
+
+  const payload = {
+    from: emailFrom(env, {}),
+    to: [to],
+    subject,
+    html: fieldsToHtml(fields)
+  };
+  if (replyTo) payload.reply_to = replyTo;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + apiKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    console.error('Resend:', res.status, err);
+    return false;
+  }
+  return true;
+}
+
+async function sendViaFormSubmit(to, subject, fields) {
   const body = new URLSearchParams();
   body.append('_subject', subject);
   body.append('_captcha', 'false');
   body.append('_template', 'table');
   Object.entries(fields).forEach(([k, v]) => body.append(k, String(v ?? '')));
+  const res = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(to), {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString()
+  });
+  return res.ok;
+}
+
+async function notifyEmail(env, config, to, subject, fields, replyTo) {
+  if (!to) return;
   try {
-    await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(to), {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
-    });
+    const sent = await sendViaResend(env, to, subject, fields, replyTo);
+    if (!sent) await sendViaFormSubmit(to, subject, fields);
   } catch (err) {
     console.error('E-mail:', err.message);
   }
 }
 
-async function notifyShop(config, subject, fields) {
-  await notifyEmail(config.formsubmit?.email, subject, fields);
+async function notifyShop(env, config, subject, fields) {
+  await notifyEmail(env, config, config.formsubmit?.email, subject, fields);
 }
 
-async function notifyCustomer(order, subject, fields) {
-  await notifyEmail(order.email, subject, { Cliente: order.nome, ...fields });
+async function notifyCustomer(env, config, order, subject, fields) {
+  await notifyEmail(env, config, order.email, subject, { Cliente: order.nome, ...fields }, config.formsubmit?.email);
 }
 
 async function handleShippingQuote(request, env, origin) {
@@ -614,14 +659,14 @@ async function handleCreateOrder(request, env, origin) {
 
   await saveOrder(env, order);
 
-  await notifyShop(config, config.formsubmit.subject, {
+  await notifyShop(env, config, config.formsubmit.subject, {
     Pedido: order.orderId, Status: order.status, Nome: order.nome,
     'E-mail': order.email, Telefone: order.telefone, Smartwatch: order.smartwatch,
     País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
     Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total)
   });
 
-  await notifyCustomer(order, `Pedido ${order.orderId} registrado — Sensor TattooFix`, {
+  await notifyCustomer(env, config, order, `Pedido ${order.orderId} registrado — Sensor TattooFix`, {
     Pedido: order.orderId,
     Status: 'Aguardando pagamento',
     Smartwatch: order.smartwatch,
@@ -661,13 +706,13 @@ async function handlePaymentConfirmed(env, order, payment) {
   await saveOrder(env, order);
 
   const config = await getConfig(env);
-  await notifyShop(config, '✅ PAGO — ' + order.orderId, {
+  await notifyShop(env, config, '✅ PAGO — ' + order.orderId, {
     Pedido: order.orderId, Status: 'PAGO', Cliente: order.nome,
     Smartwatch: order.smartwatch, Valor: formatBRL(value),
     Endereço: order.endereco, Envio: order.shippingService
   });
 
-  await notifyCustomer(order, `✅ Pagamento confirmado — ${order.orderId}`, {
+  await notifyCustomer(env, config, order, `✅ Pagamento confirmado — ${order.orderId}`, {
     Pedido: order.orderId,
     Status: 'PAGO',
     Valor: formatBRL(value),
