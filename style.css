@@ -798,7 +798,7 @@ line-height:1.8;
 }
 .form-grid label.full { grid-column: 1 / -1; }
 .form-grid label.span-2 { grid-column: span 2; }
-.form-grid input,
+.form-grid input:not([type="checkbox"]):not([type="radio"]),
 .form-grid select,
 .form-grid textarea {
     padding: 12px;
@@ -998,7 +998,7 @@ line-height:1.8;
     font-weight: 600;
     color: #ccc;
 }
-.admin-form input,
+.admin-form input:not([type="checkbox"]):not([type="radio"]),
 .admin-form textarea,
 .admin-form select {
     padding: 12px;
@@ -1433,7 +1433,9 @@ line-height:1.8;
     gap: 16px 24px;
     padding-top: 4px;
 }
-.label-check {
+.admin-form .label-check,
+.form-grid .label-check {
+    display: inline-flex !important;
     flex-direction: row !important;
     align-items: center;
     gap: 8px;
@@ -1442,14 +1444,21 @@ line-height:1.8;
     color: #ccc;
     cursor: pointer;
     margin: 0;
+    width: auto;
 }
-.label-check input[type="checkbox"] {
+.admin-form .label-check input[type="checkbox"],
+.form-grid .label-check input[type="checkbox"] {
     width: 18px;
     height: 18px;
+    min-height: 18px;
+    padding: 0;
     margin: 0;
     flex-shrink: 0;
     accent-color: var(--primary);
     cursor: pointer;
+    border: 1px solid #555;
+    background: #0a0a0a;
+    border-radius: 4px;
 }
 .admin-form #btn-offline-mode { margin-top: 4px; }
 
