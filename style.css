@@ -1028,13 +1028,29 @@ line-height:1.8;
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+    align-items: center;
 }
 .admin-form-actions .btn-primary,
-.admin-form-actions .btn-secondary {
+.admin-form-actions .btn-secondary,
+.admin-form-actions a.btn-primary {
     min-width: unset;
+    margin: 0;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
+    height: 44px;
+    padding: 0 18px;
+    box-sizing: border-box;
+    line-height: 1;
+    white-space: nowrap;
+}
+.admin-form-actions .btn-primary,
+.admin-form-actions a.btn-primary {
+    border: 2px solid transparent;
+}
+.admin-form-actions .btn-secondary {
+    padding: 0 17px;
 }
 .admin-email-tests {
     display: flex;
