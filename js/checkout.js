@@ -430,13 +430,73 @@
     });
   }
 
+  async function resumeOrderFromUrl() {
+    const params = new URLSearchParams(location.search);
+    const pedido = params.get('pedido');
+    const token = params.get('token');
+    if (!pedido || !token) return false;
+
+    const base = apiBase();
+    if (!base) return false;
+
+    try {
+      const res = await fetch(
+        `${base}/orders/${encodeURIComponent(pedido)}?token=${encodeURIComponent(token)}`,
+        { cache: 'no-store' }
+      );
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!data?.orderId) return false;
+
+      els.orderId.textContent = data.orderId;
+      els.pixAmount.textContent = formatBRL(data.total);
+      els.paymentStatus.hidden = false;
+
+      if (data.status === 'paid') {
+        els.paymentStatus.className = 'payment-status confirmed';
+        els.paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i> Pagamento já confirmado! Você receberá os detalhes por e-mail.';
+        els.confirmTitle.textContent = 'Pagamento confirmado!';
+        showStep(3);
+        history.replaceState({}, '', location.pathname);
+        return true;
+      }
+
+      if (data.status !== 'pending_payment') return false;
+
+      const payment = data.payment || {};
+      lastPaymentMethod = payment.billingType === 'CREDIT_CARD' ? 'credit_card' : 'pix';
+
+      if (payment.billingType === 'CREDIT_CARD' && payment.invoiceUrl) {
+        showCardPayment(payment.invoiceUrl);
+        els.paymentStatus.className = 'payment-status waiting';
+        els.paymentStatus.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Abra o link do cartão e volte aqui — a confirmação é automática.';
+      } else {
+        renderPix(data.orderId, data.total, payment);
+        els.paymentStatus.className = 'payment-status waiting';
+        els.paymentStatus.innerHTML = payment.autoConfirm
+          ? '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação automática do PIX...'
+          : '<p>Escaneie o QR Code ou copie o PIX abaixo. Esta página atualiza quando o pagamento for confirmado.</p>';
+      }
+
+      startPolling(data.orderId, token, data.total);
+      showStep(3);
+      history.replaceState({}, '', location.pathname);
+      return true;
+    } catch (e) {
+      console.warn('Retomar pedido:', e);
+      return false;
+    }
+  }
+
   async function boot() {
     cfg = await StoreConfig.load();
     product = cfg.product;
     populateSelects();
     updateSummary();
     bindEvents();
-    showStep(1);
+    const resumed = await resumeOrderFromUrl();
+    if (!resumed) showStep(1);
     trackGa('entrou_loja', {
       valor_produto: product?.price || 59.9,
       moeda: 'BRL'

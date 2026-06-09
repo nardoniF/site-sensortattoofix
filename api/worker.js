@@ -41,27 +41,48 @@ const DEFAULT_CONFIG = {
   smartwatchModels: [
     'Apple Watch SE (40mm)',
     'Apple Watch SE (44mm)',
+    'Apple Watch SE 2 (40mm)',
+    'Apple Watch SE 2 (44mm)',
+    'Apple Watch Series 6 (40mm)',
+    'Apple Watch Series 6 (44mm)',
+    'Apple Watch Series 7 (41mm)',
+    'Apple Watch Series 7 (45mm)',
+    'Apple Watch Series 8 (41mm)',
+    'Apple Watch Series 8 (45mm)',
     'Apple Watch Series 9 (41mm)',
     'Apple Watch Series 9 (45mm)',
     'Apple Watch Series 10 (42mm)',
     'Apple Watch Series 10 (46mm)',
-    'Apple Watch Ultra / Ultra 2',
+    'Apple Watch Ultra (49mm)',
+    'Apple Watch Ultra 2 (49mm)',
+    'Apple Watch Ultra 3 (49mm)',
     'Samsung Galaxy Watch 4 (40mm)',
     'Samsung Galaxy Watch 4 (44mm)',
     'Samsung Galaxy Watch 5 (40mm)',
     'Samsung Galaxy Watch 5 (44mm)',
+    'Samsung Galaxy Watch 5 Pro (45mm)',
     'Samsung Galaxy Watch 6 (40mm)',
     'Samsung Galaxy Watch 6 (44mm)',
+    'Samsung Galaxy Watch 6 Classic (43mm)',
+    'Samsung Galaxy Watch 6 Classic (47mm)',
     'Samsung Galaxy Watch 7 (40mm)',
     'Samsung Galaxy Watch 7 (44mm)',
+    'Samsung Galaxy Watch Ultra (47mm)',
     'Garmin Forerunner',
     'Garmin Fenix',
     'Garmin Venu',
     'Garmin Vivoactive',
+    'Garmin Instinct',
     'Huawei Watch GT',
     'Huawei Watch Fit',
     'Xiaomi Watch S1 / S3',
+    'Redmi Watch',
     'Amazfit GTR / GTS',
+    'Amazfit Bip',
+    'Amazfit Active',
+    'Amazfit T-Rex',
+    'Fitbit Versa / Sense',
+    'Polar Pacer / Ignite',
     'Outro modelo (informar nas observações)'
   ],
   formsubmit: { email: 'sensortattoofix@gmail.com', subject: 'Novo pedido — Loja Oficial Sensor TattooFix' },
@@ -116,8 +137,8 @@ function generateOrderId() {
   return `STF-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${suffix}`;
 }
 
-function publicOrderView(order) {
-  return {
+function publicOrderView(order, { includePayment = false } = {}) {
+  const view = {
     orderId: order.orderId,
     status: order.status,
     total: order.total,
@@ -126,6 +147,129 @@ function publicOrderView(order) {
     pagamento: order.pagamento,
     paidAt: order.paidAt || null
   };
+  if (includePayment && order.status === 'pending_payment') {
+    view.payment = {
+      billingType: order.paymentBillingType || 'PIX',
+      pixCopyPaste: order.pixCopyPaste || null,
+      pixQrEncoded: order.pixQrEncoded || null,
+      invoiceUrl: order.invoiceUrl || null,
+      autoConfirm: order.autoConfirm !== false
+    };
+  }
+  return view;
+}
+
+function pixTlv(id, value) {
+  return id + String(value.length).padStart(2, '0') + value;
+}
+
+function pixCrc16(payload) {
+  let crc = 0xffff;
+  for (let i = 0; i < payload.length; i++) {
+    crc ^= payload.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+    }
+    crc &= 0xffff;
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function pixSanitize(str, max) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9 ]/g, '')
+    .toUpperCase()
+    .slice(0, max);
+}
+
+function normalizePixKey(key, keyType) {
+  const raw = String(key || '').trim();
+  if (keyType === 'cpf' || keyType === 'cnpj' || keyType === 'phone') return raw.replace(/\D/g, '');
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 14 || digits.length === 11) return digits;
+  return raw;
+}
+
+function generateStaticPixPayload(config, order) {
+  const pix = config.pix || {};
+  const name = pixSanitize(pix.merchantName, 25);
+  const city = pixSanitize(pix.merchantCity, 15);
+  const reference = String(order.orderId || 'STF').replace(/[^a-zA-Z0-9]/g, '').slice(0, 25);
+  const pixKey = normalizePixKey(pix.key, pix.keyType);
+  const merchantAccount = pixTlv('00', 'br.gov.bcb.pix') + pixTlv('01', pixKey);
+  let payload =
+    pixTlv('00', '01') +
+    pixTlv('26', merchantAccount) +
+    pixTlv('52', '0000') +
+    pixTlv('53', '986') +
+    pixTlv('54', Number(order.total).toFixed(2)) +
+    pixTlv('58', 'BR') +
+    pixTlv('59', name) +
+    pixTlv('60', city) +
+    pixTlv('62', pixTlv('05', reference));
+  payload += '6304';
+  payload += pixCrc16(payload);
+  return payload;
+}
+
+function attachPaymentToOrder(order, payment, config) {
+  if (!payment) return;
+  order.paymentBillingType = payment.billingType || 'PIX';
+  order.autoConfirm = payment.autoConfirm !== false;
+  if (payment.invoiceUrl) order.invoiceUrl = payment.invoiceUrl;
+  if (payment.pixCopyPaste) {
+    order.pixCopyPaste = payment.pixCopyPaste;
+    order.pixQrEncoded = payment.pixQrEncoded || null;
+  } else if (payment.billingType === 'PIX' || payment.provider === 'static_pix') {
+    order.pixCopyPaste = generateStaticPixPayload(config, order);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function resumeOrderUrl(config, order) {
+  const site = (config.siteUrl || 'https://sensortattoofix.com.br').replace(/\/$/, '');
+  return `${site}/comprar.html?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
+}
+
+function buildPixPaymentEmail(order, config) {
+  const resumeUrl = resumeOrderUrl(config, order);
+  const total = formatBRL(order.total);
+  const copyPaste = order.pixCopyPaste || '';
+  let qrImg = '';
+  if (order.pixQrEncoded) {
+    qrImg = `<img src="data:image/png;base64,${order.pixQrEncoded}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`;
+  } else if (copyPaste) {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(copyPaste)}`;
+    qrImg = `<img src="${qrUrl}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`;
+  }
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;color:#222">
+    <p>Olá, <strong>${escapeHtml(order.nome)}</strong>!</p>
+    <p>Seu pedido <strong>${escapeHtml(order.orderId)}</strong> foi registrado. Para concluir a compra, pague o PIX abaixo:</p>
+    <p style="font-size:18px"><strong>Total: ${escapeHtml(total)}</strong></p>
+    ${qrImg}
+    <p style="font-size:13px;color:#555">Escaneie o QR Code no app do seu banco ou copie o código PIX:</p>
+    <p style="word-break:break-all;font-family:monospace;font-size:11px;background:#f5f5f5;padding:12px;border-radius:8px;border:1px solid #ddd">${escapeHtml(copyPaste)}</p>
+    <p style="margin-top:20px"><a href="${escapeHtml(resumeUrl)}" style="display:inline-block;background:#ffc107;color:#000;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px">Abrir pedido e pagar</a></p>
+    <p style="font-size:12px;color:#666">Guarde este e-mail — se fechar a página, use o link acima para voltar ao QR Code.</p>
+    <p style="font-size:12px;color:#666;margin-top:16px">Smartwatch: ${escapeHtml(order.smartwatch)}<br>Sensor Tattoo Fix — sensortattoofix.com.br</p>
+  </div>`;
+  const text = [
+    `Olá, ${order.nome}!`,
+    `Pedido ${order.orderId} — Total: ${total}`,
+    '',
+    'Código PIX (copia e cola):',
+    copyPaste,
+    '',
+    `Abrir pedido: ${resumeUrl}`,
+    '',
+    `Smartwatch: ${order.smartwatch}`
+  ].join('\n');
+  return { html, text };
 }
 
 async function getLoginLock(env, ip) {
@@ -538,7 +682,7 @@ function fieldsToText(fields) {
     .join('\n');
 }
 
-async function sendViaResend(env, config, to, subject, fields, replyTo) {
+async function sendViaResend(env, config, to, subject, fields, replyTo, content) {
   const apiKey = (env.RESEND_API_KEY || '').trim();
   if (!apiKey) return { ok: false, error: 'RESEND_API_KEY não configurada' };
 
@@ -546,8 +690,8 @@ async function sendViaResend(env, config, to, subject, fields, replyTo) {
     from: emailFrom(env, config),
     to: [to],
     subject,
-    html: fieldsToHtml(fields),
-    text: fieldsToText(fields)
+    html: content?.html || fieldsToHtml(fields),
+    text: content?.text || fieldsToText(fields)
   };
   if (replyTo) payload.reply_to = [replyTo];
 
@@ -585,10 +729,10 @@ async function sendViaFormSubmit(to, subject, fields) {
   return { ok, status: res.status, data };
 }
 
-async function notifyEmail(env, config, to, subject, fields, replyTo) {
+async function notifyEmail(env, config, to, subject, fields, replyTo, content) {
   if (!to) return { ok: false, error: 'Destinatário vazio' };
   try {
-    const resend = await sendViaResend(env, config, to, subject, fields, replyTo);
+    const resend = await sendViaResend(env, config, to, subject, fields, replyTo, content);
     if (resend.ok) return { ok: true, provider: 'resend', id: resend.id };
 
     const formsubmit = await sendViaFormSubmit(to, subject, fields);
@@ -605,8 +749,26 @@ async function notifyShop(env, config, subject, fields) {
   return notifyEmail(env, config, config.formsubmit?.email, subject, fields);
 }
 
-async function notifyCustomer(env, config, order, subject, fields) {
-  await notifyEmail(env, config, order.email, subject, { Cliente: order.nome, ...fields }, config.formsubmit?.email);
+async function notifyCustomer(env, config, order, subject, fields, content) {
+  return notifyEmail(env, config, order.email, subject, { Cliente: order.nome, ...fields }, config.formsubmit?.email, content);
+}
+
+async function notifyCustomerPendingPix(env, config, order) {
+  const pixMail = buildPixPaymentEmail(order, config);
+  const fields = {
+    Pedido: order.orderId,
+    Total: formatBRL(order.total),
+    Smartwatch: order.smartwatch,
+    'Link do pedido': resumeOrderUrl(config, order)
+  };
+  return notifyCustomer(
+    env,
+    config,
+    order,
+    `PIX do pedido ${order.orderId} — Sensor Tattoo Fix`,
+    fields,
+    pixMail
+  );
 }
 
 async function handleShippingQuote(request, env, origin) {
@@ -680,15 +842,31 @@ async function handleCreateOrder(request, env, origin, ctx) {
   if (payment) {
     order.paymentProvider = 'asaas';
     order.asaasPaymentId = payment.paymentId;
-    order.autoConfirm = true;
+    order.autoConfirm = payment.autoConfirm !== false;
+    attachPaymentToOrder(order, payment, config);
   } else if (hasAsaas) {
     return json({ error: 'Não foi possível criar cobrança no Asaas. Verifique chave PIX cadastrada no painel.' }, 400, origin);
   } else {
     order.paymentProvider = 'static_pix';
     order.autoConfirm = false;
+    if (billingType === 'PIX') {
+      attachPaymentToOrder(order, { provider: 'static_pix', billingType: 'PIX', autoConfirm: false }, config);
+    }
   }
 
   await saveOrder(env, order);
+
+  const customerEmail = billingType === 'PIX'
+    ? notifyCustomerPendingPix(env, config, order)
+    : notifyCustomer(env, config, order, `Pedido ${order.orderId} registrado — Sensor Tattoo Fix`, {
+      Pedido: order.orderId,
+      Status: 'Aguardando pagamento',
+      Smartwatch: order.smartwatch,
+      Total: formatBRL(order.total),
+      Pagamento: order.pagamento,
+      Mensagem: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
+      'Link do pedido': resumeOrderUrl(config, order)
+    });
 
   const emailWork = Promise.all([
     notifyShop(env, config, config.formsubmit.subject, {
@@ -697,14 +875,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
       País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
       Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total)
     }),
-    notifyCustomer(env, config, order, `Pedido ${order.orderId} registrado — Sensor Tattoo Fix`, {
-      Pedido: order.orderId,
-      Status: 'Aguardando pagamento',
-      Smartwatch: order.smartwatch,
-      Total: formatBRL(order.total),
-      Pagamento: order.pagamento,
-      Mensagem: 'Finalize o pagamento no site. Você receberá outro e-mail quando o pagamento for confirmado.'
-    }),
+    customerEmail,
     notifyWhatsApp(env, config, order, 'order')
   ]).then((results) => {
     results.slice(0, 2).forEach((r, i) => {
@@ -926,7 +1097,7 @@ async function handleGetOrder(request, env, origin, orderId) {
 
   const accessToken = new URL(request.url).searchParams.get('token') || '';
   if (accessToken && order.accessToken && accessToken === order.accessToken) {
-    return json(publicOrderView(order), 200, origin);
+    return json(publicOrderView(order, { includePayment: true }), 200, origin);
   }
 
   return json({ error: 'Não autorizado.' }, 401, origin);

@@ -29,18 +29,22 @@ window.StoreConfig = (function () {
         const res = await fetch(apiUrl.replace(/\/$/, '') + '/config', { cache: 'no-store' });
         if (res.ok) {
           const config = applyDerivedFields(await res.json());
-          if (!config.smartwatchModels?.length || Object.keys(config.internationalShipping || {}).length < 4) {
-            try {
-              const local = await loadLocalConfig();
-              if (!config.smartwatchModels?.length && local.smartwatchModels?.length) {
-                config.smartwatchModels = local.smartwatchModels;
-              }
-              if (Object.keys(config.internationalShipping || {}).length < 4 && local.internationalShipping) {
-                config.internationalShipping = { ...local.internationalShipping, ...config.internationalShipping };
-              }
-            } catch (e) {
-              console.warn('Fallback local para modelos indisponível.', e);
+          try {
+            const local = await loadLocalConfig();
+            const apiModels = config.smartwatchModels || [];
+            const localModels = local.smartwatchModels || [];
+            if (!apiModels.length && localModels.length) {
+              config.smartwatchModels = localModels;
+            } else if (localModels.length) {
+              const merged = [...apiModels];
+              localModels.forEach((m) => { if (!merged.includes(m)) merged.push(m); });
+              config.smartwatchModels = merged;
             }
+            if (Object.keys(config.internationalShipping || {}).length < 4 && local.internationalShipping) {
+              config.internationalShipping = { ...local.internationalShipping, ...config.internationalShipping };
+            }
+          } catch (e) {
+            console.warn('Fallback local para modelos indisponível.', e);
           }
           config._loaded = true;
           window.CHECKOUT_CONFIG = config;
