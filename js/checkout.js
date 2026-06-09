@@ -1,10 +1,6 @@
 (function () {
-  const CUSTOMER_SESSION_KEY = 'stf_customer_token';
-  const CUSTOMER_USER_KEY = 'stf_customer_user';
-
   let cfg, products = [];
   let shippingCost = null, shippingInfo = null, pollTimer = null, isInternational = false;
-  let customerUser = null;
 
   const els = {
     form: document.getElementById('checkout-form'),
@@ -40,7 +36,10 @@
     criarConta: document.getElementById('criar-conta'),
     senhaWrap: document.getElementById('senha-wrap'),
     checkoutSenha: document.getElementById('checkout-senha'),
-    accountCreateWrap: document.getElementById('account-create-wrap')
+    accountCreateWrap: document.getElementById('account-create-wrap'),
+    accountGuestWrap: document.getElementById('account-guest-wrap'),
+    accountLoggedWrap: document.getElementById('account-logged-wrap'),
+    accountLoggedName: document.getElementById('account-logged-name')
   };
 
   let currentStep = 1;
@@ -77,7 +76,28 @@
   }
 
   function customerToken() {
-    return localStorage.getItem(CUSTOMER_SESSION_KEY) || '';
+    return window.STF_ACCOUNT?.getToken() || '';
+  }
+
+  function getCustomerUser() {
+    return window.STF_ACCOUNT?.getUser() || null;
+  }
+
+  function renderCheckoutAccountUI() {
+    const user = getCustomerUser();
+    if (els.accountLoggedWrap && els.accountGuestWrap) {
+      if (user) {
+        if (els.accountLoggedName) {
+          els.accountLoggedName.textContent = window.STF_ACCOUNT.displayName(user);
+        }
+        els.accountLoggedWrap.hidden = false;
+        els.accountGuestWrap.hidden = true;
+      } else {
+        els.accountLoggedWrap.hidden = true;
+        els.accountGuestWrap.hidden = false;
+      }
+    }
+    if (user) prefillCustomer(user);
   }
 
   function cartSubtotal() {
@@ -166,42 +186,50 @@
   }
 
   async function loadCustomerSession() {
-    const base = apiBase();
-    const token = customerToken();
-    if (!base || !token) return;
-    try {
-      const res = await fetch(base + '/auth/session', {
-        headers: { Authorization: 'Bearer ' + token },
-        cache: 'no-store'
-      });
-      if (!res.ok) throw new Error('session');
-      const data = await res.json();
-      customerUser = data.user;
-      localStorage.setItem(CUSTOMER_USER_KEY, JSON.stringify(customerUser));
-      prefillCustomer();
-      if (els.accountCreateWrap) els.accountCreateWrap.hidden = true;
-    } catch {
-      localStorage.removeItem(CUSTOMER_SESSION_KEY);
-      localStorage.removeItem(CUSTOMER_USER_KEY);
-      customerUser = null;
-    }
+    if (!window.STF_ACCOUNT) return;
+    await window.STF_ACCOUNT.refreshSession();
+    renderCheckoutAccountUI();
   }
 
-  function prefillCustomer() {
-    if (!customerUser || !els.form) return;
+  function prefillCustomer(user) {
+    const u = user || getCustomerUser();
+    if (!u || !els.form) return;
     const f = els.form;
-    if (f.nome) f.nome.value = customerUser.nome || '';
-    if (f.email) f.email.value = customerUser.email || '';
-    if (f.telefone) f.telefone.value = customerUser.telefone || '';
-    if (f.cpf && customerUser.cpf) f.cpf.value = customerUser.cpf;
+    if (f.nome) f.nome.value = u.nome || '';
+    if (f.email) f.email.value = u.email || '';
+    if (f.telefone) f.telefone.value = u.telefone || '';
+    if (f.cpf && u.cpf) f.cpf.value = u.cpf;
+  }
+
+  function smartwatchGroup(model) {
+    if (model.startsWith('Apple Watch')) return 'Apple Watch';
+    if (model.startsWith('Samsung')) return 'Samsung Galaxy Watch';
+    if (model.startsWith('Garmin')) return 'Garmin';
+    if (model.startsWith('Huawei')) return 'Huawei';
+    if (model.startsWith('Xiaomi') || model.startsWith('Redmi')) return 'Xiaomi / Redmi';
+    if (model.startsWith('Amazfit')) return 'Amazfit';
+    if (model.startsWith('Fitbit') || model.startsWith('Polar')) return 'Outras marcas';
+    return 'Outros';
   }
 
   function populateSelects() {
     const models = cfg.smartwatchModels || [];
+    const groups = new Map();
     models.forEach((m) => {
-      const o = document.createElement('option');
-      o.value = m; o.textContent = m;
-      els.smartwatchSelect.appendChild(o);
+      const label = smartwatchGroup(m);
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(m);
+    });
+    groups.forEach((items, label) => {
+      const og = document.createElement('optgroup');
+      og.label = label;
+      items.forEach((m) => {
+        const o = document.createElement('option');
+        o.value = m;
+        o.textContent = m;
+        og.appendChild(o);
+      });
+      els.smartwatchSelect.appendChild(og);
     });
 
     const intl = cfg.internationalShipping || {};
@@ -363,7 +391,7 @@
       pagamento: f.querySelector('[name=pagamento]:checked').value,
       items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
     };
-    if (els.criarConta?.checked && !customerUser) {
+    if (els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       payload.criarConta = true;
       payload.senha = els.checkoutSenha?.value || '';
     }
@@ -382,7 +410,7 @@
     if (needsWatch && !f.smartwatch.value) {
       alert('Selecione o modelo do smartwatch.'); return false;
     }
-    if (els.criarConta?.checked && !customerUser) {
+    if (els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       const senha = els.checkoutSenha?.value || '';
       if (senha.length < 6) {
         alert('Crie uma senha com pelo menos 6 caracteres ou desmarque "Criar conta".');
@@ -515,9 +543,11 @@
       const accessToken = result.accessToken;
       const payment = result.payment || {};
       if (!orderId) throw new Error('Resposta inválida da API ao registrar pedido.');
-      if (result.customerToken) {
-        localStorage.setItem(CUSTOMER_SESSION_KEY, result.customerToken);
-        if (els.accountCreateWrap) els.accountCreateWrap.hidden = true;
+      if (result.customerToken && window.STF_ACCOUNT) {
+        const u = getCustomerUser() || { nome: orderData.nome, email: orderData.email };
+        window.STF_ACCOUNT.setSession(result.customerToken, u);
+        renderCheckoutAccountUI();
+        window.STF_ACCOUNT.initNav();
       }
 
       els.pixAmount.textContent = formatBRL(total);
@@ -686,6 +716,7 @@
       showStep(1);
     }
     await loadCustomerSession();
+    window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
     bindEvents();
     trackGa('entrou_loja', {
       valor_produto: cartSubtotal() || cfg.product?.price || 59.9,

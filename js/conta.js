@@ -1,6 +1,5 @@
 (function () {
-  const SESSION_KEY = 'stf_customer_token';
-  const USER_KEY = 'stf_customer_user';
+  const A = () => window.STF_ACCOUNT;
 
   const els = {
     loginBox: document.getElementById('conta-login'),
@@ -13,14 +12,6 @@
     status: document.getElementById('conta-status'),
     tabs: document.querySelectorAll('[data-conta-tab]')
   };
-
-  function apiBase() {
-    return ((window.CONFIG_BOOTSTRAP?.configApiUrl) || '').replace(/\/$/, '');
-  }
-
-  function token() {
-    return localStorage.getItem(SESSION_KEY) || '';
-  }
 
   function formatBRL(v) {
     return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -48,33 +39,18 @@
     if (els.loginBox) els.loginBox.hidden = true;
     if (els.panelBox) els.panelBox.hidden = false;
     if (els.userName) els.userName.textContent = user?.nome || user?.email || 'Cliente';
+    A()?.initNav();
   }
 
   function showLogin() {
     if (els.loginBox) els.loginBox.hidden = false;
     if (els.panelBox) els.panelBox.hidden = true;
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(USER_KEY);
-  }
-
-  async function api(path, options) {
-    const base = apiBase();
-    if (!base) throw new Error('API não configurada.');
-    const headers = { ...(options?.headers || {}) };
-    if (token()) headers.Authorization = 'Bearer ' + token();
-    if (options?.json) {
-      headers['Content-Type'] = 'application/json';
-      options.body = JSON.stringify(options.json);
-      delete options.json;
-    }
-    const res = await fetch(base + path, { ...options, headers });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Erro na requisição.');
-    return data;
+    A()?.clearSession();
+    A()?.initNav();
   }
 
   async function loadOrders() {
-    const data = await api('/me/orders');
+    const data = await A().api('/me/orders');
     const orders = data.orders || [];
     if (!els.ordersList) return;
     if (!orders.length) {
@@ -92,18 +68,6 @@
         ${o.status === 'pending_payment' ? `<a class="btn-secondary conta-order-link" href="comprar.html?pedido=${encodeURIComponent(o.orderId)}&token=${encodeURIComponent(o.accessToken || '')}">Continuar pagamento</a>` : ''}
       </article>
     `).join('');
-  }
-
-  async function validateSession() {
-    if (!token()) return null;
-    try {
-      const data = await api('/auth/session');
-      if (data.user) localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      return data.user;
-    } catch {
-      showLogin();
-      return null;
-    }
   }
 
   function bindTabs() {
@@ -124,12 +88,7 @@
       showStatus('Entrando...', '');
       try {
         const f = e.target;
-        const data = await api('/auth/login', {
-          method: 'POST',
-          json: { email: f.email.value.trim(), senha: f.password.value }
-        });
-        localStorage.setItem(SESSION_KEY, data.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+        const data = await A().login(f.email.value, f.password.value);
         showStatus('', '');
         showPanel(data.user);
         await loadOrders();
@@ -144,18 +103,13 @@
       try {
         const f = e.target;
         if (f.password.value.length < 6) throw new Error('Senha mínima: 6 caracteres.');
-        const data = await api('/auth/register', {
-          method: 'POST',
-          json: {
-            nome: f.nome.value.trim(),
-            email: f.email.value.trim(),
-            telefone: f.telefone.value.trim(),
-            cpf: f.cpf.value.trim(),
-            senha: f.password.value
-          }
+        const data = await A().register({
+          nome: f.nome.value.trim(),
+          email: f.email.value.trim(),
+          telefone: f.telefone.value.trim(),
+          cpf: f.cpf.value.trim(),
+          senha: f.password.value
         });
-        localStorage.setItem(SESSION_KEY, data.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         showStatus('Conta criada!', 'success');
         showPanel(data.user);
         await loadOrders();
@@ -165,7 +119,7 @@
     });
 
     els.logoutBtn?.addEventListener('click', async () => {
-      try { await api('/auth/logout', { method: 'POST' }); } catch (_) { /* ok */ }
+      await A().logout();
       showLogin();
     });
   }
@@ -173,7 +127,8 @@
   async function boot() {
     bindTabs();
     bindForms();
-    const user = await validateSession();
+    const user = await A().refreshSession();
+    A().initNav();
     if (user) {
       showPanel(user);
       await loadOrders();

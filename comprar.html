@@ -28,7 +28,7 @@
             <ul class="nav-links checkout-nav">
                 <li><a href="comprar.html" class="cart-nav-link"><i class="fas fa-shopping-cart"></i> Carrinho <span data-cart-badge class="cart-badge" hidden>0</span></a></li>
                 <li><a href="loja.html"><i class="fas fa-store"></i> Loja</a></li>
-                <li><a href="minha-conta.html"><i class="fas fa-user"></i> Minha Conta</a></li>
+                <li data-account-nav></li>
                 <li><a href="index.html"><i class="fas fa-arrow-left"></i> Voltar</a></li>
             </ul>
         </nav>
@@ -77,15 +77,21 @@
                                 </label>
                             </div>
                             <div id="account-create-wrap" class="account-create-wrap full">
-                                <label class="account-check">
-                                    <input type="checkbox" name="criarConta" id="criar-conta" checked>
-                                    <span>Criar conta para acompanhar pedidos (recomendado)</span>
-                                </label>
-                                <label id="senha-wrap" class="full">
-                                    Senha da conta (mín. 6 caracteres)
-                                    <input type="password" name="senha" id="checkout-senha" minlength="6" autocomplete="new-password">
-                                </label>
-                                <p class="checkout-hint">Já tem conta? <a href="minha-conta.html">Entrar em Minha Conta</a></p>
+                                <div id="account-logged-wrap" class="account-logged-banner" hidden>
+                                    <p><i class="fas fa-user-check"></i> Olá, <strong id="account-logged-name">Cliente</strong> — você está logado.</p>
+                                    <p class="checkout-hint">Seus pedidos ficam em <a href="minha-conta.html">Minha Conta</a>.</p>
+                                </div>
+                                <div id="account-guest-wrap">
+                                    <label class="account-check">
+                                        <input type="checkbox" name="criarConta" id="criar-conta" checked>
+                                        <span>Criar conta para acompanhar pedidos (recomendado)</span>
+                                    </label>
+                                    <label id="senha-wrap" class="full">
+                                        Senha da conta (mín. 6 caracteres)
+                                        <input type="password" name="senha" id="checkout-senha" minlength="6" autocomplete="new-password">
+                                    </label>
+                                    <p class="checkout-hint">Já tem conta? <a href="minha-conta.html">Entrar</a></p>
+                                </div>
                             </div>
                         </div>
 
@@ -177,11 +183,12 @@
     <footer><div class="container"><p>&copy; 2026 Sensor Tattoo Fix. 3N20 Soluções Tecnológicas.</p></div></footer>
 
     <script src="js/config-bootstrap.js"></script>
+    <script src="js/account-nav.js"></script>
     <script src="js/store-loader.js"></script>
     <script src="js/cart.js"></script>
     <script src="js/pix.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="js/analytics.js?v=2"></script>
-    <script src="js/checkout.js?v=8"></script>
+    <script src="js/checkout.js?v=10"></script>
 </body>
 </html>
