@@ -1426,6 +1426,31 @@ line-height:1.8;
 }
 .admin-product-row h4 { margin: 0 0 10px; color: var(--primary); }
 .admin-product-row .form-grid { grid-template-columns: 1fr 1fr; }
+.admin-product-flags {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    padding-top: 4px;
+}
+.label-check {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ccc;
+    cursor: pointer;
+    margin: 0;
+}
+.label-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
 .admin-form #btn-offline-mode { margin-top: 4px; }
 
 @media (max-width: 768px) {

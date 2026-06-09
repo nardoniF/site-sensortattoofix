@@ -115,8 +115,10 @@
           <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
           <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}"></label>
           <label>Peso (g)<input type="number" data-field="weightGrams" min="1" value="${p.weightGrams || 120}"></label>
-          <label><input type="checkbox" data-field="active" ${p.active !== false ? 'checked' : ''}> Ativo na loja</label>
-          <label><input type="checkbox" data-field="requiresSmartwatch" ${p.requiresSmartwatch !== false ? 'checked' : ''}> Pede modelo do relógio</label>
+          <div class="admin-product-flags">
+            <label class="label-check"><input type="checkbox" data-field="active" ${p.active !== false ? 'checked' : ''}> Ativo na loja</label>
+            <label class="label-check"><input type="checkbox" data-field="requiresSmartwatch" ${p.requiresSmartwatch !== false ? 'checked' : ''}> Pede modelo do relógio</label>
+          </div>
         </div>
         <button type="button" class="btn-secondary btn-remove-product" data-index="${i}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
       </div>
