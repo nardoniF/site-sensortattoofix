@@ -929,3 +929,79 @@ line-height:1.8;
 }
 .btn-whatsapp-proof:hover { filter: brightness(1.05); }
 .payment-hint-small { font-size: 0.85rem; color: var(--gray); margin-top: 8px; }
+
+/* Loja / Conta / Produtos */
+.loja-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+}
+.loja-card {
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 14px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .2s, transform .2s;
+}
+.loja-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.loja-card img { width: 100%; aspect-ratio: 1; object-fit: cover; background: #111; }
+.loja-card-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.loja-card h3 { margin: 0; font-size: 1.05rem; color: var(--primary); }
+.loja-card p { margin: 0; font-size: 0.9rem; color: var(--gray); flex: 1; }
+.loja-price { color: #fff; font-size: 1.1rem; }
+.loja-cta { color: var(--primary); font-weight: 700; font-size: 0.9rem; }
+.conta-container { max-width: 720px; }
+.conta-tabs { display: flex; gap: 8px; margin: 16px 0; }
+.conta-tab {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #333;
+    background: #111;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+.conta-tab.active { border-color: var(--primary); color: var(--primary); }
+.conta-orders { display: flex; flex-direction: column; gap: 12px; }
+.conta-order-card {
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 14px;
+    background: #141414;
+}
+.conta-order-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 8px; }
+.conta-order-status { font-size: 0.8rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
+.conta-order-status.status-paid { background: rgba(37,211,102,.15); color: #25d366; }
+.conta-order-status.status-pending_payment { background: rgba(255,193,7,.15); color: var(--primary); }
+.conta-order-meta { font-size: 0.85rem; color: var(--gray); margin: 0; }
+.conta-order-link { margin-top: 10px; display: inline-flex; text-decoration: none; }
+.conta-empty { color: var(--gray); text-align: center; padding: 24px; }
+.product-picker { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.product-pick-btn {
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #111;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.product-pick-btn.active { border-color: var(--primary); color: var(--primary); }
+.account-create-wrap { margin-top: 8px; padding-top: 12px; border-top: 1px solid #333; }
+.account-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 0.95rem; }
+.account-check input { margin-top: 4px; }
+.admin-product-row {
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    background: #141414;
+}
+.admin-product-row h4 { margin: 0 0 10px; color: var(--primary); }

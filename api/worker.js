@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 const ORDERS_INDEX = 'orders:index';
+const CUSTOMER_SESSION_TTL = 2592000; // 30 dias
 
 const DEFAULT_CONFIG = {
   product: {
@@ -19,6 +20,19 @@ const DEFAULT_CONFIG = {
     price: 59.9,
     image: 'https://sensortattoofix.com.br/sensortattoofix.jpg'
   },
+  products: [
+    {
+      id: 'kit-sensor-tattoofix',
+      slug: 'kit-sensor-tattoofix',
+      name: 'Kit Sensor TattooFix',
+      description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
+      price: 59.9,
+      image: 'https://sensortattoofix.com.br/sensortattoofix.jpg',
+      active: true,
+      requiresSmartwatch: true,
+      weightGrams: 120
+    }
+  ],
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: { originCep: '01153000', weightGrams: 120, lengthCm: 16, widthCm: 12, heightCm: 3, serviceCode: '04227', serviceName: 'Mini Envios' },
   internationalShipping: {
@@ -106,7 +120,181 @@ function withConfigDefaults(stored) {
     internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },
     smartwatchModels: (stored.smartwatchModels && stored.smartwatchModels.length)
       ? stored.smartwatchModels
-      : base.smartwatchModels
+      : base.smartwatchModels,
+    products: normalizeProducts(stored, base)
+  };
+}
+
+function normalizeProducts(stored, base) {
+  if (stored?.products?.length) return stored.products;
+  const legacy = stored?.product || base.product;
+  if (!legacy) return base.products || [];
+  return [{
+    id: 'kit-sensor-tattoofix',
+    slug: 'kit-sensor-tattoofix',
+    name: legacy.name,
+    description: legacy.description,
+    price: legacy.price,
+    image: legacy.image,
+    active: true,
+    requiresSmartwatch: true,
+    weightGrams: 120
+  }];
+}
+
+function getActiveProducts(config) {
+  const list = config.products?.length ? config.products : normalizeProducts({}, { product: config.product });
+  return list.filter((p) => p.active !== false);
+}
+
+function resolveOrderItems(config, body) {
+  const products = getActiveProducts(config);
+  if (!products.length) throw new Error('Nenhum produto disponível na loja.');
+
+  if (Array.isArray(body.items) && body.items.length) {
+    return body.items.map((item) => {
+      const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
+      if (!p) throw new Error('Produto não encontrado.');
+      const qty = Math.max(1, Math.min(10, Number(item.qty) || 1));
+      return {
+        productId: p.id,
+        slug: p.slug,
+        name: p.name,
+        price: Number(p.price) || 0,
+        qty,
+        requiresSmartwatch: p.requiresSmartwatch !== false
+      };
+    });
+  }
+
+  const pick = body.productId || body.productSlug || products[0].id;
+  const p = products.find((x) => x.id === pick || x.slug === pick) || products[0];
+  return [{
+    productId: p.id,
+    slug: p.slug,
+    name: p.name,
+    price: Number(p.price) || 0,
+    qty: Math.max(1, Math.min(10, Number(body.qty) || 1)),
+    requiresSmartwatch: p.requiresSmartwatch !== false
+  }];
+}
+
+function orderRequiresSmartwatch(items) {
+  return items.some((i) => i.requiresSmartwatch !== false);
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function uint8ToB64(bytes) {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function b64ToUint8(b64) {
+  const binary = atob(b64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hash = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  return { salt: uint8ToB64(salt), hash: uint8ToB64(new Uint8Array(hash)) };
+}
+
+async function verifyPassword(password, saltB64, hashB64) {
+  const salt = b64ToUint8(saltB64);
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hash = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  const expected = b64ToUint8(hashB64);
+  const actual = new Uint8Array(hash);
+  if (expected.length !== actual.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected[i] ^ actual[i];
+  return diff === 0;
+}
+
+async function getUserById(env, userId) {
+  const raw = await env.STORE_KV.get('user:' + userId);
+  return raw ? JSON.parse(raw) : null;
+}
+
+async function getUserByEmail(env, email) {
+  const id = await env.STORE_KV.get('user:email:' + normalizeEmail(email));
+  if (!id) return null;
+  return getUserById(env, id);
+}
+
+async function saveUser(env, user) {
+  await env.STORE_KV.put('user:' + user.userId, JSON.stringify(user));
+  await env.STORE_KV.put('user:email:' + normalizeEmail(user.email), user.userId);
+}
+
+async function createCustomerSession(env, userId) {
+  const token = crypto.randomUUID();
+  await env.STORE_KV.put('customerSession:' + token, userId, { expirationTtl: CUSTOMER_SESSION_TTL });
+  return token;
+}
+
+async function getCustomerUserId(env, token) {
+  if (!token) return null;
+  return (await env.STORE_KV.get('customerSession:' + token)) || null;
+}
+
+async function linkOrderToUser(env, userId, orderId) {
+  const key = 'user:' + userId + ':orders';
+  const list = JSON.parse((await env.STORE_KV.get(key)) || '[]');
+  if (!list.includes(orderId)) {
+    list.unshift(orderId);
+    await env.STORE_KV.put(key, JSON.stringify(list.slice(0, 500)));
+  }
+}
+
+function publicUserView(user) {
+  return {
+    userId: user.userId,
+    nome: user.nome,
+    email: user.email,
+    telefone: user.telefone,
+    cpf: user.cpf || ''
+  };
+}
+
+function publicConfigView(config) {
+  const products = getActiveProducts(config).map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    image: p.image,
+    requiresSmartwatch: p.requiresSmartwatch !== false
+  }));
+  const primary = products[0] || config.product;
+  return {
+    ...config,
+    product: primary ? {
+      name: primary.name,
+      description: primary.description,
+      price: primary.price,
+      image: primary.image
+    } : config.product,
+    products
   };
 }
 
@@ -137,16 +325,21 @@ function generateOrderId() {
   return `STF-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${suffix}`;
 }
 
-function publicOrderView(order, { includePayment = false } = {}) {
+function publicOrderView(order, { includePayment = false, includeResumeToken = false } = {}) {
   const view = {
     orderId: order.orderId,
     status: order.status,
     total: order.total,
     frete: order.frete,
     valorProduto: order.valorProduto,
+    produto: order.produto || null,
     pagamento: order.pagamento,
-    paidAt: order.paidAt || null
+    paidAt: order.paidAt || null,
+    createdAt: order.createdAt || null
   };
+  if (includeResumeToken && order.status === 'pending_payment') {
+    view.accessToken = order.accessToken;
+  }
   if (includePayment && order.status === 'pending_payment') {
     view.payment = {
       billingType: order.paymentBillingType || 'PIX',
@@ -437,9 +630,11 @@ async function saveOrder(env, order) {
     frete: order.frete,
     smartwatch: order.smartwatch,
     pais: order.pais,
-    pagamento: order.pagamento
+    pagamento: order.pagamento,
+    userId: order.userId || null
   });
   await env.STORE_KV.put(ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
+  if (order.userId) await linkOrderToUser(env, order.userId, order.orderId);
 }
 
 function normalizeWhatsAppPhone(phone) {
@@ -820,24 +1015,136 @@ async function handleShippingQuote(request, env, origin) {
   return json(await quoteCorreios(env, config, cep), 200, origin);
 }
 
+async function registerCustomerUser(env, { nome, email, telefone, cpf, senha }) {
+  const normalized = normalizeEmail(email);
+  if (!normalized || !senha || senha.length < 6) {
+    throw new Error('Informe e-mail e senha com pelo menos 6 caracteres.');
+  }
+  if (await getUserByEmail(env, normalized)) {
+    throw new Error('Já existe uma conta com este e-mail. Faça login em Minha Conta.');
+  }
+  const creds = await hashPassword(senha);
+  const user = {
+    userId: crypto.randomUUID(),
+    nome: String(nome || '').trim(),
+    email: normalized,
+    telefone: String(telefone || '').trim(),
+    cpf: String(cpf || '').trim(),
+    passwordSalt: creds.salt,
+    passwordHash: creds.hash,
+    createdAt: new Date().toISOString()
+  };
+  await saveUser(env, user);
+  return user;
+}
+
+async function handleCustomerRegister(request, env, origin) {
+  const body = await request.json();
+  try {
+    const user = await registerCustomerUser(env, body);
+    const token = await createCustomerSession(env, user.userId);
+    return json({ ok: true, token, user: publicUserView(user) }, 200, origin);
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
+}
+
+async function handleCustomerLogin(request, env, origin) {
+  const body = await request.json();
+  const email = normalizeEmail(body.email);
+  const senha = String(body.senha || '');
+  const user = await getUserByEmail(env, email);
+  if (!user || !(await verifyPassword(senha, user.passwordSalt, user.passwordHash))) {
+    return json({ error: 'E-mail ou senha incorretos.' }, 401, origin);
+  }
+  const token = await createCustomerSession(env, user.userId);
+  return json({ ok: true, token, user: publicUserView(user) }, 200, origin);
+}
+
+async function handleCustomerSession(request, env, origin) {
+  const userId = await getCustomerUserId(env, bearerToken(request));
+  if (!userId) return json({ ok: false }, 401, origin);
+  const user = await getUserById(env, userId);
+  if (!user) return json({ ok: false }, 401, origin);
+  return json({ ok: true, user: publicUserView(user) }, 200, origin);
+}
+
+async function handleCustomerLogout(request, env, origin) {
+  const token = bearerToken(request);
+  if (token) await env.STORE_KV.delete('customerSession:' + token);
+  return json({ ok: true }, 200, origin);
+}
+
+async function handleCustomerOrders(request, env, origin) {
+  const userId = await getCustomerUserId(env, bearerToken(request));
+  if (!userId) return json({ error: 'Não autorizado.' }, 401, origin);
+  const ids = JSON.parse((await env.STORE_KV.get('user:' + userId + ':orders')) || '[]');
+  const orders = [];
+  for (const orderId of ids.slice(0, 100)) {
+    const order = await getOrder(env, orderId);
+    if (order && order.userId === userId) {
+      orders.push(publicOrderView(order, {
+        includePayment: order.status === 'pending_payment',
+        includeResumeToken: order.status === 'pending_payment'
+      }));
+    }
+  }
+  return json({ orders }, 200, origin);
+}
+
+async function resolveCheckoutUser(env, request, body) {
+  const customerToken = bearerToken(request) || String(body.customerToken || '').trim();
+  let userId = await getCustomerUserId(env, customerToken);
+  let newToken = null;
+
+  if (!userId && body.criarConta && body.senha) {
+    const user = await registerCustomerUser(env, {
+      nome: body.nome,
+      email: body.email,
+      telefone: body.telefone,
+      cpf: body.cpf,
+      senha: body.senha
+    });
+    userId = user.userId;
+    newToken = await createCustomerSession(env, userId);
+  }
+
+  return { userId, newToken };
+}
+
 async function handleCreateOrder(request, env, origin, ctx) {
   const body = await request.json();
   const config = await getConfig(env);
   const frete = Number(body.frete) || 0;
-  const valorProduto = Number(config.product.price) || 59.9;
+  let items;
+  try {
+    items = resolveOrderItems(config, body);
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
+  const valorProduto = items.reduce((sum, i) => sum + i.price * i.qty, 0);
   const billingType = body.pagamento === 'CARTAO' ? 'CREDIT_CARD' : 'PIX';
   const pagamentoLabel = billingType === 'CREDIT_CARD' ? 'Cartão de crédito' : 'PIX';
+  const needsWatch = orderRequiresSmartwatch(items);
+
+  let checkoutUser;
+  try {
+    checkoutUser = await resolveCheckoutUser(env, request, body);
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
 
   const order = {
     orderId: generateOrderId(),
     accessToken: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     status: 'pending_payment',
+    userId: checkoutUser.userId || null,
     nome: body.nome,
     email: body.email,
     telefone: body.telefone,
     cpf: body.cpf,
-    smartwatch: body.smartwatch || 'Não informado',
+    smartwatch: needsWatch ? (body.smartwatch || 'Não informado') : 'N/A',
     pais: body.pais || 'Brasil',
     paisCode: body.paisCode || 'BR',
     cep: body.cep || '',
@@ -849,7 +1156,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
     uf: body.uf || '',
     endereco: body.endereco,
     observacoes: body.observacoes || '',
-    produto: config.product.name,
+    items,
+    produto: items.map((i) => `${i.qty}x ${i.name}`).join(', '),
     valorProduto,
     frete,
     total: valorProduto + frete,
@@ -922,11 +1230,13 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   if (ctx) ctx.waitUntil(emailWork);
 
-  return json({
+  const response = {
     order: publicOrderView(order),
     accessToken: order.accessToken,
     payment: payment || { provider: 'static_pix', billingType: 'PIX', autoConfirm: false }
-  }, 200, origin);
+  };
+  if (checkoutUser.newToken) response.customerToken = checkoutUser.newToken;
+  return json(response, 200, origin);
 }
 
 async function handlePaymentConfirmed(env, order, payment) {
@@ -1137,6 +1447,11 @@ async function handleGetOrder(request, env, origin, orderId) {
     return json(publicOrderView(order, { includePayment: true }), 200, origin);
   }
 
+  const customerId = await getCustomerUserId(env, bearerToken(request));
+  if (customerId && order.userId === customerId) {
+    return json(publicOrderView(order, { includePayment: order.status === 'pending_payment' }), 200, origin);
+  }
+
   return json({ error: 'Não autorizado.' }, 401, origin);
 }
 
@@ -1151,9 +1466,18 @@ async function handlePutConfig(request, env, origin) {
     shipping: { ...current.shipping, ...body.shipping },
     internationalShipping: { ...current.internationalShipping, ...body.internationalShipping },
     smartwatchModels: body.smartwatchModels || current.smartwatchModels,
+    products: body.products?.length ? body.products : current.products,
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
     api: { ...current.api, ...body.api }
   };
+  if (merged.products?.[0]) {
+    merged.product = {
+      name: merged.products[0].name,
+      description: merged.products[0].description,
+      price: merged.products[0].price,
+      image: merged.products[0].image
+    };
+  }
   return json(await saveConfig(env, merged), 200, origin);
 }
 
@@ -1190,7 +1514,12 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
 
     try {
-      if (path === '/config' && request.method === 'GET') return json(await getConfig(env), 200, origin);
+      if (path === '/config' && request.method === 'GET') return json(publicConfigView(await getConfig(env)), 200, origin);
+      if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
+      if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);
+      if (path === '/auth/logout' && request.method === 'POST') return handleCustomerLogout(request, env, origin);
+      if (path === '/auth/session' && request.method === 'GET') return handleCustomerSession(request, env, origin);
+      if (path === '/me/orders' && request.method === 'GET') return handleCustomerOrders(request, env, origin);
       if (path === '/config' && request.method === 'PUT') return handlePutConfig(request, env, origin);
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);

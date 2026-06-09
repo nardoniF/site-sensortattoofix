@@ -59,21 +59,11 @@
 
                 <form id="admin-config-form" class="admin-form">
                     <fieldset>
-                        <legend><i class="fas fa-box"></i> Produto</legend>
-                        <div class="form-grid">
-                            <label class="full">Nome
-                                <input type="text" name="productName" required>
-                            </label>
-                            <label class="full">Descrição
-                                <textarea name="productDescription" rows="2"></textarea>
-                            </label>
-                            <label>Preço do produto (R$)
-                                <input type="number" name="productPrice" step="0.01" min="0" required>
-                                <small>Frete Mini Envios é calculado automaticamente no checkout</small>
-                            </label>
-                            <label class="full">URL da imagem do produto
-                                <input type="url" name="productImage">
-                            </label>
+                        <legend><i class="fas fa-box"></i> Catálogo de produtos</legend>
+                        <p class="admin-meta">Cadastre kits, películas, pulseiras e outros itens. O primeiro produto ativo é o destaque na home.</p>
+                        <div id="admin-products-list"></div>
+                        <div class="admin-form-actions" style="margin-top:8px">
+                            <button type="button" id="btn-add-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar produto</button>
                         </div>
                     </fieldset>
 
@@ -179,6 +169,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=2"></script>
+    <script src="js/admin.js?v=3"></script>
 </body>
 </html>

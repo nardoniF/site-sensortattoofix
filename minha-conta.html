@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Minha Conta | Sensor TattooFix</title>
+    <link rel="stylesheet" href="style.css?v=1.51">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="checkout-page">
+
+    <header>
+        <nav class="container">
+            <div class="logo-area">
+                <a href="index.html"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
+                <div class="logo-text">SENSOR<span>TATTOOFIX</span></div>
+            </div>
+            <ul class="nav-links checkout-nav">
+                <li><a href="loja.html"><i class="fas fa-store"></i> Loja</a></li>
+                <li><a href="index.html"><i class="fas fa-arrow-left"></i> Início</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="checkout-main">
+        <div class="container conta-container">
+
+            <section id="conta-login" class="admin-card">
+                <h1><i class="fas fa-user"></i> Minha Conta</h1>
+                <p class="admin-intro">Acesse seus pedidos ou crie uma conta para comprar mais rápido.</p>
+
+                <div class="conta-tabs">
+                    <button type="button" class="conta-tab active" data-conta-tab="login">Entrar</button>
+                    <button type="button" class="conta-tab" data-conta-tab="register">Criar conta</button>
+                </div>
+
+                <div data-conta-panel="login">
+                    <form id="conta-login-form" class="admin-form">
+                        <label>E-mail<input type="email" name="email" required></label>
+                        <label>Senha<input type="password" name="password" required minlength="6"></label>
+                        <button type="submit" class="btn-primary">Entrar</button>
+                    </form>
+                </div>
+
+                <div data-conta-panel="register" hidden>
+                    <form id="conta-register-form" class="admin-form">
+                        <label>Nome completo<input type="text" name="nome" required></label>
+                        <label>E-mail<input type="email" name="email" required></label>
+                        <label>WhatsApp<input type="tel" name="telefone" required></label>
+                        <label>CPF<input type="text" name="cpf" required></label>
+                        <label>Senha (mín. 6 caracteres)<input type="password" name="password" required minlength="6"></label>
+                        <button type="submit" class="btn-primary">Criar conta</button>
+                    </form>
+                </div>
+
+                <p id="conta-status" class="admin-status" hidden></p>
+            </section>
+
+            <section id="conta-panel" class="admin-card" hidden>
+                <div class="admin-panel-header">
+                    <div>
+                        <h1>Olá, <span id="conta-user-name">Cliente</span></h1>
+                        <p class="admin-meta">Seus pedidos na Loja Oficial</p>
+                    </div>
+                    <button type="button" id="conta-logout" class="btn-secondary">Sair</button>
+                </div>
+                <div id="conta-orders" class="conta-orders"></div>
+                <div class="admin-form-actions" style="margin-top:20px">
+                    <a href="loja.html" class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;"><i class="fas fa-store"></i> Comprar mais</a>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer><div class="container"><p>&copy; 2026 Sensor Tattoo Fix. 3N20 Soluções Tecnológicas.</p></div></footer>
+
+    <script src="js/config-bootstrap.js"></script>
+    <script src="js/conta.js?v=1"></script>
+</body>
+</html>

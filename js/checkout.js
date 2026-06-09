@@ -1,5 +1,10 @@
 (function () {
-  let cfg, product, shippingCost = null, shippingInfo = null, pollTimer = null, isInternational = false;
+  const CUSTOMER_SESSION_KEY = 'stf_customer_token';
+  const CUSTOMER_USER_KEY = 'stf_customer_user';
+
+  let cfg, product, products = [], selectedProduct = null;
+  let shippingCost = null, shippingInfo = null, pollTimer = null, isInternational = false;
+  let customerUser = null;
 
   const els = {
     form: document.getElementById('checkout-form'),
@@ -29,7 +34,16 @@
     cardUi: document.getElementById('card-ui'),
     paymentPanel: document.getElementById('payment-panel'),
     confirmTitle: document.getElementById('confirm-title'),
-    confirmHint: document.getElementById('confirm-hint')
+    confirmHint: document.getElementById('confirm-hint'),
+    productPicker: document.getElementById('product-picker'),
+    productImg: document.getElementById('checkout-product-img'),
+    productName: document.getElementById('checkout-product-name'),
+    productDesc: document.getElementById('checkout-product-desc'),
+    smartwatchWrap: document.getElementById('smartwatch-wrap'),
+    criarConta: document.getElementById('criar-conta'),
+    senhaWrap: document.getElementById('senha-wrap'),
+    checkoutSenha: document.getElementById('checkout-senha'),
+    accountCreateWrap: document.getElementById('account-create-wrap')
   };
 
   let currentStep = 1;
@@ -63,6 +77,79 @@
   function maskCpf(v) {
     const d = onlyDigits(v).slice(0, 11);
     return d.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  }
+
+  function customerToken() {
+    return localStorage.getItem(CUSTOMER_SESSION_KEY) || '';
+  }
+
+  function pickProductFromUrl() {
+    const slug = new URLSearchParams(location.search).get('produto');
+    if (!slug) return products[0] || product;
+    return products.find((p) => p.slug === slug || p.id === slug) || products[0] || product;
+  }
+
+  function applySelectedProduct() {
+    if (!selectedProduct) return;
+    product = selectedProduct;
+    if (els.productImg) els.productImg.src = selectedProduct.image || 'sensortattoofix.jpg';
+    if (els.productName) els.productName.textContent = selectedProduct.name;
+    if (els.productDesc) els.productDesc.textContent = selectedProduct.description || '';
+    const needsWatch = selectedProduct.requiresSmartwatch !== false;
+    if (els.smartwatchWrap) els.smartwatchWrap.hidden = !needsWatch;
+    if (els.smartwatchSelect) els.smartwatchSelect.required = needsWatch;
+    updateSummary();
+  }
+
+  function renderProductPicker() {
+    if (!els.productPicker || products.length <= 1) {
+      if (els.productPicker) els.productPicker.hidden = true;
+      return;
+    }
+    els.productPicker.hidden = false;
+    els.productPicker.innerHTML = products.map((p) => {
+      const active = selectedProduct && (selectedProduct.id === p.id || selectedProduct.slug === p.slug);
+      return `<button type="button" class="product-pick-btn${active ? ' active' : ''}" data-product-id="${p.id || p.slug}">${p.name} — ${formatBRL(p.price)}</button>`;
+    }).join('');
+    els.productPicker.querySelectorAll('.product-pick-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-product-id');
+        selectedProduct = products.find((p) => p.id === id || p.slug === id) || products[0];
+        renderProductPicker();
+        applySelectedProduct();
+      });
+    });
+  }
+
+  async function loadCustomerSession() {
+    const base = apiBase();
+    const token = customerToken();
+    if (!base || !token) return;
+    try {
+      const res = await fetch(base + '/auth/session', {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      if (!res.ok) throw new Error('session');
+      const data = await res.json();
+      customerUser = data.user;
+      localStorage.setItem(CUSTOMER_USER_KEY, JSON.stringify(customerUser));
+      prefillCustomer();
+      if (els.accountCreateWrap) els.accountCreateWrap.hidden = true;
+    } catch {
+      localStorage.removeItem(CUSTOMER_SESSION_KEY);
+      localStorage.removeItem(CUSTOMER_USER_KEY);
+      customerUser = null;
+    }
+  }
+
+  function prefillCustomer() {
+    if (!customerUser || !els.form) return;
+    const f = els.form;
+    if (f.nome) f.nome.value = customerUser.nome || '';
+    if (f.email) f.email.value = customerUser.email || '';
+    if (f.telefone) f.telefone.value = customerUser.telefone || '';
+    if (f.cpf && customerUser.cpf) f.cpf.value = customerUser.cpf;
   }
 
   function populateSelects() {
@@ -207,7 +294,7 @@
     const comp = data.complemento ? `, ${data.complemento}` : '';
     const endereco = `${data.rua}, ${data.numero}${comp} — ${data.bairro}, ${data.cidade}/${data.uf} — ${paisLabel} ${data.cep}`;
 
-    return {
+    const payload = {
       nome: f.nome.value.trim(), email: f.email.value.trim(),
       telefone: f.telefone.value.trim(), cpf: f.cpf.value.trim(),
       smartwatch: f.smartwatch.value,
@@ -216,14 +303,31 @@
       frete: shippingCost,
       shippingService: shippingInfo?.service,
       shippingDays: shippingInfo?.days,
-      pagamento: f.querySelector('[name=pagamento]:checked').value
+      pagamento: f.querySelector('[name=pagamento]:checked').value,
+      productId: selectedProduct?.id || selectedProduct?.slug
     };
+    if (els.criarConta?.checked && !customerUser) {
+      payload.criarConta = true;
+      payload.senha = els.checkoutSenha?.value || '';
+    }
+    return payload;
   }
 
   function validateStep1() {
     const f = els.form;
-    if (!f.nome.value || !f.email.value || !f.telefone.value || !f.cpf.value || !f.smartwatch.value) {
+    const needsWatch = selectedProduct?.requiresSmartwatch !== false;
+    if (!f.nome.value || !f.email.value || !f.telefone.value || !f.cpf.value) {
       alert('Preencha todos os campos obrigatórios.'); return false;
+    }
+    if (needsWatch && !f.smartwatch.value) {
+      alert('Selecione o modelo do smartwatch.'); return false;
+    }
+    if (els.criarConta?.checked && !customerUser) {
+      const senha = els.checkoutSenha?.value || '';
+      if (senha.length < 6) {
+        alert('Crie uma senha com pelo menos 6 caracteres ou desmarque "Criar conta".');
+        return false;
+      }
     }
     if (shippingCost === null) { alert('Aguarde o cálculo do frete.'); return false; }
     if (!isInternational) {
@@ -241,9 +345,12 @@
   async function createOrder(orderData) {
     const base = apiBase();
     if (base) {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = customerToken();
+      if (token) headers.Authorization = 'Bearer ' + token;
       const res = await fetch(base + '/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(orderData)
       });
       if (!res.ok) {
@@ -346,6 +453,10 @@
       const accessToken = result.accessToken;
       const payment = result.payment || {};
       if (!orderId) throw new Error('Resposta inválida da API ao registrar pedido.');
+      if (result.customerToken) {
+        localStorage.setItem(CUSTOMER_SESSION_KEY, result.customerToken);
+        if (els.accountCreateWrap) els.accountCreateWrap.hidden = true;
+      }
 
       els.pixAmount.textContent = formatBRL(total);
       els.orderId.textContent = orderId;
@@ -424,6 +535,13 @@
     els.btnBack?.addEventListener('click', () => showStep(1));
     els.btnPay?.addEventListener('click', processPayment);
 
+    if (els.senhaWrap && els.criarConta) {
+      els.senhaWrap.hidden = !els.criarConta.checked;
+      els.criarConta.addEventListener('change', () => {
+        els.senhaWrap.hidden = !els.criarConta.checked;
+      });
+    }
+
     document.getElementById('btn-copy-pix')?.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(els.pixCopy.value); }
       catch { els.pixCopy.select(); document.execCommand('copy'); }
@@ -491,8 +609,13 @@
 
   async function boot() {
     cfg = await StoreConfig.load();
-    product = cfg.product;
+    products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
+    selectedProduct = pickProductFromUrl();
+    product = selectedProduct || cfg.product;
     populateSelects();
+    renderProductPicker();
+    applySelectedProduct();
+    await loadCustomerSession();
     updateSummary();
     bindEvents();
     const resumed = await resumeOrderFromUrl();

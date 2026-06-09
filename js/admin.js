@@ -63,12 +63,95 @@
     return currentConfig;
   }
 
+  function slugify(text) {
+    return String(text || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 60) || 'produto';
+  }
+
+  function getProductsFromConfig(config) {
+    if (config.products?.length) return config.products;
+    if (config.product) {
+      return [{
+        id: 'kit-sensor-tattoofix',
+        slug: 'kit-sensor-tattoofix',
+        name: config.product.name,
+        description: config.product.description,
+        price: config.product.price,
+        image: config.product.image,
+        active: true,
+        requiresSmartwatch: true,
+        weightGrams: 120
+      }];
+    }
+    return [];
+  }
+
+  function renderProducts(products) {
+    const list = document.getElementById('admin-products-list');
+    if (!list) return;
+    list.innerHTML = products.map((p, i) => `
+      <div class="admin-product-row" data-product-index="${i}">
+        <h4>Produto ${i + 1}</h4>
+        <div class="form-grid">
+          <label class="full">Nome<input type="text" data-field="name" value="${(p.name || '').replace(/"/g, '&quot;')}" required></label>
+          <label class="full">Descrição<textarea data-field="description" rows="2">${p.description || ''}</textarea></label>
+          <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
+          <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
+          <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}"></label>
+          <label>Peso (g)<input type="number" data-field="weightGrams" min="1" value="${p.weightGrams || 120}"></label>
+          <label><input type="checkbox" data-field="active" ${p.active !== false ? 'checked' : ''}> Ativo na loja</label>
+          <label><input type="checkbox" data-field="requiresSmartwatch" ${p.requiresSmartwatch !== false ? 'checked' : ''}> Pede modelo do relógio</label>
+        </div>
+        <button type="button" class="btn-secondary btn-remove-product" data-index="${i}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.btn-remove-product').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-index'));
+        const next = collectProductsFromDom().filter((_, j) => j !== idx);
+        renderProducts(next.length ? next : [{
+          id: 'novo-produto', slug: 'novo-produto', name: 'Novo produto', description: '', price: 0,
+          image: '', active: true, requiresSmartwatch: false, weightGrams: 120
+        }]);
+      });
+    });
+  }
+
+  function collectProductsFromDom() {
+    const list = document.getElementById('admin-products-list');
+    if (!list) return [];
+    return [...list.querySelectorAll('.admin-product-row')].map((row, i) => {
+      const val = (field) => {
+        const el = row.querySelector(`[data-field="${field}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        return el.type === 'number' ? Number(el.value) : el.value.trim();
+      };
+      const name = val('name');
+      const slug = val('slug') || slugify(name) || `produto-${i + 1}`;
+      return {
+        id: slug,
+        slug,
+        name,
+        description: val('description'),
+        price: Number(val('price')) || 0,
+        image: val('image'),
+        active: val('active'),
+        requiresSmartwatch: val('requiresSmartwatch'),
+        weightGrams: Number(val('weightGrams')) || 120
+      };
+    });
+  }
+
   function fillForm(config) {
     const f = els.configForm;
-    f.productName.value = config.product.name;
-    f.productDescription.value = config.product.description;
-    f.productPrice.value = config.product.price;
-    f.productImage.value = config.product.image;
+    renderProducts(getProductsFromConfig(config));
     const ship = config.shipping || {};
     if (f.shippingOriginCep) f.shippingOriginCep.value = ship.originCep || '';
     if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams || 120;
@@ -93,13 +176,16 @@
 
   function collectForm() {
     const f = els.configForm;
+    const products = collectProductsFromDom();
+    const primary = products.find((p) => p.active !== false) || products[0] || {};
     return {
       product: {
-        name: f.productName.value.trim(),
-        description: f.productDescription.value.trim(),
-        price: parseFloat(f.productPrice.value) || 0,
-        image: f.productImage.value.trim()
+        name: primary.name || '',
+        description: primary.description || '',
+        price: parseFloat(primary.price) || 0,
+        image: primary.image || ''
       },
+      products,
       shipping: {
         originCep: (f.shippingOriginCep?.value || '').replace(/\D/g, ''),
         weightGrams: parseInt(f.shippingWeight?.value, 10) || 120,
@@ -326,6 +412,22 @@
   document.getElementById('btn-test-email')?.addEventListener('click', () => sendTestEmail('generic', 'E-mail de teste'));
   document.getElementById('btn-test-email-order')?.addEventListener('click', () => sendTestEmail('order', 'E-mail de novo pedido'));
   document.getElementById('btn-test-email-paid')?.addEventListener('click', () => sendTestEmail('paid', 'E-mail PAGO'));
+
+  document.getElementById('btn-add-product')?.addEventListener('click', () => {
+    const products = collectProductsFromDom();
+    products.push({
+      id: 'produto-' + Date.now(),
+      slug: 'produto-' + Date.now(),
+      name: 'Novo produto',
+      description: '',
+      price: 0,
+      image: '',
+      active: true,
+      requiresSmartwatch: false,
+      weightGrams: 120
+    });
+    renderProducts(products);
+  });
 
   document.addEventListener('DOMContentLoaded', async () => {
     if (els.loginApiUrl && bootstrap.configApiUrl) {
