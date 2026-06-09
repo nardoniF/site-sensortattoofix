@@ -63,6 +63,17 @@
     return currentConfig;
   }
 
+  function escAttr(text) {
+    return String(text || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+  }
+
+  function escTextarea(text) {
+    return String(text || '').replace(/<\/textarea/gi, '&lt;/textarea');
+  }
+
   function slugify(text) {
     return String(text || '')
       .normalize('NFD')
@@ -98,8 +109,8 @@
       <div class="admin-product-row" data-product-index="${i}">
         <h4>Produto ${i + 1}</h4>
         <div class="form-grid">
-          <label class="full">Nome<input type="text" data-field="name" value="${(p.name || '').replace(/"/g, '&quot;')}" required></label>
-          <label class="full">Descrição<textarea data-field="description" rows="2">${p.description || ''}</textarea></label>
+          <label class="full">Nome<input type="text" data-field="name" value="${escAttr(p.name)}" required></label>
+          <label class="full">Descrição<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
           <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
           <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}"></label>
@@ -151,22 +162,25 @@
 
   function fillForm(config) {
     const f = els.configForm;
+    if (!f || !config) return;
     renderProducts(getProductsFromConfig(config));
     const ship = config.shipping || {};
+    const pix = config.pix || {};
+    const formsubmit = config.formsubmit || {};
     if (f.shippingOriginCep) f.shippingOriginCep.value = ship.originCep || '';
     if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams || 120;
     if (f.shippingServiceCode) f.shippingServiceCode.value = ship.serviceCode || '04227';
     if (f.shippingLength) f.shippingLength.value = ship.lengthCm || 16;
     if (f.shippingWidth) f.shippingWidth.value = ship.widthCm || 12;
     if (f.shippingHeight) f.shippingHeight.value = ship.heightCm || 3;
-    f.pixKey.value = config.pix.key;
-    if (f.pixKeyType) f.pixKeyType.value = config.pix.keyType || 'cnpj';
-    f.pixMerchantName.value = config.pix.merchantName;
-    f.pixMerchantCity.value = config.pix.merchantCity;
-    f.whatsapp.value = config.whatsapp;
-    f.formsubmitEmail.value = config.formsubmit.email;
-    f.formsubmitSubject.value = config.formsubmit.subject;
-    f.apiBaseUrl.value = (config.api && config.api.baseUrl) || bootstrap.configApiUrl || '';
+    if (f.pixKey) f.pixKey.value = pix.key || '';
+    if (f.pixKeyType) f.pixKeyType.value = pix.keyType || 'cnpj';
+    if (f.pixMerchantName) f.pixMerchantName.value = pix.merchantName || '';
+    if (f.pixMerchantCity) f.pixMerchantCity.value = pix.merchantCity || '';
+    if (f.whatsapp) f.whatsapp.value = config.whatsapp || '';
+    if (f.formsubmitEmail) f.formsubmitEmail.value = formsubmit.email || '';
+    if (f.formsubmitSubject) f.formsubmitSubject.value = formsubmit.subject || '';
+    if (f.apiBaseUrl) f.apiBaseUrl.value = (config.api && config.api.baseUrl) || bootstrap.configApiUrl || '';
     if (els.updatedAt) {
       els.updatedAt.textContent = config.updatedAt
         ? 'Última atualização: ' + new Date(config.updatedAt).toLocaleString('pt-BR')
@@ -206,7 +220,7 @@
         subject: f.formsubmitSubject.value.trim()
       },
       whatsapp: f.whatsapp.value.replace(/\D/g, ''),
-      siteUrl: currentConfig.siteUrl,
+      siteUrl: currentConfig?.siteUrl || 'https://www.sensortattoofix.com.br',
       api: {
         baseUrl: f.apiBaseUrl.value.trim()
       },
@@ -299,8 +313,25 @@
   }
 
   async function initPanel() {
-    await loadConfig();
-    fillForm(currentConfig);
+    try {
+      await loadConfig();
+      fillForm(currentConfig);
+    } catch (err) {
+      showStatus(err.message || 'Erro ao carregar configuração.', 'error', 'panel');
+      throw err;
+    }
+  }
+
+  async function enterOfflineMode() {
+    showStatus('Carregando modo offline...', '');
+    try {
+      showPanel();
+      await initPanel();
+      showStatus('Modo offline: alterações são salvas como download do JSON.', 'warning', 'panel');
+    } catch (err) {
+      showLogin();
+      showStatus(err.message || 'Não foi possível carregar a configuração.', 'error');
+    }
   }
 
   els.loginForm?.addEventListener('submit', async (e) => {
@@ -311,7 +342,7 @@
       await tryLogin(fd.get('username'), fd.get('password'));
       showPanel();
       await initPanel();
-      showStatus('Login realizado com sucesso.', 'success');
+      showStatus('Login realizado com sucesso.', 'success', 'panel');
     } catch (err) {
       showStatus(err.message, 'error');
     }
@@ -351,6 +382,10 @@
     showLogin();
     showStatus('', '');
     showStatus('', '', 'panel');
+  });
+
+  document.getElementById('btn-offline-mode')?.addEventListener('click', () => {
+    enterOfflineMode();
   });
 
   async function exportOrders(format) {

@@ -5,18 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.50">
+    <link rel="stylesheet" href="style.css?v=1.56">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
 
-    <header>
-        <nav class="container">
+    <header class="admin-header">
+        <nav class="container admin-nav">
             <div class="logo-area">
-                <a href="index.html"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
+                <a href="index.html" class="logo-img-link admin-logo-link"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
                 <div class="logo-text">ADMIN<span>PANEL</span></div>
             </div>
-            <ul class="nav-links checkout-nav">
+            <ul class="nav-links checkout-nav admin-toolbar">
                 <li><a href="pedidos.html"><i class="fas fa-list"></i> Pedidos</a></li>
                 <li><a href="comprar.html"><i class="fas fa-store"></i> Ver loja</a></li>
             </ul>
@@ -41,6 +41,7 @@
                         <input type="password" name="password" required autocomplete="current-password" placeholder="Senha definida no Worker">
                     </label>
                     <button type="submit" class="btn-primary">Entrar</button>
+                    <button type="button" id="btn-offline-mode" class="btn-secondary">Editar sem API (modo offline)</button>
                 </form>
                 <p id="admin-status" class="admin-status" hidden></p>
             </section>
@@ -169,6 +170,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=3"></script>
+    <script src="js/admin.js?v=4"></script>
 </body>
 </html>
