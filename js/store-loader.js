@@ -33,12 +33,10 @@ window.StoreConfig = (function () {
             const local = await loadLocalConfig();
             const apiModels = config.smartwatchModels || [];
             const localModels = local.smartwatchModels || [];
-            if (!apiModels.length && localModels.length) {
+            if (localModels.length) {
               config.smartwatchModels = localModels;
-            } else if (localModels.length) {
-              const merged = [...apiModels];
-              localModels.forEach((m) => { if (!merged.includes(m)) merged.push(m); });
-              config.smartwatchModels = merged;
+            } else if (apiModels.length) {
+              config.smartwatchModels = apiModels;
             }
             if (Object.keys(config.internationalShipping || {}).length < 4 && local.internationalShipping) {
               config.internationalShipping = { ...local.internationalShipping, ...config.internationalShipping };
