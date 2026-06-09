@@ -1125,6 +1125,7 @@ line-height:1.8;
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 .pedidos-table th,
 .pedidos-table td {
@@ -1146,15 +1147,38 @@ line-height:1.8;
 .pedidos-table tbody tr:hover { background: #141414; }
 .pedidos-table small { color: var(--gray); }
 .status-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     padding: 4px 10px;
     border-radius: 50px;
     font-size: 0.75rem;
     font-weight: 700;
     white-space: nowrap;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+.status-badge.status-paid,
 .status-badge.paid { background: rgba(37,211,102,0.15); color: #25d366; }
+.status-badge.status-pending,
 .status-badge.pending_payment { background: rgba(255,193,7,0.15); color: var(--primary); }
+.status-badge i { font-size: 0.7rem; }
+.pedidos-page .admin-panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.pedidos-page .admin-panel-actions .btn-secondary {
+    height: 40px;
+    padding: 0 14px;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    line-height: 1;
+}
 .pedidos-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .btn-confirm-pay {
     background: #25d366;

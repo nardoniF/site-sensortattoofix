@@ -35,8 +35,11 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  function statusLabel(s) {
-    return s === 'paid' ? '✅ Pago' : '⏳ Aguardando';
+  function statusBadgeHtml(status) {
+    if (status === 'paid') {
+      return '<span class="status-badge status-paid"><i class="fas fa-check-circle" aria-hidden="true"></i> Pago</span>';
+    }
+    return '<span class="status-badge status-pending"><i class="fas fa-clock" aria-hidden="true"></i> Aguardando</span>';
   }
 
   function watchModel(o) {
@@ -62,7 +65,7 @@
         <td>${o.pagamento || '—'}</td>
         <td>${formatBRL(o.total)}</td>
         <td class="pedidos-actions">
-          <span class="status-badge ${o.status}">${statusLabel(o.status)}</span>
+          ${statusBadgeHtml(o.status)}
           ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
         </td>
       `;
