@@ -236,17 +236,49 @@ function resumeOrderUrl(config, order) {
   return `${site}/comprar.html?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
 }
 
-function buildPixPaymentEmail(order, config) {
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+const PIX_QR_CID = 'pix-qrcode';
+
+async function pixQrInlineAttachment(order) {
+  if (order.pixQrEncoded) {
+    return {
+      filename: 'pix-qrcode.png',
+      content: order.pixQrEncoded,
+      content_type: 'image/png',
+      content_id: PIX_QR_CID
+    };
+  }
+  const payload = order.pixCopyPaste;
+  if (!payload) return null;
+  try {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=png&data=${encodeURIComponent(payload)}`;
+    const res = await fetch(qrUrl);
+    if (!res.ok) return null;
+    return {
+      filename: 'pix-qrcode.png',
+      content: arrayBufferToBase64(await res.arrayBuffer()),
+      content_type: 'image/png',
+      content_id: PIX_QR_CID
+    };
+  } catch (err) {
+    console.error('QR PIX e-mail:', err.message);
+    return null;
+  }
+}
+
+function buildPixPaymentEmail(order, config, { hasQrImage = false } = {}) {
   const resumeUrl = resumeOrderUrl(config, order);
   const total = formatBRL(order.total);
   const copyPaste = order.pixCopyPaste || '';
-  let qrImg = '';
-  if (order.pixQrEncoded) {
-    qrImg = `<img src="data:image/png;base64,${order.pixQrEncoded}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`;
-  } else if (copyPaste) {
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(copyPaste)}`;
-    qrImg = `<img src="${qrUrl}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`;
-  }
+  const qrImg = hasQrImage
+    ? `<img src="cid:${PIX_QR_CID}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`
+    : '';
   const html = `<div style="font-family:Arial,sans-serif;max-width:560px;color:#222">
     <p>Olá, <strong>${escapeHtml(order.nome)}</strong>!</p>
     <p>Seu pedido <strong>${escapeHtml(order.orderId)}</strong> foi registrado. Para concluir a compra, pague o PIX abaixo:</p>
@@ -694,6 +726,7 @@ async function sendViaResend(env, config, to, subject, fields, replyTo, content)
     text: content?.text || fieldsToText(fields)
   };
   if (replyTo) payload.reply_to = [replyTo];
+  if (content?.attachments?.length) payload.attachments = content.attachments;
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -754,7 +787,8 @@ async function notifyCustomer(env, config, order, subject, fields, content) {
 }
 
 async function notifyCustomerPendingPix(env, config, order) {
-  const pixMail = buildPixPaymentEmail(order, config);
+  const qrAttachment = await pixQrInlineAttachment(order);
+  const pixMail = buildPixPaymentEmail(order, config, { hasQrImage: !!qrAttachment });
   const fields = {
     Pedido: order.orderId,
     Total: formatBRL(order.total),
@@ -767,7 +801,10 @@ async function notifyCustomerPendingPix(env, config, order) {
     order,
     `PIX do pedido ${order.orderId} — Sensor Tattoo Fix`,
     fields,
-    pixMail
+    {
+      ...pixMail,
+      attachments: qrAttachment ? [qrAttachment] : []
+    }
   );
 }
 
