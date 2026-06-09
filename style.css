@@ -68,6 +68,8 @@ nav {
 .nav-links a { color: #fff; text-decoration: none; font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
 .btn-nav { background: var(--primary); color: #000 !important; padding: 8px 10px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 36px; }
 .btn-nav i { font-size: 1rem; }
+.btn-nav-comprar { padding: 8px 12px; gap: 6px; white-space: nowrap; }
+.btn-nav-comprar .btn-nav-label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em; }
 .mobile-menu-checkbox { display: none; }
 .mobile-menu-icon { display: none; }
 
@@ -321,12 +323,62 @@ nav {
 }
 
 /* FOOTER */
-footer { padding: 60px 0; text-align: center; border-top: 1px solid #111; color: var(--gray); }
-.footer-social { margin-bottom: 35px; }
+footer,
+.site-footer { padding: 48px 0 40px; text-align: center; border-top: 1px solid #111; color: var(--gray); }
+.footer-social { margin-bottom: 32px; }
 .footer-social h4 { margin-bottom: 20px; text-transform: uppercase; color: var(--gray); font-size: 0.8rem; letter-spacing: 2px; }
 .social-icons-footer { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
 .social-link { color: #fff; text-decoration: none; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
 .social-link:hover { color: var(--primary); }
+.footer-faq-link { margin-top: 12px; }
+.footer-faq-link a { color: #fff; text-decoration: underline; }
+.footer-faq-link a:hover { color: var(--primary); }
+.footer-legal { padding-top: 28px; border-top: 1px solid #1a1a1a; }
+.site-footer .footer-social + .footer-legal { border-top: none; padding-top: 0; }
+.footer-legal-brand {
+    margin: 0 0 18px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: 0.02em;
+}
+.footer-legal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 28px;
+    max-width: 640px;
+    margin: 0 auto 22px;
+    text-align: left;
+}
+.footer-legal-item { margin: 0; }
+.footer-legal-item dt {
+    margin: 0 0 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #777;
+}
+.footer-legal-item dd {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: #ccc;
+}
+.footer-legal-item a { color: #e8e8e8; text-decoration: none; }
+.footer-legal-item a:hover { color: var(--primary); text-decoration: underline; }
+.footer-legal-copy {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #666;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (max-width: 520px) {
+    .footer-legal-grid { grid-template-columns: 1fr; max-width: 320px; }
+}
 
 /* RESPONSIVIDADE */
 @media (max-width: 1024px) {

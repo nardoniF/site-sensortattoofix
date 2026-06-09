@@ -135,7 +135,6 @@ window.STF_ACCOUNT = (function () {
           <div class="account-nav-menu">
             <span class="account-nav-menu-label">${escapeHtml(user.email || '')}</span>
             <a href="${prefix}minha-conta.html"><i class="fas fa-box"></i> Meus pedidos</a>
-            <a href="${prefix}loja.html"><i class="fas fa-store"></i> Loja</a>
             <button type="button" data-account-logout><i class="fas fa-sign-out-alt"></i> Sair</button>
           </div>
         </details>
