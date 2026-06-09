@@ -1,5 +1,5 @@
 (function () {
-  const SITE = 'https://sensortattoofix.com.br';
+  const SITE = 'https://www.sensortattoofix.com.br';
   const isEn = document.documentElement.lang?.toLowerCase().startsWith('en');
   const pageUrl = isEn ? SITE + '/en/' : SITE + '/';
 

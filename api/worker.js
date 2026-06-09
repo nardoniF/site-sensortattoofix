@@ -18,7 +18,7 @@ const DEFAULT_CONFIG = {
     name: 'Kit Sensor TattooFix',
     description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
     price: 59.9,
-    image: 'https://sensortattoofix.com.br/sensortattoofix.jpg'
+    image: 'https://www.sensortattoofix.com.br/sensortattoofix.jpg'
   },
   products: [
     {
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG = {
       name: 'Kit Sensor TattooFix',
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
       price: 59.9,
-      image: 'https://sensortattoofix.com.br/sensortattoofix.jpg',
+      image: 'https://www.sensortattoofix.com.br/sensortattoofix.jpg',
       active: true,
       requiresSmartwatch: true,
       weightGrams: 120
@@ -101,7 +101,7 @@ const DEFAULT_CONFIG = {
   ],
   formsubmit: { email: 'sensortattoofix@gmail.com', subject: 'Novo pedido — Loja Oficial Sensor TattooFix' },
   whatsapp: '5511913394665',
-  siteUrl: 'https://sensortattoofix.com.br',
+  siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev' }
 };
 
@@ -463,7 +463,7 @@ function watchWhatsAppBlock(order) {
 }
 
 function resumeOrderUrl(config, order) {
-  const site = (config.siteUrl || 'https://sensortattoofix.com.br').replace(/\/$/, '');
+  const site = (config.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
   return `${site}/comprar.html?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
 }
 

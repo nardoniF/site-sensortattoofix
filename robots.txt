@@ -6,4 +6,4 @@ Disallow: /pedidos.html
 Disallow: /minha-conta.html
 Disallow: /comprar.html
 
-Sitemap: https://sensortattoofix.com.br/sitemap.xml
+Sitemap: https://www.sensortattoofix.com.br/sitemap.xml

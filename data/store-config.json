@@ -3,7 +3,7 @@
     "name": "Kit Sensor TattooFix",
     "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
     "price": 59.9,
-    "image": "https://sensortattoofix.com.br/sensortattoofix.jpg"
+    "image": "https://www.sensortattoofix.com.br/sensortattoofix.jpg"
   },
   "products": [
     {
@@ -12,7 +12,7 @@
       "name": "Kit Sensor TattooFix",
       "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
       "price": 59.9,
-      "image": "https://sensortattoofix.com.br/sensortattoofix.jpg",
+      "image": "https://www.sensortattoofix.com.br/sensortattoofix.jpg",
       "active": true,
       "requiresSmartwatch": true,
       "weightGrams": 120
@@ -102,7 +102,7 @@
     "subject": "Novo pedido — Loja Oficial Sensor TattooFix"
   },
   "whatsapp": "5511913394665",
-  "siteUrl": "https://sensortattoofix.com.br",
+  "siteUrl": "https://www.sensortattoofix.com.br",
   "api": {
     "baseUrl": "https://sensortattoofix-payments.sensortattoofix.workers.dev"
   },
