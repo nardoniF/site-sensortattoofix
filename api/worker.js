@@ -336,6 +336,9 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     frete: order.frete,
     valorProduto: order.valorProduto,
     produto: order.produto || null,
+    smartwatch: order.smartwatch || null,
+    observacoes: trimObs(order) || null,
+    modeloRelogio: formatOrderSmartwatch(order),
     pagamento: order.pagamento,
     paidAt: order.paidAt || null,
     createdAt: order.createdAt || null
@@ -427,6 +430,38 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function trimObs(order) {
+  if (!order) return '';
+  return String(order.observacoes ?? '').trim();
+}
+
+/** Modelo final para produção/envio — usa observações quando for "Outro modelo". */
+function formatOrderSmartwatch(order) {
+  const model = String(order?.smartwatch || '').trim();
+  const obs = trimObs(order);
+  if (!model || model === 'N/A') return obs || 'N/A';
+  if (model.includes('Outro modelo')) return obs || model;
+  return obs ? `${model} — ${obs}` : model;
+}
+
+function orderWatchEmailFields(order) {
+  const model = String(order?.smartwatch || '').trim();
+  const obs = trimObs(order);
+  const fields = { 'Modelo do relógio': formatOrderSmartwatch(order) };
+  if (model && model !== 'N/A') fields.Smartwatch = model;
+  if (obs) fields.Observações = obs;
+  return fields;
+}
+
+function watchWhatsAppBlock(order) {
+  const model = String(order?.smartwatch || '').trim();
+  const obs = trimObs(order);
+  if (!model || model === 'N/A') return obs ? `📝 ${obs}` : '';
+  if (model.includes('Outro modelo')) return obs ? `⌚ ${obs}` : `⌚ ${model}`;
+  if (obs) return `⌚ ${model}\n📝 ${obs}`;
+  return `⌚ ${model}`;
+}
+
 function resumeOrderUrl(config, order) {
   const site = (config.siteUrl || 'https://sensortattoofix.com.br').replace(/\/$/, '');
   return `${site}/comprar.html?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
@@ -484,7 +519,7 @@ function buildPixPaymentEmail(order, config, { hasQrImage = false } = {}) {
     <p style="word-break:break-all;font-family:monospace;font-size:11px;background:#f5f5f5;padding:12px;border-radius:8px;border:1px solid #ddd">${escapeHtml(copyPaste)}</p>
     <p style="margin-top:20px"><a href="${escapeHtml(resumeUrl)}" style="display:inline-block;background:#ffc107;color:#000;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px">Abrir pedido e pagar</a></p>
     <p style="font-size:12px;color:#666">Guarde este e-mail — se fechar a página, use o link acima para voltar ao QR Code.</p>
-    <p style="font-size:12px;color:#666;margin-top:16px">Smartwatch: ${escapeHtml(order.smartwatch)}<br>Sensor Tattoo Fix — sensortattoofix.com.br</p>
+    <p style="font-size:12px;color:#666;margin-top:16px">Modelo do relógio: ${escapeHtml(formatOrderSmartwatch(order))}${trimObs(order) && !String(order.smartwatch || '').includes('Outro modelo') ? `<br>Observações: ${escapeHtml(trimObs(order))}` : ''}<br>Sensor Tattoo Fix — sensortattoofix.com.br</p>
   </div>`;
   const text = [
     `Olá, ${order.nome}!`,
@@ -495,7 +530,10 @@ function buildPixPaymentEmail(order, config, { hasQrImage = false } = {}) {
     '',
     `Abrir pedido: ${resumeUrl}`,
     '',
-    `Smartwatch: ${order.smartwatch}`
+    `Modelo do relógio: ${formatOrderSmartwatch(order)}`,
+    ...(trimObs(order) && !String(order.smartwatch || '').includes('Outro modelo')
+      ? [`Observações: ${trimObs(order)}`]
+      : [])
   ].join('\n');
   return { html, text };
 }
@@ -632,6 +670,8 @@ async function saveOrder(env, order) {
     telefone: order.telefone,
     frete: order.frete,
     smartwatch: order.smartwatch,
+    observacoes: trimObs(order) || null,
+    modeloRelogio: formatOrderSmartwatch(order),
     pais: order.pais,
     pagamento: order.pagamento,
     userId: order.userId || null
@@ -687,10 +727,10 @@ function pixCustomerHint(order, shopPhone) {
 async function notifyWhatsApp(env, config, order, type) {
   const shopPhone = config.whatsapp || env.SHOP_WHATSAPP;
   const msgs = {
-    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\nSmartwatch: ${order.smartwatch}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
-    order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n⌚ ${order.smartwatch}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
+    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
+    order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n${watchWhatsAppBlock(order)}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
     paid_customer: `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.\n\nSensor TattooFix`,
-    paid_shop: `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n⌚ ${order.smartwatch}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
+    paid_shop: `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
   };
 
   const customerMsg = msgs[type + '_customer'];
@@ -856,7 +896,7 @@ async function createAsaasPayment(env, order, config, billingType) {
       billingType,
       value: Number(order.total.toFixed(2)),
       dueDate: due,
-      description: `${config.product.name} — ${order.smartwatch} — ${order.orderId}`.slice(0, 500),
+      description: `${config.product.name} — ${formatOrderSmartwatch(order)} — ${order.orderId}`.slice(0, 500),
       externalReference: order.orderId
     })
   });
@@ -992,8 +1032,8 @@ async function notifyCustomerPendingPix(env, config, order) {
   const fields = {
     Pedido: order.orderId,
     Total: formatBRL(order.total),
-    Smartwatch: order.smartwatch,
-    'Link do pedido': resumeOrderUrl(config, order)
+    'Link do pedido': resumeOrderUrl(config, order),
+    ...orderWatchEmailFields(order)
   };
   return notifyCustomer(
     env,
@@ -1213,19 +1253,20 @@ async function handleCreateOrder(request, env, origin, ctx) {
     : notifyCustomer(env, config, order, `Pedido ${order.orderId} registrado — Sensor Tattoo Fix`, {
       Pedido: order.orderId,
       Status: 'Aguardando pagamento',
-      Smartwatch: order.smartwatch,
       Total: formatBRL(order.total),
       Pagamento: order.pagamento,
       Mensagem: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
-      'Link do pedido': resumeOrderUrl(config, order)
+      'Link do pedido': resumeOrderUrl(config, order),
+      ...orderWatchEmailFields(order)
     });
 
   const emailWork = Promise.all([
     notifyShop(env, config, config.formsubmit.subject, {
       Pedido: order.orderId, Status: order.status, Nome: order.nome,
-      'E-mail': order.email, Telefone: order.telefone, Smartwatch: order.smartwatch,
+      'E-mail': order.email, Telefone: order.telefone,
       País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
-      Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total)
+      Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total),
+      ...orderWatchEmailFields(order)
     }),
     customerEmail,
     notifyWhatsApp(env, config, order, 'order')
@@ -1272,8 +1313,9 @@ async function handlePaymentConfirmed(env, order, payment) {
     Pedido: order.orderId, Status: 'PAGO', Cliente: order.nome,
     'E-mail cliente': order.email, Telefone: order.telefone,
     Pagamento: order.pagamento || payment?.billingType || '—',
-    Smartwatch: order.smartwatch, Valor: formatBRL(value),
-    Endereço: order.endereco, Envio: order.shippingService
+    Valor: formatBRL(value),
+    Endereço: order.endereco, Envio: order.shippingService,
+    ...orderWatchEmailFields(order)
   });
   if (!shopPaid?.ok) console.error('E-mail PAGO loja falhou:', JSON.stringify(shopPaid));
 
@@ -1281,8 +1323,8 @@ async function handlePaymentConfirmed(env, order, payment) {
     Pedido: order.orderId,
     Status: 'PAGO',
     Valor: formatBRL(value),
-    Smartwatch: order.smartwatch,
-    Mensagem: 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.'
+    Mensagem: 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    ...orderWatchEmailFields(order)
   });
 
   await notifyWhatsApp(env, config, order, 'paid');
@@ -1495,9 +1537,9 @@ async function handleListOrders(request, env, origin) {
   const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
 
   if (format === 'csv') {
-    const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,pais,pagamento,total,frete\n';
+    const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,observacoes,modeloRelogio,pais,pagamento,total,frete\n';
     const rows = index.map((o) =>
-      [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.pais, o.pagamento, o.total, o.frete]
+      [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais, o.pagamento, o.total, o.frete]
         .map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')
     ).join('\n');
     return new Response(header + rows, {

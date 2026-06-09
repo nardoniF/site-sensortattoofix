@@ -1,6 +1,7 @@
 window.STF_FOOTER = (function () {
   const INFO = {
-    brand: 'Sensor Tattoo Fix',
+    brandPlain: 'Sensor Tattoo Fix',
+    brandTitle: 'Sensor <span class="logo-accent">Tattoo Fix</span>',
     company: '3N20 Soluções Tecnológicas',
     cnpj: '29.321.223/0001-32',
     patent: 'BR 20 2026 010875 3',
@@ -21,19 +22,13 @@ window.STF_FOOTER = (function () {
     pt: {
       socialTitle: 'Siga nossas redes oficiais',
       faq: 'FAQ',
-      company: 'Razão social',
-      cnpj: 'CNPJ',
-      contact: 'Contato',
-      patent: 'Patente requerida',
+      patentLabel: 'Patente requerida',
       rights: 'Todos os direitos reservados.'
     },
     en: {
       socialTitle: 'Follow our official channels',
       faq: 'FAQ',
-      company: 'Legal name',
-      cnpj: 'CNPJ (Brazil)',
-      contact: 'Contact',
-      patent: 'Patent pending',
+      patentLabel: 'Patent pending',
       rights: 'All rights reserved.'
     }
   };
@@ -52,30 +47,10 @@ window.STF_FOOTER = (function () {
     const year = new Date().getFullYear();
     return `
       <div class="footer-legal">
-        <p class="footer-legal-brand">${INFO.brand}</p>
-        <dl class="footer-legal-grid">
-          <div class="footer-legal-item">
-            <dt>${s.company}</dt>
-            <dd>${INFO.company}</dd>
-          </div>
-          <div class="footer-legal-item">
-            <dt>${s.cnpj}</dt>
-            <dd>${INFO.cnpj}</dd>
-          </div>
-          <div class="footer-legal-item">
-            <dt>${s.contact}</dt>
-            <dd>
-              <a href="mailto:${INFO.email}">${INFO.email}</a><br>
-              <a href="https://wa.me/${INFO.whatsapp}" target="_blank" rel="noopener">WhatsApp ${INFO.whatsappLabel}</a><br>
-              ${INFO.city}
-            </dd>
-          </div>
-          <div class="footer-legal-item">
-            <dt>${s.patent}</dt>
-            <dd>${INFO.patent}</dd>
-          </div>
-        </dl>
-        <p class="footer-legal-copy">&copy; ${year} ${INFO.brand} · ${INFO.company}. ${s.rights}</p>
+        <p class="footer-legal-brand">${INFO.brandTitle}</p>
+        <p class="footer-legal-meta">${INFO.company} · CNPJ ${INFO.cnpj}</p>
+        <p class="footer-legal-meta footer-legal-meta--muted">${s.patentLabel} ${INFO.patent}</p>
+        <p class="footer-legal-copy">&copy; ${year} ${INFO.brandPlain} · ${INFO.company}. ${s.rights}</p>
       </div>
     `;
   }

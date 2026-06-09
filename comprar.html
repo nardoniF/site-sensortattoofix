@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprar Direto | Sensor TattooFix — Loja Oficial</title>
-    <meta name="description" content="Kit Sensor TattooFix — PIX, cartão, envio nacional e internacional. Confirmação automática.">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Comprar Direto | Sensor Tattoo Fix — Loja Oficial</title>
+    <meta name="description" content="Checkout oficial Sensor Tattoo Fix — PIX, cartão, envio nacional e internacional.">
     <link rel="stylesheet" href="style.css?v=1.49">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
@@ -22,8 +23,8 @@
     <header>
         <nav class="container">
             <div class="logo-area">
-                <a href="index.html"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
-                <div class="logo-text">SENSOR<span>TATTOOFIX</span></div>
+                <a href="index.html" class="logo-img-link"><img src="logo.jpg" alt="Sensor Tattoo Fix" class="main-logo-img"></a>
+                <div class="logo-text" aria-hidden="true">SENSOR<span>TATTOOFIX</span></div>
             </div>
             <ul class="nav-links checkout-nav">
                 <li><a href="comprar.html" class="cart-nav-link"><i class="fas fa-shopping-cart"></i> Carrinho <span data-cart-badge class="cart-badge" hidden>0</span></a></li>
@@ -73,6 +74,11 @@
                                     <select name="smartwatch" id="smartwatch-select" required>
                                         <option value="">Selecione o modelo</option>
                                     </select>
+                                </label>
+                            </div>
+                            <div id="observacoes-wrap" class="full" hidden>
+                                <label class="full" id="observacoes-label"><span id="observacoes-label-text">Observações (opcional)</span>
+                                    <textarea name="observacoes" id="observacoes" rows="3" placeholder="Ex.: marca e modelo do relógio, cor da pulseira, instruções de entrega…"></textarea>
                                 </label>
                             </div>
                             <div id="account-create-wrap" class="account-create-wrap full">
@@ -188,7 +194,8 @@
     <script src="js/cart.js"></script>
     <script src="js/pix.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="js/order-watch.js"></script>
     <script src="js/analytics.js?v=2"></script>
-    <script src="js/checkout.js?v=10"></script>
+    <script src="js/checkout.js?v=12"></script>
 </body>
 </html>

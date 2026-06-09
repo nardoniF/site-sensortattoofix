@@ -39,6 +39,10 @@
     return s === 'paid' ? '✅ Pago' : '⏳ Aguardando';
   }
 
+  function watchModel(o) {
+    return window.STF_ORDER_WATCH?.formatModel(o) || o.smartwatch || '—';
+  }
+
   function renderTable(orders) {
     els.tbody.innerHTML = '';
     if (!orders.length) {
@@ -53,7 +57,7 @@
         <td><strong>${o.orderId}</strong></td>
         <td>${formatDate(o.createdAt)}</td>
         <td>${o.nome}<br><small>${o.email}</small><br><small>${o.telefone || ''}</small></td>
-        <td>${o.smartwatch || '—'}</td>
+        <td>${watchModel(o)}</td>
         <td>${o.pais || '—'}</td>
         <td>${o.pagamento || '—'}</td>
         <td>${formatBRL(o.total)}</td>
@@ -80,11 +84,12 @@
         }
       });
       tr.addEventListener('click', () => {
+        const watchLines = (window.STF_ORDER_WATCH?.detailLines(o) || [`Smartwatch: ${o.smartwatch}`]).join('\n');
         alert(
           `Pedido: ${o.orderId}\n` +
           `Status: ${o.status}\n` +
           `Cliente: ${o.nome}\n` +
-          `Smartwatch: ${o.smartwatch}\n` +
+          `${watchLines}\n` +
           `Endereço: ${o.endereco}\n` +
           `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)`
         );
@@ -97,7 +102,7 @@
     const q = (els.filterSearch?.value || '').toLowerCase();
     const st = els.filterStatus?.value || '';
     const filtered = allOrders.filter((o) => {
-      const matchQ = !q || [o.orderId, o.nome, o.email, o.smartwatch, o.pais].join(' ').toLowerCase().includes(q);
+      const matchQ = !q || [o.orderId, o.nome, o.email, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais].join(' ').toLowerCase().includes(q);
       const matchS = !st || o.status === st;
       return matchQ && matchS;
     });

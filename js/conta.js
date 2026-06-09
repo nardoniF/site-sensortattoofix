@@ -64,6 +64,7 @@
           <span class="conta-order-status status-${o.status}">${statusLabel(o.status)}</span>
         </div>
         <p>Total: <strong>${formatBRL(o.total)}</strong></p>
+        ${(o.modeloRelogio || o.smartwatch || o.observacoes) ? `<p class="conta-order-meta">Relógio: ${window.STF_ORDER_WATCH?.formatModel(o) || o.smartwatch || '—'}</p>` : ''}
         <p class="conta-order-meta">${formatDate(o.paidAt || o.createdAt)} · ${o.pagamento || ''}</p>
         ${o.status === 'pending_payment' ? `<a class="btn-secondary conta-order-link" href="comprar.html?pedido=${encodeURIComponent(o.orderId)}&token=${encodeURIComponent(o.accessToken || '')}">Continuar pagamento</a>` : ''}
       </article>

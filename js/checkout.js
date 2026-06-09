@@ -1,4 +1,6 @@
 (function () {
+  const OUTRO_MODELO = 'Outro modelo (informar nas observações)';
+
   let cfg, products = [];
   let shippingCost = null, shippingInfo = null, pollTimer = null, isInternational = false;
 
@@ -33,6 +35,9 @@
     confirmHint: document.getElementById('confirm-hint'),
     cartSidebar: document.getElementById('cart-sidebar-items'),
     smartwatchWrap: document.getElementById('smartwatch-wrap'),
+    observacoesWrap: document.getElementById('observacoes-wrap'),
+    observacoes: document.getElementById('observacoes'),
+    observacoesLabelText: document.getElementById('observacoes-label-text'),
     criarConta: document.getElementById('criar-conta'),
     senhaWrap: document.getElementById('senha-wrap'),
     checkoutSenha: document.getElementById('checkout-senha'),
@@ -108,10 +113,37 @@
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
 
+  function isOutroModelo(value) {
+    return value === OUTRO_MODELO || String(value || '').includes('Outro modelo');
+  }
+
   function updateSmartwatchVisibility() {
     const needsWatch = window.STF_CART?.requiresSmartwatch();
     if (els.smartwatchWrap) els.smartwatchWrap.hidden = !needsWatch;
     if (els.smartwatchSelect) els.smartwatchSelect.required = !!needsWatch;
+    updateObservacoesField();
+  }
+
+  function updateObservacoesField() {
+    const needsWatch = window.STF_CART?.requiresSmartwatch();
+    if (!els.observacoesWrap || !els.observacoes) return;
+
+    if (!needsWatch) {
+      els.observacoesWrap.hidden = true;
+      els.observacoes.required = false;
+      els.observacoes.value = '';
+      return;
+    }
+
+    els.observacoesWrap.hidden = false;
+    const outro = isOutroModelo(els.smartwatchSelect?.value);
+    els.observacoes.required = outro;
+    if (els.observacoesLabelText) {
+      els.observacoesLabelText.textContent = outro ? 'Observações *' : 'Observações (opcional)';
+    }
+    els.observacoes.placeholder = outro
+      ? 'Informe marca e modelo do seu smartwatch'
+      : 'Ex.: instruções de entrega ou detalhes do pedido';
   }
 
   function seedCartFromUrl() {
@@ -383,6 +415,7 @@
       nome: f.nome.value.trim(), email: f.email.value.trim(),
       telefone: f.telefone.value.trim(), cpf: f.cpf.value.trim(),
       smartwatch: f.smartwatch.value,
+      observacoes: (f.observacoes?.value || '').trim(),
       pais: paisLabel, paisCode,
       ...data, endereco,
       frete: shippingCost,
@@ -409,6 +442,9 @@
     }
     if (needsWatch && !f.smartwatch.value) {
       alert('Selecione o modelo do smartwatch.'); return false;
+    }
+    if (needsWatch && isOutroModelo(f.smartwatch.value) && !(f.observacoes?.value || '').trim()) {
+      alert('Informe o modelo do smartwatch nas observações.'); return false;
     }
     if (els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       const senha = els.checkoutSenha?.value || '';
@@ -454,8 +490,18 @@
     body.append('_captcha', 'false');
     body.append('_template', 'table');
     const subtotal = cartSubtotal();
-    Object.entries({ Pedido: orderId, Nome: orderData.nome, Smartwatch: orderData.smartwatch,
-      Total: formatBRL(subtotal + orderData.frete), Endereço: orderData.endereco }).forEach(([k, v]) => body.append(k, v));
+    const watchFields = {
+      Pedido: orderId,
+      Nome: orderData.nome,
+      Smartwatch: orderData.smartwatch,
+      Total: formatBRL(subtotal + orderData.frete),
+      Endereço: orderData.endereco
+    };
+    if (orderData.smartwatch && orderData.smartwatch !== 'N/A') {
+      watchFields['Modelo do relógio'] = window.STF_ORDER_WATCH?.formatModel(orderData) || orderData.smartwatch;
+    }
+    if (orderData.observacoes) watchFields.Observações = orderData.observacoes;
+    Object.entries(watchFields).forEach(([k, v]) => body.append(k, v));
     await fetch(`https://formsubmit.co/ajax/${cfg.formsubmit.email}`, { method: 'POST', body, headers: { Accept: 'application/json' } });
     return { order: { ...orderData, orderId, total: subtotal + orderData.frete }, payment: { provider: 'static_pix', billingType: 'PIX' } };
   }
@@ -600,6 +646,7 @@
 
   function bindEvents() {
     els.paisCode.addEventListener('change', toggleAddressForm);
+    els.smartwatchSelect?.addEventListener('change', updateObservacoesField);
     els.cep?.addEventListener('input', (e) => { e.target.value = maskCep(e.target.value); });
     els.form.telefone?.addEventListener('input', (e) => { e.target.value = maskPhone(e.target.value); });
     els.form.cpf?.addEventListener('input', (e) => { if (!isInternational) e.target.value = maskCpf(e.target.value); });
