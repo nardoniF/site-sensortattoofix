@@ -162,7 +162,8 @@ function resolveOrderItems(config, body) {
         name: p.name,
         price: Number(p.price) || 0,
         qty,
-        requiresSmartwatch: p.requiresSmartwatch !== false
+        requiresSmartwatch: p.requiresSmartwatch !== false,
+        weightGrams: Number(p.weightGrams) || 120
       };
     });
   }
@@ -175,7 +176,8 @@ function resolveOrderItems(config, body) {
     name: p.name,
     price: Number(p.price) || 0,
     qty: Math.max(1, Math.min(10, Number(body.qty) || 1)),
-    requiresSmartwatch: p.requiresSmartwatch !== false
+    requiresSmartwatch: p.requiresSmartwatch !== false,
+    weightGrams: Number(p.weightGrams) || 120
   }];
 }
 
@@ -283,7 +285,8 @@ function publicConfigView(config) {
     description: p.description,
     price: p.price,
     image: p.image,
-    requiresSmartwatch: p.requiresSmartwatch !== false
+    requiresSmartwatch: p.requiresSmartwatch !== false,
+    weightGrams: Number(p.weightGrams) || 120
   }));
   const primary = products[0] || config.product;
   return {
@@ -736,19 +739,21 @@ function estimateBR(originCep, destCep) {
   return { price: 24.9, days: 14 };
 }
 
-async function quoteCorreios(env, config, destCep) {
+async function quoteCorreios(env, config, destCep, opts = {}) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const origin = onlyDigits(ship.originCep);
   const dest = onlyDigits(destCep);
   if (dest.length !== 8) throw new Error('CEP inválido');
+  const weightGrams = Math.max(120, Number(opts.weightGrams) || ship.weightGrams || 120);
+  const declaredValue = Number(opts.declaredValue) || config.product?.price || 59.9;
 
   const token = await getCorreiosToken(env);
   if (token && ship.serviceCode) {
     const params = new URLSearchParams({
       cepDestino: dest, cepOrigem: origin,
-      psObjeto: String(ship.weightGrams || 120), tpObjeto: '2',
+      psObjeto: String(weightGrams), tpObjeto: '2',
       comprimento: String(ship.lengthCm || 16), largura: String(ship.widthCm || 12),
-      altura: String(ship.heightCm || 3), vlDeclarado: String(config.product.price || 59.9)
+      altura: String(ship.heightCm || 3), vlDeclarado: String(declaredValue.toFixed(2))
     });
     const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${ship.serviceCode}?${params}`, {
       headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
@@ -1012,7 +1017,9 @@ async function handleShippingQuote(request, env, origin) {
     return json(quoteInternational(config, country), 200, origin);
   }
   const cep = url.searchParams.get('cep');
-  return json(await quoteCorreios(env, config, cep), 200, origin);
+  const weightGrams = Number(url.searchParams.get('weightGrams')) || undefined;
+  const declaredValue = Number(url.searchParams.get('valor')) || undefined;
+  return json(await quoteCorreios(env, config, cep, { weightGrams, declaredValue }), 200, origin);
 }
 
 async function registerCustomerUser(env, { nome, email, telefone, cpf, senha }) {

@@ -26,6 +26,7 @@
                 <div class="logo-text">SENSOR<span>TATTOOFIX</span></div>
             </div>
             <ul class="nav-links checkout-nav">
+                <li><a href="comprar.html" class="cart-nav-link"><i class="fas fa-shopping-cart"></i> Carrinho <span data-cart-badge class="cart-badge" hidden>0</span></a></li>
                 <li><a href="loja.html"><i class="fas fa-store"></i> Loja</a></li>
                 <li><a href="minha-conta.html"><i class="fas fa-user"></i> Minha Conta</a></li>
                 <li><a href="index.html"><i class="fas fa-arrow-left"></i> Voltar</a></li>
@@ -37,12 +38,11 @@
         <div class="container checkout-layout">
             <aside class="checkout-sidebar">
                 <div class="checkout-product-card">
-                    <img src="sensortattoofix.jpg" alt="Produto" class="checkout-product-img" id="checkout-product-img">
-                    <h2 id="checkout-product-name">Kit Sensor TattooFix</h2>
-                    <p class="checkout-product-desc" id="checkout-product-desc">Lente ótica + aplicador + fixação + manual. Brasil e internacional.</p>
-                    <div id="product-picker" class="product-picker" hidden></div>
+                    <h2 class="cart-sidebar-title"><i class="fas fa-shopping-cart"></i> Seu carrinho</h2>
+                    <div id="cart-sidebar-items" class="cart-sidebar-items"></div>
+                    <a href="loja.html" class="cart-add-more"><i class="fas fa-plus"></i> Adicionar mais produtos</a>
                     <div class="checkout-summary">
-                        <div class="summary-row"><span>Produto</span><strong id="summary-product">—</strong></div>
+                        <div class="summary-row"><span>Subtotal</span><strong id="summary-product">—</strong></div>
                         <div class="summary-row"><span id="summary-shipping-label">Frete</span><strong id="summary-shipping">—</strong></div>
                         <div class="summary-row total"><span>Total</span><strong id="summary-total">—</strong></div>
                     </div>
@@ -178,9 +178,10 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/store-loader.js"></script>
+    <script src="js/cart.js"></script>
     <script src="js/pix.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="js/analytics.js?v=2"></script>
-    <script src="js/checkout.js?v=7"></script>
+    <script src="js/checkout.js?v=8"></script>
 </body>
 </html>

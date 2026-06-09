@@ -2,7 +2,7 @@
   const CUSTOMER_SESSION_KEY = 'stf_customer_token';
   const CUSTOMER_USER_KEY = 'stf_customer_user';
 
-  let cfg, product, products = [], selectedProduct = null;
+  let cfg, products = [];
   let shippingCost = null, shippingInfo = null, pollTimer = null, isInternational = false;
   let customerUser = null;
 
@@ -35,10 +35,7 @@
     paymentPanel: document.getElementById('payment-panel'),
     confirmTitle: document.getElementById('confirm-title'),
     confirmHint: document.getElementById('confirm-hint'),
-    productPicker: document.getElementById('product-picker'),
-    productImg: document.getElementById('checkout-product-img'),
-    productName: document.getElementById('checkout-product-name'),
-    productDesc: document.getElementById('checkout-product-desc'),
+    cartSidebar: document.getElementById('cart-sidebar-items'),
     smartwatchWrap: document.getElementById('smartwatch-wrap'),
     criarConta: document.getElementById('criar-conta'),
     senhaWrap: document.getElementById('senha-wrap'),
@@ -83,42 +80,89 @@
     return localStorage.getItem(CUSTOMER_SESSION_KEY) || '';
   }
 
-  function pickProductFromUrl() {
-    const slug = new URLSearchParams(location.search).get('produto');
-    if (!slug) return products[0] || product;
-    return products.find((p) => p.slug === slug || p.id === slug) || products[0] || product;
+  function cartSubtotal() {
+    return window.STF_CART?.subtotal() || 0;
   }
 
-  function applySelectedProduct() {
-    if (!selectedProduct) return;
-    product = selectedProduct;
-    if (els.productImg) els.productImg.src = selectedProduct.image || 'sensortattoofix.jpg';
-    if (els.productName) els.productName.textContent = selectedProduct.name;
-    if (els.productDesc) els.productDesc.textContent = selectedProduct.description || '';
-    const needsWatch = selectedProduct.requiresSmartwatch !== false;
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  }
+
+  function updateSmartwatchVisibility() {
+    const needsWatch = window.STF_CART?.requiresSmartwatch();
     if (els.smartwatchWrap) els.smartwatchWrap.hidden = !needsWatch;
-    if (els.smartwatchSelect) els.smartwatchSelect.required = needsWatch;
-    updateSummary();
+    if (els.smartwatchSelect) els.smartwatchSelect.required = !!needsWatch;
   }
 
-  function renderProductPicker() {
-    if (!els.productPicker || products.length <= 1) {
-      if (els.productPicker) els.productPicker.hidden = true;
+  function seedCartFromUrl() {
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('produto');
+    if (!slug) return false;
+    const p = products.find((x) => x.slug === slug || x.id === slug);
+    if (!p) return false;
+    if (params.get('comprar') === '1') window.STF_CART.clear();
+    window.STF_CART.add(p, 1);
+    history.replaceState({}, '', location.pathname);
+    return true;
+  }
+
+  function renderCartSidebar() {
+    if (!els.cartSidebar || !window.STF_CART) return;
+    const items = window.STF_CART.load();
+    if (!items.length) {
+      els.cartSidebar.innerHTML = '<p class="conta-empty">Carrinho vazio</p>';
       return;
     }
-    els.productPicker.hidden = false;
-    els.productPicker.innerHTML = products.map((p) => {
-      const active = selectedProduct && (selectedProduct.id === p.id || selectedProduct.slug === p.slug);
-      return `<button type="button" class="product-pick-btn${active ? ' active' : ''}" data-product-id="${p.id || p.slug}">${p.name} — ${formatBRL(p.price)}</button>`;
-    }).join('');
-    els.productPicker.querySelectorAll('.product-pick-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-product-id');
-        selectedProduct = products.find((p) => p.id === id || p.slug === id) || products[0];
-        renderProductPicker();
-        applySelectedProduct();
+    els.cartSidebar.innerHTML = items.map((item) => `
+      <div class="cart-line" data-product-id="${escapeHtml(item.productId)}">
+        <img src="${escapeHtml(item.image)}" alt="" class="cart-line-img">
+        <div class="cart-line-info">
+          <strong>${escapeHtml(item.name)}</strong>
+          <span class="cart-line-price">${formatBRL(item.price)}</span>
+          <div class="cart-qty" role="group" aria-label="Quantidade">
+            <button type="button" class="cart-qty-btn" data-delta="-1" aria-label="Diminuir">−</button>
+            <span class="cart-qty-val">${item.qty}</span>
+            <button type="button" class="cart-qty-btn" data-delta="1" aria-label="Aumentar">+</button>
+          </div>
+        </div>
+        <button type="button" class="cart-remove" title="Remover" aria-label="Remover">&times;</button>
+      </div>
+    `).join('');
+
+    els.cartSidebar.querySelectorAll('.cart-line').forEach((row) => {
+      const id = row.getAttribute('data-product-id');
+      row.querySelector('.cart-remove')?.addEventListener('click', () => {
+        window.STF_CART.remove(id);
+        if (window.STF_CART.isEmpty()) {
+          window.location.href = 'loja.html';
+          return;
+        }
+        shippingCost = null;
+        shippingInfo = null;
+        renderCartSidebar();
+        updateSmartwatchVisibility();
+        updateSummary();
+        quoteShipping();
+      });
+      row.querySelectorAll('.cart-qty-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const delta = Number(btn.getAttribute('data-delta'));
+          const current = window.STF_CART.load().find((i) => i.productId === id);
+          window.STF_CART.setQty(id, (current?.qty || 1) + delta);
+          if (window.STF_CART.isEmpty()) {
+            window.location.href = 'loja.html';
+            return;
+          }
+          shippingCost = null;
+          shippingInfo = null;
+          renderCartSidebar();
+          updateSmartwatchVisibility();
+          updateSummary();
+          quoteShipping();
+        });
       });
     });
+    updateSmartwatchVisibility();
   }
 
   async function loadCustomerSession() {
@@ -184,13 +228,21 @@
   }
 
   function estimateBR(destCep) {
-    const o = parseInt(onlyDigits(cfg.shipping?.originCep).slice(0,5),10)||0;
-    const d = parseInt(onlyDigits(destCep).slice(0,5),10)||0;
-    const diff = Math.abs(o-d);
-    if (diff < 800) return { price: 11.9, days: 8, service: 'Mini Envios', source: 'estimate' };
-    if (diff < 3000) return { price: 15.9, days: 10, service: 'Mini Envios', source: 'estimate' };
-    if (diff < 8000) return { price: 19.9, days: 12, service: 'Mini Envios', source: 'estimate' };
-    return { price: 24.9, days: 14, service: 'Mini Envios', source: 'estimate' };
+    const o = parseInt(onlyDigits(cfg.shipping?.originCep).slice(0, 5), 10) || 0;
+    const d = parseInt(onlyDigits(destCep).slice(0, 5), 10) || 0;
+    const diff = Math.abs(o - d);
+    let base;
+    if (diff < 800) base = { price: 11.9, days: 8 };
+    else if (diff < 3000) base = { price: 15.9, days: 10 };
+    else if (diff < 8000) base = { price: 19.9, days: 12 };
+    else base = { price: 24.9, days: 14 };
+    const weightFactor = Math.min(2.5, Math.max(1, (window.STF_CART?.totalWeight() || 120) / 120));
+    return {
+      price: Math.round(base.price * weightFactor * 100) / 100,
+      days: base.days,
+      service: 'Mini Envios',
+      source: 'estimate'
+    };
   }
 
   async function fetchShippingQuote(url) {
@@ -223,7 +275,11 @@
         const cep = onlyDigits(els.cep.value);
         if (cep.length !== 8) return;
         if (base) {
-          const data = await fetchShippingQuote(`${base}/shipping/quote?country=BR&cep=${cep}`);
+          const weight = window.STF_CART?.totalWeight() || 120;
+          const valor = cartSubtotal();
+          const data = await fetchShippingQuote(
+            `${base}/shipping/quote?country=BR&cep=${cep}&weightGrams=${weight}&valor=${valor}`
+          );
           if (data?.price) { shippingInfo = data; shippingCost = data.price; }
         }
         if (!shippingCost) {
@@ -241,9 +297,10 @@
   }
 
   function updateSummary() {
-    els.summaryProduct.textContent = formatBRL(product.price);
+    const subtotal = cartSubtotal();
+    els.summaryProduct.textContent = formatBRL(subtotal);
     els.summaryShipping.textContent = shippingCost === null ? '—' : formatBRL(shippingCost);
-    els.summaryTotal.textContent = shippingCost === null ? '—' : formatBRL(product.price + shippingCost);
+    els.summaryTotal.textContent = shippingCost === null ? '—' : formatBRL(subtotal + shippingCost);
   }
 
   function showStep(step) {
@@ -304,7 +361,7 @@
       shippingService: shippingInfo?.service,
       shippingDays: shippingInfo?.days,
       pagamento: f.querySelector('[name=pagamento]:checked').value,
-      productId: selectedProduct?.id || selectedProduct?.slug
+      items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
     };
     if (els.criarConta?.checked && !customerUser) {
       payload.criarConta = true;
@@ -315,7 +372,10 @@
 
   function validateStep1() {
     const f = els.form;
-    const needsWatch = selectedProduct?.requiresSmartwatch !== false;
+    if (window.STF_CART?.isEmpty()) {
+      alert('Seu carrinho está vazio.'); return false;
+    }
+    const needsWatch = window.STF_CART?.requiresSmartwatch();
     if (!f.nome.value || !f.email.value || !f.telefone.value || !f.cpf.value) {
       alert('Preencha todos os campos obrigatórios.'); return false;
     }
@@ -365,10 +425,11 @@
     body.append('_subject', cfg.formsubmit.subject);
     body.append('_captcha', 'false');
     body.append('_template', 'table');
+    const subtotal = cartSubtotal();
     Object.entries({ Pedido: orderId, Nome: orderData.nome, Smartwatch: orderData.smartwatch,
-      Total: formatBRL(product.price + orderData.frete), Endereço: orderData.endereco }).forEach(([k,v]) => body.append(k,v));
+      Total: formatBRL(subtotal + orderData.frete), Endereço: orderData.endereco }).forEach(([k, v]) => body.append(k, v));
     await fetch(`https://formsubmit.co/ajax/${cfg.formsubmit.email}`, { method: 'POST', body, headers: { Accept: 'application/json' } });
-    return { order: { ...orderData, orderId, total: product.price + orderData.frete }, payment: { provider: 'static_pix', billingType: 'PIX' } };
+    return { order: { ...orderData, orderId, total: subtotal + orderData.frete }, payment: { provider: 'static_pix', billingType: 'PIX' } };
   }
 
   function showPixUi() {
@@ -448,7 +509,8 @@
       const wantsCard = orderData.pagamento === 'CARTAO';
       lastPaymentMethod = wantsCard ? 'credit_card' : 'pix';
       const result = await createOrder(orderData);
-      const total = result.order?.total || (product.price + orderData.frete);
+      const total = result.order?.total || (cartSubtotal() + orderData.frete);
+      window.STF_CART?.clear();
       const orderId = result.order?.orderId;
       const accessToken = result.accessToken;
       const payment = result.payment || {};
@@ -610,18 +672,23 @@
   async function boot() {
     cfg = await StoreConfig.load();
     products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
-    selectedProduct = pickProductFromUrl();
-    product = selectedProduct || cfg.product;
     populateSelects();
-    renderProductPicker();
-    applySelectedProduct();
-    await loadCustomerSession();
-    updateSummary();
-    bindEvents();
+    window.STF_CART?.initBadges();
     const resumed = await resumeOrderFromUrl();
-    if (!resumed) showStep(1);
+    if (!resumed) {
+      seedCartFromUrl();
+      if (window.STF_CART?.isEmpty()) {
+        window.location.replace('loja.html');
+        return;
+      }
+      renderCartSidebar();
+      updateSummary();
+      showStep(1);
+    }
+    await loadCustomerSession();
+    bindEvents();
     trackGa('entrou_loja', {
-      valor_produto: product?.price || 59.9,
+      valor_produto: cartSubtotal() || cfg.product?.price || 59.9,
       moeda: 'BRL'
     });
   }
