@@ -87,6 +87,23 @@ nav,
 .logo-text .logo-word { color: #fff; }
 .logo-text .logo-accent { color: var(--primary); }
 
+.logo-lockup {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.logo-tagline {
+    margin: 0;
+    font-size: 0.58rem;
+    font-style: italic;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+    color: #9a9a9a;
+    white-space: nowrap;
+}
+
 .nav-panel {
     display: flex;
     align-items: center;
@@ -524,6 +541,7 @@ footer,
     .logo-area { flex: 0 0 auto; min-width: 0; gap: 8px; }
     .logo-img-link { width: 56px; height: 56px; }
     .logo-text { font-size: 0.95rem; }
+    .logo-tagline { font-size: 0.48rem; }
     .site-social {
         border-left: none;
         border-right: none;
