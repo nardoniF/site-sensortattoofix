@@ -23,10 +23,6 @@
     shippingHint: document.getElementById('shipping-hint'),
     shippingOptionsWrap: document.getElementById('shipping-options-wrap'),
     shippingOptionsEl: document.getElementById('shipping-options'),
-    intlProductNotice: document.getElementById('intl-product-notice'),
-    intlNoticeTitle: document.getElementById('intl-notice-title'),
-    intlNoticeBody: document.getElementById('intl-notice-body'),
-    intlNoticeDocument: document.getElementById('intl-notice-document'),
     pixQr: document.getElementById('pix-qr'),
     pixCopy: document.getElementById('pix-copy'),
     pixCopyArea: document.getElementById('pix-copy-area'),
@@ -347,35 +343,19 @@
     return '';
   }
 
-  function updateIntlProductNotice() {
-    const box = els.intlProductNotice;
-    if (!box) return;
-    if (!isInternational) {
-      box.hidden = true;
-      return;
+  function shippingOptionNoticeHtml(shipmentType) {
+    if (!isInternational || !shipmentType) return '';
+    const text = buildIntlProductNote(shipmentType);
+    if (!text) return '';
+    const parts = text.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length <= 1) {
+      return `<div class="shipping-card-notice"><p>${escapeHtml(text)}</p></div>`;
     }
-    const ip = intlProductCopy();
-    const isDocument = shippingInfo?.shipmentType === 'documento';
-    const isEncomenda = shippingInfo?.shipmentType === 'encomenda';
-
-    if (els.intlNoticeTitle) {
-      if (isDocument) els.intlNoticeTitle.textContent = 'Carta / documento — somente a lente';
-      else if (isEncomenda) els.intlNoticeTitle.textContent = 'Encomenda — kit Prime completo';
-      else els.intlNoticeTitle.textContent = ip.title || 'Envio internacional';
-    }
-
-    if (els.intlNoticeBody) {
-      if (isDocument) els.intlNoticeBody.textContent = ip.documentNotice || '';
-      else if (isEncomenda) els.intlNoticeBody.textContent = ip.encomendaNotice || '';
-      else els.intlNoticeBody.textContent = ip.hint || 'Escolha o frete internacional para ver o que será enviado.';
-    }
-
-    if (els.intlNoticeDocument) {
-      els.intlNoticeDocument.hidden = true;
-      els.intlNoticeDocument.textContent = '';
-    }
-
-    box.hidden = false;
+    const inner = parts.map((p, i) => {
+      const foot = i === parts.length - 1 ? ' shipping-notice-foot' : '';
+      return `<p class="shipping-notice-line${foot}">${escapeHtml(p)}</p>`;
+    }).join('');
+    return `<div class="shipping-card-notice">${inner}</div>`;
   }
 
   function toggleAddressForm() {
@@ -387,7 +367,6 @@
     shippingInfo = null;
     shippingOptions = [];
     clearShippingOptions();
-    updateIntlProductNotice();
     updateSummary();
     if (isInternational) quoteShipping();
   }
@@ -416,7 +395,6 @@
     if (els.summaryShippingLabel) {
       els.summaryShippingLabel.textContent = isInternational ? 'Frete internacional' : 'Frete';
     }
-    updateIntlProductNotice();
   }
 
   function renderShippingOptions(options) {
@@ -436,16 +414,20 @@
       const checked = i === 0 ? 'checked' : '';
       const src = shippingSourceLabel(opt.source);
       const tipoHint = opt.shipmentType === 'documento' ? ' · documento/carta' : '';
+      const notice = shippingOptionNoticeHtml(opt.shipmentType);
       return `
         <label class="shipping-option" for="${inputId}">
           <input type="radio" name="shippingOption" id="${inputId}" value="${opt.id}" ${checked}
             data-index="${i}">
-          <div class="shipping-card">
-            <div class="shipping-card-main">
-              <strong>${escapeHtml(opt.service)}</strong>
-              <small>${opt.days} dias · ${src}${tipoHint}</small>
+          <div class="shipping-card${notice ? ' shipping-card--with-notice' : ''}">
+            <div class="shipping-card-row">
+              <div class="shipping-card-main">
+                <strong>${escapeHtml(opt.service)}</strong>
+                <small>${opt.days} dias · ${src}${tipoHint}</small>
+              </div>
+              <span class="shipping-card-price">${formatBRL(opt.price)}</span>
             </div>
-            <span class="shipping-card-price">${formatBRL(opt.price)}</span>
+            ${notice}
           </div>
         </label>
       `;

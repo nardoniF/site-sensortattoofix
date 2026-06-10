@@ -54,9 +54,9 @@
   ],
   "internationalProduct": {
     "title": "Envio internacional",
-    "hint": "Escolha o frete internacional para ver o que será enviado no pacote.",
-    "encomendaNotice": "Nos envios por Exporta Fácil (encomenda internacional), enviamos o kit Prime completo — lente, solução, lenço, aplicador e manual — com o mesmo padrão do Brasil.",
-    "documentNotice": "Nos envios por carta registrada ou documento internacional, não enviamos o kit Prime. Enviamos somente a lente internacional: à prova d'água, com adesivo VHB de fixação reforçada, com o mesmo efeito e qualidade na leitura do sensor. Lente específica para envelope fino, sem necessidade do Prime."
+    "hint": "",
+    "encomendaNotice": "Nesse tipo de frete é enviado o kit completo.",
+    "documentNotice": "Lente de melhor fixação, sem potencializador (este frete não permite líquidos).\n\nKit completo: escolha outra opção de envio."
   },
   "internationalShipping": {
     "US": { "label": "Estados Unidos", "price": 89.9, "days": 15, "currency": "BRL" },

@@ -41,6 +41,9 @@ window.StoreConfig = (function () {
             if (Object.keys(config.internationalShipping || {}).length < 4 && local.internationalShipping) {
               config.internationalShipping = { ...local.internationalShipping, ...config.internationalShipping };
             }
+            if (local.internationalProduct) {
+              config.internationalProduct = { ...config.internationalProduct, ...local.internationalProduct };
+            }
           } catch (e) {
             console.warn('Fallback local para modelos indisponível.', e);
           }

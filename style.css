@@ -498,13 +498,19 @@ nav,
 .shipping-option input { position: absolute; opacity: 0; }
 .shipping-card {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
     padding: 14px 16px;
     border: 2px solid #333;
     border-radius: 12px;
     transition: 0.2s;
+}
+.shipping-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 .shipping-option input:checked + .shipping-card {
     border-color: var(--primary);
@@ -517,6 +523,24 @@ nav,
     color: var(--primary);
     white-space: nowrap;
     font-size: 0.95rem;
+}
+.shipping-card-notice {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #bbb;
+}
+.shipping-option input:checked + .shipping-card .shipping-card-notice {
+    border-top-color: rgba(255, 193, 7, 0.25);
+    color: #ccc;
+}
+.shipping-card-notice p { margin: 0; }
+.shipping-card-notice p + p { margin-top: 8px; }
+.shipping-card-notice .shipping-notice-foot {
+    color: #aaa;
+    font-size: 0.76rem;
 }
 .payment-status {
     padding: 12px 16px;
@@ -931,6 +955,14 @@ line-height:1.8;
     font-size: 0.92rem;
 }
 .checkout-intl-notice p { margin: 0; }
+.checkout-intl-notice #intl-notice-body p + p { margin-top: 10px; }
+.checkout-intl-notice #intl-notice-body p.intl-notice-foot {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 193, 7, 0.2);
+    color: #ccc;
+    font-size: 0.85rem;
+}
 .checkout-intl-document {
     margin-top: 10px !important;
     padding-top: 10px;
