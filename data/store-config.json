@@ -49,7 +49,8 @@
   "shippingMethods": [
     { "id": "br-mini-envios", "enabled": true, "scope": "BR", "label": "Mini Envios", "correiosCode": "04227" },
     { "id": "br-carta-registrada", "enabled": true, "scope": "BR", "label": "Carta Registrada", "correiosCode": "8010" },
-    { "id": "int-todos", "enabled": true, "scope": "INT", "label": "Todos do simulador Correios", "correiosCode": "*" }
+    { "id": "int-encomenda", "enabled": true, "scope": "INT", "label": "Encomenda internacional (Exporta Fácil)", "correiosCode": "*", "simTipo": "M" },
+    { "id": "int-documento", "enabled": true, "scope": "INT", "label": "Documento / carta internacional", "correiosCode": "*", "simTipo": "D" }
   ],
   "internationalShipping": {
     "US": { "label": "Estados Unidos", "price": 89.9, "days": 15, "currency": "BRL" },

@@ -387,6 +387,7 @@
       const inputId = `ship-opt-${opt.id}`;
       const checked = i === 0 ? 'checked' : '';
       const src = shippingSourceLabel(opt.source);
+      const tipoHint = opt.shipmentType === 'documento' ? ' · documento/carta' : '';
       return `
         <label class="shipping-option" for="${inputId}">
           <input type="radio" name="shippingOption" id="${inputId}" value="${opt.id}" ${checked}
@@ -394,7 +395,7 @@
           <div class="shipping-card">
             <div class="shipping-card-main">
               <strong>${escapeHtml(opt.service)}</strong>
-              <small>${opt.days} dias · ${src}</small>
+              <small>${opt.days} dias · ${src}${tipoHint}</small>
             </div>
             <span class="shipping-card-price">${formatBRL(opt.price)}</span>
           </div>

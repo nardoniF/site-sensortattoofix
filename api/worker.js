@@ -129,8 +129,17 @@ const DEFAULT_CONFIG = {
 const DEFAULT_SHIPPING_METHODS = [
   { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227' },
   { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010' },
-  { id: 'int-todos', enabled: true, scope: 'INT', label: 'Todos do simulador Correios', correiosCode: '*' }
+  { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
+  { id: 'int-documento', enabled: true, scope: 'INT', label: 'Documento / carta internacional', correiosCode: '*', simTipo: 'D' }
 ];
+
+function resolveIntlSimTipos(method) {
+  const tipo = String(method?.simTipo || '').toUpperCase();
+  if (tipo === 'M' || tipo === 'D') return [tipo];
+  if (method?.id === 'int-todos' || String(method?.correiosCode || '').trim() === '*') return ['M', 'D'];
+  if (/documento|carta/i.test(method?.label || '')) return ['D'];
+  return ['M'];
+}
 
 function mergeShippingMethods(stored) {
   const defaults = structuredClone(DEFAULT_SHIPPING_METHODS);
@@ -1100,8 +1109,9 @@ async function fetchExportSimulation(config, countryCode, opts = {}) {
     const cookies = cookieHeaderFrom(pageRes);
     if (!csrf) return null;
 
+    const simTipo = String(opts.tipo || 'M').toUpperCase() === 'D' ? 'D' : 'M';
     const body = new URLSearchParams({
-      tipo: 'M',
+      tipo: simTipo,
       finalidade: 'V',
       cep_origem: originCep,
       pais_destino: country,
@@ -1124,27 +1134,30 @@ async function fetchExportSimulation(config, countryCode, opts = {}) {
     if (!simRes.ok || !payload?.success || !Array.isArray(payload.data)) return null;
 
     const services = payload.data.filter((s) => s.precoFinal && !s.txErro);
-    return services.length ? { services, country, weightGrams } : null;
+    return services.length ? { services, country, weightGrams, simTipo } : null;
   } catch (err) {
     console.error('Exporta Fácil:', err.message);
     return null;
   }
 }
 
-function mapExportServiceToOption(service, config, country, weightGrams, method) {
+function mapExportServiceToOption(service, config, country, weightGrams, method, simTipo = 'M') {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
   const zone = zones[country] || zones.OTHER || {};
   const code = String(service.codigo);
   const price = parseBRPrice(service.precoFinal);
   if (price <= 0) return null;
+  const isDocument = simTipo === 'D';
+  const serviceName = service.nome || method?.label || (isDocument ? 'Documento internacional' : 'Internacional');
   return {
     id: code,
     methodId: method?.id || `int-${code}`,
     serviceCode: code,
-    service: service.nome || method?.label || 'Internacional',
+    service: serviceName,
     price,
     days: Number(service.prazoMedio || service.prazoMaximo || zone.days || 15),
     source: 'correios-export',
+    shipmentType: isDocument ? 'documento' : 'encomenda',
     country,
     countryLabel: zone.label || country,
     weightGrams
@@ -1152,22 +1165,38 @@ function mapExportServiceToOption(service, config, country, weightGrams, method)
 }
 
 async function quoteCorreiosExportOptions(config, countryCode, opts = {}) {
-  const sim = await fetchExportSimulation(config, countryCode, opts);
-  if (!sim) return [];
-
   const methods = getEnabledShippingMethods(config, 'INT');
-  const allowedCodes = methods
-    .map((m) => String(m.correiosCode || '').trim())
-    .filter((c) => c && c !== '*');
-  const includeAll = !methods.length || methods.some((m) => String(m.correiosCode || '').trim() === '*');
+  if (!methods.length) return [];
 
-  const options = sim.services
-    .filter((s) => includeAll || allowedCodes.includes(String(s.codigo)))
-    .map((s) => {
-      const method = methods.find((m) => String(m.correiosCode) === String(s.codigo));
-      return mapExportServiceToOption(s, config, sim.country, sim.weightGrams, method);
-    })
-    .filter(Boolean);
+  const tiposNeeded = new Map();
+  methods.forEach((method) => {
+    resolveIntlSimTipos(method).forEach((tipo) => {
+      if (!tiposNeeded.has(tipo)) tiposNeeded.set(tipo, []);
+      tiposNeeded.get(tipo).push(method);
+    });
+  });
+
+  const seenCodes = new Set();
+  const options = [];
+
+  for (const [simTipo, tipoMethods] of tiposNeeded) {
+    const sim = await fetchExportSimulation(config, countryCode, { ...opts, tipo: simTipo });
+    if (!sim) continue;
+
+    tipoMethods.forEach((method) => {
+      const codeFilter = String(method.correiosCode || '').trim();
+      const includeAll = !codeFilter || codeFilter === '*';
+      sim.services
+        .filter((s) => includeAll || codeFilter === String(s.codigo))
+        .forEach((s) => {
+          const code = String(s.codigo);
+          if (seenCodes.has(code)) return;
+          seenCodes.add(code);
+          const opt = mapExportServiceToOption(s, config, sim.country, sim.weightGrams, method, simTipo);
+          if (opt) options.push(opt);
+        });
+    });
+  }
 
   return options.sort((a, b) => a.price - b.price);
 }

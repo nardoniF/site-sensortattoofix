@@ -164,7 +164,8 @@
     return [
       { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227' },
       { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010' },
-      { id: 'int-todos', enabled: true, scope: 'INT', label: 'Todos do simulador Correios', correiosCode: '*' }
+      { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
+      { id: 'int-documento', enabled: true, scope: 'INT', label: 'Documento / carta internacional', correiosCode: '*', simTipo: 'D' }
     ];
   }
 
@@ -187,6 +188,12 @@
           </label>
           <label>Nome exibido<input type="text" data-field="label" value="${escAttr(m.label || '')}"></label>
           <label>Código Correios<input type="text" data-field="correiosCode" value="${escAttr(m.correiosCode || '')}" placeholder="04227 ou *"></label>
+          <label data-sim-tipo-wrap ${m.scope === 'INT' ? '' : 'hidden'}>Tipo simulador
+            <select data-field="simTipo">
+              <option value="M" ${(m.simTipo || 'M') === 'M' ? 'selected' : ''}>M — Encomenda (Exporta Fácil)</option>
+              <option value="D" ${m.simTipo === 'D' ? 'selected' : ''}>D — Documento / carta</option>
+            </select>
+          </label>
           <input type="hidden" data-field="id" value="${escAttr(m.id || `method-${i}`)}">
         </div>
         <button type="button" class="btn-secondary btn-remove-ship-method" data-index="${i}" style="margin-top:6px"><i class="fas fa-trash"></i> Remover</button>
@@ -198,6 +205,14 @@
         const idx = Number(btn.getAttribute('data-index'));
         const next = collectShippingMethods().filter((_, j) => j !== idx);
         renderShippingMethods(next.length ? next : defaultShippingMethods());
+      });
+    });
+
+    list.querySelectorAll('[data-field="scope"]').forEach((sel) => {
+      sel.addEventListener('change', () => {
+        const row = sel.closest('.admin-ship-method-row');
+        const wrap = row?.querySelector('[data-sim-tipo-wrap]');
+        if (wrap) wrap.hidden = sel.value !== 'INT';
       });
     });
   }
@@ -213,13 +228,16 @@
         return el.value.trim();
       };
       const id = val('id') || `method-${i + 1}`;
-      return {
+      const scope = val('scope') || 'BR';
+      const entry = {
         id,
         enabled: val('enabled'),
-        scope: val('scope') || 'BR',
+        scope,
         label: val('label') || id,
         correiosCode: val('correiosCode')
       };
+      if (scope === 'INT') entry.simTipo = val('simTipo') || 'M';
+      return entry;
     });
   }
 
