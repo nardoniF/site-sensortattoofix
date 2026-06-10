@@ -381,7 +381,10 @@
       if (isInternational) {
         const code = els.paisCode.value;
         if (base) {
-          const data = await fetchShippingQuote(`${base}/shipping/quote?country=${code}`);
+          const weight = shippingWeightGrams();
+          const data = await fetchShippingQuote(
+            `${base}/shipping/quote?country=${code}&weightGrams=${encodeURIComponent(weight)}`
+          );
           if (data?.price) { shippingInfo = data; shippingCost = data.price; }
         }
         if (!shippingCost) {
@@ -407,7 +410,9 @@
         }
       }
       updateSummary();
-      const src = shippingInfo.source === 'correios' ? 'Correios' : (shippingInfo.source === 'international' ? 'Internacional' : 'estimativa');
+      const src = shippingInfo.source === 'correios' ? 'Correios'
+        : (shippingInfo.source === 'correios-export' ? 'Correios Exporta Fácil'
+          : (shippingInfo.source === 'config' ? 'tabela admin (fallback)' : 'estimativa'));
       els.shippingHint.textContent = `${shippingInfo.service}: ${formatBRL(shippingCost)} (${shippingInfo.days} dias · ${src})`;
     } catch {
       els.shippingHint.textContent = 'Erro ao calcular frete.';

@@ -982,6 +982,88 @@ async function quoteCorreios(env, config, destCep, opts = {}) {
   return { price: est.price, days: est.days, service: ship.serviceName || 'Mini Envios', source: 'estimate' };
 }
 
+function parseBRPrice(value) {
+  if (value == null || value === '') return 0;
+  if (typeof value === 'number') return value;
+  return parseFloat(String(value).replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function cookieHeaderFrom(response) {
+  const list = typeof response.headers.getSetCookie === 'function'
+    ? response.headers.getSetCookie()
+    : [];
+  return list.map((c) => c.split(';')[0]).filter(Boolean).join('; ');
+}
+
+/** Cotação real via simulador oficial Exporta Fácil (Minhas Exportações). */
+async function quoteCorreiosExport(config, countryCode, opts = {}) {
+  const ship = config.shipping || DEFAULT_CONFIG.shipping;
+  const originCep = onlyDigits(ship.originCep);
+  const country = String(countryCode || '').toUpperCase();
+  const weightGrams = Math.max(1, Math.round(Number(opts.weightGrams) || shippingWeightGrams(config)));
+  if (originCep.length !== 8 || !country) return null;
+
+  try {
+    const pageRes = await fetch('https://minhasexportacoes.correios.com.br/simulacao', {
+      headers: { 'User-Agent': 'SensorTattooFix/1.0', Accept: 'text/html' }
+    });
+    if (!pageRes.ok) return null;
+
+    const html = await pageRes.text();
+    const csrf = html.match(/name="csrf-token"\s+content="([^"]+)"/i)?.[1];
+    const cookies = cookieHeaderFrom(pageRes);
+    if (!csrf) return null;
+
+    const body = new URLSearchParams({
+      tipo: 'M',
+      finalidade: 'V',
+      cep_origem: originCep,
+      pais_destino: country,
+      peso: String(weightGrams)
+    });
+
+    const simRes = await fetch('https://minhasexportacoes.correios.com.br/simulacao/simular', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+        'X-CSRF-TOKEN': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+        'User-Agent': 'SensorTattooFix/1.0',
+        ...(cookies ? { Cookie: cookies } : {})
+      },
+      body
+    });
+    const payload = await simRes.json().catch(() => null);
+    if (!simRes.ok || !payload?.success || !Array.isArray(payload.data)) return null;
+
+    const services = payload.data.filter((s) => s.precoFinal && !s.txErro);
+    if (!services.length) return null;
+
+    const preferred = services.find((s) => s.codigo === '45128')
+      || services.sort((a, b) => parseBRPrice(a.precoFinal) - parseBRPrice(b.precoFinal))[0];
+
+    const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
+    const zone = zones[country] || zones.OTHER || {};
+    const price = parseBRPrice(preferred.precoFinal);
+    if (price <= 0) return null;
+
+    return {
+      price,
+      days: Number(preferred.prazoMedio || preferred.prazoMaximo || zone.days || 15),
+      service: `Exporta Fácil — ${preferred.nome || 'Internacional'}`,
+      source: 'correios-export',
+      country,
+      countryLabel: zone.label || country,
+      weightGrams,
+      serviceCode: preferred.codigo || null
+    };
+  } catch (err) {
+    console.error('Exporta Fácil:', err.message);
+    return null;
+  }
+}
+
 function quoteInternational(config, countryCode) {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
   const zone = zones[countryCode] || zones.OTHER;
@@ -990,7 +1072,7 @@ function quoteInternational(config, countryCode) {
     price: zone.price,
     days: zone.days,
     service: 'Correios Internacional — ' + zone.label,
-    source: 'international',
+    source: 'config',
     country: countryCode,
     countryLabel: zone.label
   };
@@ -1295,6 +1377,9 @@ async function handleShippingQuote(request, env, origin) {
   const config = await getConfig(env);
 
   if (country !== 'BR') {
+    const weightGrams = Number(url.searchParams.get('weightGrams')) || undefined;
+    const live = await quoteCorreiosExport(config, country, { weightGrams });
+    if (live) return json(live, 200, origin);
     return json(quoteInternational(config, country), 200, origin);
   }
   const cep = url.searchParams.get('cep');
