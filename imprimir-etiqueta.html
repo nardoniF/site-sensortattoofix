@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Imprimir etiqueta | Sensor TattooFix</title>
+    <link rel="stylesheet" href="style.css?v=1.62">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="admin-page">
+
+    <header class="admin-header">
+        <nav class="container admin-nav">
+            <div class="logo-area">
+                <a href="index.html" class="logo-img-link admin-logo-link"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
+                <div class="logo-text">ETIQUETA</div>
+            </div>
+            <ul class="nav-links checkout-nav admin-toolbar">
+                <li><a href="pedidos.html"><i class="fas fa-list"></i> Pedidos</a></li>
+                <li><a href="admin.html"><i class="fas fa-cog"></i> Config</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="admin-main">
+        <div class="container admin-container" style="max-width:520px">
+            <section id="label-login" class="admin-card">
+                <h1><i class="fas fa-print"></i> Imprimir etiqueta</h1>
+                <p class="admin-intro">Use o número do pedido do e-mail (ex.: STF-20260610-XXXX). Só pedidos <strong>pagos</strong>.</p>
+                <form id="label-form" class="admin-form">
+                    <label>Nº do pedido
+                        <input type="text" id="label-order-id" placeholder="STF-20260610-46A67E6F2C" required>
+                    </label>
+                    <label>URL da API
+                        <input type="url" id="label-api-url" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
+                    </label>
+                    <label>Usuário admin
+                        <input type="text" id="label-username" value="admin" required>
+                    </label>
+                    <label>Senha
+                        <input type="password" id="label-password" required>
+                    </label>
+                    <button type="submit" class="btn-primary"><i class="fas fa-print"></i> Abrir etiqueta</button>
+                </form>
+                <p id="label-status" class="admin-status" hidden></p>
+            </section>
+        </div>
+    </main>
+
+    <script src="js/config-bootstrap.js"></script>
+    <script src="js/order-label.js?v=4"></script>
+    <script src="js/imprimir-etiqueta.js?v=1"></script>
+</body>
+</html>

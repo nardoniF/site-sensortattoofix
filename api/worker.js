@@ -486,6 +486,11 @@ function watchWhatsAppBlock(order) {
   return `⌚ ${model}`;
 }
 
+function labelPrintUrl(config, orderId) {
+  const base = (config.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
+  return `${base}/imprimir-etiqueta.html?order=${encodeURIComponent(orderId)}`;
+}
+
 function resumeOrderUrl(config, order) {
   const site = (config.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
   return `${site}/comprar.html?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
@@ -1576,6 +1581,7 @@ async function handlePaymentConfirmed(env, order, payment) {
     Pagamento: order.pagamento || payment?.billingType || '—',
     Valor: formatBRL(value),
     Endereço: order.endereco, Envio: order.shippingService,
+    'Imprimir etiqueta': labelPrintUrl(config, order.orderId),
     ...orderWatchEmailFields(order)
   });
   if (!shopPaid?.ok) console.error('E-mail PAGO loja falhou:', JSON.stringify(shopPaid));
