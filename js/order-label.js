@@ -5,8 +5,7 @@ window.STF_ORDER_LABEL = (function () {
     cnpj: '29.321.223/0001-32',
     city: 'São Paulo/SP',
     cep: '01153-000',
-    service: 'Mini Envios',
-    weightGrams: 120
+    service: 'Mini Envios'
   };
 
   function esc(text) {
@@ -38,13 +37,9 @@ window.STF_ORDER_LABEL = (function () {
     return order.endereco || '—';
   }
 
-  function watchLine(order) {
-    return window.STF_ORDER_WATCH?.formatModel(order) || order.smartwatch || '—';
-  }
-
   function labelHtml(order) {
     const addr = destAddress(order).split('\n').map((l) => esc(l)).join('<br>');
-    const obs = window.STF_ORDER_WATCH?.trimObs(order);
+    const obs = String(order.observacoes || '').trim();
     const created = order.createdAt
       ? new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
       : '';
@@ -145,7 +140,6 @@ window.STF_ORDER_LABEL = (function () {
     <div class="block" style="flex:1">
       <div class="block-title">Destinatário</div>
       <div class="dest-name">${esc(order.nome)}</div>
-      ${order.telefone ? `<div>Tel: ${esc(order.telefone)}</div>` : ''}
       <div style="margin-top:2mm">${addr}</div>
     </div>
 
@@ -153,8 +147,6 @@ window.STF_ORDER_LABEL = (function () {
       <div class="meta-grid">
         <div><strong>Pedido</strong><span class="order-id">${esc(order.orderId)}</span></div>
         <div><strong>Envio</strong>${esc(order.shippingService || SENDER.service)}</div>
-        <div><strong>Relógio</strong>${esc(watchLine(order))}</div>
-        <div><strong>Peso</strong>${SENDER.weightGrams} g</div>
       </div>
       ${obs ? `<div style="margin-top:2mm;font-size:8pt"><strong>Obs:</strong> ${esc(obs)}</div>` : ''}
       ${created ? `<div style="margin-top:1.5mm;font-size:7.5pt;color:#333">Pedido em ${esc(created)}</div>` : ''}
