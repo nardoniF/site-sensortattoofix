@@ -167,9 +167,19 @@
     if (!f || !config) return;
     renderProducts(getProductsFromConfig(config));
     const ship = config.shipping || {};
+    const sender = ship.sender || {};
     const pix = config.pix || {};
     const formsubmit = config.formsubmit || {};
-    if (f.shippingOriginCep) f.shippingOriginCep.value = ship.originCep || '';
+    if (f.shippingSenderBrand) f.shippingSenderBrand.value = sender.brand || '';
+    if (f.shippingSenderCompany) f.shippingSenderCompany.value = sender.company || '';
+    if (f.shippingSenderCnpj) f.shippingSenderCnpj.value = sender.cnpj || '';
+    if (f.shippingOriginCep) f.shippingOriginCep.value = formatCepDisplay(ship.originCep || '');
+    if (f.shippingSenderRua) f.shippingSenderRua.value = sender.rua || '';
+    if (f.shippingSenderNumero) f.shippingSenderNumero.value = sender.numero || '';
+    if (f.shippingSenderComplemento) f.shippingSenderComplemento.value = sender.complemento || '';
+    if (f.shippingSenderBairro) f.shippingSenderBairro.value = sender.bairro || '';
+    if (f.shippingSenderCidade) f.shippingSenderCidade.value = sender.cidade || '';
+    if (f.shippingSenderUf) f.shippingSenderUf.value = sender.uf || '';
     if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams || 120;
     if (f.shippingServiceCode) f.shippingServiceCode.value = ship.serviceCode || '04227';
     if (f.shippingLength) f.shippingLength.value = ship.lengthCm || 16;
@@ -187,6 +197,39 @@
       els.updatedAt.textContent = config.updatedAt
         ? 'Última atualização: ' + new Date(config.updatedAt).toLocaleString('pt-BR')
         : '';
+    }
+  }
+
+  function formatCepDisplay(cep) {
+    const d = String(cep || '').replace(/\D/g, '');
+    if (d.length !== 8) return cep || '';
+    return `${d.slice(0, 5)}-${d.slice(5)}`;
+  }
+
+  function maskCep(value) {
+    const d = String(value || '').replace(/\D/g, '').slice(0, 8);
+    if (d.length <= 5) return d;
+    return `${d.slice(0, 5)}-${d.slice(5)}`;
+  }
+
+  async function lookupOriginCep() {
+    const f = els.configForm;
+    const cep = (f.shippingOriginCep?.value || '').replace(/\D/g, '');
+    if (cep.length !== 8) {
+      showStatus('Informe um CEP válido com 8 dígitos.', 'error', 'panel');
+      return;
+    }
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) throw new Error('CEP não encontrado.');
+      if (f.shippingSenderRua) f.shippingSenderRua.value = data.logradouro || f.shippingSenderRua.value;
+      if (f.shippingSenderBairro) f.shippingSenderBairro.value = data.bairro || f.shippingSenderBairro.value;
+      if (f.shippingSenderCidade) f.shippingSenderCidade.value = data.localidade || '';
+      if (f.shippingSenderUf) f.shippingSenderUf.value = data.uf || '';
+      showStatus('Endereço preenchido pelo CEP.', 'success', 'panel');
+    } catch (err) {
+      showStatus(err.message || 'Erro ao buscar CEP.', 'error', 'panel');
     }
   }
 
@@ -209,7 +252,19 @@
         widthCm: parseFloat(f.shippingWidth?.value) || 12,
         heightCm: parseFloat(f.shippingHeight?.value) || 3,
         serviceCode: f.shippingServiceCode?.value.trim() || '04227',
-        serviceName: 'Mini Envios'
+        serviceName: 'Mini Envios',
+        sender: {
+          brand: f.shippingSenderBrand?.value.trim() || '',
+          company: f.shippingSenderCompany?.value.trim() || '',
+          cnpj: f.shippingSenderCnpj?.value.trim() || '',
+          rua: f.shippingSenderRua?.value.trim() || '',
+          numero: f.shippingSenderNumero?.value.trim() || '',
+          complemento: f.shippingSenderComplemento?.value.trim() || '',
+          bairro: f.shippingSenderBairro?.value.trim() || '',
+          cidade: f.shippingSenderCidade?.value.trim() || '',
+          uf: (f.shippingSenderUf?.value || '').trim().toUpperCase(),
+          pais: 'Brasil'
+        }
       },
       pix: {
         key: f.pixKey.value.trim(),
@@ -314,10 +369,27 @@
     URL.revokeObjectURL(a.href);
   }
 
+  let senderCepWired = false;
+
+  function wireSenderCepLookup() {
+    if (senderCepWired) return;
+    senderCepWired = true;
+    const f = els.configForm;
+    f?.shippingOriginCep?.addEventListener('input', (e) => {
+      e.target.value = maskCep(e.target.value);
+    });
+    f?.shippingOriginCep?.addEventListener('blur', () => {
+      const cep = (f.shippingOriginCep?.value || '').replace(/\D/g, '');
+      if (cep.length === 8) lookupOriginCep();
+    });
+    document.getElementById('btn-lookup-origin-cep')?.addEventListener('click', lookupOriginCep);
+  }
+
   async function initPanel() {
     try {
       await loadConfig();
       fillForm(currentConfig);
+      wireSenderCepLookup();
     } catch (err) {
       showStatus(err.message || 'Erro ao carregar configuração.', 'error', 'panel');
       throw err;

@@ -177,10 +177,37 @@
     return res.ok;
   }
 
+  async function loadStoreConfig() {
+    const base = apiBase();
+    if (base) {
+      try {
+        const res = await fetch(base + '/config', { cache: 'no-store' });
+        if (res.ok) {
+          const cfg = await res.json();
+          window.STF_ORDER_LABEL?.configure(cfg.shipping);
+          return;
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    try {
+      const res = await fetch('/data/store-config.json?v=' + Date.now());
+      if (res.ok) {
+        const cfg = await res.json();
+        window.STF_ORDER_LABEL?.configure(cfg.shipping);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
   async function loadOrders() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login primeiro.');
+
+    await loadStoreConfig();
 
     const res = await fetch(base + '/orders', {
       headers: { Authorization: 'Bearer ' + token },

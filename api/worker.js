@@ -34,7 +34,27 @@ const DEFAULT_CONFIG = {
     }
   ],
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
-  shipping: { originCep: '01153000', weightGrams: 120, lengthCm: 16, widthCm: 12, heightCm: 3, serviceCode: '04227', serviceName: 'Mini Envios' },
+  shipping: {
+    originCep: '02537190',
+    weightGrams: 120,
+    lengthCm: 16,
+    widthCm: 12,
+    heightCm: 3,
+    serviceCode: '04227',
+    serviceName: 'Mini Envios',
+    sender: {
+      brand: 'Sensor Tattoo Fix',
+      company: '3N20 Soluções Tecnológicas LTDA',
+      cnpj: '29.321.223/0001-32',
+      rua: 'Rua Engenheiro Roberto Dabus Buazar',
+      numero: '56',
+      complemento: '',
+      bairro: 'Imirim',
+      cidade: 'São Paulo',
+      uf: 'SP',
+      pais: 'Brasil'
+    }
+  },
   internationalShipping: {
     US: { label: 'Estados Unidos', price: 89.9, days: 15, currency: 'BRL' },
     PT: { label: 'Portugal', price: 79.9, days: 12, currency: 'BRL' },
@@ -114,7 +134,11 @@ function withConfigDefaults(stored) {
     ...stored,
     product: { ...base.product, ...(stored.product || {}) },
     pix: { ...base.pix, ...(stored.pix || {}) },
-    shipping: { ...base.shipping, ...(stored.shipping || {}) },
+    shipping: {
+      ...base.shipping,
+      ...(stored.shipping || {}),
+      sender: { ...base.shipping.sender, ...(stored.shipping?.sender || {}) }
+    },
     formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
     api: { ...base.api, ...(stored.api || {}) },
     internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },

@@ -69,11 +69,48 @@
                     </fieldset>
 
                     <fieldset>
+                        <legend><i class="fas fa-warehouse"></i> Remetente (etiqueta + frete)</legend>
+                        <p class="admin-meta">Endereço da loja usado na etiqueta térmica e no CEP de origem do cálculo Correios.</p>
+                        <div class="form-grid">
+                            <label>Nome na etiqueta
+                                <input type="text" name="shippingSenderBrand" placeholder="Sensor Tattoo Fix">
+                            </label>
+                            <label>Razão social
+                                <input type="text" name="shippingSenderCompany" placeholder="3N20 Soluções Tecnológicas LTDA">
+                            </label>
+                            <label>CNPJ
+                                <input type="text" name="shippingSenderCnpj" placeholder="29.321.223/0001-32">
+                            </label>
+                            <label>CEP de origem
+                                <input type="text" name="shippingOriginCep" placeholder="02537-190" maxlength="9">
+                            </label>
+                            <label class="full">Rua
+                                <input type="text" name="shippingSenderRua" placeholder="Rua Engenheiro Roberto Dabus Buazar">
+                            </label>
+                            <label>Número
+                                <input type="text" name="shippingSenderNumero" placeholder="56">
+                            </label>
+                            <label>Complemento
+                                <input type="text" name="shippingSenderComplemento" placeholder="Sala, bloco…">
+                            </label>
+                            <label>Bairro
+                                <input type="text" name="shippingSenderBairro" placeholder="Imirim">
+                            </label>
+                            <label>Cidade
+                                <input type="text" name="shippingSenderCidade" placeholder="São Paulo">
+                            </label>
+                            <label>UF
+                                <input type="text" name="shippingSenderUf" maxlength="2" placeholder="SP">
+                            </label>
+                        </div>
+                        <div class="admin-form-actions" style="margin-top:8px">
+                            <button type="button" id="btn-lookup-origin-cep" class="btn-secondary"><i class="fas fa-search-location"></i> Buscar endereço pelo CEP</button>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
                         <legend><i class="fas fa-truck"></i> Frete Mini Envios</legend>
                         <div class="form-grid">
-                            <label>CEP de origem (sua loja)
-                                <input type="text" name="shippingOriginCep" placeholder="01153-000">
-                            </label>
                             <label>Peso (gramas)
                                 <input type="number" name="shippingWeight" min="1" value="120">
                             </label>
@@ -170,6 +207,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=6"></script>
+    <script src="js/admin.js?v=7"></script>
 </body>
 </html>

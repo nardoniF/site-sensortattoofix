@@ -25,13 +25,25 @@
     "merchantCity": "SAO PAULO"
   },
   "shipping": {
-    "originCep": "01153000",
+    "originCep": "02537190",
     "weightGrams": 120,
     "lengthCm": 16,
     "widthCm": 12,
     "heightCm": 3,
     "serviceCode": "04227",
-    "serviceName": "Mini Envios"
+    "serviceName": "Mini Envios",
+    "sender": {
+      "brand": "Sensor Tattoo Fix",
+      "company": "3N20 Soluções Tecnológicas LTDA",
+      "cnpj": "29.321.223/0001-32",
+      "rua": "Rua Engenheiro Roberto Dabus Buazar",
+      "numero": "56",
+      "complemento": "",
+      "bairro": "Imirim",
+      "cidade": "São Paulo",
+      "uf": "SP",
+      "pais": "Brasil"
+    }
   },
   "internationalShipping": {
     "US": { "label": "Estados Unidos", "price": 89.9, "days": 15, "currency": "BRL" },

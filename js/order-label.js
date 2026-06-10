@@ -1,12 +1,17 @@
 window.STF_ORDER_LABEL = (function () {
-  const SENDER = {
+  const FALLBACK_SENDER = {
     brand: 'Sensor Tattoo Fix',
     company: '3N20 Soluções Tecnológicas LTDA',
     cnpj: '29.321.223/0001-32',
+    street: 'Rua Engenheiro Roberto Dabus Buazar, 56',
+    district: 'Imirim',
     city: 'São Paulo/SP',
-    cep: '01153-000',
+    country: 'Brasil',
+    cep: '02537-190',
     service: 'Mini Envios'
   };
+
+  let activeSender = null;
 
   function esc(text) {
     return String(text ?? '')
@@ -20,6 +25,34 @@ window.STF_ORDER_LABEL = (function () {
     const d = String(cep || '').replace(/\D/g, '');
     if (d.length !== 8) return cep || '';
     return `${d.slice(0, 5)}-${d.slice(5)}`;
+  }
+
+  function senderFromShipping(shipping) {
+    if (!shipping) return { ...FALLBACK_SENDER };
+    const s = shipping.sender || {};
+    const streetParts = [s.rua, s.numero].filter(Boolean);
+    if (s.complemento) streetParts.push(s.complemento);
+    const street = streetParts.join(', ');
+    const city = [s.cidade, s.uf].filter(Boolean).join('/');
+    return {
+      brand: s.brand || FALLBACK_SENDER.brand,
+      company: s.company || FALLBACK_SENDER.company,
+      cnpj: s.cnpj || FALLBACK_SENDER.cnpj,
+      street: street || FALLBACK_SENDER.street,
+      district: s.bairro || FALLBACK_SENDER.district,
+      city: city || FALLBACK_SENDER.city,
+      country: s.pais || FALLBACK_SENDER.country,
+      cep: formatCep(shipping.originCep) || FALLBACK_SENDER.cep,
+      service: shipping.serviceName || FALLBACK_SENDER.service
+    };
+  }
+
+  function getSender() {
+    return activeSender || { ...FALLBACK_SENDER };
+  }
+
+  function configure(shipping) {
+    activeSender = senderFromShipping(shipping);
   }
 
   function destAddress(order) {
@@ -38,6 +71,7 @@ window.STF_ORDER_LABEL = (function () {
   }
 
   function labelHtml(order) {
+    const SENDER = getSender();
     const addr = destAddress(order).split('\n').map((l) => esc(l)).join('<br>');
     const obs = String(order.observacoes || '').trim();
     const created = order.createdAt
@@ -133,7 +167,9 @@ window.STF_ORDER_LABEL = (function () {
       <strong>${esc(SENDER.brand)}</strong><br>
       ${esc(SENDER.company)}<br>
       CNPJ ${esc(SENDER.cnpj)}<br>
-      ${esc(SENDER.city)}<br>
+      ${esc(SENDER.street)}<br>
+      ${esc(SENDER.district)} — ${esc(SENDER.city)}<br>
+      ${esc(SENDER.country)}<br>
       CEP ${esc(SENDER.cep)}
     </div>
 
@@ -177,5 +213,5 @@ window.STF_ORDER_LABEL = (function () {
     setTimeout(() => URL.revokeObjectURL(url), 120000);
   }
 
-  return { print, labelHtml };
+  return { print, labelHtml, configure, senderFromShipping };
 })();
