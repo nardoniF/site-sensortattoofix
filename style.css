@@ -480,6 +480,7 @@ nav,
 .review-stars { color: var(--primary); letter-spacing: 2px; margin-bottom: 10px; }
 .review-body { color: #ddd; font-size: 0.95rem; margin-bottom: 14px; }
 .review-author { color: var(--gray); font-size: 0.85rem; font-weight: 600; }
+.review-source { font-weight: 500; color: #666; }
 
 .shipping-hint {
     color: var(--gray);
