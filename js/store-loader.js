@@ -46,6 +46,7 @@ window.StoreConfig = (function () {
           }
           config._loaded = true;
           window.CHECKOUT_CONFIG = config;
+          window.dispatchEvent(new CustomEvent('stf-config-ready', { detail: config }));
           return config;
         }
       } catch (e) {
@@ -56,6 +57,7 @@ window.StoreConfig = (function () {
     const config = await loadLocalConfig();
     config._loaded = true;
     window.CHECKOUT_CONFIG = config;
+    window.dispatchEvent(new CustomEvent('stf-config-ready', { detail: config }));
     return config;
   }
 

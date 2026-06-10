@@ -602,39 +602,46 @@ function isMpSandbox(env) {
   return mercadoPagoToken(env).startsWith('TEST-');
 }
 
-/** PIX sandbox na API /v1/payments não aprova sozinho; só com token TEST- simula confirmação. */
-async function maybeSandboxAutoConfirmMpPix(env, orderId, paymentId) {
-  if (!isMpSandbox(env) || !paymentId) return;
+/** Com token TEST-, PIX de teste não aprova sozinho — simula confirmação após alguns segundos. */
+async function maybeSandboxAutoConfirmPix(env, orderId, payment) {
+  if (!isMpSandbox(env)) return;
 
-  const token = mercadoPagoToken(env);
-  for (let i = 0; i < 12; i++) {
-    await new Promise((r) => setTimeout(r, 2500));
-    const order = await getOrder(env, orderId);
-    if (!order || order.status === 'paid') return;
+  const provider = payment?.provider || 'mercadopago';
+  const paymentId = payment?.paymentId;
 
-    const res = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
-      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
-    });
-    const data = await res.json().catch(() => ({}));
-    if (data.status === 'approved') {
-      await handlePaymentConfirmed(env, order, {
-        id: data.id,
-        provider: 'mercadopago',
-        billingType: 'PIX',
-        value: data.transaction_amount
+  if (provider === 'mercadopago' && paymentId) {
+    const token = mercadoPagoToken(env);
+    for (let i = 0; i < 6; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const order = await getOrder(env, orderId);
+      if (!order || order.status === 'paid') return;
+
+      const res = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+        headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
       });
-      return;
+      const data = await res.json().catch(() => ({}));
+      if (data.status === 'approved') {
+        await handlePaymentConfirmed(env, order, {
+          id: data.id,
+          provider: 'mercadopago',
+          billingType: 'PIX',
+          value: data.transaction_amount
+        });
+        return;
+      }
     }
+  } else {
+    await new Promise((r) => setTimeout(r, 5000));
   }
 
   const order = await getOrder(env, orderId);
   if (order && order.status !== 'paid') {
-    console.log('MP sandbox: auto-confirma pedido de teste', orderId);
+    console.log('Sandbox PIX: auto-confirma pedido de teste', orderId, provider);
     await handlePaymentConfirmed(env, order, {
-      provider: 'mercadopago',
+      provider,
       billingType: 'PIX',
       value: order.total,
-      confirmedBy: 'mp_sandbox_test'
+      confirmedBy: 'sandbox_auto_test'
     });
   }
 }
@@ -1446,8 +1453,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   if (ctx) ctx.waitUntil(emailWork);
 
-  if (ctx && payment?.provider === 'mercadopago' && billingType === 'PIX' && isMpSandbox(env)) {
-    ctx.waitUntil(maybeSandboxAutoConfirmMpPix(env, order.orderId, payment.paymentId));
+  if (ctx && billingType === 'PIX' && payment && isMpSandbox(env)) {
+    ctx.waitUntil(maybeSandboxAutoConfirmPix(env, order.orderId, payment));
   }
 
   const response = {

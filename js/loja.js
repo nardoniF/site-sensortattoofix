@@ -72,6 +72,7 @@
       const cfg = await StoreConfig.load();
       products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
       window.STF_CART?.initBadges();
+      window.STF_STORE_PRICE?.apply(cfg);
       renderGrid();
     } catch (e) {
       const grid = document.getElementById('loja-grid');

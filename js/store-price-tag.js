@@ -29,16 +29,26 @@ window.STF_STORE_PRICE = (function () {
     el.textContent = buildLine(config, el);
   }
 
-  async function apply() {
-    if (!window.StoreConfig) return null;
-    const config = await StoreConfig.load();
-    document.querySelectorAll('[data-store-price-tag]').forEach((el) => applyToElement(el, config));
-    return config;
+  async function apply(config) {
+    if (!window.StoreConfig && !config) return null;
+    const cfg = config || await StoreConfig.load();
+    document.querySelectorAll('[data-store-price-tag]').forEach((el) => applyToElement(el, cfg));
+    return cfg;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  function start() {
     apply().catch((e) => console.warn('Preço da loja:', e));
+  }
+
+  window.addEventListener('stf-config-ready', (ev) => {
+    if (ev.detail) apply(ev.detail).catch(() => {});
   });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
 
   return { apply, buildLine, formatBRL, primaryProduct };
 })();
