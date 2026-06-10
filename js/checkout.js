@@ -550,26 +550,34 @@
     const paisLabel = paisCode === 'BR' ? 'Brasil' : (intlZones[paisCode]?.label || 'Internacional');
 
     let data;
+    let endereco;
     if (isInternational) {
+      const rua = document.getElementById('rua-intl').value.trim();
+      const numero = document.getElementById('numero-intl')?.value.trim() || '';
+      const cidade = document.getElementById('cidade-intl').value.trim();
+      const provincia = document.getElementById('uf-intl').value.trim();
+      const cep = document.getElementById('postal-intl').value.trim();
       data = {
-        cep: document.getElementById('postal-intl').value,
-        rua: document.getElementById('rua-intl').value.trim(),
-        numero: 'S/N',
+        cep,
+        rua,
+        numero,
         complemento: '',
-        bairro: document.getElementById('uf-intl').value.trim() || '-',
-        cidade: document.getElementById('cidade-intl').value.trim(),
-        uf: document.getElementById('uf-intl').value.trim() || paisCode
+        bairro: '',
+        cidade,
+        uf: provincia || paisCode
       };
+      const linha1 = numero ? `${rua}, ${numero}` : rua;
+      const linha2 = provincia ? `${cidade}, ${provincia}` : cidade;
+      endereco = `${linha1} — ${linha2} — ${paisLabel} ${cep}`;
     } else {
       data = {
         cep: f.cep.value.trim(), rua: f.rua.value.trim(), numero: f.numero.value.trim(),
         complemento: f.complemento.value.trim(), bairro: f.bairro.value.trim(),
         cidade: f.cidade.value.trim(), uf: f.uf.value.trim()
       };
+      const comp = data.complemento ? `, ${data.complemento}` : '';
+      endereco = `${data.rua}, ${data.numero}${comp} — ${data.bairro}, ${data.cidade}/${data.uf} — ${paisLabel} ${data.cep}`;
     }
-
-    const comp = data.complemento ? `, ${data.complemento}` : '';
-    const endereco = `${data.rua}, ${data.numero}${comp} — ${data.bairro}, ${data.cidade}/${data.uf} — ${paisLabel} ${data.cep}`;
 
     const payload = {
       nome: f.nome.value.trim(), email: f.email.value.trim(),

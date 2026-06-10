@@ -1141,6 +1141,24 @@ async function fetchExportSimulation(config, countryCode, opts = {}) {
   }
 }
 
+function prettifyCorreiosServiceName(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return raw;
+  const known = {
+    'DOCUMENTO INTERNACION STANDARD': 'Documento Internacional Standard',
+    'DOCUMENTO INTERNACION EXPRESSO': 'Documento Internacional Expresso',
+    'EXPORTA FACIL ECONOMICO': 'Exporta Fácil Econômico',
+    'EXPORTA FACIL STANDARD': 'Exporta Fácil Standard',
+    'EXPORTA FACIL EXPRESSO': 'Exporta Fácil Expresso'
+  };
+  const upper = raw.toUpperCase();
+  if (known[upper]) return known[upper];
+  return raw
+    .replace(/\bINTERNACION\b/gi, 'Internacional')
+    .replace(/\bEXPORTA FACIL\b/gi, 'Exporta Fácil')
+    .replace(/\bECONOMICO\b/gi, 'Econômico');
+}
+
 function mapExportServiceToOption(service, config, country, weightGrams, method, simTipo = 'M') {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
   const zone = zones[country] || zones.OTHER || {};
@@ -1148,7 +1166,9 @@ function mapExportServiceToOption(service, config, country, weightGrams, method,
   const price = parseBRPrice(service.precoFinal);
   if (price <= 0) return null;
   const isDocument = simTipo === 'D';
-  const serviceName = service.nome || method?.label || (isDocument ? 'Documento internacional' : 'Internacional');
+  const serviceName = prettifyCorreiosServiceName(
+    service.nome || method?.label || (isDocument ? 'Documento internacional' : 'Internacional')
+  );
   return {
     id: code,
     methodId: method?.id || `int-${code}`,
