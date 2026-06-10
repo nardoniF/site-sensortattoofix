@@ -74,9 +74,10 @@ const DEFAULT_CONFIG = {
     OTHER: { label: 'Outro país', price: 119.9, days: 25, currency: 'BRL' }
   },
   internationalProduct: {
-    title: 'Envio internacional — lente exclusiva',
-    notice: 'Em pedidos internacionais não enviamos o kit Prime completo. Enviamos a lente internacional, desenvolvida para manter o mesmo efeito e a mesma qualidade na leitura do sensor do smartwatch: à prova d\'água, com adesivo VHB de fixação reforçada. É uma lente específica para exportação, que não requer o Prime e oferece desempenho equivalente ao kit nacional.',
-    documentNotice: 'Em envios por carta registrada ou documento internacional, o pacote contém somente a lente (formato fino para envelope). Não inclui o kit Prime nem os acessórios do kit completo.'
+    title: 'Envio internacional',
+    hint: 'Escolha o frete internacional para ver o que será enviado no pacote.',
+    encomendaNotice: 'Nos envios por Exporta Fácil (encomenda internacional), enviamos o kit Prime completo — lente, solução, lenço, aplicador e manual — com o mesmo padrão do Brasil.',
+    documentNotice: 'Nos envios por carta registrada ou documento internacional, não enviamos o kit Prime. Enviamos somente a lente internacional: à prova d\'água, com adesivo VHB de fixação reforçada, com o mesmo efeito e qualidade na leitura do sensor. Lente específica para envelope fino, sem necessidade do Prime.'
   },
   smartwatchModels: [
     'Apple Watch SE (40mm)',
@@ -1888,7 +1889,9 @@ async function handlePaymentConfirmed(env, order, payment) {
     Valor: formatBRL(value),
     Mensagem: order.internationalLensOnly
       ? 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.'
-      : 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+      : (order.paisCode && order.paisCode !== 'BR'
+        ? 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.'
+        : 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.'),
     ...orderWatchEmailFields(order),
     ...orderIntlProductFields(order)
   });

@@ -413,7 +413,8 @@
     renderIntlShipping(config.internationalShipping || {});
     const intlProd = config.internationalProduct || {};
     if (f.intlProductTitle) f.intlProductTitle.value = intlProd.title || '';
-    if (f.intlProductNotice) f.intlProductNotice.value = intlProd.notice || '';
+    if (f.intlProductHint) f.intlProductHint.value = intlProd.hint || intlProd.notice || '';
+    if (f.intlProductEncomendaNotice) f.intlProductEncomendaNotice.value = intlProd.encomendaNotice || '';
     if (f.intlProductDocumentNotice) f.intlProductDocumentNotice.value = intlProd.documentNotice || '';
     if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams ?? 3;
     if (f.shippingServiceCode) f.shippingServiceCode.value = ship.serviceCode || '04227';
@@ -521,8 +522,9 @@
       smartwatchModels: currentConfig?.smartwatchModels || [],
       internationalShipping: collectIntlShipping(),
       internationalProduct: {
-        title: f.intlProductTitle?.value.trim() || 'Envio internacional — lente exclusiva',
-        notice: f.intlProductNotice?.value.trim() || '',
+        title: f.intlProductTitle?.value.trim() || 'Envio internacional',
+        hint: f.intlProductHint?.value.trim() || '',
+        encomendaNotice: f.intlProductEncomendaNotice?.value.trim() || '',
         documentNotice: f.intlProductDocumentNotice?.value.trim() || ''
       },
       shippingMethods: collectShippingMethods(),

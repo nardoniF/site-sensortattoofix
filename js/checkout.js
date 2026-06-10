@@ -342,9 +342,9 @@
 
   function buildIntlProductNote(shipmentType) {
     const ip = intlProductCopy();
-    const parts = [ip.notice].filter(Boolean);
-    if (shipmentType === 'documento' && ip.documentNotice) parts.push(ip.documentNotice);
-    return parts.join(' ');
+    if (shipmentType === 'documento') return ip.documentNotice || '';
+    if (shipmentType === 'encomenda') return ip.encomendaNotice || '';
+    return '';
   }
 
   function updateIntlProductNotice() {
@@ -355,19 +355,27 @@
       return;
     }
     const ip = intlProductCopy();
-    if (els.intlNoticeTitle) els.intlNoticeTitle.textContent = ip.title || 'Envio internacional — lente exclusiva';
-    if (els.intlNoticeBody) els.intlNoticeBody.textContent = ip.notice || '';
     const isDocument = shippingInfo?.shipmentType === 'documento';
-    if (els.intlNoticeDocument) {
-      if (isDocument && ip.documentNotice) {
-        els.intlNoticeDocument.textContent = ip.documentNotice;
-        els.intlNoticeDocument.hidden = false;
-      } else {
-        els.intlNoticeDocument.textContent = '';
-        els.intlNoticeDocument.hidden = true;
-      }
+    const isEncomenda = shippingInfo?.shipmentType === 'encomenda';
+
+    if (els.intlNoticeTitle) {
+      if (isDocument) els.intlNoticeTitle.textContent = 'Carta / documento — somente a lente';
+      else if (isEncomenda) els.intlNoticeTitle.textContent = 'Encomenda — kit Prime completo';
+      else els.intlNoticeTitle.textContent = ip.title || 'Envio internacional';
     }
-    box.hidden = !ip.notice;
+
+    if (els.intlNoticeBody) {
+      if (isDocument) els.intlNoticeBody.textContent = ip.documentNotice || '';
+      else if (isEncomenda) els.intlNoticeBody.textContent = ip.encomendaNotice || '';
+      else els.intlNoticeBody.textContent = ip.hint || 'Escolha o frete internacional para ver o que será enviado.';
+    }
+
+    if (els.intlNoticeDocument) {
+      els.intlNoticeDocument.hidden = true;
+      els.intlNoticeDocument.textContent = '';
+    }
+
+    box.hidden = false;
   }
 
   function toggleAddressForm() {
@@ -632,7 +640,7 @@
       shippingMethodId: shippingInfo?.methodId || shippingInfo?.id || null,
       shippingDays: shippingInfo?.days,
       shipmentType: shippingInfo?.shipmentType || null,
-      internationalLensOnly: isInternational,
+      internationalLensOnly: isInternational && shippingInfo?.shipmentType === 'documento',
       internationalProductNote: isInternational ? buildIntlProductNote(shippingInfo?.shipmentType) : '',
       pagamento: f.querySelector('[name=pagamento]:checked').value,
       items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
