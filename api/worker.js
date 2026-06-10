@@ -1017,6 +1017,22 @@ async function createAsaasPayment(env, order, config, billingType) {
   };
 }
 
+function mpErrorMessage(data, status) {
+  const parts = [];
+  if (Array.isArray(data.cause)) {
+    data.cause.forEach((c) => {
+      if (c.description) parts.push(c.description);
+      else if (c.code) parts.push(String(c.code));
+    });
+  }
+  if (data.message) parts.push(data.message);
+  if (data.error && data.error !== data.message) parts.push(data.error);
+  if (data.message === 'internal_error' || data.status === 'internal_error') {
+    parts.push('Confira no Mercado Pago se a conta está habilitada para PIX em produção.');
+  }
+  return parts.filter(Boolean).join(' — ') || `HTTP ${status}`;
+}
+
 async function createMercadoPagoPixPayment(env, order, config) {
   const token = mercadoPagoToken(env);
   if (!token) return null;
@@ -1047,13 +1063,12 @@ async function createMercadoPagoPixPayment(env, order, config) {
 
   const res = await fetch('https://api.mercadopago.com/v1/payments', {
     method: 'POST',
-    headers: mpHeaders(env),
+    headers: mpHeaders(env, order.orderId),
     body: JSON.stringify(body)
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = data.message || data.cause?.[0]?.description || data.error || `HTTP ${res.status}`;
-    throw new Error(`Mercado Pago PIX: ${msg}`);
+    throw new Error(`Mercado Pago PIX: ${mpErrorMessage(data, res.status)}`);
   }
 
   const tx = data.point_of_interaction?.transaction_data;
@@ -1354,7 +1369,16 @@ async function handleCreateOrder(request, env, origin, ctx) {
   try {
     if (billingType === 'PIX') {
       if (hasMp) {
-        payment = await createMercadoPagoPixPayment(env, order, config);
+        try {
+          payment = await createMercadoPagoPixPayment(env, order, config);
+        } catch (mpErr) {
+          console.error('MP PIX:', mpErr.message);
+          if (hasAsaas) {
+            payment = await createAsaasPayment(env, order, config, 'PIX');
+          } else {
+            throw mpErr;
+          }
+        }
       } else if (hasAsaas) {
         payment = await createAsaasPayment(env, order, config, 'PIX');
       }

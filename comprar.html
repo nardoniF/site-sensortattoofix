@@ -90,15 +90,31 @@
                                     <p class="checkout-hint">Seus pedidos ficam em <a href="minha-conta.html">Minha Conta</a>.</p>
                                 </div>
                                 <div id="account-guest-wrap">
-                                    <label class="account-check">
-                                        <input type="checkbox" name="criarConta" id="criar-conta" checked>
-                                        <span>Criar conta para acompanhar pedidos (recomendado)</span>
-                                    </label>
-                                    <label id="senha-wrap" class="full">
-                                        Senha da conta (mín. 6 caracteres)
-                                        <input type="password" name="senha" id="checkout-senha" minlength="6" autocomplete="new-password">
-                                    </label>
-                                    <p class="checkout-hint">Já tem conta? <a href="minha-conta.html">Entrar</a></p>
+                                    <div class="conta-tabs checkout-account-tabs">
+                                        <button type="button" class="conta-tab active" data-checkout-account-tab="register">Criar conta</button>
+                                        <button type="button" class="conta-tab" data-checkout-account-tab="login">Já tenho conta</button>
+                                    </div>
+                                    <div id="checkout-account-register">
+                                        <label class="account-check">
+                                            <input type="checkbox" name="criarConta" id="criar-conta" checked>
+                                            <span>Criar conta para acompanhar pedidos (recomendado)</span>
+                                        </label>
+                                        <label id="senha-wrap" class="full">
+                                            Senha da conta (mín. 6 caracteres)
+                                            <input type="password" name="senha" id="checkout-senha" minlength="6" autocomplete="new-password">
+                                        </label>
+                                    </div>
+                                    <div id="checkout-account-login" hidden>
+                                        <p class="checkout-hint">Entre com sua conta para preencher os dados automaticamente.</p>
+                                        <label class="full">E-mail da conta
+                                            <input type="email" id="checkout-login-email" autocomplete="username">
+                                        </label>
+                                        <label class="full">Senha
+                                            <input type="password" id="checkout-login-senha" autocomplete="current-password">
+                                        </label>
+                                        <button type="button" id="btn-checkout-login" class="btn-secondary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
+                                        <p id="checkout-login-status" class="admin-status" hidden></p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -199,6 +215,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="js/order-watch.js"></script>
     <script src="js/analytics.js?v=2"></script>
-    <script src="js/checkout.js?v=13"></script>
+    <script src="js/checkout.js?v=14"></script>
 </body>
 </html>

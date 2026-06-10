@@ -1416,6 +1416,8 @@ line-height:1.8;
 }
 .product-pick-btn.active { border-color: var(--primary); color: var(--primary); }
 .account-create-wrap { margin-top: 8px; padding-top: 12px; border-top: 1px solid #333; }
+.checkout-account-tabs { margin-top: 0; margin-bottom: 12px; }
+#btn-checkout-login { margin-top: 8px; }
 .account-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 0.95rem; }
 .account-check input { margin-top: 4px; }
 .account-logged-banner {

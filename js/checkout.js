@@ -44,7 +44,13 @@
     accountCreateWrap: document.getElementById('account-create-wrap'),
     accountGuestWrap: document.getElementById('account-guest-wrap'),
     accountLoggedWrap: document.getElementById('account-logged-wrap'),
-    accountLoggedName: document.getElementById('account-logged-name')
+    accountLoggedName: document.getElementById('account-logged-name'),
+    checkoutAccountRegister: document.getElementById('checkout-account-register'),
+    checkoutAccountLogin: document.getElementById('checkout-account-login'),
+    checkoutLoginEmail: document.getElementById('checkout-login-email'),
+    checkoutLoginSenha: document.getElementById('checkout-login-senha'),
+    checkoutLoginStatus: document.getElementById('checkout-login-status'),
+    btnCheckoutLogin: document.getElementById('btn-checkout-login')
   };
 
   let currentStep = 1;
@@ -86,6 +92,52 @@
 
   function getCustomerUser() {
     return window.STF_ACCOUNT?.getUser() || null;
+  }
+
+  function isRegisterAccountMode() {
+    return els.checkoutAccountRegister && !els.checkoutAccountRegister.hidden;
+  }
+
+  function showCheckoutLoginStatus(msg, type) {
+    if (!els.checkoutLoginStatus) return;
+    els.checkoutLoginStatus.textContent = msg;
+    els.checkoutLoginStatus.className = 'admin-status ' + (type || '');
+    els.checkoutLoginStatus.hidden = !msg;
+  }
+
+  function setCheckoutAccountTab(mode) {
+    const isLogin = mode === 'login';
+    if (els.checkoutAccountRegister) els.checkoutAccountRegister.hidden = isLogin;
+    if (els.checkoutAccountLogin) els.checkoutAccountLogin.hidden = !isLogin;
+    document.querySelectorAll('[data-checkout-account-tab]').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-checkout-account-tab') === mode);
+    });
+    showCheckoutLoginStatus('', '');
+  }
+
+  async function checkoutLogin() {
+    const email = els.checkoutLoginEmail?.value.trim();
+    const senha = els.checkoutLoginSenha?.value || '';
+    if (!email || !senha) {
+      showCheckoutLoginStatus('Informe e-mail e senha.', 'error');
+      return;
+    }
+    if (!window.STF_ACCOUNT) {
+      showCheckoutLoginStatus('Login indisponível. Tente em Minha Conta.', 'error');
+      return;
+    }
+    els.btnCheckoutLogin.disabled = true;
+    showCheckoutLoginStatus('Entrando...', '');
+    try {
+      const data = await window.STF_ACCOUNT.login(email, senha);
+      prefillCustomer(data.user);
+      renderCheckoutAccountUI();
+      showCheckoutLoginStatus('Login realizado!', 'success');
+    } catch (err) {
+      showCheckoutLoginStatus(err.message || 'Não foi possível entrar.', 'error');
+    } finally {
+      els.btnCheckoutLogin.disabled = false;
+    }
   }
 
   function renderCheckoutAccountUI() {
@@ -424,7 +476,7 @@
       pagamento: f.querySelector('[name=pagamento]:checked').value,
       items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
     };
-    if (els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
+    if (isRegisterAccountMode() && els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       payload.criarConta = true;
       payload.senha = els.checkoutSenha?.value || '';
     }
@@ -446,7 +498,7 @@
     if (needsWatch && isOutroModelo(f.smartwatch.value) && !(f.observacoes?.value || '').trim()) {
       alert('Informe o modelo do smartwatch nas observações.'); return false;
     }
-    if (els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
+    if (isRegisterAccountMode() && els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       const senha = els.checkoutSenha?.value || '';
       if (senha.length < 6) {
         alert('Crie uma senha com pelo menos 6 caracteres ou desmarque "Criar conta".');
@@ -680,6 +732,14 @@
         els.senhaWrap.hidden = !els.criarConta.checked;
       });
     }
+
+    document.querySelectorAll('[data-checkout-account-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setCheckoutAccountTab(btn.getAttribute('data-checkout-account-tab'));
+      });
+    });
+    els.btnCheckoutLogin?.addEventListener('click', checkoutLogin);
+    window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
 
     document.getElementById('btn-copy-pix')?.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(els.pixCopy.value); }
