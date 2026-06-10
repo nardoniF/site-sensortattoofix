@@ -890,6 +890,56 @@ function estimateBR(originCep, destCep) {
   return { price: 24.9, days: 14 };
 }
 
+const SELF_TEST_PIX_AMOUNT = 0.01;
+
+function normalizeAddrPart(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeStreetNumber(value) {
+  return normalizeAddrPart(value).replace(/^(s\/n|sn)$/, '0');
+}
+
+/** PIX em produção: R$ 0,01 quando entrega = endereço do remetente (admin). Só com token APP_USR-. */
+function isSelfTestPixEligible(order, config, env, billingType) {
+  if (billingType !== 'PIX') return false;
+  if (isMpSandbox(env)) return false;
+  if (!mercadoPagoToken(env)) return false;
+  if ((order.paisCode || 'BR') !== 'BR') return false;
+
+  const ship = config.shipping || DEFAULT_CONFIG.shipping || {};
+  const sender = ship.sender || {};
+  if (!sender.rua || !ship.originCep) return false;
+
+  const orderCep = onlyDigits(order.cep);
+  const originCep = onlyDigits(ship.originCep);
+  if (orderCep.length !== 8 || orderCep !== originCep) return false;
+  if (normalizeAddrPart(order.rua) !== normalizeAddrPart(sender.rua)) return false;
+  if (normalizeStreetNumber(order.numero) !== normalizeStreetNumber(sender.numero)) return false;
+  if (sender.bairro && normalizeAddrPart(order.bairro) !== normalizeAddrPart(sender.bairro)) return false;
+  if (sender.cidade && normalizeAddrPart(order.cidade) !== normalizeAddrPart(sender.cidade)) return false;
+  if (sender.uf && normalizeAddrPart(order.uf) !== normalizeAddrPart(sender.uf)) return false;
+
+  return true;
+}
+
+function applySelfTestPixPricing(order, config, env, billingType) {
+  if (!isSelfTestPixEligible(order, config, env, billingType)) return false;
+  order.valorProdutoOriginal = order.valorProduto;
+  order.freteOriginal = order.frete;
+  order.totalOriginal = order.total;
+  order.selfTestPix = true;
+  order.frete = 0;
+  order.valorProduto = SELF_TEST_PIX_AMOUNT;
+  order.total = SELF_TEST_PIX_AMOUNT;
+  return true;
+}
+
 async function quoteCorreios(env, config, destCep, opts = {}) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const origin = onlyDigits(ship.originCep);
@@ -1393,6 +1443,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
     pagamento: pagamentoLabel
   };
 
+  if (applySelfTestPixPricing(order, config, env, billingType)) {
+    console.log('PIX self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
+  }
+
   let payment = null;
   const hasAsaas = !!asaasApiKey(env);
   const hasMp = !!mercadoPagoToken(env);
@@ -1465,6 +1519,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
       'E-mail': order.email, Telefone: order.telefone,
       País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
       Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total),
+      ...(order.selfTestPix ? {
+        'Teste PIX produção': `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — endereço igual ao remetente`,
+        'Total original': formatBRL(order.totalOriginal || 0)
+      } : {}),
       ...orderWatchEmailFields(order)
     }),
     customerEmail,
