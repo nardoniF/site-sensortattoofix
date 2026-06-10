@@ -41,6 +41,7 @@ const DEFAULT_CONFIG = {
     widthCm: 12,
     heightCm: 0.5,
     serviceCode: '04227',
+    intlServiceCode: '45128',
     serviceName: 'Mini Envios',
     sender: {
       brand: 'Sensor Tattoo Fix',
@@ -57,7 +58,7 @@ const DEFAULT_CONFIG = {
   },
   internationalShipping: {
     US: { label: 'Estados Unidos', price: 89.9, days: 15, currency: 'BRL' },
-    PT: { label: 'Portugal', price: 79.9, days: 12, currency: 'BRL' },
+    PT: { label: 'Portugal', price: 262.5, days: 12, currency: 'BRL' },
     AR: { label: 'Argentina', price: 69.9, days: 10, currency: 'BRL' },
     MX: { label: 'México', price: 74.9, days: 12, currency: 'BRL' },
     GB: { label: 'Reino Unido', price: 94.9, days: 18, currency: 'BRL' },
@@ -125,6 +126,29 @@ const DEFAULT_CONFIG = {
   api: { baseUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev' }
 };
 
+const DEFAULT_SHIPPING_METHODS = [
+  { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227' },
+  { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010' },
+  { id: 'int-todos', enabled: true, scope: 'INT', label: 'Todos do simulador Correios', correiosCode: '*' }
+];
+
+function mergeShippingMethods(stored) {
+  const defaults = structuredClone(DEFAULT_SHIPPING_METHODS);
+  if (!Array.isArray(stored) || !stored.length) return defaults;
+  const byId = new Map(defaults.map((m) => [m.id, m]));
+  stored.forEach((m) => {
+    if (!m?.id) return;
+    const base = byId.get(m.id) || {};
+    byId.set(m.id, { ...base, ...m });
+  });
+  return [...byId.values()];
+}
+
+function getEnabledShippingMethods(config, scope) {
+  const list = config.shippingMethods?.length ? config.shippingMethods : DEFAULT_SHIPPING_METHODS;
+  return list.filter((m) => m.enabled !== false && m.scope === scope);
+}
+
 function withConfigDefaults(stored) {
   const base = structuredClone(DEFAULT_CONFIG);
   if (!stored || typeof stored !== 'object') return base;
@@ -145,7 +169,8 @@ function withConfigDefaults(stored) {
     smartwatchModels: (stored.smartwatchModels && stored.smartwatchModels.length)
       ? stored.smartwatchModels
       : base.smartwatchModels,
-    products: normalizeProducts(stored, base)
+    products: normalizeProducts(stored, base),
+    shippingMethods: mergeShippingMethods(stored.shippingMethods)
   };
 }
 
@@ -951,35 +976,97 @@ function applySelfTestPixPricing(order, config, env, billingType) {
   return true;
 }
 
-async function quoteCorreios(env, config, destCep, opts = {}) {
+async function quoteCorreiosService(env, config, destCep, method, opts = {}) {
+  const ship = config.shipping || DEFAULT_CONFIG.shipping;
+  const origin = onlyDigits(ship.originCep);
+  const dest = onlyDigits(destCep);
+  if (dest.length !== 8) return null;
+  const weightGrams = shippingWeightGrams(config, opts.weightGrams);
+  const declaredValue = Number(opts.declaredValue) || config.product?.price || 59.9;
+  const serviceCode = String(method.correiosCode || ship.serviceCode || '').trim();
+  if (!serviceCode) return null;
+
+  const token = await getCorreiosToken(env);
+  if (!token) return null;
+
+  const params = new URLSearchParams({
+    cepDestino: dest,
+    cepOrigem: origin,
+    psObjeto: String(weightGrams),
+    tpObjeto: '2',
+    comprimento: String(ship.lengthCm || 16),
+    largura: String(ship.widthCm || 12),
+    altura: String(ship.heightCm || 0.5),
+    vlDeclarado: String(declaredValue.toFixed(2))
+  });
+  const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${serviceCode}?${params}`, {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  if (!res.ok) {
+    console.warn('Correios preço nacional:', serviceCode, res.status, await res.text().catch(() => ''));
+    return null;
+  }
+  const data = await res.json();
+  const price = parseFloat(String(data.pcFinal || data.vlTotal || '0').replace(',', '.'));
+  if (price <= 0) return null;
+
+  return {
+    id: method.id || serviceCode,
+    methodId: method.id || serviceCode,
+    serviceCode,
+    service: method.label || data.nmServico || ship.serviceName || 'Correios',
+    price,
+    days: Number(data.prazoEntrega || data.prazo || 12),
+    source: 'correios',
+    weightGrams
+  };
+}
+
+async function quoteCorreiosOptions(env, config, destCep, opts = {}) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const origin = onlyDigits(ship.originCep);
   const dest = onlyDigits(destCep);
   if (dest.length !== 8) throw new Error('CEP inválido');
-  const weightGrams = shippingWeightGrams(config, opts.weightGrams);
-  const declaredValue = Number(opts.declaredValue) || config.product?.price || 59.9;
 
+  const methods = getEnabledShippingMethods(config, 'BR');
+  const weightGrams = shippingWeightGrams(config, opts.weightGrams);
   const token = await getCorreiosToken(env);
-  if (token && ship.serviceCode) {
-    const params = new URLSearchParams({
-      cepDestino: dest, cepOrigem: origin,
-      psObjeto: String(weightGrams), tpObjeto: '2',
-      comprimento: String(ship.lengthCm || 16), largura: String(ship.widthCm || 12),
-      altura: String(ship.heightCm || 0.5), vlDeclarado: String(declaredValue.toFixed(2))
-    });
-    const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${ship.serviceCode}?${params}`, {
-      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const price = parseFloat(String(data.pcFinal || data.vlTotal || '0').replace(',', '.'));
-      if (price > 0) {
-        return { price, days: Number(data.prazoEntrega || data.prazo || 12), service: ship.serviceName || 'Mini Envios', source: 'correios' };
-      }
-    }
+  const options = [];
+
+  if (token && methods.length) {
+    const quotes = await Promise.all(
+      methods.map((method) => quoteCorreiosService(env, config, dest, method, opts))
+    );
+    quotes.filter(Boolean).forEach((q) => options.push(q));
   }
-  const est = estimateBR(origin, dest);
-  return { price: est.price, days: est.days, service: ship.serviceName || 'Mini Envios', source: 'estimate' };
+
+  if (!options.length) {
+    const est = estimateBR(origin, dest);
+    const baseWeight = shippingWeightGrams(config);
+    const weightFactor = Math.min(2.5, Math.max(1, weightGrams / baseWeight));
+    const price = Math.round(est.price * weightFactor * 100) / 100;
+    const fallbackMethod = methods[0] || { id: 'estimate', label: ship.serviceName || 'Mini Envios' };
+    options.push({
+      id: fallbackMethod.id || 'estimate',
+      methodId: fallbackMethod.id || 'estimate',
+      serviceCode: fallbackMethod.correiosCode || ship.serviceCode || null,
+      service: fallbackMethod.label || ship.serviceName || 'Mini Envios',
+      price,
+      days: est.days,
+      source: 'estimate',
+      weightGrams,
+      note: token
+        ? 'API Correios sem preço válido para estes serviços.'
+        : 'Configure CORREIOS_USER e CORREIOS_PASSWORD no Worker para cotações reais.'
+    });
+  }
+
+  return options.sort((a, b) => a.price - b.price);
+}
+
+async function quoteCorreios(env, config, destCep, opts = {}) {
+  const options = await quoteCorreiosOptions(env, config, destCep, opts);
+  return options[0] || null;
 }
 
 function parseBRPrice(value) {
@@ -995,8 +1082,7 @@ function cookieHeaderFrom(response) {
   return list.map((c) => c.split(';')[0]).filter(Boolean).join('; ');
 }
 
-/** Cotação real via simulador oficial Exporta Fácil (Minhas Exportações). */
-async function quoteCorreiosExport(config, countryCode, opts = {}) {
+async function fetchExportSimulation(config, countryCode, opts = {}) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const originCep = onlyDigits(ship.originCep);
   const country = String(countryCode || '').toUpperCase();
@@ -1038,30 +1124,60 @@ async function quoteCorreiosExport(config, countryCode, opts = {}) {
     if (!simRes.ok || !payload?.success || !Array.isArray(payload.data)) return null;
 
     const services = payload.data.filter((s) => s.precoFinal && !s.txErro);
-    if (!services.length) return null;
-
-    const preferred = services.find((s) => s.codigo === '45128')
-      || services.sort((a, b) => parseBRPrice(a.precoFinal) - parseBRPrice(b.precoFinal))[0];
-
-    const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
-    const zone = zones[country] || zones.OTHER || {};
-    const price = parseBRPrice(preferred.precoFinal);
-    if (price <= 0) return null;
-
-    return {
-      price,
-      days: Number(preferred.prazoMedio || preferred.prazoMaximo || zone.days || 15),
-      service: `Exporta Fácil — ${preferred.nome || 'Internacional'}`,
-      source: 'correios-export',
-      country,
-      countryLabel: zone.label || country,
-      weightGrams,
-      serviceCode: preferred.codigo || null
-    };
+    return services.length ? { services, country, weightGrams } : null;
   } catch (err) {
     console.error('Exporta Fácil:', err.message);
     return null;
   }
+}
+
+function mapExportServiceToOption(service, config, country, weightGrams, method) {
+  const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
+  const zone = zones[country] || zones.OTHER || {};
+  const code = String(service.codigo);
+  const price = parseBRPrice(service.precoFinal);
+  if (price <= 0) return null;
+  return {
+    id: code,
+    methodId: method?.id || `int-${code}`,
+    serviceCode: code,
+    service: service.nome || method?.label || 'Internacional',
+    price,
+    days: Number(service.prazoMedio || service.prazoMaximo || zone.days || 15),
+    source: 'correios-export',
+    country,
+    countryLabel: zone.label || country,
+    weightGrams
+  };
+}
+
+async function quoteCorreiosExportOptions(config, countryCode, opts = {}) {
+  const sim = await fetchExportSimulation(config, countryCode, opts);
+  if (!sim) return [];
+
+  const methods = getEnabledShippingMethods(config, 'INT');
+  const allowedCodes = methods
+    .map((m) => String(m.correiosCode || '').trim())
+    .filter((c) => c && c !== '*');
+  const includeAll = !methods.length || methods.some((m) => String(m.correiosCode || '').trim() === '*');
+
+  const options = sim.services
+    .filter((s) => includeAll || allowedCodes.includes(String(s.codigo)))
+    .map((s) => {
+      const method = methods.find((m) => String(m.correiosCode) === String(s.codigo));
+      return mapExportServiceToOption(s, config, sim.country, sim.weightGrams, method);
+    })
+    .filter(Boolean);
+
+  return options.sort((a, b) => a.price - b.price);
+}
+
+/** Cotação mais barata via simulador Exporta Fácil (compat. admin). */
+async function quoteCorreiosExport(config, countryCode, opts = {}) {
+  const options = await quoteCorreiosExportOptions(config, countryCode, opts);
+  if (!options.length) return null;
+  const preferredCode = String((config.shipping || {}).intlServiceCode || '45128');
+  return options.find((o) => o.serviceCode === preferredCode) || options[0];
 }
 
 function quoteInternational(config, countryCode) {
@@ -1375,17 +1491,37 @@ async function handleShippingQuote(request, env, origin) {
   const url = new URL(request.url);
   const country = (url.searchParams.get('country') || 'BR').toUpperCase();
   const config = await getConfig(env);
+  const weightGrams = shippingWeightGrams(config, Number(url.searchParams.get('weightGrams')) || undefined);
+  let options = [];
 
   if (country !== 'BR') {
-    const weightGrams = Number(url.searchParams.get('weightGrams')) || undefined;
-    const live = await quoteCorreiosExport(config, country, { weightGrams });
-    if (live) return json(live, 200, origin);
-    return json(quoteInternational(config, country), 200, origin);
+    options = await quoteCorreiosExportOptions(config, country, { weightGrams });
+    if (!options.length) {
+      const fallback = quoteInternational(config, country);
+      options = [{
+        id: 'config-fallback',
+        methodId: 'config-fallback',
+        serviceCode: null,
+        service: fallback.service,
+        price: fallback.price,
+        days: fallback.days,
+        source: 'config',
+        country,
+        countryLabel: fallback.countryLabel,
+        weightGrams
+      }];
+    }
+  } else {
+    const cep = url.searchParams.get('cep');
+    const declaredValue = Number(url.searchParams.get('valor')) || undefined;
+    try {
+      options = await quoteCorreiosOptions(env, config, cep, { weightGrams, declaredValue });
+    } catch (err) {
+      return json({ error: err.message }, 400, origin);
+    }
   }
-  const cep = url.searchParams.get('cep');
-  const weightGrams = Number(url.searchParams.get('weightGrams')) || undefined;
-  const declaredValue = Number(url.searchParams.get('valor')) || undefined;
-  return json(await quoteCorreios(env, config, cep, { weightGrams, declaredValue }), 200, origin);
+
+  return json({ options, country, weightGrams }, 200, origin);
 }
 
 async function registerCustomerUser(env, { nome, email, telefone, cpf, senha }) {
@@ -1535,6 +1671,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
     frete,
     total: valorProduto + frete,
     shippingService: body.shippingService || 'Mini Envios',
+    shippingServiceCode: body.shippingServiceCode || null,
+    shippingMethodId: body.shippingMethodId || null,
     shippingDays: body.shippingDays || null,
     pagamento: pagamentoLabel
   };
@@ -1828,6 +1966,62 @@ async function handleSession(request, env, origin) {
   return json({ ok: true, username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
 }
 
+async function handleAdminShippingStatus(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const config = await getConfig(env);
+  const ship = config.shipping || DEFAULT_CONFIG.shipping;
+  const hasCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
+  const correiosToken = hasCreds ? await getCorreiosToken(env) : null;
+  const weightGrams = shippingWeightGrams(config);
+  const exportOptions = await quoteCorreiosExportOptions(config, 'PT', { weightGrams });
+  const exportQuote = exportOptions[0] || null;
+  const products = (config.products || []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    weightGrams: p.weightGrams
+  }));
+  const shipWeight = Number(ship.weightGrams) || weightGrams;
+  const weightMismatch = products.some((p) => Math.abs(Number(p.weightGrams || 0) - shipWeight) > 0.01);
+
+  return json({
+    correiosBr: {
+      credentialsConfigured: hasCreds,
+      apiConnected: !!correiosToken,
+      contractConfigured: !!env.CORREIOS_CONTRACT,
+      serviceCode: ship.serviceCode || '04227',
+      originCep: ship.originCep || ''
+    },
+    correiosExport: {
+      simulatorReachable: exportOptions.length > 0,
+      preferredServiceCode: ship.intlServiceCode || '45128',
+      sampleQuotesPT: exportOptions.slice(0, 6),
+      sampleQuotePT: exportQuote
+        ? {
+          price: exportQuote.price,
+          days: exportQuote.days,
+          service: exportQuote.service,
+          source: exportQuote.source,
+          weightGrams: exportQuote.weightGrams
+        }
+        : null
+    },
+    package: {
+      weightGrams: shipWeight,
+      lengthCm: ship.lengthCm,
+      widthCm: ship.widthCm,
+      heightCm: ship.heightCm,
+      originCep: ship.originCep
+    },
+    products,
+    weightMismatch,
+    weightMismatchHint: weightMismatch
+      ? 'O peso do produto no catálogo difere do peso do pacote (Frete Mini Envios). O checkout usa o peso do pacote.'
+      : null
+  }, 200, origin);
+}
+
 async function handleTestEmail(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -1908,6 +2102,7 @@ async function handlePutConfig(request, env, origin) {
     pix: { ...current.pix, ...body.pix },
     shipping: { ...current.shipping, ...body.shipping },
     internationalShipping: { ...current.internationalShipping, ...body.internationalShipping },
+    shippingMethods: body.shippingMethods?.length ? body.shippingMethods : current.shippingMethods,
     smartwatchModels: body.smartwatchModels || current.smartwatchModels,
     products: body.products?.length ? body.products : current.products,
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
@@ -1991,6 +2186,7 @@ export default {
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
+      if (path === '/admin/shipping-status' && request.method === 'GET') return handleAdminShippingStatus(request, env, origin);
       if (path === '/shipping/quote' && request.method === 'GET') return handleShippingQuote(request, env, origin);
       if (path === '/orders' && request.method === 'POST') return handleCreateOrder(request, env, origin, ctx);
       if (path === '/orders' && request.method === 'GET') return handleListOrders(request, env, origin);

@@ -2,7 +2,7 @@
   const OUTRO_MODELO = 'Outro modelo (informar nas observações)';
 
   let cfg, products = [];
-  let shippingCost = null, shippingInfo = null, pollTimer = null, isInternational = false;
+  let shippingCost = null, shippingInfo = null, shippingOptions = [], pollTimer = null, isInternational = false;
 
   const els = {
     form: document.getElementById('checkout-form'),
@@ -21,6 +21,8 @@
     summaryShippingLabel: document.getElementById('summary-shipping-label'),
     summaryTotal: document.getElementById('summary-total'),
     shippingHint: document.getElementById('shipping-hint'),
+    shippingOptionsWrap: document.getElementById('shipping-options-wrap'),
+    shippingOptionsEl: document.getElementById('shipping-options'),
     pixQr: document.getElementById('pix-qr'),
     pixCopy: document.getElementById('pix-copy'),
     pixCopyArea: document.getElementById('pix-copy-area'),
@@ -243,6 +245,7 @@
         }
         shippingCost = null;
         shippingInfo = null;
+        shippingOptions = [];
         renderCartSidebar();
         updateSmartwatchVisibility();
         updateSummary();
@@ -259,6 +262,7 @@
           }
           shippingCost = null;
           shippingInfo = null;
+          shippingOptions = [];
           renderCartSidebar();
           updateSmartwatchVisibility();
           updateSummary();
@@ -332,17 +336,89 @@
     isInternational = els.paisCode.value !== 'BR';
     els.addressBr.hidden = isInternational;
     els.addressIntl.hidden = !isInternational;
-    els.summaryShippingLabel.textContent = isInternational ? 'Frete internacional' : 'Frete Mini Envios';
+    els.summaryShippingLabel.textContent = isInternational ? 'Frete internacional' : 'Frete';
     shippingCost = null;
     shippingInfo = null;
+    shippingOptions = [];
+    clearShippingOptions();
     updateSummary();
     if (isInternational) quoteShipping();
   }
 
+  function clearShippingOptions() {
+    if (els.shippingOptionsEl) els.shippingOptionsEl.innerHTML = '';
+    if (els.shippingOptionsWrap) els.shippingOptionsWrap.hidden = true;
+    if (els.shippingHint) {
+      els.shippingHint.hidden = false;
+      els.shippingHint.textContent = 'Informe o destino para calcular o frete.';
+    }
+  }
+
+  function shippingSourceLabel(source) {
+    if (source === 'correios') return 'Correios';
+    if (source === 'correios-export') return 'Correios Exporta Fácil';
+    if (source === 'config') return 'tabela admin (fallback)';
+    return 'estimativa';
+  }
+
+  function selectShippingOption(option) {
+    if (!option) return;
+    shippingInfo = option;
+    shippingCost = option.price;
+    updateSummary();
+    if (els.summaryShippingLabel) {
+      els.summaryShippingLabel.textContent = isInternational ? 'Frete internacional' : 'Frete';
+    }
+  }
+
+  function renderShippingOptions(options) {
+    if (!els.shippingOptionsEl || !els.shippingOptionsWrap) return;
+    shippingOptions = options || [];
+    if (!shippingOptions.length) {
+      clearShippingOptions();
+      els.shippingHint.textContent = 'Nenhuma opção de frete disponível para este destino.';
+      return;
+    }
+
+    els.shippingHint.hidden = true;
+    els.shippingOptionsWrap.hidden = false;
+    const defaultId = shippingOptions[0].id;
+    els.shippingOptionsEl.innerHTML = shippingOptions.map((opt, i) => {
+      const inputId = `ship-opt-${opt.id}`;
+      const checked = i === 0 ? 'checked' : '';
+      const src = shippingSourceLabel(opt.source);
+      return `
+        <label class="shipping-option" for="${inputId}">
+          <input type="radio" name="shippingOption" id="${inputId}" value="${opt.id}" ${checked}
+            data-index="${i}">
+          <div class="shipping-card">
+            <div class="shipping-card-main">
+              <strong>${escapeHtml(opt.service)}</strong>
+              <small>${opt.days} dias · ${src}</small>
+            </div>
+            <span class="shipping-card-price">${formatBRL(opt.price)}</span>
+          </div>
+        </label>
+      `;
+    }).join('');
+
+    els.shippingOptionsEl.querySelectorAll('input[name="shippingOption"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const idx = Number(input.getAttribute('data-index'));
+        selectShippingOption(shippingOptions[idx]);
+      });
+    });
+
+    selectShippingOption(shippingOptions[0]);
+  }
+
+  /** Peso do pacote para frete: prioriza admin (Frete Mini Envios), não o catálogo antigo. */
   function shippingWeightGrams() {
+    const shipW = Number(cfg.shipping?.weightGrams);
+    if (shipW > 0) return shipW;
     const cartW = window.STF_CART?.totalWeight();
     if (cartW > 0) return cartW;
-    return Number(cfg.shipping?.weightGrams) || 3;
+    return 3;
   }
 
   function estimateBR(destCep) {
@@ -377,46 +453,65 @@
 
   async function quoteShipping() {
     const base = apiBase();
+    els.shippingHint.hidden = false;
+    els.shippingHint.textContent = 'Calculando frete...';
+    if (els.shippingOptionsWrap) els.shippingOptionsWrap.hidden = true;
+
     try {
+      const weight = shippingWeightGrams();
+      let options = [];
+
       if (isInternational) {
         const code = els.paisCode.value;
         if (base) {
-          const weight = shippingWeightGrams();
           const data = await fetchShippingQuote(
             `${base}/shipping/quote?country=${code}&weightGrams=${encodeURIComponent(weight)}`
           );
-          if (data?.price) { shippingInfo = data; shippingCost = data.price; }
+          options = data?.options || [];
         }
-        if (!shippingCost) {
+        if (!options.length) {
           const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
           if (!z) throw new Error('País não atendido');
-          shippingInfo = { price: z.price, days: z.days, service: 'Internacional — ' + z.label, source: 'config' };
-          shippingCost = z.price;
+          options = [{
+            id: 'config-fallback',
+            methodId: 'config-fallback',
+            service: 'Internacional — ' + z.label,
+            price: z.price,
+            days: z.days,
+            source: 'config'
+          }];
         }
       } else {
         const cep = onlyDigits(els.cep.value);
         if (cep.length !== 8) return;
         if (base) {
-          const weight = shippingWeightGrams();
           const valor = cartSubtotal();
           const data = await fetchShippingQuote(
             `${base}/shipping/quote?country=BR&cep=${cep}&weightGrams=${weight}&valor=${valor}`
           );
-          if (data?.price) { shippingInfo = data; shippingCost = data.price; }
+          options = data?.options || [];
         }
-        if (!shippingCost) {
-          shippingInfo = estimateBR(cep);
-          shippingCost = shippingInfo.price;
+        if (!options.length) {
+          const est = estimateBR(cep);
+          options = [{
+            id: 'estimate',
+            methodId: 'estimate',
+            service: est.service,
+            price: est.price,
+            days: est.days,
+            source: 'estimate'
+          }];
         }
       }
-      updateSummary();
-      const src = shippingInfo.source === 'correios' ? 'Correios'
-        : (shippingInfo.source === 'correios-export' ? 'Correios Exporta Fácil'
-          : (shippingInfo.source === 'config' ? 'tabela admin (fallback)' : 'estimativa'));
-      els.shippingHint.textContent = `${shippingInfo.service}: ${formatBRL(shippingCost)} (${shippingInfo.days} dias · ${src})`;
+
+      renderShippingOptions(options);
     } catch {
-      els.shippingHint.textContent = 'Erro ao calcular frete.';
+      clearShippingOptions();
       shippingCost = null;
+      shippingInfo = null;
+      shippingOptions = [];
+      els.shippingHint.textContent = 'Erro ao calcular frete.';
+      updateSummary();
     }
   }
 
@@ -484,6 +579,8 @@
       ...data, endereco,
       frete: shippingCost,
       shippingService: shippingInfo?.service,
+      shippingServiceCode: shippingInfo?.serviceCode || null,
+      shippingMethodId: shippingInfo?.methodId || shippingInfo?.id || null,
       shippingDays: shippingInfo?.days,
       pagamento: f.querySelector('[name=pagamento]:checked').value,
       items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
@@ -517,7 +614,15 @@
         return false;
       }
     }
-    if (shippingCost === null) { alert('Aguarde o cálculo do frete.'); return false; }
+    if (shippingCost === null || !shippingInfo) {
+      alert('Aguarde o cálculo do frete e escolha uma opção de envio.');
+      return false;
+    }
+    const selectedRadio = els.shippingOptionsEl?.querySelector('input[name="shippingOption"]:checked');
+    if (els.shippingOptionsWrap && !els.shippingOptionsWrap.hidden && !selectedRadio) {
+      alert('Selecione uma opção de frete.');
+      return false;
+    }
     if (!isInternational) {
       if (onlyDigits(f.cep.value).length !== 8 || !f.rua.value || !f.numero.value || !f.bairro.value || !f.cidade.value || !f.uf.value) {
         alert('Preencha o endereço brasileiro completo.'); return false;

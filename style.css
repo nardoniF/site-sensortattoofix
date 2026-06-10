@@ -460,10 +460,40 @@ nav,
     border: 1px solid #333;
 }
 .shipping-hint {
-    color: var(--primary);
+    color: var(--gray);
     font-size: 0.88rem;
     margin-top: 12px;
-    font-weight: 600;
+}
+.shipping-options-wrap { margin-top: 16px; }
+.shipping-options-title {
+    margin: 0 0 10px;
+    font-size: 0.95rem;
+    color: #ddd;
+}
+.shipping-options { display: flex; flex-direction: column; gap: 10px; }
+.shipping-option { cursor: pointer; }
+.shipping-option input { position: absolute; opacity: 0; }
+.shipping-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 2px solid #333;
+    border-radius: 12px;
+    transition: 0.2s;
+}
+.shipping-option input:checked + .shipping-card {
+    border-color: var(--primary);
+    background: rgba(255, 193, 7, 0.08);
+}
+.shipping-card-main strong { display: block; margin-bottom: 2px; font-size: 0.92rem; }
+.shipping-card-main small { color: var(--gray); font-size: 0.78rem; }
+.shipping-card-price {
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+    font-size: 0.95rem;
 }
 .payment-status {
     padding: 12px 16px;
@@ -1521,6 +1551,43 @@ line-height:1.8;
 }
 .admin-product-row h4 { margin: 0 0 10px; color: var(--primary); }
 .admin-product-row .form-grid { grid-template-columns: 1fr 1fr; }
+.admin-ship-method-row {
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #121212;
+}
+.admin-ship-method-row .form-grid { grid-template-columns: 90px 110px 1fr 140px; gap: 10px; align-items: end; }
+.admin-ship-enabled { padding-top: 22px; }
+.admin-intl-row {
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #121212;
+}
+.admin-intl-row .form-grid { grid-template-columns: 72px 1fr 120px 72px; gap: 10px; align-items: end; }
+.admin-intl-code {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 0.9rem;
+    padding-top: 22px;
+}
+.admin-quote-result {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: #0d0d0d;
+    border: 1px solid #333;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    color: #ddd;
+}
+.admin-status-ok { color: #6c6; }
+.admin-status-warn { color: #da4; }
+.admin-status-bad { color: #f88; }
 .admin-product-flags {
     grid-column: 1 / -1;
     display: flex;

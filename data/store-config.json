@@ -31,6 +31,7 @@
     "widthCm": 12,
     "heightCm": 0.5,
     "serviceCode": "04227",
+    "intlServiceCode": "45128",
     "serviceName": "Mini Envios",
     "sender": {
       "brand": "Sensor Tattoo Fix",
@@ -45,9 +46,14 @@
       "pais": "Brasil"
     }
   },
+  "shippingMethods": [
+    { "id": "br-mini-envios", "enabled": true, "scope": "BR", "label": "Mini Envios", "correiosCode": "04227" },
+    { "id": "br-carta-registrada", "enabled": true, "scope": "BR", "label": "Carta Registrada", "correiosCode": "8010" },
+    { "id": "int-todos", "enabled": true, "scope": "INT", "label": "Todos do simulador Correios", "correiosCode": "*" }
+  ],
   "internationalShipping": {
     "US": { "label": "Estados Unidos", "price": 89.9, "days": 15, "currency": "BRL" },
-    "PT": { "label": "Portugal", "price": 79.9, "days": 12, "currency": "BRL" },
+    "PT": { "label": "Portugal", "price": 262.5, "days": 12, "currency": "BRL" },
     "AR": { "label": "Argentina", "price": 69.9, "days": 10, "currency": "BRL" },
     "MX": { "label": "México", "price": 74.9, "days": 12, "currency": "BRL" },
     "GB": { "label": "Reino Unido", "price": 94.9, "days": 18, "currency": "BRL" },

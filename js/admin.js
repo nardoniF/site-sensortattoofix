@@ -102,6 +102,217 @@
     return [];
   }
 
+  const QUOTE_SOURCE_LABELS = {
+    correios: 'API Correios (Mini Envios)',
+    'correios-export': 'Simulador Exporta Fácil (Correios)',
+    config: 'Tabela fallback do admin — API falhou!',
+    estimate: 'Estimativa fixa no código — configure CORREIOS_USER no Worker'
+  };
+
+  function renderIntlShipping(zones) {
+    const list = document.getElementById('admin-intl-zones');
+    if (!list) return;
+    const entries = Object.entries(zones || {}).sort((a, b) => a[0].localeCompare(b[0]));
+    list.innerHTML = entries.map(([code, z]) => `
+      <div class="admin-intl-row" data-code="${escAttr(code)}">
+        <div class="form-grid">
+          <div class="admin-intl-code">${escAttr(code)}</div>
+          <label>País<input type="text" data-field="label" value="${escAttr(z.label || code)}"></label>
+          <label>Fallback R$<input type="number" data-field="price" step="0.01" min="0" value="${z.price ?? 0}"></label>
+          <label>Dias<input type="number" data-field="days" min="1" step="1" value="${z.days ?? 15}"></label>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function collectIntlShipping() {
+    const list = document.getElementById('admin-intl-zones');
+    if (!list) return currentConfig?.internationalShipping || {};
+    const zones = {};
+    list.querySelectorAll('.admin-intl-row').forEach((row) => {
+      const code = row.getAttribute('data-code') || '';
+      if (!code) return;
+      zones[code] = {
+        label: row.querySelector('[data-field="label"]')?.value.trim() || code,
+        price: parseFloat(row.querySelector('[data-field="price"]')?.value) || 0,
+        days: parseInt(row.querySelector('[data-field="days"]')?.value, 10) || 15,
+        currency: 'BRL'
+      };
+    });
+    return zones;
+  }
+
+  function formatQuoteOption(opt, i) {
+    const price = Number(opt.price || 0).toFixed(2).replace('.', ',');
+    return [
+      `${i + 1}. ${opt.service || '—'}`,
+      `   R$ ${price} · ${opt.days ?? '—'} dias · ${QUOTE_SOURCE_LABELS[opt.source] || opt.source || '—'}`,
+      opt.serviceCode ? `   Código: ${opt.serviceCode}` : ''
+    ].filter(Boolean).join('\n');
+  }
+
+  function formatQuoteResult(data) {
+    if (!data || data.error) return 'Erro: ' + (data?.error || 'cotação indisponível');
+    if (Array.isArray(data.options) && data.options.length) {
+      const header = `Peso: ${data.weightGrams || '—'} g · ${data.options.length} opção(ões) para o cliente:\n`;
+      return header + data.options.map((opt, i) => formatQuoteOption(opt, i)).join('\n');
+    }
+    return formatQuoteOption(data, 0);
+  }
+
+  function defaultShippingMethods() {
+    return [
+      { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227' },
+      { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010' },
+      { id: 'int-todos', enabled: true, scope: 'INT', label: 'Todos do simulador Correios', correiosCode: '*' }
+    ];
+  }
+
+  function renderShippingMethods(methods) {
+    const list = document.getElementById('admin-shipping-methods');
+    if (!list) return;
+    const rows = (methods?.length ? methods : defaultShippingMethods());
+    list.innerHTML = rows.map((m, i) => `
+      <div class="admin-ship-method-row" data-method-index="${i}">
+        <div class="form-grid">
+          <label class="label-check admin-ship-enabled">
+            <input type="checkbox" data-field="enabled" ${m.enabled !== false ? 'checked' : ''}>
+            <span>Ativo</span>
+          </label>
+          <label>Escopo
+            <select data-field="scope">
+              <option value="BR" ${m.scope === 'BR' ? 'selected' : ''}>Brasil</option>
+              <option value="INT" ${m.scope === 'INT' ? 'selected' : ''}>Internacional</option>
+            </select>
+          </label>
+          <label>Nome exibido<input type="text" data-field="label" value="${escAttr(m.label || '')}"></label>
+          <label>Código Correios<input type="text" data-field="correiosCode" value="${escAttr(m.correiosCode || '')}" placeholder="04227 ou *"></label>
+          <input type="hidden" data-field="id" value="${escAttr(m.id || `method-${i}`)}">
+        </div>
+        <button type="button" class="btn-secondary btn-remove-ship-method" data-index="${i}" style="margin-top:6px"><i class="fas fa-trash"></i> Remover</button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.btn-remove-ship-method').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-index'));
+        const next = collectShippingMethods().filter((_, j) => j !== idx);
+        renderShippingMethods(next.length ? next : defaultShippingMethods());
+      });
+    });
+  }
+
+  function collectShippingMethods() {
+    const list = document.getElementById('admin-shipping-methods');
+    if (!list) return currentConfig?.shippingMethods || defaultShippingMethods();
+    return [...list.querySelectorAll('.admin-ship-method-row')].map((row, i) => {
+      const val = (field) => {
+        const el = row.querySelector(`[data-field="${field}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        return el.value.trim();
+      };
+      const id = val('id') || `method-${i + 1}`;
+      return {
+        id,
+        enabled: val('enabled'),
+        scope: val('scope') || 'BR',
+        label: val('label') || id,
+        correiosCode: val('correiosCode')
+      };
+    });
+  }
+
+  function showQuoteResult(text) {
+    const el = document.getElementById('shipping-quote-result');
+    if (!el) return;
+    el.textContent = text;
+    el.hidden = !text;
+  }
+
+  async function runShippingQuote(mode) {
+    const base = apiBase();
+    if (!base) {
+      showStatus('Configure a URL da API para testar frete.', 'error', 'panel');
+      return;
+    }
+    const f = els.configForm;
+    const weight = parseFloat(f.shippingWeight?.value) || 3;
+    let url;
+    if (mode === 'br') {
+      const cep = (document.getElementById('test-ship-cep')?.value || '').replace(/\D/g, '');
+      if (cep.length !== 8) {
+        showStatus('Informe um CEP brasileiro válido para testar.', 'error', 'panel');
+        return;
+      }
+      url = `${base}/shipping/quote?cep=${encodeURIComponent(cep)}&weightGrams=${weight}`;
+    } else {
+      const country = document.getElementById('test-ship-country')?.value || 'PT';
+      url = `${base}/shipping/quote?country=${encodeURIComponent(country)}&weightGrams=${weight}`;
+    }
+    showQuoteResult('Consultando...');
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha na cotação');
+      showQuoteResult(formatQuoteResult(data));
+      if (data.source === 'config' || data.source === 'estimate') {
+        showStatus('Atenção: o cliente veria estimativa/fallback, não a API dos Correios.', 'warning', 'panel');
+      } else {
+        showStatus('Cotação obtida da API dos Correios.', 'success', 'panel');
+      }
+    } catch (err) {
+      showQuoteResult('Erro: ' + (err.message || 'falha na cotação'));
+      showStatus(err.message, 'error', 'panel');
+    }
+  }
+
+  async function loadShippingStatus() {
+    const el = document.getElementById('correios-br-status');
+    if (!el) return;
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      el.innerHTML = '<span class="admin-status-warn">Faça login com a API para ver status das integrações Correios.</span>';
+      return;
+    }
+    el.textContent = 'Verificando integrações de frete...';
+    try {
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/shipping-status', {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Não autorizado');
+
+      const br = data.correiosBr || {};
+      const exp = data.correiosExport || {};
+      const brLine = br.credentialsConfigured
+        ? (br.apiConnected
+          ? '<span class="admin-status-ok">✓ API Correios BR conectada</span> (Mini Envios ' + escAttr(br.serviceCode) + ')'
+          : '<span class="admin-status-warn">⚠ Credenciais BR configuradas, mas token não obtido — confira usuário/senha/contrato</span>')
+        : '<span class="admin-status-bad">✗ API Correios BR não configurada — frete nacional usa estimativa fixa</span>';
+
+      const expLine = exp.simulatorReachable && exp.sampleQuotePT
+        ? `<span class="admin-status-ok">✓ Exporta Fácil OK</span> — Portugal agora: <strong>R$ ${Number(exp.sampleQuotePT.price).toFixed(2).replace('.', ',')}</strong> (${exp.sampleQuotePT.weightGrams} g)`
+        : '<span class="admin-status-bad">✗ Simulador internacional indisponível — checkout usaria tabela fallback abaixo</span>';
+
+      const mismatch = data.weightMismatch
+        ? `<br><span class="admin-status-warn">⚠ ${escAttr(data.weightMismatchHint || 'Peso do produto diferente do pacote')}</span>`
+        : '';
+
+      el.innerHTML = brLine + '<br>' + expLine + mismatch;
+
+      if (exp.sampleQuotesPT?.length) {
+        showQuoteResult(formatQuoteResult({ options: exp.sampleQuotesPT, weightGrams: data.package?.weightGrams }));
+      } else if (exp.sampleQuotePT) {
+        showQuoteResult(formatQuoteResult(exp.sampleQuotePT));
+      }
+    } catch (err) {
+      el.innerHTML = '<span class="admin-status-warn">' + escAttr(err.message || 'Erro ao carregar status') + '</span>';
+    }
+  }
+
   function renderProducts(products) {
     const list = document.getElementById('admin-products-list');
     if (!list) return;
@@ -180,8 +391,11 @@
     if (f.shippingSenderBairro) f.shippingSenderBairro.value = sender.bairro || '';
     if (f.shippingSenderCidade) f.shippingSenderCidade.value = sender.cidade || '';
     if (f.shippingSenderUf) f.shippingSenderUf.value = sender.uf || '';
+    renderShippingMethods(config.shippingMethods || defaultShippingMethods());
+    renderIntlShipping(config.internationalShipping || {});
     if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams ?? 3;
     if (f.shippingServiceCode) f.shippingServiceCode.value = ship.serviceCode || '04227';
+    if (f.intlServiceCode) f.intlServiceCode.value = ship.intlServiceCode || '45128';
     if (f.shippingLength) f.shippingLength.value = ship.lengthCm || 16;
     if (f.shippingWidth) f.shippingWidth.value = ship.widthCm || 12;
     if (f.shippingHeight) f.shippingHeight.value = ship.heightCm || 3;
@@ -252,6 +466,7 @@
         widthCm: parseFloat(f.shippingWidth?.value) || 12,
         heightCm: parseFloat(f.shippingHeight?.value) || 3,
         serviceCode: f.shippingServiceCode?.value.trim() || '04227',
+        intlServiceCode: f.intlServiceCode?.value.trim() || '45128',
         serviceName: 'Mini Envios',
         sender: {
           brand: f.shippingSenderBrand?.value.trim() || '',
@@ -282,7 +497,8 @@
         baseUrl: f.apiBaseUrl.value.trim()
       },
       smartwatchModels: currentConfig?.smartwatchModels || [],
-      internationalShipping: currentConfig?.internationalShipping || {},
+      internationalShipping: collectIntlShipping(),
+      shippingMethods: collectShippingMethods(),
       updatedAt: new Date().toISOString()
     };
   }
@@ -385,11 +601,25 @@
     document.getElementById('btn-lookup-origin-cep')?.addEventListener('click', lookupOriginCep);
   }
 
+  let shippingUiWired = false;
+
+  function wireShippingUi() {
+    if (shippingUiWired) return;
+    shippingUiWired = true;
+    document.getElementById('btn-test-ship-br')?.addEventListener('click', () => runShippingQuote('br'));
+    document.getElementById('btn-test-ship-intl')?.addEventListener('click', () => runShippingQuote('intl'));
+    els.configForm?.shippingWeight?.addEventListener('change', () => {
+      if (sessionStorage.getItem(SESSION_KEY)) loadShippingStatus();
+    });
+  }
+
   async function initPanel() {
     try {
       await loadConfig();
       fillForm(currentConfig);
       wireSenderCepLookup();
+      wireShippingUi();
+      await loadShippingStatus();
     } catch (err) {
       showStatus(err.message || 'Erro ao carregar configuração.', 'error', 'panel');
       throw err;
@@ -433,6 +663,7 @@
         const saved = await saveConfig(config);
         currentConfig = saved;
         fillForm(saved);
+        await loadShippingStatus();
         showStatus('Configuração salva! O site já usa os novos valores.', 'success', 'panel');
       } else {
         downloadConfig(config);
@@ -521,6 +752,18 @@
   document.getElementById('btn-test-email')?.addEventListener('click', () => sendTestEmail('generic', 'E-mail de teste'));
   document.getElementById('btn-test-email-order')?.addEventListener('click', () => sendTestEmail('order', 'E-mail de novo pedido'));
   document.getElementById('btn-test-email-paid')?.addEventListener('click', () => sendTestEmail('paid', 'E-mail PAGO'));
+
+  document.getElementById('btn-add-ship-method')?.addEventListener('click', () => {
+    const methods = collectShippingMethods();
+    methods.push({
+      id: 'method-' + Date.now(),
+      enabled: true,
+      scope: 'BR',
+      label: 'Nova modalidade',
+      correiosCode: ''
+    });
+    renderShippingMethods(methods);
+  });
 
   document.getElementById('btn-add-product')?.addEventListener('click', () => {
     const products = collectProductsFromDom();
