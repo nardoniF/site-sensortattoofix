@@ -1839,9 +1839,6 @@ async function handleDeleteOrder(request, env, origin, orderId) {
   }
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
-  if (order.status === 'paid') {
-    return json({ error: 'Pedidos pagos não podem ser excluídos.' }, 400, origin);
-  }
   await deleteOrder(env, orderId);
   return json({ ok: true, orderId }, 200, origin);
 }

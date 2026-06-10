@@ -110,7 +110,7 @@
           ${statusBadgeHtml(o.status)}
           ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
           ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
-          ${o.status !== 'paid' ? `<button type="button" class="btn-delete-order" data-order-id="${o.orderId}" title="Excluir pedido"><i class="fas fa-trash-alt"></i> Excluir</button>` : ''}
+          <button type="button" class="btn-delete-order" data-order-id="${o.orderId}" data-paid="${o.status === 'paid' ? '1' : '0'}" title="Excluir pedido"><i class="fas fa-trash-alt"></i> Excluir</button>
         </td>
       `;
 
@@ -139,7 +139,11 @@
       tr.querySelector('.btn-delete-order')?.addEventListener('click', async (ev) => {
         ev.stopPropagation();
         const orderId = ev.currentTarget.dataset.orderId;
-        if (!confirm(`Excluir o pedido ${orderId}?\n\nIsso remove da base do site e do perfil do cliente. Não cancela cobrança no Asaas/MP.`)) return;
+        const isPaid = ev.currentTarget.dataset.paid === '1';
+        const msg = isPaid
+          ? `Excluir o pedido PAGO ${orderId}?\n\nRemove da lista do site. Não estorna PIX/cartão no Mercado Pago ou Asaas.`
+          : `Excluir o pedido ${orderId}?\n\nIsso remove da base do site e do perfil do cliente. Não cancela cobrança no Asaas/MP.`;
+        if (!confirm(msg)) return;
         try {
           await apiDelete(`/orders/${encodeURIComponent(orderId)}`);
           showStatus(`Pedido ${orderId} excluído.`, 'success');
