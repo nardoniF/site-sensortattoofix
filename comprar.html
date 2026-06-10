@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Comprar Direto | Sensor Tattoo Fix — Loja Oficial</title>
     <meta name="description" content="Checkout oficial Sensor Tattoo Fix — PIX, cartão, envio nacional e internacional.">
-    <link rel="stylesheet" href="style.css?v=1.64">
+    <link rel="stylesheet" href="style.css?v=1.65">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script>
@@ -200,9 +200,18 @@
                     </div>
 
                     <div class="checkout-actions">
-                        <button type="button" id="btn-back" class="btn-secondary" style="display:none"><i class="fas fa-arrow-left"></i> Voltar</button>
-                        <button type="button" id="btn-next" class="btn-primary">Continuar <i class="fas fa-arrow-right"></i></button>
-                        <button type="button" id="btn-pay" class="btn-primary" style="display:none">Finalizar pedido</button>
+                        <button type="button" id="btn-back" class="btn-secondary btn-checkout-back" style="display:none">
+                            <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-arrow-left"></i></span>
+                            <span class="btn-checkout-label">Voltar</span>
+                        </button>
+                        <button type="button" id="btn-next" class="btn-primary btn-checkout-next">
+                            <span class="btn-checkout-label">Continuar</span>
+                            <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                        </button>
+                        <button type="button" id="btn-pay" class="btn-primary btn-checkout-pay" style="display:none">
+                            <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                            <span class="btn-checkout-label">Finalizar pedido</span>
+                        </button>
                     </div>
                 </form>
             </section>

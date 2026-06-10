@@ -532,9 +532,42 @@
     };
   }
 
+  let adminTabsWired = false;
+
+  function initAdminTabs() {
+    if (adminTabsWired) return;
+    adminTabsWired = true;
+    const tabs = Array.from(document.querySelectorAll('.admin-tab[data-admin-tab]'));
+    const panels = Array.from(document.querySelectorAll('.admin-tab-panel'));
+    if (!tabs.length || !panels.length) return;
+
+    function showTab(tabId) {
+      const id = tabId || 'produtos';
+      tabs.forEach((tab) => {
+        const active = tab.dataset.adminTab === id;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      panels.forEach((panel) => {
+        panel.hidden = panel.id !== 'admin-tab-' + id;
+      });
+      try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => showTab(tab.dataset.adminTab));
+    });
+
+    let saved = 'produtos';
+    try { saved = localStorage.getItem('stf_admin_tab') || 'produtos'; } catch (e) { /* ignore */ }
+    if (!panels.some((p) => p.id === 'admin-tab-' + saved)) saved = 'produtos';
+    showTab(saved);
+  }
+
   function showPanel() {
     els.loginScreen.hidden = true;
     els.panelScreen.hidden = false;
+    initAdminTabs();
   }
 
   function showLogin() {

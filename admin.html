@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.62">
+    <link rel="stylesheet" href="style.css?v=1.65">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -58,7 +58,17 @@
                     </div>
                 </div>
 
+                <nav class="admin-tabs" role="tablist" aria-label="Seções do painel">
+                    <button type="button" role="tab" class="admin-tab active" data-admin-tab="produtos" aria-selected="true" aria-controls="admin-tab-produtos"><i class="fas fa-box"></i> Produtos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="frete" aria-selected="false" aria-controls="admin-tab-frete"><i class="fas fa-truck"></i> Frete</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="pix" aria-selected="false" aria-controls="admin-tab-pix"><i class="fas fa-qrcode"></i> PIX</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="contato" aria-selected="false" aria-controls="admin-tab-contato"><i class="fas fa-headset"></i> Contato</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="pedidos" aria-selected="false" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
+                </nav>
+
                 <form id="admin-config-form" class="admin-form">
+                    <div id="admin-tab-produtos" class="admin-tab-panel active" role="tabpanel">
                     <fieldset>
                         <legend><i class="fas fa-box"></i> Catálogo de produtos</legend>
                         <p class="admin-meta">Cadastre kits, películas, pulseiras e outros itens. O primeiro produto ativo é o destaque na home.</p>
@@ -67,7 +77,9 @@
                             <button type="button" id="btn-add-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar produto</button>
                         </div>
                     </fieldset>
+                    </div>
 
+                    <div id="admin-tab-frete" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-warehouse"></i> Remetente (etiqueta + frete)</legend>
                         <p class="admin-meta">Endereço da loja usado na etiqueta térmica e no CEP de origem do cálculo Correios.</p>
@@ -185,7 +197,9 @@
                         </div>
                         <pre id="shipping-quote-result" class="admin-quote-result" hidden></pre>
                     </fieldset>
+                    </div>
 
+                    <div id="admin-tab-pix" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-qrcode"></i> PIX</legend>
                         <div class="form-grid">
@@ -209,7 +223,9 @@
                             </label>
                         </div>
                     </fieldset>
+                    </div>
 
+                    <div id="admin-tab-contato" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-headset"></i> Contato e pedidos</legend>
                         <div class="form-grid">
@@ -224,7 +240,9 @@
                             </label>
                         </div>
                     </fieldset>
+                    </div>
 
+                    <div id="admin-tab-api" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-server"></i> API</legend>
                         <div class="form-grid">
@@ -240,13 +258,15 @@
                             </div>
                         </div>
                     </fieldset>
+                    </div>
 
-                    <div class="admin-form-actions">
+                    <div class="admin-form-actions admin-form-actions-sticky">
                         <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar alterações</button>
                         <button type="button" id="btn-download-config" class="btn-secondary"><i class="fas fa-download"></i> Baixar backup JSON</button>
                     </div>
                 </form>
 
+                <div id="admin-tab-pedidos" class="admin-tab-panel" role="tabpanel" hidden>
                 <fieldset class="admin-orders-section">
                     <legend><i class="fas fa-list"></i> Pedidos salvos</legend>
                     <p class="admin-meta">Veja e gerencie pedidos na lista interativa — usa o mesmo login deste painel.</p>
@@ -256,6 +276,7 @@
                         <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-file-csv"></i> Exportar CSV</button>
                     </div>
                 </fieldset>
+                </div>
 
                 <p id="admin-status-panel" class="admin-status" hidden></p>
             </section>
@@ -264,6 +285,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=13"></script>
+    <script src="js/admin.js?v=14"></script>
 </body>
 </html>
