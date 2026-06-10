@@ -906,6 +906,38 @@ line-height:1.8;
 .payment-card i { font-size: 1.8rem; color: var(--primary); }
 .payment-card strong { display: block; margin-bottom: 4px; }
 .payment-card small { color: var(--gray); font-size: 0.8rem; }
+.checkout-intl-notice {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: rgba(255, 193, 7, 0.08);
+    border: 1px solid rgba(255, 193, 7, 0.35);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 16px 0 4px;
+    font-size: 0.88rem;
+    color: #ddd;
+    line-height: 1.55;
+}
+.checkout-intl-notice > i {
+    color: var(--primary);
+    font-size: 1.25rem;
+    margin-top: 2px;
+}
+.checkout-intl-notice strong {
+    display: block;
+    color: var(--primary);
+    margin-bottom: 6px;
+    font-size: 0.92rem;
+}
+.checkout-intl-notice p { margin: 0; }
+.checkout-intl-document {
+    margin-top: 10px !important;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 193, 7, 0.2);
+    color: #ccc;
+}
+
 .checkout-notice {
     background: #1a1a1a;
     border-left: 4px solid var(--primary);

@@ -52,6 +52,11 @@
     { "id": "int-encomenda", "enabled": true, "scope": "INT", "label": "Encomenda internacional (Exporta Fácil)", "correiosCode": "*", "simTipo": "M" },
     { "id": "int-documento", "enabled": true, "scope": "INT", "label": "Documento / carta internacional", "correiosCode": "*", "simTipo": "D" }
   ],
+  "internationalProduct": {
+    "title": "Envio internacional — lente exclusiva",
+    "notice": "Em pedidos internacionais não enviamos o kit Prime completo. Enviamos a lente internacional, desenvolvida para manter o mesmo efeito e a mesma qualidade na leitura do sensor do smartwatch: à prova d'água, com adesivo VHB de fixação reforçada. É uma lente específica para exportação, que não requer o Prime e oferece desempenho equivalente ao kit nacional.",
+    "documentNotice": "Em envios por carta registrada ou documento internacional, o pacote contém somente a lente (formato fino para envelope). Não inclui o kit Prime nem os acessórios do kit completo."
+  },
   "internationalShipping": {
     "US": { "label": "Estados Unidos", "price": 89.9, "days": 15, "currency": "BRL" },
     "PT": { "label": "Portugal", "price": 262.5, "days": 12, "currency": "BRL" },

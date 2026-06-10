@@ -73,6 +73,11 @@ const DEFAULT_CONFIG = {
     PY: { label: 'Paraguai', price: 54.9, days: 8, currency: 'BRL' },
     OTHER: { label: 'Outro país', price: 119.9, days: 25, currency: 'BRL' }
   },
+  internationalProduct: {
+    title: 'Envio internacional — lente exclusiva',
+    notice: 'Em pedidos internacionais não enviamos o kit Prime completo. Enviamos a lente internacional, desenvolvida para manter o mesmo efeito e a mesma qualidade na leitura do sensor do smartwatch: à prova d\'água, com adesivo VHB de fixação reforçada. É uma lente específica para exportação, que não requer o Prime e oferece desempenho equivalente ao kit nacional.',
+    documentNotice: 'Em envios por carta registrada ou documento internacional, o pacote contém somente a lente (formato fino para envelope). Não inclui o kit Prime nem os acessórios do kit completo.'
+  },
   smartwatchModels: [
     'Apple Watch SE (40mm)',
     'Apple Watch SE (44mm)',
@@ -175,6 +180,7 @@ function withConfigDefaults(stored) {
     formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
     api: { ...base.api, ...(stored.api || {}) },
     internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },
+    internationalProduct: { ...base.internationalProduct, ...(stored.internationalProduct || {}) },
     smartwatchModels: (stored.smartwatchModels && stored.smartwatchModels.length)
       ? stored.smartwatchModels
       : base.smartwatchModels,
@@ -506,6 +512,11 @@ function formatOrderSmartwatch(order) {
   if (!model || model === 'N/A') return obs || 'N/A';
   if (model.includes('Outro modelo')) return obs || model;
   return obs ? `${model} — ${obs}` : model;
+}
+
+function orderIntlProductFields(order) {
+  if ((order.paisCode || 'BR') === 'BR' || !order.internationalProductNote) return {};
+  return { 'Produto internacional': order.internationalProductNote };
 }
 
 function orderWatchEmailFields(order) {
@@ -1723,6 +1734,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
     shippingServiceCode: body.shippingServiceCode || null,
     shippingMethodId: body.shippingMethodId || null,
     shippingDays: body.shippingDays || null,
+    shipmentType: body.shipmentType || null,
+    internationalLensOnly: !!body.internationalLensOnly,
+    internationalProductNote: body.internationalProductNote || '',
     pagamento: pagamentoLabel
   };
 
@@ -1793,7 +1807,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
       Pagamento: order.pagamento,
       Mensagem: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
       'Link do pedido': resumeOrderUrl(config, order),
-      ...orderWatchEmailFields(order)
+      ...orderWatchEmailFields(order),
+      ...orderIntlProductFields(order)
     });
 
   const emailWork = Promise.all([
@@ -1802,6 +1817,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
       'E-mail': order.email, Telefone: order.telefone,
       País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
       Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total),
+      Envio: order.shippingService || '—',
+      ...orderIntlProductFields(order),
       ...(order.selfTestPix ? {
         'Teste PIX produção': `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — endereço igual ao remetente`,
         'Total original': formatBRL(order.totalOriginal || 0)
@@ -1860,7 +1877,8 @@ async function handlePaymentConfirmed(env, order, payment) {
     Valor: formatBRL(value),
     Endereço: order.endereco, Envio: order.shippingService,
     'Imprimir etiqueta': labelPrintUrl(config, order.orderId),
-    ...orderWatchEmailFields(order)
+    ...orderWatchEmailFields(order),
+    ...orderIntlProductFields(order)
   });
   if (!shopPaid?.ok) console.error('E-mail PAGO loja falhou:', JSON.stringify(shopPaid));
 
@@ -1868,8 +1886,11 @@ async function handlePaymentConfirmed(env, order, payment) {
     Pedido: order.orderId,
     Status: 'PAGO',
     Valor: formatBRL(value),
-    Mensagem: 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
-    ...orderWatchEmailFields(order)
+    Mensagem: order.internationalLensOnly
+      ? 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.'
+      : 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    ...orderWatchEmailFields(order),
+    ...orderIntlProductFields(order)
   });
 
   await notifyWhatsApp(env, config, order, 'paid');
@@ -2151,6 +2172,7 @@ async function handlePutConfig(request, env, origin) {
     pix: { ...current.pix, ...body.pix },
     shipping: { ...current.shipping, ...body.shipping },
     internationalShipping: { ...current.internationalShipping, ...body.internationalShipping },
+    internationalProduct: { ...current.internationalProduct, ...body.internationalProduct },
     shippingMethods: body.shippingMethods?.length ? body.shippingMethods : current.shippingMethods,
     smartwatchModels: body.smartwatchModels || current.smartwatchModels,
     products: body.products?.length ? body.products : current.products,

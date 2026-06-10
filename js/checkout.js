@@ -23,6 +23,10 @@
     shippingHint: document.getElementById('shipping-hint'),
     shippingOptionsWrap: document.getElementById('shipping-options-wrap'),
     shippingOptionsEl: document.getElementById('shipping-options'),
+    intlProductNotice: document.getElementById('intl-product-notice'),
+    intlNoticeTitle: document.getElementById('intl-notice-title'),
+    intlNoticeBody: document.getElementById('intl-notice-body'),
+    intlNoticeDocument: document.getElementById('intl-notice-document'),
     pixQr: document.getElementById('pix-qr'),
     pixCopy: document.getElementById('pix-copy'),
     pixCopyArea: document.getElementById('pix-copy-area'),
@@ -332,6 +336,40 @@
     els.paisCode.appendChild(other);
   }
 
+  function intlProductCopy() {
+    return cfg.internationalProduct || {};
+  }
+
+  function buildIntlProductNote(shipmentType) {
+    const ip = intlProductCopy();
+    const parts = [ip.notice].filter(Boolean);
+    if (shipmentType === 'documento' && ip.documentNotice) parts.push(ip.documentNotice);
+    return parts.join(' ');
+  }
+
+  function updateIntlProductNotice() {
+    const box = els.intlProductNotice;
+    if (!box) return;
+    if (!isInternational) {
+      box.hidden = true;
+      return;
+    }
+    const ip = intlProductCopy();
+    if (els.intlNoticeTitle) els.intlNoticeTitle.textContent = ip.title || 'Envio internacional — lente exclusiva';
+    if (els.intlNoticeBody) els.intlNoticeBody.textContent = ip.notice || '';
+    const isDocument = shippingInfo?.shipmentType === 'documento';
+    if (els.intlNoticeDocument) {
+      if (isDocument && ip.documentNotice) {
+        els.intlNoticeDocument.textContent = ip.documentNotice;
+        els.intlNoticeDocument.hidden = false;
+      } else {
+        els.intlNoticeDocument.textContent = '';
+        els.intlNoticeDocument.hidden = true;
+      }
+    }
+    box.hidden = !ip.notice;
+  }
+
   function toggleAddressForm() {
     isInternational = els.paisCode.value !== 'BR';
     els.addressBr.hidden = isInternational;
@@ -341,6 +379,7 @@
     shippingInfo = null;
     shippingOptions = [];
     clearShippingOptions();
+    updateIntlProductNotice();
     updateSummary();
     if (isInternational) quoteShipping();
   }
@@ -369,6 +408,7 @@
     if (els.summaryShippingLabel) {
       els.summaryShippingLabel.textContent = isInternational ? 'Frete internacional' : 'Frete';
     }
+    updateIntlProductNotice();
   }
 
   function renderShippingOptions(options) {
@@ -591,6 +631,9 @@
       shippingServiceCode: shippingInfo?.serviceCode || null,
       shippingMethodId: shippingInfo?.methodId || shippingInfo?.id || null,
       shippingDays: shippingInfo?.days,
+      shipmentType: shippingInfo?.shipmentType || null,
+      internationalLensOnly: isInternational,
+      internationalProductNote: isInternational ? buildIntlProductNote(shippingInfo?.shipmentType) : '',
       pagamento: f.querySelector('[name=pagamento]:checked').value,
       items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
     };

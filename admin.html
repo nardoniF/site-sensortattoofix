@@ -152,6 +152,17 @@
                     <fieldset>
                         <legend><i class="fas fa-globe-americas"></i> Frete internacional</legend>
                         <p class="admin-meta">O checkout usa o <strong>simulador Exporta Fácil</strong> dos Correios em tempo real (peso + CEP de origem). A tabela abaixo é só <strong>fallback</strong> se a API falhar — não é o preço que o cliente vê quando a API funciona.</p>
+                        <div class="form-grid" style="margin-bottom:12px">
+                            <label class="full">Título do aviso (checkout internacional)
+                                <input type="text" name="intlProductTitle" placeholder="Envio internacional — lente exclusiva">
+                            </label>
+                            <label class="full">Texto — pedidos internacionais (sem kit Prime)
+                                <textarea name="intlProductNotice" rows="4" placeholder="Explica que envia só a lente internacional…"></textarea>
+                            </label>
+                            <label class="full">Texto extra — carta registrada / documento
+                                <textarea name="intlProductDocumentNotice" rows="3" placeholder="Somente a lente no envelope…"></textarea>
+                            </label>
+                        </div>
                         <div id="admin-intl-zones"></div>
                         <div class="form-grid" style="margin-top:12px">
                             <label>Testar país
@@ -250,6 +261,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=11"></script>
+    <script src="js/admin.js?v=12"></script>
 </body>
 </html>
