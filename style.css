@@ -459,6 +459,28 @@ nav,
     border-radius: 16px;
     border: 1px solid #333;
 }
+.reviews-section { background: #0d0d0d; }
+.reviews-summary {
+    text-align: center;
+    color: var(--primary);
+    font-weight: 700;
+    margin: -8px 0 24px;
+}
+.reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+.review-card {
+    background: var(--card);
+    border: 1px solid #333;
+    border-radius: 14px;
+    padding: 20px;
+}
+.review-stars { color: var(--primary); letter-spacing: 2px; margin-bottom: 10px; }
+.review-body { color: #ddd; font-size: 0.95rem; margin-bottom: 14px; }
+.review-author { color: var(--gray); font-size: 0.85rem; font-weight: 600; }
+
 .shipping-hint {
     color: var(--gray);
     font-size: 0.88rem;

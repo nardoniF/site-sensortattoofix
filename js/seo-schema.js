@@ -3,6 +3,41 @@
   const isEn = document.documentElement.lang?.toLowerCase().startsWith('en');
   const pageUrl = isEn ? SITE + '/en/' : SITE + '/';
 
+  function reviewsFromDom() {
+    const section = document.querySelector('.reviews-section');
+    if (!section) return { reviews: [], aggregateRating: null };
+
+    const reviews = [...section.querySelectorAll('.review-card')].map((card) => {
+      const author = card.querySelector('[data-review-author]')?.textContent?.trim()
+        || card.querySelector('.review-author')?.textContent?.trim();
+      const body = card.querySelector('[data-review-body]')?.textContent?.trim()
+        || card.querySelector('.review-body')?.textContent?.trim();
+      const rating = Number(card.getAttribute('data-review-rating') || card.dataset.reviewRating || 5);
+      if (!author || !body) return null;
+      return {
+        '@type': 'Review',
+        author: { '@type': 'Person', name: author },
+        reviewRating: {
+          '@type': 'Rating',
+          ratingValue: String(rating),
+          bestRating: '5'
+        },
+        reviewBody: body
+      };
+    }).filter(Boolean);
+
+    const ratingValue = Number(section.getAttribute('data-aggregate-rating') || 5);
+    const reviewCount = Number(section.getAttribute('data-review-count') || reviews.length);
+    const aggregateRating = reviews.length ? {
+      '@type': 'AggregateRating',
+      ratingValue: String(ratingValue),
+      reviewCount: String(Math.max(reviewCount, reviews.length)),
+      bestRating: '5'
+    } : null;
+
+    return { reviews, aggregateRating };
+  }
+
   function faqFromDom() {
     return [...document.querySelectorAll('.faq-item')].map((el) => {
       const name = el.querySelector('summary')?.textContent?.trim();
@@ -125,6 +160,21 @@
       }
     }
 
+    const { reviews, aggregateRating } = reviewsFromDom();
+
+    const productNode = {
+      '@type': 'Product',
+      '@id': SITE + '/#product',
+      name: productName,
+      description: productDescription,
+      sku: productId,
+      brand: { '@type': 'Brand', name: 'Sensor Tattoo Fix' },
+      image: productImage,
+      offers: buildOffer(productPrice, productId)
+    };
+    if (aggregateRating) productNode.aggregateRating = aggregateRating;
+    if (reviews.length) productNode.review = reviews;
+
     const graph = [
       {
         '@type': 'Organization',
@@ -157,16 +207,7 @@
         isPartOf: { '@id': SITE + '/#website' },
         inLanguage: isEn ? 'en' : 'pt-BR'
       },
-      {
-        '@type': 'Product',
-        '@id': SITE + '/#product',
-        name: productName,
-        description: productDescription,
-        sku: productId,
-        brand: { '@type': 'Brand', name: 'Sensor Tattoo Fix' },
-        image: productImage,
-        offers: buildOffer(productPrice, productId)
-      }
+      productNode
     ];
 
     const faq = faqFromDom();
