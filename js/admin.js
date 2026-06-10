@@ -96,7 +96,7 @@
         image: config.product.image,
         active: true,
         requiresSmartwatch: true,
-        weightGrams: 120
+        weightGrams: 3
       }];
     }
     return [];
@@ -114,7 +114,7 @@
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
           <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
           <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}"></label>
-          <label>Peso (g)<input type="number" data-field="weightGrams" min="1" value="${p.weightGrams || 120}"></label>
+          <label>Peso (g)<input type="number" data-field="weightGrams" min="0.1" step="0.1" value="${p.weightGrams ?? 3}"></label>
           <div class="admin-product-flags">
             <label class="label-check"><input type="checkbox" data-field="active" ${p.active !== false ? 'checked' : ''}><span>Ativo na loja</span></label>
             <label class="label-check"><input type="checkbox" data-field="requiresSmartwatch" ${p.requiresSmartwatch !== false ? 'checked' : ''}><span>Pede modelo do relógio</span></label>
@@ -130,7 +130,7 @@
         const next = collectProductsFromDom().filter((_, j) => j !== idx);
         renderProducts(next.length ? next : [{
           id: 'novo-produto', slug: 'novo-produto', name: 'Novo produto', description: '', price: 0,
-          image: '', active: true, requiresSmartwatch: false, weightGrams: 120
+          image: '', active: true, requiresSmartwatch: false, weightGrams: 3
         }]);
       });
     });
@@ -157,7 +157,7 @@
         image: val('image'),
         active: val('active'),
         requiresSmartwatch: val('requiresSmartwatch'),
-        weightGrams: Number(val('weightGrams')) || 120
+        weightGrams: Number(val('weightGrams')) || 3
       };
     });
   }
@@ -180,7 +180,7 @@
     if (f.shippingSenderBairro) f.shippingSenderBairro.value = sender.bairro || '';
     if (f.shippingSenderCidade) f.shippingSenderCidade.value = sender.cidade || '';
     if (f.shippingSenderUf) f.shippingSenderUf.value = sender.uf || '';
-    if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams || 120;
+    if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams ?? 3;
     if (f.shippingServiceCode) f.shippingServiceCode.value = ship.serviceCode || '04227';
     if (f.shippingLength) f.shippingLength.value = ship.lengthCm || 16;
     if (f.shippingWidth) f.shippingWidth.value = ship.widthCm || 12;
@@ -247,7 +247,7 @@
       products,
       shipping: {
         originCep: (f.shippingOriginCep?.value || '').replace(/\D/g, ''),
-        weightGrams: parseInt(f.shippingWeight?.value, 10) || 120,
+        weightGrams: parseFloat(f.shippingWeight?.value) || 3,
         lengthCm: parseFloat(f.shippingLength?.value) || 16,
         widthCm: parseFloat(f.shippingWidth?.value) || 12,
         heightCm: parseFloat(f.shippingHeight?.value) || 3,
@@ -533,7 +533,7 @@
       image: '',
       active: true,
       requiresSmartwatch: false,
-      weightGrams: 120
+      weightGrams: 3
     });
     renderProducts(products);
   });

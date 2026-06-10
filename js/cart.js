@@ -27,7 +27,7 @@ window.STF_CART = (function () {
       image: product.image || 'sensortattoofix.jpg',
       qty: Math.max(1, Math.min(MAX_QTY, Number(qty) || 1)),
       requiresSmartwatch: product.requiresSmartwatch !== false,
-      weightGrams: Number(product.weightGrams) || 120
+      weightGrams: Number(product.weightGrams) || 0
     };
   }
 
@@ -83,8 +83,7 @@ window.STF_CART = (function () {
   }
 
   function totalWeight() {
-    const w = load().reduce((sum, i) => sum + (i.weightGrams || 120) * i.qty, 0);
-    return Math.max(120, w);
+    return load().reduce((sum, i) => sum + (Number(i.weightGrams) || 0) * i.qty, 0);
   }
 
   function requiresSmartwatch() {

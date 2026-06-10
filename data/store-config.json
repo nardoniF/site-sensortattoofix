@@ -15,7 +15,7 @@
       "image": "https://www.sensortattoofix.com.br/sensortattoofix.jpg",
       "active": true,
       "requiresSmartwatch": true,
-      "weightGrams": 120
+      "weightGrams": 3
     }
   ],
   "pix": {
@@ -26,10 +26,10 @@
   },
   "shipping": {
     "originCep": "02537190",
-    "weightGrams": 120,
+    "weightGrams": 3,
     "lengthCm": 16,
     "widthCm": 12,
-    "heightCm": 3,
+    "heightCm": 0.5,
     "serviceCode": "04227",
     "serviceName": "Mini Envios",
     "sender": {

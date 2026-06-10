@@ -339,6 +339,12 @@
     if (isInternational) quoteShipping();
   }
 
+  function shippingWeightGrams() {
+    const cartW = window.STF_CART?.totalWeight();
+    if (cartW > 0) return cartW;
+    return Number(cfg.shipping?.weightGrams) || 3;
+  }
+
   function estimateBR(destCep) {
     const o = parseInt(onlyDigits(cfg.shipping?.originCep).slice(0, 5), 10) || 0;
     const d = parseInt(onlyDigits(destCep).slice(0, 5), 10) || 0;
@@ -348,7 +354,8 @@
     else if (diff < 3000) base = { price: 15.9, days: 10 };
     else if (diff < 8000) base = { price: 19.9, days: 12 };
     else base = { price: 24.9, days: 14 };
-    const weightFactor = Math.min(2.5, Math.max(1, (window.STF_CART?.totalWeight() || 120) / 120));
+    const baseWeight = Number(cfg.shipping?.weightGrams) || 3;
+    const weightFactor = Math.min(2.5, Math.max(1, shippingWeightGrams() / baseWeight));
     return {
       price: Math.round(base.price * weightFactor * 100) / 100,
       days: base.days,
@@ -387,7 +394,7 @@
         const cep = onlyDigits(els.cep.value);
         if (cep.length !== 8) return;
         if (base) {
-          const weight = window.STF_CART?.totalWeight() || 120;
+          const weight = shippingWeightGrams();
           const valor = cartSubtotal();
           const data = await fetchShippingQuote(
             `${base}/shipping/quote?country=BR&cep=${cep}&weightGrams=${weight}&valor=${valor}`

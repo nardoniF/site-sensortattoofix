@@ -30,16 +30,16 @@ const DEFAULT_CONFIG = {
       image: 'https://www.sensortattoofix.com.br/sensortattoofix.jpg',
       active: true,
       requiresSmartwatch: true,
-      weightGrams: 120
+      weightGrams: 3
     }
   ],
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: {
     originCep: '02537190',
-    weightGrams: 120,
+    weightGrams: 3,
     lengthCm: 16,
     widthCm: 12,
-    heightCm: 3,
+    heightCm: 0.5,
     serviceCode: '04227',
     serviceName: 'Mini Envios',
     sender: {
@@ -162,8 +162,14 @@ function normalizeProducts(stored, base) {
     image: legacy.image,
     active: true,
     requiresSmartwatch: true,
-    weightGrams: 120
+    weightGrams: 3
   }];
+}
+
+function shippingWeightGrams(config, override) {
+  const ship = config?.shipping || DEFAULT_CONFIG.shipping;
+  const n = Number(override ?? ship.weightGrams);
+  return Number.isFinite(n) && n > 0 ? n : 3;
 }
 
 function getActiveProducts(config) {
@@ -187,7 +193,7 @@ function resolveOrderItems(config, body) {
         price: Number(p.price) || 0,
         qty,
         requiresSmartwatch: p.requiresSmartwatch !== false,
-        weightGrams: Number(p.weightGrams) || 120
+        weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
       };
     });
   }
@@ -201,7 +207,7 @@ function resolveOrderItems(config, body) {
     price: Number(p.price) || 0,
     qty: Math.max(1, Math.min(10, Number(body.qty) || 1)),
     requiresSmartwatch: p.requiresSmartwatch !== false,
-    weightGrams: Number(p.weightGrams) || 120
+    weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
   }];
 }
 
@@ -310,7 +316,7 @@ function publicConfigView(config) {
     price: p.price,
     image: p.image,
     requiresSmartwatch: p.requiresSmartwatch !== false,
-    weightGrams: Number(p.weightGrams) || 120
+    weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
   }));
   const primary = products[0] || config.product;
   return {
@@ -950,7 +956,7 @@ async function quoteCorreios(env, config, destCep, opts = {}) {
   const origin = onlyDigits(ship.originCep);
   const dest = onlyDigits(destCep);
   if (dest.length !== 8) throw new Error('CEP inválido');
-  const weightGrams = Math.max(120, Number(opts.weightGrams) || ship.weightGrams || 120);
+  const weightGrams = shippingWeightGrams(config, opts.weightGrams);
   const declaredValue = Number(opts.declaredValue) || config.product?.price || 59.9;
 
   const token = await getCorreiosToken(env);
@@ -959,7 +965,7 @@ async function quoteCorreios(env, config, destCep, opts = {}) {
       cepDestino: dest, cepOrigem: origin,
       psObjeto: String(weightGrams), tpObjeto: '2',
       comprimento: String(ship.lengthCm || 16), largura: String(ship.widthCm || 12),
-      altura: String(ship.heightCm || 3), vlDeclarado: String(declaredValue.toFixed(2))
+      altura: String(ship.heightCm || 0.5), vlDeclarado: String(declaredValue.toFixed(2))
     });
     const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${ship.serviceCode}?${params}`, {
       headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }

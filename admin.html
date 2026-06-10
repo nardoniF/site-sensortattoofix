@@ -112,7 +112,7 @@
                         <legend><i class="fas fa-truck"></i> Frete Mini Envios</legend>
                         <div class="form-grid">
                             <label>Peso (gramas)
-                                <input type="number" name="shippingWeight" min="1" value="120">
+                                <input type="number" name="shippingWeight" min="1" step="0.1" value="3">
                             </label>
                             <label>Código serviço Correios
                                 <input type="text" name="shippingServiceCode" placeholder="04227">
@@ -124,7 +124,7 @@
                                 <input type="number" name="shippingWidth" step="0.1" value="12">
                             </label>
                             <label>Altura (cm)
-                                <input type="number" name="shippingHeight" step="0.1" value="3">
+                                <input type="number" name="shippingHeight" step="0.1" value="0.5">
                             </label>
                         </div>
                     </fieldset>
@@ -207,6 +207,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=7"></script>
+    <script src="js/admin.js?v=8"></script>
 </body>
 </html>
