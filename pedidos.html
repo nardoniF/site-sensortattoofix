@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Pedidos | Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.60">
+    <link rel="stylesheet" href="style.css?v=1.62">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page pedidos-page">
@@ -46,6 +46,7 @@
                     </div>
                     <div class="admin-panel-actions">
                         <button type="button" id="btn-refresh" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar</button>
+                        <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
                         <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-download"></i> CSV</button>
                         <button type="button" id="btn-logout-pedidos" class="btn-secondary">Sair</button>
                     </div>
@@ -84,6 +85,7 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/order-watch.js"></script>
-    <script src="js/pedidos.js?v=3"></script>
+    <script src="js/order-label.js?v=1"></script>
+    <script src="js/pedidos.js?v=5"></script>
 </body>
 </html>

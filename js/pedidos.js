@@ -20,6 +20,36 @@
     return (els.apiUrl?.value || bootstrap.configApiUrl || '').replace(/\/$/, '');
   }
 
+  function adminAuthHeaders() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    if (!token) throw new Error('Faça login primeiro.');
+    return { Authorization: 'Bearer ' + token };
+  }
+
+  async function apiPost(path) {
+    const res = await fetch(apiBase() + path, {
+      method: 'POST',
+      headers: adminAuthHeaders()
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Erro na requisição.');
+    }
+    return res.json().catch(() => ({}));
+  }
+
+  async function apiDelete(path) {
+    const res = await fetch(apiBase() + path, {
+      method: 'DELETE',
+      headers: adminAuthHeaders()
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Erro na requisição.');
+    }
+    return res.json().catch(() => ({}));
+  }
+
   function showStatus(msg, type) {
     els.status.textContent = msg;
     els.status.className = 'admin-status ' + (type || '');
@@ -46,6 +76,18 @@
     return window.STF_ORDER_WATCH?.formatModel(o) || o.smartwatch || '—';
   }
 
+  function showOrderDetails(o) {
+    const watchLines = (window.STF_ORDER_WATCH?.detailLines(o) || [`Smartwatch: ${o.smartwatch}`]).join('\n');
+    alert(
+      `Pedido: ${o.orderId}\n` +
+      `Status: ${o.status}\n` +
+      `Cliente: ${o.nome}\n` +
+      `${watchLines}\n` +
+      `Endereço: ${o.endereco}\n` +
+      `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)`
+    );
+  }
+
   function renderTable(orders) {
     els.tbody.innerHTML = '';
     if (!orders.length) {
@@ -66,37 +108,48 @@
         <td>${formatBRL(o.total)}</td>
         <td class="pedidos-actions">
           ${statusBadgeHtml(o.status)}
+          <button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>
           ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
+          <button type="button" class="btn-delete-order" data-order-id="${o.orderId}" title="Excluir pedido"><i class="fas fa-trash-alt"></i> Excluir</button>
         </td>
       `;
+
+      tr.querySelector('.btn-print-label')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        if (window.STF_ORDER_LABEL) {
+          window.STF_ORDER_LABEL.print(o);
+        } else {
+          alert('Módulo de etiqueta não carregado.');
+        }
+      });
+
       tr.querySelector('.btn-confirm-pay')?.addEventListener('click', async (ev) => {
         ev.stopPropagation();
         const orderId = ev.currentTarget.dataset.orderId;
         if (!confirm(`Confirmar pagamento do pedido ${orderId}?`)) return;
         try {
-          const token = sessionStorage.getItem(SESSION_KEY);
-          const res = await fetch(`${apiBase()}/orders/${encodeURIComponent(orderId)}/confirm`, {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + token }
-          });
-          if (!res.ok) throw new Error('Não foi possível confirmar.');
+          await apiPost(`/orders/${encodeURIComponent(orderId)}/confirm`);
           showStatus(`Pedido ${orderId} marcado como pago.`, 'success');
           await loadOrders();
         } catch (err) {
           showStatus(err.message, 'error');
         }
       });
-      tr.addEventListener('click', () => {
-        const watchLines = (window.STF_ORDER_WATCH?.detailLines(o) || [`Smartwatch: ${o.smartwatch}`]).join('\n');
-        alert(
-          `Pedido: ${o.orderId}\n` +
-          `Status: ${o.status}\n` +
-          `Cliente: ${o.nome}\n` +
-          `${watchLines}\n` +
-          `Endereço: ${o.endereco}\n` +
-          `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)`
-        );
+
+      tr.querySelector('.btn-delete-order')?.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        const orderId = ev.currentTarget.dataset.orderId;
+        if (!confirm(`Excluir o pedido ${orderId}?\n\nIsso remove da base do site e do perfil do cliente. Não cancela cobrança no Asaas/MP.`)) return;
+        try {
+          await apiDelete(`/orders/${encodeURIComponent(orderId)}`);
+          showStatus(`Pedido ${orderId} excluído.`, 'success');
+          await loadOrders();
+        } catch (err) {
+          showStatus(err.message, 'error');
+        }
       });
+
+      tr.addEventListener('click', () => showOrderDetails(o));
       els.tbody.appendChild(tr);
     });
   }
@@ -164,6 +217,21 @@
   });
 
   document.getElementById('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
+  document.getElementById('btn-cleanup-pending')?.addEventListener('click', async () => {
+    const pending = allOrders.filter((o) => o.status !== 'paid').length;
+    if (!pending) {
+      showStatus('Nenhum pedido pendente para excluir.', '');
+      return;
+    }
+    if (!confirm(`Excluir ${pending} pedido(s) aguardando pagamento?\n\nSó remove da base do site. Pedidos pagos não são afetados.`)) return;
+    try {
+      const data = await apiDelete('/orders/pending');
+      showStatus(`${data.deleted || 0} pedido(s) pendente(s) excluído(s).`, 'success');
+      await loadOrders();
+    } catch (err) {
+      showStatus(err.message, 'error');
+    }
+  });
   document.getElementById('btn-export-csv')?.addEventListener('click', async () => {
     const token = sessionStorage.getItem(SESSION_KEY);
     const res = await fetch(apiBase() + '/orders?format=csv', { headers: { Authorization: 'Bearer ' + token } });

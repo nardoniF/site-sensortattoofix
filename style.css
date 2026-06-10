@@ -1209,6 +1209,41 @@ line-height:1.8;
     cursor: pointer;
 }
 .btn-confirm-pay:hover { filter: brightness(1.1); }
+.btn-delete-order,
+.btn-danger-outline {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #c44;
+  background: transparent;
+  color: #f88;
+}
+.btn-delete-order:hover,
+.btn-danger-outline:hover {
+  background: rgba(204, 68, 68, 0.15);
+}
+.pedidos-page .admin-panel-actions .btn-danger-outline {
+  font-size: 0.85rem;
+  padding: 8px 12px;
+}
+.btn-print-label {
+    background: #222;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-print-label:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
 .btn-whatsapp-proof {
     display: inline-flex;
     align-items: center;

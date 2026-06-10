@@ -2,7 +2,7 @@
 
 ## O que esta API faz
 
-- Confirmação automática **PIX** e **cartão** (via Asaas)
+- Confirmação automática **PIX** (Mercado Pago) e **cartão** (Asaas)
 - Cotação **Mini Envios** (Correios) e **frete internacional**
 - **WhatsApp** para cliente e loja ao criar pedido e ao confirmar pagamento
 - **Base de pedidos** listável em `/pedidos.html`
@@ -21,8 +21,16 @@ wrangler kv namespace create STORE_KV
 
 ```bash
 wrangler secret put ADMIN_PASSWORD          # senha do admin/pedidos
-wrangler secret put ASAAS_API_KEY           # asaas.com → Integrações → API
-wrangler secret put ASAAS_WEBHOOK_TOKEN     # token que você define no webhook Asaas
+wrangler secret put MP_ACCESS_TOKEN         # Mercado Pago → Credenciais de produção
+wrangler secret put ASAAS_API_KEY           # Asaas → Integrações → API (cartão)
+wrangler secret put ASAAS_WEBHOOK_TOKEN     # token do webhook Asaas (cartão)
+```
+
+Opcional:
+
+```bash
+wrangler secret put MP_WEBHOOK_URL
+# Ex.: https://sensortattoofix-payments.xxx.workers.dev/webhook/mercadopago
 ```
 
 ## 3. WhatsApp automático (Z-API — z-api.io)
@@ -53,7 +61,14 @@ Copie a URL (ex: `https://sensortattoofix-payments.xxx.workers.dev`) em:
 
 - `js/config-bootstrap.js` → `configApiUrl`
 
-## 6. Webhook Asaas
+## 6. Webhook Mercado Pago (PIX)
+
+No [Mercado Pago Developers](https://www.mercadopago.com.br/developers/panel/app) → sua aplicação → Webhooks:
+
+- **URL:** `https://SUA-URL.workers.dev/webhook/mercadopago`
+- **Evento:** `payment` (pagamentos)
+
+## 7. Webhook Asaas (cartão)
 
 No painel Asaas → Integrações → Webhooks:
 
@@ -61,7 +76,7 @@ No painel Asaas → Integrações → Webhooks:
 - **Eventos:** `PAYMENT_RECEIVED`, `PAYMENT_CONFIRMED`
 - **Token:** mesmo valor de `ASAAS_WEBHOOK_TOKEN`
 
-## 7. Painéis
+## 8. Painéis
 
 | URL | Função |
 |-----|--------|

@@ -546,7 +546,7 @@
     els.pixQr.innerHTML = '';
     els.cardPayLink.href = url;
     els.confirmTitle.textContent = 'Pedido registrado — finalize o pagamento';
-    els.confirmHint.textContent = 'Após pagar no Asaas, volte a esta página. A confirmação é automática.';
+    els.confirmHint.textContent = 'Após pagar no link seguro, volte a esta página. A confirmação é automática.';
   }
 
   let lastPaymentMethod = 'PIX';
@@ -609,7 +609,7 @@
         }
         showCardPayment(payment.invoiceUrl);
         els.paymentStatus.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Abra a janela do Asaas, pague com cartão e volte aqui — a confirmação é automática.';
+          '<i class="fas fa-spinner fa-spin"></i> Abra a janela de pagamento, conclua com cartão e volte aqui — a confirmação é automática.';
         try { window.open(payment.invoiceUrl, '_blank', 'noopener,noreferrer'); } catch (_) { /* link visível no botão */ }
       } else {
         renderPix(orderId, total, payment);

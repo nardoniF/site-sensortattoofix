@@ -11,8 +11,10 @@ ADMIN_USERNAME = "admin"
 
 # Secrets (wrangler secret put NOME):
 # ADMIN_PASSWORD       — senha do painel /admin.html
-# ASAAS_API_KEY        — confirmação PIX automática (asaas.com)
-# ASAAS_WEBHOOK_TOKEN  — token do webhook Asaas
+# MP_ACCESS_TOKEN      — PIX via Mercado Pago (developers.mercadopago.com)
+# MP_WEBHOOK_URL       — opcional: https://SEU-WORKER.workers.dev/webhook/mercadopago
+# ASAAS_API_KEY        — cartão de crédito (asaas.com)
+# ASAAS_WEBHOOK_TOKEN  — token do webhook Asaas (cartão)
 # CORREIOS_USER        — usuário API Correios (Meu Correios)
 # CORREIOS_PASSWORD    — código de acesso API Correios
 # CORREIOS_CONTRACT    — número do contrato/cartão postagem (opcional)

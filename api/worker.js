@@ -1,6 +1,6 @@
 /**
  * API Sensor TattooFix — Cloudflare Worker
- * PIX + Cartão (Asaas) · WhatsApp · Correios · Internacional · Pedidos
+ * PIX (Mercado Pago) + Cartão (Asaas) · WhatsApp · Correios · Internacional · Pedidos
  */
 
 const ALLOWED_ORIGINS = [
@@ -594,6 +594,59 @@ function asaasApiKey(env) {
   return (env.ASAAS_API_KEY || '').trim();
 }
 
+function mercadoPagoToken(env) {
+  return (env.MP_ACCESS_TOKEN || '').trim();
+}
+
+function isMpSandbox(env) {
+  return mercadoPagoToken(env).startsWith('TEST-');
+}
+
+/** PIX sandbox na API /v1/payments não aprova sozinho; só com token TEST- simula confirmação. */
+async function maybeSandboxAutoConfirmMpPix(env, orderId, paymentId) {
+  if (!isMpSandbox(env) || !paymentId) return;
+
+  const token = mercadoPagoToken(env);
+  for (let i = 0; i < 12; i++) {
+    await new Promise((r) => setTimeout(r, 2500));
+    const order = await getOrder(env, orderId);
+    if (!order || order.status === 'paid') return;
+
+    const res = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.status === 'approved') {
+      await handlePaymentConfirmed(env, order, {
+        id: data.id,
+        provider: 'mercadopago',
+        billingType: 'PIX',
+        value: data.transaction_amount
+      });
+      return;
+    }
+  }
+
+  const order = await getOrder(env, orderId);
+  if (order && order.status !== 'paid') {
+    console.log('MP sandbox: auto-confirma pedido de teste', orderId);
+    await handlePaymentConfirmed(env, order, {
+      provider: 'mercadopago',
+      billingType: 'PIX',
+      value: order.total,
+      confirmedBy: 'mp_sandbox_test'
+    });
+  }
+}
+
+function mpHeaders(env, idempotencyKey) {
+  return {
+    Authorization: 'Bearer ' + mercadoPagoToken(env),
+    'Content-Type': 'application/json',
+    'X-Idempotency-Key': idempotencyKey || crypto.randomUUID()
+  };
+}
+
 function asaasHeaders(apiKey) {
   return {
     access_token: apiKey,
@@ -680,6 +733,32 @@ async function saveOrder(env, order) {
   if (order.userId) await linkOrderToUser(env, order.userId, order.orderId);
 }
 
+async function unlinkOrderFromUser(env, userId, orderId) {
+  if (!userId) return;
+  const key = 'user:' + userId + ':orders';
+  const list = JSON.parse((await env.STORE_KV.get(key)) || '[]');
+  const filtered = list.filter((id) => id !== orderId);
+  if (filtered.length !== list.length) {
+    await env.STORE_KV.put(key, JSON.stringify(filtered));
+  }
+}
+
+async function deleteOrder(env, orderId) {
+  const order = await getOrder(env, orderId);
+  if (!order) return false;
+
+  await env.STORE_KV.delete('order:' + orderId);
+
+  const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
+  await env.STORE_KV.put(
+    ORDERS_INDEX,
+    JSON.stringify(index.filter((o) => o.orderId !== orderId))
+  );
+
+  if (order.userId) await unlinkOrderFromUser(env, order.userId, order.orderId);
+  return true;
+}
+
 function normalizeWhatsAppPhone(phone) {
   let digits = onlyDigits(phone);
   if (!digits) return '';
@@ -719,9 +798,10 @@ function pixCustomerHint(order, shopPhone) {
     const wa = onlyDigits(shopPhone);
     return `Pague o PIX exibido no site e envie o comprovante no WhatsApp da loja: ${wa || '5511913394665'}. A loja confirma o pagamento em seguida.`;
   }
-  return order.pagamento === 'PIX'
-    ? 'Pague o PIX gerado no site. A confirmação é automática.'
-    : 'Finalize o pagamento no link seguro.';
+  if (order.pagamento === 'PIX' || order.pagamento === 'pix') {
+    return 'Pague o PIX gerado no site. A confirmação é automática.';
+  }
+  return 'Finalize o pagamento no link seguro.';
 }
 
 async function notifyWhatsApp(env, config, order, type) {
@@ -933,6 +1013,60 @@ async function createAsaasPayment(env, order, config, billingType) {
     billingType: 'CREDIT_CARD',
     paymentId: payment.id,
     invoiceUrl,
+    autoConfirm: true
+  };
+}
+
+async function createMercadoPagoPixPayment(env, order, config) {
+  const token = mercadoPagoToken(env);
+  if (!token) return null;
+
+  const nameParts = String(order.nome || 'Cliente').trim().split(/\s+/);
+  const firstName = nameParts[0] || 'Cliente';
+  const lastName = nameParts.slice(1).join(' ') || '.';
+  const cpf = onlyDigits(order.cpf);
+
+  const payer = {
+    email: order.email,
+    first_name: firstName.slice(0, 50),
+    last_name: lastName.slice(0, 50)
+  };
+  if (cpf.length === 11) {
+    payer.identification = { type: 'CPF', number: cpf };
+  }
+
+  const notificationUrl = (env.MP_WEBHOOK_URL || '').trim() || undefined;
+  const body = {
+    transaction_amount: Number(order.total.toFixed(2)),
+    description: `${config.product?.name || 'Kit Sensor Tattoo Fix'} — ${order.orderId}`.slice(0, 200),
+    payment_method_id: 'pix',
+    external_reference: order.orderId,
+    payer
+  };
+  if (notificationUrl) body.notification_url = notificationUrl;
+
+  const res = await fetch('https://api.mercadopago.com/v1/payments', {
+    method: 'POST',
+    headers: mpHeaders(env),
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data.message || data.cause?.[0]?.description || data.error || `HTTP ${res.status}`;
+    throw new Error(`Mercado Pago PIX: ${msg}`);
+  }
+
+  const tx = data.point_of_interaction?.transaction_data;
+  if (!tx?.qr_code) {
+    throw new Error('Mercado Pago não retornou QR Code PIX.');
+  }
+
+  return {
+    provider: 'mercadopago',
+    billingType: 'PIX',
+    paymentId: String(data.id),
+    pixCopyPaste: tx.qr_code,
+    pixQrEncoded: tx.qr_code_base64 || null,
     autoConfirm: true
   };
 }
@@ -1215,35 +1349,45 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   let payment = null;
   const hasAsaas = !!asaasApiKey(env);
+  const hasMp = !!mercadoPagoToken(env);
+
   try {
-    payment = await createAsaasPayment(env, order, config, billingType);
-  } catch (err) {
-    console.error('Asaas:', err.message);
-    if (hasAsaas) {
-      return json({
-        error: billingType === 'CREDIT_CARD'
-          ? 'Cartão indisponível: ' + err.message
-          : 'PIX Asaas indisponível: ' + err.message
-      }, 400, origin);
+    if (billingType === 'PIX') {
+      if (hasMp) {
+        payment = await createMercadoPagoPixPayment(env, order, config);
+      } else if (hasAsaas) {
+        payment = await createAsaasPayment(env, order, config, 'PIX');
+      }
+    } else {
+      if (!hasAsaas) {
+        return json({ error: 'Cartão indisponível. Configure ASAAS_API_KEY.' }, 400, origin);
+      }
+      payment = await createAsaasPayment(env, order, config, 'CREDIT_CARD');
     }
-    if (billingType === 'CREDIT_CARD') {
-      return json({ error: 'Cartão indisponível. Configure ASAAS_API_KEY ou escolha PIX.' }, 400, origin);
+  } catch (err) {
+    console.error('Payment:', err.message);
+    const msg = billingType === 'CREDIT_CARD'
+      ? 'Cartão indisponível: ' + err.message
+      : 'PIX indisponível: ' + err.message;
+    if (billingType === 'CREDIT_CARD' || hasMp || hasAsaas) {
+      return json({ error: msg }, 400, origin);
     }
   }
 
   if (payment) {
-    order.paymentProvider = 'asaas';
-    order.asaasPaymentId = payment.paymentId;
+    order.paymentProvider = payment.provider || 'asaas';
+    if (payment.provider === 'asaas') order.asaasPaymentId = payment.paymentId;
+    if (payment.provider === 'mercadopago') order.mercadoPagoPaymentId = payment.paymentId;
     order.autoConfirm = payment.autoConfirm !== false;
     attachPaymentToOrder(order, payment, config);
-  } else if (hasAsaas) {
+  } else if (billingType === 'CREDIT_CARD') {
+    return json({ error: 'Cartão indisponível. Configure ASAAS_API_KEY.' }, 400, origin);
+  } else if (hasAsaas && !hasMp) {
     return json({ error: 'Não foi possível criar cobrança no Asaas. Verifique chave PIX cadastrada no painel.' }, 400, origin);
-  } else {
+  } else if (billingType === 'PIX') {
     order.paymentProvider = 'static_pix';
     order.autoConfirm = false;
-    if (billingType === 'PIX') {
-      attachPaymentToOrder(order, { provider: 'static_pix', billingType: 'PIX', autoConfirm: false }, config);
-    }
+    attachPaymentToOrder(order, { provider: 'static_pix', billingType: 'PIX', autoConfirm: false }, config);
   }
 
   await saveOrder(env, order);
@@ -1278,6 +1422,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   if (ctx) ctx.waitUntil(emailWork);
 
+  if (ctx && payment?.provider === 'mercadopago' && billingType === 'PIX' && isMpSandbox(env)) {
+    ctx.waitUntil(maybeSandboxAutoConfirmMpPix(env, order.orderId, payment.paymentId));
+  }
+
   const response = {
     order: publicOrderView(order),
     accessToken: order.accessToken,
@@ -1293,7 +1441,7 @@ async function handlePaymentConfirmed(env, order, payment) {
   const value = payment?.value ?? order.total;
   if (payment?.id) {
     order.paymentProof = {
-      provider: 'asaas',
+      provider: payment.provider || order.paymentProvider || 'asaas',
       paymentId: payment.id,
       value,
       billingType: payment.billingType
@@ -1395,6 +1543,42 @@ async function handleAsaasWebhook(request, env, origin) {
     const order = await getOrder(env, body.payment.externalReference);
     if (order && order.status !== 'paid') {
       await handlePaymentConfirmed(env, order, body.payment);
+    }
+  }
+  return json({ ok: true }, 200, origin);
+}
+
+async function handleMercadoPagoWebhook(request, env, origin) {
+  const mpToken = mercadoPagoToken(env);
+  if (!mpToken) return json({ error: 'MP não configurado.' }, 500, origin);
+
+  const url = new URL(request.url);
+  let paymentId = url.searchParams.get('id') || url.searchParams.get('data.id');
+
+  if (!paymentId && request.method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    paymentId = body?.data?.id || body?.id;
+  }
+  if (!paymentId) return json({ ok: true }, 200, origin);
+
+  const res = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+    headers: { Authorization: 'Bearer ' + mpToken, Accept: 'application/json' }
+  });
+  const payment = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.error('MP webhook:', res.status, payment);
+    return json({ ok: true }, 200, origin);
+  }
+
+  if (payment.status === 'approved' && payment.external_reference) {
+    const order = await getOrder(env, payment.external_reference);
+    if (order && order.status !== 'paid') {
+      await handlePaymentConfirmed(env, order, {
+        id: payment.id,
+        provider: 'mercadopago',
+        billingType: 'PIX',
+        value: payment.transaction_amount
+      });
     }
   }
   return json({ ok: true }, 200, origin);
@@ -1530,6 +1714,30 @@ async function handlePutConfig(request, env, origin) {
   return json(await saveConfig(env, merged), 200, origin);
 }
 
+async function handleDeleteOrder(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (!(await deleteOrder(env, orderId))) {
+    return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  }
+  return json({ ok: true, orderId }, 200, origin);
+}
+
+async function handleDeletePendingOrders(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+
+  const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
+  const pendingIds = index.filter((o) => o.status !== 'paid').map((o) => o.orderId);
+  let deleted = 0;
+  for (const orderId of pendingIds) {
+    if (await deleteOrder(env, orderId)) deleted++;
+  }
+  return json({ ok: true, deleted }, 200, origin);
+}
+
 async function handleListOrders(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
 
@@ -1577,6 +1785,13 @@ export default {
       if (path === '/orders' && request.method === 'POST') return handleCreateOrder(request, env, origin, ctx);
       if (path === '/orders' && request.method === 'GET') return handleListOrders(request, env, origin);
       if (path === '/webhook/asaas' && request.method === 'POST') return handleAsaasWebhook(request, env, origin);
+      if (path === '/webhook/mercadopago' && (request.method === 'POST' || request.method === 'GET')) {
+        return handleMercadoPagoWebhook(request, env, origin);
+      }
+
+      if (path === '/orders/pending' && request.method === 'DELETE') {
+        return handleDeletePendingOrders(request, env, origin);
+      }
 
       const confirmMatch = path.match(/^\/orders\/([^/]+)\/confirm$/);
       if (confirmMatch && request.method === 'POST') {
@@ -1585,6 +1800,7 @@ export default {
 
       const m = path.match(/^\/orders\/([^/]+)$/);
       if (m && request.method === 'GET') return handleGetOrder(request, env, origin, m[1]);
+      if (m && request.method === 'DELETE') return handleDeleteOrder(request, env, origin, m[1]);
       return json({ error: 'Rota não encontrada.' }, 404, origin);
     } catch (err) {
       return json({ error: err.message }, 500, origin);
