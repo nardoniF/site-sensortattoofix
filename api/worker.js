@@ -307,7 +307,7 @@ const LOGIN_LOCKOUT_SEC = 1800;
 function corsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin);
   const headers = {
-    'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, PUT, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, asaas-access-token',
     'Access-Control-Max-Age': '86400'
   };
@@ -1718,9 +1718,12 @@ async function handleDeleteOrder(request, env, origin, orderId) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
-  if (!(await deleteOrder(env, orderId))) {
-    return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  if (order.status === 'paid') {
+    return json({ error: 'Pedidos pagos não podem ser excluídos.' }, 400, origin);
   }
+  await deleteOrder(env, orderId);
   return json({ ok: true, orderId }, 200, origin);
 }
 

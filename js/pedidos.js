@@ -108,9 +108,9 @@
         <td>${formatBRL(o.total)}</td>
         <td class="pedidos-actions">
           ${statusBadgeHtml(o.status)}
-          <button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>
+          ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
           ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
-          <button type="button" class="btn-delete-order" data-order-id="${o.orderId}" title="Excluir pedido"><i class="fas fa-trash-alt"></i> Excluir</button>
+          ${o.status !== 'paid' ? `<button type="button" class="btn-delete-order" data-order-id="${o.orderId}" title="Excluir pedido"><i class="fas fa-trash-alt"></i> Excluir</button>` : ''}
         </td>
       `;
 

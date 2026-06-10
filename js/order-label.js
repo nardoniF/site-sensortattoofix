@@ -173,14 +173,16 @@ window.STF_ORDER_LABEL = (function () {
 
   function print(order) {
     if (!order?.orderId) return;
-    const w = window.open('', '_blank', 'noopener,noreferrer,width=420,height=640');
+    const html = labelHtml(order);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
     if (!w) {
+      URL.revokeObjectURL(url);
       alert('Permita pop-ups para imprimir a etiqueta.');
       return;
     }
-    w.document.open();
-    w.document.write(labelHtml(order));
-    w.document.close();
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
   }
 
   return { print, labelHtml };
