@@ -20,6 +20,12 @@
     const forma = pagamento === 'paypal' ? 'paypal'
       : (pagamento === 'credit_card' || pagamento === 'cartao' ? 'cartao' : 'pix');
 
+    track('purchase', {
+      transaction_id: orderId,
+      value: valor,
+      currency: 'BRL',
+      pagamento: forma
+    });
     track('venda_confirmada', {
       pedido: orderId,
       valor,
