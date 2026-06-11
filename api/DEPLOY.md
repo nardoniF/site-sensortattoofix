@@ -2,7 +2,7 @@
 
 ## O que esta API faz
 
-- Confirmação automática **PIX** (Mercado Pago) e **cartão** (Asaas)
+- Confirmação automática **PIX** (Mercado Pago), **cartão** (Asaas) e **PayPal** (internacional)
 - Cotação **Mini Envios** (Correios) e **frete internacional**
 - **WhatsApp** para cliente e loja ao criar pedido e ao confirmar pagamento
 - **Base de pedidos** listável em `/pedidos.html`
@@ -24,9 +24,18 @@ wrangler secret put ADMIN_PASSWORD          # senha do admin/pedidos
 wrangler secret put MP_ACCESS_TOKEN         # Mercado Pago → Credenciais de produção
 wrangler secret put ASAAS_API_KEY           # Asaas → Integrações → API (cartão)
 wrangler secret put ASAAS_WEBHOOK_TOKEN     # token do webhook Asaas (cartão)
+wrangler secret put PAYPAL_CLIENT_ID          # PayPal Developer → app REST (internacional)
+wrangler secret put PAYPAL_CLIENT_SECRET
 ```
 
 Opcional:
+
+```bash
+wrangler secret put PAYPAL_SANDBOX            # "true" para testes sandbox
+wrangler secret put STORE_URL                 # URL do site (retorno PayPal)
+```
+
+Opcional (outros):
 
 ```bash
 wrangler secret put MP_WEBHOOK_URL
@@ -76,7 +85,16 @@ No painel Asaas → Integrações → Webhooks:
 - **Eventos:** `PAYMENT_RECEIVED`, `PAYMENT_CONFIRMED`
 - **Token:** mesmo valor de `ASAAS_WEBHOOK_TOKEN`
 
-## 8. Painéis
+## 8. Webhook PayPal (internacional)
+
+No [PayPal Developer](https://developer.paypal.com/) → sua aplicação → Webhooks:
+
+- **URL:** `https://SUA-URL.workers.dev/webhook/paypal`
+- **Eventos:** `PAYMENT.CAPTURE.COMPLETED`, `CHECKOUT.ORDER.COMPLETED`
+
+O cliente também confirma ao voltar do PayPal para `/comprar.html` (captura automática).
+
+## 9. Painéis
 
 | URL | Função |
 |-----|--------|

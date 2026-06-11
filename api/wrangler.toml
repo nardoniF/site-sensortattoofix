@@ -15,6 +15,10 @@ ADMIN_USERNAME = "admin"
 # MP_WEBHOOK_URL       — opcional: https://SEU-WORKER.workers.dev/webhook/mercadopago
 # ASAAS_API_KEY        — cartão de crédito (asaas.com)
 # ASAAS_WEBHOOK_TOKEN  — token do webhook Asaas (cartão)
+# PAYPAL_CLIENT_ID     — PayPal Developer → REST API (envio internacional)
+# PAYPAL_CLIENT_SECRET — secret do app PayPal
+# PAYPAL_SANDBOX       — opcional: "true" para sandbox
+# STORE_URL            — opcional: https://www.sensortattoofix.com.br (retorno PayPal)
 # CORREIOS_USER        — usuário API Correios (Meu Correios)
 # CORREIOS_PASSWORD    — código de acesso API Correios
 # CORREIOS_CONTRACT    — número do contrato/cartão postagem (opcional)

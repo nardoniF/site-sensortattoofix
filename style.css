@@ -1035,8 +1035,19 @@ line-height:1.8;
     gap: 8px;
 }
 .pix-panel { text-align: center; padding: 10px 0; }
-.pix-panel.mode-card .checkout-pix-ui { display: none !important; }
-.pix-panel.mode-pix .checkout-card-ui { display: none !important; }
+.pix-panel.mode-card .checkout-pix-ui,
+.pix-panel.mode-paypal .checkout-pix-ui { display: none !important; }
+.pix-panel.mode-pix .checkout-card-ui,
+.pix-panel.mode-pix .checkout-paypal-ui,
+.pix-panel.mode-card .checkout-paypal-ui,
+.pix-panel.mode-paypal .checkout-card-ui { display: none !important; }
+.payment-card-paypal i { color: #0070ba; font-size: 1.6rem; }
+.checkout-paypal-ui {
+    text-align: center;
+    padding: 8px 0 4px;
+}
+.paypal-icon i { color: #0070ba; font-size: 2.4rem; }
+.paypal-pay-btn { background: #0070ba !important; }
 .checkout-card-ui {
     margin: 20px auto;
     max-width: 420px;

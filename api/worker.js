@@ -1,6 +1,6 @@
 /**
  * API Sensor TattooFix — Cloudflare Worker
- * PIX (Mercado Pago) + Cartão (Asaas) · WhatsApp · Correios · Internacional · Pedidos
+ * PIX (Mercado Pago) + Cartão (Asaas) + PayPal (intl) · WhatsApp · Correios · Pedidos
  */
 
 const ALLOWED_ORIGINS = [
@@ -423,6 +423,7 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
       pixCopyPaste: order.pixCopyPaste || null,
       pixQrEncoded: order.pixQrEncoded || null,
       invoiceUrl: order.invoiceUrl || null,
+      approveUrl: order.paypalApproveUrl || null,
       autoConfirm: order.autoConfirm !== false
     };
   }
@@ -489,6 +490,8 @@ function attachPaymentToOrder(order, payment, config) {
   order.paymentBillingType = payment.billingType || 'PIX';
   order.autoConfirm = payment.autoConfirm !== false;
   if (payment.invoiceUrl) order.invoiceUrl = payment.invoiceUrl;
+  if (payment.approveUrl) order.paypalApproveUrl = payment.approveUrl;
+  if (payment.paypalOrderId) order.paypalOrderId = payment.paypalOrderId;
   if (payment.pixCopyPaste) {
     order.pixCopyPaste = payment.pixCopyPaste;
     order.pixQrEncoded = payment.pixQrEncoded || null;
@@ -1368,6 +1371,131 @@ async function createAsaasPayment(env, order, config, billingType) {
   };
 }
 
+function paypalBase(env) {
+  const id = String(env.PAYPAL_CLIENT_ID || '');
+  const sandbox = env.PAYPAL_SANDBOX === 'true' || env.PAYPAL_SANDBOX === '1' || id.startsWith('sb-');
+  return sandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+}
+
+function storeBaseUrl(config, env) {
+  return String(env.STORE_URL || config.store?.url || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
+}
+
+function paypalReturnUrls(config, order, env) {
+  const base = storeBaseUrl(config, env);
+  const success = new URLSearchParams({
+    paypal: 'success',
+    orderId: order.orderId,
+    accessToken: order.accessToken
+  });
+  const cancel = new URLSearchParams({
+    paypal: 'cancel',
+    orderId: order.orderId,
+    accessToken: order.accessToken
+  });
+  return {
+    return_url: `${base}/comprar.html?${success}`,
+    cancel_url: `${base}/comprar.html?${cancel}`
+  };
+}
+
+async function getPayPalAccessToken(env) {
+  const clientId = env.PAYPAL_CLIENT_ID;
+  const secret = env.PAYPAL_CLIENT_SECRET;
+  if (!clientId || !secret) throw new Error('PayPal não configurado no Worker.');
+
+  const res = await fetch(`${paypalBase(env)}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Basic ' + btoa(`${clientId}:${secret}`),
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json'
+    },
+    body: 'grant_type=client_credentials'
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error_description || data.error || 'Falha ao autenticar no PayPal.');
+  return data.access_token;
+}
+
+async function createPayPalCheckout(env, order, config) {
+  const accessToken = await getPayPalAccessToken(env);
+  const { return_url, cancel_url } = paypalReturnUrls(config, order, env);
+  const description = `Sensor Tattoo Fix — ${order.orderId}`.slice(0, 127);
+
+  const res = await fetch(`${paypalBase(env)}/v2/checkout/orders`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({
+      intent: 'CAPTURE',
+      purchase_units: [{
+        reference_id: order.orderId,
+        custom_id: order.orderId,
+        description,
+        amount: {
+          currency_code: 'BRL',
+          value: Number(order.total).toFixed(2)
+        }
+      }],
+      application_context: {
+        brand_name: 'Sensor Tattoo Fix',
+        locale: 'pt-BR',
+        landing_page: 'NO_PREFERENCE',
+        user_action: 'PAY_NOW',
+        return_url,
+        cancel_url
+      }
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail = data.details?.[0]?.description || data.message;
+    throw new Error(detail || 'Falha ao criar pagamento PayPal.');
+  }
+  const approveUrl = (data.links || []).find((l) => l.rel === 'approve')?.href;
+  if (!approveUrl) throw new Error('Link de pagamento PayPal não retornado.');
+
+  return {
+    provider: 'paypal',
+    billingType: 'PAYPAL',
+    paymentId: data.id,
+    paypalOrderId: data.id,
+    approveUrl,
+    autoConfirm: true
+  };
+}
+
+async function capturePayPalOrder(env, paypalOrderId) {
+  const accessToken = await getPayPalAccessToken(env);
+  const res = await fetch(`${paypalBase(env)}/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}/capture`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const issue = data.details?.[0]?.issue;
+    if (issue === 'ORDER_ALREADY_CAPTURED') {
+      return { status: 'COMPLETED', id: paypalOrderId, value: null };
+    }
+    const detail = data.details?.[0]?.description || data.message;
+    throw new Error(detail || 'Falha ao capturar pagamento PayPal.');
+  }
+  const capture = data.purchase_units?.[0]?.payments?.captures?.[0];
+  return {
+    status: data.status,
+    id: capture?.id || data.id,
+    value: capture?.amount?.value
+  };
+}
+
 function mpErrorMessage(data, status) {
   const parts = [];
   if (Array.isArray(data.cause)) {
@@ -1693,8 +1821,22 @@ async function handleCreateOrder(request, env, origin, ctx) {
     return json({ error: err.message }, 400, origin);
   }
   const valorProduto = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const billingType = body.pagamento === 'CARTAO' ? 'CREDIT_CARD' : 'PIX';
-  const pagamentoLabel = billingType === 'CREDIT_CARD' ? 'Cartão de crédito' : 'PIX';
+  const isIntl = (body.paisCode || 'BR') !== 'BR';
+  let billingType;
+  let pagamentoLabel;
+  if (isIntl) {
+    if (body.pagamento !== 'PAYPAL') {
+      return json({ error: 'Para envio internacional, o pagamento é via PayPal.' }, 400, origin);
+    }
+    billingType = 'PAYPAL';
+    pagamentoLabel = 'PayPal';
+  } else {
+    if (body.pagamento === 'PAYPAL') {
+      return json({ error: 'PayPal disponível apenas para envio internacional.' }, 400, origin);
+    }
+    billingType = body.pagamento === 'CARTAO' ? 'CREDIT_CARD' : 'PIX';
+    pagamentoLabel = billingType === 'CREDIT_CARD' ? 'Cartão de crédito' : 'PIX';
+  }
   const needsWatch = orderRequiresSmartwatch(items);
 
   let checkoutUser;
@@ -1750,7 +1892,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const hasMp = !!mercadoPagoToken(env);
 
   try {
-    if (billingType === 'PIX') {
+    if (billingType === 'PAYPAL') {
+      payment = await createPayPalCheckout(env, order, config);
+    } else if (billingType === 'PIX') {
       if (hasMp) {
         try {
           payment = await createMercadoPagoPixPayment(env, order, config);
@@ -1806,7 +1950,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
       Status: 'Aguardando pagamento',
       Total: formatBRL(order.total),
       Pagamento: order.pagamento,
-      Mensagem: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
+      Mensagem: billingType === 'PAYPAL'
+        ? 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.'
+        : 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
       'Link do pedido': resumeOrderUrl(config, order),
       ...orderWatchEmailFields(order),
       ...orderIntlProductFields(order)
@@ -1964,6 +2111,65 @@ async function handleAsaasWebhook(request, env, origin) {
     const order = await getOrder(env, body.payment.externalReference);
     if (order && order.status !== 'paid') {
       await handlePaymentConfirmed(env, order, body.payment);
+    }
+  }
+  return json({ ok: true }, 200, origin);
+}
+
+async function handlePayPalCapture(request, env, origin, orderId) {
+  const body = await request.json().catch(() => ({}));
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+
+  const accessToken = String(body.accessToken || '');
+  if (!order.accessToken || accessToken !== order.accessToken) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (order.status === 'paid') {
+    return json({ order: publicOrderView(order), status: 'paid' }, 200, origin);
+  }
+
+  const paypalOrderId = String(body.paypalOrderId || order.paypalOrderId || '');
+  if (!paypalOrderId) return json({ error: 'Pedido PayPal não encontrado.' }, 400, origin);
+
+  try {
+    const result = await capturePayPalOrder(env, paypalOrderId);
+    if (result.status === 'COMPLETED') {
+      await handlePaymentConfirmed(env, order, {
+        id: result.id,
+        provider: 'paypal',
+        billingType: 'PAYPAL',
+        value: Number(result.value) || order.total
+      });
+    } else {
+      return json({ error: 'Pagamento PayPal não concluído.', status: result.status }, 400, origin);
+    }
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
+
+  const updated = await getOrder(env, orderId);
+  return json({ order: publicOrderView(updated), status: updated.status }, 200, origin);
+}
+
+async function handlePayPalWebhook(request, env, origin) {
+  const body = await request.json().catch(() => ({}));
+  const eventType = body.event_type;
+  const resource = body.resource || {};
+
+  if (eventType === 'PAYMENT.CAPTURE.COMPLETED' || eventType === 'CHECKOUT.ORDER.COMPLETED') {
+    const orderId = resource.custom_id || resource.purchase_units?.[0]?.custom_id
+      || resource.purchase_units?.[0]?.reference_id;
+    if (orderId) {
+      const order = await getOrder(env, orderId);
+      if (order && order.status !== 'paid') {
+        await handlePaymentConfirmed(env, order, {
+          id: resource.id,
+          provider: 'paypal',
+          billingType: 'PAYPAL',
+          value: Number(resource.amount?.value) || order.total
+        });
+      }
     }
   }
   return json({ ok: true }, 200, origin);
@@ -2267,6 +2473,14 @@ export default {
       if (path === '/webhook/asaas' && request.method === 'POST') return handleAsaasWebhook(request, env, origin);
       if (path === '/webhook/mercadopago' && (request.method === 'POST' || request.method === 'GET')) {
         return handleMercadoPagoWebhook(request, env, origin);
+      }
+      if (path === '/webhook/paypal' && request.method === 'POST') {
+        return handlePayPalWebhook(request, env, origin);
+      }
+
+      const paypalCaptureMatch = path.match(/^\/orders\/([^/]+)\/paypal\/capture$/);
+      if (paypalCaptureMatch && request.method === 'POST') {
+        return handlePayPalCapture(request, env, origin, paypalCaptureMatch[1]);
       }
 
       if (path === '/orders/pending' && request.method === 'DELETE') {

@@ -165,12 +165,6 @@
                         <legend><i class="fas fa-globe-americas"></i> Frete internacional</legend>
                         <p class="admin-meta">O checkout usa o <strong>simulador Exporta Fácil</strong> dos Correios em tempo real (peso + CEP de origem). A tabela abaixo é só <strong>fallback</strong> se a API falhar — não é o preço que o cliente vê quando a API funciona.</p>
                         <div class="form-grid" style="margin-bottom:12px">
-                            <label class="full">Título geral (antes de escolher o frete)
-                                <input type="text" name="intlProductTitle" placeholder="Envio internacional">
-                            </label>
-                            <label class="full">Dica — antes de escolher o frete
-                                <textarea name="intlProductHint" rows="2" placeholder="Escolha o frete internacional…"></textarea>
-                            </label>
                             <label class="full">Texto — Exporta Fácil / encomenda (com kit Prime)
                                 <textarea name="intlProductEncomendaNotice" rows="3" placeholder="O que é enviado: kit com potencializador…"></textarea>
                             </label>
@@ -250,6 +244,7 @@
                                 <input type="url" name="apiBaseUrl" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
                                 <small>Salvar online exige API configurada e login.</small>
                             </label>
+                            <p class="admin-meta full">PayPal (envio internacional): configure no Worker os secrets <code>PAYPAL_CLIENT_ID</code> e <code>PAYPAL_CLIENT_SECRET</code>. Webhook: <code>/webhook/paypal</code></p>
                             <div class="full admin-email-tests">
                                 <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
                                 <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>

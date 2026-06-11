@@ -30,8 +30,16 @@
     orderId: document.getElementById('order-id'),
     paymentStatus: document.getElementById('payment-status'),
     cardPayLink: document.getElementById('card-pay-link'),
+    paypalPayLink: document.getElementById('paypal-pay-link'),
     pixUi: document.getElementById('pix-ui'),
     cardUi: document.getElementById('card-ui'),
+    paypalUi: document.getElementById('paypal-ui'),
+    paymentOptionsBr: document.getElementById('payment-options-br'),
+    paymentOptionsIntl: document.getElementById('payment-options-intl'),
+    paymentNoticeBr: document.getElementById('payment-notice-br'),
+    paymentNoticeIntl: document.getElementById('payment-notice-intl'),
+    cpfLabel: document.getElementById('cpf-label'),
+    cpfInput: document.getElementById('cpf-input'),
     paymentPanel: document.getElementById('payment-panel'),
     confirmTitle: document.getElementById('confirm-title'),
     confirmHint: document.getElementById('confirm-hint'),
@@ -358,11 +366,42 @@
     return `<div class="shipping-card-notice">${inner}</div>`;
   }
 
+  function updatePaymentOptionsForCountry() {
+    if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = isInternational;
+    if (els.paymentOptionsIntl) els.paymentOptionsIntl.hidden = !isInternational;
+    if (els.paymentNoticeBr) els.paymentNoticeBr.hidden = isInternational;
+    if (els.paymentNoticeIntl) els.paymentNoticeIntl.hidden = !isInternational;
+    els.paymentOptionsBr?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
+      r.disabled = isInternational;
+    });
+    els.paymentOptionsIntl?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
+      r.disabled = !isInternational;
+    });
+    els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
+    if (isInternational) {
+      const paypal = els.paymentOptionsIntl?.querySelector('input[value="PAYPAL"]');
+      if (paypal) paypal.checked = true;
+    } else {
+      const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
+      if (pix) pix.checked = true;
+    }
+    if (els.cpfLabel && els.cpfInput) {
+      if (isInternational) {
+        els.cpfLabel.firstChild.textContent = 'Documento (opcional) ';
+        els.cpfInput.removeAttribute('required');
+      } else {
+        els.cpfLabel.firstChild.textContent = 'CPF * ';
+        els.cpfInput.setAttribute('required', '');
+      }
+    }
+  }
+
   function toggleAddressForm() {
     isInternational = els.paisCode.value !== 'BR';
     els.addressBr.hidden = isInternational;
     els.addressIntl.hidden = !isInternational;
     els.summaryShippingLabel.textContent = isInternational ? 'Frete internacional' : 'Frete';
+    updatePaymentOptionsForCountry();
     shippingCost = null;
     shippingInfo = null;
     shippingOptions = [];
@@ -640,8 +679,11 @@
       alert('Seu carrinho está vazio.'); return false;
     }
     const needsWatch = window.STF_CART?.requiresSmartwatch();
-    if (!f.nome.value || !f.email.value || !f.telefone.value || !f.cpf.value) {
+    if (!f.nome.value || !f.email.value || !f.telefone.value) {
       alert('Preencha todos os campos obrigatórios.'); return false;
+    }
+    if (!isInternational && !f.cpf.value) {
+      alert('Informe o CPF.'); return false;
     }
     if (needsWatch && !f.smartwatch.value) {
       alert('Selecione o modelo do smartwatch.'); return false;
@@ -720,15 +762,26 @@
   function showPixUi() {
     if (els.pixUi) els.pixUi.hidden = false;
     if (els.cardUi) els.cardUi.hidden = true;
-    els.paymentPanel?.classList.remove('mode-card');
+    if (els.paypalUi) els.paypalUi.hidden = true;
+    els.paymentPanel?.classList.remove('mode-card', 'mode-paypal');
     els.paymentPanel?.classList.add('mode-pix');
   }
 
   function showCardUi() {
     if (els.pixUi) els.pixUi.hidden = true;
     if (els.cardUi) els.cardUi.hidden = false;
-    els.paymentPanel?.classList.remove('mode-pix');
+    if (els.paypalUi) els.paypalUi.hidden = true;
+    els.paymentPanel?.classList.remove('mode-pix', 'mode-paypal');
     els.paymentPanel?.classList.add('mode-card');
+  }
+
+  function showPayPalUi(url) {
+    if (els.pixUi) els.pixUi.hidden = true;
+    if (els.cardUi) els.cardUi.hidden = true;
+    if (els.paypalUi) els.paypalUi.hidden = false;
+    els.paymentPanel?.classList.remove('mode-pix', 'mode-card');
+    els.paymentPanel?.classList.add('mode-paypal');
+    if (els.paypalPayLink && url) els.paypalPayLink.href = url;
   }
 
   function renderPix(orderId, total, payment) {
@@ -792,7 +845,8 @@
     try {
       const orderData = collectOrderData();
       const wantsCard = orderData.pagamento === 'CARTAO';
-      lastPaymentMethod = wantsCard ? 'credit_card' : 'pix';
+      const wantsPaypal = orderData.pagamento === 'PAYPAL';
+      lastPaymentMethod = wantsPaypal ? 'paypal' : (wantsCard ? 'credit_card' : 'pix');
       const result = await createOrder(orderData);
       const total = result.order?.total || (cartSubtotal() + orderData.frete);
       window.STF_CART?.clear();
@@ -812,7 +866,19 @@
       els.paymentStatus.hidden = false;
       els.paymentStatus.className = 'payment-status waiting';
 
-      if (wantsCard) {
+      if (wantsPaypal) {
+        if (payment.billingType !== 'PAYPAL' || !payment.approveUrl) {
+          throw new Error('PayPal indisponível no momento. Tente novamente ou fale conosco no WhatsApp.');
+        }
+        showPayPalUi(payment.approveUrl);
+        els.confirmTitle.textContent = 'Pedido registrado — pagamento PayPal';
+        els.confirmHint.textContent = 'Após pagar no PayPal, você voltará aqui com a confirmação automática.';
+        els.paymentStatus.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Redirecionando ao PayPal…';
+        showStep(3);
+        window.location.href = payment.approveUrl;
+        return;
+      } else if (wantsCard) {
         if (payment.billingType !== 'CREDIT_CARD' || !payment.invoiceUrl) {
           throw new Error(
             'Pagamento com cartão indisponível no momento. Escolha PIX ou tente mais tarde.'
@@ -842,7 +908,7 @@
         pedido: orderId,
         valor: total,
         moeda: 'BRL',
-        pagamento: lastPaymentMethod === 'credit_card' ? 'cartao' : 'pix'
+        pagamento: lastPaymentMethod === 'paypal' ? 'paypal' : (lastPaymentMethod === 'credit_card' ? 'cartao' : 'pix')
       });
 
       if (accessToken) startPolling(orderId, accessToken, total);
@@ -906,6 +972,63 @@
     });
   }
 
+  async function handlePayPalReturn() {
+    const params = new URLSearchParams(location.search);
+    const paypalState = params.get('paypal');
+    if (!paypalState) return false;
+
+    if (paypalState === 'cancel') {
+      alert('Pagamento PayPal cancelado. Você pode retomar pelo link no e-mail ou criar um novo pedido.');
+      history.replaceState({}, '', location.pathname);
+      return true;
+    }
+    if (paypalState !== 'success') return false;
+
+    const orderId = params.get('orderId');
+    const accessToken = params.get('accessToken');
+    const paypalOrderId = params.get('token');
+    if (!orderId || !accessToken || !paypalOrderId) return false;
+
+    const base = apiBase();
+    if (!base) return false;
+
+    try {
+      showStep(3);
+      els.paymentStatus.hidden = false;
+      els.paymentStatus.className = 'payment-status waiting';
+      els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando pagamento PayPal…';
+
+      const res = await fetch(`${base}/orders/${encodeURIComponent(orderId)}/paypal/capture`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken, paypalOrderId })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao confirmar PayPal.');
+
+      els.orderId.textContent = orderId;
+      els.pixAmount.textContent = formatBRL(data.order?.total || 0);
+      lastPaymentMethod = 'paypal';
+
+      if (data.status === 'paid' || data.order?.status === 'paid') {
+        els.paymentStatus.className = 'payment-status confirmed';
+        els.paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i> Pagamento PayPal confirmado! Você receberá a confirmação por e-mail.';
+        els.confirmTitle.textContent = 'Pagamento confirmado!';
+        window.STF_ANALYTICS?.trackPurchase(orderId, data.order?.total, 'paypal');
+      } else {
+        els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação do PayPal…';
+        startPolling(orderId, accessToken, data.order?.total);
+      }
+
+      history.replaceState({}, '', location.pathname);
+      return true;
+    } catch (err) {
+      alert(err.message || 'Erro ao confirmar PayPal.');
+      history.replaceState({}, '', location.pathname);
+      return true;
+    }
+  }
+
   async function resumeOrderFromUrl() {
     const params = new URLSearchParams(location.search);
     const pedido = params.get('pedido');
@@ -940,9 +1063,15 @@
       if (data.status !== 'pending_payment') return false;
 
       const payment = data.payment || {};
-      lastPaymentMethod = payment.billingType === 'CREDIT_CARD' ? 'credit_card' : 'pix';
+      lastPaymentMethod = payment.billingType === 'PAYPAL' ? 'paypal'
+        : (payment.billingType === 'CREDIT_CARD' ? 'credit_card' : 'pix');
 
-      if (payment.billingType === 'CREDIT_CARD' && payment.invoiceUrl) {
+      if (payment.billingType === 'PAYPAL' && payment.approveUrl) {
+        showPayPalUi(payment.approveUrl);
+        els.paymentStatus.className = 'payment-status waiting';
+        els.paymentStatus.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Conclua o pagamento no PayPal — use o botão abaixo se necessário.';
+      } else if (payment.billingType === 'CREDIT_CARD' && payment.invoiceUrl) {
         showCardPayment(payment.invoiceUrl);
         els.paymentStatus.className = 'payment-status waiting';
         els.paymentStatus.innerHTML =
@@ -970,7 +1099,8 @@
     products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
     populateSelects();
     window.STF_CART?.initBadges();
-    const resumed = await resumeOrderFromUrl();
+    const paypalDone = await handlePayPalReturn();
+    const resumed = paypalDone || await resumeOrderFromUrl();
     if (!resumed) {
       seedCartFromUrl();
       if (window.STF_CART?.isEmpty()) {
@@ -979,6 +1109,7 @@
       }
       renderCartSidebar();
       updateSummary();
+      updatePaymentOptionsForCountry();
       showStep(1);
     }
     await loadCustomerSession();

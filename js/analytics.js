@@ -17,7 +17,8 @@
     sessionStorage.setItem(key, '1');
 
     const valor = Number(total) || 0;
-    const forma = pagamento === 'credit_card' || pagamento === 'cartao' ? 'cartao' : 'pix';
+    const forma = pagamento === 'paypal' ? 'paypal'
+      : (pagamento === 'credit_card' || pagamento === 'cartao' ? 'cartao' : 'pix');
 
     track('venda_confirmada', {
       pedido: orderId,

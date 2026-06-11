@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Comprar Direto | Sensor Tattoo Fix — Loja Oficial</title>
     <meta name="description" content="Checkout oficial Sensor Tattoo Fix — PIX, cartão, envio nacional e internacional.">
-    <link rel="stylesheet" href="style.css?v=1.65">
+    <link rel="stylesheet" href="style.css?v=1.66">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script>
@@ -71,7 +71,7 @@
                             <label class="full">Nome completo *<input type="text" name="nome" required></label>
                             <label>E-mail *<input type="email" name="email" required></label>
                             <label>WhatsApp *<input type="tel" name="telefone" required placeholder="(11) 99999-9999"></label>
-                            <label>CPF / Documento *<input type="text" name="cpf" required></label>
+                            <label id="cpf-label">CPF *<input type="text" name="cpf" id="cpf-input" required></label>
                             <div id="smartwatch-wrap">
                                 <label class="full">Modelo do smartwatch *
                                     <select name="smartwatch" id="smartwatch-select" required>
@@ -158,7 +158,7 @@
 
                     <div class="checkout-step" data-step="2">
                         <h3>Forma de pagamento</h3>
-                        <div class="payment-options">
+                        <div id="payment-options-br" class="payment-options">
                             <label class="payment-option">
                                 <input type="radio" name="pagamento" value="PIX" checked>
                                 <div class="payment-card"><i class="fas fa-qrcode"></i><div><strong>PIX</strong><small>Confirmação automática · QR Code na hora</small></div></div>
@@ -168,7 +168,14 @@
                                 <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Cartão de crédito</strong><small>Pagamento seguro via Asaas</small></div></div>
                             </label>
                         </div>
-                        <div class="checkout-notice"><i class="fas fa-info-circle"></i> Após o pagamento, a confirmação é automática no site e por e-mail.</div>
+                        <div id="payment-options-intl" class="payment-options" hidden>
+                            <label class="payment-option">
+                                <input type="radio" name="pagamento" value="PAYPAL" checked>
+                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Cartão internacional, débito ou saldo PayPal</small></div></div>
+                            </label>
+                        </div>
+                        <div id="payment-notice-br" class="checkout-notice"><i class="fas fa-info-circle"></i> Após o pagamento, a confirmação é automática no site e por e-mail.</div>
+                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fab fa-paypal"></i> Você será redirecionado ao PayPal para pagar em segurança. Valores em reais (BRL).</div>
                     </div>
 
                     <div class="checkout-step" data-step="3">
@@ -192,6 +199,14 @@
                                 <p class="card-pay-text">Pagamento seguro processado pelo Asaas.</p>
                                 <a id="card-pay-link" href="#" class="btn-primary card-pay-btn" target="_blank" rel="noopener">
                                     <i class="fas fa-lock"></i> Abrir pagamento com cartão
+                                </a>
+                            </div>
+
+                            <div id="paypal-ui" class="checkout-paypal-ui" hidden>
+                                <div class="card-pay-icon paypal-icon"><i class="fab fa-paypal"></i></div>
+                                <p class="card-pay-text">Redirecionando ao PayPal… Se não abrir, use o botão abaixo.</p>
+                                <a id="paypal-pay-link" href="#" class="btn-primary card-pay-btn paypal-pay-btn" target="_blank" rel="noopener">
+                                    <i class="fab fa-paypal"></i> Pagar com PayPal
                                 </a>
                             </div>
 
@@ -229,7 +244,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="js/order-watch.js"></script>
     <script src="js/analytics.js?v=2"></script>
-    <script src="js/checkout.js?v=29"></script>
+    <script src="js/checkout.js?v=30"></script>
     <script src="js/seo-schema.js?v=4"></script>
 </body>
 </html>
