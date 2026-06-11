@@ -1825,11 +1825,17 @@ async function handleCreateOrder(request, env, origin, ctx) {
   let billingType;
   let pagamentoLabel;
   if (isIntl) {
-    if (body.pagamento !== 'PAYPAL') {
-      return json({ error: 'Para envio internacional, o pagamento é via PayPal.' }, 400, origin);
+    if (body.pagamento === 'PAYPAL') {
+      billingType = 'PAYPAL';
+      pagamentoLabel = 'PayPal';
+    } else if (body.pagamento === 'PIX') {
+      billingType = 'PIX';
+      pagamentoLabel = 'PIX';
+    } else if (body.pagamento === 'CARTAO') {
+      return json({ error: 'Cartão (Asaas) disponível apenas para entrega no Brasil. No exterior, use PayPal ou PIX.' }, 400, origin);
+    } else {
+      return json({ error: 'Escolha PayPal ou PIX para envio internacional.' }, 400, origin);
     }
-    billingType = 'PAYPAL';
-    pagamentoLabel = 'PayPal';
   } else {
     if (body.pagamento === 'PAYPAL') {
       return json({ error: 'PayPal disponível apenas para envio internacional.' }, 400, origin);

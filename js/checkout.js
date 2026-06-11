@@ -840,6 +840,11 @@
   }
 
   async function processPayment() {
+    const pagamento = els.form.querySelector('[name=pagamento]:checked')?.value;
+    if (isInternational && pagamento === 'PIX' && !els.form.cpf.value.trim()) {
+      alert('Para pagar com PIX no exterior, informe seu CPF (conta bancária no Brasil).');
+      return;
+    }
     els.btnPay.disabled = true;
     els.btnPay.textContent = 'Processando...';
     try {
