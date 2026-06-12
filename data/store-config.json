@@ -134,5 +134,11 @@
   "api": {
     "baseUrl": "https://sensortattoofix-payments.sensortattoofix.workers.dev"
   },
+  "payments": {
+    "paypal": {
+      "internationalEnabled": true,
+      "showAfter": "2026-06-13T05:30:00.000Z"
+    }
+  },
   "updatedAt": "2026-06-08T12:00:00.000Z"
 }

@@ -245,7 +245,17 @@
                                 <small>Salvar online exige API configurada e login.</small>
                             </label>
                             <p id="paypal-api-status" class="admin-meta full">Verificando PayPal…</p>
-                            <p class="admin-meta full">PayPal (internacional): secrets <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code> (Live). Webhook: <code>/webhook/paypal</code></p>
+                            <div class="form-grid">
+                                <label class="label-check admin-ship-enabled">
+                                    <input type="checkbox" name="paypalIntlEnabled" checked>
+                                    <span>PayPal internacional visível no checkout</span>
+                                </label>
+                                <label>Exibir PayPal internacional a partir de
+                                    <input type="datetime-local" name="paypalShowAfter">
+                                    <small>Antes dessa data/hora só aparece PIX no exterior.</small>
+                                </label>
+                            </div>
+                            <p class="admin-meta full">Secrets: <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code>. Webhook: <code>/webhook/paypal</code></p>
                             <div class="full admin-email-tests">
                                 <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
                                 <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
@@ -281,6 +291,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=16"></script>
+    <script src="js/admin.js?v=17"></script>
 </body>
 </html>

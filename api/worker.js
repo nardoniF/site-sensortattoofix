@@ -79,6 +79,12 @@ const DEFAULT_CONFIG = {
     encomendaNotice: 'Nesse tipo de frete é enviado o kit completo.',
     documentNotice: 'Lente de melhor fixação, sem potencializador (este frete não permite líquidos).\n\nKit completo: escolha outra opção de envio.'
   },
+  payments: {
+    paypal: {
+      internationalEnabled: true,
+      showAfter: '2026-06-13T05:30:00.000Z'
+    }
+  },
   smartwatchModels: [
     'Apple Watch SE (40mm)',
     'Apple Watch SE (44mm)',
@@ -182,6 +188,14 @@ function withConfigDefaults(stored) {
     api: { ...base.api, ...(stored.api || {}) },
     internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },
     internationalProduct: { ...base.internationalProduct, ...(stored.internationalProduct || {}) },
+    payments: {
+      ...base.payments,
+      ...(stored.payments || {}),
+      paypal: {
+        ...base.payments?.paypal,
+        ...(stored.payments?.paypal || {})
+      }
+    },
     smartwatchModels: (stored.smartwatchModels && stored.smartwatchModels.length)
       ? stored.smartwatchModels
       : base.smartwatchModels,
@@ -346,6 +360,14 @@ function publicUserView(user) {
     telefone: user.telefone,
     cpf: user.cpf || ''
   };
+}
+
+function isInternationalPayPalAvailable(config) {
+  const paypal = config.payments?.paypal || {};
+  if (paypal.internationalEnabled === false) return false;
+  const showAfter = paypal.showAfter ? Date.parse(paypal.showAfter) : NaN;
+  if (Number.isFinite(showAfter) && Date.now() < showAfter) return false;
+  return true;
 }
 
 function publicConfigView(config) {
@@ -2003,6 +2025,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
   let pagamentoLabel;
   if (isIntl) {
     if (body.pagamento === 'PAYPAL') {
+      if (!isInternationalPayPalAvailable(config)) {
+        return json({ error: 'PayPal temporariamente indisponível. Use PIX ou tente novamente em breve.' }, 400, origin);
+      }
       billingType = 'PAYPAL';
       pagamentoLabel = 'PayPal';
     } else if (body.pagamento === 'PIX') {
@@ -2586,6 +2611,11 @@ async function handlePutConfig(request, env, origin) {
     shipping: { ...current.shipping, ...body.shipping },
     internationalShipping: { ...current.internationalShipping, ...body.internationalShipping },
     internationalProduct: { ...current.internationalProduct, ...body.internationalProduct },
+    payments: {
+      ...current.payments,
+      ...body.payments,
+      paypal: { ...current.payments?.paypal, ...body.payments?.paypal }
+    },
     shippingMethods: body.shippingMethods?.length ? body.shippingMethods : current.shippingMethods,
     smartwatchModels: body.smartwatchModels || current.smartwatchModels,
     products: body.products?.length ? body.products : current.products,

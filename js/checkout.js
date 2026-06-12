@@ -366,21 +366,40 @@
     return `<div class="shipping-card-notice">${inner}</div>`;
   }
 
+  function isPayPalIntlAvailable() {
+    const paypal = cfg.payments?.paypal || {};
+    if (paypal.internationalEnabled === false) return false;
+    const showAfter = paypal.showAfter ? Date.parse(paypal.showAfter) : NaN;
+    if (Number.isFinite(showAfter) && Date.now() < showAfter) return false;
+    return true;
+  }
+
   function updatePaymentOptionsForCountry() {
+    const paypalAvailable = isInternational && isPayPalIntlAvailable();
     if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = isInternational;
     if (els.paymentOptionsIntl) els.paymentOptionsIntl.hidden = !isInternational;
     if (els.paymentNoticeBr) els.paymentNoticeBr.hidden = isInternational;
     if (els.paymentNoticeIntl) els.paymentNoticeIntl.hidden = !isInternational;
+    const paypalRow = els.paymentOptionsIntl?.querySelector('.payment-option-paypal');
+    if (paypalRow) paypalRow.hidden = !paypalAvailable;
     els.paymentOptionsBr?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
       r.disabled = isInternational;
     });
     els.paymentOptionsIntl?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
-      r.disabled = !isInternational;
+      const isPaypal = r.value === 'PAYPAL';
+      r.disabled = !isInternational || (isPaypal && !paypalAvailable);
     });
+    if (els.paymentNoticeIntl) {
+      els.paymentNoticeIntl.innerHTML = paypalAvailable
+        ? '<i class="fas fa-info-circle"></i> Valores em reais (BRL). PayPal para clientes no exterior; PIX se você ainda usa banco brasileiro.'
+        : '<i class="fas fa-info-circle"></i> Valores em reais (BRL). No momento use <strong>PIX</strong> (conta bancária no Brasil). PayPal volta em breve.';
+    }
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
     if (isInternational) {
       const paypal = els.paymentOptionsIntl?.querySelector('input[value="PAYPAL"]');
-      if (paypal) paypal.checked = true;
+      const pixIntl = els.paymentOptionsIntl?.querySelector('input[value="PIX"]');
+      if (paypalAvailable && paypal) paypal.checked = true;
+      else if (pixIntl) pixIntl.checked = true;
     } else {
       const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
       if (pix) pix.checked = true;
