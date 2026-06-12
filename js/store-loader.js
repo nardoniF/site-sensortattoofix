@@ -44,6 +44,16 @@ window.StoreConfig = (function () {
             if (local.internationalProduct) {
               config.internationalProduct = { ...config.internationalProduct, ...local.internationalProduct };
             }
+            if (local.payments?.paypal) {
+              config.payments = {
+                ...config.payments,
+                paypal: {
+                  ...local.payments.paypal,
+                  ...config.payments?.paypal,
+                  showAfter: config.payments?.paypal?.showAfter || local.payments.paypal.showAfter
+                }
+              };
+            }
           } catch (e) {
             console.warn('Fallback local para modelos indisponível.', e);
           }

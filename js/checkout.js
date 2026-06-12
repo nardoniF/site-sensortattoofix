@@ -366,10 +366,13 @@
     return `<div class="shipping-card-notice">${inner}</div>`;
   }
 
+  const PAYPAL_INTL_SHOW_AFTER_DEFAULT = '2026-06-13T05:30:00.000Z';
+
   function isPayPalIntlAvailable() {
     const paypal = cfg.payments?.paypal || {};
     if (paypal.internationalEnabled === false) return false;
-    const showAfter = paypal.showAfter ? Date.parse(paypal.showAfter) : NaN;
+    const showAfterRaw = paypal.showAfter || PAYPAL_INTL_SHOW_AFTER_DEFAULT;
+    const showAfter = showAfterRaw ? Date.parse(showAfterRaw) : NaN;
     if (Number.isFinite(showAfter) && Date.now() < showAfter) return false;
     return true;
   }
@@ -392,7 +395,7 @@
     if (els.paymentNoticeIntl) {
       els.paymentNoticeIntl.innerHTML = paypalAvailable
         ? '<i class="fas fa-info-circle"></i> Valores em reais (BRL). PayPal para clientes no exterior; PIX se você ainda usa banco brasileiro.'
-        : '<i class="fas fa-info-circle"></i> Valores em reais (BRL). No momento use <strong>PIX</strong> (conta bancária no Brasil). PayPal volta em breve.';
+        : '<i class="fas fa-info-circle"></i> Valores em reais (BRL). No momento use <strong>PIX</strong> (conta bancária no Brasil). <strong>Cartão no exterior</strong> volta via PayPal em breve.';
     }
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
     if (isInternational) {

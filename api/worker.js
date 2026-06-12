@@ -191,10 +191,7 @@ function withConfigDefaults(stored) {
     payments: {
       ...base.payments,
       ...(stored.payments || {}),
-      paypal: {
-        ...base.payments?.paypal,
-        ...(stored.payments?.paypal || {})
-      }
+      paypal: mergePaypalConfig(base.payments?.paypal, stored.payments?.paypal)
     },
     smartwatchModels: (stored.smartwatchModels && stored.smartwatchModels.length)
       ? stored.smartwatchModels
@@ -362,10 +359,19 @@ function publicUserView(user) {
   };
 }
 
+function mergePaypalConfig(basePaypal, storedPaypal) {
+  const merged = { ...basePaypal, ...(storedPaypal || {}) };
+  if (!storedPaypal?.showAfter) merged.showAfter = basePaypal?.showAfter;
+  return merged;
+}
+
+const PAYPAL_INTL_DEFAULT_SHOW_AFTER = DEFAULT_CONFIG.payments.paypal.showAfter;
+
 function isInternationalPayPalAvailable(config) {
   const paypal = config.payments?.paypal || {};
   if (paypal.internationalEnabled === false) return false;
-  const showAfter = paypal.showAfter ? Date.parse(paypal.showAfter) : NaN;
+  const showAfterRaw = paypal.showAfter || PAYPAL_INTL_DEFAULT_SHOW_AFTER;
+  const showAfter = showAfterRaw ? Date.parse(showAfterRaw) : NaN;
   if (Number.isFinite(showAfter) && Date.now() < showAfter) return false;
   return true;
 }
