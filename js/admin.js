@@ -115,11 +115,19 @@
     const entries = Object.entries(zones || {}).sort((a, b) => a[0].localeCompare(b[0]));
     list.innerHTML = entries.map(([code, z]) => `
       <div class="admin-intl-row" data-code="${escAttr(code)}">
-        <div class="form-grid">
-          <div class="admin-intl-code">${escAttr(code)}</div>
-          <label>País<input type="text" data-field="label" value="${escAttr(z.label || code)}"></label>
-          <label>Fallback R$<input type="number" data-field="price" step="0.01" min="0" value="${z.price ?? 0}"></label>
-          <label>Dias<input type="number" data-field="days" min="1" step="1" value="${z.days ?? 15}"></label>
+        <div class="admin-intl-grid">
+          <label>Código
+            <span class="admin-intl-code-field">${escAttr(code)}</span>
+          </label>
+          <label>País
+            <input type="text" data-field="label" value="${escAttr(z.label || code)}">
+          </label>
+          <label>Fallback (R$)
+            <input type="number" data-field="price" step="0.01" min="0" value="${z.price ?? 0}">
+          </label>
+          <label>Prazo (dias)
+            <input type="number" data-field="days" min="1" step="1" value="${z.days ?? 15}">
+          </label>
         </div>
       </div>
     `).join('');
@@ -175,7 +183,7 @@
     const rows = (methods?.length ? methods : defaultShippingMethods());
     list.innerHTML = rows.map((m, i) => `
       <div class="admin-ship-method-row" data-method-index="${i}">
-        <div class="form-grid">
+        <div class="admin-ship-method-grid">
           <label class="label-check admin-ship-enabled">
             <input type="checkbox" data-field="enabled" ${m.enabled !== false ? 'checked' : ''}>
             <span>Ativo</span>
@@ -186,17 +194,21 @@
               <option value="INT" ${m.scope === 'INT' ? 'selected' : ''}>Internacional</option>
             </select>
           </label>
-          <label>Nome exibido<input type="text" data-field="label" value="${escAttr(m.label || '')}"></label>
-          <label>Código Correios<input type="text" data-field="correiosCode" value="${escAttr(m.correiosCode || '')}" placeholder="04227 ou *"></label>
+          <label>Código Correios
+            <input type="text" data-field="correiosCode" value="${escAttr(m.correiosCode || '')}" placeholder="04227 ou *">
+          </label>
           <label data-sim-tipo-wrap ${m.scope === 'INT' ? '' : 'hidden'}>Tipo simulador
             <select data-field="simTipo">
-              <option value="M" ${(m.simTipo || 'M') === 'M' ? 'selected' : ''}>M — Encomenda (Exporta Fácil)</option>
-              <option value="D" ${m.simTipo === 'D' ? 'selected' : ''}>D — Documento / carta</option>
+              <option value="M" ${(m.simTipo || 'M') === 'M' ? 'selected' : ''}>M — Encomenda</option>
+              <option value="D" ${m.simTipo === 'D' ? 'selected' : ''}>D — Documento</option>
             </select>
+          </label>
+          <label class="admin-ship-label-wide">Nome exibido no checkout
+            <input type="text" data-field="label" value="${escAttr(m.label || '')}">
           </label>
           <input type="hidden" data-field="id" value="${escAttr(m.id || `method-${i}`)}">
         </div>
-        <button type="button" class="btn-secondary btn-remove-ship-method" data-index="${i}" style="margin-top:6px"><i class="fas fa-trash"></i> Remover</button>
+        <button type="button" class="btn-secondary btn-remove-ship-method" data-index="${i}"><i class="fas fa-trash"></i> Remover</button>
       </div>
     `).join('');
 

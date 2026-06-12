@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.70">
+    <link rel="stylesheet" href="style.css?v=1.71">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -123,7 +123,9 @@
                     <fieldset>
                         <legend><i class="fas fa-list-check"></i> Modalidades de envio (cliente escolhe)</legend>
                         <p class="admin-meta">O checkout lista <strong>preço e prazo</strong> de cada modalidade ativa. Internacional: tipo <strong>M</strong> = Exporta Fácil (encomenda), tipo <strong>D</strong> = documento/carta internacional (bem mais barato para lente fina). Use <code>*</code> para todos os serviços daquele tipo.</p>
-                        <div id="admin-shipping-methods"></div>
+                        <div class="admin-ship-methods-wrap">
+                            <div id="admin-shipping-methods"></div>
+                        </div>
                         <button type="button" id="btn-add-ship-method" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar modalidade</button>
                     </fieldset>
 
@@ -172,7 +174,9 @@
                                 <textarea name="intlProductDocumentNotice" rows="6" placeholder="Use linha em branco entre parágrafos…"></textarea>
                             </label>
                         </div>
-                        <div id="admin-intl-zones"></div>
+                        <div class="admin-intl-zones-wrap">
+                            <div id="admin-intl-zones"></div>
+                        </div>
                         <div class="form-grid" style="margin-top:12px">
                             <label>Testar país
                                 <select id="test-ship-country">
@@ -318,6 +322,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=18"></script>
+    <script src="js/admin.js?v=19"></script>
 </body>
 </html>
