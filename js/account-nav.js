@@ -39,11 +39,15 @@ window.STF_ACCOUNT = (function () {
     window.dispatchEvent(new CustomEvent('stf-account-changed', { detail: { user } }));
   }
 
+  function navT(key, fallback) {
+    return window.STF_I18N?.t?.(key) || fallback;
+  }
+
   function displayName(user) {
     if (!user) return '';
     const nome = (user.nome || '').trim();
     if (nome) return nome.split(/\s+/)[0];
-    return (user.email || '').split('@')[0] || 'Cliente';
+    return (user.email || '').split('@')[0] || navT('nav.guest', 'Cliente');
   }
 
   function escapeHtml(s) {
@@ -127,15 +131,15 @@ window.STF_ACCOUNT = (function () {
       const nome = displayName(user);
       slot.innerHTML = `
         <details class="account-nav-details">
-          <summary class="account-nav-summary" aria-label="Menu da conta">
+          <summary class="account-nav-summary" aria-label="${escapeHtml(navT('nav.accountMenu', 'Menu da conta'))}">
             <i class="fas fa-user-circle" aria-hidden="true"></i>
             <span class="account-nav-name">${escapeHtml(nome)}</span>
             <i class="fas fa-chevron-down account-nav-chevron" aria-hidden="true"></i>
           </summary>
           <div class="account-nav-menu">
             <span class="account-nav-menu-label">${escapeHtml(user.email || '')}</span>
-            <a href="${prefix}minha-conta.html"><i class="fas fa-box"></i> Meus pedidos</a>
-            <button type="button" data-account-logout><i class="fas fa-sign-out-alt"></i> Sair</button>
+            <a href="${prefix}minha-conta.html"><i class="fas fa-box"></i> ${escapeHtml(navT('nav.myOrders', 'Meus pedidos'))}</a>
+            <button type="button" data-account-logout><i class="fas fa-sign-out-alt"></i> ${escapeHtml(navT('nav.logout', 'Sair'))}</button>
           </div>
         </details>
       `;
@@ -143,7 +147,7 @@ window.STF_ACCOUNT = (function () {
       slot.innerHTML = `
         <a href="${prefix}minha-conta.html" class="account-nav-login">
           <i class="fas fa-user" aria-hidden="true"></i>
-          <span>Entrar</span>
+          <span>${escapeHtml(navT('nav.login', 'Entrar'))}</span>
         </a>
       `;
     }

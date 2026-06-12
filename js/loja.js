@@ -1,6 +1,19 @@
 (function () {
   let products = [];
 
+  function L(key, vars) {
+    return window.STF_I18N?.t(key, vars) || key;
+  }
+
+  function isEn() {
+    return window.STF_I18N?.isEn?.() || false;
+  }
+
+  function comprarHref(slug) {
+    const base = `comprar.html?produto=${encodeURIComponent(slug)}&comprar=1`;
+    return isEn() ? `${base}&lang=en` : base;
+  }
+
   function formatBRL(v) {
     return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
@@ -27,38 +40,30 @@
     flash._t = setTimeout(() => el.classList.remove('show'), 2200);
   }
 
-  function isEn() {
-    return window.STF_I18N?.getLang?.() === 'en';
-  }
-
-  function langQuery() {
-    return isEn() ? '&lang=en' : '';
-  }
-
   function renderGrid() {
     const grid = document.getElementById('loja-grid');
     if (!grid) return;
-    const en = isEn();
     if (!products.length) {
-      grid.innerHTML = '<p class="conta-empty">Nenhum produto disponível no momento.</p>';
+      grid.innerHTML = `<p class="conta-empty">${escapeHtml(L('store.empty'))}</p>`;
       return;
     }
     grid.innerHTML = products.map((p) => {
       const slug = p.slug || p.id || 'kit-sensor-tattoofix';
       const img = p.image || 'sensortattoofix.jpg';
+      const frete = L('store.frete');
       return `
         <article class="loja-card">
           <img src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" loading="lazy">
           <div class="loja-card-body">
             <h3>${escapeHtml(p.name)}</h3>
             <p>${escapeHtml(p.description || '')}</p>
-            <strong class="loja-price">${formatBRL(p.price)} + ${en ? 'shipping' : 'frete'}</strong>
+            <strong class="loja-price">${formatBRL(p.price)} + ${frete}</strong>
             <div class="loja-card-actions">
               <button type="button" class="btn-secondary loja-btn-add" data-slug="${escapeHtml(slug)}">
-                <i class="fas fa-cart-plus"></i> ${en ? 'Add' : 'Adicionar'}
+                <i class="fas fa-cart-plus"></i> ${escapeHtml(L('store.add'))}
               </button>
-              <a href="comprar.html?produto=${encodeURIComponent(slug)}&comprar=1${langQuery()}" class="btn-primary loja-btn-buy">
-                ${en ? 'Buy' : 'Comprar'} <i class="fas fa-arrow-right"></i>
+              <a href="${comprarHref(slug)}" class="btn-primary loja-btn-buy">
+                ${escapeHtml(L('store.buy'))} <i class="fas fa-arrow-right"></i>
               </a>
             </div>
           </div>
@@ -71,22 +76,14 @@
         const p = findProduct(btn.getAttribute('data-slug'));
         if (!p) return;
         window.STF_CART.add(p, 1);
-        flash(p.name + ' adicionado ao carrinho');
+        flash(L('store.addedName', { name: p.name }));
       });
     });
   }
 
   async function boot() {
     try {
-      if (window.STF_I18N?.getLang?.() === 'en') {
-        document.documentElement.lang = 'en';
-        const intro = document.querySelector('.loja-intro[data-store-price-tag]');
-        if (intro) intro.setAttribute('data-store-price-suffix', window.STF_I18N.t('store.intlSuffix'));
-        const h1 = document.querySelector('h1.section-title');
-        if (h1) h1.textContent = 'Official Store';
-        const footer = document.querySelector('[data-site-footer]');
-        if (footer) footer.dataset.lang = 'en';
-      }
+      window.STF_I18N?.applyLojaDom?.();
       const cfg = await StoreConfig.load();
       products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
       window.STF_CART?.initBadges();
@@ -94,7 +91,7 @@
       renderGrid();
     } catch (e) {
       const grid = document.getElementById('loja-grid');
-      if (grid) grid.innerHTML = '<p class="conta-empty">Erro ao carregar a loja.</p>';
+      if (grid) grid.innerHTML = `<p class="conta-empty">${escapeHtml(L('store.errorLoad'))}</p>`;
       console.error(e);
     }
   }

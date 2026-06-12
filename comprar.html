@@ -68,12 +68,12 @@
                     <div class="checkout-step active" data-step="1">
                         <h3>Seus dados</h3>
                         <div class="form-grid">
-                            <label class="full">Nome completo *<input type="text" name="nome" required></label>
-                            <label>E-mail *<input type="email" name="email" required></label>
-                            <label>WhatsApp *<input type="tel" name="telefone" required placeholder="(11) 99999-9999"></label>
-                            <label id="cpf-label">CPF *<input type="text" name="cpf" id="cpf-input" required></label>
+                            <label class="full" data-i18n-label="form.fullName" data-i18n-required="1"><input type="text" name="nome" required></label>
+                            <label data-i18n-label="form.email" data-i18n-required="1"><input type="email" name="email" required></label>
+                            <label data-i18n-label="form.whatsapp" data-i18n-required="1"><input type="tel" name="telefone" required placeholder="(11) 99999-9999"></label>
+                            <label id="cpf-label" data-i18n-label="form.cpf" data-i18n-required="1"><input type="text" name="cpf" id="cpf-input" required></label>
                             <div id="smartwatch-wrap">
-                                <label class="full">Modelo do smartwatch *
+                                <label class="full" data-i18n-label="form.watchModel" data-i18n-required="1">
                                     <select name="smartwatch" id="smartwatch-select" required>
                                         <option value="">Selecione o modelo</option>
                                     </select>
@@ -121,7 +121,7 @@
 
                         <h3>Destino do envio</h3>
                         <div class="form-grid">
-                            <label class="full">País *
+                            <label class="full" data-i18n-label="form.country" data-i18n-required="1">
                                 <select name="paisCode" id="pais-code" required>
                                     <option value="BR">Brasil</option>
                                 </select>
@@ -130,23 +130,23 @@
 
                         <div id="address-br">
                             <div class="form-grid">
-                                <label>CEP *<input type="text" name="cep" id="cep" inputmode="numeric" placeholder="00000-000"></label>
-                                <label class="span-2">Rua *<input type="text" name="rua"></label>
-                                <label>Número *<input type="text" name="numero"></label>
-                                <label>Complemento<input type="text" name="complemento"></label>
-                                <label>Bairro *<input type="text" name="bairro"></label>
-                                <label>Cidade *<input type="text" name="cidade"></label>
-                                <label>UF *<select name="uf"><option value="">UF</option><option>SP</option><option>RJ</option><option>MG</option><option>RS</option><option>PR</option><option>SC</option><option>BA</option><option>PE</option><option>CE</option><option>DF</option><option>GO</option><option>ES</option><option>AM</option><option>PA</option><option>MA</option><option>MT</option><option>MS</option><option>PB</option><option>RN</option><option>AL</option><option>SE</option><option>PI</option><option>RO</option><option>AC</option><option>AP</option><option>RR</option><option>TO</option></select></label>
+                                <label data-i18n-label="form.cep" data-i18n-required="1"><input type="text" name="cep" id="cep" inputmode="numeric" placeholder="00000-000"></label>
+                                <label class="span-2" data-i18n-label="form.street" data-i18n-required="1"><input type="text" name="rua"></label>
+                                <label data-i18n-label="form.number" data-i18n-required="1"><input type="text" name="numero"></label>
+                                <label data-i18n-label="form.complement"><input type="text" name="complemento"></label>
+                                <label data-i18n-label="form.district" data-i18n-required="1"><input type="text" name="bairro"></label>
+                                <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidade"></label>
+                                <label data-i18n-label="form.state" data-i18n-required="1"><select name="uf"><option value="">UF</option><option>SP</option><option>RJ</option><option>MG</option><option>RS</option><option>PR</option><option>SC</option><option>BA</option><option>PE</option><option>CE</option><option>DF</option><option>GO</option><option>ES</option><option>AM</option><option>PA</option><option>MA</option><option>MT</option><option>MS</option><option>PB</option><option>RN</option><option>AL</option><option>SE</option><option>PI</option><option>RO</option><option>AC</option><option>AP</option><option>RR</option><option>TO</option></select></label>
                             </div>
                         </div>
 
                         <div id="address-intl" hidden>
                             <div class="form-grid">
-                                <label>Código postal *<input type="text" name="postalIntl" id="postal-intl"></label>
-                                <label class="span-2">Rua / avenida *<input type="text" name="ruaIntl" id="rua-intl" placeholder="Rua do Além"></label>
-                                <label>Número<input type="text" name="numeroIntl" id="numero-intl" placeholder="78"></label>
-                                <label>Cidade *<input type="text" name="cidadeIntl" id="cidade-intl"></label>
-                                <label>Estado / Província<input type="text" name="ufIntl" id="uf-intl" placeholder="Opcional"></label>
+                                <label data-i18n-label="form.postal" data-i18n-required="1"><input type="text" name="postalIntl" id="postal-intl"></label>
+                                <label class="span-2" data-i18n-label="form.streetIntl" data-i18n-required="1"><input type="text" name="ruaIntl" id="rua-intl" placeholder="Rua do Além"></label>
+                                <label data-i18n-label="form.number"><input type="text" name="numeroIntl" id="numero-intl" placeholder="78"></label>
+                                <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidadeIntl" id="cidade-intl"></label>
+                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="Opcional"></label>
                             </div>
                         </div>
                         <div id="shipping-options-wrap" class="shipping-options-wrap" hidden>
@@ -243,7 +243,7 @@
 
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="pt"></div></footer>
 
-    <script src="js/stf-i18n.js?v=1"></script>
+    <script src="js/stf-i18n.js?v=2"></script>
     <script src="js/config-bootstrap.js"></script>
     <script src="js/site-footer.js"></script>
     <script src="js/account-nav.js"></script>
@@ -253,7 +253,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="js/order-watch.js"></script>
     <script src="js/analytics.js?v=3"></script>
-    <script src="js/checkout.js?v=36"></script>
+    <script src="js/checkout.js?v=37"></script>
     <script src="js/seo-schema.js?v=4"></script>
 </body>
 </html>

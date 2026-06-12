@@ -1,8 +1,31 @@
 (function () {
   const OUTRO_MODELO = 'Outro modelo (informar nas observações)';
 
-  function L(key) {
-    return window.STF_I18N?.t(key) || key;
+  function L(key, vars) {
+    return window.STF_I18N?.t(key, vars) || key;
+  }
+
+  function lojaHref() {
+    return window.STF_I18N?.lojaHref?.() || 'loja.html';
+  }
+
+  function setPayBtnLabel(key) {
+    const label = els.btnPay?.querySelector('.btn-checkout-label');
+    if (label) label.textContent = L(key);
+    else if (els.btnPay) els.btnPay.textContent = L(key);
+  }
+
+  function updateCpfLabel() {
+    if (!els.cpfLabel || !els.cpfInput) return;
+    const key = isInternational ? 'form.docOptional' : 'form.cpf';
+    const required = !isInternational;
+    const input = els.cpfInput;
+    while (els.cpfLabel.firstChild && els.cpfLabel.firstChild !== input) {
+      els.cpfLabel.removeChild(els.cpfLabel.firstChild);
+    }
+    els.cpfLabel.insertBefore(document.createTextNode(L(key) + (required ? ' *' : '')), input);
+    if (required) els.cpfInput.setAttribute('required', '');
+    else els.cpfInput.removeAttribute('required');
   }
 
   let cfg, products = [];
@@ -134,22 +157,22 @@
     const email = els.checkoutLoginEmail?.value.trim();
     const senha = els.checkoutLoginSenha?.value || '';
     if (!email || !senha) {
-      showCheckoutLoginStatus('Informe e-mail e senha.', 'error');
+      showCheckoutLoginStatus(L('account.loginNeedCreds'), 'error');
       return;
     }
     if (!window.STF_ACCOUNT) {
-      showCheckoutLoginStatus('Login indisponível. Tente em Minha Conta.', 'error');
+      showCheckoutLoginStatus(L('account.loginUnavailable'), 'error');
       return;
     }
     els.btnCheckoutLogin.disabled = true;
-    showCheckoutLoginStatus('Entrando...', '');
+    showCheckoutLoginStatus(L('account.loginEntering'), '');
     try {
       const data = await window.STF_ACCOUNT.login(email, senha);
       prefillCustomer(data.user);
       renderCheckoutAccountUI();
-      showCheckoutLoginStatus('Login realizado!', 'success');
+      showCheckoutLoginStatus(L('account.loginOk'), 'success');
     } catch (err) {
-      showCheckoutLoginStatus(err.message || 'Não foi possível entrar.', 'error');
+      showCheckoutLoginStatus(err.message || L('account.loginFail'), 'error');
     } finally {
       els.btnCheckoutLogin.disabled = false;
     }
@@ -159,8 +182,14 @@
     const user = getCustomerUser();
     if (els.accountLoggedWrap && els.accountGuestWrap) {
       if (user) {
-        if (els.accountLoggedName) {
-          els.accountLoggedName.textContent = window.STF_ACCOUNT.displayName(user);
+        const name = window.STF_ACCOUNT.displayName(user);
+        const loggedP = els.accountLoggedWrap.querySelector('p:first-child');
+        if (loggedP) {
+          loggedP.innerHTML = `<i class="fas fa-user-check"></i> ${L('account.logged', { name: `<strong id="account-logged-name">${escapeHtml(name)}</strong>` })}`;
+        }
+        const ordersHint = els.accountLoggedWrap.querySelector('.checkout-hint');
+        if (ordersHint) {
+          ordersHint.innerHTML = `${L('account.ordersAt')} <a href="minha-conta.html">${L('account.myAccount')}</a>.`;
         }
         els.accountLoggedWrap.hidden = false;
         els.accountGuestWrap.hidden = true;
@@ -181,7 +210,9 @@
   }
 
   function isOutroModelo(value) {
-    return value === OUTRO_MODELO || String(value || '').includes('Outro modelo');
+    return value === OUTRO_MODELO || value === L('watch.otherModel')
+      || String(value || '').includes('Outro modelo')
+      || String(value || '').includes('Other model');
   }
 
   function updateSmartwatchVisibility() {
@@ -206,11 +237,9 @@
     const outro = isOutroModelo(els.smartwatchSelect?.value);
     els.observacoes.required = outro;
     if (els.observacoesLabelText) {
-      els.observacoesLabelText.textContent = outro ? 'Observações *' : 'Observações (opcional)';
+      els.observacoesLabelText.textContent = outro ? `${L('form.notesRequired')} *` : L('form.notesOptional');
     }
-    els.observacoes.placeholder = outro
-      ? 'Informe marca e modelo do seu smartwatch'
-      : 'Ex.: instruções de entrega ou detalhes do pedido';
+    els.observacoes.placeholder = outro ? L('form.notesPhRequired') : L('form.notesPhOptional');
   }
 
   function seedCartFromUrl() {
@@ -229,7 +258,7 @@
     if (!els.cartSidebar || !window.STF_CART) return;
     const items = window.STF_CART.load();
     if (!items.length) {
-      els.cartSidebar.innerHTML = '<p class="conta-empty">Carrinho vazio</p>';
+      els.cartSidebar.innerHTML = `<p class="conta-empty">${escapeHtml(L('cart.empty'))}</p>`;
       return;
     }
     els.cartSidebar.innerHTML = items.map((item) => `
@@ -238,13 +267,13 @@
         <div class="cart-line-info">
           <strong>${escapeHtml(item.name)}</strong>
           <span class="cart-line-price">${formatBRL(item.price)}</span>
-          <div class="cart-qty" role="group" aria-label="Quantidade">
-            <button type="button" class="cart-qty-btn" data-delta="-1" aria-label="Diminuir">−</button>
+          <div class="cart-qty" role="group" aria-label="${escapeHtml(L('cart.qty'))}">
+            <button type="button" class="cart-qty-btn" data-delta="-1" aria-label="${escapeHtml(L('cart.decrease'))}">−</button>
             <span class="cart-qty-val">${item.qty}</span>
-            <button type="button" class="cart-qty-btn" data-delta="1" aria-label="Aumentar">+</button>
+            <button type="button" class="cart-qty-btn" data-delta="1" aria-label="${escapeHtml(L('cart.increase'))}">+</button>
           </div>
         </div>
-        <button type="button" class="cart-remove" title="Remover" aria-label="Remover">&times;</button>
+        <button type="button" class="cart-remove" title="${escapeHtml(L('cart.remove'))}" aria-label="${escapeHtml(L('cart.remove'))}">&times;</button>
       </div>
     `).join('');
 
@@ -253,7 +282,7 @@
       row.querySelector('.cart-remove')?.addEventListener('click', () => {
         window.STF_CART.remove(id);
         if (window.STF_CART.isEmpty()) {
-          window.location.href = 'loja.html';
+          window.location.href = lojaHref();
           return;
         }
         shippingCost = null;
@@ -270,7 +299,7 @@
           const current = window.STF_CART.load().find((i) => i.productId === id);
           window.STF_CART.setQty(id, (current?.qty || 1) + delta);
           if (window.STF_CART.isEmpty()) {
-            window.location.href = 'loja.html';
+            window.location.href = lojaHref();
             return;
           }
           shippingCost = null;
@@ -309,8 +338,8 @@
     if (model.startsWith('Huawei')) return 'Huawei';
     if (model.startsWith('Xiaomi') || model.startsWith('Redmi')) return 'Xiaomi / Redmi';
     if (model.startsWith('Amazfit')) return 'Amazfit';
-    if (model.startsWith('Fitbit') || model.startsWith('Polar')) return 'Outras marcas';
-    return 'Outros';
+    if (model.startsWith('Fitbit') || model.startsWith('Polar')) return L('watch.groupOtherBrands');
+    return L('watch.groupOthers');
   }
 
   function populateSelects() {
@@ -327,7 +356,7 @@
       items.forEach((m) => {
         const o = document.createElement('option');
         o.value = m;
-        o.textContent = m;
+        o.textContent = m === OUTRO_MODELO ? L('watch.otherModel') : m;
         og.appendChild(o);
       });
       els.smartwatchSelect.appendChild(og);
@@ -341,8 +370,11 @@
       els.paisCode.appendChild(o);
     });
     const other = document.createElement('option');
-    other.value = 'OTHER'; other.textContent = 'Outro país';
+    other.value = 'OTHER'; other.textContent = L('country.other');
     els.paisCode.appendChild(other);
+    if (els.smartwatchSelect?.options[0]) {
+      els.smartwatchSelect.options[0].textContent = L('form.watchSelect');
+    }
   }
 
   function intlProductCopy() {
@@ -413,15 +445,7 @@
       const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
       if (pix) pix.checked = true;
     }
-    if (els.cpfLabel && els.cpfInput) {
-      if (isInternational) {
-        els.cpfLabel.firstChild.textContent = 'Documento (opcional) ';
-        els.cpfInput.removeAttribute('required');
-      } else {
-        els.cpfLabel.firstChild.textContent = 'CPF * ';
-        els.cpfInput.setAttribute('required', '');
-      }
-    }
+    updateCpfLabel();
   }
 
   function toggleAddressForm() {
@@ -443,15 +467,15 @@
     if (els.shippingOptionsWrap) els.shippingOptionsWrap.hidden = true;
     if (els.shippingHint) {
       els.shippingHint.hidden = false;
-      els.shippingHint.textContent = 'Informe o destino para calcular o frete.';
+      els.shippingHint.textContent = L('shipping.hint');
     }
   }
 
   function shippingSourceLabel(source) {
-    if (source === 'correios') return 'Correios';
-    if (source === 'correios-export') return 'Correios Exporta Fácil';
-    if (source === 'config') return 'tabela admin (fallback)';
-    return 'estimativa';
+    if (source === 'correios') return L('shipping.sourceCorreios');
+    if (source === 'correios-export') return L('shipping.sourceExport');
+    if (source === 'config') return L('shipping.sourceConfigShort');
+    return L('shipping.sourceEstimateShort');
   }
 
   function selectShippingOption(option) {
@@ -469,7 +493,7 @@
     shippingOptions = options || [];
     if (!shippingOptions.length) {
       clearShippingOptions();
-      els.shippingHint.textContent = 'Nenhuma opção de frete disponível para este destino.';
+      els.shippingHint.textContent = L('shipping.none');
       return;
     }
 
@@ -480,7 +504,7 @@
       const inputId = `ship-opt-${opt.id}`;
       const checked = i === 0 ? 'checked' : '';
       const src = shippingSourceLabel(opt.source);
-      const tipoHint = opt.shipmentType === 'documento' ? ' · documento/carta' : '';
+      const tipoHint = opt.shipmentType === 'documento' ? ` · ${L('shipping.document')}` : '';
       const notice = shippingOptionNoticeHtml(opt.shipmentType);
       return `
         <label class="shipping-option" for="${inputId}">
@@ -490,7 +514,7 @@
             <div class="shipping-card-row">
               <div class="shipping-card-main">
                 <strong>${escapeHtml(opt.service)}</strong>
-                <small>${opt.days} dias · ${src}${tipoHint}</small>
+                <small>${opt.days} ${L('shipping.days')} · ${src}${tipoHint}</small>
               </div>
               <span class="shipping-card-price">${formatBRL(opt.price)}</span>
             </div>
@@ -552,7 +576,7 @@
   async function quoteShipping() {
     const base = apiBase();
     els.shippingHint.hidden = false;
-    els.shippingHint.textContent = 'Calculando frete...';
+    els.shippingHint.textContent = L('shipping.calculating');
     if (els.shippingOptionsWrap) els.shippingOptionsWrap.hidden = true;
 
     try {
@@ -569,11 +593,11 @@
         }
         if (!options.length) {
           const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
-          if (!z) throw new Error('País não atendido');
+          if (!z) throw new Error(L('country.unsupported'));
           options = [{
             id: 'config-fallback',
             methodId: 'config-fallback',
-            service: 'Internacional — ' + z.label,
+            service: `${L('shipping.intlPrefix')} ${z.label}`,
             price: z.price,
             days: z.days,
             source: 'config'
@@ -608,7 +632,7 @@
       shippingCost = null;
       shippingInfo = null;
       shippingOptions = [];
-      els.shippingHint.textContent = 'Erro ao calcular frete.';
+      els.shippingHint.textContent = L('shipping.error');
       updateSummary();
     }
   }
@@ -637,7 +661,7 @@
   async function fetchCep(cep) {
     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
     const data = await res.json();
-    if (data.erro) throw new Error('CEP inválido');
+    if (data.erro) throw new Error(L('shipping.cepInvalid'));
     return data;
   }
 
@@ -705,44 +729,44 @@
   function validateStep1() {
     const f = els.form;
     if (window.STF_CART?.isEmpty()) {
-      alert('Seu carrinho está vazio.'); return false;
+      alert(L('alert.cartEmpty')); return false;
     }
     const needsWatch = window.STF_CART?.requiresSmartwatch();
     if (!f.nome.value || !f.email.value || !f.telefone.value) {
-      alert('Preencha todos os campos obrigatórios.'); return false;
+      alert(L('alert.required')); return false;
     }
     if (!isInternational && !f.cpf.value) {
-      alert('Informe o CPF.'); return false;
+      alert(L('alert.cpf')); return false;
     }
     if (needsWatch && !f.smartwatch.value) {
-      alert('Selecione o modelo do smartwatch.'); return false;
+      alert(L('alert.watch')); return false;
     }
     if (needsWatch && isOutroModelo(f.smartwatch.value) && !(f.observacoes?.value || '').trim()) {
-      alert('Informe o modelo do smartwatch nas observações.'); return false;
+      alert(L('alert.watchNotes')); return false;
     }
     if (isRegisterAccountMode() && els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       const senha = els.checkoutSenha?.value || '';
       if (senha.length < 6) {
-        alert('Crie uma senha com pelo menos 6 caracteres ou desmarque "Criar conta".');
+        alert(L('alert.password'));
         return false;
       }
     }
     if (shippingCost === null || !shippingInfo) {
-      alert('Aguarde o cálculo do frete e escolha uma opção de envio.');
+      alert(L('alert.shippingWait'));
       return false;
     }
     const selectedRadio = els.shippingOptionsEl?.querySelector('input[name="shippingOption"]:checked');
     if (els.shippingOptionsWrap && !els.shippingOptionsWrap.hidden && !selectedRadio) {
-      alert('Selecione uma opção de frete.');
+      alert(L('alert.shippingPick'));
       return false;
     }
     if (!isInternational) {
       if (onlyDigits(f.cep.value).length !== 8 || !f.rua.value || !f.numero.value || !f.bairro.value || !f.cidade.value || !f.uf.value) {
-        alert('Preencha o endereço brasileiro completo.'); return false;
+        alert(L('alert.addrBr')); return false;
       }
     } else {
       if (!document.getElementById('rua-intl').value || !document.getElementById('cidade-intl').value) {
-        alert('Preencha o endereço internacional.'); return false;
+        alert(L('alert.addrIntl')); return false;
       }
     }
     return true;
@@ -761,7 +785,7 @@
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Erro ao registrar pedido.');
+        throw new Error(err.error || L('alert.orderError'));
       }
       return res.json();
     }
@@ -863,8 +887,8 @@
         if (order.status === 'paid') {
           clearInterval(pollTimer);
           els.paymentStatus.className = 'payment-status confirmed';
-          els.paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i> Pagamento confirmado! Você receberá a confirmação por e-mail em instantes.';
-          els.confirmTitle.textContent = 'Pagamento confirmado!';
+          els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paid')}`;
+          els.confirmTitle.textContent = L('title.paid');
           window.STF_ANALYTICS?.trackPurchase(orderId, total || order.total, lastPaymentMethod);
         }
       } catch (e) { console.warn(e); }
@@ -874,11 +898,11 @@
   async function processPayment() {
     const pagamento = els.form.querySelector('[name=pagamento]:checked')?.value;
     if (isInternational && pagamento === 'PIX' && !els.form.cpf.value.trim()) {
-      alert('Para pagar com PIX no exterior, informe seu CPF (conta bancária no Brasil).');
+      alert(L('alert.pixIntlCpf'));
       return;
     }
     els.btnPay.disabled = true;
-    els.btnPay.textContent = L('btn.processing');
+    setPayBtnLabel('btn.processing');
     try {
       const orderData = collectOrderData();
       const wantsIntlCard = isInternational && orderData.pagamento === 'CARTAO';
@@ -891,7 +915,7 @@
       const orderId = result.order?.orderId;
       const accessToken = result.accessToken;
       const payment = result.payment || {};
-      if (!orderId) throw new Error('Resposta inválida da API ao registrar pedido.');
+      if (!orderId) throw new Error(L('alert.orderInvalid'));
       if (result.customerToken && window.STF_ACCOUNT) {
         const u = getCustomerUser() || { nome: orderData.nome, email: orderData.email };
         window.STF_ACCOUNT.setSession(result.customerToken, u);
@@ -931,27 +955,25 @@
         return;
       } else if (wantsCardBr) {
         if (payment.billingType !== 'CREDIT_CARD' || !payment.invoiceUrl) {
-          throw new Error(
-            'Pagamento com cartão indisponível no momento. Escolha PIX ou tente mais tarde.'
-          );
+          throw new Error(L('alert.cardBrUnavailable'));
         }
         showCardPayment(payment.invoiceUrl, false);
         els.paymentStatus.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Abra a janela de pagamento, conclua com cartão e volte aqui — a confirmação é automática.';
+          `<i class="fas fa-spinner fa-spin"></i> ${L('status.cardWindow')}`;
         try { window.open(payment.invoiceUrl, '_blank', 'noopener,noreferrer'); } catch (_) { /* link visível no botão */ }
       } else {
         renderPix(orderId, total, payment);
         if (payment.autoConfirm) {
-          els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação automática do PIX...';
+          els.paymentStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${L('status.waitPix')}`;
         } else {
           const wa = (cfg.whatsapp || '5511913394665').replace(/\D/g, '');
-          const waText = encodeURIComponent(`Olá! Paguei o PIX do pedido ${orderId} (${formatBRL(total)}). Segue o comprovante.`);
+          const waText = encodeURIComponent(L('status.pixWhatsappText', { id: orderId, total: formatBRL(total) }));
           els.paymentStatus.innerHTML =
-            `<p><strong>Pedido ${orderId} registrado!</strong></p>` +
-            `<p>O PIX é na conta da loja — a confirmação é manual (não automática).</p>` +
+            `<p><strong>${L('status.pixRegistered', { id: orderId })}</strong></p>` +
+            `<p>${L('status.pixManualHint')}</p>` +
             `<p><a class="btn-whatsapp-proof" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">` +
-            `<i class="fab fa-whatsapp"></i> Enviar comprovante no WhatsApp</a></p>` +
-            `<p class="payment-hint-small">Esta página atualiza quando a loja confirmar o pagamento.</p>`;
+            `<i class="fab fa-whatsapp"></i> ${L('status.pixWhatsapp')}</a></p>` +
+            `<p class="payment-hint-small">${L('status.pixManualConfirm')}</p>`;
         }
       }
 
@@ -965,10 +987,10 @@
       if (accessToken) startPolling(orderId, accessToken, total);
       showStep(3);
     } catch (err) {
-      alert(err.message || 'Erro ao processar pedido.');
+      alert(err.message || L('alert.orderError'));
     } finally {
       els.btnPay.disabled = false;
-      els.btnPay.textContent = L('btn.pay');
+      setPayBtnLabel('btn.pay');
     }
   }
 
@@ -991,7 +1013,7 @@
         els.form.uf.value = addr.uf || '';
         await quoteShipping();
         els.form.numero.focus();
-      } catch { els.shippingHint.textContent = 'CEP inválido.'; }
+      } catch { els.shippingHint.textContent = L('shipping.cepInvalid'); }
     });
 
     ['postal-intl','rua-intl','cidade-intl'].forEach((id) => {
@@ -1053,7 +1075,7 @@
     }
 
     showCardPayment('#', true);
-    els.confirmTitle.textContent = mpState === 'success' ? 'Pagamento recebido' : 'Pagamento em processamento';
+    els.confirmTitle.textContent = mpState === 'success' ? L('title.mpReceived') : L('title.mpProcessing');
     showStep(3);
     startPolling(orderId, accessToken);
     history.replaceState({}, '', location.pathname);
@@ -1066,7 +1088,7 @@
     if (!paypalState) return false;
 
     if (paypalState === 'cancel') {
-      alert('Pagamento PayPal cancelado. Você pode retomar pelo link no e-mail ou criar um novo pedido.');
+      alert(L('alert.paypalCancel'));
       history.replaceState({}, '', location.pathname);
       return true;
     }
@@ -1084,7 +1106,7 @@
       showStep(3);
       els.paymentStatus.hidden = false;
       els.paymentStatus.className = 'payment-status waiting';
-      els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirmando pagamento PayPal…';
+      els.paymentStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${L('status.confirmPaypal')}`;
 
       const res = await fetch(`${base}/orders/${encodeURIComponent(orderId)}/paypal/capture`, {
         method: 'POST',
@@ -1092,7 +1114,7 @@
         body: JSON.stringify({ accessToken, paypalOrderId })
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Falha ao confirmar PayPal.');
+      if (!res.ok) throw new Error(data.error || L('alert.paypalConfirmFail'));
 
       els.orderId.textContent = orderId;
       els.pixAmount.textContent = formatBRL(data.order?.total || 0);
@@ -1100,18 +1122,18 @@
 
       if (data.status === 'paid' || data.order?.status === 'paid') {
         els.paymentStatus.className = 'payment-status confirmed';
-        els.paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i> Pagamento PayPal confirmado! Você receberá a confirmação por e-mail.';
-        els.confirmTitle.textContent = 'Pagamento confirmado!';
+        els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paypalOk')}`;
+        els.confirmTitle.textContent = L('title.paid');
         window.STF_ANALYTICS?.trackPurchase(orderId, data.order?.total, 'paypal');
       } else {
-        els.paymentStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação do PayPal…';
+        els.paymentStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${L('status.waitPaypal')}`;
         startPolling(orderId, accessToken, data.order?.total);
       }
 
       history.replaceState({}, '', location.pathname);
       return true;
     } catch (err) {
-      alert(err.message || 'Erro ao confirmar PayPal.');
+      alert(err.message || L('alert.paypalConfirmError'));
       history.replaceState({}, '', location.pathname);
       return true;
     }
@@ -1141,8 +1163,8 @@
 
       if (data.status === 'paid') {
         els.paymentStatus.className = 'payment-status confirmed';
-        els.paymentStatus.innerHTML = '<i class="fas fa-check-circle"></i> Pagamento já confirmado! Você receberá os detalhes por e-mail.';
-        els.confirmTitle.textContent = 'Pagamento confirmado!';
+        els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paidAlready')}`;
+        els.confirmTitle.textContent = L('title.paid');
         showStep(3);
         history.replaceState({}, '', location.pathname);
         return true;
@@ -1158,23 +1180,23 @@
         showPayPalUi(payment.approveUrl);
         els.paymentStatus.className = 'payment-status waiting';
         els.paymentStatus.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Conclua o pagamento no PayPal — use o botão abaixo se necessário.';
+          `<i class="fas fa-spinner fa-spin"></i> ${L('status.paypalBtn')}`;
       } else if (payment.billingType === 'MP_CHECKOUT' && (payment.approveUrl || payment.invoiceUrl)) {
         showCardPayment(payment.approveUrl || payment.invoiceUrl, true);
         els.paymentStatus.className = 'payment-status waiting';
         els.paymentStatus.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Conclua o pagamento com cartão no Mercado Pago.';
+          `<i class="fas fa-spinner fa-spin"></i> ${L('status.cardMpLink')}`;
       } else if (payment.billingType === 'CREDIT_CARD' && payment.invoiceUrl) {
         showCardPayment(payment.invoiceUrl, false);
         els.paymentStatus.className = 'payment-status waiting';
         els.paymentStatus.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Abra o link do cartão e volte aqui — a confirmação é automática.';
+          `<i class="fas fa-spinner fa-spin"></i> ${L('status.cardLink')}`;
       } else {
         renderPix(data.orderId, data.total, payment);
         els.paymentStatus.className = 'payment-status waiting';
         els.paymentStatus.innerHTML = payment.autoConfirm
-          ? '<i class="fas fa-spinner fa-spin"></i> Aguardando confirmação automática do PIX...'
-          : '<p>Escaneie o QR Code ou copie o PIX abaixo. Esta página atualiza quando o pagamento for confirmado.</p>';
+          ? `<i class="fas fa-spinner fa-spin"></i> ${L('status.waitPix')}`
+          : `<p>${L('status.waitPixManual')}</p>`;
       }
 
       startPolling(data.orderId, token, data.total);
@@ -1199,7 +1221,7 @@
     if (!resumed) {
       seedCartFromUrl();
       if (window.STF_CART?.isEmpty()) {
-        window.location.replace('loja.html');
+        window.location.replace(lojaHref());
         return;
       }
       renderCartSidebar();

@@ -18,9 +18,13 @@ window.STF_STORE_PRICE = (function () {
     const product = primaryProduct(config);
     const price = product?.price ?? config.product?.price ?? 59.9;
     const service = config.shipping?.serviceName || 'Mini Envios';
-    const freteWord = el?.getAttribute('data-store-price-frete') || 'frete';
+    const en = window.STF_I18N?.isEn?.();
+    const freteWord = el?.getAttribute('data-store-price-frete')
+      || (en ? window.STF_I18N.t('store.frete') : 'frete');
     let suffix = el?.getAttribute('data-store-price-suffix');
-    if (window.STF_I18N?.getLang?.() === 'en' && !suffix) {
+    if (en && suffix === 'PIX e cartão') {
+      suffix = window.STF_I18N.t('store.intlSuffix');
+    } else if (en && !suffix) {
       suffix = window.STF_I18N.t('store.priceSuffix');
     }
     let line = `${formatBRL(price)} + ${freteWord} · ${service}`;
