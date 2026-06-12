@@ -939,33 +939,110 @@ async function notifyWhatsApp(env, config, order, type) {
   if (shopMsg && shopPhone) await sendWhatsApp(env, shopPhone, shopMsg);
 }
 
-async function getCorreiosToken(env) {
-  const cached = await env.STORE_KV.get('correios:token');
-  if (cached) {
-    const data = JSON.parse(cached);
-    if (data.expiresAt > Date.now()) return data.token;
+function correiosAuthErrorMessage(data, status) {
+  const msgs = data?.msgs;
+  if (Array.isArray(msgs) && msgs.length) return msgs.join(' — ');
+  return data?.message || data?.mensagem || data?.erro || `HTTP ${status}`;
+}
+
+async function requestCorreiosToken(env, { useCache = true } = {}) {
+  if (useCache) {
+    const cached = await env.STORE_KV.get('correios:token');
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (data.expiresAt > Date.now()) {
+        return { token: data.token, mode: data.mode || 'cached' };
+      }
+    }
   }
-  const user = env.CORREIOS_USER;
-  const password = env.CORREIOS_PASSWORD;
-  if (!user || !password) return null;
+
+  const user = (env.CORREIOS_USER || '').trim();
+  const password = (env.CORREIOS_PASSWORD || '').trim();
+  if (!user || !password) {
+    return { token: null, error: 'CORREIOS_USER / CORREIOS_PASSWORD não configurados.' };
+  }
 
   const basic = btoa(user + ':' + password);
-  const contract = env.CORREIOS_CONTRACT;
-  const res = await fetch(
-    contract ? 'https://api.correios.com.br/token/v1/autentica/cartaopostagem' : 'https://api.correios.com.br/token/v1/autentica',
-    {
+  const contract = onlyDigits(env.CORREIOS_CONTRACT || '');
+  const attempts = [];
+
+  if (contract.length === 10) {
+    attempts.push({
+      mode: 'cartaopostagem',
+      url: 'https://api.correios.com.br/token/v1/autentica/cartaopostagem',
+      body: { numero: contract }
+    });
+  }
+
+  attempts.push({
+    mode: 'usuario',
+    url: 'https://api.correios.com.br/token/v1/autentica',
+    body: null
+  });
+
+  let lastError = 'Token não obtido.';
+  let lastStatus = 0;
+
+  for (const attempt of attempts) {
+    const res = await fetch(attempt.url, {
       method: 'POST',
-      headers: { Authorization: 'Basic ' + basic, 'Content-Type': 'application/json' },
-      body: contract ? JSON.stringify({ numero: contract }) : undefined
+      headers: {
+        Authorization: 'Basic ' + basic,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: attempt.body ? JSON.stringify(attempt.body) : undefined
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.token) {
+      await env.STORE_KV.put('correios:token', JSON.stringify({
+        token: data.token,
+        mode: attempt.mode,
+        expiresAt: Date.now() + (Number(data.expiraEm || 3600) - 60) * 1000
+      }));
+      return { token: data.token, mode: attempt.mode };
     }
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  await env.STORE_KV.put('correios:token', JSON.stringify({
-    token: data.token,
-    expiresAt: Date.now() + (Number(data.expiraEm || 3600) - 60) * 1000
-  }));
-  return data.token;
+    lastStatus = res.status;
+    lastError = correiosAuthErrorMessage(data, res.status);
+  }
+
+  let hint = 'Use CORREIOS_USER = CNPJ/usuário Meu Correios e CORREIOS_PASSWORD = código gerado no CWS (não a senha do site).';
+  if (!contract && (lastStatus === 401 || lastStatus === 403)) {
+    hint += ' Conta sem cartão de postagem: contrate em correios.com.br/correios-empresas e configure CORREIOS_CONTRACT.';
+  }
+
+  return { token: null, error: lastError, status: lastStatus, hint };
+}
+
+async function getCorreiosToken(env) {
+  const result = await requestCorreiosToken(env);
+  return result.token || null;
+}
+
+async function checkCorreiosIntegration(env) {
+  const user = (env.CORREIOS_USER || '').trim();
+  const password = (env.CORREIOS_PASSWORD || '').trim();
+  const contract = onlyDigits(env.CORREIOS_CONTRACT || '');
+  if (!user || !password) {
+    return { configured: false, authOk: false, contractConfigured: false };
+  }
+  const result = await requestCorreiosToken(env, { useCache: false });
+  if (result.token) {
+    return {
+      configured: true,
+      authOk: true,
+      contractConfigured: contract.length === 10,
+      mode: result.mode
+    };
+  }
+  return {
+    configured: true,
+    authOk: false,
+    contractConfigured: contract.length === 10,
+    status: result.status,
+    error: result.error,
+    hint: result.hint
+  };
 }
 
 function estimateBR(originCep, destCep) {
@@ -1722,8 +1799,7 @@ async function checkZApiIntegration(env) {
 }
 
 function buildIntegrationRows(env, config, checks) {
-  const { paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions } = checks;
-  const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
+  const { paypal, mercadoPago, asaas, resend, zapi, correios, exportOptions } = checks;
   const formsubmitEmail = (config.formsubmit?.email || '').trim();
   const ga4Secret = (env.GA4_API_SECRET || '').trim();
   const exportQuote = exportOptions[0] || null;
@@ -1819,7 +1895,7 @@ function buildIntegrationRows(env, config, checks) {
     });
   }
 
-  if (!hasCorreiosCreds) {
+  if (!correios?.configured) {
     rows.push({
       id: 'correios-br',
       label: 'Correios BR',
@@ -1827,21 +1903,24 @@ function buildIntegrationRows(env, config, checks) {
       status: 'warn',
       detail: 'Sem credenciais — usa estimativa fixa'
     });
-  } else if (!correiosToken) {
+  } else if (!correios.authOk) {
+    const parts = [correios.error || 'Token não obtido'];
+    if (correios.hint) parts.push(correios.hint);
     rows.push({
       id: 'correios-br',
       label: 'Correios BR',
       description: 'Cotação de frete nacional (Mini Envios)',
       status: 'error',
-      detail: 'Credenciais configuradas, mas token não obtido'
+      detail: parts.join(' · ')
     });
   } else {
+    const mode = correios.mode === 'cartaopostagem' ? 'via cartão de postagem' : 'via usuário/código API';
     rows.push({
       id: 'correios-br',
       label: 'Correios BR',
       description: 'Cotação de frete nacional (Mini Envios)',
       status: 'ok',
-      detail: 'API conectada'
+      detail: `API conectada (${mode})`
     });
   }
 
@@ -2874,15 +2953,13 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   }
   const config = await getConfig(env);
   const weightGrams = shippingWeightGrams(config);
-  const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
-
-  const [paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions] = await Promise.all([
+  const [paypal, mercadoPago, asaas, resend, zapi, correios, exportOptions] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
-    hasCorreiosCreds ? getCorreiosToken(env) : Promise.resolve(null),
+    checkCorreiosIntegration(env),
     quoteCorreiosExportOptions(config, 'PT', { weightGrams }).catch(() => [])
   ]);
 
@@ -2892,7 +2969,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     asaas,
     resend,
     zapi,
-    correiosToken,
+    correios,
     exportOptions
   });
 
