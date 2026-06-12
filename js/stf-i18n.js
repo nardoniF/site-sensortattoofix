@@ -452,8 +452,8 @@ window.STF_I18N = (function () {
         label.removeChild(label.firstChild);
       }
       if (control.tagName === 'SELECT') {
-        const first = control.querySelector('option[value=""]') || control.options[0];
-        if (first) first.textContent = text;
+        const placeholderOpt = control.querySelector('option[value=""]');
+        if (placeholderOpt) placeholderOpt.textContent = text;
         control.setAttribute('aria-label', text);
       } else {
         control.placeholder = text;
