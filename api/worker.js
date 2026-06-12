@@ -1000,13 +1000,27 @@ function applySelfTestPixPricing(order, config, env, billingType) {
   return true;
 }
 
+function paypalCredentials(env) {
+  return {
+    clientId: String(env.PAYPAL_CLIENT_ID || '').trim(),
+    secret: String(env.PAYPAL_CLIENT_SECRET || '').trim()
+  };
+}
+
+function isPayPalSandbox(env, clientId) {
+  const id = clientId || paypalCredentials(env).clientId;
+  const flag = String(env.PAYPAL_SANDBOX || '').trim().toLowerCase();
+  if (flag === 'true' || flag === '1') return true;
+  if (flag === 'false' || flag === '0') return false;
+  return id.startsWith('sb-');
+}
+
 /** PayPal Live: R$ 0,01 quando PAYPAL_SELF_TEST=true (remover após validar). */
 function isSelfTestPayPalEligible(env, billingType) {
   if (billingType !== 'PAYPAL') return false;
   if (env.PAYPAL_SELF_TEST !== 'true' && env.PAYPAL_SELF_TEST !== '1') return false;
-  const id = String(env.PAYPAL_CLIENT_ID || '');
-  const sandbox = env.PAYPAL_SANDBOX === 'true' || env.PAYPAL_SANDBOX === '1' || id.startsWith('sb-');
-  return !sandbox && !!id;
+  const { clientId } = paypalCredentials(env);
+  return !isPayPalSandbox(env, clientId) && !!clientId;
 }
 
 function applySelfTestPayPalPricing(order, env, billingType) {
@@ -1484,9 +1498,9 @@ async function createAsaasPayment(env, order, config, billingType) {
 }
 
 function paypalBase(env) {
-  const id = String(env.PAYPAL_CLIENT_ID || '');
-  const sandbox = env.PAYPAL_SANDBOX === 'true' || env.PAYPAL_SANDBOX === '1' || id.startsWith('sb-');
-  return sandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+  return isPayPalSandbox(env)
+    ? 'https://api-m.sandbox.paypal.com'
+    : 'https://api-m.paypal.com';
 }
 
 function storeBaseUrl(config, env) {
@@ -1512,8 +1526,7 @@ function paypalReturnUrls(config, order, env) {
 }
 
 async function getPayPalAccessToken(env) {
-  const clientId = env.PAYPAL_CLIENT_ID;
-  const secret = env.PAYPAL_CLIENT_SECRET;
+  const { clientId, secret } = paypalCredentials(env);
   if (!clientId || !secret) throw new Error('PayPal não configurado no Worker.');
 
   const res = await fetch(`${paypalBase(env)}/v1/oauth2/token`, {
@@ -1526,8 +1539,53 @@ async function getPayPalAccessToken(env) {
     body: 'grant_type=client_credentials'
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error_description || data.error || 'Falha ao autenticar no PayPal.');
+  if (!res.ok) {
+    const raw = data.error_description || data.error || 'Falha ao autenticar no PayPal.';
+    if (String(raw).toLowerCase().includes('client authentication')) {
+      throw new Error(isPayPalSandbox(env, clientId)
+        ? 'Credenciais PayPal sandbox inválidas. Use Client ID e Secret do app Sandbox no Worker.'
+        : 'Credenciais PayPal Live inválidas. Copie Client ID e Secret do mesmo app (modo Live) e atualize PAYPAL_CLIENT_ID e PAYPAL_CLIENT_SECRET no Worker.');
+    }
+    throw new Error(raw);
+  }
   return data.access_token;
+}
+
+async function checkPayPalIntegration(env) {
+  const { clientId, secret } = paypalCredentials(env);
+  const sandbox = isPayPalSandbox(env, clientId);
+  const selfTest = env.PAYPAL_SELF_TEST === 'true' || env.PAYPAL_SELF_TEST === '1';
+  if (!clientId || !secret) {
+    return {
+      configured: false,
+      sandbox,
+      selfTest,
+      authOk: false,
+      mode: sandbox ? 'sandbox' : 'live',
+      error: 'Secrets PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET não configurados.'
+    };
+  }
+  try {
+    await getPayPalAccessToken(env);
+    return {
+      configured: true,
+      sandbox,
+      selfTest,
+      authOk: true,
+      mode: sandbox ? 'sandbox' : 'live',
+      clientIdSuffix: clientId.slice(-8)
+    };
+  } catch (err) {
+    return {
+      configured: true,
+      sandbox,
+      selfTest,
+      authOk: false,
+      mode: sandbox ? 'sandbox' : 'live',
+      clientIdSuffix: clientId.slice(-8),
+      error: err.message
+    };
+  }
 }
 
 async function createPayPalCheckout(env, order, config) {
@@ -2045,10 +2103,11 @@ async function handleCreateOrder(request, env, origin, ctx) {
     }
   } catch (err) {
     console.error('Payment:', err.message);
-    const msg = billingType === 'CREDIT_CARD'
-      ? 'Cartão indisponível: ' + err.message
-      : 'PIX indisponível: ' + err.message;
-    if (billingType === 'CREDIT_CARD' || hasMp || hasAsaas) {
+    let msg;
+    if (billingType === 'CREDIT_CARD') msg = 'Cartão indisponível: ' + err.message;
+    else if (billingType === 'PAYPAL') msg = 'PayPal indisponível: ' + err.message;
+    else msg = 'PIX indisponível: ' + err.message;
+    if (billingType === 'CREDIT_CARD' || billingType === 'PAYPAL' || hasMp || hasAsaas) {
       return json({ error: msg }, 400, origin);
     }
   }
@@ -2388,6 +2447,7 @@ async function handleAdminShippingStatus(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
   let config = await getConfig(env);
+  const paypal = await checkPayPalIntegration(env);
   const sync = await syncAllIntlFallbackZones(env, config);
   config = sync.config;
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
@@ -2440,7 +2500,8 @@ async function handleAdminShippingStatus(request, env, origin) {
       : null,
     internationalShipping: config.internationalShipping,
     intlFallbackSync: sync.results,
-    intlFallbackUpdated: sync.updated
+    intlFallbackUpdated: sync.updated,
+    paypal
   }, 200, origin);
 }
 

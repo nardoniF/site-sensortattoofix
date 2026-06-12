@@ -244,7 +244,8 @@
                                 <input type="url" name="apiBaseUrl" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
                                 <small>Salvar online exige API configurada e login.</small>
                             </label>
-                            <p class="admin-meta full">PayPal (envio internacional): configure no Worker os secrets <code>PAYPAL_CLIENT_ID</code> e <code>PAYPAL_CLIENT_SECRET</code>. Webhook: <code>/webhook/paypal</code></p>
+                            <p id="paypal-api-status" class="admin-meta full">Verificando PayPal…</p>
+                            <p class="admin-meta full">PayPal (internacional): secrets <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code> (Live). Webhook: <code>/webhook/paypal</code></p>
                             <div class="full admin-email-tests">
                                 <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
                                 <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
@@ -280,6 +281,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=15"></script>
+    <script src="js/admin.js?v=16"></script>
 </body>
 </html>

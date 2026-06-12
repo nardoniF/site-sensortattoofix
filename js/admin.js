@@ -285,6 +285,25 @@
     }
   }
 
+  function renderPayPalStatus(paypal) {
+    const el = document.getElementById('paypal-api-status');
+    if (!el || !paypal) return;
+    if (!paypal.configured) {
+      el.innerHTML = '<span class="admin-status-bad">✗ PayPal não configurado no Worker</span>';
+      return;
+    }
+    const mode = paypal.mode === 'sandbox' ? 'Sandbox' : 'Live';
+    const suffix = paypal.clientIdSuffix ? ` · …${escAttr(paypal.clientIdSuffix)}` : '';
+    const testNote = paypal.selfTest
+      ? ' <span class="admin-status-warn">(teste R$ 0,01 ativo — PAYPAL_SELF_TEST)</span>'
+      : '';
+    if (paypal.authOk) {
+      el.innerHTML = `<span class="admin-status-ok">✓ PayPal ${mode} conectado</span>${suffix}${testNote}`;
+      return;
+    }
+    el.innerHTML = `<span class="admin-status-bad">✗ PayPal ${mode} — ${escAttr(paypal.error || 'falha na autenticação')}</span>${suffix}${testNote}`;
+  }
+
   async function loadShippingStatus() {
     const el = document.getElementById('correios-br-status');
     if (!el) return;
@@ -335,6 +354,7 @@
         currentConfig = { ...currentConfig, internationalShipping: data.internationalShipping };
         renderIntlShipping(data.internationalShipping);
       }
+      renderPayPalStatus(data.paypal);
 
       if (exp.sampleQuotesPT?.length) {
         showQuoteResult(formatQuoteResult({ options: exp.sampleQuotesPT, weightGrams: data.package?.weightGrams }));
