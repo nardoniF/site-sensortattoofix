@@ -97,12 +97,12 @@ nav,
 }
 .logo-tagline {
     margin: 0;
-    font-size: 0.58rem;
+    font-size: 0.78rem;
     font-style: italic;
     font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: 0.02em;
-    color: #9a9a9a;
+    line-height: 1.2;
+    letter-spacing: 0.03em;
+    color: #b0b0b0;
     white-space: nowrap;
 }
 
@@ -760,7 +760,7 @@ footer,
     .logo-area { flex: 0 0 auto; min-width: 0; gap: 8px; }
     .logo-img-link { width: 56px; height: 56px; }
     .logo-text { font-size: 0.95rem; }
-    .logo-tagline { font-size: 0.48rem; }
+    .logo-tagline { font-size: 0.62rem; }
     .site-social {
         border-left: none;
         border-right: none;
