@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Documentação — Sensor TattooFix</title>
+    <link rel="stylesheet" href="style.css?v=1.72">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="admin-page admin-doc-page" id="doc-body">
+
+    <header class="admin-header" id="doc-header">
+        <nav class="container admin-nav">
+            <div class="logo-area">
+                <a href="index.html" class="logo-img-link admin-logo-link"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
+                <div class="logo-text">DOCS</div>
+            </div>
+            <ul class="nav-links checkout-nav admin-toolbar">
+                <li><a href="admin.html"><i class="fas fa-cog"></i> Admin</a></li>
+                <li><a href="pedidos.html"><i class="fas fa-list"></i> Pedidos</a></li>
+                <li><a href="comprar.html"><i class="fas fa-store"></i> Loja</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="admin-main">
+        <div class="container admin-container admin-doc-container">
+
+            <section id="doc-gate" class="admin-card admin-doc-gate" hidden>
+                <h1><i class="fas fa-lock"></i> Documentação restrita</h1>
+                <p class="admin-meta">Este manual é só para quem tem login do admin. Não aparece no Google (<code>noindex</code>), mas a URL não é pública sem autenticação.</p>
+                <p><a href="admin.html" class="btn-primary"><i class="fas fa-sign-in-alt"></i> Fazer login no admin</a></p>
+            </section>
+
+            <article id="doc-content" class="admin-card admin-doc" hidden>
+                <h1><i class="fas fa-book"></i> Manual de operação</h1>
+                <p class="admin-meta">Sensor TattooFix · 3N20 Soluções Tecnológicas LTDA · CNPJ 29.321.223/0001-32</p>
+                <p class="admin-doc-updated">Última atualização: junho/2026</p>
+
+                <nav class="admin-doc-toc" aria-label="Índice">
+                    <a href="#site">Site e painéis</a>
+                    <a href="#api">API (Worker)</a>
+                    <a href="#integracoes">Painéis das integrações</a>
+                    <a href="#secrets">Secrets no Cloudflare</a>
+                    <a href="#webhooks">Webhooks</a>
+                    <a href="#frete">Frete</a>
+                    <a href="#correios">Correios (passo a passo)</a>
+                    <a href="#admin-abas">Abas do admin</a>
+                    <a href="#deploy">Deploy</a>
+                    <a href="#futuro">Planejado (Uber)</a>
+                </nav>
+
+                <section id="site" class="admin-doc-section">
+                    <h2>Site e painéis</h2>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>O quê</th><th>URL</th></tr></thead>
+                        <tbody>
+                            <tr><td>Site (home)</td><td><a href="https://www.sensortattoofix.com.br" target="_blank" rel="noopener">https://www.sensortattoofix.com.br</a></td></tr>
+                            <tr><td>Loja / checkout</td><td><a href="https://www.sensortattoofix.com.br/comprar.html">/comprar.html</a></td></tr>
+                            <tr><td>Admin (configuração)</td><td><a href="https://www.sensortattoofix.com.br/admin.html">/admin.html</a></td></tr>
+                            <tr><td>Pedidos</td><td><a href="https://www.sensortattoofix.com.br/pedidos.html">/pedidos.html</a></td></tr>
+                            <tr><td>Minha conta (cliente)</td><td><a href="https://www.sensortattoofix.com.br/minha-conta.html">/minha-conta.html</a></td></tr>
+                            <tr><td>Esta documentação</td><td><a href="documentacao.html">/documentacao.html</a></td></tr>
+                            <tr><td>Repositório GitHub</td><td><a href="https://github.com/nardoniF/site-sensortattoofix" target="_blank" rel="noopener">github.com/nardoniF/site-sensortattoofix</a></td></tr>
+                        </tbody>
+                    </table>
+                    <p class="admin-meta">Login admin/pedidos: usuário <code>admin</code> + senha definida no secret <code>ADMIN_PASSWORD</code> do Worker.</p>
+                </section>
+
+                <section id="api" class="admin-doc-section">
+                    <h2>API (Cloudflare Worker)</h2>
+                    <p>URL configurada em <code>js/config-bootstrap.js</code> → <code>configApiUrl</code>.</p>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Endpoint / painel</th><th>URL</th></tr></thead>
+                        <tbody>
+                            <tr><td>API base (produção)</td><td><a href="https://sensortattoofix-payments.sensortattoofix.workers.dev" target="_blank" rel="noopener">https://sensortattoofix-payments.sensortattoofix.workers.dev</a></td></tr>
+                            <tr><td>Config pública</td><td><code>GET /config</code></td></tr>
+                            <tr><td>Status integrações (admin)</td><td><code>GET /admin/integrations-status</code></td></tr>
+                            <tr><td>Cotação frete</td><td><code>GET /shipping/quote</code></td></tr>
+                            <tr><td>Cloudflare Dashboard</td><td><a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> → Workers → sensortattoofix-payments → Settings → Secrets</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="integracoes" class="admin-doc-section">
+                    <h2>Painéis das integrações</h2>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Serviço</th><th>Função</th><th>Painel</th></tr></thead>
+                        <tbody>
+                            <tr><td>Mercado Pago</td><td>PIX Brasil</td><td><a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener">developers.mercadopago.com.br</a></td></tr>
+                            <tr><td>Asaas</td><td>Cartão de crédito BR</td><td><a href="https://www.asaas.com" target="_blank" rel="noopener">asaas.com</a></td></tr>
+                            <tr><td>PayPal</td><td>Pagamentos internacionais</td><td><a href="https://developer.paypal.com/dashboard/" target="_blank" rel="noopener">developer.paypal.com</a></td></tr>
+                            <tr><td>Correios — Meu Correios</td><td>Conta CNPJ</td><td><a href="https://meucorreios.correios.com.br" target="_blank" rel="noopener">meucorreios.correios.com.br</a></td></tr>
+                            <tr><td>Correios — Empresas</td><td>Contrato, cartão de postagem</td><td><a href="https://empresas.correios.com.br" target="_blank" rel="noopener">empresas.correios.com.br</a></td></tr>
+                            <tr><td>Correios — CWS</td><td>Código de acesso à API</td><td><a href="https://cws.correios.com.br" target="_blank" rel="noopener">cws.correios.com.br</a></td></tr>
+                            <tr><td>Correios — Contratar</td><td>Clube Correios / planos</td><td><a href="https://www.correios.com.br/correios-empresas" target="_blank" rel="noopener">correios.com.br/correios-empresas</a></td></tr>
+                            <tr><td>Correios — CADESP (IE SP)</td><td>Inscrição estadual</td><td><a href="https://www.cadesp.fazenda.sp.gov.br" target="_blank" rel="noopener">cadesp.fazenda.sp.gov.br</a></td></tr>
+                            <tr><td>Correios — Suporte</td><td>Fale Conosco</td><td><a href="https://www.correios.com.br/falecomoscorreios" target="_blank" rel="noopener">correios.com.br/falecomoscorreios</a></td></tr>
+                            <tr><td>Resend</td><td>E-mails transacionais</td><td><a href="https://resend.com/emails" target="_blank" rel="noopener">resend.com</a></td></tr>
+                            <tr><td>FormSubmit</td><td>Fallback de e-mail</td><td><a href="https://formsubmit.co" target="_blank" rel="noopener">formsubmit.co</a></td></tr>
+                            <tr><td>Z-API</td><td>WhatsApp automático</td><td><a href="https://z-api.io" target="_blank" rel="noopener">z-api.io</a></td></tr>
+                            <tr><td>Google Analytics 4</td><td>Métricas do site</td><td><a href="https://analytics.google.com" target="_blank" rel="noopener">analytics.google.com</a></td></tr>
+                            <tr><td>Google Ads</td><td>Anúncios</td><td><a href="https://ads.google.com" target="_blank" rel="noopener">ads.google.com</a></td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="secrets" class="admin-doc-section">
+                    <h2>Secrets no Cloudflare Worker</h2>
+                    <p>Configurar na pasta <code>api/</code> com <code>npx wrangler secret put NOME</code> ou no Dashboard Cloudflare.</p>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Secret</th><th>Onde obter</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>ADMIN_PASSWORD</code></td><td>Você define — login admin e pedidos</td></tr>
+                            <tr><td><code>MP_ACCESS_TOKEN</code></td><td>Mercado Pago → Credenciais de produção</td></tr>
+                            <tr><td><code>ASAAS_API_KEY</code></td><td>Asaas → Integrações → API</td></tr>
+                            <tr><td><code>ASAAS_WEBHOOK_TOKEN</code></td><td>Token do webhook Asaas</td></tr>
+                            <tr><td><code>PAYPAL_CLIENT_ID</code></td><td>PayPal Developer → app REST Live</td></tr>
+                            <tr><td><code>PAYPAL_CLIENT_SECRET</code></td><td>Mesmo app PayPal</td></tr>
+                            <tr><td><code>PAYPAL_SANDBOX</code></td><td>Opcional: <code>true</code> para sandbox</td></tr>
+                            <tr><td><code>PAYPAL_SELF_TEST</code></td><td>Opcional: <code>true</code> = cobra R$ 0,01 em teste Live — remover após validar</td></tr>
+                            <tr><td><code>STORE_URL</code></td><td>Opcional: URL do site (retorno PayPal)</td></tr>
+                            <tr><td><code>CORREIOS_USER</code></td><td>Usuário Meu Correios (CNPJ sem pontuação)</td></tr>
+                            <tr><td><code>CORREIOS_PASSWORD</code></td><td>Código gerado no CWS — <strong>não</strong> é a senha do site</td></tr>
+                            <tr><td><code>CORREIOS_CONTRACT</code></td><td>Cartão de postagem (10 dígitos) — Correios Empresas</td></tr>
+                            <tr><td><code>RESEND_API_KEY</code></td><td>resend.com → API Keys</td></tr>
+                            <tr><td><code>EMAIL_FROM</code></td><td>Opcional: remetente dos e-mails</td></tr>
+                            <tr><td><code>ZAPI_INSTANCE_ID</code></td><td>z-api.io → instância</td></tr>
+                            <tr><td><code>ZAPI_TOKEN</code></td><td>z-api.io → token da instância</td></tr>
+                            <tr><td><code>ZAPI_CLIENT_TOKEN</code></td><td>Opcional, se a instância exigir</td></tr>
+                            <tr><td><code>GA4_API_SECRET</code></td><td>GA4 → Measurement Protocol</td></tr>
+                            <tr><td><code>GA4_MEASUREMENT_ID</code></td><td>Opcional (padrão no código: G-TFLZHJG9RN)</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="webhooks" class="admin-doc-section">
+                    <h2>Webhooks (apontar para o Worker)</h2>
+                    <p>Base: <code>https://sensortattoofix-payments.sensortattoofix.workers.dev</code></p>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Provedor</th><th>URL</th><th>Eventos</th></tr></thead>
+                        <tbody>
+                            <tr><td>Mercado Pago</td><td><code>/webhook/mercadopago</code></td><td><code>payment</code></td></tr>
+                            <tr><td>Asaas</td><td><code>/webhook/asaas</code></td><td><code>PAYMENT_RECEIVED</code>, <code>PAYMENT_CONFIRMED</code></td></tr>
+                            <tr><td>PayPal</td><td><code>/webhook/paypal</code></td><td><code>PAYMENT.CAPTURE.COMPLETED</code>, <code>CHECKOUT.ORDER.COMPLETED</code></td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="frete" class="admin-doc-section">
+                    <h2>Frete — como funciona</h2>
+                    <h3>Brasil (Mini Envios e outras modalidades)</h3>
+                    <ul class="admin-doc-list">
+                        <li><strong>Com Correios configurados</strong> (<code>CORREIOS_USER</code> + <code>CORREIOS_PASSWORD</code> + cartão ativo): cotação real via API dos Correios.</li>
+                        <li><strong>Sem credenciais ou contrato pendente</strong>: estimativa fixa por distância de CEP (R$ 11,90 a R$ 24,90). O checkout <strong>continua funcionando</strong>.</li>
+                        <li>Modalidades ativas: Admin → aba <strong>Frete</strong> → “Modalidades de envio”.</li>
+                    </ul>
+                    <h3>Internacional</h3>
+                    <ul class="admin-doc-list">
+                        <li>Cotação em tempo real: simulador <strong>Exporta Fácil</strong> dos Correios.</li>
+                        <li>Se a API falhar: tabela fallback no admin (sincroniza automaticamente quando a API responde).</li>
+                    </ul>
+                    <h3>Status na aba API do admin</h3>
+                    <ul class="admin-doc-list">
+                        <li><span class="admin-status-ok">✓</span> Conectado</li>
+                        <li><span class="admin-status-warn">⚠</span> Aviso (sandbox, fallback, sem credenciais com estimativa)</li>
+                        <li><span class="admin-status-bad">✗</span> Erro (credencial inválida ou serviço indisponível)</li>
+                        <li><span class="admin-status-off">—</span> Não configurado</li>
+                    </ul>
+                </section>
+
+                <section id="correios" class="admin-doc-section">
+                    <h2>Correios — passo a passo</h2>
+                    <ol class="admin-doc-list admin-doc-steps">
+                        <li>Cadastro <a href="https://meucorreios.correios.com.br" target="_blank" rel="noopener">Meu Correios</a> com CNPJ da 3N20.</li>
+                        <li>Gerar código da API em <a href="https://cws.correios.com.br" target="_blank" rel="noopener">CWS</a> → Gestão de acesso a APIs.</li>
+                        <li>Contratar <strong>Clube Correios</strong> em <a href="https://www.correios.com.br/correios-empresas" target="_blank" rel="noopener">Correios Empresas</a> (aguardar até 2 dias úteis).</li>
+                        <li>Cartão de postagem: <a href="https://empresas.correios.com.br" target="_blank" rel="noopener">empresas.correios.com.br</a> → Meus Contratos → Cartões de Postagem.</li>
+                        <li>Secrets: <code>CORREIOS_USER</code> (CNPJ), <code>CORREIOS_PASSWORD</code> (código CWS), <code>CORREIOS_CONTRACT</code> (10 dígitos).</li>
+                        <li>Validar: Admin → aba API → linha Correios BR deve ficar ✓.</li>
+                    </ol>
+                    <p class="admin-meta">Inscrição estadual (se pedirem no contrato): consulta pública <a href="https://www.cadesp.fazenda.sp.gov.br" target="_blank" rel="noopener">CADESP</a>. Se não houver IE ativa, use <code>ISENTO</code>.</p>
+                </section>
+
+                <section id="admin-abas" class="admin-doc-section">
+                    <h2>Abas do admin</h2>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Aba</th><th>Função</th></tr></thead>
+                        <tbody>
+                            <tr><td>Produtos</td><td>Catálogo, preços, peso, imagens</td></tr>
+                            <tr><td>Frete</td><td>Remetente, modalidades, pacote, teste de cotação, fallback internacional</td></tr>
+                            <tr><td>PIX</td><td>Chave e dados do QR estático (fallback)</td></tr>
+                            <tr><td>Contato</td><td>WhatsApp, e-mail FormSubmit, assunto dos pedidos</td></tr>
+                            <tr><td>API</td><td>URL do Worker, status das integrações (teste automático), PayPal, testes de e-mail</td></tr>
+                            <tr><td>Pedidos</td><td>Atalho para <code>/pedidos.html</code> e exportação</td></tr>
+                            <tr><td>Documentação</td><td>Este manual</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="deploy" class="admin-doc-section">
+                    <h2>Deploy</h2>
+                    <h3>Site (GitHub Pages)</h3>
+                    <p>Push na branch <code>main</code> → GitHub Pages publica em alguns minutos.</p>
+                    <h3>API (Cloudflare Worker)</h3>
+                    <pre class="admin-doc-pre"><code>cd api
+npx wrangler login
+npx wrangler deploy</code></pre>
+                    <p>Detalhes técnicos adicionais: <code>api/DEPLOY.md</code> no repositório.</p>
+                </section>
+
+                <section id="futuro" class="admin-doc-section">
+                    <h2>Planejado — Uber Direct (entregas)</h2>
+                    <p>Integração futura para entrega rápida sob demanda (região metropolitana), como opção extra no checkout — <strong>ainda não implementado</strong>.</p>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Item</th><th>Referência</th></tr></thead>
+                        <tbody>
+                            <tr><td>Cadastro</td><td><a href="https://direct.uber.com" target="_blank" rel="noopener">direct.uber.com</a></td></tr>
+                            <tr><td>Documentação API</td><td><a href="https://developer.uber.com/docs/deliveries/get-started" target="_blank" rel="noopener">developer.uber.com/docs/deliveries</a></td></tr>
+                            <tr><td>Suporte BR</td><td>direct-pt@uber.com</td></tr>
+                            <tr><td>Secrets previstos</td><td><code>UBER_DIRECT_CLIENT_ID</code>, <code>UBER_DIRECT_CLIENT_SECRET</code>, <code>UBER_DIRECT_CUSTOMER_ID</code></td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+            </article>
+        </div>
+    </main>
+
+    <script src="js/config-bootstrap.js"></script>
+    <script>
+    (function () {
+        const SESSION_KEY = 'stf_admin_token';
+        const embed = new URLSearchParams(location.search).get('embed') === '1';
+        const gate = document.getElementById('doc-gate');
+        const content = document.getElementById('doc-content');
+
+        if (embed) {
+            document.getElementById('doc-header')?.remove();
+            document.getElementById('doc-body')?.classList.add('admin-doc-embed');
+        }
+
+        function showGate() {
+            if (gate) gate.hidden = false;
+            if (content) content.hidden = true;
+        }
+
+        function showContent() {
+            if (gate) gate.hidden = true;
+            if (content) content.hidden = false;
+        }
+
+        async function init() {
+            const token = sessionStorage.getItem(SESSION_KEY);
+            const base = (window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
+            if (!token) {
+                showGate();
+                return;
+            }
+            if (!base) {
+                showContent();
+                return;
+            }
+            try {
+                const res = await fetch(base + '/admin/session', {
+                    headers: { Authorization: 'Bearer ' + token },
+                    cache: 'no-store'
+                });
+                if (res.ok) showContent();
+                else {
+                    sessionStorage.removeItem(SESSION_KEY);
+                    showGate();
+                }
+            } catch (e) {
+                showContent();
+            }
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>

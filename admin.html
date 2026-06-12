@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.71">
+    <link rel="stylesheet" href="style.css?v=1.72">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -17,6 +17,7 @@
                 <div class="logo-text">ADMIN<span>PANEL</span></div>
             </div>
             <ul class="nav-links checkout-nav admin-toolbar">
+                <li><a href="documentacao.html"><i class="fas fa-book"></i> Docs</a></li>
                 <li><a href="pedidos.html"><i class="fas fa-list"></i> Pedidos</a></li>
                 <li><a href="comprar.html"><i class="fas fa-store"></i> Ver loja</a></li>
             </ul>
@@ -64,6 +65,7 @@
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pix" aria-selected="false" aria-controls="admin-tab-pix"><i class="fas fa-qrcode"></i> PIX</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="contato" aria-selected="false" aria-controls="admin-tab-contato"><i class="fas fa-headset"></i> Contato</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="documentacao" aria-selected="false" aria-controls="admin-tab-documentacao"><i class="fas fa-book"></i> Documentação</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pedidos" aria-selected="false" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
                 </nav>
 
@@ -302,6 +304,14 @@
                         <button type="button" id="btn-download-config" class="btn-secondary"><i class="fas fa-download"></i> Baixar backup JSON</button>
                     </div>
                 </form>
+
+                <div id="admin-tab-documentacao" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend><i class="fas fa-book"></i> Manual de operação</legend>
+                        <p class="admin-meta">URLs, secrets, webhooks, frete, Correios e integrações. Também em <a href="documentacao.html" target="_blank" rel="noopener">documentacao.html</a> (nova aba).</p>
+                        <iframe id="admin-doc-frame" src="documentacao.html?embed=1" title="Documentação Sensor TattooFix"></iframe>
+                    </fieldset>
+                </div>
 
                 <div id="admin-tab-pedidos" class="admin-tab-panel" role="tabpanel" hidden>
                 <fieldset class="admin-orders-section">

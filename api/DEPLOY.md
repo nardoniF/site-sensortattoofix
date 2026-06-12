@@ -1,5 +1,7 @@
 # Deploy completo — Sensor TattooFix API
 
+> **Manual completo (URLs, secrets, frete, Correios):** [documentacao.html](../documentacao.html) no site ou aba **Documentação** no admin.
+
 ## O que esta API faz
 
 - Confirmação automática **PIX** (Mercado Pago), **cartão** (Asaas) e **PayPal** (internacional)
@@ -108,5 +110,6 @@ A tabela em **Admin → Frete** sincroniza sozinha com o simulador Exporta Fáci
 | `/admin.html` | Configurar preço, PIX, frete, modelos |
 | `/pedidos.html` | Listar todos os pedidos |
 | `/comprar.html` | Checkout do cliente |
+| `/documentacao.html` | Manual de operação e URLs |
 
 Usuário admin padrão: `admin` + senha definida em `ADMIN_PASSWORD`.
