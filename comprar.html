@@ -169,9 +169,13 @@
                             </label>
                         </div>
                         <div id="payment-options-intl" class="payment-options" hidden>
+                            <label class="payment-option payment-option-intl-card">
+                                <input type="radio" name="pagamento" value="CARTAO" checked>
+                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Cartão internacional</strong><small>Visa, Mastercard, Amex — valor em R$, seu banco converte</small></div></div>
+                            </label>
                             <label class="payment-option payment-option-paypal">
-                                <input type="radio" name="pagamento" value="PAYPAL" checked>
-                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Recomendado no exterior — cartão, débito ou saldo PayPal</small></div></div>
+                                <input type="radio" name="pagamento" value="PAYPAL">
+                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Cartão, débito ou saldo PayPal</small></div></div>
                             </label>
                             <label class="payment-option">
                                 <input type="radio" name="pagamento" value="PIX">
@@ -179,7 +183,7 @@
                             </label>
                         </div>
                         <div id="payment-notice-br" class="checkout-notice"><i class="fas fa-info-circle"></i> Após o pagamento, a confirmação é automática no site e por e-mail.</div>
-                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fas fa-info-circle"></i> Valores em reais (BRL). PayPal para clientes no exterior; PIX se você ainda usa banco brasileiro.</div>
+                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fas fa-info-circle"></i> Valores em reais (BRL). Cartão internacional pelo Mercado Pago — como na Amazon, seu banco converte a moeda.</div>
                     </div>
 
                     <div class="checkout-step" data-step="3">
@@ -200,7 +204,7 @@
 
                             <div id="card-ui" class="checkout-card-ui" hidden>
                                 <div class="card-pay-icon"><i class="fas fa-credit-card"></i></div>
-                                <p class="card-pay-text">Pagamento seguro processado pelo Asaas.</p>
+                                <p class="card-pay-text" id="card-pay-text">Pagamento seguro processado pelo Asaas.</p>
                                 <a id="card-pay-link" href="#" class="btn-primary card-pay-btn" target="_blank" rel="noopener">
                                     <i class="fas fa-lock"></i> Abrir pagamento com cartão
                                 </a>
@@ -248,7 +252,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="js/order-watch.js"></script>
     <script src="js/analytics.js?v=3"></script>
-    <script src="js/checkout.js?v=34"></script>
+    <script src="js/checkout.js?v=35"></script>
     <script src="js/seo-schema.js?v=4"></script>
 </body>
 </html>

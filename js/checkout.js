@@ -30,6 +30,7 @@
     orderId: document.getElementById('order-id'),
     paymentStatus: document.getElementById('payment-status'),
     cardPayLink: document.getElementById('card-pay-link'),
+    cardPayText: document.getElementById('card-pay-text'),
     paypalPayLink: document.getElementById('paypal-pay-link'),
     pixUi: document.getElementById('pix-ui'),
     cardUi: document.getElementById('card-ui'),
@@ -394,14 +395,16 @@
     });
     if (els.paymentNoticeIntl) {
       els.paymentNoticeIntl.innerHTML = paypalAvailable
-        ? '<i class="fas fa-info-circle"></i> Valores em reais (BRL). PayPal para clientes no exterior; PIX se você ainda usa banco brasileiro.'
-        : '<i class="fas fa-info-circle"></i> Valores em reais (BRL). No momento use <strong>PIX</strong> (conta bancária no Brasil). <strong>Cartão no exterior</strong> volta via PayPal em breve.';
+        ? '<i class="fas fa-info-circle"></i> Valores em reais (BRL). <strong>Cartão internacional</strong> (Mercado Pago) — seu banco converte. PayPal ou PIX também disponíveis.'
+        : '<i class="fas fa-info-circle"></i> Valores em reais (BRL). <strong>Cartão internacional</strong> (Visa/Mastercard) — seu banco converte. PIX se tiver conta no Brasil.';
     }
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
     if (isInternational) {
+      const cardIntl = els.paymentOptionsIntl?.querySelector('input[value="CARTAO"]');
       const paypal = els.paymentOptionsIntl?.querySelector('input[value="PAYPAL"]');
       const pixIntl = els.paymentOptionsIntl?.querySelector('input[value="PIX"]');
-      if (paypalAvailable && paypal) paypal.checked = true;
+      if (cardIntl) cardIntl.checked = true;
+      else if (paypalAvailable && paypal) paypal.checked = true;
       else if (pixIntl) pixIntl.checked = true;
     } else {
       const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
@@ -828,12 +831,21 @@
     }
   }
 
-  function showCardPayment(url) {
+  function showCardPayment(url, intlMp) {
     showCardUi();
     els.pixQr.innerHTML = '';
-    els.cardPayLink.href = url;
-    els.confirmTitle.textContent = 'Pedido registrado — finalize o pagamento';
-    els.confirmHint.textContent = 'Após pagar no link seguro, volte a esta página. A confirmação é automática.';
+    if (els.cardPayLink && url) els.cardPayLink.href = url;
+    if (els.cardPayText) {
+      els.cardPayText.textContent = intlMp
+        ? 'Pagamento seguro no Mercado Pago (Visa, Mastercard, Amex). Valor em reais — seu banco converte.'
+        : 'Pagamento seguro processado pelo Asaas.';
+    }
+    els.confirmTitle.textContent = intlMp
+      ? 'Pedido registrado — pagamento com cartão'
+      : 'Pedido registrado — finalize o pagamento';
+    els.confirmHint.textContent = intlMp
+      ? 'Você será redirecionado ao Mercado Pago. A confirmação é automática ao voltar.'
+      : 'Após pagar no link seguro, volte a esta página. A confirmação é automática.';
   }
 
   let lastPaymentMethod = 'PIX';
@@ -872,9 +884,10 @@
     els.btnPay.textContent = 'Processando...';
     try {
       const orderData = collectOrderData();
-      const wantsCard = orderData.pagamento === 'CARTAO';
+      const wantsIntlCard = isInternational && orderData.pagamento === 'CARTAO';
+      const wantsCardBr = !isInternational && orderData.pagamento === 'CARTAO';
       const wantsPaypal = orderData.pagamento === 'PAYPAL';
-      lastPaymentMethod = wantsPaypal ? 'paypal' : (wantsCard ? 'credit_card' : 'pix');
+      lastPaymentMethod = wantsPaypal ? 'paypal' : ((wantsCardBr || wantsIntlCard) ? 'credit_card' : 'pix');
       const result = await createOrder(orderData);
       const total = result.order?.total || (cartSubtotal() + orderData.frete);
       window.STF_CART?.clear();
@@ -906,13 +919,26 @@
         showStep(3);
         window.location.href = payment.approveUrl;
         return;
-      } else if (wantsCard) {
+      } else if (wantsIntlCard) {
+        const mpUrl = payment.approveUrl || payment.invoiceUrl;
+        if (payment.billingType !== 'MP_CHECKOUT' || !mpUrl) {
+          throw new Error('Cartão internacional indisponível. Escolha PIX ou tente mais tarde.');
+        }
+        showCardPayment(mpUrl, true);
+        els.confirmTitle.textContent = 'Pedido registrado — pagamento com cartão';
+        els.confirmHint.textContent = 'Você será redirecionado ao Mercado Pago para pagar com cartão internacional.';
+        els.paymentStatus.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Redirecionando ao pagamento com cartão…';
+        showStep(3);
+        window.location.href = mpUrl;
+        return;
+      } else if (wantsCardBr) {
         if (payment.billingType !== 'CREDIT_CARD' || !payment.invoiceUrl) {
           throw new Error(
             'Pagamento com cartão indisponível no momento. Escolha PIX ou tente mais tarde.'
           );
         }
-        showCardPayment(payment.invoiceUrl);
+        showCardPayment(payment.invoiceUrl, false);
         els.paymentStatus.innerHTML =
           '<i class="fas fa-spinner fa-spin"></i> Abra a janela de pagamento, conclua com cartão e volte aqui — a confirmação é automática.';
         try { window.open(payment.invoiceUrl, '_blank', 'noopener,noreferrer'); } catch (_) { /* link visível no botão */ }
@@ -998,6 +1024,43 @@
       try { await navigator.clipboard.writeText(els.pixCopy.value); }
       catch { els.pixCopy.select(); document.execCommand('copy'); }
     });
+  }
+
+  async function handleMercadoPagoReturn() {
+    const params = new URLSearchParams(location.search);
+    const mpState = params.get('mp');
+    if (!mpState) return false;
+
+    if (mpState === 'failure') {
+      alert('Pagamento com cartão não foi concluído. Tente novamente.');
+      history.replaceState({}, '', location.pathname);
+      return true;
+    }
+
+    const orderId = params.get('orderId');
+    const accessToken = params.get('accessToken');
+    if (!orderId || !accessToken) return false;
+
+    els.orderId.textContent = orderId;
+    els.paymentStatus.hidden = false;
+    lastPaymentMethod = 'credit_card';
+
+    if (mpState === 'success' || params.get('collection_status') === 'approved') {
+      els.paymentStatus.className = 'payment-status waiting';
+      els.paymentStatus.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Confirmando pagamento com cartão…';
+    } else {
+      els.paymentStatus.className = 'payment-status waiting';
+      els.paymentStatus.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Pagamento em análise — esta página atualiza automaticamente.';
+    }
+
+    showCardPayment('#', true);
+    els.confirmTitle.textContent = mpState === 'success' ? 'Pagamento recebido' : 'Pagamento em processamento';
+    showStep(3);
+    startPolling(orderId, accessToken);
+    history.replaceState({}, '', location.pathname);
+    return true;
   }
 
   async function handlePayPalReturn() {
@@ -1092,15 +1155,20 @@
 
       const payment = data.payment || {};
       lastPaymentMethod = payment.billingType === 'PAYPAL' ? 'paypal'
-        : (payment.billingType === 'CREDIT_CARD' ? 'credit_card' : 'pix');
+        : (payment.billingType === 'CREDIT_CARD' || payment.billingType === 'MP_CHECKOUT' ? 'credit_card' : 'pix');
 
       if (payment.billingType === 'PAYPAL' && payment.approveUrl) {
         showPayPalUi(payment.approveUrl);
         els.paymentStatus.className = 'payment-status waiting';
         els.paymentStatus.innerHTML =
           '<i class="fas fa-spinner fa-spin"></i> Conclua o pagamento no PayPal — use o botão abaixo se necessário.';
+      } else if (payment.billingType === 'MP_CHECKOUT' && (payment.approveUrl || payment.invoiceUrl)) {
+        showCardPayment(payment.approveUrl || payment.invoiceUrl, true);
+        els.paymentStatus.className = 'payment-status waiting';
+        els.paymentStatus.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Conclua o pagamento com cartão no Mercado Pago.';
       } else if (payment.billingType === 'CREDIT_CARD' && payment.invoiceUrl) {
-        showCardPayment(payment.invoiceUrl);
+        showCardPayment(payment.invoiceUrl, false);
         els.paymentStatus.className = 'payment-status waiting';
         els.paymentStatus.innerHTML =
           '<i class="fas fa-spinner fa-spin"></i> Abra o link do cartão e volte aqui — a confirmação é automática.';
@@ -1127,8 +1195,9 @@
     products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
     populateSelects();
     window.STF_CART?.initBadges();
-    const paypalDone = await handlePayPalReturn();
-    const resumed = paypalDone || await resumeOrderFromUrl();
+    const mpDone = await handleMercadoPagoReturn();
+    const paypalDone = mpDone ? false : await handlePayPalReturn();
+    const resumed = mpDone || paypalDone || await resumeOrderFromUrl();
     if (!resumed) {
       seedCartFromUrl();
       if (window.STF_CART?.isEmpty()) {

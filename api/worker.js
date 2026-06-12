@@ -1763,6 +1763,72 @@ async function createMercadoPagoPixPayment(env, order, config) {
   };
 }
 
+/** Checkout Pro — cartão internacional (Visa/Mastercard/Amex), valor em BRL. */
+async function createMercadoPagoCheckoutPro(env, order, config) {
+  const token = mercadoPagoToken(env);
+  if (!token) throw new Error('Mercado Pago não configurado no Worker.');
+
+  const base = storeBaseUrl(config, env);
+  const successParams = new URLSearchParams({
+    mp: 'success', orderId: order.orderId, accessToken: order.accessToken
+  });
+  const failureParams = new URLSearchParams({
+    mp: 'failure', orderId: order.orderId, accessToken: order.accessToken
+  });
+  const pendingParams = new URLSearchParams({
+    mp: 'pending', orderId: order.orderId, accessToken: order.accessToken
+  });
+  const notificationUrl = (env.MP_WEBHOOK_URL || '').trim() || undefined;
+
+  const body = {
+    items: [{
+      title: String(order.produto || config.product?.name || 'Sensor Tattoo Fix').slice(0, 256),
+      quantity: 1,
+      unit_price: Number(order.total.toFixed(2)),
+      currency_id: 'BRL'
+    }],
+    payer: {
+      email: order.email,
+      name: String(order.nome || 'Cliente').slice(0, 100)
+    },
+    external_reference: order.orderId,
+    back_urls: {
+      success: `${base}/comprar.html?${successParams}`,
+      failure: `${base}/comprar.html?${failureParams}`,
+      pending: `${base}/comprar.html?${pendingParams}`
+    },
+    auto_return: 'approved',
+    statement_descriptor: 'SENSOR TATTOO FIX',
+    payment_methods: {
+      excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }]
+    }
+  };
+  if (notificationUrl) body.notification_url = notificationUrl;
+
+  const res = await fetch('https://api.mercadopago.com/checkout/preferences', {
+    method: 'POST',
+    headers: mpHeaders(env, order.orderId),
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(`Mercado Pago checkout: ${mpErrorMessage(data, res.status)}`);
+  }
+
+  const checkoutUrl = isMpSandbox(env) ? data.sandbox_init_point : data.init_point;
+  if (!checkoutUrl) throw new Error('Link de pagamento Mercado Pago não retornado.');
+
+  return {
+    provider: 'mercadopago',
+    billingType: 'MP_CHECKOUT',
+    paymentId: String(data.id),
+    mpPreferenceId: String(data.id),
+    approveUrl: checkoutUrl,
+    invoiceUrl: checkoutUrl,
+    autoConfirm: true
+  };
+}
+
 function emailFrom(env, config) {
   return env.EMAIL_FROM || config.emailFrom || 'Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>';
 }
@@ -2040,9 +2106,13 @@ async function handleCreateOrder(request, env, origin, ctx) {
       billingType = 'PIX';
       pagamentoLabel = 'PIX';
     } else if (body.pagamento === 'CARTAO') {
-      return json({ error: 'Cartão (Asaas) disponível apenas para entrega no Brasil. No exterior, use PayPal ou PIX.' }, 400, origin);
+      if (!mercadoPagoToken(env)) {
+        return json({ error: 'Cartão internacional indisponível. Use PIX ou PayPal.' }, 400, origin);
+      }
+      billingType = 'MP_CHECKOUT';
+      pagamentoLabel = 'Cartão internacional';
     } else {
-      return json({ error: 'Escolha PayPal ou PIX para envio internacional.' }, 400, origin);
+      return json({ error: 'Escolha cartão, PayPal ou PIX para envio internacional.' }, 400, origin);
     }
   } else {
     if (body.pagamento === 'PAYPAL') {
@@ -2111,6 +2181,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
   try {
     if (billingType === 'PAYPAL') {
       payment = await createPayPalCheckout(env, order, config);
+    } else if (billingType === 'MP_CHECKOUT') {
+      payment = await createMercadoPagoCheckoutPro(env, order, config);
     } else if (billingType === 'PIX') {
       if (hasMp) {
         try {
@@ -2137,8 +2209,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
     let msg;
     if (billingType === 'CREDIT_CARD') msg = 'Cartão indisponível: ' + err.message;
     else if (billingType === 'PAYPAL') msg = 'PayPal indisponível: ' + err.message;
+    else if (billingType === 'MP_CHECKOUT') msg = 'Cartão internacional indisponível: ' + err.message;
     else msg = 'PIX indisponível: ' + err.message;
-    if (billingType === 'CREDIT_CARD' || billingType === 'PAYPAL' || hasMp || hasAsaas) {
+    if (billingType === 'CREDIT_CARD' || billingType === 'PAYPAL' || billingType === 'MP_CHECKOUT' || hasMp || hasAsaas) {
       return json({ error: msg }, 400, origin);
     }
   }
@@ -2170,8 +2243,11 @@ async function handleCreateOrder(request, env, origin, ctx) {
       Pagamento: order.pagamento,
       Mensagem: billingType === 'PAYPAL'
         ? 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.'
-        : 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
+        : billingType === 'MP_CHECKOUT'
+          ? 'Finalize o pagamento com cartão no Mercado Pago (Visa/Mastercard). Seu banco pode converter de USD/EUR para reais.'
+          : 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
       ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
       'Link do pedido': resumeOrderUrl(config, order),
       ...orderWatchEmailFields(order),
       ...orderIntlProductFields(order)
@@ -2431,7 +2507,7 @@ async function handleMercadoPagoWebhook(request, env, origin) {
       await handlePaymentConfirmed(env, order, {
         id: payment.id,
         provider: 'mercadopago',
-        billingType: 'PIX',
+        billingType: payment.payment_method_id === 'pix' ? 'PIX' : 'CREDIT_CARD',
         value: payment.transaction_amount
       });
     }

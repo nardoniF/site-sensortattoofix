@@ -71,7 +71,9 @@ Copie a URL (ex: `https://sensortattoofix-payments.xxx.workers.dev`) em:
 
 - `js/config-bootstrap.js` → `configApiUrl`
 
-## 6. Webhook Mercado Pago (PIX)
+## 6. Webhook Mercado Pago (PIX + cartão internacional)
+
+O mesmo webhook confirma PIX e pagamentos do **Checkout Pro** (cartão internacional no exterior).
 
 No [Mercado Pago Developers](https://www.mercadopago.com.br/developers/panel/app) → sua aplicação → Webhooks:
 
