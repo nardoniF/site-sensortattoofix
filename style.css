@@ -466,61 +466,83 @@ nav,
     padding-top: 48px;
     padding-bottom: 56px;
 }
+.reviews-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
 .reviews-editorial .section-title.reviews-heading {
     font-size: 0.78rem;
     font-weight: 500;
     color: #666;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 .reviews-summary {
-    text-align: right;
-    color: #555;
-    font-size: 0.78rem;
+    text-align: center;
+    color: #666;
+    font-size: 0.8rem;
     font-weight: 400;
-    margin: 0 0 36px;
+    margin: 0;
 }
-.reviews-summary i { color: var(--primary); font-size: 0.7rem; margin-right: 4px; }
-.reviews-layout {
-    display: grid;
-    grid-template-columns: minmax(130px, 200px) 1fr;
-    gap: 32px 48px;
-    align-items: start;
-}
-.reviews-proofs {
+.reviews-summary i { color: var(--primary); font-size: 0.72rem; margin-right: 4px; }
+.reviews-proofs-row {
     display: flex;
-    flex-direction: column;
-    gap: 18px;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px 28px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
 }
-.review-proof { margin: 0; }
+.review-proof {
+    margin: 0;
+    max-width: 168px;
+    flex: 0 1 168px;
+}
 .review-proof a {
     display: block;
     line-height: 0;
 }
 .review-proof img {
     width: 100%;
-    border-radius: 6px;
-    opacity: 0.72;
-    filter: grayscale(30%) contrast(0.95);
-    border: 1px solid #1a1a1a;
-    transition: opacity 0.25s, filter 0.25s;
+    max-height: 200px;
+    object-fit: cover;
+    object-position: top center;
+    border-radius: 8px;
+    opacity: 0.88;
+    filter: grayscale(15%);
+    border: 1px solid #222;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    transition: opacity 0.25s, filter 0.25s, transform 0.25s;
 }
 .review-proof a:hover img {
     opacity: 1;
-    filter: grayscale(0%) contrast(1);
+    filter: none;
+    transform: translateY(-2px);
 }
 .review-proof figcaption {
     font-size: 0.68rem;
-    color: #444;
-    margin-top: 6px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    color: #555;
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+    text-align: center;
 }
 .reviews-quotes {
     display: flex;
     flex-direction: column;
-    gap: 26px;
+    gap: 22px;
+    max-width: 640px;
+    margin: 0 0 0 auto;
+    padding-left: 24px;
+}
+.reviews-footnote {
+    max-width: 640px;
+    margin: 20px 0 0 auto;
+    padding-left: 24px;
+    text-align: right;
+    font-size: 0.78rem;
+    color: #484848;
+    font-style: italic;
 }
 .reviews-section .review-card {
     background: none;
@@ -539,42 +561,41 @@ nav,
 .review-quote .review-body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-style: italic;
-    font-size: clamp(1.05rem, 2.2vw, 1.22rem);
-    line-height: 1.55;
-    color: #a8a8a8;
+    font-size: clamp(1.12rem, 2.4vw, 1.35rem);
+    line-height: 1.5;
+    color: #d0d0d0;
     font-weight: 400;
-    max-width: 540px;
-    margin: 0 0 0 auto;
+    margin: 0;
 }
 .review-quote cite,
 .review-quote .review-author {
     display: block;
-    margin-top: 6px;
+    margin-top: 4px;
     font-style: normal;
     font-family: 'Caveat', cursive;
-    font-size: 1.3rem;
-    color: #777;
-    font-weight: 400;
+    font-size: 1.45rem;
+    color: #8a8a8a;
+    font-weight: 500;
 }
 .review-quote .review-source {
     font-family: 'Inter', sans-serif;
     font-size: 0.72rem;
-    color: #484848;
+    color: #555;
     font-weight: 400;
 }
+.review-quote + .review-quote {
+    border-top: 1px solid #161616;
+    padding-top: 22px;
+}
 @media (max-width: 768px) {
-    .reviews-layout { grid-template-columns: 1fr; }
-    .reviews-proofs {
-        flex-direction: row;
-        gap: 12px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        -webkit-overflow-scrolling: touch;
+    .reviews-quotes,
+    .reviews-footnote {
+        margin: 0 auto;
+        padding-left: 0;
+        max-width: 100%;
     }
-    .review-proof { flex: 0 0 38%; max-width: 150px; min-width: 120px; }
-    .reviews-summary { text-align: center; }
-    .review-quote [data-review-body],
-    .review-quote .review-body { max-width: 100%; }
+    .review-proof { max-width: 46%; flex: 1 1 130px; }
+    .review-proof img { max-height: 160px; }
 }
 
 .shipping-hint {
