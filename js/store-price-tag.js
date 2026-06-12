@@ -19,7 +19,10 @@ window.STF_STORE_PRICE = (function () {
     const price = product?.price ?? config.product?.price ?? 59.9;
     const service = config.shipping?.serviceName || 'Mini Envios';
     const freteWord = el?.getAttribute('data-store-price-frete') || 'frete';
-    const suffix = el?.getAttribute('data-store-price-suffix');
+    let suffix = el?.getAttribute('data-store-price-suffix');
+    if (window.STF_I18N?.getLang?.() === 'en' && !suffix) {
+      suffix = window.STF_I18N.t('store.priceSuffix');
+    }
     let line = `${formatBRL(price)} + ${freteWord} · ${service}`;
     if (suffix) line += ` · ${suffix}`;
     return line;

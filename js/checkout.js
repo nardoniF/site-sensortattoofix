@@ -1,6 +1,10 @@
 (function () {
   const OUTRO_MODELO = 'Outro modelo (informar nas observações)';
 
+  function L(key) {
+    return window.STF_I18N?.t(key) || key;
+  }
+
   let cfg, products = [];
   let shippingCost = null, shippingInfo = null, shippingOptions = [], pollTimer = null, isInternational = false;
 
@@ -394,9 +398,8 @@
       r.disabled = !isInternational || (isPaypal && !paypalAvailable);
     });
     if (els.paymentNoticeIntl) {
-      els.paymentNoticeIntl.innerHTML = paypalAvailable
-        ? '<i class="fas fa-info-circle"></i> Valores em reais (BRL). <strong>Cartão internacional</strong> (Mercado Pago) — seu banco converte. PayPal ou PIX também disponíveis.'
-        : '<i class="fas fa-info-circle"></i> Valores em reais (BRL). <strong>Cartão internacional</strong> (Visa/Mastercard) — seu banco converte. PIX se tiver conta no Brasil.';
+      const noticeKey = paypalAvailable ? 'pay.noticeIntlAll' : 'pay.noticeIntlNoPaypal';
+      els.paymentNoticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${L(noticeKey)}`;
     }
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
     if (isInternational) {
@@ -425,7 +428,7 @@
     isInternational = els.paisCode.value !== 'BR';
     els.addressBr.hidden = isInternational;
     els.addressIntl.hidden = !isInternational;
-    els.summaryShippingLabel.textContent = isInternational ? 'Frete internacional' : 'Frete';
+    els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
     updatePaymentOptionsForCountry();
     shippingCost = null;
     shippingInfo = null;
@@ -457,7 +460,7 @@
     shippingCost = option.price;
     updateSummary();
     if (els.summaryShippingLabel) {
-      els.summaryShippingLabel.textContent = isInternational ? 'Frete internacional' : 'Frete';
+      els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
     }
   }
 
@@ -836,16 +839,10 @@
     els.pixQr.innerHTML = '';
     if (els.cardPayLink && url) els.cardPayLink.href = url;
     if (els.cardPayText) {
-      els.cardPayText.textContent = intlMp
-        ? 'Pagamento seguro no Mercado Pago (Visa, Mastercard, Amex). Valor em reais — seu banco converte.'
-        : 'Pagamento seguro processado pelo Asaas.';
+      els.cardPayText.textContent = intlMp ? L('card.mp') : L('card.asaas');
     }
-    els.confirmTitle.textContent = intlMp
-      ? 'Pedido registrado — pagamento com cartão'
-      : 'Pedido registrado — finalize o pagamento';
-    els.confirmHint.textContent = intlMp
-      ? 'Você será redirecionado ao Mercado Pago. A confirmação é automática ao voltar.'
-      : 'Após pagar no link seguro, volte a esta página. A confirmação é automática.';
+    els.confirmTitle.textContent = intlMp ? L('title.orderCard') : L('title.orderRegistered');
+    els.confirmHint.textContent = intlMp ? L('hint.mpReturn') : L('confirm.hint');
   }
 
   let lastPaymentMethod = 'PIX';
@@ -881,7 +878,7 @@
       return;
     }
     els.btnPay.disabled = true;
-    els.btnPay.textContent = 'Processando...';
+    els.btnPay.textContent = L('btn.processing');
     try {
       const orderData = collectOrderData();
       const wantsIntlCard = isInternational && orderData.pagamento === 'CARTAO';
@@ -909,26 +906,26 @@
 
       if (wantsPaypal) {
         if (payment.billingType !== 'PAYPAL' || !payment.approveUrl) {
-          throw new Error('PayPal indisponível no momento. Tente novamente ou fale conosco no WhatsApp.');
+          throw new Error(L('alert.paypalUnavailable'));
         }
         showPayPalUi(payment.approveUrl);
-        els.confirmTitle.textContent = 'Pedido registrado — pagamento PayPal';
-        els.confirmHint.textContent = 'Após pagar no PayPal, você voltará aqui com a confirmação automática.';
+        els.confirmTitle.textContent = L('title.orderPaypal');
+        els.confirmHint.textContent = L('hint.paypalReturn');
         els.paymentStatus.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Redirecionando ao PayPal…';
+          `<i class="fas fa-spinner fa-spin"></i> ${L('status.redirectPaypal')}`;
         showStep(3);
         window.location.href = payment.approveUrl;
         return;
       } else if (wantsIntlCard) {
         const mpUrl = payment.approveUrl || payment.invoiceUrl;
         if (payment.billingType !== 'MP_CHECKOUT' || !mpUrl) {
-          throw new Error('Cartão internacional indisponível. Escolha PIX ou tente mais tarde.');
+          throw new Error(L('alert.intlCardUnavailable'));
         }
         showCardPayment(mpUrl, true);
-        els.confirmTitle.textContent = 'Pedido registrado — pagamento com cartão';
-        els.confirmHint.textContent = 'Você será redirecionado ao Mercado Pago para pagar com cartão internacional.';
+        els.confirmTitle.textContent = L('title.orderCard');
+        els.confirmHint.textContent = L('hint.mpReturn');
         els.paymentStatus.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Redirecionando ao pagamento com cartão…';
+          `<i class="fas fa-spinner fa-spin"></i> ${L('status.redirectMp')}`;
         showStep(3);
         window.location.href = mpUrl;
         return;
@@ -971,7 +968,7 @@
       alert(err.message || 'Erro ao processar pedido.');
     } finally {
       els.btnPay.disabled = false;
-      els.btnPay.textContent = 'Finalizar pedido';
+      els.btnPay.textContent = L('btn.pay');
     }
   }
 
@@ -1032,7 +1029,7 @@
     if (!mpState) return false;
 
     if (mpState === 'failure') {
-      alert('Pagamento com cartão não foi concluído. Tente novamente.');
+      alert(L('alert.mpFail'));
       history.replaceState({}, '', location.pathname);
       return true;
     }
@@ -1048,11 +1045,11 @@
     if (mpState === 'success' || params.get('collection_status') === 'approved') {
       els.paymentStatus.className = 'payment-status waiting';
       els.paymentStatus.innerHTML =
-        '<i class="fas fa-spinner fa-spin"></i> Confirmando pagamento com cartão…';
+        `<i class="fas fa-spinner fa-spin"></i> ${L('status.confirmMp')}`;
     } else {
       els.paymentStatus.className = 'payment-status waiting';
       els.paymentStatus.innerHTML =
-        '<i class="fas fa-spinner fa-spin"></i> Pagamento em análise — esta página atualiza automaticamente.';
+        `<i class="fas fa-spinner fa-spin"></i> ${L('status.pendingMp')}`;
     }
 
     showCardPayment('#', true);
@@ -1191,6 +1188,7 @@
   }
 
   async function boot() {
+    window.STF_I18N?.applyCheckoutDom?.();
     cfg = await StoreConfig.load();
     products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
     populateSelects();
