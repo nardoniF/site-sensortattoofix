@@ -1,6 +1,6 @@
 /**
  * API Sensor TattooFix — Cloudflare Worker
- * PIX (Mercado Pago) + Cartão (Asaas) + PayPal (intl) · WhatsApp · Correios · Pedidos
+ * PIX (Mercado Pago) + Cartão (Asaas) + PayPal (intl) · WhatsApp · Correios · Uber Direct · Pedidos
  */
 
 const ALLOWED_ORIGINS = [
@@ -139,8 +139,9 @@ const DEFAULT_CONFIG = {
 };
 
 const DEFAULT_SHIPPING_METHODS = [
-  { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227' },
-  { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010' },
+  { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
+  { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
+  { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
   { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
   { id: 'int-documento', enabled: true, scope: 'INT', label: 'Documento / carta internacional', correiosCode: '*', simTipo: 'D' }
 ];
@@ -168,6 +169,18 @@ function mergeShippingMethods(stored) {
 function getEnabledShippingMethods(config, scope) {
   const list = config.shippingMethods?.length ? config.shippingMethods : DEFAULT_SHIPPING_METHODS;
   return list.filter((m) => m.enabled !== false && m.scope === scope);
+}
+
+function isUberMethod(method) {
+  if (!method) return false;
+  if (method.provider === 'uber') return true;
+  return String(method.id || '').toLowerCase().includes('uber');
+}
+
+function isUberOrder(order) {
+  if (!order) return false;
+  if (order.shippingProvider === 'uber') return true;
+  return String(order.shippingMethodId || '').toLowerCase().includes('uber');
 }
 
 function withConfigDefaults(stored) {
@@ -928,8 +941,12 @@ async function notifyWhatsApp(env, config, order, type) {
   const msgs = {
     order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
     order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n${watchWhatsAppBlock(order)}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
-    paid_customer: `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.\n\nSensor TattooFix`,
-    paid_shop: `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
+    paid_customer: isUberOrder(order)
+      ? `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago.\n\n🚗 Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em instantes.\n\nSensor TattooFix`
+      : `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.\n\nSensor TattooFix`,
+    paid_shop: isUberOrder(order)
+      ? `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n🚗 Uber Direct — ${order.shippingService}\n📍 ${order.endereco}${order.uberTrackingUrl ? `\n🔗 ${order.uberTrackingUrl}` : ''}`
+      : `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
   };
 
   const customerMsg = msgs[type + '_customer'];
@@ -966,6 +983,318 @@ async function getCorreiosToken(env) {
     expiresAt: Date.now() + (Number(data.expiraEm || 3600) - 60) * 1000
   }));
   return data.token;
+}
+
+function uberConfigured(env) {
+  return !!(
+    env.UBER_DIRECT_CLIENT_ID
+    && env.UBER_DIRECT_CLIENT_SECRET
+    && env.UBER_DIRECT_CUSTOMER_ID
+  );
+}
+
+function isUberSandbox(env) {
+  const flag = String(env.UBER_DIRECT_SANDBOX || '').trim().toLowerCase();
+  return flag === 'true' || flag === '1';
+}
+
+function formatCepUber(cep) {
+  const d = onlyDigits(cep);
+  if (d.length !== 8) return d;
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+}
+
+function formatUberStructuredAddress(parts) {
+  const rua = String(parts.rua || '').trim();
+  const numero = String(parts.numero || '').trim();
+  const complemento = String(parts.complemento || '').trim();
+  const street = numero ? `${rua}, ${numero}` : rua;
+  const streetAddress = [street];
+  if (complemento) streetAddress.push(complemento);
+  return JSON.stringify({
+    street_address: streetAddress.filter(Boolean),
+    city: String(parts.cidade || '').trim(),
+    state: String(parts.uf || '').trim().toUpperCase(),
+    zip_code: formatCepUber(parts.cep),
+    country: 'BR'
+  });
+}
+
+function buildUberPickupParts(config) {
+  const ship = config.shipping || DEFAULT_CONFIG.shipping;
+  const sender = ship.sender || {};
+  return {
+    rua: sender.rua,
+    numero: sender.numero,
+    complemento: sender.complemento,
+    bairro: sender.bairro,
+    cidade: sender.cidade,
+    uf: sender.uf,
+    cep: ship.originCep
+  };
+}
+
+function dropoffPartsFromParams(params) {
+  return {
+    cep: params.cep,
+    rua: params.rua,
+    numero: params.numero,
+    complemento: params.complemento,
+    bairro: params.bairro,
+    cidade: params.cidade,
+    uf: params.uf
+  };
+}
+
+function dropoffPartsFromOrder(order) {
+  return {
+    cep: order.cep,
+    rua: order.rua,
+    numero: order.numero,
+    complemento: order.complemento,
+    bairro: order.bairro,
+    cidade: order.cidade,
+    uf: order.uf
+  };
+}
+
+function hasUberDropoffAddress(parts) {
+  return onlyDigits(parts.cep).length === 8
+    && String(parts.rua || '').trim().length >= 3
+    && String(parts.cidade || '').trim().length >= 2
+    && String(parts.uf || '').trim().length === 2;
+}
+
+function phoneToE164Br(phone) {
+  const digits = onlyDigits(phone);
+  if (!digits) return '';
+  if (digits.startsWith('55') && digits.length >= 12) return `+${digits}`;
+  if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
+  return `+${digits}`;
+}
+
+function shopPhoneE164(config, env) {
+  return phoneToE164Br(config.whatsapp || env.SHOP_WHATSAPP || '5511913394665');
+}
+
+async function getUberAccessToken(env) {
+  const cached = await env.STORE_KV.get('uber:token');
+  if (cached) {
+    const data = JSON.parse(cached);
+    if (data.expiresAt > Date.now()) return data.token;
+  }
+  if (!uberConfigured(env)) return null;
+
+  const res = await fetch('https://login.uber.com/oauth/v2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: env.UBER_DIRECT_CLIENT_ID,
+      client_secret: env.UBER_DIRECT_CLIENT_SECRET,
+      grant_type: 'client_credentials',
+      scope: 'eats.deliveries'
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.warn('Uber OAuth:', res.status, data.error_description || data.error || '');
+    return null;
+  }
+  const ttl = Math.max(60, Number(data.expires_in || 3600) - 60);
+  await env.STORE_KV.put('uber:token', JSON.stringify({
+    token: data.access_token,
+    expiresAt: Date.now() + ttl * 1000
+  }));
+  return data.access_token;
+}
+
+async function uberApiFetch(env, path, options = {}) {
+  const token = await getUberAccessToken(env);
+  if (!token) throw new Error('Uber Direct não autenticado.');
+  const customerId = encodeURIComponent(env.UBER_DIRECT_CUSTOMER_ID);
+  const res = await fetch(`https://api.uber.com/v1/customers/${customerId}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data.message || data.error || data.code || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.metadata = data.metadata || data;
+    throw err;
+  }
+  return data;
+}
+
+function uberFeeToBRL(data) {
+  const cents = Number(data.fee ?? data.quote?.fee ?? 0);
+  return Math.round(cents) / 100;
+}
+
+function uberEtaMinutes(data) {
+  const duration = Number(data.duration ?? data.quote?.duration ?? 0);
+  if (duration > 0) return Math.max(15, Math.round(duration));
+  const eta = data.dropoff_eta || data.quote?.dropoff_eta;
+  if (eta) {
+    const diff = (new Date(eta).getTime() - Date.now()) / 60000;
+    if (diff > 0) return Math.round(diff);
+  }
+  return 60;
+}
+
+async function requestUberQuote(env, config, dropoffParts) {
+  const pickup = buildUberPickupParts(config);
+  if (!hasUberDropoffAddress(dropoffParts)) return null;
+
+  const body = {
+    pickup_address: formatUberStructuredAddress(pickup),
+    dropoff_address: formatUberStructuredAddress(dropoffParts)
+  };
+  const data = await uberApiFetch(env, '/delivery_quotes', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+  const price = uberFeeToBRL(data);
+  if (price <= 0) return null;
+  return {
+    uberQuoteId: data.id,
+    price,
+    etaMinutes: uberEtaMinutes(data),
+    currency: data.currency || data.currency_type || 'BRL'
+  };
+}
+
+async function quoteUberShippingOptions(env, config, addressParams, opts = {}) {
+  const methods = getEnabledShippingMethods(config, 'BR').filter(isUberMethod);
+  if (!methods.length || !uberConfigured(env)) return [];
+
+  const dropoff = dropoffPartsFromParams(addressParams);
+  if (!hasUberDropoffAddress(dropoff)) return [];
+
+  try {
+    const quote = await requestUberQuote(env, config, dropoff);
+    if (!quote) return [];
+    return methods.map((method) => ({
+      id: method.id,
+      methodId: method.id,
+      serviceCode: null,
+      service: method.label || 'Entrega Uber',
+      price: quote.price,
+      days: 0,
+      etaMinutes: quote.etaMinutes,
+      source: 'uber',
+      provider: 'uber',
+      uberQuoteId: quote.uberQuoteId,
+      weightGrams: shippingWeightGrams(config, opts.weightGrams)
+    }));
+  } catch (err) {
+    console.warn('Uber quote:', err.message);
+    return [];
+  }
+}
+
+function buildUberManifest(order, config) {
+  const items = order.items?.length
+    ? order.items
+    : [{ name: config.product?.name || 'Kit Sensor Tattoo Fix', qty: 1, price: order.valorProduto || config.product?.price || 59.9 }];
+  return items.map((item) => ({
+    name: String(item.name || 'Produto').slice(0, 100),
+    quantity: Math.max(1, Number(item.qty) || 1),
+    size: 'small',
+    price: Math.max(0, Math.round((Number(item.price) || 0) * 100))
+  }));
+}
+
+async function createUberDeliveryForOrder(env, config, order) {
+  if (!uberConfigured(env)) throw new Error('Uber Direct não configurado.');
+  const pickup = buildUberPickupParts(config);
+  const dropoff = dropoffPartsFromOrder(order);
+  if (!hasUberDropoffAddress(dropoff)) throw new Error('Endereço incompleto para Uber.');
+
+  const pickupPhone = shopPhoneE164(config, env);
+  const dropoffPhone = phoneToE164Br(order.telefone);
+  if (!pickupPhone || !dropoffPhone) throw new Error('Telefone inválido para Uber.');
+
+  const pickupAddress = formatUberStructuredAddress(pickup);
+  const dropoffAddress = formatUberStructuredAddress(dropoff);
+  const sender = config.shipping?.sender || DEFAULT_CONFIG.shipping.sender;
+
+  let quoteId = order.uberQuoteId || null;
+  if (!quoteId) {
+    const fresh = await requestUberQuote(env, config, dropoff);
+    if (!fresh?.uberQuoteId) throw new Error('Não foi possível cotar Uber.');
+    quoteId = fresh.uberQuoteId;
+    order.uberQuoteId = quoteId;
+  }
+
+  const deliveryBody = {
+    quote_id: quoteId,
+    pickup_name: sender.brand || sender.company || 'Sensor Tattoo Fix',
+    pickup_address: pickupAddress,
+    pickup_phone_number: pickupPhone,
+    dropoff_name: order.nome,
+    dropoff_address: dropoffAddress,
+    dropoff_phone_number: dropoffPhone,
+    manifest_items: buildUberManifest(order, config),
+    deliverable_action: 'deliverable_action_meet_at_door',
+    undeliverable_action: 'return',
+    external_id: order.orderId
+  };
+  if (isUberSandbox(env)) {
+    deliveryBody.test_specifications = {
+      robo_courier_specification: { mode: 'auto' }
+    };
+  }
+
+  let data;
+  try {
+    data = await uberApiFetch(env, '/deliveries', {
+      method: 'POST',
+      body: JSON.stringify(deliveryBody)
+    });
+  } catch (err) {
+    if (err.status === 400 || err.status === 409) {
+      const fresh = await requestUberQuote(env, config, dropoff);
+      if (!fresh?.uberQuoteId) throw err;
+      deliveryBody.quote_id = fresh.uberQuoteId;
+      order.uberQuoteId = fresh.uberQuoteId;
+      data = await uberApiFetch(env, '/deliveries', {
+        method: 'POST',
+        body: JSON.stringify(deliveryBody)
+      });
+    } else {
+      throw err;
+    }
+  }
+
+  return {
+    uberDeliveryId: data.id || data.delivery_id || null,
+    uberTrackingUrl: data.tracking_url || data.trackingUrl || null,
+    uberDeliveryStatus: data.status || 'pending',
+    uberQuoteId: order.uberQuoteId,
+    shippingProvider: 'uber'
+  };
+}
+
+async function checkUberIntegration(env) {
+  if (!uberConfigured(env)) {
+    return { configured: false, authOk: false, error: 'UBER_DIRECT_* não configurados.' };
+  }
+  try {
+    const token = await getUberAccessToken(env);
+    if (!token) {
+      return { configured: true, authOk: false, error: 'Token OAuth não obtido.' };
+    }
+    return { configured: true, authOk: true, sandbox: isUberSandbox(env) };
+  } catch (err) {
+    return { configured: true, authOk: false, error: err.message };
+  }
 }
 
 function estimateBR(originCep, destCep) {
@@ -1115,7 +1444,7 @@ async function quoteCorreiosOptions(env, config, destCep, opts = {}) {
   const dest = onlyDigits(destCep);
   if (dest.length !== 8) throw new Error('CEP inválido');
 
-  const methods = getEnabledShippingMethods(config, 'BR');
+  const methods = getEnabledShippingMethods(config, 'BR').filter((m) => !isUberMethod(m));
   const weightGrams = shippingWeightGrams(config, opts.weightGrams);
   const token = await getCorreiosToken(env);
   const options = [];
@@ -1722,7 +2051,7 @@ async function checkZApiIntegration(env) {
 }
 
 function buildIntegrationRows(env, config, checks) {
-  const { paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions } = checks;
+  const { paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions, uber } = checks;
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
   const formsubmitEmail = (config.formsubmit?.email || '').trim();
   const ga4Secret = (env.GA4_API_SECRET || '').trim();
@@ -1842,6 +2171,35 @@ function buildIntegrationRows(env, config, checks) {
       description: 'Cotação de frete nacional (Mini Envios)',
       status: 'ok',
       detail: 'API conectada'
+    });
+  }
+
+  const uberEnabled = getEnabledShippingMethods(config, 'BR').some(isUberMethod);
+  if (!uber?.configured) {
+    rows.push({
+      id: 'uber-direct',
+      label: 'Uber Direct',
+      description: 'Entrega rápida sob demanda (BR)',
+      status: 'off',
+      detail: uberEnabled ? 'Modalidade ativa no admin — configure secrets' : 'Não configurado'
+    });
+  } else if (!uber.authOk) {
+    rows.push({
+      id: 'uber-direct',
+      label: 'Uber Direct',
+      description: 'Entrega rápida sob demanda (BR)',
+      status: 'error',
+      detail: uber.error || 'Falha na autenticação OAuth'
+    });
+  } else {
+    rows.push({
+      id: 'uber-direct',
+      label: 'Uber Direct',
+      description: 'Entrega rápida sob demanda (BR)',
+      status: uber.sandbox ? 'warn' : (uberEnabled ? 'ok' : 'warn'),
+      detail: uber.sandbox
+        ? 'Sandbox conectado'
+        : (uberEnabled ? 'Produção conectada' : 'Conectado — ative modalidade Uber no frete')
     });
   }
 
@@ -2293,8 +2651,21 @@ async function handleShippingQuote(request, env, origin, ctx) {
   } else {
     const cep = url.searchParams.get('cep');
     const declaredValue = Number(url.searchParams.get('valor')) || undefined;
+    const addressParams = {
+      cep,
+      rua: url.searchParams.get('rua'),
+      numero: url.searchParams.get('numero'),
+      complemento: url.searchParams.get('complemento'),
+      bairro: url.searchParams.get('bairro'),
+      cidade: url.searchParams.get('cidade'),
+      uf: url.searchParams.get('uf')
+    };
     try {
       options = await quoteCorreiosOptions(env, config, cep, { weightGrams, declaredValue });
+      const uberOptions = await quoteUberShippingOptions(env, config, addressParams, { weightGrams });
+      if (uberOptions.length) {
+        options = [...options, ...uberOptions].sort((a, b) => a.price - b.price);
+      }
     } catch (err) {
       return json({ error: err.message }, 400, origin);
     }
@@ -2403,7 +2774,7 @@ async function resolveCheckoutUser(env, request, body) {
 async function handleCreateOrder(request, env, origin, ctx) {
   const body = await request.json();
   const config = await getConfig(env);
-  const frete = Number(body.frete) || 0;
+  let frete = Number(body.frete) || 0;
   let items;
   try {
     items = resolveOrderItems(config, body);
@@ -2412,6 +2783,34 @@ async function handleCreateOrder(request, env, origin, ctx) {
   }
   const valorProduto = items.reduce((sum, i) => sum + i.price * i.qty, 0);
   const isIntl = (body.paisCode || 'BR') !== 'BR';
+  const uberMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
+    (m) => isUberMethod(m) && (m.id === body.shippingMethodId || body.shippingProvider === 'uber')
+  );
+  let uberQuoteId = body.uberQuoteId || null;
+
+  if (uberMethod) {
+    if (!uberConfigured(env)) {
+      return json({ error: 'Entrega Uber indisponível no momento.' }, 400, origin);
+    }
+    const dropoff = dropoffPartsFromParams(body);
+    if (!hasUberDropoffAddress(dropoff)) {
+      return json({ error: 'Informe rua, cidade e UF para entrega Uber.' }, 400, origin);
+    }
+    try {
+      const quote = await requestUberQuote(env, config, dropoff);
+      if (!quote) {
+        return json({ error: 'Uber não atende este endereço. Escolha outro frete.' }, 400, origin);
+      }
+      if (Math.abs(quote.price - frete) > 0.05) {
+        return json({ error: 'Valor do frete Uber desatualizado. Recalcule o frete.' }, 400, origin);
+      }
+      frete = quote.price;
+      uberQuoteId = quote.uberQuoteId;
+    } catch (err) {
+      return json({ error: 'Uber indisponível: ' + err.message }, 400, origin);
+    }
+  }
+
   let billingType;
   let pagamentoLabel;
   if (isIntl) {
@@ -2479,6 +2878,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
     shippingService: body.shippingService || 'Mini Envios',
     shippingServiceCode: body.shippingServiceCode || null,
     shippingMethodId: body.shippingMethodId || null,
+    shippingProvider: uberMethod ? 'uber' : (body.shippingProvider || null),
+    uberQuoteId: uberQuoteId || null,
     shippingDays: body.shippingDays || null,
     shipmentType: body.shipmentType || null,
     internationalLensOnly: !!body.internationalLensOnly,
@@ -2635,27 +3036,58 @@ async function handlePaymentConfirmed(env, order, payment) {
   await saveOrder(env, order);
 
   const config = await getConfig(env);
-  const shopPaid = await notifyShop(env, config, 'PAGO — ' + order.orderId, {
+
+  if (isUberOrder(order)) {
+    try {
+      const uber = await createUberDeliveryForOrder(env, config, order);
+      Object.assign(order, uber);
+      await saveOrder(env, order);
+    } catch (err) {
+      console.error('Uber dispatch:', order.orderId, err.message);
+      order.uberDispatchError = err.message;
+      await saveOrder(env, order);
+    }
+  }
+
+  const shopPaidFields = {
     Pedido: order.orderId, Status: 'PAGO', Cliente: order.nome,
     'E-mail cliente': order.email, Telefone: order.telefone,
     Pagamento: order.pagamento || payment?.billingType || '—',
     Valor: formatBRL(value),
     Endereço: order.endereco, Envio: order.shippingService,
-    'Imprimir etiqueta': labelPrintUrl(config, order.orderId),
     ...orderWatchEmailFields(order),
     ...orderIntlProductFields(order)
-  });
+  };
+  if (isUberOrder(order)) {
+    shopPaidFields['Uber Direct'] = order.uberDeliveryId || 'solicitado';
+    if (order.uberTrackingUrl) shopPaidFields['Rastreio Uber'] = order.uberTrackingUrl;
+    if (order.uberDispatchError) shopPaidFields['Erro Uber'] = order.uberDispatchError;
+  } else {
+    shopPaidFields['Imprimir etiqueta'] = labelPrintUrl(config, order.orderId);
+  }
+
+  const shopPaid = await notifyShop(env, config, 'PAGO — ' + order.orderId, shopPaidFields);
   if (!shopPaid?.ok) console.error('E-mail PAGO loja falhou:', JSON.stringify(shopPaid));
+
+  let paidCustomerMessage;
+  if (isUberOrder(order)) {
+    paidCustomerMessage = order.uberTrackingUrl
+      ? `Entrega Uber confirmada. Acompanhe em: ${order.uberTrackingUrl}`
+      : 'Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em breve.';
+  } else if (order.internationalLensOnly) {
+    paidCustomerMessage = 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.';
+  } else if (order.paisCode && order.paisCode !== 'BR') {
+    paidCustomerMessage = 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.';
+  } else {
+    paidCustomerMessage = 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.';
+  }
 
   await notifyCustomer(env, config, order, `Pagamento confirmado — ${order.orderId}`, {
     Pedido: order.orderId,
     Status: 'PAGO',
     Valor: formatBRL(value),
-    Mensagem: order.internationalLensOnly
-      ? 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.'
-      : (order.paisCode && order.paisCode !== 'BR'
-        ? 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.'
-        : 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.'),
+    Mensagem: paidCustomerMessage,
+    ...(order.uberTrackingUrl ? { 'Rastreio Uber': order.uberTrackingUrl } : {}),
     ...orderWatchEmailFields(order),
     ...orderIntlProductFields(order)
   });
@@ -2876,14 +3308,15 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   const weightGrams = shippingWeightGrams(config);
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
 
-  const [paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions] = await Promise.all([
+  const [paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions, uber] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
     hasCorreiosCreds ? getCorreiosToken(env) : Promise.resolve(null),
-    quoteCorreiosExportOptions(config, 'PT', { weightGrams }).catch(() => [])
+    quoteCorreiosExportOptions(config, 'PT', { weightGrams }).catch(() => []),
+    checkUberIntegration(env)
   ]);
 
   const integrations = buildIntegrationRows(env, config, {
@@ -2893,7 +3326,8 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     resend,
     zapi,
     correiosToken,
-    exportOptions
+    exportOptions,
+    uber
   });
 
   return json({ integrations, checkedAt: new Date().toISOString() }, 200, origin);

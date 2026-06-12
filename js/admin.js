@@ -170,8 +170,9 @@
 
   function defaultShippingMethods() {
     return [
-      { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227' },
-      { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010' },
+      { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
+      { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
+      { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
       { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
       { id: 'int-documento', enabled: true, scope: 'INT', label: 'Documento / carta internacional', correiosCode: '*', simTipo: 'D' }
     ];
@@ -194,8 +195,14 @@
               <option value="INT" ${m.scope === 'INT' ? 'selected' : ''}>Internacional</option>
             </select>
           </label>
-          <label>Código Correios
+          <label data-correios-code-wrap ${m.provider === 'uber' ? 'hidden' : ''}>Código Correios
             <input type="text" data-field="correiosCode" value="${escAttr(m.correiosCode || '')}" placeholder="04227 ou *">
+          </label>
+          <label data-provider-wrap ${m.scope === 'BR' ? '' : 'hidden'}>Provedor
+            <select data-field="provider">
+              <option value="correios" ${(m.provider || 'correios') === 'correios' ? 'selected' : ''}>Correios</option>
+              <option value="uber" ${m.provider === 'uber' ? 'selected' : ''}>Uber Direct</option>
+            </select>
           </label>
           <label data-sim-tipo-wrap ${m.scope === 'INT' ? '' : 'hidden'}>Tipo simulador
             <select data-field="simTipo">
@@ -225,6 +232,19 @@
         const row = sel.closest('.admin-ship-method-row');
         const wrap = row?.querySelector('[data-sim-tipo-wrap]');
         if (wrap) wrap.hidden = sel.value !== 'INT';
+        const correiosWrap = row?.querySelector('[data-correios-code-wrap]');
+        const providerWrap = row?.querySelector('[data-provider-wrap]');
+        const provider = row?.querySelector('[data-field="provider"]')?.value || 'correios';
+        if (providerWrap) providerWrap.hidden = sel.value !== 'BR';
+        if (correiosWrap) correiosWrap.hidden = provider === 'uber' || sel.value !== 'BR';
+      });
+    });
+
+    list.querySelectorAll('[data-field="provider"]').forEach((sel) => {
+      sel.addEventListener('change', () => {
+        const row = sel.closest('.admin-ship-method-row');
+        const correiosWrap = row?.querySelector('[data-correios-code-wrap]');
+        if (correiosWrap) correiosWrap.hidden = sel.value === 'uber';
       });
     });
   }
@@ -241,13 +261,15 @@
       };
       const id = val('id') || `method-${i + 1}`;
       const scope = val('scope') || 'BR';
+      const provider = val('provider') || 'correios';
       const entry = {
         id,
         enabled: val('enabled'),
         scope,
         label: val('label') || id,
-        correiosCode: val('correiosCode')
+        provider
       };
+      if (provider !== 'uber') entry.correiosCode = val('correiosCode');
       if (scope === 'INT') entry.simTipo = val('simTipo') || 'M';
       return entry;
     });

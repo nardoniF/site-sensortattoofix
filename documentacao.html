@@ -48,7 +48,7 @@
                     <a href="#correios">Correios (passo a passo)</a>
                     <a href="#admin-abas">Abas do admin</a>
                     <a href="#deploy">Deploy</a>
-                    <a href="#futuro">Planejado (Uber)</a>
+                    <a href="#uber">Uber Direct</a>
                 </nav>
 
                 <section id="site" class="admin-doc-section">
@@ -210,18 +210,22 @@ npx wrangler deploy</code></pre>
                     <p>Detalhes técnicos adicionais: <code>api/DEPLOY.md</code> no repositório.</p>
                 </section>
 
-                <section id="futuro" class="admin-doc-section">
-                    <h2>Planejado — Uber Direct (entregas)</h2>
-                    <p>Integração futura para entrega rápida sob demanda (região metropolitana), como opção extra no checkout — <strong>ainda não implementado</strong>.</p>
+                <section id="uber" class="admin-doc-section">
+                    <h2>Uber Direct (entregas rápidas BR)</h2>
+                    <p>Entrega sob demanda como opção extra no checkout (Brasil). Após pagamento confirmado, o Worker cria a corrida na API Uber e envia o link de rastreio por e-mail/WhatsApp.</p>
                     <table class="admin-doc-table">
                         <thead><tr><th>Item</th><th>Referência</th></tr></thead>
                         <tbody>
                             <tr><td>Cadastro</td><td><a href="https://direct.uber.com" target="_blank" rel="noopener">direct.uber.com</a></td></tr>
                             <tr><td>Documentação API</td><td><a href="https://developer.uber.com/docs/deliveries/get-started" target="_blank" rel="noopener">developer.uber.com/docs/deliveries</a></td></tr>
                             <tr><td>Suporte BR</td><td>direct-pt@uber.com</td></tr>
-                            <tr><td>Secrets previstos</td><td><code>UBER_DIRECT_CLIENT_ID</code>, <code>UBER_DIRECT_CLIENT_SECRET</code>, <code>UBER_DIRECT_CUSTOMER_ID</code></td></tr>
+                            <tr><td>Secrets Worker</td><td><code>UBER_DIRECT_CLIENT_ID</code>, <code>UBER_DIRECT_CLIENT_SECRET</code>, <code>UBER_DIRECT_CUSTOMER_ID</code></td></tr>
+                            <tr><td>Sandbox (opcional)</td><td><code>UBER_DIRECT_SANDBOX=true</code></td></tr>
+                            <tr><td>Ativar no site</td><td>Admin → Frete → modalidade <strong>Entrega Uber (rápida)</strong></td></tr>
+                            <tr><td>Status API</td><td>Admin → aba <strong>API</strong> → linha Uber Direct</td></tr>
                         </tbody>
                     </table>
+                    <p><strong>Checkout:</strong> a cotação Uber só aparece com CEP + rua + cidade + UF preenchidos. O endereço de coleta usa <code>shipping.sender</code> e <code>originCep</code> do config.</p>
                 </section>
 
             </article>

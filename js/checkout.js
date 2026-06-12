@@ -474,8 +474,25 @@
   function shippingSourceLabel(source) {
     if (source === 'correios') return L('shipping.sourceCorreios');
     if (source === 'correios-export') return L('shipping.sourceExport');
+    if (source === 'uber') return L('shipping.sourceUber');
     if (source === 'config') return L('shipping.sourceConfigShort');
     return L('shipping.sourceEstimateShort');
+  }
+
+  function brAddressQuoteParams() {
+    const f = els.form;
+    const params = new URLSearchParams();
+    const add = (key, val) => {
+      const v = String(val || '').trim();
+      if (v) params.set(key, v);
+    };
+    add('rua', f.rua?.value);
+    add('numero', f.numero?.value);
+    add('complemento', f.complemento?.value);
+    add('bairro', f.bairro?.value);
+    add('cidade', f.cidade?.value);
+    add('uf', f.uf?.value);
+    return params;
   }
 
   function selectShippingOption(option) {
@@ -505,6 +522,9 @@
       const checked = i === 0 ? 'checked' : '';
       const src = shippingSourceLabel(opt.source);
       const tipoHint = opt.shipmentType === 'documento' ? ` · ${L('shipping.document')}` : '';
+      const timeLabel = opt.source === 'uber'
+        ? `~${opt.etaMinutes || 60} ${L('shipping.minutes')}`
+        : `${opt.days} ${L('shipping.days')}`;
       const notice = shippingOptionNoticeHtml(opt.shipmentType);
       return `
         <label class="shipping-option" for="${inputId}">
@@ -514,7 +534,7 @@
             <div class="shipping-card-row">
               <div class="shipping-card-main">
                 <strong>${escapeHtml(opt.service)}</strong>
-                <small>${opt.days} ${L('shipping.days')} · ${src}${tipoHint}</small>
+                <small>${timeLabel} · ${src}${tipoHint}</small>
               </div>
               <span class="shipping-card-price">${formatBRL(opt.price)}</span>
             </div>
@@ -608,8 +628,9 @@
         if (cep.length !== 8) return;
         if (base) {
           const valor = cartSubtotal();
+          const addr = brAddressQuoteParams();
           const data = await fetchShippingQuote(
-            `${base}/shipping/quote?country=BR&cep=${cep}&weightGrams=${weight}&valor=${valor}`
+            `${base}/shipping/quote?country=BR&cep=${cep}&weightGrams=${weight}&valor=${valor}&${addr.toString()}`
           );
           options = data?.options || [];
         }
@@ -712,6 +733,8 @@
       shippingService: shippingInfo?.service,
       shippingServiceCode: shippingInfo?.serviceCode || null,
       shippingMethodId: shippingInfo?.methodId || shippingInfo?.id || null,
+      shippingProvider: shippingInfo?.source === 'uber' ? 'uber' : (shippingInfo?.source === 'correios' ? 'correios' : null),
+      uberQuoteId: shippingInfo?.uberQuoteId || null,
       shippingDays: shippingInfo?.days,
       shipmentType: shippingInfo?.shipmentType || null,
       internationalLensOnly: isInternational && shippingInfo?.shipmentType === 'documento',
@@ -1014,6 +1037,14 @@
         await quoteShipping();
         els.form.numero.focus();
       } catch { els.shippingHint.textContent = L('shipping.cepInvalid'); }
+    });
+
+    ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf'].forEach((field) => {
+      els.form[field]?.addEventListener('blur', () => {
+        if (isInternational) return;
+        const cep = onlyDigits(els.cep?.value);
+        if (cep.length === 8) quoteShipping();
+      });
     });
 
     ['postal-intl','rua-intl','cidade-intl'].forEach((id) => {

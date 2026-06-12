@@ -47,8 +47,9 @@
     }
   },
   "shippingMethods": [
-    { "id": "br-mini-envios", "enabled": true, "scope": "BR", "label": "Mini Envios", "correiosCode": "04227" },
-    { "id": "br-carta-registrada", "enabled": true, "scope": "BR", "label": "Carta Registrada", "correiosCode": "8010" },
+    { "id": "br-mini-envios", "enabled": true, "scope": "BR", "label": "Mini Envios", "correiosCode": "04227", "provider": "correios" },
+    { "id": "br-carta-registrada", "enabled": true, "scope": "BR", "label": "Carta Registrada", "correiosCode": "8010", "provider": "correios" },
+    { "id": "br-uber-direct", "enabled": false, "scope": "BR", "label": "Entrega Uber (rápida)", "provider": "uber" },
     { "id": "int-encomenda", "enabled": true, "scope": "INT", "label": "Encomenda internacional (Exporta Fácil)", "correiosCode": "*", "simTipo": "M" },
     { "id": "int-documento", "enabled": true, "scope": "INT", "label": "Documento / carta internacional", "correiosCode": "*", "simTipo": "D" }
   ],

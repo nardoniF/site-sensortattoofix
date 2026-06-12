@@ -63,6 +63,19 @@ wrangler secret put CORREIOS_PASSWORD
 wrangler secret put CORREIOS_CONTRACT       # opcional
 ```
 
+## 4b. Uber Direct (entrega rápida BR)
+
+Cadastro: [direct.uber.com](https://direct.uber.com) · Docs: [developer.uber.com/docs/deliveries](https://developer.uber.com/docs/deliveries/get-started)
+
+```bash
+wrangler secret put UBER_DIRECT_CLIENT_ID
+wrangler secret put UBER_DIRECT_CLIENT_SECRET
+wrangler secret put UBER_DIRECT_CUSTOMER_ID
+wrangler secret put UBER_DIRECT_SANDBOX      # opcional: "true" para sandbox
+```
+
+No admin → Frete, ative a modalidade **Entrega Uber (rápida)**. A cotação Uber exige endereço completo (rua, cidade, UF) no checkout.
+
 ## 5. Deploy
 
 ```bash
