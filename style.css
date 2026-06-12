@@ -911,6 +911,10 @@ line-height:1.8;
 .form-grid select.invalid { border-color: var(--danger); }
 .form-grid input.loading { opacity: 0.6; }
 .payment-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+#payment-options-br[hidden],
+#payment-options-intl[hidden] { display: none !important; }
+#payment-notice-br[hidden],
+#payment-notice-intl[hidden] { display: none !important; }
 .payment-option { cursor: pointer; }
 .payment-option.disabled { opacity: 0.5; cursor: not-allowed; }
 .payment-option input { position: absolute; opacity: 0; }

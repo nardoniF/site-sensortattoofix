@@ -319,7 +319,22 @@
         ? `<br><span class="admin-status-warn">⚠ ${escAttr(data.weightMismatchHint || 'Peso do produto diferente do pacote')}</span>`
         : '';
 
-      el.innerHTML = brLine + '<br>' + expLine + mismatch;
+      const syncResults = data.intlFallbackSync || {};
+      const syncedCount = Object.values(syncResults).filter((r) => r?.ok).length;
+      const syncFailed = Object.entries(syncResults).filter(([, r]) => r && !r.ok).map(([c]) => c);
+      let syncLine = '';
+      if (data.intlFallbackUpdated && syncedCount) {
+        syncLine = `<br><span class="admin-status-ok">✓ Tabela fallback internacional atualizada da API (${syncedCount} país${syncedCount === 1 ? '' : 'es'})</span>`;
+      } else if (syncFailed.length) {
+        syncLine = `<br><span class="admin-status-warn">⚠ Fallback não atualizado para: ${escAttr(syncFailed.join(', '))}</span>`;
+      }
+
+      el.innerHTML = brLine + '<br>' + expLine + mismatch + syncLine;
+
+      if (data.internationalShipping) {
+        currentConfig = { ...currentConfig, internationalShipping: data.internationalShipping };
+        renderIntlShipping(data.internationalShipping);
+      }
 
       if (exp.sampleQuotesPT?.length) {
         showQuoteResult(formatQuoteResult({ options: exp.sampleQuotesPT, weightGrams: data.package?.weightGrams }));

@@ -603,6 +603,7 @@
     els.btnBack.style.display = step > 1 && step < 3 ? 'inline-flex' : 'none';
     els.btnNext.style.display = step === 1 ? 'inline-flex' : 'none';
     els.btnPay.style.display = step === 2 ? 'inline-flex' : 'none';
+    if (step === 2) updatePaymentOptionsForCountry();
   }
 
   async function fetchCep(cep) {

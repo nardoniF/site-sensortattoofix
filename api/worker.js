@@ -1000,6 +1000,27 @@ function applySelfTestPixPricing(order, config, env, billingType) {
   return true;
 }
 
+/** PayPal Live: R$ 0,01 quando PAYPAL_SELF_TEST=true (remover após validar). */
+function isSelfTestPayPalEligible(env, billingType) {
+  if (billingType !== 'PAYPAL') return false;
+  if (env.PAYPAL_SELF_TEST !== 'true' && env.PAYPAL_SELF_TEST !== '1') return false;
+  const id = String(env.PAYPAL_CLIENT_ID || '');
+  const sandbox = env.PAYPAL_SANDBOX === 'true' || env.PAYPAL_SANDBOX === '1' || id.startsWith('sb-');
+  return !sandbox && !!id;
+}
+
+function applySelfTestPayPalPricing(order, env, billingType) {
+  if (!isSelfTestPayPalEligible(env, billingType)) return false;
+  order.valorProdutoOriginal = order.valorProduto;
+  order.freteOriginal = order.frete;
+  order.totalOriginal = order.total;
+  order.selfTestPayPal = true;
+  order.frete = 0;
+  order.valorProduto = SELF_TEST_PIX_AMOUNT;
+  order.total = SELF_TEST_PIX_AMOUNT;
+  return true;
+}
+
 async function quoteCorreiosService(env, config, destCep, method, opts = {}) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const origin = onlyDigits(ship.originCep);
@@ -1236,12 +1257,103 @@ async function quoteCorreiosExportOptions(config, countryCode, opts = {}) {
   return options.sort((a, b) => a.price - b.price);
 }
 
+function pickIntlFallbackQuote(options, config) {
+  if (!options?.length) return null;
+  const preferredCode = String((config.shipping || {}).intlServiceCode || '45128');
+  return options.find((o) => o.serviceCode === preferredCode) || options[0];
+}
+
 /** Cotação mais barata via simulador Exporta Fácil (compat. admin). */
 async function quoteCorreiosExport(config, countryCode, opts = {}) {
   const options = await quoteCorreiosExportOptions(config, countryCode, opts);
   if (!options.length) return null;
-  const preferredCode = String((config.shipping || {}).intlServiceCode || '45128');
-  return options.find((o) => o.serviceCode === preferredCode) || options[0];
+  return pickIntlFallbackQuote(options, config);
+}
+
+function intlZoneFromQuote(zone, pick) {
+  return {
+    ...zone,
+    price: pick.price,
+    days: pick.days,
+    currency: 'BRL',
+    lastSyncedAt: new Date().toISOString(),
+    lastSyncedSource: pick.source || 'correios-export',
+    lastSyncedService: pick.service || null
+  };
+}
+
+/** Atualiza fallback de um país quando a API Exporta Fácil responde. */
+async function updateIntlFallbackZone(env, countryCode, options) {
+  const code = String(countryCode || '').toUpperCase();
+  if (!code || code === 'BR' || code === 'OTHER') return null;
+
+  const config = await getConfig(env);
+  const pick = pickIntlFallbackQuote(options, config);
+  if (!pick || pick.source !== 'correios-export') return null;
+  const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
+  const prev = zones[code];
+  if (!prev) return null;
+
+  if (prev.price === pick.price && prev.days === pick.days && prev.lastSyncedSource === 'correios-export') {
+    return config;
+  }
+
+  const internationalShipping = {
+    ...zones,
+    [code]: intlZoneFromQuote(prev, pick)
+  };
+  return saveConfig(env, { ...config, internationalShipping });
+}
+
+/** Sincroniza toda a tabela fallback internacional com o simulador Correios. */
+async function syncAllIntlFallbackZones(env, config) {
+  const zones = { ...(config.internationalShipping || DEFAULT_CONFIG.internationalShipping) };
+  const weightGrams = shippingWeightGrams(config);
+  const codes = Object.keys(zones).filter((c) => c !== 'OTHER' && c !== 'BR');
+  const results = {};
+  const internationalShipping = { ...zones };
+  let updated = false;
+
+  await Promise.all(codes.map(async (code) => {
+    try {
+      const options = await quoteCorreiosExportOptions(config, code, { weightGrams });
+      const pick = pickIntlFallbackQuote(options, config);
+      if (!pick) {
+        results[code] = { ok: false };
+        return;
+      }
+      internationalShipping[code] = intlZoneFromQuote(zones[code] || { label: code }, pick);
+      results[code] = { ok: true, price: pick.price, days: pick.days, service: pick.service };
+      updated = true;
+    } catch (err) {
+      results[code] = { ok: false, error: err.message };
+    }
+  }));
+
+  const syncedPrices = codes
+    .filter((c) => results[c]?.ok)
+    .map((c) => internationalShipping[c].price);
+  if (syncedPrices.length && internationalShipping.OTHER) {
+    const maxPrice = Math.max(...syncedPrices);
+    const maxDays = Math.max(
+      ...codes.filter((c) => results[c]?.ok).map((c) => internationalShipping[c].days || 0),
+      internationalShipping.OTHER.days || 25
+    );
+    internationalShipping.OTHER = {
+      ...internationalShipping.OTHER,
+      price: Math.round(Math.max(internationalShipping.OTHER.price, maxPrice * 1.15) * 100) / 100,
+      days: maxDays,
+      lastSyncedAt: new Date().toISOString(),
+      lastSyncedSource: 'derived-from-sync'
+    };
+    updated = true;
+    results.OTHER = { ok: true, price: internationalShipping.OTHER.price, days: maxDays, derived: true };
+  }
+
+  if (!updated) return { config, results, updated: false };
+
+  const saved = await saveConfig(env, { ...config, internationalShipping });
+  return { config: saved, results, updated: true };
 }
 
 function quoteInternational(config, countryCode) {
@@ -1676,7 +1788,7 @@ async function notifyCustomerPendingPix(env, config, order) {
   );
 }
 
-async function handleShippingQuote(request, env, origin) {
+async function handleShippingQuote(request, env, origin, ctx) {
   const url = new URL(request.url);
   const country = (url.searchParams.get('country') || 'BR').toUpperCase();
   const config = await getConfig(env);
@@ -1685,6 +1797,13 @@ async function handleShippingQuote(request, env, origin) {
 
   if (country !== 'BR') {
     options = await quoteCorreiosExportOptions(config, country, { weightGrams });
+    if (options.some((o) => o.source === 'correios-export') && ctx) {
+      ctx.waitUntil(
+        updateIntlFallbackZone(env, country, options).catch((err) => {
+          console.error('intl fallback sync:', country, err.message);
+        })
+      );
+    }
     if (!options.length) {
       const fallback = quoteInternational(config, country);
       options = [{
@@ -1892,6 +2011,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
   if (applySelfTestPixPricing(order, config, env, billingType)) {
     console.log('PIX self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
   }
+  if (applySelfTestPayPalPricing(order, env, billingType)) {
+    console.log('PayPal self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
+  }
 
   let payment = null;
   const hasAsaas = !!asaasApiKey(env);
@@ -1975,6 +2097,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
       ...orderIntlProductFields(order),
       ...(order.selfTestPix ? {
         'Teste PIX produção': `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — endereço igual ao remetente`,
+        'Total original': formatBRL(order.totalOriginal || 0)
+      } : {}),
+      ...(order.selfTestPayPal ? {
+        'Teste PayPal produção': `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — PAYPAL_SELF_TEST ativo`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...orderWatchEmailFields(order)
@@ -2261,7 +2387,9 @@ async function handleAdminShippingStatus(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
-  const config = await getConfig(env);
+  let config = await getConfig(env);
+  const sync = await syncAllIntlFallbackZones(env, config);
+  config = sync.config;
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const hasCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
   const correiosToken = hasCreds ? await getCorreiosToken(env) : null;
@@ -2309,7 +2437,10 @@ async function handleAdminShippingStatus(request, env, origin) {
     weightMismatch,
     weightMismatchHint: weightMismatch
       ? 'O peso do produto no catálogo difere do peso do pacote (Frete Mini Envios). O checkout usa o peso do pacote.'
-      : null
+      : null,
+    internationalShipping: config.internationalShipping,
+    intlFallbackSync: sync.results,
+    intlFallbackUpdated: sync.updated
   }, 200, origin);
 }
 
@@ -2479,7 +2610,9 @@ export default {
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
       if (path === '/admin/shipping-status' && request.method === 'GET') return handleAdminShippingStatus(request, env, origin);
-      if (path === '/shipping/quote' && request.method === 'GET') return handleShippingQuote(request, env, origin);
+      if (path === '/shipping/quote' && request.method === 'GET') {
+        return handleShippingQuote(request, env, origin, ctx);
+      }
       if (path === '/orders' && request.method === 'POST') return handleCreateOrder(request, env, origin, ctx);
       if (path === '/orders' && request.method === 'GET') return handleListOrders(request, env, origin);
       if (path === '/webhook/asaas' && request.method === 'POST') return handleAsaasWebhook(request, env, origin);

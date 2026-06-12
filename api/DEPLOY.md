@@ -32,6 +32,7 @@ Opcional:
 
 ```bash
 wrangler secret put PAYPAL_SANDBOX            # "true" para testes sandbox
+wrangler secret put PAYPAL_SELF_TEST            # "true" = PayPal Live cobra R$ 0,01 (remover após teste)
 wrangler secret put STORE_URL                 # URL do site (retorno PayPal)
 ```
 
@@ -93,6 +94,10 @@ No [PayPal Developer](https://developer.paypal.com/) → sua aplicação → Web
 - **Eventos:** `PAYMENT.CAPTURE.COMPLETED`, `CHECKOUT.ORDER.COMPLETED`
 
 O cliente também confirma ao voltar do PayPal para `/comprar.html` (captura automática).
+
+## 8b. Tabela fallback internacional
+
+A tabela em **Admin → Frete** sincroniza sozinha com o simulador Exporta Fácil quando a API responde (ao abrir o admin ou em cada cotação no checkout). Serve só se a API dos Correios falhar.
 
 ## 9. Painéis
 
