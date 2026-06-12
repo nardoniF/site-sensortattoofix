@@ -1,0 +1,68 @@
+---
+description: Site PT e EN devem permanecer espelhados — toda alteração no português reflete no inglês
+alwaysApply: true
+---
+
+# Site bilíngue (PT + EN)
+
+O site tem duas frentes: **português** (padrão) e **inglês** (internacional). Qualquer alteração visível ao usuário no PT **deve** ser replicada no EN na mesma tarefa — nunca deixar só o checkout ou só o index PT atualizado.
+
+## Princípio
+
+- **Estrutura:** o EN espelha o PT (mesmas seções, ordem, IDs, scripts, data-attributes).
+- **Texto:** tradução natural para inglês, não literal palavra a palavra.
+- **Links EN:** usar `?lang=en` ou caminhos em `/en/` conforme o padrão da página.
+
+## Mapa de arquivos
+
+| PT (fonte) | EN (espelho) |
+|------------|--------------|
+| `index.html` | `en/index.html` — mesma estrutura; assets com `../` |
+| `loja.html` | mesma página + `?lang=en` + `js/stf-i18n.js` |
+| `comprar.html` | mesma página + `?lang=en` + `js/stf-i18n.js` |
+| `js/stf-i18n.js` | chaves `pt` e `en` para strings dinâmicas |
+| `minha-conta.html` | ainda só PT — ao alterar, criar/traduzir versão EN |
+
+`admin.html`, `pedidos.html`, `imprimir-etiqueta.html` são internos — não exigem EN, salvo pedido explícito.
+
+## O que atualizar em cada tipo de mudança
+
+**Nova seção/bloco no `index.html`:**
+1. Adicionar em `index.html` (PT)
+2. Replicar em `en/index.html` (EN), mesmos IDs/classes
+3. Manter scripts iguais (`account-nav`, `store-price-tag`, `analytics`, etc.)
+
+**Texto ou UI em checkout/loja:**
+1. Adicionar chave em `js/stf-i18n.js` (`pt` + `en`)
+2. Usar `L('chave')` ou `STF_I18N.t()` no JS
+3. Ou `data-i18n-label` / `applyCheckoutDom()` / `applyLojaDom()` no HTML
+
+**Novo link “Comprar” / loja no site EN:**
+- Apontar para `../loja.html?lang=en` ou `comprar.html?lang=en`
+
+**Preço dinâmico:**
+- `data-store-price-frete="shipping"` e sufixo EN em páginas `/en/`
+
+## Checklist antes de concluir a tarefa
+
+- [ ] Alteração PT feita
+- [ ] Equivalente EN feito (HTML espelho ou chave i18n)
+- [ ] Links entre páginas EN preservam `?lang=en`
+- [ ] `en/index.html` continua com mesma ordem de seções que `index.html`
+- [ ] Versão de cache (`?v=`) dos scripts alterados, se aplicável
+
+## Exemplo
+
+```html
+<!-- index.html (PT) — nova seção -->
+<section id="garantia">...</section>
+
+<!-- en/index.html — obrigatório na mesma tarefa -->
+<section id="garantia">... (English) ...</section>
+```
+
+```javascript
+// js/stf-i18n.js — nova string de checkout
+pt: { 'alert.novo': 'Mensagem em português' },
+en: { 'alert.novo': 'Message in English' },
+```
