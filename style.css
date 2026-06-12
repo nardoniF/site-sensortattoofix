@@ -1033,6 +1033,18 @@ line-height:1.8;
     font-weight: 600;
     color: #ccc;
 }
+.form-grid label.checkout-infield {
+    gap: 0;
+    font-size: 0;
+}
+.form-grid input::placeholder,
+.form-grid textarea::placeholder {
+    color: #888;
+    opacity: 1;
+}
+.form-grid select option[value=""] {
+    color: #888;
+}
 .form-grid label.full { grid-column: 1 / -1; }
 .form-grid label.span-2 { grid-column: span 2; }
 .form-grid input:not([type="checkbox"]):not([type="radio"]),
@@ -1455,6 +1467,13 @@ line-height:1.8;
     padding: 16px 0 4px;
     background: linear-gradient(to top, #111 70%, transparent);
 }
+.admin-form-actions-sticky[hidden] { display: none !important; }
+.admin-tab-panel-doc {
+    flex: 1;
+    min-height: calc(100vh - 220px);
+    gap: 12px;
+}
+.admin-doc-tab-intro { margin: 0 0 4px; }
 .admin-panel-header {
     display: flex;
     justify-content: space-between;
@@ -2078,8 +2097,11 @@ line-height:1.8;
 .admin-doc-gate { text-align: center; padding: 48px 24px; }
 .admin-doc-gate h1 { justify-content: center; }
 #admin-doc-frame {
+    display: block;
     width: 100%;
-    min-height: 72vh;
+    flex: 1;
+    height: calc(100vh - 240px);
+    min-height: 480px;
     border: 1px solid #2a2a2a;
     border-radius: 12px;
     background: #0a0a0a;

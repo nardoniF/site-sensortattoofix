@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.72">
+    <link rel="stylesheet" href="style.css?v=1.73">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -299,31 +299,28 @@
                     </fieldset>
                     </div>
 
-                    <div class="admin-form-actions admin-form-actions-sticky">
+                    <div id="admin-tab-documentacao" class="admin-tab-panel admin-tab-panel-doc" role="tabpanel" hidden>
+                        <p class="admin-meta admin-doc-tab-intro">URLs, secrets, webhooks, frete, Correios e integrações. Também em <a href="documentacao.html" target="_blank" rel="noopener">documentacao.html</a> (nova aba).</p>
+                        <iframe id="admin-doc-frame" title="Documentação Sensor TattooFix"></iframe>
+                    </div>
+
+                    <div id="admin-tab-pedidos" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset class="admin-orders-section">
+                        <legend><i class="fas fa-list"></i> Pedidos salvos</legend>
+                        <p class="admin-meta">Veja e gerencie pedidos na lista interativa — usa o mesmo login deste painel.</p>
+                        <div class="admin-form-actions">
+                            <a href="pedidos.html" class="btn-primary"><i class="fas fa-list"></i> Abrir pedidos</a>
+                            <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> Exportar JSON</button>
+                            <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <div id="admin-save-actions" class="admin-form-actions admin-form-actions-sticky">
                         <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar alterações</button>
                         <button type="button" id="btn-download-config" class="btn-secondary"><i class="fas fa-download"></i> Baixar backup JSON</button>
                     </div>
                 </form>
-
-                <div id="admin-tab-documentacao" class="admin-tab-panel" role="tabpanel" hidden>
-                    <fieldset>
-                        <legend><i class="fas fa-book"></i> Manual de operação</legend>
-                        <p class="admin-meta">URLs, secrets, webhooks, frete, Correios e integrações. Também em <a href="documentacao.html" target="_blank" rel="noopener">documentacao.html</a> (nova aba).</p>
-                        <iframe id="admin-doc-frame" src="documentacao.html?embed=1" title="Documentação Sensor TattooFix"></iframe>
-                    </fieldset>
-                </div>
-
-                <div id="admin-tab-pedidos" class="admin-tab-panel" role="tabpanel" hidden>
-                <fieldset class="admin-orders-section">
-                    <legend><i class="fas fa-list"></i> Pedidos salvos</legend>
-                    <p class="admin-meta">Veja e gerencie pedidos na lista interativa — usa o mesmo login deste painel.</p>
-                    <div class="admin-form-actions">
-                        <a href="pedidos.html" class="btn-primary"><i class="fas fa-list"></i> Abrir pedidos</a>
-                        <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> Exportar JSON</button>
-                        <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-file-csv"></i> Exportar CSV</button>
-                    </div>
-                </fieldset>
-                </div>
 
                 <p id="admin-status-panel" class="admin-status" hidden></p>
             </section>
@@ -332,6 +329,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=19"></script>
+    <script src="js/admin.js?v=20"></script>
 </body>
 </html>

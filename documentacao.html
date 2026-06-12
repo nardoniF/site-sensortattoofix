@@ -30,7 +30,7 @@
             <section id="doc-gate" class="admin-card admin-doc-gate" hidden>
                 <h1><i class="fas fa-lock"></i> Documentação restrita</h1>
                 <p class="admin-meta">Este manual é só para quem tem login do admin. Não aparece no Google (<code>noindex</code>), mas a URL não é pública sem autenticação.</p>
-                <p><a href="admin.html" class="btn-primary"><i class="fas fa-sign-in-alt"></i> Fazer login no admin</a></p>
+                <p><button type="button" id="doc-gate-login" class="btn-primary"><i class="fas fa-sign-in-alt"></i> Fazer login no admin</button></p>
             </section>
 
             <article id="doc-content" class="admin-card admin-doc" hidden>
@@ -255,7 +255,21 @@ npx wrangler deploy</code></pre>
             if (content) content.hidden = false;
         }
 
+        function isEmbeddedInAdmin() {
+            if (!embed || window.parent === window) return false;
+            try {
+                const panel = window.parent.document.getElementById('admin-panel');
+                return !!(panel && !panel.hidden);
+            } catch (e) {
+                return false;
+            }
+        }
+
         async function init() {
+            if (isEmbeddedInAdmin()) {
+                showContent();
+                return;
+            }
             const token = sessionStorage.getItem(SESSION_KEY);
             const base = (window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
             if (!token) {
@@ -280,6 +294,18 @@ npx wrangler deploy</code></pre>
                 showContent();
             }
         }
+
+        document.getElementById('doc-gate-login')?.addEventListener('click', () => {
+            if (embed && window.parent !== window) {
+                try {
+                    window.top.location.href = 'admin.html';
+                } catch (e) {
+                    location.href = 'admin.html';
+                }
+                return;
+            }
+            location.href = 'admin.html';
+        });
 
         init();
     })();

@@ -677,6 +677,18 @@
     };
   }
 
+  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pix', 'contato', 'api']);
+
+  function loadDocFrame(forceReload) {
+    const frame = document.getElementById('admin-doc-frame');
+    if (!frame) return;
+    const src = 'documentacao.html?embed=1';
+    const current = frame.getAttribute('src') || frame.src || '';
+    if (!current.includes('documentacao.html') || forceReload) {
+      frame.src = forceReload ? `${src}&_=${Date.now()}` : src;
+    }
+  }
+
   let adminTabsWired = false;
 
   function initAdminTabs() {
@@ -684,6 +696,7 @@
     adminTabsWired = true;
     const tabs = Array.from(document.querySelectorAll('.admin-tab[data-admin-tab]'));
     const panels = Array.from(document.querySelectorAll('.admin-tab-panel'));
+    const saveActions = document.getElementById('admin-save-actions');
     if (!tabs.length || !panels.length) return;
 
     function showTab(tabId) {
@@ -696,8 +709,10 @@
       panels.forEach((panel) => {
         panel.hidden = panel.id !== 'admin-tab-' + id;
       });
+      if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
+      if (id === 'documentacao') loadDocFrame(true);
     }
 
     tabs.forEach((tab) => {
@@ -839,6 +854,7 @@
     try {
       showPanel();
       await initPanel();
+      loadDocFrame(true);
       showStatus('Modo offline: alterações são salvas como download do JSON.', 'warning', 'panel');
     } catch (err) {
       showLogin();
@@ -854,6 +870,7 @@
       await tryLogin(fd.get('username'), fd.get('password'));
       showPanel();
       await initPanel();
+      loadDocFrame(true);
       showStatus('Login realizado com sucesso.', 'success', 'panel');
     } catch (err) {
       showStatus(err.message, 'error');

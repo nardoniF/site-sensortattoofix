@@ -19,11 +19,13 @@
     if (!els.cpfLabel || !els.cpfInput) return;
     const key = isInternational ? 'form.docOptional' : 'form.cpf';
     const required = !isInternational;
-    const input = els.cpfInput;
-    while (els.cpfLabel.firstChild && els.cpfLabel.firstChild !== input) {
+    const text = L(key) + (required ? ' *' : '');
+    els.cpfLabel.classList.add('checkout-infield');
+    while (els.cpfLabel.firstChild && els.cpfLabel.firstChild !== els.cpfInput) {
       els.cpfLabel.removeChild(els.cpfLabel.firstChild);
     }
-    els.cpfLabel.insertBefore(document.createTextNode(L(key) + (required ? ' *' : '')), input);
+    els.cpfInput.placeholder = text;
+    els.cpfInput.setAttribute('aria-label', text);
     if (required) els.cpfInput.setAttribute('required', '');
     else els.cpfInput.removeAttribute('required');
   }
@@ -679,6 +681,34 @@
     if (step === 2) updatePaymentOptionsForCountry();
   }
 
+  let cepLookupTimer = null;
+  let lastCepLookup = '';
+
+  async function lookupCepFromField() {
+    if (isInternational) return;
+    const cep = onlyDigits(els.cep?.value || '');
+    if (cep.length !== 8 || cep === lastCepLookup) return;
+    els.cep?.classList.add('loading');
+    try {
+      const addr = await fetchCep(cep);
+      lastCepLookup = cep;
+      els.form.rua.value = addr.logradouro || '';
+      els.form.bairro.value = addr.bairro || '';
+      els.form.cidade.value = addr.localidade || '';
+      els.form.uf.value = addr.uf || '';
+      await quoteShipping();
+      if (els.form.numero && !els.form.numero.value) els.form.numero.focus();
+    } catch {
+      lastCepLookup = '';
+      if (els.shippingHint) {
+        els.shippingHint.hidden = false;
+        els.shippingHint.textContent = L('shipping.cepInvalid');
+      }
+    } finally {
+      els.cep?.classList.remove('loading');
+    }
+  }
+
   async function fetchCep(cep) {
     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
     const data = await res.json();
@@ -1020,24 +1050,19 @@
   function bindEvents() {
     els.paisCode.addEventListener('change', toggleAddressForm);
     els.smartwatchSelect?.addEventListener('change', updateObservacoesField);
-    els.cep?.addEventListener('input', (e) => { e.target.value = maskCep(e.target.value); });
+    els.cep?.addEventListener('input', (e) => {
+      e.target.value = maskCep(e.target.value);
+      const cep = onlyDigits(e.target.value);
+      if (cep.length < 8) lastCepLookup = '';
+      if (cep.length === 8) {
+        clearTimeout(cepLookupTimer);
+        cepLookupTimer = setTimeout(() => lookupCepFromField(), 350);
+      }
+    });
+    els.cep?.addEventListener('blur', () => lookupCepFromField());
+
     els.form.telefone?.addEventListener('input', (e) => { e.target.value = maskPhone(e.target.value); });
     els.form.cpf?.addEventListener('input', (e) => { if (!isInternational) e.target.value = maskCpf(e.target.value); });
-
-    els.cep?.addEventListener('blur', async () => {
-      if (isInternational) return;
-      const cep = onlyDigits(els.cep.value);
-      if (cep.length !== 8) return;
-      try {
-        const addr = await fetchCep(cep);
-        els.form.rua.value = addr.logradouro || '';
-        els.form.bairro.value = addr.bairro || '';
-        els.form.cidade.value = addr.localidade || '';
-        els.form.uf.value = addr.uf || '';
-        await quoteShipping();
-        els.form.numero.focus();
-      } catch { els.shippingHint.textContent = L('shipping.cepInvalid'); }
-    });
 
     ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf'].forEach((field) => {
       els.form[field]?.addEventListener('blur', () => {

@@ -434,6 +434,46 @@ window.STF_I18N = (function () {
     }
   }
 
+  function fieldLabelText(key, required) {
+    return t(key) + (required ? ' *' : '');
+  }
+
+  /** Labels dentro do campo (placeholder) — PT e EN */
+  function applyCheckoutFormPlaceholders() {
+    document.querySelectorAll('[data-i18n-label]').forEach((label) => {
+      const key = label.dataset.i18nLabel;
+      if (!key) return;
+      const control = label.querySelector('input,select,textarea');
+      if (!control) return;
+      const required = label.dataset.i18nRequired === '1' || !!control.required;
+      const text = fieldLabelText(key, required);
+      label.classList.add('checkout-infield');
+      while (label.firstChild && label.firstChild !== control) {
+        label.removeChild(label.firstChild);
+      }
+      if (control.tagName === 'SELECT') {
+        const first = control.querySelector('option[value=""]') || control.options[0];
+        if (first) first.textContent = text;
+        control.setAttribute('aria-label', text);
+      } else {
+        control.placeholder = text;
+        control.setAttribute('aria-label', text);
+      }
+    });
+
+    const senhaWrap = document.getElementById('senha-wrap');
+    const senhaInput = document.getElementById('checkout-senha');
+    if (senhaWrap && senhaInput) {
+      const text = fieldLabelText('account.password', true);
+      senhaWrap.classList.add('checkout-infield');
+      while (senhaWrap.firstChild && senhaWrap.firstChild !== senhaInput) {
+        senhaWrap.removeChild(senhaWrap.firstChild);
+      }
+      senhaInput.placeholder = text;
+      senhaInput.setAttribute('aria-label', text);
+    }
+  }
+
   function setPlaceholder(sel, key) {
     const el = document.querySelector(sel);
     if (el) el.placeholder = t(key);
@@ -450,6 +490,8 @@ window.STF_I18N = (function () {
   }
 
   function applyCheckoutDom() {
+    applyCheckoutFormPlaceholders();
+
     if (!isEn()) return;
 
     document.title = t('page.checkoutTitleEn');
@@ -496,8 +538,25 @@ window.STF_I18N = (function () {
     applyText('.shipping-options-title', 'section.chooseShipping');
     applyText('.checkout-step[data-step="2"] h3', 'pay.title');
 
-    document.querySelectorAll('[data-i18n-label]').forEach((label) => {
-      setLabelText(label, label.dataset.i18nLabel, label.dataset.i18nRequired === '1');
+    document.querySelectorAll('label:has(#checkout-login-email)').forEach((label) => {
+      label.classList.add('checkout-infield');
+      const input = label.querySelector('#checkout-login-email');
+      const text = fieldLabelText('account.loginEmail', false);
+      while (label.firstChild && label.firstChild !== input) label.removeChild(label.firstChild);
+      if (input) {
+        input.placeholder = text;
+        input.setAttribute('aria-label', text);
+      }
+    });
+    document.querySelectorAll('label:has(#checkout-login-senha)').forEach((label) => {
+      label.classList.add('checkout-infield');
+      const input = label.querySelector('#checkout-login-senha');
+      const text = fieldLabelText('account.passwordShort', false);
+      while (label.firstChild && label.firstChild !== input) label.removeChild(label.firstChild);
+      if (input) {
+        input.placeholder = text;
+        input.setAttribute('aria-label', text);
+      }
     });
 
     const loggedP = document.querySelector('#account-logged-wrap > p:first-child');
@@ -515,14 +574,11 @@ window.STF_I18N = (function () {
       btn.textContent = mode === 'login' ? t('account.tabLogin') : t('account.tabRegister');
     });
     applyText('#checkout-account-register .account-check span', 'account.createCheck');
-    setLabelText(document.querySelector('#senha-wrap'), 'account.password', true);
     applyText('#checkout-account-login .checkout-hint', 'account.loginHint');
-    setLabelText(document.querySelector('label:has(#checkout-login-email)'), 'account.loginEmail');
-    setLabelText(document.querySelector('label:has(#checkout-login-senha)'), 'account.passwordShort');
     const loginBtn = document.getElementById('btn-checkout-login');
     if (loginBtn) loginBtn.innerHTML = `<i class="fas fa-sign-in-alt"></i> ${t('account.loginBtn')}`;
 
-    setPlaceholder('[name="telefone"]', 'form.phonePh');
+    setPlaceholder('[name="telefone"]', 'form.whatsapp');
     setPlaceholder('#rua-intl', 'form.streetIntlPh');
     setPlaceholder('#numero-intl', 'form.numberIntlPh');
     setPlaceholder('#uf-intl', 'form.stateIntlPh');
@@ -640,5 +696,5 @@ window.STF_I18N = (function () {
     init();
   }
 
-  return { t, getLang, isEn, setLang, applyCheckoutDom, applyLojaDom, langQuery, lojaHref, STRINGS };
+  return { t, getLang, isEn, setLang, applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, langQuery, lojaHref, STRINGS };
 })();

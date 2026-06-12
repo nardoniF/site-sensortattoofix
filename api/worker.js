@@ -1085,7 +1085,7 @@ async function getUberAccessToken(env) {
   }
   if (!uberConfigured(env)) return null;
 
-  const res = await fetch('https://login.uber.com/oauth/v2/token', {
+  const res = await fetch('https://auth.uber.com/oauth/v2/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -1098,6 +1098,7 @@ async function getUberAccessToken(env) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     console.warn('Uber OAuth:', res.status, data.error_description || data.error || '');
+    await env.STORE_KV.delete('uber:token').catch(() => {});
     return null;
   }
   const ttl = Math.max(60, Number(data.expires_in || 3600) - 60);
@@ -1161,7 +1162,10 @@ async function requestUberQuote(env, config, dropoffParts) {
     body: JSON.stringify(body)
   });
   const price = uberFeeToBRL(data);
-  if (price <= 0) return null;
+  if (price <= 0) {
+    console.warn('Uber quote sem preço:', JSON.stringify(data).slice(0, 400));
+    return null;
+  }
   return {
     uberQuoteId: data.id,
     price,
@@ -1282,18 +1286,55 @@ async function createUberDeliveryForOrder(env, config, order) {
   };
 }
 
-async function checkUberIntegration(env) {
+async function checkUberIntegration(env, config) {
   if (!uberConfigured(env)) {
     return { configured: false, authOk: false, error: 'UBER_DIRECT_* não configurados.' };
   }
+  const sandbox = isUberSandbox(env);
   try {
     const token = await getUberAccessToken(env);
     if (!token) {
-      return { configured: true, authOk: false, error: 'Token OAuth não obtido.' };
+      return {
+        configured: true,
+        authOk: false,
+        sandbox,
+        error: 'Token OAuth não obtido. Use Client ID/Secret da aba Developer (modo Test se UBER_DIRECT_SANDBOX=true).'
+      };
     }
-    return { configured: true, authOk: true, sandbox: isUberSandbox(env) };
+    const dropoff = {
+      cep: '01310100',
+      rua: 'Avenida Paulista',
+      numero: '1000',
+      bairro: 'Bela Vista',
+      cidade: 'São Paulo',
+      uf: 'SP'
+    };
+    const quote = await requestUberQuote(env, config, dropoff);
+    if (!quote) {
+      return {
+        configured: true,
+        authOk: true,
+        quoteOk: false,
+        sandbox,
+        error: 'OAuth OK, mas cotação vazia. Confira Customer ID (aba Developer, não o ID da URL).'
+      };
+    }
+    return {
+      configured: true,
+      authOk: true,
+      quoteOk: true,
+      sandbox,
+      samplePrice: quote.price
+    };
   } catch (err) {
-    return { configured: true, authOk: false, error: err.message };
+    const extra = err.metadata ? ` — ${JSON.stringify(err.metadata)}` : '';
+    return {
+      configured: true,
+      authOk: !!await getUberAccessToken(env),
+      quoteOk: false,
+      sandbox,
+      error: (err.message || 'Falha na cotação Uber') + extra
+    };
   }
 }
 
@@ -2191,15 +2232,24 @@ function buildIntegrationRows(env, config, checks) {
       status: 'error',
       detail: uber.error || 'Falha na autenticação OAuth'
     });
+  } else if (uber.quoteOk === false) {
+    rows.push({
+      id: 'uber-direct',
+      label: 'Uber Direct',
+      description: 'Entrega rápida sob demanda (BR)',
+      status: 'error',
+      detail: uber.error || 'Cotação de teste falhou'
+    });
   } else {
+    const priceHint = uber.samplePrice ? ` · teste Av. Paulista ~R$ ${Number(uber.samplePrice).toFixed(2)}` : '';
     rows.push({
       id: 'uber-direct',
       label: 'Uber Direct',
       description: 'Entrega rápida sob demanda (BR)',
       status: uber.sandbox ? 'warn' : (uberEnabled ? 'ok' : 'warn'),
       detail: uber.sandbox
-        ? 'Sandbox conectado'
-        : (uberEnabled ? 'Produção conectada' : 'Conectado — ative modalidade Uber no frete')
+        ? `Sandbox conectado${priceHint}`
+        : (uberEnabled ? `Produção conectada${priceHint}` : `Conectado — ative modalidade Uber no frete${priceHint}`)
     });
   }
 
@@ -3316,7 +3366,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     checkZApiIntegration(env),
     hasCorreiosCreds ? getCorreiosToken(env) : Promise.resolve(null),
     quoteCorreiosExportOptions(config, 'PT', { weightGrams }).catch(() => []),
-    checkUberIntegration(env)
+    checkUberIntegration(env, config)
   ]);
 
   const integrations = buildIntegrationRows(env, config, {
