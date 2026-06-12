@@ -1616,6 +1616,325 @@ async function checkPayPalIntegration(env) {
   }
 }
 
+async function checkMercadoPagoIntegration(env) {
+  const token = mercadoPagoToken(env);
+  const sandbox = isMpSandbox(env);
+  if (!token) {
+    return { configured: false, authOk: false, sandbox, error: 'MP_ACCESS_TOKEN não configurado.' };
+  }
+  try {
+    const res = await fetch('https://api.mercadopago.com/users/me', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return {
+        configured: true,
+        authOk: false,
+        sandbox,
+        error: data.message || `HTTP ${res.status}`
+      };
+    }
+    return { configured: true, authOk: true, sandbox };
+  } catch (err) {
+    return { configured: true, authOk: false, sandbox, error: err.message };
+  }
+}
+
+async function checkAsaasIntegration(env) {
+  const apiKey = asaasApiKey(env);
+  const sandbox = env.ASAAS_SANDBOX === 'true';
+  if (!apiKey) {
+    return { configured: false, authOk: false, sandbox, error: 'ASAAS_API_KEY não configurada.' };
+  }
+  try {
+    const res = await fetch(`${asaasBase(env)}/finance/balance`, { headers: asaasHeaders(apiKey) });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return {
+        configured: true,
+        authOk: false,
+        sandbox,
+        error: data.errors?.[0]?.description || `HTTP ${res.status}`
+      };
+    }
+    return { configured: true, authOk: true, sandbox };
+  } catch (err) {
+    return { configured: true, authOk: false, sandbox, error: err.message };
+  }
+}
+
+async function checkResendIntegration(env) {
+  const apiKey = (env.RESEND_API_KEY || '').trim();
+  if (!apiKey) {
+    return { configured: false, authOk: false, error: 'RESEND_API_KEY não configurada.' };
+  }
+  try {
+    const res = await fetch('https://api.resend.com/domains?limit=1', {
+      headers: { Authorization: 'Bearer ' + apiKey }
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return {
+        configured: true,
+        authOk: false,
+        error: data.message || data.error || `HTTP ${res.status}`
+      };
+    }
+    return { configured: true, authOk: true };
+  } catch (err) {
+    return { configured: true, authOk: false, error: err.message };
+  }
+}
+
+async function checkZApiIntegration(env) {
+  const instance = env.ZAPI_INSTANCE_ID;
+  const token = env.ZAPI_TOKEN;
+  if (!instance || !token) {
+    return { configured: false, authOk: false, error: 'ZAPI_INSTANCE_ID / ZAPI_TOKEN não configurados.' };
+  }
+  const headers = {};
+  if (env.ZAPI_CLIENT_TOKEN) headers['Client-Token'] = env.ZAPI_CLIENT_TOKEN;
+  try {
+    const res = await fetch(
+      `https://api.z-api.io/instances/${instance}/token/${token}/status`,
+      { headers }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        configured: true,
+        authOk: false,
+        connected: false,
+        error: data.error || data.message || `HTTP ${res.status}`
+      };
+    }
+    const connected = data.connected === true || data.smartphoneConnected === true;
+    return {
+      configured: true,
+      authOk: connected,
+      connected,
+      error: connected ? null : 'Instância sem WhatsApp conectado.'
+    };
+  } catch (err) {
+    return { configured: true, authOk: false, connected: false, error: err.message };
+  }
+}
+
+function buildIntegrationRows(env, config, checks) {
+  const { paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions } = checks;
+  const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
+  const formsubmitEmail = (config.formsubmit?.email || '').trim();
+  const ga4Secret = (env.GA4_API_SECRET || '').trim();
+  const exportQuote = exportOptions[0] || null;
+
+  const rows = [
+    {
+      id: 'worker',
+      label: 'Cloudflare Worker',
+      description: 'API central — pedidos, checkout e admin',
+      status: 'ok',
+      detail: 'Online e autenticado'
+    }
+  ];
+
+  if (!mercadoPago.configured) {
+    rows.push({
+      id: 'mercadopago',
+      label: 'Mercado Pago',
+      description: 'PIX e checkout no Brasil',
+      status: 'off',
+      detail: 'Não configurado'
+    });
+  } else if (!mercadoPago.authOk) {
+    rows.push({
+      id: 'mercadopago',
+      label: 'Mercado Pago',
+      description: 'PIX e checkout no Brasil',
+      status: 'error',
+      detail: mercadoPago.error || 'Falha na autenticação'
+    });
+  } else {
+    rows.push({
+      id: 'mercadopago',
+      label: 'Mercado Pago',
+      description: 'PIX e checkout no Brasil',
+      status: mercadoPago.sandbox ? 'warn' : 'ok',
+      detail: mercadoPago.sandbox ? 'Sandbox conectado' : 'Produção conectada'
+    });
+  }
+
+  if (!asaas.configured) {
+    rows.push({
+      id: 'asaas',
+      label: 'Asaas',
+      description: 'PIX alternativo e cartão de crédito BR',
+      status: 'off',
+      detail: 'Não configurado'
+    });
+  } else if (!asaas.authOk) {
+    rows.push({
+      id: 'asaas',
+      label: 'Asaas',
+      description: 'PIX alternativo e cartão de crédito BR',
+      status: 'error',
+      detail: asaas.error || 'Falha na autenticação'
+    });
+  } else {
+    rows.push({
+      id: 'asaas',
+      label: 'Asaas',
+      description: 'PIX alternativo e cartão de crédito BR',
+      status: asaas.sandbox ? 'warn' : 'ok',
+      detail: asaas.sandbox ? 'Sandbox conectado' : 'Produção conectada'
+    });
+  }
+
+  if (!paypal.configured) {
+    rows.push({
+      id: 'paypal',
+      label: 'PayPal',
+      description: 'Pagamentos internacionais',
+      status: 'off',
+      detail: 'Secrets não configurados'
+    });
+  } else if (!paypal.authOk) {
+    rows.push({
+      id: 'paypal',
+      label: 'PayPal',
+      description: 'Pagamentos internacionais',
+      status: 'error',
+      detail: paypal.error || 'Falha na autenticação'
+    });
+  } else {
+    let detail = `${paypal.mode === 'sandbox' ? 'Sandbox' : 'Live'} conectado`;
+    if (paypal.clientIdSuffix) detail += ` · …${paypal.clientIdSuffix}`;
+    if (paypal.selfTest) detail += ' · teste R$ 0,01 ativo';
+    rows.push({
+      id: 'paypal',
+      label: 'PayPal',
+      description: 'Pagamentos internacionais',
+      status: paypal.sandbox || paypal.selfTest ? 'warn' : 'ok',
+      detail
+    });
+  }
+
+  if (!hasCorreiosCreds) {
+    rows.push({
+      id: 'correios-br',
+      label: 'Correios BR',
+      description: 'Cotação de frete nacional (Mini Envios)',
+      status: 'warn',
+      detail: 'Sem credenciais — usa estimativa fixa'
+    });
+  } else if (!correiosToken) {
+    rows.push({
+      id: 'correios-br',
+      label: 'Correios BR',
+      description: 'Cotação de frete nacional (Mini Envios)',
+      status: 'error',
+      detail: 'Credenciais configuradas, mas token não obtido'
+    });
+  } else {
+    rows.push({
+      id: 'correios-br',
+      label: 'Correios BR',
+      description: 'Cotação de frete nacional (Mini Envios)',
+      status: 'ok',
+      detail: 'API conectada'
+    });
+  }
+
+  if (exportOptions.length > 0 && exportQuote) {
+    const price = Number(exportQuote.price).toFixed(2).replace('.', ',');
+    rows.push({
+      id: 'correios-intl',
+      label: 'Correios Exporta Fácil',
+      description: 'Cotação de frete internacional',
+      status: 'ok',
+      detail: `Simulador OK — PT ~R$ ${price}`
+    });
+  } else {
+    rows.push({
+      id: 'correios-intl',
+      label: 'Correios Exporta Fácil',
+      description: 'Cotação de frete internacional',
+      status: 'error',
+      detail: 'Simulador indisponível — usa tabela fallback'
+    });
+  }
+
+  if (!resend.configured) {
+    rows.push({
+      id: 'resend',
+      label: 'Resend',
+      description: 'E-mails transacionais (pedidos, confirmações)',
+      status: formsubmitEmail ? 'warn' : 'off',
+      detail: formsubmitEmail ? 'Não configurado — só FormSubmit' : 'Não configurado'
+    });
+  } else if (!resend.authOk) {
+    rows.push({
+      id: 'resend',
+      label: 'Resend',
+      description: 'E-mails transacionais (pedidos, confirmações)',
+      status: 'error',
+      detail: resend.error || 'Falha na autenticação'
+    });
+  } else {
+    rows.push({
+      id: 'resend',
+      label: 'Resend',
+      description: 'E-mails transacionais (pedidos, confirmações)',
+      status: 'ok',
+      detail: 'Conectado'
+    });
+  }
+
+  rows.push({
+    id: 'formsubmit',
+    label: 'FormSubmit',
+    description: 'Fallback de e-mail se Resend falhar',
+    status: formsubmitEmail ? 'ok' : 'off',
+    detail: formsubmitEmail ? formsubmitEmail : 'E-mail de destino não configurado'
+  });
+
+  if (!zapi.configured) {
+    rows.push({
+      id: 'zapi',
+      label: 'Z-API',
+      description: 'WhatsApp automático (cliente e loja)',
+      status: 'off',
+      detail: 'Não configurado'
+    });
+  } else if (!zapi.authOk) {
+    rows.push({
+      id: 'zapi',
+      label: 'Z-API',
+      description: 'WhatsApp automático (cliente e loja)',
+      status: zapi.connected === false ? 'warn' : 'error',
+      detail: zapi.error || 'Falha na conexão'
+    });
+  } else {
+    rows.push({
+      id: 'zapi',
+      label: 'Z-API',
+      description: 'WhatsApp automático (cliente e loja)',
+      status: 'ok',
+      detail: 'Instância conectada'
+    });
+  }
+
+  rows.push({
+    id: 'ga4',
+    label: 'GA4 (server)',
+    description: 'Conversões de compra via Measurement Protocol',
+    status: ga4Secret ? 'ok' : 'warn',
+    detail: ga4Secret ? 'API secret configurado' : 'Só tag no site — sem conversão server-side'
+  });
+
+  return rows;
+}
+
 async function createPayPalCheckout(env, order, config) {
   const accessToken = await getPayPalAccessToken(env);
   const { return_url, cancel_url } = paypalReturnUrls(config, order, env);
@@ -2549,6 +2868,37 @@ async function handleSession(request, env, origin) {
   return json({ ok: true, username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
 }
 
+async function handleAdminIntegrationsStatus(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const config = await getConfig(env);
+  const weightGrams = shippingWeightGrams(config);
+  const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
+
+  const [paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions] = await Promise.all([
+    checkPayPalIntegration(env),
+    checkMercadoPagoIntegration(env),
+    checkAsaasIntegration(env),
+    checkResendIntegration(env),
+    checkZApiIntegration(env),
+    hasCorreiosCreds ? getCorreiosToken(env) : Promise.resolve(null),
+    quoteCorreiosExportOptions(config, 'PT', { weightGrams }).catch(() => [])
+  ]);
+
+  const integrations = buildIntegrationRows(env, config, {
+    paypal,
+    mercadoPago,
+    asaas,
+    resend,
+    zapi,
+    correiosToken,
+    exportOptions
+  });
+
+  return json({ integrations, checkedAt: new Date().toISOString() }, 200, origin);
+}
+
 async function handleAdminShippingStatus(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -2783,6 +3133,9 @@ export default {
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
       if (path === '/admin/shipping-status' && request.method === 'GET') return handleAdminShippingStatus(request, env, origin);
+      if (path === '/admin/integrations-status' && request.method === 'GET') {
+        return handleAdminIntegrationsStatus(request, env, origin);
+      }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);
       }

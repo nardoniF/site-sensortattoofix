@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.65">
+    <link rel="stylesheet" href="style.css?v=1.70">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -244,24 +244,51 @@
                                 <input type="url" name="apiBaseUrl" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
                                 <small>Salvar online exige API configurada e login.</small>
                             </label>
-                            <p id="paypal-api-status" class="admin-meta full">Verificando PayPal…</p>
-                            <div class="form-grid">
-                                <label class="label-check admin-ship-enabled">
-                                    <input type="checkbox" name="paypalIntlEnabled" checked>
-                                    <span>PayPal internacional visível no checkout</span>
-                                </label>
-                                <label>Exibir PayPal internacional a partir de
-                                    <input type="datetime-local" name="paypalShowAfter">
-                                    <small>Antes dessa data/hora só aparece PIX no exterior.</small>
-                                </label>
-                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="admin-api-status-fieldset">
+                        <legend><i class="fas fa-plug"></i> Status das integrações</legend>
+                        <p class="admin-meta">Testadas automaticamente ao abrir esta aba.</p>
+                        <div class="admin-api-status-wrap">
+                            <table class="admin-api-status-table">
+                                <thead>
+                                    <tr>
+                                        <th>Integração</th>
+                                        <th>Função</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="api-integrations-tbody">
+                                    <tr><td colspan="3" class="admin-meta">Abra esta aba com login na API para verificar.</td></tr>
+                                </tbody>
+                            </table>
+                            <p id="api-integrations-checked-at" class="admin-meta admin-api-checked-at" hidden></p>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fab fa-paypal"></i> PayPal internacional</legend>
+                        <div class="form-grid">
+                            <label class="label-check admin-ship-enabled">
+                                <input type="checkbox" name="paypalIntlEnabled" checked>
+                                <span>PayPal internacional visível no checkout</span>
+                            </label>
+                            <label>Exibir PayPal internacional a partir de
+                                <input type="datetime-local" name="paypalShowAfter">
+                                <small>Antes dessa data/hora só aparece PIX no exterior.</small>
+                            </label>
                             <p class="admin-meta full">Secrets: <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code>. Webhook: <code>/webhook/paypal</code></p>
-                            <div class="full admin-email-tests">
-                                <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
-                                <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
-                                <button type="button" id="btn-test-email-paid" class="btn-secondary"><i class="fas fa-check-circle"></i> Testar e-mail PAGO</button>
-                                <small>Envia para o e-mail dos pedidos via Resend — não gera cobrança nem pedido real.</small>
-                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-envelope"></i> Testes de e-mail</legend>
+                        <div class="admin-email-tests">
+                            <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
+                            <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
+                            <button type="button" id="btn-test-email-paid" class="btn-secondary"><i class="fas fa-check-circle"></i> Testar e-mail PAGO</button>
+                            <small>Envia para o e-mail dos pedidos via Resend — não gera cobrança nem pedido real.</small>
                         </div>
                     </fieldset>
                     </div>
@@ -291,6 +318,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=17"></script>
+    <script src="js/admin.js?v=18"></script>
 </body>
 </html>

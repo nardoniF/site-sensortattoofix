@@ -285,23 +285,84 @@
     }
   }
 
-  function renderPayPalStatus(paypal) {
-    const el = document.getElementById('paypal-api-status');
-    if (!el || !paypal) return;
-    if (!paypal.configured) {
-      el.innerHTML = '<span class="admin-status-bad">✗ PayPal não configurado no Worker</span>';
+  function integrationStatusClass(status) {
+    if (status === 'ok') return 'admin-status-ok';
+    if (status === 'warn') return 'admin-status-warn';
+    if (status === 'off') return 'admin-status-off';
+    return 'admin-status-bad';
+  }
+
+  function integrationStatusIcon(status) {
+    if (status === 'ok') return '✓';
+    if (status === 'warn') return '⚠';
+    if (status === 'off') return '—';
+    return '✗';
+  }
+
+  function renderIntegrationsTable(integrations, checkedAt) {
+    const tbody = document.getElementById('api-integrations-tbody');
+    const checkedEl = document.getElementById('api-integrations-checked-at');
+    if (!tbody) return;
+
+    if (!integrations?.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="admin-meta">Nenhuma integração retornada.</td></tr>';
+      if (checkedEl) checkedEl.hidden = true;
       return;
     }
-    const mode = paypal.mode === 'sandbox' ? 'Sandbox' : 'Live';
-    const suffix = paypal.clientIdSuffix ? ` · …${escAttr(paypal.clientIdSuffix)}` : '';
-    const testNote = paypal.selfTest
-      ? ' <span class="admin-status-warn">(teste R$ 0,01 ativo — PAYPAL_SELF_TEST)</span>'
-      : '';
-    if (paypal.authOk) {
-      el.innerHTML = `<span class="admin-status-ok">✓ PayPal ${mode} conectado</span>${suffix}${testNote}`;
+
+    tbody.innerHTML = integrations.map((row) => {
+      const cls = integrationStatusClass(row.status);
+      const icon = integrationStatusIcon(row.status);
+      return `<tr>
+        <td><strong>${escAttr(row.label)}</strong></td>
+        <td>${escAttr(row.description)}</td>
+        <td class="admin-api-status-cell"><span class="${cls}">${icon} ${escAttr(row.detail)}</span></td>
+      </tr>`;
+    }).join('');
+
+    if (checkedEl) {
+      if (checkedAt) {
+        const when = new Date(checkedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        checkedEl.textContent = 'Última verificação: ' + when;
+        checkedEl.hidden = false;
+      } else {
+        checkedEl.hidden = true;
+      }
+    }
+  }
+
+  let integrationsLoading = false;
+
+  async function loadIntegrationsStatus() {
+    const tbody = document.getElementById('api-integrations-tbody');
+    if (!tbody || integrationsLoading) return;
+
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      renderIntegrationsTable([], null);
+      tbody.innerHTML = '<tr><td colspan="3" class="admin-meta">Faça login com a API para testar as integrações.</td></tr>';
       return;
     }
-    el.innerHTML = `<span class="admin-status-bad">✗ PayPal ${mode} — ${escAttr(paypal.error || 'falha na autenticação')}</span>${suffix}${testNote}`;
+
+    integrationsLoading = true;
+    tbody.innerHTML = '<tr><td colspan="3" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Verificando integrações…</td></tr>';
+
+    try {
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/integrations-status', {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Não autorizado');
+      renderIntegrationsTable(data.integrations, data.checkedAt);
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="3"><span class="admin-status-bad">✗ ' + escAttr(err.message || 'Erro ao verificar') + '</span></td></tr>';
+      const checkedEl = document.getElementById('api-integrations-checked-at');
+      if (checkedEl) checkedEl.hidden = true;
+    } finally {
+      integrationsLoading = false;
+    }
   }
 
   async function loadShippingStatus() {
@@ -354,8 +415,6 @@
         currentConfig = { ...currentConfig, internationalShipping: data.internationalShipping };
         renderIntlShipping(data.internationalShipping);
       }
-      renderPayPalStatus(data.paypal);
-
       if (exp.sampleQuotesPT?.length) {
         showQuoteResult(formatQuoteResult({ options: exp.sampleQuotesPT, weightGrams: data.package?.weightGrams }));
       } else if (exp.sampleQuotePT) {
@@ -604,6 +663,7 @@
         panel.hidden = panel.id !== 'admin-tab-' + id;
       });
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
+      if (id === 'api') loadIntegrationsStatus();
     }
 
     tabs.forEach((tab) => {
@@ -854,6 +914,7 @@
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
         showStatus(`${label} enviado via ${data.provider || 'resend'}! Confira a caixa de entrada (e spam).`, 'success', 'panel');
+        loadIntegrationsStatus();
       } else {
         const err = data.resend?.error || data.error || data.formsubmit?.data?.message || 'Falha no envio';
         showStatus('Erro: ' + err, 'error', 'panel');

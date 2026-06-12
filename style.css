@@ -97,12 +97,12 @@ nav,
 }
 .logo-tagline {
     margin: 0;
-    font-size: 0.78rem;
+    font-size: 0.95rem;
     font-style: italic;
     font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: 0.03em;
-    color: #b0b0b0;
+    line-height: 1.25;
+    letter-spacing: 0.04em;
+    color: #c4c4c4;
     white-space: nowrap;
 }
 
@@ -760,7 +760,7 @@ footer,
     .logo-area { flex: 0 0 auto; min-width: 0; gap: 8px; }
     .logo-img-link { width: 56px; height: 56px; }
     .logo-text { font-size: 0.95rem; }
-    .logo-tagline { font-size: 0.62rem; }
+    .logo-tagline { font-size: 0.74rem; }
     .site-social {
         border-left: none;
         border-right: none;
@@ -1914,6 +1914,35 @@ line-height:1.8;
 .admin-status-ok { color: #6c6; }
 .admin-status-warn { color: #da4; }
 .admin-status-bad { color: #f88; }
+.admin-status-off { color: #888; }
+
+.admin-api-status-fieldset { margin-top: 1.25rem; }
+.admin-api-status-wrap { overflow-x: auto; margin-top: 0.5rem; }
+.admin-api-checked-at { margin-top: 0.65rem; font-size: 0.8rem; opacity: 0.85; }
+.admin-api-status-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+.admin-api-status-table th,
+.admin-api-status-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #2a2a2a;
+    vertical-align: top;
+}
+.admin-api-status-table th {
+    color: #aaa;
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #111;
+}
+.admin-api-status-table td:first-child { white-space: nowrap; }
+.admin-api-status-table td:nth-child(2) { color: #999; max-width: 280px; }
+.admin-api-status-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+.admin-api-status-cell { white-space: nowrap; }
 .admin-product-flags {
     grid-column: 1 / -1;
     display: flex;
