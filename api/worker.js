@@ -712,16 +712,37 @@ function publicConfigView(config) {
     weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
   }));
   const primary = products[0] || config.product;
+  const paypal = config.payments?.paypal || {};
   return {
-    ...config,
-    pix: resolvePixConfig(config.pix, DEFAULT_CONFIG.pix),
     product: primary ? {
       name: primary.name,
       description: primary.description,
       price: primary.price,
       image: primary.image
     } : config.product,
-    products
+    products,
+    pix: resolvePixConfig(config.pix, DEFAULT_CONFIG.pix),
+    shipping: {
+      originCep: config.shipping?.originCep || DEFAULT_CONFIG.shipping.originCep,
+      weightGrams: shippingWeightGrams(config)
+    },
+    internationalShipping: config.internationalShipping || {},
+    internationalProduct: config.internationalProduct || DEFAULT_CONFIG.internationalProduct,
+    payments: {
+      paypal: {
+        internationalEnabled: paypal.internationalEnabled !== false,
+        showAfter: paypal.showAfter || null
+      }
+    },
+    smartwatchModels: config.smartwatchModels || DEFAULT_CONFIG.smartwatchModels,
+    formsubmit: {
+      email: config.formsubmit?.email || DEFAULT_CONFIG.formsubmit.email,
+      subject: config.formsubmit?.subject || DEFAULT_CONFIG.formsubmit.subject
+    },
+    whatsapp: config.whatsapp || DEFAULT_CONFIG.whatsapp,
+    siteUrl: config.siteUrl || DEFAULT_CONFIG.siteUrl,
+    api: { baseUrl: config.api?.baseUrl || DEFAULT_CONFIG.api.baseUrl },
+    updatedAt: config.updatedAt || null
   };
 }
 
