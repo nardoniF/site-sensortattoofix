@@ -2233,17 +2233,19 @@ line-height:1.8;
     min-width: 0;
 }
 .pelicula-upsell-card .pelicula-upsell-img-btn {
-    width: 100%;
+    width: 110px;
+    height: 110px;
     max-width: 110px;
-    height: auto;
+    flex: 0 0 110px;
     aspect-ratio: 1;
-    flex: none;
     margin: 0 auto;
     border-radius: 10px;
     border-color: #333;
 }
 .pelicula-upsell-card .pelicula-upsell-img-btn img {
-    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     padding: 0;
     background: #1a1d24;
 }
@@ -2314,15 +2316,6 @@ line-height:1.8;
     flex: 0 0 32px;
     width: 32px;
     height: 32px;
-}
-.pelicula-upsell-card img {
-    width: 26px;
-    height: 26px;
-    flex: 0 0 26px;
-    object-fit: contain;
-    border-radius: 8px;
-    background: #1a1d24;
-    border: 1px solid #2a2f3a;
 }
 .pelicula-upsell-info {
     flex: 1 1 auto;
