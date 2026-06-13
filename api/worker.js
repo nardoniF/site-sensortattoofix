@@ -235,6 +235,23 @@ function motoboyOperational(config) {
   return cfg.enabled && activeMotoboyCouriers(config).length > 0;
 }
 
+/** Modalidades motoboy disponíveis para cotação — se o módulo está operacional, não exige "Ativo" na lista de modalidades. */
+function getMotoboyShippingMethods(config) {
+  if (!motoboyOperational(config)) return [];
+  const fromList = (config.shippingMethods?.length ? config.shippingMethods : DEFAULT_SHIPPING_METHODS)
+    .filter((m) => m.scope === 'BR' && isMotoboyMethod(m));
+  const enabled = fromList.filter((m) => m.enabled !== false);
+  if (enabled.length) return enabled;
+  if (fromList.length) return fromList;
+  return [{
+    id: 'br-motoboy',
+    enabled: true,
+    scope: 'BR',
+    label: 'Envio particular (motoboy — até 24h)',
+    provider: 'motoboy'
+  }];
+}
+
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const toRad = (d) => (d * Math.PI) / 180;
@@ -300,8 +317,8 @@ async function computeMotoboyQuote(config, destCep) {
 }
 
 async function quoteMotoboyShippingOptions(env, config, addressParams, opts = {}) {
-  const methods = getEnabledShippingMethods(config, 'BR').filter(isMotoboyMethod);
-  if (!methods.length || !motoboyOperational(config)) return [];
+  const methods = getMotoboyShippingMethods(config);
+  if (!methods.length) return [];
 
   const destCep = addressParams?.cep;
   if (!destCep || String(destCep).replace(/\D/g, '').length !== 8) return [];
@@ -3149,8 +3166,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const uberMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
     (m) => isUberMethod(m) && (m.id === body.shippingMethodId || body.shippingProvider === 'uber')
   );
-  const motoboyMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
-    (m) => isMotoboyMethod(m) && (m.id === body.shippingMethodId || body.shippingProvider === 'motoboy')
+  const motoboyMethod = !isIntl && getMotoboyShippingMethods(config).find(
+    (m) => m.id === body.shippingMethodId || body.shippingProvider === 'motoboy'
   );
   let uberQuoteId = body.uberQuoteId || null;
   let motoboyDistanceKm = null;

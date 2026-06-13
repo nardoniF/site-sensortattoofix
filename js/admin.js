@@ -269,6 +269,27 @@
     });
   }
 
+  function syncMotoboyShippingMethods(methods, motoboy) {
+    const list = Array.isArray(methods) ? [...methods] : [];
+    const hasActiveCourier = (motoboy.couriers || []).some(
+      (c) => c?.active !== false && String(c.email || '').includes('@')
+    );
+    const shouldEnable = motoboy.enabled !== false && hasActiveCourier;
+    let idx = list.findIndex((m) => m.provider === 'motoboy' || String(m.id || '').includes('motoboy'));
+    if (idx === -1) {
+      list.push({
+        id: 'br-motoboy',
+        enabled: shouldEnable,
+        scope: 'BR',
+        label: 'Envio particular (motoboy — até 24h)',
+        provider: 'motoboy'
+      });
+    } else {
+      list[idx] = { ...list[idx], enabled: shouldEnable, provider: 'motoboy' };
+    }
+    return list;
+  }
+
   function collectMotoboyShipping() {
     const f = els.configForm;
     return {
@@ -874,7 +895,7 @@
         encomendaNotice: f.intlProductEncomendaNotice?.value.trim() || '',
         documentNotice: f.intlProductDocumentNotice?.value.trim() || ''
       },
-      shippingMethods: collectShippingMethods(),
+      shippingMethods: syncMotoboyShippingMethods(collectShippingMethods(), collectMotoboyShipping()),
       motoboyShipping: collectMotoboyShipping(),
       updatedAt: new Date().toISOString()
     };
