@@ -262,7 +262,33 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-async function fetchCepCoordinates(cep) {
+async function geocodeAddressNominatim(query) {
+  const q = String(query || '').trim();
+  if (q.length < 8) return null;
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?${new URLSearchParams({
+        q,
+        format: 'json',
+        limit: '1',
+        countrycodes: 'br'
+      })}`,
+      { headers: { 'User-Agent': 'SensorTattooFix/1.0 (contato@sensortattoofix.com.br)' } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const hit = data?.[0];
+    const lat = Number(hit?.lat);
+    const lon = Number(hit?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon };
+  } catch (err) {
+    console.warn('Nominatim:', err.message);
+    return null;
+  }
+}
+
+async function fetchCepMetadata(cep) {
   const digits = String(cep || '').replace(/\D/g, '');
   if (digits.length !== 8) return null;
   try {
@@ -270,16 +296,58 @@ async function fetchCepCoordinates(cep) {
       headers: { Accept: 'application/json' }
     });
     if (!res.ok) return null;
-    const data = await res.json();
-    const coords = data?.location?.coordinates;
-    const lat = Number(coords?.latitude);
-    const lon = Number(coords?.longitude);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-    return { lat, lon };
-  } catch (err) {
-    console.warn('CEP coords:', digits, err.message);
+    return await res.json();
+  } catch {
     return null;
   }
+}
+
+async function fetchCepCoordinates(cep, addressParts = {}) {
+  const digits = String(cep || '').replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+
+  const meta = await fetchCepMetadata(digits);
+  const coords = meta?.location?.coordinates;
+  const lat = Number(coords?.latitude);
+  const lon = Number(coords?.longitude);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
+
+  const street = String(addressParts.rua || meta?.street || '').trim();
+  const city = String(addressParts.cidade || meta?.city || '').trim();
+  const uf = String(addressParts.uf || meta?.state || '').trim();
+  const bairro = String(addressParts.bairro || meta?.neighborhood || '').trim();
+  const numero = String(addressParts.numero || '').trim();
+
+  const queries = [];
+  if (street && city) {
+    queries.push([street, numero, bairro, city, uf, 'Brasil'].filter(Boolean).join(', '));
+  }
+  if (city && uf) {
+    queries.push([bairro, city, uf, 'Brasil'].filter(Boolean).join(', '));
+    queries.push(`${digits.slice(0, 5)}-${digits.slice(5)}, ${city}, ${uf}, Brasil`);
+  }
+
+  for (const query of queries) {
+    const point = await geocodeAddressNominatim(query);
+    if (point) return point;
+  }
+  return null;
+}
+
+async function fetchOriginCoordinates(config) {
+  const sender = config?.shipping?.sender || DEFAULT_CONFIG.shipping.sender;
+  const originCep = config?.shipping?.originCep || DEFAULT_CONFIG.shipping.originCep;
+  return fetchCepCoordinates(originCep, {
+    rua: sender.rua,
+    numero: sender.numero,
+    bairro: sender.bairro,
+    cidade: sender.cidade,
+    uf: sender.uf
+  });
+}
+
+async function fetchDestCoordinates(cep, addressParts = {}) {
+  return fetchCepCoordinates(cep, addressParts);
 }
 
 function calcMotoboyPrice(cfg, distanceKm) {
@@ -292,14 +360,13 @@ function calcMotoboyPrice(cfg, distanceKm) {
   };
 }
 
-async function computeMotoboyQuote(config, destCep) {
+async function computeMotoboyQuote(config, destCep, addressParts = {}) {
   const cfg = getMotoboyConfig(config);
   if (!cfg.enabled) return null;
 
-  const originCep = config?.shipping?.originCep || DEFAULT_CONFIG.shipping.originCep;
   const [origin, dest] = await Promise.all([
-    fetchCepCoordinates(originCep),
-    fetchCepCoordinates(destCep)
+    fetchOriginCoordinates(config),
+    fetchDestCoordinates(destCep, addressParts)
   ]);
   if (!origin || !dest) return null;
 
@@ -324,7 +391,7 @@ async function quoteMotoboyShippingOptions(env, config, addressParams, opts = {}
   if (!destCep || String(destCep).replace(/\D/g, '').length !== 8) return [];
 
   try {
-    const quote = await computeMotoboyQuote(config, destCep);
+    const quote = await computeMotoboyQuote(config, destCep, addressParams);
     if (!quote) return [];
     return methods.map((method) => ({
       id: method.id,
@@ -3181,7 +3248,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
       return json({ error: 'Informe um CEP válido para envio particular.' }, 400, origin);
     }
     try {
-      const quote = await computeMotoboyQuote(config, destCep);
+      const quote = await computeMotoboyQuote(config, destCep, body);
       if (!quote) {
         return json({ error: 'Endereço fora da área de entrega particular. Escolha outro frete.' }, 400, origin);
       }
