@@ -447,7 +447,6 @@
       const type = window.STF_PELICULA.productType(p);
       const addKey = type === 'pulseira' ? 'pulseira.add' : 'pelicula.add';
       const imgFull = resolveProductImage(p.image, p);
-      const imgThumb = resolveProductThumb(p.image, p);
       const imgFallback = inferAggregatedImage(p);
       const title = window.STF_PELICULA.upsellShortLabel
         ? window.STF_PELICULA.upsellShortLabel(p)
@@ -457,13 +456,11 @@
         : '';
       return `
         <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
-          <div class="pelicula-upsell-card-top">
-            ${renderZoomableThumb(imgThumb, imgFull, title, imgFallback, 'pelicula-upsell-img-btn')}
-            <div class="pelicula-upsell-info">
-              <strong>${escapeHtml(title)}</strong>
-              ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
-              <span class="pelicula-upsell-price">${formatBRL(p.price)}</span>
-            </div>
+          ${renderZoomableThumb(imgFull, imgFull, title, imgFallback, 'pelicula-upsell-img-btn')}
+          <div class="pelicula-upsell-info">
+            <strong>${escapeHtml(title)}</strong>
+            ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
+            <span class="pelicula-upsell-price">${formatBRL(p.price)}</span>
           </div>
           <button type="button" class="pelicula-upsell-btn" data-pelicula-add="${escapeHtml(p.id)}" data-product-type="${escapeHtml(type)}">${escapeHtml(L(addKey))}</button>
         </div>
@@ -533,10 +530,9 @@
       const catalog = products.find((x) => x.id === item.productId || x.slug === item.productId);
       const lineProduct = catalog || item;
       const imgFull = resolveProductImage(item.image, lineProduct);
-      const imgThumb = item.aggregated ? resolveProductThumb(item.image, lineProduct) : imgFull;
       const lineName = cartLineName(item);
       const thumb = item.aggregated
-        ? renderZoomableThumb(imgThumb, imgFull, lineName, imgFull, 'cart-line-img-btn')
+        ? renderZoomableThumb(imgFull, imgFull, lineName, imgFull, 'cart-line-img-btn')
         : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">`;
       return `
       <div class="cart-line" data-product-id="${escapeHtml(item.productId)}">
