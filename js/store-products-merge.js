@@ -56,9 +56,11 @@ window.STF_PRODUCT_MERGE = (function () {
       }
     }
     if (isPelicula && id) {
-      const perId = `/produtos/peliculas/${id}.png`;
+      const perId = `/produtos/peliculas/${id}.png?v=2`;
       if (!raw || raw.endsWith('.svg') || isGenericSharedImage(raw, id)) {
         raw = perId;
+      } else if (raw.includes('/produtos/peliculas/') && !raw.includes('?v=')) {
+        raw = `${raw.split('?')[0]}?v=2`;
       }
     }
     if (product?.aggregated && !isPulseira && !isPelicula) {
