@@ -46,18 +46,27 @@ window.STF_PRODUCT_MERGE = (function () {
     const isPulseira = product?.aggregated && (
       product.productType === 'pulseira' || id.startsWith('pulseira-')
     );
+    const isPelicula = product?.aggregated && (
+      product.productType === 'pelicula' || id.startsWith('pelicula-')
+    );
     if (isPulseira && id) {
       const perId = `/produtos/pulseiras/${id}.png`;
       if (!raw || /\/pulseiras\/(ocean|milanese|sport|trail|alpine|link)/i.test(raw)) {
         raw = perId;
       }
     }
-    if (product?.aggregated && !isPulseira) {
+    if (isPelicula && id) {
+      const perId = `/produtos/peliculas/${id}.png`;
+      if (!raw || raw.endsWith('.svg') || isGenericSharedImage(raw, id)) {
+        raw = perId;
+      }
+    }
+    if (product?.aggregated && !isPulseira && !isPelicula) {
       const perProduct = id ? `/produtos/${id}.svg` : '';
       if (isKitOrMissingImage(raw) || isGenericSharedImage(raw, id)) {
         raw = perProduct || inferAggregatedImage(product);
       }
-    } else if (!isPulseira) {
+    } else if (!isPulseira && !isPelicula) {
       raw = resolveKitImage(raw);
     }
     if (/^https?:\/\//i.test(raw)) return raw;
