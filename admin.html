@@ -41,6 +41,7 @@
                     <label>Senha
                         <input type="password" name="password" required autocomplete="current-password" placeholder="Senha definida no Worker">
                     </label>
+                    <p class="admin-meta" style="margin-top:8px">Senha forte (16+ caracteres) no secret <code>ADMIN_PASSWORD</code> do Cloudflare. Para trocar: <code>./scripts/rotate-admin-password.sh</code> na raiz do projeto.</p>
                     <button type="submit" class="btn-primary">Entrar</button>
                     <button type="button" id="btn-offline-mode" class="btn-secondary">Editar sem API (modo offline)</button>
                     <p id="admin-status" class="admin-status form-status" hidden></p>

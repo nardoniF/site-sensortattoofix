@@ -18,7 +18,21 @@ Versão para o repositório (espelho de [documentacao.html](../documentacao.html
 | Documentação | /documentacao.html |
 | GitHub | https://github.com/nardoniF/site-sensortattoofix |
 
-Login admin/pedidos: `admin` + secret `ADMIN_PASSWORD`.
+Login admin/pedidos: `admin` + secret `ADMIN_PASSWORD` (mín. 16 caracteres — ver rotação abaixo).
+
+### Trocar senha do admin (recomendado 1×/ano ou se suspeitar de vazamento)
+
+```bash
+./scripts/rotate-admin-password.sh
+```
+
+Ou com senha escolhida por você (mín. 16 caracteres):
+
+```bash
+./scripts/rotate-admin-password.sh 'SuaSenhaForteCom20Chars'
+```
+
+Opcional: troque também o usuário padrão `admin` em `api/wrangler.toml` (`ADMIN_USERNAME`) e rode `wrangler deploy` em `api/`.
 
 ---
 
