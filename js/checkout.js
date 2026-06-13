@@ -5,8 +5,13 @@
     return window.STF_I18N?.t(key, vars) || key;
   }
 
-  function lojaHref() {
-    return window.STF_I18N?.lojaHref?.() || 'loja.html';
+  function resolveProductImage(image) {
+    const raw = String(image || '').trim() || 'site/sensortattoofix.jpg';
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (raw.startsWith('/')) return raw;
+    const inEn = /^\/en\//.test(location.pathname) || location.pathname.startsWith('/en/');
+    const prefix = inEn ? '..' : '.';
+    return `${prefix}/${raw.replace(/^\.\//, '')}`;
   }
 
   function setPayBtnLabel(key) {
@@ -352,23 +357,21 @@
     const peliculas = compatible.filter((p) => window.STF_PELICULA.productType(p) !== 'pulseira');
     const pulseiras = compatible.filter((p) => window.STF_PELICULA.productType(p) === 'pulseira');
     const hasBoth = peliculas.length > 0 && pulseiras.length > 0;
-    const titleKey = hasBoth || pulseiras.length ? 'agregados.upsellTitle' : 'pelicula.upsellTitle';
-    const hintKey = hasBoth || pulseiras.length ? 'agregados.upsellHint' : 'pelicula.upsellHint';
-    const titleIcon = hasBoth ? 'fa-gift' : (pulseiras.length ? 'fa-clock' : 'fa-shield-alt');
 
     function renderCard(p) {
       const type = window.STF_PELICULA.productType(p);
       const addKey = type === 'pulseira' ? 'pulseira.add' : 'pelicula.add';
       const desc = window.STF_PELICULA.productDescription(p);
-      const forModel = window.STF_I18N?.t?.('agregados.forYourModel', { model: watchModel }) || watchModel;
+      const imgSrc = resolveProductImage(p.image);
       return `
         <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
-          <img src="${escapeHtml(p.image || 'site/sensortattoofix.jpg')}" alt="">
-          <div class="pelicula-upsell-info">
-            <strong>${escapeHtml(window.STF_PELICULA.productLabel(p))}</strong>
-            ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
-            <span class="pelicula-upsell-model">${escapeHtml(forModel)}</span>
-            <span class="pelicula-upsell-price">${formatBRL(p.price)}</span>
+          <div class="pelicula-upsell-card-top">
+            <img src="${escapeHtml(imgSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='site/sensortattoofix.jpg'">
+            <div class="pelicula-upsell-info">
+              <strong>${escapeHtml(window.STF_PELICULA.productLabel(p))}</strong>
+              ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
+              <span class="pelicula-upsell-price">${formatBRL(p.price)}</span>
+            </div>
           </div>
           <button type="button" class="pelicula-upsell-btn" data-pelicula-add="${escapeHtml(p.id)}" data-product-type="${escapeHtml(type)}">${escapeHtml(L(addKey))}</button>
         </div>
@@ -385,8 +388,8 @@
 
     wrap.hidden = false;
     wrap.innerHTML = `
-      <h3 class="pelicula-upsell-title"><i class="fas ${titleIcon}"></i> ${escapeHtml(L(titleKey))}</h3>
-      <p class="pelicula-upsell-hint">${escapeHtml(L(hintKey))}</p>
+      <h3 class="pelicula-upsell-title"><i class="fas fa-gift"></i> ${escapeHtml(L('agregados.upsellTitle'))}</h3>
+      <p class="pelicula-upsell-hint">${escapeHtml(L('agregados.upsellHint'))}</p>
       ${renderSection('fa-shield-alt', 'agregados.sectionPelicula', peliculas)}
       ${renderSection('fa-clock', 'agregados.sectionPulseira', pulseiras)}
     `;
