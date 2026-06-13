@@ -192,6 +192,8 @@ window.STF_I18N = (function () {
       'store.errorLoad': 'Erro ao carregar a loja.',
       'store.frete': 'frete',
       'store.freteLine': '+ Frete: Mini Envios todo Brasil e Uber até 5 km',
+      'store.lojaFreteShort': '+ frete',
+      'store.lojaPriceSuffix': 'Mini Envios · PIX e cartão',
       'store.add': 'Adicionar',
       'store.buy': 'Comprar',
       'store.alsoOn': 'Também no Mercado Livre, Shopee e Amazon',
@@ -461,6 +463,8 @@ window.STF_I18N = (function () {
       'store.errorLoad': 'Error loading store.',
       'store.frete': 'shipping',
       'store.freteLine': '+ Shipping: Mini Envios nationwide & Uber within 5 km',
+      'store.lojaFreteShort': '+ shipping',
+      'store.lojaPriceSuffix': 'Mini Envios · Cards & PIX',
       'store.add': 'Add',
       'store.buy': 'Buy',
       'store.alsoOn': 'Also on Mercado Libre, Shopee and Amazon',
@@ -839,7 +843,10 @@ window.STF_I18N = (function () {
     applyText('h1.section-title', 'store.title');
     applyText('.loja-intro-alt a', 'store.alsoOn');
     const intro = document.querySelector('.loja-intro[data-store-price-tag]');
-    if (intro) intro.setAttribute('data-store-price-suffix', t('store.intlSuffix'));
+    if (intro) {
+      intro.setAttribute('data-store-price-frete-line', t('store.lojaFreteShort'));
+      intro.setAttribute('data-store-price-suffix', t('store.lojaPriceSuffix'));
+    }
     const cartLink = document.querySelector('.cart-nav-link');
     if (cartLink) {
       const badge = cartLink.querySelector('[data-cart-badge]');

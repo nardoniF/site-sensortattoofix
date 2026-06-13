@@ -352,6 +352,93 @@ nav,
 .onde-comprar-intro a:hover {
     text-decoration: underline;
 }
+
+/* Loja — card centralizado + título ao lado */
+.loja-page .loja-main {
+    padding: 16px 0 48px;
+}
+.loja-shell {
+    max-width: 920px;
+}
+.loja-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+.loja-page .loja-hero {
+    width: 100%;
+    max-width: 340px;
+    text-align: left;
+}
+.loja-page .loja-hero .section-title {
+    text-align: left;
+    margin: 0 0 10px;
+    font-size: clamp(1.65rem, 5vw, 2.35rem);
+    line-height: 1.15;
+}
+.loja-page .loja-intro {
+    text-align: left;
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: #e8e8e8;
+}
+.loja-page .loja-intro-alt {
+    text-align: left;
+    margin: 0;
+    font-size: 0.88rem;
+}
+.loja-page .loja-grid {
+    width: 100%;
+    max-width: 340px;
+    margin-top: 0;
+    grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+    .loja-page .loja-main {
+        padding: 12px 0 56px;
+        min-height: calc(100dvh - 88px);
+        display: flex;
+        align-items: center;
+    }
+    .loja-layout {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(28px, 6vw, 56px);
+        width: 100%;
+    }
+    .loja-page .loja-hero {
+        flex: 0 1 300px;
+        max-width: 320px;
+    }
+    .loja-page .loja-grid {
+        flex: 0 0 340px;
+        order: -1;
+    }
+}
+@media (max-width: 767px) {
+    .loja-page .loja-main {
+        min-height: calc(100dvh - 88px);
+        display: flex;
+        align-items: center;
+    }
+    .loja-page .loja-layout {
+        padding-top: 0;
+    }
+    .loja-page .loja-hero {
+        order: 1;
+        text-align: center;
+    }
+    .loja-page .loja-hero .section-title,
+    .loja-page .loja-intro,
+    .loja-page .loja-intro-alt {
+        text-align: center;
+    }
+}
+
 .stores-layout {
     max-width: 900px;
     margin: 0 auto;
