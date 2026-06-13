@@ -72,3 +72,36 @@ Base Worker + `/webhook/mercadopago`, `/webhook/asaas`, `/webhook/paypal`.
 ## Uber Direct (planejado)
 
 Não implementado. Referência: https://direct.uber.com · direct-pt@uber.com
+
+---
+
+## Backup e recuperação
+
+| Camada | O quê | Frequência |
+|--------|-------|------------|
+| **Git `main`** | Site estático (HTML/JS/CSS) | A cada deploy |
+| **Branch `stable`** | Último snapshot estável aprovado | Ao rodar backup |
+| **Tag `backup-AAAA-MM-DD`** | Ponto fixo para voltar no tempo | Ao rodar backup |
+| **KV Cloudflare** | Pedidos, clientes, config da loja | Export manual semanal |
+| **Admin** | JSON da loja + CSV de pedidos | Semanal |
+
+### Criar backup Git (stable + tag)
+
+Na raiz do repositório, com tudo commitado em `main`:
+
+```bash
+./scripts/backup-release.sh
+```
+
+### Restaurar site após problema
+
+```bash
+git fetch origin
+git checkout backup-2026-06-13   # ou a tag desejada
+# ou: git checkout stable && git push origin HEAD:main  (cuidado — sobrescreve main)
+```
+
+### Segurança de login
+
+- **Admin** e **Minha Conta**: 5 tentativas erradas → bloqueio 30 min por IP (Worker).
+- Secrets só no Cloudflare (`wrangler secret`), nunca no Git.

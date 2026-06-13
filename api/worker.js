@@ -996,8 +996,8 @@ function buildPixPaymentEmail(order, config, { hasQrImage = false } = {}) {
   return { html, text };
 }
 
-async function getLoginLock(env, ip) {
-  const raw = await env.STORE_KV.get('login:' + ip);
+async function getLoginLock(env, ip, scope = 'admin') {
+  const raw = await env.STORE_KV.get(`login:${scope}:${ip}`);
   if (!raw) return null;
   try {
     const data = JSON.parse(raw);
@@ -1009,9 +1009,9 @@ async function getLoginLock(env, ip) {
   }
 }
 
-async function recordLoginFailure(env, ip) {
-  const key = 'login:' + ip;
-  const current = (await getLoginLock(env, ip)) || { attempts: 0 };
+async function recordLoginFailure(env, ip, scope = 'admin') {
+  const key = `login:${scope}:${ip}`;
+  const current = (await getLoginLock(env, ip, scope)) || { attempts: 0 };
   if (current.lockedUntil && Date.now() < current.lockedUntil) return current;
   const attempts = (current.attempts || 0) + 1;
   const data = attempts >= LOGIN_MAX_ATTEMPTS
@@ -1021,8 +1021,20 @@ async function recordLoginFailure(env, ip) {
   return data;
 }
 
-async function clearLoginFailures(env, ip) {
-  await env.STORE_KV.delete('login:' + ip);
+async function clearLoginFailures(env, ip, scope = 'admin') {
+  await env.STORE_KV.delete(`login:${scope}:${ip}`);
+}
+
+function loginLockedResponse(lock, origin) {
+  const retryAfter = Math.ceil((lock.lockedUntil - Date.now()) / 1000);
+  return new Response(JSON.stringify({ error: 'Muitas tentativas. Tente novamente em alguns minutos.' }), {
+    status: 429,
+    headers: {
+      'Content-Type': 'application/json',
+      'Retry-After': String(retryAfter),
+      ...corsHeaders(origin)
+    }
+  });
 }
 
 function bearerToken(request) {
@@ -3095,13 +3107,21 @@ async function handleCustomerRegister(request, env, origin) {
 }
 
 async function handleCustomerLogin(request, env, origin) {
+  const ip = clientIp(request);
+  const lock = await getLoginLock(env, ip, 'customer');
+  if (lock?.lockedUntil && Date.now() < lock.lockedUntil) {
+    return loginLockedResponse(lock, origin);
+  }
+
   const body = await request.json();
   const email = normalizeEmail(body.email);
   const senha = String(body.senha || '');
   const user = await getUserByEmail(env, email);
   if (!user || !(await verifyPassword(senha, user.passwordSalt, user.passwordHash))) {
+    await recordLoginFailure(env, ip, 'customer');
     return json({ error: 'E-mail ou senha incorretos.' }, 401, origin);
   }
+  await clearLoginFailures(env, ip, 'customer');
   const token = await createCustomerSession(env, user.userId);
   return json({ ok: true, token, user: publicUserView(user) }, 200, origin);
 }
@@ -3785,26 +3805,18 @@ async function handleLogin(request, env, origin) {
   if (!env.ADMIN_PASSWORD) return json({ error: 'ADMIN_PASSWORD não configurado.' }, 500, origin);
 
   const ip = clientIp(request);
-  const lock = await getLoginLock(env, ip);
+  const lock = await getLoginLock(env, ip, 'admin');
   if (lock?.lockedUntil && Date.now() < lock.lockedUntil) {
-    const retryAfter = Math.ceil((lock.lockedUntil - Date.now()) / 1000);
-    return new Response(JSON.stringify({ error: 'Muitas tentativas. Tente novamente em alguns minutos.' }), {
-      status: 429,
-      headers: {
-        'Content-Type': 'application/json',
-        'Retry-After': String(retryAfter),
-        ...corsHeaders(origin)
-      }
-    });
+    return loginLockedResponse(lock, origin);
   }
 
   const body = await request.json();
   if ((body.username || '').trim() !== (env.ADMIN_USERNAME || 'admin') || body.password !== env.ADMIN_PASSWORD) {
-    await recordLoginFailure(env, ip);
+    await recordLoginFailure(env, ip, 'admin');
     return json({ error: 'Usuário ou senha incorretos.' }, 401, origin);
   }
 
-  await clearLoginFailures(env, ip);
+  await clearLoginFailures(env, ip, 'admin');
   return json({ token: await createSession(env), username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
 }
 
