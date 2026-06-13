@@ -51,8 +51,14 @@
     if (!el) return;
     el.textContent = text;
     el.className = 'admin-status form-status ' + (type || '');
+    if (target === 'save' || target === 'panel') {
+      el.classList.add('admin-status-sticky');
+    }
     el.hidden = !text;
-    if (text) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const sticky = target === 'save' || target === 'panel';
+    if (text && !sticky) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
   }
 
   function setModeBadge(online) {
@@ -1302,7 +1308,7 @@
 
   els.configForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    showStatus('Salvando...', '');
+    showStatus('Salvando...', '', 'save');
     try {
       const config = collectForm();
       validatePixConfig(config.pix);

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.82">
+    <link rel="stylesheet" href="style.css?v=1.83">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -422,9 +422,11 @@
                     </div>
 
                     <div id="admin-save-actions" class="admin-form-actions admin-form-actions-sticky">
-                        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar alterações</button>
-                        <button type="button" id="btn-download-config" class="btn-secondary"><i class="fas fa-download"></i> Baixar backup JSON</button>
-                        <p id="admin-status-panel" class="admin-status form-status" hidden></p>
+                        <div class="admin-save-actions-buttons">
+                            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar alterações</button>
+                            <button type="button" id="btn-download-config" class="btn-secondary"><i class="fas fa-download"></i> Baixar backup JSON</button>
+                        </div>
+                        <p id="admin-status-panel" class="admin-status form-status admin-status-sticky" hidden aria-live="polite"></p>
                     </div>
                 </form>
 
@@ -435,6 +437,6 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/store-products-merge.js?v=2"></script>
-    <script src="js/admin.js?v=35"></script>
+    <script src="js/admin.js?v=36"></script>
 </body>
 </html>
