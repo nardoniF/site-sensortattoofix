@@ -190,7 +190,7 @@ function withConfigDefaults(stored) {
     ...base,
     ...stored,
     product: { ...base.product, ...(stored.product || {}) },
-    pix: { ...base.pix, ...(stored.pix || {}) },
+    pix: resolvePixConfig({ ...base.pix, ...(stored.pix || {}) }, base.pix),
     shipping: {
       ...base.shipping,
       ...(stored.shipping || {}),
@@ -385,6 +385,32 @@ function isInternationalPayPalAvailable(config) {
   return true;
 }
 
+function isPixConfigValid(pix) {
+  if (!pix) return false;
+  const key = String(pix.key || '').trim();
+  if (!key) return false;
+  const type = pix.keyType || 'cnpj';
+  const digits = key.replace(/\D/g, '');
+  if (key.includes('@')) return type === 'email';
+  if (type === 'cnpj') return digits.length === 14;
+  if (type === 'cpf') return digits.length === 11;
+  if (type === 'phone') return digits.length >= 10;
+  if (type === 'email') return key.includes('@');
+  return true;
+}
+
+/** PIX reserva: se a chave salva for inválida, usa o cadastro padrão (não quebra o checkout). */
+function resolvePixConfig(pix, fallback = DEFAULT_CONFIG.pix) {
+  const fb = fallback || DEFAULT_CONFIG.pix;
+  const merged = {
+    key: String(pix?.key || '').trim() || fb.key,
+    keyType: pix?.keyType || fb.keyType,
+    merchantName: String(pix?.merchantName || '').trim() || fb.merchantName,
+    merchantCity: String(pix?.merchantCity || '').trim() || fb.merchantCity
+  };
+  return isPixConfigValid(merged) ? merged : { ...fb };
+}
+
 function publicConfigView(config) {
   const products = getActiveProducts(config).map((p) => ({
     id: p.id,
@@ -399,6 +425,7 @@ function publicConfigView(config) {
   const primary = products[0] || config.product;
   return {
     ...config,
+    pix: resolvePixConfig(config.pix, DEFAULT_CONFIG.pix),
     product: primary ? {
       name: primary.name,
       description: primary.description,
@@ -501,7 +528,7 @@ function normalizePixKey(key, keyType) {
 }
 
 function generateStaticPixPayload(config, order) {
-  const pix = config.pix || {};
+  const pix = resolvePixConfig(config.pix, DEFAULT_CONFIG.pix);
   const name = pixSanitize(pix.merchantName, 25);
   const city = pixSanitize(pix.merchantCity, 15);
   const reference = String(order.orderId || 'STF').replace(/[^a-zA-Z0-9]/g, '').slice(0, 25);
@@ -817,7 +844,8 @@ async function getConfig(env) {
 }
 
 async function saveConfig(env, config) {
-  const toSave = { ...config, updatedAt: new Date().toISOString() };
+  const normalized = withConfigDefaults(config);
+  const toSave = { ...normalized, updatedAt: new Date().toISOString() };
   await env.STORE_KV.put(CONFIG_KEY, JSON.stringify(toSave));
   return toSave;
 }
@@ -3559,7 +3587,7 @@ async function handlePutConfig(request, env, origin) {
   const merged = {
     ...current, ...body,
     product: { ...current.product, ...body.product },
-    pix: { ...current.pix, ...body.pix },
+    pix: resolvePixConfig({ ...current.pix, ...body.pix }, DEFAULT_CONFIG.pix),
     shipping: { ...current.shipping, ...body.shipping },
     internationalShipping: { ...current.internationalShipping, ...body.internationalShipping },
     internationalProduct: { ...current.internationalProduct, ...body.internationalProduct },

@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>My Account | Sensor TattooFix</title>
     <link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/minha-conta.html">
-    <link rel="stylesheet" href="../style.css?v=1.76">
+    <link rel="stylesheet" href="../style.css?v=1.77">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="checkout-page conta-page">
@@ -46,6 +46,7 @@
                         <label>Email<input type="email" name="email" required></label>
                         <label>Password<input type="password" name="password" required minlength="6"></label>
                         <button type="submit" class="btn-primary">Sign in</button>
+                        <p id="conta-login-status" class="admin-status form-status" hidden></p>
                     </form>
                 </div>
 
@@ -57,10 +58,10 @@
                         <label>CPF<input type="text" name="cpf" required></label>
                         <label>Password (min. 6 characters)<input type="password" name="password" required minlength="6"></label>
                         <button type="submit" class="btn-primary">Create account</button>
+                        <p id="conta-register-status" class="admin-status form-status" hidden></p>
                     </form>
                 </div>
 
-                <p id="conta-status" class="admin-status" hidden></p>
             </section>
 
             <section id="conta-panel" class="admin-card" hidden>
@@ -87,6 +88,6 @@
     <script src="../js/site-footer.js"></script>
     <script src="../js/account-nav.js"></script>
     <script src="../js/order-watch.js"></script>
-    <script src="../js/conta.js?v=4"></script>
+    <script src="../js/conta.js?v=5"></script>
 </body>
 </html>

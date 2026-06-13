@@ -1,13 +1,49 @@
 window.StoreConfig = (function () {
   const FALLBACK_PATH = '/data/store-config.json';
 
+  const PIX_FALLBACK = {
+    key: '29321223000132',
+    keyType: 'cnpj',
+    merchantName: '3N20 SOLUCOES TEC',
+    merchantCity: 'SAO PAULO'
+  };
+
+  function isPixConfigValid(pix) {
+    if (!pix) return false;
+    const key = String(pix.key || '').trim();
+    if (!key) return false;
+    const type = pix.keyType || 'cnpj';
+    const digits = key.replace(/\D/g, '');
+    if (key.includes('@')) return type === 'email';
+    if (type === 'cnpj') return digits.length === 14;
+    if (type === 'cpf') return digits.length === 11;
+    if (type === 'phone') return digits.length >= 10;
+    if (type === 'email') return key.includes('@');
+    return true;
+  }
+
+  function resolvePixConfig(pix, fallback) {
+    const fb = fallback || PIX_FALLBACK;
+    const merged = {
+      key: String(pix?.key || '').trim() || fb.key,
+      keyType: pix?.keyType || fb.keyType,
+      merchantName: String(pix?.merchantName || '').trim() || fb.merchantName,
+      merchantCity: String(pix?.merchantCity || '').trim() || fb.merchantCity
+    };
+    return isPixConfigValid(merged) ? merged : { ...fb };
+  }
+
   function resolveApiUrl(config) {
     const bootstrap = window.CONFIG_BOOTSTRAP || {};
     return (config.api && config.api.baseUrl) || bootstrap.configApiUrl || '';
   }
 
-  function applyDerivedFields(config) {
-    return config;
+  function applyDerivedFields(config, localFallback) {
+    const pixFb = localFallback?.pix || PIX_FALLBACK;
+    return {
+      ...config,
+      pix: resolvePixConfig(config.pix, pixFb)
+    };
   }
 
   async function load() {
@@ -21,37 +57,45 @@ window.StoreConfig = (function () {
     async function loadLocalConfig() {
       const res = await fetch(FALLBACK_PATH + '?v=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) throw new Error('Não foi possível carregar a configuração local.');
-      return applyDerivedFields(await res.json());
+      const raw = await res.json();
+      return applyDerivedFields(raw, raw);
     }
 
     if (apiUrl) {
       try {
         const res = await fetch(apiUrl.replace(/\/$/, '') + '/config', { cache: 'no-store' });
         if (res.ok) {
-          const config = applyDerivedFields(await res.json());
+          const apiConfig = await res.json();
+          let local = null;
           try {
-            const local = await loadLocalConfig();
-            const apiModels = config.smartwatchModels || [];
-            const localModels = local.smartwatchModels || [];
-            if (localModels.length) {
-              config.smartwatchModels = localModels;
-            } else if (apiModels.length) {
-              config.smartwatchModels = apiModels;
-            }
-            if (Object.keys(config.internationalShipping || {}).length < 4 && local.internationalShipping) {
-              config.internationalShipping = { ...local.internationalShipping, ...config.internationalShipping };
-            }
-            if (local.internationalProduct) {
-              config.internationalProduct = { ...config.internationalProduct, ...local.internationalProduct };
-            }
-            if (local.payments?.paypal) {
-              config.payments = {
-                ...config.payments,
-                paypal: { ...local.payments.paypal, ...config.payments?.paypal }
-              };
-            }
+            local = await loadLocalConfig();
           } catch (e) {
-            console.warn('Fallback local para modelos indisponível.', e);
+            console.warn('Cadastro local indisponível para fallback.', e);
+          }
+          const config = applyDerivedFields(
+            {
+              ...apiConfig,
+              ...(local ? {
+                internationalShipping: Object.keys(apiConfig.internationalShipping || {}).length < 4 && local.internationalShipping
+                  ? { ...local.internationalShipping, ...apiConfig.internationalShipping }
+                  : apiConfig.internationalShipping,
+                internationalProduct: local.internationalProduct
+                  ? { ...local.internationalProduct, ...apiConfig.internationalProduct }
+                  : apiConfig.internationalProduct,
+                payments: local.payments?.paypal
+                  ? { ...apiConfig.payments, paypal: { ...local.payments.paypal, ...apiConfig.payments?.paypal } }
+                  : apiConfig.payments,
+                smartwatchModels: (local.smartwatchModels?.length && !apiConfig.smartwatchModels?.length)
+                  ? local.smartwatchModels
+                  : apiConfig.smartwatchModels
+              } : {})
+            },
+            local
+          );
+          if (local?.smartwatchModels?.length) {
+            config.smartwatchModels = local.smartwatchModels;
+          } else if (apiConfig.smartwatchModels?.length) {
+            config.smartwatchModels = apiConfig.smartwatchModels;
           }
           config._loaded = true;
           window.CHECKOUT_CONFIG = config;
@@ -70,5 +114,5 @@ window.StoreConfig = (function () {
     return config;
   }
 
-  return { load, resolveApiUrl, applyDerivedFields };
+  return { load, resolveApiUrl, applyDerivedFields, resolvePixConfig };
 })();

@@ -27,7 +27,8 @@
     ordersList: document.getElementById('conta-orders'),
     userName: document.getElementById('conta-user-name'),
     logoutBtn: document.getElementById('conta-logout'),
-    status: document.getElementById('conta-status'),
+    loginStatus: document.getElementById('conta-login-status'),
+    registerStatus: document.getElementById('conta-register-status'),
     tabs: document.querySelectorAll('[data-conta-tab]')
   };
 
@@ -48,11 +49,27 @@
     return status || '—';
   }
 
+  function activeStatusEl() {
+    const loginPanel = document.querySelector('[data-conta-panel="login"]');
+    if (loginPanel && !loginPanel.hidden) return els.loginStatus;
+    return els.registerStatus;
+  }
+
   function showStatus(text, type) {
-    if (!els.status) return;
-    els.status.textContent = text;
-    els.status.className = 'admin-status ' + (type || '');
-    els.status.hidden = !text;
+    const el = activeStatusEl();
+    if (!el) return;
+    if (els.loginStatus && els.loginStatus !== el) {
+      els.loginStatus.hidden = true;
+      els.loginStatus.textContent = '';
+    }
+    if (els.registerStatus && els.registerStatus !== el) {
+      els.registerStatus.hidden = true;
+      els.registerStatus.textContent = '';
+    }
+    el.textContent = text;
+    el.className = 'admin-status form-status ' + (type || '');
+    el.hidden = !text;
+    if (text) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   function showPanel(user) {

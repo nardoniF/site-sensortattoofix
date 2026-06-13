@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.73">
+    <link rel="stylesheet" href="style.css?v=1.77">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -43,8 +43,8 @@
                     </label>
                     <button type="submit" class="btn-primary">Entrar</button>
                     <button type="button" id="btn-offline-mode" class="btn-secondary">Editar sem API (modo offline)</button>
+                    <p id="admin-status" class="admin-status form-status" hidden></p>
                 </form>
-                <p id="admin-status" class="admin-status" hidden></p>
             </section>
 
             <section id="admin-panel" class="admin-card" hidden>
@@ -58,6 +58,7 @@
                         <button type="button" id="admin-logout" class="btn-secondary">Sair</button>
                     </div>
                 </div>
+                <p id="admin-status-top" class="admin-status form-status" hidden></p>
 
                 <nav class="admin-tabs" role="tablist" aria-label="Seções do painel">
                     <button type="button" role="tab" class="admin-tab active" data-admin-tab="produtos" aria-selected="true" aria-controls="admin-tab-produtos"><i class="fas fa-box"></i> Produtos</button>
@@ -164,6 +165,7 @@
                                 <button type="button" id="btn-test-ship-br" class="btn-secondary"><i class="fas fa-calculator"></i> Listar opções BR agora</button>
                             </label>
                         </div>
+                        <p id="admin-status-frete" class="admin-status form-status" hidden></p>
                     </fieldset>
 
                     <fieldset>
@@ -202,25 +204,34 @@
 
                     <div id="admin-tab-pix" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-qrcode"></i> PIX</legend>
+                        <legend><i class="fas fa-qrcode"></i> PIX no checkout</legend>
+                        <p class="admin-meta">Com <strong>Mercado Pago</strong> ativo (<code>MP_ACCESS_TOKEN</code> no Worker), o QR PIX é criado pela API do Mercado Pago. O pagamento cai na <strong>conta Mercado Pago</strong> — não usa os campos de “PIX reserva” abaixo.</p>
+                        <p class="admin-meta">O e-mail do cliente no checkout é só para identificação no Mercado Pago e para avisos de pedido. O e-mail da loja para notificações está em <strong>Contato → E-mail dos pedidos</strong>.</p>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-life-ring"></i> PIX reserva (QR estático)</legend>
+                        <p class="admin-meta">Usado <strong>somente</strong> se Mercado Pago e Asaas falharem. O QR aponta para a chave abaixo; nome e cidade aparecem no comprovante do banco. Se a chave estiver inválida ou vazia, o site usa automaticamente o cadastro em <code>data/store-config.json</code> (CNPJ da empresa).</p>
+                        <p id="pix-config-warn" class="admin-status warning form-status" hidden></p>
                         <div class="form-grid">
-                            <label class="full">Chave PIX
-                                <input type="text" name="pixKey" required placeholder="CPF, e-mail, telefone ou chave aleatória">
+                            <label class="full">Chave PIX da empresa (recebimento)
+                                <input type="text" name="pixKey" placeholder="CNPJ: 29321223000132">
+                                <small>CNPJ, e-mail ou telefone cadastrados no banco — não confundir com e-mail de notificação de pedidos.</small>
                             </label>
                             <label>Tipo da chave
                                 <select name="pixKeyType">
+                                    <option value="cnpj">CNPJ</option>
                                     <option value="cpf">CPF</option>
                                     <option value="email">E-mail</option>
                                     <option value="phone">Telefone</option>
-                                    <option value="cnpj">CNPJ</option>
                                     <option value="random">Aleatória</option>
                                 </select>
                             </label>
-                            <label>Nome no PIX (máx. 25 caracteres)
-                                <input type="text" name="pixMerchantName" maxlength="25" required>
+                            <label>Nome no QR (máx. 25 caracteres)
+                                <input type="text" name="pixMerchantName" maxlength="25" placeholder="3N20 SOLUCOES TEC">
                             </label>
-                            <label>Cidade (máx. 15 caracteres)
-                                <input type="text" name="pixMerchantCity" maxlength="15" required>
+                            <label>Cidade no QR (máx. 15 caracteres)
+                                <input type="text" name="pixMerchantCity" maxlength="15" placeholder="SAO PAULO">
                             </label>
                         </div>
                     </fieldset>
@@ -297,6 +308,7 @@
                             <button type="button" id="btn-test-email-paid" class="btn-secondary"><i class="fas fa-check-circle"></i> Testar e-mail PAGO</button>
                             <small>Envia para o e-mail dos pedidos via Resend — não gera cobrança nem pedido real.</small>
                         </div>
+                        <p id="admin-status-api" class="admin-status form-status" hidden></p>
                     </fieldset>
                     </div>
 
@@ -314,6 +326,7 @@
                             <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> Exportar JSON</button>
                             <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-file-csv"></i> Exportar CSV</button>
                         </div>
+                        <p id="admin-status-pedidos" class="admin-status form-status" hidden></p>
                     </fieldset>
                     </div>
 
@@ -345,16 +358,16 @@
                     <div id="admin-save-actions" class="admin-form-actions admin-form-actions-sticky">
                         <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar alterações</button>
                         <button type="button" id="btn-download-config" class="btn-secondary"><i class="fas fa-download"></i> Baixar backup JSON</button>
+                        <p id="admin-status-panel" class="admin-status form-status" hidden></p>
                     </div>
                 </form>
 
-                <p id="admin-status-panel" class="admin-status" hidden></p>
             </section>
 
         </div>
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=21"></script>
+    <script src="js/admin.js?v=24"></script>
 </body>
 </html>

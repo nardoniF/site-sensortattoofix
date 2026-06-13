@@ -10,6 +10,10 @@
     logoutBtn: document.getElementById('admin-logout'),
     statusMsg: document.getElementById('admin-status'),
     statusPanel: document.getElementById('admin-status-panel'),
+    statusTop: document.getElementById('admin-status-top'),
+    statusFrete: document.getElementById('admin-status-frete'),
+    statusApi: document.getElementById('admin-status-api'),
+    statusPedidos: document.getElementById('admin-status-pedidos'),
     modeBadge: document.getElementById('admin-mode'),
     btnDownload: document.getElementById('btn-download-config'),
     updatedAt: document.getElementById('config-updated-at'),
@@ -32,12 +36,22 @@
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
 
+  function statusEl(target) {
+    if (target === 'panel' || target === 'save') return els.statusPanel;
+    if (target === 'top') return els.statusTop;
+    if (target === 'frete') return els.statusFrete;
+    if (target === 'api') return els.statusApi;
+    if (target === 'pedidos') return els.statusPedidos;
+    return els.statusMsg;
+  }
+
   function showStatus(text, type, target) {
-    const el = target === 'panel' ? els.statusPanel : els.statusMsg;
+    const el = statusEl(target);
     if (!el) return;
     el.textContent = text;
-    el.className = 'admin-status ' + (type || '');
+    el.className = 'admin-status form-status ' + (type || '');
     el.hidden = !text;
+    if (text) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   function setModeBadge(online) {
@@ -289,7 +303,7 @@
   async function runShippingQuote(mode) {
     const base = apiBase();
     if (!base) {
-      showStatus('Configure a URL da API para testar frete.', 'error', 'panel');
+      showStatus('Configure a URL da API para testar frete.', 'error', 'frete');
       return;
     }
     const f = els.configForm;
@@ -298,7 +312,7 @@
     if (mode === 'br') {
       const cep = (document.getElementById('test-ship-cep')?.value || '').replace(/\D/g, '');
       if (cep.length !== 8) {
-        showStatus('Informe um CEP brasileiro válido para testar.', 'error', 'panel');
+        showStatus('Informe um CEP brasileiro válido para testar.', 'error', 'frete');
         return;
       }
       url = `${base}/shipping/quote?cep=${encodeURIComponent(cep)}&weightGrams=${weight}`;
@@ -313,13 +327,13 @@
       if (!res.ok) throw new Error(data.error || 'Falha na cotação');
       showQuoteResult(formatQuoteResult(data));
       if (data.source === 'config' || data.source === 'estimate') {
-        showStatus('Atenção: o cliente veria estimativa/fallback, não a API dos Correios.', 'warning', 'panel');
+        showStatus('Atenção: o cliente veria estimativa/fallback, não a API dos Correios.', 'warning', 'frete');
       } else {
-        showStatus('Cotação obtida da API dos Correios.', 'success', 'panel');
+        showStatus('Cotação obtida da API dos Correios.', 'success', 'frete');
       }
     } catch (err) {
       showQuoteResult('Erro: ' + (err.message || 'falha na cotação'));
-      showStatus(err.message, 'error', 'panel');
+      showStatus(err.message, 'error', 'frete');
     }
   }
 
@@ -640,6 +654,29 @@
         ? 'Última atualização: ' + new Date(config.updatedAt).toLocaleString('pt-BR')
         : '';
     }
+    showPixConfigWarning(pix);
+  }
+
+  function showPixConfigWarning(pix) {
+    const el = document.getElementById('pix-config-warn');
+    if (!el) return;
+    const key = String(pix?.key || '').trim();
+    const type = pix?.keyType || 'cnpj';
+    const digits = key.replace(/\D/g, '');
+    let msg = '';
+    if (key.includes('@') && type !== 'email') {
+      msg = 'A chave parece e-mail, mas o tipo não é E-mail. No checkout normal (Mercado Pago) isso não afeta; se cair no PIX reserva, o site usa o CNPJ do cadastro (data/store-config.json).';
+    } else if (type === 'cnpj' && key && digits.length !== 14) {
+      msg = 'Tipo CNPJ exige 14 dígitos na chave (ex.: 29321223000132).';
+    } else if (type === 'email' && key && !key.includes('@')) {
+      msg = 'Tipo E-mail exige um endereço de e-mail válido na chave.';
+    }
+    el.textContent = msg;
+    el.hidden = !msg;
+  }
+
+  function validatePixConfig(pix) {
+    showPixConfigWarning(pix);
   }
 
   function formatCepDisplay(cep) {
@@ -658,7 +695,7 @@
     const f = els.configForm;
     const cep = (f.shippingOriginCep?.value || '').replace(/\D/g, '');
     if (cep.length !== 8) {
-      showStatus('Informe um CEP válido com 8 dígitos.', 'error', 'panel');
+      showStatus('Informe um CEP válido com 8 dígitos.', 'error', 'frete');
       return;
     }
     try {
@@ -669,9 +706,9 @@
       if (f.shippingSenderBairro) f.shippingSenderBairro.value = data.bairro || f.shippingSenderBairro.value;
       if (f.shippingSenderCidade) f.shippingSenderCidade.value = data.localidade || '';
       if (f.shippingSenderUf) f.shippingSenderUf.value = data.uf || '';
-      showStatus('Endereço preenchido pelo CEP.', 'success', 'panel');
+      showStatus('Endereço preenchido pelo CEP.', 'success', 'frete');
     } catch (err) {
-      showStatus(err.message || 'Erro ao buscar CEP.', 'error', 'panel');
+      showStatus(err.message || 'Erro ao buscar CEP.', 'error', 'frete');
     }
   }
 
@@ -710,10 +747,10 @@
         }
       },
       pix: {
-        key: f.pixKey.value.trim(),
+        key: f.pixKey?.value.trim() || '',
         keyType: f.pixKeyType?.value || 'cnpj',
-        merchantName: f.pixMerchantName.value.trim(),
-        merchantCity: f.pixMerchantCity.value.trim()
+        merchantName: f.pixMerchantName?.value.trim() || '',
+        merchantCity: f.pixMerchantCity?.value.trim() || ''
       },
       formsubmit: {
         email: f.formsubmitEmail.value.trim(),
@@ -913,7 +950,7 @@
       wireShippingUi();
       await loadShippingStatus();
     } catch (err) {
-      showStatus(err.message || 'Erro ao carregar configuração.', 'error', 'panel');
+      showStatus(err.message || 'Erro ao carregar configuração.', 'error', 'top');
       throw err;
     }
   }
@@ -924,7 +961,7 @@
       showPanel();
       await initPanel();
       loadDocFrame(true);
-      showStatus('Modo offline: alterações são salvas como download do JSON.', 'warning', 'panel');
+      showStatus('Modo offline: alterações são salvas como download do JSON.', 'warning', 'save');
     } catch (err) {
       showLogin();
       showStatus(err.message || 'Não foi possível carregar a configuração.', 'error');
@@ -940,7 +977,7 @@
       showPanel();
       await initPanel();
       loadDocFrame(true);
-      showStatus('Login realizado com sucesso.', 'success', 'panel');
+      showStatus('Login realizado com sucesso.', 'success', 'top');
     } catch (err) {
       showStatus(err.message, 'error');
     }
@@ -951,6 +988,7 @@
     showStatus('Salvando...', '');
     try {
       const config = collectForm();
+      validatePixConfig(config.pix);
       const base = apiBase() || bootstrap.configApiUrl;
 
       if (base && sessionStorage.getItem(SESSION_KEY)) {
@@ -958,29 +996,33 @@
         currentConfig = saved;
         fillForm(saved);
         await loadShippingStatus();
-        showStatus('Configuração salva! O site já usa os novos valores.', 'success', 'panel');
+        showStatus('Configuração salva! O site já usa os novos valores.', 'success', 'save');
       } else {
         downloadConfig(config);
         showStatus(
           'Arquivo baixado. Substitua data/store-config.json no GitHub e faça deploy, ou configure a API para salvar online.',
           'warning',
-          'panel'
+          'save'
         );
       }
     } catch (err) {
-      showStatus(err.message, 'error', 'panel');
+      showStatus(err.message, 'error', 'save');
     }
   });
 
   els.btnDownload?.addEventListener('click', () => {
     downloadConfig(collectForm());
-    showStatus('Backup JSON baixado.', 'success', 'panel');
+    showStatus('Backup JSON baixado.', 'success', 'save');
   });
 
   els.logoutBtn?.addEventListener('click', () => {
     showLogin();
     showStatus('', '');
-    showStatus('', '', 'panel');
+    showStatus('', '', 'save');
+    showStatus('', '', 'top');
+    showStatus('', '', 'frete');
+    showStatus('', '', 'api');
+    showStatus('', '', 'pedidos');
   });
 
   document.getElementById('btn-offline-mode')?.addEventListener('click', () => {
@@ -991,14 +1033,14 @@
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!base || !token) {
-      showStatus('Faça login com a API para exportar pedidos.', 'error', 'panel');
+      showStatus('Faça login com a API para exportar pedidos.', 'error', 'pedidos');
       return;
     }
     const res = await fetch(`${base}/orders?format=${format}`, {
       headers: { Authorization: 'Bearer ' + token }
     });
     if (!res.ok) {
-      showStatus('Erro ao exportar pedidos.', 'error', 'panel');
+      showStatus('Erro ao exportar pedidos.', 'error', 'pedidos');
       return;
     }
     const blob = await res.blob();
@@ -1007,7 +1049,7 @@
     a.download = format === 'csv' ? 'pedidos.csv' : 'pedidos.json';
     a.click();
     URL.revokeObjectURL(a.href);
-    showStatus('Pedidos exportados!', 'success', 'panel');
+    showStatus('Pedidos exportados!', 'success', 'pedidos');
   }
 
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportOrders('json'));
@@ -1017,10 +1059,10 @@
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!base || !token) {
-      showStatus('Faça login com a API para testar e-mail.', 'error', 'panel');
+      showStatus('Faça login com a API para testar e-mail.', 'error', 'api');
       return;
     }
-    showStatus(`Enviando ${label}...`, '', 'panel');
+    showStatus(`Enviando ${label}...`, '', 'api');
     try {
       const email = els.configForm?.formsubmitEmail?.value?.trim();
       const res = await fetch(base.replace(/\/$/, '') + '/admin/test-email', {
@@ -1033,14 +1075,14 @@
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
-        showStatus(`${label} enviado via ${data.provider || 'resend'}! Confira a caixa de entrada (e spam).`, 'success', 'panel');
+        showStatus(`${label} enviado via ${data.provider || 'resend'}! Confira a caixa de entrada (e spam).`, 'success', 'api');
         loadIntegrationsStatus();
       } else {
         const err = data.resend?.error || data.error || data.formsubmit?.data?.message || 'Falha no envio';
-        showStatus('Erro: ' + err, 'error', 'panel');
+        showStatus('Erro: ' + err, 'error', 'api');
       }
     } catch (err) {
-      showStatus(err.message, 'error', 'panel');
+      showStatus(err.message, 'error', 'api');
     }
   }
 

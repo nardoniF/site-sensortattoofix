@@ -141,8 +141,9 @@
   function showCheckoutLoginStatus(msg, type) {
     if (!els.checkoutLoginStatus) return;
     els.checkoutLoginStatus.textContent = msg;
-    els.checkoutLoginStatus.className = 'admin-status ' + (type || '');
+    els.checkoutLoginStatus.className = 'admin-status form-status ' + (type || '');
     els.checkoutLoginStatus.hidden = !msg;
+    if (msg) els.checkoutLoginStatus.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   function setCheckoutAccountTab(mode) {

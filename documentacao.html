@@ -190,7 +190,7 @@
                         <tbody>
                             <tr><td>Produtos</td><td>Catálogo, preços, peso, imagens</td></tr>
                             <tr><td>Frete</td><td>Remetente, modalidades, pacote, teste de cotação, fallback internacional</td></tr>
-                            <tr><td>PIX</td><td>Chave e dados do QR estático (fallback)</td></tr>
+                            <tr><td>PIX</td><td>PIX reserva (QR estático): chave, tipo, nome e cidade — só se Mercado Pago e Asaas falharem. Pagamentos normais vão para a conta Mercado Pago. Chave inválida ou API fora: usa <code>data/store-config.json</code>.</td></tr>
                             <tr><td>Contato</td><td>WhatsApp, e-mail FormSubmit, assunto dos pedidos</td></tr>
                             <tr><td>API</td><td>URL do Worker, status das integrações (teste automático), PayPal, testes de e-mail</td></tr>
                             <tr><td>Pedidos</td><td>Atalho para <code>/pedidos.html</code> e exportação</td></tr>
