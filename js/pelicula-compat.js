@@ -13,7 +13,8 @@ window.STF_PELICULA = (function () {
   function pulseiraVariantKey(product) {
     const style = product.bandStyle || 'sport-soft';
     const color = String(product.color || '').toLowerCase().trim();
-    return `${style}|${color}`;
+    const brand = String(product.compatibility?.brand || 'apple').toLowerCase();
+    return `${style}|${brand}|${color}`;
   }
 
   function pulseiraSizeFitScore(product, caseMm) {

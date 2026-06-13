@@ -50,9 +50,16 @@ window.STF_PRODUCT_MERGE = (function () {
       product.productType === 'pelicula' || id.startsWith('pelicula-')
     );
     if (isPulseira && id) {
-      const perId = `/produtos/pulseiras/${id}.png`;
-      if (!raw || /\/pulseiras\/(ocean|milanese|sport|trail|alpine|link)/i.test(raw)) {
-        raw = perId;
+      const svgOnly = /^(pulseira-link|pulseira-trail|pulseira-alpine)/.test(id);
+      if (svgOnly) {
+        raw = `/produtos/${id}.svg`;
+      } else {
+        const perId = `/produtos/pulseiras/${id}.png?v=5`;
+        if (!raw || raw.endsWith('.svg') || isGenericSharedImage(raw, id)) {
+          raw = perId;
+        } else if (raw.includes('/produtos/pulseiras/') && !raw.includes('?v=')) {
+          raw = `${raw.split('?')[0]}?v=5`;
+        }
       }
     }
     if (isPelicula && id) {

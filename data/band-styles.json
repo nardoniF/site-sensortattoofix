@@ -4,55 +4,64 @@
     "titleEn": "Ocean Sport Silicone Band",
     "subtitlePt": "Compatível com Apple Watch (Ultra/Series) e smartwatches",
     "subtitleEn": "Compatible with Apple Watch (Ultra/Series) and smartwatches",
-    "image": "/produtos/pulseiras/ocean.jpg",
-    "importFiles": ["IMG_3082.jpg", "IMG_3087.jpg"]
+    "image": "/produtos/pulseiras/pulseira-ocean-branca-42-49.png",
+    "listingFiles": [
+      "Pulseira_Silicone_Branca_escuro_para_Apple_Watch",
+      "Pulseira_Silicone_Verde_escuro_para_Apple_Watch"
+    ]
   },
   "milanese": {
     "titlePt": "Pulseira Milanese em Aço Magnético",
     "titleEn": "Magnetic Milanese Steel Band",
     "subtitlePt": "Compatível com Apple Watch, Galaxy Watch e smartwatches",
     "subtitleEn": "Compatible with Apple Watch, Galaxy Watch and smartwatches",
-    "image": "/produtos/pulseiras/milanese.jpg",
-    "importFiles": ["IMG_3083.jpg"]
+    "image": "/produtos/pulseiras/pulseira-mesh-preta-42-49.png",
+    "listingFiles": [
+      "Pulseira_Apple_Watch_-_Metal_Preta",
+      "Pulseira_Apple_Watch_-_Metal_Rose"
+    ]
   },
   "sport-air": {
     "titlePt": "Pulseira de Silicone Sport Respirável",
     "titleEn": "Breathable Sport Silicone Band",
     "subtitlePt": "Com furos de ventilação para treinos e alta performance",
     "subtitleEn": "Ventilation holes for workouts and high performance",
-    "image": "/produtos/pulseiras/sport-respiravel.jpg",
-    "importFiles": ["IMG_3084.jpg"]
+    "image": "/produtos/pulseiras/pulseira-sport-air-preta-42-49.png",
+    "listingFiles": ["Pulseira_Fecho_Silicone_Respira_vel_Sport_Compati_vel_Com_Galaxy_Watch_7_Ultra_47mm_Cor_Preto"]
   },
   "link-luxo": {
     "titlePt": "Pulseira de Luxo em Aço Inoxidável com Elos",
     "titleEn": "Luxury Stainless Steel Link Band",
     "subtitlePt": "Design premium executivo com fecho borboleta oculto",
     "subtitleEn": "Premium executive look with hidden butterfly clasp",
-    "image": "/produtos/pulseiras/link-luxo.jpg",
-    "importFiles": ["IMG_3085.jpg"]
+    "image": "/produtos/pulseira-link-grafite-42-49.svg"
   },
   "trail": {
     "titlePt": "Pulseira Trail Loop em Nylon Confort",
     "titleEn": "Trail Loop Nylon Comfort Band",
     "subtitlePt": "Tecido elástico e leve com ajuste ultra-rápido em velcro",
     "subtitleEn": "Light elastic fabric with fast hook-and-loop fit",
-    "image": "/produtos/pulseiras/trail.jpg",
-    "importFiles": ["IMG_3086.jpg", "IMG_3089.jpg"]
+    "image": "/produtos/pulseira-trail-preta-ultra-49.svg"
   },
   "alpine": {
     "titlePt": "Pulseira Alpine Loop em Nylon Trançado",
     "titleEn": "Alpine Loop Braided Nylon Band",
     "subtitlePt": "Camada dupla reforçada com fivela gancho em G",
     "subtitleEn": "Reinforced double-layer weave with G-hook buckle",
-    "image": "/produtos/pulseiras/alpine.jpg",
-    "importFiles": ["IMG_3088.jpg"]
+    "image": "/produtos/pulseira-alpine-verde-49.svg"
   },
   "sport-soft": {
     "titlePt": "Pulseira de Silicone Soft Lisa Tradicional",
     "titleEn": "Classic Soft Smooth Silicone Band",
     "subtitlePt": "Design clássico e macio com fecho de pino embutido",
     "subtitleEn": "Classic soft design with embedded pin buckle",
-    "image": "/produtos/pulseiras/sport-soft.jpg",
-    "importFiles": ["IMG_3090.jpg", "IMG_3091.jpg"]
+    "image": "/produtos/pulseiras/pulseira-sport-preta-42-49.png",
+    "listingFiles": [
+      "Pulseira_para_AppleWatch__PRETA_Silicone",
+      "Pulseira_para_AppleWatch__BRANCA_Silicone",
+      "Pulseira_para_AppleWatch__AZUL_Silicone",
+      "Pulseira_para_AppleWatch_Silicone_CINZA",
+      "Pulseira_De_Silicone_Para_Samsung_Galaxy_Watch_8_Sport"
+    ]
   }
 }
