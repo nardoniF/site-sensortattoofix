@@ -48,5 +48,36 @@ window.STF_PRODUCT_MERGE = (function () {
     return next;
   }
 
-  return { mergeProductLists, mergeConfig, keyOf };
+  /** Admin: só adiciona agregados que ainda não existem no KV — não sobrescreve imagens salvas. */
+  function mergeMissingAggregated(apiConfig, localConfig) {
+    if (!localConfig?.products?.length) return apiConfig;
+    const byId = new Map();
+    (apiConfig.products || []).forEach((p) => {
+      const k = keyOf(p);
+      if (k) byId.set(k, { ...p });
+    });
+    localConfig.products.forEach((lp) => {
+      const k = keyOf(lp);
+      if (!k || lp.aggregated !== true || byId.has(k)) return;
+      byId.set(k, { ...lp });
+    });
+    const products = [...byId.values()].sort((a, b) => {
+      if (a.aggregated && !b.aggregated) return 1;
+      if (!a.aggregated && b.aggregated) return -1;
+      return 0;
+    });
+    return {
+      ...apiConfig,
+      products,
+      smartwatchModelMeta: {
+        ...(localConfig.smartwatchModelMeta || {}),
+        ...(apiConfig.smartwatchModelMeta || {})
+      },
+      smartwatchModels: localConfig.smartwatchModels?.length
+        ? localConfig.smartwatchModels
+        : apiConfig.smartwatchModels
+    };
+  }
+
+  return { mergeProductLists, mergeConfig, mergeMissingAggregated, keyOf };
 })();

@@ -63,6 +63,7 @@
 
   async function loadConfig() {
     const base = apiBase();
+    const token = sessionStorage.getItem(SESSION_KEY);
     let local = null;
     try {
       const localRes = await fetch('/data/store-config.json?v=' + Date.now());
@@ -71,9 +72,29 @@
       console.warn(e);
     }
 
+    if (base && token) {
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/config', {
+          headers: { Authorization: 'Bearer ' + token },
+          cache: 'no-store'
+        });
+        if (res.ok) {
+          let apiConfig = await res.json();
+          if (local && window.STF_PRODUCT_MERGE?.mergeMissingAggregated) {
+            apiConfig = window.STF_PRODUCT_MERGE.mergeMissingAggregated(apiConfig, local);
+          }
+          currentConfig = apiConfig;
+          setModeBadge(true);
+          return currentConfig;
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
     if (base) {
       try {
-        const res = await fetch(base + '/config', { cache: 'no-store' });
+        const res = await fetch(base.replace(/\/$/, '') + '/config', { cache: 'no-store' });
         if (res.ok) {
           let apiConfig = await res.json();
           if (local && window.STF_PRODUCT_MERGE) {
@@ -734,7 +755,7 @@
           ${aggregatedFields}
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
           <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
-          <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}" placeholder="/site/sensortattoofix.jpg ou /produtos/…"></label>
+          <label class="full">URL da imagem<input type="text" data-field="image" value="${escAttr(p.image || '')}" placeholder="/produtos/pulseira-sport-preta.svg ou /site/…" spellcheck="false" autocomplete="off"></label>
           ${sensorField}
           <label>Peso (g)<input type="number" data-field="weightGrams" min="0.1" step="0.1" value="${p.weightGrams ?? 3}"></label>
           <div class="admin-product-flags">
@@ -802,7 +823,7 @@
         name,
         description: val('description'),
         price: Number(val('price')) || 0,
-        image: val('image'),
+        image: val('image') || prev.image || '',
         active: val('active'),
         aggregated: isAggregated,
         requiresSmartwatch: val('requiresSmartwatch'),

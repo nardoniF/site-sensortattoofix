@@ -4013,6 +4013,13 @@ async function handleGetOrder(request, env, origin, orderId) {
   return json({ error: 'Não autorizado.' }, 401, origin);
 }
 
+async function handleAdminGetConfig(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  return json(await getConfig(env), 200, origin);
+}
+
 async function handlePutConfig(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
   const body = await request.json();
@@ -4104,6 +4111,7 @@ export default {
 
     try {
       if (path === '/config' && request.method === 'GET') return json(publicConfigView(await getConfig(env)), 200, origin);
+      if (path === '/admin/config' && request.method === 'GET') return handleAdminGetConfig(request, env, origin);
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
       if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);
       if (path === '/auth/logout' && request.method === 'POST') return handleCustomerLogout(request, env, origin);
