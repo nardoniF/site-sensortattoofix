@@ -85,6 +85,9 @@ const DEFAULT_CONFIG = {
     }
   },
   smartwatchModels: [
+    'Apple Watch Series 1 (38mm)',
+    'Apple Watch Series 2 (38mm)',
+    'Apple Watch Series 3 (38mm)',
     'Apple Watch SE (40mm)',
     'Apple Watch SE (44mm)',
     'Apple Watch SE 2 (40mm)',

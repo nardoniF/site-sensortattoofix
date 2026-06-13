@@ -27,7 +27,7 @@
       "descriptionEn": "Crystal-clear protection — keeps your Apple Watch screen scratch-free every day.",
       "price": 20,
       "image": "/produtos/pelicula-squircle.svg",
-      "active": false,
+      "active": true,
       "aggregated": true,
       "requiresSmartwatch": false,
       "weightGrams": 1,
@@ -36,7 +36,11 @@
         "shape": "squircle",
         "caseMm": 38
       },
-      "compatibleWatchModels": []
+      "compatibleWatchModels": [
+        "Apple Watch Series 1 (38mm)",
+        "Apple Watch Series 2 (38mm)",
+        "Apple Watch Series 3 (38mm)"
+      ]
     },
     {
       "id": "pelicula-apple-40mm",
@@ -385,6 +389,9 @@
         ]
       },
       "compatibleWatchModels": [
+        "Apple Watch Series 1 (38mm)",
+        "Apple Watch Series 2 (38mm)",
+        "Apple Watch Series 3 (38mm)",
         "Apple Watch SE (40mm)",
         "Apple Watch SE 2 (40mm)",
         "Apple Watch Series 6 (40mm)",
@@ -421,6 +428,9 @@
         ]
       },
       "compatibleWatchModels": [
+        "Apple Watch Series 1 (38mm)",
+        "Apple Watch Series 2 (38mm)",
+        "Apple Watch Series 3 (38mm)",
         "Apple Watch SE (40mm)",
         "Apple Watch SE 2 (40mm)",
         "Apple Watch Series 6 (40mm)",
@@ -457,6 +467,9 @@
         ]
       },
       "compatibleWatchModels": [
+        "Apple Watch Series 1 (38mm)",
+        "Apple Watch Series 2 (38mm)",
+        "Apple Watch Series 3 (38mm)",
         "Apple Watch SE (40mm)",
         "Apple Watch SE 2 (40mm)",
         "Apple Watch Series 6 (40mm)",
@@ -963,6 +976,9 @@
     }
   },
   "smartwatchModels": [
+    "Apple Watch Series 1 (38mm)",
+    "Apple Watch Series 2 (38mm)",
+    "Apple Watch Series 3 (38mm)",
     "Apple Watch SE (40mm)",
     "Apple Watch SE (44mm)",
     "Apple Watch SE 2 (40mm)",
@@ -1012,6 +1028,18 @@
     "Outro modelo (informar nas observações)"
   ],
   "smartwatchModelMeta": {
+    "Apple Watch Series 1 (38mm)": {
+      "shape": "squircle",
+      "caseMm": 38
+    },
+    "Apple Watch Series 2 (38mm)": {
+      "shape": "squircle",
+      "caseMm": 38
+    },
+    "Apple Watch Series 3 (38mm)": {
+      "shape": "squircle",
+      "caseMm": 38
+    },
     "Apple Watch SE (40mm)": {
       "shape": "squircle",
       "caseMm": 40
