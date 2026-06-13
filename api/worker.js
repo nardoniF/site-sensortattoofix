@@ -456,7 +456,7 @@ const LOGIN_LOCKOUT_SEC = 1800;
 function corsHeaders(origin) {
   const allowed = ALLOWED_ORIGINS.includes(origin);
   const headers = {
-    'Access-Control-Allow-Methods': 'GET, PUT, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, PUT, PATCH, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, asaas-access-token',
     'Access-Control-Max-Age': '86400'
   };
