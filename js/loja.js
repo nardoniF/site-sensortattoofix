@@ -85,7 +85,9 @@
     try {
       window.STF_I18N?.applyLojaDom?.();
       const cfg = await StoreConfig.load();
-      products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
+      const all = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
+      products = window.STF_PELICULA?.listStorefront(all)
+        ?? all.filter((p) => p.active !== false && p.aggregated !== true);
       window.STF_CART?.initBadges();
       window.STF_STORE_PRICE?.apply(cfg);
       renderGrid();

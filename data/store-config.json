@@ -16,6 +16,334 @@
       "active": true,
       "requiresSmartwatch": true,
       "weightGrams": 3
+    },
+    {
+      "id": "pelicula-apple-38mm",
+      "slug": "pelicula-apple-38mm",
+      "name": "Película de tela — Apple Watch 38mm",
+      "nameEn": "Screen protector — Apple Watch 38mm",
+      "description": "Película protetora squircle 38mm (caixa papel HUANG).",
+      "descriptionEn": "Squircle screen protector 38mm (HUANG paper box).",
+      "price": 20,
+      "image": "/produtos/pelicula-squircle.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "box",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 38
+      }
+    },
+    {
+      "id": "pelicula-apple-40mm",
+      "slug": "pelicula-apple-40mm",
+      "name": "Película de tela — Apple Watch 40mm",
+      "nameEn": "Screen protector — Apple Watch 40mm",
+      "description": "Película protetora squircle 40mm (caixa papel HUANG).",
+      "descriptionEn": "Squircle screen protector 40mm (HUANG paper box).",
+      "price": 20,
+      "image": "/produtos/pelicula-squircle.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "box",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 40
+      },
+      "compatibleWatchModels": [
+        "Apple Watch SE (40mm)",
+        "Apple Watch SE 2 (40mm)",
+        "Apple Watch Series 6 (40mm)"
+      ]
+    },
+    {
+      "id": "pelicula-apple-41mm",
+      "slug": "pelicula-apple-41mm",
+      "name": "Película de tela — Apple Watch 41mm",
+      "nameEn": "Screen protector — Apple Watch 41mm",
+      "description": "Película protetora squircle 41mm (caixa papel HUANG).",
+      "descriptionEn": "Squircle screen protector 41mm (HUANG paper box).",
+      "price": 20,
+      "image": "/produtos/pelicula-squircle.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "box",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 41
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 7 (41mm)",
+        "Apple Watch Series 8 (41mm)",
+        "Apple Watch Series 9 (41mm)"
+      ]
+    },
+    {
+      "id": "pelicula-apple-42mm",
+      "slug": "pelicula-apple-42mm",
+      "name": "Película de tela — Apple Watch 42mm",
+      "nameEn": "Screen protector — Apple Watch 42mm",
+      "description": "Película protetora squircle 42mm — Series 10 (caixa papel HUANG).",
+      "descriptionEn": "Squircle screen protector 42mm — Series 10 (HUANG paper box).",
+      "price": 20,
+      "image": "/produtos/pelicula-squircle.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "box",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 42
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 10 (42mm)"
+      ]
+    },
+    {
+      "id": "pelicula-apple-44mm",
+      "slug": "pelicula-apple-44mm",
+      "name": "Película de tela — Apple Watch 44mm",
+      "nameEn": "Screen protector — Apple Watch 44mm",
+      "description": "Película protetora squircle 44mm (caixa papel HUANG).",
+      "descriptionEn": "Squircle screen protector 44mm (HUANG paper box).",
+      "price": 20,
+      "image": "/produtos/pelicula-squircle.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "box",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 44
+      },
+      "compatibleWatchModels": [
+        "Apple Watch SE (44mm)",
+        "Apple Watch SE 2 (44mm)",
+        "Apple Watch Series 6 (44mm)"
+      ]
+    },
+    {
+      "id": "pelicula-apple-45mm",
+      "slug": "pelicula-apple-45mm",
+      "name": "Película de tela — Apple Watch 45mm",
+      "nameEn": "Screen protector — Apple Watch 45mm",
+      "description": "Película protetora squircle 45mm (caixa papel peining).",
+      "descriptionEn": "Squircle screen protector 45mm (peining paper box).",
+      "price": 20,
+      "image": "/produtos/pelicula-squircle.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "box",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 45
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 7 (45mm)",
+        "Apple Watch Series 8 (45mm)",
+        "Apple Watch Series 9 (45mm)"
+      ]
+    },
+    {
+      "id": "pelicula-apple-46mm",
+      "slug": "pelicula-apple-46mm",
+      "name": "Película de tela — Apple Watch 46mm",
+      "nameEn": "Screen protector — Apple Watch 46mm",
+      "description": "Película protetora squircle 46mm — Series 10 IP10/46 (caixa papel HUANG).",
+      "descriptionEn": "Squircle screen protector 46mm — Series 10 IP10/46 (HUANG paper box).",
+      "price": 20,
+      "image": "/produtos/pelicula-squircle.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "box",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 46
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 10 (46mm)"
+      ]
+    },
+    {
+      "id": "pelicula-amazfit-bip-2",
+      "slug": "pelicula-amazfit-bip-2",
+      "name": "Película de tela — Amazfit Bip 2",
+      "nameEn": "Screen protector — Amazfit Bip 2",
+      "description": "Película protetora para Amazfit Bip 2 (saquinho).",
+      "descriptionEn": "Screen protector for Amazfit Bip 2 (sachet pack).",
+      "price": 20,
+      "image": "/produtos/pelicula-retangular.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibleWatchModels": [
+        "Amazfit Bip"
+      ]
+    },
+    {
+      "id": "pelicula-amazfit-gts-2-mini",
+      "slug": "pelicula-amazfit-gts-2-mini",
+      "name": "Película de tela — Amazfit GTS 2 Mini",
+      "nameEn": "Screen protector — Amazfit GTS 2 Mini",
+      "description": "Película protetora para Amazfit GTS 2 Mini (saquinho).",
+      "descriptionEn": "Screen protector for Amazfit GTS 2 Mini (sachet pack).",
+      "price": 20,
+      "image": "/produtos/pelicula-retangular.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibleWatchModels": [
+        "Amazfit GTR / GTS"
+      ]
+    },
+    {
+      "id": "pelicula-amazfit-gtr-3",
+      "slug": "pelicula-amazfit-gtr-3",
+      "name": "Película de tela — Amazfit GTR 3 / GTR 3 Pro",
+      "nameEn": "Screen protector — Amazfit GTR 3 / GTR 3 Pro",
+      "description": "Película protetora para Amazfit GTR 3 e GTR 3 Pro (saquinho GTR 3 PRO).",
+      "descriptionEn": "Screen protector for Amazfit GTR 3 and GTR 3 Pro (GTR 3 PRO sachet).",
+      "price": 20,
+      "image": "/produtos/pelicula-redonda.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibleWatchModels": [
+        "Amazfit GTR / GTS"
+      ]
+    },
+    {
+      "id": "pelicula-amazfit-gtr-mini",
+      "slug": "pelicula-amazfit-gtr-mini",
+      "name": "Película de tela — Amazfit GTR Mini",
+      "nameEn": "Screen protector — Amazfit GTR Mini",
+      "description": "Película protetora ~34mm para caixa ~43mm Amazfit GTR Mini (saquinho).",
+      "descriptionEn": "Screen protector ~34mm for ~43mm Amazfit GTR Mini case (sachet pack).",
+      "price": 20,
+      "image": "/produtos/pelicula-redonda.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibility": {
+        "shape": "round",
+        "caseMm": 43,
+        "screenMm": 34,
+        "screenMmTolerance": 0
+      },
+      "compatibleWatchModels": [
+        "Amazfit GTR Mini"
+      ]
+    },
+    {
+      "id": "pelicula-huawei-gt-2",
+      "slug": "pelicula-huawei-gt-2",
+      "name": "Película de tela — Huawei Watch GT 2",
+      "nameEn": "Screen protector — Huawei Watch GT 2",
+      "description": "Película protetora ~40mm para caixa 47mm HM2/47 (saquinho).",
+      "descriptionEn": "Screen protector ~40mm for 47mm HM2/47 case (sachet pack).",
+      "price": 20,
+      "image": "/produtos/pelicula-redonda.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibility": {
+        "shape": "round",
+        "caseMm": 47,
+        "screenMm": 40,
+        "screenMmTolerance": 1
+      },
+      "compatibleWatchModels": [
+        "Huawei Watch GT"
+      ]
+    },
+    {
+      "id": "pelicula-samsung-gw3-45mm",
+      "slug": "pelicula-samsung-gw3-45mm",
+      "name": "Película de tela — Samsung Galaxy Watch 3 45mm",
+      "nameEn": "Screen protector — Samsung Galaxy Watch 3 45mm",
+      "description": "Película protetora para Galaxy Watch 3 45mm (saquinho).",
+      "descriptionEn": "Screen protector for Galaxy Watch 3 45mm (sachet pack).",
+      "price": 20,
+      "image": "/produtos/pelicula-redonda.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibility": {
+        "shape": "round",
+        "caseMm": 45
+      },
+      "compatibleWatchModels": [
+        "Samsung Galaxy Watch 3 (45mm)"
+      ]
+    },
+    {
+      "id": "pelicula-amazfit-gts-squircle-44mm",
+      "slug": "pelicula-amazfit-gts-squircle-44mm",
+      "name": "Película de tela — squircle 44mm (saquinho)",
+      "nameEn": "Screen protector — squircle 44mm (sachet)",
+      "description": "Película flexible membrane caixa 44mm, tela 3,5×4,0 cm — linha Amazfit GTS (saquinho, não Apple).",
+      "descriptionEn": "Flexible membrane film, 44mm case, 3.5×4.0 cm screen — Amazfit GTS line (sachet, not Apple).",
+      "price": 20,
+      "image": "/produtos/pelicula-retangular.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 44,
+        "screenWidthMm": 35,
+        "screenHeightMm": 40,
+        "screenMmTolerance": 2
+      },
+      "compatibleWatchModels": [
+        "Amazfit GTR / GTS"
+      ]
+    },
+    {
+      "id": "pelicula-round-33mm",
+      "slug": "pelicula-round-33mm",
+      "name": "Película de tela — redonda ~33mm",
+      "nameEn": "Screen protector — round ~33mm",
+      "description": "Película redonda flexível ~33mm para relógios redondos compatíveis (saquinho).",
+      "descriptionEn": "Flexible round ~33mm film for compatible round watches (sachet pack).",
+      "price": 20,
+      "image": "/produtos/pelicula-redonda.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibility": {
+        "shape": "round",
+        "screenMm": 33,
+        "screenMmTolerance": 2
+      }
     }
   ],
   "pix": {
@@ -47,12 +375,52 @@
     }
   },
   "shippingMethods": [
-    { "id": "br-mini-envios", "enabled": true, "scope": "BR", "label": "Mini Envios", "correiosCode": "04227", "provider": "correios" },
-    { "id": "br-carta-registrada", "enabled": true, "scope": "BR", "label": "Carta Registrada", "correiosCode": "8010", "provider": "correios" },
-    { "id": "br-motoboy", "enabled": false, "scope": "BR", "label": "Envio particular (motoboy — até 24h)", "provider": "motoboy" },
-    { "id": "br-uber-direct", "enabled": false, "scope": "BR", "label": "Entrega Uber (rápida)", "provider": "uber" },
-    { "id": "int-encomenda", "enabled": true, "scope": "INT", "label": "Encomenda internacional (Exporta Fácil)", "correiosCode": "*", "simTipo": "M" },
-    { "id": "int-documento", "enabled": true, "scope": "INT", "label": "Documento / carta internacional", "correiosCode": "*", "simTipo": "D" }
+    {
+      "id": "br-mini-envios",
+      "enabled": true,
+      "scope": "BR",
+      "label": "Mini Envios",
+      "correiosCode": "04227",
+      "provider": "correios"
+    },
+    {
+      "id": "br-carta-registrada",
+      "enabled": true,
+      "scope": "BR",
+      "label": "Carta Registrada",
+      "correiosCode": "8010",
+      "provider": "correios"
+    },
+    {
+      "id": "br-motoboy",
+      "enabled": false,
+      "scope": "BR",
+      "label": "Envio particular (motoboy — até 24h)",
+      "provider": "motoboy"
+    },
+    {
+      "id": "br-uber-direct",
+      "enabled": false,
+      "scope": "BR",
+      "label": "Entrega Uber (rápida)",
+      "provider": "uber"
+    },
+    {
+      "id": "int-encomenda",
+      "enabled": true,
+      "scope": "INT",
+      "label": "Encomenda internacional (Exporta Fácil)",
+      "correiosCode": "*",
+      "simTipo": "M"
+    },
+    {
+      "id": "int-documento",
+      "enabled": true,
+      "scope": "INT",
+      "label": "Documento / carta internacional",
+      "correiosCode": "*",
+      "simTipo": "D"
+    }
   ],
   "motoboyShipping": {
     "enabled": true,
@@ -71,21 +439,96 @@
     "documentNotice": "Lente de melhor fixação, sem potencializador (este frete não permite líquidos).\n\nKit completo: escolha outra opção de envio."
   },
   "internationalShipping": {
-    "US": { "label": "Estados Unidos", "price": 89.9, "days": 15, "currency": "BRL" },
-    "PT": { "label": "Portugal", "price": 262.5, "days": 12, "currency": "BRL" },
-    "AR": { "label": "Argentina", "price": 69.9, "days": 10, "currency": "BRL" },
-    "MX": { "label": "México", "price": 74.9, "days": 12, "currency": "BRL" },
-    "GB": { "label": "Reino Unido", "price": 94.9, "days": 18, "currency": "BRL" },
-    "DE": { "label": "Alemanha", "price": 94.9, "days": 18, "currency": "BRL" },
-    "FR": { "label": "França", "price": 94.9, "days": 18, "currency": "BRL" },
-    "IT": { "label": "Itália", "price": 94.9, "days": 18, "currency": "BRL" },
-    "ES": { "label": "Espanha", "price": 84.9, "days": 14, "currency": "BRL" },
-    "CA": { "label": "Canadá", "price": 89.9, "days": 16, "currency": "BRL" },
-    "CL": { "label": "Chile", "price": 64.9, "days": 10, "currency": "BRL" },
-    "CO": { "label": "Colômbia", "price": 64.9, "days": 10, "currency": "BRL" },
-    "UY": { "label": "Uruguai", "price": 59.9, "days": 8, "currency": "BRL" },
-    "PY": { "label": "Paraguai", "price": 54.9, "days": 8, "currency": "BRL" },
-    "OTHER": { "label": "Outro país", "price": 119.9, "days": 25, "currency": "BRL" }
+    "US": {
+      "label": "Estados Unidos",
+      "price": 89.9,
+      "days": 15,
+      "currency": "BRL"
+    },
+    "PT": {
+      "label": "Portugal",
+      "price": 262.5,
+      "days": 12,
+      "currency": "BRL"
+    },
+    "AR": {
+      "label": "Argentina",
+      "price": 69.9,
+      "days": 10,
+      "currency": "BRL"
+    },
+    "MX": {
+      "label": "México",
+      "price": 74.9,
+      "days": 12,
+      "currency": "BRL"
+    },
+    "GB": {
+      "label": "Reino Unido",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "DE": {
+      "label": "Alemanha",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "FR": {
+      "label": "França",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "IT": {
+      "label": "Itália",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "ES": {
+      "label": "Espanha",
+      "price": 84.9,
+      "days": 14,
+      "currency": "BRL"
+    },
+    "CA": {
+      "label": "Canadá",
+      "price": 89.9,
+      "days": 16,
+      "currency": "BRL"
+    },
+    "CL": {
+      "label": "Chile",
+      "price": 64.9,
+      "days": 10,
+      "currency": "BRL"
+    },
+    "CO": {
+      "label": "Colômbia",
+      "price": 64.9,
+      "days": 10,
+      "currency": "BRL"
+    },
+    "UY": {
+      "label": "Uruguai",
+      "price": 59.9,
+      "days": 8,
+      "currency": "BRL"
+    },
+    "PY": {
+      "label": "Paraguai",
+      "price": 54.9,
+      "days": 8,
+      "currency": "BRL"
+    },
+    "OTHER": {
+      "label": "Outro país",
+      "price": 119.9,
+      "days": 25,
+      "currency": "BRL"
+    }
   },
   "smartwatchModels": [
     "Apple Watch SE (40mm)",
@@ -109,6 +552,7 @@
     "Samsung Galaxy Watch 4 (44mm)",
     "Samsung Galaxy Watch 5 (40mm)",
     "Samsung Galaxy Watch 5 (44mm)",
+    "Samsung Galaxy Watch 3 (45mm)",
     "Samsung Galaxy Watch 5 Pro (45mm)",
     "Samsung Galaxy Watch 6 (40mm)",
     "Samsung Galaxy Watch 6 (44mm)",
@@ -128,12 +572,217 @@
     "Redmi Watch",
     "Amazfit Active",
     "Amazfit Bip",
+    "Amazfit GTR Mini",
     "Amazfit GTR / GTS",
     "Amazfit T-Rex",
     "Fitbit Versa / Sense",
     "Polar Pacer / Ignite",
     "Outro modelo (informar nas observações)"
   ],
+  "smartwatchModelMeta": {
+    "Apple Watch SE (40mm)": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Apple Watch SE (44mm)": {
+      "shape": "squircle",
+      "caseMm": 44
+    },
+    "Apple Watch SE 2 (40mm)": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Apple Watch SE 2 (44mm)": {
+      "shape": "squircle",
+      "caseMm": 44
+    },
+    "Apple Watch Series 6 (40mm)": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Apple Watch Series 6 (44mm)": {
+      "shape": "squircle",
+      "caseMm": 44
+    },
+    "Apple Watch Series 7 (41mm)": {
+      "shape": "squircle",
+      "caseMm": 41
+    },
+    "Apple Watch Series 7 (45mm)": {
+      "shape": "squircle",
+      "caseMm": 45
+    },
+    "Apple Watch Series 8 (41mm)": {
+      "shape": "squircle",
+      "caseMm": 41
+    },
+    "Apple Watch Series 8 (45mm)": {
+      "shape": "squircle",
+      "caseMm": 45
+    },
+    "Apple Watch Series 9 (41mm)": {
+      "shape": "squircle",
+      "caseMm": 41
+    },
+    "Apple Watch Series 9 (45mm)": {
+      "shape": "squircle",
+      "caseMm": 45
+    },
+    "Apple Watch Series 10 (42mm)": {
+      "shape": "squircle",
+      "caseMm": 42
+    },
+    "Apple Watch Series 10 (46mm)": {
+      "shape": "squircle",
+      "caseMm": 46
+    },
+    "Apple Watch Ultra 3 (49mm)": {
+      "shape": "squircle",
+      "caseMm": 49
+    },
+    "Apple Watch Ultra 2 (49mm)": {
+      "shape": "squircle",
+      "caseMm": 49
+    },
+    "Apple Watch Ultra (49mm)": {
+      "shape": "squircle",
+      "caseMm": 49
+    },
+    "Samsung Galaxy Watch 3 (45mm)": {
+      "shape": "round",
+      "caseMm": 45,
+      "screenMm": 37
+    },
+    "Samsung Galaxy Watch 4 (40mm)": {
+      "shape": "round",
+      "caseMm": 40,
+      "screenMm": 32
+    },
+    "Samsung Galaxy Watch 4 (44mm)": {
+      "shape": "round",
+      "caseMm": 44,
+      "screenMm": 34
+    },
+    "Samsung Galaxy Watch 5 (40mm)": {
+      "shape": "round",
+      "caseMm": 40,
+      "screenMm": 32
+    },
+    "Samsung Galaxy Watch 5 (44mm)": {
+      "shape": "round",
+      "caseMm": 44,
+      "screenMm": 34
+    },
+    "Samsung Galaxy Watch 5 Pro (45mm)": {
+      "shape": "round",
+      "caseMm": 45,
+      "screenMm": 37
+    },
+    "Samsung Galaxy Watch 6 (40mm)": {
+      "shape": "round",
+      "caseMm": 40,
+      "screenMm": 32
+    },
+    "Samsung Galaxy Watch 6 (44mm)": {
+      "shape": "round",
+      "caseMm": 44,
+      "screenMm": 34
+    },
+    "Samsung Galaxy Watch 6 Classic (43mm)": {
+      "shape": "round",
+      "caseMm": 43,
+      "screenMm": 33
+    },
+    "Samsung Galaxy Watch 6 Classic (47mm)": {
+      "shape": "round",
+      "caseMm": 47,
+      "screenMm": 37
+    },
+    "Samsung Galaxy Watch 7 (40mm)": {
+      "shape": "round",
+      "caseMm": 40,
+      "screenMm": 32
+    },
+    "Samsung Galaxy Watch 7 (44mm)": {
+      "shape": "round",
+      "caseMm": 44,
+      "screenMm": 34
+    },
+    "Samsung Galaxy Watch Ultra (47mm)": {
+      "shape": "round",
+      "caseMm": 47,
+      "screenMm": 37
+    },
+    "Garmin Fenix": {
+      "shape": "round",
+      "screenMm": 33
+    },
+    "Garmin Forerunner": {
+      "shape": "round",
+      "screenMm": 33
+    },
+    "Garmin Instinct": {
+      "shape": "round",
+      "screenMm": 33
+    },
+    "Garmin Venu": {
+      "shape": "round",
+      "screenMm": 33
+    },
+    "Garmin Vivoactive": {
+      "shape": "round",
+      "screenMm": 33
+    },
+    "Huawei Watch Fit": {
+      "shape": "rect",
+      "caseMm": 43
+    },
+    "Huawei Watch GT": {
+      "shape": "round",
+      "caseMm": 47,
+      "screenMm": 40
+    },
+    "Amazfit Bip": {
+      "shape": "rect",
+      "caseMm": 39
+    },
+    "Amazfit GTR Mini": {
+      "shape": "round",
+      "caseMm": 43,
+      "screenMm": 34
+    },
+    "Amazfit GTR / GTS": {
+      "shape": "squircle",
+      "caseMm": 44,
+      "screenWidthMm": 35,
+      "screenHeightMm": 40
+    },
+    "Amazfit Active": {
+      "shape": "rect",
+      "caseMm": 42
+    },
+    "Amazfit T-Rex": {
+      "shape": "round",
+      "caseMm": 47,
+      "screenMm": 36
+    },
+    "Fitbit Versa / Sense": {
+      "shape": "rect",
+      "caseMm": 40
+    },
+    "Polar Pacer / Ignite": {
+      "shape": "round",
+      "screenMm": 33
+    },
+    "Xiaomi Watch S1 / S3": {
+      "shape": "round",
+      "screenMm": 33
+    },
+    "Redmi Watch": {
+      "shape": "rect",
+      "caseMm": 41
+    }
+  },
   "formsubmit": {
     "email": "sensortattoofix@gmail.com",
     "subject": "Novo pedido — Loja Oficial Sensor TattooFix"
@@ -151,5 +800,5 @@
       "internationalEnabled": true
     }
   },
-  "updatedAt": "2026-06-08T12:00:00.000Z"
+  "updatedAt": "2026-06-13T12:00:00.000Z"
 }

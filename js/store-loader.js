@@ -72,9 +72,12 @@ window.StoreConfig = (function () {
           } catch (e) {
             console.warn('Cadastro local indisponível para fallback.', e);
           }
+          let merged = local && window.STF_PRODUCT_MERGE
+            ? window.STF_PRODUCT_MERGE.mergeConfig(apiConfig, local)
+            : { ...apiConfig };
           const config = applyDerivedFields(
             {
-              ...apiConfig,
+              ...merged,
               ...(local ? {
                 internationalShipping: Object.keys(apiConfig.internationalShipping || {}).length < 4 && local.internationalShipping
                   ? { ...local.internationalShipping, ...apiConfig.internationalShipping }
@@ -84,10 +87,7 @@ window.StoreConfig = (function () {
                   : apiConfig.internationalProduct,
                 payments: local.payments?.paypal
                   ? { ...apiConfig.payments, paypal: { ...local.payments.paypal, ...apiConfig.payments?.paypal } }
-                  : apiConfig.payments,
-                smartwatchModels: (local.smartwatchModels?.length && !apiConfig.smartwatchModels?.length)
-                  ? local.smartwatchModels
-                  : apiConfig.smartwatchModels
+                  : apiConfig.payments
               } : {})
             },
             local
@@ -96,6 +96,9 @@ window.StoreConfig = (function () {
             config.smartwatchModels = local.smartwatchModels;
           } else if (apiConfig.smartwatchModels?.length) {
             config.smartwatchModels = apiConfig.smartwatchModels;
+          }
+          if (local?.smartwatchModelMeta) {
+            config.smartwatchModelMeta = { ...local.smartwatchModelMeta, ...config.smartwatchModelMeta };
           }
           config._loaded = true;
           window.CHECKOUT_CONFIG = config;

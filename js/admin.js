@@ -62,17 +62,35 @@
 
   async function loadConfig() {
     const base = apiBase();
+    let local = null;
+    try {
+      const localRes = await fetch('/data/store-config.json?v=' + Date.now());
+      if (localRes.ok) local = await localRes.json();
+    } catch (e) {
+      console.warn(e);
+    }
+
     if (base) {
       try {
         const res = await fetch(base + '/config', { cache: 'no-store' });
         if (res.ok) {
-          currentConfig = await res.json();
+          let apiConfig = await res.json();
+          if (local && window.STF_PRODUCT_MERGE) {
+            apiConfig = window.STF_PRODUCT_MERGE.mergeConfig(apiConfig, local);
+          }
+          currentConfig = apiConfig;
           setModeBadge(true);
           return currentConfig;
         }
       } catch (e) {
         console.warn(e);
       }
+    }
+
+    if (local) {
+      currentConfig = local;
+      setModeBadge(false);
+      return currentConfig;
     }
 
     const res = await fetch('/data/store-config.json?v=' + Date.now());
@@ -688,9 +706,16 @@
   function renderProducts(products) {
     const list = document.getElementById('admin-products-list');
     if (!list) return;
+    const aggregatedCount = products.filter((p) => p.aggregated).length;
+    const summary = document.getElementById('admin-products-summary');
+    if (summary) {
+      summary.textContent = aggregatedCount
+        ? `${products.length} produtos · ${aggregatedCount} agregado(s) (só checkout)`
+        : `${products.length} produto(s) na vitrine`;
+    }
     list.innerHTML = products.map((p, i) => `
-      <div class="admin-product-row" data-product-index="${i}">
-        <h4>Produto ${i + 1}</h4>
+      <div class="admin-product-row${p.aggregated ? ' admin-product-row--aggregated' : ''}" data-product-index="${i}">
+        <h4>${p.aggregated ? '<span class="admin-badge-aggregated">Agregado</span> ' : ''}Produto ${i + 1}</h4>
         <div class="form-grid">
           <label class="full">Nome<input type="text" data-field="name" value="${escAttr(p.name)}" required></label>
           <label class="full">Descrição<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
@@ -699,7 +724,8 @@
           <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}"></label>
           <label>Peso (g)<input type="number" data-field="weightGrams" min="0.1" step="0.1" value="${p.weightGrams ?? 3}"></label>
           <div class="admin-product-flags">
-            <label class="label-check"><input type="checkbox" data-field="active" ${p.active !== false ? 'checked' : ''}><span>Ativo na loja</span></label>
+            <label class="label-check"><input type="checkbox" data-field="active" ${p.active !== false ? 'checked' : ''}><span>Ativo</span></label>
+            <label class="label-check admin-flag-aggregated"><input type="checkbox" data-field="aggregated" ${p.aggregated ? 'checked' : ''}><span><strong>Produto agregado</strong> — oculto na loja, só upsell no checkout</span></label>
             <label class="label-check"><input type="checkbox" data-field="requiresSmartwatch" ${p.requiresSmartwatch !== false ? 'checked' : ''}><span>Pede modelo do relógio</span></label>
           </div>
         </div>
@@ -731,7 +757,9 @@
       };
       const name = val('name');
       const slug = val('slug') || slugify(name) || `produto-${i + 1}`;
+      const prev = (currentConfig?.products || []).find((p) => p.id === slug || p.slug === slug) || {};
       return {
+        ...prev,
         id: slug,
         slug,
         name,
@@ -739,6 +767,7 @@
         price: Number(val('price')) || 0,
         image: val('image'),
         active: val('active'),
+        aggregated: val('aggregated'),
         requiresSmartwatch: val('requiresSmartwatch'),
         weightGrams: Number(val('weightGrams')) || 3
       };

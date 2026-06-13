@@ -77,6 +77,7 @@
     confirmTitle: document.getElementById('confirm-title'),
     confirmHint: document.getElementById('confirm-hint'),
     cartSidebar: document.getElementById('cart-sidebar-items'),
+    peliculaUpsell: document.getElementById('pelicula-upsell'),
     observacoesWrap: document.getElementById('observacoes-wrap'),
     observacoes: document.getElementById('observacoes'),
     observacoesError: document.getElementById('observacoes-error'),
@@ -295,12 +296,77 @@
     els.observacoes.placeholder = outro ? L('form.notesPhRequired') : L('form.notesPhOptional');
   }
 
+  function cartLineName(item) {
+    const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
+    if (p && window.STF_PELICULA) return window.STF_PELICULA.productLabel(p);
+    return item.name;
+  }
+
+  function renderPeliculaUpsell() {
+    const wrap = els.peliculaUpsell;
+    if (!wrap || !window.STF_PELICULA) return;
+
+    const needsWatch = window.STF_CART?.requiresSmartwatch();
+    const watchModel = els.smartwatchSelect?.value || '';
+    if (!needsWatch || !watchModel || isOutroModelo(watchModel)) {
+      wrap.hidden = true;
+      wrap.innerHTML = '';
+      return;
+    }
+
+    const inCart = new Set((window.STF_CART?.load() || []).map((i) => i.productId));
+    const compatible = window.STF_PELICULA.findCompatible(watchModel, products, cfg.smartwatchModelMeta)
+      .filter((p) => !inCart.has(p.id));
+
+    if (!compatible.length) {
+      wrap.hidden = true;
+      wrap.innerHTML = '';
+      return;
+    }
+
+    wrap.hidden = false;
+    wrap.innerHTML = `
+      <h3 class="pelicula-upsell-title"><i class="fas fa-shield-alt"></i> ${escapeHtml(L('pelicula.upsellTitle'))}</h3>
+      <p class="pelicula-upsell-hint">${escapeHtml(L('pelicula.upsellHint'))}</p>
+      ${compatible.map((p) => `
+        <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
+          <img src="${escapeHtml(p.image || 'sensortattoofix.jpg')}" alt="">
+          <div class="pelicula-upsell-info">
+            <strong>${escapeHtml(window.STF_PELICULA.productLabel(p))}</strong>
+            <span>${formatBRL(p.price)}</span>
+          </div>
+          <button type="button" class="pelicula-upsell-btn" data-pelicula-add="${escapeHtml(p.id)}">${escapeHtml(L('pelicula.add'))}</button>
+        </div>
+      `).join('')}
+    `;
+
+    wrap.querySelectorAll('[data-pelicula-add]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-pelicula-add');
+        const p = products.find((x) => x.id === id || x.slug === id);
+        if (!p || !window.STF_CART) return;
+        window.STF_CART.add({
+          ...p,
+          name: window.STF_PELICULA.productLabel(p)
+        }, 1);
+        shippingCost = null;
+        shippingInfo = null;
+        shippingOptions = [];
+        renderCartSidebar();
+        updateSummary();
+        quoteShipping();
+        btn.disabled = true;
+        btn.textContent = L('pelicula.inCart');
+      });
+    });
+  }
+
   function seedCartFromUrl() {
     const params = new URLSearchParams(location.search);
     const slug = params.get('produto');
     if (!slug) return false;
     const p = products.find((x) => x.slug === slug || x.id === slug);
-    if (!p) return false;
+    if (!p || window.STF_PELICULA?.isAggregated(p)) return false;
     if (params.get('comprar') === '1') window.STF_CART.clear();
     window.STF_CART.add(p, 1);
     history.replaceState({}, '', location.pathname);
@@ -318,7 +384,7 @@
       <div class="cart-line" data-product-id="${escapeHtml(item.productId)}">
         <img src="${escapeHtml(item.image)}" alt="" class="cart-line-img">
         <div class="cart-line-info">
-          <strong>${escapeHtml(item.name)}</strong>
+          <strong>${escapeHtml(cartLineName(item))}</strong>
           <span class="cart-line-price">${formatBRL(item.price)}</span>
           <div class="cart-qty" role="group" aria-label="${escapeHtml(L('cart.qty'))}">
             <button type="button" class="cart-qty-btn" data-delta="-1" aria-label="${escapeHtml(L('cart.decrease'))}">−</button>
@@ -366,6 +432,7 @@
       });
     });
     updateSmartwatchVisibility();
+    renderPeliculaUpsell();
   }
 
   async function loadCustomerSession() {
@@ -1150,6 +1217,7 @@
     els.smartwatchSelect?.addEventListener('change', () => {
       clearWatchFieldError();
       updateObservacoesField();
+      renderPeliculaUpsell();
     });
     els.observacoes?.addEventListener('input', clearObservacoesFieldError);
     els.cep?.addEventListener('input', (e) => {

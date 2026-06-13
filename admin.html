@@ -76,7 +76,8 @@
                     <div id="admin-tab-produtos" class="admin-tab-panel active" role="tabpanel">
                     <fieldset>
                         <legend><i class="fas fa-box"></i> Catálogo de produtos</legend>
-                        <p class="admin-meta">Cadastre kits, películas, pulseiras e outros itens. O primeiro produto ativo é o destaque na home.</p>
+                        <p class="admin-meta">Cadastre kits e acessórios. Marque <strong>Produto agregado</strong> para películas que só aparecem no checkout (upsell), não na vitrine.</p>
+                        <p id="admin-products-summary" class="admin-meta admin-products-summary"></p>
                         <div id="admin-products-list"></div>
                         <div class="admin-form-actions" style="margin-top:8px">
                             <button type="button" id="btn-add-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar produto</button>
@@ -420,6 +421,7 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=28"></script>
+    <script src="js/store-products-merge.js?v=1"></script>
+    <script src="js/admin.js?v=29"></script>
 </body>
 </html>

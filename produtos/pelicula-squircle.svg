@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Película squircle">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1d24"/>
+      <stop offset="100%" stop-color="#0d0f14"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="#c8e8ff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#7eb8e8" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5eead4"/>
+      <stop offset="100%" stop-color="#2dd4bf"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" rx="24" fill="url(#bg)"/>
+  <rect x="72" y="72" width="176" height="176" rx="44" fill="none" stroke="url(#edge)" stroke-width="3" opacity="0.35"/>
+  <rect x="80" y="80" width="160" height="160" rx="38" fill="url(#glass)" stroke="#fff" stroke-width="2.5" opacity="0.92"/>
+  <path d="M98 118h124" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+  <circle cx="160" cy="160" r="28" fill="#2dd4bf" opacity="0.08"/>
+  <text x="160" y="252" text-anchor="middle" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="13" font-weight="600">SQUIRCLE · APPLE</text>
+</svg>

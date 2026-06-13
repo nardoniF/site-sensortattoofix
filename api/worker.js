@@ -700,17 +700,29 @@ function resolvePixConfig(pix, fallback = DEFAULT_CONFIG.pix) {
   return isPixConfigValid(merged) ? merged : { ...fb };
 }
 
-function publicConfigView(config) {
-  const products = getActiveProducts(config).map((p) => ({
+function publicProductFields(p, config) {
+  const row = {
     id: p.id,
     slug: p.slug,
     name: p.name,
     description: p.description,
     price: p.price,
     image: p.image,
+    active: p.active !== false,
     requiresSmartwatch: p.requiresSmartwatch !== false,
-    weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
-  }));
+    weightGrams: Number(p.weightGrams) || shippingWeightGrams(config),
+    aggregated: p.aggregated === true
+  };
+  if (p.nameEn) row.nameEn = p.nameEn;
+  if (p.descriptionEn) row.descriptionEn = p.descriptionEn;
+  if (p.packaging) row.packaging = p.packaging;
+  if (p.compatibility) row.compatibility = p.compatibility;
+  if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
+  return row;
+}
+
+function publicConfigView(config) {
+  const products = getActiveProducts(config).map((p) => publicProductFields(p, config));
   const primary = products[0] || config.product;
   const paypal = config.payments?.paypal || {};
   return {
@@ -735,6 +747,7 @@ function publicConfigView(config) {
       }
     },
     smartwatchModels: config.smartwatchModels || DEFAULT_CONFIG.smartwatchModels,
+    smartwatchModelMeta: config.smartwatchModelMeta || {},
     formsubmit: {
       email: config.formsubmit?.email || DEFAULT_CONFIG.formsubmit.email,
       subject: config.formsubmit?.subject || DEFAULT_CONFIG.formsubmit.subject
