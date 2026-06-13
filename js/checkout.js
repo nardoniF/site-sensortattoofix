@@ -5,10 +5,90 @@
     return window.STF_I18N?.t(key, vars) || key;
   }
 
-  function resolveProductImage(image) {
+  function resolveProductImage(image, product) {
+    if (window.STF_PRODUCT_MERGE?.resolveProductImage) {
+      return window.STF_PRODUCT_MERGE.resolveProductImage(image, product);
+    }
     const raw = String(image || '').trim() || 'site/sensortattoofix.jpg';
     if (/^https?:\/\//i.test(raw)) return raw;
     return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
+  }
+
+  function inferAggregatedImage(product) {
+    if (window.STF_PRODUCT_MERGE?.inferAggregatedImage) {
+      return window.STF_PRODUCT_MERGE.inferAggregatedImage(product);
+    }
+    return '/produtos/pelicula-squircle.svg';
+  }
+
+  let lightboxEls = null;
+
+  function ensureLightbox() {
+    if (lightboxEls) return lightboxEls;
+    const root = document.getElementById('stf-product-lightbox');
+    if (!root) return null;
+    const closeBtn = root.querySelector('.stf-lightbox-close');
+    if (closeBtn) closeBtn.setAttribute('aria-label', L('agregados.zoomClose'));
+    lightboxEls = {
+      root,
+      img: document.getElementById('stf-lightbox-img'),
+      caption: document.getElementById('stf-lightbox-caption'),
+      close: closeBtn
+    };
+    lightboxEls.close?.addEventListener('click', closeProductLightbox);
+    root.addEventListener('click', (e) => {
+      if (e.target === root) closeProductLightbox();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && root && !root.hidden) closeProductLightbox();
+    });
+    return lightboxEls;
+  }
+
+  function openProductLightbox(src, caption) {
+    const lb = ensureLightbox();
+    if (!lb || !src) return;
+    lb.img.src = src;
+    lb.img.alt = caption || '';
+    if (lb.caption) lb.caption.textContent = caption || '';
+    lb.root.hidden = false;
+    lb.root.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('stf-lightbox-open');
+    lb.close?.focus();
+  }
+
+  function closeProductLightbox() {
+    const lb = ensureLightbox();
+    if (!lb) return;
+    lb.root.hidden = true;
+    lb.root.setAttribute('aria-hidden', 'true');
+    lb.img.removeAttribute('src');
+    if (lb.caption) lb.caption.textContent = '';
+    document.body.classList.remove('stf-lightbox-open');
+  }
+
+  function bindProductZoom(root) {
+    if (!root) return;
+    root.querySelectorAll('[data-product-zoom]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        openProductLightbox(
+          btn.getAttribute('data-product-zoom'),
+          btn.getAttribute('data-product-zoom-caption') || ''
+        );
+      });
+    });
+  }
+
+  function renderZoomableThumb(imgSrc, caption, fallback, extraClass) {
+    const src = escapeHtml(imgSrc);
+    const fb = escapeHtml(fallback || imgSrc);
+    const zoomLabel = escapeHtml(L('agregados.zoomImage'));
+    const cap = escapeHtml(caption || '');
+    return `
+      <button type="button" class="stf-product-zoom-btn ${extraClass || ''}" data-product-zoom="${src}" data-product-zoom-caption="${cap}" aria-label="${zoomLabel}">
+        <img src="${src}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${fb}'">
+        <span class="stf-product-zoom-icon" aria-hidden="true"><i class="fas fa-search-plus"></i></span>
+      </button>`;
   }
 
   function setPayBtnLabel(key) {
@@ -358,16 +438,21 @@
     function renderCard(p) {
       const type = window.STF_PELICULA.productType(p);
       const addKey = type === 'pulseira' ? 'pulseira.add' : 'pelicula.add';
-      const imgSrc = resolveProductImage(p.image);
+      const imgSrc = resolveProductImage(p.image, p);
+      const imgFallback = inferAggregatedImage(p);
       const title = window.STF_PELICULA.upsellShortLabel
         ? window.STF_PELICULA.upsellShortLabel(p)
         : window.STF_PELICULA.productLabel(p);
+      const desc = window.STF_PELICULA.upsellShortDescription
+        ? window.STF_PELICULA.upsellShortDescription(p)
+        : '';
       return `
         <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
           <div class="pelicula-upsell-card-top">
-            <img src="${escapeHtml(imgSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
+            ${renderZoomableThumb(imgSrc, title, imgFallback, 'pelicula-upsell-img-btn')}
             <div class="pelicula-upsell-info">
               <strong>${escapeHtml(title)}</strong>
+              ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
               <span class="pelicula-upsell-price">${formatBRL(p.price)}</span>
             </div>
           </div>
@@ -399,6 +484,7 @@
         if (!p || !window.STF_CART) return;
         window.STF_CART.add({
           ...p,
+          image: resolveProductImage(p.image, p),
           name: window.STF_PELICULA.productLabel(p)
         }, 1);
         shippingCost = null;
@@ -412,6 +498,7 @@
         btn.textContent = L(inCartKey);
       });
     });
+    bindProductZoom(wrap);
   }
 
   function seedCartFromUrl() {
@@ -433,9 +520,15 @@
       els.cartSidebar.innerHTML = `<p class="conta-empty">${escapeHtml(L('cart.empty'))}</p>`;
       return;
     }
-    els.cartSidebar.innerHTML = items.map((item) => `
+    els.cartSidebar.innerHTML = items.map((item) => {
+      const imgSrc = resolveProductImage(item.image, item);
+      const lineName = cartLineName(item);
+      const thumb = item.aggregated
+        ? renderZoomableThumb(imgSrc, lineName, inferAggregatedImage(item), 'cart-line-img-btn')
+        : `<img src="${escapeHtml(imgSrc)}" alt="" class="cart-line-img" loading="lazy">`;
+      return `
       <div class="cart-line" data-product-id="${escapeHtml(item.productId)}">
-        <img src="${escapeHtml(resolveProductImage(item.image))}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
+        ${thumb}
         <div class="cart-line-info">
           <strong>${escapeHtml(cartLineName(item))}</strong>
           <span class="cart-line-price">${formatBRL(item.price)}</span>
@@ -446,8 +539,10 @@
           </div>
         </div>
         <button type="button" class="cart-remove" title="${escapeHtml(L('cart.remove'))}" aria-label="${escapeHtml(L('cart.remove'))}">&times;</button>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
+
+    bindProductZoom(els.cartSidebar);
 
     els.cartSidebar.querySelectorAll('.cart-line').forEach((row) => {
       const id = row.getAttribute('data-product-id');

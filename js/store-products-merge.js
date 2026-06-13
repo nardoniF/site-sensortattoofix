@@ -6,6 +6,47 @@ window.STF_PRODUCT_MERGE = (function () {
     return String(p?.id || p?.slug || '').trim();
   }
 
+  function isKitOrMissingImage(url) {
+    const u = String(url || '').trim();
+    return !u || /sensortattoofix/i.test(u) || !u.includes('/produtos/');
+  }
+
+  function inferAggregatedImage(product) {
+    const id = String(product?.id || product?.slug || '').trim();
+    if (id) return `/produtos/${id}.svg`;
+    return '/produtos/pelicula-squircle.svg';
+  }
+
+  function isGenericSharedImage(url, productId) {
+    const u = String(url || '').trim();
+    const id = String(productId || '').trim();
+    if (!u.includes('/produtos/')) return true;
+    if (id && (u === `/produtos/${id}.svg` || u.endsWith(`/${id}.svg`))) return false;
+    return /\/produtos\/(pelicula-(squircle|redonda|retangular)|pulseira-)/i.test(u);
+  }
+
+  function resolveProductImage(image, product) {
+    const id = String(product?.id || product?.slug || '').trim();
+    let raw = String(image || product?.image || '').trim();
+    if (product?.aggregated) {
+      const perProduct = id ? `/produtos/${id}.svg` : '';
+      if (isKitOrMissingImage(raw) || isGenericSharedImage(raw, id)) {
+        raw = perProduct || inferAggregatedImage(product);
+      }
+    }
+    if (!raw) raw = product?.aggregated ? inferAggregatedImage(product) : 'site/sensortattoofix.jpg';
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
+  }
+
+  function patchAggregatedImages(products) {
+    return (products || []).map((p) => {
+      if (p?.aggregated !== true) return p;
+      const image = resolveProductImage(p.image, p);
+      return image === p.image ? p : { ...p, image };
+    });
+  }
+
   function mergeProductLists(apiList, localList) {
     const byId = new Map();
     (apiList || []).forEach((p) => {
@@ -20,7 +61,12 @@ window.STF_PRODUCT_MERGE = (function () {
         return;
       }
       if (lp.aggregated === true) {
-        byId.set(k, { ...byId.get(k), ...lp });
+        const prev = byId.get(k);
+        const merged = { ...prev, ...lp };
+        if (lp.image && (isKitOrMissingImage(prev?.image) || isGenericSharedImage(prev?.image, k))) {
+          merged.image = lp.image;
+        }
+        byId.set(k, merged);
       }
     });
     return [...byId.values()].sort((a, b) => {
@@ -34,7 +80,9 @@ window.STF_PRODUCT_MERGE = (function () {
     if (!localConfig) return apiConfig;
     const next = { ...apiConfig };
     if (localConfig.products?.length) {
-      next.products = mergeProductLists(apiConfig.products, localConfig.products);
+      next.products = patchAggregatedImages(
+        mergeProductLists(apiConfig.products, localConfig.products)
+      );
     }
     if (localConfig.smartwatchModelMeta) {
       next.smartwatchModelMeta = {
@@ -79,5 +127,15 @@ window.STF_PRODUCT_MERGE = (function () {
     };
   }
 
-  return { mergeProductLists, mergeConfig, mergeMissingAggregated, keyOf };
+  return {
+    mergeProductLists,
+    mergeConfig,
+    mergeMissingAggregated,
+    keyOf,
+    isKitOrMissingImage,
+    isGenericSharedImage,
+    inferAggregatedImage,
+    resolveProductImage,
+    patchAggregatedImages
+  };
 })();

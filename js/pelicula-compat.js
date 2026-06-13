@@ -58,8 +58,61 @@ window.STF_PELICULA = (function () {
     return product.description || '';
   }
 
-  /** Título curto no upsell — sem repetir modelo/mm (já escolhido no checkout). */
+  /** Uma linha curta para o card de upsell (benefício, sem repetir modelo). */
+  function upsellShortDescription(product) {
+    const full = productDescription(product).trim();
+    if (full) {
+      const parts = full.split(/\s*[—–]\s+/);
+      let line = (parts.length > 1 ? parts[parts.length - 1] : parts[0]).trim();
+      line = line
+        .replace(/\bApple Watch\b/gi, 'smartwatch')
+        .replace(/\bno dia a dia\.?$/i, '')
+        .replace(/\be ideal para[^.!?]*[.!?]?$/i, '')
+        .replace(/\bno mesmo envio\.?$/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      line = line.replace(/^mantém a tela do seu /i, 'Protege a tela do seu ');
+      line = line.replace(/^proteja (o visor|a tela) do /i, 'Protege a tela do ');
+      line = line.replace(/^tela do /i, 'Protege a tela do ');
+      line = line.replace(/\blivre de riscos\b/gi, 'dos riscos');
+      if (line.length > 58) {
+        line = line.slice(0, 55).replace(/\s+\S*$/, '').trim() + '…';
+      }
+      if (line.length >= 16) {
+        return line.charAt(0).toUpperCase() + line.slice(1);
+      }
+    }
+    const type = productType(product);
+    const key = type === 'pulseira' ? 'agregados.descPulseira' : 'agregados.descPelicula';
+    return window.STF_I18N?.t?.(key) || (type === 'pulseira'
+      ? 'Conforto e estilo no mesmo envio'
+      : 'Protege a tela do seu smartwatch dos riscos');
+  }
+
+  /** Título curto no upsell — tipo de pulseira + cor; película sem repetir modelo/mm. */
   function upsellShortLabel(product) {
+    if (productType(product) === 'pulseira') {
+      const en = window.STF_I18N?.isEn?.();
+      const style = product.bandStyle || 'sport';
+      const color = en ? (product.colorEn || product.color) : (product.color || '');
+      const styles = en
+        ? {
+            sport: 'Sport Band · silicone',
+            milanese: 'Milanese Loop · steel mesh',
+            ocean: 'Ocean Band · braided'
+          }
+        : {
+            sport: 'Sport Band · silicone',
+            milanese: 'Milanese Loop · malha aço',
+            ocean: 'Ocean Band · trançada'
+          };
+      let label = styles[style] || styles.sport;
+      if (String(product.id || '').includes('ultra')) {
+        label += en ? ' · Ultra' : ' · Ultra';
+      }
+      if (color) label += ` · ${color}`;
+      return label;
+    }
     let name = productLabel(product);
     name = name.replace(/\s*\([^)]*\d+\s*mm[^)]*\)/gi, '');
     name = name.replace(/\s*—\s*Apple Watch.*$/i, '');
@@ -117,6 +170,7 @@ window.STF_PELICULA = (function () {
     listStorefront,
     productLabel,
     productDescription,
+    upsellShortDescription,
     upsellShortLabel,
     compatibleModels,
     isCompatible,

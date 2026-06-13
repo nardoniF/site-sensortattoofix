@@ -17,7 +17,10 @@ window.STF_CART = (function () {
     notify();
   }
 
-  function assetUrl(image) {
+  function assetUrl(image, product) {
+    if (window.STF_PRODUCT_MERGE?.resolveProductImage) {
+      return window.STF_PRODUCT_MERGE.resolveProductImage(image, product);
+    }
     const raw = String(image || '').trim() || 'site/sensortattoofix.jpg';
     if (/^https?:\/\//i.test(raw)) return raw;
     return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
@@ -30,7 +33,7 @@ window.STF_CART = (function () {
       slug: product.slug || id,
       name: product.name || 'Produto',
       price: Number(product.price) || 0,
-      image: assetUrl(product.image),
+      image: assetUrl(product.image, product),
       qty: Math.max(1, Math.min(MAX_QTY, Number(qty) || 1)),
       requiresSmartwatch: product.requiresSmartwatch !== false,
       aggregated: product.aggregated === true,

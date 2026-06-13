@@ -5,9 +5,9 @@
       <stop offset="100%" stop-color="#0d0f14"/>
     </linearGradient>
     <linearGradient id="band" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#374151"/>
-      <stop offset="50%" stop-color="#1f2937"/>
-      <stop offset="100%" stop-color="#111827"/>
+      <stop offset="0%" stop-color="#2a2a2a"/>
+      <stop offset="50%" stop-color="#111111"/>
+      <stop offset="100%" stop-color="#000000"/>
     </linearGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#5eead4"/>
