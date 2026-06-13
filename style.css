@@ -1781,6 +1781,15 @@ line-height:1.8;
 .loja-cta { color: var(--primary); font-weight: 700; font-size: 0.9rem; }
 .conta-container { max-width: 720px; }
 .conta-tabs { display: flex; gap: 8px; margin: 16px 0; }
+.conta-panel-tabs { margin-top: 8px; }
+.conta-form-section {
+    margin: 20px 0 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.conta-form-section:first-of-type { margin-top: 0; }
+#conta-profile-form input[disabled] { opacity: 0.75; cursor: not-allowed; }
 .conta-tab {
     flex: 1;
     padding: 10px;

@@ -108,6 +108,26 @@ window.STF_I18N = (function () {
       'conta.passwordMinErr': 'Senha mínima: 6 caracteres.',
       'conta.watch': 'Relógio',
       'conta.total': 'Total',
+      'conta.tabOrders': 'Meus pedidos',
+      'conta.tabProfile': 'Meus dados',
+      'conta.profileIntro': 'Atualize seus dados para o checkout e os avisos de pedido. O e-mail não pode ser alterado aqui.',
+      'conta.sectionPersonal': 'Dados pessoais',
+      'conta.sectionAddress': 'Endereço padrão (Brasil)',
+      'conta.addressHint': 'Usado para preencher o checkout automaticamente.',
+      'conta.sectionPassword': 'Alterar senha',
+      'conta.passwordHint': 'Deixe em branco se não quiser mudar a senha.',
+      'conta.currentPassword': 'Senha atual',
+      'conta.newPassword': 'Nova senha',
+      'conta.btnSaveProfile': 'Salvar alterações',
+      'conta.saving': 'Salvando...',
+      'conta.profileSaved': 'Dados atualizados!',
+      'conta.formCep': 'CEP',
+      'conta.formStreet': 'Rua',
+      'conta.formNumber': 'Número',
+      'conta.formComplement': 'Complemento',
+      'conta.formDistrict': 'Bairro',
+      'conta.formCity': 'Cidade',
+      'conta.formState': 'UF',
       'nav.whereBuy': 'Onde comprar',
       'nav.langEn': 'EN',
       'nav.langPt': 'PT',
@@ -328,6 +348,26 @@ window.STF_I18N = (function () {
       'conta.passwordMinErr': 'Password must be at least 6 characters.',
       'conta.watch': 'Watch',
       'conta.total': 'Total',
+      'conta.tabOrders': 'My orders',
+      'conta.tabProfile': 'My details',
+      'conta.profileIntro': 'Update your details for checkout and order notifications. Email cannot be changed here.',
+      'conta.sectionPersonal': 'Personal details',
+      'conta.sectionAddress': 'Default address (Brazil)',
+      'conta.addressHint': 'Used to pre-fill checkout automatically.',
+      'conta.sectionPassword': 'Change password',
+      'conta.passwordHint': 'Leave blank if you do not want to change your password.',
+      'conta.currentPassword': 'Current password',
+      'conta.newPassword': 'New password',
+      'conta.btnSaveProfile': 'Save changes',
+      'conta.saving': 'Saving...',
+      'conta.profileSaved': 'Details updated!',
+      'conta.formCep': 'Postal code',
+      'conta.formStreet': 'Street',
+      'conta.formNumber': 'Number',
+      'conta.formComplement': 'Complement',
+      'conta.formDistrict': 'District',
+      'conta.formCity': 'City',
+      'conta.formState': 'State',
       'nav.whereBuy': 'Where to buy',
       'nav.langEn': 'EN',
       'nav.langPt': 'PT',
@@ -834,6 +874,39 @@ window.STF_I18N = (function () {
     const logoutBtn = document.getElementById('conta-logout');
     if (logoutBtn) logoutBtn.textContent = t('conta.btnLogout');
     applyText('#conta-panel .admin-meta', 'conta.ordersMeta');
+
+    document.querySelectorAll('[data-conta-panel-tab]').forEach((btn) => {
+      const mode = btn.getAttribute('data-conta-panel-tab');
+      btn.textContent = mode === 'orders' ? t('conta.tabOrders') : t('conta.tabProfile');
+    });
+
+    applyText('#conta-panel-profile > .admin-meta', 'conta.profileIntro');
+    const profileForm = document.getElementById('conta-profile-form');
+    if (profileForm) {
+      const sections = profileForm.querySelectorAll('.conta-form-section');
+      if (sections[0]) sections[0].textContent = t('conta.sectionPersonal');
+      if (sections[1]) sections[1].textContent = t('conta.sectionAddress');
+      if (sections[2]) sections[2].textContent = t('conta.sectionPassword');
+      const metaPs = profileForm.querySelectorAll('p.admin-meta');
+      if (metaPs[0]) metaPs[0].textContent = t('conta.addressHint');
+      if (metaPs[1]) metaPs[1].textContent = t('conta.passwordHint');
+      setLabelText(profileForm.querySelector('label:has([name="nome"])'), 'conta.fullName', true);
+      setLabelText(profileForm.querySelector('label:has([name="email"])'), 'conta.email');
+      setLabelText(profileForm.querySelector('label:has([name="telefone"])'), 'conta.whatsapp', true);
+      setLabelText(profileForm.querySelector('label:has([name="cpf"])'), 'conta.cpf');
+      setLabelText(profileForm.querySelector('label:has([name="cep"])'), 'conta.formCep');
+      setLabelText(profileForm.querySelector('label:has([name="rua"])'), 'conta.formStreet');
+      setLabelText(profileForm.querySelector('label:has([name="numero"])'), 'conta.formNumber');
+      setLabelText(profileForm.querySelector('label:has([name="complemento"])'), 'conta.formComplement');
+      setLabelText(profileForm.querySelector('label:has([name="bairro"])'), 'conta.formDistrict');
+      setLabelText(profileForm.querySelector('label:has([name="cidade"])'), 'conta.formCity');
+      setLabelText(profileForm.querySelector('label:has([name="uf"])'), 'conta.formState');
+      setLabelText(profileForm.querySelector('label:has([name="senhaAtual"])'), 'conta.currentPassword');
+      setLabelText(profileForm.querySelector('label:has([name="senhaNova"])'), 'conta.newPassword');
+      const saveBtn = profileForm.querySelector('button[type="submit"]');
+      if (saveBtn) saveBtn.innerHTML = `<i class="fas fa-save"></i> ${t('conta.btnSaveProfile')}`;
+    }
+
     const buyMore = document.querySelector('#conta-panel .btn-primary[href*="loja"]');
     if (buyMore) {
       buyMore.href = lojaHref();

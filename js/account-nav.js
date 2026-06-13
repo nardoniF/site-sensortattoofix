@@ -118,6 +118,16 @@ window.STF_ACCOUNT = (function () {
     return data;
   }
 
+  async function updateProfile(payload) {
+    const data = await api('/me/profile', { method: 'PATCH', json: payload });
+    if (data.user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      notifyChange(data.user);
+    }
+    initNav();
+    return data;
+  }
+
   function bindLogoutButtons(root) {
     root.querySelectorAll('[data-account-logout]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -181,6 +191,7 @@ window.STF_ACCOUNT = (function () {
     logout,
     login,
     register,
+    updateProfile,
     initNav,
     api
   };

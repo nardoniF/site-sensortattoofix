@@ -24,12 +24,15 @@
     panelBox: document.getElementById('conta-panel'),
     loginForm: document.getElementById('conta-login-form'),
     registerForm: document.getElementById('conta-register-form'),
+    profileForm: document.getElementById('conta-profile-form'),
     ordersList: document.getElementById('conta-orders'),
     userName: document.getElementById('conta-user-name'),
     logoutBtn: document.getElementById('conta-logout'),
     loginStatus: document.getElementById('conta-login-status'),
     registerStatus: document.getElementById('conta-register-status'),
-    tabs: document.querySelectorAll('[data-conta-tab]')
+    profileStatus: document.getElementById('conta-profile-status'),
+    tabs: document.querySelectorAll('[data-conta-tab]'),
+    panelTabs: document.querySelectorAll('[data-conta-panel-tab]')
   };
 
   function formatBRL(v) {
@@ -47,6 +50,12 @@
     if (status === 'paid') return L('conta.statusPaid');
     if (status === 'pending_payment') return L('conta.statusPending');
     return status || '—';
+  }
+
+  function maskCep(value) {
+    const d = String(value || '').replace(/\D/g, '').slice(0, 8);
+    if (d.length <= 5) return d;
+    return `${d.slice(0, 5)}-${d.slice(5)}`;
   }
 
   function activeStatusEl() {
@@ -72,6 +81,15 @@
     if (text) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
+  function showProfileStatus(text, type) {
+    const el = els.profileStatus;
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'admin-status form-status ' + (type || '');
+    el.hidden = !text;
+    if (text) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
   function showPanel(user) {
     if (els.loginBox) els.loginBox.hidden = true;
     if (els.panelBox) els.panelBox.hidden = false;
@@ -82,6 +100,7 @@
       h1.innerHTML = `${L('conta.hello', { name: `<span id="conta-user-name">${escapeHtml(name)}</span>` })}`;
       els.userName = document.getElementById('conta-user-name');
     }
+    fillProfileForm(user);
     A()?.initNav();
   }
 
@@ -94,6 +113,50 @@
 
   function escapeHtml(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  }
+
+  function fillProfileForm(user) {
+    const f = els.profileForm;
+    if (!f || !user) return;
+    if (f.nome) f.nome.value = user.nome || '';
+    if (f.email) f.email.value = user.email || '';
+    if (f.telefone) f.telefone.value = user.telefone || '';
+    if (f.cpf) f.cpf.value = user.cpf || '';
+    const a = user.address || {};
+    if (f.cep) f.cep.value = a.cep ? maskCep(a.cep) : '';
+    if (f.rua) f.rua.value = a.rua || '';
+    if (f.numero) f.numero.value = a.numero || '';
+    if (f.complemento) f.complemento.value = a.complemento || '';
+    if (f.bairro) f.bairro.value = a.bairro || '';
+    if (f.cidade) f.cidade.value = a.cidade || '';
+    if (f.uf) f.uf.value = a.uf || '';
+    if (f.senhaAtual) f.senhaAtual.value = '';
+    if (f.senhaNova) f.senhaNova.value = '';
+  }
+
+  async function lookupProfileCep() {
+    const f = els.profileForm;
+    if (!f?.cep) return;
+    const cep = f.cep.value.replace(/\D/g, '');
+    if (cep.length !== 8) return;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) return;
+      if (f.rua) f.rua.value = data.logradouro || f.rua.value;
+      if (f.bairro) f.bairro.value = data.bairro || f.bairro.value;
+      if (f.cidade) f.cidade.value = data.localidade || '';
+      if (f.uf) f.uf.value = data.uf || '';
+    } catch (_) { /* ignore */ }
+  }
+
+  function setPanelView(view) {
+    document.querySelectorAll('[data-conta-panel-view]').forEach((el) => {
+      el.hidden = el.getAttribute('data-conta-panel-view') !== view;
+    });
+    els.panelTabs.forEach((tab) => {
+      tab.classList.toggle('active', tab.getAttribute('data-conta-panel-tab') === view);
+    });
   }
 
   async function loadOrders() {
@@ -128,6 +191,12 @@
         els.tabs.forEach((t) => t.classList.toggle('active', t === tab));
       });
     });
+
+    els.panelTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        setPanelView(tab.getAttribute('data-conta-panel-tab'));
+      });
+    });
   }
 
   function bindForms() {
@@ -139,6 +208,7 @@
         const data = await A().login(f.email.value, f.password.value);
         showStatus('', '');
         showPanel(data.user);
+        setPanelView('orders');
         await loadOrders();
       } catch (err) {
         showStatus(err.message, 'error');
@@ -160,11 +230,51 @@
         });
         showStatus(L('conta.created'), 'success');
         showPanel(data.user);
+        setPanelView('orders');
         await loadOrders();
       } catch (err) {
         showStatus(err.message, 'error');
       }
     });
+
+    els.profileForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showProfileStatus(L('conta.saving'), '');
+      try {
+        const f = e.target;
+        const senhaNova = f.senhaNova?.value || '';
+        if (senhaNova && senhaNova.length < 6) throw new Error(L('conta.passwordMinErr'));
+        const payload = {
+          nome: f.nome.value.trim(),
+          telefone: f.telefone.value.trim(),
+          cpf: f.cpf.value.trim(),
+          address: {
+            cep: f.cep?.value || '',
+            rua: f.rua?.value || '',
+            numero: f.numero?.value || '',
+            complemento: f.complemento?.value || '',
+            bairro: f.bairro?.value || '',
+            cidade: f.cidade?.value || '',
+            uf: f.uf?.value || ''
+          }
+        };
+        if (senhaNova) {
+          payload.senhaAtual = f.senhaAtual?.value || '';
+          payload.senhaNova = senhaNova;
+        }
+        const data = await A().updateProfile(payload);
+        showPanel(data.user);
+        showProfileStatus(L('conta.profileSaved'), 'success');
+      } catch (err) {
+        showProfileStatus(err.message, 'error');
+      }
+    });
+
+    const cepEl = document.getElementById('conta-cep');
+    cepEl?.addEventListener('input', (e) => {
+      e.target.value = maskCep(e.target.value);
+    });
+    cepEl?.addEventListener('blur', lookupProfileCep);
 
     els.logoutBtn?.addEventListener('click', async () => {
       await A().logout();
@@ -179,6 +289,7 @@
     A().initNav();
     if (user) {
       showPanel(user);
+      setPanelView('orders');
       await loadOrders();
     } else {
       showLogin();

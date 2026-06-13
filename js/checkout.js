@@ -332,6 +332,16 @@
     if (f.email) f.email.value = u.email || '';
     if (f.telefone) f.telefone.value = u.telefone || '';
     if (f.cpf && u.cpf) f.cpf.value = u.cpf;
+    const a = u.address;
+    if (a) {
+      if (f.cep && a.cep) f.cep.value = maskCep(a.cep);
+      if (f.rua && a.rua) f.rua.value = a.rua;
+      if (f.numero && a.numero) f.numero.value = a.numero;
+      if (f.complemento && a.complemento) f.complemento.value = a.complemento;
+      if (f.bairro && a.bairro) f.bairro.value = a.bairro;
+      if (f.cidade && a.cidade) f.cidade.value = a.cidade;
+      if (f.uf && a.uf) f.uf.value = a.uf;
+    }
   }
 
   function smartwatchGroup(model) {

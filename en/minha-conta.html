@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>My Account | Sensor TattooFix</title>
     <link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/minha-conta.html">
-    <link rel="stylesheet" href="../style.css?v=1.77">
+    <link rel="stylesheet" href="../style.css?v=1.78">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="checkout-page conta-page">
@@ -72,9 +72,51 @@
                     </div>
                     <button type="button" id="conta-logout" class="btn-secondary">Sign out</button>
                 </div>
-                <div id="conta-orders" class="conta-orders"></div>
-                <div class="admin-form-actions" style="margin-top:20px">
-                    <a href="loja.html" class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;"><i class="fas fa-store"></i> Shop more</a>
+
+                <div class="conta-tabs conta-panel-tabs">
+                    <button type="button" class="conta-tab active" data-conta-panel-tab="orders">My orders</button>
+                    <button type="button" class="conta-tab" data-conta-panel-tab="profile">My details</button>
+                </div>
+
+                <div id="conta-panel-orders" data-conta-panel-view="orders">
+                    <div id="conta-orders" class="conta-orders"></div>
+                    <div class="admin-form-actions" style="margin-top:20px">
+                        <a href="loja.html" class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;"><i class="fas fa-store"></i> Shop more</a>
+                    </div>
+                </div>
+
+                <div id="conta-panel-profile" data-conta-panel-view="profile" hidden>
+                    <p class="admin-meta">Update your details for checkout and order notifications. Email cannot be changed here.</p>
+                    <form id="conta-profile-form" class="admin-form">
+                        <h3 class="conta-form-section">Personal details</h3>
+                        <div class="form-grid">
+                            <label class="full">Full name<input type="text" name="nome" required></label>
+                            <label>Email<input type="email" name="email" readonly disabled></label>
+                            <label>WhatsApp<input type="tel" name="telefone" required></label>
+                            <label>CPF<input type="text" name="cpf"></label>
+                        </div>
+                        <h3 class="conta-form-section">Default address (Brazil)</h3>
+                        <p class="admin-meta">Used to pre-fill checkout automatically.</p>
+                        <div class="form-grid">
+                            <label>Postal code<input type="text" name="cep" id="conta-cep" inputmode="numeric" autocomplete="postal-code"></label>
+                            <label class="span-2">Street<input type="text" name="rua"></label>
+                            <label>Number<input type="text" name="numero"></label>
+                            <label>Complement<input type="text" name="complemento"></label>
+                            <label>District<input type="text" name="bairro"></label>
+                            <label>City<input type="text" name="cidade"></label>
+                            <label>State<input type="text" name="uf" maxlength="2" placeholder="SP"></label>
+                        </div>
+                        <h3 class="conta-form-section">Change password</h3>
+                        <p class="admin-meta">Leave blank if you do not want to change your password.</p>
+                        <div class="form-grid">
+                            <label>Current password<input type="password" name="senhaAtual" autocomplete="current-password"></label>
+                            <label>New password<input type="password" name="senhaNova" minlength="6" autocomplete="new-password"></label>
+                        </div>
+                        <div class="admin-form-actions">
+                            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save changes</button>
+                        </div>
+                        <p id="conta-profile-status" class="admin-status form-status" hidden></p>
+                    </form>
                 </div>
             </section>
 
@@ -83,11 +125,11 @@
 
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="en"></div></footer>
 
-    <script src="../js/stf-i18n.js?v=6"></script>
+    <script src="../js/stf-i18n.js?v=7"></script>
     <script src="../js/config-bootstrap.js"></script>
     <script src="../js/site-footer.js"></script>
     <script src="../js/account-nav.js"></script>
     <script src="../js/order-watch.js"></script>
-    <script src="../js/conta.js?v=5"></script>
+    <script src="../js/conta.js?v=6"></script>
 </body>
 </html>

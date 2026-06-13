@@ -367,8 +367,22 @@ function publicUserView(user) {
     nome: user.nome,
     email: user.email,
     telefone: user.telefone,
-    cpf: user.cpf || ''
+    cpf: user.cpf || '',
+    address: user.address || null
   };
+}
+
+function normalizeUserAddress(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const cep = String(raw.cep || '').replace(/\D/g, '');
+  const rua = String(raw.rua || '').trim();
+  const numero = String(raw.numero || '').trim();
+  const complemento = String(raw.complemento || '').trim();
+  const bairro = String(raw.bairro || '').trim();
+  const cidade = String(raw.cidade || '').trim();
+  const uf = String(raw.uf || '').trim().toUpperCase().slice(0, 2);
+  if (!rua && !cep && !cidade) return null;
+  return { cep, rua, numero, complemento, bairro, cidade, uf };
 }
 
 function mergePaypalConfig(basePaypal, storedPaypal) {
@@ -2865,6 +2879,49 @@ async function handleCustomerOrders(request, env, origin) {
   return json({ orders }, 200, origin);
 }
 
+async function handleCustomerUpdateProfile(request, env, origin) {
+  const userId = await getCustomerUserId(env, bearerToken(request));
+  if (!userId) return json({ error: 'Não autorizado.' }, 401, origin);
+  const user = await getUserById(env, userId);
+  if (!user) return json({ error: 'Conta não encontrada.' }, 404, origin);
+
+  const body = await request.json();
+
+  if (body.nome !== undefined) {
+    const nome = String(body.nome || '').trim();
+    if (!nome) return json({ error: 'Informe o nome.' }, 400, origin);
+    user.nome = nome;
+  }
+  if (body.telefone !== undefined) {
+    const telefone = String(body.telefone || '').trim();
+    if (!telefone) return json({ error: 'Informe o WhatsApp.' }, 400, origin);
+    user.telefone = telefone;
+  }
+  if (body.cpf !== undefined) {
+    user.cpf = String(body.cpf || '').trim();
+  }
+  if (body.address !== undefined) {
+    user.address = normalizeUserAddress(body.address);
+  }
+
+  const senhaNova = String(body.senhaNova || '').trim();
+  if (senhaNova) {
+    const senhaAtual = String(body.senhaAtual || '').trim();
+    if (!senhaAtual) return json({ error: 'Informe a senha atual para alterá-la.' }, 400, origin);
+    if (senhaNova.length < 6) return json({ error: 'Nova senha: mínimo 6 caracteres.' }, 400, origin);
+    if (!(await verifyPassword(senhaAtual, user.passwordSalt, user.passwordHash))) {
+      return json({ error: 'Senha atual incorreta.' }, 401, origin);
+    }
+    const creds = await hashPassword(senhaNova);
+    user.passwordSalt = creds.salt;
+    user.passwordHash = creds.hash;
+  }
+
+  user.updatedAt = new Date().toISOString();
+  await saveUser(env, user);
+  return json({ ok: true, user: publicUserView(user) }, 200, origin);
+}
+
 async function resolveCheckoutUser(env, request, body) {
   const customerToken = bearerToken(request) || String(body.customerToken || '').trim();
   let userId = await getCustomerUserId(env, customerToken);
@@ -3676,6 +3733,9 @@ export default {
       if (path === '/auth/logout' && request.method === 'POST') return handleCustomerLogout(request, env, origin);
       if (path === '/auth/session' && request.method === 'GET') return handleCustomerSession(request, env, origin);
       if (path === '/me/orders' && request.method === 'GET') return handleCustomerOrders(request, env, origin);
+      if (path === '/me/profile' && request.method === 'PATCH') {
+        return handleCustomerUpdateProfile(request, env, origin);
+      }
       if (path === '/config' && request.method === 'PUT') return handlePutConfig(request, env, origin);
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
