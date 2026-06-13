@@ -43,6 +43,7 @@ window.STF_I18N = (function () {
       'form.cpf': 'CPF',
       'form.docOptional': 'Documento (opcional)',
       'form.watchModel': 'Modelo do smartwatch',
+      'form.watchHint': 'O kit é feito para o seu modelo — escolha na lista antes de continuar.',
       'form.watchSelect': 'Selecione o modelo',
       'form.notesOptional': 'Observações (opcional)',
       'form.notesRequired': 'Observações',
@@ -70,6 +71,7 @@ window.STF_I18N = (function () {
       'account.tabRegister': 'Criar conta',
       'account.tabLogin': 'Já tenho conta',
       'account.createCheck': 'Criar conta para acompanhar pedidos (recomendado)',
+      'account.checkoutTitle': 'Conta (opcional)',
       'account.password': 'Senha da conta (mín. 6 caracteres)',
       'account.loginHint': 'Entre com sua conta para preencher os dados automaticamente.',
       'account.loginEmail': 'E-mail da conta',
@@ -283,6 +285,7 @@ window.STF_I18N = (function () {
       'form.cpf': 'CPF (Brazilian tax ID)',
       'form.docOptional': 'ID document (optional)',
       'form.watchModel': 'Smartwatch model',
+      'form.watchHint': 'The kit is made for your watch — pick your model before continuing.',
       'form.watchSelect': 'Select your model',
       'form.notesOptional': 'Notes (optional)',
       'form.notesRequired': 'Notes',
@@ -310,6 +313,7 @@ window.STF_I18N = (function () {
       'account.tabRegister': 'Create account',
       'account.tabLogin': 'I have an account',
       'account.createCheck': 'Create an account to track orders (recommended)',
+      'account.checkoutTitle': 'Account (optional)',
       'account.password': 'Account password (min. 6 characters)',
       'account.loginHint': 'Sign in to fill in your details automatically.',
       'account.loginEmail': 'Account email',
@@ -682,8 +686,10 @@ window.STF_I18N = (function () {
       ind.innerHTML = `<span>${num}</span> ${t(key)}`;
     });
 
-    applyText('.checkout-step[data-step="1"] > h3:first-of-type', 'section.yourData');
-    applyText('.checkout-step[data-step="1"] > h3:nth-of-type(2)', 'section.shippingDest');
+    applyText('.checkout-step[data-step="1"] .checkout-step-head h3', 'section.yourData');
+    applyText('.checkout-step[data-step="1"] > h3', 'section.shippingDest');
+    applyText('#smartwatch-hint', 'form.watchHint');
+    applyText('.checkout-account-title', 'account.checkoutTitle');
     applyText('.shipping-options-title', 'section.chooseShipping');
     applyText('.checkout-step[data-step="2"] h3', 'pay.title');
 

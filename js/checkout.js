@@ -45,6 +45,9 @@
     addressBr: document.getElementById('address-br'),
     addressIntl: document.getElementById('address-intl'),
     smartwatchSelect: document.getElementById('smartwatch-select'),
+    checkoutWatchBlock: document.getElementById('checkout-watch-block'),
+    smartwatchHint: document.getElementById('smartwatch-hint'),
+    smartwatchError: document.getElementById('smartwatch-error'),
     summaryProduct: document.getElementById('summary-product'),
     summaryShipping: document.getElementById('summary-shipping'),
     summaryShippingLabel: document.getElementById('summary-shipping-label'),
@@ -74,9 +77,9 @@
     confirmTitle: document.getElementById('confirm-title'),
     confirmHint: document.getElementById('confirm-hint'),
     cartSidebar: document.getElementById('cart-sidebar-items'),
-    smartwatchWrap: document.getElementById('smartwatch-wrap'),
     observacoesWrap: document.getElementById('observacoes-wrap'),
     observacoes: document.getElementById('observacoes'),
+    observacoesError: document.getElementById('observacoes-error'),
     observacoesLabelText: document.getElementById('observacoes-label-text'),
     criarConta: document.getElementById('criar-conta'),
     senhaWrap: document.getElementById('senha-wrap'),
@@ -196,12 +199,58 @@
         }
         els.accountLoggedWrap.hidden = false;
         els.accountGuestWrap.hidden = true;
+        if (els.accountCreateWrap) els.accountCreateWrap.hidden = true;
       } else {
         els.accountLoggedWrap.hidden = true;
         els.accountGuestWrap.hidden = false;
+        if (els.accountCreateWrap) els.accountCreateWrap.hidden = false;
       }
     }
     if (user) prefillCustomer(user);
+  }
+
+  function clearWatchFieldError() {
+    els.smartwatchSelect?.classList.remove('invalid');
+    if (els.checkoutWatchBlock) els.checkoutWatchBlock.classList.remove('checkout-watch-block--error');
+    if (els.smartwatchError) {
+      els.smartwatchError.hidden = true;
+      els.smartwatchError.textContent = '';
+    }
+  }
+
+  function showWatchFieldError(msg) {
+    els.smartwatchSelect?.classList.add('invalid');
+    if (els.checkoutWatchBlock) {
+      els.checkoutWatchBlock.hidden = false;
+      els.checkoutWatchBlock.classList.add('checkout-watch-block--error');
+      els.checkoutWatchBlock.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    els.smartwatchSelect?.focus();
+    if (els.smartwatchError) {
+      els.smartwatchError.textContent = msg;
+      els.smartwatchError.hidden = false;
+    }
+  }
+
+  function clearObservacoesFieldError() {
+    els.observacoes?.classList.remove('invalid');
+    if (els.observacoesError) {
+      els.observacoesError.hidden = true;
+      els.observacoesError.textContent = '';
+    }
+  }
+
+  function showObservacoesFieldError(msg) {
+    els.observacoes?.classList.add('invalid');
+    if (els.observacoesWrap) {
+      els.observacoesWrap.hidden = false;
+      els.observacoesWrap.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    els.observacoes?.focus();
+    if (els.observacoesError) {
+      els.observacoesError.textContent = msg;
+      els.observacoesError.hidden = false;
+    }
   }
 
   function cartSubtotal() {
@@ -220,8 +269,9 @@
 
   function updateSmartwatchVisibility() {
     const needsWatch = window.STF_CART?.requiresSmartwatch();
-    if (els.smartwatchWrap) els.smartwatchWrap.hidden = !needsWatch;
+    if (els.checkoutWatchBlock) els.checkoutWatchBlock.hidden = !needsWatch;
     if (els.smartwatchSelect) els.smartwatchSelect.required = !!needsWatch;
+    if (!needsWatch) clearWatchFieldError();
     updateObservacoesField();
   }
 
@@ -795,6 +845,9 @@
 
   function validateStep1() {
     const f = els.form;
+    clearWatchFieldError();
+    clearObservacoesFieldError();
+
     if (window.STF_CART?.isEmpty()) {
       alert(L('alert.cartEmpty')); return false;
     }
@@ -806,10 +859,12 @@
       alert(L('alert.cpf')); return false;
     }
     if (needsWatch && !f.smartwatch.value) {
-      alert(L('alert.watch')); return false;
+      showWatchFieldError(L('alert.watch'));
+      return false;
     }
     if (needsWatch && isOutroModelo(f.smartwatch.value) && !(f.observacoes?.value || '').trim()) {
-      alert(L('alert.watchNotes')); return false;
+      showObservacoesFieldError(L('alert.watchNotes'));
+      return false;
     }
     if (isRegisterAccountMode() && els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       const senha = els.checkoutSenha?.value || '';
@@ -1063,7 +1118,11 @@
 
   function bindEvents() {
     els.paisCode.addEventListener('change', toggleAddressForm);
-    els.smartwatchSelect?.addEventListener('change', updateObservacoesField);
+    els.smartwatchSelect?.addEventListener('change', () => {
+      clearWatchFieldError();
+      updateObservacoesField();
+    });
+    els.observacoes?.addEventListener('input', clearObservacoesFieldError);
     els.cep?.addEventListener('input', (e) => {
       e.target.value = maskCep(e.target.value);
       const cep = onlyDigits(e.target.value);
