@@ -119,3 +119,45 @@ git checkout backup-2026-06-13   # ou a tag desejada
 
 - **Admin** e **Minha Conta**: 5 tentativas erradas → bloqueio 30 min por IP (Worker).
 - Secrets só no Cloudflare (`wrangler secret`), nunca no Git.
+
+---
+
+## 2FA (autenticação em duas etapas)
+
+Ative em **todas** as contas abaixo. Prefira **app autenticador** (Google Authenticator, Authy, 1Password) em vez de SMS.
+
+| Conta | Onde | Link |
+|-------|------|------|
+| GitHub (código do site) | Settings → Password and authentication | https://github.com/settings/security |
+| Cloudflare (Worker + DNS) | My Profile → Authentication | https://dash.cloudflare.com/profile/authentication |
+| Domínio `.com.br` | Registro.br → Segurança | https://registro.br |
+
+### GitHub
+
+1. Acesse **Settings** → **Password and authentication** → **Two-factor authentication**.
+2. Escolha **Authenticator app** (recomendado).
+3. Escaneie o QR no app e confirme o código.
+4. **Baixe os recovery codes** e guarde offline (pasta segura ou cofre).
+5. Em **Sessions**, revogue sessões antigas se trocar de computador.
+
+### Cloudflare
+
+1. Login em https://dash.cloudflare.com
+2. Ícone do perfil (canto superior direito) → **My Profile** → **Authentication**.
+3. Ative **Two-Factor Authentication** com app autenticador.
+4. Salve os **backup codes** da Cloudflare.
+5. Confirme que a conta que tem o Worker `sensortattoofix-payments` e o KV está protegida.
+
+### Registro.br (domínio sensortattoofix.com.br)
+
+1. Login em https://registro.br
+2. Menu do domínio → **Segurança** / configurações da conta.
+3. Ative **verificação em duas etapas** (quando disponível na conta).
+4. Ative **bloqueio de transferência** do domínio (impede mudar titular sem procedimento).
+5. Confirme que o **e-mail de contato** do domínio é seu e está ativo (recuperação).
+
+### Depois de ativar
+
+- Guarde recovery codes em local **fora** do Git e do e-mail da loja.
+- Não compartilhe códigos 2FA por WhatsApp.
+- Se o DNS estiver na Cloudflare, proteger **GitHub + Cloudflare + Registro.br** cobre site, API e domínio.
