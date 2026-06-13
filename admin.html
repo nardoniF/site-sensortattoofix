@@ -39,9 +39,9 @@
                         <input type="text" name="username" value="admin" required autocomplete="username">
                     </label>
                     <label>Senha
-                        <input type="password" name="password" required autocomplete="current-password" placeholder="Senha definida no Worker">
+                        <input type="password" name="password" required autocomplete="current-password" placeholder="Cole a senha do ADMIN_PASSWORD aqui">
                     </label>
-                    <p class="admin-meta" style="margin-top:8px">Senha forte (16+ caracteres) no secret <code>ADMIN_PASSWORD</code> do Cloudflare. Para trocar: <code>./scripts/rotate-admin-password.sh</code> na raiz do projeto.</p>
+                    <p class="admin-meta" style="margin-top:8px">Senha no secret <code>ADMIN_PASSWORD</code> do Cloudflare (não é o texto cinza do campo). Após 5 erros, bloqueio de ~30 min.</p>
                     <button type="submit" class="btn-primary">Entrar</button>
                     <button type="button" id="btn-offline-mode" class="btn-secondary">Editar sem API (modo offline)</button>
                     <p id="admin-status" class="admin-status form-status" hidden></p>
@@ -435,6 +435,6 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/store-products-merge.js?v=1"></script>
-    <script src="js/admin.js?v=30"></script>
+    <script src="js/admin.js?v=31"></script>
 </body>
 </html>

@@ -1126,11 +1126,24 @@
       return false;
     }
 
+    const user = String(username || '').trim();
+    const pwd = String(password || '');
+    if (!pwd) {
+      throw new Error('Digite a senha no campo Senha (não é o texto cinza de dica).');
+    }
+
     const res = await fetch(base.replace(/\/$/, '') + '/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username: user, password: pwd })
     });
+
+    if (res.status === 429) {
+      const retry = Number(res.headers.get('Retry-After') || 0);
+      const err = await res.json().catch(() => ({}));
+      const mins = retry > 0 ? Math.ceil(retry / 60) : 30;
+      throw new Error(err.error ? `${err.error} (~${mins} min)` : `Muitas tentativas. Aguarde ~${mins} min.`);
+    }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -1244,7 +1257,12 @@
       loadDocFrame(true);
       showStatus('Login realizado com sucesso.', 'success', 'top');
     } catch (err) {
-      showStatus(err.message, 'error');
+      const msg = err?.message || 'Erro de rede';
+      if (msg === 'Failed to fetch' || msg.includes('NetworkError')) {
+        showStatus('Não conectou na API. Confira a URL do Worker e use https://www.sensortattoofix.com.br/admin.html', 'error');
+      } else {
+        showStatus(msg, 'error');
+      }
     }
   });
 

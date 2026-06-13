@@ -3825,7 +3825,9 @@ async function handleLogin(request, env, origin) {
   }
 
   const body = await request.json();
-  if ((body.username || '').trim() !== (env.ADMIN_USERNAME || 'admin') || body.password !== env.ADMIN_PASSWORD) {
+  const username = String(body.username || '').trim();
+  const password = String(body.password || '');
+  if (username !== (env.ADMIN_USERNAME || 'admin') || password !== env.ADMIN_PASSWORD) {
     await recordLoginFailure(env, ip, 'admin');
     return json({ error: 'Usuário ou senha incorretos.' }, 401, origin);
   }
