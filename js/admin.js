@@ -23,8 +23,9 @@
   let currentConfig = null;
 
   function apiBase() {
+    const loggedIn = !!sessionStorage.getItem(SESSION_KEY);
     const url = (
-      els.configForm?.apiBaseUrl?.value ||
+      (loggedIn && els.configForm?.apiBaseUrl?.value) ||
       els.loginApiUrl?.value ||
       bootstrap.configApiUrl ||
       ''
@@ -788,7 +789,7 @@
       const name = val('name');
       const slug = val('slug') || slugify(name) || `produto-${i + 1}`;
       const prev = (currentConfig?.products || []).find((p) => p.id === slug || p.slug === slug) || {};
-      const row = {
+      const product = {
         ...prev,
         id: slug,
         slug,
@@ -803,12 +804,12 @@
       };
       if (!isAggregated) {
         const sm = val('sensorMm');
-        if (sm) row.sensorMm = Number(sm);
-        else delete row.sensorMm;
+        if (sm) product.sensorMm = Number(sm);
+        else delete product.sensorMm;
       } else {
-        delete row.sensorMm;
+        delete product.sensorMm;
       }
-      return row;
+      return product;
     });
   }
 
