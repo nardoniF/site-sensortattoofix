@@ -8,10 +8,7 @@
   function resolveProductImage(image) {
     const raw = String(image || '').trim() || 'site/sensortattoofix.jpg';
     if (/^https?:\/\//i.test(raw)) return raw;
-    if (raw.startsWith('/')) return raw;
-    const inEn = /^\/en\//.test(location.pathname) || location.pathname.startsWith('/en/');
-    const prefix = inEn ? '..' : '.';
-    return `${prefix}/${raw.replace(/^\.\//, '')}`;
+    return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
   }
 
   function setPayBtnLabel(key) {
@@ -366,7 +363,7 @@
       return `
         <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
           <div class="pelicula-upsell-card-top">
-            <img src="${escapeHtml(imgSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='site/sensortattoofix.jpg'">
+            <img src="${escapeHtml(imgSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
             <div class="pelicula-upsell-info">
               <strong>${escapeHtml(window.STF_PELICULA.productLabel(p))}</strong>
               ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
@@ -437,7 +434,7 @@
     }
     els.cartSidebar.innerHTML = items.map((item) => `
       <div class="cart-line" data-product-id="${escapeHtml(item.productId)}">
-        <img src="${escapeHtml(item.image)}" alt="" class="cart-line-img">
+        <img src="${escapeHtml(resolveProductImage(item.image))}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
         <div class="cart-line-info">
           <strong>${escapeHtml(cartLineName(item))}</strong>
           <span class="cart-line-price">${formatBRL(item.price)}</span>
