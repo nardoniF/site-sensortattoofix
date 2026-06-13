@@ -40,9 +40,32 @@ window.STF_PRODUCT_MERGE = (function () {
     return /\/produtos\/(pelicula-(squircle|redonda|retangular)|pulseira-)/i.test(u);
   }
 
+  function bandStyleImage(product) {
+    const style = String(product?.bandStyle || '').trim();
+    if (!style) return null;
+    const map = {
+      ocean: '/produtos/pulseiras/ocean.jpg',
+      milanese: '/produtos/pulseiras/milanese.jpg',
+      'sport-air': '/produtos/pulseiras/sport-respiravel.jpg',
+      'link-luxo': '/produtos/pulseiras/link-luxo.jpg',
+      trail: '/produtos/pulseiras/trail.jpg',
+      alpine: '/produtos/pulseiras/alpine.jpg',
+      'sport-soft': '/produtos/pulseiras/sport-soft.jpg',
+      sport: '/produtos/pulseiras/sport-soft.jpg'
+    };
+    return map[style] || null;
+  }
+
   function resolveProductImage(image, product) {
     const id = String(product?.id || product?.slug || '').trim();
     let raw = String(image || product?.image || '').trim();
+    const isPulseira = product?.aggregated && (
+      product.productType === 'pulseira' || id.startsWith('pulseira-')
+    );
+    if (isPulseira) {
+      const bandImg = bandStyleImage(product);
+      if (bandImg) return bandImg;
+    }
     if (product?.aggregated) {
       const perProduct = id ? `/produtos/${id}.svg` : '';
       if (isKitOrMissingImage(raw) || isGenericSharedImage(raw, id)) {

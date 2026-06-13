@@ -19,6 +19,124 @@
       "sensorMm": 25
     },
     {
+      "id": "pelicula-amazfit-bip-2",
+      "slug": "pelicula-amazfit-bip-2",
+      "name": "Película de tela — Amazfit Bip 2",
+      "nameEn": "Screen protector — Amazfit Bip 2",
+      "description": "Tela do Amazfit Bip sempre impecável — película fina, fácil de colar e vai no mesmo envio.",
+      "descriptionEn": "Keep your Amazfit Bip screen flawless — slim film, easy install, same shipment.",
+      "price": 20,
+      "image": "/produtos/pelicula-amazfit-bip-2.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibleWatchModels": [
+        "Amazfit Bip"
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
+    },
+    {
+      "id": "pelicula-amazfit-gtr-3",
+      "slug": "pelicula-amazfit-gtr-3",
+      "name": "Película de tela — Amazfit GTR 3 / GTR 3 Pro",
+      "nameEn": "Screen protector — Amazfit GTR 3 / GTR 3 Pro",
+      "description": "Película resistente para GTR 3 e GTR 3 Pro — mais segurança para a tela do seu treino.",
+      "descriptionEn": "Tough film for GTR 3 and GTR 3 Pro — extra screen safety for your workouts.",
+      "price": 20,
+      "image": "/produtos/pelicula-amazfit-gtr-3.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibleWatchModels": [
+        "Amazfit GTR / GTS"
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
+    },
+    {
+      "id": "pelicula-amazfit-gtr-mini",
+      "slug": "pelicula-amazfit-gtr-mini",
+      "name": "Película de tela — Amazfit GTR Mini",
+      "nameEn": "Screen protector — Amazfit GTR Mini",
+      "description": "Encaixe certeiro no GTR Mini — proteção leve que não interfere no visual do relógio.",
+      "descriptionEn": "Precise fit for GTR Mini — lightweight protection that stays invisible.",
+      "price": 20,
+      "image": "/produtos/pelicula-amazfit-gtr-mini.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibility": {
+        "shape": "round",
+        "caseMm": 43,
+        "screenMm": 34,
+        "screenMmTolerance": 0
+      },
+      "compatibleWatchModels": [
+        "Amazfit GTR Mini"
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
+    },
+    {
+      "id": "pelicula-amazfit-gts-2-mini",
+      "slug": "pelicula-amazfit-gts-2-mini",
+      "name": "Película de tela — Amazfit GTS 2 Mini",
+      "nameEn": "Screen protector — Amazfit GTS 2 Mini",
+      "description": "Proteção inteligente para GTS 2 Mini — discreta, durável e ideal para o uso diário.",
+      "descriptionEn": "Smart protection for GTS 2 Mini — discreet, durable, perfect for everyday use.",
+      "price": 20,
+      "image": "/produtos/pelicula-amazfit-gts-2-mini.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibleWatchModels": [
+        "Amazfit GTR / GTS"
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
+    },
+    {
+      "id": "pelicula-amazfit-gts-squircle-44mm",
+      "slug": "pelicula-amazfit-gts-squircle-44mm",
+      "name": "Película de tela — Amazfit GTS squircle 44mm",
+      "nameEn": "Screen protector — Amazfit GTS squircle 44mm",
+      "description": "Película flexível para linha Amazfit GTS — formato squircle 44 mm com ótimo encaixe.",
+      "descriptionEn": "Flexible squircle 44 mm film for Amazfit GTS — great fit, great protection.",
+      "price": 20,
+      "image": "/produtos/pelicula-amazfit-gts-squircle-44mm.svg",
+      "active": true,
+      "aggregated": true,
+      "requiresSmartwatch": false,
+      "weightGrams": 1,
+      "packaging": "saquinho",
+      "compatibility": {
+        "shape": "squircle",
+        "caseMm": 44,
+        "screenWidthMm": 35,
+        "screenHeightMm": 40,
+        "screenMmTolerance": 2
+      },
+      "compatibleWatchModels": [
+        "Amazfit GTR / GTS"
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
+    },
+    {
       "id": "pelicula-apple-38mm",
       "slug": "pelicula-apple-38mm",
       "name": "Película de tela — Apple Watch 38mm",
@@ -204,96 +322,6 @@
       "filmTypeEn": "ceramic"
     },
     {
-      "id": "pelicula-amazfit-bip-2",
-      "slug": "pelicula-amazfit-bip-2",
-      "name": "Película de tela — Amazfit Bip 2",
-      "nameEn": "Screen protector — Amazfit Bip 2",
-      "description": "Tela do Amazfit Bip sempre impecável — película fina, fácil de colar e vai no mesmo envio.",
-      "descriptionEn": "Keep your Amazfit Bip screen flawless — slim film, easy install, same shipment.",
-      "price": 20,
-      "image": "/produtos/pelicula-amazfit-bip-2.svg",
-      "active": true,
-      "aggregated": true,
-      "requiresSmartwatch": false,
-      "weightGrams": 1,
-      "packaging": "saquinho",
-      "compatibleWatchModels": [
-        "Amazfit Bip"
-      ],
-      "productType": "pelicula",
-      "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
-    },
-    {
-      "id": "pelicula-amazfit-gts-2-mini",
-      "slug": "pelicula-amazfit-gts-2-mini",
-      "name": "Película de tela — Amazfit GTS 2 Mini",
-      "nameEn": "Screen protector — Amazfit GTS 2 Mini",
-      "description": "Proteção inteligente para GTS 2 Mini — discreta, durável e ideal para o uso diário.",
-      "descriptionEn": "Smart protection for GTS 2 Mini — discreet, durable, perfect for everyday use.",
-      "price": 20,
-      "image": "/produtos/pelicula-amazfit-gts-2-mini.svg",
-      "active": true,
-      "aggregated": true,
-      "requiresSmartwatch": false,
-      "weightGrams": 1,
-      "packaging": "saquinho",
-      "compatibleWatchModels": [
-        "Amazfit GTR / GTS"
-      ],
-      "productType": "pelicula",
-      "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
-    },
-    {
-      "id": "pelicula-amazfit-gtr-3",
-      "slug": "pelicula-amazfit-gtr-3",
-      "name": "Película de tela — Amazfit GTR 3 / GTR 3 Pro",
-      "nameEn": "Screen protector — Amazfit GTR 3 / GTR 3 Pro",
-      "description": "Película resistente para GTR 3 e GTR 3 Pro — mais segurança para a tela do seu treino.",
-      "descriptionEn": "Tough film for GTR 3 and GTR 3 Pro — extra screen safety for your workouts.",
-      "price": 20,
-      "image": "/produtos/pelicula-amazfit-gtr-3.svg",
-      "active": true,
-      "aggregated": true,
-      "requiresSmartwatch": false,
-      "weightGrams": 1,
-      "packaging": "saquinho",
-      "compatibleWatchModels": [
-        "Amazfit GTR / GTS"
-      ],
-      "productType": "pelicula",
-      "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
-    },
-    {
-      "id": "pelicula-amazfit-gtr-mini",
-      "slug": "pelicula-amazfit-gtr-mini",
-      "name": "Película de tela — Amazfit GTR Mini",
-      "nameEn": "Screen protector — Amazfit GTR Mini",
-      "description": "Encaixe certeiro no GTR Mini — proteção leve que não interfere no visual do relógio.",
-      "descriptionEn": "Precise fit for GTR Mini — lightweight protection that stays invisible.",
-      "price": 20,
-      "image": "/produtos/pelicula-amazfit-gtr-mini.svg",
-      "active": true,
-      "aggregated": true,
-      "requiresSmartwatch": false,
-      "weightGrams": 1,
-      "packaging": "saquinho",
-      "compatibility": {
-        "shape": "round",
-        "caseMm": 43,
-        "screenMm": 34,
-        "screenMmTolerance": 0
-      },
-      "compatibleWatchModels": [
-        "Amazfit GTR Mini"
-      ],
-      "productType": "pelicula",
-      "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
-    },
-    {
       "id": "pelicula-huawei-gt-2",
       "slug": "pelicula-huawei-gt-2",
       "name": "Película de tela — Huawei Watch GT 2",
@@ -315,59 +343,6 @@
       },
       "compatibleWatchModels": [
         "Huawei Watch GT"
-      ],
-      "productType": "pelicula",
-      "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
-    },
-    {
-      "id": "pelicula-samsung-gw3-45mm",
-      "slug": "pelicula-samsung-gw3-45mm",
-      "name": "Película de tela — Samsung Galaxy Watch 3 45mm",
-      "nameEn": "Screen protector — Samsung Galaxy Watch 3 45mm",
-      "description": "Tela do Galaxy Watch 3 protegida — película fina, anti-riscos e fácil de aplicar.",
-      "descriptionEn": "Protect your Galaxy Watch 3 screen — thin, scratch-resistant, easy to apply.",
-      "price": 20,
-      "image": "/produtos/pelicula-samsung-gw3-45mm.svg",
-      "active": true,
-      "aggregated": true,
-      "requiresSmartwatch": false,
-      "weightGrams": 1,
-      "packaging": "saquinho",
-      "compatibility": {
-        "shape": "round",
-        "caseMm": 45
-      },
-      "compatibleWatchModels": [
-        "Samsung Galaxy Watch 3 (45mm)"
-      ],
-      "productType": "pelicula",
-      "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
-    },
-    {
-      "id": "pelicula-amazfit-gts-squircle-44mm",
-      "slug": "pelicula-amazfit-gts-squircle-44mm",
-      "name": "Película de tela — Amazfit GTS squircle 44mm",
-      "nameEn": "Screen protector — Amazfit GTS squircle 44mm",
-      "description": "Película flexível para linha Amazfit GTS — formato squircle 44 mm com ótimo encaixe.",
-      "descriptionEn": "Flexible squircle 44 mm film for Amazfit GTS — great fit, great protection.",
-      "price": 20,
-      "image": "/produtos/pelicula-amazfit-gts-squircle-44mm.svg",
-      "active": true,
-      "aggregated": true,
-      "requiresSmartwatch": false,
-      "weightGrams": 1,
-      "packaging": "saquinho",
-      "compatibility": {
-        "shape": "squircle",
-        "caseMm": 44,
-        "screenWidthMm": 35,
-        "screenHeightMm": 40,
-        "screenMmTolerance": 2
-      },
-      "compatibleWatchModels": [
-        "Amazfit GTR / GTS"
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
@@ -407,59 +382,45 @@
       "filmTypeEn": "flexible membrane"
     },
     {
-      "id": "pulseira-sport-cinza-38-41",
-      "slug": "pulseira-sport-cinza-38-41",
-      "name": "Pulseira Sport — cinza (38/40/41mm)",
-      "nameEn": "Sport band — gray (38/40/41mm)",
-      "description": "Pulseira sport em silicone macio na cor cinza — conforto o dia todo e visual moderno.",
-      "descriptionEn": "Soft gray silicone sport band — all-day comfort with a modern look.",
+      "id": "pelicula-samsung-gw3-45mm",
+      "slug": "pelicula-samsung-gw3-45mm",
+      "name": "Película de tela — Samsung Galaxy Watch 3 45mm",
+      "nameEn": "Screen protector — Samsung Galaxy Watch 3 45mm",
+      "description": "Tela do Galaxy Watch 3 protegida — película fina, anti-riscos e fácil de aplicar.",
+      "descriptionEn": "Protect your Galaxy Watch 3 screen — thin, scratch-resistant, easy to apply.",
       "price": 20,
-      "image": "/produtos/pulseira-sport-cinza-38-41.svg",
+      "image": "/produtos/pelicula-samsung-gw3-45mm.svg",
       "active": true,
       "aggregated": true,
-      "productType": "pulseira",
-      "bandStyle": "sport",
-      "color": "cinza",
-      "colorEn": "gray",
       "requiresSmartwatch": false,
-      "weightGrams": 12,
-      "packaging": "box",
+      "weightGrams": 1,
+      "packaging": "saquinho",
       "compatibility": {
-        "brand": "apple",
-        "shape": "squircle",
-        "caseMm": [
-          38,
-          40,
-          41
-        ]
+        "shape": "round",
+        "caseMm": 45
       },
       "compatibleWatchModels": [
-        "Apple Watch Series 1 (38mm)",
-        "Apple Watch Series 2 (38mm)",
-        "Apple Watch Series 3 (38mm)",
-        "Apple Watch SE (40mm)",
-        "Apple Watch SE 2 (40mm)",
-        "Apple Watch Series 6 (40mm)",
-        "Apple Watch Series 7 (41mm)",
-        "Apple Watch Series 8 (41mm)",
-        "Apple Watch Series 9 (41mm)"
-      ]
+        "Samsung Galaxy Watch 3 (45mm)"
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
-      "id": "pulseira-mesh-rose-38-41",
-      "slug": "pulseira-mesh-rose-38-41",
-      "name": "Pulseira Milanese — rose gold (38/40/41mm)",
-      "nameEn": "Milanese band — rose gold (38/40/41mm)",
-      "description": "Elegância rose gold em mesh milanese — ajuste magnético e acabamento premium.",
-      "descriptionEn": "Rose gold Milanese mesh — magnetic adjust and a premium finish.",
+      "id": "pulseira-alpine-verde-49",
+      "slug": "pulseira-alpine-verde-49",
+      "name": "Pulseira Alpine Loop em Nylon Trançado — verde oliva (49mm)",
+      "nameEn": "Alpine Loop Braided Nylon Band — olive green (49mm)",
+      "description": "Camada dupla reforçada com fivela gancho em G",
+      "descriptionEn": "Reinforced double-layer weave with G-hook buckle",
       "price": 20,
-      "image": "/produtos/pulseira-mesh-rose-38-41.svg",
+      "image": "/produtos/pulseiras/alpine.jpg",
       "active": true,
       "aggregated": true,
       "productType": "pulseira",
-      "bandStyle": "milanese",
-      "color": "rose gold",
-      "colorEn": "rose gold",
+      "bandStyle": "alpine",
+      "color": "verde oliva",
+      "colorEn": "olive green",
       "requiresSmartwatch": false,
       "weightGrams": 12,
       "packaging": "box",
@@ -467,157 +428,30 @@
         "brand": "apple",
         "shape": "squircle",
         "caseMm": [
-          38,
-          40,
-          41
-        ]
-      },
-      "compatibleWatchModels": [
-        "Apple Watch Series 1 (38mm)",
-        "Apple Watch Series 2 (38mm)",
-        "Apple Watch Series 3 (38mm)",
-        "Apple Watch SE (40mm)",
-        "Apple Watch SE 2 (40mm)",
-        "Apple Watch Series 6 (40mm)",
-        "Apple Watch Series 7 (41mm)",
-        "Apple Watch Series 8 (41mm)",
-        "Apple Watch Series 9 (41mm)"
-      ]
-    },
-    {
-      "id": "pulseira-sport-azul-38-41",
-      "slug": "pulseira-sport-azul-38-41",
-      "name": "Pulseira Sport — azul escuro (38/40/41mm)",
-      "nameEn": "Sport band — dark blue (38/40/41mm)",
-      "description": "Azul escuro com estilo sport — pulseira leve, confortável e perfeita para o dia a dia.",
-      "descriptionEn": "Dark blue sport style — light, comfortable band for everyday wear.",
-      "price": 20,
-      "image": "/produtos/pulseira-sport-azul-38-41.svg",
-      "active": true,
-      "aggregated": true,
-      "productType": "pulseira",
-      "bandStyle": "sport",
-      "color": "azul escuro",
-      "colorEn": "dark blue",
-      "requiresSmartwatch": false,
-      "weightGrams": 12,
-      "packaging": "box",
-      "compatibility": {
-        "brand": "apple",
-        "shape": "squircle",
-        "caseMm": [
-          38,
-          40,
-          41
-        ]
-      },
-      "compatibleWatchModels": [
-        "Apple Watch Series 1 (38mm)",
-        "Apple Watch Series 2 (38mm)",
-        "Apple Watch Series 3 (38mm)",
-        "Apple Watch SE (40mm)",
-        "Apple Watch SE 2 (40mm)",
-        "Apple Watch Series 6 (40mm)",
-        "Apple Watch Series 7 (41mm)",
-        "Apple Watch Series 8 (41mm)",
-        "Apple Watch Series 9 (41mm)"
-      ]
-    },
-    {
-      "id": "pulseira-sport-preta-42-49",
-      "slug": "pulseira-sport-preta-42-49",
-      "name": "Pulseira Sport Band — silicone preta (42/44/45/46mm)",
-      "nameEn": "Sport Band — black fluoroelastomer (42/44/45/46mm)",
-      "description": "Pulseira Sport Band preta em silicone (fluoroelastômero) — fecho pin-and-tuck, macia e resistente ao dia a dia.",
-      "descriptionEn": "Black Sport Band in fluoroelastomer silicone — pin-and-tuck closure, soft and durable for daily wear.",
-      "price": 20,
-      "image": "/produtos/pulseira-sport-preta-42-49.svg",
-      "active": true,
-      "aggregated": true,
-      "productType": "pulseira",
-      "bandStyle": "sport",
-      "color": "preta",
-      "colorEn": "black",
-      "requiresSmartwatch": false,
-      "weightGrams": 12,
-      "packaging": "box",
-      "compatibility": {
-        "brand": "apple",
-        "shape": "squircle",
-        "caseMm": [
-          42,
-          44,
-          45,
-          46
-        ]
-      },
-      "compatibleWatchModels": [
-        "Apple Watch Series 10 (42mm)",
-        "Apple Watch SE (44mm)",
-        "Apple Watch SE 2 (44mm)",
-        "Apple Watch Series 6 (44mm)",
-        "Apple Watch Series 7 (45mm)",
-        "Apple Watch Series 8 (45mm)",
-        "Apple Watch Series 9 (45mm)",
-        "Apple Watch Series 10 (46mm)"
-      ]
-    },
-    {
-      "id": "pulseira-sport-branca-42-49",
-      "slug": "pulseira-sport-branca-42-49",
-      "name": "Pulseira Sport — branca (42/44/45/49mm)",
-      "nameEn": "Sport band — white (42/44/45/49mm)",
-      "description": "Pulseira branca sport — visual clean e silicone macio para usar em qualquer ocasião.",
-      "descriptionEn": "White sport band — clean look and soft silicone for any occasion.",
-      "price": 20,
-      "image": "/produtos/pulseira-sport-branca-42-49.svg",
-      "active": true,
-      "aggregated": true,
-      "productType": "pulseira",
-      "bandStyle": "sport",
-      "color": "branca",
-      "colorEn": "white",
-      "requiresSmartwatch": false,
-      "weightGrams": 12,
-      "packaging": "box",
-      "compatibility": {
-        "brand": "apple",
-        "shape": "squircle",
-        "caseMm": [
-          42,
-          44,
-          45,
           49
         ]
       },
       "compatibleWatchModels": [
-        "Apple Watch Series 10 (42mm)",
-        "Apple Watch SE (44mm)",
-        "Apple Watch SE 2 (44mm)",
-        "Apple Watch Series 6 (44mm)",
-        "Apple Watch Series 7 (45mm)",
-        "Apple Watch Series 8 (45mm)",
-        "Apple Watch Series 9 (45mm)",
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
       ]
     },
     {
-      "id": "pulseira-ocean-verde-42-49",
-      "slug": "pulseira-ocean-verde-42-49",
-      "name": "Pulseira Ocean — verde oliva (42/44/45/49mm)",
-      "nameEn": "Ocean band — olive green (42/44/45/49mm)",
-      "description": "Estilo ocean verde oliva — ventilada, resistente e ideal para treinos e aventuras.",
-      "descriptionEn": "Olive green ocean band — ventilated, tough, great for workouts and adventures.",
+      "id": "pulseira-link-grafite-42-49",
+      "slug": "pulseira-link-grafite-42-49",
+      "name": "Pulseira de Luxo em Aço Inoxidável com Elos — grafite (42/44/45/49mm)",
+      "nameEn": "Luxury Stainless Steel Link Band — graphite (42/44/45/49mm)",
+      "description": "Design premium executivo com fecho borboleta oculto",
+      "descriptionEn": "Premium executive look with hidden butterfly clasp",
       "price": 20,
-      "image": "/produtos/pulseira-ocean-verde-42-49.svg",
+      "image": "/produtos/pulseiras/link-luxo.jpg",
       "active": true,
       "aggregated": true,
       "productType": "pulseira",
-      "bandStyle": "ocean",
-      "color": "verde oliva",
-      "colorEn": "olive green",
+      "bandStyle": "link-luxo",
+      "color": "grafite",
+      "colorEn": "graphite",
       "requiresSmartwatch": false,
       "weightGrams": 12,
       "packaging": "box",
@@ -647,12 +481,12 @@
     {
       "id": "pulseira-mesh-preta-42-49",
       "slug": "pulseira-mesh-preta-42-49",
-      "name": "Pulseira Milanese Loop — malha aço grafite (42/44/45/49mm)",
-      "nameEn": "Milanese Loop — graphite stainless mesh (42/44/45/49mm)",
-      "description": "Milanese Loop em malha de aço inox grafite — fecho magnético ajustável, acabamento premium no pulso.",
-      "descriptionEn": "Graphite stainless steel Milanese Loop — adjustable magnetic closure, premium wrist finish.",
+      "name": "Pulseira Milanese em Aço Magnético — grafite (42/44/45/49mm)",
+      "nameEn": "Magnetic Milanese Steel Band — graphite (42/44/45/49mm)",
+      "description": "Compatível com Apple Watch, Galaxy Watch e smartwatches",
+      "descriptionEn": "Compatible with Apple Watch, Galaxy Watch and smartwatches",
       "price": 20,
-      "image": "/produtos/pulseira-mesh-preta-42-49.svg",
+      "image": "/produtos/pulseiras/milanese.jpg",
       "active": true,
       "aggregated": true,
       "productType": "pulseira",
@@ -686,13 +520,52 @@
       ]
     },
     {
+      "id": "pulseira-mesh-rose-38-41",
+      "slug": "pulseira-mesh-rose-38-41",
+      "name": "Pulseira Milanese em Aço Magnético — rose gold (38/40/41mm)",
+      "nameEn": "Magnetic Milanese Steel Band — rose gold (38/40/41mm)",
+      "description": "Compatível com Apple Watch, Galaxy Watch e smartwatches",
+      "descriptionEn": "Compatible with Apple Watch, Galaxy Watch and smartwatches",
+      "price": 20,
+      "image": "/produtos/pulseiras/milanese.jpg",
+      "active": true,
+      "aggregated": true,
+      "productType": "pulseira",
+      "bandStyle": "milanese",
+      "color": "rose gold",
+      "colorEn": "rose gold",
+      "requiresSmartwatch": false,
+      "weightGrams": 12,
+      "packaging": "box",
+      "compatibility": {
+        "brand": "apple",
+        "shape": "squircle",
+        "caseMm": [
+          38,
+          40,
+          41
+        ]
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 1 (38mm)",
+        "Apple Watch Series 2 (38mm)",
+        "Apple Watch Series 3 (38mm)",
+        "Apple Watch SE (40mm)",
+        "Apple Watch SE 2 (40mm)",
+        "Apple Watch Series 6 (40mm)",
+        "Apple Watch Series 7 (41mm)",
+        "Apple Watch Series 8 (41mm)",
+        "Apple Watch Series 9 (41mm)"
+      ]
+    },
+    {
       "id": "pulseira-ocean-branca-42-49",
       "slug": "pulseira-ocean-branca-42-49",
-      "nameEn": "Ocean band — white (42/44/45/49mm)",
-      "description": "Ocean branca com design ventilado — leve no pulso e pronta para o uso intenso.",
-      "descriptionEn": "White ventilated ocean band — light on the wrist, ready for active use.",
+      "nameEn": "Ocean Sport Silicone Band — white",
+      "description": "Compatível com Apple Watch (Ultra/Series) e smartwatches",
+      "descriptionEn": "Compatible with Apple Watch (Ultra/Series) and smartwatches",
       "price": 20,
-      "image": "/produtos/pulseira-ocean-branca-42-49.svg",
+      "image": "/produtos/pulseiras/ocean.jpg",
       "active": true,
       "aggregated": true,
       "productType": "pulseira",
@@ -723,23 +596,24 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
-      ]
+      ],
+      "name": "Pulseira de Silicone Ocean Esportiva — branca"
     },
     {
-      "id": "pulseira-sport-creme-41-45",
-      "slug": "pulseira-sport-creme-41-45",
-      "name": "Pulseira Sport — creme (41/45mm)",
-      "nameEn": "Sport band — cream (41/45mm)",
-      "description": "Tom creme sofisticado em silicone sport — conforto premium para o seu Apple Watch.",
-      "descriptionEn": "Sophisticated cream silicone sport band — premium comfort for your Apple Watch.",
+      "id": "pulseira-ocean-verde-42-49",
+      "slug": "pulseira-ocean-verde-42-49",
+      "name": "Pulseira de Silicone Ocean Esportiva — verde oliva (42/44/45/49mm)",
+      "nameEn": "Ocean Sport Silicone Band — olive green (42/44/45/49mm)",
+      "description": "Compatível com Apple Watch (Ultra/Series) e smartwatches",
+      "descriptionEn": "Compatible with Apple Watch (Ultra/Series) and smartwatches",
       "price": 20,
-      "image": "/produtos/pulseira-sport-creme-41-45.svg",
+      "image": "/produtos/pulseiras/ocean.jpg",
       "active": true,
       "aggregated": true,
       "productType": "pulseira",
-      "bandStyle": "sport",
-      "color": "creme",
-      "colorEn": "cream",
+      "bandStyle": "ocean",
+      "color": "verde oliva",
+      "colorEn": "olive green",
       "requiresSmartwatch": false,
       "weightGrams": 12,
       "packaging": "box",
@@ -747,32 +621,38 @@
         "brand": "apple",
         "shape": "squircle",
         "caseMm": [
-          41,
-          45
+          42,
+          44,
+          45,
+          49
         ]
       },
       "compatibleWatchModels": [
-        "Apple Watch Series 7 (41mm)",
-        "Apple Watch Series 8 (41mm)",
-        "Apple Watch Series 9 (41mm)",
+        "Apple Watch Series 10 (42mm)",
+        "Apple Watch SE (44mm)",
+        "Apple Watch SE 2 (44mm)",
+        "Apple Watch Series 6 (44mm)",
         "Apple Watch Series 7 (45mm)",
         "Apple Watch Series 8 (45mm)",
-        "Apple Watch Series 9 (45mm)"
+        "Apple Watch Series 9 (45mm)",
+        "Apple Watch Ultra (49mm)",
+        "Apple Watch Ultra 2 (49mm)",
+        "Apple Watch Ultra 3 (49mm)"
       ]
     },
     {
-      "id": "pulseira-sport-preta-ultra-49",
-      "slug": "pulseira-sport-preta-ultra-49",
-      "name": "Pulseira Sport Band Ultra — silicone preta (49mm)",
-      "nameEn": "Sport Band Ultra — black fluoroelastomer (49mm)",
-      "description": "Sport Band preta para Apple Watch Ultra — silicone reforçado, fecho seguro e visual robusto.",
-      "descriptionEn": "Black Sport Band for Apple Watch Ultra — reinforced fluoroelastomer, secure fit, rugged look.",
+      "id": "pulseira-sport-air-preta-42-49",
+      "slug": "pulseira-sport-air-preta-42-49",
+      "name": "Pulseira de Silicone Sport Respirável — preta (42/44/45/49mm)",
+      "nameEn": "Breathable Sport Silicone Band — black (42/44/45/49mm)",
+      "description": "Com furos de ventilação para treinos e alta performance",
+      "descriptionEn": "Ventilation holes for workouts and high performance",
       "price": 20,
-      "image": "/produtos/pulseira-sport-preta-ultra-49.svg",
+      "image": "/produtos/pulseiras/sport-respiravel.jpg",
       "active": true,
       "aggregated": true,
       "productType": "pulseira",
-      "bandStyle": "sport",
+      "bandStyle": "sport-air",
       "color": "preta",
       "colorEn": "black",
       "requiresSmartwatch": false,
@@ -781,27 +661,78 @@
       "compatibility": {
         "brand": "apple",
         "shape": "squircle",
-        "caseMm": 49
+        "caseMm": [
+          42,
+          44,
+          45,
+          49
+        ]
       },
       "compatibleWatchModels": [
+        "Apple Watch Series 10 (42mm)",
+        "Apple Watch SE (44mm)",
+        "Apple Watch SE 2 (44mm)",
+        "Apple Watch Series 6 (44mm)",
+        "Apple Watch Series 7 (45mm)",
+        "Apple Watch Series 8 (45mm)",
+        "Apple Watch Series 9 (45mm)",
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
       ]
     },
     {
-      "id": "pulseira-sport-azul-40-45",
-      "slug": "pulseira-sport-azul-40-45",
-      "name": "Pulseira Sport — azul escuro (40/41/44/45mm)",
-      "nameEn": "Sport band — dark blue (40/41/44/45mm)",
-      "description": "Azul escuro sport para modelos 40–45 mm — silicone macio e encaixe seguro.",
-      "descriptionEn": "Dark blue sport band for 40–45 mm models — soft silicone, secure fit.",
+      "id": "pulseira-sport-azul-38-41",
+      "slug": "pulseira-sport-azul-38-41",
+      "name": "Pulseira de Silicone Soft Lisa Tradicional — azul escuro (38/40/41mm)",
+      "nameEn": "Classic Soft Smooth Silicone Band — dark blue (38/40/41mm)",
+      "description": "Design clássico e macio com fecho de pino embutido",
+      "descriptionEn": "Classic soft design with embedded pin buckle",
       "price": 20,
-      "image": "/produtos/pulseira-sport-azul-40-45.svg",
+      "image": "/produtos/pulseiras/sport-soft.jpg",
       "active": true,
       "aggregated": true,
       "productType": "pulseira",
-      "bandStyle": "sport",
+      "bandStyle": "sport-soft",
+      "color": "azul escuro",
+      "colorEn": "dark blue",
+      "requiresSmartwatch": false,
+      "weightGrams": 12,
+      "packaging": "box",
+      "compatibility": {
+        "brand": "apple",
+        "shape": "squircle",
+        "caseMm": [
+          38,
+          40,
+          41
+        ]
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 1 (38mm)",
+        "Apple Watch Series 2 (38mm)",
+        "Apple Watch Series 3 (38mm)",
+        "Apple Watch SE (40mm)",
+        "Apple Watch SE 2 (40mm)",
+        "Apple Watch Series 6 (40mm)",
+        "Apple Watch Series 7 (41mm)",
+        "Apple Watch Series 8 (41mm)",
+        "Apple Watch Series 9 (41mm)"
+      ]
+    },
+    {
+      "id": "pulseira-sport-azul-40-45",
+      "slug": "pulseira-sport-azul-40-45",
+      "name": "Pulseira de Silicone Soft Lisa Tradicional — azul escuro (40/41/44/45mm)",
+      "nameEn": "Classic Soft Smooth Silicone Band — dark blue (40/41/44/45mm)",
+      "description": "Design clássico e macio com fecho de pino embutido",
+      "descriptionEn": "Classic soft design with embedded pin buckle",
+      "price": 20,
+      "image": "/produtos/pulseiras/sport-soft.jpg",
+      "active": true,
+      "aggregated": true,
+      "productType": "pulseira",
+      "bandStyle": "sport-soft",
       "color": "azul escuro",
       "colorEn": "dark blue",
       "requiresSmartwatch": false,
@@ -830,6 +761,220 @@
         "Apple Watch Series 7 (45mm)",
         "Apple Watch Series 8 (45mm)",
         "Apple Watch Series 9 (45mm)"
+      ]
+    },
+    {
+      "id": "pulseira-sport-branca-42-49",
+      "slug": "pulseira-sport-branca-42-49",
+      "name": "Pulseira de Silicone Soft Lisa Tradicional — branca (42/44/45/49mm)",
+      "nameEn": "Classic Soft Smooth Silicone Band — white (42/44/45/49mm)",
+      "description": "Design clássico e macio com fecho de pino embutido",
+      "descriptionEn": "Classic soft design with embedded pin buckle",
+      "price": 20,
+      "image": "/produtos/pulseiras/sport-soft.jpg",
+      "active": true,
+      "aggregated": true,
+      "productType": "pulseira",
+      "bandStyle": "sport-soft",
+      "color": "branca",
+      "colorEn": "white",
+      "requiresSmartwatch": false,
+      "weightGrams": 12,
+      "packaging": "box",
+      "compatibility": {
+        "brand": "apple",
+        "shape": "squircle",
+        "caseMm": [
+          42,
+          44,
+          45,
+          49
+        ]
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 10 (42mm)",
+        "Apple Watch SE (44mm)",
+        "Apple Watch SE 2 (44mm)",
+        "Apple Watch Series 6 (44mm)",
+        "Apple Watch Series 7 (45mm)",
+        "Apple Watch Series 8 (45mm)",
+        "Apple Watch Series 9 (45mm)",
+        "Apple Watch Ultra (49mm)",
+        "Apple Watch Ultra 2 (49mm)",
+        "Apple Watch Ultra 3 (49mm)"
+      ]
+    },
+    {
+      "id": "pulseira-sport-cinza-38-41",
+      "slug": "pulseira-sport-cinza-38-41",
+      "name": "Pulseira de Silicone Soft Lisa Tradicional — cinza (38/40/41mm)",
+      "nameEn": "Classic Soft Smooth Silicone Band — gray (38/40/41mm)",
+      "description": "Design clássico e macio com fecho de pino embutido",
+      "descriptionEn": "Classic soft design with embedded pin buckle",
+      "price": 20,
+      "image": "/produtos/pulseiras/sport-soft.jpg",
+      "active": true,
+      "aggregated": true,
+      "productType": "pulseira",
+      "bandStyle": "sport-soft",
+      "color": "cinza",
+      "colorEn": "gray",
+      "requiresSmartwatch": false,
+      "weightGrams": 12,
+      "packaging": "box",
+      "compatibility": {
+        "brand": "apple",
+        "shape": "squircle",
+        "caseMm": [
+          38,
+          40,
+          41
+        ]
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 1 (38mm)",
+        "Apple Watch Series 2 (38mm)",
+        "Apple Watch Series 3 (38mm)",
+        "Apple Watch SE (40mm)",
+        "Apple Watch SE 2 (40mm)",
+        "Apple Watch Series 6 (40mm)",
+        "Apple Watch Series 7 (41mm)",
+        "Apple Watch Series 8 (41mm)",
+        "Apple Watch Series 9 (41mm)"
+      ]
+    },
+    {
+      "id": "pulseira-sport-creme-41-45",
+      "slug": "pulseira-sport-creme-41-45",
+      "name": "Pulseira de Silicone Soft Lisa Tradicional — creme (41/45mm)",
+      "nameEn": "Classic Soft Smooth Silicone Band — cream (41/45mm)",
+      "description": "Design clássico e macio com fecho de pino embutido",
+      "descriptionEn": "Classic soft design with embedded pin buckle",
+      "price": 20,
+      "image": "/produtos/pulseiras/sport-soft.jpg",
+      "active": true,
+      "aggregated": true,
+      "productType": "pulseira",
+      "bandStyle": "sport-soft",
+      "color": "creme",
+      "colorEn": "cream",
+      "requiresSmartwatch": false,
+      "weightGrams": 12,
+      "packaging": "box",
+      "compatibility": {
+        "brand": "apple",
+        "shape": "squircle",
+        "caseMm": [
+          41,
+          45
+        ]
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 7 (41mm)",
+        "Apple Watch Series 8 (41mm)",
+        "Apple Watch Series 9 (41mm)",
+        "Apple Watch Series 7 (45mm)",
+        "Apple Watch Series 8 (45mm)",
+        "Apple Watch Series 9 (45mm)"
+      ]
+    },
+    {
+      "id": "pulseira-sport-preta-42-49",
+      "slug": "pulseira-sport-preta-42-49",
+      "name": "Pulseira de Silicone Soft Lisa Tradicional — preta (42/44/45/46mm)",
+      "nameEn": "Classic Soft Smooth Silicone Band — black (42/44/45/46mm)",
+      "description": "Design clássico e macio com fecho de pino embutido",
+      "descriptionEn": "Classic soft design with embedded pin buckle",
+      "price": 20,
+      "image": "/produtos/pulseiras/sport-soft.jpg",
+      "active": true,
+      "aggregated": true,
+      "productType": "pulseira",
+      "bandStyle": "sport-soft",
+      "color": "preta",
+      "colorEn": "black",
+      "requiresSmartwatch": false,
+      "weightGrams": 12,
+      "packaging": "box",
+      "compatibility": {
+        "brand": "apple",
+        "shape": "squircle",
+        "caseMm": [
+          42,
+          44,
+          45,
+          46
+        ]
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Series 10 (42mm)",
+        "Apple Watch SE (44mm)",
+        "Apple Watch SE 2 (44mm)",
+        "Apple Watch Series 6 (44mm)",
+        "Apple Watch Series 7 (45mm)",
+        "Apple Watch Series 8 (45mm)",
+        "Apple Watch Series 9 (45mm)",
+        "Apple Watch Series 10 (46mm)"
+      ]
+    },
+    {
+      "id": "pulseira-sport-preta-ultra-49",
+      "slug": "pulseira-sport-preta-ultra-49",
+      "name": "Pulseira de Silicone Soft Lisa Tradicional — preta (49mm)",
+      "nameEn": "Classic Soft Smooth Silicone Band — black (49mm)",
+      "description": "Design clássico e macio com fecho de pino embutido — tamanho Apple Watch Ultra.",
+      "descriptionEn": "Classic soft design with embedded pin buckle — Apple Watch Ultra size.",
+      "price": 20,
+      "image": "/produtos/pulseiras/sport-soft.jpg",
+      "active": true,
+      "aggregated": true,
+      "productType": "pulseira",
+      "bandStyle": "sport-soft",
+      "color": "preta",
+      "colorEn": "black",
+      "requiresSmartwatch": false,
+      "weightGrams": 12,
+      "packaging": "box",
+      "compatibility": {
+        "brand": "apple",
+        "shape": "squircle",
+        "caseMm": 49
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Ultra (49mm)",
+        "Apple Watch Ultra 2 (49mm)",
+        "Apple Watch Ultra 3 (49mm)"
+      ]
+    },
+    {
+      "id": "pulseira-trail-preta-ultra-49",
+      "slug": "pulseira-trail-preta-ultra-49",
+      "name": "Pulseira Trail Loop em Nylon Confort — preta (49mm)",
+      "nameEn": "Trail Loop Nylon Comfort Band — black (49mm)",
+      "description": "Tecido elástico e leve com ajuste ultra-rápido em velcro — tamanho Apple Watch Ultra.",
+      "descriptionEn": "Light elastic fabric with fast hook-and-loop fit — Apple Watch Ultra size.",
+      "price": 20,
+      "image": "/produtos/pulseiras/trail.jpg",
+      "active": true,
+      "aggregated": true,
+      "productType": "pulseira",
+      "bandStyle": "trail",
+      "color": "preta",
+      "colorEn": "black",
+      "requiresSmartwatch": false,
+      "weightGrams": 12,
+      "packaging": "box",
+      "compatibility": {
+        "brand": "apple",
+        "shape": "squircle",
+        "caseMm": [
+          49
+        ]
+      },
+      "compatibleWatchModels": [
+        "Apple Watch Ultra (49mm)",
+        "Apple Watch Ultra 2 (49mm)",
+        "Apple Watch Ultra 3 (49mm)"
       ]
     }
   ],

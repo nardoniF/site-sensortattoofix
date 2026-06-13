@@ -98,24 +98,34 @@ window.STF_PELICULA = (function () {
     return '';
   }
 
-  /** Título curto no upsell — tipo de pulseira/película; sem repetir modelo/mm. */
+  /** Título curto no upsell — modelo de pulseira + cor. */
   function upsellShortLabel(product) {
     if (productType(product) === 'pulseira') {
       const en = window.STF_I18N?.isEn?.();
-      const style = product.bandStyle || 'sport';
+      const style = product.bandStyle || 'sport-soft';
       const color = en ? (product.colorEn || product.color) : (product.color || '');
-      const styles = en
+      const titles = en
         ? {
-            sport: 'Sport Band · silicone',
-            milanese: 'Milanese Loop · steel mesh',
-            ocean: 'Ocean Band · braided'
+            ocean: 'Ocean Sport Silicone Band',
+            milanese: 'Magnetic Milanese Steel Band',
+            'sport-air': 'Breathable Sport Silicone Band',
+            'link-luxo': 'Luxury Stainless Link Band',
+            trail: 'Trail Loop Nylon Comfort Band',
+            alpine: 'Alpine Loop Braided Nylon Band',
+            'sport-soft': 'Classic Soft Silicone Band',
+            sport: 'Classic Soft Silicone Band'
           }
         : {
-            sport: 'Sport Band · silicone',
-            milanese: 'Milanese Loop · malha aço',
-            ocean: 'Ocean Band · trançada'
+            ocean: 'Pulseira Ocean Esportiva',
+            milanese: 'Pulseira Milanese Magnética',
+            'sport-air': 'Pulseira Sport Respirável',
+            'link-luxo': 'Pulseira de Luxo em Aço',
+            trail: 'Pulseira Trail Loop',
+            alpine: 'Pulseira Alpine Loop',
+            'sport-soft': 'Pulseira Soft Lisa',
+            sport: 'Pulseira Soft Lisa'
           };
-      let label = styles[style] || styles.sport;
+      let label = titles[style] || titles['sport-soft'];
       if (String(product.id || '').includes('ultra')) {
         label += en ? ' · Ultra' : ' · Ultra';
       }

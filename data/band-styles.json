@@ -1,0 +1,58 @@
+{
+  "ocean": {
+    "titlePt": "Pulseira de Silicone Ocean Esportiva",
+    "titleEn": "Ocean Sport Silicone Band",
+    "subtitlePt": "Compatível com Apple Watch (Ultra/Series) e smartwatches",
+    "subtitleEn": "Compatible with Apple Watch (Ultra/Series) and smartwatches",
+    "image": "/produtos/pulseiras/ocean.jpg",
+    "importFiles": ["IMG_3082.jpg", "IMG_3087.jpg"]
+  },
+  "milanese": {
+    "titlePt": "Pulseira Milanese em Aço Magnético",
+    "titleEn": "Magnetic Milanese Steel Band",
+    "subtitlePt": "Compatível com Apple Watch, Galaxy Watch e smartwatches",
+    "subtitleEn": "Compatible with Apple Watch, Galaxy Watch and smartwatches",
+    "image": "/produtos/pulseiras/milanese.jpg",
+    "importFiles": ["IMG_3083.jpg"]
+  },
+  "sport-air": {
+    "titlePt": "Pulseira de Silicone Sport Respirável",
+    "titleEn": "Breathable Sport Silicone Band",
+    "subtitlePt": "Com furos de ventilação para treinos e alta performance",
+    "subtitleEn": "Ventilation holes for workouts and high performance",
+    "image": "/produtos/pulseiras/sport-respiravel.jpg",
+    "importFiles": ["IMG_3084.jpg"]
+  },
+  "link-luxo": {
+    "titlePt": "Pulseira de Luxo em Aço Inoxidável com Elos",
+    "titleEn": "Luxury Stainless Steel Link Band",
+    "subtitlePt": "Design premium executivo com fecho borboleta oculto",
+    "subtitleEn": "Premium executive look with hidden butterfly clasp",
+    "image": "/produtos/pulseiras/link-luxo.jpg",
+    "importFiles": ["IMG_3085.jpg"]
+  },
+  "trail": {
+    "titlePt": "Pulseira Trail Loop em Nylon Confort",
+    "titleEn": "Trail Loop Nylon Comfort Band",
+    "subtitlePt": "Tecido elástico e leve com ajuste ultra-rápido em velcro",
+    "subtitleEn": "Light elastic fabric with fast hook-and-loop fit",
+    "image": "/produtos/pulseiras/trail.jpg",
+    "importFiles": ["IMG_3086.jpg", "IMG_3089.jpg"]
+  },
+  "alpine": {
+    "titlePt": "Pulseira Alpine Loop em Nylon Trançado",
+    "titleEn": "Alpine Loop Braided Nylon Band",
+    "subtitlePt": "Camada dupla reforçada com fivela gancho em G",
+    "subtitleEn": "Reinforced double-layer weave with G-hook buckle",
+    "image": "/produtos/pulseiras/alpine.jpg",
+    "importFiles": ["IMG_3088.jpg"]
+  },
+  "sport-soft": {
+    "titlePt": "Pulseira de Silicone Soft Lisa Tradicional",
+    "titleEn": "Classic Soft Smooth Silicone Band",
+    "subtitlePt": "Design clássico e macio com fecho de pino embutido",
+    "subtitleEn": "Classic soft design with embedded pin buckle",
+    "image": "/produtos/pulseiras/sport-soft.jpg",
+    "importFiles": ["IMG_3090.jpg", "IMG_3091.jpg"]
+  }
+}
