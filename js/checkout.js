@@ -358,15 +358,16 @@
     function renderCard(p) {
       const type = window.STF_PELICULA.productType(p);
       const addKey = type === 'pulseira' ? 'pulseira.add' : 'pelicula.add';
-      const desc = window.STF_PELICULA.productDescription(p);
       const imgSrc = resolveProductImage(p.image);
+      const title = window.STF_PELICULA.upsellShortLabel
+        ? window.STF_PELICULA.upsellShortLabel(p)
+        : window.STF_PELICULA.productLabel(p);
       return `
         <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
           <div class="pelicula-upsell-card-top">
             <img src="${escapeHtml(imgSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
             <div class="pelicula-upsell-info">
-              <strong>${escapeHtml(window.STF_PELICULA.productLabel(p))}</strong>
-              ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
+              <strong>${escapeHtml(title)}</strong>
               <span class="pelicula-upsell-price">${formatBRL(p.price)}</span>
             </div>
           </div>

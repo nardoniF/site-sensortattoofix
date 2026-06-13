@@ -58,6 +58,15 @@ window.STF_PELICULA = (function () {
     return product.description || '';
   }
 
+  /** Título curto no upsell — sem repetir modelo/mm (já escolhido no checkout). */
+  function upsellShortLabel(product) {
+    let name = productLabel(product);
+    name = name.replace(/\s*\([^)]*\d+\s*mm[^)]*\)/gi, '');
+    name = name.replace(/\s*—\s*Apple Watch.*$/i, '');
+    name = name.replace(/\s+/g, ' ').trim();
+    return name || productLabel(product);
+  }
+
   function compatibleModels(product) {
     const list = product?.compatibleWatchModels;
     return Array.isArray(list) ? list.filter(Boolean) : [];
@@ -108,6 +117,7 @@ window.STF_PELICULA = (function () {
     listStorefront,
     productLabel,
     productDescription,
+    upsellShortLabel,
     compatibleModels,
     isCompatible,
     findCompatible

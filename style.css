@@ -2127,38 +2127,45 @@ line-height:1.8;
 .pelicula-upsell-card {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    align-items: stretch;
+    gap: 12px;
     padding: 12px;
     margin-top: 8px;
     background: #111;
     border: 1px solid #333;
     border-radius: 10px;
+    width: 100%;
+    box-sizing: border-box;
 }
 .pelicula-upsell-card-top {
     display: flex;
+    flex-direction: row;
     gap: 12px;
-    align-items: flex-start;
+    align-items: center;
+    width: 100%;
     min-width: 0;
 }
 .pelicula-upsell-card + .pelicula-upsell-card { margin-top: 8px; }
 .pelicula-upsell-card img {
-    width: 56px;
-    height: 56px;
-    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
     object-fit: contain;
     border-radius: 8px;
     background: #1a1d24;
     border: 1px solid #2a2f3a;
 }
 .pelicula-upsell-info {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
+    overflow: hidden;
 }
 .pelicula-upsell-info strong {
     display: block;
-    font-size: 0.8rem;
-    line-height: 1.3;
-    margin-bottom: 2px;
+    font-size: 0.88rem;
+    line-height: 1.35;
+    margin: 0 0 4px;
+    word-wrap: break-word;
 }
 .pelicula-upsell-desc {
     margin: 0 0 4px;
@@ -2202,14 +2209,19 @@ line-height:1.8;
 .pelicula-upsell-btn {
     border: none;
     border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 0.8rem;
+    padding: 11px 14px;
+    font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
     background: var(--primary);
     color: #000;
+    display: block;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     text-align: center;
+    flex: 0 0 auto;
+    margin: 0;
 }
 .pelicula-upsell-btn:disabled {
     opacity: 0.55;
