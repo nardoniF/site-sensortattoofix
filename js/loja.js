@@ -10,8 +10,8 @@
   }
 
   function comprarHref(slug) {
-    const base = `comprar.html?produto=${encodeURIComponent(slug)}&comprar=1`;
-    return isEn() ? `${base}&lang=en` : base;
+    const base = window.STF_I18N?.comprarPageHref?.() || 'comprar.html';
+    return `${base}?produto=${encodeURIComponent(slug)}&comprar=1`;
   }
 
   function formatBRL(v) {

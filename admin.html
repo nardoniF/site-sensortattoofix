@@ -67,6 +67,7 @@
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="documentacao" aria-selected="false" aria-controls="admin-tab-documentacao"><i class="fas fa-book"></i> Documentação</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pedidos" aria-selected="false" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Clientes</button>
                 </nav>
 
                 <form id="admin-config-form" class="admin-form">
@@ -316,6 +317,31 @@
                     </fieldset>
                     </div>
 
+                    <div id="admin-tab-clientes" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend><i class="fas fa-users"></i> Clientes cadastrados</legend>
+                        <p class="admin-meta">Contas criadas no checkout ou em Minha Conta (e-mail único por cliente).</p>
+                        <p id="customers-checked-at" class="admin-meta" hidden></p>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table admin-doc-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>E-mail</th>
+                                        <th>WhatsApp</th>
+                                        <th>CPF</th>
+                                        <th>Pedidos</th>
+                                        <th>Cadastro</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-customers-tbody">
+                                    <tr><td colspan="6" class="admin-meta">Abra esta aba para carregar a lista.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </fieldset>
+                    </div>
+
                     <div id="admin-save-actions" class="admin-form-actions admin-form-actions-sticky">
                         <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar alterações</button>
                         <button type="button" id="btn-download-config" class="btn-secondary"><i class="fas fa-download"></i> Baixar backup JSON</button>
@@ -329,6 +355,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=20"></script>
+    <script src="js/admin.js?v=21"></script>
 </body>
 </html>

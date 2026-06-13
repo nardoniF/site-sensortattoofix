@@ -81,8 +81,7 @@ const DEFAULT_CONFIG = {
   },
   payments: {
     paypal: {
-      internationalEnabled: true,
-      showAfter: '2026-06-13T05:30:00.000Z'
+      internationalEnabled: true
     }
   },
   smartwatchModels: [
@@ -373,18 +372,15 @@ function publicUserView(user) {
 }
 
 function mergePaypalConfig(basePaypal, storedPaypal) {
-  const merged = { ...basePaypal, ...(storedPaypal || {}) };
-  if (!storedPaypal?.showAfter) merged.showAfter = basePaypal?.showAfter;
-  return merged;
+  return { ...basePaypal, ...(storedPaypal || {}) };
 }
-
-const PAYPAL_INTL_DEFAULT_SHOW_AFTER = DEFAULT_CONFIG.payments.paypal.showAfter;
 
 function isInternationalPayPalAvailable(config) {
   const paypal = config.payments?.paypal || {};
   if (paypal.internationalEnabled === false) return false;
-  const showAfterRaw = paypal.showAfter || PAYPAL_INTL_DEFAULT_SHOW_AFTER;
-  const showAfter = showAfterRaw ? Date.parse(showAfterRaw) : NaN;
+  const showAfterRaw = paypal.showAfter;
+  if (!showAfterRaw) return true;
+  const showAfter = Date.parse(showAfterRaw);
   if (Number.isFinite(showAfter) && Date.now() < showAfter) return false;
   return true;
 }
@@ -1195,6 +1191,7 @@ async function quoteUberShippingOptions(env, config, addressParams, opts = {}) {
       source: 'uber',
       provider: 'uber',
       uberQuoteId: quote.uberQuoteId,
+      testMode: isUberSandbox(env),
       weightGrams: shippingWeightGrams(config, opts.weightGrams)
     }));
   } catch (err) {
@@ -2784,6 +2781,45 @@ async function handleCustomerLogout(request, env, origin) {
   return json({ ok: true }, 200, origin);
 }
 
+async function listAllCustomers(env, max = 500) {
+  const users = [];
+  let cursor;
+  do {
+    const page = await env.STORE_KV.list({ prefix: 'user:email:', limit: 100, cursor });
+    for (const { name } of page.keys) {
+      const userId = await env.STORE_KV.get(name);
+      if (!userId) continue;
+      const user = await getUserById(env, userId);
+      if (!user) continue;
+      const orderIds = JSON.parse((await env.STORE_KV.get('user:' + userId + ':orders')) || '[]');
+      users.push({
+        userId: user.userId,
+        nome: user.nome,
+        email: user.email,
+        telefone: user.telefone,
+        cpf: user.cpf || '',
+        createdAt: user.createdAt || null,
+        orderCount: orderIds.length
+      });
+      if (users.length >= max) {
+        users.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        return users;
+      }
+    }
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  users.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return users;
+}
+
+async function handleAdminCustomers(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const customers = await listAllCustomers(env);
+  return json({ customers, total: customers.length, checkedAt: new Date().toISOString() }, 200, origin);
+}
+
 async function handleCustomerOrders(request, env, origin) {
   const userId = await getCustomerUserId(env, bearerToken(request));
   if (!userId) return json({ error: 'Não autorizado.' }, 401, origin);
@@ -3619,6 +3655,9 @@ export default {
       if (path === '/admin/shipping-status' && request.method === 'GET') return handleAdminShippingStatus(request, env, origin);
       if (path === '/admin/integrations-status' && request.method === 'GET') {
         return handleAdminIntegrationsStatus(request, env, origin);
+      }
+      if (path === '/admin/customers' && request.method === 'GET') {
+        return handleAdminCustomers(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);

@@ -7,7 +7,12 @@ window.STF_ACCOUNT = (function () {
   }
 
   function pathPrefix() {
-    return location.pathname.includes('/en/') ? '../' : '';
+    if (location.pathname.includes('/en/')) return '';
+    return window.STF_I18N?.isEn?.() ? 'en/' : '';
+  }
+
+  function accountLink() {
+    return window.STF_I18N?.accountHref?.() || (pathPrefix() + 'minha-conta.html');
   }
 
   function getToken() {
@@ -138,14 +143,14 @@ window.STF_ACCOUNT = (function () {
           </summary>
           <div class="account-nav-menu">
             <span class="account-nav-menu-label">${escapeHtml(user.email || '')}</span>
-            <a href="${prefix}minha-conta.html"><i class="fas fa-box"></i> ${escapeHtml(navT('nav.myOrders', 'Meus pedidos'))}</a>
+            <a href="${accountLink()}"><i class="fas fa-box"></i> ${escapeHtml(navT('nav.myOrders', 'Meus pedidos'))}</a>
             <button type="button" data-account-logout><i class="fas fa-sign-out-alt"></i> ${escapeHtml(navT('nav.logout', 'Sair'))}</button>
           </div>
         </details>
       `;
     } else {
       slot.innerHTML = `
-        <a href="${prefix}minha-conta.html" class="account-nav-login">
+        <a href="${accountLink()}" class="account-nav-login">
           <i class="fas fa-user" aria-hidden="true"></i>
           <span>${escapeHtml(navT('nav.login', 'Entrar'))}</span>
         </a>

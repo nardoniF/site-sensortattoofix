@@ -80,6 +80,37 @@ window.STF_I18N = (function () {
       'account.loginNeedCreds': 'Informe e-mail e senha.',
       'account.loginUnavailable': 'Login indisponível. Tente em Minha Conta.',
       'account.loginFail': 'Não foi possível entrar.',
+      'conta.title': 'Minha Conta',
+      'conta.pageTitle': 'Minha Conta | Sensor TattooFix',
+      'conta.intro': 'Acesse seus pedidos ou crie uma conta para comprar mais rápido.',
+      'conta.tabLogin': 'Entrar',
+      'conta.tabRegister': 'Criar conta',
+      'conta.email': 'E-mail',
+      'conta.password': 'Senha',
+      'conta.fullName': 'Nome completo',
+      'conta.whatsapp': 'WhatsApp',
+      'conta.cpf': 'CPF',
+      'conta.passwordRegister': 'Senha (mín. 6 caracteres)',
+      'conta.btnLogin': 'Entrar',
+      'conta.btnRegister': 'Criar conta',
+      'conta.btnLogout': 'Sair',
+      'conta.hello': 'Olá, {name}',
+      'conta.ordersMeta': 'Seus pedidos na Loja Oficial',
+      'conta.buyMore': 'Comprar mais',
+      'conta.noOrders': 'Nenhum pedido ainda.',
+      'conta.goShop': 'Ir à loja',
+      'conta.statusPaid': 'Pago',
+      'conta.statusPending': 'Aguardando pagamento',
+      'conta.continuePay': 'Continuar pagamento',
+      'conta.entering': 'Entrando...',
+      'conta.creating': 'Criando conta...',
+      'conta.created': 'Conta criada!',
+      'conta.passwordMinErr': 'Senha mínima: 6 caracteres.',
+      'conta.watch': 'Relógio',
+      'conta.total': 'Total',
+      'nav.whereBuy': 'Onde comprar',
+      'nav.langEn': 'EN',
+      'nav.langPt': 'PT',
       'pay.pix': 'PIX',
       'pay.pixHint': 'Confirmação automática · QR Code na hora',
       'pay.cardBr': 'Cartão de crédito',
@@ -179,6 +210,7 @@ window.STF_I18N = (function () {
       'shipping.sourceConfigShort': 'tabela admin (fallback)',
       'shipping.sourceEstimate': 'Estimativa fixa no código — configure CORREIOS_USER no Worker',
       'shipping.sourceEstimateShort': 'estimativa',
+      'shipping.uberTest': 'Modo teste Uber — valor simbólico (ex. R$ 0,01), sem entrega real. Em produção o frete será o preço real.',
       'shipping.intlPrefix': 'Internacional —',
       'status.pixManualConfirm': 'Esta página atualiza quando a loja confirmar o pagamento.',
       'shipping.optionsAria': 'Opções de frete',
@@ -268,6 +300,37 @@ window.STF_I18N = (function () {
       'account.loginNeedCreds': 'Enter email and password.',
       'account.loginUnavailable': 'Sign-in unavailable. Try My Account.',
       'account.loginFail': 'Could not sign in.',
+      'conta.title': 'My Account',
+      'conta.pageTitle': 'My Account | Sensor TattooFix',
+      'conta.intro': 'Sign in to see your orders or create an account for faster checkout.',
+      'conta.tabLogin': 'Sign in',
+      'conta.tabRegister': 'Create account',
+      'conta.email': 'Email',
+      'conta.password': 'Password',
+      'conta.fullName': 'Full name',
+      'conta.whatsapp': 'WhatsApp',
+      'conta.cpf': 'CPF',
+      'conta.passwordRegister': 'Password (min. 6 characters)',
+      'conta.btnLogin': 'Sign in',
+      'conta.btnRegister': 'Create account',
+      'conta.btnLogout': 'Sign out',
+      'conta.hello': 'Hello, {name}',
+      'conta.ordersMeta': 'Your orders at the Official Store',
+      'conta.buyMore': 'Shop more',
+      'conta.noOrders': 'No orders yet.',
+      'conta.goShop': 'Go to store',
+      'conta.statusPaid': 'Paid',
+      'conta.statusPending': 'Awaiting payment',
+      'conta.continuePay': 'Continue payment',
+      'conta.entering': 'Signing in...',
+      'conta.creating': 'Creating account...',
+      'conta.created': 'Account created!',
+      'conta.passwordMinErr': 'Password must be at least 6 characters.',
+      'conta.watch': 'Watch',
+      'conta.total': 'Total',
+      'nav.whereBuy': 'Where to buy',
+      'nav.langEn': 'EN',
+      'nav.langPt': 'PT',
       'pay.pix': 'PIX',
       'pay.pixHint': 'Instant confirmation · QR code',
       'pay.cardBr': 'Credit card',
@@ -367,6 +430,7 @@ window.STF_I18N = (function () {
       'shipping.sourceConfigShort': 'admin fallback table',
       'shipping.sourceEstimate': 'Fixed estimate — configure CORREIOS_USER on Worker',
       'shipping.sourceEstimateShort': 'estimate',
+      'shipping.uberTest': 'Uber test mode — symbolic price (e.g. R$ 0.01), no real delivery. Production shows the real fare.',
       'shipping.intlPrefix': 'International —',
       'status.pixManualConfirm': 'This page updates when the shop confirms payment.',
       'shipping.optionsAria': 'Shipping options',
@@ -489,6 +553,48 @@ window.STF_I18N = (function () {
     if (el && key) el.innerHTML = t(key, vars);
   }
 
+  function inEnDir() {
+    return location.pathname.includes('/en/');
+  }
+
+  function assetPrefix() {
+    return inEnDir() ? '../' : '';
+  }
+
+  function pageHref(page) {
+    const en = isEn();
+    if (page === 'index') {
+      return en ? (inEnDir() ? 'index.html' : 'en/index.html') : 'index.html';
+    }
+    if (page === 'loja') {
+      return en ? (inEnDir() ? 'loja.html' : 'en/loja.html') : 'loja.html';
+    }
+    if (page === 'comprar') {
+      return en ? (inEnDir() ? 'comprar.html' : 'en/comprar.html') : 'comprar.html';
+    }
+    if (page === 'account') {
+      return en ? (inEnDir() ? 'minha-conta.html' : 'en/minha-conta.html') : 'minha-conta.html';
+    }
+    return page;
+  }
+
+  function langQuery() {
+    if (inEnDir()) return '';
+    return isEn() ? (location.search ? '&lang=en' : '?lang=en') : '';
+  }
+
+  function lojaHref() {
+    return pageHref('loja');
+  }
+
+  function accountHref() {
+    return pageHref('account');
+  }
+
+  function comprarPageHref() {
+    return pageHref('comprar');
+  }
+
   function applyCheckoutDom() {
     applyCheckoutFormPlaceholders();
 
@@ -503,14 +609,17 @@ window.STF_I18N = (function () {
     const cartLink = document.querySelector('.cart-nav-link');
     if (cartLink) {
       const badge = cartLink.querySelector('[data-cart-badge]');
-      cartLink.href = 'comprar.html?lang=en';
+      cartLink.href = comprarPageHref();
       cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} `;
       if (badge) cartLink.appendChild(badge);
     }
     const addMore = document.querySelector('.cart-add-more');
     if (addMore) addMore.href = lojaHref();
     const backLink = document.querySelector('.checkout-nav a[href*="index"]');
-    if (backLink) backLink.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.back')}`;
+    if (backLink) {
+      backLink.href = pageHref('index');
+      backLink.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.back')}`;
+    }
 
     const cartTitle = document.querySelector('.cart-sidebar-title');
     if (cartTitle) cartTitle.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('cart.title')}`;
@@ -566,7 +675,7 @@ window.STF_I18N = (function () {
     }
     const ordersHint = document.querySelector('#account-logged-wrap .checkout-hint');
     if (ordersHint) {
-      ordersHint.innerHTML = `${t('account.ordersAt')} <a href="minha-conta.html">${t('account.myAccount')}</a>.`;
+      ordersHint.innerHTML = `${t('account.ordersAt')} <a href="${accountHref()}">${t('account.myAccount')}</a>.`;
     }
 
     document.querySelectorAll('[data-checkout-account-tab]').forEach((btn) => {
@@ -658,35 +767,92 @@ window.STF_I18N = (function () {
     const cartLink = document.querySelector('.cart-nav-link');
     if (cartLink) {
       const badge = cartLink.querySelector('[data-cart-badge]');
-      cartLink.href = 'comprar.html?lang=en';
+      cartLink.href = comprarPageHref();
       cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} `;
       if (badge) cartLink.appendChild(badge);
     }
     const footer = document.querySelector('[data-site-footer]');
     if (footer) footer.dataset.lang = 'en';
     const back = document.querySelector('.nav-links a[href*="index"]');
-    if (back) back.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.home')}`;
+    if (back) {
+      back.href = pageHref('index');
+      back.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.home')}`;
+    }
+    const introAlt = document.querySelector('.loja-intro-alt a');
+    if (introAlt) introAlt.href = pageHref('index') + '#onde-comprar';
     const grid = document.getElementById('loja-grid');
     if (grid?.querySelector('.fa-spinner')) {
       grid.innerHTML = `<p class="conta-empty"><i class="fas fa-spinner fa-spin"></i> ${t('store.loading')}</p>`;
     }
   }
 
-  function langQuery() {
-    return isEn() ? (location.search ? '&lang=en' : '?lang=en') : '';
-  }
+  function applyContaDom() {
+    if (!isEn()) return;
 
-  function lojaHref() {
-    return isEn() ? 'loja.html?lang=en' : 'loja.html';
+    document.title = t('conta.pageTitle');
+    applyText('.logo-tagline', 'brand.tagline');
+
+    const whereBuy = document.querySelector('.checkout-nav a[href*="onde-comprar"], .checkout-nav a[href*="index"]');
+    if (whereBuy && whereBuy.getAttribute('href')?.includes('onde-comprar')) {
+      whereBuy.innerHTML = `<i class="fas fa-shopping-bag"></i> ${t('nav.whereBuy')}`;
+      whereBuy.href = pageHref('index') + '#onde-comprar';
+    }
+    const home = document.querySelector('.checkout-nav a[href*="index"]:not([href*="#"])');
+    if (home) {
+      home.href = pageHref('index');
+      home.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.home')}`;
+    }
+
+    const h1 = document.querySelector('#conta-login h1');
+    if (h1) h1.innerHTML = `<i class="fas fa-user"></i> ${t('conta.title')}`;
+    applyText('#conta-login .admin-intro', 'conta.intro');
+
+    document.querySelectorAll('[data-conta-tab]').forEach((btn) => {
+      const mode = btn.getAttribute('data-conta-tab');
+      btn.textContent = mode === 'login' ? t('conta.tabLogin') : t('conta.tabRegister');
+    });
+
+    const loginForm = document.getElementById('conta-login-form');
+    if (loginForm) {
+      setLabelText(loginForm.querySelector('label:has([name="email"])'), 'conta.email');
+      setLabelText(loginForm.querySelector('label:has([name="password"])'), 'conta.password');
+      const btn = loginForm.querySelector('button[type="submit"]');
+      if (btn) btn.textContent = t('conta.btnLogin');
+    }
+
+    const regForm = document.getElementById('conta-register-form');
+    if (regForm) {
+      setLabelText(regForm.querySelector('label:has([name="nome"])'), 'conta.fullName', true);
+      setLabelText(regForm.querySelector('label:has([name="email"])'), 'conta.email', true);
+      setLabelText(regForm.querySelector('label:has([name="telefone"])'), 'conta.whatsapp', true);
+      setLabelText(regForm.querySelector('label:has([name="cpf"])'), 'conta.cpf', true);
+      setLabelText(regForm.querySelector('label:has([name="password"])'), 'conta.passwordRegister', true);
+      const btn = regForm.querySelector('button[type="submit"]');
+      if (btn) btn.textContent = t('conta.btnRegister');
+    }
+
+    const logoutBtn = document.getElementById('conta-logout');
+    if (logoutBtn) logoutBtn.textContent = t('conta.btnLogout');
+    applyText('#conta-panel .admin-meta', 'conta.ordersMeta');
+    const buyMore = document.querySelector('#conta-panel .btn-primary[href*="loja"]');
+    if (buyMore) {
+      buyMore.href = lojaHref();
+      buyMore.innerHTML = `<i class="fas fa-store"></i> ${t('conta.buyMore')}`;
+    }
+
+    const footer = document.querySelector('[data-site-footer]');
+    if (footer) footer.dataset.lang = 'en';
   }
 
   function init() {
+    if (inEnDir()) setLang('en');
     try {
       const q = new URLSearchParams(location.search).get('lang');
       if (q === 'en' || q === 'pt') setLang(q);
     } catch (e) { /* ignore */ }
     if (document.body?.classList.contains('checkout-page')) applyCheckoutDom();
     if (document.body?.classList.contains('loja-page')) applyLojaDom();
+    if (document.body?.classList.contains('conta-page')) applyContaDom();
     if (isEn() && window.STF_ACCOUNT?.initNav) window.STF_ACCOUNT.initNav();
   }
 
@@ -696,5 +862,9 @@ window.STF_I18N = (function () {
     init();
   }
 
-  return { t, getLang, isEn, setLang, applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, langQuery, lojaHref, STRINGS };
+  return {
+    t, getLang, isEn, setLang, inEnDir, assetPrefix, pageHref, accountHref, comprarPageHref,
+    applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom,
+    langQuery, lojaHref, STRINGS
+  };
 })();

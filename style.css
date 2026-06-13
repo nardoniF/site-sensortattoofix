@@ -684,6 +684,13 @@ nav,
     color: #aaa;
     font-size: 0.76rem;
 }
+.shipping-card-notice--warn {
+    color: #ffc107;
+    border-top-color: rgba(255, 193, 7, 0.35);
+}
+.shipping-option input:checked + .shipping-card .shipping-card-notice--warn {
+    color: #ffd54f;
+}
 .payment-status {
     padding: 12px 16px;
     border-radius: 10px;

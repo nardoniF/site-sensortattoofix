@@ -191,7 +191,7 @@
         }
         const ordersHint = els.accountLoggedWrap.querySelector('.checkout-hint');
         if (ordersHint) {
-          ordersHint.innerHTML = `${L('account.ordersAt')} <a href="minha-conta.html">${L('account.myAccount')}</a>.`;
+          ordersHint.innerHTML = `${L('account.ordersAt')} <a href="${window.STF_I18N?.accountHref?.() || 'minha-conta.html'}">${L('account.myAccount')}</a>.`;
         }
         els.accountLoggedWrap.hidden = false;
         els.accountGuestWrap.hidden = true;
@@ -405,13 +405,12 @@
     return `<div class="shipping-card-notice">${inner}</div>`;
   }
 
-  const PAYPAL_INTL_SHOW_AFTER_DEFAULT = '2026-06-13T05:30:00.000Z';
-
   function isPayPalIntlAvailable() {
     const paypal = cfg.payments?.paypal || {};
     if (paypal.internationalEnabled === false) return false;
-    const showAfterRaw = paypal.showAfter || PAYPAL_INTL_SHOW_AFTER_DEFAULT;
-    const showAfter = showAfterRaw ? Date.parse(showAfterRaw) : NaN;
+    const showAfterRaw = paypal.showAfter;
+    if (!showAfterRaw) return true;
+    const showAfter = Date.parse(showAfterRaw);
     if (Number.isFinite(showAfter) && Date.now() < showAfter) return false;
     return true;
   }
@@ -528,11 +527,14 @@
         ? `~${opt.etaMinutes || 60} ${L('shipping.minutes')}`
         : `${opt.days} ${L('shipping.days')}`;
       const notice = shippingOptionNoticeHtml(opt.shipmentType);
+      const uberTest = opt.source === 'uber' && opt.testMode
+        ? `<div class="shipping-card-notice shipping-card-notice--warn"><p>${escapeHtml(L('shipping.uberTest'))}</p></div>`
+        : '';
       return `
         <label class="shipping-option" for="${inputId}">
           <input type="radio" name="shippingOption" id="${inputId}" value="${opt.id}" ${checked}
             data-index="${i}">
-          <div class="shipping-card${notice ? ' shipping-card--with-notice' : ''}">
+          <div class="shipping-card${notice || uberTest ? ' shipping-card--with-notice' : ''}">
             <div class="shipping-card-row">
               <div class="shipping-card-main">
                 <strong>${escapeHtml(opt.service)}</strong>
@@ -540,6 +542,7 @@
               </div>
               <span class="shipping-card-price">${formatBRL(opt.price)}</span>
             </div>
+            ${uberTest}
             ${notice}
           </div>
         </label>

@@ -28,6 +28,10 @@
     return url.replace(/\/$/, '');
   }
 
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  }
+
   function showStatus(text, type, target) {
     const el = target === 'panel' ? els.statusPanel : els.statusMsg;
     if (!el) return;
@@ -366,6 +370,70 @@
   }
 
   let integrationsLoading = false;
+  let customersLoading = false;
+
+  function formatCustomerDate(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleString('pt-BR');
+    } catch {
+      return iso;
+    }
+  }
+
+  function renderCustomersTable(customers, checkedAt) {
+    const tbody = document.getElementById('admin-customers-tbody');
+    const checkedEl = document.getElementById('customers-checked-at');
+    if (!tbody) return;
+
+    if (!customers?.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="admin-meta">Nenhum cliente cadastrado ainda.</td></tr>';
+    } else {
+      tbody.innerHTML = customers.map((c) => `
+        <tr>
+          <td>${escapeHtml(c.nome || '—')}</td>
+          <td>${escapeHtml(c.email || '—')}</td>
+          <td>${escapeHtml(c.telefone || '—')}</td>
+          <td>${escapeHtml(c.cpf || '—')}</td>
+          <td>${Number(c.orderCount) || 0}</td>
+          <td>${escapeHtml(formatCustomerDate(c.createdAt))}</td>
+        </tr>
+      `).join('');
+    }
+
+    if (checkedEl && checkedAt) {
+      checkedEl.textContent = `Atualizado em ${formatCustomerDate(checkedAt)} · ${customers?.length || 0} cliente(s)`;
+      checkedEl.hidden = false;
+    }
+  }
+
+  async function loadCustomers() {
+    const tbody = document.getElementById('admin-customers-tbody');
+    if (!tbody || customersLoading) return;
+    const token = getToken();
+    const base = apiBase();
+    if (!token || !base) {
+      tbody.innerHTML = '<tr><td colspan="6" class="admin-meta">Faça login no admin.</td></tr>';
+      return;
+    }
+
+    customersLoading = true;
+    tbody.innerHTML = '<tr><td colspan="6" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando clientes...</td></tr>';
+
+    try {
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/customers', {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao carregar clientes');
+      renderCustomersTable(data.customers, data.checkedAt);
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" class="admin-status-bad">${escapeHtml(err.message)}</td></tr>`;
+    } finally {
+      customersLoading = false;
+    }
+  }
 
   async function loadIntegrationsStatus() {
     const tbody = document.getElementById('api-integrations-tbody');
@@ -712,6 +780,7 @@
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
+      if (id === 'clientes') loadCustomers();
       if (id === 'documentacao') loadDocFrame(true);
     }
 

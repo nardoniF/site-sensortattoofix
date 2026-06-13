@@ -47,11 +47,7 @@ window.StoreConfig = (function () {
             if (local.payments?.paypal) {
               config.payments = {
                 ...config.payments,
-                paypal: {
-                  ...local.payments.paypal,
-                  ...config.payments?.paypal,
-                  showAfter: config.payments?.paypal?.showAfter || local.payments.paypal.showAfter
-                }
+                paypal: { ...local.payments.paypal, ...config.payments?.paypal }
               };
             }
           } catch (e) {
