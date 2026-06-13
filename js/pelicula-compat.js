@@ -1,5 +1,6 @@
 /**
- * Película (screen protector) compatibility — aggregated checkout upsell only.
+ * Película / pulseira compatibility — aggregated checkout upsell only.
+ * Regra principal: lista explícita compatibleWatchModels (1 produto → N modelos do select).
  */
 window.STF_PELICULA = (function () {
   const CASE_RE = /\((\d+(?:\.\d+)?)\s*mm\)/i;
@@ -28,6 +29,11 @@ window.STF_PELICULA = (function () {
     return { shape, caseMm, screenMm: null };
   }
 
+  function productType(product) {
+    if (product?.productType === 'pulseira') return 'pulseira';
+    return 'pelicula';
+  }
+
   function isAggregated(product) {
     return product?.aggregated === true;
   }
@@ -52,99 +58,57 @@ window.STF_PELICULA = (function () {
     return product.description || '';
   }
 
-  function matchesRules(pelicula, meta) {
-    const rules = pelicula.compatibility;
-    if (!rules || !meta) return false;
-
-    const hasDimensional = rules.caseMm != null || rules.screenMm != null;
-    if (!hasDimensional) return false;
-
-    if (rules.shape && meta.shape && rules.shape !== meta.shape) return false;
-
-    if (rules.caseMm != null) {
-      const cases = Array.isArray(rules.caseMm) ? rules.caseMm : [rules.caseMm];
-      if (meta.caseMm == null || !cases.includes(meta.caseMm)) return false;
-    }
-
-    if (rules.screenMm != null) {
-      const tol = Number(rules.screenMmTolerance ?? 2);
-      if (meta.screenMm == null) return false;
-      if (Math.abs(meta.screenMm - rules.screenMm) > tol) return false;
-    }
-
-    const dimTol = Number(rules.screenMmTolerance ?? 2);
-    if (rules.screenWidthMm != null) {
-      if (meta.screenWidthMm == null) return false;
-      if (Math.abs(meta.screenWidthMm - rules.screenWidthMm) > dimTol) return false;
-    }
-    if (rules.screenHeightMm != null) {
-      if (meta.screenHeightMm == null) return false;
-      if (Math.abs(meta.screenHeightMm - rules.screenHeightMm) > dimTol) return false;
-    }
-
-    return true;
+  function compatibleModels(product) {
+    const list = product?.compatibleWatchModels;
+    return Array.isArray(list) ? list.filter(Boolean) : [];
   }
 
-  function matchesExplicitModels(pelicula, watchModel) {
-    const list = pelicula.compatibleWatchModels;
-    if (!Array.isArray(list) || !list.length) return false;
-    return list.includes(watchModel);
+  function isCompatible(product, watchModel) {
+    if (!product || !watchModel) return false;
+    const model = String(watchModel).trim();
+    if (!model || model.includes('Outro modelo') || model.includes('Other model')) return false;
+    return compatibleModels(product).includes(model);
   }
 
-  function matchesAmbiguousAmazfit(pelicula, watchModel) {
-    if (watchModel !== 'Amazfit GTR / GTS') return false;
-    const id = pelicula.id || pelicula.slug || '';
-    return id.includes('gtr-3') || id.includes('gts-2-mini') || id.includes('gts-squircle-44');
-  }
-
-  function matchesPartialName(pelicula, watchModel) {
-    const id = pelicula.id || pelicula.slug || '';
-    const model = String(watchModel || '');
-    if (id.includes('bip') && model.includes('Bip')) return true;
-    if (id.includes('gts-2-mini') && model.includes('GTS')) return true;
-    if (id.includes('gtr-mini') && model.includes('GTR Mini')) return true;
-    if (id.includes('gtr-3') && model.includes('GTR') && !model.includes('Mini')) return true;
-    if (id.includes('huawei-gt') && model.includes('Huawei Watch GT')) return true;
-    if (id.includes('samsung-gw3') && model.includes('Galaxy Watch 3')) return true;
-    return false;
-  }
-
-  function isCompatible(pelicula, watchModel, configMeta) {
-    if (!pelicula || !watchModel) return false;
-    const meta = resolveModelMeta(watchModel, configMeta);
-    if (matchesExplicitModels(pelicula, watchModel)) return true;
-    if (matchesAmbiguousAmazfit(pelicula, watchModel)) return true;
-    if (matchesPartialName(pelicula, watchModel)) return true;
-    return matchesRules(pelicula, meta);
-  }
-
-  function findCompatible(watchModel, products, configMeta) {
+  function findCompatible(watchModel, products) {
     const model = String(watchModel || '').trim();
     if (!model || model.includes('Outro modelo') || model.includes('Other model')) return [];
+
     const aggregated = listAggregated(products);
-    const seen = new Set();
-    const specific = [];
-    let generic = null;
+    const peliculas = [];
+    const pulseiras = [];
+    let genericPelicula = null;
+
     aggregated.forEach((p) => {
-      const id = p.id || p.slug;
-      if (!id || seen.has(id)) return;
-      if (!isCompatible(p, model, configMeta)) return;
-      seen.add(id);
-      if (String(id).includes('round-33mm')) generic = p;
-      else specific.push(p);
+      if (!isCompatible(p, model)) return;
+      if (productType(p) === 'pulseira') {
+        pulseiras.push(p);
+        return;
+      }
+      const id = p.id || p.slug || '';
+      if (String(id).includes('round-33mm')) {
+        genericPelicula = p;
+      } else {
+        peliculas.push(p);
+      }
     });
-    if (specific.length) return specific;
-    return generic ? [generic] : [];
+
+    const result = [...peliculas];
+    if (!peliculas.length && genericPelicula) result.push(genericPelicula);
+    result.push(...pulseiras);
+    return result;
   }
 
   return {
     parseCaseMm,
     resolveModelMeta,
+    productType,
     isAggregated,
     listAggregated,
     listStorefront,
     productLabel,
     productDescription,
+    compatibleModels,
     isCompatible,
     findCompatible
   };

@@ -720,12 +720,18 @@
             </span>
             <input type="number" data-field="sensorMm" step="0.5" min="0" value="${p.sensorMm != null ? p.sensorMm : ''}" placeholder="ex.: 25">
           </label>` : '';
+    const aggregatedFields = isAggregated ? `
+          <label class="full">Modelos compatíveis <small class="admin-field-hint">um por linha — mesmos nomes do select do checkout</small>
+            <textarea data-field="compatibleWatchModels" rows="4" placeholder="Apple Watch Series 9 (45mm)">${escTextarea((p.compatibleWatchModels || []).join('\n'))}</textarea>
+          </label>
+          <p class="admin-meta admin-aggregated-compat-hint"><i class="fas fa-link"></i> <strong>Regra do upsell:</strong> o produto só aparece se o modelo escolhido pelo cliente estiver nesta lista (1 agregado → vários modelos).</p>` : '';
     return `
       <div class="admin-product-row${isAggregated ? ' admin-product-row--aggregated' : ' admin-product-row--main'}" data-product-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}">
         <h4>${title}</h4>
         <div class="form-grid">
           <label class="full">Nome<input type="text" data-field="name" value="${escAttr(p.name)}" required></label>
           <label class="full">Descrição<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
+          ${aggregatedFields}
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
           <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
           <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}" placeholder="/site/sensortattoofix.jpg ou /produtos/…"></label>
@@ -808,6 +814,12 @@
         else delete product.sensorMm;
       } else {
         delete product.sensorMm;
+        const modelsEl = row.querySelector('[data-field="compatibleWatchModels"]');
+        if (modelsEl) {
+          const lines = modelsEl.value.split('\n').map((s) => s.trim()).filter(Boolean);
+          if (lines.length) product.compatibleWatchModels = lines;
+          else delete product.compatibleWatchModels;
+        }
       }
       return product;
     });

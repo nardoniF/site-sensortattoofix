@@ -719,6 +719,10 @@ function publicProductFields(p, config) {
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
   if (p.sensorMm != null) row.sensorMm = Number(p.sensorMm);
+  if (p.productType) row.productType = p.productType;
+  if (p.bandStyle) row.bandStyle = p.bandStyle;
+  if (p.color) row.color = p.color;
+  if (p.colorEn) row.colorEn = p.colorEn;
   return row;
 }
 

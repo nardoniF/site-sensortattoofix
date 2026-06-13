@@ -349,20 +349,46 @@
       return;
     }
 
-    wrap.hidden = false;
-    wrap.innerHTML = `
-      <h3 class="pelicula-upsell-title"><i class="fas fa-shield-alt"></i> ${escapeHtml(L('pelicula.upsellTitle'))}</h3>
-      <p class="pelicula-upsell-hint">${escapeHtml(L('pelicula.upsellHint'))}</p>
-      ${compatible.map((p) => `
+    const peliculas = compatible.filter((p) => window.STF_PELICULA.productType(p) !== 'pulseira');
+    const pulseiras = compatible.filter((p) => window.STF_PELICULA.productType(p) === 'pulseira');
+    const hasBoth = peliculas.length > 0 && pulseiras.length > 0;
+    const titleKey = hasBoth || pulseiras.length ? 'agregados.upsellTitle' : 'pelicula.upsellTitle';
+    const hintKey = hasBoth || pulseiras.length ? 'agregados.upsellHint' : 'pelicula.upsellHint';
+    const titleIcon = hasBoth ? 'fa-gift' : (pulseiras.length ? 'fa-clock' : 'fa-shield-alt');
+
+    function renderCard(p) {
+      const type = window.STF_PELICULA.productType(p);
+      const addKey = type === 'pulseira' ? 'pulseira.add' : 'pelicula.add';
+      const desc = window.STF_PELICULA.productDescription(p);
+      const forModel = window.STF_I18N?.t?.('agregados.forYourModel', { model: watchModel }) || watchModel;
+      return `
         <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
           <img src="${escapeHtml(p.image || 'site/sensortattoofix.jpg')}" alt="">
           <div class="pelicula-upsell-info">
             <strong>${escapeHtml(window.STF_PELICULA.productLabel(p))}</strong>
-            <span>${formatBRL(p.price)}</span>
+            ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
+            <span class="pelicula-upsell-model">${escapeHtml(forModel)}</span>
+            <span class="pelicula-upsell-price">${formatBRL(p.price)}</span>
           </div>
-          <button type="button" class="pelicula-upsell-btn" data-pelicula-add="${escapeHtml(p.id)}">${escapeHtml(L('pelicula.add'))}</button>
+          <button type="button" class="pelicula-upsell-btn" data-pelicula-add="${escapeHtml(p.id)}" data-product-type="${escapeHtml(type)}">${escapeHtml(L(addKey))}</button>
         </div>
-      `).join('')}
+      `;
+    }
+
+    function renderSection(icon, labelKey, items) {
+      if (!items.length) return '';
+      const header = hasBoth
+        ? `<h4 class="pelicula-upsell-section"><i class="fas ${icon}"></i> ${escapeHtml(L(labelKey))}</h4>`
+        : '';
+      return `${header}${items.map(renderCard).join('')}`;
+    }
+
+    wrap.hidden = false;
+    wrap.innerHTML = `
+      <h3 class="pelicula-upsell-title"><i class="fas ${titleIcon}"></i> ${escapeHtml(L(titleKey))}</h3>
+      <p class="pelicula-upsell-hint">${escapeHtml(L(hintKey))}</p>
+      ${renderSection('fa-shield-alt', 'agregados.sectionPelicula', peliculas)}
+      ${renderSection('fa-clock', 'agregados.sectionPulseira', pulseiras)}
     `;
 
     wrap.querySelectorAll('[data-pelicula-add]').forEach((btn) => {
@@ -381,7 +407,8 @@
         updateSummary();
         quoteShipping();
         btn.disabled = true;
-        btn.textContent = L('pelicula.inCart');
+        const inCartKey = btn.getAttribute('data-product-type') === 'pulseira' ? 'pulseira.inCart' : 'pelicula.inCart';
+        btn.textContent = L(inCartKey);
       });
     });
   }
