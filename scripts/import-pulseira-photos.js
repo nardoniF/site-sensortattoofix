@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Copia fotos reais do usuário para produtos/pulseiras/{product-id}.png
- * e atualiza image em data/store-config.json
+ * Copia fotos REAIS do usuário (pasta assets do Cursor) para produtos/pulseiras/{product-id}.png
+ * — fotos que você tirou ou salvou dos seus anúncios. Nunca baixa da internet.
  */
 const fs = require('fs');
 const path = require('path');
@@ -13,20 +13,23 @@ const assetsDir = fs.existsSync(ASSETS) ? ASSETS : altAssets;
 const outDir = path.join(ROOT, 'produtos/pulseiras');
 const configPath = path.join(ROOT, 'data/store-config.json');
 
-/** productId -> substring to match in assets filename (first match wins) */
+/**
+ * productId -> substring do nome do arquivo em assets (primeiro match).
+ * Prioridade: IMG_* (fotos no estoque) e arquivos Pulseira_* dos seus anúncios.
+ */
 const MAP = {
-  'pulseira-mesh-preta-42-49': 'Pulseira_Apple_Watch_-_Metal_Preta',
-  'pulseira-mesh-rose-38-41': 'Pulseira_Apple_Watch_-_Metal_Rose_-_42_44_45_49_2mm',
+  'pulseira-mesh-preta-42-49': 'IMG_3083',
+  'pulseira-mesh-rose-38-41': 'Pulseira_Apple_Watch_-_Metal_Rose',
   'pulseira-ocean-branca-42-49': 'Pulseira_Silicone_Branca_escuro',
   'pulseira-ocean-verde-42-49': 'Pulseira_Silicone_Verde_escuro',
-  'pulseira-sport-air-preta-42-49': 'IMG_3073',
-  'pulseira-sport-azul-38-41': 'Pulseira_para_AppleWatch__AZUL_Silicone',
-  'pulseira-sport-azul-40-45': 'Pulseira_para_AppleWatch__AZUL_Silicone',
-  'pulseira-sport-branca-42-49': 'Pulseira_para_AppleWatch__BRANCA',
+  'pulseira-sport-air-preta-42-49': 'IMG_3084',
+  'pulseira-sport-azul-38-41': 'IMG_3082',
+  'pulseira-sport-azul-40-45': 'IMG_3092',
+  'pulseira-sport-branca-42-49': 'IMG_3090',
   'pulseira-sport-cinza-38-41': 'Pulseira_para_AppleWatch_Silicone_CINZA',
-  'pulseira-sport-creme-41-45': 'Pulseira_De_Silicone_Para_Samsung_Galaxy_Watch_8_Sport',
-  'pulseira-sport-preta-42-49': 'Pulseira_para_AppleWatch__PRETA',
-  'pulseira-sport-preta-ultra-49': 'Pulseira_para_AppleWatch__PRETA',
+  'pulseira-sport-creme-41-45': 'Pulseira_De_Silicone_Para_Samsung_Galaxy_Watch_8',
+  'pulseira-sport-preta-42-49': 'IMG_3091',
+  'pulseira-sport-preta-ultra-49': 'IMG_3091',
   'pulseira-alpine-verde-49': 'IMG_3088',
   'pulseira-link-grafite-42-49': 'IMG_3085',
   'pulseira-trail-preta-ultra-49': 'IMG_3086'
@@ -43,7 +46,7 @@ if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 let ok = 0;
-let miss = [];
+const miss = [];
 
 Object.entries(MAP).forEach(([productId, needle]) => {
   const src = findAsset(needle);
@@ -61,7 +64,7 @@ Object.entries(MAP).forEach(([productId, needle]) => {
 });
 
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
-console.log(`\n${ok} fotos importadas.`);
+console.log(`\n${ok} fotos importadas (somente assets locais).`);
 if (miss.length) {
-  console.warn('Sem arquivo:', miss.map((m) => m.productId).join(', '));
+  console.warn('Sem arquivo:', miss.map((m) => `${m.productId} (${m.needle})`).join(', '));
 }

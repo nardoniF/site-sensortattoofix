@@ -1195,6 +1195,9 @@
     "Samsung Galaxy Watch 6 Classic (47mm)",
     "Samsung Galaxy Watch 7 (40mm)",
     "Samsung Galaxy Watch 7 (44mm)",
+    "Samsung Galaxy Watch 8 (40mm)",
+    "Samsung Galaxy Watch 8 (44mm)",
+    "Samsung Galaxy Watch 8 Classic (46mm)",
     "Samsung Galaxy Watch Ultra (47mm)",
     "Garmin Fenix",
     "Garmin Forerunner",
@@ -1354,6 +1357,21 @@
       "shape": "round",
       "caseMm": 44,
       "screenMm": 34
+    },
+    "Samsung Galaxy Watch 8 (40mm)": {
+      "shape": "round",
+      "caseMm": 40,
+      "screenMm": 32
+    },
+    "Samsung Galaxy Watch 8 (44mm)": {
+      "shape": "round",
+      "caseMm": 44,
+      "screenMm": 34
+    },
+    "Samsung Galaxy Watch 8 Classic (46mm)": {
+      "shape": "round",
+      "caseMm": 46,
+      "screenMm": 37
     },
     "Samsung Galaxy Watch Ultra (47mm)": {
       "shape": "round",
