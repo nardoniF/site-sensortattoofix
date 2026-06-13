@@ -1711,6 +1711,101 @@ line-height:1.8;
     gap: 24px;
 }
 .admin-frete-subpanel[hidden] { display: none !important; }
+
+.admin-product-subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 16px;
+}
+.admin-product-subtab {
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: var(--text, #e2e8f0);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    cursor: pointer;
+}
+.admin-product-subtab.active {
+    border-color: var(--primary, #2dd4bf);
+    background: rgba(45, 212, 191, 0.12);
+    color: var(--primary, #2dd4bf);
+}
+.admin-product-subpanel[hidden] { display: none !important; }
+.admin-badge-main {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #1d4ed8;
+    background: rgba(96, 165, 250, 0.2);
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.admin-product-row--main {
+    border-left: 3px solid rgba(96, 165, 250, 0.65);
+    padding-left: 12px;
+    border-radius: 8px;
+}
+
+.stf-help-tip {
+    position: relative;
+    display: inline-flex;
+    margin-left: 6px;
+    color: var(--primary, #2dd4bf);
+    cursor: help;
+    vertical-align: middle;
+}
+.stf-help-tip > i { font-size: 1rem; }
+.stf-help-tip-pop {
+    display: none;
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    z-index: 30;
+    width: min(240px, 70vw);
+    padding: 8px;
+    border-radius: 10px;
+    background: #1a1d24;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    text-align: center;
+}
+.stf-help-tip-pop img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    margin-bottom: 6px;
+}
+.stf-help-tip-pop small {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+.stf-help-tip:hover .stf-help-tip-pop,
+.stf-help-tip:focus .stf-help-tip-pop,
+.stf-help-tip:focus-within .stf-help-tip-pop {
+    display: block;
+}
+.checkout-watch-label-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+.checkout-watch-sensor-warn {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    color: #fbbf24;
+}
+
 .admin-form-actions-sticky {
     position: sticky;
     bottom: 0;

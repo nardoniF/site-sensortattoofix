@@ -49,7 +49,7 @@
     }
     grid.innerHTML = products.map((p) => {
       const slug = p.slug || p.id || 'kit-sensor-tattoofix';
-      const img = p.image || 'sensortattoofix.jpg';
+      const img = p.image || 'site/sensortattoofix.jpg';
       const frete = L('store.frete');
       return `
         <article class="loja-card">

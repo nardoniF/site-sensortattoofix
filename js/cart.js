@@ -24,7 +24,7 @@ window.STF_CART = (function () {
       slug: product.slug || id,
       name: product.name || 'Produto',
       price: Number(product.price) || 0,
-      image: product.image || 'sensortattoofix.jpg',
+      image: product.image || 'site/sensortattoofix.jpg',
       qty: Math.max(1, Math.min(MAX_QTY, Number(qty) || 1)),
       requiresSmartwatch: product.requiresSmartwatch !== false,
       aggregated: product.aggregated === true,

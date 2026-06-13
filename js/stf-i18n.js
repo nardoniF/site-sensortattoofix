@@ -50,6 +50,8 @@ window.STF_I18N = (function () {
       'form.watchModel': 'Modelo do smartwatch',
       'form.watchHint': 'O kit é feito para o seu modelo — escolha na lista antes de continuar.',
       'form.watchSelect': 'Selecione o modelo',
+      'form.sensorMeasureHint': 'Meça o diâmetro do sensor no fundo do relógio (mm) para escolher a lente certa.',
+      'form.sensorMismatch': 'Atenção: este relógio costuma ter sensor de {watch} mm e a lente no carrinho é {lens} mm. Confira a medida com a régua.',
       'form.notesOptional': 'Observações (opcional)',
       'form.notesRequired': 'Observações',
       'form.notesPhOptional': 'Ex.: instruções de entrega ou detalhes do pedido',
@@ -304,6 +306,8 @@ window.STF_I18N = (function () {
       'form.watchModel': 'Smartwatch model',
       'form.watchHint': 'The kit is made for your watch — pick your model before continuing.',
       'form.watchSelect': 'Select your model',
+      'form.sensorMeasureHint': 'Measure the sensor circle on the back of your watch (mm) to pick the right lens.',
+      'form.sensorMismatch': 'Note: this watch usually has a {watch} mm sensor and your cart lens is {lens} mm. Double-check with a ruler.',
       'form.notesOptional': 'Notes (optional)',
       'form.notesRequired': 'Notes',
       'form.notesPhOptional': 'E.g. delivery instructions or order details',
@@ -709,6 +713,7 @@ window.STF_I18N = (function () {
     applyText('.checkout-step[data-step="1"] .checkout-step-head h3', 'section.yourData');
     applyText('.checkout-step[data-step="1"] > h3', 'section.shippingDest');
     applyText('#smartwatch-hint', 'form.watchHint');
+    applyText('#sensor-measure-hint', 'form.sensorMeasureHint');
     applyText('.checkout-account-title', 'account.checkoutTitle');
     applyText('.shipping-options-title', 'section.chooseShipping');
     applyText('.checkout-step[data-step="2"] h3', 'pay.title');

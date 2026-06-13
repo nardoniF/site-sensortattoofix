@@ -703,52 +703,82 @@
     }
   }
 
-  function renderProducts(products) {
-    const list = document.getElementById('admin-products-list');
-    if (!list) return;
-    const aggregatedCount = products.filter((p) => p.aggregated).length;
-    const summary = document.getElementById('admin-products-summary');
-    if (summary) {
-      summary.textContent = aggregatedCount
-        ? `${products.length} produtos · ${aggregatedCount} agregado(s) (só checkout)`
-        : `${products.length} produto(s) na vitrine`;
-    }
-    list.innerHTML = products.map((p, i) => `
-      <div class="admin-product-row${p.aggregated ? ' admin-product-row--aggregated' : ''}" data-product-index="${i}">
-        <h4>${p.aggregated ? '<span class="admin-badge-aggregated">Agregado</span> ' : ''}Produto ${i + 1}</h4>
+  function renderProductRow(p, i, isAggregated) {
+    const badge = isAggregated
+      ? '<span class="admin-badge-aggregated">Agregado</span> '
+      : '<span class="admin-badge-main">Lente</span> ';
+    const title = p.name ? `${badge}Produto ${i + 1}: ${escAttr(p.name)}` : `${badge}Produto ${i + 1}`;
+    const sensorField = !isAggregated ? `
+          <label>Sensor da lente (mm)
+            <span class="stf-help-tip" tabindex="0" aria-label="Como medir o sensor">
+              <i class="fas fa-circle-question"></i>
+              <span class="stf-help-tip-pop">
+                <img src="site/relogio_sensor.jpg" alt="Medir o sensor com régua no relógio">
+                <small>Meça o diâmetro do círculo do sensor no fundo do relógio (em mm).</small>
+              </span>
+            </span>
+            <input type="number" data-field="sensorMm" step="0.5" min="0" value="${p.sensorMm != null ? p.sensorMm : ''}" placeholder="ex.: 25">
+          </label>` : '';
+    return `
+      <div class="admin-product-row${isAggregated ? ' admin-product-row--aggregated' : ' admin-product-row--main'}" data-product-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}">
+        <h4>${title}</h4>
         <div class="form-grid">
           <label class="full">Nome<input type="text" data-field="name" value="${escAttr(p.name)}" required></label>
           <label class="full">Descrição<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
           <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
-          <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}"></label>
+          <label class="full">URL da imagem<input type="url" data-field="image" value="${p.image || ''}" placeholder="/site/sensortattoofix.jpg ou /produtos/…"></label>
+          ${sensorField}
           <label>Peso (g)<input type="number" data-field="weightGrams" min="0.1" step="0.1" value="${p.weightGrams ?? 3}"></label>
           <div class="admin-product-flags">
             <label class="label-check"><input type="checkbox" data-field="active" ${p.active !== false ? 'checked' : ''}><span>Ativo</span></label>
-            <label class="label-check admin-flag-aggregated"><input type="checkbox" data-field="aggregated" ${p.aggregated ? 'checked' : ''}><span><strong>Produto agregado</strong> — oculto na loja, só upsell no checkout</span></label>
             <label class="label-check"><input type="checkbox" data-field="requiresSmartwatch" ${p.requiresSmartwatch !== false ? 'checked' : ''}><span>Pede modelo do relógio</span></label>
           </div>
         </div>
-        <button type="button" class="btn-secondary btn-remove-product" data-index="${i}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
-      </div>
-    `).join('');
+        <button type="button" class="btn-secondary btn-remove-product" data-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
+      </div>`;
+  }
+
+  function renderProductList(products, listId, isAggregated) {
+    const list = document.getElementById(listId);
+    if (!list) return;
+    list.innerHTML = products.length
+      ? products.map((p, i) => renderProductRow(p, i, isAggregated)).join('')
+      : `<p class="admin-meta">${isAggregated ? 'Nenhum produto agregado cadastrado.' : 'Nenhuma lente cadastrada.'}</p>`;
 
     list.querySelectorAll('.btn-remove-product').forEach((btn) => {
       btn.addEventListener('click', () => {
         const idx = Number(btn.getAttribute('data-index'));
-        const next = collectProductsFromDom().filter((_, j) => j !== idx);
+        const agg = btn.getAttribute('data-aggregated') === '1';
+        const all = collectProductsFromDom();
+        const main = all.filter((p) => !p.aggregated);
+        const aggregated = all.filter((p) => p.aggregated);
+        if (agg) aggregated.splice(idx, 1);
+        else main.splice(idx, 1);
+        const next = [...main, ...aggregated];
         renderProducts(next.length ? next : [{
-          id: 'novo-produto', slug: 'novo-produto', name: 'Novo produto', description: '', price: 0,
-          image: '', active: true, requiresSmartwatch: false, weightGrams: 3
+          id: 'kit-sensor-tattoofix', slug: 'kit-sensor-tattoofix', name: 'Kit Sensor TattooFix',
+          description: '', price: 59.9, image: '/site/sensortattoofix.jpg', active: true,
+          requiresSmartwatch: true, weightGrams: 3, sensorMm: 25
         }]);
       });
     });
   }
 
-  function collectProductsFromDom() {
-    const list = document.getElementById('admin-products-list');
-    if (!list) return [];
-    return [...list.querySelectorAll('.admin-product-row')].map((row, i) => {
+  function renderProducts(products) {
+    const main = products.filter((p) => !p.aggregated);
+    const aggregated = products.filter((p) => p.aggregated);
+    const summary = document.getElementById('admin-products-summary');
+    if (summary) {
+      summary.textContent = `${main.length} lente(s) · ${aggregated.length} agregado(s)`;
+    }
+    renderProductList(main, 'admin-products-main', false);
+    renderProductList(aggregated, 'admin-products-aggregated', true);
+  }
+
+  function collectFromList(listEl, isAggregated) {
+    if (!listEl) return [];
+    return [...listEl.querySelectorAll('.admin-product-row')].map((row, i) => {
       const val = (field) => {
         const el = row.querySelector(`[data-field="${field}"]`);
         if (!el) return '';
@@ -758,7 +788,7 @@
       const name = val('name');
       const slug = val('slug') || slugify(name) || `produto-${i + 1}`;
       const prev = (currentConfig?.products || []).find((p) => p.id === slug || p.slug === slug) || {};
-      return {
+      const row = {
         ...prev,
         id: slug,
         slug,
@@ -767,17 +797,65 @@
         price: Number(val('price')) || 0,
         image: val('image'),
         active: val('active'),
-        aggregated: val('aggregated'),
+        aggregated: isAggregated,
         requiresSmartwatch: val('requiresSmartwatch'),
         weightGrams: Number(val('weightGrams')) || 3
       };
+      if (!isAggregated) {
+        const sm = val('sensorMm');
+        if (sm) row.sensorMm = Number(sm);
+        else delete row.sensorMm;
+      } else {
+        delete row.sensorMm;
+      }
+      return row;
     });
+  }
+
+  function collectProductsFromDom() {
+    return [
+      ...collectFromList(document.getElementById('admin-products-main'), false),
+      ...collectFromList(document.getElementById('admin-products-aggregated'), true)
+    ];
+  }
+
+  let productSubtabsWired = false;
+
+  function showProductSubtab(subtabId) {
+    const container = document.getElementById('admin-tab-produtos');
+    if (!container) return;
+    const id = subtabId || 'main';
+    container.querySelectorAll('[data-product-subtab]').forEach((tab) => {
+      const active = tab.dataset.productSubtab === id;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    container.querySelectorAll('.admin-product-subpanel').forEach((panel) => {
+      panel.hidden = panel.id !== `admin-products-${id}-panel`;
+    });
+    try { localStorage.setItem('stf_admin_product_subtab', id); } catch (e) { /* ignore */ }
+  }
+
+  function initProductSubtabs() {
+    if (productSubtabsWired) return;
+    const container = document.getElementById('admin-tab-produtos');
+    if (!container) return;
+    const tabs = container.querySelectorAll('[data-product-subtab]');
+    if (!tabs.length) return;
+    productSubtabsWired = true;
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => showProductSubtab(tab.dataset.productSubtab));
+    });
+    let saved = 'main';
+    try { saved = localStorage.getItem('stf_admin_product_subtab') || 'main'; } catch (e) { /* ignore */ }
+    showProductSubtab(saved);
   }
 
   function fillForm(config) {
     const f = els.configForm;
     if (!f || !config) return;
     renderProducts(getProductsFromConfig(config));
+    initProductSubtabs();
     const ship = config.shipping || {};
     const sender = ship.sender || {};
     const pix = config.pix || {};
@@ -897,7 +975,10 @@
   function collectForm() {
     const f = els.configForm;
     const products = collectProductsFromDom();
-    const primary = products.find((p) => p.active !== false) || products[0] || {};
+    const primary = products.find((p) => p.active !== false && !p.aggregated)
+      || products.find((p) => !p.aggregated)
+      || products[0]
+      || {};
     return {
       product: {
         name: primary.name || '',
@@ -1298,20 +1379,44 @@
     renderMotoboyCouriers(couriers);
   });
 
-  document.getElementById('btn-add-product')?.addEventListener('click', () => {
-    const products = collectProductsFromDom();
-    products.push({
-      id: 'produto-' + Date.now(),
-      slug: 'produto-' + Date.now(),
-      name: 'Novo produto',
+  document.getElementById('btn-add-main-product')?.addEventListener('click', () => {
+    const all = collectProductsFromDom();
+    const main = all.filter((p) => !p.aggregated);
+    const aggregated = all.filter((p) => p.aggregated);
+    main.push({
+      id: 'lente-' + Date.now(),
+      slug: 'lente-' + Date.now(),
+      name: 'Nova lente Sensor TattooFix',
       description: '',
-      price: 0,
-      image: '',
+      price: 59.9,
+      image: '/site/sensortattoofix.jpg',
       active: true,
-      requiresSmartwatch: false,
-      weightGrams: 3
+      requiresSmartwatch: true,
+      weightGrams: 3,
+      sensorMm: 25
     });
-    renderProducts(products);
+    renderProducts([...main, ...aggregated]);
+    showProductSubtab('main');
+  });
+
+  document.getElementById('btn-add-aggregated-product')?.addEventListener('click', () => {
+    const all = collectProductsFromDom();
+    const main = all.filter((p) => !p.aggregated);
+    const aggregated = all.filter((p) => p.aggregated);
+    aggregated.push({
+      id: 'agregado-' + Date.now(),
+      slug: 'agregado-' + Date.now(),
+      name: 'Novo produto agregado',
+      description: '',
+      price: 20,
+      image: '/produtos/pelicula-redonda.svg',
+      active: true,
+      aggregated: true,
+      requiresSmartwatch: false,
+      weightGrams: 1
+    });
+    renderProducts([...main, ...aggregated]);
+    showProductSubtab('aggregated');
   });
 
   document.addEventListener('DOMContentLoaded', async () => {

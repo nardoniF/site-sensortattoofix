@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.81">
+    <link rel="stylesheet" href="style.css?v=1.82">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -13,7 +13,7 @@
     <header class="admin-header">
         <nav class="container admin-nav">
             <div class="logo-area">
-                <a href="index.html" class="logo-img-link admin-logo-link"><img src="logo.jpg" alt="Logo" class="main-logo-img"></a>
+                <a href="index.html" class="logo-img-link admin-logo-link"><img src="site/logo.jpg" alt="Logo" class="main-logo-img"></a>
                 <div class="logo-text">ADMIN<span>PANEL</span></div>
             </div>
             <ul class="nav-links checkout-nav admin-toolbar">
@@ -76,11 +76,24 @@
                     <div id="admin-tab-produtos" class="admin-tab-panel active" role="tabpanel">
                     <fieldset>
                         <legend><i class="fas fa-box"></i> Catálogo de produtos</legend>
-                        <p class="admin-meta">Cadastre kits e acessórios. Marque <strong>Produto agregado</strong> para películas que só aparecem no checkout (upsell), não na vitrine.</p>
+                        <nav class="admin-product-subtabs" role="tablist" aria-label="Tipos de produto">
+                            <button type="button" role="tab" class="admin-product-subtab active" data-product-subtab="main" aria-selected="true" aria-controls="admin-products-main-panel"><i class="fas fa-circle-dot"></i> Produtos principais (lentes)</button>
+                            <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="aggregated" aria-selected="false" aria-controls="admin-products-aggregated-panel"><i class="fas fa-puzzle-piece"></i> Produtos agregados (upsell)</button>
+                        </nav>
                         <p id="admin-products-summary" class="admin-meta admin-products-summary"></p>
-                        <div id="admin-products-list"></div>
-                        <div class="admin-form-actions" style="margin-top:8px">
-                            <button type="button" id="btn-add-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar produto</button>
+                        <div id="admin-products-main-panel" class="admin-product-subpanel" role="tabpanel">
+                            <p class="admin-meta">Lentes Sensor TattooFix na vitrine e loja. Informe o <strong>tamanho do sensor (mm)</strong> de cada lente.</p>
+                            <div id="admin-products-main"></div>
+                            <div class="admin-form-actions" style="margin-top:8px">
+                                <button type="button" id="btn-add-main-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar lente</button>
+                            </div>
+                        </div>
+                        <div id="admin-products-aggregated-panel" class="admin-product-subpanel" role="tabpanel" hidden>
+                            <p class="admin-meta">Películas e acessórios que <strong>só aparecem no checkout</strong> (mesmo frete), nunca na vitrine.</p>
+                            <div id="admin-products-aggregated"></div>
+                            <div class="admin-form-actions" style="margin-top:8px">
+                                <button type="button" id="btn-add-aggregated-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar agregado</button>
+                            </div>
                         </div>
                     </fieldset>
                     </div>
@@ -422,6 +435,6 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/store-products-merge.js?v=1"></script>
-    <script src="js/admin.js?v=29"></script>
+    <script src="js/admin.js?v=30"></script>
 </body>
 </html>

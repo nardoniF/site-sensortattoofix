@@ -47,6 +47,7 @@
     smartwatchSelect: document.getElementById('smartwatch-select'),
     checkoutWatchBlock: document.getElementById('checkout-watch-block'),
     smartwatchHint: document.getElementById('smartwatch-hint'),
+    smartwatchSensorWarn: document.getElementById('smartwatch-sensor-warn'),
     smartwatchError: document.getElementById('smartwatch-error'),
     summaryProduct: document.getElementById('summary-product'),
     summaryShipping: document.getElementById('summary-shipping'),
@@ -302,6 +303,30 @@
     return item.name;
   }
 
+  function updateSensorWarn() {
+    const el = els.smartwatchSensorWarn;
+    if (!el) return;
+    const watchModel = els.smartwatchSelect?.value || '';
+    const meta = cfg.smartwatchModelMeta?.[watchModel];
+    const watchSensor = meta?.sensorMm;
+    const cart = window.STF_CART?.load() || [];
+    const lensItem = cart.find((item) => {
+      const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
+      return p && !p.aggregated && p.sensorMm;
+    });
+    const lensProduct = lensItem
+      ? products.find((x) => x.id === lensItem.productId || x.slug === lensItem.productId)
+      : null;
+    const lensSensor = lensProduct?.sensorMm;
+    if (watchSensor && lensSensor && Math.abs(Number(watchSensor) - Number(lensSensor)) > 0.5) {
+      el.textContent = L('form.sensorMismatch', { watch: watchSensor, lens: lensSensor });
+      el.hidden = false;
+      return;
+    }
+    el.hidden = true;
+    el.textContent = '';
+  }
+
   function renderPeliculaUpsell() {
     const wrap = els.peliculaUpsell;
     if (!wrap || !window.STF_PELICULA) return;
@@ -330,7 +355,7 @@
       <p class="pelicula-upsell-hint">${escapeHtml(L('pelicula.upsellHint'))}</p>
       ${compatible.map((p) => `
         <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
-          <img src="${escapeHtml(p.image || 'sensortattoofix.jpg')}" alt="">
+          <img src="${escapeHtml(p.image || 'site/sensortattoofix.jpg')}" alt="">
           <div class="pelicula-upsell-info">
             <strong>${escapeHtml(window.STF_PELICULA.productLabel(p))}</strong>
             <span>${formatBRL(p.price)}</span>
@@ -433,6 +458,7 @@
     });
     updateSmartwatchVisibility();
     renderPeliculaUpsell();
+    updateSensorWarn();
   }
 
   async function loadCustomerSession() {
@@ -1217,6 +1243,7 @@
     els.smartwatchSelect?.addEventListener('change', () => {
       clearWatchFieldError();
       updateObservacoesField();
+      updateSensorWarn();
       renderPeliculaUpsell();
     });
     els.observacoes?.addEventListener('input', clearObservacoesFieldError);

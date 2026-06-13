@@ -3,7 +3,7 @@
     "name": "Kit Sensor TattooFix",
     "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
     "price": 59.9,
-    "image": "https://www.sensortattoofix.com.br/sensortattoofix.jpg"
+    "image": "https://www.sensortattoofix.com.br/site/sensortattoofix.jpg"
   },
   "products": [
     {
@@ -12,10 +12,11 @@
       "name": "Kit Sensor TattooFix",
       "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
       "price": 59.9,
-      "image": "https://www.sensortattoofix.com.br/sensortattoofix.jpg",
+      "image": "https://www.sensortattoofix.com.br/site/sensortattoofix.jpg",
       "active": true,
       "requiresSmartwatch": true,
-      "weightGrams": 3
+      "weightGrams": 3,
+      "sensorMm": 25
     },
     {
       "id": "pelicula-apple-38mm",

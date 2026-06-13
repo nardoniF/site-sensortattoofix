@@ -18,7 +18,7 @@ const DEFAULT_CONFIG = {
     name: 'Kit Sensor TattooFix',
     description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
     price: 59.9,
-    image: 'https://www.sensortattoofix.com.br/sensortattoofix.jpg'
+    image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg'
   },
   products: [
     {
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG = {
       name: 'Kit Sensor TattooFix',
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
       price: 59.9,
-      image: 'https://www.sensortattoofix.com.br/sensortattoofix.jpg',
+      image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg',
       active: true,
       requiresSmartwatch: true,
       weightGrams: 3
@@ -718,12 +718,13 @@ function publicProductFields(p, config) {
   if (p.packaging) row.packaging = p.packaging;
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
+  if (p.sensorMm != null) row.sensorMm = Number(p.sensorMm);
   return row;
 }
 
 function publicConfigView(config) {
   const products = getActiveProducts(config).map((p) => publicProductFields(p, config));
-  const primary = products[0] || config.product;
+  const primary = products.find((p) => !p.aggregated) || products[0] || config.product;
   const paypal = config.payments?.paypal || {};
   return {
     product: primary ? {

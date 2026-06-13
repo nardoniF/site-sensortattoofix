@@ -140,7 +140,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     let productName = 'Kit Sensor Tattoo Fix';
     let productPrice = 59.9;
-    let productImage = SITE + '/sensortattoofix.jpg';
+    let productImage = SITE + '/site/sensortattoofix.jpg';
     let productId = 'kit-sensor-tattoofix';
     let productDescription = isEn
       ? 'Optical lens kit that restores smartwatch sensors on tattooed skin — wrist detection, heart rate and workouts.'
@@ -182,7 +182,7 @@
         name: 'Sensor Tattoo Fix',
         legalName: '3N20 Soluções Tecnológicas',
         url: SITE,
-        logo: SITE + '/logo.jpg',
+        logo: SITE + '/site/logo.jpg',
         sameAs: [
           'https://www.instagram.com/sensortattoofix',
           'https://www.tiktok.com/@sensortattoofixofc',
