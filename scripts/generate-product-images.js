@@ -251,15 +251,19 @@ function main() {
   const aggregated = (config.products || []).filter((p) => p.aggregated === true);
   let count = 0;
   aggregated.forEach((p) => {
-    const svg = p.productType === 'pulseira' || p.id.startsWith('pulseira-')
-      ? pulseiraSvg(p)
-      : peliculaSvg(p);
+    const isPulseira = p.productType === 'pulseira' || String(p.id || '').startsWith('pulseira-');
+    const pngPulseira = path.join(ROOT, `produtos/pulseiras/${p.id}.png`);
+    if (isPulseira && fs.existsSync(pngPulseira)) {
+      return;
+    }
+    const svg = isPulseira ? pulseiraSvg(p) : peliculaSvg(p);
     const file = path.join(outDir, `${p.id}.svg`);
     fs.writeFileSync(file, svg, 'utf8');
-    const pngPulseira = path.join(ROOT, `produtos/pulseiras/${p.id}.png`);
-    if (fs.existsSync(pngPulseira)) {
-      p.image = `/produtos/pulseiras/${p.id}.png`;
-    } else if (!String(p.image || '').includes('/produtos/pulseiras/')) {
+    if (isPulseira) {
+      if (!String(p.image || '').includes('/produtos/pulseiras/')) {
+        p.image = `/produtos/${p.id}.svg`;
+      }
+    } else if (!String(p.image || '').includes('/produtos/peliculas/')) {
       p.image = `/produtos/${p.id}.svg`;
     }
     count += 1;

@@ -109,6 +109,12 @@ window.STF_PRODUCT_MERGE = (function () {
       return '/produtos/pelicula-squircle.svg';
     }
 
+    if (/^(pulseira-link|pulseira-trail|pulseira-alpine)/.test(id)) {
+      return `/produtos/${id}.svg`;
+    }
+    const resolved = resolveProductImage(image, product);
+    if (resolved.includes('/produtos/pulseiras/')) return resolved;
+
     const style = product.bandStyle || 'sport';
     const color = normalizeBandColor(product.color);
     if (style === 'milanese') {
