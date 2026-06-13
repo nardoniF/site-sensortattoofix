@@ -751,6 +751,12 @@
           <label class="full">Modelos compatíveis <small class="admin-field-hint">um por linha — mesmos nomes do select do checkout</small>
             <textarea data-field="compatibleWatchModels" rows="4" placeholder="Apple Watch Series 9 (45mm)">${escTextarea((p.compatibleWatchModels || []).join('\n'))}</textarea>
           </label>
+          <label>Tipo da película (PT) <small class="admin-field-hint">ex.: cerâmica, membrana flexível</small>
+            <input type="text" data-field="filmType" value="${escAttr(p.filmType || '')}" placeholder="cerâmica">
+          </label>
+          <label>Tipo da película (EN) <small class="admin-field-hint">ex.: ceramic, flexible membrane</small>
+            <input type="text" data-field="filmTypeEn" value="${escAttr(p.filmTypeEn || '')}" placeholder="ceramic">
+          </label>
           <p class="admin-meta admin-aggregated-compat-hint"><i class="fas fa-link"></i> <strong>Regra do upsell:</strong> o produto só aparece se o modelo escolhido pelo cliente estiver nesta lista (1 agregado → vários modelos).</p>` : '';
     return `
       <div class="admin-product-row${isAggregated ? ' admin-product-row--aggregated' : ' admin-product-row--main'}" data-product-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}">
@@ -847,6 +853,12 @@
           if (lines.length) product.compatibleWatchModels = lines;
           else delete product.compatibleWatchModels;
         }
+        const filmType = val('filmType');
+        const filmTypeEn = val('filmTypeEn');
+        if (filmType) product.filmType = filmType;
+        else delete product.filmType;
+        if (filmTypeEn) product.filmTypeEn = filmTypeEn;
+        else delete product.filmTypeEn;
       }
       return product;
     });

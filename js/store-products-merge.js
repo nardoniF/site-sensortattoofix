@@ -6,6 +6,21 @@ window.STF_PRODUCT_MERGE = (function () {
     return String(p?.id || p?.slug || '').trim();
   }
 
+  function isLegacyBrokenKitImage(url) {
+    const u = String(url || '').trim();
+    if (!u) return true;
+    return /sensortattoofix/i.test(u) && !/\/site\//i.test(u);
+  }
+
+  function resolveKitImage(image, fallback) {
+    const fb = String(fallback || '/site/sensortattoofix.jpg').trim();
+    let raw = String(image || '').trim();
+    if (isLegacyBrokenKitImage(raw)) raw = fb;
+    if (!raw) raw = fb;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
+  }
+
   function isKitOrMissingImage(url) {
     const u = String(url || '').trim();
     return !u || /sensortattoofix/i.test(u) || !u.includes('/produtos/');
@@ -33,8 +48,9 @@ window.STF_PRODUCT_MERGE = (function () {
       if (isKitOrMissingImage(raw) || isGenericSharedImage(raw, id)) {
         raw = perProduct || inferAggregatedImage(product);
       }
+    } else {
+      raw = resolveKitImage(raw);
     }
-    if (!raw) raw = product?.aggregated ? inferAggregatedImage(product) : 'site/sensortattoofix.jpg';
     if (/^https?:\/\//i.test(raw)) return raw;
     return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
   }
@@ -67,7 +83,16 @@ window.STF_PRODUCT_MERGE = (function () {
           merged.image = lp.image;
         }
         byId.set(k, merged);
+        return;
       }
+      const prev = byId.get(k);
+      const merged = { ...prev };
+      if (lp.image && isLegacyBrokenKitImage(prev?.image)) merged.image = lp.image;
+      if (lp.name && prev?.name && /tattoo friendly/i.test(prev.name)) merged.name = lp.name;
+      if (lp.description && prev?.description && /tattoo friendly/i.test(prev.description)) {
+        merged.description = lp.description;
+      }
+      byId.set(k, merged);
     });
     return [...byId.values()].sort((a, b) => {
       if (a.aggregated && !b.aggregated) return 1;
@@ -83,6 +108,9 @@ window.STF_PRODUCT_MERGE = (function () {
       next.products = patchAggregatedImages(
         mergeProductLists(apiConfig.products, localConfig.products)
       );
+    }
+    if (localConfig.product?.image && isLegacyBrokenKitImage(next.product?.image)) {
+      next.product = { ...next.product, image: localConfig.product.image };
     }
     if (localConfig.smartwatchModelMeta) {
       next.smartwatchModelMeta = {
@@ -133,8 +161,10 @@ window.STF_PRODUCT_MERGE = (function () {
     mergeMissingAggregated,
     keyOf,
     isKitOrMissingImage,
+    isLegacyBrokenKitImage,
     isGenericSharedImage,
     inferAggregatedImage,
+    resolveKitImage,
     resolveProductImage,
     patchAggregatedImages
   };

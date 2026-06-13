@@ -89,7 +89,16 @@ window.STF_PELICULA = (function () {
       : 'Protege a tela do seu smartwatch dos riscos');
   }
 
-  /** Título curto no upsell — tipo de pulseira + cor; película sem repetir modelo/mm. */
+  function filmTypeLabel(product) {
+    const en = window.STF_I18N?.isEn?.();
+    if (en && product.filmTypeEn) return product.filmTypeEn;
+    if (product.filmType) return product.filmType;
+    if (product.packaging === 'box') return en ? 'ceramic' : 'cerâmica';
+    if (product.packaging === 'saquinho') return en ? 'flexible membrane' : 'membrana flexível';
+    return '';
+  }
+
+  /** Título curto no upsell — tipo de pulseira/película; sem repetir modelo/mm. */
   function upsellShortLabel(product) {
     if (productType(product) === 'pulseira') {
       const en = window.STF_I18N?.isEn?.();
@@ -113,11 +122,11 @@ window.STF_PELICULA = (function () {
       if (color) label += ` · ${color}`;
       return label;
     }
-    let name = productLabel(product);
-    name = name.replace(/\s*\([^)]*\d+\s*mm[^)]*\)/gi, '');
-    name = name.replace(/\s*—\s*Apple Watch.*$/i, '');
-    name = name.replace(/\s+/g, ' ').trim();
-    return name || productLabel(product);
+    const en = window.STF_I18N?.isEn?.();
+    const filmType = filmTypeLabel(product);
+    let label = en ? 'Screen protector' : 'Película de tela';
+    if (filmType) label += ` · ${filmType}`;
+    return label;
   }
 
   function compatibleModels(product) {
@@ -172,6 +181,7 @@ window.STF_PELICULA = (function () {
     productDescription,
     upsellShortDescription,
     upsellShortLabel,
+    filmTypeLabel,
     compatibleModels,
     isCompatible,
     findCompatible

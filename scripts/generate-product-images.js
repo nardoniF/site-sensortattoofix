@@ -59,11 +59,22 @@ function peliculaShape(product) {
   return 'rect';
 }
 
+function peliculaCaption(product) {
+  const filmType = product.filmType || (product.packaging === 'box' ? 'cerâmica' : 'membrana flexível');
+  const sizeMatch = String(product.name || '').match(/\(([^)]+)\)/);
+  const size = sizeMatch ? sizeMatch[1].trim() : '';
+  return {
+    header: `PELÍCULA · ${String(filmType).toUpperCase()}`,
+    line1: `Película · ${filmType}`,
+    line2: size
+  };
+}
+
 function peliculaSvg(product) {
   const shape = peliculaShape(product);
-  const title = (product.name || product.id).replace(/^Película de tela —\s*/i, '');
-  const lines = wrapLines(title, 22);
+  const { header, line1, line2 } = peliculaCaption(product);
   const uid = product.id.replace(/[^a-z0-9]/gi, '');
+  const isCeramic = /cer[aâ]m/i.test(product.filmType || '') || product.packaging === 'box';
 
   let screen = '';
   if (shape === 'round') {
@@ -86,11 +97,6 @@ function peliculaSvg(product) {
       <ellipse cx="128" cy="112" rx="20" ry="10" fill="#fff" opacity="0.12"/>`;
   }
 
-  const textY = 248;
-  const textLines = lines
-    .map((ln, i) => `<text x="160" y="${textY + i * 18}" text-anchor="middle" fill="#e2e8f0" font-family="system-ui,sans-serif" font-size="13" font-weight="600">${esc(ln)}</text>`)
-    .join('\n');
-
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="${esc(product.name)}">
   <defs>
@@ -103,16 +109,17 @@ function peliculaSvg(product) {
       <stop offset="100%" stop-color="#0c4a6e"/>
     </linearGradient>
     <linearGradient id="glass${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a5f3fc" stop-opacity="0.9"/>
-      <stop offset="50%" stop-color="#67e8f9" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.8"/>
+      <stop offset="0%" stop-color="${isCeramic ? '#fde68a' : '#a5f3fc'}" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="${isCeramic ? '#fbbf24' : '#67e8f9'}" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="${isCeramic ? '#f59e0b' : '#22d3ee'}" stop-opacity="0.8"/>
     </linearGradient>
   </defs>
   <rect width="320" height="320" rx="20" fill="url(#bg${uid})"/>
-  <text x="160" y="36" text-anchor="middle" fill="#2dd4bf" font-family="system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="1.2">PELÍCULA DE TELA</text>
+  <text x="160" y="36" text-anchor="middle" fill="#2dd4bf" font-family="system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="0.8">${esc(header)}</text>
   ${screen}
   <rect x="24" y="218" width="272" height="82" rx="12" fill="#000" fill-opacity="0.25"/>
-  ${textLines}
+  <text x="160" y="246" text-anchor="middle" fill="#e2e8f0" font-family="system-ui,sans-serif" font-size="12" font-weight="700">${esc(line1)}</text>
+  ${line2 ? `<text x="160" y="266" text-anchor="middle" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="11" font-weight="600">${esc(line2)}</text>` : ''}
   <text x="160" y="302" text-anchor="middle" fill="#64748b" font-family="system-ui,sans-serif" font-size="10">R$ 20,00 · Sensor TattooFix</text>
 </svg>`;
 }
@@ -204,8 +211,23 @@ function pulseiraSvg(product) {
 </svg>`;
 }
 
+function ensureFilmTypes(products) {
+  (products || []).forEach((p) => {
+    if (!String(p.id || '').startsWith('pelicula-')) return;
+    p.productType = 'pelicula';
+    if (p.packaging === 'box') {
+      if (!p.filmType) p.filmType = 'cerâmica';
+      if (!p.filmTypeEn) p.filmTypeEn = 'ceramic';
+    } else if (p.packaging === 'saquinho' || !p.packaging) {
+      if (!p.filmType) p.filmType = 'membrana flexível';
+      if (!p.filmTypeEn) p.filmTypeEn = 'flexible membrane';
+    }
+  });
+}
+
 function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+  ensureFilmTypes(config.products);
   const aggregated = (config.products || []).filter((p) => p.aggregated === true);
   let count = 0;
   aggregated.forEach((p) => {

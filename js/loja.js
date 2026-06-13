@@ -50,11 +50,13 @@
     grid.innerHTML = products.map((p) => {
       const slug = p.slug || p.id || 'kit-sensor-tattoofix';
       const rawImg = p.image || 'site/sensortattoofix.jpg';
-      const img = /^https?:\/\//i.test(rawImg) ? rawImg : (rawImg.startsWith('/') ? rawImg : '/' + rawImg.replace(/^\.\//, ''));
+      const img = window.STF_PRODUCT_MERGE?.resolveProductImage
+        ? window.STF_PRODUCT_MERGE.resolveProductImage(rawImg, p)
+        : (/^https?:\/\//i.test(rawImg) ? rawImg : (rawImg.startsWith('/') ? rawImg : '/' + rawImg.replace(/^\.\//, '')));
       const frete = L('store.frete');
       return `
         <article class="loja-card">
-          <img src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" loading="lazy">
+          <img src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
           <div class="loja-card-body">
             <h3>${escapeHtml(p.name)}</h3>
             <p>${escapeHtml(p.description || '')}</p>

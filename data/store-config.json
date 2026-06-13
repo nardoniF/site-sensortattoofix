@@ -40,7 +40,10 @@
         "Apple Watch Series 1 (38mm)",
         "Apple Watch Series 2 (38mm)",
         "Apple Watch Series 3 (38mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "cerâmica",
+      "filmTypeEn": "ceramic"
     },
     {
       "id": "pelicula-apple-40mm",
@@ -64,7 +67,10 @@
         "Apple Watch SE (40mm)",
         "Apple Watch SE 2 (40mm)",
         "Apple Watch Series 6 (40mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "cerâmica",
+      "filmTypeEn": "ceramic"
     },
     {
       "id": "pelicula-apple-41mm",
@@ -88,7 +94,10 @@
         "Apple Watch Series 7 (41mm)",
         "Apple Watch Series 8 (41mm)",
         "Apple Watch Series 9 (41mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "cerâmica",
+      "filmTypeEn": "ceramic"
     },
     {
       "id": "pelicula-apple-42mm",
@@ -110,7 +119,10 @@
       },
       "compatibleWatchModels": [
         "Apple Watch Series 10 (42mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "cerâmica",
+      "filmTypeEn": "ceramic"
     },
     {
       "id": "pelicula-apple-44mm",
@@ -134,7 +146,10 @@
         "Apple Watch SE (44mm)",
         "Apple Watch SE 2 (44mm)",
         "Apple Watch Series 6 (44mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "cerâmica",
+      "filmTypeEn": "ceramic"
     },
     {
       "id": "pelicula-apple-45mm",
@@ -158,7 +173,10 @@
         "Apple Watch Series 7 (45mm)",
         "Apple Watch Series 8 (45mm)",
         "Apple Watch Series 9 (45mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "cerâmica",
+      "filmTypeEn": "ceramic"
     },
     {
       "id": "pelicula-apple-46mm",
@@ -180,7 +198,10 @@
       },
       "compatibleWatchModels": [
         "Apple Watch Series 10 (46mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "cerâmica",
+      "filmTypeEn": "ceramic"
     },
     {
       "id": "pelicula-amazfit-bip-2",
@@ -198,7 +219,10 @@
       "packaging": "saquinho",
       "compatibleWatchModels": [
         "Amazfit Bip"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
       "id": "pelicula-amazfit-gts-2-mini",
@@ -216,7 +240,10 @@
       "packaging": "saquinho",
       "compatibleWatchModels": [
         "Amazfit GTR / GTS"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
       "id": "pelicula-amazfit-gtr-3",
@@ -234,7 +261,10 @@
       "packaging": "saquinho",
       "compatibleWatchModels": [
         "Amazfit GTR / GTS"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
       "id": "pelicula-amazfit-gtr-mini",
@@ -258,7 +288,10 @@
       },
       "compatibleWatchModels": [
         "Amazfit GTR Mini"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
       "id": "pelicula-huawei-gt-2",
@@ -282,7 +315,10 @@
       },
       "compatibleWatchModels": [
         "Huawei Watch GT"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
       "id": "pelicula-samsung-gw3-45mm",
@@ -304,7 +340,10 @@
       },
       "compatibleWatchModels": [
         "Samsung Galaxy Watch 3 (45mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
       "id": "pelicula-amazfit-gts-squircle-44mm",
@@ -329,7 +368,10 @@
       },
       "compatibleWatchModels": [
         "Amazfit GTR / GTS"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
       "id": "pelicula-round-33mm",
@@ -359,7 +401,10 @@
         "Polar Pacer / Ignite",
         "Xiaomi Watch S1 / S3",
         "Samsung Galaxy Watch 6 Classic (43mm)"
-      ]
+      ],
+      "productType": "pelicula",
+      "filmType": "membrana flexível",
+      "filmTypeEn": "flexible membrane"
     },
     {
       "id": "pulseira-sport-cinza-38-41",

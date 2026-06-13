@@ -460,7 +460,11 @@ function withConfigDefaults(stored) {
   return {
     ...base,
     ...stored,
-    product: { ...base.product, ...(stored.product || {}) },
+    product: {
+      ...base.product,
+      ...(stored.product || {}),
+      image: fixKitImageUrl(stored.product?.image || base.product.image)
+    },
     pix: resolvePixConfig({ ...base.pix, ...(stored.pix || {}) }, base.pix),
     shipping: {
       ...base.shipping,
@@ -491,21 +495,33 @@ function withConfigDefaults(stored) {
   };
 }
 
+function fixKitImageUrl(url) {
+  const u = String(url || '').trim();
+  if (!u || (/sensortattoofix/i.test(u) && !/\/site\//i.test(u))) {
+    return 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg';
+  }
+  return u;
+}
+
 function normalizeProducts(stored, base) {
-  if (stored?.products?.length) return stored.products;
-  const legacy = stored?.product || base.product;
-  if (!legacy) return base.products || [];
-  return [{
-    id: 'kit-sensor-tattoofix',
-    slug: 'kit-sensor-tattoofix',
-    name: legacy.name,
-    description: legacy.description,
-    price: legacy.price,
-    image: legacy.image,
-    active: true,
-    requiresSmartwatch: true,
-    weightGrams: 3
-  }];
+  let products;
+  if (stored?.products?.length) products = stored.products;
+  else {
+    const legacy = stored?.product || base.product;
+    if (!legacy) return base.products || [];
+    products = [{
+      id: 'kit-sensor-tattoofix',
+      slug: 'kit-sensor-tattoofix',
+      name: legacy.name,
+      description: legacy.description,
+      price: legacy.price,
+      image: legacy.image,
+      active: true,
+      requiresSmartwatch: true,
+      weightGrams: 3
+    }];
+  }
+  return products.map((p) => (p?.aggregated ? p : { ...p, image: fixKitImageUrl(p.image) }));
 }
 
 function shippingWeightGrams(config, override) {
