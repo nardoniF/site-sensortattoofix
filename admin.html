@@ -134,6 +134,38 @@
                     </fieldset>
 
                     <fieldset>
+                        <legend><i class="fas fa-motorcycle"></i> Envio particular (motoboy)</legend>
+                        <p class="admin-meta">Cotação por <strong>distância (CEP origem → destino)</strong>: taxa fixa + valor por km (arredondado para cima). Ao confirmar o pagamento, cada motoboy ativo recebe e-mail com o pedido. Ative a modalidade <strong>motoboy</strong> acima e cadastre ao menos um entregador.</p>
+                        <label class="label-check" style="margin-bottom:12px">
+                            <input type="checkbox" name="motoboyEnabled" checked>
+                            <span>Módulo motoboy ativo</span>
+                        </label>
+                        <div class="form-grid">
+                            <label>Taxa fixa (R$)
+                                <input type="number" name="motoboyBasePrice" min="0" step="0.01" value="12">
+                            </label>
+                            <label>Preço por km (R$)
+                                <input type="number" name="motoboyPricePerKm" min="0" step="0.01" value="2.8">
+                            </label>
+                            <label>Valor mínimo (R$)
+                                <input type="number" name="motoboyMinPrice" min="0" step="0.01" value="18">
+                            </label>
+                            <label>Raio máximo (km)
+                                <input type="number" name="motoboyMaxRadiusKm" min="1" step="1" value="35">
+                            </label>
+                            <label>Fator rodoviário
+                                <input type="number" name="motoboyRoadFactor" min="1" step="0.05" value="1.25" title="Multiplica distância em linha reta (ex.: 1,25 = +25%)">
+                            </label>
+                            <label>Prazo (horas)
+                                <input type="number" name="motoboyDeliveryHours" min="1" step="1" value="24">
+                            </label>
+                        </div>
+                        <h4 class="admin-subtitle" style="margin:16px 0 8px">Motoboys cadastrados</h4>
+                        <div id="admin-motoboy-couriers" class="admin-motoboy-couriers"></div>
+                        <button type="button" id="btn-add-motoboy-courier" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar motoboy</button>
+                    </fieldset>
+
+                    <fieldset>
                         <legend><i class="fas fa-truck"></i> Pacote e frete (Brasil)</legend>
                         <p class="admin-meta">O checkout consulta a <strong>API Preço dos Correios</strong> para cada modalidade BR ativa quando <code>CORREIOS_USER</code> e <code>CORREIOS_PASSWORD</code> estão no Worker. Sem isso, usa estimativa fixa.</p>
                         <p id="correios-br-status" class="admin-meta" style="margin-bottom:8px"></p>
@@ -368,6 +400,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=25"></script>
+    <script src="js/admin.js?v=26"></script>
 </body>
 </html>

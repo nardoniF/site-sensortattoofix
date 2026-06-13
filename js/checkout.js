@@ -537,6 +537,7 @@
     if (source === 'correios') return L('shipping.sourceCorreios');
     if (source === 'correios-export') return L('shipping.sourceExport');
     if (source === 'uber') return L('shipping.sourceUber');
+    if (source === 'motoboy') return L('shipping.sourceMotoboy');
     if (source === 'config') return L('shipping.sourceConfigShort');
     return L('shipping.sourceEstimateShort');
   }
@@ -586,7 +587,12 @@
       const tipoHint = opt.shipmentType === 'documento' ? ` · ${L('shipping.document')}` : '';
       const timeLabel = opt.source === 'uber'
         ? `~${opt.etaMinutes || 60} ${L('shipping.minutes')}`
-        : `${opt.days} ${L('shipping.days')}`;
+        : opt.source === 'motoboy'
+          ? L('shipping.motoboyEta', { hours: opt.deliveryHours || 24 })
+          : `${opt.days} ${L('shipping.days')}`;
+      const distHint = opt.source === 'motoboy' && opt.distanceKm
+        ? ` · ~${opt.distanceKm} km`
+        : '';
       const notice = shippingOptionNoticeHtml(opt.shipmentType);
       const uberTest = opt.source === 'uber' && opt.testMode
         ? `<div class="shipping-card-notice shipping-card-notice--warn"><p>${escapeHtml(L('shipping.uberTest'))}</p></div>`
@@ -599,7 +605,7 @@
             <div class="shipping-card-row">
               <div class="shipping-card-main">
                 <strong>${escapeHtml(opt.service)}</strong>
-                <small>${timeLabel} · ${src}${tipoHint}</small>
+                <small>${timeLabel}${distHint} · ${src}${tipoHint}</small>
               </div>
               <span class="shipping-card-price">${formatBRL(opt.price)}</span>
             </div>
@@ -827,7 +833,9 @@
       shippingService: shippingInfo?.service,
       shippingServiceCode: shippingInfo?.serviceCode || null,
       shippingMethodId: shippingInfo?.methodId || shippingInfo?.id || null,
-      shippingProvider: shippingInfo?.source === 'uber' ? 'uber' : (shippingInfo?.source === 'correios' ? 'correios' : null),
+      shippingProvider: shippingInfo?.source === 'uber' ? 'uber'
+        : (shippingInfo?.source === 'motoboy' ? 'motoboy'
+          : (shippingInfo?.source === 'correios' ? 'correios' : null)),
       uberQuoteId: shippingInfo?.uberQuoteId || null,
       shippingDays: shippingInfo?.days,
       shipmentType: shippingInfo?.shipmentType || null,

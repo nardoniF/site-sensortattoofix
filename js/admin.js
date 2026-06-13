@@ -190,10 +190,97 @@
     return [
       { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
       { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
+      { id: 'br-motoboy', enabled: false, scope: 'BR', label: 'Envio particular (motoboy — até 24h)', provider: 'motoboy' },
       { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
       { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
       { id: 'int-documento', enabled: true, scope: 'INT', label: 'Documento / carta internacional', correiosCode: '*', simTipo: 'D' }
     ];
+  }
+
+  function defaultMotoboyShipping() {
+    return {
+      enabled: true,
+      basePrice: 12,
+      pricePerKm: 2.8,
+      minPrice: 18,
+      maxRadiusKm: 35,
+      roadFactor: 1.25,
+      deliveryHours: 24,
+      couriers: []
+    };
+  }
+
+  function renderMotoboyCouriers(couriers) {
+    const list = document.getElementById('admin-motoboy-couriers');
+    if (!list) return;
+    const rows = Array.isArray(couriers) ? couriers : [];
+    if (!rows.length) {
+      list.innerHTML = '<p class="admin-meta">Nenhum motoboy cadastrado. Adicione nome e e-mail para receber pedidos pagos.</p>';
+      return;
+    }
+    list.innerHTML = rows.map((c, i) => `
+      <div class="admin-motoboy-row" data-courier-index="${i}">
+        <div class="admin-motoboy-grid">
+          <label class="label-check admin-motoboy-active">
+            <input type="checkbox" data-field="active" ${c.active !== false ? 'checked' : ''}>
+            <span>Ativo</span>
+          </label>
+          <label>Nome
+            <input type="text" data-field="name" value="${escAttr(c.name || '')}" placeholder="João Silva">
+          </label>
+          <label>E-mail
+            <input type="email" data-field="email" value="${escAttr(c.email || '')}" placeholder="motoboy@email.com">
+          </label>
+          <label>WhatsApp
+            <input type="text" data-field="phone" value="${escAttr(c.phone || '')}" placeholder="11999999999">
+          </label>
+          <input type="hidden" data-field="id" value="${escAttr(c.id || `courier-${i + 1}`)}">
+        </div>
+        <button type="button" class="btn-secondary btn-remove-motoboy" data-index="${i}"><i class="fas fa-trash"></i> Remover</button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.btn-remove-motoboy').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-index'));
+        const next = collectMotoboyCouriers().filter((_, j) => j !== idx);
+        renderMotoboyCouriers(next);
+      });
+    });
+  }
+
+  function collectMotoboyCouriers() {
+    const list = document.getElementById('admin-motoboy-couriers');
+    if (!list) return currentConfig?.motoboyShipping?.couriers || [];
+    return [...list.querySelectorAll('.admin-motoboy-row')].map((row, i) => {
+      const val = (field) => {
+        const el = row.querySelector(`[data-field="${field}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        return el.value.trim();
+      };
+      return {
+        id: val('id') || `courier-${i + 1}`,
+        active: val('active'),
+        name: val('name'),
+        email: val('email'),
+        phone: val('phone')
+      };
+    });
+  }
+
+  function collectMotoboyShipping() {
+    const f = els.configForm;
+    return {
+      enabled: f?.motoboyEnabled?.checked !== false,
+      basePrice: parseFloat(f?.motoboyBasePrice?.value) || 12,
+      pricePerKm: parseFloat(f?.motoboyPricePerKm?.value) || 2.8,
+      minPrice: parseFloat(f?.motoboyMinPrice?.value) || 18,
+      maxRadiusKm: parseFloat(f?.motoboyMaxRadiusKm?.value) || 35,
+      roadFactor: parseFloat(f?.motoboyRoadFactor?.value) || 1.25,
+      deliveryHours: parseInt(f?.motoboyDeliveryHours?.value, 10) || 24,
+      couriers: collectMotoboyCouriers()
+    };
   }
 
   function renderShippingMethods(methods) {
@@ -213,12 +300,13 @@
               <option value="INT" ${m.scope === 'INT' ? 'selected' : ''}>Internacional</option>
             </select>
           </label>
-          <label data-correios-code-wrap ${m.provider === 'uber' ? 'hidden' : ''}>Código Correios
+          <label data-correios-code-wrap ${m.provider === 'uber' || m.provider === 'motoboy' ? 'hidden' : ''}>Código Correios
             <input type="text" data-field="correiosCode" value="${escAttr(m.correiosCode || '')}" placeholder="04227 ou *">
           </label>
           <label data-provider-wrap ${m.scope === 'BR' ? '' : 'hidden'}>Provedor
             <select data-field="provider">
               <option value="correios" ${(m.provider || 'correios') === 'correios' ? 'selected' : ''}>Correios</option>
+              <option value="motoboy" ${m.provider === 'motoboy' ? 'selected' : ''}>Motoboy (particular)</option>
               <option value="uber" ${m.provider === 'uber' ? 'selected' : ''}>Uber Direct</option>
             </select>
           </label>
@@ -254,7 +342,7 @@
         const providerWrap = row?.querySelector('[data-provider-wrap]');
         const provider = row?.querySelector('[data-field="provider"]')?.value || 'correios';
         if (providerWrap) providerWrap.hidden = sel.value !== 'BR';
-        if (correiosWrap) correiosWrap.hidden = provider === 'uber' || sel.value !== 'BR';
+        if (correiosWrap) correiosWrap.hidden = provider === 'uber' || provider === 'motoboy' || sel.value !== 'BR';
       });
     });
 
@@ -262,7 +350,7 @@
       sel.addEventListener('change', () => {
         const row = sel.closest('.admin-ship-method-row');
         const correiosWrap = row?.querySelector('[data-correios-code-wrap]');
-        if (correiosWrap) correiosWrap.hidden = sel.value === 'uber';
+        if (correiosWrap) correiosWrap.hidden = sel.value === 'uber' || sel.value === 'motoboy';
       });
     });
   }
@@ -287,7 +375,7 @@
         label: val('label') || id,
         provider
       };
-      if (provider !== 'uber') entry.correiosCode = val('correiosCode');
+      if (provider !== 'uber' && provider !== 'motoboy') entry.correiosCode = val('correiosCode');
       if (scope === 'INT') entry.simTipo = val('simTipo') || 'M';
       return entry;
     });
@@ -620,6 +708,15 @@
     if (f.shippingSenderCidade) f.shippingSenderCidade.value = sender.cidade || '';
     if (f.shippingSenderUf) f.shippingSenderUf.value = sender.uf || '';
     renderShippingMethods(config.shippingMethods || defaultShippingMethods());
+    const motoboy = { ...defaultMotoboyShipping(), ...(config.motoboyShipping || {}) };
+    if (f.motoboyEnabled) f.motoboyEnabled.checked = motoboy.enabled !== false;
+    if (f.motoboyBasePrice) f.motoboyBasePrice.value = motoboy.basePrice ?? 12;
+    if (f.motoboyPricePerKm) f.motoboyPricePerKm.value = motoboy.pricePerKm ?? 2.8;
+    if (f.motoboyMinPrice) f.motoboyMinPrice.value = motoboy.minPrice ?? 18;
+    if (f.motoboyMaxRadiusKm) f.motoboyMaxRadiusKm.value = motoboy.maxRadiusKm ?? 35;
+    if (f.motoboyRoadFactor) f.motoboyRoadFactor.value = motoboy.roadFactor ?? 1.25;
+    if (f.motoboyDeliveryHours) f.motoboyDeliveryHours.value = motoboy.deliveryHours ?? 24;
+    renderMotoboyCouriers(motoboy.couriers || []);
     renderIntlShipping(config.internationalShipping || {});
     const intlProd = config.internationalProduct || {};
     if (f.intlProductTitle) f.intlProductTitle.value = intlProd.title || '';
@@ -778,6 +875,7 @@
         documentNotice: f.intlProductDocumentNotice?.value.trim() || ''
       },
       shippingMethods: collectShippingMethods(),
+      motoboyShipping: collectMotoboyShipping(),
       updatedAt: new Date().toISOString()
     };
   }
@@ -1100,6 +1198,18 @@
       correiosCode: ''
     });
     renderShippingMethods(methods);
+  });
+
+  document.getElementById('btn-add-motoboy-courier')?.addEventListener('click', () => {
+    const couriers = collectMotoboyCouriers();
+    couriers.push({
+      id: 'courier-' + Date.now(),
+      active: true,
+      name: '',
+      email: '',
+      phone: ''
+    });
+    renderMotoboyCouriers(couriers);
   });
 
   document.getElementById('btn-add-product')?.addEventListener('click', () => {

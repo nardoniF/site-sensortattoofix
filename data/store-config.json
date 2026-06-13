@@ -49,10 +49,21 @@
   "shippingMethods": [
     { "id": "br-mini-envios", "enabled": true, "scope": "BR", "label": "Mini Envios", "correiosCode": "04227", "provider": "correios" },
     { "id": "br-carta-registrada", "enabled": true, "scope": "BR", "label": "Carta Registrada", "correiosCode": "8010", "provider": "correios" },
+    { "id": "br-motoboy", "enabled": false, "scope": "BR", "label": "Envio particular (motoboy — até 24h)", "provider": "motoboy" },
     { "id": "br-uber-direct", "enabled": false, "scope": "BR", "label": "Entrega Uber (rápida)", "provider": "uber" },
     { "id": "int-encomenda", "enabled": true, "scope": "INT", "label": "Encomenda internacional (Exporta Fácil)", "correiosCode": "*", "simTipo": "M" },
     { "id": "int-documento", "enabled": true, "scope": "INT", "label": "Documento / carta internacional", "correiosCode": "*", "simTipo": "D" }
   ],
+  "motoboyShipping": {
+    "enabled": true,
+    "basePrice": 12,
+    "pricePerKm": 2.8,
+    "minPrice": 18,
+    "maxRadiusKm": 35,
+    "roadFactor": 1.25,
+    "deliveryHours": 24,
+    "couriers": []
+  },
   "internationalProduct": {
     "title": "Envio internacional",
     "hint": "",

@@ -137,9 +137,21 @@ const DEFAULT_CONFIG = {
   api: { baseUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev' }
 };
 
+const DEFAULT_MOTOBOY_SHIPPING = {
+  enabled: true,
+  basePrice: 12,
+  pricePerKm: 2.8,
+  minPrice: 18,
+  maxRadiusKm: 35,
+  roadFactor: 1.25,
+  deliveryHours: 24,
+  couriers: []
+};
+
 const DEFAULT_SHIPPING_METHODS = [
   { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
   { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
+  { id: 'br-motoboy', enabled: false, scope: 'BR', label: 'Envio particular (motoboy — até 24h)', provider: 'motoboy' },
   { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
   { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
   { id: 'int-documento', enabled: true, scope: 'INT', label: 'Documento / carta internacional', correiosCode: '*', simTipo: 'D' }
@@ -182,6 +194,178 @@ function isUberOrder(order) {
   return String(order.shippingMethodId || '').toLowerCase().includes('uber');
 }
 
+function isMotoboyMethod(method) {
+  if (!method) return false;
+  if (method.provider === 'motoboy') return true;
+  return String(method.id || '').toLowerCase().includes('motoboy');
+}
+
+function isMotoboyOrder(order) {
+  if (!order) return false;
+  if (order.shippingProvider === 'motoboy') return true;
+  return String(order.shippingMethodId || '').toLowerCase().includes('motoboy');
+}
+
+function isParticularDeliveryOrder(order) {
+  return isUberOrder(order) || isMotoboyOrder(order);
+}
+
+function getMotoboyConfig(config) {
+  const m = { ...DEFAULT_MOTOBOY_SHIPPING, ...(config?.motoboyShipping || {}) };
+  return {
+    enabled: m.enabled !== false,
+    basePrice: Number(m.basePrice) || DEFAULT_MOTOBOY_SHIPPING.basePrice,
+    pricePerKm: Number(m.pricePerKm) || DEFAULT_MOTOBOY_SHIPPING.pricePerKm,
+    minPrice: Number(m.minPrice) || DEFAULT_MOTOBOY_SHIPPING.minPrice,
+    maxRadiusKm: Number(m.maxRadiusKm) || DEFAULT_MOTOBOY_SHIPPING.maxRadiusKm,
+    roadFactor: Number(m.roadFactor) || DEFAULT_MOTOBOY_SHIPPING.roadFactor,
+    deliveryHours: Number(m.deliveryHours) || DEFAULT_MOTOBOY_SHIPPING.deliveryHours,
+    couriers: Array.isArray(m.couriers) ? m.couriers : []
+  };
+}
+
+function activeMotoboyCouriers(config) {
+  return getMotoboyConfig(config).couriers.filter(
+    (c) => c?.active !== false && String(c.email || '').includes('@')
+  );
+}
+
+function motoboyOperational(config) {
+  const cfg = getMotoboyConfig(config);
+  return cfg.enabled && activeMotoboyCouriers(config).length > 0;
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function fetchCepCoordinates(cep) {
+  const digits = String(cep || '').replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${digits}`, {
+      headers: { Accept: 'application/json' }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const coords = data?.location?.coordinates;
+    const lat = Number(coords?.latitude);
+    const lon = Number(coords?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon };
+  } catch (err) {
+    console.warn('CEP coords:', digits, err.message);
+    return null;
+  }
+}
+
+function calcMotoboyPrice(cfg, distanceKm) {
+  const billableKm = Math.ceil(Math.max(0, distanceKm));
+  const raw = cfg.basePrice + billableKm * cfg.pricePerKm;
+  return {
+    price: Math.max(cfg.minPrice, Math.round(raw * 100) / 100),
+    billableKm,
+    distanceKm: Math.round(distanceKm * 10) / 10
+  };
+}
+
+async function computeMotoboyQuote(config, destCep) {
+  const cfg = getMotoboyConfig(config);
+  if (!cfg.enabled) return null;
+
+  const originCep = config?.shipping?.originCep || DEFAULT_CONFIG.shipping.originCep;
+  const [origin, dest] = await Promise.all([
+    fetchCepCoordinates(originCep),
+    fetchCepCoordinates(destCep)
+  ]);
+  if (!origin || !dest) return null;
+
+  const straightKm = haversineKm(origin.lat, origin.lon, dest.lat, dest.lon);
+  const roadKm = straightKm * cfg.roadFactor;
+  if (roadKm > cfg.maxRadiusKm) return null;
+
+  const priced = calcMotoboyPrice(cfg, roadKm);
+  return {
+    ...priced,
+    straightKm: Math.round(straightKm * 10) / 10,
+    roadKm: Math.round(roadKm * 10) / 10,
+    deliveryHours: cfg.deliveryHours
+  };
+}
+
+async function quoteMotoboyShippingOptions(env, config, addressParams, opts = {}) {
+  const methods = getEnabledShippingMethods(config, 'BR').filter(isMotoboyMethod);
+  if (!methods.length || !motoboyOperational(config)) return [];
+
+  const destCep = addressParams?.cep;
+  if (!destCep || String(destCep).replace(/\D/g, '').length !== 8) return [];
+
+  try {
+    const quote = await computeMotoboyQuote(config, destCep);
+    if (!quote) return [];
+    return methods.map((method) => ({
+      id: method.id,
+      methodId: method.id,
+      serviceCode: null,
+      service: method.label || 'Envio particular (motoboy)',
+      price: quote.price,
+      days: 1,
+      deliveryHours: quote.deliveryHours,
+      distanceKm: quote.roadKm,
+      billableKm: quote.billableKm,
+      source: 'motoboy',
+      provider: 'motoboy',
+      weightGrams: shippingWeightGrams(config, opts.weightGrams)
+    }));
+  } catch (err) {
+    console.warn('Motoboy quote:', err.message);
+    return [];
+  }
+}
+
+async function notifyMotoboyCouriers(env, config, order) {
+  const couriers = activeMotoboyCouriers(config);
+  if (!couriers.length) return [];
+
+  const cfg = getMotoboyConfig(config);
+  const adminUrl = `${(config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '')}/pedidos.html`;
+  const fields = {
+    Pedido: order.orderId,
+    Cliente: order.nome,
+    Telefone: order.telefone,
+    'E-mail cliente': order.email,
+    Endereço: order.endereco,
+    Produto: order.produto,
+    Smartwatch: order.smartwatch,
+    'Valor frete': formatBRL(order.frete),
+    Distância: order.motoboyDistanceKm ? `~${order.motoboyDistanceKm} km` : '—',
+    Prazo: `até ${cfg.deliveryHours}h`,
+    'Painel pedidos': adminUrl,
+    ...orderWatchEmailFields(order)
+  };
+
+  const subject = `Entrega motoboy — ${order.orderId}`;
+  const results = [];
+  for (const courier of couriers) {
+    const to = String(courier.email || '').trim().toLowerCase();
+    if (!to) continue;
+    const courierFields = {
+      Motoboy: courier.name || to,
+      ...fields
+    };
+    const res = await notifyEmail(env, config, to, subject, courierFields, config.formsubmit?.email);
+    results.push({ email: to, ok: res.ok });
+    if (!res.ok) console.error('E-mail motoboy:', to, JSON.stringify(res));
+  }
+  return results;
+}
+
 function withConfigDefaults(stored) {
   const base = structuredClone(DEFAULT_CONFIG);
   if (!stored || typeof stored !== 'object') return base;
@@ -209,7 +393,14 @@ function withConfigDefaults(stored) {
       ? stored.smartwatchModels
       : base.smartwatchModels,
     products: normalizeProducts(stored, base),
-    shippingMethods: mergeShippingMethods(stored.shippingMethods)
+    shippingMethods: mergeShippingMethods(stored.shippingMethods),
+    motoboyShipping: {
+      ...DEFAULT_MOTOBOY_SHIPPING,
+      ...(stored.motoboyShipping || {}),
+      couriers: Array.isArray(stored.motoboyShipping?.couriers)
+        ? stored.motoboyShipping.couriers
+        : DEFAULT_MOTOBOY_SHIPPING.couriers
+    }
   };
 }
 
@@ -2751,9 +2942,10 @@ async function handleShippingQuote(request, env, origin, ctx) {
     };
     try {
       options = await quoteCorreiosOptions(env, config, cep, { weightGrams, declaredValue });
+      const motoboyOptions = await quoteMotoboyShippingOptions(env, config, addressParams, { weightGrams });
       const uberOptions = await quoteUberShippingOptions(env, config, addressParams, { weightGrams });
-      if (uberOptions.length) {
-        options = [...options, ...uberOptions].sort((a, b) => a.price - b.price);
+      if (motoboyOptions.length || uberOptions.length) {
+        options = [...options, ...motoboyOptions, ...uberOptions].sort((a, b) => a.price - b.price);
       }
     } catch (err) {
       return json({ error: err.message }, 400, origin);
@@ -2957,9 +3149,34 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const uberMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
     (m) => isUberMethod(m) && (m.id === body.shippingMethodId || body.shippingProvider === 'uber')
   );
+  const motoboyMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
+    (m) => isMotoboyMethod(m) && (m.id === body.shippingMethodId || body.shippingProvider === 'motoboy')
+  );
   let uberQuoteId = body.uberQuoteId || null;
+  let motoboyDistanceKm = null;
 
-  if (uberMethod) {
+  if (motoboyMethod) {
+    if (!motoboyOperational(config)) {
+      return json({ error: 'Envio particular (motoboy) indisponível no momento.' }, 400, origin);
+    }
+    const destCep = body.cep;
+    if (!destCep || String(destCep).replace(/\D/g, '').length !== 8) {
+      return json({ error: 'Informe um CEP válido para envio particular.' }, 400, origin);
+    }
+    try {
+      const quote = await computeMotoboyQuote(config, destCep);
+      if (!quote) {
+        return json({ error: 'Endereço fora da área de entrega particular. Escolha outro frete.' }, 400, origin);
+      }
+      if (Math.abs(quote.price - frete) > 0.05) {
+        return json({ error: 'Valor do frete particular desatualizado. Recalcule o frete.' }, 400, origin);
+      }
+      frete = quote.price;
+      motoboyDistanceKm = quote.roadKm;
+    } catch (err) {
+      return json({ error: 'Envio particular indisponível: ' + err.message }, 400, origin);
+    }
+  } else if (uberMethod) {
     if (!uberConfigured(env)) {
       return json({ error: 'Entrega Uber indisponível no momento.' }, 400, origin);
     }
@@ -3049,8 +3266,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
     shippingService: body.shippingService || 'Mini Envios',
     shippingServiceCode: body.shippingServiceCode || null,
     shippingMethodId: body.shippingMethodId || null,
-    shippingProvider: uberMethod ? 'uber' : (body.shippingProvider || null),
+    shippingProvider: uberMethod ? 'uber' : (motoboyMethod ? 'motoboy' : (body.shippingProvider || null)),
     uberQuoteId: uberQuoteId || null,
+    motoboyDistanceKm: motoboyDistanceKm || null,
     shippingDays: body.shippingDays || null,
     shipmentType: body.shipmentType || null,
     internationalLensOnly: !!body.internationalLensOnly,
@@ -3218,6 +3436,17 @@ async function handlePaymentConfirmed(env, order, payment) {
       order.uberDispatchError = err.message;
       await saveOrder(env, order);
     }
+  } else if (isMotoboyOrder(order)) {
+    try {
+      const courierMails = await notifyMotoboyCouriers(env, config, order);
+      order.motoboyNotifiedAt = new Date().toISOString();
+      order.motoboyCourierEmails = courierMails.filter((r) => r.ok).map((r) => r.email);
+      await saveOrder(env, order);
+    } catch (err) {
+      console.error('Motoboy notify:', order.orderId, err.message);
+      order.motoboyNotifyError = err.message;
+      await saveOrder(env, order);
+    }
   }
 
   const shopPaidFields = {
@@ -3233,6 +3462,13 @@ async function handlePaymentConfirmed(env, order, payment) {
     shopPaidFields['Uber Direct'] = order.uberDeliveryId || 'solicitado';
     if (order.uberTrackingUrl) shopPaidFields['Rastreio Uber'] = order.uberTrackingUrl;
     if (order.uberDispatchError) shopPaidFields['Erro Uber'] = order.uberDispatchError;
+  } else if (isMotoboyOrder(order)) {
+    shopPaidFields['Envio particular'] = 'Motoboy';
+    if (order.motoboyDistanceKm) shopPaidFields['Distância'] = `~${order.motoboyDistanceKm} km`;
+    if (order.motoboyCourierEmails?.length) {
+      shopPaidFields['Motoboys avisados'] = order.motoboyCourierEmails.join(', ');
+    }
+    if (order.motoboyNotifyError) shopPaidFields['Erro e-mail motoboy'] = order.motoboyNotifyError;
   } else {
     shopPaidFields['Imprimir etiqueta'] = labelPrintUrl(config, order.orderId);
   }
@@ -3245,6 +3481,9 @@ async function handlePaymentConfirmed(env, order, payment) {
     paidCustomerMessage = order.uberTrackingUrl
       ? `Entrega Uber confirmada. Acompanhe em: ${order.uberTrackingUrl}`
       : 'Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em breve.';
+  } else if (isMotoboyOrder(order)) {
+    const hours = getMotoboyConfig(config).deliveryHours;
+    paidCustomerMessage = `Seu pedido será entregue por motoboy em até ${hours} horas. O entregador entrará em contato se necessário.`;
   } else if (order.internationalLensOnly) {
     paidCustomerMessage = 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.';
   } else if (order.paisCode && order.paisCode !== 'BR') {

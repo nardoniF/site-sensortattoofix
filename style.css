@@ -2149,6 +2149,35 @@ line-height:1.8;
 .admin-ship-method-row .btn-remove-ship-method {
     margin-top: 10px;
 }
+.admin-motoboy-couriers {
+    margin-top: 4px;
+}
+.admin-motoboy-row {
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: #121212;
+}
+.admin-motoboy-grid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1fr;
+    gap: 12px 16px;
+    align-items: start;
+}
+.admin-motoboy-active {
+    align-self: center;
+    min-height: 44px;
+}
+.admin-motoboy-row .btn-remove-motoboy {
+    margin-top: 10px;
+}
+.admin-motoboy-grid label {
+    min-width: 0;
+}
+.admin-motoboy-grid input {
+    width: 100%;
+}
 .admin-ship-method-grid label,
 .admin-intl-grid label {
     min-width: 0;
