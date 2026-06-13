@@ -55,11 +55,29 @@ window.STF_PELICULA = (function () {
     else if (key.startsWith('Garmin')) shape = 'round';
     else if (key.startsWith('Huawei Watch Fit')) shape = 'rect';
     else if (key.startsWith('Huawei')) shape = 'round';
-    else if (key.includes('Amazfit Bip')) shape = 'rect';
-    else if (key.includes('GTS')) shape = 'rect';
-    else if (key.includes('GTR')) shape = 'round';
+    else if (key.includes('Amazfit Bip') || key.includes('Amazfit Active')) shape = 'rect';
+    else if (key.includes('Amazfit GTS')) shape = 'rect';
+    else if (key.includes('Amazfit GTR')) shape = 'round';
     else if (key.startsWith('Fitbit') || key.startsWith('Polar')) shape = 'rect';
     return { shape, caseMm, screenMm: null };
+  }
+
+  function productShape(product) {
+    const explicit = product?.compatibility?.shape;
+    if (explicit) return explicit;
+    const id = String(product?.id || product?.slug || '');
+    if (/apple/i.test(id)) return 'squircle';
+    if (/round|gtr|garmin|huawei-gt|samsung|galaxy|gw\d|t-rex/i.test(id)) return 'round';
+    if (/gts|bip|rect|fit|versa|active/i.test(id)) return 'rect';
+    return null;
+  }
+
+  /** squircle só combina com squircle (Apple); rect/round não cruzam. */
+  function shapeMatches(watchMeta, product) {
+    const watchShape = watchMeta?.shape;
+    const pShape = productShape(product);
+    if (!watchShape || !pShape) return true;
+    return watchShape === pShape;
   }
 
   function productType(product) {
@@ -135,6 +153,17 @@ window.STF_PELICULA = (function () {
   function upsellShortLabel(product) {
     if (productType(product) === 'pulseira') {
       const en = window.STF_I18N?.isEn?.();
+      const id = String(product.id || '');
+      if (id === 'pulseira-sport-samsung-gw4-7') {
+        return en
+          ? 'Sport Silicone Band · dark blue (Galaxy Watch 4/5/6/7)'
+          : 'Pulseira Sport · azul escuro (Galaxy Watch 4/5/6/7)';
+      }
+      if (id === 'pulseira-sport-creme-41-45') {
+        return en
+          ? 'Sport Silicone Band · cream (Galaxy Watch 8)'
+          : 'Pulseira Sport · creme (Galaxy Watch 8)';
+      }
       const style = product.bandStyle || 'sport-soft';
       const color = en ? (product.colorEn || product.color) : (product.color || '');
       const titles = en
@@ -177,14 +206,16 @@ window.STF_PELICULA = (function () {
     return Array.isArray(list) ? list.filter(Boolean) : [];
   }
 
-  function isCompatible(product, watchModel) {
+  function isCompatible(product, watchModel, configMeta) {
     if (!product || !watchModel) return false;
     const model = String(watchModel).trim();
     if (!model || model.includes('Outro modelo') || model.includes('Other model')) return false;
-    return compatibleModels(product).includes(model);
+    if (!compatibleModels(product).includes(model)) return false;
+    const meta = resolveModelMeta(model, configMeta);
+    return shapeMatches(meta, product);
   }
 
-  function findCompatible(watchModel, products) {
+  function findCompatible(watchModel, products, configMeta) {
     const model = String(watchModel || '').trim();
     if (!model || model.includes('Outro modelo') || model.includes('Other model')) return [];
 
@@ -194,7 +225,7 @@ window.STF_PELICULA = (function () {
     let genericPelicula = null;
 
     aggregated.forEach((p) => {
-      if (!isCompatible(p, model)) return;
+      if (!isCompatible(p, model, configMeta)) return;
       if (productType(p) === 'pulseira') {
         pulseiras.push(p);
         return;
@@ -216,6 +247,8 @@ window.STF_PELICULA = (function () {
   return {
     parseCaseMm,
     resolveModelMeta,
+    productShape,
+    shapeMatches,
     productType,
     isAggregated,
     listAggregated,

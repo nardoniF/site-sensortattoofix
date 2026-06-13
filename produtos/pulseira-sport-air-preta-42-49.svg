@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Pulseira de Silicone Sport Respirável — preta (42/44/45/49mm)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Pulseira de Silicone Sport Respirável — preta (Galaxy Watch Ultra 47mm)">
   <defs>
     <linearGradient id="bgpulseirasportairpreta4249" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#1a1d24"/>
@@ -17,7 +17,7 @@
     </linearGradient>
   </defs>
   <rect width="320" height="320" rx="20" fill="url(#bgpulseirasportairpreta4249)"/>
-  <text x="160" y="36" text-anchor="middle" fill="#2dd4bf" font-family="system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="1">SPORT BAND</text>
+  <text x="160" y="36" text-anchor="middle" fill="#2dd4bf" font-family="system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="1">SPORT RESPIRÁVEL</text>
   
   <rect x="148" y="108" width="24" height="20" rx="6" fill="#1e293b" stroke="url(#accentpulseirasportairpreta4249)" stroke-width="1.5"/>
   <circle cx="160" cy="138" r="34" fill="#0f172a" stroke="#334155" stroke-width="2"/>
@@ -27,7 +27,7 @@
       <path d="M108 118 Q108 200 160 228 Q212 200 212 118" fill="none" stroke="url(#bandpulseirasportairpreta4249)" stroke-width="22" stroke-linecap="round"/>
       <rect x="198" y="198" width="14" height="22" rx="4" fill="url(#bandpulseirasportairpreta4249)" opacity="0.9"/>
   <rect x="24" y="218" width="272" height="82" rx="12" fill="#000" fill-opacity="0.25"/>
-  <text x="160" y="246" text-anchor="middle" fill="#e2e8f0" font-family="system-ui,sans-serif" font-size="12" font-weight="700">Sport Band · silicone</text>
-  <text x="160" y="266" text-anchor="middle" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="11" font-weight="600">preta · 42/44/45/49 mm</text>
+  <text x="160" y="246" text-anchor="middle" fill="#e2e8f0" font-family="system-ui,sans-serif" font-size="12" font-weight="700">Sport respirável · silicone</text>
+  <text x="160" y="266" text-anchor="middle" fill="#94a3b8" font-family="system-ui,sans-serif" font-size="11" font-weight="600">preta · Galaxy Watch Ultra 47 mm</text>
   <text x="160" y="302" text-anchor="middle" fill="#64748b" font-family="system-ui,sans-serif" font-size="10">R$ 20,00 · Sensor TattooFix</text>
 </svg>

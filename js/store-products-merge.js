@@ -54,11 +54,11 @@ window.STF_PRODUCT_MERGE = (function () {
       if (svgOnly) {
         raw = `/produtos/${id}.svg`;
       } else {
-        const perId = `/produtos/pulseiras/${id}.png?v=5`;
+        const perId = `/produtos/pulseiras/${id}.png?v=6`;
         if (!raw || raw.endsWith('.svg') || isGenericSharedImage(raw, id)) {
           raw = perId;
         } else if (raw.includes('/produtos/pulseiras/') && !raw.includes('?v=')) {
-          raw = `${raw.split('?')[0]}?v=5`;
+          raw = `${raw.split('?')[0]}?v=6`;
         }
       }
     }
@@ -145,7 +145,13 @@ window.STF_PRODUCT_MERGE = (function () {
       if (lp.aggregated === true) {
         const prev = byId.get(k);
         const merged = { ...prev, ...lp };
-        if (lp.image && (isKitOrMissingImage(prev?.image) || isGenericSharedImage(prev?.image, k))) {
+        if (Array.isArray(lp.compatibleWatchModels)) {
+          merged.compatibleWatchModels = lp.compatibleWatchModels;
+        }
+        if (lp.active === false) merged.active = false;
+        if (lp.image && String(lp.image).includes('/produtos/pulseiras/')) {
+          merged.image = lp.image;
+        } else if (lp.image && (isKitOrMissingImage(prev?.image) || isGenericSharedImage(prev?.image, k))) {
           merged.image = lp.image;
         }
         byId.set(k, merged);
@@ -180,8 +186,8 @@ window.STF_PRODUCT_MERGE = (function () {
     }
     if (localConfig.smartwatchModelMeta) {
       next.smartwatchModelMeta = {
-        ...localConfig.smartwatchModelMeta,
-        ...(apiConfig.smartwatchModelMeta || {})
+        ...(apiConfig.smartwatchModelMeta || {}),
+        ...localConfig.smartwatchModelMeta
       };
     }
     if (localConfig.smartwatchModels?.length) {
@@ -212,8 +218,8 @@ window.STF_PRODUCT_MERGE = (function () {
       ...apiConfig,
       products,
       smartwatchModelMeta: {
-        ...(localConfig.smartwatchModelMeta || {}),
-        ...(apiConfig.smartwatchModelMeta || {})
+        ...(apiConfig.smartwatchModelMeta || {}),
+        ...(localConfig.smartwatchModelMeta || {})
       },
       smartwatchModels: localConfig.smartwatchModels?.length
         ? localConfig.smartwatchModels

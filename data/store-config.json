@@ -53,8 +53,14 @@
       "requiresSmartwatch": false,
       "weightGrams": 1,
       "packaging": "saquinho",
+      "compatibility": {
+        "shape": "round",
+        "caseMm": 46,
+        "screenMm": 43,
+        "screenMmTolerance": 1
+      },
       "compatibleWatchModels": [
-        "Amazfit GTR / GTS"
+        "Amazfit GTR"
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
@@ -101,8 +107,15 @@
       "requiresSmartwatch": false,
       "weightGrams": 1,
       "packaging": "saquinho",
+      "compatibility": {
+        "shape": "rect",
+        "caseMm": 40,
+        "screenWidthMm": 30,
+        "screenHeightMm": 35,
+        "screenMmTolerance": 1
+      },
       "compatibleWatchModels": [
-        "Amazfit GTR / GTS"
+        "Amazfit GTS"
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
@@ -111,10 +124,10 @@
     {
       "id": "pelicula-amazfit-gts-squircle-44mm",
       "slug": "pelicula-amazfit-gts-squircle-44mm",
-      "name": "Película de tela — Amazfit GTS squircle 44mm",
-      "nameEn": "Screen protector — Amazfit GTS squircle 44mm",
-      "description": "Película flexível para linha Amazfit GTS — formato squircle 44 mm com ótimo encaixe.",
-      "descriptionEn": "Flexible squircle 44 mm film for Amazfit GTS — great fit, great protection.",
+      "name": "Película de tela — Amazfit GTS 44 mm",
+      "nameEn": "Screen protector — Amazfit GTS 44 mm",
+      "description": "Película flexível para linha Amazfit GTS — formato retangular 44 mm com ótimo encaixe.",
+      "descriptionEn": "Flexible rectangular 44 mm film for Amazfit GTS — great fit, great protection.",
       "price": 20,
       "image": "/produtos/pelicula-amazfit-gts-squircle-44mm.svg",
       "active": true,
@@ -123,14 +136,14 @@
       "weightGrams": 1,
       "packaging": "saquinho",
       "compatibility": {
-        "shape": "squircle",
+        "shape": "rect",
         "caseMm": 44,
         "screenWidthMm": 35,
         "screenHeightMm": 40,
         "screenMmTolerance": 2
       },
       "compatibleWatchModels": [
-        "Amazfit GTR / GTS"
+        "Amazfit GTS"
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
@@ -415,7 +428,7 @@
       "descriptionEn": "Reinforced double-layer weave with G-hook buckle",
       "price": 20,
       "image": "/produtos/pulseira-alpine-verde-49.svg",
-      "active": true,
+      "active": false,
       "aggregated": true,
       "productType": "pulseira",
       "bandStyle": "alpine",
@@ -446,7 +459,7 @@
       "descriptionEn": "Premium executive look with hidden butterfly clasp",
       "price": 20,
       "image": "/produtos/pulseira-link-grafite-42-49.svg",
-      "active": true,
+      "active": false,
       "aggregated": true,
       "productType": "pulseira",
       "bandStyle": "link-luxo",
@@ -677,7 +690,7 @@
       "description": "Design clássico e macio com fecho de pino embutido",
       "descriptionEn": "Classic soft design with embedded pin buckle",
       "price": 20,
-      "image": "/produtos/pulseiras/pulseira-sport-azul-38-41.png",
+      "image": "/produtos/pulseira-sport-azul-38-41.svg",
       "active": false,
       "aggregated": true,
       "productType": "pulseira",
@@ -941,7 +954,7 @@
       "description": "Design clássico e macio com fecho de pino embutido — tamanho Apple Watch Ultra.",
       "descriptionEn": "Classic soft design with embedded pin buckle — Apple Watch Ultra size.",
       "price": 20,
-      "image": "/produtos/pulseiras/pulseira-sport-preta-ultra-49.png",
+      "image": "/produtos/pulseira-sport-preta-ultra-49.svg",
       "active": false,
       "aggregated": true,
       "productType": "pulseira",
@@ -971,7 +984,7 @@
       "descriptionEn": "Light elastic fabric with fast hook-and-loop fit — Apple Watch Ultra size.",
       "price": 20,
       "image": "/produtos/pulseira-trail-preta-ultra-49.svg",
-      "active": true,
+      "active": false,
       "aggregated": true,
       "productType": "pulseira",
       "bandStyle": "trail",
@@ -1227,7 +1240,8 @@
     "Amazfit Active",
     "Amazfit Bip",
     "Amazfit GTR Mini",
-    "Amazfit GTR / GTS",
+    "Amazfit GTR",
+    "Amazfit GTS",
     "Amazfit T-Rex",
     "Fitbit Versa / Sense",
     "Polar Pacer / Ignite",
@@ -1432,8 +1446,13 @@
       "caseMm": 43,
       "screenMm": 34
     },
-    "Amazfit GTR / GTS": {
-      "shape": "squircle",
+    "Amazfit GTR": {
+      "shape": "round",
+      "caseMm": 46,
+      "screenMm": 43
+    },
+    "Amazfit GTS": {
+      "shape": "rect",
       "caseMm": 44,
       "screenWidthMm": 35,
       "screenHeightMm": 40
@@ -1481,5 +1500,5 @@
       "internationalEnabled": true
     }
   },
-  "updatedAt": "2026-06-13T12:00:00.000Z"
+  "updatedAt": "2026-06-13T18:00:00.000Z"
 }

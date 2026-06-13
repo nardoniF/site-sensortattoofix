@@ -98,7 +98,7 @@ window.StoreConfig = (function () {
             config.smartwatchModels = apiConfig.smartwatchModels;
           }
           if (local?.smartwatchModelMeta) {
-            config.smartwatchModelMeta = { ...local.smartwatchModelMeta, ...config.smartwatchModelMeta };
+            config.smartwatchModelMeta = { ...config.smartwatchModelMeta, ...local.smartwatchModelMeta };
           }
           config._loaded = true;
           window.CHECKOUT_CONFIG = config;

@@ -140,13 +140,17 @@ function pulseiraCaption(product) {
   const style = product.bandStyle || 'sport';
   const color = product.color || '';
   const materials = {
-    sport: 'Sport Band · silicone',
+    'sport-soft': 'Soft Lisa · silicone',
+    'sport-air': 'Sport respirável · silicone',
     milanese: 'Milanese Loop · aço',
-    ocean: 'Ocean Band · trançada'
+    ocean: 'Ocean Band · silicone',
+    'link-luxo': 'Link de luxo · aço',
+    trail: 'Trail Loop · nylon',
+    alpine: 'Alpine Loop · nylon'
   };
   const sizeMatch = String(product.name || '').match(/\(([^)]+)\)/);
   const size = sizeMatch ? sizeMatch[1].replace(/\s*mm/g, ' mm') : '';
-  const line1 = materials[style] || materials.sport;
+  const line1 = materials[style] || materials['sport-soft'];
   const line2 = [color, size].filter(Boolean).join(' · ');
   return { line1, line2 };
 }
@@ -172,6 +176,14 @@ function pulseiraSvg(product) {
       <path d="M115 140 Q160 155 205 140" fill="none" stroke="#fff" stroke-width="1.2" opacity="0.18"/>
       <path d="M112 165 Q160 180 208 165" fill="none" stroke="#fff" stroke-width="1" opacity="0.14"/>
       <path d="M110 190 Q160 205 210 190" fill="none" stroke="#fff" stroke-width="1" opacity="0.12"/>`;
+  } else if (style === 'link-luxo') {
+    bandExtra = `
+      <path d="M108 118 Q108 200 160 228 Q212 200 212 118" fill="none" stroke="url(#band${uid})" stroke-width="16" stroke-linecap="round"/>
+      <rect x="152" y="112" width="16" height="12" rx="2" fill="url(#band${uid})"/>
+      <rect x="152" y="200" width="16" height="12" rx="2" fill="url(#band${uid})"/>`;
+  } else if (style === 'trail' || style === 'alpine') {
+    bandExtra = `
+      <path d="M108 118 Q108 200 160 228 Q212 200 212 118" fill="none" stroke="url(#band${uid})" stroke-width="20" stroke-linecap="round" stroke-dasharray="6 3"/>`;
   } else {
     bandExtra = `
       <ellipse cx="160" cy="118" rx="52" ry="18" fill="url(#band${uid})" opacity="0.95"/>
@@ -179,7 +191,15 @@ function pulseiraSvg(product) {
       <rect x="198" y="198" width="14" height="22" rx="4" fill="url(#band${uid})" opacity="0.9"/>`;
   }
 
-  const styleLabel = style === 'milanese' ? 'MILANESE LOOP' : style === 'ocean' ? 'OCEAN BAND' : (isUltra ? 'SPORT BAND ULTRA' : 'SPORT BAND');
+  const styleLabels = {
+    milanese: 'MILANESE LOOP',
+    ocean: 'OCEAN BAND',
+    'link-luxo': 'LINK DE LUXO',
+    trail: 'TRAIL LOOP',
+    alpine: 'ALPINE LOOP',
+    'sport-air': 'SPORT RESPIRÁVEL'
+  };
+  const styleLabel = styleLabels[style] || (isUltra ? 'SOFT LISA ULTRA' : 'SOFT LISA');
   const ultraBadge = isUltra
     ? '<rect x="118" y="44" width="84" height="18" rx="9" fill="#f97316" opacity="0.9"/><text x="160" y="57" text-anchor="middle" fill="#111" font-family="system-ui,sans-serif" font-size="9" font-weight="800">ULTRA 49mm</text>'
     : '';
@@ -236,7 +256,12 @@ function main() {
       : peliculaSvg(p);
     const file = path.join(outDir, `${p.id}.svg`);
     fs.writeFileSync(file, svg, 'utf8');
-    p.image = `/produtos/${p.id}.svg`;
+    const pngPulseira = path.join(ROOT, `produtos/pulseiras/${p.id}.png`);
+    if (fs.existsSync(pngPulseira)) {
+      p.image = `/produtos/pulseiras/${p.id}.png`;
+    } else if (!String(p.image || '').includes('/produtos/pulseiras/')) {
+      p.image = `/produtos/${p.id}.svg`;
+    }
     count += 1;
   });
   fs.writeFileSync(path.join(ROOT, 'data/store-config.json'), JSON.stringify(config, null, 2) + '\n', 'utf8');
