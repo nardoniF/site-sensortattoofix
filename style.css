@@ -1122,6 +1122,73 @@ line-height:1.8;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.02);
 }
+.checkout-account-block .checkout-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+.checkout-account-block .account-check + .checkout-field {
+    margin-top: 14px;
+}
+.checkout-field-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ccc;
+}
+.checkout-account-block input[type="email"],
+.checkout-account-block input[type="password"],
+.checkout-account-block input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 400;
+    font-family: inherit;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+.checkout-account-block input::placeholder {
+    color: #888;
+    opacity: 1;
+}
+.checkout-account-block input:focus {
+    outline: 2px solid rgba(255, 193, 7, 0.35);
+    outline-offset: 1px;
+    border-color: rgba(255, 193, 7, 0.55);
+}
+.checkout-password-wrap {
+    position: relative;
+    display: block;
+}
+.checkout-password-wrap input {
+    padding-right: 44px;
+}
+.checkout-password-toggle {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #aaa;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.checkout-password-toggle:hover,
+.checkout-password-toggle:focus-visible {
+    color: var(--primary);
+    background: rgba(255, 193, 7, 0.08);
+}
 .checkout-account-title {
     margin: 0 0 12px;
     font-size: 0.95rem;

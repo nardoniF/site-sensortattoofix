@@ -1116,7 +1116,28 @@
     }
   }
 
+  function bindPasswordToggles() {
+    document.querySelectorAll('.checkout-password-toggle').forEach((btn) => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        const input = btn.closest('.checkout-password-wrap')?.querySelector('input');
+        if (!input) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+        const icon = btn.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('fa-eye', !show);
+          icon.classList.toggle('fa-eye-slash', show);
+        }
+        btn.setAttribute('aria-label', L(show ? 'account.hidePassword' : 'account.showPassword'));
+      });
+    });
+  }
+
   function bindEvents() {
+    bindPasswordToggles();
     els.paisCode.addEventListener('change', toggleAddressForm);
     els.smartwatchSelect?.addEventListener('change', () => {
       clearWatchFieldError();

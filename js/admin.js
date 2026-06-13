@@ -424,7 +424,7 @@
   async function loadCustomers() {
     const tbody = document.getElementById('admin-customers-tbody');
     if (!tbody || customersLoading) return;
-    const token = getToken();
+    const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) {
       tbody.innerHTML = '<tr><td colspan="6" class="admin-meta">Faça login no admin.</td></tr>';

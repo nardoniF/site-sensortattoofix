@@ -73,8 +73,13 @@ window.STF_I18N = (function () {
       'account.createCheck': 'Criar conta para acompanhar pedidos (recomendado)',
       'account.checkoutTitle': 'Conta (opcional)',
       'account.password': 'Senha da conta (mín. 6 caracteres)',
+      'account.passwordPh': 'Crie sua senha',
+      'account.showPassword': 'Mostrar senha',
+      'account.hidePassword': 'Ocultar senha',
       'account.loginHint': 'Entre com sua conta para preencher os dados automaticamente.',
       'account.loginEmail': 'E-mail da conta',
+      'account.loginEmailPh': 'seu@email.com',
+      'account.loginPasswordPh': 'Sua senha',
       'account.passwordShort': 'Senha',
       'account.loginBtn': 'Entrar',
       'account.loginEntering': 'Entrando...',
@@ -315,8 +320,13 @@ window.STF_I18N = (function () {
       'account.createCheck': 'Create an account to track orders (recommended)',
       'account.checkoutTitle': 'Account (optional)',
       'account.password': 'Account password (min. 6 characters)',
+      'account.passwordPh': 'Create your password',
+      'account.showPassword': 'Show password',
+      'account.hidePassword': 'Hide password',
       'account.loginHint': 'Sign in to fill in your details automatically.',
       'account.loginEmail': 'Account email',
+      'account.loginEmailPh': 'you@email.com',
+      'account.loginPasswordPh': 'Your password',
       'account.passwordShort': 'Password',
       'account.loginBtn': 'Sign in',
       'account.loginEntering': 'Signing in...',
@@ -563,17 +573,19 @@ window.STF_I18N = (function () {
       }
     });
 
-    const senhaWrap = document.getElementById('senha-wrap');
-    const senhaInput = document.getElementById('checkout-senha');
-    if (senhaWrap && senhaInput) {
-      const text = fieldLabelText('account.password', true);
-      senhaWrap.classList.add('checkout-infield');
-      while (senhaWrap.firstChild && senhaWrap.firstChild !== senhaInput) {
-        senhaWrap.removeChild(senhaWrap.firstChild);
-      }
-      senhaInput.placeholder = text;
-      senhaInput.setAttribute('aria-label', text);
-    }
+    applyText('#senha-label-text', 'account.password');
+    setPlaceholder('#checkout-senha', 'account.passwordPh');
+    document.querySelectorAll('.checkout-account-block .checkout-field-label').forEach((el) => {
+      const row = el.closest('.checkout-field');
+      if (row?.querySelector('#checkout-login-email')) el.textContent = t('account.loginEmail');
+      if (row?.querySelector('#checkout-login-senha')) el.textContent = t('account.passwordShort');
+    });
+    setPlaceholder('#checkout-login-email', 'account.loginEmailPh');
+    setPlaceholder('#checkout-login-senha', 'account.loginPasswordPh');
+    document.querySelectorAll('.checkout-password-toggle').forEach((btn) => {
+      const pressed = btn.getAttribute('aria-pressed') === 'true';
+      btn.setAttribute('aria-label', pressed ? t('account.hidePassword') : t('account.showPassword'));
+    });
   }
 
   function setPlaceholder(sel, key) {
@@ -686,27 +698,6 @@ window.STF_I18N = (function () {
     applyText('.checkout-account-title', 'account.checkoutTitle');
     applyText('.shipping-options-title', 'section.chooseShipping');
     applyText('.checkout-step[data-step="2"] h3', 'pay.title');
-
-    document.querySelectorAll('label:has(#checkout-login-email)').forEach((label) => {
-      label.classList.add('checkout-infield');
-      const input = label.querySelector('#checkout-login-email');
-      const text = fieldLabelText('account.loginEmail', false);
-      while (label.firstChild && label.firstChild !== input) label.removeChild(label.firstChild);
-      if (input) {
-        input.placeholder = text;
-        input.setAttribute('aria-label', text);
-      }
-    });
-    document.querySelectorAll('label:has(#checkout-login-senha)').forEach((label) => {
-      label.classList.add('checkout-infield');
-      const input = label.querySelector('#checkout-login-senha');
-      const text = fieldLabelText('account.passwordShort', false);
-      while (label.firstChild && label.firstChild !== input) label.removeChild(label.firstChild);
-      if (input) {
-        input.placeholder = text;
-        input.setAttribute('aria-label', text);
-      }
-    });
 
     const loggedP = document.querySelector('#account-logged-wrap > p:first-child');
     if (loggedP) {

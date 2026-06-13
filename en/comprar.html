@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Comprar Direto | Sensor Tattoo Fix — Loja Oficial</title>
     <meta name="description" content="Checkout oficial Sensor Tattoo Fix — PIX, cartão, envio nacional e internacional.">
-    <link rel="stylesheet" href="../style.css?v=1.79">
+    <link rel="stylesheet" href="../style.css?v=1.80">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script>
@@ -113,18 +113,30 @@
                                         <input type="checkbox" name="criarConta" id="criar-conta" checked>
                                         <span>Create an account to track orders (recommended)</span>
                                     </label>
-                                    <label id="senha-wrap" class="full">
-                                        Account password (min. 6 characters)
-                                        <input type="password" name="senha" id="checkout-senha" minlength="6" autocomplete="new-password">
+                                    <label id="senha-wrap" class="checkout-field checkout-field-password">
+                                        <span id="senha-label-text" class="checkout-field-label">Account password (min. 6 characters)</span>
+                                        <span class="checkout-password-wrap">
+                                            <input type="password" name="senha" id="checkout-senha" minlength="6" autocomplete="new-password" placeholder="Create your password">
+                                            <button type="button" class="checkout-password-toggle" id="checkout-senha-toggle" aria-label="Show password" aria-pressed="false">
+                                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                            </button>
+                                        </span>
                                     </label>
                                 </div>
                                 <div id="checkout-account-login" hidden>
                                     <p class="checkout-hint">Sign in to fill in your details automatically.</p>
-                                    <label class="full">Account email
-                                        <input type="email" id="checkout-login-email" autocomplete="username">
+                                    <label class="checkout-field">
+                                        <span class="checkout-field-label">Account email</span>
+                                        <input type="email" id="checkout-login-email" autocomplete="username" placeholder="you@email.com">
                                     </label>
-                                    <label class="full">Password
-                                        <input type="password" id="checkout-login-senha" autocomplete="current-password">
+                                    <label class="checkout-field checkout-field-password">
+                                        <span class="checkout-field-label">Password</span>
+                                        <span class="checkout-password-wrap">
+                                            <input type="password" id="checkout-login-senha" autocomplete="current-password" placeholder="Your password">
+                                            <button type="button" class="checkout-password-toggle" id="checkout-login-senha-toggle" aria-label="Show password" aria-pressed="false">
+                                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                            </button>
+                                        </span>
                                     </label>
                                     <button type="button" id="btn-checkout-login" class="btn-secondary"><i class="fas fa-sign-in-alt"></i> Sign in</button>
                                     <p id="checkout-login-status" class="admin-status form-status" hidden></p>
@@ -256,7 +268,7 @@
 
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="en"></div></footer>
 
-    <script src="../js/stf-i18n.js?v=9"></script>
+    <script src="../js/stf-i18n.js?v=10"></script>
     <script src="../js/config-bootstrap.js"></script>
     <script src="../js/site-footer.js"></script>
     <script src="../js/account-nav.js"></script>
@@ -266,7 +278,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="../js/order-watch.js"></script>
     <script src="../js/analytics.js?v=3"></script>
-    <script src="../js/checkout.js?v=44"></script>
+    <script src="../js/checkout.js?v=45"></script>
     <script src="../js/seo-schema.js?v=4"></script>
 </body>
 </html>
