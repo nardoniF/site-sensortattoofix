@@ -10,6 +10,38 @@ window.STF_PELICULA = (function () {
     return m ? Number(m[1]) : null;
   }
 
+  function pulseiraVariantKey(product) {
+    const style = product.bandStyle || 'sport-soft';
+    const color = String(product.color || '').toLowerCase().trim();
+    return `${style}|${color}`;
+  }
+
+  function pulseiraSizeFitScore(product, caseMm) {
+    const raw = product.compatibility?.caseMm;
+    const sizes = Array.isArray(raw) ? raw : (raw != null ? [Number(raw)] : []);
+    if (!sizes.length) return 100;
+    if (caseMm != null && !sizes.includes(caseMm)) return 1000;
+    return sizes.length;
+  }
+
+  /** Um card por cor/estilo — escolhe o SKU cujo tamanho encaixa no relógio. */
+  function dedupePulseiras(pulseiras, watchModel) {
+    const caseMm = parseCaseMm(watchModel);
+    const byVariant = new Map();
+    pulseiras.forEach((p) => {
+      const key = pulseiraVariantKey(p);
+      const prev = byVariant.get(key);
+      if (!prev) {
+        byVariant.set(key, p);
+        return;
+      }
+      const scoreNew = pulseiraSizeFitScore(p, caseMm);
+      const scorePrev = pulseiraSizeFitScore(prev, caseMm);
+      if (scoreNew < scorePrev) byVariant.set(key, p);
+    });
+    return [...byVariant.values()];
+  }
+
   function resolveModelMeta(model, configMeta) {
     const key = String(model || '').trim();
     if (!key) return null;
@@ -176,7 +208,7 @@ window.STF_PELICULA = (function () {
 
     const result = [...peliculas];
     if (!peliculas.length && genericPelicula) result.push(genericPelicula);
-    result.push(...pulseiras);
+    result.push(...dedupePulseiras(pulseiras, model));
     return result;
   }
 
