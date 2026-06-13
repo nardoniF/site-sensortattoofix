@@ -55,6 +55,45 @@ window.STF_PRODUCT_MERGE = (function () {
     return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
   }
 
+  function normalizeBandColor(color) {
+    const c = String(color || '').toLowerCase().trim();
+    if (!c || c.includes('cinza') || c === 'gray' || c === 'grey') return 'cinza';
+    if (c.includes('preta') || c === 'black') return 'preta';
+    if (c.includes('azul')) return 'azul';
+    if (c.includes('branca') || c === 'white') return 'branca';
+    if (c.includes('creme') || c.includes('cream')) return 'creme';
+    if (c.includes('rose')) return 'rose';
+    if (c.includes('verde') || c.includes('oliva')) return 'verde';
+    if (c.includes('grafite')) return 'grafite';
+    return 'cinza';
+  }
+
+  /** Ícone legível em miniatura (upsell/carrinho); lightbox usa resolveProductImage. */
+  function resolveProductThumb(image, product) {
+    if (!product?.aggregated) return resolveProductImage(image, product);
+
+    const id = String(product?.id || product?.slug || '');
+    const isPulseira = product.productType === 'pulseira' || id.startsWith('pulseira-');
+
+    if (!isPulseira) {
+      const shape = product.compatibility?.shape || '';
+      if (shape === 'round' || /round|gtr|gw3|huawei-gt/i.test(id)) return '/produtos/pelicula-redonda.svg';
+      if (shape === 'rect' || /rect|bip|gts|fit/i.test(id)) return '/produtos/pelicula-retangular.svg';
+      return '/produtos/pelicula-squircle.svg';
+    }
+
+    const style = product.bandStyle || 'sport';
+    const color = normalizeBandColor(product.color);
+    if (style === 'milanese') {
+      return color === 'rose' ? '/produtos/pulseira-mesh-rose.svg' : '/produtos/pulseira-mesh-preta.svg';
+    }
+    if (style === 'ocean') {
+      return color === 'branca' ? '/produtos/pulseira-ocean-branca.svg' : '/produtos/pulseira-ocean-verde.svg';
+    }
+    const sportColor = ['cinza', 'preta', 'azul', 'branca', 'creme'].includes(color) ? color : 'cinza';
+    return `/produtos/pulseira-sport-${sportColor}.svg`;
+  }
+
   function patchAggregatedImages(products) {
     return (products || []).map((p) => {
       if (p?.aggregated !== true) return p;
@@ -166,6 +205,7 @@ window.STF_PRODUCT_MERGE = (function () {
     inferAggregatedImage,
     resolveKitImage,
     resolveProductImage,
+    resolveProductThumb,
     patchAggregatedImages
   };
 })();

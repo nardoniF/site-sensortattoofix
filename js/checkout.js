@@ -14,6 +14,13 @@
     return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
   }
 
+  function resolveProductThumb(image, product) {
+    if (window.STF_PRODUCT_MERGE?.resolveProductThumb) {
+      return window.STF_PRODUCT_MERGE.resolveProductThumb(image, product);
+    }
+    return resolveProductImage(image, product);
+  }
+
   function inferAggregatedImage(product) {
     if (window.STF_PRODUCT_MERGE?.inferAggregatedImage) {
       return window.STF_PRODUCT_MERGE.inferAggregatedImage(product);
@@ -79,14 +86,15 @@
     });
   }
 
-  function renderZoomableThumb(imgSrc, caption, fallback, extraClass) {
-    const src = escapeHtml(imgSrc);
-    const fb = escapeHtml(fallback || imgSrc);
+  function renderZoomableThumb(thumbSrc, fullSrc, caption, fallback, extraClass) {
+    const thumb = escapeHtml(thumbSrc);
+    const full = escapeHtml(fullSrc || thumbSrc);
+    const fb = escapeHtml(fallback || fullSrc || thumbSrc);
     const zoomLabel = escapeHtml(L('agregados.zoomImage'));
     const cap = escapeHtml(caption || '');
     return `
-      <button type="button" class="stf-product-zoom-btn ${extraClass || ''}" data-product-zoom="${src}" data-product-zoom-caption="${cap}" aria-label="${zoomLabel}">
-        <img src="${src}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${fb}'">
+      <button type="button" class="stf-product-zoom-btn stf-product-zoom-btn--aggregated ${extraClass || ''}" data-product-zoom="${full}" data-product-zoom-caption="${cap}" aria-label="${zoomLabel}">
+        <img src="${thumb}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${fb}'">
         <span class="stf-product-zoom-icon" aria-hidden="true"><i class="fas fa-search-plus"></i></span>
       </button>`;
   }
@@ -438,7 +446,8 @@
     function renderCard(p) {
       const type = window.STF_PELICULA.productType(p);
       const addKey = type === 'pulseira' ? 'pulseira.add' : 'pelicula.add';
-      const imgSrc = resolveProductImage(p.image, p);
+      const imgFull = resolveProductImage(p.image, p);
+      const imgThumb = resolveProductThumb(p.image, p);
       const imgFallback = inferAggregatedImage(p);
       const title = window.STF_PELICULA.upsellShortLabel
         ? window.STF_PELICULA.upsellShortLabel(p)
@@ -449,7 +458,7 @@
       return `
         <div class="pelicula-upsell-card" data-pelicula-id="${escapeHtml(p.id)}">
           <div class="pelicula-upsell-card-top">
-            ${renderZoomableThumb(imgSrc, title, imgFallback, 'pelicula-upsell-img-btn')}
+            ${renderZoomableThumb(imgThumb, imgFull, title, imgFallback, 'pelicula-upsell-img-btn')}
             <div class="pelicula-upsell-info">
               <strong>${escapeHtml(title)}</strong>
               ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
@@ -521,11 +530,14 @@
       return;
     }
     els.cartSidebar.innerHTML = items.map((item) => {
-      const imgSrc = resolveProductImage(item.image, item);
+      const catalog = products.find((x) => x.id === item.productId || x.slug === item.productId);
+      const lineProduct = catalog || item;
+      const imgFull = resolveProductImage(item.image, lineProduct);
+      const imgThumb = item.aggregated ? resolveProductThumb(item.image, lineProduct) : imgFull;
       const lineName = cartLineName(item);
       const thumb = item.aggregated
-        ? renderZoomableThumb(imgSrc, lineName, inferAggregatedImage(item), 'cart-line-img-btn')
-        : `<img src="${escapeHtml(imgSrc)}" alt="" class="cart-line-img" loading="lazy">`;
+        ? renderZoomableThumb(imgThumb, imgFull, lineName, imgFull, 'cart-line-img-btn')
+        : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">`;
       return `
       <div class="cart-line" data-product-id="${escapeHtml(item.productId)}">
         ${thumb}

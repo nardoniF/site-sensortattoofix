@@ -37,6 +37,10 @@ window.STF_CART = (function () {
       qty: Math.max(1, Math.min(MAX_QTY, Number(qty) || 1)),
       requiresSmartwatch: product.requiresSmartwatch !== false,
       aggregated: product.aggregated === true,
+      productType: product.productType,
+      bandStyle: product.bandStyle,
+      color: product.color,
+      compatibility: product.compatibility,
       weightGrams: Number(product.weightGrams) || 0
     };
   }
