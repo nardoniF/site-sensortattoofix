@@ -495,13 +495,7 @@ window.STF_I18N = (function () {
       const q = new URLSearchParams(location.search).get('lang');
       if (q === 'en' || q === 'pt') return q;
     } catch (e) { /* ignore */ }
-    if (location.pathname.includes('/en/')) return 'en';
-    try {
-      const stored = sessionStorage.getItem('stf_lang');
-      if (stored === 'en' || stored === 'pt') return stored;
-    } catch (e) { /* ignore */ }
-    const htmlLang = document.documentElement.lang || '';
-    return htmlLang.toLowerCase().startsWith('en') ? 'en' : 'pt';
+    return location.pathname.includes('/en/') ? 'en' : 'pt';
   }
 
   function isEn() {
@@ -924,15 +918,17 @@ window.STF_I18N = (function () {
   }
 
   function init() {
-    if (inEnDir()) setLang('en');
     try {
       const q = new URLSearchParams(location.search).get('lang');
       if (q === 'en' || q === 'pt') setLang(q);
-    } catch (e) { /* ignore */ }
+      else setLang(inEnDir() ? 'en' : 'pt');
+    } catch (e) {
+      setLang(inEnDir() ? 'en' : 'pt');
+    }
     if (document.body?.classList.contains('checkout-page')) applyCheckoutDom();
     if (document.body?.classList.contains('loja-page')) applyLojaDom();
     if (document.body?.classList.contains('conta-page')) applyContaDom();
-    if (isEn() && window.STF_ACCOUNT?.initNav) window.STF_ACCOUNT.initNav();
+    if (window.STF_ACCOUNT?.initNav) window.STF_ACCOUNT.initNav();
   }
 
   if (document.readyState === 'loading') {
