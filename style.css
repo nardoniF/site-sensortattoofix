@@ -1666,6 +1666,51 @@ line-height:1.8;
 .admin-tab.active i { color: var(--primary); }
 .admin-tab-panel { display: flex; flex-direction: column; gap: 24px; }
 .admin-tab-panel[hidden] { display: none !important; }
+.admin-frete-subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 20px;
+    padding: 10px;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    background: #101010;
+}
+.admin-frete-subtab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #141414;
+    color: #aaa;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: 0.2s;
+    white-space: nowrap;
+}
+.admin-frete-subtab i {
+    color: #777;
+    font-size: 0.85rem;
+}
+.admin-frete-subtab:hover {
+    border-color: #444;
+    color: #fff;
+}
+.admin-frete-subtab.active {
+    background: rgba(255, 193, 7, 0.08);
+    border-color: rgba(255, 193, 7, 0.55);
+    color: var(--primary);
+}
+.admin-frete-subtab.active i { color: var(--primary); }
+.admin-frete-subpanel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.admin-frete-subpanel[hidden] { display: none !important; }
 .admin-form-actions-sticky {
     position: sticky;
     bottom: 0;

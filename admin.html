@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=1.77">
+    <link rel="stylesheet" href="style.css?v=1.81">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -84,6 +84,15 @@
                     </div>
 
                     <div id="admin-tab-frete" class="admin-tab-panel" role="tabpanel" hidden>
+                    <nav class="admin-frete-subtabs" role="tablist" aria-label="Seções de frete">
+                        <button type="button" role="tab" class="admin-frete-subtab active" data-frete-subtab="origem" aria-selected="true" aria-controls="admin-frete-origem"><i class="fas fa-warehouse"></i> Origem</button>
+                        <button type="button" role="tab" class="admin-frete-subtab" data-frete-subtab="modalidades" aria-selected="false" aria-controls="admin-frete-modalidades"><i class="fas fa-list-check"></i> Modalidades</button>
+                        <button type="button" role="tab" class="admin-frete-subtab" data-frete-subtab="motoboy" aria-selected="false" aria-controls="admin-frete-motoboy"><i class="fas fa-motorcycle"></i> Motoboy</button>
+                        <button type="button" role="tab" class="admin-frete-subtab" data-frete-subtab="correios" aria-selected="false" aria-controls="admin-frete-correios"><i class="fas fa-truck"></i> Correios BR</button>
+                        <button type="button" role="tab" class="admin-frete-subtab" data-frete-subtab="internacional" aria-selected="false" aria-controls="admin-frete-internacional"><i class="fas fa-globe-americas"></i> Internacional</button>
+                    </nav>
+
+                    <div id="admin-frete-origem" class="admin-frete-subpanel" role="tabpanel">
                     <fieldset>
                         <legend><i class="fas fa-warehouse"></i> Remetente (etiqueta + frete)</legend>
                         <p class="admin-meta">Endereço da loja usado na etiqueta térmica e no CEP de origem do cálculo Correios.</p>
@@ -123,7 +132,9 @@
                             <button type="button" id="btn-lookup-origin-cep" class="btn-secondary"><i class="fas fa-search-location"></i> Buscar endereço pelo CEP</button>
                         </div>
                     </fieldset>
+                    </div>
 
+                    <div id="admin-frete-modalidades" class="admin-frete-subpanel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-list-check"></i> Modalidades de envio (cliente escolhe)</legend>
                         <p class="admin-meta">O checkout lista <strong>preço e prazo</strong> de cada modalidade ativa. Internacional: tipo <strong>M</strong> = Exporta Fácil (encomenda), tipo <strong>D</strong> = documento/carta internacional (bem mais barato para lente fina). Use <code>*</code> para todos os serviços daquele tipo.</p>
@@ -132,7 +143,9 @@
                         </div>
                         <button type="button" id="btn-add-ship-method" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar modalidade</button>
                     </fieldset>
+                    </div>
 
+                    <div id="admin-frete-motoboy" class="admin-frete-subpanel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-motorcycle"></i> Envio particular (motoboy)</legend>
                         <p class="admin-meta">Cotação por <strong>distância (CEP origem → destino)</strong>: taxa fixa + valor por km (arredondado para cima). Ao confirmar o pagamento, cada motoboy ativo recebe e-mail com o pedido. Marque <strong>Módulo motoboy ativo</strong> e cadastre ao menos um entregador — a modalidade no checkout é ligada automaticamente ao salvar.</p>
@@ -164,7 +177,9 @@
                         <div id="admin-motoboy-couriers" class="admin-motoboy-couriers"></div>
                         <button type="button" id="btn-add-motoboy-courier" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar motoboy</button>
                     </fieldset>
+                    </div>
 
+                    <div id="admin-frete-correios" class="admin-frete-subpanel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-truck"></i> Pacote e frete (Brasil)</legend>
                         <p class="admin-meta">O checkout consulta a <strong>API Preço dos Correios</strong> para cada modalidade BR ativa quando <code>CORREIOS_USER</code> e <code>CORREIOS_PASSWORD</code> estão no Worker. Sem isso, usa estimativa fixa.</p>
@@ -198,8 +213,11 @@
                             </label>
                         </div>
                         <p id="admin-status-frete" class="admin-status form-status" hidden></p>
+                        <pre id="shipping-quote-result" class="admin-quote-result" hidden></pre>
                     </fieldset>
+                    </div>
 
+                    <div id="admin-frete-internacional" class="admin-frete-subpanel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-globe-americas"></i> Frete internacional</legend>
                         <p class="admin-meta">O checkout usa o <strong>simulador Exporta Fácil</strong> em tempo real. A tabela abaixo é <strong>fallback</strong> (se a API cair) e é <strong>atualizada automaticamente</strong> com os valores da API quando ela responde — ao abrir o admin ou quando um cliente cotar frete.</p>
@@ -230,8 +248,9 @@
                                 <button type="button" id="btn-test-ship-intl" class="btn-secondary"><i class="fas fa-calculator"></i> Listar opções internacionais</button>
                             </label>
                         </div>
-                        <pre id="shipping-quote-result" class="admin-quote-result" hidden></pre>
+                        <pre class="admin-quote-result" hidden></pre>
                     </fieldset>
+                    </div>
                     </div>
 
                     <div id="admin-tab-pix" class="admin-tab-panel" role="tabpanel" hidden>
@@ -400,6 +419,6 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
-    <script src="js/admin.js?v=27"></script>
+    <script src="js/admin.js?v=28"></script>
 </body>
 </html>

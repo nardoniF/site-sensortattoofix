@@ -403,10 +403,44 @@
   }
 
   function showQuoteResult(text) {
-    const el = document.getElementById('shipping-quote-result');
-    if (!el) return;
-    el.textContent = text;
-    el.hidden = !text;
+    document.querySelectorAll('#admin-tab-frete .admin-quote-result').forEach((el) => {
+      el.textContent = text;
+      el.hidden = !text;
+    });
+  }
+
+  function showFreteSubtab(subtabId) {
+    const container = document.getElementById('admin-tab-frete');
+    if (!container) return;
+    const id = subtabId || 'origem';
+    container.querySelectorAll('[data-frete-subtab]').forEach((tab) => {
+      const active = tab.dataset.freteSubtab === id;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    container.querySelectorAll('.admin-frete-subpanel').forEach((panel) => {
+      panel.hidden = panel.id !== 'admin-frete-' + id;
+    });
+    try { localStorage.setItem('stf_admin_frete_subtab', id); } catch (e) { /* ignore */ }
+    if (id === 'correios') loadShippingStatus();
+  }
+
+  let freteSubtabsWired = false;
+
+  function initFreteSubtabs() {
+    if (freteSubtabsWired) return;
+    const container = document.getElementById('admin-tab-frete');
+    if (!container) return;
+    const tabs = container.querySelectorAll('[data-frete-subtab]');
+    if (!tabs.length) return;
+    freteSubtabsWired = true;
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => showFreteSubtab(tab.dataset.freteSubtab));
+    });
+    let saved = 'origem';
+    try { saved = localStorage.getItem('stf_admin_frete_subtab') || 'origem'; } catch (e) { /* ignore */ }
+    if (!container.querySelector('#admin-frete-' + saved)) saved = 'origem';
+    showFreteSubtab(saved);
   }
 
   async function runShippingQuote(mode) {
@@ -415,6 +449,7 @@
       showStatus('Configure a URL da API para testar frete.', 'error', 'frete');
       return;
     }
+    showFreteSubtab(mode === 'br' ? 'correios' : 'internacional');
     const f = els.configForm;
     const weight = parseFloat(f.shippingWeight?.value) || 3;
     let url;
@@ -938,6 +973,7 @@
       if (id === 'api') loadIntegrationsStatus();
       if (id === 'clientes') loadCustomers();
       if (id === 'documentacao') loadDocFrame(true);
+      if (id === 'frete') initFreteSubtabs();
     }
 
     tabs.forEach((tab) => {
