@@ -582,6 +582,7 @@
   }
 
   function lockCheckoutSidebar(snapshot) {
+    saveCheckoutCartBackup();
     orderSidebarLocked = true;
     if (snapshot) orderSidebarSnapshot = snapshot;
     els.checkoutSidebar?.classList.add('checkout-sidebar-locked');
@@ -592,6 +593,99 @@
     window.STF_CART?.clear();
     window.STF_CART?.initBadges?.();
     renderLockedSidebar();
+  }
+
+  const CHECKOUT_CART_BACKUP_KEY = 'stf_checkout_cart_backup';
+
+  function saveCheckoutCartBackup() {
+    if (!window.STF_CART) return;
+    try {
+      const items = window.STF_CART.load();
+      if (items.length) {
+        sessionStorage.setItem(CHECKOUT_CART_BACKUP_KEY, JSON.stringify(items));
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  function restoreCartFromBackup() {
+    const raw = sessionStorage.getItem(CHECKOUT_CART_BACKUP_KEY);
+    sessionStorage.removeItem(CHECKOUT_CART_BACKUP_KEY);
+    if (!raw || !window.STF_CART) return false;
+    try {
+      const items = JSON.parse(raw);
+      if (!Array.isArray(items) || !items.length) return false;
+      window.STF_CART.clear();
+      items.forEach((item) => window.STF_CART.add(item, item.qty));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function unlockCheckoutSidebar() {
+    orderSidebarLocked = false;
+    orderSidebarSnapshot = null;
+    els.checkoutSidebar?.classList.remove('checkout-sidebar-locked');
+    updateSidebarTitle();
+  }
+
+  function applyOrderShippingState(order) {
+    if (!order || order.frete == null) return;
+    if (order.paisCode && els.paisCode) {
+      isInternational = order.paisCode !== 'BR';
+      els.paisCode.value = order.paisCode;
+      els.addressBr.hidden = isInternational;
+      els.addressIntl.hidden = !isInternational;
+      if (els.summaryShippingLabel) {
+        els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
+      }
+      updatePaymentOptionsForCountry();
+      updateCpfLabel();
+    }
+    shippingCost = Number(order.frete);
+    shippingInfo = {
+      service: order.shippingService || 'Frete',
+      price: shippingCost,
+      methodId: order.shippingMethodId || null,
+      serviceCode: order.shippingServiceCode || null
+    };
+  }
+
+  async function fetchOrderForResume(orderId, accessToken) {
+    const base = apiBase();
+    if (!base || !orderId || !accessToken) return null;
+    try {
+      const res = await fetch(
+        `${base}/orders/${encodeURIComponent(orderId)}?token=${encodeURIComponent(accessToken)}`,
+        { cache: 'no-store' }
+      );
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  }
+
+  async function restoreCheckoutAfterPaymentAbort(orderId, accessToken) {
+    unlockCheckoutSidebar();
+    const orderData = await fetchOrderForResume(orderId, accessToken);
+    let restored = restoreCartFromBackup();
+    if (!restored && orderData?.items?.length) {
+      window.STF_CART.clear();
+      orderData.items.forEach((item) => window.STF_CART.add(item, item.qty));
+      restored = true;
+    }
+    if (!restored || window.STF_CART?.isEmpty()) return false;
+    if (orderData) applyOrderShippingState(orderData);
+    renderCartSidebar();
+    renderPeliculaUpsell();
+    updateSummary();
+    updateSmartwatchVisibility();
+    updateContinueButtonVisibility();
+    els.btnPay.disabled = false;
+    setPayBtnLabel('btn.pay');
+    showStep(2);
+    return true;
   }
 
   function renderCartSidebar() {
@@ -1458,6 +1552,7 @@
       if (accessToken) startPolling(orderId, accessToken, total);
       showStep(3);
     } catch (err) {
+      await restoreCheckoutAfterPaymentAbort();
       alert(err.message || L('alert.orderError'));
     } finally {
       els.btnPay.disabled = false;
@@ -1605,15 +1700,17 @@
     const paypalState = params.get('paypal');
     if (!paypalState) return false;
 
+    const orderId = params.get('orderId');
+    const accessToken = params.get('accessToken');
+
     if (paypalState === 'cancel') {
-      alert(L('alert.paypalCancel'));
       history.replaceState({}, '', location.pathname);
-      return true;
+      const restored = await restoreCheckoutAfterPaymentAbort(orderId, accessToken);
+      alert(restored ? L('alert.paypalCancelRetry') : L('alert.paypalCancel'));
+      return restored;
     }
     if (paypalState !== 'success') return false;
 
-    const orderId = params.get('orderId');
-    const accessToken = params.get('accessToken');
     const paypalOrderId = params.get('token');
     if (!orderId || !accessToken || !paypalOrderId) return false;
 
@@ -1654,9 +1751,10 @@
       history.replaceState({}, '', location.pathname);
       return true;
     } catch (err) {
-      alert(err.message || L('alert.paypalConfirmError'));
       history.replaceState({}, '', location.pathname);
-      return true;
+      const restored = await restoreCheckoutAfterPaymentAbort(orderId, accessToken);
+      alert(restored ? `${err.message || L('alert.paypalConfirmError')}\n\n${L('alert.paypalCancelRetry')}` : (err.message || L('alert.paypalConfirmError')));
+      return restored;
     }
   }
 

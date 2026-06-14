@@ -965,6 +965,27 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
       approveUrl: order.paypalApproveUrl || null,
       autoConfirm: order.autoConfirm !== false
     };
+    view.paisCode = order.paisCode || 'BR';
+    view.shippingService = order.shippingService || null;
+    view.shippingMethodId = order.shippingMethodId || null;
+    view.shippingServiceCode = order.shippingServiceCode || null;
+    if (Array.isArray(order.items) && order.items.length) {
+      view.items = order.items.map((item) => ({
+        productId: item.productId,
+        slug: item.slug || item.productId,
+        name: item.name,
+        price: item.price,
+        qty: item.qty,
+        image: item.image,
+        requiresSmartwatch: item.requiresSmartwatch !== false,
+        aggregated: item.aggregated === true,
+        productType: item.productType,
+        bandStyle: item.bandStyle,
+        color: item.color,
+        compatibility: item.compatibility,
+        weightGrams: item.weightGrams
+      }));
+    }
   }
   return view;
 }
