@@ -439,7 +439,6 @@ async function notifyMotoboyCouriers(env, config, order) {
     'E-mail cliente': order.email,
     Endereço: order.endereco,
     Produto: order.produto,
-    Smartwatch: order.smartwatch,
     'Valor frete': formatBRL(order.frete),
     Distância: order.motoboyDistanceKm ? `~${order.motoboyDistanceKm} km` : '—',
     Prazo: `até ${cfg.deliveryHours}h`,
@@ -1061,10 +1060,9 @@ function orderIntlProductFields(order) {
 function orderWatchEmailFields(order) {
   const model = String(order?.smartwatch || '').trim();
   const obs = trimObs(order);
-  const fields = { 'Modelo do relógio': formatOrderSmartwatch(order) };
-  if (model && model !== 'N/A') fields.Smartwatch = model;
-  if (obs) fields.Observações = obs;
-  return fields;
+  if (!model && !obs) return {};
+  if (!model || model === 'N/A') return obs ? { 'Modelo do relógio': obs } : {};
+  return { 'Modelo do relógio': formatOrderSmartwatch(order) };
 }
 
 function watchWhatsAppBlock(order) {
@@ -3784,7 +3782,9 @@ async function handlePaymentConfirmed(env, order, payment) {
       shopPaidFields['Motoboys avisados'] = order.motoboyCourierEmails.join(', ');
     }
     if (order.motoboyNotifyError) shopPaidFields['Erro e-mail motoboy'] = order.motoboyNotifyError;
-  } else {
+  }
+
+  if ((order.paisCode || 'BR') === 'BR' && !order.internationalLensOnly) {
     shopPaidFields['Imprimir etiqueta'] = labelPrintUrl(config, order.orderId);
   }
 
