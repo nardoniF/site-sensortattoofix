@@ -37,7 +37,7 @@ const DEFAULT_CONFIG = {
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: {
     originCep: '02537190',
-    weightGrams: 3,
+    weightGrams: 5,
     lengthCm: 16,
     widthCm: 12,
     heightCm: 0.5,
@@ -629,7 +629,7 @@ function normalizeProducts(stored, base) {
 function shippingWeightGrams(config, override) {
   const ship = config?.shipping || DEFAULT_CONFIG.shipping;
   const n = Number(override ?? ship.weightGrams);
-  return Number.isFinite(n) && n > 0 ? n : 3;
+  return Number.isFinite(n) && n > 0 ? n : 5;
 }
 
 function getActiveProducts(config) {
@@ -1541,7 +1541,9 @@ async function notifyWhatsApp(env, config, order, type) {
 }
 
 async function getCorreiosToken(env) {
-  const cached = await env.STORE_KV.get('correios:token');
+  const contract = String(env.CORREIOS_CONTRACT || '').trim();
+  const cacheKey = 'correios:token:' + (contract || 'user');
+  const cached = await env.STORE_KV.get(cacheKey);
   if (cached) {
     const data = JSON.parse(cached);
     if (data.expiresAt > Date.now()) return data.token;
@@ -1551,7 +1553,6 @@ async function getCorreiosToken(env) {
   if (!user || !password) return null;
 
   const basic = btoa(user + ':' + password);
-  const contract = env.CORREIOS_CONTRACT;
   const res = await fetch(
     contract ? 'https://api.correios.com.br/token/v1/autentica/cartaopostagem' : 'https://api.correios.com.br/token/v1/autentica',
     {
@@ -1560,9 +1561,12 @@ async function getCorreiosToken(env) {
       body: contract ? JSON.stringify({ numero: contract }) : undefined
     }
   );
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.warn('Correios token:', res.status, await res.text().catch(() => ''));
+    return null;
+  }
   const data = await res.json();
-  await env.STORE_KV.put('correios:token', JSON.stringify({
+  await env.STORE_KV.put(cacheKey, JSON.stringify({
     token: data.token,
     expiresAt: Date.now() + (Number(data.expiraEm || 3600) - 60) * 1000
   }));
@@ -1871,6 +1875,18 @@ async function createUberDeliveryForOrder(env, config, order) {
   };
 }
 
+/** Endereço de teste para integração Uber — perto da origem (~3 km), dentro do limite ~5 km da Uber. */
+function uberIntegrationTestDropoff() {
+  return {
+    cep: '02513000',
+    rua: 'Rua Deputado Lacerda Franco',
+    numero: '100',
+    bairro: 'Casa Verde',
+    cidade: 'São Paulo',
+    uf: 'SP'
+  };
+}
+
 async function checkUberIntegration(env, config) {
   if (!uberConfigured(env)) {
     return { configured: false, authOk: false, error: 'UBER_DIRECT_* não configurados.' };
@@ -1886,14 +1902,7 @@ async function checkUberIntegration(env, config) {
         error: 'Token OAuth não obtido. Use Client ID/Secret da aba Developer (modo Test se UBER_DIRECT_SANDBOX=true).'
       };
     }
-    const dropoff = {
-      cep: '01310100',
-      rua: 'Avenida Paulista',
-      numero: '1000',
-      bairro: 'Bela Vista',
-      cidade: 'São Paulo',
-      uf: 'SP'
-    };
+    const dropoff = uberIntegrationTestDropoff();
     const quote = await requestUberQuote(env, config, dropoff);
     if (!quote) {
       return {
@@ -1901,7 +1910,7 @@ async function checkUberIntegration(env, config) {
         authOk: true,
         quoteOk: false,
         sandbox,
-        error: 'OAuth OK, mas cotação vazia. Confira Customer ID (aba Developer, não o ID da URL).'
+        error: 'OAuth OK, mas cotação vazia. Confira Customer ID (aba Developer). Uber entrega só em ~5 km da loja (Imirim).'
       };
     }
     return {
@@ -1931,6 +1940,20 @@ function estimateBR(originCep, destCep) {
   if (diff < 3000) return { price: 15.9, days: 10 };
   if (diff < 8000) return { price: 19.9, days: 12 };
   return { price: 24.9, days: 14 };
+}
+
+/** Estimativa conservadora (teto) quando a API Correios não responde — evita cobrar menos que o frete real. */
+function estimateBRMax(config, weightGrams) {
+  const ship = config?.shipping || DEFAULT_CONFIG.shipping;
+  const baseWeight = shippingWeightGrams(config);
+  const w = Number(weightGrams) > 0 ? Number(weightGrams) : baseWeight;
+  const weightFactor = Math.min(2.5, Math.max(1, w / baseWeight));
+  const maxPrice = Number(ship.estimateMaxPrice) > 0 ? Number(ship.estimateMaxPrice) : 24.9;
+  const maxDays = Number(ship.estimateMaxDays) > 0 ? Number(ship.estimateMaxDays) : 14;
+  return {
+    price: Math.round(maxPrice * weightFactor * 100) / 100,
+    days: maxDays
+  };
 }
 
 const SELF_TEST_PIX_AMOUNT = 0.01;
@@ -2018,6 +2041,104 @@ function applySelfTestPayPalPricing(order, env, billingType) {
   return true;
 }
 
+function correiosPackageParams(ship, weightGrams) {
+  const weight = Math.max(1, Math.round(Number(weightGrams) || 1));
+  return {
+    psObjeto: String(weight),
+    tpObjeto: '2',
+    comprimento: String(Math.max(16, Number(ship.lengthCm) || 16)),
+    largura: String(Math.max(11, Number(ship.widthCm) || 12)),
+    altura: String(Math.max(2, Number(ship.heightCm) || 2))
+  };
+}
+
+function parseCorreiosPrice(data) {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== 'object') return null;
+  if (row.txErro || row.cdErro) {
+    console.warn('Correios preço erro:', row.txErro || row.cdErro);
+    return null;
+  }
+  const raw = row.pcFinal ?? row.vlTotal ?? row.preco ?? row.vlPreco ?? row.valor;
+  const price = parseBRPrice(raw);
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
+function parseCorreiosDays(data, fallback = 12) {
+  const row = Array.isArray(data) ? data[0] : data;
+  const days = Number(row?.prazoEntrega ?? row?.prazo ?? row?.nuPrazo);
+  return Number.isFinite(days) && days > 0 ? days : fallback;
+}
+
+async function fetchCorreiosPriceGet(token, serviceCode, origin, dest, ship, weightGrams, declaredValue) {
+  const params = new URLSearchParams({
+    cepDestino: dest,
+    cepOrigem: origin,
+    ...correiosPackageParams(ship, weightGrams),
+    vlDeclarado: String(declaredValue.toFixed(2))
+  });
+  const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${serviceCode}?${params}`, {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  const bodyText = await res.text().catch(() => '');
+  if (!res.ok) {
+    console.warn('Correios preço GET:', serviceCode, res.status, bodyText.slice(0, 300));
+    return null;
+  }
+  try {
+    return bodyText ? JSON.parse(bodyText) : null;
+  } catch {
+    console.warn('Correios preço GET: JSON inválido', serviceCode);
+    return null;
+  }
+}
+
+async function fetchCorreiosPricePost(token, serviceCode, origin, dest, ship, weightGrams, declaredValue) {
+  const res = await fetch('https://api.correios.com.br/preco/v1/nacional', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + token,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      idLote: '1',
+      parametrosProduto: [{
+        coProduto: serviceCode,
+        nuRequisicao: '1',
+        cepOrigem: origin,
+        cepDestino: dest,
+        ...correiosPackageParams(ship, weightGrams),
+        vlDeclarado: String(declaredValue.toFixed(2))
+      }]
+    })
+  });
+  const bodyText = await res.text().catch(() => '');
+  if (!res.ok) {
+    console.warn('Correios preço POST:', serviceCode, res.status, bodyText.slice(0, 300));
+    return null;
+  }
+  try {
+    return bodyText ? JSON.parse(bodyText) : null;
+  } catch {
+    console.warn('Correios preço POST: JSON inválido', serviceCode);
+    return null;
+  }
+}
+
+async function fetchCorreiosPrazo(token, serviceCode, origin, dest) {
+  const params = new URLSearchParams({ cepOrigem: origin, cepDestino: dest });
+  const res = await fetch(`https://api.correios.com.br/prazo/v1/nacional/${serviceCode}?${params}`, {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  if (!res.ok) return null;
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 async function quoteCorreiosService(env, config, destCep, method, opts = {}) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const origin = onlyDigits(ship.originCep);
@@ -2031,34 +2152,28 @@ async function quoteCorreiosService(env, config, destCep, method, opts = {}) {
   const token = await getCorreiosToken(env);
   if (!token) return null;
 
-  const params = new URLSearchParams({
-    cepDestino: dest,
-    cepOrigem: origin,
-    psObjeto: String(weightGrams),
-    tpObjeto: '2',
-    comprimento: String(ship.lengthCm || 16),
-    largura: String(ship.widthCm || 12),
-    altura: String(ship.heightCm || 0.5),
-    vlDeclarado: String(declaredValue.toFixed(2))
-  });
-  const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${serviceCode}?${params}`, {
-    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
-  });
-  if (!res.ok) {
-    console.warn('Correios preço nacional:', serviceCode, res.status, await res.text().catch(() => ''));
-    return null;
+  let data = await fetchCorreiosPriceGet(token, serviceCode, origin, dest, ship, weightGrams, declaredValue);
+  let price = parseCorreiosPrice(data);
+  if (!price) {
+    data = await fetchCorreiosPricePost(token, serviceCode, origin, dest, ship, weightGrams, declaredValue);
+    price = parseCorreiosPrice(data);
   }
-  const data = await res.json();
-  const price = parseFloat(String(data.pcFinal || data.vlTotal || '0').replace(',', '.'));
-  if (price <= 0) return null;
+  if (!price) return null;
 
+  let days = parseCorreiosDays(data);
+  if (!days || days === 12) {
+    const prazo = await fetchCorreiosPrazo(token, serviceCode, origin, dest);
+    days = parseCorreiosDays(prazo, days);
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
   return {
     id: method.id || serviceCode,
     methodId: method.id || serviceCode,
     serviceCode,
-    service: method.label || data.nmServico || ship.serviceName || 'Correios',
+    service: method.label || row?.nmServico || ship.serviceName || 'Correios',
     price,
-    days: Number(data.prazoEntrega || data.prazo || 12),
+    days,
     source: 'correios',
     weightGrams
   };
@@ -2083,23 +2198,20 @@ async function quoteCorreiosOptions(env, config, destCep, opts = {}) {
   }
 
   if (!options.length) {
-    const est = estimateBR(origin, dest);
-    const baseWeight = shippingWeightGrams(config);
-    const weightFactor = Math.min(2.5, Math.max(1, weightGrams / baseWeight));
-    const price = Math.round(est.price * weightFactor * 100) / 100;
+    const est = estimateBRMax(config, weightGrams);
     const fallbackMethod = methods[0] || { id: 'estimate', label: ship.serviceName || 'Mini Envios' };
     options.push({
       id: fallbackMethod.id || 'estimate',
       methodId: fallbackMethod.id || 'estimate',
       serviceCode: fallbackMethod.correiosCode || ship.serviceCode || null,
       service: fallbackMethod.label || ship.serviceName || 'Mini Envios',
-      price,
+      price: est.price,
       days: est.days,
       source: 'estimate',
       weightGrams,
       note: token
-        ? 'API Correios sem preço válido para estes serviços.'
-        : 'Configure CORREIOS_USER e CORREIOS_PASSWORD no Worker para cotações reais.'
+        ? 'Estimativa máxima — API Correios sem preço válido para estes serviços.'
+        : 'Estimativa máxima — configure CORREIOS_USER e CORREIOS_PASSWORD no Worker.'
     });
   }
 
@@ -2826,7 +2938,7 @@ function buildIntegrationRows(env, config, checks) {
       detail: uber.error || 'Cotação de teste falhou'
     });
   } else {
-    const priceHint = uber.samplePrice ? ` · teste Av. Paulista ~R$ ${Number(uber.samplePrice).toFixed(2)}` : '';
+    const priceHint = uber.samplePrice ? ` · teste Casa Verde (~3 km) ~R$ ${Number(uber.samplePrice).toFixed(2)}` : '';
     rows.push({
       id: 'uber-direct',
       label: 'Uber Direct',

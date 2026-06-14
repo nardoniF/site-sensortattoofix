@@ -20,7 +20,7 @@ window.STF_STORE_PRICE = (function () {
     const en = window.STF_I18N?.isEn?.();
     const freteLine = el?.getAttribute('data-store-price-frete-line')
       || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
-      || '+ Frete: Mini Envios todo Brasil e Uber até 5 km';
+      || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
     let suffix = el?.getAttribute('data-store-price-suffix');
     if (en && suffix === 'PIX e cartão') {
       suffix = window.STF_I18N.t('store.intlSuffix');

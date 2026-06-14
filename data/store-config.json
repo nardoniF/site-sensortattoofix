@@ -1015,10 +1015,12 @@
   },
   "shipping": {
     "originCep": "02537190",
-    "weightGrams": 3,
+    "weightGrams": 5,
     "lengthCm": 16,
     "widthCm": 12,
     "heightCm": 0.5,
+    "estimateMaxPrice": 24.9,
+    "estimateMaxDays": 14,
     "serviceCode": "04227",
     "intlServiceCode": "45128",
     "serviceName": "Mini Envios",

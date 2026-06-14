@@ -170,7 +170,7 @@
     correios: 'API Correios (Mini Envios)',
     'correios-export': 'Simulador Exporta Fácil (Correios)',
     config: 'Tabela fallback do admin — API falhou!',
-    estimate: 'Estimativa fixa no código — configure CORREIOS_USER no Worker'
+    estimate: 'Estimativa máxima (teto) — API Correios indisponível ou sem preço válido'
   };
 
   function renderIntlShipping(zones) {
@@ -497,7 +497,7 @@
     }
     showFreteSubtab(mode === 'br' ? 'correios' : 'internacional');
     const f = els.configForm;
-    const weight = parseFloat(f.shippingWeight?.value) || 3;
+    const weight = parseFloat(f.shippingWeight?.value) || 5;
     let url;
     if (mode === 'br') {
       const cep = (document.getElementById('test-ship-cep')?.value || '').replace(/\D/g, '');
@@ -938,7 +938,7 @@
     if (f.intlProductHint) f.intlProductHint.value = intlProd.hint || intlProd.notice || '';
     if (f.intlProductEncomendaNotice) f.intlProductEncomendaNotice.value = intlProd.encomendaNotice || '';
     if (f.intlProductDocumentNotice) f.intlProductDocumentNotice.value = intlProd.documentNotice || '';
-    if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams ?? 3;
+    if (f.shippingWeight) f.shippingWeight.value = ship.weightGrams ?? 5;
     if (f.shippingServiceCode) f.shippingServiceCode.value = ship.serviceCode || '04227';
     if (f.intlServiceCode) f.intlServiceCode.value = ship.intlServiceCode || '45128';
     if (f.shippingLength) f.shippingLength.value = ship.lengthCm || 16;
@@ -1048,7 +1048,7 @@
       products,
       shipping: {
         originCep: (f.shippingOriginCep?.value || '').replace(/\D/g, ''),
-        weightGrams: parseFloat(f.shippingWeight?.value) || 3,
+        weightGrams: parseFloat(f.shippingWeight?.value) || 5,
         lengthCm: parseFloat(f.shippingLength?.value) || 16,
         widthCm: parseFloat(f.shippingWidth?.value) || 12,
         heightCm: parseFloat(f.shippingHeight?.value) || 3,

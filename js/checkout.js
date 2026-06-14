@@ -948,23 +948,17 @@
     if (shipW > 0) return shipW;
     const cartW = window.STF_CART?.totalWeight();
     if (cartW > 0) return cartW;
-    return 3;
+    return 5;
   }
 
-  function estimateBR(destCep) {
-    const o = parseInt(onlyDigits(cfg.shipping?.originCep).slice(0, 5), 10) || 0;
-    const d = parseInt(onlyDigits(destCep).slice(0, 5), 10) || 0;
-    const diff = Math.abs(o - d);
-    let base;
-    if (diff < 800) base = { price: 11.9, days: 8 };
-    else if (diff < 3000) base = { price: 15.9, days: 10 };
-    else if (diff < 8000) base = { price: 19.9, days: 12 };
-    else base = { price: 24.9, days: 14 };
-    const baseWeight = Number(cfg.shipping?.weightGrams) || 3;
+  function estimateBRMax() {
+    const baseWeight = Number(cfg.shipping?.weightGrams) || 5;
     const weightFactor = Math.min(2.5, Math.max(1, shippingWeightGrams() / baseWeight));
+    const maxPrice = Number(cfg.shipping?.estimateMaxPrice) > 0 ? Number(cfg.shipping.estimateMaxPrice) : 24.9;
+    const maxDays = Number(cfg.shipping?.estimateMaxDays) > 0 ? Number(cfg.shipping.estimateMaxDays) : 14;
     return {
-      price: Math.round(base.price * weightFactor * 100) / 100,
-      days: base.days,
+      price: Math.round(maxPrice * weightFactor * 100) / 100,
+      days: maxDays,
       service: 'Mini Envios',
       source: 'estimate'
     };
@@ -1023,7 +1017,7 @@
           options = data?.options || [];
         }
         if (!options.length) {
-          const est = estimateBR(cep);
+          const est = estimateBRMax();
           options = [{
             id: 'estimate',
             methodId: 'estimate',
