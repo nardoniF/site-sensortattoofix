@@ -169,6 +169,7 @@
     confirmHint: document.getElementById('confirm-hint'),
     cartSidebar: document.getElementById('cart-sidebar-items'),
     peliculaUpsell: document.getElementById('pelicula-upsell'),
+    checkoutSidebar: document.querySelector('.checkout-sidebar'),
     observacoesWrap: document.getElementById('observacoes-wrap'),
     observacoes: document.getElementById('observacoes'),
     observacoesError: document.getElementById('observacoes-error'),
@@ -189,6 +190,8 @@
   };
 
   let currentStep = 1;
+  let orderSidebarLocked = false;
+  let orderSidebarSnapshot = null;
 
   function apiBase() {
     return ((cfg?.api?.baseUrl) || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
@@ -420,6 +423,11 @@
   function renderPeliculaUpsell() {
     const wrap = els.peliculaUpsell;
     if (!wrap || !window.STF_PELICULA) return;
+    if (orderSidebarLocked) {
+      wrap.hidden = true;
+      wrap.innerHTML = '';
+      return;
+    }
 
     const needsWatch = window.STF_CART?.requiresSmartwatch();
     const watchModel = els.smartwatchSelect?.value || '';
@@ -519,7 +527,78 @@
     return true;
   }
 
+  function snapshotFromOrder(data) {
+    return {
+      produto: data.produto || '',
+      subtotal: data.valorProduto ?? 0,
+      frete: data.frete ?? 0,
+      total: data.total ?? 0
+    };
+  }
+
+  function updateSidebarTitle() {
+    const titleEl = document.querySelector('.cart-sidebar-title');
+    if (!titleEl) return;
+    const key = orderSidebarLocked ? 'cart.orderTitle' : 'cart.title';
+    const icon = orderSidebarLocked ? 'fa-receipt' : 'fa-shopping-cart';
+    titleEl.innerHTML = `<i class="fas ${icon}"></i> ${escapeHtml(L(key))}`;
+  }
+
+  function renderLockedSidebar() {
+    if (!els.cartSidebar) return;
+    const snap = orderSidebarSnapshot;
+    updateSidebarTitle();
+    if (snap?.items?.length) {
+      els.cartSidebar.innerHTML = snap.items.map((item) => {
+        const catalog = products.find((x) => x.id === item.productId || x.slug === item.productId);
+        const lineProduct = catalog || item;
+        const imgFull = resolveProductImage(item.image, lineProduct);
+        const lineName = cartLineName(item);
+        const thumb = item.aggregated
+          ? renderZoomableThumb(imgFull, imgFull, lineName, imgFull, 'cart-line-img-btn')
+          : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">`;
+        const qtyLabel = item.qty > 1 ? `${item.qty} × ${formatBRL(item.price)}` : formatBRL(item.price);
+        return `
+        <div class="cart-line cart-line-locked">
+          ${thumb}
+          <div class="cart-line-info">
+            <strong>${escapeHtml(lineName)}</strong>
+            <span class="cart-line-price">${formatBRL(item.price * item.qty)}</span>
+            <span class="cart-line-qty-label">${escapeHtml(qtyLabel)}</span>
+          </div>
+        </div>`;
+      }).join('');
+      bindProductZoom(els.cartSidebar);
+    } else if (snap?.produto) {
+      els.cartSidebar.innerHTML = `<p class="cart-order-produto">${escapeHtml(snap.produto)}</p>`;
+    } else {
+      els.cartSidebar.innerHTML = '';
+    }
+    if (snap) {
+      els.summaryProduct.textContent = formatBRL(snap.subtotal ?? 0);
+      els.summaryShipping.textContent = formatBRL(snap.frete ?? 0);
+      els.summaryTotal.textContent = formatBRL(snap.total ?? 0);
+    }
+  }
+
+  function lockCheckoutSidebar(snapshot) {
+    orderSidebarLocked = true;
+    if (snapshot) orderSidebarSnapshot = snapshot;
+    els.checkoutSidebar?.classList.add('checkout-sidebar-locked');
+    if (els.peliculaUpsell) {
+      els.peliculaUpsell.hidden = true;
+      els.peliculaUpsell.innerHTML = '';
+    }
+    window.STF_CART?.clear();
+    window.STF_CART?.initBadges?.();
+    renderLockedSidebar();
+  }
+
   function renderCartSidebar() {
+    if (orderSidebarLocked) {
+      renderLockedSidebar();
+      return;
+    }
     if (!els.cartSidebar || !window.STF_CART) return;
     const items = window.STF_CART.load();
     if (!items.length) {
@@ -985,6 +1064,9 @@
     els.btnBack.style.display = step > 1 && step < 3 ? 'inline-flex' : 'none';
     els.btnNext.style.display = step === 1 ? 'inline-flex' : 'none';
     els.btnPay.style.display = step === 2 ? 'inline-flex' : 'none';
+    if (step === 3 && orderSidebarLocked) {
+      renderLockedSidebar();
+    }
     if (step === 2) updatePaymentOptionsForCountry();
   }
 
@@ -1278,7 +1360,13 @@
       lastPaymentMethod = wantsPaypal ? 'paypal' : ((wantsCardBr || wantsIntlCard) ? 'credit_card' : 'pix');
       const result = await createOrder(orderData);
       const total = result.order?.total || (cartSubtotal() + orderData.frete);
-      window.STF_CART?.clear();
+      const orderSnapshot = {
+        items: (window.STF_CART?.load() || []).map((i) => ({ ...i })),
+        subtotal: cartSubtotal(),
+        frete: orderData.frete,
+        total
+      };
+      lockCheckoutSidebar(orderSnapshot);
       const orderId = result.order?.orderId;
       const accessToken = result.accessToken;
       const payment = result.payment || {};
@@ -1484,6 +1572,23 @@
 
     showCardPayment('#', true);
     els.confirmTitle.textContent = mpState === 'success' ? L('title.mpReceived') : L('title.mpProcessing');
+    window.STF_CART?.clear();
+    window.STF_CART?.initBadges?.();
+    try {
+      const res = await fetch(
+        `${apiBase()}/orders/${encodeURIComponent(orderId)}?token=${encodeURIComponent(accessToken)}`,
+        { cache: 'no-store' }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        els.pixAmount.textContent = formatBRL(data.total);
+        lockCheckoutSidebar(snapshotFromOrder(data));
+      } else {
+        lockCheckoutSidebar({ produto: orderId, total: 0 });
+      }
+    } catch {
+      lockCheckoutSidebar({ produto: orderId, total: 0 });
+    }
     showStep(3);
     startPolling(orderId, accessToken);
     history.replaceState({}, '', location.pathname);
@@ -1538,6 +1643,9 @@
         startPolling(orderId, accessToken, data.order?.total);
       }
 
+      if (data.order) lockCheckoutSidebar(snapshotFromOrder(data.order));
+      else lockCheckoutSidebar({ produto: orderId, total: data.order?.total || 0 });
+
       history.replaceState({}, '', location.pathname);
       return true;
     } catch (err) {
@@ -1573,6 +1681,7 @@
         els.paymentStatus.className = 'payment-status confirmed';
         els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paidAlready')}`;
         els.confirmTitle.textContent = L('title.paid');
+        lockCheckoutSidebar(snapshotFromOrder(data));
         showStep(3);
         history.replaceState({}, '', location.pathname);
         return true;
@@ -1608,6 +1717,9 @@
       }
 
       startPolling(data.orderId, token, data.total);
+      lockCheckoutSidebar(snapshotFromOrder(data));
+      window.STF_CART?.clear();
+      window.STF_CART?.initBadges?.();
       showStep(3);
       history.replaceState({}, '', location.pathname);
       return true;

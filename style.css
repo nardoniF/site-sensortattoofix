@@ -1018,6 +1018,22 @@ line-height:1.8;
     align-items: start;
 }
 .checkout-sidebar { position: sticky; top: 100px; }
+.checkout-sidebar-locked .cart-add-more,
+.checkout-sidebar-locked .pelicula-upsell { display: none !important; }
+.checkout-sidebar-locked .cart-qty,
+.checkout-sidebar-locked .cart-remove { display: none !important; }
+.cart-line-locked .cart-line-qty-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted, #888);
+  margin-top: 2px;
+}
+.cart-order-produto {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--text, #e8e8e8);
+}
 .checkout-product-card {
     background: var(--card);
     border: 1px solid #222;
