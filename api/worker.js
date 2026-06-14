@@ -2489,21 +2489,29 @@ function applyIntlSurcharge(config, option) {
 }
 
 function applyIntlSurchargeToOptions(config, options) {
-  return (options || []).map((opt) => applyIntlSurcharge(config, opt));
+  const list = options || [];
+  const surcharge = getIntlSurcharge(config);
+  if (!surcharge) return list;
+  let documentSurchargeApplied = false;
+  return list.map((opt) => {
+    if (documentSurchargeApplied || opt.shipmentType !== 'documento') return opt;
+    documentSurchargeApplied = true;
+    return applyIntlSurcharge(config, opt);
+  });
 }
 
 function quoteInternational(config, countryCode) {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
   const zone = zones[countryCode] || zones.OTHER;
   if (!zone) throw new Error('País não atendido');
-  return applyIntlSurcharge(config, {
+  return {
     price: zone.price,
     days: zone.days,
     service: 'Correios Internacional — ' + zone.label,
     source: 'config',
     country: countryCode,
     countryLabel: zone.label
-  });
+  };
 }
 
 async function findAsaasCustomerByCpf(base, apiKey, cpfCnpj) {
@@ -3450,9 +3458,7 @@ async function handleShippingQuote(request, env, origin, ctx) {
         source: fallback.source || 'config',
         country,
         countryLabel: fallback.countryLabel,
-        weightGrams,
-        intlSurcharge: fallback.intlSurcharge,
-        intlBasePrice: fallback.intlBasePrice
+        weightGrams
       }];
     } else {
       options = applyIntlSurchargeToOptions(config, options);

@@ -951,23 +951,6 @@
     return 5;
   }
 
-  function intlSurchargeAmount() {
-    const n = Number(cfg.internationalSurcharge);
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  }
-
-  function applyIntlSurchargeOption(opt) {
-    const surcharge = intlSurchargeAmount();
-    if (!surcharge || !opt) return opt;
-    const base = Number(opt.price) || 0;
-    return {
-      ...opt,
-      price: Math.round((base + surcharge) * 100) / 100,
-      intlSurcharge: surcharge,
-      intlBasePrice: base
-    };
-  }
-
   function estimateBRMax() {
     const baseWeight = Number(cfg.shipping?.weightGrams) || 5;
     const weightFactor = Math.min(2.5, Math.max(1, shippingWeightGrams() / baseWeight));
@@ -1013,14 +996,14 @@
         if (!options.length) {
           const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
           if (!z) throw new Error(L('country.unsupported'));
-          options = [applyIntlSurchargeOption({
+          options = [{
             id: 'config-fallback',
             methodId: 'config-fallback',
             service: `${L('shipping.intlPrefix')} ${z.label}`,
             price: z.price,
             days: z.days,
             source: 'config'
-          })];
+          }];
         }
       } else {
         const cep = onlyDigits(els.cep.value);
