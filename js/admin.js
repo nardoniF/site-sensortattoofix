@@ -695,11 +695,28 @@
 
       const br = data.correiosBr || {};
       const exp = data.correiosExport || {};
-      const brLine = br.credentialsConfigured
-        ? (br.apiConnected
-          ? '<span class="admin-status-ok">✓ API Correios BR conectada</span> (Mini Envios ' + escAttr(br.serviceCode) + ')'
-          : '<span class="admin-status-warn">⚠ Credenciais BR configuradas, mas token não obtido — confira usuário/senha/contrato</span>')
-        : '<span class="admin-status-bad">✗ API Correios BR não configurada — frete nacional usa estimativa fixa</span>';
+      const brTokenLine = !br.credentialsConfigured
+        ? '<span class="admin-status-bad">✗ Credenciais Correios não configuradas — frete nacional usa estimativa fixa</span>'
+        : (br.apiConnected
+          ? '<span class="admin-status-ok">✓ Token Correios OK</span>'
+          : '<span class="admin-status-warn">⚠ Credenciais configuradas, mas token não obtido</span>');
+
+      const api34Line = br.precoApiOk
+        ? '<span class="admin-status-ok">✓ API 34 (Preço) OK</span> — ' + escAttr(br.precoApiDetail || '')
+        : (br.precoApiDetail
+          ? '<span class="admin-status-warn">⚠ API 34 (Preço): ' + escAttr(br.precoApiDetail) + '</span>'
+          : '<span class="admin-status-bad">✗ API 34 (Preço) não testada</span>');
+
+      const api35Line = br.prazoApiOk
+        ? '<span class="admin-status-ok">✓ API 35 (Prazo) OK</span> — ' + escAttr(br.prazoApiDetail || '')
+        : (br.prazoApiDetail
+          ? '<span class="admin-status-warn">⚠ API 35 (Prazo): ' + escAttr(br.prazoApiDetail) + '</span>'
+          : '<span class="admin-status-bad">✗ API 35 (Prazo) não testada</span>');
+
+      const brLine = brTokenLine
+        + ' · Mini Envios ' + escAttr(br.serviceCode || '04227')
+        + '<br>' + api34Line
+        + '<br>' + api35Line;
 
       const expLine = exp.simulatorReachable && exp.sampleQuotePT
         ? `<span class="admin-status-ok">✓ Exporta Fácil OK</span> — Portugal agora: <strong>R$ ${Number(exp.sampleQuotePT.price).toFixed(2).replace('.', ',')}</strong> (${exp.sampleQuotePT.weightGrams} g)`

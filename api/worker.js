@@ -2185,6 +2185,101 @@ async function fetchCorreiosPrazo(token, serviceCode, origin, dest) {
   }
 }
 
+const CORREIOS_INTEGRATION_TEST_DEST = '01310100';
+
+function correiosIntegrationTestParams(config) {
+  const ship = config.shipping || DEFAULT_CONFIG.shipping;
+  const origin = onlyDigits(ship.originCep);
+  const serviceCode = String(ship.serviceCode || '04227').trim();
+  const weightGrams = shippingWeightGrams(config);
+  const declaredValue = Number(config.product?.price) || 59.9;
+  return { ship, origin, dest: CORREIOS_INTEGRATION_TEST_DEST, serviceCode, weightGrams, declaredValue };
+}
+
+function extractCorreiosApiError(res, bodyText) {
+  const raw = String(bodyText || '').trim();
+  if (raw.includes('GTW-012')) {
+    const apiMatch = raw.match(/API:\s*(\d+)/i);
+    return apiMatch
+      ? `GTW-012 — API ${apiMatch[1]} restrita (aguardando liberação no contrato)`
+      : 'GTW-012 — API restrita (aguardando liberação no contrato)';
+  }
+  if (!res.ok) {
+    try {
+      const data = JSON.parse(raw);
+      return data.mensagem || data.message || (Array.isArray(data.msgs) && data.msgs[0])
+        || data.txErro || (data.cdErro ? `cdErro ${data.cdErro}` : null) || `HTTP ${res.status}`;
+    } catch {
+      return raw ? raw.slice(0, 140) : `HTTP ${res.status}`;
+    }
+  }
+  try {
+    const data = raw ? JSON.parse(raw) : null;
+    const row = Array.isArray(data) ? data[0] : data;
+    if (row?.txErro) return String(row.txErro);
+    if (row?.cdErro) return `cdErro ${row.cdErro}`;
+  } catch { /* ignore */ }
+  return null;
+}
+
+async function probeCorreiosPrecoApi(token, config) {
+  const { ship, origin, dest, serviceCode, weightGrams, declaredValue } = correiosIntegrationTestParams(config);
+  if (origin.length !== 8) {
+    return { ok: false, detail: 'CEP de origem inválido — configure em Frete → Correios BR' };
+  }
+  const params = new URLSearchParams({
+    cepDestino: dest,
+    cepOrigem: origin,
+    ...correiosPackageParams(ship, weightGrams),
+    vlDeclarado: String(declaredValue.toFixed(2))
+  });
+  const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${serviceCode}?${params}`, {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  const bodyText = await res.text().catch(() => '');
+  if (res.ok) {
+    try {
+      const data = bodyText ? JSON.parse(bodyText) : null;
+      const price = parseCorreiosPrice(data);
+      if (price) {
+        return {
+          ok: true,
+          detail: `OK — serviço ${serviceCode} teste R$ ${price.toFixed(2).replace('.', ',')}`
+        };
+      }
+      return { ok: false, detail: extractCorreiosApiError(res, bodyText) || 'Resposta sem preço válido' };
+    } catch {
+      return { ok: false, detail: 'Resposta JSON inválida' };
+    }
+  }
+  return { ok: false, detail: extractCorreiosApiError(res, bodyText) };
+}
+
+async function probeCorreiosPrazoApi(token, config) {
+  const { origin, dest, serviceCode } = correiosIntegrationTestParams(config);
+  if (origin.length !== 8) {
+    return { ok: false, detail: 'CEP de origem inválido — configure em Frete → Correios BR' };
+  }
+  const params = new URLSearchParams({ cepOrigem: origin, cepDestino: dest });
+  const res = await fetch(`https://api.correios.com.br/prazo/v1/nacional/${serviceCode}?${params}`, {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  const bodyText = await res.text().catch(() => '');
+  if (res.ok) {
+    try {
+      const data = bodyText ? JSON.parse(bodyText) : null;
+      const days = parseCorreiosDays(data, 0);
+      if (days > 0) {
+        return { ok: true, detail: `OK — serviço ${serviceCode} teste ${days} dia(s)` };
+      }
+      return { ok: false, detail: extractCorreiosApiError(res, bodyText) || 'Resposta sem prazo válido' };
+    } catch {
+      return { ok: false, detail: 'Resposta JSON inválida' };
+    }
+  }
+  return { ok: false, detail: extractCorreiosApiError(res, bodyText) };
+}
+
 async function quoteCorreiosService(env, config, destCep, method, opts = {}) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const origin = onlyDigits(ship.originCep);
@@ -2864,8 +2959,15 @@ async function checkZApiIntegration(env) {
   }
 }
 
+function correiosApiRowStatus(probe) {
+  if (!probe) return 'off';
+  if (probe.ok) return 'ok';
+  if (String(probe.detail || '').includes('GTW-012')) return 'warn';
+  return 'error';
+}
+
 function buildIntegrationRows(env, config, checks) {
-  const { paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions, uber } = checks;
+  const { paypal, mercadoPago, asaas, resend, zapi, correiosToken, correiosPreco, correiosPrazo, exportOptions, uber } = checks;
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
   const formsubmitEmail = (config.formsubmit?.email || '').trim();
   const ga4Secret = (env.GA4_API_SECRET || '').trim();
@@ -2964,27 +3066,69 @@ function buildIntegrationRows(env, config, checks) {
 
   if (!hasCorreiosCreds) {
     rows.push({
-      id: 'correios-br',
-      label: 'Correios BR',
-      description: 'Cotação de frete nacional (Mini Envios)',
+      id: 'correios-token',
+      label: 'Correios Token',
+      description: 'Autenticação (cartão de postagem)',
       status: 'warn',
-      detail: 'Sem credenciais — usa estimativa fixa'
+      detail: 'Sem credenciais — checkout usa estimativa fixa'
+    });
+    rows.push({
+      id: 'correios-preco-34',
+      label: 'Correios API 34',
+      description: 'Preço — cotação Mini Envios',
+      status: 'off',
+      detail: 'Aguardando credenciais'
+    });
+    rows.push({
+      id: 'correios-prazo-35',
+      label: 'Correios API 35',
+      description: 'Prazo — entrega Mini Envios',
+      status: 'off',
+      detail: 'Aguardando credenciais'
     });
   } else if (!correiosToken) {
     rows.push({
-      id: 'correios-br',
-      label: 'Correios BR',
-      description: 'Cotação de frete nacional (Mini Envios)',
+      id: 'correios-token',
+      label: 'Correios Token',
+      description: 'Autenticação (cartão de postagem)',
       status: 'error',
       detail: 'Credenciais configuradas, mas token não obtido'
     });
+    rows.push({
+      id: 'correios-preco-34',
+      label: 'Correios API 34',
+      description: 'Preço — cotação Mini Envios',
+      status: 'error',
+      detail: 'Sem token — teste não executado'
+    });
+    rows.push({
+      id: 'correios-prazo-35',
+      label: 'Correios API 35',
+      description: 'Prazo — entrega Mini Envios',
+      status: 'error',
+      detail: 'Sem token — teste não executado'
+    });
   } else {
     rows.push({
-      id: 'correios-br',
-      label: 'Correios BR',
-      description: 'Cotação de frete nacional (Mini Envios)',
+      id: 'correios-token',
+      label: 'Correios Token',
+      description: 'Autenticação (cartão de postagem)',
       status: 'ok',
-      detail: 'API conectada'
+      detail: 'Token obtido'
+    });
+    rows.push({
+      id: 'correios-preco-34',
+      label: 'Correios API 34',
+      description: 'Preço — cotação Mini Envios (04227)',
+      status: correiosApiRowStatus(correiosPreco),
+      detail: correiosPreco?.detail || 'Falha no teste de preço'
+    });
+    rows.push({
+      id: 'correios-prazo-35',
+      label: 'Correios API 35',
+      description: 'Prazo — entrega Mini Envios (04227)',
+      status: correiosApiRowStatus(correiosPrazo),
+      detail: correiosPrazo?.detail || 'Falha no teste de prazo'
     });
   }
 
@@ -4300,14 +4444,16 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   const config = await getConfig(env);
   const weightGrams = shippingWeightGrams(config);
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
+  const correiosToken = hasCorreiosCreds ? await getCorreiosToken(env) : null;
+  const correiosPreco = correiosToken ? await probeCorreiosPrecoApi(correiosToken, config) : null;
+  const correiosPrazo = correiosToken ? await probeCorreiosPrazoApi(correiosToken, config) : null;
 
-  const [paypal, mercadoPago, asaas, resend, zapi, correiosToken, exportOptions, uber] = await Promise.all([
+  const [paypal, mercadoPago, asaas, resend, zapi, exportOptions, uber] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
-    hasCorreiosCreds ? getCorreiosToken(env) : Promise.resolve(null),
     quoteCorreiosExportOptions(config, 'PT', { weightGrams }).catch(() => []),
     checkUberIntegration(env, config)
   ]);
@@ -4319,6 +4465,8 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     resend,
     zapi,
     correiosToken,
+    correiosPreco,
+    correiosPrazo,
     exportOptions,
     uber
   });
@@ -4337,6 +4485,12 @@ async function handleAdminShippingStatus(request, env, origin) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const hasCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
   const correiosToken = hasCreds ? await getCorreiosToken(env) : null;
+  const [correiosPreco, correiosPrazo] = correiosToken
+    ? await Promise.all([
+      probeCorreiosPrecoApi(correiosToken, config),
+      probeCorreiosPrazoApi(correiosToken, config)
+    ])
+    : [null, null];
   const weightGrams = shippingWeightGrams(config);
   const exportOptions = await quoteCorreiosExportOptions(config, 'PT', { weightGrams });
   const exportQuote = exportOptions[0] || null;
@@ -4352,6 +4506,10 @@ async function handleAdminShippingStatus(request, env, origin) {
     correiosBr: {
       credentialsConfigured: hasCreds,
       apiConnected: !!correiosToken,
+      precoApiOk: !!correiosPreco?.ok,
+      prazoApiOk: !!correiosPrazo?.ok,
+      precoApiDetail: correiosPreco?.detail || null,
+      prazoApiDetail: correiosPrazo?.detail || null,
       contractConfigured: !!env.CORREIOS_CONTRACT,
       serviceCode: ship.serviceCode || '04227',
       originCep: ship.originCep || ''

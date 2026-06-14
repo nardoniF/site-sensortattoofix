@@ -847,6 +847,7 @@
       els.shippingHint.hidden = false;
       els.shippingHint.textContent = L('shipping.hint');
     }
+    updateContinueButtonVisibility();
   }
 
   function shippingSourceLabel(source) {
@@ -882,6 +883,13 @@
     if (els.summaryShippingLabel) {
       els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
     }
+    updateContinueButtonVisibility();
+  }
+
+  function updateContinueButtonVisibility() {
+    if (!els.btnNext) return;
+    const ready = shippingCost !== null && shippingInfo;
+    els.btnNext.style.display = currentStep === 1 && ready ? 'inline-flex' : 'none';
   }
 
   function renderShippingOptions(options) {
@@ -976,6 +984,9 @@
   }
 
   async function quoteShipping() {
+    shippingCost = null;
+    shippingInfo = null;
+    updateContinueButtonVisibility();
     const base = apiBase();
     els.shippingHint.hidden = false;
     els.shippingHint.textContent = L('shipping.calculating');
@@ -1056,7 +1067,7 @@
       ind.classList.toggle('done', n < step);
     });
     els.btnBack.style.display = step > 1 && step < 3 ? 'inline-flex' : 'none';
-    els.btnNext.style.display = step === 1 ? 'inline-flex' : 'none';
+    updateContinueButtonVisibility();
     els.btnPay.style.display = step === 2 ? 'inline-flex' : 'none';
     if (step === 3 && orderSidebarLocked) {
       renderLockedSidebar();
