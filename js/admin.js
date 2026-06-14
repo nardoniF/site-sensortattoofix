@@ -216,9 +216,13 @@
 
   function formatQuoteOption(opt, i) {
     const price = Number(opt.price || 0).toFixed(2).replace('.', ',');
+    const surchargeLine = opt.intlSurcharge > 0
+      ? `   (+ R$ ${Number(opt.intlSurcharge).toFixed(2).replace('.', ',')} acréscimo internacional)`
+      : '';
     return [
       `${i + 1}. ${opt.service || '—'}`,
       `   R$ ${price} · ${opt.days ?? '—'} dias · ${QUOTE_SOURCE_LABELS[opt.source] || opt.source || '—'}`,
+      surchargeLine,
       opt.serviceCode ? `   Código: ${opt.serviceCode}` : ''
     ].filter(Boolean).join('\n');
   }
@@ -933,6 +937,7 @@
     if (f.motoboyDeliveryHours) f.motoboyDeliveryHours.value = motoboy.deliveryHours ?? 24;
     renderMotoboyCouriers(motoboy.couriers || []);
     renderIntlShipping(config.internationalShipping || {});
+    if (f.intlSurcharge) f.intlSurcharge.value = config.internationalSurcharge ?? 40;
     const intlProd = config.internationalProduct || {};
     if (f.intlProductTitle) f.intlProductTitle.value = intlProd.title || '';
     if (f.intlProductHint) f.intlProductHint.value = intlProd.hint || intlProd.notice || '';
@@ -1097,6 +1102,7 @@
       },
       smartwatchModels: currentConfig?.smartwatchModels || [],
       internationalShipping: collectIntlShipping(),
+      internationalSurcharge: Math.max(0, parseFloat(f.intlSurcharge?.value) || 0),
       internationalProduct: {
         title: f.intlProductTitle?.value.trim() || 'Envio internacional',
         hint: f.intlProductHint?.value.trim() || '',

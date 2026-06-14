@@ -1095,6 +1095,7 @@
     "deliveryHours": 24,
     "couriers": []
   },
+  "internationalSurcharge": 40,
   "internationalProduct": {
     "title": "Envio internacional",
     "hint": "",

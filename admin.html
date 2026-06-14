@@ -237,6 +237,12 @@
                         <legend><i class="fas fa-globe-americas"></i> Frete internacional</legend>
                         <p class="admin-meta">O checkout usa o <strong>simulador Exporta Fácil</strong> em tempo real. A tabela abaixo é <strong>fallback</strong> (se a API cair) e é <strong>atualizada automaticamente</strong> com os valores da API quando ela responde — ao abrir o admin ou quando um cliente cotar frete.</p>
                         <div class="form-grid" style="margin-bottom:12px">
+                            <label>Acréscimo internacional (R$)
+                                <input type="number" name="intlSurcharge" min="0" step="0.01" value="40">
+                                <small>Somado a <strong>todas</strong> as cotações internacionais (trabalho extra de postagem). Tabela fallback abaixo é só o frete Correios.</small>
+                            </label>
+                        </div>
+                        <div class="form-grid" style="margin-bottom:12px">
                             <label class="full">Texto — Exporta Fácil / encomenda (com kit Prime)
                                 <textarea name="intlProductEncomendaNotice" rows="3" placeholder="O que é enviado: kit com potencializador…"></textarea>
                             </label>

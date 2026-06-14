@@ -74,6 +74,7 @@ const DEFAULT_CONFIG = {
     PY: { label: 'Paraguai', price: 54.9, days: 8, currency: 'BRL' },
     OTHER: { label: 'Outro país', price: 119.9, days: 25, currency: 'BRL' }
   },
+  internationalSurcharge: 40,
   internationalProduct: {
     title: 'Envio internacional',
     hint: '',
@@ -577,6 +578,9 @@ function withConfigDefaults(stored) {
     formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
     api: { ...base.api, ...(stored.api || {}) },
     internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },
+    internationalSurcharge: Number.isFinite(Number(stored.internationalSurcharge))
+      ? Number(stored.internationalSurcharge)
+      : base.internationalSurcharge,
     internationalProduct: { ...base.internationalProduct, ...(stored.internationalProduct || {}) },
     payments: {
       ...base.payments,
@@ -883,6 +887,7 @@ function publicConfigView(config) {
       weightGrams: shippingWeightGrams(config)
     },
     internationalShipping: config.internationalShipping || {},
+    internationalSurcharge: getIntlSurcharge(config),
     internationalProduct: config.internationalProduct || DEFAULT_CONFIG.internationalProduct,
     payments: {
       paypal: {
@@ -2465,18 +2470,40 @@ async function syncAllIntlFallbackZones(env, config) {
   return { config: saved, results, updated: true };
 }
 
+function getIntlSurcharge(config) {
+  const n = Number(config?.internationalSurcharge ?? DEFAULT_CONFIG.internationalSurcharge);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+}
+
+function applyIntlSurcharge(config, option) {
+  if (!option || typeof option !== 'object') return option;
+  const surcharge = getIntlSurcharge(config);
+  if (!surcharge) return option;
+  const base = Number(option.price) || 0;
+  return {
+    ...option,
+    price: Math.round((base + surcharge) * 100) / 100,
+    intlSurcharge: surcharge,
+    intlBasePrice: base
+  };
+}
+
+function applyIntlSurchargeToOptions(config, options) {
+  return (options || []).map((opt) => applyIntlSurcharge(config, opt));
+}
+
 function quoteInternational(config, countryCode) {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
   const zone = zones[countryCode] || zones.OTHER;
   if (!zone) throw new Error('País não atendido');
-  return {
+  return applyIntlSurcharge(config, {
     price: zone.price,
     days: zone.days,
     service: 'Correios Internacional — ' + zone.label,
     source: 'config',
     country: countryCode,
     countryLabel: zone.label
-  };
+  });
 }
 
 async function findAsaasCustomerByCpf(base, apiKey, cpfCnpj) {
@@ -3420,11 +3447,15 @@ async function handleShippingQuote(request, env, origin, ctx) {
         service: fallback.service,
         price: fallback.price,
         days: fallback.days,
-        source: 'config',
+        source: fallback.source || 'config',
         country,
         countryLabel: fallback.countryLabel,
-        weightGrams
+        weightGrams,
+        intlSurcharge: fallback.intlSurcharge,
+        intlBasePrice: fallback.intlBasePrice
       }];
+    } else {
+      options = applyIntlSurchargeToOptions(config, options);
     }
   } else {
     const cep = url.searchParams.get('cep');
@@ -4397,6 +4428,9 @@ async function handlePutConfig(request, env, origin) {
     pix: resolvePixConfig({ ...current.pix, ...body.pix }, DEFAULT_CONFIG.pix),
     shipping: { ...current.shipping, ...body.shipping },
     internationalShipping: { ...current.internationalShipping, ...body.internationalShipping },
+    internationalSurcharge: body.internationalSurcharge != null
+      ? Math.max(0, Number(body.internationalSurcharge) || 0)
+      : current.internationalSurcharge,
     internationalProduct: { ...current.internationalProduct, ...body.internationalProduct },
     payments: {
       ...current.payments,
