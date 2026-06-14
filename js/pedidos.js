@@ -218,7 +218,11 @@
       cache: 'no-store'
     });
     if (!res.ok) throw new Error('Erro ao carregar pedidos.');
-    allOrders = await res.json();
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      throw new Error(data?.error || 'Resposta inválida da API de pedidos.');
+    }
+    allOrders = data;
     applyFilters();
   }
 

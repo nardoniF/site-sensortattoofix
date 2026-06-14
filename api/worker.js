@@ -1346,15 +1346,25 @@ async function getOrder(env, orderId) {
   return raw ? JSON.parse(raw) : null;
 }
 
-async function saveOrder(env, order) {
-  await env.STORE_KV.put('order:' + order.orderId, JSON.stringify(order));
-  const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
-  const filtered = index.filter((o) => o.orderId !== order.orderId);
-  filtered.unshift({
+async function readOrdersIndex(env) {
+  try {
+    const raw = await env.STORE_KV.get(ORDERS_INDEX);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error('orders:index inválido, será reconstruído:', err.message);
+    return [];
+  }
+}
+
+function buildIndexEntry(order) {
+  return {
     orderId: order.orderId,
     createdAt: order.createdAt,
     status: order.status,
     total: order.total,
+    valorProduto: order.valorProduto,
     nome: order.nome,
     email: order.email,
     telefone: order.telefone,
@@ -1364,8 +1374,77 @@ async function saveOrder(env, order) {
     modeloRelogio: formatOrderSmartwatch(order),
     pais: order.pais,
     pagamento: order.pagamento,
+    endereco: order.endereco || '',
+    produto: order.produto || '',
     userId: order.userId || null
-  });
+  };
+}
+
+function orderFromIndexRow(item) {
+  if (!item?.orderId) return null;
+  const frete = Number(item.frete) || 0;
+  const total = Number(item.total) || 0;
+  return {
+    ...item,
+    endereco: item.endereco || '—',
+    produto: item.produto || '—',
+    valorProduto: item.valorProduto ?? Math.max(0, total - frete)
+  };
+}
+
+async function rebuildOrdersIndexFromKv(env) {
+  const list = await env.STORE_KV.list({ prefix: 'order:' });
+  const entries = [];
+  for (const key of list.keys) {
+    const orderId = key.name.startsWith('order:') ? key.name.slice(6) : key.name;
+    const order = await getOrder(env, orderId);
+    if (order) entries.push(buildIndexEntry(order));
+  }
+  entries.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  const trimmed = entries.slice(0, 2000);
+  if (trimmed.length) {
+    await env.STORE_KV.put(ORDERS_INDEX, JSON.stringify(trimmed));
+  }
+  return trimmed;
+}
+
+async function listOrdersForAdmin(env) {
+  let index = await readOrdersIndex(env);
+  if (!index.length) {
+    index = await rebuildOrdersIndexFromKv(env);
+  }
+
+  const orders = [];
+  let missingFull = 0;
+  for (const item of index.slice(0, 500)) {
+    const full = await getOrder(env, item.orderId);
+    if (full) orders.push(full);
+    else {
+      missingFull++;
+      const fallback = orderFromIndexRow(item);
+      if (fallback) orders.push(fallback);
+    }
+  }
+
+  if (missingFull > 0) {
+    const rebuilt = await rebuildOrdersIndexFromKv(env);
+    if (rebuilt.length && rebuilt.length !== index.length) {
+      orders.length = 0;
+      for (const item of rebuilt.slice(0, 500)) {
+        const full = await getOrder(env, item.orderId);
+        orders.push(full || orderFromIndexRow(item));
+      }
+    }
+  }
+
+  return orders;
+}
+
+async function saveOrder(env, order) {
+  await env.STORE_KV.put('order:' + order.orderId, JSON.stringify(order));
+  const index = await readOrdersIndex(env);
+  const filtered = index.filter((o) => o.orderId !== order.orderId);
+  filtered.unshift(buildIndexEntry(order));
   await env.STORE_KV.put(ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
   if (order.userId) await linkOrderToUser(env, order.userId, order.orderId);
 }
@@ -1386,7 +1465,7 @@ async function deleteOrder(env, orderId) {
 
   await env.STORE_KV.delete('order:' + orderId);
 
-  const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
+  const index = await readOrdersIndex(env);
   await env.STORE_KV.put(
     ORDERS_INDEX,
     JSON.stringify(index.filter((o) => o.orderId !== orderId))
@@ -3717,6 +3796,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
 }
 
 async function handlePaymentConfirmed(env, order, payment) {
+  const fresh = await getOrder(env, order.orderId);
+  if (!fresh || fresh.status === 'paid') return;
+  order = fresh;
+
   order.status = 'paid';
   order.paidAt = new Date().toISOString();
   const value = payment?.value ?? order.total;
@@ -4241,7 +4324,7 @@ async function handleDeletePendingOrders(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
 
-  const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
+  const index = await readOrdersIndex(env);
   const pendingIds = index.filter((o) => o.status !== 'paid').map((o) => o.orderId);
   let deleted = 0;
   for (const orderId of pendingIds) {
@@ -4254,11 +4337,12 @@ async function handleListOrders(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
 
   const format = new URL(request.url).searchParams.get('format') || 'json';
-  const index = JSON.parse((await env.STORE_KV.get(ORDERS_INDEX)) || '[]');
+  const index = await readOrdersIndex(env);
+  const indexForExport = index.length ? index : await rebuildOrdersIndexFromKv(env);
 
   if (format === 'csv') {
     const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,observacoes,modeloRelogio,pais,pagamento,total,frete\n';
-    const rows = index.map((o) =>
+    const rows = indexForExport.map((o) =>
       [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais, o.pagamento, o.total, o.frete]
         .map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')
     ).join('\n');
@@ -4267,12 +4351,7 @@ async function handleListOrders(request, env, origin) {
     });
   }
 
-  const orders = [];
-  for (const item of index.slice(0, 500)) {
-    const full = await getOrder(env, item.orderId);
-    if (full) orders.push(full);
-  }
-  return json(orders, 200, origin);
+  return json(await listOrdersForAdmin(env), 200, origin);
 }
 
 export default {
