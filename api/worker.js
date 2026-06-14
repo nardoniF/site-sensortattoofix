@@ -10,6 +10,7 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:5500'
 ];
 const CONFIG_KEY = 'store-config';
+const SITE_CATALOG_URL = 'https://www.sensortattoofix.com.br/data/store-config.json';
 const ORDERS_INDEX = 'orders:index';
 const CUSTOMER_SESSION_TTL = 2592000; // 30 dias
 
@@ -82,6 +83,10 @@ const DEFAULT_CONFIG = {
   payments: {
     paypal: {
       internationalEnabled: true
+    },
+    cardBr: {
+      provider: 'asaas',
+      fallbackToMercadoPago: true
     }
   },
   smartwatchModels: [
@@ -458,6 +463,100 @@ async function notifyMotoboyCouriers(env, config, order) {
   return results;
 }
 
+function mergeSmartwatchModelLists(stored, base) {
+  const storedList = Array.isArray(stored) && stored.length ? stored : [];
+  const baseList = Array.isArray(base) ? base : [];
+  if (!storedList.length) return [...baseList];
+  const seen = new Set(storedList);
+  const out = [...storedList];
+  baseList.forEach((m) => {
+    if (!seen.has(m)) {
+      out.push(m);
+      seen.add(m);
+    }
+  });
+  return out;
+}
+
+function mergeSiteCatalogProducts(kvProducts, siteProducts) {
+  const byId = new Map();
+  (kvProducts || []).forEach((p) => {
+    const k = p?.id || p?.slug;
+    if (k) byId.set(k, { ...p });
+  });
+  (siteProducts || []).forEach((lp) => {
+    const k = lp?.id || lp?.slug;
+    if (!k) return;
+    if (!byId.has(k)) {
+      byId.set(k, { ...lp });
+      return;
+    }
+    if (lp.aggregated === true) {
+      const prev = byId.get(k);
+      const merged = { ...prev, ...lp };
+      if (Array.isArray(lp.compatibleWatchModels)) {
+        merged.compatibleWatchModels = lp.compatibleWatchModels;
+      }
+      if (lp.active === false) merged.active = false;
+      if (lp.image && String(lp.image).includes('/produtos/pulseiras/')) {
+        merged.image = lp.image;
+      }
+      byId.set(k, merged);
+      return;
+    }
+    const prev = byId.get(k);
+    byId.set(k, { ...prev, ...lp });
+  });
+  return [...byId.values()];
+}
+
+function mergeSiteCatalog(config, site) {
+  if (!site || typeof site !== 'object') return config;
+  const next = { ...config };
+  if (site.smartwatchModels?.length) {
+    next.smartwatchModels = site.smartwatchModels;
+  } else {
+    next.smartwatchModels = mergeSmartwatchModelLists(
+      config.smartwatchModels,
+      DEFAULT_CONFIG.smartwatchModels
+    );
+  }
+  if (site.smartwatchModelMeta) {
+    next.smartwatchModelMeta = {
+      ...(config.smartwatchModelMeta || {}),
+      ...site.smartwatchModelMeta
+    };
+  }
+  if (site.products?.length) {
+    next.products = mergeSiteCatalogProducts(config.products, site.products);
+  }
+  return next;
+}
+
+let siteCatalogCache = null;
+let siteCatalogCachedAt = 0;
+
+async function fetchSiteCatalog() {
+  if (siteCatalogCache && Date.now() - siteCatalogCachedAt < 300000) {
+    return siteCatalogCache;
+  }
+  try {
+    const res = await fetch(SITE_CATALOG_URL, { cf: { cacheTtl: 300 } });
+    if (!res.ok) return null;
+    siteCatalogCache = await res.json();
+    siteCatalogCachedAt = Date.now();
+    return siteCatalogCache;
+  } catch {
+    return null;
+  }
+}
+
+async function getPublicConfig(env) {
+  const config = await getConfig(env);
+  const site = await fetchSiteCatalog();
+  return mergeSiteCatalog(config, site);
+}
+
 function withConfigDefaults(stored) {
   const base = structuredClone(DEFAULT_CONFIG);
   if (!stored || typeof stored !== 'object') return base;
@@ -483,11 +582,10 @@ function withConfigDefaults(stored) {
     payments: {
       ...base.payments,
       ...(stored.payments || {}),
-      paypal: mergePaypalConfig(base.payments?.paypal, stored.payments?.paypal)
+      paypal: mergePaypalConfig(base.payments?.paypal, stored.payments?.paypal),
+      cardBr: mergeCardBrConfig(base.payments?.cardBr, stored.payments?.cardBr)
     },
-    smartwatchModels: (stored.smartwatchModels && stored.smartwatchModels.length)
-      ? stored.smartwatchModels
-      : base.smartwatchModels,
+    smartwatchModels: mergeSmartwatchModelLists(stored.smartwatchModels, base.smartwatchModels),
     products: normalizeProducts(stored, base),
     shippingMethods: mergeShippingMethods(stored.shippingMethods),
     motoboyShipping: {
@@ -688,6 +786,24 @@ function mergePaypalConfig(basePaypal, storedPaypal) {
   return { ...basePaypal, ...(storedPaypal || {}) };
 }
 
+function mergeCardBrConfig(baseCardBr, storedCardBr) {
+  const base = baseCardBr || DEFAULT_CONFIG.payments.cardBr;
+  const stored = storedCardBr || {};
+  const provider = stored.provider === 'mercadopago' ? 'mercadopago' : 'asaas';
+  return {
+    provider,
+    fallbackToMercadoPago: stored.fallbackToMercadoPago !== false
+  };
+}
+
+function getCardBrProvider(config) {
+  return config?.payments?.cardBr?.provider === 'mercadopago' ? 'mercadopago' : 'asaas';
+}
+
+function cardBrFallbackToMp(config) {
+  return config?.payments?.cardBr?.fallbackToMercadoPago !== false;
+}
+
 function isInternationalPayPalAvailable(config) {
   const paypal = config.payments?.paypal || {};
   if (paypal.internationalEnabled === false) return false;
@@ -773,6 +889,9 @@ function publicConfigView(config) {
       paypal: {
         internationalEnabled: paypal.internationalEnabled !== false,
         showAfter: paypal.showAfter || null
+      },
+      cardBr: {
+        provider: getCardBrProvider(config)
       }
     },
     smartwatchModels: config.smartwatchModels || DEFAULT_CONFIG.smartwatchModels,
@@ -2945,6 +3064,37 @@ async function createMercadoPagoCheckoutPro(env, order, config) {
   };
 }
 
+/** Cartão de crédito BR — Asaas ou Mercado Pago (admin), com fallback automático se Asaas cair. */
+async function createBrCreditCardPayment(env, order, config) {
+  const provider = getCardBrProvider(config);
+  const hasAsaas = !!asaasApiKey(env);
+  const hasMp = !!mercadoPagoToken(env);
+  const fallback = cardBrFallbackToMp(config);
+
+  if (provider === 'mercadopago') {
+    if (!hasMp) throw new Error('Mercado Pago não configurado no Worker.');
+    return createMercadoPagoCheckoutPro(env, order, config);
+  }
+
+  if (!hasAsaas && !hasMp) {
+    throw new Error('Cartão indisponível. Configure ASAAS_API_KEY ou MP_ACCESS_TOKEN.');
+  }
+  if (!hasAsaas) {
+    return createMercadoPagoCheckoutPro(env, order, config);
+  }
+
+  try {
+    return await createAsaasPayment(env, order, config, 'CREDIT_CARD');
+  } catch (asaasErr) {
+    console.error('Asaas cartão:', asaasErr.message);
+    if (fallback && hasMp) {
+      console.log('Fallback cartão BR → Mercado Pago:', order.orderId);
+      return createMercadoPagoCheckoutPro(env, order, config);
+    }
+    throw asaasErr;
+  }
+}
+
 function emailFrom(env, config) {
   return env.EMAIL_FROM || config.emailFrom || 'Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>';
 }
@@ -3303,7 +3453,7 @@ async function resolveCheckoutUser(env, request, body) {
 
 async function handleCreateOrder(request, env, origin, ctx) {
   const body = await request.json();
-  const config = await getConfig(env);
+  const config = await getPublicConfig(env);
   let frete = Number(body.frete) || 0;
   let items;
   try {
@@ -3474,11 +3624,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
       } else if (hasAsaas) {
         payment = await createAsaasPayment(env, order, config, 'PIX');
       }
-    } else {
-      if (!hasAsaas) {
-        return json({ error: 'Cartão indisponível. Configure ASAAS_API_KEY.' }, 400, origin);
-      }
-      payment = await createAsaasPayment(env, order, config, 'CREDIT_CARD');
+    } else if (billingType === 'CREDIT_CARD') {
+      payment = await createBrCreditCardPayment(env, order, config);
     }
   } catch (err) {
     console.error('Payment:', err.message);
@@ -3499,7 +3646,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
     order.autoConfirm = payment.autoConfirm !== false;
     attachPaymentToOrder(order, payment, config);
   } else if (billingType === 'CREDIT_CARD') {
-    return json({ error: 'Cartão indisponível. Configure ASAAS_API_KEY.' }, 400, origin);
+    return json({ error: 'Cartão indisponível. Configure Asaas ou Mercado Pago.' }, 400, origin);
   } else if (hasAsaas && !hasMp) {
     return json({ error: 'Não foi possível criar cobrança no Asaas. Verifique chave PIX cadastrada no painel.' }, 400, origin);
   } else if (billingType === 'PIX') {
@@ -3510,6 +3657,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   await saveOrder(env, order);
 
+  const paymentBillingType = payment?.billingType || billingType;
   const customerEmail = billingType === 'PIX'
     ? notifyCustomerPendingPix(env, config, order)
     : notifyCustomer(env, config, order, `Pedido ${order.orderId} registrado — Sensor Tattoo Fix`, {
@@ -3517,13 +3665,13 @@ async function handleCreateOrder(request, env, origin, ctx) {
       Status: 'Aguardando pagamento',
       Total: formatBRL(order.total),
       Pagamento: order.pagamento,
-      Mensagem: billingType === 'PAYPAL'
+      Mensagem: paymentBillingType === 'PAYPAL'
         ? 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.'
-        : billingType === 'MP_CHECKOUT'
+        : paymentBillingType === 'MP_CHECKOUT'
           ? 'Finalize o pagamento com cartão no Mercado Pago (Visa/Mastercard). Seu banco pode converter de USD/EUR para reais.'
           : 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
-      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
-      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
+      ...(paymentBillingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+      ...(paymentBillingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
       'Link do pedido': resumeOrderUrl(config, order),
       ...orderWatchEmailFields(order),
       ...orderIntlProductFields(order)
@@ -4058,7 +4206,8 @@ async function handlePutConfig(request, env, origin) {
     payments: {
       ...current.payments,
       ...body.payments,
-      paypal: { ...current.payments?.paypal, ...body.payments?.paypal }
+      paypal: { ...current.payments?.paypal, ...body.payments?.paypal },
+      cardBr: mergeCardBrConfig(current.payments?.cardBr, body.payments?.cardBr)
     },
     shippingMethods: body.shippingMethods?.length ? body.shippingMethods : current.shippingMethods,
     smartwatchModels: body.smartwatchModels || current.smartwatchModels,
@@ -4134,7 +4283,9 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
 
     try {
-      if (path === '/config' && request.method === 'GET') return json(publicConfigView(await getConfig(env)), 200, origin);
+      if (path === '/config' && request.method === 'GET') {
+        return json(publicConfigView(await getPublicConfig(env)), 200, origin);
+      }
       if (path === '/admin/config' && request.method === 'GET') return handleAdminGetConfig(request, env, origin);
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
       if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);

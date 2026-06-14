@@ -85,8 +85,16 @@ window.StoreConfig = (function () {
                 internationalProduct: local.internationalProduct
                   ? { ...local.internationalProduct, ...apiConfig.internationalProduct }
                   : apiConfig.internationalProduct,
-                payments: local.payments?.paypal
-                  ? { ...apiConfig.payments, paypal: { ...local.payments.paypal, ...apiConfig.payments?.paypal } }
+                payments: local.payments
+                  ? {
+                    ...apiConfig.payments,
+                    ...(local.payments.paypal
+                      ? { paypal: { ...local.payments.paypal, ...apiConfig.payments?.paypal } }
+                      : {}),
+                    ...(local.payments.cardBr
+                      ? { cardBr: { ...local.payments.cardBr, ...apiConfig.payments?.cardBr } }
+                      : {})
+                  }
                   : apiConfig.payments
               } : {})
             },

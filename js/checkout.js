@@ -700,6 +700,18 @@
     return true;
   }
 
+  function isCardBrMercadoPago() {
+    return cfg.payments?.cardBr?.provider === 'mercadopago';
+  }
+
+  function updateCardBrPaymentHint() {
+    const cardOpt = els.paymentOptionsBr?.querySelector('.payment-option:nth-child(2)');
+    const small = cardOpt?.querySelector('small');
+    if (small) {
+      small.textContent = L(isCardBrMercadoPago() ? 'pay.cardBrHintMp' : 'pay.cardBrHint');
+    }
+  }
+
   function updatePaymentOptionsForCountry() {
     const paypalAvailable = isInternational && isPayPalIntlAvailable();
     if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = isInternational;
@@ -731,6 +743,7 @@
       const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
       if (pix) pix.checked = true;
     }
+    updateCardBrPaymentHint();
     updateCpfLabel();
   }
 
@@ -1308,6 +1321,17 @@
         window.location.href = mpUrl;
         return;
       } else if (wantsCardBr) {
+        const mpUrl = payment.approveUrl || payment.invoiceUrl;
+        if (payment.billingType === 'MP_CHECKOUT' && mpUrl) {
+          showCardPayment(mpUrl, true);
+          els.confirmTitle.textContent = L('title.orderCard');
+          els.confirmHint.textContent = L('hint.mpReturn');
+          els.paymentStatus.innerHTML =
+            `<i class="fas fa-spinner fa-spin"></i> ${L('status.redirectMp')}`;
+          showStep(3);
+          window.location.href = mpUrl;
+          return;
+        }
         if (payment.billingType !== 'CREDIT_CARD' || !payment.invoiceUrl) {
           throw new Error(L('alert.cardBrUnavailable'));
         }

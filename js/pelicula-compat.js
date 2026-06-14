@@ -161,8 +161,8 @@ window.STF_PELICULA = (function () {
       }
       if (id === 'pulseira-sport-creme-41-45') {
         return en
-          ? 'Sport Silicone Band · cream (Galaxy Watch 8)'
-          : 'Pulseira Sport · creme (Galaxy Watch 8)';
+          ? 'Sport Silicone Band · cream (Galaxy Watch 8 — 40 / 44 / Classic 46 mm)'
+          : 'Pulseira Sport · creme (Galaxy Watch 8 — 40 / 44 / Classic 46 mm)';
       }
       const style = product.bandStyle || 'sport-soft';
       const color = en ? (product.colorEn || product.color) : (product.color || '');

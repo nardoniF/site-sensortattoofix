@@ -352,6 +352,24 @@
                     </fieldset>
 
                     <fieldset>
+                        <legend><i class="fas fa-credit-card"></i> Cartão de crédito (Brasil)</legend>
+                        <div class="form-grid">
+                            <label>Processador de cartão
+                                <select name="cardBrProvider">
+                                    <option value="asaas">Asaas (padrão)</option>
+                                    <option value="mercadopago">Mercado Pago (Checkout Pro)</option>
+                                </select>
+                                <small>Define qual gateway processa cartão de crédito no checkout nacional.</small>
+                            </label>
+                            <label class="label-check admin-ship-enabled">
+                                <input type="checkbox" name="cardBrFallbackMp" checked>
+                                <span>Se Asaas estiver fora, usar Mercado Pago automaticamente</span>
+                            </label>
+                            <p class="admin-meta full">Secrets: <code>ASAAS_API_KEY</code> (Asaas) e/ou <code>MP_ACCESS_TOKEN</code> (Mercado Pago). Webhooks: <code>/webhook/asaas</code> e <code>/webhook/mercadopago</code>.</p>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
                         <legend><i class="fab fa-paypal"></i> PayPal internacional</legend>
                         <div class="form-grid">
                             <label class="label-check admin-ship-enabled">
@@ -437,6 +455,6 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/store-products-merge.js?v=2"></script>
-    <script src="js/admin.js?v=37"></script>
+    <script src="js/admin.js?v=38"></script>
 </body>
 </html>

@@ -837,8 +837,8 @@
     {
       "id": "pulseira-sport-creme-41-45",
       "slug": "pulseira-sport-creme-41-45",
-      "name": "Pulseira Sport Silicone — creme (Samsung Galaxy Watch 8)",
-      "nameEn": "Sport Silicone Band — cream (Samsung Galaxy Watch 8)",
+      "name": "Pulseira Sport Silicone — creme (Samsung Galaxy Watch 8 — 40 / 44 / Classic 46 mm)",
+      "nameEn": "Sport Silicone Band — cream (Samsung Galaxy Watch 8 — 40 / 44 / Classic 46 mm)",
       "description": "Design clássico e macio com fecho de pino embutido",
       "descriptionEn": "Classic soft design with embedded pin buckle",
       "price": 20,
@@ -954,7 +954,7 @@
       "description": "Design clássico e macio com fecho de pino embutido — tamanho Apple Watch Ultra.",
       "descriptionEn": "Classic soft design with embedded pin buckle — Apple Watch Ultra size.",
       "price": 20,
-      "image": "/produtos/pulseira-sport-preta-ultra-49.svg",
+      "image": "/produtos/pulseiras/pulseira-sport-preta-ultra-49.png",
       "active": false,
       "aggregated": true,
       "productType": "pulseira",
@@ -1498,6 +1498,10 @@
   "payments": {
     "paypal": {
       "internationalEnabled": true
+    },
+    "cardBr": {
+      "provider": "asaas",
+      "fallbackToMercadoPago": true
     }
   },
   "updatedAt": "2026-06-13T18:00:00.000Z"

@@ -961,6 +961,13 @@
         f.paypalShowAfter.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
       }
     }
+    const cardBrCfg = config.payments?.cardBr || {};
+    if (f.cardBrProvider) {
+      f.cardBrProvider.value = cardBrCfg.provider === 'mercadopago' ? 'mercadopago' : 'asaas';
+    }
+    if (f.cardBrFallbackMp) {
+      f.cardBrFallbackMp.checked = cardBrCfg.fallbackToMercadoPago !== false;
+    }
     if (els.updatedAt) {
       els.updatedAt.textContent = config.updatedAt
         ? 'Última atualização: ' + new Date(config.updatedAt).toLocaleString('pt-BR')
@@ -1082,6 +1089,10 @@
           showAfter: f.paypalShowAfter?.value
             ? new Date(f.paypalShowAfter.value).toISOString()
             : (currentConfig?.payments?.paypal?.showAfter || null)
+        },
+        cardBr: {
+          provider: f.cardBrProvider?.value === 'mercadopago' ? 'mercadopago' : 'asaas',
+          fallbackToMercadoPago: f.cardBrFallbackMp?.checked !== false
         }
       },
       smartwatchModels: currentConfig?.smartwatchModels || [],
