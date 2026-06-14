@@ -1742,6 +1742,32 @@ function uberEtaMinutes(data) {
   return 60;
 }
 
+const UBER_MAX_RADIUS_KM = 4.9;
+
+async function uberEstimatedRoadKm(config, dropoffParts) {
+  const destCep = dropoffParts?.cep;
+  if (!destCep || String(destCep).replace(/\D/g, '').length !== 8) return null;
+  const [origin, dest] = await Promise.all([
+    fetchOriginCoordinates(config),
+    fetchDestCoordinates(destCep, dropoffParts)
+  ]);
+  if (!origin || !dest) return null;
+  const straightKm = haversineKm(origin.lat, origin.lon, dest.lat, dest.lon);
+  const roadFactor = getMotoboyConfig(config).roadFactor || DEFAULT_MOTOBOY_SHIPPING.roadFactor;
+  return Math.round(straightKm * roadFactor * 10) / 10;
+}
+
+async function isWithinUberRadius(config, dropoffParts) {
+  const roadKm = await uberEstimatedRoadKm(config, dropoffParts);
+  if (roadKm == null) return true;
+  return roadKm <= UBER_MAX_RADIUS_KM;
+}
+
+function isUberRadiusError(err) {
+  const blob = `${err?.message || ''} ${JSON.stringify(err?.metadata || '')}`;
+  return /deliverable area|delivery radius|Max Radius/i.test(blob);
+}
+
 async function requestUberQuote(env, config, dropoffParts) {
   const pickup = buildUberPickupParts(config);
   if (!hasUberDropoffAddress(dropoffParts)) return null;
@@ -1775,6 +1801,10 @@ async function quoteUberShippingOptions(env, config, addressParams, opts = {}) {
   if (!hasUberDropoffAddress(dropoff)) return [];
 
   try {
+    if (!(await isWithinUberRadius(config, dropoff))) {
+      console.warn('Uber quote: fora do raio (~5 km)', dropoff.cep);
+      return [];
+    }
     const quote = await requestUberQuote(env, config, dropoff);
     if (!quote) return [];
     return methods.map((method) => ({
@@ -1880,15 +1910,17 @@ async function createUberDeliveryForOrder(env, config, order) {
   };
 }
 
-/** Endereço de teste para integração Uber — perto da origem (~3 km), dentro do limite ~5 km da Uber. */
-function uberIntegrationTestDropoff() {
+/** Endereço de teste para integração Uber — mesma rua da loja (~poucas centenas de metros). */
+function uberIntegrationTestDropoff(config) {
+  const ship = config?.shipping || DEFAULT_CONFIG.shipping;
+  const sender = ship.sender || {};
   return {
-    cep: '02513000',
-    rua: 'Rua Deputado Lacerda Franco',
-    numero: '100',
-    bairro: 'Casa Verde',
-    cidade: 'São Paulo',
-    uf: 'SP'
+    cep: ship.originCep || '02537190',
+    rua: sender.rua || 'Rua Engenheiro Roberto Dabus Buazar',
+    numero: '200',
+    bairro: sender.bairro || 'Imirim',
+    cidade: sender.cidade || 'São Paulo',
+    uf: sender.uf || 'SP'
   };
 }
 
@@ -1907,7 +1939,7 @@ async function checkUberIntegration(env, config) {
         error: 'Token OAuth não obtido. Use Client ID/Secret da aba Developer (modo Test se UBER_DIRECT_SANDBOX=true).'
       };
     }
-    const dropoff = uberIntegrationTestDropoff();
+    const dropoff = uberIntegrationTestDropoff(config);
     const quote = await requestUberQuote(env, config, dropoff);
     if (!quote) {
       return {
@@ -1926,6 +1958,15 @@ async function checkUberIntegration(env, config) {
       samplePrice: quote.price
     };
   } catch (err) {
+    if (isUberRadiusError(err)) {
+      return {
+        configured: true,
+        authOk: true,
+        quoteOk: false,
+        sandbox,
+        error: `OAuth OK. A Uber limita entrega a ~5 km (3,1 mi) da loja no Imirim — não dá para aumentar pelo site. Fora disso, o checkout oculta a opção Uber.`
+      };
+    }
     const extra = err.metadata ? ` — ${JSON.stringify(err.metadata)}` : '';
     return {
       configured: true,
@@ -2965,15 +3006,16 @@ function buildIntegrationRows(env, config, checks) {
       detail: uber.error || 'Falha na autenticação OAuth'
     });
   } else if (uber.quoteOk === false) {
+    const radiusLimit = uber.error && /5 km|3,1 mi/i.test(uber.error);
     rows.push({
       id: 'uber-direct',
       label: 'Uber Direct',
       description: 'Entrega rápida sob demanda (BR)',
-      status: 'error',
+      status: radiusLimit ? 'warn' : 'error',
       detail: uber.error || 'Cotação de teste falhou'
     });
   } else {
-    const priceHint = uber.samplePrice ? ` · teste Casa Verde (~3 km) ~R$ ${Number(uber.samplePrice).toFixed(2)}` : '';
+    const priceHint = uber.samplePrice ? ` · teste ~R$ ${Number(uber.samplePrice).toFixed(2)}` : '';
     rows.push({
       id: 'uber-direct',
       label: 'Uber Direct',
