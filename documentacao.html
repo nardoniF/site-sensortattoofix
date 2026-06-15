@@ -226,6 +226,7 @@ npx wrangler deploy</code></pre>
                         </tbody>
                     </table>
                     <p><strong>Checkout:</strong> a cotação Uber só aparece com CEP + rua + cidade + UF preenchidos. O endereço de coleta usa <code>shipping.sender</code> e <code>originCep</code> do config.</p>
+                    <p><strong>Testes R$ 0,01:</strong> pedidos simbólicos (PIX mesmo endereço do remetente ou PayPal com <code>PAYPAL_SELF_TEST</code>) <em>não</em> criam corrida Uber, mesmo se o frete Uber for escolhido no checkout.</p>
                 </section>
 
             </article>

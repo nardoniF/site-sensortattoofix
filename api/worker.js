@@ -1629,10 +1629,10 @@ async function notifyWhatsApp(env, config, order, type) {
   const msgs = {
     order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
     order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n${watchWhatsAppBlock(order)}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
-    paid_customer: isUberOrder(order)
+    paid_customer: shouldDispatchUberDelivery(order)
       ? `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago.\n\n🚗 Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em instantes.\n\nSensor TattooFix`
       : `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.\n\nSensor TattooFix`,
-    paid_shop: isUberOrder(order)
+    paid_shop: shouldDispatchUberDelivery(order)
       ? `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n🚗 Uber Direct — ${order.shippingService}\n📍 ${order.endereco}${order.uberTrackingUrl ? `\n🔗 ${order.uberTrackingUrl}` : ''}`
       : `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
   };
@@ -2184,6 +2184,17 @@ function applySelfTestPayPalPricing(order, env, billingType) {
   order.valorProduto = SELF_TEST_PIX_AMOUNT;
   order.total = SELF_TEST_PIX_AMOUNT;
   return true;
+}
+
+/** Pedido simbólico (PIX/PayPal R$ 0,01) — não dispara entrega real. */
+function isSelfTestOrder(order) {
+  if (order?.selfTestPix || order?.selfTestPayPal) return true;
+  const total = Number(order?.total);
+  return Number.isFinite(total) && total > 0 && total <= SELF_TEST_PIX_AMOUNT + 1e-9;
+}
+
+function shouldDispatchUberDelivery(order) {
+  return isUberOrder(order) && !isSelfTestOrder(order);
 }
 
 function correiosPackageParams(ship, weightGrams) {
@@ -4256,7 +4267,7 @@ async function handlePaymentConfirmed(env, order, payment) {
 
   const config = await getConfig(env);
 
-  if (isUberOrder(order)) {
+  if (shouldDispatchUberDelivery(order)) {
     try {
       const uber = await createUberDeliveryForOrder(env, config, order);
       Object.assign(order, uber);
@@ -4266,6 +4277,10 @@ async function handlePaymentConfirmed(env, order, payment) {
       order.uberDispatchError = err.message;
       await saveOrder(env, order);
     }
+  } else if (isUberOrder(order) && isSelfTestOrder(order)) {
+    order.uberDispatchSkipped = `Pedido de teste (${formatBRL(order.total)}) — corrida Uber não criada.`;
+    console.log('Uber dispatch ignorado — pedido de teste:', order.orderId, formatBRL(order.total));
+    await saveOrder(env, order);
   } else if (isMotoboyOrder(order)) {
     try {
       const courierMails = await notifyMotoboyCouriers(env, config, order);
@@ -4289,9 +4304,13 @@ async function handlePaymentConfirmed(env, order, payment) {
     ...orderIntlProductFields(order)
   };
   if (isUberOrder(order)) {
-    shopPaidFields['Uber Direct'] = order.uberDeliveryId || 'solicitado';
-    if (order.uberTrackingUrl) shopPaidFields['Rastreio Uber'] = order.uberTrackingUrl;
-    if (order.uberDispatchError) shopPaidFields['Erro Uber'] = order.uberDispatchError;
+    if (order.uberDispatchSkipped) {
+      shopPaidFields['Uber Direct'] = order.uberDispatchSkipped;
+    } else {
+      shopPaidFields['Uber Direct'] = order.uberDeliveryId || 'solicitado';
+      if (order.uberTrackingUrl) shopPaidFields['Rastreio Uber'] = order.uberTrackingUrl;
+      if (order.uberDispatchError) shopPaidFields['Erro Uber'] = order.uberDispatchError;
+    }
   } else if (isMotoboyOrder(order)) {
     shopPaidFields['Envio particular'] = 'Motoboy';
     if (order.motoboyDistanceKm) shopPaidFields['Distância'] = `~${order.motoboyDistanceKm} km`;
