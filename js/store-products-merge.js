@@ -1,7 +1,23 @@
 /**
- * Mescla produtos do store-config local (películas agregadas) com a lista da API.
+ * Mescla catálogo local (store-config.json) com a config da API/admin.
+ * Regra: admin/KV manda em nome, preço, descrição e imagem salva; o Git só complementa o que falta.
  */
 window.STF_PRODUCT_MERGE = (function () {
+  const CATALOG_FIELDS = [
+    'compatibleWatchModels',
+    'compatibility',
+    'productType',
+    'filmType',
+    'filmTypeEn',
+    'bandStyle',
+    'color',
+    'packaging',
+    'aggregated',
+    'requiresSmartwatch',
+    'slug',
+    'id'
+  ];
+
   function keyOf(p) {
     return String(p?.id || p?.slug || '').trim();
   }
@@ -38,6 +54,84 @@ window.STF_PRODUCT_MERGE = (function () {
     if (!u.includes('/produtos/')) return true;
     if (id && (u === `/produtos/${id}.svg` || u.endsWith(`/${id}.svg`))) return false;
     return /\/produtos\/(pelicula-(squircle|redonda|retangular)|pulseira-)/i.test(u);
+  }
+
+  function isEmptyValue(value) {
+    if (value == null) return true;
+    if (Array.isArray(value)) return value.length === 0;
+    if (typeof value === 'string') return value.trim() === '';
+    return false;
+  }
+
+  function mergeSmartwatchLists(primary, supplement) {
+    const primaryList = Array.isArray(primary) && primary.length ? primary : [];
+    const supplementList = Array.isArray(supplement) ? supplement : [];
+    if (!primaryList.length) return [...supplementList];
+    const seen = new Set(primaryList);
+    const out = [...primaryList];
+    supplementList.forEach((model) => {
+      if (!seen.has(model)) {
+        out.push(model);
+        seen.add(model);
+      }
+    });
+    return out;
+  }
+
+  /** Metadados do admin ganham campo a campo; Git só preenche modelos novos. */
+  function mergeSmartwatchMeta(apiMeta, localMeta) {
+    const out = { ...(apiMeta || {}) };
+    Object.entries(localMeta || {}).forEach(([model, meta]) => {
+      if (!out[model]) {
+        out[model] = { ...meta };
+        return;
+      }
+      out[model] = { ...meta, ...out[model] };
+    });
+    return out;
+  }
+
+  function supplementCatalogFields(target, source) {
+    CATALOG_FIELDS.forEach((field) => {
+      if (!isEmptyValue(target[field])) return;
+      if (source[field] != null) target[field] = source[field];
+    });
+    if (
+      Array.isArray(source.compatibleWatchModels) &&
+      source.compatibleWatchModels.length &&
+      isEmptyValue(target.compatibleWatchModels)
+    ) {
+      target.compatibleWatchModels = source.compatibleWatchModels;
+    }
+  }
+
+  function supplementProductImage(target, source, productKey) {
+    if (!source?.image) return;
+    const srcImage = String(source.image);
+    if (srcImage.includes('/produtos/pulseiras/')) {
+      if (!target.image || isGenericSharedImage(target.image, productKey)) {
+        target.image = source.image;
+      }
+      return;
+    }
+    if (isKitOrMissingImage(target.image) || isGenericSharedImage(target.image, productKey)) {
+      target.image = source.image;
+    }
+  }
+
+  function supplementKitProduct(apiProduct, localProduct) {
+    const merged = { ...apiProduct };
+    if (localProduct?.image && isLegacyBrokenKitImage(apiProduct?.image)) {
+      merged.image = localProduct.image;
+    }
+    return merged;
+  }
+
+  function supplementAggregatedProduct(apiProduct, localProduct) {
+    const merged = { ...apiProduct };
+    supplementCatalogFields(merged, localProduct);
+    supplementProductImage(merged, localProduct, keyOf(apiProduct));
+    return merged;
   }
 
   function resolveProductImage(image, product) {
@@ -148,35 +242,29 @@ window.STF_PRODUCT_MERGE = (function () {
         byId.set(k, { ...lp });
         return;
       }
-      if (lp.aggregated === true) {
-        const prev = byId.get(k);
-        const merged = { ...prev, ...lp };
-        if (Array.isArray(lp.compatibleWatchModels)) {
-          merged.compatibleWatchModels = lp.compatibleWatchModels;
-        }
-        if (lp.active === false) merged.active = false;
-        if (lp.image && String(lp.image).includes('/produtos/pulseiras/')) {
-          merged.image = lp.image;
-        } else if (lp.image && (isKitOrMissingImage(prev?.image) || isGenericSharedImage(prev?.image, k))) {
-          merged.image = lp.image;
-        }
-        byId.set(k, merged);
-        return;
-      }
       const prev = byId.get(k);
-      const merged = { ...prev };
-      if (lp.image && isLegacyBrokenKitImage(prev?.image)) merged.image = lp.image;
-      if (lp.name && prev?.name && /tattoo friendly/i.test(prev.name)) merged.name = lp.name;
-      if (lp.description && prev?.description && /tattoo friendly/i.test(prev.description)) {
-        merged.description = lp.description;
-      }
-      byId.set(k, merged);
+      byId.set(
+        k,
+        lp.aggregated === true ? supplementAggregatedProduct(prev, lp) : supplementKitProduct(prev, lp)
+      );
     });
     return [...byId.values()].sort((a, b) => {
       if (a.aggregated && !b.aggregated) return 1;
       if (!a.aggregated && b.aggregated) return -1;
       return 0;
     });
+  }
+
+  function syncLegacyProduct(apiConfig, products) {
+    const kit = products.find((p) => p.aggregated !== true && p.active !== false) || products[0];
+    if (!kit || !apiConfig.product) return apiConfig.product;
+    return {
+      ...apiConfig.product,
+      name: kit.name,
+      description: kit.description,
+      price: kit.price,
+      image: kit.image
+    };
   }
 
   function mergeConfig(apiConfig, localConfig) {
@@ -186,23 +274,23 @@ window.STF_PRODUCT_MERGE = (function () {
       next.products = patchAggregatedImages(
         mergeProductLists(apiConfig.products, localConfig.products)
       );
+      next.product = syncLegacyProduct(apiConfig, next.products);
     }
     if (localConfig.product?.image && isLegacyBrokenKitImage(next.product?.image)) {
       next.product = { ...next.product, image: localConfig.product.image };
     }
-    if (localConfig.smartwatchModelMeta) {
-      next.smartwatchModelMeta = {
-        ...(apiConfig.smartwatchModelMeta || {}),
-        ...localConfig.smartwatchModelMeta
-      };
-    }
-    if (localConfig.smartwatchModels?.length) {
-      next.smartwatchModels = localConfig.smartwatchModels;
-    }
+    next.smartwatchModelMeta = mergeSmartwatchMeta(
+      apiConfig.smartwatchModelMeta,
+      localConfig.smartwatchModelMeta
+    );
+    next.smartwatchModels = mergeSmartwatchLists(
+      apiConfig.smartwatchModels,
+      localConfig.smartwatchModels
+    );
     return next;
   }
 
-  /** Admin: só adiciona agregados que ainda não existem no KV — não sobrescreve imagens salvas. */
+  /** Admin: só adiciona agregados que ainda não existem no KV — não sobrescreve o que foi salvo. */
   function mergeMissingAggregated(apiConfig, localConfig) {
     if (!localConfig?.products?.length) return apiConfig;
     const byId = new Map();
@@ -223,13 +311,15 @@ window.STF_PRODUCT_MERGE = (function () {
     return {
       ...apiConfig,
       products,
-      smartwatchModelMeta: {
-        ...(apiConfig.smartwatchModelMeta || {}),
-        ...(localConfig.smartwatchModelMeta || {})
-      },
-      smartwatchModels: localConfig.smartwatchModels?.length
-        ? localConfig.smartwatchModels
-        : apiConfig.smartwatchModels
+      product: syncLegacyProduct(apiConfig, products),
+      smartwatchModelMeta: mergeSmartwatchMeta(
+        apiConfig.smartwatchModelMeta,
+        localConfig.smartwatchModelMeta
+      ),
+      smartwatchModels: mergeSmartwatchLists(
+        apiConfig.smartwatchModels,
+        localConfig.smartwatchModels
+      )
     };
   }
 
@@ -237,6 +327,10 @@ window.STF_PRODUCT_MERGE = (function () {
     mergeProductLists,
     mergeConfig,
     mergeMissingAggregated,
+    mergeSmartwatchLists,
+    mergeSmartwatchMeta,
+    supplementKitProduct,
+    supplementAggregatedProduct,
     keyOf,
     isKitOrMissingImage,
     isLegacyBrokenKitImage,

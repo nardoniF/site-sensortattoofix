@@ -478,6 +478,79 @@ function mergeSmartwatchModelLists(stored, base) {
   return out;
 }
 
+function isLegacyBrokenKitImage(url) {
+  const u = String(url || '').trim();
+  if (!u) return true;
+  return /sensortattoofix/i.test(u) && !/\/site\//i.test(u);
+}
+
+function isKitOrMissingImage(url) {
+  const u = String(url || '').trim();
+  return !u || /sensortattoofix/i.test(u) || !u.includes('/produtos/');
+}
+
+function isGenericSharedImage(url, productId) {
+  const u = String(url || '').trim();
+  const id = String(productId || '').trim();
+  if (!u.includes('/produtos/')) return true;
+  if (id && (u === `/produtos/${id}.svg` || u.endsWith(`/${id}.svg`))) return false;
+  return /\/produtos\/(pelicula-(squircle|redonda|retangular)|pulseira-)/i.test(u);
+}
+
+function isEmptyCatalogValue(value) {
+  if (value == null) return true;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === 'string') return value.trim() === '';
+  return false;
+}
+
+function supplementKitFromSite(kvProduct, siteProduct) {
+  const merged = { ...kvProduct };
+  if (siteProduct?.image && isLegacyBrokenKitImage(kvProduct?.image)) {
+    merged.image = siteProduct.image;
+  }
+  return merged;
+}
+
+function supplementAggregatedFromSite(kvProduct, siteProduct) {
+  const productKey = kvProduct?.id || kvProduct?.slug;
+  const merged = { ...kvProduct };
+  const catalogFields = [
+    'compatibleWatchModels',
+    'compatibility',
+    'productType',
+    'filmType',
+    'filmTypeEn',
+    'bandStyle',
+    'color',
+    'packaging',
+    'aggregated',
+    'requiresSmartwatch'
+  ];
+  catalogFields.forEach((field) => {
+    if (!isEmptyCatalogValue(merged[field])) return;
+    if (siteProduct[field] != null) merged[field] = siteProduct[field];
+  });
+  if (
+    Array.isArray(siteProduct.compatibleWatchModels) &&
+    siteProduct.compatibleWatchModels.length &&
+    isEmptyCatalogValue(merged.compatibleWatchModels)
+  ) {
+    merged.compatibleWatchModels = siteProduct.compatibleWatchModels;
+  }
+  if (siteProduct.image && String(siteProduct.image).includes('/produtos/pulseiras/')) {
+    if (!kvProduct?.image || isGenericSharedImage(kvProduct.image, productKey)) {
+      merged.image = siteProduct.image;
+    }
+  } else if (
+    siteProduct.image &&
+    (isKitOrMissingImage(kvProduct?.image) || isGenericSharedImage(kvProduct?.image, productKey))
+  ) {
+    merged.image = siteProduct.image;
+  }
+  return merged;
+}
+
 function mergeSiteCatalogProducts(kvProducts, siteProducts) {
   const byId = new Map();
   (kvProducts || []).forEach((p) => {
@@ -491,44 +564,49 @@ function mergeSiteCatalogProducts(kvProducts, siteProducts) {
       byId.set(k, { ...lp });
       return;
     }
-    if (lp.aggregated === true) {
-      const prev = byId.get(k);
-      const merged = { ...prev, ...lp };
-      if (Array.isArray(lp.compatibleWatchModels)) {
-        merged.compatibleWatchModels = lp.compatibleWatchModels;
-      }
-      if (lp.active === false) merged.active = false;
-      if (lp.image && String(lp.image).includes('/produtos/pulseiras/')) {
-        merged.image = lp.image;
-      }
-      byId.set(k, merged);
-      return;
-    }
     const prev = byId.get(k);
-    byId.set(k, { ...prev, ...lp });
+    byId.set(
+      k,
+      lp.aggregated === true ? supplementAggregatedFromSite(prev, lp) : supplementKitFromSite(prev, lp)
+    );
   });
   return [...byId.values()];
+}
+
+function mergeSiteCatalogSmartwatchMeta(kvMeta, siteMeta) {
+  const out = { ...(kvMeta || {}) };
+  Object.entries(siteMeta || {}).forEach(([model, meta]) => {
+    if (!out[model]) {
+      out[model] = { ...meta };
+      return;
+    }
+    out[model] = { ...meta, ...out[model] };
+  });
+  return out;
 }
 
 function mergeSiteCatalog(config, site) {
   if (!site || typeof site !== 'object') return config;
   const next = { ...config };
-  if (site.smartwatchModels?.length) {
-    next.smartwatchModels = site.smartwatchModels;
-  } else {
-    next.smartwatchModels = mergeSmartwatchModelLists(
-      config.smartwatchModels,
-      DEFAULT_CONFIG.smartwatchModels
-    );
-  }
-  if (site.smartwatchModelMeta) {
-    next.smartwatchModelMeta = {
-      ...(config.smartwatchModelMeta || {}),
-      ...site.smartwatchModelMeta
-    };
-  }
+  next.smartwatchModels = site.smartwatchModels?.length
+    ? mergeSmartwatchModelLists(config.smartwatchModels || [], site.smartwatchModels)
+    : mergeSmartwatchModelLists(config.smartwatchModels, DEFAULT_CONFIG.smartwatchModels);
+  next.smartwatchModelMeta = mergeSiteCatalogSmartwatchMeta(
+    config.smartwatchModelMeta,
+    site.smartwatchModelMeta
+  );
   if (site.products?.length) {
     next.products = mergeSiteCatalogProducts(config.products, site.products);
+    const kit = next.products.find((p) => p.aggregated !== true && p.active !== false) || next.products[0];
+    if (kit && next.product) {
+      next.product = {
+        ...next.product,
+        name: kit.name,
+        description: kit.description,
+        price: kit.price,
+        image: kit.image
+      };
+    }
   }
   return next;
 }

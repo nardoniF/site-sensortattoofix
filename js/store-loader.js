@@ -101,14 +101,6 @@ window.StoreConfig = (function () {
             },
             local
           );
-          if (local?.smartwatchModels?.length) {
-            config.smartwatchModels = local.smartwatchModels;
-          } else if (apiConfig.smartwatchModels?.length) {
-            config.smartwatchModels = apiConfig.smartwatchModels;
-          }
-          if (local?.smartwatchModelMeta) {
-            config.smartwatchModelMeta = { ...config.smartwatchModelMeta, ...local.smartwatchModelMeta };
-          }
           config._loaded = true;
           window.CHECKOUT_CONFIG = config;
           window.dispatchEvent(new CustomEvent('stf-config-ready', { detail: config }));
