@@ -1906,11 +1906,23 @@ line-height:1.8;
     display: block;
     margin-bottom: 6px;
 }
-.stf-help-tip-pop small {
+.stf-help-tip-pop small,
+.stf-help-tip-pop p {
     display: block;
     color: #94a3b8;
     font-size: 0.75rem;
     line-height: 1.35;
+    margin: 0;
+    text-align: left;
+}
+.stf-help-tip-pop--wide {
+    width: min(300px, 85vw);
+}
+.checkout-notes-label-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
 }
 .stf-help-tip:hover .stf-help-tip-pop,
 .stf-help-tip:focus .stf-help-tip-pop,

@@ -63,11 +63,12 @@ window.STF_I18N = (function () {
       'form.watchModel': 'Modelo do smartwatch',
       'form.watchHint': 'O kit é feito para o seu modelo — escolha na lista antes de continuar.',
       'form.watchSelect': 'Selecione o modelo',
-      'form.sensorMeasureHint': 'Meça o diâmetro do sensor no fundo do relógio (mm) para escolher a lente certa.',
+      'form.observacoesHelpAria': 'Medição opcional do sensor',
+      'form.observacoesMeasureHint': 'Na busca pela excelência dos nossos produtos, usamos tecnologia de corte sob medida — não tamanhos genéricos — para enviar a lente perfeita. Informe o modelo do seu smartwatch. Se quiser ainda mais precisão, meça com uma régua o diâmetro do sensor no fundo do relógio (em mm), de ponta a ponta do círculo, e informe aqui. O número no nome do modelo (ex.: 41 mm) é da caixa do relógio, não do sensor.',
       'form.sensorMismatch': 'Atenção: este relógio costuma ter sensor de {watch} mm e a lente no carrinho é {lens} mm. Confira a medida com a régua.',
       'form.notesOptional': 'Observações (opcional)',
       'form.notesRequired': 'Observações',
-      'form.notesPhOptional': 'Ex.: instruções de entrega ou detalhes do pedido',
+      'form.notesPhOptional': 'Opcional: diâmetro do sensor (mm), instruções de entrega…',
       'form.notesPhRequired': 'Informe marca e modelo do seu smartwatch',
       'form.notesPhDefault': 'Ex.: marca e modelo do relógio, cor da pulseira, instruções de entrega…',
       'form.country': 'País',
@@ -337,11 +338,12 @@ window.STF_I18N = (function () {
       'form.watchModel': 'Smartwatch model',
       'form.watchHint': 'The kit is made for your watch — pick your model before continuing.',
       'form.watchSelect': 'Select your model',
-      'form.sensorMeasureHint': 'Measure the sensor circle on the back of your watch (mm) to pick the right lens.',
+      'form.observacoesHelpAria': 'Optional sensor measurement',
+      'form.observacoesMeasureHint': 'To deliver the perfect lens, we use precision cut technology based on your smartwatch model — not generic sizes. Tell us your smartwatch model. For extra precision, measure the sensor diameter on the back of your watch (in mm) with a ruler, edge to edge across the circle, and add it here. The size in the model name (e.g. 41 mm) is the watch case, not the sensor.',
       'form.sensorMismatch': 'Note: this watch usually has a {watch} mm sensor and your cart lens is {lens} mm. Double-check with a ruler.',
       'form.notesOptional': 'Notes (optional)',
       'form.notesRequired': 'Notes',
-      'form.notesPhOptional': 'E.g. delivery instructions or order details',
+      'form.notesPhOptional': 'Optional: sensor diameter (mm), delivery instructions…',
       'form.notesPhRequired': 'Enter your smartwatch brand and model',
       'form.notesPhDefault': 'E.g. watch brand/model, band color, delivery instructions…',
       'form.country': 'Country',
@@ -749,7 +751,9 @@ window.STF_I18N = (function () {
     applyText('.checkout-step[data-step="1"] .checkout-step-head h3', 'section.yourData');
     applyText('.checkout-step[data-step="1"] > h3', 'section.shippingDest');
     applyText('#smartwatch-hint', 'form.watchHint');
-    applyText('#sensor-measure-hint', 'form.sensorMeasureHint');
+    applyText('#observacoes-measure-hint', 'form.observacoesMeasureHint');
+    const obsHelp = document.getElementById('observacoes-help-tip');
+    if (obsHelp) obsHelp.setAttribute('aria-label', t('form.observacoesHelpAria'));
     applyText('.checkout-account-title', 'account.checkoutTitle');
     applyText('.shipping-options-title', 'section.chooseShipping');
     applyText('.checkout-step[data-step="2"] h3', 'pay.title');

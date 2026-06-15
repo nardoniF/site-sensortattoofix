@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Comprar Direto | Sensor Tattoo Fix — Loja Oficial</title>
     <meta name="description" content="Checkout oficial Sensor Tattoo Fix — PIX, cartão, envio nacional e internacional.">
-    <link rel="stylesheet" href="style.css?v=1.94">
+    <link rel="stylesheet" href="style.css?v=1.95">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script>
@@ -87,16 +87,7 @@
 
                         <div id="checkout-watch-block" class="checkout-watch-block" hidden>
                             <label class="checkout-watch-label">
-                                <span class="checkout-watch-label-row">
-                                    <span data-i18n-label="form.watchModel" data-i18n-required="1">Modelo do smartwatch</span>
-                                    <span class="stf-help-tip" tabindex="0" aria-label="Como medir o sensor">
-                                        <i class="fas fa-circle-question"></i>
-                                        <span class="stf-help-tip-pop">
-                                            <img src="site/relogio_sensor.jpg" alt="Medir o sensor com régua">
-                                            <small id="sensor-measure-hint">Meça o diâmetro do sensor no fundo do relógio (mm) para escolher a lente certa.</small>
-                                        </span>
-                                    </span>
-                                </span>
+                                <span data-i18n-label="form.watchModel" data-i18n-required="1">Modelo do smartwatch</span>
                                 <select name="smartwatch" id="smartwatch-select" required aria-describedby="smartwatch-hint smartwatch-error">
                                     <option value="">Selecione o modelo</option>
                                 </select>
@@ -107,8 +98,18 @@
                         </div>
 
                         <div id="observacoes-wrap" class="checkout-notes-block" hidden>
-                            <label class="full" id="observacoes-label"><span id="observacoes-label-text">Observações (opcional)</span>
-                                <textarea name="observacoes" id="observacoes" rows="3" placeholder="Ex.: marca e modelo do relógio, cor da pulseira, instruções de entrega…"></textarea>
+                            <label class="full" id="observacoes-label">
+                                <span class="checkout-notes-label-row">
+                                    <span id="observacoes-label-text">Observações (opcional)</span>
+                                    <span class="stf-help-tip" tabindex="0" id="observacoes-help-tip" aria-label="Medição opcional do sensor">
+                                        <i class="fas fa-circle-info" aria-hidden="true"></i>
+                                        <span class="stf-help-tip-pop stf-help-tip-pop--wide">
+                                            <img src="site/medicao-sensor-smartwatch.png" alt="Medir o diâmetro do sensor no fundo do relógio com régua">
+                                            <p id="observacoes-measure-hint">Na busca pela excelência dos nossos produtos, usamos tecnologia de corte sob medida — não tamanhos genéricos — para enviar a lente perfeita. Informe o modelo do seu smartwatch. Se quiser ainda mais precisão, meça com uma régua o diâmetro do sensor no fundo do relógio (em mm), de ponta a ponta do círculo, e informe aqui. O número no nome do modelo (ex.: 41 mm) é da caixa do relógio, não do sensor.</p>
+                                        </span>
+                                    </span>
+                                </span>
+                                <textarea name="observacoes" id="observacoes" rows="3" placeholder="Opcional: diâmetro do sensor (mm), instruções de entrega…"></textarea>
                             </label>
                             <p id="observacoes-error" class="field-error" hidden role="alert"></p>
                         </div>
@@ -288,7 +289,7 @@
 
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="pt"></div></footer>
 
-    <script src="js/stf-i18n.js?v=24"></script>
+    <script src="js/stf-i18n.js?v=25"></script>
     <script src="js/config-bootstrap.js"></script>
     <script src="js/site-footer.js"></script>
     <script src="js/account-nav.js"></script>
