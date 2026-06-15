@@ -1915,6 +1915,14 @@ line-height:1.8;
     margin: 0;
     text-align: left;
 }
+.stf-help-tip-pop strong {
+    display: block;
+    color: #e2e8f0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    text-align: left;
+}
 .stf-help-tip-pop--wide {
     width: min(300px, 85vw);
 }
