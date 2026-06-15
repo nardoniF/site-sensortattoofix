@@ -120,7 +120,7 @@ const newProducts = [
     nameEn: `${meta.titleEn} — ${tpl.colorEn} (${sizeLabel})`,
     description: meta.subtitlePt,
     descriptionEn: meta.subtitleEn,
-    price: 20,
+    price: 40,
     image: meta.image,
     active: true,
     aggregated: true,
