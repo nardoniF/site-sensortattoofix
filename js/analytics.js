@@ -150,6 +150,174 @@
     return false;
   }
 
+  const GEO_CACHE_KEY = 'stf_geo_cache';
+  const GEO_CACHE_MS = 30 * 60 * 1000;
+
+  function visitanteId() {
+    let id = localStorage.getItem('stf_visitor_id');
+    if (!id) {
+      id = 'v_' + (crypto.randomUUID?.() || String(Date.now()));
+      localStorage.setItem('stf_visitor_id', id);
+    }
+    return id;
+  }
+
+  function resumirUserAgent() {
+    const ua = navigator.userAgent || '';
+    const mobile = /Mobile|Android|iPhone|iPad/i.test(ua);
+    let browser = 'outro';
+    if (/Edg\//i.test(ua)) browser = 'Edge';
+    else if (/Chrome\//i.test(ua)) browser = 'Chrome';
+    else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+    else if (/Firefox\//i.test(ua)) browser = 'Firefox';
+    return (mobile ? 'mobile' : 'desktop') + ' / ' + browser;
+  }
+
+  function parseCfTrace(text) {
+    const map = {};
+    String(text || '').trim().split('\n').forEach((line) => {
+      const idx = line.indexOf('=');
+      if (idx > 0) map[line.slice(0, idx)] = line.slice(idx + 1);
+    });
+    return {
+      ip: map.ip || '',
+      pais: map.loc || '',
+      colo_cf: map.colo || ''
+    };
+  }
+
+  function lerGeoCache() {
+    try {
+      const raw = sessionStorage.getItem(GEO_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (Date.now() - parsed.t < GEO_CACHE_MS) return parsed.data;
+    } catch (_) { /* ignore */ }
+    return null;
+  }
+
+  function salvarGeoCache(data) {
+    try {
+      sessionStorage.setItem(GEO_CACHE_KEY, JSON.stringify({ t: Date.now(), data }));
+    } catch (_) { /* ignore */ }
+  }
+
+  async function obterGeoIp() {
+    const cached = lerGeoCache();
+    if (cached) return cached;
+
+    let geo = { ip: '', pais: '', pais_nome: '', cidade: '', regiao: '', colo_cf: '' };
+    const traceUrls = ['/cdn-cgi/trace', 'https://www.cloudflare.com/cdn-cgi/trace'];
+    for (const url of traceUrls) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) continue;
+        geo = { ...geo, ...parseCfTrace(await res.text()) };
+        break;
+      } catch (_) { /* tenta próximo */ }
+    }
+
+    try {
+      const res = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
+      if (res.ok) {
+        const j = await res.json();
+        geo.ip = geo.ip || j.ip || '';
+        geo.pais = geo.pais || j.country_code || '';
+        geo.pais_nome = j.country_name || '';
+        geo.cidade = j.city || '';
+        geo.regiao = j.region || '';
+      }
+    } catch (_) { /* ip opcional */ }
+
+    salvarGeoCache(geo);
+    return geo;
+  }
+
+  function contextoVisitante() {
+    const ctx = {
+      visitante_id: visitanteId(),
+      referrer: normalizarTexto(document.referrer || '(direto)'),
+      dispositivo: resumirUserAgent(),
+      fuso: Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+    };
+    const user = window.STF_ACCOUNT?.getUser?.();
+    if (user) {
+      ctx.cliente_nome = normalizarTexto(user.nome || '');
+      ctx.cliente_email = normalizarTexto(user.email || '');
+    }
+    return ctx;
+  }
+
+  function humanizarDestino(destino) {
+    const map = {
+      mercado_livre: 'Mercado Livre',
+      shopee: 'Shopee',
+      tiktok_shop: 'TikTok Shop',
+      amazon: 'Amazon',
+      loja_oficial: 'Loja Oficial (site)',
+      ancora: 'Âncora na página',
+      checkout: 'Checkout',
+      whatsapp: 'WhatsApp',
+      home: 'Página inicial',
+      interno: 'Link interno',
+      externo: 'Link externo'
+    };
+    return map[destino] || (destino || '—').replace(/_/g, ' ');
+  }
+
+  function humanizarSecao(secao) {
+    const map = {
+      'onde-comprar': 'Onde Comprar',
+      faixa_compra: 'Faixa do topo (envio/pagamento)',
+      hero: 'Banner principal',
+      header: 'Menu do site',
+      footer: 'Rodapé',
+      produtos: 'Seção Produtos',
+      loja: 'Loja',
+      loja_intro: 'Intro da loja',
+      loja_produto: 'Card de produto na loja',
+      checkout: 'Checkout',
+      minha_conta: 'Minha Conta',
+      contato: 'Fale Conosco',
+      whatsapp_flutuante: 'Botão WhatsApp flutuante',
+      menu: 'Menu mobile'
+    };
+    return map[secao] || (secao || '—').replace(/_/g, ' ').replace(/-/g, ' ');
+  }
+
+  function humanizarReferrer(ref) {
+    const r = (ref || '').toLowerCase();
+    if (!r || r === '(direto)') return 'Acesso direto (digitou o endereço ou favorito)';
+    if (r.includes('google.')) return 'Google';
+    if (r.includes('instagram.')) return 'Instagram';
+    if (r.includes('facebook.')) return 'Facebook';
+    if (r.includes('tiktok.')) return 'TikTok';
+    if (r.includes('youtube.')) return 'YouTube';
+    if (r.includes('mercadolivre')) return 'Mercado Livre';
+    if (r.includes('amazon.')) return 'Amazon';
+    if (r.includes('shopee')) return 'Shopee';
+    try {
+      return new URL(ref).hostname.replace(/^www\./, '');
+    } catch {
+      return ref;
+    }
+  }
+
+  function humanizarDispositivo(dispositivo) {
+    if (!dispositivo) return '—';
+    return dispositivo
+      .replace(/^mobile\b/i, 'Celular')
+      .replace(/^desktop\b/i, 'Computador')
+      .replace(/\s*\/\s*/, ' · ');
+  }
+
+  function humanizarIdioma(idioma) {
+    const l = (idioma || '').toLowerCase();
+    if (l.startsWith('en')) return 'Inglês';
+    if (l.startsWith('pt')) return 'Português';
+    return idioma || '—';
+  }
+
   function notificarCliqueCompraEmail(data) {
     if (!deveNotificarCliqueCompra(data)) return;
 
@@ -158,24 +326,48 @@
     sessionStorage.setItem(dedupe, '1');
     setTimeout(() => sessionStorage.removeItem(dedupe), 4000);
 
-    const body = new FormData();
-    body.append('_subject', `Clique Onde Comprar — ${data.rotulo || data.destino || 'link'}`);
-    body.append('_captcha', 'false');
-    body.append('_template', 'table');
-    body.append('Seção', data.secao || '');
-    body.append('Rótulo', data.rotulo || '');
-    body.append('Destino', data.destino || '');
-    body.append('Link', data.href || '');
-    body.append('Página', data.pagina || '');
-    body.append('Idioma', data.idioma || '');
-    body.append('Data', new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
+    Promise.resolve()
+      .then(() => obterGeoIp())
+      .then((geo) => {
+        const visitante = contextoVisitante();
+        const quando = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const loja = humanizarDestino(data.destino);
+        const local = [geo.cidade, geo.regiao].filter(Boolean).join(' — ') || '—';
+        const pais = geo.pais_nome
+          ? `${geo.pais_nome}${geo.pais ? ' (' + geo.pais + ')' : ''}`
+          : (geo.pais || '—');
 
-    fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_EMAIL}`, {
-      method: 'POST',
-      body,
-      headers: { Accept: 'application/json' },
-      keepalive: true
-    }).catch(() => {});
+        const body = new FormData();
+        body.append('_subject', `Clique: ${loja} · ${pais !== '—' ? pais : 'local desconhecido'} · ${quando}`);
+        body.append('_captcha', 'false');
+        body.append('_template', 'table');
+        body.append('O que clicou', data.rotulo || loja);
+        body.append('Loja / destino', loja);
+        body.append('Onde no site', humanizarSecao(data.secao));
+        body.append('Link clicado', data.href || '—');
+        body.append('Página', data.pagina || '—');
+        body.append('Idioma do site', humanizarIdioma(data.idioma));
+        body.append('Data e hora (SP)', quando);
+        body.append('País', pais);
+        body.append('Cidade / região', local);
+        body.append('IP (aproximado)', geo.ip || '—');
+        body.append('Veio de', humanizarReferrer(visitante.referrer));
+        body.append('Aparelho', humanizarDispositivo(visitante.dispositivo));
+        body.append('Fuso do visitante', visitante.fuso || '—');
+        body.append('ID visitante', visitante.visitante_id || '—');
+        body.append('Nota ID', 'Mesmo código = mesma pessoa no mesmo navegador');
+        if (visitante.cliente_nome) body.append('Nome (conta logada)', visitante.cliente_nome);
+        if (visitante.cliente_email) body.append('E-mail (conta logada)', visitante.cliente_email);
+        if (!visitante.cliente_nome) body.append('Visitante', 'Não estava logado — só localização aproximada');
+
+        return fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_EMAIL}`, {
+          method: 'POST',
+          body,
+          headers: { Accept: 'application/json' },
+          keepalive: true
+        });
+      })
+      .catch(() => {});
   }
 
   function trackSecaoLink(link) {
