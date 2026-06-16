@@ -70,6 +70,71 @@ window.STF_ORDER_LABEL = (function () {
     return order.endereco || '—';
   }
 
+  function formatBRL(value) {
+    return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
+  }
+
+  function declarationLines(order) {
+    if (Array.isArray(order.items) && order.items.length) {
+      return order.items.map((item) => {
+        const qty = Math.max(1, Number(item.qty) || 1);
+        const unitWeight = Math.max(1, Math.round(Number(item.weightGrams) || 3));
+        return {
+          name: String(item.name || 'Produto').slice(0, 42),
+          qty,
+          weight: unitWeight * qty,
+          value: (Number(item.price) || 0) * qty
+        };
+      });
+    }
+    const name = order.produto || 'Kit lente ótica smartwatch Sensor Tattoo Fix';
+    const qty = 1;
+    const weight = 3;
+    return [{
+      name: String(name).slice(0, 42),
+      qty,
+      weight,
+      value: Number(order.valorProduto) || 0
+    }];
+  }
+
+  function contentDeclarationHtml(order) {
+    const lines = declarationLines(order);
+    const totalWeight = lines.reduce((sum, row) => sum + row.weight, 0);
+    const totalValue = lines.reduce((sum, row) => sum + row.value, 0);
+    const rows = lines.map((row) => `
+        <tr>
+          <td>${esc(row.name)}</td>
+          <td>${row.qty}</td>
+          <td>${row.weight} g</td>
+          <td>${esc(formatBRL(row.value))}</td>
+        </tr>`).join('');
+
+    return `
+    <div class="block dc-block">
+      <div class="block-title">Declaração de conteúdo</div>
+      <table class="dc-table">
+        <thead>
+          <tr>
+            <th>Conteúdo</th>
+            <th>Qtd</th>
+            <th>Peso</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="dc-totals">
+        <span><strong>Peso total:</strong> ${totalWeight} g</span>
+        <span><strong>Valor total:</strong> ${esc(formatBRL(totalValue))}</span>
+      </div>
+      <p class="dc-decl">
+        Declaro verdadeiras as informações acima e que o conteúdo não é restrito ou proibido pelos Correios.
+        Mercadoria sem valor comercial para o destinatário ou isenta de NF conforme legislação vigente.
+      </p>
+    </div>`;
+  }
+
   function labelHtml(order) {
     const SENDER = getSender();
     const addr = destAddress(order).split('\n').map((l) => esc(l)).join('<br>');
@@ -98,12 +163,12 @@ window.STF_ORDER_LABEL = (function () {
     .label {
       width: 100mm;
       height: 150mm;
-      padding: 4mm 5mm;
+      padding: 3mm 4mm;
       display: flex;
       flex-direction: column;
-      gap: 3mm;
-      font-size: 9pt;
-      line-height: 1.25;
+      gap: 2mm;
+      font-size: 8.5pt;
+      line-height: 1.2;
     }
     .brand {
       text-align: center;
@@ -113,7 +178,8 @@ window.STF_ORDER_LABEL = (function () {
       border-bottom: 1px solid #000;
       padding-bottom: 2mm;
     }
-    .block { border: 1px solid #000; padding: 2.5mm; }
+    .block { border: 1px solid #000; padding: 2mm; }
+    .block-sender { font-size: 7.5pt; line-height: 1.15; }
     .block-title {
       font-size: 7pt;
       font-weight: 800;
@@ -122,10 +188,59 @@ window.STF_ORDER_LABEL = (function () {
       margin-bottom: 1.5mm;
     }
     .dest-name {
-      font-size: 12pt;
+      font-size: 11pt;
       font-weight: 800;
       margin-bottom: 1mm;
       word-break: break-word;
+    }
+    .dc-block {
+      padding: 2mm;
+      font-size: 7pt;
+      line-height: 1.2;
+    }
+    .dc-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 6.5pt;
+      margin-top: 1mm;
+    }
+    .dc-table th,
+    .dc-table td {
+      border: 1px solid #000;
+      padding: 0.8mm 1mm;
+      vertical-align: top;
+      text-align: left;
+    }
+    .dc-table th {
+      font-size: 6pt;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+    .dc-table td:nth-child(2),
+    .dc-table td:nth-child(3),
+    .dc-table th:nth-child(2),
+    .dc-table th:nth-child(3) {
+      width: 9mm;
+      white-space: nowrap;
+    }
+    .dc-table td:nth-child(4),
+    .dc-table th:nth-child(4) {
+      width: 16mm;
+      white-space: nowrap;
+    }
+    .dc-totals {
+      display: flex;
+      justify-content: space-between;
+      gap: 2mm;
+      margin-top: 1.5mm;
+      font-size: 6.5pt;
+      font-weight: 700;
+    }
+    .dc-decl {
+      margin: 1.5mm 0 0;
+      font-size: 5.8pt;
+      line-height: 1.2;
+      text-align: justify;
     }
     .meta-grid {
       display: grid;
@@ -162,7 +277,7 @@ window.STF_ORDER_LABEL = (function () {
   <div class="label">
     <div class="brand">SENSOR TATTOOFIX</div>
 
-    <div class="block">
+    <div class="block block-sender">
       <div class="block-title">Remetente</div>
       <strong>${esc(SENDER.brand)}</strong><br>
       ${esc(SENDER.company)}<br>
@@ -173,11 +288,13 @@ window.STF_ORDER_LABEL = (function () {
       CEP ${esc(SENDER.cep)}
     </div>
 
-    <div class="block" style="flex:1">
+    <div class="block" style="flex:0.85">
       <div class="block-title">Destinatário</div>
       <div class="dest-name">${esc(order.nome)}</div>
-      <div style="margin-top:2mm">${addr}</div>
+      <div style="margin-top:1.5mm;font-size:8.5pt">${addr}</div>
     </div>
+
+    ${contentDeclarationHtml(order)}
 
     <div class="block">
       <div class="meta-grid">
