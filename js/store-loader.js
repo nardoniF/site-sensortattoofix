@@ -86,6 +86,9 @@ window.StoreConfig = (function () {
                   ? { ...local.internationalProduct, ...apiConfig.internationalProduct }
                   : apiConfig.internationalProduct,
                 internationalSurcharge: apiConfig.internationalSurcharge ?? local.internationalSurcharge,
+                shippingMethods: apiConfig.shippingMethods?.length
+                  ? apiConfig.shippingMethods
+                  : local.shippingMethods,
                 payments: local.payments
                   ? {
                     ...apiConfig.payments,
