@@ -240,6 +240,66 @@ nav,
 .hero h1 { font-size: 3.5rem; font-weight: 900; line-height: 1.05; margin: 28px 0; }
 .hero p { font-size: 1.1rem; color: var(--gray); margin-bottom: 38px; }
 .hero-btns { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+
+.site-trust-bar {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    padding: 12px 0;
+}
+.site-trust-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+}
+.site-trust-lead {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #94a3b8;
+}
+.site-trust-lead a {
+    color: var(--primary, #2dd4bf);
+    text-decoration: none;
+    font-weight: 600;
+}
+.site-trust-lead a:hover { text-decoration: underline; }
+.site-trust-payments {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.82rem;
+    color: #cbd5e1;
+}
+.site-trust-payments li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.site-trust-payments i { color: var(--primary, #2dd4bf); font-size: 1rem; }
+.site-trust-pix {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    font-size: 0.75rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(45, 212, 191, 0.12);
+    color: var(--primary, #2dd4bf);
+}
+.site-trust-pix-note {
+    font-weight: 400;
+    color: #64748b;
+    font-size: 0.72rem;
+}
+@media (max-width: 640px) {
+    .site-trust-inner { flex-direction: column; align-items: flex-start; }
+}
 .btn-primary { background: var(--primary); color: #000 !important; padding: 16px 26px; border-radius: 12px; text-decoration: none; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; text-align: center; border: none; min-width: 220px; cursor: pointer; }
 .product-img { width: 100%; border-radius: 20px; border: 1px solid #222; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
 

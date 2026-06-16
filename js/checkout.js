@@ -745,7 +745,8 @@
         btn.addEventListener('click', () => {
           const delta = Number(btn.getAttribute('data-delta'));
           const current = window.STF_CART.load().find((i) => i.productId === id);
-          window.STF_CART.setQty(id, (current?.qty || 1) + delta);
+          const p = products.find((x) => x.id === id || x.slug === id);
+          window.STF_CART.setQty(id, (current?.qty || 1) + delta, p);
           if (window.STF_CART.isEmpty()) {
             window.location.href = lojaHref();
             return;

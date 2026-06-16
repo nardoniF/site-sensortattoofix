@@ -716,17 +716,89 @@ function shippingWeightGrams(config, override) {
 
 function getActiveProducts(config) {
   const list = config.products?.length ? config.products : normalizeProducts({}, { product: config.product });
-  return list.filter((p) => p.active !== false);
+  return list.filter((p) => p.active !== false && productInStock(p, 1));
+}
+
+function productStockQty(p) {
+  if (p?.stock == null || p.stock === '') return null;
+  const n = Number(p.stock);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.floor(n));
+}
+
+function productInStock(p, qty = 1) {
+  const stock = productStockQty(p);
+  if (stock == null) return true;
+  return stock >= Math.max(1, Number(qty) || 1);
+}
+
+function assertOrderStock(config, items) {
+  const products = config.products || [];
+  for (const item of items) {
+    const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
+    if (!p) continue;
+    const stock = productStockQty(p);
+    if (stock == null) continue;
+    const qty = Math.max(1, Number(item.qty) || 1);
+    if (stock < qty) {
+      const name = p.name || item.name || 'Produto';
+      throw new Error(
+        stock === 0
+          ? `${name} está esgotado.`
+          : `Estoque insuficiente para ${name}. Disponível: ${stock}.`
+      );
+    }
+  }
+}
+
+async function decrementOrderStock(env, order) {
+  if (order.stockDecremented) return;
+  const items = order.items || [];
+  if (!items.length) return;
+
+  const config = await getConfig(env);
+  if (!config.products?.length) return;
+
+  let changed = false;
+  const products = config.products.map((p) => ({ ...p }));
+  const byKey = new Map();
+  products.forEach((p) => {
+    if (p.id) byKey.set(p.id, p);
+    if (p.slug) byKey.set(p.slug, p);
+  });
+
+  for (const item of items) {
+    const p = byKey.get(item.productId) || byKey.get(item.slug);
+    if (!p) continue;
+    const stock = productStockQty(p);
+    if (stock == null) continue;
+    const qty = Math.max(1, Number(item.qty) || 1);
+    if (stock < qty) {
+      order.stockWarning = order.stockWarning || [];
+      order.stockWarning.push(`${p.name || item.name}: pedido ${qty}, estoque ${stock}`);
+      console.warn('Stock insufficient at payment:', order.orderId, p.name, stock, qty);
+    }
+    const deduct = Math.min(qty, stock);
+    if (deduct <= 0) continue;
+    p.stock = stock - deduct;
+    if (p.stock === 0) p.active = false;
+    changed = true;
+  }
+
+  if (!changed) return;
+  await saveConfig(env, { ...config, products });
+  order.stockDecremented = true;
 }
 
 function resolveOrderItems(config, body) {
   const products = getActiveProducts(config);
   if (!products.length) throw new Error('Nenhum produto disponível na loja.');
 
+  let items;
   if (Array.isArray(body.items) && body.items.length) {
-    return body.items.map((item) => {
+    items = body.items.map((item) => {
       const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-      if (!p) throw new Error('Produto não encontrado.');
+      if (!p) throw new Error('Produto não encontrado ou indisponível.');
       const qty = Math.max(1, Math.min(10, Number(item.qty) || 1));
       return {
         productId: p.id,
@@ -738,19 +810,22 @@ function resolveOrderItems(config, body) {
         weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
       };
     });
+  } else {
+    const pick = body.productId || body.productSlug || products[0].id;
+    const p = products.find((x) => x.id === pick || x.slug === pick) || products[0];
+    items = [{
+      productId: p.id,
+      slug: p.slug,
+      name: p.name,
+      price: Number(p.price) || 0,
+      qty: Math.max(1, Math.min(10, Number(body.qty) || 1)),
+      requiresSmartwatch: p.requiresSmartwatch !== false,
+      weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
+    }];
   }
 
-  const pick = body.productId || body.productSlug || products[0].id;
-  const p = products.find((x) => x.id === pick || x.slug === pick) || products[0];
-  return [{
-    productId: p.id,
-    slug: p.slug,
-    name: p.name,
-    price: Number(p.price) || 0,
-    qty: Math.max(1, Math.min(10, Number(body.qty) || 1)),
-    requiresSmartwatch: p.requiresSmartwatch !== false,
-    weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
-  }];
+  assertOrderStock(config, items);
+  return items;
 }
 
 function orderRequiresSmartwatch(items) {
@@ -944,6 +1019,9 @@ function publicProductFields(p, config) {
   if (p.bandStyle) row.bandStyle = p.bandStyle;
   if (p.color) row.color = p.color;
   if (p.colorEn) row.colorEn = p.colorEn;
+  const stock = productStockQty(p);
+  row.inStock = productInStock(p, 1);
+  if (stock != null) row.stock = stock;
   return row;
 }
 
@@ -4266,6 +4344,13 @@ async function handlePaymentConfirmed(env, order, payment) {
   await saveOrder(env, order);
 
   const config = await getConfig(env);
+
+  try {
+    await decrementOrderStock(env, order);
+    if (order.stockDecremented) await saveOrder(env, order);
+  } catch (err) {
+    console.error('Stock decrement:', order.orderId, err.message);
+  }
 
   if (shouldDispatchUberDelivery(order)) {
     try {

@@ -787,6 +787,9 @@
           <label class="full">Descrição<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
           ${aggregatedFields}
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
+          <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
+            <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
+          </label>
           <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
           <label class="full">URL da imagem<input type="text" data-field="image" value="${escAttr(p.image || '')}" placeholder="/produtos/pulseira-sport-preta.svg ou /site/…" spellcheck="false" autocomplete="off"></label>
           ${sensorField}
@@ -862,6 +865,12 @@
         requiresSmartwatch: val('requiresSmartwatch'),
         weightGrams: Number(val('weightGrams')) || 3
       };
+      const stockEl = row.querySelector('[data-field="stock"]');
+      if (stockEl && stockEl.value.trim() !== '') {
+        product.stock = Math.max(0, Math.floor(Number(stockEl.value) || 0));
+      } else {
+        delete product.stock;
+      }
       if (!isAggregated) {
         const sm = val('sensorMm');
         if (sm) product.sensorMm = Number(sm);

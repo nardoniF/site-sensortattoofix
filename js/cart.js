@@ -26,15 +26,25 @@ window.STF_CART = (function () {
     return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
   }
 
+  function maxQtyFor(product) {
+    if (product?.stock == null || product.stock === '') return MAX_QTY;
+    const n = Number(product.stock);
+    if (!Number.isFinite(n)) return MAX_QTY;
+    return Math.min(MAX_QTY, Math.max(0, Math.floor(n)));
+  }
+
   function normalize(product, qty) {
     const id = product.id || product.slug || 'produto';
+    const cap = maxQtyFor(product);
+    const stock = product.stock != null && product.stock !== '' ? Math.max(0, Math.floor(Number(product.stock) || 0)) : null;
     return {
       productId: id,
       slug: product.slug || id,
       name: product.name || 'Produto',
       price: Number(product.price) || 0,
       image: assetUrl(product.image, product),
-      qty: Math.max(1, Math.min(MAX_QTY, Number(qty) || 1)),
+      qty: Math.max(1, Math.min(cap, Number(qty) || 1)),
+      stock,
       requiresSmartwatch: product.requiresSmartwatch !== false,
       aggregated: product.aggregated === true,
       productType: product.productType,
@@ -46,12 +56,13 @@ window.STF_CART = (function () {
   }
 
   function add(product, qty) {
-    if (!product) return load();
+    if (!product || product.inStock === false) return load();
     const items = load();
     const line = normalize(product, qty);
     const idx = items.findIndex((i) => i.productId === line.productId);
+    const cap = maxQtyFor(product);
     if (idx >= 0) {
-      items[idx].qty = Math.min(MAX_QTY, items[idx].qty + line.qty);
+      items[idx].qty = Math.min(cap, items[idx].qty + line.qty);
     } else {
       items.push(line);
     }
@@ -59,14 +70,15 @@ window.STF_CART = (function () {
     return items;
   }
 
-  function setQty(productId, qty) {
+  function setQty(productId, qty, product) {
     let items = load();
     const n = Number(qty) || 0;
+    const cap = product ? maxQtyFor(product) : MAX_QTY;
     if (n <= 0) {
       items = items.filter((i) => i.productId !== productId);
     } else {
       items = items.map((i) => (
-        i.productId === productId ? { ...i, qty: Math.min(MAX_QTY, n) } : i
+        i.productId === productId ? { ...i, qty: Math.min(cap, n) } : i
       ));
     }
     save(items);

@@ -78,6 +78,10 @@
       btn.addEventListener('click', () => {
         const p = findProduct(btn.getAttribute('data-slug'));
         if (!p) return;
+        if (p.inStock === false) {
+          flash(L('store.outOfStock'));
+          return;
+        }
         window.STF_CART.add(p, 1);
         flash(L('store.addedName', { name: p.name }));
       });
@@ -90,7 +94,7 @@
       const cfg = await StoreConfig.load();
       const all = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
       products = window.STF_PELICULA?.listStorefront(all)
-        ?? all.filter((p) => p.active !== false && p.aggregated !== true);
+        ?? all.filter((p) => p.active !== false && p.inStock !== false && p.aggregated !== true);
       window.STF_CART?.initBadges();
       window.STF_STORE_PRICE?.apply(cfg);
       renderGrid();

@@ -94,7 +94,7 @@ window.STF_PELICULA = (function () {
   }
 
   function listStorefront(products) {
-    return (products || []).filter((p) => p.active !== false && !isAggregated(p));
+    return (products || []).filter((p) => p.active !== false && p.inStock !== false && !isAggregated(p));
   }
 
   function productLabel(product) {
