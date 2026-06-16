@@ -676,7 +676,7 @@ nav,
 }
 .stores-grid-3 {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
 }
 .store-link { text-decoration: none; display: block; height: 100%; }
@@ -713,6 +713,13 @@ nav,
 .store-shopee i, .store-shopee h3, .store-shopee p { color: #fff !important; }
 .store-amazon { background: #232F3E !important; }
 .store-amazon i, .store-amazon h3, .store-amazon p { color: #FF9900 !important; }
+.store-tiktok { background: #010101 !important; }
+.store-tiktok i { color: #fff !important; }
+.store-tiktok h3 { color: #fff !important; }
+.store-tiktok p { color: #25f4ee !important; }
+@media (min-width: 900px) {
+    .stores-grid-3 { grid-template-columns: repeat(4, 1fr); }
+}
 .checkout-product-img {
     width: 100%;
     max-width: 220px;
