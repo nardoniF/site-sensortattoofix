@@ -57,9 +57,10 @@ window.STF_FOOTER = (function () {
 
   function socialBlock(lang, prefix) {
     const s = t(lang);
-    const links = SOCIAL.map((item) =>
-      `<a href="${item.href}" target="_blank" rel="noopener" class="social-link"><i class="${item.icon}"></i> ${item.label}</a>`
-    ).join('');
+    const links = SOCIAL.map((item) => {
+      const rotulo = `Footer ${item.label}${lang === 'en' ? ' EN' : ''}`;
+      return `<a href="${item.href}" target="_blank" rel="noopener" class="social-link" data-rotulo="${rotulo}"><i class="${item.icon}"></i> ${item.label}</a>`;
+    }).join('');
     const faqHref = lang === 'en' ? '#faq' : '#faq';
     return `
       <div class="footer-social">
