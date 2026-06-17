@@ -6,6 +6,10 @@ window.STF_STORE_PRICE = (function () {
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  function formatBRLAmount(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   function primaryProduct(config) {
     if (config.products?.length) {
       const active = config.products.find((p) => p.active !== false);
@@ -19,7 +23,7 @@ window.STF_STORE_PRICE = (function () {
     const price = product?.price ?? config.product?.price ?? 59.9;
     const en = window.STF_I18N?.isEn?.();
     const frete = en ? '+ Shipping' : '+ Frete';
-    return `${formatBRL(price)} ${frete}`;
+    return `${formatBRLAmount(price)} ${frete}`;
   }
 
   function cheapestIntlLabel(config) {
@@ -41,11 +45,10 @@ window.STF_STORE_PRICE = (function () {
   function buildShippingChannelsLine(config) {
     const en = window.STF_I18N?.isEn?.();
     const mini = brMiniLabel(config);
-    const intl = cheapestIntlLabel(config);
     if (en) {
-      return `Nationwide (${mini}) - 5 km North Zone SP (local delivery) - International (${intl})`;
+      return `Nationwide (${mini}) · São Paulo, SP (Own Transport) · Other Countries (Exporta Fácil)`;
     }
-    return `Todo Brasil (${mini}) - 5 km da ZN/SP (transporte próprio) - Exterior (${intl})`;
+    return `Todo Brasil (${mini}) · São Paulo, SP (Entrega Própria) · Outros Países (Exporta Fácil)`;
   }
 
   function buildLine(config, el) {

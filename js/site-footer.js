@@ -4,7 +4,8 @@ window.STF_FOOTER = (function () {
     brandTitle: 'Sensor <span class="logo-accent">Tattoo Fix</span>',
     company: '3N20 Soluções Tecnológicas',
     cnpj: '29.321.223/0001-32',
-    patent: 'BR 20 2026 010875 3',
+    patentNational: 'BR 20 2026 010875 3',
+    patentInternational: 'PCT BR 2026 050304',
     email: 'sensortattoofix@gmail.com',
     whatsapp: '5511913394665',
     whatsappLabel: '(11) 91339-4665',
@@ -22,13 +23,15 @@ window.STF_FOOTER = (function () {
     pt: {
       socialTitle: 'Siga nossas redes oficiais',
       faq: 'FAQ',
-      patentLabel: 'Patente requerida',
+      patentLinePrefix: 'Patente Nacional',
+      patentLineJoin: 'Internacional',
       rights: 'Todos os direitos reservados.'
     },
     en: {
       socialTitle: 'Follow our official channels',
       faq: 'FAQ',
-      patentLabel: 'Patent pending',
+      patentLinePrefix: 'National Patent',
+      patentLineJoin: 'International',
       rights: 'All rights reserved.'
     }
   };
@@ -42,6 +45,11 @@ window.STF_FOOTER = (function () {
     return location.pathname.includes('/en/') ? '../' : '';
   }
 
+  function patentLine(lang) {
+    const s = t(lang);
+    return `${s.patentLinePrefix} ${INFO.patentNational} / ${s.patentLineJoin} ${INFO.patentInternational}`;
+  }
+
   function legalBlock(lang) {
     const s = t(lang);
     const year = new Date().getFullYear();
@@ -49,7 +57,7 @@ window.STF_FOOTER = (function () {
       <div class="footer-legal">
         <p class="footer-legal-brand">${INFO.brandTitle}</p>
         <p class="footer-legal-meta">${INFO.company} · CNPJ ${INFO.cnpj}</p>
-        <p class="footer-legal-meta footer-legal-meta--muted">${s.patentLabel} ${INFO.patent}</p>
+        <p class="footer-legal-meta footer-legal-meta--muted">${patentLine(lang)}</p>
         <p class="footer-legal-copy">&copy; ${year} ${INFO.brandPlain} · ${INFO.company}. ${s.rights}</p>
       </div>
     `;

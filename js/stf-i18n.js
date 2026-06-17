@@ -5,7 +5,7 @@
 window.STF_I18N = (function () {
   const STRINGS = {
     pt: {
-      'brand.tagline': 'A paz entre o silício e a tinta',
+      'brand.tagline': 'A paz entre a tinta e o silício',
       'nav.cart': 'Carrinho',
       'nav.back': 'Voltar',
       'nav.home': 'Início',
@@ -282,7 +282,7 @@ window.STF_I18N = (function () {
       'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — international cards, PIX, worldwide shipping.'
     },
     en: {
-      'brand.tagline': 'Peace between silicon and ink',
+      'brand.tagline': 'Peace between ink and silicon',
       'nav.cart': 'Cart',
       'nav.back': 'Back',
       'nav.home': 'Home',
