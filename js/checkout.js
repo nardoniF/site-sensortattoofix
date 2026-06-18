@@ -1836,8 +1836,9 @@
   async function boot() {
     window.STF_I18N?.applyCheckoutDom?.();
     cfg = await StoreConfig.load();
-    products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
-    populateSelects();
+      products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
+      window.STF_CART?.syncPrices?.(products);
+      populateSelects();
     window.STF_CART?.initBadges();
     const mpDone = await handleMercadoPagoReturn();
     const paypalDone = mpDone ? false : await handlePayPalReturn();
@@ -1857,7 +1858,7 @@
     window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
     bindEvents();
     trackGa('entrou_loja', {
-      valor_produto: cartSubtotal() || cfg.product?.price || 59.9,
+      valor_produto: cartSubtotal() || cfg.product?.price || 62.9,
       moeda: 'BRL'
     });
   }

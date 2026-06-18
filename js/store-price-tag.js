@@ -20,7 +20,7 @@ window.STF_STORE_PRICE = (function () {
 
   function buildPriceFreteLine(config) {
     const product = primaryProduct(config);
-    const price = product?.price ?? config.product?.price ?? 59.9;
+    const price = product?.price ?? config.product?.price ?? 62.9;
     const en = window.STF_I18N?.isEn?.();
     const frete = en ? '+ Shipping' : '+ Frete';
     return `${formatBRLAmount(price)} ${frete}`;
@@ -56,7 +56,7 @@ window.STF_STORE_PRICE = (function () {
       return buildPriceFreteLine(config);
     }
     const product = primaryProduct(config);
-    const price = product?.price ?? config.product?.price ?? 59.9;
+    const price = product?.price ?? config.product?.price ?? 62.9;
     const en = window.STF_I18N?.isEn?.();
     const freteLine = el?.getAttribute('data-store-price-frete-line')
       || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)

@@ -18,7 +18,7 @@ const DEFAULT_CONFIG = {
   product: {
     name: 'Kit Sensor TattooFix',
     description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
-    price: 59.9,
+    price: 62.9,
     image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg'
   },
   products: [
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG = {
       slug: 'kit-sensor-tattoofix',
       name: 'Kit Sensor TattooFix',
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
-      price: 59.9,
+      price: 62.9,
       image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg',
       active: true,
       requiresSmartwatch: true,
@@ -2007,7 +2007,7 @@ async function quoteUberShippingOptions(env, config, addressParams, opts = {}) {
 function buildUberManifest(order, config) {
   const items = order.items?.length
     ? order.items
-    : [{ name: config.product?.name || 'Kit Sensor Tattoo Fix', qty: 1, price: order.valorProduto || config.product?.price || 59.9 }];
+    : [{ name: config.product?.name || 'Kit Sensor Tattoo Fix', qty: 1, price: order.valorProduto || config.product?.price || 62.9 }];
   return items.map((item) => ({
     name: String(item.name || 'Produto').slice(0, 100),
     quantity: Math.max(1, Number(item.qty) || 1),
@@ -2380,7 +2380,7 @@ function correiosIntegrationTestParams(config) {
   const origin = onlyDigits(ship.originCep);
   const serviceCode = String(ship.serviceCode || '04227').trim();
   const weightGrams = shippingWeightGrams(config);
-  const declaredValue = Number(config.product?.price) || 59.9;
+  const declaredValue = Number(config.product?.price) || 62.9;
   return { ship, origin, dest: CORREIOS_INTEGRATION_TEST_DEST, serviceCode, weightGrams, declaredValue };
 }
 
@@ -2474,7 +2474,7 @@ async function quoteCorreiosService(env, config, destCep, method, opts = {}) {
   const dest = onlyDigits(destCep);
   if (dest.length !== 8) return null;
   const weightGrams = shippingWeightGrams(config, opts.weightGrams);
-  const declaredValue = Number(opts.declaredValue) || config.product?.price || 59.9;
+  const declaredValue = Number(opts.declaredValue) || config.product?.price || 62.9;
   const serviceCode = String(method.correiosCode || ship.serviceCode || '').trim();
   if (!serviceCode) return null;
 
@@ -4772,7 +4772,7 @@ async function handleTestEmail(request, env, origin) {
       Telefone: '(11) 99999-9999',
       Pagamento: 'Cartão de crédito',
       Smartwatch: 'Apple Watch Series 9 (41mm)',
-      Valor: formatBRL(config.product?.price || 59.9),
+      Valor: formatBRL(config.product?.price || 62.9),
       Endereço: 'Av Paulista, 1000 — Bela Vista, São Paulo/SP — Brasil 01310100',
       Envio: 'Mini Envios'
     });
@@ -4786,7 +4786,7 @@ async function handleTestEmail(request, env, origin) {
       Smartwatch: 'Apple Watch Series 9 (41mm)',
       País: 'Brasil',
       Pagamento: 'PIX',
-      Total: formatBRL((config.product?.price || 59.9) + 11.9)
+      Total: formatBRL((config.product?.price || 62.9) + 11.9)
     });
   } else {
     result = await notifyEmail(env, config, to, 'Teste — Sensor Tattoo Fix', {

@@ -95,6 +95,7 @@
       const all = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
       products = window.STF_PELICULA?.listStorefront(all)
         ?? all.filter((p) => p.active !== false && p.inStock !== false && p.aggregated !== true);
+      window.STF_CART?.syncPrices?.(all);
       window.STF_CART?.initBadges();
       window.STF_STORE_PRICE?.apply(cfg);
       renderGrid();

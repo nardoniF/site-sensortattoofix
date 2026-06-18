@@ -822,7 +822,7 @@
         const next = [...main, ...aggregated];
         renderProducts(next.length ? next : [{
           id: 'kit-sensor-tattoofix', slug: 'kit-sensor-tattoofix', name: 'Kit Sensor TattooFix',
-          description: '', price: 59.9, image: '/site/sensortattoofix.jpg', active: true,
+          description: '', price: 62.9, image: '/site/sensortattoofix.jpg', active: true,
           requiresSmartwatch: true, weightGrams: 3, sensorMm: 25
         }]);
       });
@@ -1501,7 +1501,7 @@
       slug: 'lente-' + Date.now(),
       name: 'Nova lente Sensor TattooFix',
       description: '',
-      price: 59.9,
+      price: 62.9,
       image: '/site/sensortattoofix.jpg',
       active: true,
       requiresSmartwatch: true,

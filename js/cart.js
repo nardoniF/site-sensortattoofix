@@ -116,6 +116,28 @@ window.STF_CART = (function () {
     return load().some((i) => i.requiresSmartwatch !== false);
   }
 
+  function syncPrices(catalog) {
+    const list = Array.isArray(catalog) ? catalog : [];
+    if (!list.length) return load();
+    const byId = new Map();
+    list.forEach((p) => {
+      const k = String(p.id || p.slug || '').trim();
+      if (k) byId.set(k, p);
+    });
+    let changed = false;
+    const items = load().map((item) => {
+      const p = byId.get(item.productId) || byId.get(item.slug);
+      if (!p) return item;
+      const price = Number(p.price) || 0;
+      const name = p.name || item.name;
+      if (price === item.price && name === item.name) return item;
+      changed = true;
+      return { ...item, price, name };
+    });
+    if (changed) save(items);
+    return items;
+  }
+
   function notify() {
     window.dispatchEvent(new CustomEvent('stf-cart-updated', { detail: { count: count() } }));
     document.querySelectorAll('[data-cart-badge]').forEach((el) => {
@@ -140,6 +162,7 @@ window.STF_CART = (function () {
     subtotal,
     totalWeight,
     requiresSmartwatch,
+    syncPrices,
     initBadges
   };
 })();

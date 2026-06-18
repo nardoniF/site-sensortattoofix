@@ -139,7 +139,7 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     let productName = 'Kit Sensor Tattoo Fix';
-    let productPrice = 59.9;
+    let productPrice = 62.9;
     let productImage = SITE + '/site/sensortattoofix.jpg';
     let productId = 'kit-sensor-tattoofix';
     let productDescription = isEn
