@@ -5,6 +5,10 @@
     return window.STF_I18N?.t(key, vars) || key;
   }
 
+  function lojaHref() {
+    return window.STF_I18N?.lojaHref?.() || 'loja.html';
+  }
+
   function resolveProductImage(image, product) {
     if (window.STF_PRODUCT_MERGE?.resolveProductImage) {
       return window.STF_PRODUCT_MERGE.resolveProductImage(image, product);
