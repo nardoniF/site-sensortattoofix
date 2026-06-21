@@ -1,8 +1,5 @@
 (function () {
   const VENDA_KEY = 'stf_venda_registrada';
-  const FORMSUBMIT_EMAIL = 'sensortattoofix@gmail.com';
-  const LOJAS_COMPRA = new Set(['mercado_livre', 'shopee', 'tiktok_shop', 'amazon', 'loja_oficial']);
-  const EVENTO_COMPRA = /onde_comprar|loja_oficial|mercado_livre|shopee|tiktok_shop|amazon/;
 
   function canTrack() {
     return typeof window.gtag === 'function';
@@ -70,6 +67,7 @@
     if (el.closest('.stores-layout')) return 'onde-comprar';
     if (el.closest('.loja-hero')) return 'loja_intro';
     if (el.closest('.loja-card')) return 'loja_produto';
+    if (el.closest('.faq-item, #faq, [id*="faq"]')) return 'faq';
 
     return 'pagina';
   }
@@ -77,13 +75,15 @@
   function classificarDestino(href, el) {
     if (!href || href === '#') {
       if (el?.classList?.contains('logo-img-link')) return 'logo';
+      if (el?.closest('.faq-item, #faq')) return 'faq';
       return 'ancora';
     }
     const h = href.toLowerCase();
     if (h.includes('mercadolivre')) return 'mercado_livre';
     if (h.includes('amazon.')) return 'amazon';
     if (h.includes('shopee')) return 'shopee';
-    if (h.includes('tiktok_shop') || h.includes('vt.tiktok.com')) return 'tiktok_shop';
+    if (h.includes('tiktok_shop') || h.includes('utm_content=tiktok_shop')) return 'tiktok_shop';
+    if (h.includes('vt.tiktok.com')) return 'tiktok_shop';
     if (h.includes('tiktok.com')) return 'tiktok';
     if (h.includes('instagram.com')) return 'instagram';
     if (h.includes('youtube.com') || h.includes('youtu.be')) return 'youtube';
@@ -93,6 +93,7 @@
     if (h.includes('comprar.html')) return 'checkout';
     if (h.includes('minha-conta')) return 'minha_conta';
     if (h.includes('index.html') || h.endsWith('/en/') || h.endsWith('/')) return 'home';
+    if (h.includes('#faq') || h.includes('#duvidas')) return 'faq';
     if (h.startsWith('#') || h.includes('#')) return 'ancora';
     if (h.includes('formsubmit.co') || h.startsWith('mailto:') || h.startsWith('tel:')) return 'contato';
     try {
@@ -123,6 +124,7 @@
     if (el.classList.contains('store-link')) return normalizarTexto(el.querySelector('h3')?.textContent || el.textContent);
     if (el.classList.contains('store-official-bar')) return 'Loja oficial';
     if (el.classList.contains('social-link')) return normalizarTexto(el.textContent);
+    if (el.closest('summary')) return normalizarTexto(el.closest('summary')?.textContent);
 
     const slug = el.getAttribute('data-slug');
     if (slug) return normalizarTexto(slug);
@@ -140,18 +142,6 @@
       evento_legado: el.getAttribute('data-evento') || ''
     }, extras || {});
   }
-
-  function deveNotificarCliqueCompra(data) {
-    if (LOJAS_COMPRA.has(data.destino)) return true;
-    if (data.secao === 'onde-comprar' || data.secao === 'faixa_compra') return true;
-    if ((data.href || '').includes('#onde-comprar')) return true;
-    if ((data.href || '').includes('utm_campaign=onde_comprar')) return true;
-    if (EVENTO_COMPRA.test(data.evento_legado || '')) return true;
-    return false;
-  }
-
-  const GEO_CACHE_KEY = 'stf_geo_cache';
-  const GEO_CACHE_MS = 30 * 60 * 1000;
 
   function visitanteId() {
     let id = localStorage.getItem('stf_visitor_id');
@@ -173,66 +163,6 @@
     return (mobile ? 'mobile' : 'desktop') + ' / ' + browser;
   }
 
-  function parseCfTrace(text) {
-    const map = {};
-    String(text || '').trim().split('\n').forEach((line) => {
-      const idx = line.indexOf('=');
-      if (idx > 0) map[line.slice(0, idx)] = line.slice(idx + 1);
-    });
-    return {
-      ip: map.ip || '',
-      pais: map.loc || '',
-      colo_cf: map.colo || ''
-    };
-  }
-
-  function lerGeoCache() {
-    try {
-      const raw = sessionStorage.getItem(GEO_CACHE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (Date.now() - parsed.t < GEO_CACHE_MS) return parsed.data;
-    } catch (_) { /* ignore */ }
-    return null;
-  }
-
-  function salvarGeoCache(data) {
-    try {
-      sessionStorage.setItem(GEO_CACHE_KEY, JSON.stringify({ t: Date.now(), data }));
-    } catch (_) { /* ignore */ }
-  }
-
-  async function obterGeoIp() {
-    const cached = lerGeoCache();
-    if (cached) return cached;
-
-    let geo = { ip: '', pais: '', pais_nome: '', cidade: '', regiao: '', colo_cf: '' };
-    const traceUrls = ['/cdn-cgi/trace', 'https://www.cloudflare.com/cdn-cgi/trace'];
-    for (const url of traceUrls) {
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) continue;
-        geo = { ...geo, ...parseCfTrace(await res.text()) };
-        break;
-      } catch (_) { /* tenta próximo */ }
-    }
-
-    try {
-      const res = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
-      if (res.ok) {
-        const j = await res.json();
-        geo.ip = geo.ip || j.ip || '';
-        geo.pais = geo.pais || j.country_code || '';
-        geo.pais_nome = j.country_name || '';
-        geo.cidade = j.city || '';
-        geo.regiao = j.region || '';
-      }
-    } catch (_) { /* ip opcional */ }
-
-    salvarGeoCache(geo);
-    return geo;
-  }
-
   function contextoVisitante() {
     const ctx = {
       visitante_id: visitanteId(),
@@ -250,9 +180,14 @@
 
   function humanizarDestino(destino) {
     const map = {
+      pageview: 'Entrada na página',
       mercado_livre: 'Mercado Livre',
       shopee: 'Shopee',
       tiktok_shop: 'TikTok Shop',
+      tiktok: 'TikTok',
+      instagram: 'Instagram',
+      youtube: 'YouTube',
+      facebook: 'Facebook',
       amazon: 'Amazon',
       loja_oficial: 'Loja Oficial (site)',
       ancora: 'Âncora na página',
@@ -260,7 +195,12 @@
       whatsapp: 'WhatsApp',
       home: 'Página inicial',
       interno: 'Link interno',
-      externo: 'Link externo'
+      externo: 'Link externo',
+      faq: 'FAQ',
+      logo: 'Logo',
+      botao: 'Botão',
+      contato: 'Contato',
+      minha_conta: 'Minha conta'
     };
     return map[destino] || (destino || '—').replace(/_/g, ' ');
   }
@@ -273,6 +213,7 @@
       header: 'Menu do site',
       footer: 'Rodapé',
       produtos: 'Seção Produtos',
+      faq: 'FAQ',
       loja: 'Loja',
       loja_intro: 'Intro da loja',
       loja_produto: 'Card de produto na loja',
@@ -287,7 +228,7 @@
 
   function humanizarReferrer(ref) {
     const r = (ref || '').toLowerCase();
-    if (!r || r === '(direto)') return 'Acesso direto (digitou o endereço ou favorito)';
+    if (!r || r === '(direto)') return 'Acesso direto';
     if (r.includes('google.')) return 'Google';
     if (r.includes('instagram.')) return 'Instagram';
     if (r.includes('facebook.')) return 'Facebook';
@@ -311,128 +252,66 @@
       .replace(/\s*\/\s*/, ' · ');
   }
 
-  function humanizarIdioma(idioma) {
-    const l = (idioma || '').toLowerCase();
-    if (l.startsWith('en')) return 'Inglês';
-    if (l.startsWith('pt')) return 'Português';
-    return idioma || '—';
-  }
-
-  function montarCamposCliqueEmail(data, geo, visitante) {
-    const quando = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const loja = humanizarDestino(data.destino);
-    const local = [geo.cidade, geo.regiao].filter(Boolean).join(' — ') || '—';
-    const pais = geo.pais_nome
-      ? `${geo.pais_nome}${geo.pais ? ' (' + geo.pais + ')' : ''}`
-      : (geo.pais || '—');
-
-    const fields = {
-      rotulo: data.rotulo || loja,
-      destino: data.destino || '',
-      loja,
-      secao: data.secao || '',
-      secao_label: humanizarSecao(data.secao),
-      href: data.href || '—',
-      pagina: data.pagina || '—',
-      idioma: humanizarIdioma(data.idioma),
-      quando,
-      pais,
-      cidade_regiao: local,
-      referrer: humanizarReferrer(visitante.referrer),
-      dispositivo: humanizarDispositivo(visitante.dispositivo),
-      fuso: visitante.fuso || '—',
-      visitante_id: visitante.visitante_id || '—',
-      cliente_nome: visitante.cliente_nome || '',
-      cliente_email: visitante.cliente_email || ''
-    };
-    return { fields, subject: `Clique: ${loja} · ${pais !== '—' ? pais : 'local desconhecido'} · ${quando}` };
-  }
-
   function apiBaseUrl() {
     const raw = window.CONFIG_BOOTSTRAP?.configApiUrl || '';
     return String(raw).replace(/\/$/, '');
   }
 
-  async function enviarViaWorker(payload) {
+  function registrarLog(data) {
     const base = apiBaseUrl();
-    if (!base) return { ok: false, reason: 'no_api' };
-    try {
-      const res = await fetch(base + '/notify/click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload.fields),
-        keepalive: true
-      });
-      const data = await res.json().catch(() => ({}));
-      return { ok: res.ok && data.ok !== false, provider: data.provider || 'worker' };
-    } catch {
-      return { ok: false, reason: 'network' };
+    if (!base) return;
+
+    const tipo = data.tipo || (data.elemento === 'pageview' ? 'pageview' : 'clique');
+    if (tipo !== 'pageview') {
+      const dedupe = `stf_log:${tipo}:${data.destino}:${data.href}:${data.rotulo}`;
+      if (sessionStorage.getItem(dedupe)) return;
+      sessionStorage.setItem(dedupe, '1');
+      setTimeout(() => sessionStorage.removeItem(dedupe), 2000);
     }
-  }
-
-  async function enviarViaFormSubmit(payload) {
-    const body = new FormData();
-    body.append('_subject', payload.subject);
-    body.append('_captcha', 'false');
-    body.append('_template', 'table');
-    body.append('O que clicou', payload.fields.rotulo || payload.fields.loja);
-    body.append('Loja / destino', payload.fields.loja);
-    body.append('Onde no site', payload.fields.secao_label);
-    body.append('Link clicado', payload.fields.href);
-    body.append('Página', payload.fields.pagina);
-    body.append('Idioma do site', payload.fields.idioma);
-    body.append('Data e hora (SP)', payload.fields.quando);
-    body.append('País', payload.fields.pais);
-    body.append('Cidade / região', payload.fields.cidade_regiao);
-    body.append('IP (aproximado)', payload.fields.ip || '—');
-    body.append('Veio de', payload.fields.referrer);
-    body.append('Aparelho', payload.fields.dispositivo);
-    body.append('Fuso do visitante', payload.fields.fuso);
-    body.append('ID visitante', payload.fields.visitante_id);
-    body.append('Nota ID', 'Mesmo código = mesma pessoa no mesmo navegador');
-    if (payload.fields.cliente_nome) body.append('Nome (conta logada)', payload.fields.cliente_nome);
-    if (payload.fields.cliente_email) body.append('E-mail (conta logada)', payload.fields.cliente_email);
-    if (!payload.fields.cliente_nome) body.append('Visitante', 'Não estava logado — só localização aproximada');
-
-    try {
-      const res = await fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_EMAIL}`, {
-        method: 'POST',
-        body,
-        headers: { Accept: 'application/json' },
-        keepalive: true
-      });
-      const data = await res.json().catch(() => ({}));
-      const ok = res.ok && data.success !== false && data.success !== 'false';
-      return { ok, provider: 'formsubmit' };
-    } catch {
-      return { ok: false, reason: 'network' };
-    }
-  }
-
-  async function enviarCliqueCompraEmail(payload) {
-    const worker = await enviarViaWorker(payload);
-    if (worker.ok) return worker;
-    return enviarViaFormSubmit(payload);
-  }
-
-  function notificarCliqueCompraEmail(data) {
-    if (!deveNotificarCliqueCompra(data)) return;
-
-    const dedupe = `stf_click_mail:${data.secao}:${data.destino}:${data.href}:${data.rotulo}`;
-    if (sessionStorage.getItem(dedupe)) return;
-    sessionStorage.setItem(dedupe, '1');
-    setTimeout(() => sessionStorage.removeItem(dedupe), 4000);
 
     const visitante = contextoVisitante();
-    const geo = lerGeoCache() || { ip: '', pais: '', pais_nome: '', cidade: '', regiao: '', colo_cf: '' };
-    const payload = montarCamposCliqueEmail(data, geo, visitante);
-    payload.fields.ip = geo.ip || '';
+    const body = {
+      tipo,
+      destino: data.destino || '',
+      destino_label: humanizarDestino(data.destino),
+      rotulo: data.rotulo || '',
+      secao: data.secao || '',
+      secao_label: humanizarSecao(data.secao),
+      elemento: data.elemento || tipo,
+      href: data.href || '',
+      pagina: data.pagina || location.pathname + location.search,
+      titulo_pagina: data.titulo_pagina || document.title || '',
+      idioma: data.idioma || document.documentElement.lang || 'pt-br',
+      referrer: humanizarReferrer(visitante.referrer),
+      dispositivo: humanizarDispositivo(visitante.dispositivo),
+      fuso: visitante.fuso,
+      visitante_id: visitante.visitante_id,
+      cliente_nome: visitante.cliente_nome || '',
+      cliente_email: visitante.cliente_email || ''
+    };
 
-    enviarCliqueCompraEmail(payload);
+    fetch(base + '/analytics/click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+      keepalive: true
+    }).catch(() => {});
+  }
 
-    if (!geo.ip) {
-      obterGeoIp().catch(() => {});
-    }
+  function registrarPageview() {
+    const key = 'stf_pv:' + location.pathname + location.search;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    registrarLog({
+      tipo: 'pageview',
+      elemento: 'pageview',
+      destino: 'pageview',
+      secao: 'pagina',
+      rotulo: document.title || location.pathname,
+      href: location.href,
+      pagina: location.pathname + location.search,
+      titulo_pagina: document.title || ''
+    });
   }
 
   function trackSecaoLink(link) {
@@ -445,21 +324,37 @@
       destino: classificarDestino(href, link)
     });
     track('secao_link', payload);
-    notificarCliqueCompraEmail(payload);
+    registrarLog(payload);
   }
 
   function trackSecaoBotao(btn) {
-    if (btn.closest('summary')) return;
+    const summary = btn.closest('summary');
+    if (summary) {
+      const payload = payloadBase(summary, {
+        elemento: 'faq',
+        href: '',
+        destino: 'faq',
+        rotulo: normalizarTexto(summary.textContent) || 'Pergunta FAQ'
+      });
+      track('secao_link', payload);
+      registrarLog(payload);
+      return;
+    }
 
-    track('secao_link', payloadBase(btn, {
+    const payload = payloadBase(btn, {
       elemento: 'botao',
       href: '',
-      destino: 'botao',
+      destino: classificarDestino('', btn),
       tipo_botao: btn.type || 'button'
-    }));
+    });
+    if (payload.destino === 'ancora' && payload.secao === 'faq') payload.destino = 'faq';
+    track('secao_link', payload);
+    registrarLog(payload);
   }
 
   function iniciarRastreamentoSite() {
+    registrarPageview();
+
     document.addEventListener('click', function (e) {
       const link = e.target.closest('a[href]');
       if (link) {

@@ -69,6 +69,7 @@
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="documentacao" aria-selected="false" aria-controls="admin-tab-documentacao"><i class="fas fa-book"></i> Documentação</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pedidos" aria-selected="false" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Clientes</button>
                 </nav>
 
@@ -420,6 +421,54 @@
                     </fieldset>
                     </div>
 
+                    <div id="admin-tab-cliques" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</legend>
+                        <p class="admin-meta">Tudo que o visitante faz no site: entrada na página, redes sociais, lojas, FAQ, menu. Atualiza ao abrir esta aba.</p>
+                        <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
+                        <div class="admin-clicks-toolbar">
+                            <label class="admin-clicks-search">
+                                <input type="search" id="clicks-search" placeholder="Buscar: Mercado Livre, TikTok, visitante…" autocomplete="off" aria-label="Buscar no log">
+                            </label>
+                            <select id="clicks-filter-destino" aria-label="Filtrar destino">
+                                <option value="">Todos os destinos</option>
+                                <option value="pageview">Entrada no site</option>
+                                <option value="mercado_livre">Mercado Livre</option>
+                                <option value="shopee">Shopee</option>
+                                <option value="amazon">Amazon</option>
+                                <option value="tiktok_shop">TikTok Shop</option>
+                                <option value="loja_oficial">Loja oficial</option>
+                                <option value="tiktok">TikTok</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="youtube">YouTube</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="faq">FAQ</option>
+                            </select>
+                            <button type="button" id="btn-clicks-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                        </div>
+                        <p id="clicks-checked-at" class="admin-meta" hidden></p>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table admin-doc-table admin-clicks-table">
+                                <thead>
+                                    <tr>
+                                        <th>Quando</th>
+                                        <th>O quê</th>
+                                        <th>Destino</th>
+                                        <th>Onde</th>
+                                        <th>Página</th>
+                                        <th>Visitante</th>
+                                        <th>País</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-clicks-tbody">
+                                    <tr><td colspan="7" class="admin-meta">Abra esta aba para carregar o log.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </fieldset>
+                    </div>
+
                     <div id="admin-tab-clientes" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-users"></i> Clientes cadastrados</legend>
@@ -461,6 +510,6 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/store-products-merge.js?v=17"></script>
-    <script src="js/admin.js?v=40"></script>
+    <script src="js/admin.js?v=41"></script>
 </body>
 </html>

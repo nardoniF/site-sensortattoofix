@@ -1907,6 +1907,54 @@ line-height:1.8;
 .admin-tab.active i { color: var(--primary); }
 .admin-tab-panel { display: flex; flex-direction: column; gap: 24px; }
 .admin-tab-panel[hidden] { display: none !important; }
+.admin-clicks-stats {
+    padding: 12px 14px;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    background: #101010;
+    line-height: 1.5;
+}
+.admin-clicks-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+.admin-clicks-search { flex: 1 1 220px; margin: 0; }
+.admin-clicks-search input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #141414;
+    color: #eee;
+}
+.admin-clicks-toolbar select {
+    min-width: 180px;
+    padding: 10px 12px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #141414;
+    color: #eee;
+}
+.admin-clicks-table td { font-size: 0.92rem; vertical-align: top; }
+.admin-click-dest {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: #222;
+    color: #ddd;
+}
+.admin-click-dest--mercado_livre { background: #2a2200; color: #ffe600; }
+.admin-click-dest--shopee { background: #2a1200; color: #ff7337; }
+.admin-click-dest--amazon { background: #1a1a2a; color: #ff9900; }
+.admin-click-dest--tiktok_shop,
+.admin-click-dest--tiktok { background: #1a1a1a; color: #fff; }
+.admin-click-dest--instagram { background: #2a1020; color: #e1306c; }
+.admin-click-dest--pageview { background: #0d2818; color: #6fcf97; }
+.admin-click-dest--loja_oficial { background: #1a0d2a; color: #c77dff; }
 .admin-frete-subtabs {
     display: flex;
     flex-wrap: wrap;

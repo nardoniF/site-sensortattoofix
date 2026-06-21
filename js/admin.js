@@ -579,6 +579,128 @@
 
   let integrationsLoading = false;
   let customersLoading = false;
+  let clicksLoading = false;
+  let clicksSearchTimer = null;
+
+  const CLICK_DESTINO_LABELS = {
+    pageview: 'Entrada',
+    mercado_livre: 'Mercado Livre',
+    shopee: 'Shopee',
+    amazon: 'Amazon',
+    tiktok_shop: 'TikTok Shop',
+    loja_oficial: 'Loja oficial',
+    tiktok: 'TikTok',
+    instagram: 'Instagram',
+    youtube: 'YouTube',
+    facebook: 'Facebook',
+    whatsapp: 'WhatsApp',
+    faq: 'FAQ',
+    checkout: 'Checkout',
+    ancora: 'Âncora',
+    logo: 'Logo',
+    interno: 'Interno',
+    externo: 'Externo'
+  };
+
+  function formatClickDate(ts) {
+    if (!ts) return '—';
+    try {
+      return new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    } catch {
+      return '—';
+    }
+  }
+
+  function clickDestinoLabel(destino, fallback) {
+    return CLICK_DESTINO_LABELS[destino] || fallback || destino || '—';
+  }
+
+  function renderClicksStats(data) {
+    const el = document.getElementById('clicks-stats');
+    if (!el) return;
+    const top = Object.entries(data?.byDestino || {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([k, n]) => `${clickDestinoLabel(k)} (${n})`)
+      .join(' · ') || '—';
+    el.innerHTML = `<strong>Hoje:</strong> ${data?.todayCount ?? 0} eventos · <strong>Total no log:</strong> ${data?.total ?? 0} · <strong>Mais frequentes:</strong> ${escapeHtml(top)}`;
+  }
+
+  function renderClicksTable(clicks, checkedAt, total) {
+    const tbody = document.getElementById('admin-clicks-tbody');
+    const checkedEl = document.getElementById('clicks-checked-at');
+    if (!tbody) return;
+
+    if (!clicks?.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="admin-meta">Nenhum clique encontrado com esses filtros.</td></tr>';
+    } else {
+      tbody.innerHTML = clicks.map((c) => {
+        const visitante = c.cliente_email
+          ? `${escapeHtml(c.cliente_nome || 'Cliente')}<br><span class="admin-meta">${escapeHtml(c.cliente_email)}</span>`
+          : `<span class="admin-meta" title="Mesmo ID = mesma pessoa no navegador">${escapeHtml((c.visitante_id || '—').slice(0, 14))}</span>`;
+        const detalhe = [
+          c.referrer ? `Veio de: ${c.referrer}` : '',
+          c.dispositivo ? `Aparelho: ${c.dispositivo}` : '',
+          c.href ? `Link: ${c.href}` : ''
+        ].filter(Boolean).join(' · ');
+        return `
+        <tr title="${escapeHtml(detalhe)}">
+          <td>${escapeHtml(formatClickDate(c.ts))}</td>
+          <td>${escapeHtml(c.rotulo || c.tipo || '—')}</td>
+          <td><span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(c.destino_label || clickDestinoLabel(c.destino))}</span></td>
+          <td>${escapeHtml(c.secao_label || c.secao || '—')}</td>
+          <td>${escapeHtml(c.pagina || '—')}</td>
+          <td>${visitante}</td>
+          <td>${escapeHtml(c.pais || '—')}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    if (checkedEl) {
+      checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · exibindo ${clicks?.length || 0} de até ${total || 0} no log`;
+      checkedEl.hidden = false;
+    }
+  }
+
+  async function loadClicks() {
+    const tbody = document.getElementById('admin-clicks-tbody');
+    if (!tbody || clicksLoading) return;
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      tbody.innerHTML = '<tr><td colspan="7" class="admin-meta">Faça login no admin.</td></tr>';
+      return;
+    }
+
+    const q = document.getElementById('clicks-search')?.value?.trim() || '';
+    const destino = document.getElementById('clicks-filter-destino')?.value || '';
+
+    clicksLoading = true;
+    tbody.innerHTML = '<tr><td colspan="7" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando cliques…</td></tr>';
+
+    try {
+      const params = new URLSearchParams({ limit: '200' });
+      if (q) params.set('q', q);
+      if (destino) params.set('destino', destino);
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
+      renderClicksStats(data);
+      renderClicksTable(data.clicks, data.checkedAt, data.total);
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="7" class="admin-status-bad">${escapeHtml(err.message)}</td></tr>`;
+    } finally {
+      clicksLoading = false;
+    }
+  }
+
+  function scheduleClicksReload() {
+    clearTimeout(clicksSearchTimer);
+    clicksSearchTimer = setTimeout(() => loadClicks(), 350);
+  }
 
   function formatCustomerDate(iso) {
     if (!iso) return '—';
@@ -1177,6 +1299,7 @@
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
       if (id === 'clientes') loadCustomers();
+      if (id === 'cliques') loadClicks();
       if (id === 'documentacao') loadDocFrame(true);
       if (id === 'frete') initFreteSubtabs();
     }
@@ -1432,6 +1555,10 @@
 
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportOrders('json'));
   document.getElementById('btn-export-csv')?.addEventListener('click', () => exportOrders('csv'));
+
+  document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => loadClicks());
+  document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
+  document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
 
   async function sendTestEmail(type, label) {
     const token = sessionStorage.getItem(SESSION_KEY);

@@ -12,6 +12,9 @@ const ALLOWED_ORIGINS = [
 const CONFIG_KEY = 'store-config';
 const SITE_CATALOG_URL = 'https://www.sensortattoofix.com.br/data/store-config.json';
 const ORDERS_INDEX = 'orders:index';
+const CLICKS_INDEX = 'clicks:index';
+const CLICKS_MAX = 2500;
+const CLICK_TTL_SEC = 90 * 86400;
 const CUSTOMER_SESSION_TTL = 2592000; // 30 dias
 
 const DEFAULT_CONFIG = {
@@ -4750,7 +4753,29 @@ async function handleAdminShippingStatus(request, env, origin) {
   }, 200, origin);
 }
 
-async function handleNotifyClick(request, env, origin) {
+async function getClicksIndex(env) {
+  try {
+    return JSON.parse((await env.STORE_KV.get(CLICKS_INDEX)) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+async function appendClickLog(env, entry) {
+  const id = crypto.randomUUID();
+  const row = { id, ts: Date.now(), ...entry };
+  await env.STORE_KV.put('click:' + id, JSON.stringify(row), { expirationTtl: CLICK_TTL_SEC });
+  const list = await getClicksIndex(env);
+  list.unshift(id);
+  if (list.length > CLICKS_MAX) {
+    const removed = list.splice(CLICKS_MAX);
+    await Promise.all(removed.map((oldId) => env.STORE_KV.delete('click:' + oldId).catch(() => {})));
+  }
+  await env.STORE_KV.put(CLICKS_INDEX, JSON.stringify(list));
+  return row;
+}
+
+async function handleLogClick(request, env, origin, ctx) {
   if (!ALLOWED_ORIGINS.includes(origin)) {
     return json({ error: 'Origem não permitida.' }, 403, origin);
   }
@@ -4759,40 +4784,103 @@ async function handleNotifyClick(request, env, origin) {
     return json({ error: 'Payload inválido.' }, 400, origin);
   }
 
-  const config = await getConfig(env);
   const ip = clientIp(request);
   const paisCf = (request.headers.get('CF-IPCountry') || '').trim();
-  const quando = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  const loja = String(body.loja || body.destino || '—').slice(0, 80);
-  const pais = String(body.pais || paisCf || '—').slice(0, 80);
-  const subject = `Clique: ${loja} · ${pais !== '—' ? pais : 'local desconhecido'} · ${quando}`;
-
-  const fields = {
-    'O que clicou': String(body.rotulo || loja).slice(0, 120),
-    'Loja / destino': loja,
-    'Onde no site': String(body.secao_label || body.secao || '—').slice(0, 80),
-    'Link clicado': String(body.href || '—').slice(0, 500),
-    'Página': String(body.pagina || '—').slice(0, 200),
-    'Idioma do site': String(body.idioma || '—').slice(0, 40),
-    'Data e hora (SP)': quando,
-    'País': pais,
-    'Cidade / região': String(body.cidade_regiao || '—').slice(0, 120),
-    'IP (aproximado)': ip,
-    'Veio de': String(body.referrer || '—').slice(0, 200),
-    'Aparelho': String(body.dispositivo || '—').slice(0, 80),
-    'Fuso do visitante': String(body.fuso || '—').slice(0, 60),
-    'ID visitante': String(body.visitante_id || '—').slice(0, 60),
-    'Nota ID': 'Mesmo código = mesma pessoa no mesmo navegador'
+  const entry = {
+    tipo: String(body.tipo || 'clique').slice(0, 24),
+    destino: String(body.destino || '').slice(0, 48),
+    destino_label: String(body.destino_label || '').slice(0, 80),
+    rotulo: String(body.rotulo || '').slice(0, 120),
+    secao: String(body.secao || '').slice(0, 60),
+    secao_label: String(body.secao_label || '').slice(0, 80),
+    elemento: String(body.elemento || '').slice(0, 24),
+    href: String(body.href || '').slice(0, 500),
+    pagina: String(body.pagina || '').slice(0, 200),
+    titulo_pagina: String(body.titulo_pagina || '').slice(0, 120),
+    idioma: String(body.idioma || '').slice(0, 24),
+    referrer: String(body.referrer || '').slice(0, 200),
+    dispositivo: String(body.dispositivo || '').slice(0, 80),
+    fuso: String(body.fuso || '').slice(0, 60),
+    visitante_id: String(body.visitante_id || '').slice(0, 64),
+    cliente_nome: String(body.cliente_nome || '').slice(0, 80),
+    cliente_email: String(body.cliente_email || '').slice(0, 120),
+    pais: String(body.pais || paisCf || '').slice(0, 12),
+    ip: ip !== 'unknown' ? ip : ''
   };
-  if (body.cliente_nome) fields['Nome (conta logada)'] = String(body.cliente_nome).slice(0, 80);
-  if (body.cliente_email) fields['E-mail (conta logada)'] = String(body.cliente_email).slice(0, 120);
-  if (!body.cliente_nome) fields.Visitante = 'Não estava logado — só localização aproximada';
 
-  const result = await notifyShop(env, config, subject, fields);
-  if (!result.ok) {
-    return json({ ok: false, error: 'Falha ao enviar e-mail.', detail: result }, 502, origin);
+  const persist = appendClickLog(env, entry).catch((err) => {
+    console.error('click log:', err.message);
+  });
+  if (ctx?.waitUntil) ctx.waitUntil(persist);
+  else await persist;
+
+  return json({ ok: true }, 202, origin);
+}
+
+async function handleAdminListClicks(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
   }
-  return json({ ok: true, provider: result.provider || 'email' }, 200, origin);
+
+  const url = new URL(request.url);
+  const q = (url.searchParams.get('q') || '').trim().toLowerCase();
+  const destino = (url.searchParams.get('destino') || '').trim();
+  const tipo = (url.searchParams.get('tipo') || '').trim();
+  const limit = Math.min(500, Math.max(20, parseInt(url.searchParams.get('limit') || '200', 10) || 200));
+
+  const ids = await getClicksIndex(env);
+  const clicks = [];
+  const scanLimit = q || destino || tipo ? Math.min(ids.length, 1500) : Math.min(ids.length, limit);
+
+  for (let i = 0; i < scanLimit; i++) {
+    const id = ids[i];
+    const raw = await env.STORE_KV.get('click:' + id);
+    if (!raw) continue;
+    let row;
+    try {
+      row = JSON.parse(raw);
+    } catch {
+      continue;
+    }
+    if (destino && row.destino !== destino) continue;
+    if (tipo && row.tipo !== tipo) continue;
+    if (q) {
+      const hay = [
+        row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
+        row.pagina, row.visitante_id, row.cliente_email, row.cliente_nome, row.referrer, row.tipo
+      ].join(' ').toLowerCase();
+      if (!hay.includes(q)) continue;
+    }
+    clicks.push(row);
+    if (clicks.length >= limit) break;
+  }
+
+  const todayKey = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const brDateKey = (ts) => new Date(ts).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+  const byDestino = {};
+  let todayCount = 0;
+  for (let i = 0; i < Math.min(ids.length, 800); i++) {
+    const raw = await env.STORE_KV.get('click:' + ids[i]);
+    if (!raw) continue;
+    let row;
+    try {
+      row = JSON.parse(raw);
+    } catch {
+      continue;
+    }
+    if (brDateKey(row.ts) === todayKey) todayCount++;
+    const key = row.destino || row.tipo || 'outro';
+    byDestino[key] = (byDestino[key] || 0) + 1;
+  }
+
+  return json({
+    clicks,
+    total: ids.length,
+    todayCount,
+    byDestino,
+    checkedAt: new Date().toISOString()
+  }, 200, origin);
 }
 
 async function handleTestEmail(request, env, origin) {
@@ -4986,7 +5074,13 @@ export default {
         return handleAdminCustomers(request, env, origin);
       }
       if (path === '/notify/click' && request.method === 'POST') {
-        return handleNotifyClick(request, env, origin);
+        return handleLogClick(request, env, origin, ctx);
+      }
+      if (path === '/analytics/click' && request.method === 'POST') {
+        return handleLogClick(request, env, origin, ctx);
+      }
+      if (path === '/admin/clicks' && request.method === 'GET') {
+        return handleAdminListClicks(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);
