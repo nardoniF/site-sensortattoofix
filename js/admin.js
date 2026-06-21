@@ -632,51 +632,203 @@
     el.innerHTML = `<strong>Hoje:</strong> ${data?.todayCount ?? 0} eventos · <strong>Total no log:</strong> ${data?.total ?? 0} · <strong>Mais frequentes:</strong> ${escapeHtml(top)}`;
   }
 
-  function renderClicksTable(clicks, checkedAt, total) {
-    const tbody = document.getElementById('admin-clicks-tbody');
+  function formatClickTime(ts) {
+    if (!ts) return '—';
+    try {
+      return new Date(ts).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch {
+      return '—';
+    }
+  }
+
+  function brDateParts(ts) {
+    const d = new Date(ts || Date.now());
+    const tz = { timeZone: 'America/Sao_Paulo' };
+    const year = d.toLocaleString('pt-BR', { ...tz, year: 'numeric' });
+    const monthNum = d.toLocaleString('pt-BR', { ...tz, month: '2-digit' });
+    let monthName = d.toLocaleString('pt-BR', { ...tz, month: 'long' });
+    monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+    const day = d.toLocaleString('pt-BR', { ...tz, day: '2-digit' });
+    const dateKey = `${year}-${monthNum}-${day}`;
+    const dayLabel = d.toLocaleString('pt-BR', { ...tz, weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+    const dayLabelCap = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
+    return { year, monthNum, monthName, day, dateKey, dayLabel: dayLabelCap };
+  }
+
+  function maskIp(ip) {
+    if (!ip) return '';
+    const p = String(ip).split('.');
+    if (p.length === 4) return `${p[0]}.${p[1]}.x.x`;
+    return String(ip).slice(0, 14) + '…';
+  }
+
+  function visitorKey(c) {
+    if (c.cliente_email) return `email:${String(c.cliente_email).toLowerCase()}`;
+    if (c.visitante_id) return `vid:${c.visitante_id}`;
+    if (c.ip) return `ip:${c.ip}`;
+    if (c.ip_prefix) return `ipp:${c.ip_prefix}`;
+    return `unk:${c.sessao_visita || c.id || 'x'}`;
+  }
+
+  function visitorLabel(meta) {
+    if (meta.cliente_email) {
+      return meta.cliente_nome
+        ? `${meta.cliente_nome} · ${meta.cliente_email}`
+        : meta.cliente_email;
+    }
+    if (meta.visitante_id) {
+      const ip = meta.ip_prefix || maskIp(meta.ip);
+      return ip
+        ? `Visitante ${meta.visitante_id.slice(0, 12)}… · ${ip}`
+        : `Visitante ${meta.visitante_id.slice(0, 16)}…`;
+    }
+    if (meta.ip) return `IP ${maskIp(meta.ip)}`;
+    return 'Visitante sem identificação';
+  }
+
+  function buildClicksTree(clicks) {
+    const tree = {};
+    (clicks || []).forEach((c) => {
+      const ts = c.ts || c.client_ts || 0;
+      if (!ts) return;
+      const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
+      const vKey = visitorKey(c);
+      if (!tree[year]) tree[year] = { count: 0, months: {} };
+      const y = tree[year];
+      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, days: {} };
+      const m = y.months[monthNum];
+      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, visitors: {} };
+      const d = m.days[dateKey];
+      if (!d.visitors[vKey]) d.visitors[vKey] = { meta: c, count: 0, sessions: {} };
+      const v = d.visitors[vKey];
+      if (c.cliente_email && !v.meta.cliente_email) v.meta = { ...v.meta, ...c };
+      const sKey = c.sessao_visita || 'sem_sessao';
+      if (!v.sessions[sKey]) v.sessions[sKey] = [];
+      v.sessions[sKey].push(c);
+      v.count++;
+      d.count++;
+      m.count++;
+      y.count++;
+    });
+
+    Object.values(tree).forEach((y) => {
+      Object.values(y.months).forEach((m) => {
+        Object.values(m.days).forEach((d) => {
+          Object.values(d.visitors).forEach((v) => {
+            Object.values(v.sessions).forEach((events) => {
+              events.sort((a, b) => {
+                const sa = a.sequencia || 0;
+                const sb = b.sequencia || 0;
+                if (sa && sb && sa !== sb) return sa - sb;
+                return (a.ts || 0) - (b.ts || 0);
+              });
+            });
+          });
+        });
+      });
+    });
+    return tree;
+  }
+
+  function clicksTreeSummary(label, count, extra) {
+    const meta = count != null ? `<span class="clicks-tree-meta">${count} evento${count === 1 ? '' : 's'}${extra ? ' · ' + extra : ''}</span>` : '';
+    return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
+  }
+
+  function renderClickStep(c, idx) {
+    const dest = c.destino_label || clickDestinoLabel(c.destino);
+    const hora = formatClickTime(c.ts);
+    const seq = c.sequencia || idx + 1;
+  const tip = [c.pagina, c.secao_label, c.dispositivo, c.referrer].filter(Boolean).join(' · ');
+    return `<li class="clicks-tree-step" title="${escapeHtml(tip)}">
+      <span class="clicks-tree-step-num">${seq}</span>
+      <span class="clicks-tree-step-time">${escapeHtml(hora)}</span>
+      <span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(dest)}</span>
+      <span class="clicks-tree-step-label">${escapeHtml(c.rotulo || c.tipo || '—')}</span>
+    </li>`;
+  }
+
+  function renderClicksTree(clicks, checkedAt, total) {
+    const root = document.getElementById('clicks-tree-root');
     const checkedEl = document.getElementById('clicks-checked-at');
-    if (!tbody) return;
+    if (!root) return;
 
     if (!clicks?.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="admin-meta">Nenhum clique encontrado com esses filtros.</td></tr>';
+      root.innerHTML = '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
     } else {
-      tbody.innerHTML = clicks.map((c) => {
-        const visitante = c.cliente_email
-          ? `${escapeHtml(c.cliente_nome || 'Cliente')}<br><span class="admin-meta">${escapeHtml(c.cliente_email)}</span>`
-          : `<span class="admin-meta" title="Mesmo ID = mesma pessoa no navegador">${escapeHtml((c.visitante_id || '—').slice(0, 14))}</span>`;
-        const detalhe = [
-          c.sequencia ? `#${c.sequencia} na visita` : '',
-          c.sessao_visita ? 'Sessão: ' + c.sessao_visita : '',
-          c.referrer ? `Veio de: ${c.referrer}` : '',
-          c.dispositivo ? `Aparelho: ${c.dispositivo}` : '',
-          c.href ? `Link: ${c.href}` : ''
-        ].filter(Boolean).join(' · ');
-        return `
-        <tr title="${escapeHtml(detalhe)}">
-          <td>${escapeHtml(formatClickDate(c.ts))}</td>
-          <td>${escapeHtml(c.rotulo || c.tipo || '—')}</td>
-          <td><span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(c.destino_label || clickDestinoLabel(c.destino))}</span></td>
-          <td>${escapeHtml(c.secao_label || c.secao || '—')}</td>
-          <td>${escapeHtml(c.pagina || '—')}</td>
-          <td>${visitante}${c.sequencia ? `<br><span class="admin-meta">#${c.sequencia}</span>` : ''}</td>
-          <td>${escapeHtml(c.pais || '—')}</td>
-        </tr>`;
-      }).join('');
+      const tree = buildClicksTree(clicks);
+      const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
+      let html = '<div class="clicks-tree">';
+
+      years.forEach((year, yi) => {
+        const y = tree[year];
+        html += `<details class="clicks-tree-node clicks-tree-year"${yi === 0 ? ' open' : ''}><summary>${clicksTreeSummary(year, y.count)}</summary><div class="clicks-tree-children">`;
+
+        const months = Object.keys(y.months).sort((a, b) => Number(b) - Number(a));
+        months.forEach((monthNum, mi) => {
+          const m = y.months[monthNum];
+          html += `<details class="clicks-tree-node clicks-tree-month"${yi === 0 && mi === 0 ? ' open' : ''}><summary>${clicksTreeSummary(m.name, m.count)}</summary><div class="clicks-tree-children">`;
+
+          const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
+          days.forEach((dateKey, di) => {
+            const d = m.days[dateKey];
+            const visitorCount = Object.keys(d.visitors).length;
+            html += `<details class="clicks-tree-node clicks-tree-day"${yi === 0 && mi === 0 && di === 0 ? ' open' : ''}><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+
+            const visitors = Object.entries(d.visitors).sort((a, b) => {
+              const ta = Math.min(...Object.values(a[1].sessions).flat().map((e) => e.ts || 0));
+              const tb = Math.min(...Object.values(b[1].sessions).flat().map((e) => e.ts || 0));
+              return tb - ta;
+            });
+
+            visitors.forEach(([vKey, v], vi) => {
+              const sessionCount = Object.keys(v.sessions).length;
+              html += `<details class="clicks-tree-node clicks-tree-visitor"${yi === 0 && mi === 0 && di === 0 && vi === 0 ? ' open' : ''}><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+
+              const sessions = Object.entries(v.sessions).sort((a, b) => {
+                const ta = (a[1][0]?.ts) || 0;
+                const tb = (b[1][0]?.ts) || 0;
+                return ta - tb;
+              });
+
+              sessions.forEach(([sKey, events], si) => {
+                const start = formatClickTime(events[0]?.ts);
+                const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
+                html += `<details class="clicks-tree-node clicks-tree-path"${yi === 0 && mi === 0 && di === 0 && vi === 0 && si === 0 ? ' open' : ''}><summary>${clicksTreeSummary(pathLabel, events.length, 'passos')}</summary>`;
+                html += '<ol class="clicks-tree-steps">';
+                events.forEach((c, idx) => { html += renderClickStep(c, idx); });
+                html += '</ol></details>';
+              });
+
+              html += '</div></details>';
+            });
+
+            html += '</div></details>';
+          });
+
+          html += '</div></details>';
+        });
+
+        html += '</div></details>';
+      });
+
+      html += '</div>';
+      root.innerHTML = html;
     }
 
     if (checkedEl) {
-      checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · exibindo ${clicks?.length || 0} de até ${total || 0} no log`;
+      checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log`;
       checkedEl.hidden = false;
     }
   }
 
   async function loadClicks() {
-    const tbody = document.getElementById('admin-clicks-tbody');
-    if (!tbody || clicksLoading) return;
+    const root = document.getElementById('clicks-tree-root');
+    if (!root || clicksLoading) return;
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) {
-      tbody.innerHTML = '<tr><td colspan="7" class="admin-meta">Faça login no admin.</td></tr>';
+      root.innerHTML = '<p class="admin-meta">Faça login no admin.</p>';
       return;
     }
 
@@ -684,10 +836,10 @@
     const destino = document.getElementById('clicks-filter-destino')?.value || '';
 
     clicksLoading = true;
-    tbody.innerHTML = '<tr><td colspan="7" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando cliques…</td></tr>';
+    root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
 
     try {
-      const params = new URLSearchParams({ limit: '200' });
+      const params = new URLSearchParams({ limit: '2500' });
       if (q) params.set('q', q);
       if (destino) params.set('destino', destino);
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
@@ -697,9 +849,9 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       renderClicksStats(data);
-      renderClicksTable(data.clicks, data.checkedAt, data.total);
+      renderClicksTree(data.clicks, data.checkedAt, data.total);
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="7" class="admin-status-bad">${escapeHtml(err.message)}</td></tr>`;
+      root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
     } finally {
       clicksLoading = false;
     }

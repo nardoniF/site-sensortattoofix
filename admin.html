@@ -424,7 +424,7 @@
                     <div id="admin-tab-cliques" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</legend>
-                        <p class="admin-meta">Tudo que o visitante faz no site: entrada na página, redes sociais, lojas, FAQ, menu. Atualiza ao abrir esta aba.</p>
+                        <p class="admin-meta">Ano → mês → dia → visitante → caminho na visita. Clique nas setas para expandir.</p>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-clicks-toolbar">
                             <label class="admin-clicks-search">
@@ -449,23 +449,8 @@
                             <button type="button" id="btn-clicks-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
                         </div>
                         <p id="clicks-checked-at" class="admin-meta" hidden></p>
-                        <div class="admin-table-wrap">
-                            <table class="admin-table admin-doc-table admin-clicks-table">
-                                <thead>
-                                    <tr>
-                                        <th>Quando</th>
-                                        <th>O quê</th>
-                                        <th>Destino</th>
-                                        <th>Onde</th>
-                                        <th>Página</th>
-                                        <th>Visitante</th>
-                                        <th>País</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="admin-clicks-tbody">
-                                    <tr><td colspan="7" class="admin-meta">Abra esta aba para carregar o log.</td></tr>
-                                </tbody>
-                            </table>
+                        <div id="clicks-tree-root" class="clicks-tree-root">
+                            <p class="admin-meta">Abra esta aba para carregar o histórico.</p>
                         </div>
                     </fieldset>
                     </div>
@@ -511,6 +496,6 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/store-products-merge.js?v=17"></script>
-    <script src="js/admin.js?v=42"></script>
+    <script src="js/admin.js?v=43"></script>
 </body>
 </html>

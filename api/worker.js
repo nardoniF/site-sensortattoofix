@@ -4841,6 +4841,7 @@ async function handleLogClick(request, env, origin, ctx) {
     cliente_email: String(body.cliente_email || '').slice(0, 120),
     pais: String(body.pais || paisCf || '').slice(0, 12),
     ip: ip !== 'unknown' ? ip : '',
+    ip_prefix: ip !== 'unknown' && ip.includes('.') ? ip.split('.').slice(0, 2).join('.') + '.x.x' : '',
     client_ts: Math.max(0, parseInt(body.client_ts, 10) || 0)
   };
 
@@ -4862,11 +4863,11 @@ async function handleAdminListClicks(request, env, origin) {
   const q = (url.searchParams.get('q') || '').trim().toLowerCase();
   const destino = (url.searchParams.get('destino') || '').trim();
   const tipo = (url.searchParams.get('tipo') || '').trim();
-  const limit = Math.min(500, Math.max(20, parseInt(url.searchParams.get('limit') || '200', 10) || 200));
+  const limit = Math.min(2500, Math.max(20, parseInt(url.searchParams.get('limit') || '2500', 10) || 2500));
 
   const ids = await getClicksIndex(env);
   const clicks = [];
-  const scanLimit = q || destino || tipo ? Math.min(ids.length, 1500) : Math.min(ids.length, limit);
+  const scanLimit = Math.min(ids.length, 2500);
 
   for (let i = 0; i < scanLimit; i++) {
     const id = ids[i];
@@ -4883,7 +4884,7 @@ async function handleAdminListClicks(request, env, origin) {
     if (q) {
       const hay = [
         row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
-        row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo
+        row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo, row.ip, row.ip_prefix
       ].join(' ').toLowerCase();
       if (!hay.includes(q)) continue;
     }

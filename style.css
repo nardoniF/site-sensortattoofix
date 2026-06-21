@@ -1955,6 +1955,94 @@ line-height:1.8;
 .admin-click-dest--instagram { background: #2a1020; color: #e1306c; }
 .admin-click-dest--pageview { background: #0d2818; color: #6fcf97; }
 .admin-click-dest--loja_oficial { background: #1a0d2a; color: #c77dff; }
+.clicks-tree-root {
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    background: #101010;
+    padding: 12px 14px;
+    max-height: min(70vh, 720px);
+    overflow: auto;
+}
+.clicks-tree { display: flex; flex-direction: column; gap: 6px; }
+.clicks-tree-node {
+    border: 1px solid #252525;
+    border-radius: 10px;
+    background: #141414;
+    overflow: hidden;
+}
+.clicks-tree-node > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    font-weight: 600;
+    color: #eee;
+    user-select: none;
+}
+.clicks-tree-node > summary::-webkit-details-marker { display: none; }
+.clicks-tree-node[open] > summary { background: #1a1a1a; border-bottom: 1px solid #252525; }
+.clicks-tree-node[open] > summary .clicks-tree-chevron { transform: rotate(90deg); }
+.clicks-tree-chevron {
+    width: 14px;
+    color: var(--primary);
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+}
+.clicks-tree-label { flex: 1; min-width: 0; }
+.clicks-tree-meta {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #888;
+    white-space: nowrap;
+}
+.clicks-tree-children {
+    padding: 8px 10px 10px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.clicks-tree-year > .clicks-tree-children { padding-left: 12px; }
+.clicks-tree-month .clicks-tree-label { font-size: 0.98rem; }
+.clicks-tree-day .clicks-tree-label { font-size: 0.95rem; color: #ddd; }
+.clicks-tree-visitor .clicks-tree-label { font-size: 0.92rem; color: #ccc; }
+.clicks-tree-path .clicks-tree-label { font-size: 0.88rem; color: #aaa; }
+.clicks-tree-steps {
+    list-style: none;
+    margin: 0;
+    padding: 6px 4px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.clicks-tree-step {
+    display: grid;
+    grid-template-columns: 28px 72px minmax(90px, auto) 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: #0f0f0f;
+    font-size: 0.86rem;
+}
+.clicks-tree-step-num {
+    color: var(--primary);
+    font-weight: 700;
+    text-align: right;
+}
+.clicks-tree-step-time { color: #777; font-variant-numeric: tabular-nums; }
+.clicks-tree-step-label { color: #ccc; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) {
+    .clicks-tree-step {
+        grid-template-columns: 24px 1fr;
+        grid-template-areas: "num label" "time dest";
+    }
+    .clicks-tree-step-num { grid-area: num; }
+    .clicks-tree-step-time { grid-area: time; }
+    .clicks-tree-step-label { grid-area: label; white-space: normal; }
+    .admin-click-dest { grid-area: dest; justify-self: start; }
+}
 .admin-frete-subtabs {
     display: flex;
     flex-wrap: wrap;
