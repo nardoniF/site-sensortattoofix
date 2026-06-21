@@ -1,5 +1,17 @@
 (function () {
   const VENDA_KEY = 'stf_venda_registrada';
+  const LOG_QUEUE_KEY = 'stf_log_queue';
+  const LOG_QUEUE_MAX = 40;
+
+  const ANCORA_DESTINOS = {
+    'onde-comprar': 'menu_comprar',
+    problema: 'secao_problema',
+    paliativos: 'secao_paliativos',
+    produtos: 'secao_produtos',
+    'quem-somos': 'secao_quem_somos',
+    faq: 'faq',
+    contato: 'secao_contato'
+  };
 
   function canTrack() {
     return typeof window.gtag === 'function';
@@ -79,6 +91,12 @@
       return 'ancora';
     }
     const h = href.toLowerCase();
+    if (h.startsWith('#') || (h.includes('#') && !h.includes('://'))) {
+      const frag = h.replace(/^[^#]*#/, '').split('?')[0];
+      if (ANCORA_DESTINOS[frag]) return ANCORA_DESTINOS[frag];
+      if (frag.includes('faq') || frag.includes('duvida')) return 'faq';
+      return frag ? 'ancora_' + frag.replace(/[^a-z0-9_-]/gi, '') : 'ancora';
+    }
     if (h.includes('mercadolivre')) return 'mercado_livre';
     if (h.includes('amazon.')) return 'amazon';
     if (h.includes('shopee')) return 'shopee';
@@ -93,16 +111,26 @@
     if (h.includes('comprar.html')) return 'checkout';
     if (h.includes('minha-conta')) return 'minha_conta';
     if (h.includes('index.html') || h.endsWith('/en/') || h.endsWith('/')) return 'home';
-    if (h.includes('#faq') || h.includes('#duvidas')) return 'faq';
-    if (h.startsWith('#') || h.includes('#')) return 'ancora';
     if (h.includes('formsubmit.co') || h.startsWith('mailto:') || h.startsWith('tel:')) return 'contato';
     try {
       const url = new URL(href, location.href);
+      if (url.hash) {
+        const frag = url.hash.replace(/^#/, '');
+        if (ANCORA_DESTINOS[frag]) return ANCORA_DESTINOS[frag];
+        if (frag.includes('faq')) return 'faq';
+        if (frag) return 'ancora_' + frag.replace(/[^a-z0-9_-]/gi, '');
+      }
       if (url.origin !== location.origin) return 'externo';
       return 'interno';
     } catch {
       return 'outro';
     }
+  }
+
+  function linkRastreavel(link) {
+    const href = (link.getAttribute('href') || '').trim();
+    if (!href || href === '#' || /^javascript:/i.test(href)) return false;
+    return true;
   }
 
   function rotuloElemento(el) {
@@ -190,6 +218,12 @@
       facebook: 'Facebook',
       amazon: 'Amazon',
       loja_oficial: 'Loja Oficial (site)',
+      menu_comprar: 'Menu — Onde comprar',
+      secao_problema: 'Menu — O problema',
+      secao_paliativos: 'Menu — Paliativos',
+      secao_produtos: 'Menu — Produtos',
+      secao_quem_somos: 'Menu — Quem somos',
+      secao_contato: 'Menu — Contato',
       ancora: 'Âncora na página',
       checkout: 'Checkout',
       whatsapp: 'WhatsApp',
@@ -202,7 +236,11 @@
       contato: 'Contato',
       minha_conta: 'Minha conta'
     };
-    return map[destino] || (destino || '—').replace(/_/g, ' ');
+    if (map[destino]) return map[destino];
+    if (destino && destino.startsWith('ancora_')) {
+      return 'Âncora — ' + destino.replace(/^ancora_/, '').replace(/_/g, ' ');
+    }
+    return (destino || '—').replace(/_/g, ' ');
   }
 
   function humanizarSecao(secao) {
@@ -252,25 +290,31 @@
       .replace(/\s*\/\s*/, ' · ');
   }
 
+  function sessaoVisitaId() {
+    let id = sessionStorage.getItem('stf_sessao_visita');
+    if (!id) {
+      id = 's_' + (crypto.randomUUID?.() || String(Date.now()));
+      sessionStorage.setItem('stf_sessao_visita', id);
+      sessionStorage.setItem('stf_sessao_seq', '0');
+    }
+    return id;
+  }
+
+  function proximaSequencia() {
+    const n = (parseInt(sessionStorage.getItem('stf_sessao_seq') || '0', 10) || 0) + 1;
+    sessionStorage.setItem('stf_sessao_seq', String(n));
+    return n;
+  }
+
   function apiBaseUrl() {
     const raw = window.CONFIG_BOOTSTRAP?.configApiUrl || '';
     return String(raw).replace(/\/$/, '');
   }
 
-  function registrarLog(data) {
-    const base = apiBaseUrl();
-    if (!base) return;
-
-    const tipo = data.tipo || (data.elemento === 'pageview' ? 'pageview' : 'clique');
-    if (tipo !== 'pageview') {
-      const dedupe = `stf_log:${tipo}:${data.destino}:${data.href}:${data.rotulo}`;
-      if (sessionStorage.getItem(dedupe)) return;
-      sessionStorage.setItem(dedupe, '1');
-      setTimeout(() => sessionStorage.removeItem(dedupe), 2000);
-    }
-
+  function montarCorpoLog(data) {
     const visitante = contextoVisitante();
-    const body = {
+    const tipo = data.tipo || (data.elemento === 'pageview' ? 'pageview' : 'clique');
+    return {
       tipo,
       destino: data.destino || '',
       destino_label: humanizarDestino(data.destino),
@@ -286,16 +330,72 @@
       dispositivo: humanizarDispositivo(visitante.dispositivo),
       fuso: visitante.fuso,
       visitante_id: visitante.visitante_id,
+      sessao_visita: sessaoVisitaId(),
+      sequencia: proximaSequencia(),
       cliente_nome: visitante.cliente_nome || '',
-      cliente_email: visitante.cliente_email || ''
+      cliente_email: visitante.cliente_email || '',
+      client_ts: Date.now()
     };
+  }
 
-    fetch(base + '/analytics/click', {
+  function enfileirarLog(body) {
+    try {
+      const q = JSON.parse(sessionStorage.getItem(LOG_QUEUE_KEY) || '[]');
+      q.push(body);
+      while (q.length > LOG_QUEUE_MAX) q.shift();
+      sessionStorage.setItem(LOG_QUEUE_KEY, JSON.stringify(q));
+    } catch (_) { /* ignore */ }
+  }
+
+  function enviarLogPayload(body, urgente) {
+    const base = apiBaseUrl();
+    if (!base) return false;
+    const url = base + '/analytics/click';
+    const json = JSON.stringify(body);
+
+    if (typeof navigator.sendBeacon === 'function') {
+      try {
+        const blob = new Blob([json], { type: 'application/json' });
+        if (navigator.sendBeacon(url, blob)) return true;
+      } catch (_) { /* fallback fetch */ }
+    }
+
+    fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
-      keepalive: true
-    }).catch(() => {});
+      body: json,
+      keepalive: true,
+      priority: urgente ? 'high' : 'low'
+    }).catch(() => enfileirarLog(body));
+    return true;
+  }
+
+  function flushLogQueue() {
+    let q;
+    try {
+      q = JSON.parse(sessionStorage.getItem(LOG_QUEUE_KEY) || '[]');
+    } catch {
+      return;
+    }
+    if (!q.length) return;
+    sessionStorage.removeItem(LOG_QUEUE_KEY);
+    q.forEach((body) => enviarLogPayload(body, true));
+  }
+
+  function registrarLog(data) {
+    if (!apiBaseUrl()) return;
+
+    const tipo = data.tipo || (data.elemento === 'pageview' ? 'pageview' : 'clique');
+    if (tipo !== 'pageview') {
+      const dedupe = `stf_log:${tipo}:${data.destino}:${data.href}:${data.rotulo}`;
+      if (sessionStorage.getItem(dedupe)) return;
+      sessionStorage.setItem(dedupe, '1');
+      setTimeout(() => sessionStorage.removeItem(dedupe), 1500);
+    }
+
+    const body = montarCorpoLog(data);
+    const saiDaPagina = tipo !== 'pageview' && data.href && !data.href.startsWith('#') && !data.href.includes(location.pathname + '#');
+    enviarLogPayload(body, !!saiDaPagina || data.urgente);
   }
 
   function registrarPageview() {
@@ -315,13 +415,27 @@
   }
 
   function trackSecaoLink(link) {
+    if (!linkRastreavel(link)) return;
     const href = link.getAttribute('href');
-    if (href === null) return;
-
+    const abs = hrefAbsoluto(href);
     const payload = payloadBase(link, {
       elemento: 'link',
-      href: hrefAbsoluto(href),
-      destino: classificarDestino(href, link)
+      href: abs,
+      destino: classificarDestino(href, link),
+      urgente: link.target === '_blank' || !href.startsWith('#')
+    });
+    track('secao_link', payload);
+    registrarLog(payload);
+  }
+
+  function trackFaqAbertura(details) {
+    const summary = details.querySelector('summary');
+    if (!summary) return;
+    const payload = payloadBase(summary, {
+      elemento: 'faq',
+      href: '',
+      destino: 'faq',
+      rotulo: normalizarTexto(summary.textContent) || 'Pergunta FAQ'
     });
     track('secao_link', payload);
     registrarLog(payload);
@@ -352,18 +466,31 @@
     registrarLog(payload);
   }
 
+  function onClickCapture(e) {
+    const link = e.target.closest('a[href]');
+    if (link) {
+      trackSecaoLink(link);
+      return;
+    }
+
+    const btn = e.target.closest('button');
+    if (btn && !btn.closest('summary')) trackSecaoBotao(btn);
+  }
+
   function iniciarRastreamentoSite() {
+    flushLogQueue();
     registrarPageview();
 
-    document.addEventListener('click', function (e) {
-      const link = e.target.closest('a[href]');
-      if (link) {
-        trackSecaoLink(link);
-        return;
-      }
+    document.addEventListener('click', onClickCapture, true);
 
-      const btn = e.target.closest('button');
-      if (btn) trackSecaoBotao(btn);
+    document.addEventListener('toggle', (e) => {
+      const details = e.target;
+      if (details?.tagName === 'DETAILS' && details.open) trackFaqAbertura(details);
+    }, true);
+
+    window.addEventListener('pagehide', flushLogQueue);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushLogQueue();
     });
   }
 

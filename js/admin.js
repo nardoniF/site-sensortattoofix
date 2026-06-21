@@ -595,6 +595,12 @@
     facebook: 'Facebook',
     whatsapp: 'WhatsApp',
     faq: 'FAQ',
+    menu_comprar: 'Menu comprar',
+    secao_problema: 'Menu — Problema',
+    secao_paliativos: 'Menu — Paliativos',
+    secao_produtos: 'Menu — Produtos',
+    secao_quem_somos: 'Menu — Quem somos',
+    secao_contato: 'Menu — Contato',
     checkout: 'Checkout',
     ancora: 'Âncora',
     logo: 'Logo',
@@ -639,6 +645,8 @@
           ? `${escapeHtml(c.cliente_nome || 'Cliente')}<br><span class="admin-meta">${escapeHtml(c.cliente_email)}</span>`
           : `<span class="admin-meta" title="Mesmo ID = mesma pessoa no navegador">${escapeHtml((c.visitante_id || '—').slice(0, 14))}</span>`;
         const detalhe = [
+          c.sequencia ? `#${c.sequencia} na visita` : '',
+          c.sessao_visita ? 'Sessão: ' + c.sessao_visita : '',
           c.referrer ? `Veio de: ${c.referrer}` : '',
           c.dispositivo ? `Aparelho: ${c.dispositivo}` : '',
           c.href ? `Link: ${c.href}` : ''
@@ -650,7 +658,7 @@
           <td><span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(c.destino_label || clickDestinoLabel(c.destino))}</span></td>
           <td>${escapeHtml(c.secao_label || c.secao || '—')}</td>
           <td>${escapeHtml(c.pagina || '—')}</td>
-          <td>${visitante}</td>
+          <td>${visitante}${c.sequencia ? `<br><span class="admin-meta">#${c.sequencia}</span>` : ''}</td>
           <td>${escapeHtml(c.pais || '—')}</td>
         </tr>`;
       }).join('');

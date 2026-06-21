@@ -1074,7 +1074,7 @@ const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_SEC = 1800;
 
 function corsHeaders(origin) {
-  const allowed = ALLOWED_ORIGINS.includes(origin);
+  const allowed = isAllowedSiteOrigin(origin);
   const headers = {
     'Access-Control-Allow-Methods': 'GET, PUT, PATCH, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, asaas-access-token',
@@ -1082,6 +1082,25 @@ function corsHeaders(origin) {
   };
   if (allowed) headers['Access-Control-Allow-Origin'] = origin;
   return headers;
+}
+
+function isAllowedSiteOrigin(origin) {
+  return !!(origin && ALLOWED_ORIGINS.includes(origin));
+}
+
+function isAllowedSiteRequest(request) {
+  const origin = request.headers.get('Origin') || '';
+  if (isAllowedSiteOrigin(origin)) return true;
+  const referer = request.headers.get('Referer') || '';
+  return ALLOWED_ORIGINS.some((o) => referer.startsWith(o));
+}
+
+function resolveRequestOrigin(request) {
+  const origin = request.headers.get('Origin') || '';
+  if (isAllowedSiteOrigin(origin)) return origin;
+  const referer = request.headers.get('Referer') || '';
+  const fromRef = ALLOWED_ORIGINS.find((o) => referer.startsWith(o));
+  return fromRef || ALLOWED_ORIGINS[0];
 }
 
 function clientIp(request) {
@@ -4775,8 +4794,18 @@ async function appendClickLog(env, entry) {
   return row;
 }
 
+async function checkClickRate(env, ip) {
+  if (!ip || ip === 'unknown') return true;
+  const minute = Math.floor(Date.now() / 60000);
+  const key = `clickrate:${ip}:${minute}`;
+  const n = parseInt((await env.STORE_KV.get(key)) || '0', 10) + 1;
+  if (n > 180) return false;
+  await env.STORE_KV.put(key, String(n), { expirationTtl: 120 });
+  return true;
+}
+
 async function handleLogClick(request, env, origin, ctx) {
-  if (!ALLOWED_ORIGINS.includes(origin)) {
+  if (!isAllowedSiteRequest(request)) {
     return json({ error: 'Origem não permitida.' }, 403, origin);
   }
   const body = await request.json().catch(() => null);
@@ -4785,6 +4814,10 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   const ip = clientIp(request);
+  if (!(await checkClickRate(env, ip))) {
+    return json({ ok: true, dropped: true }, 202, origin);
+  }
+
   const paisCf = (request.headers.get('CF-IPCountry') || '').trim();
   const entry = {
     tipo: String(body.tipo || 'clique').slice(0, 24),
@@ -4802,10 +4835,13 @@ async function handleLogClick(request, env, origin, ctx) {
     dispositivo: String(body.dispositivo || '').slice(0, 80),
     fuso: String(body.fuso || '').slice(0, 60),
     visitante_id: String(body.visitante_id || '').slice(0, 64),
+    sessao_visita: String(body.sessao_visita || '').slice(0, 64),
+    sequencia: Math.max(0, Math.min(9999, parseInt(body.sequencia, 10) || 0)),
     cliente_nome: String(body.cliente_nome || '').slice(0, 80),
     cliente_email: String(body.cliente_email || '').slice(0, 120),
     pais: String(body.pais || paisCf || '').slice(0, 12),
-    ip: ip !== 'unknown' ? ip : ''
+    ip: ip !== 'unknown' ? ip : '',
+    client_ts: Math.max(0, parseInt(body.client_ts, 10) || 0)
   };
 
   const persist = appendClickLog(env, entry).catch((err) => {
@@ -4847,7 +4883,7 @@ async function handleAdminListClicks(request, env, origin) {
     if (q) {
       const hay = [
         row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
-        row.pagina, row.visitante_id, row.cliente_email, row.cliente_nome, row.referrer, row.tipo
+        row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo
       ].join(' ').toLowerCase();
       if (!hay.includes(q)) continue;
     }
@@ -5044,7 +5080,7 @@ async function handleListOrders(request, env, origin) {
 
 export default {
   async fetch(request, env, ctx) {
-    const origin = request.headers.get('Origin') || ALLOWED_ORIGINS[0];
+    const origin = resolveRequestOrigin(request);
     const path = new URL(request.url).pathname.replace(/\/$/, '') || '/';
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
