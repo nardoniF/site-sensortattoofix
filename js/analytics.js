@@ -318,6 +318,103 @@
     return idioma || '—';
   }
 
+  function montarCamposCliqueEmail(data, geo, visitante) {
+    const quando = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const loja = humanizarDestino(data.destino);
+    const local = [geo.cidade, geo.regiao].filter(Boolean).join(' — ') || '—';
+    const pais = geo.pais_nome
+      ? `${geo.pais_nome}${geo.pais ? ' (' + geo.pais + ')' : ''}`
+      : (geo.pais || '—');
+
+    const fields = {
+      rotulo: data.rotulo || loja,
+      destino: data.destino || '',
+      loja,
+      secao: data.secao || '',
+      secao_label: humanizarSecao(data.secao),
+      href: data.href || '—',
+      pagina: data.pagina || '—',
+      idioma: humanizarIdioma(data.idioma),
+      quando,
+      pais,
+      cidade_regiao: local,
+      referrer: humanizarReferrer(visitante.referrer),
+      dispositivo: humanizarDispositivo(visitante.dispositivo),
+      fuso: visitante.fuso || '—',
+      visitante_id: visitante.visitante_id || '—',
+      cliente_nome: visitante.cliente_nome || '',
+      cliente_email: visitante.cliente_email || ''
+    };
+    return { fields, subject: `Clique: ${loja} · ${pais !== '—' ? pais : 'local desconhecido'} · ${quando}` };
+  }
+
+  function apiBaseUrl() {
+    const raw = window.CONFIG_BOOTSTRAP?.configApiUrl || '';
+    return String(raw).replace(/\/$/, '');
+  }
+
+  async function enviarViaWorker(payload) {
+    const base = apiBaseUrl();
+    if (!base) return { ok: false, reason: 'no_api' };
+    try {
+      const res = await fetch(base + '/notify/click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload.fields),
+        keepalive: true
+      });
+      const data = await res.json().catch(() => ({}));
+      return { ok: res.ok && data.ok !== false, provider: data.provider || 'worker' };
+    } catch {
+      return { ok: false, reason: 'network' };
+    }
+  }
+
+  async function enviarViaFormSubmit(payload) {
+    const body = new FormData();
+    body.append('_subject', payload.subject);
+    body.append('_captcha', 'false');
+    body.append('_template', 'table');
+    body.append('O que clicou', payload.fields.rotulo || payload.fields.loja);
+    body.append('Loja / destino', payload.fields.loja);
+    body.append('Onde no site', payload.fields.secao_label);
+    body.append('Link clicado', payload.fields.href);
+    body.append('Página', payload.fields.pagina);
+    body.append('Idioma do site', payload.fields.idioma);
+    body.append('Data e hora (SP)', payload.fields.quando);
+    body.append('País', payload.fields.pais);
+    body.append('Cidade / região', payload.fields.cidade_regiao);
+    body.append('IP (aproximado)', payload.fields.ip || '—');
+    body.append('Veio de', payload.fields.referrer);
+    body.append('Aparelho', payload.fields.dispositivo);
+    body.append('Fuso do visitante', payload.fields.fuso);
+    body.append('ID visitante', payload.fields.visitante_id);
+    body.append('Nota ID', 'Mesmo código = mesma pessoa no mesmo navegador');
+    if (payload.fields.cliente_nome) body.append('Nome (conta logada)', payload.fields.cliente_nome);
+    if (payload.fields.cliente_email) body.append('E-mail (conta logada)', payload.fields.cliente_email);
+    if (!payload.fields.cliente_nome) body.append('Visitante', 'Não estava logado — só localização aproximada');
+
+    try {
+      const res = await fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_EMAIL}`, {
+        method: 'POST',
+        body,
+        headers: { Accept: 'application/json' },
+        keepalive: true
+      });
+      const data = await res.json().catch(() => ({}));
+      const ok = res.ok && data.success !== false && data.success !== 'false';
+      return { ok, provider: 'formsubmit' };
+    } catch {
+      return { ok: false, reason: 'network' };
+    }
+  }
+
+  async function enviarCliqueCompraEmail(payload) {
+    const worker = await enviarViaWorker(payload);
+    if (worker.ok) return worker;
+    return enviarViaFormSubmit(payload);
+  }
+
   function notificarCliqueCompraEmail(data) {
     if (!deveNotificarCliqueCompra(data)) return;
 
@@ -326,48 +423,16 @@
     sessionStorage.setItem(dedupe, '1');
     setTimeout(() => sessionStorage.removeItem(dedupe), 4000);
 
-    Promise.resolve()
-      .then(() => obterGeoIp())
-      .then((geo) => {
-        const visitante = contextoVisitante();
-        const quando = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        const loja = humanizarDestino(data.destino);
-        const local = [geo.cidade, geo.regiao].filter(Boolean).join(' — ') || '—';
-        const pais = geo.pais_nome
-          ? `${geo.pais_nome}${geo.pais ? ' (' + geo.pais + ')' : ''}`
-          : (geo.pais || '—');
+    const visitante = contextoVisitante();
+    const geo = lerGeoCache() || { ip: '', pais: '', pais_nome: '', cidade: '', regiao: '', colo_cf: '' };
+    const payload = montarCamposCliqueEmail(data, geo, visitante);
+    payload.fields.ip = geo.ip || '';
 
-        const body = new FormData();
-        body.append('_subject', `Clique: ${loja} · ${pais !== '—' ? pais : 'local desconhecido'} · ${quando}`);
-        body.append('_captcha', 'false');
-        body.append('_template', 'table');
-        body.append('O que clicou', data.rotulo || loja);
-        body.append('Loja / destino', loja);
-        body.append('Onde no site', humanizarSecao(data.secao));
-        body.append('Link clicado', data.href || '—');
-        body.append('Página', data.pagina || '—');
-        body.append('Idioma do site', humanizarIdioma(data.idioma));
-        body.append('Data e hora (SP)', quando);
-        body.append('País', pais);
-        body.append('Cidade / região', local);
-        body.append('IP (aproximado)', geo.ip || '—');
-        body.append('Veio de', humanizarReferrer(visitante.referrer));
-        body.append('Aparelho', humanizarDispositivo(visitante.dispositivo));
-        body.append('Fuso do visitante', visitante.fuso || '—');
-        body.append('ID visitante', visitante.visitante_id || '—');
-        body.append('Nota ID', 'Mesmo código = mesma pessoa no mesmo navegador');
-        if (visitante.cliente_nome) body.append('Nome (conta logada)', visitante.cliente_nome);
-        if (visitante.cliente_email) body.append('E-mail (conta logada)', visitante.cliente_email);
-        if (!visitante.cliente_nome) body.append('Visitante', 'Não estava logado — só localização aproximada');
+    enviarCliqueCompraEmail(payload);
 
-        return fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_EMAIL}`, {
-          method: 'POST',
-          body,
-          headers: { Accept: 'application/json' },
-          keepalive: true
-        });
-      })
-      .catch(() => {});
+    if (!geo.ip) {
+      obterGeoIp().catch(() => {});
+    }
   }
 
   function trackSecaoLink(link) {

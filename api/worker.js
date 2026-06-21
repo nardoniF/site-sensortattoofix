@@ -4750,6 +4750,51 @@ async function handleAdminShippingStatus(request, env, origin) {
   }, 200, origin);
 }
 
+async function handleNotifyClick(request, env, origin) {
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    return json({ error: 'Origem não permitida.' }, 403, origin);
+  }
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') {
+    return json({ error: 'Payload inválido.' }, 400, origin);
+  }
+
+  const config = await getConfig(env);
+  const ip = clientIp(request);
+  const paisCf = (request.headers.get('CF-IPCountry') || '').trim();
+  const quando = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const loja = String(body.loja || body.destino || '—').slice(0, 80);
+  const pais = String(body.pais || paisCf || '—').slice(0, 80);
+  const subject = `Clique: ${loja} · ${pais !== '—' ? pais : 'local desconhecido'} · ${quando}`;
+
+  const fields = {
+    'O que clicou': String(body.rotulo || loja).slice(0, 120),
+    'Loja / destino': loja,
+    'Onde no site': String(body.secao_label || body.secao || '—').slice(0, 80),
+    'Link clicado': String(body.href || '—').slice(0, 500),
+    'Página': String(body.pagina || '—').slice(0, 200),
+    'Idioma do site': String(body.idioma || '—').slice(0, 40),
+    'Data e hora (SP)': quando,
+    'País': pais,
+    'Cidade / região': String(body.cidade_regiao || '—').slice(0, 120),
+    'IP (aproximado)': ip,
+    'Veio de': String(body.referrer || '—').slice(0, 200),
+    'Aparelho': String(body.dispositivo || '—').slice(0, 80),
+    'Fuso do visitante': String(body.fuso || '—').slice(0, 60),
+    'ID visitante': String(body.visitante_id || '—').slice(0, 60),
+    'Nota ID': 'Mesmo código = mesma pessoa no mesmo navegador'
+  };
+  if (body.cliente_nome) fields['Nome (conta logada)'] = String(body.cliente_nome).slice(0, 80);
+  if (body.cliente_email) fields['E-mail (conta logada)'] = String(body.cliente_email).slice(0, 120);
+  if (!body.cliente_nome) fields.Visitante = 'Não estava logado — só localização aproximada';
+
+  const result = await notifyShop(env, config, subject, fields);
+  if (!result.ok) {
+    return json({ ok: false, error: 'Falha ao enviar e-mail.', detail: result }, 502, origin);
+  }
+  return json({ ok: true, provider: result.provider || 'email' }, 200, origin);
+}
+
 async function handleTestEmail(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -4939,6 +4984,9 @@ export default {
       }
       if (path === '/admin/customers' && request.method === 'GET') {
         return handleAdminCustomers(request, env, origin);
+      }
+      if (path === '/notify/click' && request.method === 'POST') {
+        return handleNotifyClick(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);
