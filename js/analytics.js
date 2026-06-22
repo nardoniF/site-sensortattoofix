@@ -311,6 +311,77 @@
     return String(raw).replace(/\/$/, '');
   }
 
+  function logClickEndpoints() {
+    const urls = [];
+    const host = (location.hostname || '').toLowerCase();
+    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+      urls.push(location.origin.replace(/\/$/, '') + '/analytics/click');
+    }
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/click');
+    return urls;
+  }
+
+  function postLogJson(url, json, urgente) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: json,
+      keepalive: true,
+      credentials: 'omit',
+      priority: urgente ? 'high' : 'low'
+    });
+  }
+
+  function enviarLogPayload(body, urgente) {
+    const urls = logClickEndpoints();
+    if (!urls.length) return false;
+    const payload = Object.assign({}, body, {
+      log_key: window.CONFIG_BOOTSTRAP?.clickLogKey || ''
+    });
+    const json = JSON.stringify(payload);
+
+    postLogJson(urls[0], json, urgente)
+      .then((res) => {
+        if (res.ok) return;
+        const fallback = urls[1];
+        if (!fallback) {
+          enfileirarLog(payload);
+          return;
+        }
+        return postLogJson(fallback, json, urgente).then((res2) => {
+          if (!res2.ok) enfileirarLog(payload);
+        });
+      })
+      .catch(() => {
+        const fallback = urls[1];
+        if (fallback) {
+          postLogJson(fallback, json, urgente).catch(() => enfileirarLog(payload));
+        } else {
+          enfileirarLog(payload);
+        }
+      });
+
+    if (typeof navigator.sendBeacon === 'function') {
+      try {
+        const blob = new Blob([json], { type: 'application/json' });
+        urls.forEach((url) => {
+          try { navigator.sendBeacon(url, blob); } catch (_) { /* ignore */ }
+        });
+      } catch (_) { /* ignore */ }
+    }
+    return true;
+  }
+
+  function enfileirarLog(body) {
+    try {
+      const q = JSON.parse(sessionStorage.getItem(LOG_QUEUE_KEY) || '[]');
+      q.push(body);
+      while (q.length > LOG_QUEUE_MAX) q.shift();
+      sessionStorage.setItem(LOG_QUEUE_KEY, JSON.stringify(q));
+    } catch (_) { /* ignore */ }
+  }
+
   function montarCorpoLog(data) {
     const visitante = contextoVisitante();
     const tipo = data.tipo || (data.elemento === 'pageview' ? 'pageview' : 'clique');
@@ -338,39 +409,8 @@
     };
   }
 
-  function enfileirarLog(body) {
-    try {
-      const q = JSON.parse(sessionStorage.getItem(LOG_QUEUE_KEY) || '[]');
-      q.push(body);
-      while (q.length > LOG_QUEUE_MAX) q.shift();
-      sessionStorage.setItem(LOG_QUEUE_KEY, JSON.stringify(q));
-    } catch (_) { /* ignore */ }
-  }
-
-  function enviarLogPayload(body, urgente) {
-    const base = apiBaseUrl();
-    if (!base) return false;
-    const url = base + '/analytics/click';
-    const json = JSON.stringify(body);
-
-    if (typeof navigator.sendBeacon === 'function') {
-      try {
-        const blob = new Blob([json], { type: 'application/json' });
-        if (navigator.sendBeacon(url, blob)) return true;
-      } catch (_) { /* fallback fetch */ }
-    }
-
-    fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: json,
-      keepalive: true,
-      priority: urgente ? 'high' : 'low'
-    }).catch(() => enfileirarLog(body));
-    return true;
-  }
-
   function flushLogQueue() {
+    if (!logClickEndpoints().length) return;
     let q;
     try {
       q = JSON.parse(sessionStorage.getItem(LOG_QUEUE_KEY) || '[]');
@@ -383,7 +423,7 @@
   }
 
   function registrarLog(data) {
-    if (!apiBaseUrl()) return;
+    if (!logClickEndpoints().length) return;
 
     const tipo = data.tipo || (data.elemento === 'pageview' ? 'pageview' : 'clique');
     if (tipo !== 'pageview') {

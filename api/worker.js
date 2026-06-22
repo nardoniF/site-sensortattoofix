@@ -15,6 +15,7 @@ const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
 const CLICKS_MAX = 2500;
 const CLICK_TTL_SEC = 90 * 86400;
+const CLICK_LOG_KEY_FALLBACK = 'stf_ck_7f3a9e2b1c';
 const CUSTOMER_SESSION_TTL = 2592000; // 30 dias
 
 const DEFAULT_CONFIG = {
@@ -1092,7 +1093,16 @@ function isAllowedSiteRequest(request) {
   const origin = request.headers.get('Origin') || '';
   if (isAllowedSiteOrigin(origin)) return true;
   const referer = request.headers.get('Referer') || '';
-  return ALLOWED_ORIGINS.some((o) => referer.startsWith(o));
+  if (ALLOWED_ORIGINS.some((o) => referer.startsWith(o))) return true;
+  const fwdHost = (request.headers.get('X-Forwarded-Host') || request.headers.get('Host') || '').toLowerCase();
+  return fwdHost === 'sensortattoofix.com.br' || fwdHost === 'www.sensortattoofix.com.br';
+}
+
+function isValidClickLogKey(body, env) {
+  const key = String(body?.log_key || '').trim();
+  if (!key) return false;
+  const expected = String(env?.CLICK_LOG_KEY || CLICK_LOG_KEY_FALLBACK).trim();
+  return key === expected;
 }
 
 function resolveRequestOrigin(request) {
@@ -4805,12 +4815,12 @@ async function checkClickRate(env, ip) {
 }
 
 async function handleLogClick(request, env, origin, ctx) {
-  if (!isAllowedSiteRequest(request)) {
-    return json({ error: 'Origem não permitida.' }, 403, origin);
-  }
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') {
     return json({ error: 'Payload inválido.' }, 400, origin);
+  }
+  if (!isAllowedSiteRequest(request) && !isValidClickLogKey(body, env)) {
+    return json({ error: 'Origem não permitida.' }, 403, origin);
   }
 
   const ip = clientIp(request);

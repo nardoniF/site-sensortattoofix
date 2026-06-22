@@ -822,6 +822,20 @@
     }
   }
 
+  let clicksAutoRefreshTimer = null;
+
+  function setClicksAutoRefresh(on) {
+    if (clicksAutoRefreshTimer) {
+      clearInterval(clicksAutoRefreshTimer);
+      clicksAutoRefreshTimer = null;
+    }
+    if (!on) return;
+    clicksAutoRefreshTimer = setInterval(() => {
+      const panel = document.getElementById('admin-tab-cliques');
+      if (panel && !panel.hidden) loadClicks();
+    }, 20000);
+  }
+
   async function loadClicks() {
     const root = document.getElementById('clicks-tree-root');
     if (!root || clicksLoading) return;
@@ -1459,7 +1473,12 @@
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
       if (id === 'clientes') loadCustomers();
-      if (id === 'cliques') loadClicks();
+      if (id === 'cliques') {
+        loadClicks();
+        setClicksAutoRefresh(true);
+      } else {
+        setClicksAutoRefresh(false);
+      }
       if (id === 'documentacao') loadDocFrame(true);
       if (id === 'frete') initFreteSubtabs();
     }
