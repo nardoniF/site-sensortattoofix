@@ -86,8 +86,8 @@
   }
 
   function classificarDestino(href, el) {
+    if (el?.classList?.contains('logo-img-link')) return 'logo';
     if (!href || href === '#') {
-      if (el?.classList?.contains('logo-img-link')) return 'logo';
       if (el?.closest('.faq-item, #faq')) return 'faq';
       return 'ancora';
     }
@@ -454,6 +454,19 @@
     });
   }
 
+  function linkUrgenteParaLog(link, href) {
+    if (link.target === '_blank') return true;
+    const h = (href || '').trim();
+    if (!h || h === '#' || h.startsWith('#')) return false;
+    try {
+      const dest = new URL(h, location.href);
+      if (dest.origin !== location.origin) return true;
+      return (dest.pathname + dest.search) !== (location.pathname + location.search);
+    } catch {
+      return true;
+    }
+  }
+
   function trackSecaoLink(link) {
     if (!linkRastreavel(link)) return;
     const href = link.getAttribute('href');
@@ -462,7 +475,7 @@
       elemento: 'link',
       href: abs,
       destino: classificarDestino(href, link),
-      urgente: link.target === '_blank' || !href.startsWith('#')
+      urgente: linkUrgenteParaLog(link, href)
     });
     track('secao_link', payload);
     registrarLog(payload);
