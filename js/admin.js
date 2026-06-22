@@ -43,6 +43,7 @@
     if (target === 'frete') return els.statusFrete;
     if (target === 'api') return els.statusApi;
     if (target === 'pedidos') return els.statusPedidos;
+    if (target === 'cliques') return document.getElementById('admin-status-cliques');
     return els.statusMsg;
   }
 
@@ -581,6 +582,14 @@
   let customersLoading = false;
   let clicksLoading = false;
   let clicksSearchTimer = null;
+  let clicksCache = [];
+
+  const CLICKS_EXPORT_PERIOD_LABELS = {
+    day: 'dia',
+    week: 'semana',
+    month: 'mes',
+    year: 'ano'
+  };
 
   const CLICK_DESTINO_LABELS = {
     pageview: 'Entrada',
@@ -607,6 +616,180 @@
     interno: 'Interno',
     externo: 'Externo'
   };
+
+  function brLocalYmd(ts) {
+    return new Date(ts || Date.now()).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  }
+
+  function brWeekBucket(ts) {
+    const ymd = brLocalYmd(ts);
+    const [y, m, d] = ymd.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const dow = date.getUTCDay();
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    const mon = new Date(date);
+    mon.setUTCDate(date.getUTCDate() + mondayOffset);
+    const sun = new Date(mon);
+    sun.setUTCDate(mon.getUTCDate() + 6);
+    const fmtBr = (dt) => {
+      const dd = String(dt.getUTCDate()).padStart(2, '0');
+      const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+      return `${dd}/${mm}/${dt.getUTCFullYear()}`;
+    };
+    const key = `${mon.getUTCFullYear()}-${String(mon.getUTCMonth() + 1).padStart(2, '0')}-${String(mon.getUTCDate()).padStart(2, '0')}`;
+    return { key, label: `Semana ${fmtBr(mon)} – ${fmtBr(sun)}` };
+  }
+
+  function clickDestinoKey(c) {
+    if (c.tipo === 'pageview' || c.destino === 'pageview') return 'pageview';
+    return c.destino || 'outro';
+  }
+
+  function clicksPeriodBucket(ts, period) {
+    const parts = brDateParts(ts);
+    if (period === 'day') {
+      return { key: parts.dateKey, label: parts.dayLabel, sortKey: parts.dateKey };
+    }
+    if (period === 'month') {
+      const key = `${parts.year}-${parts.monthNum}`;
+      return { key, label: `${parts.monthName} ${parts.year}`, sortKey: key };
+    }
+    if (period === 'year') {
+      return { key: parts.year, label: parts.year, sortKey: parts.year };
+    }
+    const wk = brWeekBucket(ts);
+    return { key: wk.key, label: wk.label, sortKey: wk.key };
+  }
+
+  function orderDestinosForExport(destinos, clicks) {
+    const totals = {};
+    (clicks || []).forEach((c) => {
+      const d = clickDestinoKey(c);
+      totals[d] = (totals[d] || 0) + 1;
+    });
+    return [...destinos].sort((a, b) => {
+      if (a === 'pageview') return -1;
+      if (b === 'pageview') return 1;
+      return (totals[b] || 0) - (totals[a] || 0);
+    });
+  }
+
+  function aggregateClicksForExport(clicks, period) {
+    const destinoSet = new Set();
+    const buckets = new Map();
+
+    (clicks || []).forEach((c) => {
+      const ts = c.ts || c.client_ts;
+      if (!ts) return;
+      const dest = clickDestinoKey(c);
+      destinoSet.add(dest);
+      const bucket = clicksPeriodBucket(ts, period);
+      if (!buckets.has(bucket.key)) {
+        buckets.set(bucket.key, {
+          label: bucket.label,
+          sortKey: bucket.sortKey,
+          visitors: new Set(),
+          total: 0,
+          byDestino: {}
+        });
+      }
+      const row = buckets.get(bucket.key);
+      row.visitors.add(visitorKey(c));
+      row.total++;
+      row.byDestino[dest] = (row.byDestino[dest] || 0) + 1;
+    });
+
+    const destinos = orderDestinosForExport(destinoSet, clicks);
+    const rows = [...buckets.values()].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+    return { rows, destinos };
+  }
+
+  function csvEscapeCell(value) {
+    const s = String(value ?? '');
+    if (/[;"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  }
+
+  function buildClicksExportCsv(clicks, period) {
+    const { rows, destinos } = aggregateClicksForExport(clicks, period);
+    const headers = ['Período', 'Visitantes únicos', 'Total de eventos'];
+    destinos.forEach((d) => headers.push(clickDestinoLabel(d)));
+
+    const lines = [headers.map(csvEscapeCell).join(';')];
+    const totals = { visitors: new Set(), total: 0, byDestino: {} };
+
+    rows.forEach((row) => {
+      const line = [
+        row.label,
+        row.visitors.size,
+        row.total,
+        ...destinos.map((d) => row.byDestino[d] || 0)
+      ];
+      lines.push(line.map(csvEscapeCell).join(';'));
+      row.visitors.forEach((v) => totals.visitors.add(v));
+      totals.total += row.total;
+      destinos.forEach((d) => {
+        totals.byDestino[d] = (totals.byDestino[d] || 0) + (row.byDestino[d] || 0);
+      });
+    });
+
+    if (rows.length > 1) {
+      const totalLine = [
+        'TOTAL GERAL',
+        totals.visitors.size,
+        totals.total,
+        ...destinos.map((d) => totals.byDestino[d] || 0)
+      ];
+      lines.push(totalLine.map(csvEscapeCell).join(';'));
+    }
+
+    return '\ufeff' + lines.join('\r\n');
+  }
+
+  function downloadTextFile(content, filename, mime) {
+    const blob = new Blob([content], { type: mime || 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function fetchAllClicksForExport() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) throw new Error('Faça login no admin.');
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=2500`, {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
+    return data.clicks || [];
+  }
+
+  async function exportClicksExcel() {
+    const period = document.getElementById('clicks-export-period')?.value || 'day';
+    const btn = document.getElementById('btn-clicks-export');
+    if (btn) btn.disabled = true;
+    showStatus('Preparando exportação…', '', 'cliques');
+    try {
+      const clicks = await fetchAllClicksForExport();
+      if (!clicks.length) {
+        showStatus('Nenhum evento no log para exportar.', 'error', 'cliques');
+        return;
+      }
+      const csv = buildClicksExportCsv(clicks, period);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const suffix = CLICKS_EXPORT_PERIOD_LABELS[period] || period;
+      downloadTextFile(csv, `cliques-por-${suffix}-${stamp}.csv`, 'text/csv;charset=utf-8');
+      showStatus(`Exportado: ${clicks.length} eventos agrupados por ${suffix}. Abra no Excel.`, 'success', 'cliques');
+    } catch (err) {
+      showStatus(err.message || 'Erro ao exportar.', 'error', 'cliques');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
 
   function formatClickDate(ts) {
     if (!ts) return '—';
@@ -762,18 +945,18 @@
 
       years.forEach((year, yi) => {
         const y = tree[year];
-        html += `<details class="clicks-tree-node clicks-tree-year"${yi === 0 ? ' open' : ''}><summary>${clicksTreeSummary(year, y.count)}</summary><div class="clicks-tree-children">`;
+        html += `<details class="clicks-tree-node clicks-tree-year"><summary>${clicksTreeSummary(year, y.count)}</summary><div class="clicks-tree-children">`;
 
         const months = Object.keys(y.months).sort((a, b) => Number(b) - Number(a));
         months.forEach((monthNum, mi) => {
           const m = y.months[monthNum];
-          html += `<details class="clicks-tree-node clicks-tree-month"${yi === 0 && mi === 0 ? ' open' : ''}><summary>${clicksTreeSummary(m.name, m.count)}</summary><div class="clicks-tree-children">`;
+          html += `<details class="clicks-tree-node clicks-tree-month"><summary>${clicksTreeSummary(m.name, m.count)}</summary><div class="clicks-tree-children">`;
 
           const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
           days.forEach((dateKey, di) => {
             const d = m.days[dateKey];
             const visitorCount = Object.keys(d.visitors).length;
-            html += `<details class="clicks-tree-node clicks-tree-day"${yi === 0 && mi === 0 && di === 0 ? ' open' : ''}><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+            html += `<details class="clicks-tree-node clicks-tree-day"><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
 
             const visitors = Object.entries(d.visitors).sort((a, b) => {
               const ta = Math.min(...Object.values(a[1].sessions).flat().map((e) => e.ts || 0));
@@ -783,7 +966,7 @@
 
             visitors.forEach(([vKey, v], vi) => {
               const sessionCount = Object.keys(v.sessions).length;
-              html += `<details class="clicks-tree-node clicks-tree-visitor"${yi === 0 && mi === 0 && di === 0 && vi === 0 ? ' open' : ''}><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+              html += `<details class="clicks-tree-node clicks-tree-visitor"><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
 
               const sessions = Object.entries(v.sessions).sort((a, b) => {
                 const ta = (a[1][0]?.ts) || 0;
@@ -794,7 +977,7 @@
               sessions.forEach(([sKey, events], si) => {
                 const start = formatClickTime(events[0]?.ts);
                 const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
-                html += `<details class="clicks-tree-node clicks-tree-path"${yi === 0 && mi === 0 && di === 0 && vi === 0 && si === 0 ? ' open' : ''}><summary>${clicksTreeSummary(pathLabel, events.length, 'passos')}</summary>`;
+                html += `<details class="clicks-tree-node clicks-tree-path"><summary>${clicksTreeSummary(pathLabel, events.length, 'passos')}</summary>`;
                 html += '<ol class="clicks-tree-steps">';
                 events.forEach((c, idx) => { html += renderClickStep(c, idx); });
                 html += '</ol></details>';
@@ -819,6 +1002,45 @@
     if (checkedEl) {
       checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log`;
       checkedEl.hidden = false;
+    }
+  }
+
+  async function clearClicksLog(mode) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'cliques');
+      return;
+    }
+    const isAll = mode === 'all';
+    const msg = isAll
+      ? 'Apagar TODO o histórico de cliques e visitas?\n\nNão dá para desfazer.'
+      : 'Remover só eventos de teste (diagnóstico, curl, etc.)?\n\nVisitas reais são mantidas.';
+    if (!confirm(msg)) return;
+
+    showStatus(isAll ? 'Limpando histórico…' : 'Removendo testes…', '', 'cliques');
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ mode: isAll ? 'all' : 'tests' })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao limpar log');
+      clicksCache = [];
+      await loadClicks();
+      showStatus(
+        isAll
+          ? `Histórico apagado (${data.removed || 0} eventos).`
+          : `${data.removed || 0} teste(s) removido(s). Restam ${data.remaining || 0} eventos.`,
+        'success',
+        'cliques'
+      );
+    } catch (err) {
+      showStatus(err.message || 'Erro ao limpar.', 'error', 'cliques');
     }
   }
 
@@ -862,8 +1084,9 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
+      clicksCache = data.clicks || [];
       renderClicksStats(data);
-      renderClicksTree(data.clicks, data.checkedAt, data.total);
+      renderClicksTree(clicksCache, data.checkedAt, data.total);
     } catch (err) {
       root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
     } finally {
@@ -1736,6 +1959,9 @@
   document.getElementById('btn-export-csv')?.addEventListener('click', () => exportOrders('csv'));
 
   document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => loadClicks());
+  document.getElementById('btn-clicks-export')?.addEventListener('click', () => exportClicksExcel());
+  document.getElementById('btn-clicks-clear-tests')?.addEventListener('click', () => clearClicksLog('tests'));
+  document.getElementById('btn-clicks-clear-all')?.addEventListener('click', () => clearClicksLog('all'));
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
 

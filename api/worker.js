@@ -4804,6 +4804,47 @@ async function appendClickLog(env, entry) {
   return row;
 }
 
+function isTestClick(row) {
+  const vid = String(row.visitante_id || '').toLowerCase();
+  const rotulo = String(row.rotulo || '').toLowerCase();
+  if (/(^|_)test|test_|^v_test|^test_|diag|proxy|_check|live_test|^v_fn$|^v_key/i.test(vid)) return true;
+  if (/\bteste\b|diagnost|diagnostic|proxy pos|pos deploy|test diag|teste sem/i.test(rotulo)) return true;
+  return false;
+}
+
+async function handleAdminClearClicks(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const body = await request.json().catch(() => ({}));
+  const mode = body.mode === 'all' ? 'all' : 'tests';
+  const ids = await getClicksIndex(env);
+  const kept = [];
+  let removed = 0;
+
+  for (const id of ids) {
+    const raw = await env.STORE_KV.get('click:' + id);
+    if (!raw) continue;
+    let row;
+    try {
+      row = JSON.parse(raw);
+    } catch {
+      kept.push(id);
+      continue;
+    }
+    const drop = mode === 'all' || isTestClick(row);
+    if (drop) {
+      removed++;
+      await env.STORE_KV.delete('click:' + id).catch(() => {});
+    } else {
+      kept.push(id);
+    }
+  }
+
+  await env.STORE_KV.put(CLICKS_INDEX, JSON.stringify(kept));
+  return json({ ok: true, mode, removed, remaining: kept.length }, 200, origin);
+}
+
 async function checkClickRate(env, ip) {
   if (!ip || ip === 'unknown') return true;
   const minute = Math.floor(Date.now() / 60000);
@@ -5128,6 +5169,9 @@ export default {
       }
       if (path === '/admin/clicks' && request.method === 'GET') {
         return handleAdminListClicks(request, env, origin);
+      }
+      if (path === '/admin/clicks' && request.method === 'DELETE') {
+        return handleAdminClearClicks(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);

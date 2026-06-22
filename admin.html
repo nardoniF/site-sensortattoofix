@@ -446,8 +446,18 @@
                                 <option value="faq">FAQ</option>
                                 <option value="menu_comprar">Menu — Onde comprar</option>
                             </select>
+                            <select id="clicks-export-period" aria-label="Agrupar exportação por">
+                                <option value="day">Por dia</option>
+                                <option value="week">Por semana</option>
+                                <option value="month">Por mês</option>
+                                <option value="year">Por ano</option>
+                            </select>
+                            <button type="button" id="btn-clicks-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+                            <button type="button" id="btn-clicks-clear-tests" class="btn-danger-outline" title="Remove eventos de teste (diagnóstico, curl, etc.)"><i class="fas fa-broom"></i> Limpar testes</button>
+                            <button type="button" id="btn-clicks-clear-all" class="btn-danger-outline" title="Apaga todo o histórico de cliques"><i class="fas fa-trash-alt"></i> Limpar tudo</button>
                             <button type="button" id="btn-clicks-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
                         </div>
+                        <p id="admin-status-cliques" class="admin-status form-status" hidden></p>
                         <p id="clicks-checked-at" class="admin-meta" hidden></p>
                         <div id="clicks-tree-root" class="clicks-tree-root">
                             <p class="admin-meta">Abra esta aba para carregar o histórico.</p>
@@ -496,6 +506,6 @@
 
     <script src="js/config-bootstrap.js"></script>
     <script src="js/store-products-merge.js?v=17"></script>
-    <script src="js/admin.js?v=44"></script>
+    <script src="js/admin.js?v=46"></script>
 </body>
 </html>
