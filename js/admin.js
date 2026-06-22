@@ -931,7 +931,7 @@
     </li>`;
   }
 
-  function renderClicksTree(clicks, checkedAt, total) {
+  function renderClicksTree(clicks, checkedAt, total, openPaths) {
     const root = document.getElementById('clicks-tree-root');
     const checkedEl = document.getElementById('clicks-checked-at');
     if (!root) return;
@@ -945,18 +945,21 @@
 
       years.forEach((year, yi) => {
         const y = tree[year];
-        html += `<details class="clicks-tree-node clicks-tree-year"><summary>${clicksTreeSummary(year, y.count)}</summary><div class="clicks-tree-children">`;
+        const yearPath = String(year);
+        html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"><summary>${clicksTreeSummary(year, y.count)}</summary><div class="clicks-tree-children">`;
 
         const months = Object.keys(y.months).sort((a, b) => Number(b) - Number(a));
         months.forEach((monthNum, mi) => {
           const m = y.months[monthNum];
-          html += `<details class="clicks-tree-node clicks-tree-month"><summary>${clicksTreeSummary(m.name, m.count)}</summary><div class="clicks-tree-children">`;
+          const monthPath = `${yearPath}|${monthNum}`;
+          html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${clicksTreeSummary(m.name, m.count)}</summary><div class="clicks-tree-children">`;
 
           const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
           days.forEach((dateKey, di) => {
             const d = m.days[dateKey];
             const visitorCount = Object.keys(d.visitors).length;
-            html += `<details class="clicks-tree-node clicks-tree-day"><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+            const dayPath = `${monthPath}|${dateKey}`;
+            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
 
             const visitors = Object.entries(d.visitors).sort((a, b) => {
               const ta = Math.min(...Object.values(a[1].sessions).flat().map((e) => e.ts || 0));
@@ -966,7 +969,8 @@
 
             visitors.forEach(([vKey, v], vi) => {
               const sessionCount = Object.keys(v.sessions).length;
-              html += `<details class="clicks-tree-node clicks-tree-visitor"><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+              const visitorPath = `${dayPath}|${escapeHtml(vKey)}`;
+              html += `<details class="clicks-tree-node clicks-tree-visitor" data-tree-path="${visitorPath}"><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
 
               const sessions = Object.entries(v.sessions).sort((a, b) => {
                 const ta = (a[1][0]?.ts) || 0;
@@ -977,7 +981,8 @@
               sessions.forEach(([sKey, events], si) => {
                 const start = formatClickTime(events[0]?.ts);
                 const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
-                html += `<details class="clicks-tree-node clicks-tree-path"><summary>${clicksTreeSummary(pathLabel, events.length, 'passos')}</summary>`;
+                const sessionPath = `${visitorPath}|${escapeHtml(sKey)}`;
+                html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"><summary>${clicksTreeSummary(pathLabel, events.length, 'passos')}</summary>`;
                 html += '<ol class="clicks-tree-steps">';
                 events.forEach((c, idx) => { html += renderClickStep(c, idx); });
                 html += '</ol></details>';
@@ -997,10 +1002,11 @@
 
       html += '</div>';
       root.innerHTML = html;
+      restoreClicksTreeOpenPaths(openPaths);
     }
 
     if (checkedEl) {
-      checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log`;
+      checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log · atualiza a cada 45 s nesta aba`;
       checkedEl.hidden = false;
     }
   }
@@ -1044,7 +1050,39 @@
     }
   }
 
-  async function loadClicks() {
+  function captureClicksTreeOpenPaths() {
+    const root = document.getElementById('clicks-tree-root');
+    if (!root) return [];
+    return [...root.querySelectorAll('details[open][data-tree-path]')]
+      .map((el) => el.getAttribute('data-tree-path'))
+      .filter(Boolean);
+  }
+
+  function restoreClicksTreeOpenPaths(paths) {
+    if (!paths?.length) return;
+    const root = document.getElementById('clicks-tree-root');
+    if (!root) return;
+    const set = new Set(paths);
+    root.querySelectorAll('details[data-tree-path]').forEach((el) => {
+      if (set.has(el.getAttribute('data-tree-path'))) el.open = true;
+    });
+  }
+
+  let clicksAutoRefreshTimer = null;
+
+  function setClicksAutoRefresh(on) {
+    if (clicksAutoRefreshTimer) {
+      clearInterval(clicksAutoRefreshTimer);
+      clicksAutoRefreshTimer = null;
+    }
+    if (!on) return;
+    clicksAutoRefreshTimer = setInterval(() => {
+      const panel = document.getElementById('admin-tab-cliques');
+      if (panel && !panel.hidden) loadClicks(true);
+    }, 45000);
+  }
+
+  async function loadClicks(preserveOpen) {
     const root = document.getElementById('clicks-tree-root');
     if (!root || clicksLoading) return;
     const token = sessionStorage.getItem(SESSION_KEY);
@@ -1058,6 +1096,7 @@
     const destino = document.getElementById('clicks-filter-destino')?.value || '';
 
     clicksLoading = true;
+    const openPaths = preserveOpen ? captureClicksTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
 
     try {
@@ -1072,7 +1111,7 @@
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       clicksCache = data.clicks || [];
       renderClicksStats(data);
-      renderClicksTree(clicksCache, data.checkedAt, data.total);
+      renderClicksTree(clicksCache, data.checkedAt, data.total, openPaths);
     } catch (err) {
       root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
     } finally {
@@ -1682,7 +1721,12 @@
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
       if (id === 'clientes') loadCustomers();
-      if (id === 'cliques') loadClicks();
+      if (id === 'cliques') {
+        loadClicks();
+        setClicksAutoRefresh(true);
+      } else {
+        setClicksAutoRefresh(false);
+      }
       if (id === 'documentacao') loadDocFrame(true);
       if (id === 'frete') initFreteSubtabs();
     }

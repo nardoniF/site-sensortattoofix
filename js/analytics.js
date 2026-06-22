@@ -77,6 +77,7 @@
     if (el.closest('.contact-box')) return 'contato';
     if (el.closest('.nav-panel')) return 'menu';
     if (el.closest('.stores-layout')) return 'onde-comprar';
+    if (el.closest('.loja-marketplaces')) return 'loja_marketplaces';
     if (el.closest('.loja-hero')) return 'loja_intro';
     if (el.closest('.loja-card')) return 'loja_produto';
     if (el.closest('.faq-item, #faq, [id*="faq"]')) return 'faq';
@@ -329,7 +330,22 @@
       body: json,
       keepalive: true,
       credentials: 'omit',
-      priority: urgente ? 'high' : 'low'
+      priority: urgente ? 'high' : 'auto'
+    });
+  }
+
+  function tratarRespostaLog(res, payload, fallbackUrl, json, urgente) {
+    if (!res.ok) {
+      if (fallbackUrl) {
+        return postLogJson(fallbackUrl, json, urgente).then((res2) =>
+          tratarRespostaLog(res2, payload, null, json, urgente)
+        );
+      }
+      enfileirarLog(payload);
+      return;
+    }
+    return res.json().catch(() => ({})).then((data) => {
+      if (data && (data.dropped || data.retry)) enfileirarLog(payload);
     });
   }
 
@@ -342,34 +358,18 @@
     const json = JSON.stringify(payload);
 
     postLogJson(urls[0], json, urgente)
-      .then((res) => {
-        if (res.ok) return;
-        const fallback = urls[1];
-        if (!fallback) {
-          enfileirarLog(payload);
-          return;
-        }
-        return postLogJson(fallback, json, urgente).then((res2) => {
-          if (!res2.ok) enfileirarLog(payload);
-        });
-      })
+      .then((res) => tratarRespostaLog(res, payload, urls[1], json, urgente))
       .catch(() => {
         const fallback = urls[1];
         if (fallback) {
-          postLogJson(fallback, json, urgente).catch(() => enfileirarLog(payload));
+          postLogJson(fallback, json, urgente)
+            .then((res) => tratarRespostaLog(res, payload, null, json, urgente))
+            .catch(() => enfileirarLog(payload));
         } else {
           enfileirarLog(payload);
         }
       });
 
-    if (typeof navigator.sendBeacon === 'function') {
-      try {
-        const blob = new Blob([json], { type: 'application/json' });
-        urls.forEach((url) => {
-          try { navigator.sendBeacon(url, blob); } catch (_) { /* ignore */ }
-        });
-      } catch (_) { /* ignore */ }
-    }
     return true;
   }
 

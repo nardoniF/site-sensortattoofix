@@ -4797,11 +4797,30 @@ async function appendClickLog(env, entry) {
   const list = await getClicksIndex(env);
   list.unshift(id);
   if (list.length > CLICKS_MAX) {
-    const removed = list.splice(CLICKS_MAX);
-    await Promise.all(removed.map((oldId) => env.STORE_KV.delete('click:' + oldId).catch(() => {})));
+    list.splice(CLICKS_MAX);
   }
   await env.STORE_KV.put(CLICKS_INDEX, JSON.stringify(list));
   return row;
+}
+
+function clickDedupeCacheKey(entry) {
+  const parts = [
+    entry.visitante_id || '',
+    entry.sessao_visita || '',
+    String(entry.sequencia || 0),
+    entry.tipo || '',
+    entry.destino || '',
+    entry.rotulo || ''
+  ];
+  return 'https://stf-click-dedupe/' + encodeURIComponent(parts.join('|'));
+}
+
+async function isDuplicateClick(entry) {
+  const cache = caches.default;
+  const req = new Request(clickDedupeCacheKey(entry));
+  if (await cache.match(req)) return true;
+  await cache.put(req, new Response('1', { headers: { 'Cache-Control': 'max-age=45' } }));
+  return false;
 }
 
 function isTestClick(row) {
@@ -4848,10 +4867,12 @@ async function handleAdminClearClicks(request, env, origin) {
 async function checkClickRate(env, ip) {
   if (!ip || ip === 'unknown') return true;
   const minute = Math.floor(Date.now() / 60000);
-  const key = `clickrate:${ip}:${minute}`;
-  const n = parseInt((await env.STORE_KV.get(key)) || '0', 10) + 1;
+  const cache = caches.default;
+  const req = new Request(`https://stf-click-rate/${encodeURIComponent(ip)}/${minute}`);
+  const hit = await cache.match(req);
+  const n = (hit ? parseInt(await hit.text(), 10) || 0 : 0) + 1;
   if (n > 180) return false;
-  await env.STORE_KV.put(key, String(n), { expirationTtl: 120 });
+  await cache.put(req, new Response(String(n), { headers: { 'Cache-Control': 'max-age=120' } }));
   return true;
 }
 
@@ -4896,11 +4917,16 @@ async function handleLogClick(request, env, origin, ctx) {
     client_ts: Math.max(0, parseInt(body.client_ts, 10) || 0)
   };
 
-  const persist = appendClickLog(env, entry).catch((err) => {
+  if (await isDuplicateClick(entry)) {
+    return json({ ok: true, duplicate: true }, 202, origin);
+  }
+
+  try {
+    await appendClickLog(env, entry);
+  } catch (err) {
     console.error('click log:', err.message);
-  });
-  if (ctx?.waitUntil) ctx.waitUntil(persist);
-  else await persist;
+    return json({ ok: false, error: 'storage', retry: true }, 503, origin);
+  }
 
   return json({ ok: true }, 202, origin);
 }

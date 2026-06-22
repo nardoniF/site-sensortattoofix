@@ -201,7 +201,11 @@ window.STF_I18N = (function () {
       'store.lojaPriceSuffix': 'Mini Envios · PIX e cartão',
       'store.add': 'Adicionar',
       'store.buy': 'Comprar',
-      'store.alsoOn': 'Também no Mercado Livre, Shopee, TikTok Shop e Amazon',
+      'store.alsoOnLabel': 'Também disponível em:',
+      'store.mp.ml': 'Mercado Livre',
+      'store.mp.shopee': 'Shopee',
+      'store.mp.tiktok': 'TikTok Shop',
+      'store.mp.amazon': 'Amazon',
       'alert.mpFail': 'Pagamento com cartão não foi concluído. Tente novamente.',
       'alert.intlCardUnavailable': 'Cartão internacional indisponível. Escolha PIX ou tente mais tarde.',
       'alert.paypalUnavailable': 'PayPal indisponível no momento. Tente novamente ou fale conosco no WhatsApp.',
@@ -478,7 +482,11 @@ window.STF_I18N = (function () {
       'store.lojaPriceSuffix': 'Mini Envios · Cards & PIX',
       'store.add': 'Add',
       'store.buy': 'Buy',
-      'store.alsoOn': 'Also on Mercado Libre, Shopee, TikTok Shop and Amazon',
+      'store.alsoOnLabel': 'Also available on:',
+      'store.mp.ml': 'Mercado Libre',
+      'store.mp.shopee': 'Shopee',
+      'store.mp.tiktok': 'TikTok Shop',
+      'store.mp.amazon': 'Amazon',
       'alert.mpFail': 'Card payment was not completed. Please try again.',
       'alert.intlCardUnavailable': 'International card unavailable. Choose PIX or try again later.',
       'alert.paypalUnavailable': 'PayPal unavailable right now. Try again or contact us on WhatsApp.',
@@ -856,7 +864,11 @@ window.STF_I18N = (function () {
     }
     applyText('.logo-tagline', 'brand.tagline');
     applyText('h1.section-title', 'store.title');
-    applyText('.loja-intro-alt a', 'store.alsoOn');
+    applyText('.loja-marketplaces-label', 'store.alsoOnLabel');
+    applyText('.loja-mp-badge.store-ml span', 'store.mp.ml');
+    applyText('.loja-mp-badge.store-shopee span', 'store.mp.shopee');
+    applyText('.loja-mp-badge.store-tiktok span', 'store.mp.tiktok');
+    applyText('.loja-mp-badge.store-amazon span', 'store.mp.amazon');
     const intro = document.querySelector('.loja-intro[data-store-price-tag]');
     if (intro) {
       intro.setAttribute('data-store-price-frete-line', t('store.lojaFreteShort'));
@@ -876,8 +888,6 @@ window.STF_I18N = (function () {
       back.href = pageHref('index');
       back.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.home')}`;
     }
-    const introAlt = document.querySelector('.loja-intro-alt a');
-    if (introAlt) introAlt.href = pageHref('index') + '#onde-comprar';
     const grid = document.getElementById('loja-grid');
     if (grid?.querySelector('.fa-spinner')) {
       grid.innerHTML = `<p class="conta-empty"><i class="fas fa-spinner fa-spin"></i> ${t('store.loading')}</p>`;
