@@ -313,12 +313,12 @@
 
   function logClickEndpoints() {
     const urls = [];
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/click');
     const host = (location.hostname || '').toLowerCase();
     if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
       urls.push(location.origin.replace(/\/$/, '') + '/analytics/click');
     }
-    const base = apiBaseUrl();
-    if (base) urls.push(base + '/analytics/click');
     return urls;
   }
 
