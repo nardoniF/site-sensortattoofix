@@ -1,3 +1,0 @@
-# Proxy same-origin para o Worker (evita bloqueio de adblock em *.workers.dev)
-/analytics/click  https://sensortattoofix-payments.sensortattoofix.workers.dev/analytics/click  200
-/notify/click     https://sensortattoofix-payments.sensortattoofix.workers.dev/notify/click     200
