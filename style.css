@@ -539,6 +539,24 @@ nav,
     gap: 0;
 }
 
+.stores-layout--store-first {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.stores-layout--store-first .store-official-bar {
+    margin-bottom: 0;
+}
+
+.onde-comprar-marketplaces-label {
+    text-align: center;
+    color: #aaa;
+    font-size: 0.92rem;
+    margin: 22px 0 14px;
+    font-weight: 500;
+}
+
 .stores-grid-prominent .store-card {
     min-height: 118px;
 }
