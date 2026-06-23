@@ -50,6 +50,10 @@
   function showStatus(text, type, target) {
     const el = statusEl(target);
     if (!el) return;
+    if (el._statusTimer) {
+      clearTimeout(el._statusTimer);
+      el._statusTimer = null;
+    }
     el.textContent = text;
     el.className = 'admin-status form-status ' + (type || '');
     if (target === 'save' || target === 'panel') {
@@ -59,6 +63,14 @@
     const sticky = target === 'save' || target === 'panel';
     if (text && !sticky) {
       el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    if (text && !sticky && (type === 'success' || type === 'error' || type === 'warning')) {
+      el._statusTimer = setTimeout(() => {
+        el.hidden = true;
+        el.textContent = '';
+        el.className = 'admin-status form-status';
+        el._statusTimer = null;
+      }, 5000);
     }
   }
 
