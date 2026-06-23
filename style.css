@@ -343,11 +343,17 @@ nav,
     padding-top: 20px;
     border-top: 1px solid #2a2a2a;
 }
-.about-today--flush {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
+.about-closing {
+    margin: 24px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid #2a2a2a;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: #e0e0e0;
+    font-style: italic;
+    text-align: center;
 }
+.about-body--last { margin-bottom: 0; }
 .about-patents {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
