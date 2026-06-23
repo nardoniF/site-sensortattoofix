@@ -343,6 +343,24 @@ nav,
     padding-top: 20px;
     border-top: 1px solid #2a2a2a;
 }
+.about-feedback {
+    margin: 28px 0 0;
+    padding: 20px 22px;
+    border-left: 3px solid var(--primary);
+    border-radius: 0 16px 16px 0;
+    background: #111;
+    text-align: left;
+}
+.about-feedback p {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.7;
+    color: #b8b8b8;
+}
+.about-feedback em {
+    color: #ddd;
+    font-style: italic;
+}
 .about-closing {
     margin: 24px 0 0;
     padding-top: 20px;
