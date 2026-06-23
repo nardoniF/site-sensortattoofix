@@ -1,6 +1,7 @@
 /**
- * Tráfego pago (Google Ads) → marketplaces, não loja/checkout.
- * Incluir no <head> de index, loja e comprar.
+ * Tráfego pago (Google Ads) que cair na loja ou checkout → onde-comprar (marketplaces).
+ * A home (site) não redireciona — URL final do Google pode ser o site normalmente.
+ * Incluir no <head> de loja e comprar.
  */
 (function () {
   var params = new URLSearchParams(window.location.search || '');
@@ -26,12 +27,7 @@
   var parts = path.replace(/\/+$/, '').split('/');
   var leaf = parts[parts.length - 1] || '';
 
-  if (leaf === 'onde-comprar.html') return;
-
-  var isHome = !leaf || leaf === 'index.html';
-  var isStore = leaf === 'loja.html' || leaf === 'comprar.html';
-
-  if (!isHome && !isStore) return;
+  if (leaf !== 'loja.html' && leaf !== 'comprar.html') return;
 
   var targetPath = (inEn ? '/en/onde-comprar.html' : '/onde-comprar.html') + window.location.search;
   if (window.location.pathname + window.location.search !== targetPath) {
