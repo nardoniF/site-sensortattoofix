@@ -243,10 +243,22 @@ nav,
 .btn-primary { background: var(--primary); color: #000 !important; padding: 16px 26px; border-radius: 12px; text-decoration: none; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; text-align: center; border: none; min-width: 220px; cursor: pointer; }
 .product-img { width: 100%; border-radius: 20px; border: 1px solid #222; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
 
+#produtos .product-solution-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+}
+#produtos .product-solution-media {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 #produtos .product-image-wrap {
     display: flex;
     justify-content: center;
-    align-items: start;
+    align-items: center;
     padding: 10px;
     border-radius: 12px;
     border: 1px solid #333;
@@ -1352,7 +1364,7 @@ footer,
     .hero-btns { flex-direction: column; width: 100%; }
     .btn-primary { width: auto; min-width: unset; max-width: 220px; }
     .btn-primary, .btn-secondary { margin-left: auto; margin-right: auto; }
-    #produtos > .container > div { grid-template-columns: 1fr !important; gap: 24px !important; }
+    #produtos .product-solution-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
     #produtos .product-benefits-grid {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -2047,6 +2059,20 @@ line-height:1.8;
     color: var(--primary);
 }
 .admin-main { padding: 40px 0 80px; }
+body.admin-page.admin-login-only .admin-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100dvh - 72px);
+    padding: 24px 0 40px;
+}
+body.admin-page.admin-login-only .admin-container {
+    width: 100%;
+    max-width: 520px;
+}
+body.admin-page.admin-login-only #admin-login {
+    width: 100%;
+}
 .admin-container { max-width: 1160px; }
 .admin-card {
     background: var(--card);

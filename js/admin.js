@@ -1737,12 +1737,14 @@
   function showPanel() {
     els.loginScreen.hidden = true;
     els.panelScreen.hidden = false;
+    document.body.classList.remove('admin-login-only');
     initAdminTabs();
   }
 
   function showLogin() {
     els.loginScreen.hidden = false;
     els.panelScreen.hidden = true;
+    document.body.classList.add('admin-login-only');
     sessionStorage.removeItem(SESSION_KEY);
   }
 
@@ -2102,6 +2104,8 @@
         showLogin();
         showStatus(err.message, 'error');
       }
+    } else {
+      showLogin();
     }
   });
 })();
