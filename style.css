@@ -304,6 +304,23 @@ nav,
     text-align: center;
 }
 .about-card--story { text-align: left; }
+.about-kicker {
+    display: block;
+    margin: 0 0 22px;
+    text-align: center;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--primary);
+}
+.about-story-heading {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #f5f5f5;
+    margin: 32px 0 16px;
+    text-align: center;
+}
 .about-origin {
     font-size: 1.2rem;
     line-height: 1.7;
@@ -325,6 +342,11 @@ nav,
     margin: 24px 0 28px;
     padding-top: 20px;
     border-top: 1px solid #2a2a2a;
+}
+.about-today--flush {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
 }
 .about-patents {
     display: grid;
