@@ -519,12 +519,16 @@ nav,
 .btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
 
 #onde-comprar {
-    scroll-margin-top: 70px;
-    padding: 20px 0 28px;
-    min-height: calc(100dvh - 70px);
-    display: flex;
-    align-items: center;
+    scroll-margin-top: 88px;
+    padding: 16px 0 40px;
+    min-height: auto;
+    display: block;
     background: #121212;
+}
+
+#onde-comprar.content-section {
+    padding-top: 16px;
+    padding-bottom: 40px;
 }
 
 #onde-comprar > .container {
@@ -532,8 +536,16 @@ nav,
 }
 
 .onde-comprar-page .onde-comprar-landing {
-    padding-top: 28px;
-    padding-bottom: 48px;
+    min-height: calc(100dvh - 72px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 16px;
+    padding-bottom: 40px;
+}
+
+.onde-comprar-page .onde-comprar-landing > .container {
+    width: 100%;
 }
 
 .onde-comprar-hero {
@@ -1272,8 +1284,8 @@ footer,
     header { position: fixed; top: 0; left: 0; width: 100%; min-height: auto; padding: 10px 0; }
     body { padding-top: 78px; }
     #onde-comprar {
-        min-height: calc(100dvh - 78px);
-        scroll-margin-top: 0;
+        scroll-margin-top: 78px;
+        padding-top: 12px;
     }
     .site-nav,
     nav { position: relative; flex-wrap: nowrap; gap: 6px; }
