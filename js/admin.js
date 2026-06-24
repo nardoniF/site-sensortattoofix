@@ -824,7 +824,8 @@
       .slice(0, 6)
       .map(([k, n]) => `${clickDestinoLabel(k)} (${n})`)
       .join(' · ') || '—';
-    el.innerHTML = `<strong>Hoje:</strong> ${data?.todayCount ?? 0} eventos · <strong>Total no log:</strong> ${data?.total ?? 0} · <strong>Mais frequentes:</strong> ${escapeHtml(top)}`;
+    const ultimo = data?.lastClickAt ? formatClickDate(data.lastClickAt) : '—';
+    el.innerHTML = `<strong>Hoje:</strong> ${data?.todayCount ?? 0} eventos · <strong>Total no log:</strong> ${data?.total ?? 0} · <strong>Último gravado:</strong> ${escapeHtml(ultimo)} · <strong>Mais frequentes:</strong> ${escapeHtml(top)}`;
   }
 
   function formatClickTime(ts) {

@@ -314,11 +314,29 @@
 
   function logClickEndpoints() {
     const urls = [];
-    const custom = String(window.CONFIG_BOOTSTRAP?.clickApiUrl || '').replace(/\/$/, '');
-    if (custom) urls.push(custom + (custom.endsWith('/analytics/click') ? '' : '/analytics/click'));
     const base = apiBaseUrl();
     if (base) urls.push(base + '/analytics/click');
-    return [...new Set(urls)];
+    return urls;
+  }
+
+  function logApiBases() {
+    return logClickEndpoints().map((u) => u.replace(/\/analytics\/click$/, ''));
+  }
+
+  function lerFilaLog() {
+    try {
+      const ls = localStorage.getItem(LOG_QUEUE_KEY);
+      if (ls) return JSON.parse(ls);
+      return JSON.parse(sessionStorage.getItem(LOG_QUEUE_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  function salvarFilaLog(q) {
+    const s = JSON.stringify(q);
+    try { localStorage.setItem(LOG_QUEUE_KEY, s); } catch (_) { /* ignore */ }
+    try { sessionStorage.setItem(LOG_QUEUE_KEY, s); } catch (_) { /* ignore */ }
   }
 
   function postLogJson(url, json, urgente) {
@@ -378,15 +396,38 @@
       } catch (_) { /* ignore */ }
     }
 
+    enviarLogPixel(payload);
+
     return true;
+  }
+
+  function enviarLogPixel(payload) {
+    const key = payload.log_key || window.CONFIG_BOOTSTRAP?.clickLogKey || '';
+    const bases = logApiBases();
+    if (!key || !bases.length) return;
+    const q = new URLSearchParams({
+      log_key: key,
+      tipo: payload.tipo || 'clique',
+      destino: payload.destino || '',
+      rotulo: (payload.rotulo || '').slice(0, 100),
+      visitante_id: payload.visitante_id || '',
+      sessao_visita: payload.sessao_visita || '',
+      sequencia: String(payload.sequencia || 0),
+      pagina: (payload.pagina || '').slice(0, 120),
+      client_ts: String(payload.client_ts || Date.now())
+    });
+    bases.forEach((base) => {
+      const img = new Image();
+      img.src = base + '/analytics/pixel.gif?' + q.toString();
+    });
   }
 
   function enfileirarLog(body) {
     try {
-      const q = JSON.parse(sessionStorage.getItem(LOG_QUEUE_KEY) || '[]');
+      const q = lerFilaLog();
       q.push(body);
       while (q.length > LOG_QUEUE_MAX) q.shift();
-      sessionStorage.setItem(LOG_QUEUE_KEY, JSON.stringify(q));
+      salvarFilaLog(q);
     } catch (_) { /* ignore */ }
   }
 
@@ -421,12 +462,12 @@
     if (!logClickEndpoints().length) return;
     let q;
     try {
-      q = JSON.parse(sessionStorage.getItem(LOG_QUEUE_KEY) || '[]');
+      q = lerFilaLog();
     } catch {
       return;
     }
     if (!q.length) return;
-    sessionStorage.removeItem(LOG_QUEUE_KEY);
+    salvarFilaLog([]);
     q.forEach((body) => enviarLogPayload(body, true));
   }
 
@@ -553,6 +594,7 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') flushLogQueue();
     });
+    setInterval(flushLogQueue, 20000);
   }
 
   if (document.readyState === 'loading') {

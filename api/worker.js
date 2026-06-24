@@ -4804,28 +4804,55 @@ async function appendClickLog(env, entry) {
   return row;
 }
 
-function clickDedupeCacheKey(entry) {
-  const parts = [
-    entry.visitante_id || '',
-    entry.sessao_visita || '',
-    String(entry.sequencia || 0),
-    entry.tipo || '',
-    entry.destino || '',
-    entry.rotulo || ''
-  ];
-  return 'https://stf-click-dedupe/' + encodeURIComponent(parts.join('|'));
+const PIXEL_GIF = Uint8Array.from([71, 73, 70, 56, 57, 97, 1, 0, 1, 0, 128, 0, 0, 255, 255, 255, 0, 0, 0, 33, 249, 4, 1, 0, 0, 0, 0, 44, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 68, 1, 0, 59]);
+
+function clickField(data, key, maxLen, fallback) {
+  return String(data?.[key] ?? fallback ?? '').slice(0, maxLen);
 }
 
-async function isDuplicateClick(entry) {
-  const cache = caches.default;
-  const req = new Request(clickDedupeCacheKey(entry));
-  return !!(await cache.match(req));
+function buildClickEntry(data, request) {
+  const ip = clientIp(request);
+  const paisCf = (request.headers.get('CF-IPCountry') || '').trim();
+  return {
+    tipo: clickField(data, 'tipo', 24, 'clique'),
+    destino: clickField(data, 'destino', 48),
+    destino_label: clickField(data, 'destino_label', 80),
+    rotulo: clickField(data, 'rotulo', 120),
+    secao: clickField(data, 'secao', 60),
+    secao_label: clickField(data, 'secao_label', 80),
+    elemento: clickField(data, 'elemento', 24),
+    href: clickField(data, 'href', 500),
+    pagina: clickField(data, 'pagina', 200),
+    titulo_pagina: clickField(data, 'titulo_pagina', 120),
+    idioma: clickField(data, 'idioma', 24),
+    referrer: clickField(data, 'referrer', 200),
+    dispositivo: clickField(data, 'dispositivo', 80),
+    fuso: clickField(data, 'fuso', 60),
+    visitante_id: clickField(data, 'visitante_id', 64),
+    sessao_visita: clickField(data, 'sessao_visita', 64),
+    sequencia: Math.max(0, Math.min(9999, parseInt(data?.sequencia, 10) || 0)),
+    cliente_nome: clickField(data, 'cliente_nome', 80),
+    cliente_email: clickField(data, 'cliente_email', 120),
+    pais: clickField(data, 'pais', 12, paisCf),
+    ip: ip !== 'unknown' ? ip : '',
+    ip_prefix: ip !== 'unknown' && ip.includes('.') ? ip.split('.').slice(0, 2).join('.') + '.x.x' : '',
+    client_ts: Math.max(0, parseInt(data?.client_ts, 10) || 0)
+  };
 }
 
-async function markClickDedupe(entry) {
-  const cache = caches.default;
-  const req = new Request(clickDedupeCacheKey(entry));
-  await cache.put(req, new Response('1', { headers: { 'Cache-Control': 'max-age=45' } }));
+function pixelResponse(origin, status) {
+  return new Response(PIXEL_GIF, {
+    status: status || 200,
+    headers: {
+      ...corsHeaders(origin),
+      'Content-Type': 'image/gif',
+      'Cache-Control': 'no-store'
+    }
+  });
+}
+
+async function persistClickLog(env, entry) {
+  await appendClickLog(env, entry);
 }
 
 function isTestClick(row) {
@@ -4895,46 +4922,39 @@ async function handleLogClick(request, env, origin, ctx) {
     return json({ ok: true, dropped: true }, 202, origin);
   }
 
-  const paisCf = (request.headers.get('CF-IPCountry') || '').trim();
-  const entry = {
-    tipo: String(body.tipo || 'clique').slice(0, 24),
-    destino: String(body.destino || '').slice(0, 48),
-    destino_label: String(body.destino_label || '').slice(0, 80),
-    rotulo: String(body.rotulo || '').slice(0, 120),
-    secao: String(body.secao || '').slice(0, 60),
-    secao_label: String(body.secao_label || '').slice(0, 80),
-    elemento: String(body.elemento || '').slice(0, 24),
-    href: String(body.href || '').slice(0, 500),
-    pagina: String(body.pagina || '').slice(0, 200),
-    titulo_pagina: String(body.titulo_pagina || '').slice(0, 120),
-    idioma: String(body.idioma || '').slice(0, 24),
-    referrer: String(body.referrer || '').slice(0, 200),
-    dispositivo: String(body.dispositivo || '').slice(0, 80),
-    fuso: String(body.fuso || '').slice(0, 60),
-    visitante_id: String(body.visitante_id || '').slice(0, 64),
-    sessao_visita: String(body.sessao_visita || '').slice(0, 64),
-    sequencia: Math.max(0, Math.min(9999, parseInt(body.sequencia, 10) || 0)),
-    cliente_nome: String(body.cliente_nome || '').slice(0, 80),
-    cliente_email: String(body.cliente_email || '').slice(0, 120),
-    pais: String(body.pais || paisCf || '').slice(0, 12),
-    ip: ip !== 'unknown' ? ip : '',
-    ip_prefix: ip !== 'unknown' && ip.includes('.') ? ip.split('.').slice(0, 2).join('.') + '.x.x' : '',
-    client_ts: Math.max(0, parseInt(body.client_ts, 10) || 0)
-  };
-
-  if (await isDuplicateClick(entry)) {
-    return json({ ok: true, duplicate: true }, 202, origin);
-  }
+  const entry = buildClickEntry(body, request);
 
   try {
-    await appendClickLog(env, entry);
-    await markClickDedupe(entry);
+    await persistClickLog(env, entry);
   } catch (err) {
     console.error('click log:', err.message);
     return json({ ok: false, error: 'storage', retry: true }, 503, origin);
   }
 
   return json({ ok: true }, 202, origin);
+}
+
+async function handleLogClickPixel(request, env, origin) {
+  const url = new URL(request.url);
+  const params = Object.fromEntries(url.searchParams.entries());
+  if (!isAllowedSiteRequest(request) && !isValidClickLogKey(params, env)) {
+    return pixelResponse(origin, 403);
+  }
+
+  const ip = clientIp(request);
+  if (!(await checkClickRate(env, ip))) {
+    return pixelResponse(origin);
+  }
+
+  const entry = buildClickEntry(params, request);
+
+  try {
+    await persistClickLog(env, entry);
+  } catch (err) {
+    console.error('click pixel:', err.message);
+  }
+
+  return pixelResponse(origin);
 }
 
 async function handleAdminListClicks(request, env, origin) {
@@ -4994,11 +5014,23 @@ async function handleAdminListClicks(request, env, origin) {
     byDestino[key] = (byDestino[key] || 0) + 1;
   }
 
+  let lastClickAt = null;
+  if (ids.length) {
+    const rawLast = await env.STORE_KV.get('click:' + ids[0]);
+    if (rawLast) {
+      try {
+        const row = JSON.parse(rawLast);
+        if (row?.ts) lastClickAt = new Date(row.ts).toISOString();
+      } catch { /* ignore */ }
+    }
+  }
+
   return json({
     clicks,
     total: ids.length,
     todayCount,
     byDestino,
+    lastClickAt,
     checkedAt: new Date().toISOString()
   }, 200, origin);
 }
@@ -5198,6 +5230,9 @@ export default {
       }
       if (path === '/analytics/click' && request.method === 'POST') {
         return handleLogClick(request, env, origin, ctx);
+      }
+      if ((path === '/analytics/pixel' || path === '/analytics/pixel.gif') && request.method === 'GET') {
+        return handleLogClickPixel(request, env, origin);
       }
       if (path === '/admin/clicks' && request.method === 'GET') {
         return handleAdminListClicks(request, env, origin);
