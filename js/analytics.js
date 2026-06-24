@@ -138,6 +138,9 @@
     const fixo = el.getAttribute('data-rotulo');
     if (fixo) return normalizarTexto(fixo);
 
+    const evento = el.getAttribute('data-evento');
+    if (evento) return normalizarTexto(evento.replace(/^clique_/, '').replace(/_/g, ' '));
+
     const aria = el.getAttribute('aria-label');
     if (aria) return normalizarTexto(aria);
 
@@ -588,19 +591,8 @@
   }
 
   function registrarPageview() {
-    const key = 'stf_pv:' + location.pathname + location.search;
-    if (sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, '1');
-    registrarLog({
-      tipo: 'pageview',
-      elemento: 'pageview',
-      destino: 'pageview',
-      secao: 'pagina',
-      rotulo: document.title || location.pathname,
-      href: location.href,
-      pagina: location.pathname + location.search,
-      titulo_pagina: document.title || ''
-    });
+    /* Só registramos cliques explícitos — pageview automático gerava
+       "Entrada na página" + título fixo da aba e confundia com o clique real. */
   }
 
   function linkUrgenteParaLog(link, href) {

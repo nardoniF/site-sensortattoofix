@@ -932,7 +932,12 @@
   }
 
   function renderClickStep(c, idx) {
-    const dest = c.destino_label || clickDestinoLabel(c.destino);
+    const destKey = c.destino || 'outro';
+    const destFallback = c.destino_label || clickDestinoLabel(destKey);
+    const dest = (c.rotulo && destKey !== 'pageview') ? c.rotulo : destFallback;
+    const detalhe = (c.rotulo && destKey !== 'pageview' && c.rotulo !== destFallback)
+      ? destFallback
+      : (c.secao_label || '');
     const hora = formatClickTime(c.ts);
     const seq = c.sequencia || idx + 1;
     const tip = [
@@ -947,7 +952,7 @@
       <span class="clicks-tree-step-num">${seq}</span>
       <span class="clicks-tree-step-time">${escapeHtml(hora)}</span>
       <span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(dest)}</span>
-      <span class="clicks-tree-step-label">${escapeHtml(c.rotulo || c.tipo || '—')}</span>
+      <span class="clicks-tree-step-label">${escapeHtml(detalhe || c.pagina || '—')}</span>
     </li>`;
   }
 
