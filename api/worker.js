@@ -4836,7 +4836,12 @@ function buildClickEntry(data, request) {
     pais: clickField(data, 'pais', 12, paisCf),
     ip: ip !== 'unknown' ? ip : '',
     ip_prefix: ip !== 'unknown' && ip.includes('.') ? ip.split('.').slice(0, 2).join('.') + '.x.x' : '',
-    client_ts: Math.max(0, parseInt(data?.client_ts, 10) || 0)
+    client_ts: Math.max(0, parseInt(data?.client_ts, 10) || 0),
+    origem_trafego: clickField(data, 'origem_trafego', 32),
+    origem_trafego_label: clickField(data, 'origem_trafego_label', 80),
+    utm_source: clickField(data, 'utm_source', 48),
+    utm_medium: clickField(data, 'utm_medium', 32),
+    utm_campaign: clickField(data, 'utm_campaign', 64)
   };
 }
 
@@ -4987,7 +4992,8 @@ async function handleAdminListClicks(request, env, origin) {
     if (q) {
       const hay = [
         row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
-        row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo, row.ip, row.ip_prefix
+        row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo, row.ip, row.ip_prefix,
+        row.origem_trafego, row.origem_trafego_label, row.utm_source, row.utm_medium, row.utm_campaign
       ].join(' ').toLowerCase();
       if (!hay.includes(q)) continue;
     }

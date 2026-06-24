@@ -207,6 +207,58 @@
     return ctx;
   }
 
+  function capturarOrigemSessao() {
+    const key = 'stf_origem_sessao';
+    try {
+      const saved = sessionStorage.getItem(key);
+      if (saved) return JSON.parse(saved);
+    } catch (_) { /* ignore */ }
+
+    const params = new URLSearchParams(location.search || '');
+    const src = (params.get('utm_source') || '').toLowerCase();
+    const med = (params.get('utm_medium') || '').toLowerCase();
+    const ref = (document.referrer || '').toLowerCase();
+    let origem = 'direto';
+    let label = 'Acesso direto';
+
+    if (
+      params.has('gclid') || params.has('gbraid') || params.has('wbraid') ||
+      src === 'google' || src === 'google_ads' || src === 'adwords' ||
+      med === 'cpc' || med === 'ppc' || med === 'paid' || med === 'paidsearch'
+    ) {
+      origem = 'google_ads';
+      label = 'Google Ads';
+    } else if (src === 'sensortattoofix' || med === 'site') {
+      origem = 'site';
+      label = 'Site';
+    } else if (ref.includes('google.')) {
+      origem = 'google_organico';
+      label = 'Google orgânico';
+    } else if (ref.includes('instagram.')) {
+      origem = 'instagram';
+      label = 'Instagram';
+    } else if (ref.includes('facebook.') || ref.includes('fb.')) {
+      origem = 'facebook';
+      label = 'Facebook';
+    } else if (ref.includes('tiktok.')) {
+      origem = 'tiktok';
+      label = 'TikTok';
+    } else if (ref && ref !== '(direto)') {
+      origem = 'referral';
+      label = humanizarReferrer(document.referrer);
+    }
+
+    const data = {
+      origem_trafego: origem,
+      origem_trafego_label: label,
+      utm_source: normalizarTexto(params.get('utm_source') || ''),
+      utm_medium: normalizarTexto(params.get('utm_medium') || ''),
+      utm_campaign: normalizarTexto(params.get('utm_campaign') || '')
+    };
+    try { sessionStorage.setItem(key, JSON.stringify(data)); } catch (_) { /* ignore */ }
+    return data;
+  }
+
   function humanizarDestino(destino) {
     const map = {
       pageview: 'Entrada na página',
@@ -414,6 +466,8 @@
       sessao_visita: payload.sessao_visita || '',
       sequencia: String(payload.sequencia || 0),
       pagina: (payload.pagina || '').slice(0, 120),
+      origem_trafego: (payload.origem_trafego || '').slice(0, 32),
+      origem_trafego_label: (payload.origem_trafego_label || '').slice(0, 48),
       client_ts: String(payload.client_ts || Date.now())
     });
     bases.forEach((base) => {
@@ -433,6 +487,7 @@
 
   function montarCorpoLog(data) {
     const visitante = contextoVisitante();
+    const origem = capturarOrigemSessao();
     const tipo = data.tipo || (data.elemento === 'pageview' ? 'pageview' : 'clique');
     return {
       tipo,
@@ -454,6 +509,11 @@
       sequencia: proximaSequencia(),
       cliente_nome: visitante.cliente_nome || '',
       cliente_email: visitante.cliente_email || '',
+      origem_trafego: origem.origem_trafego || '',
+      origem_trafego_label: origem.origem_trafego_label || '',
+      utm_source: origem.utm_source || '',
+      utm_medium: origem.utm_medium || '',
+      utm_campaign: origem.utm_campaign || '',
       client_ts: Date.now()
     };
   }
@@ -580,6 +640,7 @@
   }
 
   function iniciarRastreamentoSite() {
+    capturarOrigemSessao();
     flushLogQueue();
     registrarPageview();
 

@@ -935,7 +935,14 @@
     const dest = c.destino_label || clickDestinoLabel(c.destino);
     const hora = formatClickTime(c.ts);
     const seq = c.sequencia || idx + 1;
-  const tip = [c.pagina, c.secao_label, c.dispositivo, c.referrer].filter(Boolean).join(' · ');
+    const tip = [
+      c.origem_trafego_label,
+      c.utm_source && `utm: ${c.utm_source}`,
+      c.pagina,
+      c.secao_label,
+      c.dispositivo,
+      c.referrer
+    ].filter(Boolean).join(' · ');
     return `<li class="clicks-tree-step" title="${escapeHtml(tip)}">
       <span class="clicks-tree-step-num">${seq}</span>
       <span class="clicks-tree-step-time">${escapeHtml(hora)}</span>
@@ -994,8 +1001,10 @@
               sessions.forEach(([sKey, events], si) => {
                 const start = formatClickTime(events[0]?.ts);
                 const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
+                const origemLabel = events.find((e) => e.origem_trafego_label)?.origem_trafego_label || '';
+                const passosMeta = origemLabel ? `${origemLabel} · passos` : 'passos';
                 const sessionPath = `${visitorPath}|${escapeHtml(sKey)}`;
-                html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"><summary>${clicksTreeSummary(pathLabel, events.length, 'passos')}</summary>`;
+                html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"><summary>${clicksTreeSummary(pathLabel, events.length, passosMeta)}</summary>`;
                 html += '<ol class="clicks-tree-steps">';
                 events.forEach((c, idx) => { html += renderClickStep(c, idx); });
                 html += '</ol></details>';
