@@ -1090,6 +1090,46 @@
     });
   }
 
+  async function testClickLog() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'cliques');
+      return;
+    }
+    const btn = document.getElementById('btn-clicks-test');
+    if (btn) btn.disabled = true;
+    showStatus('Gravando clique de teste…', '', 'cliques');
+    try {
+      const body = {
+        log_key: bootstrap.clickLogKey || '',
+        tipo: 'clique',
+        destino: 'admin_teste',
+        rotulo: 'Teste do admin',
+        secao: 'admin',
+        elemento: 'botao',
+        pagina: '/admin.html',
+        visitante_id: 'admin_panel',
+        sessao_visita: 'admin_' + Date.now(),
+        sequencia: 1,
+        client_ts: Date.now()
+      };
+      const res = await fetch(base.replace(/\/$/, '') + '/analytics/click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: location.origin, Referer: location.href },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && !data.ok) throw new Error(data.error || 'Falha ao gravar (' + res.status + ')');
+      showStatus('Clique de teste gravado. Atualizando lista…', 'success', 'cliques');
+      await loadClicks(true);
+    } catch (err) {
+      showStatus(err.message || 'Erro no teste.', 'error', 'cliques');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   async function loadClicks(preserveOpen) {
     const root = document.getElementById('clicks-tree-root');
     if (!root || clicksLoading) return;
@@ -1988,6 +2028,7 @@
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportOrders('json'));
   document.getElementById('btn-export-csv')?.addEventListener('click', () => exportOrders('csv'));
 
+  document.getElementById('btn-clicks-test')?.addEventListener('click', () => testClickLog());
   document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => loadClicks(true));
   document.getElementById('btn-clicks-export')?.addEventListener('click', () => exportClicksExcel());
   document.getElementById('btn-clicks-clear-tests')?.addEventListener('click', () => clearClicksLog('tests'));

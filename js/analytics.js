@@ -364,13 +364,32 @@
     return String(raw).replace(/\/$/, '');
   }
 
+  function sameOriginBase() {
+    return String(location.origin || '').replace(/\/$/, '');
+  }
+
+  function registrarServiceWorkerLog() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('/stf-log-sw.js', { scope: '/' }).catch(() => {});
+  }
+
   function logClickEndpoints() {
     const urls = [];
+    const local = sameOriginBase();
+    if (local) urls.push(local + '/stf-log');
     const base = apiBaseUrl();
     if (base) {
       urls.push(base + '/analytics/click');
       urls.push(base + '/notify/click');
     }
+    return urls;
+  }
+
+  function logPixelEndpoints() {
+    const urls = [];
+    const local = sameOriginBase();
+    if (local) urls.push(local + '/stf-log/pixel.gif');
+    logApiBases().forEach((base) => urls.push(base + '/analytics/pixel.gif'));
     return urls;
   }
 
@@ -396,14 +415,14 @@
   }
 
   function postLogJson(url, json, urgente) {
-    return fetch(url, {
+    const opts = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: json,
       keepalive: true,
-      credentials: 'omit',
-      priority: urgente ? 'high' : 'auto'
-    });
+      credentials: 'omit'
+    };
+    return fetch(url, opts);
   }
 
   function tratarRespostaLog(res, payload, fallbackUrl, json, urgente) {
@@ -462,8 +481,7 @@
 
   function enviarLogPixel(payload) {
     const key = payload.log_key || window.CONFIG_BOOTSTRAP?.clickLogKey || '';
-    const bases = logApiBases();
-    if (!key || !bases.length) return;
+    if (!key) return;
     const q = new URLSearchParams({
       log_key: key,
       tipo: payload.tipo || 'clique',
@@ -483,11 +501,11 @@
       utm_medium: (payload.utm_medium || '').slice(0, 32),
       client_event_id: (payload.client_event_id || '').slice(0, 48),
       client_ts: String(payload.client_ts || Date.now())
-    });
-    bases.forEach((base) => {
+    }).toString();
+    logPixelEndpoints().forEach((base) => {
       const img = new Image();
       img.decoding = 'async';
-      img.src = base + '/analytics/pixel.gif?' + q.toString();
+      img.src = base + '?' + q;
     });
   }
 
@@ -652,6 +670,7 @@
   }
 
   function iniciarRastreamentoSite() {
+    registrarServiceWorkerLog();
     capturarOrigemSessao();
     flushLogQueue();
     registrarPageview();

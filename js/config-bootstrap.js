@@ -8,3 +8,7 @@ window.CONFIG_BOOTSTRAP = {
   /** Chave pública enviada no log de cliques (validada no Worker). */
   clickLogKey: 'stf_ck_7f3a9e2b1c'
 };
+
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/stf-log-sw.js', { scope: '/' }).catch(function () {});
+}
