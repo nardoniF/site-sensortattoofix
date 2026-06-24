@@ -14,6 +14,7 @@ const CONFIG_KEY = 'store-config';
 const SITE_CATALOG_URL = 'https://www.sensortattoofix.com.br/data/store-config.json';
 const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
+const CLICKS_BLOB = 'clicks:blob';
 const CLICKS_MAX = 2500;
 const CLICK_TTL_SEC = 90 * 86400;
 const CLICK_LOG_KEY_FALLBACK = 'stf_ck_7f3a9e2b1c';
@@ -4791,17 +4792,45 @@ async function getClicksIndex(env) {
   }
 }
 
+async function getClicksBlob(env) {
+  try {
+    const raw = await env.STORE_KV.get(CLICKS_BLOB);
+    if (!raw) return null;
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveClicksBlob(env, list) {
+  await env.STORE_KV.put(CLICKS_BLOB, JSON.stringify(list), { expirationTtl: CLICK_TTL_SEC });
+}
+
 async function appendClickLog(env, entry) {
   const id = crypto.randomUUID();
   const row = { id, ts: Date.now(), ...entry };
-  await env.STORE_KV.put('click:' + id, JSON.stringify(row), { expirationTtl: CLICK_TTL_SEC });
-  const list = await getClicksIndex(env);
-  list.unshift(id);
-  if (list.length > CLICKS_MAX) {
-    list.splice(CLICKS_MAX);
-  }
-  await env.STORE_KV.put(CLICKS_INDEX, JSON.stringify(list));
+  let list = (await getClicksBlob(env)) || [];
+  list.unshift(row);
+  if (list.length > CLICKS_MAX) list.length = CLICKS_MAX;
+  await saveClicksBlob(env, list);
   return row;
+}
+
+async function isDuplicateClickEvent(eventId) {
+  const id = String(eventId || '').trim().slice(0, 64);
+  if (!id) return false;
+  const cache = caches.default;
+  const req = new Request(`https://stf-click-dedupe/${encodeURIComponent(id)}`);
+  return !!(await cache.match(req));
+}
+
+async function markClickEventSeen(eventId) {
+  const id = String(eventId || '').trim().slice(0, 64);
+  if (!id) return;
+  const cache = caches.default;
+  const req = new Request(`https://stf-click-dedupe/${encodeURIComponent(id)}`);
+  await cache.put(req, new Response('1', { headers: { 'Cache-Control': 'max-age=120' } }));
 }
 
 const PIXEL_GIF = Uint8Array.from([71, 73, 70, 56, 57, 97, 1, 0, 1, 0, 128, 0, 0, 255, 255, 255, 0, 0, 0, 33, 249, 4, 1, 0, 0, 0, 0, 44, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 68, 1, 0, 59]);
@@ -4874,6 +4903,19 @@ async function handleAdminClearClicks(request, env, origin) {
   }
   const body = await request.json().catch(() => ({}));
   const mode = body.mode === 'all' ? 'all' : 'tests';
+
+  const blob = await getClicksBlob(env);
+  if (blob) {
+    if (mode === 'all') {
+      await saveClicksBlob(env, []);
+      return json({ ok: true, mode, removed: blob.length, remaining: 0 }, 200, origin);
+    }
+    const kept = blob.filter((row) => !isTestClick(row));
+    const removed = blob.length - kept.length;
+    await saveClicksBlob(env, kept);
+    return json({ ok: true, mode, removed, remaining: kept.length }, 200, origin);
+  }
+
   const ids = await getClicksIndex(env);
   const kept = [];
   let removed = 0;
@@ -4927,6 +4969,13 @@ async function handleLogClick(request, env, origin, ctx) {
     return json({ ok: true, dropped: true }, 202, origin);
   }
 
+  const eventId = String(body.client_event_id || '').trim().slice(0, 64);
+  if (eventId && (await isDuplicateClickEvent(eventId))) {
+    return json({ ok: true, deduped: true }, 202, origin);
+  }
+  if (eventId && ctx) ctx.waitUntil(markClickEventSeen(eventId));
+  else if (eventId) await markClickEventSeen(eventId);
+
   const entry = buildClickEntry(body, request);
 
   try {
@@ -4939,7 +4988,7 @@ async function handleLogClick(request, env, origin, ctx) {
   return json({ ok: true }, 202, origin);
 }
 
-async function handleLogClickPixel(request, env, origin) {
+async function handleLogClickPixel(request, env, origin, ctx) {
   const url = new URL(request.url);
   const params = Object.fromEntries(url.searchParams.entries());
   if (!isAllowedSiteRequest(request) && !isValidClickLogKey(params, env)) {
@@ -4950,6 +4999,13 @@ async function handleLogClickPixel(request, env, origin) {
   if (!(await checkClickRate(env, ip))) {
     return pixelResponse(origin);
   }
+
+  const eventId = String(params.client_event_id || '').trim().slice(0, 64);
+  if (eventId && (await isDuplicateClickEvent(eventId))) {
+    return pixelResponse(origin);
+  }
+  if (eventId && ctx) ctx.waitUntil(markClickEventSeen(eventId));
+  else if (eventId) await markClickEventSeen(eventId);
 
   const entry = buildClickEntry(params, request);
 
@@ -4991,9 +5047,18 @@ async function handleAdminListClicks(request, env, origin) {
   const tipo = (url.searchParams.get('tipo') || '').trim();
   const limit = Math.min(800, Math.max(20, parseInt(url.searchParams.get('limit') || '400', 10) || 400));
 
-  const ids = await getClicksIndex(env);
-  const scanIds = ids.slice(0, Math.min(ids.length, 1200));
-  const loaded = await loadClickRows(env, scanIds, scanIds.length);
+  const blob = await getClicksBlob(env);
+  let loaded;
+  let total;
+  if (blob?.length) {
+    loaded = blob;
+    total = blob.length;
+  } else {
+    const ids = await getClicksIndex(env);
+    total = ids.length;
+    const scanIds = ids.slice(0, Math.min(ids.length, 500));
+    loaded = await loadClickRows(env, scanIds, scanIds.length);
+  }
 
   const clicks = [];
   for (const row of loaded) {
@@ -5024,19 +5089,13 @@ async function handleAdminListClicks(request, env, origin) {
   }
 
   let lastClickAt = null;
-  if (ids.length) {
-    const rawLast = await env.STORE_KV.get('click:' + ids[0]);
-    if (rawLast) {
-      try {
-        const row = JSON.parse(rawLast);
-        if (row?.ts) lastClickAt = new Date(row.ts).toISOString();
-      } catch { /* ignore */ }
-    }
+  if (loaded.length && loaded[0]?.ts) {
+    lastClickAt = new Date(loaded[0].ts).toISOString();
   }
 
   return json({
     clicks,
-    total: ids.length,
+    total,
     todayCount,
     byDestino,
     lastClickAt,
@@ -5241,7 +5300,7 @@ export default {
         return handleLogClick(request, env, origin, ctx);
       }
       if ((path === '/analytics/pixel' || path === '/analytics/pixel.gif') && request.method === 'GET') {
-        return handleLogClickPixel(request, env, origin);
+        return handleLogClickPixel(request, env, origin, ctx);
       }
       if (path === '/admin/clicks' && request.method === 'GET') {
         return handleAdminListClicks(request, env, origin);

@@ -375,17 +375,12 @@
   }
 
   function logClickEndpoints() {
-    const urls = [];
     const base = apiBaseUrl();
-    if (base) {
-      urls.push(base + '/analytics/click');
-      urls.push(base + '/notify/click');
-    }
-    return urls;
+    return base ? [base + '/analytics/click'] : [];
   }
 
   function logPixelEndpoints() {
-    return logApiBases().map((base) => base + '/analytics/pixel.gif');
+    return [];
   }
 
   function logApiBases() {
@@ -455,22 +450,18 @@
       client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now())))
     });
     const json = JSON.stringify(payload);
+    const url = urls[0];
 
-    // Pixel + beacon primeiro — sobrevivem à saída da página e bloqueios parciais de fetch.
-    enviarLogPixel(payload);
-    enviarLogBeacon(urls, json);
+    if (urgente && typeof navigator.sendBeacon === 'function') {
+      try {
+        const blob = new Blob([json], { type: 'application/json' });
+        if (navigator.sendBeacon(url, blob)) return true;
+      } catch (_) { /* fetch abaixo */ }
+    }
 
-    postLogJson(urls[0], json, urgente)
-      .then((res) => tratarRespostaLog(res, payload, urls.slice(1), json, urgente))
-      .catch(() => {
-        if (urls.length > 1) {
-          postLogJson(urls[1], json, urgente)
-            .then((res) => tratarRespostaLog(res, payload, urls.slice(2), json, urgente))
-            .catch(() => enfileirarLog(payload));
-        } else {
-          enfileirarLog(payload);
-        }
-      });
+    postLogJson(url, json, urgente)
+      .then((res) => tratarRespostaLog(res, payload, null, json, urgente))
+      .catch(() => enfileirarLog(payload));
 
     return true;
   }
