@@ -6,6 +6,7 @@
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
   'https://www.sensortattoofix.com.br',
+  'https://api.sensortattoofix.com.br',
   'http://localhost:8080',
   'http://127.0.0.1:5500'
 ];
@@ -4818,9 +4819,13 @@ function clickDedupeCacheKey(entry) {
 async function isDuplicateClick(entry) {
   const cache = caches.default;
   const req = new Request(clickDedupeCacheKey(entry));
-  if (await cache.match(req)) return true;
+  return !!(await cache.match(req));
+}
+
+async function markClickDedupe(entry) {
+  const cache = caches.default;
+  const req = new Request(clickDedupeCacheKey(entry));
   await cache.put(req, new Response('1', { headers: { 'Cache-Control': 'max-age=45' } }));
-  return false;
 }
 
 function isTestClick(row) {
@@ -4923,6 +4928,7 @@ async function handleLogClick(request, env, origin, ctx) {
 
   try {
     await appendClickLog(env, entry);
+    await markClickDedupe(entry);
   } catch (err) {
     console.error('click log:', err.message);
     return json({ ok: false, error: 'storage', retry: true }, 503, origin);

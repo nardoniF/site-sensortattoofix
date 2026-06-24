@@ -314,13 +314,11 @@
 
   function logClickEndpoints() {
     const urls = [];
+    const custom = String(window.CONFIG_BOOTSTRAP?.clickApiUrl || '').replace(/\/$/, '');
+    if (custom) urls.push(custom + (custom.endsWith('/analytics/click') ? '' : '/analytics/click'));
     const base = apiBaseUrl();
     if (base) urls.push(base + '/analytics/click');
-    const host = (location.hostname || '').toLowerCase();
-    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
-      urls.push(location.origin.replace(/\/$/, '') + '/analytics/click');
-    }
-    return urls;
+    return [...new Set(urls)];
   }
 
   function postLogJson(url, json, urgente) {
@@ -345,7 +343,7 @@
       return;
     }
     return res.json().catch(() => ({})).then((data) => {
-      if (data && (data.dropped || data.retry)) enfileirarLog(payload);
+      if (data && (data.dropped || data.retry || data.error === 'storage')) enfileirarLog(payload);
     });
   }
 
@@ -353,7 +351,8 @@
     const urls = logClickEndpoints();
     if (!urls.length) return false;
     const payload = Object.assign({}, body, {
-      log_key: window.CONFIG_BOOTSTRAP?.clickLogKey || ''
+      log_key: window.CONFIG_BOOTSTRAP?.clickLogKey || '',
+      client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now())))
     });
     const json = JSON.stringify(payload);
 
@@ -369,6 +368,15 @@
           enfileirarLog(payload);
         }
       });
+
+    if (urgente && typeof navigator.sendBeacon === 'function') {
+      try {
+        const blob = new Blob([json], { type: 'application/json' });
+        urls.forEach((url) => {
+          try { navigator.sendBeacon(url, blob); } catch (_) { /* ignore */ }
+        });
+      } catch (_) { /* ignore */ }
+    }
 
     return true;
   }

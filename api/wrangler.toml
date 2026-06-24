@@ -1,10 +1,16 @@
 name = "sensortattoofix-payments"
 main = "worker.js"
 compatibility_date = "2024-01-01"
+workers_dev = true
 
 [[kv_namespaces]]
 binding = "STORE_KV"
 id = "4184c034aab941e58ce5cc1e3abaecdc"
+
+# Rota custom (opcional — só funciona se o domínio estiver na Cloudflare):
+# [[routes]]
+# pattern = "api.sensortattoofix.com.br/*"
+# zone_name = "sensortattoofix.com.br"
 
 [vars]
 ADMIN_USERNAME = "admin"
