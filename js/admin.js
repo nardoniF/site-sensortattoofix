@@ -771,7 +771,7 @@
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
-    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=2500`, {
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=400`, {
       headers: { Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
@@ -1148,7 +1148,7 @@
     root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
 
     try {
-      const params = new URLSearchParams({ limit: '2500' });
+      const params = new URLSearchParams({ limit: '400' });
       if (q) params.set('q', q);
       if (destino) params.set('destino', destino);
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {

@@ -360,7 +360,8 @@
   }
 
   function apiBaseUrl() {
-    const raw = window.CONFIG_BOOTSTRAP?.configApiUrl || '';
+    const raw = window.CONFIG_BOOTSTRAP?.configApiUrl ||
+      'https://sensortattoofix-payments.sensortattoofix.workers.dev';
     return String(raw).replace(/\/$/, '');
   }
 
@@ -375,8 +376,6 @@
 
   function logClickEndpoints() {
     const urls = [];
-    const local = sameOriginBase();
-    if (local) urls.push(local + '/stf-log');
     const base = apiBaseUrl();
     if (base) {
       urls.push(base + '/analytics/click');
@@ -386,11 +385,7 @@
   }
 
   function logPixelEndpoints() {
-    const urls = [];
-    const local = sameOriginBase();
-    if (local) urls.push(local + '/stf-log/pixel.gif');
-    logApiBases().forEach((base) => urls.push(base + '/analytics/pixel.gif'));
-    return urls;
+    return logApiBases().map((base) => base + '/analytics/pixel.gif');
   }
 
   function logApiBases() {
@@ -425,11 +420,13 @@
     return fetch(url, opts);
   }
 
-  function tratarRespostaLog(res, payload, fallbackUrl, json, urgente) {
+  function tratarRespostaLog(res, payload, fallbacks, json, urgente) {
+    const next = Array.isArray(fallbacks) ? fallbacks : (fallbacks ? [fallbacks] : []);
     if (!res.ok) {
-      if (fallbackUrl) {
-        return postLogJson(fallbackUrl, json, urgente).then((res2) =>
-          tratarRespostaLog(res2, payload, null, json, urgente)
+      if (next.length) {
+        const [url, ...rest] = next;
+        return postLogJson(url, json, urgente).then((res2) =>
+          tratarRespostaLog(res2, payload, rest, json, urgente)
         );
       }
       enfileirarLog(payload);
@@ -464,12 +461,11 @@
     enviarLogBeacon(urls, json);
 
     postLogJson(urls[0], json, urgente)
-      .then((res) => tratarRespostaLog(res, payload, urls[1], json, urgente))
+      .then((res) => tratarRespostaLog(res, payload, urls.slice(1), json, urgente))
       .catch(() => {
-        const fallback = urls[1];
-        if (fallback) {
-          postLogJson(fallback, json, urgente)
-            .then((res) => tratarRespostaLog(res, payload, null, json, urgente))
+        if (urls.length > 1) {
+          postLogJson(urls[1], json, urgente)
+            .then((res) => tratarRespostaLog(res, payload, urls.slice(2), json, urgente))
             .catch(() => enfileirarLog(payload));
         } else {
           enfileirarLog(payload);
@@ -658,12 +654,15 @@
     registrarLog(payload);
   }
 
+  function onLinkPointer(e) {
+    if (e.button !== 0) return;
+    const link = e.target.closest('a[href]');
+    if (link) trackSecaoLink(link);
+  }
+
   function onClickCapture(e) {
     const link = e.target.closest('a[href]');
-    if (link) {
-      trackSecaoLink(link);
-      return;
-    }
+    if (link) return;
 
     const btn = e.target.closest('button');
     if (btn && !btn.closest('summary')) trackSecaoBotao(btn);
@@ -675,6 +674,7 @@
     flushLogQueue();
     registrarPageview();
 
+    document.addEventListener('pointerdown', onLinkPointer, true);
     document.addEventListener('click', onClickCapture, true);
 
     document.addEventListener('toggle', (e) => {

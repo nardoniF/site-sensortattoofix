@@ -4962,6 +4962,24 @@ async function handleLogClickPixel(request, env, origin) {
   return pixelResponse(origin);
 }
 
+async function loadClickRows(env, ids, maxRows) {
+  const rows = [];
+  const batch = 50;
+  for (let i = 0; i < ids.length && rows.length < maxRows; i += batch) {
+    const slice = ids.slice(i, i + batch);
+    const raws = await Promise.all(slice.map((id) => env.STORE_KV.get('click:' + id)));
+    for (const raw of raws) {
+      if (!raw) continue;
+      try {
+        rows.push(JSON.parse(raw));
+      } catch {
+        continue;
+      }
+    }
+  }
+  return rows;
+}
+
 async function handleAdminListClicks(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -4971,22 +4989,14 @@ async function handleAdminListClicks(request, env, origin) {
   const q = (url.searchParams.get('q') || '').trim().toLowerCase();
   const destino = (url.searchParams.get('destino') || '').trim();
   const tipo = (url.searchParams.get('tipo') || '').trim();
-  const limit = Math.min(2500, Math.max(20, parseInt(url.searchParams.get('limit') || '2500', 10) || 2500));
+  const limit = Math.min(800, Math.max(20, parseInt(url.searchParams.get('limit') || '400', 10) || 400));
 
   const ids = await getClicksIndex(env);
-  const clicks = [];
-  const scanLimit = Math.min(ids.length, 2500);
+  const scanIds = ids.slice(0, Math.min(ids.length, 1200));
+  const loaded = await loadClickRows(env, scanIds, scanIds.length);
 
-  for (let i = 0; i < scanLimit; i++) {
-    const id = ids[i];
-    const raw = await env.STORE_KV.get('click:' + id);
-    if (!raw) continue;
-    let row;
-    try {
-      row = JSON.parse(raw);
-    } catch {
-      continue;
-    }
+  const clicks = [];
+  for (const row of loaded) {
     if (destino && row.destino !== destino) continue;
     if (tipo && row.tipo !== tipo) continue;
     if (q) {
@@ -5006,15 +5016,8 @@ async function handleAdminListClicks(request, env, origin) {
 
   const byDestino = {};
   let todayCount = 0;
-  for (let i = 0; i < Math.min(ids.length, 800); i++) {
-    const raw = await env.STORE_KV.get('click:' + ids[i]);
-    if (!raw) continue;
-    let row;
-    try {
-      row = JSON.parse(raw);
-    } catch {
-      continue;
-    }
+  const statsSample = loaded.slice(0, 300);
+  for (const row of statsSample) {
     if (brDateKey(row.ts) === todayKey) todayCount++;
     const key = row.destino || row.tipo || 'outro';
     byDestino[key] = (byDestino[key] || 0) + 1;
