@@ -520,16 +520,15 @@ nav,
 
 #onde-comprar {
     scroll-margin-top: 88px;
-    padding: 20px 0 28px;
-    min-height: calc(100dvh - 70px);
-    display: flex;
-    align-items: center;
+    padding: 0 0 32px;
+    min-height: calc(100dvh - 88px);
+    display: block;
     background: #121212;
 }
 
 #onde-comprar.content-section {
-    padding-top: 20px;
-    padding-bottom: 28px;
+    padding-top: 0;
+    padding-bottom: 32px;
 }
 
 #onde-comprar > .container {
@@ -1296,8 +1295,9 @@ footer,
     body { padding-top: 78px; }
     #onde-comprar {
         scroll-margin-top: 78px;
-        min-height: calc(100dvh - 78px);
-        padding-top: 16px;
+        min-height: auto;
+        padding-top: 0;
+        padding-bottom: 28px;
     }
     .site-nav,
     nav { position: relative; flex-wrap: nowrap; gap: 6px; }
