@@ -1,6 +1,6 @@
 {
   "product": {
-    "name": "Kit Sensor TattooFix",
+    "name": "Kit Sensor Tattoo Fix",
     "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
     "price": 62.9,
     "image": "https://www.sensortattoofix.com.br/site/sensortattoofix.jpg"
@@ -9,7 +9,7 @@
     {
       "id": "kit-sensor-tattoofix",
       "slug": "kit-sensor-tattoofix",
-      "name": "Kit Sensor TattooFix",
+      "name": "Kit Sensor Tattoo Fix",
       "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
       "price": 62.9,
       "image": "https://www.sensortattoofix.com.br/site/sensortattoofix.jpg",
@@ -287,8 +287,8 @@
       "slug": "pelicula-apple-45mm",
       "name": "Película de tela — Apple Watch 45mm",
       "nameEn": "Screen protector — Apple Watch 45mm",
-      "description": "Película de alta qualidade — protege a tela e combina com o envio do seu kit Sensor TattooFix.",
-      "descriptionEn": "High-quality film — protects your screen and ships with your Sensor TattooFix kit.",
+      "description": "Película de alta qualidade — protege a tela e combina com o envio do seu kit Sensor Tattoo Fix.",
+      "descriptionEn": "High-quality film — protects your screen and ships with your Sensor Tattoo Fix kit.",
       "price": 20,
       "image": "/produtos/pelicula-apple-45mm.svg",
       "active": true,
@@ -1488,7 +1488,7 @@
   },
   "formsubmit": {
     "email": "sensortattoofix@gmail.com",
-    "subject": "Novo pedido — Loja Oficial Sensor TattooFix"
+    "subject": "Novo pedido — Loja Oficial Sensor Tattoo Fix"
   },
   "whatsapp": "5511913394665",
   "siteUrl": "https://www.sensortattoofix.com.br",

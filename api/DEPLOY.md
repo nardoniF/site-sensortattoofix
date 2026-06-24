@@ -1,4 +1,4 @@
-# Deploy completo — Sensor TattooFix API
+# Deploy completo — Sensor Tattoo Fix API
 
 > **Manual completo (URLs, secrets, frete, Correios):** [documentacao.html](../documentacao.html) no site ou aba **Documentação** no admin.
 

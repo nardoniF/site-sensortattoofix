@@ -275,7 +275,7 @@ window.STF_ORDER_LABEL = (function () {
 </head>
 <body>
   <div class="label">
-    <div class="brand">SENSOR TATTOOFIX</div>
+    <div class="brand">SENSOR TATTOO FIX</div>
 
     <div class="block block-sender">
       <div class="block-title">Remetente</div>

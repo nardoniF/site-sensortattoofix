@@ -361,7 +361,7 @@
 
   function apiBaseUrl() {
     const raw = window.CONFIG_BOOTSTRAP?.configApiUrl ||
-      'https://sensortattoofix-payments.sensortattoofix.workers.dev';
+      'https://api.sensortattoofix.com.br';
     return String(raw).replace(/\/$/, '');
   }
 

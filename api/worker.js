@@ -1,5 +1,5 @@
 /**
- * API Sensor TattooFix — Cloudflare Worker
+ * API Sensor Tattoo Fix — Cloudflare Worker
  * PIX (Mercado Pago) + Cartão (Asaas) + PayPal (intl) · WhatsApp · Correios · Uber Direct · Pedidos
  */
 
@@ -22,7 +22,7 @@ const CUSTOMER_SESSION_TTL = 2592000; // 30 dias
 
 const DEFAULT_CONFIG = {
   product: {
-    name: 'Kit Sensor TattooFix',
+    name: 'Kit Sensor Tattoo Fix',
     description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
     price: 62.9,
     image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg'
@@ -31,7 +31,7 @@ const DEFAULT_CONFIG = {
     {
       id: 'kit-sensor-tattoofix',
       slug: 'kit-sensor-tattoofix',
-      name: 'Kit Sensor TattooFix',
+      name: 'Kit Sensor Tattoo Fix',
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
       price: 62.9,
       image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg',
@@ -151,7 +151,7 @@ const DEFAULT_CONFIG = {
     'Polar Pacer / Ignite',
     'Outro modelo (informar nas observações)'
   ],
-  formsubmit: { email: 'sensortattoofix@gmail.com', subject: 'Novo pedido — Loja Oficial Sensor TattooFix' },
+  formsubmit: { email: 'sensortattoofix@gmail.com', subject: 'Novo pedido — Loja Oficial Sensor Tattoo Fix' },
   whatsapp: '5511913394665',
   siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev' }
@@ -1739,11 +1739,11 @@ function pixCustomerHint(order, shopPhone) {
 async function notifyWhatsApp(env, config, order, type) {
   const shopPhone = config.whatsapp || env.SHOP_WHATSAPP;
   const msgs = {
-    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
+    order_customer: `✅ *Sensor Tattoo Fix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
     order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n${watchWhatsAppBlock(order)}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
     paid_customer: shouldDispatchUberDelivery(order)
-      ? `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago.\n\n🚗 Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em instantes.\n\nSensor TattooFix`
-      : `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.\n\nSensor TattooFix`,
+      ? `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago.\n\n🚗 Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em instantes.\n\nSensor Tattoo Fix`
+      : `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.\n\nSensor Tattoo Fix`,
     paid_shop: shouldDispatchUberDelivery(order)
       ? `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n🚗 Uber Direct — ${order.shippingService}\n📍 ${order.endereco}${order.uberTrackingUrl ? `\n🔗 ${order.uberTrackingUrl}` : ''}`
       : `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`

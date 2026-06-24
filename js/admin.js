@@ -1413,7 +1413,7 @@
         else main.splice(idx, 1);
         const next = [...main, ...aggregated];
         renderProducts(next.length ? next : [{
-          id: 'kit-sensor-tattoofix', slug: 'kit-sensor-tattoofix', name: 'Kit Sensor TattooFix',
+          id: 'kit-sensor-tattoofix', slug: 'kit-sensor-tattoofix', name: 'Kit Sensor Tattoo Fix',
           description: '', price: 62.9, image: '/site/sensortattoofix.jpg', active: true,
           requiresSmartwatch: true, weightGrams: 3, sensorMm: 25
         }]);
@@ -2102,7 +2102,7 @@
     main.push({
       id: 'lente-' + Date.now(),
       slug: 'lente-' + Date.now(),
-      name: 'Nova lente Sensor TattooFix',
+      name: 'Nova lente Sensor Tattoo Fix',
       description: '',
       price: 62.9,
       image: '/site/sensortattoofix.jpg',
