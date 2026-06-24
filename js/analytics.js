@@ -367,12 +367,16 @@
   function logClickEndpoints() {
     const urls = [];
     const base = apiBaseUrl();
-    if (base) urls.push(base + '/analytics/click');
+    if (base) {
+      urls.push(base + '/analytics/click');
+      urls.push(base + '/notify/click');
+    }
     return urls;
   }
 
   function logApiBases() {
-    return logClickEndpoints().map((u) => u.replace(/\/analytics\/click$/, ''));
+    const base = apiBaseUrl();
+    return base ? [base] : [];
   }
 
   function lerFilaLog() {
@@ -417,6 +421,16 @@
     });
   }
 
+  function enviarLogBeacon(urls, json) {
+    if (typeof navigator.sendBeacon !== 'function') return;
+    try {
+      const blob = new Blob([json], { type: 'application/json' });
+      urls.forEach((url) => {
+        try { navigator.sendBeacon(url, blob); } catch (_) { /* ignore */ }
+      });
+    } catch (_) { /* ignore */ }
+  }
+
   function enviarLogPayload(body, urgente) {
     const urls = logClickEndpoints();
     if (!urls.length) return false;
@@ -425,6 +439,10 @@
       client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now())))
     });
     const json = JSON.stringify(payload);
+
+    // Pixel + beacon primeiro — sobrevivem à saída da página e bloqueios parciais de fetch.
+    enviarLogPixel(payload);
+    enviarLogBeacon(urls, json);
 
     postLogJson(urls[0], json, urgente)
       .then((res) => tratarRespostaLog(res, payload, urls[1], json, urgente))
@@ -439,17 +457,6 @@
         }
       });
 
-    if (urgente && typeof navigator.sendBeacon === 'function') {
-      try {
-        const blob = new Blob([json], { type: 'application/json' });
-        urls.forEach((url) => {
-          try { navigator.sendBeacon(url, blob); } catch (_) { /* ignore */ }
-        });
-      } catch (_) { /* ignore */ }
-    }
-
-    enviarLogPixel(payload);
-
     return true;
   }
 
@@ -461,17 +468,25 @@
       log_key: key,
       tipo: payload.tipo || 'clique',
       destino: payload.destino || '',
+      destino_label: (payload.destino_label || '').slice(0, 48),
       rotulo: (payload.rotulo || '').slice(0, 100),
+      secao: (payload.secao || '').slice(0, 48),
+      elemento: (payload.elemento || '').slice(0, 24),
+      href: (payload.href || '').slice(0, 180),
       visitante_id: payload.visitante_id || '',
       sessao_visita: payload.sessao_visita || '',
       sequencia: String(payload.sequencia || 0),
       pagina: (payload.pagina || '').slice(0, 120),
       origem_trafego: (payload.origem_trafego || '').slice(0, 32),
       origem_trafego_label: (payload.origem_trafego_label || '').slice(0, 48),
+      utm_source: (payload.utm_source || '').slice(0, 48),
+      utm_medium: (payload.utm_medium || '').slice(0, 32),
+      client_event_id: (payload.client_event_id || '').slice(0, 48),
       client_ts: String(payload.client_ts || Date.now())
     });
     bases.forEach((base) => {
       const img = new Image();
+      img.decoding = 'async';
       img.src = base + '/analytics/pixel.gif?' + q.toString();
     });
   }
@@ -534,17 +549,14 @@
   function registrarLog(data) {
     if (!logClickEndpoints().length) return;
 
-    const tipo = data.tipo || (data.elemento === 'pageview' ? 'pageview' : 'clique');
-    if (tipo !== 'pageview') {
-      const dedupe = `stf_log:${tipo}:${data.destino}:${data.href}:${data.rotulo}`;
-      if (sessionStorage.getItem(dedupe)) return;
-      sessionStorage.setItem(dedupe, '1');
-      setTimeout(() => sessionStorage.removeItem(dedupe), 1500);
+    try {
+      const body = montarCorpoLog(data);
+      const tipo = body.tipo || 'clique';
+      const saiDaPagina = tipo !== 'pageview' && data.href && !data.href.startsWith('#') && !data.href.includes(location.pathname + '#');
+      enviarLogPayload(body, !!saiDaPagina || !!data.urgente || tipo === 'pageview');
+    } catch (err) {
+      console.warn('stf log:', err);
     }
-
-    const body = montarCorpoLog(data);
-    const saiDaPagina = tipo !== 'pageview' && data.href && !data.href.startsWith('#') && !data.href.includes(location.pathname + '#');
-    enviarLogPayload(body, !!saiDaPagina || data.urgente);
   }
 
   function registrarPageview() {
@@ -655,7 +667,7 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') flushLogQueue();
     });
-    setInterval(flushLogQueue, 20000);
+    setInterval(flushLogQueue, 8000);
   }
 
   if (document.readyState === 'loading') {
