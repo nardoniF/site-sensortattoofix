@@ -1,4 +1,4 @@
-const WORKER = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
+const WORKER = 'https://api.sensortattoofix.com.br';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

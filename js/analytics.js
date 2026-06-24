@@ -375,12 +375,25 @@
   }
 
   function logClickEndpoints() {
+    const urls = [];
+    const host = (location.hostname || '').toLowerCase();
+    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+      urls.push(sameOriginBase() + '/stf-log');
+    }
     const base = apiBaseUrl();
-    return base ? [base + '/analytics/click'] : [];
+    if (base) urls.push(base + '/analytics/click');
+    return urls;
   }
 
   function logPixelEndpoints() {
-    return [];
+    const urls = [];
+    const host = (location.hostname || '').toLowerCase();
+    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+      urls.push(sameOriginBase() + '/stf-log/pixel.gif');
+    }
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/pixel.gif');
+    return urls;
   }
 
   function logApiBases() {
@@ -450,18 +463,28 @@
       client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now())))
     });
     const json = JSON.stringify(payload);
-    const url = urls[0];
 
     if (urgente && typeof navigator.sendBeacon === 'function') {
-      try {
-        const blob = new Blob([json], { type: 'application/json' });
-        if (navigator.sendBeacon(url, blob)) return true;
-      } catch (_) { /* fetch abaixo */ }
+      urls.forEach((url) => {
+        try {
+          navigator.sendBeacon(url, new Blob([json], { type: 'application/json' }));
+        } catch (_) { /* ignore */ }
+      });
     }
 
-    postLogJson(url, json, urgente)
-      .then((res) => tratarRespostaLog(res, payload, null, json, urgente))
-      .catch(() => enfileirarLog(payload));
+    if (urgente) enviarLogPixel(payload);
+
+    postLogJson(urls[0], json, urgente)
+      .then((res) => tratarRespostaLog(res, payload, urls.slice(1), json, urgente))
+      .catch(() => {
+        if (urls.length > 1) {
+          postLogJson(urls[1], json, urgente)
+            .then((res) => tratarRespostaLog(res, payload, urls.slice(2), json, urgente))
+            .catch(() => enfileirarLog(payload));
+        } else {
+          enfileirarLog(payload);
+        }
+      });
 
     return true;
   }
