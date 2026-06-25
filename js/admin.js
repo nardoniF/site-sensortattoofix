@@ -859,8 +859,8 @@
   }
 
   function visitorKey(c) {
-    if (c.cliente_email) return `email:${String(c.cliente_email).toLowerCase()}`;
     if (c.visitante_id) return `vid:${c.visitante_id}`;
+    if (c.cliente_email) return `email:${String(c.cliente_email).toLowerCase()}`;
     if (c.ip) return `ip:${c.ip}`;
     if (c.ip_prefix) return `ipp:${c.ip_prefix}`;
     return `unk:${c.sessao_visita || c.id || 'x'}`;
@@ -897,7 +897,15 @@
       const d = m.days[dateKey];
       if (!d.visitors[vKey]) d.visitors[vKey] = { meta: c, count: 0, sessions: {} };
       const v = d.visitors[vKey];
-      if (c.cliente_email && !v.meta.cliente_email) v.meta = { ...v.meta, ...c };
+      if (c.cliente_email || c.cliente_nome) {
+        v.meta = {
+          ...v.meta,
+          ...c,
+          cliente_email: c.cliente_email || v.meta.cliente_email,
+          cliente_nome: c.cliente_nome || v.meta.cliente_nome,
+          visitante_id: c.visitante_id || v.meta.visitante_id
+        };
+      }
       const sKey = c.sessao_visita || 'sem_sessao';
       if (!v.sessions[sKey]) v.sessions[sKey] = [];
       v.sessions[sKey].push(c);

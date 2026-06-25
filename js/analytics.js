@@ -197,6 +197,19 @@
     return (mobile ? 'mobile' : 'desktop') + ' / ' + browser;
   }
 
+  function lerUsuarioContaLog() {
+    try {
+      const viaApi = window.STF_ACCOUNT?.getUser?.();
+      if (viaApi?.email) return viaApi;
+      const raw = localStorage.getItem('stf_customer_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.email) return u;
+      }
+    } catch (_) { /* ignore */ }
+    return null;
+  }
+
   function contextoVisitante() {
     const ctx = {
       visitante_id: visitanteId(),
@@ -204,7 +217,7 @@
       dispositivo: resumirUserAgent(),
       fuso: Intl.DateTimeFormat().resolvedOptions().timeZone || ''
     };
-    const user = window.STF_ACCOUNT?.getUser?.();
+    const user = lerUsuarioContaLog();
     if (user) {
       ctx.cliente_nome = normalizarTexto(user.nome || '');
       ctx.cliente_email = normalizarTexto(user.email || '');
