@@ -1067,8 +1067,8 @@
       await loadClicks();
       showStatus(
         isAll
-          ? `Histórico apagado (${data.removed || 0} eventos).`
-          : `${data.removed || 0} teste(s) removido(s). Restam ${data.remaining || 0} eventos.`,
+          ? `Histórico apagado (${data.removed || 0} evento${data.removed === 1 ? '' : 's'}).`
+          : `${data.removed || 0} teste(s) removido(s). Restam ${data.remaining ?? '—'} eventos.`,
         'success',
         'cliques'
       );

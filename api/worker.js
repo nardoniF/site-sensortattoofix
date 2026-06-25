@@ -4803,8 +4803,48 @@ async function getClicksBlob(env) {
   }
 }
 
+async function clicksBlobStoreActive(env) {
+  const raw = await env.STORE_KV.get(CLICKS_BLOB);
+  return raw !== null && raw !== undefined;
+}
+
 async function saveClicksBlob(env, list) {
   await env.STORE_KV.put(CLICKS_BLOB, JSON.stringify(list), { expirationTtl: CLICK_TTL_SEC });
+}
+
+async function purgeLegacyClickIndex(env, mode) {
+  const ids = await getClicksIndex(env);
+  if (!ids.length) return 0;
+  let removed = 0;
+  const kept = [];
+  for (const id of ids) {
+    const raw = await env.STORE_KV.get('click:' + id);
+    if (!raw) {
+      if (mode === 'all') removed++;
+      continue;
+    }
+    let row;
+    try {
+      row = JSON.parse(raw);
+    } catch {
+      if (mode === 'all') {
+        removed++;
+        await env.STORE_KV.delete('click:' + id).catch(() => {});
+      } else {
+        kept.push(id);
+      }
+      continue;
+    }
+    const drop = mode === 'all' || isTestClick(row);
+    if (drop) {
+      removed++;
+      await env.STORE_KV.delete('click:' + id).catch(() => {});
+    } else {
+      kept.push(id);
+    }
+  }
+  await env.STORE_KV.put(CLICKS_INDEX, JSON.stringify(kept));
+  return removed;
 }
 
 async function appendClickLog(env, entry) {
@@ -4904,43 +4944,35 @@ async function handleAdminClearClicks(request, env, origin) {
   const body = await request.json().catch(() => ({}));
   const mode = body.mode === 'all' ? 'all' : 'tests';
 
-  const blob = await getClicksBlob(env);
-  if (blob) {
-    if (mode === 'all') {
-      await saveClicksBlob(env, []);
-      return json({ ok: true, mode, removed: blob.length, remaining: 0 }, 200, origin);
-    }
-    const kept = blob.filter((row) => !isTestClick(row));
-    const removed = blob.length - kept.length;
-    await saveClicksBlob(env, kept);
-    return json({ ok: true, mode, removed, remaining: kept.length }, 200, origin);
-  }
-
-  const ids = await getClicksIndex(env);
-  const kept = [];
   let removed = 0;
+  let remaining = 0;
+  const blobActive = await clicksBlobStoreActive(env);
 
-  for (const id of ids) {
-    const raw = await env.STORE_KV.get('click:' + id);
-    if (!raw) continue;
-    let row;
-    try {
-      row = JSON.parse(raw);
-    } catch {
-      kept.push(id);
-      continue;
-    }
-    const drop = mode === 'all' || isTestClick(row);
-    if (drop) {
-      removed++;
-      await env.STORE_KV.delete('click:' + id).catch(() => {});
+  if (blobActive) {
+    const list = (await getClicksBlob(env)) || [];
+    if (mode === 'all') {
+      removed += list.length;
+      await saveClicksBlob(env, []);
+      remaining = 0;
     } else {
-      kept.push(id);
+      const kept = list.filter((row) => !isTestClick(row));
+      removed += list.length - kept.length;
+      await saveClicksBlob(env, kept);
+      remaining = kept.length;
     }
   }
 
-  await env.STORE_KV.put(CLICKS_INDEX, JSON.stringify(kept));
-  return json({ ok: true, mode, removed, remaining: kept.length }, 200, origin);
+  removed += await purgeLegacyClickIndex(env, mode);
+
+  if (mode === 'all') {
+    remaining = 0;
+  } else if (blobActive) {
+    remaining = ((await getClicksBlob(env)) || []).length;
+  } else {
+    remaining = (await getClicksIndex(env)).length;
+  }
+
+  return json({ ok: true, mode, removed, remaining }, 200, origin);
 }
 
 async function checkClickRate(env, ip) {
@@ -5047,12 +5079,12 @@ async function handleAdminListClicks(request, env, origin) {
   const tipo = (url.searchParams.get('tipo') || '').trim();
   const limit = Math.min(800, Math.max(20, parseInt(url.searchParams.get('limit') || '400', 10) || 400));
 
-  const blob = await getClicksBlob(env);
+  const blobActive = await clicksBlobStoreActive(env);
   let loaded;
   let total;
-  if (blob?.length) {
-    loaded = blob;
-    total = blob.length;
+  if (blobActive) {
+    loaded = (await getClicksBlob(env)) || [];
+    total = loaded.length;
   } else {
     const ids = await getClicksIndex(env);
     total = ids.length;
