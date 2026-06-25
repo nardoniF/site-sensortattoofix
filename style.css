@@ -513,6 +513,9 @@ nav,
 /* CONTATO */
 .contact-box { background: var(--card); padding: 28px; border-radius: 30px; border: 1px solid #222; text-align: center; max-width: 700px; margin: auto; }
 .contact-box p { color: var(--gray); margin-bottom: 18px; }
+.contact-email { margin-bottom: 22px !important; }
+.contact-email a { color: var(--gold); text-decoration: none; font-weight: 600; }
+.contact-email a:hover { text-decoration: underline; }
 .contact-form { display: flex; flex-direction: column; gap: 14px; }
 .contact-form input, .contact-form textarea { padding: 12px; background: #0a0a0a; border: 1px solid #333; color: white; border-radius: 8px; font-size: 0.95rem; width: 100%; }
 .contact-form button { cursor: pointer; border: none; }

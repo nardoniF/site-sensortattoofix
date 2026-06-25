@@ -151,7 +151,7 @@ const DEFAULT_CONFIG = {
     'Polar Pacer / Ignite',
     'Outro modelo (informar nas observações)'
   ],
-  formsubmit: { email: 'sensortattoofix@gmail.com', subject: 'Novo pedido — Loja Oficial Sensor Tattoo Fix' },
+  formsubmit: { email: 'contato@sensortattoofix.com.br', subject: 'Novo pedido — Loja Oficial Sensor Tattoo Fix' },
   whatsapp: '5511913394665',
   siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev' }
