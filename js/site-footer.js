@@ -6,9 +6,6 @@ window.STF_FOOTER = (function () {
     cnpj: '29.321.223/0001-32',
     patentNational: 'BR 20 2026 010875 3',
     patentInternational: 'PCT BR 2026 050304',
-    email: 'sensortattoofix@gmail.com',
-    whatsapp: '5511913394665',
-    whatsappLabel: '(11) 91339-4665',
     city: 'São Paulo, SP'
   };
 
