@@ -2,6 +2,8 @@
   const VENDA_KEY = 'stf_venda_registrada';
   const LOG_QUEUE_KEY = 'stf_log_queue';
   const LOG_QUEUE_MAX = 40;
+  const LOG_DEDUP_MS = 1200;
+  let ultimoCliqueLink = { href: '', ts: 0 };
 
   const ANCORA_DESTINOS = {
     'onde-comprar': 'menu_comprar',
@@ -379,23 +381,23 @@
 
   function logClickEndpoints() {
     const urls = [];
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/click');
     const host = (location.hostname || '').toLowerCase();
     if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
       urls.push(sameOriginBase() + '/stf-log');
     }
-    const base = apiBaseUrl();
-    if (base) urls.push(base + '/analytics/click');
     return urls;
   }
 
   function logPixelEndpoints() {
     const urls = [];
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/pixel.gif');
     const host = (location.hostname || '').toLowerCase();
     if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
       urls.push(sameOriginBase() + '/stf-log/pixel.gif');
     }
-    const base = apiBaseUrl();
-    if (base) urls.push(base + '/analytics/pixel.gif');
     return urls;
   }
 
@@ -431,31 +433,24 @@
     return fetch(url, opts);
   }
 
-  function tratarRespostaLog(res, payload, fallbacks, json, urgente) {
-    const next = Array.isArray(fallbacks) ? fallbacks : (fallbacks ? [fallbacks] : []);
-    if (!res.ok) {
-      if (next.length) {
-        const [url, ...rest] = next;
-        return postLogJson(url, json, urgente).then((res2) =>
-          tratarRespostaLog(res2, payload, rest, json, urgente)
-        );
-      }
+  function respostaLogOk(res, data) {
+    if (!res || !res.ok) return false;
+    if (data && data.deduped) return true;
+    if (data && (data.dropped || data.retry || data.error === 'storage')) return false;
+    return res.status === 202 || !!(data && data.ok);
+  }
+
+  function enviarLogFetchSequencial(urls, json, payload, idx) {
+    if (!urls[idx]) {
       enfileirarLog(payload);
       return;
     }
-    return res.json().catch(() => ({})).then((data) => {
-      if (data && (data.dropped || data.retry || data.error === 'storage')) enfileirarLog(payload);
-    });
-  }
-
-  function enviarLogBeacon(urls, json) {
-    if (typeof navigator.sendBeacon !== 'function') return;
-    try {
-      const blob = new Blob([json], { type: 'application/json' });
-      urls.forEach((url) => {
-        try { navigator.sendBeacon(url, blob); } catch (_) { /* ignore */ }
-      });
-    } catch (_) { /* ignore */ }
+    postLogJson(urls[idx], json, true)
+      .then((res) => res.json().catch(() => null).then((data) => {
+        if (respostaLogOk(res, data)) return;
+        enviarLogFetchSequencial(urls, json, payload, idx + 1);
+      }))
+      .catch(() => enviarLogFetchSequencial(urls, json, payload, idx + 1));
   }
 
   function enviarLogPayload(body, urgente) {
@@ -463,32 +458,21 @@
     if (!urls.length) return false;
     const payload = Object.assign({}, body, {
       log_key: window.CONFIG_BOOTSTRAP?.clickLogKey || '',
-      client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now())))
+      client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))))
     });
     const json = JSON.stringify(payload);
+    const primary = urls[0];
 
-    if (urgente && typeof navigator.sendBeacon === 'function') {
-      urls.forEach((url) => {
+    if (urgente) {
+      if (primary && typeof navigator.sendBeacon === 'function') {
         try {
-          navigator.sendBeacon(url, new Blob([json], { type: 'application/json' }));
+          navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }));
         } catch (_) { /* ignore */ }
-      });
+      }
+      enviarLogPixel(payload);
     }
 
-    if (urgente) enviarLogPixel(payload);
-
-    postLogJson(urls[0], json, urgente)
-      .then((res) => tratarRespostaLog(res, payload, urls.slice(1), json, urgente))
-      .catch(() => {
-        if (urls.length > 1) {
-          postLogJson(urls[1], json, urgente)
-            .then((res) => tratarRespostaLog(res, payload, urls.slice(2), json, urgente))
-            .catch(() => enfileirarLog(payload));
-        } else {
-          enfileirarLog(payload);
-        }
-      });
-
+    enviarLogFetchSequencial(urls, json, payload, 0);
     return true;
   }
 
@@ -574,7 +558,24 @@
     }
     if (!q.length) return;
     salvarFilaLog([]);
-    q.forEach((body) => enviarLogPayload(body, true));
+    q.forEach((body) => {
+      enviarLogPayload(Object.assign({}, body, {
+        client_event_id: 'q_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)))
+      }), true);
+    });
+  }
+
+  function linkSaiDaPagina(href) {
+    const h = (href || '').trim();
+    if (!h || h === '#') return false;
+    try {
+      const dest = new URL(h, location.href);
+      if (dest.hash && dest.pathname === location.pathname && dest.search === location.search) return false;
+      if (dest.origin !== location.origin) return true;
+      return (dest.pathname + dest.search) !== (location.pathname + location.search);
+    } catch {
+      return true;
+    }
   }
 
   function registrarLog(data) {
@@ -583,7 +584,7 @@
     try {
       const body = montarCorpoLog(data);
       const tipo = body.tipo || 'clique';
-      const saiDaPagina = tipo !== 'pageview' && data.href && !data.href.startsWith('#') && !data.href.includes(location.pathname + '#');
+      const saiDaPagina = tipo !== 'pageview' && linkSaiDaPagina(data.href);
       enviarLogPayload(body, !!saiDaPagina || !!data.urgente || tipo === 'pageview');
     } catch (err) {
       console.warn('stf log:', err);
@@ -612,6 +613,9 @@
     if (!linkRastreavel(link)) return;
     const href = link.getAttribute('href');
     const abs = hrefAbsoluto(href);
+    const now = Date.now();
+    if (ultimoCliqueLink.href === abs && now - ultimoCliqueLink.ts < LOG_DEDUP_MS) return;
+    ultimoCliqueLink = { href: abs, ts: now };
     const payload = payloadBase(link, {
       elemento: 'link',
       href: abs,
@@ -666,6 +670,15 @@
     if (link) trackSecaoLink(link);
   }
 
+  function onLinkClick(e) {
+    if (e.button !== 0 || e.defaultPrevented) return;
+    const link = e.target.closest('a[href]');
+    if (!link || !linkRastreavel(link)) return;
+    const href = link.getAttribute('href');
+    if (!linkUrgenteParaLog(link, href)) return;
+    trackSecaoLink(link);
+  }
+
   function onClickCapture(e) {
     const link = e.target.closest('a[href]');
     if (link) return;
@@ -681,6 +694,7 @@
     registrarPageview();
 
     document.addEventListener('pointerdown', onLinkPointer, true);
+    document.addEventListener('click', onLinkClick, true);
     document.addEventListener('click', onClickCapture, true);
 
     document.addEventListener('toggle', (e) => {
