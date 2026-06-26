@@ -55,105 +55,144 @@ window.STF_ORDER_LABEL = (function () {
     activeSender = senderFromShipping(shipping);
   }
 
-  function destAddress(order) {
+  function destAddressLines(order) {
     if (order.rua || order.cep) {
-      const parts = [];
       const street = [order.rua, order.numero].filter(Boolean).join(', ');
-      if (street) parts.push(street);
-      if (order.complemento) parts.push(order.complemento);
+      const lines = [];
+      if (street) lines.push(street);
+      if (order.complemento) lines.push(order.complemento);
       const district = [order.bairro, order.cidade, order.uf].filter(Boolean).join(' — ');
-      if (district) parts.push(district);
-      if (order.pais) parts.push(order.pais);
-      if (order.cep) parts.push('CEP ' + formatCep(order.cep));
-      return parts.join('\n');
+      if (district) lines.push(district);
+      if (order.pais) lines.push(order.pais);
+      if (order.cep) lines.push('CEP ' + formatCep(order.cep));
+      return lines;
     }
-    return order.endereco || '—';
+    return String(order.endereco || '—').split(/\s*[—–-]\s*|\n/).map((l) => l.trim()).filter(Boolean);
+  }
+
+  function destAddress(order) {
+    const lines = destAddressLines(order);
+    return lines.length ? lines.join('\n') : '—';
   }
 
   function formatBRL(value) {
     return 'R$ ' + Number(value || 0).toFixed(2).replace('.', ',');
   }
 
-  function declarationLines(order) {
-    if (Array.isArray(order.items) && order.items.length) {
-      return order.items.map((item) => {
-        const qty = Math.max(1, Number(item.qty) || 1);
-        const unitWeight = Math.max(1, Math.round(Number(item.weightGrams) || 3));
-        return {
-          name: String(item.name || 'Produto').slice(0, 42),
-          qty,
-          weight: unitWeight * qty,
-          value: (Number(item.price) || 0) * qty
-        };
-      });
-    }
-    const name = order.produto || 'Kit lente ótica smartwatch Sensor Tattoo Fix';
-    const qty = 1;
-    const weight = 3;
-    return [{
-      name: String(name).slice(0, 42),
-      qty,
-      weight,
-      value: Number(order.valorProduto) || 0
-    }];
+  function shippingKind(order) {
+    const provider = String(order.shippingProvider || '').toLowerCase();
+    const service = String(order.shippingService || '').toLowerCase();
+    if (provider === 'motoboy' || service.includes('motoboy') || service.includes('particular')) return 'motoboy';
+    if (provider === 'uber' || service.includes('uber')) return 'uber';
+    return 'correios';
   }
 
-  function contentDeclarationHtml(order) {
-    const lines = declarationLines(order);
-    const totalWeight = lines.reduce((sum, row) => sum + row.weight, 0);
-    const totalValue = lines.reduce((sum, row) => sum + row.value, 0);
-    const rows = lines.map((row) => `
-        <tr>
-          <td>${esc(row.name)}</td>
-          <td>${row.qty}</td>
-          <td>${row.weight} g</td>
-          <td>${esc(formatBRL(row.value))}</td>
-        </tr>`).join('');
+  function shippingLabel(order) {
+    if (order.shippingService) return order.shippingService;
+    const kind = shippingKind(order);
+    if (kind === 'motoboy') return 'Envio particular (motoboy)';
+    if (kind === 'uber') return 'Uber Direct';
+    return getSender().service;
+  }
+
+  function declarationTotals(order) {
+    let totalWeight = 0;
+    let totalValue = Number(order.valorProduto) || 0;
+    if (Array.isArray(order.items) && order.items.length) {
+      totalWeight = order.items.reduce((sum, item) => {
+        const qty = Math.max(1, Number(item.qty) || 1);
+        const unitWeight = Math.max(1, Math.round(Number(item.weightGrams) || 3));
+        return sum + unitWeight * qty;
+      }, 0);
+      totalValue = order.items.reduce((sum, item) => {
+        const qty = Math.max(1, Number(item.qty) || 1);
+        return sum + (Number(item.price) || 0) * qty;
+      }, 0);
+    } else {
+      totalWeight = Math.max(3, Math.round(totalWeight) || 3);
+    }
+    return { totalWeight, totalValue };
+  }
+
+  /** DACE resumida — estilo Mercado Livre: remetente, destinatário, totais, texto legal. Sem lista de itens. */
+  function daceResumidaHtml(order, SENDER) {
+    const { totalWeight, totalValue } = declarationTotals(order);
+    const created = order.createdAt
+      ? new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+      : new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const destLines = destAddressLines(order);
 
     return `
-    <div class="block dc-block">
-      <div class="block-title">Declaração de conteúdo</div>
-      <table class="dc-table">
-        <thead>
-          <tr>
-            <th>Conteúdo</th>
-            <th>Qtd</th>
-            <th>Peso</th>
-            <th>Valor</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div class="dc-totals">
-        <span><strong>Peso total:</strong> ${totalWeight} g</span>
-        <span><strong>Valor total:</strong> ${esc(formatBRL(totalValue))}</span>
+    <div class="label label-dace page-break">
+      <div class="dace-head">
+        <div class="dace-title">Declaração auxiliar de conteúdo</div>
+        <div class="dace-sub">DACE resumida · Transporte pelos Correios</div>
       </div>
-      <p class="dc-decl">
-        Declaro verdadeiras as informações acima e que o conteúdo não é restrito ou proibido pelos Correios.
-        Mercadoria sem valor comercial para o destinatário ou isenta de NF conforme legislação vigente.
+      <div class="dace-meta">
+        <span><strong>Pedido:</strong> ${esc(order.orderId)}</span>
+        <span><strong>Emissão:</strong> ${esc(created)}</span>
+      </div>
+
+      <div class="dace-party">
+        <div class="block-title">Remetente</div>
+        <strong>${esc(SENDER.company)}</strong><br>
+        CNPJ ${esc(SENDER.cnpj)}<br>
+        ${esc(SENDER.street)}<br>
+        ${esc(SENDER.district)}, ${esc(SENDER.city)}<br>
+        CEP ${esc(SENDER.cep)}
+      </div>
+
+      <div class="dace-party">
+        <div class="block-title">Destinatário</div>
+        <strong>${esc(order.nome)}</strong><br>
+        ${destLines.map((l) => esc(l)).join('<br>')}
+      </div>
+
+      <div class="dace-summary">
+        <div><strong>Natureza:</strong> Mercadoria (e-commerce)</div>
+        <div><strong>Peso total:</strong> ${totalWeight} g</div>
+        <div><strong>Valor declarado:</strong> ${esc(formatBRL(totalValue))}</div>
+        <div><strong>Modalidade:</strong> ${esc(shippingLabel(order))}</div>
+      </div>
+
+      <p class="dace-legal">
+        Declaro, para fins de fiscalização e postagem, que as informações acima são verdadeiras,
+        que o conteúdo não é restrito ou proibido pelos Correios e que a mercadoria foi adquirida
+        por meio eletrônico (loja oficial Sensor Tattoo Fix). O destinatário é o comprador indicado.
+        Documento auxiliar — não substitui Nota Fiscal quando exigida por lei.
       </p>
+
+      <div class="dace-foot">${esc(order.orderId)} · sensortattoofix.com.br</div>
     </div>`;
   }
 
-  function labelHtml(order) {
-    const SENDER = getSender();
-    const addr = destAddress(order).split('\n').map((l) => esc(l)).join('<br>');
-    const obs = String(order.observacoes || '').trim();
-    const created = order.createdAt
-      ? new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-      : '';
+  function privateCourierBlockHtml(order) {
+    const kind = shippingKind(order);
+    const title = kind === 'uber' ? 'Entrega Uber Direct' : 'Entrega particular (motoboy)';
+    const tel = String(order.telefone || '').trim();
+    return `
+    <div class="block private-courier-block">
+      <div class="block-title">${title}</div>
+      <p class="private-courier-lead">Pedido <strong>${esc(order.orderId)}</strong></p>
+      <p>Entregar <strong>somente</strong> a ${esc(order.nome)}.</p>
+      ${tel ? `<p>Tel. destinatário: ${esc(tel)}</p>` : ''}
+      <p class="private-courier-note">Sem declaração de conteúdo — envio direto, não é Correios.</p>
+    </div>`;
+  }
 
-    return `<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8">
-  <title>Etiqueta ${esc(order.orderId)}</title>
-  <style>
+  function footerNote(order) {
+    const kind = shippingKind(order);
+    const service = shippingLabel(order);
+    if (kind === 'motoboy') return `Envio particular · ${esc(service)} · sensortattoofix.com.br`;
+    if (kind === 'uber') return `Uber Direct · sensortattoofix.com.br`;
+    return `Correios · ${esc(service)} · sensortattoofix.com.br`;
+  }
+
+  function labelStyles() {
+    return `
     @page { size: 100mm 150mm; margin: 0; }
     * { box-sizing: border-box; }
     html, body {
-      width: 100mm;
-      height: 150mm;
       margin: 0;
       padding: 0;
       font-family: Arial, Helvetica, sans-serif;
@@ -169,7 +208,10 @@ window.STF_ORDER_LABEL = (function () {
       gap: 2mm;
       font-size: 8.5pt;
       line-height: 1.2;
+      page-break-after: always;
     }
+    .label:last-child { page-break-after: auto; }
+    .page-break { break-before: page; page-break-before: always; }
     .brand {
       text-align: center;
       font-weight: 900;
@@ -193,55 +235,9 @@ window.STF_ORDER_LABEL = (function () {
       margin-bottom: 1mm;
       word-break: break-word;
     }
-    .dc-block {
-      padding: 2mm;
-      font-size: 7pt;
-      line-height: 1.2;
-    }
-    .dc-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 6.5pt;
-      margin-top: 1mm;
-    }
-    .dc-table th,
-    .dc-table td {
-      border: 1px solid #000;
-      padding: 0.8mm 1mm;
-      vertical-align: top;
-      text-align: left;
-    }
-    .dc-table th {
-      font-size: 6pt;
-      text-transform: uppercase;
-      font-weight: 800;
-    }
-    .dc-table td:nth-child(2),
-    .dc-table td:nth-child(3),
-    .dc-table th:nth-child(2),
-    .dc-table th:nth-child(3) {
-      width: 9mm;
-      white-space: nowrap;
-    }
-    .dc-table td:nth-child(4),
-    .dc-table th:nth-child(4) {
-      width: 16mm;
-      white-space: nowrap;
-    }
-    .dc-totals {
-      display: flex;
-      justify-content: space-between;
-      gap: 2mm;
-      margin-top: 1.5mm;
-      font-size: 6.5pt;
-      font-weight: 700;
-    }
-    .dc-decl {
-      margin: 1.5mm 0 0;
-      font-size: 5.8pt;
-      line-height: 1.2;
-      text-align: justify;
-    }
+    .private-courier-block { font-size: 8pt; line-height: 1.25; }
+    .private-courier-lead { margin: 0 0 1mm; }
+    .private-courier-note { margin: 1.5mm 0 0; font-size: 6.5pt; color: #333; }
     .meta-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -263,15 +259,75 @@ window.STF_ORDER_LABEL = (function () {
       border-top: 1px dashed #000;
       padding-top: 2mm;
     }
+    .label-dace { font-size: 7.5pt; line-height: 1.22; }
+    .dace-head { text-align: center; border-bottom: 1px solid #000; padding-bottom: 2mm; margin-bottom: 1mm; }
+    .dace-title { font-size: 9pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; }
+    .dace-sub { font-size: 6.5pt; margin-top: 1mm; color: #333; }
+    .dace-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 2mm;
+      font-size: 6.5pt;
+      border: 1px solid #000;
+      padding: 1.5mm 2mm;
+    }
+    .dace-party {
+      border: 1px solid #000;
+      padding: 2mm;
+      font-size: 7pt;
+      line-height: 1.2;
+    }
+    .dace-summary {
+      border: 1px solid #000;
+      padding: 2mm;
+      font-size: 7pt;
+      line-height: 1.35;
+      display: grid;
+      gap: 1mm;
+    }
+    .dace-legal {
+      margin: 0;
+      font-size: 5.8pt;
+      line-height: 1.25;
+      text-align: justify;
+      flex: 1;
+    }
+    .dace-foot {
+      margin-top: auto;
+      text-align: center;
+      font-size: 6.5pt;
+      font-family: 'Courier New', monospace;
+      border-top: 1px dashed #000;
+      padding-top: 2mm;
+    }
     @media screen {
-      body { background: #ddd; display: flex; justify-content: center; padding: 16px; }
-      .label { box-shadow: 0 2px 12px rgba(0,0,0,.2); }
+      body { background: #ddd; display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 16px; }
+      .label { box-shadow: 0 2px 12px rgba(0,0,0,.2); background: #fff; }
     }
     @media print {
       body { background: #fff; }
       .no-print { display: none !important; }
-    }
-  </style>
+    }`;
+  }
+
+  function labelHtml(order) {
+    const SENDER = getSender();
+    const kind = shippingKind(order);
+    const shipLabel = shippingLabel(order);
+    const addr = destAddress(order).split('\n').map((l) => esc(l)).join('<br>');
+    const obs = String(order.observacoes || '').trim();
+    const created = order.createdAt
+      ? new Date(order.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+      : '';
+    const middleBlock = kind === 'correios' ? '' : privateCourierBlockHtml(order);
+    const dacePage = kind === 'correios' ? daceResumidaHtml(order, SENDER) : '';
+
+    return `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Etiqueta ${esc(order.orderId)}</title>
+  <style>${labelStyles()}</style>
 </head>
 <body>
   <div class="label">
@@ -288,25 +344,27 @@ window.STF_ORDER_LABEL = (function () {
       CEP ${esc(SENDER.cep)}
     </div>
 
-    <div class="block" style="flex:0.85">
+    <div class="block" style="flex:1">
       <div class="block-title">Destinatário</div>
       <div class="dest-name">${esc(order.nome)}</div>
       <div style="margin-top:1.5mm;font-size:8.5pt">${addr}</div>
     </div>
 
-    ${contentDeclarationHtml(order)}
+    ${middleBlock}
 
     <div class="block">
       <div class="meta-grid">
         <div><strong>Pedido</strong><span class="order-id">${esc(order.orderId)}</span></div>
-        <div><strong>Envio</strong>${esc(order.shippingService || SENDER.service)}</div>
+        <div><strong>Envio</strong>${esc(shipLabel)}</div>
       </div>
       ${obs ? `<div style="margin-top:2mm;font-size:8pt"><strong>Obs:</strong> ${esc(obs)}</div>` : ''}
       ${created ? `<div style="margin-top:1.5mm;font-size:7.5pt;color:#333">Pedido em ${esc(created)}</div>` : ''}
+      ${kind === 'correios' ? '<div style="margin-top:1.5mm;font-size:6.5pt;color:#333">Página 1 — Etiqueta de endereço · DACE na página seguinte</div>' : ''}
     </div>
 
-    <div class="footer-note">Correios — ${esc(order.shippingService || SENDER.service)} · sensortattoofix.com.br</div>
+    <div class="footer-note">${footerNote(order)}</div>
   </div>
+  ${dacePage}
   <script>
     window.addEventListener('load', function () {
       setTimeout(function () { window.print(); }, 250);
