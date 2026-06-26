@@ -278,6 +278,18 @@
   }
 
   function humanizarDestino(destino) {
+    if (destino && destino.startsWith('entrada_')) {
+      const slug = destino.replace(/^entrada_/, '').replace(/_/g, ' ');
+      const map = {
+        home: 'Entrada — Home',
+        'home en': 'Entrada — Home EN',
+        loja: 'Entrada — Loja',
+        checkout: 'Entrada — Checkout',
+        'onde comprar': 'Entrada — Onde comprar',
+        'minha conta': 'Entrada — Minha conta'
+      };
+      return map[slug] || ('Entrada — ' + slug.replace(/\b\w/g, (c) => c.toUpperCase()));
+    }
     const map = {
       pageview: 'Entrada na página',
       mercado_livre: 'Mercado Livre',
@@ -604,9 +616,45 @@
     }
   }
 
+  function classificarEntradaPagina() {
+    const path = location.pathname.replace(/\\/g, '/').toLowerCase();
+    const parts = path.split('/').filter(Boolean);
+    const file = parts[parts.length - 1] || 'index.html';
+    const isEn = parts.includes('en');
+
+    if (isEn && (file === 'index.html' || parts[parts.length - 1] === 'en')) {
+      return { slug: 'home_en', rotulo: 'Entrada — Home EN' };
+    }
+    if (file === 'index.html' || path.endsWith('/') || !file.includes('.')) {
+      return { slug: 'home', rotulo: 'Entrada — Home' };
+    }
+    if (file.includes('loja')) return { slug: 'loja', rotulo: 'Entrada — Loja' };
+    if (file.includes('comprar')) return { slug: 'checkout', rotulo: 'Entrada — Checkout' };
+    if (file.includes('onde-comprar')) return { slug: 'onde_comprar', rotulo: 'Entrada — Onde comprar' };
+    if (file.includes('minha-conta')) return { slug: 'minha_conta', rotulo: 'Entrada — Minha conta' };
+    const base = file.replace(/\.html$/i, '').replace(/[^a-z0-9_-]/gi, '_') || 'pagina';
+    return { slug: base, rotulo: 'Entrada — ' + base.replace(/_/g, ' ') };
+  }
+
   function registrarPageview() {
-    /* Só registramos cliques explícitos — pageview automático gerava
-       "Entrada na página" + título fixo da aba e confundia com o clique real. */
+    const pathKey = location.pathname + location.search;
+    const storageKey = 'stf_entrada:' + pathKey;
+    try {
+      if (sessionStorage.getItem(storageKey)) return;
+      sessionStorage.setItem(storageKey, '1');
+    } catch (_) { /* ignore */ }
+
+    const { slug, rotulo } = classificarEntradaPagina();
+    registrarLog({
+      tipo: 'pageview',
+      elemento: 'entrada',
+      destino: 'entrada_' + slug,
+      secao: slug,
+      rotulo,
+      href: location.href,
+      pagina: pathKey,
+      titulo_pagina: document.title || ''
+    });
   }
 
   function linkUrgenteParaLog(link, href) {

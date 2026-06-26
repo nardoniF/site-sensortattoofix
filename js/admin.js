@@ -605,6 +605,12 @@
 
   const CLICK_DESTINO_LABELS = {
     pageview: 'Entrada',
+    entrada_home: 'Entrada — Home',
+    entrada_home_en: 'Entrada — Home EN',
+    entrada_loja: 'Entrada — Loja',
+    entrada_checkout: 'Entrada — Checkout',
+    entrada_onde_comprar: 'Entrada — Onde comprar',
+    entrada_minha_conta: 'Entrada — Minha conta',
     mercado_livre: 'Mercado Livre',
     shopee: 'Shopee',
     amazon: 'Amazon',
@@ -653,7 +659,9 @@
   }
 
   function clickDestinoKey(c) {
-    if (c.tipo === 'pageview' || c.destino === 'pageview') return 'pageview';
+    if (c.tipo === 'pageview' || String(c.destino || '').startsWith('entrada_')) {
+      return c.destino || 'pageview';
+    }
     return c.destino || 'outro';
   }
 
@@ -679,9 +687,10 @@
       const d = clickDestinoKey(c);
       totals[d] = (totals[d] || 0) + 1;
     });
+    const isEntrada = (d) => d === 'pageview' || String(d).startsWith('entrada_');
     return [...destinos].sort((a, b) => {
-      if (a === 'pageview') return -1;
-      if (b === 'pageview') return 1;
+      if (isEntrada(a) && !isEntrada(b)) return -1;
+      if (!isEntrada(a) && isEntrada(b)) return 1;
       return (totals[b] || 0) - (totals[a] || 0);
     });
   }
@@ -942,10 +951,11 @@
   function renderClickStep(c, idx) {
     const destKey = c.destino || 'outro';
     const destFallback = c.destino_label || clickDestinoLabel(destKey);
-    const dest = (c.rotulo && destKey !== 'pageview') ? c.rotulo : destFallback;
-    const detalhe = (c.rotulo && destKey !== 'pageview' && c.rotulo !== destFallback)
+    const isEntrada = c.tipo === 'pageview' || String(destKey).startsWith('entrada_');
+    const dest = (c.rotulo && !isEntrada) ? c.rotulo : destFallback;
+    const detalhe = (c.rotulo && !isEntrada && c.rotulo !== destFallback)
       ? destFallback
-      : (c.secao_label || '');
+      : (c.secao_label || c.pagina || '');
     const hora = formatClickTime(c.ts);
     const seq = c.sequencia || idx + 1;
     const tip = [
@@ -1163,7 +1173,8 @@
     try {
       const params = new URLSearchParams({ limit: '400' });
       if (q) params.set('q', q);
-      if (destino) params.set('destino', destino);
+      if (destino === 'pageview') params.set('tipo', 'pageview');
+      else if (destino) params.set('destino', destino);
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'

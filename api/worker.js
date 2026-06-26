@@ -5094,7 +5094,9 @@ async function handleAdminListClicks(request, env, origin) {
 
   const clicks = [];
   for (const row of loaded) {
-    if (destino && row.destino !== destino) continue;
+    if (destino === 'pageview') {
+      if (row.tipo !== 'pageview') continue;
+    } else if (destino && row.destino !== destino) continue;
     if (tipo && row.tipo !== tipo) continue;
     if (q) {
       const hay = [

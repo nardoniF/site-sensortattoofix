@@ -2305,7 +2305,13 @@ body.admin-page.admin-login-only #admin-login {
 .admin-click-dest--tiktok_shop,
 .admin-click-dest--tiktok { background: #1a1a1a; color: #fff; }
 .admin-click-dest--instagram { background: #2a1020; color: #e1306c; }
-.admin-click-dest--pageview { background: #0d2818; color: #6fcf97; }
+.admin-click-dest--pageview,
+.admin-click-dest--entrada_home,
+.admin-click-dest--entrada_home_en,
+.admin-click-dest--entrada_loja,
+.admin-click-dest--entrada_checkout,
+.admin-click-dest--entrada_onde_comprar,
+.admin-click-dest--entrada_minha_conta { background: #0d2818; color: #6fcf97; }
 .admin-click-dest--loja_oficial { background: #1a0d2a; color: #c77dff; }
 .clicks-tree-root {
     border: 1px solid #2a2a2a;
