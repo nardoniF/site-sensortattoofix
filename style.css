@@ -2446,6 +2446,26 @@ body.admin-page.admin-login-only #admin-login {
 }
 .clicks-tree-step-time { color: #777; font-variant-numeric: tabular-nums; }
 .clicks-tree-step-label { color: #ccc; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clicks-tree-step-origem {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    width: fit-content;
+    max-width: 100%;
+}
+.clicks-origem--google_ads { background: rgba(66, 133, 244, 0.18); color: #8ab4f8; }
+.clicks-origem--google_organico { background: rgba(129, 201, 149, 0.15); color: #81c995; }
+.clicks-origem--instagram { background: rgba(225, 48, 108, 0.18); color: #f48fb1; }
+.clicks-origem--facebook,
+.clicks-origem--facebook_ads { background: rgba(24, 119, 242, 0.18); color: #82b1ff; }
+.clicks-origem--tiktok { background: rgba(255, 255, 255, 0.1); color: #eee; }
+.clicks-origem--bing_ads { background: rgba(0, 164, 239, 0.15); color: #4fc3f7; }
+.clicks-origem--referral { background: rgba(255, 193, 7, 0.12); color: #ffd54f; }
+.clicks-origem--direto { background: rgba(255, 255, 255, 0.06); color: #999; }
+.clicks-origem--site { background: rgba(255, 107, 53, 0.15); color: var(--primary); }
 @media (max-width: 640px) {
     .clicks-tree-step {
         grid-template-columns: 24px 1fr;

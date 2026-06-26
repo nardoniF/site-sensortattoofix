@@ -278,7 +278,7 @@
     if (!list) return;
     const rows = Array.isArray(coupons) ? coupons : [];
     if (!rows.length) {
-      list.innerHTML = '<p class="admin-meta">Nenhum cupom cadastrado. Adicione código, percentual e e-mail do comissionado.</p>';
+      list.innerHTML = '<p class="admin-meta">Nenhum cupom cadastrado. Adicione código, desconto, comissão e e-mail do comissionado.</p>';
       return;
     }
     list.innerHTML = rows.map((c, i) => `
@@ -297,8 +297,11 @@
           <label>E-mail do comissionado
             <input type="email" data-field="email" value="${escAttr(c.email || '')}" placeholder="maria@email.com">
           </label>
-          <label>Desconto (%)
+          <label>Desconto ao cliente (%)
             <input type="number" data-field="percent" min="0" max="100" step="0.01" value="${escAttr(c.percent ?? 10)}">
+          </label>
+          <label>Comissão do comissionado (%)
+            <input type="number" data-field="commissionPercent" min="0" max="100" step="0.01" value="${escAttr(c.commissionPercent ?? 10)}">
           </label>
           <input type="hidden" data-field="id" value="${escAttr(c.id || `coupon-${i + 1}`)}">
         </div>
@@ -327,13 +330,15 @@
       };
       const code = String(val('code') || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
       const percent = Math.min(100, Math.max(0, parseFloat(val('percent')) || 0));
+      const commissionPercent = Math.min(100, Math.max(0, parseFloat(val('commissionPercent')) || 0));
       return {
         id: String(val('id') || `coupon-${i + 1}`).trim(),
         active: val('active') !== false,
         code,
         name: String(val('name') || '').trim(),
         email: String(val('email') || '').trim().toLowerCase(),
-        percent
+        percent,
+        commissionPercent
       };
     }).filter((c) => c.code || c.email || c.name);
   }
@@ -1013,29 +1018,98 @@
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
+  function inferirOrigemDeUrl(pagina) {
+    const raw = String(pagina || '');
+    if (!raw.includes('?')) return '';
+    try {
+      const qs = raw.startsWith('?') ? raw : raw.slice(raw.indexOf('?'));
+      const params = new URLSearchParams(qs);
+      if (
+        params.has('gclid') || params.has('gbraid') || params.has('wbraid') ||
+        params.has('gad_source') || params.has('gad_campaignid')
+      ) return 'Google Ads';
+      if (params.has('fbclid')) return 'Facebook Ads';
+      if (params.has('msclkid')) return 'Microsoft Ads';
+      const src = (params.get('utm_source') || '').toLowerCase();
+      const med = (params.get('utm_medium') || '').toLowerCase();
+      if (src === 'instagram' || med === 'instagram') return 'Instagram';
+      if (src === 'facebook' || src === 'fb') return 'Facebook';
+      if (src === 'tiktok') return 'TikTok';
+      if (src === 'google' || med === 'cpc') return 'Google Ads';
+      if (src) return src.replace(/_/g, ' ');
+    } catch {
+      return '';
+    }
+    return '';
+  }
+
+  function humanizarPaginaLog(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    const pathOnly = s.split('?')[0].split('#')[0] || '/';
+    const norm = pathOnly.replace(/\\/g, '/').toLowerCase();
+    if (norm === '/' || norm.endsWith('/index.html') || norm === '/en' || norm.endsWith('/en/')) {
+      return norm.includes('/en') ? 'Home EN' : 'Home';
+    }
+    const file = norm.split('/').filter(Boolean).pop()?.replace(/\.html$/i, '') || '';
+    const map = {
+      loja: 'Loja',
+      comprar: 'Checkout',
+      'onde-comprar': 'Onde comprar',
+      'minha-conta': 'Minha conta'
+    };
+    if (map[file]) return map[file];
+    return file.replace(/[-_]/g, ' ') || pathOnly;
+  }
+
+  function clickOrigemLegivel(c) {
+    if (c.origem_trafego_label && c.origem_trafego_label !== 'Acesso direto') {
+      return { label: c.origem_trafego_label, slug: c.origem_trafego || 'outro' };
+    }
+    const inferred = inferirOrigemDeUrl(c.pagina);
+    if (inferred) {
+      const slug = inferred.toLowerCase().replace(/\s+/g, '_');
+      return { label: inferred, slug };
+    }
+    const ref = String(c.referrer || '').trim();
+    if (ref && ref !== '(direto)' && ref !== '—') {
+      return { label: ref, slug: 'referral' };
+    }
+    return { label: 'Acesso direto', slug: 'direto' };
+  }
+
   function renderClickStep(c, idx) {
     const destKey = c.destino || 'outro';
     const destFallback = c.destino_label || clickDestinoLabel(destKey);
     const isEntrada = c.tipo === 'pageview' || String(destKey).startsWith('entrada_');
     const dest = (c.rotulo && !isEntrada) ? c.rotulo : destFallback;
-    const detalhe = (c.rotulo && !isEntrada && c.rotulo !== destFallback)
-      ? destFallback
-      : (c.secao_label || c.pagina || '');
+    const origem = clickOrigemLegivel(c);
+    let detalhe = '';
+    if (isEntrada) {
+      detalhe = origem.label;
+    } else if (c.rotulo && c.rotulo !== destFallback) {
+      detalhe = c.secao_label || humanizarPaginaLog(c.pagina) || c.pagina || '—';
+    } else {
+      detalhe = c.secao_label || humanizarPaginaLog(c.pagina) || '—';
+    }
     const hora = formatClickTime(c.ts);
     const seq = c.sequencia || idx + 1;
-    const tip = [
-      c.origem_trafego_label,
-      c.utm_source && `utm: ${c.utm_source}`,
-      c.pagina,
+    const tipParts = [
+      isEntrada ? `Origem: ${origem.label}` : null,
+      c.utm_campaign && `Campanha: ${c.utm_campaign}`,
+      c.utm_source && `utm_source: ${c.utm_source}`,
+      c.utm_medium && `utm_medium: ${c.utm_medium}`,
+      c.pagina && humanizarPaginaLog(c.pagina) !== c.pagina ? `Página: ${humanizarPaginaLog(c.pagina)}` : null,
       c.secao_label,
       c.dispositivo,
-      c.referrer
-    ].filter(Boolean).join(' · ');
-    return `<li class="clicks-tree-step" title="${escapeHtml(tip)}">
+      c.referrer && c.referrer !== origem.label ? `Referrer: ${c.referrer}` : null
+    ].filter(Boolean);
+    const origemClass = isEntrada ? ` clicks-tree-step-origem clicks-origem--${escapeHtml(origem.slug || 'outro')}` : '';
+    return `<li class="clicks-tree-step" title="${escapeHtml(tipParts.join(' · '))}">
       <span class="clicks-tree-step-num">${seq}</span>
       <span class="clicks-tree-step-time">${escapeHtml(hora)}</span>
       <span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(dest)}</span>
-      <span class="clicks-tree-step-label">${escapeHtml(detalhe || c.pagina || '—')}</span>
+      <span class="clicks-tree-step-label${origemClass}">${escapeHtml(detalhe || '—')}</span>
     </li>`;
   }
 
@@ -2194,7 +2268,8 @@
       code: '',
       name: '',
       email: '',
-      percent: 10
+      percent: 10,
+      commissionPercent: 10
     });
     renderCoupons(coupons);
   });

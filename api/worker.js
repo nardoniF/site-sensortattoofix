@@ -492,21 +492,37 @@ function computeCouponDiscount(valorProduto, percent) {
   return { percent: pct, discount: Math.min(discount, base) };
 }
 
+function computeCouponCommission(valorProduto, commissionPercent) {
+  const pct = Math.min(100, Math.max(0, Number(commissionPercent) || 0));
+  const base = Math.max(0, Number(valorProduto) || 0);
+  const amount = Math.round(base * pct / 100 * 100) / 100;
+  return { percent: pct, amount: Math.min(amount, base) };
+}
+
 function orderCouponEmailFields(order) {
   if (!order?.couponCode) return {};
-  return {
+  const fields = {
     Cupom: order.couponCode,
     Comissionado: order.couponCommissionerName || order.couponCommissionerEmail || '—',
     'Desconto cupom': formatBRL(order.couponDiscount || 0)
   };
+  if (order.couponCommissionPercent != null) {
+    fields['Comissão (%)'] = `${order.couponCommissionPercent}%`;
+  }
+  if (order.couponCommissionAmount != null) {
+    fields['Comissão a pagar'] = formatBRL(order.couponCommissionAmount);
+  }
+  return fields;
 }
 
-async function notifyCouponCommissioner(env, config, order) {
+async function notifyCouponCommissioner(env, config, order, { confirmed = false } = {}) {
   const to = String(order.couponCommissionerEmail || '').trim().toLowerCase();
   if (!to) return { ok: true, skipped: true };
 
   const adminUrl = `${(config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '')}/pedidos.html`;
-  const subject = 'Você acabou de vender com seu cupom — Sensor Tattoo Fix';
+  const subject = confirmed
+    ? `Comissão confirmada — ${formatBRL(order.couponCommissionAmount || 0)} — Sensor Tattoo Fix`
+    : 'Você acabou de vender com seu cupom — Sensor Tattoo Fix';
   const fields = {
     Comissionado: order.couponCommissionerName || to,
     Cupom: order.couponCode,
@@ -514,12 +530,19 @@ async function notifyCouponCommissioner(env, config, order) {
     Cliente: order.nome,
     'E-mail cliente': order.email,
     Produto: order.produto,
+    'Valor do produto': formatBRL(order.valorProduto),
     'Desconto aplicado': formatBRL(order.couponDiscount || 0),
     'Total do pedido': formatBRL(order.total),
     Status: order.status === 'paid' ? 'Pago' : 'Aguardando pagamento',
     'Painel pedidos': adminUrl,
     ...orderWatchEmailFields(order)
   };
+  if (order.couponCommissionPercent != null) {
+    fields['Sua comissão (%)'] = `${order.couponCommissionPercent}%`;
+  }
+  if (order.couponCommissionAmount != null) {
+    fields[confirmed ? 'Comissão confirmada' : 'Comissão desta venda'] = formatBRL(order.couponCommissionAmount);
+  }
   const res = await notifyEmail(env, config, to, subject, fields, config.formsubmit?.email);
   if (!res.ok) console.error('E-mail comissionado cupom:', to, JSON.stringify(res));
   return res;
@@ -1688,7 +1711,9 @@ function buildIndexEntry(order) {
     couponCode: order.couponCode || null,
     couponCommissionerName: order.couponCommissionerName || null,
     couponCommissionerEmail: order.couponCommissionerEmail || null,
-    couponDiscount: order.couponDiscount ?? null
+    couponDiscount: order.couponDiscount ?? null,
+    couponCommissionPercent: order.couponCommissionPercent ?? null,
+    couponCommissionAmount: order.couponCommissionAmount ?? null
   };
 }
 
@@ -4203,6 +4228,16 @@ async function handleCreateOrder(request, env, origin, ctx) {
     couponDiscount = computeCouponDiscount(valorProdutoBruto, couponRecord.percent).discount;
   }
   const valorProduto = Math.max(0, valorProdutoBruto - couponDiscount);
+  let couponCommissionPercent = 0;
+  let couponCommissionAmount = 0;
+  if (couponRecord) {
+    const commPct = couponRecord.commissionPercent == null || couponRecord.commissionPercent === ''
+      ? 10
+      : Number(couponRecord.commissionPercent) || 0;
+    const comm = computeCouponCommission(valorProduto, commPct);
+    couponCommissionPercent = comm.percent;
+    couponCommissionAmount = comm.amount;
+  }
   const isIntl = (body.paisCode || 'BR') !== 'BR';
   const uberMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
     (m) => isUberMethod(m) && (m.id === body.shippingMethodId || body.shippingProvider === 'uber')
@@ -4327,6 +4362,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
     couponCommissionerName: couponRecord
       ? (String(couponRecord.name || '').trim() || normalizeCouponCode(couponRecord.code))
       : undefined,
+    couponCommissionPercent: couponRecord ? couponCommissionPercent : undefined,
+    couponCommissionAmount: couponRecord ? couponCommissionAmount : undefined,
     frete,
     total: valorProduto + frete,
     shippingService: body.shippingService || 'Mini Envios',
@@ -4594,6 +4631,11 @@ async function handlePaymentConfirmed(env, order, payment) {
     ...orderWatchEmailFields(order),
     ...orderIntlProductFields(order)
   });
+
+  if (order.couponCommissionerEmail && order.couponCommissionAmount != null) {
+    const commissionerPaid = await notifyCouponCommissioner(env, config, order, { confirmed: true });
+    if (!commissionerPaid?.ok) console.error('E-mail comissão confirmada falhou:', JSON.stringify(commissionerPaid));
+  }
 
   await notifyWhatsApp(env, config, order, 'paid');
   await trackGa4Purchase(env, order, payment);
@@ -5406,9 +5448,9 @@ async function handleListOrders(request, env, origin) {
   const indexForExport = index.length ? index : await rebuildOrdersIndexFromKv(env);
 
   if (format === 'csv') {
-    const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,observacoes,modeloRelogio,pais,pagamento,total,frete,couponCode,couponCommissionerName,couponDiscount\n';
+    const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,observacoes,modeloRelogio,pais,pagamento,total,frete,couponCode,couponCommissionerName,couponDiscount,couponCommissionPercent,couponCommissionAmount\n';
     const rows = indexForExport.map((o) =>
-      [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais, o.pagamento, o.total, o.frete, o.couponCode, o.couponCommissionerName, o.couponDiscount]
+      [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais, o.pagamento, o.total, o.frete, o.couponCode, o.couponCommissionerName, o.couponDiscount, o.couponCommissionPercent, o.couponCommissionAmount]
         .map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')
     ).join('\n');
     return new Response(header + rows, {

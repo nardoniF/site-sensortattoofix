@@ -170,7 +170,7 @@
     return Object.assign({
       secao: detectarSecao(el),
       rotulo: rotuloElemento(el),
-      pagina: location.pathname + location.search,
+      pagina: location.pathname || '/',
       titulo_pagina: document.title || '',
       idioma: document.documentElement.lang || 'pt-br',
       evento_legado: el.getAttribute('data-evento') || ''
@@ -241,11 +241,18 @@
 
     if (
       params.has('gclid') || params.has('gbraid') || params.has('wbraid') ||
+      params.has('gad_source') || params.has('gad_campaignid') ||
       src === 'google' || src === 'google_ads' || src === 'adwords' ||
       med === 'cpc' || med === 'ppc' || med === 'paid' || med === 'paidsearch'
     ) {
       origem = 'google_ads';
       label = 'Google Ads';
+    } else if (params.has('fbclid') || src === 'facebook' || src === 'fb' || med === 'paid_social') {
+      origem = 'facebook_ads';
+      label = 'Facebook Ads';
+    } else if (params.has('msclkid') || src === 'bing') {
+      origem = 'bing_ads';
+      label = 'Microsoft Ads';
     } else if (src === 'sensortattoofix' || med === 'site') {
       origem = 'site';
       label = 'Site';
@@ -271,7 +278,7 @@
       origem_trafego_label: label,
       utm_source: normalizarTexto(params.get('utm_source') || ''),
       utm_medium: normalizarTexto(params.get('utm_medium') || ''),
-      utm_campaign: normalizarTexto(params.get('utm_campaign') || '')
+      utm_campaign: normalizarTexto(params.get('utm_campaign') || params.get('gad_campaignid') || '')
     };
     try { sessionStorage.setItem(key, JSON.stringify(data)); } catch (_) { /* ignore */ }
     return data;
@@ -345,6 +352,28 @@
       menu: 'Menu mobile'
     };
     return map[secao] || (secao || '—').replace(/_/g, ' ').replace(/-/g, ' ');
+  }
+
+  function humanizarPagina(path) {
+    const raw = String(path || '').trim();
+    if (!raw) return '';
+    const pathOnly = raw.split('?')[0].split('#')[0] || '/';
+    const norm = pathOnly.replace(/\\/g, '/').toLowerCase();
+    if (norm === '/' || norm.endsWith('/index.html') || norm === '/en' || norm.endsWith('/en/')) {
+      return norm.includes('/en') ? 'Home EN' : 'Home';
+    }
+    const parts = norm.split('/').filter(Boolean);
+    const file = (parts[parts.length - 1] || '').replace(/\.html$/i, '');
+    const map = {
+      loja: 'Loja',
+      comprar: 'Checkout',
+      'onde-comprar': 'Onde comprar',
+      'minha-conta': 'Minha conta',
+      admin: 'Admin',
+      pedidos: 'Pedidos'
+    };
+    if (map[file]) return map[file];
+    return file.replace(/[-_]/g, ' ') || pathOnly;
   }
 
   function humanizarReferrer(ref) {
@@ -553,7 +582,7 @@
       secao_label: humanizarSecao(data.secao),
       elemento: data.elemento || tipo,
       href: data.href || '',
-      pagina: data.pagina || location.pathname + location.search,
+      pagina: data.pagina ? humanizarPagina(data.pagina) : humanizarPagina(location.pathname),
       titulo_pagina: data.titulo_pagina || document.title || '',
       idioma: data.idioma || document.documentElement.lang || 'pt-br',
       referrer: humanizarReferrer(visitante.referrer),
@@ -652,7 +681,7 @@
       secao: slug,
       rotulo,
       href: location.href,
-      pagina: pathKey,
+      pagina: humanizarPagina(location.pathname),
       titulo_pagina: document.title || ''
     });
   }

@@ -79,14 +79,25 @@
   function commissionerCell(o) {
     if (!o.couponCode) return '—';
     const name = o.couponCommissionerName || o.couponCode;
-    const disc = o.couponDiscount ? ` (−${formatBRL(o.couponDiscount)})` : '';
-    return `${name}${disc}`;
+    const parts = [];
+    if (o.couponCommissionAmount != null) {
+      parts.push(formatBRL(o.couponCommissionAmount));
+      if (o.couponCommissionPercent != null) parts.push(`${o.couponCommissionPercent}%`);
+    } else if (o.couponDiscount) {
+      parts.push(`desc. −${formatBRL(o.couponDiscount)}`);
+    }
+    const extra = parts.length ? ` (${parts.join(' · ')})` : '';
+    return `${name}${extra}`;
   }
 
   function showOrderDetails(o) {
     const watchLines = (window.STF_ORDER_WATCH?.detailLines(o) || [`Smartwatch: ${o.smartwatch}`]).join('\n');
     const couponLine = o.couponCode
-      ? `\nCupom: ${o.couponCode} — ${o.couponCommissionerName || '—'}${o.couponDiscount ? ` (−${formatBRL(o.couponDiscount)})` : ''}`
+      ? `\nCupom: ${o.couponCode} — ${o.couponCommissionerName || '—'}` +
+        (o.couponDiscount ? `\nDesconto: −${formatBRL(o.couponDiscount)}` : '') +
+        (o.couponCommissionAmount != null
+          ? `\nComissão: ${formatBRL(o.couponCommissionAmount)}${o.couponCommissionPercent != null ? ` (${o.couponCommissionPercent}%)` : ''}`
+          : '')
       : '';
     alert(
       `Pedido: ${o.orderId}\n` +
