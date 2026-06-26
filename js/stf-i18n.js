@@ -183,6 +183,8 @@ window.STF_I18N = (function () {
       'btn.copyPix': 'Copiar PIX',
       'btn.openCard': 'Abrir pagamento com cartão',
       'btn.payPaypal': 'Pagar com PayPal',
+      'selfTest.btn': 'Confirmar teste (sem pagar)',
+      'selfTest.hint': 'Pedido de teste detectado — pule o PIX de R$ 0,01.',
       'card.asaas': 'Pagamento seguro processado pelo Asaas.',
       'card.mp': 'Pagamento seguro no Mercado Pago (Visa, Mastercard, Amex). Valor em reais — seu banco converte.',
       'paypal.redirect': 'Redirecionando ao PayPal… Se não abrir, use o botão abaixo.',
@@ -474,6 +476,8 @@ window.STF_I18N = (function () {
       'btn.copyPix': 'Copy PIX code',
       'btn.openCard': 'Open card payment',
       'btn.payPaypal': 'Pay with PayPal',
+      'selfTest.btn': 'Confirm test (skip payment)',
+      'selfTest.hint': 'Test order detected — skip the R$ 0.01 PIX.',
       'card.asaas': 'Secure payment processed by Asaas.',
       'card.mp': 'Secure payment on Mercado Pago (Visa, Mastercard, Amex). BRL amount — your bank converts.',
       'paypal.redirect': 'Redirecting to PayPal… If nothing opens, use the button below.',
@@ -762,6 +766,9 @@ window.STF_I18N = (function () {
     const cartTitle = document.querySelector('.cart-sidebar-title');
     if (cartTitle) cartTitle.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('cart.title')}`;
     applyText('.cart-add-more', 'cart.addMore');
+    const skipBtn = document.getElementById('btn-skip-test-pay');
+    if (skipBtn) skipBtn.innerHTML = `<i class="fas fa-flask"></i> ${t('selfTest.btn')}`;
+    applyText('.self-test-pay-hint', 'selfTest.hint');
     applyText('.checkout-summary .summary-row:nth-child(1) > span:first-child', 'summary.subtotal');
     applyText('.checkout-summary .summary-row.total > span:first-child', 'summary.total');
     applyText('#summary-shipping-label', 'summary.shipping');

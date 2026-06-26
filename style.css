@@ -1490,6 +1490,26 @@ line-height:1.8;
 }
 .checkout-sidebar-locked .cart-add-more,
 .checkout-sidebar-locked .checkout-upsell-panel { display: none !important; }
+.self-test-pay-sidebar {
+    flex: none;
+    width: 100%;
+    margin-top: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px dashed rgba(255, 193, 7, 0.45);
+    background: rgba(255, 193, 7, 0.06);
+}
+.btn-skip-test-pay {
+    width: 100%;
+    font-size: 0.92rem;
+}
+.self-test-pay-hint {
+    margin: 8px 0 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--text-muted, #aaa);
+    text-align: center;
+}
 .checkout-sidebar-locked .cart-qty,
 .checkout-sidebar-locked .cart-remove { display: none !important; }
 .cart-line-locked .cart-line-qty-label {

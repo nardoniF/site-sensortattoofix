@@ -126,6 +126,7 @@
 
   let cfg, products = [];
   let shippingCost = null, shippingInfo = null, shippingOptions = [], pollTimer = null, isInternational = false;
+  let pendingSelfTest = null;
 
   const els = {
     form: document.getElementById('checkout-form'),
@@ -197,7 +198,9 @@
     checkoutCoupon: document.getElementById('checkout-coupon'),
     summaryDiscountRow: document.getElementById('summary-discount-row'),
     summaryDiscountLabel: document.getElementById('summary-discount-label'),
-    summaryDiscount: document.getElementById('summary-discount')
+    summaryDiscount: document.getElementById('summary-discount'),
+    selfTestPayWrap: document.getElementById('self-test-pay-wrap'),
+    btnSkipTestPay: document.getElementById('btn-skip-test-pay')
   };
 
   let currentStep = 1;
@@ -1536,6 +1539,58 @@
     window.STF_ANALYTICS?.track(event, params);
   }
 
+  function hideSelfTestSkip() {
+    if (els.selfTestPayWrap) els.selfTestPayWrap.hidden = true;
+    pendingSelfTest = null;
+  }
+
+  function showSelfTestSkip(order, orderId, accessToken, total) {
+    if (!order?.selfTestPix && !order?.selfTestPayPal) {
+      hideSelfTestSkip();
+      return;
+    }
+    if (order.status === 'paid') {
+      hideSelfTestSkip();
+      return;
+    }
+    pendingSelfTest = { orderId, accessToken, total };
+    if (els.selfTestPayWrap) els.selfTestPayWrap.hidden = false;
+  }
+
+  function markOrderPaidUi(orderId, total, orderTotal) {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    hideSelfTestSkip();
+    els.paymentStatus.className = 'payment-status confirmed';
+    els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paid')}`;
+    els.confirmTitle.textContent = L('title.paid');
+    window.STF_ANALYTICS?.trackPurchase(orderId, total || orderTotal, lastPaymentMethod);
+  }
+
+  async function confirmSelfTestPayment() {
+    if (!pendingSelfTest) return;
+    const { orderId, accessToken, total } = pendingSelfTest;
+    const base = apiBase();
+    if (!base) return;
+    if (els.btnSkipTestPay) els.btnSkipTestPay.disabled = true;
+    try {
+      const res = await fetch(`${base}/orders/${encodeURIComponent(orderId)}/confirm-test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || L('alert.orderError'));
+      markOrderPaidUi(orderId, total, data.order?.total);
+    } catch (err) {
+      alert(err.message || L('alert.orderError'));
+    } finally {
+      if (els.btnSkipTestPay) els.btnSkipTestPay.disabled = false;
+    }
+  }
+
   function startPolling(orderId, accessToken, total) {
     const base = apiBase();
     if (!base || !accessToken) return;
@@ -1546,11 +1601,7 @@
         if (!res.ok) return;
         const order = await res.json();
         if (order.status === 'paid') {
-          clearInterval(pollTimer);
-          els.paymentStatus.className = 'payment-status confirmed';
-          els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paid')}`;
-          els.confirmTitle.textContent = L('title.paid');
-          window.STF_ANALYTICS?.trackPurchase(orderId, total || order.total, lastPaymentMethod);
+          markOrderPaidUi(orderId, total, order.total);
         }
       } catch (e) { console.warn(e); }
     }, 3000);
@@ -1665,6 +1716,7 @@
       });
 
       if (accessToken) startPolling(orderId, accessToken, total);
+      showSelfTestSkip(result.order, orderId, accessToken, total);
       showStep(3);
     } catch (err) {
       await restoreCheckoutAfterPaymentAbort();
@@ -1756,6 +1808,7 @@
     });
 
     els.btnApplyCoupon?.addEventListener('click', () => applyCoupon());
+    els.btnSkipTestPay?.addEventListener('click', confirmSelfTestPayment);
     els.couponInput?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -1919,6 +1972,7 @@
         els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paidAlready')}`;
         els.confirmTitle.textContent = L('title.paid');
         lockCheckoutSidebar(snapshotFromOrder(data));
+        hideSelfTestSkip();
         showStep(3);
         history.replaceState({}, '', location.pathname);
         return true;
@@ -1954,6 +2008,7 @@
       }
 
       startPolling(data.orderId, token, data.total);
+      showSelfTestSkip(data, data.orderId, token, data.total);
       lockCheckoutSidebar(snapshotFromOrder(data));
       window.STF_CART?.clear();
       window.STF_CART?.initBadges?.();

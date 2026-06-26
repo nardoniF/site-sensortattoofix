@@ -1254,7 +1254,9 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     modeloRelogio: formatOrderSmartwatch(order),
     pagamento: order.pagamento,
     paidAt: order.paidAt || null,
-    createdAt: order.createdAt || null
+    createdAt: order.createdAt || null,
+    selfTestPix: !!order.selfTestPix,
+    selfTestPayPal: !!order.selfTestPayPal
   };
   if (includeResumeToken && order.status === 'pending_payment') {
     view.accessToken = order.accessToken;
@@ -4698,6 +4700,31 @@ async function handleConfirmOrder(request, env, origin, orderId) {
   return json(await getOrder(env, orderId), 200, origin);
 }
 
+async function handleConfirmSelfTestOrder(request, env, origin, orderId) {
+  const body = await request.json().catch(() => ({}));
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+
+  const token = String(body.accessToken || '');
+  if (!order.accessToken || token !== order.accessToken) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (!isSelfTestOrder(order)) {
+    return json({ error: 'Disponível apenas em pedidos de teste.' }, 403, origin);
+  }
+  if (order.status === 'paid') {
+    return json({ order: publicOrderView(order), status: 'paid' }, 200, origin);
+  }
+
+  await handlePaymentConfirmed(env, order, {
+    provider: order.paymentProvider || 'self_test',
+    value: order.total,
+    confirmedBy: 'self_test_skip'
+  });
+  const updated = await getOrder(env, orderId);
+  return json({ order: publicOrderView(updated), status: 'paid' }, 200, origin);
+}
+
 async function handleAsaasWebhook(request, env, origin) {
   const token = request.headers.get('asaas-access-token');
   if (env.ASAAS_WEBHOOK_TOKEN && token !== env.ASAAS_WEBHOOK_TOKEN) {
@@ -5532,6 +5559,10 @@ export default {
       const confirmMatch = path.match(/^\/orders\/([^/]+)\/confirm$/);
       if (confirmMatch && request.method === 'POST') {
         return handleConfirmOrder(request, env, origin, confirmMatch[1]);
+      }
+      const selfTestConfirmMatch = path.match(/^\/orders\/([^/]+)\/confirm-test$/);
+      if (selfTestConfirmMatch && request.method === 'POST') {
+        return handleConfirmSelfTestOrder(request, env, origin, selfTestConfirmMatch[1]);
       }
 
       const m = path.match(/^\/orders\/([^/]+)$/);
