@@ -66,6 +66,7 @@
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="frete" aria-selected="false" aria-controls="admin-tab-frete"><i class="fas fa-truck"></i> Frete</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pix" aria-selected="false" aria-controls="admin-tab-pix"><i class="fas fa-qrcode"></i> PIX</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="contato" aria-selected="false" aria-controls="admin-tab-contato"><i class="fas fa-headset"></i> Contato</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="cupons" aria-selected="false" aria-controls="admin-tab-cupons"><i class="fas fa-ticket-alt"></i> Cupons</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="documentacao" aria-selected="false" aria-controls="admin-tab-documentacao"><i class="fas fa-book"></i> Documentação</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pedidos" aria-selected="false" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
@@ -327,6 +328,15 @@
                     </fieldset>
                     </div>
 
+                    <div id="admin-tab-cupons" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend><i class="fas fa-ticket-alt"></i> Cupons de comissionado</legend>
+                        <p class="admin-meta">Cadastre códigos com desconto no produto. O comissionado recebe e-mail quando alguém comprar com o cupom. O nome aparece nos pedidos para controle de pagamento.</p>
+                        <div id="admin-coupons" class="admin-coupons"></div>
+                        <button type="button" id="btn-add-coupon" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar cupom</button>
+                    </fieldset>
+                    </div>
+
                     <div id="admin-tab-api" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-server"></i> API</legend>
@@ -507,6 +517,6 @@
 
     <script src="js/config-bootstrap.js?v=2"></script>
     <script src="js/store-products-merge.js?v=17"></script>
-    <script src="js/admin.js?v=58"></script>
+    <script src="js/admin.js?v=59"></script>
 </body>
 </html>

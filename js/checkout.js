@@ -190,12 +190,20 @@
     checkoutLoginEmail: document.getElementById('checkout-login-email'),
     checkoutLoginSenha: document.getElementById('checkout-login-senha'),
     checkoutLoginStatus: document.getElementById('checkout-login-status'),
-    btnCheckoutLogin: document.getElementById('btn-checkout-login')
+    btnCheckoutLogin: document.getElementById('btn-checkout-login'),
+    couponInput: document.getElementById('coupon-code'),
+    btnApplyCoupon: document.getElementById('btn-apply-coupon'),
+    couponMessage: document.getElementById('coupon-message'),
+    checkoutCoupon: document.getElementById('checkout-coupon'),
+    summaryDiscountRow: document.getElementById('summary-discount-row'),
+    summaryDiscountLabel: document.getElementById('summary-discount-label'),
+    summaryDiscount: document.getElementById('summary-discount')
   };
 
   let currentStep = 1;
   let orderSidebarLocked = false;
   let orderSidebarSnapshot = null;
+  let appliedCoupon = null;
 
   function apiBase() {
     return ((cfg?.api?.baseUrl) || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
@@ -534,10 +542,85 @@
   function snapshotFromOrder(data) {
     return {
       produto: data.produto || '',
-      subtotal: data.valorProduto ?? 0,
+      subtotal: data.valorProdutoOriginal ?? data.valorProduto ?? 0,
+      desconto: data.couponDiscount ?? 0,
       frete: data.frete ?? 0,
-      total: data.total ?? 0
+      total: data.total ?? 0,
+      couponPercent: data.couponPercent ?? null
     };
+  }
+
+  function productTotalAfterCoupon() {
+    const subtotal = cartSubtotal();
+    const disc = appliedCoupon?.desconto || 0;
+    return Math.max(0, subtotal - disc);
+  }
+
+  function clearAppliedCoupon(showMsg) {
+    appliedCoupon = null;
+    if (showMsg) showCouponMessage('', '');
+    updateSummary();
+  }
+
+  function showCouponMessage(msg, type) {
+    if (!els.couponMessage) return;
+    els.couponMessage.textContent = msg || '';
+    els.couponMessage.hidden = !msg;
+    els.couponMessage.className = 'checkout-coupon-msg' + (type ? ` is-${type}` : '');
+  }
+
+  async function applyCoupon() {
+    const code = String(els.couponInput?.value || '').trim();
+    if (!code) {
+      clearAppliedCoupon(false);
+      showCouponMessage(L('coupon.empty'), 'error');
+      return;
+    }
+    const base = apiBase();
+    if (!base) {
+      showCouponMessage(L('coupon.noApi'), 'error');
+      return;
+    }
+    if (window.STF_CART?.isEmpty()) {
+      showCouponMessage(L('alert.cartEmpty'), 'error');
+      return;
+    }
+    els.btnApplyCoupon.disabled = true;
+    showCouponMessage(L('coupon.validating'), '');
+    try {
+      const res = await fetch(base + '/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || L('coupon.invalid'));
+      appliedCoupon = {
+        code: data.code,
+        percent: data.percent,
+        desconto: data.desconto,
+        label: data.label
+      };
+      if (els.couponInput) els.couponInput.value = data.code;
+      showCouponMessage(L('coupon.applied', { pct: data.percent }), 'success');
+      updateSummary();
+    } catch (err) {
+      appliedCoupon = null;
+      showCouponMessage(err.message || L('coupon.invalid'), 'error');
+      updateSummary();
+    } finally {
+      els.btnApplyCoupon.disabled = false;
+    }
+  }
+
+  function refreshCouponAfterCartChange() {
+    if (!appliedCoupon?.code) return;
+    const savedCode = appliedCoupon.code;
+    if (els.couponInput) els.couponInput.value = savedCode;
+    applyCoupon();
   }
 
   function updateSidebarTitle() {
@@ -580,9 +663,21 @@
     }
     if (snap) {
       els.summaryProduct.textContent = formatBRL(snap.subtotal ?? 0);
+      const disc = snap.desconto ?? 0;
+      if (els.summaryDiscountRow) {
+        els.summaryDiscountRow.hidden = !disc;
+        if (disc) {
+          const pct = snap.couponPercent;
+          els.summaryDiscountLabel.textContent = pct != null
+            ? L('coupon.discountLabel', { pct })
+            : L('summary.discount');
+          els.summaryDiscount.textContent = '−' + formatBRL(disc);
+        }
+      }
       els.summaryShipping.textContent = formatBRL(snap.frete ?? 0);
       els.summaryTotal.textContent = formatBRL(snap.total ?? 0);
     }
+    if (els.checkoutCoupon) els.checkoutCoupon.hidden = true;
   }
 
   function lockCheckoutSidebar(snapshot) {
@@ -742,6 +837,7 @@
         shippingOptions = [];
         renderCartSidebar();
         updateSmartwatchVisibility();
+        refreshCouponAfterCartChange();
         updateSummary();
         quoteShipping();
       });
@@ -760,6 +856,7 @@
           shippingOptions = [];
           renderCartSidebar();
           updateSmartwatchVisibility();
+          refreshCouponAfterCartChange();
           updateSummary();
           quoteShipping();
         });
@@ -1152,9 +1249,19 @@
 
   function updateSummary() {
     const subtotal = cartSubtotal();
+    const disc = appliedCoupon?.desconto || 0;
+    const afterDisc = Math.max(0, subtotal - disc);
     els.summaryProduct.textContent = formatBRL(subtotal);
+    if (els.summaryDiscountRow) {
+      els.summaryDiscountRow.hidden = !disc;
+      if (disc) {
+        els.summaryDiscountLabel.textContent = L('coupon.discountLabel', { pct: appliedCoupon.percent });
+        els.summaryDiscount.textContent = '−' + formatBRL(disc);
+      }
+    }
     els.summaryShipping.textContent = shippingCost === null ? '—' : formatBRL(shippingCost);
-    els.summaryTotal.textContent = shippingCost === null ? '—' : formatBRL(subtotal + shippingCost);
+    els.summaryTotal.textContent = shippingCost === null ? '—' : formatBRL(afterDisc + shippingCost);
+    if (els.checkoutCoupon) els.checkoutCoupon.hidden = orderSidebarLocked;
   }
 
   function showStep(step) {
@@ -1267,6 +1374,7 @@
       pagamento: f.querySelector('[name=pagamento]:checked').value,
       items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
     };
+    if (appliedCoupon?.code) payload.couponCode = appliedCoupon.code;
     if (isRegisterAccountMode() && els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       payload.criarConta = true;
       payload.senha = els.checkoutSenha?.value || '';
@@ -1466,7 +1574,9 @@
       const total = result.order?.total || (cartSubtotal() + orderData.frete);
       const orderSnapshot = {
         items: (window.STF_CART?.load() || []).map((i) => ({ ...i })),
-        subtotal: cartSubtotal(),
+        subtotal: result.order?.valorProdutoOriginal ?? cartSubtotal(),
+        desconto: result.order?.couponDiscount ?? appliedCoupon?.desconto ?? 0,
+        couponPercent: result.order?.couponPercent ?? appliedCoupon?.percent ?? null,
         frete: orderData.frete,
         total
       };
@@ -1644,6 +1754,25 @@
       try { await navigator.clipboard.writeText(els.pixCopy.value); }
       catch { els.pixCopy.select(); document.execCommand('copy'); }
     });
+
+    els.btnApplyCoupon?.addEventListener('click', () => applyCoupon());
+    els.couponInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCoupon();
+      }
+    });
+    els.couponInput?.addEventListener('input', () => {
+      if (appliedCoupon && normalizeCouponInput(els.couponInput.value) !== appliedCoupon.code) {
+        appliedCoupon = null;
+        showCouponMessage('', '');
+        updateSummary();
+      }
+    });
+  }
+
+  function normalizeCouponInput(value) {
+    return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   }
 
   async function handleMercadoPagoReturn() {

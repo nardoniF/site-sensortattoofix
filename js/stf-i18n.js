@@ -40,6 +40,7 @@ window.STF_I18N = (function () {
       'pulseira.added': 'Pulseira adicionada ao carrinho!',
       'pulseira.inCart': 'No carrinho',
       'summary.subtotal': 'Subtotal',
+      'summary.discount': 'Desconto',
       'summary.shipping': 'Frete',
       'summary.shippingIntl': 'Frete internacional',
       'summary.total': 'Total',
@@ -275,6 +276,15 @@ window.STF_I18N = (function () {
       'shipping.intlPrefix': 'Internacional —',
       'status.pixManualConfirm': 'Esta página atualiza quando a loja confirmar o pagamento.',
       'shipping.optionsAria': 'Opções de frete',
+      'coupon.label': 'Cupom de desconto',
+      'coupon.placeholder': 'Ex: MARIA10',
+      'coupon.apply': 'Aplicar',
+      'coupon.empty': 'Informe o código do cupom.',
+      'coupon.invalid': 'Cupom inválido ou inativo.',
+      'coupon.applied': 'Cupom aplicado: {pct}% de desconto no produto.',
+      'coupon.discountLabel': 'Desconto ({pct}%)',
+      'coupon.validating': 'Validando cupom…',
+      'coupon.noApi': 'Cupom indisponível no momento. Tente novamente.',
       'country.other': 'Outro país',
       'country.unsupported': 'País não atendido',
       'watch.otherModel': 'Outro modelo (informar nas observações)',
@@ -321,6 +331,7 @@ window.STF_I18N = (function () {
       'pulseira.added': 'Band added to cart!',
       'pulseira.inCart': 'In cart',
       'summary.subtotal': 'Subtotal',
+      'summary.discount': 'Discount',
       'summary.shipping': 'Shipping',
       'summary.shippingIntl': 'International shipping',
       'summary.total': 'Total',
@@ -556,6 +567,15 @@ window.STF_I18N = (function () {
       'shipping.intlPrefix': 'International —',
       'status.pixManualConfirm': 'This page updates when the shop confirms payment.',
       'shipping.optionsAria': 'Shipping options',
+      'coupon.label': 'Discount code',
+      'coupon.placeholder': 'e.g. MARIA10',
+      'coupon.apply': 'Apply',
+      'coupon.empty': 'Enter your coupon code.',
+      'coupon.invalid': 'Invalid or inactive coupon.',
+      'coupon.applied': 'Coupon applied: {pct}% off products.',
+      'coupon.discountLabel': 'Discount ({pct}%)',
+      'coupon.validating': 'Validating coupon…',
+      'coupon.noApi': 'Coupon unavailable right now. Please try again.',
       'country.other': 'Other country',
       'country.unsupported': 'Country not supported',
       'watch.otherModel': 'Other model (specify in notes)',
@@ -745,6 +765,9 @@ window.STF_I18N = (function () {
     applyText('.checkout-summary .summary-row:nth-child(1) > span:first-child', 'summary.subtotal');
     applyText('.checkout-summary .summary-row.total > span:first-child', 'summary.total');
     applyText('#summary-shipping-label', 'summary.shipping');
+    applyText('.checkout-coupon-label', 'coupon.label');
+    applyText('#btn-apply-coupon', 'coupon.apply');
+    setPlaceholder('#coupon-code', 'coupon.placeholder');
 
     const trust = document.querySelectorAll('.checkout-trust span');
     if (trust[0]) trust[0].innerHTML = `<i class="fas fa-qrcode"></i> ${t('trust.pix')}`;

@@ -273,6 +273,71 @@
     };
   }
 
+  function renderCoupons(coupons) {
+    const list = document.getElementById('admin-coupons');
+    if (!list) return;
+    const rows = Array.isArray(coupons) ? coupons : [];
+    if (!rows.length) {
+      list.innerHTML = '<p class="admin-meta">Nenhum cupom cadastrado. Adicione código, percentual e e-mail do comissionado.</p>';
+      return;
+    }
+    list.innerHTML = rows.map((c, i) => `
+      <div class="admin-coupon-row" data-coupon-index="${i}">
+        <div class="admin-coupon-grid">
+          <label class="label-check admin-coupon-active">
+            <input type="checkbox" data-field="active" ${c.active !== false ? 'checked' : ''}>
+            <span>Ativo</span>
+          </label>
+          <label>Código
+            <input type="text" data-field="code" value="${escAttr(c.code || '')}" placeholder="MARIA10" maxlength="32" autocapitalize="characters">
+          </label>
+          <label>Nome do comissionado
+            <input type="text" data-field="name" value="${escAttr(c.name || '')}" placeholder="Maria">
+          </label>
+          <label>E-mail do comissionado
+            <input type="email" data-field="email" value="${escAttr(c.email || '')}" placeholder="maria@email.com">
+          </label>
+          <label>Desconto (%)
+            <input type="number" data-field="percent" min="0" max="100" step="0.01" value="${escAttr(c.percent ?? 10)}">
+          </label>
+          <input type="hidden" data-field="id" value="${escAttr(c.id || `coupon-${i + 1}`)}">
+        </div>
+        <button type="button" class="btn-secondary btn-remove-coupon" data-index="${i}"><i class="fas fa-trash"></i> Remover</button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.btn-remove-coupon').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-index'));
+        const next = collectCoupons().filter((_, j) => j !== idx);
+        renderCoupons(next);
+      });
+    });
+  }
+
+  function collectCoupons() {
+    const list = document.getElementById('admin-coupons');
+    if (!list) return currentConfig?.coupons || [];
+    return [...list.querySelectorAll('.admin-coupon-row')].map((row, i) => {
+      const val = (field) => {
+        const el = row.querySelector(`[data-field="${field}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        return el.value;
+      };
+      const code = String(val('code') || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const percent = Math.min(100, Math.max(0, parseFloat(val('percent')) || 0));
+      return {
+        id: String(val('id') || `coupon-${i + 1}`).trim(),
+        active: val('active') !== false,
+        code,
+        name: String(val('name') || '').trim(),
+        email: String(val('email') || '').trim().toLowerCase(),
+        percent
+      };
+    }).filter((c) => c.code || c.email || c.name);
+  }
+
   function renderMotoboyCouriers(couriers) {
     const list = document.getElementById('admin-motoboy-couriers');
     if (!list) return;
@@ -1578,6 +1643,7 @@
     if (f.motoboyRoadFactor) f.motoboyRoadFactor.value = motoboy.roadFactor ?? 1.25;
     if (f.motoboyDeliveryHours) f.motoboyDeliveryHours.value = motoboy.deliveryHours ?? 24;
     renderMotoboyCouriers(motoboy.couriers || []);
+    renderCoupons(config.coupons || []);
     renderIntlShipping(config.internationalShipping || {});
     if (f.intlSurcharge) f.intlSurcharge.value = config.internationalSurcharge ?? 40;
     const intlProd = config.internationalProduct || {};
@@ -1753,11 +1819,12 @@
       },
       shippingMethods: syncMotoboyShippingMethods(collectShippingMethods(), collectMotoboyShipping()),
       motoboyShipping: collectMotoboyShipping(),
+      coupons: collectCoupons(),
       updatedAt: new Date().toISOString()
     };
   }
 
-  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pix', 'contato', 'api']);
+  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pix', 'contato', 'cupons', 'api']);
 
   function loadDocFrame(forceReload) {
     const frame = document.getElementById('admin-doc-frame');
@@ -2117,6 +2184,19 @@
       phone: ''
     });
     renderMotoboyCouriers(couriers);
+  });
+
+  document.getElementById('btn-add-coupon')?.addEventListener('click', () => {
+    const coupons = collectCoupons();
+    coupons.push({
+      id: 'coupon-' + Date.now(),
+      active: true,
+      code: '',
+      name: '',
+      email: '',
+      percent: 10
+    });
+    renderCoupons(coupons);
   });
 
   document.getElementById('btn-add-main-product')?.addEventListener('click', () => {

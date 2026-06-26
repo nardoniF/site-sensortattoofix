@@ -469,6 +469,94 @@ async function notifyMotoboyCouriers(env, config, order) {
   return results;
 }
 
+function normalizeCouponCode(code) {
+  return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function getCoupons(config) {
+  return Array.isArray(config?.coupons) ? config.coupons : [];
+}
+
+function findActiveCoupon(config, code) {
+  const norm = normalizeCouponCode(code);
+  if (!norm) return null;
+  return getCoupons(config).find(
+    (c) => c.active !== false && normalizeCouponCode(c.code) === norm
+  ) || null;
+}
+
+function computeCouponDiscount(valorProduto, percent) {
+  const pct = Math.min(100, Math.max(0, Number(percent) || 0));
+  const base = Math.max(0, Number(valorProduto) || 0);
+  const discount = Math.round(base * pct / 100 * 100) / 100;
+  return { percent: pct, discount: Math.min(discount, base) };
+}
+
+function orderCouponEmailFields(order) {
+  if (!order?.couponCode) return {};
+  return {
+    Cupom: order.couponCode,
+    Comissionado: order.couponCommissionerName || order.couponCommissionerEmail || '—',
+    'Desconto cupom': formatBRL(order.couponDiscount || 0)
+  };
+}
+
+async function notifyCouponCommissioner(env, config, order) {
+  const to = String(order.couponCommissionerEmail || '').trim().toLowerCase();
+  if (!to) return { ok: true, skipped: true };
+
+  const adminUrl = `${(config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '')}/pedidos.html`;
+  const subject = 'Você acabou de vender com seu cupom — Sensor Tattoo Fix';
+  const fields = {
+    Comissionado: order.couponCommissionerName || to,
+    Cupom: order.couponCode,
+    Pedido: order.orderId,
+    Cliente: order.nome,
+    'E-mail cliente': order.email,
+    Produto: order.produto,
+    'Desconto aplicado': formatBRL(order.couponDiscount || 0),
+    'Total do pedido': formatBRL(order.total),
+    Status: order.status === 'paid' ? 'Pago' : 'Aguardando pagamento',
+    'Painel pedidos': adminUrl,
+    ...orderWatchEmailFields(order)
+  };
+  const res = await notifyEmail(env, config, to, subject, fields, config.formsubmit?.email);
+  if (!res.ok) console.error('E-mail comissionado cupom:', to, JSON.stringify(res));
+  return res;
+}
+
+async function handleValidateCoupon(request, env, origin) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'JSON inválido.' }, 400, origin);
+  }
+  const code = String(body.code || '').trim();
+  if (!code) return json({ error: 'Informe o código do cupom.' }, 400, origin);
+
+  const config = await getPublicConfig(env);
+  const coupon = findActiveCoupon(config, code);
+  if (!coupon) return json({ error: 'Cupom inválido ou inativo.' }, 404, origin);
+
+  let items;
+  try {
+    items = resolveOrderItems(config, body);
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
+  const valorProduto = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const { percent, discount } = computeCouponDiscount(valorProduto, coupon.percent);
+
+  return json({
+    ok: true,
+    code: normalizeCouponCode(coupon.code),
+    percent,
+    desconto: discount,
+    label: String(coupon.name || '').trim() || normalizeCouponCode(coupon.code)
+  }, 200, origin);
+}
+
 function mergeSmartwatchModelLists(stored, base) {
   const storedList = Array.isArray(stored) && stored.length ? stored : [];
   const baseList = Array.isArray(base) ? base : [];
@@ -1135,6 +1223,10 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     total: order.total,
     frete: order.frete,
     valorProduto: order.valorProduto,
+    valorProdutoOriginal: order.valorProdutoOriginal ?? null,
+    couponCode: order.couponCode || null,
+    couponPercent: order.couponPercent ?? null,
+    couponDiscount: order.couponDiscount ?? null,
     produto: order.produto || null,
     smartwatch: order.smartwatch || null,
     observacoes: trimObs(order) || null,
@@ -1592,7 +1684,11 @@ function buildIndexEntry(order) {
     pagamento: order.pagamento,
     endereco: order.endereco || '',
     produto: order.produto || '',
-    userId: order.userId || null
+    userId: order.userId || null,
+    couponCode: order.couponCode || null,
+    couponCommissionerName: order.couponCommissionerName || null,
+    couponCommissionerEmail: order.couponCommissionerEmail || null,
+    couponDiscount: order.couponDiscount ?? null
   };
 }
 
@@ -4095,7 +4191,18 @@ async function handleCreateOrder(request, env, origin, ctx) {
   } catch (err) {
     return json({ error: err.message }, 400, origin);
   }
-  const valorProduto = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const valorProdutoBruto = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  let couponDiscount = 0;
+  let couponRecord = null;
+  const couponCodeRaw = String(body.couponCode || '').trim();
+  if (couponCodeRaw) {
+    couponRecord = findActiveCoupon(config, couponCodeRaw);
+    if (!couponRecord) {
+      return json({ error: 'Cupom inválido ou inativo.' }, 400, origin);
+    }
+    couponDiscount = computeCouponDiscount(valorProdutoBruto, couponRecord.percent).discount;
+  }
+  const valorProduto = Math.max(0, valorProdutoBruto - couponDiscount);
   const isIntl = (body.paisCode || 'BR') !== 'BR';
   const uberMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
     (m) => isUberMethod(m) && (m.id === body.shippingMethodId || body.shippingProvider === 'uber')
@@ -4211,7 +4318,15 @@ async function handleCreateOrder(request, env, origin, ctx) {
     observacoes: body.observacoes || '',
     items,
     produto: items.map((i) => `${i.qty}x ${i.name}`).join(', '),
+    valorProdutoOriginal: couponDiscount ? valorProdutoBruto : undefined,
     valorProduto,
+    couponCode: couponRecord ? normalizeCouponCode(couponRecord.code) : undefined,
+    couponPercent: couponRecord ? Number(couponRecord.percent) || 0 : undefined,
+    couponDiscount: couponDiscount || undefined,
+    couponCommissionerEmail: couponRecord ? String(couponRecord.email || '').trim().toLowerCase() : undefined,
+    couponCommissionerName: couponRecord
+      ? (String(couponRecord.name || '').trim() || normalizeCouponCode(couponRecord.code))
+      : undefined,
     frete,
     total: valorProduto + frete,
     shippingService: body.shippingService || 'Mini Envios',
@@ -4316,8 +4431,14 @@ async function handleCreateOrder(request, env, origin, ctx) {
       Pedido: order.orderId, Status: order.status, Nome: order.nome,
       'E-mail': order.email, Telefone: order.telefone,
       País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
-      Produto: formatBRL(order.valorProduto), Frete: formatBRL(order.frete), Total: formatBRL(order.total),
+      Produto: formatBRL(order.valorProdutoOriginal ?? order.valorProduto),
+      ...(order.couponDiscount ? {
+        'Desconto cupom': formatBRL(order.couponDiscount),
+        'Produto c/ desconto': formatBRL(order.valorProduto)
+      } : {}),
+      Frete: formatBRL(order.frete), Total: formatBRL(order.total),
       Envio: order.shippingService || '—',
+      ...orderCouponEmailFields(order),
       ...orderIntlProductFields(order),
       ...(order.selfTestPix ? {
         'Teste PIX produção': `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — endereço igual ao remetente`,
@@ -4330,7 +4451,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
       ...orderWatchEmailFields(order)
     }),
     customerEmail,
-    notifyWhatsApp(env, config, order, 'order')
+    notifyWhatsApp(env, config, order, 'order'),
+    order.couponCommissionerEmail ? notifyCouponCommissioner(env, config, order) : Promise.resolve({ ok: true })
   ]).then((results) => {
     results.slice(0, 2).forEach((r, i) => {
       if (r && !r.ok) console.error('E-mail pedido falhou:', i === 0 ? 'loja' : 'cliente', JSON.stringify(r));
@@ -4420,6 +4542,7 @@ async function handlePaymentConfirmed(env, order, payment) {
     Valor: formatBRL(value),
     Endereço: order.endereco, Envio: order.shippingService,
     ...orderWatchEmailFields(order),
+    ...orderCouponEmailFields(order),
     ...orderIntlProductFields(order)
   };
   if (isUberOrder(order)) {
@@ -5283,9 +5406,9 @@ async function handleListOrders(request, env, origin) {
   const indexForExport = index.length ? index : await rebuildOrdersIndexFromKv(env);
 
   if (format === 'csv') {
-    const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,observacoes,modeloRelogio,pais,pagamento,total,frete\n';
+    const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,observacoes,modeloRelogio,pais,pagamento,total,frete,couponCode,couponCommissionerName,couponDiscount\n';
     const rows = indexForExport.map((o) =>
-      [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais, o.pagamento, o.total, o.frete]
+      [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais, o.pagamento, o.total, o.frete, o.couponCode, o.couponCommissionerName, o.couponDiscount]
         .map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')
     ).join('\n');
     return new Response(header + rows, {
@@ -5344,6 +5467,9 @@ export default {
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);
+      }
+      if (path === '/coupons/validate' && request.method === 'POST') {
+        return handleValidateCoupon(request, env, origin);
       }
       if (path === '/orders' && request.method === 'POST') return handleCreateOrder(request, env, origin, ctx);
       if (path === '/orders' && request.method === 'GET') return handleListOrders(request, env, origin);

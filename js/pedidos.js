@@ -76,15 +76,25 @@
     return window.STF_ORDER_WATCH?.formatModel(o) || o.smartwatch || '—';
   }
 
+  function commissionerCell(o) {
+    if (!o.couponCode) return '—';
+    const name = o.couponCommissionerName || o.couponCode;
+    const disc = o.couponDiscount ? ` (−${formatBRL(o.couponDiscount)})` : '';
+    return `${name}${disc}`;
+  }
+
   function showOrderDetails(o) {
     const watchLines = (window.STF_ORDER_WATCH?.detailLines(o) || [`Smartwatch: ${o.smartwatch}`]).join('\n');
+    const couponLine = o.couponCode
+      ? `\nCupom: ${o.couponCode} — ${o.couponCommissionerName || '—'}${o.couponDiscount ? ` (−${formatBRL(o.couponDiscount)})` : ''}`
+      : '';
     alert(
       `Pedido: ${o.orderId}\n` +
       `Status: ${o.status}\n` +
       `Cliente: ${o.nome}\n` +
       `${watchLines}\n` +
       `Endereço: ${o.endereco}\n` +
-      `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)`
+      `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)${couponLine}`
     );
   }
 
@@ -105,6 +115,7 @@
         <td>${watchModel(o)}</td>
         <td>${o.pais || '—'}</td>
         <td>${o.pagamento || '—'}</td>
+        <td>${commissionerCell(o)}</td>
         <td>${formatBRL(o.total)}</td>
         <td class="pedidos-actions">
           ${statusBadgeHtml(o.status)}
@@ -162,7 +173,7 @@
     const q = (els.filterSearch?.value || '').toLowerCase();
     const st = els.filterStatus?.value || '';
     const filtered = allOrders.filter((o) => {
-      const matchQ = !q || [o.orderId, o.nome, o.email, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais].join(' ').toLowerCase().includes(q);
+      const matchQ = !q || [o.orderId, o.nome, o.email, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais, o.couponCode, o.couponCommissionerName].join(' ').toLowerCase().includes(q);
       const matchS = !st || o.status === st;
       return matchQ && matchS;
     });
