@@ -515,14 +515,12 @@ function orderCouponEmailFields(order) {
   return fields;
 }
 
-async function notifyCouponCommissioner(env, config, order, { confirmed = false } = {}) {
+async function notifyCouponCommissioner(env, config, order) {
   const to = String(order.couponCommissionerEmail || '').trim().toLowerCase();
   if (!to) return { ok: true, skipped: true };
 
   const adminUrl = `${(config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '')}/pedidos.html`;
-  const subject = confirmed
-    ? `Comissão confirmada — ${formatBRL(order.couponCommissionAmount || 0)} — Sensor Tattoo Fix`
-    : 'Você acabou de vender com seu cupom — Sensor Tattoo Fix';
+  const subject = `Você vendeu com seu cupom — comissão ${formatBRL(order.couponCommissionAmount || 0)} — Sensor Tattoo Fix`;
   const fields = {
     Comissionado: order.couponCommissionerName || to,
     Cupom: order.couponCode,
@@ -533,7 +531,7 @@ async function notifyCouponCommissioner(env, config, order, { confirmed = false 
     'Valor do produto': formatBRL(order.valorProduto),
     'Desconto aplicado': formatBRL(order.couponDiscount || 0),
     'Total do pedido': formatBRL(order.total),
-    Status: order.status === 'paid' ? 'Pago' : 'Aguardando pagamento',
+    Status: 'Pago',
     'Painel pedidos': adminUrl,
     ...orderWatchEmailFields(order)
   };
@@ -541,7 +539,7 @@ async function notifyCouponCommissioner(env, config, order, { confirmed = false 
     fields['Sua comissão (%)'] = `${order.couponCommissionPercent}%`;
   }
   if (order.couponCommissionAmount != null) {
-    fields[confirmed ? 'Comissão confirmada' : 'Comissão desta venda'] = formatBRL(order.couponCommissionAmount);
+    fields['Comissão a receber'] = formatBRL(order.couponCommissionAmount);
   }
   const res = await notifyEmail(env, config, to, subject, fields, config.formsubmit?.email);
   if (!res.ok) console.error('E-mail comissionado cupom:', to, JSON.stringify(res));
@@ -4488,8 +4486,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
       ...orderWatchEmailFields(order)
     }),
     customerEmail,
-    notifyWhatsApp(env, config, order, 'order'),
-    order.couponCommissionerEmail ? notifyCouponCommissioner(env, config, order) : Promise.resolve({ ok: true })
+    notifyWhatsApp(env, config, order, 'order')
   ]).then((results) => {
     results.slice(0, 2).forEach((r, i) => {
       if (r && !r.ok) console.error('E-mail pedido falhou:', i === 0 ? 'loja' : 'cliente', JSON.stringify(r));
@@ -4633,8 +4630,8 @@ async function handlePaymentConfirmed(env, order, payment) {
   });
 
   if (order.couponCommissionerEmail && order.couponCommissionAmount != null) {
-    const commissionerPaid = await notifyCouponCommissioner(env, config, order, { confirmed: true });
-    if (!commissionerPaid?.ok) console.error('E-mail comissão confirmada falhou:', JSON.stringify(commissionerPaid));
+    const commissionerPaid = await notifyCouponCommissioner(env, config, order);
+    if (!commissionerPaid?.ok) console.error('E-mail comissão comissionado falhou:', JSON.stringify(commissionerPaid));
   }
 
   await notifyWhatsApp(env, config, order, 'paid');
