@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Pedidos | Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=1.62">
+    <link rel="stylesheet" href="style.css?v=2.29">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page pedidos-page">
@@ -17,8 +17,7 @@
                 <div class="logo-text">PEDIDOS</div>
             </div>
             <ul class="nav-links checkout-nav admin-toolbar">
-                <li><a href="documentacao.html"><i class="fas fa-book"></i> Docs</a></li>
-                <li><a href="admin.html"><i class="fas fa-cog"></i> Config</a></li>
+                <li><a href="admin.html"><i class="fas fa-cog"></i> Admin</a></li>
                 <li><a href="comprar.html"><i class="fas fa-store"></i> Loja</a></li>
             </ul>
         </nav>
@@ -27,13 +26,22 @@
     <main class="admin-main">
         <div class="container admin-container pedidos-container">
 
-            <section id="pedidos-login" class="admin-card">
-                <h1><i class="fas fa-list"></i> Base de Pedidos</h1>
-                <p class="admin-intro">Lista simples de todos os pedidos da loja oficial. Requer API Cloudflare configurada.</p>
-                <form id="pedidos-login-form" class="admin-form">
-                    <label>URL da API<input type="url" id="pedidos-api-url" placeholder="https://sensortattoofix-payments.xxx.workers.dev"></label>
-                    <label>Usuário<input type="text" name="username" value="admin" required></label>
-                    <label>Senha<input type="password" name="password" required></label>
+            <section id="pedidos-login" class="admin-card admin-card-login">
+                <div class="admin-login-head">
+                    <h1><i class="fas fa-list"></i> Base de Pedidos</h1>
+                    <button type="button" class="admin-help-btn" data-admin-help aria-controls="pedidos-login-help" aria-expanded="false" title="Ajuda">
+                        <i class="fas fa-circle-question" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <p class="admin-intro admin-intro-compact">Pedidos da loja oficial.</p>
+                <div id="pedidos-login-help" class="admin-help-panel" hidden>
+                    <p><strong>Requer API Cloudflare</strong> configurada em <code>js/config-bootstrap.js</code>.</p>
+                    <p>Lista todos os pedidos pagos e pendentes, com etiqueta, confirmação manual de PIX e exportação CSV.</p>
+                    <p>Mesmo login do admin: usuário <code>admin</code> + secret <code>ADMIN_PASSWORD</code>. Após 5 erros, bloqueio de ~30 min.</p>
+                </div>
+                <form id="pedidos-login-form" class="admin-form admin-form-compact">
+                    <label>Usuário<input type="text" name="username" value="admin" required autocomplete="username"></label>
+                    <label>Senha<input type="password" name="password" required autocomplete="current-password"></label>
                     <button type="submit" class="btn-primary">Entrar</button>
                 </form>
                 <p id="pedidos-status" class="admin-status" hidden></p>
@@ -86,8 +94,9 @@
     </main>
 
     <script src="js/config-bootstrap.js"></script>
+    <script src="js/admin-help.js"></script>
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=7"></script>
-    <script src="js/pedidos.js?v=12"></script>
+    <script src="js/pedidos.js?v=14"></script>
 </body>
 </html>

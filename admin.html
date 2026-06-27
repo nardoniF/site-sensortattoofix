@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.28">
+    <link rel="stylesheet" href="style.css?v=2.29">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -17,9 +17,8 @@
                 <div class="logo-text">ADMIN<span>PANEL</span></div>
             </div>
             <ul class="nav-links checkout-nav admin-toolbar">
-                <li><a href="documentacao.html"><i class="fas fa-book"></i> Docs</a></li>
                 <li><a href="pedidos.html"><i class="fas fa-list"></i> Pedidos</a></li>
-                <li><a href="comprar.html"><i class="fas fa-store"></i> Ver loja</a></li>
+                <li><a href="comprar.html"><i class="fas fa-store"></i> Loja</a></li>
             </ul>
         </nav>
     </header>
@@ -27,23 +26,28 @@
     <main class="admin-main">
         <div class="container admin-container">
 
-            <section id="admin-login" class="admin-card">
-                <h1><i class="fas fa-lock"></i> Painel Administrativo</h1>
-                <p class="admin-intro">Gerencie preço, PIX, frete e contatos. URL: <strong>/admin.html</strong> · Pedidos: <strong><a href="pedidos.html" style="color:var(--primary)">/pedidos.html</a></strong></p>
-                <form id="admin-login-form" class="admin-form">
-                    <label>URL da API (Cloudflare Worker)
-                        <input type="url" id="login-api-url" name="apiUrl" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
-                        <small>Opcional se já estiver em js/config-bootstrap.js?v=2</small>
-                    </label>
+            <section id="admin-login" class="admin-card admin-card-login">
+                <div class="admin-login-head">
+                    <h1><i class="fas fa-lock"></i> Painel Administrativo</h1>
+                    <button type="button" class="admin-help-btn" data-admin-help aria-controls="admin-login-help" aria-expanded="false" title="Ajuda">
+                        <i class="fas fa-circle-question" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <p class="admin-intro admin-intro-compact">Gerencie preço, PIX, frete e contatos.</p>
+                <div id="admin-login-help" class="admin-help-panel" hidden>
+                    <p><strong>Requer API Cloudflare</strong> configurada em <code>js/config-bootstrap.js</code>.</p>
+                    <p>Inclui: produtos, frete (Correios, motoboy, internacional), PIX, contato, cupons, integrações, documentação, pedidos, cliques e clientes.</p>
+                    <p>URLs: <strong>/admin.html</strong> · <strong>/pedidos.html</strong></p>
+                    <p>Login: usuário <code>admin</code> + senha do secret <code>ADMIN_PASSWORD</code> no Cloudflare Worker. Após 5 erros, bloqueio de ~30 min.</p>
+                </div>
+                <form id="admin-login-form" class="admin-form admin-form-compact">
                     <label>Usuário
                         <input type="text" name="username" value="admin" required autocomplete="username">
                     </label>
                     <label>Senha
-                        <input type="password" name="password" required autocomplete="current-password" placeholder="Cole a senha do ADMIN_PASSWORD aqui">
+                        <input type="password" name="password" required autocomplete="current-password">
                     </label>
-                    <p class="admin-meta" style="margin-top:8px">Senha no secret <code>ADMIN_PASSWORD</code> do Cloudflare (não é o texto cinza do campo). Após 5 erros, bloqueio de ~30 min.</p>
                     <button type="submit" class="btn-primary">Entrar</button>
-                    <button type="button" id="btn-offline-mode" class="btn-secondary">Editar sem API (modo offline)</button>
                     <p id="admin-status" class="admin-status form-status" hidden></p>
                 </form>
             </section>
@@ -517,6 +521,7 @@
 
     <script src="js/config-bootstrap.js?v=2"></script>
     <script src="js/store-products-merge.js?v=17"></script>
-    <script src="js/admin.js?v=61"></script>
+    <script src="js/admin-help.js"></script>
+    <script src="js/admin.js?v=63"></script>
 </body>
 </html>

@@ -17,7 +17,6 @@
     modeBadge: document.getElementById('admin-mode'),
     btnDownload: document.getElementById('btn-download-config'),
     updatedAt: document.getElementById('config-updated-at'),
-    loginApiUrl: document.getElementById('login-api-url')
   };
 
   let currentConfig = null;
@@ -26,7 +25,6 @@
     const loggedIn = !!sessionStorage.getItem(SESSION_KEY);
     const url = (
       (loggedIn && els.configForm?.apiBaseUrl?.value) ||
-      els.loginApiUrl?.value ||
       bootstrap.configApiUrl ||
       ''
     ).trim();
@@ -1468,10 +1466,32 @@
           ? '<span class="admin-status-warn">⚠ API 35 (Prazo): ' + escAttr(br.prazoApiDetail) + '</span>'
           : '<span class="admin-status-bad">✗ API 35 (Prazo) não testada</span>');
 
+      const api36Line = br.prePostagemApiOk
+        ? '<span class="admin-status-ok">✓ API 36 (Pré-Postagem) OK</span> — ' + escAttr(br.prePostagemApiDetail || '')
+        : (br.prePostagemApiDetail
+          ? '<span class="admin-status-warn">⚠ API 36 (Pré-Postagem): ' + escAttr(br.prePostagemApiDetail) + '</span>'
+          : '<span class="admin-status-bad">✗ API 36 (Pré-Postagem) não testada</span>');
+
+      const svc04227Line = br.servico04227OnCard
+        ? '<span class="admin-status-ok">✓ Serviço 04227 (Mini Envios) no cartão</span> — ' + escAttr(br.servico04227Detail || '')
+        : (br.servico04227Detail
+          ? '<span class="admin-status-warn">⚠ Serviço 04227: ' + escAttr(br.servico04227Detail) + '</span>'
+          : '<span class="admin-status-bad">✗ Serviço 04227 não verificado</span>');
+
+      const svc86720Line = br.servico86720OnCard
+        ? '<span class="admin-status-ok">✓ Serviço 86720 (API Pré-Postagem) no cartão</span> — ' + escAttr(br.servico86720Detail || '')
+        : (br.servico86720Detail
+          ? '<span class="admin-status-warn">⚠ Serviço 86720: ' + escAttr(br.servico86720Detail) + '</span>'
+          : '<span class="admin-status-bad">✗ Serviço 86720 não verificado</span>');
+
       const brLine = brTokenLine
+        + ' · contrato ' + escAttr(br.commercialContract || '9912752041')
         + ' · Mini Envios ' + escAttr(br.serviceCode || '04227')
         + '<br>' + api34Line
-        + '<br>' + api35Line;
+        + '<br>' + api35Line
+        + '<br>' + api36Line
+        + '<br>' + svc04227Line
+        + '<br>' + svc86720Line;
 
       const expLine = exp.simulatorReachable && exp.sampleQuotePT
         ? `<span class="admin-status-ok">✓ Exporta Fácil OK</span> — Portugal agora: <strong>R$ ${Number(exp.sampleQuotePT.price).toFixed(2).replace('.', ',')}</strong> (${exp.sampleQuotePT.weightGrams} g)`
@@ -1977,14 +1997,14 @@
   async function tryLogin(username, password) {
     const base = apiBase();
     if (!base) {
-      showStatus('Configure a URL da API para fazer login.', 'error');
+      showStatus('API não configurada. Verifique js/config-bootstrap.js.', 'error');
       return false;
     }
 
     const user = String(username || '').trim();
     const pwd = String(password || '');
     if (!pwd) {
-      throw new Error('Digite a senha no campo Senha (não é o texto cinza de dica).');
+      throw new Error('Digite a senha.');
     }
 
     const res = await fetch(base.replace(/\/$/, '') + '/admin/login', {
@@ -2163,10 +2183,6 @@
     showStatus('', '', 'pedidos');
   });
 
-  document.getElementById('btn-offline-mode')?.addEventListener('click', () => {
-    enterOfflineMode();
-  });
-
   async function exportOrders(format) {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -2315,10 +2331,6 @@
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
-    if (els.loginApiUrl && bootstrap.configApiUrl) {
-      els.loginApiUrl.value = bootstrap.configApiUrl;
-    }
-
     const token = sessionStorage.getItem(SESSION_KEY);
     if (token && apiBase()) {
       try {

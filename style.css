@@ -2170,10 +2170,87 @@ body.admin-page.admin-login-only .admin-main {
 }
 body.admin-page.admin-login-only .admin-container {
     width: 100%;
-    max-width: 520px;
+    max-width: 420px;
 }
-body.admin-page.admin-login-only #admin-login {
+body.admin-page.pedidos-login-only .admin-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100dvh - 72px);
+    padding: 24px 0 40px;
+}
+body.admin-page.pedidos-login-only .pedidos-container {
     width: 100%;
+    max-width: 420px;
+}
+body.admin-page.admin-login-only #admin-login,
+body.admin-page.pedidos-login-only #pedidos-login {
+    width: 100%;
+}
+.admin-card-login {
+    padding: 24px;
+}
+.admin-login-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+.admin-login-head h1 {
+    margin-bottom: 0;
+    font-size: 1.35rem;
+    flex: 1;
+    min-width: 0;
+}
+.admin-intro-compact {
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+.admin-form-compact {
+    gap: 14px;
+}
+.admin-form-compact label {
+    font-size: 0.82rem;
+}
+.admin-help-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #333;
+    background: #111;
+    color: var(--gray);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: color 0.2s, border-color 0.2s;
+}
+.admin-help-btn:hover,
+.admin-help-btn[aria-expanded="true"] {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+.admin-help-panel {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #2a2a2a;
+    background: #0d0d0d;
+    font-size: 0.85rem;
+    color: #bbb;
+    line-height: 1.5;
+}
+.admin-help-panel p {
+    margin: 0 0 8px;
+}
+.admin-help-panel p:last-child {
+    margin-bottom: 0;
+}
+.admin-help-panel code {
+    font-size: 0.8em;
 }
 .admin-container { max-width: 1160px; }
 .admin-card {

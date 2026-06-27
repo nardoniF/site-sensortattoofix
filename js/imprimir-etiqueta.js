@@ -83,6 +83,23 @@
     return res.json();
   }
 
+  function openPdfBase64(b64, filename) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    if (filename) a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
   async function printOrder(orderId) {
     showStatus('Carregando pedido…', '');
     const token = await ensureLogin();
@@ -92,12 +109,32 @@
     if (order.status !== 'paid') {
       throw new Error('Só é possível imprimir etiqueta de pedido PAGO.');
     }
-    if (!window.STF_ORDER_LABEL) {
-      throw new Error('Módulo de etiqueta não carregou.');
+
+    showStatus('Gerando etiqueta…', '');
+    const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(orderId) + '/shipping-label', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (data.mode === 'pdf' && data.pdfBase64) {
+      openPdfBase64(data.pdfBase64, 'etiqueta-' + orderId + '.pdf');
+      const track = data.trackingCode ? ' — rastreio ' + data.trackingCode : '';
+      showStatus('Etiqueta Correios aberta' + track, 'success');
+      return;
     }
 
+    if (data.useClient && window.STF_ORDER_LABEL) {
+      window.STF_ORDER_LABEL.print(order);
+      showStatus((data.error || data.message || 'Etiqueta local') + ' (fallback HTML)', data.error ? 'warn' : 'success');
+      return;
+    }
+
+    if (!window.STF_ORDER_LABEL) {
+      throw new Error(data.error || data.detail || 'Módulo de etiqueta não carregou.');
+    }
     window.STF_ORDER_LABEL.print(order);
-    showStatus('Etiqueta aberta — use Ctrl+P se não imprimir sozinha.', 'success');
+    showStatus('Etiqueta local aberta — use Ctrl+P se não imprimir sozinha.', 'success');
   }
 
   els.form?.addEventListener('submit', async (e) => {

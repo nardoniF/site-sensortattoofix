@@ -7,7 +7,6 @@
     login: document.getElementById('pedidos-login'),
     panel: document.getElementById('pedidos-panel'),
     loginForm: document.getElementById('pedidos-login-form'),
-    apiUrl: document.getElementById('pedidos-api-url'),
     status: document.getElementById('pedidos-status'),
     tbody: document.getElementById('pedidos-tbody'),
     count: document.getElementById('pedidos-count'),
@@ -17,7 +16,19 @@
   };
 
   function apiBase() {
-    return (els.apiUrl?.value || bootstrap.configApiUrl || '').replace(/\/$/, '');
+    return (bootstrap.configApiUrl || '').replace(/\/$/, '');
+  }
+
+  function showLoginView() {
+    els.login.hidden = false;
+    els.panel.hidden = true;
+    document.body.classList.add('pedidos-login-only');
+  }
+
+  function showPanelView() {
+    els.login.hidden = true;
+    els.panel.hidden = false;
+    document.body.classList.remove('pedidos-login-only');
   }
 
   function adminAuthHeaders() {
@@ -109,6 +120,53 @@
     );
   }
 
+  function openPdfBase64(b64, filename) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    if (filename) a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  async function printOrderLabel(order) {
+    try {
+      showStatus('Gerando etiqueta…', '');
+      const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(order.orderId) + '/shipping-label', {
+        method: 'POST',
+        headers: adminAuthHeaders()
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.mode === 'pdf' && data.pdfBase64) {
+        openPdfBase64(data.pdfBase64, 'etiqueta-' + order.orderId + '.pdf');
+        const track = data.trackingCode ? ' — rastreio ' + data.trackingCode : '';
+        showStatus('Etiqueta Correios aberta' + track, 'success');
+        return;
+      }
+      if (data.useClient && window.STF_ORDER_LABEL) {
+        window.STF_ORDER_LABEL.print(order);
+        showStatus((data.error || data.message || 'Etiqueta local') + ' (fallback HTML)', data.error ? 'warn' : 'success');
+        return;
+      }
+      throw new Error(data.error || data.detail || 'Falha ao gerar etiqueta');
+    } catch (err) {
+      if (window.STF_ORDER_LABEL) {
+        window.STF_ORDER_LABEL.print(order);
+        showStatus((err.message || 'Erro') + ' — etiqueta local aberta.', 'warn');
+      } else {
+        showStatus(err.message || 'Erro ao gerar etiqueta', 'error');
+      }
+    }
+  }
+
   function renderTable(orders) {
     els.tbody.innerHTML = '';
     if (!orders.length) {
@@ -138,11 +196,7 @@
 
       tr.querySelector('.btn-print-label')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        if (window.STF_ORDER_LABEL) {
-          window.STF_ORDER_LABEL.print(o);
-        } else {
-          alert('Módulo de etiqueta não carregado.');
-        }
+        printOrderLabel(o);
       });
 
       tr.querySelector('.btn-confirm-pay')?.addEventListener('click', async (ev) => {
@@ -252,7 +306,7 @@
     e.preventDefault();
     showStatus('Entrando...', '');
     const base = apiBase();
-    if (!base) { showStatus('Informe a URL da API.', 'error'); return; }
+    if (!base) { showStatus('API não configurada. Verifique js/config-bootstrap.js.', 'error'); return; }
 
     try {
       const fd = new FormData(els.loginForm);
@@ -264,8 +318,7 @@
       if (!res.ok) throw new Error('Login inválido.');
       const data = await res.json();
       sessionStorage.setItem(SESSION_KEY, data.token);
-      els.login.hidden = true;
-      els.panel.hidden = false;
+      showPanelView();
       await loadOrders();
       showStatus('', '');
     } catch (err) {
@@ -300,28 +353,27 @@
   });
   document.getElementById('btn-logout-pedidos')?.addEventListener('click', () => {
     sessionStorage.removeItem(SESSION_KEY);
-    els.panel.hidden = true;
-    els.login.hidden = false;
+    showLoginView();
   });
   els.filterSearch?.addEventListener('input', applyFilters);
   els.filterStatus?.addEventListener('change', applyFilters);
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (bootstrap.configApiUrl && els.apiUrl) els.apiUrl.value = bootstrap.configApiUrl;
     if (sessionStorage.getItem(SESSION_KEY) && apiBase()) {
       validateSession().then((ok) => {
         if (!ok) {
           sessionStorage.removeItem(SESSION_KEY);
+          showLoginView();
           return;
         }
-        els.login.hidden = true;
-        els.panel.hidden = false;
+        showPanelView();
         loadOrders().catch(() => {
           sessionStorage.removeItem(SESSION_KEY);
-          els.panel.hidden = true;
-          els.login.hidden = false;
+          showLoginView();
         });
       });
+    } else {
+      showLoginView();
     }
   });
 })();
