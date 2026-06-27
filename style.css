@@ -2249,6 +2249,28 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .admin-help-panel p:last-child {
     margin-bottom: 0;
 }
+.admin-help-lead {
+    color: #ddd;
+    font-weight: 600;
+    margin-bottom: 10px !important;
+}
+.admin-help-list {
+    margin: 0 0 12px;
+    padding-left: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.admin-help-list li {
+    line-height: 1.45;
+}
+.admin-help-foot {
+    margin-top: 10px !important;
+    padding-top: 10px;
+    border-top: 1px solid #222;
+    font-size: 0.82rem;
+    color: #999;
+}
 .admin-help-panel code {
     font-size: 0.8em;
 }

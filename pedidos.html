@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Pedidos | Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.29">
+    <link rel="stylesheet" href="style.css?v=2.30">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page pedidos-page">
@@ -33,11 +33,17 @@
                         <i class="fas fa-circle-question" aria-hidden="true"></i>
                     </button>
                 </div>
-                <p class="admin-intro admin-intro-compact">Pedidos da loja oficial.</p>
+                <p class="admin-intro admin-intro-compact">Lista, etiquetas, confirmação de PIX e exportação CSV.</p>
                 <div id="pedidos-login-help" class="admin-help-panel" hidden>
-                    <p><strong>Requer API Cloudflare</strong> configurada em <code>js/config-bootstrap.js</code>.</p>
-                    <p>Lista todos os pedidos pagos e pendentes, com etiqueta, confirmação manual de PIX e exportação CSV.</p>
-                    <p>Mesmo login do admin: usuário <code>admin</code> + secret <code>ADMIN_PASSWORD</code>. Após 5 erros, bloqueio de ~30 min.</p>
+                    <p class="admin-help-lead">Todos os pedidos da loja oficial em tempo real.</p>
+                    <ul class="admin-help-list">
+                        <li>Ver pedidos <strong>pagos</strong> e <strong>aguardando pagamento</strong>.</li>
+                        <li>Imprimir <strong>etiqueta</strong> (Correios oficial ou fallback local).</li>
+                        <li><strong>Confirmar PIX</strong> manualmente quando necessário.</li>
+                        <li>Excluir pedidos ou limpar pendentes.</li>
+                        <li>Exportar planilha <strong>CSV</strong>.</li>
+                    </ul>
+                    <p class="admin-help-foot">Mesmo login do admin (<code>admin</code> + <code>ADMIN_PASSWORD</code>). Após 5 erros, bloqueio ~30 min.</p>
                 </div>
                 <form id="pedidos-login-form" class="admin-form admin-form-compact">
                     <label>Usuário<input type="text" name="username" value="admin" required autocomplete="username"></label>

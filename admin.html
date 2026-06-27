@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.29">
+    <link rel="stylesheet" href="style.css?v=2.30">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -33,12 +33,22 @@
                         <i class="fas fa-circle-question" aria-hidden="true"></i>
                     </button>
                 </div>
-                <p class="admin-intro admin-intro-compact">Gerencie preço, PIX, frete e contatos.</p>
+                <p class="admin-intro admin-intro-compact">Pedidos, cliques, clientes, produtos, contato, frete, PIX, cupons, API e documentação.</p>
                 <div id="admin-login-help" class="admin-help-panel" hidden>
-                    <p><strong>Requer API Cloudflare</strong> configurada em <code>js/config-bootstrap.js</code>.</p>
-                    <p>Inclui: produtos, frete (Correios, motoboy, internacional), PIX, contato, cupons, integrações, documentação, pedidos, cliques e clientes.</p>
-                    <p>URLs: <strong>/admin.html</strong> · <strong>/pedidos.html</strong></p>
-                    <p>Login: usuário <code>admin</code> + senha do secret <code>ADMIN_PASSWORD</code> no Cloudflare Worker. Após 5 erros, bloqueio de ~30 min.</p>
+                    <p class="admin-help-lead">Central de configuração da loja Sensor Tattoo Fix — por prioridade:</p>
+                    <ul class="admin-help-list">
+                        <li><strong>Pedidos</strong> — exportar JSON/CSV; lista completa em <strong>/pedidos.html</strong>.</li>
+                        <li><strong>Cliques</strong> — log de visitas e links (ML, TikTok, loja…).</li>
+                        <li><strong>Clientes</strong> — contas criadas em Minha Conta.</li>
+                        <li><strong>Produtos</strong> — lentes na vitrine e agregados no checkout (preço, peso, imagem).</li>
+                        <li><strong>Contato</strong> — WhatsApp e e-mail de aviso de pedidos.</li>
+                        <li><strong>Frete</strong> — remetente, modalidades, motoboy, Correios BR e internacional.</li>
+                        <li><strong>PIX</strong> — Mercado Pago no checkout e chave PIX reserva (fallback).</li>
+                        <li><strong>Cupons</strong> — desconto ao cliente e comissão ao comissionado.</li>
+                        <li><strong>API</strong> — status das integrações (MP, Asaas, PayPal, Correios, Uber, e-mail…), cartão e PayPal internacional.</li>
+                        <li><strong>Documentação</strong> — guia técnico (secrets, webhooks, deploy).</li>
+                    </ul>
+                    <p class="admin-help-foot"><strong>Login:</strong> usuário <code>admin</code> + senha do secret <code>ADMIN_PASSWORD</code> no Cloudflare. Após 5 erros, bloqueio ~30 min.</p>
                 </div>
                 <form id="admin-login-form" class="admin-form admin-form-compact">
                     <label>Usuário
@@ -66,20 +76,20 @@
                 <p id="admin-status-top" class="admin-status form-status" hidden></p>
 
                 <nav class="admin-tabs" role="tablist" aria-label="Seções do painel">
-                    <button type="button" role="tab" class="admin-tab active" data-admin-tab="produtos" aria-selected="true" aria-controls="admin-tab-produtos"><i class="fas fa-box"></i> Produtos</button>
+                    <button type="button" role="tab" class="admin-tab active" data-admin-tab="pedidos" aria-selected="true" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Clientes</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="produtos" aria-selected="false" aria-controls="admin-tab-produtos"><i class="fas fa-box"></i> Produtos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="contato" aria-selected="false" aria-controls="admin-tab-contato"><i class="fas fa-headset"></i> Contato</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="frete" aria-selected="false" aria-controls="admin-tab-frete"><i class="fas fa-truck"></i> Frete</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pix" aria-selected="false" aria-controls="admin-tab-pix"><i class="fas fa-qrcode"></i> PIX</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="contato" aria-selected="false" aria-controls="admin-tab-contato"><i class="fas fa-headset"></i> Contato</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="cupons" aria-selected="false" aria-controls="admin-tab-cupons"><i class="fas fa-ticket-alt"></i> Cupons</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="documentacao" aria-selected="false" aria-controls="admin-tab-documentacao"><i class="fas fa-book"></i> Documentação</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="pedidos" aria-selected="false" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Clientes</button>
                 </nav>
 
                 <form id="admin-config-form" class="admin-form">
-                    <div id="admin-tab-produtos" class="admin-tab-panel active" role="tabpanel">
+                    <div id="admin-tab-produtos" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend><i class="fas fa-box"></i> Catálogo de produtos</legend>
                         <nav class="admin-product-subtabs" role="tablist" aria-label="Tipos de produto">
@@ -422,7 +432,7 @@
                         <iframe id="admin-doc-frame" title="Documentação Sensor Tattoo Fix"></iframe>
                     </div>
 
-                    <div id="admin-tab-pedidos" class="admin-tab-panel" role="tabpanel" hidden>
+                    <div id="admin-tab-pedidos" class="admin-tab-panel active" role="tabpanel">
                     <fieldset class="admin-orders-section">
                         <legend><i class="fas fa-list"></i> Pedidos salvos</legend>
                         <p class="admin-meta">Veja e gerencie pedidos na lista interativa — usa o mesmo login deste painel.</p>
@@ -522,6 +532,6 @@
     <script src="js/config-bootstrap.js?v=2"></script>
     <script src="js/store-products-merge.js?v=17"></script>
     <script src="js/admin-help.js"></script>
-    <script src="js/admin.js?v=63"></script>
+    <script src="js/admin.js?v=64"></script>
 </body>
 </html>

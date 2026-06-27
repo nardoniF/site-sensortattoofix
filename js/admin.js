@@ -1941,7 +1941,7 @@
     if (!tabs.length || !panels.length) return;
 
     function showTab(tabId) {
-      const id = tabId || 'produtos';
+      const id = tabId || 'pedidos';
       tabs.forEach((tab) => {
         const active = tab.dataset.adminTab === id;
         tab.classList.toggle('active', active);
@@ -1963,9 +1963,9 @@
       tab.addEventListener('click', () => showTab(tab.dataset.adminTab));
     });
 
-    let saved = 'produtos';
-    try { saved = localStorage.getItem('stf_admin_tab') || 'produtos'; } catch (e) { /* ignore */ }
-    if (!panels.some((p) => p.id === 'admin-tab-' + saved)) saved = 'produtos';
+    let saved = 'pedidos';
+    try { saved = localStorage.getItem('stf_admin_tab') || 'pedidos'; } catch (e) { /* ignore */ }
+    if (!panels.some((p) => p.id === 'admin-tab-' + saved)) saved = 'pedidos';
     showTab(saved);
   }
 
