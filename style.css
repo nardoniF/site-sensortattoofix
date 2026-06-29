@@ -107,6 +107,10 @@ nav,
     white-space: nowrap;
 }
 
+.hero-brand-mobile {
+    display: none;
+}
+
 .nav-panel {
     display: flex;
     align-items: center;
@@ -1299,18 +1303,56 @@ footer,
 @media (max-width: 768px) {
     header { position: fixed; top: 0; left: 0; width: 100%; min-height: auto; padding: 10px 0; }
     body { padding-top: 78px; }
+    body.home-page { padding-top: 64px; scroll-padding-top: 64px; }
     #onde-comprar {
         scroll-margin-top: 78px;
         min-height: auto;
         padding-top: 0;
         padding-bottom: 28px;
     }
+    body.home-page #onde-comprar { scroll-margin-top: 64px; }
     .site-nav,
     nav { position: relative; flex-wrap: nowrap; gap: 6px; }
     .logo-area { flex: 0 0 auto; min-width: 0; gap: 8px; }
     .logo-img-link { width: 56px; height: 56px; }
     .logo-text { font-size: 0.95rem; }
     .logo-tagline { font-size: 0.68rem; }
+
+    /* Home mobile: marca no hero, header compacto + hambúrguer */
+    .home-page .logo-area .logo-lockup { display: none; }
+    .home-page .site-social { display: none; }
+    .home-page .site-nav {
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+    .home-page .nav-actions {
+        flex: 1;
+        justify-content: flex-end;
+        min-width: 0;
+        margin-left: auto;
+    }
+    .home-page .mobile-menu-icon {
+        order: 99;
+        margin-left: 4px;
+    }
+    .home-page .hero-brand-mobile {
+        display: block;
+        margin: 0 0 14px;
+        text-align: center;
+    }
+    .home-page .hero-brand-mobile .logo-text {
+        display: flex;
+        justify-content: center;
+        font-size: 1.15rem;
+    }
+    .home-page .hero-brand-mobile .logo-tagline {
+        white-space: normal;
+        font-size: 0.78rem;
+        margin-top: 4px;
+    }
+    .home-page .hero-grid { padding-top: 20px; }
+
     .site-social {
         border-left: none;
         border-right: none;
@@ -1359,6 +1401,12 @@ footer,
         transition: max-height 0.28s ease, opacity 0.28s ease, visibility 0.28s ease;
         z-index: 1000;
         padding: 0;
+    }
+
+    .home-page .nav-panel {
+        left: 12px;
+        right: 12px;
+        width: auto;
     }
 
     .nav-main {
