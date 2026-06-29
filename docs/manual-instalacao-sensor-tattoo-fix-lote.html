@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Instalação — Impressão em lote (10/folha)</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 4mm;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-size: 6pt;
+            line-height: 1.25;
+            color: #111;
+            background: #e8e8e8;
+        }
+
+        .no-print {
+            text-align: center;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .no-print p { margin-bottom: 8px; color: #444; }
+
+        .no-print button,
+        .no-print a.btn {
+            display: inline-block;
+            font: inherit;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            background: #ffc107;
+            color: #111;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            margin: 0 4px;
+        }
+
+        .no-print a.btn.secondary {
+            background: #fff;
+            border: 1px solid #ccc;
+        }
+
+        @media print {
+            body { background: #fff; }
+            .no-print { display: none !important; }
+            .sheet-lote { box-shadow: none; margin: 0; }
+            .tile { break-inside: avoid; }
+        }
+
+        .sheet-lote {
+            width: 210mm;
+            height: 297mm;
+            margin: 12px auto;
+            padding: 0;
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(0,0,0,.12);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(5, 1fr);
+        }
+
+        .tile {
+            border: 0.4pt dashed #bbb;
+            padding: 2.2mm 2.5mm 2mm;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2mm;
+        }
+
+        .tile-head {
+            display: flex;
+            align-items: center;
+            gap: 2mm;
+            border-bottom: 1pt solid #ffc107;
+            padding-bottom: 1mm;
+        }
+
+        .tile-head img {
+            width: 7mm;
+            height: 7mm;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .tile-head h1 {
+            font-size: 7.2pt;
+            line-height: 1.1;
+            font-weight: 800;
+        }
+
+        .tile-head h1 span { color: #c89600; }
+
+        .tile-head p {
+            font-size: 5pt;
+            color: #555;
+        }
+
+        .tile-grid {
+            display: grid;
+            grid-template-columns: 0.92fr 1.08fr;
+            gap: 2mm;
+            flex: 1;
+            min-height: 0;
+        }
+
+        h2 {
+            font-size: 5.6pt;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            border-left: 2px solid #ffc107;
+            padding-left: 3px;
+            margin-bottom: 1mm;
+        }
+
+        .kit {
+            list-style: none;
+            font-size: 5.4pt;
+        }
+
+        .kit li {
+            margin-bottom: 0.6mm;
+            padding-left: 3.2mm;
+            position: relative;
+        }
+
+        .kit li::before {
+            content: attr(data-n);
+            position: absolute;
+            left: 0;
+            font-weight: 800;
+            color: #c89600;
+            font-size: 5pt;
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: s;
+            font-size: 5.4pt;
+        }
+
+        .steps li {
+            counter-increment: s;
+            position: relative;
+            padding-left: 3.6mm;
+            margin-bottom: 0.55mm;
+        }
+
+        .steps li::before {
+            content: counter(s);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 2.8mm;
+            height: 2.8mm;
+            border-radius: 50%;
+            background: #ffc107;
+            font-size: 4.8pt;
+            font-weight: 800;
+            text-align: center;
+            line-height: 2.8mm;
+        }
+
+        .steps li strong { font-weight: 700; }
+
+        .cura {
+            font-size: 5.2pt;
+            background: #f7f7f7;
+            border: 0.4pt solid #ddd;
+            border-radius: 2px;
+            padding: 1mm 1.2mm;
+            margin-top: 0.5mm;
+        }
+
+        .cura strong { font-size: 5.4pt; }
+
+        .warn {
+            margin-top: auto;
+            padding: 1mm 1.2mm;
+            border: 0.8pt solid #ffc107;
+            border-radius: 2px;
+            background: #fffbea;
+            font-size: 5.3pt;
+            font-weight: 600;
+        }
+
+        .tile-foot {
+            font-size: 4.8pt;
+            color: #666;
+            text-align: center;
+            border-top: 0.4pt solid #ddd;
+            padding-top: 0.8mm;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <p><strong>Impressão em lote</strong> — 10 manuais por folha A4. Recorte nas linhas tracejadas.</p>
+        <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
+        <a class="btn secondary" href="manual-instalacao-sensor-tattoo-fix.html">Versão completa (1 por folha)</a>
+    </div>
+
+    <div class="sheet-lote" id="sheet-lote" aria-label="Folha com 10 manuais"></div>
+
+    <template id="tile-template">
+        <article class="tile">
+            <header class="tile-head">
+                <img src="../site/logo.jpg" alt="">
+                <div>
+                    <h1>SENSOR <span>TATTOO FIX</span></h1>
+                    <p>Instalação da lente · 3N20</p>
+                </div>
+            </header>
+            <div class="tile-grid">
+                <section>
+                    <h2>Kit</h2>
+                    <ul class="kit">
+                        <li data-n="1"><strong>Lente</strong> — adesivo alta fixação</li>
+                        <li data-n="2"><strong>Vidro</strong> — potencializador de adesivo</li>
+                        <li data-n="3"><strong>Bastão pincel</strong> — ponta sintética (sem algodão)</li>
+                        <li data-n="4"><strong>Lenço</strong> — álcool isopropílico</li>
+                    </ul>
+                    <div class="cura">
+                        <strong>Aderência:</strong> 20&nbsp;min 50% · 1&nbsp;h 75% · 24&nbsp;h 90% · 48&nbsp;h 100%
+                    </div>
+                </section>
+                <section>
+                    <h2>Passo a passo</h2>
+                    <ol class="steps">
+                        <li><strong>Limpe</strong> o sensor com o lenço de álcool.</li>
+                        <li><strong>Secar</strong> ~10&nbsp;s até evaporar o álcool.</li>
+                        <li><strong>Retire o liner</strong> (aba da película). Não toque no adesivo.</li>
+                        <li><strong>Potencializador</strong> no sensor com o bastão pincel, camada fina.</li>
+                        <li><strong>Colar</strong> no centro do sensor; pressão firme e uniforme.</li>
+                        <li><strong>Cura</strong> — evite água, impacto e suor nas primeiras horas.</li>
+                    </ol>
+                </section>
+            </div>
+            <p class="warn">Água e natação: somente após <strong>72 horas (3 dias)</strong>.</p>
+            <p class="tile-foot">sensortattoofix.com.br · © 3N20</p>
+        </article>
+    </template>
+
+    <script>
+        (function () {
+            var tpl = document.getElementById('tile-template');
+            var sheet = document.getElementById('sheet-lote');
+            for (var i = 0; i < 10; i++) {
+                sheet.appendChild(tpl.content.cloneNode(true));
+            }
+        })();
+    </script>
+
+</body>
+</html>
