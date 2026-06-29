@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&family=Outfit:wght@500;600;700&display=swap');
 
 :root {
     --primary: #ffc107;
@@ -7,6 +7,7 @@
     --text: #ffffff;
     --gray: #888;
     --danger: #ff4444;
+    --font-nav: 'Outfit', system-ui, -apple-system, sans-serif;
 }
 
 html { scroll-behavior: smooth; scroll-padding-top: 70px; }
@@ -138,8 +139,10 @@ nav,
 }
 
 .nav-main a {
-    font-size: 0.78rem;
+    font-family: var(--font-nav);
+    font-size: 0.8rem;
     font-weight: 600;
+    letter-spacing: 0.03em;
     padding: 5px 3px;
 }
 
@@ -2539,19 +2542,21 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .clicks-stats-top li {
     display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 6px 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
     border-radius: 6px;
     background: #0a0a0a;
     border: 1px solid #222;
     font-size: 0.88rem;
 }
-.clicks-stats-top li span { color: #ccc; min-width: 0; }
+.clicks-stats-top li span { color: #ccc; min-width: 0; line-height: 1.35; }
 .clicks-stats-top li strong {
     color: var(--primary);
     font-variant-numeric: tabular-nums;
-    flex-shrink: 0;
+    font-size: 0.95rem;
+    line-height: 1.2;
 }
 .clicks-stats-empty {
     margin: 0;
@@ -2971,7 +2976,25 @@ body.admin-page.pedidos-login-only #pedidos-login {
     min-height: calc(100vh - 220px);
     gap: 12px;
 }
-.admin-doc-tab-intro { margin: 0 0 4px; }
+.admin-doc-tab-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+}
+.admin-doc-tab-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.admin-tab-panel-doc .admin-help-panel--fieldset {
+    margin-bottom: 8px;
+}
 .admin-panel-header {
     display: flex;
     justify-content: space-between;

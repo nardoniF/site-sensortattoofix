@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.36">
+    <link rel="stylesheet" href="style.css?v=2.38">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -466,7 +466,14 @@
                     </div>
 
                     <div id="admin-tab-documentacao" class="admin-tab-panel admin-tab-panel-doc" role="tabpanel" hidden>
-                        <p class="admin-meta admin-doc-tab-intro">URLs, secrets, webhooks, frete, Correios e integrações. Também em <a href="documentacao.html" target="_blank" rel="noopener">documentacao.html</a> (nova aba).</p>
+                        <div class="admin-doc-tab-head">
+                            <h2 class="admin-doc-tab-title"><i class="fas fa-book" aria-hidden="true"></i> Documentação</h2>
+                            <button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-documentacao" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button>
+                        </div>
+                        <div id="help-documentacao" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Guia técnico: URLs, secrets, webhooks, frete, Correios e integrações.</p>
+                            <p>Também em <a href="documentacao.html" target="_blank" rel="noopener">documentacao.html</a> (nova aba).</p>
+                        </div>
                         <iframe id="admin-doc-frame" title="Documentação Sensor Tattoo Fix"></iframe>
                     </div>
 
