@@ -1061,8 +1061,10 @@
   }
 
   function clickOrigemLegivel(c) {
-    if (c.origem_trafego_label && c.origem_trafego_label !== 'Acesso direto') {
-      return { label: c.origem_trafego_label, slug: c.origem_trafego || 'outro' };
+    if (c.origem_trafego_label) {
+      const slug = c.origem_trafego
+        || (c.origem_trafego_label === 'Acesso direto' ? 'direto' : 'outro');
+      return { label: c.origem_trafego_label, slug };
     }
     const inferred = inferirOrigemDeUrl(c.pagina);
     if (inferred) {
@@ -1070,7 +1072,8 @@
       return { label: inferred, slug };
     }
     const ref = String(c.referrer || '').trim();
-    if (ref && ref !== '(direto)' && ref !== '—') {
+    const refLower = ref.toLowerCase();
+    if (ref && ref !== '(direto)' && ref !== '—' && refLower !== 'acesso direto') {
       return { label: ref, slug: 'referral' };
     }
     return { label: 'Acesso direto', slug: 'direto' };

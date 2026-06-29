@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Documentação — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=1.72">
+    <link rel="stylesheet" href="style.css?v=1.73">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page admin-doc-page" id="doc-body">
@@ -47,6 +47,7 @@
                     <a href="#frete">Frete</a>
                     <a href="#correios">Correios (passo a passo)</a>
                     <a href="#admin-abas">Abas do admin</a>
+                    <a href="#cliques">Log de cliques</a>
                     <a href="#deploy">Deploy</a>
                     <a href="#uber">Uber Direct</a>
                 </nav>
@@ -185,18 +186,85 @@
 
                 <section id="admin-abas" class="admin-doc-section">
                     <h2>Abas do admin</h2>
+                    <p class="admin-meta">Ordem de prioridade no painel (da esquerda para a direita):</p>
                     <table class="admin-doc-table">
                         <thead><tr><th>Aba</th><th>Função</th></tr></thead>
                         <tbody>
-                            <tr><td>Produtos</td><td>Catálogo, preços, peso, imagens</td></tr>
-                            <tr><td>Frete</td><td>Remetente, modalidades, pacote, teste de cotação, fallback internacional</td></tr>
-                            <tr><td>PIX</td><td>PIX reserva (QR estático): chave, tipo, nome e cidade — só se Mercado Pago e Asaas falharem. Pagamentos normais vão para a conta Mercado Pago. Chave inválida ou API fora: usa <code>data/store-config.json</code>.</td></tr>
+                            <tr><td>Pedidos</td><td>Atalho para <code>/pedidos.html</code>, exportação JSON/CSV</td></tr>
+                            <tr><td>Cliques</td><td>Log de visitas e origem do tráfego — ver seção <a href="#cliques">Log de cliques</a></td></tr>
+                            <tr><td>Clientes</td><td>Contas criadas em Minha Conta</td></tr>
+                            <tr><td>Produtos</td><td>Catálogo (lentes + agregados), preços, peso, imagens</td></tr>
                             <tr><td>Contato</td><td>WhatsApp, e-mail FormSubmit, assunto dos pedidos</td></tr>
-                            <tr><td>API</td><td>URL do Worker, status das integrações (teste automático), PayPal, testes de e-mail</td></tr>
-                            <tr><td>Pedidos</td><td>Atalho para <code>/pedidos.html</code> e exportação</td></tr>
-                            <tr><td>Documentação</td><td>Este manual</td></tr>
+                            <tr><td>Frete</td><td>Remetente, modalidades, motoboy, Correios BR, internacional</td></tr>
+                            <tr><td>PIX</td><td>PIX reserva (QR estático): chave, tipo, nome e cidade — só se Mercado Pago e Asaas falharem. Pagamentos normais vão para a conta Mercado Pago.</td></tr>
+                            <tr><td>Cupons</td><td>Desconto ao cliente e comissão ao comissionado</td></tr>
+                            <tr><td>API</td><td>URL do Worker, status das integrações, cartão/PayPal, testes de e-mail</td></tr>
+                            <tr><td>Documentação</td><td>Este manual (incorporado no admin)</td></tr>
                         </tbody>
                     </table>
+                </section>
+
+                <section id="cliques" class="admin-doc-section">
+                    <h2>Log de cliques (Admin → Cliques)</h2>
+                    <p>Registro automático de <strong>visitas e cliques</strong> no site. Serve para entender de onde vem o tráfego e o que as pessoas fazem — <strong>não substitui Pedidos</strong> (venda confirmada só aparece em <code>/pedidos.html</code>).</p>
+
+                    <h3>O que significa cada linha</h3>
+                    <p>Cada evento mostra <strong>hora</strong>, uma etiqueta central (ação/página) e, nas entradas, a <strong>origem do tráfego</strong> à direita.</p>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Etiqueta central (verde)</th><th>Significado</th></tr></thead>
+                        <tbody>
+                            <tr><td>Entrada — Home</td><td>Abriu a página inicial</td></tr>
+                            <tr><td>Entrada — Home EN</td><td>Abriu a home em inglês (<code>/en/</code>)</td></tr>
+                            <tr><td>Entrada — Loja</td><td>Abriu <code>/loja.html</code></td></tr>
+                            <tr><td>Entrada — Checkout</td><td>Abriu <code>/comprar.html</code> — <em>não</em> significa que comprou</td></tr>
+                            <tr><td>Entrada — Onde comprar</td><td>Abriu <code>/onde-comprar.html</code></td></tr>
+                            <tr><td>Entrada — Minha conta</td><td>Abriu <code>/minha-conta.html</code></td></tr>
+                            <tr><td>Mercado Livre, TikTok, etc.</td><td>Clicou em link externo rastreado (marketplace, rede social)</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Origem do tráfego (badge à direita, nas entradas)</h3>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Texto</th><th>Cor</th><th>Como o site detecta</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Acesso direto</strong></td><td>Cinza</td><td>Sem campanha na URL e sem site de origem identificado — ver lista abaixo</td></tr>
+                            <tr><td><strong>Google Ads</strong></td><td>Azul</td><td>Parâmetro <code>gclid</code> na URL ou <code>utm_source=google</code> + mídia paga</td></tr>
+                            <tr><td><strong>Google orgânico</strong></td><td>Verde claro</td><td>Veio de busca Google (referrer)</td></tr>
+                            <tr><td><strong>Instagram / Facebook / TikTok</strong></td><td>Rosa / azul / branco</td><td>Referrer ou UTMs da rede</td></tr>
+                            <tr><td><strong>Link de outro site</strong></td><td>Amarelo</td><td>Referrer com domínio externo (ex.: blog, parceiro)</td></tr>
+                            <tr><td><strong>Site</strong></td><td>Laranja (primary)</td><td>UTM interna (<code>utm_source=sensortattoofix</code>)</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>O que é “Acesso direto”?</h3>
+                    <p>O site <strong>não conseguiu identificar</strong> de onde a pessoa veio. Na prática, costuma ser:</p>
+                    <ul class="admin-doc-list">
+                        <li>Digitou <code>sensortattoofix.com.br</code> na barra do navegador</li>
+                        <li>Favorito / bookmark</li>
+                        <li>Link em <strong>WhatsApp</strong>, Telegram ou e-mail (muitos apps não enviam origem)</li>
+                        <li>QR code ou cartão de visita</li>
+                        <li>Bot, monitoramento ou servidor (também aparece assim)</li>
+                    </ul>
+                    <p class="admin-meta">Não dá para saber com certeza qual desses foi — só que não veio de anúncio rastreado nem de link com origem registrada.</p>
+
+                    <h3>Exemplo de jornada no log</h3>
+                    <pre class="admin-doc-pre"><code>Google Ads  →  Entrada — Home  →  Entrada — Loja  →  Entrada — Checkout</code></pre>
+                    <p>Interpretação: clicou no anúncio, navegou e chegou ao checkout. <strong>Ainda não é venda</strong> — confira em Pedidos se virou pedido pago.</p>
+
+                    <h3>Cores — duas colunas diferentes</h3>
+                    <ul class="admin-doc-list">
+                        <li><strong>Centro (verde):</strong> tipo de página ou clique (Entrada — Home, Mercado Livre…).</li>
+                        <li><strong>Direita (badge):</strong> origem do tráfego na <em>primeira entrada</em> da visita (Acesso direto, Google Ads…).</li>
+                    </ul>
+                    <p class="admin-meta"><strong>Nota técnica (jun/2026):</strong> em versões anteriores, “Acesso direto” podia aparecer em cinza ou amarelo para a mesma situação (bug ao salvar o referrer humanizado). Corrigido no admin — acesso direto fica sempre <strong>cinza</strong>; amarelo reservado para link de outro site.</p>
+
+                    <h3>Dicas</h3>
+                    <ul class="admin-doc-list">
+                        <li>Passe o mouse sobre a linha para ver tooltip (campanha UTM, referrer, dispositivo).</li>
+                        <li>Use <strong>Exportar Excel</strong> para análise por dia/semana/mês.</li>
+                        <li><strong>Testar log</strong> grava evento de diagnóstico — use <strong>Limpar testes</strong> depois.</li>
+                        <li>Métricas agregadas também existem no <a href="https://analytics.google.com" target="_blank" rel="noopener">Google Analytics 4</a>.</li>
+                    </ul>
                 </section>
 
                 <section id="deploy" class="admin-doc-section">
