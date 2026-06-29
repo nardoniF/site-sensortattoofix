@@ -2335,6 +2335,42 @@ body.admin-page.pedidos-login-only #pedidos-login {
     align-items: center;
     gap: 8px;
 }
+.admin-form legend.admin-legend-row {
+    width: calc(100% + 16px);
+    margin-left: -8px;
+    padding-right: 0;
+    justify-content: space-between;
+    gap: 12px;
+    box-sizing: border-box;
+}
+.admin-legend-row > span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.admin-help-btn-inline {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+}
+.admin-help-panel--fieldset {
+    margin-top: -4px;
+    margin-bottom: 16px;
+}
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .form-grid:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-form-actions:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > nav:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-product-subtabs:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-ship-methods-wrap:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-intl-zones-wrap:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-email-tests:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-api-status-wrap:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-clicks-toolbar:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .clicks-tree-root:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-table-wrap:first-of-type {
+    margin-top: 0;
+}
 .admin-form-actions {
     display: flex;
     gap: 12px;

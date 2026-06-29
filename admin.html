@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.30">
+    <link rel="stylesheet" href="style.css?v=2.34">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -91,21 +91,23 @@
                 <form id="admin-config-form" class="admin-form">
                     <div id="admin-tab-produtos" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-box"></i> Catálogo de produtos</legend>
+                        <legend class="admin-legend-row"><span><i class="fas fa-box"></i> Catálogo de produtos</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-produtos" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-produtos" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p><strong>Lentes:</strong> aparecem na vitrine e na loja. Informe o tamanho do sensor (mm) de cada lente.</p>
+                            <p><strong>Agregados:</strong> películas e acessórios que só aparecem no checkout (mesmo frete), nunca na vitrine.</p>
+                        </div>
                         <nav class="admin-product-subtabs" role="tablist" aria-label="Tipos de produto">
                             <button type="button" role="tab" class="admin-product-subtab active" data-product-subtab="main" aria-selected="true" aria-controls="admin-products-main-panel"><i class="fas fa-circle-dot"></i> Produtos principais (lentes)</button>
                             <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="aggregated" aria-selected="false" aria-controls="admin-products-aggregated-panel"><i class="fas fa-puzzle-piece"></i> Produtos agregados (upsell)</button>
                         </nav>
                         <p id="admin-products-summary" class="admin-meta admin-products-summary"></p>
                         <div id="admin-products-main-panel" class="admin-product-subpanel" role="tabpanel">
-                            <p class="admin-meta">Lentes Sensor Tattoo Fix na vitrine e loja. Informe o <strong>tamanho do sensor (mm)</strong> de cada lente.</p>
                             <div id="admin-products-main"></div>
                             <div class="admin-form-actions" style="margin-top:8px">
                                 <button type="button" id="btn-add-main-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar lente</button>
                             </div>
                         </div>
                         <div id="admin-products-aggregated-panel" class="admin-product-subpanel" role="tabpanel" hidden>
-                            <p class="admin-meta">Películas e acessórios que <strong>só aparecem no checkout</strong> (mesmo frete), nunca na vitrine.</p>
                             <div id="admin-products-aggregated"></div>
                             <div class="admin-form-actions" style="margin-top:8px">
                                 <button type="button" id="btn-add-aggregated-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar agregado</button>
@@ -125,8 +127,10 @@
 
                     <div id="admin-frete-origem" class="admin-frete-subpanel" role="tabpanel">
                     <fieldset>
-                        <legend><i class="fas fa-warehouse"></i> Remetente (etiqueta + frete)</legend>
-                        <p class="admin-meta">Endereço da loja usado na etiqueta térmica e no CEP de origem do cálculo Correios.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-warehouse"></i> Remetente (etiqueta + frete)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-frete-origem" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-frete-origem" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Endereço da loja usado na <strong>etiqueta térmica</strong> e no <strong>CEP de origem</strong> do cálculo Correios.</p>
+                        </div>
                         <div class="form-grid">
                             <label>Nome na etiqueta
                                 <input type="text" name="shippingSenderBrand" placeholder="Sensor Tattoo Fix">
@@ -167,8 +171,11 @@
 
                     <div id="admin-frete-modalidades" class="admin-frete-subpanel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-list-check"></i> Modalidades de envio (cliente escolhe)</legend>
-                        <p class="admin-meta">O checkout lista <strong>preço e prazo</strong> de cada modalidade ativa. Internacional: tipo <strong>M</strong> = Exporta Fácil (encomenda), tipo <strong>D</strong> = documento/carta internacional (bem mais barato para lente fina). Use <code>*</code> para todos os serviços daquele tipo.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-list-check"></i> Modalidades de envio (cliente escolhe)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-frete-modalidades" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-frete-modalidades" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>O checkout lista preço e prazo de cada modalidade ativa.</p>
+                            <p>Internacional: tipo <strong>M</strong> = Exporta Fácil (encomenda); tipo <strong>D</strong> = documento/carta internacional (mais barato para lente fina). Use <code>*</code> para todos os serviços daquele tipo.</p>
+                        </div>
                         <div class="admin-ship-methods-wrap">
                             <div id="admin-shipping-methods"></div>
                         </div>
@@ -178,8 +185,11 @@
 
                     <div id="admin-frete-motoboy" class="admin-frete-subpanel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-motorcycle"></i> Envio particular (motoboy)</legend>
-                        <p class="admin-meta">Cotação por <strong>distância (CEP origem → destino)</strong>: taxa fixa + valor por km (arredondado para cima). Ao confirmar o pagamento, cada motoboy ativo recebe e-mail com o pedido. Marque <strong>Módulo motoboy ativo</strong> e cadastre ao menos um entregador — a modalidade no checkout é ligada automaticamente ao salvar.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-motorcycle"></i> Envio particular (motoboy)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-frete-motoboy" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-frete-motoboy" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Cotação por distância (CEP origem → destino): taxa fixa + valor por km (arredondado para cima).</p>
+                            <p>Ao confirmar o pagamento, cada motoboy ativo recebe e-mail com o pedido. Marque <strong>Módulo motoboy ativo</strong> e cadastre ao menos um entregador — a modalidade no checkout é ligada automaticamente ao salvar.</p>
+                        </div>
                         <label class="label-check" style="margin-bottom:12px">
                             <input type="checkbox" name="motoboyEnabled" checked>
                             <span>Módulo motoboy ativo</span>
@@ -212,8 +222,11 @@
 
                     <div id="admin-frete-correios" class="admin-frete-subpanel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-truck"></i> Pacote e frete (Brasil)</legend>
-                        <p class="admin-meta">O checkout consulta a <strong>API Preço dos Correios</strong> para cada modalidade BR ativa quando <code>CORREIOS_USER</code> e <code>CORREIOS_PASSWORD</code> estão no Worker. Sem isso, usa estimativa fixa.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-truck"></i> Pacote e frete (Brasil)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-frete-correios" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-frete-correios" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>O checkout consulta a <strong>API Preço dos Correios</strong> para cada modalidade BR ativa quando <code>CORREIOS_USER</code> e <code>CORREIOS_PASSWORD</code> estão no Worker.</p>
+                            <p>Sem credenciais, usa estimativa fixa.</p>
+                        </div>
                         <p id="correios-br-status" class="admin-meta" style="margin-bottom:8px"></p>
                         <div class="form-grid">
                             <label>Peso do pacote (gramas)
@@ -250,12 +263,14 @@
 
                     <div id="admin-frete-internacional" class="admin-frete-subpanel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-globe-americas"></i> Frete internacional</legend>
-                        <p class="admin-meta">O checkout usa o <strong>simulador Exporta Fácil</strong> em tempo real. A tabela abaixo é <strong>fallback</strong> (se a API cair) e é <strong>atualizada automaticamente</strong> com os valores da API quando ela responde — ao abrir o admin ou quando um cliente cotar frete.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-globe-americas"></i> Frete internacional</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-frete-intl" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-frete-intl" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>O checkout usa o <strong>simulador Exporta Fácil</strong> em tempo real. A tabela abaixo é fallback (se a API cair) e é atualizada automaticamente quando a API responde.</p>
+                            <p><strong>Acréscimo internacional:</strong> somado só na primeira opção de documento/carta (a mais barata). Encomenda Exporta Fácil e documento expresso não recebem.</p>
+                        </div>
                         <div class="form-grid" style="margin-bottom:12px">
                             <label>Acréscimo internacional (R$)
                                 <input type="number" name="intlSurcharge" min="0" step="0.01" value="40">
-                                <small>Somado só na <strong>primeira opção de documento/carta</strong> (a mais barata). Encomenda Exporta Fácil e documento expresso não recebem.</small>
                             </label>
                         </div>
                         <div class="form-grid" style="margin-bottom:12px">
@@ -292,19 +307,24 @@
 
                     <div id="admin-tab-pix" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-qrcode"></i> PIX no checkout</legend>
-                        <p class="admin-meta">Com <strong>Mercado Pago</strong> ativo (<code>MP_ACCESS_TOKEN</code> no Worker), o QR PIX é criado pela API do Mercado Pago. O pagamento cai na <strong>conta Mercado Pago</strong> — não usa os campos de “PIX reserva” abaixo.</p>
-                        <p class="admin-meta">O e-mail do cliente no checkout é só para identificação no Mercado Pago e para avisos de pedido. O e-mail da loja para notificações está em <strong>Contato → E-mail dos pedidos</strong>.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-qrcode"></i> PIX no checkout</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-pix-checkout" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-pix-checkout" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Com <strong>Mercado Pago</strong> ativo (<code>MP_ACCESS_TOKEN</code> no Worker), o QR PIX é criado pela API. O pagamento cai na conta Mercado Pago — não usa os campos de PIX reserva abaixo.</p>
+                            <p>O e-mail do cliente no checkout é para identificação no MP e avisos de pedido. O e-mail da loja para notificações está em <strong>Contato → E-mail dos pedidos</strong>.</p>
+                        </div>
                     </fieldset>
 
                     <fieldset>
-                        <legend><i class="fas fa-life-ring"></i> PIX reserva (QR estático)</legend>
-                        <p class="admin-meta">Usado <strong>somente</strong> se Mercado Pago e Asaas falharem. O QR aponta para a chave abaixo; nome e cidade aparecem no comprovante do banco. Se a chave estiver inválida ou vazia, o site usa automaticamente o cadastro em <code>data/store-config.json</code> (CNPJ da empresa).</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-life-ring"></i> PIX reserva (QR estático)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-pix-reserva" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-pix-reserva" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Usado <strong>somente</strong> se Mercado Pago e Asaas falharem. O QR aponta para a chave abaixo; nome e cidade aparecem no comprovante do banco.</p>
+                            <p>Se a chave estiver inválida ou vazia, o site usa o cadastro em <code>data/store-config.json</code> (CNPJ da empresa).</p>
+                            <p>Chave: CNPJ, e-mail ou telefone cadastrados no banco — não confundir com e-mail de notificação de pedidos.</p>
+                        </div>
                         <p id="pix-config-warn" class="admin-status warning form-status" hidden></p>
                         <div class="form-grid">
                             <label class="full">Chave PIX da empresa (recebimento)
                                 <input type="text" name="pixKey" placeholder="CNPJ: 29321223000132">
-                                <small>CNPJ, e-mail ou telefone cadastrados no banco — não confundir com e-mail de notificação de pedidos.</small>
                             </label>
                             <label>Tipo da chave
                                 <select name="pixKeyType">
@@ -344,8 +364,10 @@
 
                     <div id="admin-tab-cupons" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-ticket-alt"></i> Cupons de comissionado</legend>
-                        <p class="admin-meta">Cadastre códigos com desconto para o cliente e comissão para o comissionado. O e-mail com o valor da comissão é enviado só quando o pagamento for confirmado (PIX, cartão ou confirmação manual).</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-ticket-alt"></i> Cupons de comissionado</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cupons" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-cupons" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Códigos com desconto para o cliente e comissão para o comissionado. O e-mail com o valor da comissão é enviado só quando o pagamento for confirmado (PIX, cartão ou confirmação manual).</p>
+                        </div>
                         <div id="admin-coupons" class="admin-coupons"></div>
                         <button type="button" id="btn-add-coupon" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar cupom</button>
                     </fieldset>
@@ -353,18 +375,23 @@
 
                     <div id="admin-tab-api" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-server"></i> API</legend>
+                        <legend class="admin-legend-row"><span><i class="fas fa-server"></i> API</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-api-url" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-api-url" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>URL do Worker Cloudflare que processa pedidos, pagamentos e config da loja.</p>
+                            <p>Salvar online exige API configurada e login neste painel.</p>
+                        </div>
                         <div class="form-grid">
                             <label class="full">URL do Worker Cloudflare
                                 <input type="url" name="apiBaseUrl" placeholder="https://sensortattoofix-payments.xxx.workers.dev">
-                                <small>Salvar online exige API configurada e login.</small>
                             </label>
                         </div>
                     </fieldset>
 
                     <fieldset class="admin-api-status-fieldset">
-                        <legend><i class="fas fa-plug"></i> Status das integrações</legend>
-                        <p class="admin-meta">Testadas automaticamente ao abrir esta aba.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-plug"></i> Status das integrações</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-api-status" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-api-status" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Integrações testadas automaticamente ao abrir esta aba. Verde = OK; amarelo = aviso; vermelho = erro.</p>
+                        </div>
                         <div class="admin-api-status-wrap">
                             <table class="admin-api-status-table">
                                 <thead>
@@ -383,25 +410,34 @@
                     </fieldset>
 
                     <fieldset>
-                        <legend><i class="fas fa-credit-card"></i> Cartão de crédito (Brasil)</legend>
+                        <legend class="admin-legend-row"><span><i class="fas fa-credit-card"></i> Cartão de crédito (Brasil)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-card-br" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-card-br" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Define qual gateway processa cartão de crédito no checkout nacional (Asaas ou Mercado Pago Checkout Pro).</p>
+                            <p><strong>Secrets no Worker:</strong> <code>ASAAS_API_KEY</code> (Asaas) e/ou <code>MP_ACCESS_TOKEN</code> (Mercado Pago).</p>
+                            <p><strong>Webhooks:</strong> <code>/webhook/asaas</code> e <code>/webhook/mercadopago</code></p>
+                        </div>
                         <div class="form-grid">
                             <label>Processador de cartão
                                 <select name="cardBrProvider">
                                     <option value="asaas">Asaas (padrão)</option>
                                     <option value="mercadopago">Mercado Pago (Checkout Pro)</option>
                                 </select>
-                                <small>Define qual gateway processa cartão de crédito no checkout nacional.</small>
                             </label>
                             <label class="label-check admin-ship-enabled">
                                 <input type="checkbox" name="cardBrFallbackMp" checked>
                                 <span>Se Asaas estiver fora, usar Mercado Pago automaticamente</span>
                             </label>
-                            <p class="admin-meta full">Secrets: <code>ASAAS_API_KEY</code> (Asaas) e/ou <code>MP_ACCESS_TOKEN</code> (Mercado Pago). Webhooks: <code>/webhook/asaas</code> e <code>/webhook/mercadopago</code>.</p>
                         </div>
                     </fieldset>
 
                     <fieldset>
-                        <legend><i class="fab fa-paypal"></i> PayPal internacional</legend>
+                        <legend class="admin-legend-row"><span><i class="fab fa-paypal"></i> PayPal internacional</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-paypal" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-paypal" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>PayPal aparece no checkout para clientes com <strong>envio internacional</strong> (país ≠ Brasil).</p>
+                            <p><strong>Nome da conta:</strong> rótulo só no admin (aba API) para identificar qual PayPal está conectado.</p>
+                            <p><strong>Secrets no Worker:</strong> <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code></p>
+                            <p><strong>Webhook:</strong> <code>/webhook/paypal</code></p>
+                        </div>
                         <div class="form-grid">
                             <label class="label-check admin-ship-enabled">
                                 <input type="checkbox" name="paypalIntlEnabled" checked>
@@ -409,19 +445,20 @@
                             </label>
                             <label>Nome da conta PayPal (só admin)
                                 <input type="text" name="paypalAppLabel" placeholder="Ex.: 3N20 — Live BR (contato@sensortattoofix.com.br)" maxlength="120">
-                                <small>Aparece na aba <strong>API</strong> para identificar qual conta PayPal está conectada.</small>
                             </label>
-                            <p class="admin-meta full">Secrets: <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code>. Webhook: <code>/webhook/paypal</code></p>
                         </div>
                     </fieldset>
 
                     <fieldset>
-                        <legend><i class="fas fa-envelope"></i> Testes de e-mail</legend>
+                        <legend class="admin-legend-row"><span><i class="fas fa-envelope"></i> Testes de e-mail</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-email-tests" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-email-tests" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Envia e-mails de teste para o endereço configurado em <strong>Contato → E-mail dos pedidos</strong>, via Resend.</p>
+                            <p>Não gera cobrança nem pedido real.</p>
+                        </div>
                         <div class="admin-email-tests">
                             <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
                             <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
                             <button type="button" id="btn-test-email-paid" class="btn-secondary"><i class="fas fa-check-circle"></i> Testar e-mail PAGO</button>
-                            <small>Envia para o e-mail dos pedidos via Resend — não gera cobrança nem pedido real.</small>
                         </div>
                         <p id="admin-status-api" class="admin-status form-status" hidden></p>
                     </fieldset>
@@ -434,8 +471,10 @@
 
                     <div id="admin-tab-pedidos" class="admin-tab-panel active" role="tabpanel">
                     <fieldset class="admin-orders-section">
-                        <legend><i class="fas fa-list"></i> Pedidos salvos</legend>
-                        <p class="admin-meta">Veja e gerencie pedidos na lista interativa — usa o mesmo login deste painel.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-list"></i> Pedidos salvos</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-pedidos" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-pedidos" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Lista interativa em <strong>/pedidos.html</strong> — etiquetas, confirmação de PIX, CSV. Mesmo login deste painel.</p>
+                        </div>
                         <div class="admin-form-actions">
                             <a href="pedidos.html" class="btn-primary"><i class="fas fa-list"></i> Abrir pedidos</a>
                             <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> Exportar JSON</button>
@@ -447,8 +486,11 @@
 
                     <div id="admin-tab-cliques" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</legend>
-                        <p class="admin-meta">Ano → mês → dia → visitante → caminho na visita. Clique nas setas para expandir.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Histórico: ano → mês → dia → visitante → caminho na visita. Clique nas setas para expandir.</p>
+                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Exporte Excel por dia, semana, mês ou ano.</p>
+                        </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-clicks-toolbar">
                             <label class="admin-clicks-search">
@@ -492,8 +534,10 @@
 
                     <div id="admin-tab-clientes" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend><i class="fas fa-users"></i> Clientes cadastrados</legend>
-                        <p class="admin-meta">Contas criadas no checkout ou em Minha Conta (e-mail único por cliente).</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-users"></i> Clientes cadastrados</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-clientes" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-clientes" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Contas criadas no checkout ou em Minha Conta. E-mail único por cliente.</p>
+                        </div>
                         <p id="customers-checked-at" class="admin-meta" hidden></p>
                         <div class="admin-table-wrap">
                             <table class="admin-table admin-doc-table">
@@ -532,6 +576,6 @@
     <script src="js/config-bootstrap.js?v=2"></script>
     <script src="js/store-products-merge.js?v=17"></script>
     <script src="js/admin-help.js"></script>
-    <script src="js/admin.js?v=67"></script>
+    <script src="js/admin.js?v=68"></script>
 </body>
 </html>
