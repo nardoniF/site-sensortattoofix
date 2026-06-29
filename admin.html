@@ -407,9 +407,9 @@
                                 <input type="checkbox" name="paypalIntlEnabled" checked>
                                 <span>PayPal internacional visível no checkout</span>
                             </label>
-                            <label>Exibir PayPal internacional a partir de
-                                <input type="datetime-local" name="paypalShowAfter">
-                                <small>Antes dessa data/hora só aparece PIX no exterior.</small>
+                            <label>Nome da conta PayPal (só admin)
+                                <input type="text" name="paypalAppLabel" placeholder="Ex.: 3N20 — Live BR (contato@sensortattoofix.com.br)" maxlength="120">
+                                <small>Aparece na aba <strong>API</strong> para identificar qual conta PayPal está conectada.</small>
                             </label>
                             <p class="admin-meta full">Secrets: <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code>. Webhook: <code>/webhook/paypal</code></p>
                         </div>
@@ -532,6 +532,6 @@
     <script src="js/config-bootstrap.js?v=2"></script>
     <script src="js/store-products-merge.js?v=17"></script>
     <script src="js/admin-help.js"></script>
-    <script src="js/admin.js?v=65"></script>
+    <script src="js/admin.js?v=67"></script>
 </body>
 </html>

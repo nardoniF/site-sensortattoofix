@@ -89,7 +89,8 @@ const DEFAULT_CONFIG = {
   },
   payments: {
     paypal: {
-      internationalEnabled: true
+      internationalEnabled: true,
+      appLabel: ''
     },
     cardBr: {
       provider: 'asaas',
@@ -1077,12 +1078,7 @@ function cardBrFallbackToMp(config) {
 
 function isInternationalPayPalAvailable(config) {
   const paypal = config.payments?.paypal || {};
-  if (paypal.internationalEnabled === false) return false;
-  const showAfterRaw = paypal.showAfter;
-  if (!showAfterRaw) return true;
-  const showAfter = Date.parse(showAfterRaw);
-  if (Number.isFinite(showAfter) && Date.now() < showAfter) return false;
-  return true;
+  return paypal.internationalEnabled !== false;
 }
 
 function isPixConfigValid(pix) {
@@ -1162,8 +1158,7 @@ function publicConfigView(config) {
     internationalProduct: config.internationalProduct || DEFAULT_CONFIG.internationalProduct,
     payments: {
       paypal: {
-        internationalEnabled: paypal.internationalEnabled !== false,
-        showAfter: paypal.showAfter || null
+        internationalEnabled: paypal.internationalEnabled !== false
       },
       cardBr: {
         provider: getCardBrProvider(config)
@@ -3688,7 +3683,8 @@ function buildIntegrationRows(env, config, checks) {
     });
   } else {
     let detail = `${paypal.mode === 'sandbox' ? 'Sandbox' : 'Live'} conectado`;
-    if (paypal.clientIdSuffix) detail += ` · …${paypal.clientIdSuffix}`;
+    const paypalAppLabel = String(config.payments?.paypal?.appLabel || '').trim();
+    if (paypalAppLabel) detail += ` · ${paypalAppLabel}`;
     if (paypal.selfTest) detail += ' · teste R$ 0,01 ativo';
     rows.push({
       id: 'paypal',
@@ -5860,7 +5856,11 @@ async function handlePutConfig(request, env, origin) {
     payments: {
       ...current.payments,
       ...body.payments,
-      paypal: { ...current.payments?.paypal, ...body.payments?.paypal },
+      paypal: (() => {
+        const merged = { ...current.payments?.paypal, ...body.payments?.paypal };
+        delete merged.showAfter;
+        return merged;
+      })(),
       cardBr: mergeCardBrConfig(current.payments?.cardBr, body.payments?.cardBr)
     },
     shippingMethods: body.shippingMethods?.length ? body.shippingMethods : current.shippingMethods,

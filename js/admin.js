@@ -1764,13 +1764,7 @@
     if (f.apiBaseUrl) f.apiBaseUrl.value = (config.api && config.api.baseUrl) || bootstrap.configApiUrl || '';
     const paypalCfg = config.payments?.paypal || {};
     if (f.paypalIntlEnabled) f.paypalIntlEnabled.checked = paypalCfg.internationalEnabled !== false;
-    if (f.paypalShowAfter && paypalCfg.showAfter) {
-      const d = new Date(paypalCfg.showAfter);
-      if (!Number.isNaN(d.getTime())) {
-        const pad = (n) => String(n).padStart(2, '0');
-        f.paypalShowAfter.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      }
-    }
+    if (f.paypalAppLabel) f.paypalAppLabel.value = paypalCfg.appLabel || '';
     const cardBrCfg = config.payments?.cardBr || {};
     if (f.cardBrProvider) {
       f.cardBrProvider.value = cardBrCfg.provider === 'mercadopago' ? 'mercadopago' : 'asaas';
@@ -1896,9 +1890,7 @@
       payments: {
         paypal: {
           internationalEnabled: f.paypalIntlEnabled?.checked !== false,
-          showAfter: f.paypalShowAfter?.value
-            ? new Date(f.paypalShowAfter.value).toISOString()
-            : (currentConfig?.payments?.paypal?.showAfter || null)
+          appLabel: f.paypalAppLabel?.value.trim().slice(0, 120) || ''
         },
         cardBr: {
           provider: f.cardBrProvider?.value === 'mercadopago' ? 'mercadopago' : 'asaas',

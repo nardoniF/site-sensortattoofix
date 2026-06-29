@@ -970,12 +970,7 @@
 
   function isPayPalIntlAvailable() {
     const paypal = cfg.payments?.paypal || {};
-    if (paypal.internationalEnabled === false) return false;
-    const showAfterRaw = paypal.showAfter;
-    if (!showAfterRaw) return true;
-    const showAfter = Date.parse(showAfterRaw);
-    if (Number.isFinite(showAfter) && Date.now() < showAfter) return false;
-    return true;
+    return paypal.internationalEnabled !== false;
   }
 
   function isCardBrMercadoPago() {
