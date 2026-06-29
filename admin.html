@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.34">
+    <link rel="stylesheet" href="style.css?v=2.36">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -312,6 +312,7 @@
                             <p>Com <strong>Mercado Pago</strong> ativo (<code>MP_ACCESS_TOKEN</code> no Worker), o QR PIX é criado pela API. O pagamento cai na conta Mercado Pago — não usa os campos de PIX reserva abaixo.</p>
                             <p>O e-mail do cliente no checkout é para identificação no MP e avisos de pedido. O e-mail da loja para notificações está em <strong>Contato → E-mail dos pedidos</strong>.</p>
                         </div>
+                        <p id="pix-active-provider" class="admin-pix-active" hidden></p>
                     </fieldset>
 
                     <fieldset>
@@ -576,6 +577,6 @@
     <script src="js/config-bootstrap.js?v=2"></script>
     <script src="js/store-products-merge.js?v=17"></script>
     <script src="js/admin-help.js"></script>
-    <script src="js/admin.js?v=68"></script>
+    <script src="js/admin.js?v=70"></script>
 </body>
 </html>

@@ -659,6 +659,7 @@
   }
 
   let integrationsLoading = false;
+  let lastIntegrations = null;
   let customersLoading = false;
   let clicksLoading = false;
   let clicksSearchTimer = null;
@@ -896,13 +897,24 @@
   function renderClicksStats(data) {
     const el = document.getElementById('clicks-stats');
     if (!el) return;
-    const top = Object.entries(data?.byDestino || {})
+    const topEntries = Object.entries(data?.byDestino || {})
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([k, n]) => `${clickDestinoLabel(k)} (${n})`)
-      .join(' · ') || '—';
+      .slice(0, 6);
     const ultimo = data?.lastClickAt ? formatClickDate(data.lastClickAt) : '—';
-    el.innerHTML = `<strong>Hoje:</strong> ${data?.todayCount ?? 0} eventos · <strong>Total no log:</strong> ${data?.total ?? 0} · <strong>Último gravado:</strong> ${escapeHtml(ultimo)} · <strong>Mais frequentes:</strong> ${escapeHtml(top)}`;
+    const topList = topEntries.length
+      ? `<ul class="clicks-stats-top">${topEntries.map(([k, n]) =>
+        `<li><span>${escapeHtml(clickDestinoLabel(k))}</span><strong>${n}</strong></li>`
+      ).join('')}</ul>`
+      : '<p class="clicks-stats-empty">—</p>';
+    el.innerHTML = `<details class="clicks-stats-details">
+      <summary class="clicks-stats-summary"><i class="fas fa-chevron-right clicks-stats-chevron" aria-hidden="true"></i> Resumo</summary>
+      <dl class="clicks-stats-dl">
+        <div class="clicks-stats-row"><dt>Hoje</dt><dd>${data?.todayCount ?? 0} eventos</dd></div>
+        <div class="clicks-stats-row"><dt>Total no log</dt><dd>${data?.total ?? 0}</dd></div>
+        <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
+        <div class="clicks-stats-row clicks-stats-row-top"><dt>Mais frequentes</dt><dd>${topList}</dd></div>
+      </dl>
+    </details>`;
   }
 
   function formatClickTime(ts) {
@@ -1399,6 +1411,93 @@
     }
   }
 
+  function integrationUsable(row) {
+    return row && (row.status === 'ok' || row.status === 'warn');
+  }
+
+  function resolveActivePixProvider(integrations) {
+    const mp = (integrations || []).find((r) => r.id === 'mercadopago');
+    const asaas = (integrations || []).find((r) => r.id === 'asaas');
+    if (integrationUsable(mp)) {
+      return {
+        label: 'Mercado Pago',
+        cls: mp.status === 'warn' ? 'warn' : 'ok',
+        hint: mp.detail || ''
+      };
+    }
+    if (integrationUsable(asaas)) {
+      return {
+        label: 'Asaas',
+        cls: asaas.status === 'warn' ? 'warn' : 'ok',
+        hint: asaas.detail || ''
+      };
+    }
+    return {
+      label: 'PIX reserva (QR estático)',
+      cls: 'warn',
+      hint: 'Mercado Pago e Asaas indisponíveis no Worker'
+    };
+  }
+
+  function renderPixActiveProvider(integrations) {
+    const el = document.getElementById('pix-active-provider');
+    if (!el) return;
+    if (!integrations?.length) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    const active = resolveActivePixProvider(integrations);
+    el.className = `admin-pix-active admin-pix-active--${active.cls}`;
+    el.innerHTML = `<span class="admin-pix-active-label">Ativo:</span> <strong>${escapeHtml(active.label)}</strong>${active.hint ? `<span class="admin-pix-active-hint">${escapeHtml(active.hint)}</span>` : ''}`;
+    el.hidden = false;
+  }
+
+  async function refreshIntegrationsCache() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      lastIntegrations = null;
+      renderPixActiveProvider(null);
+      return null;
+    }
+    const res = await fetch(base.replace(/\/$/, '') + '/admin/integrations-status', {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Não autorizado');
+    lastIntegrations = data.integrations || [];
+    renderPixActiveProvider(lastIntegrations);
+    return data;
+  }
+
+  async function loadPixProviderStatus() {
+    const el = document.getElementById('pix-active-provider');
+    if (!el) return;
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      el.className = 'admin-pix-active admin-pix-active--off';
+      el.innerHTML = '<span class="admin-pix-active-label">Ativo:</span> <span class="admin-pix-active-hint">Faça login na API para verificar</span>';
+      el.hidden = false;
+      return;
+    }
+    if (lastIntegrations) {
+      renderPixActiveProvider(lastIntegrations);
+      return;
+    }
+    el.className = 'admin-pix-active admin-pix-active--off';
+    el.innerHTML = '<span class="admin-pix-active-label">Ativo:</span> <span class="admin-pix-active-hint"><i class="fas fa-spinner fa-spin"></i> Verificando…</span>';
+    el.hidden = false;
+    try {
+      await refreshIntegrationsCache();
+    } catch (err) {
+      el.className = 'admin-pix-active admin-pix-active--error';
+      el.innerHTML = `<span class="admin-pix-active-label">Ativo:</span> <span class="admin-pix-active-hint">${escapeHtml(err.message || 'Erro ao verificar')}</span>`;
+    }
+  }
+
   async function loadIntegrationsStatus() {
     const tbody = document.getElementById('api-integrations-tbody');
     if (!tbody || integrationsLoading) return;
@@ -1406,7 +1505,9 @@
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!base || !token) {
+      lastIntegrations = null;
       renderIntegrationsTable([], null);
+      renderPixActiveProvider(null);
       tbody.innerHTML = '<tr><td colspan="3" class="admin-meta">Faça login com a API para testar as integrações.</td></tr>';
       return;
     }
@@ -1415,14 +1516,11 @@
     tbody.innerHTML = '<tr><td colspan="3" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Verificando integrações…</td></tr>';
 
     try {
-      const res = await fetch(base.replace(/\/$/, '') + '/admin/integrations-status', {
-        headers: { Authorization: 'Bearer ' + token },
-        cache: 'no-store'
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Não autorizado');
-      renderIntegrationsTable(data.integrations, data.checkedAt);
+      const data = await refreshIntegrationsCache();
+      renderIntegrationsTable(data?.integrations, data?.checkedAt);
     } catch (err) {
+      lastIntegrations = null;
+      renderPixActiveProvider(null);
       tbody.innerHTML = '<tr><td colspan="3"><span class="admin-status-bad">✗ ' + escAttr(err.message || 'Erro ao verificar') + '</span></td></tr>';
       const checkedEl = document.getElementById('api-integrations-checked-at');
       if (checkedEl) checkedEl.hidden = true;
@@ -1948,6 +2046,7 @@
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
+      if (id === 'pix') loadPixProviderStatus();
       if (id === 'clientes') loadCustomers();
       if (id === 'cliques') loadClicks();
       if (id === 'documentacao') loadDocFrame(true);
