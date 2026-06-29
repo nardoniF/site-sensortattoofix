@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Instalação — Sensor Tattoo Fix</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.35;
+            color: #111;
+            background: #e8e8e8;
+        }
+
+        .sheet {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 12px auto;
+            padding: 10mm 11mm 9mm;
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(0,0,0,.12);
+        }
+
+        @media print {
+            body { background: #fff; }
+            .sheet {
+                margin: 0;
+                box-shadow: none;
+                width: auto;
+                min-height: auto;
+            }
+            .no-print { display: none !important; }
+        }
+
+        .no-print {
+            text-align: center;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .no-print button {
+            font: inherit;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #ffc107;
+            color: #111;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 2px solid #ffc107;
+            padding-bottom: 7px;
+            margin-bottom: 8px;
+        }
+
+        header img {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        header h1 {
+            font-size: 15pt;
+            line-height: 1.15;
+            font-weight: 800;
+        }
+
+        header h1 span { color: #c89600; }
+
+        header p {
+            font-size: 8pt;
+            color: #555;
+            margin-top: 2px;
+        }
+
+        .intro {
+            font-size: 8.8pt;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1.15fr;
+            gap: 10px;
+            align-items: start;
+        }
+
+        h2 {
+            font-size: 9.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #000;
+            border-left: 3px solid #ffc107;
+            padding-left: 6px;
+            margin-bottom: 5px;
+        }
+
+        .kit-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .kit-list li {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+            font-size: 8.8pt;
+            padding: 4px 6px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+
+        .kit-num {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #111;
+            color: #ffc107;
+            font-size: 8pt;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: step;
+        }
+
+        .steps li {
+            counter-increment: step;
+            position: relative;
+            padding-left: 22px;
+            margin-bottom: 5px;
+            font-size: 8.8pt;
+        }
+
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 1px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffc107;
+            color: #111;
+            font-size: 8pt;
+            font-weight: 800;
+            text-align: center;
+            line-height: 16px;
+        }
+
+        .steps li strong { display: block; margin-bottom: 1px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8.3pt;
+            margin-top: 4px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 3px 6px;
+            text-align: left;
+        }
+
+        th {
+            background: #111;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        tr:nth-child(even) td { background: #f7f7f7; }
+
+        .warn {
+            margin-top: 8px;
+            padding: 6px 8px;
+            border: 1.5px solid #ffc107;
+            border-radius: 6px;
+            background: #fffbea;
+            font-size: 8.5pt;
+        }
+
+        .warn strong { color: #000; }
+
+        .tips {
+            margin-top: 8px;
+            font-size: 7.8pt;
+            color: #444;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .tips div {
+            padding: 5px 6px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+
+        footer {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid #ddd;
+            font-size: 7.5pt;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        footer a { color: #666; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <p class="no-print">
+        <button type="button" onclick="window.print()">Imprimir / Salvar PDF (A4)</button>
+        — Use papel A4, margens padrão, escala 100%.
+    </p>
+
+    <article class="sheet">
+        <header>
+            <img src="../site/logo.jpg" alt="Sensor Tattoo Fix">
+            <div>
+                <h1>SENSOR <span>TATTOO FIX</span></h1>
+                <p>Manual de instalação da lente ótica · Tecnologia 3N20</p>
+            </div>
+        </header>
+
+        <p class="intro">
+            Siga os passos abaixo para fixar a lente no <strong>centro do sensor</strong> do smartwatch (face inferior).
+            Ambiente seco, mãos limpas e sem poeira.
+        </p>
+
+        <div class="grid">
+            <section>
+                <h2>Conteúdo do kit</h2>
+                <ul class="kit-list">
+                    <li>
+                        <span class="kit-num">1</span>
+                        <div><strong>Lente Sensor Tattoo Fix</strong><br>Elemento ótico com adesivo de alta fixação na face interna.</div>
+                    </li>
+                    <li>
+                        <span class="kit-num">2</span>
+                        <div><strong>Vidro com potencializador de adesivo</strong><br>Produto que aumenta a fixação entre sensor e lente.</div>
+                    </li>
+                    <li>
+                        <span class="kit-num">3</span>
+                        <div><strong>Bastão aplicador tipo pincel</strong><br>Ponta sem algodão — material sintético para espalhar o potencializador com uniformidade.</div>
+                    </li>
+                    <li>
+                        <span class="kit-num">4</span>
+                        <div><strong>Lenço com álcool isopropílico</strong><br>Limpeza do sensor antes da colagem.</div>
+                    </li>
+                </ul>
+
+                <h2 style="margin-top:8px">Curva de aderência</h2>
+                <table>
+                    <thead>
+                        <tr><th>Tempo após instalar</th><th>Aderência</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>20 minutos</td><td>50%</td></tr>
+                        <tr><td>60 minutos</td><td>75%</td></tr>
+                        <tr><td>24 horas</td><td>90%</td></tr>
+                        <tr><td>48 horas</td><td>100%</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2>Passo a passo</h2>
+                <ol class="steps">
+                    <li>
+                        <strong>Limpe o sensor</strong>
+                        Passe o lenço de <strong>álcool isopropílico</strong> sobre toda a área do sensor. Remova suor, oleosidade e poeira.
+                    </li>
+                    <li>
+                        <strong>Aguarde secar</strong>
+                        Espere cerca de <strong>10 segundos</strong> até o álcool evaporar completamente. O sensor deve estar seco ao toque.
+                    </li>
+                    <li>
+                        <strong>Retire o liner</strong>
+                        Puxe a <strong>aba protetora</strong> e remova o liner (película) que cobre o adesivo da lente. Não toque na face adesiva.
+                    </li>
+                    <li>
+                        <strong>Aplique o potencializador</strong>
+                        Com o <strong>bastão aplicador tipo pincel</strong>, retire uma pequena quantidade do vidro com potencializador e passe uma camada fina e uniforme sobre o <strong>sensor limpo e seco</strong>.
+                    </li>
+                    <li>
+                        <strong>Posicione e pressione</strong>
+                        Imediatamente, centralize a lente sobre o sensor. Pressione com <strong>firmeza e uniformidade</strong> para garantir <strong>contato total</strong> em toda a área adesiva.
+                    </li>
+                    <li>
+                        <strong>Respeite o tempo de cura</strong>
+                        Evite impactos, arrastar ou molhar nas primeiras horas. Consulte a tabela ao lado.
+                    </li>
+                </ol>
+
+                <div class="warn">
+                    <strong>Água e natação:</strong> aguarde <strong>72 horas (3 dias)</strong> após a instalação antes de mergulhar, nadar ou expor o relógio à água por tempo prolongado.
+                </div>
+            </section>
+        </div>
+
+        <div class="tips">
+            <div><strong>Alinhamento:</strong> a lente deve cobrir o centro do sensor óptico, sem sobrepor botões ou bordas.</div>
+            <div><strong>Remoção:</strong> levante com cuidado (unha ou espátula plástica). Resíduo de cola sai com álcool isopropílico.</div>
+            <div><strong>Evite:</strong> tocar na face adesiva da lente; aplicar com sensor molhado ou com suor nas mãos.</div>
+            <div><strong>Suporte:</strong> sensortattoofix.com.br · WhatsApp no site</div>
+        </div>
+
+        <footer>
+            <span>© 3N20 Soluções Tecnológicas · Sensor Tattoo Fix</span>
+            <span>www.sensortattoofix.com.br</span>
+        </footer>
+    </article>
+
+</body>
+</html>
