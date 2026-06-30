@@ -9,6 +9,22 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+        :root {
+            --header-bg: #111111;
+            --accent: #ffc107;
+            --kit-bg: #fff3cd;
+            --kit-border: #ffc107;
+            --kit-title: #e65100;
+            --steps-bg: #dbeafe;
+            --steps-border: #90caf9;
+            --steps-title: #1565c0;
+            --steps-num: #1565c0;
+            --steps-strong: #0d47a1;
+            --important-bg: #fff9c4;
+            --important-border: #ffc107;
+            --duvidas-bg: #eeeeee;
+        }
+
         body {
             font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
             font-size: 9.5pt;
@@ -30,6 +46,10 @@
             body { background: #fff; }
             .sheet { margin: 0; box-shadow: none; width: auto; min-height: auto; }
             .no-print { display: none !important; }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
 
         .no-print { text-align: center; padding: 12px; font-size: 13px; }
@@ -42,7 +62,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            background: linear-gradient(135deg, #111 0%, #2a2200 100%);
+            background: var(--header-bg);
             border-radius: 8px;
             padding: 10px 12px;
             margin-bottom: 10px;
@@ -54,7 +74,7 @@
         }
 
         header h1 { font-size: 15pt; line-height: 1.15; font-weight: 900; color: #fff; }
-        header h1 span { color: #ffc107; }
+        header h1 span { color: var(--accent); }
         header p { font-size: 8pt; color: #ccc; margin-top: 2px; }
 
         .intro { font-size: 8.8pt; color: #333; margin-bottom: 10px; }
@@ -68,8 +88,8 @@
 
         .panel { border-radius: 8px; padding: 8px 10px; }
 
-        .panel-kit { background: #fff8e1; border: 1.5px solid #ffe082; }
-        .panel-steps { background: #e8f4fd; border: 1.5px solid #90caf9; }
+        .panel-kit { background: var(--kit-bg); border: 1.5px solid var(--kit-border); }
+        .panel-steps { background: var(--steps-bg); border: 1.5px solid var(--steps-border); }
 
         h2 {
             font-size: 9.5pt;
@@ -81,8 +101,8 @@
             border-bottom: 2px solid;
         }
 
-        .panel-kit h2 { color: #e65100; border-color: #ffc107; }
-        .panel-steps h2 { color: #1565c0; border-color: #42a5f5; }
+        .panel-kit h2 { color: var(--kit-title); border-color: var(--accent); }
+        .panel-steps h2 { color: var(--steps-title); border-color: var(--steps-border); }
 
         .kit-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
 
@@ -94,7 +114,7 @@
 
         .kit-num {
             flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%;
-            background: #e65100; color: #fff;
+            background: var(--kit-title); color: #fff;
             font-size: 8pt; font-weight: 800;
             display: flex; align-items: center; justify-content: center;
         }
@@ -113,12 +133,12 @@
             content: counter(step);
             position: absolute; left: 0; top: 1px;
             width: 17px; height: 17px; border-radius: 50%;
-            background: #1565c0; color: #fff;
+            background: var(--steps-num); color: #fff;
             font-size: 8pt; font-weight: 800;
             text-align: center; line-height: 17px;
         }
 
-        .steps li strong { color: #0d47a1; }
+        .steps li strong { color: var(--steps-strong); }
 
         .sheet-foot {
             margin-top: 10px;
@@ -128,8 +148,8 @@
         }
 
         .importante {
-            background: #fffde7;
-            border: 2px solid #ffc107;
+            background: var(--important-bg);
+            border: 2px solid var(--important-border);
             border-radius: 8px;
             padding: 8px 10px;
             font-size: 8.8pt;
@@ -138,7 +158,7 @@
         .importante-title {
             font-size: 9pt;
             font-weight: 900;
-            color: #e65100;
+            color: var(--kit-title);
             text-transform: uppercase;
             margin-bottom: 5px;
         }
@@ -162,7 +182,7 @@
         }
 
         .duvidas {
-            background: #f5f5f5;
+            background: var(--duvidas-bg);
             border-radius: 8px;
             padding: 8px 12px;
             font-size: 8.5pt;
@@ -189,7 +209,7 @@
     <p class="no-print">
         <button type="button" onclick="window.print()">Imprimir / Salvar PDF (A4)</button>
         <a href="manual-instalacao-sensor-tattoo-fix-lote.html" style="margin-left:10px;color:#333;">Versão para envio (10 por folha)</a>
-        <br><span style="font-size:12px;color:#666;">Versão completa — 1 manual por folha. Papel A4, escala 100%.</span>
+        <br><span style="font-size:12px;color:#666;">Versão completa — 1 manual por folha. Papel A4, escala 100%, <strong>Gráficos de fundo</strong> ativado.</span>
     </p>
 
     <article class="sheet">

@@ -12,6 +12,22 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+        :root {
+            --header-bg: #111111;
+            --accent: #ffc107;
+            --kit-bg: #fff3cd;
+            --kit-border: #ffc107;
+            --kit-title: #e65100;
+            --steps-bg: #dbeafe;
+            --steps-border: #42a5f5;
+            --steps-title: #1565c0;
+            --steps-num: #1565c0;
+            --steps-strong: #0d47a1;
+            --important-bg: #fff9c4;
+            --important-border: #ffc107;
+            --duvidas-bg: #eeeeee;
+        }
+
         body {
             font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
             color: #1a1a1a;
@@ -53,6 +69,10 @@
             .no-print { display: none !important; }
             .sheet-lote { box-shadow: none; margin: 0; }
             .tile { break-inside: avoid; }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
 
         .sheet-lote {
@@ -82,7 +102,7 @@
             display: flex;
             align-items: center;
             gap: 1.8mm;
-            background: linear-gradient(135deg, #111 0%, #2a2200 100%);
+            background: var(--header-bg);
             border-radius: 3px;
             padding: 1.2mm 1.8mm;
             flex-shrink: 0;
@@ -105,7 +125,7 @@
             letter-spacing: 0.02em;
         }
 
-        .tile-head h1 span { color: #ffc107; }
+        .tile-head h1 span { color: var(--accent); }
 
         .tile-head p {
             font-size: 4.6pt;
@@ -129,13 +149,13 @@
         }
 
         .panel-kit {
-            background: #fff8e1;
-            border: 0.5pt solid #ffe082;
+            background: var(--kit-bg);
+            border: 0.5pt solid var(--kit-border);
         }
 
         .panel-steps {
-            background: #e8f4fd;
-            border: 0.5pt solid #90caf9;
+            background: var(--steps-bg);
+            border: 0.5pt solid var(--steps-border);
         }
 
         h2 {
@@ -148,8 +168,8 @@
             border-bottom: 0.8pt solid currentColor;
         }
 
-        .panel-kit h2 { color: #e65100; border-color: #ffc107; }
-        .panel-steps h2 { color: #1565c0; border-color: #42a5f5; }
+        .panel-kit h2 { color: var(--kit-title); border-color: var(--accent); }
+        .panel-steps h2 { color: var(--steps-title); border-color: var(--steps-border); }
 
         .kit {
             list-style: none;
@@ -168,7 +188,7 @@
             position: absolute;
             left: 0;
             font-weight: 900;
-            color: #e65100;
+            color: var(--kit-title);
             font-size: 4.8pt;
         }
 
@@ -194,7 +214,7 @@
             width: 2.9mm;
             height: 2.9mm;
             border-radius: 50%;
-            background: #1565c0;
+            background: var(--steps-num);
             color: #fff;
             font-size: 4.6pt;
             font-weight: 900;
@@ -202,7 +222,7 @@
             line-height: 2.9mm;
         }
 
-        .steps li strong { font-weight: 800; color: #0d47a1; }
+        .steps li strong { font-weight: 800; color: var(--steps-strong); }
 
         /* ── Rodapé full-width (fora das colunas) ── */
         .tile-foot {
@@ -213,8 +233,8 @@
         }
 
         .importante {
-            background: #fffde7;
-            border: 0.8pt solid #ffc107;
+            background: var(--important-bg);
+            border: 0.8pt solid var(--important-border);
             border-radius: 3px;
             padding: 0.8mm 1.2mm;
             font-size: 4.8pt;
@@ -224,7 +244,7 @@
         .importante-title {
             font-size: 5pt;
             font-weight: 900;
-            color: #e65100;
+            color: var(--kit-title);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             margin-bottom: 0.4mm;
@@ -252,7 +272,7 @@
         }
 
         .duvidas {
-            background: #f5f5f5;
+            background: var(--duvidas-bg);
             border-radius: 3px;
             padding: 0.6mm 1.2mm;
             font-size: 4.6pt;
@@ -279,6 +299,7 @@
 
     <div class="no-print">
         <p><strong>Impressão em lote</strong> — 10 manuais por folha A4 · recorte nas linhas tracejadas</p>
+        <p style="font-size:12px;color:#555;max-width:520px;margin:0 auto 10px;">Na janela de impressão: <strong>Escala 100%</strong> · marque <strong>Gráficos de fundo</strong> (Chrome/Safari) ou equivalente · preferir <strong>Qualidade / Colorido</strong>. Cores iguais à versão 1/folha.</p>
         <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
         <a class="btn secondary" href="manual-instalacao-sensor-tattoo-fix.html">Versão completa (1 por folha)</a>
     </div>
