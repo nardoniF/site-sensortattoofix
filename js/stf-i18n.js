@@ -1,6 +1,6 @@
 /**
  * Traduções PT/EN — checkout, loja e UI compartilhada.
- * Ative com ?lang=en ou vindo de /en/
+ * Ative com ?lang=en|it ou vindo de /en/ ou /it/
  */
 window.STF_I18N = (function () {
   const STRINGS = {
@@ -592,27 +592,48 @@ window.STF_I18N = (function () {
     }
   };
 
+  function ensureItStrings() {
+    if (!STRINGS.it && typeof window !== 'undefined' && window.STF_I18N_IT) {
+      STRINGS.it = Object.assign({}, STRINGS.en, window.STF_I18N_IT);
+    }
+  }
+
+  function getPathLang() {
+    if (location.pathname.includes('/it/')) return 'it';
+    if (location.pathname.includes('/en/')) return 'en';
+    return 'pt';
+  }
+
   function getLang() {
     try {
       const q = new URLSearchParams(location.search).get('lang');
-      if (q === 'en' || q === 'pt') return q;
+      if (q === 'en' || q === 'it' || q === 'pt') return q;
     } catch (e) { /* ignore */ }
-    return location.pathname.includes('/en/') ? 'en' : 'pt';
+    return getPathLang();
   }
 
   function isEn() {
     return getLang() === 'en';
   }
 
+  function isIt() {
+    return getLang() === 'it';
+  }
+
+  function isLocalized() {
+    return getLang() !== 'pt';
+  }
+
   function setLang(lang) {
-    const l = lang === 'en' ? 'en' : 'pt';
+    const l = lang === 'en' || lang === 'it' ? lang : 'pt';
     try { sessionStorage.setItem('stf_lang', l); } catch (e) { /* ignore */ }
-    document.documentElement.lang = l === 'en' ? 'en' : 'pt-BR';
+    document.documentElement.lang = l === 'en' ? 'en' : l === 'it' ? 'it' : 'pt-BR';
     return l;
   }
 
   function t(key, vars) {
     const lang = getLang();
+    ensureItStrings();
     let s = STRINGS[lang]?.[key] ?? STRINGS.pt[key] ?? key;
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
@@ -695,34 +716,47 @@ window.STF_I18N = (function () {
     if (el && key) el.innerHTML = t(key, vars);
   }
 
+  function inLangDir() {
+    return location.pathname.includes('/en/') || location.pathname.includes('/it/');
+  }
+
   function inEnDir() {
     return location.pathname.includes('/en/');
   }
 
+  function inItDir() {
+    return location.pathname.includes('/it/');
+  }
+
   function assetPrefix() {
-    return inEnDir() ? '../' : '';
+    return inLangDir() ? '../' : '';
   }
 
   function pageHref(page) {
-    const en = isEn();
+    const lang = getLang();
+    const dir = lang === 'en' ? 'en/' : lang === 'it' ? 'it/' : '';
+    const inDir = lang === 'en' ? inEnDir() : lang === 'it' ? inItDir() : false;
     if (page === 'index') {
-      return en ? (inEnDir() ? 'index.html' : 'en/index.html') : 'index.html';
+      return lang === 'pt' ? 'index.html' : (inDir ? 'index.html' : dir + 'index.html');
     }
     if (page === 'loja') {
-      return en ? (inEnDir() ? 'loja.html' : 'en/loja.html') : 'loja.html';
+      return lang === 'pt' ? 'loja.html' : (inDir ? 'loja.html' : dir + 'loja.html');
     }
     if (page === 'comprar') {
-      return en ? (inEnDir() ? 'comprar.html' : 'en/comprar.html') : 'comprar.html';
+      return lang === 'pt' ? 'comprar.html' : (inDir ? 'comprar.html' : dir + 'comprar.html');
     }
     if (page === 'account') {
-      return en ? (inEnDir() ? 'minha-conta.html' : 'en/minha-conta.html') : 'minha-conta.html';
+      return lang === 'pt' ? 'minha-conta.html' : (inDir ? 'minha-conta.html' : dir + 'minha-conta.html');
     }
     return page;
   }
 
   function langQuery() {
-    if (inEnDir()) return '';
-    return isEn() ? (location.search ? '&lang=en' : '?lang=en') : '';
+    if (inLangDir()) return '';
+    const lang = getLang();
+    if (lang === 'en') return location.search ? '&lang=en' : '?lang=en';
+    if (lang === 'it') return location.search ? '&lang=it' : '?lang=it';
+    return '';
   }
 
   function lojaHref() {
@@ -740,7 +774,7 @@ window.STF_I18N = (function () {
   function applyCheckoutDom() {
     applyCheckoutFormPlaceholders();
 
-    if (!isEn()) return;
+    if (!isLocalized()) return;
 
     document.title = t('page.checkoutTitleEn');
     const metaDesc = document.querySelector('meta[name="description"]');
@@ -882,15 +916,17 @@ window.STF_I18N = (function () {
     if (shippingOpts) shippingOpts.setAttribute('aria-label', t('shipping.optionsAria'));
 
     const footer = document.querySelector('[data-site-footer]');
-    if (footer) footer.dataset.lang = 'en';
+    if (footer) footer.dataset.lang = getLang();
   }
 
   function applyLojaDom() {
-    if (!isEn()) return;
+    if (!isLocalized()) return;
     document.title = t('store.title') + ' | Sensor Tattoo Fix';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.content = 'Buy the Sensor Tattoo Fix kit — optical lens for smartwatch on tattooed skin. International cards, worldwide shipping.';
+      metaDesc.content = isIt()
+        ? 'Acquista il kit Sensor Tattoo Fix — lente ottica per smartwatch su pelle tatuata. Carte internazionali e spedizione in tutto il mondo.'
+        : 'Buy the Sensor Tattoo Fix kit — optical lens for smartwatch on tattooed skin. International cards, worldwide shipping.';
     }
     applyText('.logo-tagline', 'brand.tagline');
     applyText('h1.section-title', 'store.title');
@@ -912,7 +948,7 @@ window.STF_I18N = (function () {
       if (badge) cartLink.appendChild(badge);
     }
     const footer = document.querySelector('[data-site-footer]');
-    if (footer) footer.dataset.lang = 'en';
+    if (footer) footer.dataset.lang = getLang();
     const back = document.querySelector('.nav-links a[href*="index"]');
     if (back) {
       back.href = pageHref('index');
@@ -925,7 +961,7 @@ window.STF_I18N = (function () {
   }
 
   function applyContaDom() {
-    if (!isEn()) return;
+    if (!isLocalized()) return;
 
     document.title = t('conta.pageTitle');
     applyText('.logo-tagline', 'brand.tagline');
@@ -1012,16 +1048,17 @@ window.STF_I18N = (function () {
     }
 
     const footer = document.querySelector('[data-site-footer]');
-    if (footer) footer.dataset.lang = 'en';
+    if (footer) footer.dataset.lang = getLang();
   }
 
   function init() {
+    ensureItStrings();
     try {
       const q = new URLSearchParams(location.search).get('lang');
-      if (q === 'en' || q === 'pt') setLang(q);
-      else setLang(inEnDir() ? 'en' : 'pt');
+      if (q === 'en' || q === 'it' || q === 'pt') setLang(q);
+      else setLang(getPathLang());
     } catch (e) {
-      setLang(inEnDir() ? 'en' : 'pt');
+      setLang(getPathLang());
     }
     if (document.body?.classList.contains('checkout-page')) applyCheckoutDom();
     if (document.body?.classList.contains('loja-page')) applyLojaDom();
@@ -1036,7 +1073,7 @@ window.STF_I18N = (function () {
   }
 
   return {
-    t, getLang, isEn, setLang, inEnDir, assetPrefix, pageHref, accountHref, comprarPageHref,
+    t, getLang, isEn, isIt, isLocalized, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
     applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom,
     langQuery, lojaHref, STRINGS
   };

@@ -5,8 +5,9 @@
     return window.STF_I18N?.t(key, vars) || key;
   }
 
-  function isEn() {
-    return window.STF_I18N?.isEn?.() || false;
+  function locale() {
+    const lang = window.STF_I18N?.getLang?.() || 'pt';
+    return lang === 'it' ? 'it-IT' : lang === 'en' ? 'en-US' : 'pt-BR';
   }
 
   function lojaHref() {
@@ -36,13 +37,13 @@
   };
 
   function formatBRL(v) {
-    const loc = isEn() ? 'en-US' : 'pt-BR';
+    const loc = locale();
     return Number(v || 0).toLocaleString(loc, { style: 'currency', currency: 'BRL' });
   }
 
   function formatDate(iso) {
     if (!iso) return '—';
-    const loc = isEn() ? 'en-US' : 'pt-BR';
+    const loc = locale();
     return new Date(iso).toLocaleString(loc);
   }
 

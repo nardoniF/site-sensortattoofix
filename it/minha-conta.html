@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Il mio account | Sensor Tattoo Fix</title>
+    <link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com.br/it/minha-conta.html">
+    <link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com.br/en/minha-conta.html">
+    <link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/minha-conta.html">
+    <link rel="stylesheet" href="../style.css?v=1.78">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
+    <script src="../js/gtag-init.js"></script>
+</head>
+<body class="checkout-page conta-page">
+
+    <header>
+        <nav class="container">
+            <div class="logo-area">
+                <a href="index.html" class="logo-img-link"><img src="../site/logo.jpg" alt="Sensor Tattoo Fix" class="main-logo-img"></a>
+                <div class="logo-lockup">
+                    <div class="logo-text" aria-hidden="true">SENSOR<span>TATTOO FIX</span></div>
+                    <p class="logo-tagline" aria-hidden="true">Pace tra inchiostro e silicio</p>
+                </div>
+            </div>
+            <ul class="nav-links checkout-nav">
+                <li><a href="index.html#onde-comprar"><i class="fas fa-shopping-bag"></i> Dove acquistare</a></li>
+                <li data-account-nav></li>
+                <li><a href="../minha-conta.html" class="nav-lang" title="Portoghese" aria-label="Portoghese"><img src="https://flagcdn.com/w20/br.png" width="20" height="15" alt=""> <span>PT</span></a></li>
+                <li><a href="../en/minha-conta.html" class="nav-lang" title="Inglese" aria-label="Inglese"><img src="https://flagcdn.com/w20/us.png" width="20" height="15" alt=""> <span>EN</span></a></li>
+                <li><a href="index.html"><i class="fas fa-arrow-left"></i> Inizio</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="checkout-main">
+        <div class="container conta-container">
+
+            <section id="conta-login" class="admin-card">
+                <h1><i class="fas fa-user"></i> Il mio account</h1>
+                <p class="admin-intro">Accedi per vedere i tuoi ordini o crea un account per un checkout più veloce.</p>
+
+                <div class="conta-tabs">
+                    <button type="button" class="conta-tab active" data-conta-tab="login">Accedi</button>
+                    <button type="button" class="conta-tab" data-conta-tab="register">Crea account</button>
+                </div>
+
+                <div data-conta-panel="login">
+                    <form id="conta-login-form" class="admin-form">
+                        <label>Email<input type="email" name="email" required></label>
+                        <label>Password<input type="password" name="password" required minlength="6"></label>
+                        <button type="submit" class="btn-primary">Accedi</button>
+                        <p id="conta-login-status" class="admin-status form-status" hidden></p>
+                    </form>
+                </div>
+
+                <div data-conta-panel="register" hidden>
+                    <form id="conta-register-form" class="admin-form">
+                        <label>Nome completo<input type="text" name="nome" required></label>
+                        <label>Email<input type="email" name="email" required></label>
+                        <label>WhatsApp<input type="tel" name="telefone" required></label>
+                        <label>CPF<input type="text" name="cpf" required></label>
+                        <label>Password (min. 6 caratteri)<input type="password" name="password" required minlength="6"></label>
+                        <button type="submit" class="btn-primary">Crea account</button>
+                        <p id="conta-register-status" class="admin-status form-status" hidden></p>
+                    </form>
+                </div>
+
+            </section>
+
+            <section id="conta-panel" class="admin-card" hidden>
+                <div class="admin-panel-header">
+                    <div>
+                        <h1>Ciao, <span id="conta-user-name">Cliente</span></h1>
+                        <p class="admin-meta">I tuoi ordini nel Negozio ufficiale</p>
+                    </div>
+                    <button type="button" id="conta-logout" class="btn-secondary">Esci</button>
+                </div>
+
+                <div class="conta-tabs conta-panel-tabs">
+                    <button type="button" class="conta-tab active" data-conta-panel-tab="orders">I miei ordini</button>
+                    <button type="button" class="conta-tab" data-conta-panel-tab="profile">I miei dati</button>
+                </div>
+
+                <div id="conta-panel-orders" data-conta-panel-view="orders">
+                    <div id="conta-orders" class="conta-orders"></div>
+                    <div class="admin-form-actions" style="margin-top:20px">
+                        <a href="loja.html" class="btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;"><i class="fas fa-store"></i> Acquista di più</a>
+                    </div>
+                </div>
+
+                <div id="conta-panel-profile" data-conta-panel-view="profile" hidden>
+                    <p class="admin-meta">Aggiorna i tuoi dati per il checkout e le notifiche degli ordini. L'email non può essere modificata qui.</p>
+                    <form id="conta-profile-form" class="admin-form">
+                        <h3 class="conta-form-section">Dati personali</h3>
+                        <div class="form-grid">
+                            <label class="full">Nome completo<input type="text" name="nome" required></label>
+                            <label>Email<input type="email" name="email" readonly disabled></label>
+                            <label>WhatsApp<input type="tel" name="telefone" required></label>
+                            <label>CPF<input type="text" name="cpf"></label>
+                        </div>
+                        <h3 class="conta-form-section">Indirizzo predefinito (Brasile)</h3>
+                        <p class="admin-meta">Usato per precompilare automaticamente il checkout.</p>
+                        <div class="form-grid">
+                            <label>CAP<input type="text" name="cep" id="conta-cep" inputmode="numeric" autocomplete="postal-code"></label>
+                            <label class="span-2">Via<input type="text" name="rua"></label>
+                            <label>Numero<input type="text" name="numero"></label>
+                            <label>Complemento<input type="text" name="complemento"></label>
+                            <label>Quartiere<input type="text" name="bairro"></label>
+                            <label>Città<input type="text" name="cidade"></label>
+                            <label>Stato<input type="text" name="uf" maxlength="2" placeholder="SP"></label>
+                        </div>
+                        <h3 class="conta-form-section">Cambia password</h3>
+                        <p class="admin-meta">Lascia vuoto se non vuoi cambiare la password.</p>
+                        <div class="form-grid">
+                            <label>Password attuale<input type="password" name="senhaAtual" autocomplete="current-password"></label>
+                            <label>Nuova password<input type="password" name="senhaNova" minlength="6" autocomplete="new-password"></label>
+                        </div>
+                        <div class="admin-form-actions">
+                            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salva modifiche</button>
+                        </div>
+                        <p id="conta-profile-status" class="admin-status form-status" hidden></p>
+                    </form>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="it"></div></footer>
+
+    <script src="../js/stf-i18n-it-overrides.js?v=1"></script>
+    <script src="../js/stf-i18n.js?v=31"></script>
+    <script src="../js/config-bootstrap.js?v=2"></script>
+    <script src="../js/site-footer.js"></script>
+    <script src="../js/account-nav.js"></script>
+    <script src="../js/order-watch.js"></script>
+    <script src="../js/conta.js?v=6"></script>
+    <script src="../js/analytics.js?v=31"></script>
+</body>
+</html>

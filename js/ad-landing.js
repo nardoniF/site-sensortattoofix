@@ -48,6 +48,7 @@
 
   var path = window.location.pathname || '/';
   var inEn = /\/en(?:\/|$)/.test(path);
+  var inIt = /\/it(?:\/|$)/.test(path);
   var parts = path.replace(/\/+$/, '').split('/');
   var leaf = parts[parts.length - 1] || '';
   var isIndex = !leaf || leaf === 'index.html';
@@ -56,6 +57,6 @@
   if (!isIndex && !isStore) return;
   if (isIndex && window.location.hash === '#onde-comprar') return;
 
-  var target = (inEn ? '/en/index.html' : '/index.html') + window.location.search + '#onde-comprar';
+  var target = (inIt ? '/it/index.html' : inEn ? '/en/index.html' : '/index.html') + window.location.search + '#onde-comprar';
   window.location.replace(target);
 })();

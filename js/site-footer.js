@@ -30,16 +30,31 @@ window.STF_FOOTER = (function () {
       patentLinePrefix: 'National Patent',
       patentLineJoin: 'International',
       rights: 'All rights reserved.'
+    },
+    it: {
+      socialTitle: 'Segui i nostri canali ufficiali',
+      faq: 'FAQ',
+      patentLinePrefix: 'Brevetto nazionale',
+      patentLineJoin: 'Internazionale',
+      rights: 'Tutti i diritti riservati.'
     }
   };
 
   function t(lang) {
-    return I18N[lang === 'en' ? 'en' : 'pt'];
+    if (lang === 'it') return I18N.it;
+    if (lang === 'en') return I18N.en;
+    return I18N.pt;
+  }
+
+  function detectLang() {
+    if (location.pathname.includes('/it/')) return 'it';
+    if (location.pathname.includes('/en/')) return 'en';
+    return 'pt';
   }
 
   function prefixFrom(el) {
     if (el.dataset.prefix) return el.dataset.prefix;
-    return location.pathname.includes('/en/') ? '../' : '';
+    return location.pathname.includes('/en/') || location.pathname.includes('/it/') ? '../' : '';
   }
 
   function patentLine(lang) {
@@ -63,7 +78,7 @@ window.STF_FOOTER = (function () {
   function socialBlock(lang, prefix) {
     const s = t(lang);
     const links = SOCIAL.map((item) => {
-      const rotulo = `Footer ${item.label}${lang === 'en' ? ' EN' : ''}`;
+      const rotulo = `Footer ${item.label}${lang === 'en' ? ' EN' : lang === 'it' ? ' IT' : ''}`;
       return `<a href="${item.href}" target="_blank" rel="noopener" class="social-link" data-rotulo="${rotulo}"><i class="${item.icon}"></i> ${item.label}</a>`;
     }).join('');
     const faqHref = lang === 'en' ? '#faq' : '#faq';
@@ -78,7 +93,7 @@ window.STF_FOOTER = (function () {
 
   function render(el) {
     const mode = el.dataset.siteFooter || 'compact';
-    const lang = el.dataset.lang || (location.pathname.includes('/en/') ? 'en' : 'pt');
+    const lang = el.dataset.lang || detectLang();
     const prefix = prefixFrom(el);
     const social = mode === 'full' ? socialBlock(lang, prefix) : '';
     el.innerHTML = social + legalBlock(lang);

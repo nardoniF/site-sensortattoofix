@@ -18,11 +18,17 @@ window.STF_STORE_PRICE = (function () {
     return config.product || null;
   }
 
+  function isLocalized() {
+    const lang = window.STF_I18N?.getLang?.() || 'pt';
+    return lang !== 'pt';
+  }
+
   function buildPriceFreteLine(config) {
     const product = primaryProduct(config);
     const price = product?.price ?? config.product?.price ?? 62.9;
-    const en = window.STF_I18N?.isEn?.();
-    const frete = en ? '+ Shipping' : '+ Frete';
+    const frete = isLocalized()
+      ? (window.STF_I18N?.t?.('store.frete') || '+ Shipping')
+      : '+ Frete';
     return `${formatBRLAmount(price)} ${frete}`;
   }
 
@@ -31,7 +37,7 @@ window.STF_STORE_PRICE = (function () {
     const intl = methods.filter((m) => m.enabled !== false && m.scope === 'INT');
     const doc = intl.find((m) => m.simTipo === 'D' || /documento|carta/i.test(m.label || ''));
     if (doc?.label) return doc.label;
-    return intl[0]?.label || (window.STF_I18N?.isEn?.()
+    return intl[0]?.label || (isLocalized()
       ? 'International letter / document'
       : 'Documento / carta internacional');
   }
@@ -43,9 +49,8 @@ window.STF_STORE_PRICE = (function () {
   }
 
   function buildShippingChannelsLine(config) {
-    const en = window.STF_I18N?.isEn?.();
     const mini = brMiniLabel(config);
-    if (en) {
+    if (isLocalized()) {
       return `Nationwide (${mini}) · São Paulo, SP (Own Transport) · Other Countries (Exporta Fácil)`;
     }
     return `Todo Brasil (${mini}) · São Paulo, SP (Entrega Própria) · Outros Países (Exporta Fácil)`;
@@ -57,14 +62,13 @@ window.STF_STORE_PRICE = (function () {
     }
     const product = primaryProduct(config);
     const price = product?.price ?? config.product?.price ?? 62.9;
-    const en = window.STF_I18N?.isEn?.();
     const freteLine = el?.getAttribute('data-store-price-frete-line')
       || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
       || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
     let suffix = el?.getAttribute('data-store-price-suffix');
-    if (en && suffix === 'PIX e cartão') {
+    if (isLocalized() && suffix === 'PIX e cartão') {
       suffix = window.STF_I18N.t('store.intlSuffix');
-    } else if (en && !suffix) {
+    } else if (isLocalized() && !suffix) {
       suffix = window.STF_I18N.t('store.priceSuffix');
     }
     let line = `${formatBRL(price)} ${freteLine}`;

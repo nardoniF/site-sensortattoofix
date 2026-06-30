@@ -3,9 +3,19 @@ description: Site PT e EN devem permanecer espelhados — toda alteração no po
 alwaysApply: true
 ---
 
-# Site bilíngue (PT + EN)
+# Site multilíngue (PT + EN + IT)
 
-O site tem duas frentes: **português** (padrão) e **inglês** (internacional). Qualquer alteração visível ao usuário no PT **deve** ser replicada no EN na mesma tarefa — nunca deixar só o checkout ou só o index PT atualizado.
+O site tem três frentes: **português** (padrão), **inglês** e **italiano**. Alterações visíveis no PT devem ser replicadas em **EN** e **IT** na mesma tarefa quando aplicável.
+
+## Mapa de arquivos
+
+| PT (fonte) | EN | IT |
+|------------|-----|-----|
+| `index.html` | `en/index.html` | `it/index.html` |
+| `loja.html` | `en/loja.html` ou `?lang=en` | `it/loja.html` ou `?lang=it` |
+| `comprar.html` | `en/comprar.html` ou `?lang=en` | `it/comprar.html` ou `?lang=it` |
+| `minha-conta.html` | `en/minha-conta.html` | `it/minha-conta.html` |
+| `js/stf-i18n.js` | chaves `en` | `js/stf-i18n-it-overrides.js` + detecção `/it/` |
 
 ## Princípio
 

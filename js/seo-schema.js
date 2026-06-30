@@ -1,7 +1,9 @@
 (function () {
   const SITE = 'https://www.sensortattoofix.com.br';
-  const isEn = document.documentElement.lang?.toLowerCase().startsWith('en');
-  const pageUrl = isEn ? SITE + '/en/' : SITE + '/';
+  const lang = (document.documentElement.lang || 'pt-BR').toLowerCase();
+  const isEn = lang.startsWith('en');
+  const isIt = lang.startsWith('it');
+  const pageUrl = isIt ? SITE + '/it/' : isEn ? SITE + '/en/' : SITE + '/';
 
   function reviewsFromDom() {
     const section = document.querySelector('.reviews-section');
@@ -142,7 +144,9 @@
     let productPrice = 62.9;
     let productImage = SITE + '/site/sensortattoofix.jpg';
     let productId = 'kit-sensor-tattoofix';
-    let productDescription = isEn
+    let productDescription = isIt
+      ? 'Kit con lente ottica che ripristina i sensori dello smartwatch sulla pelle tatuata — rilevamento al polso, frequenza cardiaca e allenamenti.'
+      : isEn
       ? 'Optical lens kit that restores smartwatch sensors on tattooed skin — wrist detection, heart rate and workouts.'
       : 'Kit com lente ótica que restaura sensores de smartwatch em pele tatuada — pulso, batimentos e treinos.';
 
@@ -195,7 +199,7 @@
         '@id': SITE + '/#website',
         url: SITE,
         name: 'Sensor Tattoo Fix',
-        inLanguage: isEn ? 'en' : 'pt-BR',
+        inLanguage: isIt ? 'it' : isEn ? 'en' : 'pt-BR',
         publisher: { '@id': SITE + '/#organization' }
       },
       {
@@ -205,7 +209,7 @@
         name: document.title,
         description: document.querySelector('meta[name="description"]')?.content || '',
         isPartOf: { '@id': SITE + '/#website' },
-        inLanguage: isEn ? 'en' : 'pt-BR'
+        inLanguage: isIt ? 'it' : isEn ? 'en' : 'pt-BR'
       },
       productNode
     ];

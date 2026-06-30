@@ -7,8 +7,11 @@ window.STF_ACCOUNT = (function () {
   }
 
   function pathPrefix() {
-    if (location.pathname.includes('/en/')) return '';
-    return window.STF_I18N?.isEn?.() ? 'en/' : '';
+    if (location.pathname.includes('/en/') || location.pathname.includes('/it/')) return '';
+    const lang = window.STF_I18N?.getLang?.() || 'pt';
+    if (lang === 'it') return 'it/';
+    if (lang === 'en') return 'en/';
+    return '';
   }
 
   function accountLink() {
