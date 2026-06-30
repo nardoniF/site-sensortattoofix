@@ -144,7 +144,7 @@ nav,
 
 .nav-main a {
     font-family: var(--font-nav);
-    font-size: 0.73rem;
+    font-size: 0.76rem;
     font-weight: 600;
     letter-spacing: 0.02em;
     padding: 4px 2px;
@@ -249,7 +249,7 @@ nav,
 .social-header a:hover i { color: var(--primary); }
 
 @media (max-width: 1280px) {
-    .nav-main a { font-size: 0.7rem; }
+    .nav-main a { font-size: 0.73rem; }
     .nav-main { gap: 3px 6px; }
     .logo-text { font-size: 1.2rem; }
     .logo-img-link { width: 76px; height: 76px; }
