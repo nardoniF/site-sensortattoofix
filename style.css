@@ -256,6 +256,29 @@ nav,
     .site-social { min-width: 96px; padding: 0 12px; }
 }
 
+/* Header IT: rótulos mais longos — compactar desktop */
+html[lang="it"] .site-nav { gap: 10px; }
+html[lang="it"] .nav-main { gap: 2px 6px; }
+html[lang="it"] .nav-main a {
+    font-size: 0.68rem;
+    letter-spacing: 0.01em;
+    padding: 4px 2px;
+}
+html[lang="it"] .logo-text { font-size: 1.15rem; }
+html[lang="it"] .logo-tagline { font-size: 0.72rem; }
+html[lang="it"] .logo-img-link { width: 72px; height: 72px; }
+html[lang="it"] .site-social { min-width: 88px; padding: 0 8px; gap: 5px; }
+html[lang="it"] .nav-actions { gap: 6px; }
+
+@media (max-width: 1360px) {
+    html[lang="it"] .logo-lockup .logo-tagline { display: none; }
+}
+
+@media (max-width: 1280px) {
+    html[lang="it"] .nav-main a { font-size: 0.64rem; }
+    html[lang="it"] .btn-nav-comprar .btn-nav-label { display: none; }
+}
+
 @media (max-width: 1180px) {
     .btn-nav-comprar .btn-nav-label { display: none; }
     .btn-nav-comprar { padding: 7px 9px; }
