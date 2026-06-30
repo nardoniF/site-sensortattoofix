@@ -205,6 +205,27 @@
 
         .warn strong { color: #000; }
 
+        .warn-list {
+            list-style: none;
+            margin-top: 4px;
+        }
+
+        .warn-list li {
+            position: relative;
+            padding-left: 10px;
+            margin-bottom: 4px;
+        }
+
+        .warn-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #c89600;
+            font-weight: 800;
+        }
+
+        .warn-list li:last-child { margin-bottom: 0; }
+
         .tips {
             margin-top: 8px;
             font-size: 7.8pt;
@@ -318,7 +339,12 @@
                 </ol>
 
                 <div class="warn">
-                    <strong>Obs.:</strong> Nas <strong>72 horas (3 dias)</strong> iniciais: sem água, natação ou suor excessivo. Depois, pode usar na água. Mantenha a <strong>detecção de pulso</strong> ativada e carregue apenas com o <strong>carregador original</strong> do relógio.
+                    <strong>Importante</strong>
+                    <ul class="warn-list">
+                        <li><strong>Ative a detecção de pulso</strong> nas configurações do smartwatch.</li>
+                        <li><strong>Sempre use o carregador original</strong> do relógio.</li>
+                        <li><strong>Para entrar na água ou molhar:</strong> aguarde <strong>72 horas (3 dias)</strong> após a instalação.</li>
+                    </ul>
                 </div>
             </section>
         </div>

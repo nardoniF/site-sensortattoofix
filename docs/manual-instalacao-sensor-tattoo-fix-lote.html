@@ -189,9 +189,33 @@
             border: 0.8pt solid #ffc107;
             border-radius: 2px;
             background: #fffbea;
-            font-size: 5.3pt;
-            font-weight: 600;
+            font-size: 5.1pt;
         }
+
+        .warn strong { font-size: 5.4pt; display: block; margin-bottom: 0.5mm; }
+
+        .warn-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .warn-list li {
+            position: relative;
+            padding-left: 2mm;
+            margin-bottom: 0.4mm;
+            line-height: 1.2;
+        }
+
+        .warn-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #c89600;
+            font-weight: 800;
+        }
+
+        .warn-list li:last-child { margin-bottom: 0; }
 
         .tile-foot {
             font-size: 4.8pt;
@@ -245,7 +269,14 @@
                     </ol>
                 </section>
             </div>
-            <p class="warn"><strong>Obs.:</strong> Nas <strong>72&nbsp;h (3 dias)</strong> iniciais: sem água, natação ou suor excessivo. Depois, pode usar na água. Detecção de pulso <strong>ativada</strong>; <strong>carregador original</strong>.</p>
+            <div class="warn">
+                <strong>Importante</strong>
+                <ul class="warn-list">
+                    <li><strong>Ative a detecção de pulso.</strong></li>
+                    <li><strong>Sempre use o carregador original.</strong></li>
+                    <li><strong>Para entrar na água ou molhar:</strong> aguarde <strong>72&nbsp;h (3 dias)</strong>.</li>
+                </ul>
+            </div>
             <p class="tile-foot">sensortattoofix.com.br · © 3N20</p>
         </article>
     </template>
