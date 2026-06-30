@@ -192,6 +192,27 @@ nav,
 
 .nav-lang:hover { border-color: var(--primary); color: var(--primary); }
 
+.nav-lang-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-self: center;
+}
+
+.nav-lang-stack .nav-lang {
+    padding: 3px 6px;
+    font-size: 0.62rem;
+    border-radius: 6px;
+    line-height: 1;
+    min-width: 42px;
+    justify-content: center;
+}
+
+.nav-lang-stack .nav-lang img {
+    width: 16px;
+    height: 12px;
+}
+
 .btn-nav {
     background: var(--primary);
     color: #000 !important;
