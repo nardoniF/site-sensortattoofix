@@ -7,23 +7,23 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 4mm;
+            margin: 3mm;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            font-size: 6pt;
-            line-height: 1.25;
-            color: #111;
-            background: #e8e8e8;
+            font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+            color: #1a1a1a;
+            background: #ddd;
         }
 
         .no-print {
             text-align: center;
-            padding: 12px;
+            padding: 14px;
             font-size: 13px;
+            background: #fff;
+            border-bottom: 1px solid #ccc;
         }
 
         .no-print p { margin-bottom: 8px; color: #444; }
@@ -58,178 +58,227 @@
         .sheet-lote {
             width: 210mm;
             height: 297mm;
-            margin: 12px auto;
-            padding: 0;
+            margin: 10px auto;
             background: #fff;
-            box-shadow: 0 2px 12px rgba(0,0,0,.12);
+            box-shadow: 0 2px 16px rgba(0,0,0,.15);
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: repeat(5, 1fr);
+            gap: 0;
         }
 
         .tile {
-            border: 0.4pt dashed #bbb;
-            padding: 2.2mm 2.5mm 2mm;
+            border: 0.35pt dashed #bbb;
+            padding: 1.8mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 1.2mm;
+            gap: 1mm;
+            background: #fff;
         }
 
+        /* ── Cabeçalho ── */
         .tile-head {
             display: flex;
             align-items: center;
-            gap: 2mm;
-            border-bottom: 1pt solid #ffc107;
-            padding-bottom: 1mm;
+            gap: 1.8mm;
+            background: linear-gradient(135deg, #111 0%, #2a2200 100%);
+            border-radius: 3px;
+            padding: 1.2mm 1.8mm;
+            flex-shrink: 0;
         }
 
         .tile-head img {
-            width: 7mm;
-            height: 7mm;
+            width: 6.5mm;
+            height: 6.5mm;
             border-radius: 50%;
             object-fit: cover;
+            border: 0.5pt solid #ffc107;
             flex-shrink: 0;
         }
 
         .tile-head h1 {
-            font-size: 7.2pt;
-            line-height: 1.1;
-            font-weight: 800;
+            font-size: 6.8pt;
+            line-height: 1.05;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 0.02em;
         }
 
-        .tile-head h1 span { color: #c89600; }
+        .tile-head h1 span { color: #ffc107; }
 
         .tile-head p {
-            font-size: 5pt;
-            color: #555;
+            font-size: 4.6pt;
+            color: #ccc;
+            margin-top: 0.3mm;
         }
 
-        .tile-grid {
+        /* ── Corpo 2 colunas ── */
+        .tile-body {
             display: grid;
-            grid-template-columns: 0.92fr 1.08fr;
-            gap: 2mm;
+            grid-template-columns: 0.88fr 1.12fr;
+            gap: 1.2mm;
             flex: 1;
             min-height: 0;
         }
 
-        h2 {
-            font-size: 5.6pt;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            border-left: 2px solid #ffc107;
-            padding-left: 3px;
-            margin-bottom: 1mm;
+        .panel {
+            border-radius: 3px;
+            padding: 1.2mm 1.4mm;
+            overflow: hidden;
         }
+
+        .panel-kit {
+            background: #fff8e1;
+            border: 0.5pt solid #ffe082;
+        }
+
+        .panel-steps {
+            background: #e8f4fd;
+            border: 0.5pt solid #90caf9;
+        }
+
+        h2 {
+            font-size: 5.2pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.8mm;
+            padding-bottom: 0.5mm;
+            border-bottom: 0.8pt solid currentColor;
+        }
+
+        .panel-kit h2 { color: #e65100; border-color: #ffc107; }
+        .panel-steps h2 { color: #1565c0; border-color: #42a5f5; }
 
         .kit {
             list-style: none;
-            font-size: 5.4pt;
+            font-size: 5pt;
+            line-height: 1.22;
         }
 
         .kit li {
-            margin-bottom: 0.6mm;
-            padding-left: 3.2mm;
+            margin-bottom: 0.45mm;
+            padding-left: 3mm;
             position: relative;
         }
 
         .kit li::before {
-            content: attr(data-n);
+            content: attr(data-n) ".";
             position: absolute;
             left: 0;
-            font-weight: 800;
-            color: #c89600;
-            font-size: 5pt;
+            font-weight: 900;
+            color: #e65100;
+            font-size: 4.8pt;
         }
 
         .steps {
             list-style: none;
             counter-reset: s;
-            font-size: 5.4pt;
+            font-size: 5pt;
+            line-height: 1.22;
         }
 
         .steps li {
             counter-increment: s;
             position: relative;
-            padding-left: 3.6mm;
-            margin-bottom: 0.55mm;
+            padding-left: 3.8mm;
+            margin-bottom: 0.45mm;
         }
 
         .steps li::before {
             content: counter(s);
             position: absolute;
             left: 0;
-            top: 0;
-            width: 2.8mm;
-            height: 2.8mm;
+            top: 0.1mm;
+            width: 2.9mm;
+            height: 2.9mm;
             border-radius: 50%;
-            background: #ffc107;
-            font-size: 4.8pt;
-            font-weight: 800;
+            background: #1565c0;
+            color: #fff;
+            font-size: 4.6pt;
+            font-weight: 900;
             text-align: center;
-            line-height: 2.8mm;
+            line-height: 2.9mm;
         }
 
-        .steps li strong { font-weight: 700; }
+        .steps li strong { font-weight: 800; color: #0d47a1; }
 
-        .cura {
-            font-size: 5.2pt;
-            background: #f7f7f7;
-            border: 0.4pt solid #ddd;
-            border-radius: 2px;
-            padding: 1mm 1.2mm;
-            margin-top: 0.5mm;
+        /* ── Rodapé full-width (fora das colunas) ── */
+        .tile-foot {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6mm;
         }
 
-        .cura strong { font-size: 5.4pt; }
-
-        .warn {
-            margin-top: auto;
-            padding: 1mm 1.2mm;
+        .importante {
+            background: #fffde7;
             border: 0.8pt solid #ffc107;
-            border-radius: 2px;
-            background: #fffbea;
-            font-size: 5.1pt;
-        }
-
-        .warn strong { font-size: 5.4pt; display: block; margin-bottom: 0.5mm; }
-
-        .warn-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .warn-list li {
-            position: relative;
-            padding-left: 2mm;
-            margin-bottom: 0.4mm;
+            border-radius: 3px;
+            padding: 0.8mm 1.2mm;
+            font-size: 4.8pt;
             line-height: 1.2;
         }
 
-        .warn-list li::before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: #c89600;
-            font-weight: 800;
+        .importante-title {
+            font-size: 5pt;
+            font-weight: 900;
+            color: #e65100;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.4mm;
         }
 
-        .warn-list li:last-child { margin-bottom: 0; }
+        .importante-list {
+            list-style: none;
+            display: flex;
+            gap: 2mm;
+            flex-wrap: wrap;
+        }
 
-        .tile-foot {
+        .importante-list li {
+            position: relative;
+            padding-left: 2mm;
+        }
+
+        .importante-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #2e7d32;
+            font-weight: 900;
+            font-size: 4.6pt;
+        }
+
+        .duvidas {
+            background: #f5f5f5;
+            border-radius: 3px;
+            padding: 0.6mm 1.2mm;
+            font-size: 4.6pt;
+            color: #444;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2mm;
+        }
+
+        .duvidas strong {
+            color: #111;
             font-size: 4.8pt;
-            color: #666;
-            text-align: center;
-            border-top: 0.4pt solid #ddd;
-            padding-top: 0.8mm;
+        }
+
+        .duvidas a {
+            color: #1565c0;
+            text-decoration: none;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
 
     <div class="no-print">
-        <p><strong>Impressão em lote</strong> — 10 manuais por folha A4. Recorte nas linhas tracejadas.</p>
+        <p><strong>Impressão em lote</strong> — 10 manuais por folha A4 · recorte nas linhas tracejadas</p>
         <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
         <a class="btn secondary" href="manual-instalacao-sensor-tattoo-fix.html">Versão completa (1 por folha)</a>
     </div>
@@ -242,42 +291,48 @@
                 <img src="../site/logo.jpg" alt="">
                 <div>
                     <h1>SENSOR <span>TATTOO FIX</span></h1>
-                    <p>Instalação da lente · 3N20</p>
+                    <p>Manual de instalação · Tecnologia 3N20</p>
                 </div>
             </header>
-            <div class="tile-grid">
-                <section>
+
+            <div class="tile-body">
+                <section class="panel panel-kit">
                     <h2>Kit</h2>
                     <ul class="kit">
-                        <li data-n="1"><strong>Lenço</strong> — álcool isopropílico</li>
-                        <li data-n="2"><strong>Lente</strong> — adesivo alta fixação</li>
-                        <li data-n="3"><strong>Potencializador + bastão</strong> — vidro e pincel sintético</li>
+                        <li data-n="1">Lenço com álcool isopropílico</li>
+                        <li data-n="2">Lente</li>
+                        <li data-n="3">Vidro de potencializador</li>
+                        <li data-n="4">Bastão aplicador</li>
+                        <li data-n="5">Manual</li>
                     </ul>
-                    <div class="cura">
-                        <strong>Aderência:</strong> 20&nbsp;min 50% · 1&nbsp;h 75% · 24&nbsp;h 90% · 48&nbsp;h 100%
-                    </div>
                 </section>
-                <section>
+                <section class="panel panel-steps">
                     <h2>Passo a passo</h2>
                     <ol class="steps">
-                        <li><strong>Limpe</strong> o sensor com o lenço de álcool.</li>
-                        <li><strong>Secar</strong> ~10&nbsp;s até evaporar o álcool.</li>
-                        <li><strong>Retire o liner</strong> (aba da película). Não toque no adesivo.</li>
-                        <li><strong>Potencializador</strong> no sensor com o bastão pincel, camada fina.</li>
-                        <li><strong>Colar</strong> no centro do sensor; pressão firme e uniforme.</li>
-                        <li><strong>Cura</strong> — consulte aderência; evite impactos nas primeiras horas.</li>
+                        <li><strong>Limpe</strong> o sensor com o lenço de álcool e aguarde secar <strong>10&nbsp;s</strong> até evaporar.</li>
+                        <li><strong>Retire o liner.</strong> Use a aba; não toque no adesivo.</li>
+                        <li>Passe um pouco do <strong>potencializador</strong> no sensor com o bastão, camada fina.</li>
+                        <li><strong>Cole</strong> bem no centro do sensor.</li>
+                        <li><strong>Pressão firme e uniforme</strong> por cerca de <strong>30&nbsp;s</strong>.</li>
+                        <li><strong>Cura:</strong> <strong>48&nbsp;h</strong> para atividades físicas · <strong>72&nbsp;h</strong> para molhar.</li>
                     </ol>
                 </section>
             </div>
-            <div class="warn">
-                <strong>Importante</strong>
-                <ul class="warn-list">
-                    <li><strong>Ative a detecção de pulso.</strong></li>
-                    <li><strong>Sempre use o carregador original.</strong></li>
-                    <li><strong>Para entrar na água ou molhar:</strong> aguarde <strong>72&nbsp;h (3 dias)</strong>.</li>
-                </ul>
-            </div>
-            <p class="tile-foot">sensortattoofix.com.br · © 3N20</p>
+
+            <footer class="tile-foot">
+                <div class="importante">
+                    <p class="importante-title">Importante</p>
+                    <ul class="importante-list">
+                        <li>Ative a detecção de pulso</li>
+                        <li>Sempre use o carregador original</li>
+                    </ul>
+                </div>
+                <div class="duvidas">
+                    <strong>Dúvidas:</strong>
+                    <span><a href="https://www.sensortattoofix.com.br">www.sensortattoofix.com.br</a></span>
+                    <span><a href="mailto:contato@sensortattoofix.com.br">contato@sensortattoofix.com.br</a></span>
+                </div>
+            </footer>
         </article>
     </template>
 
