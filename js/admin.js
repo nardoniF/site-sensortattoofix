@@ -2,6 +2,29 @@
   const SESSION_KEY = 'stf_admin_token';
   const bootstrap = window.CONFIG_BOOTSTRAP || {};
 
+  const DEFAULT_EMAILS = {
+    from: 'Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>',
+    shopPaidSubject: 'PAGO — {orderId}',
+    customerOrderSubject: 'Pedido {orderId} registrado — Sensor Tattoo Fix',
+    customerPixSubject: 'PIX do pedido {orderId} — Sensor Tattoo Fix',
+    customerPaidSubject: 'Pagamento confirmado — {orderId}',
+    motoboySubject: 'Entrega motoboy — {orderId}',
+    couponSubject: 'Você vendeu com seu cupom — comissão {amount} — Sensor Tattoo Fix',
+    testSubject: 'Teste — Sensor Tattoo Fix',
+    pendingPaypal: 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.',
+    pendingCard: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
+    pendingMpCheckout: 'Finalize o pagamento com cartão no Mercado Pago (Visa/Mastercard). Seu banco pode converter de USD/EUR para reais.',
+    paidDefault: 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    paidMotoboy: 'Seu pedido será entregue por motoboy em até {hours} horas. O entregador entrará em contato se necessário.',
+    paidUberTracking: 'Entrega Uber confirmada. Acompanhe em: {url}',
+    paidUberPending: 'Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em breve.',
+    paidIntlLens: 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    pixGreeting: 'Olá, {nome}!',
+    pixIntro: 'Seu pedido {orderId} foi registrado. Para concluir a compra, pague o PIX abaixo:',
+    pixFooter: 'Guarde este e-mail — se fechar a página, use o link acima para voltar ao QR Code.'
+  };
+
   const els = {
     loginScreen: document.getElementById('admin-login'),
     panelScreen: document.getElementById('admin-panel'),
@@ -12,7 +35,7 @@
     statusPanel: document.getElementById('admin-status-panel'),
     statusTop: document.getElementById('admin-status-top'),
     statusFrete: document.getElementById('admin-status-frete'),
-    statusApi: document.getElementById('admin-status-api'),
+    statusContato: document.getElementById('admin-status-contato'),
     modeBadge: document.getElementById('admin-mode'),
     btnDownload: document.getElementById('btn-download-config'),
     updatedAt: document.getElementById('config-updated-at'),
@@ -38,7 +61,7 @@
     if (target === 'panel' || target === 'save') return els.statusPanel;
     if (target === 'top') return els.statusTop;
     if (target === 'frete') return els.statusFrete;
-    if (target === 'api') return els.statusApi;
+    if (target === 'contato') return els.statusContato;
     if (target === 'cliques') return document.getElementById('admin-status-cliques');
     return els.statusMsg;
   }
@@ -1808,6 +1831,27 @@ ${worksheets}
     if (f.whatsapp) f.whatsapp.value = config.whatsapp || '';
     if (f.formsubmitEmail) f.formsubmitEmail.value = formsubmit.email || '';
     if (f.formsubmitSubject) f.formsubmitSubject.value = formsubmit.subject || '';
+    const emails = { ...DEFAULT_EMAILS, ...(config.emails || {}) };
+    if (f.emailFrom) f.emailFrom.value = emails.from || '';
+    if (f.emailShopPaidSubject) f.emailShopPaidSubject.value = emails.shopPaidSubject || '';
+    if (f.emailCustomerOrderSubject) f.emailCustomerOrderSubject.value = emails.customerOrderSubject || '';
+    if (f.emailCustomerPixSubject) f.emailCustomerPixSubject.value = emails.customerPixSubject || '';
+    if (f.emailCustomerPaidSubject) f.emailCustomerPaidSubject.value = emails.customerPaidSubject || '';
+    if (f.emailMotoboySubject) f.emailMotoboySubject.value = emails.motoboySubject || '';
+    if (f.emailCouponSubject) f.emailCouponSubject.value = emails.couponSubject || '';
+    if (f.emailTestSubject) f.emailTestSubject.value = emails.testSubject || '';
+    if (f.emailPendingPaypal) f.emailPendingPaypal.value = emails.pendingPaypal || '';
+    if (f.emailPendingCard) f.emailPendingCard.value = emails.pendingCard || '';
+    if (f.emailPendingMpCheckout) f.emailPendingMpCheckout.value = emails.pendingMpCheckout || '';
+    if (f.emailPaidDefault) f.emailPaidDefault.value = emails.paidDefault || '';
+    if (f.emailPaidMotoboy) f.emailPaidMotoboy.value = emails.paidMotoboy || '';
+    if (f.emailPaidUberTracking) f.emailPaidUberTracking.value = emails.paidUberTracking || '';
+    if (f.emailPaidUberPending) f.emailPaidUberPending.value = emails.paidUberPending || '';
+    if (f.emailPaidIntlLens) f.emailPaidIntlLens.value = emails.paidIntlLens || '';
+    if (f.emailPaidIntlKit) f.emailPaidIntlKit.value = emails.paidIntlKit || '';
+    if (f.emailPixGreeting) f.emailPixGreeting.value = emails.pixGreeting || '';
+    if (f.emailPixIntro) f.emailPixIntro.value = emails.pixIntro || '';
+    if (f.emailPixFooter) f.emailPixFooter.value = emails.pixFooter || '';
     if (f.apiBaseUrl) f.apiBaseUrl.value = (config.api && config.api.baseUrl) || bootstrap.configApiUrl || '';
     const paypalCfg = config.payments?.paypal || {};
     if (f.paypalIntlEnabled) f.paypalIntlEnabled.checked = paypalCfg.internationalEnabled !== false;
@@ -1936,6 +1980,28 @@ ${worksheets}
       formsubmit: {
         email: f.formsubmitEmail.value.trim(),
         subject: f.formsubmitSubject.value.trim()
+      },
+      emails: {
+        from: f.emailFrom?.value.trim() || DEFAULT_EMAILS.from,
+        shopPaidSubject: f.emailShopPaidSubject?.value.trim() || DEFAULT_EMAILS.shopPaidSubject,
+        customerOrderSubject: f.emailCustomerOrderSubject?.value.trim() || DEFAULT_EMAILS.customerOrderSubject,
+        customerPixSubject: f.emailCustomerPixSubject?.value.trim() || DEFAULT_EMAILS.customerPixSubject,
+        customerPaidSubject: f.emailCustomerPaidSubject?.value.trim() || DEFAULT_EMAILS.customerPaidSubject,
+        motoboySubject: f.emailMotoboySubject?.value.trim() || DEFAULT_EMAILS.motoboySubject,
+        couponSubject: f.emailCouponSubject?.value.trim() || DEFAULT_EMAILS.couponSubject,
+        testSubject: f.emailTestSubject?.value.trim() || DEFAULT_EMAILS.testSubject,
+        pendingPaypal: f.emailPendingPaypal?.value.trim() || DEFAULT_EMAILS.pendingPaypal,
+        pendingCard: f.emailPendingCard?.value.trim() || DEFAULT_EMAILS.pendingCard,
+        pendingMpCheckout: f.emailPendingMpCheckout?.value.trim() || DEFAULT_EMAILS.pendingMpCheckout,
+        paidDefault: f.emailPaidDefault?.value.trim() || DEFAULT_EMAILS.paidDefault,
+        paidMotoboy: f.emailPaidMotoboy?.value.trim() || DEFAULT_EMAILS.paidMotoboy,
+        paidUberTracking: f.emailPaidUberTracking?.value.trim() || DEFAULT_EMAILS.paidUberTracking,
+        paidUberPending: f.emailPaidUberPending?.value.trim() || DEFAULT_EMAILS.paidUberPending,
+        paidIntlLens: f.emailPaidIntlLens?.value.trim() || DEFAULT_EMAILS.paidIntlLens,
+        paidIntlKit: f.emailPaidIntlKit?.value.trim() || DEFAULT_EMAILS.paidIntlKit,
+        pixGreeting: f.emailPixGreeting?.value.trim() || DEFAULT_EMAILS.pixGreeting,
+        pixIntro: f.emailPixIntro?.value.trim() || DEFAULT_EMAILS.pixIntro,
+        pixFooter: f.emailPixFooter?.value.trim() || DEFAULT_EMAILS.pixFooter
       },
       whatsapp: f.whatsapp.value.replace(/\D/g, ''),
       siteUrl: currentConfig?.siteUrl || 'https://www.sensortattoofix.com.br',
@@ -2246,7 +2312,7 @@ ${worksheets}
     showStatus('', '', 'save');
     showStatus('', '', 'top');
     showStatus('', '', 'frete');
-    showStatus('', '', 'api');
+    showStatus('', '', 'contato');
   });
 
   document.getElementById('btn-clicks-test')?.addEventListener('click', () => testClickLog());
@@ -2261,10 +2327,10 @@ ${worksheets}
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!base || !token) {
-      showStatus('Faça login com a API para testar e-mail.', 'error', 'api');
+      showStatus('Faça login com a API para testar e-mail.', 'error', 'contato');
       return;
     }
-    showStatus(`Enviando ${label}...`, '', 'api');
+    showStatus(`Enviando ${label}...`, '', 'contato');
     try {
       const email = els.configForm?.formsubmitEmail?.value?.trim();
       const res = await fetch(base.replace(/\/$/, '') + '/admin/test-email', {
@@ -2277,14 +2343,14 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
-        showStatus(`${label} enviado via ${data.provider || 'resend'}! Confira a caixa de entrada (e spam).`, 'success', 'api');
+        showStatus(`${label} enviado via ${data.provider || 'resend'}! Confira a caixa de entrada (e spam).`, 'success', 'contato');
         loadIntegrationsStatus();
       } else {
         const err = data.resend?.error || data.error || data.formsubmit?.data?.message || 'Falha no envio';
-        showStatus('Erro: ' + err, 'error', 'api');
+        showStatus('Erro: ' + err, 'error', 'contato');
       }
     } catch (err) {
-      showStatus(err.message, 'error', 'api');
+      showStatus(err.message, 'error', 'contato');
     }
   }
 

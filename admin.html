@@ -43,7 +43,7 @@
                         <li><strong>Pagamento</strong> — cartão, PIX e PayPal internacional (processadores e chave PIX reserva).</li>
                         <li><strong>Frete</strong> — remetente, modalidades, motoboy, Correios BR e internacional.</li>
                         <li><strong>Cupons</strong> — desconto ao cliente e comissão ao comissionado.</li>
-                        <li><strong>Contato</strong> — WhatsApp e e-mail de aviso de pedidos.</li>
+                        <li><strong>Contato</strong> — WhatsApp, e-mails da loja, assuntos, mensagens e testes de envio.</li>
                         <li><strong>API</strong> — URL do Worker e status das integrações (MP, Asaas, PayPal, Correios…).</li>
                         <li><strong>Documentação</strong> — guia técnico (secrets, webhooks, deploy).</li>
                     </ul>
@@ -406,13 +406,113 @@
                             <label>WhatsApp (somente números)
                                 <input type="text" name="whatsapp" required placeholder="5511999999999">
                             </label>
-                            <label>E-mail dos pedidos (FormSubmit)
+                            <label>E-mail da loja (recebe avisos de pedido)
                                 <input type="email" name="formsubmitEmail" required>
                             </label>
-                            <label class="full">Assunto do e-mail de pedido
-                                <input type="text" name="formsubmitSubject" required>
+                            <label class="full">Remetente dos e-mails (Resend)
+                                <input type="text" name="emailFrom" placeholder="Sensor Tattoo Fix &lt;pedidos@sensortattoofix.com.br&gt;">
                             </label>
                         </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-tag"></i> Assuntos dos e-mails</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-email-subjects" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-email-subjects" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Variáveis: <code>{orderId}</code> número do pedido · <code>{amount}</code> valor da comissão · <code>{hours}</code> prazo motoboy · <code>{url}</code> link de rastreio · <code>{nome}</code> nome do cliente.</p>
+                        </div>
+                        <div class="form-grid">
+                            <label class="full">Novo pedido (aviso para a loja)
+                                <input type="text" name="formsubmitSubject" required>
+                            </label>
+                            <label>Pedido pago (aviso para a loja)
+                                <input type="text" name="emailShopPaidSubject" required>
+                            </label>
+                            <label>Pedido registrado (cliente — cartão/PayPal)
+                                <input type="text" name="emailCustomerOrderSubject" required>
+                            </label>
+                            <label>PIX do pedido (cliente)
+                                <input type="text" name="emailCustomerPixSubject" required>
+                            </label>
+                            <label>Pagamento confirmado (cliente)
+                                <input type="text" name="emailCustomerPaidSubject" required>
+                            </label>
+                            <label>Entrega motoboy
+                                <input type="text" name="emailMotoboySubject" required>
+                            </label>
+                            <label>Comissão de cupom (comissionado)
+                                <input type="text" name="emailCouponSubject" required>
+                            </label>
+                            <label>E-mail de teste
+                                <input type="text" name="emailTestSubject" required>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-comment-dots"></i> Mensagens ao cliente — aguardando pagamento</legend>
+                        <div class="form-grid">
+                            <label class="full">PayPal
+                                <textarea name="emailPendingPaypal" rows="2" required></textarea>
+                            </label>
+                            <label class="full">Cartão / link de pagamento
+                                <textarea name="emailPendingCard" rows="2" required></textarea>
+                            </label>
+                            <label class="full">Mercado Pago internacional
+                                <textarea name="emailPendingMpCheckout" rows="2" required></textarea>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-check-circle"></i> Mensagens ao cliente — pagamento confirmado</legend>
+                        <div class="form-grid">
+                            <label class="full">Padrão (Correios BR)
+                                <textarea name="emailPaidDefault" rows="2" required></textarea>
+                            </label>
+                            <label class="full">Motoboy <span class="admin-meta">({hours} horas)</span>
+                                <textarea name="emailPaidMotoboy" rows="2" required></textarea>
+                            </label>
+                            <label class="full">Uber com rastreio <span class="admin-meta">({url})</span>
+                                <textarea name="emailPaidUberTracking" rows="2" required></textarea>
+                            </label>
+                            <label class="full">Uber aguardando rastreio
+                                <textarea name="emailPaidUberPending" rows="2" required></textarea>
+                            </label>
+                            <label class="full">Internacional — só lente
+                                <textarea name="emailPaidIntlLens" rows="2" required></textarea>
+                            </label>
+                            <label class="full">Internacional — kit completo
+                                <textarea name="emailPaidIntlKit" rows="2" required></textarea>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend><i class="fas fa-qrcode"></i> E-mail PIX (texto)</legend>
+                        <div class="form-grid">
+                            <label class="full">Saudação <span class="admin-meta">({nome}, {orderId})</span>
+                                <input type="text" name="emailPixGreeting" required>
+                            </label>
+                            <label class="full">Introdução
+                                <textarea name="emailPixIntro" rows="2" required></textarea>
+                            </label>
+                            <label class="full">Rodapé
+                                <textarea name="emailPixFooter" rows="2" required></textarea>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-envelope"></i> Testes de e-mail</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-email-tests" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-email-tests" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Envia e-mails de teste para o endereço configurado acima, via Resend. Não gera cobrança nem pedido real.</p>
+                        </div>
+                        <div class="admin-email-tests">
+                            <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
+                            <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
+                            <button type="button" id="btn-test-email-paid" class="btn-secondary"><i class="fas fa-check-circle"></i> Testar e-mail PAGO</button>
+                        </div>
+                        <p id="admin-status-contato" class="admin-status form-status" hidden></p>
                     </fieldset>
                     </div>
 
@@ -461,20 +561,6 @@
                             </table>
                             <p id="api-integrations-checked-at" class="admin-meta admin-api-checked-at" hidden></p>
                         </div>
-                    </fieldset>
-
-                    <fieldset>
-                        <legend class="admin-legend-row"><span><i class="fas fa-envelope"></i> Testes de e-mail</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-email-tests" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
-                        <div id="help-email-tests" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Envia e-mails de teste para o endereço configurado em <strong>Contato → E-mail dos pedidos</strong>, via Resend.</p>
-                            <p>Não gera cobrança nem pedido real.</p>
-                        </div>
-                        <div class="admin-email-tests">
-                            <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
-                            <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
-                            <button type="button" id="btn-test-email-paid" class="btn-secondary"><i class="fas fa-check-circle"></i> Testar e-mail PAGO</button>
-                        </div>
-                        <p id="admin-status-api" class="admin-status form-status" hidden></p>
                     </fieldset>
                     </div>
 
@@ -639,6 +725,6 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=7"></script>
     <script src="js/pedidos.js?v=16"></script>
-    <script src="js/admin.js?v=78"></script>
+    <script src="js/admin.js?v=79"></script>
 </body>
 </html>

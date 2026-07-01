@@ -157,6 +157,28 @@ const DEFAULT_CONFIG = {
     'Outro modelo (informar nas observações)'
   ],
   formsubmit: { email: 'contato@sensortattoofix.com.br', subject: 'Novo pedido — Loja Oficial Sensor Tattoo Fix' },
+  emails: {
+    from: 'Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>',
+    shopPaidSubject: 'PAGO — {orderId}',
+    customerOrderSubject: 'Pedido {orderId} registrado — Sensor Tattoo Fix',
+    customerPixSubject: 'PIX do pedido {orderId} — Sensor Tattoo Fix',
+    customerPaidSubject: 'Pagamento confirmado — {orderId}',
+    motoboySubject: 'Entrega motoboy — {orderId}',
+    couponSubject: 'Você vendeu com seu cupom — comissão {amount} — Sensor Tattoo Fix',
+    testSubject: 'Teste — Sensor Tattoo Fix',
+    pendingPaypal: 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.',
+    pendingCard: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
+    pendingMpCheckout: 'Finalize o pagamento com cartão no Mercado Pago (Visa/Mastercard). Seu banco pode converter de USD/EUR para reais.',
+    paidDefault: 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    paidMotoboy: 'Seu pedido será entregue por motoboy em até {hours} horas. O entregador entrará em contato se necessário.',
+    paidUberTracking: 'Entrega Uber confirmada. Acompanhe em: {url}',
+    paidUberPending: 'Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em breve.',
+    paidIntlLens: 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    pixGreeting: 'Olá, {nome}!',
+    pixIntro: 'Seu pedido {orderId} foi registrado. Para concluir a compra, pague o PIX abaixo:',
+    pixFooter: 'Guarde este e-mail — se fechar a página, use o link acima para voltar ao QR Code.'
+  },
   whatsapp: '5511913394665',
   siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev' }
@@ -458,7 +480,7 @@ async function notifyMotoboyCouriers(env, config, order) {
     ...orderWatchEmailFields(order)
   };
 
-  const subject = `Entrega motoboy — ${order.orderId}`;
+  const subject = emailSubject(config, 'motoboySubject', { orderId: order.orderId });
   const results = [];
   for (const courier of couriers) {
     const to = String(courier.email || '').trim().toLowerCase();
@@ -525,7 +547,10 @@ async function notifyCouponCommissioner(env, config, order) {
   if (!to) return { ok: true, skipped: true };
 
   const adminUrl = `${(config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '')}/pedidos.html`;
-  const subject = `Você vendeu com seu cupom — comissão ${formatBRL(order.couponCommissionAmount || 0)} — Sensor Tattoo Fix`;
+  const subject = emailSubject(config, 'couponSubject', {
+    orderId: order.orderId,
+    amount: formatBRL(order.couponCommissionAmount || 0)
+  });
   const fields = {
     Comissionado: order.couponCommissionerName || to,
     Cupom: order.couponCode,
@@ -1486,31 +1511,38 @@ async function pixQrInlineAttachment(order) {
 }
 
 function buildPixPaymentEmail(order, config, { hasQrImage = false } = {}) {
+  const emails = getEmails(config);
   const resumeUrl = resumeOrderUrl(config, order);
   const total = formatBRL(order.total);
   const copyPaste = order.pixCopyPaste || '';
+  const greeting = applyEmailTemplate(emails.pixGreeting, { nome: order.nome, orderId: order.orderId });
+  const intro = applyEmailTemplate(emails.pixIntro, { nome: order.nome, orderId: order.orderId });
+  const footer = applyEmailTemplate(emails.pixFooter, { nome: order.nome, orderId: order.orderId });
   const qrImg = hasQrImage
     ? `<img src="cid:${PIX_QR_CID}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`
     : '';
   const html = `<div style="font-family:Arial,sans-serif;max-width:560px;color:#222">
-    <p>Olá, <strong>${escapeHtml(order.nome)}</strong>!</p>
-    <p>Seu pedido <strong>${escapeHtml(order.orderId)}</strong> foi registrado. Para concluir a compra, pague o PIX abaixo:</p>
+    <p>${escapeHtml(greeting)}</p>
+    <p>${escapeHtml(intro)}</p>
     <p style="font-size:18px"><strong>Total: ${escapeHtml(total)}</strong></p>
     ${qrImg}
     <p style="font-size:13px;color:#555">Escaneie o QR Code no app do seu banco ou copie o código PIX:</p>
     <p style="word-break:break-all;font-family:monospace;font-size:11px;background:#f5f5f5;padding:12px;border-radius:8px;border:1px solid #ddd">${escapeHtml(copyPaste)}</p>
     <p style="margin-top:20px"><a href="${escapeHtml(resumeUrl)}" style="display:inline-block;background:#ffc107;color:#000;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px">Abrir pedido e pagar</a></p>
-    <p style="font-size:12px;color:#666">Guarde este e-mail — se fechar a página, use o link acima para voltar ao QR Code.</p>
+    <p style="font-size:12px;color:#666">${escapeHtml(footer)}</p>
     <p style="font-size:12px;color:#666;margin-top:16px">Modelo do relógio: ${escapeHtml(formatOrderSmartwatch(order))}${trimObs(order) && !String(order.smartwatch || '').includes('Outro modelo') ? `<br>Observações: ${escapeHtml(trimObs(order))}` : ''}<br>Sensor Tattoo Fix — sensortattoofix.com.br</p>
   </div>`;
   const text = [
-    `Olá, ${order.nome}!`,
+    greeting,
+    intro,
     `Pedido ${order.orderId} — Total: ${total}`,
     '',
     'Código PIX (copia e cola):',
     copyPaste,
     '',
     `Abrir pedido: ${resumeUrl}`,
+    '',
+    footer,
     '',
     `Modelo do relógio: ${formatOrderSmartwatch(order)}`,
     ...(trimObs(order) && !String(order.smartwatch || '').includes('Outro modelo')
@@ -4248,8 +4280,27 @@ async function createBrPixPayment(env, order, config) {
   return createBrPaymentWithFallback(env, order, config, 'PIX', getPixBrProvider, pixBrFallbackEnabled);
 }
 
+function getEmails(config) {
+  return { ...DEFAULT_CONFIG.emails, ...(config?.emails || {}) };
+}
+
+function applyEmailTemplate(template, vars) {
+  return String(template || '').replace(/\{(\w+)\}/g, (_, key) => {
+    if (vars[key] == null) return '';
+    return String(vars[key]);
+  });
+}
+
+function emailSubject(config, key, vars = {}) {
+  return applyEmailTemplate(getEmails(config)[key], vars);
+}
+
+function emailMessage(config, key, vars = {}) {
+  return applyEmailTemplate(getEmails(config)[key], vars);
+}
+
 function emailFrom(env, config) {
-  return env.EMAIL_FROM || config.emailFrom || 'Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>';
+  return env.EMAIL_FROM || getEmails(config).from || DEFAULT_CONFIG.emails.from;
 }
 
 function fieldsToHtml(fields) {
@@ -4350,7 +4401,7 @@ async function notifyCustomerPendingPix(env, config, order) {
     env,
     config,
     order,
-    `PIX do pedido ${order.orderId} — Sensor Tattoo Fix`,
+    emailSubject(config, 'customerPixSubject', { orderId: order.orderId }),
     fields,
     {
       ...pixMail,
@@ -4835,16 +4886,16 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const paymentBillingType = payment?.billingType || billingType;
   const customerEmail = billingType === 'PIX'
     ? notifyCustomerPendingPix(env, config, order)
-    : notifyCustomer(env, config, order, `Pedido ${order.orderId} registrado — Sensor Tattoo Fix`, {
+    : notifyCustomer(env, config, order, emailSubject(config, 'customerOrderSubject', { orderId: order.orderId }), {
       Pedido: order.orderId,
       Status: 'Aguardando pagamento',
       Total: formatBRL(order.total),
       Pagamento: order.pagamento,
       Mensagem: paymentBillingType === 'PAYPAL'
-        ? 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.'
+        ? emailMessage(config, 'pendingPaypal')
         : paymentBillingType === 'MP_CHECKOUT'
-          ? 'Finalize o pagamento com cartão no Mercado Pago (Visa/Mastercard). Seu banco pode converter de USD/EUR para reais.'
-          : 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
+          ? emailMessage(config, 'pendingMpCheckout')
+          : emailMessage(config, 'pendingCard'),
       ...(paymentBillingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
       ...(paymentBillingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
       'Link do pedido': resumeOrderUrl(config, order),
@@ -4991,26 +5042,25 @@ async function handlePaymentConfirmed(env, order, payment) {
     shopPaidFields['Imprimir etiqueta'] = labelPrintUrl(config, order.orderId);
   }
 
-  const shopPaid = await notifyShop(env, config, 'PAGO — ' + order.orderId, shopPaidFields);
+  const shopPaid = await notifyShop(env, config, emailSubject(config, 'shopPaidSubject', { orderId: order.orderId }), shopPaidFields);
   if (!shopPaid?.ok) console.error('E-mail PAGO loja falhou:', JSON.stringify(shopPaid));
 
   let paidCustomerMessage;
   if (isUberOrder(order)) {
     paidCustomerMessage = order.uberTrackingUrl
-      ? `Entrega Uber confirmada. Acompanhe em: ${order.uberTrackingUrl}`
-      : 'Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em breve.';
+      ? emailMessage(config, 'paidUberTracking', { url: order.uberTrackingUrl })
+      : emailMessage(config, 'paidUberPending');
   } else if (isMotoboyOrder(order)) {
-    const hours = getMotoboyConfig(config).deliveryHours;
-    paidCustomerMessage = `Seu pedido será entregue por motoboy em até ${hours} horas. O entregador entrará em contato se necessário.`;
+    paidCustomerMessage = emailMessage(config, 'paidMotoboy', { hours: getMotoboyConfig(config).deliveryHours });
   } else if (order.internationalLensOnly) {
-    paidCustomerMessage = 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.';
+    paidCustomerMessage = emailMessage(config, 'paidIntlLens');
   } else if (order.paisCode && order.paisCode !== 'BR') {
-    paidCustomerMessage = 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.';
+    paidCustomerMessage = emailMessage(config, 'paidIntlKit');
   } else {
-    paidCustomerMessage = 'Seu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.';
+    paidCustomerMessage = emailMessage(config, 'paidDefault');
   }
 
-  await notifyCustomer(env, config, order, `Pagamento confirmado — ${order.orderId}`, {
+  await notifyCustomer(env, config, order, emailSubject(config, 'customerPaidSubject', { orderId: order.orderId }), {
     Pedido: order.orderId,
     Status: 'PAGO',
     Valor: formatBRL(value),
@@ -5814,7 +5864,7 @@ async function handleTestEmail(request, env, origin) {
 
   if (type === 'paid') {
     const orderId = 'STF-TESTE-' + new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    result = await notifyShop(env, config, 'PAGO — ' + orderId, {
+    result = await notifyShop(env, config, emailSubject(config, 'shopPaidSubject', { orderId }), {
       Pedido: orderId,
       Status: 'PAGO (TESTE — não é pedido real)',
       Cliente: 'Cliente Teste',
@@ -5839,7 +5889,7 @@ async function handleTestEmail(request, env, origin) {
       Total: formatBRL((config.product?.price || 62.9) + 11.9)
     });
   } else {
-    result = await notifyEmail(env, config, to, 'Teste — Sensor Tattoo Fix', {
+    result = await notifyEmail(env, config, to, emailSubject(config, 'testSubject'), {
       Teste: 'Envio de e-mail da loja',
       Horário: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
       Remetente: emailFrom(env, config)
@@ -5906,6 +5956,7 @@ async function handlePutConfig(request, env, origin) {
     smartwatchModels: body.smartwatchModels || current.smartwatchModels,
     products: body.products?.length ? body.products : current.products,
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
+    emails: { ...(current.emails || {}), ...(body.emails || {}) },
     api: { ...current.api, ...body.api }
   };
   if (merged.products?.[0]) {
