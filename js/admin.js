@@ -663,13 +663,6 @@
   let clicksSearchTimer = null;
   let clicksCache = [];
 
-  const CLICKS_EXPORT_PERIOD_LABELS = {
-    day: 'dia',
-    week: 'semana',
-    month: 'mes',
-    year: 'ano'
-  };
-
   const CLICK_DESTINO_LABELS = {
     pageview: 'Entrada',
     entrada_home: 'Entrada — Home',
@@ -792,28 +785,21 @@
     return { rows, destinos };
   }
 
-  function csvEscapeCell(value) {
-    const s = String(value ?? '');
-    if (/[;"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  }
-
-  function buildClicksExportCsv(clicks, period) {
+  function buildClicksExportSheetRows(clicks, period) {
     const { rows, destinos } = aggregateClicksForExport(clicks, period);
     const headers = ['Período', 'Visitantes únicos', 'Total de eventos'];
     destinos.forEach((d) => headers.push(clickDestinoLabel(d)));
 
-    const lines = [headers.map(csvEscapeCell).join(';')];
+    const sheetRows = [headers];
     const totals = { visitors: new Set(), total: 0, byDestino: {} };
 
     rows.forEach((row) => {
-      const line = [
+      sheetRows.push([
         row.label,
         row.visitors.size,
         row.total,
         ...destinos.map((d) => row.byDestino[d] || 0)
-      ];
-      lines.push(line.map(csvEscapeCell).join(';'));
+      ]);
       row.visitors.forEach((v) => totals.visitors.add(v));
       totals.total += row.total;
       destinos.forEach((d) => {
@@ -822,16 +808,55 @@
     });
 
     if (rows.length > 1) {
-      const totalLine = [
+      sheetRows.push([
         'TOTAL GERAL',
         totals.visitors.size,
         totals.total,
         ...destinos.map((d) => totals.byDestino[d] || 0)
-      ];
-      lines.push(totalLine.map(csvEscapeCell).join(';'));
+      ]);
     }
 
-    return '\ufeff' + lines.join('\r\n');
+    return sheetRows;
+  }
+
+  function xmlEscape(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function buildClicksExportWorkbook(clicks) {
+    const periods = [
+      { key: 'day', name: 'Por dia' },
+      { key: 'week', name: 'Por semana' },
+      { key: 'month', name: 'Por mês' },
+      { key: 'year', name: 'Por ano' }
+    ];
+    const sheets = periods.map(({ key, name }) => ({
+      name,
+      rows: buildClicksExportSheetRows(clicks, key)
+    }));
+    const worksheets = sheets.map(({ name, rows }) => {
+      const rowsXml = rows.map((row) => {
+        const cells = row.map((cell) => {
+          const type = typeof cell === 'number' && Number.isFinite(cell) ? 'Number' : 'String';
+          const value = type === 'Number' ? cell : xmlEscape(cell);
+          return `<Cell><Data ss:Type="${type}">${value}</Data></Cell>`;
+        }).join('');
+        return `<Row>${cells}</Row>`;
+      }).join('');
+      return `<Worksheet ss:Name="${xmlEscape(name.slice(0, 31))}"><Table>${rowsXml}</Table></Worksheet>`;
+    }).join('');
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+${worksheets}
+</Workbook>`;
   }
 
   function downloadTextFile(content, filename, mime) {
@@ -857,7 +882,6 @@
   }
 
   async function exportClicksExcel() {
-    const period = document.getElementById('clicks-export-period')?.value || 'day';
     const btn = document.getElementById('btn-clicks-export');
     if (btn) btn.disabled = true;
     showStatus('Preparando exportação…', '', 'cliques');
@@ -867,11 +891,10 @@
         showStatus('Nenhum evento no log para exportar.', 'error', 'cliques');
         return;
       }
-      const csv = buildClicksExportCsv(clicks, period);
+      const workbook = buildClicksExportWorkbook(clicks);
       const stamp = new Date().toISOString().slice(0, 10);
-      const suffix = CLICKS_EXPORT_PERIOD_LABELS[period] || period;
-      downloadTextFile(csv, `cliques-por-${suffix}-${stamp}.csv`, 'text/csv;charset=utf-8');
-      showStatus(`Exportado: ${clicks.length} eventos agrupados por ${suffix}. Abra no Excel.`, 'success', 'cliques');
+      downloadTextFile(workbook, `cliques-${stamp}.xls`, 'application/vnd.ms-excel;charset=utf-8');
+      showStatus(`Exportado: ${clicks.length} eventos em 4 abas (dia, semana, mês, ano). Abra no Excel.`, 'success', 'cliques');
     } catch (err) {
       showStatus(err.message || 'Erro ao exportar.', 'error', 'cliques');
     } finally {

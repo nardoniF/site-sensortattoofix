@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.40">
+    <link rel="stylesheet" href="style.css?v=2.41">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -532,10 +532,10 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Histórico: ano → mês → dia → visitante → caminho na visita. Clique nas setas para expandir.</p>
-                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Exporte Excel por dia, semana, mês ou ano.</p>
+                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). <strong>Exportar Excel</strong> gera um arquivo com abas por dia, semana, mês e ano.</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
-                        <div class="admin-clicks-toolbar">
+                        <div class="admin-clicks-filters">
                             <label class="admin-clicks-search">
                                 <input type="search" id="clicks-search" placeholder="Buscar: Mercado Livre, TikTok, visitante…" autocomplete="off" aria-label="Buscar no log">
                             </label>
@@ -555,12 +555,8 @@
                                 <option value="faq">FAQ</option>
                                 <option value="menu_comprar">Menu — Onde comprar</option>
                             </select>
-                            <select id="clicks-export-period" aria-label="Agrupar exportação por">
-                                <option value="day">Por dia</option>
-                                <option value="week">Por semana</option>
-                                <option value="month">Por mês</option>
-                                <option value="year">Por ano</option>
-                            </select>
+                        </div>
+                        <div class="admin-clicks-toolbar">
                             <button type="button" id="btn-clicks-test" class="btn-secondary" title="Grava um clique de teste e recarrega o log"><i class="fas fa-vial"></i> Testar log</button>
                             <button type="button" id="btn-clicks-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
                             <button type="button" id="btn-clicks-clear-tests" class="btn-danger-outline" title="Remove eventos de teste (diagnóstico, curl, etc.)"><i class="fas fa-broom"></i> Limpar testes</button>
@@ -622,6 +618,6 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=7"></script>
     <script src="js/pedidos.js?v=16"></script>
-    <script src="js/admin.js?v=74"></script>
+    <script src="js/admin.js?v=75"></script>
 </body>
 </html>

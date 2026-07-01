@@ -2490,6 +2490,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-intl-zones-wrap:first-of-type,
 .admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-email-tests:first-of-type,
 .admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-api-status-wrap:first-of-type,
+.admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-clicks-filters:first-of-type,
 .admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-clicks-toolbar:first-of-type,
 .admin-form fieldset:has(.admin-help-panel--fieldset) > .clicks-tree-root:first-of-type,
 .admin-form fieldset:has(.admin-help-panel--fieldset) > .admin-table-wrap:first-of-type {
@@ -2730,6 +2731,31 @@ body.admin-page.pedidos-login-only #pedidos-login {
     .admin-pix-active-hint {
         width: auto;
         margin-left: auto;
+    }
+}
+.admin-clicks-filters {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 10px;
+}
+.admin-clicks-filters .admin-clicks-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+.admin-clicks-filters #clicks-filter-destino {
+    flex: 0 0 200px;
+    min-width: 160px;
+}
+@media (max-width: 640px) {
+    .admin-clicks-filters {
+        flex-wrap: wrap;
+    }
+    .admin-clicks-filters #clicks-filter-destino {
+        flex: 1 1 100%;
     }
 }
 .admin-clicks-toolbar {
