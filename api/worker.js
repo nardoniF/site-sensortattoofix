@@ -2673,15 +2673,15 @@ async function probeCorreiosCartaoServico(token, env, serviceCode) {
     try {
       const data = bodyText ? JSON.parse(bodyText) : null;
       const desc = data?.descricao || data?.descricaoServico || 'no cartão';
-      return { ok: true, detail: `OK — serviço ${serviceCode} (${desc})` };
+      return { ok: true, detail: `OK — Correios serviço ${serviceCode} (${desc})` };
     } catch {
-      return { ok: true, detail: `OK — serviço ${serviceCode} no cartão ${cartao}` };
+      return { ok: true, detail: `OK — Correios serviço ${serviceCode} no cartão ${cartao}` };
     }
   }
   if (res.status === 404 || bodyText.includes('CON-011')) {
     return {
       ok: false,
-      detail: `CON-011 — serviço ${serviceCode} ausente no cartão ${cartao} (solicite ao gestor Correios)`
+      detail: `CON-011 — Correios serviço ${serviceCode} ausente no cartão ${cartao} (solicite ao gestor Correios)`
     };
   }
   return { ok: false, detail: extractCorreiosApiError(res, bodyText) || `HTTP ${res.status}` };
@@ -3726,14 +3726,14 @@ function buildIntegrationRows(env, config, checks) {
     });
     rows.push({
       id: 'correios-servico-04227',
-      label: 'Serviço 04227',
+      label: 'Correios Serviço 04227',
       description: 'Mini Envios no cartão de postagem',
       status: 'off',
       detail: 'Aguardando credenciais'
     });
     rows.push({
       id: 'correios-servico-86720',
-      label: 'Serviço 86720',
+      label: 'Correios Serviço 86720',
       description: 'API Pré-Postagem no cartão',
       status: 'off',
       detail: 'Aguardando credenciais'
@@ -3769,14 +3769,14 @@ function buildIntegrationRows(env, config, checks) {
     });
     rows.push({
       id: 'correios-servico-04227',
-      label: 'Serviço 04227',
+      label: 'Correios Serviço 04227',
       description: 'Mini Envios no cartão de postagem',
       status: 'error',
       detail: 'Sem token — teste não executado'
     });
     rows.push({
       id: 'correios-servico-86720',
-      label: 'Serviço 86720',
+      label: 'Correios Serviço 86720',
       description: 'API Pré-Postagem no cartão',
       status: 'error',
       detail: 'Sem token — teste não executado'
@@ -3812,17 +3812,17 @@ function buildIntegrationRows(env, config, checks) {
     });
     rows.push({
       id: 'correios-servico-04227',
-      label: 'Serviço 04227',
+      label: 'Correios Serviço 04227',
       description: 'Mini Envios no cartão de postagem',
       status: correiosApiRowStatus(correiosServico04227),
-      detail: correiosServico04227?.detail || 'Serviço 04227 não verificado'
+      detail: correiosServico04227?.detail || 'Correios Serviço 04227 não verificado'
     });
     rows.push({
       id: 'correios-servico-86720',
-      label: 'Serviço 86720',
+      label: 'Correios Serviço 86720',
       description: 'API Pré-Postagem no cartão',
       status: correiosApiRowStatus(correiosServico86720),
-      detail: correiosServico86720?.detail || 'Serviço 86720 não verificado'
+      detail: correiosServico86720?.detail || 'Correios Serviço 86720 não verificado'
     });
   }
 

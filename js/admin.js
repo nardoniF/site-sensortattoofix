@@ -1554,34 +1554,34 @@
           : '<span class="admin-status-warn">⚠ Credenciais configuradas, mas token não obtido</span>');
 
       const api34Line = br.precoApiOk
-        ? '<span class="admin-status-ok">✓ API 34 (Preço) OK</span> — ' + escAttr(br.precoApiDetail || '')
+        ? '<span class="admin-status-ok">✓ Correios API 34 (Preço) OK</span> — ' + escAttr(br.precoApiDetail || '')
         : (br.precoApiDetail
-          ? '<span class="admin-status-warn">⚠ API 34 (Preço): ' + escAttr(br.precoApiDetail) + '</span>'
-          : '<span class="admin-status-bad">✗ API 34 (Preço) não testada</span>');
+          ? '<span class="admin-status-warn">⚠ Correios API 34 (Preço): ' + escAttr(br.precoApiDetail) + '</span>'
+          : '<span class="admin-status-bad">✗ Correios API 34 (Preço) não testada</span>');
 
       const api35Line = br.prazoApiOk
-        ? '<span class="admin-status-ok">✓ API 35 (Prazo) OK</span> — ' + escAttr(br.prazoApiDetail || '')
+        ? '<span class="admin-status-ok">✓ Correios API 35 (Prazo) OK</span> — ' + escAttr(br.prazoApiDetail || '')
         : (br.prazoApiDetail
-          ? '<span class="admin-status-warn">⚠ API 35 (Prazo): ' + escAttr(br.prazoApiDetail) + '</span>'
-          : '<span class="admin-status-bad">✗ API 35 (Prazo) não testada</span>');
+          ? '<span class="admin-status-warn">⚠ Correios API 35 (Prazo): ' + escAttr(br.prazoApiDetail) + '</span>'
+          : '<span class="admin-status-bad">✗ Correios API 35 (Prazo) não testada</span>');
 
       const api36Line = br.prePostagemApiOk
-        ? '<span class="admin-status-ok">✓ API 36 (Pré-Postagem) OK</span> — ' + escAttr(br.prePostagemApiDetail || '')
+        ? '<span class="admin-status-ok">✓ Correios API 36 (Pré-Postagem) OK</span> — ' + escAttr(br.prePostagemApiDetail || '')
         : (br.prePostagemApiDetail
-          ? '<span class="admin-status-warn">⚠ API 36 (Pré-Postagem): ' + escAttr(br.prePostagemApiDetail) + '</span>'
-          : '<span class="admin-status-bad">✗ API 36 (Pré-Postagem) não testada</span>');
+          ? '<span class="admin-status-warn">⚠ Correios API 36 (Pré-Postagem): ' + escAttr(br.prePostagemApiDetail) + '</span>'
+          : '<span class="admin-status-bad">✗ Correios API 36 (Pré-Postagem) não testada</span>');
 
       const svc04227Line = br.servico04227OnCard
-        ? '<span class="admin-status-ok">✓ Serviço 04227 (Mini Envios) no cartão</span> — ' + escAttr(br.servico04227Detail || '')
+        ? '<span class="admin-status-ok">✓ Correios Serviço 04227 (Mini Envios) no cartão</span> — ' + escAttr(br.servico04227Detail || '')
         : (br.servico04227Detail
-          ? '<span class="admin-status-warn">⚠ Serviço 04227: ' + escAttr(br.servico04227Detail) + '</span>'
-          : '<span class="admin-status-bad">✗ Serviço 04227 não verificado</span>');
+          ? '<span class="admin-status-warn">⚠ Correios Serviço 04227: ' + escAttr(br.servico04227Detail) + '</span>'
+          : '<span class="admin-status-bad">✗ Correios Serviço 04227 não verificado</span>');
 
       const svc86720Line = br.servico86720OnCard
-        ? '<span class="admin-status-ok">✓ Serviço 86720 (API Pré-Postagem) no cartão</span> — ' + escAttr(br.servico86720Detail || '')
+        ? '<span class="admin-status-ok">✓ Correios Serviço 86720 (Pré-Postagem) no cartão</span> — ' + escAttr(br.servico86720Detail || '')
         : (br.servico86720Detail
-          ? '<span class="admin-status-warn">⚠ Serviço 86720: ' + escAttr(br.servico86720Detail) + '</span>'
-          : '<span class="admin-status-bad">✗ Serviço 86720 não verificado</span>');
+          ? '<span class="admin-status-warn">⚠ Correios Serviço 86720: ' + escAttr(br.servico86720Detail) + '</span>'
+          : '<span class="admin-status-bad">✗ Correios Serviço 86720 não verificado</span>');
 
       const brLine = brTokenLine
         + ' · contrato ' + escAttr(br.commercialContract || '9912752041')
