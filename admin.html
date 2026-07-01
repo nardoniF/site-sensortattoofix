@@ -333,9 +333,8 @@
                             <p>Processador de <strong>PIX</strong> independente do cartão. Secrets no Worker: <code>MP_ACCESS_TOKEN</code> e/ou <code>ASAAS_API_KEY</code>.</p>
                             <p>Se o processador principal falhar e o fallback estiver ativo, tenta o outro (Asaas ↔ Mercado Pago).</p>
                             <p>Se ambos falharem, o checkout usa o <strong>PIX reserva</strong> abaixo (QR estático + botão copiar).</p>
-                            <p>Status completo das integrações: aba <strong>API</strong>.</p>
+                            <p>Conexão real com Mercado Pago/Asaas: aba <strong>API → Status das integrações</strong>.</p>
                         </div>
-                        <p id="pix-active-provider" class="admin-pix-active" hidden></p>
                         <div class="form-grid">
                             <label>Processador PIX
                                 <select name="pixBrProvider">
@@ -640,6 +639,6 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=7"></script>
     <script src="js/pedidos.js?v=16"></script>
-    <script src="js/admin.js?v=77"></script>
+    <script src="js/admin.js?v=78"></script>
 </body>
 </html>

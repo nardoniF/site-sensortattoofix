@@ -2684,55 +2684,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
     margin: 0;
     color: #777;
 }
-.admin-pix-active {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 12px;
-    margin: 0;
-    padding: 12px 14px;
-    border-radius: 10px;
-    font-size: 0.92rem;
-    border: 1px solid #2a2a2a;
-    background: #0d0d0d;
-    line-height: 1.4;
-}
-.admin-pix-active--ok {
-    border-color: rgba(37, 211, 102, 0.35);
-    background: rgba(37, 211, 102, 0.06);
-}
-.admin-pix-active--warn {
-    border-color: rgba(255, 193, 7, 0.35);
-    background: rgba(255, 193, 7, 0.06);
-}
-.admin-pix-active--error,
-.admin-pix-active--off {
-    border-color: rgba(255, 107, 107, 0.25);
-    background: rgba(255, 107, 107, 0.05);
-}
-.admin-pix-active-label {
-    color: #888;
-    font-weight: 700;
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-.admin-pix-active strong {
-    color: #25d366;
-    font-size: 1rem;
-}
-.admin-pix-active--warn strong { color: var(--primary); }
-.admin-pix-active-hint {
-    color: #999;
-    font-size: 0.82rem;
-    width: 100%;
-}
-@media (min-width: 640px) {
-    .admin-pix-active-hint {
-        width: auto;
-        margin-left: auto;
-    }
-}
 .admin-clicks-filters {
     display: flex;
     flex-wrap: nowrap;
