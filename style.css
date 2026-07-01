@@ -3124,6 +3124,14 @@ body.admin-page.pedidos-login-only #pedidos-login {
     margin-bottom: 24px;
     flex-wrap: wrap;
 }
+.admin-panel-subtitle {
+    margin: 4px 0 0;
+    color: #888;
+    font-size: 0.9rem;
+}
+.admin-doc-manuals {
+    margin-bottom: 12px;
+}
 .admin-panel-actions { display: flex; align-items: center; gap: 12px; }
 .admin-mode-badge {
     font-size: 0.75rem;

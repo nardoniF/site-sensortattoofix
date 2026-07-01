@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.39">
+    <link rel="stylesheet" href="style.css?v=2.40">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -33,9 +33,9 @@
                         <i class="fas fa-circle-question" aria-hidden="true"></i>
                     </button>
                 </div>
-                <p class="admin-intro admin-intro-compact">Pedidos, cliques, clientes, produtos, contato, frete, PIX, cupons, API e documentação.</p>
+                <p class="admin-intro admin-intro-compact">Cockpit da loja: pedidos, cliques, clientes, produtos, contato, frete, PIX, cupons, API e documentação.</p>
                 <div id="admin-login-help" class="admin-help-panel" hidden>
-                    <p class="admin-help-lead">Central de configuração da loja Sensor Tattoo Fix — por prioridade:</p>
+                    <p class="admin-help-lead">Cockpit de gestão da loja Sensor Tattoo Fix — por prioridade:</p>
                     <ul class="admin-help-list">
                         <li><strong>Pedidos</strong> — exportar JSON/CSV; lista completa em <strong>/pedidos.html</strong>.</li>
                         <li><strong>Cliques</strong> — log de visitas e links (ML, TikTok, loja…).</li>
@@ -65,7 +65,8 @@
             <section id="admin-panel" class="admin-card" hidden>
                 <div class="admin-panel-header">
                     <div>
-                        <h1>Configurações da Loja</h1>
+                        <h1>Painel de gestão</h1>
+                        <p class="admin-meta admin-panel-subtitle">Sensor Tattoo Fix · 3N20</p>
                         <p id="config-updated-at" class="admin-meta"></p>
                     </div>
                     <div class="admin-panel-actions">
@@ -472,7 +473,12 @@
                         </div>
                         <div id="help-documentacao" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Guia técnico: URLs, secrets, webhooks, frete, Correios e integrações.</p>
+                            <p>Manuais de instalação para imprimir e incluir nos envios.</p>
                             <p>Também em <a href="documentacao.html" target="_blank" rel="noopener">documentacao.html</a> (nova aba).</p>
+                        </div>
+                        <div class="admin-form-actions admin-doc-manuals">
+                            <a href="docs/manual-instalacao-sensor-tattoo-fix-lote.html" target="_blank" rel="noopener" class="btn-secondary"><i class="fas fa-print"></i> Manual envio</a>
+                            <a href="docs/manual-instalacao-sensor-tattoo-fix.html" target="_blank" rel="noopener" class="btn-secondary"><i class="fas fa-book-open"></i> Manual cliente</a>
                         </div>
                         <iframe id="admin-doc-frame" title="Documentação Sensor Tattoo Fix"></iframe>
                     </div>
