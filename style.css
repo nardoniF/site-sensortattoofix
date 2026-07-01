@@ -557,8 +557,8 @@ html[lang="it"] .nav-actions { gap: 6px; }
 }
 .kit-box-media img {
     width: auto;
-    max-width: 240px;
-    max-height: 220px;
+    max-width: 320px;
+    max-height: 280px;
     height: auto;
     border-radius: 12px;
     border: 1px solid #333;
@@ -573,7 +573,7 @@ html[lang="it"] .nav-actions { gap: 6px; }
 @media (max-width: 768px) {
     .kit-box-layout { grid-template-columns: 1fr; gap: 20px; }
     .kit-box-media { text-align: center; }
-    .kit-box-media img { max-width: 260px; max-height: 240px; margin: 0 auto; }
+    .kit-box-media img { max-width: 300px; max-height: 260px; margin: 0 auto; }
 }
 
 /* CONTATO */
