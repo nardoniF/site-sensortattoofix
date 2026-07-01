@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.42">
+    <link rel="stylesheet" href="style.css?v=2.43">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -32,7 +32,7 @@
                         <i class="fas fa-circle-question" aria-hidden="true"></i>
                     </button>
                 </div>
-                <p class="admin-intro admin-intro-compact">Cockpit da loja: pedidos, cliques, clientes, produtos, contato, frete, PIX, cupons, API e documentação.</p>
+                <p class="admin-intro admin-intro-compact">Cockpit da loja: pedidos, cliques, clientes, produtos, contato, frete, pagamento, cupons, API e documentação.</p>
                 <div id="admin-login-help" class="admin-help-panel" hidden>
                     <p class="admin-help-lead">Cockpit de gestão da loja Sensor Tattoo Fix — por prioridade:</p>
                     <ul class="admin-help-list">
@@ -42,9 +42,9 @@
                         <li><strong>Produtos</strong> — lentes na vitrine e agregados no checkout (preço, peso, imagem).</li>
                         <li><strong>Contato</strong> — WhatsApp e e-mail de aviso de pedidos.</li>
                         <li><strong>Frete</strong> — remetente, modalidades, motoboy, Correios BR e internacional.</li>
-                        <li><strong>PIX</strong> — Mercado Pago no checkout e chave PIX reserva (fallback).</li>
+                        <li><strong>Pagamento</strong> — cartão, PIX e PayPal internacional (processadores e chave PIX reserva).</li>
                         <li><strong>Cupons</strong> — desconto ao cliente e comissão ao comissionado.</li>
-                        <li><strong>API</strong> — status das integrações (MP, Asaas, PayPal, Correios, Uber, e-mail…), cartão e PayPal internacional.</li>
+                        <li><strong>API</strong> — URL do Worker e status das integrações (MP, Asaas, PayPal, Correios…).</li>
                         <li><strong>Documentação</strong> — guia técnico (secrets, webhooks, deploy).</li>
                     </ul>
                     <p class="admin-help-foot"><strong>Login:</strong> usuário <code>admin</code> + senha do secret <code>ADMIN_PASSWORD</code> no Cloudflare. Após 5 erros, bloqueio ~30 min.</p>
@@ -82,7 +82,7 @@
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="produtos" aria-selected="false" aria-controls="admin-tab-produtos"><i class="fas fa-box"></i> Produtos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="contato" aria-selected="false" aria-controls="admin-tab-contato"><i class="fas fa-headset"></i> Contato</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="frete" aria-selected="false" aria-controls="admin-tab-frete"><i class="fas fa-truck"></i> Frete</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="pix" aria-selected="false" aria-controls="admin-tab-pix"><i class="fas fa-qrcode"></i> PIX</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="pagamento" aria-selected="false" aria-controls="admin-tab-pagamento"><i class="fas fa-credit-card"></i> Pagamento</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="cupons" aria-selected="false" aria-controls="admin-tab-cupons"><i class="fas fa-ticket-alt"></i> Cupons</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="documentacao" aria-selected="false" aria-controls="admin-tab-documentacao"><i class="fas fa-book"></i> Documentação</button>
@@ -305,13 +305,35 @@
                     </div>
                     </div>
 
-                    <div id="admin-tab-pix" class="admin-tab-panel" role="tabpanel" hidden>
+                    <div id="admin-tab-pagamento" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-credit-card"></i> Cartão de crédito (Brasil)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-card-br" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-card-br" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Define qual gateway processa cartão de crédito no checkout nacional (Asaas ou Mercado Pago Checkout Pro).</p>
+                            <p><strong>Secrets no Worker:</strong> <code>ASAAS_API_KEY</code> e/ou <code>MP_ACCESS_TOKEN</code>.</p>
+                            <p><strong>Webhooks:</strong> <code>/webhook/asaas</code> e <code>/webhook/mercadopago</code></p>
+                        </div>
+                        <div class="form-grid">
+                            <label>Processador de cartão
+                                <select name="cardBrProvider">
+                                    <option value="asaas">Asaas (padrão)</option>
+                                    <option value="mercadopago">Mercado Pago (Checkout Pro)</option>
+                                </select>
+                            </label>
+                            <label class="label-check admin-ship-enabled">
+                                <input type="checkbox" name="cardBrFallbackAlt" checked>
+                                <span>Se o processador de cartão falhar, tentar o outro (Asaas ↔ Mercado Pago)</span>
+                            </label>
+                        </div>
+                    </fieldset>
+
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-qrcode"></i> PIX no checkout</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-pix-checkout" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-pix-checkout" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Escolha o processador de <strong>PIX</strong> independente do cartão. Secrets no Worker: <code>MP_ACCESS_TOKEN</code> e/ou <code>ASAAS_API_KEY</code>.</p>
+                            <p>Processador de <strong>PIX</strong> independente do cartão. Secrets no Worker: <code>MP_ACCESS_TOKEN</code> e/ou <code>ASAAS_API_KEY</code>.</p>
                             <p>Se o processador principal falhar e o fallback estiver ativo, tenta o outro (Asaas ↔ Mercado Pago).</p>
-                            <p>Se ambos falharem, o checkout usa o <strong>PIX reserva</strong> abaixo (QR estático + botão copiar — como hoje).</p>
+                            <p>Se ambos falharem, o checkout usa o <strong>PIX reserva</strong> abaixo (QR estático + botão copiar).</p>
+                            <p>Status completo das integrações: aba <strong>API</strong>.</p>
                         </div>
                         <p id="pix-active-provider" class="admin-pix-active" hidden></p>
                         <div class="form-grid">
@@ -354,6 +376,25 @@
                             </label>
                             <label>Cidade no QR (máx. 15 caracteres)
                                 <input type="text" name="pixMerchantCity" maxlength="15" placeholder="SAO PAULO">
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fab fa-paypal"></i> PayPal internacional</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-paypal" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-paypal" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>PayPal aparece no checkout para clientes com <strong>envio internacional</strong> (país ≠ Brasil).</p>
+                            <p><strong>Nome da conta:</strong> rótulo só no admin para identificar qual PayPal está conectado.</p>
+                            <p><strong>Secrets no Worker:</strong> <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code></p>
+                            <p><strong>Webhook:</strong> <code>/webhook/paypal</code></p>
+                        </div>
+                        <div class="form-grid">
+                            <label class="label-check admin-ship-enabled">
+                                <input type="checkbox" name="paypalIntlEnabled" checked>
+                                <span>PayPal internacional visível no checkout</span>
+                            </label>
+                            <label>Nome da conta PayPal (só admin)
+                                <input type="text" name="paypalAppLabel" placeholder="Ex.: 3N20 — Live BR (contato@sensortattoofix.com.br)" maxlength="120">
                             </label>
                         </div>
                     </fieldset>
@@ -424,46 +465,6 @@
                     </fieldset>
 
                     <fieldset>
-                        <legend class="admin-legend-row"><span><i class="fas fa-credit-card"></i> Cartão de crédito (Brasil)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-card-br" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
-                        <div id="help-card-br" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Define qual gateway processa cartão de crédito no checkout nacional (Asaas ou Mercado Pago Checkout Pro).</p>
-                            <p><strong>Secrets no Worker:</strong> <code>ASAAS_API_KEY</code> (Asaas) e/ou <code>MP_ACCESS_TOKEN</code> (Mercado Pago).</p>
-                            <p><strong>Webhooks:</strong> <code>/webhook/asaas</code> e <code>/webhook/mercadopago</code></p>
-                        </div>
-                        <div class="form-grid">
-                            <label>Processador de cartão
-                                <select name="cardBrProvider">
-                                    <option value="asaas">Asaas (padrão)</option>
-                                    <option value="mercadopago">Mercado Pago (Checkout Pro)</option>
-                                </select>
-                            </label>
-                            <label class="label-check admin-ship-enabled">
-                                <input type="checkbox" name="cardBrFallbackAlt" checked>
-                                <span>Se o processador de cartão falhar, tentar o outro (Asaas ↔ Mercado Pago)</span>
-                            </label>
-                        </div>
-                    </fieldset>
-
-                    <fieldset>
-                        <legend class="admin-legend-row"><span><i class="fab fa-paypal"></i> PayPal internacional</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-paypal" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
-                        <div id="help-paypal" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>PayPal aparece no checkout para clientes com <strong>envio internacional</strong> (país ≠ Brasil).</p>
-                            <p><strong>Nome da conta:</strong> rótulo só no admin (aba API) para identificar qual PayPal está conectado.</p>
-                            <p><strong>Secrets no Worker:</strong> <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code></p>
-                            <p><strong>Webhook:</strong> <code>/webhook/paypal</code></p>
-                        </div>
-                        <div class="form-grid">
-                            <label class="label-check admin-ship-enabled">
-                                <input type="checkbox" name="paypalIntlEnabled" checked>
-                                <span>PayPal internacional visível no checkout</span>
-                            </label>
-                            <label>Nome da conta PayPal (só admin)
-                                <input type="text" name="paypalAppLabel" placeholder="Ex.: 3N20 — Live BR (contato@sensortattoofix.com.br)" maxlength="120">
-                            </label>
-                        </div>
-                    </fieldset>
-
-                    <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-envelope"></i> Testes de e-mail</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-email-tests" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-email-tests" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Envia e-mails de teste para o endereço configurado em <strong>Contato → E-mail dos pedidos</strong>, via Resend.</p>
@@ -502,12 +503,16 @@
                             <p>Lista em tempo real: pagos e aguardando pagamento.</p>
                             <p>Imprimir <strong>etiqueta</strong> (Correios ou fallback), <strong>confirmar PIX</strong>, excluir e exportar CSV/JSON.</p>
                         </div>
-                        <div class="admin-form-actions admin-orders-toolbar">
-                            <p id="pedidos-count" class="admin-meta admin-orders-count"></p>
-                            <button type="button" id="btn-refresh" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar</button>
-                            <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-download"></i> CSV</button>
-                            <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> JSON</button>
-                            <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
+                        <div class="admin-form-actions admin-orders-toolbar admin-toolbar-split">
+                            <div class="admin-toolbar-main">
+                                <p id="pedidos-count" class="admin-meta admin-orders-count"></p>
+                                <button type="button" id="btn-refresh" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar</button>
+                                <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-download"></i> CSV</button>
+                                <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> JSON</button>
+                            </div>
+                            <div class="admin-toolbar-risk">
+                                <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
+                            </div>
                         </div>
                         <p id="pedidos-orders-status" class="admin-status form-status" hidden></p>
                         <div class="pedidos-filters">
@@ -569,12 +574,16 @@
                                 <option value="menu_comprar">Menu — Onde comprar</option>
                             </select>
                         </div>
-                        <div class="admin-clicks-toolbar">
-                            <button type="button" id="btn-clicks-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
-                            <button type="button" id="btn-clicks-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
-                            <button type="button" id="btn-clicks-clear-tests" class="btn-danger-outline" title="Remove eventos de teste (diagnóstico, curl, etc.)"><i class="fas fa-broom"></i> Limpar testes</button>
-                            <button type="button" id="btn-clicks-clear-all" class="btn-danger-outline" title="Apaga todo o histórico de cliques"><i class="fas fa-trash-alt"></i> Limpar tudo</button>
-                            <button type="button" id="btn-clicks-test" class="btn-warning-outline" title="Grava um clique de teste e recarrega o log"><i class="fas fa-vial"></i> Testar log</button>
+                        <div class="admin-clicks-toolbar admin-toolbar-split">
+                            <div class="admin-toolbar-main">
+                                <button type="button" id="btn-clicks-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                                <button type="button" id="btn-clicks-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+                            </div>
+                            <div class="admin-toolbar-risk">
+                                <button type="button" id="btn-clicks-test" class="btn-warning-outline" title="Grava um clique de teste e recarrega o log"><i class="fas fa-vial"></i> Testar log</button>
+                                <button type="button" id="btn-clicks-clear-tests" class="btn-danger-outline" title="Remove eventos de teste (diagnóstico, curl, etc.)"><i class="fas fa-broom"></i> Limpar testes</button>
+                                <button type="button" id="btn-clicks-clear-all" class="btn-danger-outline" title="Apaga todo o histórico de cliques"><i class="fas fa-trash-alt"></i> Limpar tudo</button>
+                            </div>
                         </div>
                         <p id="admin-status-cliques" class="admin-status form-status" hidden></p>
                         <p id="clicks-checked-at" class="admin-meta" hidden></p>
@@ -631,6 +640,6 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=7"></script>
     <script src="js/pedidos.js?v=16"></script>
-    <script src="js/admin.js?v=76"></script>
+    <script src="js/admin.js?v=77"></script>
 </body>
 </html>

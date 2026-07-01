@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Pedidos | Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.30">
+    <link rel="stylesheet" href="style.css?v=2.43">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page pedidos-page">
@@ -59,12 +59,16 @@
                         <h1>Pedidos</h1>
                         <p id="pedidos-count" class="admin-meta"></p>
                     </div>
-                    <div class="admin-panel-actions">
-                        <button type="button" id="btn-refresh" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar</button>
-                        <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-download"></i> CSV</button>
-                        <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> JSON</button>
-                        <button type="button" id="btn-logout-pedidos" class="btn-secondary">Sair</button>
-                        <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
+                    <div class="admin-panel-actions admin-toolbar-split">
+                        <div class="admin-toolbar-main">
+                            <button type="button" id="btn-refresh" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar</button>
+                            <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-download"></i> CSV</button>
+                            <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> JSON</button>
+                            <button type="button" id="btn-logout-pedidos" class="btn-secondary">Sair</button>
+                        </div>
+                        <div class="admin-toolbar-risk">
+                            <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
+                        </div>
                     </div>
                 </div>
 

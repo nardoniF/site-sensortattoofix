@@ -2054,7 +2054,7 @@ ${worksheets}
     };
   }
 
-  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pix', 'contato', 'cupons', 'api']);
+  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api']);
 
   function loadDocFrame(forceReload) {
     const frame = document.getElementById('admin-doc-frame');
@@ -2091,7 +2091,7 @@ ${worksheets}
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
-      if (id === 'pix') loadPixProviderStatus();
+      if (id === 'pagamento') loadPixProviderStatus();
       if (id === 'clientes') loadCustomers();
       if (id === 'cliques') loadClicks();
       if (id === 'pedidos') {
@@ -2114,6 +2114,7 @@ ${worksheets}
 
     let saved = 'pedidos';
     try { saved = localStorage.getItem('stf_admin_tab') || 'pedidos'; } catch (e) { /* ignore */ }
+    if (saved === 'pix') saved = 'pagamento';
     if (!panels.some((p) => p.id === 'admin-tab-' + saved)) saved = 'pedidos';
     showTab(saved);
   }
