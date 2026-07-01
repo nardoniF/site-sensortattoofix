@@ -17,7 +17,6 @@
                 <div class="logo-text">ADMIN<span>PANEL</span></div>
             </div>
             <ul class="nav-links checkout-nav admin-toolbar">
-                <li><a href="pedidos.html"><i class="fas fa-list"></i> Pedidos</a></li>
                 <li><a href="comprar.html"><i class="fas fa-store"></i> Loja</a></li>
             </ul>
         </nav>
@@ -37,7 +36,7 @@
                 <div id="admin-login-help" class="admin-help-panel" hidden>
                     <p class="admin-help-lead">Cockpit de gestão da loja Sensor Tattoo Fix — por prioridade:</p>
                     <ul class="admin-help-list">
-                        <li><strong>Pedidos</strong> — exportar JSON/CSV; lista completa em <strong>/pedidos.html</strong>.</li>
+                        <li><strong>Pedidos</strong> — lista, etiquetas, PIX e exportação na aba <strong>Pedidos</strong>.</li>
                         <li><strong>Cliques</strong> — log de visitas e links (ML, TikTok, loja…).</li>
                         <li><strong>Clientes</strong> — contas criadas em Minha Conta.</li>
                         <li><strong>Produtos</strong> — lentes na vitrine e agregados no checkout (preço, peso, imagem).</li>
@@ -485,16 +484,46 @@
 
                     <div id="admin-tab-pedidos" class="admin-tab-panel active" role="tabpanel">
                     <fieldset class="admin-orders-section">
-                        <legend class="admin-legend-row"><span><i class="fas fa-list"></i> Pedidos salvos</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-pedidos" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <legend class="admin-legend-row"><span><i class="fas fa-list"></i> Pedidos da loja</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-pedidos" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-pedidos" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Lista interativa em <strong>/pedidos.html</strong> — etiquetas, confirmação de PIX, CSV. Mesmo login deste painel.</p>
+                            <p>Lista em tempo real: pagos e aguardando pagamento.</p>
+                            <p>Imprimir <strong>etiqueta</strong> (Correios ou fallback), <strong>confirmar PIX</strong>, excluir e exportar CSV/JSON.</p>
                         </div>
-                        <div class="admin-form-actions">
-                            <a href="pedidos.html" class="btn-primary"><i class="fas fa-list"></i> Abrir pedidos</a>
-                            <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> Exportar JSON</button>
-                            <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+                        <div class="admin-form-actions admin-orders-toolbar">
+                            <p id="pedidos-count" class="admin-meta admin-orders-count"></p>
+                            <button type="button" id="btn-refresh" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar</button>
+                            <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
+                            <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-download"></i> CSV</button>
+                            <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> JSON</button>
                         </div>
-                        <p id="admin-status-pedidos" class="admin-status form-status" hidden></p>
+                        <p id="pedidos-orders-status" class="admin-status form-status" hidden></p>
+                        <div class="pedidos-filters">
+                            <input type="search" id="filter-search" placeholder="Buscar nome, pedido, smartwatch…">
+                            <select id="filter-status">
+                                <option value="">Todos os status</option>
+                                <option value="pending_payment">Aguardando pagamento</option>
+                                <option value="paid">Pago</option>
+                            </select>
+                        </div>
+                        <div class="pedidos-table-wrap">
+                            <table class="pedidos-table" id="pedidos-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pedido</th>
+                                        <th>Data</th>
+                                        <th>Cliente</th>
+                                        <th>Smartwatch</th>
+                                        <th>País</th>
+                                        <th>Pagamento</th>
+                                        <th>Comissionado</th>
+                                        <th>Total</th>
+                                        <th>Status / Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pedidos-tbody"></tbody>
+                            </table>
+                        </div>
+                        <p id="pedidos-empty" class="admin-meta" hidden>Nenhum pedido encontrado.</p>
                     </fieldset>
                     </div>
 
@@ -590,6 +619,9 @@
     <script src="js/config-bootstrap.js?v=2"></script>
     <script src="js/store-products-merge.js?v=17"></script>
     <script src="js/admin-help.js?v=2"></script>
-    <script src="js/admin.js?v=71"></script>
+    <script src="js/order-watch.js"></script>
+    <script src="js/order-label.js?v=7"></script>
+    <script src="js/pedidos.js?v=16"></script>
+    <script src="js/admin.js?v=73"></script>
 </body>
 </html>

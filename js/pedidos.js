@@ -1,33 +1,43 @@
 (function () {
   const SESSION_KEY = 'stf_admin_token';
   const bootstrap = window.CONFIG_BOOTSTRAP || {};
+  const embedded = !!document.getElementById('admin-tab-pedidos');
   let allOrders = [];
+  let wired = false;
+
+  function $(id) {
+    return document.getElementById(id);
+  }
 
   const els = {
-    login: document.getElementById('pedidos-login'),
-    panel: document.getElementById('pedidos-panel'),
-    loginForm: document.getElementById('pedidos-login-form'),
-    status: document.getElementById('pedidos-status'),
-    tbody: document.getElementById('pedidos-tbody'),
-    count: document.getElementById('pedidos-count'),
-    empty: document.getElementById('pedidos-empty'),
-    filterSearch: document.getElementById('filter-search'),
-    filterStatus: document.getElementById('filter-status')
+    login: $('pedidos-login'),
+    panel: embedded ? $('admin-tab-pedidos') : $('pedidos-panel'),
+    loginForm: $('pedidos-login-form'),
+    status: $('pedidos-orders-status') || $('pedidos-status'),
+    tbody: $('pedidos-tbody'),
+    count: $('pedidos-count'),
+    empty: $('pedidos-empty'),
+    filterSearch: $('filter-search'),
+    filterStatus: $('filter-status')
   };
 
   function apiBase() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const fromForm = document.querySelector('#admin-config-form [name="apiBaseUrl"]')?.value?.trim();
+    if (token && fromForm) return fromForm.replace(/\/$/, '');
     return (bootstrap.configApiUrl || '').replace(/\/$/, '');
   }
 
   function showLoginView() {
-    els.login.hidden = false;
-    els.panel.hidden = true;
+    if (embedded) return;
+    if (els.login) els.login.hidden = false;
+    if (els.panel) els.panel.hidden = true;
     document.body.classList.add('pedidos-login-only');
   }
 
   function showPanelView() {
-    els.login.hidden = true;
-    els.panel.hidden = false;
+    if (els.login) els.login.hidden = true;
+    if (els.panel) els.panel.hidden = false;
     document.body.classList.remove('pedidos-login-only');
   }
 
@@ -62,8 +72,9 @@
   }
 
   function showStatus(msg, type) {
+    if (!els.status) return;
     els.status.textContent = msg;
-    els.status.className = 'admin-status ' + (type || '');
+    els.status.className = 'admin-status form-status ' + (type || '');
     els.status.hidden = !msg;
   }
 
@@ -168,12 +179,13 @@
   }
 
   function renderTable(orders) {
+    if (!els.tbody) return;
     els.tbody.innerHTML = '';
     if (!orders.length) {
-      els.empty.hidden = false;
+      if (els.empty) els.empty.hidden = false;
       return;
     }
-    els.empty.hidden = true;
+    if (els.empty) els.empty.hidden = true;
 
     orders.forEach((o) => {
       const tr = document.createElement('tr');
@@ -242,7 +254,7 @@
       const matchS = !st || o.status === st;
       return matchQ && matchS;
     });
-    els.count.textContent = `${filtered.length} pedido(s)`;
+    if (els.count) els.count.textContent = `${filtered.length} pedido(s)`;
     renderTable(filtered);
   }
 
@@ -285,7 +297,7 @@
   async function loadOrders() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
-    if (!token || !base) throw new Error('Faça login primeiro.');
+    if (!token || !base) throw new Error('Faça login na API primeiro.');
 
     await loadStoreConfig();
 
@@ -302,63 +314,82 @@
     applyFilters();
   }
 
-  els.loginForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    showStatus('Entrando...', '');
-    const base = apiBase();
-    if (!base) { showStatus('API não configurada. Verifique js/config-bootstrap.js.', 'error'); return; }
+  function wireControls() {
+    if (wired) return;
+    wired = true;
 
-    try {
-      const fd = new FormData(els.loginForm);
-      const res = await fetch(base + '/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') })
-      });
-      if (!res.ok) throw new Error('Login inválido.');
-      const data = await res.json();
-      sessionStorage.setItem(SESSION_KEY, data.token);
-      showPanelView();
-      await loadOrders();
-      showStatus('', '');
-    } catch (err) {
-      showStatus(err.message, 'error');
-    }
-  });
+    els.loginForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showStatus('Entrando...', '');
+      const base = apiBase();
+      if (!base) { showStatus('API não configurada. Verifique js/config-bootstrap.js.', 'error'); return; }
 
-  document.getElementById('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
-  document.getElementById('btn-cleanup-pending')?.addEventListener('click', async () => {
-    const pending = allOrders.filter((o) => o.status !== 'paid').length;
-    if (!pending) {
-      showStatus('Nenhum pedido pendente para excluir.', '');
-      return;
-    }
-    if (!confirm(`Excluir ${pending} pedido(s) aguardando pagamento?\n\nSó remove da base do site. Pedidos pagos não são afetados.`)) return;
-    try {
-      const data = await apiDelete('/orders/pending');
-      showStatus(`${data.deleted || 0} pedido(s) pendente(s) excluído(s).`, 'success');
-      await loadOrders();
-    } catch (err) {
-      showStatus(err.message, 'error');
-    }
-  });
-  document.getElementById('btn-export-csv')?.addEventListener('click', async () => {
-    const token = sessionStorage.getItem(SESSION_KEY);
-    const res = await fetch(apiBase() + '/orders?format=csv', { headers: { Authorization: 'Bearer ' + token } });
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'pedidos-sensortattoofix.csv';
-    a.click();
-  });
-  document.getElementById('btn-logout-pedidos')?.addEventListener('click', () => {
-    sessionStorage.removeItem(SESSION_KEY);
-    showLoginView();
-  });
-  els.filterSearch?.addEventListener('input', applyFilters);
-  els.filterStatus?.addEventListener('change', applyFilters);
+      try {
+        const fd = new FormData(els.loginForm);
+        const res = await fetch(base + '/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') })
+        });
+        if (!res.ok) throw new Error('Login inválido.');
+        const data = await res.json();
+        sessionStorage.setItem(SESSION_KEY, data.token);
+        showPanelView();
+        await loadOrders();
+        showStatus('', '');
+      } catch (err) {
+        showStatus(err.message, 'error');
+      }
+    });
 
-  document.addEventListener('DOMContentLoaded', () => {
+    $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
+    $('btn-cleanup-pending')?.addEventListener('click', async () => {
+      const pending = allOrders.filter((o) => o.status !== 'paid').length;
+      if (!pending) {
+        showStatus('Nenhum pedido pendente para excluir.', '');
+        return;
+      }
+      if (!confirm(`Excluir ${pending} pedido(s) aguardando pagamento?\n\nSó remove da base do site. Pedidos pagos não são afetados.`)) return;
+      try {
+        const data = await apiDelete('/orders/pending');
+        showStatus(`${data.deleted || 0} pedido(s) pendente(s) excluído(s).`, 'success');
+        await loadOrders();
+      } catch (err) {
+        showStatus(err.message, 'error');
+      }
+    });
+    $('btn-export-csv')?.addEventListener('click', async () => {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const res = await fetch(apiBase() + '/orders?format=csv', { headers: { Authorization: 'Bearer ' + token } });
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'pedidos-sensortattoofix.csv';
+      a.click();
+    });
+    $('btn-export-json')?.addEventListener('click', async () => {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const res = await fetch(apiBase() + '/orders?format=json', { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) {
+        showStatus('Erro ao exportar JSON.', 'error');
+        return;
+      }
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'pedidos-sensortattoofix.json';
+      a.click();
+    });
+    $('btn-logout-pedidos')?.addEventListener('click', () => {
+      sessionStorage.removeItem(SESSION_KEY);
+      showLoginView();
+    });
+    els.filterSearch?.addEventListener('input', applyFilters);
+    els.filterStatus?.addEventListener('change', applyFilters);
+  }
+
+  function initStandalone() {
+    wireControls();
     if (sessionStorage.getItem(SESSION_KEY) && apiBase()) {
       validateSession().then((ok) => {
         if (!ok) {
@@ -375,5 +406,16 @@
     } else {
       showLoginView();
     }
-  });
+  }
+
+  window.STF_PEDIDOS = {
+    loadOrders,
+    refresh: () => loadOrders()
+  };
+
+  if (embedded) {
+    wireControls();
+  } else {
+    document.addEventListener('DOMContentLoaded', initStandalone);
+  }
 })();

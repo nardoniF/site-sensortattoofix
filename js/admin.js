@@ -13,7 +13,6 @@
     statusTop: document.getElementById('admin-status-top'),
     statusFrete: document.getElementById('admin-status-frete'),
     statusApi: document.getElementById('admin-status-api'),
-    statusPedidos: document.getElementById('admin-status-pedidos'),
     modeBadge: document.getElementById('admin-mode'),
     btnDownload: document.getElementById('btn-download-config'),
     updatedAt: document.getElementById('config-updated-at'),
@@ -40,7 +39,6 @@
     if (target === 'top') return els.statusTop;
     if (target === 'frete') return els.statusFrete;
     if (target === 'api') return els.statusApi;
-    if (target === 'pedidos') return els.statusPedidos;
     if (target === 'cliques') return document.getElementById('admin-status-cliques');
     return els.statusMsg;
   }
@@ -2041,7 +2039,9 @@
         tab.setAttribute('aria-selected', active ? 'true' : 'false');
       });
       panels.forEach((panel) => {
-        panel.hidden = panel.id !== 'admin-tab-' + id;
+        const active = panel.id === 'admin-tab-' + id;
+        panel.hidden = !active;
+        panel.classList.toggle('active', active);
       });
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
@@ -2049,6 +2049,16 @@
       if (id === 'pix') loadPixProviderStatus();
       if (id === 'clientes') loadCustomers();
       if (id === 'cliques') loadClicks();
+      if (id === 'pedidos') {
+        window.STF_PEDIDOS?.refresh?.().catch((err) => {
+          const st = document.getElementById('pedidos-orders-status');
+          if (st) {
+            st.textContent = err.message || 'Erro ao carregar pedidos.';
+            st.className = 'admin-status form-status error';
+            st.hidden = false;
+          }
+        });
+      }
       if (id === 'documentacao') loadDocFrame(true);
       if (id === 'frete') initFreteSubtabs();
     }
@@ -2274,34 +2284,7 @@
     showStatus('', '', 'top');
     showStatus('', '', 'frete');
     showStatus('', '', 'api');
-    showStatus('', '', 'pedidos');
   });
-
-  async function exportOrders(format) {
-    const token = sessionStorage.getItem(SESSION_KEY);
-    const base = apiBase();
-    if (!base || !token) {
-      showStatus('Faça login com a API para exportar pedidos.', 'error', 'pedidos');
-      return;
-    }
-    const res = await fetch(`${base}/orders?format=${format}`, {
-      headers: { Authorization: 'Bearer ' + token }
-    });
-    if (!res.ok) {
-      showStatus('Erro ao exportar pedidos.', 'error', 'pedidos');
-      return;
-    }
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = format === 'csv' ? 'pedidos.csv' : 'pedidos.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showStatus('Pedidos exportados!', 'success', 'pedidos');
-  }
-
-  document.getElementById('btn-export-json')?.addEventListener('click', () => exportOrders('json'));
-  document.getElementById('btn-export-csv')?.addEventListener('click', () => exportOrders('csv'));
 
   document.getElementById('btn-clicks-test')?.addEventListener('click', () => testClickLog());
   document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => loadClicks(true));
