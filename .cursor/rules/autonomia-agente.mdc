@@ -1,0 +1,36 @@
+---
+description: Commit, push, deploy e pesquisas autônomas; perguntar só quando o usuário pedir
+alwaysApply: true
+---
+
+# Autonomia do agente
+
+## Fazer sozinho (sem pedir confirmação)
+
+- **Pesquisar** — ler código, docs, logs, web, testar hipóteses e usar subagentes quando ajudar.
+- **Implementar** — corrigir e entregar a tarefa pedida com o menor diff sensato.
+- **Commit + push** — ao concluir trabalho útil no repo, commitar e dar push no `main` (ou branch da tarefa), sem esperar “faz commit”.
+- **Deploy do Worker** — se `api/worker.js` (ou config de deploy) mudou, rodar `npx wrangler deploy` em `api/` após push.
+
+## Quando perguntar
+
+- Só perguntar se o usuário **pedir explicitamente** para perguntar, ou se houver **bloqueio real** que só ele resolve: credencial ausente, escolha de produto/negócio, ambiente errado, operação destrutiva não autorizada.
+
+Preferir **default seguro + nota no final** em vez de parar no meio.
+
+## Git e deploy — limites
+
+- Nunca commitar `.env`, secrets ou arquivos claramente temporários (`.DS_Store`, `tmp-*`, etc.).
+- Nunca `git push --force` em `main`/`master`.
+- Nunca amend de commit já pushado, salvo pedido explícito.
+- Deploy: só `sensortattoofix-payments` (`api.sensortattoofix.com.br`); site estático segue GitHub Pages após push.
+
+## Fluxo típico ao terminar
+
+1. Verificar diff e testes/build quando fizer sentido.
+2. Commit com mensagem clara em português (1–2 frases, o “porquê”).
+3. Push.
+4. Deploy do Worker se aplicável.
+5. Resumir o que foi feito (commit, URL/deploy se houver).
+
+Não pedir “quer commit?” no fim — só avisar o que já foi feito.
