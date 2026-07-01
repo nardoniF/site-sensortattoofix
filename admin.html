@@ -505,12 +505,31 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-envelope"></i> Testes de e-mail</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-email-tests" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-email-tests" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Envia e-mails de teste para o endereço configurado acima, via Resend. Não gera cobrança nem pedido real.</p>
+                            <p>Envia e-mails de teste via Resend para o endereço abaixo. Não gera cobrança nem pedido real.</p>
+                            <p>Salve a configuração antes de testar textos/assuntos alterados. O destino dos testes usa o campo <strong>E-mail para testes</strong> (ou o e-mail da loja se vazio).</p>
+                        </div>
+                        <div class="form-grid">
+                            <label class="full">E-mail para testes
+                                <input type="email" name="emailTestTo" placeholder="seu@email.com (vazio = e-mail da loja)">
+                            </label>
+                            <label>Qual e-mail enviar
+                                <select id="email-test-type">
+                                    <option value="generic">Simples (conexão Resend)</option>
+                                    <option value="shop_order">Loja — novo pedido</option>
+                                    <option value="shop_paid">Loja — pedido PAGO</option>
+                                    <option value="customer_order">Cliente — pedido registrado (cartão)</option>
+                                    <option value="customer_order_paypal">Cliente — aguardando PayPal</option>
+                                    <option value="customer_order_mp">Cliente — aguardando Mercado Pago</option>
+                                    <option value="customer_pix">Cliente — PIX com código</option>
+                                    <option value="customer_paid">Cliente — pagamento confirmado</option>
+                                    <option value="motoboy">Motoboy — nova entrega</option>
+                                    <option value="coupon">Comissionado — cupom vendido</option>
+                                </select>
+                            </label>
                         </div>
                         <div class="admin-email-tests">
-                            <button type="button" id="btn-test-email" class="btn-secondary"><i class="fas fa-envelope"></i> Testar e-mail simples</button>
-                            <button type="button" id="btn-test-email-order" class="btn-secondary"><i class="fas fa-shopping-bag"></i> Testar e-mail novo pedido</button>
-                            <button type="button" id="btn-test-email-paid" class="btn-secondary"><i class="fas fa-check-circle"></i> Testar e-mail PAGO</button>
+                            <button type="button" id="btn-test-email-send" class="btn-secondary"><i class="fas fa-paper-plane"></i> Enviar teste selecionado</button>
+                            <button type="button" id="btn-test-email-all" class="btn-secondary"><i class="fas fa-envelopes-bulk"></i> Enviar todos os testes</button>
                         </div>
                         <p id="admin-status-contato" class="admin-status form-status" hidden></p>
                     </fieldset>
@@ -725,6 +744,6 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=7"></script>
     <script src="js/pedidos.js?v=16"></script>
-    <script src="js/admin.js?v=79"></script>
+    <script src="js/admin.js?v=80"></script>
 </body>
 </html>

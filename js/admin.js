@@ -11,6 +11,7 @@
     motoboySubject: 'Entrega motoboy — {orderId}',
     couponSubject: 'Você vendeu com seu cupom — comissão {amount} — Sensor Tattoo Fix',
     testSubject: 'Teste — Sensor Tattoo Fix',
+    testTo: '',
     pendingPaypal: 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.',
     pendingCard: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
     pendingMpCheckout: 'Finalize o pagamento com cartão no Mercado Pago (Visa/Mastercard). Seu banco pode converter de USD/EUR para reais.',
@@ -1840,6 +1841,7 @@ ${worksheets}
     if (f.emailMotoboySubject) f.emailMotoboySubject.value = emails.motoboySubject || '';
     if (f.emailCouponSubject) f.emailCouponSubject.value = emails.couponSubject || '';
     if (f.emailTestSubject) f.emailTestSubject.value = emails.testSubject || '';
+    if (f.emailTestTo) f.emailTestTo.value = emails.testTo || '';
     if (f.emailPendingPaypal) f.emailPendingPaypal.value = emails.pendingPaypal || '';
     if (f.emailPendingCard) f.emailPendingCard.value = emails.pendingCard || '';
     if (f.emailPendingMpCheckout) f.emailPendingMpCheckout.value = emails.pendingMpCheckout || '';
@@ -1990,6 +1992,7 @@ ${worksheets}
         motoboySubject: f.emailMotoboySubject?.value.trim() || DEFAULT_EMAILS.motoboySubject,
         couponSubject: f.emailCouponSubject?.value.trim() || DEFAULT_EMAILS.couponSubject,
         testSubject: f.emailTestSubject?.value.trim() || DEFAULT_EMAILS.testSubject,
+        testTo: f.emailTestTo?.value.trim() || '',
         pendingPaypal: f.emailPendingPaypal?.value.trim() || DEFAULT_EMAILS.pendingPaypal,
         pendingCard: f.emailPendingCard?.value.trim() || DEFAULT_EMAILS.pendingCard,
         pendingMpCheckout: f.emailPendingMpCheckout?.value.trim() || DEFAULT_EMAILS.pendingMpCheckout,
@@ -2323,6 +2326,19 @@ ${worksheets}
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
 
+  const EMAIL_TEST_LABELS = {
+    generic: 'Simples',
+    shop_order: 'Loja — novo pedido',
+    shop_paid: 'Loja — PAGO',
+    customer_order: 'Cliente — pedido registrado',
+    customer_order_paypal: 'Cliente — PayPal',
+    customer_order_mp: 'Cliente — Mercado Pago',
+    customer_pix: 'Cliente — PIX',
+    customer_paid: 'Cliente — pagamento confirmado',
+    motoboy: 'Motoboy',
+    coupon: 'Comissionado — cupom'
+  };
+
   async function sendTestEmail(type, label) {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -2332,7 +2348,8 @@ ${worksheets}
     }
     showStatus(`Enviando ${label}...`, '', 'contato');
     try {
-      const email = els.configForm?.formsubmitEmail?.value?.trim();
+      const email = els.configForm?.emailTestTo?.value?.trim()
+        || els.configForm?.formsubmitEmail?.value?.trim();
       const res = await fetch(base.replace(/\/$/, '') + '/admin/test-email', {
         method: 'POST',
         headers: {
@@ -2343,10 +2360,16 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
-        showStatus(`${label} enviado via ${data.provider || 'resend'}! Confira a caixa de entrada (e spam).`, 'success', 'contato');
+        if (type === 'all') {
+          showStatus(`${data.sent} e-mail(s) de teste enviado(s) para ${data.to || email}. Confira a caixa de entrada (e spam).`, 'success', 'contato');
+        } else {
+          showStatus(`${label} enviado para ${data.to || email} via ${data.provider || data.results?.[0]?.provider || 'resend'}!`, 'success', 'contato');
+        }
         loadIntegrationsStatus();
+      } else if (type === 'all' && data.sent > 0) {
+        showStatus(`${data.sent} enviado(s), ${data.failed} falhou(aram). Verifique spam e Resend.`, 'warning', 'contato');
       } else {
-        const err = data.resend?.error || data.error || data.formsubmit?.data?.message || 'Falha no envio';
+        const err = data.error || data.results?.find((r) => !r.ok)?.error || data.resend?.error || 'Falha no envio';
         showStatus('Erro: ' + err, 'error', 'contato');
       }
     } catch (err) {
@@ -2354,9 +2377,14 @@ ${worksheets}
     }
   }
 
-  document.getElementById('btn-test-email')?.addEventListener('click', () => sendTestEmail('generic', 'E-mail de teste'));
-  document.getElementById('btn-test-email-order')?.addEventListener('click', () => sendTestEmail('order', 'E-mail de novo pedido'));
-  document.getElementById('btn-test-email-paid')?.addEventListener('click', () => sendTestEmail('paid', 'E-mail PAGO'));
+  document.getElementById('btn-test-email-send')?.addEventListener('click', () => {
+    const type = document.getElementById('email-test-type')?.value || 'generic';
+    sendTestEmail(type, EMAIL_TEST_LABELS[type] || 'E-mail de teste');
+  });
+
+  document.getElementById('btn-test-email-all')?.addEventListener('click', () => {
+    sendTestEmail('all', 'Todos os e-mails de teste');
+  });
 
   document.getElementById('btn-add-ship-method')?.addEventListener('click', () => {
     const methods = collectShippingMethods();

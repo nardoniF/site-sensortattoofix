@@ -166,6 +166,7 @@ const DEFAULT_CONFIG = {
     motoboySubject: 'Entrega motoboy — {orderId}',
     couponSubject: 'Você vendeu com seu cupom — comissão {amount} — Sensor Tattoo Fix',
     testSubject: 'Teste — Sensor Tattoo Fix',
+    testTo: '',
     pendingPaypal: 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.',
     pendingCard: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
     pendingMpCheckout: 'Finalize o pagamento com cartão no Mercado Pago (Visa/Mastercard). Seu banco pode converter de USD/EUR para reais.',
@@ -799,6 +800,7 @@ function withConfigDefaults(stored) {
       sender: { ...base.shipping.sender, ...(stored.shipping?.sender || {}) }
     },
     formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
+    emails: { ...base.emails, ...(stored.emails || {}) },
     api: { ...base.api, ...(stored.api || {}) },
     internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },
     internationalSurcharge: Number.isFinite(Number(stored.internationalSurcharge))
@@ -5856,47 +5858,196 @@ async function handleTestEmail(request, env, origin) {
   }
   const config = await getConfig(env);
   const body = await request.json().catch(() => ({}));
-  const to = (body.email || config.formsubmit?.email || '').trim();
-  if (!to) return json({ error: 'E-mail de destino não configurado.' }, 400, origin);
+  const to = (body.email || getEmails(config).testTo || config.formsubmit?.email || '').trim();
+  if (!to) return json({ error: 'Configure o e-mail de destino dos testes (Contato → Testes de e-mail).' }, 400, origin);
+
+  const TEST_EMAIL_TYPES = [
+    'generic',
+    'shop_order',
+    'shop_paid',
+    'customer_order',
+    'customer_order_paypal',
+    'customer_order_mp',
+    'customer_pix',
+    'customer_paid',
+    'motoboy',
+    'coupon'
+  ];
 
   const type = body.type || 'generic';
-  let result;
-
-  if (type === 'paid') {
-    const orderId = 'STF-TESTE-' + new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    result = await notifyShop(env, config, emailSubject(config, 'shopPaidSubject', { orderId }), {
-      Pedido: orderId,
-      Status: 'PAGO (TESTE — não é pedido real)',
-      Cliente: 'Cliente Teste',
-      'E-mail cliente': 'cliente@exemplo.com',
-      Telefone: '(11) 99999-9999',
-      Pagamento: 'Cartão de crédito',
-      Smartwatch: 'Apple Watch Series 9 (41mm)',
-      Valor: formatBRL(config.product?.price || 62.9),
-      Endereço: 'Av Paulista, 1000 — Bela Vista, São Paulo/SP — Brasil 01310100',
-      Envio: 'Mini Envios'
-    });
-  } else if (type === 'order') {
-    result = await notifyShop(env, config, config.formsubmit?.subject || 'Novo pedido — teste', {
-      Pedido: 'STF-TESTE-' + Date.now(),
-      Status: 'pending_payment (TESTE)',
-      Nome: 'Cliente Teste',
-      'E-mail': 'cliente@exemplo.com',
-      Telefone: '(11) 99999-9999',
-      Smartwatch: 'Apple Watch Series 9 (41mm)',
-      País: 'Brasil',
-      Pagamento: 'PIX',
-      Total: formatBRL((config.product?.price || 62.9) + 11.9)
-    });
-  } else {
-    result = await notifyEmail(env, config, to, emailSubject(config, 'testSubject'), {
-      Teste: 'Envio de e-mail da loja',
-      Horário: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-      Remetente: emailFrom(env, config)
-    }, config.formsubmit?.email);
+  const normalizedType = type === 'order' ? 'shop_order' : type === 'paid' ? 'shop_paid' : type;
+  const types = normalizedType === 'all' ? TEST_EMAIL_TYPES : [normalizedType];
+  if (!types.every((t) => TEST_EMAIL_TYPES.includes(t))) {
+    return json({ error: 'Tipo de teste inválido.' }, 400, origin);
   }
 
-  return json({ ...result, type }, result?.ok ? 200 : 502, origin);
+  const results = [];
+  for (const t of types) {
+    const result = await sendTestEmailByType(env, config, to, t);
+    results.push({ type: t, ...result });
+    if (!result.ok && type !== 'all') {
+      return json({ ok: false, type: t, results, ...result }, 502, origin);
+    }
+  }
+
+  const failed = results.filter((r) => !r.ok);
+  const ok = failed.length === 0;
+  return json({
+    ok,
+    to,
+    sent: results.filter((r) => r.ok).length,
+    failed: failed.length,
+    results
+  }, ok ? 200 : 502, origin);
+}
+
+function buildTestOrder(config, to) {
+  const orderId = 'STF-TESTE-' + Date.now();
+  const price = Number(config.product?.price) || 62.9;
+  return {
+    orderId,
+    nome: 'Cliente Teste',
+    email: to,
+    telefone: '(11) 99999-9999',
+    smartwatch: 'Apple Watch Series 9 (41mm)',
+    produto: config.product?.name || 'Kit Sensor Tattoo Fix',
+    total: price + 11.9,
+    valorProduto: price,
+    frete: 11.9,
+    pagamento: 'PIX',
+    endereco: 'Av Paulista, 1000 — Bela Vista, São Paulo/SP — Brasil 01310100',
+    pais: 'Brasil',
+    paisCode: 'BR',
+    shippingService: 'Mini Envios',
+    pixCopyPaste: '00020126580014BR.GOV.BCB.PIX0136123456789012345204000053039865405' + String(Math.round(price * 100)).padStart(4, '0') + '5802BR6009SAO PAULO62070503***6304TEST',
+    status: 'pending_payment'
+  };
+}
+
+async function sendTestEmailByType(env, config, to, type) {
+  const order = buildTestOrder(config, to);
+  const price = Number(config.product?.price) || 62.9;
+  const adminUrl = `${(config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '')}/pedidos.html`;
+
+  switch (type) {
+    case 'generic':
+      return notifyEmail(env, config, to, emailSubject(config, 'testSubject'), {
+        Teste: 'Envio de e-mail da loja (TESTE)',
+        Horário: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+        Remetente: emailFrom(env, config)
+      }, config.formsubmit?.email);
+
+    case 'shop_order':
+      return notifyEmail(env, config, to, config.formsubmit?.subject || 'Novo pedido — teste', {
+        Pedido: order.orderId,
+        Status: 'pending_payment (TESTE)',
+        Nome: order.nome,
+        'E-mail': 'cliente@exemplo.com',
+        Telefone: order.telefone,
+        Smartwatch: order.smartwatch,
+        País: order.pais,
+        Pagamento: 'PIX',
+        Total: formatBRL(order.total)
+      }, config.formsubmit?.email);
+
+    case 'shop_paid':
+      return notifyEmail(env, config, to, emailSubject(config, 'shopPaidSubject', { orderId: order.orderId }), {
+        Pedido: order.orderId,
+        Status: 'PAGO (TESTE — não é pedido real)',
+        Cliente: order.nome,
+        'E-mail cliente': 'cliente@exemplo.com',
+        Telefone: order.telefone,
+        Pagamento: 'Cartão de crédito',
+        Smartwatch: order.smartwatch,
+        Valor: formatBRL(price),
+        Endereço: order.endereco,
+        Envio: order.shippingService
+      }, config.formsubmit?.email);
+
+    case 'customer_order':
+      return notifyCustomer(env, config, order, emailSubject(config, 'customerOrderSubject', { orderId: order.orderId }), {
+        Pedido: order.orderId,
+        Status: 'Aguardando pagamento (TESTE)',
+        Total: formatBRL(order.total),
+        Pagamento: 'Cartão de crédito',
+        Mensagem: emailMessage(config, 'pendingCard')
+      });
+
+    case 'customer_order_paypal':
+      return notifyCustomer(env, config, order, emailSubject(config, 'customerOrderSubject', { orderId: order.orderId }), {
+        Pedido: order.orderId,
+        Status: 'Aguardando pagamento (TESTE)',
+        Total: formatBRL(order.total),
+        Pagamento: 'PayPal',
+        Mensagem: emailMessage(config, 'pendingPaypal')
+      });
+
+    case 'customer_order_mp':
+      return notifyCustomer(env, config, order, emailSubject(config, 'customerOrderSubject', { orderId: order.orderId }), {
+        Pedido: order.orderId,
+        Status: 'Aguardando pagamento (TESTE)',
+        Total: formatBRL(order.total),
+        Pagamento: 'Mercado Pago',
+        Mensagem: emailMessage(config, 'pendingMpCheckout')
+      });
+
+    case 'customer_pix': {
+      const pixMail = buildPixPaymentEmail(order, config, { hasQrImage: false });
+      return notifyCustomer(env, config, order, emailSubject(config, 'customerPixSubject', { orderId: order.orderId }), {
+        Pedido: order.orderId,
+        Total: formatBRL(order.total),
+        'Link do pedido': resumeOrderUrl(config, order)
+      }, pixMail);
+    }
+
+    case 'customer_paid':
+      return notifyCustomer(env, config, order, emailSubject(config, 'customerPaidSubject', { orderId: order.orderId }), {
+        Pedido: order.orderId,
+        Status: 'PAGO (TESTE)',
+        Valor: formatBRL(price),
+        Mensagem: emailMessage(config, 'paidDefault')
+      });
+
+    case 'motoboy':
+      return notifyEmail(env, config, to, emailSubject(config, 'motoboySubject', { orderId: order.orderId }), {
+        Motoboy: 'Motoboy Teste',
+        Pedido: order.orderId,
+        Cliente: order.nome,
+        Telefone: order.telefone,
+        'E-mail cliente': 'cliente@exemplo.com',
+        Endereço: order.endereco,
+        Produto: order.produto,
+        'Valor frete': formatBRL(order.frete),
+        Distância: '~8 km',
+        Prazo: `até ${getMotoboyConfig(config).deliveryHours}h`,
+        'Painel pedidos': adminUrl,
+        Smartwatch: order.smartwatch
+      }, config.formsubmit?.email);
+
+    case 'coupon':
+      return notifyEmail(env, config, to, emailSubject(config, 'couponSubject', {
+        orderId: order.orderId,
+        amount: formatBRL(price * 0.1)
+      }), {
+        Comissionado: 'Comissionado Teste',
+        Cupom: 'TESTE10',
+        Pedido: order.orderId,
+        Cliente: order.nome,
+        'E-mail cliente': 'cliente@exemplo.com',
+        Produto: order.produto,
+        'Valor do produto': formatBRL(price),
+        'Desconto aplicado': formatBRL(price * 0.1),
+        'Total do pedido': formatBRL(order.total),
+        Status: 'Pago (TESTE)',
+        'Sua comissão (%)': '10%',
+        'Comissão a receber': formatBRL(price * 0.1),
+        'Painel pedidos': adminUrl,
+        Smartwatch: order.smartwatch
+      }, config.formsubmit?.email);
+
+    default:
+      return { ok: false, error: 'Tipo desconhecido' };
+  }
 }
 
 async function handleGetOrder(request, env, origin, orderId) {
