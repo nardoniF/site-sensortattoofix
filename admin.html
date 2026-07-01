@@ -309,15 +309,15 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-credit-card"></i> Cartão de crédito (Brasil)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-card-br" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-card-br" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Define qual gateway processa cartão de crédito no checkout nacional (Asaas ou Mercado Pago Checkout Pro).</p>
+                            <p>Define qual gateway processa cartão de crédito no checkout nacional (Asaas ou Mercado Pago).</p>
                             <p><strong>Secrets no Worker:</strong> <code>ASAAS_API_KEY</code> e/ou <code>MP_ACCESS_TOKEN</code>.</p>
                             <p><strong>Webhooks:</strong> <code>/webhook/asaas</code> e <code>/webhook/mercadopago</code></p>
                         </div>
                         <div class="form-grid">
                             <label>Processador de cartão
                                 <select name="cardBrProvider">
-                                    <option value="asaas">Asaas (padrão)</option>
-                                    <option value="mercadopago">Mercado Pago (Checkout Pro)</option>
+                                    <option value="asaas">Asaas</option>
+                                    <option value="mercadopago">Mercado Pago</option>
                                 </select>
                             </label>
                             <label class="label-check admin-ship-enabled">
