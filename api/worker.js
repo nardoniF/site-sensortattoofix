@@ -94,7 +94,11 @@ const DEFAULT_CONFIG = {
     },
     cardBr: {
       provider: 'asaas',
-      fallbackToMercadoPago: true
+      fallbackToAlternate: true
+    },
+    pixBr: {
+      provider: 'mercadopago',
+      fallbackToAlternate: true
     }
   },
   smartwatchModels: [
@@ -780,7 +784,8 @@ function withConfigDefaults(stored) {
       ...base.payments,
       ...(stored.payments || {}),
       paypal: mergePaypalConfig(base.payments?.paypal, stored.payments?.paypal),
-      cardBr: mergeCardBrConfig(base.payments?.cardBr, stored.payments?.cardBr)
+      cardBr: mergeCardBrConfig(base.payments?.cardBr, stored.payments?.cardBr),
+      pixBr: mergePixBrConfig(base.payments?.pixBr, stored.payments?.pixBr)
     },
     smartwatchModels: mergeSmartwatchModelLists(stored.smartwatchModels, base.smartwatchModels),
     products: normalizeProducts(stored, base),
@@ -1058,22 +1063,53 @@ function mergePaypalConfig(basePaypal, storedPaypal) {
   return { ...basePaypal, ...(storedPaypal || {}) };
 }
 
+function mergePaymentProviderConfig(baseCfg, storedCfg, defaultProvider) {
+  const base = baseCfg || {};
+  const stored = storedCfg || {};
+  const resolveProvider = (p) => (p === 'mercadopago' ? 'mercadopago' : p === 'asaas' ? 'asaas' : null);
+  const provider = resolveProvider(stored.provider) || resolveProvider(base.provider) || defaultProvider;
+  const fallback = stored.fallbackToAlternate !== undefined
+    ? stored.fallbackToAlternate !== false
+    : (stored.fallbackToMercadoPago !== undefined
+      ? stored.fallbackToMercadoPago !== false
+      : (base.fallbackToAlternate !== undefined
+        ? base.fallbackToAlternate !== false
+        : base.fallbackToMercadoPago !== false));
+  return { provider, fallbackToAlternate: fallback };
+}
+
 function mergeCardBrConfig(baseCardBr, storedCardBr) {
-  const base = baseCardBr || DEFAULT_CONFIG.payments.cardBr;
-  const stored = storedCardBr || {};
-  const provider = stored.provider === 'mercadopago' ? 'mercadopago' : 'asaas';
-  return {
-    provider,
-    fallbackToMercadoPago: stored.fallbackToMercadoPago !== false
-  };
+  return mergePaymentProviderConfig(
+    baseCardBr || DEFAULT_CONFIG.payments.cardBr,
+    storedCardBr,
+    'asaas'
+  );
+}
+
+function mergePixBrConfig(basePixBr, storedPixBr) {
+  return mergePaymentProviderConfig(
+    basePixBr || DEFAULT_CONFIG.payments.pixBr,
+    storedPixBr,
+    'mercadopago'
+  );
 }
 
 function getCardBrProvider(config) {
   return config?.payments?.cardBr?.provider === 'mercadopago' ? 'mercadopago' : 'asaas';
 }
 
-function cardBrFallbackToMp(config) {
-  return config?.payments?.cardBr?.fallbackToMercadoPago !== false;
+function getPixBrProvider(config) {
+  return config?.payments?.pixBr?.provider === 'asaas' ? 'asaas' : 'mercadopago';
+}
+
+function cardBrFallbackEnabled(config) {
+  const cfg = config?.payments?.cardBr || {};
+  if (cfg.fallbackToAlternate !== undefined) return cfg.fallbackToAlternate !== false;
+  return cfg.fallbackToMercadoPago !== false;
+}
+
+function pixBrFallbackEnabled(config) {
+  return config?.payments?.pixBr?.fallbackToAlternate !== false;
 }
 
 function isInternationalPayPalAvailable(config) {
@@ -1162,6 +1198,9 @@ function publicConfigView(config) {
       },
       cardBr: {
         provider: getCardBrProvider(config)
+      },
+      pixBr: {
+        provider: getPixBrProvider(config)
       }
     },
     smartwatchModels: config.smartwatchModels || DEFAULT_CONFIG.smartwatchModels,
@@ -4168,35 +4207,45 @@ async function createMercadoPagoCheckoutPro(env, order, config) {
   };
 }
 
-/** Cartão de crédito BR — Asaas ou Mercado Pago (admin), com fallback automático se Asaas cair. */
-async function createBrCreditCardPayment(env, order, config) {
-  const provider = getCardBrProvider(config);
+/** Cartão ou PIX BR — processador configurado no admin, com fallback Asaas ↔ Mercado Pago. */
+async function tryBrPaymentProvider(env, order, config, provider, billingType) {
   const hasAsaas = !!asaasApiKey(env);
   const hasMp = !!mercadoPagoToken(env);
-  const fallback = cardBrFallbackToMp(config);
-
   if (provider === 'mercadopago') {
     if (!hasMp) throw new Error('Mercado Pago não configurado no Worker.');
-    return createMercadoPagoCheckoutPro(env, order, config);
+    if (billingType === 'CREDIT_CARD') return createMercadoPagoCheckoutPro(env, order, config);
+    return createMercadoPagoPixPayment(env, order, config);
   }
+  if (!hasAsaas) throw new Error('Asaas não configurado no Worker.');
+  return createAsaasPayment(env, order, config, billingType);
+}
 
-  if (!hasAsaas && !hasMp) {
-    throw new Error('Cartão indisponível. Configure ASAAS_API_KEY ou MP_ACCESS_TOKEN.');
-  }
-  if (!hasAsaas) {
-    return createMercadoPagoCheckoutPro(env, order, config);
-  }
-
+async function createBrPaymentWithFallback(env, order, config, billingType, getProvider, fallbackEnabled) {
+  const primary = getProvider(config);
+  const alternate = primary === 'mercadopago' ? 'asaas' : 'mercadopago';
+  const label = billingType === 'PIX' ? 'PIX' : 'Cartão';
   try {
-    return await createAsaasPayment(env, order, config, 'CREDIT_CARD');
-  } catch (asaasErr) {
-    console.error('Asaas cartão:', asaasErr.message);
-    if (fallback && hasMp) {
-      console.log('Fallback cartão BR → Mercado Pago:', order.orderId);
-      return createMercadoPagoCheckoutPro(env, order, config);
+    return await tryBrPaymentProvider(env, order, config, primary, billingType);
+  } catch (primaryErr) {
+    if (!fallbackEnabled(config)) throw primaryErr;
+    console.error(`${label} ${primary}:`, primaryErr.message);
+    try {
+      const payment = await tryBrPaymentProvider(env, order, config, alternate, billingType);
+      console.log(`${label} fallback ${primary} → ${alternate}:`, order.orderId);
+      return payment;
+    } catch (altErr) {
+      console.error(`${label} ${alternate} (fallback):`, altErr.message);
+      throw primaryErr;
     }
-    throw asaasErr;
   }
+}
+
+async function createBrCreditCardPayment(env, order, config) {
+  return createBrPaymentWithFallback(env, order, config, 'CREDIT_CARD', getCardBrProvider, cardBrFallbackEnabled);
+}
+
+async function createBrPixPayment(env, order, config) {
+  return createBrPaymentWithFallback(env, order, config, 'PIX', getPixBrProvider, pixBrFallbackEnabled);
 }
 
 function emailFrom(env, config) {
@@ -4747,19 +4796,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
     } else if (billingType === 'MP_CHECKOUT') {
       payment = await createMercadoPagoCheckoutPro(env, order, config);
     } else if (billingType === 'PIX') {
-      if (hasMp) {
-        try {
-          payment = await createMercadoPagoPixPayment(env, order, config);
-        } catch (mpErr) {
-          console.error('MP PIX:', mpErr.message);
-          if (hasAsaas) {
-            payment = await createAsaasPayment(env, order, config, 'PIX');
-          } else {
-            throw mpErr;
-          }
-        }
-      } else if (hasAsaas) {
-        payment = await createAsaasPayment(env, order, config, 'PIX');
+      if (hasMp || hasAsaas) {
+        payment = await createBrPixPayment(env, order, config);
       }
     } else if (billingType === 'CREDIT_CARD') {
       payment = await createBrCreditCardPayment(env, order, config);
@@ -5861,7 +5899,8 @@ async function handlePutConfig(request, env, origin) {
         delete merged.showAfter;
         return merged;
       })(),
-      cardBr: mergeCardBrConfig(current.payments?.cardBr, body.payments?.cardBr)
+      cardBr: mergeCardBrConfig(current.payments?.cardBr, body.payments?.cardBr),
+      pixBr: mergePixBrConfig(current.payments?.pixBr, body.payments?.pixBr)
     },
     shippingMethods: body.shippingMethods?.length ? body.shippingMethods : current.shippingMethods,
     smartwatchModels: body.smartwatchModels || current.smartwatchModels,

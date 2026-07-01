@@ -1436,27 +1436,36 @@ ${worksheets}
     return row && (row.status === 'ok' || row.status === 'warn');
   }
 
-  function resolveActivePixProvider(integrations) {
+  function resolveActivePixProvider(integrations, config) {
+    const pixCfg = config?.payments?.pixBr || {};
+    const primary = pixCfg.provider === 'asaas' ? 'asaas' : 'mercadopago';
+    const alternate = primary === 'mercadopago' ? 'asaas' : 'mercadopago';
+    const fallback = pixCfg.fallbackToAlternate !== false;
     const mp = (integrations || []).find((r) => r.id === 'mercadopago');
     const asaas = (integrations || []).find((r) => r.id === 'asaas');
-    if (integrationUsable(mp)) {
+    const rowUsable = (row) => row && (row.status === 'ok' || row.status === 'warn');
+    const labelFor = (id) => (id === 'mercadopago' ? 'Mercado Pago' : 'Asaas');
+
+    if (rowUsable(primary === 'mercadopago' ? mp : asaas)) {
+      const row = primary === 'mercadopago' ? mp : asaas;
       return {
-        label: 'Mercado Pago',
-        cls: mp.status === 'warn' ? 'warn' : 'ok',
-        hint: mp.detail || ''
+        label: labelFor(primary),
+        cls: row.status === 'warn' ? 'warn' : 'ok',
+        hint: row.detail || ''
       };
     }
-    if (integrationUsable(asaas)) {
+    if (fallback && rowUsable(alternate === 'mercadopago' ? mp : asaas)) {
+      const row = alternate === 'mercadopago' ? mp : asaas;
       return {
-        label: 'Asaas',
-        cls: asaas.status === 'warn' ? 'warn' : 'ok',
-        hint: asaas.detail || ''
+        label: `${labelFor(alternate)} (fallback)`,
+        cls: 'warn',
+        hint: `${labelFor(primary)} indisponível · ${row.detail || ''}`.trim()
       };
     }
     return {
       label: 'PIX reserva (QR estático)',
       cls: 'warn',
-      hint: 'Mercado Pago e Asaas indisponíveis no Worker'
+      hint: 'Mercado Pago e Asaas indisponíveis — usa chave PIX abaixo'
     };
   }
 
@@ -1468,7 +1477,7 @@ ${worksheets}
       el.textContent = '';
       return;
     }
-    const active = resolveActivePixProvider(integrations);
+    const active = resolveActivePixProvider(integrations, currentConfig);
     el.className = `admin-pix-active admin-pix-active--${active.cls}`;
     el.innerHTML = `<span class="admin-pix-active-label">Ativo:</span> <strong>${escapeHtml(active.label)}</strong>${active.hint ? `<span class="admin-pix-active-hint">${escapeHtml(active.hint)}</span>` : ''}`;
     el.hidden = false;
@@ -1888,8 +1897,16 @@ ${worksheets}
     if (f.cardBrProvider) {
       f.cardBrProvider.value = cardBrCfg.provider === 'mercadopago' ? 'mercadopago' : 'asaas';
     }
-    if (f.cardBrFallbackMp) {
-      f.cardBrFallbackMp.checked = cardBrCfg.fallbackToMercadoPago !== false;
+    if (f.cardBrFallbackAlt) {
+      const fb = cardBrCfg.fallbackToAlternate ?? cardBrCfg.fallbackToMercadoPago;
+      f.cardBrFallbackAlt.checked = fb !== false;
+    }
+    const pixBrCfg = config.payments?.pixBr || {};
+    if (f.pixBrProvider) {
+      f.pixBrProvider.value = pixBrCfg.provider === 'asaas' ? 'asaas' : 'mercadopago';
+    }
+    if (f.pixBrFallbackAlt) {
+      f.pixBrFallbackAlt.checked = pixBrCfg.fallbackToAlternate !== false;
     }
     if (els.updatedAt) {
       els.updatedAt.textContent = config.updatedAt
@@ -1897,6 +1914,7 @@ ${worksheets}
         : '';
     }
     showPixConfigWarning(pix);
+    if (lastIntegrations) renderPixActiveProvider(lastIntegrations);
   }
 
   function showPixConfigWarning(pix) {
@@ -2013,7 +2031,11 @@ ${worksheets}
         },
         cardBr: {
           provider: f.cardBrProvider?.value === 'mercadopago' ? 'mercadopago' : 'asaas',
-          fallbackToMercadoPago: f.cardBrFallbackMp?.checked !== false
+          fallbackToAlternate: f.cardBrFallbackAlt?.checked !== false
+        },
+        pixBr: {
+          provider: f.pixBrProvider?.value === 'asaas' ? 'asaas' : 'mercadopago',
+          fallbackToAlternate: f.pixBrFallbackAlt?.checked !== false
         }
       },
       smartwatchModels: currentConfig?.smartwatchModels || [],

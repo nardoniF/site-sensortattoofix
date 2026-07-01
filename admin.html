@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.41">
+    <link rel="stylesheet" href="style.css?v=2.42">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -309,10 +309,23 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-qrcode"></i> PIX no checkout</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-pix-checkout" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-pix-checkout" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Com <strong>Mercado Pago</strong> ativo (<code>MP_ACCESS_TOKEN</code> no Worker), o QR PIX é criado pela API. O pagamento cai na conta Mercado Pago — não usa os campos de PIX reserva abaixo.</p>
-                            <p>O e-mail do cliente no checkout é para identificação no MP e avisos de pedido. O e-mail da loja para notificações está em <strong>Contato → E-mail dos pedidos</strong>.</p>
+                            <p>Escolha o processador de <strong>PIX</strong> independente do cartão. Secrets no Worker: <code>MP_ACCESS_TOKEN</code> e/ou <code>ASAAS_API_KEY</code>.</p>
+                            <p>Se o processador principal falhar e o fallback estiver ativo, tenta o outro (Asaas ↔ Mercado Pago).</p>
+                            <p>Se ambos falharem, o checkout usa o <strong>PIX reserva</strong> abaixo (QR estático + botão copiar — como hoje).</p>
                         </div>
                         <p id="pix-active-provider" class="admin-pix-active" hidden></p>
+                        <div class="form-grid">
+                            <label>Processador PIX
+                                <select name="pixBrProvider">
+                                    <option value="mercadopago">Mercado Pago</option>
+                                    <option value="asaas">Asaas</option>
+                                </select>
+                            </label>
+                            <label class="label-check admin-ship-enabled">
+                                <input type="checkbox" name="pixBrFallbackAlt" checked>
+                                <span>Se o processador PIX falhar, tentar o outro (Asaas ↔ Mercado Pago)</span>
+                            </label>
+                        </div>
                     </fieldset>
 
                     <fieldset>
@@ -425,8 +438,8 @@
                                 </select>
                             </label>
                             <label class="label-check admin-ship-enabled">
-                                <input type="checkbox" name="cardBrFallbackMp" checked>
-                                <span>Se Asaas estiver fora, usar Mercado Pago automaticamente</span>
+                                <input type="checkbox" name="cardBrFallbackAlt" checked>
+                                <span>Se o processador de cartão falhar, tentar o outro (Asaas ↔ Mercado Pago)</span>
                             </label>
                         </div>
                     </fieldset>
@@ -492,9 +505,9 @@
                         <div class="admin-form-actions admin-orders-toolbar">
                             <p id="pedidos-count" class="admin-meta admin-orders-count"></p>
                             <button type="button" id="btn-refresh" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar</button>
-                            <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
                             <button type="button" id="btn-export-csv" class="btn-secondary"><i class="fas fa-download"></i> CSV</button>
                             <button type="button" id="btn-export-json" class="btn-secondary"><i class="fas fa-file-code"></i> JSON</button>
+                            <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
                         </div>
                         <p id="pedidos-orders-status" class="admin-status form-status" hidden></p>
                         <div class="pedidos-filters">
@@ -557,11 +570,11 @@
                             </select>
                         </div>
                         <div class="admin-clicks-toolbar">
-                            <button type="button" id="btn-clicks-test" class="btn-secondary" title="Grava um clique de teste e recarrega o log"><i class="fas fa-vial"></i> Testar log</button>
+                            <button type="button" id="btn-clicks-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
                             <button type="button" id="btn-clicks-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
                             <button type="button" id="btn-clicks-clear-tests" class="btn-danger-outline" title="Remove eventos de teste (diagnóstico, curl, etc.)"><i class="fas fa-broom"></i> Limpar testes</button>
                             <button type="button" id="btn-clicks-clear-all" class="btn-danger-outline" title="Apaga todo o histórico de cliques"><i class="fas fa-trash-alt"></i> Limpar tudo</button>
-                            <button type="button" id="btn-clicks-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                            <button type="button" id="btn-clicks-test" class="btn-warning-outline" title="Grava um clique de teste e recarrega o log"><i class="fas fa-vial"></i> Testar log</button>
                         </div>
                         <p id="admin-status-cliques" class="admin-status form-status" hidden></p>
                         <p id="clicks-checked-at" class="admin-meta" hidden></p>
@@ -618,6 +631,6 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=7"></script>
     <script src="js/pedidos.js?v=16"></script>
-    <script src="js/admin.js?v=75"></script>
+    <script src="js/admin.js?v=76"></script>
 </body>
 </html>

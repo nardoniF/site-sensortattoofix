@@ -97,6 +97,9 @@ window.StoreConfig = (function () {
                       : {}),
                     ...(local.payments.cardBr
                       ? { cardBr: { ...local.payments.cardBr, ...apiConfig.payments?.cardBr } }
+                      : {}),
+                    ...(local.payments.pixBr
+                      ? { pixBr: { ...local.payments.pixBr, ...apiConfig.payments?.pixBr } }
                       : {})
                   }
                   : apiConfig.payments

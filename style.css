@@ -3284,6 +3284,22 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .btn-danger-outline:hover {
   background: rgba(204, 68, 68, 0.15);
 }
+.btn-warning-outline {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #b8860b;
+  background: transparent;
+  color: #e6c547;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.btn-warning-outline:hover {
+  background: rgba(184, 134, 11, 0.18);
+}
 .pedidos-page .admin-panel-actions .btn-danger-outline {
   font-size: 0.85rem;
   padding: 8px 12px;

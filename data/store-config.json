@@ -1504,7 +1504,11 @@
     },
     "cardBr": {
       "provider": "asaas",
-      "fallbackToMercadoPago": true
+      "fallbackToAlternate": true
+    },
+    "pixBr": {
+      "provider": "mercadopago",
+      "fallbackToAlternate": true
     }
   },
   "updatedAt": "2026-06-17T12:00:00.000Z"
