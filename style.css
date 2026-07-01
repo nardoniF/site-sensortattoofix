@@ -529,7 +529,13 @@ html[lang="it"] .nav-actions { gap: 6px; }
 }
 .about-tags i { color: var(--primary); font-size: 0.95rem; }
 
-.problem-grid, .product-benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.problem-grid, .product-benefits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+@media (max-width: 960px) {
+    .problem-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+    .problem-grid { grid-template-columns: 1fr; }
+}
 .card, .benefit-card { background: var(--card); padding: 28px; border-radius: 25px; border: 1px solid #222; text-align: center; height: 100%; transition: 0.3s; }
 .card i, .benefit-card i { font-size: 2.25rem; color: var(--primary); margin-bottom: 18px; }
 .card h3, .benefit-card h3 { margin-bottom: 10px; font-size: 1.25rem; }
