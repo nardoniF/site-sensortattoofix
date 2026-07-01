@@ -106,11 +106,11 @@
 
         .tile {
             border: 0.35pt dashed #bbb;
-            padding: 1.3mm;
+            padding: 1mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 0.65mm;
+            gap: 0.5mm;
             background: #fff;
             min-height: 0;
         }
@@ -119,16 +119,16 @@
         .tile-head {
             display: flex;
             align-items: center;
-            gap: 1.8mm;
+            gap: 1.6mm;
             background: var(--header-bg);
             border-radius: 3px;
-            padding: 1mm 1.4mm;
+            padding: 0.9mm 1.2mm;
             flex-shrink: 0;
         }
 
         .tile-head img {
-            width: 6.5mm;
-            height: 6.5mm;
+            width: 7mm;
+            height: 7mm;
             border-radius: 50%;
             object-fit: cover;
             border: 0.5pt solid #ffc107;
@@ -136,7 +136,7 @@
         }
 
         .tile-head h1 {
-            font-size: 6.4pt;
+            font-size: 7.5pt;
             line-height: 1.05;
             font-weight: 900;
             color: #fff;
@@ -146,23 +146,23 @@
         .tile-head h1 span { color: var(--accent); }
 
         .tile-head p {
-            font-size: 4.4pt;
+            font-size: 5.2pt;
             color: #ccc;
-            margin-top: 0.3mm;
+            margin-top: 0.2mm;
         }
 
         /* ── Corpo 2 colunas ── */
         .tile-body {
             display: grid;
             grid-template-columns: 0.88fr 1.12fr;
-            gap: 1mm;
+            gap: 0.85mm;
             flex: 1;
             min-height: 0;
         }
 
         .panel {
             border-radius: 3px;
-            padding: 1mm 1.2mm;
+            padding: 0.85mm 1mm;
             overflow: hidden;
         }
 
@@ -177,12 +177,12 @@
         }
 
         h2 {
-            font-size: 5pt;
+            font-size: 5.8pt;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            margin-bottom: 0.5mm;
-            padding-bottom: 0.35mm;
+            margin-bottom: 0.35mm;
+            padding-bottom: 0.3mm;
             border-bottom: 0.8pt solid currentColor;
         }
 
@@ -191,13 +191,13 @@
 
         .kit {
             list-style: none;
-            font-size: 4.7pt;
-            line-height: 1.18;
+            font-size: 5.5pt;
+            line-height: 1.14;
         }
 
         .kit li {
-            margin-bottom: 0.3mm;
-            padding-left: 3mm;
+            margin-bottom: 0.15mm;
+            padding-left: 3.2mm;
             position: relative;
         }
 
@@ -207,37 +207,37 @@
             left: 0;
             font-weight: 900;
             color: var(--kit-title);
-            font-size: 4.8pt;
+            font-size: 5.5pt;
         }
 
         .steps {
             list-style: none;
             counter-reset: s;
-            font-size: 4.7pt;
-            line-height: 1.18;
+            font-size: 5.5pt;
+            line-height: 1.14;
         }
 
         .steps li {
             counter-increment: s;
             position: relative;
-            padding-left: 3.6mm;
-            margin-bottom: 0.3mm;
+            padding-left: 3.8mm;
+            margin-bottom: 0.15mm;
         }
 
         .steps li::before {
             content: counter(s);
             position: absolute;
             left: 0;
-            top: 0.1mm;
-            width: 2.9mm;
-            height: 2.9mm;
+            top: 0.05mm;
+            width: 3.2mm;
+            height: 3.2mm;
             border-radius: 50%;
             background: var(--steps-num);
             color: #fff;
-            font-size: 4.6pt;
+            font-size: 5.2pt;
             font-weight: 900;
             text-align: center;
-            line-height: 2.9mm;
+            line-height: 3.2mm;
         }
 
         .steps li strong { font-weight: 800; color: var(--steps-strong); }
@@ -247,25 +247,25 @@
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 0.45mm;
+            gap: 0.35mm;
         }
 
         .importante {
             background: var(--important-bg);
             border: 0.8pt solid var(--important-border);
             border-radius: 3px;
-            padding: 0.55mm 1mm;
-            font-size: 4.5pt;
-            line-height: 1.15;
+            padding: 0.45mm 0.9mm;
+            font-size: 5.2pt;
+            line-height: 1.12;
         }
 
         .importante-title {
-            font-size: 4.7pt;
+            font-size: 5.5pt;
             font-weight: 900;
             color: var(--kit-title);
             text-transform: uppercase;
             letter-spacing: 0.03em;
-            margin-bottom: 0.25mm;
+            margin-bottom: 0.15mm;
         }
 
         .importante-list {
@@ -286,25 +286,25 @@
             left: 0;
             color: #2e7d32;
             font-weight: 900;
-            font-size: 4.6pt;
+            font-size: 5.2pt;
         }
 
         .duvidas {
             background: var(--duvidas-bg);
             border-radius: 3px;
-            padding: 0.45mm 1mm;
-            font-size: 4.3pt;
+            padding: 0.4mm 0.9mm;
+            font-size: 5pt;
             color: #444;
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 0.5mm 1.5mm;
-            line-height: 1.15;
+            gap: 0.4mm 1.2mm;
+            line-height: 1.12;
         }
 
         .duvidas strong {
             color: #111;
-            font-size: 4.5pt;
+            font-size: 5.2pt;
         }
 
         .duvidas a {
