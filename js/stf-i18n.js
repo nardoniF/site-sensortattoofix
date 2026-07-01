@@ -486,6 +486,7 @@ window.STF_I18N = (function () {
       'store.priceSuffix': 'Card & PayPal',
       'store.intlSuffix': 'International cards · Worldwide shipping',
       'store.title': 'Official Store',
+      'store.metaDescEn': 'Buy the Sensor Tattoo Fix kit — optical lens when your watch asks for passcode every 10 seconds, won\'t read heart rate, disconnects or pauses workouts (often tattoo ink blocking the sensor). International cards and worldwide shipping.',
       'store.loading': 'Loading products...',
       'store.empty': 'No products available at the moment.',
       'store.added': 'Added to cart!',
@@ -924,9 +925,7 @@ window.STF_I18N = (function () {
     document.title = t('store.title') + ' | Sensor Tattoo Fix';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.content = isIt()
-        ? 'Acquista il kit Sensor Tattoo Fix — lente ottica per smartwatch su pelle tatuata. Carte internazionali e spedizione in tutto il mondo.'
-        : 'Buy the Sensor Tattoo Fix kit — optical lens for smartwatch on tattooed skin. International cards, worldwide shipping.';
+      metaDesc.content = isIt() ? t('store.metaDescIt') : t('store.metaDescEn');
     }
     applyText('.logo-tagline', 'brand.tagline');
     applyText('h1.section-title', 'store.title');

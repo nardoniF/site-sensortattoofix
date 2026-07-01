@@ -145,10 +145,10 @@
     let productImage = SITE + '/site/sensortattoofix.jpg';
     let productId = 'kit-sensor-tattoofix';
     let productDescription = isIt
-      ? 'Kit con lente ottica che ripristina i sensori dello smartwatch sulla pelle tatuata — rilevamento al polso, frequenza cardiaca e allenamenti.'
+      ? 'Kit con lente ottica per smartwatch che chiede codice, non misura il battito o interrompe l\'allenamento — spesso per tatuaggio al polso. Ripristina rilevamento al polso, frequenza cardiaca e allenamenti.'
       : isEn
-      ? 'Optical lens kit that restores smartwatch sensors on tattooed skin — wrist detection, heart rate and workouts.'
-      : 'Kit com lente ótica que restaura sensores de smartwatch em pele tatuada — pulso, batimentos e treinos.';
+      ? 'Optical lens kit for smartwatch passcode loops, heart rate failures and paused workouts — often caused by wrist tattoo ink. Restores wrist detection, heart rate and training.'
+      : 'Kit com lente ótica para smartwatch que pede senha, não mede batimentos ou pausa treino — muitas vezes por tatuagem no pulso. Restaura pulso, batimentos e treinos.';
 
     if (window.StoreConfig) {
       try {

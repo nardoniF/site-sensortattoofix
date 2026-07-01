@@ -27,7 +27,50 @@
   </url>
   <url>
     <loc>https://www.sensortattoofix.com.br/loja.html</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/loja.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com.br/en/loja.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com.br/it/loja.html"/>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.sensortattoofix.com.br/en/loja.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com.br/en/loja.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/loja.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com.br/it/loja.html"/>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.sensortattoofix.com.br/it/loja.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com.br/it/loja.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com.br/en/loja.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/loja.html"/>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.sensortattoofix.com.br/onde-comprar.html</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/onde-comprar.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com.br/en/onde-comprar.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com.br/it/onde-comprar.html"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.sensortattoofix.com.br/en/onde-comprar.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com.br/en/onde-comprar.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/onde-comprar.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com.br/it/onde-comprar.html"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.sensortattoofix.com.br/it/onde-comprar.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com.br/it/onde-comprar.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com.br/en/onde-comprar.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/onde-comprar.html"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

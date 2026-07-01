@@ -187,6 +187,7 @@ window.STF_I18N_IT = {
   'store.priceSuffix': 'Carta e PayPal',
   'store.intlSuffix': 'Carte internazionali · Spedizione in tutto il mondo',
   'store.title': 'Negozio Ufficiale',
+  'store.metaDescIt': 'Acquista il kit Sensor Tattoo Fix — lente ottica quando l\'orologio chiede codice ogni 10 secondi, non misura il battito, si disconnette o interrompe l\'allenamento (spesso per tatuaggio al polso). Carte internazionali e spedizione mondiale.',
   'store.loading': 'Caricamento prodotti...',
   'store.empty': 'Nessun prodotto disponibile al momento.',
   'store.added': 'Aggiunto al carrello!',
