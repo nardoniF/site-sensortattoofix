@@ -272,57 +272,54 @@
             background: var(--important-bg);
             border: 0.8pt solid var(--important-border);
             border-radius: 3px;
-            padding: 0.45mm 0.9mm;
-            font-size: 5.2pt;
-            line-height: 1.12;
+            padding: 0.5mm 0.9mm;
+            font-size: 5.8pt;
+            line-height: 1.15;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.6mm 1.8mm;
         }
 
-        .importante-title {
-            font-size: 5.5pt;
+        .importante-label {
+            font-size: 5.8pt;
             font-weight: 900;
             color: var(--kit-title);
             text-transform: uppercase;
             letter-spacing: 0.03em;
-            margin-bottom: 0.15mm;
+            flex-shrink: 0;
         }
 
-        .importante-list {
-            list-style: none;
-            display: flex;
-            gap: 2mm;
-            flex-wrap: wrap;
-        }
-
-        .importante-list li {
+        .importante-item {
             position: relative;
             padding-left: 2mm;
+            white-space: nowrap;
         }
 
-        .importante-list li::before {
+        .importante-item::before {
             content: "✓";
             position: absolute;
             left: 0;
             color: #2e7d32;
             font-weight: 900;
-            font-size: 5.2pt;
         }
 
         .duvidas {
             background: var(--duvidas-bg);
             border-radius: 3px;
-            padding: 0.4mm 0.9mm;
-            font-size: 5pt;
+            padding: 0.5mm 0.9mm;
+            font-size: 5.8pt;
             color: #444;
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 0.4mm 1.2mm;
-            line-height: 1.12;
+            gap: 0.5mm 1.4mm;
+            line-height: 1.15;
         }
 
         .duvidas strong {
             color: #111;
-            font-size: 5.2pt;
+            font-size: 5.8pt;
         }
 
         .duvidas a {
@@ -379,11 +376,9 @@
 
             <footer class="tile-foot">
                 <div class="importante">
-                    <p class="importante-title">Importante</p>
-                    <ul class="importante-list">
-                        <li>Ative a detecção de pulso</li>
-                        <li>Sempre use o carregador original</li>
-                    </ul>
+                    <span class="importante-label">Importante:</span>
+                    <span class="importante-item">Ative a detecção de pulso</span>
+                    <span class="importante-item">Sempre use o carregador original</span>
                 </div>
                 <div class="duvidas">
                     <strong>Dúvidas:</strong>
