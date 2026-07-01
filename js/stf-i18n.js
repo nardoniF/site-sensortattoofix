@@ -46,7 +46,7 @@ window.STF_I18N = (function () {
       'summary.total': 'Total',
       'summary.order': 'Pedido',
       'summary.totalLabel': 'Total:',
-      'trust.pix': 'PIX automático',
+      'trust.securePay': 'Pagamento seguro',
       'trust.card': 'Cartão',
       'trust.email': 'Confirmação por e-mail',
       'step.data': 'Dados',
@@ -174,8 +174,8 @@ window.STF_I18N = (function () {
       'pay.pixIntlHint': 'Para quem tem conta bancária no Brasil (mesmo morando fora)',
       'pay.noticeBr': 'Após o pagamento, a confirmação é automática no site e por e-mail.',
       'pay.noticeIntl': 'Valores em reais (BRL). Cartão internacional pelo Mercado Pago — como na Amazon, seu banco converte a moeda.',
-      'pay.noticeIntlAll': 'Valores em reais (BRL). Cartão internacional (Mercado Pago) — seu banco converte. PayPal ou PIX também disponíveis.',
-      'pay.noticeIntlNoPaypal': 'Valores em reais (BRL). Cartão internacional (Visa/Mastercard) — seu banco converte. PIX se tiver conta no Brasil.',
+      'pay.noticeIntlAll': 'Valores em reais (BRL). Cartão internacional (Mercado Pago) — seu banco converte. PayPal também disponível.',
+      'pay.noticeIntlNoPaypal': 'Valores em reais (BRL). Cartão internacional (Visa/Mastercard) — seu banco converte.',
       'btn.continue': 'Continuar',
       'btn.back': 'Voltar',
       'btn.pay': 'Finalizar pedido',
@@ -184,12 +184,12 @@ window.STF_I18N = (function () {
       'btn.openCard': 'Abrir pagamento com cartão',
       'btn.payPaypal': 'Pagar com PayPal',
       'selfTest.btn': 'Confirmar teste (sem pagar)',
-      'selfTest.hint': 'Pedido de teste detectado — pule o PIX de R$ 0,01.',
+      'selfTest.hint': 'Pedido de teste detectado — confirme sem pagar.',
       'card.asaas': 'Pagamento seguro processado pelo Asaas.',
       'card.mp': 'Pagamento seguro no Mercado Pago (Visa, Mastercard, Amex). Valor em reais — seu banco converte.',
       'paypal.redirect': 'Redirecionando ao PayPal… Se não abrir, use o botão abaixo.',
       'confirm.hint': 'A confirmação é enviada automaticamente por e-mail.',
-      'store.priceSuffix': 'PIX e cartão',
+      'store.priceSuffix': 'cartão e PayPal',
       'store.intlSuffix': 'Cartão internacional · Envio para o exterior',
       'store.title': 'Loja Oficial',
       'store.loading': 'Carregando produtos...',
@@ -201,7 +201,7 @@ window.STF_I18N = (function () {
       'store.frete': 'frete',
       'store.freteLine': '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)',
       'store.lojaFreteShort': '+ frete',
-      'store.lojaPriceSuffix': 'Mini Envios · PIX e cartão',
+      'store.lojaPriceSuffix': 'Mini Envios · cartão e PayPal',
       'store.add': 'Adicionar',
       'store.buy': 'Comprar',
       'store.alsoOnLabel': 'Também disponível em:',
@@ -210,7 +210,7 @@ window.STF_I18N = (function () {
       'store.mp.tiktok': 'TikTok Shop',
       'store.mp.amazon': 'Amazon',
       'alert.mpFail': 'Pagamento com cartão não foi concluído. Tente novamente.',
-      'alert.intlCardUnavailable': 'Cartão internacional indisponível. Escolha PIX ou tente mais tarde.',
+      'alert.intlCardUnavailable': 'Cartão internacional indisponível. Tente PayPal ou mais tarde.',
       'alert.paypalUnavailable': 'PayPal indisponível no momento. Tente novamente ou fale conosco no WhatsApp.',
       'alert.paypalCancel': 'Pagamento PayPal cancelado. Você pode retomar pelo link no e-mail ou criar um novo pedido.',
       'alert.paypalCancelRetry': 'Pagamento PayPal não concluído. Seu carrinho foi restaurado — escolha outra forma de pagamento ou tente o PayPal de novo.',
@@ -229,7 +229,8 @@ window.STF_I18N = (function () {
       'alert.orderInvalid': 'Resposta inválida da API ao registrar pedido.',
       'alert.paypalConfirmFail': 'Falha ao confirmar PayPal.',
       'alert.paypalConfirmError': 'Erro ao confirmar PayPal.',
-      'alert.cardBrUnavailable': 'Pagamento com cartão indisponível no momento. Escolha PIX ou tente mais tarde.',
+      'alert.cardBrUnavailable': 'Pagamento com cartão indisponível no momento. Tente PayPal ou mais tarde.',
+      'alert.paymentPick': 'Selecione cartão ou PayPal para continuar.',
       'status.redirectMp': 'Redirecionando ao pagamento com cartão…',
       'status.confirmMp': 'Confirmando pagamento com cartão…',
       'status.pendingMp': 'Pagamento em análise — esta página atualiza automaticamente.',
@@ -293,9 +294,9 @@ window.STF_I18N = (function () {
       'watch.groupOtherBrands': 'Outras marcas',
       'watch.groupOthers': 'Outros',
       'page.checkoutTitle': 'Comprar Direto | Sensor Tattoo Fix — Loja Oficial',
-      'page.checkoutDesc': 'Checkout oficial Sensor Tattoo Fix — PIX, cartão, envio nacional e internacional.',
+      'page.checkoutDesc': 'Checkout oficial Sensor Tattoo Fix — cartão, PayPal, envio nacional e internacional.',
       'page.checkoutTitleEn': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — international cards, PIX, worldwide shipping.'
+      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, international cards, tracked worldwide shipping.'
     },
     en: {
       'brand.tagline': 'Peace between ink and silicon',
@@ -339,7 +340,7 @@ window.STF_I18N = (function () {
       'summary.total': 'Total',
       'summary.order': 'Order',
       'summary.totalLabel': 'Total:',
-      'trust.pix': 'Instant PIX',
+      'trust.securePay': 'Secure payment',
       'trust.card': 'Card',
       'trust.email': 'Email confirmation',
       'step.data': 'Details',
@@ -458,7 +459,7 @@ window.STF_I18N = (function () {
       'pay.pixHint': 'Instant confirmation · QR code',
       'pay.cardBr': 'Credit card',
       'pay.cardBrHint': 'Secure payment via Asaas',
-      'pay.cardBrHintMp': 'Secure payment via Mercado Pago',
+      'pay.cardBrHintMp': 'Secure card payment',
       'pay.intlCard': 'International card',
       'pay.intlCardHint': 'Visa, Mastercard, Amex — charged in BRL; your bank converts',
       'pay.paypal': 'PayPal',
@@ -466,9 +467,9 @@ window.STF_I18N = (function () {
       'pay.pixIntl': 'PIX',
       'pay.pixIntlHint': 'If you have a Brazilian bank account (even abroad)',
       'pay.noticeBr': 'After payment, confirmation is automatic on this page and by email.',
-      'pay.noticeIntl': 'Prices in Brazilian reais (BRL). International card via Mercado Pago — like Amazon, your bank converts currency.',
-      'pay.noticeIntlAll': 'Prices in BRL. International card (Mercado Pago) — your bank converts. PayPal or PIX also available.',
-      'pay.noticeIntlNoPaypal': 'Prices in BRL. International card (Visa/Mastercard) — your bank converts. PIX if you have a BR bank account.',
+      'pay.noticeIntl': 'Prices in Brazilian reais (BRL). PayPal or international card — your bank converts the currency.',
+      'pay.noticeIntlAll': 'Prices in BRL. PayPal or international card — your bank converts.',
+      'pay.noticeIntlNoPaypal': 'Prices in BRL. International card (Visa/Mastercard) — your bank converts.',
       'btn.continue': 'Continue',
       'btn.back': 'Back',
       'btn.pay': 'Place order',
@@ -477,12 +478,12 @@ window.STF_I18N = (function () {
       'btn.openCard': 'Open card payment',
       'btn.payPaypal': 'Pay with PayPal',
       'selfTest.btn': 'Confirm test (skip payment)',
-      'selfTest.hint': 'Test order detected — skip the R$ 0.01 PIX.',
+      'selfTest.hint': 'Test order detected — confirm without payment.',
       'card.asaas': 'Secure payment processed by Asaas.',
-      'card.mp': 'Secure payment on Mercado Pago (Visa, Mastercard, Amex). BRL amount — your bank converts.',
+      'card.mp': 'Secure card payment (Visa, Mastercard, Amex). Charged in BRL — your bank converts.',
       'paypal.redirect': 'Redirecting to PayPal… If nothing opens, use the button below.',
       'confirm.hint': 'Confirmation is sent automatically by email.',
-      'store.priceSuffix': 'PIX & card',
+      'store.priceSuffix': 'Card & PayPal',
       'store.intlSuffix': 'International cards · Worldwide shipping',
       'store.title': 'Official Store',
       'store.loading': 'Loading products...',
@@ -492,9 +493,10 @@ window.STF_I18N = (function () {
       'store.outOfStock': 'This item is currently out of stock.',
       'store.errorLoad': 'Error loading store.',
       'store.frete': 'shipping',
-      'store.freteLine': '+ Shipping: Mini Envios nationwide · quick delivery within 5 km of North Zone (São Paulo)',
+      'store.freteLine': '+ Shipping: calculated at checkout',
       'store.lojaFreteShort': '+ shipping',
-      'store.lojaPriceSuffix': 'Mini Envios · Cards & PIX',
+      'store.lojaPriceSuffix': 'PayPal & cards · Worldwide delivery',
+      'store.shippingChannelsIntl': 'International tracked shipping · 10–25 business days · price at checkout',
       'store.add': 'Add',
       'store.buy': 'Buy',
       'store.alsoOnLabel': 'Also available on:',
@@ -503,7 +505,7 @@ window.STF_I18N = (function () {
       'store.mp.tiktok': 'TikTok Shop',
       'store.mp.amazon': 'Amazon',
       'alert.mpFail': 'Card payment was not completed. Please try again.',
-      'alert.intlCardUnavailable': 'International card unavailable. Choose PIX or try again later.',
+      'alert.intlCardUnavailable': 'International card unavailable. Try PayPal or again later.',
       'alert.paypalUnavailable': 'PayPal unavailable right now. Try again or contact us on WhatsApp.',
       'alert.paypalCancel': 'PayPal payment cancelled. Resume from the email link or place a new order.',
       'alert.paypalCancelRetry': 'PayPal payment was not completed. Your cart was restored — choose another payment method or try PayPal again.',
@@ -522,7 +524,8 @@ window.STF_I18N = (function () {
       'alert.orderInvalid': 'Invalid response when creating order.',
       'alert.paypalConfirmFail': 'Failed to confirm PayPal payment.',
       'alert.paypalConfirmError': 'Error confirming PayPal payment.',
-      'alert.cardBrUnavailable': 'Card payment unavailable. Choose PIX or try again later.',
+      'alert.cardBrUnavailable': 'Card payment unavailable. Try PayPal or again later.',
+      'alert.paymentPick': 'Select card or PayPal to continue.',
       'status.redirectMp': 'Redirecting to card payment…',
       'status.confirmMp': 'Confirming card payment…',
       'status.pendingMp': 'Payment under review — this page updates automatically.',
@@ -540,7 +543,7 @@ window.STF_I18N = (function () {
       'status.pixWhatsappText': 'Hi! I paid PIX for order {id} ({total}). Proof attached.',
       'status.cardWindow': 'Open the payment window, complete with card and return here — confirmation is automatic.',
       'status.cardLink': 'Open the card link and return here — confirmation is automatic.',
-      'status.cardMpLink': 'Complete card payment on Mercado Pago.',
+      'status.cardMpLink': 'Complete card payment in the secure window.',
       'status.paypalBtn': 'Complete payment on PayPal — use the button below if needed.',
       'title.orderCard': 'Order placed — card payment',
       'title.orderPaypal': 'Order placed — PayPal payment',
@@ -548,7 +551,7 @@ window.STF_I18N = (function () {
       'title.paid': 'Payment confirmed!',
       'title.mpReceived': 'Payment received',
       'title.mpProcessing': 'Payment processing',
-      'hint.mpReturn': 'You will be redirected to Mercado Pago. Confirmation is automatic when you return.',
+      'hint.mpReturn': 'You will be redirected to complete card payment. Confirmation is automatic when you return.',
       'hint.paypalReturn': 'After paying on PayPal, you will return here with automatic confirmation.',
       'shipping.hint': 'Enter destination to calculate shipping.',
       'shipping.calculating': 'Calculating shipping...',
@@ -557,18 +560,23 @@ window.STF_I18N = (function () {
       'shipping.cepInvalid': 'Invalid postal code.',
       'shipping.days': 'days',
       'shipping.minutes': 'min',
-      'shipping.document': 'document/letter',
-      'shipping.sourceCorreios': 'Correios',
-      'shipping.sourceUber': 'Uber Direct',
-      'shipping.sourceMotoboy': 'Private courier',
+      'shipping.document': 'document mail',
+      'shipping.sourceCorreios': 'National post (Brazil)',
+      'shipping.sourceUber': 'Local courier',
+      'shipping.sourceMotoboy': 'Local delivery',
       'shipping.motoboyEta': 'within {hours}h',
-      'shipping.sourceExport': 'Correios Exporta Fácil',
-      'shipping.sourceConfig': 'Admin fallback table — API failed!',
-      'shipping.sourceConfigShort': 'admin fallback table',
-      'shipping.sourceEstimate': 'Distance-based estimate — actual rate when Correios API is active',
+      'shipping.sourceExport': 'International tracked mail',
+      'shipping.sourceConfig': 'Standard rate',
+      'shipping.sourceConfigShort': 'standard rate',
+      'shipping.sourceEstimate': 'Estimated shipping — final price at checkout',
       'shipping.sourceEstimateShort': 'estimate',
-      'shipping.uberTest': 'Uber test mode — symbolic price (e.g. R$ 0.01), no real delivery. Production shows the real fare.',
+      'shipping.uberTest': 'Test mode — symbolic price only.',
       'shipping.intlPrefix': 'International —',
+      'shipping.intlDefault': 'International tracked mail',
+      'shipping.serviceDocument': 'Document mail (lens only)',
+      'shipping.serviceParcel': 'Tracked parcel (full kit)',
+      'shipping.noticeDocument': 'Lens only — no booster fluid (liquids not allowed in document mail).\n\nFull kit: choose tracked parcel instead.',
+      'shipping.noticeParcel': 'Full kit shipped with this option.',
       'status.pixManualConfirm': 'This page updates when the shop confirms payment.',
       'shipping.optionsAria': 'Shipping options',
       'coupon.label': 'Discount code',
@@ -586,9 +594,11 @@ window.STF_I18N = (function () {
       'watch.groupOtherBrands': 'Other brands',
       'watch.groupOthers': 'Others',
       'page.checkoutTitle': 'Comprar Direto | Sensor Tattoo Fix — Loja Oficial',
-      'page.checkoutDesc': 'Checkout oficial Sensor Tattoo Fix — PIX, cartão, envio nacional e internacional.',
+      'page.checkoutDesc': 'Checkout oficial Sensor Tattoo Fix — cartão, PayPal, envio nacional e internacional.',
       'page.checkoutTitleEn': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — international cards, PIX, worldwide shipping.'
+      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, international cards, tracked worldwide shipping.',
+      'page.checkoutTitleIt': 'Checkout | Sensor Tattoo Fix — Negozio ufficiale',
+      'page.checkoutDescIt': 'Checkout ufficiale Sensor Tattoo Fix — PayPal, carte internazionali, spedizione tracciata in tutto il mondo.'
     }
   };
 
@@ -776,9 +786,9 @@ window.STF_I18N = (function () {
 
     if (!isLocalized()) return;
 
-    document.title = t('page.checkoutTitleEn');
+    document.title = isIt() ? t('page.checkoutTitleIt') : t('page.checkoutTitleEn');
     const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.content = t('page.checkoutDescEn');
+    if (metaDesc) metaDesc.content = isIt() ? t('page.checkoutDescIt') : t('page.checkoutDescEn');
 
     applyText('.logo-tagline', 'brand.tagline');
 
@@ -811,7 +821,7 @@ window.STF_I18N = (function () {
     setPlaceholder('#coupon-code', 'coupon.placeholder');
 
     const trust = document.querySelectorAll('.checkout-trust span');
-    if (trust[0]) trust[0].innerHTML = `<i class="fas fa-qrcode"></i> ${t('trust.pix')}`;
+    if (trust[0]) trust[0].innerHTML = `<i class="fas fa-lock"></i> ${t('trust.securePay')}`;
     if (trust[1]) trust[1].innerHTML = `<i class="fas fa-credit-card"></i> ${t('trust.card')}`;
     if (trust[2]) trust[2].innerHTML = `<i class="fas fa-envelope"></i> ${t('trust.email')}`;
 
@@ -863,12 +873,7 @@ window.STF_I18N = (function () {
     const watchSelect = document.getElementById('smartwatch-select');
     if (watchSelect?.options[0]) watchSelect.options[0].textContent = t('form.watchSelect');
 
-    const payBr = document.querySelector('#payment-options-br .payment-option:nth-child(1)');
-    if (payBr) {
-      payBr.querySelector('strong').textContent = t('pay.pix');
-      payBr.querySelector('small').textContent = t('pay.pixHint');
-    }
-    const payBrCard = document.querySelector('#payment-options-br .payment-option:nth-child(2)');
+    const payBrCard = document.querySelector('#payment-options-br .payment-option');
     if (payBrCard) {
       payBrCard.querySelector('strong').textContent = t('pay.cardBr');
       payBrCard.querySelector('small').textContent = t('pay.cardBrHint');
@@ -882,11 +887,6 @@ window.STF_I18N = (function () {
     if (intlPaypal) {
       intlPaypal.querySelector('strong').textContent = t('pay.paypal');
       intlPaypal.querySelector('small').textContent = t('pay.paypalHint');
-    }
-    const intlPix = document.querySelector('#payment-options-intl .payment-option:last-child');
-    if (intlPix) {
-      intlPix.querySelector('strong').textContent = t('pay.pixIntl');
-      intlPix.querySelector('small').textContent = t('pay.pixIntlHint');
     }
 
     const noticeBr = document.getElementById('payment-notice-br');

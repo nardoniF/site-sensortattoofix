@@ -5,6 +5,25 @@
     return window.STF_I18N?.t(key, vars) || key;
   }
 
+  function isLocalizedSite() {
+    const lang = (document.documentElement.lang || '').toLowerCase();
+    return lang.startsWith('en') || lang.startsWith('it');
+  }
+
+  function localizeShippingServiceName(opt) {
+    if (!isLocalizedSite() || !opt) return opt?.service || '';
+    if (opt.shipmentType === 'documento' || opt.methodId === 'int-documento') {
+      return L('shipping.serviceDocument');
+    }
+    if (opt.shipmentType === 'encomenda' || opt.methodId === 'int-encomenda' || opt.source === 'correios-export') {
+      return L('shipping.serviceParcel');
+    }
+    if (opt.source === 'config' || opt.methodId === 'config-fallback') {
+      return L('shipping.intlDefault');
+    }
+    return L('shipping.intlDefault');
+  }
+
   function lojaHref() {
     return window.STF_I18N?.lojaHref?.() || 'loja.html';
   }
@@ -947,6 +966,11 @@
   }
 
   function buildIntlProductNote(shipmentType) {
+    if (isLocalizedSite()) {
+      if (shipmentType === 'documento') return L('shipping.noticeDocument');
+      if (shipmentType === 'encomenda') return L('shipping.noticeParcel');
+      return '';
+    }
     const ip = intlProductCopy();
     if (shipmentType === 'documento') return ip.documentNotice || '';
     if (shipmentType === 'encomenda') return ip.encomendaNotice || '';
@@ -978,7 +1002,7 @@
   }
 
   function updateCardBrPaymentHint() {
-    const cardOpt = els.paymentOptionsBr?.querySelector('.payment-option:nth-child(2)');
+    const cardOpt = els.paymentOptionsBr?.querySelector('input[value="CARTAO"]')?.closest('.payment-option');
     const small = cardOpt?.querySelector('small');
     if (small) {
       small.textContent = L(isCardBrMercadoPago() ? 'pay.cardBrHintMp' : 'pay.cardBrHint');
@@ -1008,13 +1032,11 @@
     if (isInternational) {
       const cardIntl = els.paymentOptionsIntl?.querySelector('input[value="CARTAO"]');
       const paypal = els.paymentOptionsIntl?.querySelector('input[value="PAYPAL"]');
-      const pixIntl = els.paymentOptionsIntl?.querySelector('input[value="PIX"]');
       if (cardIntl) cardIntl.checked = true;
       else if (paypalAvailable && paypal) paypal.checked = true;
-      else if (pixIntl) pixIntl.checked = true;
     } else {
-      const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
-      if (pix) pix.checked = true;
+      const card = els.paymentOptionsBr?.querySelector('input[value="CARTAO"]');
+      if (card) card.checked = true;
     }
     updateCardBrPaymentHint();
     updateCpfLabel();
@@ -1101,6 +1123,7 @@
     els.shippingOptionsEl.innerHTML = shippingOptions.map((opt, i) => {
       const inputId = `ship-opt-${opt.id}`;
       const checked = i === 0 ? 'checked' : '';
+      const serviceName = localizeShippingServiceName(opt);
       const src = shippingSourceLabel(opt.source);
       const tipoHint = opt.shipmentType === 'documento' ? ` · ${L('shipping.document')}` : '';
       const timeLabel = opt.source === 'uber'
@@ -1122,7 +1145,7 @@
           <div class="shipping-card${notice || uberTest ? ' shipping-card--with-notice' : ''}">
             <div class="shipping-card-row">
               <div class="shipping-card-main">
-                <strong>${escapeHtml(opt.service)}</strong>
+                <strong>${escapeHtml(serviceName)}</strong>
                 <small>${timeLabel}${distHint} · ${src}${tipoHint}</small>
               </div>
               <span class="shipping-card-price">${formatBRL(opt.price)}</span>
@@ -1204,7 +1227,7 @@
           options = [{
             id: 'config-fallback',
             methodId: 'config-fallback',
-            service: `${L('shipping.intlPrefix')} ${z.label}`,
+            service: L('shipping.intlDefault'),
             price: z.price,
             days: z.days,
             source: 'config'
@@ -1604,8 +1627,8 @@
 
   async function processPayment() {
     const pagamento = els.form.querySelector('[name=pagamento]:checked')?.value;
-    if (isInternational && pagamento === 'PIX' && !els.form.cpf.value.trim()) {
-      alert(L('alert.pixIntlCpf'));
+    if (!pagamento || pagamento === 'PIX') {
+      alert(L('alert.paymentPick'));
       return;
     }
     els.btnPay.disabled = true;
@@ -1615,7 +1638,7 @@
       const wantsIntlCard = isInternational && orderData.pagamento === 'CARTAO';
       const wantsCardBr = !isInternational && orderData.pagamento === 'CARTAO';
       const wantsPaypal = orderData.pagamento === 'PAYPAL';
-      lastPaymentMethod = wantsPaypal ? 'paypal' : ((wantsCardBr || wantsIntlCard) ? 'credit_card' : 'pix');
+      lastPaymentMethod = wantsPaypal ? 'paypal' : 'credit_card';
       const result = await createOrder(orderData);
       const total = result.order?.total || (cartSubtotal() + orderData.frete);
       const orderSnapshot = {
@@ -1688,26 +1711,14 @@
           `<i class="fas fa-spinner fa-spin"></i> ${L('status.cardWindow')}`;
         try { window.open(payment.invoiceUrl, '_blank', 'noopener,noreferrer'); } catch (_) { /* link visível no botão */ }
       } else {
-        renderPix(orderId, total, payment);
-        if (payment.autoConfirm) {
-          els.paymentStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${L('status.waitPix')}`;
-        } else {
-          const wa = (cfg.whatsapp || '5511913394665').replace(/\D/g, '');
-          const waText = encodeURIComponent(L('status.pixWhatsappText', { id: orderId, total: formatBRL(total) }));
-          els.paymentStatus.innerHTML =
-            `<p><strong>${L('status.pixRegistered', { id: orderId })}</strong></p>` +
-            `<p>${L('status.pixManualHint')}</p>` +
-            `<p><a class="btn-whatsapp-proof" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">` +
-            `<i class="fab fa-whatsapp"></i> ${L('status.pixWhatsapp')}</a></p>` +
-            `<p class="payment-hint-small">${L('status.pixManualConfirm')}</p>`;
-        }
+        throw new Error(L('alert.paymentPick'));
       }
 
       trackGa('pedido_criado', {
         pedido: orderId,
         valor: total,
         moeda: 'BRL',
-        pagamento: lastPaymentMethod === 'paypal' ? 'paypal' : (lastPaymentMethod === 'credit_card' ? 'cartao' : 'pix')
+        pagamento: lastPaymentMethod === 'paypal' ? 'paypal' : 'cartao'
       });
 
       if (accessToken) startPolling(orderId, accessToken, total);

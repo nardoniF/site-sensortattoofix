@@ -38,7 +38,7 @@ window.STF_STORE_PRICE = (function () {
     const doc = intl.find((m) => m.simTipo === 'D' || /documento|carta/i.test(m.label || ''));
     if (doc?.label) return doc.label;
     return intl[0]?.label || (isLocalized()
-      ? 'International letter / document'
+      ? (window.STF_I18N?.t?.('shipping.intlDefault') || 'International tracked mail')
       : 'Documento / carta internacional');
   }
 
@@ -49,10 +49,11 @@ window.STF_STORE_PRICE = (function () {
   }
 
   function buildShippingChannelsLine(config) {
-    const mini = brMiniLabel(config);
     if (isLocalized()) {
-      return `Nationwide (${mini}) · São Paulo, SP (Own Transport) · Other Countries (Exporta Fácil)`;
+      const t = window.STF_I18N?.t;
+      return t ? t('store.shippingChannelsIntl') : 'International tracked shipping · calculated at checkout';
     }
+    const mini = brMiniLabel(config);
     return `Todo Brasil (${mini}) · São Paulo, SP (Entrega Própria) · Outros Países (Exporta Fácil)`;
   }
 
@@ -66,7 +67,7 @@ window.STF_STORE_PRICE = (function () {
       || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
       || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
     let suffix = el?.getAttribute('data-store-price-suffix');
-    if (isLocalized() && suffix === 'PIX e cartão') {
+    if (isLocalized() && (suffix === 'PIX e cartão' || suffix === 'Mini Envios · PIX e cartão')) {
       suffix = window.STF_I18N.t('store.intlSuffix');
     } else if (isLocalized() && !suffix) {
       suffix = window.STF_I18N.t('store.priceSuffix');
