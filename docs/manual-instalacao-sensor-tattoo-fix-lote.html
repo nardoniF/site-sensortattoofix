@@ -158,6 +158,7 @@
             gap: 0.85mm;
             flex: 1;
             min-height: 0;
+            align-items: stretch;
         }
 
         .panel {
@@ -196,18 +197,19 @@
 
         .kit {
             list-style: none;
-            font-size: 6pt;
-            line-height: 1.22;
-            flex: 1;
+            font-size: 6.5pt;
+            line-height: 1.28;
+            flex: 1 1 auto;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: space-evenly;
             min-height: 0;
+            padding: 0.6mm 0 0.8mm;
         }
 
         .kit li {
             margin-bottom: 0;
-            padding-left: 3.4mm;
+            padding-left: 3.8mm;
             position: relative;
         }
 
@@ -217,7 +219,7 @@
             left: 0;
             font-weight: 900;
             color: var(--kit-title);
-            font-size: 6pt;
+            font-size: 6.5pt;
         }
 
         .steps {
@@ -228,8 +230,9 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: space-evenly;
             min-height: 0;
+            padding: 0.4mm 0 0.6mm;
         }
 
         .steps li {
@@ -355,7 +358,7 @@
                     <h2>Kit</h2>
                     <ul class="kit">
                         <li data-n="1">Lenço com álcool isopropílico</li>
-                        <li data-n="2">Lente</li>
+                        <li data-n="2">Lente Sensor Tattoo Fix</li>
                         <li data-n="3">Vidro de potencializador</li>
                         <li data-n="4">Bastão aplicador</li>
                         <li data-n="5">Manual</li>
