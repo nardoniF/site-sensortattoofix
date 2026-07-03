@@ -90,6 +90,7 @@ const DEFAULT_CONFIG = {
   payments: {
     paypal: {
       internationalEnabled: true,
+      brazilEnabled: true,
       appLabel: ''
     },
     cardBr: {
@@ -1144,6 +1145,11 @@ function isInternationalPayPalAvailable(config) {
   return paypal.internationalEnabled !== false;
 }
 
+function isBrazilPayPalAvailable(config) {
+  const paypal = config.payments?.paypal || {};
+  return paypal.brazilEnabled !== false;
+}
+
 function isPixConfigValid(pix) {
   if (!pix) return false;
   const key = String(pix.key || '').trim();
@@ -1221,7 +1227,8 @@ function publicConfigView(config) {
     internationalProduct: config.internationalProduct || DEFAULT_CONFIG.internationalProduct,
     payments: {
       paypal: {
-        internationalEnabled: paypal.internationalEnabled !== false
+        internationalEnabled: paypal.internationalEnabled !== false,
+        brazilEnabled: paypal.brazilEnabled !== false
       },
       cardBr: {
         provider: getCardBrProvider(config)
@@ -4768,10 +4775,18 @@ async function handleCreateOrder(request, env, origin, ctx) {
     }
   } else {
     if (body.pagamento === 'PAYPAL') {
-      return json({ error: 'PayPal disponível apenas para envio internacional.' }, 400, origin);
+      if (!isBrazilPayPalAvailable(config)) {
+        return json({ error: 'PayPal temporariamente indisponível. Use PIX ou cartão.' }, 400, origin);
+      }
+      billingType = 'PAYPAL';
+      pagamentoLabel = 'PayPal';
+    } else if (body.pagamento === 'CARTAO') {
+      billingType = 'CREDIT_CARD';
+      pagamentoLabel = 'Cartão de crédito';
+    } else {
+      billingType = 'PIX';
+      pagamentoLabel = 'PIX';
     }
-    billingType = body.pagamento === 'CARTAO' ? 'CREDIT_CARD' : 'PIX';
-    pagamentoLabel = billingType === 'CREDIT_CARD' ? 'Cartão de crédito' : 'PIX';
   }
   const needsWatch = orderRequiresSmartwatch(items);
 

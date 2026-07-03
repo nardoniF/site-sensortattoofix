@@ -380,17 +380,21 @@
                     </fieldset>
 
                     <fieldset>
-                        <legend class="admin-legend-row"><span><i class="fab fa-paypal"></i> PayPal internacional</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-paypal" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <legend class="admin-legend-row"><span><i class="fab fa-paypal"></i> PayPal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-paypal" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-paypal" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>PayPal aparece no checkout para clientes com <strong>envio internacional</strong> (país ≠ Brasil).</p>
+                            <p>PayPal no checkout: <strong>Brasil</strong> (envio nacional) e <strong>internacional</strong> (país ≠ Brasil).</p>
                             <p><strong>Nome da conta:</strong> rótulo só no admin para identificar qual PayPal está conectado.</p>
                             <p><strong>Secrets no Worker:</strong> <code>PAYPAL_CLIENT_ID</code>, <code>PAYPAL_CLIENT_SECRET</code>, <code>PAYPAL_SANDBOX=false</code></p>
-                            <p><strong>Webhook:</strong> <code>/webhook/paypal</code></p>
+                            <p><strong>Webhook:</strong> <code>/webhook/paypal</code> — confirmação automática após pagamento.</p>
                         </div>
                         <div class="form-grid">
                             <label class="label-check admin-ship-enabled">
+                                <input type="checkbox" name="paypalBrEnabled" checked>
+                                <span>PayPal visível no checkout Brasil (PIX + cartão + PayPal)</span>
+                            </label>
+                            <label class="label-check admin-ship-enabled">
                                 <input type="checkbox" name="paypalIntlEnabled" checked>
-                                <span>PayPal internacional visível no checkout</span>
+                                <span>PayPal visível no checkout internacional</span>
                             </label>
                             <label>Nome da conta PayPal (só admin)
                                 <input type="text" name="paypalAppLabel" placeholder="Ex.: 3N20 — Live BR (contato@sensortattoofix.com.br)" maxlength="120">

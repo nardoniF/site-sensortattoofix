@@ -172,7 +172,7 @@ window.STF_I18N = (function () {
       'pay.paypalHint': 'Cartão, débito ou saldo PayPal',
       'pay.pixIntl': 'PIX',
       'pay.pixIntlHint': 'Para quem tem conta bancária no Brasil (mesmo morando fora)',
-      'pay.noticeBr': 'Após o pagamento, a confirmação é automática no site e por e-mail.',
+      'pay.noticeBr': 'Após o pagamento, a confirmação é automática no site e por e-mail. PIX, cartão ou PayPal.',
       'pay.noticeIntl': 'Valores em reais (BRL). Cartão internacional pelo Mercado Pago — como na Amazon, seu banco converte a moeda.',
       'pay.noticeIntlAll': 'Valores em reais (BRL). Cartão internacional (Mercado Pago) — seu banco converte. PayPal também disponível.',
       'pay.noticeIntlNoPaypal': 'Valores em reais (BRL). Cartão internacional (Visa/Mastercard) — seu banco converte.',

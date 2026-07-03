@@ -997,6 +997,11 @@
     return paypal.internationalEnabled !== false;
   }
 
+  function isPayPalBrAvailable() {
+    const paypal = cfg.payments?.paypal || {};
+    return paypal.brazilEnabled !== false;
+  }
+
   function isCardBrMercadoPago() {
     return cfg.payments?.cardBr?.provider === 'mercadopago';
   }
@@ -1010,22 +1015,26 @@
   }
 
   function updatePaymentOptionsForCountry() {
-    const paypalAvailable = isInternational && isPayPalIntlAvailable();
+    const paypalIntl = isInternational && isPayPalIntlAvailable();
+    const paypalBr = !isInternational && isPayPalBrAvailable();
     if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = isInternational;
     if (els.paymentOptionsIntl) els.paymentOptionsIntl.hidden = !isInternational;
     if (els.paymentNoticeBr) els.paymentNoticeBr.hidden = isInternational;
     if (els.paymentNoticeIntl) els.paymentNoticeIntl.hidden = !isInternational;
-    const paypalRow = els.paymentOptionsIntl?.querySelector('.payment-option-paypal');
-    if (paypalRow) paypalRow.hidden = !paypalAvailable;
+    const paypalIntlRow = els.paymentOptionsIntl?.querySelector('.payment-option-paypal');
+    if (paypalIntlRow) paypalIntlRow.hidden = !paypalIntl;
+    const paypalBrRow = els.paymentOptionsBr?.querySelector('.payment-option-paypal');
+    if (paypalBrRow) paypalBrRow.hidden = !paypalBr;
     els.paymentOptionsBr?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
-      r.disabled = isInternational;
+      const isPaypal = r.value === 'PAYPAL';
+      r.disabled = isInternational || (isPaypal && !paypalBr);
     });
     els.paymentOptionsIntl?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
       const isPaypal = r.value === 'PAYPAL';
-      r.disabled = !isInternational || (isPaypal && !paypalAvailable);
+      r.disabled = !isInternational || (isPaypal && !paypalIntl);
     });
     if (els.paymentNoticeIntl) {
-      const noticeKey = paypalAvailable ? 'pay.noticeIntlAll' : 'pay.noticeIntlNoPaypal';
+      const noticeKey = paypalIntl ? 'pay.noticeIntlAll' : 'pay.noticeIntlNoPaypal';
       els.paymentNoticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${L(noticeKey)}`;
     }
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
@@ -1033,7 +1042,7 @@
       const cardIntl = els.paymentOptionsIntl?.querySelector('input[value="CARTAO"]');
       const paypal = els.paymentOptionsIntl?.querySelector('input[value="PAYPAL"]');
       if (cardIntl) cardIntl.checked = true;
-      else if (paypalAvailable && paypal) paypal.checked = true;
+      else if (paypalIntl && paypal) paypal.checked = true;
     } else {
       const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
       if (pix) pix.checked = true;

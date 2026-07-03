@@ -1500,7 +1500,8 @@
   },
   "payments": {
     "paypal": {
-      "internationalEnabled": true
+      "internationalEnabled": true,
+      "brazilEnabled": true
     },
     "cardBr": {
       "provider": "asaas",

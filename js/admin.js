@@ -1857,6 +1857,7 @@ ${worksheets}
     if (f.apiBaseUrl) f.apiBaseUrl.value = (config.api && config.api.baseUrl) || bootstrap.configApiUrl || '';
     const paypalCfg = config.payments?.paypal || {};
     if (f.paypalIntlEnabled) f.paypalIntlEnabled.checked = paypalCfg.internationalEnabled !== false;
+    if (f.paypalBrEnabled) f.paypalBrEnabled.checked = paypalCfg.brazilEnabled !== false;
     if (f.paypalAppLabel) f.paypalAppLabel.value = paypalCfg.appLabel || '';
     const cardBrCfg = config.payments?.cardBr || {};
     if (f.cardBrProvider) {
@@ -2014,6 +2015,7 @@ ${worksheets}
       payments: {
         paypal: {
           internationalEnabled: f.paypalIntlEnabled?.checked !== false,
+          brazilEnabled: f.paypalBrEnabled?.checked !== false,
           appLabel: f.paypalAppLabel?.value.trim().slice(0, 120) || ''
         },
         cardBr: {
