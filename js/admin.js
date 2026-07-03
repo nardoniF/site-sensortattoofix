@@ -69,6 +69,7 @@
     if (target === 'frete') return els.statusFrete;
     if (target === 'contato') return els.statusContato;
     if (target === 'cliques') return document.getElementById('admin-status-cliques');
+    if (target === 'pesquisa') return document.getElementById('admin-status-pesquisa');
     return els.statusMsg;
   }
 
@@ -690,6 +691,8 @@
   let customersLoading = false;
   let clicksLoading = false;
   let clicksSearchTimer = null;
+  let feedbackLoading = false;
+  let feedbackSearchTimer = null;
   let clicksCache = [];
 
   const CLICK_DESTINO_LABELS = {
@@ -1402,6 +1405,102 @@ ${worksheets}
     clicksSearchTimer = setTimeout(() => loadClicks(), 350);
   }
 
+  function formatFeedbackDate(ts) {
+    if (!ts) return '—';
+    try {
+      return new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    } catch {
+      return '—';
+    }
+  }
+
+  function renderFeedbackList(items, total, checkedAt) {
+    const root = document.getElementById('feedback-list-root');
+    const checkedEl = document.getElementById('feedback-checked-at');
+    if (!root) return;
+    if (!items?.length) {
+      root.innerHTML = '<p class="admin-meta">Nenhuma resposta ainda.</p>';
+    } else {
+      root.innerHTML = items.map((row) => {
+        const sug = row.sugestao ? `<p class="feedback-item-sug"><strong>Sugestão:</strong> ${escapeHtml(row.sugestao)}</p>` : '';
+        const email = row.email ? `<p class="feedback-item-meta"><i class="fas fa-envelope"></i> ${escapeHtml(row.email)}</p>` : '';
+        return `<article class="feedback-item">
+          <header class="feedback-item-head">
+            <time datetime="${row.ts}">${escapeHtml(formatFeedbackDate(row.ts))}</time>
+            <span class="feedback-item-page">${escapeHtml(row.pagina || '—')}</span>
+          </header>
+          <p class="feedback-item-buscava">${escapeHtml(row.buscava || '')}</p>
+          ${sug}
+          <footer class="feedback-item-foot">
+            ${email}
+            <span>${escapeHtml([row.idioma, row.pais].filter(Boolean).join(' · ') || '')}</span>
+          </footer>
+        </article>`;
+      }).join('');
+    }
+    if (checkedEl) {
+      checkedEl.textContent = `Atualizado em ${formatFeedbackDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${items.length} de ${total} resposta(s)`;
+      checkedEl.hidden = false;
+    }
+  }
+
+  async function loadFeedback() {
+    const root = document.getElementById('feedback-list-root');
+    if (!root || feedbackLoading) return;
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      root.innerHTML = '<p class="admin-meta">Faça login no admin.</p>';
+      return;
+    }
+    const q = document.getElementById('feedback-search')?.value?.trim() || '';
+    feedbackLoading = true;
+    root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando…</p>';
+    try {
+      const params = new URLSearchParams({ limit: '100' });
+      if (q) params.set('q', q);
+      const res = await fetch(`${base}/admin/feedback?${params}`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao carregar pesquisa');
+      renderFeedbackList(data.feedback || [], data.total || 0, data.checkedAt);
+    } catch (err) {
+      root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+    } finally {
+      feedbackLoading = false;
+    }
+  }
+
+  function scheduleFeedbackReload() {
+    clearTimeout(feedbackSearchTimer);
+    feedbackSearchTimer = setTimeout(() => loadFeedback(), 350);
+  }
+
+  async function clearFeedback() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'pesquisa');
+      return;
+    }
+    if (!confirm('Apagar TODAS as respostas da pesquisa?\n\nNão dá para desfazer.')) return;
+    showStatus('Limpando…', '', 'pesquisa');
+    try {
+      const res = await fetch(`${base}/admin/feedback`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao limpar');
+      await loadFeedback();
+      showStatus(`${data.removed || 0} resposta(s) removida(s).`, 'success', 'pesquisa');
+    } catch (err) {
+      showStatus(err.message || 'Erro ao limpar.', 'error', 'pesquisa');
+    }
+  }
+
   function formatCustomerDate(iso) {
     if (!iso) return '—';
     try {
@@ -2093,6 +2192,7 @@ ${worksheets}
       if (id === 'api') loadIntegrationsStatus();
       if (id === 'clientes') loadCustomers();
       if (id === 'cliques') loadClicks();
+      if (id === 'pesquisa') loadFeedback();
       if (id === 'pedidos') {
         window.STF_PEDIDOS?.refresh?.().catch((err) => {
           const st = document.getElementById('pedidos-orders-status');
@@ -2338,6 +2438,9 @@ ${worksheets}
   document.getElementById('btn-clicks-clear-all')?.addEventListener('click', () => clearClicksLog('all'));
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
+  document.getElementById('btn-feedback-refresh')?.addEventListener('click', () => loadFeedback());
+  document.getElementById('btn-feedback-clear')?.addEventListener('click', () => clearFeedback());
+  document.getElementById('feedback-search')?.addEventListener('input', scheduleFeedbackReload);
 
   const EMAIL_TEST_LABELS = {
     generic: 'Simples',

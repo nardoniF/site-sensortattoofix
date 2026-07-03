@@ -16,6 +16,8 @@ const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
 const CLICKS_BLOB = 'clicks:blob';
 const CLICKS_MAX = 2500;
+const FEEDBACK_BLOB = 'feedback:blob';
+const FEEDBACK_MAX = 500;
 const CLICK_TTL_SEC = 90 * 86400;
 const CLICK_LOG_KEY_FALLBACK = 'stf_ck_7f3a9e2b1c';
 const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
@@ -5911,6 +5913,133 @@ async function handleAdminListClicks(request, env, origin) {
   }, 200, origin);
 }
 
+async function getFeedbackList(env) {
+  try {
+    const raw = await env.STORE_KV.get(FEEDBACK_BLOB);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveFeedbackList(env, list) {
+  await env.STORE_KV.put(FEEDBACK_BLOB, JSON.stringify(list));
+}
+
+async function appendFeedback(env, entry) {
+  const row = { id: crypto.randomUUID(), ts: Date.now(), ...entry };
+  let list = await getFeedbackList(env);
+  list.unshift(row);
+  if (list.length > FEEDBACK_MAX) list.length = FEEDBACK_MAX;
+  await saveFeedbackList(env, list);
+  return row;
+}
+
+async function checkFeedbackRate(env, ip) {
+  if (!ip || ip === 'unknown') return true;
+  const hour = Math.floor(Date.now() / 3600000);
+  const cache = caches.default;
+  const req = new Request(`https://stf-feedback-rate/${encodeURIComponent(ip)}/${hour}`);
+  const hit = await cache.match(req);
+  const n = (hit ? parseInt(await hit.text(), 10) || 0 : 0) + 1;
+  if (n > 12) return false;
+  await cache.put(req, new Response(String(n), { headers: { 'Cache-Control': 'max-age=7200' } }));
+  return true;
+}
+
+function feedbackField(data, key, maxLen) {
+  return String(data?.[key] ?? '').trim().slice(0, maxLen);
+}
+
+async function handleFeedback(request, env, origin) {
+  if (!isAllowedSiteRequest(request)) {
+    return json({ error: 'Origem não permitida.' }, 403, origin);
+  }
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') {
+    return json({ error: 'Payload inválido.' }, 400, origin);
+  }
+
+  const buscava = feedbackField(body, 'buscava', 800);
+  if (buscava.length < 8) {
+    return json({ error: 'Descreva o que procurava (mín. 8 caracteres).' }, 400, origin);
+  }
+
+  const ip = clientIp(request);
+  if (!(await checkFeedbackRate(env, ip))) {
+    return json({ error: 'Muitas respostas em pouco tempo. Tente mais tarde.' }, 429, origin);
+  }
+
+  const paisCf = (request.headers.get('CF-IPCountry') || '').trim();
+  const entry = {
+    buscava,
+    sugestao: feedbackField(body, 'sugestao', 800),
+    email: feedbackField(body, 'email', 120),
+    pagina: feedbackField(body, 'pagina', 200),
+    titulo_pagina: feedbackField(body, 'titulo_pagina', 120),
+    idioma: feedbackField(body, 'idioma', 24),
+    referrer: feedbackField(body, 'referrer', 200),
+    pais: paisCf,
+    ip: ip !== 'unknown' ? ip : ''
+  };
+
+  try {
+    await appendFeedback(env, entry);
+  } catch (err) {
+    console.error('feedback save:', err.message);
+    return json({ error: 'Falha ao gravar.' }, 503, origin);
+  }
+
+  const config = await getConfig(env);
+  const when = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  notifyShop(env, config, 'Pesquisa site — o que faltou', {
+    'Procurava': buscava,
+    'Sugestão': entry.sugestao || '—',
+    'E-mail visitante': entry.email || '—',
+    'Página': entry.pagina || '—',
+    'Idioma': entry.idioma || '—',
+    'Referrer': entry.referrer || '—',
+    'País': entry.pais || '—',
+    'Quando': when
+  }).catch(() => {});
+
+  return json({ ok: true }, 202, origin);
+}
+
+async function handleAdminListFeedback(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  const q = (url.searchParams.get('q') || '').trim().toLowerCase();
+  const limit = Math.min(200, Math.max(20, parseInt(url.searchParams.get('limit') || '100', 10) || 100));
+  const loaded = await getFeedbackList(env);
+  let items = loaded;
+  if (q) {
+    items = loaded.filter((row) => {
+      const hay = [row.buscava, row.sugestao, row.email, row.pagina, row.idioma, row.pais].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  return json({
+    feedback: items.slice(0, limit),
+    total: loaded.length,
+    checkedAt: new Date().toISOString()
+  }, 200, origin);
+}
+
+async function handleAdminClearFeedback(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const list = await getFeedbackList(env);
+  const removed = list.length;
+  await saveFeedbackList(env, []);
+  return json({ ok: true, removed }, 200, origin);
+}
+
 async function handleTestEmail(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -6271,6 +6400,15 @@ export default {
       if ((path === '/admin/clicks/clear' && request.method === 'POST') ||
         (path === '/admin/clicks' && request.method === 'DELETE')) {
         return handleAdminClearClicks(request, env, origin);
+      }
+      if (path === '/feedback' && request.method === 'POST') {
+        return handleFeedback(request, env, origin);
+      }
+      if (path === '/admin/feedback' && request.method === 'GET') {
+        return handleAdminListFeedback(request, env, origin);
+      }
+      if (path === '/admin/feedback' && request.method === 'DELETE') {
+        return handleAdminClearFeedback(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);

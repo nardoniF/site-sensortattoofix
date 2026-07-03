@@ -591,6 +591,58 @@ html[lang="it"] .nav-actions { gap: 6px; }
 .contact-form { display: flex; flex-direction: column; gap: 14px; }
 .contact-form input, .contact-form textarea { padding: 12px; background: #0a0a0a; border: 1px solid #333; color: white; border-radius: 8px; font-size: 0.95rem; width: 100%; }
 .contact-form button { cursor: pointer; border: none; }
+
+/* Pesquisa / feedback do visitante */
+.stf-feedback-fab {
+    position: fixed; left: 24px; bottom: 40px; z-index: 1000;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 16px; border-radius: 999px; border: 1px solid #333;
+    background: rgba(18, 18, 18, 0.96); color: #f5f5f5; font-size: 0.88rem;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.45); cursor: pointer; transition: 0.2s;
+}
+.stf-feedback-fab:hover { border-color: #c9a227; color: #fff; }
+.stf-feedback-fab i { color: #c9a227; font-size: 1.1rem; }
+.stf-feedback-overlay {
+    position: fixed; inset: 0; z-index: 1002; background: rgba(0,0,0,0.72);
+}
+.stf-feedback-dialog {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    z-index: 1003; width: min(92vw, 480px); max-height: 90vh; overflow: auto;
+    background: #111; border: 1px solid #333; border-radius: 14px; padding: 24px 22px 22px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+}
+.stf-feedback-dialog h2 { margin: 0 0 8px; font-size: 1.25rem; color: #fff; }
+.stf-feedback-intro { margin: 0 0 18px; color: #aaa; font-size: 0.92rem; line-height: 1.45; }
+.stf-feedback-close {
+    position: absolute; top: 12px; right: 12px; width: 36px; height: 36px;
+    border: none; border-radius: 8px; background: transparent; color: #888; cursor: pointer;
+}
+.stf-feedback-close:hover { color: #fff; background: #222; }
+.stf-feedback-form { display: flex; flex-direction: column; gap: 14px; }
+.stf-feedback-field { display: flex; flex-direction: column; gap: 6px; }
+.stf-feedback-field span { font-size: 0.88rem; color: #ccc; }
+.stf-feedback-field textarea,
+.stf-feedback-field input {
+    padding: 11px 12px; background: #0a0a0a; border: 1px solid #333; color: #fff;
+    border-radius: 8px; font-size: 0.95rem; width: 100%; font-family: inherit; resize: vertical;
+}
+.stf-feedback-field textarea:focus,
+.stf-feedback-field input:focus { outline: none; border-color: #c9a227; }
+.stf-feedback-submit { width: 100%; margin-top: 4px; }
+.stf-feedback-status { margin: 0; font-size: 0.9rem; }
+.stf-feedback-status--ok { color: #6dd47e; }
+.stf-feedback-status--err { color: #f07178; }
+body.stf-feedback-open { overflow: hidden; }
+.footer-feedback-link { margin-top: 12px; }
+.footer-feedback-link button {
+    background: none; border: none; color: #c9a227; cursor: pointer; font-size: 0.9rem;
+    text-decoration: underline; padding: 0;
+}
+@media (max-width: 640px) {
+    .stf-feedback-fab { left: 16px; bottom: 24px; padding: 10px 12px; }
+    .stf-feedback-fab-label { display: none; }
+    .whatsapp-float { bottom: 24px; right: 16px; width: 52px; height: 52px; font-size: 28px; }
+}
 .btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
 
 #onde-comprar {
@@ -2800,6 +2852,24 @@ body.admin-page.pedidos-login-only #pedidos-login {
     max-height: min(70vh, 720px);
     overflow: auto;
 }
+.feedback-list-root {
+    display: flex; flex-direction: column; gap: 12px;
+    max-height: min(70vh, 720px); overflow: auto;
+}
+.feedback-item {
+    border: 1px solid #2a2a2a; border-radius: 12px; background: #141414; padding: 14px 16px;
+}
+.feedback-item-head {
+    display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between;
+    font-size: 0.82rem; color: #888; margin-bottom: 10px;
+}
+.feedback-item-page { color: #c9a227; word-break: break-all; }
+.feedback-item-buscava { margin: 0 0 8px; color: #f0f0f0; line-height: 1.45; white-space: pre-wrap; }
+.feedback-item-sug { margin: 0 0 8px; color: #bbb; font-size: 0.92rem; line-height: 1.4; white-space: pre-wrap; }
+.feedback-item-foot {
+    display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 0.82rem; color: #777;
+}
+.feedback-item-meta { margin: 0; }
 .clicks-tree { display: flex; flex-direction: column; gap: 6px; }
 .clicks-tree-node {
     border: 1px solid #252525;

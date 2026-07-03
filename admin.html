@@ -79,6 +79,7 @@
                     <button type="button" role="tab" class="admin-tab active" data-admin-tab="pedidos" aria-selected="true" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Clientes</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="pesquisa" aria-selected="false" aria-controls="admin-tab-pesquisa"><i class="fas fa-comment-dots"></i> Pesquisa</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="produtos" aria-selected="false" aria-controls="admin-tab-produtos"><i class="fas fa-box"></i> Produtos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pagamento" aria-selected="false" aria-controls="admin-tab-pagamento"><i class="fas fa-credit-card"></i> Pagamento</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="frete" aria-selected="false" aria-controls="admin-tab-frete"><i class="fas fa-truck"></i> Frete</button>
@@ -701,6 +702,31 @@
                     </fieldset>
                     </div>
 
+                    <div id="admin-tab-pesquisa" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-comment-dots"></i> Pesquisa — o que faltou no site</span></legend>
+                        <p class="admin-meta">Respostas do botão <strong>Sugestões</strong> no site (visitantes dizem o que procuravam e o que faltou).</p>
+                        <div class="admin-clicks-filters">
+                            <label class="admin-clicks-search">
+                                <input type="search" id="feedback-search" placeholder="Buscar nas respostas…" autocomplete="off" aria-label="Buscar pesquisa">
+                            </label>
+                        </div>
+                        <div class="admin-clicks-toolbar admin-toolbar-split">
+                            <div class="admin-toolbar-main">
+                                <button type="button" id="btn-feedback-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                            </div>
+                            <div class="admin-toolbar-risk">
+                                <button type="button" id="btn-feedback-clear" class="btn-danger-outline" title="Apaga todas as respostas"><i class="fas fa-trash-alt"></i> Limpar tudo</button>
+                            </div>
+                        </div>
+                        <p id="admin-status-pesquisa" class="admin-status form-status" hidden></p>
+                        <p id="feedback-checked-at" class="admin-meta" hidden></p>
+                        <div id="feedback-list-root" class="feedback-list-root">
+                            <p class="admin-meta">Abra esta aba para carregar as respostas.</p>
+                        </div>
+                    </fieldset>
+                    </div>
+
                     <div id="admin-tab-clientes" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-users"></i> Clientes cadastrados</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-clientes" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
@@ -748,6 +774,6 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=7"></script>
     <script src="js/pedidos.js?v=16"></script>
-    <script src="js/admin.js?v=84"></script>
+    <script src="js/admin.js?v=85"></script>
 </body>
 </html>

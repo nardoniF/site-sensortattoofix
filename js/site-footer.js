@@ -20,6 +20,7 @@ window.STF_FOOTER = (function () {
     pt: {
       socialTitle: 'Siga nossas redes oficiais',
       faq: 'FAQ',
+      feedback: 'O que faltou no site?',
       patentLinePrefix: 'Patente Nacional',
       patentLineJoin: 'Internacional',
       rights: 'Todos os direitos reservados.'
@@ -27,6 +28,7 @@ window.STF_FOOTER = (function () {
     en: {
       socialTitle: 'Follow our official channels',
       faq: 'FAQ',
+      feedback: 'What was missing?',
       patentLinePrefix: 'National Patent',
       patentLineJoin: 'International',
       rights: 'All rights reserved.'
@@ -34,6 +36,7 @@ window.STF_FOOTER = (function () {
     it: {
       socialTitle: 'Segui i nostri canali ufficiali',
       faq: 'FAQ',
+      feedback: 'Cosa mancava sul sito?',
       patentLinePrefix: 'Brevetto nazionale',
       patentLineJoin: 'Internazionale',
       rights: 'Tutti i diritti riservati.'
@@ -87,6 +90,7 @@ window.STF_FOOTER = (function () {
         <h4>${s.socialTitle}</h4>
         <div class="social-icons-footer">${links}</div>
         <div class="footer-faq-link"><a href="${faqHref}">${s.faq}</a></div>
+        <div class="footer-feedback-link"><button type="button" class="stf-feedback-trigger">${s.feedback}</button></div>
       </div>
     `;
   }
@@ -101,6 +105,9 @@ window.STF_FOOTER = (function () {
 
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-site-footer]').forEach(render);
+    document.querySelectorAll('.stf-feedback-trigger').forEach((btn) => {
+      btn.addEventListener('click', () => window.STF_FEEDBACK?.open?.());
+    });
   });
 
   return { INFO, render };
