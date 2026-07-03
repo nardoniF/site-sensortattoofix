@@ -1418,26 +1418,55 @@ ${worksheets}
     const root = document.getElementById('feedback-list-root');
     const checkedEl = document.getElementById('feedback-checked-at');
     if (!root) return;
+
     if (!items?.length) {
-      root.innerHTML = '<p class="admin-meta">Nenhuma resposta ainda.</p>';
+      root.innerHTML = '<div class="feedback-empty"><i class="fas fa-inbox" aria-hidden="true"></i><p>Nenhuma resposta ainda.</p><span>Quando visitantes usarem <strong>Sugestões</strong> no site, aparecem aqui.</span></div>';
     } else {
-      root.innerHTML = items.map((row) => {
-        const sug = row.sugestao ? `<p class="feedback-item-sug"><strong>Sugestão:</strong> ${escapeHtml(row.sugestao)}</p>` : '';
-        const email = row.email ? `<p class="feedback-item-meta"><i class="fas fa-envelope"></i> ${escapeHtml(row.email)}</p>` : '';
-        return `<article class="feedback-item">
-          <header class="feedback-item-head">
-            <time datetime="${row.ts}">${escapeHtml(formatFeedbackDate(row.ts))}</time>
-            <span class="feedback-item-page">${escapeHtml(row.pagina || '—')}</span>
+      const statsHtml = `<div class="feedback-stats-bar">
+        <div class="feedback-stat"><span class="feedback-stat-num">${total}</span><span class="feedback-stat-label">resposta${total === 1 ? '' : 's'} no total</span></div>
+        <div class="feedback-stat"><span class="feedback-stat-num">${items.length}</span><span class="feedback-stat-label">exibida${items.length === 1 ? '' : 's'}</span></div>
+      </div>`;
+
+      const cardsHtml = items.map((row) => {
+        const paginaLabel = humanizarPaginaLog(row.pagina) || row.pagina || '—';
+        const paginaRaw = row.pagina ? `<span class="feedback-card-path" title="${escapeHtml(row.pagina)}">${escapeHtml(row.pagina)}</span>` : '';
+        const sug = row.sugestao
+          ? `<div class="feedback-card-block feedback-card-block--sug">
+              <span class="feedback-card-label"><i class="fas fa-lightbulb" aria-hidden="true"></i> Sugestão</span>
+              <p>${escapeHtml(row.sugestao)}</p>
+            </div>`
+          : '';
+        const email = row.email
+          ? `<a class="feedback-card-email" href="mailto:${escapeHtml(row.email)}"><i class="fas fa-envelope" aria-hidden="true"></i> ${escapeHtml(row.email)}</a>`
+          : '<span class="feedback-card-anon"><i class="fas fa-user-secret" aria-hidden="true"></i> Anônimo</span>';
+        const pills = [
+          row.idioma ? `<span class="feedback-pill">${escapeHtml(String(row.idioma).toUpperCase())}</span>` : '',
+          row.pais ? `<span class="feedback-pill feedback-pill--geo">${escapeHtml(row.pais)}</span>` : ''
+        ].filter(Boolean).join('');
+
+        return `<article class="feedback-card">
+          <header class="feedback-card-top">
+            <div class="feedback-card-top-main">
+              <span class="feedback-card-badge"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ${escapeHtml(paginaLabel)}</span>
+              ${paginaRaw}
+            </div>
+            <time class="feedback-card-time" datetime="${row.ts}">${escapeHtml(formatFeedbackDate(row.ts))}</time>
           </header>
-          <p class="feedback-item-buscava">${escapeHtml(row.buscava || '')}</p>
+          <div class="feedback-card-block feedback-card-block--primary">
+            <span class="feedback-card-label"><i class="fas fa-search" aria-hidden="true"></i> Procurava</span>
+            <p>${escapeHtml(row.buscava || '')}</p>
+          </div>
           ${sug}
-          <footer class="feedback-item-foot">
+          <footer class="feedback-card-foot">
             ${email}
-            <span>${escapeHtml([row.idioma, row.pais].filter(Boolean).join(' · ') || '')}</span>
+            <div class="feedback-card-pills">${pills}</div>
           </footer>
         </article>`;
       }).join('');
+
+      root.innerHTML = statsHtml + `<div class="feedback-cards">${cardsHtml}</div>`;
     }
+
     if (checkedEl) {
       checkedEl.textContent = `Atualizado em ${formatFeedbackDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${items.length} de ${total} resposta(s)`;
       checkedEl.hidden = false;
