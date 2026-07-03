@@ -1035,8 +1035,12 @@
       if (cardIntl) cardIntl.checked = true;
       else if (paypalAvailable && paypal) paypal.checked = true;
     } else {
-      const card = els.paymentOptionsBr?.querySelector('input[value="CARTAO"]');
-      if (card) card.checked = true;
+      const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
+      if (pix) pix.checked = true;
+      else {
+        const card = els.paymentOptionsBr?.querySelector('input[value="CARTAO"]');
+        if (card) card.checked = true;
+      }
     }
     updateCardBrPaymentHint();
     updateCpfLabel();
@@ -1627,7 +1631,11 @@
 
   async function processPayment() {
     const pagamento = els.form.querySelector('[name=pagamento]:checked')?.value;
-    if (!pagamento || pagamento === 'PIX') {
+    if (!pagamento) {
+      alert(L('alert.paymentPick'));
+      return;
+    }
+    if (isInternational && pagamento === 'PIX') {
       alert(L('alert.paymentPick'));
       return;
     }
@@ -1638,7 +1646,7 @@
       const wantsIntlCard = isInternational && orderData.pagamento === 'CARTAO';
       const wantsCardBr = !isInternational && orderData.pagamento === 'CARTAO';
       const wantsPaypal = orderData.pagamento === 'PAYPAL';
-      lastPaymentMethod = wantsPaypal ? 'paypal' : 'credit_card';
+      lastPaymentMethod = wantsPaypal ? 'paypal' : ((wantsCardBr || wantsIntlCard) ? 'credit_card' : 'pix');
       const result = await createOrder(orderData);
       const total = result.order?.total || (cartSubtotal() + orderData.frete);
       const orderSnapshot = {
@@ -1711,14 +1719,26 @@
           `<i class="fas fa-spinner fa-spin"></i> ${L('status.cardWindow')}`;
         try { window.open(payment.invoiceUrl, '_blank', 'noopener,noreferrer'); } catch (_) { /* link visível no botão */ }
       } else {
-        throw new Error(L('alert.paymentPick'));
+        renderPix(orderId, total, payment);
+        if (payment.autoConfirm) {
+          els.paymentStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${L('status.waitPix')}`;
+        } else {
+          const wa = (cfg.whatsapp || '5511913394665').replace(/\D/g, '');
+          const waText = encodeURIComponent(L('status.pixWhatsappText', { id: orderId, total: formatBRL(total) }));
+          els.paymentStatus.innerHTML =
+            `<p><strong>${L('status.pixRegistered', { id: orderId })}</strong></p>` +
+            `<p>${L('status.pixManualHint')}</p>` +
+            `<p><a class="btn-whatsapp-proof" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">` +
+            `<i class="fab fa-whatsapp"></i> ${L('status.pixWhatsapp')}</a></p>` +
+            `<p class="payment-hint-small">${L('status.pixManualConfirm')}</p>`;
+        }
       }
 
       trackGa('pedido_criado', {
         pedido: orderId,
         valor: total,
         moeda: 'BRL',
-        pagamento: lastPaymentMethod === 'paypal' ? 'paypal' : 'cartao'
+        pagamento: lastPaymentMethod === 'paypal' ? 'paypal' : (lastPaymentMethod === 'credit_card' ? 'cartao' : 'pix')
       });
 
       if (accessToken) startPolling(orderId, accessToken, total);
