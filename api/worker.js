@@ -5673,19 +5673,29 @@ function isTestClick(row) {
   if (row?.teste === true || row?.is_test === true) return true;
 
   const vid = String(row.visitante_id || '').toLowerCase();
-  const rotulo = String(row.rotulo || '').toLowerCase();
-  const destino = String(row.destino || '').toLowerCase();
-  const secao = String(row.secao || '').toLowerCase();
-  const pagina = String(row.pagina || '').toLowerCase();
+  const parts = [
+    vid,
+    row.rotulo,
+    row.destino,
+    row.destino_label,
+    row.secao,
+    row.secao_label,
+    row.pagina,
+    row.elemento,
+    row.sessao_visita,
+    row.referrer
+  ].map((s) => String(s || '').toLowerCase());
 
-  if (/(^|_)test|test_|^v_test|^test_|diag|proxy|_check|live_test|^v_fn$|^v_key|^admin_panel|^admin_/.test(vid)) {
+  if (/^v_fix|^v_test|^v_key|^v_fn\b|^admin_panel|^admin_|(^|_)test|test_|diag|proxy|_check|live_test/.test(vid)) {
     return true;
   }
-  if (/\bteste\b|diagnost|diagnostic|proxy pos|pos deploy|test diag|teste sem|\bdiag\b/.test(rotulo)) {
+
+  const hay = parts.join(' ');
+  if (/\bteste\b|\btest\b|diagnost|\bdiag\b|proxy pos|pos deploy|pos-fix|pos fix|\bverify\b|admin_teste|test_diag|_check|live_test/.test(hay)) {
     return true;
   }
-  if (/admin_teste|test_diag|_teste|_test\b|^test\b|teste/.test(destino)) return true;
-  if (secao === 'admin' || pagina.includes('admin.html')) return true;
+
+  if (parts[4] === 'admin' || (parts[6] || '').includes('admin.html')) return true;
 
   return false;
 }
