@@ -5649,7 +5649,8 @@ function buildClickEntry(data, request) {
     origem_trafego_label: clickField(data, 'origem_trafego_label', 80),
     utm_source: clickField(data, 'utm_source', 48),
     utm_medium: clickField(data, 'utm_medium', 32),
-    utm_campaign: clickField(data, 'utm_campaign', 64)
+    utm_campaign: clickField(data, 'utm_campaign', 64),
+    teste: data?.teste === true || data?.teste === 'true' || data?.is_test === true || data?.is_test === 'true'
   };
 }
 
@@ -5669,10 +5670,23 @@ async function persistClickLog(env, entry) {
 }
 
 function isTestClick(row) {
+  if (row?.teste === true || row?.is_test === true) return true;
+
   const vid = String(row.visitante_id || '').toLowerCase();
   const rotulo = String(row.rotulo || '').toLowerCase();
-  if (/(^|_)test|test_|^v_test|^test_|diag|proxy|_check|live_test|^v_fn$|^v_key/i.test(vid)) return true;
-  if (/\bteste\b|diagnost|diagnostic|proxy pos|pos deploy|test diag|teste sem/i.test(rotulo)) return true;
+  const destino = String(row.destino || '').toLowerCase();
+  const secao = String(row.secao || '').toLowerCase();
+  const pagina = String(row.pagina || '').toLowerCase();
+
+  if (/(^|_)test|test_|^v_test|^test_|diag|proxy|_check|live_test|^v_fn$|^v_key|^admin_panel|^admin_/.test(vid)) {
+    return true;
+  }
+  if (/\bteste\b|diagnost|diagnostic|proxy pos|pos deploy|test diag|teste sem|\bdiag\b/.test(rotulo)) {
+    return true;
+  }
+  if (/admin_teste|test_diag|_teste|_test\b|^test\b|teste/.test(destino)) return true;
+  if (secao === 'admin' || pagina.includes('admin.html')) return true;
+
   return false;
 }
 
@@ -6233,7 +6247,8 @@ export default {
       if (path === '/admin/clicks' && request.method === 'GET') {
         return handleAdminListClicks(request, env, origin);
       }
-      if (path === '/admin/clicks' && request.method === 'DELETE') {
+      if ((path === '/admin/clicks/clear' && request.method === 'POST') ||
+        (path === '/admin/clicks' && request.method === 'DELETE')) {
         return handleAdminClearClicks(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {

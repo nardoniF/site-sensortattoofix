@@ -1273,8 +1273,8 @@ ${worksheets}
 
     showStatus(isAll ? 'Limpando histórico…' : 'Removendo testes…', '', 'cliques');
     try {
-      const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks`, {
-        method: 'DELETE',
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks/clear`, {
+        method: 'POST',
         headers: {
           Authorization: 'Bearer ' + token,
           'Content-Type': 'application/json'
@@ -1284,12 +1284,15 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao limpar log');
       clicksCache = [];
-      await loadClicks();
+      await loadClicks(true);
+      const removed = data.removed || 0;
       showStatus(
         isAll
-          ? `Histórico apagado (${data.removed || 0} evento${data.removed === 1 ? '' : 's'}).`
-          : `${data.removed || 0} teste(s) removido(s). Restam ${data.remaining ?? '—'} eventos.`,
-        'success',
+          ? `Histórico apagado (${removed} evento${removed === 1 ? '' : 's'}).`
+          : removed
+            ? `${removed} teste(s) removido(s). Restam ${data.remaining ?? '—'} eventos.`
+            : 'Nenhum evento de teste encontrado no log.',
+        removed || isAll ? 'success' : '',
         'cliques'
       );
     } catch (err) {
@@ -1328,6 +1331,7 @@ ${worksheets}
     try {
       const body = {
         log_key: bootstrap.clickLogKey || '',
+        teste: true,
         tipo: 'clique',
         destino: 'admin_teste',
         rotulo: 'Teste do admin',
