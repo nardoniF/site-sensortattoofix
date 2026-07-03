@@ -1268,10 +1268,10 @@ ${worksheets}
     const isAll = mode === 'all';
     const msg = isAll
       ? 'Apagar TODO o histórico de cliques e visitas?\n\nNão dá para desfazer.'
-      : 'Remover só eventos de teste (diagnóstico, curl, etc.)?\n\nVisitas reais são mantidas.';
+      : 'Remover tudo que não for visita real do site (testes, curl, admin, diagnósticos)?\n\nSó ficam cliques de visitantes reais com ID do navegador.';
     if (!confirm(msg)) return;
 
-    showStatus(isAll ? 'Limpando histórico…' : 'Removendo testes…', '', 'cliques');
+    showStatus(isAll ? 'Limpando histórico…' : 'Removendo eventos não reais…', '', 'cliques');
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks/clear`, {
         method: 'POST',
@@ -1290,8 +1290,8 @@ ${worksheets}
         isAll
           ? `Histórico apagado (${removed} evento${removed === 1 ? '' : 's'}).`
           : removed
-            ? `${removed} teste(s) removido(s). Restam ${data.remaining ?? '—'} eventos.`
-            : 'Nenhum evento de teste encontrado no log.',
+            ? `${removed} evento(s) não real(is) removido(s). Restam ${data.remaining ?? '—'} visitas reais.`
+            : 'Nenhum evento artificial encontrado — o log já contém só visitas reais.',
         removed || isAll ? 'success' : '',
         'cliques'
       );

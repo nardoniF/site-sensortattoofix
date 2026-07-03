@@ -5669,35 +5669,46 @@ async function persistClickLog(env, entry) {
   await appendClickLog(env, entry);
 }
 
-function isTestClick(row) {
-  if (row?.teste === true || row?.is_test === true) return true;
+const REAL_VISITOR_UUID = /^v_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REAL_VISITOR_TS = /^v_\d{10,13}$/;
 
-  const vid = String(row.visitante_id || '').toLowerCase();
-  const parts = [
-    vid,
-    row.rotulo,
-    row.destino,
-    row.destino_label,
-    row.secao,
-    row.secao_label,
-    row.pagina,
-    row.elemento,
-    row.sessao_visita,
-    row.referrer
-  ].map((s) => String(s || '').toLowerCase());
-
-  if (/^v_fix|^v_test|^v_key|^v_fn\b|^admin_panel|^admin_|(^|_)test|test_|diag|proxy|_check|live_test/.test(vid)) {
-    return true;
-  }
-
-  const hay = parts.join(' ');
-  if (/\bteste\b|\btest\b|diagnost|\bdiag\b|proxy pos|pos deploy|pos-fix|pos fix|\bverify\b|admin_teste|test_diag|_check|live_test/.test(hay)) {
-    return true;
-  }
-
-  if (parts[4] === 'admin' || (parts[6] || '').includes('admin.html')) return true;
-
+function isRealVisitorId(vid) {
+  const v = String(vid || '').trim();
+  if (!v) return false;
+  if (REAL_VISITOR_UUID.test(v)) return true;
+  if (REAL_VISITOR_TS.test(v)) return true;
   return false;
+}
+
+/** Só tráfego real: visitante gerado pelo analytics.js no site público. */
+function isRealClick(row) {
+  if (!row || typeof row !== 'object') return false;
+  if (row.teste === true || row.is_test === true) return false;
+
+  const vid = String(row.visitante_id || '').trim();
+  if (!isRealVisitorId(vid)) return false;
+  if (/^v_(fix|test|key|fn|diag|check|proxy|admin)/i.test(vid)) return false;
+
+  const pagina = String(row.pagina || '').toLowerCase();
+  if (/admin\.html|\/admin|documentacao|pedidos\.html|imprimir-etiqueta/.test(pagina)) return false;
+
+  const sessao = String(row.sessao_visita || '').toLowerCase();
+  if (/^admin_|^s_test|^test_/.test(sessao)) return false;
+
+  const hay = [
+    row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
+    row.elemento, row.referrer
+  ].map((s) => String(s || '').toLowerCase()).join(' ');
+
+  if (/\b(teste|test|diag|verify|proxy|deploy)\b|admin_teste|test_diag|pos-fix|pos fix|live_test|admin_panel/.test(hay)) {
+    return false;
+  }
+
+  return true;
+}
+
+function isTestClick(row) {
+  return !isRealClick(row);
 }
 
 async function handleAdminClearClicks(request, env, origin) {
