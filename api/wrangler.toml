@@ -26,7 +26,8 @@ ADMIN_USERNAME = "admin"
 # STORE_URL            — opcional: https://www.sensortattoofix.com.br (retorno PayPal)
 # CORREIOS_USER        — usuário API Correios (Meu Correios)
 # CORREIOS_PASSWORD    — código de acesso API Correios
-# CORREIOS_CONTRACT    — número do contrato/cartão postagem (opcional)
+# CORREIOS_CONTRACT             — cartão de postagem (10 dígitos)
+# CORREIOS_COMMERCIAL_CONTRACT  — contrato comercial (ex.: 9912752041)
 # RESEND_API_KEY       — e-mails com remetente profissional (resend.com, grátis até 3k/mês)
 # EMAIL_FROM           — opcional: Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>
 # GA4_API_SECRET       — secret do Measurement Protocol (GA4 → Fluxos de dados → seu site)

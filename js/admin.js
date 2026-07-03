@@ -44,14 +44,19 @@
 
   let currentConfig = null;
 
+  const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
+
+  function resolveApiBaseUrl(raw) {
+    const canonical = (bootstrap.configApiUrl || 'https://api.sensortattoofix.com.br').replace(/\/$/, '');
+    const url = String(raw || '').trim().replace(/\/$/, '');
+    if (!url || url === LEGACY_API_BASE) return canonical;
+    return url;
+  }
+
   function apiBase() {
     const loggedIn = !!sessionStorage.getItem(SESSION_KEY);
-    const url = (
-      (loggedIn && els.configForm?.apiBaseUrl?.value) ||
-      bootstrap.configApiUrl ||
-      ''
-    ).trim();
-    return url.replace(/\/$/, '');
+    const raw = (loggedIn && els.configForm?.apiBaseUrl?.value) || bootstrap.configApiUrl || '';
+    return resolveApiBaseUrl(raw);
   }
 
   function escapeHtml(s) {
@@ -1854,7 +1859,9 @@ ${worksheets}
     if (f.emailPixGreeting) f.emailPixGreeting.value = emails.pixGreeting || '';
     if (f.emailPixIntro) f.emailPixIntro.value = emails.pixIntro || '';
     if (f.emailPixFooter) f.emailPixFooter.value = emails.pixFooter || '';
-    if (f.apiBaseUrl) f.apiBaseUrl.value = (config.api && config.api.baseUrl) || bootstrap.configApiUrl || '';
+    if (f.apiBaseUrl) {
+      f.apiBaseUrl.value = resolveApiBaseUrl((config.api && config.api.baseUrl) || bootstrap.configApiUrl || '');
+    }
     const paypalCfg = config.payments?.paypal || {};
     if (f.paypalIntlEnabled) f.paypalIntlEnabled.checked = paypalCfg.internationalEnabled !== false;
     if (f.paypalBrEnabled) f.paypalBrEnabled.checked = paypalCfg.brazilEnabled !== false;

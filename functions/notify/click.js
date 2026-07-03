@@ -1,4 +1,4 @@
-const WORKER_CLICK_URL = 'https://sensortattoofix-payments.sensortattoofix.workers.dev/notify/click';
+const WORKER_CLICK_URL = 'https://api.sensortattoofix.com.br/notify/click';
 
 async function proxyClick(request) {
   const body = await request.text();

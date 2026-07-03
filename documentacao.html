@@ -125,6 +125,7 @@
                             <tr><td><code>CORREIOS_USER</code></td><td>Usuário Meu Correios (CNPJ sem pontuação)</td></tr>
                             <tr><td><code>CORREIOS_PASSWORD</code></td><td>Código gerado no CWS — <strong>não</strong> é a senha do site</td></tr>
                             <tr><td><code>CORREIOS_CONTRACT</code></td><td>Cartão de postagem (10 dígitos) — Correios Empresas</td></tr>
+                            <tr><td><code>CORREIOS_COMMERCIAL_CONTRACT</code></td><td>Contrato comercial (ex.: <code>9912752041</code>) — Empresas → Meus Contratos</td></tr>
                             <tr><td><code>RESEND_API_KEY</code></td><td>resend.com → API Keys</td></tr>
                             <tr><td><code>EMAIL_FROM</code></td><td>Opcional: remetente dos e-mails</td></tr>
                             <tr><td><code>ZAPI_INSTANCE_ID</code></td><td>z-api.io → instância</td></tr>
@@ -174,12 +175,13 @@
                 <section id="correios" class="admin-doc-section">
                     <h2>Correios — passo a passo</h2>
                     <ol class="admin-doc-list admin-doc-steps">
-                        <li>Cadastro <a href="https://meucorreios.correios.com.br" target="_blank" rel="noopener">Meu Correios</a> com CNPJ da 3N20.</li>
-                        <li>Gerar código da API em <a href="https://cws.correios.com.br" target="_blank" rel="noopener">CWS</a> → Gestão de acesso a APIs.</li>
+                        <li>Cadastro <a href="https://meucorreios.correios.com.br" target="_blank" rel="noopener">Meu Correios</a> com CNPJ da 3N20 (<code>29321223000132</code>, sem pontuação).</li>
+                        <li>Gerar código da API em <a href="https://cws.correios.com.br" target="_blank" rel="noopener">CWS</a> → Gestão de acesso a APIs. Solicitar APIs <strong>34</strong> (Preço), <strong>35</strong> (Prazo) e <strong>36</strong> (Pré-Postagem).</li>
                         <li>Contratar <strong>Clube Correios</strong> em <a href="https://www.correios.com.br/correios-empresas" target="_blank" rel="noopener">Correios Empresas</a> (aguardar até 2 dias úteis).</li>
-                        <li>Cartão de postagem: <a href="https://empresas.correios.com.br" target="_blank" rel="noopener">empresas.correios.com.br</a> → Meus Contratos → Cartões de Postagem.</li>
-                        <li>Secrets: <code>CORREIOS_USER</code> (CNPJ), <code>CORREIOS_PASSWORD</code> (código CWS), <code>CORREIOS_CONTRACT</code> (10 dígitos).</li>
-                        <li>Validar: Admin → aba API → linha Correios BR deve ficar ✓.</li>
+                        <li>Cartão de postagem: <a href="https://empresas.correios.com.br" target="_blank" rel="noopener">empresas.correios.com.br</a> → Meus Contratos → Cartões de Postagem. Anotar o <strong>cartão</strong> (10 dígitos) e o <strong>contrato comercial</strong>.</li>
+                        <li>Pedir ao gestor Correios os serviços no cartão: <code>04227</code> (Mini Envios), <code>86720</code> (Pré-Postagem API) e <code>8010</code> (Carta Registrada, se usar).</li>
+                        <li>Secrets no Worker: <code>CORREIOS_USER</code> (CNPJ), <code>CORREIOS_PASSWORD</code> (código CWS), <code>CORREIOS_CONTRACT</code> (cartão), <code>CORREIOS_COMMERCIAL_CONTRACT</code> (contrato comercial).</li>
+                        <li>Validar: Admin → aba API → Correios BR ✓; Frete → Correios BR → testar CEP <code>01310-100</code>.</li>
                     </ol>
                     <p class="admin-meta">Inscrição estadual (se pedirem no contrato): consulta pública <a href="https://www.cadesp.fazenda.sp.gov.br" target="_blank" rel="noopener">CADESP</a>. Se não houver IE ativa, use <code>ISENTO</code>.</p>
                 </section>

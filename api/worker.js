@@ -18,6 +18,8 @@ const CLICKS_BLOB = 'clicks:blob';
 const CLICKS_MAX = 2500;
 const CLICK_TTL_SEC = 90 * 86400;
 const CLICK_LOG_KEY_FALLBACK = 'stf_ck_7f3a9e2b1c';
+const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
+const CANONICAL_API_BASE = 'https://api.sensortattoofix.com.br';
 const CUSTOMER_SESSION_TTL = 2592000; // 30 dias
 
 const DEFAULT_CONFIG = {
@@ -183,7 +185,7 @@ const DEFAULT_CONFIG = {
   },
   whatsapp: '5511913394665',
   siteUrl: 'https://www.sensortattoofix.com.br',
-  api: { baseUrl: 'https://sensortattoofix-payments.sensortattoofix.workers.dev' }
+  api: { baseUrl: 'https://api.sensortattoofix.com.br' }
 };
 
 const DEFAULT_MOTOBOY_SHIPPING = {
@@ -782,6 +784,13 @@ async function getPublicConfig(env) {
   return mergeSiteCatalog(config, site);
 }
 
+function normalizeApiBaseUrl(api) {
+  const merged = { ...(api || {}) };
+  const url = String(merged.baseUrl || '').trim().replace(/\/$/, '');
+  if (!url || url === LEGACY_API_BASE) merged.baseUrl = CANONICAL_API_BASE;
+  return merged;
+}
+
 function withConfigDefaults(stored) {
   const base = structuredClone(DEFAULT_CONFIG);
   if (!stored || typeof stored !== 'object') return base;
@@ -802,7 +811,7 @@ function withConfigDefaults(stored) {
     },
     formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
     emails: { ...base.emails, ...(stored.emails || {}) },
-    api: { ...base.api, ...(stored.api || {}) },
+    api: normalizeApiBaseUrl({ ...base.api, ...(stored.api || {}) }),
     internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },
     internationalSurcharge: Number.isFinite(Number(stored.internationalSurcharge))
       ? Number(stored.internationalSurcharge)
@@ -5539,7 +5548,7 @@ async function clicksBlobStoreActive(env) {
 }
 
 async function saveClicksBlob(env, list) {
-  await env.STORE_KV.put(CLICKS_BLOB, JSON.stringify(list), { expirationTtl: CLICK_TTL_SEC });
+  await env.STORE_KV.put(CLICKS_BLOB, JSON.stringify(list));
 }
 
 async function purgeLegacyClickIndex(env, mode) {

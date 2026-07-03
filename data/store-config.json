@@ -1496,7 +1496,7 @@
     "url": "https://www.sensortattoofix.com.br"
   },
   "api": {
-    "baseUrl": "https://sensortattoofix-payments.sensortattoofix.workers.dev"
+    "baseUrl": "https://api.sensortattoofix.com.br"
   },
   "payments": {
     "paypal": {
