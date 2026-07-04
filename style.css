@@ -147,7 +147,18 @@ nav,
     font-size: 0.76rem;
     font-weight: 600;
     letter-spacing: 0.02em;
-    padding: 4px 2px;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.nav-main a:hover,
+.nav-main a:focus-visible {
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .nav-actions {
