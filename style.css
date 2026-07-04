@@ -1761,24 +1761,49 @@ padding:0 20px 20px;
 line-height:1.8;
 }
 
+.faq-media-embed,
 .faq-instagram-embed {
     padding: 0 20px 20px;
     margin: 0 auto;
-    width: fit-content;
     max-width: 100%;
-    zoom: 0.55;
+}
+.faq-media-embed--youtube {
+    max-width: 480px;
+    aspect-ratio: 16 / 9;
+}
+.faq-media-embed--youtube iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 10px;
+    display: block;
+}
+.faq-media-embed--instagram,
+.faq-instagram-embed {
+    width: fit-content;
+    max-width: 420px;
+    zoom: 0.72;
 }
 @supports not (zoom: 1) {
+    .faq-media-embed--instagram,
     .faq-instagram-embed {
         zoom: unset;
-        max-width: 300px;
+        max-width: 380px;
     }
 }
+.faq-media-embed--instagram .instagram-media,
 .faq-instagram-embed .instagram-media,
+.faq-media-embed--instagram iframe,
 .faq-instagram-embed iframe {
     margin: 0 auto !important;
     display: block;
     max-width: 100% !important;
+}
+.faq-media-embed--tiktok {
+    max-width: 380px;
+}
+.faq-media-embed--tiktok .tiktok-embed {
+    margin: 0 auto !important;
 }
 
 .btn-comprar-produto:hover{
