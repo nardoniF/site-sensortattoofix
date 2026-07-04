@@ -1802,6 +1802,13 @@ line-height:1.8;
 .faq-media-embed--tiktok {
     max-width: 380px;
 }
+.faq-media-embed--tiktok iframe {
+    width: 100%;
+    min-height: 620px;
+    border: 0;
+    border-radius: 10px;
+    display: block;
+}
 .faq-media-embed--tiktok .tiktok-embed {
     margin: 0 auto !important;
 }
