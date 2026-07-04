@@ -283,6 +283,15 @@ html[lang="it"] .nav-actions { gap: 6px; }
 
 /* HERO */
 .hero { padding: 80px 0 90px; background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a); }
+.home-page .hero {
+    min-height: calc(100dvh - 100px);
+    display: flex;
+    align-items: center;
+    padding-top: 32px;
+    padding-bottom: 48px;
+    scroll-margin-top: 0;
+}
+.home-page .hero > .container { width: 100%; }
 .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 55px; align-items: center; }
 .badge { color: var(--primary); font-weight: 800; text-transform: uppercase; border: 1px solid var(--primary); padding: 6px 14px; border-radius: 50px; font-size: 0.9rem; }
 .hero h1 { font-size: 3.5rem; font-weight: 900; line-height: 1.05; margin: 28px 0; }
@@ -1610,7 +1619,12 @@ footer,
         font-size: 0.78rem;
         margin-top: 4px;
     }
-    .home-page .hero-grid { padding-top: 20px; }
+    .home-page .hero {
+        min-height: calc(100dvh - 64px);
+        padding-top: 16px;
+        padding-bottom: 32px;
+    }
+    .home-page .hero-grid { padding-top: 0; }
 
     .site-social {
         border-left: none;
