@@ -678,6 +678,91 @@ body.stf-feedback-open { overflow: hidden; }
     .stf-feedback-fab-label { display: none; }
     .whatsapp-float { bottom: 24px; right: 16px; width: 52px; height: 52px; font-size: 28px; }
 }
+
+/* Banner promo Copa */
+.stf-promo-copa {
+    background: linear-gradient(105deg, #009c3b 0%, #009c3b 38%, #ffdf00 50%, #009c3b 62%, #009c3b 100%);
+    border-bottom: 3px solid #002776;
+    color: #002776;
+    position: relative;
+    z-index: 1001;
+}
+.stf-promo-copa-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    flex-wrap: wrap;
+}
+.stf-promo-copa-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    min-width: 0;
+    flex: 1;
+}
+.stf-promo-copa-emoji { font-size: 1.5rem; line-height: 1; }
+.stf-promo-copa-title {
+    margin: 0;
+    font-family: var(--font-nav);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #002776;
+}
+.stf-promo-copa-title strong { color: #001a4d; }
+.stf-promo-copa-sub {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #003d8f;
+    width: 100%;
+}
+.stf-promo-copa-sub code {
+    background: rgba(255, 255, 255, 0.55);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #002776;
+}
+.stf-promo-copa-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.stf-promo-copa-cta {
+    padding: 10px 18px !important;
+    font-size: 0.88rem !important;
+    white-space: nowrap;
+    background: #002776 !important;
+    color: #ffdf00 !important;
+    border: none !important;
+    box-shadow: 0 4px 14px rgba(0, 39, 118, 0.35);
+}
+.stf-promo-copa-cta:hover {
+    background: #001a4d !important;
+    color: #fff !important;
+}
+.stf-promo-copa-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0, 39, 118, 0.15);
+    color: #002776;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.stf-promo-copa-close:hover { background: rgba(0, 39, 118, 0.28); }
+@media (max-width: 720px) {
+    .stf-promo-copa-inner { padding: 12px 0; }
+    .stf-promo-copa-text { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .stf-promo-copa-sub { width: auto; }
+    .stf-promo-copa-actions { width: 100%; justify-content: space-between; }
+    .stf-promo-copa-cta { flex: 1; text-align: center; }
+}
 .btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
 
 #onde-comprar {

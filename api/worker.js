@@ -187,7 +187,18 @@ const DEFAULT_CONFIG = {
   },
   whatsapp: '5511913394665',
   siteUrl: 'https://www.sensortattoofix.com.br',
-  api: { baseUrl: 'https://api.sensortattoofix.com.br' }
+  api: { baseUrl: 'https://api.sensortattoofix.com.br' },
+  coupons: [
+    {
+      id: 'coupon-copa-brasil',
+      code: 'BRASIL20',
+      name: 'Copa — Jogo do Brasil',
+      percent: 20,
+      commissionPercent: 0,
+      email: '',
+      active: true
+    }
+  ]
 };
 
 const DEFAULT_MOTOBOY_SHIPPING = {
@@ -793,6 +804,18 @@ function normalizeApiBaseUrl(api) {
   return merged;
 }
 
+function mergeCoupons(stored, base) {
+  const baseList = Array.isArray(base) ? base : [];
+  const storedList = Array.isArray(stored) ? stored : [];
+  if (!storedList.length) return [...baseList];
+  const byCode = new Map(storedList.map((c) => [normalizeCouponCode(c.code), c]));
+  baseList.forEach((c) => {
+    const k = normalizeCouponCode(c.code);
+    if (k && !byCode.has(k)) byCode.set(k, c);
+  });
+  return [...byCode.values()];
+}
+
 function withConfigDefaults(stored) {
   const base = structuredClone(DEFAULT_CONFIG);
   if (!stored || typeof stored !== 'object') return base;
@@ -835,7 +858,8 @@ function withConfigDefaults(stored) {
       couriers: Array.isArray(stored.motoboyShipping?.couriers)
         ? stored.motoboyShipping.couriers
         : DEFAULT_MOTOBOY_SHIPPING.couriers
-    }
+    },
+    coupons: mergeCoupons(stored.coupons, base.coupons)
   };
 }
 

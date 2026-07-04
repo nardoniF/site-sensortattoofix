@@ -1512,5 +1512,16 @@
       "fallbackToAlternate": true
     }
   },
-  "updatedAt": "2026-06-17T12:00:00.000Z"
+  "updatedAt": "2026-06-17T12:00:00.000Z",
+  "coupons": [
+    {
+      "id": "coupon-copa-brasil",
+      "code": "BRASIL20",
+      "name": "Copa — Jogo do Brasil",
+      "percent": 20,
+      "commissionPercent": 0,
+      "email": "",
+      "active": true
+    }
+  ]
 }

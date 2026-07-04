@@ -549,6 +549,16 @@
     bindProductZoom(wrap);
   }
 
+  function seedCouponFromUrl() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('cupom') || params.get('coupon');
+    if (!code || !els.couponInput) return;
+    els.couponInput.value = code;
+    const clean = location.pathname + (location.hash || '');
+    history.replaceState({}, '', clean);
+    applyCoupon();
+  }
+
   function seedCartFromUrl() {
     const params = new URLSearchParams(location.search);
     const slug = params.get('produto');
@@ -2076,6 +2086,7 @@
       updateSummary();
       updatePaymentOptionsForCountry();
       showStep(1);
+      seedCouponFromUrl();
     }
     await loadCustomerSession();
     window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
