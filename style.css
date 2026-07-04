@@ -1764,18 +1764,21 @@ line-height:1.8;
 .faq-instagram-embed {
     padding: 0 20px 20px;
     margin: 0 auto;
-    display: flex;
-    justify-content: center;
+    width: fit-content;
+    max-width: 100%;
+    zoom: 0.55;
 }
-.faq-instagram-embed-scale {
-    overflow: hidden;
-    line-height: 0;
+@supports not (zoom: 1) {
+    .faq-instagram-embed {
+        zoom: unset;
+        max-width: 300px;
+    }
 }
-.faq-instagram-embed-scale .instagram-media,
-.faq-instagram-embed-scale iframe {
-    margin: 0 !important;
-    min-width: 0 !important;
-    border: 0;
+.faq-instagram-embed .instagram-media,
+.faq-instagram-embed iframe {
+    margin: 0 auto !important;
+    display: block;
+    max-width: 100% !important;
 }
 
 .btn-comprar-produto:hover{
