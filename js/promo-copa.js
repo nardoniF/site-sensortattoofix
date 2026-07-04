@@ -1,13 +1,32 @@
 /**
  * Banner promo Copa — 20% OFF jogo do Brasil (cupom BRASIL20).
- * Só em páginas PT; ocultável por sessão.
+ * Só em páginas PT, só nos dias de jogo da Seleção (horário de Brasília).
  */
 (function () {
   const PROMO = {
     code: 'BRASIL20',
-    endAt: '2026-07-31T23:59:59-03:00',
-    dismissKey: 'stf_promo_copa_dismiss'
+    dismissKey: 'stf_promo_copa_dismiss',
+    /** Datas YYYY-MM-DD (America/Sao_Paulo) em que o Brasil joga na Copa 2026 */
+    gameDays: [
+      '2026-06-13', // x Marrocos
+      '2026-06-19', // x Haiti
+      '2026-06-24', // x Escócia
+      '2026-06-29', // 32 avos x Japão
+      '2026-07-05', // oitavas x Noruega
+      '2026-07-11', // quartas (se classificar)
+      '2026-07-15', // semifinal (se classificar)
+      '2026-07-18', // 3º lugar (se perder a semi)
+      '2026-07-19'  // final (se classificar)
+    ]
   };
+
+  function todaySaoPaulo() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  }
+
+  function isGameDay() {
+    return PROMO.gameDays.includes(todaySaoPaulo());
+  }
 
   function langPrefix() {
     if (location.pathname.includes('/en/') || location.pathname.includes('/it/')) return null;
@@ -25,7 +44,7 @@
     try {
       if (sessionStorage.getItem(PROMO.dismissKey) === '1') return false;
     } catch (_) { /* ignore */ }
-    return Date.now() < new Date(PROMO.endAt).getTime();
+    return isGameDay();
   }
 
   function checkoutHref() {

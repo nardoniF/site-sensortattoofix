@@ -521,12 +521,27 @@ function getCoupons(config) {
   return Array.isArray(config?.coupons) ? config.coupons : [];
 }
 
+const BRASIL20_GAME_DAYS = new Set([
+  '2026-06-13', '2026-06-19', '2026-06-24', '2026-06-29',
+  '2026-07-05', '2026-07-11', '2026-07-15', '2026-07-18', '2026-07-19'
+]);
+
+function todaySaoPauloIso() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+}
+
+function isBrasil20GameDay() {
+  return BRASIL20_GAME_DAYS.has(todaySaoPauloIso());
+}
+
 function findActiveCoupon(config, code) {
   const norm = normalizeCouponCode(code);
   if (!norm) return null;
-  return getCoupons(config).find(
+  const coupon = getCoupons(config).find(
     (c) => c.active !== false && normalizeCouponCode(c.code) === norm
   ) || null;
+  if (coupon && norm === 'BRASIL20' && !isBrasil20GameDay()) return null;
+  return coupon;
 }
 
 function computeCouponDiscount(valorProduto, percent) {
