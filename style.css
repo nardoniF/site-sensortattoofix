@@ -148,12 +148,14 @@ nav,
     font-weight: 600;
     letter-spacing: 0.02em;
     padding: 4px 2px;
-    transition: color 0.2s ease;
+    border-radius: 8px;
+    transition: color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav-main a:hover,
 .nav-main a:focus-visible {
     color: var(--primary);
+    box-shadow: inset 0 0 0 1px var(--primary);
 }
 
 .nav-actions {
