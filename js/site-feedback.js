@@ -80,14 +80,6 @@
     return true;
   }
 
-  function hasSentFeedback() {
-    try {
-      return !!localStorage.getItem(STORAGE_SENT);
-    } catch (_) {
-      return false;
-    }
-  }
-
   function buildDom() {
     if (document.getElementById('stf-feedback-root')) return;
 
@@ -131,6 +123,7 @@
     const statusEl = document.getElementById('stf-feedback-status');
     const titleEl = document.getElementById('stf-feedback-title');
     const introEl = dialog.querySelector('.stf-feedback-intro');
+    const submitBtn = form.querySelector('.stf-feedback-submit');
 
     function setStatus(text, ok) {
       statusEl.textContent = text || '';
@@ -146,16 +139,21 @@
       if (first) setTimeout(() => first.focus(), 50);
     }
 
-    function closeDialog(focusFab) {
+    function resetDialogForm() {
+      form.hidden = false;
+      if (titleEl) titleEl.hidden = false;
+      if (introEl) introEl.hidden = false;
+      form.reset();
+      setStatus('', false);
+      submitBtn.disabled = false;
+      submitBtn.textContent = t('send');
+    }
+
+    function closeDialog() {
       overlay.hidden = true;
       dialog.hidden = true;
       document.body.classList.remove('stf-feedback-open');
-      if (focusFab !== false) openBtn.focus();
-    }
-
-    function hideWidget() {
-      closeDialog(false);
-      root.hidden = true;
+      openBtn.focus();
     }
 
     openBtn.addEventListener('click', openDialog);
@@ -175,7 +173,6 @@
         return;
       }
 
-      const submitBtn = form.querySelector('.stf-feedback-submit');
       submitBtn.disabled = true;
       submitBtn.textContent = t('sending');
       setStatus('', false);
@@ -201,14 +198,13 @@
 
         try { localStorage.setItem(STORAGE_SENT, String(Date.now())); } catch (_) { /* ignore */ }
         window.STF_ANALYTICS?.track?.('feedback_enviado', { pagina: payload.pagina });
-        form.hidden = true;
-        if (titleEl) titleEl.hidden = true;
-        if (introEl) introEl.hidden = true;
         setStatus(t('thanks'), true);
-        setTimeout(hideWidget, 1000);
+        setTimeout(() => {
+          closeDialog();
+          resetDialogForm();
+        }, 1200);
       } catch (_) {
         setStatus(t('err'), false);
-      } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = t('send');
       }
@@ -216,7 +212,7 @@
   }
 
   function init() {
-    if (!shouldShow() || hasSentFeedback()) return;
+    if (!shouldShow()) return;
     buildDom();
   }
 
@@ -226,13 +222,5 @@
     init();
   }
 
-  window.STF_FEEDBACK = {
-    open: () => {
-      if (hasSentFeedback()) return;
-      const root = document.getElementById('stf-feedback-root');
-      const openBtn = document.getElementById('stf-feedback-open');
-      if (!root || root.hidden || !openBtn) return;
-      openBtn.click();
-    }
-  };
+  window.STF_FEEDBACK = { open: () => document.getElementById('stf-feedback-open')?.click() };
 })();
