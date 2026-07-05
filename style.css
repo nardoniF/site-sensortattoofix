@@ -1866,6 +1866,17 @@ line-height:1.8;
 }
 .checkout-sidebar-locked .cart-add-more,
 .checkout-sidebar-locked .checkout-upsell-panel { display: none !important; }
+.checkout-self-test-note {
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #e6c200;
+    border-radius: 10px;
+    border: 1px dashed rgba(255, 193, 7, 0.4);
+    background: rgba(255, 193, 7, 0.06);
+}
+.summary-row.total.is-self-test strong { color: #e6c200; }
 .self-test-pay-sidebar {
     flex: none;
     width: 100%;

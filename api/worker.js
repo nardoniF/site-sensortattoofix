@@ -1366,6 +1366,8 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     couponCode: order.couponCode || null,
     couponPercent: order.couponPercent ?? null,
     couponDiscount: order.couponDiscount ?? null,
+    freteOriginal: order.freteOriginal ?? null,
+    totalOriginal: order.totalOriginal ?? null,
     produto: order.produto || null,
     smartwatch: order.smartwatch || null,
     observacoes: trimObs(order) || null,
@@ -2520,7 +2522,7 @@ function isSelfTestPixEligible(order, config, env, billingType) {
 
 function applySelfTestPixPricing(order, config, env, billingType) {
   if (!isSelfTestPixEligible(order, config, env, billingType)) return false;
-  order.valorProdutoOriginal = order.valorProduto;
+  if (order.valorProdutoOriginal == null) order.valorProdutoOriginal = order.valorProduto;
   order.freteOriginal = order.frete;
   order.totalOriginal = order.total;
   order.selfTestPix = true;
@@ -2555,7 +2557,7 @@ function isSelfTestPayPalEligible(env, billingType) {
 
 function applySelfTestPayPalPricing(order, env, billingType) {
   if (!isSelfTestPayPalEligible(env, billingType)) return false;
-  order.valorProdutoOriginal = order.valorProduto;
+  if (order.valorProdutoOriginal == null) order.valorProdutoOriginal = order.valorProduto;
   order.freteOriginal = order.frete;
   order.totalOriginal = order.total;
   order.selfTestPayPal = true;

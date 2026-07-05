@@ -963,6 +963,7 @@
       if (f.cidade && a.cidade) f.cidade.value = a.cidade;
       if (f.uf && a.uf) f.uf.value = a.uf;
     }
+    scheduleQuoteShippingIfReady();
   }
 
   function smartwatchGroup(model) {
@@ -1117,6 +1118,7 @@
     clearShippingOptions();
     updateSummary();
     if (isInternational) quoteShipping();
+    else scheduleQuoteShippingIfReady();
   }
 
   function clearShippingOptions() {
@@ -1367,11 +1369,44 @@
 
   let cepLookupTimer = null;
   let lastCepLookup = '';
+  let quoteReadyTimer = null;
+
+  function isBrCepReady() {
+    return onlyDigits(els.cep?.value || '').length === 8;
+  }
+
+  function brAddressFieldsFilled() {
+    const f = els.form;
+    return isBrCepReady()
+      && String(f.rua?.value || '').trim()
+      && String(f.numero?.value || '').trim()
+      && String(f.cidade?.value || '').trim()
+      && String(f.uf?.value || '').trim();
+  }
+
+  function tryQuoteShippingIfReady() {
+    if (orderSidebarLocked || currentStep !== 1) return;
+    if (isInternational) {
+      if (els.paisCode?.value) quoteShipping();
+      return;
+    }
+    if (isBrCepReady()) quoteShipping();
+  }
+
+  function scheduleQuoteShippingIfReady() {
+    clearTimeout(quoteReadyTimer);
+    quoteReadyTimer = setTimeout(() => tryQuoteShippingIfReady(), 120);
+  }
 
   async function lookupCepFromField() {
     if (isInternational) return;
     const cep = onlyDigits(els.cep?.value || '');
     if (cep.length !== 8 || cep === lastCepLookup) return;
+    if (brAddressFieldsFilled()) {
+      lastCepLookup = cep;
+      await quoteShipping();
+      return;
+    }
     els.cep?.classList.add('loading');
     try {
       const addr = await fetchCep(cep);
@@ -1860,15 +1895,22 @@
     els.form.cpf?.addEventListener('input', (e) => { if (!isInternational) e.target.value = maskCpf(e.target.value); });
 
     ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf'].forEach((field) => {
-      els.form[field]?.addEventListener('blur', () => {
+      const input = els.form[field];
+      if (!input) return;
+      input.addEventListener('blur', () => {
         if (isInternational) return;
-        const cep = onlyDigits(els.cep?.value);
-        if (cep.length === 8) quoteShipping();
+        if (isBrCepReady()) scheduleQuoteShippingIfReady();
+      });
+      input.addEventListener('change', () => {
+        if (isInternational) return;
+        if (isBrCepReady()) scheduleQuoteShippingIfReady();
       });
     });
 
-    ['postal-intl','rua-intl','cidade-intl'].forEach((id) => {
-      document.getElementById(id)?.addEventListener('blur', () => { if (isInternational) quoteShipping(); });
+    ['postal-intl', 'rua-intl', 'cidade-intl'].forEach((id) => {
+      const input = document.getElementById(id);
+      input?.addEventListener('blur', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
+      input?.addEventListener('change', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
     });
 
     els.btnNext?.addEventListener('click', () => { if (validateStep1()) showStep(2); });
@@ -2132,6 +2174,9 @@
       seedCouponFromUrl();
     }
     await loadCustomerSession();
+    scheduleQuoteShippingIfReady();
+    setTimeout(scheduleQuoteShippingIfReady, 450);
+    setTimeout(scheduleQuoteShippingIfReady, 1200);
     window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
     bindEvents();
     trackGa('entrou_loja', {

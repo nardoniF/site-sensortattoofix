@@ -180,6 +180,8 @@ window.STF_I18N_IT = {
   'btn.payPaypal': 'Paga con PayPal',
   'selfTest.btn': 'Conferma test (salta pagamento)',
   'selfTest.hint': 'Ordine di test rilevato — conferma senza pagare.',
+  'selfTest.summaryRef': 'Ordine di test: importo reale {ref} — addebito simbolico {pay}.',
+  'selfTest.summaryPay': 'Ordine di test — addebito simbolico {pay}.',
   'card.asaas': 'Pagamento sicuro elaborato da Asaas.',
   'card.mp': 'Pagamento sicuro con carta (Visa, Mastercard, Amex). Importo in BRL — la tua banca converte.',
   'paypal.redirect': 'Reindirizzamento a PayPal… Se non si apre nulla, usa il pulsante qui sotto.',
