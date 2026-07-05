@@ -571,14 +571,35 @@
     return true;
   }
 
+  function resolveGrossProductTotal(data) {
+    if (!data) return 0;
+    const disc = Number(data.couponDiscount ?? data.desconto ?? 0) || 0;
+    const pct = Number(data.couponPercent ?? 0) || 0;
+    const sub = Number(data.subtotal ?? data.valorProdutoOriginal ?? data.valorProduto ?? 0);
+
+    if (disc <= 0) return sub;
+    if (pct > 0) {
+      const impliedGross = Math.round((disc / (pct / 100)) * 100) / 100;
+      if (Math.abs(sub - impliedGross) < 0.03) return sub;
+      if (Math.abs(sub + disc - impliedGross) < 0.03) return impliedGross;
+    }
+    if (data.valorProdutoOriginal != null && Math.abs(Number(data.valorProdutoOriginal) - sub) > 0.01) {
+      return Number(data.valorProdutoOriginal);
+    }
+    return Math.round((sub + disc) * 100) / 100;
+  }
+
   function snapshotFromOrder(data) {
+    const selfTest = !!(data.selfTestPix || data.selfTestPayPal);
     return {
       produto: data.produto || '',
-      subtotal: data.valorProdutoOriginal ?? data.valorProduto ?? 0,
+      subtotal: resolveGrossProductTotal(data),
       desconto: data.couponDiscount ?? 0,
-      frete: data.frete ?? 0,
+      frete: selfTest ? (data.freteOriginal ?? data.frete ?? 0) : (data.frete ?? 0),
       total: data.total ?? 0,
-      couponPercent: data.couponPercent ?? null
+      totalOriginal: selfTest ? (data.totalOriginal ?? null) : null,
+      couponPercent: data.couponPercent ?? null,
+      selfTest
     };
   }
 
@@ -694,7 +715,7 @@
       els.cartSidebar.innerHTML = '';
     }
     if (snap) {
-      els.summaryProduct.textContent = formatBRL(snap.subtotal ?? 0);
+      els.summaryProduct.textContent = formatBRL(resolveGrossProductTotal(snap));
       const disc = snap.desconto ?? 0;
       if (els.summaryDiscountRow) {
         els.summaryDiscountRow.hidden = !disc;
@@ -707,7 +728,26 @@
         }
       }
       els.summaryShipping.textContent = formatBRL(snap.frete ?? 0);
-      els.summaryTotal.textContent = formatBRL(snap.total ?? 0);
+      const totalEl = els.summaryTotal;
+      if (totalEl) {
+        totalEl.textContent = formatBRL(snap.total ?? 0);
+        totalEl.closest('.summary-row')?.classList.toggle('is-self-test', !!snap.selfTest);
+      }
+      let selfTestNote = els.checkoutSidebar?.querySelector('.checkout-self-test-note');
+      if (snap.selfTest) {
+        if (!selfTestNote) {
+          selfTestNote = document.createElement('p');
+          selfTestNote.className = 'checkout-self-test-note';
+          totalEl?.closest('.checkout-summary')?.appendChild(selfTestNote);
+        }
+        const ref = snap.totalOriginal != null ? formatBRL(snap.totalOriginal) : null;
+        selfTestNote.textContent = ref
+          ? L('selfTest.summaryRef', { ref, pay: formatBRL(snap.total ?? 0) })
+          : L('selfTest.summaryPay', { pay: formatBRL(snap.total ?? 0) });
+        selfTestNote.hidden = false;
+      } else if (selfTestNote) {
+        selfTestNote.hidden = true;
+      }
     }
     if (els.checkoutCoupon) els.checkoutCoupon.hidden = true;
   }
@@ -1292,10 +1332,10 @@
   }
 
   function updateSummary() {
-    const subtotal = cartSubtotal();
+    const gross = cartSubtotal();
     const disc = appliedCoupon?.desconto || 0;
-    const afterDisc = Math.max(0, subtotal - disc);
-    els.summaryProduct.textContent = formatBRL(subtotal);
+    const afterDisc = Math.max(0, gross - disc);
+    els.summaryProduct.textContent = formatBRL(gross);
     if (els.summaryDiscountRow) {
       els.summaryDiscountRow.hidden = !disc;
       if (disc) {
@@ -1668,13 +1708,16 @@
       lastPaymentMethod = wantsPaypal ? 'paypal' : ((wantsCardBr || wantsIntlCard) ? 'credit_card' : 'pix');
       const result = await createOrder(orderData);
       const total = result.order?.total || (cartSubtotal() + orderData.frete);
+      const selfTest = !!(result.order?.selfTestPix || result.order?.selfTestPayPal);
       const orderSnapshot = {
         items: (window.STF_CART?.load() || []).map((i) => ({ ...i })),
-        subtotal: result.order?.valorProdutoOriginal ?? cartSubtotal(),
+        subtotal: cartSubtotal() || resolveGrossProductTotal(result.order || {}),
         desconto: result.order?.couponDiscount ?? appliedCoupon?.desconto ?? 0,
         couponPercent: result.order?.couponPercent ?? appliedCoupon?.percent ?? null,
-        frete: orderData.frete,
-        total
+        frete: selfTest ? (result.order?.freteOriginal ?? orderData.frete) : (result.order?.frete ?? orderData.frete),
+        total,
+        totalOriginal: selfTest ? (result.order?.totalOriginal ?? null) : null,
+        selfTest
       };
       lockCheckoutSidebar(orderSnapshot);
       const orderId = result.order?.orderId;
