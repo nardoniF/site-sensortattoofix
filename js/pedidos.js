@@ -125,6 +125,9 @@
       `Pedido: ${o.orderId}\n` +
       `Status: ${o.status}\n` +
       `Cliente: ${o.nome}\n` +
+      `E-mail: ${o.email || '—'}\n` +
+      `Telefone: ${o.telefone || '—'}\n` +
+      `CPF: ${o.cpf || '—'}\n` +
       `${watchLines}\n` +
       `Endereço: ${o.endereco}\n` +
       `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)${couponLine}`
