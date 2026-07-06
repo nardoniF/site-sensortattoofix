@@ -3903,7 +3903,10 @@ body.admin-page.pedidos-login-only #pedidos-login {
   color: var(--primary);
   font-size: 0.82rem;
 }
-.pedidos-av-manual {
+.pedidos-frete-prazo {
+  color: var(--gray);
+  font-size: 0.72rem;
+}
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

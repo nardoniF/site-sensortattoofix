@@ -164,6 +164,12 @@
     return 'Frete';
   }
 
+  function shippingDaysLabel(o) {
+    const days = Number(o.shippingDays);
+    if (!Number.isFinite(days) || days <= 0) return null;
+    return days === 1 ? '1 dia' : `${days} dias`;
+  }
+
   function correiosEntregaStatusLabel(o) {
     const last = String(o.correiosTrackingLastEvent?.description || '').trim();
     const st = String(o.correiosTrackingStatus || '').trim();
@@ -191,6 +197,8 @@
       html += '<small class="pedidos-track-muted">—</small>';
     }
     html += `<br><small class="pedidos-frete-kind">${kind}</small>`;
+    const prazo = shippingDaysLabel(o);
+    if (prazo) html += `<br><small class="pedidos-frete-prazo">${escHtml(prazo)}</small>`;
     return html;
   }
 
@@ -216,14 +224,18 @@
       }
       if (!o.correiosTrackingCode) {
         if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
-          return '<small class="pedidos-track-status">Pré-postado</small>';
+          const prazo = shippingDaysLabel(o);
+          return '<small class="pedidos-track-status">Pré-postado</small>'
+            + (prazo ? `<br><small class="pedidos-frete-prazo">${escHtml(prazo)}</small>` : '');
         }
         return '<small class="pedidos-track-muted">Aguardando pré-postagem</small>';
       }
       const code = escHtml(o.correiosTrackingCode);
       const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
       const status = escHtml(correiosEntregaStatusLabel(o));
-      return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>`;
+      const prazo = shippingDaysLabel(o);
+      return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>`
+        + (prazo ? `<br><small class="pedidos-frete-prazo">${escHtml(prazo)}</small>` : '');
     }
 
     return '<small class="pedidos-track-muted">—</small>';
@@ -278,6 +290,8 @@
         parts.push('<span class="pedidos-track-muted">Aguardando pré-postagem</span>');
       }
       if (o.correiosPrePostagemError) parts.push(`<span class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</span>`);
+      const prazo = shippingDaysLabel(o);
+      if (prazo) parts.push(`<small class="pedidos-frete-prazo">Prazo: ${escHtml(prazo)}</small>`);
       return parts.join('<br>') || '<span class="pedidos-track-muted">—</span>';
     }
     return '<span class="pedidos-track-muted">—</span>';
@@ -293,6 +307,8 @@
     if (hasEst) rows.push(detailRow('Correios (est.)', `<strong>${formatBRL(est)}</strong>`));
     if (hasPaid) rows.push(detailRow('Cliente pagou', formatBRL(paid)));
     rows.push(detailRow('Tipo envio', kind));
+    const prazo = shippingDaysLabel(o);
+    if (prazo) rows.push(detailRow('Prazo entrega', prazo));
     return rows.join('');
   }
 
