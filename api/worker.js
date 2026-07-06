@@ -2979,7 +2979,7 @@ function summarizeCorreiosTracking(data) {
     detail: String(last.detalhe || '').trim()
   } : null;
   const desc = (last?.descricao || '').toLowerCase();
-  let status = 'Aguardando postagem';
+  let status = events.length ? 'Aguardando postagem na agência' : 'Pré-postado';
   if (desc.includes('entregue')) status = 'Entregue';
   else if (desc.includes('saiu para entrega')) status = 'Saiu para entrega';
   else if (desc.includes('postado')) status = 'Postado';
@@ -3049,6 +3049,34 @@ async function ensureCorreiosFreteEstimate(env, order, config) {
   return { ok: true, price };
 }
 
+async function fetchCorreiosPrePostagemById(token, prePostagemId) {
+  const id = String(prePostagemId || '').trim();
+  if (!id) return null;
+  const res = await fetch(
+    `https://api.correios.com.br/prepostagem/v1/prepostagens/${encodeURIComponent(id)}`,
+    { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } }
+  );
+  const bodyText = await res.text().catch(() => '');
+  if (!res.ok) return null;
+  try {
+    return bodyText ? JSON.parse(bodyText) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env) {
+  if (order.correiosTrackingCode) return order.correiosTrackingCode;
+  const id = String(order.correiosPrePostagemId || '').trim();
+  if (!id) return null;
+  const data = await fetchCorreiosPrePostagemById(token, id);
+  const code = String(data?.codigoObjeto || data?.codigoRegistro || '').trim().toUpperCase();
+  if (!code) return null;
+  order.correiosTrackingCode = code;
+  await saveOrder(env, order);
+  return code;
+}
+
 async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   if (!isCorreiosBrOrder(order)) {
     return { skipped: true, reason: 'not_correios' };
@@ -3059,6 +3087,14 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
     console.warn('Correios frete estimate:', order.orderId, err.message);
   }
   if (order.correiosPrePostagemId) {
+    if (!order.correiosTrackingCode) {
+      try {
+        const token = await getCorreiosToken(env);
+        if (token) await syncCorreiosTrackingCodeFromPrePostagem(token, order, env);
+      } catch (err) {
+        console.warn('Correios AV sync:', order.orderId, err.message);
+      }
+    }
     return {
       ok: true,
       alreadyExists: true,
@@ -6615,10 +6651,19 @@ async function handleAdminCorreiosTracking(request, env, origin) {
       }
     }
 
-    if (!order.correiosTrackingCode) {
-      if (order.correiosFreteEstimado != null) {
-        orders[orderId] = { correiosFreteEstimado: order.correiosFreteEstimado };
+    if (!order.correiosTrackingCode && order.correiosPrePostagemId) {
+      try {
+        await syncCorreiosTrackingCodeFromPrePostagem(token, order, env);
+      } catch (err) {
+        console.warn('Correios AV backfill:', orderId, err.message);
       }
+    }
+
+    if (!order.correiosTrackingCode) {
+      const payload = {};
+      if (order.correiosFreteEstimado != null) payload.correiosFreteEstimado = order.correiosFreteEstimado;
+      if (order.correiosPrePostagemId || order.correiosPrePostagemAt) payload.status = 'Pré-postado';
+      if (Object.keys(payload).length) orders[orderId] = payload;
       continue;
     }
     const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
@@ -6630,6 +6675,7 @@ async function handleAdminCorreiosTracking(request, env, origin) {
     await saveOrder(env, order);
     orders[orderId] = {
       ...summary,
+      trackingCode: order.correiosTrackingCode,
       correiosFreteEstimado: order.correiosFreteEstimado ?? null
     };
   }

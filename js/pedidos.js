@@ -151,7 +151,10 @@
       return `<small class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</small>`;
     }
     if (!o.correiosTrackingCode) {
-      return '<small class="pedidos-track-muted">Aguardando registro</small>';
+      if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
+        return '<small class="pedidos-track-status">Pré-postado</small>';
+      }
+      return '<small class="pedidos-track-muted">Aguardando pré-postagem</small>';
     }
     const code = escHtml(o.correiosTrackingCode);
     const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
@@ -384,7 +387,7 @@
     const staleMs = 20 * 60 * 1000;
     const now = Date.now();
     const ids = orders
-      .filter((o) => o.correiosTrackingCode && o.status === 'paid')
+      .filter((o) => (o.correiosTrackingCode || o.correiosPrePostagemId) && o.status === 'paid')
       .filter((o) => {
         if (!o.correiosTrackingUpdatedAt) return true;
         return now - new Date(o.correiosTrackingUpdatedAt).getTime() > staleMs;
@@ -409,6 +412,12 @@
         order.correiosTrackingUpdatedAt = new Date().toISOString();
         if (summary.correiosFreteEstimado != null) {
           order.correiosFreteEstimado = summary.correiosFreteEstimado;
+        }
+        if (summary.trackingCode) {
+          order.correiosTrackingCode = summary.trackingCode;
+        }
+        if (summary.status && !order.correiosTrackingCode) {
+          order.correiosTrackingStatus = summary.status;
         }
       }
     } catch (err) {
