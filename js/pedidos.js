@@ -83,6 +83,14 @@
     return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
   }
 
+  function formatDateCell(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return `${date}<br><small>${time}</small>`;
+  }
+
   function formatBRL(n) {
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
@@ -419,7 +427,7 @@
     orders.forEach((o) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${formatDate(o.createdAt)}</td>
+        <td class="pedidos-data">${formatDateCell(o.createdAt)}</td>
         <td>${escHtml(o.nome)}<br><small>${escHtml(o.email || '')}</small><br><small>${escHtml(o.telefone || '')}</small></td>
         <td>${escHtml(watchModel(o))}</td>
         <td>${escHtml(o.pais || '—')}</td>
