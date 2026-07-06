@@ -241,8 +241,71 @@
     return '<small class="pedidos-track-muted">—</small>';
   }
 
+  const CORREIOS_STATUS_OPTIONS = [
+    { value: '', label: '(não alterar)' },
+    { value: 'Pré-postado', label: 'Pré-postado' },
+    { value: 'Aguardando postagem na agência', label: 'Aguardando postagem na agência' },
+    { value: 'Postado', label: 'Postado' },
+    { value: 'Em trânsito', label: 'Em trânsito' },
+    { value: 'Saiu para entrega', label: 'Saiu para entrega' },
+    { value: 'Entregue', label: 'Entregue' }
+  ];
+
+  const MANUAL_SHIPPING_METHODS = [
+    { id: '', label: '(manter atual)' },
+    { id: 'br-mini-envios', label: 'Mini Envios (contrato/API)' },
+    { id: 'br-carta-registrada', label: 'Carta Registrada (contrato)' },
+    { id: 'correios-manual-pac', label: 'PAC (balcão manual)' },
+    { id: 'correios-manual-sedex', label: 'SEDEX (balcão manual)' },
+    { id: 'correios-manual-outro', label: 'Outro (ver observação)' }
+  ];
+
   function detailRow(label, valueHtml) {
     return `<div class="pedidos-detail-row"><span class="pedidos-detail-label">${label}</span><span class="pedidos-detail-value">${valueHtml}</span></div>`;
+  }
+
+  function manualShippingSection(o) {
+    if (o.status !== 'paid' || !isCorreiosBrOrder(o)) return '';
+    const currentStatus = String(o.correiosTrackingStatus || '').trim();
+    const statusOpts = CORREIOS_STATUS_OPTIONS.map((opt) => {
+      const selected = opt.value && opt.value === currentStatus ? ' selected' : '';
+      return `<option value="${escHtml(opt.value)}"${selected}>${escHtml(opt.label)}</option>`;
+    }).join('');
+    const methodId = String(o.shippingMethodId || '');
+    const methodOpts = MANUAL_SHIPPING_METHODS.map((m) => {
+      const selected = m.id && m.id === methodId ? ' selected' : '';
+      return `<option value="${escHtml(m.id)}"${selected}>${escHtml(m.label)}</option>`;
+    }).join('');
+    const trackingVal = escHtml(o.correiosTrackingCode || '');
+    const noteVal = escHtml(o.correiosShippingManualNote || '');
+    const manualAt = o.correiosManualUpdatedAt
+      ? `<p class="pedidos-detail-muted">Última atualização manual: ${formatDate(o.correiosManualUpdatedAt)}</p>`
+      : '';
+    return `
+      <section class="pedidos-detail-section pedidos-detail-section--manual">
+        <h3 class="pedidos-detail-heading">Atualização manual</h3>
+        <p class="pedidos-detail-muted">Use quando a API Correios falhar ou o envio foi feito fora do contrato (ex.: PAC no balcão).</p>
+        <div class="pedidos-shipping-manual">
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Código rastreio</span>
+            <input type="text" class="pedidos-shipping-tracking" value="${trackingVal}" placeholder="Ex.: AP170797068BR" maxlength="13" />
+          </label>
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Status entrega</span>
+            <select class="pedidos-shipping-status">${statusOpts}</select>
+          </label>
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Tipo envio</span>
+            <select class="pedidos-shipping-method">${methodOpts}</select>
+          </label>
+          <label class="pedidos-shipping-field pedidos-shipping-field--wide">
+            <span class="pedidos-shipping-label">Observação</span>
+            <input type="text" class="pedidos-shipping-note" value="${noteVal}" placeholder="Ex.: postado PAC balcão SP" maxlength="200" />
+          </label>
+          <button type="button" class="btn-save-shipping">Salvar envio</button>
+        </div>
+        ${manualAt}
+      </section>`;
   }
 
   function deliveryDetailBlock(o) {
@@ -279,17 +342,14 @@
           parts.push(`<small class="pedidos-detail-muted">${formatDate(o.correiosTrackingLastEvent.date)}</small>`);
         }
       } else if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
-        parts.push('<span class="pedidos-track-status">Pré-postado</span> — aguardando código AV');
-        parts.push(
-          '<div class="pedidos-av-manual">'
-          + '<input type="text" class="pedidos-av-input" placeholder="Cole o AV da etiqueta (ex.: AV087512836BR)" maxlength="13" />'
-          + '<button type="button" class="btn-save-av">Salvar AV</button>'
-          + '</div>'
-        );
+        parts.push('<span class="pedidos-track-status">Pré-postado</span> — aguardando código de rastreio');
       } else {
         parts.push('<span class="pedidos-track-muted">Aguardando pré-postagem</span>');
       }
       if (o.correiosPrePostagemError) parts.push(`<span class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</span>`);
+      if (o.correiosShippingManualNote) {
+        parts.push(`<small class="pedidos-detail-muted">Obs.: ${escHtml(o.correiosShippingManualNote)}</small>`);
+      }
       const prazo = shippingDaysLabel(o);
       if (prazo) parts.push(`<small class="pedidos-frete-prazo">Prazo: ${escHtml(prazo)}</small>`);
       return parts.join('<br>') || '<span class="pedidos-track-muted">—</span>';
@@ -373,30 +433,71 @@
         <h3 class="pedidos-detail-heading">Entrega / Rastreio</h3>
         ${deliveryDetailBlock(o)}
       </section>
+      ${manualShippingSection(o)}
       ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
     `;
 
-    body.querySelector('.btn-save-av')?.addEventListener('click', async () => {
-      const input = body.querySelector('.pedidos-av-input');
-      const code = String(input?.value || '').trim().toUpperCase();
-      if (!/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(code)) {
-        showStatus('Código AV inválido. Ex.: AV087512836BR', 'error');
+    body.querySelector('.btn-save-shipping')?.addEventListener('click', async () => {
+      const trackingInput = body.querySelector('.pedidos-shipping-tracking');
+      const statusSelect = body.querySelector('.pedidos-shipping-status');
+      const methodSelect = body.querySelector('.pedidos-shipping-method');
+      const noteInput = body.querySelector('.pedidos-shipping-note');
+      const code = String(trackingInput?.value || '').trim().toUpperCase();
+      const payload = {};
+      if (code !== String(o.correiosTrackingCode || '').trim().toUpperCase()) {
+        if (!code) {
+          showStatus('Informe o código de rastreio.', 'error');
+          return;
+        }
+        if (!/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(code)) {
+          showStatus('Código inválido. Ex.: AP170797068BR', 'error');
+          return;
+        }
+        payload.trackingCode = code;
+      }
+      const statusVal = String(statusSelect?.value || '').trim();
+      if (statusVal && statusVal !== String(o.correiosTrackingStatus || '').trim()) {
+        payload.correiosTrackingStatus = statusVal;
+      } else if (payload.trackingCode && !statusVal && !o.correiosTrackingStatus) {
+        payload.correiosTrackingStatus = 'Postado';
+      }
+      const methodVal = String(methodSelect?.value || '').trim();
+      if (methodVal && methodVal !== String(o.shippingMethodId || '').trim()) {
+        payload.shippingMethodId = methodVal;
+      }
+      const noteVal = String(noteInput?.value || '').trim();
+      if (noteVal !== String(o.correiosShippingManualNote || '').trim()) {
+        payload.correiosShippingManualNote = noteVal;
+      }
+      if (!Object.keys(payload).length) {
+        showStatus('Nenhuma alteração para salvar.', 'warn');
         return;
       }
-      const saved = await saveCorreiosAv(o.orderId, code);
+      const saved = await saveShippingOverride(o.orderId, payload);
       if (!saved) {
-        showStatus('Não foi possível salvar o AV.', 'error');
+        showStatus('Não foi possível salvar o envio.', 'error');
         return;
       }
-      o.correiosTrackingCode = code;
+      applyShippingOverrideToOrder(o, saved);
       const idx = allOrders.findIndex((x) => x.orderId === o.orderId);
-      if (idx >= 0) allOrders[idx].correiosTrackingCode = code;
-      await syncCorreiosOrders([o.orderId], false);
+      if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
       const fresh = allOrders.find((x) => x.orderId === o.orderId) || o;
       renderOrderModal(fresh);
       applyFilters();
-      showStatus('AV salvo: ' + code, 'success');
+      showStatus('Envio atualizado' + (saved.trackingCode ? ': ' + saved.trackingCode : ''), 'success');
     });
+  }
+
+  function applyShippingOverrideToOrder(order, data) {
+    if (!order || !data) return;
+    if (data.trackingCode) order.correiosTrackingCode = data.trackingCode;
+    if (data.correiosTrackingStatus) order.correiosTrackingStatus = data.correiosTrackingStatus;
+    if (data.shippingMethodId) order.shippingMethodId = data.shippingMethodId;
+    if (data.shippingService) order.shippingService = data.shippingService;
+    if (data.correiosShippingManualNote != null) {
+      order.correiosShippingManualNote = data.correiosShippingManualNote;
+    }
+    order.correiosManualUpdatedAt = new Date().toISOString();
   }
 
   function applyCorreiosSyncResults(data) {
@@ -596,6 +697,20 @@
       body: JSON.stringify({ trackingCode })
     });
     if (!res.ok) return null;
+    return res.json().catch(() => null);
+  }
+
+  async function saveShippingOverride(orderId, payload) {
+    const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(orderId) + '/shipping', {
+      method: 'PATCH',
+      headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (data.error) showStatus(data.error, 'error');
+      return null;
+    }
     return res.json().catch(() => null);
   }
 

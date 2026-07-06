@@ -3907,11 +3907,58 @@ body.admin-page.pedidos-login-only #pedidos-login {
   color: var(--gray);
   font-size: 0.72rem;
 }
+.pedidos-av-manual,
+.pedidos-shipping-manual {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
-  align-items: center;
+  align-items: flex-end;
+}
+.pedidos-detail-section--manual {
+  border-color: rgba(255, 193, 7, 0.35);
+}
+.pedidos-shipping-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.pedidos-shipping-field--wide {
+  flex: 2 1 220px;
+}
+.pedidos-shipping-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gray);
+}
+.pedidos-shipping-tracking,
+.pedidos-shipping-status,
+.pedidos-shipping-method,
+.pedidos-shipping-note {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #111;
+  color: #fff;
+  font-size: 0.85rem;
+}
+.pedidos-shipping-tracking {
+  font-family: ui-monospace, monospace;
+  text-transform: uppercase;
+}
+.btn-save-shipping {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: #ffc107;
+  color: #111;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 0 0 auto;
 }
 .pedidos-av-input {
   flex: 1 1 180px;

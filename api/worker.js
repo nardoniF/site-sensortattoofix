@@ -5836,21 +5836,97 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   }
 }
 
+const MANUAL_SHIPPING_METHOD_LABELS = {
+  'br-mini-envios': 'Mini Envios',
+  'br-carta-registrada': 'Carta Registrada',
+  'correios-manual-pac': 'PAC (balcão manual)',
+  'correios-manual-sedex': 'SEDEX (balcão manual)',
+  'correios-manual-outro': 'Correios (manual)'
+};
+
+function applyOrderShippingManualUpdate(order, body) {
+  const now = new Date().toISOString();
+  let changed = false;
+
+  if (body.trackingCode !== undefined) {
+    const trackingCode = String(body.trackingCode || '').trim().toUpperCase();
+    if (!trackingCode) {
+      order.correiosTrackingCode = null;
+      changed = true;
+    } else if (!CORREIOS_AV_RE.test(trackingCode)) {
+      throw new Error('Código de rastreio inválido.');
+    } else {
+      order.correiosTrackingCode = trackingCode;
+      changed = true;
+    }
+  }
+
+  if (body.correiosTrackingStatus !== undefined) {
+    const status = String(body.correiosTrackingStatus || '').trim();
+    order.correiosTrackingStatus = status || null;
+    changed = true;
+  } else if (body.markPosted === true) {
+    order.correiosTrackingStatus = 'Postado';
+    changed = true;
+  }
+
+  if (body.correiosShippingManualNote !== undefined) {
+    order.correiosShippingManualNote = String(body.correiosShippingManualNote || '').trim() || null;
+    changed = true;
+  }
+
+  if (body.shippingMethodId !== undefined) {
+    const methodId = String(body.shippingMethodId || '').trim();
+    order.shippingMethodId = methodId || null;
+    const label = MANUAL_SHIPPING_METHOD_LABELS[methodId];
+    if (label) order.shippingService = label;
+    changed = true;
+  }
+
+  if (!changed) throw new Error('Nenhum campo para atualizar.');
+
+  order.correiosManualUpdatedAt = now;
+  order.correiosTrackingUpdatedAt = now;
+  return order;
+}
+
 async function handleOrderCorreiosAv(request, env, origin, orderId) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
   const body = await request.json().catch(() => ({}));
-  const trackingCode = String(body.trackingCode || '').trim().toUpperCase();
-  if (!CORREIOS_AV_RE.test(trackingCode)) {
-    return json({ error: 'Código AV inválido.' }, 400, origin);
-  }
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
-  order.correiosTrackingCode = trackingCode;
-  order.correiosTrackingUpdatedAt = new Date().toISOString();
+  try {
+    applyOrderShippingManualUpdate(order, { trackingCode: body.trackingCode });
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
   await saveOrder(env, order);
-  return json({ ok: true, trackingCode }, 200, origin);
+  return json({ ok: true, trackingCode: order.correiosTrackingCode }, 200, origin);
+}
+
+async function handleOrderShippingUpdate(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const body = await request.json().catch(() => ({}));
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  try {
+    applyOrderShippingManualUpdate(order, body);
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
+  await saveOrder(env, order);
+  return json({
+    ok: true,
+    trackingCode: order.correiosTrackingCode || null,
+    correiosTrackingStatus: order.correiosTrackingStatus || null,
+    shippingMethodId: order.shippingMethodId || null,
+    shippingService: order.shippingService || null,
+    correiosShippingManualNote: order.correiosShippingManualNote || null
+  }, 200, origin);
 }
 
 async function handleConfirmOrder(request, env, origin, orderId) {
@@ -7162,6 +7238,10 @@ export default {
       const correiosAvMatch = path.match(/^\/orders\/([^/]+)\/correios-av$/);
       if (correiosAvMatch && request.method === 'PATCH') {
         return handleOrderCorreiosAv(request, env, origin, correiosAvMatch[1]);
+      }
+      const shippingMatch = path.match(/^\/orders\/([^/]+)\/shipping$/);
+      if (shippingMatch && request.method === 'PATCH') {
+        return handleOrderShippingUpdate(request, env, origin, shippingMatch[1]);
       }
       const selfTestConfirmMatch = path.match(/^\/orders\/([^/]+)\/confirm-test$/);
       if (selfTestConfirmMatch && request.method === 'POST') {
