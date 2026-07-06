@@ -282,13 +282,27 @@
         ev.stopPropagation();
         const orderId = ev.currentTarget.dataset.orderId;
         const isPaid = ev.currentTarget.dataset.paid === '1';
+        const hasCorreios = isCorreiosBrOrder(o) && (o.correiosPrePostagemId || o.correiosTrackingCode);
         const msg = isPaid
-          ? `Excluir o pedido PAGO ${orderId}?\n\nRemove da lista do site. Não estorna PIX/cartão no Mercado Pago ou Asaas.`
+          ? `Excluir o pedido PAGO ${orderId}?` +
+            (hasCorreios
+              ? `\n\nA pré-postagem Correios (${o.correiosTrackingCode || 'AV'}) será cancelada automaticamente.`
+              : '') +
+            `\n\nRemove da lista do site. Não estorna PIX/cartão no Mercado Pago ou Asaas.`
           : `Excluir o pedido ${orderId}?\n\nIsso remove da base do site e do perfil do cliente. Não cancela cobrança no Asaas/MP.`;
         if (!confirm(msg)) return;
         try {
-          await apiDelete(`/orders/${encodeURIComponent(orderId)}`);
-          showStatus(`Pedido ${orderId} excluído.`, 'success');
+          const data = await apiDelete(`/orders/${encodeURIComponent(orderId)}`);
+          if (data.correiosCancel?.ok) {
+            showStatus(`Pedido ${orderId} excluído — ${data.correiosCancel.detail || 'pré-postagem cancelada'}.`, 'success');
+          } else if (data.correiosCancel?.detail || data.correiosCancel?.error) {
+            showStatus(
+              `Pedido ${orderId} excluído, mas pré-postagem Correios não cancelada: ${data.correiosCancel.detail || data.correiosCancel.error}`,
+              'warn'
+            );
+          } else {
+            showStatus(`Pedido ${orderId} excluído.`, 'success');
+          }
           await loadOrders();
         } catch (err) {
           showStatus(err.message, 'error');

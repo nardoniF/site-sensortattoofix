@@ -3041,6 +3041,47 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   };
 }
 
+async function cancelCorreiosPrePostagem(env, order) {
+  if (!isCorreiosBrOrder(order)) return { skipped: true, reason: 'not_correios' };
+  const prePostagemId = String(order.correiosPrePostagemId || '').trim();
+  const trackingCode = String(order.correiosTrackingCode || '').trim().toUpperCase();
+  if (!prePostagemId && !trackingCode) return { skipped: true, reason: 'no_prepostagem' };
+
+  const token = await getCorreiosToken(env);
+  if (!token) return { ok: false, error: 'Correios não configurado' };
+
+  const tryDelete = async (url) => {
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+    });
+    const bodyText = await res.text().catch(() => '');
+    if (res.ok || res.status === 404) {
+      return {
+        ok: true,
+        detail: res.status === 404 ? 'Pré-postagem já cancelada ou inexistente' : 'Pré-postagem cancelada nos Correios'
+      };
+    }
+    return {
+      ok: false,
+      detail: extractCorreiosApiError(res, bodyText) || bodyText.slice(0, 160) || `HTTP ${res.status}`
+    };
+  };
+
+  if (prePostagemId) {
+    const byId = await tryDelete(
+      `https://api.correios.com.br/prepostagem/v1/prepostagens/${encodeURIComponent(prePostagemId)}`
+    );
+    if (byId.ok) return { ...byId, trackingCode: trackingCode || null };
+    if (!trackingCode) return byId;
+  }
+
+  const byCode = await tryDelete(
+    `https://api.correios.com.br/prepostagem/v1/prepostagens/objeto/${encodeURIComponent(trackingCode)}`
+  );
+  return { ...byCode, trackingCode };
+}
+
 async function createCorreiosPrePostagem(token, order, config, env) {
   const payload = buildPrePostagemPayload(order, config, env);
   const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens', {
@@ -6484,8 +6525,14 @@ async function handleDeleteOrder(request, env, origin, orderId) {
   }
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+
+  let correiosCancel = null;
+  if (isCorreiosBrOrder(order) && (order.correiosPrePostagemId || order.correiosTrackingCode)) {
+    correiosCancel = await cancelCorreiosPrePostagem(env, order);
+  }
+
   await deleteOrder(env, orderId);
-  return json({ ok: true, orderId }, 200, origin);
+  return json({ ok: true, orderId, correiosCancel }, 200, origin);
 }
 
 async function handleDeletePendingOrders(request, env, origin) {
