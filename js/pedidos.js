@@ -112,6 +112,42 @@
     return `${name}${extra}`;
   }
 
+  function escHtml(text) {
+    return String(text ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function isCorreiosBrOrder(o) {
+    if (o.internationalLensOnly) return false;
+    const provider = String(o.shippingProvider || '').toLowerCase();
+    if (provider === 'uber' || provider === 'motoboy') return false;
+    const method = String(o.shippingMethodId || '').toLowerCase();
+    if (method.includes('uber') || method.includes('motoboy')) return false;
+    const pais = String(o.paisCode || o.pais || '').toUpperCase();
+    if (pais && pais !== 'BR' && !pais.includes('BRASIL')) return false;
+    return true;
+  }
+
+  function correiosTrackingCell(o) {
+    if (!isCorreiosBrOrder(o) || o.status !== 'paid') return '—';
+    if (o.correiosPrePostagemError && !o.correiosTrackingCode) {
+      return `<small class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</small>`;
+    }
+    if (!o.correiosTrackingCode) {
+      return '<small class="pedidos-track-muted">Aguardando registro</small>';
+    }
+    const code = escHtml(o.correiosTrackingCode);
+    const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
+    const status = escHtml(o.correiosTrackingStatus || 'Pré-postado');
+    const last = o.correiosTrackingLastEvent?.description
+      ? `<br><small>${escHtml(o.correiosTrackingLastEvent.description)}</small>`
+      : '';
+    return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>${last}`;
+  }
+
   function showOrderDetails(o) {
     const watchLines = (window.STF_ORDER_WATCH?.detailLines(o) || [`Smartwatch: ${o.smartwatch}`]).join('\n');
     const couponLine = o.couponCode
@@ -121,6 +157,11 @@
           ? `\nComissão: ${formatBRL(o.couponCommissionAmount)}${o.couponCommissionPercent != null ? ` (${o.couponCommissionPercent}%)` : ''}`
           : '')
       : '';
+    const trackLine = o.correiosTrackingCode
+      ? `\nRastreio Correios: ${o.correiosTrackingCode}` +
+        (o.correiosTrackingStatus ? `\nStatus: ${o.correiosTrackingStatus}` : '') +
+        (o.correiosTrackingLastEvent?.description ? `\nÚltimo evento: ${o.correiosTrackingLastEvent.description}` : '')
+      : (o.correiosPrePostagemError ? `\nErro Correios: ${o.correiosPrePostagemError}` : '');
     alert(
       `Pedido: ${o.orderId}\n` +
       `Status: ${o.status}\n` +
@@ -130,7 +171,7 @@
       `CPF: ${o.cpf || '—'}\n` +
       `${watchLines}\n` +
       `Endereço: ${o.endereco}\n` +
-      `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)${couponLine}`
+      `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)${couponLine}${trackLine}`
     );
   }
 
@@ -162,6 +203,15 @@
       if (data.mode === 'pdf' && data.pdfBase64) {
         openPdfBase64(data.pdfBase64, 'etiqueta-' + order.orderId + '.pdf');
         const track = data.trackingCode ? ' — rastreio ' + data.trackingCode : '';
+        if (data.trackingCode) {
+          order.correiosTrackingCode = data.trackingCode;
+          const idx = allOrders.findIndex((x) => x.orderId === order.orderId);
+          if (idx >= 0) {
+            allOrders[idx].correiosTrackingCode = data.trackingCode;
+            allOrders[idx].correiosTrackingStatus = allOrders[idx].correiosTrackingStatus || 'Pré-postado';
+          }
+          applyFilters();
+        }
         showStatus('Etiqueta Correios aberta' + track, 'success');
         return;
       }
@@ -201,6 +251,7 @@
         <td>${o.pagamento || '—'}</td>
         <td>${commissionerCell(o)}</td>
         <td>${formatBRL(o.total)}</td>
+        <td class="pedidos-tracking">${correiosTrackingCell(o)}</td>
         <td class="pedidos-actions">
           ${statusBadgeHtml(o.status)}
           ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
@@ -297,6 +348,39 @@
     }
   }
 
+  async function refreshCorreiosTracking(orders) {
+    const staleMs = 20 * 60 * 1000;
+    const now = Date.now();
+    const ids = orders
+      .filter((o) => o.correiosTrackingCode && o.status === 'paid')
+      .filter((o) => {
+        if (!o.correiosTrackingUpdatedAt) return true;
+        return now - new Date(o.correiosTrackingUpdatedAt).getTime() > staleMs;
+      })
+      .map((o) => o.orderId)
+      .slice(0, 20);
+    if (!ids.length) return;
+    try {
+      const res = await fetch(apiBase() + '/admin/correios-tracking', {
+        method: 'POST',
+        headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderIds: ids })
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => ({}));
+      for (const order of allOrders) {
+        const summary = data.orders?.[order.orderId];
+        if (!summary) continue;
+        order.correiosTrackingStatus = summary.status;
+        order.correiosTrackingLastEvent = summary.lastEvent;
+        order.correiosTrackingEvents = summary.events;
+        order.correiosTrackingUpdatedAt = new Date().toISOString();
+      }
+    } catch (err) {
+      console.warn('Rastreio Correios:', err);
+    }
+  }
+
   async function loadOrders() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -314,6 +398,7 @@
       throw new Error(data?.error || 'Resposta inválida da API de pedidos.');
     }
     allOrders = data;
+    await refreshCorreiosTracking(allOrders);
     applyFilters();
   }
 

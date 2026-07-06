@@ -274,6 +274,19 @@ function isParticularDeliveryOrder(order) {
   return isUberOrder(order) || isMotoboyOrder(order);
 }
 
+function isCorreiosBrOrder(order) {
+  if (!order) return false;
+  if ((order.paisCode || 'BR') !== 'BR') return false;
+  if (order.internationalLensOnly) return false;
+  return !isParticularDeliveryOrder(order);
+}
+
+function correiosTrackingUrl(trackingCode) {
+  const code = String(trackingCode || '').trim();
+  if (!code) return '';
+  return `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(code)}`;
+}
+
 function getMotoboyConfig(config) {
   const m = { ...DEFAULT_MOTOBOY_SHIPPING, ...(config?.motoboyShipping || {}) };
   return {
@@ -2589,6 +2602,31 @@ function correiosPackageParams(ship, weightGrams) {
   };
 }
 
+/** Mini Envios (04227) exige serviço adicional 065 (Valor Declarado Mini Envios) junto com vlDeclarado. */
+const CORREIOS_SERV_ADIC_VALOR_DECLARADO_MINI = '065';
+
+function clampCorreiosDeclaredValue(serviceCode, declaredValue) {
+  const value = Number(declaredValue);
+  if (!Number.isFinite(value) || value <= 0) return 62.9;
+  if (String(serviceCode || '').trim() !== '04227') return value;
+  return Math.min(116.7, Math.max(12.82, value));
+}
+
+function correiosPriceServicosAdicionais(serviceCode, declaredValue) {
+  const code = String(serviceCode || '').trim();
+  const value = clampCorreiosDeclaredValue(code, declaredValue);
+  if (code === '04227' && value > 0) {
+    return [{ coServAdicional: CORREIOS_SERV_ADIC_VALOR_DECLARADO_MINI }];
+  }
+  return [];
+}
+
+function appendCorreiosPriceQueryParams(params, serviceCode, declaredValue) {
+  for (const item of correiosPriceServicosAdicionais(serviceCode, declaredValue)) {
+    params.append('servicosAdicionais', item.coServAdicional);
+  }
+}
+
 function parseCorreiosPrice(data) {
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || typeof row !== 'object') return null;
@@ -2608,12 +2646,14 @@ function parseCorreiosDays(data, fallback = 12) {
 }
 
 async function fetchCorreiosPriceGet(token, serviceCode, origin, dest, ship, weightGrams, declaredValue) {
+  const vlDeclarado = clampCorreiosDeclaredValue(serviceCode, declaredValue);
   const params = new URLSearchParams({
     cepDestino: dest,
     cepOrigem: origin,
     ...correiosPackageParams(ship, weightGrams),
-    vlDeclarado: String(declaredValue.toFixed(2))
+    vlDeclarado: String(vlDeclarado.toFixed(2))
   });
+  appendCorreiosPriceQueryParams(params, serviceCode, vlDeclarado);
   const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${serviceCode}?${params}`, {
     headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
   });
@@ -2631,6 +2671,8 @@ async function fetchCorreiosPriceGet(token, serviceCode, origin, dest, ship, wei
 }
 
 async function fetchCorreiosPricePost(token, serviceCode, origin, dest, ship, weightGrams, declaredValue) {
+  const vlDeclarado = clampCorreiosDeclaredValue(serviceCode, declaredValue);
+  const servicosAdicionais = correiosPriceServicosAdicionais(serviceCode, vlDeclarado);
   const res = await fetch('https://api.correios.com.br/preco/v1/nacional', {
     method: 'POST',
     headers: {
@@ -2646,7 +2688,8 @@ async function fetchCorreiosPricePost(token, serviceCode, origin, dest, ship, we
         cepOrigem: origin,
         cepDestino: dest,
         ...correiosPackageParams(ship, weightGrams),
-        vlDeclarado: String(declaredValue.toFixed(2))
+        ...(servicosAdicionais.length ? { servicosAdicionais } : {}),
+        vlDeclarado: String(vlDeclarado.toFixed(2))
       }]
     })
   });
@@ -2722,8 +2765,9 @@ async function probeCorreiosPrecoApi(token, config) {
     cepDestino: dest,
     cepOrigem: origin,
     ...correiosPackageParams(ship, weightGrams),
-    vlDeclarado: String(declaredValue.toFixed(2))
+    vlDeclarado: String(clampCorreiosDeclaredValue(serviceCode, declaredValue).toFixed(2))
   });
+  appendCorreiosPriceQueryParams(params, serviceCode, declaredValue);
   const res = await fetch(`https://api.correios.com.br/preco/v1/nacional/${serviceCode}?${params}`, {
     headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
   });
@@ -2920,6 +2964,80 @@ function buildPrePostagemPayload(order, config, env) {
       quantidade: '1',
       valor: declaredValue.toFixed(2)
     }]
+  };
+}
+
+function summarizeCorreiosTracking(data) {
+  const obj = Array.isArray(data?.objetos) ? data.objetos[0] : data?.objeto;
+  if (!obj) return { status: 'Sem eventos', lastEvent: null, events: [] };
+  const events = Array.isArray(obj.eventos) ? obj.eventos : [];
+  const sorted = [...events].sort((a, b) => new Date(b.dtHrCriado) - new Date(a.dtHrCriado));
+  const last = sorted[0];
+  const lastEvent = last ? {
+    date: last.dtHrCriado,
+    description: String(last.descricao || '').trim(),
+    detail: String(last.detalhe || '').trim()
+  } : null;
+  const desc = (last?.descricao || '').toLowerCase();
+  let status = 'Aguardando postagem';
+  if (desc.includes('entregue')) status = 'Entregue';
+  else if (desc.includes('saiu para entrega')) status = 'Saiu para entrega';
+  else if (desc.includes('postado')) status = 'Postado';
+  else if (desc.includes('trânsito') || desc.includes('transito')) status = 'Em trânsito';
+  else if (lastEvent?.description) status = lastEvent.description;
+  return {
+    status,
+    lastEvent,
+    events: sorted.slice(0, 8).map((e) => ({
+      date: e.dtHrCriado,
+      description: String(e.descricao || '').trim(),
+      detail: String(e.detalhe || '').trim()
+    }))
+  };
+}
+
+async function fetchCorreiosTrackingSummary(token, trackingCode) {
+  const code = String(trackingCode || '').trim().toUpperCase();
+  if (!code) return null;
+  const res = await fetch(
+    `https://api.correios.com.br/srorastro/v1/objetos/${encodeURIComponent(code)}?resultado=T`,
+    { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } }
+  );
+  if (!res.ok) {
+    return { status: 'Indisponível', lastEvent: null, events: [], error: `HTTP ${res.status}` };
+  }
+  try {
+    return summarizeCorreiosTracking(await res.json());
+  } catch {
+    return { status: 'Indisponível', lastEvent: null, events: [], error: 'JSON inválido' };
+  }
+}
+
+async function ensureCorreiosPrePostagemForOrder(env, order, config) {
+  if (!isCorreiosBrOrder(order)) {
+    return { skipped: true, reason: 'not_correios' };
+  }
+  if (order.correiosPrePostagemId) {
+    return {
+      ok: true,
+      alreadyExists: true,
+      prePostagemId: order.correiosPrePostagemId,
+      trackingCode: order.correiosTrackingCode || null
+    };
+  }
+  const token = await getCorreiosToken(env);
+  if (!token) throw new Error('Correios não configurado no Worker');
+
+  const created = await createCorreiosPrePostagem(token, order, config, env);
+  order.correiosPrePostagemId = created.id;
+  if (created.codigoObjeto) order.correiosTrackingCode = created.codigoObjeto;
+  order.correiosPrePostagemAt = new Date().toISOString();
+  order.correiosPrePostagemError = null;
+  await saveOrder(env, order);
+  return {
+    ok: true,
+    prePostagemId: order.correiosPrePostagemId,
+    trackingCode: order.correiosTrackingCode || null
   };
 }
 
@@ -5078,6 +5196,14 @@ async function handlePaymentConfirmed(env, order, payment) {
       order.motoboyNotifyError = err.message;
       await saveOrder(env, order);
     }
+  } else if (isCorreiosBrOrder(order)) {
+    try {
+      await ensureCorreiosPrePostagemForOrder(env, order, config);
+    } catch (err) {
+      console.error('Correios pre-postagem:', order.orderId, err.message);
+      order.correiosPrePostagemError = err.message;
+      await saveOrder(env, order);
+    }
   }
 
   const shopPaidFields = {
@@ -5105,9 +5231,15 @@ async function handlePaymentConfirmed(env, order, payment) {
       shopPaidFields['Motoboys avisados'] = order.motoboyCourierEmails.join(', ');
     }
     if (order.motoboyNotifyError) shopPaidFields['Erro e-mail motoboy'] = order.motoboyNotifyError;
-  }
-
-  if ((order.paisCode || 'BR') === 'BR' && !order.internationalLensOnly) {
+  } else if (isCorreiosBrOrder(order)) {
+    if (order.correiosPrePostagemId) shopPaidFields['Pré-postagem Correios'] = 'Registrada automaticamente';
+    if (order.correiosTrackingCode) {
+      shopPaidFields['Rastreio Correios'] = order.correiosTrackingCode;
+      shopPaidFields['Acompanhar envio'] = correiosTrackingUrl(order.correiosTrackingCode);
+    }
+    shopPaidFields['Imprimir etiqueta'] = labelPrintUrl(config, order.orderId);
+    if (order.correiosPrePostagemError) shopPaidFields['Erro pré-postagem'] = order.correiosPrePostagemError;
+  } else if ((order.paisCode || 'BR') === 'BR' && !order.internationalLensOnly) {
     shopPaidFields['Imprimir etiqueta'] = labelPrintUrl(config, order.orderId);
   }
 
@@ -5135,6 +5267,10 @@ async function handlePaymentConfirmed(env, order, payment) {
     Valor: formatBRL(value),
     Mensagem: paidCustomerMessage,
     ...(order.uberTrackingUrl ? { 'Rastreio Uber': order.uberTrackingUrl } : {}),
+    ...(order.correiosTrackingCode ? {
+      'Rastreio Correios': order.correiosTrackingCode,
+      'Acompanhar envio': correiosTrackingUrl(order.correiosTrackingCode)
+    } : {}),
     ...orderWatchEmailFields(order),
     ...orderIntlProductFields(order)
   });
@@ -5219,17 +5355,9 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   }
 
   try {
-    let prePostagemId = order.correiosPrePostagemId || null;
-    let trackingCode = order.correiosTrackingCode || null;
-
-    if (!prePostagemId) {
-      const created = await createCorreiosPrePostagem(token, order, config, env);
-      prePostagemId = created.id;
-      trackingCode = created.codigoObjeto || trackingCode;
-      order.correiosPrePostagemId = prePostagemId;
-      if (trackingCode) order.correiosTrackingCode = trackingCode;
-      await saveOrder(env, order);
-    }
+    await ensureCorreiosPrePostagemForOrder(env, order, config);
+    const prePostagemId = order.correiosPrePostagemId;
+    if (!prePostagemId) throw new Error('Pré-postagem não criada');
 
     const label = await fetchCorreiosLabelPdf(token, prePostagemId);
     if (label.trackingCode && !order.correiosTrackingCode) {
@@ -6374,6 +6502,31 @@ async function handleDeletePendingOrders(request, env, origin) {
   return json({ ok: true, deleted }, 200, origin);
 }
 
+async function handleAdminCorreiosTracking(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const body = await request.json().catch(() => ({}));
+  const orderIds = Array.isArray(body.orderIds) ? body.orderIds.slice(0, 25) : [];
+  const token = await getCorreiosToken(env);
+  if (!token) return json({ error: 'Correios não configurado.' }, 503, origin);
+
+  const orders = {};
+  for (const orderId of orderIds) {
+    const order = await getOrder(env, orderId);
+    if (!order?.correiosTrackingCode) continue;
+    const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
+    if (!summary) continue;
+    order.correiosTrackingStatus = summary.status;
+    order.correiosTrackingLastEvent = summary.lastEvent;
+    order.correiosTrackingEvents = summary.events;
+    order.correiosTrackingUpdatedAt = new Date().toISOString();
+    await saveOrder(env, order);
+    orders[orderId] = summary;
+  }
+  return json({ orders }, 200, origin);
+}
+
 async function handleListOrders(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
 
@@ -6420,6 +6573,9 @@ export default {
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
       if (path === '/admin/shipping-status' && request.method === 'GET') return handleAdminShippingStatus(request, env, origin);
+      if (path === '/admin/correios-tracking' && request.method === 'POST') {
+        return handleAdminCorreiosTracking(request, env, origin);
+      }
       if (path === '/admin/integrations-status' && request.method === 'GET') {
         return handleAdminIntegrationsStatus(request, env, origin);
       }
