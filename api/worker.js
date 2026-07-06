@@ -3065,12 +3065,125 @@ async function fetchCorreiosPrePostagemById(token, prePostagemId) {
   }
 }
 
+function extractCorreiosAvCode(data, depth = 0) {
+  if (!data || depth > 5) return null;
+  if (typeof data === 'string') {
+    const code = data.trim().toUpperCase();
+    return /^[A-Z]{2}\d{9}[A-Z]{2}$/.test(code) ? code : null;
+  }
+  if (typeof data !== 'object') return null;
+  const keys = [
+    'codigoObjeto', 'codigoRegistro', 'codigoObjetoCliente', 'numeroObjeto',
+    'codigo', 'trackingCode', 'codigoRastreio', 'numeroEtiqueta', 'identificador'
+  ];
+  for (const k of keys) {
+    const found = extractCorreiosAvCode(data[k], depth + 1);
+    if (found) return found;
+  }
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const found = extractCorreiosAvCode(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  for (const v of Object.values(data)) {
+    if (v && (typeof v === 'string' || typeof v === 'object')) {
+      const found = extractCorreiosAvCode(v, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+async function requestCorreiosLabelReceipt(token, prePostagemId) {
+  const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens/rotulo/assincrono/pdf', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + token,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      idsPrePostagem: [prePostagemId],
+      tipoRotulo: 'P',
+      formatoRotulo: 'ET'
+    })
+  });
+  const bodyText = await res.text().catch(() => '');
+  if (!res.ok) {
+    throw new Error(extractCorreiosApiError(res, bodyText) || `Falha ao solicitar rótulo (${res.status})`);
+  }
+  let data;
+  try {
+    data = bodyText ? JSON.parse(bodyText) : {};
+  } catch {
+    throw new Error('Resposta inválida ao solicitar rótulo');
+  }
+  return data.idRecibo || data.recibo || data.id || null;
+}
+
+async function pollCorreiosLabelDownload(token, idRecibo, opts = {}) {
+  const requirePdf = opts.requirePdf !== false;
+  const maxAttempts = opts.maxAttempts || 30;
+  const firstDelay = opts.firstDelayMs ?? 500;
+  const nextDelay = opts.nextDelayMs ?? 2000;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    await sleepMs(attempt === 0 ? firstDelay : nextDelay);
+    const dlRes = await fetch(
+      `https://api.correios.com.br/prepostagem/v1/prepostagens/rotulo/download/assincrono/${encodeURIComponent(idRecibo)}`,
+      { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } }
+    );
+    const dlText = await dlRes.text().catch(() => '');
+    if (!dlRes.ok) {
+      if (dlRes.status === 404 || dlRes.status === 202) continue;
+      throw new Error(extractCorreiosApiError(dlRes, dlText) || `Download do rótulo falhou (${dlRes.status})`);
+    }
+    let dlData;
+    try {
+      dlData = dlText ? JSON.parse(dlText) : {};
+    } catch {
+      continue;
+    }
+    const trackingCode = extractCorreiosAvCode(dlData);
+    const pdfBase64 = dlData.dados || dlData.conteudo || dlData.pdf;
+    if (trackingCode && !requirePdf) return { trackingCode, pdfBase64: pdfBase64 || null };
+    if (pdfBase64) return { pdfBase64, trackingCode: trackingCode || null };
+    const status = String(dlData.status || dlData.situacao || '').toUpperCase();
+    if (status === 'ERRO' || status === 'FALHA') {
+      throw new Error(dlData.mensagem || dlData.message || 'Processamento do rótulo falhou');
+    }
+  }
+  if (requirePdf) throw new Error('Tempo esgotado aguardando PDF do rótulo Correios');
+  return null;
+}
+
+async function fetchCorreiosAvFromLabelMeta(token, prePostagemId) {
+  const idRecibo = await requestCorreiosLabelReceipt(token, prePostagemId);
+  if (!idRecibo) return null;
+  const result = await pollCorreiosLabelDownload(token, idRecibo, {
+    requirePdf: false,
+    maxAttempts: 10,
+    firstDelayMs: 400,
+    nextDelayMs: 1000
+  });
+  return result?.trackingCode || null;
+}
+
 async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env) {
   if (order.correiosTrackingCode) return order.correiosTrackingCode;
   const id = String(order.correiosPrePostagemId || '').trim();
   if (!id) return null;
   const data = await fetchCorreiosPrePostagemById(token, id);
-  const code = String(data?.codigoObjeto || data?.codigoRegistro || '').trim().toUpperCase();
+  let code = extractCorreiosAvCode(data);
+  if (!code) {
+    try {
+      code = await fetchCorreiosAvFromLabelMeta(token, id);
+    } catch (err) {
+      console.warn('Correios AV label sync:', order.orderId, err.message);
+    }
+  }
   if (!code) return null;
   order.correiosTrackingCode = code;
   await saveOrder(env, order);
@@ -3109,6 +3222,9 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   const created = await createCorreiosPrePostagem(token, order, config, env);
   order.correiosPrePostagemId = created.id;
   if (created.codigoObjeto) order.correiosTrackingCode = created.codigoObjeto;
+  if (!order.correiosTrackingCode) {
+    await syncCorreiosTrackingCodeFromPrePostagem(token, order, env);
+  }
   order.correiosPrePostagemAt = new Date().toISOString();
   order.correiosPrePostagemError = null;
   await saveOrder(env, order);
@@ -3187,7 +3303,7 @@ async function createCorreiosPrePostagem(token, order, config, env) {
   if (!id) throw new Error('Pré-postagem criada sem ID');
   return {
     id,
-    codigoObjeto: data.codigoObjeto || data.codigoRegistro || null
+    codigoObjeto: extractCorreiosAvCode(data)
   };
 }
 
@@ -3196,62 +3312,11 @@ async function sleepMs(ms) {
 }
 
 async function fetchCorreiosLabelPdf(token, prePostagemId) {
-  const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens/rotulo/assincrono/pdf', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + token,
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      idsPrePostagem: [prePostagemId],
-      tipoRotulo: 'P',
-      formatoRotulo: 'ET'
-    })
-  });
-  const bodyText = await res.text().catch(() => '');
-  if (!res.ok) {
-    throw new Error(extractCorreiosApiError(res, bodyText) || `Falha ao solicitar rótulo (${res.status})`);
-  }
-  let data;
-  try {
-    data = bodyText ? JSON.parse(bodyText) : {};
-  } catch {
-    throw new Error('Resposta inválida ao solicitar rótulo');
-  }
-  const idRecibo = data.idRecibo || data.recibo || data.id;
+  const idRecibo = await requestCorreiosLabelReceipt(token, prePostagemId);
   if (!idRecibo) throw new Error('Recibo do rótulo não retornado');
-
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    await sleepMs(attempt === 0 ? 500 : 2000);
-    const dlRes = await fetch(
-      `https://api.correios.com.br/prepostagem/v1/prepostagens/rotulo/download/assincrono/${encodeURIComponent(idRecibo)}`,
-      { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } }
-    );
-    const dlText = await dlRes.text().catch(() => '');
-    if (!dlRes.ok) {
-      if (dlRes.status === 404 || dlRes.status === 202) continue;
-      throw new Error(extractCorreiosApiError(dlRes, dlText) || `Download do rótulo falhou (${dlRes.status})`);
-    }
-    let dlData;
-    try {
-      dlData = dlText ? JSON.parse(dlText) : {};
-    } catch {
-      continue;
-    }
-    const pdfBase64 = dlData.dados || dlData.conteudo || dlData.pdf;
-    if (pdfBase64) {
-      return {
-        pdfBase64,
-        trackingCode: dlData.codigoObjeto || dlData.codigoRegistro || null
-      };
-    }
-    const status = String(dlData.status || dlData.situacao || '').toUpperCase();
-    if (status === 'ERRO' || status === 'FALHA') {
-      throw new Error(dlData.mensagem || dlData.message || 'Processamento do rótulo falhou');
-    }
-  }
-  throw new Error('Tempo esgotado aguardando PDF do rótulo Correios');
+  const result = await pollCorreiosLabelDownload(token, idRecibo, { requirePdf: true });
+  if (!result?.pdfBase64) throw new Error('Tempo esgotado aguardando PDF do rótulo Correios');
+  return result;
 }
 
 async function quoteCorreiosService(env, config, destCep, method, opts = {}) {
@@ -5480,8 +5545,9 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
     if (!prePostagemId) throw new Error('Pré-postagem não criada');
 
     const label = await fetchCorreiosLabelPdf(token, prePostagemId);
-    if (label.trackingCode && !order.correiosTrackingCode) {
-      order.correiosTrackingCode = label.trackingCode;
+    const labelCode = label.trackingCode ? String(label.trackingCode).trim().toUpperCase() : null;
+    if (labelCode && labelCode !== order.correiosTrackingCode) {
+      order.correiosTrackingCode = labelCode;
       await saveOrder(env, order);
     }
 
@@ -6662,6 +6728,7 @@ async function handleAdminCorreiosTracking(request, env, origin) {
     if (!order.correiosTrackingCode) {
       const payload = {};
       if (order.correiosFreteEstimado != null) payload.correiosFreteEstimado = order.correiosFreteEstimado;
+      if (order.correiosTrackingCode) payload.trackingCode = order.correiosTrackingCode;
       if (order.correiosPrePostagemId || order.correiosPrePostagemAt) payload.status = 'Pré-postado';
       if (Object.keys(payload).length) orders[orderId] = payload;
       continue;

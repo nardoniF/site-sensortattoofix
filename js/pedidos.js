@@ -164,6 +164,16 @@
     return 'Frete';
   }
 
+  function correiosEntregaStatusLabel(o) {
+    const last = String(o.correiosTrackingLastEvent?.description || '').trim();
+    const st = String(o.correiosTrackingStatus || '').trim();
+    const prePostOnly = new Set(['', 'Pré-postado', 'Sem eventos', 'Aguardando postagem na agência', 'Indisponível']);
+    if (last) return last.length > 48 ? `${last.slice(0, 48)}…` : last;
+    if (st && !prePostOnly.has(st)) return st;
+    if (o.correiosTrackingCode || o.correiosPrePostagemId || o.correiosPrePostagemAt) return 'Pré-postado';
+    return 'Aguardando pré-postagem';
+  }
+
   function freteCell(o) {
     const kind = escHtml(shippingKindLabel(o));
     const paid = Number(o.frete);
@@ -212,11 +222,8 @@
       }
       const code = escHtml(o.correiosTrackingCode);
       const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
-      const status = escHtml(o.correiosTrackingStatus || 'Pré-postado');
-      const last = o.correiosTrackingLastEvent?.description
-        ? `<br><small>${escHtml(o.correiosTrackingLastEvent.description)}</small>`
-        : '';
-      return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>${last}`;
+      const status = escHtml(correiosEntregaStatusLabel(o));
+      return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>`;
     }
 
     return '<small class="pedidos-track-muted">—</small>';
@@ -251,16 +258,16 @@
       const parts = [];
       if (o.correiosTrackingCode) {
         const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
-        parts.push(`<strong><a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(o.correiosTrackingCode)}</a></strong>`);
-        parts.push(`Status: <span class="pedidos-track-status">${escHtml(o.correiosTrackingStatus || 'Pré-postado')}</span>`);
-        if (o.correiosTrackingLastEvent?.description) {
-          parts.push(`Último evento: ${escHtml(o.correiosTrackingLastEvent.description)}`);
-          if (o.correiosTrackingLastEvent.date) {
-            parts.push(`<small class="pedidos-detail-muted">${formatDate(o.correiosTrackingLastEvent.date)}</small>`);
-          }
+        parts.push(`<strong class="pedidos-detail-av"><a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(o.correiosTrackingCode)}</a></strong>`);
+        parts.push(`<span class="pedidos-track-status">${escHtml(correiosEntregaStatusLabel(o))}</span>`);
+        if (o.correiosTrackingLastEvent?.description && o.correiosTrackingStatus && o.correiosTrackingStatus !== o.correiosTrackingLastEvent.description) {
+          parts.push(`<small class="pedidos-detail-muted">${escHtml(o.correiosTrackingStatus)}</small>`);
+        }
+        if (o.correiosTrackingLastEvent?.date) {
+          parts.push(`<small class="pedidos-detail-muted">${formatDate(o.correiosTrackingLastEvent.date)}</small>`);
         }
       } else if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
-        parts.push('<strong class="pedidos-track-status">Pré-postado</strong> — aguardando código AV');
+        parts.push('<span class="pedidos-track-status">Pré-postado</span> — aguardando código AV');
       } else {
         parts.push('<span class="pedidos-track-muted">Aguardando pré-postagem</span>');
       }
@@ -270,22 +277,17 @@
     return '<span class="pedidos-track-muted">—</span>';
   }
 
-  function freteDetailBlock(o) {
+  function freteDetailRows(o) {
     const kind = escHtml(shippingKindLabel(o));
     const paid = Number(o.frete);
     const hasPaid = Number.isFinite(paid) && paid >= 0;
     const est = Number(o.correiosFreteEstimado);
     const hasEst = isCorreiosBrOrder(o) && Number.isFinite(est) && est > 0;
-    const parts = [];
-    if (hasEst) {
-      parts.push(`<div class="pedidos-detail-frete-main">${formatBRL(est)}</div>`);
-      parts.push(`<div class="pedidos-detail-frete-sub">Correios cobrou (est. contrato)</div>`);
-    }
-    if (hasPaid) {
-      parts.push(`<div class="pedidos-detail-frete-client">Cliente pagou: ${formatBRL(paid)}</div>`);
-    }
-    parts.push(`<div class="pedidos-detail-frete-kind">Tipo: ${kind}</div>`);
-    return parts.join('');
+    const rows = [];
+    if (hasEst) rows.push(detailRow('Correios (est.)', `<strong>${formatBRL(est)}</strong>`));
+    if (hasPaid) rows.push(detailRow('Cliente pagou', formatBRL(paid)));
+    rows.push(detailRow('Tipo envio', kind));
+    return rows.join('');
   }
 
   let orderModalEl = null;
@@ -344,11 +346,8 @@
         ${detailRow('Pagamento', escHtml(o.pagamento || '—'))}
         ${detailRow('Comissionado', commissioner)}
         ${detailRow('Total', `<strong>${formatBRL(o.total)}</strong>`)}
+        ${freteDetailRows(o)}
       </div>
-      <section class="pedidos-detail-section pedidos-detail-section--frete">
-        <h3 class="pedidos-detail-heading">Frete</h3>
-        ${freteDetailBlock(o)}
-      </section>
       <section class="pedidos-detail-section pedidos-detail-section--entrega">
         <h3 class="pedidos-detail-heading">Entrega / Rastreio</h3>
         ${deliveryDetailBlock(o)}
@@ -560,6 +559,7 @@
         return needsCorreios;
       })
       .filter((o) => {
+        if (isCorreiosBrOrder(o) && o.correiosPrePostagemId && !o.correiosTrackingCode) return true;
         if (!o.correiosTrackingUpdatedAt) return true;
         return now - new Date(o.correiosTrackingUpdatedAt).getTime() > staleMs;
       })
@@ -577,18 +577,23 @@
       for (const order of allOrders) {
         const summary = data.orders?.[order.orderId];
         if (!summary) continue;
-        order.correiosTrackingStatus = summary.status;
-        order.correiosTrackingLastEvent = summary.lastEvent;
-        order.correiosTrackingEvents = summary.events;
-        order.correiosTrackingUpdatedAt = new Date().toISOString();
-        if (summary.correiosFreteEstimado != null) {
-          order.correiosFreteEstimado = summary.correiosFreteEstimado;
-        }
         if (summary.trackingCode) {
           order.correiosTrackingCode = summary.trackingCode;
         }
-        if (summary.status && !order.correiosTrackingCode) {
+        if (summary.status) {
           order.correiosTrackingStatus = summary.status;
+        }
+        if (summary.lastEvent) {
+          order.correiosTrackingLastEvent = summary.lastEvent;
+        }
+        if (summary.events) {
+          order.correiosTrackingEvents = summary.events;
+        }
+        if (summary.correiosFreteEstimado != null) {
+          order.correiosFreteEstimado = summary.correiosFreteEstimado;
+        }
+        if (summary.correiosFreteEstimado != null || summary.trackingCode || summary.status) {
+          order.correiosTrackingUpdatedAt = new Date().toISOString();
         }
       }
     } catch (err) {
