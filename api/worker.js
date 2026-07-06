@@ -3171,7 +3171,7 @@ async function fetchCorreiosAvFromLabelMeta(token, prePostagemId) {
   return result?.trackingCode || null;
 }
 
-async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env) {
+async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts = {}) {
   if (order.correiosTrackingCode) return order.correiosTrackingCode;
   const id = String(order.correiosPrePostagemId || '').trim();
   if (!id) return null;
@@ -3182,6 +3182,14 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env) {
       code = await fetchCorreiosAvFromLabelMeta(token, id);
     } catch (err) {
       console.warn('Correios AV label sync:', order.orderId, err.message);
+    }
+  }
+  if (!code && opts.aggressive) {
+    try {
+      const label = await fetchCorreiosLabelPdf(token, id);
+      code = label.trackingCode || null;
+    } catch (err) {
+      console.warn('Correios AV pdf sync:', order.orderId, err.message);
     }
   }
   if (!code) return null;
@@ -6700,11 +6708,13 @@ async function handleAdminCorreiosTracking(request, env, origin) {
   }
   const body = await request.json().catch(() => ({}));
   const orderIds = Array.isArray(body.orderIds) ? body.orderIds.slice(0, 25) : [];
+  const forceAvSync = body.forceAvSync === true;
   const token = await getCorreiosToken(env);
   if (!token) return json({ error: 'Correios não configurado.' }, 503, origin);
 
   const config = await getConfig(env);
   const orders = {};
+  let aggressiveBudget = forceAvSync ? orderIds.length : 3;
   for (const orderId of orderIds) {
     const order = await getOrder(env, orderId);
     if (!order) continue;
@@ -6717,11 +6727,22 @@ async function handleAdminCorreiosTracking(request, env, origin) {
       }
     }
 
-    if (!order.correiosTrackingCode && order.correiosPrePostagemId) {
-      try {
-        await syncCorreiosTrackingCodeFromPrePostagem(token, order, env);
-      } catch (err) {
-        console.warn('Correios AV backfill:', orderId, err.message);
+    if (!order.correiosTrackingCode && isCorreiosBrOrder(order)) {
+      if (!order.correiosPrePostagemId) {
+        try {
+          await ensureCorreiosPrePostagemForOrder(env, order, config);
+        } catch (err) {
+          console.warn('Correios pre-postagem backfill:', orderId, err.message);
+        }
+      }
+      if (order.correiosPrePostagemId) {
+        try {
+          const useAggressive = forceAvSync || aggressiveBudget > 0;
+          if (useAggressive && !forceAvSync) aggressiveBudget -= 1;
+          await syncCorreiosTrackingCodeFromPrePostagem(token, order, env, { aggressive: useAggressive });
+        } catch (err) {
+          console.warn('Correios AV backfill:', orderId, err.message);
+        }
       }
     }
 

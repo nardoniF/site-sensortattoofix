@@ -316,8 +316,7 @@
     return wrap;
   }
 
-  function showOrderDetails(o) {
-    const modal = ensureOrderModal();
+  function renderOrderModal(o) {
     const title = document.getElementById('pedidos-order-modal-title');
     const body = document.getElementById('pedidos-order-modal-body');
     if (!title || !body) return;
@@ -339,7 +338,7 @@
 
     body.innerHTML = `
       <div class="pedidos-detail-grid">
-        ${detailRow('Data', escHtml(formatDate(o.createdAt)))}
+        ${detailRow('Data', formatDateCell(o.createdAt))}
         ${detailRow('Cliente', `${escHtml(o.nome)}<br><small>${escHtml(o.email || '—')}</small><br><small>${escHtml(o.telefone || '—')}</small>`)}
         ${detailRow('Smartwatch', watch)}
         ${detailRow('País', escHtml(o.pais || '—'))}
@@ -354,8 +353,53 @@
       </section>
       ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
     `;
+  }
 
-    modal.hidden = false;
+  function applyCorreiosSyncResults(data) {
+    for (const order of allOrders) {
+      const summary = data.orders?.[order.orderId];
+      if (!summary) continue;
+      if (summary.trackingCode) order.correiosTrackingCode = summary.trackingCode;
+      if (summary.status) order.correiosTrackingStatus = summary.status;
+      if (summary.lastEvent) order.correiosTrackingLastEvent = summary.lastEvent;
+      if (summary.events) order.correiosTrackingEvents = summary.events;
+      if (summary.correiosFreteEstimado != null) order.correiosFreteEstimado = summary.correiosFreteEstimado;
+      if (summary.correiosFreteEstimado != null || summary.trackingCode || summary.status) {
+        order.correiosTrackingUpdatedAt = new Date().toISOString();
+      }
+    }
+  }
+
+  async function syncCorreiosOrders(orderIds, forceAvSync = false) {
+    if (!orderIds.length) return null;
+    const res = await fetch(apiBase() + '/admin/correios-tracking', {
+      method: 'POST',
+      headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderIds, forceAvSync })
+    });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => ({}));
+    applyCorreiosSyncResults(data);
+    return data;
+  }
+
+  async function showOrderDetails(o) {
+    ensureOrderModal();
+    renderOrderModal(o);
+    if (orderModalEl) orderModalEl.hidden = false;
+
+    const needsAv = o.status === 'paid' && isCorreiosBrOrder(o) && !o.correiosTrackingCode
+      && (o.correiosPrePostagemId || o.correiosPrePostagemAt);
+    if (!needsAv) return;
+
+    const body = document.getElementById('pedidos-order-modal-body');
+    if (body) {
+      body.insertAdjacentHTML('beforeend', '<p class="pedidos-detail-sync">Buscando código AV nos Correios…</p>');
+    }
+    await syncCorreiosOrders([o.orderId], true);
+    const fresh = allOrders.find((x) => x.orderId === o.orderId) || o;
+    renderOrderModal(fresh);
+    applyFilters();
   }
 
   function openPdfBase64(b64, filename) {
@@ -553,13 +597,11 @@
     const ids = orders
       .filter((o) => o.status === 'paid')
       .filter((o) => {
-        const needsCorreios = isCorreiosBrOrder(o) && (
-          o.correiosTrackingCode || o.correiosPrePostagemId || o.correiosFreteEstimado == null
-        );
-        return needsCorreios;
+        if (!isCorreiosBrOrder(o)) return false;
+        return o.correiosTrackingCode || o.correiosPrePostagemId || o.correiosPrePostagemAt || o.correiosFreteEstimado == null;
       })
       .filter((o) => {
-        if (isCorreiosBrOrder(o) && o.correiosPrePostagemId && !o.correiosTrackingCode) return true;
+        if (isCorreiosBrOrder(o) && !o.correiosTrackingCode && (o.correiosPrePostagemId || o.correiosPrePostagemAt)) return true;
         if (!o.correiosTrackingUpdatedAt) return true;
         return now - new Date(o.correiosTrackingUpdatedAt).getTime() > staleMs;
       })
@@ -567,35 +609,7 @@
       .slice(0, 20);
     if (!ids.length) return;
     try {
-      const res = await fetch(apiBase() + '/admin/correios-tracking', {
-        method: 'POST',
-        headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderIds: ids })
-      });
-      if (!res.ok) return;
-      const data = await res.json().catch(() => ({}));
-      for (const order of allOrders) {
-        const summary = data.orders?.[order.orderId];
-        if (!summary) continue;
-        if (summary.trackingCode) {
-          order.correiosTrackingCode = summary.trackingCode;
-        }
-        if (summary.status) {
-          order.correiosTrackingStatus = summary.status;
-        }
-        if (summary.lastEvent) {
-          order.correiosTrackingLastEvent = summary.lastEvent;
-        }
-        if (summary.events) {
-          order.correiosTrackingEvents = summary.events;
-        }
-        if (summary.correiosFreteEstimado != null) {
-          order.correiosFreteEstimado = summary.correiosFreteEstimado;
-        }
-        if (summary.correiosFreteEstimado != null || summary.trackingCode || summary.status) {
-          order.correiosTrackingUpdatedAt = new Date().toISOString();
-        }
-      }
+      await syncCorreiosOrders(ids, false);
     } catch (err) {
       console.warn('Rastreio Correios:', err);
     }

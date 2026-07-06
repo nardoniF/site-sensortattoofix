@@ -3898,6 +3898,11 @@ body.admin-page.pedidos-login-only #pedidos-login {
   letter-spacing: 0.06em;
   color: var(--primary);
 }
+.pedidos-detail-sync {
+  margin-top: 10px;
+  color: var(--primary);
+  font-size: 0.82rem;
+}
 .pedidos-detail-muted { color: var(--gray); font-size: 0.82rem; }
 .pedidos-detail-secondary {
   margin-top: 14px;
