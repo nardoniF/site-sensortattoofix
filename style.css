@@ -3807,14 +3807,16 @@ body.admin-page.pedidos-login-only #pedidos-login {
   inset: 0;
   z-index: 10050;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 24px 16px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .pedidos-order-modal[hidden] { display: none !important; }
 .pedidos-order-modal-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.72);
 }
@@ -3822,12 +3824,17 @@ body.admin-page.pedidos-login-only #pedidos-login {
   position: relative;
   z-index: 1;
   width: min(100%, 560px);
+  max-height: calc(100dvh - 32px);
+  margin: 8px auto 24px;
   background: #141414;
   border: 1px solid #333;
   border-radius: 16px;
   padding: 22px 22px 20px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .pedidos-order-modal-close {
   position: absolute;
@@ -3850,8 +3857,17 @@ body.admin-page.pedidos-login-only #pedidos-login {
   font-weight: 800;
   color: var(--primary);
   word-break: break-all;
+  flex: 0 0 auto;
 }
-.pedidos-order-modal-body { font-size: 0.88rem; line-height: 1.45; }
+.pedidos-order-modal-body {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
 .pedidos-detail-grid {
   display: grid;
   gap: 8px;

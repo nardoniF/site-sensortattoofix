@@ -438,12 +438,12 @@
         ${detailRow('Total', `<strong>${formatBRL(o.total)}</strong>`)}
         ${freteDetailRows(o)}
       </div>
+      ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
       <section class="pedidos-detail-section pedidos-detail-section--entrega">
         <h3 class="pedidos-detail-heading">Entrega / Rastreio</h3>
         ${deliveryDetailBlock(o)}
       </section>
       ${manualShippingSection(o)}
-      ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
     `;
 
     body.querySelector('.btn-save-shipping')?.addEventListener('click', async () => {
