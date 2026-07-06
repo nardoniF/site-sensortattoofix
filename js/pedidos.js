@@ -131,38 +131,26 @@
     return true;
   }
 
-  function correiosFreteCell(o) {
-    if (!isCorreiosBrOrder(o)) return '—';
-    const est = Number(o.correiosFreteEstimado);
-    if (!Number.isFinite(est) || est <= 0) {
-      return '<small class="pedidos-track-muted">—</small>';
-    }
-    const main = formatBRL(est);
-    const paid = Number(o.frete);
-    if (Number.isFinite(paid) && paid > 0 && Math.abs(paid - est) > 0.01) {
-      return `${main}<br><small class="pedidos-frete-paid">cliente: ${formatBRL(paid)}</small>`;
-    }
-    return main;
+  function shippingKindLabel(o) {
+    const provider = String(o.shippingProvider || '').toLowerCase();
+    if (provider === 'uber') return 'Uber';
+    if (provider === 'motoboy') return 'Motoboy';
+    const method = String(o.shippingMethodId || '').toLowerCase();
+    if (method.includes('uber')) return 'Uber';
+    if (method.includes('motoboy')) return 'Motoboy';
+    if (isCorreiosBrOrder(o)) return 'Correios';
+    const svc = String(o.shippingService || '').trim();
+    if (svc) return svc;
+    return 'Frete';
   }
 
-  function correiosTrackingCell(o) {
-    if (!isCorreiosBrOrder(o) || o.status !== 'paid') return '—';
-    if (o.correiosPrePostagemError && !o.correiosTrackingCode) {
-      return `<small class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</small>`;
+  function freteCell(o) {
+    const paid = Number(o.frete);
+    const kind = escHtml(shippingKindLabel(o));
+    if (!Number.isFinite(paid) || paid < 0) {
+      return `<small class="pedidos-track-muted">—</small><br><small class="pedidos-frete-kind">${kind}</small>`;
     }
-    if (!o.correiosTrackingCode) {
-      if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
-        return '<small class="pedidos-track-status">Pré-postado</small>';
-      }
-      return '<small class="pedidos-track-muted">Aguardando pré-postagem</small>';
-    }
-    const code = escHtml(o.correiosTrackingCode);
-    const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
-    const status = escHtml(o.correiosTrackingStatus || 'Pré-postado');
-    const last = o.correiosTrackingLastEvent?.description
-      ? `<br><small>${escHtml(o.correiosTrackingLastEvent.description)}</small>`
-      : '';
-    return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>${last}`;
+    return `${formatBRL(paid)}<br><small class="pedidos-frete-kind">${kind}</small>`;
   }
 
   function showOrderDetails(o) {
@@ -174,9 +162,7 @@
           ? `\nComissão: ${formatBRL(o.couponCommissionAmount)}${o.couponCommissionPercent != null ? ` (${o.couponCommissionPercent}%)` : ''}`
           : '')
       : '';
-    const freteEstLine = isCorreiosBrOrder(o) && o.correiosFreteEstimado != null
-      ? `\nFrete Correios (est.): ${formatBRL(o.correiosFreteEstimado)}`
-      : '';
+    const freteLine = `\nFrete: ${formatBRL(o.frete)} (${shippingKindLabel(o)})`;
     const trackLine = o.correiosTrackingCode
       ? `\nRastreio Correios: ${o.correiosTrackingCode}` +
         (o.correiosTrackingStatus ? `\nStatus: ${o.correiosTrackingStatus}` : '') +
@@ -191,7 +177,7 @@
       `CPF: ${o.cpf || '—'}\n` +
       `${watchLines}\n` +
       `Endereço: ${o.endereco}\n` +
-      `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)${freteEstLine}${couponLine}${trackLine}`
+      `Total: ${formatBRL(o.total)}${freteLine}${couponLine}${trackLine}`
     );
   }
 
@@ -271,13 +257,14 @@
         <td>${o.pagamento || '—'}</td>
         <td>${commissionerCell(o)}</td>
         <td>${formatBRL(o.total)}</td>
-        <td class="pedidos-frete-est">${correiosFreteCell(o)}</td>
-        <td class="pedidos-tracking">${correiosTrackingCell(o)}</td>
+        <td class="pedidos-frete">${freteCell(o)}</td>
         <td class="pedidos-actions">
+          <div class="pedidos-actions-inner">
           ${statusBadgeHtml(o.status)}
           ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
           ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
           <button type="button" class="btn-delete-order" data-order-id="${o.orderId}" data-paid="${o.status === 'paid' ? '1' : '0'}" title="Excluir pedido"><i class="fas fa-trash-alt"></i> Excluir</button>
+          </div>
         </td>
       `;
 
