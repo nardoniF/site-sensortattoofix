@@ -3049,13 +3049,8 @@ async function ensureCorreiosFreteEstimate(env, order, config) {
   return { ok: true, price };
 }
 
-async function fetchCorreiosPrePostagemById(token, prePostagemId) {
-  const id = String(prePostagemId || '').trim();
-  if (!id) return null;
-  const res = await fetch(
-    `https://api.correios.com.br/prepostagem/v1/prepostagens/${encodeURIComponent(id)}`,
-    { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } }
-  );
+async function fetchCorreiosJson(token, url) {
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } });
   const bodyText = await res.text().catch(() => '');
   if (!res.ok) return null;
   try {
@@ -3063,6 +3058,64 @@ async function fetchCorreiosPrePostagemById(token, prePostagemId) {
   } catch {
     return null;
   }
+}
+
+async function fetchCorreiosPrePostagemById(token, prePostagemId) {
+  const id = String(prePostagemId || '').trim();
+  if (!id) return null;
+
+  let data = await fetchCorreiosJson(
+    token,
+    `https://api.correios.com.br/prepostagem/v1/prepostagens/${encodeURIComponent(id)}`
+  );
+  if (extractCorreiosAvCode(data)) return data;
+
+  const v2Queries = [
+    `id=${encodeURIComponent(id)}`,
+    `ids=${encodeURIComponent(id)}`,
+    `idPrePostagem=${encodeURIComponent(id)}`,
+    `codigoPrePostagem=${encodeURIComponent(id)}`
+  ];
+  for (const q of v2Queries) {
+    const listed = await fetchCorreiosJson(token, `https://api.correios.com.br/prepostagem/v2/prepostagens?${q}`);
+    if (!listed) continue;
+    if (extractCorreiosAvCode(listed)) return listed;
+    const rows = listed.itens || listed.items || listed.content || listed.prePostagens || listed.data;
+    if (Array.isArray(rows)) {
+      const match = rows.find((row) => extractCorreiosAvCode(row));
+      if (match) return match;
+    }
+  }
+  return data;
+}
+
+function parseCorreiosLabelDownload(dlData) {
+  if (!dlData) return { trackingCode: null, pdfBase64: null };
+  let trackingCode = extractCorreiosAvCode(dlData);
+  let pdfBase64 = null;
+  const dados = dlData.dados;
+
+  if (typeof dados === 'string') {
+    pdfBase64 = dados;
+  } else if (Array.isArray(dados)) {
+    for (const row of dados) {
+      if (!trackingCode) trackingCode = extractCorreiosAvCode(row);
+      if (!pdfBase64) {
+        const b64 = row?.conteudo || row?.pdf || row?.dados || row?.rotulo || row?.base64;
+        if (typeof b64 === 'string') pdfBase64 = b64;
+      }
+    }
+  } else if (dados && typeof dados === 'object') {
+    if (!trackingCode) trackingCode = extractCorreiosAvCode(dados);
+    pdfBase64 = dados.conteudo || dados.pdf || dados.dados || dados.rotulo || null;
+  }
+
+  if (!pdfBase64) {
+    const alt = dlData.conteudo || dlData.pdf || dlData.rotulo || dlData.base64;
+    if (typeof alt === 'string') pdfBase64 = alt;
+  }
+  if (typeof pdfBase64 !== 'string') pdfBase64 = null;
+  return { trackingCode, pdfBase64 };
 }
 
 const CORREIOS_AV_RE = /^[A-Z]{2}\d{9}[A-Z]{2}$/;
@@ -3161,8 +3214,9 @@ async function pollCorreiosLabelDownload(token, idRecibo, opts = {}) {
     } catch {
       continue;
     }
-    const trackingCode = extractCorreiosAvCode(dlData);
-    const pdfBase64 = dlData.dados || dlData.conteudo || dlData.pdf;
+    const parsed = parseCorreiosLabelDownload(dlData);
+    const trackingCode = parsed.trackingCode;
+    const pdfBase64 = parsed.pdfBase64;
     const codeFromPdf = pdfBase64 ? await extractAvFromPdfBase64(pdfBase64) : null;
     const resolvedCode = trackingCode || codeFromPdf;
     if (resolvedCode && !requirePdf) return { trackingCode: resolvedCode, pdfBase64: pdfBase64 || null };
@@ -3180,6 +3234,32 @@ function pickAvFromMatches(matches) {
   if (!matches?.length) return null;
   const av = matches.find((m) => m.startsWith('AV'));
   return av || matches[0];
+}
+
+function scanAvInBytes(bytes) {
+  if (!bytes?.length || bytes.length < 13) return null;
+  let fallback = null;
+  for (let i = 0; i <= bytes.length - 13; i += 1) {
+    const b0 = bytes[i];
+    const b1 = bytes[i + 1];
+    if (b0 < 65 || b0 > 90 || b1 < 65 || b1 > 90) continue;
+    let digitsOk = true;
+    for (let j = 2; j <= 10; j += 1) {
+      const c = bytes[i + j];
+      if (c < 48 || c > 57) {
+        digitsOk = false;
+        break;
+      }
+    }
+    if (!digitsOk) continue;
+    const b11 = bytes[i + 11];
+    const b12 = bytes[i + 12];
+    if (b11 < 65 || b11 > 90 || b12 < 65 || b12 > 90) continue;
+    const code = String.fromCharCode(b0, b1, ...bytes.slice(i + 2, i + 13));
+    if (code.startsWith('AV')) return code;
+    if (!fallback) fallback = code;
+  }
+  return fallback;
 }
 
 function scanAvInString(text) {
@@ -3257,8 +3337,9 @@ async function scanAvInFlateStreams(raw) {
     const bytes = Uint8Array.from(chunk, (c) => c.charCodeAt(0) & 0xff);
     const inflated = await inflatePdfChunk(bytes);
     if (!inflated?.length) continue;
-    const text = String.fromCharCode(...inflated);
-    const code = scanAvInPdfRaw(text);
+    let code = scanAvInBytes(inflated);
+    if (code) return code;
+    code = scanAvInPdfRaw(String.fromCharCode.apply(null, inflated.subarray(0, Math.min(inflated.length, 500000))));
     if (code) return code;
   }
   return null;
@@ -3268,12 +3349,45 @@ async function extractAvFromPdfBase64(b64) {
   if (!b64) return null;
   try {
     const raw = atob(String(b64));
-    let code = scanAvInPdfRaw(raw);
+    const bytes = Uint8Array.from(raw, (c) => c.charCodeAt(0) & 0xff);
+    let code = scanAvInBytes(bytes);
+    if (code) return code;
+    code = scanAvInPdfRaw(raw);
     if (code) return code;
     return await scanAvInFlateStreams(raw);
   } catch {
     return null;
   }
+}
+
+async function fetchCorreiosLabelSync(token, prePostagemId) {
+  const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens/rotulo', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + token,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      idsPrePostagem: [prePostagemId],
+      tipoRotulo: 'P',
+      formatoRotulo: 'ET'
+    })
+  });
+  const bodyText = await res.text().catch(() => '');
+  if (!res.ok) {
+    throw new Error(extractCorreiosApiError(res, bodyText) || `Rótulo sync falhou (${res.status})`);
+  }
+  let data;
+  try {
+    data = bodyText ? JSON.parse(bodyText) : {};
+  } catch {
+    throw new Error('Resposta inválida do rótulo sync');
+  }
+  const parsed = parseCorreiosLabelDownload(data);
+  const trackingCode = parsed.trackingCode
+    || (parsed.pdfBase64 ? await extractAvFromPdfBase64(parsed.pdfBase64) : null);
+  return { pdfBase64: parsed.pdfBase64, trackingCode };
 }
 
 async function fetchCorreiosAvFromLabelMeta(token, prePostagemId) {
@@ -3299,6 +3413,14 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts =
       code = await fetchCorreiosAvFromLabelMeta(token, id);
     } catch (err) {
       console.warn('Correios AV label sync:', order.orderId, err.message);
+    }
+  }
+  if (!code && opts.aggressive) {
+    try {
+      const label = await fetchCorreiosLabelSync(token, id);
+      code = label.trackingCode || (label.pdfBase64 ? await extractAvFromPdfBase64(label.pdfBase64) : null);
+    } catch (err) {
+      console.warn('Correios AV sync label:', order.orderId, err.message);
     }
   }
   if (!code && opts.aggressive) {

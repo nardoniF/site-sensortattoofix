@@ -268,6 +268,12 @@
         }
       } else if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
         parts.push('<span class="pedidos-track-status">Pré-postado</span> — aguardando código AV');
+        parts.push(
+          '<div class="pedidos-av-manual">'
+          + '<input type="text" class="pedidos-av-input" placeholder="Cole o AV da etiqueta (ex.: AV087512836BR)" maxlength="13" />'
+          + '<button type="button" class="btn-save-av">Salvar AV</button>'
+          + '</div>'
+        );
       } else {
         parts.push('<span class="pedidos-track-muted">Aguardando pré-postagem</span>');
       }
@@ -353,6 +359,28 @@
       </section>
       ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
     `;
+
+    body.querySelector('.btn-save-av')?.addEventListener('click', async () => {
+      const input = body.querySelector('.pedidos-av-input');
+      const code = String(input?.value || '').trim().toUpperCase();
+      if (!/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(code)) {
+        showStatus('Código AV inválido. Ex.: AV087512836BR', 'error');
+        return;
+      }
+      const saved = await saveCorreiosAv(o.orderId, code);
+      if (!saved) {
+        showStatus('Não foi possível salvar o AV.', 'error');
+        return;
+      }
+      o.correiosTrackingCode = code;
+      const idx = allOrders.findIndex((x) => x.orderId === o.orderId);
+      if (idx >= 0) allOrders[idx].correiosTrackingCode = code;
+      await syncCorreiosOrders([o.orderId], false);
+      const fresh = allOrders.find((x) => x.orderId === o.orderId) || o;
+      renderOrderModal(fresh);
+      applyFilters();
+      showStatus('AV salvo: ' + code, 'success');
+    });
   }
 
   function applyCorreiosSyncResults(data) {
@@ -498,18 +526,45 @@
       const bytes = Uint8Array.from(chunk, (c) => c.charCodeAt(0) & 0xff);
       const inflated = await inflatePdfChunk(bytes);
       if (!inflated?.length) continue;
-      const text = String.fromCharCode(...inflated);
-      const code = scanAvInPdfRaw(text);
+      let code = scanAvInBytes(inflated);
+      if (code) return code;
+      code = scanAvInPdfRaw(String.fromCharCode.apply(null, inflated.subarray(0, Math.min(inflated.length, 500000))));
       if (code) return code;
     }
     return null;
+  }
+
+  function scanAvInBytes(bytes) {
+    if (!bytes?.length || bytes.length < 13) return null;
+    let fallback = null;
+    for (let i = 0; i <= bytes.length - 13; i += 1) {
+      const b0 = bytes[i];
+      const b1 = bytes[i + 1];
+      if (b0 < 65 || b0 > 90 || b1 < 65 || b1 > 90) continue;
+      let digitsOk = true;
+      for (let j = 2; j <= 10; j += 1) {
+        const c = bytes[i + j];
+        if (c < 48 || c > 57) { digitsOk = false; break; }
+      }
+      if (!digitsOk) continue;
+      const b11 = bytes[i + 11];
+      const b12 = bytes[i + 12];
+      if (b11 < 65 || b11 > 90 || b12 < 65 || b12 > 90) continue;
+      const code = String.fromCharCode(b0, b1, ...bytes.slice(i + 2, i + 13));
+      if (code.startsWith('AV')) return code;
+      if (!fallback) fallback = code;
+    }
+    return fallback;
   }
 
   async function extractAvFromPdfBase64(b64) {
     if (!b64) return null;
     try {
       const raw = atob(String(b64));
-      let code = scanAvInPdfRaw(raw);
+      const bytes = Uint8Array.from(raw, (c) => c.charCodeAt(0) & 0xff);
+      let code = scanAvInBytes(bytes);
+      if (code) return code;
+      code = scanAvInPdfRaw(raw);
       if (code) return code;
       return await scanAvInFlateStreams(raw);
     } catch {
@@ -558,7 +613,11 @@
         }
         applyFilters();
         const track = fresh.correiosTrackingCode ? ' — rastreio ' + fresh.correiosTrackingCode : '';
-        showStatus('Etiqueta Correios aberta' + track, 'success');
+        if (fresh.correiosTrackingCode) {
+          showStatus('Etiqueta Correios aberta' + track, 'success');
+        } else {
+          showStatus('Etiqueta aberta, mas AV não detectado. Abra o pedido e cole o AV da etiqueta.', 'warn');
+        }
         return;
       }
       if (data.useClient && window.STF_ORDER_LABEL) {
