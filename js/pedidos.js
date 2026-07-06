@@ -303,6 +303,7 @@
             <input type="text" class="pedidos-shipping-note" value="${noteVal}" placeholder="Ex.: postado PAC balcão SP" maxlength="200" />
           </label>
           <button type="button" class="btn-save-shipping">Salvar envio</button>
+          <p class="pedidos-shipping-feedback" hidden></p>
         </div>
         ${manualAt}
       </section>`;
@@ -374,6 +375,14 @@
 
   let orderModalEl = null;
 
+  function closeOrderModal() {
+    if (orderModalEl) orderModalEl.hidden = true;
+  }
+
+  function normalizeTrackingCode(raw) {
+    return String(raw || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  }
+
   function ensureOrderModal() {
     if (orderModalEl) return orderModalEl;
     const wrap = document.createElement('div');
@@ -389,10 +398,10 @@
       </div>`;
     document.body.appendChild(wrap);
     wrap.querySelectorAll('[data-close-modal]').forEach((el) => {
-      el.addEventListener('click', () => { wrap.hidden = true; });
+      el.addEventListener('click', closeOrderModal);
     });
     document.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape' && !wrap.hidden) wrap.hidden = true;
+      if (ev.key === 'Escape' && !wrap.hidden) closeOrderModal();
     });
     orderModalEl = wrap;
     return wrap;
@@ -442,15 +451,26 @@
       const statusSelect = body.querySelector('.pedidos-shipping-status');
       const methodSelect = body.querySelector('.pedidos-shipping-method');
       const noteInput = body.querySelector('.pedidos-shipping-note');
-      const code = String(trackingInput?.value || '').trim().toUpperCase();
+      const feedbackEl = body.querySelector('.pedidos-shipping-feedback');
+      const saveBtn = body.querySelector('.btn-save-shipping');
+      const showFeedback = (msg, type) => {
+        if (!feedbackEl) return;
+        feedbackEl.textContent = msg;
+        feedbackEl.className = 'pedidos-shipping-feedback form-status ' + (type || '');
+        feedbackEl.hidden = !msg;
+      };
+
+      const code = normalizeTrackingCode(trackingInput?.value);
+      if (trackingInput && code !== trackingInput.value) trackingInput.value = code;
       const payload = {};
-      if (code !== String(o.correiosTrackingCode || '').trim().toUpperCase()) {
+      const existingCode = normalizeTrackingCode(o.correiosTrackingCode);
+      if (code !== existingCode) {
         if (!code) {
-          showStatus('Informe o código de rastreio.', 'error');
+          showFeedback('Informe o código de rastreio.', 'error');
           return;
         }
         if (!/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(code)) {
-          showStatus('Código inválido. Ex.: AP170797068BR', 'error');
+          showFeedback('Código inválido. Ex.: AP170797068BR', 'error');
           return;
         }
         payload.trackingCode = code;
@@ -470,21 +490,34 @@
         payload.correiosShippingManualNote = noteVal;
       }
       if (!Object.keys(payload).length) {
-        showStatus('Nenhuma alteração para salvar.', 'warn');
+        showFeedback('Nenhuma alteração para salvar.', 'warn');
         return;
       }
-      const saved = await saveShippingOverride(o.orderId, payload);
-      if (!saved) {
-        showStatus('Não foi possível salvar o envio.', 'error');
-        return;
+
+      showFeedback('', '');
+      const prevLabel = saveBtn?.textContent || '';
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Salvando…';
       }
-      applyShippingOverrideToOrder(o, saved);
-      const idx = allOrders.findIndex((x) => x.orderId === o.orderId);
-      if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
-      const fresh = allOrders.find((x) => x.orderId === o.orderId) || o;
-      renderOrderModal(fresh);
-      applyFilters();
-      showStatus('Envio atualizado' + (saved.trackingCode ? ': ' + saved.trackingCode : ''), 'success');
+      try {
+        const saved = await saveShippingOverride(o.orderId, payload);
+        if (!saved || saved.error) {
+          showFeedback(saved?.error || 'Não foi possível salvar. Verifique o código e tente de novo.', 'error');
+          return;
+        }
+        applyShippingOverrideToOrder(o, saved);
+        const idx = allOrders.findIndex((x) => x.orderId === o.orderId);
+        if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
+        applyFilters();
+        closeOrderModal();
+        showStatus('Envio atualizado' + (saved.trackingCode ? ': ' + saved.trackingCode : ''), 'success');
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = prevLabel;
+        }
+      }
     });
   }
 
@@ -706,12 +739,11 @@
       headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      if (data.error) showStatus(data.error, 'error');
-      return null;
+      return { error: data.error || 'Não foi possível salvar o envio.' };
     }
-    return res.json().catch(() => null);
+    return data;
   }
 
   async function printOrderLabel(order) {

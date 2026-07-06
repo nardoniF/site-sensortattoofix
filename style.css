@@ -3960,6 +3960,15 @@ body.admin-page.pedidos-login-only #pedidos-login {
   cursor: pointer;
   flex: 0 0 auto;
 }
+.btn-save-shipping:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.pedidos-shipping-feedback {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.82rem;
+}
 .pedidos-av-input {
   flex: 1 1 180px;
   min-width: 0;
