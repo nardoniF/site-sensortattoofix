@@ -120,6 +120,18 @@
       .replace(/"/g, '&quot;');
   }
 
+  function isUberOrder(o) {
+    const provider = String(o.shippingProvider || '').toLowerCase();
+    if (provider === 'uber') return true;
+    return String(o.shippingMethodId || '').toLowerCase().includes('uber');
+  }
+
+  function isMotoboyOrder(o) {
+    const provider = String(o.shippingProvider || '').toLowerCase();
+    if (provider === 'motoboy') return true;
+    return String(o.shippingMethodId || '').toLowerCase().includes('motoboy');
+  }
+
   function isCorreiosBrOrder(o) {
     if (o.internationalLensOnly) return false;
     const provider = String(o.shippingProvider || '').toLowerCase();
@@ -145,40 +157,198 @@
   }
 
   function freteCell(o) {
-    const paid = Number(o.frete);
     const kind = escHtml(shippingKindLabel(o));
-    if (!Number.isFinite(paid) || paid < 0) {
-      return `<small class="pedidos-track-muted">—</small><br><small class="pedidos-frete-kind">${kind}</small>`;
+    const paid = Number(o.frete);
+    const hasPaid = Number.isFinite(paid) && paid >= 0;
+    const est = Number(o.correiosFreteEstimado);
+    const hasEst = isCorreiosBrOrder(o) && Number.isFinite(est) && est > 0;
+
+    let html = '';
+    if (hasEst) {
+      html += `<strong class="pedidos-frete-correios">${formatBRL(est)}</strong>`;
+      if (hasPaid) html += `<br><small class="pedidos-frete-paid">Cliente: ${formatBRL(paid)}</small>`;
+    } else if (hasPaid) {
+      html += `<strong>${formatBRL(paid)}</strong>`;
+    } else {
+      html += '<small class="pedidos-track-muted">—</small>';
     }
-    return `${formatBRL(paid)}<br><small class="pedidos-frete-kind">${kind}</small>`;
+    html += `<br><small class="pedidos-frete-kind">${kind}</small>`;
+    return html;
+  }
+
+  function entregaCell(o) {
+    if (o.status !== 'paid') return '<small class="pedidos-track-muted">—</small>';
+
+    if (isUberOrder(o)) {
+      const status = escHtml(o.uberDeliveryStatus || 'Solicitado');
+      if (o.uberTrackingUrl) {
+        return `<a href="${escHtml(o.uberTrackingUrl)}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">Uber</a><br><small class="pedidos-track-status">${status}</small>`;
+      }
+      return `<small class="pedidos-track-status">Uber</small><br><small>${status}</small>`;
+    }
+
+    if (isMotoboyOrder(o)) {
+      const notified = o.motoboyNotifiedAt ? 'Motoboy avisado' : 'Aguardando aviso';
+      return `<small class="pedidos-track-status">Motoboy</small><br><small>${notified}</small>`;
+    }
+
+    if (isCorreiosBrOrder(o)) {
+      if (o.correiosPrePostagemError && !o.correiosTrackingCode) {
+        return `<small class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</small>`;
+      }
+      if (!o.correiosTrackingCode) {
+        if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
+          return '<small class="pedidos-track-status">Pré-postado</small>';
+        }
+        return '<small class="pedidos-track-muted">Aguardando pré-postagem</small>';
+      }
+      const code = escHtml(o.correiosTrackingCode);
+      const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
+      const status = escHtml(o.correiosTrackingStatus || 'Pré-postado');
+      const last = o.correiosTrackingLastEvent?.description
+        ? `<br><small>${escHtml(o.correiosTrackingLastEvent.description)}</small>`
+        : '';
+      return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>${last}`;
+    }
+
+    return '<small class="pedidos-track-muted">—</small>';
+  }
+
+  function detailRow(label, valueHtml) {
+    return `<div class="pedidos-detail-row"><span class="pedidos-detail-label">${label}</span><span class="pedidos-detail-value">${valueHtml}</span></div>`;
+  }
+
+  function deliveryDetailBlock(o) {
+    if (o.status !== 'paid') {
+      return '<p class="pedidos-detail-muted">Pagamento ainda não confirmado.</p>';
+    }
+    if (isUberOrder(o)) {
+      const parts = [`<strong>Uber Direct</strong>`];
+      if (o.uberDeliveryStatus) parts.push(`Status: ${escHtml(o.uberDeliveryStatus)}`);
+      if (o.uberTrackingUrl) {
+        parts.push(`<a href="${escHtml(o.uberTrackingUrl)}" target="_blank" rel="noopener" class="pedidos-track-link">Abrir rastreio Uber</a>`);
+      }
+      if (o.uberDispatchError) parts.push(`<span class="pedidos-track-warn">${escHtml(o.uberDispatchError)}</span>`);
+      if (o.uberDispatchSkipped) parts.push(`<span class="pedidos-track-muted">${escHtml(o.uberDispatchSkipped)}</span>`);
+      return parts.join('<br>');
+    }
+    if (isMotoboyOrder(o)) {
+      const parts = ['<strong>Motoboy</strong>'];
+      if (o.motoboyNotifiedAt) parts.push(`Avisado em ${formatDate(o.motoboyNotifiedAt)}`);
+      if (o.motoboyCourierEmails?.length) parts.push(`E-mails: ${escHtml(o.motoboyCourierEmails.join(', '))}`);
+      if (o.motoboyNotifyError) parts.push(`<span class="pedidos-track-warn">${escHtml(o.motoboyNotifyError)}</span>`);
+      return parts.join('<br>');
+    }
+    if (isCorreiosBrOrder(o)) {
+      const parts = [];
+      if (o.correiosTrackingCode) {
+        const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
+        parts.push(`<strong><a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(o.correiosTrackingCode)}</a></strong>`);
+        parts.push(`Status: <span class="pedidos-track-status">${escHtml(o.correiosTrackingStatus || 'Pré-postado')}</span>`);
+        if (o.correiosTrackingLastEvent?.description) {
+          parts.push(`Último evento: ${escHtml(o.correiosTrackingLastEvent.description)}`);
+          if (o.correiosTrackingLastEvent.date) {
+            parts.push(`<small class="pedidos-detail-muted">${formatDate(o.correiosTrackingLastEvent.date)}</small>`);
+          }
+        }
+      } else if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
+        parts.push('<strong class="pedidos-track-status">Pré-postado</strong> — aguardando código AV');
+      } else {
+        parts.push('<span class="pedidos-track-muted">Aguardando pré-postagem</span>');
+      }
+      if (o.correiosPrePostagemError) parts.push(`<span class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</span>`);
+      return parts.join('<br>') || '<span class="pedidos-track-muted">—</span>';
+    }
+    return '<span class="pedidos-track-muted">—</span>';
+  }
+
+  function freteDetailBlock(o) {
+    const kind = escHtml(shippingKindLabel(o));
+    const paid = Number(o.frete);
+    const hasPaid = Number.isFinite(paid) && paid >= 0;
+    const est = Number(o.correiosFreteEstimado);
+    const hasEst = isCorreiosBrOrder(o) && Number.isFinite(est) && est > 0;
+    const parts = [];
+    if (hasEst) {
+      parts.push(`<div class="pedidos-detail-frete-main">${formatBRL(est)}</div>`);
+      parts.push(`<div class="pedidos-detail-frete-sub">Correios cobrou (est. contrato)</div>`);
+    }
+    if (hasPaid) {
+      parts.push(`<div class="pedidos-detail-frete-client">Cliente pagou: ${formatBRL(paid)}</div>`);
+    }
+    parts.push(`<div class="pedidos-detail-frete-kind">Tipo: ${kind}</div>`);
+    return parts.join('');
+  }
+
+  let orderModalEl = null;
+
+  function ensureOrderModal() {
+    if (orderModalEl) return orderModalEl;
+    const wrap = document.createElement('div');
+    wrap.id = 'pedidos-order-modal';
+    wrap.className = 'pedidos-order-modal';
+    wrap.hidden = true;
+    wrap.innerHTML = `
+      <div class="pedidos-order-modal-backdrop" data-close-modal></div>
+      <div class="pedidos-order-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pedidos-order-modal-title">
+        <button type="button" class="pedidos-order-modal-close" data-close-modal aria-label="Fechar">&times;</button>
+        <h2 id="pedidos-order-modal-title" class="pedidos-order-modal-title"></h2>
+        <div id="pedidos-order-modal-body" class="pedidos-order-modal-body"></div>
+      </div>`;
+    document.body.appendChild(wrap);
+    wrap.querySelectorAll('[data-close-modal]').forEach((el) => {
+      el.addEventListener('click', () => { wrap.hidden = true; });
+    });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && !wrap.hidden) wrap.hidden = true;
+    });
+    orderModalEl = wrap;
+    return wrap;
   }
 
   function showOrderDetails(o) {
-    const watchLines = (window.STF_ORDER_WATCH?.detailLines(o) || [`Smartwatch: ${o.smartwatch}`]).join('\n');
-    const couponLine = o.couponCode
-      ? `\nCupom: ${o.couponCode} — ${o.couponCommissionerName || '—'}` +
-        (o.couponDiscount ? `\nDesconto: −${formatBRL(o.couponDiscount)}` : '') +
+    const modal = ensureOrderModal();
+    const title = document.getElementById('pedidos-order-modal-title');
+    const body = document.getElementById('pedidos-order-modal-body');
+    if (!title || !body) return;
+
+    title.textContent = o.orderId;
+
+    const watch = escHtml(watchModel(o));
+    const commissioner = o.couponCode
+      ? escHtml(o.couponCommissionerName || o.couponCode) +
         (o.couponCommissionAmount != null
-          ? `\nComissão: ${formatBRL(o.couponCommissionAmount)}${o.couponCommissionPercent != null ? ` (${o.couponCommissionPercent}%)` : ''}`
-          : '')
-      : '';
-    const freteLine = `\nFrete: ${formatBRL(o.frete)} (${shippingKindLabel(o)})`;
-    const trackLine = o.correiosTrackingCode
-      ? `\nRastreio Correios: ${o.correiosTrackingCode}` +
-        (o.correiosTrackingStatus ? `\nStatus: ${o.correiosTrackingStatus}` : '') +
-        (o.correiosTrackingLastEvent?.description ? `\nÚltimo evento: ${o.correiosTrackingLastEvent.description}` : '')
-      : (o.correiosPrePostagemError ? `\nErro Correios: ${o.correiosPrePostagemError}` : '');
-    alert(
-      `Pedido: ${o.orderId}\n` +
-      `Status: ${o.status}\n` +
-      `Cliente: ${o.nome}\n` +
-      `E-mail: ${o.email || '—'}\n` +
-      `Telefone: ${o.telefone || '—'}\n` +
-      `CPF: ${o.cpf || '—'}\n` +
-      `${watchLines}\n` +
-      `Endereço: ${o.endereco}\n` +
-      `Total: ${formatBRL(o.total)}${freteLine}${couponLine}${trackLine}`
-    );
+          ? ` — ${formatBRL(o.couponCommissionAmount)}${o.couponCommissionPercent != null ? ` (${o.couponCommissionPercent}%)` : ''}`
+          : o.couponDiscount ? ` — desc. −${formatBRL(o.couponDiscount)}` : '')
+      : '—';
+
+    const secondary = [];
+    if (o.cpf) secondary.push(detailRow('CPF', escHtml(o.cpf)));
+    if (o.endereco) secondary.push(detailRow('Endereço', escHtml(o.endereco)));
+    if (o.couponCode) secondary.push(detailRow('Cupom', escHtml(o.couponCode)));
+
+    body.innerHTML = `
+      <div class="pedidos-detail-grid">
+        ${detailRow('Data', escHtml(formatDate(o.createdAt)))}
+        ${detailRow('Cliente', `${escHtml(o.nome)}<br><small>${escHtml(o.email || '—')}</small><br><small>${escHtml(o.telefone || '—')}</small>`)}
+        ${detailRow('Smartwatch', watch)}
+        ${detailRow('País', escHtml(o.pais || '—'))}
+        ${detailRow('Pagamento', escHtml(o.pagamento || '—'))}
+        ${detailRow('Comissionado', commissioner)}
+        ${detailRow('Total', `<strong>${formatBRL(o.total)}</strong>`)}
+      </div>
+      <section class="pedidos-detail-section pedidos-detail-section--frete">
+        <h3 class="pedidos-detail-heading">Frete</h3>
+        ${freteDetailBlock(o)}
+      </section>
+      <section class="pedidos-detail-section pedidos-detail-section--entrega">
+        <h3 class="pedidos-detail-heading">Entrega / Rastreio</h3>
+        ${deliveryDetailBlock(o)}
+      </section>
+      ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
+    `;
+
+    modal.hidden = false;
   }
 
   function openPdfBase64(b64, filename) {
@@ -249,15 +419,15 @@
     orders.forEach((o) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><strong>${o.orderId}</strong></td>
         <td>${formatDate(o.createdAt)}</td>
-        <td>${o.nome}<br><small>${o.email}</small><br><small>${o.telefone || ''}</small></td>
-        <td>${watchModel(o)}</td>
-        <td>${o.pais || '—'}</td>
-        <td>${o.pagamento || '—'}</td>
+        <td>${escHtml(o.nome)}<br><small>${escHtml(o.email || '')}</small><br><small>${escHtml(o.telefone || '')}</small></td>
+        <td>${escHtml(watchModel(o))}</td>
+        <td>${escHtml(o.pais || '—')}</td>
+        <td>${escHtml(o.pagamento || '—')}</td>
         <td>${commissionerCell(o)}</td>
         <td>${formatBRL(o.total)}</td>
         <td class="pedidos-frete">${freteCell(o)}</td>
+        <td class="pedidos-entrega">${entregaCell(o)}</td>
         <td class="pedidos-actions">
           <div class="pedidos-actions-inner">
           ${statusBadgeHtml(o.status)}
@@ -374,7 +544,13 @@
     const staleMs = 20 * 60 * 1000;
     const now = Date.now();
     const ids = orders
-      .filter((o) => (o.correiosTrackingCode || o.correiosPrePostagemId) && o.status === 'paid')
+      .filter((o) => o.status === 'paid')
+      .filter((o) => {
+        const needsCorreios = isCorreiosBrOrder(o) && (
+          o.correiosTrackingCode || o.correiosPrePostagemId || o.correiosFreteEstimado == null
+        );
+        return needsCorreios;
+      })
       .filter((o) => {
         if (!o.correiosTrackingUpdatedAt) return true;
         return now - new Date(o.correiosTrackingUpdatedAt).getTime() > staleMs;
