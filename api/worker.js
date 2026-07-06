@@ -3013,16 +3013,58 @@ async function fetchCorreiosTrackingSummary(token, trackingCode) {
   }
 }
 
+async function quoteCorreiosPriceForOrder(env, config, order) {
+  if (!isCorreiosBrOrder(order)) return null;
+  const dest = onlyDigits(order.cep);
+  if (dest.length !== 8) return null;
+  const ship = config.shipping || DEFAULT_CONFIG.shipping;
+  const origin = onlyDigits(ship.originCep);
+  const serviceCode = String(order.shippingServiceCode || ship.serviceCode || '04227').trim();
+  const weightGrams = shippingWeightGrams(config);
+  const declaredValue = Number(order.valorProduto) || Number(config.product?.price) || 62.9;
+
+  const token = await getCorreiosToken(env);
+  if (!token) return null;
+
+  let data = await fetchCorreiosPriceGet(token, serviceCode, origin, dest, ship, weightGrams, declaredValue);
+  let price = parseCorreiosPrice(data);
+  if (!price) {
+    data = await fetchCorreiosPricePost(token, serviceCode, origin, dest, ship, weightGrams, declaredValue);
+    price = parseCorreiosPrice(data);
+  }
+  return price;
+}
+
+async function ensureCorreiosFreteEstimate(env, order, config) {
+  if (!isCorreiosBrOrder(order)) return { skipped: true, reason: 'not_correios' };
+  const existing = Number(order.correiosFreteEstimado);
+  if (Number.isFinite(existing) && existing > 0) {
+    return { ok: true, alreadyExists: true, price: existing };
+  }
+  const price = await quoteCorreiosPriceForOrder(env, config, order);
+  if (!price) return { ok: false, error: 'quote_failed' };
+  order.correiosFreteEstimado = price;
+  order.correiosFreteEstimadoAt = new Date().toISOString();
+  await saveOrder(env, order);
+  return { ok: true, price };
+}
+
 async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   if (!isCorreiosBrOrder(order)) {
     return { skipped: true, reason: 'not_correios' };
+  }
+  try {
+    await ensureCorreiosFreteEstimate(env, order, config);
+  } catch (err) {
+    console.warn('Correios frete estimate:', order.orderId, err.message);
   }
   if (order.correiosPrePostagemId) {
     return {
       ok: true,
       alreadyExists: true,
       prePostagemId: order.correiosPrePostagemId,
-      trackingCode: order.correiosTrackingCode || null
+      trackingCode: order.correiosTrackingCode || null,
+      correiosFreteEstimado: order.correiosFreteEstimado ?? null
     };
   }
   const token = await getCorreiosToken(env);
@@ -3037,7 +3079,8 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   return {
     ok: true,
     prePostagemId: order.correiosPrePostagemId,
-    trackingCode: order.correiosTrackingCode || null
+    trackingCode: order.correiosTrackingCode || null,
+    correiosFreteEstimado: order.correiosFreteEstimado ?? null
   };
 }
 
@@ -6558,10 +6601,26 @@ async function handleAdminCorreiosTracking(request, env, origin) {
   const token = await getCorreiosToken(env);
   if (!token) return json({ error: 'Correios não configurado.' }, 503, origin);
 
+  const config = await getConfig(env);
   const orders = {};
   for (const orderId of orderIds) {
     const order = await getOrder(env, orderId);
-    if (!order?.correiosTrackingCode) continue;
+    if (!order) continue;
+
+    if (isCorreiosBrOrder(order) && order.correiosFreteEstimado == null) {
+      try {
+        await ensureCorreiosFreteEstimate(env, order, config);
+      } catch (err) {
+        console.warn('Correios frete backfill:', orderId, err.message);
+      }
+    }
+
+    if (!order.correiosTrackingCode) {
+      if (order.correiosFreteEstimado != null) {
+        orders[orderId] = { correiosFreteEstimado: order.correiosFreteEstimado };
+      }
+      continue;
+    }
     const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
     if (!summary) continue;
     order.correiosTrackingStatus = summary.status;
@@ -6569,7 +6628,10 @@ async function handleAdminCorreiosTracking(request, env, origin) {
     order.correiosTrackingEvents = summary.events;
     order.correiosTrackingUpdatedAt = new Date().toISOString();
     await saveOrder(env, order);
-    orders[orderId] = summary;
+    orders[orderId] = {
+      ...summary,
+      correiosFreteEstimado: order.correiosFreteEstimado ?? null
+    };
   }
   return json({ orders }, 200, origin);
 }

@@ -131,6 +131,20 @@
     return true;
   }
 
+  function correiosFreteCell(o) {
+    if (!isCorreiosBrOrder(o)) return '—';
+    const est = Number(o.correiosFreteEstimado);
+    if (!Number.isFinite(est) || est <= 0) {
+      return '<small class="pedidos-track-muted">—</small>';
+    }
+    const main = formatBRL(est);
+    const paid = Number(o.frete);
+    if (Number.isFinite(paid) && paid > 0 && Math.abs(paid - est) > 0.01) {
+      return `${main}<br><small class="pedidos-frete-paid">cliente: ${formatBRL(paid)}</small>`;
+    }
+    return main;
+  }
+
   function correiosTrackingCell(o) {
     if (!isCorreiosBrOrder(o) || o.status !== 'paid') return '—';
     if (o.correiosPrePostagemError && !o.correiosTrackingCode) {
@@ -157,6 +171,9 @@
           ? `\nComissão: ${formatBRL(o.couponCommissionAmount)}${o.couponCommissionPercent != null ? ` (${o.couponCommissionPercent}%)` : ''}`
           : '')
       : '';
+    const freteEstLine = isCorreiosBrOrder(o) && o.correiosFreteEstimado != null
+      ? `\nFrete Correios (est.): ${formatBRL(o.correiosFreteEstimado)}`
+      : '';
     const trackLine = o.correiosTrackingCode
       ? `\nRastreio Correios: ${o.correiosTrackingCode}` +
         (o.correiosTrackingStatus ? `\nStatus: ${o.correiosTrackingStatus}` : '') +
@@ -171,7 +188,7 @@
       `CPF: ${o.cpf || '—'}\n` +
       `${watchLines}\n` +
       `Endereço: ${o.endereco}\n` +
-      `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)${couponLine}${trackLine}`
+      `Total: ${formatBRL(o.total)} (${formatBRL(o.frete)} frete)${freteEstLine}${couponLine}${trackLine}`
     );
   }
 
@@ -251,6 +268,7 @@
         <td>${o.pagamento || '—'}</td>
         <td>${commissionerCell(o)}</td>
         <td>${formatBRL(o.total)}</td>
+        <td class="pedidos-frete-est">${correiosFreteCell(o)}</td>
         <td class="pedidos-tracking">${correiosTrackingCell(o)}</td>
         <td class="pedidos-actions">
           ${statusBadgeHtml(o.status)}
@@ -389,6 +407,9 @@
         order.correiosTrackingLastEvent = summary.lastEvent;
         order.correiosTrackingEvents = summary.events;
         order.correiosTrackingUpdatedAt = new Date().toISOString();
+        if (summary.correiosFreteEstimado != null) {
+          order.correiosFreteEstimado = summary.correiosFreteEstimado;
+        }
       }
     } catch (err) {
       console.warn('Rastreio Correios:', err);

@@ -3646,6 +3646,14 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .pedidos-track-status { color: #8fd48f; }
 .pedidos-track-muted { color: var(--gray); }
 .pedidos-track-warn { color: #e8a838; }
+.pedidos-frete-est {
+  min-width: 5.5rem;
+  max-width: 7.5rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.pedidos-frete-paid { color: var(--gray); }
 .pedidos-tracking { min-width: 9rem; max-width: 11rem; font-size: 0.82rem; line-height: 1.35; }
 .status-badge {
     display: inline-flex;
