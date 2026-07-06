@@ -447,6 +447,7 @@
   }
 
   function openPdfBase64(b64, filename) {
+    if (window.STF_CORREIOS_LABEL_PRINT?.openPdfBase64(b64, filename)) return;
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);

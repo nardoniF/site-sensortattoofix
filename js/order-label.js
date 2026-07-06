@@ -190,7 +190,7 @@ window.STF_ORDER_LABEL = (function () {
 
   function labelStyles() {
     return `
-    @page { size: 100mm 150mm; margin: 0; }
+    @page { size: 102mm 152mm; margin: 0; }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
@@ -200,8 +200,8 @@ window.STF_ORDER_LABEL = (function () {
       background: #fff;
     }
     .label {
-      width: 100mm;
-      height: 150mm;
+      width: 102mm;
+      height: 152mm;
       padding: 3mm 4mm;
       display: flex;
       flex-direction: column;
