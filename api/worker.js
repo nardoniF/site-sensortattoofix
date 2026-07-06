@@ -3148,8 +3148,10 @@ async function pollCorreiosLabelDownload(token, idRecibo, opts = {}) {
     }
     const trackingCode = extractCorreiosAvCode(dlData);
     const pdfBase64 = dlData.dados || dlData.conteudo || dlData.pdf;
-    if (trackingCode && !requirePdf) return { trackingCode, pdfBase64: pdfBase64 || null };
-    if (pdfBase64) return { pdfBase64, trackingCode: trackingCode || null };
+    const codeFromPdf = pdfBase64 ? extractAvFromPdfBase64(pdfBase64) : null;
+    const resolvedCode = trackingCode || codeFromPdf;
+    if (resolvedCode && !requirePdf) return { trackingCode: resolvedCode, pdfBase64: pdfBase64 || null };
+    if (pdfBase64) return { pdfBase64, trackingCode: resolvedCode || null };
     const status = String(dlData.status || dlData.situacao || '').toUpperCase();
     if (status === 'ERRO' || status === 'FALHA') {
       throw new Error(dlData.mensagem || dlData.message || 'Processamento do rótulo falhou');
@@ -3157,6 +3159,19 @@ async function pollCorreiosLabelDownload(token, idRecibo, opts = {}) {
   }
   if (requirePdf) throw new Error('Tempo esgotado aguardando PDF do rótulo Correios');
   return null;
+}
+
+function extractAvFromPdfBase64(b64) {
+  if (!b64) return null;
+  try {
+    const raw = atob(String(b64));
+    const matches = raw.match(/[A-Z]{2}\d{9}[A-Z]{2}/g);
+    if (!matches?.length) return null;
+    const av = matches.find((m) => m.startsWith('AV'));
+    return av || matches[0];
+  } catch {
+    return null;
+  }
 }
 
 async function fetchCorreiosAvFromLabelMeta(token, prePostagemId) {
@@ -3187,7 +3202,7 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts =
   if (!code && opts.aggressive) {
     try {
       const label = await fetchCorreiosLabelPdf(token, id);
-      code = label.trackingCode || null;
+      code = label.trackingCode || extractAvFromPdfBase64(label.pdfBase64);
     } catch (err) {
       console.warn('Correios AV pdf sync:', order.orderId, err.message);
     }
@@ -5553,8 +5568,10 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
     if (!prePostagemId) throw new Error('Pré-postagem não criada');
 
     const label = await fetchCorreiosLabelPdf(token, prePostagemId);
-    const labelCode = label.trackingCode ? String(label.trackingCode).trim().toUpperCase() : null;
-    if (labelCode && labelCode !== order.correiosTrackingCode) {
+    const labelCode = label.trackingCode
+      ? String(label.trackingCode).trim().toUpperCase()
+      : extractAvFromPdfBase64(label.pdfBase64);
+    if (labelCode) {
       order.correiosTrackingCode = labelCode;
       await saveOrder(env, order);
     }
@@ -6749,13 +6766,11 @@ async function handleAdminCorreiosTracking(request, env, origin) {
     if (!order.correiosTrackingCode) {
       const payload = {};
       if (order.correiosFreteEstimado != null) payload.correiosFreteEstimado = order.correiosFreteEstimado;
-      if (order.correiosTrackingCode) payload.trackingCode = order.correiosTrackingCode;
       if (order.correiosPrePostagemId || order.correiosPrePostagemAt) payload.status = 'Pré-postado';
       if (Object.keys(payload).length) orders[orderId] = payload;
       continue;
     }
     const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
-    if (!summary) continue;
     order.correiosTrackingStatus = summary.status;
     order.correiosTrackingLastEvent = summary.lastEvent;
     order.correiosTrackingEvents = summary.events;

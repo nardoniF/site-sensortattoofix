@@ -437,6 +437,7 @@
             allOrders[idx].correiosTrackingCode = data.trackingCode;
             allOrders[idx].correiosTrackingStatus = allOrders[idx].correiosTrackingStatus || 'Pré-postado';
           }
+          await syncCorreiosOrders([order.orderId], false);
           applyFilters();
         }
         showStatus('Etiqueta Correios aberta' + track, 'success');
