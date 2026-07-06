@@ -3065,16 +3065,31 @@ async function fetchCorreiosPrePostagemById(token, prePostagemId) {
   }
 }
 
+const CORREIOS_AV_RE = /^[A-Z]{2}\d{9}[A-Z]{2}$/;
+const AV_SCAN_PATTERNS = [/AV\d{9}[A-Z]{2}/g, /[A-Z]{2}\d{9}[A-Z]{2}/g];
+
 function extractCorreiosAvCode(data, depth = 0) {
-  if (!data || depth > 5) return null;
+  if (!data || depth > 8) return null;
   if (typeof data === 'string') {
     const code = data.trim().toUpperCase();
-    return /^[A-Z]{2}\d{9}[A-Z]{2}$/.test(code) ? code : null;
+    if (CORREIOS_AV_RE.test(code)) return code;
+    for (const re of AV_SCAN_PATTERNS) {
+      re.lastIndex = 0;
+      const matches = code.match(re);
+      if (matches?.length) {
+        const av = matches.find((m) => m.startsWith('AV'));
+        return av || matches[0];
+      }
+    }
+    return null;
   }
   if (typeof data !== 'object') return null;
   const keys = [
     'codigoObjeto', 'codigoRegistro', 'codigoObjetoCliente', 'numeroObjeto',
-    'codigo', 'trackingCode', 'codigoRastreio', 'numeroEtiqueta', 'identificador'
+    'codigo', 'trackingCode', 'codigoRastreio', 'numeroEtiqueta', 'identificador',
+    'objeto', 'numeroRegistro', 'codigoEtiqueta', 'etiqueta', 'rastreio',
+    'numeroRastreio', 'barcode', 'codigoBarras', 'awb', 'tracking',
+    'identificacaoObjeto', 'registro', 'codigoDeRastreio', 'codigoRastreamento'
   ];
   for (const k of keys) {
     const found = extractCorreiosAvCode(data[k], depth + 1);
@@ -3148,7 +3163,7 @@ async function pollCorreiosLabelDownload(token, idRecibo, opts = {}) {
     }
     const trackingCode = extractCorreiosAvCode(dlData);
     const pdfBase64 = dlData.dados || dlData.conteudo || dlData.pdf;
-    const codeFromPdf = pdfBase64 ? extractAvFromPdfBase64(pdfBase64) : null;
+    const codeFromPdf = pdfBase64 ? await extractAvFromPdfBase64(pdfBase64) : null;
     const resolvedCode = trackingCode || codeFromPdf;
     if (resolvedCode && !requirePdf) return { trackingCode: resolvedCode, pdfBase64: pdfBase64 || null };
     if (pdfBase64) return { pdfBase64, trackingCode: resolvedCode || null };
@@ -3161,14 +3176,101 @@ async function pollCorreiosLabelDownload(token, idRecibo, opts = {}) {
   return null;
 }
 
-function extractAvFromPdfBase64(b64) {
+function pickAvFromMatches(matches) {
+  if (!matches?.length) return null;
+  const av = matches.find((m) => m.startsWith('AV'));
+  return av || matches[0];
+}
+
+function scanAvInString(text) {
+  if (!text) return null;
+  const upper = String(text).toUpperCase();
+  for (const re of AV_SCAN_PATTERNS) {
+    re.lastIndex = 0;
+    const found = pickAvFromMatches(upper.match(re));
+    if (found) return found;
+  }
+  return null;
+}
+
+function decodePdfLiteral(str) {
+  return str.replace(/\\([0-7]{1,3}|.)/g, (_, seq) => {
+    if (seq.length <= 3 && /^[0-7]+$/.test(seq)) return String.fromCharCode(parseInt(seq, 8));
+    if (seq === 'n') return '\n';
+    if (seq === 'r') return '\r';
+    if (seq === 't') return '\t';
+    if (seq === 'b') return '\b';
+    if (seq === 'f') return '\f';
+    return seq;
+  });
+}
+
+function scanAvInPdfRaw(raw) {
+  let code = scanAvInString(raw);
+  if (code) return code;
+
+  const literalRe = /\(([^()\\]*(?:\\.[^()\\]*)*)\)/g;
+  let m;
+  while ((m = literalRe.exec(raw)) !== null) {
+    code = scanAvInString(decodePdfLiteral(m[1]));
+    if (code) return code;
+  }
+
+  const hexRe = /<([0-9A-Fa-f\s]+)>/g;
+  while ((m = hexRe.exec(raw)) !== null) {
+    const hex = m[1].replace(/\s/g, '');
+    if (hex.length < 26 || hex.length % 2) continue;
+    let decoded = '';
+    for (let i = 0; i < hex.length; i += 2) {
+      decoded += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
+    }
+    code = scanAvInString(decoded);
+    if (code) return code;
+  }
+  return null;
+}
+
+async function inflatePdfChunk(bytes) {
+  for (const format of ['deflate', 'deflate-raw']) {
+    try {
+      const buf = await new Response(
+        new Blob([bytes]).stream().pipeThrough(new DecompressionStream(format))
+      ).arrayBuffer();
+      return new Uint8Array(buf);
+    } catch {
+      /* try next format */
+    }
+  }
+  return null;
+}
+
+async function scanAvInFlateStreams(raw) {
+  const streamRe = /stream\r?\n/g;
+  let match;
+  while ((match = streamRe.exec(raw)) !== null) {
+    const ctx = raw.slice(Math.max(0, match.index - 400), match.index);
+    if (!/\/FlateDecode|\/Fl[^a-zA-Z]/i.test(ctx)) continue;
+    const dataStart = match.index + match[0].length;
+    const endIdx = raw.indexOf('endstream', dataStart);
+    if (endIdx < 0) continue;
+    const chunk = raw.slice(dataStart, endIdx).replace(/\r?\n$/, '');
+    const bytes = Uint8Array.from(chunk, (c) => c.charCodeAt(0) & 0xff);
+    const inflated = await inflatePdfChunk(bytes);
+    if (!inflated?.length) continue;
+    const text = String.fromCharCode(...inflated);
+    const code = scanAvInPdfRaw(text);
+    if (code) return code;
+  }
+  return null;
+}
+
+async function extractAvFromPdfBase64(b64) {
   if (!b64) return null;
   try {
     const raw = atob(String(b64));
-    const matches = raw.match(/[A-Z]{2}\d{9}[A-Z]{2}/g);
-    if (!matches?.length) return null;
-    const av = matches.find((m) => m.startsWith('AV'));
-    return av || matches[0];
+    let code = scanAvInPdfRaw(raw);
+    if (code) return code;
+    return await scanAvInFlateStreams(raw);
   } catch {
     return null;
   }
@@ -3202,7 +3304,7 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts =
   if (!code && opts.aggressive) {
     try {
       const label = await fetchCorreiosLabelPdf(token, id);
-      code = label.trackingCode || extractAvFromPdfBase64(label.pdfBase64);
+      code = label.trackingCode || await extractAvFromPdfBase64(label.pdfBase64);
     } catch (err) {
       console.warn('Correios AV pdf sync:', order.orderId, err.message);
     }
@@ -5568,10 +5670,12 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
     if (!prePostagemId) throw new Error('Pré-postagem não criada');
 
     const label = await fetchCorreiosLabelPdf(token, prePostagemId);
-    const labelCode = label.trackingCode
+    let labelCode = label.trackingCode
       ? String(label.trackingCode).trim().toUpperCase()
-      : extractAvFromPdfBase64(label.pdfBase64);
-    if (labelCode) {
+      : await extractAvFromPdfBase64(label.pdfBase64);
+    if (!labelCode) {
+      labelCode = await syncCorreiosTrackingCodeFromPrePostagem(token, order, env, { aggressive: true });
+    } else if (!order.correiosTrackingCode) {
       order.correiosTrackingCode = labelCode;
       await saveOrder(env, order);
     }
@@ -5579,7 +5683,7 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
     return json({
       mode: 'pdf',
       pdfBase64: label.pdfBase64,
-      trackingCode: order.correiosTrackingCode || label.trackingCode || null,
+      trackingCode: order.correiosTrackingCode || labelCode || null,
       prePostagemId
     }, 200, origin);
   } catch (err) {
@@ -5594,6 +5698,23 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
       useClient: !blocked
     }, blocked ? 503 : 502, origin);
   }
+}
+
+async function handleOrderCorreiosAv(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const body = await request.json().catch(() => ({}));
+  const trackingCode = String(body.trackingCode || '').trim().toUpperCase();
+  if (!CORREIOS_AV_RE.test(trackingCode)) {
+    return json({ error: 'Código AV inválido.' }, 400, origin);
+  }
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  order.correiosTrackingCode = trackingCode;
+  order.correiosTrackingUpdatedAt = new Date().toISOString();
+  await saveOrder(env, order);
+  return json({ ok: true, trackingCode }, 200, origin);
 }
 
 async function handleConfirmOrder(request, env, origin, orderId) {
@@ -6897,6 +7018,10 @@ export default {
       const labelMatch = path.match(/^\/orders\/([^/]+)\/shipping-label$/);
       if (labelMatch && request.method === 'POST') {
         return handleOrderShippingLabel(request, env, origin, labelMatch[1]);
+      }
+      const correiosAvMatch = path.match(/^\/orders\/([^/]+)\/correios-av$/);
+      if (correiosAvMatch && request.method === 'PATCH') {
+        return handleOrderCorreiosAv(request, env, origin, correiosAvMatch[1]);
       }
       const selfTestConfirmMatch = path.match(/^\/orders\/([^/]+)\/confirm-test$/);
       if (selfTestConfirmMatch && request.method === 'POST') {
