@@ -1,0 +1,82 @@
+# Deploy estático — fila + retry (evita falha intermitente do Pages).
+# No GitHub: Settings → Pages → Build and deployment → GitHub Actions → "Deploy site (Pages)".
+
+name: Deploy site (Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Um deploy por vez; os próximos esperam na fila (não disparam em paralelo).
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Site estático (sem Jekyll)
+        run: touch .nojekyll
+
+      - name: Enviar artefato
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy1.outputs.page_url || steps.deploy2.outputs.page_url || steps.deploy3.outputs.page_url || steps.deploy4.outputs.page_url }}
+    steps:
+      - name: Publicar no Pages (tentativa 1)
+        id: deploy1
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Aguardar antes de retry
+        if: steps.deploy1.outcome == 'failure'
+        run: sleep 20
+
+      - name: Publicar no Pages (tentativa 2)
+        id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Aguardar antes de retry
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: sleep 20
+
+      - name: Publicar no Pages (tentativa 3)
+        id: deploy3
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Aguardar antes de retry
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure' && steps.deploy3.outcome == 'failure'
+        run: sleep 20
+
+      - name: Publicar no Pages (tentativa 4)
+        id: deploy4
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure' && steps.deploy3.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+
+      - name: Falhou após 4 tentativas
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure' && steps.deploy3.outcome == 'failure' && steps.deploy4.outcome == 'failure'
+        run: exit 1
