@@ -379,6 +379,20 @@ async function fetchCepMetadata(cep) {
   }
 }
 
+async function handleGetCep(request, env, origin, cepDigits) {
+  const digits = String(cepDigits || '').replace(/\D/g, '');
+  if (digits.length !== 8) return json({ error: 'CEP inválido.' }, 400, origin);
+  const meta = await fetchCepMetadata(digits);
+  if (!meta?.city) return json({ error: 'CEP não encontrado.' }, 404, origin);
+  return json({
+    cep: `${digits.slice(0, 5)}-${digits.slice(5)}`,
+    logradouro: meta.street || '',
+    bairro: meta.neighborhood || '',
+    localidade: meta.city || '',
+    uf: meta.state || ''
+  }, 200, origin);
+}
+
 async function fetchCepCoordinates(cep, addressParts = {}) {
   const digits = String(cep || '').replace(/\D/g, '');
   if (digits.length !== 8) return null;
@@ -7110,6 +7124,10 @@ export default {
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);
+      }
+      const cepMatch = path.match(/^\/cep\/(\d{8})$/);
+      if (cepMatch && request.method === 'GET') {
+        return handleGetCep(request, env, origin, cepMatch[1]);
       }
       if (path === '/coupons/validate' && request.method === 'POST') {
         return handleValidateCoupon(request, env, origin);

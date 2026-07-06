@@ -8,55 +8,31 @@
   <style>
     @page { margin: 0; size: auto; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #fff;
-    }
-    canvas {
-      display: block;
-      width: 100vw;
-      height: 100vh;
-    }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; }
+    canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
     .hint {
-      position: fixed;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      font: 12px/1.35 Arial, sans-serif;
-      color: #222;
-      background: rgba(255,255,255,.94);
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 8px 12px;
-      z-index: 2;
+      position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+      font: 12px/1.35 Arial, sans-serif; color: #222;
+      background: rgba(255,255,255,.94); border: 1px solid #ccc; border-radius: 8px;
+      padding: 8px 12px; z-index: 2;
     }
     .err {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      font: 14px/1.4 Arial, sans-serif;
-      color: #900;
-      text-align: center;
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      padding: 24px; font: 14px/1.4 Arial, sans-serif; color: #900; text-align: center;
     }
     @media print {
       .hint { display: none !important; }
-      html, body, canvas { width: 100%; height: 100%; }
+      html, body { background: #fff; }
     }
     @media screen {
-      body { background: #888; }
-      canvas { box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+      body { background: #666; }
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
   <canvas id="out"></canvas>
-  <p class="hint" id="hint">Etiqueta em tela cheia — ajuste o papel na impressora (ex. 4×6″)</p>
+  <p class="hint" id="hint">Etiqueta em tela cheia — papel 4×6″ na impressora, escala 100%</p>
   <div class="err" id="err" hidden></div>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -68,19 +44,15 @@
       document.getElementById('hint').hidden = true;
     }
 
-    function findContentBounds(ctx, w, h) {
+    function findContentBounds(ctx, w, h, threshold) {
+      const t = threshold ?? 240;
       const data = ctx.getImageData(0, 0, w, h).data;
-      let minX = w;
-      let minY = h;
-      let maxX = 0;
-      let maxY = 0;
+      let minX = w, minY = h, maxX = 0, maxY = 0;
       for (let y = 0; y < h; y += 1) {
         for (let x = 0; x < w; x += 1) {
           const i = (y * w + x) * 4;
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          if (r < 248 || g < 248 || b < 248) {
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          if (r < t || g < t || b < t) {
             if (x < minX) minX = x;
             if (y < minY) minY = y;
             if (x > maxX) maxX = x;
@@ -89,12 +61,87 @@
         }
       }
       if (maxX <= minX || maxY <= minY) return null;
-      const pad = Math.round(Math.min(w, h) * 0.008);
-      minX = Math.max(0, minX - pad);
-      minY = Math.max(0, minY - pad);
-      maxX = Math.min(w - 1, maxX + pad);
-      maxY = Math.min(h - 1, maxY + pad);
       return { minX, minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+    }
+
+    function findDenseLabelRegion(ctx, w, h) {
+      const cols = 12;
+      const rows = 16;
+      const cellW = Math.ceil(w / cols);
+      const cellH = Math.ceil(h / rows);
+      const data = ctx.getImageData(0, 0, w, h).data;
+      let best = null;
+      for (let gy = 0; gy < rows; gy += 1) {
+        for (let gx = 0; gx < cols; gx += 1) {
+          let count = 0;
+          const x0 = gx * cellW;
+          const y0 = gy * cellH;
+          const x1 = Math.min(w, x0 + cellW);
+          const y1 = Math.min(h, y0 + cellH);
+          for (let y = y0; y < y1; y += 2) {
+            for (let x = x0; x < x1; x += 2) {
+              const i = (y * w + x) * 4;
+              if (data[i] < 235 || data[i + 1] < 235 || data[i + 2] < 235) count += 1;
+            }
+          }
+          if (!best || count > best.count) best = { gx, gy, count };
+        }
+      }
+      if (!best || best.count < 8) return null;
+      const grow = (gx0, gy0, gx1, gy1) => {
+        let minX = gx0 * cellW, minY = gy0 * cellH;
+        let maxX = Math.min(w, (gx1 + 1) * cellW);
+        let maxY = Math.min(h, (gy1 + 1) * cellH);
+        const pad = Math.round(Math.min(w, h) * 0.01);
+        minX = Math.max(0, minX - pad);
+        minY = Math.max(0, minY - pad);
+        maxX = Math.min(w, maxX + pad);
+        maxY = Math.min(h, maxY + pad);
+        return { minX, minY, width: maxX - minX, height: maxY - minY };
+      };
+      let gx0 = best.gx, gy0 = best.gy, gx1 = best.gx, gy1 = best.gy;
+      const isDense = (gx, gy) => {
+        if (gx < 0 || gy < 0 || gx >= cols || gy >= rows) return false;
+        let count = 0;
+        const x0 = gx * cellW, y0 = gy * cellH;
+        for (let y = y0; y < y0 + cellH && y < h; y += 3) {
+          for (let x = x0; x < x0 + cellW && x < w; x += 3) {
+            const i = (y * w + x) * 4;
+            if (data[i] < 235 || data[i + 1] < 235 || data[i + 2] < 235) count += 1;
+          }
+        }
+        return count >= 4;
+      };
+      for (let pass = 0; pass < 24; pass += 1) {
+        let grew = false;
+        if (isDense(gx0 - 1, gy0)) { gx0 -= 1; grew = true; }
+        if (isDense(gx1 + 1, gy0)) { gx1 += 1; grew = true; }
+        if (isDense(gx0, gy0 - 1)) { gy0 -= 1; grew = true; }
+        if (isDense(gx0, gy1 + 1)) { gy1 += 1; grew = true; }
+        if (!grew) break;
+      }
+      return grow(gx0, gy0, gx1, gy1);
+    }
+
+    function detectLabelBounds(canvas) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const ctx = canvas.getContext('2d');
+      for (const threshold of [220, 235, 248]) {
+        const b = findContentBounds(ctx, w, h, threshold);
+        if (!b) continue;
+        if (b.width <= w * 0.72 && b.height <= h * 0.72) return b;
+      }
+      const dense = findDenseLabelRegion(ctx, w, h);
+      if (dense) return dense;
+      const fallback = findContentBounds(ctx, w, h, 248);
+      if (!fallback) return null;
+      return {
+        minX: fallback.minX,
+        minY: fallback.minY,
+        width: Math.min(fallback.width, Math.round(w * 0.55)),
+        height: Math.min(fallback.height, Math.round(h * 0.45))
+      };
     }
 
     async function renderPageToCanvas(page, scale) {
@@ -107,36 +154,36 @@
     }
 
     async function pickBestPage(pdf) {
-      let best = { pageNum: 1, area: 0, canvas: null, bounds: null };
-      const maxPages = Math.min(pdf.numPages, 3);
+      let best = { area: 0, canvas: null, bounds: null };
+      const maxPages = Math.min(pdf.numPages, 2);
       for (let n = 1; n <= maxPages; n += 1) {
         const page = await pdf.getPage(n);
-        const canvas = await renderPageToCanvas(page, 2.5);
-        const bounds = findContentBounds(canvas.getContext('2d'), canvas.width, canvas.height);
+        const canvas = await renderPageToCanvas(page, 3);
+        const bounds = detectLabelBounds(canvas);
         const area = bounds ? bounds.width * bounds.height : 0;
-        if (area > best.area) best = { pageNum: n, area, canvas, bounds };
+        if (area > best.area) best = { canvas, bounds };
       }
       return best;
     }
 
     function drawFullBleed(source, bounds) {
       const out = document.getElementById('out');
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      const cssW = window.innerWidth;
-      const cssH = window.innerHeight;
+      const cssW = window.innerWidth || 400;
+      const cssH = window.innerHeight || 600;
+      const dpr = Math.max(2, window.devicePixelRatio || 1);
       out.width = Math.round(cssW * dpr);
       out.height = Math.round(cssH * dpr);
-      out.style.width = cssW + 'px';
-      out.style.height = cssH + 'px';
       const ctx = out.getContext('2d');
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, out.width, out.height);
-      const sx = bounds.minX;
-      const sy = bounds.minY;
-      const sw = bounds.width;
-      const sh = bounds.height;
-      ctx.drawImage(source, sx, sy, sw, sh, 0, 0, out.width, out.height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(
+        source,
+        bounds.minX, bounds.minY, bounds.width, bounds.height,
+        0, 0, out.width, out.height
+      );
     }
 
     async function run() {
@@ -156,19 +203,15 @@
         const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
         const best = await pickBestPage(pdf);
         if (!best.bounds) throw new Error('Não foi possível detectar a etiqueta no PDF.');
-        drawFullBleed(best.canvas, best.bounds);
         window.__stfLabel = best;
-        setTimeout(function () { window.print(); }, 400);
+        drawFullBleed(best.canvas, best.bounds);
+        window.addEventListener('beforeprint', () => drawFullBleed(best.canvas, best.bounds));
+        window.addEventListener('resize', () => drawFullBleed(best.canvas, best.bounds));
+        setTimeout(function () { window.print(); }, 500);
       } catch (err) {
         showError(err.message || 'Falha ao renderizar etiqueta.');
       }
     }
-
-    window.addEventListener('resize', function () {
-      if (window.__stfLabel && window.__stfLabel.bounds) {
-        drawFullBleed(window.__stfLabel.canvas, window.__stfLabel.bounds);
-      }
-    });
 
     run();
   </script>

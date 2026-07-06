@@ -1402,11 +1402,6 @@
     if (isInternational) return;
     const cep = onlyDigits(els.cep?.value || '');
     if (cep.length !== 8 || cep === lastCepLookup) return;
-    if (brAddressFieldsFilled()) {
-      lastCepLookup = cep;
-      await quoteShipping();
-      return;
-    }
     els.cep?.classList.add('loading');
     try {
       const addr = await fetchCep(cep);
@@ -1429,10 +1424,19 @@
   }
 
   async function fetchCep(cep) {
-    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-    const data = await res.json();
-    if (data.erro) throw new Error(L('shipping.cepInvalid'));
-    return data;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) throw new Error('viacep');
+      return data;
+    } catch {
+      const base = window.CONFIG_BOOTSTRAP?.configApiUrl || '';
+      if (base) {
+        const res = await fetch(`${base.replace(/\/$/, '')}/cep/${cep}`);
+        if (res.ok) return res.json();
+      }
+      throw new Error(L('shipping.cepInvalid'));
+    }
   }
 
   function collectOrderData() {
@@ -1884,6 +1888,7 @@
       e.target.value = maskCep(e.target.value);
       const cep = onlyDigits(e.target.value);
       if (cep.length < 8) lastCepLookup = '';
+      else if (cep !== lastCepLookup) lastCepLookup = '';
       if (cep.length === 8) {
         clearTimeout(cepLookupTimer);
         cepLookupTimer = setTimeout(() => lookupCepFromField(), 350);
