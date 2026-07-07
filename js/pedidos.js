@@ -158,9 +158,9 @@
     const method = String(o.shippingMethodId || '').toLowerCase();
     if (method.includes('uber')) return 'Uber';
     if (method.includes('motoboy')) return 'Motoboy';
-    if (isCorreiosBrOrder(o)) return 'Correios';
     const svc = String(o.shippingService || '').trim();
     if (svc) return svc;
+    if (isCorreiosBrOrder(o)) return 'Correios';
     return 'Frete';
   }
 
@@ -278,6 +278,8 @@
     }).join('');
     const trackingVal = escHtml(o.correiosTrackingCode || '');
     const noteVal = escHtml(o.correiosShippingManualNote || '');
+    const freteVal = formatFreteInput(o.correiosFreteEstimado);
+    const daysVal = Number(o.shippingDays) > 0 ? String(Math.round(Number(o.shippingDays))) : '';
     const manualAt = o.correiosManualUpdatedAt
       ? `<p class="pedidos-detail-muted">Última atualização manual: ${formatDate(o.correiosManualUpdatedAt)}</p>`
       : '';
@@ -298,6 +300,15 @@
             <span class="pedidos-shipping-label">Tipo envio</span>
             <select class="pedidos-shipping-method">${methodOpts}</select>
           </label>
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Valor frete (R$)</span>
+            <input type="text" class="pedidos-shipping-price" value="${escHtml(freteVal)}" placeholder="Ex.: 20,07" inputmode="decimal" />
+          </label>
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Prazo (dias)</span>
+            <input type="number" class="pedidos-shipping-days" value="${escHtml(daysVal)}" min="1" max="60" placeholder="Ex.: 7" />
+          </label>
+          <p class="pedidos-shipping-quote-hint pedidos-detail-muted"></p>
           <label class="pedidos-shipping-field pedidos-shipping-field--wide">
             <span class="pedidos-shipping-label">Observação</span>
             <input type="text" class="pedidos-shipping-note" value="${noteVal}" placeholder="Ex.: postado PAC balcão SP" maxlength="200" />
@@ -383,6 +394,81 @@
     return String(raw || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   }
 
+  function inferMethodFromTracking(code) {
+    const c = normalizeTrackingCode(code);
+    if (c.startsWith('AP')) return 'correios-manual-pac';
+    if (c.startsWith('AV')) return 'br-mini-envios';
+    if (c.startsWith('AD') || c.startsWith('AB')) return 'correios-manual-sedex';
+    return null;
+  }
+
+  function formatFreteInput(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v) || v <= 0) return '';
+    return v.toFixed(2).replace('.', ',');
+  }
+
+  function parseFreteInput(raw) {
+    return parseFloat(String(raw || '').replace(/\./g, '').replace(',', '.')) || 0;
+  }
+
+  async function fetchShippingMethodQuote(orderId, methodId) {
+    if (!methodId || methodId === 'correios-manual-outro') return null;
+    const res = await fetch(
+      apiBase() + '/orders/' + encodeURIComponent(orderId) + '/shipping-method-quote?methodId=' + encodeURIComponent(methodId),
+      { headers: adminAuthHeaders() }
+    );
+    if (!res.ok) return null;
+    return res.json().catch(() => null);
+  }
+
+  function wireManualShippingForm(body, o) {
+    const methodSelect = body.querySelector('.pedidos-shipping-method');
+    const trackingInput = body.querySelector('.pedidos-shipping-tracking');
+    const priceInput = body.querySelector('.pedidos-shipping-price');
+    const daysInput = body.querySelector('.pedidos-shipping-days');
+    const quoteHint = body.querySelector('.pedidos-shipping-quote-hint');
+
+    const applyQuote = async (methodId, opts = {}) => {
+      if (!methodId || methodId === 'correios-manual-outro') {
+        if (quoteHint) quoteHint.textContent = '';
+        return;
+      }
+      if (quoteHint) quoteHint.textContent = 'Consultando Correios…';
+      const quote = await fetchShippingMethodQuote(o.orderId, methodId);
+      if (!quote?.price) {
+        if (quoteHint) quoteHint.textContent = 'Cotação indisponível — informe valor e prazo manualmente.';
+        return;
+      }
+      if (priceInput && opts.fillPrice !== false) priceInput.value = formatFreteInput(quote.price);
+      if (daysInput && opts.fillDays !== false) daysInput.value = String(quote.days);
+      if (quoteHint) {
+        quoteHint.textContent = quote.source === 'correios'
+          ? 'Valor e prazo preenchidos via API Correios.'
+          : 'Estimativa — ajuste se pagou outro valor no balcão.';
+      }
+    };
+
+    methodSelect?.addEventListener('change', () => applyQuote(methodSelect.value));
+    trackingInput?.addEventListener('blur', () => {
+      const inferred = inferMethodFromTracking(trackingInput.value);
+      if (!inferred || !methodSelect) return;
+      const current = String(methodSelect.value || '');
+      if (!current || current === 'br-mini-envios' || current === '(manter atual)') {
+        methodSelect.value = inferred;
+        applyQuote(inferred);
+      }
+    });
+
+    const code = normalizeTrackingCode(o.correiosTrackingCode || trackingInput?.value);
+    let methodId = String(methodSelect?.value || o.shippingMethodId || '').trim();
+    if (!methodId && code) methodId = inferMethodFromTracking(code) || '';
+    if (methodId && methodSelect && !methodSelect.value) methodSelect.value = methodId;
+    const needsQuote = methodId && methodId !== 'correios-manual-outro'
+      && (!Number(o.correiosFreteEstimado) || !Number(o.shippingDays));
+    if (needsQuote) applyQuote(methodId);
+  }
+
   function ensureOrderModal() {
     if (orderModalEl) return orderModalEl;
     const wrap = document.createElement('div');
@@ -446,10 +532,14 @@
       ${manualShippingSection(o)}
     `;
 
+    wireManualShippingForm(body, o);
+
     body.querySelector('.btn-save-shipping')?.addEventListener('click', async () => {
       const trackingInput = body.querySelector('.pedidos-shipping-tracking');
       const statusSelect = body.querySelector('.pedidos-shipping-status');
       const methodSelect = body.querySelector('.pedidos-shipping-method');
+      const priceInput = body.querySelector('.pedidos-shipping-price');
+      const daysInput = body.querySelector('.pedidos-shipping-days');
       const noteInput = body.querySelector('.pedidos-shipping-note');
       const feedbackEl = body.querySelector('.pedidos-shipping-feedback');
       const saveBtn = body.querySelector('.btn-save-shipping');
@@ -488,6 +578,16 @@
       const noteVal = String(noteInput?.value || '').trim();
       if (noteVal !== String(o.correiosShippingManualNote || '').trim()) {
         payload.correiosShippingManualNote = noteVal;
+      }
+      const priceVal = parseFreteInput(priceInput?.value);
+      const existingPrice = Number(o.correiosFreteEstimado);
+      if (priceVal > 0 && priceVal !== existingPrice) {
+        payload.correiosFreteEstimado = priceVal;
+      }
+      const daysVal = parseInt(String(daysInput?.value || ''), 10);
+      const existingDays = Number(o.shippingDays);
+      if (Number.isFinite(daysVal) && daysVal > 0 && daysVal !== existingDays) {
+        payload.shippingDays = daysVal;
       }
       if (!Object.keys(payload).length) {
         showFeedback('Nenhuma alteração para salvar.', 'warn');
@@ -530,6 +630,9 @@
     if (data.correiosShippingManualNote != null) {
       order.correiosShippingManualNote = data.correiosShippingManualNote;
     }
+    if (data.correiosFreteEstimado != null) order.correiosFreteEstimado = data.correiosFreteEstimado;
+    if (data.shippingDays != null) order.shippingDays = data.shippingDays;
+    if (data.shippingServiceCode != null) order.shippingServiceCode = data.shippingServiceCode;
     order.correiosManualUpdatedAt = new Date().toISOString();
   }
 

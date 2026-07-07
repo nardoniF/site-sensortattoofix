@@ -5844,6 +5844,59 @@ const MANUAL_SHIPPING_METHOD_LABELS = {
   'correios-manual-outro': 'Correios (manual)'
 };
 
+const MANUAL_SHIPPING_CORREIOS_CODES = {
+  'br-mini-envios': '04227',
+  'br-carta-registrada': '8010',
+  'correios-manual-pac': '41106',
+  'correios-manual-sedex': '40010'
+};
+
+function inferShippingMethodFromTracking(trackingCode) {
+  const code = String(trackingCode || '').trim().toUpperCase();
+  if (code.startsWith('AP')) return 'correios-manual-pac';
+  if (code.startsWith('AV')) return 'br-mini-envios';
+  if (code.startsWith('AD') || code.startsWith('AB')) return 'correios-manual-sedex';
+  return null;
+}
+
+async function quoteManualShippingMethod(env, config, order, methodId) {
+  const id = String(methodId || '').trim();
+  const serviceCode = MANUAL_SHIPPING_CORREIOS_CODES[id];
+  if (!serviceCode || !order) return null;
+  const dest = onlyDigits(order.cep);
+  if (dest.length !== 8) return null;
+
+  const label = MANUAL_SHIPPING_METHOD_LABELS[id] || 'Correios';
+  const method = { id, correiosCode: serviceCode, label };
+  const declaredValue = Number(order.valorProduto) || Number(config.product?.price) || 62.9;
+  const weightGrams = shippingWeightGrams(config);
+
+  const quote = await quoteCorreiosService(env, config, dest, method, { declaredValue, weightGrams });
+  if (quote?.price) {
+    return {
+      methodId: id,
+      serviceCode,
+      price: quote.price,
+      days: quote.days,
+      source: quote.source || 'correios'
+    };
+  }
+
+  const ship = config.shipping || DEFAULT_CONFIG.shipping;
+  const origin = onlyDigits(ship.originCep);
+  const weightFactor = Math.min(2.5, Math.max(1, weightGrams / shippingWeightGrams(config)));
+  const est = estimateBRForMethod(origin, dest, method, weightFactor, config);
+  let price = est.price;
+  let days = est.days;
+  if (id === 'correios-manual-sedex') {
+    price = Math.round(est.price * 1.55 * 100) / 100;
+    days = Math.max(1, est.days - 4);
+  } else if (id === 'correios-manual-pac') {
+    price = Math.round(est.price * 0.85 * 100) / 100;
+  }
+  return { methodId: id, serviceCode, price, days, source: 'estimate' };
+}
+
 function applyOrderShippingManualUpdate(order, body) {
   const now = new Date().toISOString();
   let changed = false;
@@ -5883,6 +5936,28 @@ function applyOrderShippingManualUpdate(order, body) {
     changed = true;
   }
 
+  if (body.correiosFreteEstimado !== undefined) {
+    const price = Number(body.correiosFreteEstimado);
+    if (Number.isFinite(price) && price >= 0) {
+      order.correiosFreteEstimado = price > 0 ? Math.round(price * 100) / 100 : null;
+      order.correiosFreteEstimadoAt = now;
+      changed = true;
+    }
+  }
+
+  if (body.shippingDays !== undefined) {
+    const days = parseInt(String(body.shippingDays), 10);
+    if (Number.isFinite(days) && days > 0) {
+      order.shippingDays = days;
+      changed = true;
+    }
+  }
+
+  if (body.shippingServiceCode !== undefined) {
+    order.shippingServiceCode = String(body.shippingServiceCode || '').trim() || null;
+    changed = true;
+  }
+
   if (!changed) throw new Error('Nenhum campo para atualizar.');
 
   order.correiosManualUpdatedAt = now;
@@ -5913,8 +5988,34 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   const body = await request.json().catch(() => ({}));
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const config = await getConfig(env);
   try {
     applyOrderShippingManualUpdate(order, body);
+
+    const methodId = body.shippingMethodId !== undefined
+      ? String(body.shippingMethodId || '').trim()
+      : String(order.shippingMethodId || '').trim();
+    const wantsAutoQuote = body.correiosFreteEstimado === undefined && body.shippingDays === undefined;
+
+    if (body.trackingCode && !body.shippingMethodId) {
+      const inferred = inferShippingMethodFromTracking(body.trackingCode);
+      if (inferred && (!order.shippingMethodId || order.shippingMethodId === 'br-mini-envios')) {
+        order.shippingMethodId = inferred;
+        const label = MANUAL_SHIPPING_METHOD_LABELS[inferred];
+        if (label) order.shippingService = label;
+      }
+    }
+
+    const quoteMethodId = String(order.shippingMethodId || methodId || '').trim();
+    if (wantsAutoQuote && quoteMethodId && quoteMethodId !== 'correios-manual-outro') {
+      const quote = await quoteManualShippingMethod(env, config, order, quoteMethodId);
+      if (quote) {
+        order.correiosFreteEstimado = quote.price;
+        order.correiosFreteEstimadoAt = new Date().toISOString();
+        order.shippingDays = quote.days;
+        order.shippingServiceCode = quote.serviceCode;
+      }
+    }
   } catch (err) {
     return json({ error: err.message }, 400, origin);
   }
@@ -5925,8 +6026,28 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     correiosTrackingStatus: order.correiosTrackingStatus || null,
     shippingMethodId: order.shippingMethodId || null,
     shippingService: order.shippingService || null,
-    correiosShippingManualNote: order.correiosShippingManualNote || null
+    correiosShippingManualNote: order.correiosShippingManualNote || null,
+    correiosFreteEstimado: order.correiosFreteEstimado ?? null,
+    shippingDays: order.shippingDays ?? null,
+    shippingServiceCode: order.shippingServiceCode ?? null
   }, 200, origin);
+}
+
+async function handleOrderShippingMethodQuote(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  const methodId = String(url.searchParams.get('methodId') || '').trim();
+  if (!methodId || methodId === 'correios-manual-outro') {
+    return json({ error: 'Serviço sem cotação automática.' }, 400, origin);
+  }
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const config = await getConfig(env);
+  const quote = await quoteManualShippingMethod(env, config, order, methodId);
+  if (!quote) return json({ error: 'Não foi possível cotar este serviço.' }, 400, origin);
+  return json(quote, 200, origin);
 }
 
 async function handleConfirmOrder(request, env, origin, orderId) {
@@ -7242,6 +7363,10 @@ export default {
       const shippingMatch = path.match(/^\/orders\/([^/]+)\/shipping$/);
       if (shippingMatch && request.method === 'PATCH') {
         return handleOrderShippingUpdate(request, env, origin, shippingMatch[1]);
+      }
+      const shippingQuoteMatch = path.match(/^\/orders\/([^/]+)\/shipping-method-quote$/);
+      if (shippingQuoteMatch && request.method === 'GET') {
+        return handleOrderShippingMethodQuote(request, env, origin, shippingQuoteMatch[1]);
       }
       const selfTestConfirmMatch = path.match(/^\/orders\/([^/]+)\/confirm-test$/);
       if (selfTestConfirmMatch && request.method === 'POST') {
