@@ -1043,7 +1043,7 @@
   }
 
   async function refreshCorreiosTracking(orders) {
-    const staleMs = 20 * 60 * 1000;
+    const staleMs = 30 * 60 * 1000;
     const now = Date.now();
     const ids = orders
       .filter((o) => o.status === 'paid')
@@ -1053,6 +1053,8 @@
       })
       .filter((o) => {
         if (isCorreiosBrOrder(o) && !o.correiosTrackingCode && (o.correiosPrePostagemId || o.correiosPrePostagemAt)) return true;
+        const st = String(o.correiosTrackingStatus || '').toLowerCase();
+        if (st === 'entregue' || st.includes('entregue ao destinat')) return false;
         if (!o.correiosTrackingUpdatedAt) return true;
         return now - new Date(o.correiosTrackingUpdatedAt).getTime() > staleMs;
       })

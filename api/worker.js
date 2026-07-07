@@ -7308,63 +7308,135 @@ async function handleAdminCorreiosTracking(request, env, origin) {
   const orders = {};
   let aggressiveBudget = forceAvSync ? orderIds.length : 3;
   for (const orderId of orderIds) {
-    const order = await getOrder(env, orderId);
-    if (!order) continue;
-
-    if (isCorreiosBrOrder(order) && order.correiosFreteEstimado == null) {
-      try {
-        await ensureCorreiosFreteEstimate(env, order, config);
-      } catch (err) {
-        console.warn('Correios frete backfill:', orderId, err.message);
-      }
-    }
-
-    if (!order.correiosTrackingCode && isCorreiosBrOrder(order)) {
-      if (!order.correiosPrePostagemId) {
-        try {
-          await ensureCorreiosPrePostagemForOrder(env, order, config);
-        } catch (err) {
-          console.warn('Correios pre-postagem backfill:', orderId, err.message);
-        }
-      }
-      if (order.correiosPrePostagemId) {
-        try {
-          const useAggressive = forceAvSync || aggressiveBudget > 0;
-          if (useAggressive && !forceAvSync) aggressiveBudget -= 1;
-          await syncCorreiosTrackingCodeFromPrePostagem(token, order, env, { aggressive: useAggressive });
-        } catch (err) {
-          console.warn('Correios AV backfill:', orderId, err.message);
-        }
-      }
-    }
-
-    if (!order.correiosTrackingCode) {
-      const payload = {};
-      if (order.correiosFreteEstimado != null) payload.correiosFreteEstimado = order.correiosFreteEstimado;
-      if (order.correiosPrePostagemId || order.correiosPrePostagemAt) payload.status = 'Pré-postado';
-      if (Object.keys(payload).length) orders[orderId] = payload;
-      continue;
-    }
-    const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
-    const hasApiEvents = Array.isArray(summary?.events) && summary.events.length > 0;
-    const hasManual = order.correiosManualUpdatedAt && order.correiosTrackingStatus;
-    if (hasApiEvents) {
-      order.correiosTrackingStatus = summary.status;
-      order.correiosTrackingLastEvent = summary.lastEvent;
-      order.correiosTrackingEvents = summary.events;
-      order.correiosTrackingUpdatedAt = new Date().toISOString();
-    } else if (!hasManual && summary?.status && summary.status !== 'Sem eventos na API') {
-      order.correiosTrackingStatus = summary.status;
-      order.correiosTrackingUpdatedAt = new Date().toISOString();
-    }
-    await saveOrder(env, order);
-    orders[orderId] = {
-      ...(hasApiEvents ? summary : trackingSummaryFromOrder(order) || summary),
-      trackingCode: order.correiosTrackingCode,
-      correiosFreteEstimado: order.correiosFreteEstimado ?? null
-    };
+    const summary = await syncOneOrderCorreiosTracking(env, config, token, orderId, {
+      forceAvSync,
+      getAggressive: () => forceAvSync || aggressiveBudget > 0,
+      useAggressive: () => { if (!forceAvSync) aggressiveBudget -= 1; }
+    });
+    if (summary) orders[orderId] = summary;
   }
   return json({ orders }, 200, origin);
+}
+
+function isTrackingFinalStatus(status) {
+  const s = String(status || '').trim().toLowerCase();
+  return s === 'entregue' || s.includes('entregue ao destinat');
+}
+
+async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = {}) {
+  const order = await getOrder(env, orderId);
+  if (!order) return null;
+
+  if (isCorreiosBrOrder(order) && order.correiosFreteEstimado == null) {
+    try {
+      await ensureCorreiosFreteEstimate(env, order, config);
+    } catch (err) {
+      console.warn('Correios frete backfill:', orderId, err.message);
+    }
+  }
+
+  if (!order.correiosTrackingCode && isCorreiosBrOrder(order)) {
+    if (!order.correiosPrePostagemId) {
+      try {
+        await ensureCorreiosPrePostagemForOrder(env, order, config);
+      } catch (err) {
+        console.warn('Correios pre-postagem backfill:', orderId, err.message);
+      }
+    }
+    if (order.correiosPrePostagemId) {
+      try {
+        const useAggressive = typeof opts.getAggressive === 'function' ? opts.getAggressive() : false;
+        if (useAggressive && typeof opts.useAggressive === 'function') opts.useAggressive();
+        await syncCorreiosTrackingCodeFromPrePostagem(token, order, env, { aggressive: useAggressive });
+      } catch (err) {
+        console.warn('Correios AV backfill:', orderId, err.message);
+      }
+    }
+  }
+
+  if (!order.correiosTrackingCode) {
+    const payload = {};
+    if (order.correiosFreteEstimado != null) payload.correiosFreteEstimado = order.correiosFreteEstimado;
+    if (order.correiosPrePostagemId || order.correiosPrePostagemAt) payload.status = 'Pré-postado';
+    return Object.keys(payload).length ? payload : null;
+  }
+
+  const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
+  const hasApiEvents = Array.isArray(summary?.events) && summary.events.length > 0;
+  const hasManual = order.correiosManualUpdatedAt && order.correiosTrackingStatus;
+  if (hasApiEvents) {
+    order.correiosTrackingStatus = summary.status;
+    order.correiosTrackingLastEvent = summary.lastEvent;
+    order.correiosTrackingEvents = summary.events;
+    order.correiosTrackingUpdatedAt = new Date().toISOString();
+  } else if (!hasManual && summary?.status && summary.status !== 'Sem eventos na API') {
+    order.correiosTrackingStatus = summary.status;
+    order.correiosTrackingUpdatedAt = new Date().toISOString();
+  }
+  await saveOrder(env, order);
+  return {
+    ...(hasApiEvents ? summary : trackingSummaryFromOrder(order) || summary),
+    trackingCode: order.correiosTrackingCode,
+    correiosFreteEstimado: order.correiosFreteEstimado ?? null
+  };
+}
+
+const CORREIOS_TRACKING_CRON_STALE_MS = 30 * 60 * 1000;
+const CORREIOS_TRACKING_CRON_MAX = 40;
+
+async function runScheduledCorreiosTrackingSync(env) {
+  const token = await getCorreiosToken(env);
+  if (!token) {
+    console.warn('Correios tracking cron: token indisponível');
+    return { ok: false, reason: 'no_token' };
+  }
+
+  const config = await getConfig(env);
+  const now = Date.now();
+  const index = await readOrdersIndex(env);
+  const candidates = [];
+
+  for (const item of index) {
+    if (item.status !== 'paid') continue;
+    const order = await getOrder(env, item.orderId);
+    if (!order || !isCorreiosBrOrder(order)) continue;
+    if (isTrackingFinalStatus(order.correiosTrackingStatus)) continue;
+    if (!order.correiosTrackingCode && !order.correiosPrePostagemId && !order.correiosPrePostagemAt) continue;
+
+    const updatedAt = order.correiosTrackingUpdatedAt
+      || order.correiosManualUpdatedAt
+      || order.correiosPrePostagemAt
+      || order.paidAt
+      || order.createdAt;
+    if (updatedAt && now - new Date(updatedAt).getTime() < CORREIOS_TRACKING_CRON_STALE_MS) continue;
+
+    candidates.push(order.orderId);
+  }
+
+  const batch = candidates.slice(0, CORREIOS_TRACKING_CRON_MAX);
+  let synced = 0;
+  for (const orderId of batch) {
+    try {
+      const summary = await syncOneOrderCorreiosTracking(env, config, token, orderId, {
+        forceAvSync: false,
+        getAggressive: () => synced < 2,
+        useAggressive: () => {}
+      });
+      if (summary) synced += 1;
+    } catch (err) {
+      console.warn('Correios tracking cron:', orderId, err.message);
+    }
+  }
+
+  const report = {
+    at: new Date().toISOString(),
+    candidates: candidates.length,
+    batch: batch.length,
+    synced
+  };
+  await env.STORE_KV.put('correios:tracking:cron:last', JSON.stringify(report));
+  console.log('Correios tracking cron:', JSON.stringify(report));
+  return { ok: true, ...report };
 }
 
 async function handleListOrders(request, env, origin) {
@@ -7512,5 +7584,13 @@ export default {
     } catch (err) {
       return json({ error: err.message }, 500, origin);
     }
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      runScheduledCorreiosTrackingSync(env).catch((err) => {
+        console.error('Correios tracking cron failed:', err.message);
+      })
+    );
   }
 };

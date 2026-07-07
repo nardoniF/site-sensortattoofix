@@ -1,4 +1,6 @@
 (function () {
+  const REFRESH_MS = 5 * 60 * 1000;
+
   function apiBase() {
     return (window.CONFIG_BOOTSTRAP && window.CONFIG_BOOTSTRAP.configApiUrl) || 'https://api.sensortattoofix.com.br';
   }
@@ -44,37 +46,35 @@
 
   if (codeEl) codeEl.textContent = code;
 
-  fetch(apiBase() + '/tracking/' + encodeURIComponent(code))
-    .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-    .then(({ ok, data }) => {
-      if (loadingEl) loadingEl.hidden = true;
-      if (!ok) {
-        if (errorEl) {
-          errorEl.hidden = false;
-          errorEl.textContent = data.error || 'Não foi possível consultar o rastreio.';
-        }
-        return;
+  function renderTracking(data, ok) {
+    if (!ok) {
+      if (errorEl) {
+        errorEl.hidden = false;
+        errorEl.textContent = data.error || 'Não foi possível consultar o rastreio.';
       }
+      return;
+    }
 
-      if (statusEl && data.status) {
-        statusEl.hidden = false;
-        statusEl.textContent = data.status;
+    if (errorEl) errorEl.hidden = true;
+
+    if (statusEl && data.status) {
+      statusEl.hidden = false;
+      statusEl.textContent = data.status;
+    }
+
+    if (metaEl) {
+      const parts = [];
+      if (data.service) parts.push(data.service);
+      if (Number(data.shippingDays) > 0) {
+        parts.push(Number(data.shippingDays) === 1 ? '1 dia' : `${data.shippingDays} dias`);
       }
+      metaEl.hidden = !parts.length;
+      metaEl.textContent = parts.join(' · ');
+    }
 
-      if (metaEl) {
-        const parts = [];
-        if (data.service) parts.push(data.service);
-        if (Number(data.shippingDays) > 0) {
-          parts.push(Number(data.shippingDays) === 1 ? '1 dia' : `${data.shippingDays} dias`);
-        }
-        if (parts.length) {
-          metaEl.hidden = false;
-          metaEl.textContent = parts.join(' · ');
-        }
-      }
-
-      const events = Array.isArray(data.events) ? data.events : [];
-      if (timelineEl && events.length) {
+    const events = Array.isArray(data.events) ? data.events : [];
+    if (timelineEl) {
+      if (events.length) {
         timelineEl.hidden = false;
         timelineEl.innerHTML = events.map((ev) => `
           <li class="rastreio-event">
@@ -82,28 +82,45 @@
             <div class="rastreio-event-desc">${escHtml(ev.description || '—')}</div>
             ${ev.detail ? `<div class="rastreio-event-detail">${escHtml(ev.detail)}</div>` : ''}
           </li>`).join('');
-      } else if (errorEl && !events.length && !data.status) {
-        errorEl.hidden = false;
-        errorEl.textContent = 'Nenhum evento de rastreio disponível ainda.';
+      } else {
+        timelineEl.hidden = true;
+        timelineEl.innerHTML = '';
       }
+    }
 
-      if (footerEl) {
-        const bits = [];
-        if (data.note) bits.push(escHtml(data.note));
-        if (data.officialUrl) {
-          bits.push(`Consulte também no site dos <a href="${escHtml(data.officialUrl)}" target="_blank" rel="noopener">Correios</a> (exige captcha).`);
-        }
-        if (bits.length) {
-          footerEl.hidden = false;
-          footerEl.innerHTML = bits.join(' ');
-        }
+    if (footerEl) {
+      const bits = [];
+      if (data.note) bits.push(escHtml(data.note));
+      bits.push('<small>Atualiza automaticamente a cada 5 min.</small>');
+      if (data.officialUrl) {
+        bits.push(`Consulte também no site dos <a href="${escHtml(data.officialUrl)}" target="_blank" rel="noopener">Correios</a> (exige captcha).`);
       }
-    })
-    .catch(() => {
+      footerEl.hidden = false;
+      footerEl.innerHTML = bits.join(' ');
+    }
+  }
+
+  async function loadTracking(silent) {
+    if (!silent && loadingEl) loadingEl.hidden = false;
+    try {
+      const res = await fetch(apiBase() + '/tracking/' + encodeURIComponent(code));
+      const data = await res.json().catch(() => ({}));
+      if (loadingEl) loadingEl.hidden = true;
+      renderTracking(data, res.ok);
+      return data;
+    } catch {
       if (loadingEl) loadingEl.hidden = true;
       if (errorEl) {
         errorEl.hidden = false;
         errorEl.textContent = 'Erro de conexão ao consultar rastreio.';
       }
-    });
+      return null;
+    }
+  }
+
+  loadTracking(false);
+
+  setInterval(() => {
+    if (document.visibilityState === 'visible') loadTracking(true);
+  }, REFRESH_MS);
 })();
