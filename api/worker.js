@@ -782,6 +782,46 @@ async function handleCommissionerRegister(request, env, origin) {
   }, 200, origin);
 }
 
+async function handleCommissionerResendWelcome(request, env, origin) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'JSON inválido.' }, 400, origin);
+  }
+
+  const email = normalizeEmail(body.email);
+  const code = normalizeCouponCode(body.code || body.coupon || '');
+  if (!email || !email.includes('@')) return json({ error: 'Informe o e-mail do cadastro.' }, 400, origin);
+  if (!code) return json({ error: 'Informe o código do cupom.' }, 400, origin);
+
+  const ip = clientIp(request);
+  const rlKey = `commissioner:resend:${ip}`;
+  const rlRaw = await env.STORE_KV.get(rlKey);
+  const rlCount = Number(rlRaw) || 0;
+  if (rlCount >= 10) {
+    return json({ error: 'Muitas tentativas de reenvio hoje. Tente amanhã.' }, 429, origin);
+  }
+  await env.STORE_KV.put(rlKey, String(rlCount + 1), { expirationTtl: 86400 });
+
+  const config = await getConfig(env);
+  const coupon = getCoupons(config).find(
+    (c) => normalizeEmail(c.email) === email && normalizeCouponCode(c.code) === code
+  );
+  if (!coupon) return json({ error: 'Cupom não encontrado para este e-mail.' }, 404, origin);
+
+  const name = String(coupon.name || '').trim() || 'Comissionado';
+  const mail = await notifyCommissionerWelcome(env, config, coupon, name);
+  if (!mail.ok) console.error('Reenvio boas-vindas comissionado:', email, JSON.stringify(mail));
+
+  return json({
+    ok: true,
+    code: normalizeCouponCode(coupon.code),
+    emailSent: !!mail.ok,
+    attachments: mail.ok ? 2 : 0
+  }, mail.ok ? 200 : 502, origin);
+}
+
 async function handleValidateCoupon(request, env, origin) {
   let body;
   try {
@@ -7672,6 +7712,9 @@ export default {
       }
       if (path === '/commissioners/register' && request.method === 'POST') {
         return handleCommissionerRegister(request, env, origin);
+      }
+      if (path === '/commissioners/resend-welcome' && request.method === 'POST') {
+        return handleCommissionerResendWelcome(request, env, origin);
       }
       if (path === '/coupons/validate' && request.method === 'POST') {
         return handleValidateCoupon(request, env, origin);
