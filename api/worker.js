@@ -1940,6 +1940,10 @@ async function listOrdersForAdmin(env) {
 
 async function saveOrder(env, order) {
   await env.STORE_KV.put('order:' + order.orderId, JSON.stringify(order));
+  const trackingCode = String(order.correiosTrackingCode || '').trim().toUpperCase();
+  if (trackingCode && CORREIOS_AV_RE.test(trackingCode)) {
+    await env.STORE_KV.put('tracking:' + trackingCode, order.orderId);
+  }
   const index = await readOrdersIndex(env);
   const filtered = index.filter((o) => o.orderId !== order.orderId);
   filtered.unshift(buildIndexEntry(order));
@@ -2988,9 +2992,96 @@ function buildPrePostagemPayload(order, config, env) {
   };
 }
 
+async function findOrderByTrackingCode(env, trackingCode) {
+  const code = String(trackingCode || '').trim().toUpperCase();
+  if (!code) return null;
+  const orderId = await env.STORE_KV.get('tracking:' + code);
+  if (orderId) return getOrder(env, orderId);
+  const index = await readOrdersIndex(env);
+  for (const item of index.slice(0, 300)) {
+    const order = await getOrder(env, item.orderId);
+    if (!order) continue;
+    if (String(order.correiosTrackingCode || '').trim().toUpperCase() === code) {
+      await env.STORE_KV.put('tracking:' + code, order.orderId);
+      return order;
+    }
+  }
+  return null;
+}
+
+function trackingSummaryFromOrder(order) {
+  if (!order) return null;
+  const events = [];
+  if (Array.isArray(order.correiosTrackingEvents) && order.correiosTrackingEvents.length) {
+    events.push(...order.correiosTrackingEvents);
+  } else {
+    const status = String(order.correiosTrackingStatus || '').trim();
+    const manualAt = order.correiosManualUpdatedAt || order.correiosTrackingUpdatedAt;
+    const note = String(order.correiosShippingManualNote || order.shippingService || '').trim();
+    if (status && manualAt) {
+      events.push({ date: manualAt, description: status, detail: note || undefined });
+    }
+    const last = order.correiosTrackingLastEvent;
+    if (last?.description) {
+      const dup = events.some((e) => e.description === last.description);
+      if (!dup) events.unshift({
+        date: last.date,
+        description: last.description,
+        detail: last.detail || undefined
+      });
+    }
+  }
+  const status = String(order.correiosTrackingStatus || events[0]?.description || '').trim();
+  if (!status) return null;
+  return {
+    status,
+    lastEvent: events[0] || null,
+    events,
+    service: order.shippingService || null,
+    shippingDays: order.shippingDays ?? null,
+    source: 'order'
+  };
+}
+
+function mergeTrackingSummaries(apiSummary, orderSummary) {
+  const api = apiSummary || { status: null, lastEvent: null, events: [] };
+  const fromOrder = orderSummary || null;
+  const apiEvents = Array.isArray(api.events) ? api.events : [];
+  const orderEvents = Array.isArray(fromOrder?.events) ? fromOrder.events : [];
+
+  if (apiEvents.length) {
+    return {
+      ...api,
+      service: fromOrder?.service || null,
+      shippingDays: fromOrder?.shippingDays ?? null,
+      source: 'correios'
+    };
+  }
+
+  if (fromOrder) {
+    return {
+      status: fromOrder.status,
+      lastEvent: fromOrder.lastEvent,
+      events: orderEvents,
+      service: fromOrder.service,
+      shippingDays: fromOrder.shippingDays,
+      source: 'order',
+      note: 'Envio registrado manualmente — a API Correios do contrato não retorna objetos postados fora do contrato.'
+    };
+  }
+
+  return {
+    status: api.status && api.status !== 'Pré-postado' ? api.status : 'Aguardando atualização nos Correios',
+    lastEvent: api.lastEvent,
+    events: [],
+    source: 'none',
+    note: 'Sem eventos na API Correios. Consulte também o site oficial (captcha).'
+  };
+}
+
 function summarizeCorreiosTracking(data) {
   const obj = Array.isArray(data?.objetos) ? data.objetos[0] : data?.objeto;
-  if (!obj) return { status: 'Sem eventos', lastEvent: null, events: [] };
+  if (!obj) return { status: 'Sem eventos na API', lastEvent: null, events: [] };
   const events = Array.isArray(obj.eventos) ? obj.eventos : [];
   const sorted = [...events].sort((a, b) => new Date(b.dtHrCriado) - new Date(a.dtHrCriado));
   const last = sorted[0];
@@ -2999,8 +3090,11 @@ function summarizeCorreiosTracking(data) {
     description: String(last.descricao || '').trim(),
     detail: String(last.detalhe || '').trim()
   } : null;
+  if (!events.length) {
+    return { status: 'Sem eventos na API', lastEvent: null, events: [] };
+  }
   const desc = (last?.descricao || '').toLowerCase();
-  let status = events.length ? 'Aguardando postagem na agência' : 'Pré-postado';
+  let status = 'Aguardando postagem na agência';
   if (desc.includes('entregue')) status = 'Entregue';
   else if (desc.includes('saiu para entrega')) status = 'Saiu para entrega';
   else if (desc.includes('postado')) status = 'Postado';
@@ -3009,7 +3103,7 @@ function summarizeCorreiosTracking(data) {
   return {
     status,
     lastEvent,
-    events: sorted.slice(0, 8).map((e) => ({
+    events: sorted.slice(0, 12).map((e) => ({
       date: e.dtHrCriado,
       description: String(e.descricao || '').trim(),
       detail: String(e.detalhe || '').trim()
@@ -3026,7 +3120,10 @@ async function handlePublicTracking(request, env, origin, code) {
   if (!token) {
     return json({ error: 'Rastreamento temporariamente indisponível.' }, 503, origin);
   }
-  const summary = await fetchCorreiosTrackingSummary(token, trackingCode);
+  const order = await findOrderByTrackingCode(env, trackingCode);
+  const apiSummary = await fetchCorreiosTrackingSummary(token, trackingCode);
+  const orderSummary = trackingSummaryFromOrder(order);
+  const summary = mergeTrackingSummaries(apiSummary, orderSummary);
   return json({
     trackingCode,
     officialUrl: correiosOfficialTrackingUrl(trackingCode),
@@ -7249,13 +7346,20 @@ async function handleAdminCorreiosTracking(request, env, origin) {
       continue;
     }
     const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
-    order.correiosTrackingStatus = summary.status;
-    order.correiosTrackingLastEvent = summary.lastEvent;
-    order.correiosTrackingEvents = summary.events;
-    order.correiosTrackingUpdatedAt = new Date().toISOString();
+    const hasApiEvents = Array.isArray(summary?.events) && summary.events.length > 0;
+    const hasManual = order.correiosManualUpdatedAt && order.correiosTrackingStatus;
+    if (hasApiEvents) {
+      order.correiosTrackingStatus = summary.status;
+      order.correiosTrackingLastEvent = summary.lastEvent;
+      order.correiosTrackingEvents = summary.events;
+      order.correiosTrackingUpdatedAt = new Date().toISOString();
+    } else if (!hasManual && summary?.status && summary.status !== 'Sem eventos na API') {
+      order.correiosTrackingStatus = summary.status;
+      order.correiosTrackingUpdatedAt = new Date().toISOString();
+    }
     await saveOrder(env, order);
     orders[orderId] = {
-      ...summary,
+      ...(hasApiEvents ? summary : trackingSummaryFromOrder(order) || summary),
       trackingCode: order.correiosTrackingCode,
       correiosFreteEstimado: order.correiosFreteEstimado ?? null
     };

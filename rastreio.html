@@ -18,6 +18,7 @@
       letter-spacing: 0.04em; word-break: break-all;
     }
     .rastreio-status { margin: 12px 0 0; font-size: 1rem; color: #9cf59c; }
+    .rastreio-meta { margin: 6px 0 0; font-size: 0.88rem; color: #ccc; }
     .rastreio-loading, .rastreio-error { color: var(--gray); margin-top: 16px; }
     .rastreio-error { color: #f88; }
     .rastreio-timeline { list-style: none; margin: 20px 0 0; padding: 0; }
@@ -45,12 +46,13 @@
       <h1 style="margin:0 0 8px;font-size:1.1rem;color:#fff"><i class="fas fa-truck"></i> Rastreio de encomenda</h1>
       <p id="rastreio-code" class="rastreio-code"></p>
       <p id="rastreio-status" class="rastreio-status" hidden></p>
+      <p id="rastreio-meta" class="rastreio-meta" hidden></p>
       <p id="rastreio-loading" class="rastreio-loading">Consultando Correios…</p>
       <p id="rastreio-error" class="rastreio-error" hidden></p>
       <ul id="rastreio-timeline" class="rastreio-timeline" hidden></ul>
       <p id="rastreio-footer" class="rastreio-footer" hidden></p>
     </div>
   </main>
-  <script src="js/rastreio.js?v=1"></script>
+  <script src="js/rastreio.js?v=2"></script>
 </body>
 </html>

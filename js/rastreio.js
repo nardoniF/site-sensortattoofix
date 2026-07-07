@@ -26,6 +26,7 @@
   const code = normalizeCode(params.get('codigo') || params.get('objeto') || '');
   const codeEl = document.getElementById('rastreio-code');
   const statusEl = document.getElementById('rastreio-status');
+  const metaEl = document.getElementById('rastreio-meta');
   const loadingEl = document.getElementById('rastreio-loading');
   const errorEl = document.getElementById('rastreio-error');
   const timelineEl = document.getElementById('rastreio-timeline');
@@ -60,6 +61,18 @@
         statusEl.textContent = data.status;
       }
 
+      if (metaEl) {
+        const parts = [];
+        if (data.service) parts.push(data.service);
+        if (Number(data.shippingDays) > 0) {
+          parts.push(Number(data.shippingDays) === 1 ? '1 dia' : `${data.shippingDays} dias`);
+        }
+        if (parts.length) {
+          metaEl.hidden = false;
+          metaEl.textContent = parts.join(' · ');
+        }
+      }
+
       const events = Array.isArray(data.events) ? data.events : [];
       if (timelineEl && events.length) {
         timelineEl.hidden = false;
@@ -69,14 +82,21 @@
             <div class="rastreio-event-desc">${escHtml(ev.description || '—')}</div>
             ${ev.detail ? `<div class="rastreio-event-detail">${escHtml(ev.detail)}</div>` : ''}
           </li>`).join('');
-      } else if (errorEl && !events.length) {
+      } else if (errorEl && !events.length && !data.status) {
         errorEl.hidden = false;
         errorEl.textContent = 'Nenhum evento de rastreio disponível ainda.';
       }
 
-      if (footerEl && data.officialUrl) {
-        footerEl.hidden = false;
-        footerEl.innerHTML = `Também pode consultar no site dos <a href="${escHtml(data.officialUrl)}" target="_blank" rel="noopener">Correios</a> (exige captcha).`;
+      if (footerEl) {
+        const bits = [];
+        if (data.note) bits.push(escHtml(data.note));
+        if (data.officialUrl) {
+          bits.push(`Consulte também no site dos <a href="${escHtml(data.officialUrl)}" target="_blank" rel="noopener">Correios</a> (exige captcha).`);
+        }
+        if (bits.length) {
+          footerEl.hidden = false;
+          footerEl.innerHTML = bits.join(' ');
+        }
       }
     })
     .catch(() => {
