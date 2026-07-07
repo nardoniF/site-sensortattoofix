@@ -661,12 +661,12 @@ function commissionerWelcomeHtml(config, coupon, name, attachmentCount) {
   const buyUrl = `${site}/comprar.html?cupom=${encodeURIComponent(code)}`;
   const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const storiesNote = attachmentCount
-    ? `<p><strong>${attachmentCount} story em anexo</strong> — arte pronta para Instagram.</p>
+    ? `<p><strong>${attachmentCount} story em anexo</strong> — arte pronta para divulgação nas redes sociais.</p>
     <p><strong>Como postar:</strong></p>
     <ol style="margin:8px 0;padding-left:20px;line-height:1.6">
       <li>Salve o PNG anexo no celular.</li>
-      <li>Publique nos <strong>Stories</strong> do Instagram.</li>
-      <li>Use a ferramenta de <strong>texto</strong> do Instagram e escreva seu cupom <strong>${esc(code)}</strong> na faixa em branco (“USE O CUPOM”).</li>
+      <li>Publique nos <strong>Stories</strong> do Instagram ou em qualquer outra rede social ou publicação.</li>
+      <li>Use a ferramenta de <strong>texto</strong> e escreva seu cupom <strong>${esc(code)}</strong> no espaço vazio da faixa (“USE O CUPOM”).</li>
       <li>Use fonte clara e grande, centralizada, para ficar legível.</li>
     </ol>`
     : '<p>A arte para stories deve estar em anexo neste e-mail.</p>';
@@ -699,10 +699,10 @@ function commissionerWelcomeText(coupon, name, attachmentCount) {
     '',
     `Link: comprar.html?cupom=${code}`,
     '',
-    attachmentCount ? 'Story PNG em anexo — publique no Instagram:' : 'Story em anexo:',
+    attachmentCount ? 'Story PNG em anexo — publique no Instagram, em outra rede social ou publicação:' : 'Story em anexo:',
     '1. Salve a imagem no celular',
-    '2. Poste nos Stories',
-    `3. Com a ferramenta de TEXTO do Instagram, escreva ${code} na área "USE O CUPOM"`,
+    '2. Poste nos Stories ou em qualquer outra rede social ou publicação',
+    `3. Com a ferramenta de TEXTO, escreva ${code} no espaço vazio da área "USE O CUPOM"`,
     '4. Fonte clara, grande e centralizada'
   ].join('\n');
 }
