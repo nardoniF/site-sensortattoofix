@@ -670,8 +670,13 @@ function commissionerWelcomeHtml(config, coupon, name) {
     </ul>
     <p><strong>Link para seus clientes:</strong><br><a href="${esc(buyUrl)}">${esc(buyUrl)}</a></p>
     <p><strong>Arte para postar</strong> (salve e use no Instagram, WhatsApp, etc.):</p>
-    <p><a href="${site}/site/sensortattoofix.jpg"><img src="${site}/site/sensortattoofix.jpg" alt="Sensor Tattoo Fix" width="280" style="max-width:100%;border-radius:12px;border:1px solid #ddd"></a></p>
-    <p><a href="${site}/site/relogio_home.jpg"><img src="${site}/site/relogio_home.jpg" alt="Smartwatch com tatuagem" width="280" style="max-width:100%;border-radius:12px;border:1px solid #ddd"></a></p>
+    <p><a href="${site}/site/comissionado/anuncio-completo.png"><img src="${site}/site/comissionado/anuncio-completo.png" alt="Arte Sensor Tattoo Fix" width="560" style="max-width:100%;border-radius:12px;border:1px solid #ddd"></a></p>
+    <p style="font-size:13px;color:#666">Slides individuais para carrossel:<br>
+      ${[1, 2, 3, 4, 5, 6, 7, 8].map((n) => {
+        const p = `${site}/site/comissionado/anuncio-${String(n).padStart(2, '0')}.png`;
+        return `<a href="${p}">Slide ${n}</a>`;
+      }).join(' · ')}
+    </p>
     <p style="color:#666;font-size:13px">Dúvidas: contato@sensortattoofix.com.br · Sensor Tattoo Fix — sensortattoofix.com.br</p>
   </div>`;
 }
@@ -688,7 +693,7 @@ function commissionerWelcomeText(coupon, name) {
     '- Pagamento no dia 30 de cada mês',
     '',
     `Link: comprar.html?cupom=${code}`,
-    'Arte: site/sensortattoofix.jpg e site/relogio_home.jpg'
+    'Arte: site/comissionado/anuncio-completo.png (e slides 01–08 para carrossel)'
   ].join('\n');
 }
 
