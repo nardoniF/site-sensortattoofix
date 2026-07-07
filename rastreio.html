@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Rastreio | Sensor Tattoo Fix</title>
+  <link rel="stylesheet" href="style.css?v=2.62">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .rastreio-page { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+    .rastreio-card {
+      background: #141414; border: 1px solid #333; border-radius: 16px;
+      padding: 24px 22px; color: #eee;
+    }
+    .rastreio-code {
+      font: 800 1.15rem/1.3 ui-monospace, monospace; color: var(--primary);
+      letter-spacing: 0.04em; word-break: break-all;
+    }
+    .rastreio-status { margin: 12px 0 0; font-size: 1rem; color: #9cf59c; }
+    .rastreio-loading, .rastreio-error { color: var(--gray); margin-top: 16px; }
+    .rastreio-error { color: #f88; }
+    .rastreio-timeline { list-style: none; margin: 20px 0 0; padding: 0; }
+    .rastreio-event {
+      position: relative; padding: 0 0 18px 18px; border-left: 2px solid #333;
+    }
+    .rastreio-event:last-child { padding-bottom: 0; border-left-color: transparent; }
+    .rastreio-event::before {
+      content: ''; position: absolute; left: -6px; top: 4px;
+      width: 10px; height: 10px; border-radius: 50%; background: var(--primary);
+    }
+    .rastreio-event-date { font-size: 0.78rem; color: var(--gray); }
+    .rastreio-event-desc { font-weight: 700; margin-top: 2px; }
+    .rastreio-event-detail { font-size: 0.88rem; color: #ccc; margin-top: 2px; }
+    .rastreio-footer { margin-top: 20px; font-size: 0.82rem; color: var(--gray); }
+    .rastreio-footer a { color: var(--primary); }
+    .rastreio-back { display: inline-block; margin-bottom: 16px; color: var(--primary); text-decoration: none; }
+  </style>
+  <script src="js/config-bootstrap.js"></script>
+</head>
+<body class="admin-page">
+  <main class="rastreio-page">
+    <a href="index.html" class="rastreio-back"><i class="fas fa-arrow-left"></i> Voltar ao site</a>
+    <div class="rastreio-card">
+      <h1 style="margin:0 0 8px;font-size:1.1rem;color:#fff"><i class="fas fa-truck"></i> Rastreio de encomenda</h1>
+      <p id="rastreio-code" class="rastreio-code"></p>
+      <p id="rastreio-status" class="rastreio-status" hidden></p>
+      <p id="rastreio-loading" class="rastreio-loading">Consultando Correios…</p>
+      <p id="rastreio-error" class="rastreio-error" hidden></p>
+      <ul id="rastreio-timeline" class="rastreio-timeline" hidden></ul>
+      <p id="rastreio-footer" class="rastreio-footer" hidden></p>
+    </div>
+  </main>
+  <script src="js/rastreio.js?v=1"></script>
+</body>
+</html>

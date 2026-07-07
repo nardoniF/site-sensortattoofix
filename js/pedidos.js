@@ -170,6 +170,12 @@
     return days === 1 ? '1 dia' : `${days} dias`;
   }
 
+  function correiosTrackingPageUrl(code) {
+    const c = String(code || '').trim();
+    if (!c) return '';
+    return `/rastreio.html?codigo=${encodeURIComponent(c)}`;
+  }
+
   function correiosEntregaStatusLabel(o) {
     const last = String(o.correiosTrackingLastEvent?.description || '').trim();
     const st = String(o.correiosTrackingStatus || '').trim();
@@ -231,7 +237,7 @@
         return '<small class="pedidos-track-muted">Aguardando pré-postagem</small>';
       }
       const code = escHtml(o.correiosTrackingCode);
-      const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
+      const url = correiosTrackingPageUrl(o.correiosTrackingCode);
       const status = escHtml(correiosEntregaStatusLabel(o));
       const prazo = shippingDaysLabel(o);
       return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>`
@@ -344,7 +350,7 @@
     if (isCorreiosBrOrder(o)) {
       const parts = [];
       if (o.correiosTrackingCode) {
-        const url = `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(o.correiosTrackingCode)}`;
+        const url = correiosTrackingPageUrl(o.correiosTrackingCode);
         parts.push(`<strong class="pedidos-detail-av"><a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(o.correiosTrackingCode)}</a></strong>`);
         parts.push(`<span class="pedidos-track-status">${escHtml(correiosEntregaStatusLabel(o))}</span>`);
         if (o.correiosTrackingLastEvent?.description && o.correiosTrackingStatus && o.correiosTrackingStatus !== o.correiosTrackingLastEvent.description) {

@@ -281,9 +281,16 @@ function isCorreiosBrOrder(order) {
   return !isParticularDeliveryOrder(order);
 }
 
-function correiosTrackingUrl(trackingCode) {
+function correiosTrackingUrl(trackingCode, storeBase) {
   const code = String(trackingCode || '').trim();
   if (!code) return '';
+  const base = String(storeBase || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
+  return `${base}/rastreio.html?codigo=${encodeURIComponent(code)}`;
+}
+
+function correiosOfficialTrackingUrl(trackingCode) {
+  const code = String(trackingCode || '').trim();
+  if (!code) return 'https://rastreamento.correios.com.br/app/index.php';
   return `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(code)}`;
 }
 
@@ -3010,6 +3017,23 @@ function summarizeCorreiosTracking(data) {
   };
 }
 
+async function handlePublicTracking(request, env, origin, code) {
+  const trackingCode = String(code || '').trim().toUpperCase();
+  if (!CORREIOS_AV_RE.test(trackingCode)) {
+    return json({ error: 'Código de rastreio inválido.' }, 400, origin);
+  }
+  const token = await getCorreiosToken(env);
+  if (!token) {
+    return json({ error: 'Rastreamento temporariamente indisponível.' }, 503, origin);
+  }
+  const summary = await fetchCorreiosTrackingSummary(token, trackingCode);
+  return json({
+    trackingCode,
+    officialUrl: correiosOfficialTrackingUrl(trackingCode),
+    ...summary
+  }, 200, origin);
+}
+
 async function fetchCorreiosTrackingSummary(token, trackingCode) {
   const code = String(trackingCode || '').trim().toUpperCase();
   if (!code) return null;
@@ -5681,7 +5705,7 @@ async function handlePaymentConfirmed(env, order, payment) {
     if (order.correiosPrePostagemId) shopPaidFields['Pré-postagem Correios'] = 'Registrada automaticamente';
     if (order.correiosTrackingCode) {
       shopPaidFields['Rastreio Correios'] = order.correiosTrackingCode;
-      shopPaidFields['Acompanhar envio'] = correiosTrackingUrl(order.correiosTrackingCode);
+      shopPaidFields['Acompanhar envio'] = correiosTrackingUrl(order.correiosTrackingCode, config.siteUrl);
     }
     shopPaidFields['Imprimir etiqueta'] = labelPrintUrl(config, order.orderId);
     if (order.correiosPrePostagemError) shopPaidFields['Erro pré-postagem'] = order.correiosPrePostagemError;
@@ -5715,7 +5739,7 @@ async function handlePaymentConfirmed(env, order, payment) {
     ...(order.uberTrackingUrl ? { 'Rastreio Uber': order.uberTrackingUrl } : {}),
     ...(order.correiosTrackingCode ? {
       'Rastreio Correios': order.correiosTrackingCode,
-      'Acompanhar envio': correiosTrackingUrl(order.correiosTrackingCode)
+      'Acompanhar envio': correiosTrackingUrl(order.correiosTrackingCode, config.siteUrl)
     } : {}),
     ...orderWatchEmailFields(order),
     ...orderIntlProductFields(order)
@@ -7321,6 +7345,10 @@ export default {
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);
+      }
+      const trackingMatch = path.match(/^\/tracking\/([A-Za-z0-9]+)$/);
+      if (trackingMatch && request.method === 'GET') {
+        return handlePublicTracking(request, env, origin, trackingMatch[1]);
       }
       const cepMatch = path.match(/^\/cep\/(\d{8})$/);
       if (cepMatch && request.method === 'GET') {
