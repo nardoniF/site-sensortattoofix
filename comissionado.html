@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Seja comissionado | Sensor Tattoo Fix</title>
+  <link rel="stylesheet" href="style.css?v=2.63">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .comissionado-page { max-width: 520px; margin: 0 auto; padding: 28px 16px 56px; }
+    .comissionado-card {
+      background: #141414; border: 1px solid #333; border-radius: 16px;
+      padding: 28px 24px; color: #eee;
+    }
+    .comissionado-card h1 { margin: 0 0 8px; font-size: 1.35rem; color: #fff; }
+    .comissionado-intro { margin: 0 0 20px; color: #bbb; font-size: 0.95rem; line-height: 1.55; }
+    .comissionado-perks {
+      margin: 0 0 22px; padding: 14px 16px; background: #1a1a1a;
+      border-radius: 12px; border: 1px solid #2a2a2a; font-size: 0.9rem; line-height: 1.6;
+    }
+    .comissionado-perks li { margin: 4px 0; }
+    .comissionado-form label { display: block; margin-bottom: 14px; font-size: 0.88rem; color: #ccc; }
+    .comissionado-form input {
+      display: block; width: 100%; margin-top: 6px; padding: 12px 14px;
+      border: 1px solid #444; border-radius: 10px; background: #0d0d0d; color: #fff;
+      font-size: 1rem; box-sizing: border-box;
+    }
+    .comissionado-form input:focus { outline: none; border-color: var(--primary); }
+    .comissionado-hint { font-size: 0.78rem; color: #888; margin-top: 4px; }
+    .comissionado-status { margin-top: 14px; font-size: 0.9rem; }
+    .comissionado-status.error { color: #f88; }
+    .comissionado-status.ok { color: #9cf59c; }
+    .comissionado-success { margin-top: 18px; padding: 16px; background: #1a2a1a; border-radius: 12px; }
+    .comissionado-success code {
+      display: block; margin: 8px 0; font-size: 1.2rem; font-weight: 800;
+      color: var(--primary); letter-spacing: 0.06em;
+    }
+    .comissionado-back { display: inline-block; margin-bottom: 16px; color: var(--primary); text-decoration: none; }
+    .comissionado-back:hover { text-decoration: underline; }
+  </style>
+  <script src="js/config-bootstrap.js"></script>
+</head>
+<body class="admin-page">
+  <main class="comissionado-page">
+    <a href="index.html" class="comissionado-back"><i class="fas fa-arrow-left"></i> Voltar ao site</a>
+    <div class="comissionado-card">
+      <h1><i class="fas fa-handshake"></i> Seja comissionado</h1>
+      <p class="comissionado-intro">
+        Tatuadores e parceiros: crie seu cupom, divulgue o Sensor Tattoo Fix e ganhe comissão a cada venda.
+      </p>
+      <ul class="comissionado-perks">
+        <li><strong>10% de desconto</strong> para quem usar seu cupom</li>
+        <li><strong>20% de comissão</strong> para você em cada venda paga</li>
+        <li>E-mail automático a cada compra com seu cupom</li>
+        <li>Pagamento das comissões no <strong>dia 30</strong> de cada mês</li>
+      </ul>
+
+      <form id="comissionado-form" class="comissionado-form admin-form">
+        <label>
+          Seu nome
+          <input type="text" name="name" required maxlength="80" autocomplete="name" placeholder="Ex.: João Silva">
+        </label>
+        <label>
+          Seu e-mail
+          <input type="email" name="email" required autocomplete="email" placeholder="voce@email.com">
+          <span class="comissionado-hint">Enviaremos o kit de divulgação e avisos de vendas para este e-mail.</span>
+        </label>
+        <label>
+          Nome do cupom
+          <input type="text" name="code" required maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="Ex.: JOAO10">
+          <span class="comissionado-hint">4–20 letras ou números, sem espaços. Seus clientes digitam isso no checkout.</span>
+        </label>
+        <button type="submit" class="btn-primary" id="comissionado-submit">
+          <i class="fas fa-ticket-alt"></i> Criar meu cupom
+        </button>
+        <p id="comissionado-status" class="comissionado-status" hidden></p>
+      </form>
+
+      <div id="comissionado-success" class="comissionado-success" hidden></div>
+    </div>
+    <div data-site-footer="compact" data-lang="pt"></div>
+  </main>
+  <script src="js/site-footer.js?v=6"></script>
+  <script src="js/comissionado.js?v=1"></script>
+</body>
+</html>

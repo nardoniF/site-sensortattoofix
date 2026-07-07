@@ -21,6 +21,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Siga nossas redes oficiais',
       faq: 'FAQ',
       feedback: 'O que faltou no site?',
+      commissioner: 'Seja comissionado',
       patentLinePrefix: 'Patente Nacional',
       patentLineJoin: 'Internacional',
       rights: 'Todos os direitos reservados.'
@@ -29,6 +30,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Follow our official channels',
       faq: 'FAQ',
       feedback: 'What was missing?',
+      commissioner: 'Become an affiliate',
       patentLinePrefix: 'National Patent',
       patentLineJoin: 'International',
       rights: 'All rights reserved.'
@@ -37,6 +39,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Segui i nostri canali ufficiali',
       faq: 'FAQ',
       feedback: 'Cosa mancava sul sito?',
+      commissioner: 'Diventa affiliato',
       patentLinePrefix: 'Brevetto nazionale',
       patentLineJoin: 'Internazionale',
       rights: 'Tutti i diritti riservati.'
@@ -91,6 +94,7 @@ window.STF_FOOTER = (function () {
         <div class="social-icons-footer">${links}</div>
         <div class="footer-faq-link"><a href="${faqHref}">${s.faq}</a></div>
         <div class="footer-feedback-link"><button type="button" class="stf-feedback-trigger">${s.feedback}</button></div>
+        <div class="footer-commissioner-link"><a href="${prefix}comissionado.html">${s.commissioner}</a></div>
       </div>
     `;
   }

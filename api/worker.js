@@ -170,6 +170,7 @@ const DEFAULT_CONFIG = {
     customerPaidSubject: 'Pagamento confirmado — {orderId}',
     motoboySubject: 'Entrega motoboy — {orderId}',
     couponSubject: 'Você vendeu com seu cupom — comissão {amount} — Sensor Tattoo Fix',
+    commissionerWelcomeSubject: 'Seu cupom {code} está ativo — divulgue Sensor Tattoo Fix',
     testSubject: 'Teste — Sensor Tattoo Fix',
     testTo: '',
     pendingPaypal: 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.',
@@ -637,9 +638,132 @@ async function notifyCouponCommissioner(env, config, order) {
   if (order.couponCommissionAmount != null) {
     fields['Comissão a receber'] = formatBRL(order.couponCommissionAmount);
   }
+  fields.Pagamento = 'Comissões somadas até o dia 30 de cada mês.';
   const res = await notifyEmail(env, config, to, subject, fields, config.formsubmit?.email);
   if (!res.ok) console.error('E-mail comissionado cupom:', to, JSON.stringify(res));
   return res;
+}
+
+const COMMISSIONER_DISCOUNT_PERCENT = 10;
+const COMMISSIONER_COMMISSION_PERCENT = 20;
+const RESERVED_COUPON_CODES = new Set(['BRASIL20', 'TESTE', 'TEST', 'ADMIN', 'SENSOR', 'STF']);
+
+function slugCouponId(code) {
+  const norm = normalizeCouponCode(code).toLowerCase();
+  return `coupon-${norm.slice(0, 28) || 'artist'}`;
+}
+
+function commissionerWelcomeHtml(config, coupon, name) {
+  const site = (config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '');
+  const code = normalizeCouponCode(coupon.code);
+  const buyUrl = `${site}/comprar.html?cupom=${encodeURIComponent(code)}`;
+  const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  return `<div style="font-family:Arial,sans-serif;max-width:600px;color:#111;line-height:1.5">
+    <p>Olá, <strong>${esc(name)}</strong>!</p>
+    <p>Seu cupom de comissionado está ativo. Divulgue o Sensor Tattoo Fix e ganhe comissão a cada venda.</p>
+    <p style="font-size:22px;font-weight:800;letter-spacing:1px;color:#c9a227">Cupom: ${esc(code)}</p>
+    <ul>
+      <li><strong>10% de desconto</strong> para quem comprar com seu cupom</li>
+      <li><strong>20% de comissão</strong> para você em cada venda paga</li>
+      <li>Você recebe <strong>e-mail a cada compra</strong> com o valor da comissão</li>
+      <li>Pagamento das comissões no <strong>dia 30 de cada mês</strong></li>
+    </ul>
+    <p><strong>Link para seus clientes:</strong><br><a href="${esc(buyUrl)}">${esc(buyUrl)}</a></p>
+    <p><strong>Arte para postar</strong> (salve e use no Instagram, WhatsApp, etc.):</p>
+    <p><a href="${site}/site/sensortattoofix.jpg"><img src="${site}/site/sensortattoofix.jpg" alt="Sensor Tattoo Fix" width="280" style="max-width:100%;border-radius:12px;border:1px solid #ddd"></a></p>
+    <p><a href="${site}/site/relogio_home.jpg"><img src="${site}/site/relogio_home.jpg" alt="Smartwatch com tatuagem" width="280" style="max-width:100%;border-radius:12px;border:1px solid #ddd"></a></p>
+    <p style="color:#666;font-size:13px">Dúvidas: contato@sensortattoofix.com.br · Sensor Tattoo Fix — sensortattoofix.com.br</p>
+  </div>`;
+}
+
+function commissionerWelcomeText(coupon, name) {
+  const code = normalizeCouponCode(coupon.code);
+  return [
+    `Olá, ${name}!`,
+    '',
+    `Seu cupom ${code} está ativo.`,
+    '- 10% de desconto para o cliente',
+    '- 20% de comissão para você',
+    '- E-mail a cada venda',
+    '- Pagamento no dia 30 de cada mês',
+    '',
+    `Link: comprar.html?cupom=${code}`,
+    'Arte: site/sensortattoofix.jpg e site/relogio_home.jpg'
+  ].join('\n');
+}
+
+async function notifyCommissionerWelcome(env, config, coupon, name) {
+  const code = normalizeCouponCode(coupon.code);
+  const subject = emailSubject(config, 'commissionerWelcomeSubject', { code, name });
+  const html = commissionerWelcomeHtml(config, coupon, name);
+  const text = commissionerWelcomeText(coupon, name);
+  return notifyEmail(env, config, coupon.email, subject, {}, config.formsubmit?.email, { html, text });
+}
+
+async function handleCommissionerRegister(request, env, origin) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'JSON inválido.' }, 400, origin);
+  }
+
+  const name = String(body.name || '').trim().slice(0, 80);
+  const email = normalizeEmail(body.email);
+  const code = normalizeCouponCode(body.code || body.coupon || '');
+
+  if (!name || name.length < 2) return json({ error: 'Informe seu nome.' }, 400, origin);
+  if (!email || !email.includes('@')) return json({ error: 'Informe um e-mail válido.' }, 400, origin);
+  if (code.length < 4 || code.length > 20) {
+    return json({ error: 'O cupom deve ter entre 4 e 20 letras/números (ex.: JOAO10).' }, 400, origin);
+  }
+  if (RESERVED_COUPON_CODES.has(code)) {
+    return json({ error: 'Este código não está disponível. Escolha outro nome para o cupom.' }, 400, origin);
+  }
+
+  const ip = clientIp(request);
+  const rlKey = `commissioner:rl:${ip}`;
+  const rlRaw = await env.STORE_KV.get(rlKey);
+  const rlCount = Number(rlRaw) || 0;
+  if (rlCount >= 5) {
+    return json({ error: 'Muitas tentativas hoje. Tente amanhã ou fale conosco.' }, 429, origin);
+  }
+  await env.STORE_KV.put(rlKey, String(rlCount + 1), { expirationTtl: 86400 });
+
+  const config = await getConfig(env);
+  const coupons = getCoupons(config);
+  if (coupons.some((c) => normalizeCouponCode(c.code) === code)) {
+    return json({ error: 'Este cupom já existe. Escolha outro código.' }, 409, origin);
+  }
+  if (coupons.some((c) => String(c.email || '').trim().toLowerCase() === email)) {
+    return json({ error: 'Este e-mail já possui um cupom cadastrado.' }, 409, origin);
+  }
+
+  const coupon = {
+    id: slugCouponId(code),
+    code,
+    name,
+    email,
+    percent: COMMISSIONER_DISCOUNT_PERCENT,
+    commissionPercent: COMMISSIONER_COMMISSION_PERCENT,
+    active: true,
+    selfRegisteredAt: new Date().toISOString()
+  };
+
+  await saveConfig(env, { ...config, coupons: [...coupons, coupon] });
+
+  const mail = await notifyCommissionerWelcome(env, config, coupon, name);
+  if (!mail.ok) console.error('E-mail boas-vindas comissionado:', email, JSON.stringify(mail));
+
+  const site = (config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '');
+  return json({
+    ok: true,
+    code,
+    percent: COMMISSIONER_DISCOUNT_PERCENT,
+    commissionPercent: COMMISSIONER_COMMISSION_PERCENT,
+    buyUrl: `${site}/comprar.html?cupom=${encodeURIComponent(code)}`,
+    emailSent: !!mail.ok
+  }, 200, origin);
 }
 
 async function handleValidateCoupon(request, env, origin) {
@@ -7529,6 +7653,9 @@ export default {
       const cepMatch = path.match(/^\/cep\/(\d{8})$/);
       if (cepMatch && request.method === 'GET') {
         return handleGetCep(request, env, origin, cepMatch[1]);
+      }
+      if (path === '/commissioners/register' && request.method === 'POST') {
+        return handleCommissionerRegister(request, env, origin);
       }
       if (path === '/coupons/validate' && request.method === 'POST') {
         return handleValidateCoupon(request, env, origin);

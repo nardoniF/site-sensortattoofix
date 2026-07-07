@@ -690,6 +690,11 @@ body.stf-feedback-open { overflow: hidden; }
     text-decoration: none; opacity: 0.9;
 }
 .footer-feedback-link button:hover { opacity: 1; text-decoration: underline; }
+.footer-commissioner-link { margin-top: 10px; }
+.footer-commissioner-link a {
+  color: rgba(255, 255, 255, 0.45); font-size: 0.78rem; text-decoration: none;
+}
+.footer-commissioner-link a:hover { color: rgba(255, 255, 255, 0.7); text-decoration: underline; }
 @media (max-width: 640px) {
     .stf-feedback-fab { left: 16px; bottom: 24px; padding: 10px 12px; }
     .stf-feedback-fab-label { display: none; }
