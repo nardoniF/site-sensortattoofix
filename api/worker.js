@@ -3,6 +3,8 @@
  * PIX (Mercado Pago) + Cartão (Asaas) + PayPal (intl) · WhatsApp · Correios · Uber Direct · Pedidos
  */
 
+import { generateCommissionerStoryBanners } from './commissioner-banners.js';
+
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
   'https://www.sensortattoofix.com.br',
@@ -653,11 +655,14 @@ function slugCouponId(code) {
   return `coupon-${norm.slice(0, 28) || 'artist'}`;
 }
 
-function commissionerWelcomeHtml(config, coupon, name) {
+function commissionerWelcomeHtml(config, coupon, name, attachmentCount) {
   const site = (config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '');
   const code = normalizeCouponCode(coupon.code);
   const buyUrl = `${site}/comprar.html?cupom=${encodeURIComponent(code)}`;
   const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const storiesNote = attachmentCount
+    ? `<p><strong>${attachmentCount} stories em anexo</strong> com seu cupom <strong>${esc(code)}</strong> — salve os PNGs e publique no Instagram.</p>`
+    : '<p>Seus stories com o cupom devem estar em anexo neste e-mail.</p>';
   return `<div style="font-family:Arial,sans-serif;max-width:600px;color:#111;line-height:1.5">
     <p>Olá, <strong>${esc(name)}</strong>!</p>
     <p>Seu cupom de comissionado está ativo. Divulgue o Sensor Tattoo Fix e ganhe comissão a cada venda.</p>
@@ -669,19 +674,12 @@ function commissionerWelcomeHtml(config, coupon, name) {
       <li>Pagamento das comissões no <strong>dia 30 de cada mês</strong></li>
     </ul>
     <p><strong>Link para seus clientes:</strong><br><a href="${esc(buyUrl)}">${esc(buyUrl)}</a></p>
-    <p><strong>Arte para postar</strong> (salve e use no Instagram, WhatsApp, etc.):</p>
-    <p><a href="${site}/site/comissionado/anuncio-completo.png"><img src="${site}/site/comissionado/anuncio-completo.png" alt="Arte Sensor Tattoo Fix" width="560" style="max-width:100%;border-radius:12px;border:1px solid #ddd"></a></p>
-    <p style="font-size:13px;color:#666">Slides individuais para carrossel:<br>
-      ${[1, 2, 3, 4, 5, 6, 7, 8].map((n) => {
-        const p = `${site}/site/comissionado/anuncio-${String(n).padStart(2, '0')}.png`;
-        return `<a href="${p}">Slide ${n}</a>`;
-      }).join(' · ')}
-    </p>
+    ${storiesNote}
     <p style="color:#666;font-size:13px">Dúvidas: contato@sensortattoofix.com.br · Sensor Tattoo Fix — sensortattoofix.com.br</p>
   </div>`;
 }
 
-function commissionerWelcomeText(coupon, name) {
+function commissionerWelcomeText(coupon, name, attachmentCount) {
   const code = normalizeCouponCode(coupon.code);
   return [
     `Olá, ${name}!`,
@@ -693,16 +691,29 @@ function commissionerWelcomeText(coupon, name) {
     '- Pagamento no dia 30 de cada mês',
     '',
     `Link: comprar.html?cupom=${code}`,
-    'Arte: site/comissionado/anuncio-completo.png (e slides 01–08 para carrossel)'
+    attachmentCount
+      ? `${attachmentCount} stories PNG em anexo — publique no Instagram com seu cupom.`
+      : 'Stories PNG em anexo — publique no Instagram com seu cupom.'
   ].join('\n');
 }
 
 async function notifyCommissionerWelcome(env, config, coupon, name) {
+  const site = (config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '');
   const code = normalizeCouponCode(coupon.code);
+  let banners = { attachments: [], previews: [] };
+  try {
+    banners = await generateCommissionerStoryBanners(site, code);
+  } catch (err) {
+    console.error('Banners comissionado:', err.message);
+  }
   const subject = emailSubject(config, 'commissionerWelcomeSubject', { code, name });
-  const html = commissionerWelcomeHtml(config, coupon, name);
-  const text = commissionerWelcomeText(coupon, name);
-  return notifyEmail(env, config, coupon.email, subject, {}, config.formsubmit?.email, { html, text });
+  const html = commissionerWelcomeHtml(config, coupon, name, banners.attachments.length);
+  const text = commissionerWelcomeText(coupon, name, banners.attachments.length);
+  return notifyEmail(env, config, coupon.email, subject, {}, config.formsubmit?.email, {
+    html,
+    text,
+    attachments: banners.attachments
+  });
 }
 
 async function handleCommissionerRegister(request, env, origin) {
