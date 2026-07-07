@@ -1,5 +1,6 @@
 const STORY_BANNERS = [
-  { path: '/site/comissionado/stories/banner-story-1.png', filename: 'story-sensor-tattoofix-1.png' }
+  { path: '/site/comissionado/stories/banner-story-1.png', filename: 'story-sensor-tattoofix-1.png' },
+  { path: '/site/comissionado/stories/banner-story-2.png', filename: 'story-sensor-tattoofix-2.png' }
 ];
 
 function bytesToBase64(bytes) {

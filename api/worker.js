@@ -655,13 +655,20 @@ function slugCouponId(code) {
   return `coupon-${norm.slice(0, 28) || 'artist'}`;
 }
 
+function commissionerAttachmentLabel(attachmentCount) {
+  if (!attachmentCount) return '';
+  return attachmentCount === 1
+    ? 'Arte em anexo pronta para divulgação nas redes sociais'
+    : `${attachmentCount} artes em anexo prontas para divulgação nas redes sociais`;
+}
+
 function commissionerWelcomeHtml(config, coupon, name, attachmentCount) {
   const site = (config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '');
   const code = normalizeCouponCode(coupon.code);
   const buyUrl = `${site}/comprar.html?cupom=${encodeURIComponent(code)}`;
   const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const storiesNote = attachmentCount
-    ? `<p><strong>${attachmentCount} story em anexo</strong> — arte pronta para divulgação nas redes sociais.</p>
+    ? `<p><strong>${commissionerAttachmentLabel(attachmentCount)}</strong>.</p>
     <p><strong>Como postar:</strong></p>
     <ol style="margin:8px 0;padding-left:20px;line-height:1.6">
       <li>Salve o PNG anexo no celular.</li>
@@ -669,7 +676,7 @@ function commissionerWelcomeHtml(config, coupon, name, attachmentCount) {
       <li>Use a ferramenta de <strong>texto</strong> e escreva seu cupom <strong>${esc(code)}</strong> no espaço vazio da faixa (“USE O CUPOM”).</li>
       <li>Use fonte clara e grande, centralizada, para ficar legível.</li>
     </ol>`
-    : '<p>A arte para stories deve estar em anexo neste e-mail.</p>';
+    : '<p>A arte deve estar em anexo neste e-mail.</p>';
   return `<div style="font-family:Arial,sans-serif;max-width:600px;color:#111;line-height:1.5">
     <p>Olá, <strong>${esc(name)}</strong>!</p>
     <p>Seu cupom de comissionado está ativo. Divulgue o Sensor Tattoo Fix e ganhe comissão a cada venda.</p>
@@ -699,7 +706,9 @@ function commissionerWelcomeText(coupon, name, attachmentCount) {
     '',
     `Link: comprar.html?cupom=${code}`,
     '',
-    attachmentCount ? 'Story PNG em anexo — publique no Instagram, em outra rede social ou publicação:' : 'Story em anexo:',
+    attachmentCount
+      ? `${commissionerAttachmentLabel(attachmentCount)} — publique no Instagram, em outra rede social ou publicação:`
+      : 'Arte em anexo:',
     '1. Salve a imagem no celular',
     '2. Poste nos Stories ou em qualquer outra rede social ou publicação',
     `3. Com a ferramenta de TEXTO, escreva ${code} no espaço vazio da área "USE O CUPOM"`,
@@ -719,11 +728,12 @@ async function notifyCommissionerWelcome(env, config, coupon, name) {
   const subject = emailSubject(config, 'commissionerWelcomeSubject', { code, name });
   const html = commissionerWelcomeHtml(config, coupon, name, banners.attachments.length);
   const text = commissionerWelcomeText(coupon, name, banners.attachments.length);
-  return notifyEmail(env, config, coupon.email, subject, {}, config.formsubmit?.email, {
+  const result = await notifyEmail(env, config, coupon.email, subject, {}, config.formsubmit?.email, {
     html,
     text,
     attachments: banners.attachments
   });
+  return { ...result, attachmentCount: banners.attachments.length };
 }
 
 async function handleCommissionerRegister(request, env, origin) {
@@ -828,7 +838,7 @@ async function handleCommissionerResendWelcome(request, env, origin) {
     ok: true,
     code: normalizeCouponCode(coupon.code),
     emailSent: !!mail.ok,
-    attachments: mail.ok ? 2 : 0
+    attachments: mail.ok ? mail.attachmentCount : 0
   }, mail.ok ? 200 : 502, origin);
 }
 
