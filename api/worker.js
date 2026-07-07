@@ -661,12 +661,19 @@ function commissionerWelcomeHtml(config, coupon, name, attachmentCount) {
   const buyUrl = `${site}/comprar.html?cupom=${encodeURIComponent(code)}`;
   const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const storiesNote = attachmentCount
-    ? `<p><strong>${attachmentCount} stories em anexo</strong> com seu cupom <strong>${esc(code)}</strong> — salve os PNGs e publique no Instagram.</p>`
-    : '<p>Seus stories com o cupom devem estar em anexo neste e-mail.</p>';
+    ? `<p><strong>${attachmentCount} story em anexo</strong> — arte pronta para Instagram.</p>
+    <p><strong>Como postar:</strong></p>
+    <ol style="margin:8px 0;padding-left:20px;line-height:1.6">
+      <li>Salve o PNG anexo no celular.</li>
+      <li>Publique nos <strong>Stories</strong> do Instagram.</li>
+      <li>Use a ferramenta de <strong>texto</strong> do Instagram e escreva seu cupom <strong>${esc(code)}</strong> na faixa em branco (“USE O CUPOM”).</li>
+      <li>Use fonte clara e grande, centralizada, para ficar legível.</li>
+    </ol>`
+    : '<p>A arte para stories deve estar em anexo neste e-mail.</p>';
   return `<div style="font-family:Arial,sans-serif;max-width:600px;color:#111;line-height:1.5">
     <p>Olá, <strong>${esc(name)}</strong>!</p>
     <p>Seu cupom de comissionado está ativo. Divulgue o Sensor Tattoo Fix e ganhe comissão a cada venda.</p>
-    <p style="font-size:22px;font-weight:800;letter-spacing:1px;color:#c9a227">Cupom: ${esc(code)}</p>
+    <p style="font-size:22px;font-weight:800;letter-spacing:1px;color:#c9a227">Seu cupom: ${esc(code)}</p>
     <ul>
       <li><strong>10% de desconto</strong> para quem comprar com seu cupom</li>
       <li><strong>20% de comissão</strong> para você em cada venda paga</li>
@@ -691,18 +698,21 @@ function commissionerWelcomeText(coupon, name, attachmentCount) {
     '- Pagamento no dia 30 de cada mês',
     '',
     `Link: comprar.html?cupom=${code}`,
-    attachmentCount
-      ? `${attachmentCount} stories PNG em anexo — publique no Instagram com seu cupom.`
-      : 'Stories PNG em anexo — publique no Instagram com seu cupom.'
+    '',
+    attachmentCount ? 'Story PNG em anexo — publique no Instagram:' : 'Story em anexo:',
+    '1. Salve a imagem no celular',
+    '2. Poste nos Stories',
+    `3. Com a ferramenta de TEXTO do Instagram, escreva ${code} na área "USE O CUPOM"`,
+    '4. Fonte clara, grande e centralizada'
   ].join('\n');
 }
 
 async function notifyCommissionerWelcome(env, config, coupon, name) {
   const site = (config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '');
   const code = normalizeCouponCode(coupon.code);
-  let banners = { attachments: [], previews: [] };
+  let banners = { attachments: [] };
   try {
-    banners = await generateCommissionerStoryBanners(site, code);
+    banners = await generateCommissionerStoryBanners(site);
   } catch (err) {
     console.error('Banners comissionado:', err.message);
   }

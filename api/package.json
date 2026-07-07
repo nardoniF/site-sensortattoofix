@@ -1,8 +1,5 @@
 {
   "name": "sensortattoofix-payments-api",
   "private": true,
-  "type": "module",
-  "dependencies": {
-    "@cf-wasm/photon": "^0.3.6"
-  }
+  "type": "module"
 }
