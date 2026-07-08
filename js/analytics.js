@@ -549,7 +549,7 @@
       pagina: data.pagina ? humanizarPagina(data.pagina) : humanizarPagina(location.pathname),
       titulo_pagina: data.titulo_pagina || document.title || '',
       idioma: data.idioma || document.documentElement.lang || 'pt-br',
-      referrer: humanizarReferrer(visitante.referrer),
+      referrer: normalizarTexto(visitante.referrer || '(direto)'),
       dispositivo: humanizarDispositivo(visitante.dispositivo),
       fuso: visitante.fuso,
       visitante_id: visitante.visitante_id,

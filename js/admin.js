@@ -1081,6 +1081,20 @@ ${worksheets}
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
+  function humanizarReferrerAdmin(ref) {
+    const r = String(ref || '').trim();
+    if (!r || r === '(direto)') return 'Acesso direto';
+    if (isInstagramRef(r)) return 'Instagram';
+    if (isFacebookRef(r)) return 'Facebook';
+    if (r.toLowerCase().includes('google.')) return 'Google';
+    if (r.toLowerCase().includes('tiktok.')) return 'TikTok';
+    try {
+      return new URL(r).hostname.replace(/^www\./, '');
+    } catch {
+      return r;
+    }
+  }
+
   function inferirOrigemDeUrl(pagina, referrer) {
     if (typeof stfClassificarOrigemDeUrl === 'function') {
       const r = stfClassificarOrigemDeUrl(pagina, referrer);
@@ -1108,6 +1122,16 @@ ${worksheets}
     return file.replace(/[-_]/g, ' ') || pathOnly;
   }
 
+  function isInstagramRef(text) {
+    const t = String(text || '').toLowerCase();
+    return t.includes('instagram') || t === 'ig';
+  }
+
+  function isFacebookRef(text) {
+    const t = String(text || '').toLowerCase();
+    return t.includes('facebook') || t === 'fb' || t.includes('fb.com');
+  }
+
   function canonicalOrigemSlug(slug, label, referrer) {
     const ref = String(referrer || '').toLowerCase();
     const lbl = String(label || '').toLowerCase();
@@ -1115,12 +1139,12 @@ ${worksheets}
 
     if (s && s !== 'referral' && s !== 'outro') return s;
 
-    if (ref.includes('instagram.') || lbl.startsWith('instagram')) {
+    if (isInstagramRef(ref) || isInstagramRef(lbl)) {
       if (lbl.includes('reels')) return 'instagram_reels';
       if (lbl.includes('stories')) return 'instagram_stories';
       return 'instagram';
     }
-    if (ref.includes('facebook.') || ref.includes('fb.') || lbl.startsWith('facebook')) {
+    if (isFacebookRef(ref) || isFacebookRef(lbl)) {
       if (lbl.includes('reels')) return 'facebook_reels';
       if (lbl.includes('stories')) return 'facebook_stories';
       return 'facebook';
@@ -1171,11 +1195,11 @@ ${worksheets}
     const ref = String(c.referrer || '').trim();
     const refLower = ref.toLowerCase();
     if (ref && ref !== '(direto)' && ref !== '—' && refLower !== 'acesso direto') {
-      if (refLower.includes('instagram.')) return normalizeOrigem('Instagram', 'instagram', ref);
-      if (refLower.includes('facebook.') || refLower.includes('fb.')) return normalizeOrigem('Facebook', 'facebook', ref);
+      if (isInstagramRef(ref)) return normalizeOrigem('Instagram', 'instagram', ref);
+      if (isFacebookRef(ref)) return normalizeOrigem('Facebook', 'facebook', ref);
       if (refLower.includes('google.')) return normalizeOrigem('Google orgânico', 'google_organico', ref);
       if (refLower.includes('tiktok.')) return normalizeOrigem('TikTok', 'tiktok', ref);
-      return normalizeOrigem(ref, 'referral', ref);
+      return normalizeOrigem(humanizarReferrerAdmin(ref), 'referral', ref);
     }
     return normalizeOrigem('Acesso direto', 'direto', c.referrer);
   }
@@ -1205,7 +1229,7 @@ ${worksheets}
       c.href && String(c.href).includes('fbclid=') ? 'Clique via app Meta (fbclid)' : null,
       c.secao_label,
       c.dispositivo,
-      c.referrer && c.referrer !== origem.label ? `Referrer: ${c.referrer}` : null
+      c.referrer && c.referrer !== origem.label ? `Referrer: ${humanizarReferrerAdmin(c.referrer)}` : null
     ].filter(Boolean);
     const origemClass = isEntrada ? ` clicks-tree-step-origem clicks-origem--${escapeHtml(origem.slug || 'outro')}` : '';
     return `<li class="clicks-tree-step" title="${escapeHtml(tipParts.join(' · '))}">
