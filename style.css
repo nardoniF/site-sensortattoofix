@@ -3312,10 +3312,22 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .clicks-origem--google_ads { background: rgba(66, 133, 244, 0.18); color: #8ab4f8; }
 .clicks-origem--google_organico { background: rgba(129, 201, 149, 0.15); color: #81c995; }
-.clicks-origem--instagram { background: rgba(225, 48, 108, 0.18); color: #f48fb1; }
+.clicks-origem--instagram,
+.clicks-origem--instagram_reels,
+.clicks-origem--instagram_stories { background: rgba(225, 48, 108, 0.18); color: #f48fb1; }
 .clicks-origem--facebook,
+.clicks-origem--facebook_reels,
+.clicks-origem--facebook_stories,
 .clicks-origem--facebook_ads { background: rgba(24, 119, 242, 0.18); color: #82b1ff; }
-.clicks-origem--tiktok { background: rgba(255, 255, 255, 0.1); color: #eee; }
+.clicks-origem--meta_ads,
+.clicks-origem--meta_organico,
+.clicks-origem--meta_reels { background: rgba(131, 58, 180, 0.18); color: #ce93d8; }
+.clicks-origem--tiktok,
+.clicks-origem--tiktok_reels { background: rgba(255, 255, 255, 0.1); color: #eee; }
+.clicks-origem--youtube,
+.clicks-origem--youtube_reels { background: rgba(255, 0, 0, 0.12); color: #ef9a9a; }
+.clicks-origem--whatsapp { background: rgba(37, 211, 102, 0.15); color: #69f0ae; }
+.clicks-origem--twitter { background: rgba(255, 255, 255, 0.08); color: #ccc; }
 .clicks-origem--bing_ads { background: rgba(0, 164, 239, 0.15); color: #4fc3f7; }
 .clicks-origem--referral { background: rgba(255, 193, 7, 0.12); color: #ffd54f; }
 .clicks-origem--direto { background: rgba(255, 255, 255, 0.06); color: #999; }

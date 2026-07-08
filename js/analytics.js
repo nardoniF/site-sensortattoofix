@@ -232,50 +232,14 @@
       if (saved) return JSON.parse(saved);
     } catch (_) { /* ignore */ }
 
+    const classified = typeof stfClassificarOrigem === 'function'
+      ? stfClassificarOrigem(location.search, document.referrer)
+      : { origem_trafego: 'direto', origem_trafego_label: 'Acesso direto' };
     const params = new URLSearchParams(location.search || '');
-    const src = (params.get('utm_source') || '').toLowerCase();
-    const med = (params.get('utm_medium') || '').toLowerCase();
-    const ref = (document.referrer || '').toLowerCase();
-    let origem = 'direto';
-    let label = 'Acesso direto';
-
-    if (
-      params.has('gclid') || params.has('gbraid') || params.has('wbraid') ||
-      params.has('gad_source') || params.has('gad_campaignid') ||
-      src === 'google' || src === 'google_ads' || src === 'adwords' ||
-      med === 'cpc' || med === 'ppc' || med === 'paid' || med === 'paidsearch'
-    ) {
-      origem = 'google_ads';
-      label = 'Google Ads';
-    } else if (params.has('fbclid') || src === 'facebook' || src === 'fb' || med === 'paid_social') {
-      origem = 'facebook_ads';
-      label = 'Facebook Ads';
-    } else if (params.has('msclkid') || src === 'bing') {
-      origem = 'bing_ads';
-      label = 'Microsoft Ads';
-    } else if (src === 'sensortattoofix' || med === 'site') {
-      origem = 'site';
-      label = 'Site';
-    } else if (ref.includes('google.')) {
-      origem = 'google_organico';
-      label = 'Google orgânico';
-    } else if (ref.includes('instagram.')) {
-      origem = 'instagram';
-      label = 'Instagram';
-    } else if (ref.includes('facebook.') || ref.includes('fb.')) {
-      origem = 'facebook';
-      label = 'Facebook';
-    } else if (ref.includes('tiktok.')) {
-      origem = 'tiktok';
-      label = 'TikTok';
-    } else if (ref && ref !== '(direto)') {
-      origem = 'referral';
-      label = humanizarReferrer(document.referrer);
-    }
 
     const data = {
-      origem_trafego: origem,
-      origem_trafego_label: label,
+      origem_trafego: classified.origem_trafego,
+      origem_trafego_label: classified.origem_trafego_label,
       utm_source: normalizarTexto(params.get('utm_source') || ''),
       utm_medium: normalizarTexto(params.get('utm_medium') || ''),
       utm_campaign: normalizarTexto(params.get('utm_campaign') || params.get('gad_campaignid') || '')

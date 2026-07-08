@@ -1081,29 +1081,12 @@ ${worksheets}
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
-  function inferirOrigemDeUrl(pagina) {
-    const raw = String(pagina || '');
-    if (!raw.includes('?')) return '';
-    try {
-      const qs = raw.startsWith('?') ? raw : raw.slice(raw.indexOf('?'));
-      const params = new URLSearchParams(qs);
-      if (
-        params.has('gclid') || params.has('gbraid') || params.has('wbraid') ||
-        params.has('gad_source') || params.has('gad_campaignid')
-      ) return 'Google Ads';
-      if (params.has('fbclid')) return 'Facebook Ads';
-      if (params.has('msclkid')) return 'Microsoft Ads';
-      const src = (params.get('utm_source') || '').toLowerCase();
-      const med = (params.get('utm_medium') || '').toLowerCase();
-      if (src === 'instagram' || med === 'instagram') return 'Instagram';
-      if (src === 'facebook' || src === 'fb') return 'Facebook';
-      if (src === 'tiktok') return 'TikTok';
-      if (src === 'google' || med === 'cpc') return 'Google Ads';
-      if (src) return src.replace(/_/g, ' ');
-    } catch {
-      return '';
+  function inferirOrigemDeUrl(pagina, referrer) {
+    if (typeof stfClassificarOrigemDeUrl === 'function') {
+      const r = stfClassificarOrigemDeUrl(pagina, referrer);
+      return r && r.origem_trafego_label ? r : null;
     }
-    return '';
+    return null;
   }
 
   function humanizarPaginaLog(raw) {
@@ -1126,15 +1109,24 @@ ${worksheets}
   }
 
   function clickOrigemLegivel(c) {
+    const legacyPaid = c.origem_trafego === 'facebook_ads' || c.origem_trafego_label === 'Facebook Ads';
+    const reinfer = inferirOrigemDeUrl(c.pagina, c.referrer);
+    if (reinfer && (!c.origem_trafego_label || legacyPaid)) {
+      return { label: reinfer.origem_trafego_label, slug: reinfer.origem_trafego || 'outro' };
+    }
+    if (legacyPaid) {
+      const ref = String(c.referrer || '').toLowerCase();
+      if (ref.includes('instagram.')) return { label: 'Instagram', slug: 'instagram' };
+      if (ref.includes('facebook.') || ref.includes('fb.')) return { label: 'Facebook', slug: 'facebook' };
+      return { label: 'Meta (Instagram/Facebook)', slug: 'meta_organico' };
+    }
     if (c.origem_trafego_label) {
       const slug = c.origem_trafego
         || (c.origem_trafego_label === 'Acesso direto' ? 'direto' : 'outro');
       return { label: c.origem_trafego_label, slug };
     }
-    const inferred = inferirOrigemDeUrl(c.pagina);
-    if (inferred) {
-      const slug = inferred.toLowerCase().replace(/\s+/g, '_');
-      return { label: inferred, slug };
+    if (reinfer) {
+      return { label: reinfer.origem_trafego_label, slug: reinfer.origem_trafego || 'outro' };
     }
     const ref = String(c.referrer || '').trim();
     const refLower = ref.toLowerCase();
@@ -1166,6 +1158,7 @@ ${worksheets}
       c.utm_source && `utm_source: ${c.utm_source}`,
       c.utm_medium && `utm_medium: ${c.utm_medium}`,
       c.pagina && humanizarPaginaLog(c.pagina) !== c.pagina ? `Página: ${humanizarPaginaLog(c.pagina)}` : null,
+      c.href && String(c.href).includes('fbclid=') ? 'Clique via app Meta (fbclid)' : null,
       c.secao_label,
       c.dispositivo,
       c.referrer && c.referrer !== origem.label ? `Referrer: ${c.referrer}` : null
