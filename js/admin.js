@@ -1222,7 +1222,8 @@ ${worksheets}
               sessions.forEach(([sKey, events], si) => {
                 const start = formatClickTime(events[0]?.ts);
                 const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
-                const origemLabel = events.find((e) => e.origem_trafego_label)?.origem_trafego_label || '';
+                const entradaEv = events.find((e) => e.tipo === 'pageview' || String(e.destino || '').startsWith('entrada_')) || events[0];
+                const origemLabel = entradaEv ? clickOrigemLegivel(entradaEv).label : '';
                 const passosMeta = origemLabel ? `${origemLabel} · passos` : 'passos';
                 const sessionPath = `${visitorPath}|${escapeHtml(sKey)}`;
                 html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"><summary>${clicksTreeSummary(pathLabel, events.length, passosMeta)}</summary>`;
