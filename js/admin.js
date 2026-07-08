@@ -1108,32 +1108,76 @@ ${worksheets}
     return file.replace(/[-_]/g, ' ') || pathOnly;
   }
 
+  function canonicalOrigemSlug(slug, label, referrer) {
+    const ref = String(referrer || '').toLowerCase();
+    const lbl = String(label || '').toLowerCase();
+    const s = String(slug || '').toLowerCase();
+
+    if (s && s !== 'referral' && s !== 'outro') return s;
+
+    if (ref.includes('instagram.') || lbl.startsWith('instagram')) {
+      if (lbl.includes('reels')) return 'instagram_reels';
+      if (lbl.includes('stories')) return 'instagram_stories';
+      return 'instagram';
+    }
+    if (ref.includes('facebook.') || ref.includes('fb.') || lbl.startsWith('facebook')) {
+      if (lbl.includes('reels')) return 'facebook_reels';
+      if (lbl.includes('stories')) return 'facebook_stories';
+      return 'facebook';
+    }
+    if (lbl.includes('meta ads')) return 'meta_ads';
+    if (lbl.includes('meta')) return 'meta_organico';
+    if (lbl.includes('google ads') || ref.includes('googleads.')) return 'google_ads';
+    if (lbl.includes('google')) return 'google_organico';
+    if (lbl.includes('tiktok') || ref.includes('tiktok.')) return 'tiktok';
+    if (lbl.includes('youtube') || ref.includes('youtube.') || ref.includes('youtu.be')) return 'youtube';
+    if (lbl.includes('whatsapp') || ref.includes('whatsapp') || ref.includes('wa.me')) return 'whatsapp';
+    if (lbl.includes('microsoft') || lbl.includes('bing')) return 'bing_ads';
+    if (lbl === 'acesso direto') return 'direto';
+    if (lbl === 'site') return 'site';
+    if (s === 'referral') return 'referral';
+    return s || 'outro';
+  }
+
+  function normalizeOrigem(label, slug, referrer) {
+    const canonical = canonicalOrigemSlug(slug, label, referrer);
+    return { label: label || 'Acesso direto', slug: canonical };
+  }
+
+  function origemBadgeHtml(origem) {
+    if (!origem || !origem.label) return '';
+    const slug = escapeHtml(origem.slug || 'outro');
+    return `<span class="clicks-origem-badge clicks-origem--${slug}">${escapeHtml(origem.label)}</span>`;
+  }
+
   function clickOrigemLegivel(c) {
     const legacyPaid = c.origem_trafego === 'facebook_ads' || c.origem_trafego_label === 'Facebook Ads';
     const reinfer = inferirOrigemDeUrl(c.pagina, c.referrer);
     if (reinfer && (!c.origem_trafego_label || legacyPaid)) {
-      return { label: reinfer.origem_trafego_label, slug: reinfer.origem_trafego || 'outro' };
+      return normalizeOrigem(reinfer.origem_trafego_label, reinfer.origem_trafego, c.referrer);
     }
     if (legacyPaid) {
       const ref = String(c.referrer || '').toLowerCase();
-      if (ref.includes('instagram.')) return { label: 'Instagram', slug: 'instagram' };
-      if (ref.includes('facebook.') || ref.includes('fb.')) return { label: 'Facebook', slug: 'facebook' };
-      return { label: 'Meta (Instagram/Facebook)', slug: 'meta_organico' };
+      if (ref.includes('instagram.')) return normalizeOrigem('Instagram', 'instagram', c.referrer);
+      if (ref.includes('facebook.') || ref.includes('fb.')) return normalizeOrigem('Facebook', 'facebook', c.referrer);
+      return normalizeOrigem('Meta (Instagram/Facebook)', 'meta_organico', c.referrer);
     }
     if (c.origem_trafego_label) {
-      const slug = c.origem_trafego
-        || (c.origem_trafego_label === 'Acesso direto' ? 'direto' : 'outro');
-      return { label: c.origem_trafego_label, slug };
+      return normalizeOrigem(c.origem_trafego_label, c.origem_trafego, c.referrer);
     }
     if (reinfer) {
-      return { label: reinfer.origem_trafego_label, slug: reinfer.origem_trafego || 'outro' };
+      return normalizeOrigem(reinfer.origem_trafego_label, reinfer.origem_trafego, c.referrer);
     }
     const ref = String(c.referrer || '').trim();
     const refLower = ref.toLowerCase();
     if (ref && ref !== '(direto)' && ref !== '—' && refLower !== 'acesso direto') {
-      return { label: ref, slug: 'referral' };
+      if (refLower.includes('instagram.')) return normalizeOrigem('Instagram', 'instagram', ref);
+      if (refLower.includes('facebook.') || refLower.includes('fb.')) return normalizeOrigem('Facebook', 'facebook', ref);
+      if (refLower.includes('google.')) return normalizeOrigem('Google orgânico', 'google_organico', ref);
+      if (refLower.includes('tiktok.')) return normalizeOrigem('TikTok', 'tiktok', ref);
+      return normalizeOrigem(ref, 'referral', ref);
     }
-    return { label: 'Acesso direto', slug: 'direto' };
+    return normalizeOrigem('Acesso direto', 'direto', c.referrer);
   }
 
   function renderClickStep(c, idx) {
@@ -1223,8 +1267,8 @@ ${worksheets}
                 const start = formatClickTime(events[0]?.ts);
                 const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
                 const entradaEv = events.find((e) => e.tipo === 'pageview' || String(e.destino || '').startsWith('entrada_')) || events[0];
-                const origemLabel = entradaEv ? clickOrigemLegivel(entradaEv).label : '';
-                const passosMeta = origemLabel ? `${origemLabel} · passos` : 'passos';
+                const origem = entradaEv ? clickOrigemLegivel(entradaEv) : null;
+                const passosMeta = origem && origem.label ? `${origemBadgeHtml(origem)} · passos` : 'passos';
                 const sessionPath = `${visitorPath}|${escapeHtml(sKey)}`;
                 html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"><summary>${clicksTreeSummary(pathLabel, events.length, passosMeta)}</summary>`;
                 html += '<ol class="clicks-tree-steps">';

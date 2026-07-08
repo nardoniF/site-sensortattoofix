@@ -3300,7 +3300,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .clicks-tree-step-time { color: #777; font-variant-numeric: tabular-nums; }
 .clicks-tree-step-label { color: #ccc; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.clicks-tree-step-origem {
+.clicks-tree-step-origem,
+.clicks-origem-badge {
     display: inline-block;
     padding: 2px 8px;
     border-radius: 999px;
@@ -3309,6 +3310,10 @@ body.admin-page.pedidos-login-only #pedidos-login {
     letter-spacing: 0.01em;
     width: fit-content;
     max-width: 100%;
+}
+.clicks-tree-meta .clicks-origem-badge {
+    vertical-align: middle;
+    font-size: 0.76rem;
 }
 .clicks-origem--google_ads { background: rgba(66, 133, 244, 0.18); color: #8ab4f8; }
 .clicks-origem--google_organico { background: rgba(129, 201, 149, 0.15); color: #81c995; }
@@ -3330,6 +3335,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .clicks-origem--twitter { background: rgba(255, 255, 255, 0.08); color: #ccc; }
 .clicks-origem--bing_ads { background: rgba(0, 164, 239, 0.15); color: #4fc3f7; }
 .clicks-origem--referral { background: rgba(255, 193, 7, 0.12); color: #ffd54f; }
+.clicks-origem--outro { background: rgba(255, 255, 255, 0.08); color: #bbb; }
 .clicks-origem--direto { background: rgba(255, 255, 255, 0.06); color: #999; }
 .clicks-origem--site { background: rgba(255, 107, 53, 0.15); color: var(--primary); }
 @media (max-width: 640px) {
