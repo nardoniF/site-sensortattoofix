@@ -166,6 +166,8 @@
     summaryProduct: document.getElementById('summary-product'),
     summaryShipping: document.getElementById('summary-shipping'),
     summaryShippingLabel: document.getElementById('summary-shipping-label'),
+    summaryPaypalRow: document.getElementById('summary-paypal-row'),
+    summaryPaypal: document.getElementById('summary-paypal'),
     summaryTotal: document.getElementById('summary-total'),
     shippingHint: document.getElementById('shipping-hint'),
     shippingOptionsWrap: document.getElementById('shipping-options-wrap'),
@@ -233,6 +235,33 @@
 
   function formatBRL(v) {
     return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  let fxRate = null;
+  let displayCurrency = 'BRL';
+
+  async function refreshDisplayCurrency() {
+    if (!isInternational || !window.STF_MONEY) {
+      fxRate = null;
+      displayCurrency = 'BRL';
+      return;
+    }
+    displayCurrency = window.STF_MONEY.currencyForCountry(els.paisCode?.value || 'US');
+    fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
+  }
+
+  function formatCheckoutMoney(v) {
+    if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
+      return formatBRL(v);
+    }
+    return window.STF_MONEY.formatDual(v, displayCurrency, fxRate);
+  }
+
+  function currentPayPalFee(subtotalWithShipping) {
+    if (!isInternational || !window.STF_MONEY) return 0;
+    const pagamento = els.form?.querySelector('[name=pagamento]:checked')?.value;
+    if (pagamento !== 'PAYPAL') return 0;
+    return window.STF_MONEY.computePayPalFee(subtotalWithShipping, cfg);
   }
 
   function onlyDigits(s) { return (s || '').replace(/\D/g, ''); }
@@ -1104,6 +1133,7 @@
     }
     updateCardBrPaymentHint();
     updateCpfLabel();
+    updateSummary();
   }
 
   function toggleAddressForm() {
@@ -1116,7 +1146,13 @@
     shippingInfo = null;
     shippingOptions = [];
     clearShippingOptions();
-    updateSummary();
+    if (isInternational) {
+      refreshDisplayCurrency().then(() => updateSummary());
+    } else {
+      fxRate = null;
+      displayCurrency = 'BRL';
+      updateSummary();
+    }
     if (isInternational) quoteShipping();
     else scheduleQuoteShippingIfReady();
   }
@@ -1184,10 +1220,13 @@
 
     els.shippingHint.hidden = true;
     els.shippingOptionsWrap.hidden = false;
-    const defaultId = shippingOptions[0].id;
+    const defaultIdx = shippingOptions.reduce((best, opt, i) => {
+      if (opt.isHighestBid) return i;
+      return Number(opt.price) > Number(shippingOptions[best]?.price) ? i : best;
+    }, 0);
     els.shippingOptionsEl.innerHTML = shippingOptions.map((opt, i) => {
       const inputId = `ship-opt-${opt.id}`;
-      const checked = i === 0 ? 'checked' : '';
+      const checked = i === defaultIdx ? 'checked' : '';
       const serviceName = localizeShippingServiceName(opt);
       const src = shippingSourceLabel(opt.source);
       const tipoHint = opt.shipmentType === 'documento' ? ` · ${L('shipping.document')}` : '';
@@ -1213,7 +1252,7 @@
                 <strong>${escapeHtml(serviceName)}</strong>
                 <small>${timeLabel}${distHint} · ${src}${tipoHint}</small>
               </div>
-              <span class="shipping-card-price">${formatBRL(opt.price)}</span>
+              <span class="shipping-card-price">${formatCheckoutMoney(opt.price)}</span>
             </div>
             ${uberTest}
             ${notice}
@@ -1229,7 +1268,7 @@
       });
     });
 
-    selectShippingOption(shippingOptions[0]);
+    selectShippingOption(shippingOptions[defaultIdx]);
   }
 
   /** Peso do pacote para frete: prioriza admin (Frete Mini Envios), não o catálogo antigo. */
@@ -1289,15 +1328,21 @@
         if (!options.length) {
           const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
           if (!z) throw new Error(L('country.unsupported'));
+          const surcharge = Math.max(0, Number(cfg.internationalSurcharge) || 0);
+          const base = Number(z.price) || 0;
           options = [{
             id: 'config-fallback',
             methodId: 'config-fallback',
             service: L('shipping.intlDefault'),
-            price: z.price,
+            price: Math.round((base + surcharge) * 100) / 100,
             days: z.days,
-            source: 'config'
+            source: 'config',
+            isHighestBid: true,
+            intlSurcharge: surcharge || undefined,
+            intlBasePrice: surcharge ? base : undefined
           }];
         }
+        await refreshDisplayCurrency();
       } else {
         const cep = onlyDigits(els.cep.value);
         if (cep.length !== 8) return;
@@ -1337,16 +1382,24 @@
     const gross = cartSubtotal();
     const disc = appliedCoupon?.desconto || 0;
     const afterDisc = Math.max(0, gross - disc);
-    els.summaryProduct.textContent = formatBRL(gross);
+    const ship = shippingCost;
+    const paypalFee = ship === null ? 0 : currentPayPalFee(afterDisc + ship);
+    els.summaryProduct.textContent = formatCheckoutMoney(gross);
     if (els.summaryDiscountRow) {
       els.summaryDiscountRow.hidden = !disc;
       if (disc) {
         els.summaryDiscountLabel.textContent = L('coupon.discountLabel', { pct: appliedCoupon.percent });
-        els.summaryDiscount.textContent = '−' + formatBRL(disc);
+        els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
       }
     }
-    els.summaryShipping.textContent = shippingCost === null ? '—' : formatBRL(shippingCost);
-    els.summaryTotal.textContent = shippingCost === null ? '—' : formatBRL(afterDisc + shippingCost);
+    els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship);
+    if (els.summaryPaypalRow) {
+      els.summaryPaypalRow.hidden = !paypalFee;
+      if (paypalFee && els.summaryPaypal) {
+        els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee);
+      }
+    }
+    els.summaryTotal.textContent = ship === null ? '—' : formatCheckoutMoney(afterDisc + ship + paypalFee);
     if (els.checkoutCoupon) els.checkoutCoupon.hidden = orderSidebarLocked;
   }
 
@@ -1877,6 +1930,9 @@
   function bindEvents() {
     bindPasswordToggles();
     els.paisCode.addEventListener('change', toggleAddressForm);
+    els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
+      r.addEventListener('change', () => updateSummary());
+    });
     els.smartwatchSelect?.addEventListener('change', () => {
       clearWatchFieldError();
       updateObservacoesField();

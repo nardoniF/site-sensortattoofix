@@ -97,7 +97,9 @@ const DEFAULT_CONFIG = {
     paypal: {
       internationalEnabled: true,
       brazilEnabled: true,
-      appLabel: ''
+      appLabel: '',
+      feePercent: 5,
+      feeFixedBRL: 0.6
     },
     cardBr: {
       provider: 'asaas',
@@ -4271,13 +4273,81 @@ function applyIntlSurcharge(config, option) {
 function applyIntlSurchargeToOptions(config, options) {
   const list = options || [];
   const surcharge = getIntlSurcharge(config);
-  if (!surcharge) return list;
-  let documentSurchargeApplied = false;
-  return list.map((opt) => {
-    if (documentSurchargeApplied || opt.shipmentType !== 'documento') return opt;
-    documentSurchargeApplied = true;
-    return applyIntlSurcharge(config, opt);
+  if (!list.length) return list;
+  let highestIdx = 0;
+  list.forEach((opt, i) => {
+    if (Number(opt.price) > Number(list[highestIdx].price)) highestIdx = i;
   });
+  return list.map((opt, i) => {
+    const marked = { ...opt, isHighestBid: i === highestIdx };
+    if (i === highestIdx && surcharge) return applyIntlSurcharge(config, marked);
+    return marked;
+  });
+}
+
+function computePayPalFee(amountBrl, config) {
+  const paypal = config?.payments?.paypal || DEFAULT_CONFIG.payments?.paypal || {};
+  const pct = Number(paypal.feePercent);
+  const fixed = Number(paypal.feeFixedBRL);
+  const percent = Number.isFinite(pct) && pct >= 0 ? pct : 5;
+  const fixedBrl = Number.isFinite(fixed) && fixed >= 0 ? fixed : 0.6;
+  const base = Math.max(0, Number(amountBrl) || 0);
+  return Math.round((base * percent / 100 + fixedBrl) * 100) / 100;
+}
+
+const FX_CURRENCY_MAP = {
+  US: 'USD', CA: 'CAD', MX: 'MXN', GB: 'GBP', IE: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR',
+  ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
+  DK: 'DKK', PL: 'PLN', CZ: 'CZK', AU: 'AUD', NZ: 'NZD', JP: 'JPY', KR: 'KRW', CN: 'CNY',
+  HK: 'HKD', SG: 'SGD', IN: 'INR', AE: 'AED', IL: 'ILS', ZA: 'ZAR', AR: 'ARS', CL: 'CLP',
+  CO: 'COP', UY: 'UYU', PY: 'PYG', BR: 'BRL'
+};
+
+function currencyForCountryCode(code) {
+  return FX_CURRENCY_MAP[String(code || '').toUpperCase()] || 'USD';
+}
+
+async function fetchFxRate(env, toCurrency) {
+  const to = String(toCurrency || 'USD').toUpperCase();
+  if (to === 'BRL') {
+    return { base: 'BRL', to: 'BRL', rate: 1, fetchedAt: new Date().toISOString() };
+  }
+  const cacheKey = `fx:BRL:${to}`;
+  try {
+    const cached = await env.STORE_KV.get(cacheKey);
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (data?.rate && Date.now() - (data.cachedAt || 0) < 6 * 3600000) return data;
+    }
+  } catch { /* refresh */ }
+
+  const res = await fetch(`https://api.frankfurter.app/latest?from=BRL&to=${encodeURIComponent(to)}`);
+  if (!res.ok) throw new Error('Câmbio indisponível.');
+  const payload = await res.json();
+  const rate = Number(payload?.rates?.[to]);
+  if (!Number.isFinite(rate) || rate <= 0) throw new Error('Taxa de câmbio inválida.');
+  const row = {
+    base: 'BRL',
+    to,
+    rate,
+    date: payload.date || null,
+    fetchedAt: new Date().toISOString(),
+    cachedAt: Date.now()
+  };
+  try {
+    await env.STORE_KV.put(cacheKey, JSON.stringify(row), { expirationTtl: 86400 });
+  } catch { /* ignore */ }
+  return row;
+}
+
+async function handleFxRate(request, env, origin) {
+  const to = (new URL(request.url).searchParams.get('to') || 'USD').toUpperCase();
+  try {
+    const data = await fetchFxRate(env, to);
+    return json(data, 200, origin);
+  } catch (err) {
+    return json({ error: err.message || 'Câmbio indisponível.' }, 502, origin);
+  }
 }
 
 function quoteInternational(config, countryCode) {
@@ -5374,7 +5444,7 @@ async function handleShippingQuote(request, env, origin, ctx) {
     }
     if (!options.length) {
       const fallback = quoteInternational(config, country);
-      options = [{
+      const baseOpt = {
         id: 'config-fallback',
         methodId: 'config-fallback',
         serviceCode: null,
@@ -5384,8 +5454,10 @@ async function handleShippingQuote(request, env, origin, ctx) {
         source: fallback.source || 'config',
         country,
         countryLabel: fallback.countryLabel,
-        weightGrams
-      }];
+        weightGrams,
+        isHighestBid: true
+      };
+      options = [applyIntlSurcharge(config, baseOpt)];
     } else {
       options = applyIntlSurchargeToOptions(config, options);
     }
@@ -5727,6 +5799,11 @@ async function handleCreateOrder(request, env, origin, ctx) {
   }
   const needsWatch = orderRequiresSmartwatch(items);
 
+  let paypalFee = 0;
+  if (billingType === 'PAYPAL') {
+    paypalFee = computePayPalFee(valorProduto + frete, config);
+  }
+
   let checkoutUser;
   try {
     checkoutUser = await resolveCheckoutUser(env, request, body);
@@ -5770,7 +5847,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
     couponCommissionPercent: couponRecord ? couponCommissionPercent : undefined,
     couponCommissionAmount: couponRecord ? couponCommissionAmount : undefined,
     frete,
-    total: valorProduto + frete,
+    paypalFee: paypalFee > 0 ? paypalFee : undefined,
+    displayCurrency: isIntl ? currencyForCountryCode(body.paisCode) : 'BRL',
+    total: valorProduto + frete + paypalFee,
     shippingService: body.shippingService || 'Mini Envios',
     shippingServiceCode: body.shippingServiceCode || null,
     shippingMethodId: body.shippingMethodId || null,
@@ -5867,7 +5946,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
         'Desconto cupom': formatBRL(order.couponDiscount),
         'Produto c/ desconto': formatBRL(order.valorProduto)
       } : {}),
-      Frete: formatBRL(order.frete), Total: formatBRL(order.total),
+      Frete: formatBRL(order.frete),
+      ...(order.paypalFee ? { 'Taxa PayPal': formatBRL(order.paypalFee) } : {}),
+      Total: formatBRL(order.total),
       Envio: order.shippingService || '—',
       ...orderCouponEmailFields(order),
       ...orderIntlProductFields(order),
@@ -7718,6 +7799,9 @@ export default {
       }
       if (path === '/admin/feedback' && request.method === 'DELETE') {
         return handleAdminClearFeedback(request, env, origin);
+      }
+      if (path === '/fx/rate' && request.method === 'GET') {
+        return handleFxRate(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);

@@ -77,8 +77,43 @@ window.STF_STORE_PRICE = (function () {
     return line;
   }
 
+  function formatPriceDisplay(price, config) {
+    const brl = formatBRL(price);
+    if (!isLocalized() || !window.STF_MONEY) return brl;
+    const api = (config?.api?.baseUrl || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
+    const cur = window.STF_MONEY.currencyForCountry(
+      window.STF_I18N?.getLang?.() === 'it' ? 'IT' : 'US'
+    );
+    if (!api) return brl;
+    return window.STF_MONEY.loadRate(api, cur).then((rate) => {
+      if (!rate) return brl;
+      return window.STF_MONEY.formatDual(price, cur, rate);
+    });
+  }
+
   function applyToElement(el, config) {
-    el.textContent = buildLine(config, el);
+    const linePromise = isLocalized() && window.STF_MONEY
+      ? formatPriceDisplay(
+          primaryProduct(config)?.price ?? config.product?.price ?? 62.9,
+          config
+        ).then((priceText) => {
+          if (el?.getAttribute('data-store-price-layout') === 'split-price') {
+            const frete = window.STF_I18N?.t?.('store.frete') || '+ Shipping';
+            return `${priceText.split(' (')[0]} ${frete}`;
+          }
+          const freteLine = el?.getAttribute('data-store-price-frete-line')
+            || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
+            || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
+          let suffix = el?.getAttribute('data-store-price-suffix');
+          if (isLocalized() && !suffix) suffix = window.STF_I18N.t('store.priceSuffix');
+          let line = `${priceText} ${freteLine}`;
+          if (suffix) line += ` · ${suffix}`;
+          return line;
+        })
+      : Promise.resolve(buildLine(config, el));
+    linePromise.then((line) => { el.textContent = line; }).catch(() => {
+      el.textContent = buildLine(config, el);
+    });
     if (el.getAttribute('data-store-price-layout') === 'split-price') {
       const shippingEl = el.closest('.store-official-info')?.querySelector('[data-store-shipping-line]');
       if (shippingEl) shippingEl.textContent = buildShippingChannelsLine(config);

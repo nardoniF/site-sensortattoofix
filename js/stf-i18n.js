@@ -43,6 +43,7 @@ window.STF_I18N = (function () {
       'summary.discount': 'Desconto',
       'summary.shipping': 'Frete',
       'summary.shippingIntl': 'Frete internacional',
+      'summary.paypalFee': 'Taxa PayPal',
       'summary.total': 'Total',
       'summary.order': 'Pedido',
       'summary.totalLabel': 'Total:',
@@ -173,9 +174,9 @@ window.STF_I18N = (function () {
       'pay.pixIntl': 'PIX',
       'pay.pixIntlHint': 'Para quem tem conta bancária no Brasil (mesmo morando fora)',
       'pay.noticeBr': 'Após o pagamento, a confirmação é automática no site e por e-mail. PIX, cartão ou PayPal.',
-      'pay.noticeIntl': 'Valores em reais (BRL). Cartão internacional pelo Mercado Pago — como na Amazon, seu banco converte a moeda.',
-      'pay.noticeIntlAll': 'Valores em reais (BRL). Cartão internacional (Mercado Pago) — seu banco converte. PayPal também disponível.',
-      'pay.noticeIntlNoPaypal': 'Valores em reais (BRL). Cartão internacional (Visa/Mastercard) — seu banco converte.',
+      'pay.noticeIntl': 'Valores aproximados na sua moeda; cobrança em reais (BRL) via PayPal ou cartão.',
+      'pay.noticeIntlAll': 'Valores aproximados na sua moeda; cobrança em BRL via PayPal ou cartão internacional.',
+      'pay.noticeIntlNoPaypal': 'Valores aproximados na sua moeda; cobrança em BRL via cartão internacional.',
       'btn.continue': 'Continuar',
       'btn.back': 'Voltar',
       'btn.pay': 'Finalizar pedido',
@@ -339,6 +340,7 @@ window.STF_I18N = (function () {
       'summary.discount': 'Discount',
       'summary.shipping': 'Shipping',
       'summary.shippingIntl': 'International shipping',
+      'summary.paypalFee': 'PayPal fee',
       'summary.total': 'Total',
       'summary.order': 'Order',
       'summary.totalLabel': 'Total:',
@@ -469,9 +471,9 @@ window.STF_I18N = (function () {
       'pay.pixIntl': 'PIX',
       'pay.pixIntlHint': 'If you have a Brazilian bank account (even abroad)',
       'pay.noticeBr': 'After payment, confirmation is automatic on this page and by email.',
-      'pay.noticeIntl': 'Prices in Brazilian reais (BRL). PayPal or international card — your bank converts the currency.',
-      'pay.noticeIntlAll': 'Prices in BRL. PayPal or international card — your bank converts.',
-      'pay.noticeIntlNoPaypal': 'Prices in BRL. International card (Visa/Mastercard) — your bank converts.',
+      'pay.noticeIntl': 'Approximate prices in your currency; charged in BRL via PayPal or card.',
+      'pay.noticeIntlAll': 'Approximate prices in your currency; charged in BRL via PayPal or international card.',
+      'pay.noticeIntlNoPaypal': 'Approximate prices in your currency; charged in BRL via international card.',
       'btn.continue': 'Continue',
       'btn.back': 'Back',
       'btn.pay': 'Place order',
@@ -821,6 +823,7 @@ window.STF_I18N = (function () {
     applyText('.checkout-summary .summary-row:nth-child(1) > span:first-child', 'summary.subtotal');
     applyText('.checkout-summary .summary-row.total > span:first-child', 'summary.total');
     applyText('#summary-shipping-label', 'summary.shipping');
+    applyText('#summary-paypal-label', 'summary.paypalFee');
     applyText('.checkout-coupon-label', 'coupon.label');
     applyText('#btn-apply-coupon', 'coupon.apply');
     setPlaceholder('#coupon-code', 'coupon.placeholder');
