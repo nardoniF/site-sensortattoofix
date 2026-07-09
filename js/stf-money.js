@@ -17,6 +17,10 @@ window.STF_MONEY = (function () {
 
   let cache = { currency: null, rate: null, at: 0 };
 
+  function resetCache() {
+    cache = { currency: null, rate: null, at: 0 };
+  }
+
   function currencyForCountry(code) {
     const c = String(code || '').toUpperCase();
     return COUNTRY_CURRENCY[c] || 'USD';
@@ -86,6 +90,7 @@ window.STF_MONEY = (function () {
   return {
     currencyForCountry,
     loadRate,
+    resetCache,
     convertFromBrl,
     formatBRL,
     formatForeign,

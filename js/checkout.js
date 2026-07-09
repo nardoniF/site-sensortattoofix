@@ -1,3 +1,68 @@
+/** Moeda do comprador — embutido no checkout para não depender de arquivo separado no deploy. */
+window.STF_MONEY = window.STF_MONEY || (function () {
+  const COUNTRY_CURRENCY = {
+    US: 'USD', CA: 'CAD', MX: 'MXN', GB: 'GBP', IE: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR',
+    ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
+    DK: 'DKK', PL: 'PLN', CZ: 'CZK', AU: 'AUD', NZ: 'NZD', JP: 'JPY', KR: 'KRW', CN: 'CNY',
+    HK: 'HKD', SG: 'SGD', IN: 'INR', AE: 'AED', IL: 'ILS', ZA: 'ZAR', AR: 'ARS', CL: 'CLP',
+    CO: 'COP', UY: 'UYU', PY: 'PYG', BR: 'BRL'
+  };
+  const LOCALE = { USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB', CAD: 'en-CA', AUD: 'en-AU', CHF: 'de-CH', JPY: 'ja-JP', BRL: 'pt-BR' };
+  let cache = { currency: null, rate: null, at: 0 };
+  function currencyForCountry(code) {
+    return COUNTRY_CURRENCY[String(code || '').toUpperCase()] || 'USD';
+  }
+  function localeFor(currency) { return LOCALE[currency] || 'en-US'; }
+  function formatBRL(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  function formatForeign(amount, currency) {
+    const opts = { style: 'currency', currency: currency || 'USD' };
+    if (currency === 'JPY' || currency === 'KRW') {
+      opts.minimumFractionDigits = 0;
+      opts.maximumFractionDigits = 0;
+    }
+    return Number(amount || 0).toLocaleString(localeFor(currency), opts);
+  }
+  async function loadRate(apiBase, currency) {
+    const cur = String(currency || 'USD').toUpperCase();
+    if (cur === 'BRL') return 1;
+    if (cache.currency === cur && Date.now() - cache.at < 3600000) return cache.rate;
+    const base = String(apiBase || '').replace(/\/$/, '');
+    if (!base) return null;
+    try {
+      const res = await fetch(`${base}/fx/rate?to=${encodeURIComponent(cur)}`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const rate = Number(data.rate);
+      if (!Number.isFinite(rate) || rate <= 0) return null;
+      cache = { currency: cur, rate, at: Date.now() };
+      return rate;
+    } catch { return null; }
+  }
+  function convertFromBrl(amountBrl, rate) {
+    if (!rate || rate <= 0) return null;
+    return Math.round(Number(amountBrl || 0) * rate * 100) / 100;
+  }
+  function formatDual(amountBrl, currency, rate) {
+    const brl = formatBRL(amountBrl);
+    if (!currency || currency === 'BRL' || !rate) return brl;
+    const foreign = convertFromBrl(amountBrl, rate);
+    return foreign == null ? brl : `${formatForeign(foreign, currency)} (${brl})`;
+  }
+  function computePayPalFee(subtotalBrl, cfg) {
+    const paypal = cfg?.payments?.paypal || {};
+    const pct = Number(paypal.feePercent);
+    const fixed = Number(paypal.feeFixedBRL);
+    const percent = Number.isFinite(pct) && pct >= 0 ? pct : 5;
+    const fixedBrl = Number.isFinite(fixed) && fixed >= 0 ? fixed : 0.6;
+    const base = Math.max(0, Number(subtotalBrl) || 0);
+    return Math.round((base * percent / 100 + fixedBrl) * 100) / 100;
+  }
+  function resetCache() { cache = { currency: null, rate: null, at: 0 }; }
+  return { currencyForCountry, loadRate, resetCache, convertFromBrl, formatBRL, formatForeign, formatDual, computePayPalFee };
+})();
+
 (function () {
   const OUTRO_MODELO = 'Outro modelo (informar nas observações)';
 
@@ -246,7 +311,9 @@
       displayCurrency = 'BRL';
       return;
     }
-    displayCurrency = window.STF_MONEY.currencyForCountry(els.paisCode?.value || 'US');
+    const next = window.STF_MONEY.currencyForCountry(els.paisCode?.value || 'US');
+    if (next !== displayCurrency) window.STF_MONEY.resetCache?.();
+    displayCurrency = next;
     fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
   }
 
@@ -1220,10 +1287,11 @@
 
     els.shippingHint.hidden = true;
     els.shippingOptionsWrap.hidden = false;
-    const defaultIdx = shippingOptions.reduce((best, opt, i) => {
-      if (opt.isHighestBid) return i;
-      return Number(opt.price) > Number(shippingOptions[best]?.price) ? i : best;
-    }, 0);
+    let defaultIdx = shippingOptions.findIndex((o) => o.isHighestBid);
+    if (defaultIdx < 0) {
+      defaultIdx = shippingOptions.reduce((best, opt, i) =>
+        (Number(opt.price) > Number(shippingOptions[best]?.price) ? i : best), 0);
+    }
     els.shippingOptionsEl.innerHTML = shippingOptions.map((opt, i) => {
       const inputId = `ship-opt-${opt.id}`;
       const checked = i === defaultIdx ? 'checked' : '';
@@ -1329,12 +1397,12 @@
           const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
           if (!z) throw new Error(L('country.unsupported'));
           const surcharge = Math.max(0, Number(cfg.internationalSurcharge) || 0);
-          const base = Number(z.price) || 0;
+          const basePrice = Number(z.price) || 0;
           options = [{
             id: 'config-fallback',
             methodId: 'config-fallback',
             service: L('shipping.intlDefault'),
-            price: Math.round((base + surcharge) * 100) / 100,
+            price: Math.round((basePrice + surcharge) * 100) / 100,
             days: z.days,
             source: 'config',
             isHighestBid: true,
@@ -1368,6 +1436,7 @@
       }
 
       renderShippingOptions(options);
+      updateSummary();
     } catch {
       clearShippingOptions();
       shippingCost = null;
