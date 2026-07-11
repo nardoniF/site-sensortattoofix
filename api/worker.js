@@ -193,17 +193,7 @@ const DEFAULT_CONFIG = {
   whatsapp: '5511913394665',
   siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://api.sensortattoofix.com.br' },
-  coupons: [
-    {
-      id: 'coupon-copa-brasil',
-      code: 'BRASIL20',
-      name: 'Copa — Jogo do Brasil',
-      percent: 20,
-      commissionPercent: 0,
-      email: '',
-      active: true
-    }
-  ]
+  coupons: []
 };
 
 const DEFAULT_MOTOBOY_SHIPPING = {
@@ -560,26 +550,13 @@ function getCoupons(config) {
   return Array.isArray(config?.coupons) ? config.coupons : [];
 }
 
-const BRASIL20_GAME_DAYS = new Set([
-  '2026-06-13', '2026-06-19', '2026-06-24', '2026-06-29',
-  '2026-07-05', '2026-07-11', '2026-07-15', '2026-07-18', '2026-07-19'
-]);
-
-function todaySaoPauloIso() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-}
-
-function isBrasil20GameDay() {
-  return BRASIL20_GAME_DAYS.has(todaySaoPauloIso());
-}
-
 function findActiveCoupon(config, code) {
   const norm = normalizeCouponCode(code);
   if (!norm) return null;
+  if (norm === 'BRASIL20') return null;
   const coupon = getCoupons(config).find(
     (c) => c.active !== false && normalizeCouponCode(c.code) === norm
   ) || null;
-  if (coupon && norm === 'BRASIL20' && !isBrasil20GameDay()) return null;
   return coupon;
 }
 
