@@ -18,6 +18,29 @@
     return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  async function localizedPriceLine(price) {
+    const frete = L('store.frete');
+    if (!window.STF_I18N?.isLocalized?.() || !window.STF_MONEY) {
+      return `${formatBRL(price)} + ${frete}`;
+    }
+    try {
+      const cfg = await StoreConfig.load();
+      const text = await window.STF_MONEY.formatForVisitor(price, cfg);
+      return `${text} + ${frete}`;
+    } catch {
+      return `${formatBRL(price)} + ${frete}`;
+    }
+  }
+
+  async function applyLocalizedPrices() {
+    const nodes = document.querySelectorAll('.loja-price[data-price-brl]');
+    if (!nodes.length) return;
+    await Promise.all([...nodes].map(async (el) => {
+      const price = Number(el.getAttribute('data-price-brl'));
+      el.textContent = await localizedPriceLine(price);
+    }));
+  }
+
   function escapeHtml(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
@@ -60,7 +83,7 @@
           <div class="loja-card-body">
             <h3>${escapeHtml(p.name)}</h3>
             <p>${escapeHtml(p.description || '')}</p>
-            <strong class="loja-price">${formatBRL(p.price)} + ${frete}</strong>
+            <strong class="loja-price" data-price-brl="${p.price}">${formatBRL(p.price)} + ${frete}</strong>
             <div class="loja-card-actions">
               <button type="button" class="btn-secondary loja-btn-add" data-slug="${escapeHtml(slug)}">
                 <i class="fas fa-cart-plus"></i> ${escapeHtml(L('store.add'))}
@@ -99,6 +122,7 @@
       window.STF_CART?.initBadges();
       window.STF_STORE_PRICE?.apply(cfg);
       renderGrid();
+      applyLocalizedPrices();
     } catch (e) {
       const grid = document.getElementById('loja-grid');
       if (grid) grid.innerHTML = `<p class="conta-empty">${escapeHtml(L('store.errorLoad'))}</p>`;

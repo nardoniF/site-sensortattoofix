@@ -321,7 +321,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
       return formatBRL(v);
     }
-    return window.STF_MONEY.formatDual(v, displayCurrency, fxRate);
+    const country = els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US';
+    return window.STF_MONEY.formatDual(v, displayCurrency, fxRate, country);
   }
 
   function currentPayPalFee(subtotalWithShipping) {
@@ -598,7 +599,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           <div class="pelicula-upsell-info">
             <strong>${escapeHtml(title)}</strong>
             ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
-            <span class="pelicula-upsell-price">${formatBRL(p.price)}</span>
+            <span class="pelicula-upsell-price">${formatCheckoutMoney(p.price)}</span>
           </div>
           <button type="button" class="pelicula-upsell-btn" data-pelicula-add="${escapeHtml(p.id)}" data-product-type="${escapeHtml(type)}">${escapeHtml(L(addKey))}</button>
         </div>
@@ -979,7 +980,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         ${thumb}
         <div class="cart-line-info">
           <strong>${escapeHtml(cartLineName(item))}</strong>
-          <span class="cart-line-price">${formatBRL(item.price)}</span>
+          <span class="cart-line-price">${formatCheckoutMoney(item.price)}</span>
           <div class="cart-qty" role="group" aria-label="${escapeHtml(L('cart.qty'))}">
             <button type="button" class="cart-qty-btn" data-delta="-1" aria-label="${escapeHtml(L('cart.decrease'))}">−</button>
             <span class="cart-qty-val">${item.qty}</span>
@@ -1071,6 +1072,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (model.startsWith('Amazfit')) return 'Amazfit';
     if (model.startsWith('Fitbit') || model.startsWith('Polar')) return L('watch.groupOtherBrands');
     return L('watch.groupOthers');
+  }
+
+  function defaultIntlCountry() {
+    const lang = (document.documentElement.lang || '').toLowerCase();
+    if (lang.startsWith('it')) return 'IT';
+    if (lang.startsWith('en')) return 'US';
+    return null;
+  }
+
+  function initializeLocalizedCheckout() {
+    const def = defaultIntlCountry();
+    if (!def || !els.paisCode) return;
+    const has = [...els.paisCode.options].some((o) => o.value === def);
+    if (!has || els.paisCode.value !== 'BR') return;
+    els.paisCode.value = def;
+    toggleAddressForm();
   }
 
   function populateSelects() {
@@ -1214,7 +1231,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     shippingOptions = [];
     clearShippingOptions();
     if (isInternational) {
-      refreshDisplayCurrency().then(() => updateSummary());
+      refreshDisplayCurrency().then(() => {
+        updateSummary();
+        if (!orderSidebarLocked) renderCartSidebar();
+      });
     } else {
       fxRate = null;
       displayCurrency = 'BRL';
@@ -1407,7 +1427,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
             source: 'config',
             isHighestBid: true,
             intlSurcharge: surcharge || undefined,
-            intlBasePrice: surcharge ? base : undefined
+            intlBasePrice: surcharge ? basePrice : undefined
           }];
         }
         await refreshDisplayCurrency();
@@ -2287,6 +2307,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
       window.STF_CART?.syncPrices?.(products);
       populateSelects();
+      initializeLocalizedCheckout();
     window.STF_CART?.initBadges();
     const mpDone = await handleMercadoPagoReturn();
     const paypalDone = mpDone ? false : await handlePayPalReturn();

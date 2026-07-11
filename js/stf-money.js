@@ -15,6 +15,8 @@ window.STF_MONEY = (function () {
     JPY: 'ja-JP', BRL: 'pt-BR'
   };
 
+  const COUNTRY_LOCALE = { IT: 'it-IT', US: 'en-US', GB: 'en-GB', BR: 'pt-BR' };
+
   let cache = { currency: null, rate: null, at: 0 };
 
   function resetCache() {
@@ -26,22 +28,39 @@ window.STF_MONEY = (function () {
     return COUNTRY_CURRENCY[c] || 'USD';
   }
 
-  function localeFor(currency) {
+  function localeFor(currency, countryCode) {
+    const byCountry = COUNTRY_LOCALE[String(countryCode || '').toUpperCase()];
+    if (byCountry) return byCountry;
     return LOCALE[currency] || 'en-US';
+  }
+
+  function apiBase(config) {
+    return String(config?.api?.baseUrl || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
+  }
+
+  function visitorCountry() {
+    const lang = window.STF_I18N?.getLang?.() || 'pt';
+    if (lang === 'it') return 'IT';
+    if (lang === 'en') return 'US';
+    return 'BR';
+  }
+
+  function isVisitorLocalized() {
+    return window.STF_I18N?.isLocalized?.() || visitorCountry() !== 'BR';
   }
 
   function formatBRL(n) {
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  function formatForeign(amount, currency) {
+  function formatForeign(amount, currency, countryCode) {
     const cur = currency || 'USD';
     const opts = { style: 'currency', currency: cur };
     if (cur === 'JPY' || cur === 'KRW') {
       opts.minimumFractionDigits = 0;
       opts.maximumFractionDigits = 0;
     }
-    return Number(amount || 0).toLocaleString(localeFor(cur), opts);
+    return Number(amount || 0).toLocaleString(localeFor(cur, countryCode), opts);
   }
 
   async function loadRate(apiBase, currency) {
@@ -69,12 +88,37 @@ window.STF_MONEY = (function () {
     return Math.round(Number(amountBrl || 0) * rate * 100) / 100;
   }
 
-  function formatDual(amountBrl, currency, rate) {
+  function formatDual(amountBrl, currency, rate, countryCode) {
     const brl = formatBRL(amountBrl);
     if (!currency || currency === 'BRL' || !rate) return brl;
     const foreign = convertFromBrl(amountBrl, rate);
     if (foreign == null) return brl;
-    return `${formatForeign(foreign, currency)} (${brl})`;
+    return `${formatForeign(foreign, currency, countryCode)} (${brl})`;
+  }
+
+  function formatPrimary(amountBrl, currency, rate, countryCode) {
+    const dual = formatDual(amountBrl, currency, rate, countryCode);
+    return dual.includes(' (') ? dual.split(' (')[0] : dual;
+  }
+
+  async function formatForVisitor(amountBrl, config, countryCode) {
+    const country = String(countryCode || visitorCountry()).toUpperCase();
+    if (country === 'BR' && !isVisitorLocalized()) return formatBRL(amountBrl);
+    const cur = currencyForCountry(country);
+    if (cur === 'BRL') return formatBRL(amountBrl);
+    const rate = await loadRate(apiBase(config), cur);
+    if (!rate) return formatBRL(amountBrl);
+    return formatDual(amountBrl, cur, rate, country);
+  }
+
+  async function formatPrimaryForVisitor(amountBrl, config, countryCode) {
+    const country = String(countryCode || visitorCountry()).toUpperCase();
+    if (country === 'BR' && !isVisitorLocalized()) return formatBRL(amountBrl);
+    const cur = currencyForCountry(country);
+    if (cur === 'BRL') return formatBRL(amountBrl);
+    const rate = await loadRate(apiBase(config), cur);
+    if (!rate) return formatBRL(amountBrl);
+    return formatPrimary(amountBrl, cur, rate, country);
   }
 
   function computePayPalFee(subtotalBrl, cfg) {
@@ -95,6 +139,11 @@ window.STF_MONEY = (function () {
     formatBRL,
     formatForeign,
     formatDual,
+    formatPrimary,
+    formatForVisitor,
+    formatPrimaryForVisitor,
+    visitorCountry,
+    apiBase,
     computePayPalFee
   };
 })();

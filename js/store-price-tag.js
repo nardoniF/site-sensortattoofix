@@ -1,5 +1,6 @@
 /**
  * Atualiza preço exibido no site conforme config do admin (API ou store-config.json).
+ * Em EN/IT converte BRL → USD/EUR via mesma API de câmbio do checkout.
  */
 window.STF_STORE_PRICE = (function () {
   function formatBRL(n) {
@@ -19,17 +20,31 @@ window.STF_STORE_PRICE = (function () {
   }
 
   function isLocalized() {
-    const lang = window.STF_I18N?.getLang?.() || 'pt';
-    return lang !== 'pt';
+    return window.STF_MONEY?.isVisitorLocalized?.() || window.STF_I18N?.isLocalized?.() || false;
   }
 
-  function buildPriceFreteLine(config) {
-    const product = primaryProduct(config);
-    const price = product?.price ?? config.product?.price ?? 62.9;
-    const frete = isLocalized()
-      ? (window.STF_I18N?.t?.('store.frete') || '+ Shipping')
-      : '+ Frete';
+  function productPrice(config) {
+    return primaryProduct(config)?.price ?? config.product?.price ?? 62.9;
+  }
+
+  function buildPriceFreteLineSync(config) {
+    const price = productPrice(config);
+    const frete = window.STF_I18N?.t?.('store.frete') || '+ Shipping';
     return `${formatBRLAmount(price)} ${frete}`;
+  }
+
+  async function buildPriceFreteLine(config) {
+    const price = productPrice(config);
+    const frete = window.STF_I18N?.t?.('store.frete') || '+ Shipping';
+    if (!isLocalized() || !window.STF_MONEY) {
+      return buildPriceFreteLineSync(config);
+    }
+    try {
+      const text = await window.STF_MONEY.formatForVisitor(price, config);
+      return `${text} ${frete}`;
+    } catch {
+      return buildPriceFreteLineSync(config);
+    }
   }
 
   function cheapestIntlLabel(config) {
@@ -59,10 +74,9 @@ window.STF_STORE_PRICE = (function () {
 
   function buildLine(config, el) {
     if (el?.getAttribute('data-store-price-layout') === 'split-price') {
-      return buildPriceFreteLine(config);
+      return buildPriceFreteLineSync(config);
     }
-    const product = primaryProduct(config);
-    const price = product?.price ?? config.product?.price ?? 62.9;
+    const price = productPrice(config);
     const freteLine = el?.getAttribute('data-store-price-frete-line')
       || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
       || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
@@ -77,43 +91,37 @@ window.STF_STORE_PRICE = (function () {
     return line;
   }
 
-  function formatPriceDisplay(price, config) {
-    const brl = formatBRL(price);
-    if (!isLocalized() || !window.STF_MONEY) return brl;
-    const api = (config?.api?.baseUrl || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
-    const cur = window.STF_MONEY.currencyForCountry(
-      window.STF_I18N?.getLang?.() === 'it' ? 'IT' : 'US'
-    );
-    if (!api) return brl;
-    return window.STF_MONEY.loadRate(api, cur).then((rate) => {
-      if (!rate) return brl;
-      return window.STF_MONEY.formatDual(price, cur, rate);
-    });
+  function buildLocalizedLine(config, el, priceText) {
+    if (el?.getAttribute('data-store-price-layout') === 'split-price') {
+      const frete = window.STF_I18N?.t?.('store.frete') || '+ Shipping';
+      const primary = priceText.includes(' (') ? priceText.split(' (')[0] : priceText;
+      return `${primary} ${frete}`;
+    }
+    const freteLine = el?.getAttribute('data-store-price-frete-line')
+      || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
+      || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
+    let suffix = el?.getAttribute('data-store-price-suffix');
+    if (isLocalized() && !suffix) suffix = window.STF_I18N.t('store.priceSuffix');
+    let line = `${priceText} ${freteLine}`;
+    if (suffix) line += ` · ${suffix}`;
+    return line;
   }
 
   function applyToElement(el, config) {
+    const price = productPrice(config);
     const linePromise = isLocalized() && window.STF_MONEY
-      ? formatPriceDisplay(
-          primaryProduct(config)?.price ?? config.product?.price ?? 62.9,
-          config
-        ).then((priceText) => {
-          if (el?.getAttribute('data-store-price-layout') === 'split-price') {
-            const frete = window.STF_I18N?.t?.('store.frete') || '+ Shipping';
-            return `${priceText.split(' (')[0]} ${frete}`;
-          }
-          const freteLine = el?.getAttribute('data-store-price-frete-line')
-            || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
-            || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
-          let suffix = el?.getAttribute('data-store-price-suffix');
-          if (isLocalized() && !suffix) suffix = window.STF_I18N.t('store.priceSuffix');
-          let line = `${priceText} ${freteLine}`;
-          if (suffix) line += ` · ${suffix}`;
-          return line;
-        })
+      ? (el?.getAttribute('data-store-price-layout') === 'split-price'
+          ? buildPriceFreteLine(config)
+          : window.STF_MONEY.formatForVisitor(price, config)
+              .then((priceText) => buildLocalizedLine(config, el, priceText)))
       : Promise.resolve(buildLine(config, el));
-    linePromise.then((line) => { el.textContent = line; }).catch(() => {
+
+    Promise.resolve(linePromise).then((line) => {
+      el.textContent = line;
+    }).catch(() => {
       el.textContent = buildLine(config, el);
     });
+
     if (el.getAttribute('data-store-price-layout') === 'split-price') {
       const shippingEl = el.closest('.store-official-info')?.querySelector('[data-store-shipping-line]');
       if (shippingEl) shippingEl.textContent = buildShippingChannelsLine(config);
