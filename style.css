@@ -2296,6 +2296,84 @@ line-height:1.8;
     align-items: flex-start;
 }
 .checkout-notice i { color: var(--primary); margin-top: 2px; }
+.checkout-notice a { color: #7ecbf0; text-decoration: underline; text-underline-offset: 2px; }
+
+/* EN / international trust bar (below header) */
+.site-trust-bar {
+    background: linear-gradient(180deg, #121820 0%, #0e1218 100%);
+    border-bottom: 1px solid #243040;
+    padding: 10px 0 12px;
+    font-size: 0.82rem;
+    color: #a8b8c8;
+}
+.site-trust-bar-inner { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+.site-trust-bar-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    font-weight: 600;
+    color: #d8e4ef;
+}
+.site-trust-bar-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.site-trust-bar-item i { color: #6eb5d9; font-size: 0.95em; }
+.site-trust-bar-item .fa-paypal { color: #7ecbf0; }
+.site-trust-bar-sep { color: #445566; user-select: none; }
+.site-trust-bar-sub {
+    margin: 8px 0 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #8fa3b8;
+    font-weight: 400;
+}
+.site-trust-bar-sub a {
+    color: #7ecbf0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.site-trust-bar-sub a:hover { color: #a8ddf5; }
+
+.intl-trust-panel {
+    background: #121820;
+    border: 1px solid #243040;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: #b8c8d8;
+    line-height: 1.55;
+}
+.intl-trust-panel h3 {
+    margin: 0 0 10px;
+    font-size: 1rem;
+    color: #e8eef4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.intl-trust-panel h3 i { color: #6eb5d9; }
+.intl-trust-panel ul {
+    margin: 0 0 12px;
+    padding-left: 1.15rem;
+}
+.intl-trust-panel li { margin-bottom: 6px; }
+.intl-trust-panel-contact {
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px solid #243040;
+    font-size: 0.85rem;
+}
+.intl-trust-panel-contact a { color: #7ecbf0; }
+
+@media (max-width: 720px) {
+    .site-trust-bar-sep { display: none; }
+    .site-trust-bar-main { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
 .checkout-actions {
     display: flex;
     gap: 12px;
@@ -3201,7 +3279,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .clicks-tree-step {
     display: grid;
-    grid-template-columns: 28px 72px minmax(90px, auto) 1fr;
+    grid-template-columns: 28px 72px minmax(90px, auto) 1fr minmax(100px, 180px);
     gap: 8px;
     align-items: center;
     padding: 6px 8px;
@@ -3216,6 +3294,15 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .clicks-tree-step-time { color: #777; font-variant-numeric: tabular-nums; }
 .clicks-tree-step-label { color: #ccc; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clicks-tree-step-geo {
+    color: #7eb8da;
+    font-size: 0.78rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+}
 .clicks-tree-step-origem,
 .clicks-origem-badge {
     display: inline-block;
@@ -3257,12 +3344,13 @@ body.admin-page.pedidos-login-only #pedidos-login {
 @media (max-width: 640px) {
     .clicks-tree-step {
         grid-template-columns: 24px 1fr;
-        grid-template-areas: "num label" "time dest";
+        grid-template-areas: "num label" "time dest" "geo geo";
     }
     .clicks-tree-step-num { grid-area: num; }
     .clicks-tree-step-time { grid-area: time; }
     .clicks-tree-step-label { grid-area: label; white-space: normal; }
     .admin-click-dest { grid-area: dest; justify-self: start; }
+    .clicks-tree-step-geo { grid-area: geo; text-align: left; white-space: normal; }
 }
 .admin-frete-subtabs {
     display: flex;

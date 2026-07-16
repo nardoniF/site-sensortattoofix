@@ -7,7 +7,7 @@
     <script src="../js/ad-landing.js?v=4"></script>
     <title>Checkout | Sensor Tattoo Fix — Official Store</title>
     <meta name="description" content="Official Sensor Tattoo Fix checkout — PayPal, international cards, tracked worldwide shipping.">
-    <link rel="stylesheet" href="../style.css?v=1.97">
+    <link rel="stylesheet" href="../style.css?v=2.64">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script src="../js/gtag-init.js"></script>
@@ -36,6 +36,7 @@
             </ul>
         </nav>
     </header>
+    <script src="../js/stf-intl-trust.js?v=1"></script>
 
     <main class="checkout-main">
         <div class="container checkout-layout">
@@ -64,9 +65,9 @@
                         <div class="summary-row total"><span>Total</span><strong id="summary-total">—</strong></div>
                     </div>
                     <div class="checkout-trust">
-                        <span><i class="fas fa-lock"></i> Secure payment</span>
-                        <span><i class="fas fa-credit-card"></i> Cartão</span>
-                        <span><i class="fas fa-envelope"></i> Confirmação por e-mail</span>
+                        <span><i class="fas fa-lock"></i> Secure PayPal checkout</span>
+                        <span><i class="fas fa-truck"></i> Tracked international shipping</span>
+                        <span><i class="fas fa-envelope"></i> Order confirmation by email</span>
                     </div>
                     <a href="../loja.html?lang=en" class="cart-add-more"><i class="fas fa-plus"></i> Adicionar mais produtos</a>
                 </div>
@@ -87,6 +88,22 @@
                 </div>
 
                 <form id="checkout-form" class="checkout-form" novalidate>
+                    <div class="intl-trust-panel">
+                        <h3><i class="fas fa-shield-alt" aria-hidden="true"></i> International orders — how it works</h3>
+                        <ul>
+                            <li>Official store operated by <strong>3N20 Soluções Tecnológicas</strong> (Brazil) — real company, patent-pending product.</li>
+                            <li>Payment through <strong>PayPal</strong> (card or PayPal balance). Prices are in BRL; your bank or PayPal converts to your currency.</li>
+                            <li>We ship abroad with <strong>tracked post</strong> (Correios international). Tracking is sent by email after dispatch — typically within 2 business days of payment.</li>
+                            <li>Deliveries completed to buyers in <strong>Portugal, Italy, France, Germany, the United States</strong> and other countries.</li>
+                        </ul>
+                        <p class="intl-trust-panel-contact">
+                            Not sure yet? Ask us first —
+                            <a href="mailto:contato@sensortattoofix.com.br">contato@sensortattoofix.com.br</a>
+                            or
+                            <a href="https://wa.me/5511913394665?text=Hi%20%E2%80%94%20I%20have%20a%20question%20about%20international%20shipping" target="_blank" rel="noopener" data-evento="clique_whatsapp" data-rotulo="Checkout trust WhatsApp EN">WhatsApp</a>.
+                            We reply in English.
+                        </p>
+                    </div>
                     <div class="checkout-step active" data-step="1">
                         <div class="checkout-step-head">
                             <h3>Your details</h3>
@@ -234,7 +251,7 @@
                             </label>
                         </div>
                         <div id="payment-notice-br" class="checkout-notice"><i class="fas fa-info-circle"></i> Após o pagamento, a confirmação é automática no site e por e-mail.</div>
-                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fas fa-info-circle"></i> Prices in Brazilian reais (BRL). PayPal or international card — your bank converts the currency.</div>
+                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fas fa-info-circle"></i> International order: PayPal secure checkout · tracked shipping · tracking by email. Questions? <a href="mailto:contato@sensortattoofix.com.br">Email us</a> or use WhatsApp before you pay.</div>
                     </div>
 
                     <div class="checkout-step" data-step="3">
