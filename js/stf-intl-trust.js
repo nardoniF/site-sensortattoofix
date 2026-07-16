@@ -19,19 +19,17 @@
     aside.setAttribute('aria-label', 'International orders — secure payment and shipping');
     aside.innerHTML =
       '<div class="container site-trust-bar-inner">' +
-        '<div class="site-trust-bar-main">' +
-          '<span class="site-trust-bar-item"><i class="fab fa-paypal" aria-hidden="true"></i> Secure checkout via PayPal</span>' +
+        '<p class="site-trust-bar-main site-trust-bar-compact">' +
+          '<span class="site-trust-bar-item"><i class="fab fa-paypal" aria-hidden="true"></i> PayPal</span>' +
           '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
-          '<span class="site-trust-bar-item"><i class="fas fa-globe-americas" aria-hidden="true"></i> Tracked shipping to the US, UK, EU &amp; more</span>' +
+          '<span class="site-trust-bar-item"><i class="fas fa-globe-americas" aria-hidden="true"></i> Tracked shipping · US &amp; EU</span>' +
           '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
-          '<span class="site-trust-bar-item"><i class="fas fa-building" aria-hidden="true"></i> Official store · 3N20 · patented technology</span>' +
-        '</div>' +
-        '<p class="site-trust-bar-sub">' +
-          'We have shipped real orders to Portugal, Italy, France, Germany, the United States and other countries. ' +
-          'Questions before you buy? ' +
-          '<a href="mailto:' + EMAIL + '">' + EMAIL + '</a> ' +
-          'or ' +
-          '<a href="https://wa.me/' + WA + '?text=' + WA_MSG + '" target="_blank" rel="noopener" data-evento="clique_whatsapp" data-rotulo="Trust bar WhatsApp EN">WhatsApp</a> — we reply in English.' +
+          '<span class="site-trust-bar-item"><i class="fas fa-certificate" aria-hidden="true"></i> Patented</span>' +
+          '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
+          '<span class="site-trust-bar-item site-trust-bar-contact">' +
+            'Questions: <a href="mailto:' + EMAIL + '">Email</a> · ' +
+            '<a href="https://wa.me/' + WA + '?text=' + WA_MSG + '" target="_blank" rel="noopener" data-evento="clique_whatsapp" data-rotulo="Trust bar WhatsApp EN">WhatsApp</a>' +
+          '</span>' +
         '</p>' +
       '</div>';
 

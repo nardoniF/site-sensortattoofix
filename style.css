@@ -2302,10 +2302,19 @@ line-height:1.8;
 .site-trust-bar {
     background: linear-gradient(180deg, #121820 0%, #0e1218 100%);
     border-bottom: 1px solid #243040;
-    padding: 10px 0 12px;
-    font-size: 0.82rem;
+    padding: 8px 0;
+    font-size: 0.8rem;
     color: #a8b8c8;
 }
+.site-trust-bar-compact {
+    margin: 0;
+    font-weight: 600;
+    color: #d8e4ef;
+    line-height: 1.4;
+}
+.site-trust-bar-contact { font-weight: 500; color: #a8b8c8; }
+.site-trust-bar-contact a { color: #7ecbf0; text-decoration: none; font-weight: 600; }
+.site-trust-bar-contact a:hover { text-decoration: underline; }
 .site-trust-bar-inner { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
 .site-trust-bar-main {
     display: flex;
