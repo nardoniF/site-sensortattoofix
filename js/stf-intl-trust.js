@@ -24,7 +24,7 @@
           '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
           '<span class="site-trust-bar-item"><i class="fas fa-globe-americas" aria-hidden="true"></i> Tracked shipping to the US, UK, EU &amp; more</span>' +
           '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
-          '<span class="site-trust-bar-item"><i class="fas fa-building" aria-hidden="true"></i> Official store · 3N20 · patent pending</span>' +
+          '<span class="site-trust-bar-item"><i class="fas fa-building" aria-hidden="true"></i> Official store · 3N20 · patented technology</span>' +
         '</div>' +
         '<p class="site-trust-bar-sub">' +
           'We have shipped real orders to Portugal, Italy, France, Germany, the United States and other countries. ' +
