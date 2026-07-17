@@ -2203,6 +2203,37 @@ line-height:1.8;
 }
 .form-grid label.full { grid-column: 1 / -1; }
 .form-grid label.span-2 { grid-column: span 2; }
+
+.stf-address-suggest-wrap { position: relative; }
+.stf-address-suggest {
+    position: absolute;
+    z-index: 40;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    background: #141414;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+    max-height: 220px;
+    overflow-y: auto;
+}
+.stf-address-suggest-item {
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    font-weight: 400;
+    color: #ddd;
+    cursor: pointer;
+}
+.stf-address-suggest-item:hover,
+.stf-address-suggest-item.is-active {
+    background: #252525;
+    color: #fff;
+}
+
 .form-grid input:not([type="checkbox"]):not([type="radio"]),
 .form-grid select,
 .form-grid textarea {

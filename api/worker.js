@@ -387,6 +387,127 @@ async function geocodeAddressNominatim(query) {
   }
 }
 
+function addressSuggestItem({ label, street, number, city, state, postal }) {
+  return {
+    label: String(label || '').trim(),
+    street: String(street || '').trim(),
+    number: String(number || '').trim(),
+    city: String(city || '').trim(),
+    state: String(state || '').trim(),
+    postal: String(postal || '').trim()
+  };
+}
+
+function googleAddressComponent(components, type, useShort) {
+  const hit = (components || []).find((c) => c.types?.includes(type));
+  return String((useShort ? hit?.shortText : hit?.longText) || '').trim();
+}
+
+async function googlePlacesAddressSuggest(apiKey, query, country) {
+  const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text'
+    },
+    body: JSON.stringify({
+      input: query,
+      includedRegionCodes: [String(country || '').toLowerCase()].filter(Boolean)
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error?.message || `Google Places ${res.status}`);
+
+  const suggestions = [];
+  for (const row of data.suggestions || []) {
+    const pred = row.placePrediction;
+    if (!pred?.placeId) continue;
+    const detailRes = await fetch(`https://places.googleapis.com/v1/${pred.placeId}`, {
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'addressComponents,formattedAddress'
+      }
+    });
+    const detail = await detailRes.json().catch(() => ({}));
+    if (!detailRes.ok) continue;
+    const comps = detail.addressComponents || [];
+    const streetNum = googleAddressComponent(comps, 'street_number', true);
+    const route = googleAddressComponent(comps, 'route', false);
+    const street = [route, streetNum].filter(Boolean).join(streetNum ? ', ' : '');
+    suggestions.push(addressSuggestItem({
+      label: pred.text?.text || detail.formattedAddress || street,
+      street: street || pred.text?.text || '',
+      number: streetNum,
+      city: googleAddressComponent(comps, 'locality', false)
+        || googleAddressComponent(comps, 'postal_town', false)
+        || googleAddressComponent(comps, 'administrative_area_level_2', false),
+      state: googleAddressComponent(comps, 'administrative_area_level_1', true),
+      postal: googleAddressComponent(comps, 'postal_code', true)
+    }));
+    if (suggestions.length >= 6) break;
+  }
+  return suggestions;
+}
+
+async function photonAddressSuggest(query, country) {
+  const res = await fetch(`https://photon.komoot.io/api/?${new URLSearchParams({
+    q: query,
+    limit: '10',
+    lang: 'en'
+  })}`);
+  if (!res.ok) throw new Error(`Photon ${res.status}`);
+  const data = await res.json();
+  const cc = String(country || '').toUpperCase();
+  return (data.features || [])
+    .filter((f) => {
+      if (!cc || cc === 'OTHER') return true;
+      return String(f.properties?.countrycode || '').toUpperCase() === cc;
+    })
+    .slice(0, 6)
+    .map((f) => {
+      const p = f.properties || {};
+      const street = [p.street, p.housenumber].filter(Boolean).join(' ');
+      const label = [street || p.name, p.city || p.locality, p.state, p.country].filter(Boolean).join(', ');
+      return addressSuggestItem({
+        label,
+        street: street || p.name || '',
+        number: p.housenumber || '',
+        city: p.city || p.locality || '',
+        state: p.state || '',
+        postal: p.postcode || ''
+      });
+    })
+    .filter((item) => item.label);
+}
+
+async function handleAddressSuggest(request, env, origin) {
+  const url = new URL(request.url);
+  const query = String(url.searchParams.get('q') || '').trim();
+  const country = String(url.searchParams.get('country') || '').trim().toUpperCase();
+  if (query.length < 3) return json({ suggestions: [], source: 'none' }, 200, origin);
+
+  const googleKey = String(env.GOOGLE_PLACES_API_KEY || '').trim();
+  if (googleKey && country && country !== 'OTHER') {
+    try {
+      const suggestions = await googlePlacesAddressSuggest(googleKey, query, country);
+      if (suggestions.length) {
+        return json({ suggestions, source: 'google' }, 200, origin);
+      }
+    } catch (err) {
+      console.warn('Google Places suggest:', err.message);
+    }
+  }
+
+  try {
+    const suggestions = await photonAddressSuggest(query, country);
+    return json({ suggestions, source: 'photon' }, 200, origin);
+  } catch (err) {
+    console.warn('Photon suggest:', err.message);
+    return json({ suggestions: [], source: 'error', error: err.message }, 200, origin);
+  }
+}
+
 async function fetchCepMetadata(cep) {
   const digits = String(cep || '').replace(/\D/g, '');
   if (digits.length !== 8) return null;
@@ -1530,9 +1651,7 @@ function publicConfigView(config, env) {
     siteUrl: config.siteUrl || DEFAULT_CONFIG.siteUrl,
     api: { baseUrl: config.api?.baseUrl || DEFAULT_CONFIG.api.baseUrl },
     integrations: {
-      googlePlaces: {
-        apiKey: String(env.GOOGLE_PLACES_API_KEY || config.integrations?.googlePlaces?.apiKey || '').trim()
-      }
+      addressAutocomplete: true
     },
     updatedAt: config.updatedAt || null
   };
@@ -4710,6 +4829,8 @@ function buildIntegrationRows(env, config, checks) {
   const ga4Secret = (env.GA4_API_SECRET || '').trim();
   const exportQuote = exportOptions[0] || null;
 
+  const googlePlacesKey = String(env.GOOGLE_PLACES_API_KEY || '').trim();
+
   const rows = [
     {
       id: 'worker',
@@ -4717,6 +4838,13 @@ function buildIntegrationRows(env, config, checks) {
       description: 'API central — pedidos, checkout e admin',
       status: 'ok',
       detail: 'Online e autenticado'
+    },
+    {
+      id: 'address-autocomplete',
+      label: 'Autocomplete de endereço',
+      description: 'Checkout internacional — Photon (grátis) ou Google Places',
+      status: 'ok',
+      detail: googlePlacesKey ? 'Google Places + Photon (fallback)' : 'Photon/OpenStreetMap (ativo)'
     }
   ];
 
@@ -8054,6 +8182,9 @@ export default {
       if (path === '/visitor/geo' && request.method === 'GET') {
         const geo = extractClickGeo(request);
         return json({ country: geo.pais || null }, 200, origin);
+      }
+      if (path === '/address/suggest' && request.method === 'GET') {
+        return handleAddressSuggest(request, env, origin);
       }
       if (path === '/admin/config' && request.method === 'GET') return handleAdminGetConfig(request, env, origin);
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
