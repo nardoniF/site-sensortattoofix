@@ -5923,8 +5923,19 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   let billingType;
   let pagamentoLabel;
+  const checkoutLocale = String(body.checkoutLocale || 'pt').toLowerCase();
+  const paypalOnlyIntl = isIntl && (checkoutLocale === 'en' || checkoutLocale === 'it');
   if (isIntl) {
-    if (body.pagamento === 'PAYPAL') {
+    if (paypalOnlyIntl) {
+      if (body.pagamento !== 'PAYPAL') {
+        return json({ error: 'Use PayPal para checkout em inglês ou italiano com envio internacional.' }, 400, origin);
+      }
+      if (!isInternationalPayPalAvailable(config)) {
+        return json({ error: 'PayPal temporariamente indisponível. Tente novamente em breve.' }, 400, origin);
+      }
+      billingType = 'PAYPAL';
+      pagamentoLabel = 'PayPal';
+    } else if (body.pagamento === 'PAYPAL') {
       if (!isInternationalPayPalAvailable(config)) {
         return json({ error: 'PayPal temporariamente indisponível. Use PIX ou tente novamente em breve.' }, 400, origin);
       }

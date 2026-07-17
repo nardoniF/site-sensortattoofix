@@ -75,6 +75,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return lang.startsWith('en') || lang.startsWith('it');
   }
 
+  function checkoutLocale() {
+    if (!isLocalizedSite()) return 'pt';
+    const lang = (document.documentElement.lang || '').toLowerCase();
+    return lang.startsWith('it') ? 'it' : 'en';
+  }
+
+  /** EN/IT checkout: PayPal only abroad. PT checkout keeps PIX/cartão mesmo enviando para fora. */
+  function isPaypalOnlyIntlCheckout() {
+    return isLocalizedSite();
+  }
+
   function localizeShippingServiceName(opt) {
     if (!isLocalizedSite() || !opt) return opt?.service || '';
     if (opt.shipmentType === 'documento' || opt.methodId === 'int-documento') {
@@ -1279,10 +1290,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function updatePaymentOptionsForCountry() {
     const paypalIntl = isInternational && isPayPalIntlAvailable();
     const paypalBr = !isInternational && isPayPalBrAvailable();
+    const paypalOnlyIntl = isInternational && isPaypalOnlyIntlCheckout();
     if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = isInternational;
     if (els.paymentOptionsIntl) els.paymentOptionsIntl.hidden = !isInternational;
     if (els.paymentNoticeBr) els.paymentNoticeBr.hidden = isInternational;
     if (els.paymentNoticeIntl) els.paymentNoticeIntl.hidden = !isInternational;
+    const cardIntlRow = els.paymentOptionsIntl?.querySelector('.payment-option-intl-card');
+    if (cardIntlRow) cardIntlRow.hidden = paypalOnlyIntl;
     const paypalIntlRow = els.paymentOptionsIntl?.querySelector('.payment-option-paypal');
     if (paypalIntlRow) paypalIntlRow.hidden = !paypalIntl;
     const paypalBrRow = els.paymentOptionsBr?.querySelector('.payment-option-paypal');
@@ -1293,18 +1307,27 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     });
     els.paymentOptionsIntl?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
       const isPaypal = r.value === 'PAYPAL';
-      r.disabled = !isInternational || (isPaypal && !paypalIntl);
+      const isCard = r.value === 'CARTAO';
+      r.disabled = !isInternational
+        || (isPaypal && !paypalIntl)
+        || (isCard && paypalOnlyIntl);
     });
     if (els.paymentNoticeIntl) {
-      const noticeKey = paypalIntl ? 'pay.noticeIntlAll' : 'pay.noticeIntlNoPaypal';
+      let noticeKey = 'pay.noticeIntlAll';
+      if (paypalOnlyIntl) noticeKey = 'pay.noticeIntlPaypalOnly';
+      else if (!paypalIntl) noticeKey = 'pay.noticeIntlNoPaypal';
       els.paymentNoticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${L(noticeKey)}`;
     }
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
     if (isInternational) {
-      const cardIntl = els.paymentOptionsIntl?.querySelector('input[value="CARTAO"]');
       const paypal = els.paymentOptionsIntl?.querySelector('input[value="PAYPAL"]');
-      if (cardIntl) cardIntl.checked = true;
-      else if (paypalIntl && paypal) paypal.checked = true;
+      if (paypalOnlyIntl && paypalIntl && paypal) {
+        paypal.checked = true;
+      } else {
+        const cardIntl = els.paymentOptionsIntl?.querySelector('input[value="CARTAO"]');
+        if (cardIntl && !paypalOnlyIntl) cardIntl.checked = true;
+        else if (paypalIntl && paypal) paypal.checked = true;
+      }
     } else {
       const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
       if (pix) pix.checked = true;
@@ -1755,6 +1778,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       internationalLensOnly: isInternational && shippingInfo?.shipmentType === 'documento',
       internationalProductNote: isInternational ? buildIntlProductNote(shippingInfo?.shipmentType) : '',
       pagamento: f.querySelector('[name=pagamento]:checked').value,
+      checkoutLocale: checkoutLocale(),
       items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
     };
     if (appliedCoupon?.code) payload.couponCode = appliedCoupon.code;
@@ -2007,6 +2031,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
     if (isInternational && pagamento === 'PIX') {
       alert(L('alert.paymentPick'));
+      return;
+    }
+    if (isInternational && isPaypalOnlyIntlCheckout() && pagamento !== 'PAYPAL') {
+      alert(L('alert.paypalOnlyIntl'));
       return;
     }
     els.btnPay.disabled = true;
