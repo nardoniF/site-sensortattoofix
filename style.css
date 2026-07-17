@@ -2204,7 +2204,12 @@ line-height:1.8;
 .form-grid label.full { grid-column: 1 / -1; }
 .form-grid label.span-2 { grid-column: span 2; }
 
-.stf-address-suggest-wrap { position: relative; }
+.stf-address-suggest-wrap { position: relative; overflow: visible; }
+#address-intl,
+#address-intl .form-grid,
+#address-intl label.checkout-infield {
+    overflow: visible;
+}
 .stf-address-suggest {
     position: absolute;
     z-index: 40;

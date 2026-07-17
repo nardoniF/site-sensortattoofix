@@ -1315,6 +1315,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
     if (isInternational) quoteShipping();
     else scheduleQuoteShippingIfReady();
+    window.STF_ADDRESS_AUTOCOMPLETE?.rebind?.();
   }
 
   function clearShippingOptions() {

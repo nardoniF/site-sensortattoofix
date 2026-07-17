@@ -3,7 +3,7 @@
  * Usa a API /address/suggest (Photon grátis; Google Places se GOOGLE_PLACES_API_KEY no Worker).
  */
 window.STF_ADDRESS_AUTOCOMPLETE = (function () {
-  let apiBase = '';
+  let apiBase = String(window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
   let listEl = null;
   let debounceTimer = null;
   let activeIndex = -1;
@@ -29,11 +29,17 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
     return String(config?.api?.baseUrl || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
   }
 
+  function intlAddressVisible() {
+    const block = document.getElementById('address-intl');
+    return block && !block.hidden;
+  }
+
   function ensureList(input) {
-    if (listEl?.parentElement) return listEl;
     const wrap = input.closest('label') || input.parentElement;
     if (!wrap) return null;
     wrap.classList.add('stf-address-suggest-wrap');
+    if (listEl?.parentElement === wrap) return listEl;
+    if (listEl?.parentElement) listEl.remove();
     listEl = document.createElement('ul');
     listEl.className = 'stf-address-suggest';
     listEl.hidden = true;
@@ -70,6 +76,7 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
 
   function renderSuggestions(items) {
     const input = streetInput();
+    if (!input) return;
     const list = ensureList(input);
     if (!list) return;
     lastSuggestions = items;
@@ -101,7 +108,7 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
 
   async function fetchSuggestions(query) {
     const cc = countryCode();
-    if (!apiBase || !cc || query.length < 3) {
+    if (!apiBase || !cc || !intlAddressVisible() || query.length < 3) {
       hideList();
       return;
     }
@@ -111,7 +118,8 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
       if (!res.ok) return hideList();
       const data = await res.json();
       renderSuggestions(data.suggestions || []);
-    } catch {
+    } catch (err) {
+      console.warn('Address suggest:', err);
       hideList();
     }
   }
@@ -126,6 +134,12 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
       return;
     }
     debounceTimer = setTimeout(() => fetchSuggestions(q), 280);
+  }
+
+  function onFocus() {
+    const input = streetInput();
+    const q = input?.value?.trim() || '';
+    if (q.length >= 3) fetchSuggestions(q);
   }
 
   function onKeydown(e) {
@@ -154,27 +168,30 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
   function unbind() {
     if (!boundInput) return;
     boundInput.removeEventListener('input', onInput);
+    boundInput.removeEventListener('focus', onFocus);
     boundInput.removeEventListener('keydown', onKeydown);
-    boundInput.removeEventListener('blur', hideList);
+    boundInput.removeEventListener('blur', onBlur);
     boundInput = null;
     hideList();
   }
 
+  function onBlur() {
+    setTimeout(hideList, 180);
+  }
+
   function bind() {
-    const input = streetInput();
-    if (!input) return;
-    const cc = countryCode();
-    if (!cc) {
-      unbind();
-      return;
-    }
-    if (boundInput === input) return;
     unbind();
+    const input = streetInput();
+    if (!input || !intlAddressVisible()) return;
+    const cc = countryCode();
+    if (!cc) return;
     boundInput = input;
     input.setAttribute('autocomplete', 'off');
+    input.setAttribute('aria-autocomplete', 'list');
     input.addEventListener('input', onInput);
+    input.addEventListener('focus', onFocus);
     input.addEventListener('keydown', onKeydown);
-    input.addEventListener('blur', () => setTimeout(hideList, 180));
+    input.addEventListener('blur', onBlur);
   }
 
   function init(config) {
@@ -183,7 +200,10 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
   }
 
   window.addEventListener('stf-config-ready', (e) => init(e.detail));
-  if (window.CHECKOUT_CONFIG?._loaded) init(window.CHECKOUT_CONFIG);
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!apiBase) apiBase = resolveApiBase(window.CHECKOUT_CONFIG);
+    bind();
+  });
 
   return { init, rebind: bind };
 })();
