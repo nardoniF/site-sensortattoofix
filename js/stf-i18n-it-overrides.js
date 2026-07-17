@@ -224,6 +224,7 @@ window.STF_I18N_IT = {
   'alert.password': 'Crea una password di almeno 6 caratteri o deseleziona "Crea account".',
   'alert.shippingWait': 'Attendi i preventivi di spedizione e scegli un\'opzione.',
   'alert.shippingPick': 'Seleziona un\'opzione di spedizione.',
+  'alert.intlDocNoAggregated': 'La posta documenti internazionale include solo la lente — rimuovi pellicole e cinturini dal carrello o scegli spedizione pacco.',
   'alert.addrBr': 'Completa l\'indirizzo brasiliano.',
   'alert.addrIntl': 'Completa l\'indirizzo internazionale.',
   'alert.pixIntlCpf': 'Per pagare con PIX dall\'estero, inserisci il tuo CPF (conto bancario brasiliano).',

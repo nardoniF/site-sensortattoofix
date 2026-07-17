@@ -583,6 +583,19 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     el.textContent = '';
   }
 
+  function cartHasAggregated() {
+    return (window.STF_CART?.load() || []).some((item) => {
+      if (item.aggregated === true) return true;
+      const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
+      return p?.aggregated === true;
+    });
+  }
+
+  function isIntlDocumentShipping(opt) {
+    const tipo = opt?.shipmentType ?? shippingInfo?.shipmentType;
+    return isInternational && tipo === 'documento';
+  }
+
   function renderPeliculaUpsell() {
     const wrap = els.peliculaUpsell;
     if (!wrap || !window.STF_PELICULA) return;
@@ -594,6 +607,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
     const needsWatch = window.STF_CART?.requiresSmartwatch();
     const watchModel = els.smartwatchSelect?.value || '';
+    if (isInternational && (!shippingInfo || shippingInfo.shipmentType === 'documento')) {
+      wrap.hidden = true;
+      wrap.innerHTML = '';
+      return;
+    }
     if (!needsWatch || !watchModel || isOutroModelo(watchModel)) {
       wrap.hidden = true;
       wrap.innerHTML = '';
@@ -659,6 +677,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         const id = btn.getAttribute('data-pelicula-add');
         const p = products.find((x) => x.id === id || x.slug === id);
         if (!p || !window.STF_CART) return;
+        if (isInternational && shippingInfo?.shipmentType === 'documento') {
+          alert(L('alert.intlDocNoAggregated'));
+          return;
+        }
+        if (p.aggregated && isInternational && (!shippingInfo || shippingInfo.shipmentType === 'documento')) {
+          alert(L('alert.intlDocNoAggregated'));
+          return;
+        }
         window.STF_CART.add({
           ...p,
           image: resolveProductImage(p.image, p),
@@ -1355,6 +1381,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function selectShippingOption(option) {
     if (!option) return;
+    if (isIntlDocumentShipping(option) && cartHasAggregated()) {
+      alert(L('alert.intlDocNoAggregated'));
+      const alt = shippingOptions.find((o) => o.shipmentType !== 'documento');
+      if (alt) {
+        const radio = els.shippingOptionsEl?.querySelector(`input[value="${CSS.escape(String(alt.id))}"]`);
+        if (radio) radio.checked = true;
+        selectShippingOption(alt);
+      }
+      return;
+    }
     shippingInfo = option;
     shippingCost = option.price;
     updateSummary();
@@ -1362,6 +1398,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
     }
     updateContinueButtonVisibility();
+    renderPeliculaUpsell();
   }
 
   function updateContinueButtonVisibility() {
@@ -1372,10 +1409,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function renderShippingOptions(options) {
     if (!els.shippingOptionsEl || !els.shippingOptionsWrap) return;
-    shippingOptions = options || [];
+    let list = options || [];
+    if (isInternational && cartHasAggregated()) {
+      list = list.filter((o) => o.shipmentType !== 'documento');
+    }
+    shippingOptions = list;
     if (!shippingOptions.length) {
       clearShippingOptions();
-      els.shippingHint.textContent = L('shipping.none');
+      els.shippingHint.hidden = false;
+      els.shippingHint.textContent = isInternational && cartHasAggregated()
+        ? L('shipping.intlDocBlockedAggregated')
+        : L('shipping.none');
       return;
     }
 
@@ -1761,6 +1805,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
     if (shippingCost === null || !shippingInfo) {
       alert(L('alert.shippingWait'));
+      return false;
+    }
+    if (isIntlDocumentShipping() && cartHasAggregated()) {
+      alert(L('alert.intlDocNoAggregated'));
       return false;
     }
     const selectedRadio = els.shippingOptionsEl?.querySelector('input[name="shippingOption"]:checked');

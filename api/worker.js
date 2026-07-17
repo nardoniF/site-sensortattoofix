@@ -1359,6 +1359,7 @@ function resolveOrderItems(config, body) {
         name: p.name,
         price: Number(p.price) || 0,
         qty,
+        aggregated: p.aggregated === true,
         requiresSmartwatch: p.requiresSmartwatch !== false,
         weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
       };
@@ -1372,12 +1373,23 @@ function resolveOrderItems(config, body) {
       name: p.name,
       price: Number(p.price) || 0,
       qty: Math.max(1, Math.min(10, Number(body.qty) || 1)),
+      aggregated: p.aggregated === true,
       requiresSmartwatch: p.requiresSmartwatch !== false,
       weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
     }];
   }
 
   assertOrderStock(config, items);
+
+  const isIntl = (body.paisCode || 'BR') !== 'BR';
+  const isDocument = body.shipmentType === 'documento' || !!body.internationalLensOnly;
+  if (isIntl && isDocument) {
+    const hasAggregated = items.some((i) => i.aggregated === true);
+    if (hasAggregated) {
+      throw new Error('Carta/documento internacional não permite películas ou pulseiras. Remova os acessórios ou escolha envio em encomenda.');
+    }
+  }
+
   return items;
 }
 
