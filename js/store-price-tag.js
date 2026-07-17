@@ -3,6 +3,37 @@
  * Em EN/IT converte BRL → USD/EUR via mesma API de câmbio do checkout.
  */
 window.STF_STORE_PRICE = (function () {
+  const PT_FALLBACK = {
+    'store.frete': '+ frete',
+    'store.freteLine': '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)',
+    'store.shippingChannelsIntl': 'Todo Brasil (Mini Envios) · São Paulo, SP (Entrega Própria) · Outros Países (Exporta Fácil)',
+    'shipping.intlDefault': 'Documento / carta internacional'
+  };
+
+  const EN_FALLBACK = {
+    'store.frete': '+ shipping',
+    'store.freteLine': '+ Shipping: calculated at checkout',
+    'store.shippingChannelsIntl': 'International tracked shipping · calculated at checkout',
+    'shipping.intlDefault': 'International tracked mail'
+  };
+
+  function pathLang() {
+    if (location.pathname.includes('/it/')) return 'it';
+    if (location.pathname.includes('/en/')) return 'en';
+    return 'pt';
+  }
+
+  function isLocalized() {
+    return pathLang() !== 'pt';
+  }
+
+  function t(key) {
+    if (window.STF_I18N?.t) return window.STF_I18N.t(key);
+    const lang = pathLang();
+    const pack = lang === 'en' || lang === 'it' ? EN_FALLBACK : PT_FALLBACK;
+    return pack[key] || PT_FALLBACK[key] || key;
+  }
+
   function formatBRL(n) {
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
@@ -19,23 +50,18 @@ window.STF_STORE_PRICE = (function () {
     return config.product || null;
   }
 
-  function isLocalized() {
-    return window.STF_MONEY?.isVisitorLocalized?.() || window.STF_I18N?.isLocalized?.() || false;
-  }
-
   function productPrice(config) {
     return primaryProduct(config)?.price ?? config.product?.price ?? 62.9;
   }
 
   function buildPriceFreteLineSync(config) {
     const price = productPrice(config);
-    const frete = window.STF_I18N?.t?.('store.frete') || '+ Shipping';
-    return `${formatBRLAmount(price)} ${frete}`;
+    return `${formatBRLAmount(price)} ${t('store.frete')}`;
   }
 
   async function buildPriceFreteLine(config) {
     const price = productPrice(config);
-    const frete = window.STF_I18N?.t?.('store.frete') || '+ Shipping';
+    const frete = t('store.frete');
     if (!isLocalized() || !window.STF_MONEY) {
       return buildPriceFreteLineSync(config);
     }
@@ -52,9 +78,7 @@ window.STF_STORE_PRICE = (function () {
     const intl = methods.filter((m) => m.enabled !== false && m.scope === 'INT');
     const doc = intl.find((m) => m.simTipo === 'D' || /documento|carta/i.test(m.label || ''));
     if (doc?.label) return doc.label;
-    return intl[0]?.label || (isLocalized()
-      ? (window.STF_I18N?.t?.('shipping.intlDefault') || 'International tracked mail')
-      : 'Documento / carta internacional');
+    return intl[0]?.label || t('shipping.intlDefault');
   }
 
   function brMiniLabel(config) {
@@ -64,10 +88,7 @@ window.STF_STORE_PRICE = (function () {
   }
 
   function buildShippingChannelsLine(config) {
-    if (isLocalized()) {
-      const t = window.STF_I18N?.t;
-      return t ? t('store.shippingChannelsIntl') : 'International tracked shipping · calculated at checkout';
-    }
+    if (isLocalized()) return t('store.shippingChannelsIntl');
     const mini = brMiniLabel(config);
     return `Todo Brasil (${mini}) · São Paulo, SP (Entrega Própria) · Outros Países (Exporta Fácil)`;
   }
@@ -77,14 +98,12 @@ window.STF_STORE_PRICE = (function () {
       return buildPriceFreteLineSync(config);
     }
     const price = productPrice(config);
-    const freteLine = el?.getAttribute('data-store-price-frete-line')
-      || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
-      || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
+    const freteLine = el?.getAttribute('data-store-price-frete-line') || t('store.freteLine');
     let suffix = el?.getAttribute('data-store-price-suffix');
     if (isLocalized() && (suffix === 'PIX e cartão' || suffix === 'Mini Envios · PIX e cartão')) {
-      suffix = window.STF_I18N.t('store.intlSuffix');
+      suffix = window.STF_I18N?.t?.('store.intlSuffix') || suffix;
     } else if (isLocalized() && !suffix) {
-      suffix = window.STF_I18N.t('store.priceSuffix');
+      suffix = window.STF_I18N?.t?.('store.priceSuffix') || suffix;
     }
     let line = `${formatBRL(price)} ${freteLine}`;
     if (suffix) line += ` · ${suffix}`;
@@ -93,15 +112,13 @@ window.STF_STORE_PRICE = (function () {
 
   function buildLocalizedLine(config, el, priceText) {
     if (el?.getAttribute('data-store-price-layout') === 'split-price') {
-      const frete = window.STF_I18N?.t?.('store.frete') || '+ Shipping';
+      const frete = t('store.frete');
       const primary = priceText.includes(' (') ? priceText.split(' (')[0] : priceText;
       return `${primary} ${frete}`;
     }
-    const freteLine = el?.getAttribute('data-store-price-frete-line')
-      || (window.STF_I18N?.t ? window.STF_I18N.t('store.freteLine') : null)
-      || '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)';
+    const freteLine = el?.getAttribute('data-store-price-frete-line') || t('store.freteLine');
     let suffix = el?.getAttribute('data-store-price-suffix');
-    if (isLocalized() && !suffix) suffix = window.STF_I18N.t('store.priceSuffix');
+    if (isLocalized() && !suffix) suffix = window.STF_I18N?.t?.('store.priceSuffix') || '';
     let line = `${priceText} ${freteLine}`;
     if (suffix) line += ` · ${suffix}`;
     return line;

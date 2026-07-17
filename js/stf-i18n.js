@@ -628,10 +628,6 @@ window.STF_I18N = (function () {
   }
 
   function getLang() {
-    try {
-      const q = new URLSearchParams(location.search).get('lang');
-      if (q === 'en' || q === 'it' || q === 'pt') return q;
-    } catch (e) { /* ignore */ }
     return getPathLang();
   }
 
@@ -1068,9 +1064,7 @@ window.STF_I18N = (function () {
   function init() {
     ensureItStrings();
     try {
-      const q = new URLSearchParams(location.search).get('lang');
-      if (q === 'en' || q === 'it' || q === 'pt') setLang(q);
-      else setLang(getPathLang());
+      setLang(getPathLang());
     } catch (e) {
       setLang(getPathLang());
     }

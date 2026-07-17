@@ -39,14 +39,15 @@ window.STF_MONEY = (function () {
   }
 
   function visitorCountry() {
-    const lang = window.STF_I18N?.getLang?.() || 'pt';
-    if (lang === 'it') return 'IT';
-    if (lang === 'en') return 'US';
+    const path = typeof location !== 'undefined' ? location.pathname : '';
+    if (path.includes('/it/')) return 'IT';
+    if (path.includes('/en/')) return 'US';
     return 'BR';
   }
 
   function isVisitorLocalized() {
-    return window.STF_I18N?.isLocalized?.() || visitorCountry() !== 'BR';
+    const path = typeof location !== 'undefined' ? location.pathname : '';
+    return path.includes('/en/') || path.includes('/it/');
   }
 
   function formatBRL(n) {
