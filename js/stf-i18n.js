@@ -60,6 +60,7 @@ window.STF_I18N = (function () {
       'form.fullName': 'Nome completo',
       'form.email': 'E-mail',
       'form.whatsapp': 'WhatsApp',
+      'form.phone': 'Telefone',
       'form.cpf': 'CPF',
       'form.docOptional': 'Documento (opcional)',
       'form.watchModel': 'Modelo do smartwatch',
@@ -220,6 +221,8 @@ window.STF_I18N = (function () {
       'alert.cartEmpty': 'Seu carrinho está vazio.',
       'alert.required': 'Preencha todos os campos obrigatórios.',
       'alert.cpf': 'Informe o CPF.',
+      'alert.phoneBr': 'Informe um WhatsApp válido com DDD.',
+      'alert.phoneIntl': 'Informe um telefone internacional válido (ex.: +65 9123 4567).',
       'alert.watch': 'Selecione o modelo do smartwatch.',
       'alert.watchNotes': 'Informe o modelo do smartwatch nas observações.',
       'alert.password': 'Crie uma senha com pelo menos 6 caracteres ou desmarque "Criar conta".',
@@ -357,6 +360,7 @@ window.STF_I18N = (function () {
       'form.fullName': 'Full name',
       'form.email': 'Email',
       'form.whatsapp': 'WhatsApp',
+      'form.phone': 'Phone',
       'form.cpf': 'CPF (Brazilian tax ID)',
       'form.docOptional': 'ID document (optional)',
       'form.watchModel': 'Smartwatch model',
@@ -385,7 +389,7 @@ window.STF_I18N = (function () {
       'form.stateIntlPh': 'Optional',
       'form.streetIntlPh': 'Main Street',
       'form.numberIntlPh': '78',
-      'form.phonePh': '+1 555 000 0000',
+      'form.phonePh': '+65 9123 4567',
       'account.logged': 'Hello, {name} — you are signed in.',
       'account.ordersAt': 'Your orders are in',
       'account.myAccount': 'My Account',
@@ -519,6 +523,8 @@ window.STF_I18N = (function () {
       'alert.cartEmpty': 'Your cart is empty.',
       'alert.required': 'Please fill in all required fields.',
       'alert.cpf': 'Please enter your CPF.',
+      'alert.phoneBr': 'Please enter a valid phone number with area code.',
+      'alert.phoneIntl': 'Please enter a valid international phone (e.g. +65 9123 4567).',
       'alert.watch': 'Please select your smartwatch model.',
       'alert.watchNotes': 'Enter your smartwatch model in the notes field.',
       'alert.password': 'Create a password with at least 6 characters or uncheck "Create account".',
@@ -684,6 +690,7 @@ window.STF_I18N = (function () {
   function applyCheckoutFormPlaceholders() {
     document.querySelectorAll('[data-i18n-label]').forEach((label) => {
       if (label.id === 'cpf-label' && isLocalized()) return;
+      if (label.querySelector('[name="telefone"]') && isLocalized() && document.body?.classList.contains('checkout-page')) return;
       const key = label.dataset.i18nLabel;
       if (!key) return;
       const control = label.querySelector('input,select,textarea');

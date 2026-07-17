@@ -198,6 +198,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (isInternational) {
       els.cpfLabel.hidden = true;
       els.cpfInput.removeAttribute('required');
+      els.cpfInput.value = '';
       return;
     }
     els.cpfLabel.hidden = false;
@@ -353,6 +354,32 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const d = onlyDigits(v).slice(0, 11);
     return d.length <= 10 ? d.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3').trim()
       : d.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3').trim();
+  }
+
+  function formatPhoneInput(v, intl) {
+    if (intl) {
+      let s = String(v || '').replace(/[^\d+\s()-]/g, '');
+      const plus = s.startsWith('+');
+      s = s.replace(/\+/g, '');
+      return (plus ? '+' : '') + s.slice(0, 20);
+    }
+    return maskPhone(v);
+  }
+
+  function updatePhoneField() {
+    const input = els.form?.telefone;
+    const label = input?.closest('label');
+    if (!input || !label) return;
+    const key = isInternational ? 'form.phone' : 'form.whatsapp';
+    const text = L(key) + ' *';
+    label.classList.add('checkout-infield');
+    while (label.firstChild && label.firstChild !== input) {
+      label.removeChild(label.firstChild);
+    }
+    input.placeholder = L('form.phonePh');
+    input.setAttribute('aria-label', text);
+    input.inputMode = 'tel';
+    if (input.value) input.value = formatPhoneInput(input.value, isInternational);
   }
 
   function maskCpf(v) {
@@ -1262,6 +1289,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
     updateCardBrPaymentHint();
     updateCpfLabel();
+    updatePhoneField();
     updateSummary();
   }
 
@@ -1704,6 +1732,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!f.nome.value || !f.email.value || !f.telefone.value) {
       alert(L('alert.required')); return false;
     }
+    const phoneDigits = onlyDigits(f.telefone.value);
+    if (isInternational) {
+      if (phoneDigits.length < 8) {
+        alert(L('alert.phoneIntl')); return false;
+      }
+    } else if (phoneDigits.length < 10) {
+      alert(L('alert.phoneBr')); return false;
+    }
     if (!isInternational && !f.cpf.value) {
       alert(L('alert.cpf')); return false;
     }
@@ -2089,7 +2125,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     });
     els.cep?.addEventListener('blur', () => lookupCepFromField());
 
-    els.form.telefone?.addEventListener('input', (e) => { e.target.value = maskPhone(e.target.value); });
+    els.form.telefone?.addEventListener('input', (e) => {
+      e.target.value = formatPhoneInput(e.target.value, isInternational);
+    });
     els.form.cpf?.addEventListener('input', (e) => { if (!isInternational) e.target.value = maskCpf(e.target.value); });
 
     ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf'].forEach((field) => {
@@ -2350,6 +2388,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   async function boot() {
+    if (isLocalizedSite()) {
+      isInternational = true;
+      updateCpfLabel();
+      updatePhoneField();
+    }
     window.STF_I18N?.applyCheckoutDom?.();
     cfg = await StoreConfig.load();
       products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
@@ -2384,6 +2427,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       moeda: 'BRL'
     });
     updateCpfLabel();
+    updatePhoneField();
   }
 
   document.addEventListener('DOMContentLoaded', boot);
