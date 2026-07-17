@@ -84,6 +84,24 @@ const DEFAULT_CONFIG = {
     CO: { label: 'Colômbia', price: 64.9, days: 10, currency: 'BRL' },
     UY: { label: 'Uruguai', price: 59.9, days: 8, currency: 'BRL' },
     PY: { label: 'Paraguai', price: 54.9, days: 8, currency: 'BRL' },
+    AU: { label: 'Austrália', price: 94.9, days: 18, currency: 'BRL' },
+    NZ: { label: 'Nova Zelândia', price: 99.9, days: 20, currency: 'BRL' },
+    IE: { label: 'Irlanda', price: 94.9, days: 18, currency: 'BRL' },
+    NL: { label: 'Países Baixos', price: 94.9, days: 18, currency: 'BRL' },
+    BE: { label: 'Bélgica', price: 94.9, days: 18, currency: 'BRL' },
+    CH: { label: 'Suíça', price: 99.9, days: 16, currency: 'BRL' },
+    AT: { label: 'Áustria', price: 94.9, days: 18, currency: 'BRL' },
+    SE: { label: 'Suécia', price: 99.9, days: 20, currency: 'BRL' },
+    NO: { label: 'Noruega', price: 99.9, days: 20, currency: 'BRL' },
+    DK: { label: 'Dinamarca', price: 99.9, days: 20, currency: 'BRL' },
+    PL: { label: 'Polônia', price: 89.9, days: 16, currency: 'BRL' },
+    CZ: { label: 'República Tcheca', price: 89.9, days: 16, currency: 'BRL' },
+    JP: { label: 'Japão', price: 104.9, days: 20, currency: 'BRL' },
+    KR: { label: 'Coreia do Sul', price: 104.9, days: 20, currency: 'BRL' },
+    SG: { label: 'Singapura', price: 99.9, days: 18, currency: 'BRL' },
+    HK: { label: 'Hong Kong', price: 99.9, days: 18, currency: 'BRL' },
+    ZA: { label: 'África do Sul', price: 109.9, days: 22, currency: 'BRL' },
+    AE: { label: 'Emirados Árabes Unidos', price: 99.9, days: 18, currency: 'BRL' },
     OTHER: { label: 'Outro país', price: 119.9, days: 25, currency: 'BRL' }
   },
   internationalSurcharge: 40,
@@ -177,6 +195,8 @@ const DEFAULT_CONFIG = {
     commissionerWelcomeSubject: 'Seu cupom {code} está ativo — divulgue Sensor Tattoo Fix',
     testSubject: 'Teste — Sensor Tattoo Fix',
     testTo: '',
+    monthlyReportSubject: 'Relatório mensal — {month}/{year} — Sensor Tattoo Fix',
+    monthlyReportTo: '',
     pendingPaypal: 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.',
     pendingCard: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
     pendingMpCheckout: 'Finalize o pagamento com cartão no Mercado Pago (Visa/Mastercard). Seu banco pode converter de USD/EUR para reais.',
@@ -1468,7 +1488,7 @@ function publicProductFields(p, config) {
   return row;
 }
 
-function publicConfigView(config) {
+function publicConfigView(config, env) {
   const products = getActiveProducts(config).map((p) => publicProductFields(p, config));
   const primary = products.find((p) => !p.aggregated) || products[0] || config.product;
   const paypal = config.payments?.paypal || {};
@@ -1509,6 +1529,11 @@ function publicConfigView(config) {
     whatsapp: config.whatsapp || DEFAULT_CONFIG.whatsapp,
     siteUrl: config.siteUrl || DEFAULT_CONFIG.siteUrl,
     api: { baseUrl: config.api?.baseUrl || DEFAULT_CONFIG.api.baseUrl },
+    integrations: {
+      googlePlaces: {
+        apiKey: String(env.GOOGLE_PLACES_API_KEY || config.integrations?.googlePlaces?.apiKey || '').trim()
+      }
+    },
     updatedAt: config.updatedAt || null
   };
 }
@@ -1559,6 +1584,24 @@ function clientIp(request) {
   return request.headers.get('CF-Connecting-IP') ||
     (request.headers.get('X-Forwarded-For') || '').split(',')[0].trim() ||
     'unknown';
+}
+
+function extractClickGeo(request) {
+  const cf = request.cf || {};
+  const pais = String(cf.country || request.headers.get('CF-IPCountry') || '').trim().toUpperCase().slice(0, 12);
+  const regionCode = String(cf.regionCode || '').trim().slice(0, 12);
+  const regionName = String(cf.region || '').trim().slice(0, 48);
+  const estado = (regionCode || regionName).slice(0, 48);
+  const cidade = String(cf.city || '').trim().slice(0, 48);
+  let paisNome = '';
+  if (pais) {
+    try {
+      paisNome = new Intl.DisplayNames(['pt-BR'], { type: 'region' }).of(pais) || pais;
+    } catch {
+      paisNome = pais;
+    }
+  }
+  return { pais, pais_nome: paisNome.slice(0, 48), estado, cidade };
 }
 
 function generateOrderId() {
@@ -6835,7 +6878,7 @@ function clickField(data, key, maxLen, fallback) {
 
 function buildClickEntry(data, request) {
   const ip = clientIp(request);
-  const paisCf = (request.headers.get('CF-IPCountry') || '').trim();
+  const geo = extractClickGeo(request);
   return {
     tipo: clickField(data, 'tipo', 24, 'clique'),
     destino: clickField(data, 'destino', 48),
@@ -6856,7 +6899,10 @@ function buildClickEntry(data, request) {
     sequencia: Math.max(0, Math.min(9999, parseInt(data?.sequencia, 10) || 0)),
     cliente_nome: clickField(data, 'cliente_nome', 80),
     cliente_email: clickField(data, 'cliente_email', 120),
-    pais: clickField(data, 'pais', 12, paisCf),
+    pais: clickField(data, 'pais', 12, geo.pais),
+    pais_nome: clickField(data, 'pais_nome', 48, geo.pais_nome),
+    estado: clickField(data, 'estado', 48, geo.estado),
+    cidade: clickField(data, 'cidade', 48, geo.cidade),
     ip: ip !== 'unknown' ? ip : '',
     ip_prefix: ip !== 'unknown' && ip.includes('.') ? ip.split('.').slice(0, 2).join('.') + '.x.x' : '',
     client_ts: Math.max(0, parseInt(data?.client_ts, 10) || 0),
@@ -7091,6 +7137,7 @@ async function handleAdminListClicks(request, env, origin) {
       const hay = [
         row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
         row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo, row.ip, row.ip_prefix,
+        row.pais, row.pais_nome, row.estado, row.cidade,
         row.origem_trafego, row.origem_trafego_label, row.utm_source, row.utm_medium, row.utm_campaign
       ].join(' ').toLowerCase();
       if (!hay.includes(q)) continue;
@@ -7642,6 +7689,281 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
 const CORREIOS_TRACKING_CRON_STALE_MS = 30 * 60 * 1000;
 const CORREIOS_TRACKING_CRON_MAX = 40;
 
+const SAO_PAULO_TZ = 'America/Sao_Paulo';
+const MONTHLY_REPORT_KV_PREFIX = 'report:monthly:';
+const MARKETPLACE_DESTINOS = {
+  mercado_livre: 'Mercado Livre',
+  shopee: 'Shopee',
+  tiktok_shop: 'TikTok Shop',
+  amazon: 'Amazon'
+};
+const MONTH_NAMES_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+function tsToSaoPauloParts(isoOrMs) {
+  const d = typeof isoOrMs === 'number' ? new Date(isoOrMs) : new Date(String(isoOrMs || ''));
+  if (Number.isNaN(d.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: SAO_PAULO_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(d);
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  return {
+    year: Number(get('year')),
+    month: Number(get('month')),
+    day: Number(get('day'))
+  };
+}
+
+function isTsInSaoPauloMonth(isoOrMs, year, month) {
+  const p = tsToSaoPauloParts(isoOrMs);
+  return !!p && p.year === year && p.month === month;
+}
+
+function isLastDayOfMonthInSaoPaulo(now = new Date()) {
+  const tomorrow = new Date(now.getTime() + 86400000);
+  const p = tsToSaoPauloParts(tomorrow);
+  return !!p && p.day === 1;
+}
+
+function currentMonthYearSaoPaulo(now = new Date()) {
+  const p = tsToSaoPauloParts(now);
+  return p ? { year: p.year, month: p.month } : { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1 };
+}
+
+function monthLabelPt(year, month) {
+  const name = MONTH_NAMES_PT[month - 1] || String(month);
+  return `${name}/${year}`;
+}
+
+function lastDayOfMonth(year, month) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function sumMoney(values) {
+  return values.reduce((acc, n) => acc + (Number(n) || 0), 0);
+}
+
+function normalizePaymentLabel(pagamento) {
+  const p = String(pagamento || '').trim().toLowerCase();
+  if (!p) return 'Outro';
+  if (p.includes('pix')) return 'PIX';
+  if (p.includes('paypal')) return 'PayPal';
+  if (p.includes('cart') || p.includes('card') || p.includes('credito') || p.includes('crédito') || p.includes('asaas') || p.includes('mercado')) {
+    return 'Cartão';
+  }
+  return pagamento || 'Outro';
+}
+
+async function aggregateMonthlyMarketplaceClicks(env, year, month) {
+  const blob = (await getClicksBlob(env)) || [];
+  const counts = Object.fromEntries(Object.keys(MARKETPLACE_DESTINOS).map((k) => [k, 0]));
+  let total = 0;
+  for (const row of blob) {
+    if (!isRealClick(row)) continue;
+    const destino = String(row.destino || '').trim();
+    if (!MARKETPLACE_DESTINOS[destino]) continue;
+    const ts = row.ts || row.client_ts;
+    if (!isTsInSaoPauloMonth(ts, year, month)) continue;
+    counts[destino] += 1;
+    total += 1;
+  }
+  return { counts, total, sampleSize: blob.length };
+}
+
+async function aggregateMonthlyOrders(env, year, month) {
+  let index = await readOrdersIndex(env);
+  if (!index.length) index = await rebuildOrdersIndexFromKv(env);
+
+  const pending = { count: 0, total: 0, produto: 0, frete: 0 };
+  const created = { count: 0, total: 0 };
+  const paid = { count: 0, total: 0, produto: 0, frete: 0, byPayment: {} };
+
+  for (const item of index) {
+    const createdInMonth = isTsInSaoPauloMonth(item.createdAt, year, month);
+    if (createdInMonth) {
+      created.count += 1;
+      created.total += Number(item.total) || 0;
+      if (item.status === 'pending_payment') {
+        pending.count += 1;
+        pending.total += Number(item.total) || 0;
+        pending.produto += Number(item.valorProduto) || 0;
+        pending.frete += Number(item.frete) || 0;
+      }
+    }
+
+    if (item.status !== 'paid') continue;
+    const order = await getOrder(env, item.orderId);
+    if (!order?.paidAt || !isTsInSaoPauloMonth(order.paidAt, year, month)) continue;
+
+    paid.count += 1;
+    paid.total += Number(order.total) || 0;
+    paid.produto += Number(order.valorProduto) || 0;
+    paid.frete += Number(order.frete) || 0;
+    const payKey = normalizePaymentLabel(order.pagamento);
+    if (!paid.byPayment[payKey]) paid.byPayment[payKey] = { count: 0, total: 0 };
+    paid.byPayment[payKey].count += 1;
+    paid.byPayment[payKey].total += Number(order.total) || 0;
+  }
+
+  const conversionPct = created.count
+    ? Math.round((paid.count / created.count) * 1000) / 10
+    : 0;
+
+  return { pending, created, paid, conversionPct };
+}
+
+async function buildMonthlyReport(env, year, month) {
+  const [clicks, orders] = await Promise.all([
+    aggregateMonthlyMarketplaceClicks(env, year, month),
+    aggregateMonthlyOrders(env, year, month)
+  ]);
+  return {
+    year,
+    month,
+    label: monthLabelPt(year, month),
+    periodStart: `01/${String(month).padStart(2, '0')}/${year}`,
+    periodEnd: `${String(lastDayOfMonth(year, month)).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`,
+    clicks,
+    orders,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+function buildMonthlyReportFields(report) {
+  const fields = {
+    Período: `${report.periodStart} a ${report.periodEnd} (horário de Brasília)`,
+    '— Marketplaces —': '',
+    'Mercado Livre (cliques)': String(report.clicks.counts.mercado_livre || 0),
+    'Shopee (cliques)': String(report.clicks.counts.shopee || 0),
+    'TikTok Shop (cliques)': String(report.clicks.counts.tiktok_shop || 0),
+    'Amazon (cliques)': String(report.clicks.counts.amazon || 0),
+    'Total cliques marketplaces': String(report.clicks.total || 0),
+    '— Loja oficial —': '',
+    'Pedidos criados no mês': String(report.orders.created.count),
+    'Possíveis compras (aguardando pagamento)': `${report.orders.pending.count} — ${formatBRL(report.orders.pending.total)}`,
+    'Valor produtos (pendentes)': formatBRL(report.orders.pending.produto),
+    'Frete (pendentes)': formatBRL(report.orders.pending.frete),
+    'Compras realizadas (pagas no mês)': `${report.orders.paid.count} — ${formatBRL(report.orders.paid.total)}`,
+    'Valor produtos (pagos)': formatBRL(report.orders.paid.produto),
+    'Frete (pagos)': formatBRL(report.orders.paid.frete),
+    'Taxa de conversão (pagos / criados)': `${report.orders.conversionPct}%`
+  };
+
+  for (const [pay, data] of Object.entries(report.orders.paid.byPayment).sort((a, b) => b[1].count - a[1].count)) {
+    fields[`Pagamento — ${pay}`] = `${data.count} pedido(s) — ${formatBRL(data.total)}`;
+  }
+
+  return fields;
+}
+
+function buildMonthlyReportHtml(report) {
+  const marketplaceRows = Object.entries(MARKETPLACE_DESTINOS)
+    .map(([slug, label]) => {
+      const n = report.clicks.counts[slug] || 0;
+      return `<tr><td style="padding:8px;border:1px solid #ddd">${label}</td><td style="padding:8px;border:1px solid #ddd;text-align:right;font-weight:700">${n}</td></tr>`;
+    })
+    .join('');
+
+  const paymentRows = Object.entries(report.orders.paid.byPayment)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([pay, data]) =>
+      `<tr><td style="padding:8px;border:1px solid #ddd">${pay}</td><td style="padding:8px;border:1px solid #ddd;text-align:right">${data.count}</td><td style="padding:8px;border:1px solid #ddd;text-align:right">${formatBRL(data.total)}</td></tr>`
+    )
+    .join('') || '<tr><td colspan="3" style="padding:8px;border:1px solid #ddd;color:#666">Nenhuma compra paga no período</td></tr>';
+
+  return `<div style="font-family:Arial,sans-serif;max-width:640px;color:#222">
+    <h2 style="margin:0 0 8px;color:#111">Relatório mensal — ${report.label}</h2>
+    <p style="margin:0 0 20px;color:#555">Período: ${report.periodStart} a ${report.periodEnd} (horário de Brasília)</p>
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Marketplaces — cliques outbound</h3>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      <tr style="background:#f5f5f5"><th style="padding:8px;border:1px solid #ddd;text-align:left">Canal</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Cliques</th></tr>
+      ${marketplaceRows}
+      <tr style="background:#fafafa"><td style="padding:8px;border:1px solid #ddd;font-weight:700">Total</td><td style="padding:8px;border:1px solid #ddd;text-align:right;font-weight:700">${report.clicks.total}</td></tr>
+    </table>
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — possíveis compras</h3>
+    <p style="margin:0 0 16px">Pedidos criados no mês aguardando pagamento: <strong>${report.orders.pending.count}</strong> — total <strong>${formatBRL(report.orders.pending.total)}</strong><br>
+    Produtos: ${formatBRL(report.orders.pending.produto)} · Frete: ${formatBRL(report.orders.pending.frete)}</p>
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — compras realizadas</h3>
+    <p style="margin:0 0 8px">Pagamentos confirmados no mês: <strong>${report.orders.paid.count}</strong> — total <strong>${formatBRL(report.orders.paid.total)}</strong><br>
+    Produtos: ${formatBRL(report.orders.paid.produto)} · Frete: ${formatBRL(report.orders.paid.frete)}</p>
+    <p style="margin:0 0 16px">Pedidos criados no mês: ${report.orders.created.count} · Conversão (pagos/criados): <strong>${report.orders.conversionPct}%</strong></p>
+
+    <table style="border-collapse:collapse;width:100%;margin-bottom:24px">
+      <tr style="background:#f5f5f5"><th style="padding:8px;border:1px solid #ddd;text-align:left">Pagamento</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Qtd</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Total</th></tr>
+      ${paymentRows}
+    </table>
+
+    <p style="color:#666;font-size:12px;margin:0">Sensor Tattoo Fix — sensortattoofix.com.br · gerado automaticamente</p>
+  </div>`;
+}
+
+async function sendMonthlyReportEmail(env, config, year, month, { force = false } = {}) {
+  const key = `${MONTHLY_REPORT_KV_PREFIX}${year}-${String(month).padStart(2, '0')}`;
+  if (!force) {
+    const sent = await env.STORE_KV.get(key);
+    if (sent) return { ok: true, skipped: true, reason: 'already_sent', key };
+  }
+
+  const report = await buildMonthlyReport(env, year, month);
+  const monthName = MONTH_NAMES_PT[month - 1] || String(month);
+  const subject = emailSubject(config, 'monthlyReportSubject', { month: monthName, year: String(year) });
+  const to = (getEmails(config).monthlyReportTo || config.formsubmit?.email || '').trim();
+  if (!to) return { ok: false, error: 'E-mail de destino não configurado (formsubmit.email).' };
+
+  const fields = buildMonthlyReportFields(report);
+  const html = buildMonthlyReportHtml(report);
+  const result = await notifyEmail(env, config, to, subject, fields, undefined, {
+    html,
+    text: fieldsToText(fields)
+  });
+
+  if (result.ok) {
+    await env.STORE_KV.put(key, JSON.stringify({
+      sentAt: new Date().toISOString(),
+      to,
+      report: {
+        clicks: report.clicks.total,
+        pending: report.orders.pending.count,
+        paid: report.orders.paid.count
+      }
+    }));
+  }
+
+  return { ok: result.ok, to, subject, report, ...result };
+}
+
+async function runScheduledMonthlyReportIfDue(env) {
+  if (!isLastDayOfMonthInSaoPaulo()) {
+    return { ok: true, skipped: true, reason: 'not_last_day' };
+  }
+  const { year, month } = currentMonthYearSaoPaulo();
+  const result = await sendMonthlyReportEmail(env, await getConfig(env), year, month);
+  console.log('Monthly report cron:', JSON.stringify({ year, month, ...result }));
+  return result;
+}
+
+async function handleAdminMonthlyReport(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const config = await getConfig(env);
+  const body = await request.json().catch(() => ({}));
+  const now = currentMonthYearSaoPaulo();
+  const year = Number(body.year) || now.year;
+  const month = Number(body.month) || now.month;
+  if (month < 1 || month > 12) return json({ error: 'Mês inválido.' }, 400, origin);
+  const result = await sendMonthlyReportEmail(env, config, year, month, { force: !!body.force });
+  return json(result, result.ok ? 200 : 502, origin);
+}
+
 async function runScheduledCorreiosTrackingSync(env) {
   const token = await getCorreiosToken(env);
   if (!token) {
@@ -7727,7 +8049,11 @@ export default {
 
     try {
       if (path === '/config' && request.method === 'GET') {
-        return json(publicConfigView(await getPublicConfig(env)), 200, origin);
+        return json(publicConfigView(await getPublicConfig(env), env), 200, origin);
+      }
+      if (path === '/visitor/geo' && request.method === 'GET') {
+        const geo = extractClickGeo(request);
+        return json({ country: geo.pais || null }, 200, origin);
       }
       if (path === '/admin/config' && request.method === 'GET') return handleAdminGetConfig(request, env, origin);
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
@@ -7859,5 +8185,12 @@ export default {
         console.error('Correios tracking cron failed:', err.message);
       })
     );
+    if (event.cron === '30 2 * * *') {
+      ctx.waitUntil(
+        runScheduledMonthlyReportIfDue(env).catch((err) => {
+          console.error('Monthly report cron failed:', err.message);
+        })
+      );
+    }
   }
 };

@@ -1187,6 +1187,114 @@
       "days": 8,
       "currency": "BRL"
     },
+    "AU": {
+      "label": "Austrália",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "NZ": {
+      "label": "Nova Zelândia",
+      "price": 99.9,
+      "days": 20,
+      "currency": "BRL"
+    },
+    "IE": {
+      "label": "Irlanda",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "NL": {
+      "label": "Países Baixos",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "BE": {
+      "label": "Bélgica",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "CH": {
+      "label": "Suíça",
+      "price": 99.9,
+      "days": 16,
+      "currency": "BRL"
+    },
+    "AT": {
+      "label": "Áustria",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "SE": {
+      "label": "Suécia",
+      "price": 99.9,
+      "days": 20,
+      "currency": "BRL"
+    },
+    "NO": {
+      "label": "Noruega",
+      "price": 99.9,
+      "days": 20,
+      "currency": "BRL"
+    },
+    "DK": {
+      "label": "Dinamarca",
+      "price": 99.9,
+      "days": 20,
+      "currency": "BRL"
+    },
+    "PL": {
+      "label": "Polônia",
+      "price": 89.9,
+      "days": 16,
+      "currency": "BRL"
+    },
+    "CZ": {
+      "label": "República Tcheca",
+      "price": 89.9,
+      "days": 16,
+      "currency": "BRL"
+    },
+    "JP": {
+      "label": "Japão",
+      "price": 104.9,
+      "days": 20,
+      "currency": "BRL"
+    },
+    "KR": {
+      "label": "Coreia do Sul",
+      "price": 104.9,
+      "days": 20,
+      "currency": "BRL"
+    },
+    "SG": {
+      "label": "Singapura",
+      "price": 99.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "HK": {
+      "label": "Hong Kong",
+      "price": 99.9,
+      "days": 18,
+      "currency": "BRL"
+    },
+    "ZA": {
+      "label": "África do Sul",
+      "price": 109.9,
+      "days": 22,
+      "currency": "BRL"
+    },
+    "AE": {
+      "label": "Emirados Árabes Unidos",
+      "price": 99.9,
+      "days": 18,
+      "currency": "BRL"
+    },
     "OTHER": {
       "label": "Outro país",
       "price": 119.9,

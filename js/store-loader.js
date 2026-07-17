@@ -75,6 +75,13 @@ window.StoreConfig = (function () {
           let merged = local && window.STF_PRODUCT_MERGE
             ? window.STF_PRODUCT_MERGE.mergeConfig(apiConfig, local)
             : { ...apiConfig };
+          if (local?.smartwatchModels?.length) {
+            const apiModels = apiConfig.smartwatchModels || [];
+            if (apiModels.length < local.smartwatchModels.length) {
+              const union = [...new Set([...apiModels, ...local.smartwatchModels])];
+              merged.smartwatchModels = union;
+            }
+          }
           const config = applyDerivedFields(
             {
               ...merged,

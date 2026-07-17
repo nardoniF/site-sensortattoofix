@@ -1008,6 +1008,15 @@ ${worksheets}
     return `unk:${c.sessao_visita || c.id || 'x'}`;
   }
 
+  function formatClickGeo(c) {
+    const parts = [];
+    if (c.cidade) parts.push(c.cidade);
+    if (c.estado) parts.push(c.estado);
+    const pais = c.pais_nome || c.pais || '';
+    if (pais) parts.push(pais);
+    return parts.join(', ');
+  }
+
   function visitorLabel(meta) {
     if (meta.cliente_email) {
       return meta.cliente_nome
@@ -1016,8 +1025,10 @@ ${worksheets}
     }
     if (meta.visitante_id) {
       const ip = meta.ip_prefix || maskIp(meta.ip);
-      return ip
-        ? `Visitante ${meta.visitante_id.slice(0, 12)}… · ${ip}`
+      const geo = formatClickGeo(meta);
+      const suffix = [geo, ip].filter(Boolean).join(' · ');
+      return suffix
+        ? `Visitante ${meta.visitante_id.slice(0, 12)}… · ${suffix}`
         : `Visitante ${meta.visitante_id.slice(0, 16)}…`;
     }
     if (meta.ip) return `IP ${maskIp(meta.ip)}`;
@@ -1222,6 +1233,7 @@ ${worksheets}
     const seq = c.sequencia || idx + 1;
     const tipParts = [
       isEntrada ? `Origem: ${origem.label}` : null,
+      formatClickGeo(c) && `Local: ${formatClickGeo(c)}`,
       c.utm_campaign && `Campanha: ${c.utm_campaign}`,
       c.utm_source && `utm_source: ${c.utm_source}`,
       c.utm_medium && `utm_medium: ${c.utm_medium}`,
@@ -1232,11 +1244,13 @@ ${worksheets}
       c.referrer && c.referrer !== origem.label ? `Referrer: ${humanizarReferrerAdmin(c.referrer)}` : null
     ].filter(Boolean);
     const origemClass = isEntrada ? ` clicks-tree-step-origem clicks-origem--${escapeHtml(origem.slug || 'outro')}` : '';
+    const geo = formatClickGeo(c);
     return `<li class="clicks-tree-step" title="${escapeHtml(tipParts.join(' · '))}">
       <span class="clicks-tree-step-num">${seq}</span>
       <span class="clicks-tree-step-time">${escapeHtml(hora)}</span>
       <span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(dest)}</span>
       <span class="clicks-tree-step-label${origemClass}">${escapeHtml(detalhe || '—')}</span>
+      ${geo ? `<span class="clicks-tree-step-geo">${escapeHtml(geo)}</span>` : ''}
     </li>`;
   }
 

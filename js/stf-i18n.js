@@ -683,6 +683,7 @@ window.STF_I18N = (function () {
   /** Labels dentro do campo (placeholder) — PT e EN */
   function applyCheckoutFormPlaceholders() {
     document.querySelectorAll('[data-i18n-label]').forEach((label) => {
+      if (label.id === 'cpf-label' && isLocalized()) return;
       const key = label.dataset.i18nLabel;
       if (!key) return;
       const control = label.querySelector('input,select,textarea');

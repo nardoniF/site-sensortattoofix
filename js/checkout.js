@@ -195,17 +195,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function updateCpfLabel() {
     if (!els.cpfLabel || !els.cpfInput) return;
-    const key = isInternational ? 'form.docOptional' : 'form.cpf';
-    const required = !isInternational;
-    const text = L(key) + (required ? ' *' : '');
+    if (isInternational) {
+      els.cpfLabel.hidden = true;
+      els.cpfInput.removeAttribute('required');
+      return;
+    }
+    els.cpfLabel.hidden = false;
+    const key = 'form.cpf';
+    const required = true;
+    const text = L(key) + ' *';
     els.cpfLabel.classList.add('checkout-infield');
     while (els.cpfLabel.firstChild && els.cpfLabel.firstChild !== els.cpfInput) {
       els.cpfLabel.removeChild(els.cpfLabel.firstChild);
     }
     els.cpfInput.placeholder = text;
     els.cpfInput.setAttribute('aria-label', text);
-    if (required) els.cpfInput.setAttribute('required', '');
-    else els.cpfInput.removeAttribute('required');
+    els.cpfInput.setAttribute('required', '');
   }
 
   let cfg, products = [];
@@ -1074,6 +1079,23 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return L('watch.groupOthers');
   }
 
+  function intlCountryLocale() {
+    const lang = (document.documentElement.lang || '').toLowerCase();
+    if (lang.startsWith('it')) return 'it';
+    if (lang.startsWith('en')) return 'en';
+    return 'pt-BR';
+  }
+
+  function intlCountryLabel(code, ptLabel) {
+    if (!isLocalizedSite()) return ptLabel || code;
+    try {
+      const dn = new Intl.DisplayNames([intlCountryLocale()], { type: 'region' });
+      return dn.of(code) || ptLabel || code;
+    } catch {
+      return ptLabel || code;
+    }
+  }
+
   function defaultIntlCountry() {
     const lang = (document.documentElement.lang || '').toLowerCase();
     if (lang.startsWith('it')) return 'IT';
@@ -1081,8 +1103,23 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return null;
   }
 
-  function initializeLocalizedCheckout() {
-    const def = defaultIntlCountry();
+  async function resolveDefaultIntlCountry() {
+    const base = apiBase() || (window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
+    if (base) {
+      try {
+        const res = await fetch(`${base}/visitor/geo`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          const code = String(data.country || '').trim().toUpperCase();
+          if (code && code !== 'BR' && code !== 'XX' && code !== 'T1') return code;
+        }
+      } catch { /* geo indisponível */ }
+    }
+    return defaultIntlCountry();
+  }
+
+  async function initializeLocalizedCheckout() {
+    const def = await resolveDefaultIntlCountry();
     if (!def || !els.paisCode) return;
     const has = [...els.paisCode.options].some((o) => o.value === def);
     if (!has || els.paisCode.value !== 'BR') return;
@@ -1111,12 +1148,20 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     });
 
     const intl = cfg.internationalShipping || {};
-    Object.entries(intl).forEach(([code, z]) => {
-      if (code === 'OTHER') return;
-      const o = document.createElement('option');
-      o.value = code; o.textContent = z.label;
-      els.paisCode.appendChild(o);
-    });
+    while (els.paisCode.options.length > 1) {
+      els.paisCode.remove(1);
+    }
+    const locale = intlCountryLocale();
+    Object.entries(intl)
+      .filter(([code]) => code !== 'OTHER')
+      .map(([code, z]) => ({ code, label: intlCountryLabel(code, z.label) }))
+      .sort((a, b) => a.label.localeCompare(b.label, locale))
+      .forEach(({ code, label }) => {
+        const o = document.createElement('option');
+        o.value = code;
+        o.textContent = label;
+        els.paisCode.appendChild(o);
+      });
     const other = document.createElement('option');
     other.value = 'OTHER'; other.textContent = L('country.other');
     els.paisCode.appendChild(other);
@@ -2018,7 +2063,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function bindEvents() {
     bindPasswordToggles();
-    els.paisCode.addEventListener('change', toggleAddressForm);
+    els.paisCode.addEventListener('change', () => {
+      toggleAddressForm();
+      window.STF_ADDRESS_AUTOCOMPLETE?.rebind?.();
+    });
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
       r.addEventListener('change', () => updateSummary());
     });
@@ -2307,7 +2355,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
       window.STF_CART?.syncPrices?.(products);
       populateSelects();
-      initializeLocalizedCheckout();
+      updateSmartwatchVisibility();
+      await initializeLocalizedCheckout();
     window.STF_CART?.initBadges();
     const mpDone = await handleMercadoPagoReturn();
     const paypalDone = mpDone ? false : await handlePayPalReturn();
@@ -2334,6 +2383,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       valor_produto: cartSubtotal() || cfg.product?.price || 62.9,
       moeda: 'BRL'
     });
+    updateCpfLabel();
   }
 
   document.addEventListener('DOMContentLoaded', boot);
