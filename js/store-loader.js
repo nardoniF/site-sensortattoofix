@@ -75,13 +75,6 @@ window.StoreConfig = (function () {
           let merged = local && window.STF_PRODUCT_MERGE
             ? window.STF_PRODUCT_MERGE.mergeConfig(apiConfig, local)
             : { ...apiConfig };
-          if (local?.smartwatchModels?.length) {
-            const apiModels = apiConfig.smartwatchModels || [];
-            if (apiModels.length < local.smartwatchModels.length) {
-              const union = [...new Set([...apiModels, ...local.smartwatchModels])];
-              merged.smartwatchModels = union;
-            }
-          }
           const config = applyDerivedFields(
             {
               ...merged,
@@ -96,6 +89,21 @@ window.StoreConfig = (function () {
                 shippingMethods: apiConfig.shippingMethods?.length
                   ? apiConfig.shippingMethods
                   : local.shippingMethods,
+                smartwatchModels: (() => {
+                  const apiList = apiConfig.smartwatchModels || [];
+                  const localList = local.smartwatchModels || [];
+                  if (!apiList.length) return localList;
+                  if (!localList.length || apiList.length >= localList.length) return apiList;
+                  const seen = new Set(apiList);
+                  const out = [...apiList];
+                  localList.forEach((m) => {
+                    if (!seen.has(m)) {
+                      out.push(m);
+                      seen.add(m);
+                    }
+                  });
+                  return out;
+                })(),
                 payments: local.payments
                   ? {
                     ...apiConfig.payments,

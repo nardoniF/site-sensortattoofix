@@ -629,7 +629,16 @@ window.STF_I18N = (function () {
     }
   }
 
+  function isComHost() {
+    const h = String(location.hostname || '').toLowerCase();
+    return (h === 'sensortattoofix.com' || h === 'www.sensortattoofix.com');
+  }
+
   function getPathLang() {
+    if (isComHost()) {
+      if (location.pathname.includes('/it/')) return 'it';
+      return 'en';
+    }
     if (location.pathname.includes('/it/')) return 'it';
     if (location.pathname.includes('/en/')) return 'en';
     return 'pt';
@@ -746,10 +755,12 @@ window.STF_I18N = (function () {
   }
 
   function inLangDir() {
+    if (isComHost()) return true;
     return location.pathname.includes('/en/') || location.pathname.includes('/it/');
   }
 
   function inEnDir() {
+    if (isComHost() && !location.pathname.includes('/it/')) return true;
     return location.pathname.includes('/en/');
   }
 
