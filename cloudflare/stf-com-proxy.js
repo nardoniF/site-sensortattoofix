@@ -1,9 +1,8 @@
-/**
- * Cloudflare Worker — sensortattoofix.com
- * Origem: jsDelivr (GitHub) — evita loop com redirect /en no .br
- */
 const GITHUB_ORIGIN = 'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@main';
 const COM_ORIGIN = 'https://www.sensortattoofix.com';
+const BR_ORIGIN = 'https://www.sensortattoofix.com.br';
+const STF_COM_HOST_JS =
+  "(function(){if(location.hostname==='sensortattoofix.com'){location.replace('https://www.sensortattoofix.com'+location.pathname+location.search+location.hash);}})();";
 
 function isStaticAsset(pathname) {
   return (
@@ -13,17 +12,15 @@ function isStaticAsset(pathname) {
     pathname.startsWith('/produtos/') ||
     pathname.startsWith('/stf-') ||
     pathname === '/style.css' ||
+    pathname === '/favicon.ico' ||
     /\.(css|js|json|xml|ico|jpg|jpeg|png|gif|webp|svg|woff2?|ttf|map)$/i.test(pathname)
   );
 }
 
 function mapPath(pathname) {
-  if (/^\/it\/it(\/|$)/.test(pathname)) {
-    return pathname.replace(/^\/it\/it/, '/it');
-  }
   if (isStaticAsset(pathname)) return pathname;
-  if (pathname.startsWith('/it/')) return pathname;
   if (pathname === '/it' || pathname === '/it/') return '/it/index.html';
+  if (pathname.startsWith('/it/')) return pathname;
   if (pathname.startsWith('/en/')) {
     const rest = pathname.slice(3) || '/';
     return rest === '/' ? '/en/index.html' : '/en' + rest;
@@ -35,19 +32,78 @@ function mapPath(pathname) {
   return '/en' + pathname;
 }
 
-function baseHref(originPath) {
-  if (originPath.startsWith('/it/') || originPath === '/it/index.html') {
-    return `${COM_ORIGIN}/it/`;
-  }
-  return `${COM_ORIGIN}/`;
+function pageFileFromOrigin(originPath) {
+  let rest = originPath;
+  if (rest.startsWith('/it/')) rest = rest.slice(3);
+  else if (rest.startsWith('/en/')) rest = rest.slice(3);
+  else rest = rest.replace(/^\//, '');
+  rest = rest.replace(/^\/+/, '');
+  if (!rest || rest === 'index.html') return 'index.html';
+  return rest;
 }
 
-function looksLikeHtml(pathname, contentType, bodyStart) {
-  if (pathname.endsWith('.html') || pathname === '/' || pathname === '' || pathname.endsWith('/')) {
-    return true;
+function brPtUrl(originPath) {
+  const f = pageFileFromOrigin(originPath);
+  return f === 'index.html' ? BR_ORIGIN + '/' : BR_ORIGIN + '/' + f;
+}
+
+function comEnUrl(originPath) {
+  const f = pageFileFromOrigin(originPath);
+  return f === 'index.html' ? COM_ORIGIN + '/' : COM_ORIGIN + '/' + f;
+}
+
+function comItUrl(originPath) {
+  const f = pageFileFromOrigin(originPath);
+  return f === 'index.html' ? COM_ORIGIN + '/it/' : COM_ORIGIN + '/it/' + f;
+}
+
+function isJsDelivrListing(html) {
+  return /CDN by jsDelivr/i.test(html) && /CDN files/i.test(html);
+}
+
+function fixNavLangHrefs(html, originPath) {
+  return html.replace(
+    /<a\b([^>]*\bclass="[^"]*nav-lang[^"]*"[^>]*)>([\s\S]*?)<\/a>/gi,
+    (match, attrs, inner) => {
+      let href = comEnUrl(originPath);
+      if (/br\.png/i.test(inner)) href = brPtUrl(originPath);
+      else if (/it\.png/i.test(inner)) href = comItUrl(originPath);
+      else if (/us\.png/i.test(inner)) href = comEnUrl(originPath);
+      const clean = attrs.replace(/\shref="[^"]*"/i, '').trim();
+      return `<a href="${href}" ${clean}>${inner}</a>`;
+    }
+  );
+}
+
+function patchHtml(html, originPath) {
+  html = html.replace(/<script[^>]+stf-com-host\.js[^>]*>\s*<\/script>\s*/gi, '');
+  html = html.replace(/(href|src)=["']\.\.\/([^"']+)["']/gi, '$1="/$2"');
+  html = fixNavLangHrefs(html, originPath);
+  const baseHref = originPath.startsWith('/it/') ? `${COM_ORIGIN}/it/` : `${COM_ORIGIN}/`;
+  if (!/<base\s/i.test(html)) {
+    html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
   }
-  if ((contentType || '').includes('text/html')) return true;
-  return /^<!DOCTYPE html/i.test(bodyStart || '');
+  if (!/stf-lang-nav\.js/i.test(html)) {
+    html = html.replace(/<head([^>]*)>/i, `<head$1><script src="/js/stf-lang-nav.js?v=2"></script>`);
+  }
+  return html;
+}
+
+function mimeFor(pathname) {
+  if (pathname.endsWith('.css')) return 'text/css; charset=utf-8';
+  if (pathname.endsWith('.js')) return 'application/javascript; charset=utf-8';
+  if (pathname.endsWith('.json')) return 'application/json; charset=utf-8';
+  if (pathname.endsWith('.svg')) return 'image/svg+xml';
+  if (/\.(png|jpg|jpeg|gif|webp|ico)$/i.test(pathname)) return undefined;
+  return 'application/octet-stream';
+}
+
+async function fetchOrigin(originPath, search) {
+  return fetch(GITHUB_ORIGIN + originPath + search, {
+    method: 'GET',
+    headers: { Accept: '*/*', 'User-Agent': 'stf-com-proxy' },
+    redirect: 'manual',
+  });
 }
 
 export default {
@@ -59,54 +115,53 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
 
-    if (/^\/it\/it(\/|$)/.test(url.pathname) || /^\/it\/+\/it/.test(url.pathname)) {
-      const fixed = url.pathname.replace(/^\/it\/+it/, '/it').replace(/\/it\/\/+/g, '/it/');
-      return Response.redirect(COM_ORIGIN + fixed + url.search, 301);
-    }
-
     if (url.pathname.startsWith('/en/') || url.pathname === '/en') {
       const stripped = url.pathname.replace(/^\/en/, '') || '/';
       return Response.redirect(new URL(stripped + url.search, url.origin).toString(), 301);
     }
 
-    const originPath = mapPath(url.pathname);
-    const target = GITHUB_ORIGIN + originPath + url.search;
-
-    const res = await fetch(target, {
-      method: 'GET',
-      headers: {
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'User-Agent': 'stf-com-proxy',
-      },
-      redirect: 'follow',
-    });
-
-    if (!res.ok) {
-      return new Response('Not found', { status: res.status });
+    if (url.pathname.includes('stf-com-host.js')) {
+      return new Response(STF_COM_HOST_JS, {
+        headers: { 'content-type': 'application/javascript; charset=utf-8', 'cache-control': 'public, max-age=300' },
+      });
     }
 
-    const ct = res.headers.get('content-type') || '';
+    let originPath = mapPath(url.pathname);
+    let res = await fetchOrigin(originPath, url.search);
+    if (!res.ok) return new Response('Not found', { status: res.status });
+
     const buf = await res.arrayBuffer();
-    const preview = new TextDecoder().decode(buf.slice(0, 64));
 
-    if (looksLikeHtml(originPath, ct, preview)) {
+    if (!isStaticAsset(originPath) && !originPath.endsWith('.html')) {
       let html = new TextDecoder().decode(buf);
-      html = html.replace(/(href|src)=["']\.\.\/([^"']+)["']/gi, '$1="/$2"');
-      html = html.replace(/<base\s[^>]*>/gi, '');
-      html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref(originPath)}">`);
-
-      const headers = new Headers(res.headers);
-      headers.set('content-type', 'text/html; charset=utf-8');
-      headers.delete('content-encoding');
-      headers.delete('content-length');
-
-      return new Response(html, { status: 200, headers });
+      if (isJsDelivrListing(html)) {
+        originPath = originPath.replace(/\/?$/, '/') + 'index.html';
+        res = await fetchOrigin(originPath, url.search);
+        if (!res.ok) return new Response('Not found', { status: res.status });
+        html = new TextDecoder().decode(await res.arrayBuffer());
+      }
     }
 
-    const headers = new Headers(res.headers);
-    if (originPath.endsWith('.css')) headers.set('content-type', 'text/css; charset=utf-8');
-    if (originPath.endsWith('.js')) headers.set('content-type', 'application/javascript; charset=utf-8');
+    if (isStaticAsset(originPath)) {
+      const headers = new Headers();
+      const mime = mimeFor(originPath);
+      if (mime) headers.set('content-type', mime);
+      headers.set('cache-control', 'public, max-age=3600');
+      return new Response(buf, { status: 200, headers });
+    }
 
-    return new Response(buf, { status: 200, headers });
+    let html = new TextDecoder().decode(buf);
+    if (isJsDelivrListing(html)) {
+      originPath = originPath.replace(/\/?$/, '/') + 'index.html';
+      res = await fetchOrigin(originPath, url.search);
+      if (!res.ok) return new Response('Not found', { status: res.status });
+      html = new TextDecoder().decode(await res.arrayBuffer());
+    }
+
+    html = patchHtml(html, originPath);
+    return new Response(html, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' },
+    });
   },
 };

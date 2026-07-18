@@ -1,65 +1,10 @@
 /**
- * sensortattoofix.com — redirect sem www, links PT → .com.br, IT/EN no .com
+ * sensortattoofix.com — só redirect sem www. Links de idioma: stf-lang-nav.js
  */
 (function () {
-  const BR = 'https://www.sensortattoofix.com.br';
-  const COM = 'https://www.sensortattoofix.com';
-
-  function isComHost() {
-    const h = String(location.hostname || '').toLowerCase();
-    return h === 'sensortattoofix.com' || h === 'www.sensortattoofix.com';
-  }
-
   if (location.hostname === 'sensortattoofix.com') {
-    location.replace(COM + location.pathname + location.search + location.hash);
-    return;
-  }
-
-  function pageFile() {
-    const p = location.pathname.replace(/\/$/, '');
-    if (!p || p === '/index.html') return 'index.html';
-    const last = p.split('/').pop();
-    return last && last.includes('.') ? last : 'index.html';
-  }
-
-  function onItSite() {
-    return location.pathname.startsWith('/it/') || location.pathname === '/it';
-  }
-
-  function brUrl() {
-    const f = pageFile();
-    if (onItSite()) return BR + '/it/' + (f === 'index.html' ? '' : f);
-    return f === 'index.html' ? BR + '/' : BR + '/' + f;
-  }
-
-  function comEnUrl() {
-    const f = pageFile();
-    return f === 'index.html' ? COM + '/' : COM + '/' + f;
-  }
-
-  function comItUrl() {
-    const f = pageFile();
-    return f === 'index.html' ? COM + '/it/' : COM + '/it/' + f;
-  }
-
-  function fixLangNav() {
-    if (!isComHost()) return;
-    document.querySelectorAll('a.nav-lang').forEach((a) => {
-      if (a.querySelector('img[src*="br.png"]')) {
-        a.href = brUrl();
-        a.title = 'Versão em português (Brasil)';
-        a.setAttribute('aria-label', a.title);
-      } else if (a.querySelector('img[src*="it.png"]')) {
-        a.href = comItUrl();
-      } else if (a.querySelector('img[src*="us.png"]')) {
-        a.href = comEnUrl();
-      }
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fixLangNav);
-  } else {
-    fixLangNav();
+    location.replace(
+      'https://www.sensortattoofix.com' + location.pathname + location.search + location.hash
+    );
   }
 })();

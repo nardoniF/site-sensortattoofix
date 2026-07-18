@@ -1351,6 +1351,38 @@ body.stf-feedback-open { overflow: hidden; }
     }
 }
 
+.reviews-videos {
+    margin-top: 48px;
+    padding-top: 40px;
+    border-top: 1px solid rgba(255, 193, 7, 0.12);
+}
+.reviews-videos-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    font-weight: 600;
+    color: #e8e8e8;
+    text-align: center;
+    margin: 0 0 28px;
+    letter-spacing: 0.02em;
+}
+.reviews-videos-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+    max-width: 920px;
+    margin: 0 auto;
+}
+.reviews-video-caption {
+    margin: 12px 0 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: rgba(200, 200, 200, 0.85);
+    text-align: center;
+}
+@media (max-width: 720px) {
+    .reviews-videos-grid { grid-template-columns: 1fr; max-width: 400px; }
+}
+
 .shipping-hint {
     color: var(--gray);
     font-size: 0.88rem;

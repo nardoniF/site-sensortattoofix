@@ -26,7 +26,8 @@
 
   function pageFile() {
     let p = location.pathname.replace(/\/$/, '');
-    if (p.startsWith('/it/')) p = p.slice(3);
+    if (p === '/it') p = '';
+    else if (p.startsWith('/it/')) p = p.slice(3);
     else if (p.startsWith('/en/')) p = p.slice(3);
     if (!p || p === '/index.html') return 'index.html';
     const last = p.split('/').pop();
