@@ -1,34 +1,40 @@
 /**
- * sensortattoofix.com — redirect sem www, links PT → .com.br, IT/EN no .com
+ * Navegação entre mercados:
+ * .com = EN (/) + IT (/it/)  |  .com.br = PT only
  */
 (function () {
   const BR = 'https://www.sensortattoofix.com.br';
   const COM = 'https://www.sensortattoofix.com';
 
-  function isComHost() {
-    const h = String(location.hostname || '').toLowerCase();
+  function host() {
+    return String(location.hostname || '').toLowerCase();
+  }
+
+  function isCom() {
+    const h = host();
     return h === 'sensortattoofix.com' || h === 'www.sensortattoofix.com';
   }
 
-  if (location.hostname === 'sensortattoofix.com') {
+  function isBr() {
+    return host().includes('sensortattoofix.com.br');
+  }
+
+  if (host() === 'sensortattoofix.com') {
     location.replace(COM + location.pathname + location.search + location.hash);
     return;
   }
 
   function pageFile() {
-    const p = location.pathname.replace(/\/$/, '');
+    let p = location.pathname.replace(/\/$/, '');
+    if (p.startsWith('/it/')) p = p.slice(3);
+    else if (p.startsWith('/en/')) p = p.slice(3);
     if (!p || p === '/index.html') return 'index.html';
     const last = p.split('/').pop();
     return last && last.includes('.') ? last : 'index.html';
   }
 
-  function onItSite() {
-    return location.pathname.startsWith('/it/') || location.pathname === '/it';
-  }
-
-  function brUrl() {
+  function brPtUrl() {
     const f = pageFile();
-    if (onItSite()) return BR + '/it/' + (f === 'index.html' ? '' : f);
     return f === 'index.html' ? BR + '/' : BR + '/' + f;
   }
 
@@ -42,13 +48,29 @@
     return f === 'index.html' ? COM + '/it/' : COM + '/it/' + f;
   }
 
+  function redirectBrIntlToCom() {
+    if (!isBr()) return;
+    const path = location.pathname;
+    if (!/^\/(en|it)(\/|$)/.test(path)) return;
+    const isIt = path.startsWith('/it');
+    const rest = path.replace(/^\/(en|it)/, '') || '/';
+    let target;
+    if (isIt) {
+      target = rest === '/' || rest === '/index.html' ? COM + '/it/' : COM + '/it' + rest;
+    } else {
+      target = rest === '/' || rest === '/index.html' ? COM + '/' : COM + rest;
+    }
+    location.replace(target + location.search + location.hash);
+  }
+
   function fixLangNav() {
-    if (!isComHost()) return;
     document.querySelectorAll('a.nav-lang').forEach((a) => {
       if (a.querySelector('img[src*="br.png"]')) {
-        a.href = brUrl();
-        a.title = 'Versão em português (Brasil)';
-        a.setAttribute('aria-label', a.title);
+        if (isCom()) {
+          a.href = brPtUrl();
+          a.title = 'Versão em português (Brasil)';
+          a.setAttribute('aria-label', a.title);
+        }
       } else if (a.querySelector('img[src*="it.png"]')) {
         a.href = comItUrl();
       } else if (a.querySelector('img[src*="us.png"]')) {
@@ -57,6 +79,7 @@
     });
   }
 
+  redirectBrIntlToCom();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fixLangNav);
   } else {
