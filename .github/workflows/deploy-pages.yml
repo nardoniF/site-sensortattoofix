@@ -13,10 +13,10 @@ permissions:
   pages: write
   id-token: write
 
-# Um deploy por vez; os próximos esperam na fila (não disparam em paralelo).
+# Deploy mais recente cancela o anterior (evita fila presa).
 concurrency:
   group: pages-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
