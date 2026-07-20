@@ -7039,9 +7039,17 @@ function inferDispositivoFromRequest(request) {
   return (mobile ? 'Celular' : 'Computador') + ' · ' + browser;
 }
 
+function inferDispositivoFromUserAgent(uaRaw) {
+  const ua = String(uaRaw || '');
+  if (!ua) return '';
+  const mobile = /Mobile|Android|iPhone|iPad/i.test(ua);
+  return mobile ? 'Celular' : 'Computador';
+}
+
 function buildClickEntry(data, request) {
   const ip = clientIp(request);
   const geo = extractClickGeo(request);
+  const userAgent = (request.headers.get('User-Agent') || '').slice(0, 200);
   const dispositivoClient = clickField(data, 'dispositivo', 80);
   const dispositivo = (dispositivoClient && dispositivoClient !== '—')
     ? dispositivoClient
@@ -7060,6 +7068,7 @@ function buildClickEntry(data, request) {
     idioma: clickField(data, 'idioma', 24),
     referrer: clickField(data, 'referrer', 200),
     dispositivo,
+    user_agent: userAgent,
     fuso: clickField(data, 'fuso', 60),
     visitante_id: clickField(data, 'visitante_id', 64),
     sessao_visita: clickField(data, 'sessao_visita', 64),

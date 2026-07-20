@@ -1017,29 +1017,38 @@ ${worksheets}
     return parts.join(', ');
   }
 
-  function dispositivoLegivel(raw) {
+  function inferDispositivoFromUa(ua) {
+    return /Mobile|Android|iPhone|iPad/i.test(String(ua || '')) ? 'Celular' : 'Computador';
+  }
+
+  function dispositivoLegivel(raw, userAgent) {
     const s = String(raw || '').trim();
-    if (!s || s === '—') return null;
-    if (/^celular\b|^mobile\b/i.test(s)) {
-      const browser = s.replace(/^celular\b|^mobile\b/i, '').replace(/^[·/\s]+/, '').trim();
-      return { slug: 'mobile', label: 'Celular', browser };
+    if (s && s !== '—') {
+      if (/^celular\b|^mobile\b/i.test(s)) {
+        const browser = s.replace(/^celular\b|^mobile\b/i, '').replace(/^[·/\s]+/, '').trim();
+        return { slug: 'mobile', label: 'Celular', browser };
+      }
+      if (/^computador\b|^desktop\b/i.test(s)) {
+        const browser = s.replace(/^computador\b|^desktop\b/i, '').replace(/^[·/\s]+/, '').trim();
+        return { slug: 'desktop', label: 'Computador', browser };
+      }
+      return { slug: 'outro', label: s.split(/[·/]/)[0].trim() || s, browser: '' };
     }
-    if (/^computador\b|^desktop\b/i.test(s)) {
-      const browser = s.replace(/^computador\b|^desktop\b/i, '').replace(/^[·/\s]+/, '').trim();
-      return { slug: 'desktop', label: 'Computador', browser };
-    }
-    return { slug: 'outro', label: s.split(/[·/]/)[0].trim() || s, browser: '' };
+    const ua = String(userAgent || '').trim();
+    if (!ua) return null;
+    const mobile = /Mobile|Android|iPhone|iPad/i.test(ua);
+    return { slug: mobile ? 'mobile' : 'desktop', label: mobile ? 'Celular' : 'Computador', browser: '' };
   }
 
   function dispositivoBadgeHtml(c) {
-    const info = dispositivoLegivel(c.dispositivo);
+    const info = dispositivoLegivel(c.dispositivo, c.user_agent);
     if (!info) return '';
     const tip = info.browser ? `${info.label} · ${info.browser}` : info.label;
     return `<span class="clicks-device-badge clicks-device--${escapeHtml(info.slug)}" title="${escapeHtml(tip)}">${escapeHtml(info.label)}</span>`;
   }
 
   function visitorLabel(meta) {
-    const dev = dispositivoLegivel(meta.dispositivo);
+    const dev = dispositivoLegivel(meta.dispositivo, meta.user_agent);
     const devSuffix = dev ? ` · ${dev.label}` : '';
     if (meta.cliente_email) {
       return meta.cliente_nome
@@ -1076,6 +1085,9 @@ ${worksheets}
       if (c.dispositivo && (!v.meta.dispositivo || c.tipo === 'pageview')) {
         v.meta = { ...v.meta, dispositivo: c.dispositivo };
       }
+      if (c.user_agent && !v.meta.user_agent) {
+        v.meta = { ...v.meta, user_agent: c.user_agent };
+      }
       if (c.cliente_email || c.cliente_nome) {
         v.meta = {
           ...v.meta,
@@ -1105,7 +1117,10 @@ ${worksheets}
                 if (sa && sb && sa !== sb) return sa - sb;
                 return (a.ts || 0) - (b.ts || 0);
               });
-              const dev = events.find((e) => e.dispositivo && e.dispositivo !== '—')?.dispositivo;
+              const dev = events.find((e) => (e.dispositivo && e.dispositivo !== '—') || e.user_agent)?.dispositivo
+                || (events.find((e) => e.user_agent)?.user_agent
+                  ? inferDispositivoFromUa(events.find((e) => e.user_agent).user_agent)
+                  : '');
               if (dev) {
                 events.forEach((e) => {
                   if (!e.dispositivo || e.dispositivo === '—') e.dispositivo = dev;
@@ -1277,13 +1292,15 @@ ${worksheets}
     ].filter(Boolean);
     const origemClass = isEntrada ? ` clicks-tree-step-origem clicks-origem--${escapeHtml(origem.slug || 'outro')}` : '';
     const geo = formatClickGeo(c);
+    const dev = dispositivoLegivel(c.dispositivo, c.user_agent);
+    const geoLine = [geo, dev?.label].filter(Boolean).join(' · ');
     return `<li class="clicks-tree-step" title="${escapeHtml(tipParts.join(' · '))}">
       <span class="clicks-tree-step-num">${seq}</span>
       <span class="clicks-tree-step-time">${escapeHtml(hora)}</span>
       <span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(dest)}</span>
       <span class="clicks-tree-step-label${origemClass}">${escapeHtml(detalhe || '—')}</span>
       ${dispositivoBadgeHtml(c)}
-      ${geo ? `<span class="clicks-tree-step-geo">${escapeHtml(geo)}</span>` : ''}
+      ${geoLine ? `<span class="clicks-tree-step-geo">${escapeHtml(geoLine)}</span>` : ''}
     </li>`;
   }
 

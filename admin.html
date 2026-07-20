@@ -6,6 +6,11 @@
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
     <link rel="stylesheet" href="style.css?v=2.64">
+    <style>
+      .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+      .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
+      .clicks-device--desktop{background:rgba(144,202,249,.12);color:#90caf9}
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -777,6 +782,34 @@
     <script src="js/correios-label-print.js?v=3"></script>
     <script src="js/pedidos.js?v=38"></script>
     <script src="js/traffic-origin.js?v=1"></script>
-    <script src="js/admin.js?v=93"></script>
+    <script>
+    (function () {
+      var origFetch = window.fetch;
+      window.fetch = function () {
+        var args = arguments;
+        var url = String(args[0] || '');
+        return origFetch.apply(this, args).then(function (res) {
+          if (!url.includes('/admin/clicks') || url.includes('/clear') || !res.ok) return res;
+          return res.clone().json().then(function (data) {
+            if (!Array.isArray(data.clicks)) return res;
+            data.clicks.forEach(function (c) {
+              if (c.dispositivo && c.dispositivo !== '—') return;
+              if (c.user_agent) {
+                c.dispositivo = /Mobile|Android|iPhone|iPad/i.test(c.user_agent) ? 'Celular' : 'Computador';
+                return;
+              }
+              if (c.dispositivo === '—') c.dispositivo = '';
+            });
+            return new Response(JSON.stringify(data), {
+              status: res.status,
+              statusText: res.statusText,
+              headers: res.headers
+            });
+          }).catch(function () { return res; });
+        });
+      };
+    })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@main/js/admin.js"></script>
 </body>
 </html>
