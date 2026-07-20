@@ -193,7 +193,6 @@
         return;
       }
       const b64 = sessionStorage.getItem(key);
-      sessionStorage.removeItem(key);
       if (!b64) {
         showError('PDF expirado. Clique em Etiqueta novamente.');
         return;
@@ -203,6 +202,7 @@
         const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
         const best = await pickBestPage(pdf);
         if (!best.bounds) throw new Error('Não foi possível detectar a etiqueta no PDF.');
+        sessionStorage.removeItem(key);
         window.__stfLabel = best;
         drawFullBleed(best.canvas, best.bounds);
         window.addEventListener('beforeprint', () => drawFullBleed(best.canvas, best.bounds));

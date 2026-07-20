@@ -2191,6 +2191,25 @@ async function getOrder(env, orderId) {
   return raw ? JSON.parse(raw) : null;
 }
 
+const LABEL_PDF_PREFIX = 'label-pdf:';
+
+async function getCachedLabelPdf(env, orderId) {
+  try {
+    return await env.STORE_KV.get(LABEL_PDF_PREFIX + orderId);
+  } catch {
+    return null;
+  }
+}
+
+async function saveCachedLabelPdf(env, orderId, pdfBase64) {
+  if (!pdfBase64 || !orderId) return;
+  try {
+    await env.STORE_KV.put(LABEL_PDF_PREFIX + orderId, String(pdfBase64));
+  } catch (err) {
+    console.warn('label pdf cache:', orderId, err.message);
+  }
+}
+
 async function readOrdersIndex(env) {
   try {
     const raw = await env.STORE_KV.get(ORDERS_INDEX);
@@ -6374,6 +6393,17 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   }
 
   try {
+    const cachedPdf = await getCachedLabelPdf(env, orderId);
+    if (cachedPdf) {
+      return json({
+        mode: 'pdf',
+        pdfBase64: cachedPdf,
+        trackingCode: order.correiosTrackingCode || null,
+        prePostagemId: order.correiosPrePostagemId || null,
+        cached: true
+      }, 200, origin);
+    }
+
     await ensureCorreiosPrePostagemForOrder(env, order, config);
     const prePostagemId = order.correiosPrePostagemId;
     if (!prePostagemId) throw new Error('Pré-postagem não criada');
@@ -6388,6 +6418,8 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
       order.correiosTrackingCode = labelCode;
       await saveOrder(env, order);
     }
+
+    if (label.pdfBase64) await saveCachedLabelPdf(env, orderId, label.pdfBase64);
 
     return json({
       mode: 'pdf',
