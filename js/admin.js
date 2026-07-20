@@ -1017,22 +1017,45 @@ ${worksheets}
     return parts.join(', ');
   }
 
+  function dispositivoLegivel(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return null;
+    if (/^celular\b|^mobile\b/i.test(s)) {
+      const browser = s.replace(/^celular\b|^mobile\b/i, '').replace(/^[·/\s]+/, '').trim();
+      return { slug: 'mobile', label: 'Celular', browser };
+    }
+    if (/^computador\b|^desktop\b/i.test(s)) {
+      const browser = s.replace(/^computador\b|^desktop\b/i, '').replace(/^[·/\s]+/, '').trim();
+      return { slug: 'desktop', label: 'Computador', browser };
+    }
+    return { slug: 'outro', label: s.split(/[·/]/)[0].trim() || s, browser: '' };
+  }
+
+  function dispositivoBadgeHtml(c) {
+    const info = dispositivoLegivel(c.dispositivo);
+    if (!info) return '';
+    const tip = info.browser ? `${info.label} · ${info.browser}` : info.label;
+    return `<span class="clicks-device-badge clicks-device--${escapeHtml(info.slug)}" title="${escapeHtml(tip)}">${escapeHtml(info.label)}</span>`;
+  }
+
   function visitorLabel(meta) {
+    const dev = dispositivoLegivel(meta.dispositivo);
+    const devSuffix = dev ? ` · ${dev.label}` : '';
     if (meta.cliente_email) {
       return meta.cliente_nome
-        ? `${meta.cliente_nome} · ${meta.cliente_email}`
-        : meta.cliente_email;
+        ? `${meta.cliente_nome} · ${meta.cliente_email}${devSuffix}`
+        : `${meta.cliente_email}${devSuffix}`;
     }
     if (meta.visitante_id) {
       const ip = meta.ip_prefix || maskIp(meta.ip);
       const geo = formatClickGeo(meta);
       const suffix = [geo, ip].filter(Boolean).join(' · ');
       return suffix
-        ? `Visitante ${meta.visitante_id.slice(0, 12)}… · ${suffix}`
-        : `Visitante ${meta.visitante_id.slice(0, 16)}…`;
+        ? `Visitante ${meta.visitante_id.slice(0, 12)}… · ${suffix}${devSuffix}`
+        : `Visitante ${meta.visitante_id.slice(0, 16)}…${devSuffix}`;
     }
-    if (meta.ip) return `IP ${maskIp(meta.ip)}`;
-    return 'Visitante sem identificação';
+    if (meta.ip) return `IP ${maskIp(meta.ip)}${devSuffix}`;
+    return dev ? dev.label : 'Visitante sem identificação';
   }
 
   function buildClicksTree(clicks) {
@@ -1050,6 +1073,9 @@ ${worksheets}
       const d = m.days[dateKey];
       if (!d.visitors[vKey]) d.visitors[vKey] = { meta: c, count: 0, sessions: {} };
       const v = d.visitors[vKey];
+      if (c.dispositivo && (!v.meta.dispositivo || c.tipo === 'pageview')) {
+        v.meta = { ...v.meta, dispositivo: c.dispositivo };
+      }
       if (c.cliente_email || c.cliente_nome) {
         v.meta = {
           ...v.meta,
@@ -1250,6 +1276,7 @@ ${worksheets}
       <span class="clicks-tree-step-time">${escapeHtml(hora)}</span>
       <span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(dest)}</span>
       <span class="clicks-tree-step-label${origemClass}">${escapeHtml(detalhe || '—')}</span>
+      ${dispositivoBadgeHtml(c)}
       ${geo ? `<span class="clicks-tree-step-geo">${escapeHtml(geo)}</span>` : ''}
     </li>`;
   }
