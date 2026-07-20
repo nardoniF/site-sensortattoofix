@@ -514,6 +514,8 @@
       origem_trafego_label: (payload.origem_trafego_label || '').slice(0, 48),
       utm_source: (payload.utm_source || '').slice(0, 48),
       utm_medium: (payload.utm_medium || '').slice(0, 32),
+      dispositivo: (payload.dispositivo || '').slice(0, 48),
+      referrer: (payload.referrer || '').slice(0, 120),
       client_event_id: (payload.client_event_id || '').slice(0, 48),
       client_ts: String(payload.client_ts || Date.now())
     }).toString();

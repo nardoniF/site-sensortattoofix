@@ -1019,7 +1019,7 @@ ${worksheets}
 
   function dispositivoLegivel(raw) {
     const s = String(raw || '').trim();
-    if (!s) return null;
+    if (!s || s === '—') return null;
     if (/^celular\b|^mobile\b/i.test(s)) {
       const browser = s.replace(/^celular\b|^mobile\b/i, '').replace(/^[·/\s]+/, '').trim();
       return { slug: 'mobile', label: 'Celular', browser };
@@ -1105,6 +1105,12 @@ ${worksheets}
                 if (sa && sb && sa !== sb) return sa - sb;
                 return (a.ts || 0) - (b.ts || 0);
               });
+              const dev = events.find((e) => e.dispositivo && e.dispositivo !== '—')?.dispositivo;
+              if (dev) {
+                events.forEach((e) => {
+                  if (!e.dispositivo || e.dispositivo === '—') e.dispositivo = dev;
+                });
+              }
             });
           });
         });

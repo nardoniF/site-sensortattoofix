@@ -7027,9 +7027,25 @@ function clickField(data, key, maxLen, fallback) {
   return String(data?.[key] ?? fallback ?? '').slice(0, maxLen);
 }
 
+function inferDispositivoFromRequest(request) {
+  const ua = request.headers.get('User-Agent') || '';
+  if (!ua) return '';
+  const mobile = /Mobile|Android|iPhone|iPad/i.test(ua);
+  let browser = 'outro';
+  if (/Edg\//i.test(ua)) browser = 'Edge';
+  else if (/Chrome\//i.test(ua)) browser = 'Chrome';
+  else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+  else if (/Firefox\//i.test(ua)) browser = 'Firefox';
+  return (mobile ? 'Celular' : 'Computador') + ' · ' + browser;
+}
+
 function buildClickEntry(data, request) {
   const ip = clientIp(request);
   const geo = extractClickGeo(request);
+  const dispositivoClient = clickField(data, 'dispositivo', 80);
+  const dispositivo = (dispositivoClient && dispositivoClient !== '—')
+    ? dispositivoClient
+    : inferDispositivoFromRequest(request);
   return {
     tipo: clickField(data, 'tipo', 24, 'clique'),
     destino: clickField(data, 'destino', 48),
@@ -7043,7 +7059,7 @@ function buildClickEntry(data, request) {
     titulo_pagina: clickField(data, 'titulo_pagina', 120),
     idioma: clickField(data, 'idioma', 24),
     referrer: clickField(data, 'referrer', 200),
-    dispositivo: clickField(data, 'dispositivo', 80),
+    dispositivo,
     fuso: clickField(data, 'fuso', 60),
     visitante_id: clickField(data, 'visitante_id', 64),
     sessao_visita: clickField(data, 'sessao_visita', 64),
