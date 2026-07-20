@@ -7279,6 +7279,29 @@ async function loadClickRows(env, ids, maxRows) {
   return rows;
 }
 
+function adminDeviceLabel(row) {
+  let d = String(row?.dispositivo || '').trim();
+  if (!d || d === '—') d = inferDispositivoFromUserAgent(row?.user_agent);
+  if (!d) return '';
+  if (/celular|mobile/i.test(d)) return 'Celular';
+  if (/computador|desktop/i.test(d)) return 'Computador';
+  return d.split(/[·/]/)[0].trim() || d;
+}
+
+function enrichClickRowForAdmin(row) {
+  const devLabel = adminDeviceLabel(row);
+  if (!devLabel) return row;
+  const out = { ...row, dispositivo: devLabel };
+  const dl = String(out.destino_label || '').trim();
+  if (dl && !dl.includes(devLabel)) out.destino_label = dl + ' · ' + devLabel;
+  const geo = [out.cidade, out.estado, out.pais_nome || out.pais].filter(Boolean).join(', ');
+  if (geo && !geo.includes(devLabel)) {
+    if (out.pais_nome) out.pais_nome = out.pais_nome + ' · ' + devLabel;
+    else if (out.cidade) out.cidade = out.cidade + ' · ' + devLabel;
+  }
+  return out;
+}
+
 async function handleAdminListClicks(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -7314,11 +7337,12 @@ async function handleAdminListClicks(request, env, origin) {
         row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
         row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo, row.ip, row.ip_prefix,
         row.pais, row.pais_nome, row.estado, row.cidade,
-        row.origem_trafego, row.origem_trafego_label, row.utm_source, row.utm_medium, row.utm_campaign
+        row.origem_trafego, row.origem_trafego_label, row.utm_source, row.utm_medium, row.utm_campaign,
+        row.dispositivo, row.user_agent
       ].join(' ').toLowerCase();
       if (!hay.includes(q)) continue;
     }
-    clicks.push(row);
+    clicks.push(enrichClickRowForAdmin(row));
     if (clicks.length >= limit) break;
   }
 
