@@ -7291,15 +7291,7 @@ function adminDeviceLabel(row) {
 function enrichClickRowForAdmin(row) {
   const devLabel = adminDeviceLabel(row);
   if (!devLabel) return row;
-  const out = { ...row, dispositivo: devLabel };
-  const dl = String(out.destino_label || '').trim();
-  if (dl && !dl.includes(devLabel)) out.destino_label = dl + ' · ' + devLabel;
-  const geo = [out.cidade, out.estado, out.pais_nome || out.pais].filter(Boolean).join(', ');
-  if (geo && !geo.includes(devLabel)) {
-    if (out.pais_nome) out.pais_nome = out.pais_nome + ' · ' + devLabel;
-    else if (out.cidade) out.cidade = out.cidade + ' · ' + devLabel;
-  }
-  return out;
+  return { ...row, dispositivo: devLabel };
 }
 
 async function handleAdminListClicks(request, env, origin) {

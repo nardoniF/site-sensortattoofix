@@ -1048,23 +1048,21 @@ ${worksheets}
   }
 
   function visitorLabel(meta) {
-    const dev = dispositivoLegivel(meta.dispositivo, meta.user_agent);
-    const devSuffix = dev ? ` · ${dev.label}` : '';
     if (meta.cliente_email) {
       return meta.cliente_nome
-        ? `${meta.cliente_nome} · ${meta.cliente_email}${devSuffix}`
-        : `${meta.cliente_email}${devSuffix}`;
+        ? `${meta.cliente_nome} · ${meta.cliente_email}`
+        : meta.cliente_email;
     }
     if (meta.visitante_id) {
       const ip = meta.ip_prefix || maskIp(meta.ip);
       const geo = formatClickGeo(meta);
       const suffix = [geo, ip].filter(Boolean).join(' · ');
       return suffix
-        ? `Visitante ${meta.visitante_id.slice(0, 12)}… · ${suffix}${devSuffix}`
-        : `Visitante ${meta.visitante_id.slice(0, 16)}…${devSuffix}`;
+        ? `Visitante ${meta.visitante_id.slice(0, 12)}… · ${suffix}`
+        : `Visitante ${meta.visitante_id.slice(0, 16)}…`;
     }
-    if (meta.ip) return `IP ${maskIp(meta.ip)}${devSuffix}`;
-    return dev ? dev.label : 'Visitante sem identificação';
+    if (meta.ip) return `IP ${maskIp(meta.ip)}`;
+    return 'Visitante sem identificação';
   }
 
   function buildClicksTree(clicks) {
@@ -1292,15 +1290,13 @@ ${worksheets}
     ].filter(Boolean);
     const origemClass = isEntrada ? ` clicks-tree-step-origem clicks-origem--${escapeHtml(origem.slug || 'outro')}` : '';
     const geo = formatClickGeo(c);
-    const dev = dispositivoLegivel(c.dispositivo, c.user_agent);
-    const geoLine = [geo, dev?.label].filter(Boolean).join(' · ');
     return `<li class="clicks-tree-step" title="${escapeHtml(tipParts.join(' · '))}">
       <span class="clicks-tree-step-num">${seq}</span>
       <span class="clicks-tree-step-time">${escapeHtml(hora)}</span>
       <span class="admin-click-dest admin-click-dest--${escapeHtml(c.destino || 'outro')}">${escapeHtml(dest)}</span>
       <span class="clicks-tree-step-label${origemClass}">${escapeHtml(detalhe || '—')}</span>
       ${dispositivoBadgeHtml(c)}
-      ${geoLine ? `<span class="clicks-tree-step-geo">${escapeHtml(geoLine)}</span>` : ''}
+      ${geo ? `<span class="clicks-tree-step-geo">${escapeHtml(geo)}</span>` : ''}
     </li>`;
   }
 
