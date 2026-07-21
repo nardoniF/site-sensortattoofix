@@ -1198,27 +1198,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
-  function populateSelects() {
-    const models = cfg.smartwatchModels || [];
-    const groups = new Map();
-    models.forEach((m) => {
-      const label = smartwatchGroup(m);
-      if (!groups.has(label)) groups.set(label, []);
-      groups.get(label).push(m);
-    });
-    groups.forEach((items, label) => {
-      const og = document.createElement('optgroup');
-      og.label = label;
-      items.forEach((m) => {
-        const o = document.createElement('option');
-        o.value = m;
-        o.textContent = m === OUTRO_MODELO ? L('watch.otherModel') : m;
-        og.appendChild(o);
-      });
-      els.smartwatchSelect.appendChild(og);
-    });
-
-    const intl = cfg.internationalShipping || {};
+  function populateCountrySelect(config) {
+    const src = config || cfg || window.CHECKOUT_CONFIG;
+    if (!els.paisCode || !src) return;
+    const intl = src.internationalShipping || {};
     if (isLocalizedSite()) {
       const brOpt = els.paisCode.querySelector('option[value="BR"]');
       if (brOpt) brOpt.remove();
@@ -1238,10 +1221,47 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         els.paisCode.appendChild(o);
       });
     const other = document.createElement('option');
-    other.value = 'OTHER'; other.textContent = L('country.other');
+    other.value = 'OTHER';
+    other.textContent = L('country.other');
     els.paisCode.appendChild(other);
-    if (els.smartwatchSelect?.options[0]) {
+  }
+
+  function populateWatchSelect(config) {
+    const src = config || cfg || window.CHECKOUT_CONFIG;
+    if (!els.smartwatchSelect || !src) return;
+    while (els.smartwatchSelect.options.length > 1) {
+      els.smartwatchSelect.remove(1);
+    }
+    const models = src.smartwatchModels || [];
+    const groups = new Map();
+    models.forEach((m) => {
+      const label = smartwatchGroup(m);
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(m);
+    });
+    groups.forEach((items, label) => {
+      const og = document.createElement('optgroup');
+      og.label = label;
+      items.forEach((m) => {
+        const o = document.createElement('option');
+        o.value = m;
+        o.textContent = m === OUTRO_MODELO ? L('watch.otherModel') : m;
+        og.appendChild(o);
+      });
+      els.smartwatchSelect.appendChild(og);
+    });
+    if (els.smartwatchSelect.options[0]) {
       els.smartwatchSelect.options[0].textContent = L('form.watchSelect');
+    }
+  }
+
+  function populateSelects() {
+    try {
+      populateWatchSelect();
+      populateCountrySelect();
+    } catch (err) {
+      console.error('populateSelects:', err);
+      try { populateCountrySelect(window.CHECKOUT_CONFIG); } catch (e) { console.error('populateCountrySelect fallback:', e); }
     }
   }
 
@@ -2579,11 +2599,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
     window.STF_I18N?.applyCheckoutDom?.();
     cfg = await StoreConfig.load();
-      products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
-      window.STF_CART?.syncPrices?.(products);
-      populateSelects();
-      updateSmartwatchVisibility();
-      await initializeLocalizedCheckout();
+    products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
+    window.STF_CART?.syncPrices?.(products);
+    populateSelects();
+    updateSmartwatchVisibility();
+    await initializeLocalizedCheckout();
     window.STF_CART?.initBadges();
     const mpDone = await handleMercadoPagoReturn();
     const stripeDone = mpDone ? false : await handleStripeReturn();
@@ -2617,4 +2637,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   document.addEventListener('DOMContentLoaded', boot);
+  window.addEventListener('stf-config-ready', (ev) => {
+    if (!document.body?.classList.contains('checkout-page')) return;
+    cfg = ev.detail || window.CHECKOUT_CONFIG || cfg;
+    populateCountrySelect(cfg);
+    initializeLocalizedCheckout().catch(() => {});
+  });
 })();
