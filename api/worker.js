@@ -6139,7 +6139,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const needsWatch = orderRequiresSmartwatch(items);
 
   let paypalFee = 0;
-  if (billingType === 'PAYPAL') {
+  // .com storefront absorbs PayPal fees — do not surcharge international buyers
+  const absorbPaypalFee = isComSiteRequest(request) || body.intlEmbedded === true;
+  if (billingType === 'PAYPAL' && !absorbPaypalFee) {
     paypalFee = computePayPalFee(valorProduto + frete, config);
   }
 

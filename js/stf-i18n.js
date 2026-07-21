@@ -846,13 +846,23 @@ window.STF_I18N = (function () {
     const cartTitle = document.querySelector('.cart-sidebar-title');
     if (cartTitle) cartTitle.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('cart.title')}`;
     applyText('.cart-add-more', 'cart.addMore');
+    const skipWrap = document.getElementById('self-test-pay-wrap');
     const skipBtn = document.getElementById('btn-skip-test-pay');
-    if (skipBtn) skipBtn.innerHTML = `<i class="fas fa-flask"></i> ${t('selfTest.btn')}`;
-    applyText('.self-test-pay-hint', 'selfTest.hint');
+    if (skipWrap && !skipWrap.hidden && skipBtn) {
+      skipBtn.innerHTML = `<i class="fas fa-flask"></i> ${t('selfTest.btn')}`;
+      applyText('.self-test-pay-hint', 'selfTest.hint');
+    }
     applyText('.checkout-summary .summary-row:nth-child(1) > span:first-child', 'summary.subtotal');
     applyText('.checkout-summary .summary-row.total > span:first-child', 'summary.total');
     applyText('#summary-shipping-label', 'summary.shipping');
     applyText('#summary-paypal-label', 'summary.paypalFee');
+    if (window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname)) {
+      const paypalRow = document.getElementById('summary-paypal-row');
+      if (paypalRow) {
+        paypalRow.hidden = true;
+        paypalRow.setAttribute('hidden', '');
+      }
+    }
     applyText('.checkout-coupon-label', 'coupon.label');
     applyText('#btn-apply-coupon', 'coupon.apply');
     setPlaceholder('#coupon-code', 'coupon.placeholder');

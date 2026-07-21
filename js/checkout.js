@@ -381,6 +381,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function currentPayPalFee(subtotalWithShipping) {
+    // .com: never surcharge the buyer for PayPal processing fees
+    if (
+      isIntlEmbeddedCheckout()
+      || window.STF_MONEY?.isIntlHost?.()
+      || /\.sensortattoofix\.com$/i.test(location.hostname)
+    ) {
+      return 0;
+    }
     if (!isInternational || !window.STF_MONEY) return 0;
     const pagamento = els.form?.querySelector('[name=pagamento]:checked')?.value;
     if (pagamento !== 'PAYPAL') return 0;
@@ -1708,6 +1716,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       if (els.summaryShipping) els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship);
       if (els.summaryPaypalRow) {
         els.summaryPaypalRow.hidden = !paypalFee;
+        if (paypalFee === 0) els.summaryPaypalRow.style.display = 'none';
+        else els.summaryPaypalRow.style.display = '';
         if (paypalFee && els.summaryPaypal) {
           els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee);
         }
@@ -2647,6 +2657,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         if (els.addressIntl) els.addressIntl.hidden = false;
         updateCpfLabel();
         updatePhoneField();
+        if (els.summaryPaypalRow) {
+          els.summaryPaypalRow.hidden = true;
+          els.summaryPaypalRow.style.display = 'none';
+        }
+        if (els.selfTestPayWrap) els.selfTestPayWrap.hidden = true;
       }
       window.STF_I18N?.applyCheckoutDom?.();
       cfg = await StoreConfig.load();
