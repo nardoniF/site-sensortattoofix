@@ -333,6 +333,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       displayCurrency = 'BRL';
       return;
     }
+    if (window.STF_MONEY.isIntlHost?.()) {
+      displayCurrency = 'USD';
+      fxRate = await window.STF_MONEY.loadRate(apiBase(), 'USD');
+      return;
+    }
     const next = window.STF_MONEY.currencyForCountry(els.paisCode?.value || 'US');
     if (next !== displayCurrency) window.STF_MONEY.resetCache?.();
     displayCurrency = next;
@@ -344,6 +349,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       return formatBRL(v);
     }
     const country = els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US';
+    if (window.STF_MONEY.isIntlHost?.()) {
+      const usd = window.STF_MONEY.convertFromBrl(v, fxRate);
+      return window.STF_MONEY.formatForeign(usd, 'USD', country);
+    }
     return window.STF_MONEY.formatDual(v, displayCurrency, fxRate, country);
   }
 
@@ -868,13 +877,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         const thumb = item.aggregated
           ? renderZoomableThumb(imgFull, imgFull, lineName, imgFull, 'cart-line-img-btn')
           : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">`;
-        const qtyLabel = item.qty > 1 ? `${item.qty} × ${formatBRL(item.price)}` : formatBRL(item.price);
+        const qtyLabel = item.qty > 1 ? `${item.qty} × ${formatCheckoutMoney(item.price)}` : formatCheckoutMoney(item.price);
         return `
         <div class="cart-line cart-line-locked">
           ${thumb}
           <div class="cart-line-info">
             <strong>${escapeHtml(lineName)}</strong>
-            <span class="cart-line-price">${formatBRL(item.price * item.qty)}</span>
+            <span class="cart-line-price">${formatCheckoutMoney(item.price * item.qty)}</span>
             <span class="cart-line-qty-label">${escapeHtml(qtyLabel)}</span>
           </div>
         </div>`;
@@ -886,7 +895,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.cartSidebar.innerHTML = '';
     }
     if (snap) {
-      els.summaryProduct.textContent = formatBRL(resolveGrossProductTotal(snap));
+      els.summaryProduct.textContent = formatCheckoutMoney(resolveGrossProductTotal(snap));
       const disc = snap.desconto ?? 0;
       if (els.summaryDiscountRow) {
         els.summaryDiscountRow.hidden = !disc;
@@ -895,13 +904,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           els.summaryDiscountLabel.textContent = pct != null
             ? L('coupon.discountLabel', { pct })
             : L('summary.discount');
-          els.summaryDiscount.textContent = '−' + formatBRL(disc);
+          els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
         }
       }
-      els.summaryShipping.textContent = formatBRL(snap.frete ?? 0);
+      els.summaryShipping.textContent = formatCheckoutMoney(snap.frete ?? 0);
       const totalEl = els.summaryTotal;
       if (totalEl) {
-        totalEl.textContent = formatBRL(snap.total ?? 0);
+        totalEl.textContent = formatCheckoutMoney(snap.total ?? 0);
         totalEl.closest('.summary-row')?.classList.toggle('is-self-test', !!snap.selfTest);
       }
       let selfTestNote = els.checkoutSidebar?.querySelector('.checkout-self-test-note');
@@ -2604,6 +2613,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     populateSelects();
     updateSmartwatchVisibility();
     await initializeLocalizedCheckout();
+    if (isInternational) await refreshDisplayCurrency();
     window.STF_CART?.initBadges();
     const mpDone = await handleMercadoPagoReturn();
     const stripeDone = mpDone ? false : await handleStripeReturn();

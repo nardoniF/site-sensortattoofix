@@ -1,4 +1,9 @@
-const GITHUB_ORIGIN = 'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@main';
+/**
+ * .com storefront proxy — serves /en/* from GitHub via jsDelivr.
+ * IMPORTANT: pin COMMIT after each push so .com is not stuck on stale @main cache.
+ */
+const COMMIT = '0f5e761';
+const GITHUB_ORIGIN = 'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT;
 const COM_ORIGIN = 'https://www.sensortattoofix.com';
 const BR_ORIGIN = 'https://www.sensortattoofix.com.br';
 const STF_COM_HOST_JS =
@@ -99,9 +104,11 @@ function mimeFor(pathname) {
 }
 
 async function fetchOrigin(originPath, search) {
-  return fetch(GITHUB_ORIGIN + originPath + search, {
+  const bust = search && search.length > 1 ? search : '?v=' + COMMIT;
+  const joiner = bust.startsWith('?') ? '' : '?';
+  return fetch(GITHUB_ORIGIN + originPath + (search || joiner + 'v=' + COMMIT), {
     method: 'GET',
-    headers: { Accept: '*/*', 'User-Agent': 'stf-com-proxy' },
+    headers: { Accept: '*/*', 'User-Agent': 'stf-com-proxy', 'Cache-Control': 'no-cache' },
     redirect: 'manual',
   });
 }
@@ -122,7 +129,7 @@ export default {
 
     if (url.pathname.includes('stf-com-host.js')) {
       return new Response(STF_COM_HOST_JS, {
-        headers: { 'content-type': 'application/javascript; charset=utf-8', 'cache-control': 'public, max-age=300' },
+        headers: { 'content-type': 'application/javascript; charset=utf-8', 'cache-control': 'no-store' },
       });
     }
 
@@ -161,7 +168,11 @@ export default {
     html = patchHtml(html, originPath);
     return new Response(html, {
       status: 200,
-      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' },
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'no-store, max-age=0',
+        'x-stf-commit': COMMIT
+      },
     });
   },
 };

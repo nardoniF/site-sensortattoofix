@@ -52,7 +52,15 @@ window.STF_FOOTER = (function () {
     return I18N.pt;
   }
 
+  function isIntlHost() {
+    return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
+  }
+
   function detectLang() {
+    if (isIntlHost()) {
+      if (location.pathname.includes('/it/')) return 'it';
+      return 'en';
+    }
     if (location.pathname.includes('/it/')) return 'it';
     if (location.pathname.includes('/en/')) return 'en';
     return 'pt';
@@ -60,17 +68,33 @@ window.STF_FOOTER = (function () {
 
   function prefixFrom(el) {
     if (el.dataset.prefix) return el.dataset.prefix;
+    if (isIntlHost() && !location.pathname.includes('/it/')) return '';
     return location.pathname.includes('/en/') || location.pathname.includes('/it/') ? '../' : '';
   }
 
   function patentLine(lang) {
     const s = t(lang);
+    if (isIntlHost()) {
+      return lang === 'it'
+        ? `Tecnologia brevettata · ${INFO.patentInternational}`
+        : `Patented technology · ${INFO.patentInternational}`;
+    }
     return `${s.patentLinePrefix} ${INFO.patentNational} / ${s.patentLineJoin} ${INFO.patentInternational}`;
   }
 
   function legalBlock(lang) {
     const s = t(lang);
     const year = new Date().getFullYear();
+    if (isIntlHost()) {
+      return `
+      <div class="footer-legal">
+        <p class="footer-legal-brand">${INFO.brandTitle}</p>
+        <p class="footer-legal-meta">3N20</p>
+        <p class="footer-legal-meta footer-legal-meta--muted">${patentLine(lang)}</p>
+        <p class="footer-legal-copy">&copy; ${year} ${INFO.brandPlain}. ${s.rights}</p>
+      </div>
+    `;
+    }
     return `
       <div class="footer-legal">
         <p class="footer-legal-brand">${INFO.brandTitle}</p>

@@ -38,7 +38,7 @@
       sending: 'Sending…',
       close: 'Close',
       thanks: 'Thank you! Your feedback helps us improve the site.',
-      err: 'Could not send. Try again or email contato@sensortattoofix.com.br.',
+      err: 'Could not send. Try again or email support@sensortattoofix.com.',
       errShort: 'Please describe what you were looking for (at least 8 characters).'
     },
     it: {
@@ -56,12 +56,15 @@
       sending: 'Invio…',
       close: 'Chiudi',
       thanks: 'Grazie! Il tuo feedback ci aiuta a migliorare il sito.',
-      err: 'Invio non riuscito. Riprova o scrivi a contato@sensortattoofix.com.br.',
+      err: 'Invio non riuscito. Riprova o scrivi a support@sensortattoofix.com.',
       errShort: 'Descrivi cosa cercavi (almeno 8 caratteri).'
     }
   };
 
   function lang() {
+    if (window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname)) {
+      return location.pathname.includes('/it/') ? 'it' : 'en';
+    }
     if (location.pathname.includes('/it/')) return 'it';
     if (location.pathname.includes('/en/')) return 'en';
     return 'pt';
