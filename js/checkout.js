@@ -60,7 +60,24 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return Math.round((base * percent / 100 + fixedBrl) * 100) / 100;
   }
   function resetCache() { cache = { currency: null, rate: null, at: 0 }; }
-  return { currencyForCountry, loadRate, resetCache, convertFromBrl, formatBRL, formatForeign, formatDual, computePayPalFee };
+  function isIntlHost() {
+    return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
+  }
+  async function formatForVisitor(amountBrl, config) {
+    if (isIntlHost()) {
+      const rate = await loadRate(String(config?.api?.baseUrl || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, ''), 'USD');
+      if (!rate) return formatBRL(amountBrl);
+      return formatForeign(convertFromBrl(amountBrl, rate), 'USD');
+    }
+    return formatBRL(amountBrl);
+  }
+  return {
+    currencyForCountry, loadRate, resetCache, convertFromBrl, formatBRL, formatForeign, formatDual,
+    formatForVisitor, formatPrimaryForVisitor: formatForVisitor, isIntlHost, computePayPalFee, visitorCountry: function () {
+      if (isIntlHost()) return location.pathname.includes('/it/') ? 'IT' : 'US';
+      return 'BR';
+    }
+  };
 })();
 
 (function () {

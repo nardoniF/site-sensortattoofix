@@ -17,14 +17,21 @@ window.STF_STORE_PRICE = (function () {
     'shipping.intlDefault': 'International tracked mail'
   };
 
+  function isIntlHost() {
+    return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
+  }
+
   function pathLang() {
+    if (isIntlHost()) {
+      return location.pathname.includes('/it/') ? 'it' : 'en';
+    }
     if (location.pathname.includes('/it/')) return 'it';
     if (location.pathname.includes('/en/')) return 'en';
     return 'pt';
   }
 
   function isLocalized() {
-    return pathLang() !== 'pt';
+    return isIntlHost() || pathLang() !== 'pt';
   }
 
   function t(key) {
@@ -106,6 +113,10 @@ window.STF_STORE_PRICE = (function () {
       suffix = window.STF_I18N?.t?.('store.priceSuffix') || suffix;
     }
     let line = `${formatBRL(price)} ${freteLine}`;
+    if (isLocalized()) {
+      // Never show bare BRL on international host/path before FX resolves.
+      line = `… ${freteLine}`;
+    }
     if (suffix) line += ` · ${suffix}`;
     return line;
   }

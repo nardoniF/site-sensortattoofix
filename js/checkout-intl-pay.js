@@ -49,6 +49,10 @@ window.STF_INTL_PAY = (function () {
     const paypalTab = document.querySelector('#payment-options-intl .payment-option-paypal');
     if (stripeTab) stripeTab.hidden = !hasStripe;
     if (paypalTab) paypalTab.hidden = !hasPaypal;
+    const notice = document.getElementById('payment-notice-intl');
+    if (!hasStripe && !hasPaypal && notice) {
+      notice.innerHTML = '<i class="fas fa-info-circle"></i> Online payment is not configured yet. Card and PayPal will appear here after Stripe/PayPal API keys are added to the server.';
+    }
     document.querySelectorAll('#payment-options-intl [name=pagamento]').forEach((el) => {
       el.addEventListener('change', () => showPaySection(el.value));
     });
