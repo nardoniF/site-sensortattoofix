@@ -42,7 +42,7 @@ window.STF_I18N_IT = {
   'summary.order': 'Ordine',
   'summary.totalLabel': 'Totale:',
   'trust.securePay': 'Pagamento sicuro',
-  'trust.card': 'Carta',
+  'trust.shipping': 'Spedizione tracciata',
   'trust.email': 'Conferma via email',
   'step.data': 'Dati',
   'step.payment': 'Pagamento',

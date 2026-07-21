@@ -48,7 +48,7 @@ window.STF_I18N = (function () {
       'summary.order': 'Pedido',
       'summary.totalLabel': 'Total:',
       'trust.securePay': 'Pagamento seguro',
-      'trust.card': 'Cartão',
+      'trust.shipping': 'Envio rastreado',
       'trust.email': 'Confirmação por e-mail',
       'step.data': 'Dados',
       'step.payment': 'Pagamento',
@@ -353,8 +353,8 @@ window.STF_I18N = (function () {
       'summary.total': 'Total',
       'summary.order': 'Order',
       'summary.totalLabel': 'Total:',
-      'trust.securePay': 'Secure payment',
-      'trust.card': 'Card',
+      'trust.securePay': 'Secure checkout',
+      'trust.shipping': 'Tracked shipping',
       'trust.email': 'Email confirmation',
       'step.data': 'Details',
       'step.payment': 'Payment',
@@ -857,8 +857,10 @@ window.STF_I18N = (function () {
 
     const trust = document.querySelectorAll('.checkout-trust span');
     if (trust[0]) trust[0].innerHTML = `<i class="fas fa-lock"></i> ${t('trust.securePay')}`;
-    if (trust[1]) trust[1].innerHTML = `<i class="fas fa-credit-card"></i> ${t('trust.card')}`;
+    if (trust[1]) trust[1].innerHTML = `<i class="fas fa-truck"></i> ${t('trust.shipping')}`;
     if (trust[2]) trust[2].innerHTML = `<i class="fas fa-envelope"></i> ${t('trust.email')}`;
+    for (let i = 3; i < trust.length; i++) trust[i].remove();
+    document.querySelector('.checkout-trust-note')?.remove();
 
     const stepLabels = { 1: 'step.data', 2: 'step.payment', 3: 'step.confirm' };
     document.querySelectorAll('.step-indicator[data-step]').forEach((ind) => {
