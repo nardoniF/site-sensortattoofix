@@ -69,8 +69,8 @@
       if (a.querySelector('img[src*="br.png"]')) {
         if (isCom()) {
           a.href = brPtUrl();
-          a.title = 'Versão em português (Brasil)';
-          a.setAttribute('aria-label', a.title);
+          a.title = 'Portuguese (Brazil)';
+          a.setAttribute('aria-label', 'Portuguese (Brazil)');
         }
       } else if (a.querySelector('img[src*="it.png"]')) {
         a.href = comItUrl();

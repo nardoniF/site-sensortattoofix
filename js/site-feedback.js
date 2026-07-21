@@ -62,11 +62,16 @@
   };
 
   function lang() {
-    if (window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname)) {
-      return location.pathname.includes('/it/') ? 'it' : 'en';
+    const htmlLang = String(document.documentElement.lang || '').toLowerCase();
+    if (htmlLang.startsWith('it') || location.pathname.includes('/it/')) return 'it';
+    if (
+      htmlLang.startsWith('en') ||
+      location.pathname.includes('/en/') ||
+      window.STF_SITE?.isIntlHost?.() ||
+      /\.sensortattoofix\.com$/i.test(location.hostname)
+    ) {
+      return 'en';
     }
-    if (location.pathname.includes('/it/')) return 'it';
-    if (location.pathname.includes('/en/')) return 'en';
     return 'pt';
   }
 
