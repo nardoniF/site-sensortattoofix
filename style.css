@@ -1971,6 +1971,35 @@ line-height:1.8;
     color: var(--gray);
 }
 .checkout-trust i { color: var(--primary); margin-right: 6px; }
+.checkout-trust-badges span { display: flex; align-items: center; gap: 4px; }
+.checkout-trust-note {
+    font-size: 0.75rem;
+    color: var(--gray);
+    margin-top: 8px;
+    line-height: 1.4;
+}
+.checkout-trust-note a { color: var(--primary); }
+.intl-embedded-pay {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #2a2a2a;
+}
+.intl-pay-section { margin-top: 12px; }
+.stripe-payment-element {
+    padding: 12px 0;
+    min-height: 120px;
+}
+.btn-stripe-confirm { width: 100%; margin-top: 12px; }
+.paypal-redirect-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #7ecbf0;
+}
+.paypal-wallet-buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.payment-option-stripe .payment-card i.fa-credit-card { color: #635bff; }
 .checkout-content {
     background: var(--card);
     border: 1px solid #222;

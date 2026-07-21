@@ -81,9 +81,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return lang.startsWith('it') ? 'it' : 'en';
   }
 
-  /** EN/IT checkout: PayPal only abroad. PT checkout keeps PIX/cartão mesmo enviando para fora. */
+  /** EN/IT checkout on .com.br path: PayPal only. On .com: Stripe + PayPal embedded. */
+  function isIntlEmbeddedCheckout() {
+    if (!isLocalizedSite()) return false;
+    return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
+  }
+
   function isPaypalOnlyIntlCheckout() {
-    return isLocalizedSite();
+    return isLocalizedSite() && !isIntlEmbeddedCheckout();
   }
 
   function localizeShippingServiceName(opt) {
@@ -1186,9 +1191,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const def = await resolveDefaultIntlCountry();
     if (!def || !els.paisCode) return;
     const has = [...els.paisCode.options].some((o) => o.value === def);
-    if (!has || els.paisCode.value !== 'BR') return;
-    els.paisCode.value = def;
-    toggleAddressForm();
+    if (!has) return;
+    if (!els.paisCode.value || els.paisCode.value === 'BR') {
+      els.paisCode.value = def;
+      toggleAddressForm();
+    }
   }
 
   function populateSelects() {
@@ -1212,6 +1219,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     });
 
     const intl = cfg.internationalShipping || {};
+    if (isLocalizedSite()) {
+      const brOpt = els.paisCode.querySelector('option[value="BR"]');
+      if (brOpt) brOpt.remove();
+    }
     while (els.paisCode.options.length > 1) {
       els.paisCode.remove(1);
     }
@@ -1291,12 +1302,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const paypalIntl = isInternational && isPayPalIntlAvailable();
     const paypalBr = !isInternational && isPayPalBrAvailable();
     const paypalOnlyIntl = isInternational && isPaypalOnlyIntlCheckout();
+    const intlEmbedded = isInternational && isIntlEmbeddedCheckout();
     if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = isInternational;
     if (els.paymentOptionsIntl) els.paymentOptionsIntl.hidden = !isInternational;
     if (els.paymentNoticeBr) els.paymentNoticeBr.hidden = isInternational;
     if (els.paymentNoticeIntl) els.paymentNoticeIntl.hidden = !isInternational;
     const cardIntlRow = els.paymentOptionsIntl?.querySelector('.payment-option-intl-card');
-    if (cardIntlRow) cardIntlRow.hidden = paypalOnlyIntl;
+    if (cardIntlRow) cardIntlRow.hidden = paypalOnlyIntl || intlEmbedded;
+    const stripeRow = els.paymentOptionsIntl?.querySelector('.payment-option-stripe');
+    if (stripeRow) stripeRow.hidden = !intlEmbedded;
     const paypalIntlRow = els.paymentOptionsIntl?.querySelector('.payment-option-paypal');
     if (paypalIntlRow) paypalIntlRow.hidden = !paypalIntl;
     const paypalBrRow = els.paymentOptionsBr?.querySelector('.payment-option-paypal');
@@ -1308,25 +1322,32 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     els.paymentOptionsIntl?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
       const isPaypal = r.value === 'PAYPAL';
       const isCard = r.value === 'CARTAO';
+      const isStripe = r.value === 'STRIPE';
       r.disabled = !isInternational
         || (isPaypal && !paypalIntl)
-        || (isCard && paypalOnlyIntl);
+        || (isCard && (paypalOnlyIntl || intlEmbedded))
+        || (isStripe && !intlEmbedded);
     });
     if (els.paymentNoticeIntl) {
       let noticeKey = 'pay.noticeIntlAll';
-      if (paypalOnlyIntl) noticeKey = 'pay.noticeIntlPaypalOnly';
+      if (intlEmbedded) noticeKey = 'pay.noticeIntlEmbedded';
+      else if (paypalOnlyIntl) noticeKey = 'pay.noticeIntlPaypalOnly';
       else if (!paypalIntl) noticeKey = 'pay.noticeIntlNoPaypal';
       els.paymentNoticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${L(noticeKey)}`;
     }
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
     if (isInternational) {
+      const stripe = els.paymentOptionsIntl?.querySelector('input[value="STRIPE"]');
       const paypal = els.paymentOptionsIntl?.querySelector('input[value="PAYPAL"]');
-      if (paypalOnlyIntl && paypalIntl && paypal) {
+      if (intlEmbedded && stripe) {
+        stripe.checked = true;
+      } else if (paypalOnlyIntl && paypalIntl && paypal) {
         paypal.checked = true;
       } else {
         const cardIntl = els.paymentOptionsIntl?.querySelector('input[value="CARTAO"]');
-        if (cardIntl && !paypalOnlyIntl) cardIntl.checked = true;
+        if (cardIntl && !paypalOnlyIntl && !intlEmbedded) cardIntl.checked = true;
         else if (paypalIntl && paypal) paypal.checked = true;
+        else if (intlEmbedded && stripe) stripe.checked = true;
       }
     } else {
       const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');
@@ -1340,6 +1361,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     updateCpfLabel();
     updatePhoneField();
     updateSummary();
+    if (intlEmbedded) window.STF_INTL_PAY?.initUi?.();
   }
 
   function toggleAddressForm() {
@@ -1779,6 +1801,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       internationalProductNote: isInternational ? buildIntlProductNote(shippingInfo?.shipmentType) : '',
       pagamento: f.querySelector('[name=pagamento]:checked').value,
       checkoutLocale: checkoutLocale(),
+      intlEmbedded: isIntlEmbeddedCheckout(),
       items: window.STF_CART.load().map((i) => ({ productId: i.productId, qty: i.qty }))
     };
     if (appliedCoupon?.code) payload.couponCode = appliedCoupon.code;
@@ -2063,6 +2086,36 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const accessToken = result.accessToken;
       const payment = result.payment || {};
       if (!orderId) throw new Error(L('alert.orderInvalid'));
+
+      if (isIntlEmbeddedCheckout() && window.STF_INTL_PAY) {
+        lockCheckoutSidebar(orderSnapshot);
+        if (result.customerToken && window.STF_ACCOUNT) {
+          const u = getCustomerUser() || { nome: orderData.nome, email: orderData.email };
+          window.STF_ACCOUNT.setSession(result.customerToken, u);
+          renderCheckoutAccountUI();
+          window.STF_ACCOUNT.initNav();
+        }
+        els.btnPay.hidden = true;
+        els.btnBack.hidden = true;
+        document.getElementById('payment-notice-intl')?.setAttribute('hidden', '');
+        await window.STF_INTL_PAY.payAfterOrder(orderId, accessToken, {
+          onSuccess: () => {
+            markOrderPaidUi(orderId, total, total);
+            window.STF_CART?.clear();
+            window.STF_CART?.initBadges?.();
+            els.confirmTitle.textContent = L('title.orderRegistered');
+            els.orderId.textContent = orderId;
+            els.pixAmount.textContent = formatBRL(total);
+            els.paymentStatus.hidden = false;
+            els.paymentStatus.className = 'payment-status confirmed';
+            els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paid')}`;
+            showStep(3);
+          }
+        });
+        startPolling(orderId, accessToken, total);
+        return;
+      }
+
       if (result.customerToken && window.STF_ACCOUNT) {
         const u = getCustomerUser() || { nome: orderData.nome, email: orderData.email };
         window.STF_ACCOUNT.setSession(result.customerToken, u);
@@ -2325,6 +2378,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return true;
   }
 
+  async function handleStripeReturn() {
+    const params = new URLSearchParams(location.search);
+    if (params.get('stripe') !== 'return') return false;
+    const orderId = params.get('orderId');
+    const accessToken = params.get('accessToken');
+    if (!orderId || !accessToken) return false;
+    els.orderId.textContent = orderId;
+    els.paymentStatus.hidden = false;
+    els.paymentStatus.className = 'payment-status waiting';
+    els.paymentStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${L('status.confirmCard')}`;
+    showStep(3);
+    startPolling(orderId, accessToken);
+    history.replaceState({}, '', location.pathname);
+    return true;
+  }
+
   async function handlePayPalReturn() {
     const params = new URLSearchParams(location.search);
     const paypalState = params.get('paypal');
@@ -2464,9 +2533,47 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
+  async function handleStripeReturn() {
+    const params = new URLSearchParams(location.search);
+    if (params.get('stripe') !== 'return') return false;
+    const orderId = params.get('orderId');
+    const accessToken = params.get('accessToken');
+    if (!orderId || !accessToken) return false;
+
+    els.orderId.textContent = orderId;
+    els.paymentStatus.hidden = false;
+    els.paymentStatus.className = 'payment-status waiting';
+    els.paymentStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${L('status.confirmStripe')}`;
+    showStep(3);
+    window.STF_CART?.clear();
+    window.STF_CART?.initBadges?.();
+    try {
+      const res = await fetch(
+        `${apiBase()}/orders/${encodeURIComponent(orderId)}?token=${encodeURIComponent(accessToken)}`,
+        { cache: 'no-store' }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        els.pixAmount.textContent = formatBRL(data.total);
+        lockCheckoutSidebar(snapshotFromOrder(data));
+        if (data.status === 'paid') {
+          els.paymentStatus.className = 'payment-status confirmed';
+          els.paymentStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${L('status.paid')}`;
+          els.confirmTitle.textContent = L('title.orderRegistered');
+        } else {
+          startPolling(orderId, accessToken, data.total);
+        }
+      }
+    } catch (e) { console.warn(e); }
+    history.replaceState({}, '', location.pathname);
+    return true;
+  }
+
   async function boot() {
     if (isLocalizedSite()) {
       isInternational = true;
+      els.addressBr && (els.addressBr.hidden = true);
+      if (els.addressIntl) els.addressIntl.hidden = false;
       updateCpfLabel();
       updatePhoneField();
     }
@@ -2479,8 +2586,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       await initializeLocalizedCheckout();
     window.STF_CART?.initBadges();
     const mpDone = await handleMercadoPagoReturn();
-    const paypalDone = mpDone ? false : await handlePayPalReturn();
-    const resumed = mpDone || paypalDone || await resumeOrderFromUrl();
+    const stripeDone = mpDone ? false : await handleStripeReturn();
+    const paypalDone = mpDone || stripeDone ? false : await handlePayPalReturn();
+    const resumed = mpDone || stripeDone || paypalDone || await resumeOrderFromUrl();
     if (!resumed) {
       seedCartFromUrl();
       if (window.STF_CART?.isEmpty()) {
@@ -2490,6 +2598,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       renderCartSidebar();
       updateSummary();
       updatePaymentOptionsForCountry();
+      if (isIntlEmbeddedCheckout()) window.STF_INTL_PAY?.initUi?.();
       showStep(1);
       seedCouponFromUrl();
     }

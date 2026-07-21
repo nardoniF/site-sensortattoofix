@@ -1,5 +1,5 @@
 /**
- * Conversão BRL → moeda do comprador (exibição). Cobrança continua em BRL.
+ * BRL → visitor currency display. On .com, checkout is charged in USD.
  */
 window.STF_MONEY = (function () {
   const COUNTRY_CURRENCY = {
@@ -23,6 +23,10 @@ window.STF_MONEY = (function () {
     cache = { currency: null, rate: null, at: 0 };
   }
 
+  function isIntlHost() {
+    return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
+  }
+
   function currencyForCountry(code) {
     const c = String(code || '').toUpperCase();
     return COUNTRY_CURRENCY[c] || 'USD';
@@ -39,6 +43,11 @@ window.STF_MONEY = (function () {
   }
 
   function visitorCountry() {
+    if (isIntlHost()) {
+      const path = typeof location !== 'undefined' ? location.pathname : '';
+      if (path.includes('/it/')) return 'IT';
+      return 'US';
+    }
     const path = typeof location !== 'undefined' ? location.pathname : '';
     if (path.includes('/it/')) return 'IT';
     if (path.includes('/en/')) return 'US';
@@ -46,6 +55,7 @@ window.STF_MONEY = (function () {
   }
 
   function isVisitorLocalized() {
+    if (isIntlHost()) return true;
     const path = typeof location !== 'undefined' ? location.pathname : '';
     return path.includes('/en/') || path.includes('/it/');
   }
@@ -64,11 +74,11 @@ window.STF_MONEY = (function () {
     return Number(amount || 0).toLocaleString(localeFor(cur, countryCode), opts);
   }
 
-  async function loadRate(apiBase, currency) {
+  async function loadRate(apiBaseUrl, currency) {
     const cur = String(currency || 'USD').toUpperCase();
     if (cur === 'BRL') return 1;
     if (cache.currency === cur && Date.now() - cache.at < 3600000) return cache.rate;
-    const base = String(apiBase || '').replace(/\/$/, '');
+    const base = String(apiBaseUrl || '').replace(/\/$/, '');
     if (!base) return null;
     try {
       const res = await fetch(`${base}/fx/rate?to=${encodeURIComponent(cur)}`, { cache: 'no-store' });
@@ -104,6 +114,11 @@ window.STF_MONEY = (function () {
 
   async function formatForVisitor(amountBrl, config, countryCode) {
     const country = String(countryCode || visitorCountry()).toUpperCase();
+    if (isIntlHost()) {
+      const rate = await loadRate(apiBase(config), 'USD');
+      if (!rate) return formatBRL(amountBrl);
+      return formatForeign(convertFromBrl(amountBrl, rate), 'USD', country);
+    }
     if (country === 'BR' && !isVisitorLocalized()) return formatBRL(amountBrl);
     const cur = currencyForCountry(country);
     if (cur === 'BRL') return formatBRL(amountBrl);
@@ -114,6 +129,11 @@ window.STF_MONEY = (function () {
 
   async function formatPrimaryForVisitor(amountBrl, config, countryCode) {
     const country = String(countryCode || visitorCountry()).toUpperCase();
+    if (isIntlHost()) {
+      const rate = await loadRate(apiBase(config), 'USD');
+      if (!rate) return formatBRL(amountBrl);
+      return formatForeign(convertFromBrl(amountBrl, rate), 'USD', country);
+    }
     if (country === 'BR' && !isVisitorLocalized()) return formatBRL(amountBrl);
     const cur = currencyForCountry(country);
     if (cur === 'BRL') return formatBRL(amountBrl);
@@ -144,6 +164,7 @@ window.STF_MONEY = (function () {
     formatForVisitor,
     formatPrimaryForVisitor,
     visitorCountry,
+    isIntlHost,
     apiBase,
     computePayPalFee
   };

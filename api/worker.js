@@ -8,6 +8,8 @@ import { generateCommissionerStoryBanners } from './commissioner-banners.js';
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
   'https://www.sensortattoofix.com.br',
+  'https://sensortattoofix.com',
+  'https://www.sensortattoofix.com',
   'https://api.sensortattoofix.com.br',
   'http://localhost:8080',
   'http://127.0.0.1:5500'
@@ -1625,6 +1627,8 @@ function publicConfigView(config, env) {
   const products = getActiveProducts(config).map((p) => publicProductFields(p, config));
   const primary = products.find((p) => !p.aggregated) || products[0] || config.product;
   const paypal = config.payments?.paypal || {};
+  const { clientId } = paypalCredentials(env);
+  const stripe = stripeCredentials(env);
   return {
     product: primary ? {
       name: primary.name,
@@ -1642,9 +1646,15 @@ function publicConfigView(config, env) {
     internationalSurcharge: getIntlSurcharge(config),
     internationalProduct: config.internationalProduct || DEFAULT_CONFIG.internationalProduct,
     payments: {
+      intlEmbedded: true,
       paypal: {
         internationalEnabled: paypal.internationalEnabled !== false,
-        brazilEnabled: paypal.brazilEnabled !== false
+        brazilEnabled: paypal.brazilEnabled !== false,
+        clientId: clientId || null
+      },
+      stripe: {
+        enabled: stripeConfigured(env),
+        publishableKey: stripe.publishableKey || null
       },
       cardBr: {
         provider: getCardBrProvider(config)
@@ -1693,7 +1703,41 @@ function isAllowedSiteRequest(request) {
   const referer = request.headers.get('Referer') || '';
   if (ALLOWED_ORIGINS.some((o) => referer.startsWith(o))) return true;
   const fwdHost = (request.headers.get('X-Forwarded-Host') || request.headers.get('Host') || '').toLowerCase();
-  return fwdHost === 'sensortattoofix.com.br' || fwdHost === 'www.sensortattoofix.com.br';
+  return fwdHost === 'sensortattoofix.com.br' || fwdHost === 'www.sensortattoofix.com.br'
+    || fwdHost === 'sensortattoofix.com' || fwdHost === 'www.sensortattoofix.com';
+}
+
+function isComSiteRequest(request) {
+  const origin = request.headers.get('Origin') || '';
+  const referer = request.headers.get('Referer') || '';
+  const hay = origin + ' ' + referer;
+  if (/sensortattoofix\.com\.br/i.test(hay)) return false;
+  return /sensortattoofix\.com/i.test(hay);
+}
+
+function isIntlCheckoutLocale(locale) {
+  const l = String(locale || '').toLowerCase();
+  return l === 'en' || l === 'it';
+}
+
+async function intlUsdCharge(order, env) {
+  const fx = await fetchFxRate(env, 'USD');
+  const brl = Number(order.total) || 0;
+  const usd = Math.round(brl * fx.rate * 100) / 100;
+  return { currency: 'USD', amount: usd, amountCents: Math.round(usd * 100), fxRate: fx.rate };
+}
+
+function stripeCredentials(env) {
+  return {
+    secretKey: String(env.STRIPE_SECRET_KEY || '').trim(),
+    publishableKey: String(env.STRIPE_PUBLISHABLE_KEY || '').trim(),
+    webhookSecret: String(env.STRIPE_WEBHOOK_SECRET || '').trim()
+  };
+}
+
+function stripeConfigured(env) {
+  const { secretKey, publishableKey } = stripeCredentials(env);
+  return !!(secretKey && publishableKey);
 }
 
 function isValidClickLogKey(body, env) {
@@ -4653,12 +4697,19 @@ function paypalBase(env) {
     : 'https://api-m.paypal.com';
 }
 
-function storeBaseUrl(config, env) {
+function storeBaseUrl(config, env, request) {
+  if (request && isComSiteRequest(request)) {
+    return 'https://www.sensortattoofix.com';
+  }
+  const storeUrl = String(env.STORE_URL || config.store?.url || '').replace(/\/$/, '');
+  if (storeUrl && /\.sensortattoofix\.com$/i.test(storeUrl) && !/\.com\.br/i.test(storeUrl)) {
+    return storeUrl;
+  }
   return String(env.STORE_URL || config.store?.url || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
 }
 
-function paypalReturnUrls(config, order, env) {
-  const base = storeBaseUrl(config, env);
+function paypalReturnUrls(config, order, env, request) {
+  const base = storeBaseUrl(config, env, request);
   const success = new URLSearchParams({
     paypal: 'success',
     orderId: order.orderId,
@@ -4852,7 +4903,7 @@ function correiosApiRowStatus(probe) {
 
 function buildIntegrationRows(env, config, checks) {
   const {
-    paypal, mercadoPago, asaas, resend, zapi, correiosToken, correiosPreco, correiosPrazo,
+    paypal, mercadoPago, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
     correiosPrePostagem, correiosServico04227, correiosServico86720, exportOptions, uber
   } = checks;
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
@@ -4958,6 +5009,34 @@ function buildIntegrationRows(env, config, checks) {
       description: 'Pagamentos internacionais',
       status: paypal.sandbox || paypal.selfTest ? 'warn' : 'ok',
       detail
+    });
+  }
+
+  if (!stripe?.configured) {
+    rows.push({
+      id: 'stripe',
+      label: 'Stripe',
+      description: 'Cartão, Apple Pay e Google Pay (.com)',
+      status: 'off',
+      detail: 'Secrets não configurados'
+    });
+  } else if (!stripe.authOk) {
+    rows.push({
+      id: 'stripe',
+      label: 'Stripe',
+      description: 'Cartão, Apple Pay e Google Pay (.com)',
+      status: 'error',
+      detail: stripe.error || 'Falha na autenticação'
+    });
+  } else {
+    let stripeDetail = 'Conectado';
+    if (!stripe.webhook) stripeDetail += ' · webhook secret ausente';
+    rows.push({
+      id: 'stripe',
+      label: 'Stripe',
+      description: 'Cartão, Apple Pay e Google Pay (.com)',
+      status: stripe.webhook ? 'ok' : 'warn',
+      detail: stripeDetail
     });
   }
 
@@ -5221,10 +5300,54 @@ function buildIntegrationRows(env, config, checks) {
   return rows;
 }
 
-async function createPayPalCheckout(env, order, config) {
+async function createPayPalCheckout(env, order, config, request, opts) {
+  const options = opts || {};
   const accessToken = await getPayPalAccessToken(env);
-  const { return_url, cancel_url } = paypalReturnUrls(config, order, env);
+  const checkoutLocale = String(order.checkoutLocale || 'pt').toLowerCase();
+  const useUsd = isComSiteRequest(request) && isIntlCheckoutLocale(checkoutLocale);
+  let currencyCode = 'BRL';
+  let amountValue = Number(order.total).toFixed(2);
+  let locale = 'pt-BR';
+  if (useUsd) {
+    const usd = await intlUsdCharge(order, env);
+    currencyCode = 'USD';
+    amountValue = usd.amount.toFixed(2);
+    locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
+    order.chargeCurrency = 'USD';
+    order.chargeAmount = usd.amount;
+    order.chargeFxRate = usd.fxRate;
+  }
   const description = `Sensor Tattoo Fix — ${order.orderId}`.slice(0, 127);
+  const payload = {
+    intent: 'CAPTURE',
+    purchase_units: [{
+      reference_id: order.orderId,
+      custom_id: order.orderId,
+      description,
+      amount: {
+        currency_code: currencyCode,
+        value: amountValue
+      }
+    }]
+  };
+  if (!options.embedded) {
+    const { return_url, cancel_url } = paypalReturnUrls(config, order, env, request);
+    payload.application_context = {
+      brand_name: 'Sensor Tattoo Fix',
+      locale,
+      landing_page: 'NO_PREFERENCE',
+      user_action: 'PAY_NOW',
+      return_url,
+      cancel_url
+    };
+  } else {
+    payload.application_context = {
+      brand_name: 'Sensor Tattoo Fix',
+      locale,
+      landing_page: 'NO_PREFERENCE',
+      user_action: 'PAY_NOW'
+    };
+  }
 
   const res = await fetch(`${paypalBase(env)}/v2/checkout/orders`, {
     method: 'POST',
@@ -5233,34 +5356,15 @@ async function createPayPalCheckout(env, order, config) {
       'Content-Type': 'application/json',
       Accept: 'application/json'
     },
-    body: JSON.stringify({
-      intent: 'CAPTURE',
-      purchase_units: [{
-        reference_id: order.orderId,
-        custom_id: order.orderId,
-        description,
-        amount: {
-          currency_code: 'BRL',
-          value: Number(order.total).toFixed(2)
-        }
-      }],
-      application_context: {
-        brand_name: 'Sensor Tattoo Fix',
-        locale: 'pt-BR',
-        landing_page: 'NO_PREFERENCE',
-        user_action: 'PAY_NOW',
-        return_url,
-        cancel_url
-      }
-    })
+    body: JSON.stringify(payload)
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const detail = data.details?.[0]?.description || data.message;
     throw new Error(detail || 'Falha ao criar pagamento PayPal.');
   }
-  const approveUrl = (data.links || []).find((l) => l.rel === 'approve')?.href;
-  if (!approveUrl) throw new Error('Link de pagamento PayPal não retornado.');
+  const approveUrl = (data.links || []).find((l) => l.rel === 'approve')?.href || null;
+  if (!options.embedded && !approveUrl) throw new Error('Link de pagamento PayPal não retornado.');
 
   return {
     provider: 'paypal',
@@ -5268,7 +5372,8 @@ async function createPayPalCheckout(env, order, config) {
     paymentId: data.id,
     paypalOrderId: data.id,
     approveUrl,
-    autoConfirm: true
+    autoConfirm: true,
+    embedded: !!options.embedded
   };
 }
 
@@ -5943,9 +6048,27 @@ async function handleCreateOrder(request, env, origin, ctx) {
   let billingType;
   let pagamentoLabel;
   const checkoutLocale = String(body.checkoutLocale || 'pt').toLowerCase();
-  const paypalOnlyIntl = isIntl && (checkoutLocale === 'en' || checkoutLocale === 'it');
+  const intlEmbeddedCheckout = (isComSiteRequest(request) || body.intlEmbedded === true)
+    && isIntlCheckoutLocale(checkoutLocale);
+  const paypalOnlyIntl = isIntl && isIntlCheckoutLocale(checkoutLocale) && !intlEmbeddedCheckout;
   if (isIntl) {
-    if (paypalOnlyIntl) {
+    if (intlEmbeddedCheckout) {
+      if (body.pagamento === 'STRIPE') {
+        if (!stripeConfigured(env)) {
+          return json({ error: 'Card payment temporarily unavailable. Try PayPal.' }, 400, origin);
+        }
+        billingType = 'STRIPE';
+        pagamentoLabel = 'Card / Apple Pay / Google Pay';
+      } else if (body.pagamento === 'PAYPAL') {
+        if (!isInternationalPayPalAvailable(config)) {
+          return json({ error: 'PayPal temporarily unavailable. Try again shortly.' }, 400, origin);
+        }
+        billingType = 'PAYPAL';
+        pagamentoLabel = 'PayPal';
+      } else {
+        return json({ error: 'Choose PayPal or card for international checkout.' }, 400, origin);
+      }
+    } else if (paypalOnlyIntl) {
       if (body.pagamento !== 'PAYPAL') {
         return json({ error: 'Use PayPal para checkout em inglês ou italiano com envio internacional.' }, 400, origin);
       }
@@ -6050,8 +6173,21 @@ async function handleCreateOrder(request, env, origin, ctx) {
     shipmentType: body.shipmentType || null,
     internationalLensOnly: !!body.internationalLensOnly,
     internationalProductNote: body.internationalProductNote || '',
-    pagamento: pagamentoLabel
+    pagamento: pagamentoLabel,
+    checkoutLocale
   };
+
+  if (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')) {
+    try {
+      const usd = await intlUsdCharge(order, env);
+      order.chargeCurrency = 'USD';
+      order.chargeAmount = usd.amount;
+      order.chargeFxRate = usd.fxRate;
+      order.displayCurrency = 'USD';
+    } catch (err) {
+      console.warn('USD charge:', err.message);
+    }
+  }
 
   if (applySelfTestPixPricing(order, config, env, billingType)) {
     console.log('PIX self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
@@ -6065,8 +6201,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const hasMp = !!mercadoPagoToken(env);
 
   try {
-    if (billingType === 'PAYPAL') {
-      payment = await createPayPalCheckout(env, order, config);
+    if (billingType === 'PAYPAL' && !intlEmbeddedCheckout) {
+      payment = await createPayPalCheckout(env, order, config, request);
     } else if (billingType === 'MP_CHECKOUT') {
       payment = await createMercadoPagoCheckoutPro(env, order, config);
     } else if (billingType === 'PIX') {
@@ -6094,6 +6230,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
     if (payment.provider === 'mercadopago') order.mercadoPagoPaymentId = payment.paymentId;
     order.autoConfirm = payment.autoConfirm !== false;
     attachPaymentToOrder(order, payment, config);
+  } else if (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')) {
+    order.paymentProvider = billingType === 'STRIPE' ? 'stripe' : 'paypal';
+    order.autoConfirm = true;
+    order.intlEmbedded = true;
   } else if (billingType === 'CREDIT_CARD') {
     return json({ error: 'Cartão indisponível. Configure Asaas ou Mercado Pago.' }, 400, origin);
   } else if (hasAsaas && !hasMp) {
@@ -6711,6 +6851,194 @@ async function handleAsaasWebhook(request, env, origin) {
   return json({ ok: true }, 200, origin);
 }
 
+async function checkStripeIntegration(env) {
+  const { secretKey, publishableKey, webhookSecret } = stripeCredentials(env);
+  if (!secretKey && !publishableKey) {
+    return { configured: false, authOk: false, webhook: false, error: null };
+  }
+  if (!secretKey || !publishableKey) {
+    return {
+      configured: true,
+      authOk: false,
+      webhook: !!webhookSecret,
+      error: 'Secrets STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY incompletos.'
+    };
+  }
+  try {
+    const res = await fetch('https://api.stripe.com/v1/balance', {
+      headers: { Authorization: 'Bearer ' + secretKey, Accept: 'application/json' }
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return {
+        configured: true,
+        authOk: false,
+        webhook: !!webhookSecret,
+        error: data.error?.message || 'Falha na autenticação Stripe.'
+      };
+    }
+    return { configured: true, authOk: true, webhook: !!webhookSecret, error: null };
+  } catch (err) {
+    return { configured: true, authOk: false, webhook: !!webhookSecret, error: err.message };
+  }
+}
+
+async function stripeApi(env, path, params) {
+  const { secretKey } = stripeCredentials(env);
+  if (!secretKey) throw new Error('Stripe não configurado.');
+  const res = await fetch(`https://api.stripe.com/v1/${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + secretKey,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json'
+    },
+    body: new URLSearchParams(params).toString()
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error?.message || 'Stripe API error.');
+  return data;
+}
+
+async function handlePayPalCreate(request, env, origin, orderId) {
+  const body = await request.json().catch(() => ({}));
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const accessToken = String(body.accessToken || '');
+  if (!order.accessToken || accessToken !== order.accessToken) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (order.status === 'paid') {
+    return json({ order: publicOrderView(order), status: 'paid' }, 200, origin);
+  }
+  const config = await getConfig(env);
+  if (!isInternationalPayPalAvailable(config)) {
+    return json({ error: 'PayPal indisponível.' }, 400, origin);
+  }
+  try {
+    const payment = await createPayPalCheckout(env, order, config, request, { embedded: true });
+    order.paypalOrderId = payment.paypalOrderId;
+    if (payment.approveUrl) order.paypalApproveUrl = payment.approveUrl;
+    await saveOrder(env, order);
+    return json({
+      paypalOrderId: payment.paypalOrderId,
+      approveUrl: payment.approveUrl || null
+    }, 200, origin);
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
+}
+
+async function handleStripePaymentIntent(request, env, origin, orderId) {
+  const body = await request.json().catch(() => ({}));
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const accessToken = String(body.accessToken || '');
+  if (!order.accessToken || accessToken !== order.accessToken) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (order.status === 'paid') {
+    return json({ order: publicOrderView(order), status: 'paid' }, 200, origin);
+  }
+  if (!stripeConfigured(env)) {
+    return json({ error: 'Stripe não configurado.' }, 503, origin);
+  }
+  const config = await getConfig(env);
+  const { publishableKey } = stripeCredentials(env);
+  let amountCents;
+  let currency = 'usd';
+  if (order.chargeCurrency === 'USD' || isComSiteRequest(request)) {
+    let usd = Number(order.chargeAmount);
+    if (!Number.isFinite(usd) || usd <= 0) {
+      const charge = await intlUsdCharge(order, env);
+      usd = charge.amount;
+      order.chargeCurrency = 'USD';
+      order.chargeAmount = charge.amount;
+      order.chargeFxRate = charge.fxRate;
+    }
+    amountCents = Math.max(50, Math.round(usd * 100));
+  } else {
+    amountCents = Math.max(50, Math.round(Number(order.total) * 100));
+    currency = 'brl';
+  }
+  const returnBase = storeBaseUrl(config, env, request);
+  try {
+    const pi = await stripeApi(env, 'payment_intents', {
+      amount: String(amountCents),
+      currency,
+      'automatic_payment_methods[enabled]': 'true',
+      'metadata[orderId]': order.orderId,
+      description: `Sensor Tattoo Fix — ${order.orderId}`.slice(0, 500),
+      receipt_email: String(order.email || '').slice(0, 500)
+    });
+    order.stripePaymentIntentId = pi.id;
+    order.paymentProvider = 'stripe';
+    await saveOrder(env, order);
+    return json({
+      clientSecret: pi.client_secret,
+      publishableKey,
+      returnUrl: `${returnBase}/comprar.html?stripe=return&orderId=${encodeURIComponent(order.orderId)}&accessToken=${encodeURIComponent(order.accessToken)}`
+    }, 200, origin);
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
+}
+
+async function handleStripeWebhook(request, env, origin) {
+  const { webhookSecret } = stripeCredentials(env);
+  const rawBody = await request.text();
+  let event;
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return json({ error: 'Invalid payload.' }, 400, origin);
+  }
+  if (webhookSecret) {
+    const sig = request.headers.get('stripe-signature') || '';
+    const valid = await verifyStripeWebhookSignature(rawBody, sig, webhookSecret);
+    if (!valid) return json({ error: 'Invalid signature.' }, 400, origin);
+  }
+  if (event.type === 'payment_intent.succeeded') {
+    const pi = event.data?.object || {};
+    const orderId = pi.metadata?.orderId;
+    if (orderId) {
+      const order = await getOrder(env, orderId);
+      if (order && order.status !== 'paid') {
+        const value = pi.amount_received ? pi.amount_received / 100 : order.total;
+        await handlePaymentConfirmed(env, order, {
+          id: pi.id,
+          provider: 'stripe',
+          billingType: 'STRIPE',
+          value
+        });
+      }
+    }
+  }
+  return json({ received: true }, 200, origin);
+}
+
+async function verifyStripeWebhookSignature(payload, sigHeader, secret) {
+  if (!sigHeader || !secret) return false;
+  const parts = Object.fromEntries(sigHeader.split(',').map((p) => {
+    const [k, v] = p.split('=');
+    return [k.trim(), v];
+  }));
+  const timestamp = parts.t;
+  const signature = parts.v1;
+  if (!timestamp || !signature) return false;
+  const signed = `${timestamp}.${payload}`;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signed));
+  const expected = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return expected === signature;
+}
+
 async function handlePayPalCapture(request, env, origin, orderId) {
   const body = await request.json().catch(() => ({}));
   const order = await getOrder(env, orderId);
@@ -6852,14 +7180,15 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     ])
     : [null, null, null];
 
-  const [paypal, mercadoPago, asaas, resend, zapi, exportOptions, uber] = await Promise.all([
+  const [paypal, mercadoPago, asaas, resend, zapi, exportOptions, uber, stripe] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
     quoteCorreiosExportOptions(config, 'PT', { weightGrams }).catch(() => []),
-    checkUberIntegration(env, config)
+    checkUberIntegration(env, config),
+    checkStripeIntegration(env)
   ]);
 
   const integrations = buildIntegrationRows(env, config, {
@@ -6868,6 +7197,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     asaas,
     resend,
     zapi,
+    stripe,
     correiosToken,
     correiosPreco,
     correiosPrazo,
@@ -8361,6 +8691,19 @@ export default {
       }
       if (path === '/webhook/paypal' && request.method === 'POST') {
         return handlePayPalWebhook(request, env, origin);
+      }
+      if (path === '/webhook/stripe' && request.method === 'POST') {
+        return handleStripeWebhook(request, env, origin);
+      }
+
+      const paypalCreateMatch = path.match(/^\/orders\/([^/]+)\/paypal\/create$/);
+      if (paypalCreateMatch && request.method === 'POST') {
+        return handlePayPalCreate(request, env, origin, paypalCreateMatch[1]);
+      }
+
+      const stripePiMatch = path.match(/^\/orders\/([^/]+)\/stripe\/payment-intent$/);
+      if (stripePiMatch && request.method === 'POST') {
+        return handleStripePaymentIntent(request, env, origin, stripePiMatch[1]);
       }
 
       const paypalCaptureMatch = path.match(/^\/orders\/([^/]+)\/paypal\/capture$/);

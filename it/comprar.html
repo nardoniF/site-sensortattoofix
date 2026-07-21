@@ -224,17 +224,37 @@
                             </label>
                         </div>
                         <div id="payment-options-intl" class="payment-options" hidden>
+                            <label class="payment-option payment-option-stripe">
+                                <input type="radio" name="pagamento" value="STRIPE" checked>
+                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Carta / Apple Pay / Google Pay</strong><small>Pagamento sicuro via Stripe · addebito in USD</small></div></div>
+                            </label>
                             <label class="payment-option payment-option-intl-card" hidden>
                                 <input type="radio" name="pagamento" value="CARTAO">
-                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Carta internazionale</strong><small>Visa, Mastercard, Amex — importo in R$, la tua banca converte</small></div></div>
+                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Carta internazionale</strong><small>Visa, Mastercard, Amex — importo in R$</small></div></div>
                             </label>
                             <label class="payment-option payment-option-paypal">
-                                <input type="radio" name="pagamento" value="PAYPAL" checked>
-                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Carta, debito o saldo PayPal</small></div></div>
+                                <input type="radio" name="pagamento" value="PAYPAL">
+                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Carta, debito o saldo PayPal · USD</small></div></div>
                             </label>
                         </div>
                         <div id="payment-notice-br" class="checkout-notice"><i class="fas fa-info-circle"></i> Dopo il pagamento, la conferma è automatica sul sito e via email.</div>
-                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fas fa-info-circle"></i> Prezzi in real brasiliano (BRL). PayPal o carta internazionale — la tua banca converte la valuta.</div>
+                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fas fa-info-circle"></i> Addebito in USD · spedizione tracciata · conferma via email. Domande? <a href="mailto:support@sensortattoofix.com">Email</a>.</div>
+
+                        <div id="intl-embedded-pay" class="intl-embedded-pay" hidden>
+                            <div id="intl-stripe-wrap" class="intl-pay-section" hidden>
+                                <div id="stripe-payment-element" class="stripe-payment-element"></div>
+                                <button type="button" id="btn-stripe-confirm" class="btn-primary btn-stripe-confirm" hidden>
+                                    <i class="fas fa-lock"></i> Completa pagamento
+                                </button>
+                            </div>
+                            <div id="intl-paypal-wrap" class="intl-pay-section" hidden>
+                                <div id="paypal-button-container"></div>
+                                <div id="paypal-wallet-buttons" class="paypal-wallet-buttons"></div>
+                                <a id="paypal-redirect-link" class="paypal-redirect-link" href="#" target="_blank" rel="noopener" hidden>
+                                    <i class="fab fa-paypal"></i> Continua su PayPal.com
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="checkout-step" data-step="3">
@@ -303,7 +323,7 @@
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="it"></div></footer>
 
     <script src="../js/stf-i18n-it-overrides.js?v=5"></script>
-    <script src="../js/stf-i18n.js?v=33"></script>
+    <script src="../js/stf-i18n.js?v=34"></script>
     <script src="../js/stf-lang-nav.js?v=1"></script>
     <script src="../js/config-bootstrap.js?v=2"></script>
     <script src="../js/site-footer.js?v=6"></script>
@@ -312,15 +332,15 @@
     <script src="../js/store-products-merge.js?v=17"></script>
     <script src="../js/store-loader.js?v=6"></script>
     <script src="../js/cart.js?v=8"></script>
-    <script src="../js/pix.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="../js/stf-site.js?v=1"></script>
     <script src="../js/order-watch.js"></script>
     <script src="../js/traffic-origin.js?v=1"></script>
     <script src="../js/analytics.js?v=34"></script>
     <script src="../js/pelicula-compat.js?v=15"></script>
-    <script src="../js/stf-money.js?v=3"></script>
+    <script src="../js/stf-money.js?v=4"></script>
     <script src="../js/stf-address-autocomplete.js?v=3"></script>
-    <script src="../js/checkout.js?v=88"></script>
+    <script src="../js/checkout-intl-pay.js?v=1"></script>
+    <script src="../js/checkout.js?v=89"></script>
     <script src="../js/seo-schema.js?v=4"></script>
 </body>
 </html>

@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://www.sensortattoofix.com/comprar.html">
+    <script src="../js/stf-site.js?v=1"></script>
     <script src="../js/ad-landing.js?v=4"></script>
     <title>Checkout | Sensor Tattoo Fix — Official Store</title>
-    <meta name="description" content="Official Sensor Tattoo Fix checkout — PayPal, international cards, tracked worldwide shipping.">
-    <link rel="stylesheet" href="../style.css?v=2.64">
+    <meta name="description" content="Official Sensor Tattoo Fix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked worldwide shipping in USD.">
+    <link rel="stylesheet" href="../style.css?v=2.65">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script src="../js/gtag-init.js"></script>
 </head>
-<body class="checkout-page">
-
-    <a href="https://wa.me/5511913394665" class="whatsapp-float" target="_blank" rel="noopener" data-evento="clique_whatsapp" data-rotulo="WhatsApp checkout"><i class="fab fa-whatsapp"></i></a>
+<body class="checkout-page checkout-page-intl">
 
     <header>
         <nav class="container">
@@ -26,54 +26,59 @@
                 </div>
             </div>
             <ul class="nav-links checkout-nav">
-                <li><a href="comprar.html" class="cart-nav-link"><i class="fas fa-shopping-cart"></i> Carrinho <span data-cart-badge class="cart-badge" hidden>0</span></a></li>
+                <li><a href="comprar.html" class="cart-nav-link"><i class="fas fa-shopping-cart"></i> Cart <span data-cart-badge class="cart-badge" hidden>0</span></a></li>
                 <li data-account-nav></li>
                 <li class="nav-lang-stack">
-                    <a href="../comprar.html" class="nav-lang" title="Português" aria-label="Português"><img src="https://flagcdn.com/w20/br.png" width="20" height="15" alt=""> <span>PT</span></a>
+                    <a href="https://www.sensortattoofix.com.br/comprar.html" class="nav-lang" title="Português" aria-label="Português"><img src="https://flagcdn.com/w20/br.png" width="20" height="15" alt=""> <span>PT</span></a>
                     <a href="../it/comprar.html" class="nav-lang" title="Italiano" aria-label="Italiano"><img src="https://flagcdn.com/w20/it.png" width="20" height="15" alt=""> <span>IT</span></a>
                 </li>
                 <li><a href="index.html"><i class="fas fa-arrow-left"></i> Back</a></li>
             </ul>
         </nav>
     </header>
-    <script src="../js/stf-intl-trust.js?v=3"></script>
+    <script src="../js/stf-intl-trust.js?v=4"></script>
 
     <main class="checkout-main">
         <div class="container checkout-layout">
             <aside class="checkout-sidebar">
                 <div class="checkout-product-card checkout-cart-core">
-                    <h2 class="cart-sidebar-title"><i class="fas fa-shopping-cart"></i> Seu carrinho</h2>
+                    <h2 class="cart-sidebar-title"><i class="fas fa-shopping-cart"></i> Your cart</h2>
                     <div id="cart-sidebar-items" class="cart-sidebar-items"></div>
                     <div class="checkout-coupon" id="checkout-coupon">
-                        <label class="checkout-coupon-label" for="coupon-code">Cupom de desconto</label>
+                        <label class="checkout-coupon-label" for="coupon-code">Discount code</label>
                         <div class="checkout-coupon-row">
-                            <input type="text" id="coupon-code" maxlength="32" autocomplete="off" placeholder="Ex: MARIA10" autocapitalize="characters">
-                            <button type="button" id="btn-apply-coupon" class="btn-secondary">Aplicar</button>
+                            <input type="text" id="coupon-code" maxlength="32" autocomplete="off" placeholder="e.g. SAVE10" autocapitalize="characters">
+                            <button type="button" id="btn-apply-coupon" class="btn-secondary">Apply</button>
                         </div>
                         <p id="coupon-message" class="checkout-coupon-msg" hidden></p>
                     </div>
                     <div class="checkout-summary">
                         <div class="summary-row"><span>Subtotal</span><strong id="summary-product">—</strong></div>
                         <div class="summary-row summary-discount" id="summary-discount-row" hidden>
-                            <span id="summary-discount-label">Desconto</span>
+                            <span id="summary-discount-label">Discount</span>
                             <strong id="summary-discount">—</strong>
                         </div>
-                        <div class="summary-row"><span id="summary-shipping-label">Frete</span><strong id="summary-shipping">—</strong></div>
+                        <div class="summary-row"><span id="summary-shipping-label">Shipping</span><strong id="summary-shipping">—</strong></div>
                         <div class="summary-row summary-paypal" id="summary-paypal-row" hidden>
                             <span id="summary-paypal-label">PayPal fee</span><strong id="summary-paypal">—</strong>
                         </div>
                         <div class="summary-row total"><span>Total</span><strong id="summary-total">—</strong></div>
                     </div>
-                    <div class="checkout-trust">
-                        <span><i class="fas fa-lock"></i> Secure PayPal checkout</span>
-                        <span><i class="fas fa-truck"></i> Tracked international shipping</span>
+                    <div class="checkout-trust checkout-trust-badges">
+                        <span><i class="fas fa-lock"></i> SSL secure checkout</span>
+                        <span><i class="fab fa-paypal"></i> PayPal Buyer Protection</span>
+                        <span><i class="fab fa-stripe"></i> Stripe secure payment</span>
+                        <span><i class="fab fa-apple-pay"></i> Apple Pay · <i class="fab fa-google-pay"></i> Google Pay</span>
+                        <span><i class="fas fa-certificate"></i> Patented 3N20 technology</span>
+                        <span><i class="fas fa-truck"></i> Tracked shipping · US &amp; EU</span>
                         <span><i class="fas fa-envelope"></i> Order confirmation by email</span>
                     </div>
-                    <a href="../loja.html?lang=en" class="cart-add-more"><i class="fas fa-plus"></i> Adicionar mais produtos</a>
+                    <p class="checkout-trust-note">30-day satisfaction guarantee on eligible orders. Questions? <a href="mailto:support@sensortattoofix.com">support@sensortattoofix.com</a></p>
+                    <a href="loja.html" class="cart-add-more"><i class="fas fa-plus"></i> Add more products</a>
                 </div>
                 <div id="self-test-pay-wrap" class="self-test-pay-sidebar" hidden>
                     <button type="button" id="btn-skip-test-pay" class="btn-secondary btn-skip-test-pay">
-                        <i class="fas fa-flask"></i> Confirmar teste (sem pagar)
+                        <i class="fas fa-flask"></i> Confirm test (no payment)
                     </button>
                     <p class="self-test-pay-hint">Test order detected — confirm without payment.</p>
                 </div>
@@ -82,9 +87,9 @@
 
             <section class="checkout-content">
                 <div class="checkout-steps-bar">
-                    <div class="step-indicator active" data-step="1"><span>1</span> Dados</div>
-                    <div class="step-indicator" data-step="2"><span>2</span> Pagamento</div>
-                    <div class="step-indicator" data-step="3"><span>3</span> Confirmação</div>
+                    <div class="step-indicator active" data-step="1"><span>1</span> Details</div>
+                    <div class="step-indicator" data-step="2"><span>2</span> Payment</div>
+                    <div class="step-indicator" data-step="3"><span>3</span> Confirmation</div>
                 </div>
 
                 <form id="checkout-form" class="checkout-form" novalidate>
@@ -183,109 +188,91 @@
                         <div class="form-grid">
                             <label class="full" data-i18n-label="form.country" data-i18n-required="1">
                                 <select name="paisCode" id="pais-code" required>
-                                    <option value="BR">Brasil</option>
+                                    <option value="">Select country</option>
                                 </select>
                             </label>
                         </div>
 
-                        <div id="address-br">
+                        <div id="address-intl">
                             <div class="form-grid">
-                                <label data-i18n-label="form.cep" data-i18n-required="1"><input type="text" name="cep" id="cep" inputmode="numeric" autocomplete="postal-code"></label>
-                                <label class="span-2" data-i18n-label="form.street" data-i18n-required="1"><input type="text" name="rua"></label>
-                                <label data-i18n-label="form.number" data-i18n-required="1"><input type="text" name="numero"></label>
-                                <label data-i18n-label="form.complement"><input type="text" name="complemento"></label>
-                                <label data-i18n-label="form.district" data-i18n-required="1"><input type="text" name="bairro"></label>
-                                <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidade"></label>
-                                <label data-i18n-label="form.state" data-i18n-required="1"><select name="uf"><option value="">UF</option><option>SP</option><option>RJ</option><option>MG</option><option>RS</option><option>PR</option><option>SC</option><option>BA</option><option>PE</option><option>CE</option><option>DF</option><option>GO</option><option>ES</option><option>AM</option><option>PA</option><option>MA</option><option>MT</option><option>MS</option><option>PB</option><option>RN</option><option>AL</option><option>SE</option><option>PI</option><option>RO</option><option>AC</option><option>AP</option><option>RR</option><option>TO</option></select></label>
-                            </div>
-                        </div>
-
-                        <div id="address-intl" hidden>
-                            <div class="form-grid">
-                                <label data-i18n-label="form.postal" data-i18n-required="1"><input type="text" name="postalIntl" id="postal-intl"></label>
-                                <label class="span-2" data-i18n-label="form.streetIntl" data-i18n-required="1"><input type="text" name="ruaIntl" id="rua-intl" placeholder="Rua do Além"></label>
-                                <label data-i18n-label="form.number"><input type="text" name="numeroIntl" id="numero-intl" placeholder="78"></label>
+                                <label data-i18n-label="form.postal" data-i18n-required="1"><input type="text" name="postalIntl" id="postal-intl" autocomplete="postal-code"></label>
+                                <label class="span-2" data-i18n-label="form.streetIntl" data-i18n-required="1"><input type="text" name="ruaIntl" id="rua-intl"></label>
+                                <label data-i18n-label="form.number"><input type="text" name="numeroIntl" id="numero-intl"></label>
                                 <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidadeIntl" id="cidade-intl"></label>
-                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="Opcional"></label>
+                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="State / province"></label>
                             </div>
                         </div>
                         <div id="shipping-options-wrap" class="shipping-options-wrap" hidden>
-                            <h4 class="shipping-options-title">Escolha o frete</h4>
-                            <div id="shipping-options" class="shipping-options" role="radiogroup" aria-label="Opções de frete"></div>
+                            <h4 class="shipping-options-title">Choose shipping</h4>
+                            <div id="shipping-options" class="shipping-options" role="radiogroup" aria-label="Shipping options"></div>
                         </div>
-                        <p id="shipping-hint" class="shipping-hint">Informe o destino para calcular o frete.</p>
+                        <p id="shipping-hint" class="shipping-hint">Enter your destination to calculate shipping.</p>
                     </div>
 
                     <div class="checkout-step" data-step="2">
-                        <h3>Forma de pagamento</h3>
-                        <div id="payment-options-br" class="payment-options">
+                        <h3>Payment method</h3>
+                        <div id="payment-options-br" class="payment-options" hidden>
                             <label class="payment-option">
-                                <input type="radio" name="pagamento" value="CARTAO" checked>
-                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Cartão de crédito</strong><small>Pagamento seguro via Asaas</small></div></div>
+                                <input type="radio" name="pagamento" value="CARTAO">
+                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Credit card</strong></div></div>
                             </label>
                         </div>
-                        <div id="payment-options-intl" class="payment-options" hidden>
-                            <label class="payment-option payment-option-intl-card" hidden>
-                                <input type="radio" name="pagamento" value="CARTAO">
-                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Cartão internacional</strong><small>Visa, Mastercard, Amex — valor em R$, seu banco converte</small></div></div>
+                        <div id="payment-options-intl" class="payment-options">
+                            <label class="payment-option payment-option-stripe">
+                                <input type="radio" name="pagamento" value="STRIPE" checked>
+                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Card / Apple Pay / Google Pay</strong><small>Secure checkout via Stripe · charged in USD</small></div></div>
                             </label>
                             <label class="payment-option payment-option-paypal">
-                                <input type="radio" name="pagamento" value="PAYPAL" checked>
-                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Cartão, débito ou saldo PayPal</small></div></div>
+                                <input type="radio" name="pagamento" value="PAYPAL">
+                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>PayPal balance, card or debit · USD</small></div></div>
                             </label>
                         </div>
-                        <div id="payment-notice-br" class="checkout-notice"><i class="fas fa-info-circle"></i> Após o pagamento, a confirmação é automática no site e por e-mail.</div>
-                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fas fa-info-circle"></i> International order: PayPal secure checkout · tracked shipping · tracking by email. Questions? <a href="mailto:contato@sensortattoofix.com.br">Email us</a> or use WhatsApp before you pay.</div>
+                        <div id="payment-notice-br" class="checkout-notice" hidden></div>
+                        <div id="payment-notice-intl" class="checkout-notice"><i class="fas fa-info-circle"></i> Charged in USD · tracked international shipping · confirmation by email. Questions? <a href="mailto:support@sensortattoofix.com">Email us</a>.</div>
+
+                        <div id="intl-embedded-pay" class="intl-embedded-pay" hidden>
+                            <div id="intl-stripe-wrap" class="intl-pay-section" hidden>
+                                <div id="stripe-payment-element" class="stripe-payment-element"></div>
+                                <button type="button" id="btn-stripe-confirm" class="btn-primary btn-stripe-confirm" hidden>
+                                    <i class="fas fa-lock"></i> Complete payment
+                                </button>
+                            </div>
+                            <div id="intl-paypal-wrap" class="intl-pay-section" hidden>
+                                <div id="paypal-button-container"></div>
+                                <div id="paypal-wallet-buttons" class="paypal-wallet-buttons"></div>
+                                <a id="paypal-redirect-link" class="paypal-redirect-link" href="#" target="_blank" rel="noopener" hidden>
+                                    <i class="fab fa-paypal"></i> Continue on PayPal.com
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="checkout-step" data-step="3">
                         <div id="payment-panel" class="pix-panel">
                             <div class="pix-success-icon"><i class="fas fa-check-circle"></i></div>
-                            <h3 id="confirm-title">Pedido registrado!</h3>
-                            <p>Pedido <strong id="order-id">—</strong></p>
+                            <h3 id="confirm-title">Order placed!</h3>
+                            <p>Order <strong id="order-id">—</strong></p>
                             <p class="pix-amount-label">Total: <strong id="pix-amount">—</strong></p>
                             <div id="payment-status" class="payment-status waiting" hidden></div>
-
-                            <div id="pix-ui" class="checkout-pix-ui">
-                                <div id="pix-qr" class="pix-qr-wrap"></div>
-                                <div id="pix-copy-area" class="pix-copy-area">
-                                    <input type="text" id="pix-copy" readonly>
-                                    <button type="button" id="btn-copy-pix" class="btn-primary">Copiar PIX</button>
-                                </div>
-                            </div>
-
-                            <div id="card-ui" class="checkout-card-ui" hidden>
-                                <div class="card-pay-icon"><i class="fas fa-credit-card"></i></div>
-                                <p class="card-pay-text" id="card-pay-text">Pagamento seguro processado pelo Asaas.</p>
-                                <a id="card-pay-link" href="#" class="btn-primary card-pay-btn" target="_blank" rel="noopener">
-                                    <i class="fas fa-lock"></i> Abrir pagamento com cartão
-                                </a>
-                            </div>
-
-                            <div id="paypal-ui" class="checkout-paypal-ui" hidden>
-                                <div class="card-pay-icon paypal-icon"><i class="fab fa-paypal"></i></div>
-                                <p class="card-pay-text">Redirecionando ao PayPal… Se não abrir, use o botão abaixo.</p>
-                                <a id="paypal-pay-link" href="#" class="btn-primary card-pay-btn paypal-pay-btn" target="_blank" rel="noopener">
-                                    <i class="fab fa-paypal"></i> Pagar com PayPal
-                                </a>
-                            </div>
-
-                            <p class="checkout-hint" id="confirm-hint">A confirmação é enviada automaticamente por e-mail.</p>
+                            <div id="pix-ui" class="checkout-pix-ui" hidden></div>
+                            <div id="card-ui" class="checkout-card-ui" hidden></div>
+                            <div id="paypal-ui" class="checkout-paypal-ui" hidden></div>
+                            <p class="checkout-hint" id="confirm-hint">Confirmation will be sent by email automatically.</p>
                         </div>
                     </div>
 
                     <div class="checkout-actions">
                         <button type="button" id="btn-back" class="btn-secondary btn-checkout-back" style="display:none">
                             <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-arrow-left"></i></span>
-                            <span class="btn-checkout-label">Voltar</span>
+                            <span class="btn-checkout-label">Back</span>
                         </button>
                         <button type="button" id="btn-next" class="btn-primary btn-checkout-next" style="display:none">
-                            <span class="btn-checkout-label">Continuar</span>
+                            <span class="btn-checkout-label">Continue</span>
                             <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                         </button>
                         <button type="button" id="btn-pay" class="btn-primary btn-checkout-pay" style="display:none">
                             <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
-                            <span class="btn-checkout-label">Finalizar pedido</span>
+                            <span class="btn-checkout-label">Place order</span>
                         </button>
                     </div>
                 </form>
@@ -303,7 +290,7 @@
 
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="en"></div></footer>
 
-    <script src="../js/stf-i18n.js?v=33"></script>
+    <script src="../js/stf-i18n.js?v=34"></script>
     <script src="../js/stf-lang-nav.js?v=1"></script>
     <script src="../js/config-bootstrap.js?v=2"></script>
     <script src="../js/site-footer.js?v=6"></script>
@@ -312,15 +299,14 @@
     <script src="../js/store-products-merge.js?v=17"></script>
     <script src="../js/store-loader.js?v=6"></script>
     <script src="../js/cart.js?v=8"></script>
-    <script src="../js/pix.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="../js/order-watch.js"></script>
     <script src="../js/traffic-origin.js?v=1"></script>
     <script src="../js/analytics.js?v=34"></script>
     <script src="../js/pelicula-compat.js?v=15"></script>
-    <script src="../js/stf-money.js?v=3"></script>
+    <script src="../js/stf-money.js?v=4"></script>
     <script src="../js/stf-address-autocomplete.js?v=3"></script>
-    <script src="../js/checkout.js?v=88"></script>
+    <script src="../js/checkout-intl-pay.js?v=1"></script>
+    <script src="../js/checkout.js?v=89"></script>
     <script src="../js/seo-schema.js?v=4"></script>
 </body>
 </html>

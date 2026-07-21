@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>My Account | Sensor Tattoo Fix</title>
+    <link rel="canonical" href="https://www.sensortattoofix.com/minha-conta.html">
+    <link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/minha-conta.html">
     <link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/minha-conta.html">
+    <link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/minha-conta.html">
     <link rel="stylesheet" href="../style.css?v=1.78">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
@@ -60,7 +63,7 @@
                         <label>Full name<input type="text" name="nome" required></label>
                         <label>Email<input type="email" name="email" required></label>
                         <label>WhatsApp<input type="tel" name="telefone" required></label>
-                        <label>CPF<input type="text" name="cpf" required></label>
+                        <label>Tax ID <small>(optional)</small><input type="text" name="cpf" placeholder="Optional"></label>
                         <label>Password (min. 6 characters)<input type="password" name="password" required minlength="6"></label>
                         <button type="submit" class="btn-primary">Create account</button>
                         <p id="conta-register-status" class="admin-status form-status" hidden></p>
@@ -98,18 +101,17 @@
                             <label class="full">Full name<input type="text" name="nome" required></label>
                             <label>Email<input type="email" name="email" readonly disabled></label>
                             <label>WhatsApp<input type="tel" name="telefone" required></label>
-                            <label>CPF<input type="text" name="cpf"></label>
+                            <label>Tax ID <small>(optional)</small><input type="text" name="cpf" placeholder="Optional"></label>
                         </div>
-                        <h3 class="conta-form-section">Default address (Brazil)</h3>
+                        <h3 class="conta-form-section">Default shipping address</h3>
                         <p class="admin-meta">Used to pre-fill checkout automatically.</p>
                         <div class="form-grid">
-                            <label>Postal code<input type="text" name="cep" id="conta-cep" inputmode="numeric" autocomplete="postal-code"></label>
-                            <label class="span-2">Street<input type="text" name="rua"></label>
-                            <label>Number<input type="text" name="numero"></label>
-                            <label>Complement<input type="text" name="complemento"></label>
-                            <label>District<input type="text" name="bairro"></label>
+                            <label class="full">Country<input type="text" name="pais" placeholder="United States"></label>
+                            <label>Postal / ZIP code<input type="text" name="cep" id="conta-cep" autocomplete="postal-code"></label>
+                            <label class="span-2">Street address<input type="text" name="rua"></label>
+                            <label>Apt / number<input type="text" name="numero"></label>
                             <label>City<input type="text" name="cidade"></label>
-                            <label>State<input type="text" name="uf" maxlength="2" placeholder="SP"></label>
+                            <label>State / province<input type="text" name="uf" placeholder="CA"></label>
                         </div>
                         <h3 class="conta-form-section">Change password</h3>
                         <p class="admin-meta">Leave blank if you do not want to change your password.</p>

@@ -28,6 +28,9 @@ wrangler secret put ASAAS_API_KEY           # Asaas → Integrações → API (c
 wrangler secret put ASAAS_WEBHOOK_TOKEN     # token do webhook Asaas (cartão)
 wrangler secret put PAYPAL_CLIENT_ID          # PayPal Developer → app REST (internacional)
 wrangler secret put PAYPAL_CLIENT_SECRET
+wrangler secret put STRIPE_SECRET_KEY              # Stripe → Developers → Secret key
+wrangler secret put STRIPE_PUBLISHABLE_KEY         # Stripe → pk_live_… ou pk_test_…
+wrangler secret put STRIPE_WEBHOOK_SECRET          # Stripe → Webhooks → signing secret
 ```
 
 Opcional:
@@ -35,7 +38,7 @@ Opcional:
 ```bash
 wrangler secret put PAYPAL_SANDBOX            # "true" para testes sandbox
 wrangler secret put PAYPAL_SELF_TEST            # "true" = PayPal Live cobra R$ 0,01 (remover após teste)
-wrangler secret put STORE_URL                 # URL do site (retorno PayPal)
+wrangler secret put STORE_URL                 # https://www.sensortattoofix.com (retorno PayPal/Stripe no .com)
 ```
 
 Opcional (outros):
@@ -112,7 +115,36 @@ No [PayPal Developer](https://developer.paypal.com/) → sua aplicação → Web
 
 O cliente também confirma ao voltar do PayPal para `/comprar.html` (captura automática).
 
-## 8b. Tabela fallback internacional
+## 8c. Stripe (.com — cartão, Apple Pay, Google Pay)
+
+No [Stripe Dashboard](https://dashboard.stripe.com/):
+
+1. Ative **Apple Pay** e **Google Pay** em Settings → Payment methods
+2. Verifique o domínio `www.sensortattoofix.com` em Settings → Apple Pay
+3. Crie webhook → **URL:** `https://api.sensortattoofix.com.br/webhook/stripe`
+4. Evento: `payment_intent.succeeded`
+
+Secrets no Worker:
+
+```bash
+wrangler secret put STRIPE_SECRET_KEY
+wrangler secret put STRIPE_PUBLISHABLE_KEY
+wrangler secret put STRIPE_WEBHOOK_SECRET
+wrangler secret put STORE_URL    # https://www.sensortattoofix.com
+```
+
+Checkout `.com` cobra em **USD** (conversão via `/fx/rate`). Mercado BR (`.com.br`) permanece inalterado.
+
+## 8d. PayPal embedded (.com)
+
+No [PayPal Developer](https://developer.paypal.com/) → app Live:
+
+- Ative **JavaScript SDK** (embedded buttons)
+- Opcional: Apple Pay / Google Pay via PayPal SDK
+- `PAYPAL_CLIENT_ID` já usado no Worker
+- Return URL: `STORE_URL=https://www.sensortattoofix.com`
+
+## 8e. Tabela fallback internacional
 
 A tabela em **Admin → Frete** sincroniza sozinha com o simulador Exporta Fácil quando a API responde (ao abrir o admin ou em cada cotação no checkout). Serve só se a API dos Correios falhar.
 
