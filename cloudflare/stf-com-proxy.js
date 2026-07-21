@@ -2,7 +2,7 @@
  * .com storefront proxy — serves /en/* from GitHub via jsDelivr.
  * IMPORTANT: pin COMMIT after each push so .com is not stuck on stale @main cache.
  */
-const COMMIT = '474e9fa';
+const COMMIT = '88ffe3c';
 const GITHUB_ORIGIN = 'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT;
 const COM_ORIGIN = 'https://www.sensortattoofix.com';
 const BR_ORIGIN = 'https://www.sensortattoofix.com.br';
