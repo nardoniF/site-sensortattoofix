@@ -6139,11 +6139,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const needsWatch = orderRequiresSmartwatch(items);
 
   let paypalFee = 0;
-  // .com storefront absorbs PayPal fees — do not surcharge international buyers
-  const absorbPaypalFee = isComSiteRequest(request) || body.intlEmbedded === true;
-  if (billingType === 'PAYPAL' && !absorbPaypalFee) {
-    paypalFee = computePayPalFee(valorProduto + frete, config);
-  }
+  // Do not pass PayPal processing fees to the buyer on any storefront (.com.br or .com).
+  // Embedded PayPal does not require a buyer surcharge.
 
   let checkoutUser;
   try {

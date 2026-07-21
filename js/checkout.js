@@ -380,19 +380,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
-  function currentPayPalFee(subtotalWithShipping) {
-    // .com: never surcharge the buyer for PayPal processing fees
-    if (
-      isIntlEmbeddedCheckout()
-      || window.STF_MONEY?.isIntlHost?.()
-      || /\.sensortattoofix\.com$/i.test(location.hostname)
-    ) {
-      return 0;
-    }
-    if (!isInternational || !window.STF_MONEY) return 0;
-    const pagamento = els.form?.querySelector('[name=pagamento]:checked')?.value;
-    if (pagamento !== 'PAYPAL') return 0;
-    return window.STF_MONEY.computePayPalFee(subtotalWithShipping, cfg);
+  function currentPayPalFee(_subtotalWithShipping) {
+    // Never surcharge the buyer for PayPal processing — not on .com.br, not on .com.
+    // Embedded PayPal does not require a visible buyer fee line.
+    return 0;
   }
 
   function onlyDigits(s) { return (s || '').replace(/\D/g, ''); }
