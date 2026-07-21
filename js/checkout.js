@@ -1011,8 +1011,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (order.paisCode && els.paisCode) {
       isInternational = order.paisCode !== 'BR';
       els.paisCode.value = order.paisCode;
-      els.addressBr.hidden = isInternational;
-      els.addressIntl.hidden = !isInternational;
+      if (els.addressBr) els.addressBr.hidden = isInternational;
+      if (els.addressIntl) els.addressIntl.hidden = !isInternational;
       if (els.summaryShippingLabel) {
         els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
       }
@@ -1423,9 +1423,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function toggleAddressForm() {
     isInternational = els.paisCode.value !== 'BR';
-    els.addressBr.hidden = isInternational;
-    els.addressIntl.hidden = !isInternational;
-    els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
+    // .com EN/IT pages omit #address-br — must not throw or boot never binds/quotes
+    if (els.addressBr) els.addressBr.hidden = isInternational;
+    if (els.addressIntl) els.addressIntl.hidden = !isInternational;
+    if (els.summaryShippingLabel) {
+      els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
+    }
     updatePaymentOptionsForCountry();
     shippingCost = null;
     shippingInfo = null;
