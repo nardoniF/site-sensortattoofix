@@ -146,7 +146,7 @@ export default {
       const headers = new Headers();
       const mime = mimeFor(originPath);
       if (mime) headers.set('content-type', mime);
-      headers.set('cache-control', 'public, max-age=3600');
+      headers.set('cache-control', 'public, max-age=120');
       return new Response(buf, { status: 200, headers });
     }
 
