@@ -982,7 +982,17 @@ window.STF_I18N = (function () {
       const badge = cartLink.querySelector('[data-cart-badge]');
       cartLink.href = comprarPageHref();
       cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} `;
-      if (badge) cartLink.appendChild(badge);
+      if (badge) {
+        cartLink.appendChild(badge);
+      } else {
+        const span = document.createElement('span');
+        span.setAttribute('data-cart-badge', '');
+        span.className = 'cart-badge';
+        span.hidden = true;
+        span.textContent = '0';
+        cartLink.appendChild(span);
+      }
+      window.STF_CART?.initBadges?.();
     }
     const footer = document.querySelector('[data-site-footer]');
     if (footer) footer.dataset.lang = getLang();

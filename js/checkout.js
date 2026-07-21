@@ -363,15 +363,21 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function formatCheckoutMoney(v) {
-    if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
+    try {
+      if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
+        return formatBRL(v);
+      }
+      const country = els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US';
+      if (window.STF_MONEY.isIntlHost?.()) {
+        const usd = window.STF_MONEY.convertFromBrl(v, fxRate);
+        if (usd == null) return formatBRL(v);
+        return window.STF_MONEY.formatForeign(usd, 'USD', country);
+      }
+      return window.STF_MONEY.formatDual(v, displayCurrency, fxRate, country);
+    } catch (e) {
+      console.warn('formatCheckoutMoney', e);
       return formatBRL(v);
     }
-    const country = els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US';
-    if (window.STF_MONEY.isIntlHost?.()) {
-      const usd = window.STF_MONEY.convertFromBrl(v, fxRate);
-      return window.STF_MONEY.formatForeign(usd, 'USD', country);
-    }
-    return window.STF_MONEY.formatDual(v, displayCurrency, fxRate, country);
   }
 
   function currentPayPalFee(subtotalWithShipping) {
@@ -763,9 +769,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!slug) return false;
     const p = products.find((x) => x.slug === slug || x.id === slug);
     if (!p || window.STF_PELICULA?.isAggregated(p)) return false;
-    if (params.get('comprar') === '1') window.STF_CART.clear();
+    if (params.get('comprar') === '1') {
+      // Only clear after we know the product exists — never wipe the cart on a failed seed.
+      window.STF_CART.clear();
+    }
     window.STF_CART.add(p, 1);
-    history.replaceState({}, '', location.pathname);
+    history.replaceState({}, '', location.pathname + (location.hash || ''));
     return true;
   }
 
@@ -1680,28 +1689,34 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function updateSummary() {
-    const gross = cartSubtotal();
-    const disc = appliedCoupon?.desconto || 0;
-    const afterDisc = Math.max(0, gross - disc);
-    const ship = shippingCost;
-    const paypalFee = ship === null ? 0 : currentPayPalFee(afterDisc + ship);
-    els.summaryProduct.textContent = formatCheckoutMoney(gross);
-    if (els.summaryDiscountRow) {
-      els.summaryDiscountRow.hidden = !disc;
-      if (disc) {
-        els.summaryDiscountLabel.textContent = L('coupon.discountLabel', { pct: appliedCoupon.percent });
-        els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
+    try {
+      const gross = cartSubtotal();
+      const disc = appliedCoupon?.desconto || 0;
+      const afterDisc = Math.max(0, gross - disc);
+      const ship = shippingCost;
+      const paypalFee = ship === null ? 0 : currentPayPalFee(afterDisc + ship);
+      if (els.summaryProduct) els.summaryProduct.textContent = formatCheckoutMoney(gross);
+      if (els.summaryDiscountRow) {
+        els.summaryDiscountRow.hidden = !disc;
+        if (disc) {
+          if (els.summaryDiscountLabel) {
+            els.summaryDiscountLabel.textContent = L('coupon.discountLabel', { pct: appliedCoupon.percent });
+          }
+          if (els.summaryDiscount) els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
+        }
       }
-    }
-    els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship);
-    if (els.summaryPaypalRow) {
-      els.summaryPaypalRow.hidden = !paypalFee;
-      if (paypalFee && els.summaryPaypal) {
-        els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee);
+      if (els.summaryShipping) els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship);
+      if (els.summaryPaypalRow) {
+        els.summaryPaypalRow.hidden = !paypalFee;
+        if (paypalFee && els.summaryPaypal) {
+          els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee);
+        }
       }
+      if (els.summaryTotal) els.summaryTotal.textContent = ship === null ? '—' : formatCheckoutMoney(afterDisc + ship + paypalFee);
+      if (els.checkoutCoupon) els.checkoutCoupon.hidden = orderSidebarLocked;
+    } catch (e) {
+      console.warn('updateSummary', e);
     }
-    els.summaryTotal.textContent = ship === null ? '—' : formatCheckoutMoney(afterDisc + ship + paypalFee);
-    if (els.checkoutCoupon) els.checkoutCoupon.hidden = orderSidebarLocked;
   }
 
   function showStep(step) {
@@ -2696,11 +2711,37 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
-  document.addEventListener('DOMContentLoaded', boot);
+  let bootStarted = false;
+  function startCheckoutBoot() {
+    if (bootStarted) return;
+    bootStarted = true;
+    boot().catch((err) => console.error('Checkout boot rejected:', err));
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startCheckoutBoot);
+  } else {
+    startCheckoutBoot();
+  }
   window.addEventListener('stf-config-ready', (ev) => {
     if (!document.body?.classList.contains('checkout-page')) return;
     cfg = ev.detail || window.CHECKOUT_CONFIG || cfg;
-    populateCountrySelect(cfg);
+    try {
+      populateCountrySelect(cfg);
+      populateWatchSelect(cfg);
+    } catch (e) {
+      console.warn('stf-config-ready populate', e);
+    }
     initializeLocalizedCheckout().catch(() => {});
+    if (!orderSidebarLocked && window.STF_CART && !window.STF_CART.isEmpty()) {
+      try {
+        renderCartSidebar();
+        updateSmartwatchVisibility();
+        updateSummary();
+        window.STF_CART.initBadges();
+      } catch (e) {
+        console.warn('stf-config-ready cart render', e);
+      }
+    }
   });
 })();
