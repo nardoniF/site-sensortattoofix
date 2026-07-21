@@ -89,7 +89,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function isLocalizedSite() {
     const lang = (document.documentElement.lang || '').toLowerCase();
-    return lang.startsWith('en') || lang.startsWith('it');
+    if (lang.startsWith('en') || lang.startsWith('it')) return true;
+    return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
   }
 
   function checkoutLocale() {
@@ -605,7 +606,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const el = els.smartwatchSensorWarn;
     if (!el) return;
     const watchModel = els.smartwatchSelect?.value || '';
-    const meta = cfg.smartwatchModelMeta?.[watchModel];
+    const meta = cfg?.smartwatchModelMeta?.[watchModel];
     const watchSensor = meta?.sensorMm;
     const cart = window.STF_CART?.load() || [];
     const lensItem = cart.find((item) => {
@@ -1061,6 +1062,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       renderLockedSidebar();
       return;
     }
+    els.cartSidebar = document.getElementById('cart-sidebar-items') || els.cartSidebar;
     if (!els.cartSidebar || !window.STF_CART) return;
     const items = window.STF_CART.load();
     if (!items.length) {
@@ -1164,13 +1166,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function smartwatchGroup(model) {
-    if (model.startsWith('Apple Watch')) return 'Apple Watch';
-    if (model.startsWith('Samsung')) return 'Samsung Galaxy Watch';
-    if (model.startsWith('Garmin')) return 'Garmin';
-    if (model.startsWith('Huawei')) return 'Huawei';
-    if (model.startsWith('Xiaomi') || model.startsWith('Redmi')) return 'Xiaomi / Redmi';
-    if (model.startsWith('Amazfit')) return 'Amazfit';
-    if (model.startsWith('Fitbit') || model.startsWith('Polar')) return L('watch.groupOtherBrands');
+    const m = String(model || '');
+    if (m.startsWith('Apple Watch')) return 'Apple Watch';
+    if (m.startsWith('Samsung')) return 'Samsung Galaxy Watch';
+    if (m.startsWith('Garmin')) return 'Garmin';
+    if (m.startsWith('Huawei')) return 'Huawei';
+    if (m.startsWith('Xiaomi') || m.startsWith('Redmi')) return 'Xiaomi / Redmi';
+    if (m.startsWith('Amazfit')) return 'Amazfit';
+    if (m.startsWith('Fitbit') || m.startsWith('Polar')) return L('watch.groupOtherBrands');
     return L('watch.groupOthers');
   }
 
@@ -2424,22 +2427,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return true;
   }
 
-  async function handleStripeReturn() {
-    const params = new URLSearchParams(location.search);
-    if (params.get('stripe') !== 'return') return false;
-    const orderId = params.get('orderId');
-    const accessToken = params.get('accessToken');
-    if (!orderId || !accessToken) return false;
-    els.orderId.textContent = orderId;
-    els.paymentStatus.hidden = false;
-    els.paymentStatus.className = 'payment-status waiting';
-    els.paymentStatus.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${L('status.confirmCard')}`;
-    showStep(3);
-    startPolling(orderId, accessToken);
-    history.replaceState({}, '', location.pathname);
-    return true;
-  }
-
   async function handlePayPalReturn() {
     const params = new URLSearchParams(location.search);
     const paypalState = params.get('paypal');
@@ -2616,51 +2603,97 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   async function boot() {
-    if (isLocalizedSite()) {
-      isInternational = true;
-      els.addressBr && (els.addressBr.hidden = true);
-      if (els.addressIntl) els.addressIntl.hidden = false;
+    try {
+      els.form = document.getElementById('checkout-form') || els.form;
+      els.steps = document.querySelectorAll('.checkout-step');
+      els.indicators = document.querySelectorAll('.step-indicator');
+      els.btnNext = document.getElementById('btn-next') || els.btnNext;
+      els.btnBack = document.getElementById('btn-back') || els.btnBack;
+      els.btnPay = document.getElementById('btn-pay') || els.btnPay;
+      els.paisCode = document.getElementById('pais-code') || els.paisCode;
+      els.addressBr = document.getElementById('address-br') || els.addressBr;
+      els.addressIntl = document.getElementById('address-intl') || els.addressIntl;
+      els.smartwatchSelect = document.getElementById('smartwatch-select') || els.smartwatchSelect;
+      els.checkoutWatchBlock = document.getElementById('checkout-watch-block') || els.checkoutWatchBlock;
+      els.cartSidebar = document.getElementById('cart-sidebar-items') || els.cartSidebar;
+      els.summaryProduct = document.getElementById('summary-product') || els.summaryProduct;
+      els.summaryShipping = document.getElementById('summary-shipping') || els.summaryShipping;
+      els.summaryTotal = document.getElementById('summary-total') || els.summaryTotal;
+      els.checkoutSidebar = document.querySelector('.checkout-sidebar') || els.checkoutSidebar;
+      els.shippingHint = document.getElementById('shipping-hint') || els.shippingHint;
+      els.shippingOptionsWrap = document.getElementById('shipping-options-wrap') || els.shippingOptionsWrap;
+      els.shippingOptionsEl = document.getElementById('shipping-options') || els.shippingOptionsEl;
+      els.peliculaUpsell = document.getElementById('pelicula-upsell') || els.peliculaUpsell;
+      els.selfTestPayWrap = document.getElementById('self-test-pay-wrap') || els.selfTestPayWrap;
+
+      if (isLocalizedSite()) {
+        isInternational = true;
+        if (els.addressBr) els.addressBr.hidden = true;
+        if (els.addressIntl) els.addressIntl.hidden = false;
+        updateCpfLabel();
+        updatePhoneField();
+      }
+      window.STF_I18N?.applyCheckoutDom?.();
+      cfg = await StoreConfig.load();
+      products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
+      window.STF_CART?.syncPrices?.(products);
+      populateSelects();
+      updateSmartwatchVisibility();
+      await initializeLocalizedCheckout();
+      if (isInternational) await refreshDisplayCurrency();
+      window.STF_CART?.initBadges();
+      const mpDone = await handleMercadoPagoReturn();
+      const stripeDone = mpDone ? false : await handleStripeReturn();
+      const paypalDone = mpDone || stripeDone ? false : await handlePayPalReturn();
+      const resumed = mpDone || stripeDone || paypalDone || await resumeOrderFromUrl();
+      if (!resumed) {
+        seedCartFromUrl();
+        if (window.STF_CART?.isEmpty()) {
+          window.location.replace(lojaHref());
+          return;
+        }
+        renderCartSidebar();
+        updateSummary();
+        updatePaymentOptionsForCountry();
+        try { if (isIntlEmbeddedCheckout()) await window.STF_INTL_PAY?.initUi?.(); } catch (e) { console.warn('intl pay ui', e); }
+        showStep(1);
+        seedCouponFromUrl();
+      }
+      await loadCustomerSession();
+      if (!orderSidebarLocked && window.STF_CART && !window.STF_CART.isEmpty()) {
+        renderCartSidebar();
+        updateSmartwatchVisibility();
+        updateSummary();
+        window.STF_CART.initBadges();
+      }
+      scheduleQuoteShippingIfReady();
+      setTimeout(scheduleQuoteShippingIfReady, 450);
+      setTimeout(scheduleQuoteShippingIfReady, 1200);
+      window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
+      bindEvents();
+      trackGa('entrou_loja', {
+        valor_produto: cartSubtotal() || cfg.product?.price || 62.9,
+        moeda: 'BRL'
+      });
       updateCpfLabel();
       updatePhoneField();
-    }
-    window.STF_I18N?.applyCheckoutDom?.();
-    cfg = await StoreConfig.load();
-    products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
-    window.STF_CART?.syncPrices?.(products);
-    populateSelects();
-    updateSmartwatchVisibility();
-    await initializeLocalizedCheckout();
-    if (isInternational) await refreshDisplayCurrency();
-    window.STF_CART?.initBadges();
-    const mpDone = await handleMercadoPagoReturn();
-    const stripeDone = mpDone ? false : await handleStripeReturn();
-    const paypalDone = mpDone || stripeDone ? false : await handlePayPalReturn();
-    const resumed = mpDone || stripeDone || paypalDone || await resumeOrderFromUrl();
-    if (!resumed) {
-      seedCartFromUrl();
-      if (window.STF_CART?.isEmpty()) {
-        window.location.replace(lojaHref());
-        return;
+    } catch (err) {
+      console.error('Checkout boot failed:', err);
+      try {
+        els.cartSidebar = document.getElementById('cart-sidebar-items');
+        if (window.STF_CART && !window.STF_CART.isEmpty()) {
+          renderCartSidebar();
+          updateSmartwatchVisibility();
+          updateSummary();
+          window.STF_CART.initBadges();
+          showStep(1);
+        } else {
+          window.location.replace(lojaHref());
+        }
+      } catch (e2) {
+        console.error('Checkout recovery failed:', e2);
       }
-      renderCartSidebar();
-      updateSummary();
-      updatePaymentOptionsForCountry();
-      if (isIntlEmbeddedCheckout()) window.STF_INTL_PAY?.initUi?.();
-      showStep(1);
-      seedCouponFromUrl();
     }
-    await loadCustomerSession();
-    scheduleQuoteShippingIfReady();
-    setTimeout(scheduleQuoteShippingIfReady, 450);
-    setTimeout(scheduleQuoteShippingIfReady, 1200);
-    window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
-    bindEvents();
-    trackGa('entrou_loja', {
-      valor_produto: cartSubtotal() || cfg.product?.price || 62.9,
-      moeda: 'BRL'
-    });
-    updateCpfLabel();
-    updatePhoneField();
   }
 
   document.addEventListener('DOMContentLoaded', boot);

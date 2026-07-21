@@ -829,9 +829,11 @@ window.STF_I18N = (function () {
     const cartLink = document.querySelector('.cart-nav-link');
     if (cartLink) {
       const badge = cartLink.querySelector('[data-cart-badge]');
+      const count = badge ? badge.textContent : '0';
+      const hidden = badge ? badge.hidden : true;
       cartLink.href = comprarPageHref();
-      cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} `;
-      if (badge) cartLink.appendChild(badge);
+      cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} <span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
+      window.STF_CART?.initBadges?.();
     }
     const addMore = document.querySelector('.cart-add-more');
     if (addMore) addMore.href = lojaHref();
