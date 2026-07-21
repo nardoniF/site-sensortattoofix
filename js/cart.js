@@ -33,6 +33,12 @@ window.STF_CART = (function () {
     return Math.min(MAX_QTY, Math.max(0, Math.floor(n)));
   }
 
+  function localizedName(product) {
+    return window.STF_PELICULA?.productLabel?.(product)
+      || product.name
+      || (window.STF_I18N?.isLocalized?.() ? 'Product' : 'Produto');
+  }
+
   function normalize(product, qty) {
     const id = product.id || product.slug || 'produto';
     const cap = maxQtyFor(product);
@@ -40,7 +46,7 @@ window.STF_CART = (function () {
     return {
       productId: id,
       slug: product.slug || id,
-      name: product.name || 'Produto',
+      name: localizedName(product),
       price: Number(product.price) || 0,
       image: assetUrl(product.image, product),
       qty: Math.max(1, Math.min(cap, Number(qty) || 1)),
@@ -129,7 +135,7 @@ window.STF_CART = (function () {
       const p = byId.get(item.productId) || byId.get(item.slug);
       if (!p) return item;
       const price = Number(p.price) || 0;
-      const name = p.name || item.name;
+      const name = localizedName(p) || item.name;
       if (price === item.price && name === item.name) return item;
       changed = true;
       return { ...item, price, name };

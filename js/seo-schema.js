@@ -1,9 +1,12 @@
 (function () {
-  const SITE = 'https://www.sensortattoofix.com.br';
+  const isIntlHost = !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
+  const SITE = isIntlHost ? 'https://www.sensortattoofix.com' : 'https://www.sensortattoofix.com.br';
   const lang = (document.documentElement.lang || 'pt-BR').toLowerCase();
-  const isEn = lang.startsWith('en');
-  const isIt = lang.startsWith('it');
-  const pageUrl = isIt ? SITE + '/it/' : isEn ? SITE + '/en/' : SITE + '/';
+  const isIt = lang.startsWith('it') || /\/it\//i.test(location.pathname);
+  const isEn = !isIt && (lang.startsWith('en') || isIntlHost || /\/en\//i.test(location.pathname));
+  const pageUrl = isIntlHost
+    ? (isIt ? SITE + '/it/' : SITE + '/')
+    : (isIt ? SITE + '/it/' : isEn ? SITE + '/en/' : SITE + '/');
 
   function reviewsFromDom() {
     const section = document.querySelector('.reviews-section');
@@ -140,7 +143,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    let productName = 'Kit Sensor Tattoo Fix';
+    let productName = isIt ? 'Kit Sensor Tattoo Fix' : isEn ? 'Sensor Tattoo Fix Kit' : 'Kit Sensor Tattoo Fix';
     let productPrice = 62.9;
     let productImage = SITE + '/site/sensortattoofix.jpg';
     let productId = 'kit-sensor-tattoofix';
@@ -154,13 +157,18 @@
       try {
         const cfg = await StoreConfig.load();
         const p = window.STF_STORE_PRICE?.primaryProduct(cfg) || cfg.product;
-        if (p?.name) productName = p.name;
-        if (p?.price != null) productPrice = Number(p.price);
-        if (p?.image) productImage = p.image.startsWith('http') ? p.image : SITE + '/' + p.image.replace(/^\//, '');
-        if (p?.id) productId = p.id;
-        if (p?.description) productDescription = p.description;
+        if (p) {
+          productName = window.STF_PELICULA?.productLabel?.(p) || (isIt ? (p.nameIt || p.nameEn) : isEn ? p.nameEn : null) || p.name || productName;
+          productDescription = window.STF_PELICULA?.productDescription?.(p)
+            || (isIt ? (p.descriptionIt || p.descriptionEn) : isEn ? p.descriptionEn : null)
+            || (isEn || isIt ? productDescription : p.description)
+            || productDescription;
+          if (p.price != null) productPrice = Number(p.price);
+          if (p.image) productImage = p.image.startsWith('http') ? p.image : SITE + '/' + p.image.replace(/^\//, '');
+          if (p.id) productId = p.id;
+        }
       } catch (e) {
-        console.warn('Schema: config indisponível.', e);
+        console.warn('Schema: config unavailable.', e);
       }
     }
 

@@ -72,6 +72,8 @@
     }
     grid.innerHTML = products.map((p) => {
       const slug = p.slug || p.id || 'kit-sensor-tattoofix';
+      const label = window.STF_PELICULA?.productLabel?.(p) || p.name;
+      const desc = window.STF_PELICULA?.productDescription?.(p) || p.description || '';
       const rawImg = p.image || 'site/sensortattoofix.jpg';
       const img = window.STF_PRODUCT_MERGE?.resolveProductImage
         ? window.STF_PRODUCT_MERGE.resolveProductImage(rawImg, p)
@@ -79,10 +81,10 @@
       const frete = L('store.frete');
       return `
         <article class="loja-card">
-          <img src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
+          <img src="${escapeHtml(img)}" alt="${escapeHtml(label)}" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
           <div class="loja-card-body">
-            <h3>${escapeHtml(p.name)}</h3>
-            <p>${escapeHtml(p.description || '')}</p>
+            <h3>${escapeHtml(label)}</h3>
+            <p>${escapeHtml(desc)}</p>
             <strong class="loja-price" data-price-brl="${p.price}">${formatBRL(p.price)} + ${frete}</strong>
             <div class="loja-card-actions">
               <button type="button" class="btn-secondary loja-btn-add" data-slug="${escapeHtml(slug)}">
@@ -106,7 +108,8 @@
           return;
         }
         window.STF_CART.add(p, 1);
-        flash(L('store.addedName', { name: p.name }));
+        const label = window.STF_PELICULA?.productLabel?.(p) || p.name;
+        flash(L('store.addedName', { name: label }));
       });
     });
   }

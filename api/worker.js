@@ -31,7 +31,11 @@ const CUSTOMER_SESSION_TTL = 2592000; // 30 dias
 const DEFAULT_CONFIG = {
   product: {
     name: 'Kit Sensor Tattoo Fix',
+    nameEn: 'Sensor Tattoo Fix Kit',
+    nameIt: 'Kit Sensor Tattoo Fix',
     description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
+    descriptionEn: 'Optical lens for smartwatches on tattooed skin — full kit',
+    descriptionIt: 'Lente ottica per smartwatch su pelle tatuata — kit completo',
     price: 62.9,
     image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg'
   },
@@ -40,7 +44,11 @@ const DEFAULT_CONFIG = {
       id: 'kit-sensor-tattoofix',
       slug: 'kit-sensor-tattoofix',
       name: 'Kit Sensor Tattoo Fix',
+      nameEn: 'Sensor Tattoo Fix Kit',
+      nameIt: 'Kit Sensor Tattoo Fix',
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
+      descriptionEn: 'Optical lens for smartwatches on tattooed skin — full kit',
+      descriptionIt: 'Lente ottica per smartwatch su pelle tatuata — kit completo',
       price: 62.9,
       image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg',
       active: true,
@@ -1042,6 +1050,9 @@ function supplementKitFromSite(kvProduct, siteProduct) {
   if (siteProduct?.image && isLegacyBrokenKitImage(kvProduct?.image)) {
     merged.image = siteProduct.image;
   }
+  ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt'].forEach((field) => {
+    if (!merged[field] && siteProduct?.[field]) merged[field] = siteProduct[field];
+  });
   return merged;
 }
 
@@ -1056,9 +1067,14 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'filmTypeEn',
     'bandStyle',
     'color',
+    'colorEn',
     'packaging',
     'aggregated',
-    'requiresSmartwatch'
+    'requiresSmartwatch',
+    'nameEn',
+    'nameIt',
+    'descriptionEn',
+    'descriptionIt'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -1135,7 +1151,11 @@ function mergeSiteCatalog(config, site) {
       next.product = {
         ...next.product,
         name: kit.name,
+        nameEn: kit.nameEn || next.product.nameEn,
+        nameIt: kit.nameIt || next.product.nameIt,
         description: kit.description,
+        descriptionEn: kit.descriptionEn || next.product.descriptionEn,
+        descriptionIt: kit.descriptionIt || next.product.descriptionIt,
         price: kit.price,
         image: kit.image
       };
@@ -1608,7 +1628,9 @@ function publicProductFields(p, config) {
     aggregated: p.aggregated === true
   };
   if (p.nameEn) row.nameEn = p.nameEn;
+  if (p.nameIt) row.nameIt = p.nameIt;
   if (p.descriptionEn) row.descriptionEn = p.descriptionEn;
+  if (p.descriptionIt) row.descriptionIt = p.descriptionIt;
   if (p.packaging) row.packaging = p.packaging;
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
@@ -1632,7 +1654,11 @@ function publicConfigView(config, env) {
   return {
     product: primary ? {
       name: primary.name,
+      nameEn: primary.nameEn,
+      nameIt: primary.nameIt,
       description: primary.description,
+      descriptionEn: primary.descriptionEn,
+      descriptionIt: primary.descriptionIt,
       price: primary.price,
       image: primary.image
     } : config.product,

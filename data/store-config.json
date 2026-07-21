@@ -1,7 +1,11 @@
 {
   "product": {
     "name": "Kit Sensor Tattoo Fix",
+    "nameEn": "Sensor Tattoo Fix Kit",
+    "nameIt": "Kit Sensor Tattoo Fix",
     "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
+    "descriptionEn": "Optical lens for smartwatches on tattooed skin — full kit",
+    "descriptionIt": "Lente ottica per smartwatch su pelle tatuata — kit completo",
     "price": 62.9,
     "image": "https://www.sensortattoofix.com.br/site/sensortattoofix.jpg"
   },
@@ -10,7 +14,11 @@
       "id": "kit-sensor-tattoofix",
       "slug": "kit-sensor-tattoofix",
       "name": "Kit Sensor Tattoo Fix",
+      "nameEn": "Sensor Tattoo Fix Kit",
+      "nameIt": "Kit Sensor Tattoo Fix",
       "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
+      "descriptionEn": "Optical lens for smartwatches on tattooed skin — full kit",
+      "descriptionIt": "Lente ottica per smartwatch su pelle tatuata — kit completo",
       "price": 62.9,
       "image": "https://www.sensortattoofix.com.br/site/sensortattoofix.jpg",
       "active": true,

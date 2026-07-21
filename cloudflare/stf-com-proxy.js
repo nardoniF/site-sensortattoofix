@@ -2,8 +2,11 @@
  * .com storefront proxy — serves /en/* from GitHub via jsDelivr.
  * IMPORTANT: pin COMMIT after each push so .com is not stuck on stale @main cache.
  */
-const COMMIT = 'fe3769f';
-const GITHUB_ORIGIN = 'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT;
+const COMMIT = 'fe3769f0ba74789a53ac9d296b01d9eb8f9a32b2';
+const ORIGINS = [
+  'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
+  'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
+];
 const COM_ORIGIN = 'https://www.sensortattoofix.com';
 const BR_ORIGIN = 'https://www.sensortattoofix.com.br';
 const STF_COM_HOST_JS =
@@ -104,13 +107,19 @@ function mimeFor(pathname) {
 }
 
 async function fetchOrigin(originPath, search) {
-  const bust = search && search.length > 1 ? search : '?v=' + COMMIT;
-  const joiner = bust.startsWith('?') ? '' : '?';
-  return fetch(GITHUB_ORIGIN + originPath + (search || joiner + 'v=' + COMMIT), {
-    method: 'GET',
-    headers: { Accept: '*/*', 'User-Agent': 'stf-com-proxy', 'Cache-Control': 'no-cache' },
-    redirect: 'manual',
-  });
+  const qs = search && search.length > 1 ? search : '?v=' + COMMIT.slice(0, 7);
+  const headers = { Accept: '*/*', 'User-Agent': 'stf-com-proxy', 'Cache-Control': 'no-cache' };
+  let last = null;
+  for (const origin of ORIGINS) {
+    const useQs = origin.includes('jsdelivr.net') ? qs : '';
+    last = await fetch(origin + originPath + useQs, {
+      method: 'GET',
+      headers,
+      redirect: 'manual',
+    });
+    if (last.ok) return last;
+  }
+  return last;
 }
 
 export default {

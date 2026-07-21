@@ -47,15 +47,20 @@ window.STF_ACCOUNT = (function () {
     window.dispatchEvent(new CustomEvent('stf-account-changed', { detail: { user } }));
   }
 
-  function navT(key, fallback) {
-    return window.STF_I18N?.t?.(key) || fallback;
+  function isIntlHost() {
+    return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
+  }
+
+  function navT(key, fallbackPt, fallbackEn) {
+    const fb = isIntlHost() ? (fallbackEn || fallbackPt) : fallbackPt;
+    return window.STF_I18N?.t?.(key) || fb;
   }
 
   function displayName(user) {
     if (!user) return '';
     const nome = (user.nome || '').trim();
     if (nome) return nome.split(/\s+/)[0];
-    return (user.email || '').split('@')[0] || navT('nav.guest', 'Cliente');
+    return (user.email || '').split('@')[0] || navT('nav.guest', 'Cliente', 'Customer');
   }
 
   function escapeHtml(s) {
@@ -64,7 +69,7 @@ window.STF_ACCOUNT = (function () {
 
   async function api(path, options = {}) {
     const base = apiBase();
-    if (!base) throw new Error('API não configurada.');
+    if (!base) throw new Error(isIntlHost() ? 'API not configured.' : 'API não configurada.');
     const headers = { ...(options.headers || {}) };
     const token = getToken();
     if (token) headers.Authorization = 'Bearer ' + token;
@@ -75,7 +80,7 @@ window.STF_ACCOUNT = (function () {
     }
     const res = await fetch(base + path, { ...options, headers, cache: 'no-store' });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Erro na requisição.');
+    if (!res.ok) throw new Error(data.error || (isIntlHost() ? 'Request failed.' : 'Erro na requisição.'));
     return data;
   }
 
@@ -149,15 +154,15 @@ window.STF_ACCOUNT = (function () {
       const nome = displayName(user);
       slot.innerHTML = `
         <details class="account-nav-details">
-          <summary class="account-nav-summary" aria-label="${escapeHtml(navT('nav.accountMenu', 'Menu da conta'))}">
+          <summary class="account-nav-summary" aria-label="${escapeHtml(navT('nav.accountMenu', 'Menu da conta', 'Account menu'))}">
             <i class="fas fa-user-circle" aria-hidden="true"></i>
             <span class="account-nav-name">${escapeHtml(nome)}</span>
             <i class="fas fa-chevron-down account-nav-chevron" aria-hidden="true"></i>
           </summary>
           <div class="account-nav-menu">
             <span class="account-nav-menu-label">${escapeHtml(user.email || '')}</span>
-            <a href="${accountLink()}"><i class="fas fa-box"></i> ${escapeHtml(navT('nav.myOrders', 'Meus pedidos'))}</a>
-            <button type="button" data-account-logout><i class="fas fa-sign-out-alt"></i> ${escapeHtml(navT('nav.logout', 'Sair'))}</button>
+            <a href="${accountLink()}"><i class="fas fa-box"></i> ${escapeHtml(navT('nav.myOrders', 'Meus pedidos', 'My orders'))}</a>
+            <button type="button" data-account-logout><i class="fas fa-sign-out-alt"></i> ${escapeHtml(navT('nav.logout', 'Sair', 'Log out'))}</button>
           </div>
         </details>
       `;
@@ -165,7 +170,7 @@ window.STF_ACCOUNT = (function () {
       slot.innerHTML = `
         <a href="${accountLink()}" class="account-nav-login">
           <i class="fas fa-user" aria-hidden="true"></i>
-          <span>${escapeHtml(navT('nav.login', 'Entrar'))}</span>
+          <span>${escapeHtml(navT('nav.login', 'Entrar', 'Sign in'))}</span>
         </a>
       `;
     }

@@ -118,7 +118,7 @@ window.STF_FOOTER = (function () {
         <div class="social-icons-footer">${links}</div>
         <div class="footer-faq-link"><a href="${faqHref}">${s.faq}</a></div>
         <div class="footer-feedback-link"><button type="button" class="stf-feedback-trigger">${s.feedback}</button></div>
-        <div class="footer-commissioner-link"><a href="${prefix}comissionado.html">${s.commissioner}</a></div>
+        ${isIntlHost() ? '' : `<div class="footer-commissioner-link"><a href="${prefix}comissionado.html">${s.commissioner}</a></div>`}
       </div>
     `;
   }

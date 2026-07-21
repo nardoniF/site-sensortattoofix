@@ -11,12 +11,19 @@ window.STF_PRODUCT_MERGE = (function () {
     'filmTypeEn',
     'bandStyle',
     'color',
+    'colorEn',
     'packaging',
     'aggregated',
     'requiresSmartwatch',
     'slug',
-    'id'
+    'id',
+    'nameEn',
+    'nameIt',
+    'descriptionEn',
+    'descriptionIt'
   ];
+
+  const I18N_PRODUCT_FIELDS = ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt', 'colorEn', 'filmTypeEn'];
 
   function keyOf(p) {
     return String(p?.id || p?.slug || '').trim();
@@ -119,11 +126,19 @@ window.STF_PRODUCT_MERGE = (function () {
     }
   }
 
+  function supplementI18nFields(target, source) {
+    I18N_PRODUCT_FIELDS.forEach((field) => {
+      if (!isEmptyValue(target[field]) || source?.[field] == null) return;
+      target[field] = source[field];
+    });
+  }
+
   function supplementKitProduct(apiProduct, localProduct) {
     const merged = { ...apiProduct };
     if (localProduct?.image && isLegacyBrokenKitImage(apiProduct?.image)) {
       merged.image = localProduct.image;
     }
+    supplementI18nFields(merged, localProduct);
     return merged;
   }
 
@@ -258,13 +273,15 @@ window.STF_PRODUCT_MERGE = (function () {
   function syncLegacyProduct(apiConfig, products) {
     const kit = products.find((p) => p.aggregated !== true && p.active !== false) || products[0];
     if (!kit || !apiConfig.product) return apiConfig.product;
-    return {
+    const next = {
       ...apiConfig.product,
       name: kit.name,
       description: kit.description,
       price: kit.price,
       image: kit.image
     };
+    supplementI18nFields(next, kit);
+    return next;
   }
 
   function mergeConfig(apiConfig, localConfig) {

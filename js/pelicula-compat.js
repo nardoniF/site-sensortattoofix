@@ -97,15 +97,68 @@ window.STF_PELICULA = (function () {
     return (products || []).filter((p) => p.active !== false && p.inStock !== false && !isAggregated(p));
   }
 
+  const KIT_COPY = {
+    en: {
+      name: 'Sensor Tattoo Fix Kit',
+      description: 'Optical lens for smartwatches on tattooed skin — full kit'
+    },
+    it: {
+      name: 'Kit Sensor Tattoo Fix',
+      description: 'Lente ottica per smartwatch su pelle tatuata — kit completo'
+    }
+  };
+
+  function isIt() {
+    return !!(window.STF_I18N?.isIt?.() || /\/it\//i.test(location.pathname));
+  }
+
+  function isEn() {
+    if (isIt()) return false;
+    return !!(
+      window.STF_I18N?.isEn?.() ||
+      window.STF_SITE?.isIntlHost?.() ||
+      /\.sensortattoofix\.com$/i.test(location.hostname) ||
+      /\/en\//i.test(location.pathname)
+    );
+  }
+
+  function isLocalized() {
+    return isEn() || isIt() || !!(window.STF_I18N?.isLocalized?.());
+  }
+
+  function isKitProduct(product) {
+    const id = String(product?.id || product?.slug || '');
+    if (id === 'kit-sensor-tattoofix') return true;
+    if (product?.aggregated === true) return false;
+    if (product?.productType || id.startsWith('pelicula-') || id.startsWith('pulseira-')) return false;
+    return !id || id.includes('sensor') || id.includes('tattoo');
+  }
+
   function productLabel(product) {
-    const en = window.STF_I18N?.isEn?.();
-    if (en && product.nameEn) return product.nameEn;
+    if (!product) return '';
+    if (isIt()) {
+      if (product.nameIt) return product.nameIt;
+      if (product.nameEn) return product.nameEn;
+      if (isKitProduct(product)) return KIT_COPY.it.name;
+    }
+    if (isEn()) {
+      if (product.nameEn) return product.nameEn;
+      if (isKitProduct(product)) return KIT_COPY.en.name;
+    }
     return product.name || product.id;
   }
 
   function productDescription(product) {
-    const en = window.STF_I18N?.isEn?.();
-    if (en && product.descriptionEn) return product.descriptionEn;
+    if (!product) return '';
+    if (isIt()) {
+      if (product.descriptionIt) return product.descriptionIt;
+      if (product.descriptionEn) return product.descriptionEn;
+      if (isKitProduct(product)) return KIT_COPY.it.description;
+    }
+    if (isEn()) {
+      if (product.descriptionEn) return product.descriptionEn;
+      if (isKitProduct(product)) return KIT_COPY.en.description;
+    }
     return product.description || '';
   }
 
@@ -135,48 +188,69 @@ window.STF_PELICULA = (function () {
     }
     const type = productType(product);
     const key = type === 'pulseira' ? 'agregados.descPulseira' : 'agregados.descPelicula';
-    return window.STF_I18N?.t?.(key) || (type === 'pulseira'
-      ? 'Conforto e estilo no mesmo envio'
-      : 'Protege a tela do seu smartwatch dos riscos');
+    const fallback = type === 'pulseira'
+      ? (isIt() ? 'Comfort e stile nella stessa spedizione' : isEn() ? 'Comfort and style in the same shipment' : 'Conforto e estilo no mesmo envio')
+      : (isIt() ? 'Protegge lo schermo dello smartwatch dai graffi' : isEn() ? 'Protects your smartwatch screen from scratches' : 'Protege a tela do seu smartwatch dos riscos');
+    return window.STF_I18N?.t?.(key) || fallback;
   }
 
   function filmTypeLabel(product) {
-    const en = window.STF_I18N?.isEn?.();
-    if (en && product.filmTypeEn) return product.filmTypeEn;
-    if (product.filmType) return product.filmType;
-    if (product.packaging === 'box') return en ? 'ceramic' : 'cerâmica';
-    if (product.packaging === 'saquinho') return en ? 'flexible membrane' : 'membrana flexível';
-    return '';
+    if (isLocalized() && product.filmTypeEn) return product.filmTypeEn;
+    if (product.filmType && !isLocalized()) return product.filmType;
+    if (product.packaging === 'box') {
+      if (isIt()) return 'ceramica';
+      if (isEn()) return 'ceramic';
+      return 'cerâmica';
+    }
+    if (product.packaging === 'saquinho') {
+      if (isIt()) return 'membrana flessibile';
+      if (isEn()) return 'flexible membrane';
+      return 'membrana flexível';
+    }
+    return isLocalized() ? '' : (product.filmType || '');
   }
 
   /** Título curto no upsell — modelo de pulseira + cor. */
   function upsellShortLabel(product) {
     if (productType(product) === 'pulseira') {
-      const en = window.STF_I18N?.isEn?.();
+      const loc = isLocalized();
       const id = String(product.id || '');
       if (id === 'pulseira-sport-samsung-gw4-7') {
-        return en
+        if (isIt()) return 'Cinturino Sport · blu scuro (Galaxy Watch 4/5/6/7)';
+        return loc
           ? 'Sport Silicone Band · dark blue (Galaxy Watch 4/5/6/7)'
           : 'Pulseira Sport · azul escuro (Galaxy Watch 4/5/6/7)';
       }
       if (id === 'pulseira-sport-creme-41-45') {
-        return en
+        if (isIt()) return 'Cinturino Sport · crema (Galaxy Watch 8 — 40 / 44 / Classic 46 mm)';
+        return loc
           ? 'Sport Silicone Band · cream (Galaxy Watch 8 — 40 / 44 / Classic 46 mm)'
           : 'Pulseira Sport · creme (Galaxy Watch 8 — 40 / 44 / Classic 46 mm)';
       }
       const style = product.bandStyle || 'sport-soft';
-      const color = en ? (product.colorEn || product.color) : (product.color || '');
-      const titles = en
-        ? {
-            ocean: 'Ocean Sport Silicone Band',
-            milanese: 'Magnetic Milanese Steel Band',
-            'sport-air': 'Breathable Sport Silicone Band',
-            'link-luxo': 'Luxury Stainless Link Band',
-            trail: 'Trail Loop Nylon Comfort Band',
-            alpine: 'Alpine Loop Braided Nylon Band',
-            'sport-soft': 'Classic Soft Silicone Band',
-            sport: 'Classic Soft Silicone Band'
-          }
+      const color = loc ? (product.colorEn || product.color) : (product.color || '');
+      const titles = loc
+        ? (isIt()
+          ? {
+              ocean: 'Cinturino Ocean Sport',
+              milanese: 'Cinturino Milanese magnetico',
+              'sport-air': 'Cinturino Sport traspirante',
+              'link-luxo': 'Cinturino link in acciaio',
+              trail: 'Cinturino Trail Loop',
+              alpine: 'Cinturino Alpine Loop',
+              'sport-soft': 'Cinturino silicone classico',
+              sport: 'Cinturino silicone classico'
+            }
+          : {
+              ocean: 'Ocean Sport Silicone Band',
+              milanese: 'Magnetic Milanese Steel Band',
+              'sport-air': 'Breathable Sport Silicone Band',
+              'link-luxo': 'Luxury Stainless Link Band',
+              trail: 'Trail Loop Nylon Comfort Band',
+              alpine: 'Alpine Loop Braided Nylon Band',
+              'sport-soft': 'Classic Soft Silicone Band',
+              sport: 'Classic Soft Silicone Band'
+            })
         : {
             ocean: 'Pulseira Ocean Esportiva',
             milanese: 'Pulseira Milanese Magnética',
@@ -188,15 +262,12 @@ window.STF_PELICULA = (function () {
             sport: 'Pulseira Soft Lisa'
           };
       let label = titles[style] || titles['sport-soft'];
-      if (String(product.id || '').includes('ultra')) {
-        label += en ? ' · Ultra' : ' · Ultra';
-      }
+      if (String(product.id || '').includes('ultra')) label += ' · Ultra';
       if (color) label += ` · ${color}`;
       return label;
     }
-    const en = window.STF_I18N?.isEn?.();
     const filmType = filmTypeLabel(product);
-    let label = en ? 'Screen protector' : 'Película de tela';
+    let label = isIt() ? 'Pellicola schermo' : isEn() ? 'Screen protector' : 'Película de tela';
     if (filmType) label += ` · ${filmType}`;
     return label;
   }

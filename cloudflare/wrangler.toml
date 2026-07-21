@@ -1,0 +1,12 @@
+name = "stf-com-proxy"
+main = "stf-com-proxy.js"
+compatibility_date = "2024-11-01"
+workers_dev = true
+
+[[routes]]
+pattern = "www.sensortattoofix.com/*"
+zone_name = "sensortattoofix.com"
+
+[[routes]]
+pattern = "sensortattoofix.com/*"
+zone_name = "sensortattoofix.com"
