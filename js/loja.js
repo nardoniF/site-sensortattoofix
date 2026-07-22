@@ -112,6 +112,21 @@
         flash(L('store.addedName', { name: label }));
       });
     });
+
+    // Put the product in the cart before navigating — checkout used to bounce
+    // empty carts back to loja when URL seed ran too late / boot threw early.
+    grid.querySelectorAll('.loja-btn-buy').forEach((link) => {
+      link.addEventListener('click', () => {
+        try {
+          const href = link.getAttribute('href') || '';
+          const slug = new URL(href, location.href).searchParams.get('produto');
+          const p = findProduct(slug);
+          if (p && p.inStock !== false) window.STF_CART?.add(p, 1);
+        } catch (e) {
+          console.warn('Buy cart seed', e);
+        }
+      });
+    });
   }
 
   async function boot() {

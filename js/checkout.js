@@ -789,7 +789,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       window.STF_CART.clear();
     }
     window.STF_CART.add(p, 1);
-    history.replaceState({}, '', location.pathname + (location.hash || ''));
+    params.delete('produto');
+    params.delete('comprar');
+    const q = params.toString();
+    history.replaceState({}, '', location.pathname + (q ? '?' + q : '') + (location.hash || ''));
     return true;
   }
 
@@ -1438,6 +1441,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function toggleAddressForm() {
+    if (!els.paisCode) return;
     isInternational = els.paisCode.value !== 'BR';
     // .com EN/IT pages omit #address-br — must not throw or boot never binds/quotes
     if (els.addressBr) els.addressBr.hidden = isInternational;
@@ -2769,6 +2773,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       cfg = await StoreConfig.load();
       products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
       window.STF_CART?.syncPrices?.(products);
+      // Seed BEFORE any later await/throw — otherwise Buy?produto=&comprar=1 bounces to loja.
+      seedCartFromUrl();
       populateSelects();
       updateSmartwatchVisibility();
       await initializeLocalizedCheckout();
@@ -2781,8 +2787,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       if (!resumed) {
         seedCartFromUrl();
         if (window.STF_CART?.isEmpty()) {
-          window.location.replace(lojaHref());
-          return;
+          const stillBuying = new URLSearchParams(location.search).has('produto');
+          if (!stillBuying) {
+            window.location.replace(lojaHref());
+            return;
+          }
         }
         renderCartSidebar();
         updateSummary();
@@ -2816,6 +2825,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         els.paisCode = document.getElementById('pais-code') || els.paisCode;
         els.form = document.getElementById('checkout-form') || els.form;
         bindEvents();
+        seedCartFromUrl();
         if (window.STF_CART && !window.STF_CART.isEmpty()) {
           renderCartSidebar();
           updateSmartwatchVisibility();
@@ -2823,7 +2833,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           window.STF_CART.initBadges();
           showStep(1);
           scheduleQuoteShippingIfReady();
-        } else {
+        } else if (!new URLSearchParams(location.search).has('produto')) {
           window.location.replace(lojaHref());
         }
       } catch (e2) {
@@ -2847,11 +2857,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   window.addEventListener('stf-config-ready', (ev) => {
     if (!document.body?.classList.contains('checkout-page')) return;
     cfg = ev.detail || window.CHECKOUT_CONFIG || cfg;
+    products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : products);
     try {
       populateCountrySelect(cfg);
       populateWatchSelect(cfg);
     } catch (e) {
       console.warn('stf-config-ready populate', e);
+    }
+    if (!orderSidebarLocked) {
+      try { seedCartFromUrl(); } catch (e) { console.warn('stf-config-ready seed', e); }
     }
     initializeLocalizedCheckout().catch(() => {});
     if (!orderSidebarLocked && window.STF_CART && !window.STF_CART.isEmpty()) {

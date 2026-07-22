@@ -20,7 +20,12 @@
       params.has('payment_id') ||
       params.has('external_reference') ||
       params.has('collection_status') ||
-      params.has('status')
+      params.has('status') ||
+      // Direct Buy / product deep-link — never hijack to #onde-comprar
+      params.has('produto') ||
+      params.has('comprar') ||
+      params.has('cupom') ||
+      params.has('coupon')
     );
   }
 
