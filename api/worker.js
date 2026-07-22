@@ -6342,11 +6342,17 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
 async function handlePaymentConfirmed(env, order, payment) {
   const fresh = await getOrder(env, order.orderId);
-  if (!fresh || fresh.status === 'paid') return;
-  order = fresh;
+  if (!fresh) return;
+  // Already fully handled (paid + shop/customer mail claimed)
+  if (fresh.paidEmailsSentAt || fresh.status === 'paid') return;
 
+  order = fresh;
   order.status = 'paid';
   order.paidAt = new Date().toISOString();
+  // Race claim: concurrent webhooks (Asaas RECEIVED+CONFIRMED, PayPal capture+webhook)
+  // both may pass the status check; only the last lock writer may send e-mails.
+  const notifyLock = crypto.randomUUID();
+  order.paidNotifyLock = notifyLock;
   const value = payment?.value ?? order.total;
   if (payment?.id) {
     order.paymentProof = {
@@ -6364,6 +6370,14 @@ async function handlePaymentConfirmed(env, order, payment) {
     };
   }
   await saveOrder(env, order);
+
+  const claimed = await getOrder(env, order.orderId);
+  if (!claimed || claimed.paidNotifyLock !== notifyLock || claimed.paidEmailsSentAt) {
+    return;
+  }
+  claimed.paidEmailsSentAt = new Date().toISOString();
+  await saveOrder(env, claimed);
+  order = claimed;
 
   const config = await getConfig(env);
 
@@ -6867,9 +6881,16 @@ async function handleAsaasWebhook(request, env, origin) {
     return json({ error: 'Token inválido.' }, 401, origin);
   }
   const body = await request.json();
-  if ((body.event === 'PAYMENT_RECEIVED' || body.event === 'PAYMENT_CONFIRMED') && body.payment?.externalReference) {
+  // PAYMENT_CONFIRMED is enough; RECEIVED often arrives too and used to double-send e-mails.
+  if (body.event === 'PAYMENT_CONFIRMED' && body.payment?.externalReference) {
     const order = await getOrder(env, body.payment.externalReference);
     if (order && order.status !== 'paid') {
+      await handlePaymentConfirmed(env, order, body.payment);
+    }
+  } else if (body.event === 'PAYMENT_RECEIVED' && body.payment?.externalReference) {
+    const order = await getOrder(env, body.payment.externalReference);
+    // Only confirm on RECEIVED if still unpaid and not already claimed (card can skip CONFIRMED).
+    if (order && order.status !== 'paid' && !order.paidEmailsSentAt) {
       await handlePaymentConfirmed(env, order, body.payment);
     }
   }
