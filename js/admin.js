@@ -2046,6 +2046,9 @@ ${worksheets}
     if (!f || !config) return;
     renderProducts(getProductsFromConfig(config));
     initProductSubtabs();
+    if (f.smartwatchModels) {
+      f.smartwatchModels.value = (config.smartwatchModels || []).join('\n');
+    }
     const ship = config.shipping || {};
     const sender = ship.sender || {};
     const pix = config.pix || {};
@@ -2288,7 +2291,11 @@ ${worksheets}
           fallbackToAlternate: f.pixBrFallbackAlt?.checked !== false
         }
       },
-      smartwatchModels: currentConfig?.smartwatchModels || [],
+      smartwatchModels: (() => {
+        const raw = f.smartwatchModels?.value || '';
+        const lines = raw.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        return lines.length ? lines : (currentConfig?.smartwatchModels || []);
+      })(),
       internationalShipping: collectIntlShipping(),
       internationalSurcharge: Math.max(0, parseFloat(f.intlSurcharge?.value) || 0),
       internationalProduct: {

@@ -1285,10 +1285,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function populateWatchSelect(config) {
     const src = config || cfg || window.CHECKOUT_CONFIG;
     if (!els.smartwatchSelect || !src) return;
-    while (els.smartwatchSelect.options.length > 1) {
-      els.smartwatchSelect.remove(1);
-    }
-    const models = src.smartwatchModels || [];
+    // Must wipe optgroups too — removing only .options leaves empty brand
+    // headers that look "disabled" when populate runs more than once.
+    els.smartwatchSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = L('form.watchSelect');
+    els.smartwatchSelect.appendChild(placeholder);
+
+    const models = (src.smartwatchModels || [])
+      .map((m) => String(m || '').trim())
+      .filter(Boolean);
     const groups = new Map();
     models.forEach((m) => {
       const label = smartwatchGroup(m);
@@ -1296,6 +1303,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       groups.get(label).push(m);
     });
     groups.forEach((items, label) => {
+      if (!items.length) return;
       const og = document.createElement('optgroup');
       og.label = label;
       items.forEach((m) => {
@@ -1306,9 +1314,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       });
       els.smartwatchSelect.appendChild(og);
     });
-    if (els.smartwatchSelect.options[0]) {
-      els.smartwatchSelect.options[0].textContent = L('form.watchSelect');
-    }
   }
 
   function populateSelects() {

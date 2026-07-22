@@ -120,6 +120,17 @@
                             </div>
                         </div>
                     </fieldset>
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-clock"></i> Cadastro de smartwatches (checkout)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-smartwatch-models" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-smartwatch-models" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Lista do select <strong>Modelo do smartwatch</strong> no checkout. Um modelo por linha — pode cadastrar qualquer relógio que exista.</p>
+                            <p>Mantenha a linha <code>Outro modelo (informar nas observações)</code> no fim para quem não achar o seu.</p>
+                        </div>
+                        <label class="full">Modelos (um por linha)
+                            <textarea name="smartwatchModels" id="admin-smartwatch-models" rows="14" placeholder="Apple Watch Series 9 (45mm)&#10;Samsung Galaxy Watch 7 (44mm)&#10;Outro modelo (informar nas observações)"></textarea>
+                        </label>
+                        <p class="admin-meta">Salve em <strong>Produtos</strong> para atualizar a lista na loja e no checkout.</p>
+                    </fieldset>
                     </div>
 
                     <div id="admin-tab-frete" class="admin-tab-panel" role="tabpanel" hidden>
@@ -810,6 +821,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=96"></script>
+    <script src="js/admin.js?v=97"></script>
 </body>
 </html>
