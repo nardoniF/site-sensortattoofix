@@ -66,9 +66,9 @@ window.STF_INTL_PAY = (function () {
     const notice = document.getElementById('payment-notice-intl');
     const stripeInput = document.querySelector('#payment-options-intl input[value="STRIPE"]');
     const paypalInput = document.querySelector('#payment-options-intl input[value="PAYPAL"]');
-    if (!hasStripe && stripeInput) {
-      stripeInput.checked = false;
-      stripeInput.disabled = true;
+    if (stripeInput) {
+      stripeInput.disabled = !hasStripe;
+      if (!hasStripe) stripeInput.checked = false;
     }
     if (!hasStripe && hasPaypal && paypalInput) {
       paypalInput.checked = true;
