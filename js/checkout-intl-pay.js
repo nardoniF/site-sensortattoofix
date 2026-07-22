@@ -56,13 +56,26 @@ window.STF_INTL_PAY = (function () {
     if (!isActive()) return false;
     await loadConfig();
     const payCfg = cfg?.payments || {};
-    const hasStripe = !!(payCfg.stripe?.publishableKey);
+    const pk = String(payCfg.stripe?.publishableKey || '');
+    const hasStripe = !!(payCfg.stripe?.enabled && /^pk_live_/.test(pk));
     const hasPaypal = !!(payCfg.paypal?.clientId && payCfg.paypal?.internationalEnabled !== false);
     const stripeTab = document.querySelector('#payment-options-intl .payment-option-stripe');
     const paypalTab = document.querySelector('#payment-options-intl .payment-option-paypal');
     if (stripeTab) stripeTab.hidden = !hasStripe;
     if (paypalTab) paypalTab.hidden = !hasPaypal;
     const notice = document.getElementById('payment-notice-intl');
+    const stripeInput = document.querySelector('#payment-options-intl input[value="STRIPE"]');
+    const paypalInput = document.querySelector('#payment-options-intl input[value="PAYPAL"]');
+    if (!hasStripe && stripeInput) {
+      stripeInput.checked = false;
+      stripeInput.disabled = true;
+    }
+    if (!hasStripe && hasPaypal && paypalInput) {
+      paypalInput.checked = true;
+      if (notice && !notice.dataset.stfLocked) {
+        notice.innerHTML = '<i class="fas fa-info-circle"></i> Secure PayPal checkout · charged in USD · tracked shipping.';
+      }
+    }
     if (!hasStripe && !hasPaypal && notice) {
       notice.innerHTML = '<i class="fas fa-info-circle"></i> Online payment is not configured yet. Card and PayPal will appear here after Stripe/PayPal API keys are added to the server.';
     }

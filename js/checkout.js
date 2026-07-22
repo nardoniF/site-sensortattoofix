@@ -99,7 +99,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return lang.startsWith('it') ? 'it' : 'en';
   }
 
-  /** EN/IT checkout on .com.br path: PayPal only. On .com: Stripe + PayPal embedded. */
+  /** EN/IT checkout on .com.br path: PayPal only. On .com: Stripe (if live) + PayPal. */
   function isIntlEmbeddedCheckout() {
     if (!isLocalizedSite()) return false;
     return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
@@ -107,6 +107,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function isPaypalOnlyIntlCheckout() {
     return isLocalizedSite() && !isIntlEmbeddedCheckout();
+  }
+
+  /** Never show Stripe with test keys or when API says disabled. */
+  function isStripeLiveReady() {
+    const stripe = cfg?.payments?.stripe || {};
+    const pk = String(stripe.publishableKey || '');
+    if (stripe.enabled === false) return false;
+    if (!pk) return false;
+    if (/^pk_test_/.test(pk)) return false;
+    return /^pk_live_/.test(pk) || stripe.enabled === true;
   }
 
   function localizeShippingServiceName(opt) {
@@ -1384,6 +1394,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const paypalBr = !isInternational && isPayPalBrAvailable();
     const paypalOnlyIntl = isInternational && isPaypalOnlyIntlCheckout();
     const intlEmbedded = isInternational && isIntlEmbeddedCheckout();
+    const stripeReady = intlEmbedded && isStripeLiveReady();
     if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = isInternational;
     if (els.paymentOptionsIntl) els.paymentOptionsIntl.hidden = !isInternational;
     if (els.paymentNoticeBr) els.paymentNoticeBr.hidden = isInternational;
@@ -1391,7 +1402,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const cardIntlRow = els.paymentOptionsIntl?.querySelector('.payment-option-intl-card');
     if (cardIntlRow) cardIntlRow.hidden = paypalOnlyIntl || intlEmbedded;
     const stripeRow = els.paymentOptionsIntl?.querySelector('.payment-option-stripe');
-    if (stripeRow) stripeRow.hidden = !intlEmbedded;
+    if (stripeRow) stripeRow.hidden = !stripeReady;
     const paypalIntlRow = els.paymentOptionsIntl?.querySelector('.payment-option-paypal');
     if (paypalIntlRow) paypalIntlRow.hidden = !paypalIntl;
     const paypalBrRow = els.paymentOptionsBr?.querySelector('.payment-option-paypal');
@@ -1407,11 +1418,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       r.disabled = !isInternational
         || (isPaypal && !paypalIntl)
         || (isCard && (paypalOnlyIntl || intlEmbedded))
-        || (isStripe && !intlEmbedded);
+        || (isStripe && !stripeReady);
+      if (isStripe && !stripeReady) r.checked = false;
     });
     if (els.paymentNoticeIntl) {
       let noticeKey = 'pay.noticeIntlAll';
-      if (intlEmbedded) noticeKey = 'pay.noticeIntlEmbedded';
+      if (intlEmbedded && stripeReady) noticeKey = 'pay.noticeIntlEmbedded';
+      else if (intlEmbedded && !stripeReady) noticeKey = 'pay.noticeIntlPaypalOnly';
       else if (paypalOnlyIntl) noticeKey = 'pay.noticeIntlPaypalOnly';
       else if (!paypalIntl) noticeKey = 'pay.noticeIntlNoPaypal';
       els.paymentNoticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${L(noticeKey)}`;
@@ -1420,15 +1433,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (isInternational) {
       const stripe = els.paymentOptionsIntl?.querySelector('input[value="STRIPE"]');
       const paypal = els.paymentOptionsIntl?.querySelector('input[value="PAYPAL"]');
-      if (intlEmbedded && stripe) {
+      if (stripeReady && stripe) {
         stripe.checked = true;
-      } else if (paypalOnlyIntl && paypalIntl && paypal) {
+      } else if (paypalIntl && paypal) {
         paypal.checked = true;
       } else {
         const cardIntl = els.paymentOptionsIntl?.querySelector('input[value="CARTAO"]');
         if (cardIntl && !paypalOnlyIntl && !intlEmbedded) cardIntl.checked = true;
         else if (paypalIntl && paypal) paypal.checked = true;
-        else if (intlEmbedded && stripe) stripe.checked = true;
       }
     } else {
       const pix = els.paymentOptionsBr?.querySelector('input[value="PIX"]');

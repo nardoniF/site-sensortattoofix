@@ -1679,8 +1679,9 @@ function publicConfigView(config, env) {
         clientId: clientId || null
       },
       stripe: {
-        enabled: stripeConfigured(env),
-        publishableKey: stripe.publishableKey || null
+        // Hide Stripe on the storefront until live keys are installed.
+        enabled: stripeLiveReady(env),
+        publishableKey: stripeLiveReady(env) ? (stripe.publishableKey || null) : null
       },
       cardBr: {
         provider: getCardBrProvider(config)
@@ -1764,6 +1765,20 @@ function stripeCredentials(env) {
 function stripeConfigured(env) {
   const { secretKey, publishableKey } = stripeCredentials(env);
   return !!(secretKey && publishableKey);
+}
+
+/** Production-ready Stripe only — never expose test keys on the live storefront. */
+function stripeLiveReady(env) {
+  const { secretKey, publishableKey } = stripeCredentials(env);
+  return /^sk_live_/.test(secretKey) && /^pk_live_/.test(publishableKey);
+}
+
+function stripeKeyMode(env) {
+  const { secretKey, publishableKey } = stripeCredentials(env);
+  if (/^sk_test_/.test(secretKey) || /^pk_test_/.test(publishableKey)) return 'test';
+  if (/^sk_live_/.test(secretKey) && /^pk_live_/.test(publishableKey)) return 'live';
+  if (secretKey || publishableKey) return 'unknown';
+  return 'none';
 }
 
 function isValidClickLogKey(body, env) {
@@ -5229,7 +5244,15 @@ function buildIntegrationRows(env, config, checks) {
       label: 'Stripe',
       description: 'Cartão, Apple Pay e Google Pay (.com)',
       status: 'off',
-      detail: 'Secrets não configurados'
+      detail: 'Secrets não configurados · oculto no checkout até chaves live'
+    });
+  } else if (stripe.mode === 'test') {
+    rows.push({
+      id: 'stripe',
+      label: 'Stripe',
+      description: 'Cartão, Apple Pay e Google Pay (.com)',
+      status: 'error',
+      detail: 'Chaves de TESTE — oculto no .com (só PayPal). Troque por pk_live_ / sk_live_.'
     });
   } else if (!stripe.authOk) {
     rows.push({
@@ -5237,10 +5260,18 @@ function buildIntegrationRows(env, config, checks) {
       label: 'Stripe',
       description: 'Cartão, Apple Pay e Google Pay (.com)',
       status: 'error',
-      detail: stripe.error || 'Falha na autenticação'
+      detail: (stripe.error || 'Falha na autenticação') + ' · oculto no checkout'
+    });
+  } else if (!stripe.liveReady) {
+    rows.push({
+      id: 'stripe',
+      label: 'Stripe',
+      description: 'Cartão, Apple Pay e Google Pay (.com)',
+      status: 'error',
+      detail: 'Não está live — oculto no checkout até pk_live_ / sk_live_'
     });
   } else {
-    let stripeDetail = 'Conectado';
+    let stripeDetail = 'Live conectado · visível no .com';
     if (!stripe.webhook) stripeDetail += ' · webhook secret ausente';
     rows.push({
       id: 'stripe',
@@ -6304,8 +6335,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
   if (isIntl) {
     if (intlEmbeddedCheckout) {
       if (body.pagamento === 'STRIPE') {
-        if (!stripeConfigured(env)) {
-          return json({ error: 'Card payment temporarily unavailable. Try PayPal.' }, 400, origin);
+        if (!stripeLiveReady(env)) {
+          return json({ error: 'Card payment temporarily unavailable. Please use PayPal.' }, 400, origin);
         }
         billingType = 'STRIPE';
         pagamentoLabel = 'Card / Apple Pay / Google Pay';
@@ -7129,15 +7160,29 @@ async function handleAsaasWebhook(request, env, origin) {
 
 async function checkStripeIntegration(env) {
   const { secretKey, publishableKey, webhookSecret } = stripeCredentials(env);
+  const mode = stripeKeyMode(env);
+  const liveReady = stripeLiveReady(env);
   if (!secretKey && !publishableKey) {
-    return { configured: false, authOk: false, webhook: false, error: null };
+    return { configured: false, authOk: false, webhook: false, mode, liveReady, error: null };
   }
   if (!secretKey || !publishableKey) {
     return {
       configured: true,
       authOk: false,
       webhook: !!webhookSecret,
+      mode,
+      liveReady,
       error: 'Secrets STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY incompletos.'
+    };
+  }
+  if (mode === 'test') {
+    return {
+      configured: true,
+      authOk: false,
+      webhook: !!webhookSecret,
+      mode,
+      liveReady: false,
+      error: 'Chaves de teste — não usar em produção.'
     };
   }
   try {
@@ -7150,12 +7195,14 @@ async function checkStripeIntegration(env) {
         configured: true,
         authOk: false,
         webhook: !!webhookSecret,
+        mode,
+        liveReady: false,
         error: data.error?.message || 'Falha na autenticação Stripe.'
       };
     }
-    return { configured: true, authOk: true, webhook: !!webhookSecret, error: null };
+    return { configured: true, authOk: true, webhook: !!webhookSecret, mode, liveReady, error: null };
   } catch (err) {
-    return { configured: true, authOk: false, webhook: !!webhookSecret, error: err.message };
+    return { configured: true, authOk: false, webhook: !!webhookSecret, mode, liveReady: false, error: err.message };
   }
 }
 
@@ -7216,8 +7263,8 @@ async function handleStripePaymentIntent(request, env, origin, orderId) {
   if (order.status === 'paid') {
     return json({ order: publicOrderView(order), status: 'paid' }, 200, origin);
   }
-  if (!stripeConfigured(env)) {
-    return json({ error: 'Stripe não configurado.' }, 503, origin);
+  if (!stripeLiveReady(env)) {
+    return json({ error: 'Card payment temporarily unavailable. Please use PayPal.' }, 503, origin);
   }
   const config = await getConfig(env);
   const { publishableKey } = stripeCredentials(env);
