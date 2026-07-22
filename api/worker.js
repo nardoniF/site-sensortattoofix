@@ -1982,14 +1982,236 @@ function watchWhatsAppBlock(order) {
   return `⌚ ${model}`;
 }
 
-function labelPrintUrl(config, orderId) {
-  const base = (config.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
-  return `${base}/imprimir-etiqueta.html?order=${encodeURIComponent(orderId)}`;
+function orderCheckoutLocale(order) {
+  const l = String(order?.checkoutLocale || 'pt').toLowerCase();
+  if (l === 'en' || l === 'it') return l;
+  return 'pt';
+}
+
+function customerFirstName(order) {
+  const first = String(order?.nome || '').trim().split(/\s+/)[0] || '';
+  return first;
+}
+
+/** Marca curta para copy humana: "seu Garmin", "your Apple Watch". */
+function watchBrandForCopy(order) {
+  const model = String(order?.smartwatch || '').trim();
+  if (!model || model === 'N/A') return '';
+  if (/Garmin/i.test(model)) return 'Garmin';
+  if (/Apple Watch/i.test(model)) return 'Apple Watch';
+  if (/Samsung/i.test(model)) return 'Samsung Galaxy Watch';
+  if (/Huawei/i.test(model)) return 'Huawei';
+  if (/Xiaomi|Redmi/i.test(model)) return 'Xiaomi';
+  if (/Amazfit/i.test(model)) return 'Amazfit';
+  if (/Fitbit/i.test(model)) return 'Fitbit';
+  if (/Polar/i.test(model)) return 'Polar';
+  if (/Outro modelo|Other model|Altro modello/i.test(model)) return '';
+  return model;
+}
+
+function customerSupportEmail(order, config) {
+  const loc = orderCheckoutLocale(order);
+  if (loc === 'en' || loc === 'it') return 'support@sensortattoofix.com';
+  return String(config?.formsubmit?.email || 'contato@sensortattoofix.com.br').trim();
+}
+
+function customerSiteBase(order, config) {
+  const loc = orderCheckoutLocale(order);
+  if (loc === 'en' || loc === 'it') return 'https://www.sensortattoofix.com';
+  return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
+}
+
+function shopWhatsAppUrl(config, env, text) {
+  const e164 = shopPhoneE164(config, env).replace(/\D/g, '');
+  if (!e164) return '';
+  const q = text ? `?text=${encodeURIComponent(text)}` : '';
+  return `https://wa.me/${e164}${q}`;
 }
 
 function resumeOrderUrl(config, order) {
-  const site = (config.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
-  return `${site}/comprar.html?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
+  const loc = orderCheckoutLocale(order);
+  const site = customerSiteBase(order, config);
+  const path = loc === 'it' ? '/it/comprar.html' : '/comprar.html';
+  return `${site}${path}?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
+}
+
+function pendingRecoveryCopy(order, config, env, { paymentKind = 'pix' } = {}) {
+  const loc = orderCheckoutLocale(order);
+  const first = customerFirstName(order);
+  const watch = watchBrandForCopy(order);
+  const fullWatch = formatOrderSmartwatch(order);
+  const supportEmail = customerSupportEmail(order, config);
+  const resumeUrl = resumeOrderUrl(config, order);
+
+  const waPrefill = loc === 'en'
+    ? `Hi! I started order ${order.orderId}${watch ? ` for my ${watch}` : ''} and need a little help finishing payment.`
+    : loc === 'it'
+      ? `Ciao! Ho iniziato l’ordine ${order.orderId}${watch ? ` per il mio ${watch}` : ''} e vorrei un aiuto per completare il pagamento.`
+      : `Olá! Comecei o pedido ${order.orderId}${watch ? ` para o meu ${watch}` : ''} e preciso de uma ajuda para concluir o pagamento.`;
+  const waUrl = shopWhatsAppUrl(config, env, waPrefill);
+
+  if (loc === 'en') {
+    const subject = watch
+      ? `Everything OK with your ${watch}${first ? `, ${first}` : ''}?`
+      : `Need any help with your Sensor Tattoo Fix order${first ? `, ${first}` : ''}?`;
+    const paymentLine = paymentKind === 'pix'
+      ? 'We noticed you started checkout for the Sensor Tattoo Fix® optical lens, but payment was not completed.'
+      : paymentKind === 'paypal'
+        ? 'We noticed you started checkout for the Sensor Tattoo Fix® optical lens, but PayPal payment was not completed.'
+        : 'We noticed you started checkout for the Sensor Tattoo Fix® optical lens, but card payment was not completed.';
+    return {
+      subject,
+      greeting: first ? `Hi, ${first}!` : 'Hi!',
+      intro: watch
+        ? `I saw in our system that you were securing the Sensor Tattoo Fix® optical lens for your ${watch}, but payment was not completed.`
+        : paymentLine,
+      help: 'Every watch model has a specific sensor size — if you have any doubt about the ideal lens size or how to apply it, I am happy to help.',
+      offer: paymentKind === 'pix'
+        ? 'If you need a new PIX code, another payment method, or help confirming the exact measurement for your model, just reply here or message us on WhatsApp.'
+        : 'If you need a new payment link, another payment method, or help confirming the exact measurement for your model, just reply here or message us on WhatsApp.',
+      ctaPay: paymentKind === 'pix' ? 'Open order & pay with PIX' : 'Open order & finish payment',
+      contactsTitle: 'We are available for any question:',
+      emailLabel: 'Email',
+      whatsappLabel: 'WhatsApp',
+      signOff: 'Warm regards,',
+      signer: 'Fabio | Sensor Tattoo Fix®',
+      watchLine: fullWatch && fullWatch !== 'N/A' ? `Watch model: ${fullWatch}` : '',
+      supportEmail,
+      waUrl,
+      resumeUrl,
+      pixHint: 'Scan the QR code in your banking app, or copy and paste the PIX code below:',
+      totalLabel: 'Total'
+    };
+  }
+
+  if (loc === 'it') {
+    const subject = watch
+      ? `Tutto ok con il tuo ${watch}${first ? `, ${first}` : ''}?`
+      : `Serve un aiuto con il tuo ordine Sensor Tattoo Fix${first ? `, ${first}` : ''}?`;
+    return {
+      subject,
+      greeting: first ? `Ciao, ${first}!` : 'Ciao!',
+      intro: watch
+        ? `Ho visto nel sistema che stavi assicurando la lente ottica Sensor Tattoo Fix® per il tuo ${watch}, ma il pagamento non è stato completato.`
+        : 'Ho visto che hai iniziato il checkout per la lente ottica Sensor Tattoo Fix®, ma il pagamento non è stato completato.',
+      help: 'Ogni modello di orologio ha un diametro del sensore specifico — se hai dubbi sulla misura ideale della lente o sull’applicazione, sono a disposizione.',
+      offer: paymentKind === 'pix'
+        ? 'Se ti serve un nuovo codice PIX, un altro metodo di pagamento o conferma della misura esatta, rispondi a questa email o scrivici su WhatsApp.'
+        : 'Se ti serve un nuovo link di pagamento, un altro metodo o conferma della misura esatta, rispondi a questa email o scrivici su WhatsApp.',
+      ctaPay: paymentKind === 'pix' ? 'Apri l’ordine e paga con PIX' : 'Apri l’ordine e completa il pagamento',
+      contactsTitle: 'Per qualsiasi dubbio siamo disponibili:',
+      emailLabel: 'Email',
+      whatsappLabel: 'WhatsApp',
+      signOff: 'Un saluto,',
+      signer: 'Fabio | Sensor Tattoo Fix®',
+      watchLine: fullWatch && fullWatch !== 'N/A' ? `Modello orologio: ${fullWatch}` : '',
+      supportEmail,
+      waUrl,
+      resumeUrl,
+      pixHint: 'Inquadra il QR Code nell’app della tua banca oppure copia e incolla il codice PIX qui sotto:',
+      totalLabel: 'Totale'
+    };
+  }
+
+  const subject = watch
+    ? `Tudo certo com o seu ${watch}${first ? `, ${first}` : ''}?`
+    : `Dúvida sobre a lente Sensor Tattoo Fix${first ? ` — ${first}` : ''}`;
+  return {
+    subject,
+    greeting: first ? `Olá, ${first}! Tudo bem?` : 'Olá! Tudo bem?',
+    intro: watch
+      ? `Vi aqui no nosso sistema que você tentou garantir a sua Lente Óptica Sensor Tattoo Fix® para o seu ${watch}, mas o pagamento acabou não sendo concluído.`
+      : 'Vi aqui no nosso sistema que você iniciou a compra da Lente Óptica Sensor Tattoo Fix®, mas o pagamento acabou não sendo concluído.',
+    help: 'Como cada modelo tem um diâmetro de sensor específico, queria saber se você ficou com alguma dúvida sobre o tamanho ideal da lente ou sobre a aplicação no seu relógio.',
+    offer: paymentKind === 'pix'
+      ? 'Se precisar de ajuda para confirmar a medida exata do seu modelo, quiser um novo código PIX ou preferir outro meio de pagamento, estou à disposição por aqui ou direto pelo WhatsApp.'
+      : 'Se precisar de ajuda para confirmar a medida exata do seu modelo, quiser um novo link de pagamento ou preferir outro meio, estou à disposição por aqui ou direto pelo WhatsApp.',
+    ctaPay: paymentKind === 'pix' ? 'Abrir pedido e pagar com PIX' : 'Abrir pedido e concluir pagamento',
+    contactsTitle: 'Qualquer dúvida, estamos disponíveis:',
+    emailLabel: 'E-mail',
+    whatsappLabel: 'WhatsApp',
+    signOff: 'Um abraço,',
+    signer: 'Fabio | Sensor Tattoo Fix®',
+    watchLine: fullWatch && fullWatch !== 'N/A' ? `Modelo do relógio: ${fullWatch}` : '',
+    supportEmail,
+    waUrl,
+    resumeUrl,
+    pixHint: 'Escaneie o QR Code no app do seu banco ou copie o código PIX:',
+    totalLabel: 'Total'
+  };
+}
+
+function buildPendingConsultativeEmail(order, config, env, {
+  paymentKind = 'pix',
+  hasQrImage = false,
+  includePixCode = false
+} = {}) {
+  const copy = pendingRecoveryCopy(order, config, env, { paymentKind });
+  const total = order.chargeCurrency === 'USD' && order.chargeAmount != null
+    ? `US$ ${Number(order.chargeAmount).toFixed(2)}`
+    : formatBRL(order.total);
+  const copyPaste = order.pixCopyPaste || '';
+  const qrImg = hasQrImage
+    ? `<img src="cid:${PIX_QR_CID}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`
+    : '';
+  const pixBlock = includePixCode
+    ? `<p style="font-size:18px"><strong>${escapeHtml(copy.totalLabel)}: ${escapeHtml(total)}</strong></p>
+    ${qrImg}
+    <p style="font-size:13px;color:#555">${escapeHtml(copy.pixHint)}</p>
+    <p style="word-break:break-all;font-family:monospace;font-size:11px;background:#f5f5f5;padding:12px;border-radius:8px;border:1px solid #ddd">${escapeHtml(copyPaste)}</p>`
+    : `<p style="font-size:18px"><strong>${escapeHtml(copy.totalLabel)}: ${escapeHtml(total)}</strong></p>`;
+
+  const contacts = [
+    copy.supportEmail
+      ? `<li>${escapeHtml(copy.emailLabel)}: <a href="mailto:${escapeHtml(copy.supportEmail)}">${escapeHtml(copy.supportEmail)}</a></li>`
+      : '',
+    copy.waUrl
+      ? `<li>${escapeHtml(copy.whatsappLabel)}: <a href="${escapeHtml(copy.waUrl)}">${escapeHtml(copy.waUrl.replace(/^https:\/\//, ''))}</a></li>`
+      : ''
+  ].filter(Boolean).join('');
+
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;color:#222;line-height:1.5">
+    <p>${escapeHtml(copy.greeting)}</p>
+    <p>${escapeHtml(copy.intro)}</p>
+    <p>${escapeHtml(copy.help)}</p>
+    <p>${escapeHtml(copy.offer)}</p>
+    ${pixBlock}
+    <p style="margin-top:20px"><a href="${escapeHtml(copy.resumeUrl)}" style="display:inline-block;background:#ffc107;color:#000;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px">${escapeHtml(copy.ctaPay)}</a></p>
+    <p style="margin-top:24px"><strong>${escapeHtml(copy.contactsTitle)}</strong></p>
+    <ul style="padding-left:18px;margin:8px 0 0">${contacts}</ul>
+    <p style="margin-top:24px">${escapeHtml(copy.signOff)}<br>${escapeHtml(copy.signer)}</p>
+    ${copy.watchLine ? `<p style="font-size:12px;color:#666;margin-top:16px">${escapeHtml(copy.watchLine)}<br>Pedido ${escapeHtml(order.orderId)}</p>` : `<p style="font-size:12px;color:#666;margin-top:16px">Pedido ${escapeHtml(order.orderId)}</p>`}
+  </div>`;
+
+  const text = [
+    copy.greeting,
+    '',
+    copy.intro,
+    copy.help,
+    copy.offer,
+    '',
+    `${copy.totalLabel}: ${total}`,
+    includePixCode && copyPaste ? `\n${copy.pixHint}\n${copyPaste}` : '',
+    '',
+    `${copy.ctaPay}: ${copy.resumeUrl}`,
+    '',
+    copy.contactsTitle,
+    copy.supportEmail ? `${copy.emailLabel}: ${copy.supportEmail}` : '',
+    copy.waUrl ? `${copy.whatsappLabel}: ${copy.waUrl}` : '',
+    '',
+    copy.signOff,
+    copy.signer,
+    '',
+    copy.watchLine,
+    `Pedido ${order.orderId}`
+  ].filter((line) => line !== '').join('\n');
+
+  return { subject: copy.subject, html, text, resumeUrl: copy.resumeUrl };
+}
+
+function labelPrintUrl(config, orderId) {
+  const base = (config.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
+  return `${base}/imprimir-etiqueta.html?order=${encodeURIComponent(orderId)}`;
 }
 
 function arrayBufferToBase64(buffer) {
@@ -2026,48 +2248,6 @@ async function pixQrInlineAttachment(order) {
     console.error('QR PIX e-mail:', err.message);
     return null;
   }
-}
-
-function buildPixPaymentEmail(order, config, { hasQrImage = false } = {}) {
-  const emails = getEmails(config);
-  const resumeUrl = resumeOrderUrl(config, order);
-  const total = formatBRL(order.total);
-  const copyPaste = order.pixCopyPaste || '';
-  const greeting = applyEmailTemplate(emails.pixGreeting, { nome: order.nome, orderId: order.orderId });
-  const intro = applyEmailTemplate(emails.pixIntro, { nome: order.nome, orderId: order.orderId });
-  const footer = applyEmailTemplate(emails.pixFooter, { nome: order.nome, orderId: order.orderId });
-  const qrImg = hasQrImage
-    ? `<img src="cid:${PIX_QR_CID}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`
-    : '';
-  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;color:#222">
-    <p>${escapeHtml(greeting)}</p>
-    <p>${escapeHtml(intro)}</p>
-    <p style="font-size:18px"><strong>Total: ${escapeHtml(total)}</strong></p>
-    ${qrImg}
-    <p style="font-size:13px;color:#555">Escaneie o QR Code no app do seu banco ou copie o código PIX:</p>
-    <p style="word-break:break-all;font-family:monospace;font-size:11px;background:#f5f5f5;padding:12px;border-radius:8px;border:1px solid #ddd">${escapeHtml(copyPaste)}</p>
-    <p style="margin-top:20px"><a href="${escapeHtml(resumeUrl)}" style="display:inline-block;background:#ffc107;color:#000;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px">Abrir pedido e pagar</a></p>
-    <p style="font-size:12px;color:#666">${escapeHtml(footer)}</p>
-    <p style="font-size:12px;color:#666;margin-top:16px">Modelo do relógio: ${escapeHtml(formatOrderSmartwatch(order))}${trimObs(order) && !String(order.smartwatch || '').includes('Outro modelo') ? `<br>Observações: ${escapeHtml(trimObs(order))}` : ''}<br>Sensor Tattoo Fix — sensortattoofix.com.br</p>
-  </div>`;
-  const text = [
-    greeting,
-    intro,
-    `Pedido ${order.orderId} — Total: ${total}`,
-    '',
-    'Código PIX (copia e cola):',
-    copyPaste,
-    '',
-    `Abrir pedido: ${resumeUrl}`,
-    '',
-    footer,
-    '',
-    `Modelo do relógio: ${formatOrderSmartwatch(order)}`,
-    ...(trimObs(order) && !String(order.smartwatch || '').includes('Outro modelo')
-      ? [`Observações: ${trimObs(order)}`]
-      : [])
-  ].join('\n');
-  return { html, text };
 }
 
 async function getLoginLock(env, ip, scope = 'admin') {
@@ -5716,24 +5896,63 @@ async function notifyCustomer(env, config, order, subject, fields, content) {
 
 async function notifyCustomerPendingPix(env, config, order) {
   const qrAttachment = await pixQrInlineAttachment(order);
-  const pixMail = buildPixPaymentEmail(order, config, { hasQrImage: !!qrAttachment });
+  const mail = buildPendingConsultativeEmail(order, config, env, {
+    paymentKind: 'pix',
+    hasQrImage: !!qrAttachment,
+    includePixCode: true
+  });
   const fields = {
     Pedido: order.orderId,
     Total: formatBRL(order.total),
-    'Link do pedido': resumeOrderUrl(config, order),
+    'Link do pedido': mail.resumeUrl,
     ...orderWatchEmailFields(order)
   };
   return notifyCustomer(
     env,
     config,
     order,
-    emailSubject(config, 'customerPixSubject', { orderId: order.orderId }),
+    mail.subject,
     fields,
     {
-      ...pixMail,
+      html: mail.html,
+      text: mail.text,
       attachments: qrAttachment ? [qrAttachment] : []
     }
   );
+}
+
+function pendingPaymentKind(billingType) {
+  if (billingType === 'PAYPAL') return 'paypal';
+  if (billingType === 'PIX') return 'pix';
+  return 'card';
+}
+
+async function notifyCustomerPendingPayment(env, config, order, billingType) {
+  const kind = pendingPaymentKind(billingType);
+  if (kind === 'pix') return notifyCustomerPendingPix(env, config, order);
+  const mail = buildPendingConsultativeEmail(order, config, env, {
+    paymentKind: kind,
+    includePixCode: false
+  });
+  const fields = {
+    Pedido: order.orderId,
+    Status: orderCheckoutLocale(order) === 'en' ? 'Awaiting payment'
+      : orderCheckoutLocale(order) === 'it' ? 'In attesa di pagamento'
+        : 'Aguardando pagamento',
+    Total: order.chargeCurrency === 'USD' && order.chargeAmount != null
+      ? `US$ ${Number(order.chargeAmount).toFixed(2)}`
+      : formatBRL(order.total),
+    Pagamento: order.pagamento,
+    'Link do pedido': mail.resumeUrl,
+    ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+    ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
+    ...orderWatchEmailFields(order),
+    ...orderIntlProductFields(order)
+  };
+  return notifyCustomer(env, config, order, mail.subject, fields, {
+    html: mail.html,
+    text: mail.text
+  });
 }
 
 async function handleShippingQuote(request, env, origin, ctx) {
@@ -6272,24 +6491,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
   await saveOrder(env, order);
 
   const paymentBillingType = payment?.billingType || billingType;
-  const customerEmail = billingType === 'PIX'
-    ? notifyCustomerPendingPix(env, config, order)
-    : notifyCustomer(env, config, order, emailSubject(config, 'customerOrderSubject', { orderId: order.orderId }), {
-      Pedido: order.orderId,
-      Status: 'Aguardando pagamento',
-      Total: formatBRL(order.total),
-      Pagamento: order.pagamento,
-      Mensagem: paymentBillingType === 'PAYPAL'
-        ? emailMessage(config, 'pendingPaypal')
-        : paymentBillingType === 'MP_CHECKOUT'
-          ? emailMessage(config, 'pendingMpCheckout')
-          : emailMessage(config, 'pendingCard'),
-      ...(paymentBillingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
-      ...(paymentBillingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
-      'Link do pedido': resumeOrderUrl(config, order),
-      ...orderWatchEmailFields(order),
-      ...orderIntlProductFields(order)
-    });
+  const customerEmail = notifyCustomerPendingPayment(env, config, order, paymentBillingType);
 
   const emailWork = Promise.all([
     notifyShop(env, config, config.formsubmit.subject, {
@@ -8013,40 +8215,16 @@ async function sendTestEmailByType(env, config, to, type) {
       }, config.formsubmit?.email);
 
     case 'customer_order':
-      return notifyCustomer(env, config, order, emailSubject(config, 'customerOrderSubject', { orderId: order.orderId }), {
-        Pedido: order.orderId,
-        Status: 'Aguardando pagamento (TESTE)',
-        Total: formatBRL(order.total),
-        Pagamento: 'Cartão de crédito',
-        Mensagem: emailMessage(config, 'pendingCard')
-      });
+      return notifyCustomerPendingPayment(env, config, { ...order, pagamento: 'Cartão de crédito' }, 'CREDIT_CARD');
 
     case 'customer_order_paypal':
-      return notifyCustomer(env, config, order, emailSubject(config, 'customerOrderSubject', { orderId: order.orderId }), {
-        Pedido: order.orderId,
-        Status: 'Aguardando pagamento (TESTE)',
-        Total: formatBRL(order.total),
-        Pagamento: 'PayPal',
-        Mensagem: emailMessage(config, 'pendingPaypal')
-      });
+      return notifyCustomerPendingPayment(env, config, { ...order, pagamento: 'PayPal' }, 'PAYPAL');
 
     case 'customer_order_mp':
-      return notifyCustomer(env, config, order, emailSubject(config, 'customerOrderSubject', { orderId: order.orderId }), {
-        Pedido: order.orderId,
-        Status: 'Aguardando pagamento (TESTE)',
-        Total: formatBRL(order.total),
-        Pagamento: 'Mercado Pago',
-        Mensagem: emailMessage(config, 'pendingMpCheckout')
-      });
+      return notifyCustomerPendingPayment(env, config, { ...order, pagamento: 'Mercado Pago' }, 'MP_CHECKOUT');
 
-    case 'customer_pix': {
-      const pixMail = buildPixPaymentEmail(order, config, { hasQrImage: false });
-      return notifyCustomer(env, config, order, emailSubject(config, 'customerPixSubject', { orderId: order.orderId }), {
-        Pedido: order.orderId,
-        Total: formatBRL(order.total),
-        'Link do pedido': resumeOrderUrl(config, order)
-      }, pixMail);
-    }
+    case 'customer_pix':
+      return notifyCustomerPendingPix(env, config, order);
 
     case 'customer_paid':
       return notifyCustomer(env, config, order, emailSubject(config, 'customerPaidSubject', { orderId: order.orderId }), {
