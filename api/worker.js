@@ -1747,6 +1747,20 @@ function isIntlCheckoutLocale(locale) {
   return l === 'en' || l === 'it';
 }
 
+/** True when the destination is abroad even if paisCode was wrongly saved as BR. */
+function orderLooksInternationalDestination(order) {
+  const code = String(order?.paisCode || '').trim().toUpperCase();
+  if (code && code !== 'BR') return true;
+  if (isIntlCheckoutLocale(order?.checkoutLocale)) return true;
+  if (order?.internationalLensOnly) return true;
+  if (order?.shipmentType === 'documento' || order?.shipmentType === 'encomenda') return true;
+  if (String(order?.shippingMethodId || '').startsWith('int-')) return true;
+  if (/internacional|international/i.test(String(order?.pais || ''))) return true;
+  const cepDigits = String(order?.cep || '').replace(/\D/g, '');
+  if (cepDigits.length === 5 && order?.uf && String(order.uf).length <= 3) return true;
+  return false;
+}
+
 async function intlUsdCharge(order, env) {
   const fx = await fetchFxRate(env, 'USD');
   const brl = Number(order.total) || 0;
@@ -5931,6 +5945,10 @@ async function notifyCustomer(env, config, order, subject, fields, content) {
 }
 
 async function notifyCustomerPendingPix(env, config, order) {
+  // Safety: never email a Brazilian PIX code to an abroad / EN-IT checkout order.
+  if (orderLooksInternationalDestination(order)) {
+    return notifyCustomerPendingPayment(env, config, order, 'PAYPAL');
+  }
   const qrAttachment = await pixQrInlineAttachment(order);
   const mail = buildPendingConsultativeEmail(order, config, env, {
     paymentKind: 'pix',
@@ -6272,7 +6290,28 @@ async function handleCreateOrder(request, env, origin, ctx) {
     couponCommissionPercent = comm.percent;
     couponCommissionAmount = comm.amount;
   }
-  const isIntl = (body.paisCode || 'BR') !== 'BR';
+  const checkoutLocale = String(body.checkoutLocale || 'pt').toLowerCase();
+  const intlEmbeddedCheckout = (isComSiteRequest(request) || body.intlEmbedded === true)
+    && isIntlCheckoutLocale(checkoutLocale);
+
+  // Brown-class bug: empty/missing paisCode became BR → PIX for a US address.
+  let paisCode = String(body.paisCode || '').trim().toUpperCase();
+  if (paisCode === 'XX' || paisCode === 'T1') paisCode = '';
+  const shippingLooksIntl = !!(
+    body.internationalLensOnly
+    || body.shipmentType === 'documento'
+    || body.shipmentType === 'encomenda'
+    || String(body.shippingMethodId || '').startsWith('int-')
+    || /internacional|international/i.test(String(body.pais || ''))
+  );
+  const forceIntlPay = intlEmbeddedCheckout || (isIntlCheckoutLocale(checkoutLocale) && shippingLooksIntl);
+  let isIntl = (paisCode && paisCode !== 'BR') || forceIntlPay || shippingLooksIntl;
+  if (isIntl && (!paisCode || paisCode === 'BR')) {
+    paisCode = 'OTHER';
+  }
+  if (!paisCode) paisCode = 'BR';
+  isIntl = paisCode !== 'BR';
+
   const uberMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
     (m) => isUberMethod(m) && (m.id === body.shippingMethodId || body.shippingProvider === 'uber')
   );
@@ -6328,31 +6367,22 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   let billingType;
   let pagamentoLabel;
-  const checkoutLocale = String(body.checkoutLocale || 'pt').toLowerCase();
-  const intlEmbeddedCheckout = (isComSiteRequest(request) || body.intlEmbedded === true)
-    && isIntlCheckoutLocale(checkoutLocale);
   const paypalOnlyIntl = isIntl && isIntlCheckoutLocale(checkoutLocale) && !intlEmbeddedCheckout;
-  if (isIntl) {
-    if (intlEmbeddedCheckout) {
-      if (body.pagamento === 'STRIPE') {
-        if (!stripeLiveReady(env)) {
-          return json({ error: 'Card payment temporarily unavailable. Please use PayPal.' }, 400, origin);
-        }
+  if (isIntl || forceIntlPay) {
+    // .com EN/IT or intl shipping: PayPal/Stripe only — never BR PIX.
+    if (intlEmbeddedCheckout || forceIntlPay) {
+      const wantStripe = body.pagamento === 'STRIPE' && stripeLiveReady(env);
+      if (wantStripe) {
         billingType = 'STRIPE';
         pagamentoLabel = 'Card / Apple Pay / Google Pay';
-      } else if (body.pagamento === 'PAYPAL') {
+      } else {
         if (!isInternationalPayPalAvailable(config)) {
           return json({ error: 'PayPal temporarily unavailable. Try again shortly.' }, 400, origin);
         }
         billingType = 'PAYPAL';
         pagamentoLabel = 'PayPal';
-      } else {
-        return json({ error: 'Choose PayPal or card for international checkout.' }, 400, origin);
       }
     } else if (paypalOnlyIntl) {
-      if (body.pagamento !== 'PAYPAL') {
-        return json({ error: 'Use PayPal para checkout em inglês ou italiano com envio internacional.' }, 400, origin);
-      }
       if (!isInternationalPayPalAvailable(config)) {
         return json({ error: 'PayPal temporariamente indisponível. Tente novamente em breve.' }, 400, origin);
       }
@@ -6386,6 +6416,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
     } else if (body.pagamento === 'CARTAO') {
       billingType = 'CREDIT_CARD';
       pagamentoLabel = 'Cartão de crédito';
+    } else if (body.pagamento === 'STRIPE') {
+      return json({ error: 'Pagamento internacional indisponível neste checkout. Selecione o país de entrega.' }, 400, origin);
     } else {
       billingType = 'PIX';
       pagamentoLabel = 'PIX';
@@ -6415,8 +6447,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
     telefone: body.telefone,
     cpf: body.cpf,
     smartwatch: needsWatch ? (body.smartwatch || 'Não informado') : 'N/A',
-    pais: body.pais || 'Brasil',
-    paisCode: body.paisCode || 'BR',
+    pais: body.pais || (isIntl ? 'Internacional' : 'Brasil'),
+    paisCode,
     cep: body.cep || '',
     rua: body.rua || '',
     numero: body.numero || '',
