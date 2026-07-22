@@ -8132,8 +8132,19 @@ async function handleTestEmail(request, env, origin) {
   }
 
   const results = [];
+  const overrides = {
+    nome: body.nome,
+    smartwatch: body.smartwatch,
+    checkoutLocale: body.checkoutLocale || body.locale,
+    telefone: body.telefone,
+    pais: body.pais,
+    paisCode: body.paisCode,
+    endereco: body.endereco,
+    shippingService: body.shippingService,
+    pagamento: body.pagamento
+  };
   for (const t of types) {
-    const result = await sendTestEmailByType(env, config, to, t);
+    const result = await sendTestEmailByType(env, config, to, t, overrides);
     results.push({ type: t, ...result });
     if (!result.ok && type !== 'all') {
       return json({ ok: false, type: t, results, ...result }, 502, origin);
@@ -8151,31 +8162,37 @@ async function handleTestEmail(request, env, origin) {
   }, ok ? 200 : 502, origin);
 }
 
-function buildTestOrder(config, to) {
+function buildTestOrder(config, to, overrides = {}) {
   const orderId = 'STF-TESTE-' + Date.now();
   const price = Number(config.product?.price) || 62.9;
+  const locale = String(overrides.checkoutLocale || 'pt').toLowerCase();
+  const isIntl = locale === 'en' || locale === 'it';
   return {
     orderId,
-    nome: 'Cliente Teste',
+    nome: overrides.nome || (isIntl ? 'Nicolas Brown' : 'Nicolas Brown'),
     email: to,
-    telefone: '(11) 99999-9999',
-    smartwatch: 'Apple Watch Series 9 (41mm)',
+    telefone: overrides.telefone || (isIntl ? '+61 400 000 000' : '(11) 99999-9999'),
+    smartwatch: overrides.smartwatch || 'Garmin Fenix',
     produto: config.product?.name || 'Kit Sensor Tattoo Fix',
-    total: price + 11.9,
+    total: price + (isIntl ? 40 : 11.9),
     valorProduto: price,
-    frete: 11.9,
-    pagamento: 'PIX',
-    endereco: 'Av Paulista, 1000 — Bela Vista, São Paulo/SP — Brasil 01310100',
-    pais: 'Brasil',
-    paisCode: 'BR',
-    shippingService: 'Mini Envios',
+    frete: isIntl ? 40 : 11.9,
+    pagamento: overrides.pagamento || 'PIX',
+    endereco: overrides.endereco || (isIntl
+      ? '12 Example St — Sydney NSW — Australia 2000'
+      : 'Av Paulista, 1000 — Bela Vista, São Paulo/SP — Brasil 01310100'),
+    pais: overrides.pais || (isIntl ? 'Australia' : 'Brasil'),
+    paisCode: overrides.paisCode || (isIntl ? 'AU' : 'BR'),
+    shippingService: overrides.shippingService || (isIntl ? 'Tracked mail' : 'Mini Envios'),
     pixCopyPaste: '00020126580014BR.GOV.BCB.PIX0136123456789012345204000053039865405' + String(Math.round(price * 100)).padStart(4, '0') + '5802BR6009SAO PAULO62070503***6304TEST',
-    status: 'pending_payment'
+    status: 'pending_payment',
+    checkoutLocale: locale === 'en' || locale === 'it' ? locale : 'pt',
+    accessToken: 'test-token-' + orderId
   };
 }
 
-async function sendTestEmailByType(env, config, to, type) {
-  const order = buildTestOrder(config, to);
+async function sendTestEmailByType(env, config, to, type, overrides = {}) {
+  const order = buildTestOrder(config, to, overrides);
   const price = Number(config.product?.price) || 62.9;
   const adminUrl = `${(config.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '')}/pedidos.html`;
 
