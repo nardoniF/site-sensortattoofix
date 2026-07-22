@@ -308,7 +308,7 @@ window.STF_I18N = (function () {
       'page.checkoutTitle': 'Comprar Direto | Sensor Tattoo Fix — Loja Oficial',
       'page.checkoutDesc': 'Checkout oficial Sensor Tattoo Fix — cartão, PayPal, envio nacional e internacional.',
       'page.checkoutTitleEn': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, international cards, tracked worldwide shipping.'
+      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.'
     },
     en: {
       'brand.tagline': 'Peace between ink and silicon',
@@ -348,7 +348,7 @@ window.STF_I18N = (function () {
       'summary.subtotal': 'Subtotal',
       'summary.discount': 'Discount',
       'summary.shipping': 'Shipping',
-      'summary.shippingIntl': 'International shipping',
+      'summary.shippingIntl': 'Shipping',
       'summary.paypalFee': 'PayPal fee',
       'summary.total': 'Total',
       'summary.order': 'Order',
@@ -502,9 +502,9 @@ window.STF_I18N = (function () {
       'paypal.redirect': 'Redirecting to PayPal… If nothing opens, use the button below.',
       'confirm.hint': 'Confirmation is sent automatically by email.',
       'store.priceSuffix': 'Card & PayPal',
-      'store.intlSuffix': 'International cards · Worldwide shipping',
+      'store.intlSuffix': 'PayPal & cards · Tracked shipping',
       'store.title': 'Official Store',
-      'store.metaDescEn': 'Buy the Sensor Tattoo Fix kit — optical lens when your watch asks for passcode every 10 seconds, won\'t read heart rate, disconnects or pauses workouts (often tattoo ink blocking the sensor). International cards and worldwide shipping.',
+      'store.metaDescEn': 'Buy the Sensor Tattoo Fix kit — optical lens when your watch asks for passcode every 10 seconds, won\'t read heart rate, disconnects or pauses workouts (often tattoo ink blocking the sensor). PayPal, cards and tracked shipping.',
       'store.loading': 'Loading products...',
       'store.empty': 'No products available at the moment.',
       'store.added': 'Added to cart!',
@@ -514,8 +514,8 @@ window.STF_I18N = (function () {
       'store.frete': 'shipping',
       'store.freteLine': '+ Shipping: calculated at checkout',
       'store.lojaFreteShort': '+ shipping',
-      'store.lojaPriceSuffix': 'PayPal & cards · Worldwide delivery',
-      'store.shippingChannelsIntl': 'International tracked shipping · 10–25 business days · price at checkout',
+      'store.lojaPriceSuffix': 'PayPal & cards · Tracked shipping',
+      'store.shippingChannelsIntl': 'Tracked shipping · price at checkout',
       'store.add': 'Add',
       'store.buy': 'Buy',
       'store.alsoOnLabel': 'Also available on:',
@@ -590,14 +590,14 @@ window.STF_I18N = (function () {
       'shipping.sourceUber': 'Local courier',
       'shipping.sourceMotoboy': 'Local delivery',
       'shipping.motoboyEta': 'within {hours}h',
-      'shipping.sourceExport': 'International tracked mail',
+      'shipping.sourceExport': 'Tracked mail',
       'shipping.sourceConfig': 'Standard rate',
       'shipping.sourceConfigShort': 'standard rate',
       'shipping.sourceEstimate': 'Estimated shipping — final price at checkout',
       'shipping.sourceEstimateShort': 'estimate',
       'shipping.uberTest': 'Test mode — symbolic price only.',
       'shipping.intlPrefix': 'International —',
-      'shipping.intlDefault': 'International tracked mail',
+      'shipping.intlDefault': 'Tracked mail',
       'shipping.serviceDocument': 'Document mail (lens only)',
       'shipping.serviceParcel': 'Tracked parcel (full kit)',
       'shipping.noticeDocument': 'Lens only — no booster fluid (liquids not allowed in document mail).\n\nFull kit: choose tracked parcel instead.',
@@ -619,11 +619,11 @@ window.STF_I18N = (function () {
       'watch.groupOtherBrands': 'Other brands',
       'watch.groupOthers': 'Others',
       'page.checkoutTitle': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDesc': 'Official Sensor Tattoo Fix checkout — PayPal, international cards, tracked worldwide shipping.',
+      'page.checkoutDesc': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.',
       'page.checkoutTitleEn': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, international cards, tracked worldwide shipping.',
+      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.',
       'page.checkoutTitleIt': 'Checkout | Sensor Tattoo Fix — Negozio ufficiale',
-      'page.checkoutDescIt': 'Checkout ufficiale Sensor Tattoo Fix — PayPal, carte internazionali, spedizione tracciata in tutto il mondo.'
+      'page.checkoutDescIt': 'Checkout ufficiale Sensor Tattoo Fix — PayPal, carte, spedizione tracciata.'
     }
   };
 

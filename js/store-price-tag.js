@@ -13,8 +13,8 @@ window.STF_STORE_PRICE = (function () {
   const EN_FALLBACK = {
     'store.frete': '+ shipping',
     'store.freteLine': '+ Shipping: calculated at checkout',
-    'store.shippingChannelsIntl': 'International tracked shipping · calculated at checkout',
-    'shipping.intlDefault': 'International tracked mail'
+    'store.shippingChannelsIntl': 'Tracked shipping · calculated at checkout',
+    'shipping.intlDefault': 'Tracked mail'
   };
 
   function isIntlHost() {
