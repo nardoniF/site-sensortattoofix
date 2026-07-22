@@ -1996,17 +1996,22 @@ function customerFirstName(order) {
 /** Marca curta para copy humana: "seu Garmin", "your Apple Watch". */
 function watchBrandForCopy(order) {
   const model = String(order?.smartwatch || '').trim();
-  if (!model || model === 'N/A') return '';
-  if (/Garmin/i.test(model)) return 'Garmin';
-  if (/Apple Watch/i.test(model)) return 'Apple Watch';
-  if (/Samsung/i.test(model)) return 'Samsung Galaxy Watch';
-  if (/Huawei/i.test(model)) return 'Huawei';
-  if (/Xiaomi|Redmi/i.test(model)) return 'Xiaomi';
-  if (/Amazfit/i.test(model)) return 'Amazfit';
-  if (/Fitbit/i.test(model)) return 'Fitbit';
-  if (/Polar/i.test(model)) return 'Polar';
-  if (/Outro modelo|Other model|Altro modello/i.test(model)) return '';
-  return model;
+  const obs = trimObs(order);
+  // Prefer free-text notes when the select is "Other model" (e.g. "Garmin Tactix 8").
+  const haystack = /Outro modelo|Other model|Altro modello/i.test(model)
+    ? (obs || model)
+    : `${model} ${obs}`.trim();
+  if (!haystack || haystack === 'N/A') return '';
+  if (/Garmin/i.test(haystack)) return 'Garmin';
+  if (/Apple Watch/i.test(haystack)) return 'Apple Watch';
+  if (/Samsung/i.test(haystack)) return 'Samsung Galaxy Watch';
+  if (/Huawei/i.test(haystack)) return 'Huawei';
+  if (/Xiaomi|Redmi/i.test(haystack)) return 'Xiaomi';
+  if (/Amazfit/i.test(haystack)) return 'Amazfit';
+  if (/Fitbit/i.test(haystack)) return 'Fitbit';
+  if (/Polar/i.test(haystack)) return 'Polar';
+  if (/Outro modelo|Other model|Altro modello/i.test(haystack)) return '';
+  return haystack.split(/\s+[—\-]\s+/)[0].trim() || haystack;
 }
 
 function customerSupportEmail(order, config) {
@@ -7052,6 +7057,29 @@ async function handleConfirmOrder(request, env, origin, orderId) {
   return json(await getOrder(env, orderId), 200, origin);
 }
 
+/** Reenvia e-mail consultivo de pedido pendente (PIX / cartão / PayPal). */
+async function handleResendPendingEmail(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  if (order.status === 'paid') {
+    return json({ error: 'Pedido já está pago.' }, 400, origin);
+  }
+  const config = await getConfig(env);
+  const pay = String(order.pagamento || order.billingType || '').toUpperCase();
+  let billingType = 'PIX';
+  if (/PAYPAL/.test(pay)) billingType = 'PAYPAL';
+  else if (/CARD|CART[AÃ]O|APPLE|GOOGLE|STRIPE|CREDIT|MP_CHECKOUT|MERCADO/.test(pay)) billingType = 'CREDIT_CARD';
+  else if (order.paymentBillingType) billingType = order.paymentBillingType;
+  const result = await notifyCustomerPendingPayment(env, config, order, billingType);
+  if (!result?.ok) {
+    return json({ ok: false, orderId, email: order.email, ...result }, 502, origin);
+  }
+  return json({ ok: true, orderId, email: order.email, billingType, provider: result.provider, id: result.id }, 200, origin);
+}
+
 async function handleConfirmSelfTestOrder(request, env, origin, orderId) {
   const body = await request.json().catch(() => ({}));
   const order = await getOrder(env, orderId);
@@ -8954,6 +8982,11 @@ export default {
 
       if (path === '/orders/pending' && request.method === 'DELETE') {
         return handleDeletePendingOrders(request, env, origin);
+      }
+
+      const resendPendingMatch = path.match(/^\/orders\/([^/]+)\/resend-pending-email$/);
+      if (resendPendingMatch && request.method === 'POST') {
+        return handleResendPendingEmail(request, env, origin, resendPendingMatch[1]);
       }
 
       const confirmMatch = path.match(/^\/orders\/([^/]+)\/confirm$/);
