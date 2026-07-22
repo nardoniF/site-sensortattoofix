@@ -683,18 +683,55 @@ html[lang="it"] .nav-actions { gap: 6px; }
 .stf-feedback-status--ok { color: #6dd47e; }
 .stf-feedback-status--err { color: #f07178; }
 body.stf-feedback-open { overflow: hidden; }
-.footer-feedback-link { margin-top: 14px; }
-.footer-feedback-link button {
-    background: none; border: none; color: var(--primary); cursor: pointer;
-    font-size: 0.9rem; padding: 0; font-family: inherit;
-    text-decoration: none; opacity: 0.9;
+.footer-action-links {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
 }
-.footer-feedback-link button:hover { opacity: 1; text-decoration: underline; }
-.footer-commissioner-link { margin-top: 10px; }
-.footer-commissioner-link a {
-  color: rgba(255, 255, 255, 0.45); font-size: 0.78rem; text-decoration: none;
+.footer-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
-.footer-commissioner-link a:hover { color: rgba(255, 255, 255, 0.7); text-decoration: underline; }
+.footer-action-btn i { font-size: 0.95rem; }
+.footer-action-btn--feedback {
+  background: rgba(255, 193, 7, 0.12);
+  border-color: rgba(255, 193, 7, 0.45);
+  color: var(--primary);
+}
+.footer-action-btn--feedback:hover {
+  background: rgba(255, 193, 7, 0.22);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.footer-action-btn--affiliate {
+  background: rgba(56, 189, 148, 0.12);
+  border-color: rgba(56, 189, 148, 0.45);
+  color: #5ee0b0;
+}
+.footer-action-btn--affiliate:hover {
+  background: rgba(56, 189, 148, 0.22);
+  border-color: #5ee0b0;
+  color: #7aebc0;
+  transform: translateY(-1px);
+}
+@media (max-width: 480px) {
+  .footer-action-links { flex-direction: column; align-items: stretch; }
+  .footer-action-btn { width: 100%; }
+}
 @media (max-width: 640px) {
     .stf-feedback-fab { left: 16px; bottom: 24px; padding: 10px 12px; }
     .stf-feedback-fab-label { display: none; }
