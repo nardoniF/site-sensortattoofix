@@ -6,8 +6,10 @@ window.STF_INTL_PAY = (function () {
   let stripe = null;
   let stripeElements = null;
   let stripeClientSecret = null;
-  let paypalRendered = false;
   let pendingReturnUrl = '';
+  let paypalButtons = null;
+  let paypalMountKey = '';
+  let mountInFlight = null;
 
   function apiBase() {
     return String(window.CONFIG_BOOTSTRAP?.configApiUrl || cfg?.api?.baseUrl || '')
@@ -37,6 +39,17 @@ window.STF_INTL_PAY = (function () {
     const paypalWrap = document.getElementById('intl-paypal-wrap');
     if (stripeWrap) stripeWrap.hidden = method !== 'STRIPE';
     if (paypalWrap) paypalWrap.hidden = method !== 'PAYPAL';
+  }
+
+  function clearPayPalDom() {
+    const container = document.getElementById('paypal-button-container');
+    const walletBox = document.getElementById('paypal-wallet-buttons');
+    if (paypalButtons && typeof paypalButtons.close === 'function') {
+      try { paypalButtons.close(); } catch (_) { /* ok */ }
+    }
+    paypalButtons = null;
+    if (container) container.innerHTML = '';
+    if (walletBox) walletBox.innerHTML = '';
   }
 
   async function initUi() {
@@ -74,12 +87,18 @@ window.STF_INTL_PAY = (function () {
   }
 
   async function loadPayPalJs(clientId) {
-    if (window.paypal) return window.paypal;
+    if (window.paypal?.Buttons) return window.paypal;
     await new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-stf-paypal-sdk]');
+      if (existing) {
+        existing.addEventListener('load', resolve);
+        existing.addEventListener('error', reject);
+        return;
+      }
       const s = document.createElement('script');
       s.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(clientId)
         + '&currency=USD&intent=capture&components=buttons';
-      s.setAttribute('data-sdk-integration-source', 'button-factory');
+      s.setAttribute('data-stf-paypal-sdk', '1');
       s.onload = resolve;
       s.onerror = reject;
       document.head.appendChild(s);
@@ -129,99 +148,75 @@ window.STF_INTL_PAY = (function () {
     return result.paymentIntent;
   }
 
-  function fundingEligible(paypal, fundingSource) {
-    if (!paypal || !fundingSource) return false;
-    try {
-      if (typeof paypal.isFundingEligible === 'function') {
-        return !!paypal.isFundingEligible(fundingSource);
-      }
-      // Older / standard JS SDK: Buttons(...).isEligible()
-      if (typeof paypal.Buttons === 'function') {
-        return !!paypal.Buttons({ fundingSource }).isEligible();
-      }
-    } catch (err) {
-      console.warn('PayPal funding check:', fundingSource, err);
-    }
-    return false;
-  }
-
-  function renderPayPalButton(paypal, orderId, accessToken, base, paypalOrderId, onDone, containerId, fundingSource) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const source = fundingSource || paypal.FUNDING?.PAYPAL;
-    if (source && fundingSource && !fundingEligible(paypal, source)) return;
-    const opts = {
-      createOrder: function () { return paypalOrderId; },
-      onApprove: async function () {
-        const cap = await fetch(base + '/orders/' + encodeURIComponent(orderId) + '/paypal/capture', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken, paypalOrderId })
-        });
-        const capData = await cap.json().catch(() => ({}));
-        if (!cap.ok) throw new Error(capData.error || 'PayPal capture failed.');
-        if (onDone) onDone(capData);
-      },
-      onError: function (err) {
-        console.error('PayPal:', err);
-        alert((err && err.message) || 'PayPal error.');
-      }
-    };
-    if (source) opts.fundingSource = source;
-    try {
-      const buttons = paypal.Buttons(opts);
-      if (typeof buttons.isEligible === 'function' && !buttons.isEligible()) return;
-      buttons.render('#' + containerId);
-    } catch (e) {
-      console.warn('PayPal button render:', e);
-    }
-  }
-
   async function mountPayPal(orderId, accessToken, onDone) {
-    await loadConfig();
-    const clientId = cfg?.payments?.paypal?.clientId;
-    if (!clientId) throw new Error('PayPal is not configured.');
-    const base = apiBase();
-    const createRes = await fetch(base + '/orders/' + encodeURIComponent(orderId) + '/paypal/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken })
-    });
-    const createData = await createRes.json().catch(() => ({}));
-    if (!createRes.ok) throw new Error(createData.error || 'Could not start PayPal.');
-    const paypalOrderId = createData.paypalOrderId;
-    const approveUrl = createData.approveUrl;
-    const linkEl = document.getElementById('paypal-redirect-link');
-    if (linkEl && approveUrl) {
-      linkEl.href = approveUrl;
-      linkEl.hidden = false;
+    const key = orderId + ':' + accessToken;
+    if (paypalMountKey === key && paypalButtons) {
+      return { reused: true };
     }
-    const paypal = await loadPayPalJs(clientId);
-    const container = document.getElementById('paypal-button-container');
-    if (!container) throw new Error('PayPal container missing.');
-    if (paypalRendered) {
-      container.innerHTML = '';
-      const walletBox = document.getElementById('paypal-wallet-buttons');
-      if (walletBox) walletBox.innerHTML = '';
-      paypalRendered = false;
-    }
-    renderPayPalButton(paypal, orderId, accessToken, base, paypalOrderId, onDone, 'paypal-button-container');
-    const walletBox = document.getElementById('paypal-wallet-buttons');
-    if (walletBox && paypal.FUNDING) {
-      if (fundingEligible(paypal, paypal.FUNDING.APPLEPAY)) {
-        const appleDiv = document.createElement('div');
-        appleDiv.id = 'paypal-applepay-container';
-        walletBox.appendChild(appleDiv);
-        renderPayPalButton(paypal, orderId, accessToken, base, paypalOrderId, onDone, 'paypal-applepay-container', paypal.FUNDING.APPLEPAY);
+    if (mountInFlight) return mountInFlight;
+
+    mountInFlight = (async () => {
+      await loadConfig();
+      const clientId = cfg?.payments?.paypal?.clientId;
+      if (!clientId) throw new Error('PayPal is not configured.');
+      const base = apiBase();
+      const createRes = await fetch(base + '/orders/' + encodeURIComponent(orderId) + '/paypal/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken })
+      });
+      const createData = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) throw new Error(createData.error || 'Could not start PayPal.');
+      const paypalOrderId = createData.paypalOrderId;
+      const approveUrl = createData.approveUrl;
+      const linkEl = document.getElementById('paypal-redirect-link');
+      if (linkEl && approveUrl) {
+        linkEl.href = approveUrl;
+        linkEl.hidden = false;
       }
-      if (fundingEligible(paypal, paypal.FUNDING.GOOGLEPAY)) {
-        const gDiv = document.createElement('div');
-        gDiv.id = 'paypal-googlepay-container';
-        walletBox.appendChild(gDiv);
-        renderPayPalButton(paypal, orderId, accessToken, base, paypalOrderId, onDone, 'paypal-googlepay-container', paypal.FUNDING.GOOGLEPAY);
+
+      const paypal = await loadPayPalJs(clientId);
+      if (!paypal?.Buttons) throw new Error('PayPal SDK failed to load.');
+
+      clearPayPalDom();
+      const container = document.getElementById('paypal-button-container');
+      if (!container) throw new Error('PayPal container missing.');
+
+      const buttons = paypal.Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
+        createOrder: function () { return paypalOrderId; },
+        onApprove: async function () {
+          const cap = await fetch(base + '/orders/' + encodeURIComponent(orderId) + '/paypal/capture', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken, paypalOrderId })
+          });
+          const capData = await cap.json().catch(() => ({}));
+          if (!cap.ok) throw new Error(capData.error || 'PayPal capture failed.');
+          if (onDone) onDone(capData);
+        },
+        onError: function (err) {
+          console.error('PayPal:', err);
+        }
+      });
+
+      if (typeof buttons.isEligible === 'function' && !buttons.isEligible()) {
+        // Fall back to redirect link only
+        if (linkEl && approveUrl) linkEl.hidden = false;
+        return { redirectOnly: true, approveUrl };
       }
+
+      await buttons.render('#paypal-button-container');
+      paypalButtons = buttons;
+      paypalMountKey = key;
+      return { mounted: true, approveUrl };
+    })();
+
+    try {
+      return await mountInFlight;
+    } finally {
+      mountInFlight = null;
     }
-    paypalRendered = true;
   }
 
   /**
@@ -250,8 +245,8 @@ window.STF_INTL_PAY = (function () {
       }
       return { provider: 'stripe', mounted: true };
     }
-    await mountPayPal(orderId, accessToken, callbacks?.onSuccess);
-    return { provider: 'paypal', pending: true };
+    const paypalResult = await mountPayPal(orderId, accessToken, callbacks?.onSuccess);
+    return { provider: 'paypal', pending: true, ...paypalResult };
   }
 
   return {
@@ -259,6 +254,7 @@ window.STF_INTL_PAY = (function () {
     initUi,
     payAfterOrder,
     confirmStripe,
-    selectedMethod
+    selectedMethod,
+    clearPayPalDom
   };
 })();

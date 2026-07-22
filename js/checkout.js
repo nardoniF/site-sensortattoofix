@@ -333,6 +333,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   let orderSidebarLocked = false;
   let orderSidebarSnapshot = null;
   let appliedCoupon = null;
+  let intlPayMounted = false;
 
   function apiBase() {
     return ((cfg?.api?.baseUrl) || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
@@ -1755,9 +1756,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       ind.classList.toggle('active', n === step);
       ind.classList.toggle('done', n < step);
     });
-    if (els.btnBack) els.btnBack.style.display = step > 1 && step < 3 ? 'inline-flex' : 'none';
+    if (els.btnBack) {
+      els.btnBack.style.display = step > 1 && step < 3 ? 'inline-flex' : 'none';
+      els.btnBack.hidden = false;
+    }
     updateContinueButtonVisibility();
-    if (els.btnPay) els.btnPay.style.display = step === 2 ? 'inline-flex' : 'none';
+    if (els.btnPay) {
+      const showPay = step === 2 && !intlPayMounted;
+      els.btnPay.style.display = showPay ? 'inline-flex' : 'none';
+      els.btnPay.hidden = !showPay;
+    }
     if (step === 3 && orderSidebarLocked) {
       renderLockedSidebar();
     }
@@ -2194,6 +2202,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     els.btnPay.disabled = true;
     setPayBtnLabel('btn.processing');
     try {
+      if (intlPayMounted) {
+        alert(L('alert.paypalCancelRetry') || 'Use the PayPal button above to finish payment.');
+        return;
+      }
       const orderData = collectOrderData();
       const wantsIntlCard = isInternational && orderData.pagamento === 'CARTAO';
       const wantsCardBr = !isInternational && orderData.pagamento === 'CARTAO';
@@ -2226,9 +2238,18 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           renderCheckoutAccountUI();
           window.STF_ACCOUNT.initNav();
         }
-        els.btnPay.hidden = true;
-        els.btnBack.hidden = true;
+        intlPayMounted = true;
+        if (els.btnPay) {
+          els.btnPay.hidden = true;
+          els.btnPay.style.display = 'none';
+          els.btnPay.disabled = true;
+        }
+        if (els.btnBack) {
+          els.btnBack.hidden = false;
+          els.btnBack.style.display = 'inline-flex';
+        }
         document.getElementById('payment-notice-intl')?.setAttribute('hidden', '');
+        document.getElementById('payment-options-intl')?.setAttribute('hidden', '');
         await window.STF_INTL_PAY.payAfterOrder(orderId, accessToken, {
           onSuccess: () => {
             markOrderPaidUi(orderId, total, total);
