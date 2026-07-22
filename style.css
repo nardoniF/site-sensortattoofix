@@ -2520,6 +2520,20 @@ line-height:1.8;
     flex-wrap: wrap;
     align-items: center;
 }
+.checkout-actions.checkout-actions--sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    margin-top: 20px;
+    padding: 14px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(180deg, rgba(10, 10, 10, 0.72), #111 35%);
+    border-top: 1px solid rgba(255, 193, 7, 0.28);
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.35);
+}
+.checkout-actions.checkout-actions--sticky .btn-checkout-next {
+    min-width: min(100%, 280px);
+    box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.35);
+}
 .btn-checkout-next,
 .btn-checkout-pay,
 .btn-checkout-back {

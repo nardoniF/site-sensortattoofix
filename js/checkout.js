@@ -463,6 +463,18 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       btn.classList.toggle('active', btn.getAttribute('data-checkout-account-tab') === mode);
     });
     showCheckoutLoginStatus('', '');
+    if (isLogin) {
+      const block = document.getElementById('account-create-wrap') || els.checkoutAccountLogin;
+      block?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      setTimeout(() => focusCheckoutField(els.checkoutLoginEmail), 250);
+    }
+  }
+
+  function openCheckoutLoginTab(e) {
+    if (!document.body?.classList.contains('checkout-page')) return;
+    if (getCustomerUser()) return;
+    e?.preventDefault?.();
+    setCheckoutAccountTab('login');
   }
 
   async function checkoutLogin() {
@@ -1508,8 +1520,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function updateContinueButtonVisibility() {
     if (!els.btnNext) return;
-    const ready = shippingCost !== null && shippingInfo;
-    els.btnNext.style.display = currentStep === 1 && ready ? 'inline-flex' : 'none';
+    const ready = shippingCost !== null && !!shippingInfo;
+    const show = currentStep === 1 && ready;
+    const wasHidden = els.btnNext.style.display === 'none' || !els.btnNext.style.display;
+    els.btnNext.style.display = show ? 'inline-flex' : 'none';
+    const actions = els.btnNext.closest('.checkout-actions');
+    if (actions) actions.classList.toggle('checkout-actions--sticky', show);
+    if (show && wasHidden) {
+      requestAnimationFrame(() => {
+        els.btnNext.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    }
   }
 
   function renderShippingOptions(options) {
@@ -1725,15 +1746,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function showStep(step) {
     currentStep = step;
-    els.steps.forEach((s) => s.classList.toggle('active', Number(s.dataset.step) === step));
-    els.indicators.forEach((ind) => {
+    els.steps?.forEach((s) => s.classList.toggle('active', Number(s.dataset.step) === step));
+    els.indicators?.forEach((ind) => {
       const n = Number(ind.dataset.step);
       ind.classList.toggle('active', n === step);
       ind.classList.toggle('done', n < step);
     });
-    els.btnBack.style.display = step > 1 && step < 3 ? 'inline-flex' : 'none';
+    if (els.btnBack) els.btnBack.style.display = step > 1 && step < 3 ? 'inline-flex' : 'none';
     updateContinueButtonVisibility();
-    els.btnPay.style.display = step === 2 ? 'inline-flex' : 'none';
+    if (els.btnPay) els.btnPay.style.display = step === 2 ? 'inline-flex' : 'none';
     if (step === 3 && orderSidebarLocked) {
       renderLockedSidebar();
     }
@@ -1880,6 +1901,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return payload;
   }
 
+  function focusCheckoutField(el) {
+    if (!el) return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch (_) {
+      el.focus?.();
+    }
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
   function validateStep1() {
     const f = els.form;
     clearWatchFieldError();
@@ -1889,37 +1920,59 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       alert(L('alert.cartEmpty')); return false;
     }
     const needsWatch = window.STF_CART?.requiresSmartwatch();
-    if (!f.nome.value || !f.email.value || !f.telefone.value) {
-      alert(L('alert.required')); return false;
+    if (!f.nome.value) {
+      alert(L('alert.required'));
+      focusCheckoutField(f.nome);
+      return false;
+    }
+    if (!f.email.value) {
+      alert(L('alert.required'));
+      focusCheckoutField(f.email);
+      return false;
+    }
+    if (!f.telefone.value) {
+      alert(L('alert.required'));
+      focusCheckoutField(f.telefone);
+      return false;
     }
     const phoneDigits = onlyDigits(f.telefone.value);
     if (isInternational) {
       if (phoneDigits.length < 8) {
-        alert(L('alert.phoneIntl')); return false;
+        alert(L('alert.phoneIntl'));
+        focusCheckoutField(f.telefone);
+        return false;
       }
     } else if (phoneDigits.length < 10) {
-      alert(L('alert.phoneBr')); return false;
+      alert(L('alert.phoneBr'));
+      focusCheckoutField(f.telefone);
+      return false;
     }
     if (!isInternational && !f.cpf.value) {
-      alert(L('alert.cpf')); return false;
+      alert(L('alert.cpf'));
+      focusCheckoutField(f.cpf);
+      return false;
     }
     if (needsWatch && !f.smartwatch.value) {
       showWatchFieldError(L('alert.watch'));
+      focusCheckoutField(f.smartwatch);
       return false;
     }
     if (needsWatch && isOutroModelo(f.smartwatch.value) && !(f.observacoes?.value || '').trim()) {
       showObservacoesFieldError(L('alert.watchNotes'));
+      focusCheckoutField(f.observacoes);
       return false;
     }
     if (isRegisterAccountMode() && els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       const senha = els.checkoutSenha?.value || '';
       if (senha.length < 6) {
         alert(L('alert.password'));
+        focusCheckoutField(els.checkoutSenha);
         return false;
       }
     }
     if (shippingCost === null || !shippingInfo) {
       alert(L('alert.shippingWait'));
+      focusCheckoutField(els.paisCode);
       return false;
     }
     if (isIntlDocumentShipping() && cartHasAggregated()) {
@@ -1929,15 +1982,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const selectedRadio = els.shippingOptionsEl?.querySelector('input[name="shippingOption"]:checked');
     if (els.shippingOptionsWrap && !els.shippingOptionsWrap.hidden && !selectedRadio) {
       alert(L('alert.shippingPick'));
+      els.shippingOptionsWrap.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return false;
     }
     if (!isInternational) {
       if (onlyDigits(f.cep.value).length !== 8 || !f.rua.value || !f.numero.value || !f.bairro.value || !f.cidade.value || !f.uf.value) {
-        alert(L('alert.addrBr')); return false;
+        alert(L('alert.addrBr'));
+        focusCheckoutField(f.cep || f.rua);
+        return false;
       }
     } else {
-      if (!document.getElementById('rua-intl').value || !document.getElementById('cidade-intl').value) {
-        alert(L('alert.addrIntl')); return false;
+      const ruaIntl = document.getElementById('rua-intl');
+      const cidadeIntl = document.getElementById('cidade-intl');
+      if (!ruaIntl?.value || !cidadeIntl?.value) {
+        alert(L('alert.addrIntl'));
+        focusCheckoutField(ruaIntl || cidadeIntl);
+        return false;
       }
     }
     return true;
@@ -2364,6 +2424,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       });
     });
     els.btnCheckoutLogin?.addEventListener('click', checkoutLogin);
+    document.querySelectorAll('[data-account-nav]').forEach((slot) => {
+      slot.addEventListener('click', (e) => {
+        const loginLink = e.target.closest?.('a.account-nav-login');
+        if (loginLink) openCheckoutLoginTab(e);
+      });
+    });
     window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
 
     document.getElementById('btn-copy-pix')?.addEventListener('click', async () => {
