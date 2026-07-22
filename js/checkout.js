@@ -466,7 +466,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (isLogin) {
       const block = document.getElementById('account-create-wrap') || els.checkoutAccountLogin;
       block?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      setTimeout(() => focusCheckoutField(els.checkoutLoginEmail), 250);
+      const emailEl = els.checkoutLoginEmail || document.getElementById('checkout-login-email');
+      setTimeout(() => {
+        try { emailEl?.focus?.({ preventScroll: true }); } catch (_) { emailEl?.focus?.(); }
+      }, 250);
     }
   }
 
@@ -2355,103 +2358,111 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     });
   }
 
+  let eventsBound = false;
+
   function bindEvents() {
-    bindPasswordToggles();
-    els.paisCode.addEventListener('change', () => {
-      toggleAddressForm();
-      window.STF_ADDRESS_AUTOCOMPLETE?.rebind?.();
-    });
-    els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
-      r.addEventListener('change', () => updateSummary());
-    });
-    els.smartwatchSelect?.addEventListener('change', () => {
-      clearWatchFieldError();
-      updateObservacoesField();
-      updateSensorWarn();
-      renderPeliculaUpsell();
-    });
-    els.observacoes?.addEventListener('input', clearObservacoesFieldError);
-    els.cep?.addEventListener('input', (e) => {
-      e.target.value = maskCep(e.target.value);
-      const cep = onlyDigits(e.target.value);
-      if (cep.length < 8) lastCepLookup = '';
-      else if (cep !== lastCepLookup) lastCepLookup = '';
-      if (cep.length === 8) {
-        clearTimeout(cepLookupTimer);
-        cepLookupTimer = setTimeout(() => lookupCepFromField(), 350);
-      }
-    });
-    els.cep?.addEventListener('blur', () => lookupCepFromField());
-
-    els.form.telefone?.addEventListener('input', (e) => {
-      e.target.value = formatPhoneInput(e.target.value, isInternational);
-    });
-    els.form.cpf?.addEventListener('input', (e) => { if (!isInternational) e.target.value = maskCpf(e.target.value); });
-
-    ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf'].forEach((field) => {
-      const input = els.form[field];
-      if (!input) return;
-      input.addEventListener('blur', () => {
-        if (isInternational) return;
-        if (isBrCepReady()) scheduleQuoteShippingIfReady();
+    if (eventsBound) return;
+    try {
+      bindPasswordToggles();
+      els.paisCode?.addEventListener('change', () => {
+        toggleAddressForm();
+        window.STF_ADDRESS_AUTOCOMPLETE?.rebind?.();
       });
-      input.addEventListener('change', () => {
-        if (isInternational) return;
-        if (isBrCepReady()) scheduleQuoteShippingIfReady();
+      els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
+        r.addEventListener('change', () => updateSummary());
       });
-    });
+      els.smartwatchSelect?.addEventListener('change', () => {
+        clearWatchFieldError();
+        updateObservacoesField();
+        updateSensorWarn();
+        renderPeliculaUpsell();
+      });
+      els.observacoes?.addEventListener('input', clearObservacoesFieldError);
+      els.cep?.addEventListener('input', (e) => {
+        e.target.value = maskCep(e.target.value);
+        const cep = onlyDigits(e.target.value);
+        if (cep.length < 8) lastCepLookup = '';
+        else if (cep !== lastCepLookup) lastCepLookup = '';
+        if (cep.length === 8) {
+          clearTimeout(cepLookupTimer);
+          cepLookupTimer = setTimeout(() => lookupCepFromField(), 350);
+        }
+      });
+      els.cep?.addEventListener('blur', () => lookupCepFromField());
 
-    ['postal-intl', 'rua-intl', 'cidade-intl'].forEach((id) => {
-      const input = document.getElementById(id);
-      input?.addEventListener('blur', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
-      input?.addEventListener('change', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
-    });
+      els.form?.telefone?.addEventListener('input', (e) => {
+        e.target.value = formatPhoneInput(e.target.value, isInternational);
+      });
+      els.form?.cpf?.addEventListener('input', (e) => { if (!isInternational) e.target.value = maskCpf(e.target.value); });
 
-    els.btnNext?.addEventListener('click', () => { if (validateStep1()) showStep(2); });
-    els.btnBack?.addEventListener('click', () => showStep(1));
-    els.btnPay?.addEventListener('click', processPayment);
+      ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf'].forEach((field) => {
+        const input = els.form?.[field];
+        if (!input) return;
+        input.addEventListener('blur', () => {
+          if (isInternational) return;
+          if (isBrCepReady()) scheduleQuoteShippingIfReady();
+        });
+        input.addEventListener('change', () => {
+          if (isInternational) return;
+          if (isBrCepReady()) scheduleQuoteShippingIfReady();
+        });
+      });
 
-    if (els.senhaWrap && els.criarConta) {
-      els.senhaWrap.hidden = !els.criarConta.checked;
-      els.criarConta.addEventListener('change', () => {
+      ['postal-intl', 'rua-intl', 'cidade-intl'].forEach((id) => {
+        const input = document.getElementById(id);
+        input?.addEventListener('blur', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
+        input?.addEventListener('change', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
+      });
+
+      els.btnNext?.addEventListener('click', () => { if (validateStep1()) showStep(2); });
+      els.btnBack?.addEventListener('click', () => showStep(1));
+      els.btnPay?.addEventListener('click', processPayment);
+
+      if (els.senhaWrap && els.criarConta) {
         els.senhaWrap.hidden = !els.criarConta.checked;
+        els.criarConta.addEventListener('change', () => {
+          els.senhaWrap.hidden = !els.criarConta.checked;
+        });
+      }
+
+      document.querySelectorAll('[data-checkout-account-tab]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          setCheckoutAccountTab(btn.getAttribute('data-checkout-account-tab'));
+        });
       });
+      els.btnCheckoutLogin?.addEventListener('click', checkoutLogin);
+      document.querySelectorAll('[data-account-nav]').forEach((slot) => {
+        slot.addEventListener('click', (e) => {
+          const loginLink = e.target.closest?.('a.account-nav-login');
+          if (loginLink) openCheckoutLoginTab(e);
+        });
+      });
+      window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
+
+      document.getElementById('btn-copy-pix')?.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(els.pixCopy?.value || ''); }
+        catch { els.pixCopy?.select(); document.execCommand('copy'); }
+      });
+
+      els.btnApplyCoupon?.addEventListener('click', () => applyCoupon());
+      els.btnSkipTestPay?.addEventListener('click', confirmSelfTestPayment);
+      els.couponInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyCoupon();
+        }
+      });
+      els.couponInput?.addEventListener('input', () => {
+        if (appliedCoupon && normalizeCouponInput(els.couponInput.value) !== appliedCoupon.code) {
+          appliedCoupon = null;
+          showCouponMessage('', '');
+          updateSummary();
+        }
+      });
+      eventsBound = true;
+    } catch (err) {
+      console.error('Checkout bindEvents failed:', err);
     }
-
-    document.querySelectorAll('[data-checkout-account-tab]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        setCheckoutAccountTab(btn.getAttribute('data-checkout-account-tab'));
-      });
-    });
-    els.btnCheckoutLogin?.addEventListener('click', checkoutLogin);
-    document.querySelectorAll('[data-account-nav]').forEach((slot) => {
-      slot.addEventListener('click', (e) => {
-        const loginLink = e.target.closest?.('a.account-nav-login');
-        if (loginLink) openCheckoutLoginTab(e);
-      });
-    });
-    window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
-
-    document.getElementById('btn-copy-pix')?.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(els.pixCopy.value); }
-      catch { els.pixCopy.select(); document.execCommand('copy'); }
-    });
-
-    els.btnApplyCoupon?.addEventListener('click', () => applyCoupon());
-    els.btnSkipTestPay?.addEventListener('click', confirmSelfTestPayment);
-    els.couponInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        applyCoupon();
-      }
-    });
-    els.couponInput?.addEventListener('input', () => {
-      if (appliedCoupon && normalizeCouponInput(els.couponInput.value) !== appliedCoupon.code) {
-        appliedCoupon = null;
-        showCouponMessage('', '');
-        updateSummary();
-      }
-    });
   }
 
   function normalizeCouponInput(value) {
@@ -2710,6 +2721,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.shippingOptionsEl = document.getElementById('shipping-options') || els.shippingOptionsEl;
       els.peliculaUpsell = document.getElementById('pelicula-upsell') || els.peliculaUpsell;
       els.selfTestPayWrap = document.getElementById('self-test-pay-wrap') || els.selfTestPayWrap;
+      els.checkoutAccountRegister = document.getElementById('checkout-account-register') || els.checkoutAccountRegister;
+      els.checkoutAccountLogin = document.getElementById('checkout-account-login') || els.checkoutAccountLogin;
+      els.checkoutLoginEmail = document.getElementById('checkout-login-email') || els.checkoutLoginEmail;
+      els.checkoutLoginSenha = document.getElementById('checkout-login-senha') || els.checkoutLoginSenha;
+      els.btnCheckoutLogin = document.getElementById('btn-checkout-login') || els.btnCheckoutLogin;
+      els.criarConta = document.getElementById('criar-conta') || els.criarConta;
+      els.senhaWrap = document.getElementById('senha-wrap') || els.senhaWrap;
+
+      // Bind clicks before any await — otherwise a later boot error leaves Continue / account tabs dead
+      bindEvents();
 
       if (isLocalizedSite()) {
         isInternational = true;
@@ -2759,7 +2780,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       scheduleQuoteShippingIfReady();
       setTimeout(scheduleQuoteShippingIfReady, 450);
       setTimeout(scheduleQuoteShippingIfReady, 1200);
-      window.addEventListener('stf-account-changed', () => renderCheckoutAccountUI());
       bindEvents();
       trackGa('entrou_loja', {
         valor_produto: cartSubtotal() || cfg.product?.price || 62.9,
@@ -2771,12 +2791,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       console.error('Checkout boot failed:', err);
       try {
         els.cartSidebar = document.getElementById('cart-sidebar-items');
+        els.btnNext = document.getElementById('btn-next') || els.btnNext;
+        els.paisCode = document.getElementById('pais-code') || els.paisCode;
+        els.form = document.getElementById('checkout-form') || els.form;
+        bindEvents();
         if (window.STF_CART && !window.STF_CART.isEmpty()) {
           renderCartSidebar();
           updateSmartwatchVisibility();
           updateSummary();
           window.STF_CART.initBadges();
           showStep(1);
+          scheduleQuoteShippingIfReady();
         } else {
           window.location.replace(lojaHref());
         }
