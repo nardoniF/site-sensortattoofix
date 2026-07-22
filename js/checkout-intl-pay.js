@@ -78,7 +78,7 @@ window.STF_INTL_PAY = (function () {
     await new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(clientId)
-        + '&currency=USD&intent=capture&components=buttons,applepay,googlepay';
+        + '&currency=USD&intent=capture&components=buttons';
       s.setAttribute('data-sdk-integration-source', 'button-factory');
       s.onload = resolve;
       s.onerror = reject;
@@ -129,11 +129,28 @@ window.STF_INTL_PAY = (function () {
     return result.paymentIntent;
   }
 
+  function fundingEligible(paypal, fundingSource) {
+    if (!paypal || !fundingSource) return false;
+    try {
+      if (typeof paypal.isFundingEligible === 'function') {
+        return !!paypal.isFundingEligible(fundingSource);
+      }
+      // Older / standard JS SDK: Buttons(...).isEligible()
+      if (typeof paypal.Buttons === 'function') {
+        return !!paypal.Buttons({ fundingSource }).isEligible();
+      }
+    } catch (err) {
+      console.warn('PayPal funding check:', fundingSource, err);
+    }
+    return false;
+  }
+
   function renderPayPalButton(paypal, orderId, accessToken, base, paypalOrderId, onDone, containerId, fundingSource) {
     const container = document.getElementById(containerId);
     if (!container) return;
+    const source = fundingSource || paypal.FUNDING?.PAYPAL;
+    if (source && fundingSource && !fundingEligible(paypal, source)) return;
     const opts = {
-      fundingSource: fundingSource || paypal.FUNDING.PAYPAL,
       createOrder: function () { return paypalOrderId; },
       onApprove: async function () {
         const cap = await fetch(base + '/orders/' + encodeURIComponent(orderId) + '/paypal/capture', {
@@ -147,11 +164,14 @@ window.STF_INTL_PAY = (function () {
       },
       onError: function (err) {
         console.error('PayPal:', err);
-        alert(err?.message || 'PayPal error.');
+        alert((err && err.message) || 'PayPal error.');
       }
     };
+    if (source) opts.fundingSource = source;
     try {
-      paypal.Buttons(opts).render('#' + containerId);
+      const buttons = paypal.Buttons(opts);
+      if (typeof buttons.isEligible === 'function' && !buttons.isEligible()) return;
+      buttons.render('#' + containerId);
     } catch (e) {
       console.warn('PayPal button render:', e);
     }
@@ -186,18 +206,15 @@ window.STF_INTL_PAY = (function () {
       paypalRendered = false;
     }
     renderPayPalButton(paypal, orderId, accessToken, base, paypalOrderId, onDone, 'paypal-button-container');
-    if (paypal.FUNDING.APPLEPAY && paypal.isFundingEligible(paypal.FUNDING.APPLEPAY)) {
-      const walletBox = document.getElementById('paypal-wallet-buttons');
-      if (walletBox) {
+    const walletBox = document.getElementById('paypal-wallet-buttons');
+    if (walletBox && paypal.FUNDING) {
+      if (fundingEligible(paypal, paypal.FUNDING.APPLEPAY)) {
         const appleDiv = document.createElement('div');
         appleDiv.id = 'paypal-applepay-container';
         walletBox.appendChild(appleDiv);
         renderPayPalButton(paypal, orderId, accessToken, base, paypalOrderId, onDone, 'paypal-applepay-container', paypal.FUNDING.APPLEPAY);
       }
-    }
-    if (paypal.FUNDING.GOOGLEPAY && paypal.isFundingEligible(paypal.FUNDING.GOOGLEPAY)) {
-      const walletBox = document.getElementById('paypal-wallet-buttons');
-      if (walletBox) {
+      if (fundingEligible(paypal, paypal.FUNDING.GOOGLEPAY)) {
         const gDiv = document.createElement('div');
         gDiv.id = 'paypal-googlepay-container';
         walletBox.appendChild(gDiv);
