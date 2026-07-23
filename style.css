@@ -5326,3 +5326,14 @@ a.conta-forgot-link { display: inline-block; }
 
 .forum-compose-actions { display:flex; flex-wrap:wrap; gap:.75rem; margin-top:1rem; justify-content:center; }
 .forum-compose-locked { text-align:center; }
+
+.forum-badge-official {
+  display:inline-block; margin-left:.35rem; padding:.05rem .35rem;
+  font-size:.65rem; text-transform:uppercase; letter-spacing:.03em;
+  background:#0d47a1; color:#fff; border-radius:4px; vertical-align:middle;
+}
+.forum-author.is-official .forum-avatar { box-shadow:0 0 0 2px #0d47a1; }
+.forum-reply:has(.forum-author.is-official) {
+  border-color:rgba(13,71,161,.35);
+  background:linear-gradient(180deg, rgba(13,71,161,.04), #fff);
+}

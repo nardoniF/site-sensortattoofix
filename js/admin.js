@@ -2572,7 +2572,8 @@ ${worksheets}
       if (!token || !base) return;
       const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/seed', {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + token }
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forceOfficial: true })
       });
       const data = await res.json().catch(() => ({}));
       alert(data.message || data.error || (res.ok ? 'OK' : 'Erro'));

@@ -228,6 +228,26 @@ async function requireForumWriter(env, deps, request) {
   return { access, user, isAdmin: false };
 }
 
+
+const OFFICIAL_AUTHOR = {
+  userId: 'seed-official-stf',
+  nome: 'Sensor Tattoo Fix',
+  username: 'sensortattoofix',
+  avatarId: 'shield',
+  avatarEmoji: '🛡️',
+  isTester: true,
+  isOfficial: true
+};
+
+function officialReply(body, createdAt) {
+  return {
+    body,
+    author: { ...OFFICIAL_AUTHOR },
+    createdAt,
+    official: true
+  };
+}
+
 function seedPayload() {
   const now = Date.now();
   const iso = (minsAgo) => new Date(now - minsAgo * 60000).toISOString();
@@ -248,7 +268,11 @@ function seedPayload() {
           body: 'Importante: meça o diâmetro do sensor na parte de trás do relógio. O encaixe certo faz diferença enorme na leitura.',
           author: { userId: 'seed-lia', nome: 'Lia Mendes', username: 'lia_sensor', avatarId: 'sensor', avatarEmoji: '📡', isTester: true },
           createdAt: iso(60 * 20)
-        }
+        },
+        officialReply(
+          'Oi, Marina! 👋 Aqui é a equipe Sensor Tattoo Fix.\n\nTatuagens no pulso podem atrapalhar o sensor óptico porque a tinta altera a reflexão da luz. O kit cria um contato mais uniforme entre o sensor e a pele — muitos clientes recuperam as medições em poucos dias.\n\nDica: confira se o recorte está alinhado ao círculo do sensor e se a pulseira não está frouxa demais. Qualquer dúvida, estamos por aqui.',
+          iso(60 * 8)
+        )
       ]
     },
     {
@@ -262,7 +286,11 @@ function seedPayload() {
           body: 'No meu Garmin a luz de fundo do celular ajudou a ver o alinhamento. Valeu pelas dicas!',
           author: { userId: 'seed-ana', nome: 'Ana Souza', username: 'ana_run', avatarId: 'heart', avatarEmoji: '❤️', isTester: true },
           createdAt: iso(60 * 40)
-        }
+        },
+        officialReply(
+          'Excelente checklist, Pedro — é exatamente o que recomendamos.\n\nSó reforçando: limpeza seca + alinhamento com boa luz + pressão nas bordas fazem a diferença. Se o sensor do seu modelo tiver um diâmetro diferente, meça de borda a borda e escolha o tamanho certo na loja.\n\nObrigado por compartilhar com a comunidade! 🖤',
+          iso(60 * 15)
+        )
       ]
     },
     {
@@ -271,7 +299,7 @@ function seedPayload() {
       tags: ['compatibilidade', 'modelos'],
       author: { userId: 'seed-bruno', nome: 'Bruno Ferreira', username: 'bruno_px', avatarId: 'star', avatarEmoji: '⭐', isTester: true },
       createdAt: iso(60 * 72),
-      media: [{ type: 'video', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }],
+      media: [],
       replies: [
         {
           body: 'Amazfit GTR 4 — encaixe ok após medir 28mm no sensor.',
@@ -287,10 +315,60 @@ function seedPayload() {
           body: 'Vamos manter essa thread atualizada — ajuda muito quem está na dúvida antes de comprar.',
           author: { userId: 'seed-marina', nome: 'Marina Costa', username: 'marina_ink', avatarId: 'ink', avatarEmoji: '🖋️', isTester: true },
           createdAt: iso(60 * 12)
-        }
+        },
+        officialReply(
+          'Adoramos essa ideia, Bruno! 🙌\n\nNa loja oficial você escolhe o tamanho do sensor (mm). Se o seu modelo não estiver listado, meça o diâmetro do sensor na parte de trás do relógio e selecione o mais próximo — ou fale com a gente no suporte.\n\nVamos acompanhar esta lista. Quem quiser, marque marca + modelo + mm do sensor.',
+          iso(60 * 5)
+        )
       ]
     }
   ];
+}
+
+
+/** Injeta respostas @sensortattoofix em threads seed que ainda não as têm. */
+async function ensureOfficialReplies(env) {
+  const meta = await getForumMeta(env);
+  if (meta.officialRepliesAt) return meta;
+  const index = await getThreadIndex(env);
+  const officialBodies = {
+    'apple-watch': 'Oi, Marina! 👋 Aqui é a equipe Sensor Tattoo Fix.\n\nTatuagens no pulso podem atrapalhar o sensor óptico porque a tinta altera a reflexão da luz. O kit cria um contato mais uniforme entre o sensor e a pele — muitos clientes recuperam as medições em poucos dias.\n\nDica: confira se o recorte está alinhado ao círculo do sensor e se a pulseira não está frouxa demais. Qualquer dúvida, estamos por aqui.',
+    instalacao: 'Excelente checklist, Pedro — é exatamente o que recomendamos.\n\nSó reforçando: limpeza seca + alinhamento com boa luz + pressão nas bordas fazem a diferença. Se o sensor do seu modelo tiver um diâmetro diferente, meça de borda a borda e escolha o tamanho certo na loja.\n\nObrigado por compartilhar com a comunidade! 🖤',
+    compatibilidade: 'Adoramos essa ideia, Bruno! 🙌\n\nNa loja oficial você escolhe o tamanho do sensor (mm). Se o seu modelo não estiver listado, meça o diâmetro do sensor na parte de trás do relógio e selecione o mais próximo — ou fale com a gente no suporte.\n\nVamos acompanhar esta lista. Quem quiser, marque marca + modelo + mm do sensor.'
+  };
+  let added = 0;
+  for (const id of index) {
+    const thread = await getThread(env, id);
+    if (!thread || !thread.seeded) continue;
+    const replies = await getReplies(env, id);
+    if (replies.some((r) => r.author?.username === 'sensortattoofix' || r.official || r.author?.isOfficial)) continue;
+    const tags = (thread.tags || []).join(' ');
+    let body = null;
+    if (tags.includes('apple-watch') || /Apple Watch/i.test(thread.title || '')) body = officialBodies['apple-watch'];
+    else if (tags.includes('instalacao') || /instala/i.test(thread.title || '')) body = officialBodies.instalacao;
+    else if (tags.includes('compatibilidade') || /compat/i.test(thread.title || '')) body = officialBodies.compatibilidade;
+    else body = 'Olá! Aqui é a equipe @sensortattoofix. Obrigado por participar da comunidade — estamos acompanhando e ajudamos no que precisar. 🖤';
+    const reply = {
+      id: crypto.randomUUID(),
+      body,
+      status: 'published',
+      createdAt: new Date().toISOString(),
+      author: { ...OFFICIAL_AUTHOR },
+      media: [],
+      seeded: true,
+      official: true
+    };
+    replies.push(reply);
+    await saveReplies(env, id, replies);
+    thread.replyCount = replies.length;
+    thread.publishedReplyCount = replies.filter((r) => r.status === 'published').length;
+    thread.updatedAt = reply.createdAt;
+    await saveThread(env, thread);
+    added += 1;
+  }
+  const next = { ...meta, officialRepliesAt: new Date().toISOString(), officialRepliesAdded: added };
+  await saveForumMeta(env, next);
+  return next;
 }
 
 async function ensureSeed(env) {
@@ -310,7 +388,8 @@ async function ensureSeed(env) {
       createdAt: r.createdAt,
       author: r.author,
       media: [],
-      seeded: true
+      seeded: true,
+      official: !!(r.official || r.author?.isOfficial)
     }));
     const thread = {
       id,
@@ -344,6 +423,7 @@ export async function handleForumRoute(request, env, origin, deps) {
 
   if (path === '/forum' && method === 'GET') {
     await ensureSeed(env);
+    await ensureOfficialReplies(env);
     const access = await canAccessForum(env, deps, request);
     if (!access.ok) {
       return deps.json({
@@ -424,6 +504,7 @@ export async function handleForumRoute(request, env, origin, deps) {
   const threadMatch = path.match(/^\/forum\/threads\/([^/]+)$/);
   if (threadMatch && method === 'GET') {
     await ensureSeed(env);
+    await ensureOfficialReplies(env);
     const access = await canAccessForum(env, deps, request);
     if (!access.ok) return deps.json({ error: 'Acesso restrito.', reason: access.reason }, 403, origin);
     const thread = await resolveThreadByParam(env, decodeURIComponent(threadMatch[1]));
@@ -502,6 +583,7 @@ export async function handleForumRoute(request, env, origin, deps) {
       return deps.json({ error: 'Não autorizado.' }, 401, origin);
     }
     await ensureSeed(env);
+    await ensureOfficialReplies(env);
     const meta = await getForumMeta(env);
     const index = await getThreadIndex(env);
     const threads = [];
@@ -533,12 +615,24 @@ export async function handleForumRoute(request, env, origin, deps) {
     if (!(await deps.isValidSession(env, deps.bearerToken(request)))) {
       return deps.json({ error: 'Não autorizado.' }, 401, origin);
     }
-    const meta = await getForumMeta(env);
+    let meta = await getForumMeta(env);
     if (!meta.seeded) {
-      await ensureSeed(env);
-      return deps.json({ ok: true, message: 'Posts de exemplo criados.' }, 200, origin);
+      meta = await ensureSeed(env);
     }
-    return deps.json({ ok: true, message: 'Seed já existia — nada alterado.' }, 200, origin);
+    // Reinjeta respostas oficiais @sensortattoofix se ainda não rodou / forçado
+    const body = await request.json().catch(() => ({}));
+    if (body.forceOfficial || !meta.officialRepliesAt) {
+      meta = { ...meta };
+      delete meta.officialRepliesAt;
+      await saveForumMeta(env, meta);
+      meta = await ensureOfficialReplies(env);
+      return deps.json({
+        ok: true,
+        meta,
+        message: `Respostas @sensortattoofix aplicadas (${meta.officialRepliesAdded || 0} tópico(s)).`
+      }, 200, origin);
+    }
+    return deps.json({ ok: true, meta, message: 'Seed já existia — nada alterado.' }, 200, origin);
   }
 
   const moderateThread = path.match(/^\/admin\/forum\/threads\/([^/]+)\/(approve|reject)$/);
