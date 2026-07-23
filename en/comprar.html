@@ -9,7 +9,7 @@
     <script src="../js/ad-landing.js?v=5"></script>
     <title>Checkout | Sensor Tattoo Fix — Official Store</title>
     <meta name="description" content="Official Sensor Tattoo Fix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked shipping in USD.">
-    <link rel="stylesheet" href="../style.css?v=2.68">
+    <link rel="stylesheet" href="../style.css?v=2.69">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script src="../js/gtag-init.js"></script>
@@ -102,8 +102,13 @@
 
                         <div class="form-grid checkout-personal-grid">
                             <label class="full" data-i18n-label="form.fullName" data-i18n-required="1"><input type="text" name="nome" required></label>
-                            <label data-i18n-label="form.email" data-i18n-required="1"><input type="email" name="email" required></label>
-                            <label data-i18n-label="form.whatsapp" data-i18n-required="1"><input type="tel" name="telefone" required></label>
+                            <label data-i18n-label="form.email" data-i18n-required="1"><input type="email" name="email" required autocomplete="email"></label>
+                            <label class="checkout-phone-label" data-i18n-label="form.whatsapp" data-i18n-required="1">
+                                <span class="checkout-phone-field">
+                                    <span id="phone-dial" class="checkout-phone-dial" hidden aria-hidden="true"></span>
+                                    <input type="tel" name="telefone" id="telefone-input" required autocomplete="tel-national" inputmode="tel">
+                                </span>
+                            </label>
                             <label id="cpf-label" hidden data-i18n-label="form.docOptional"><input type="text" name="cpf" id="cpf-input"></label>
                         </div>
 
@@ -199,11 +204,10 @@
 
                         <div id="address-intl">
                             <div class="form-grid">
+                                <label class="full" data-i18n-label="form.streetIntl" data-i18n-required="1"><input type="text" name="ruaIntl" id="rua-intl" placeholder="10 Main Street" autocomplete="off"></label>
                                 <label data-i18n-label="form.postal" data-i18n-required="1"><input type="text" name="postalIntl" id="postal-intl" autocomplete="postal-code"></label>
-                                <label class="span-2" data-i18n-label="form.streetIntl" data-i18n-required="1"><input type="text" name="ruaIntl" id="rua-intl"></label>
-                                <label data-i18n-label="form.number"><input type="text" name="numeroIntl" id="numero-intl"></label>
-                                <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidadeIntl" id="cidade-intl"></label>
-                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="State / province"></label>
+                                <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidadeIntl" id="cidade-intl" autocomplete="address-level2"></label>
+                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="State / province" autocomplete="address-level1"></label>
                             </div>
                         </div>
                         <div id="shipping-options-wrap" class="shipping-options-wrap" hidden>
@@ -294,7 +298,7 @@
 
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="en"></div></footer>
 
-    <script src="../js/stf-i18n.js?v=39"></script>
+    <script src="../js/stf-i18n.js?v=40"></script>
     <script src="../js/stf-lang-nav.js?v=2"></script>
     <script src="../js/config-bootstrap.js?v=2"></script>
     <script src="../js/checkout-country-bootstrap.js?v=1"></script>
@@ -309,9 +313,10 @@
     <script src="../js/analytics.js?v=34"></script>
     <script src="../js/pelicula-compat.js?v=16"></script>
     <script src="../js/stf-money.js?v=5"></script>
-    <script src="../js/stf-address-autocomplete.js?v=3"></script>
+    <script src="../js/stf-address-autocomplete.js?v=4"></script>
     <script src="../js/checkout-intl-pay.js?v=5"></script>
-    <script src="../js/checkout.js?v=105"></script>
+    <script src="../js/stf-product-gallery.js?v=2"></script>
+    <script src="../js/checkout.js?v=106"></script>
     <script src="../js/seo-schema.js?v=5"></script>
 </body>
 </html>

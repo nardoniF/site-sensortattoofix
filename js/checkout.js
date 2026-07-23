@@ -416,14 +416,88 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       : d.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3').trim();
   }
 
+  const PHONE_DIAL = {
+    BR: { flag: '🇧🇷', dial: '55' },
+    US: { flag: '🇺🇸', dial: '1' },
+    CA: { flag: '🇨🇦', dial: '1' },
+    AU: { flag: '🇦🇺', dial: '61' },
+    NZ: { flag: '🇳🇿', dial: '64' },
+    GB: { flag: '🇬🇧', dial: '44' },
+    IE: { flag: '🇮🇪', dial: '353' },
+    DE: { flag: '🇩🇪', dial: '49' },
+    FR: { flag: '🇫🇷', dial: '33' },
+    IT: { flag: '🇮🇹', dial: '39' },
+    ES: { flag: '🇪🇸', dial: '34' },
+    PT: { flag: '🇵🇹', dial: '351' },
+    NL: { flag: '🇳🇱', dial: '31' },
+    BE: { flag: '🇧🇪', dial: '32' },
+    CH: { flag: '🇨🇭', dial: '41' },
+    AT: { flag: '🇦🇹', dial: '43' },
+    SE: { flag: '🇸🇪', dial: '46' },
+    NO: { flag: '🇳🇴', dial: '47' },
+    DK: { flag: '🇩🇰', dial: '45' },
+    PL: { flag: '🇵🇱', dial: '48' },
+    CZ: { flag: '🇨🇿', dial: '420' },
+    JP: { flag: '🇯🇵', dial: '81' },
+    KR: { flag: '🇰🇷', dial: '82' },
+    SG: { flag: '🇸🇬', dial: '65' },
+    HK: { flag: '🇭🇰', dial: '852' },
+    AE: { flag: '🇦🇪', dial: '971' },
+    ZA: { flag: '🇿🇦', dial: '27' },
+    MX: { flag: '🇲🇽', dial: '52' },
+    AR: { flag: '🇦🇷', dial: '54' },
+    CL: { flag: '🇨🇱', dial: '56' },
+    CO: { flag: '🇨🇴', dial: '57' },
+    UY: { flag: '🇺🇾', dial: '598' },
+    PY: { flag: '🇵🇾', dial: '595' }
+  };
+
+  function phoneDialEl() {
+    return document.getElementById('phone-dial');
+  }
+
+  function currentPhoneDial() {
+    const code = String(els.paisCode?.value || (isInternational ? '' : 'BR')).toUpperCase();
+    if (!code || code === 'OTHER') return null;
+    return PHONE_DIAL[code] || null;
+  }
+
+  function updatePhoneDialBadge() {
+    const dialEl = phoneDialEl();
+    const input = els.form?.telefone;
+    const wrap = input?.closest('.checkout-phone-field');
+    if (!dialEl || !input) return;
+    const info = isInternational ? currentPhoneDial() : PHONE_DIAL.BR;
+    if (!info) {
+      dialEl.hidden = true;
+      dialEl.textContent = '';
+      wrap?.classList.remove('has-dial');
+      return;
+    }
+    dialEl.hidden = false;
+    dialEl.textContent = `${info.flag} +${info.dial}`;
+    dialEl.setAttribute('title', `+${info.dial}`);
+    wrap?.classList.add('has-dial');
+  }
+
   function formatPhoneInput(v, intl) {
     if (intl) {
-      let s = String(v || '').replace(/[^\d+\s()-]/g, '');
-      const plus = s.startsWith('+');
-      s = s.replace(/\+/g, '');
-      return (plus ? '+' : '') + s.slice(0, 20);
+      // National digits only — country dial is shown on the flag badge
+      return onlyDigits(v).slice(0, 15);
     }
     return maskPhone(v);
+  }
+
+  function phoneForSubmit() {
+    const raw = String(els.form?.telefone?.value || '').trim();
+    if (!isInternational) return raw;
+    const digits = onlyDigits(raw);
+    if (!digits) return raw;
+    const info = currentPhoneDial();
+    if (!info) return digits.startsWith('+') ? raw : `+${digits}`;
+    const dial = info.dial;
+    if (digits.startsWith(dial)) return `+${digits}`;
+    return `+${dial}${digits}`;
   }
 
   function updatePhoneField() {
@@ -432,13 +506,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!input || !label) return;
     const key = isInternational ? 'form.phone' : 'form.whatsapp';
     const text = L(key) + ' *';
-    label.classList.add('checkout-infield');
-    while (label.firstChild && label.firstChild !== input) {
-      label.removeChild(label.firstChild);
-    }
-    input.placeholder = L('form.phonePh');
+    label.classList.add('checkout-infield', 'checkout-phone-label');
+    input.placeholder = isInternational ? L('form.phoneNationalPh') : L('form.phonePh');
     input.setAttribute('aria-label', text);
     input.inputMode = 'tel';
+    updatePhoneDialBadge();
     if (input.value) input.value = formatPhoneInput(input.value, isInternational);
   }
 
@@ -1578,6 +1650,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
     if (isInternational) quoteShipping();
     else scheduleQuoteShippingIfReady();
+    updatePhoneField();
     window.STF_ADDRESS_AUTOCOMPLETE?.rebind?.();
   }
 
@@ -1970,22 +2043,20 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     let endereco;
     if (isInternational) {
       const rua = document.getElementById('rua-intl').value.trim();
-      const numero = document.getElementById('numero-intl')?.value.trim() || '';
       const cidade = document.getElementById('cidade-intl').value.trim();
       const provincia = document.getElementById('uf-intl').value.trim();
       const cep = document.getElementById('postal-intl').value.trim();
       data = {
         cep,
         rua,
-        numero,
+        numero: '',
         complemento: '',
         bairro: '',
         cidade,
         uf: provincia || paisCode
       };
-      const linha1 = numero ? `${rua}, ${numero}` : rua;
       const linha2 = provincia ? `${cidade}, ${provincia}` : cidade;
-      endereco = `${linha1} — ${linha2} — ${paisLabel} ${cep}`;
+      endereco = `${rua} — ${linha2} — ${paisLabel} ${cep}`;
     } else {
       data = {
         cep: f.cep.value.trim(), rua: f.rua.value.trim(), numero: f.numero.value.trim(),
@@ -1998,7 +2069,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
     const payload = {
       nome: f.nome.value.trim(), email: f.email.value.trim(),
-      telefone: f.telefone.value.trim(), cpf: f.cpf.value.trim(),
+      telefone: phoneForSubmit(), cpf: f.cpf.value.trim(),
       smartwatch: f.smartwatch.value,
       observacoes: (f.observacoes?.value || '').trim(),
       pais: paisLabel, paisCode,

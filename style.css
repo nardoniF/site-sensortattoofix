@@ -2291,6 +2291,40 @@ line-height:1.8;
     font-weight: 600;
     color: #ccc;
 }
+/* Ghost field fix: author display:flex was overriding [hidden] */
+.form-grid label[hidden],
+#cpf-label[hidden] {
+    display: none !important;
+}
+.checkout-phone-label .checkout-phone-field {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    gap: 0;
+}
+.checkout-phone-dial {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 10px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-right: 0;
+    border-radius: 8px 0 0 8px;
+    color: #eee;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    user-select: none;
+}
+.checkout-phone-field.has-dial input {
+    border-radius: 0 8px 8px 0;
+}
+.checkout-phone-field input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
 .form-grid label.checkout-infield {
     gap: 0;
     font-size: 0;

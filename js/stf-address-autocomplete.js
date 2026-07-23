@@ -1,6 +1,7 @@
 /**
  * Autocomplete de endereço internacional no checkout.
- * Usa a API /address/suggest (Photon grátis; Google Places se GOOGLE_PLACES_API_KEY no Worker).
+ * Rua primeiro (estilo gringa: "10 Main Street") — sem campo número separado.
+ * API /address/suggest (Photon; Google Places se GOOGLE_PLACES_API_KEY).
  */
 window.STF_ADDRESS_AUTOCOMPLETE = (function () {
   let apiBase = String(window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
@@ -34,6 +35,18 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
     return block && !block.hidden;
   }
 
+  function formatIntlStreet(item) {
+    const street = String(item?.street || '').trim();
+    const number = String(item?.number || '').trim();
+    if (!street && !number) return String(item?.label || '').trim();
+    if (!number) return street;
+    if (!street) return number;
+    // Already "10 Main St" or "Main St 10"
+    if (street.includes(number)) return street;
+    // Gringa: number before street
+    return `${number} ${street}`;
+  }
+
   function ensureList(input) {
     const wrap = input.closest('label') || input.parentElement;
     if (!wrap) return null;
@@ -61,17 +74,16 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
     const cidade = field('cidade-intl');
     const uf = field('uf-intl');
     const postalEl = field('postal-intl');
-    const numero = field('numero-intl');
 
-    if (rua && item.street) rua.value = item.street;
+    if (rua) rua.value = formatIntlStreet(item);
     if (cidade && item.city) cidade.value = item.city;
     if (uf && item.state) uf.value = item.state;
     if (postalEl && item.postal) postalEl.value = item.postal;
-    if (numero && item.number && !numero.value) numero.value = item.number;
 
     hideList();
     rua?.dispatchEvent(new Event('input', { bubbles: true }));
     cidade?.dispatchEvent(new Event('input', { bubbles: true }));
+    postalEl?.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
   function renderSuggestions(items) {
@@ -133,7 +145,7 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
       hideList();
       return;
     }
-    debounceTimer = setTimeout(() => fetchSuggestions(q), 280);
+    debounceTimer = setTimeout(() => fetchSuggestions(q), 220);
   }
 
   function onFocus() {
@@ -199,11 +211,5 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
     bind();
   }
 
-  window.addEventListener('stf-config-ready', (e) => init(e.detail));
-  document.addEventListener('DOMContentLoaded', () => {
-    if (!apiBase) apiBase = resolveApiBase(window.CHECKOUT_CONFIG);
-    bind();
-  });
-
-  return { init, rebind: bind };
+  return { init, bind, rebind: bind };
 })();

@@ -444,10 +444,9 @@ async function googlePlacesAddressSuggest(apiKey, query, country) {
     const comps = detail.addressComponents || [];
     const streetNum = googleAddressComponent(comps, 'street_number', true);
     const route = googleAddressComponent(comps, 'route', false);
-    const street = [route, streetNum].filter(Boolean).join(streetNum ? ', ' : '');
     suggestions.push(addressSuggestItem({
-      label: pred.text?.text || detail.formattedAddress || street,
-      street: street || pred.text?.text || '',
+      label: pred.text?.text || detail.formattedAddress || [streetNum, route].filter(Boolean).join(' '),
+      street: route || pred.text?.text || '',
       number: streetNum,
       city: googleAddressComponent(comps, 'locality', false)
         || googleAddressComponent(comps, 'postal_town', false)
@@ -477,11 +476,11 @@ async function photonAddressSuggest(query, country) {
     .slice(0, 6)
     .map((f) => {
       const p = f.properties || {};
-      const street = [p.street, p.housenumber].filter(Boolean).join(' ');
-      const label = [street || p.name, p.city || p.locality, p.state, p.country].filter(Boolean).join(', ');
+      const streetName = p.street || p.name || '';
+      const label = [[p.housenumber, streetName].filter(Boolean).join(' '), p.city || p.locality, p.state, p.country].filter(Boolean).join(', ');
       return addressSuggestItem({
         label,
-        street: street || p.name || '',
+        street: streetName,
         number: p.housenumber || '',
         city: p.city || p.locality || '',
         state: p.state || '',

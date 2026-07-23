@@ -86,12 +86,13 @@ window.STF_I18N = (function () {
       'form.city': 'Cidade',
       'form.state': 'UF',
       'form.postal': 'Código postal',
-      'form.streetIntl': 'Rua / avenida',
+      'form.streetIntl': 'Endereço (número + rua)',
       'form.stateIntl': 'Estado / Província',
       'form.stateIntlPh': 'Opcional',
-      'form.streetIntlPh': 'Rua do Além',
+      'form.streetIntlPh': '10 Main Street',
       'form.numberIntlPh': '78',
       'form.phonePh': '(11) 99999-9999',
+      'form.phoneNationalPh': '4123 456 789',
       'account.logged': 'Olá, {name} — você está logado.',
       'account.ordersAt': 'Seus pedidos ficam em',
       'account.myAccount': 'Minha Conta',
@@ -398,9 +399,10 @@ window.STF_I18N = (function () {
       'form.streetIntl': 'Street address',
       'form.stateIntl': 'State / Province',
       'form.stateIntlPh': 'Optional',
-      'form.streetIntlPh': 'Main Street',
+      'form.streetIntlPh': '10 Main Street',
       'form.numberIntlPh': '78',
       'form.phonePh': '+65 9123 4567',
+      'form.phoneNationalPh': '4123 456 789',
       'account.logged': 'Hello, {name} — you are signed in.',
       'account.ordersAt': 'Your orders are in',
       'account.myAccount': 'My Account',
@@ -921,7 +923,6 @@ window.STF_I18N = (function () {
 
     setPlaceholder('[name="telefone"]', 'form.whatsapp');
     setPlaceholder('#rua-intl', 'form.streetIntlPh');
-    setPlaceholder('#numero-intl', 'form.numberIntlPh');
     setPlaceholder('#uf-intl', 'form.stateIntlPh');
     setPlaceholder('#observacoes', 'form.notesPhDefault');
 
