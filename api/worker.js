@@ -3241,16 +3241,23 @@ function isPayPalSandbox(env, clientId) {
   return id.startsWith('sb-');
 }
 
-/** PayPal Live: R$ 0,01 quando PAYPAL_SELF_TEST=true (remover após validar). */
-function isSelfTestPayPalEligible(env, billingType) {
+/** PayPal Live: R$ 0,01 quando PAYPAL_SELF_TEST=true — só contas de teste. */
+function isSelfTestCustomerEmail(email) {
+  const e = String(email || '').trim().toLowerCase();
+  if (!e.endsWith('@sensortattoofix.com')) return false;
+  return e.includes('.teste') || e.startsWith('fabio.teste') || e.startsWith('alex.teste');
+}
+
+function isSelfTestPayPalEligible(env, order, billingType) {
   if (billingType !== 'PAYPAL') return false;
   if (env.PAYPAL_SELF_TEST !== 'true' && env.PAYPAL_SELF_TEST !== '1') return false;
+  if (!isSelfTestCustomerEmail(order?.email)) return false;
   const { clientId } = paypalCredentials(env);
   return !isPayPalSandbox(env, clientId) && !!clientId;
 }
 
 function applySelfTestPayPalPricing(order, env, billingType) {
-  if (!isSelfTestPayPalEligible(env, billingType)) return false;
+  if (!isSelfTestPayPalEligible(env, order, billingType)) return false;
   if (order.valorProdutoOriginal == null) order.valorProdutoOriginal = order.valorProduto;
   order.freteOriginal = order.frete;
   order.totalOriginal = order.total;
