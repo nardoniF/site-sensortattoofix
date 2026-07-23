@@ -78,10 +78,14 @@
       const img = window.STF_PRODUCT_MERGE?.resolveProductImage
         ? window.STF_PRODUCT_MERGE.resolveProductImage(rawImg, p)
         : (/^https?:\/\//i.test(rawImg) ? rawImg : (rawImg.startsWith('/') ? rawImg : '/' + rawImg.replace(/^\.\//, '')));
+      const albumImgs = window.STF_PRODUCT_GALLERY?.resolveImages?.(p) || [img];
+      const media = window.STF_PRODUCT_GALLERY?.renderMarkup
+        ? window.STF_PRODUCT_GALLERY.renderMarkup(albumImgs, label, 'loja-card-album')
+        : `<img src="${escapeHtml(img)}" alt="${escapeHtml(label)}" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">`;
       const frete = L('store.frete');
       return `
         <article class="loja-card">
-          <img src="${escapeHtml(img)}" alt="${escapeHtml(label)}" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
+          ${media}
           <div class="loja-card-body">
             <h3>${escapeHtml(label)}</h3>
             <p>${escapeHtml(desc)}</p>
@@ -98,6 +102,8 @@
         </article>
       `;
     }).join('');
+
+    window.STF_PRODUCT_GALLERY?.bind?.(grid);
 
     grid.querySelectorAll('.loja-btn-add').forEach((btn) => {
       btn.addEventListener('click', () => {

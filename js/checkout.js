@@ -273,6 +273,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     paisCode: document.getElementById('pais-code'),
     addressBr: document.getElementById('address-br'),
     addressIntl: document.getElementById('address-intl'),
+    smartwatchBrandSelect: document.getElementById('smartwatch-brand-select'),
     smartwatchSelect: document.getElementById('smartwatch-select'),
     checkoutWatchBlock: document.getElementById('checkout-watch-block'),
     smartwatchHint: document.getElementById('smartwatch-hint'),
@@ -542,6 +543,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function clearWatchFieldError() {
+    els.smartwatchBrandSelect?.classList.remove('invalid');
     els.smartwatchSelect?.classList.remove('invalid');
     if (els.checkoutWatchBlock) els.checkoutWatchBlock.classList.remove('checkout-watch-block--error');
     if (els.smartwatchError) {
@@ -551,13 +553,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function showWatchFieldError(msg) {
-    els.smartwatchSelect?.classList.add('invalid');
+    const brandEmpty = !els.smartwatchBrandSelect?.value;
+    if (brandEmpty) els.smartwatchBrandSelect?.classList.add('invalid');
+    else els.smartwatchSelect?.classList.add('invalid');
     if (els.checkoutWatchBlock) {
       els.checkoutWatchBlock.hidden = false;
       els.checkoutWatchBlock.classList.add('checkout-watch-block--error');
       els.checkoutWatchBlock.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-    els.smartwatchSelect?.focus();
+    (brandEmpty ? els.smartwatchBrandSelect : els.smartwatchSelect)?.focus();
     if (els.smartwatchError) {
       els.smartwatchError.textContent = msg;
       els.smartwatchError.hidden = false;
@@ -602,6 +606,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function updateSmartwatchVisibility() {
     const needsWatch = window.STF_CART?.requiresSmartwatch();
     if (els.checkoutWatchBlock) els.checkoutWatchBlock.hidden = !needsWatch;
+    if (els.smartwatchBrandSelect) els.smartwatchBrandSelect.required = !!needsWatch;
     if (els.smartwatchSelect) els.smartwatchSelect.required = !!needsWatch;
     if (!needsWatch) clearWatchFieldError();
     updateObservacoesField();
@@ -1094,6 +1099,27 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return true;
   }
 
+  function renderCheckoutKitAlbum() {
+    const mount = document.getElementById('checkout-product-album');
+    if (!mount || !window.STF_CART) return;
+    const items = window.STF_CART.load();
+    const kitItem = items.find((item) => {
+      const catalog = products.find((x) => x.id === item.productId || x.slug === item.productId);
+      return window.STF_PRODUCT_GALLERY?.isKitProduct?.(catalog || item);
+    });
+    if (!kitItem || !window.STF_PRODUCT_GALLERY?.renderMarkup) {
+      mount.hidden = true;
+      mount.innerHTML = '';
+      return;
+    }
+    const catalog = products.find((x) => x.id === kitItem.productId || x.slug === kitItem.productId) || kitItem;
+    const imgs = window.STF_PRODUCT_GALLERY.resolveImages(catalog);
+    const label = cartLineName(kitItem);
+    mount.hidden = false;
+    mount.innerHTML = window.STF_PRODUCT_GALLERY.renderMarkup(imgs, label, 'checkout-kit-album');
+    window.STF_PRODUCT_GALLERY.bind(mount);
+  }
+
   function renderCartSidebar() {
     if (orderSidebarLocked) {
       renderLockedSidebar();
@@ -1102,6 +1128,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     els.cartSidebar = document.getElementById('cart-sidebar-items') || els.cartSidebar;
     if (!els.cartSidebar || !window.STF_CART) return;
     const items = window.STF_CART.load();
+    renderCheckoutKitAlbum();
     if (!items.length) {
       els.cartSidebar.innerHTML = `<p class="conta-empty">${escapeHtml(L('cart.empty'))}</p>`;
       return;
@@ -1202,16 +1229,118 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     scheduleQuoteShippingIfReady();
   }
 
-  function smartwatchGroup(model) {
+  function smartwatchBrandOf(model) {
     const m = String(model || '');
-    if (m.startsWith('Apple Watch')) return 'Apple Watch';
-    if (m.startsWith('Samsung')) return 'Samsung Galaxy Watch';
+    if (!m || m === OUTRO_MODELO || isOutroModelo(m)) return '__outro__';
+    if (m.startsWith('Apple')) return 'Apple';
+    if (m.startsWith('Samsung')) return 'Samsung';
     if (m.startsWith('Garmin')) return 'Garmin';
-    if (m.startsWith('Huawei')) return 'Huawei';
-    if (m.startsWith('Xiaomi') || m.startsWith('Redmi')) return 'Xiaomi / Redmi';
     if (m.startsWith('Amazfit')) return 'Amazfit';
-    if (m.startsWith('Fitbit') || m.startsWith('Polar')) return L('watch.groupOtherBrands');
+    if (m.startsWith('Xiaomi') || m.startsWith('Redmi')) return 'Xiaomi';
+    if (m.startsWith('Huawei')) return 'Huawei';
+    if (m.startsWith('Google') || m.startsWith('Pixel')) return 'Google';
+    if (m.startsWith('Mobvoi') || m.startsWith('TicWatch')) return 'Mobvoi';
+    if (m.startsWith('Fitbit')) return 'Fitbit';
+    if (m.startsWith('Polar')) return 'Polar';
     return L('watch.groupOthers');
+  }
+
+  function smartwatchGroup(model) {
+    return smartwatchBrandOf(model);
+  }
+
+  function catalogModelsForBrand(src, brand) {
+    if (!brand) return [];
+    if (brand === '__outro__') return [OUTRO_MODELO];
+    const catalog = src?.smartwatchCatalog;
+    if (catalog && Array.isArray(catalog[brand])) {
+      return catalog[brand].map((row) => (typeof row === 'string' ? row : row?.label)).filter(Boolean);
+    }
+    return (src?.smartwatchModels || [])
+      .map((m) => String(m || '').trim())
+      .filter((m) => m && smartwatchBrandOf(m) === brand);
+  }
+
+  function populateModelSelect(brand, config) {
+    const src = config || cfg || window.CHECKOUT_CONFIG;
+    if (!els.smartwatchSelect) return;
+    const prev = els.smartwatchSelect.value;
+    els.smartwatchSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = L('form.watchSelect');
+    els.smartwatchSelect.appendChild(placeholder);
+
+    if (!brand) {
+      els.smartwatchSelect.disabled = true;
+      return;
+    }
+
+    els.smartwatchSelect.disabled = false;
+    const models = catalogModelsForBrand(src, brand);
+    models.forEach((m) => {
+      const o = document.createElement('option');
+      o.value = m;
+      o.textContent = m === OUTRO_MODELO ? L('watch.otherModel') : m;
+      els.smartwatchSelect.appendChild(o);
+    });
+    if (prev && [...els.smartwatchSelect.options].some((o) => o.value === prev)) {
+      els.smartwatchSelect.value = prev;
+    } else if (brand === '__outro__') {
+      els.smartwatchSelect.value = OUTRO_MODELO;
+    }
+  }
+
+  function populateWatchSelect(config) {
+    const src = config || cfg || window.CHECKOUT_CONFIG;
+    if (!src) return;
+
+    const prevBrand = els.smartwatchBrandSelect?.value || '';
+    const prevModel = els.smartwatchSelect?.value || '';
+
+    if (els.smartwatchBrandSelect) {
+      els.smartwatchBrandSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = L('form.watchBrandSelect');
+      els.smartwatchBrandSelect.appendChild(placeholder);
+
+      const catalog = src.smartwatchCatalog;
+      let brands = catalog && typeof catalog === 'object'
+        ? Object.keys(catalog).filter((b) => (catalog[b] || []).length)
+        : [];
+      if (!brands.length) {
+        const seen = new Set();
+        (src.smartwatchModels || []).forEach((m) => {
+          const b = smartwatchBrandOf(m);
+          if (b && b !== '__outro__') seen.add(b);
+        });
+        brands = [...seen];
+      }
+      brands.forEach((brand) => {
+        const o = document.createElement('option');
+        o.value = brand;
+        o.textContent = brand;
+        els.smartwatchBrandSelect.appendChild(o);
+      });
+      const outro = document.createElement('option');
+      outro.value = '__outro__';
+      outro.textContent = L('watch.otherBrand');
+      els.smartwatchBrandSelect.appendChild(outro);
+    }
+
+    let brand = prevBrand;
+    if (prevModel && !brand) brand = smartwatchBrandOf(prevModel);
+    if (brand && els.smartwatchBrandSelect) {
+      const has = [...els.smartwatchBrandSelect.options].some((o) => o.value === brand);
+      els.smartwatchBrandSelect.value = has ? brand : '';
+      brand = els.smartwatchBrandSelect.value;
+    }
+    populateModelSelect(brand, src);
+    if (prevModel && els.smartwatchSelect) {
+      const has = [...els.smartwatchSelect.options].some((o) => o.value === prevModel);
+      if (has) els.smartwatchSelect.value = prevModel;
+    }
   }
 
   function intlCountryLocale() {
@@ -1290,40 +1419,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     other.value = 'OTHER';
     other.textContent = L('country.other');
     els.paisCode.appendChild(other);
-  }
-
-  function populateWatchSelect(config) {
-    const src = config || cfg || window.CHECKOUT_CONFIG;
-    if (!els.smartwatchSelect || !src) return;
-    // Must wipe optgroups too — removing only .options leaves empty brand
-    // headers that look "disabled" when populate runs more than once.
-    els.smartwatchSelect.innerHTML = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = L('form.watchSelect');
-    els.smartwatchSelect.appendChild(placeholder);
-
-    const models = (src.smartwatchModels || [])
-      .map((m) => String(m || '').trim())
-      .filter(Boolean);
-    const groups = new Map();
-    models.forEach((m) => {
-      const label = smartwatchGroup(m);
-      if (!groups.has(label)) groups.set(label, []);
-      groups.get(label).push(m);
-    });
-    groups.forEach((items, label) => {
-      if (!items.length) return;
-      const og = document.createElement('optgroup');
-      og.label = label;
-      items.forEach((m) => {
-        const o = document.createElement('option');
-        o.value = m;
-        o.textContent = m === OUTRO_MODELO ? L('watch.otherModel') : m;
-        og.appendChild(o);
-      });
-      els.smartwatchSelect.appendChild(og);
-    });
   }
 
   function populateSelects() {
@@ -1984,9 +2079,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       focusCheckoutField(f.cpf);
       return false;
     }
-    if (needsWatch && !f.smartwatch.value) {
+    if (needsWatch && (!(f.smartwatchBrand?.value) || !f.smartwatch.value)) {
       showWatchFieldError(L('alert.watch'));
-      focusCheckoutField(f.smartwatch);
+      focusCheckoutField(f.smartwatchBrand?.value ? f.smartwatch : (f.smartwatchBrand || f.smartwatch));
       return false;
     }
     if (needsWatch && isOutroModelo(f.smartwatch.value) && !(f.observacoes?.value || '').trim()) {
@@ -2413,6 +2508,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => {
         r.addEventListener('change', () => updateSummary());
       });
+      els.smartwatchBrandSelect?.addEventListener('change', () => {
+        clearWatchFieldError();
+        populateModelSelect(els.smartwatchBrandSelect.value);
+        updateObservacoesField();
+        updateSensorWarn();
+        renderPeliculaUpsell();
+      });
       els.smartwatchSelect?.addEventListener('change', () => {
         clearWatchFieldError();
         updateObservacoesField();
@@ -2751,6 +2853,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.paisCode = document.getElementById('pais-code') || els.paisCode;
       els.addressBr = document.getElementById('address-br') || els.addressBr;
       els.addressIntl = document.getElementById('address-intl') || els.addressIntl;
+      els.smartwatchBrandSelect = document.getElementById('smartwatch-brand-select') || els.smartwatchBrandSelect;
       els.smartwatchSelect = document.getElementById('smartwatch-select') || els.smartwatchSelect;
       els.checkoutWatchBlock = document.getElementById('checkout-watch-block') || els.checkoutWatchBlock;
       els.cartSidebar = document.getElementById('cart-sidebar-items') || els.cartSidebar;

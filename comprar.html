@@ -8,7 +8,7 @@
     <script src="js/stf-lang-nav.js?v=1"></script>
     <title>Comprar Direto | Sensor Tattoo Fix — Loja Oficial</title>
     <meta name="description" content="Checkout oficial Sensor Tattoo Fix — PIX, cartão, envio nacional e internacional.">
-    <link rel="stylesheet" href="style.css?v=2.66">
+    <link rel="stylesheet" href="style.css?v=2.68">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script src="js/gtag-init.js"></script>
@@ -42,6 +42,7 @@
             <aside class="checkout-sidebar">
                 <div class="checkout-product-card checkout-cart-core">
                     <h2 class="cart-sidebar-title"><i class="fas fa-shopping-cart"></i> Seu carrinho</h2>
+                    <div id="checkout-product-album" class="checkout-product-album" hidden></div>
                     <div id="cart-sidebar-items" class="cart-sidebar-items"></div>
                     <div class="checkout-coupon" id="checkout-coupon">
                         <label class="checkout-coupon-label" for="coupon-code">Cupom de desconto</label>
@@ -107,13 +108,21 @@
                         </div>
 
                         <div id="checkout-watch-block" class="checkout-watch-block" hidden>
-                            <label class="checkout-watch-label">
-                                <span data-i18n-label="form.watchModel" data-i18n-required="1">Modelo do smartwatch</span>
-                                <select name="smartwatch" id="smartwatch-select" required aria-describedby="smartwatch-hint smartwatch-error">
-                                    <option value="">Selecione o modelo</option>
-                                </select>
-                            </label>
-                            <p id="smartwatch-hint" class="checkout-watch-hint">O kit é feito para o seu modelo — escolha na lista antes de continuar.</p>
+                            <div class="checkout-watch-fields">
+                                <label class="checkout-watch-label">
+                                    <span data-i18n-label="form.watchBrand" data-i18n-required="1">Marca</span>
+                                    <select name="smartwatchBrand" id="smartwatch-brand-select" required aria-describedby="smartwatch-hint smartwatch-error">
+                                        <option value="">Selecione a marca</option>
+                                    </select>
+                                </label>
+                                <label class="checkout-watch-label">
+                                    <span data-i18n-label="form.watchModel" data-i18n-required="1">Modelo</span>
+                                    <select name="smartwatch" id="smartwatch-select" required aria-describedby="smartwatch-hint smartwatch-error" disabled>
+                                        <option value="">Selecione o modelo</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <p id="smartwatch-hint" class="checkout-watch-hint">O kit é feito para o seu modelo — escolha marca e modelo antes de continuar.</p>
                             <p id="smartwatch-sensor-warn" class="checkout-watch-sensor-warn" hidden role="status"></p>
                             <p id="smartwatch-error" class="field-error" hidden role="alert"></p>
                         </div>
@@ -311,14 +320,14 @@
 
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="pt"></div></footer>
 
-    <script src="js/stf-i18n-it-overrides.js?v=6"></script>
-    <script src="js/stf-i18n.js?v=38"></script>
+    <script src="js/stf-i18n-it-overrides.js?v=39"></script>
+    <script src="js/stf-i18n.js?v=39"></script>
     <script src="js/config-bootstrap.js?v=2"></script>
     <script src="js/site-footer.js?v=9"></script>
     <script src="js/site-feedback.js?v=4"></script>
     <script src="js/account-nav.js"></script>
-    <script src="js/store-products-merge.js?v=17"></script>
-    <script src="js/store-loader.js?v=6"></script>
+    <script src="js/store-products-merge.js?v=12"></script>
+    <script src="js/store-loader.js?v=12"></script>
     <script src="js/cart.js?v=8"></script>
     <script src="js/pix.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -328,7 +337,7 @@
     <script src="js/pelicula-compat.js?v=15"></script>
     <script src="js/stf-money.js?v=3"></script>
     <script src="js/stf-address-autocomplete.js?v=3"></script>
-    <script src="js/checkout.js?v=101"></script>
+    <script src="js/checkout.js?v=105"></script>
     <script src="js/seo-schema.js?v=4"></script>
 </body>
 </html>

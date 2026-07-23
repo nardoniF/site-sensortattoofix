@@ -63,8 +63,10 @@ window.STF_I18N = (function () {
       'form.phone': 'Telefone',
       'form.cpf': 'CPF',
       'form.docOptional': 'Documento (opcional)',
-      'form.watchModel': 'Modelo do smartwatch',
-      'form.watchHint': 'O kit é feito para o seu modelo — escolha na lista antes de continuar.',
+      'form.watchBrand': 'Marca',
+      'form.watchBrandSelect': 'Selecione a marca',
+      'form.watchModel': 'Modelo',
+      'form.watchHint': 'O kit é feito para o seu modelo — escolha marca e modelo antes de continuar.',
       'form.watchSelect': 'Selecione o modelo',
       'form.observacoesHelpAria': 'Medição opcional do sensor',
       'form.observacoesMeasureTitle': 'Corte sob medida',
@@ -225,7 +227,7 @@ window.STF_I18N = (function () {
       'alert.cpf': 'Informe o CPF.',
       'alert.phoneBr': 'Informe um WhatsApp válido com DDD.',
       'alert.phoneIntl': 'Informe um telefone internacional válido (ex.: +65 9123 4567).',
-      'alert.watch': 'Selecione o modelo do smartwatch.',
+      'alert.watch': 'Selecione a marca e o modelo do smartwatch.',
       'alert.watchNotes': 'Informe o modelo do smartwatch nas observações.',
       'alert.password': 'Crie uma senha com pelo menos 6 caracteres ou desmarque "Criar conta".',
       'alert.shippingWait': 'Aguarde o cálculo do frete e escolha uma opção de envio.',
@@ -303,6 +305,7 @@ window.STF_I18N = (function () {
       'country.other': 'Outro país',
       'country.unsupported': 'País não atendido',
       'watch.otherModel': 'Outro modelo (informar nas observações)',
+      'watch.otherBrand': 'Outra / não listada',
       'watch.groupOtherBrands': 'Outras marcas',
       'watch.groupOthers': 'Outros',
       'page.checkoutTitle': 'Comprar Direto | Sensor Tattoo Fix — Loja Oficial',
@@ -369,8 +372,10 @@ window.STF_I18N = (function () {
       'form.phone': 'Phone',
       'form.cpf': 'CPF (Brazilian tax ID)',
       'form.docOptional': 'ID document (optional)',
-      'form.watchModel': 'Smartwatch model',
-      'form.watchHint': 'The kit is made for your watch — pick your model before continuing.',
+      'form.watchBrand': 'Brand',
+      'form.watchBrandSelect': 'Select brand',
+      'form.watchModel': 'Model',
+      'form.watchHint': 'The kit is made for your watch — pick brand and model before continuing.',
       'form.watchSelect': 'Select your model',
       'form.observacoesHelpAria': 'Optional sensor measurement',
       'form.observacoesMeasureTitle': 'Precision cut',
@@ -533,7 +538,7 @@ window.STF_I18N = (function () {
       'alert.cpf': 'Please enter your CPF.',
       'alert.phoneBr': 'Please enter a valid phone number with area code.',
       'alert.phoneIntl': 'Please enter a valid international phone (e.g. +65 9123 4567).',
-      'alert.watch': 'Please select your smartwatch model.',
+      'alert.watch': 'Please select your smartwatch brand and model.',
       'alert.watchNotes': 'Enter your smartwatch model in the notes field.',
       'alert.password': 'Create a password with at least 6 characters or uncheck "Create account".',
       'alert.shippingWait': 'Wait for shipping quotes and choose an option.',
@@ -616,6 +621,7 @@ window.STF_I18N = (function () {
       'country.other': 'Other country',
       'country.unsupported': 'Country not supported',
       'watch.otherModel': 'Other model (specify in notes)',
+      'watch.otherBrand': 'Other / not listed',
       'watch.groupOtherBrands': 'Other brands',
       'watch.groupOthers': 'Others',
       'page.checkoutTitle': 'Checkout | Sensor Tattoo Fix — Official Store',
@@ -919,6 +925,8 @@ window.STF_I18N = (function () {
     setPlaceholder('#uf-intl', 'form.stateIntlPh');
     setPlaceholder('#observacoes', 'form.notesPhDefault');
 
+    const watchBrandSelect = document.getElementById('smartwatch-brand-select');
+    if (watchBrandSelect?.options[0]) watchBrandSelect.options[0].textContent = t('form.watchBrandSelect');
     const watchSelect = document.getElementById('smartwatch-select');
     if (watchSelect?.options[0]) watchSelect.options[0].textContent = t('form.watchSelect');
 

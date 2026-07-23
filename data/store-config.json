@@ -1312,12 +1312,19 @@
   },
   "smartwatchModels": [
     "Apple Watch Series 1 (38mm)",
+    "Apple Watch Series 1 (42mm)",
     "Apple Watch Series 2 (38mm)",
+    "Apple Watch Series 2 (42mm)",
     "Apple Watch Series 3 (38mm)",
-    "Apple Watch SE (40mm)",
-    "Apple Watch SE (44mm)",
-    "Apple Watch SE 2 (40mm)",
-    "Apple Watch SE 2 (44mm)",
+    "Apple Watch Series 3 (42mm)",
+    "Apple Watch Series 4 (40mm)",
+    "Apple Watch Series 4 (44mm)",
+    "Apple Watch Series 5 (40mm)",
+    "Apple Watch Series 5 (44mm)",
+    "Apple Watch SE (1ª Geração) (40mm)",
+    "Apple Watch SE (1ª Geração) (44mm)",
+    "Apple Watch SE (2ª Geração) (40mm)",
+    "Apple Watch SE (2ª Geração) (44mm)",
     "Apple Watch Series 6 (40mm)",
     "Apple Watch Series 6 (44mm)",
     "Apple Watch Series 7 (41mm)",
@@ -1328,18 +1335,32 @@
     "Apple Watch Series 9 (45mm)",
     "Apple Watch Series 10 (42mm)",
     "Apple Watch Series 10 (46mm)",
-    "Apple Watch Ultra 3 (49mm)",
-    "Apple Watch Ultra 2 (49mm)",
     "Apple Watch Ultra (49mm)",
+    "Apple Watch Ultra 2 (49mm)",
+    "Apple Watch Ultra 3 (49mm)",
+    "Samsung Galaxy Fit 3 (28mm)",
+    "Samsung Galaxy Watch Active (40mm)",
+    "Samsung Galaxy Watch Active 2 (40mm)",
+    "Samsung Galaxy Watch FE (40mm)",
+    "Samsung Galaxy Gear (41mm)",
+    "Samsung Galaxy Gear S2 (42mm)",
+    "Samsung Galaxy Watch (42mm)",
+    "Samsung Galaxy Watch Active 2 (44mm)",
+    "Samsung Galaxy Gear S3 Classic (46mm)",
+    "Samsung Galaxy Gear S3 Frontier (46mm)",
+    "Samsung Galaxy Watch (46mm)",
+    "Samsung Galaxy Watch 3 (41mm)",
+    "Samsung Galaxy Watch 3 (45mm)",
     "Samsung Galaxy Watch 4 (40mm)",
+    "Samsung Galaxy Watch 4 Classic (42mm)",
     "Samsung Galaxy Watch 4 (44mm)",
+    "Samsung Galaxy Watch 4 Classic (46mm)",
     "Samsung Galaxy Watch 5 (40mm)",
     "Samsung Galaxy Watch 5 (44mm)",
-    "Samsung Galaxy Watch 3 (45mm)",
     "Samsung Galaxy Watch 5 Pro (45mm)",
     "Samsung Galaxy Watch 6 (40mm)",
-    "Samsung Galaxy Watch 6 (44mm)",
     "Samsung Galaxy Watch 6 Classic (43mm)",
+    "Samsung Galaxy Watch 6 (44mm)",
     "Samsung Galaxy Watch 6 Classic (47mm)",
     "Samsung Galaxy Watch 7 (40mm)",
     "Samsung Galaxy Watch 7 (44mm)",
@@ -1347,21 +1368,144 @@
     "Samsung Galaxy Watch 8 (44mm)",
     "Samsung Galaxy Watch 8 Classic (46mm)",
     "Samsung Galaxy Watch Ultra (47mm)",
-    "Garmin Fenix",
-    "Garmin Forerunner",
-    "Garmin Instinct",
+    "Garmin Enduro",
+    "Garmin Enduro 2",
+    "Garmin Enduro 3",
+    "Garmin Fenix 5",
+    "Garmin Fenix 5S",
+    "Garmin Fenix 5X",
+    "Garmin Fenix 7S Pro",
+    "Garmin Fenix 7X Pro",
+    "Garmin Forerunner 255S",
+    "Garmin Forerunner 265S",
+    "Garmin Forerunner 745",
+    "Garmin Instinct 1",
+    "Garmin Instinct 2X",
+    "Garmin Instinct Crossover",
+    "Garmin Instinct Solar",
     "Garmin Venu",
-    "Garmin Vivoactive",
-    "Huawei Watch Fit",
-    "Huawei Watch GT",
-    "Xiaomi Watch S1 / S3",
-    "Redmi Watch",
-    "Amazfit Active",
+    "Garmin Venu Sq",
+    "Garmin Venu Sq 2",
+    "Garmin Vivoactive 3",
+    "Garmin Instinct 2S (40mm)",
+    "Garmin Venu 2S (40mm)",
+    "Garmin Vivoactive 4S (40mm)",
+    "Garmin Forerunner 255s (41mm)",
+    "Garmin Venu 3S (41mm)",
+    "Garmin Epix Pro (42mm)",
+    "Garmin Fenix 6S (42mm)",
+    "Garmin Fenix 7S (42mm)",
+    "Garmin Forerunner 245 (42mm)",
+    "Garmin Forerunner 265s (42mm)",
+    "Garmin Forerunner 55 (42mm)",
+    "Garmin Vivoactive 5 (42mm)",
+    "Garmin Fenix 8 (43mm)",
+    "Garmin Forerunner 165 (43mm)",
+    "Garmin Venu 2 Plus (43mm)",
+    "Garmin Instinct 2 (45mm)",
+    "Garmin Venu 2 (45mm)",
+    "Garmin Venu 3 (45mm)",
+    "Garmin Vivoactive 4 (45mm)",
+    "Garmin Forerunner 255 (46mm)",
+    "Garmin Forerunner 265 (46mm)",
+    "Garmin Forerunner 955 (46mm)",
+    "Garmin Epix Gen 2 (47mm)",
+    "Garmin Epix Pro (47mm)",
+    "Garmin Fenix 6 (47mm)",
+    "Garmin Fenix 7 (47mm)",
+    "Garmin Fenix 7 Pro (47mm)",
+    "Garmin Fenix 8 (47mm)",
+    "Garmin Forerunner 945 (47mm)",
+    "Garmin Forerunner 965 (47mm)",
+    "Garmin Instinct 2X Solar (50mm)",
+    "Garmin Epix Pro (51mm)",
+    "Garmin Fenix 6X (51mm)",
+    "Garmin Fenix 7X (51mm)",
+    "Garmin Fenix 8 (51mm)",
+    "Amazfit Active 2",
     "Amazfit Bip",
+    "Amazfit Bip 6",
+    "Amazfit Bip Lite",
+    "Amazfit Bip S",
+    "Amazfit Bip S Lite",
+    "Amazfit Bip U",
+    "Amazfit Falcon",
+    "Amazfit GTR 2e",
     "Amazfit GTR Mini",
-    "Amazfit GTR",
-    "Amazfit GTS",
-    "Amazfit T-Rex",
+    "Amazfit GTS 2 Mini",
+    "Amazfit GTS 2e",
+    "Amazfit GTS 4 Mini",
+    "Amazfit Helio",
+    "Amazfit Neo",
+    "Amazfit Pace",
+    "Amazfit Stratos",
+    "Amazfit T-Rex 3",
+    "Amazfit Verge",
+    "Amazfit Bip U Pro (40mm)",
+    "Amazfit GTS 2 mini (40mm)",
+    "Amazfit GTS 4 mini (41mm)",
+    "Amazfit Active (42mm)",
+    "Amazfit GTR (42mm)",
+    "Amazfit GTS 2 (42mm)",
+    "Amazfit GTS 3 (42mm)",
+    "Amazfit GTS 4 (42mm)",
+    "Amazfit GTS (43mm)",
+    "Amazfit Bip 3 (44mm)",
+    "Amazfit Bip 5 (45mm)",
+    "Amazfit GTR 3 (45mm)",
+    "Amazfit Balance (46mm)",
+    "Amazfit Cheetah (46mm)",
+    "Amazfit GTR 2 (46mm)",
+    "Amazfit GTR 3 Pro (46mm)",
+    "Amazfit GTR 4 (46mm)",
+    "Amazfit Cheetah Pro (47mm)",
+    "Amazfit GTR (47mm)",
+    "Amazfit T-Rex (47mm)",
+    "Amazfit T-Rex 2 (47mm)",
+    "Amazfit T-Rex Pro (47mm)",
+    "Amazfit T-Rex Ultra (47mm)",
+    "Xiaomi Smart Band 7 Pro (28mm)",
+    "Xiaomi Smart Band 8 Pro (33mm)",
+    "Xiaomi Watch S2 (42mm)",
+    "Xiaomi Mi Watch (46mm)",
+    "Xiaomi Watch S1 (46mm)",
+    "Xiaomi Watch S1 Active (46mm)",
+    "Xiaomi Watch S1 Pro (46mm)",
+    "Xiaomi Watch S2 (46mm)",
+    "Xiaomi Watch S3 (47mm)",
+    "Xiaomi Watch 2 (46mm)",
+    "Xiaomi Watch 2 Pro (46mm)",
+    "Redmi Watch 3 (42mm)",
+    "Redmi Watch 3 Active (47mm)",
+    "Redmi Watch 4 (47mm)",
+    "Huawei Watch Fit (30mm)",
+    "Huawei Watch Fit 2 (33mm)",
+    "Huawei Watch Fit 3 (36mm)",
+    "Huawei Watch GT 4 (41mm)",
+    "Huawei Watch GT 5 (41mm)",
+    "Huawei Watch GT 2 (42mm)",
+    "Huawei Watch GT 3 (42mm)",
+    "Huawei Watch GT 3 Pro (43mm)",
+    "Huawei Watch GT 2 (46mm)",
+    "Huawei Watch GT 2 Pro (46mm)",
+    "Huawei Watch GT 3 (46mm)",
+    "Huawei Watch GT 3 Pro (46mm)",
+    "Huawei Watch GT 4 (46mm)",
+    "Huawei Watch GT 5 (46mm)",
+    "Huawei Watch Ultimate (48mm)",
+    "Huawei Watch 3 (46mm)",
+    "Huawei Watch 3 Pro (48mm)",
+    "Huawei Watch 4 (46mm)",
+    "Huawei Watch 4 Pro (48mm)",
+    "Huawei Watch GT 3 SE (46mm)",
+    "Google Pixel Watch (41mm)",
+    "Google Pixel Watch 2 (41mm)",
+    "Google Pixel Watch 3 (41mm)",
+    "Google Pixel Watch 3 (45mm)",
+    "Mobvoi TicWatch E3 (44mm)",
+    "Mobvoi TicWatch Pro 3 GPS (47mm)",
+    "Mobvoi TicWatch Pro 5 (48mm)",
+    "Mobvoi TicWatch Pro 3 Ultra (47mm)",
     "Fitbit Versa / Sense",
     "Polar Pacer / Ignite",
     "Outro modelo (informar nas observações)"
@@ -1378,22 +1522,6 @@
     "Apple Watch Series 3 (38mm)": {
       "shape": "squircle",
       "caseMm": 38
-    },
-    "Apple Watch SE (40mm)": {
-      "shape": "squircle",
-      "caseMm": 40
-    },
-    "Apple Watch SE (44mm)": {
-      "shape": "squircle",
-      "caseMm": 44
-    },
-    "Apple Watch SE 2 (40mm)": {
-      "shape": "squircle",
-      "caseMm": 40
-    },
-    "Apple Watch SE 2 (44mm)": {
-      "shape": "squircle",
-      "caseMm": 44
     },
     "Apple Watch Series 6 (40mm)": {
       "shape": "squircle",
@@ -1527,34 +1655,9 @@
       "caseMm": 47,
       "screenMm": 37
     },
-    "Garmin Fenix": {
-      "shape": "round",
-      "screenMm": 33
-    },
-    "Garmin Forerunner": {
-      "shape": "round",
-      "screenMm": 33
-    },
-    "Garmin Instinct": {
-      "shape": "round",
-      "screenMm": 33
-    },
     "Garmin Venu": {
       "shape": "round",
       "screenMm": 33
-    },
-    "Garmin Vivoactive": {
-      "shape": "round",
-      "screenMm": 33
-    },
-    "Huawei Watch Fit": {
-      "shape": "rect",
-      "caseMm": 43
-    },
-    "Huawei Watch GT": {
-      "shape": "round",
-      "caseMm": 47,
-      "screenMm": 40
     },
     "Amazfit Bip": {
       "shape": "rect",
@@ -1565,26 +1668,6 @@
       "caseMm": 43,
       "screenMm": 34
     },
-    "Amazfit GTR": {
-      "shape": "round",
-      "caseMm": 46,
-      "screenMm": 43
-    },
-    "Amazfit GTS": {
-      "shape": "rect",
-      "caseMm": 44,
-      "screenWidthMm": 35,
-      "screenHeightMm": 40
-    },
-    "Amazfit Active": {
-      "shape": "rect",
-      "caseMm": 42
-    },
-    "Amazfit T-Rex": {
-      "shape": "round",
-      "caseMm": 47,
-      "screenMm": 36
-    },
     "Fitbit Versa / Sense": {
       "shape": "rect",
       "caseMm": 40
@@ -1593,13 +1676,610 @@
       "shape": "round",
       "screenMm": 33
     },
-    "Xiaomi Watch S1 / S3": {
-      "shape": "round",
-      "screenMm": 33
+    "Apple Watch SE (1ª Geração) (40mm)": {
+      "shape": "squircle",
+      "caseMm": 40
     },
-    "Redmi Watch": {
+    "Apple Watch SE (1ª Geração) (44mm)": {
+      "shape": "squircle",
+      "caseMm": 44
+    },
+    "Apple Watch SE (2ª Geração) (40mm)": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Apple Watch SE (2ª Geração) (44mm)": {
+      "shape": "squircle",
+      "caseMm": 44
+    },
+    "Apple Watch Series 1 (42mm)": {
+      "shape": "squircle",
+      "caseMm": 42
+    },
+    "Apple Watch Series 2 (42mm)": {
+      "shape": "squircle",
+      "caseMm": 42
+    },
+    "Apple Watch Series 3 (42mm)": {
+      "shape": "squircle",
+      "caseMm": 42
+    },
+    "Apple Watch Series 4 (40mm)": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Apple Watch Series 4 (44mm)": {
+      "shape": "squircle",
+      "caseMm": 44
+    },
+    "Apple Watch Series 5 (40mm)": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Apple Watch Series 5 (44mm)": {
+      "shape": "squircle",
+      "caseMm": 44
+    },
+    "Samsung Galaxy Fit 3 (28mm)": {
+      "shape": "round",
+      "caseMm": 28
+    },
+    "Samsung Galaxy Gear (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Samsung Galaxy Gear S2 (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Samsung Galaxy Gear S3 Classic (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Samsung Galaxy Gear S3 Frontier (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Samsung Galaxy Watch (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Samsung Galaxy Watch (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Samsung Galaxy Watch 3 (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Samsung Galaxy Watch 4 Classic (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Samsung Galaxy Watch 4 Classic (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Samsung Galaxy Watch Active (40mm)": {
+      "shape": "round",
+      "caseMm": 40
+    },
+    "Samsung Galaxy Watch Active 2 (40mm)": {
+      "shape": "round",
+      "caseMm": 40
+    },
+    "Samsung Galaxy Watch Active 2 (44mm)": {
+      "shape": "round",
+      "caseMm": 44
+    },
+    "Samsung Galaxy Watch FE (40mm)": {
+      "shape": "round",
+      "caseMm": 40
+    },
+    "Garmin Enduro": {
+      "shape": "round"
+    },
+    "Garmin Enduro 2": {
+      "shape": "round"
+    },
+    "Garmin Enduro 3": {
+      "shape": "round"
+    },
+    "Garmin Epix Gen 2 (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Garmin Epix Pro (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Garmin Epix Pro (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Garmin Epix Pro (51mm)": {
+      "shape": "round",
+      "caseMm": 51
+    },
+    "Garmin Fenix 5": {
+      "shape": "round"
+    },
+    "Garmin Fenix 5S": {
+      "shape": "round"
+    },
+    "Garmin Fenix 5X": {
+      "shape": "round"
+    },
+    "Garmin Fenix 6 (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Garmin Fenix 6S (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Garmin Fenix 6X (51mm)": {
+      "shape": "round",
+      "caseMm": 51
+    },
+    "Garmin Fenix 7 (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Garmin Fenix 7 Pro (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Garmin Fenix 7S (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Garmin Fenix 7S Pro": {
+      "shape": "round"
+    },
+    "Garmin Fenix 7X (51mm)": {
+      "shape": "round",
+      "caseMm": 51
+    },
+    "Garmin Fenix 7X Pro": {
+      "shape": "round"
+    },
+    "Garmin Fenix 8 (43mm)": {
+      "shape": "round",
+      "caseMm": 43
+    },
+    "Garmin Fenix 8 (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Garmin Fenix 8 (51mm)": {
+      "shape": "round",
+      "caseMm": 51
+    },
+    "Garmin Forerunner 165 (43mm)": {
+      "shape": "round",
+      "caseMm": 43
+    },
+    "Garmin Forerunner 245 (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Garmin Forerunner 255 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Garmin Forerunner 255S": {
+      "shape": "round"
+    },
+    "Garmin Forerunner 255s (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Garmin Forerunner 265 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Garmin Forerunner 265S": {
+      "shape": "round"
+    },
+    "Garmin Forerunner 265s (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Garmin Forerunner 55 (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Garmin Forerunner 745": {
+      "shape": "round"
+    },
+    "Garmin Forerunner 945 (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Garmin Forerunner 955 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Garmin Forerunner 965 (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Garmin Instinct 1": {
+      "shape": "round"
+    },
+    "Garmin Instinct 2 (45mm)": {
+      "shape": "round",
+      "caseMm": 45
+    },
+    "Garmin Instinct 2S (40mm)": {
+      "shape": "round",
+      "caseMm": 40
+    },
+    "Garmin Instinct 2X": {
+      "shape": "round"
+    },
+    "Garmin Instinct 2X Solar (50mm)": {
+      "shape": "round",
+      "caseMm": 50
+    },
+    "Garmin Instinct Crossover": {
+      "shape": "round"
+    },
+    "Garmin Instinct Solar": {
+      "shape": "round"
+    },
+    "Garmin Venu 2 (45mm)": {
+      "shape": "round",
+      "caseMm": 45
+    },
+    "Garmin Venu 2 Plus (43mm)": {
+      "shape": "round",
+      "caseMm": 43
+    },
+    "Garmin Venu 2S (40mm)": {
+      "shape": "round",
+      "caseMm": 40
+    },
+    "Garmin Venu 3 (45mm)": {
+      "shape": "round",
+      "caseMm": 45
+    },
+    "Garmin Venu 3S (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Garmin Venu Sq": {
+      "shape": "round"
+    },
+    "Garmin Venu Sq 2": {
+      "shape": "round"
+    },
+    "Garmin Vivoactive 3": {
+      "shape": "round"
+    },
+    "Garmin Vivoactive 4 (45mm)": {
+      "shape": "round",
+      "caseMm": 45
+    },
+    "Garmin Vivoactive 4S (40mm)": {
+      "shape": "round",
+      "caseMm": 40
+    },
+    "Garmin Vivoactive 5 (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Amazfit Active (42mm)": {
+      "shape": "rect",
+      "caseMm": 42
+    },
+    "Amazfit Active 2": {
+      "shape": "rect"
+    },
+    "Amazfit Balance (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Amazfit Bip 3 (44mm)": {
+      "shape": "rect",
+      "caseMm": 44
+    },
+    "Amazfit Bip 5 (45mm)": {
+      "shape": "rect",
+      "caseMm": 45
+    },
+    "Amazfit Bip 6": {
+      "shape": "rect"
+    },
+    "Amazfit Bip Lite": {
+      "shape": "rect"
+    },
+    "Amazfit Bip S": {
+      "shape": "rect"
+    },
+    "Amazfit Bip S Lite": {
+      "shape": "rect"
+    },
+    "Amazfit Bip U": {
+      "shape": "rect"
+    },
+    "Amazfit Bip U Pro (40mm)": {
+      "shape": "rect",
+      "caseMm": 40
+    },
+    "Amazfit Cheetah (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Amazfit Cheetah Pro (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Amazfit Falcon": {
+      "shape": "round"
+    },
+    "Amazfit GTR (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Amazfit GTR (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Amazfit GTR 2 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Amazfit GTR 2e": {
+      "shape": "round"
+    },
+    "Amazfit GTR 3 (45mm)": {
+      "shape": "round",
+      "caseMm": 45
+    },
+    "Amazfit GTR 3 Pro (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Amazfit GTR 4 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Amazfit GTS (43mm)": {
+      "shape": "rect",
+      "caseMm": 43
+    },
+    "Amazfit GTS 2 (42mm)": {
+      "shape": "rect",
+      "caseMm": 42
+    },
+    "Amazfit GTS 2 Mini": {
+      "shape": "rect"
+    },
+    "Amazfit GTS 2 mini (40mm)": {
+      "shape": "rect",
+      "caseMm": 40
+    },
+    "Amazfit GTS 2e": {
+      "shape": "rect"
+    },
+    "Amazfit GTS 3 (42mm)": {
+      "shape": "rect",
+      "caseMm": 42
+    },
+    "Amazfit GTS 4 (42mm)": {
+      "shape": "rect",
+      "caseMm": 42
+    },
+    "Amazfit GTS 4 Mini": {
+      "shape": "rect"
+    },
+    "Amazfit GTS 4 mini (41mm)": {
       "shape": "rect",
       "caseMm": 41
+    },
+    "Amazfit Helio": {
+      "shape": "round"
+    },
+    "Amazfit Neo": {
+      "shape": "round"
+    },
+    "Amazfit Pace": {
+      "shape": "round"
+    },
+    "Amazfit Stratos": {
+      "shape": "round"
+    },
+    "Amazfit T-Rex (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Amazfit T-Rex 2 (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Amazfit T-Rex 3": {
+      "shape": "round"
+    },
+    "Amazfit T-Rex Pro (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Amazfit T-Rex Ultra (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Amazfit Verge": {
+      "shape": "round"
+    },
+    "Xiaomi Mi Watch (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Redmi Watch 3 (42mm)": {
+      "shape": "rect",
+      "caseMm": 42
+    },
+    "Redmi Watch 3 Active (47mm)": {
+      "shape": "rect",
+      "caseMm": 47
+    },
+    "Redmi Watch 4 (47mm)": {
+      "shape": "rect",
+      "caseMm": 47
+    },
+    "Xiaomi Smart Band 7 Pro (28mm)": {
+      "shape": "round",
+      "caseMm": 28
+    },
+    "Xiaomi Smart Band 8 Pro (33mm)": {
+      "shape": "round",
+      "caseMm": 33
+    },
+    "Xiaomi Watch 2 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Xiaomi Watch 2 Pro (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Xiaomi Watch S1 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Xiaomi Watch S1 Active (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Xiaomi Watch S1 Pro (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Xiaomi Watch S2 (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Xiaomi Watch S2 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Xiaomi Watch S3 (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Huawei Watch 3 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch 3 Pro (48mm)": {
+      "shape": "round",
+      "caseMm": 48
+    },
+    "Huawei Watch 4 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch 4 Pro (48mm)": {
+      "shape": "round",
+      "caseMm": 48
+    },
+    "Huawei Watch Fit (30mm)": {
+      "shape": "rect",
+      "caseMm": 30
+    },
+    "Huawei Watch Fit 2 (33mm)": {
+      "shape": "rect",
+      "caseMm": 33
+    },
+    "Huawei Watch Fit 3 (36mm)": {
+      "shape": "rect",
+      "caseMm": 36
+    },
+    "Huawei Watch GT 2 (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Huawei Watch GT 2 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 2 Pro (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 3 (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Huawei Watch GT 3 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 3 Pro (43mm)": {
+      "shape": "round",
+      "caseMm": 43
+    },
+    "Huawei Watch GT 3 Pro (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 3 SE (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 4 (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Huawei Watch GT 4 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 5 (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Huawei Watch GT 5 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch Ultimate (48mm)": {
+      "shape": "round",
+      "caseMm": 48
+    },
+    "Google Pixel Watch (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Google Pixel Watch 2 (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Google Pixel Watch 3 (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Google Pixel Watch 3 (45mm)": {
+      "shape": "round",
+      "caseMm": 45
+    },
+    "Mobvoi TicWatch E3 (44mm)": {
+      "shape": "round",
+      "caseMm": 44
+    },
+    "Mobvoi TicWatch Pro 3 GPS (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Mobvoi TicWatch Pro 3 Ultra (47mm)": {
+      "shape": "round",
+      "caseMm": 47
+    },
+    "Mobvoi TicWatch Pro 5 (48mm)": {
+      "shape": "round",
+      "caseMm": 48
     }
   },
   "formsubmit": {
@@ -1629,5 +2309,1012 @@
     }
   },
   "updatedAt": "2026-06-17T12:00:00.000Z",
-  "coupons": []
+  "coupons": [],
+  "smartwatchCatalog": {
+    "Apple": [
+      {
+        "label": "Apple Watch Series 1 (38mm)",
+        "model": "Apple Watch Series 1",
+        "sizeMm": 38
+      },
+      {
+        "label": "Apple Watch Series 1 (42mm)",
+        "model": "Apple Watch Series 1",
+        "sizeMm": 42
+      },
+      {
+        "label": "Apple Watch Series 2 (38mm)",
+        "model": "Apple Watch Series 2",
+        "sizeMm": 38
+      },
+      {
+        "label": "Apple Watch Series 2 (42mm)",
+        "model": "Apple Watch Series 2",
+        "sizeMm": 42
+      },
+      {
+        "label": "Apple Watch Series 3 (38mm)",
+        "model": "Apple Watch Series 3",
+        "sizeMm": 38
+      },
+      {
+        "label": "Apple Watch Series 3 (42mm)",
+        "model": "Apple Watch Series 3",
+        "sizeMm": 42
+      },
+      {
+        "label": "Apple Watch Series 4 (40mm)",
+        "model": "Apple Watch Series 4",
+        "sizeMm": 40
+      },
+      {
+        "label": "Apple Watch Series 4 (44mm)",
+        "model": "Apple Watch Series 4",
+        "sizeMm": 44
+      },
+      {
+        "label": "Apple Watch Series 5 (40mm)",
+        "model": "Apple Watch Series 5",
+        "sizeMm": 40
+      },
+      {
+        "label": "Apple Watch Series 5 (44mm)",
+        "model": "Apple Watch Series 5",
+        "sizeMm": 44
+      },
+      {
+        "label": "Apple Watch SE (1ª Geração) (40mm)",
+        "model": "Apple Watch SE (1ª Geração)",
+        "sizeMm": 40
+      },
+      {
+        "label": "Apple Watch SE (1ª Geração) (44mm)",
+        "model": "Apple Watch SE (1ª Geração)",
+        "sizeMm": 44
+      },
+      {
+        "label": "Apple Watch SE (2ª Geração) (40mm)",
+        "model": "Apple Watch SE (2ª Geração)",
+        "sizeMm": 40
+      },
+      {
+        "label": "Apple Watch SE (2ª Geração) (44mm)",
+        "model": "Apple Watch SE (2ª Geração)",
+        "sizeMm": 44
+      },
+      {
+        "label": "Apple Watch Series 6 (40mm)",
+        "model": "Apple Watch Series 6",
+        "sizeMm": 40
+      },
+      {
+        "label": "Apple Watch Series 6 (44mm)",
+        "model": "Apple Watch Series 6",
+        "sizeMm": 44
+      },
+      {
+        "label": "Apple Watch Series 7 (41mm)",
+        "model": "Apple Watch Series 7",
+        "sizeMm": 41
+      },
+      {
+        "label": "Apple Watch Series 7 (45mm)",
+        "model": "Apple Watch Series 7",
+        "sizeMm": 45
+      },
+      {
+        "label": "Apple Watch Series 8 (41mm)",
+        "model": "Apple Watch Series 8",
+        "sizeMm": 41
+      },
+      {
+        "label": "Apple Watch Series 8 (45mm)",
+        "model": "Apple Watch Series 8",
+        "sizeMm": 45
+      },
+      {
+        "label": "Apple Watch Series 9 (41mm)",
+        "model": "Apple Watch Series 9",
+        "sizeMm": 41
+      },
+      {
+        "label": "Apple Watch Series 9 (45mm)",
+        "model": "Apple Watch Series 9",
+        "sizeMm": 45
+      },
+      {
+        "label": "Apple Watch Series 10 (42mm)",
+        "model": "Apple Watch Series 10",
+        "sizeMm": 42
+      },
+      {
+        "label": "Apple Watch Series 10 (46mm)",
+        "model": "Apple Watch Series 10",
+        "sizeMm": 46
+      },
+      {
+        "label": "Apple Watch Ultra (49mm)",
+        "model": "Apple Watch Ultra",
+        "sizeMm": 49
+      },
+      {
+        "label": "Apple Watch Ultra 2 (49mm)",
+        "model": "Apple Watch Ultra 2",
+        "sizeMm": 49
+      },
+      {
+        "label": "Apple Watch Ultra 3 (49mm)",
+        "model": "Apple Watch Ultra 3",
+        "sizeMm": 49
+      }
+    ],
+    "Samsung": [
+      {
+        "label": "Samsung Galaxy Fit 3 (28mm)",
+        "model": "Galaxy Fit 3",
+        "sizeMm": 28
+      },
+      {
+        "label": "Samsung Galaxy Watch Active (40mm)",
+        "model": "Galaxy Watch Active",
+        "sizeMm": 40
+      },
+      {
+        "label": "Samsung Galaxy Watch Active 2 (40mm)",
+        "model": "Galaxy Watch Active 2",
+        "sizeMm": 40
+      },
+      {
+        "label": "Samsung Galaxy Watch FE (40mm)",
+        "model": "Galaxy Watch FE",
+        "sizeMm": 40
+      },
+      {
+        "label": "Samsung Galaxy Gear (41mm)",
+        "model": "Galaxy Gear",
+        "sizeMm": 41
+      },
+      {
+        "label": "Samsung Galaxy Gear S2 (42mm)",
+        "model": "Galaxy Gear S2",
+        "sizeMm": 42
+      },
+      {
+        "label": "Samsung Galaxy Watch (42mm)",
+        "model": "Galaxy Watch",
+        "sizeMm": 42
+      },
+      {
+        "label": "Samsung Galaxy Watch Active 2 (44mm)",
+        "model": "Galaxy Watch Active 2",
+        "sizeMm": 44
+      },
+      {
+        "label": "Samsung Galaxy Gear S3 Classic (46mm)",
+        "model": "Galaxy Gear S3 Classic",
+        "sizeMm": 46
+      },
+      {
+        "label": "Samsung Galaxy Gear S3 Frontier (46mm)",
+        "model": "Galaxy Gear S3 Frontier",
+        "sizeMm": 46
+      },
+      {
+        "label": "Samsung Galaxy Watch (46mm)",
+        "model": "Galaxy Watch",
+        "sizeMm": 46
+      },
+      {
+        "label": "Samsung Galaxy Watch 3 (41mm)",
+        "model": "Galaxy Watch 3",
+        "sizeMm": 41
+      },
+      {
+        "label": "Samsung Galaxy Watch 3 (45mm)",
+        "model": "Galaxy Watch 3",
+        "sizeMm": 45
+      },
+      {
+        "label": "Samsung Galaxy Watch 4 (40mm)",
+        "model": "Galaxy Watch 4",
+        "sizeMm": 40
+      },
+      {
+        "label": "Samsung Galaxy Watch 4 Classic (42mm)",
+        "model": "Galaxy Watch 4 Classic",
+        "sizeMm": 42
+      },
+      {
+        "label": "Samsung Galaxy Watch 4 (44mm)",
+        "model": "Galaxy Watch 4",
+        "sizeMm": 44
+      },
+      {
+        "label": "Samsung Galaxy Watch 4 Classic (46mm)",
+        "model": "Galaxy Watch 4 Classic",
+        "sizeMm": 46
+      },
+      {
+        "label": "Samsung Galaxy Watch 5 (40mm)",
+        "model": "Galaxy Watch 5",
+        "sizeMm": 40
+      },
+      {
+        "label": "Samsung Galaxy Watch 5 (44mm)",
+        "model": "Galaxy Watch 5",
+        "sizeMm": 44
+      },
+      {
+        "label": "Samsung Galaxy Watch 5 Pro (45mm)",
+        "model": "Galaxy Watch 5 Pro",
+        "sizeMm": 45
+      },
+      {
+        "label": "Samsung Galaxy Watch 6 (40mm)",
+        "model": "Galaxy Watch 6",
+        "sizeMm": 40
+      },
+      {
+        "label": "Samsung Galaxy Watch 6 Classic (43mm)",
+        "model": "Galaxy Watch 6 Classic",
+        "sizeMm": 43
+      },
+      {
+        "label": "Samsung Galaxy Watch 6 (44mm)",
+        "model": "Galaxy Watch 6",
+        "sizeMm": 44
+      },
+      {
+        "label": "Samsung Galaxy Watch 6 Classic (47mm)",
+        "model": "Galaxy Watch 6 Classic",
+        "sizeMm": 47
+      },
+      {
+        "label": "Samsung Galaxy Watch 7 (40mm)",
+        "model": "Galaxy Watch 7",
+        "sizeMm": 40
+      },
+      {
+        "label": "Samsung Galaxy Watch 7 (44mm)",
+        "model": "Galaxy Watch 7",
+        "sizeMm": 44
+      },
+      {
+        "label": "Samsung Galaxy Watch 8 (40mm)",
+        "model": "Galaxy Watch 8",
+        "sizeMm": 40
+      },
+      {
+        "label": "Samsung Galaxy Watch 8 (44mm)",
+        "model": "Galaxy Watch 8",
+        "sizeMm": 44
+      },
+      {
+        "label": "Samsung Galaxy Watch 8 Classic (46mm)",
+        "model": "Galaxy Watch 8 Classic",
+        "sizeMm": 46
+      },
+      {
+        "label": "Samsung Galaxy Watch Ultra (47mm)",
+        "model": "Galaxy Watch Ultra",
+        "sizeMm": 47
+      }
+    ],
+    "Garmin": [
+      {
+        "label": "Garmin Enduro",
+        "model": "Enduro",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Enduro 2",
+        "model": "Enduro 2",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Enduro 3",
+        "model": "Enduro 3",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Fenix 5",
+        "model": "Fenix 5",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Fenix 5S",
+        "model": "Fenix 5S",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Fenix 5X",
+        "model": "Fenix 5X",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Fenix 7S Pro",
+        "model": "Fenix 7S Pro",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Fenix 7X Pro",
+        "model": "Fenix 7X Pro",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Forerunner 255S",
+        "model": "Forerunner 255S",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Forerunner 265S",
+        "model": "Forerunner 265S",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Forerunner 745",
+        "model": "Forerunner 745",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Instinct 1",
+        "model": "Instinct 1",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Instinct 2X",
+        "model": "Instinct 2X",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Instinct Crossover",
+        "model": "Instinct Crossover",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Instinct Solar",
+        "model": "Instinct Solar",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Venu",
+        "model": "Venu",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Venu Sq",
+        "model": "Venu Sq",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Venu Sq 2",
+        "model": "Venu Sq 2",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Vivoactive 3",
+        "model": "Vivoactive 3",
+        "sizeMm": null
+      },
+      {
+        "label": "Garmin Instinct 2S (40mm)",
+        "model": "Instinct 2S",
+        "sizeMm": 40
+      },
+      {
+        "label": "Garmin Venu 2S (40mm)",
+        "model": "Venu 2S",
+        "sizeMm": 40
+      },
+      {
+        "label": "Garmin Vivoactive 4S (40mm)",
+        "model": "Vivoactive 4S",
+        "sizeMm": 40
+      },
+      {
+        "label": "Garmin Forerunner 255s (41mm)",
+        "model": "Forerunner 255s",
+        "sizeMm": 41
+      },
+      {
+        "label": "Garmin Venu 3S (41mm)",
+        "model": "Venu 3S",
+        "sizeMm": 41
+      },
+      {
+        "label": "Garmin Epix Pro (42mm)",
+        "model": "Epix Pro",
+        "sizeMm": 42
+      },
+      {
+        "label": "Garmin Fenix 6S (42mm)",
+        "model": "Fenix 6S",
+        "sizeMm": 42
+      },
+      {
+        "label": "Garmin Fenix 7S (42mm)",
+        "model": "Fenix 7S",
+        "sizeMm": 42
+      },
+      {
+        "label": "Garmin Forerunner 245 (42mm)",
+        "model": "Forerunner 245",
+        "sizeMm": 42
+      },
+      {
+        "label": "Garmin Forerunner 265s (42mm)",
+        "model": "Forerunner 265s",
+        "sizeMm": 42
+      },
+      {
+        "label": "Garmin Forerunner 55 (42mm)",
+        "model": "Forerunner 55",
+        "sizeMm": 42
+      },
+      {
+        "label": "Garmin Vivoactive 5 (42mm)",
+        "model": "Vivoactive 5",
+        "sizeMm": 42
+      },
+      {
+        "label": "Garmin Fenix 8 (43mm)",
+        "model": "Fenix 8",
+        "sizeMm": 43
+      },
+      {
+        "label": "Garmin Forerunner 165 (43mm)",
+        "model": "Forerunner 165",
+        "sizeMm": 43
+      },
+      {
+        "label": "Garmin Venu 2 Plus (43mm)",
+        "model": "Venu 2 Plus",
+        "sizeMm": 43
+      },
+      {
+        "label": "Garmin Instinct 2 (45mm)",
+        "model": "Instinct 2",
+        "sizeMm": 45
+      },
+      {
+        "label": "Garmin Venu 2 (45mm)",
+        "model": "Venu 2",
+        "sizeMm": 45
+      },
+      {
+        "label": "Garmin Venu 3 (45mm)",
+        "model": "Venu 3",
+        "sizeMm": 45
+      },
+      {
+        "label": "Garmin Vivoactive 4 (45mm)",
+        "model": "Vivoactive 4",
+        "sizeMm": 45
+      },
+      {
+        "label": "Garmin Forerunner 255 (46mm)",
+        "model": "Forerunner 255",
+        "sizeMm": 46
+      },
+      {
+        "label": "Garmin Forerunner 265 (46mm)",
+        "model": "Forerunner 265",
+        "sizeMm": 46
+      },
+      {
+        "label": "Garmin Forerunner 955 (46mm)",
+        "model": "Forerunner 955",
+        "sizeMm": 46
+      },
+      {
+        "label": "Garmin Epix Gen 2 (47mm)",
+        "model": "Epix Gen 2",
+        "sizeMm": 47
+      },
+      {
+        "label": "Garmin Epix Pro (47mm)",
+        "model": "Epix Pro",
+        "sizeMm": 47
+      },
+      {
+        "label": "Garmin Fenix 6 (47mm)",
+        "model": "Fenix 6",
+        "sizeMm": 47
+      },
+      {
+        "label": "Garmin Fenix 7 (47mm)",
+        "model": "Fenix 7",
+        "sizeMm": 47
+      },
+      {
+        "label": "Garmin Fenix 7 Pro (47mm)",
+        "model": "Fenix 7 Pro",
+        "sizeMm": 47
+      },
+      {
+        "label": "Garmin Fenix 8 (47mm)",
+        "model": "Fenix 8",
+        "sizeMm": 47
+      },
+      {
+        "label": "Garmin Forerunner 945 (47mm)",
+        "model": "Forerunner 945",
+        "sizeMm": 47
+      },
+      {
+        "label": "Garmin Forerunner 965 (47mm)",
+        "model": "Forerunner 965",
+        "sizeMm": 47
+      },
+      {
+        "label": "Garmin Instinct 2X Solar (50mm)",
+        "model": "Instinct 2X Solar",
+        "sizeMm": 50
+      },
+      {
+        "label": "Garmin Epix Pro (51mm)",
+        "model": "Epix Pro",
+        "sizeMm": 51
+      },
+      {
+        "label": "Garmin Fenix 6X (51mm)",
+        "model": "Fenix 6X",
+        "sizeMm": 51
+      },
+      {
+        "label": "Garmin Fenix 7X (51mm)",
+        "model": "Fenix 7X",
+        "sizeMm": 51
+      },
+      {
+        "label": "Garmin Fenix 8 (51mm)",
+        "model": "Fenix 8",
+        "sizeMm": 51
+      }
+    ],
+    "Amazfit": [
+      {
+        "label": "Amazfit Active 2",
+        "model": "Active 2",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Bip",
+        "model": "Bip",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Bip 6",
+        "model": "Bip 6",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Bip Lite",
+        "model": "Bip Lite",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Bip S",
+        "model": "Bip S",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Bip S Lite",
+        "model": "Bip S Lite",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Bip U",
+        "model": "Bip U",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Falcon",
+        "model": "Falcon",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit GTR 2e",
+        "model": "GTR 2e",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit GTR Mini",
+        "model": "GTR Mini",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit GTS 2 Mini",
+        "model": "GTS 2 Mini",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit GTS 2e",
+        "model": "GTS 2e",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit GTS 4 Mini",
+        "model": "GTS 4 Mini",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Helio",
+        "model": "Helio",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Neo",
+        "model": "Neo",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Pace",
+        "model": "Pace",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Stratos",
+        "model": "Stratos",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit T-Rex 3",
+        "model": "T-Rex 3",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Verge",
+        "model": "Verge",
+        "sizeMm": null
+      },
+      {
+        "label": "Amazfit Bip U Pro (40mm)",
+        "model": "Bip U Pro",
+        "sizeMm": 40
+      },
+      {
+        "label": "Amazfit GTS 2 mini (40mm)",
+        "model": "GTS 2 mini",
+        "sizeMm": 40
+      },
+      {
+        "label": "Amazfit GTS 4 mini (41mm)",
+        "model": "GTS 4 mini",
+        "sizeMm": 41
+      },
+      {
+        "label": "Amazfit Active (42mm)",
+        "model": "Active",
+        "sizeMm": 42
+      },
+      {
+        "label": "Amazfit GTR (42mm)",
+        "model": "GTR",
+        "sizeMm": 42
+      },
+      {
+        "label": "Amazfit GTS 2 (42mm)",
+        "model": "GTS 2",
+        "sizeMm": 42
+      },
+      {
+        "label": "Amazfit GTS 3 (42mm)",
+        "model": "GTS 3",
+        "sizeMm": 42
+      },
+      {
+        "label": "Amazfit GTS 4 (42mm)",
+        "model": "GTS 4",
+        "sizeMm": 42
+      },
+      {
+        "label": "Amazfit GTS (43mm)",
+        "model": "GTS",
+        "sizeMm": 43
+      },
+      {
+        "label": "Amazfit Bip 3 (44mm)",
+        "model": "Bip 3",
+        "sizeMm": 44
+      },
+      {
+        "label": "Amazfit Bip 5 (45mm)",
+        "model": "Bip 5",
+        "sizeMm": 45
+      },
+      {
+        "label": "Amazfit GTR 3 (45mm)",
+        "model": "GTR 3",
+        "sizeMm": 45
+      },
+      {
+        "label": "Amazfit Balance (46mm)",
+        "model": "Balance",
+        "sizeMm": 46
+      },
+      {
+        "label": "Amazfit Cheetah (46mm)",
+        "model": "Cheetah",
+        "sizeMm": 46
+      },
+      {
+        "label": "Amazfit GTR 2 (46mm)",
+        "model": "GTR 2",
+        "sizeMm": 46
+      },
+      {
+        "label": "Amazfit GTR 3 Pro (46mm)",
+        "model": "GTR 3 Pro",
+        "sizeMm": 46
+      },
+      {
+        "label": "Amazfit GTR 4 (46mm)",
+        "model": "GTR 4",
+        "sizeMm": 46
+      },
+      {
+        "label": "Amazfit Cheetah Pro (47mm)",
+        "model": "Cheetah Pro",
+        "sizeMm": 47
+      },
+      {
+        "label": "Amazfit GTR (47mm)",
+        "model": "GTR",
+        "sizeMm": 47
+      },
+      {
+        "label": "Amazfit T-Rex (47mm)",
+        "model": "T-Rex",
+        "sizeMm": 47
+      },
+      {
+        "label": "Amazfit T-Rex 2 (47mm)",
+        "model": "T-Rex 2",
+        "sizeMm": 47
+      },
+      {
+        "label": "Amazfit T-Rex Pro (47mm)",
+        "model": "T-Rex Pro",
+        "sizeMm": 47
+      },
+      {
+        "label": "Amazfit T-Rex Ultra (47mm)",
+        "model": "T-Rex Ultra",
+        "sizeMm": 47
+      }
+    ],
+    "Xiaomi": [
+      {
+        "label": "Xiaomi Smart Band 7 Pro (28mm)",
+        "model": "Smart Band 7 Pro",
+        "sizeMm": 28
+      },
+      {
+        "label": "Xiaomi Smart Band 8 Pro (33mm)",
+        "model": "Smart Band 8 Pro",
+        "sizeMm": 33
+      },
+      {
+        "label": "Xiaomi Watch S2 (42mm)",
+        "model": "Watch S2",
+        "sizeMm": 42
+      },
+      {
+        "label": "Xiaomi Mi Watch (46mm)",
+        "model": "Mi Watch",
+        "sizeMm": 46
+      },
+      {
+        "label": "Xiaomi Watch S1 (46mm)",
+        "model": "Watch S1",
+        "sizeMm": 46
+      },
+      {
+        "label": "Xiaomi Watch S1 Active (46mm)",
+        "model": "Watch S1 Active",
+        "sizeMm": 46
+      },
+      {
+        "label": "Xiaomi Watch S1 Pro (46mm)",
+        "model": "Watch S1 Pro",
+        "sizeMm": 46
+      },
+      {
+        "label": "Xiaomi Watch S2 (46mm)",
+        "model": "Watch S2",
+        "sizeMm": 46
+      },
+      {
+        "label": "Xiaomi Watch S3 (47mm)",
+        "model": "Watch S3",
+        "sizeMm": 47
+      },
+      {
+        "label": "Xiaomi Watch 2 (46mm)",
+        "model": "Watch 2",
+        "sizeMm": 46
+      },
+      {
+        "label": "Xiaomi Watch 2 Pro (46mm)",
+        "model": "Watch 2 Pro",
+        "sizeMm": 46
+      },
+      {
+        "label": "Redmi Watch 3 (42mm)",
+        "model": "Redmi Watch 3",
+        "sizeMm": 42
+      },
+      {
+        "label": "Redmi Watch 3 Active (47mm)",
+        "model": "Redmi Watch 3 Active",
+        "sizeMm": 47
+      },
+      {
+        "label": "Redmi Watch 4 (47mm)",
+        "model": "Redmi Watch 4",
+        "sizeMm": 47
+      }
+    ],
+    "Huawei": [
+      {
+        "label": "Huawei Watch Fit (30mm)",
+        "model": "Watch Fit",
+        "sizeMm": 30
+      },
+      {
+        "label": "Huawei Watch Fit 2 (33mm)",
+        "model": "Watch Fit 2",
+        "sizeMm": 33
+      },
+      {
+        "label": "Huawei Watch Fit 3 (36mm)",
+        "model": "Watch Fit 3",
+        "sizeMm": 36
+      },
+      {
+        "label": "Huawei Watch GT 4 (41mm)",
+        "model": "Watch GT 4",
+        "sizeMm": 41
+      },
+      {
+        "label": "Huawei Watch GT 5 (41mm)",
+        "model": "Watch GT 5",
+        "sizeMm": 41
+      },
+      {
+        "label": "Huawei Watch GT 2 (42mm)",
+        "model": "Watch GT 2",
+        "sizeMm": 42
+      },
+      {
+        "label": "Huawei Watch GT 3 (42mm)",
+        "model": "Watch GT 3",
+        "sizeMm": 42
+      },
+      {
+        "label": "Huawei Watch GT 3 Pro (43mm)",
+        "model": "Watch GT 3 Pro",
+        "sizeMm": 43
+      },
+      {
+        "label": "Huawei Watch GT 2 (46mm)",
+        "model": "Watch GT 2",
+        "sizeMm": 46
+      },
+      {
+        "label": "Huawei Watch GT 2 Pro (46mm)",
+        "model": "Watch GT 2 Pro",
+        "sizeMm": 46
+      },
+      {
+        "label": "Huawei Watch GT 3 (46mm)",
+        "model": "Watch GT 3",
+        "sizeMm": 46
+      },
+      {
+        "label": "Huawei Watch GT 3 Pro (46mm)",
+        "model": "Watch GT 3 Pro",
+        "sizeMm": 46
+      },
+      {
+        "label": "Huawei Watch GT 4 (46mm)",
+        "model": "Watch GT 4",
+        "sizeMm": 46
+      },
+      {
+        "label": "Huawei Watch GT 5 (46mm)",
+        "model": "Watch GT 5",
+        "sizeMm": 46
+      },
+      {
+        "label": "Huawei Watch Ultimate (48mm)",
+        "model": "Watch Ultimate",
+        "sizeMm": 48
+      },
+      {
+        "label": "Huawei Watch 3 (46mm)",
+        "model": "Watch 3",
+        "sizeMm": 46
+      },
+      {
+        "label": "Huawei Watch 3 Pro (48mm)",
+        "model": "Watch 3 Pro",
+        "sizeMm": 48
+      },
+      {
+        "label": "Huawei Watch 4 (46mm)",
+        "model": "Watch 4",
+        "sizeMm": 46
+      },
+      {
+        "label": "Huawei Watch 4 Pro (48mm)",
+        "model": "Watch 4 Pro",
+        "sizeMm": 48
+      },
+      {
+        "label": "Huawei Watch GT 3 SE (46mm)",
+        "model": "Watch GT 3 SE",
+        "sizeMm": 46
+      }
+    ],
+    "Google": [
+      {
+        "label": "Google Pixel Watch (41mm)",
+        "model": "Pixel Watch",
+        "sizeMm": 41
+      },
+      {
+        "label": "Google Pixel Watch 2 (41mm)",
+        "model": "Pixel Watch 2",
+        "sizeMm": 41
+      },
+      {
+        "label": "Google Pixel Watch 3 (41mm)",
+        "model": "Pixel Watch 3",
+        "sizeMm": 41
+      },
+      {
+        "label": "Google Pixel Watch 3 (45mm)",
+        "model": "Pixel Watch 3",
+        "sizeMm": 45
+      }
+    ],
+    "Mobvoi": [
+      {
+        "label": "Mobvoi TicWatch E3 (44mm)",
+        "model": "TicWatch E3",
+        "sizeMm": 44
+      },
+      {
+        "label": "Mobvoi TicWatch Pro 3 GPS (47mm)",
+        "model": "TicWatch Pro 3 GPS",
+        "sizeMm": 47
+      },
+      {
+        "label": "Mobvoi TicWatch Pro 5 (48mm)",
+        "model": "TicWatch Pro 5",
+        "sizeMm": 48
+      },
+      {
+        "label": "Mobvoi TicWatch Pro 3 Ultra (47mm)",
+        "model": "TicWatch Pro 3 Ultra",
+        "sizeMm": 47
+      }
+    ],
+    "Fitbit": [
+      {
+        "label": "Fitbit Versa / Sense",
+        "model": "Versa / Sense",
+        "sizeMm": null
+      }
+    ],
+    "Polar": [
+      {
+        "label": "Polar Pacer / Ignite",
+        "model": "Pacer / Ignite",
+        "sizeMm": null
+      }
+    ]
+  }
 }

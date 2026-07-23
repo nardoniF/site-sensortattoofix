@@ -1764,7 +1764,9 @@ function orderLooksInternationalDestination(order) {
 async function intlUsdCharge(order, env) {
   const fx = await fetchFxRate(env, 'USD');
   const brl = Number(order.total) || 0;
-  const usd = Math.round(brl * fx.rate * 100) / 100;
+  let usd = Math.round(brl * fx.rate * 100) / 100;
+  // Self-test is R$ 0.01 — FX rounds to $0.00 and PayPal rejects ("Must be greater than zero").
+  if (order?.selfTestPayPal && usd < 0.01) usd = 0.01;
   return { currency: 'USD', amount: usd, amountCents: Math.round(usd * 100), fxRate: fx.rate };
 }
 
@@ -3241,9 +3243,11 @@ function isPayPalSandbox(env, clientId) {
   return id.startsWith('sb-');
 }
 
-/** PayPal Live: R$ 0,01 quando PAYPAL_SELF_TEST=true — só contas de teste. */
+/** PayPal Live self-test (R$ 0,01 / US$ 0,01) — só contas de teste/parceiro. */
 function isSelfTestCustomerEmail(email) {
   const e = String(email || '').trim().toLowerCase();
+  // Partner (AU): real inbox — alex.teste.au@… has no mailbox.
+  if (e === 'duairon@gmail.com') return true;
   if (!e.endsWith('@sensortattoofix.com')) return false;
   return e.includes('.teste') || e.startsWith('fabio.teste') || e.startsWith('alex.teste');
 }
@@ -5574,11 +5578,14 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   if (useUsd) {
     const usd = await intlUsdCharge(order, env);
     currencyCode = 'USD';
-    amountValue = usd.amount.toFixed(2);
+    amountValue = Number(usd.amount).toFixed(2);
     locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
     order.chargeCurrency = 'USD';
     order.chargeAmount = usd.amount;
     order.chargeFxRate = usd.fxRate;
+  }
+  if (!(Number(amountValue) > 0)) {
+    throw new Error('PayPal amount must be greater than zero.');
   }
   const description = `Sensor Tattoo Fix — ${order.orderId}`.slice(0, 127);
   const payload = {
@@ -6513,6 +6520,18 @@ async function handleCreateOrder(request, env, origin, ctx) {
   }
   if (applySelfTestPayPalPricing(order, env, billingType)) {
     console.log('PayPal self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
+    // Recompute USD after dropping total to R$ 0.01 (otherwise FX → $0.00).
+    if (order.chargeCurrency === 'USD' || (intlEmbeddedCheckout && billingType === 'PAYPAL')) {
+      try {
+        const usd = await intlUsdCharge(order, env);
+        order.chargeCurrency = 'USD';
+        order.chargeAmount = usd.amount;
+        order.chargeFxRate = usd.fxRate;
+        order.displayCurrency = 'USD';
+      } catch (err) {
+        console.warn('USD self-test charge:', err.message);
+      }
+    }
   }
 
   let payment = null;

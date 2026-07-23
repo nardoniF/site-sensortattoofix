@@ -92,6 +92,7 @@ window.StoreConfig = (function () {
                 smartwatchModels: (() => {
                   const apiList = apiConfig.smartwatchModels || [];
                   const localList = local.smartwatchModels || [];
+                  if ((localList.length || 0) > (apiList.length || 0) + 20) return localList;
                   if (!apiList.length) return localList;
                   if (!localList.length || apiList.length >= localList.length) return apiList;
                   const seen = new Set(apiList);
@@ -103,6 +104,13 @@ window.StoreConfig = (function () {
                     }
                   });
                   return out;
+                })(),
+                smartwatchCatalog: (() => {
+                  const apiCat = apiConfig.smartwatchCatalog;
+                  const localCat = local.smartwatchCatalog;
+                  const count = (c) => Object.values(c || {}).reduce((n, arr) => n + (Array.isArray(arr) ? arr.length : 0), 0);
+                  if (count(localCat) >= count(apiCat) && localCat && Object.keys(localCat).length) return localCat;
+                  return apiCat || localCat;
                 })(),
                 payments: local.payments
                   ? {

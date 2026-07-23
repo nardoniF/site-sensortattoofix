@@ -73,6 +73,8 @@ window.STF_PRODUCT_MERGE = (function () {
   function mergeSmartwatchLists(primary, supplement) {
     const primaryList = Array.isArray(primary) && primary.length ? primary : [];
     const supplementList = Array.isArray(supplement) ? supplement : [];
+    // Prefer the richer list wholesale (expanded catalog in Git).
+    if (supplementList.length > primaryList.length + 20) return [...supplementList];
     if (!primaryList.length) return [...supplementList];
     const seen = new Set(primaryList);
     const out = [...primaryList];
@@ -83,6 +85,17 @@ window.STF_PRODUCT_MERGE = (function () {
       }
     });
     return out;
+  }
+
+  function catalogModelCount(catalog) {
+    return Object.values(catalog || {}).reduce((n, arr) => n + (Array.isArray(arr) ? arr.length : 0), 0);
+  }
+
+  function mergeSmartwatchCatalog(apiCatalog, localCatalog) {
+    if (catalogModelCount(localCatalog) >= catalogModelCount(apiCatalog)) {
+      return localCatalog && Object.keys(localCatalog).length ? localCatalog : apiCatalog;
+    }
+    return apiCatalog && Object.keys(apiCatalog).length ? apiCatalog : localCatalog;
   }
 
   /** Metadados do admin ganham campo a campo; Git só preenche modelos novos. */
@@ -304,6 +317,10 @@ window.STF_PRODUCT_MERGE = (function () {
       apiConfig.smartwatchModels,
       localConfig.smartwatchModels
     );
+    next.smartwatchCatalog = mergeSmartwatchCatalog(
+      apiConfig.smartwatchCatalog,
+      localConfig.smartwatchCatalog
+    );
     return next;
   }
 
@@ -336,6 +353,10 @@ window.STF_PRODUCT_MERGE = (function () {
       smartwatchModels: mergeSmartwatchLists(
         apiConfig.smartwatchModels,
         localConfig.smartwatchModels
+      ),
+      smartwatchCatalog: mergeSmartwatchCatalog(
+        apiConfig.smartwatchCatalog,
+        localConfig.smartwatchCatalog
       )
     };
   }
