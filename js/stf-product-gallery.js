@@ -16,18 +16,25 @@
     '/site/kit-gallery/kit-07-beneficios.jpg'
   ];
 
+  /** Shared photos (little/no copy) reused across locales. */
+  const SHARED_APLICACAO = '/site/kit-gallery/kit-03-aplicacao.jpg';
+  const SHARED_FUNCIONANDO = '/site/kit-gallery/kit-04-funcionando.jpg';
+
   const EN_GALLERY = [
     '/site/kit-gallery/en/kit-03-aplicacao.jpg',
     '/site/kit-gallery/en/kit-01-embalagem.jpg',
     '/site/kit-gallery/en/kit-02-conteudo.jpg',
+    SHARED_FUNCIONANDO,
     '/site/kit-gallery/en/kit-05-acompanha.jpg',
     '/site/kit-gallery/en/kit-06-antes-depois.jpg',
     '/site/kit-gallery/en/kit-07-beneficios.jpg'
   ];
 
   const IT_GALLERY = [
+    SHARED_APLICACAO,
     '/site/kit-gallery/it/kit-01-embalagem.jpg',
     '/site/kit-gallery/it/kit-02-conteudo.jpg',
+    SHARED_FUNCIONANDO,
     '/site/kit-gallery/it/kit-05-acompanha.jpg',
     '/site/kit-gallery/it/kit-06-antes-depois.jpg',
     '/site/kit-gallery/it/kit-07-beneficios.jpg'
