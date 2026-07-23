@@ -185,16 +185,40 @@
       const imgs = uniqueUrls(images && images.length ? images : kitAlbum());
       const existing = wrap.querySelector('img');
       const label = alt || existing?.alt || '';
-      const style = existing?.getAttribute('style') || '';
-      const cls = existing?.className || '';
       wrap.innerHTML = renderMarkup(imgs, label, 'stf-album--fill');
-      const img = wrap.querySelector('img');
-      if (img) {
-        if (style) img.setAttribute('style', style);
-        if (cls) img.className = cls;
-      }
       bind(wrap);
     });
+  }
+
+  /** Square album = height of the benefit icons grid (contain, never crop). */
+  function syncProductAlbumToBenefits() {
+    const benefits = document.querySelector('#produtos .product-benefits-grid');
+    const wraps = document.querySelectorAll('#produtos .product-image-wrap');
+    if (!benefits || !wraps.length) return;
+    const mediaCol = document.querySelector('#produtos .product-solution-media');
+    const mediaW = mediaCol ? mediaCol.getBoundingClientRect().width : 0;
+    const h = Math.round(benefits.getBoundingClientRect().height);
+    if (h < 120) return;
+    const side = Math.min(h, mediaW > 40 ? Math.floor(mediaW) : h);
+    wraps.forEach((wrap) => {
+      wrap.style.width = side + 'px';
+      wrap.style.height = side + 'px';
+      wrap.style.maxWidth = '100%';
+      wrap.style.aspectRatio = '1 / 1';
+    });
+  }
+
+  function watchProductAlbumSize() {
+    syncProductAlbumToBenefits();
+    const benefits = document.querySelector('#produtos .product-benefits-grid');
+    if (!benefits || typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', syncProductAlbumToBenefits);
+      return;
+    }
+    const ro = new ResizeObserver(() => syncProductAlbumToBenefits());
+    ro.observe(benefits);
+    const media = document.querySelector('#produtos .product-solution-media');
+    if (media) ro.observe(media);
   }
 
   window.STF_PRODUCT_GALLERY = {
@@ -210,11 +234,13 @@
     bind,
     enhanceExisting,
     showIndex,
-    detectLang
+    detectLang,
+    syncProductAlbumToBenefits
   };
 
   function boot() {
     enhanceExisting('.product-image-wrap', kitAlbum(), 'Sensor Tattoo Fix');
+    watchProductAlbumSize();
   }
 
   if (document.readyState === 'loading') {
