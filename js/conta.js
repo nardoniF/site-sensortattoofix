@@ -382,14 +382,23 @@
     return true;
   }
 
+  function consumeRegisterFromUrl() {
+    const params = new URLSearchParams(location.search);
+    const tab = String(params.get('tab') || '').toLowerCase();
+    if (tab !== 'register' && tab !== 'criar' && location.hash !== '#register') return false;
+    showAuthPanel('register');
+    return true;
+  }
+
   async function boot() {
     bindTabs();
     bindForms();
     const hasReset = consumeResetTokenFromUrl();
     const hasForgot = !hasReset && consumeForgotFromUrl();
+    const hasRegister = !hasReset && !hasForgot && consumeRegisterFromUrl();
     const user = await A().refreshSession();
     A().initNav();
-    if (hasReset || hasForgot) {
+    if (hasReset || hasForgot || hasRegister) {
       if (els.loginBox) els.loginBox.hidden = false;
       if (els.panelBox) els.panelBox.hidden = true;
       return;

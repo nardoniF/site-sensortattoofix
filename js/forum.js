@@ -20,6 +20,32 @@
     return window.STF_ACCOUNT?.getToken?.() || localStorage.getItem('stf_customer_token') || '';
   }
 
+  function accountHref(opts) {
+    const base = window.STF_I18N?.accountHref?.() || 'minha-conta.html';
+    if (opts?.register) {
+      const sep = base.includes('?') ? '&' : '?';
+      return base + sep + 'tab=register';
+    }
+    return base;
+  }
+
+  function canPost() {
+    return !!(state.user && state.user.username && state.user.avatarId);
+  }
+
+  function renderRegisterToPost() {
+    const reg = accountHref({ register: true });
+    const login = accountHref();
+    return `<section class="forum-compose admin-card forum-compose-locked">
+      <h2>Quer postar?</h2>
+      <p>Para criar tópicos ou responder, você precisa de uma <strong>conta cadastrada</strong>.</p>
+      <p class="forum-compose-actions">
+        <a class="btn-primary" href="${escapeHtml(reg)}"><i class="fas fa-user-plus"></i> Criar conta</a>
+        <a class="btn-secondary" href="${escapeHtml(login)}"><i class="fas fa-sign-in-alt"></i> Já tenho conta</a>
+      </p>
+    </section>`;
+  }
+
   function escapeHtml(s) {
     return String(s || '')
       .replace(/&/g, '&amp;')
@@ -91,12 +117,18 @@
     state.view = 'gate';
     const root = el('forum-root');
     if (!root) return;
-    const loginHref = window.STF_I18N?.accountHref?.() || 'minha-conta.html';
+    const loginHref = accountHref();
+    const regHref = accountHref({ register: true });
     root.innerHTML = `<section class="forum-gate admin-card">
       <h1><i class="fas fa-comments"></i> Comunidade</h1>
       <p class="forum-dev-banner"><i class="fas fa-flask"></i> Em desenvolvimento — acesso para usuários de teste</p>
       <p>${escapeHtml(message || 'Acesso restrito.')}</p>
-      ${reason === 'login' ? `<p><a class="btn-primary" href="${escapeHtml(loginHref)}">Entrar / criar conta</a></p>` : ''}
+      ${reason === 'login' || reason === 'register' ? `
+        <p>Para participar e postar, <strong>cadastre-se</strong> (é grátis) e faça login.</p>
+        <p class="forum-compose-actions">
+          <a class="btn-primary" href="${escapeHtml(regHref)}"><i class="fas fa-user-plus"></i> Criar conta</a>
+          <a class="btn-secondary" href="${escapeHtml(loginHref)}"><i class="fas fa-sign-in-alt"></i> Entrar</a>
+        </p>` : ''}
       ${reason === 'tester' ? '<p class="admin-meta">Sua conta ainda não é de teste. Peça ao admin para marcar você como testador.</p>' : ''}
     </section>`;
   }
@@ -146,9 +178,10 @@
         </div>
         ${state.user ? `<div class="forum-you">${authorHtml(state.user)}</div>` : ''}
       </header>
-      ${renderProfileSetup()}
-      <section class="forum-compose admin-card">
+      ${!state.user ? renderRegisterToPost() : renderProfileSetup()}
+      ${canPost() ? `<section class="forum-compose admin-card">
         <h2>Novo tópico</h2>
+        <p class="admin-meta">Posts passam por aprovação do administrador.</p>
         <form id="forum-new-thread" class="admin-form">
           <label>Título<input name="title" required minlength="8" maxlength="120" placeholder="Sobre o que você quer falar?"></label>
           <label>Mensagem<textarea name="body" required minlength="20" rows="5" placeholder="Conte sua experiência…"></textarea></label>
@@ -157,7 +190,7 @@
           <button type="submit" class="btn-primary">Enviar para aprovação</button>
           <p id="forum-compose-status" class="form-status" hidden></p>
         </form>
-      </section>
+      </section>` : (state.user ? '<p class="admin-meta">Complete username e avatar acima para poder postar.</p>' : '')}
       <section class="forum-list">${threads}</section>
     `;
     bindListEvents();
@@ -187,14 +220,14 @@
         ${mediaHtml(t.media)}
       </article>
       <section class="forum-replies">${replies}</section>
-      <section class="forum-compose admin-card">
+      ${!state.user ? renderRegisterToPost() : (canPost() ? `<section class="forum-compose admin-card">
         <h2>Responder</h2>
         <form id="forum-reply-form" class="admin-form">
           <label>Mensagem<textarea name="body" required minlength="2" rows="4"></textarea></label>
           <button type="submit" class="btn-primary">Enviar resposta</button>
           <p id="forum-reply-status" class="form-status" hidden></p>
         </form>
-      </section>
+      </section>` : `<section class="forum-compose admin-card"><p>Complete seu perfil na lista de tópicos (username + avatar) para responder.</p><p><a class="btn-secondary" href="comunidade.html">Voltar à comunidade</a></p></section>`)}
     `;
     el('forum-back')?.addEventListener('click', () => { history.replaceState({}, '', location.pathname); loadList(); });
     el('forum-reply-form')?.addEventListener('submit', onReplySubmit);
@@ -274,6 +307,9 @@
       e.target.reset();
     } catch (err) {
       setStatus('forum-compose-status', err.message, false);
+      if (err.data?.needRegister) {
+        setStatus('forum-compose-status', err.message + ' — use Criar conta em Minha Conta.', false);
+      }
     }
   }
 
@@ -307,12 +343,25 @@
 
   async function loadThread(id) {
     try {
+      if (!state.user) {
+        const sessionUser = window.STF_ACCOUNT?.getUser?.();
+        if (sessionUser) {
+          state.user = {
+            userId: sessionUser.userId,
+            nome: sessionUser.nome,
+            username: sessionUser.username || '',
+            avatarId: sessionUser.avatarId || '',
+            avatarEmoji: (state.avatars.find((a) => a.id === sessionUser.avatarId) || {}).emoji || '⌚',
+            isTester: !!sessionUser.isTester
+          };
+        }
+      }
       const data = await api('/forum/threads/' + encodeURIComponent(id));
       state.thread = data.thread;
       state.replies = data.replies || [];
       renderThread();
     } catch (err) {
-      showGate(err.message, err.data?.reason);
+      showGate(err.message, err.data?.reason || (err.data?.needRegister ? 'register' : 'login'));
     }
   }
 

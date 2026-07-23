@@ -182,21 +182,42 @@ async function canAccessForum(env, deps, request) {
 }
 
 async function requireForumWriter(env, deps, request) {
+  // Postar / responder exige conta cadastrada (cliente logado) — nunca anônimo.
+  const userId = await deps.getCustomerUserId(env, deps.bearerToken(request));
+  if (!userId) {
+    return {
+      error: 'Para postar, crie uma conta e faça login em Minha Conta.',
+      status: 401,
+      access: null,
+      needRegister: true
+    };
+  }
+  const user = await deps.getUserById(env, userId);
+  if (!user) {
+    return {
+      error: 'Conta não encontrada. Cadastre-se em Minha Conta para participar.',
+      status: 401,
+      access: null,
+      needRegister: true
+    };
+  }
   const access = await canAccessForum(env, deps, request);
   if (!access.ok) {
     return {
-      error: access.reason === 'login'
-        ? 'Faça login para acessar a comunidade.'
-        : 'Comunidade em desenvolvimento — disponível para usuários de teste.',
+      error: access.reason === 'tester'
+        ? 'Comunidade em desenvolvimento — disponível para usuários de teste.'
+        : 'Para postar, crie uma conta e faça login em Minha Conta.',
+      status: 403,
+      access,
+      needRegister: access.reason === 'login'
+    };
+  }
+  if (!access.meta.public && !user.isTester) {
+    return {
+      error: 'Somente usuários de teste podem postar enquanto a comunidade está em desenvolvimento.',
       status: 403,
       access
     };
-  }
-  if (access.role === 'admin') return { access, user: null, isAdmin: true };
-  const user = access.user || (await deps.getUserById(env, await deps.getCustomerUserId(env, deps.bearerToken(request))));
-  if (!user) return { error: 'Faça login para participar.', status: 401, access };
-  if (!access.meta.public && !user.isTester) {
-    return { error: 'Somente usuários de teste podem postar enquanto a comunidade está em desenvolvimento.', status: 403, access };
   }
   if (!user.username || !isValidUsername(user.username)) {
     return { error: 'Escolha um nome de usuário na comunidade antes de postar.', status: 400, access, needUsername: true };
@@ -419,9 +440,8 @@ export async function handleForumRoute(request, env, origin, deps) {
   if (path === '/forum/threads' && method === 'POST') {
     const gate = await requireForumWriter(env, deps, request);
     if (gate.error) {
-      return deps.json({ error: gate.error, needUsername: gate.needUsername, needAvatar: gate.needAvatar }, gate.status, origin);
+      return deps.json({ error: gate.error, needUsername: gate.needUsername, needAvatar: gate.needAvatar, needRegister: gate.needRegister }, gate.status, origin);
     }
-    if (gate.isAdmin) return deps.json({ error: 'Use uma conta de cliente testador para postar (ou marque-se como tester).' }, 400, origin);
     const body = await request.json();
     const title = String(body.title || '').trim().slice(0, FORUM_TITLE_MAX);
     const text = String(body.body || '').trim().slice(0, FORUM_BODY_MAX);
@@ -452,9 +472,8 @@ export async function handleForumRoute(request, env, origin, deps) {
   if (replyMatch && method === 'POST') {
     const gate = await requireForumWriter(env, deps, request);
     if (gate.error) {
-      return deps.json({ error: gate.error, needUsername: gate.needUsername, needAvatar: gate.needAvatar }, gate.status, origin);
+      return deps.json({ error: gate.error, needUsername: gate.needUsername, needAvatar: gate.needAvatar, needRegister: gate.needRegister }, gate.status, origin);
     }
-    if (gate.isAdmin) return deps.json({ error: 'Use uma conta de cliente testador para responder.' }, 400, origin);
     const thread = await resolveThreadByParam(env, decodeURIComponent(replyMatch[1]));
     if (!thread) return deps.json({ error: 'Tópico não encontrado.' }, 404, origin);
     if (thread.status !== 'published') return deps.json({ error: 'Este tópico ainda não está publicado.' }, 400, origin);
