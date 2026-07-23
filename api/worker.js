@@ -6152,6 +6152,220 @@ async function handleCustomerLogout(request, env, origin) {
   return json({ ok: true }, 200, origin);
 }
 
+const PASSWORD_RESET_TTL = 3600; // 1 hora
+
+function passwordResetLocaleFromRequest(request, bodyLocale) {
+  const explicit = String(bodyLocale || '').toLowerCase();
+  if (explicit === 'en' || explicit === 'it' || explicit === 'pt') return explicit;
+  const lang = (request.headers.get('Accept-Language') || '').toLowerCase();
+  if (lang.startsWith('it')) return 'it';
+  if (lang.startsWith('en')) return 'en';
+  const hay = `${request.headers.get('Origin') || ''} ${request.headers.get('Referer') || ''}`.toLowerCase();
+  if (hay.includes('/it/') || hay.includes('lang=it')) return 'it';
+  if (hay.includes('sensortattoofix.com') && !hay.includes('.com.br')) return 'en';
+  return 'pt';
+}
+
+function passwordResetSiteBase(locale, config) {
+  if (locale === 'en' || locale === 'it') return 'https://www.sensortattoofix.com';
+  return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
+}
+
+function passwordResetUrl(locale, config, token) {
+  const base = passwordResetSiteBase(locale, config);
+  const path = locale === 'it' ? '/it/minha-conta.html' : '/minha-conta.html';
+  return `${base}${path}?reset=${encodeURIComponent(token)}`;
+}
+
+function passwordResetEmailCopy(locale, resetUrl) {
+  if (locale === 'en') {
+    return {
+      subject: 'Reset your Sensor Tattoo Fix password',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Password reset</h2>
+        <p>We received a request to reset your Sensor Tattoo Fix account password.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Choose a new password</a></p>
+        <p style="font-size:13px;color:#666">This link expires in 1 hour. If you didn’t ask for this, you can ignore this email.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Reset your Sensor Tattoo Fix password:\n${resetUrl}\n\nThis link expires in 1 hour.`
+    };
+  }
+  if (locale === 'it') {
+    return {
+      subject: 'Reimposta la password di Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Reimposta password</h2>
+        <p>Abbiamo ricevuto una richiesta per reimpostare la password del tuo account Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Scegli una nuova password</a></p>
+        <p style="font-size:13px;color:#666">Il link scade tra 1 ora. Se non hai richiesto tu, ignora questa email.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Reimposta la password di Sensor Tattoo Fix:\n${resetUrl}\n\nIl link scade tra 1 ora.`
+    };
+  }
+  return {
+    subject: 'Redefinir senha — Sensor Tattoo Fix',
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+      <h2 style="margin:0 0 12px">Redefinir senha</h2>
+      <p>Recebemos um pedido para redefinir a senha da sua conta Sensor Tattoo Fix.</p>
+      <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Escolher nova senha</a></p>
+      <p style="font-size:13px;color:#666">Este link expira em 1 hora. Se você não pediu isso, ignore este e-mail.</p>
+      <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+    </div>`,
+    text: `Redefina sua senha Sensor Tattoo Fix:\n${resetUrl}\n\nEste link expira em 1 hora.`
+  };
+}
+
+async function enforceForgotPasswordRateLimit(env, ip) {
+  const key = `forgotPw:${ip || 'unknown'}`;
+  const raw = await env.STORE_KV.get(key);
+  const now = Date.now();
+  let state = raw ? JSON.parse(raw) : { count: 0, startedAt: now };
+  if (now - (state.startedAt || 0) > 60 * 60 * 1000) {
+    state = { count: 0, startedAt: now };
+  }
+  state.count = Number(state.count || 0) + 1;
+  await env.STORE_KV.put(key, JSON.stringify(state), { expirationTtl: 60 * 60 });
+  return state.count <= 8;
+}
+
+async function handleForgotPassword(request, env, origin) {
+  const body = await request.json().catch(() => ({}));
+  const email = normalizeEmail(body.email);
+  const locale = passwordResetLocaleFromRequest(request, body.locale);
+  const okPayload = {
+    ok: true,
+    message: locale === 'en'
+      ? 'If an account exists for this email, we sent a reset link.'
+      : locale === 'it'
+        ? 'Se esiste un account con questa email, abbiamo inviato un link di reset.'
+        : 'Se existir uma conta com este e-mail, enviamos um link para redefinir a senha.'
+  };
+
+  if (!email) return json({ error: locale === 'en' ? 'Enter your email.' : locale === 'it' ? 'Inserisci la tua email.' : 'Informe o e-mail.' }, 400, origin);
+
+  const ip = clientIp(request);
+  if (!(await enforceForgotPasswordRateLimit(env, ip))) {
+    return json({
+      error: locale === 'en'
+        ? 'Too many requests. Try again later.'
+        : locale === 'it'
+          ? 'Troppe richieste. Riprova più tardi.'
+          : 'Muitas tentativas. Tente de novo em alguns minutos.'
+    }, 429, origin);
+  }
+
+  const user = await getUserByEmail(env, email);
+  // Always return the same message (do not reveal whether the email exists).
+  if (!user) return json(okPayload, 200, origin);
+
+  const config = await getConfig(env);
+  const prev = String(user.passwordResetToken || '').trim();
+  if (prev) await env.STORE_KV.delete('passwordReset:' + prev);
+
+  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  await env.STORE_KV.put(
+    'passwordReset:' + token,
+    JSON.stringify({
+      userId: user.userId,
+      email: user.email,
+      locale,
+      createdAt: new Date().toISOString()
+    }),
+    { expirationTtl: PASSWORD_RESET_TTL }
+  );
+  user.passwordResetToken = token;
+  user.passwordResetAt = new Date().toISOString();
+  await saveUser(env, user);
+
+  const resetUrl = passwordResetUrl(locale, config, token);
+  const copy = passwordResetEmailCopy(locale, resetUrl);
+  const sent = await notifyEmail(env, config, user.email, copy.subject, {
+    Ação: 'Recuperação de senha',
+    Link: resetUrl
+  }, customerSupportEmail({ checkoutLocale: locale }, config), {
+    html: copy.html,
+    text: copy.text
+  });
+  if (!sent?.ok) {
+    console.error('Forgot password email failed:', user.email, sent);
+    return json({
+      error: locale === 'en'
+        ? 'Could not send the email. Try again or contact support.'
+        : locale === 'it'
+          ? 'Impossibile inviare l\'email. Riprova o contatta il supporto.'
+          : 'Não foi possível enviar o e-mail. Tente de novo ou fale com o suporte.'
+    }, 502, origin);
+  }
+
+  return json(okPayload, 200, origin);
+}
+
+async function handleResetPassword(request, env, origin) {
+  const body = await request.json().catch(() => ({}));
+  const token = String(body.token || '').trim();
+  const senha = String(body.senha || body.password || '');
+  const locale = passwordResetLocaleFromRequest(request, body.locale);
+
+  if (!token) {
+    return json({
+      error: locale === 'en' ? 'Invalid or expired reset link.' : locale === 'it' ? 'Link non valido o scaduto.' : 'Link inválido ou expirado.'
+    }, 400, origin);
+  }
+  if (!senha || senha.length < 6) {
+    return json({
+      error: locale === 'en' ? 'Password must be at least 6 characters.' : locale === 'it' ? 'La password deve avere almeno 6 caratteri.' : 'Senha mínima: 6 caracteres.'
+    }, 400, origin);
+  }
+
+  const raw = await env.STORE_KV.get('passwordReset:' + token);
+  if (!raw) {
+    return json({
+      error: locale === 'en' ? 'Invalid or expired reset link.' : locale === 'it' ? 'Link non valido o scaduto.' : 'Link inválido ou expirado.'
+    }, 400, origin);
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return json({
+      error: locale === 'en' ? 'Invalid or expired reset link.' : locale === 'it' ? 'Link non valido o scaduto.' : 'Link inválido ou expirado.'
+    }, 400, origin);
+  }
+
+  const user = await getUserById(env, payload.userId);
+  if (!user || user.passwordResetToken !== token) {
+    return json({
+      error: locale === 'en' ? 'Invalid or expired reset link.' : locale === 'it' ? 'Link non valido o scaduto.' : 'Link inválido ou expirado.'
+    }, 400, origin);
+  }
+
+  const creds = await hashPassword(senha);
+  user.passwordSalt = creds.salt;
+  user.passwordHash = creds.hash;
+  user.passwordResetToken = null;
+  user.passwordResetAt = null;
+  user.updatedAt = new Date().toISOString();
+  await saveUser(env, user);
+  await env.STORE_KV.delete('passwordReset:' + token);
+
+  // Invalidate existing sessions by rotating: delete this user's sessions is hard without index;
+  // create a fresh session for convenience after reset.
+  const sessionToken = await createCustomerSession(env, user.userId);
+  return json({
+    ok: true,
+    token: sessionToken,
+    user: publicUserView(user),
+    message: locale === 'en'
+      ? 'Password updated. You are signed in.'
+      : locale === 'it'
+        ? 'Password aggiornata. Hai effettuato l\'accesso.'
+        : 'Senha atualizada. Você já está logado.'
+  }, 200, origin);
+}
+
 async function listAllCustomers(env, max = 500) {
   const users = [];
   let cursor;
@@ -8989,6 +9203,8 @@ export default {
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
       if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);
       if (path === '/auth/logout' && request.method === 'POST') return handleCustomerLogout(request, env, origin);
+      if (path === '/auth/forgot-password' && request.method === 'POST') return handleForgotPassword(request, env, origin);
+      if (path === '/auth/reset-password' && request.method === 'POST') return handleResetPassword(request, env, origin);
       if (path === '/auth/session' && request.method === 'GET') return handleCustomerSession(request, env, origin);
       if (path === '/me/orders' && request.method === 'GET') return handleCustomerOrders(request, env, origin);
       if (path === '/me/profile' && request.method === 'PATCH') {

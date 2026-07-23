@@ -4766,6 +4766,24 @@ body.stf-lightbox-open { overflow: hidden; }
 .loja-cta { color: var(--primary); font-weight: 700; font-size: 0.9rem; }
 .conta-container { max-width: 720px; }
 .conta-tabs { display: flex; gap: 8px; margin: 16px 0; }
+.conta-tabs.is-hidden-auth-extra { display: none; }
+.conta-forgot-row {
+  margin: 10px 0 0;
+  text-align: left;
+}
+.conta-forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+a.conta-forgot-link { display: inline-block; }
 .conta-panel-tabs { margin-top: 8px; }
 .conta-form-section {
     margin: 20px 0 10px;

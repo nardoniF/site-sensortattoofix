@@ -119,6 +119,25 @@ window.STF_ACCOUNT = (function () {
     return data;
   }
 
+  async function forgotPassword(email, locale) {
+    return api('/auth/forgot-password', {
+      method: 'POST',
+      json: { email: String(email || '').trim(), locale: locale || undefined }
+    });
+  }
+
+  async function resetPassword(token, senha, locale) {
+    const data = await api('/auth/reset-password', {
+      method: 'POST',
+      json: { token, senha, locale: locale || undefined }
+    });
+    if (data.token && data.user) {
+      setSession(data.token, data.user);
+      initNav();
+    }
+    return data;
+  }
+
   async function register(payload) {
     const data = await api('/auth/register', { method: 'POST', json: payload });
     setSession(data.token, data.user);
@@ -198,6 +217,8 @@ window.STF_ACCOUNT = (function () {
     refreshSession,
     logout,
     login,
+    forgotPassword,
+    resetPassword,
     register,
     updateProfile,
     initNav,

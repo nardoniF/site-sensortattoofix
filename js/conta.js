@@ -10,6 +10,12 @@
     return lang === 'it' ? 'it-IT' : lang === 'en' ? 'en-US' : 'pt-BR';
   }
 
+  function langCode() {
+    const lang = window.STF_I18N?.getLang?.() || 'pt';
+    if (lang === 'it' || lang === 'en') return lang;
+    return 'pt';
+  }
+
   function lojaHref() {
     return window.STF_I18N?.lojaHref?.() || 'loja.html';
   }
@@ -25,12 +31,16 @@
     panelBox: document.getElementById('conta-panel'),
     loginForm: document.getElementById('conta-login-form'),
     registerForm: document.getElementById('conta-register-form'),
+    forgotForm: document.getElementById('conta-forgot-form'),
+    resetForm: document.getElementById('conta-reset-form'),
     profileForm: document.getElementById('conta-profile-form'),
     ordersList: document.getElementById('conta-orders'),
     userName: document.getElementById('conta-user-name'),
     logoutBtn: document.getElementById('conta-logout'),
     loginStatus: document.getElementById('conta-login-status'),
     registerStatus: document.getElementById('conta-register-status'),
+    forgotStatus: document.getElementById('conta-forgot-status'),
+    resetStatus: document.getElementById('conta-reset-status'),
     profileStatus: document.getElementById('conta-profile-status'),
     tabs: document.querySelectorAll('[data-conta-tab]'),
     panelTabs: document.querySelectorAll('[data-conta-panel-tab]')
@@ -59,36 +69,49 @@
     return `${d.slice(0, 5)}-${d.slice(5)}`;
   }
 
+  function showNamedStatus(el, text, type) {
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'admin-status form-status ' + (type || '');
+    el.hidden = !text;
+    if (text) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
   function activeStatusEl() {
     const loginPanel = document.querySelector('[data-conta-panel="login"]');
+    const forgotPanel = document.querySelector('[data-conta-panel="forgot"]');
+    const resetPanel = document.querySelector('[data-conta-panel="reset"]');
+    if (forgotPanel && !forgotPanel.hidden) return els.forgotStatus;
+    if (resetPanel && !resetPanel.hidden) return els.resetStatus;
     if (loginPanel && !loginPanel.hidden) return els.loginStatus;
     return els.registerStatus;
   }
 
   function showStatus(text, type) {
     const el = activeStatusEl();
-    if (!el) return;
-    if (els.loginStatus && els.loginStatus !== el) {
-      els.loginStatus.hidden = true;
-      els.loginStatus.textContent = '';
-    }
-    if (els.registerStatus && els.registerStatus !== el) {
-      els.registerStatus.hidden = true;
-      els.registerStatus.textContent = '';
-    }
-    el.textContent = text;
-    el.className = 'admin-status form-status ' + (type || '');
-    el.hidden = !text;
-    if (text) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    [els.loginStatus, els.registerStatus, els.forgotStatus, els.resetStatus].forEach((s) => {
+      if (s && s !== el) {
+        s.hidden = true;
+        s.textContent = '';
+      }
+    });
+    showNamedStatus(el, text, type);
   }
 
   function showProfileStatus(text, type) {
-    const el = els.profileStatus;
-    if (!el) return;
-    el.textContent = text;
-    el.className = 'admin-status form-status ' + (type || '');
-    el.hidden = !text;
-    if (text) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    showNamedStatus(els.profileStatus, text, type);
+  }
+
+  function showAuthPanel(target) {
+    document.querySelectorAll('#conta-login [data-conta-panel]').forEach((p) => {
+      p.hidden = p.getAttribute('data-conta-panel') !== target;
+    });
+    const showTabs = target === 'login' || target === 'register';
+    document.querySelector('.conta-tabs')?.classList.toggle('is-hidden-auth-extra', !showTabs);
+    els.tabs.forEach((t) => {
+      t.classList.toggle('active', t.getAttribute('data-conta-tab') === target);
+      t.hidden = !showTabs;
+    });
   }
 
   function showPanel(user) {
@@ -110,6 +133,7 @@
     if (els.panelBox) els.panelBox.hidden = true;
     A()?.clearSession();
     A()?.initNav();
+    showAuthPanel('login');
   }
 
   function escapeHtml(s) {
@@ -186,10 +210,14 @@
     els.tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
         const target = tab.getAttribute('data-conta-tab');
-        document.querySelectorAll('[data-conta-panel]').forEach((p) => {
-          p.hidden = p.getAttribute('data-conta-panel') !== target;
-        });
-        els.tabs.forEach((t) => t.classList.toggle('active', t === tab));
+        showAuthPanel(target);
+      });
+    });
+
+    document.querySelectorAll('[data-conta-show]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        showAuthPanel(btn.getAttribute('data-conta-show'));
+        showStatus('', '');
       });
     });
 
@@ -216,20 +244,55 @@
       }
     });
 
+    els.forgotForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showNamedStatus(els.forgotStatus, L('conta.forgotSending'), '');
+      try {
+        const email = e.target.email.value;
+        const data = await A().forgotPassword(email, langCode());
+        showNamedStatus(els.forgotStatus, data.message || L('conta.forgotSent'), 'success');
+      } catch (err) {
+        showNamedStatus(els.forgotStatus, err.message, 'error');
+      }
+    });
+
+    els.resetForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const senha = f.password.value;
+      const confirm = f.passwordConfirm.value;
+      if (senha !== confirm) {
+        showNamedStatus(els.resetStatus, L('conta.resetMismatch'), 'error');
+        return;
+      }
+      showNamedStatus(els.resetStatus, L('conta.resetSaving'), '');
+      try {
+        const data = await A().resetPassword(f.token.value, senha, langCode());
+        showNamedStatus(els.resetStatus, data.message || L('conta.resetDone'), 'success');
+        showPanel(data.user);
+        setPanelView('orders');
+        await loadOrders();
+        const url = new URL(location.href);
+        url.searchParams.delete('reset');
+        history.replaceState({}, '', url.pathname + url.search + url.hash);
+      } catch (err) {
+        showNamedStatus(els.resetStatus, err.message, 'error');
+      }
+    });
+
     els.registerForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       showStatus(L('conta.creating'), '');
       try {
         const f = e.target;
-        if (f.password.value.length < 6) throw new Error(L('conta.passwordMinErr'));
         const data = await A().register({
           nome: f.nome.value.trim(),
           email: f.email.value.trim(),
           telefone: f.telefone.value.trim(),
-          cpf: f.cpf.value.trim(),
+          cpf: f.cpf?.value?.trim() || '',
           senha: f.password.value
         });
-        showStatus(L('conta.created'), 'success');
+        showStatus('', '');
         showPanel(data.user);
         setPanelView('orders');
         await loadOrders();
@@ -243,8 +306,11 @@
       showProfileStatus(L('conta.saving'), '');
       try {
         const f = e.target;
-        const senhaNova = f.senhaNova?.value || '';
-        if (senhaNova && senhaNova.length < 6) throw new Error(L('conta.passwordMinErr'));
+        const senhaNova = (f.senhaNova?.value || '').trim();
+        if (senhaNova && senhaNova.length < 6) {
+          showProfileStatus(L('conta.passwordMinErr'), 'error');
+          return;
+        }
         const payload = {
           nome: f.nome.value.trim(),
           telefone: f.telefone.value.trim(),
@@ -283,11 +349,35 @@
     });
   }
 
+  function consumeResetTokenFromUrl() {
+    const params = new URLSearchParams(location.search);
+    const token = String(params.get('reset') || '').trim();
+    if (!token) return false;
+    const tokenInput = document.getElementById('conta-reset-token');
+    if (tokenInput) tokenInput.value = token;
+    showAuthPanel('reset');
+    return true;
+  }
+
+  function consumeForgotFromUrl() {
+    const params = new URLSearchParams(location.search);
+    if (params.get('forgot') !== '1' && location.hash !== '#forgot') return false;
+    showAuthPanel('forgot');
+    return true;
+  }
+
   async function boot() {
     bindTabs();
     bindForms();
+    const hasReset = consumeResetTokenFromUrl();
+    const hasForgot = !hasReset && consumeForgotFromUrl();
     const user = await A().refreshSession();
     A().initNav();
+    if (hasReset || hasForgot) {
+      if (els.loginBox) els.loginBox.hidden = false;
+      if (els.panelBox) els.panelBox.hidden = true;
+      return;
+    }
     if (user) {
       showPanel(user);
       setPanelView('orders');
