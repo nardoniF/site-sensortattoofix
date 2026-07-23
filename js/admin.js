@@ -1673,9 +1673,8 @@ ${worksheets}
         <td>${escapeHtml(c.telefone || '—')}</td>
         <td>
           <label class="admin-check" title="Testador: R$ 0,01 + comunidade beta">
-            <input type="checkbox" data-tester-toggle ${c.isTester ? 'checked' : ''}>
-            <span>${c.isTester ? 'Sim' : 'Não'}</span>
-          </label>
+              <input type="checkbox" data-tester-toggle ${c.isTester ? 'checked' : ''} aria-label="Usuário de teste">
+            </label>
         </td>
         <td>${Number(c.orderCount) || 0}</td>
         <td>${escapeHtml(formatCustomerDate(c.createdAt))}</td>
