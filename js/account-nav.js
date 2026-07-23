@@ -181,7 +181,7 @@ window.STF_ACCOUNT = (function () {
           <div class="account-nav-menu">
             <span class="account-nav-menu-label">${escapeHtml(user.email || '')}</span>
             <a href="${accountLink()}"><i class="fas fa-box"></i> ${escapeHtml(navT('nav.myOrders', 'Meus pedidos', 'My orders'))}</a>
-            `<a href="${prefix}comunidade.html"><i class="fas fa-comments"></i> Comunidade</a>`
+            <a href="${prefix}comunidade.html"><i class="fas fa-comments"></i> Comunidade</a>
             <button type="button" data-account-logout><i class="fas fa-sign-out-alt"></i> ${escapeHtml(navT('nav.logout', 'Sair', 'Log out'))}</button>
           </div>
         </details>
