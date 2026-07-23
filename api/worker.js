@@ -6217,6 +6217,9 @@ function passwordResetEmailCopy(locale, resetUrl) {
   };
 }
 
+/** Cooldown before issuing another reset email for the same account (avoids double-click). */
+const FORGOT_PASSWORD_RESEND_COOLDOWN_MS = 3 * 60 * 1000;
+
 async function enforceForgotPasswordRateLimit(env, ip) {
   const key = `forgotPw:${ip || 'unknown'}`;
   const raw = await env.STORE_KV.get(key);
@@ -6228,6 +6231,34 @@ async function enforceForgotPasswordRateLimit(env, ip) {
   state.count = Number(state.count || 0) + 1;
   await env.STORE_KV.put(key, JSON.stringify(state), { expirationTtl: 60 * 60 });
   return state.count <= 8;
+}
+
+/** Per-email lock so parallel/double submits only send one message. */
+async function claimForgotPasswordSend(env, email) {
+  const key = `forgotPwEmail:${email}`;
+  const raw = await env.STORE_KV.get(key);
+  const now = Date.now();
+  if (raw) {
+    try {
+      const prev = JSON.parse(raw);
+      if (now - Number(prev.at || 0) < FORGOT_PASSWORD_RESEND_COOLDOWN_MS) {
+        return false;
+      }
+    } catch (_) { /* replace */ }
+  }
+  await env.STORE_KV.put(key, JSON.stringify({ at: now }), {
+    expirationTtl: Math.ceil(FORGOT_PASSWORD_RESEND_COOLDOWN_MS / 1000) + 30
+  });
+  return true;
+}
+
+async function recentPasswordResetStillValid(env, user) {
+  const token = String(user.passwordResetToken || '').trim();
+  if (!token) return false;
+  const at = Date.parse(String(user.passwordResetAt || ''));
+  if (!Number.isFinite(at) || Date.now() - at > FORGOT_PASSWORD_RESEND_COOLDOWN_MS) return false;
+  const raw = await env.STORE_KV.get('passwordReset:' + token);
+  return Boolean(raw);
 }
 
 async function handleForgotPassword(request, env, origin) {
@@ -6260,6 +6291,14 @@ async function handleForgotPassword(request, env, origin) {
   // Always return the same message (do not reveal whether the email exists).
   if (!user) return json(okPayload, 200, origin);
 
+  // Double-click / impatient resend: keep the first valid link, do not email again.
+  if (await recentPasswordResetStillValid(env, user)) {
+    return json(okPayload, 200, origin);
+  }
+  if (!(await claimForgotPasswordSend(env, email))) {
+    return json(okPayload, 200, origin);
+  }
+
   const config = await getConfig(env);
   const prev = String(user.passwordResetToken || '').trim();
   if (prev) await env.STORE_KV.delete('passwordReset:' + prev);
@@ -6290,6 +6329,8 @@ async function handleForgotPassword(request, env, origin) {
   });
   if (!sent?.ok) {
     console.error('Forgot password email failed:', user.email, sent);
+    // Allow immediate retry if send failed.
+    await env.STORE_KV.delete(`forgotPwEmail:${email}`);
     return json({
       error: locale === 'en'
         ? 'Could not send the email. Try again or contact support.'

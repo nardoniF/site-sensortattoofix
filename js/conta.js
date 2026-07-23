@@ -244,20 +244,31 @@
       }
     });
 
+    let forgotBusy = false;
     els.forgotForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (forgotBusy) return;
+      forgotBusy = true;
+      const form = e.target;
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
       showNamedStatus(els.forgotStatus, L('conta.forgotSending'), '');
       try {
-        const email = e.target.email.value;
+        const email = form.email.value;
         const data = await A().forgotPassword(email, langCode());
         showNamedStatus(els.forgotStatus, data.message || L('conta.forgotSent'), 'success');
+        // Keep button disabled after success — avoids impatient double-send.
       } catch (err) {
+        forgotBusy = false;
+        if (btn) btn.disabled = false;
         showNamedStatus(els.forgotStatus, err.message, 'error');
       }
     });
 
+    let resetBusy = false;
     els.resetForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (resetBusy) return;
       const f = e.target;
       const senha = f.password.value;
       const confirm = f.passwordConfirm.value;
@@ -265,6 +276,9 @@
         showNamedStatus(els.resetStatus, L('conta.resetMismatch'), 'error');
         return;
       }
+      resetBusy = true;
+      const btn = f.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
       showNamedStatus(els.resetStatus, L('conta.resetSaving'), '');
       try {
         const data = await A().resetPassword(f.token.value, senha, langCode());
@@ -276,6 +290,8 @@
         url.searchParams.delete('reset');
         history.replaceState({}, '', url.pathname + url.search + url.hash);
       } catch (err) {
+        resetBusy = false;
+        if (btn) btn.disabled = false;
         showNamedStatus(els.resetStatus, err.message, 'error');
       }
     });
