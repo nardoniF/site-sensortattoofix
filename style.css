@@ -4744,12 +4744,20 @@ body.stf-lightbox-open { overflow: hidden; }
   display: block;
   width: 100%;
 }
-.product-image-wrap .stf-album img {
+.product-image-wrap .stf-album {
   max-width: 280px;
-  width: 100%;
-  height: auto;
-  display: block;
   margin: 0 auto;
+  aspect-ratio: 720 / 1024;
+  background: #111;
+  border-radius: 12px;
+}
+.product-image-wrap .stf-album img {
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0;
 }
 .kit-box-media .stf-album img {
   max-width: 320px;
@@ -4759,6 +4767,17 @@ body.stf-lightbox-open { overflow: hidden; }
   object-fit: contain;
   display: block;
   margin: 0 auto;
+}
+/* Loja card: keep square frame so alternating portraits stay same size */
+.loja-card .stf-album {
+  aspect-ratio: 1;
+  background: #111;
+}
+.loja-card .stf-album img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: contain;
 }
 .loja-card-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .loja-card h3 { margin: 0; font-size: 1.05rem; color: var(--primary); }
