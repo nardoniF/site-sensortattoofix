@@ -235,8 +235,19 @@ const OFFICIAL_AUTHOR = {
   username: 'sensortattoofix',
   avatarId: 'shield',
   avatarEmoji: '🛡️',
-  isTester: true,
   isOfficial: true
+};
+
+/** Personas de exemplo — nomes variados (sem padrão tipo nome_xx). */
+const SEED_AUTHORS = {
+  'seed-marina': { userId: 'seed-marina', nome: 'Marina Costa', username: 'mariacosta', avatarId: 'ink', avatarEmoji: '🖋️' },
+  'seed-rafa': { userId: 'seed-rafa', nome: 'Rafael Nunes', username: 'rafaelnunes', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-lia': { userId: 'seed-lia', nome: 'Lia Mendes', username: 'liamendes', avatarId: 'sensor', avatarEmoji: '📡' },
+  'seed-pedro': { userId: 'seed-pedro', nome: 'Pedro Almeida', username: 'pedroalmeida', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-ana': { userId: 'seed-ana', nome: 'Ana Souza', username: 'anasouza', avatarId: 'heart', avatarEmoji: '❤️' },
+  'seed-bruno': { userId: 'seed-bruno', nome: 'Bruno Ferreira', username: 'brunoferreira', avatarId: 'star', avatarEmoji: '⭐' },
+  'seed-carla': { userId: 'seed-carla', nome: 'Carla Dias', username: 'carladias', avatarId: 'gem', avatarEmoji: '💎' },
+  'seed-tio': { userId: 'seed-tio', nome: 'Tiago Oliveira', username: 'tiagoliveira', avatarId: 'moon', avatarEmoji: '🌙' }
 };
 
 function officialReply(body, createdAt) {
@@ -251,22 +262,23 @@ function officialReply(body, createdAt) {
 function seedPayload() {
   const now = Date.now();
   const iso = (minsAgo) => new Date(now - minsAgo * 60000).toISOString();
+  const A = SEED_AUTHORS;
   return [
     {
       title: 'Sensor do Apple Watch falhando após tatuagem no pulso — alguém passou por isso?',
       body: 'Fiz uma tatuagem no pulso há 3 semanas e o sensor óptico do meu Apple Watch Series 9 começou a falhar nas medições de batimento. Já limpei o sensor e reposicionei a pulseira.\n\nAlguém aqui usou o Sensor Tattoo Fix e voltou a ter leitura estável? Qual modelo de relógio vocês usam?',
       tags: ['apple-watch', 'tatuagem', 'sensor'],
-      author: { userId: 'seed-marina', nome: 'Marina Costa', username: 'marina_ink', avatarId: 'ink', avatarEmoji: '🖋️', isTester: true },
+      author: { ...A['seed-marina'] },
       createdAt: iso(60 * 36),
       replies: [
         {
           body: 'Passei pelo mesmo com Series 8. O kit ajudou bastante — o contato ficou mais uniforme e as medições voltaram em cerca de 2 dias de uso contínuo.',
-          author: { userId: 'seed-rafa', nome: 'Rafael Nunes', username: 'rafa_watch', avatarId: 'watch', avatarEmoji: '⌚', isTester: true },
+          author: { ...A['seed-rafa'] },
           createdAt: iso(60 * 30)
         },
         {
           body: 'Importante: meça o diâmetro do sensor na parte de trás do relógio. O encaixe certo faz diferença enorme na leitura.',
-          author: { userId: 'seed-lia', nome: 'Lia Mendes', username: 'lia_sensor', avatarId: 'sensor', avatarEmoji: '📡', isTester: true },
+          author: { ...A['seed-lia'] },
           createdAt: iso(60 * 20)
         },
         officialReply(
@@ -279,12 +291,12 @@ function seedPayload() {
       title: 'Dicas de instalação do kit — o que funcionou pra mim',
       body: 'Compartilho o que funcionou no meu Galaxy Watch 6:\n\n1. Limpar a área do sensor com álcool isopropílico\n2. Alinhar o recorte com luz boa\n3. Pressionar as bordas por 20–30 segundos\n4. Evitar água nas primeiras 2 horas\n\nSe tiverem outras dicas, mandem!',
       tags: ['instalacao', 'galaxy-watch', 'dicas'],
-      author: { userId: 'seed-pedro', nome: 'Pedro Almeida', username: 'pedro_gw', avatarId: 'bolt', avatarEmoji: '⚡', isTester: true },
+      author: { ...A['seed-pedro'] },
       createdAt: iso(60 * 50),
       replies: [
         {
           body: 'No meu Garmin a luz de fundo do celular ajudou a ver o alinhamento. Valeu pelas dicas!',
-          author: { userId: 'seed-ana', nome: 'Ana Souza', username: 'ana_run', avatarId: 'heart', avatarEmoji: '❤️', isTester: true },
+          author: { ...A['seed-ana'] },
           createdAt: iso(60 * 40)
         },
         officialReply(
@@ -297,23 +309,23 @@ function seedPayload() {
       title: 'Lista de modelos compatíveis — vamos completar juntos',
       body: 'Queria montar uma lista viva de modelos em que o kit encaixa bem. Eu uso Pixel Watch 2 e deu certo.\n\nComentem: marca, modelo e se precisou medir o sensor.',
       tags: ['compatibilidade', 'modelos'],
-      author: { userId: 'seed-bruno', nome: 'Bruno Ferreira', username: 'bruno_px', avatarId: 'star', avatarEmoji: '⭐', isTester: true },
+      author: { ...A['seed-bruno'] },
       createdAt: iso(60 * 72),
       media: [],
       replies: [
         {
           body: 'Amazfit GTR 4 — encaixe ok após medir 28mm no sensor.',
-          author: { userId: 'seed-carla', nome: 'Carla Dias', username: 'carla_az', avatarId: 'gem', avatarEmoji: '💎', isTester: true },
+          author: { ...A['seed-carla'] },
           createdAt: iso(60 * 55)
         },
         {
           body: 'Huawei Watch GT 4 — também ok.',
-          author: { userId: 'seed-tio', nome: 'Tiago Oliveira', username: 'tiago_gt', avatarId: 'shield', avatarEmoji: '🛡️', isTester: true },
+          author: { ...A['seed-tio'] },
           createdAt: iso(60 * 48)
         },
         {
           body: 'Vamos manter essa thread atualizada — ajuda muito quem está na dúvida antes de comprar.',
-          author: { userId: 'seed-marina', nome: 'Marina Costa', username: 'marina_ink', avatarId: 'ink', avatarEmoji: '🖋️', isTester: true },
+          author: { ...A['seed-marina'] },
           createdAt: iso(60 * 12)
         },
         officialReply(
@@ -323,6 +335,132 @@ function seedPayload() {
       ]
     }
   ];
+}
+
+const RELATED_STOP = new Set([
+  'de', 'da', 'do', 'das', 'dos', 'a', 'o', 'e', 'em', 'um', 'uma', 'uns', 'umas',
+  'para', 'pra', 'com', 'que', 'no', 'na', 'nos', 'nas', 'por', 'pelo', 'pela',
+  'seu', 'sua', 'meu', 'minha', 'ele', 'ela', 'eles', 'elas', 'voce', 'voces',
+  'the', 'and', 'or', 'is', 'to', 'of', 'in', 'on', 'for', 'with', 'this', 'that',
+  'alguem', 'passou', 'isso', 'aqui', 'como', 'mais', 'muito', 'sobre', 'apos',
+  'quero', 'queria', 'fazer', 'tem', 'ter', 'foi', 'ser', 'sao', 'já', 'ja'
+]);
+
+function tokenizeRelated(q) {
+  return String(q || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length >= 3 && !RELATED_STOP.has(t));
+}
+
+function scoreRelatedThread(thread, tokens) {
+  if (!tokens.length) return 0;
+  const title = String(thread.title || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  const body = String(thread.body || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  const tags = (thread.tags || []).join(' ').toLowerCase();
+  let score = 0;
+  for (const t of tokens) {
+    if (title.includes(t)) score += 6;
+    else if (tags.includes(t)) score += 4;
+    else if (body.includes(t)) score += 2;
+  }
+  return score;
+}
+
+async function findRelatedThreads(env, query, { limit = 8, includePending = false } = {}) {
+  const tokens = tokenizeRelated(query);
+  if (!tokens.length) return { tokens: [], matches: [] };
+  const index = await getThreadIndex(env);
+  const scored = [];
+  for (const id of index) {
+    const thread = await getThread(env, id);
+    if (!thread) continue;
+    if (!includePending && thread.status !== 'published') continue;
+    if (includePending && thread.status === 'rejected') continue;
+    const score = scoreRelatedThread(thread, tokens);
+    if (score < 4) continue;
+    scored.push({ score, thread });
+  }
+  scored.sort((a, b) => b.score - a.score || String(b.thread.updatedAt || '').localeCompare(String(a.thread.updatedAt || '')));
+  return {
+    tokens,
+    matches: scored.slice(0, limit).map(({ score, thread }) => ({
+      score,
+      ...publicThread(thread, { includeBody: false })
+    }))
+  };
+}
+
+/** Atualiza usernames/avatars das personas seed já gravadas no KV. */
+async function refreshSeedAuthors(env) {
+  const index = await getThreadIndex(env);
+  let threadsTouched = 0;
+  let repliesTouched = 0;
+  for (const id of index) {
+    const thread = await getThread(env, id);
+    if (!thread || !thread.seeded) continue;
+    let changed = false;
+    const seedAuthor = SEED_AUTHORS[thread.author?.userId];
+    if (seedAuthor) {
+      thread.author = { ...seedAuthor };
+      changed = true;
+    } else if (thread.author?.userId === OFFICIAL_AUTHOR.userId || thread.author?.username === 'sensortattoofix') {
+      thread.author = { ...OFFICIAL_AUTHOR };
+      changed = true;
+    } else if (thread.author && 'isTester' in thread.author) {
+      const next = { ...thread.author };
+      delete next.isTester;
+      thread.author = next;
+      changed = true;
+    }
+    const replies = await getReplies(env, id);
+    let repliesChanged = false;
+    for (const r of replies) {
+      if (!r.seeded && !r.official && !r.author?.isOfficial) continue;
+      const mapped = SEED_AUTHORS[r.author?.userId];
+      if (mapped) {
+        r.author = { ...mapped };
+        repliesChanged = true;
+        repliesTouched += 1;
+      } else if (r.official || r.author?.isOfficial || r.author?.username === 'sensortattoofix') {
+        r.author = { ...OFFICIAL_AUTHOR };
+        r.official = true;
+        repliesChanged = true;
+        repliesTouched += 1;
+      } else if (r.author && 'isTester' in r.author) {
+        const next = { ...r.author };
+        delete next.isTester;
+        r.author = next;
+        repliesChanged = true;
+        repliesTouched += 1;
+      }
+    }
+    if (repliesChanged) await saveReplies(env, id, replies);
+    if (changed) {
+      thread.updatedAt = thread.updatedAt || new Date().toISOString();
+      await saveThread(env, thread);
+      threadsTouched += 1;
+    } else if (repliesChanged) {
+      await saveThread(env, thread);
+      threadsTouched += 1;
+    }
+  }
+  const meta = await getForumMeta(env);
+  const next = {
+    ...meta,
+    seedAuthorsRefreshedAt: new Date().toISOString(),
+    seedAuthorsRefresh: { threadsTouched, repliesTouched }
+  };
+  await saveForumMeta(env, next);
+  return next;
 }
 
 
@@ -385,55 +523,79 @@ async function ensureForumPublic(env) {
   return next;
 }
 
+const SEED_AUTHORS_VERSION = 2;
+
 async function ensureSeed(env) {
-  const meta = await getForumMeta(env);
-  if (meta.seeded) return meta;
-  const index = await getThreadIndex(env);
-  const seeds = seedPayload();
-  const newIds = [];
-  for (const s of seeds) {
-    const id = crypto.randomUUID();
-    let slug = slugify(s.title);
-    if (await env.STORE_KV.get('forum:slug:' + slug)) slug = `${slug}-${id.slice(0, 6)}`;
-    const replies = (s.replies || []).map((r) => ({
-      id: crypto.randomUUID(),
-      body: r.body,
-      status: 'published',
-      createdAt: r.createdAt,
-      author: r.author,
-      media: [],
+  let meta = await getForumMeta(env);
+  if (!meta.seeded) {
+    const index = await getThreadIndex(env);
+    const seeds = seedPayload();
+    const newIds = [];
+    for (const s of seeds) {
+      const id = crypto.randomUUID();
+      let slug = slugify(s.title);
+      if (await env.STORE_KV.get('forum:slug:' + slug)) slug = `${slug}-${id.slice(0, 6)}`;
+      const replies = (s.replies || []).map((r) => ({
+        id: crypto.randomUUID(),
+        body: r.body,
+        status: 'published',
+        createdAt: r.createdAt,
+        author: r.author,
+        media: [],
+        seeded: true,
+        official: !!(r.official || r.author?.isOfficial)
+      }));
+      const thread = {
+        id,
+        slug,
+        title: s.title,
+        body: s.body,
+        status: 'published',
+        createdAt: s.createdAt,
+        updatedAt: replies.length ? replies[replies.length - 1].createdAt : s.createdAt,
+        replyCount: replies.length,
+        publishedReplyCount: replies.length,
+        tags: s.tags || [],
+        author: s.author,
+        media: s.media || [],
+        seeded: true
+      };
+      await saveThread(env, thread);
+      await saveReplies(env, id, replies);
+      newIds.push(id);
+    }
+    await saveThreadIndex(env, [...newIds, ...index]);
+    meta = {
+      ...meta,
       seeded: true,
-      official: !!(r.official || r.author?.isOfficial)
-    }));
-    const thread = {
-      id,
-      slug,
-      title: s.title,
-      body: s.body,
-      status: 'published',
-      createdAt: s.createdAt,
-      updatedAt: replies.length ? replies[replies.length - 1].createdAt : s.createdAt,
-      replyCount: replies.length,
-      publishedReplyCount: replies.length,
-      tags: s.tags || [],
-      author: s.author,
-      media: s.media || [],
-      seeded: true
+      seedAuthorsVersion: SEED_AUTHORS_VERSION,
+      seedAuthorsRefreshedAt: new Date().toISOString()
     };
-    await saveThread(env, thread);
-    await saveReplies(env, id, replies);
-    newIds.push(id);
+    await saveForumMeta(env, meta);
+  } else if (Number(meta.seedAuthorsVersion || 0) < SEED_AUTHORS_VERSION) {
+    meta = await refreshSeedAuthors(env);
+    meta = { ...meta, seedAuthorsVersion: SEED_AUTHORS_VERSION };
+    await saveForumMeta(env, meta);
   }
-  await saveThreadIndex(env, [...newIds, ...index]);
-  const next = { ...meta, seeded: true };
-  await saveForumMeta(env, next);
-  return next;
+  return meta;
 }
 
 export async function handleForumRoute(request, env, origin, deps) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/$/, '') || '/';
   const method = request.method;
+
+  if (path === '/forum/related' && method === 'GET') {
+    await ensureSeed(env);
+    await ensureForumPublic(env);
+    const access = await canAccessForum(env, deps, request);
+    if (!access.ok) {
+      return deps.json({ ok: false, reason: access.reason, matches: [] }, 403, origin);
+    }
+    const q = url.searchParams.get('q') || '';
+    const result = await findRelatedThreads(env, q, { limit: 8, includePending: false });
+    return deps.json({ ok: true, query: q, ...result }, 200, origin);
+  }
 
   if (path === '/forum' && method === 'GET') {
     await ensureSeed(env);
@@ -628,28 +790,45 @@ export async function handleForumRoute(request, env, origin, deps) {
     return deps.json({ ok: true, meta }, 200, origin);
   }
 
+  if (path === '/admin/forum/related' && method === 'GET') {
+    if (!(await deps.isValidSession(env, deps.bearerToken(request)))) {
+      return deps.json({ error: 'Não autorizado.' }, 401, origin);
+    }
+    const q = url.searchParams.get('q') || '';
+    const result = await findRelatedThreads(env, q, { limit: 12, includePending: true });
+    return deps.json({ ok: true, query: q, ...result }, 200, origin);
+  }
+
   if (path === '/admin/forum/seed' && method === 'POST') {
     if (!(await deps.isValidSession(env, deps.bearerToken(request)))) {
       return deps.json({ error: 'Não autorizado.' }, 401, origin);
     }
+    const body = await request.json().catch(() => ({}));
     let meta = await getForumMeta(env);
     if (!meta.seeded) {
       meta = await ensureSeed(env);
     }
+    const parts = [];
+    if (body.refreshAuthors !== false) {
+      meta = await refreshSeedAuthors(env);
+      meta = { ...meta, seedAuthorsVersion: SEED_AUTHORS_VERSION };
+      await saveForumMeta(env, meta);
+      const touch = meta.seedAuthorsRefresh || {};
+      parts.push(`Nomes atualizados (${touch.threadsTouched || 0} tópicos, ${touch.repliesTouched || 0} respostas).`);
+    }
     // Reinjeta respostas oficiais @sensortattoofix se ainda não rodou / forçado
-    const body = await request.json().catch(() => ({}));
     if (body.forceOfficial || !meta.officialRepliesAt) {
       meta = { ...meta };
       delete meta.officialRepliesAt;
       await saveForumMeta(env, meta);
       meta = await ensureOfficialReplies(env);
-      return deps.json({
-        ok: true,
-        meta,
-        message: `Respostas @sensortattoofix aplicadas (${meta.officialRepliesAdded || 0} tópico(s)).`
-      }, 200, origin);
+      parts.push(`Respostas @sensortattoofix aplicadas (${meta.officialRepliesAdded || 0} tópico(s)).`);
     }
-    return deps.json({ ok: true, meta, message: 'Seed já existia — nada alterado.' }, 200, origin);
+    return deps.json({
+      ok: true,
+      meta,
+      message: parts.length ? parts.join(' ') : 'Seed já existia — nada alterado.'
+    }, 200, origin);
   }
 
   const moderateThread = path.match(/^\/admin\/forum\/threads\/([^/]+)\/(approve|reject)$/);

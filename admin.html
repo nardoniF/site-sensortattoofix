@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.65">
+    <link rel="stylesheet" href="style.css?v=2.80">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -749,14 +749,23 @@
                     <div id="admin-tab-comunidade" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-comments"></i> Comunidade (beta)</span></legend>
-                        <p class="admin-meta">Acesso só para testadores até você liberar publicamente. Posts e respostas entram como <strong>pendentes</strong> até aprovação.</p>
+                        <p class="admin-meta">Modere posts pendentes. Use a busca abaixo para ver se um assunto já tem tópico (evita duplicar). Posts exemplo usam nomes variados — o botão de seed também atualiza esses nomes.</p>
                         <div class="admin-form-actions" style="margin-bottom:12px;gap:8px;display:flex;flex-wrap:wrap">
                             <button type="button" id="btn-forum-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
-                            <button type="button" id="btn-forum-seed" class="btn-secondary"><i class="fas fa-seedling"></i> Garantir posts exemplo</button>
+                            <button type="button" id="btn-forum-seed" class="btn-secondary"><i class="fas fa-seedling"></i> Atualizar posts exemplo / nomes</button>
                             <label class="admin-check" style="display:inline-flex;align-items:center;gap:8px;margin:0">
                                 <input type="checkbox" id="forum-public-toggle"> Liberar comunidade para todos
                             </label>
                             <a class="btn-secondary" href="comunidade.html" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Abrir página</a>
+                        </div>
+                        <div class="admin-card" style="margin-bottom:14px;padding:12px 14px">
+                            <h3 style="margin:0 0 .5rem;font-size:1rem"><i class="fas fa-search"></i> Verificar tópico relacionado</h3>
+                            <p class="admin-meta" style="margin-top:0">Digite o assunto que alguém quer postar. Se já existir tópico parecido, aparece aqui — peça para a pessoa responder nele em vez de abrir outro.</p>
+                            <form id="forum-related-form" class="admin-form" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+                                <label style="flex:1;min-width:220px">Assunto<input type="search" id="forum-related-q" name="q" required minlength="3" placeholder="ex: Apple Watch falhando após tatuagem"></label>
+                                <button type="submit" class="btn-primary"><i class="fas fa-search"></i> Buscar</button>
+                            </form>
+                            <div id="forum-related-results" class="admin-meta" style="margin-top:10px"></div>
                         </div>
                         <p id="forum-admin-meta" class="admin-meta" hidden></p>
                         <div id="forum-admin-root"><p class="admin-meta">Abra esta aba para carregar.</p></div>
@@ -878,6 +887,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=101"></script>
+    <script src="js/admin.js?v=102"></script>
 </body>
 </html>

@@ -5333,6 +5333,33 @@ a.conta-forgot-link { display: inline-block; }
   background:#0d47a1; color:#fff; border-radius:4px; vertical-align:middle;
 }
 .forum-author.is-official .forum-avatar { box-shadow:0 0 0 2px #0d47a1; }
+.forum-related-box {
+  margin: .75rem 0 1rem;
+  padding: .9rem 1rem;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  background: rgba(255, 193, 7, .08);
+}
+.forum-related-prompt p { margin: 0 0 .5rem; }
+.forum-related-list { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.forum-related-pick {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: .2rem;
+  padding: .7rem .85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+.forum-related-pick:hover { border-color: #c9a227; background: #fffdf5; }
+.forum-related-pick strong { font-size: .95rem; }
+.forum-related-pick span { color: #555; font-size: .88rem; }
+.forum-related-pick small { color: #888; }
+.forum-related-actions { margin-top: .85rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+.forum-thread-detail:has(.forum-author.is-official),
 .forum-reply:has(.forum-author.is-official) {
   border-color:rgba(13,71,161,.35);
   background:linear-gradient(180deg, rgba(13,71,161,.04), #fff);

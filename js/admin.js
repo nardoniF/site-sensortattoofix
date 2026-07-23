@@ -2573,11 +2573,39 @@ ${worksheets}
       const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/seed', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ forceOfficial: true })
+        body: JSON.stringify({ forceOfficial: true, refreshAuthors: true })
       });
       const data = await res.json().catch(() => ({}));
       alert(data.message || data.error || (res.ok ? 'OK' : 'Erro'));
       loadForumAdmin();
+    });
+    document.getElementById('forum-related-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const base = apiBase();
+      const out = document.getElementById('forum-related-results');
+      const q = document.getElementById('forum-related-q')?.value || '';
+      if (!token || !base || !out) return;
+      out.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando…';
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/related?q=' + encodeURIComponent(q), {
+          headers: { Authorization: 'Bearer ' + token },
+          cache: 'no-store'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Falha na busca');
+        const matches = data.matches || [];
+        if (!matches.length) {
+          out.innerHTML = '<span class="admin-status-ok">Nenhum tópico parecido — pode criar um novo sem duplicar.</span>';
+          return;
+        }
+        out.innerHTML = `<p style="margin:0 0 .5rem"><strong>${matches.length} tópico(s) relacionado(s)</strong> — peça para responder nestes em vez de abrir outro:</p>` +
+          '<ul style="margin:0;padding-left:1.1rem">' + matches.map((m) =>
+            `<li style="margin:.35rem 0"><strong>${escapeHtml(m.title)}</strong><br><span class="admin-meta">@${escapeHtml(m.author?.username || '')} · ${escapeHtml(m.status)} · score ${escapeHtml(String(m.score))} · <a href="comunidade.html?t=${encodeURIComponent(m.slug || m.id)}" target="_blank" rel="noopener">abrir</a></span></li>`
+          ).join('') + '</ul>';
+      } catch (err) {
+        out.innerHTML = `<span class="admin-status-bad">${escapeHtml(err.message)}</span>`;
+      }
     });
     document.getElementById('forum-public-toggle')?.addEventListener('change', async (e) => {
       const token = sessionStorage.getItem(SESSION_KEY);

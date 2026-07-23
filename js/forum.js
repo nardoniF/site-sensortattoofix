@@ -146,7 +146,7 @@
       <h2>Seu perfil na comunidade</h2>
       <p class="admin-meta">Escolha username e avatar para postar. Posts passam por aprovação.</p>
       <form id="forum-profile-form" class="admin-form">
-        <label>Username (3–20: a-z, 0-9, _)<input name="username" required minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" value="${escapeHtml(state.user?.username || '')}" placeholder="ex: marina_ink"></label>
+        <label>Username (3–20: a-z, 0-9, _)<input name="username" required minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" value="${escapeHtml(state.user?.username || '')}" placeholder="ex: mariacosta"></label>
         <div class="forum-avatar-grid" id="forum-avatar-grid">${avatars}</div>
         <input type="hidden" name="avatarId" id="forum-avatar-id" value="${escapeHtml(state.user?.avatarId || '')}">
         <button type="submit" class="btn-primary">Salvar perfil</button>
@@ -183,14 +183,15 @@
       </header>
       ${!state.user ? renderRegisterToPost() : renderProfileSetup()}
       ${canPost() ? `<section class="forum-compose admin-card">
-        <h2>Novo tópico</h2>
-        <p class="admin-meta">Posts passam por aprovação do administrador.</p>
+        <h2>Novo assunto</h2>
+        <p class="admin-meta">Antes de publicar, vamos checar se já existe um tópico parecido — assim a conversa não se espalha.</p>
         <form id="forum-new-thread" class="admin-form">
-          <label>Título<input name="title" required minlength="8" maxlength="120" placeholder="Sobre o que você quer falar?"></label>
-          <label>Mensagem<textarea name="body" required minlength="20" rows="5" placeholder="Conte sua experiência…"></textarea></label>
+          <label>Assunto / título<input name="title" required minlength="8" maxlength="120" placeholder="Sobre o que você quer falar?" id="forum-compose-title"></label>
+          <label>Mensagem<textarea name="body" required minlength="20" rows="5" placeholder="Conte sua experiência…" id="forum-compose-body"></textarea></label>
           <label>Foto (URL https, opcional)<input name="imageUrl" type="url" placeholder="https://…"></label>
           <label>Vídeo YouTube (URL, opcional)<input name="videoUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"></label>
-          <button type="submit" class="btn-primary">Enviar para aprovação</button>
+          <div id="forum-related-box" class="forum-related-box" hidden></div>
+          <button type="submit" class="btn-primary">Continuar</button>
           <p id="forum-compose-status" class="form-status" hidden></p>
         </form>
       </section>` : (state.user ? '<p class="admin-meta">Complete username e avatar acima para poder postar.</p>' : '')}
@@ -234,6 +235,14 @@
     `;
     el('forum-back')?.addEventListener('click', () => { history.replaceState({}, '', location.pathname); loadList(); });
     el('forum-reply-form')?.addEventListener('submit', onReplySubmit);
+    try {
+      const draft = sessionStorage.getItem('stf_forum_reply_draft');
+      const ta = el('forum-reply-form')?.querySelector('textarea[name="body"]');
+      if (draft && ta && !ta.value) {
+        ta.value = draft;
+        ta.focus();
+      }
+    } catch (e) { /* ignore */ }
   }
 
   function setStatus(id, msg, ok) {
@@ -259,6 +268,11 @@
     }
     el('forum-profile-form')?.addEventListener('submit', onProfileSubmit);
     el('forum-new-thread')?.addEventListener('submit', onNewThread);
+    el('forum-compose-title')?.addEventListener('blur', () => {
+      const title = el('forum-compose-title')?.value || '';
+      const body = el('forum-compose-body')?.value || '';
+      if (String(title).trim().length >= 8) previewRelated(title, body);
+    });
     document.querySelectorAll('.forum-thread-card').forEach((card) => {
       card.querySelector('.forum-thread-open')?.addEventListener('click', () => {
         const id = card.getAttribute('data-thread');
@@ -266,6 +280,62 @@
         loadThread(id);
       });
     });
+  }
+
+  function renderRelatedBox(matches, { deciding = false } = {}) {
+    const box = el('forum-related-box');
+    if (!box) return;
+    if (!matches.length) {
+      box.hidden = true;
+      box.innerHTML = '';
+      return;
+    }
+    box.hidden = false;
+    const list = matches.map((m) => `
+      <li>
+        <button type="button" class="forum-related-pick" data-thread="${escapeHtml(m.slug || m.id)}">
+          <strong>${escapeHtml(m.title)}</strong>
+          <span>${escapeHtml(m.excerpt || '')}</span>
+          <small>@${escapeHtml(m.author?.username || '')} · ${Number(m.publishedReplyCount || m.replyCount || 0)} respostas</small>
+        </button>
+      </li>
+    `).join('');
+    box.innerHTML = `
+      <div class="forum-related-prompt">
+        <p><strong>${deciding ? 'Quer colocar este assunto em algum tópico existente?' : 'Encontramos tópicos parecidos'}</strong></p>
+        <p class="admin-meta">${deciding
+          ? 'Escolha um tópico abaixo para responder nele, ou crie um tópico novo.'
+          : 'Se o seu assunto já está em um destes, responda lá em vez de abrir outro.'}</p>
+        <ul class="forum-related-list">${list}</ul>
+        ${deciding ? `<div class="forum-related-actions">
+          <button type="button" class="btn-secondary" id="forum-create-new-topic">Criar tópico novo</button>
+        </div>` : ''}
+      </div>
+    `;
+    box.querySelectorAll('.forum-related-pick').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-thread');
+        const draft = el('forum-compose-body')?.value || '';
+        try {
+          if (draft.trim()) sessionStorage.setItem('stf_forum_reply_draft', draft.trim());
+        } catch (e) { /* ignore */ }
+        history.replaceState({}, '', '?t=' + encodeURIComponent(id));
+        loadThread(id);
+      });
+    });
+    el('forum-create-new-topic')?.addEventListener('click', () => {
+      createNewThreadFromForm(el('forum-new-thread'));
+    });
+  }
+
+  async function previewRelated(title, body) {
+    try {
+      const q = [title, body].filter(Boolean).join(' ');
+      const data = await api('/forum/related?q=' + encodeURIComponent(q));
+      renderRelatedBox(data.matches || [], { deciding: false });
+    } catch (e) {
+      /* silent preview */
+    }
   }
 
   async function onProfileSubmit(e) {
@@ -293,9 +363,9 @@
     }
   }
 
-  async function onNewThread(e) {
-    e.preventDefault();
-    const fd = new FormData(e.target);
+  async function createNewThreadFromForm(form) {
+    if (!form) return;
+    const fd = new FormData(form);
     const media = [];
     const imageUrl = String(fd.get('imageUrl') || '').trim();
     const videoUrl = String(fd.get('videoUrl') || '').trim();
@@ -307,12 +377,36 @@
         json: { title: fd.get('title'), body: fd.get('body'), media }
       });
       setStatus('forum-compose-status', data.message || 'Enviado para aprovação.', true);
-      e.target.reset();
+      form.reset();
+      const box = el('forum-related-box');
+      if (box) { box.hidden = true; box.innerHTML = ''; }
     } catch (err) {
       setStatus('forum-compose-status', err.message, false);
       if (err.data?.needRegister) {
         setStatus('forum-compose-status', err.message + ' — use Criar conta em Minha Conta.', false);
       }
+    }
+  }
+
+  async function onNewThread(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const title = String(fd.get('title') || '').trim();
+    const body = String(fd.get('body') || '').trim();
+    setStatus('forum-compose-status', 'Procurando tópicos relacionados…', true);
+    try {
+      const data = await api('/forum/related?q=' + encodeURIComponent(title + ' ' + body));
+      const matches = data.matches || [];
+      if (matches.length) {
+        setStatus('forum-compose-status', '', true);
+        renderRelatedBox(matches, { deciding: true });
+        el('forum-related-box')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
+      await createNewThreadFromForm(e.target);
+    } catch (err) {
+      // Se a busca falhar, não bloqueia o envio
+      await createNewThreadFromForm(e.target);
     }
   }
 
@@ -326,6 +420,7 @@
       });
       setStatus('forum-reply-status', data.message || 'Enviado.', true);
       e.target.reset();
+      try { sessionStorage.removeItem('stf_forum_reply_draft'); } catch (err) { /* ignore */ }
     } catch (err) {
       setStatus('forum-reply-status', err.message, false);
     }
