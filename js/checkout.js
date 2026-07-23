@@ -2128,12 +2128,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       focusCheckoutField(f.email);
       return false;
     }
-    if (!f.telefone.value) {
+    if (!f.telefone?.value) {
       alert(L('alert.required'));
       focusCheckoutField(f.telefone);
       return false;
     }
-    const phoneDigits = onlyDigits(f.telefone.value);
+    const phoneDigits = onlyDigits(f.telefone?.value || '');
     if (isInternational) {
       if (phoneDigits.length < 8) {
         alert(L('alert.phoneIntl'));

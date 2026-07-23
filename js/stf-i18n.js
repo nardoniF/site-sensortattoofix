@@ -709,13 +709,19 @@ window.STF_I18N = (function () {
     const required = forceRequired || label.dataset.i18nRequired === '1' || !!label.querySelector('[required]');
     const suffix = required ? ' *' : '';
     const text = t(key) + suffix;
-    if (input) {
-      while (label.firstChild && label.firstChild !== input) {
-        label.removeChild(label.firstChild);
-      }
+    if (!input) {
+      label.textContent = text;
+      return;
+    }
+    // Keep wrappers (phone dial + input). Only clear direct text nodes.
+    [...label.childNodes].forEach((node) => {
+      if (node.nodeType === 3) label.removeChild(node);
+    });
+    if (input.parentElement === label) {
       label.insertBefore(document.createTextNode(text), input);
     } else {
-      label.textContent = text;
+      input.setAttribute('aria-label', text);
+      if (input.tagName !== 'SELECT' && 'placeholder' in input) input.placeholder = text;
     }
   }
 
@@ -727,7 +733,6 @@ window.STF_I18N = (function () {
   function applyCheckoutFormPlaceholders() {
     document.querySelectorAll('[data-i18n-label]').forEach((label) => {
       if (label.id === 'cpf-label' && isLocalized()) return;
-      if (label.querySelector('[name="telefone"]') && isLocalized() && document.body?.classList.contains('checkout-page')) return;
       const key = label.dataset.i18nLabel;
       if (!key) return;
       const control = label.querySelector('input,select,textarea');
@@ -735,9 +740,10 @@ window.STF_I18N = (function () {
       const required = label.dataset.i18nRequired === '1' || !!control.required;
       const text = fieldLabelText(key, required);
       label.classList.add('checkout-infield');
-      while (label.firstChild && label.firstChild !== control) {
-        label.removeChild(label.firstChild);
-      }
+      // Never destroy nested wrappers (phone dial badge lives beside the input).
+      [...label.childNodes].forEach((node) => {
+        if (node.nodeType === 3) label.removeChild(node);
+      });
       if (control.tagName === 'SELECT') {
         const placeholderOpt = control.querySelector('option[value=""]');
         if (placeholderOpt) placeholderOpt.textContent = text;
