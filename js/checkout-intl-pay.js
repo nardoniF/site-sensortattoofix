@@ -99,19 +99,43 @@ window.STF_INTL_PAY = (function () {
     return window.Stripe;
   }
 
+  function paypalSdkLocale() {
+    try {
+      const lang = window.STF_I18N?.getLang?.();
+      if (lang === 'it') return 'it_IT';
+      if (lang === 'en') return 'en_US';
+    } catch (_) { /* ignore */ }
+    const path = String(location.pathname || '');
+    if (path.includes('/it/')) return 'it_IT';
+    const htmlLang = String(document.documentElement.lang || '').toLowerCase();
+    if (htmlLang.startsWith('it')) return 'it_IT';
+    if (htmlLang.startsWith('en') || /\.sensortattoofix\.com$/i.test(location.hostname)) return 'en_US';
+    return 'pt_BR';
+  }
+
   async function loadPayPalJs(clientId) {
-    if (window.paypal?.Buttons) return window.paypal;
+    const locale = paypalSdkLocale();
+    const existing = document.querySelector('script[data-stf-paypal-sdk]');
+    if (existing && existing.getAttribute('data-stf-paypal-locale') === locale && window.paypal?.Buttons) {
+      return window.paypal;
+    }
+    if (existing && existing.getAttribute('data-stf-paypal-locale') !== locale) {
+      existing.remove();
+      try { delete window.paypal; } catch (_) { window.paypal = undefined; }
+    }
     await new Promise((resolve, reject) => {
-      const existing = document.querySelector('script[data-stf-paypal-sdk]');
-      if (existing) {
-        existing.addEventListener('load', resolve);
-        existing.addEventListener('error', reject);
+      const again = document.querySelector('script[data-stf-paypal-sdk]');
+      if (again) {
+        again.addEventListener('load', resolve);
+        again.addEventListener('error', reject);
         return;
       }
       const s = document.createElement('script');
       s.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(clientId)
-        + '&currency=USD&intent=capture&components=buttons';
+        + '&currency=USD&intent=capture&components=buttons'
+        + '&locale=' + encodeURIComponent(locale);
       s.setAttribute('data-stf-paypal-sdk', '1');
+      s.setAttribute('data-stf-paypal-locale', locale);
       s.onload = resolve;
       s.onerror = reject;
       document.head.appendChild(s);
