@@ -4748,14 +4748,15 @@ body.stf-lightbox-open { overflow: hidden; }
   max-width: 280px;
   margin: 0 auto;
   aspect-ratio: 720 / 1024;
-  background: #111;
+  background: #0a0a0a;
   border-radius: 12px;
+  overflow: hidden;
 }
 .product-image-wrap .stf-album img {
   max-width: none;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
   margin: 0;
 }
@@ -4771,13 +4772,14 @@ body.stf-lightbox-open { overflow: hidden; }
 /* Loja card: keep square frame so alternating portraits stay same size */
 .loja-card .stf-album {
   aspect-ratio: 1;
-  background: #111;
+  background: #0a0a0a;
+  overflow: hidden;
 }
 .loja-card .stf-album img {
   width: 100%;
   height: 100%;
   aspect-ratio: auto;
-  object-fit: contain;
+  object-fit: cover;
 }
 .loja-card-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .loja-card h3 { margin: 0; font-size: 1.05rem; color: var(--primary); }
