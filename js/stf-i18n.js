@@ -684,6 +684,18 @@ window.STF_I18N = (function () {
     return getLang() !== 'pt';
   }
 
+  function checkoutMarket() {
+    const raw = String(document.body?.dataset?.checkoutMarket || '').toLowerCase();
+    if (raw === 'br' || raw === 'intl') return raw;
+    if (document.body?.classList?.contains('checkout-page-intl')) return 'intl';
+    if (isLocalized()) return 'intl';
+    return 'br';
+  }
+
+  function isIntlCheckoutShell() {
+    return checkoutMarket() === 'intl';
+  }
+
   function setLang(lang) {
     const l = lang === 'en' || lang === 'it' ? lang : 'pt';
     try { sessionStorage.setItem('stf_lang', l); } catch (e) { /* ignore */ }
@@ -729,10 +741,17 @@ window.STF_I18N = (function () {
     return t(key) + (required ? ' *' : '');
   }
 
-  /** Labels dentro do campo (placeholder) — PT e EN */
+  /** Labels dentro do campo (placeholder) — PT e EN/IT; never destroy nested controls */
   function applyCheckoutFormPlaceholders() {
+    const intlShell = isIntlCheckoutShell();
     document.querySelectorAll('[data-i18n-label]').forEach((label) => {
-      if (label.id === 'cpf-label' && isLocalized()) return;
+      // CPF is BR-only — never promote it on intl shell
+      if (label.id === 'cpf-label' && (intlShell || isLocalized())) return;
+      // Wrong-market address blocks must stay untouched (IT used to ship with address-br)
+      if (intlShell && label.closest('#address-br, #payment-options-br')) return;
+      if (!intlShell && label.closest('#address-intl') && document.getElementById('address-intl')?.hidden) {
+        // Still ok to set placeholders for when BR user switches country
+      }
       const key = label.dataset.i18nLabel;
       if (!key) return;
       const control = label.querySelector('input,select,textarea');
@@ -1155,7 +1174,7 @@ window.STF_I18N = (function () {
   }
 
   return {
-    t, getLang, isEn, isIt, isLocalized, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
+    t, getLang, isEn, isIt, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
     applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom,
     langQuery, lojaHref, STRINGS
   };

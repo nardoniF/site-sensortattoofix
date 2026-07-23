@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <script src="../js/stf-site.js?v=1"></script>
     <script src="../js/ad-landing.js?v=5"></script>
     <title>Checkout | Sensor Tattoo Fix — Negozio ufficiale</title>
-    <meta name="description" content="Checkout ufficiale Sensor Tattoo Fix — PayPal, carte, spedizione tracciata.">
+    <meta name="description" content="Checkout ufficiale Sensor Tattoo Fix — PayPal, Stripe, spedizione tracciata in USD.">
     <link rel="stylesheet" href="../style.css?v=2.76">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script src="../js/gtag-init.js"></script>
 </head>
-<body class="checkout-page">
-
-    <a href="https://wa.me/5511913394665" class="whatsapp-float" target="_blank" rel="noopener" data-evento="clique_whatsapp" data-rotulo="WhatsApp checkout IT"><i class="fab fa-whatsapp"></i></a>
+<body class="checkout-page checkout-page-intl" data-checkout-market="intl">
 
     <header>
         <nav class="container">
@@ -29,13 +28,14 @@
                 <li><a href="comprar.html" class="cart-nav-link"><i class="fas fa-shopping-cart"></i> Carrello <span data-cart-badge class="cart-badge" hidden>0</span></a></li>
                 <li data-account-nav></li>
                 <li class="nav-lang-stack">
-                    <a href="../comprar.html" class="nav-lang" title="Portoghese" aria-label="Portoghese"><img src="https://flagcdn.com/w20/br.png" width="20" height="15" alt=""> <span>PT</span></a>
+                    <a href="https://www.sensortattoofix.com.br/comprar.html" class="nav-lang" title="Portoghese (Brasile)" aria-label="Portoghese (Brasile)"><img src="https://flagcdn.com/w20/br.png" width="20" height="15" alt=""> <span>PT</span></a>
                     <a href="../en/comprar.html" class="nav-lang" title="Inglese" aria-label="Inglese"><img src="https://flagcdn.com/w20/us.png" width="20" height="15" alt=""> <span>EN</span></a>
                 </li>
                 <li><a href="index.html"><i class="fas fa-arrow-left"></i> Indietro</a></li>
             </ul>
         </nav>
     </header>
+    <script src="../js/stf-intl-trust.js?v=5"></script>
 
     <main class="checkout-main">
         <div class="container checkout-layout">
@@ -197,29 +197,17 @@
                         <div class="form-grid">
                             <label class="full" data-i18n-label="form.country" data-i18n-required="1">
                                 <select name="paisCode" id="pais-code" required>
-                                    <option value="BR">Brasile</option>
+                                    <option value="">Seleziona il paese</option>
                                 </select>
                             </label>
                         </div>
 
-                        <div id="address-br">
-                            <div class="form-grid">
-                                <label data-i18n-label="form.cep" data-i18n-required="1"><input type="text" name="cep" id="cep" inputmode="numeric" autocomplete="postal-code"></label>
-                                <label class="span-2" data-i18n-label="form.street" data-i18n-required="1"><input type="text" name="rua"></label>
-                                <label data-i18n-label="form.number" data-i18n-required="1"><input type="text" name="numero"></label>
-                                <label data-i18n-label="form.complement"><input type="text" name="complemento"></label>
-                                <label data-i18n-label="form.district" data-i18n-required="1"><input type="text" name="bairro"></label>
-                                <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidade"></label>
-                                <label data-i18n-label="form.state" data-i18n-required="1"><select name="uf"><option value="">UF</option><option>SP</option><option>RJ</option><option>MG</option><option>RS</option><option>PR</option><option>SC</option><option>BA</option><option>PE</option><option>CE</option><option>DF</option><option>GO</option><option>ES</option><option>AM</option><option>PA</option><option>MA</option><option>MT</option><option>MS</option><option>PB</option><option>RN</option><option>AL</option><option>SE</option><option>PI</option><option>RO</option><option>AC</option><option>AP</option><option>RR</option><option>TO</option></select></label>
-                            </div>
-                        </div>
-
-                        <div id="address-intl" hidden>
+                        <div id="address-intl">
                             <div class="form-grid">
                                 <label class="full" data-i18n-label="form.streetIntl" data-i18n-required="1"><input type="text" name="ruaIntl" id="rua-intl" placeholder="10 Via Roma" autocomplete="off"></label>
                                 <label data-i18n-label="form.postal" data-i18n-required="1"><input type="text" name="postalIntl" id="postal-intl" autocomplete="postal-code"></label>
                                 <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidadeIntl" id="cidade-intl" autocomplete="address-level2"></label>
-                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="Opzionale" autocomplete="address-level1"></label>
+                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="Stato / provincia" autocomplete="address-level1"></label>
                             </div>
                         </div>
                         <div id="shipping-options-wrap" class="shipping-options-wrap" hidden>
@@ -231,28 +219,24 @@
 
                     <div class="checkout-step" data-step="2">
                         <h3>Metodo di pagamento</h3>
-                        <div id="payment-options-br" class="payment-options">
+                        <div id="payment-options-br" class="payment-options" hidden>
                             <label class="payment-option">
-                                <input type="radio" name="pagamento" value="CARTAO" checked>
-                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Carta di credito</strong><small>Pagamento sicuro tramite Asaas</small></div></div>
+                                <input type="radio" name="pagamento" value="CARTAO">
+                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Carta di credito</strong></div></div>
                             </label>
                         </div>
-                        <div id="payment-options-intl" class="payment-options" hidden>
+                        <div id="payment-options-intl" class="payment-options">
                             <label class="payment-option payment-option-stripe" hidden>
                                 <input type="radio" name="pagamento" value="STRIPE" disabled>
                                 <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Carta / Apple Pay / Google Pay</strong><small>Pagamento sicuro via Stripe · addebito in USD</small></div></div>
                             </label>
-                            <label class="payment-option payment-option-intl-card" hidden>
-                                <input type="radio" name="pagamento" value="CARTAO">
-                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Carta internazionale</strong><small>Visa, Mastercard, Amex — importo in R$</small></div></div>
-                            </label>
                             <label class="payment-option payment-option-paypal">
                                 <input type="radio" name="pagamento" value="PAYPAL" checked>
-                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Carta, debito o saldo PayPal · USD</small></div></div>
+                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Saldo PayPal, carta o debito · USD</small></div></div>
                             </label>
                         </div>
-                        <div id="payment-notice-br" class="checkout-notice"><i class="fas fa-info-circle"></i> Dopo il pagamento, la conferma è automatica sul sito e via email.</div>
-                        <div id="payment-notice-intl" class="checkout-notice" hidden><i class="fas fa-info-circle"></i> Addebito in USD · spedizione tracciata · conferma via email. Domande? <a href="mailto:support@sensortattoofix.com">Email</a>.</div>
+                        <div id="payment-notice-br" class="checkout-notice" hidden></div>
+                        <div id="payment-notice-intl" class="checkout-notice"><i class="fas fa-info-circle"></i> Addebito in USD · spedizione tracciata · conferma via email. Domande? <a href="mailto:support@sensortattoofix.com">Email</a>.</div>
 
                         <div id="intl-embedded-pay" class="intl-embedded-pay" hidden>
                             <div id="intl-stripe-wrap" class="intl-pay-section" hidden>
@@ -278,31 +262,9 @@
                             <p>Ordine <strong id="order-id">—</strong></p>
                             <p class="pix-amount-label">Totale: <strong id="pix-amount">—</strong></p>
                             <div id="payment-status" class="payment-status waiting" hidden></div>
-
-                            <div id="pix-ui" class="checkout-pix-ui">
-                                <div id="pix-qr" class="pix-qr-wrap"></div>
-                                <div id="pix-copy-area" class="pix-copy-area">
-                                    <input type="text" id="pix-copy" readonly>
-                                    <button type="button" id="btn-copy-pix" class="btn-primary">Copia PIX</button>
-                                </div>
-                            </div>
-
-                            <div id="card-ui" class="checkout-card-ui" hidden>
-                                <div class="card-pay-icon"><i class="fas fa-credit-card"></i></div>
-                                <p class="card-pay-text" id="card-pay-text">Pagamento sicuro elaborato da Asaas.</p>
-                                <a id="card-pay-link" href="#" class="btn-primary card-pay-btn" target="_blank" rel="noopener">
-                                    <i class="fas fa-lock"></i> Apri pagamento con carta
-                                </a>
-                            </div>
-
-                            <div id="paypal-ui" class="checkout-paypal-ui" hidden>
-                                <div class="card-pay-icon paypal-icon"><i class="fab fa-paypal"></i></div>
-                                <p class="card-pay-text">Reindirizzamento a PayPal… Se non si apre, usa il pulsante qui sotto.</p>
-                                <a id="paypal-pay-link" href="#" class="btn-primary card-pay-btn paypal-pay-btn" target="_blank" rel="noopener">
-                                    <i class="fab fa-paypal"></i> Paga con PayPal
-                                </a>
-                            </div>
-
+                            <div id="pix-ui" class="checkout-pix-ui" hidden></div>
+                            <div id="card-ui" class="checkout-card-ui" hidden></div>
+                            <div id="paypal-ui" class="checkout-paypal-ui" hidden></div>
                             <p class="checkout-hint" id="confirm-hint">La conferma viene inviata automaticamente via email.</p>
                         </div>
                     </div>
@@ -337,7 +299,7 @@
     <footer class="site-footer"><div class="container" data-site-footer="compact" data-lang="it"></div></footer>
 
     <script src="../js/stf-i18n-it-overrides.js?v=41"></script>
-    <script src="../js/stf-i18n.js?v=42"></script>
+    <script src="../js/stf-i18n.js?v=43"></script>
     <script src="../js/stf-lang-nav.js?v=2"></script>
     <script src="../js/config-bootstrap.js?v=2"></script>
     <script src="../js/checkout-country-bootstrap.js?v=1"></script>
@@ -347,16 +309,15 @@
     <script src="../js/store-products-merge.js?v=12"></script>
     <script src="../js/store-loader.js?v=12"></script>
     <script src="../js/cart.js?v=9"></script>
-    <script src="../js/stf-site.js?v=1"></script>
     <script src="../js/order-watch.js"></script>
     <script src="../js/traffic-origin.js?v=1"></script>
     <script src="../js/analytics.js?v=34"></script>
     <script src="../js/pelicula-compat.js?v=16"></script>
-    <script src="../js/stf-money.js?v=4"></script>
+    <script src="../js/stf-money.js?v=5"></script>
     <script src="../js/stf-address-autocomplete.js?v=4"></script>
     <script src="../js/checkout-intl-pay.js?v=6"></script>
     <script src="../js/stf-product-gallery.js?v=7"></script>
-    <script src="../js/checkout.js?v=108"></script>
+    <script src="../js/checkout.js?v=109"></script>
     <script src="../js/seo-schema.js?v=5"></script>
 </body>
 </html>

@@ -87,26 +87,82 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return window.STF_I18N?.t(key, vars) || key;
   }
 
-  function isLocalizedSite() {
+  /**
+   * Hard market shell: BR (.com.br PT) vs INT L (EN/IT / .com).
+   * Prefer body[data-checkout-market] so HTML never inherits the wrong fields.
+   */
+  function checkoutMarket() {
+    const raw = String(document.body?.dataset?.checkoutMarket || '').toLowerCase();
+    if (raw === 'br' || raw === 'intl') return raw;
+    if (document.body?.classList?.contains('checkout-page-intl')) return 'intl';
     const lang = (document.documentElement.lang || '').toLowerCase();
-    if (lang.startsWith('en') || lang.startsWith('it')) return true;
-    return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
+    if (lang.startsWith('en') || lang.startsWith('it')) return 'intl';
+    if (/\/(en|it)\//.test(location.pathname)) return 'intl';
+    if (window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname)) return 'intl';
+    return 'br';
+  }
+
+  function isIntlCheckoutShell() {
+    return checkoutMarket() === 'intl';
+  }
+
+  /** @deprecated use isIntlCheckoutShell — kept for call sites that mean EN/IT shell */
+  function isLocalizedSite() {
+    return isIntlCheckoutShell();
   }
 
   function checkoutLocale() {
-    if (!isLocalizedSite()) return 'pt';
+    if (!isIntlCheckoutShell()) return 'pt';
     const lang = (document.documentElement.lang || '').toLowerCase();
     return lang.startsWith('it') ? 'it' : 'en';
   }
 
   /** EN/IT checkout on .com.br path: PayPal only. On .com: Stripe (if live) + PayPal. */
   function isIntlEmbeddedCheckout() {
-    if (!isLocalizedSite()) return false;
+    if (!isIntlCheckoutShell()) return false;
     return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
   }
 
   function isPaypalOnlyIntlCheckout() {
-    return isLocalizedSite() && !isIntlEmbeddedCheckout();
+    return isIntlCheckoutShell() && !isIntlEmbeddedCheckout();
+  }
+
+  /** Lock address/payment panels to the HTML market shell before country logic runs. */
+  function applyCheckoutMarketShell() {
+    const intl = isIntlCheckoutShell();
+    if (intl) {
+      isInternational = true;
+      if (els.addressBr) els.addressBr.hidden = true;
+      if (els.addressIntl) els.addressIntl.hidden = false;
+      if (els.paymentOptionsBr) {
+        els.paymentOptionsBr.hidden = true;
+        els.paymentOptionsBr.querySelectorAll('input[name="pagamento"]').forEach((r) => {
+          r.disabled = true;
+          r.checked = false;
+        });
+      }
+      if (els.paymentOptionsIntl) els.paymentOptionsIntl.hidden = false;
+      if (els.paymentNoticeBr) els.paymentNoticeBr.hidden = true;
+      if (els.paymentNoticeIntl) els.paymentNoticeIntl.hidden = false;
+      // Confirm step: never leave PIX QR visible on intl shell
+      const pixUi = document.getElementById('pix-ui');
+      if (pixUi) pixUi.hidden = true;
+      if (els.summaryPaypalRow) {
+        els.summaryPaypalRow.hidden = true;
+        els.summaryPaypalRow.style.display = 'none';
+      }
+      if (els.selfTestPayWrap) els.selfTestPayWrap.hidden = true;
+    } else {
+      // BR shell keeps CEP/PIX defaults; country can still switch to intl later
+      if (els.addressBr) els.addressBr.hidden = false;
+      if (els.addressIntl) els.addressIntl.hidden = true;
+      if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = false;
+      if (els.paymentOptionsIntl) els.paymentOptionsIntl.hidden = true;
+      if (els.paymentNoticeBr) els.paymentNoticeBr.hidden = false;
+      if (els.paymentNoticeIntl) els.paymentNoticeIntl.hidden = true;
+    }
+    updateCpfLabel();
+    updatePhoneField();
   }
 
   /** Never show Stripe with test keys or when API says disabled. */
@@ -239,20 +295,20 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function updateCpfLabel() {
     if (!els.cpfLabel || !els.cpfInput) return;
-    if (isInternational) {
+    // Intl shell / international destination: never show CPF (BR-only field)
+    if (isIntlCheckoutShell() || isInternational) {
       els.cpfLabel.hidden = true;
       els.cpfInput.removeAttribute('required');
       els.cpfInput.value = '';
       return;
     }
     els.cpfLabel.hidden = false;
-    const key = 'form.cpf';
-    const required = true;
-    const text = L(key) + ' *';
+    const text = L('form.cpf') + ' *';
     els.cpfLabel.classList.add('checkout-infield');
-    while (els.cpfLabel.firstChild && els.cpfLabel.firstChild !== els.cpfInput) {
-      els.cpfLabel.removeChild(els.cpfLabel.firstChild);
-    }
+    // Only strip text nodes — never destroy nested wrappers if HTML changes
+    [...els.cpfLabel.childNodes].forEach((node) => {
+      if (node.nodeType === 3) els.cpfLabel.removeChild(node);
+    });
     els.cpfInput.placeholder = text;
     els.cpfInput.setAttribute('aria-label', text);
     els.cpfInput.setAttribute('required', '');
@@ -1557,6 +1613,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function updatePaymentOptionsForCountry() {
+    if (isIntlCheckoutShell()) isInternational = true;
     const paypalIntl = isInternational && isPayPalIntlAvailable();
     const paypalBr = !isInternational && isPayPalBrAvailable();
     const paypalOnlyIntl = isInternational && isPaypalOnlyIntlCheckout();
@@ -1626,10 +1683,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function toggleAddressForm() {
     if (!els.paisCode) return;
-    isInternational = els.paisCode.value !== 'BR';
-    // .com EN/IT pages omit #address-br — must not throw or boot never binds/quotes
-    if (els.addressBr) els.addressBr.hidden = isInternational;
-    if (els.addressIntl) els.addressIntl.hidden = !isInternational;
+    // Intl shell never flips to BR CEP/PIX panels even if country select glitches
+    if (isIntlCheckoutShell()) {
+      isInternational = true;
+      if (els.addressBr) els.addressBr.hidden = true;
+      if (els.addressIntl) els.addressIntl.hidden = false;
+    } else {
+      isInternational = els.paisCode.value !== 'BR';
+      // .com EN/IT pages omit #address-br — must not throw or boot never binds/quotes
+      if (els.addressBr) els.addressBr.hidden = isInternational;
+      if (els.addressIntl) els.addressIntl.hidden = !isInternational;
+    }
     if (els.summaryShippingLabel) {
       els.summaryShippingLabel.textContent = isInternational ? L('summary.shippingIntl') : L('summary.shipping');
     }
@@ -2948,18 +3012,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       // Bind clicks before any await — otherwise a later boot error leaves Continue / account tabs dead
       bindEvents();
 
-      if (isLocalizedSite()) {
-        isInternational = true;
-        if (els.addressBr) els.addressBr.hidden = true;
-        if (els.addressIntl) els.addressIntl.hidden = false;
-        updateCpfLabel();
-        updatePhoneField();
-        if (els.summaryPaypalRow) {
-          els.summaryPaypalRow.hidden = true;
-          els.summaryPaypalRow.style.display = 'none';
-        }
-        if (els.selfTestPayWrap) els.selfTestPayWrap.hidden = true;
-      }
+      // Market shell first — never let BR CEP/PIX HTML bleed into EN/IT (or vice versa)
+      applyCheckoutMarketShell();
       window.STF_I18N?.applyCheckoutDom?.();
       cfg = await StoreConfig.load();
       products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
