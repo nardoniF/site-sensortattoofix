@@ -82,6 +82,7 @@
 
                 <nav class="admin-tabs" role="tablist" aria-label="Seções do painel">
                     <button type="button" role="tab" class="admin-tab active" data-admin-tab="pedidos" aria-selected="true" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="comunidade" aria-selected="false" aria-controls="admin-tab-comunidade"><i class="fas fa-comments"></i> Comunidade</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Clientes</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pesquisa" aria-selected="false" aria-controls="admin-tab-pesquisa"><i class="fas fa-comment-dots"></i> Pesquisa</button>
@@ -744,7 +745,24 @@
                     </fieldset>
                     </div>
 
-                    <div id="admin-tab-clientes" class="admin-tab-panel" role="tabpanel" hidden>
+                    
+                    <div id="admin-tab-comunidade" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-comments"></i> Comunidade (beta)</span></legend>
+                        <p class="admin-meta">Acesso só para testadores até você liberar publicamente. Posts e respostas entram como <strong>pendentes</strong> até aprovação.</p>
+                        <div class="admin-form-actions" style="margin-bottom:12px;gap:8px;display:flex;flex-wrap:wrap">
+                            <button type="button" id="btn-forum-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                            <button type="button" id="btn-forum-seed" class="btn-secondary"><i class="fas fa-seedling"></i> Garantir posts exemplo</button>
+                            <label class="admin-check" style="display:inline-flex;align-items:center;gap:8px;margin:0">
+                                <input type="checkbox" id="forum-public-toggle"> Liberar comunidade para todos
+                            </label>
+                            <a class="btn-secondary" href="comunidade.html" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Abrir página</a>
+                        </div>
+                        <p id="forum-admin-meta" class="admin-meta" hidden></p>
+                        <div id="forum-admin-root"><p class="admin-meta">Abra esta aba para carregar.</p></div>
+                    </fieldset>
+                    </div>
+<div id="admin-tab-clientes" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-users"></i> Clientes cadastrados</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-clientes" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-clientes" class="admin-help-panel admin-help-panel--fieldset" hidden>
@@ -758,7 +776,7 @@
                                         <th>Nome</th>
                                         <th>E-mail</th>
                                         <th>WhatsApp</th>
-                                        <th>CPF</th>
+                                        <th>Teste</th>
                                         <th>Pedidos</th>
                                         <th>Cadastro</th>
                                     </tr>
@@ -821,6 +839,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=97"></script>
+    <script src="js/admin.js?v=98"></script>
 </body>
 </html>

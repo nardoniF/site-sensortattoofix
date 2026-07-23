@@ -4,6 +4,7 @@
  */
 
 import { generateCommissionerStoryBanners } from './commissioner-banners.js';
+import { handleForumRoute } from './forum.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -1507,7 +1508,10 @@ function publicUserView(user) {
     email: user.email,
     telefone: user.telefone,
     cpf: user.cpf || '',
-    address: user.address || null
+    address: user.address || null,
+    username: user.username || '',
+    avatarId: user.avatarId || '',
+    isTester: !!user.isTester
   };
 }
 
@@ -1863,7 +1867,8 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     paidAt: order.paidAt || null,
     createdAt: order.createdAt || null,
     selfTestPix: !!order.selfTestPix,
-    selfTestPayPal: !!order.selfTestPayPal
+    selfTestPayPal: !!order.selfTestPayPal,
+    selfTestTester: !!order.selfTestTester
   };
   if (includeResumeToken && order.status === 'pending_payment') {
     view.accessToken = order.accessToken;
@@ -3251,6 +3256,42 @@ function isSelfTestCustomerEmail(email) {
   return e.includes('.teste') || e.startsWith('fabio.teste') || e.startsWith('alex.teste');
 }
 
+
+/** Conta marcada como testadora (admin) ou e-mail de teste conhecido. */
+function isTesterUser(user) {
+  if (!user) return false;
+  if (user.isTester) return true;
+  return isSelfTestCustomerEmail(user.email);
+}
+
+async function ensureTesterFlagFromEmail(env, user) {
+  if (!user || user.isTester) return user;
+  if (!isSelfTestCustomerEmail(user.email)) return user;
+  user.isTester = true;
+  user.testerSince = user.testerSince || new Date().toISOString();
+  user.updatedAt = new Date().toISOString();
+  await saveUser(env, user);
+  return user;
+}
+
+/** R$ 0,01 para usuários com flag isTester (qualquer pagamento). */
+async function applyTesterAccountPricing(order, env) {
+  if (!order?.userId) return false;
+  const user = await getUserById(env, order.userId);
+  if (!isTesterUser(user)) return false;
+  if (order.valorProdutoOriginal == null) order.valorProdutoOriginal = order.valorProduto;
+  if (order.freteOriginal == null) order.freteOriginal = order.frete;
+  if (order.totalOriginal == null) order.totalOriginal = order.total;
+  order.selfTestTester = true;
+  order.selfTestPix = order.selfTestPix || false;
+  order.selfTestPayPal = order.selfTestPayPal || false;
+  order.frete = 0;
+  order.valorProduto = SELF_TEST_PIX_AMOUNT;
+  order.total = SELF_TEST_PIX_AMOUNT;
+  if (order.paypalFee) order.paypalFee = 0;
+  return true;
+}
+
 function isSelfTestPayPalEligible(env, order, billingType) {
   if (billingType !== 'PAYPAL') return false;
   if (env.PAYPAL_SELF_TEST !== 'true' && env.PAYPAL_SELF_TEST !== '1') return false;
@@ -3273,7 +3314,7 @@ function applySelfTestPayPalPricing(order, env, billingType) {
 
 /** Pedido simbólico (PIX/PayPal R$ 0,01) — não dispara entrega real. */
 function isSelfTestOrder(order) {
-  if (order?.selfTestPix || order?.selfTestPayPal) return true;
+  if (order?.selfTestPix || order?.selfTestPayPal || order?.selfTestTester) return true;
   const total = Number(order?.total);
   return Number.isFinite(total) && total > 0 && total <= SELF_TEST_PIX_AMOUNT + 1e-9;
 }
@@ -6111,6 +6152,7 @@ async function handleCustomerRegister(request, env, origin) {
   const body = await request.json();
   try {
     const user = await registerCustomerUser(env, body);
+    await ensureTesterFlagFromEmail(env, user);
     const token = await createCustomerSession(env, user.userId);
     return json({ ok: true, token, user: publicUserView(user) }, 200, origin);
   } catch (err) {
@@ -6134,6 +6176,7 @@ async function handleCustomerLogin(request, env, origin) {
     return json({ error: 'E-mail ou senha incorretos.' }, 401, origin);
   }
   await clearLoginFailures(env, ip, 'customer');
+  await ensureTesterFlagFromEmail(env, user);
   const token = await createCustomerSession(env, user.userId);
   return json({ ok: true, token, user: publicUserView(user) }, 200, origin);
 }
@@ -6425,7 +6468,10 @@ async function listAllCustomers(env, max = 500) {
         telefone: user.telefone,
         cpf: user.cpf || '',
         createdAt: user.createdAt || null,
-        orderCount: orderIds.length
+        orderCount: orderIds.length,
+        isTester: !!user.isTester,
+        username: user.username || '',
+        avatarId: user.avatarId || ''
       });
       if (users.length >= max) {
         users.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
@@ -6436,6 +6482,24 @@ async function listAllCustomers(env, max = 500) {
   } while (cursor);
   users.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   return users;
+}
+
+
+async function handleAdminCustomerPatch(request, env, origin, userId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const user = await getUserById(env, userId);
+  if (!user) return json({ error: 'Cliente não encontrado.' }, 404, origin);
+  const body = await request.json();
+  if (body.isTester !== undefined) {
+    user.isTester = !!body.isTester;
+    if (user.isTester) user.testerSince = user.testerSince || new Date().toISOString();
+    else delete user.testerSince;
+  }
+  user.updatedAt = new Date().toISOString();
+  await saveUser(env, user);
+  return json({ ok: true, user: publicUserView(user) }, 200, origin);
 }
 
 async function handleAdminCustomers(request, env, origin) {
@@ -6771,6 +6835,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   if (applySelfTestPixPricing(order, config, env, billingType)) {
     console.log('PIX self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
+  }
+  if (await applyTesterAccountPricing(order, env)) {
+    console.log('Tester account pricing:', order.orderId, SELF_TEST_PIX_AMOUNT, order.email);
   }
   if (applySelfTestPayPalPricing(order, env, billingType)) {
     console.log('PayPal self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
@@ -9280,6 +9347,16 @@ export default {
       if ((path === '/admin/clicks/clear' && request.method === 'POST') ||
         (path === '/admin/clicks' && request.method === 'DELETE')) {
         return handleAdminClearClicks(request, env, origin);
+      }
+      if (path.startsWith('/forum') || path.startsWith('/admin/forum')) {
+        const forumRes = await handleForumRoute(request, env, origin, {
+          json, bearerToken, isValidSession, getCustomerUserId, getUserById, saveUser, publicUserView
+        });
+        if (forumRes) return forumRes;
+      }
+      const adminCustomerPatch = path.match(/^\/admin\/customers\/([^/]+)$/);
+      if (adminCustomerPatch && request.method === 'PATCH') {
+        return handleAdminCustomerPatch(request, env, origin, adminCustomerPatch[1]);
       }
       if (path === '/feedback' && request.method === 'POST') {
         return handleFeedback(request, env, origin);

@@ -1670,20 +1670,53 @@ ${worksheets}
       tbody.innerHTML = '<tr><td colspan="6" class="admin-meta">Nenhum cliente cadastrado ainda.</td></tr>';
     } else {
       tbody.innerHTML = customers.map((c) => `
-        <tr>
+        <tr data-user-id="${escapeHtml(c.userId || '')}">
           <td>${escapeHtml(c.nome || '—')}</td>
           <td>${escapeHtml(c.email || '—')}</td>
           <td>${escapeHtml(c.telefone || '—')}</td>
-          <td>${escapeHtml(c.cpf || '—')}</td>
+          <td>
+            <label class="admin-check" title="Testador: R$ 0,01 + comunidade beta">
+              <input type="checkbox" data-tester-toggle ${c.isTester ? 'checked' : ''}>
+              <span>${c.isTester ? 'Sim' : 'Não'}</span>
+            </label>
+          </td>
           <td>${Number(c.orderCount) || 0}</td>
           <td>${escapeHtml(formatCustomerDate(c.createdAt))}</td>
         </tr>
       `).join('');
+      tbody.querySelectorAll('[data-tester-toggle]').forEach((input) => {
+        input.addEventListener('change', () => toggleCustomerTester(input));
+      });
     }
 
     if (checkedEl && checkedAt) {
       checkedEl.textContent = `Atualizado em ${formatCustomerDate(checkedAt)} · ${customers?.length || 0} cliente(s)`;
       checkedEl.hidden = false;
+    }
+  }
+
+  async function toggleCustomerTester(input) {
+    const row = input.closest('tr');
+    const userId = row?.getAttribute('data-user-id');
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!userId || !token || !base) return;
+    input.disabled = true;
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/customers/${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isTester: !!input.checked })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao atualizar');
+      const label = input.parentElement?.querySelector('span');
+      if (label) label.textContent = input.checked ? 'Sim' : 'Não';
+    } catch (err) {
+      input.checked = !input.checked;
+      alert(err.message || 'Erro');
+    } finally {
+      input.disabled = false;
     }
   }
 
@@ -2323,6 +2356,148 @@ ${worksheets}
     }
   }
 
+
+  let forumAdminLoading = false;
+
+  function renderForumAdmin(data) {
+    const root = document.getElementById('forum-admin-root');
+    const metaEl = document.getElementById('forum-admin-meta');
+    const toggle = document.getElementById('forum-public-toggle');
+    if (!root) return;
+    if (toggle) toggle.checked = !!data.meta?.public;
+    if (metaEl) {
+      metaEl.hidden = false;
+      metaEl.textContent = `Pendências: ${data.pendingCount || 0} · tópicos: ${(data.threads || []).length} · público: ${data.meta?.public ? 'sim' : 'não'}`;
+    }
+    const threads = data.threads || [];
+    if (!threads.length) {
+      root.innerHTML = '<p class="admin-meta">Nenhum tópico ainda.</p>';
+      return;
+    }
+    root.innerHTML = threads.map((th) => {
+      const replies = (th.replies || []).map((r) => `
+        <div class="admin-forum-reply" style="margin:.5rem 0;padding:.5rem;border:1px dashed rgba(255,255,255,.15);border-radius:8px">
+          <div><strong>@${escapeHtml(r.author?.username || '')}</strong> · ${escapeHtml(r.status)} · ${escapeHtml(formatCustomerDate(r.createdAt))}</div>
+          <div style="margin:.35rem 0">${escapeHtml(r.body || '')}</div>
+          ${r.status === 'pending' ? `
+            <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+            <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+          ` : ''}
+        </div>
+      `).join('');
+      return `<article class="admin-card" style="margin-bottom:12px">
+        <h3 style="margin:0 0 .35rem">${escapeHtml(th.title || '')}</h3>
+        <p class="admin-meta">@${escapeHtml(th.author?.username || '')} · ${escapeHtml(th.status)} · ${escapeHtml(formatCustomerDate(th.createdAt))}</p>
+        <p>${escapeHtml((th.body || '').slice(0, 280))}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:.5rem 0">
+          ${th.status === 'pending' ? `
+            <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
+            <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
+          ` : ''}
+        </div>
+        ${replies}
+      </article>`;
+    }).join('');
+
+    root.querySelectorAll('[data-forum-approve]').forEach((btn) => {
+      btn.addEventListener('click', () => moderateForumThread(btn.getAttribute('data-forum-approve'), 'approve'));
+    });
+    root.querySelectorAll('[data-forum-reject]').forEach((btn) => {
+      btn.addEventListener('click', () => moderateForumThread(btn.getAttribute('data-forum-reject'), 'reject'));
+    });
+    root.querySelectorAll('[data-forum-reply-approve]').forEach((btn) => {
+      btn.addEventListener('click', () => moderateForumReply(btn.getAttribute('data-forum-reply-approve'), btn.getAttribute('data-reply'), 'approve'));
+    });
+    root.querySelectorAll('[data-forum-reply-reject]').forEach((btn) => {
+      btn.addEventListener('click', () => moderateForumReply(btn.getAttribute('data-forum-reply-reject'), btn.getAttribute('data-reply'), 'reject'));
+    });
+  }
+
+  async function loadForumAdmin() {
+    const root = document.getElementById('forum-admin-root');
+    if (!root || forumAdminLoading) return;
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      root.innerHTML = '<p class="admin-meta">Faça login no admin.</p>';
+      return;
+    }
+    forumAdminLoading = true;
+    root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando…</p>';
+    try {
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/forum', {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao carregar fórum');
+      renderForumAdmin(data);
+    } catch (err) {
+      root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+    } finally {
+      forumAdminLoading = false;
+    }
+  }
+
+  async function moderateForumThread(id, action) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base || !id) return;
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(id)}/${action}`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || 'Erro'); return; }
+    loadForumAdmin();
+  }
+
+  async function moderateForumReply(threadId, replyId, action) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base || !threadId || !replyId) return;
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(threadId)}/replies/${encodeURIComponent(replyId)}/${action}`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || 'Erro'); return; }
+    loadForumAdmin();
+  }
+
+  function wireForumAdminControls() {
+    document.getElementById('btn-forum-refresh')?.addEventListener('click', () => loadForumAdmin());
+    document.getElementById('btn-forum-seed')?.addEventListener('click', async () => {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const base = apiBase();
+      if (!token || !base) return;
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/seed', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const data = await res.json().catch(() => ({}));
+      alert(data.message || data.error || (res.ok ? 'OK' : 'Erro'));
+      loadForumAdmin();
+    });
+    document.getElementById('forum-public-toggle')?.addEventListener('change', async (e) => {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const base = apiBase();
+      if (!token || !base) return;
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/meta', {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public: !!e.target.checked })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        e.target.checked = !e.target.checked;
+        alert(data.error || 'Erro');
+        return;
+      }
+      loadForumAdmin();
+    });
+  }
+
   let adminTabsWired = false;
 
   function initAdminTabs() {
@@ -2349,6 +2524,7 @@ ${worksheets}
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
       if (id === 'clientes') loadCustomers();
+      if (id === 'comunidade') loadForumAdmin();
       if (id === 'cliques') loadClicks();
       if (id === 'pesquisa') loadFeedback();
       if (id === 'pedidos') {
