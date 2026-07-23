@@ -124,7 +124,7 @@
     const regHref = accountHref({ register: true });
     root.innerHTML = `<section class="forum-gate admin-card">
       <h1><i class="fas fa-comments"></i> Comunidade</h1>
-      <p class="forum-dev-banner"><i class="fas fa-flask"></i> Em desenvolvimento — acesso para usuários de teste</p>
+      <p class="forum-dev-banner"><i class="fas fa-flask"></i> Comunidade oficial Sensor Tattoo Fix</p>
       <p>${escapeHtml(message || 'Acesso restrito.')}</p>
       ${reason === 'login' || reason === 'register' ? `
         <p>Para participar e postar, <strong>cadastre-se</strong> (é grátis) e faça login.</p>
@@ -177,7 +177,7 @@
       <header class="forum-header">
         <div>
           <h1><i class="fas fa-comments"></i> Comunidade</h1>
-          <p class="forum-dev-banner"><i class="fas fa-flask"></i> Em desenvolvimento — só testadores</p>
+          <p class="forum-dev-banner"><i class="fas fa-flask"></i> Para postar, crie uma conta</p>
         </div>
         ${state.user ? `<div class="forum-you">${authorHtml(state.user)}</div>` : ''}
       </header>

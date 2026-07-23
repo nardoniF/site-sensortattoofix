@@ -371,6 +371,20 @@ async function ensureOfficialReplies(env) {
   return next;
 }
 
+
+/** Libera leitura pública em produção (postar ainda exige cadastro). */
+async function ensureForumPublic(env) {
+  const meta = await getForumMeta(env);
+  if (meta.public) return meta;
+  const next = {
+    ...meta,
+    public: true,
+    releasedAt: new Date().toISOString()
+  };
+  await saveForumMeta(env, next);
+  return next;
+}
+
 async function ensureSeed(env) {
   const meta = await getForumMeta(env);
   if (meta.seeded) return meta;
@@ -423,6 +437,7 @@ export async function handleForumRoute(request, env, origin, deps) {
 
   if (path === '/forum' && method === 'GET') {
     await ensureSeed(env);
+    await ensureForumPublic(env);
     await ensureOfficialReplies(env);
     const access = await canAccessForum(env, deps, request);
     if (!access.ok) {
@@ -504,6 +519,7 @@ export async function handleForumRoute(request, env, origin, deps) {
   const threadMatch = path.match(/^\/forum\/threads\/([^/]+)$/);
   if (threadMatch && method === 'GET') {
     await ensureSeed(env);
+    await ensureForumPublic(env);
     await ensureOfficialReplies(env);
     const access = await canAccessForum(env, deps, request);
     if (!access.ok) return deps.json({ error: 'Acesso restrito.', reason: access.reason }, 403, origin);
@@ -583,6 +599,7 @@ export async function handleForumRoute(request, env, origin, deps) {
       return deps.json({ error: 'Não autorizado.' }, 401, origin);
     }
     await ensureSeed(env);
+    await ensureForumPublic(env);
     await ensureOfficialReplies(env);
     const meta = await getForumMeta(env);
     const index = await getThreadIndex(env);

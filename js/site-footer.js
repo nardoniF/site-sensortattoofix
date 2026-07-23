@@ -20,6 +20,7 @@ window.STF_FOOTER = (function () {
     pt: {
       socialTitle: 'Siga nossas redes oficiais',
       faq: 'FAQ',
+      community: 'Comunidade',
       feedback: 'O que faltou no site?',
       commissioner: 'Seja comissionado',
       patentLinePrefix: 'Patente Nacional',
@@ -29,6 +30,7 @@ window.STF_FOOTER = (function () {
     en: {
       socialTitle: 'Follow our official channels',
       faq: 'FAQ',
+      community: 'Community',
       feedback: 'What was missing?',
       commissioner: 'Become an affiliate',
       patentLinePrefix: 'National Patent',
@@ -38,6 +40,7 @@ window.STF_FOOTER = (function () {
     it: {
       socialTitle: 'Segui i nostri canali ufficiali',
       faq: 'FAQ',
+      community: 'Community',
       feedback: 'Cosa mancava sul sito?',
       commissioner: 'Diventa affiliato',
       patentLinePrefix: 'Brevetto nazionale',
@@ -116,7 +119,7 @@ window.STF_FOOTER = (function () {
       <div class="footer-social">
         <h4>${s.socialTitle}</h4>
         <div class="social-icons-footer">${links}</div>
-        <div class="footer-faq-link"><a href="${faqHref}">${s.faq}</a></div>
+        <div class="footer-faq-link"><a href="${faqHref}">${s.faq}</a>${lang === 'pt' ? ` · <a href="${prefix}comunidade.html">${s.community}</a>` : ''}</div>
         <div class="footer-action-links">
           <button type="button" class="footer-action-btn footer-action-btn--feedback stf-feedback-trigger">
             <i class="fas fa-comment-dots" aria-hidden="true"></i>
