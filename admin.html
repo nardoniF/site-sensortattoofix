@@ -83,7 +83,7 @@
                 <nav class="admin-tabs" role="tablist" aria-label="Seções do painel">
                     <button type="button" role="tab" class="admin-tab active" data-admin-tab="pedidos" aria-selected="true" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="comunidade" aria-selected="false" aria-controls="admin-tab-comunidade"><i class="fas fa-comments"></i> Comunidade</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Clientes</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Cadastros</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pesquisa" aria-selected="false" aria-controls="admin-tab-pesquisa"><i class="fas fa-comment-dots"></i> Pesquisa</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="produtos" aria-selected="false" aria-controls="admin-tab-produtos"><i class="fas fa-box"></i> Produtos</button>
@@ -764,27 +764,66 @@
                     </div>
 <div id="admin-tab-clientes" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend class="admin-legend-row"><span><i class="fas fa-users"></i> Clientes cadastrados</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-clientes" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <legend class="admin-legend-row"><span><i class="fas fa-users"></i> Cadastros</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-clientes" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-clientes" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Contas criadas no checkout ou em Minha Conta. E-mail único por cliente.</p>
+                            <p><strong>Clientes:</strong> contas reais da loja.</p>
+                            <p><strong>Usuários de teste:</strong> flag tester — R$ 0,01 no checkout + acesso à comunidade beta.</p>
+                            <p><strong>Adm:</strong> login do painel (não é conta de cliente).</p>
                         </div>
+                        <nav class="admin-product-subtabs" role="tablist" aria-label="Tipos de cadastro" id="customers-subtabs">
+                            <button type="button" role="tab" class="admin-product-subtab active" data-customers-subtab="clientes" aria-selected="true"><i class="fas fa-user"></i> Clientes <span id="customers-count-clientes" class="admin-meta"></span></button>
+                            <button type="button" role="tab" class="admin-product-subtab" data-customers-subtab="teste" aria-selected="false"><i class="fas fa-flask"></i> Usuários de teste <span id="customers-count-teste" class="admin-meta"></span></button>
+                            <button type="button" role="tab" class="admin-product-subtab" data-customers-subtab="adm" aria-selected="false"><i class="fas fa-user-shield"></i> Adm</button>
+                        </nav>
                         <p id="customers-checked-at" class="admin-meta" hidden></p>
-                        <div class="admin-table-wrap">
-                            <table class="admin-table admin-doc-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th>E-mail</th>
-                                        <th>WhatsApp</th>
-                                        <th>Teste</th>
-                                        <th>Pedidos</th>
-                                        <th>Cadastro</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="admin-customers-tbody">
-                                    <tr><td colspan="6" class="admin-meta">Abra esta aba para carregar a lista.</td></tr>
-                                </tbody>
-                            </table>
+
+                        <div id="customers-panel-clientes" class="customers-subpanel" data-customers-panel="clientes">
+                            <div class="admin-table-wrap">
+                                <table class="admin-table admin-doc-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>E-mail</th>
+                                            <th>WhatsApp</th>
+                                            <th>Teste</th>
+                                            <th>Pedidos</th>
+                                            <th>Cadastro</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-customers-tbody-clientes">
+                                        <tr><td colspan="7" class="admin-meta">Abra esta aba para carregar.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="customers-panel-teste" class="customers-subpanel" data-customers-panel="teste" hidden>
+                            <p class="admin-meta">Testadores têm preço simbólico (R$ 0,01) e veem a comunidade em desenvolvimento.</p>
+                            <div class="admin-table-wrap">
+                                <table class="admin-table admin-doc-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>E-mail</th>
+                                            <th>WhatsApp</th>
+                                            <th>Teste</th>
+                                            <th>Pedidos</th>
+                                            <th>Cadastro</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-customers-tbody-teste">
+                                        <tr><td colspan="7" class="admin-meta">Nenhum testador ainda.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="customers-panel-adm" class="customers-subpanel" data-customers-panel="adm" hidden>
+                            <div id="admin-panel-account-root" class="admin-card">
+                                <p class="admin-meta">Carregando…</p>
+                            </div>
                         </div>
                     </fieldset>
                     </div>
@@ -839,6 +878,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=98"></script>
+    <script src="js/admin.js?v=99"></script>
 </body>
 </html>

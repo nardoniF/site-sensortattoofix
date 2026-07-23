@@ -6485,6 +6485,37 @@ async function listAllCustomers(env, max = 500) {
 }
 
 
+
+async function deleteCustomerUser(env, userId) {
+  const user = await getUserById(env, userId);
+  if (!user) return false;
+  await env.STORE_KV.delete('user:' + userId);
+  if (user.email) await env.STORE_KV.delete('user:email:' + normalizeEmail(user.email));
+  if (user.username) await env.STORE_KV.delete('user:username:' + String(user.username).toLowerCase());
+  await env.STORE_KV.delete('user:' + userId + ':orders');
+  if (user.passwordResetToken) {
+    await env.STORE_KV.delete('passwordReset:' + user.passwordResetToken);
+  }
+  return true;
+}
+
+async function handleAdminCustomerDelete(request, env, origin, userId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const id = String(userId || '').trim();
+  if (!id) return json({ error: 'ID inválido.' }, 400, origin);
+  const user = await getUserById(env, id);
+  if (!user) return json({ error: 'Cliente não encontrado.' }, 404, origin);
+  await deleteCustomerUser(env, id);
+  return json({
+    ok: true,
+    deleted: true,
+    userId: id,
+    email: user.email || null
+  }, 200, origin);
+}
+
 async function handleAdminCustomerPatch(request, env, origin, userId) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -6507,7 +6538,21 @@ async function handleAdminCustomers(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
   const customers = await listAllCustomers(env);
-  return json({ customers, total: customers.length, checkedAt: new Date().toISOString() }, 200, origin);
+  const testers = customers.filter((c) => c.isTester);
+  const clients = customers.filter((c) => !c.isTester);
+  return json({
+    customers,
+    clients,
+    testers,
+    total: customers.length,
+    totals: { all: customers.length, clients: clients.length, testers: testers.length },
+    adminPanel: {
+      username: env.ADMIN_USERNAME || 'admin',
+      kind: 'panel',
+      note: 'Login do painel /admin.html (não é conta de cliente da loja).'
+    },
+    checkedAt: new Date().toISOString()
+  }, 200, origin);
 }
 
 async function handleCustomerOrders(request, env, origin) {
@@ -9354,9 +9399,12 @@ export default {
         });
         if (forumRes) return forumRes;
       }
-      const adminCustomerPatch = path.match(/^\/admin\/customers\/([^/]+)$/);
-      if (adminCustomerPatch && request.method === 'PATCH') {
-        return handleAdminCustomerPatch(request, env, origin, adminCustomerPatch[1]);
+      const adminCustomerId = path.match(/^\/admin\/customers\/([^/]+)$/);
+      if (adminCustomerId && request.method === 'PATCH') {
+        return handleAdminCustomerPatch(request, env, origin, adminCustomerId[1]);
+      }
+      if (adminCustomerId && request.method === 'DELETE') {
+        return handleAdminCustomerDelete(request, env, origin, adminCustomerId[1]);
       }
       if (path === '/feedback' && request.method === 'POST') {
         return handleFeedback(request, env, origin);

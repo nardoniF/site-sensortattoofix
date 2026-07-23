@@ -1661,38 +1661,102 @@ ${worksheets}
     }
   }
 
-  function renderCustomersTable(customers, checkedAt) {
-    const tbody = document.getElementById('admin-customers-tbody');
-    const checkedEl = document.getElementById('customers-checked-at');
-    if (!tbody) return;
+  let customersCache = { customers: [], adminPanel: null, checkedAt: null };
+  let customersSubtab = 'clientes';
+  let customersSubtabsWired = false;
 
-    if (!customers?.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="admin-meta">Nenhum cliente cadastrado ainda.</td></tr>';
-    } else {
-      tbody.innerHTML = customers.map((c) => `
-        <tr data-user-id="${escapeHtml(c.userId || '')}">
-          <td>${escapeHtml(c.nome || '—')}</td>
-          <td>${escapeHtml(c.email || '—')}</td>
-          <td>${escapeHtml(c.telefone || '—')}</td>
-          <td>
-            <label class="admin-check" title="Testador: R$ 0,01 + comunidade beta">
-              <input type="checkbox" data-tester-toggle ${c.isTester ? 'checked' : ''}>
-              <span>${c.isTester ? 'Sim' : 'Não'}</span>
-            </label>
-          </td>
-          <td>${Number(c.orderCount) || 0}</td>
-          <td>${escapeHtml(formatCustomerDate(c.createdAt))}</td>
-        </tr>
-      `).join('');
-      tbody.querySelectorAll('[data-tester-toggle]').forEach((input) => {
-        input.addEventListener('change', () => toggleCustomerTester(input));
-      });
+  function customerRowHtml(c) {
+    return `
+      <tr data-user-id="${escapeHtml(c.userId || '')}">
+        <td>${escapeHtml(c.nome || '—')}</td>
+        <td>${escapeHtml(c.email || '—')}</td>
+        <td>${escapeHtml(c.telefone || '—')}</td>
+        <td>
+          <label class="admin-check" title="Testador: R$ 0,01 + comunidade beta">
+            <input type="checkbox" data-tester-toggle ${c.isTester ? 'checked' : ''}>
+            <span>${c.isTester ? 'Sim' : 'Não'}</span>
+          </label>
+        </td>
+        <td>${Number(c.orderCount) || 0}</td>
+        <td>${escapeHtml(formatCustomerDate(c.createdAt))}</td>
+        <td>
+          <button type="button" class="btn-danger-outline" data-customer-delete title="Excluir cadastro">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>
+      </tr>`;
+  }
+
+  function bindCustomerRowActions(tbody) {
+    if (!tbody) return;
+    tbody.querySelectorAll('[data-tester-toggle]').forEach((input) => {
+      input.addEventListener('change', () => toggleCustomerTester(input));
+    });
+    tbody.querySelectorAll('[data-customer-delete]').forEach((btn) => {
+      btn.addEventListener('click', () => deleteCustomer(btn));
+    });
+  }
+
+  function renderCustomersTables() {
+    const all = customersCache.customers || [];
+    const clients = all.filter((c) => !c.isTester);
+    const testers = all.filter((c) => c.isTester);
+    const checkedEl = document.getElementById('customers-checked-at');
+    const countClientes = document.getElementById('customers-count-clientes');
+    const countTeste = document.getElementById('customers-count-teste');
+    if (countClientes) countClientes.textContent = `(${clients.length})`;
+    if (countTeste) countTeste.textContent = `(${testers.length})`;
+
+    const tbodyClients = document.getElementById('admin-customers-tbody-clientes');
+    const tbodyTesters = document.getElementById('admin-customers-tbody-teste');
+    if (tbodyClients) {
+      tbodyClients.innerHTML = clients.length
+        ? clients.map(customerRowHtml).join('')
+        : '<tr><td colspan="7" class="admin-meta">Nenhum cliente (não-teste) cadastrado.</td></tr>';
+      bindCustomerRowActions(tbodyClients);
+    }
+    if (tbodyTesters) {
+      tbodyTesters.innerHTML = testers.length
+        ? testers.map(customerRowHtml).join('')
+        : '<tr><td colspan="7" class="admin-meta">Nenhum usuário de teste. Marque a flag Teste em um cliente.</td></tr>';
+      bindCustomerRowActions(tbodyTesters);
     }
 
-    if (checkedEl && checkedAt) {
-      checkedEl.textContent = `Atualizado em ${formatCustomerDate(checkedAt)} · ${customers?.length || 0} cliente(s)`;
+    const admRoot = document.getElementById('admin-panel-account-root');
+    if (admRoot) {
+      const adm = customersCache.adminPanel || {};
+      admRoot.innerHTML = `
+        <h3 style="margin:0 0 .5rem"><i class="fas fa-user-shield"></i> Administrador do painel</h3>
+        <p><strong>Usuário:</strong> ${escapeHtml(adm.username || 'admin')}</p>
+        <p class="admin-meta">${escapeHtml(adm.note || 'Login de /admin.html — não aparece na lista de clientes.')}</p>
+        <p class="admin-meta">Senha: definida no Worker (secret <code>ADMIN_PASSWORD</code>). Não é possível excluir por aqui.</p>
+      `;
+    }
+
+    if (checkedEl && customersCache.checkedAt) {
+      checkedEl.textContent = `Atualizado em ${formatCustomerDate(customersCache.checkedAt)} · ${clients.length} cliente(s) · ${testers.length} teste(s)`;
       checkedEl.hidden = false;
     }
+  }
+
+  function showCustomersSubtab(id) {
+    customersSubtab = id || 'clientes';
+    document.querySelectorAll('[data-customers-subtab]').forEach((tab) => {
+      const active = tab.getAttribute('data-customers-subtab') === customersSubtab;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-customers-panel]').forEach((panel) => {
+      panel.hidden = panel.getAttribute('data-customers-panel') !== customersSubtab;
+    });
+  }
+
+  function wireCustomersSubtabs() {
+    if (customersSubtabsWired) return;
+    customersSubtabsWired = true;
+    document.querySelectorAll('[data-customers-subtab]').forEach((tab) => {
+      tab.addEventListener('click', () => showCustomersSubtab(tab.getAttribute('data-customers-subtab')));
+    });
   }
 
   async function toggleCustomerTester(input) {
@@ -1710,8 +1774,11 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao atualizar');
-      const label = input.parentElement?.querySelector('span');
-      if (label) label.textContent = input.checked ? 'Sim' : 'Não';
+      const cached = customersCache.customers.find((c) => c.userId === userId);
+      if (cached) cached.isTester = !!input.checked;
+      renderCustomersTables();
+      if (input.checked) showCustomersSubtab('teste');
+      else showCustomersSubtab('clientes');
     } catch (err) {
       input.checked = !input.checked;
       alert(err.message || 'Erro');
@@ -1720,18 +1787,45 @@ ${worksheets}
     }
   }
 
+  async function deleteCustomer(btn) {
+    const row = btn.closest('tr');
+    const userId = row?.getAttribute('data-user-id');
+    const email = row?.children?.[1]?.textContent || '';
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!userId || !token || !base) return;
+    if (!confirm(`Excluir o cadastro de ${email || 'este usuário'}?\n\nPedidos antigos permanecem; a conta deixa de existir.`)) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/customers/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao excluir');
+      customersCache.customers = (customersCache.customers || []).filter((c) => c.userId !== userId);
+      renderCustomersTables();
+    } catch (err) {
+      alert(err.message || 'Erro');
+      btn.disabled = false;
+    }
+  }
+
   async function loadCustomers() {
-    const tbody = document.getElementById('admin-customers-tbody');
-    if (!tbody || customersLoading) return;
+    wireCustomersSubtabs();
+    const tbodyClients = document.getElementById('admin-customers-tbody-clientes');
+    if (!tbodyClients || customersLoading) return;
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) {
-      tbody.innerHTML = '<tr><td colspan="6" class="admin-meta">Faça login no admin.</td></tr>';
+      tbodyClients.innerHTML = '<tr><td colspan="7" class="admin-meta">Faça login no admin.</td></tr>';
       return;
     }
 
     customersLoading = true;
-    tbody.innerHTML = '<tr><td colspan="6" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando clientes...</td></tr>';
+    tbodyClients.innerHTML = '<tr><td colspan="7" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando…</td></tr>';
+    const tbodyTesters = document.getElementById('admin-customers-tbody-teste');
+    if (tbodyTesters) tbodyTesters.innerHTML = tbodyClients.innerHTML;
 
     try {
       const res = await fetch(base.replace(/\/$/, '') + '/admin/customers', {
@@ -1739,10 +1833,16 @@ ${worksheets}
         cache: 'no-store'
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Falha ao carregar clientes');
-      renderCustomersTable(data.customers, data.checkedAt);
+      if (!res.ok) throw new Error(data.error || 'Falha ao carregar cadastros');
+      customersCache = {
+        customers: data.customers || [],
+        adminPanel: data.adminPanel || null,
+        checkedAt: data.checkedAt
+      };
+      renderCustomersTables();
+      showCustomersSubtab(customersSubtab || 'clientes');
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="6" class="admin-status-bad">${escapeHtml(err.message)}</td></tr>`;
+      tbodyClients.innerHTML = `<tr><td colspan="7" class="admin-status-bad">${escapeHtml(err.message)}</td></tr>`;
     } finally {
       customersLoading = false;
     }
