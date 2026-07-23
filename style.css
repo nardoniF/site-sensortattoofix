@@ -4699,29 +4699,30 @@ body.stf-lightbox-open { overflow: hidden; }
   top: 50%;
   transform: translateY(-50%);
   z-index: 2;
-  width: 32px;
-  height: 44px;
+  width: 36px;
+  height: 48px;
   padding: 0;
   border: none;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.18);
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 1.65rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 1.85rem;
   line-height: 1;
   cursor: pointer;
-  opacity: 0.4;
+  opacity: 0.88;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
   transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 .stf-album-btn:hover,
 .stf-album-btn:focus-visible {
-  opacity: 0.85;
-  background: rgba(0, 0, 0, 0.35);
-  color: rgba(255, 255, 255, 0.9);
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
   outline: none;
 }
-.stf-album:hover .stf-album-btn { opacity: 0.55; }
-.stf-album-prev { left: 6px; }
-.stf-album-next { right: 6px; }
+.stf-album:hover .stf-album-btn { opacity: 1; }
+.stf-album-prev { left: 8px; }
+.stf-album-next { right: 8px; }
 
 .checkout-product-album {
   margin: 0 0 14px;

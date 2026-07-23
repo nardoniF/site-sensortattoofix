@@ -1,21 +1,24 @@
 /**
- * Product photo album — faint ←/→ on the image itself.
- * Does not change host container sizes; only swaps <img src>.
+ * Product photo album — ←/→ on the image.
+ * Store + product section: rotate kit gallery photos.
+ * Kit box on homepage: left alone (static packaging photo).
  */
 (function () {
   const KIT_IDS = new Set(['kit-sensor-tattoofix', 'kit']);
 
-  /** Default album for the main kit (primary image first — unchanged). */
-  const KIT_ALBUM = [
-    '/site/sensortattoofix.jpg',
+  /** Application shot first (replaces redundant sensortattoofix.jpg). */
+  const KIT_GALLERY = [
+    '/site/kit-gallery/kit-03-aplicacao.jpg',
     '/site/kit-gallery/kit-01-embalagem.jpg',
     '/site/kit-gallery/kit-02-conteudo.jpg',
-    '/site/kit-gallery/kit-03-aplicacao.jpg',
     '/site/kit-gallery/kit-04-funcionando.jpg',
     '/site/kit-gallery/kit-05-acompanha.jpg',
     '/site/kit-gallery/kit-06-antes-depois.jpg',
     '/site/kit-gallery/kit-07-beneficios.jpg'
   ];
+
+  /** @deprecated alias — same as KIT_GALLERY */
+  const KIT_ALBUM = KIT_GALLERY;
 
   function normalizeUrl(raw) {
     const s = String(raw || '').trim();
@@ -30,6 +33,11 @@
       return s;
     }
     return s.startsWith('/') ? s : '/' + s.replace(/^\.\//, '');
+  }
+
+  function isLegacyKitHero(url) {
+    const n = normalizeUrl(url).toLowerCase();
+    return /\/site\/sensortattoofix\.jpg(\?|$)/i.test(n);
   }
 
   function uniqueUrls(list) {
@@ -49,24 +57,24 @@
     return KIT_IDS.has(id) || /kit.?sensor|sensor.?tattoo/i.test(id + ' ' + (product?.name || ''));
   }
 
-  function resolveImages(product) {
-    const fromConfig = Array.isArray(product?.images) ? product.images : [];
-    const primary = product?.image || '';
-    let list = uniqueUrls([primary, ...fromConfig]);
-    if (isKitProduct(product)) {
-      list = uniqueUrls([...list, ...KIT_ALBUM]);
-    }
-    if (!list.length) list = ['/site/sensortattoofix.jpg'];
-    return list;
+  function kitAlbum() {
+    return KIT_GALLERY.slice();
   }
 
-  function kitAlbum() {
-    return KIT_ALBUM.slice();
+  function resolveImages(product) {
+    if (isKitProduct(product)) {
+      return kitAlbum();
+    }
+    const fromConfig = Array.isArray(product?.images) ? product.images : [];
+    const primary = product?.image || '';
+    let list = uniqueUrls([primary, ...fromConfig].filter((u) => !isLegacyKitHero(u)));
+    if (!list.length) list = kitAlbum();
+    return list;
   }
 
   function renderMarkup(images, alt, extraClass) {
     const imgs = uniqueUrls(images);
-    if (!imgs.length) imgs.push('/site/sensortattoofix.jpg');
+    if (!imgs.length) imgs.push(KIT_GALLERY[0]);
     const multi = imgs.length > 1;
     const cls = ['stf-album', extraClass || ''].filter(Boolean).join(' ');
     const nav = multi
@@ -75,7 +83,7 @@
       : '';
     return `<div class="${cls}" data-stf-album data-index="0" data-images="${escapeAttr(JSON.stringify(imgs))}">
       <img src="${escapeAttr(imgs[0])}" alt="${escapeAttr(alt || '')}" loading="lazy"
-           onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">
+           onerror="this.onerror=null;this.src='${escapeAttr(KIT_GALLERY[0])}'">
       ${nav}
     </div>`;
   }
@@ -121,7 +129,6 @@
         e.stopPropagation();
         showIndex(album, Number(album.getAttribute('data-index') || 0) + 1);
       });
-      // Light swipe on touch
       let tx = 0;
       album.addEventListener('touchstart', (e) => {
         tx = e.changedTouches?.[0]?.clientX || 0;
@@ -135,9 +142,10 @@
     });
   }
 
-  /** Turn an existing .product-image-wrap / .kit-box-media into an album (keeps wrapper size). */
+  /** Enhance product section only — never the kit packaging block. */
   function enhanceExisting(selector, images, alt) {
     document.querySelectorAll(selector).forEach((wrap) => {
+      if (wrap.closest('.kit-box-media') || wrap.classList.contains('kit-box-media')) return;
       const imgs = uniqueUrls(images && images.length ? images : kitAlbum());
       const existing = wrap.querySelector('img');
       const label = alt || existing?.alt || '';
@@ -155,6 +163,7 @@
 
   window.STF_PRODUCT_GALLERY = {
     KIT_ALBUM,
+    KIT_GALLERY,
     kitAlbum,
     resolveImages,
     isKitProduct,
@@ -164,14 +173,15 @@
     showIndex
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      // Homepage / marketing blocks
-      enhanceExisting('.product-image-wrap', kitAlbum(), 'Sensor Tattoo Fix');
-      enhanceExisting('.kit-box-media', kitAlbum(), 'Kit Sensor Tattoo Fix');
-    });
-  } else {
+  function boot() {
+    // Product block (#produtos): album with visible arrows
     enhanceExisting('.product-image-wrap', kitAlbum(), 'Sensor Tattoo Fix');
-    enhanceExisting('.kit-box-media', kitAlbum(), 'Kit Sensor Tattoo Fix');
+    // .kit-box-media keeps site/kit-profissional.png — no album
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
   }
 })();
