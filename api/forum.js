@@ -88,7 +88,7 @@ function publicThread(thread, { includeBody = true } = {}) {
     replyCount: thread.replyCount || 0,
     publishedReplyCount: thread.publishedReplyCount || 0,
     tags: thread.tags || [],
-    author: thread.author,
+    author: remapSeedAuthor(thread.author),
     media: thread.media || [],
     seeded: !!thread.seeded
   };
@@ -103,9 +103,10 @@ function publicReply(reply) {
     body: reply.body,
     status: reply.status,
     createdAt: reply.createdAt,
-    author: reply.author,
+    author: remapSeedAuthor(reply.author),
     media: reply.media || [],
-    seeded: !!reply.seeded
+    seeded: !!reply.seeded,
+    official: !!(reply.official || reply.author?.isOfficial)
   };
 }
 
@@ -249,6 +250,21 @@ const SEED_AUTHORS = {
   'seed-carla': { userId: 'seed-carla', nome: 'Carla Dias', username: 'carladias', avatarId: 'gem', avatarEmoji: '💎' },
   'seed-tio': { userId: 'seed-tio', nome: 'Tiago Oliveira', username: 'tiagoliveira', avatarId: 'moon', avatarEmoji: '🌙' }
 };
+
+function remapSeedAuthor(author) {
+  if (!author) return author;
+  const mapped = SEED_AUTHORS[author.userId];
+  if (mapped) return { ...mapped };
+  if (author.isOfficial || author.username === 'sensortattoofix' || author.userId === OFFICIAL_AUTHOR.userId) {
+    return { ...OFFICIAL_AUTHOR };
+  }
+  if (author.isTester && String(author.userId || '').startsWith('seed-')) {
+    const next = { ...author };
+    delete next.isTester;
+    return next;
+  }
+  return author;
+}
 
 function officialReply(body, createdAt) {
   return {
@@ -410,12 +426,15 @@ async function refreshSeedAuthors(env) {
     let changed = false;
     const seedAuthor = SEED_AUTHORS[thread.author?.userId];
     if (seedAuthor) {
-      thread.author = { ...seedAuthor };
-      changed = true;
+      const cur = thread.author || {};
+      if (cur.username !== seedAuthor.username || cur.avatarId !== seedAuthor.avatarId || cur.isTester) {
+        thread.author = { ...seedAuthor };
+        changed = true;
+      }
     } else if (thread.author?.userId === OFFICIAL_AUTHOR.userId || thread.author?.username === 'sensortattoofix') {
       thread.author = { ...OFFICIAL_AUTHOR };
       changed = true;
-    } else if (thread.author && 'isTester' in thread.author) {
+    } else if (thread.author && thread.author.isTester) {
       const next = { ...thread.author };
       delete next.isTester;
       thread.author = next;
@@ -427,15 +446,21 @@ async function refreshSeedAuthors(env) {
       if (!r.seeded && !r.official && !r.author?.isOfficial) continue;
       const mapped = SEED_AUTHORS[r.author?.userId];
       if (mapped) {
-        r.author = { ...mapped };
-        repliesChanged = true;
-        repliesTouched += 1;
+        const cur = r.author || {};
+        if (cur.username !== mapped.username || cur.avatarId !== mapped.avatarId || cur.isTester) {
+          r.author = { ...mapped };
+          repliesChanged = true;
+          repliesTouched += 1;
+        }
       } else if (r.official || r.author?.isOfficial || r.author?.username === 'sensortattoofix') {
-        r.author = { ...OFFICIAL_AUTHOR };
-        r.official = true;
-        repliesChanged = true;
-        repliesTouched += 1;
-      } else if (r.author && 'isTester' in r.author) {
+        const cur = r.author || {};
+        if (cur.username !== OFFICIAL_AUTHOR.username || cur.isTester) {
+          r.author = { ...OFFICIAL_AUTHOR };
+          r.official = true;
+          repliesChanged = true;
+          repliesTouched += 1;
+        }
+      } else if (r.author && r.author.isTester) {
         const next = { ...r.author };
         delete next.isTester;
         r.author = next;
@@ -444,11 +469,8 @@ async function refreshSeedAuthors(env) {
       }
     }
     if (repliesChanged) await saveReplies(env, id, replies);
-    if (changed) {
-      thread.updatedAt = thread.updatedAt || new Date().toISOString();
-      await saveThread(env, thread);
-      threadsTouched += 1;
-    } else if (repliesChanged) {
+    if (changed || repliesChanged) {
+      if (changed) thread.updatedAt = thread.updatedAt || new Date().toISOString();
       await saveThread(env, thread);
       threadsTouched += 1;
     }
@@ -456,6 +478,7 @@ async function refreshSeedAuthors(env) {
   const meta = await getForumMeta(env);
   const next = {
     ...meta,
+    seedAuthorsVersion: SEED_AUTHORS_VERSION,
     seedAuthorsRefreshedAt: new Date().toISOString(),
     seedAuthorsRefresh: { threadsTouched, repliesTouched }
   };
@@ -526,58 +549,53 @@ async function ensureForumPublic(env) {
 const SEED_AUTHORS_VERSION = 2;
 
 async function ensureSeed(env) {
-  let meta = await getForumMeta(env);
-  if (!meta.seeded) {
-    const index = await getThreadIndex(env);
-    const seeds = seedPayload();
-    const newIds = [];
-    for (const s of seeds) {
-      const id = crypto.randomUUID();
-      let slug = slugify(s.title);
-      if (await env.STORE_KV.get('forum:slug:' + slug)) slug = `${slug}-${id.slice(0, 6)}`;
-      const replies = (s.replies || []).map((r) => ({
-        id: crypto.randomUUID(),
-        body: r.body,
-        status: 'published',
-        createdAt: r.createdAt,
-        author: r.author,
-        media: [],
-        seeded: true,
-        official: !!(r.official || r.author?.isOfficial)
-      }));
-      const thread = {
-        id,
-        slug,
-        title: s.title,
-        body: s.body,
-        status: 'published',
-        createdAt: s.createdAt,
-        updatedAt: replies.length ? replies[replies.length - 1].createdAt : s.createdAt,
-        replyCount: replies.length,
-        publishedReplyCount: replies.length,
-        tags: s.tags || [],
-        author: s.author,
-        media: s.media || [],
-        seeded: true
-      };
-      await saveThread(env, thread);
-      await saveReplies(env, id, replies);
-      newIds.push(id);
-    }
-    await saveThreadIndex(env, [...newIds, ...index]);
-    meta = {
-      ...meta,
+  const meta = await getForumMeta(env);
+  if (meta.seeded) return meta;
+  const index = await getThreadIndex(env);
+  const seeds = seedPayload();
+  const newIds = [];
+  for (const s of seeds) {
+    const id = crypto.randomUUID();
+    let slug = slugify(s.title);
+    if (await env.STORE_KV.get('forum:slug:' + slug)) slug = `${slug}-${id.slice(0, 6)}`;
+    const replies = (s.replies || []).map((r) => ({
+      id: crypto.randomUUID(),
+      body: r.body,
+      status: 'published',
+      createdAt: r.createdAt,
+      author: r.author,
+      media: [],
       seeded: true,
-      seedAuthorsVersion: SEED_AUTHORS_VERSION,
-      seedAuthorsRefreshedAt: new Date().toISOString()
+      official: !!(r.official || r.author?.isOfficial)
+    }));
+    const thread = {
+      id,
+      slug,
+      title: s.title,
+      body: s.body,
+      status: 'published',
+      createdAt: s.createdAt,
+      updatedAt: replies.length ? replies[replies.length - 1].createdAt : s.createdAt,
+      replyCount: replies.length,
+      publishedReplyCount: replies.length,
+      tags: s.tags || [],
+      author: s.author,
+      media: s.media || [],
+      seeded: true
     };
-    await saveForumMeta(env, meta);
-  } else if (Number(meta.seedAuthorsVersion || 0) < SEED_AUTHORS_VERSION) {
-    meta = await refreshSeedAuthors(env);
-    meta = { ...meta, seedAuthorsVersion: SEED_AUTHORS_VERSION };
-    await saveForumMeta(env, meta);
+    await saveThread(env, thread);
+    await saveReplies(env, id, replies);
+    newIds.push(id);
   }
-  return meta;
+  await saveThreadIndex(env, [...newIds, ...index]);
+  const next = {
+    ...meta,
+    seeded: true,
+    seedAuthorsVersion: SEED_AUTHORS_VERSION,
+    seedAuthorsRefreshedAt: new Date().toISOString()
+  };
+  await saveForumMeta(env, next);
+  return next;
 }
 
 export async function handleForumRoute(request, env, origin, deps) {
@@ -586,8 +604,12 @@ export async function handleForumRoute(request, env, origin, deps) {
   const method = request.method;
 
   if (path === '/forum/related' && method === 'GET') {
-    await ensureSeed(env);
-    await ensureForumPublic(env);
+    try {
+      await ensureSeed(env);
+      await ensureForumPublic(env);
+    } catch (err) {
+      console.warn('forum related bootstrap:', err.message);
+    }
     const access = await canAccessForum(env, deps, request);
     if (!access.ok) {
       return deps.json({ ok: false, reason: access.reason, matches: [] }, 403, origin);
@@ -598,9 +620,14 @@ export async function handleForumRoute(request, env, origin, deps) {
   }
 
   if (path === '/forum' && method === 'GET') {
-    await ensureSeed(env);
-    await ensureForumPublic(env);
-    await ensureOfficialReplies(env);
+    try {
+      await ensureSeed(env);
+      await ensureForumPublic(env);
+      await ensureOfficialReplies(env);
+    } catch (err) {
+      // Não derruba a listagem se KV estiver no limite diário de writes.
+      console.warn('forum list bootstrap:', err.message);
+    }
     const access = await canAccessForum(env, deps, request);
     if (!access.ok) {
       return deps.json({
@@ -810,11 +837,13 @@ export async function handleForumRoute(request, env, origin, deps) {
     }
     const parts = [];
     if (body.refreshAuthors !== false) {
-      meta = await refreshSeedAuthors(env);
-      meta = { ...meta, seedAuthorsVersion: SEED_AUTHORS_VERSION };
-      await saveForumMeta(env, meta);
-      const touch = meta.seedAuthorsRefresh || {};
-      parts.push(`Nomes atualizados (${touch.threadsTouched || 0} tópicos, ${touch.repliesTouched || 0} respostas).`);
+      try {
+        meta = await refreshSeedAuthors(env);
+        const touch = meta.seedAuthorsRefresh || {};
+        parts.push(`Nomes atualizados (${touch.threadsTouched || 0} tópicos, ${touch.repliesTouched || 0} respostas).`);
+      } catch (err) {
+        parts.push(`Falha ao atualizar nomes: ${err.message}`);
+      }
     }
     // Reinjeta respostas oficiais @sensortattoofix se ainda não rodou / forçado
     if (body.forceOfficial || !meta.officialRepliesAt) {
