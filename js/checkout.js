@@ -958,7 +958,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function snapshotFromOrder(data) {
-    const selfTest = !!(data.selfTestPix || data.selfTestPayPal || data.selfTestTester);
+    const selfTest = !!(data.selfTestPix || data.selfTestPayPal || data.selfTestStripe || data.selfTestTester);
     return {
       produto: data.produto || '',
       subtotal: resolveGrossProductTotal(data),
@@ -2464,7 +2464,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       lastPaymentMethod = wantsPaypal ? 'paypal' : ((wantsCardBr || wantsIntlCard) ? 'credit_card' : 'pix');
       const result = await createOrder(orderData);
       const total = result.order?.total || (cartSubtotal() + orderData.frete);
-      const selfTest = !!(result.order?.selfTestPix || result.order?.selfTestPayPal || result.order?.selfTestTester);
+      const selfTest = !!(result.order?.selfTestPix || result.order?.selfTestPayPal || result.order?.selfTestStripe || result.order?.selfTestTester);
       const orderSnapshot = {
         items: (window.STF_CART?.load() || []).map((i) => ({ ...i })),
         subtotal: cartSubtotal() || resolveGrossProductTotal(result.order || {}),

@@ -1768,8 +1768,8 @@ async function intlUsdCharge(order, env) {
   const fx = await fetchFxRate(env, 'USD');
   const brl = Number(order.total) || 0;
   let usd = Math.round(brl * fx.rate * 100) / 100;
-  // Self-test is R$ 0.01 — FX rounds to $0.00 and PayPal rejects ("Must be greater than zero").
-  if (order?.selfTestPayPal && usd < 0.01) usd = 0.01;
+  // Self-test is R$ 0.01 — FX rounds to $0.00; Stripe/PayPal need at least $0.01.
+  if (isSelfTestOrder(order) && usd < 0.01) usd = 0.01;
   return { currency: 'USD', amount: usd, amountCents: Math.round(usd * 100), fxRate: fx.rate };
 }
 
@@ -1868,6 +1868,7 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     createdAt: order.createdAt || null,
     selfTestPix: !!order.selfTestPix,
     selfTestPayPal: !!order.selfTestPayPal,
+    selfTestStripe: !!order.selfTestStripe,
     selfTestTester: !!order.selfTestTester
   };
   if (includeResumeToken && order.status === 'pending_payment') {
@@ -3312,9 +3313,28 @@ function applySelfTestPayPalPricing(order, env, billingType) {
   return true;
 }
 
-/** Pedido simbólico (PIX/PayPal R$ 0,01) — não dispara entrega real. */
+/** Stripe Live self-test (US$ 0,01) — mesmos e-mails testadores do PayPal. */
+function isSelfTestStripeEligible(env, order, billingType) {
+  if (billingType !== 'STRIPE') return false;
+  if (!stripeLiveReady(env)) return false;
+  return isSelfTestCustomerEmail(order?.email);
+}
+
+function applySelfTestStripePricing(order, env, billingType) {
+  if (!isSelfTestStripeEligible(env, order, billingType)) return false;
+  if (order.valorProdutoOriginal == null) order.valorProdutoOriginal = order.valorProduto;
+  order.freteOriginal = order.frete;
+  order.totalOriginal = order.total;
+  order.selfTestStripe = true;
+  order.frete = 0;
+  order.valorProduto = SELF_TEST_PIX_AMOUNT;
+  order.total = SELF_TEST_PIX_AMOUNT;
+  return true;
+}
+
+/** Pedido simbólico (PIX/PayPal/Stripe R$ 0,01) — não dispara entrega real. */
 function isSelfTestOrder(order) {
-  if (order?.selfTestPix || order?.selfTestPayPal || order?.selfTestTester) return true;
+  if (order?.selfTestPix || order?.selfTestPayPal || order?.selfTestStripe || order?.selfTestTester) return true;
   const total = Number(order?.total);
   return Number.isFinite(total) && total > 0 && total <= SELF_TEST_PIX_AMOUNT + 1e-9;
 }
@@ -6885,17 +6905,21 @@ async function handleCreateOrder(request, env, origin, ctx) {
   }
   if (applySelfTestPayPalPricing(order, env, billingType)) {
     console.log('PayPal self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
-    // Recompute USD after dropping total to R$ 0.01 (otherwise FX → $0.00).
-    if (order.chargeCurrency === 'USD' || (intlEmbeddedCheckout && billingType === 'PAYPAL')) {
-      try {
-        const usd = await intlUsdCharge(order, env);
-        order.chargeCurrency = 'USD';
-        order.chargeAmount = usd.amount;
-        order.chargeFxRate = usd.fxRate;
-        order.displayCurrency = 'USD';
-      } catch (err) {
-        console.warn('USD self-test charge:', err.message);
-      }
+  }
+  if (applySelfTestStripePricing(order, env, billingType)) {
+    console.log('Stripe self-test produção:', order.orderId, SELF_TEST_PIX_AMOUNT);
+  }
+  // Recompute USD after any self-test drop to R$ 0.01 (otherwise FX → $0.00 / full charge stuck).
+  if (isSelfTestOrder(order) && (order.chargeCurrency === 'USD'
+    || (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')))) {
+    try {
+      const usd = await intlUsdCharge(order, env);
+      order.chargeCurrency = 'USD';
+      order.chargeAmount = usd.amount;
+      order.chargeFxRate = usd.fxRate;
+      order.displayCurrency = 'USD';
+    } catch (err) {
+      console.warn('USD self-test charge:', err.message);
     }
   }
 
@@ -6974,6 +6998,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
       } : {}),
       ...(order.selfTestPayPal ? {
         'Teste PayPal produção': `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — PAYPAL_SELF_TEST ativo`,
+        'Total original': formatBRL(order.totalOriginal || 0)
+      } : {}),
+      ...(order.selfTestStripe ? {
+        'Teste Stripe produção': `US$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — e-mail testador`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...orderWatchEmailFields(order)
