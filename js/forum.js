@@ -1,5 +1,5 @@
 /**
- * Comunidade (fórum) — visível a testadores enquanto em desenvolvimento.
+ * Comunidade (fórum) — leitura pública; postar redireciona ao login se necessário.
  */
 (function () {
   const state = {
@@ -9,7 +9,7 @@
     role: null,
     thread: null,
     replies: [],
-    view: 'list' // list | thread | gate
+    view: 'list'
   };
 
   function apiBase() {
@@ -22,27 +22,55 @@
 
   function accountHref(opts) {
     const base = window.STF_I18N?.accountHref?.() || 'minha-conta.html';
-    if (opts?.register) {
-      const sep = base.includes('?') ? '&' : '?';
-      return base + sep + 'tab=register';
-    }
-    return base;
+    const parts = String(base).split('?');
+    const path = parts[0];
+    const params = new URLSearchParams(parts[1] || '');
+    if (opts?.register) params.set('tab', 'register');
+    if (opts?.next) params.set('next', opts.next);
+    const q = params.toString();
+    return path + (q ? '?' + q : '');
+  }
+
+  function loginRedirect(nextPath) {
+    const next = nextPath || (location.pathname.split('/').pop() + location.search);
+    try { sessionStorage.setItem('stf_forum_return', next); } catch (e) {}
+    location.href = accountHref({ next });
+  }
+
+  function requireLoginForPost() {
+    if (token() && state.user) return true;
+    loginRedirect();
+    return false;
   }
 
   function canPost() {
     return !!(state.user && state.user.username && state.user.avatarId);
   }
 
-  function renderRegisterToPost() {
-    const reg = accountHref({ register: true });
-    const login = accountHref();
-    return `<section class="forum-compose admin-card forum-compose-locked">
-      <h2>Quer postar?</h2>
-      <p>Para criar tópicos ou responder, você precisa de uma <strong>conta cadastrada</strong>.</p>
-      <p class="forum-compose-actions">
-        <a class="btn-primary" href="${escapeHtml(reg)}"><i class="fas fa-user-plus"></i> Criar conta</a>
-        <a class="btn-secondary" href="${escapeHtml(login)}"><i class="fas fa-sign-in-alt"></i> Já tenho conta</a>
-      </p>
+  function composeNewThreadHtml() {
+    return `<section class="forum-compose admin-card">
+      <h2>Novo assunto</h2>
+      <p class="admin-meta">Antes de publicar, checamos se já existe um tópico parecido.</p>
+      <form id="forum-new-thread" class="admin-form">
+        <label>Assunto / título<input name="title" required minlength="8" maxlength="120" placeholder="Sobre o que você quer falar?" id="forum-compose-title"></label>
+        <label>Mensagem<textarea name="body" required minlength="20" rows="5" placeholder="Conte sua experiência…" id="forum-compose-body"></textarea></label>
+        <label>Foto (URL https, opcional)<input name="imageUrl" type="url" placeholder="https://…"></label>
+        <label>Vídeo YouTube (URL, opcional)<input name="videoUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"></label>
+        <div id="forum-related-box" class="forum-related-box" hidden></div>
+        <button type="submit" class="btn-primary">Postar</button>
+        <p id="forum-compose-status" class="form-status" hidden></p>
+      </form>
+    </section>`;
+  }
+
+  function composeReplyHtml() {
+    return `<section class="forum-compose admin-card">
+      <h2>Responder</h2>
+      <form id="forum-reply-form" class="admin-form">
+        <label>Mensagem<textarea name="body" required minlength="2" rows="4"></textarea></label>
+        <button type="submit" class="btn-primary">Postar</button>
+        <p id="forum-reply-status" class="form-status" hidden></p>
+      </form>
     </section>`;
   }
 
@@ -116,24 +144,19 @@
     return document.getElementById(id);
   }
 
-  function showGate(message, reason) {
+  function showGate(message) {
     state.view = 'gate';
     const root = el('forum-root');
     if (!root) return;
-    const loginHref = accountHref();
-    const regHref = accountHref({ register: true });
     root.innerHTML = `<section class="forum-gate admin-card">
       <h1><i class="fas fa-comments"></i> Comunidade</h1>
-      <p class="forum-dev-banner"><i class="fas fa-flask"></i> Comunidade oficial Sensor Tattoo Fix</p>
-      <p>${escapeHtml(message || 'Acesso restrito.')}</p>
-      ${reason === 'login' || reason === 'register' ? `
-        <p>Para participar e postar, <strong>cadastre-se</strong> (é grátis) e faça login.</p>
-        <p class="forum-compose-actions">
-          <a class="btn-primary" href="${escapeHtml(regHref)}"><i class="fas fa-user-plus"></i> Criar conta</a>
-          <a class="btn-secondary" href="${escapeHtml(loginHref)}"><i class="fas fa-sign-in-alt"></i> Entrar</a>
-        </p>` : ''}
-      ${reason === 'tester' ? '<p class="admin-meta">Sua conta ainda não é de teste. Peça ao admin para marcar você como testador.</p>' : ''}
+      <p>${escapeHtml(message || 'Não foi possível carregar a comunidade.')}</p>
+      <p class="forum-compose-actions">
+        <button type="button" class="btn-primary" id="forum-retry">Tentar de novo</button>
+        <a class="btn-secondary" href="${escapeHtml(accountHref())}">Entrar</a>
+      </p>
     </section>`;
+    el('forum-retry')?.addEventListener('click', () => loadList());
   }
 
   function renderProfileSetup() {
@@ -146,13 +169,42 @@
       <h2>Seu perfil na comunidade</h2>
       <p class="admin-meta">Escolha username e avatar para postar. Posts passam por aprovação.</p>
       <form id="forum-profile-form" class="admin-form">
-        <label>Username (3–20: a-z, 0-9, _)<input name="username" required minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" value="${escapeHtml(state.user?.username || '')}" placeholder="ex: mariacosta"></label>
+        <label>Username (3–20: a-z, 0-9, _)<input name="username" required minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" value="${escapeHtml(state.user?.username || '')}" placeholder="ex: guga97"></label>
         <div class="forum-avatar-grid" id="forum-avatar-grid">${avatars}</div>
         <input type="hidden" name="avatarId" id="forum-avatar-id" value="${escapeHtml(state.user?.avatarId || '')}">
         <button type="submit" class="btn-primary">Salvar perfil</button>
         <p id="forum-profile-status" class="form-status" hidden></p>
       </form>
     </section>`;
+  }
+
+  function bindProfileEvents() {
+    el('forum-profile-form')?.addEventListener('submit', onProfileSubmit);
+    document.querySelectorAll('.forum-avatar-pick').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.forum-avatar-pick').forEach((b) => b.classList.remove('is-selected'));
+        btn.classList.add('is-selected');
+        const hidden = el('forum-avatar-id');
+        if (hidden) hidden.value = btn.getAttribute('data-avatar') || '';
+      });
+    });
+    const current = el('forum-avatar-id')?.value;
+    if (current) {
+      document.querySelector(`.forum-avatar-pick[data-avatar="${CSS.escape(current)}"]`)?.classList.add('is-selected');
+    }
+  }
+
+  function restoreComposeDraft() {
+    try {
+      const raw = sessionStorage.getItem('stf_forum_compose_draft');
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      const title = el('forum-compose-title');
+      const body = el('forum-compose-body');
+      if (title && draft.title) title.value = draft.title;
+      if (body && draft.body) body.value = draft.body;
+      sessionStorage.removeItem('stf_forum_compose_draft');
+    } catch (e) {}
   }
 
   function renderList() {
@@ -175,29 +227,16 @@
 
     root.innerHTML = `
       <header class="forum-header">
-        <div>
-          <h1><i class="fas fa-comments"></i> Comunidade</h1>
-          <p class="forum-dev-banner"><i class="fas fa-flask"></i> Para postar, crie uma conta</p>
-        </div>
+        <div><h1><i class="fas fa-comments"></i> Comunidade</h1></div>
         ${state.user ? `<div class="forum-you">${authorHtml(state.user)}</div>` : ''}
       </header>
-      ${!state.user ? renderRegisterToPost() : renderProfileSetup()}
-      ${canPost() ? `<section class="forum-compose admin-card">
-        <h2>Novo assunto</h2>
-        <p class="admin-meta">Antes de publicar, vamos checar se já existe um tópico parecido — assim a conversa não se espalha.</p>
-        <form id="forum-new-thread" class="admin-form">
-          <label>Assunto / título<input name="title" required minlength="8" maxlength="120" placeholder="Sobre o que você quer falar?" id="forum-compose-title"></label>
-          <label>Mensagem<textarea name="body" required minlength="20" rows="5" placeholder="Conte sua experiência…" id="forum-compose-body"></textarea></label>
-          <label>Foto (URL https, opcional)<input name="imageUrl" type="url" placeholder="https://…"></label>
-          <label>Vídeo YouTube (URL, opcional)<input name="videoUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"></label>
-          <div id="forum-related-box" class="forum-related-box" hidden></div>
-          <button type="submit" class="btn-primary">Continuar</button>
-          <p id="forum-compose-status" class="form-status" hidden></p>
-        </form>
-      </section>` : (state.user ? '<p class="admin-meta">Complete username e avatar acima para poder postar.</p>' : '')}
+      ${state.user && !canPost() ? renderProfileSetup() : ''}
+      ${composeNewThreadHtml()}
       <section class="forum-list">${threads}</section>
     `;
     bindListEvents();
+    bindProfileEvents();
+    restoreComposeDraft();
   }
 
   function renderThread() {
@@ -224,25 +263,17 @@
         ${mediaHtml(t.media)}
       </article>
       <section class="forum-replies">${replies}</section>
-      ${!state.user ? renderRegisterToPost() : (canPost() ? `<section class="forum-compose admin-card">
-        <h2>Responder</h2>
-        <form id="forum-reply-form" class="admin-form">
-          <label>Mensagem<textarea name="body" required minlength="2" rows="4"></textarea></label>
-          <button type="submit" class="btn-primary">Enviar resposta</button>
-          <p id="forum-reply-status" class="form-status" hidden></p>
-        </form>
-      </section>` : `<section class="forum-compose admin-card"><p>Complete seu perfil na lista de tópicos (username + avatar) para responder.</p><p><a class="btn-secondary" href="comunidade.html">Voltar à comunidade</a></p></section>`)}
+      ${state.user && !canPost() ? renderProfileSetup() : ''}
+      ${composeReplyHtml()}
     `;
     el('forum-back')?.addEventListener('click', () => { history.replaceState({}, '', location.pathname); loadList(); });
     el('forum-reply-form')?.addEventListener('submit', onReplySubmit);
+    bindProfileEvents();
     try {
       const draft = sessionStorage.getItem('stf_forum_reply_draft');
       const ta = el('forum-reply-form')?.querySelector('textarea[name="body"]');
-      if (draft && ta && !ta.value) {
-        ta.value = draft;
-        ta.focus();
-      }
-    } catch (e) { /* ignore */ }
+      if (draft && ta && !ta.value) { ta.value = draft; ta.focus(); }
+    } catch (e) {}
   }
 
   function setStatus(id, msg, ok) {
@@ -254,19 +285,6 @@
   }
 
   function bindListEvents() {
-    document.querySelectorAll('.forum-avatar-pick').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.forum-avatar-pick').forEach((b) => b.classList.remove('is-selected'));
-        btn.classList.add('is-selected');
-        const hidden = el('forum-avatar-id');
-        if (hidden) hidden.value = btn.getAttribute('data-avatar') || '';
-      });
-    });
-    const current = el('forum-avatar-id')?.value;
-    if (current) {
-      document.querySelector(`.forum-avatar-pick[data-avatar="${CSS.escape(current)}"]`)?.classList.add('is-selected');
-    }
-    el('forum-profile-form')?.addEventListener('submit', onProfileSubmit);
     el('forum-new-thread')?.addEventListener('submit', onNewThread);
     el('forum-compose-title')?.addEventListener('blur', () => {
       const title = el('forum-compose-title')?.value || '';
@@ -285,11 +303,7 @@
   function renderRelatedBox(matches, { deciding = false } = {}) {
     const box = el('forum-related-box');
     if (!box) return;
-    if (!matches.length) {
-      box.hidden = true;
-      box.innerHTML = '';
-      return;
-    }
+    if (!matches.length) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
     const list = matches.map((m) => `
       <li>
@@ -316,9 +330,7 @@
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-thread');
         const draft = el('forum-compose-body')?.value || '';
-        try {
-          if (draft.trim()) sessionStorage.setItem('stf_forum_reply_draft', draft.trim());
-        } catch (e) { /* ignore */ }
+        try { if (draft.trim()) sessionStorage.setItem('stf_forum_reply_draft', draft.trim()); } catch (e) {}
         history.replaceState({}, '', '?t=' + encodeURIComponent(id));
         loadThread(id);
       });
@@ -333,21 +345,18 @@
       const q = [title, body].filter(Boolean).join(' ');
       const data = await api('/forum/related?q=' + encodeURIComponent(q));
       renderRelatedBox(data.matches || [], { deciding: false });
-    } catch (e) {
-      /* silent preview */
-    }
+    } catch (e) {}
   }
 
   async function onProfileSubmit(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const username = String(fd.get('username') || '');
-    const avatarId = String(fd.get('avatarId') || '');
     try {
-      const data = await api('/forum/profile', { method: 'PATCH', json: { username, avatarId } });
-      if (data.user && window.STF_ACCOUNT?.setSession) {
-        window.STF_ACCOUNT.setSession(token(), data.user);
-      }
+      const data = await api('/forum/profile', {
+        method: 'PATCH',
+        json: { username: String(fd.get('username') || ''), avatarId: String(fd.get('avatarId') || '') }
+      });
+      if (data.user && window.STF_ACCOUNT?.setSession) window.STF_ACCOUNT.setSession(token(), data.user);
       state.user = {
         ...(state.user || {}),
         username: data.user?.username,
@@ -357,7 +366,8 @@
         nome: data.user?.nome
       };
       setStatus('forum-profile-status', 'Perfil salvo.', true);
-      renderList();
+      if (state.view === 'thread') renderThread();
+      else renderList();
     } catch (err) {
       setStatus('forum-profile-status', err.message, false);
     }
@@ -365,6 +375,12 @@
 
   async function createNewThreadFromForm(form) {
     if (!form) return;
+    if (!requireLoginForPost()) return;
+    if (!canPost()) {
+      setStatus('forum-compose-status', 'Complete username e avatar acima para postar.', false);
+      el('forum-profile-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
     const fd = new FormData(form);
     const media = [];
     const imageUrl = String(fd.get('imageUrl') || '').trim();
@@ -381,15 +397,23 @@
       const box = el('forum-related-box');
       if (box) { box.hidden = true; box.innerHTML = ''; }
     } catch (err) {
+      if (err.status === 401 || err.data?.needRegister) { loginRedirect(); return; }
       setStatus('forum-compose-status', err.message, false);
-      if (err.data?.needRegister) {
-        setStatus('forum-compose-status', err.message + ' — use Criar conta em Minha Conta.', false);
-      }
     }
   }
 
   async function onNewThread(e) {
     e.preventDefault();
+    if (!requireLoginForPost()) {
+      try {
+        const fd = new FormData(e.target);
+        sessionStorage.setItem('stf_forum_compose_draft', JSON.stringify({
+          title: String(fd.get('title') || ''),
+          body: String(fd.get('body') || '')
+        }));
+      } catch (err) {}
+      return;
+    }
     const fd = new FormData(e.target);
     const title = String(fd.get('title') || '').trim();
     const body = String(fd.get('body') || '').trim();
@@ -405,13 +429,26 @@
       }
       await createNewThreadFromForm(e.target);
     } catch (err) {
-      // Se a busca falhar, não bloqueia o envio
+      if (err.status === 401 || err.data?.needRegister) { loginRedirect(); return; }
       await createNewThreadFromForm(e.target);
     }
   }
 
   async function onReplySubmit(e) {
     e.preventDefault();
+    if (!requireLoginForPost()) {
+      try {
+        const fd = new FormData(e.target);
+        const draft = String(fd.get('body') || '').trim();
+        if (draft) sessionStorage.setItem('stf_forum_reply_draft', draft);
+      } catch (err) {}
+      return;
+    }
+    if (!canPost()) {
+      setStatus('forum-reply-status', 'Complete username e avatar acima para responder.', false);
+      el('forum-profile-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
     const fd = new FormData(e.target);
     try {
       const data = await api('/forum/threads/' + encodeURIComponent(state.thread.id) + '/replies', {
@@ -420,8 +457,9 @@
       });
       setStatus('forum-reply-status', data.message || 'Enviado.', true);
       e.target.reset();
-      try { sessionStorage.removeItem('stf_forum_reply_draft'); } catch (err) { /* ignore */ }
+      try { sessionStorage.removeItem('stf_forum_reply_draft'); } catch (err) {}
     } catch (err) {
+      if (err.status === 401 || err.data?.needRegister) { loginRedirect(); return; }
       setStatus('forum-reply-status', err.message, false);
     }
   }
@@ -435,7 +473,7 @@
       state.role = data.role;
       renderList();
     } catch (err) {
-      showGate(err.data?.message || err.message, err.data?.reason || (err.status === 403 ? 'tester' : 'login'));
+      showGate(err.data?.message || err.message);
     }
   }
 
@@ -459,7 +497,7 @@
       state.replies = data.replies || [];
       renderThread();
     } catch (err) {
-      showGate(err.message, err.data?.reason || (err.data?.needRegister ? 'register' : 'login'));
+      showGate(err.message);
     }
   }
 

@@ -228,6 +228,27 @@
     });
   }
 
+
+  function safeNextPath() {
+    const params = new URLSearchParams(location.search);
+    let next = String(params.get('next') || '').trim();
+    if (!next) {
+      try { next = String(sessionStorage.getItem('stf_forum_return') || '').trim(); } catch (e) { next = ''; }
+    }
+    if (!next) return '';
+    if (/^https?:\/\//i.test(next) || next.startsWith('//') || next.includes('..')) return '';
+    if (!/^[A-Za-z0-9._~\/?#=&%-]+$/.test(next)) return '';
+    return next;
+  }
+
+  function redirectAfterAuthIfNeeded() {
+    const next = safeNextPath();
+    if (!next) return false;
+    try { sessionStorage.removeItem('stf_forum_return'); } catch (e) {}
+    location.href = next;
+    return true;
+  }
+
   function bindForms() {
     els.loginForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -236,6 +257,7 @@
         const f = e.target;
         const data = await A().login(f.email.value, f.password.value);
         showStatus('', '');
+        if (redirectAfterAuthIfNeeded()) return;
         showPanel(data.user);
         setPanelView('orders');
         await loadOrders();
@@ -309,6 +331,7 @@
           senha: f.password.value
         });
         showStatus('', '');
+        if (redirectAfterAuthIfNeeded()) return;
         showPanel(data.user);
         setPanelView('orders');
         await loadOrders();
@@ -404,6 +427,7 @@
       return;
     }
     if (user) {
+      if (redirectAfterAuthIfNeeded()) return;
       showPanel(user);
       setPanelView('orders');
       await loadOrders();
