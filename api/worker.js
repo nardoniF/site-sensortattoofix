@@ -5293,12 +5293,11 @@ function buildIntegrationRows(env, config, checks) {
     let detail = `${paypal.mode === 'sandbox' ? 'Sandbox' : 'Live'} conectado`;
     const paypalAppLabel = String(config.payments?.paypal?.appLabel || '').trim();
     if (paypalAppLabel) detail += ` · ${paypalAppLabel}`;
-    if (paypal.selfTest) detail += ' · teste R$ 0,01 ativo';
     rows.push({
       id: 'paypal',
       label: 'PayPal',
       description: 'Pagamentos internacionais',
-      status: paypal.sandbox || paypal.selfTest ? 'warn' : 'ok',
+      status: paypal.sandbox ? 'warn' : 'ok',
       detail
     });
   }
@@ -7676,6 +7675,34 @@ async function handlePayPalCreate(request, env, origin, orderId) {
   }
 }
 
+function stripeOrderCharge(order, request, env) {
+  let amountCents;
+  let currency = 'usd';
+  let amountUsd = null;
+  if (order.chargeCurrency === 'USD' || isComSiteRequest(request)) {
+    let usd = Number(order.chargeAmount);
+    if (!Number.isFinite(usd) || usd <= 0) {
+      return null;
+    }
+    amountCents = Math.max(50, Math.round(usd * 100));
+    amountUsd = usd;
+  } else {
+    amountCents = Math.max(50, Math.round(Number(order.total) * 100));
+    currency = 'brl';
+  }
+  return { amountCents, currency, amountUsd };
+}
+
+async function ensureStripeUsdCharge(order, request, env) {
+  if (!(order.chargeCurrency === 'USD' || isComSiteRequest(request))) return;
+  let usd = Number(order.chargeAmount);
+  if (Number.isFinite(usd) && usd > 0) return;
+  const charge = await intlUsdCharge(order, env);
+  order.chargeCurrency = 'USD';
+  order.chargeAmount = charge.amount;
+  order.chargeFxRate = charge.fxRate;
+}
+
 async function handleStripePaymentIntent(request, env, origin, orderId) {
   const body = await request.json().catch(() => ({}));
   const order = await getOrder(env, orderId);
@@ -7692,27 +7719,14 @@ async function handleStripePaymentIntent(request, env, origin, orderId) {
   }
   const config = await getConfig(env);
   const { publishableKey } = stripeCredentials(env);
-  let amountCents;
-  let currency = 'usd';
-  if (order.chargeCurrency === 'USD' || isComSiteRequest(request)) {
-    let usd = Number(order.chargeAmount);
-    if (!Number.isFinite(usd) || usd <= 0) {
-      const charge = await intlUsdCharge(order, env);
-      usd = charge.amount;
-      order.chargeCurrency = 'USD';
-      order.chargeAmount = charge.amount;
-      order.chargeFxRate = charge.fxRate;
-    }
-    amountCents = Math.max(50, Math.round(usd * 100));
-  } else {
-    amountCents = Math.max(50, Math.round(Number(order.total) * 100));
-    currency = 'brl';
-  }
+  await ensureStripeUsdCharge(order, request, env);
+  const charge = stripeOrderCharge(order, request, env);
+  if (!charge) return json({ error: 'Could not compute charge amount.' }, 400, origin);
   const returnBase = storeBaseUrl(config, env, request);
   try {
     const pi = await stripeApi(env, 'payment_intents', {
-      amount: String(amountCents),
-      currency,
+      amount: String(charge.amountCents),
+      currency: charge.currency,
       'automatic_payment_methods[enabled]': 'true',
       'metadata[orderId]': order.orderId,
       description: `Sensor Tattoo Fix — ${order.orderId}`.slice(0, 500),
@@ -7725,6 +7739,67 @@ async function handleStripePaymentIntent(request, env, origin, orderId) {
       clientSecret: pi.client_secret,
       publishableKey,
       returnUrl: `${returnBase}/comprar.html?stripe=return&orderId=${encodeURIComponent(order.orderId)}&accessToken=${encodeURIComponent(order.accessToken)}`
+    }, 200, origin);
+  } catch (err) {
+    return json({ error: err.message }, 400, origin);
+  }
+}
+
+/** Hosted Stripe Checkout — fallback “Continue on Stripe.com” (like PayPal redirect). */
+async function handleStripeCheckoutSession(request, env, origin, orderId) {
+  const body = await request.json().catch(() => ({}));
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const accessToken = String(body.accessToken || '');
+  if (!order.accessToken || accessToken !== order.accessToken) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (order.status === 'paid') {
+    return json({ order: publicOrderView(order), status: 'paid' }, 200, origin);
+  }
+  if (!stripeLiveReady(env)) {
+    return json({ error: 'Card payment temporarily unavailable. Please use PayPal.' }, 503, origin);
+  }
+  const config = await getConfig(env);
+  await ensureStripeUsdCharge(order, request, env);
+  const charge = stripeOrderCharge(order, request, env);
+  if (!charge) return json({ error: 'Could not compute charge amount.' }, 400, origin);
+  const returnBase = storeBaseUrl(config, env, request);
+  const successQs = new URLSearchParams({
+    stripe: 'return',
+    orderId: order.orderId,
+    accessToken: order.accessToken
+  });
+  const cancelQs = new URLSearchParams({
+    stripe: 'cancel',
+    orderId: order.orderId,
+    accessToken: order.accessToken
+  });
+  const productLabel = (
+    (Array.isArray(order.items) && (order.items[0]?.name || order.items[0]?.nome))
+    || order.produtoNome
+    || 'Sensor Tattoo Fix'
+  ).toString().slice(0, 120);
+  try {
+    const session = await stripeApi(env, 'checkout/sessions', {
+      mode: 'payment',
+      success_url: `${returnBase}/comprar.html?${successQs}`,
+      cancel_url: `${returnBase}/comprar.html?${cancelQs}`,
+      customer_email: String(order.email || '').slice(0, 500),
+      'line_items[0][quantity]': '1',
+      'line_items[0][price_data][currency]': charge.currency,
+      'line_items[0][price_data][unit_amount]': String(charge.amountCents),
+      'line_items[0][price_data][product_data][name]': productLabel,
+      'metadata[orderId]': order.orderId,
+      'payment_intent_data[metadata][orderId]': order.orderId,
+      'payment_intent_data[description]': `Sensor Tattoo Fix — ${order.orderId}`.slice(0, 500)
+    });
+    order.stripeCheckoutSessionId = session.id;
+    order.paymentProvider = 'stripe';
+    await saveOrder(env, order);
+    return json({
+      checkoutUrl: session.url || null,
+      sessionId: session.id
     }, 200, origin);
   } catch (err) {
     return json({ error: err.message }, 400, origin);
@@ -7754,6 +7829,21 @@ async function handleStripeWebhook(request, env, origin) {
         const value = pi.amount_received ? pi.amount_received / 100 : order.total;
         await handlePaymentConfirmed(env, order, {
           id: pi.id,
+          provider: 'stripe',
+          billingType: 'STRIPE',
+          value
+        });
+      }
+    }
+  } else if (event.type === 'checkout.session.completed') {
+    const session = event.data?.object || {};
+    const orderId = session.metadata?.orderId;
+    if (orderId && session.payment_status === 'paid') {
+      const order = await getOrder(env, orderId);
+      if (order && order.status !== 'paid') {
+        const value = session.amount_total ? session.amount_total / 100 : order.total;
+        await handlePaymentConfirmed(env, order, {
+          id: session.payment_intent || session.id,
           provider: 'stripe',
           billingType: 'STRIPE',
           value
@@ -9499,6 +9589,10 @@ export default {
       const stripePiMatch = path.match(/^\/orders\/([^/]+)\/stripe\/payment-intent$/);
       if (stripePiMatch && request.method === 'POST') {
         return handleStripePaymentIntent(request, env, origin, stripePiMatch[1]);
+      }
+      const stripeCsMatch = path.match(/^\/orders\/([^/]+)\/stripe\/checkout-session$/);
+      if (stripeCsMatch && request.method === 'POST') {
+        return handleStripeCheckoutSession(request, env, origin, stripeCsMatch[1]);
       }
 
       const paypalCaptureMatch = path.match(/^\/orders\/([^/]+)\/paypal\/capture$/);

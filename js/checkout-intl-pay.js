@@ -69,8 +69,14 @@ window.STF_INTL_PAY = (function () {
     if (stripeInput) {
       stripeInput.disabled = !hasStripe;
       if (!hasStripe) stripeInput.checked = false;
+      else if (hasStripe) {
+        stripeInput.checked = true;
+        if (paypalInput) paypalInput.checked = false;
+      }
     }
-    if (!hasStripe && hasPaypal && paypalInput) {
+    if (hasStripe && notice && !notice.dataset.stfLocked) {
+      notice.innerHTML = '<i class="fas fa-info-circle"></i> Card, Apple Pay, Google Pay or PayPal · charged in USD · tracked shipping.';
+    } else if (!hasStripe && hasPaypal && paypalInput) {
       paypalInput.checked = true;
       if (notice && !notice.dataset.stfLocked) {
         notice.innerHTML = '<i class="fas fa-info-circle"></i> Secure PayPal checkout · charged in USD · tracked shipping.';
@@ -143,6 +149,30 @@ window.STF_INTL_PAY = (function () {
     return window.paypal;
   }
 
+  async function mountStripeRedirectLink(orderId, accessToken) {
+    const linkEl = document.getElementById('stripe-redirect-link');
+    if (!linkEl) return null;
+    try {
+      const base = apiBase();
+      const res = await fetch(base + '/orders/' + encodeURIComponent(orderId) + '/stripe/checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.checkoutUrl) {
+        linkEl.hidden = true;
+        return null;
+      }
+      linkEl.href = data.checkoutUrl;
+      linkEl.hidden = false;
+      return data.checkoutUrl;
+    } catch (_) {
+      linkEl.hidden = true;
+      return null;
+    }
+  }
+
   async function mountStripe(orderId, accessToken) {
     await loadConfig();
     const pk = cfg?.payments?.stripe?.publishableKey;
@@ -171,6 +201,8 @@ window.STF_INTL_PAY = (function () {
     paymentElement.mount('#stripe-payment-element');
     const confirmBtn = document.getElementById('btn-stripe-confirm');
     if (confirmBtn) confirmBtn.hidden = false;
+    // Hosted Checkout fallback — same idea as “Continue on PayPal.com”
+    mountStripeRedirectLink(orderId, accessToken);
   }
 
   async function confirmStripe() {
