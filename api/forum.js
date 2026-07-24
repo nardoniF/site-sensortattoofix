@@ -366,12 +366,12 @@ function seedPayload() {
           createdAt: iso(60 * 33)
         },
         {
-          body: 'Guga, tive exatamente isso com sleeve escura. Sensor Tattoo Fix + detecção ligada = Apple Pay voltou a funcionar sem drama. Mede o sensor certinho (borda a borda) antes de pedir o mm.',
+          body: 'Guga, tive exatamente isso com sleeve escura. Sensor Tattoo Fix + detecção ligada = Apple Pay voltou a funcionar sem drama.',
           author: { ...A['seed-chris'] },
           createdAt: iso(60 * 22)
         },
         officialReply(
-          'Oi, Guga! 👋 Aqui é a equipe @sensortattoofix.\n\nIsso é clássico: tinta escura no pulso atrapalha o sensor óptico e o relógio acha que saiu do braço — pede senha de novo e some notificação.\n\nO kit zera essa situação. Você instala e mantém a detecção — e o pagamento por aproximação continua funcionando.\n\nQualquer dúvida de tamanho (mm do sensor), manda no suporte. 🖤',
+          'Oi, Guga! 👋 Aqui é a equipe @sensortattoofix.\n\nIsso é clássico: tinta escura no pulso atrapalha o sensor óptico e o relógio acha que saiu do braço — pede senha de novo e some notificação.\n\nO kit zera essa situação. Você instala e mantém a detecção — e o pagamento por aproximação continua funcionando.\n\nQualquer dúvida, manda no suporte. 🖤',
           iso(60 * 9)
         )
       ]
@@ -395,7 +395,7 @@ function seedPayload() {
           createdAt: iso(60 * 52)
         },
         officialReply(
-          'Kai, isso é o mesmo fenômeno da detecção de pulso falhando no movimento — suor + tinta escura = reflexão instável, e o watch pausa o treino.\n\nSensor Tattoo Fix atua exatamente para resolver isso.\n\nMuitos corredores relatam fim das pausas fantasmas em poucos dias. Se quiser, conta modelo + mm do sensor que a gente confirma o tamanho. 🏃‍♂️',
+          'Kai, isso é o mesmo fenômeno da detecção de pulso falhando no movimento — suor + tinta escura = reflexão instável, e o watch pausa o treino.\n\nSensor Tattoo Fix atua exatamente para resolver isso.\n\nMuitos corredores relatam fim das pausas fantasmas em poucos dias. Qualquer dúvida, suporte. 🏃‍♂️',
           iso(60 * 44)
         ),
         {
@@ -404,7 +404,7 @@ function seedPayload() {
           createdAt: iso(60 * 11)
         },
         {
-          body: 'Mede com paquímetro se tiver. Eu errei 1 mm e no começo ainda falhava um pouco.',
+          body: 'o meu parou de dar erro logo que instalei. Esperei 48 horas e fui correr — mediu tudo certinho.',
           author: { ...A['seed-nati'] },
           createdAt: iso(60 * 7)
         }
@@ -429,7 +429,7 @@ function seedPayload() {
           createdAt: iso(60 * 10)
         },
         officialReply(
-          'Marcinha, obrigado por trazer o caso Samsung — é o mesmo princípio óptico do Apple Watch.\n\nQuando a tinta bloqueia a luz, o algoritmo interpreta como “relógio solto / sem contato”. O kit melhora o retorno de luz na área do sensor.\n\nMeça o sensor (mm), escolha o tamanho certo na loja e, depois de instalar, use firme por alguns dias antes de recalibrar no Samsung Health. Qualquer dúvida, suporte. 🖤',
+          'Marcinha, obrigado por trazer o caso Samsung — é o mesmo princípio óptico do Apple Watch.\n\nQuando a tinta bloqueia a luz, o algoritmo interpreta como “relógio solto / sem contato”. O kit melhora o retorno de luz na área do sensor.\n\nDepois de instalar, use firme por alguns dias antes de recalibrar no Samsung Health. Qualquer dúvida, suporte. 🖤',
           iso(60 * 6)
         )
       ]
@@ -473,7 +473,7 @@ function seedPayload() {
           createdAt: iso(60 * 18)
         },
         officialReply(
-          'Dudu, boa pergunta.\n\nA tinta escura/sólida impede o sensor de chegar aos vasos sanguíneos: o algoritmo “perde” o pulso, pede senha e às vezes fica louco e marca errado. O kit cria uma interface óptica entre LED/fotodiodo e a pele e amplifica o sinal, corrigindo isso.\n\nMeça o diâmetro do sensor (borda a borda) e escolha o mm na loja — encaixe certo pesa muito. Qualquer coisa, @sensortattoofix no suporte. 🖤',
+          'Dudu, boa pergunta.\n\nA tinta escura/sólida impede o sensor de chegar aos vasos sanguíneos: o algoritmo “perde” o pulso, pede senha e às vezes fica louco e marca errado. O kit cria uma interface óptica entre LED/fotodiodo e a pele e amplifica o sinal, corrigindo isso.\n\nQualquer coisa, @sensortattoofix no suporte. 🖤',
           iso(60 * 4)
         )
       ]
@@ -674,7 +674,7 @@ async function ensureForumPublic(env) {
 }
 
 const SEED_AUTHORS_VERSION = 4;
-const SEED_CONTENT_VERSION = 8;
+const SEED_CONTENT_VERSION = 9;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
