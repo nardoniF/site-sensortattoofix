@@ -771,6 +771,14 @@ export async function handleForumRoute(request, env, origin, deps) {
 
   const threadMatch = path.match(/^\/forum\/threads\/([^/]+)$/);
   if (threadMatch && method === 'GET') {
+    try {
+      const metaNow = await getForumMeta(env);
+      if (Number(metaNow.seedContentVersion || 0) < SEED_CONTENT_VERSION) {
+        await replaceSeededThreads(env);
+      }
+    } catch (err) {
+      console.warn('forum thread bootstrap:', err.message);
+    }
     await ensureSeed(env);
     await ensureForumPublic(env);
     await ensureOfficialReplies(env);
