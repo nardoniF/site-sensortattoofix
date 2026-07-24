@@ -37,10 +37,34 @@
     location.href = accountHref({ next });
   }
 
+  function hydrateUserFromSession() {
+    const sessionUser = window.STF_ACCOUNT?.getUser?.();
+    if (!sessionUser) return;
+    const avatarId = sessionUser.avatarId || state.user?.avatarId || '';
+    state.user = {
+      ...(state.user || {}),
+      userId: sessionUser.userId || state.user?.userId,
+      nome: sessionUser.nome || state.user?.nome || '',
+      username: sessionUser.username || state.user?.username || '',
+      avatarId,
+      avatarEmoji: (state.avatars.find((a) => a.id === avatarId) || {}).emoji
+        || state.user?.avatarEmoji
+        || '⌚',
+      isTester: !!(sessionUser.isTester || state.user?.isTester)
+    };
+  }
+
   function requireLoginForPost() {
-    if (token() && state.user) return true;
-    loginRedirect();
-    return false;
+    if (!token()) {
+      loginRedirect();
+      return false;
+    }
+    if (!state.user) hydrateUserFromSession();
+    if (!state.user) {
+      // Token existe: não redirecionar em loop — deixa o fluxo pedir perfil / API responder.
+      state.user = { username: '', avatarId: '', nome: '', avatarEmoji: '⌚' };
+    }
+    return true;
   }
 
   function canPost() {
@@ -469,8 +493,9 @@
       const data = await api('/forum');
       state.threads = data.threads || [];
       state.avatars = data.avatars || [];
-      state.user = data.user;
+      state.user = data.user || null;
       state.role = data.role;
+      if (!state.user && token()) hydrateUserFromSession();
       renderList();
     } catch (err) {
       showGate(err.data?.message || err.message);

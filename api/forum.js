@@ -171,12 +171,16 @@ async function resolveThreadByParam(env, param) {
 
 async function canAccessForum(env, deps, request) {
   const meta = await getForumMeta(env);
-  if (meta.public) return { ok: true, meta, role: 'public' };
   const adminOk = await deps.isValidSession(env, deps.bearerToken(request));
-  if (adminOk) return { ok: true, meta, role: 'admin' };
   const userId = await deps.getCustomerUserId(env, deps.bearerToken(request));
-  if (!userId) return { ok: false, meta, role: null, reason: 'login' };
-  const user = await deps.getUserById(env, userId);
+  const user = userId ? await deps.getUserById(env, userId) : null;
+
+  // Mesmo com fórum público, anexar o cliente logado (senão o front não reconhece a sessão ao postar).
+  if (meta.public) {
+    if (adminOk) return { ok: true, meta, role: 'admin', user: user || null };
+    return { ok: true, meta, role: user ? 'user' : 'public', user: user || null };
+  }
+  if (adminOk) return { ok: true, meta, role: 'admin', user: user || null };
   if (!user) return { ok: false, meta, role: null, reason: 'login' };
   if (user.isTester) return { ok: true, meta, role: 'tester', user };
   return { ok: false, meta, role: 'user', user, reason: 'tester' };
