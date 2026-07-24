@@ -287,7 +287,7 @@ function seedPayload() {
   return [
     {
       title: 'Apple Watch pedindo senha o tempo todo — sleeve no pulso',
-      body: 'Braço esquerdo fechado de tinta preta onde fica o relógio. Series 10.\n\nO negócio trava a tela, pede senha de novo, some notificação… parece que não “enxerga” que estou usando. No Reddit o povo fala de wrist detection + tinta escura.\n\nAlguém resolveu sem ter que desligar Detecção de Pulso (perdi Apple Pay quando tentei)?',
+      body: 'Braço esquerdo fechado de tinta preta onde fica o relógio. Series 10.\n\nO negócio trava a tela, pede senha de novo, some notificação… parece que não “enxerga” que estou usando. No Reddit o povo fala de wrist detection + tinta escura.\n\nAlguém aqui usou o Sensor Tattoo Fix e conseguiu manter a Detecção de Pulso ligada (sem perder Apple Pay)?',
       tags: ['apple-watch', 'wrist-detection', 'senha', 'tinta-preta'],
       author: { ...A['seed-guga'] },
       createdAt: iso(60 * 40),
@@ -310,7 +310,7 @@ function seedPayload() {
     },
     {
       title: 'Corrida pausando sozinha no meio do treino (Apple Watch)',
-      body: 'Ultra / Series — tanto faz. Começo o treino Outdoor Run, 2–3 km depois o cronômetro PAUSA sozinho. Relógio acha que saí do pulso.\n\nTatuagem escura sob o sensor. Já apertei a pulseira, limpei, teste no outro pulso (sem tinta) e aí funciona perfeito.\n\nVocês usam algum paliativo além de cinta peitoral?',
+      body: 'Ultra / Series — tanto faz. Começo o treino Outdoor Run, 2–3 km depois o cronômetro PAUSA sozinho. Relógio acha que saí do pulso.\n\nTatuagem escura sob o sensor. Já apertei a pulseira, limpei, teste no outro pulso (sem tinta) e aí funciona perfeito.\n\nEstou de olho no kit da Sensor Tattoo Fix — alguém que corre com tinta no pulso já instalou e parou essas pausas fantasmas?',
       tags: ['apple-watch', 'treino', 'pausa', 'corrida'],
       author: { ...A['seed-kai'] },
       createdAt: iso(60 * 55),
@@ -321,7 +321,7 @@ function seedPayload() {
           createdAt: iso(60 * 48)
         },
         {
-          body: 'Cinta peitoral resolve HR, mas não o “sumiu do pulso”. O problema é detecção + PPG juntos.',
+          body: 'Cinta peitoral até ajuda na FC, mas não resolve o “sumiu do pulso”. O que me tirou as pausas foi o kit mesmo.',
           author: { ...A['seed-bela'] },
           createdAt: iso(60 * 41)
         },
@@ -333,7 +333,7 @@ function seedPayload() {
     },
     {
       title: 'Galaxy Watch 6 — Samsung Health diz que o relógio está “solto”',
-      body: 'Calibrar pressão / frequência cardíaca no Samsung Health: fica pedindo pra ajustar porque “o relógio está solto”, sendo que tá apertado.\n\nSuporte da Samsung falou de tatuagem. Testei no braço da minha mãe (sem ink) e calibraram de primeira.\n\nAlguém com GW5/GW6 + tatuagem no pulso conseguiu estabilizar leitura?',
+      body: 'Calibrar pressão / frequência cardíaca no Samsung Health: fica pedindo pra ajustar porque “o relógio está solto”, sendo que tá apertado.\n\nSuporte da Samsung falou de tatuagem. Testei no braço da minha mãe (sem ink) e calibraram de primeira.\n\nQuem tem GW5/GW6 + tinta no pulso e usou o kit — a mensagem de “solto” sumiu pra vocês?',
       tags: ['galaxy-watch', 'samsung-health', 'pressao', 'fc'],
       author: { ...A['seed-marcinha'] },
       createdAt: iso(60 * 70),
@@ -356,13 +356,13 @@ function seedPayload() {
     },
     {
       title: 'FC inventando 180–190 bpm parado — tinta preta sólida',
-      body: 'Relógio mostra batimento absurdo em repouso (tipo 180+) ou “—” em cima da rose preta no pulso. Linha fina / shading claro no outro braço lê normal.\n\nConfirma a vibe dos testes antigos (iMore etc.): preto sólido destrói, padrão claro menos.\n\nKit ajuda nesse cenário ou só em “não detecta pulso”?',
+      body: 'Relógio mostra batimento absurdo em repouso (tipo 180+) ou “—” em cima da rose preta no pulso. Linha fina / shading claro no outro braço lê normal.\n\nConfirma a vibe dos testes antigos (iMore etc.): preto sólido destrói, padrão claro menos.\n\nQuem já instalou o Sensor Tattoo Fix nesse cenário — a FC estabilizou de verdade, ou o kit só ajuda quando o relógio “não detecta pulso”?',
       tags: ['fc', 'tinta-preta', 'ppg', 'apple-watch'],
       author: { ...A['seed-dudu'] },
       createdAt: iso(60 * 90),
       replies: [
         {
-          body: 'No meu solid black também. Antes: FC louca + lock. Depois do kit: FC bem mais estável (ainda não é cinta peitoral, mas parou o delírio).',
+          body: 'No meu solid black também. Antes: FC louca + lock. Depois do kit: bem mais estável no dia a dia — não é lab, mas parou o delírio.',
           author: { ...A['seed-guga'] },
           createdAt: iso(60 * 75)
         },
@@ -372,7 +372,7 @@ function seedPayload() {
           createdAt: iso(60 * 50)
         },
         officialReply(
-          'Dudu, boa pergunta — ajuda nos dois cenários.\n\nA tinta escura/sólida mexe na reflexão: o algoritmo pode “perder” o pulso (vira lock / —) ou interpretar ruído como FC altíssima. O kit cria uma interface óptica mais previsível entre LED/fotodiodo e a pele.\n\nExpectativa realista: melhora forte de estabilidade na maioria dos casos com tinta no ponto do sensor. Não substitui cinta peitoral em treino de elite, mas tira aquele comportamento maluco do dia a dia.\n\nMeça o diâmetro do sensor (borda a borda) e escolha o mm na loja — encaixe certo pesa muito. Qualquer coisa, @sensortattoofix no suporte. 🖤',
+          'Dudu, boa pergunta — ajuda nos dois cenários.\n\nA tinta escura/sólida mexe na reflexão: o algoritmo pode “perder” o pulso (vira lock / —) ou interpretar ruído como FC altíssima. O kit cria uma interface óptica mais previsível entre LED/fotodiodo e a pele.\n\nExpectativa realista: melhora forte de estabilidade na maioria dos casos com tinta no ponto do sensor. Para treino de elite muita gente ainda usa cinta, mas no uso diário o kit costuma tirar aquele comportamento maluco.\n\nMeça o diâmetro do sensor (borda a borda) e escolha o mm na loja — encaixe certo pesa muito. Qualquer coisa, @sensortattoofix no suporte. 🖤',
           iso(60 * 6)
         )
       ]
@@ -563,7 +563,7 @@ async function ensureForumPublic(env) {
 }
 
 const SEED_AUTHORS_VERSION = 3;
-const SEED_CONTENT_VERSION = 3;
+const SEED_CONTENT_VERSION = 4;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
