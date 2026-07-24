@@ -399,7 +399,7 @@ function seedPayload() {
           iso(60 * 44)
         ),
         {
-          body: 'Valeu, vou medir e pedir.',
+          body: 'Fechou — vou instalar e testar na próxima corrida.',
           author: { ...A['seed-kai'] },
           createdAt: iso(60 * 11)
         },
@@ -674,7 +674,7 @@ async function ensureForumPublic(env) {
 }
 
 const SEED_AUTHORS_VERSION = 4;
-const SEED_CONTENT_VERSION = 9;
+const SEED_CONTENT_VERSION = 10;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
