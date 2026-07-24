@@ -390,7 +390,7 @@ function seedPayload() {
           createdAt: iso(60 * 61)
         },
         {
-          body: 'Kai, micropore é gambiarra. Eu corro 4–5x na semana com o kit — zero pausa fantasma depois que acertei o tamanho. Suor forte não tirou o meu.',
+          body: 'Kai, micropore é gambiarra. Eu corro 4–5x na semana com o kit — zero pausa fantasma depois que chegou o Tattoo Fix. Suor forte não tirou o meu.',
           author: { ...A['seed-chris'] },
           createdAt: iso(60 * 52)
         },
