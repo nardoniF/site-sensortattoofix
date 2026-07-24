@@ -5327,6 +5327,7 @@ a.conta-forgot-link { display: inline-block; }
   width:100%; text-align:left; cursor:pointer;
   border:1px solid rgba(0,0,0,.08); background:#fff; border-radius:12px;
   padding:1rem 1.1rem; transition:box-shadow .15s ease, border-color .15s;
+  display:block; text-decoration:none; color:inherit;
 }
 .forum-thread-open:hover { border-color:rgba(0,0,0,.18); box-shadow:0 4px 18px rgba(0,0,0,.06); }
 .forum-thread-open h2 { margin:0 0 .4rem; font-size:1.1rem; }
