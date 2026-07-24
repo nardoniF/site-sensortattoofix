@@ -5357,6 +5357,20 @@ a.conta-forgot-link { display: inline-block; }
   background:#0d47a1; color:#fff; border-radius:4px; vertical-align:middle;
 }
 .forum-author.is-official .forum-avatar { box-shadow:0 0 0 2px #0d47a1; }
+.forum-page .forum-reply:has(.forum-author.is-official),
+.forum-page .forum-thread-detail:has(.forum-author.is-official) {
+  background:#eef4fb;
+  border:1px solid rgba(13,71,161,.28);
+  color:#1a1a1a;
+}
+.forum-page .forum-reply:has(.forum-author.is-official) .forum-body,
+.forum-page .forum-reply:has(.forum-author.is-official) .forum-author-meta strong,
+.forum-page .forum-reply:has(.forum-author.is-official) time {
+  color:#1a1a1a;
+}
+.forum-page .forum-reply:has(.forum-author.is-official) .forum-author-meta small {
+  color:#555;
+}
 .forum-related-box {
   margin: .75rem 0 1rem;
   padding: .9rem 1rem;
@@ -5383,8 +5397,3 @@ a.conta-forgot-link { display: inline-block; }
 .forum-related-pick span { color: #555; font-size: .88rem; }
 .forum-related-pick small { color: #888; }
 .forum-related-actions { margin-top: .85rem; display: flex; flex-wrap: wrap; gap: .5rem; }
-.forum-thread-detail:has(.forum-author.is-official),
-.forum-reply:has(.forum-author.is-official) {
-  border-color:rgba(13,71,161,.35);
-  background:linear-gradient(180deg, rgba(13,71,161,.04), #fff);
-}
