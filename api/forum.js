@@ -64,10 +64,10 @@ function sanitizeMediaList(raw) {
   return out;
 }
 
-function publicAuthor(user) {
+function publicAuthor(user, replyCounts) {
   const avatarId = AVATAR_IDS.has(user.avatarId) ? user.avatarId : 'watch';
   const avatar = FORUM_AVATARS.find((a) => a.id === avatarId) || FORUM_AVATARS[0];
-  return {
+  const base = {
     userId: user.userId,
     nome: user.nome || '',
     username: user.username || '',
@@ -75,9 +75,45 @@ function publicAuthor(user) {
     avatarEmoji: avatar.emoji,
     isTester: !!user.isTester
   };
+  return decorateAuthorSuper(base, replyCounts);
 }
 
-function publicThread(thread, { includeBody = true } = {}) {
+const SUPER_COLLAB_MIN_REPLIES = 6; // mais de 5 respostas publicadas
+
+async function getPublishedReplyCounts(env) {
+  const index = await getThreadIndex(env);
+  const counts = new Map();
+  for (const id of index.slice(0, 150)) {
+    const replies = await getReplies(env, id);
+    for (const r of replies) {
+      if (r.status !== 'published') continue;
+      if (r.official || r.author?.isOfficial || r.author?.username === 'sensortattoofix') continue;
+      const author = remapSeedAuthor(r.author) || r.author;
+      if (author?.userId) counts.set(author.userId, (counts.get(author.userId) || 0) + 1);
+      if (author?.username) counts.set(author.username, (counts.get(author.username) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function authorReplyCount(author, replyCounts) {
+  if (!author || !replyCounts) return 0;
+  return Math.max(
+    replyCounts.get(author.userId) || 0,
+    replyCounts.get(author.username) || 0
+  );
+}
+
+function decorateAuthorSuper(author, replyCounts) {
+  if (!author) return author;
+  const a = remapSeedAuthor(author);
+  if (a.isOfficial || a.username === 'sensortattoofix') return a;
+  const n = authorReplyCount(a, replyCounts);
+  const isSuper = !!(a.isSuperCollaborator || n >= SUPER_COLLAB_MIN_REPLIES);
+  return { ...a, isSuperCollaborator: isSuper, publishedReplyTotal: n };
+}
+
+function publicThread(thread, { includeBody = true, replyCounts = null } = {}) {
   const base = {
     id: thread.id,
     slug: thread.slug,
@@ -88,7 +124,7 @@ function publicThread(thread, { includeBody = true } = {}) {
     replyCount: thread.replyCount || 0,
     publishedReplyCount: thread.publishedReplyCount || 0,
     tags: thread.tags || [],
-    author: remapSeedAuthor(thread.author),
+    author: decorateAuthorSuper(thread.author, replyCounts),
     media: thread.media || [],
     seeded: !!thread.seeded
   };
@@ -97,13 +133,13 @@ function publicThread(thread, { includeBody = true } = {}) {
   return base;
 }
 
-function publicReply(reply) {
+function publicReply(reply, replyCounts = null) {
   return {
     id: reply.id,
     body: reply.body,
     status: reply.status,
     createdAt: reply.createdAt,
-    author: remapSeedAuthor(reply.author),
+    author: decorateAuthorSuper(reply.author, replyCounts),
     media: reply.media || [],
     seeded: !!reply.seeded,
     official: !!(reply.official || reply.author?.isOfficial)
@@ -780,12 +816,13 @@ export async function handleForumRoute(request, env, origin, deps) {
     }
     const isAdmin = access.role === 'admin';
     const index = await getThreadIndex(env);
+    const replyCounts = await getPublishedReplyCounts(env);
     const threads = [];
     for (const id of index.slice(0, 100)) {
       const t = await getThread(env, id);
       if (!t) continue;
       if (!isAdmin && t.status !== 'published') continue;
-      threads.push(publicThread(t, { includeBody: false }));
+      threads.push(publicThread(t, { includeBody: false, replyCounts }));
     }
     return deps.json({
       ok: true,
@@ -793,7 +830,7 @@ export async function handleForumRoute(request, env, origin, deps) {
       role: access.role,
       avatars: FORUM_AVATARS,
       threads,
-      user: access.user ? publicAuthor(access.user) : null
+      user: access.user ? publicAuthor(access.user, replyCounts) : null
     }, 200, origin);
   }
 
@@ -867,7 +904,12 @@ export async function handleForumRoute(request, env, origin, deps) {
     }
     const replies = await getReplies(env, thread.id);
     const visibleReplies = isAdmin ? replies : replies.filter((r) => r.status === 'published');
-    return deps.json({ ok: true, thread: publicThread(thread), replies: visibleReplies.map(publicReply) }, 200, origin);
+    const replyCounts = await getPublishedReplyCounts(env);
+    return deps.json({
+      ok: true,
+      thread: publicThread(thread, { replyCounts }),
+      replies: visibleReplies.map((r) => publicReply(r, replyCounts))
+    }, 200, origin);
   }
 
   if (path === '/forum/threads' && method === 'POST') {
@@ -939,6 +981,7 @@ export async function handleForumRoute(request, env, origin, deps) {
     await ensureOfficialReplies(env);
     const meta = await getForumMeta(env);
     const index = await getThreadIndex(env);
+    const replyCounts = await getPublishedReplyCounts(env);
     const threads = [];
     let pendingCount = 0;
     for (const id of index.slice(0, 150)) {
@@ -948,7 +991,11 @@ export async function handleForumRoute(request, env, origin, deps) {
       const replies = await getReplies(env, id);
       const pendingReplies = replies.filter((r) => r.status === 'pending').length;
       pendingCount += pendingReplies;
-      threads.push({ ...publicThread(t, { includeBody: true }), pendingReplies, replies: replies.map(publicReply) });
+      threads.push({
+        ...publicThread(t, { includeBody: true, replyCounts }),
+        pendingReplies,
+        replies: replies.map((r) => publicReply(r, replyCounts))
+      });
     }
     return deps.json({ ok: true, meta, pendingCount, threads }, 200, origin);
   }
