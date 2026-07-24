@@ -72,14 +72,17 @@
   }
 
   function composeNewThreadHtml() {
-    return `<section class="forum-compose admin-card">
+    return `<section class="forum-compose forum-compose--new admin-card">
       <h2>Novo assunto</h2>
-      <p class="admin-meta">Antes de publicar, checamos se já existe um tópico parecido.</p>
-      <form id="forum-new-thread" class="admin-form">
+      <p class="admin-meta forum-compose-hint">Checamos se já existe um tópico parecido.</p>
+      <form id="forum-new-thread" class="admin-form forum-compose-form">
         <label>Assunto / título<input name="title" required minlength="8" maxlength="120" placeholder="Sobre o que você quer falar?" id="forum-compose-title"></label>
-        <label>Mensagem<textarea name="body" required minlength="20" rows="5" placeholder="Conte sua experiência…" id="forum-compose-body"></textarea></label>
-        <label>Foto (URL https, opcional)<input name="imageUrl" type="url" placeholder="https://…"></label>
-        <label>Vídeo YouTube (URL, opcional)<input name="videoUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"></label>
+        <label>Mensagem<textarea name="body" required minlength="20" rows="3" placeholder="Conte sua experiência…" id="forum-compose-body"></textarea></label>
+        <details class="forum-compose-media">
+          <summary>Foto ou vídeo (opcional)</summary>
+          <label>Foto (URL https)<input name="imageUrl" type="url" placeholder="https://…"></label>
+          <label>Vídeo YouTube<input name="videoUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"></label>
+        </details>
         <div id="forum-related-box" class="forum-related-box" hidden></div>
         <button type="submit" class="btn-primary">Postar</button>
         <p id="forum-compose-status" class="form-status" hidden></p>
@@ -255,8 +258,8 @@
         ${state.user ? `<div class="forum-you">${authorHtml(state.user)}</div>` : ''}
       </header>
       ${state.user && !canPost() ? renderProfileSetup() : ''}
-      ${composeNewThreadHtml()}
       <section class="forum-list">${threads}</section>
+      ${composeNewThreadHtml()}
     `;
     bindListEvents();
     bindProfileEvents();
