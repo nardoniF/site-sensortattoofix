@@ -2490,10 +2490,17 @@ ${worksheets}
         <div class="admin-forum-reply" style="margin:.5rem 0;padding:.5rem;border:1px dashed rgba(255,255,255,.15);border-radius:8px">
           <div><strong>@${escapeHtml(r.author?.username || '')}</strong> · ${escapeHtml(r.status)} · ${escapeHtml(formatCustomerDate(r.createdAt))}</div>
           <div style="margin:.35rem 0">${escapeHtml(r.body || '')}</div>
-          ${r.status === 'pending' ? `
-            <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
-            <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
-          ` : ''}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.35rem">
+            ${r.status === 'pending' ? `
+              <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+              <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+            ` : r.status === 'rejected' ? `
+              <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+            ` : `
+              <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+            `}
+            <button type="button" class="btn-danger-outline" data-forum-reply-delete="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}"><i class="fas fa-trash-alt"></i> Excluir</button>
+          </div>
         </div>
       `).join('');
       return `<article class="admin-card" style="margin-bottom:12px">
@@ -2504,7 +2511,12 @@ ${worksheets}
           ${th.status === 'pending' ? `
             <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
             <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
-          ` : ''}
+          ` : th.status === 'rejected' ? `
+            <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
+          ` : `
+            <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
+          `}
+          <button type="button" class="btn-danger-outline" data-forum-delete="${escapeHtml(th.id)}"><i class="fas fa-trash-alt"></i> Excluir tópico</button>
         </div>
         ${replies}
       </article>`;
@@ -2516,11 +2528,17 @@ ${worksheets}
     root.querySelectorAll('[data-forum-reject]').forEach((btn) => {
       btn.addEventListener('click', () => moderateForumThread(btn.getAttribute('data-forum-reject'), 'reject'));
     });
+    root.querySelectorAll('[data-forum-delete]').forEach((btn) => {
+      btn.addEventListener('click', () => deleteForumThread(btn.getAttribute('data-forum-delete')));
+    });
     root.querySelectorAll('[data-forum-reply-approve]').forEach((btn) => {
       btn.addEventListener('click', () => moderateForumReply(btn.getAttribute('data-forum-reply-approve'), btn.getAttribute('data-reply'), 'approve'));
     });
     root.querySelectorAll('[data-forum-reply-reject]').forEach((btn) => {
       btn.addEventListener('click', () => moderateForumReply(btn.getAttribute('data-forum-reply-reject'), btn.getAttribute('data-reply'), 'reject'));
+    });
+    root.querySelectorAll('[data-forum-reply-delete]').forEach((btn) => {
+      btn.addEventListener('click', () => deleteForumReply(btn.getAttribute('data-forum-reply-delete'), btn.getAttribute('data-reply')));
     });
   }
 
@@ -2573,6 +2591,34 @@ ${worksheets}
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) { alert(data.error || 'Erro'); return; }
+    loadForumAdmin();
+  }
+
+  async function deleteForumThread(id) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base || !id) return;
+    if (!confirm('Excluir este tópico e todas as respostas? Isso não tem volta.')) return;
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || 'Erro ao excluir tópico'); return; }
+    loadForumAdmin();
+  }
+
+  async function deleteForumReply(threadId, replyId) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base || !threadId || !replyId) return;
+    if (!confirm('Excluir esta resposta definitivamente?')) return;
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(threadId)}/replies/${encodeURIComponent(replyId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || 'Erro ao excluir resposta'); return; }
     loadForumAdmin();
   }
 

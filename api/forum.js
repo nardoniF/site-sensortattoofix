@@ -147,6 +147,19 @@ async function saveThread(env, thread) {
   if (thread.slug) await env.STORE_KV.put('forum:slug:' + thread.slug, thread.id);
 }
 
+async function deleteThreadCompletely(env, threadId) {
+  const thread = await getThread(env, threadId);
+  if (!thread) return false;
+  if (thread.slug) {
+    try { await env.STORE_KV.delete('forum:slug:' + thread.slug); } catch (e) { /* ignore */ }
+  }
+  try { await env.STORE_KV.delete('forum:thread:' + threadId); } catch (e) { /* ignore */ }
+  try { await env.STORE_KV.delete('forum:replies:' + threadId); } catch (e) { /* ignore */ }
+  const index = await getThreadIndex(env);
+  await saveThreadIndex(env, index.filter((id) => id !== threadId));
+  return true;
+}
+
 async function getReplies(env, threadId) {
   try {
     return JSON.parse((await env.STORE_KV.get('forum:replies:' + threadId)) || '[]');
@@ -982,6 +995,36 @@ export async function handleForumRoute(request, env, origin, deps) {
     thread.updatedAt = new Date().toISOString();
     await saveThread(env, thread);
     return deps.json({ ok: true, reply: publicReply(reply) }, 200, origin);
+  }
+
+  const deleteThreadMatch = path.match(/^\/admin\/forum\/threads\/([^/]+)$/);
+  if (deleteThreadMatch && method === 'DELETE') {
+    if (!(await deps.isValidSession(env, deps.bearerToken(request)))) {
+      return deps.json({ error: 'Não autorizado.' }, 401, origin);
+    }
+    const ok = await deleteThreadCompletely(env, deleteThreadMatch[1]);
+    if (!ok) return deps.json({ error: 'Tópico não encontrado.' }, 404, origin);
+    return deps.json({ ok: true, deleted: 'thread' }, 200, origin);
+  }
+
+  const deleteReplyMatch = path.match(/^\/admin\/forum\/threads\/([^/]+)\/replies\/([^/]+)$/);
+  if (deleteReplyMatch && method === 'DELETE') {
+    if (!(await deps.isValidSession(env, deps.bearerToken(request)))) {
+      return deps.json({ error: 'Não autorizado.' }, 401, origin);
+    }
+    const threadId = deleteReplyMatch[1];
+    const replyId = deleteReplyMatch[2];
+    const thread = await getThread(env, threadId);
+    if (!thread) return deps.json({ error: 'Tópico não encontrado.' }, 404, origin);
+    const replies = await getReplies(env, threadId);
+    const next = replies.filter((r) => r.id !== replyId);
+    if (next.length === replies.length) return deps.json({ error: 'Resposta não encontrada.' }, 404, origin);
+    await saveReplies(env, threadId, next);
+    thread.publishedReplyCount = next.filter((r) => r.status === 'published').length;
+    thread.replyCount = next.length;
+    thread.updatedAt = new Date().toISOString();
+    await saveThread(env, thread);
+    return deps.json({ ok: true, deleted: 'reply' }, 200, origin);
   }
 
   return null;
