@@ -273,9 +273,9 @@
     if (!root || !t) return;
     const replies = state.replies.map((r) => `
       <article class="forum-reply ${r.status === 'pending' ? 'is-pending' : ''}">
-        <header>${authorHtml(r.author)} <time>${escapeHtml(formatDate(r.createdAt))}</time>
+        <div class="forum-reply-head">${authorHtml(r.author)} <time>${escapeHtml(formatDate(r.createdAt))}</time>
           ${r.status === 'pending' ? '<span class="forum-pending">aguardando aprovação</span>' : ''}
-        </header>
+        </div>
         <div class="forum-body">${escapeHtml(r.body).replace(/\n/g, '<br>')}</div>
         ${mediaHtml(r.media)}
       </article>
@@ -419,8 +419,9 @@
         method: 'POST',
         json: { title: fd.get('title'), body: fd.get('body'), media }
       });
-      setStatus('forum-compose-status', data.message || 'Enviado para aprovação.', true);
+      setStatus('forum-compose-status', data.message || 'Tópico enviado — aparece após aprovação no admin.', true);
       form.reset();
+      form.removeAttribute('data-related-decided');
       const box = el('forum-related-box');
       if (box) { box.hidden = true; box.innerHTML = ''; }
     } catch (err) {
@@ -444,21 +445,26 @@
     const fd = new FormData(e.target);
     const title = String(fd.get('title') || '').trim();
     const body = String(fd.get('body') || '').trim();
-    setStatus('forum-compose-status', 'Procurando tópicos relacionados…', true);
-    try {
-      const data = await api('/forum/related?q=' + encodeURIComponent(title + ' ' + body));
-      const matches = data.matches || [];
-      if (matches.length) {
-        setStatus('forum-compose-status', '', true);
-        renderRelatedBox(matches, { deciding: true });
-        el('forum-related-box')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        return;
+    const form = e.target;
+    const skipRelated = form.getAttribute('data-related-decided') === '1';
+    if (!skipRelated) {
+      setStatus('forum-compose-status', 'Procurando tópicos relacionados…', true);
+      try {
+        const data = await api('/forum/related?q=' + encodeURIComponent(title + ' ' + body));
+        const matches = data.matches || [];
+        if (matches.length) {
+          form.setAttribute('data-related-decided', '1');
+          setStatus('forum-compose-status', 'Há tópicos parecidos abaixo — escolha um ou clique Postar de novo para criar o seu.', true);
+          renderRelatedBox(matches, { deciding: true });
+          el('forum-related-box')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          return;
+        }
+      } catch (err) {
+        if (err.status === 401 || err.data?.needRegister) { loginRedirect(); return; }
       }
-      await createNewThreadFromForm(e.target);
-    } catch (err) {
-      if (err.status === 401 || err.data?.needRegister) { loginRedirect(); return; }
-      await createNewThreadFromForm(e.target);
     }
+    form.setAttribute('data-related-decided', '1');
+    await createNewThreadFromForm(form);
   }
 
   async function onReplySubmit(e) {
@@ -477,17 +483,31 @@
       return;
     }
     const fd = new FormData(e.target);
+    const bodyText = String(fd.get('body') || '').trim();
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
     try {
       const data = await api('/forum/threads/' + encodeURIComponent(state.thread.id) + '/replies', {
         method: 'POST',
-        json: { body: fd.get('body') }
+        json: { body: bodyText }
       });
-      setStatus('forum-reply-status', data.message || 'Enviado.', true);
+      const pending = data.reply || {
+        id: 'local-' + Date.now(),
+        body: bodyText,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        author: state.user
+      };
+      state.replies = [...state.replies, pending];
       e.target.reset();
       try { sessionStorage.removeItem('stf_forum_reply_draft'); } catch (err) {}
+      renderThread();
+      setStatus('forum-reply-status', data.message || 'Resposta enviada — aparece após aprovação.', true);
     } catch (err) {
       if (err.status === 401 || err.data?.needRegister) { loginRedirect(); return; }
       setStatus('forum-reply-status', err.message, false);
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 

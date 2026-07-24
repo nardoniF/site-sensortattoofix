@@ -5331,6 +5331,20 @@ a.conta-forgot-link { display: inline-block; }
   padding:1rem; margin:0 0 .75rem; background:#fff;
   color:#1f1f1f !important;
 }
+.forum-reply-head {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.75rem;
+  margin:0;
+  padding:0;
+  background:transparent;
+  border:0;
+  position:static;
+  z-index:auto;
+  color:#1f1f1f;
+}
+.forum-reply-head time { color:#666; font-size:.82rem; }
 .forum-page .forum-reply .forum-body,
 .forum-page .forum-thread-detail .forum-body {
   color:#1f1f1f !important;
@@ -5358,7 +5372,7 @@ a.conta-forgot-link { display: inline-block; }
 }
 .forum-page .forum-thread-open p { color:#444; }
 .forum-page .forum-author-meta strong { color:#111; }
-.forum-reply.is-pending { opacity:.75; border-style:dashed; }
+.forum-reply.is-pending { opacity:1; border-style:dashed; background:#fffdf5; }
 .forum-pending { margin-left:.5rem; font-size:.75rem; color:#a67c00; }
 .forum-media { display:grid; gap:.75rem; margin-top:.75rem; }
 .forum-media-img img { max-width:100%; border-radius:10px; display:block; }
