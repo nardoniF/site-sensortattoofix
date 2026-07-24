@@ -2573,7 +2573,7 @@ ${worksheets}
       const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/seed', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ forceOfficial: true, refreshAuthors: true })
+        body: JSON.stringify({ forceOfficial: true, refreshContent: true, refreshAuthors: true })
       });
       const data = await res.json().catch(() => ({}));
       alert(data.message || data.error || (res.ok ? 'OK' : 'Erro'));

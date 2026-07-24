@@ -239,16 +239,20 @@ const OFFICIAL_AUTHOR = {
   isOfficial: true
 };
 
-/** Personas de exemplo — nomes variados (sem padrão tipo nome_xx). */
+/**
+ * Personas orgânicas — misturam apelido, número e (às vezes) nome composto.
+ * Sem padrão fixo tipo primeiro+sobrenome em todos.
+ */
 const SEED_AUTHORS = {
-  'seed-marina': { userId: 'seed-marina', nome: 'Marina Costa', username: 'mariacosta', avatarId: 'ink', avatarEmoji: '🖋️' },
-  'seed-rafa': { userId: 'seed-rafa', nome: 'Rafael Nunes', username: 'rafaelnunes', avatarId: 'watch', avatarEmoji: '⌚' },
-  'seed-lia': { userId: 'seed-lia', nome: 'Lia Mendes', username: 'liamendes', avatarId: 'sensor', avatarEmoji: '📡' },
-  'seed-pedro': { userId: 'seed-pedro', nome: 'Pedro Almeida', username: 'pedroalmeida', avatarId: 'bolt', avatarEmoji: '⚡' },
-  'seed-ana': { userId: 'seed-ana', nome: 'Ana Souza', username: 'anasouza', avatarId: 'heart', avatarEmoji: '❤️' },
-  'seed-bruno': { userId: 'seed-bruno', nome: 'Bruno Ferreira', username: 'brunoferreira', avatarId: 'star', avatarEmoji: '⭐' },
-  'seed-carla': { userId: 'seed-carla', nome: 'Carla Dias', username: 'carladias', avatarId: 'gem', avatarEmoji: '💎' },
-  'seed-tio': { userId: 'seed-tio', nome: 'Tiago Oliveira', username: 'tiagoliveira', avatarId: 'moon', avatarEmoji: '🌙' }
+  'seed-guga': { userId: 'seed-guga', nome: 'Guga', username: 'guga97', avatarId: 'ink', avatarEmoji: '🖋️' },
+  'seed-kai': { userId: 'seed-kai', nome: 'Kai', username: 'inkedrunner', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-marcinha': { userId: 'seed-marcinha', nome: 'Marcinha', username: 'marcinha', avatarId: 'heart', avatarEmoji: '❤️' },
+  'seed-dudu': { userId: 'seed-dudu', nome: 'Dudu', username: 'dudutattoo', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-bela': { userId: 'seed-bela', nome: 'Bela', username: 'bela_sp', avatarId: 'star', avatarEmoji: '⭐' },
+  'seed-rick': { userId: 'seed-rick', nome: 'Rick Souza', username: 'ricksouza', avatarId: 'sensor', avatarEmoji: '📡' },
+  'seed-nati': { userId: 'seed-nati', nome: 'Nati', username: 'natiink', avatarId: 'gem', avatarEmoji: '💎' },
+  'seed-leo': { userId: 'seed-leo', nome: 'Léo', username: 'leozinho88', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-pri': { userId: 'seed-pri', nome: 'Pri', username: 'pri_sleeve', avatarId: 'leaf', avatarEmoji: '🍃' }
 };
 
 function remapSeedAuthor(author) {
@@ -275,78 +279,101 @@ function officialReply(body, createdAt) {
   };
 }
 
+/** Tópicos baseados em dores reais de fóruns (Apple/Samsung + tatuagem no pulso). */
 function seedPayload() {
   const now = Date.now();
   const iso = (minsAgo) => new Date(now - minsAgo * 60000).toISOString();
   const A = SEED_AUTHORS;
   return [
     {
-      title: 'Sensor do Apple Watch falhando após tatuagem no pulso — alguém passou por isso?',
-      body: 'Fiz uma tatuagem no pulso há 3 semanas e o sensor óptico do meu Apple Watch Series 9 começou a falhar nas medições de batimento. Já limpei o sensor e reposicionei a pulseira.\n\nAlguém aqui usou o Sensor Tattoo Fix e voltou a ter leitura estável? Qual modelo de relógio vocês usam?',
-      tags: ['apple-watch', 'tatuagem', 'sensor'],
-      author: { ...A['seed-marina'] },
-      createdAt: iso(60 * 36),
+      title: 'Apple Watch pedindo senha o tempo todo — sleeve no pulso',
+      body: 'Braço esquerdo fechado de tinta preta onde fica o relógio. Series 10.\n\nO negócio trava a tela, pede senha de novo, some notificação… parece que não “enxerga” que estou usando. No Reddit o povo fala de wrist detection + tinta escura.\n\nAlguém resolveu sem ter que desligar Detecção de Pulso (perdi Apple Pay quando tentei)?',
+      tags: ['apple-watch', 'wrist-detection', 'senha', 'tinta-preta'],
+      author: { ...A['seed-guga'] },
+      createdAt: iso(60 * 40),
       replies: [
         {
-          body: 'Passei pelo mesmo com Series 8. O kit ajudou bastante — o contato ficou mais uniforme e as medições voltaram em cerca de 2 dias de uso contínuo.',
-          author: { ...A['seed-rafa'] },
-          createdAt: iso(60 * 30)
+          body: 'Mesma merda aqui. Desligar wrist detection “resolve” a senha, mas Apple Pay e algumas automações vão embora. Trocar de pulso não rola — os dois têm ink.',
+          author: { ...A['seed-pri'] },
+          createdAt: iso(60 * 34)
         },
         {
-          body: 'Importante: meça o diâmetro do sensor na parte de trás do relógio. O encaixe certo faz diferença enorme na leitura.',
-          author: { ...A['seed-lia'] },
-          createdAt: iso(60 * 20)
+          body: 'No meu caso o kit da STF estabilizou a detecção em uns 2 dias. Ainda peço senha às vezes se a pulseira fica frouxa, mas parou aquele loop eterno.',
+          author: { ...A['seed-nati'] },
+          createdAt: iso(60 * 22)
         },
         officialReply(
-          'Oi, Marina! 👋 Aqui é a equipe Sensor Tattoo Fix.\n\nTatuagens no pulso podem atrapalhar o sensor óptico porque a tinta altera a reflexão da luz. O kit cria um contato mais uniforme entre o sensor e a pele — muitos clientes recuperam as medições em poucos dias.\n\nDica: confira se o recorte está alinhado ao círculo do sensor e se a pulseira não está frouxa demais. Qualquer dúvida, estamos por aqui.',
+          'Oi, Guga! 👋 Aqui é a equipe @sensortattoofix.\n\nIsso que você descreveu é clássico: o sensor óptico usa luz verde/infravermelha e tinta escura/sólida no pulso absorve essa luz — o relógio acha que saiu do braço e pede senha de novo (o mesmo “Tattoogate” que viralizou no Reddit/Apple Support).\n\nO kit melhora o contato óptico entre sensor e pele. Dicas rápidas:\n• meça o diâmetro do sensor na traseira e escolha o tamanho certo\n• pulseira justa (não frouxa)\n• alinhamento do recorte no círculo do sensor\n\nSe depois de instalar ainda oscilar, manda foto do encaixe no suporte que a gente olha com você. 🖤',
+          iso(60 * 10)
+        )
+      ]
+    },
+    {
+      title: 'Corrida pausando sozinha no meio do treino (Apple Watch)',
+      body: 'Ultra / Series — tanto faz. Começo o treino Outdoor Run, 2–3 km depois o cronômetro PAUSA sozinho. Relógio acha que saí do pulso.\n\nTatuagem escura sob o sensor. Já apertei a pulseira, limpei, teste no outro pulso (sem tinta) e aí funciona perfeito.\n\nVocês usam algum paliativo além de cinta peitoral?',
+      tags: ['apple-watch', 'treino', 'pausa', 'corrida'],
+      author: { ...A['seed-kai'] },
+      createdAt: iso(60 * 55),
+      replies: [
+        {
+          body: 'Isso me deixava maluco. No Reddit a galera manda fita micropore / adesivo transparente — eu odiei o cheiro e a sujeira. Fui de kit e o treino parou de pausar no km 2.',
+          author: { ...A['seed-dudu'] },
+          createdAt: iso(60 * 48)
+        },
+        {
+          body: 'Cinta peitoral resolve HR, mas não o “sumiu do pulso”. O problema é detecção + PPG juntos.',
+          author: { ...A['seed-bela'] },
+          createdAt: iso(60 * 41)
+        },
+        officialReply(
+          'Kai, isso é o mesmo fenômeno da detecção de pulso falhando no movimento — suor + tinta escura = reflexão instável, e o watch pausa o treino.\n\nSensor Tattoo Fix atua exatamente nessa camada: contato óptico mais uniforme sob o sensor. Depois de colar:\n1) limpeza seca da área\n2) pressionar as bordas 20–30s\n3) pulseira firme no treino\n\nMuitos corredores relatam fim das pausas fantasmas em poucos dias. Se quiser, conta modelo + mm do sensor que a gente confirma o tamanho. 🏃‍♂️',
+          iso(60 * 12)
+        )
+      ]
+    },
+    {
+      title: 'Galaxy Watch 6 — Samsung Health diz que o relógio está “solto”',
+      body: 'Calibrar pressão / frequência cardíaca no Samsung Health: fica pedindo pra ajustar porque “o relógio está solto”, sendo que tá apertado.\n\nSuporte da Samsung falou de tatuagem. Testei no braço da minha mãe (sem ink) e calibraram de primeira.\n\nAlguém com GW5/GW6 + tatuagem no pulso conseguiu estabilizar leitura?',
+      tags: ['galaxy-watch', 'samsung-health', 'pressao', 'fc'],
+      author: { ...A['seed-marcinha'] },
+      createdAt: iso(60 * 70),
+      replies: [
+        {
+          body: 'GW5 Classic aqui. Mesma mensagem. Não é “solto” — é o PPG não lendo a tinta. Samsung até admitiu melhoria de wrist detection em 2023, mas tinta preta continua quebrando.',
+          author: { ...A['seed-leo'] },
+          createdAt: iso(60 * 60)
+        },
+        {
+          body: 'Depois do kit as medições de FC voltaram. Pressão ainda é chata de calibrar, mas o “solto” sumiu.',
+          author: { ...A['seed-rick'] },
+          createdAt: iso(60 * 28)
+        },
+        officialReply(
+          'Marcinha, obrigado por trazer o caso Samsung — é o mesmo princípio óptico do Apple Watch (PPG).\n\nQuando a tinta bloqueia a luz, o algoritmo interpreta como “relógio solto / sem contato”. O kit não “engana” o software: ele melhora o retorno de luz na área do sensor.\n\nPasso a passo que costuma funcionar no Galaxy:\n• medir o sensor (mm) e usar o recorte certo\n• limpar sensor + pele\n• instalar e usar firme por alguns dias antes de recalibrar no Samsung Health\n\nQualquer dúvida de tamanho, estamos no suporte. 🖤',
           iso(60 * 8)
         )
       ]
     },
     {
-      title: 'Dicas de instalação do kit — o que funcionou pra mim',
-      body: 'Compartilho o que funcionou no meu Galaxy Watch 6:\n\n1. Limpar a área do sensor com álcool isopropílico\n2. Alinhar o recorte com luz boa\n3. Pressionar as bordas por 20–30 segundos\n4. Evitar água nas primeiras 2 horas\n\nSe tiverem outras dicas, mandem!',
-      tags: ['instalacao', 'galaxy-watch', 'dicas'],
-      author: { ...A['seed-pedro'] },
-      createdAt: iso(60 * 50),
+      title: 'FC inventando 180–190 bpm parado — tinta preta sólida',
+      body: 'Relógio mostra batimento absurdo em repouso (tipo 180+) ou “—” em cima da rose preta no pulso. Linha fina / shading claro no outro braço lê normal.\n\nConfirma a vibe dos testes antigos (iMore etc.): preto sólido destrói, padrão claro menos.\n\nKit ajuda nesse cenário ou só em “não detecta pulso”?',
+      tags: ['fc', 'tinta-preta', 'ppg', 'apple-watch'],
+      author: { ...A['seed-dudu'] },
+      createdAt: iso(60 * 90),
       replies: [
         {
-          body: 'No meu Garmin a luz de fundo do celular ajudou a ver o alinhamento. Valeu pelas dicas!',
-          author: { ...A['seed-ana'] },
-          createdAt: iso(60 * 40)
+          body: 'No meu solid black também. Antes: FC louca + lock. Depois do kit: FC bem mais estável (ainda não é cinta peitoral, mas parou o delírio).',
+          author: { ...A['seed-guga'] },
+          createdAt: iso(60 * 75)
+        },
+        {
+          body: 'Importante medir o sensor. Recorte folgado = leitura pior ainda.',
+          author: { ...A['seed-nati'] },
+          createdAt: iso(60 * 50)
         },
         officialReply(
-          'Excelente checklist, Pedro — é exatamente o que recomendamos.\n\nSó reforçando: limpeza seca + alinhamento com boa luz + pressão nas bordas fazem a diferença. Se o sensor do seu modelo tiver um diâmetro diferente, meça de borda a borda e escolha o tamanho certo na loja.\n\nObrigado por compartilhar com a comunidade! 🖤',
-          iso(60 * 15)
-        )
-      ]
-    },
-    {
-      title: 'Lista de modelos compatíveis — vamos completar juntos',
-      body: 'Queria montar uma lista viva de modelos em que o kit encaixa bem. Eu uso Pixel Watch 2 e deu certo.\n\nComentem: marca, modelo e se precisou medir o sensor.',
-      tags: ['compatibilidade', 'modelos'],
-      author: { ...A['seed-bruno'] },
-      createdAt: iso(60 * 72),
-      media: [],
-      replies: [
-        {
-          body: 'Amazfit GTR 4 — encaixe ok após medir 28mm no sensor.',
-          author: { ...A['seed-carla'] },
-          createdAt: iso(60 * 55)
-        },
-        {
-          body: 'Huawei Watch GT 4 — também ok.',
-          author: { ...A['seed-tio'] },
-          createdAt: iso(60 * 48)
-        },
-        {
-          body: 'Vamos manter essa thread atualizada — ajuda muito quem está na dúvida antes de comprar.',
-          author: { ...A['seed-marina'] },
-          createdAt: iso(60 * 12)
-        },
-        officialReply(
-          'Adoramos essa ideia, Bruno! 🙌\n\nNa loja oficial você escolhe o tamanho do sensor (mm). Se o seu modelo não estiver listado, meça o diâmetro do sensor na parte de trás do relógio e selecione o mais próximo — ou fale com a gente no suporte.\n\nVamos acompanhar esta lista. Quem quiser, marque marca + modelo + mm do sensor.',
-          iso(60 * 5)
+          'Dudu, boa pergunta — ajuda nos dois cenários.\n\nA tinta escura/sólida mexe na reflexão: o algoritmo pode “perder” o pulso (vira lock / —) ou interpretar ruído como FC altíssima. O kit cria uma interface óptica mais previsível entre LED/fotodiodo e a pele.\n\nExpectativa realista: melhora forte de estabilidade na maioria dos casos com tinta no ponto do sensor. Não substitui cinta peitoral em treino de elite, mas tira aquele comportamento maluco do dia a dia.\n\nMeça o diâmetro do sensor (borda a borda) e escolha o mm na loja — encaixe certo pesa muito. Qualquer coisa, @sensortattoofix no suporte. 🖤',
+          iso(60 * 6)
         )
       ]
     }
@@ -492,26 +519,15 @@ async function ensureOfficialReplies(env) {
   const meta = await getForumMeta(env);
   if (meta.officialRepliesAt) return meta;
   const index = await getThreadIndex(env);
-  const officialBodies = {
-    'apple-watch': 'Oi, Marina! 👋 Aqui é a equipe Sensor Tattoo Fix.\n\nTatuagens no pulso podem atrapalhar o sensor óptico porque a tinta altera a reflexão da luz. O kit cria um contato mais uniforme entre o sensor e a pele — muitos clientes recuperam as medições em poucos dias.\n\nDica: confira se o recorte está alinhado ao círculo do sensor e se a pulseira não está frouxa demais. Qualquer dúvida, estamos por aqui.',
-    instalacao: 'Excelente checklist, Pedro — é exatamente o que recomendamos.\n\nSó reforçando: limpeza seca + alinhamento com boa luz + pressão nas bordas fazem a diferença. Se o sensor do seu modelo tiver um diâmetro diferente, meça de borda a borda e escolha o tamanho certo na loja.\n\nObrigado por compartilhar com a comunidade! 🖤',
-    compatibilidade: 'Adoramos essa ideia, Bruno! 🙌\n\nNa loja oficial você escolhe o tamanho do sensor (mm). Se o seu modelo não estiver listado, meça o diâmetro do sensor na parte de trás do relógio e selecione o mais próximo — ou fale com a gente no suporte.\n\nVamos acompanhar esta lista. Quem quiser, marque marca + modelo + mm do sensor.'
-  };
   let added = 0;
   for (const id of index) {
     const thread = await getThread(env, id);
     if (!thread || !thread.seeded) continue;
     const replies = await getReplies(env, id);
     if (replies.some((r) => r.author?.username === 'sensortattoofix' || r.official || r.author?.isOfficial)) continue;
-    const tags = (thread.tags || []).join(' ');
-    let body = null;
-    if (tags.includes('apple-watch') || /Apple Watch/i.test(thread.title || '')) body = officialBodies['apple-watch'];
-    else if (tags.includes('instalacao') || /instala/i.test(thread.title || '')) body = officialBodies.instalacao;
-    else if (tags.includes('compatibilidade') || /compat/i.test(thread.title || '')) body = officialBodies.compatibilidade;
-    else body = 'Olá! Aqui é a equipe @sensortattoofix. Obrigado por participar da comunidade — estamos acompanhando e ajudamos no que precisar. 🖤';
     const reply = {
       id: crypto.randomUUID(),
-      body,
+      body: 'Olá! Aqui é a equipe @sensortattoofix. Obrigado por participar da comunidade — estamos acompanhando e ajudamos no que precisar. 🖤',
       status: 'published',
       createdAt: new Date().toISOString(),
       author: { ...OFFICIAL_AUTHOR },
@@ -546,12 +562,10 @@ async function ensureForumPublic(env) {
   return next;
 }
 
-const SEED_AUTHORS_VERSION = 2;
+const SEED_AUTHORS_VERSION = 3;
+const SEED_CONTENT_VERSION = 3;
 
-async function ensureSeed(env) {
-  const meta = await getForumMeta(env);
-  if (meta.seeded) return meta;
-  const index = await getThreadIndex(env);
+async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
   const newIds = [];
   for (const s of seeds) {
@@ -587,15 +601,60 @@ async function ensureSeed(env) {
     await saveReplies(env, id, replies);
     newIds.push(id);
   }
-  await saveThreadIndex(env, [...newIds, ...index]);
+  await saveThreadIndex(env, [...newIds, ...existingIndex]);
+  return newIds;
+}
+
+/** Remove tópicos seed antigos e grava o pacote atual (dores reais + nomes orgânicos). */
+async function replaceSeededThreads(env) {
+  const index = await getThreadIndex(env);
+  const kept = [];
+  let removed = 0;
+  for (const id of index) {
+    const thread = await getThread(env, id);
+    if (!thread) continue;
+    if (thread.seeded) {
+      if (thread.slug) {
+        try { await env.STORE_KV.delete('forum:slug:' + thread.slug); } catch (e) { /* ignore */ }
+      }
+      try { await env.STORE_KV.delete('forum:thread:' + id); } catch (e) { /* ignore */ }
+      try { await env.STORE_KV.delete('forum:replies:' + id); } catch (e) { /* ignore */ }
+      removed += 1;
+    } else {
+      kept.push(id);
+    }
+  }
+  const newIds = await insertSeedThreads(env, kept);
+  const meta = await getForumMeta(env);
   const next = {
     ...meta,
     seeded: true,
     seedAuthorsVersion: SEED_AUTHORS_VERSION,
-    seedAuthorsRefreshedAt: new Date().toISOString()
+    seedContentVersion: SEED_CONTENT_VERSION,
+    seedAuthorsRefreshedAt: new Date().toISOString(),
+    officialRepliesAt: new Date().toISOString(),
+    seedReplace: { removed, added: newIds.length }
   };
   await saveForumMeta(env, next);
   return next;
+}
+
+async function ensureSeed(env) {
+  const meta = await getForumMeta(env);
+  if (!meta.seeded) {
+    await insertSeedThreads(env, await getThreadIndex(env));
+    const next = {
+      ...meta,
+      seeded: true,
+      seedAuthorsVersion: SEED_AUTHORS_VERSION,
+      seedContentVersion: SEED_CONTENT_VERSION,
+      seedAuthorsRefreshedAt: new Date().toISOString(),
+      officialRepliesAt: new Date().toISOString()
+    };
+    await saveForumMeta(env, next);
+    return next;
+  }
+  return meta;
 }
 
 export async function handleForumRoute(request, env, origin, deps) {
@@ -623,7 +682,12 @@ export async function handleForumRoute(request, env, origin, deps) {
     try {
       await ensureSeed(env);
       await ensureForumPublic(env);
-      await ensureOfficialReplies(env);
+      const metaNow = await getForumMeta(env);
+      if (Number(metaNow.seedContentVersion || 0) < SEED_CONTENT_VERSION) {
+        await replaceSeededThreads(env);
+      } else {
+        await ensureOfficialReplies(env);
+      }
     } catch (err) {
       // Não derruba a listagem se KV estiver no limite diário de writes.
       console.warn('forum list bootstrap:', err.message);
@@ -832,11 +896,18 @@ export async function handleForumRoute(request, env, origin, deps) {
     }
     const body = await request.json().catch(() => ({}));
     let meta = await getForumMeta(env);
-    if (!meta.seeded) {
-      meta = await ensureSeed(env);
-    }
     const parts = [];
-    if (body.refreshAuthors !== false) {
+    const needsContentRefresh = body.refreshContent !== false
+      && Number(meta.seedContentVersion || 0) < SEED_CONTENT_VERSION;
+    if (body.refreshContent === true || needsContentRefresh || !meta.seeded) {
+      try {
+        meta = await replaceSeededThreads(env);
+        const touch = meta.seedReplace || {};
+        parts.push(`Tópicos exemplo atualizados (removeu ${touch.removed || 0}, criou ${touch.added || 0}).`);
+      } catch (err) {
+        parts.push(`Falha ao trocar tópicos: ${err.message}`);
+      }
+    } else if (body.refreshAuthors !== false) {
       try {
         meta = await refreshSeedAuthors(env);
         const touch = meta.seedAuthorsRefresh || {};
@@ -845,18 +916,24 @@ export async function handleForumRoute(request, env, origin, deps) {
         parts.push(`Falha ao atualizar nomes: ${err.message}`);
       }
     }
-    // Reinjeta respostas oficiais @sensortattoofix se ainda não rodou / forçado
+    if (body.forceOfficial && meta.officialRepliesAt) {
+      // já vêm no replaceSeededThreads; só força se pedirem e não tiver
+    }
     if (body.forceOfficial || !meta.officialRepliesAt) {
-      meta = { ...meta };
-      delete meta.officialRepliesAt;
-      await saveForumMeta(env, meta);
-      meta = await ensureOfficialReplies(env);
-      parts.push(`Respostas @sensortattoofix aplicadas (${meta.officialRepliesAdded || 0} tópico(s)).`);
+      try {
+        meta = { ...meta };
+        delete meta.officialRepliesAt;
+        await saveForumMeta(env, meta);
+        meta = await ensureOfficialReplies(env);
+        parts.push(`Respostas @sensortattoofix checadas (${meta.officialRepliesAdded || 0} tópico(s)).`);
+      } catch (err) {
+        parts.push(`Falha nas respostas oficiais: ${err.message}`);
+      }
     }
     return deps.json({
       ok: true,
       meta,
-      message: parts.length ? parts.join(' ') : 'Seed já existia — nada alterado.'
+      message: parts.length ? parts.join(' ') : 'Seed já estava atualizado.'
     }, 200, origin);
   }
 
