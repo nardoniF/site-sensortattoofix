@@ -5287,8 +5287,35 @@ a.conta-forgot-link { display: inline-block; }
 
 /* —— Comunidade / fórum (beta testadores) —— */
 .forum-container { max-width: 820px; }
-.forum-header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:1.25rem; flex-wrap:wrap; }
-.forum-header h1 { margin:0 0 .35rem; font-size:1.6rem; }
+.forum-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0 0 1.25rem;
+  padding: 0.65rem 0 0.75rem;
+  position: sticky;
+  top: 96px; /* abaixo do menu principal (header sticky) */
+  z-index: 900;
+  background: rgba(10, 10, 10, 0.97);
+  border-bottom: 1px solid #222;
+  /* não herdar estilos do <header> do site */
+  min-height: 0;
+  width: auto;
+}
+.forum-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #fff;
+}
+.forum-page .forum-header h1 { color: #fff; }
+.forum-you { color: #eee; }
+@media (max-width: 768px) {
+  .forum-header {
+    top: 78px; /* header fixed mobile */
+  }
+}
 .forum-dev-banner {
   display:inline-flex; align-items:center; gap:.4rem;
   margin:0; padding:.35rem .7rem; border-radius:6px;

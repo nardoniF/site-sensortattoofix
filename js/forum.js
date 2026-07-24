@@ -435,10 +435,10 @@
     `).join('') || `<p class="admin-meta">${escapeHtml(ft('noTopics'))}</p>`;
 
     root.innerHTML = `
-      <header class="forum-header">
+      <div class="forum-header">
         <div><h1><i class="fas fa-comments"></i> ${escapeHtml(ft('title'))}</h1></div>
         ${state.user ? `<div class="forum-you">${authorHtml(state.user)}</div>` : ''}
-      </header>
+      </div>
       ${state.user && !canPost() ? renderProfileSetup() : ''}
       <section class="forum-list">${threads}</section>
       ${composeNewThreadHtml()}
