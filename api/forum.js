@@ -269,7 +269,15 @@ const SEED_AUTHORS = {
   'seed-rick': { userId: 'seed-rick', nome: 'Rick Souza', username: 'ricksouza', avatarId: 'sensor', avatarEmoji: '📡' },
   'seed-nati': { userId: 'seed-nati', nome: 'Nati', username: 'natiink', avatarId: 'gem', avatarEmoji: '💎' },
   'seed-leo': { userId: 'seed-leo', nome: 'Léo', username: 'leozinho88', avatarId: 'moon', avatarEmoji: '🌙' },
-  'seed-pri': { userId: 'seed-pri', nome: 'Pri', username: 'pri_sleeve', avatarId: 'leaf', avatarEmoji: '🍃' }
+  'seed-pri': { userId: 'seed-pri', nome: 'Pri', username: 'pri_sleeve', avatarId: 'leaf', avatarEmoji: '🍃' },
+  'seed-chris': {
+    userId: 'seed-chris',
+    nome: 'Chris',
+    username: 'chris_ink',
+    avatarId: 'rocket',
+    avatarEmoji: '🚀',
+    isSuperCollaborator: true
+  }
 };
 
 function remapSeedAuthor(author) {
@@ -304,7 +312,7 @@ function seedPayload() {
   const A = SEED_AUTHORS;
   return [
     {
-      // 2 respostas: 1 pessoa + STF por último
+      // gente + Chris (super) + STF
       title: 'Apple Watch pedindo senha o tempo todo — sleeve no pulso',
       body: 'Braço esquerdo fechado de tattoo bem preta onde fica o relógio. Series 10.\n\nO negócio trava a tela, pede senha de novo, some notificação… parece que não “enxerga” que estou usando. No Reddit o povo fala de detecção + tinta escura.\n\nAlguém aqui usou o Sensor Tattoo Fix e conseguiu manter a Detecção de Pulso ligada (sem perder Apple Pay)?',
       tags: ['apple-watch', 'deteccao', 'senha', 'tattoo'],
@@ -314,7 +322,17 @@ function seedPayload() {
         {
           body: 'Mesma merda aqui. Desligar a detecção “resolve” a senha, mas Apple Pay e algumas automações vão embora. Trocar de pulso não rola — os 2 têm tattoo.',
           author: { ...A['seed-pri'] },
-          createdAt: iso(60 * 31)
+          createdAt: iso(60 * 41)
+        },
+        {
+          body: 'Eu também. Às vezes acorda e já pede senha de novo. Odeio.',
+          author: { ...A['seed-bela'] },
+          createdAt: iso(60 * 33)
+        },
+        {
+          body: 'Guga, tive exatamente isso com sleeve escura. Sensor Tattoo Fix + detecção ligada = Apple Pay voltou a funcionar sem drama. Mede o sensor certinho (borda a borda) antes de pedir o mm.',
+          author: { ...A['seed-chris'] },
+          createdAt: iso(60 * 22)
         },
         officialReply(
           'Oi, Guga! 👋 Aqui é a equipe @sensortattoofix.\n\nIsso é clássico: tinta escura no pulso atrapalha o sensor óptico e o relógio acha que saiu do braço — pede senha de novo e some notificação.\n\nO kit zera essa situação. Você instala e mantém a detecção — e o pagamento por aproximação continua funcionando.\n\nQualquer dúvida de tamanho (mm do sensor), manda no suporte. 🖤',
@@ -323,7 +341,7 @@ function seedPayload() {
       ]
     },
     {
-      // STF no meio + gente depois
+      // STF no meio + Chris + gente
       title: 'Corrida pausando sozinha no meio do treino (Apple Watch)',
       body: 'Ultra / Series — tanto faz. Começo o treino Outdoor Run, 2–3 km depois o cronômetro PAUSA sozinho. Relógio acha que saí do pulso.\n\nTattoo escura sob o sensor. Já apertei a pulseira, limpei, teste no outro pulso (sem tinta) e aí funciona perfeito.\n\nSerá que esse kit funciona? Alguém já usou e iniciou os treinos? Se sim, parou de pausar?',
       tags: ['apple-watch', 'treino', 'pausa', 'corrida'],
@@ -335,6 +353,11 @@ function seedPayload() {
           author: { ...A['seed-dudu'] },
           createdAt: iso(60 * 61)
         },
+        {
+          body: 'Kai, micropore é gambiarra. Eu corro 4–5x na semana com o kit — zero pausa fantasma depois que acertei o tamanho. Suor forte não tirou o meu.',
+          author: { ...A['seed-chris'] },
+          createdAt: iso(60 * 52)
+        },
         officialReply(
           'Kai, isso é o mesmo fenômeno da detecção de pulso falhando no movimento — suor + tinta escura = reflexão instável, e o watch pausa o treino.\n\nSensor Tattoo Fix atua exatamente para resolver isso.\n\nMuitos corredores relatam fim das pausas fantasmas em poucos dias. Se quiser, conta modelo + mm do sensor que a gente confirma o tamanho. 🏃‍♂️',
           iso(60 * 44)
@@ -343,17 +366,32 @@ function seedPayload() {
           body: 'Valeu, vou medir e pedir.',
           author: { ...A['seed-kai'] },
           createdAt: iso(60 * 11)
+        },
+        {
+          body: 'Mede com paquímetro se tiver. Eu errei 1 mm e no começo ainda falhava um pouco.',
+          author: { ...A['seed-nati'] },
+          createdAt: iso(60 * 7)
         }
       ]
     },
     {
-      // 1 resposta: só STF
+      // Galaxy: pessoas + Chris + STF
       title: 'Galaxy Watch 6 — Samsung Health diz que o relógio está “solto”',
       body: 'Calibrar pressão / frequência cardíaca no Samsung Health: fica pedindo pra ajustar porque “o relógio está solto”, sendo que tá apertado.\n\nSuporte da Samsung falou de tatuagem. Testei no braço da minha mãe (sem ink) e calibraram de primeira.\n\nQuem tem GW5/GW6 + tattoo no pulso e usou o kit — a mensagem de “solto” sumiu pra vocês?',
       tags: ['galaxy-watch', 'samsung-health', 'pressao', 'fc'],
       author: { ...A['seed-marcinha'] },
       createdAt: iso(60 * 19),
       replies: [
+        {
+          body: 'GW5 Classic aqui. Mesma mensagem. Sem kit não calibrava nunca.',
+          author: { ...A['seed-leo'] },
+          createdAt: iso(60 * 14)
+        },
+        {
+          body: 'Marcinha, no meu GW6 a mensagem de “solto” sumiu depois do kit. Espera 2–3 dias firme no pulso e aí recalibra no Samsung Health — na primeira tentativa ainda pode reclamar.',
+          author: { ...A['seed-chris'] },
+          createdAt: iso(60 * 10)
+        },
         officialReply(
           'Marcinha, obrigado por trazer o caso Samsung — é o mesmo princípio óptico do Apple Watch.\n\nQuando a tinta bloqueia a luz, o algoritmo interpreta como “relógio solto / sem contato”. O kit melhora o retorno de luz na área do sensor.\n\nMeça o sensor (mm), escolha o tamanho certo na loja e, depois de instalar, use firme por alguns dias antes de recalibrar no Samsung Health. Qualquer dúvida, suporte. 🖤',
           iso(60 * 6)
@@ -361,7 +399,7 @@ function seedPayload() {
       ]
     },
     {
-      // várias pessoas + STF por último
+      // várias pessoas + Chris + STF
       title: 'FC inventando 180–190 bpm parado, braço esquerdo fechado ⌚',
       body: 'Relógio mostra batimento absurdo em repouso (tipo 180+) ou “—” — no outro braço sem tattoo lê normal.\n\nQuem já instalou o Sensor Tattoo Fix nesse cenário — a FC estabilizou de verdade, ou o kit só ajuda quando o relógio “não detecta pulso”?',
       tags: ['fc', 'tattoo', 'ppg', 'apple-watch'],
@@ -384,9 +422,19 @@ function seedPayload() {
           createdAt: iso(60 * 58)
         },
         {
+          body: 'Dudu: no meu (fechado escuro) a FC parou de inventar depois do kit. Não fica perfeito tipo hospital, mas deixou de marcar 180 parado. Valeu demais pro dia a dia.',
+          author: { ...A['seed-chris'] },
+          createdAt: iso(60 * 41)
+        },
+        {
           body: 'Depois do kit Tattoo Fix ficou usável no dia a dia. Parou o delírio dos batimentos malucos.',
           author: { ...A['seed-rick'] },
           createdAt: iso(60 * 33)
+        },
+        {
+          body: 'Alguém comparou com oxímetro de dedo depois de instalar?',
+          author: { ...A['seed-bela'] },
+          createdAt: iso(60 * 18)
         },
         officialReply(
           'Dudu, boa pergunta.\n\nA tinta escura/sólida impede o sensor de chegar aos vasos sanguíneos: o algoritmo “perde” o pulso, pede senha e às vezes fica louco e marca errado. O kit cria uma interface óptica entre LED/fotodiodo e a pele e amplifica o sinal, corrigindo isso.\n\nMeça o diâmetro do sensor (borda a borda) e escolha o mm na loja — encaixe certo pesa muito. Qualquer coisa, @sensortattoofix no suporte. 🖤',
@@ -471,7 +519,12 @@ async function refreshSeedAuthors(env) {
     const seedAuthor = SEED_AUTHORS[thread.author?.userId];
     if (seedAuthor) {
       const cur = thread.author || {};
-      if (cur.username !== seedAuthor.username || cur.avatarId !== seedAuthor.avatarId || cur.isTester) {
+      if (
+        cur.username !== seedAuthor.username
+        || cur.avatarId !== seedAuthor.avatarId
+        || cur.isTester
+        || !!cur.isSuperCollaborator !== !!seedAuthor.isSuperCollaborator
+      ) {
         thread.author = { ...seedAuthor };
         changed = true;
       }
@@ -491,7 +544,12 @@ async function refreshSeedAuthors(env) {
       const mapped = SEED_AUTHORS[r.author?.userId];
       if (mapped) {
         const cur = r.author || {};
-        if (cur.username !== mapped.username || cur.avatarId !== mapped.avatarId || cur.isTester) {
+        if (
+          cur.username !== mapped.username
+          || cur.avatarId !== mapped.avatarId
+          || cur.isTester
+          || !!cur.isSuperCollaborator !== !!mapped.isSuperCollaborator
+        ) {
           r.author = { ...mapped };
           repliesChanged = true;
           repliesTouched += 1;
@@ -579,8 +637,8 @@ async function ensureForumPublic(env) {
   return next;
 }
 
-const SEED_AUTHORS_VERSION = 3;
-const SEED_CONTENT_VERSION = 6;
+const SEED_AUTHORS_VERSION = 4;
+const SEED_CONTENT_VERSION = 7;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();

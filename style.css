@@ -5444,6 +5444,12 @@ a.conta-forgot-link { display: inline-block; }
   font-size:.65rem; text-transform:uppercase; letter-spacing:.03em;
   background:#0d47a1; color:#fff; border-radius:4px; vertical-align:middle;
 }
+.forum-badge-super {
+  display:inline-block; margin-left:.35rem; padding:.05rem .35rem;
+  font-size:.65rem; text-transform:uppercase; letter-spacing:.03em;
+  background:#1b5e20; color:#c8e6c9; border-radius:4px; vertical-align:middle;
+}
+.forum-author.is-super .forum-avatar { box-shadow:0 0 0 2px #2e7d32; }
 .forum-author.is-official .forum-avatar { box-shadow:0 0 0 2px #0d47a1; }
 .forum-page .forum-reply:has(.forum-author.is-official),
 .forum-page .forum-thread-detail:has(.forum-author.is-official) {

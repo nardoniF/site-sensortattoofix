@@ -141,8 +141,9 @@
     const isOfficial = !!(a.isOfficial || a.username === 'sensortattoofix');
     const badges = [];
     if (isOfficial) badges.push('<span class="forum-badge-official" title="Conta oficial">oficial</span>');
+    else if (a.isSuperCollaborator) badges.push('<span class="forum-badge-super" title="Supercolaborador">supercolaborador</span>');
     else if (a.isTester) badges.push('<span class="forum-badge-tester" title="Usuário de teste">teste</span>');
-    return `<span class="forum-author${isOfficial ? ' is-official' : ''}"><span class="forum-avatar" aria-hidden="true">${escapeHtml(a.avatarEmoji || '⌚')}</span><span class="forum-author-meta"><strong>@${escapeHtml(a.username || 'anon')}</strong>${badges.join('')}<small>${escapeHtml(a.nome || '')}</small></span></span>`;
+    return `<span class="forum-author${isOfficial ? ' is-official' : ''}${a.isSuperCollaborator ? ' is-super' : ''}"><span class="forum-avatar" aria-hidden="true">${escapeHtml(a.avatarEmoji || '⌚')}</span><span class="forum-author-meta"><strong>@${escapeHtml(a.username || 'anon')}</strong>${badges.join('')}<small>${escapeHtml(a.nome || '')}</small></span></span>`;
   }
 
   async function api(path, options = {}) {
