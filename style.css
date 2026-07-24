@@ -3165,11 +3165,25 @@ body.admin-page.pedidos-login-only #pedidos-login {
     flex: 0 0 200px;
     min-width: 160px;
 }
+.admin-clicks-filters .admin-clicks-nav-toggle {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: 0.88rem;
+    color: #444;
+    gap: 6px;
+}
+.admin-clicks-filters .admin-clicks-nav-toggle.is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
 @media (max-width: 640px) {
     .admin-clicks-filters {
         flex-wrap: wrap;
     }
     .admin-clicks-filters #clicks-filter-destino {
+        flex: 1 1 100%;
+    }
+    .admin-clicks-filters .admin-clicks-nav-toggle {
         flex: 1 1 100%;
     }
 }

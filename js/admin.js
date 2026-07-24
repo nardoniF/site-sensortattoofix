@@ -1496,6 +1496,12 @@ ${worksheets}
 
     const q = document.getElementById('clicks-search')?.value?.trim() || '';
     const destino = document.getElementById('clicks-filter-destino')?.value || '';
+    const navEl = document.getElementById('clicks-filter-nav');
+    const withNav = !!navEl?.checked;
+    if (navEl) {
+      navEl.disabled = !destino;
+      navEl.closest('label')?.classList.toggle('is-disabled', !destino);
+    }
 
     clicksLoading = true;
     const openPaths = preserveOpen ? captureClicksTreeOpenPaths() : [];
@@ -1506,6 +1512,7 @@ ${worksheets}
       if (q) params.set('q', q);
       if (destino === 'pageview') params.set('tipo', 'pageview');
       else if (destino) params.set('destino', destino);
+      if (destino && withNav) params.set('nav', '1');
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
@@ -1515,6 +1522,11 @@ ${worksheets}
       clicksCache = data.clicks || [];
       renderClicksStats(data);
       renderClicksTree(clicksCache, data.checkedAt, data.total, openPaths);
+      const checkedEl = document.getElementById('clicks-checked-at');
+      if (checkedEl && data.withNav && destino) {
+        const baseTxt = checkedEl.textContent || '';
+        checkedEl.textContent = `${baseTxt} · navegação completa (${data.navSessions || 0} visita${(data.navSessions || 0) === 1 ? '' : 's'})`;
+      }
     } catch (err) {
       root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
     } finally {
@@ -2900,6 +2912,7 @@ ${worksheets}
   document.getElementById('btn-clicks-clear-all')?.addEventListener('click', () => clearClicksLog('all'));
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
+  document.getElementById('clicks-filter-nav')?.addEventListener('change', () => loadClicks());
   document.getElementById('btn-feedback-refresh')?.addEventListener('click', () => loadFeedback());
   document.getElementById('btn-feedback-clear')?.addEventListener('click', () => clearFeedback());
   document.getElementById('feedback-search')?.addEventListener('input', scheduleFeedbackReload);

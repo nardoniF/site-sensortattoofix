@@ -8412,6 +8412,9 @@ async function handleAdminListClicks(request, env, origin) {
   const q = (url.searchParams.get('q') || '').trim().toLowerCase();
   const destino = (url.searchParams.get('destino') || '').trim();
   const tipo = (url.searchParams.get('tipo') || '').trim();
+  const withNav = url.searchParams.get('nav') === '1'
+    || url.searchParams.get('com_navegacao') === '1'
+    || url.searchParams.get('navegacao') === '1';
   const limit = Math.min(800, Math.max(20, parseInt(url.searchParams.get('limit') || '400', 10) || 400));
 
   const blobActive = await clicksBlobStoreActive(env);
@@ -8427,22 +8430,57 @@ async function handleAdminListClicks(request, env, origin) {
     loaded = await loadClickRows(env, scanIds, scanIds.length);
   }
 
+  function sessionKey(row) {
+    const vid = String(row?.visitante_id || '').trim();
+    const sid = String(row?.sessao_visita || '').trim();
+    if (vid && sid) return `v:${vid}|s:${sid}`;
+    if (vid) return `v:${vid}`;
+    if (sid) return `s:${sid}`;
+    const ip = String(row?.ip || row?.ip_prefix || '').trim();
+    const day = row?.ts ? new Date(row.ts).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '';
+    if (ip && day) return `ip:${ip}|d:${day}`;
+    return '';
+  }
+
+  function matchesDestino(row) {
+    if (destino === 'pageview') return row.tipo === 'pageview';
+    if (destino) return row.destino === destino;
+    return true;
+  }
+
+  function matchesQuery(row) {
+    if (!q) return true;
+    const hay = [
+      row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
+      row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo, row.ip, row.ip_prefix,
+      row.pais, row.pais_nome, row.estado, row.cidade,
+      row.origem_trafego, row.origem_trafego_label, row.utm_source, row.utm_medium, row.utm_campaign,
+      row.dispositivo, row.user_agent
+    ].join(' ').toLowerCase();
+    return hay.includes(q);
+  }
+
+  let navSessionKeys = null;
+  if (withNav && (destino || tipo === 'pageview' || destino === 'pageview')) {
+    navSessionKeys = new Set();
+    for (const row of loaded) {
+      if (!matchesDestino(row)) continue;
+      if (tipo && row.tipo !== tipo) continue;
+      const key = sessionKey(row);
+      if (key) navSessionKeys.add(key);
+    }
+  }
+
   const clicks = [];
   for (const row of loaded) {
-    if (destino === 'pageview') {
-      if (row.tipo !== 'pageview') continue;
-    } else if (destino && row.destino !== destino) continue;
-    if (tipo && row.tipo !== tipo) continue;
-    if (q) {
-      const hay = [
-        row.rotulo, row.destino, row.destino_label, row.secao, row.secao_label,
-        row.pagina, row.visitante_id, row.sessao_visita, row.cliente_email, row.cliente_nome, row.referrer, row.tipo, row.ip, row.ip_prefix,
-        row.pais, row.pais_nome, row.estado, row.cidade,
-        row.origem_trafego, row.origem_trafego_label, row.utm_source, row.utm_medium, row.utm_campaign,
-        row.dispositivo, row.user_agent
-      ].join(' ').toLowerCase();
-      if (!hay.includes(q)) continue;
+    if (navSessionKeys) {
+      const key = sessionKey(row);
+      if (!key || !navSessionKeys.has(key)) continue;
+    } else {
+      if (!matchesDestino(row)) continue;
+      if (tipo && row.tipo !== tipo) continue;
     }
+    if (!matchesQuery(row)) continue;
     clicks.push(enrichClickRowForAdmin(row));
     if (clicks.length >= limit) break;
   }
@@ -8470,6 +8508,8 @@ async function handleAdminListClicks(request, env, origin) {
     todayCount,
     byDestino,
     lastClickAt,
+    withNav: !!navSessionKeys,
+    navSessions: navSessionKeys ? navSessionKeys.size : 0,
     checkedAt: new Date().toISOString()
   }, 200, origin);
 }

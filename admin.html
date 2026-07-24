@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.80">
+    <link rel="stylesheet" href="style.css?v=2.81">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -677,7 +677,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Histórico: ano → mês → dia → visitante → caminho na visita. Clique nas setas para expandir.</p>
-                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). <strong>Exportar Excel</strong> gera um arquivo com abas por dia, semana, mês e ano.</p>
+                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Exportar Excel</strong> gera abas por dia, semana, mês e ano.</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-clicks-filters">
@@ -700,6 +700,10 @@
                                 <option value="faq">FAQ</option>
                                 <option value="menu_comprar">Menu — Onde comprar</option>
                             </select>
+                            <label class="admin-check admin-clicks-nav-toggle" title="Inclui home, páginas e demais passos da mesma visita">
+                                <input type="checkbox" id="clicks-filter-nav" checked>
+                                Com navegação
+                            </label>
                         </div>
                         <div class="admin-clicks-toolbar admin-toolbar-split">
                             <div class="admin-toolbar-main">
@@ -887,6 +891,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=103"></script>
+    <script src="js/admin.js?v=104"></script>
 </body>
 </html>
