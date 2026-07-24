@@ -834,6 +834,120 @@ export async function handleForumRoute(request, env, origin, deps) {
   const path = url.pathname.replace(/\/$/, '') || '/';
   const method = request.method;
 
+  if (path === '/forum/sitemap.xml' && method === 'GET') {
+    try {
+      await ensureSeed(env);
+      await ensureForumPublic(env);
+      const metaNow = await getForumMeta(env);
+      if (Number(metaNow.seedContentVersion || 0) < SEED_CONTENT_VERSION) {
+        await replaceSeededThreads(env);
+      }
+    } catch (err) {
+      console.warn('forum sitemap bootstrap:', err.message);
+    }
+    const index = await getThreadIndex(env);
+    const urls = [];
+    const hub = [
+      { loc: 'https://www.sensortattoofix.com.br/comunidade.html', lang: 'pt' },
+      { loc: 'https://www.sensortattoofix.com/comunidade.html', lang: 'en' },
+      { loc: 'https://www.sensortattoofix.com/it/comunidade.html', lang: 'it' }
+    ];
+    for (const h of hub) {
+      urls.push(`  <url>\n    <loc>${h.loc}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.75</priority>\n  </url>`);
+    }
+    for (const id of index.slice(0, 300)) {
+      const t = await getThread(env, id);
+      if (!t || t.status !== 'published') continue;
+      const slug = encodeURIComponent(t.slug || t.id);
+      const lang = normalizeForumLang(t.lang || 'pt');
+      const lastmod = (t.updatedAt || t.createdAt || '').slice(0, 10);
+      let loc;
+      if (lang === 'en') loc = `https://www.sensortattoofix.com/comunidade.html?t=${slug}`;
+      else if (lang === 'it') loc = `https://www.sensortattoofix.com/it/comunidade.html?t=${slug}`;
+      else loc = `https://www.sensortattoofix.com.br/comunidade.html?t=${slug}`;
+      urls.push(`  <url>\n    <loc>${loc}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ''}\n    <changefreq>weekly</changefreq>\n    <priority>0.65</priority>\n  </url>`);
+    }
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+    return new Response(xml, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=900',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+
+  const seoMatch = path.match(/^\/forum\/seo\/([^/]+)$/);
+  if (seoMatch && method === 'GET') {
+    try {
+      await ensureSeed(env);
+      await ensureForumPublic(env);
+    } catch (err) {
+      console.warn('forum seo bootstrap:', err.message);
+    }
+    const thread = await resolveThreadByParam(env, decodeURIComponent(seoMatch[1]));
+    if (!thread || thread.status !== 'published') {
+      return new Response('Not found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    }
+    const replies = (await getReplies(env, thread.id)).filter((r) => r.status === 'published');
+    const lang = normalizeForumLang(thread.lang || 'pt');
+    const pageUrl = lang === 'en'
+      ? `https://www.sensortattoofix.com/comunidade.html?t=${encodeURIComponent(thread.slug || thread.id)}`
+      : lang === 'it'
+        ? `https://www.sensortattoofix.com/it/comunidade.html?t=${encodeURIComponent(thread.slug || thread.id)}`
+        : `https://www.sensortattoofix.com.br/comunidade.html?t=${encodeURIComponent(thread.slug || thread.id)}`;
+    const esc = (s) => String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    const desc = esc(String(thread.body || '').replace(/\s+/g, ' ').trim().slice(0, 160));
+    const replyHtml = replies.map((r) => `
+      <article>
+        <h2>@${esc(r.author?.username || 'anon')}</h2>
+        <time datetime="${esc(r.createdAt || '')}">${esc(r.createdAt || '')}</time>
+        <p>${esc(r.body).replace(/\n/g, '<br>')}</p>
+      </article>`).join('\n');
+    const html = `<!DOCTYPE html>
+<html lang="${lang === 'pt' ? 'pt-BR' : lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <title>${esc(thread.title)} | Comunidade | Sensor Tattoo Fix</title>
+  <meta name="description" content="${desc}">
+  <link rel="canonical" href="${esc(pageUrl)}">
+  <meta property="og:title" content="${esc(thread.title)}">
+  <meta property="og:description" content="${desc}">
+  <meta property="og:url" content="${esc(pageUrl)}">
+  <link rel="stylesheet" href="https://www.sensortattoofix.com.br/style.css">
+</head>
+<body class="checkout-page forum-page">
+  <main class="container forum-container">
+    <p><a href="${esc(pageUrl)}">Sensor Tattoo Fix — Comunidade</a></p>
+    <article>
+      <h1>${esc(thread.title)}</h1>
+      <p class="admin-meta">@${esc(thread.author?.username || 'anon')} · <time datetime="${esc(thread.createdAt || '')}">${esc(thread.createdAt || '')}</time></p>
+      <div>${esc(thread.body).replace(/\n/g, '<br>')}</div>
+    </article>
+    <section>
+      <h2>Respostas</h2>
+      ${replyHtml || '<p>Nenhuma resposta ainda.</p>'}
+    </section>
+    <p><a href="${esc(pageUrl)}">Ver na comunidade</a></p>
+  </main>
+</body>
+</html>`;
+    return new Response(html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=600'
+      }
+    });
+  }
+
   if (path === '/forum/related' && method === 'GET') {
     try {
       await ensureSeed(env);

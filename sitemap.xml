@@ -73,4 +73,28 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://www.sensortattoofix.com.br/comunidade.html</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/comunidade.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/comunidade.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/comunidade.html"/>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://www.sensortattoofix.com/comunidade.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/comunidade.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/comunidade.html"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/comunidade.html"/>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://www.sensortattoofix.com/it/comunidade.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/comunidade.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/comunidade.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/comunidade.html"/>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+  </url>
 </urlset>

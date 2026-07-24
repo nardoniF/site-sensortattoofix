@@ -7,3 +7,4 @@ Disallow: /minha-conta.html
 Disallow: /comprar.html
 
 Sitemap: https://www.sensortattoofix.com.br/sitemap.xml
+Sitemap: https://api.sensortattoofix.com.br/forum/sitemap.xml

@@ -290,6 +290,96 @@
     }
   }
 
+  function absoluteThreadUrl(slugOrId) {
+    const u = new URL(location.href);
+    u.search = '';
+    u.hash = '';
+    u.searchParams.set('t', slugOrId);
+    return u.toString();
+  }
+
+  function setMeta(name, content, attr) {
+    const key = attr || 'name';
+    let elMeta = document.querySelector(`meta[${key}="${name}"]`);
+    if (!elMeta) {
+      elMeta = document.createElement('meta');
+      elMeta.setAttribute(key, name);
+      document.head.appendChild(elMeta);
+    }
+    elMeta.setAttribute('content', content);
+  }
+
+  function setCanonical(href) {
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'canonical';
+      document.head.appendChild(link);
+    }
+    link.href = href;
+  }
+
+  function setJsonLd(data) {
+    let script = document.getElementById('forum-jsonld');
+    if (!script) {
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'forum-jsonld';
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(data);
+  }
+
+  function applyListSeo() {
+    const title = ft('title') + ' | Sensor Tattoo Fix';
+    document.title = title;
+    setMeta('description', document.querySelector('meta[name="description"]')?.content || title);
+    setCanonical(location.origin + location.pathname);
+    setMeta('og:title', title, 'property');
+    setMeta('og:url', location.origin + location.pathname, 'property');
+    setJsonLd({
+      '@context': 'https://schema.org',
+      '@type': 'DiscussionForumPosting',
+      name: title,
+      url: location.origin + location.pathname,
+      isPartOf: { '@type': 'WebSite', name: 'Sensor Tattoo Fix', url: location.origin + '/' }
+    });
+  }
+
+  function applyThreadSeo(thread) {
+    if (!thread) return;
+    const slug = thread.slug || thread.id;
+    const url = absoluteThreadUrl(slug);
+    const title = `${thread.title} | ${ft('title')} | Sensor Tattoo Fix`;
+    const description = String(thread.body || thread.excerpt || thread.title || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    document.title = title;
+    setMeta('description', description);
+    setCanonical(url);
+    setMeta('og:title', title, 'property');
+    setMeta('og:description', description, 'property');
+    setMeta('og:url', url, 'property');
+    setMeta('og:type', 'article', 'property');
+    setJsonLd({
+      '@context': 'https://schema.org',
+      '@type': 'DiscussionForumPosting',
+      headline: thread.title,
+      articleBody: thread.body || '',
+      datePublished: thread.createdAt,
+      dateModified: thread.updatedAt || thread.createdAt,
+      url,
+      author: {
+        '@type': 'Person',
+        name: thread.author?.nome || thread.author?.username || 'anon',
+        alternateName: thread.author?.username ? '@' + thread.author.username : undefined
+      },
+      interactionStatistic: {
+        '@type': 'InteractionCounter',
+        interactionType: 'https://schema.org/CommentAction',
+        userInteractionCount: Number(thread.publishedReplyCount || thread.replyCount || 0)
+      }
+    });
+  }
+
   function youtubeId(url) {
     const m = String(url || '').match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{6,})/);
     return m ? m[1] : '';
@@ -420,9 +510,11 @@
     state.view = 'list';
     const root = el('forum-root');
     if (!root) return;
-    const threads = state.threads.map((t) => `
-      <article class="forum-thread-card" data-thread="${escapeHtml(t.slug || t.id)}">
-        <button type="button" class="forum-thread-open">
+    const threads = state.threads.map((t) => {
+      const tid = t.slug || t.id;
+      return `
+      <article class="forum-thread-card" data-thread="${escapeHtml(tid)}">
+        <a class="forum-thread-open" href="?t=${encodeURIComponent(tid)}">
           <h2>${escapeHtml(t.title)}</h2>
           <p>${escapeHtml(t.excerpt || '')}</p>
           <div class="forum-thread-meta">
@@ -430,9 +522,9 @@
             <span>${Number(t.publishedReplyCount || t.replyCount || 0)} ${escapeHtml(ft('replies'))}</span>
             <time datetime="${escapeHtml(t.createdAt || '')}">${escapeHtml(formatDate(t.createdAt))}</time>
           </div>
-        </button>
-      </article>
-    `).join('') || `<p class="admin-meta">${escapeHtml(ft('noTopics'))}</p>`;
+        </a>
+      </article>`;
+    }).join('') || `<p class="admin-meta">${escapeHtml(ft('noTopics'))}</p>`;
 
     root.innerHTML = `
       <div class="forum-header">
@@ -446,6 +538,7 @@
     bindListEvents();
     bindProfileEvents();
     restoreComposeDraft();
+    applyListSeo();
   }
 
   function renderThread() {
@@ -478,6 +571,7 @@
     el('forum-back')?.addEventListener('click', () => { history.replaceState({}, '', location.pathname); loadList(); });
     el('forum-reply-form')?.addEventListener('submit', onReplySubmit);
     bindProfileEvents();
+    applyThreadSeo(t);
     try {
       const draft = sessionStorage.getItem('stf_forum_reply_draft');
       const ta = el('forum-reply-form')?.querySelector('textarea[name="body"]');
@@ -501,7 +595,8 @@
       if (String(title).trim().length >= 8) previewRelated(title, body);
     });
     document.querySelectorAll('.forum-thread-card').forEach((card) => {
-      card.querySelector('.forum-thread-open')?.addEventListener('click', () => {
+      card.querySelector('.forum-thread-open')?.addEventListener('click', (e) => {
+        e.preventDefault();
         const id = card.getAttribute('data-thread');
         history.replaceState({}, '', '?t=' + encodeURIComponent(id));
         loadThread(id);
