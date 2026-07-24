@@ -327,10 +327,18 @@
     if (tok) headers.Authorization = 'Bearer ' + tok;
     if (options.json) {
       headers['Content-Type'] = 'application/json';
+      if (options.json && typeof options.json === 'object' && !Array.isArray(options.json) && options.json.lang == null) {
+        options.json = { ...options.json, lang: lang() };
+      }
       options.body = JSON.stringify(options.json);
       delete options.json;
     }
-    const res = await fetch(base + path, { ...options, headers, cache: 'no-store' });
+    let url = base + path;
+    if (!options.method || options.method === 'GET') {
+      const sep = path.includes('?') ? '&' : '?';
+      if (!/[?&]lang=/.test(path)) url += sep + 'lang=' + encodeURIComponent(lang());
+    }
+    const res = await fetch(url, { ...options, headers, cache: 'no-store' });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = new Error(data.error || data.message || ft('requestFail'));
