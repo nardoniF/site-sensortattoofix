@@ -289,95 +289,90 @@ function seedPayload() {
     {
       // 2 respostas: 1 pessoa + STF por último
       title: 'Apple Watch pedindo senha o tempo todo — sleeve no pulso',
-      body: 'Braço esquerdo fechado de tinta preta onde fica o relógio. Series 10.\n\nO negócio trava a tela, pede senha de novo, some notificação… parece que não “enxerga” que estou usando. No Reddit o povo fala de wrist detection + tinta escura.\n\nAlguém aqui usou o Sensor Tattoo Fix e conseguiu manter a Detecção de Pulso ligada (sem perder Apple Pay)?',
-      tags: ['apple-watch', 'wrist-detection', 'senha', 'tinta-preta'],
+      body: 'Braço esquerdo fechado de tattoo bem preta onde fica o relógio. Series 10.\n\nO negócio trava a tela, pede senha de novo, some notificação… parece que não “enxerga” que estou usando. No Reddit o povo fala de detecção + tinta escura.\n\nAlguém aqui usou o Sensor Tattoo Fix e conseguiu manter a Detecção de Pulso ligada (sem perder Apple Pay)?',
+      tags: ['apple-watch', 'deteccao', 'senha', 'tattoo'],
       author: { ...A['seed-guga'] },
       createdAt: iso(60 * 52),
       replies: [
         {
-          body: 'Mesma merda aqui. Desligar wrist detection “resolve” a senha, mas Apple Pay e algumas automações vão embora. Trocar de pulso não rola — os dois têm ink.',
+          body: 'Mesma merda aqui. Desligar a detecção “resolve” a senha, mas Apple Pay e algumas automações vão embora. Trocar de pulso não rola — os 2 têm tattoo.',
           author: { ...A['seed-pri'] },
           createdAt: iso(60 * 31)
         },
         officialReply(
-          'Oi, Guga! 👋 Aqui é a equipe @sensortattoofix.\n\nIsso que você descreveu é clássico: o sensor óptico usa luz verde/infravermelha e tinta escura/sólida no pulso absorve essa luz — o relógio acha que saiu do braço e pede senha de novo (o mesmo “Tattoogate” que viralizou no Reddit/Apple Support).\n\nO kit melhora o contato óptico entre sensor e pele. Dicas rápidas:\n• meça o diâmetro do sensor na traseira e escolha o tamanho certo\n• pulseira justa (não frouxa)\n• alinhamento do recorte no círculo do sensor\n\nSe depois de instalar ainda oscilar, manda foto do encaixe no suporte que a gente olha com você. 🖤',
+          'Oi, Guga! 👋 Aqui é a equipe @sensortattoofix.\n\nIsso é clássico: tinta escura no pulso atrapalha o sensor óptico e o relógio acha que saiu do braço — pede senha de novo e some notificação.\n\nO kit zera essa situação. Você instala e mantém a detecção — e o pagamento por aproximação continua funcionando.\n\nQualquer dúvida de tamanho (mm do sensor), manda no suporte. 🖤',
           iso(60 * 9)
         )
       ]
     },
     {
-      // 4 respostas: STF no meio, gente continua depois
+      // STF no meio + gente depois
       title: 'Corrida pausando sozinha no meio do treino (Apple Watch)',
-      body: 'Ultra / Series — tanto faz. Começo o treino Outdoor Run, 2–3 km depois o cronômetro PAUSA sozinho. Relógio acha que saí do pulso.\n\nTatuagem escura sob o sensor. Já apertei a pulseira, limpei, teste no outro pulso (sem tinta) e aí funciona perfeito.\n\nEstou de olho no kit da Sensor Tattoo Fix — alguém que corre com tinta no pulso já instalou e parou essas pausas fantasmas?',
+      body: 'Ultra / Series — tanto faz. Começo o treino Outdoor Run, 2–3 km depois o cronômetro PAUSA sozinho. Relógio acha que saí do pulso.\n\nTattoo escura sob o sensor. Já apertei a pulseira, limpei, teste no outro pulso (sem tinta) e aí funciona perfeito.\n\nSerá que esse kit funciona? Alguém já usou e iniciou os treinos? Se sim, parou de pausar?',
       tags: ['apple-watch', 'treino', 'pausa', 'corrida'],
       author: { ...A['seed-kai'] },
       createdAt: iso(60 * 78),
       replies: [
         {
-          body: 'Isso me deixava maluco. No Reddit a galera manda fita micropore — eu odiei o cheiro. Fui de kit.',
+          body: 'Isso me deixava maluco. No Reddit a galera manda fita micropore — mas sai e às vezes não funciona. Usei o Tattoo Fix e acabou o problema.',
           author: { ...A['seed-dudu'] },
           createdAt: iso(60 * 61)
         },
         officialReply(
-          'Kai, isso é o mesmo fenômeno da detecção de pulso falhando no movimento — suor + tinta escura = reflexão instável, e o watch pausa o treino.\n\nSensor Tattoo Fix atua exatamente nessa camada: contato óptico mais uniforme sob o sensor. Depois de colar:\n1) limpeza seca da área\n2) pressionar as bordas 20–30s\n3) pulseira firme no treino\n\nMuitos corredores relatam fim das pausas fantasmas em poucos dias. Se quiser, conta modelo + mm do sensor que a gente confirma o tamanho. 🏃‍♂️',
+          'Kai, isso é o mesmo fenômeno da detecção de pulso falhando no movimento — suor + tinta escura = reflexão instável, e o watch pausa o treino.\n\nSensor Tattoo Fix atua exatamente para resolver isso.\n\nMuitos corredores relatam fim das pausas fantasmas em poucos dias. Se quiser, conta modelo + mm do sensor que a gente confirma o tamanho. 🏃‍♂️',
           iso(60 * 44)
         ),
         {
-          body: 'Confirmo: depois do kit o meu Ultra parou de pausar no km 2. Ainda aperto a pulseira um pouco mais no longão.',
-          author: { ...A['seed-bela'] },
-          createdAt: iso(60 * 27)
-        },
-        {
-          body: 'Valeu @sensortattoofix — vou medir o sensor hoje e pedir o mm certo.',
+          body: 'Valeu, vou medir e pedir.',
           author: { ...A['seed-kai'] },
           createdAt: iso(60 * 11)
         }
       ]
     },
     {
-      // 1 resposta só: só a STF (thread “nova” / pouco engajada)
+      // 1 resposta: só STF
       title: 'Galaxy Watch 6 — Samsung Health diz que o relógio está “solto”',
-      body: 'Calibrar pressão / frequência cardíaca no Samsung Health: fica pedindo pra ajustar porque “o relógio está solto”, sendo que tá apertado.\n\nSuporte da Samsung falou de tatuagem. Testei no braço da minha mãe (sem ink) e calibraram de primeira.\n\nQuem tem GW5/GW6 + tinta no pulso e usou o kit — a mensagem de “solto” sumiu pra vocês?',
+      body: 'Calibrar pressão / frequência cardíaca no Samsung Health: fica pedindo pra ajustar porque “o relógio está solto”, sendo que tá apertado.\n\nSuporte da Samsung falou de tatuagem. Testei no braço da minha mãe (sem ink) e calibraram de primeira.\n\nQuem tem GW5/GW6 + tattoo no pulso e usou o kit — a mensagem de “solto” sumiu pra vocês?',
       tags: ['galaxy-watch', 'samsung-health', 'pressao', 'fc'],
       author: { ...A['seed-marcinha'] },
       createdAt: iso(60 * 19),
       replies: [
         officialReply(
-          'Marcinha, obrigado por trazer o caso Samsung — é o mesmo princípio óptico do Apple Watch (PPG).\n\nQuando a tinta bloqueia a luz, o algoritmo interpreta como “relógio solto / sem contato”. O kit não “engana” o software: ele melhora o retorno de luz na área do sensor.\n\nPasso a passo que costuma funcionar no Galaxy:\n• medir o sensor (mm) e usar o recorte certo\n• limpar sensor + pele\n• instalar e usar firme por alguns dias antes de recalibrar no Samsung Health\n\nQualquer dúvida de tamanho, estamos no suporte. 🖤',
+          'Marcinha, obrigado por trazer o caso Samsung — é o mesmo princípio óptico do Apple Watch.\n\nQuando a tinta bloqueia a luz, o algoritmo interpreta como “relógio solto / sem contato”. O kit melhora o retorno de luz na área do sensor.\n\nMeça o sensor (mm), escolha o tamanho certo na loja e, depois de instalar, use firme por alguns dias antes de recalibrar no Samsung Health. Qualquer dúvida, suporte. 🖤',
           iso(60 * 6)
         )
       ]
     },
     {
-      // 5 respostas: várias pessoas, STF por último
-      title: 'FC inventando 180–190 bpm parado — tinta preta sólida',
-      body: 'Relógio mostra batimento absurdo em repouso (tipo 180+) ou “—” em cima da rose preta no pulso. Linha fina / shading claro no outro braço lê normal.\n\nConfirma a vibe dos testes antigos (iMore etc.): preto sólido destrói, padrão claro menos.\n\nQuem já instalou o Sensor Tattoo Fix nesse cenário — a FC estabilizou de verdade, ou o kit só ajuda quando o relógio “não detecta pulso”?',
-      tags: ['fc', 'tinta-preta', 'ppg', 'apple-watch'],
+      // várias pessoas + STF por último
+      title: 'FC inventando 180–190 bpm parado, braço esquerdo fechado ⌚',
+      body: 'Relógio mostra batimento absurdo em repouso (tipo 180+) ou “—” — no outro braço sem tattoo lê normal.\n\nQuem já instalou o Sensor Tattoo Fix nesse cenário — a FC estabilizou de verdade, ou o kit só ajuda quando o relógio “não detecta pulso”?',
+      tags: ['fc', 'tattoo', 'ppg', 'apple-watch'],
       author: { ...A['seed-dudu'] },
       createdAt: iso(60 * 110),
       replies: [
         {
-          body: 'No meu solid black também. Antes: FC louca + lock.',
+          body: 'No meu acontece o mesmo.',
           author: { ...A['seed-guga'] },
           createdAt: iso(60 * 97)
         },
         {
-          body: 'Importante medir o sensor. Recorte folgado = leitura pior ainda.',
+          body: '2 braços tatuados — no meu não lê em nenhum dos 2.',
           author: { ...A['seed-nati'] },
           createdAt: iso(60 * 73)
         },
         {
-          body: 'No meu shading claro quase não dá problema. Preto chapado é outra história.',
+          body: 'No meu shading claro quase não dá problema.',
           author: { ...A['seed-leo'] },
           createdAt: iso(60 * 58)
         },
         {
-          body: 'Depois do kit a FC ficou usável no dia a dia. Não é lab, mas parou o delírio dos 180 parado.',
+          body: 'Depois do kit Tattoo Fix ficou usável no dia a dia. Parou o delírio dos batimentos malucos.',
           author: { ...A['seed-rick'] },
           createdAt: iso(60 * 33)
         },
         officialReply(
-          'Dudu, boa pergunta — ajuda nos dois cenários.\n\nA tinta escura/sólida mexe na reflexão: o algoritmo pode “perder” o pulso (vira lock / —) ou interpretar ruído como FC altíssima. O kit cria uma interface óptica mais previsível entre LED/fotodiodo e a pele.\n\nExpectativa realista: melhora forte de estabilidade na maioria dos casos com tinta no ponto do sensor. Para treino de elite muita gente ainda usa cinta, mas no uso diário o kit costuma tirar aquele comportamento maluco.\n\nMeça o diâmetro do sensor (borda a borda) e escolha o mm na loja — encaixe certo pesa muito. Qualquer coisa, @sensortattoofix no suporte. 🖤',
+          'Dudu, boa pergunta.\n\nA tinta escura/sólida impede o sensor de chegar aos vasos sanguíneos: o algoritmo “perde” o pulso, pede senha e às vezes fica louco e marca errado. O kit cria uma interface óptica entre LED/fotodiodo e a pele e amplifica o sinal, corrigindo isso.\n\nMeça o diâmetro do sensor (borda a borda) e escolha o mm na loja — encaixe certo pesa muito. Qualquer coisa, @sensortattoofix no suporte. 🖤',
           iso(60 * 4)
         )
       ]
@@ -568,7 +563,7 @@ async function ensureForumPublic(env) {
 }
 
 const SEED_AUTHORS_VERSION = 3;
-const SEED_CONTENT_VERSION = 5;
+const SEED_CONTENT_VERSION = 6;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
