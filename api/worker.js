@@ -7808,9 +7808,14 @@ async function handleStripeCheckoutSession(request, env, origin, orderId) {
     || order.produtoNome
     || 'Sensor Tattoo Fix'
   ).toString().slice(0, 120);
+  const localeRaw = String(body.locale || order.checkoutLocale || 'en').trim().toLowerCase();
+  const stripeLocale = localeRaw.startsWith('it')
+    ? 'it'
+    : (localeRaw.startsWith('pt') ? 'pt-BR' : 'en');
   try {
     const session = await stripeApi(env, 'checkout/sessions', {
       mode: 'payment',
+      locale: stripeLocale,
       success_url: `${returnBase}/comprar.html?${successQs}`,
       cancel_url: `${returnBase}/comprar.html?${cancelQs}`,
       customer_email: String(order.email || '').slice(0, 500),

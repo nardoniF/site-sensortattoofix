@@ -149,6 +149,23 @@ window.STF_INTL_PAY = (function () {
     return window.paypal;
   }
 
+  function stripeLocale() {
+    try {
+      const lang = window.STF_I18N?.getLang?.();
+      if (lang === 'it') return 'it';
+      if (lang === 'en') return 'en';
+      if (lang === 'pt') return 'pt-BR';
+    } catch (_) { /* ignore */ }
+    const path = String(location.pathname || '');
+    if (path.includes('/it/')) return 'it';
+    if (path.includes('/en/') || /\.sensortattoofix\.com$/i.test(location.hostname)) return 'en';
+    const htmlLang = String(document.documentElement.lang || '').toLowerCase();
+    if (htmlLang.startsWith('it')) return 'it';
+    if (htmlLang.startsWith('en')) return 'en';
+    if (htmlLang.startsWith('pt')) return 'pt-BR';
+    return 'en';
+  }
+
   async function mountStripeRedirectLink(orderId, accessToken) {
     const linkEl = document.getElementById('stripe-redirect-link');
     if (!linkEl) return null;
@@ -157,7 +174,7 @@ window.STF_INTL_PAY = (function () {
       const res = await fetch(base + '/orders/' + encodeURIComponent(orderId) + '/stripe/checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken })
+        body: JSON.stringify({ accessToken, locale: stripeLocale() })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.checkoutUrl) {
@@ -190,7 +207,10 @@ window.STF_INTL_PAY = (function () {
       + encodeURIComponent(orderId) + '&accessToken=' + encodeURIComponent(accessToken));
     const StripeCtor = await loadStripeJs();
     stripe = StripeCtor(pk);
-    stripeElements = stripe.elements({ clientSecret: stripeClientSecret });
+    stripeElements = stripe.elements({
+      clientSecret: stripeClientSecret,
+      locale: stripeLocale()
+    });
     const mount = document.getElementById('stripe-payment-element');
     if (!mount) throw new Error('Payment form missing.');
     mount.innerHTML = '';
