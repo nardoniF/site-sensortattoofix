@@ -5311,11 +5311,35 @@ a.conta-forgot-link { display: inline-block; }
   background:#f5f5f5; font-size:1.35rem; cursor:pointer;
 }
 .forum-avatar-pick.is-selected, .forum-avatar-pick:hover { border-color:#ffc107; background:#fff8e1; }
-.forum-body { margin:1rem 0; line-height:1.55; white-space:normal; }
+.forum-body { margin:1rem 0; line-height:1.55; white-space:normal; color:#1f1f1f; }
 .forum-reply {
   border:1px solid rgba(0,0,0,.08); border-radius:12px;
   padding:1rem; margin:0 0 .75rem; background:#fff;
+  color:#1f1f1f;
 }
+.forum-page .admin-card,
+.forum-page .forum-thread-open,
+.forum-page .forum-compose,
+.forum-page .forum-profile-setup,
+.forum-page .forum-gate {
+  background:#fff;
+  border-color:rgba(0,0,0,.1);
+  color:#1f1f1f;
+}
+.forum-page .admin-card h1,
+.forum-page .forum-thread-open h2,
+.forum-page .forum-compose h2,
+.forum-page .forum-profile-setup h2 {
+  color:#111;
+}
+.forum-page .admin-meta,
+.forum-page .forum-thread-meta,
+.forum-page .forum-author-meta small,
+.forum-page time {
+  color:#666;
+}
+.forum-page .forum-thread-open p { color:#444; }
+.forum-page .forum-author-meta strong { color:#111; }
 .forum-reply.is-pending { opacity:.75; border-style:dashed; }
 .forum-pending { margin-left:.5rem; font-size:.75rem; color:#a67c00; }
 .forum-media { display:grid; gap:.75rem; margin-top:.75rem; }
