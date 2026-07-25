@@ -307,6 +307,20 @@ const SEED_AUTHORS = {
   'seed-nati': { userId: 'seed-nati', nome: 'Nati', username: 'natiink', avatarId: 'gem', avatarEmoji: '💎' },
   'seed-leo': { userId: 'seed-leo', nome: 'Léo', username: 'leozinho88', avatarId: 'moon', avatarEmoji: '🌙' },
   'seed-pri': { userId: 'seed-pri', nome: 'Pri', username: 'pri_sleeve', avatarId: 'leaf', avatarEmoji: '🍃' },
+  'seed-juliana': { userId: 'seed-juliana', nome: 'Júlia', username: 'julia_ink', avatarId: 'sun', avatarEmoji: '☀️' },
+  'seed-raf': { userId: 'seed-raf', nome: 'Rafael', username: 'raf_monkey', avatarId: 'leaf', avatarEmoji: '🍃' },
+  'seed-ana': { userId: 'seed-ana', nome: 'Ana', username: 'aninha_w', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-edu': {
+    userId: 'seed-edu',
+    nome: 'Edu',
+    username: 'edu_sensor',
+    avatarId: 'sensor',
+    avatarEmoji: '📡',
+    isSuperCollaborator: true
+  },
+  'seed-diego': { userId: 'seed-diego', nome: 'Diego', username: 'diego_runs', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-malu': { userId: 'seed-malu', nome: 'Malu', username: 'malu_tat', avatarId: 'star', avatarEmoji: '⭐' },
+  'seed-camila': { userId: 'seed-camila', nome: 'Camila', username: 'camila_fit', avatarId: 'heart', avatarEmoji: '❤️' },
   'seed-chris': {
     userId: 'seed-chris',
     nome: 'Chris',
@@ -369,7 +383,7 @@ function seedPayload() {
       replies: [
         { body: 'Mesma merda aqui. Desligar a detecção “resolve” a senha, mas Apple Pay e algumas automações vão embora. Trocar de pulso não rola — os 2 têm tattoo.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
         { body: 'Eu também. Às vezes acorda e já pede senha de novo. Odeio.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
-        { body: 'Guga, tive exatamente isso com sleeve escura. Sensor Tattoo Fix + detecção ligada = Apple Pay voltou a funcionar sem drama.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 22) },
+        { body: 'Em casos assim, o que costuma mudar é a forma como o sensor recebe a luz de volta. Quando a tinta muda esse retorno, o relógio interpreta o contato como instável — e a detecção de pulso/Apple Pay começa a falhar.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 22) },
         officialReply('Oi, Guga! 👋 Aqui é a equipe @sensortattoofix.\n\nIsso é clássico: tinta escura no pulso atrapalha o sensor óptico e o relógio acha que saiu do braço — pede senha de novo e some notificação.\n\nO kit zera essa situação. Você instala e mantém a detecção — e o pagamento por aproximação continua funcionando.\n\nQualquer dúvida, manda no suporte. 🖤', iso(60 * 9))
       ]
     },
@@ -381,7 +395,7 @@ function seedPayload() {
       createdAt: iso(60 * 78),
       replies: [
         { body: 'Isso me deixava maluco. No Reddit a galera manda fita micropore — mas sai e às vezes não funciona. Usei o Tattoo Fix e acabou o problema.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 61) },
-        { body: 'Kai, micropore é gambiarra. Eu corro 4–5x na semana com o kit — zero pausa fantasma depois que chegou o Tattoo Fix. Suor forte não tirou o meu.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 52) },
+        { body: 'Kai, quando a tinta altera a reflexão da pele, a leitura do pulso fica menos estável em movimento. O que costuma ajudar é deixar a interface óptica do sensor mais consistente do que tentar “forçar” a pulseira com fita ou ajuste manual.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 52) },
         officialReply('Kai, isso é o mesmo fenômeno da detecção de pulso falhando no movimento — suor + tinta escura = reflexão instável, e o watch pausa o treino.\n\nSensor Tattoo Fix atua exatamente para resolver isso.\n\nMuitos corredores relatam fim das pausas fantasmas em poucos dias. Qualquer dúvida, suporte. 🏃‍♂️', iso(60 * 44)),
         { body: 'Fechou — vou instalar e testar na próxima corrida.', author: { ...A['seed-kai'] }, createdAt: iso(60 * 11) },
         { body: 'o meu parou de dar erro logo que instalei. Esperei 48 horas e fui correr — mediu tudo certinho.', author: { ...A['seed-nati'] }, createdAt: iso(60 * 7) }
@@ -395,7 +409,7 @@ function seedPayload() {
       createdAt: iso(60 * 19),
       replies: [
         { body: 'GW5 Classic aqui. Mesma mensagem. Sem kit não calibrava nunca.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 14) },
-        { body: 'Marcinha, no meu GW6 a mensagem de “solto” sumiu depois do kit. Espera 2–3 dias firme no pulso e aí recalibra no Samsung Health — na primeira tentativa ainda pode reclamar.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 10) },
+        { body: 'Marcinha, em watches Samsung esse tipo de alerta geralmente aparece quando o algoritmo não recebe um sinal estável. O ponto é a leitura óptica na área do sensor, não só o aperto da pulseira.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 10) },
         officialReply('Marcinha, obrigado por trazer o caso Samsung — é o mesmo princípio óptico do Apple Watch.\n\nQuando a tinta bloqueia a luz, o algoritmo interpreta como “relógio solto / sem contato”. O kit melhora o retorno de luz na área do sensor.\n\nDepois de instalar, use firme por alguns dias antes de recalibrar no Samsung Health. Qualquer dúvida, suporte. 🖤', iso(60 * 6))
       ]
     },
@@ -409,10 +423,94 @@ function seedPayload() {
         { body: 'No meu acontece o mesmo.', author: { ...A['seed-guga'] }, createdAt: iso(60 * 97) },
         { body: '2 braços tatuados — no meu não lê em nenhum dos 2.', author: { ...A['seed-nati'] }, createdAt: iso(60 * 73) },
         { body: 'No meu shading claro quase não dá problema.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 58) },
-        { body: 'Dudu: no meu (fechado escuro) a FC parou de inventar depois do kit. Não fica perfeito tipo hospital, mas deixou de marcar 180 parado. Valeu demais pro dia a dia.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 41) },
+        { body: 'Dudu: quando a tinta é densa, o algoritmo costuma perder a curva do pulso e passar a inventar leituras. O que costuma estabilizar a FC não é a pulseira em si, mas a forma como a luz retorna ao sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 41) },
         { body: 'Depois do kit Tattoo Fix ficou usável no dia a dia. Parou o delírio dos batimentos malucos.', author: { ...A['seed-rick'] }, createdAt: iso(60 * 33) },
         { body: 'Alguém comparou com oxímetro de dedo depois de instalar?', author: { ...A['seed-bela'] }, createdAt: iso(60 * 18) },
         officialReply('Dudu, boa pergunta.\n\nA tinta escura/sólida impede o sensor de chegar aos vasos sanguíneos: o algoritmo “perde” o pulso, pede senha e às vezes fica louco e marca errado. O kit cria uma interface óptica entre LED/fotodiodo e a pele e amplifica o sinal, corrigindo isso.\n\nQualquer coisa, @sensortattoofix no suporte. 🖤', iso(60 * 4))
+      ]
+    },
+    {
+      title: 'Garmin Forerunner 255 — frequência cardíaca pulando na corrida',
+      body: 'No meu Forerunner 255 a frequência sobe e desce sem parar, principalmente quando a pulseira fica mais alta no braço. Eu já usei no outro pulso e lá a leitura fica estável. Parece que a tattoo “confunde” o sensor quando a luz entra de um jeito diferente.',
+      tags: ['garmin', 'frequencia-cardiaca', 'corrida', 'ppg'],
+      author: { ...A['seed-juliana'] },
+      createdAt: iso(60 * 130),
+      replies: [
+        { body: 'Eu tive isso no 265. O relógio marcava 145 em repouso e depois voltava. Não era o suor, era a leitura mesmo.', author: { ...A['seed-raf'] }, createdAt: iso(60 * 122) },
+        { body: 'Garmin é bem sensível a esse tipo de variação no pulso. O sensor de PPG fica com o sinal instável quando a tinta muda a reflexão da pele, então o algoritmo tende a ler o pulso de forma inconsistente.', author: { ...A['seed-edu'] }, createdAt: iso(60 * 116) },
+        officialReply('Isso é bem comum em relógios com sensor óptico. Quando o pulso está tatuado, a luz do LED e o fotodiodo recebem um sinal diferente, então o algoritmo interpreta como pulso irregular. O kit tenta estabilizar essa interface óptica e melhorar a leitura do sensor. Se quiser, me diga o modelo do seu Garmin e eu verifico compatibilidade. 🖤', iso(60 * 108))
+      ]
+    },
+    {
+      title: 'Galaxy Watch 6/7 — oxigenação e sono ficam zerados',
+      body: 'Eu uso o Galaxy Watch 6 e, quando durmo de lado, o relógio começa a marcar oxigenação em 0 ou dá um monte de “sem dado” na noite. O problema piora quando o pulso está mais escuro e a pulseira fica mais apertada.',
+      tags: ['galaxy-watch', 'oxigenacao', 'sono', 'samsung'],
+      author: { ...A['seed-ana'] },
+      createdAt: iso(60 * 150),
+      replies: [
+        { body: 'No meu o sleep tracking também piora quando a leitura de O2 entra em colapso. Daí a análise do sono fica toda errada.', author: { ...A['seed-diego'] }, createdAt: iso(60 * 142) },
+        { body: 'Esse tipo de leitura depende de muita luz e de um contato estável. Se a tinta muda a reflexão, o algoritmo pode “perder” a curva e falhar na análise do sono.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 134) },
+        officialReply('Entendo. Em muitos casos isso não é só uma questão de ajuste na pulseira — a tinta muda a forma como a luz chega à pele, e a rotina de monitoramento do sono/oxigenação fica comprometida. A solução mais natural é melhorar a interface óptica no ponto do sensor. Se você quiser, me mande o modelo do seu Galaxy Watch para avaliarmos. 🖤', iso(60 * 128))
+      ]
+    },
+    {
+      title: 'Huawei Watch GT 3 — o relógio acha que eu tirei o pulso',
+      body: 'Tenho uma Huawei Watch GT 3 e o relógio começa a me falar que “não detecta o pulso” ou que eu tirei o braço. Isso acontece principalmente quando eu faço treino e a pulseira fica mais alta no braço. Parece o mesmo problema do Apple Watch, mas em outro sistema.',
+      tags: ['huawei', 'treino', 'detecao', 'watch'],
+      author: { ...A['seed-malu'] },
+      createdAt: iso(60 * 170),
+      replies: [
+        { body: 'Eu tinha o mesmo comportamento no GT 2. O relógio “perdia” o pulso e o treino parava sem motivo. No outro braço, tudo normal.', author: { ...A['seed-camila'] }, createdAt: iso(60 * 160) },
+        { body: 'Não é só o software. Em muitas marcas, o sensor precisa de uma leitura limpa; se a tinta alterou a reflexão, a detecção fica instável e o watch entra em modo de falha.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 154) },
+        officialReply('Isso é um sintoma clássico de leitura óptica instável. O relógio confunde o pulso com falta de contato e entra em modo de “não detectado”, principalmente em treino e movimento. O ajuste da interface do sensor é o que costuma ajudar. Se quiser, me diga o modelo exato para verificarmos a compatibilidade. 🖤', iso(60 * 148))
+      ]
+    },
+    {
+      title: 'Amazfit T-Rex 3 — 0 bpm e treino travado',
+      body: 'No Amazfit T-Rex 3 eu fico vendo 0 bpm durante o treino e o rastreamento fica meio travado. O ruim é que nem sempre dá pra ajustar a pulseira de novo; parece que o sensor entra em “modo de erro” e fica ali.',
+      tags: ['amazfit', 'treino', 'bpm', 'sensor'],
+      author: { ...A['seed-diego'] },
+      createdAt: iso(60 * 190),
+      replies: [
+        { body: 'No meu T-Rex 2 era igual. O relógio marcava 0 bpm e eu pensava que a bateria estava acabando, mas era só a leitura mesmo.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 182) },
+        { body: 'Quando a tinta muda o retorno de luz, o algoritmo acaba interpretando o sinal como “sem pulso” ou “falta de contato”.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 176) },
+        officialReply('Esse comportamento costuma aparecer quando a área do sensor recebe menos luz de volta do que o algoritmo espera. A solução é justamente melhorar a leitura do ponto onde a luz entra e volta à pele. Se quiser, eu posso te orientar pelo modelo do seu Amazfit. 🖤', iso(60 * 168))
+      ]
+    },
+    {
+      title: 'Xiaomi Band 8 — FC e sono ficam ruins no pulso tatuado',
+      body: 'A Xiaomi Band 8 é bem simples, mas o problema é que ela lê muito mal o pulso quando a tattoo é escura. Numa madrugada eu vi a frequência cair em 40 e depois pular para 140 sem motivo. No outro pulso a coisa já fica melhor.',
+      tags: ['xiaomi', 'frequencia-cardiaca', 'sono', 'band'],
+      author: { ...A['seed-camila'] },
+      createdAt: iso(60 * 210),
+      replies: [
+        { body: 'Eu uso Band 7 e fico na mesma. O sensor faz uma leitura horrível quando a tinta é mais fechada.', author: { ...A['seed-raf'] }, createdAt: iso(60 * 202) },
+        { body: 'Bandas mais básicas tendem a depender bastante da estabilidade do sinal. Com tatuagem escura a leitura fica bem mais inconsistente.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 196) },
+        officialReply('Em modelos mais simples o problema costuma aparecer de forma mais evidente porque a rotina de leitura é menos robusta. Mesmo assim, a causa costuma ser a mesma: a tinta altera a reflexão e o algoritmo não reconhece bem o pulso. Se você quiser, me diga qual modelo e eu te ajudo a checar. 🖤', iso(60 * 188))
+      ]
+    },
+    {
+      title: 'Apple Pay e Google Wallet pararam no mesmo pulso',
+      body: 'Fiquei uns meses sem usar o pagamento por aproximação porque o relógio simplesmente não reconhecia o pulso. O problema apareceu quando a tattoo ficou mais fechada na região do sensor. Parece que o watch “desconfia” demais da leitura e trava tudo.',
+      tags: ['apple-pay', 'google-wallet', 'pagamento', 'tattoo'],
+      author: { ...A['seed-malu'] },
+      createdAt: iso(60 * 230),
+      replies: [
+        { body: 'Opa, eu passei pelo mesmo. O Apple Pay começou a falhar e o Google Wallet também. Não era a carteira, era a leitura.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 222) },
+        { body: 'Isso costuma acontecer quando a leitura de pulso e o reconhecimento de contato ficam instáveis — o sistema acaba interpretando como se o dispositivo não estivesse bem posicionado.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 214) },
+        officialReply('Quando o sensor perde estabilidade, o pagamento por aproximação costuma ser o primeiro a dar errado. Isso também é muito comum em quem tem tatuagem escura ou muito densa na região do sensor. Se você quiser, me diga o modelo do seu wearable e a condição da tattoo para avaliarmos a compatibilidade. 🖤', iso(60 * 208))
+      ]
+    },
+    {
+      title: 'LED verde, infravermelho e fotodiodo: o que muda mesmo na leitura?',
+      body: 'Eu queria entender de um jeito menos “manual de aparelho” o que muda de verdade entre LEDs verdes, vermelho e infravermelho. Parece que alguns relógios usam um conjunto e outros usam outro, e isso muda muito na interpretação do pulso.',
+      tags: ['tecnologia', 'ppg', 'led', 'fotodiodo'],
+      author: { ...A['seed-juliana'] },
+      createdAt: iso(60 * 250),
+      replies: [
+        { body: 'Em termos práticos, o que muda é a profundidade e a forma como a luz penetra na pele. Verde e infravermelho não são equivalentes para o algoritmo, e isso faz diferença quando a tatuagem altera a reflexão.', author: { ...A['seed-edu'] }, createdAt: iso(60 * 242) },
+        { body: 'Na prática, se a tinta muda a reflexão, a combinação que funciona bem num pulso limpo pode falhar num pulso tatuado.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 236) },
+        officialReply('Exato. O sensor óptico depende de um equilíbrio entre LED, fotodiodo e algoritmo. Quando a tatuagem altera a reflexão, a leitura fica mais frágil. O ponto importante é acompanhar como a luz volta à pele e como o chip interpreta esse sinal. 🖤', iso(60 * 228))
       ]
     }
   ].map((t) => ({ ...t, lang: 'pt' }));
@@ -427,7 +525,7 @@ function seedPayload() {
       replies: [
         { body: 'Same crap here. Turning detection off “fixes” the passcode, but Apple Pay and some automations go away. Switching wrists isn’t an option — both are tattooed.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
         { body: 'Same. Sometimes I wake up and it already wants the passcode again. Hate it.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
-        { body: 'Guga, exact same with a dark sleeve. Sensor Tattoo Fix + detection on = Apple Pay worked again, no drama.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 22) },
+        { body: 'In cases like this, what usually changes is how the sensor gets light back. When the tattoo alters that return, the watch reads contact as unstable and Apple Pay / wrist detection starts to fail.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 22) },
         officialReply('Hey Guga! 👋 This is the @sensortattoofix team.\n\nClassic case: dark ink on the wrist messes with the optical sensor and the watch thinks it left your arm — passcode loops and missing notifications.\n\nThe kit fixes that. You install it, keep detection on, and tap-to-pay still works.\n\nAny questions, hit support. 🖤', iso(60 * 9))
       ]
     },
@@ -439,7 +537,7 @@ function seedPayload() {
       createdAt: iso(60 * 78),
       replies: [
         { body: 'Drove me crazy. Reddit suggests micropore tape — it peels off and sometimes fails anyway. Used Tattoo Fix and the problem stopped.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 61) },
-        { body: 'Kai, micropore is a hack. I run 4–5x a week with the kit — zero phantom pauses after the Tattoo Fix arrived. Heavy sweat didn’t rip mine off.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 52) },
+        { body: 'Kai, when the tattoo changes skin reflection, pulse reading becomes less stable during motion. What usually helps is making the optical interface more consistent rather than trying to force the band with tape or manual adjustment.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 52) },
         officialReply('Kai, same wrist-detection failure while moving — sweat + dark ink = unstable reflection, so the watch pauses the workout.\n\nSensor Tattoo Fix is built for exactly that.\n\nLots of runners report phantom pauses gone in a few days. Questions? Support. 🏃‍♂️', iso(60 * 44)),
         { body: 'Got it — I’ll install and test on the next run.', author: { ...A['seed-kai'] }, createdAt: iso(60 * 11) },
         { body: 'Mine stopped erroring right after I installed. Waited 48 hours, went for a run — everything tracked fine.', author: { ...A['seed-nati'] }, createdAt: iso(60 * 7) }
@@ -453,7 +551,7 @@ function seedPayload() {
       createdAt: iso(60 * 19),
       replies: [
         { body: 'GW5 Classic here. Same message. Without the kit it never calibrated.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 14) },
-        { body: 'Marcinha, on my GW6 the “loose” message went away after the kit. Wear it snug 2–3 days, then recalibrate in Samsung Health — first try can still complain.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 10) },
+        { body: 'Marcinha, in Samsung watches this kind of alert usually appears when the algorithm is not getting a stable signal. The issue is the optical reading at the sensor area, not just how tight the band is.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 10) },
         officialReply('Marcinha, thanks for the Samsung case — same optical principle as Apple Watch.\n\nWhen ink blocks the light, the algorithm reads “loose / no contact”. The kit improves light return at the sensor area.\n\nAfter install, wear it snug a few days before recalibrating in Samsung Health. Questions? Support. 🖤', iso(60 * 6))
       ]
     },
@@ -467,10 +565,94 @@ function seedPayload() {
         { body: 'Same thing happens to me.', author: { ...A['seed-guga'] }, createdAt: iso(60 * 97) },
         { body: 'Both arms tattooed — mine won’t read on either.', author: { ...A['seed-nati'] }, createdAt: iso(60 * 73) },
         { body: 'With light shading I barely have issues.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 58) },
-        { body: 'Dudu: with a dark solid sleeve my HR stopped inventing numbers after the kit. Not hospital-perfect, but no more 180 at rest. Huge for daily use.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 41) },
+        { body: 'Dudu: when the ink is dense, the algorithm often loses the pulse curve and starts inventing readings. What usually stabilizes HR is not the band itself, but the way light returns to the sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 41) },
         { body: 'After Tattoo Fix it became usable day to day. The crazy HR readings stopped.', author: { ...A['seed-rick'] }, createdAt: iso(60 * 33) },
         { body: 'Anyone compare with a finger pulse ox after installing?', author: { ...A['seed-bela'] }, createdAt: iso(60 * 18) },
         officialReply('Dudu, good question.\n\nDark/solid ink blocks the sensor from reaching blood vessels: the algorithm “loses” the pulse, asks for a passcode, and sometimes goes wild with bad readings. The kit adds an optical interface between the LED/photodiode and skin and boosts the signal.\n\nAnything else, @sensortattoofix on support. 🖤', iso(60 * 4))
+      ]
+    },
+    {
+      title: 'Garmin Forerunner 255 — heart rate jumping during runs',
+      body: 'On my Forerunner 255 the heart rate jumps up and down for no reason, especially when the band sits a bit higher on the arm. I tried the other wrist and the reading is stable there. It feels like the tattoo changes how the light hits the sensor.',
+      tags: ['garmin', 'heart-rate', 'running', 'ppg'],
+      author: { ...A['seed-juliana'] },
+      createdAt: iso(60 * 130),
+      replies: [
+        { body: 'I had the same thing on a 265. The watch was reading 145 at rest and then dropping back down. It was the sensor, not the sweat.', author: { ...A['seed-raf'] }, createdAt: iso(60 * 122) },
+        { body: 'Garmin tends to be very sensitive to this kind of variation. The PPG signal gets unstable when the tattoo changes the skin reflection, so the algorithm tends to read the pulse inconsistently.', author: { ...A['seed-edu'] }, createdAt: iso(60 * 116) },
+        officialReply('That is pretty common in optical watches. When the wrist is tattooed, the LED light and photodiode see a different signal, so the algorithm reads pulse irregularities. The kit helps stabilize that optical interface and improve sensor reading. If you want, send the exact Garmin model and we can check compatibility. 🖤', iso(60 * 108))
+      ]
+    },
+    {
+      title: 'Galaxy Watch 6/7 — SpO2 and sleep data go flat',
+      body: 'I use a Galaxy Watch 6 and, when I sleep on one side, the watch starts showing oxygen at 0 or throws a bunch of “no data” messages overnight. The problem gets worse when the wrist is darker and the band is a bit tighter.',
+      tags: ['galaxy-watch', 'spo2', 'sleep', 'samsung'],
+      author: { ...A['seed-ana'] },
+      createdAt: iso(60 * 150),
+      replies: [
+        { body: 'Same here — the sleep tracking also gets messy when the O2 reading falls apart. The whole night analysis becomes noisy.', author: { ...A['seed-diego'] }, createdAt: iso(60 * 142) },
+        { body: 'This kind of readout depends on a lot of light and stable contact. If the ink shifts the reflection, the algorithm can lose the curve and fail the sleep analysis.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 134) },
+        officialReply('I get that. In many cases this is not just a band adjustment issue — the tattoo changes how light reaches the skin, and sleep/SpO2 tracking becomes unreliable. The more natural fix is to improve the optical interface at the sensor area. If you want, send the exact Galaxy Watch model and we can take a look. 🖤', iso(60 * 128))
+      ]
+    },
+    {
+      title: 'Huawei Watch GT 3 — the watch thinks I took it off',
+      body: 'I have a Huawei Watch GT 3 and the watch keeps saying it can’t detect my pulse or that I took it off. It tends to happen more during workouts when the band sits higher on the arm. It feels like the same problem as Apple Watch, just on another system.',
+      tags: ['huawei', 'workout', 'detection', 'watch'],
+      author: { ...A['seed-malu'] },
+      createdAt: iso(60 * 170),
+      replies: [
+        { body: 'I had the same behavior on a GT 2. The watch would lose the pulse and stop the workout for no reason. On the other wrist, everything was normal.', author: { ...A['seed-camila'] }, createdAt: iso(60 * 160) },
+        { body: 'It isn’t just the software. In many brands, the sensor needs a clean read; if the ink changes the reflection, detection becomes unstable and the watch drops into failure mode.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 154) },
+        officialReply('That is a classic symptom of unstable optical reading. The watch confuses the pulse with a lack of contact and drops into “not detected” mode, especially during movement. Improving the sensor interface is what usually helps. If you want, send the exact model and we can check compatibility. 🖤', iso(60 * 148))
+      ]
+    },
+    {
+      title: 'Amazfit T-Rex 3 — 0 bpm and the workout freezes',
+      body: 'On my Amazfit T-Rex 3 I keep seeing 0 bpm during workouts and the tracking feels stuck. The annoying part is that I can’t always re-seat the band; it feels like the sensor drops into error mode and stays there.',
+      tags: ['amazfit', 'workout', 'bpm', 'sensor'],
+      author: { ...A['seed-diego'] },
+      createdAt: iso(60 * 190),
+      replies: [
+        { body: 'I had the same thing on a T-Rex 2. The watch was reading 0 bpm and I thought the battery was dying, but it was just the readout.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 182) },
+        { body: 'When the tattoo changes the light return, the algorithm can interpret the signal as “no pulse” or “poor contact”.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 176) },
+        officialReply('This behavior shows up when the sensor area gets less light back than the algorithm expects. The fix is to improve the reading right where the light enters and returns to the skin. If you want, I can help you check the Amazfit model. 🖤', iso(60 * 168))
+      ]
+    },
+    {
+      title: 'Xiaomi Band 8 — HR and sleep are bad on a tattooed wrist',
+      body: 'The Xiaomi Band 8 is pretty simple, but it reads the wrist badly when the tattoo is dark. One night I saw the heart rate drop to 40 and then jump to 140 for no reason. On the other wrist it is much better.',
+      tags: ['xiaomi', 'heart-rate', 'sleep', 'band'],
+      author: { ...A['seed-camila'] },
+      createdAt: iso(60 * 210),
+      replies: [
+        { body: 'I use a Band 7 and have the same issue. The sensor reads terribly when the ink is dense.', author: { ...A['seed-raf'] }, createdAt: iso(60 * 202) },
+        { body: 'More basic bands rely heavily on signal stability. With a dark tattoo, the readout becomes much less consistent.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 196) },
+        officialReply('On more basic models the problem can show up more clearly because the reading routine is less robust. Even so, the cause is usually the same: the ink changes the reflection and the algorithm does not read the pulse well. If you want, send the model and I can help check it. 🖤', iso(60 * 188))
+      ]
+    },
+    {
+      title: 'Apple Pay and Google Wallet stopped working on the same wrist',
+      body: 'I went a while without using contactless payments because the watch simply would not recognize the wrist. The problem appeared when the tattoo got darker around the sensor area. It feels like the watch gets too suspicious of the reading and blocks everything.',
+      tags: ['apple-pay', 'google-wallet', 'payment', 'tattoo'],
+      author: { ...A['seed-malu'] },
+      createdAt: iso(60 * 230),
+      replies: [
+        { body: 'Same here. Apple Pay started failing and Google Wallet did too. It was not the wallet — it was the reading.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 222) },
+        { body: 'That usually happens when pulse detection and contact recognition become unstable — the system ends up treating the device as badly positioned.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 214) },
+        officialReply('When the sensor loses stability, contactless payment is often the first thing to break. That is also very common for people with dense dark tattooing around the sensor area. If you want, send the wearable model and the tattoo condition and we can assess compatibility. 🖤', iso(60 * 208))
+      ]
+    },
+    {
+      title: 'Green LED, infrared, and photodiode: what actually changes the reading?',
+      body: 'I wanted to understand in a less “user manual” way what really changes between green, red, and infrared LEDs. It seems some watches use one set and others use another, and that changes a lot in how pulse is interpreted.',
+      tags: ['technology', 'ppg', 'led', 'photodiode'],
+      author: { ...A['seed-juliana'] },
+      createdAt: iso(60 * 250),
+      replies: [
+        { body: 'In practical terms, what changes is how deep the light goes and how it interacts with the skin. Green and infrared are not equivalent for the algorithm, and that matters when the tattoo changes reflection.', author: { ...A['seed-edu'] }, createdAt: iso(60 * 242) },
+        { body: 'In practice, if the tattoo changes the reflection, the combination that works on a clean wrist can fail on a tattooed one.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 236) },
+        officialReply('Exactly. The optical sensor depends on a balance between LED, photodiode, and algorithm. When the tattoo changes the reflection, the reading becomes more fragile. The key is to look at how light returns to the skin and how the chip interprets that signal. 🖤', iso(60 * 228))
       ]
     }
   ].map((t) => ({ ...t, lang: 'en' }));
@@ -485,7 +667,7 @@ function seedPayload() {
       replies: [
         { body: 'Stessa merda qui. Spegnere il rilevamento “risolve” il codice, ma Apple Pay e alcune automazioni spariscono. Cambiare polso non si può — entrambi tatuati.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
         { body: 'Anche io. A volte mi sveglio e vuole già di nuovo il codice. Odio.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
-        { body: 'Guga, stesso identico con sleeve scura. Sensor Tattoo Fix + rilevamento attivo = Apple Pay di nuovo ok, senza drammi.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 22) },
+        { body: 'In questi casi, quello che cambia di solito è il modo in cui il sensore riceve la luce di ritorno. Quando il tatuaggio altera quel ritorno, l’orologio interpreta il contatto come instabile e il rilevamento/Apple Pay comincia a sbagliare.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 22) },
         officialReply('Ciao Guga! 👋 Qui è il team @sensortattoofix.\n\nCaso classico: l’inchiostro scuro sul polso confonde il sensore ottico e l’orologio crede di essere stato tolto — loop di codice e notifiche che spariscono.\n\nIl kit risolve. Lo installi, tieni il rilevamento e i pagamenti contactless continuano a funzionare.\n\nDubbi? Scrivi al supporto. 🖤', iso(60 * 9))
       ]
     },
@@ -497,7 +679,7 @@ function seedPayload() {
       createdAt: iso(60 * 78),
       replies: [
         { body: 'Mi faceva impazzire. Su Reddit consigliano nastro micropore — si stacca e a volte non funziona. Ho usato Tattoo Fix e il problema è finito.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 61) },
-        { body: 'Kai, il micropore è una pezza. Corro 4–5 volte a settimana con il kit — zero pause fantasma da quando è arrivato il Tattoo Fix. Il sudore forte non me l’ha tolto.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 52) },
+        { body: 'Kai, quando il tatuaggio cambia la riflessione della pelle, la lettura del polso diventa meno stabile in movimento. Quello che di solito aiuta è rendere più coerente l’interfaccia ottica del sensore, più che forzare il cinturino con nastro o aggiustamenti manuali.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 52) },
         officialReply('Kai, stesso fallimento del rilevamento polso in movimento — sudore + inchiostro scuro = riflessione instabile, e l’orologio mette in pausa.\n\nSensor Tattoo Fix serve proprio a questo.\n\nMolti runner dicono che le pause fantasma spariscono in pochi giorni. Domande? Supporto. 🏃‍♂️', iso(60 * 44)),
         { body: 'Ok — installo e provo nella prossima corsa.', author: { ...A['seed-kai'] }, createdAt: iso(60 * 11) },
         { body: 'Il mio ha smesso di dare errore subito dopo l’installazione. Ho aspettato 48 ore, sono andato a correre — ha misurato tutto bene.', author: { ...A['seed-nati'] }, createdAt: iso(60 * 7) }
@@ -511,7 +693,7 @@ function seedPayload() {
       createdAt: iso(60 * 19),
       replies: [
         { body: 'GW5 Classic qui. Stesso messaggio. Senza kit non calibrava mai.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 14) },
-        { body: 'Marcinha, sul mio GW6 il messaggio “allentato” è sparito dopo il kit. Tienilo stretto 2–3 giorni e poi ricalibra in Samsung Health — al primo tentativo può ancora lamentarsi.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 10) },
+        { body: 'Marcinha, negli smartwatch Samsung questo tipo di alert di solito appare quando l’algoritmo non riceve un segnale stabile. Il punto è la lettura ottica nell’area del sensore, non solo la tensione del cinturino.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 10) },
         officialReply('Marcinha, grazie per il caso Samsung — stesso principio ottico dell’Apple Watch.\n\nQuando l’inchiostro blocca la luce, l’algoritmo legge “allentato / senza contatto”. Il kit migliora il ritorno di luce sull’area del sensore.\n\nDopo l’installazione, indossalo stretto qualche giorno prima di ricalibrare in Samsung Health. Dubbi? Supporto. 🖤', iso(60 * 6))
       ]
     },
@@ -525,10 +707,94 @@ function seedPayload() {
         { body: 'A me succede lo stesso.', author: { ...A['seed-guga'] }, createdAt: iso(60 * 97) },
         { body: 'Entrambi i bracci tatuati — sul mio non legge su nessuno dei due.', author: { ...A['seed-nati'] }, createdAt: iso(60 * 73) },
         { body: 'Con shading chiaro quasi non ho problemi.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 58) },
-        { body: 'Dudu: con sleeve scura piena la FC ha smesso di inventare numeri dopo il kit. Non è da ospedale, ma niente più 180 a riposo. Utilissimo ogni giorno.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 41) },
+        { body: 'Dudu: quando l’inchiostro è denso, l’algoritmo spesso perde la curva del polso e comincia a inventare letture. Quello che di solito stabilizza la FC non è il cinturino in sé, ma il modo in cui la luce ritorna al sensore.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 41) },
         { body: 'Dopo Tattoo Fix è diventato usabile ogni giorno. Le FC folli sono finite.', author: { ...A['seed-rick'] }, createdAt: iso(60 * 33) },
         { body: 'Qualcuno ha confrontato con un saturimetro a dito dopo l’installazione?', author: { ...A['seed-bela'] }, createdAt: iso(60 * 18) },
         officialReply('Dudu, bella domanda.\n\nL’inchiostro scuro/pieno impedisce al sensore di raggiungere i vasi: l’algoritmo “perde” il polso, chiede il codice e a volte inventa letture sbagliate. Il kit crea un’interfaccia ottica tra LED/fotodiodo e pelle e amplifica il segnale.\n\nAltro? @sensortattoofix sul supporto. 🖤', iso(60 * 4))
+      ]
+    },
+    {
+      title: 'Garmin Forerunner 255 — frequenza cardiaca che salta in corsa',
+      body: 'Sul mio Forerunner 255 la frequenza cardiaca sale e scende senza senso, soprattutto quando il cinturino si appoggia più in alto sul braccio. L’ho provato sull’altro polso e lì la lettura è stabile. Sembra che il tatuaggio cambi il modo in cui la luce colpisce il sensore.',
+      tags: ['garmin', 'frequenza-cardiaca', 'corsa', 'ppg'],
+      author: { ...A['seed-juliana'] },
+      createdAt: iso(60 * 130),
+      replies: [
+        { body: 'Ho avuto la stessa cosa su un 265. L’orologio leggeva 145 a riposo e poi tornava giù. Era il sensore, non il sudore.', author: { ...A['seed-raf'] }, createdAt: iso(60 * 122) },
+        { body: 'Garmin è molto sensibile a questo tipo di variazione. Il segnale PPG diventa instabile quando il tatuaggio cambia la riflessione della pelle, quindi l’algoritmo tende a leggere il polso in modo incoerente.', author: { ...A['seed-edu'] }, createdAt: iso(60 * 116) },
+        officialReply('È abbastanza comune negli orologi ottici. Quando il polso è tatuato, la luce dei LED e il fotodiodo ricevono un segnale diverso, quindi l’algoritmo legge irregolarità nel polso. Il kit aiuta a stabilizzare questa interfaccia ottica e a migliorare la lettura del sensore. Se vuoi, mandami il modello esatto del Garmin e verifico la compatibilità. 🖤', iso(60 * 108))
+      ]
+    },
+    {
+      title: 'Galaxy Watch 6/7 — SpO2 e sonno vanno a zero',
+      body: 'Uso un Galaxy Watch 6 e, quando dormo di lato, l’orologio inizia a mostrare ossigenazione a 0 o a buttare un sacco di messaggi “nessun dato” durante la notte. Il problema peggiora quando il polso è più scuro e il cinturino è un po’ più stretto.',
+      tags: ['galaxy-watch', 'spo2', 'sonno', 'samsung'],
+      author: { ...A['seed-ana'] },
+      createdAt: iso(60 * 150),
+      replies: [
+        { body: 'Anche io — il tracciamento del sonno si rovina quando la lettura di O2 crolla. L’analisi della notte diventa tutta rumorosa.', author: { ...A['seed-diego'] }, createdAt: iso(60 * 142) },
+        { body: 'Questa tipologia di lettura dipende da tanto livello di luce e da un contatto stabile. Se l’inchiostro cambia la riflessione, l’algoritmo può perdere la curva e mandare in tilt l’analisi del sonno.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 134) },
+        officialReply('Capisco. In molti casi non è solo un problema di regolazione del cinturino — il tatuaggio cambia il modo in cui la luce raggiunge la pelle, e il monitoraggio del sonno/SpO2 diventa poco affidabile. La soluzione più naturale è migliorare l’interfaccia ottica nella zona del sensore. Se vuoi, mandami il modello esatto del Galaxy Watch e ci guardiamo. 🖤', iso(60 * 128))
+      ]
+    },
+    {
+      title: 'Huawei Watch GT 3 — l’orologio pensa che io l’abbia tolto',
+      body: 'Ho una Huawei Watch GT 3 e l’orologio continua a dire che non rileva il polso oppure che l’ho tolto. Succede soprattutto durante gli allenamenti quando il cinturino si alza sul braccio. Sembra lo stesso problema dell’Apple Watch, ma su un altro sistema.',
+      tags: ['huawei', 'allenamento', 'rilevamento', 'watch'],
+      author: { ...A['seed-malu'] },
+      createdAt: iso(60 * 170),
+      replies: [
+        { body: 'Ho avuto lo stesso comportamento su un GT 2. L’orologio perdeva il polso e fermava l’allenamento senza motivo. Sull’altro polso andava tutto bene.', author: { ...A['seed-camila'] }, createdAt: iso(60 * 160) },
+        { body: 'Non è solo il software. In molte marche, il sensore ha bisogno di una lettura pulita; se l’inchiostro cambia la riflessione, il rilevamento diventa instabile e l’orologio va in modalità errore.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 154) },
+        officialReply('È un sintomo classico di lettura ottica instabile. L’orologio confonde il polso con una mancanza di contatto e entra in modalità “non rilevato”, soprattutto in movimento. Migliorare l’interfaccia del sensore è quello che di solito aiuta. Se vuoi, mandami il modello esatto e verifichiamo la compatibilità. 🖤', iso(60 * 148))
+      ]
+    },
+    {
+      title: 'Amazfit T-Rex 3 — 0 bpm e allenamento bloccato',
+      body: 'Sul mio Amazfit T-Rex 3 continuo a vedere 0 bpm durante gli allenamenti e il tracciamento sembra bloccato. Il fastidio è che non sempre riesco a riaggiustare il cinturino; sembra che il sensore entri in modalità errore e resti lì.',
+      tags: ['amazfit', 'allenamento', 'bpm', 'sensore'],
+      author: { ...A['seed-diego'] },
+      createdAt: iso(60 * 190),
+      replies: [
+        { body: 'Ho avuto la stessa cosa su un T-Rex 2. L’orologio leggeva 0 bpm e pensavo che la batteria fosse finita, ma era solo la lettura.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 182) },
+        { body: 'Quando il tatuaggio cambia il ritorno di luce, l’algoritmo interpreta il segnale come “nessun polso” o “scarso contatto”.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 176) },
+        officialReply('Questo comportamento si presenta quando l’area del sensore riceve meno luce di ritorno di quella che l’algoritmo si aspetta. La soluzione è proprio migliorare la lettura proprio dove la luce entra e torna alla pelle. Se vuoi, ti aiuto a controllare il modello Amazfit. 🖤', iso(60 * 168))
+      ]
+    },
+    {
+      title: 'Xiaomi Band 8 — FC e sonno vanno male sul polso tatuato',
+      body: 'La Xiaomi Band 8 è abbastanza semplice, ma legge malissimo il polso quando il tatuaggio è scuro. Una notte ho visto la frequenza scendere a 40 e poi saltare a 140 senza motivo. Sull’altro polso va molto meglio.',
+      tags: ['xiaomi', 'frequenza-cardiaca', 'sonno', 'band'],
+      author: { ...A['seed-camila'] },
+      createdAt: iso(60 * 210),
+      replies: [
+        { body: 'Io uso una Band 7 e ho lo stesso problema. Il sensore legge davvero male quando l’inchiostro è denso.', author: { ...A['seed-raf'] }, createdAt: iso(60 * 202) },
+        { body: 'Le bande più basilari dipendono tantissimo dalla stabilità del segnale. Con un tatuaggio scuro la lettura diventa molto meno consistente.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 196) },
+        officialReply('Sui modelli più semplici il problema può apparire in modo più evidente perché la routine di lettura è meno robusta. Anche così, la causa è di solito la stessa: l’inchiostro cambia la riflessione e l’algoritmo non legge bene il polso. Se vuoi, mandami il modello e ti aiuto a verificarlo. 🖤', iso(60 * 188))
+      ]
+    },
+    {
+      title: 'Apple Pay e Google Wallet hanno smesso di funzionare sullo stesso polso',
+      body: 'Ho fatto un po’ di mesi senza usare i pagamenti contactless perché l’orologio semplicemente non riconosceva il polso. Il problema è comparso quando il tatuaggio si è fatto più scuro intorno all’area del sensore. Sembra che l’orologio si fidi troppo poco della lettura e blocchi tutto.',
+      tags: ['apple-pay', 'google-wallet', 'pagamento', 'tattoo'],
+      author: { ...A['seed-malu'] },
+      createdAt: iso(60 * 230),
+      replies: [
+        { body: 'Anche io. Apple Pay ha cominciato a sbagliare e Google Wallet pure. Non era il portafoglio, era la lettura.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 222) },
+        { body: 'Di solito succede quando il rilevamento del polso e il riconoscimento del contatto diventano instabili — il sistema finisce per interpretarlo come dispositivo mal posizionato.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 214) },
+        officialReply('Quando il sensore perde stabilità, il pagamento contactless è spesso la prima cosa a rompersi. Succede molto anche a chi ha tatuaggi scuri e densi intorno all’area del sensore. Se vuoi, mandami il modello del wearable e la condizione del tatuaggio per valutare la compatibilità. 🖤', iso(60 * 208))
+      ]
+    },
+    {
+      title: 'LED verde, infrarosso e fotodiodo: cosa cambia davvero nella lettura?',
+      body: 'Volevo capire in modo meno “manuale” cosa cambia davvero tra LED verdi, rossi e infrarossi. Sembra che alcuni orologi usino una combinazione e altri un’altra, e questo cambia molto nella interpretazione del polso.',
+      tags: ['tecnologia', 'ppg', 'led', 'fotodiodo'],
+      author: { ...A['seed-juliana'] },
+      createdAt: iso(60 * 250),
+      replies: [
+        { body: 'In pratica, ciò che cambia è quanto in profondità la luce entra e come interagisce con la pelle. Verde e infrarosso non sono equivalenti per l’algoritmo, e questo conta quando il tatuaggio cambia la riflessione.', author: { ...A['seed-edu'] }, createdAt: iso(60 * 242) },
+        { body: 'In pratica, se il tatuaggio cambia la riflessione, la combinazione che funziona su un polso pulito può fallire su un polso tatuato.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 236) },
+        officialReply('Esatto. Il sensore ottico dipende da un equilibrio tra LED, fotodiodo e algoritmo. Quando il tatuaggio cambia la riflessione, la lettura diventa più fragile. Il punto è guardare come la luce torna alla pelle e come il chip interpreta quel segnale. 🖤', iso(60 * 228))
       ]
     }
   ].map((t) => ({ ...t, lang: 'it' }));
@@ -730,8 +996,8 @@ async function ensureForumPublic(env) {
   return next;
 }
 
-const SEED_AUTHORS_VERSION = 4;
-const SEED_CONTENT_VERSION = 11;
+const SEED_AUTHORS_VERSION = 5;
+const SEED_CONTENT_VERSION = 12;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
