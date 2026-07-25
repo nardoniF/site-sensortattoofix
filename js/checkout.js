@@ -448,6 +448,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
+  /** Format an amount that is already in USD (do not convert from BRL). */
+  function formatUsdMoney(v) {
+    try {
+      const country = els.paisCode?.value || window.STF_MONEY?.visitorCountry?.() || 'US';
+      if (window.STF_MONEY?.formatForeign) {
+        return window.STF_MONEY.formatForeign(Number(v) || 0, 'USD', country);
+      }
+    } catch (_) { /* fall through */ }
+    return `US$ ${Number(v || 0).toFixed(2)}`;
+  }
+
+  function formatSnapshotMoney(amount, currency) {
+    if (currency === 'USD') return formatUsdMoney(amount);
+    return formatCheckoutMoney(amount);
+  }
+
   function currentPayPalFee(_subtotalWithShipping) {
     // Never surcharge the buyer for PayPal processing — not on .com.br, not on .com.
     // Embedded PayPal does not require a visible buyer fee line.
@@ -959,12 +975,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function snapshotFromOrder(data) {
     const selfTest = !!(data.selfTestPix || data.selfTestPayPal || data.selfTestStripe || data.selfTestTester);
+    const chargeUsd = data.chargeCurrency === 'USD' && data.chargeAmount != null
+      ? Number(data.chargeAmount)
+      : null;
+    const useUsdTotal = chargeUsd != null && (selfTest || isIntlEmbeddedCheckout() || window.STF_MONEY?.isIntlHost?.());
     return {
       produto: data.produto || '',
       subtotal: resolveGrossProductTotal(data),
       desconto: data.couponDiscount ?? 0,
       frete: selfTest ? (data.freteOriginal ?? data.frete ?? 0) : (data.frete ?? 0),
-      total: data.total ?? 0,
+      total: useUsdTotal ? (selfTest ? Math.max(0.01, chargeUsd) : chargeUsd) : (data.total ?? 0),
+      totalCurrency: useUsdTotal ? 'USD' : 'BRL',
       totalOriginal: selfTest ? (data.totalOriginal ?? null) : null,
       couponPercent: data.couponPercent ?? null,
       selfTest
@@ -1097,8 +1118,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       }
       els.summaryShipping.textContent = formatCheckoutMoney(snap.frete ?? 0);
       const totalEl = els.summaryTotal;
+      const totalCurrency = snap.totalCurrency === 'USD' ? 'USD' : 'BRL';
       if (totalEl) {
-        totalEl.textContent = formatCheckoutMoney(snap.total ?? 0);
+        totalEl.textContent = formatSnapshotMoney(snap.total ?? 0, totalCurrency);
         totalEl.closest('.summary-row')?.classList.toggle('is-self-test', !!snap.selfTest);
       }
       let selfTestNote = els.checkoutSidebar?.querySelector('.checkout-self-test-note');
@@ -1108,10 +1130,18 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           selfTestNote.className = 'checkout-self-test-note';
           totalEl?.closest('.checkout-summary')?.appendChild(selfTestNote);
         }
-        const ref = snap.totalOriginal != null ? formatBRL(snap.totalOriginal) : null;
+        const payLabel = formatSnapshotMoney(
+          totalCurrency === 'USD' ? (snap.total ?? 0.01) : (snap.total ?? 0),
+          totalCurrency === 'USD' ? 'USD' : 'BRL'
+        );
+        const ref = snap.totalOriginal != null
+          ? (isInternational || window.STF_MONEY?.isIntlHost?.()
+            ? formatCheckoutMoney(snap.totalOriginal)
+            : formatBRL(snap.totalOriginal))
+          : null;
         selfTestNote.textContent = ref
-          ? L('selfTest.summaryRef', { ref, pay: formatBRL(snap.total ?? 0) })
-          : L('selfTest.summaryPay', { pay: formatBRL(snap.total ?? 0) });
+          ? L('selfTest.summaryRef', { ref, pay: payLabel })
+          : L('selfTest.summaryPay', { pay: payLabel });
         selfTestNote.hidden = false;
       } else if (selfTestNote) {
         selfTestNote.hidden = true;
@@ -2516,8 +2546,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const wantsPaypal = orderData.pagamento === 'PAYPAL';
       lastPaymentMethod = wantsPaypal ? 'paypal' : ((wantsCardBr || wantsIntlCard) ? 'credit_card' : 'pix');
       const result = await createOrder(orderData);
-      const total = result.order?.total || (cartSubtotal() + orderData.frete);
       const selfTest = !!(result.order?.selfTestPix || result.order?.selfTestPayPal || result.order?.selfTestStripe || result.order?.selfTestTester);
+      const chargeUsd = result.order?.chargeCurrency === 'USD' && result.order?.chargeAmount != null
+        ? Number(result.order.chargeAmount)
+        : null;
+      const useUsdTotal = chargeUsd != null && (selfTest || isIntlEmbeddedCheckout());
+      const total = useUsdTotal
+        ? (selfTest ? Math.max(0.01, chargeUsd) : chargeUsd)
+        : (result.order?.total || (cartSubtotal() + orderData.frete));
       const orderSnapshot = {
         items: (window.STF_CART?.load() || []).map((i) => ({ ...i })),
         subtotal: cartSubtotal() || resolveGrossProductTotal(result.order || {}),
@@ -2525,6 +2561,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         couponPercent: result.order?.couponPercent ?? appliedCoupon?.percent ?? null,
         frete: selfTest ? (result.order?.freteOriginal ?? orderData.frete) : (result.order?.frete ?? orderData.frete),
         total,
+        totalCurrency: useUsdTotal ? 'USD' : 'BRL',
         totalOriginal: selfTest ? (result.order?.totalOriginal ?? null) : null,
         selfTest
       };

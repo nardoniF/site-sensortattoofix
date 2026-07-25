@@ -1869,7 +1869,10 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     selfTestPix: !!order.selfTestPix,
     selfTestPayPal: !!order.selfTestPayPal,
     selfTestStripe: !!order.selfTestStripe,
-    selfTestTester: !!order.selfTestTester
+    selfTestTester: !!order.selfTestTester,
+    chargeCurrency: order.chargeCurrency || null,
+    chargeAmount: order.chargeAmount != null ? Number(order.chargeAmount) : null,
+    chargeFxRate: order.chargeFxRate != null ? Number(order.chargeFxRate) : null
   };
   if (includeResumeToken && order.status === 'pending_payment') {
     view.accessToken = order.accessToken;
@@ -6997,11 +7000,19 @@ async function handleCreateOrder(request, env, origin, ctx) {
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...(order.selfTestPayPal ? {
-        'Teste PayPal produção': `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — PAYPAL_SELF_TEST ativo`,
+        'Teste PayPal produção': order.chargeCurrency === 'USD'
+          ? `US$ ${Number(order.chargeAmount || SELF_TEST_PIX_AMOUNT).toFixed(2)} — PAYPAL_SELF_TEST ativo`
+          : `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — PAYPAL_SELF_TEST ativo`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...(order.selfTestStripe ? {
-        'Teste Stripe produção': `US$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)} — e-mail testador`,
+        'Teste Stripe produção': `US$ ${Number(order.chargeAmount || SELF_TEST_PIX_AMOUNT).toFixed(2)} — e-mail testador`,
+        'Total original': formatBRL(order.totalOriginal || 0)
+      } : {}),
+      ...(order.selfTestTester && !order.selfTestPayPal && !order.selfTestStripe && !order.selfTestPix ? {
+        'Teste conta testadora': order.chargeCurrency === 'USD'
+          ? `US$ ${Number(order.chargeAmount || SELF_TEST_PIX_AMOUNT).toFixed(2)}`
+          : `R$ ${SELF_TEST_PIX_AMOUNT.toFixed(2)}`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...orderWatchEmailFields(order)
