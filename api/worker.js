@@ -1768,17 +1768,29 @@ async function intlUsdCharge(order, env) {
   const fx = await fetchFxRate(env, 'USD');
   const brl = Number(order.total) || 0;
   let usd = Math.round(brl * fx.rate * 100) / 100;
-  // Intl self-test must be exactly US$ 0.01 (R$ 0.01 FX would round to $0.00).
-  if (isSelfTestOrder(order) && usd < SELF_TEST_USD_AMOUNT) usd = SELF_TEST_USD_AMOUNT;
+  if (isSelfTestOrder(order)) {
+    const minUsd = (order.selfTestStripe || order.paymentProvider === 'stripe')
+      ? SELF_TEST_STRIPE_USD_AMOUNT
+      : SELF_TEST_USD_AMOUNT;
+    if (usd < minUsd) usd = minUsd;
+  }
   return { currency: 'USD', amount: usd, amountCents: Math.round(usd * 100), fxRate: fx.rate };
 }
 
-/** Brazil test → R$ 0.01 (clear any USD charge fields). Abroad test → US$ 0.01. */
-function applySelfTestChargeCurrency(order, { intlUsd }) {
+function selfTestUsdAmountForOrder(order, billingType) {
+  if (billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe') {
+    return SELF_TEST_STRIPE_USD_AMOUNT;
+  }
+  return SELF_TEST_USD_AMOUNT;
+}
+
+/** Brazil test → R$ 0.01. Abroad PayPal → US$ 0.01. Abroad Stripe → US$ 0.10. */
+function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (!isSelfTestOrder(order)) return;
   if (intlUsd) {
+    const amount = selfTestUsdAmountForOrder(order, billingType);
     order.chargeCurrency = 'USD';
-    order.chargeAmount = SELF_TEST_USD_AMOUNT;
+    order.chargeAmount = amount;
     order.displayCurrency = 'USD';
     return;
   }
@@ -3206,8 +3218,13 @@ function estimateBRMax(config, weightGrams) {
 const SELF_TEST_PIX_AMOUNT = 0.01;
 /** Symbolic BRL charge for Brazil (.com.br) test orders. */
 const SELF_TEST_BRL_AMOUNT = 0.01;
-/** Symbolic USD charge for international (.com) test orders — never FX of R$ 0.01. */
+/** Symbolic USD charge for international PayPal test orders. */
 const SELF_TEST_USD_AMOUNT = 0.01;
+/**
+ * Stripe BR accounts reject USD that converts below R$ 0.50.
+ * US$ 0.01 ≈ R$ 0.05 — use US$ 0.10 for Stripe self-test.
+ */
+const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -6943,14 +6960,14 @@ async function handleCreateOrder(request, env, origin, ctx) {
     console.log('PayPal self-test produção:', order.orderId, SELF_TEST_BRL_AMOUNT);
   }
   if (applySelfTestStripePricing(order, env, billingType)) {
-    console.log('Stripe self-test produção:', order.orderId, SELF_TEST_USD_AMOUNT);
+    console.log('Stripe self-test produção:', order.orderId, SELF_TEST_STRIPE_USD_AMOUNT);
   }
-  // BR test → R$ 0.01 · Abroad (.com PayPal/Stripe) → US$ 0.01
+  // BR → R$ 0.01 · Abroad PayPal → US$ 0.01 · Abroad Stripe → US$ 0.10
   const intlSelfTestUsd = !!(isSelfTestOrder(order) && intlEmbeddedCheckout
     && (billingType === 'PAYPAL' || billingType === 'STRIPE'));
-  applySelfTestChargeCurrency(order, { intlUsd: intlSelfTestUsd });
+  applySelfTestChargeCurrency(order, { intlUsd: intlSelfTestUsd, billingType });
   if (intlSelfTestUsd) {
-    console.log('Intl self-test USD charge:', order.orderId, SELF_TEST_USD_AMOUNT);
+    console.log('Intl self-test USD charge:', order.orderId, order.chargeAmount, billingType);
   }
 
   let payment = null;
@@ -7033,12 +7050,12 @@ async function handleCreateOrder(request, env, origin, ctx) {
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...(order.selfTestStripe ? {
-        'Teste Stripe produção': `US$ ${SELF_TEST_USD_AMOUNT.toFixed(2)} — pedido internacional`,
+        'Teste Stripe produção': `US$ ${SELF_TEST_STRIPE_USD_AMOUNT.toFixed(2)} — mínimo Stripe conta BR`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...(order.selfTestTester && !order.selfTestPayPal && !order.selfTestStripe && !order.selfTestPix ? {
         'Teste conta testadora': order.chargeCurrency === 'USD'
-          ? `US$ ${SELF_TEST_USD_AMOUNT.toFixed(2)} — pedido internacional`
+          ? `US$ ${Number(order.chargeAmount || SELF_TEST_USD_AMOUNT).toFixed(2)} — pedido internacional`
           : `R$ ${SELF_TEST_BRL_AMOUNT.toFixed(2)} — pedido Brasil`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
@@ -7748,15 +7765,16 @@ function stripeOrderCharge(order, request, env) {
   if (order.chargeCurrency === 'USD' || isComSiteRequest(request)) {
     let usd = Number(order.chargeAmount);
     if (isSelfTestOrder(order)) {
-      usd = SELF_TEST_USD_AMOUNT;
+      usd = SELF_TEST_STRIPE_USD_AMOUNT;
       order.chargeCurrency = 'USD';
-      order.chargeAmount = SELF_TEST_USD_AMOUNT;
+      order.chargeAmount = SELF_TEST_STRIPE_USD_AMOUNT;
+      order.selfTestStripe = true;
     }
     if (!Number.isFinite(usd) || usd <= 0) {
       return null;
     }
-    // Self-test: allow US$ 0.01. Normal orders: Stripe floor $0.50.
-    const minCents = isSelfTestOrder(order) ? 1 : 50;
+    // Self-test Stripe: US$ 0.10 (BR account min). Normal: Stripe floor $0.50.
+    const minCents = isSelfTestOrder(order) ? Math.round(SELF_TEST_STRIPE_USD_AMOUNT * 100) : 50;
     amountCents = Math.max(minCents, Math.round(usd * 100));
     amountUsd = usd;
   } else {
