@@ -2485,42 +2485,99 @@ ${worksheets}
       root.innerHTML = '<p class="admin-meta">Nenhum tópico ainda.</p>';
       return;
     }
-    root.innerHTML = threads.map((th) => {
-      const replies = (th.replies || []).map((r) => `
-        <div class="admin-forum-reply" style="margin:.5rem 0;padding:.5rem;border:1px dashed rgba(255,255,255,.15);border-radius:8px">
-          <div><strong>@${escapeHtml(r.author?.username || '')}</strong> · ${escapeHtml(r.status)} · ${escapeHtml(formatCustomerDate(r.createdAt))}</div>
-          <div style="margin:.35rem 0">${escapeHtml(r.body || '')}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.35rem">
-            ${r.status === 'pending' ? `
-              <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
-              <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
-            ` : r.status === 'rejected' ? `
-              <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
-            ` : `
-              <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
-            `}
-            <button type="button" class="btn-danger-outline" data-forum-reply-delete="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}"><i class="fas fa-trash-alt"></i> Excluir</button>
+
+    const totalReplies = threads.reduce((sum, th) => sum + ((th.replies || []).length), 0);
+    const pendingThreads = threads.filter((th) => th.status === 'pending').length;
+    const approvedThreads = threads.filter((th) => th.status === 'approved').length;
+    const rejectedThreads = threads.filter((th) => th.status === 'rejected').length;
+    const pendingReplies = threads.reduce((sum, th) => sum + ((th.replies || []).filter((r) => r.status === 'pending').length), 0);
+
+    root.innerHTML = `
+      <div class="forum-admin-dashboard">
+        <div class="forum-admin-summary">
+          <div class="forum-admin-summary-card">
+            <span class="forum-admin-summary-label">Tópicos</span>
+            <strong>${threads.length}</strong>
+          </div>
+          <div class="forum-admin-summary-card">
+            <span class="forum-admin-summary-label">Pendentes</span>
+            <strong>${pendingThreads}</strong>
+          </div>
+          <div class="forum-admin-summary-card">
+            <span class="forum-admin-summary-label">Aprovados</span>
+            <strong>${approvedThreads}</strong>
+          </div>
+          <div class="forum-admin-summary-card">
+            <span class="forum-admin-summary-label">Respostas</span>
+            <strong>${totalReplies}</strong>
+          </div>
+          <div class="forum-admin-summary-card">
+            <span class="forum-admin-summary-label">Respostas pendentes</span>
+            <strong>${pendingReplies}</strong>
+          </div>
+          <div class="forum-admin-summary-card">
+            <span class="forum-admin-summary-label">Rejeitados</span>
+            <strong>${rejectedThreads}</strong>
           </div>
         </div>
-      `).join('');
-      return `<article class="admin-card" style="margin-bottom:12px">
-        <h3 style="margin:0 0 .35rem">${escapeHtml(th.title || '')}</h3>
-        <p class="admin-meta">@${escapeHtml(th.author?.username || '')} · ${escapeHtml(th.status)} · ${escapeHtml(formatCustomerDate(th.createdAt))}</p>
-        <p>${escapeHtml((th.body || '').slice(0, 280))}</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:.5rem 0">
-          ${th.status === 'pending' ? `
-            <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
-            <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
-          ` : th.status === 'rejected' ? `
-            <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
-          ` : `
-            <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
-          `}
-          <button type="button" class="btn-danger-outline" data-forum-delete="${escapeHtml(th.id)}"><i class="fas fa-trash-alt"></i> Excluir tópico</button>
+        <div class="forum-admin-thread-list">
+          ${threads.map((th) => {
+            const replies = (th.replies || []).map((r) => `
+              <div class="forum-admin-reply">
+                <div class="forum-admin-reply-meta"><strong>@${escapeHtml(r.author?.username || '')}</strong> · ${escapeHtml(r.status)} · ${escapeHtml(formatCustomerDate(r.createdAt))}</div>
+                <div class="forum-admin-reply-body">${escapeHtml(r.body || '')}</div>
+                <div class="forum-admin-actions forum-admin-actions--inline">
+                  ${r.status === 'pending' ? `
+                    <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+                    <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+                  ` : r.status === 'rejected' ? `
+                    <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+                  ` : `
+                    <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+                  `}
+                  <button type="button" class="btn-secondary" data-forum-edit-reply="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Editar resposta</button>
+                  <button type="button" class="btn-danger-outline" data-forum-reply-delete="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}"><i class="fas fa-trash-alt"></i> Excluir</button>
+                </div>
+              </div>
+            `).join('');
+            const pendingReplyCount = (th.replies || []).filter((r) => r.status === 'pending').length;
+            return `
+              <details class="admin-card forum-admin-thread-card" ${th.status === 'pending' ? 'open' : ''}>
+                <summary class="forum-admin-thread-summary">
+                  <div class="forum-admin-thread-summary-head">
+                    <div>
+                      <div class="forum-admin-thread-title-row">
+                        <h3>${escapeHtml(th.title || '')}</h3>
+                        <span class="forum-admin-thread-chip forum-admin-thread-chip--${escapeHtml(th.status || 'pending')}">${escapeHtml(th.status || 'pending')}</span>
+                      </div>
+                      <p class="forum-admin-thread-meta">@${escapeHtml(th.author?.username || '')} · ${escapeHtml(formatCustomerDate(th.createdAt))}</p>
+                    </div>
+                    <div class="forum-admin-thread-stats">
+                      <span>${(th.replies || []).length} respostas</span>
+                      ${pendingReplyCount ? `<span class="forum-admin-thread-chip forum-admin-thread-chip--warning">${pendingReplyCount} pendentes</span>` : ''}
+                    </div>
+                  </div>
+                </summary>
+                <div class="forum-admin-thread-body">
+                  <p class="forum-admin-excerpt">${escapeHtml((th.body || '').slice(0, 360))}</p>
+                  <div class="forum-admin-actions">
+                    ${th.status === 'pending' ? `
+                      <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
+                      <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
+                    ` : th.status === 'rejected' ? `
+                      <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
+                    ` : `
+                      <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
+                    `}
+                    <button type="button" class="btn-secondary" data-forum-edit-thread="${escapeHtml(th.id)}">Editar tópico</button>
+                    <button type="button" class="btn-danger-outline" data-forum-delete="${escapeHtml(th.id)}"><i class="fas fa-trash-alt"></i> Excluir tópico</button>
+                  </div>
+                  ${replies ? `<div class="forum-admin-replies"><div class="forum-admin-replies-title">Respostas</div>${replies}</div>` : '<div class="forum-admin-empty">Sem respostas ainda.</div>'}
+                </div>
+              </details>`;
+          }).join('')}
         </div>
-        ${replies}
-      </article>`;
-    }).join('');
+      </div>`;
 
     root.querySelectorAll('[data-forum-approve]').forEach((btn) => {
       btn.addEventListener('click', () => moderateForumThread(btn.getAttribute('data-forum-approve'), 'approve'));
@@ -2531,6 +2588,9 @@ ${worksheets}
     root.querySelectorAll('[data-forum-delete]').forEach((btn) => {
       btn.addEventListener('click', () => deleteForumThread(btn.getAttribute('data-forum-delete')));
     });
+    root.querySelectorAll('[data-forum-edit-thread]').forEach((btn) => {
+      btn.addEventListener('click', () => editForumThread(btn.getAttribute('data-forum-edit-thread')));
+    });
     root.querySelectorAll('[data-forum-reply-approve]').forEach((btn) => {
       btn.addEventListener('click', () => moderateForumReply(btn.getAttribute('data-forum-reply-approve'), btn.getAttribute('data-reply'), 'approve'));
     });
@@ -2540,6 +2600,43 @@ ${worksheets}
     root.querySelectorAll('[data-forum-reply-delete]').forEach((btn) => {
       btn.addEventListener('click', () => deleteForumReply(btn.getAttribute('data-forum-reply-delete'), btn.getAttribute('data-reply')));
     });
+    root.querySelectorAll('[data-forum-edit-reply]').forEach((btn) => {
+      btn.addEventListener('click', () => editForumReply(btn.getAttribute('data-forum-edit-reply'), btn.getAttribute('data-reply')));
+    });
+  }
+
+  async function editForumThread(id) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base || !id) return;
+    const current = prompt('Editar título do tópico:', '');
+    if (current === null) return;
+    const body = prompt('Editar texto do tópico:', '');
+    if (body === null) return;
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: current.trim(), body: body.trim() })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || 'Erro ao editar tópico'); return; }
+    loadForumAdmin();
+  }
+
+  async function editForumReply(threadId, replyId) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base || !threadId || !replyId) return;
+    const body = prompt('Editar resposta:', '');
+    if (body === null) return;
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(threadId)}/replies/${encodeURIComponent(replyId)}`, {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: body.trim() })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert(data.error || 'Erro ao editar resposta'); return; }
+    loadForumAdmin();
   }
 
   async function loadForumAdmin() {
