@@ -1205,7 +1205,40 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
+  function resetIntlEmbeddedPayUi() {
+    intlPayMounted = false;
+    try { window.STF_INTL_PAY?.clearPayPalDom?.(); } catch (_) { /* ok */ }
+    const stripeMount = document.getElementById('stripe-payment-element');
+    if (stripeMount) stripeMount.innerHTML = '';
+    const stripeConfirm = document.getElementById('btn-stripe-confirm');
+    if (stripeConfirm) {
+      stripeConfirm.hidden = true;
+      stripeConfirm.disabled = false;
+      stripeConfirm.onclick = null;
+    }
+    const stripeLink = document.getElementById('stripe-redirect-link');
+    if (stripeLink) {
+      stripeLink.hidden = true;
+      stripeLink.removeAttribute('href');
+    }
+    const paypalLink = document.getElementById('paypal-redirect-link');
+    if (paypalLink) {
+      paypalLink.hidden = true;
+      paypalLink.removeAttribute('href');
+    }
+    document.getElementById('intl-embedded-pay')?.setAttribute('hidden', '');
+    document.getElementById('intl-stripe-wrap')?.setAttribute('hidden', '');
+    document.getElementById('intl-paypal-wrap')?.setAttribute('hidden', '');
+    document.getElementById('payment-notice-intl')?.removeAttribute('hidden');
+    document.getElementById('payment-options-intl')?.removeAttribute('hidden');
+  }
+
   async function restoreCheckoutAfterPaymentAbort(orderId, accessToken) {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    resetIntlEmbeddedPayUi();
     unlockCheckoutSidebar();
     const orderData = await fetchOrderForResume(orderId, accessToken);
     let restored = restoreCartFromBackup();
@@ -1225,6 +1258,26 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     setPayBtnLabel('btn.pay');
     showStep(2);
     return true;
+  }
+
+  /** Back from Stripe/PayPal embedded UI — restore cart wiped by lockCheckoutSidebar. */
+  async function goBackFromCheckout() {
+    if (intlPayMounted || orderSidebarLocked) {
+      const restored = await restoreCheckoutAfterPaymentAbort();
+      if (!restored) {
+        // Backup missing: still unlock UI so the user is not stuck.
+        resetIntlEmbeddedPayUi();
+        unlockCheckoutSidebar();
+        renderCartSidebar();
+        updateSummary();
+        showStep(1);
+        if (window.STF_CART?.isEmpty()) alert(L('alert.cartEmpty'));
+        return;
+      }
+      try { await window.STF_INTL_PAY?.initUi?.(); } catch (_) { /* ok */ }
+      return;
+    }
+    showStep(1);
   }
 
   function renderCheckoutKitAlbum() {
@@ -2694,7 +2747,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       });
 
       els.btnNext?.addEventListener('click', () => { if (validateStep1()) showStep(2); });
-      els.btnBack?.addEventListener('click', () => showStep(1));
+      els.btnBack?.addEventListener('click', () => { goBackFromCheckout(); });
       els.btnPay?.addEventListener('click', processPayment);
 
       if (els.senhaWrap && els.criarConta) {
