@@ -113,37 +113,42 @@ function decorateAuthorSuper(author, replyCounts) {
   return { ...a, isSuperCollaborator: isSuper, publishedReplyTotal: n };
 }
 
-function publicThread(thread, { includeBody = true, replyCounts = null } = {}) {
+function publicThread(thread, { includeBody = true, replyCounts = null, lang = 'pt' } = {}) {
+  const loc = localizedThreadFields(thread, lang);
   const base = {
     id: thread.id,
     slug: thread.slug,
-    title: thread.title,
+    title: loc.title,
     status: thread.status,
     createdAt: thread.createdAt,
     updatedAt: thread.updatedAt,
     replyCount: thread.replyCount || 0,
     publishedReplyCount: thread.publishedReplyCount || 0,
     tags: thread.tags || [],
-    lang: normalizeForumLang(thread.lang || 'pt'),
+    lang: normalizeForumLang(lang),
+    sourceLang: loc.sourceLang,
     author: decorateAuthorSuper(thread.author, replyCounts),
     media: thread.media || [],
-    seeded: !!thread.seeded
+    seeded: !!thread.seeded,
+    hasI18n: !!(thread.i18n && Object.keys(thread.i18n).length)
   };
-  if (includeBody) base.body = thread.body;
-  else base.excerpt = String(thread.body || '').slice(0, 180);
+  if (includeBody) base.body = loc.body;
+  else base.excerpt = String(loc.body || '').slice(0, 180);
   return base;
 }
 
-function publicReply(reply, replyCounts = null) {
+function publicReply(reply, replyCounts = null, lang = 'pt') {
   return {
     id: reply.id,
-    body: reply.body,
+    body: localizedReplyBody(reply, lang),
     status: reply.status,
     createdAt: reply.createdAt,
     author: decorateAuthorSuper(reply.author, replyCounts),
     media: reply.media || [],
     seeded: !!reply.seeded,
-    official: !!(reply.official || reply.author?.isOfficial)
+    official: !!(reply.official || reply.author?.isOfficial),
+    parentId: reply.parentId || null,
+    sourceLang: normalizeForumLang(reply.sourceLang || reply.lang || 'pt')
   };
 }
 
@@ -328,7 +333,11 @@ const SEED_AUTHORS = {
     avatarId: 'rocket',
     avatarEmoji: '🚀',
     isSuperCollaborator: true
-  }
+  },
+  'seed-lu': { userId: 'seed-lu', nome: 'Lu', username: 'lu_tatto', avatarId: 'leaf', avatarEmoji: '🍃' },
+  'seed-joao': { userId: 'seed-joao', nome: 'João', username: 'joaotattoo', avatarId: 'rocket', avatarEmoji: '🚀' },
+  'seed-rita': { userId: 'seed-rita', nome: 'Rita', username: 'rita_fit', avatarId: 'heart', avatarEmoji: '❤️' },
+  'seed-simo': { userId: 'seed-simo', nome: 'Simone', username: 'simo_run', avatarId: 'moon', avatarEmoji: '🌙' }
 };
 
 function remapSeedAuthor(author) {
@@ -363,8 +372,106 @@ function normalizeForumLang(raw) {
 
 function threadMatchesLang(thread, lang) {
   const want = normalizeForumLang(lang);
-  const have = normalizeForumLang(thread?.lang || 'pt');
+  // Unified i18n threads are visible in every locale.
+  if (thread?.i18n && typeof thread.i18n === 'object') return true;
+  const have = normalizeForumLang(thread?.lang || thread?.sourceLang || 'pt');
   return have === want;
+}
+
+function pickLocalized(map, lang, fallback) {
+  const want = normalizeForumLang(lang);
+  if (map && typeof map === 'object') {
+    const hit = map[want];
+    if (hit != null && String(hit).trim()) return String(hit);
+  }
+  return fallback == null ? '' : String(fallback);
+}
+
+function localizedThreadFields(thread, lang) {
+  const sourceLang = normalizeForumLang(thread?.sourceLang || thread?.lang || 'pt');
+  const want = normalizeForumLang(lang);
+  const i18n = thread?.i18n || {};
+  const pack = i18n[want] || {};
+  return {
+    sourceLang,
+    title: want === sourceLang
+      ? String(thread?.title || '')
+      : pickLocalized(pack, want, thread?.title),
+    body: want === sourceLang
+      ? String(thread?.body || '')
+      : pickLocalized(pack, want, thread?.body)
+  };
+}
+
+function localizedReplyBody(reply, lang) {
+  const sourceLang = normalizeForumLang(reply?.sourceLang || reply?.lang || 'pt');
+  const want = normalizeForumLang(lang);
+  if (want === sourceLang) return String(reply?.body || '');
+  const pack = reply?.i18n?.[want];
+  if (pack && typeof pack === 'object' && pack.body) return String(pack.body);
+  if (typeof pack === 'string' && pack.trim()) return pack;
+  return String(reply?.body || '');
+}
+
+/** Merge PT/EN/IT packs into one topic with translations (same slug, not 3 clones). */
+function mergeSeedLangPacks(pt, en, it) {
+  const n = Math.max(pt.length, en.length, it.length);
+  const out = [];
+  for (let i = 0; i < n; i += 1) {
+    const p = pt[i];
+    const e = en[i];
+    const t = it[i];
+    const base = p || e || t;
+    if (!base) continue;
+    const sourceLang = p ? 'pt' : (e ? 'en' : 'it');
+    const source = p || e || t;
+    const replyCount = Math.max(
+      (p?.replies || []).length,
+      (e?.replies || []).length,
+      (t?.replies || []).length
+    );
+    const replies = [];
+    for (let r = 0; r < replyCount; r += 1) {
+      const rp = p?.replies?.[r];
+      const re = e?.replies?.[r];
+      const rt = t?.replies?.[r];
+      const rb = rp || re || rt;
+      if (!rb) continue;
+      const rSourceLang = rp ? 'pt' : (re ? 'en' : 'it');
+      const rSource = rp || re || rt;
+      replies.push({
+        body: rSource.body,
+        author: rSource.author,
+        createdAt: rSource.createdAt,
+        official: !!(rSource.official || rSource.author?.isOfficial),
+        ref: rSource.ref,
+        parentRef: rSource.parentRef,
+        sourceLang: rSourceLang,
+        i18n: {
+          ...(re && rSourceLang !== 'en' ? { en: { body: re.body } } : {}),
+          ...(rt && rSourceLang !== 'it' ? { it: { body: rt.body } } : {}),
+          ...(rp && rSourceLang !== 'pt' ? { pt: { body: rp.body } } : {})
+        }
+      });
+    }
+    out.push({
+      title: source.title,
+      body: source.body,
+      tags: source.tags || base.tags || [],
+      author: source.author || base.author,
+      createdAt: source.createdAt || base.createdAt,
+      media: source.media || [],
+      sourceLang,
+      lang: sourceLang,
+      replies,
+      i18n: {
+        ...(e && sourceLang !== 'en' ? { en: { title: e.title, body: e.body } } : {}),
+        ...(t && sourceLang !== 'it' ? { it: { title: t.title, body: t.body } } : {}),
+        ...(p && sourceLang !== 'pt' ? { pt: { title: p.title, body: p.body } } : {})
+      }
+    });
+  }
+  return out;
 }
 
 /** Tópicos baseados em dores reais — PT / EN / IT (mesmo fórum, filtrado por idioma). */
@@ -383,6 +490,7 @@ function seedPayload() {
       replies: [
         { body: 'Eu passei pelo mesmo. O watch “não enxerga” que estou usando, e o Apple Pay começa a falhar. Não é só o ajuste da pulseira.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
         { body: 'No meu caso, o problema piora com suor e tinta mais densa. Qualquer solução improvisada ajuda só por pouco tempo.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
+        { body: 'Às vezes o sensor perde estabilidade quando o tatuagem está muito escuro. Não adianta só apertar o relógio.', author: { ...A['seed-lu'] }, createdAt: iso(60 * 28) },
         officialReply('Essa é uma situação bem clássica: a tinta escura muda a reflexão da luz e o sensor deixa de ler o pulso com estabilidade. Quando isso acontece, o relógio passa a agir como se tivesse perdido contato e pede senha/Apple Pay. A solução mais consistente aqui é o Sensor Tattoo Fix, que melhora a interface óptica na área do sensor e restaura a leitura. Se quiser, me diga o modelo do seu Apple Watch e eu te ajudo a avaliar a compatibilidade. 🖤', iso(60 * 9))
       ]
     },
@@ -431,6 +539,54 @@ function seedPayload() {
         { body: 'Eu também passei por isso. A leitura parecia instável mesmo quando o relógio estava bem no lugar.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 166) },
         officialReply('Esse é um sintoma clássico de leitura óptica instável. A tinta muda como a luz volta para o sensor, e diferentes marcas acabam interpretando isso como “solto”, “sem contato” ou “não detectado”. O Sensor Tattoo Fix é a solução mais consistente para estabilizar essa leitura. Se você quiser, eu posso te orientar pelo modelo exato do seu relógio. 🖤', iso(60 * 154))
       ]
+    },
+    {
+      title: 'Monitor de sono falhando no pulso tatuado',
+      body: 'Meu relógio não registra o sono direito no pulso tatuado, ou marca só 1–2 horas. No outro braço funciona normalmente. Já limpei o sensor e tentei mudar de posição, mas não adianta.',
+      tags: ['sono', 'monitoramento', 'tattoo', 'sleep'],
+      author: { ...A['seed-rita'] },
+      createdAt: iso(60 * 202),
+      replies: [
+        { body: 'Também passei por isso. O sensor perdia contato durante a noite e perdia todas as horas.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 190) },
+        { body: 'Pode ser que a luz esteja voltando errado na tinta. Apertar o relógio não resolve.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 182) },
+        officialReply('O monitoramento do sono depende de um sinal estável do sensor por várias horas. Se o pulso tatuado gera um retorno irregular, o relógio perde horas ou registra mal. Sensor Tattoo Fix ajuda a estabilizar essa leitura e torna o tracking mais confiável. 🖤', iso(60 * 170))
+      ]
+    },
+    {
+      title: 'Avisos cardíacos falsos em repouso',
+      body: 'Meu relógio avisa de ritmo irregular ou batimento alto enquanto estou sentado e tranquilo. No outro pulso sem tattoo isso não acontece. Será que é problema de sensor?',
+      tags: ['cardio', 'avisos', 'ritmo', 'tattoo'],
+      author: { ...A['seed-simo'] },
+      createdAt: iso(60 * 232),
+      replies: [
+        { body: 'Também recebi esses avisos falsos. Parecia começar com leituras erradas do sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 220) },
+        { body: 'O software interpreta o sinal barulhento como um coração irregular.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 208) },
+        officialReply('Os avisos falsos são comuns quando o sensor recebe um sinal distorcido do tatuagem. Sensor Tattoo Fix torna o retorno da luz mais consistente e diminui os falsos alarmes. Se quiser, posso ajudar a ver como melhorar a leitura no seu modelo. 🖤', iso(60 * 196))
+      ]
+    },
+    {
+      title: 'Notificações e chamadas desaparecem no pulso tatuado',
+      body: 'Às vezes meu relógio para de mostrar notificações e parece que as chamadas não chegam. Parece que o dispositivo perde contato com meu pulso.',
+      tags: ['notificacoes', 'chamadas', 'tattoo', 'contato'],
+      author: { ...A['seed-lu'] },
+      createdAt: iso(60 * 256),
+      replies: [
+        { body: 'É como se o relógio pensasse que foi tirado. Só resolve quando a leitura do sensor melhora.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 244) },
+        { body: 'Tenta não usar um pulso muito folgado, mas o problema real está na leitura óptica.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 232) },
+        officialReply('Quando o sensor perde estabilidade, as notificações e chamadas podem parecer ausentes porque o relógio não reconhece o pulso corretamente. Sensor Tattoo Fix ajuda a restaurar o contato óptico e estabiliza as notificações. 🖤', iso(60 * 220))
+      ]
+    },
+    {
+      title: 'App de treino não inicia no pulso tatuado',
+      body: 'Quando vou iniciar um treino, o relógio pede para posicionar melhor ou diz que o sensor não está em contato. No outro braço funciona, mas no tatuado não.',
+      tags: ['treino', 'app', 'sensor', 'tattoo'],
+      author: { ...A['seed-diego'] },
+      createdAt: iso(60 * 280),
+      replies: [
+        { body: 'Também acontece comigo quando o tatuagem é muito escuro. O relógio bloqueia antes de começar.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 268) },
+        { body: 'É um problema de leitura antes de ser um problema do app: se o sensor não vê o pulso, o treino não começa.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 256) },
+        officialReply('Se o relógio não inicia o treino no pulso tatuado, o problema é a estabilidade do sinal óptico. Sensor Tattoo Fix torna o contato mais confiável e ajuda o app a reconhecer corretamente o movimento. 🖤', iso(60 * 244))
+      ]
     }
   ].map((t) => ({ ...t, lang: 'pt' }));
 
@@ -444,6 +600,7 @@ function seedPayload() {
       replies: [
         { body: 'Same here. The watch stops “seeing” that I am wearing it, and Apple Pay starts failing. It is not just a band issue.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
         { body: 'For me it gets worse with sweat and denser ink. Any workaround helps only for a while.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
+        { body: 'Sometimes the problem is that the sensor loses stability when the tattoo is really dark. It is not enough to just tighten the band.', author: { ...A['seed-lu'] }, createdAt: iso(60 * 28) },
         officialReply('This is a classic case: dark ink changes how light reflects back to the sensor, so the watch reads the wrist as unstable and starts asking for a passcode or blocking Apple Pay. The most consistent fix is Sensor Tattoo Fix, which improves the optical interface at the sensor area and restores reliable reading. If you want, send the Apple Watch model and I can help check compatibility. 🖤', iso(60 * 9))
       ]
     },
@@ -492,6 +649,54 @@ function seedPayload() {
         { body: 'I had the same story. The reading felt unstable even when the watch was sitting in the right place.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 166) },
         officialReply('That is a classic symptom of unstable optical reading. The tattoo changes how light comes back to the sensor, and different brands interpret that as “loose”, “no contact”, or “not detected”. Sensor Tattoo Fix is the most consistent way to stabilize that reading. If you want, I can guide you by the exact watch model. 🖤', iso(60 * 154))
       ]
+    },
+    {
+      title: 'Sleep tracking fails on a tattooed wrist',
+      body: 'My watch either does not record sleep at all or shows only 1–2 hours when I sleep with my tattooed wrist. The other wrist records normally. I cleaned the sensor and changed bands, but nothing fixed it.',
+      tags: ['sleep', 'tracking', 'tattoo', 'watch'],
+      author: { ...A['seed-rita'] },
+      createdAt: iso(60 * 202),
+      replies: [
+        { body: 'Same here. It lost the signal during the night and missed all the sleep time.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 190) },
+        { body: 'It can be the light bouncing wrong off the ink. Tightening the band is not enough.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 182) },
+        officialReply('Sleep tracking depends on a stable signal from the sensor for many hours. If the tattoo creates an irregular return, the watch drops hours or records poorly. Sensor Tattoo Fix helps stabilize that reading and makes sleep tracking more reliable. 🖤', iso(60 * 170))
+      ]
+    },
+    {
+      title: 'False heart alerts while resting',
+      body: 'My watch warns me of irregular rhythm or high heart rate while I am sitting still and calm. The other wrist without a tattoo does not do this. Is this a real problem or a sensor issue?',
+      tags: ['heart-rate', 'alerts', 'tattoo', 'rest'],
+      author: { ...A['seed-simo'] },
+      createdAt: iso(60 * 232),
+      replies: [
+        { body: 'I get the same false alerts. It seemed to start with wrong readings from the sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 220) },
+        { body: 'The software interprets the noisy signal as an irregular heartbeat.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 208) },
+        officialReply('False alerts are common when the sensor receives a disturbed signal from a tattooed wrist. Sensor Tattoo Fix makes return light more consistent and reduces false alarms. If you want, I can help you understand how to improve the reading on your model. 🖤', iso(60 * 196))
+      ]
+    },
+    {
+      title: 'Notifications and calls disappear on the tattooed wrist',
+      body: 'Sometimes my watch stops showing notifications and calls appear to be missing. It feels like the device loses contact with my wrist.',
+      tags: ['notifications', 'calls', 'tattoo', 'contact'],
+      author: { ...A['seed-lu'] },
+      createdAt: iso(60 * 256),
+      replies: [
+        { body: 'It is like the watch thinks it was taken off. I only fixed it when the sensor reading improved.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 244) },
+        { body: 'Try not to use a too loose band, but the real issue is optical reading.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 232) },
+        officialReply('When the sensor loses stability, notifications and calls can seem absent because the watch does not recognize the wrist correctly. Sensor Tattoo Fix helps restore optical contact and stabilizes notifications. 🖤', iso(60 * 220))
+      ]
+    },
+    {
+      title: 'Workout app does not start on tattooed wrist',
+      body: 'When I want to start a workout, the watch tells me to position it better or that the sensor is not in contact. It works on the other arm, but not with the tattoo.',
+      tags: ['workout', 'app', 'sensor', 'tattoo'],
+      author: { ...A['seed-diego'] },
+      createdAt: iso(60 * 280),
+      replies: [
+        { body: 'It happens to me too when the tattoo is very dark. The watch blocks before starting.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 268) },
+        { body: 'It is a reading problem before it is an app problem: if the sensor does not see the wrist, the workout will not start.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 256) },
+        officialReply('If the watch refuses to start the workout on your tattooed wrist, the issue is the stability of the optical signal. Sensor Tattoo Fix makes the contact more reliable and helps the app recognize the motion correctly. 🖤', iso(60 * 244))
+      ]
     }
   ].map((t) => ({ ...t, lang: 'en' }));
 
@@ -505,6 +710,7 @@ function seedPayload() {
       replies: [
         { body: 'Anche io. L’orologio smette di “vedere” che lo indosso e Apple Pay comincia a sbagliare. Non è solo un problema di cinturino.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
         { body: 'Per me peggiora con sudore e tatuaggi più densi. Ogni workaround aiuta solo per poco.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
+        { body: 'A volte il problema è che il sensore perde stabilità quando il tatuaggio è molto nero. Non serve solo stringere il cinturino.', author: { ...A['seed-lu'] }, createdAt: iso(60 * 28) },
         officialReply('È un caso classico: l’inchiostro scuro cambia la riflessione della luce e il sensore smette di leggere il polso in modo stabile. Quando succede, l’orologio inizia a chiedere il codice o a bloccare Apple Pay. La soluzione più coerente qui è Sensor Tattoo Fix, che migliora l’interfaccia ottica nell’area del sensore e ripristina la lettura. Se vuoi, dimmi il modello del tuo Apple Watch e ti aiuto a valutare la compatibilità. 🖤', iso(60 * 9))
       ]
     },
@@ -553,10 +759,59 @@ function seedPayload() {
         { body: 'Ho avuto la stessa storia. La lettura sembrava instabile anche quando l’orologio era ben posizionato.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 166) },
         officialReply('È un sintomo classico di lettura ottica instabile. Il tatuaggio cambia il modo in cui la luce torna al sensore, e marchi diversi interpretano questo come “allentato”, “senza contatto” o “non rilevato”. Sensor Tattoo Fix è il modo più coerente per stabilizzare quella lettura. Se vuoi, ti guido io con il modello esatto. 🖤', iso(60 * 154))
       ]
+    },
+    {
+      title: 'Monitoraggio del sonno non funziona sul polso tatuato',
+      body: 'Il mio orologio non registra il sonno sul polso tatuato, oppure segna solo 1–2 ore. Sull’altro polso senza tattoo funziona normalmente. Ho provato a cambiare posizione e fascia, ma niente cambia.',
+      tags: ['sonno', 'monitoraggio', 'tattoo', 'sleep'],
+      author: { ...A['seed-rita'] },
+      createdAt: iso(60 * 202),
+      replies: [
+        { body: 'A me succedeva lo stesso. Il sensore perdeva il contatto durante la notte e perdeva tutte le ore.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 190) },
+        { body: 'A volte il problema è la luce che rimbalza male sulla pelle tinta. Non basta stringere il cinturino.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 182) },
+        officialReply('Il monitoraggio del sonno dipende muito da leitura estável do sensor durante horas. Se o pulso tatuado gera um sinal irregular, o relógio perde horas ou registra mal. Sensor Tattoo Fix ajuda a estabilizar essa leitura e a tornar o tracking mais confiável. 🖤', iso(60 * 170))
+      ]
+    },
+    {
+      title: 'Avvisi cardiaci falsi durante il riposo',
+      body: 'Il mio orologio segnala ritmo cardiaco irregolare o battito veloce mentre sto seduto e rilassato. Sull’altro polso senza tattoo non succede. Cosa può essere?',
+      tags: ['cardio', 'avvisi', 'ritmo', 'tattoo'],
+      author: { ...A['seed-simo'] },
+      createdAt: iso(60 * 232),
+      replies: [
+        { body: 'Mi è successo anche a me. Il problema sembrava partire dalle letture sbagliate del sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 220) },
+        { body: 'Il software interpreta il segnale nervoso come un battito irregolare quando la luce torna male.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 208) },
+        officialReply('Gli avvisi falsi sono frequenti quando il sensore riceve un segnale disturbato dal tatuaggio. Sensor Tattoo Fix rende il ritorno della luce più consistente e diminuisce i falsi allarmi. Se vuoi, ti aiuto a capire come migliorare la lettura sul tuo modello. 🖤', iso(60 * 196))
+      ]
+    },
+    {
+      title: 'Notifiche e chiamate spariscono sul polso tatuato',
+      body: 'A volte il mio orologio non mostra più le notifiche e le chiamate sembrano non arrivare. Sembra quasi che il dispositivo perda il contatto col polso.',
+      tags: ['notifiche', 'chiamate', 'tattoo', 'contatto'],
+      author: { ...A['seed-lu'] },
+      createdAt: iso(60 * 256),
+      replies: [
+        { body: 'È come se il watch pensasse che fosse stato tolto. Io ho risolto só quando migliorou a leitura do sensor.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 244) },
+        { body: 'Prova a non usare cinturino troppo largo, ma o problema real está na leitura ótica.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 232) },
+        officialReply('Quando o sensor perde estabilidade, as notificações e chamadas podem parecer ausentes porque o relógio não reconhece o pulso corretamente. Sensor Tattoo Fix ajuda a restaurar o contato óptico e estabiliza as notifiche. 🖤', iso(60 * 220))
+      ]
+    },
+    {
+      title: 'L’app allenamento non parte sul polso tatuato',
+      body: 'Quando voglio iniziare un allenamento, l’orologio mi dice che devo posizionarlo meglio o che il sensore non è a contatto. Col braccio libero funziona, ma col tatuaggio no.',
+      tags: ['allenamento', 'app', 'sensore', 'tattoo'],
+      author: { ...A['seed-diego'] },
+      createdAt: iso(60 * 280),
+      replies: [
+        { body: 'Succede anche a me quando il tatuaggio è davvero scuro. L’orologio si blocca prima di partire.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 268) },
+        { body: 'È un problema di lettura prima che di app: se il sensore non vede il polso, l’allenamento non parte.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 256) },
+        officialReply('Se il watch non avvia l’allenamento sul polso tatuato, il problema è la stabilità del segnale ottico. Sensor Tattoo Fix rende il contatto più affidabile e aiuta l’app a riconoscere correttamente il gesto. 🖤', iso(60 * 244))
+      ]
     }
   ].map((t) => ({ ...t, lang: 'it' }));
 
-  return [...pt, ...en, ...it];
+  // One topic × translations — never publish 3 clone threads.
+  return mergeSeedLangPacks(pt, en, it);
 }
 
 const RELATED_STOP = new Set([
@@ -609,7 +864,8 @@ async function findRelatedThreads(env, query, { limit = 8, includePending = fals
     if (!threadMatchesLang(thread, want)) continue;
     if (!includePending && thread.status !== 'published') continue;
     if (includePending && thread.status === 'rejected') continue;
-    const score = scoreRelatedThread(thread, tokens);
+    const loc = localizedThreadFields(thread, want);
+    const score = scoreRelatedThread({ title: loc.title, body: loc.body }, tokens);
     if (score < 4) continue;
     scored.push({ score, thread });
   }
@@ -618,7 +874,7 @@ async function findRelatedThreads(env, query, { limit = 8, includePending = fals
     tokens,
     matches: scored.slice(0, limit).map(({ score, thread }) => ({
       score,
-      ...publicThread(thread, { includeBody: false })
+      ...publicThread(thread, { includeBody: false, lang: want })
     }))
   };
 }
@@ -753,29 +1009,45 @@ async function ensureForumPublic(env) {
   return next;
 }
 
-const SEED_AUTHORS_VERSION = 5;
-const SEED_CONTENT_VERSION = 13;
+const SEED_AUTHORS_VERSION = 6;
+const SEED_CONTENT_VERSION = 15;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
   const newIds = [];
   for (const s of seeds) {
     const id = crypto.randomUUID();
-    const lang = normalizeForumLang(s.lang || 'pt');
+    const sourceLang = normalizeForumLang(s.sourceLang || s.lang || 'pt');
     let slug = slugify(s.title);
-    if (lang !== 'pt') slug = `${slug}-${lang}`;
     if (await env.STORE_KV.get('forum:slug:' + slug)) slug = `${slug}-${id.slice(0, 6)}`;
-    const replies = (s.replies || []).map((r) => ({
-      id: crypto.randomUUID(),
-      body: r.body,
-      status: 'published',
-      createdAt: r.createdAt,
-      author: r.author,
-      media: [],
-      seeded: true,
-      lang,
-      official: !!(r.official || r.author?.isOfficial)
-    }));
+    const replyItems = [];
+    const refs = new Map();
+    for (const r of (s.replies || [])) {
+      const replyId = crypto.randomUUID();
+      const reply = {
+        id: replyId,
+        body: r.body,
+        status: 'published',
+        createdAt: r.createdAt,
+        author: r.author,
+        media: [],
+        seeded: true,
+        lang: normalizeForumLang(r.sourceLang || sourceLang),
+        sourceLang: normalizeForumLang(r.sourceLang || sourceLang),
+        i18n: r.i18n || undefined,
+        official: !!(r.official || r.author?.isOfficial)
+      };
+      if (r.ref) refs.set(r.ref, replyId);
+      if (r.parentRef) reply.parentRef = r.parentRef;
+      replyItems.push(reply);
+    }
+    for (const reply of replyItems) {
+      if (reply.parentRef && refs.has(reply.parentRef)) {
+        reply.parentId = refs.get(reply.parentRef);
+      }
+      delete reply.parentRef;
+    }
+    const replies = replyItems;
     const thread = {
       id,
       slug,
@@ -790,7 +1062,9 @@ async function insertSeedThreads(env, existingIndex) {
       author: s.author,
       media: s.media || [],
       seeded: true,
-      lang
+      lang: sourceLang,
+      sourceLang,
+      i18n: s.i18n || undefined
     };
     await saveThread(env, thread);
     await saveReplies(env, id, replies);
@@ -882,13 +1156,16 @@ export async function handleForumRoute(request, env, origin, deps) {
       const t = await getThread(env, id);
       if (!t || t.status !== 'published') continue;
       const slug = encodeURIComponent(t.slug || t.id);
-      const lang = normalizeForumLang(t.lang || 'pt');
       const lastmod = (t.updatedAt || t.createdAt || '').slice(0, 10);
-      let loc;
-      if (lang === 'en') loc = `https://www.sensortattoofix.com/comunidade.html?t=${slug}`;
-      else if (lang === 'it') loc = `https://www.sensortattoofix.com/it/comunidade.html?t=${slug}`;
-      else loc = `https://www.sensortattoofix.com.br/comunidade.html?t=${slug}`;
-      urls.push(`  <url>\n    <loc>${loc}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ''}\n    <changefreq>weekly</changefreq>\n    <priority>0.65</priority>\n  </url>`);
+      // Same topic in every locale — one slug, three public URLs.
+      const locs = [
+        `https://www.sensortattoofix.com.br/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/it/comunidade.html?t=${slug}`
+      ];
+      for (const loc of locs) {
+        urls.push(`  <url>\n    <loc>${loc}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ''}\n    <changefreq>weekly</changefreq>\n    <priority>0.65</priority>\n  </url>`);
+      }
     }
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
     return new Response(xml, {
@@ -914,10 +1191,11 @@ export async function handleForumRoute(request, env, origin, deps) {
       return new Response('Not found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
     const replies = (await getReplies(env, thread.id)).filter((r) => r.status === 'published');
-    const lang = normalizeForumLang(thread.lang || 'pt');
-    const pageUrl = lang === 'en'
+    const reqLang = normalizeForumLang(url.searchParams.get('lang') || 'pt');
+    const loc = localizedThreadFields(thread, reqLang);
+    const pageUrl = reqLang === 'en'
       ? `https://www.sensortattoofix.com/comunidade.html?t=${encodeURIComponent(thread.slug || thread.id)}`
-      : lang === 'it'
+      : reqLang === 'it'
         ? `https://www.sensortattoofix.com/it/comunidade.html?t=${encodeURIComponent(thread.slug || thread.id)}`
         : `https://www.sensortattoofix.com.br/comunidade.html?t=${encodeURIComponent(thread.slug || thread.id)}`;
     const esc = (s) => String(s || '')
@@ -925,23 +1203,23 @@ export async function handleForumRoute(request, env, origin, deps) {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
-    const desc = esc(String(thread.body || '').replace(/\s+/g, ' ').trim().slice(0, 160));
+    const desc = esc(String(loc.body || '').replace(/\s+/g, ' ').trim().slice(0, 160));
     const replyHtml = replies.map((r) => `
       <article>
         <h2>@${esc(r.author?.username || 'anon')}</h2>
         <time datetime="${esc(r.createdAt || '')}">${esc(r.createdAt || '')}</time>
-        <p>${esc(r.body).replace(/\n/g, '<br>')}</p>
+        <p>${esc(localizedReplyBody(r, reqLang)).replace(/\n/g, '<br>')}</p>
       </article>`).join('\n');
     const html = `<!DOCTYPE html>
-<html lang="${lang === 'pt' ? 'pt-BR' : lang}">
+<html lang="${reqLang === 'pt' ? 'pt-BR' : reqLang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="index, follow">
-  <title>${esc(thread.title)} | Comunidade | Sensor Tattoo Fix</title>
+  <title>${esc(loc.title)} | Comunidade | Sensor Tattoo Fix</title>
   <meta name="description" content="${desc}">
   <link rel="canonical" href="${esc(pageUrl)}">
-  <meta property="og:title" content="${esc(thread.title)}">
+  <meta property="og:title" content="${esc(loc.title)}">
   <meta property="og:description" content="${desc}">
   <meta property="og:url" content="${esc(pageUrl)}">
   <link rel="stylesheet" href="https://www.sensortattoofix.com.br/style.css">
@@ -950,9 +1228,9 @@ export async function handleForumRoute(request, env, origin, deps) {
   <main class="container forum-container">
     <p><a href="${esc(pageUrl)}">Sensor Tattoo Fix — Comunidade</a></p>
     <article>
-      <h1>${esc(thread.title)}</h1>
+      <h1>${esc(loc.title)}</h1>
       <p class="admin-meta">@${esc(thread.author?.username || 'anon')} · <time datetime="${esc(thread.createdAt || '')}">${esc(thread.createdAt || '')}</time></p>
-      <div>${esc(thread.body).replace(/\n/g, '<br>')}</div>
+      <div>${esc(loc.body).replace(/\n/g, '<br>')}</div>
     </article>
     <section>
       <h2>Respostas</h2>
@@ -1023,7 +1301,7 @@ export async function handleForumRoute(request, env, origin, deps) {
       if (!t) continue;
       if (!isAdmin && t.status !== 'published') continue;
       if (!threadMatchesLang(t, lang)) continue;
-      threads.push(publicThread(t, { includeBody: false, replyCounts }));
+      threads.push(publicThread(t, { includeBody: false, replyCounts, lang }));
       if (threads.length >= 100) break;
     }
     return deps.json({
@@ -1108,10 +1386,11 @@ export async function handleForumRoute(request, env, origin, deps) {
     const replies = await getReplies(env, thread.id);
     const visibleReplies = isAdmin ? replies : replies.filter((r) => r.status === 'published');
     const replyCounts = await getPublishedReplyCounts(env);
+    const lang = normalizeForumLang(url.searchParams.get('lang') || thread.sourceLang || thread.lang || 'pt');
     return deps.json({
       ok: true,
-      thread: publicThread(thread, { replyCounts }),
-      replies: visibleReplies.map((r) => publicReply(r, replyCounts))
+      thread: publicThread(thread, { replyCounts, lang }),
+      replies: visibleReplies.map((r) => publicReply(r, replyCounts, lang))
     }, 200, origin);
   }
 
@@ -1165,6 +1444,11 @@ export async function handleForumRoute(request, env, origin, deps) {
     const body = await request.json();
     const text = String(body.body || '').trim().slice(0, FORUM_BODY_MAX);
     if (text.length < 2) return deps.json({ error: 'Resposta vazia.' }, 400, origin);
+    const parentId = String(body.parentId || '').trim();
+    const replies = await getReplies(env, thread.id);
+    if (parentId && !replies.some((r) => r.id === parentId)) {
+      return deps.json({ error: 'Resposta pai não encontrada.' }, 400, origin);
+    }
     const replyLang = normalizeForumLang(body.lang || thread.lang || 'pt');
     const reply = {
       id: crypto.randomUUID(),
@@ -1173,9 +1457,9 @@ export async function handleForumRoute(request, env, origin, deps) {
       createdAt: new Date().toISOString(),
       author: publicAuthor(gate.user),
       media: sanitizeMediaList(body.media),
-      lang: replyLang
+      lang: replyLang,
+      parentId: parentId || undefined
     };
-    const replies = await getReplies(env, thread.id);
     replies.push(reply);
     await saveReplies(env, thread.id, replies);
     thread.replyCount = replies.length;

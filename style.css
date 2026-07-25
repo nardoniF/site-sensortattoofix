@@ -5577,6 +5577,12 @@ a.conta-forgot-link { display: inline-block; }
 .forum-page .forum-author-meta strong { color:#111; }
 .forum-reply.is-pending { opacity:1; border-style:dashed; background:#fffdf5; }
 .forum-pending { margin-left:.5rem; font-size:.75rem; color:#a67c00; }
+.forum-reply-children { margin-left:1rem; border-left:2px solid rgba(0,0,0,.05); padding-left:1rem; }
+.forum-reply-actions { margin-top:.85rem; }
+.forum-reply-action { display:inline-flex; align-items:center; gap:.35rem; padding:.4rem .65rem; border:1px solid rgba(0,0,0,.12); border-radius:999px; background:#f5f5f5; color:#111; cursor:pointer; font-size:.86rem; }
+.forum-reply-action:hover { background:#fff; }
+.forum-reply-target { display:flex; justify-content:space-between; align-items:center; gap:.75rem; padding:.85rem 1rem; border:1px solid rgba(0,0,0,.12); border-radius:12px; background:#f8fbff; margin-bottom:.75rem; }
+.forum-reply-target strong { color:#111; }
 .forum-media { display:grid; gap:.75rem; margin-top:.75rem; }
 .forum-media-img img { max-width:100%; border-radius:10px; display:block; }
 .forum-media-video { position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:10px; }

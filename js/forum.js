@@ -9,6 +9,7 @@
     role: null,
     thread: null,
     replies: [],
+    replyTarget: null,
     view: 'list'
   };
 
@@ -38,6 +39,8 @@
       video: 'Vídeo YouTube',
       post: 'Postar',
       reply: 'Responder',
+      replyingTo: 'Respondendo a',
+      cancelReply: 'Cancelar',
       replies: 'respostas',
       noTopics: 'Nenhum tópico publicado ainda.',
       noReplies: 'Nenhuma resposta ainda.',
@@ -87,6 +90,8 @@
       video: 'YouTube video',
       post: 'Post',
       reply: 'Reply',
+      replyingTo: 'Replying to',
+      cancelReply: 'Cancel',
       replies: 'replies',
       noTopics: 'No published topics yet.',
       noReplies: 'No replies yet.',
@@ -136,6 +141,8 @@
       video: 'Video YouTube',
       post: 'Pubblica',
       reply: 'Rispondi',
+      replyingTo: 'Rispondi a',
+      cancelReply: 'Annulla',
       replies: 'risposte',
       noTopics: 'Nessun argomento pubblicato ancora.',
       noReplies: 'Nessuna risposta ancora.',
@@ -264,9 +271,16 @@
   }
 
   function composeReplyHtml() {
+    const target = state.replyTarget ?
+      `<div id="forum-reply-target" class="forum-reply-target">
+        <span>${escapeHtml(ft('replyingTo'))} <strong>@${escapeHtml(state.replyTarget.username || '')}</strong></span>
+        <button type="button" class="btn-danger-outline" id="forum-reply-cancel-target">${escapeHtml(ft('cancelReply'))}</button>
+      </div>` : '';
     return `<section class="forum-compose admin-card">
       <h2>${escapeHtml(ft('reply'))}</h2>
+      ${target}
       <form id="forum-reply-form" class="admin-form">
+        <input type="hidden" name="parentId" id="forum-reply-parent-id" value="${escapeHtml(state.replyTarget?.id || '')}">
         <label>${escapeHtml(ft('message'))}<textarea name="body" required minlength="2" rows="4"></textarea></label>
         <button type="submit" class="btn-primary">${escapeHtml(ft('post'))}</button>
         <p id="forum-reply-status" class="form-status" hidden></p>
@@ -546,15 +560,52 @@
     const root = el('forum-root');
     const t = state.thread;
     if (!root || !t) return;
-    const replies = state.replies.map((r) => `
+    function buildReplyTree(replies) {
+      const map = new Map();
+      const roots = [];
+      for (const reply of replies) {
+        map.set(reply.id, { ...reply, children: [] });
+      }
+      for (const reply of map.values()) {
+        if (reply.parentId && map.has(reply.parentId)) {
+          map.get(reply.parentId).children.push(reply);
+        } else {
+          roots.push(reply);
+        }
+      }
+      const sortReplies = (list) => list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      const walk = (items) => {
+        sortReplies(items);
+        for (const item of items) {
+          if (item.children.length) walk(item.children);
+        }
+      };
+      walk(roots);
+      return roots;
+    }
+
+    function renderReplies(items) {
+      if (!items.length) return `<p class="admin-meta">${escapeHtml(ft('noReplies'))}</p>`;
+      return items.map((r) => {
+        const actions = `<button type="button" class="btn-secondary forum-reply-action" data-reply-id="${escapeHtml(r.id)}" data-reply-username="${escapeHtml(r.author?.username || '')}">${escapeHtml(ft('reply'))}</button>`;
+        const children = r.children && r.children.length
+          ? `<div class="forum-reply-children">${renderReplies(r.children)}</div>`
+          : '';
+        return `
       <article class="forum-reply ${r.status === 'pending' ? 'is-pending' : ''}">
         <div class="forum-reply-head">${authorHtml(r.author)} <time>${escapeHtml(formatDate(r.createdAt))}</time>
           ${r.status === 'pending' ? `<span class="forum-pending">${escapeHtml(ft('pending'))}</span>` : ''}
         </div>
         <div class="forum-body">${escapeHtml(r.body).replace(/\n/g, '<br>')}</div>
         ${mediaHtml(r.media)}
-      </article>
-    `).join('') || `<p class="admin-meta">${escapeHtml(ft('noReplies'))}</p>`;
+        <div class="forum-reply-actions">${actions}</div>
+        ${children}
+      </article>`;
+      }).join('');
+    }
+
+    const tree = buildReplyTree(state.replies);
+    const replies = renderReplies(tree);
 
     root.innerHTML = `
       <p><button type="button" class="btn-secondary" id="forum-back"><i class="fas fa-arrow-left"></i> ${escapeHtml(ft('back'))}</button></p>
@@ -570,6 +621,20 @@
     `;
     el('forum-back')?.addEventListener('click', () => { history.replaceState({}, '', location.pathname); loadList(); });
     el('forum-reply-form')?.addEventListener('submit', onReplySubmit);
+    document.querySelectorAll('.forum-reply-action').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const replyId = btn.getAttribute('data-reply-id');
+        const username = btn.getAttribute('data-reply-username') || '';
+        state.replyTarget = { id: replyId, username };
+        renderThread();
+        const textarea = el('forum-reply-form')?.querySelector('textarea[name="body"]');
+        if (textarea) textarea.focus();
+      });
+    });
+    el('forum-reply-cancel-target')?.addEventListener('click', () => {
+      state.replyTarget = null;
+      renderThread();
+    });
     bindProfileEvents();
     applyThreadSeo(t);
     try {
@@ -759,21 +824,24 @@
     }
     const fd = new FormData(e.target);
     const bodyText = String(fd.get('body') || '').trim();
+    const parentId = String(fd.get('parentId') || '').trim();
     const btn = e.target.querySelector('button[type="submit"]');
     if (btn) btn.disabled = true;
     try {
       const data = await api('/forum/threads/' + encodeURIComponent(state.thread.id) + '/replies', {
         method: 'POST',
-        json: { body: bodyText }
+        json: { body: bodyText, parentId }
       });
       const pending = data.reply || {
         id: 'local-' + Date.now(),
         body: bodyText,
         status: 'pending',
         createdAt: new Date().toISOString(),
-        author: state.user
+        author: state.user,
+        parentId: parentId || null
       };
       state.replies = [...state.replies, pending];
+      state.replyTarget = null;
       e.target.reset();
       try { sessionStorage.removeItem('stf_forum_reply_draft'); } catch (err) {}
       renderThread();
