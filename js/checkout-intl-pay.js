@@ -226,7 +226,15 @@ window.STF_INTL_PAY = (function () {
   }
 
   async function confirmStripe() {
-    if (!stripe || !stripeClientSecret) throw new Error('Stripe not ready.');
+    if (!stripe || !stripeElements || !stripeClientSecret) throw new Error('Stripe not ready.');
+    // Stripe requires elements.submit() before confirmPayment; tolerate the
+    // clientSecret-flow variant where submit() is unnecessary.
+    if (typeof stripeElements.submit === 'function') {
+      const submitResult = await stripeElements.submit();
+      if (submitResult?.error && !/client secret/i.test(submitResult.error.message || '')) {
+        throw new Error(submitResult.error.message || 'Payment validation failed.');
+      }
+    }
     const result = await stripe.confirmPayment({
       elements: stripeElements,
       clientSecret: stripeClientSecret,
@@ -235,6 +243,57 @@ window.STF_INTL_PAY = (function () {
     });
     if (result.error) throw new Error(result.error.message || 'Payment failed.');
     return result.paymentIntent;
+  }
+
+  function payErrorStrings() {
+    let lang = 'en';
+    try { lang = window.STF_I18N?.getLang?.() || 'en'; } catch (_) { /* ignore */ }
+    const path = String(location.pathname || '');
+    if (lang === 'it' || path.includes('/it/')) {
+      return {
+        generic: 'Non è stato possibile completare il pagamento. Riprova o usa un altro metodo.',
+        card: 'La carta è stata rifiutata. Controlla i dati o prova un\'altra carta.',
+        network: 'Problema di connessione. Controlla la rete e riprova.',
+        retry: 'Riprova'
+      };
+    }
+    if (lang === 'pt' || (!path.includes('/en/') && !path.includes('/it/') && !/\.sensortattoofix\.com$/i.test(location.hostname))) {
+      return {
+        generic: 'Não foi possível concluir o pagamento. Tente novamente ou use outro método.',
+        card: 'Cartão recusado. Confira os dados ou tente outro cartão.',
+        network: 'Falha de conexão. Verifique a internet e tente de novo.',
+        retry: 'Tentar novamente'
+      };
+    }
+    return {
+      generic: 'We couldn\'t complete your payment. Please try again or use another method.',
+      card: 'Your card was declined. Check the details or try another card.',
+      network: 'Connection problem. Check your internet and try again.',
+      retry: 'Try again'
+    };
+  }
+
+  function friendlyPayMessage(err) {
+    const raw = String(err?.message || '').toLowerCase();
+    const s = payErrorStrings();
+    if (/declin|card|cvc|expir|insuffic|incorrect/.test(raw)) return s.card;
+    if (/network|connection|fetch|timeout|failed to/.test(raw)) return s.network;
+    // elements.submit / integration errors → generic, never show Stripe internals.
+    return s.generic;
+  }
+
+  function showStripeError(err) {
+    const box = document.getElementById('stripe-pay-error');
+    const msg = friendlyPayMessage(err);
+    if (!box) { alert(msg); return; }
+    box.textContent = msg;
+    box.hidden = false;
+    try { box.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) { /* ok */ }
+  }
+
+  function clearStripeError() {
+    const box = document.getElementById('stripe-pay-error');
+    if (box) { box.hidden = true; box.textContent = ''; }
   }
 
   async function mountPayPal(orderId, accessToken, onDone) {
@@ -321,13 +380,17 @@ window.STF_INTL_PAY = (function () {
       if (confirmBtn) {
         confirmBtn.onclick = async () => {
           confirmBtn.disabled = true;
+          clearStripeError();
           try {
             const intent = await confirmStripe();
             if (intent?.status === 'succeeded' && callbacks?.onSuccess) {
               callbacks.onSuccess({ provider: 'stripe', orderId });
+            } else {
+              confirmBtn.disabled = false;
             }
           } catch (err) {
-            alert(err.message || 'Payment failed.');
+            console.error('Stripe:', err);
+            showStripeError(err);
             confirmBtn.disabled = false;
           }
         };

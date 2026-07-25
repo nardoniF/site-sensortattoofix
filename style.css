@@ -2034,6 +2034,16 @@ line-height:1.8;
     min-height: 120px;
 }
 .btn-stripe-confirm { width: 100%; margin-top: 12px; }
+.checkout-pay-error {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(229, 72, 77, 0.45);
+    background: rgba(229, 72, 77, 0.12);
+    color: #ffb4b4;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
 .paypal-redirect-link {
     display: inline-flex;
     align-items: center;
