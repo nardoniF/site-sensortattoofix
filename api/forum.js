@@ -1,3 +1,5 @@
+import { buildForumSeedLangPacks } from './forum-seeds.js';
+
 /**
  * Community forum — gated to testers until publicly enabled.
  * Storage: KV. Media: https image URLs + YouTube/Vimeo embeds (R2 later).
@@ -305,39 +307,59 @@ const OFFICIAL_AUTHOR = {
 const SEED_AUTHORS = {
   'seed-guga': { userId: 'seed-guga', nome: 'Guga', username: 'guga97', avatarId: 'ink', avatarEmoji: '🖋️' },
   'seed-kai': { userId: 'seed-kai', nome: 'Kai', username: 'inkedrunner', avatarId: 'bolt', avatarEmoji: '⚡' },
-  'seed-marcinha': { userId: 'seed-marcinha', nome: 'Marcinha', username: 'marcinha', avatarId: 'heart', avatarEmoji: '❤️' },
   'seed-dudu': { userId: 'seed-dudu', nome: 'Dudu', username: 'dudutattoo', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-bruno': { userId: 'seed-bruno', nome: 'Bruno', username: 'brn_move', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-felipe': { userId: 'seed-felipe', nome: 'Felipe', username: 'felipecardio', avatarId: 'heart', avatarEmoji: '❤️' },
+  'seed-diego': { userId: 'seed-diego', nome: 'Diego', username: 'diego_runs', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-andre': { userId: 'seed-andre', nome: 'André', username: 'andre_74', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-marcelo': { userId: 'seed-marcelo', nome: 'Marcelo', username: 'celomove', avatarId: 'rocket', avatarEmoji: '🚀' },
+  'seed-fernanda': { userId: 'seed-fernanda', nome: 'Fernanda', username: 'fe_noite', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-camila': { userId: 'seed-camila', nome: 'Camila', username: 'camila_fit', avatarId: 'heart', avatarEmoji: '❤️' },
+  'seed-pedro': { userId: 'seed-pedro', nome: 'Pedro', username: 'pedro_ink', avatarId: 'ink', avatarEmoji: '🖋️' },
+  'seed-rafa': { userId: 'seed-rafa', nome: 'Rafa', username: 'rafarun', avatarId: 'leaf', avatarEmoji: '🍃' },
+  'seed-henrique': { userId: 'seed-henrique', nome: 'Henrique', username: 'rickpace', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-carlos': { userId: 'seed-carlos', nome: 'Carlos', username: 'carloscwb', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-rodrigo': { userId: 'seed-rodrigo', nome: 'Rodrigo', username: 'rodri_85', avatarId: 'sensor', avatarEmoji: '📡' },
+  'seed-daniel': { userId: 'seed-daniel', nome: 'Daniel', username: 'dan_ontrack', avatarId: 'rocket', avatarEmoji: '🚀' },
+  'seed-marina': { userId: 'seed-marina', nome: 'Marina', username: 'marina_lua', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-ricardo': { userId: 'seed-ricardo', nome: 'Ricardo', username: 'ricao_sp', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-leandro': { userId: 'seed-leandro', nome: 'Leandro', username: 'leo_tri', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-gustavo': { userId: 'seed-gustavo', nome: 'Gustavo', username: 'gustavo77', avatarId: 'star', avatarEmoji: '⭐' },
+  'seed-joao': { userId: 'seed-joao', nome: 'João', username: 'joaotattoo', avatarId: 'rocket', avatarEmoji: '🚀' },
+  'seed-thiago': { userId: 'seed-thiago', nome: 'Thiago', username: 'tgsport', avatarId: 'heart', avatarEmoji: '❤️' },
+  'seed-lucas': { userId: 'seed-lucas', nome: 'Lucas', username: 'lucas_amz', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-eduardo': { userId: 'seed-eduardo', nome: 'Eduardo', username: 'dudu_clock', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-alex': { userId: 'seed-alex', nome: 'Alex', username: 'alex_rn', avatarId: 'leaf', avatarEmoji: '🍃' },
+  'seed-vini': { userId: 'seed-vini', nome: 'Vini', username: 'vinilabs', avatarId: 'sensor', avatarEmoji: '📡' },
+  'seed-gabriel': { userId: 'seed-gabriel', nome: 'Gabriel', username: 'gab_works', avatarId: 'rocket', avatarEmoji: '🚀' },
+  'seed-ana': { userId: 'seed-ana', nome: 'Ana', username: 'aninha_w', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-marcos': { userId: 'seed-marcos', nome: 'Marcos', username: 'mk_run', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-juliana': { userId: 'seed-juliana', nome: 'Júlia', username: 'julia_ink', avatarId: 'sun', avatarEmoji: '☀️' },
+  'seed-leo': { userId: 'seed-leo', nome: 'Léo', username: 'leozinho88', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-renato': { userId: 'seed-renato', nome: 'Renato', username: 'renatozero', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-patricia': { userId: 'seed-patricia', nome: 'Patrícia', username: 'pat_track', avatarId: 'heart', avatarEmoji: '❤️' },
+  'seed-fernando': { userId: 'seed-fernando', nome: 'Fernando', username: 'nando_22', avatarId: 'rocket', avatarEmoji: '🚀' },
+  'seed-jordan': { userId: 'seed-jordan', nome: 'Jordan', username: 'jord_watch', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-jeff': { userId: 'seed-jeff', nome: 'Jeff', username: 'jeff_runs', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-hunt': { userId: 'seed-hunt', nome: 'Hunt', username: 'huntmetrics', avatarId: 'sensor', avatarEmoji: '📡' },
+  'seed-writer': { userId: 'seed-writer', nome: 'Writer', username: 'nightwriter', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-huck': { userId: 'seed-huck', nome: 'Huck', username: 'huckfit', avatarId: 'heart', avatarEmoji: '❤️' },
+  'seed-moth': { userId: 'seed-moth', nome: 'Moth', username: 'mothsignal', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-omens': { userId: 'seed-omens', nome: 'Omens', username: 'omens_90', avatarId: 'star', avatarEmoji: '⭐' },
+  'seed-syrup': { userId: 'seed-syrup', nome: 'Syrup', username: 'syrupwatch', avatarId: 'watch', avatarEmoji: '⌚' },
+  'seed-edurunner': { userId: 'seed-edurunner', nome: 'Edu Runner', username: 'edurunner', avatarId: 'bolt', avatarEmoji: '⚡' },
+  'seed-malu': { userId: 'seed-malu', nome: 'Malu', username: 'malu_tat', avatarId: 'star', avatarEmoji: '⭐' },
+  'seed-pri': { userId: 'seed-pri', nome: 'Pri', username: 'pri_ink', avatarId: 'leaf', avatarEmoji: '🍃' },
   'seed-bela': { userId: 'seed-bela', nome: 'Bela', username: 'bela_sp', avatarId: 'star', avatarEmoji: '⭐' },
+  'seed-marcinha': { userId: 'seed-marcinha', nome: 'Marcinha', username: 'marcinha', avatarId: 'heart', avatarEmoji: '❤️' },
   'seed-rick': { userId: 'seed-rick', nome: 'Rick Souza', username: 'ricksouza', avatarId: 'sensor', avatarEmoji: '📡' },
   'seed-nati': { userId: 'seed-nati', nome: 'Nati', username: 'natiink', avatarId: 'gem', avatarEmoji: '💎' },
-  'seed-leo': { userId: 'seed-leo', nome: 'Léo', username: 'leozinho88', avatarId: 'moon', avatarEmoji: '🌙' },
-  'seed-pri': { userId: 'seed-pri', nome: 'Pri', username: 'pri_sleeve', avatarId: 'leaf', avatarEmoji: '🍃' },
-  'seed-juliana': { userId: 'seed-juliana', nome: 'Júlia', username: 'julia_ink', avatarId: 'sun', avatarEmoji: '☀️' },
   'seed-raf': { userId: 'seed-raf', nome: 'Rafael', username: 'raf_monkey', avatarId: 'leaf', avatarEmoji: '🍃' },
-  'seed-ana': { userId: 'seed-ana', nome: 'Ana', username: 'aninha_w', avatarId: 'moon', avatarEmoji: '🌙' },
-  'seed-edu': {
-    userId: 'seed-edu',
-    nome: 'Edu',
-    username: 'edu_sensor',
-    avatarId: 'sensor',
-    avatarEmoji: '📡',
-    isSuperCollaborator: true
-  },
-  'seed-diego': { userId: 'seed-diego', nome: 'Diego', username: 'diego_runs', avatarId: 'bolt', avatarEmoji: '⚡' },
-  'seed-malu': { userId: 'seed-malu', nome: 'Malu', username: 'malu_tat', avatarId: 'star', avatarEmoji: '⭐' },
-  'seed-camila': { userId: 'seed-camila', nome: 'Camila', username: 'camila_fit', avatarId: 'heart', avatarEmoji: '❤️' },
-  'seed-chris': {
-    userId: 'seed-chris',
-    nome: 'Chris',
-    username: 'chris_ink',
-    avatarId: 'rocket',
-    avatarEmoji: '🚀',
-    isSuperCollaborator: true
-  },
   'seed-lu': { userId: 'seed-lu', nome: 'Lu', username: 'lu_tatto', avatarId: 'leaf', avatarEmoji: '🍃' },
-  'seed-joao': { userId: 'seed-joao', nome: 'João', username: 'joaotattoo', avatarId: 'rocket', avatarEmoji: '🚀' },
   'seed-rita': { userId: 'seed-rita', nome: 'Rita', username: 'rita_fit', avatarId: 'heart', avatarEmoji: '❤️' },
-  'seed-simo': { userId: 'seed-simo', nome: 'Simone', username: 'simo_run', avatarId: 'moon', avatarEmoji: '🌙' }
+  'seed-simo': { userId: 'seed-simo', nome: 'Simone', username: 'simo_run', avatarId: 'moon', avatarEmoji: '🌙' },
+  'seed-chris': { userId: 'seed-chris', nome: 'TechRunner', username: 'techrunner', avatarId: 'rocket', avatarEmoji: '🚀', isSuperCollaborator: true },
+  'seed-edu': { userId: 'seed-edu', nome: 'SensorGuru', username: 'sensorguru', avatarId: 'sensor', avatarEmoji: '📡', isSuperCollaborator: true }
 };
 
 function remapSeedAuthor(author) {
@@ -478,339 +500,7 @@ function mergeSeedLangPacks(pt, en, it) {
 function seedPayload() {
   const baseDate = new Date('2025-12-25T12:00:00-03:00');
   const iso = (minsAgo) => new Date(baseDate.getTime() - minsAgo * 60000 * 7).toISOString();
-  const A = SEED_AUTHORS;
-
-  const pt = [
-    {
-      title: 'Apple Watch pedindo senha no pulso tatuado',
-      body: 'Tenho uma tattoo escura na região do sensor. O relógio trava a tela, pede senha de novo e some as notificações. Já tentei adesivo, esmalte transparente, pulseira mais apertada e trocar de pulso, mas o problema volta.',
-      tags: ['apple-watch', 'senha', 'detecao', 'tattoo'],
-      author: { ...A['seed-guga'] },
-      createdAt: iso(60 * 52),
-      replies: [
-        { body: 'Eu passei pelo mesmo. O watch “não enxerga” que estou usando, e o Apple Pay começa a falhar. Não é só o ajuste da pulseira.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
-        { body: 'No meu caso, o problema piora com suor e tinta mais densa. Qualquer solução improvisada ajuda só por pouco tempo.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
-        { body: 'Às vezes o sensor perde estabilidade quando o tatuagem está muito escuro. Não adianta só apertar o relógio.', author: { ...A['seed-lu'] }, createdAt: iso(60 * 28) },
-        officialReply('Essa é uma situação bem clássica: a tinta escura muda a reflexão da luz e o sensor deixa de ler o pulso com estabilidade. Quando isso acontece, o relógio passa a agir como se tivesse perdido contato e pede senha/Apple Pay. A solução mais consistente aqui é o Sensor Tattoo Fix, que melhora a interface óptica na área do sensor e restaura a leitura. Se quiser, me diga o modelo do seu Apple Watch e eu te ajudo a avaliar a compatibilidade. 🖤', iso(60 * 9))
-      ]
-    },
-    {
-      title: 'Treino parando sozinho na corrida',
-      body: 'Começo a corrida e o Apple Watch pausa sozinho depois de alguns minutos. O comportamento aparece principalmente quando a tattoo fica bem escura sob o sensor. Eu já tentei fita, pulseira mais apertada e usar no outro braço, mas nada resolveu de verdade.',
-      tags: ['apple-watch', 'treino', 'corrida', 'autopause'],
-      author: { ...A['seed-kai'] },
-      createdAt: iso(60 * 86),
-      replies: [
-        { body: 'Eu fiquei meses assim. O watch achava que eu tinha tirado o pulso e fingia que a corrida tinha parado.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 73) },
-        { body: 'O problema é mais de leitura do sensor do que de pulseira. Quando a tinta muda o retorno da luz, a detecção de pulso fica instável em movimento.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 64) },
-        officialReply('Isso é exatamente o tipo de caso em que o Sensor Tattoo Fix faz sentido. A solução improvisada (adesivo, fita, ajuste de pulseira) pode aliviar por pouco tempo, mas a forma mais consistente de parar as pausas fantasma é melhorar a leitura do sensor na região do pulso. Se quiser, me manda o modelo do relógio e eu te digo se a compatibilidade é boa. 🏃‍♂️', iso(60 * 54))
-      ]
-    },
-    {
-      title: 'FC inventando 180 bpm em repouso',
-      body: 'O relógio marca 180+ bpm em repouso ou fica mostrando “—”, mesmo quando eu estou sentado. No outro pulso, sem tattoo, a leitura volta ao normal. Eu queria saber se isso é só um problema de sensor ou se existe uma correção real.',
-      tags: ['apple-watch', 'fc', 'bpm', 'tattoo'],
-      author: { ...A['seed-dudu'] },
-      createdAt: iso(60 * 120),
-      replies: [
-        { body: 'No meu também. Eu achei que era o suor, mas o problema foi a leitura mesmo.', author: { ...A['seed-guga'] }, createdAt: iso(60 * 106) },
-        { body: 'O que costuma acontecer é a curva do pulso virar inconsistente e o algoritmo começar a inventar valores.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 92) },
-        officialReply('Quando a tinta é densa, o sensor recebe um sinal mais confuso e o algoritmo pode “inventar” frequências erradas. O Sensor Tattoo Fix cria uma interface mais estável entre o sensor e a pele, e isso é o que costuma corrigir esse tipo de leitura. Se quiser, eu posso te ajudar a olhar o modelo do seu relógio e a compatibilidade. 🖤', iso(60 * 78))
-      ]
-    },
-    {
-      title: 'Apple Pay e Google Wallet pararam no mesmo pulso',
-      body: 'Eu estava usando Apple Pay e Google Wallet sem problema, mas de um tempo pra cá o relógio deixou de reconhecer o pulso direito. Não era a carteira e nem a pulseira; parecia que o contato estava instável o tempo todo.',
-      tags: ['apple-pay', 'google-wallet', 'pagamento', 'tattoo'],
-      author: { ...A['seed-malu'] },
-      createdAt: iso(60 * 150),
-      replies: [
-        { body: 'Isso costuma acontecer quando a leitura do pulso fica errada. O watch pensa que o contato não está bom e trava tudo.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 138) },
-        officialReply('Exato. Quando o sensor perde estabilidade, o pagamento por aproximação costuma ser o primeiro a dar problema. O Sensor Tattoo Fix é a solução que mais faz sentido nesse cenário porque melhora a leitura na área do sensor e restaura a confiança do watch no contato. Se quiser, me diga o modelo do seu wearable. 🖤', iso(60 * 126))
-      ]
-    },
-    {
-      title: 'Samsung/Garmin/Huawei: “relógio solto” ou “não detectado”',
-      body: 'Estou usando um Samsung, um Garmin e até um Huawei no mesmo pulso tatuado. Em todos eles o problema é parecido: o relógio diz que está solto ou que não detectou o pulso, mesmo com a pulseira apertada.',
-      tags: ['samsung', 'garmin', 'huawei', 'detecao'],
-      author: { ...A['seed-marcinha'] },
-      createdAt: iso(60 * 178),
-      replies: [
-        { body: 'Eu também passei por isso. A leitura parecia instável mesmo quando o relógio estava bem no lugar.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 166) },
-        officialReply('Esse é um sintoma clássico de leitura óptica instável. A tinta muda como a luz volta para o sensor, e diferentes marcas acabam interpretando isso como “solto”, “sem contato” ou “não detectado”. O Sensor Tattoo Fix é a solução mais consistente para estabilizar essa leitura. Se você quiser, eu posso te orientar pelo modelo exato do seu relógio. 🖤', iso(60 * 154))
-      ]
-    },
-    {
-      title: 'Monitor de sono falhando no pulso tatuado',
-      body: 'Meu relógio não registra o sono direito no pulso tatuado, ou marca só 1–2 horas. No outro braço funciona normalmente. Já limpei o sensor e tentei mudar de posição, mas não adianta.',
-      tags: ['sono', 'monitoramento', 'tattoo', 'sleep'],
-      author: { ...A['seed-rita'] },
-      createdAt: iso(60 * 202),
-      replies: [
-        { body: 'Também passei por isso. O sensor perdia contato durante a noite e perdia todas as horas.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 190) },
-        { body: 'Pode ser que a luz esteja voltando errado na tinta. Apertar o relógio não resolve.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 182) },
-        officialReply('O monitoramento do sono depende de um sinal estável do sensor por várias horas. Se o pulso tatuado gera um retorno irregular, o relógio perde horas ou registra mal. Sensor Tattoo Fix ajuda a estabilizar essa leitura e torna o tracking mais confiável. 🖤', iso(60 * 170))
-      ]
-    },
-    {
-      title: 'Avisos cardíacos falsos em repouso',
-      body: 'Meu relógio avisa de ritmo irregular ou batimento alto enquanto estou sentado e tranquilo. No outro pulso sem tattoo isso não acontece. Será que é problema de sensor?',
-      tags: ['cardio', 'avisos', 'ritmo', 'tattoo'],
-      author: { ...A['seed-simo'] },
-      createdAt: iso(60 * 232),
-      replies: [
-        { body: 'Também recebi esses avisos falsos. Parecia começar com leituras erradas do sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 220) },
-        { body: 'O software interpreta o sinal barulhento como um coração irregular.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 208) },
-        officialReply('Os avisos falsos são comuns quando o sensor recebe um sinal distorcido do tatuagem. Sensor Tattoo Fix torna o retorno da luz mais consistente e diminui os falsos alarmes. Se quiser, posso ajudar a ver como melhorar a leitura no seu modelo. 🖤', iso(60 * 196))
-      ]
-    },
-    {
-      title: 'Notificações e chamadas desaparecem no pulso tatuado',
-      body: 'Às vezes meu relógio para de mostrar notificações e parece que as chamadas não chegam. Parece que o dispositivo perde contato com meu pulso.',
-      tags: ['notificacoes', 'chamadas', 'tattoo', 'contato'],
-      author: { ...A['seed-lu'] },
-      createdAt: iso(60 * 256),
-      replies: [
-        { body: 'É como se o relógio pensasse que foi tirado. Só resolve quando a leitura do sensor melhora.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 244) },
-        { body: 'Tenta não usar um pulso muito folgado, mas o problema real está na leitura óptica.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 232) },
-        officialReply('Quando o sensor perde estabilidade, as notificações e chamadas podem parecer ausentes porque o relógio não reconhece o pulso corretamente. Sensor Tattoo Fix ajuda a restaurar o contato óptico e estabiliza as notificações. 🖤', iso(60 * 220))
-      ]
-    },
-    {
-      title: 'App de treino não inicia no pulso tatuado',
-      body: 'Quando vou iniciar um treino, o relógio pede para posicionar melhor ou diz que o sensor não está em contato. No outro braço funciona, mas no tatuado não.',
-      tags: ['treino', 'app', 'sensor', 'tattoo'],
-      author: { ...A['seed-diego'] },
-      createdAt: iso(60 * 280),
-      replies: [
-        { body: 'Também acontece comigo quando o tatuagem é muito escuro. O relógio bloqueia antes de começar.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 268) },
-        { body: 'É um problema de leitura antes de ser um problema do app: se o sensor não vê o pulso, o treino não começa.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 256) },
-        officialReply('Se o relógio não inicia o treino no pulso tatuado, o problema é a estabilidade do sinal óptico. Sensor Tattoo Fix torna o contato mais confiável e ajuda o app a reconhecer corretamente o movimento. 🖤', iso(60 * 244))
-      ]
-    }
-  ].map((t) => ({ ...t, lang: 'pt' }));
-
-  const en = [
-    {
-      title: 'Apple Watch keeps asking for my passcode on a tattooed wrist',
-      body: 'I have dark ink right where the sensor sits. The watch locks, asks for my passcode again, and notifications disappear. I tried stickers, clear nail polish, a tighter band, and switching wrists, but the problem keeps coming back.',
-      tags: ['apple-watch', 'passcode', 'detection', 'tattoo'],
-      author: { ...A['seed-guga'] },
-      createdAt: iso(60 * 52),
-      replies: [
-        { body: 'Same here. The watch stops “seeing” that I am wearing it, and Apple Pay starts failing. It is not just a band issue.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
-        { body: 'For me it gets worse with sweat and denser ink. Any workaround helps only for a while.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
-        { body: 'Sometimes the problem is that the sensor loses stability when the tattoo is really dark. It is not enough to just tighten the band.', author: { ...A['seed-lu'] }, createdAt: iso(60 * 28) },
-        officialReply('This is a classic case: dark ink changes how light reflects back to the sensor, so the watch reads the wrist as unstable and starts asking for a passcode or blocking Apple Pay. The most consistent fix is Sensor Tattoo Fix, which improves the optical interface at the sensor area and restores reliable reading. If you want, send the Apple Watch model and I can help check compatibility. 🖤', iso(60 * 9))
-      ]
-    },
-    {
-      title: 'Workout pausing by itself during a run',
-      body: 'I start a run and the Apple Watch pauses on its own after a few minutes. It happens most when the tattoo is very dark under the sensor. I tried tape, a tighter band, and using the other wrist, but nothing really solved it.',
-      tags: ['apple-watch', 'workout', 'running', 'pause'],
-      author: { ...A['seed-kai'] },
-      createdAt: iso(60 * 86),
-      replies: [
-        { body: 'I had this for months. The watch acted like I had taken it off and paused the workout for no reason.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 73) },
-        { body: 'It is more a sensor-read issue than a band issue. When the ink changes the light return, pulse detection becomes unstable while moving.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 64) },
-        officialReply('That is exactly the kind of case where Sensor Tattoo Fix makes sense. Quick fixes like tape, stickers, or band adjustments can help temporarily, but the most consistent way to stop the phantom pauses is to improve the sensor reading at the wrist. If you want, send the model and I can help check compatibility. 🏃‍♂️', iso(60 * 54))
-      ]
-    },
-    {
-      title: 'Heart rate inventing 180 bpm at rest',
-      body: 'The watch shows 180+ bpm at rest or just “—”, even when I am sitting still. On the other wrist with no tattoo, the reading goes back to normal. I wanted to know if this is just a sensor problem or if there is a real fix.',
-      tags: ['apple-watch', 'heart-rate', 'bpm', 'tattoo'],
-      author: { ...A['seed-dudu'] },
-      createdAt: iso(60 * 120),
-      replies: [
-        { body: 'Same thing happens to me. I thought it was sweat, but the issue was the reading itself.', author: { ...A['seed-guga'] }, createdAt: iso(60 * 106) },
-        { body: 'What usually happens is the pulse curve becomes inconsistent and the algorithm starts inventing values.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 92) },
-        officialReply('When the ink is dense, the sensor gets a more confusing signal and the algorithm may invent bad readings. Sensor Tattoo Fix creates a more stable optical interface between the sensor and the skin, and that is what usually corrects this. If you want, I can help you check the watch model and compatibility. 🖤', iso(60 * 78))
-      ]
-    },
-    {
-      title: 'Apple Pay and Google Wallet stopped working on the same wrist',
-      body: 'I was using Apple Pay and Google Wallet fine, but over time the watch stopped recognizing the wrist properly. It was not the wallet or the band; it felt like the contact was unstable all the time.',
-      tags: ['apple-pay', 'google-wallet', 'payment', 'tattoo'],
-      author: { ...A['seed-malu'] },
-      createdAt: iso(60 * 150),
-      replies: [
-        { body: 'That is what usually happens when the pulse reading is off. The watch thinks the contact is not good and blocks everything.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 138) },
-        officialReply('Exactly. When the sensor loses stability, contactless payment is often the first thing to break. Sensor Tattoo Fix is the most sensible solution here because it improves the readout at the sensor area and restores confidence in the contact. If you want, tell me the wearable model. 🖤', iso(60 * 126))
-      ]
-    },
-    {
-      title: 'Samsung/Garmin/Huawei: “watch is loose” or “not detected”',
-      body: 'I am using a Samsung, a Garmin, and even a Huawei on the same tattooed wrist. All of them show the same thing: the watch says it is loose or not detected, even when the band is snug.',
-      tags: ['samsung', 'garmin', 'huawei', 'detection'],
-      author: { ...A['seed-marcinha'] },
-      createdAt: iso(60 * 178),
-      replies: [
-        { body: 'I had the same story. The reading felt unstable even when the watch was sitting in the right place.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 166) },
-        officialReply('That is a classic symptom of unstable optical reading. The tattoo changes how light comes back to the sensor, and different brands interpret that as “loose”, “no contact”, or “not detected”. Sensor Tattoo Fix is the most consistent way to stabilize that reading. If you want, I can guide you by the exact watch model. 🖤', iso(60 * 154))
-      ]
-    },
-    {
-      title: 'Sleep tracking fails on a tattooed wrist',
-      body: 'My watch either does not record sleep at all or shows only 1–2 hours when I sleep with my tattooed wrist. The other wrist records normally. I cleaned the sensor and changed bands, but nothing fixed it.',
-      tags: ['sleep', 'tracking', 'tattoo', 'watch'],
-      author: { ...A['seed-rita'] },
-      createdAt: iso(60 * 202),
-      replies: [
-        { body: 'Same here. It lost the signal during the night and missed all the sleep time.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 190) },
-        { body: 'It can be the light bouncing wrong off the ink. Tightening the band is not enough.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 182) },
-        officialReply('Sleep tracking depends on a stable signal from the sensor for many hours. If the tattoo creates an irregular return, the watch drops hours or records poorly. Sensor Tattoo Fix helps stabilize that reading and makes sleep tracking more reliable. 🖤', iso(60 * 170))
-      ]
-    },
-    {
-      title: 'False heart alerts while resting',
-      body: 'My watch warns me of irregular rhythm or high heart rate while I am sitting still and calm. The other wrist without a tattoo does not do this. Is this a real problem or a sensor issue?',
-      tags: ['heart-rate', 'alerts', 'tattoo', 'rest'],
-      author: { ...A['seed-simo'] },
-      createdAt: iso(60 * 232),
-      replies: [
-        { body: 'I get the same false alerts. It seemed to start with wrong readings from the sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 220) },
-        { body: 'The software interprets the noisy signal as an irregular heartbeat.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 208) },
-        officialReply('False alerts are common when the sensor receives a disturbed signal from a tattooed wrist. Sensor Tattoo Fix makes return light more consistent and reduces false alarms. If you want, I can help you understand how to improve the reading on your model. 🖤', iso(60 * 196))
-      ]
-    },
-    {
-      title: 'Notifications and calls disappear on the tattooed wrist',
-      body: 'Sometimes my watch stops showing notifications and calls appear to be missing. It feels like the device loses contact with my wrist.',
-      tags: ['notifications', 'calls', 'tattoo', 'contact'],
-      author: { ...A['seed-lu'] },
-      createdAt: iso(60 * 256),
-      replies: [
-        { body: 'It is like the watch thinks it was taken off. I only fixed it when the sensor reading improved.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 244) },
-        { body: 'Try not to use a too loose band, but the real issue is optical reading.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 232) },
-        officialReply('When the sensor loses stability, notifications and calls can seem absent because the watch does not recognize the wrist correctly. Sensor Tattoo Fix helps restore optical contact and stabilizes notifications. 🖤', iso(60 * 220))
-      ]
-    },
-    {
-      title: 'Workout app does not start on tattooed wrist',
-      body: 'When I want to start a workout, the watch tells me to position it better or that the sensor is not in contact. It works on the other arm, but not with the tattoo.',
-      tags: ['workout', 'app', 'sensor', 'tattoo'],
-      author: { ...A['seed-diego'] },
-      createdAt: iso(60 * 280),
-      replies: [
-        { body: 'It happens to me too when the tattoo is very dark. The watch blocks before starting.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 268) },
-        { body: 'It is a reading problem before it is an app problem: if the sensor does not see the wrist, the workout will not start.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 256) },
-        officialReply('If the watch refuses to start the workout on your tattooed wrist, the issue is the stability of the optical signal. Sensor Tattoo Fix makes the contact more reliable and helps the app recognize the motion correctly. 🖤', iso(60 * 244))
-      ]
-    }
-  ].map((t) => ({ ...t, lang: 'en' }));
-
-  const it = [
-    {
-      title: 'Apple Watch che chiede il codice sul polso tatuato',
-      body: 'Ho un tatuaggio scuro proprio dove sta il sensore. L’orologio si blocca, chiede di nuovo il codice e le notifiche spariscono. Ho provato adesivi, smalto trasparente, cinturino più stretto e anche cambiare polso, ma il problema torna.',
-      tags: ['apple-watch', 'codice', 'rilevamento', 'tattoo'],
-      author: { ...A['seed-guga'] },
-      createdAt: iso(60 * 52),
-      replies: [
-        { body: 'Anche io. L’orologio smette di “vedere” che lo indosso e Apple Pay comincia a sbagliare. Non è solo un problema di cinturino.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 41) },
-        { body: 'Per me peggiora con sudore e tatuaggi più densi. Ogni workaround aiuta solo per poco.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 33) },
-        { body: 'A volte il problema è che il sensore perde stabilità quando il tatuaggio è molto nero. Non serve solo stringere il cinturino.', author: { ...A['seed-lu'] }, createdAt: iso(60 * 28) },
-        officialReply('È un caso classico: l’inchiostro scuro cambia la riflessione della luce e il sensore smette di leggere il polso in modo stabile. Quando succede, l’orologio inizia a chiedere il codice o a bloccare Apple Pay. La soluzione più coerente qui è Sensor Tattoo Fix, che migliora l’interfaccia ottica nell’area del sensore e ripristina la lettura. Se vuoi, dimmi il modello del tuo Apple Watch e ti aiuto a valutare la compatibilità. 🖤', iso(60 * 9))
-      ]
-    },
-    {
-      title: 'Allenamento che si ferma da solo in corsa',
-      body: 'Inizio la corsa e l’Apple Watch si mette in pausa da solo dopo pochi minuti. Succede soprattutto quando il tatuaggio è molto scuro sotto il sensore. Ho provato nastro, cinturino più stretto e l’altro polso, ma niente ha risolto davvero.',
-      tags: ['apple-watch', 'allenamento', 'corsa', 'pausa'],
-      author: { ...A['seed-kai'] },
-      createdAt: iso(60 * 86),
-      replies: [
-        { body: 'L’ho avuto per mesi. L’orologio faceva finta che l’avessi tolto e fermava l’allenamento senza motivo.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 73) },
-        { body: 'È più un problema di lettura del sensore che di cinturino. Quando l’inchiostro cambia il ritorno della luce, il rilevamento del polso diventa instabile in movimento.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 64) },
-        officialReply('È proprio il tipo di caso in cui Sensor Tattoo Fix ha senso. Le soluzioni rapide come nastro, adesivi o aggiustamenti del cinturino possono aiutare temporaneamente, ma il modo più coerente per fermare le pause fantasma è migliorare la lettura del sensore nella zona del polso. Se vuoi, mandami il modello e ti aiuto a verificare la compatibilità. 🏃‍♂️', iso(60 * 54))
-      ]
-    },
-    {
-      title: 'FC che inventa 180 bpm a riposo',
-      body: 'L’orologio mostra 180+ bpm a riposo oppure “—”, anche quando sono seduto. Sull’altro polso, senza tatuaggio, la lettura torna normale. Volevo capire se è solo un problema di sensore oppure se c’è una soluzione reale.',
-      tags: ['apple-watch', 'fc', 'bpm', 'tattoo'],
-      author: { ...A['seed-dudu'] },
-      createdAt: iso(60 * 120),
-      replies: [
-        { body: 'A me succede la stessa cosa. Ho pensato che fosse il sudore, ma il problema era la lettura.', author: { ...A['seed-guga'] }, createdAt: iso(60 * 106) },
-        { body: 'Quello che di solito succede è che la curva del polso diventa incoerente e l’algoritmo inizia a inventare valori.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 92) },
-        officialReply('Quando l’inchiostro è denso, il sensore riceve un segnale più confuso e l’algoritmo può inventare letture sbagliate. Sensor Tattoo Fix crea un’interfaccia ottica più stabile tra sensore e pelle, e questo è quello che di solito corregge il problema. Se vuoi, ti aiuto a guardare il modello dell’orologio e la compatibilità. 🖤', iso(60 * 78))
-      ]
-    },
-    {
-      title: 'Apple Pay e Google Wallet hanno smesso di funzionare sullo stesso polso',
-      body: 'Usavo Apple Pay e Google Wallet senza problemi, ma col tempo l’orologio ha smesso di riconoscere bene il polso. Non era il portafoglio né il cinturino; sembrava che il contatto fosse instabile tutto il tempo.',
-      tags: ['apple-pay', 'google-wallet', 'pagamento', 'tattoo'],
-      author: { ...A['seed-malu'] },
-      createdAt: iso(60 * 150),
-      replies: [
-        { body: 'Succede spesso quando la lettura del polso è sbagliata. L’orologio pensa che il contatto non sia buono e blocca tutto.', author: { ...A['seed-bela'] }, createdAt: iso(60 * 138) },
-        officialReply('Esatto. Quando il sensore perde stabilità, il pagamento contactless è spesso la prima cosa a rompersi. Sensor Tattoo Fix è la soluzione più sensata qui perché migliora la lettura nell’area del sensore e ripristina il contatto. Se vuoi, dimmi il modello del wearable. 🖤', iso(60 * 126))
-      ]
-    },
-    {
-      title: 'Samsung/Garmin/Huawei: “orologio allentato” o “non rilevato”',
-      body: 'Sto usando un Samsung, un Garmin e perfino un Huawei sullo stesso polso tatuato. Tutti mostrano la stessa cosa: l’orologio dice che è allentato o non rilevato, anche con il cinturino ben stretto.',
-      tags: ['samsung', 'garmin', 'huawei', 'rilevamento'],
-      author: { ...A['seed-marcinha'] },
-      createdAt: iso(60 * 178),
-      replies: [
-        { body: 'Ho avuto la stessa storia. La lettura sembrava instabile anche quando l’orologio era ben posizionato.', author: { ...A['seed-leo'] }, createdAt: iso(60 * 166) },
-        officialReply('È un sintomo classico di lettura ottica instabile. Il tatuaggio cambia il modo in cui la luce torna al sensore, e marchi diversi interpretano questo come “allentato”, “senza contatto” o “non rilevato”. Sensor Tattoo Fix è il modo più coerente per stabilizzare quella lettura. Se vuoi, ti guido io con il modello esatto. 🖤', iso(60 * 154))
-      ]
-    },
-    {
-      title: 'Monitoraggio del sonno non funziona sul polso tatuato',
-      body: 'Il mio orologio non registra il sonno sul polso tatuato, oppure segna solo 1–2 ore. Sull’altro polso senza tattoo funziona normalmente. Ho provato a cambiare posizione e fascia, ma niente cambia.',
-      tags: ['sonno', 'monitoraggio', 'tattoo', 'sleep'],
-      author: { ...A['seed-rita'] },
-      createdAt: iso(60 * 202),
-      replies: [
-        { body: 'A me succedeva lo stesso. Il sensore perdeva il contatto durante la notte e perdeva tutte le ore.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 190) },
-        { body: 'A volte il problema è la luce che rimbalza male sulla pelle tinta. Non basta stringere il cinturino.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 182) },
-        officialReply('Il monitoraggio del sonno dipende muito da leitura estável do sensor durante horas. Se o pulso tatuado gera um sinal irregular, o relógio perde horas ou registra mal. Sensor Tattoo Fix ajuda a estabilizar essa leitura e a tornar o tracking mais confiável. 🖤', iso(60 * 170))
-      ]
-    },
-    {
-      title: 'Avvisi cardiaci falsi durante il riposo',
-      body: 'Il mio orologio segnala ritmo cardiaco irregolare o battito veloce mentre sto seduto e rilassato. Sull’altro polso senza tattoo non succede. Cosa può essere?',
-      tags: ['cardio', 'avvisi', 'ritmo', 'tattoo'],
-      author: { ...A['seed-simo'] },
-      createdAt: iso(60 * 232),
-      replies: [
-        { body: 'Mi è successo anche a me. Il problema sembrava partire dalle letture sbagliate del sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60 * 220) },
-        { body: 'Il software interpreta il segnale nervoso come un battito irregolare quando la luce torna male.', author: { ...A['seed-dudu'] }, createdAt: iso(60 * 208) },
-        officialReply('Gli avvisi falsi sono frequenti quando il sensore riceve un segnale disturbato dal tatuaggio. Sensor Tattoo Fix rende il ritorno della luce più consistente e diminuisce i falsi allarmi. Se vuoi, ti aiuto a capire come migliorare la lettura sul tuo modello. 🖤', iso(60 * 196))
-      ]
-    },
-    {
-      title: 'Notifiche e chiamate spariscono sul polso tatuato',
-      body: 'A volte il mio orologio non mostra più le notifiche e le chiamate sembrano non arrivare. Sembra quasi che il dispositivo perda il contatto col polso.',
-      tags: ['notifiche', 'chiamate', 'tattoo', 'contatto'],
-      author: { ...A['seed-lu'] },
-      createdAt: iso(60 * 256),
-      replies: [
-        { body: 'È come se il watch pensasse che fosse stato tolto. Io ho risolto só quando migliorou a leitura do sensor.', author: { ...A['seed-ana'] }, createdAt: iso(60 * 244) },
-        { body: 'Prova a non usare cinturino troppo largo, ma o problema real está na leitura ótica.', author: { ...A['seed-joao'] }, createdAt: iso(60 * 232) },
-        officialReply('Quando o sensor perde estabilidade, as notificações e chamadas podem parecer ausentes porque o relógio não reconhece o pulso corretamente. Sensor Tattoo Fix ajuda a restaurar o contato óptico e estabiliza as notifiche. 🖤', iso(60 * 220))
-      ]
-    },
-    {
-      title: 'L’app allenamento non parte sul polso tatuato',
-      body: 'Quando voglio iniziare un allenamento, l’orologio mi dice che devo posizionarlo meglio o che il sensore non è a contatto. Col braccio libero funziona, ma col tatuaggio no.',
-      tags: ['allenamento', 'app', 'sensore', 'tattoo'],
-      author: { ...A['seed-diego'] },
-      createdAt: iso(60 * 280),
-      replies: [
-        { body: 'Succede anche a me quando il tatuaggio è davvero scuro. L’orologio si blocca prima di partire.', author: { ...A['seed-malu'] }, createdAt: iso(60 * 268) },
-        { body: 'È un problema di lettura prima che di app: se il sensore non vede il polso, l’allenamento non parte.', author: { ...A['seed-pri'] }, createdAt: iso(60 * 256) },
-        officialReply('Se il watch non avvia l’allenamento sul polso tatuato, il problema è la stabilità del segnale ottico. Sensor Tattoo Fix rende il contatto più affidabile e aiuta l’app a riconoscere correttamente il gesto. 🖤', iso(60 * 244))
-      ]
-    }
-  ].map((t) => ({ ...t, lang: 'it' }));
-
-  // One topic × translations — never publish 3 clone threads.
+  const { pt, en, it } = buildForumSeedLangPacks({ A: SEED_AUTHORS, officialReply, iso });
   return mergeSeedLangPacks(pt, en, it);
 }
 
@@ -1009,8 +699,8 @@ async function ensureForumPublic(env) {
   return next;
 }
 
-const SEED_AUTHORS_VERSION = 6;
-const SEED_CONTENT_VERSION = 15;
+const SEED_AUTHORS_VERSION = 7;
+const SEED_CONTENT_VERSION = 17;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
