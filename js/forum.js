@@ -587,7 +587,7 @@
     function renderReplies(items) {
       if (!items.length) return `<p class="admin-meta">${escapeHtml(ft('noReplies'))}</p>`;
       return items.map((r) => {
-        const actions = `<button type="button" class="btn-secondary forum-reply-action" data-reply-id="${escapeHtml(r.id)}" data-reply-username="${escapeHtml(r.author?.username || '')}">${escapeHtml(ft('reply'))}</button>`;
+        const actions = `<button type="button" class="forum-reply-action" data-reply-id="${escapeHtml(r.id)}" data-reply-username="${escapeHtml(r.author?.username || '')}">${escapeHtml(ft('reply'))}</button>`;
         const children = r.children && r.children.length
           ? `<div class="forum-reply-children">${renderReplies(r.children)}</div>`
           : '';
