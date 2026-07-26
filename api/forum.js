@@ -700,7 +700,7 @@ async function ensureForumPublic(env) {
 }
 
 const SEED_AUTHORS_VERSION = 7;
-const SEED_CONTENT_VERSION = 17;
+const SEED_CONTENT_VERSION = 18;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
