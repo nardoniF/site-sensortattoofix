@@ -2524,33 +2524,29 @@ ${worksheets}
         </div>
         <div class="forum-admin-thread-list">
           ${threads.map((th) => {
-            const replies = (th.replies || []).map((r) => `
+            const replyBlocks = (th.replies || []).map((r) => `
               <div class="forum-admin-reply" data-forum-reply-wrap="${escapeHtml(th.id)}" data-reply-id="${escapeHtml(r.id)}">
                 <div class="forum-admin-reply-meta"><strong>@${escapeHtml(r.author?.username || '')}</strong> · ${escapeHtml(r.status)} · ${escapeHtml(formatCustomerDate(r.createdAt))}</div>
-                <div class="forum-admin-reply-view" data-forum-reply-view>
-                  <div class="forum-admin-reply-body">${escapeHtml(r.body || '')}</div>
-                  <div class="forum-admin-actions forum-admin-actions--inline">
-                    ${r.status === 'pending' ? `
-                      <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
-                      <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
-                    ` : r.status === 'rejected' ? `
-                      <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
-                    ` : `
-                      <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
-                    `}
-                    <button type="button" class="btn-secondary" data-forum-edit-reply="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Editar resposta</button>
-                    <button type="button" class="btn-danger-outline" data-forum-reply-delete="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}"><i class="fas fa-trash-alt"></i> Excluir</button>
-                  </div>
+                <div class="forum-admin-reply-body">${escapeHtml(r.body || '')}</div>
+                <div class="forum-admin-actions forum-admin-actions--inline">
+                  ${r.status === 'pending' ? `
+                    <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+                    <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+                  ` : r.status === 'rejected' ? `
+                    <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+                  ` : `
+                    <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+                  `}
+                  <button type="button" class="btn-danger-outline" data-forum-reply-delete="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}"><i class="fas fa-trash-alt"></i> Excluir</button>
                 </div>
-                <div class="forum-admin-inline-edit" data-forum-reply-edit hidden>
-                  <label>Resposta
-                    <textarea data-edit-body rows="6">${escapeHtml(r.body || '')}</textarea>
-                  </label>
-                  <div class="forum-admin-actions forum-admin-actions--inline">
-                    <button type="button" class="btn-primary" data-forum-save-reply>Salvar</button>
-                    <button type="button" class="btn-secondary" data-forum-cancel-reply>Cancelar</button>
-                  </div>
-                </div>
+              </div>
+            `).join('');
+            const editReplyBlocks = (th.replies || []).map((r) => `
+              <div class="forum-admin-edit-reply" data-edit-reply-id="${escapeHtml(r.id)}">
+                <div class="forum-admin-edit-reply-meta"><strong>@${escapeHtml(r.author?.username || '')}</strong> · ${escapeHtml(r.status)}</div>
+                <label>Resposta
+                  <textarea data-edit-reply-body rows="5">${escapeHtml(r.body || '')}</textarea>
+                </label>
               </div>
             `).join('');
             const pendingReplyCount = (th.replies || []).filter((r) => r.status === 'pending').length;
@@ -2583,23 +2579,29 @@ ${worksheets}
                       ` : `
                         <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
                       `}
-                      <button type="button" class="btn-secondary" data-forum-edit-thread="${escapeHtml(th.id)}">Editar tópico</button>
+                      <button type="button" class="btn-secondary" data-forum-edit-thread="${escapeHtml(th.id)}">Editar tópico inteiro</button>
                       <button type="button" class="btn-danger-outline" data-forum-delete="${escapeHtml(th.id)}"><i class="fas fa-trash-alt"></i> Excluir tópico</button>
                     </div>
+                    ${replyBlocks
+                      ? `<div class="forum-admin-replies" data-forum-replies-view><div class="forum-admin-replies-title">Respostas</div>${replyBlocks}</div>`
+                      : '<div class="forum-admin-empty" data-forum-replies-view>Sem respostas ainda.</div>'}
                   </div>
                   <div class="forum-admin-inline-edit" data-forum-thread-edit hidden>
+                    <p class="admin-meta" style="margin:0">Edite título, texto e todas as respostas abaixo. Um único Salvar grava o tópico inteiro.</p>
                     <label>Título
                       <input data-edit-title type="text" maxlength="120" value="${escapeHtml(th.title || '')}">
                     </label>
-                    <label>Texto
+                    <label>Texto do tópico
                       <textarea data-edit-body rows="8">${escapeHtml(th.body || '')}</textarea>
                     </label>
-                    <div class="forum-admin-actions">
-                      <button type="button" class="btn-primary" data-forum-save-thread>Salvar</button>
+                    ${(th.replies || []).length
+                      ? `<div class="forum-admin-edit-replies"><div class="forum-admin-replies-title">Respostas (${(th.replies || []).length})</div>${editReplyBlocks}</div>`
+                      : ''}
+                    <div class="forum-admin-actions forum-admin-edit-actions-sticky">
+                      <button type="button" class="btn-primary" data-forum-save-thread>Salvar tópico inteiro</button>
                       <button type="button" class="btn-secondary" data-forum-cancel-thread>Cancelar</button>
                     </div>
                   </div>
-                  ${replies ? `<div class="forum-admin-replies"><div class="forum-admin-replies-title">Respostas</div>${replies}</div>` : '<div class="forum-admin-empty">Sem respostas ainda.</div>'}
                 </div>
               </details>`;
           }).join('')}
@@ -2637,23 +2639,6 @@ ${worksheets}
     root.querySelectorAll('[data-forum-reply-delete]').forEach((btn) => {
       btn.addEventListener('click', () => deleteForumReply(btn.getAttribute('data-forum-reply-delete'), btn.getAttribute('data-reply')));
     });
-    root.querySelectorAll('[data-forum-edit-reply]').forEach((btn) => {
-      btn.addEventListener('click', () => startForumReplyEdit(btn.getAttribute('data-forum-edit-reply'), btn.getAttribute('data-reply')));
-    });
-    root.querySelectorAll('[data-forum-cancel-reply]').forEach((btn) => {
-      btn.addEventListener('click', () => cancelForumReplyEdit(btn.closest('[data-reply-id]')));
-    });
-    root.querySelectorAll('[data-forum-save-reply]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const wrap = btn.closest('[data-reply-id]');
-        const panel = wrap?.querySelector('[data-forum-reply-edit]');
-        saveForumReplyEdit(
-          wrap?.getAttribute('data-forum-reply-wrap'),
-          wrap?.getAttribute('data-reply-id'),
-          panel
-        );
-      });
-    });
   }
 
   function startForumThreadEdit(id) {
@@ -2669,10 +2654,14 @@ ${worksheets}
       const bodyInput = panel.querySelector('[data-edit-body]');
       if (titleInput) titleInput.value = th.title || '';
       if (bodyInput) bodyInput.value = th.body || '';
+      (th.replies || []).forEach((r) => {
+        const box = panel.querySelector(`[data-edit-reply-id="${CSS.escape(r.id)}"] [data-edit-reply-body]`);
+        if (box) box.value = r.body || '';
+      });
     }
     view.hidden = true;
     panel.hidden = false;
-    panel.querySelector('[data-edit-body]')?.focus();
+    panel.querySelector('[data-edit-title]')?.focus();
   }
 
   function cancelForumThreadEdit(card) {
@@ -2693,72 +2682,32 @@ ${worksheets}
       alert('Título e texto são obrigatórios.');
       return;
     }
+    const replies = [];
+    panel.querySelectorAll('[data-edit-reply-id]').forEach((box) => {
+      const replyId = box.getAttribute('data-edit-reply-id');
+      const replyBody = String(box.querySelector('[data-edit-reply-body]')?.value || '').trim();
+      if (!replyId || !replyBody) return;
+      replies.push({ id: replyId, body: replyBody });
+    });
+    const emptyReply = Array.from(panel.querySelectorAll('[data-edit-reply-id]')).find((box) => {
+      return !String(box.querySelector('[data-edit-reply-body]')?.value || '').trim();
+    });
+    if (emptyReply) {
+      alert('Nenhuma resposta pode ficar vazia. Apague a resposta se não quiser manter.');
+      emptyReply.querySelector('[data-edit-reply-body]')?.focus();
+      return;
+    }
     const submitBtn = panel.querySelector('[data-forum-save-thread]');
     if (submitBtn) submitBtn.disabled = true;
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body })
+        body: JSON.stringify({ title, body, replies })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         alert(data.error || 'Erro ao editar tópico');
-        return;
-      }
-      await loadForumAdmin();
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
-    }
-  }
-
-  function startForumReplyEdit(threadId, replyId) {
-    const wrap = document.querySelector(
-      `#forum-admin-root [data-forum-reply-wrap="${CSS.escape(threadId)}"][data-reply-id="${CSS.escape(replyId)}"]`
-    );
-    if (!wrap) return;
-    const card = wrap.closest('[data-thread-id]');
-    if (card) card.open = true;
-    const view = wrap.querySelector('[data-forum-reply-view]');
-    const panel = wrap.querySelector('[data-forum-reply-edit]');
-    if (!view || !panel) return;
-    const th = forumAdminCache.find((t) => t.id === threadId);
-    const reply = (th?.replies || []).find((r) => r.id === replyId);
-    const bodyInput = panel.querySelector('[data-edit-body]');
-    if (reply && bodyInput) bodyInput.value = reply.body || '';
-    view.hidden = true;
-    panel.hidden = false;
-    bodyInput?.focus();
-  }
-
-  function cancelForumReplyEdit(wrap) {
-    if (!wrap) return;
-    const view = wrap.querySelector('[data-forum-reply-view]');
-    const panel = wrap.querySelector('[data-forum-reply-edit]');
-    if (view) view.hidden = false;
-    if (panel) panel.hidden = true;
-  }
-
-  async function saveForumReplyEdit(threadId, replyId, panel) {
-    const token = sessionStorage.getItem(SESSION_KEY);
-    const base = apiBase();
-    if (!token || !base || !threadId || !replyId || !panel) return;
-    const body = String(panel.querySelector('[data-edit-body]')?.value || '').trim();
-    if (!body) {
-      alert('Texto obrigatório.');
-      return;
-    }
-    const submitBtn = panel.querySelector('[data-forum-save-reply]');
-    if (submitBtn) submitBtn.disabled = true;
-    try {
-      const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(threadId)}/replies/${encodeURIComponent(replyId)}`, {
-        method: 'PATCH',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || 'Erro ao editar resposta');
         return;
       }
       await loadForumAdmin();

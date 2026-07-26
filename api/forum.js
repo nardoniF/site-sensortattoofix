@@ -1280,8 +1280,32 @@ export async function handleForumRoute(request, env, origin, deps) {
     thread.title = title;
     thread.body = text;
     thread.updatedAt = new Date().toISOString();
+
+    let repliesUpdated = 0;
+    const replyEdits = Array.isArray(body.replies) ? body.replies : null;
+    if (replyEdits) {
+      const replies = await getReplies(env, thread.id);
+      const byId = new Map(replies.map((r) => [r.id, r]));
+      for (const item of replyEdits) {
+        const id = String(item?.id || '').trim();
+        const replyText = String(item?.body || '').trim().slice(0, FORUM_BODY_MAX);
+        if (!id || !replyText) continue;
+        const reply = byId.get(id);
+        if (!reply) continue;
+        if (reply.body !== replyText) {
+          reply.body = replyText;
+          repliesUpdated += 1;
+        }
+      }
+      if (repliesUpdated) await saveReplies(env, thread.id, replies);
+    }
+
     await saveThread(env, thread);
-    return deps.json({ ok: true, thread: publicThread(thread) }, 200, origin);
+    return deps.json({
+      ok: true,
+      repliesUpdated,
+      thread: publicThread(thread)
+    }, 200, origin);
   }
 
   const editReplyMatch = path.match(/^\/admin\/forum\/threads\/([^/]+)\/replies\/([^/]+)$/);
