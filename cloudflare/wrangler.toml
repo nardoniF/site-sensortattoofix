@@ -10,3 +10,11 @@ zone_name = "sensortattoofix.com"
 [[routes]]
 pattern = "sensortattoofix.com/*"
 zone_name = "sensortattoofix.com"
+
+[[routes]]
+pattern = "www.sensortattoofix.com.br/*"
+zone_name = "sensortattoofix.com.br"
+
+[[routes]]
+pattern = "sensortattoofix.com.br/*"
+zone_name = "sensortattoofix.com.br"

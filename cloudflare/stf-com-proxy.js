@@ -1,8 +1,10 @@
 /**
- * .com storefront proxy — serves /en/* from GitHub via jsDelivr.
- * IMPORTANT: pin COMMIT after each push so .com is not stuck on stale @main cache.
+ * Storefront proxy — serves pinned GitHub commit via jsDelivr.
+ * - .com / www.sensortattoofix.com → English (/en/*) + Italian (/it/*)
+ * - .com.br → Portuguese (repo root)
+ * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
-const COMMIT = '85aae0d0780e5d3fe7bc8f3d0dfe6b2cd3253cb6';
+const COMMIT = '0b246a5';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
@@ -11,6 +13,11 @@ const COM_ORIGIN = 'https://www.sensortattoofix.com';
 const BR_ORIGIN = 'https://www.sensortattoofix.com.br';
 const STF_COM_HOST_JS =
   "(function(){if(location.hostname==='sensortattoofix.com'){location.replace('https://www.sensortattoofix.com'+location.pathname+location.search+location.hash);}})();";
+
+function isBrHost(hostname) {
+  const h = String(hostname || '').toLowerCase();
+  return h === 'sensortattoofix.com.br' || h === 'www.sensortattoofix.com.br';
+}
 
 function isStaticAsset(pathname) {
   return (
@@ -25,7 +32,7 @@ function isStaticAsset(pathname) {
   );
 }
 
-function mapPath(pathname) {
+function mapPathCom(pathname) {
   if (isStaticAsset(pathname)) return pathname;
   if (pathname === '/it' || pathname === '/it/') return '/it/index.html';
   if (pathname.startsWith('/it/')) return pathname;
@@ -38,6 +45,15 @@ function mapPath(pathname) {
   if (pathname.endsWith('/') && pathname.length > 1) return '/en' + pathname + 'index.html';
   if (/^\/[^/]+\.html$/.test(pathname)) return '/en' + pathname;
   return '/en' + pathname;
+}
+
+function mapPathBr(pathname) {
+  if (isStaticAsset(pathname)) return pathname;
+  if (pathname === '/' || pathname === '') return '/index.html';
+  if (pathname.endsWith('/') && pathname.length > 1) return pathname + 'index.html';
+  if (/^\/[^/]+\.html$/.test(pathname)) return pathname;
+  if (!pathname.includes('.') && !pathname.endsWith('/')) return pathname + '.html';
+  return pathname;
 }
 
 function pageFileFromOrigin(originPath) {
@@ -83,11 +99,13 @@ function fixNavLangHrefs(html, originPath) {
   );
 }
 
-function patchHtml(html, originPath) {
+function patchHtml(html, originPath, br) {
   html = html.replace(/<script[^>]+stf-com-host\.js[^>]*>\s*<\/script>\s*/gi, '');
   html = html.replace(/(href|src)=["']\.\.\/([^"']+)["']/gi, '$1="/$2"');
   html = fixNavLangHrefs(html, originPath);
-  const baseHref = originPath.startsWith('/it/') ? `${COM_ORIGIN}/it/` : `${COM_ORIGIN}/`;
+  const baseHref = br
+    ? `${BR_ORIGIN}/`
+    : (originPath.startsWith('/it/') ? `${COM_ORIGIN}/it/` : `${COM_ORIGIN}/`);
   if (!/<base\s/i.test(html)) {
     html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
   }
@@ -125,13 +143,18 @@ async function fetchOrigin(originPath, search) {
 export default {
   async fetch(request) {
     const url = new URL(request.url);
+    const br = isBrHost(url.hostname);
 
     if (url.hostname === 'sensortattoofix.com') {
       url.hostname = 'www.sensortattoofix.com';
       return Response.redirect(url.toString(), 301);
     }
+    if (url.hostname === 'sensortattoofix.com.br') {
+      url.hostname = 'www.sensortattoofix.com.br';
+      return Response.redirect(url.toString(), 301);
+    }
 
-    if (url.pathname.startsWith('/en/') || url.pathname === '/en') {
+    if (!br && (url.pathname.startsWith('/en/') || url.pathname === '/en')) {
       const stripped = url.pathname.replace(/^\/en/, '') || '/';
       return Response.redirect(new URL(stripped + url.search, url.origin).toString(), 301);
     }
@@ -142,7 +165,7 @@ export default {
       });
     }
 
-    let originPath = mapPath(url.pathname);
+    let originPath = br ? mapPathBr(url.pathname) : mapPathCom(url.pathname);
     let res = await fetchOrigin(originPath, url.search);
     if (!res.ok) return new Response('Not found', { status: res.status });
 
@@ -163,6 +186,7 @@ export default {
       const mime = mimeFor(originPath);
       if (mime) headers.set('content-type', mime);
       headers.set('cache-control', 'public, max-age=120');
+      headers.set('x-stf-commit', COMMIT);
       return new Response(buf, { status: 200, headers });
     }
 
@@ -174,7 +198,7 @@ export default {
       html = new TextDecoder().decode(await res.arrayBuffer());
     }
 
-    html = patchHtml(html, originPath);
+    html = patchHtml(html, originPath, br);
     return new Response(html, {
       status: 200,
       headers: {

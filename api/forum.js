@@ -412,17 +412,22 @@ function pickLocalized(map, lang, fallback) {
 function localizedThreadFields(thread, lang) {
   const sourceLang = normalizeForumLang(thread?.sourceLang || thread?.lang || 'pt');
   const want = normalizeForumLang(lang);
-  const i18n = thread?.i18n || {};
-  const pack = i18n[want] || {};
-  return {
-    sourceLang,
-    title: want === sourceLang
-      ? String(thread?.title || '')
-      : pickLocalized(pack, want, thread?.title),
-    body: want === sourceLang
-      ? String(thread?.body || '')
-      : pickLocalized(pack, want, thread?.body)
-  };
+  // i18n[lang] is already { title, body } — do NOT nest pickLocalized(lang) again.
+  const pack = (thread?.i18n && thread.i18n[want]) || {};
+  if (want === sourceLang) {
+    return {
+      sourceLang,
+      title: String(thread?.title || ''),
+      body: String(thread?.body || '')
+    };
+  }
+  const title = pack.title != null && String(pack.title).trim()
+    ? String(pack.title)
+    : String(thread?.title || '');
+  const body = pack.body != null && String(pack.body).trim()
+    ? String(pack.body)
+    : String(thread?.body || '');
+  return { sourceLang, title, body };
 }
 
 function localizedReplyBody(reply, lang) {
@@ -498,8 +503,9 @@ function mergeSeedLangPacks(pt, en, it) {
 
 /** Tópicos baseados em dores reais — PT / EN / IT (mesmo fórum, filtrado por idioma). */
 function seedPayload() {
-  const baseDate = new Date('2025-12-25T12:00:00-03:00');
-  const iso = (minsAgo) => new Date(baseDate.getTime() - minsAgo * 60000 * 7).toISOString();
+  // Newest activity near "today"; older threads stretch ~2 years back for a lived-in community.
+  const baseDate = new Date('2026-07-20T15:00:00-03:00');
+  const iso = (minsAgo) => new Date(baseDate.getTime() - minsAgo * 60000 * 20).toISOString();
   const { pt, en, it } = buildForumSeedLangPacks({ A: SEED_AUTHORS, officialReply, iso });
   return mergeSeedLangPacks(pt, en, it);
 }
@@ -700,7 +706,7 @@ async function ensureForumPublic(env) {
 }
 
 const SEED_AUTHORS_VERSION = 7;
-const SEED_CONTENT_VERSION = 18;
+const SEED_CONTENT_VERSION = 19;
 
 async function insertSeedThreads(env, existingIndex) {
   const seeds = seedPayload();
