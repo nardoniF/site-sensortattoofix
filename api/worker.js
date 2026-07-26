@@ -304,7 +304,38 @@ function isCorreiosBrOrder(order) {
   if (!order) return false;
   if ((order.paisCode || 'BR') !== 'BR') return false;
   if (order.internationalLensOnly) return false;
+  if (orderLooksInternationalDestination(order)) return false;
   return !isParticularDeliveryOrder(order);
+}
+
+/** Serviços Packet 331xx/399xx no cartão são de IMPORTAÇÃO (entrada no BR), não de exportação. */
+function isCorreiosImportOnlyServiceCode(code) {
+  const c = String(code || '').trim();
+  return /^331\d{2}$/.test(c) || /^399\d{2}$/.test(c);
+}
+
+function isCorreiosIntlOrder(order) {
+  if (!order || isParticularDeliveryOrder(order)) return false;
+  const abroad = orderLooksInternationalDestination(order) || ((order.paisCode || 'BR') !== 'BR');
+  if (!abroad) return false;
+  const methodId = String(order.shippingMethodId || '').toLowerCase();
+  if (methodId.startsWith('int-')) return true;
+  if (order.shipmentType === 'documento' || order.shipmentType === 'encomenda') return true;
+  if (order.internationalLensOnly) return true;
+  const code = String(order.shippingServiceCode || '').trim();
+  if (code && code !== '*' && !isCorreiosImportOnlyServiceCode(code)) return true;
+  return abroad;
+}
+
+/** Pedidos que devem gerar pré-postagem + rótulo Correios (BR ou exportação). */
+function isCorreiosLabelOrder(order) {
+  return isCorreiosBrOrder(order) || isCorreiosIntlOrder(order);
+}
+
+function isIntlDocumentShipment(order) {
+  if (!order) return false;
+  if (order.shipmentType === 'documento' || order.internationalLensOnly) return true;
+  return String(order.shippingMethodId || '').toLowerCase().includes('documento');
 }
 
 function correiosTrackingUrl(trackingCode, storeBase) {
@@ -2441,7 +2472,7 @@ async function runAbandonedCheckoutEmails(env) {
 }
 
 async function tryCorreiosLabelPdfAttachment(env, order, config) {
-  if (!isCorreiosBrOrder(order)) return null;
+  if (!isCorreiosLabelOrder(order)) return null;
   try {
     let pdfBase64 = await getCachedLabelPdf(env, order.orderId);
     if (!pdfBase64) {
@@ -3895,6 +3926,75 @@ async function probeCorreiosPrePostagemApi(token) {
   return { ok: true, detail: 'OK — API 36 (Pré-Postagem) acessível' };
 }
 
+/** Autentica no cartão de postagem e retorna a lista de APIs habilitadas no contrato. */
+async function fetchCorreiosContractInfo(env) {
+  const cartao = correiosCartaoPostagem(env);
+  const user = env.CORREIOS_USER;
+  const password = env.CORREIOS_PASSWORD;
+  if (!user || !password || !cartao) {
+    return { ok: false, detail: 'Credenciais/cartão dos Correios não configurados no Worker' };
+  }
+  const res = await fetch('https://api.correios.com.br/token/v1/autentica/cartaopostagem', {
+    method: 'POST',
+    headers: { Authorization: 'Basic ' + btoa(user + ':' + password), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ numero: cartao })
+  });
+  const bodyText = await res.text().catch(() => '');
+  if (!res.ok) {
+    return { ok: false, detail: `HTTP ${res.status} — ${bodyText.slice(0, 200)}` };
+  }
+  let data;
+  try {
+    data = JSON.parse(bodyText);
+  } catch {
+    return { ok: false, detail: 'Resposta inválida do endpoint de token' };
+  }
+  const card = data.cartaoPostagem || {};
+  return {
+    ok: true,
+    token: data.token,
+    ambiente: data.ambiente || null,
+    contrato: card.contrato || null,
+    cartao: card.numero || cartao,
+    dr: card.dr ?? null,
+    apis: Array.isArray(card.api) ? card.api : []
+  };
+}
+
+/** Lista todos os serviços vinculados ao cartão de postagem (API Meu Contrato). */
+async function listCorreiosCardServices(token, env) {
+  const cnpj = correiosCnpj(env);
+  const contrato = correiosCommercialContract(env);
+  const cartao = correiosCartaoPostagem(env);
+  if (cnpj.length !== 14 || !contrato || !cartao) return { error: 'CNPJ/contrato/cartão incompletos' };
+  const url = `https://api.correios.com.br/meucontrato/v1/empresas/${cnpj}/contratos/${contrato}/cartoes/${cartao}/servicos?page=0&size=200`;
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } });
+  const bodyText = await res.text().catch(() => '');
+  if (!res.ok) {
+    return { error: extractCorreiosApiError(res, bodyText) || `HTTP ${res.status}` };
+  }
+  let data;
+  try {
+    data = bodyText ? JSON.parse(bodyText) : null;
+  } catch {
+    return { error: 'JSON inválido' };
+  }
+  const items = Array.isArray(data) ? data : (data?.itens || data?.content || []);
+  return {
+    services: items.map((s) => ({
+      codigo: String(s.codigo || s.codigoServico || '').trim() || null,
+      descricao: String(s.descricao || s.descricaoServico || '').trim(),
+      segmento: s.segmento || s.categoria || null
+    }))
+  };
+}
+
+const CORREIOS_INTL_SERVICE_RE = /EXPORTA|INTERNAC|PACKET|DOCUMENTO +INT|LEVE +INT/i;
+
+function correiosIntlServicesFrom(services) {
+  return (services || []).filter((s) => CORREIOS_INTL_SERVICE_RE.test(`${s.descricao || ''} ${s.segmento || ''}`));
+}
+
 function normalizeCorreiosPhone(telefone) {
   const d = onlyDigits(telefone);
   if (d.length >= 10) {
@@ -3906,33 +4006,121 @@ function normalizeCorreiosPhone(telefone) {
 function buildCorreiosEndereco(parts) {
   return {
     cep: onlyDigits(parts.cep),
-    logradouro: String(parts.rua || parts.logradouro || '').trim(),
-    numero: String(parts.numero || 'S/N').trim() || 'S/N',
-    complemento: String(parts.complemento || '').trim(),
-    bairro: String(parts.bairro || '').trim(),
-    cidade: String(parts.cidade || '').trim(),
-    uf: String(parts.uf || '').trim().toUpperCase()
+    logradouro: String(parts.rua || parts.logradouro || '').trim().slice(0, 50),
+    numero: String(parts.numero || 'S/N').trim().slice(0, 6) || 'S/N',
+    complemento: String(parts.complemento || '').trim().slice(0, 30),
+    bairro: String(parts.bairro || '').trim().slice(0, 30),
+    cidade: String(parts.cidade || '').trim().slice(0, 30),
+    uf: String(parts.uf || '').trim().toUpperCase().slice(0, 2)
   };
+}
+
+function normalizeIntlPostalCode(cep) {
+  return String(cep || '').trim().replace(/\s+/g, ' ').slice(0, 17);
+}
+
+function buildCorreiosIntlEndereco(order) {
+  const pais = String(order.paisCode || '').trim().toUpperCase().slice(0, 2);
+  if (!pais || pais === 'BR' || pais === 'OT' || pais === 'XX' || pais === 'T1') {
+    throw new Error('Código ISO do país obrigatório para pré-postagem internacional (ex: AU, US, IT).');
+  }
+  const stateRaw = String(order.uf || order.estado || order.state || '').trim();
+  const region = String(order.regiao || order.region || stateRaw || order.cidade || pais).trim().slice(0, 50) || pais;
+  let uf = stateRaw.toUpperCase();
+  if (uf.length !== 2) uf = 'EX';
+  const bairro = String(order.bairro || order.cidade || 'Centro').trim().slice(0, 30) || 'Centro';
+  const postal = normalizeIntlPostalCode(order.cep || order.postalCode || order.postal);
+  return {
+    cep: postal || '00000000',
+    logradouro: String(order.rua || order.logradouro || '').trim().slice(0, 50) || String(order.endereco || '').trim().slice(0, 50) || 'Address',
+    numero: String(order.numero || 'S/N').trim().slice(0, 6) || 'S/N',
+    complemento: String(order.complemento || '').trim().slice(0, 30),
+    bairro,
+    cidade: String(order.cidade || '').trim().slice(0, 30) || 'City',
+    uf,
+    regiao: region,
+    pais
+  };
+}
+
+const CORREIOS_DDI_BY_COUNTRY = {
+  US: '1', CA: '1', AU: '61', GB: '44', UK: '44', IT: '39', PT: '351', ES: '34',
+  FR: '33', DE: '49', NL: '31', BE: '32', IE: '353', NZ: '64', JP: '81',
+  KR: '82', CN: '86', IN: '91', MX: '52', AR: '54', CL: '56', CO: '57',
+  PE: '51', UY: '598', PY: '595', BO: '591', EC: '593', VE: '58', BR: '55'
+};
+
+function normalizeCorreiosIntlPhone(telefone, paisCode) {
+  let d = onlyDigits(telefone);
+  const ddi = CORREIOS_DDI_BY_COUNTRY[String(paisCode || '').toUpperCase()] || '';
+  if (ddi && d.startsWith(ddi)) d = d.slice(ddi.length);
+  if (d.length > 8) d = d.slice(-8);
+  if (d.length < 8) d = (d + '00000000').slice(0, 8);
+  return {
+    ddi: String(ddi || '1').slice(0, 3),
+    numero: d
+  };
+}
+
+function isValidExportServiceCode(code) {
+  const c = String(code || '').trim();
+  if (!c || c === '*' || isCorreiosImportOnlyServiceCode(c)) return false;
+  return /^\d{4,5}$/.test(c);
+}
+
+async function resolveIntlExportServiceCode(order, config) {
+  const existing = String(order.shippingServiceCode || '').trim();
+  if (isValidExportServiceCode(existing)) return existing;
+
+  const country = String(order.paisCode || '').trim().toUpperCase();
+  if (!country || country === 'BR' || country === 'OTHER' || country === 'XX') {
+    throw new Error('País de destino inválido para pré-postagem internacional (informe o código ISO, ex: AU, US, IT).');
+  }
+  const wantDoc = isIntlDocumentShipment(order);
+  const options = await quoteCorreiosExportOptions(config, country, {
+    weightGrams: shippingWeightGrams(config)
+  });
+  const matched = (options || []).filter((o) => {
+    if (!isValidExportServiceCode(o.serviceCode)) return false;
+    const isDoc = o.shipmentType === 'documento';
+    return wantDoc ? isDoc : !isDoc;
+  });
+  const pool = matched.length ? matched : (options || []).filter((o) => isValidExportServiceCode(o.serviceCode));
+  pool.sort((a, b) => Number(a.price) - Number(b.price));
+  const pick = pool[0];
+  if (!pick?.serviceCode) {
+    throw new Error('Nenhum código de serviço de exportação (Documento/Exporta Fácil) disponível para este país.');
+  }
+  return String(pick.serviceCode).trim();
 }
 
 function buildPrePostagemPayload(order, config, env) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const sender = ship.sender || {};
   const weightGrams = shippingWeightGrams(config);
-  const serviceCode = String(order.shippingServiceCode || ship.serviceCode || '04227').trim();
   const declaredValue = Number(order.valorProduto) || Number(config.product?.price) || 62.9;
-  const remetentePhone = normalizeCorreiosPhone(config.whatsapp?.shop || config.whatsapp?.number || '');
-  const destPhone = normalizeCorreiosPhone(order.telefone || '');
+  const intl = isCorreiosIntlOrder(order);
+  const isDocument = intl && isIntlDocumentShipment(order);
+  const serviceCode = String(
+    order.shippingServiceCode || (intl ? '' : (ship.serviceCode || '04227'))
+  ).trim();
+  if (!serviceCode || serviceCode === '*') {
+    throw new Error(intl
+      ? 'Pedido internacional sem código de serviço de exportação Correios'
+      : 'Pedido sem código de serviço Correios');
+  }
+  if (intl && isCorreiosImportOnlyServiceCode(serviceCode)) {
+    throw new Error(`Código ${serviceCode} é de Packet/importação, não serve para envio ao exterior`);
+  }
 
-  return {
+  const remetentePhone = normalizeCorreiosPhone(config.whatsapp?.shop || config.whatsapp?.number || '');
+  const payload = {
     codigoServico: serviceCode,
     pesoInformado: String(Math.max(1, Math.round(weightGrams))),
-    codigoFormatoObjetoInformado: '2',
-    alturaInformada: String(Math.max(2, Math.ceil(Number(ship.heightCm) || 2))),
-    larguraInformada: String(Math.max(11, Math.round(Number(ship.widthCm) || 12))),
-    comprimentoInformado: String(Math.max(16, Math.round(Number(ship.lengthCm) || 16))),
+    codigoFormatoObjetoInformado: isDocument ? '1' : '2',
     cienteObjetoNaoProibido: '1',
-    modalidadePagamento: '1',
+    modalidadePagamento: intl ? '2' : '1',
+    pedidoExternoOrigem: String(order.orderId || '').slice(0, 50),
     remetente: {
       nome: String(sender.company || sender.brand || 'Remetente').trim(),
       cpfCnpj: onlyDigits(sender.cnpj || env.CORREIOS_USER || ''),
@@ -3949,7 +4137,31 @@ function buildPrePostagemPayload(order, config, env) {
         uf: sender.uf
       })
     },
-    destinatario: {
+    itensDeclaracaoConteudo: [{
+      conteudo: String(order.produto || 'Produto Sensor Tattoo Fix').slice(0, 80),
+      quantidade: '1',
+      valor: declaredValue.toFixed(2)
+    }]
+  };
+
+  if (!isDocument) {
+    payload.alturaInformada = String(Math.max(2, Math.ceil(Number(ship.heightCm) || 2)));
+    payload.larguraInformada = String(Math.max(11, Math.round(Number(ship.widthCm) || 12)));
+    payload.comprimentoInformado = String(Math.max(16, Math.round(Number(ship.lengthCm) || 16)));
+  }
+
+  if (intl) {
+    const destPhone = normalizeCorreiosIntlPhone(order.telefone || '', order.paisCode);
+    payload.destinatario = {
+      nome: String(order.nome || '').trim(),
+      email: String(order.email || '').trim(),
+      telefone: destPhone.numero,
+      ddiTelefone: destPhone.ddi,
+      endereco: buildCorreiosIntlEndereco(order)
+    };
+  } else {
+    const destPhone = normalizeCorreiosPhone(order.telefone || '');
+    payload.destinatario = {
       nome: String(order.nome || '').trim(),
       cpfCnpj: onlyDigits(order.cpf || ''),
       telefone: destPhone.numero,
@@ -3964,13 +4176,10 @@ function buildPrePostagemPayload(order, config, env) {
         cidade: order.cidade,
         uf: order.uf
       })
-    },
-    itensDeclaracaoConteudo: [{
-      conteudo: String(order.produto || 'Produto Sensor Tattoo Fix').slice(0, 80),
-      quantidade: '1',
-      valor: declaredValue.toFixed(2)
-    }]
-  };
+    };
+  }
+
+  return payload;
 }
 
 async function findOrderByTrackingCode(env, trackingCode) {
@@ -4554,13 +4763,15 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts =
 }
 
 async function ensureCorreiosPrePostagemForOrder(env, order, config) {
-  if (!isCorreiosBrOrder(order)) {
+  if (!isCorreiosLabelOrder(order)) {
     return { skipped: true, reason: 'not_correios' };
   }
-  try {
-    await ensureCorreiosFreteEstimate(env, order, config);
-  } catch (err) {
-    console.warn('Correios frete estimate:', order.orderId, err.message);
+  if (isCorreiosBrOrder(order)) {
+    try {
+      await ensureCorreiosFreteEstimate(env, order, config);
+    } catch (err) {
+      console.warn('Correios frete estimate:', order.orderId, err.message);
+    }
   }
   if (order.correiosPrePostagemId) {
     if (!order.correiosTrackingCode) {
@@ -4582,6 +4793,14 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   const token = await getCorreiosToken(env);
   if (!token) throw new Error('Correios não configurado no Worker');
 
+  if (isCorreiosIntlOrder(order)) {
+    const code = await resolveIntlExportServiceCode(order, config);
+    if (String(order.shippingServiceCode || '').trim() !== code) {
+      order.shippingServiceCode = code;
+      await saveOrder(env, order);
+    }
+  }
+
   const created = await createCorreiosPrePostagem(token, order, config, env);
   order.correiosPrePostagemId = created.id;
   if (created.codigoObjeto) order.correiosTrackingCode = created.codigoObjeto;
@@ -4590,6 +4809,7 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   }
   order.correiosPrePostagemAt = new Date().toISOString();
   order.correiosPrePostagemError = null;
+  order.correiosPrePostagemScope = isCorreiosIntlOrder(order) ? 'intl' : 'br';
   await saveOrder(env, order);
   return {
     ok: true,
@@ -4600,7 +4820,7 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
 }
 
 async function cancelCorreiosPrePostagem(env, order) {
-  if (!isCorreiosBrOrder(order)) return { skipped: true, reason: 'not_correios' };
+  if (!isCorreiosLabelOrder(order)) return { skipped: true, reason: 'not_correios' };
   const prePostagemId = String(order.correiosPrePostagemId || '').trim();
   const trackingCode = String(order.correiosTrackingCode || '').trim().toUpperCase();
   if (!prePostagemId && !trackingCode) return { skipped: true, reason: 'no_prepostagem' };
@@ -5466,6 +5686,39 @@ function correiosApiRowStatus(probe) {
   return 'error';
 }
 
+const CORREIOS_API_LABELS = {
+  34: 'Preço',
+  35: 'Prazo',
+  36: 'Pré-Postagem',
+  37: 'CEP',
+  41: 'Rastro',
+  76: 'SRO',
+  78: 'Meu Contrato',
+  80: 'Fale Conosco',
+  83: 'Logística Reversa',
+  87: 'CWS',
+  93: 'Intermediação',
+  566: 'Packet / Internacional',
+  586: 'Pré-Postagem Internacional',
+  587: 'Rotulagem Internacional'
+};
+
+function worstIntegrationStatus(statuses) {
+  const rank = { error: 0, warn: 1, off: 2, ok: 3 };
+  let worst = 'ok';
+  for (const s of statuses) {
+    const st = s || 'off';
+    if ((rank[st] ?? 9) < (rank[worst] ?? 9)) worst = st;
+  }
+  return worst;
+}
+
+function formatCorreiosApiLine(apiId) {
+  const id = String(apiId).trim();
+  const name = CORREIOS_API_LABELS[id] || CORREIOS_API_LABELS[Number(id)] || 'API Correios';
+  return `${id} — ${name}`;
+}
+
 function buildIntegrationRows(env, config, checks) {
   const {
     paypal, mercadoPago, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
@@ -5622,132 +5875,59 @@ function buildIntegrationRows(env, config, checks) {
 
   if (!hasCorreiosCreds) {
     rows.push({
-      id: 'correios-token',
-      label: 'Correios Token',
-      description: 'Autenticação (cartão de postagem)',
+      id: 'correios-br',
+      label: 'Correios BR',
+      description: 'Token, preço, prazo, pré-postagem e serviços do cartão',
       status: 'warn',
-      detail: 'Sem credenciais — checkout usa estimativa fixa'
-    });
-    rows.push({
-      id: 'correios-preco-34',
-      label: 'Correios API 34',
-      description: 'Preço — cotação Mini Envios',
-      status: 'off',
-      detail: 'Aguardando credenciais'
-    });
-    rows.push({
-      id: 'correios-prazo-35',
-      label: 'Correios API 35',
-      description: 'Prazo — entrega Mini Envios (04227)',
-      status: 'off',
-      detail: 'Aguardando credenciais'
-    });
-    rows.push({
-      id: 'correios-prepostagem-36',
-      label: 'Correios API 36',
-      description: 'Pré-Postagem — etiqueta oficial PDF',
-      status: 'off',
-      detail: 'Aguardando credenciais'
-    });
-    rows.push({
-      id: 'correios-servico-04227',
-      label: 'Correios Serviço 04227',
-      description: 'Mini Envios no cartão de postagem',
-      status: 'off',
-      detail: 'Aguardando credenciais'
-    });
-    rows.push({
-      id: 'correios-servico-86720',
-      label: 'Correios Serviço 86720',
-      description: 'API Pré-Postagem no cartão',
-      status: 'off',
-      detail: 'Aguardando credenciais'
+      detail: 'Sem credenciais — checkout usa estimativa fixa',
+      detailLines: [
+        'Token — sem credenciais',
+        'API 34 Preço — aguardando',
+        'API 35 Prazo — aguardando',
+        'API 36 Pré-Postagem — aguardando',
+        'Serviço 04227 Mini Envios — aguardando',
+        'Serviço 86720 Pré-Postagem — aguardando'
+      ]
     });
   } else if (!correiosToken) {
     rows.push({
-      id: 'correios-token',
-      label: 'Correios Token',
-      description: 'Autenticação (cartão de postagem)',
+      id: 'correios-br',
+      label: 'Correios BR',
+      description: 'Token, preço, prazo, pré-postagem e serviços do cartão',
       status: 'error',
-      detail: 'Credenciais configuradas, mas token não obtido'
-    });
-    rows.push({
-      id: 'correios-preco-34',
-      label: 'Correios API 34',
-      description: 'Preço — cotação Mini Envios',
-      status: 'error',
-      detail: 'Sem token — teste não executado'
-    });
-    rows.push({
-      id: 'correios-prazo-35',
-      label: 'Correios API 35',
-      description: 'Prazo — entrega Mini Envios',
-      status: 'error',
-      detail: 'Sem token — teste não executado'
-    });
-    rows.push({
-      id: 'correios-prepostagem-36',
-      label: 'Correios API 36',
-      description: 'Pré-Postagem — etiqueta oficial PDF',
-      status: 'error',
-      detail: 'Sem token — teste não executado'
-    });
-    rows.push({
-      id: 'correios-servico-04227',
-      label: 'Correios Serviço 04227',
-      description: 'Mini Envios no cartão de postagem',
-      status: 'error',
-      detail: 'Sem token — teste não executado'
-    });
-    rows.push({
-      id: 'correios-servico-86720',
-      label: 'Correios Serviço 86720',
-      description: 'API Pré-Postagem no cartão',
-      status: 'error',
-      detail: 'Sem token — teste não executado'
+      detail: 'Credenciais configuradas, mas token não obtido',
+      detailLines: [
+        'Token — falhou',
+        'API 34 Preço — sem token',
+        'API 35 Prazo — sem token',
+        'API 36 Pré-Postagem — sem token',
+        'Serviço 04227 Mini Envios — sem token',
+        'Serviço 86720 Pré-Postagem — sem token'
+      ]
     });
   } else {
+    const tokenStatus = 'ok';
+    const precoStatus = correiosApiRowStatus(correiosPreco);
+    const prazoStatus = correiosApiRowStatus(correiosPrazo);
+    const prePostStatus = correiosApiRowStatus(correiosPrePostagem);
+    const s04227Status = correiosApiRowStatus(correiosServico04227);
+    const s86720Status = correiosApiRowStatus(correiosServico86720);
     rows.push({
-      id: 'correios-token',
-      label: 'Correios Token',
-      description: 'Autenticação (cartão de postagem)',
-      status: 'ok',
-      detail: 'Token obtido'
-    });
-    rows.push({
-      id: 'correios-preco-34',
-      label: 'Correios API 34',
-      description: 'Preço — cotação Mini Envios (04227)',
-      status: correiosApiRowStatus(correiosPreco),
-      detail: correiosPreco?.detail || 'Falha no teste de preço'
-    });
-    rows.push({
-      id: 'correios-prazo-35',
-      label: 'Correios API 35',
-      description: 'Prazo — entrega Mini Envios (04227)',
-      status: correiosApiRowStatus(correiosPrazo),
-      detail: correiosPrazo?.detail || 'Falha no teste de prazo'
-    });
-    rows.push({
-      id: 'correios-prepostagem-36',
-      label: 'Correios API 36',
-      description: 'Pré-Postagem — etiqueta oficial PDF',
-      status: correiosApiRowStatus(correiosPrePostagem),
-      detail: correiosPrePostagem?.detail || 'Falha no teste de pré-postagem'
-    });
-    rows.push({
-      id: 'correios-servico-04227',
-      label: 'Correios Serviço 04227',
-      description: 'Mini Envios no cartão de postagem',
-      status: correiosApiRowStatus(correiosServico04227),
-      detail: correiosServico04227?.detail || 'Correios Serviço 04227 não verificado'
-    });
-    rows.push({
-      id: 'correios-servico-86720',
-      label: 'Correios Serviço 86720',
-      description: 'API Pré-Postagem no cartão',
-      status: correiosApiRowStatus(correiosServico86720),
-      detail: correiosServico86720?.detail || 'Correios Serviço 86720 não verificado'
+      id: 'correios-br',
+      label: 'Correios BR',
+      description: 'Token, preço, prazo, pré-postagem e serviços do cartão',
+      status: worstIntegrationStatus([
+        tokenStatus, precoStatus, prazoStatus, prePostStatus, s04227Status, s86720Status
+      ]),
+      detail: 'Token obtido — detalhes abaixo',
+      detailLines: [
+        'Token — OK',
+        `API 34 Preço — ${correiosPreco?.detail || 'falhou'}`,
+        `API 35 Prazo — ${correiosPrazo?.detail || 'falhou'}`,
+        `API 36 Pré-Postagem — ${correiosPrePostagem?.detail || 'falhou'}`,
+        `Serviço 04227 Mini Envios — ${correiosServico04227?.detail || 'não verificado'}`,
+        `Serviço 86720 Pré-Postagem — ${correiosServico86720?.detail || 'não verificado'}`
+      ]
     });
   }
 
@@ -7368,7 +7548,7 @@ async function handlePaymentConfirmed(env, order, payment) {
       order.motoboyNotifyError = err.message;
       await saveOrder(env, order);
     }
-  } else if (isCorreiosBrOrder(order)) {
+  } else if (isCorreiosLabelOrder(order)) {
     try {
       await ensureCorreiosPrePostagemForOrder(env, order, config);
     } catch (err) {
@@ -7403,8 +7583,12 @@ async function handlePaymentConfirmed(env, order, payment) {
       shopPaidFields['Motoboys avisados'] = order.motoboyCourierEmails.join(', ');
     }
     if (order.motoboyNotifyError) shopPaidFields['Erro e-mail motoboy'] = order.motoboyNotifyError;
-  } else if (isCorreiosBrOrder(order)) {
-    if (order.correiosPrePostagemId) shopPaidFields['Pré-postagem Correios'] = 'Registrada automaticamente';
+  } else if (isCorreiosLabelOrder(order)) {
+    if (order.correiosPrePostagemId) {
+      shopPaidFields['Pré-postagem Correios'] = isCorreiosIntlOrder(order)
+        ? 'Registrada automaticamente (internacional)'
+        : 'Registrada automaticamente';
+    }
     if (order.correiosTrackingCode) {
       shopPaidFields['Rastreio Correios'] = order.correiosTrackingCode;
       shopPaidFields['Acompanhar envio'] = correiosTrackingUrl(order.correiosTrackingCode, config.siteUrl);
@@ -7416,17 +7600,26 @@ async function handlePaymentConfirmed(env, order, payment) {
   }
 
   const shopAttachments = [];
-  if (isCorreiosBrOrder(order)) {
+  if (isCorreiosLabelOrder(order)) {
     const labelAtt = await tryCorreiosLabelPdfAttachment(env, order, config);
     if (labelAtt) {
       shopAttachments.push(labelAtt);
-      shopPaidFields['Etiqueta PDF'] = 'Anexada automaticamente neste e-mail';
+      shopPaidFields['Etiqueta PDF'] = isCorreiosIntlOrder(order)
+        ? 'Anexada automaticamente (rótulo internacional Correios)'
+        : 'Anexada automaticamente neste e-mail';
       if (order.correiosTrackingCode) {
         shopPaidFields['Rastreio Correios'] = order.correiosTrackingCode;
         shopPaidFields['Acompanhar envio'] = correiosTrackingUrl(order.correiosTrackingCode, config.siteUrl);
       }
     } else if (order.correiosLabelEmailError) {
       shopPaidFields['Erro etiqueta PDF'] = order.correiosLabelEmailError;
+      if (isCorreiosIntlOrder(order)) {
+        shopAttachments.push(buildIntlPackingSlipAttachment(order));
+        shopPaidFields['Packing slip'] = 'Anexado (fallback HTML) — rótulo Correios falhou';
+      }
+    } else if (isCorreiosIntlOrder(order)) {
+      shopAttachments.push(buildIntlPackingSlipAttachment(order));
+      shopPaidFields['Packing slip'] = 'Anexado (fallback HTML) — rótulo Correios indisponível';
     }
   } else if (order.paisCode && order.paisCode !== 'BR') {
     shopAttachments.push(buildIntlPackingSlipAttachment(order));
@@ -7510,8 +7703,8 @@ async function trackGa4Purchase(env, order, payment) {
 }
 
 async function ensureCorreiosLabelCached(env, order, config) {
-  if (!order || order.status !== 'paid' || !isCorreiosBrOrder(order)) {
-    return { skipped: true, reason: 'not_correios_br_paid' };
+  if (!order || order.status !== 'paid' || !isCorreiosLabelOrder(order)) {
+    return { skipped: true, reason: 'not_correios_paid' };
   }
   try {
     const hadCache = !!(await getCachedLabelPdf(env, order.orderId));
@@ -7555,16 +7748,16 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   if (order.status !== 'paid') {
     return json({ error: 'Só é possível gerar etiqueta de pedido PAGO.' }, 400, origin);
   }
-  if ((order.paisCode || 'BR') !== 'BR' || orderLooksInternationalDestination(order)) {
+  if (isParticularDeliveryOrder(order)) {
+    return json({ mode: 'html', useClient: true, message: 'Use etiqueta local para motoboy/Uber.' }, 200, origin);
+  }
+  if (!isCorreiosLabelOrder(order)) {
     return json({
       mode: 'html',
       useClient: true,
-      international: true,
-      message: 'Pedido internacional: a API de etiqueta/pré-postagem Correios é só para envio nacional (BR). Use a etiqueta local / packing slip.'
+      international: orderLooksInternationalDestination(order),
+      message: 'Este pedido não usa pré-postagem Correios. Use a etiqueta local / packing slip.'
     }, 200, origin);
-  }
-  if (isParticularDeliveryOrder(order)) {
-    return json({ mode: 'html', useClient: true, message: 'Use etiqueta local para motoboy/Uber.' }, 200, origin);
   }
 
   const config = await getConfig(env);
@@ -8413,7 +8606,87 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     uber
   });
 
+  const contractInfo = await fetchCorreiosContractInfo(env).catch((err) => ({ ok: false, detail: err.message }));
+  const correiosExtra = [];
+  if (!contractInfo.ok) {
+    correiosExtra.push({
+      id: 'correios-contract-apis',
+      label: 'Correios — contrato (APIs habilitadas)',
+      description: 'Lista de APIs retornada na autenticação do cartão de postagem',
+      status: 'error',
+      detail: contractInfo.detail || 'Falha ao autenticar'
+    });
+  } else {
+    const apiLines = (contractInfo.apis || []).map(formatCorreiosApiLine);
+    correiosExtra.push({
+      id: 'correios-contract-apis',
+      label: 'Correios — contrato (APIs habilitadas)',
+      description: `Cartão ${contractInfo.cartao} · contrato ${contractInfo.contrato || '?'}`,
+      status: apiLines.length ? 'ok' : 'warn',
+      detail: apiLines.length ? `${apiLines.length} API(s) no cartão` : 'Nenhuma API listada no token',
+      detailLines: apiLines.length ? apiLines : ['Nenhuma API listada no token']
+    });
+    const cardServices = await listCorreiosCardServices(contractInfo.token, env).catch((err) => ({ error: err.message }));
+    if (cardServices.error) {
+      correiosExtra.push({
+        id: 'correios-intl-services',
+        label: 'Correios — serviços internacionais no cartão',
+        description: 'Serviços do cartão via API Meu Contrato',
+        status: 'error',
+        detail: cardServices.error
+      });
+    } else {
+      const intl = correiosIntlServicesFrom(cardServices.services);
+      const serviceLines = intl.map((s) => `${s.codigo || '?'} — ${s.descricao || 'serviço'}`);
+      correiosExtra.push({
+        id: 'correios-intl-services',
+        label: 'Correios — serviços internacionais no cartão',
+        description: `${cardServices.services.length} serviço(s) no cartão ao todo`,
+        status: serviceLines.length ? 'ok' : 'warn',
+        detail: serviceLines.length
+          ? `${serviceLines.length} serviço(s) internacional(is)`
+          : 'Nenhum serviço internacional encontrado no cartão',
+        detailLines: serviceLines.length
+          ? serviceLines
+          : ['Nenhum serviço internacional (Exporta Fácil/Packet/documento) encontrado no cartão']
+      });
+    }
+  }
+
+  const insertAfter = Math.max(
+    integrations.findIndex((r) => r.id === 'correios-intl'),
+    integrations.findIndex((r) => r.id === 'correios-br')
+  );
+  if (insertAfter >= 0) {
+    integrations.splice(insertAfter + 1, 0, ...correiosExtra);
+  } else {
+    integrations.push(...correiosExtra);
+  }
+
   return json({ integrations, checkedAt: new Date().toISOString() }, 200, origin);
+}
+
+async function handleAdminCorreiosContract(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const info = await fetchCorreiosContractInfo(env);
+  if (!info.ok) {
+    return json({ ok: false, detail: info.detail }, 200, origin);
+  }
+  const cardServices = await listCorreiosCardServices(info.token, env);
+  const services = cardServices.services || [];
+  return json({
+    ok: true,
+    ambiente: info.ambiente,
+    contrato: info.contrato,
+    cartao: info.cartao,
+    dr: info.dr,
+    apisHabilitadas: info.apis,
+    servicosNoCartao: services,
+    servicosInternacionais: correiosIntlServicesFrom(services),
+    servicosErro: cardServices.error || null
+  }, 200, origin);
 }
 
 async function handleAdminShippingStatus(request, env, origin) {
@@ -9296,7 +9569,7 @@ async function handleGetOrder(request, env, origin, orderId) {
 
   if (await isValidSession(env, bearerToken(request))) {
     // First admin open: if payment-time label failed, generate pré-postagem + PDF now.
-    if (order.status === 'paid' && isCorreiosBrOrder(order) && !order.correiosLabelCachedAt) {
+    if (order.status === 'paid' && isCorreiosLabelOrder(order) && !order.correiosLabelCachedAt) {
       const config = await getConfig(env);
       const ensure = await ensureCorreiosLabelCached(env, order, config);
       order = (await getOrder(env, orderId)) || order;
@@ -9878,6 +10151,9 @@ export default {
       }
       if (path === '/admin/integrations-status' && request.method === 'GET') {
         return handleAdminIntegrationsStatus(request, env, origin);
+      }
+      if (path === '/admin/correios-contract' && request.method === 'GET') {
+        return handleAdminCorreiosContract(request, env, origin);
       }
       if (path === '/admin/customers' && request.method === 'GET') {
         return handleAdminCustomers(request, env, origin);

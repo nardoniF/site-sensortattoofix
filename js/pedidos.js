@@ -148,7 +148,25 @@
     if (method.includes('uber') || method.includes('motoboy')) return false;
     const pais = String(o.paisCode || o.pais || '').toUpperCase();
     if (pais && pais !== 'BR' && !pais.includes('BRASIL')) return false;
+    if (String(o.shipmentType || '') === 'documento' || String(o.shipmentType || '') === 'encomenda') return false;
+    if (method.startsWith('int-')) return false;
     return true;
+  }
+
+  function isCorreiosIntlOrder(o) {
+    if (isUberOrder(o) || isMotoboyOrder(o)) return false;
+    const method = String(o.shippingMethodId || '').toLowerCase();
+    if (method.startsWith('int-')) return true;
+    const st = String(o.shipmentType || '');
+    if (st === 'documento' || st === 'encomenda') return true;
+    if (o.internationalLensOnly) return true;
+    const pais = String(o.paisCode || o.pais || '').toUpperCase();
+    if (pais && pais !== 'BR' && !pais.includes('BRASIL')) return true;
+    return false;
+  }
+
+  function isCorreiosLabelOrder(o) {
+    return isCorreiosBrOrder(o) || isCorreiosIntlOrder(o);
   }
 
   function shippingKindLabel(o) {
@@ -678,8 +696,8 @@
     const body = document.getElementById('pedidos-order-modal-body');
     let fresh = o;
 
-    // First open of a paid BR order: generate Correios pré-postagem + PDF if missing.
-    if (o.status === 'paid' && isCorreiosBrOrder(o) && !o.correiosLabelCachedAt) {
+    // First open of a paid Correios order (BR or intl): generate pré-postagem + PDF if missing.
+    if (o.status === 'paid' && isCorreiosLabelOrder(o) && !o.correiosLabelCachedAt) {
       if (body) {
         body.insertAdjacentHTML('beforeend', '<p class="pedidos-detail-sync">Gerando etiqueta Correios (primeira abertura)…</p>');
       }
@@ -708,16 +726,22 @@
       } catch (err) {
         console.warn('Ensure label on open:', err);
       }
-    } else if (o.status === 'paid' && !isCorreiosBrOrder(o) && !isUberOrder(o) && !isMotoboyOrder(o)) {
-      if (body && !body.querySelector('.pedidos-intl-label-note')) {
-        body.insertAdjacentHTML(
-          'beforeend',
-          '<p class="pedidos-intl-label-note admin-meta">Envio internacional: a API de etiqueta Correios (pré-postagem) só vale para Brasil. Use o botão Etiqueta para packing slip local.</p>'
-        );
-      }
+    } else if (
+      o.status === 'paid'
+      && isCorreiosIntlOrder(o)
+      && o.correiosPrePostagemError
+      && body
+      && !body.querySelector('.pedidos-intl-label-note')
+    ) {
+      body.insertAdjacentHTML(
+        'beforeend',
+        '<p class="pedidos-intl-label-note admin-meta">Pré-postagem internacional falhou: '
+          + escHtml(o.correiosPrePostagemError)
+          + '. Você ainda pode usar Etiqueta (packing slip local) ou tentar de novo pelo botão Etiqueta.</p>'
+      );
     }
 
-    const needsAv = fresh.status === 'paid' && isCorreiosBrOrder(fresh) && !fresh.correiosTrackingCode
+    const needsAv = fresh.status === 'paid' && isCorreiosLabelOrder(fresh) && !fresh.correiosTrackingCode
       && (fresh.correiosPrePostagemId || fresh.correiosPrePostagemAt);
     if (!needsAv) return;
 

@@ -5420,7 +5420,26 @@ a.conta-forgot-link { display: inline-block; }
 .admin-api-status-table td:first-child { white-space: nowrap; }
 .admin-api-status-table td:nth-child(2) { color: #999; max-width: 280px; }
 .admin-api-status-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
-.admin-api-status-cell { white-space: nowrap; }
+.admin-api-status-cell {
+    white-space: normal;
+    word-break: break-word;
+    max-width: 420px;
+}
+.admin-api-detail-stack { display: flex; flex-direction: column; gap: 4px; }
+.admin-api-detail-head { font-weight: 600; }
+.admin-api-detail-list {
+    margin: 0;
+    padding: 0 0 0 1.1rem;
+    list-style: disc;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.admin-api-detail-list li {
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.35;
+}
 
 .admin-doc-page .admin-doc-container { max-width: 960px; }
 .admin-doc h1 { margin-bottom: 8px; }

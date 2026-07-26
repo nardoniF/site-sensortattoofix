@@ -654,6 +654,23 @@
     return '✗';
   }
 
+  function renderIntegrationDetailCell(row) {
+    const cls = integrationStatusClass(row.status);
+    const icon = integrationStatusIcon(row.status);
+    const lines = Array.isArray(row.detailLines)
+      ? row.detailLines.map((l) => String(l || '').trim()).filter(Boolean)
+      : [];
+    if (lines.length > 1) {
+      const head = String(row.detail || '').trim() || `${lines.length} itens`;
+      return `<div class="admin-api-detail-stack ${cls}">
+        <div class="admin-api-detail-head">${icon} ${escAttr(head)}</div>
+        <ul class="admin-api-detail-list">${lines.map((l) => `<li>${escAttr(l)}</li>`).join('')}</ul>
+      </div>`;
+    }
+    const single = lines[0] || String(row.detail || '').trim();
+    return `<span class="${cls}">${icon} ${escAttr(single)}</span>`;
+  }
+
   function renderIntegrationsTable(integrations, checkedAt) {
     const tbody = document.getElementById('api-integrations-tbody');
     const checkedEl = document.getElementById('api-integrations-checked-at');
@@ -666,12 +683,10 @@
     }
 
     tbody.innerHTML = integrations.map((row) => {
-      const cls = integrationStatusClass(row.status);
-      const icon = integrationStatusIcon(row.status);
       return `<tr>
         <td><strong>${escAttr(row.label)}</strong></td>
         <td>${escAttr(row.description)}</td>
-        <td class="admin-api-status-cell"><span class="${cls}">${icon} ${escAttr(row.detail)}</span></td>
+        <td class="admin-api-status-cell">${renderIntegrationDetailCell(row)}</td>
       </tr>`;
     }).join('');
 
