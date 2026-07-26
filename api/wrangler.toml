@@ -16,7 +16,7 @@ zone_name = "sensortattoofix.com.br"
 ADMIN_USERNAME = "admin"
 
 [triggers]
-crons = ["0,30 * * * *"]
+crons = ["*/5 * * * *", "30 2 * * *"]
 
 # Secrets (wrangler secret put NOME):
 # ADMIN_PASSWORD       — senha do painel /admin.html

@@ -2287,6 +2287,215 @@ function labelPrintUrl(config, orderId) {
   return `${base}/imprimir-etiqueta.html?order=${encodeURIComponent(orderId)}`;
 }
 
+function formatOrderCharge(order, value) {
+  if (order?.chargeCurrency === 'USD') {
+    const amt = order.chargeAmount != null ? Number(order.chargeAmount) : Number(value ?? order.total);
+    return `US$ ${Number(amt || 0).toFixed(2)}`;
+  }
+  return formatBRL(value ?? order?.total);
+}
+
+/** Paid confirmation copy — respects checkoutLocale (pt/en/it). */
+function paidReceiptCopy(order, config, message) {
+  const loc = orderCheckoutLocale(order);
+  const amount = formatOrderCharge(order, order.total);
+  if (loc === 'en') {
+    return {
+      subject: `Payment confirmed — ${order.orderId}`,
+      customerLabel: 'Customer',
+      fields: {
+        Order: order.orderId,
+        Status: 'PAID',
+        Amount: amount,
+        Message: message,
+        ...(order.uberTrackingUrl ? { 'Uber tracking': order.uberTrackingUrl } : {}),
+        ...(order.correiosTrackingCode ? {
+          'Correios tracking': order.correiosTrackingCode,
+          'Track shipment': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        } : {})
+      },
+      footerSite: 'sensortattoofix.com'
+    };
+  }
+  if (loc === 'it') {
+    return {
+      subject: `Pagamento confermato — ${order.orderId}`,
+      customerLabel: 'Cliente',
+      fields: {
+        Ordine: order.orderId,
+        Stato: 'PAGATO',
+        Importo: amount,
+        Messaggio: message,
+        ...(order.uberTrackingUrl ? { 'Tracking Uber': order.uberTrackingUrl } : {}),
+        ...(order.correiosTrackingCode ? {
+          'Tracking Correios': order.correiosTrackingCode,
+          'Segui spedizione': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        } : {})
+      },
+      footerSite: 'sensortattoofix.com'
+    };
+  }
+  return {
+    subject: emailSubject(config, 'customerPaidSubject', { orderId: order.orderId }),
+    customerLabel: 'Cliente',
+    fields: {
+      Pedido: order.orderId,
+      Status: 'PAGO',
+      Valor: amount,
+      Mensagem: message,
+      ...(order.uberTrackingUrl ? { 'Rastreio Uber': order.uberTrackingUrl } : {}),
+      ...(order.correiosTrackingCode ? {
+        'Rastreio Correios': order.correiosTrackingCode,
+        'Acompanhar envio': correiosTrackingUrl(order.correiosTrackingCode, config.siteUrl)
+      } : {})
+    },
+    footerSite: 'sensortattoofix.com.br'
+  };
+}
+
+function paidMessageForOrder(order, config) {
+  const loc = orderCheckoutLocale(order);
+  const hours = getMotoboyConfig(config).deliveryHours;
+  if (isUberOrder(order)) {
+    if (order.uberTrackingUrl) {
+      if (loc === 'en') return `Uber delivery confirmed. Track it here: ${order.uberTrackingUrl}`;
+      if (loc === 'it') return `Consegna Uber confermata. Segui qui: ${order.uberTrackingUrl}`;
+      return emailMessage(config, 'paidUberTracking', { url: order.uberTrackingUrl });
+    }
+    if (loc === 'en') return 'Uber delivery requested. You will receive the tracking link by email shortly.';
+    if (loc === 'it') return 'Consegna Uber richiesta. Riceverai il link di tracking via email a breve.';
+    return emailMessage(config, 'paidUberPending');
+  }
+  if (isMotoboyOrder(order)) {
+    if (loc === 'en') return `Your order will be delivered by courier within about ${hours} hours. The driver may contact you if needed.`;
+    if (loc === 'it') return `Il tuo ordine sarà consegnato da un corriere entro circa ${hours} ore. Il fattorino potrà contattarti se necessario.`;
+    return emailMessage(config, 'paidMotoboy', { hours });
+  }
+  if (order.internationalLensOnly) {
+    if (loc === 'en') return 'Your international lens will ship within 2 business days. You will receive tracking by email.';
+    if (loc === 'it') return 'La tua lente internazionale sarà spedita entro 2 giorni lavorativi. Riceverai il tracking via email.';
+    return emailMessage(config, 'paidIntlLens');
+  }
+  if (order.paisCode && order.paisCode !== 'BR') {
+    if (loc === 'en') return 'Your Prime kit will ship within 2 business days. You will receive tracking by email.';
+    if (loc === 'it') return 'Il tuo kit Prime sarà spedito entro 2 giorni lavorativi. Riceverai il tracking via email.';
+    return emailMessage(config, 'paidIntlKit');
+  }
+  if (loc === 'en') return 'Your kit will ship within 2 business days. You will receive tracking by email.';
+  if (loc === 'it') return 'Il tuo kit sarà spedito entro 2 giorni lavorativi. Riceverai il tracking via email.';
+  return emailMessage(config, 'paidDefault');
+}
+
+function fieldsToHtmlLocalized(fields, footerSite) {
+  const rows = Object.entries(fields)
+    .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${k}</td><td style="padding:8px;border:1px solid #ddd">${String(v ?? '').replace(/</g, '&lt;')}</td></tr>`)
+    .join('');
+  const site = footerSite || 'sensortattoofix.com.br';
+  return `<div style="font-family:Arial,sans-serif;max-width:560px"><table style="border-collapse:collapse;width:100%">${rows}</table><p style="color:#666;font-size:12px;margin-top:16px">Sensor Tattoo Fix — ${site}</p></div>`;
+}
+
+const ABANDONED_CHECKOUT_DELAY_MS = 15 * 60 * 1000;
+const ABANDONED_CHECKOUT_CRON_MAX = 30;
+
+function orderPendingBillingType(order) {
+  const raw = String(order?.pagamento || order?.paymentBillingType || order?.paymentProof?.billingType || '').toUpperCase();
+  if (raw.includes('PIX')) return 'PIX';
+  if (raw.includes('PAYPAL')) return 'PAYPAL';
+  if (raw.includes('MP') || raw.includes('MERCADO')) return 'MP_CHECKOUT';
+  if (raw.includes('CARD') || raw.includes('CART') || raw.includes('STRIPE') || raw.includes('ASAAS')) return 'CREDIT_CARD';
+  return orderLooksInternationalDestination(order) ? 'PAYPAL' : 'PIX';
+}
+
+async function runAbandonedCheckoutEmails(env) {
+  const index = await readOrdersIndex(env);
+  const now = Date.now();
+  const config = await getConfig(env);
+  let sent = 0;
+  let skipped = 0;
+  for (const item of index) {
+    if (sent >= ABANDONED_CHECKOUT_CRON_MAX) break;
+    if (!item?.orderId || item.status === 'paid') continue;
+    const created = Date.parse(item.createdAt || '');
+    if (!Number.isFinite(created) || (now - created) < ABANDONED_CHECKOUT_DELAY_MS) {
+      skipped += 1;
+      continue;
+    }
+    const order = await getOrder(env, item.orderId);
+    if (!order || order.status === 'paid' || order.abandonedEmailSentAt || order.paidEmailsSentAt) continue;
+
+    // Claim before send to avoid duplicate cron races.
+    order.abandonedEmailSentAt = new Date().toISOString();
+    await saveOrder(env, order);
+    try {
+      const result = await notifyCustomerPendingPayment(env, config, order, orderPendingBillingType(order));
+      if (!result?.ok) {
+        console.error('Abandoned checkout email failed:', order.orderId, JSON.stringify(result));
+      } else {
+        sent += 1;
+      }
+    } catch (err) {
+      console.error('Abandoned checkout email:', order.orderId, err.message);
+    }
+  }
+  return { ok: true, sent, skipped };
+}
+
+async function tryCorreiosLabelPdfAttachment(env, order, config) {
+  if (!isCorreiosBrOrder(order)) return null;
+  try {
+    let pdfBase64 = await getCachedLabelPdf(env, order.orderId);
+    if (!pdfBase64) {
+      await ensureCorreiosPrePostagemForOrder(env, order, config);
+      const token = await getCorreiosToken(env);
+      const preId = order.correiosPrePostagemId;
+      if (!token || !preId) return null;
+      const label = await fetchCorreiosLabelPdf(token, preId);
+      pdfBase64 = label?.pdfBase64 || null;
+      if (label?.trackingCode && !order.correiosTrackingCode) {
+        order.correiosTrackingCode = String(label.trackingCode).trim().toUpperCase();
+        await saveOrder(env, order);
+      }
+      if (pdfBase64) await saveCachedLabelPdf(env, order.orderId, pdfBase64);
+    }
+    if (!pdfBase64) return null;
+    return {
+      filename: `etiqueta-${order.orderId}.pdf`,
+      content: pdfBase64,
+      content_type: 'application/pdf'
+    };
+  } catch (err) {
+    console.warn('Auto label PDF:', order.orderId, err.message);
+    order.correiosLabelEmailError = err.message;
+    try { await saveOrder(env, order); } catch (_) { /* ignore */ }
+    return null;
+  }
+}
+
+function buildIntlPackingSlipAttachment(order) {
+  const loc = orderCheckoutLocale(order);
+  const title = loc === 'en' ? 'Packing slip' : loc === 'it' ? 'Documento di spedizione' : 'Romaneio / packing slip';
+  const lines = [
+    `<h1 style="font-family:Arial,sans-serif">${title}</h1>`,
+    `<p><strong>Order:</strong> ${escapeHtml(order.orderId)}</p>`,
+    `<p><strong>Customer:</strong> ${escapeHtml(order.nome || '')}</p>`,
+    `<p><strong>Email:</strong> ${escapeHtml(order.email || '')}</p>`,
+    `<p><strong>Phone:</strong> ${escapeHtml(order.telefone || '')}</p>`,
+    `<p><strong>Country:</strong> ${escapeHtml(order.pais || order.paisCode || '')}</p>`,
+    `<p><strong>Address:</strong><br>${escapeHtml(order.endereco || '').replace(/\n/g, '<br>')}</p>`,
+    `<p><strong>Product:</strong> ${escapeHtml(order.produto || '')}</p>`,
+    `<p><strong>Watch:</strong> ${escapeHtml(formatOrderSmartwatch(order) || '')}</p>`,
+    `<p><strong>Shipping:</strong> ${escapeHtml(order.shippingService || '')}</p>`,
+    `<p><strong>Total:</strong> ${escapeHtml(formatOrderCharge(order, order.total))}</p>`
+  ].join('\n');
+  const html = `<!DOCTYPE html><html><body>${lines}</body></html>`;
+  const bytes = new TextEncoder().encode(html);
+  return {
+    filename: `packing-slip-${order.orderId}.html`,
+    content: arrayBufferToBase64(bytes.buffer),
+    content_type: 'text/html; charset=utf-8'
+  };
+}
+
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -6062,12 +6271,14 @@ async function notifyEmail(env, config, to, subject, fields, replyTo, content) {
   }
 }
 
-async function notifyShop(env, config, subject, fields) {
-  return notifyEmail(env, config, config.formsubmit?.email, subject, fields);
+async function notifyShop(env, config, subject, fields, content) {
+  return notifyEmail(env, config, config.formsubmit?.email, subject, fields, null, content);
 }
 
 async function notifyCustomer(env, config, order, subject, fields, content) {
-  return notifyEmail(env, config, order.email, subject, { Cliente: order.nome, ...fields }, config.formsubmit?.email, content);
+  const loc = orderCheckoutLocale(order);
+  const nameKey = loc === 'en' ? 'Customer' : 'Cliente';
+  return notifyEmail(env, config, order.email, subject, { [nameKey]: order.nome, ...fields }, config.formsubmit?.email, content);
 }
 
 async function notifyCustomerPendingPix(env, config, order) {
@@ -7020,9 +7231,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   await saveOrder(env, order);
 
-  const paymentBillingType = payment?.billingType || billingType;
-  const customerEmail = notifyCustomerPendingPayment(env, config, order, paymentBillingType);
-
+  // Cart-abandonment email is delayed (~15 min) via cron — do not send recovery mail on create.
   const emailWork = Promise.all([
     notifyShop(env, config, config.formsubmit.subject, {
       Pedido: order.orderId, Status: order.status, Nome: order.nome,
@@ -7061,12 +7270,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
       } : {}),
       ...orderWatchEmailFields(order)
     }),
-    customerEmail,
     notifyWhatsApp(env, config, order, 'order')
   ]).then((results) => {
-    results.slice(0, 2).forEach((r, i) => {
-      if (r && !r.ok) console.error('E-mail pedido falhou:', i === 0 ? 'loja' : 'cliente', JSON.stringify(r));
-    });
+    const shopResult = results[0];
+    if (shopResult && !shopResult.ok) console.error('E-mail pedido falhou: loja', JSON.stringify(shopResult));
   });
 
   if (ctx) ctx.waitUntil(emailWork);
@@ -7171,7 +7378,7 @@ async function handlePaymentConfirmed(env, order, payment) {
     Pedido: order.orderId, Status: 'PAGO', Cliente: order.nome,
     'E-mail cliente': order.email, Telefone: order.telefone,
     Pagamento: order.pagamento || payment?.billingType || '—',
-    Valor: formatBRL(value),
+    Valor: formatOrderCharge(order, value),
     Endereço: order.endereco, Envio: order.shippingService,
     ...orderWatchEmailFields(order),
     ...orderCouponEmailFields(order),
@@ -7204,36 +7411,45 @@ async function handlePaymentConfirmed(env, order, payment) {
     shopPaidFields['Imprimir etiqueta'] = labelPrintUrl(config, order.orderId);
   }
 
-  const shopPaid = await notifyShop(env, config, emailSubject(config, 'shopPaidSubject', { orderId: order.orderId }), shopPaidFields);
-  if (!shopPaid?.ok) console.error('E-mail PAGO loja falhou:', JSON.stringify(shopPaid));
-
-  let paidCustomerMessage;
-  if (isUberOrder(order)) {
-    paidCustomerMessage = order.uberTrackingUrl
-      ? emailMessage(config, 'paidUberTracking', { url: order.uberTrackingUrl })
-      : emailMessage(config, 'paidUberPending');
-  } else if (isMotoboyOrder(order)) {
-    paidCustomerMessage = emailMessage(config, 'paidMotoboy', { hours: getMotoboyConfig(config).deliveryHours });
-  } else if (order.internationalLensOnly) {
-    paidCustomerMessage = emailMessage(config, 'paidIntlLens');
+  const shopAttachments = [];
+  if (isCorreiosBrOrder(order)) {
+    const labelAtt = await tryCorreiosLabelPdfAttachment(env, order, config);
+    if (labelAtt) {
+      shopAttachments.push(labelAtt);
+      shopPaidFields['Etiqueta PDF'] = 'Anexada automaticamente neste e-mail';
+      if (order.correiosTrackingCode) {
+        shopPaidFields['Rastreio Correios'] = order.correiosTrackingCode;
+        shopPaidFields['Acompanhar envio'] = correiosTrackingUrl(order.correiosTrackingCode, config.siteUrl);
+      }
+    } else if (order.correiosLabelEmailError) {
+      shopPaidFields['Erro etiqueta PDF'] = order.correiosLabelEmailError;
+    }
   } else if (order.paisCode && order.paisCode !== 'BR') {
-    paidCustomerMessage = emailMessage(config, 'paidIntlKit');
-  } else {
-    paidCustomerMessage = emailMessage(config, 'paidDefault');
+    shopAttachments.push(buildIntlPackingSlipAttachment(order));
+    shopPaidFields['Packing slip'] = 'Anexado automaticamente (HTML) — envio internacional';
   }
 
-  await notifyCustomer(env, config, order, emailSubject(config, 'customerPaidSubject', { orderId: order.orderId }), {
-    Pedido: order.orderId,
-    Status: 'PAGO',
-    Valor: formatBRL(value),
-    Mensagem: paidCustomerMessage,
-    ...(order.uberTrackingUrl ? { 'Rastreio Uber': order.uberTrackingUrl } : {}),
-    ...(order.correiosTrackingCode ? {
-      'Rastreio Correios': order.correiosTrackingCode,
-      'Acompanhar envio': correiosTrackingUrl(order.correiosTrackingCode, config.siteUrl)
-    } : {}),
+  const shopPaid = await notifyShop(
+    env,
+    config,
+    emailSubject(config, 'shopPaidSubject', { orderId: order.orderId }),
+    shopPaidFields,
+    shopAttachments.length ? { attachments: shopAttachments } : undefined
+  );
+  if (!shopPaid?.ok) console.error('E-mail PAGO loja falhou:', JSON.stringify(shopPaid));
+
+  const paidCustomerMessage = paidMessageForOrder(order, config);
+  const receipt = paidReceiptCopy(order, config, paidCustomerMessage);
+  await notifyCustomer(env, config, order, receipt.subject, {
+    ...receipt.fields,
     ...orderWatchEmailFields(order),
     ...orderIntlProductFields(order)
+  }, {
+    html: fieldsToHtmlLocalized(
+      { [receipt.customerLabel]: order.nome, ...receipt.fields, ...orderWatchEmailFields(order), ...orderIntlProductFields(order) },
+      receipt.footerSite
+    ),
+    text: fieldsToText({ [receipt.customerLabel]: order.nome, ...receipt.fields })
   });
 
   if (order.couponCommissionerEmail && order.couponCommissionAmount != null) {
@@ -9744,6 +9960,11 @@ export default {
     ctx.waitUntil(
       runScheduledCorreiosTrackingSync(env).catch((err) => {
         console.error('Correios tracking cron failed:', err.message);
+      })
+    );
+    ctx.waitUntil(
+      runAbandonedCheckoutEmails(env).catch((err) => {
+        console.error('Abandoned checkout cron failed:', err.message);
       })
     );
     if (event.cron === '30 2 * * *') {
