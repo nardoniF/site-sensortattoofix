@@ -2458,6 +2458,10 @@ async function tryCorreiosLabelPdfAttachment(env, order, config) {
       if (pdfBase64) await saveCachedLabelPdf(env, order.orderId, pdfBase64);
     }
     if (!pdfBase64) return null;
+    if (!order.correiosLabelCachedAt) {
+      order.correiosLabelCachedAt = new Date().toISOString();
+      await saveOrder(env, order);
+    }
     return {
       filename: `etiqueta-${order.orderId}.pdf`,
       content: pdfBase64,
@@ -7505,6 +7509,43 @@ async function trackGa4Purchase(env, order, payment) {
   }
 }
 
+async function ensureCorreiosLabelCached(env, order, config) {
+  if (!order || order.status !== 'paid' || !isCorreiosBrOrder(order)) {
+    return { skipped: true, reason: 'not_correios_br_paid' };
+  }
+  try {
+    const hadCache = !!(await getCachedLabelPdf(env, order.orderId));
+    if (hadCache && order.correiosPrePostagemId) {
+      return {
+        ok: true,
+        cached: true,
+        trackingCode: order.correiosTrackingCode || null,
+        prePostagemId: order.correiosPrePostagemId
+      };
+    }
+    await ensureCorreiosPrePostagemForOrder(env, order, config);
+    const att = await tryCorreiosLabelPdfAttachment(env, order, config);
+    if (!att) {
+      return {
+        ok: false,
+        error: order.correiosLabelEmailError || 'Falha ao gerar PDF da etiqueta Correios',
+        prePostagemId: order.correiosPrePostagemId || null
+      };
+    }
+    order.correiosLabelCachedAt = new Date().toISOString();
+    await saveOrder(env, order);
+    return {
+      ok: true,
+      cached: false,
+      trackingCode: order.correiosTrackingCode || null,
+      prePostagemId: order.correiosPrePostagemId || null
+    };
+  } catch (err) {
+    console.warn('ensureCorreiosLabelCached:', order.orderId, err.message);
+    return { ok: false, error: err.message };
+  }
+}
+
 async function handleOrderShippingLabel(request, env, origin, orderId) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -7514,14 +7555,20 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   if (order.status !== 'paid') {
     return json({ error: 'Só é possível gerar etiqueta de pedido PAGO.' }, 400, origin);
   }
-  if ((order.paisCode || 'BR') !== 'BR') {
-    return json({ error: 'Etiqueta Correios disponível apenas para envio nacional.', mode: 'html', useClient: false }, 400, origin);
+  if ((order.paisCode || 'BR') !== 'BR' || orderLooksInternationalDestination(order)) {
+    return json({
+      mode: 'html',
+      useClient: true,
+      international: true,
+      message: 'Pedido internacional: a API de etiqueta/pré-postagem Correios é só para envio nacional (BR). Use a etiqueta local / packing slip.'
+    }, 200, origin);
   }
   if (isParticularDeliveryOrder(order)) {
     return json({ mode: 'html', useClient: true, message: 'Use etiqueta local para motoboy/Uber.' }, 200, origin);
   }
 
   const config = await getConfig(env);
+  const ensureOnly = new URL(request.url).searchParams.get('ensure') === '1';
   const token = await getCorreiosToken(env);
   if (!token) {
     return json({
@@ -7536,10 +7583,12 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
     if (cachedPdf) {
       return json({
         mode: 'pdf',
-        pdfBase64: cachedPdf,
+        pdfBase64: ensureOnly ? undefined : cachedPdf,
+        hasPdf: true,
         trackingCode: order.correiosTrackingCode || null,
         prePostagemId: order.correiosPrePostagemId || null,
-        cached: true
+        cached: true,
+        ensured: true
       }, 200, origin);
     }
 
@@ -7558,13 +7607,19 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
       await saveOrder(env, order);
     }
 
-    if (label.pdfBase64) await saveCachedLabelPdf(env, orderId, label.pdfBase64);
+    if (label.pdfBase64) {
+      await saveCachedLabelPdf(env, orderId, label.pdfBase64);
+      order.correiosLabelCachedAt = new Date().toISOString();
+      await saveOrder(env, order);
+    }
 
     return json({
       mode: 'pdf',
-      pdfBase64: label.pdfBase64,
+      pdfBase64: ensureOnly ? undefined : label.pdfBase64,
+      hasPdf: !!label.pdfBase64,
       trackingCode: order.correiosTrackingCode || labelCode || null,
-      prePostagemId
+      prePostagemId,
+      ensured: true
     }, 200, origin);
   } catch (err) {
     const msg = String(err.message || 'Falha ao gerar etiqueta Correios');
@@ -9236,10 +9291,17 @@ async function sendTestEmailByType(env, config, to, type, overrides = {}) {
 }
 
 async function handleGetOrder(request, env, origin, orderId) {
-  const order = await getOrder(env, orderId);
+  let order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Não encontrado.' }, 404, origin);
 
   if (await isValidSession(env, bearerToken(request))) {
+    // First admin open: if payment-time label failed, generate pré-postagem + PDF now.
+    if (order.status === 'paid' && isCorreiosBrOrder(order) && !order.correiosLabelCachedAt) {
+      const config = await getConfig(env);
+      const ensure = await ensureCorreiosLabelCached(env, order, config);
+      order = (await getOrder(env, orderId)) || order;
+      if (ensure && !ensure.skipped) order.labelEnsure = ensure;
+    }
     return json(order, 200, origin);
   }
 

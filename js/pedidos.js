@@ -675,16 +675,57 @@
     renderOrderModal(o);
     if (orderModalEl) orderModalEl.hidden = false;
 
-    const needsAv = o.status === 'paid' && isCorreiosBrOrder(o) && !o.correiosTrackingCode
-      && (o.correiosPrePostagemId || o.correiosPrePostagemAt);
+    const body = document.getElementById('pedidos-order-modal-body');
+    let fresh = o;
+
+    // First open of a paid BR order: generate Correios pré-postagem + PDF if missing.
+    if (o.status === 'paid' && isCorreiosBrOrder(o) && !o.correiosLabelCachedAt) {
+      if (body) {
+        body.insertAdjacentHTML('beforeend', '<p class="pedidos-detail-sync">Gerando etiqueta Correios (primeira abertura)…</p>');
+      }
+      try {
+        const res = await fetch(
+          apiBase() + '/orders/' + encodeURIComponent(o.orderId) + '?_=' + Date.now(),
+          { headers: adminAuthHeaders(), cache: 'no-store' }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          fresh = data;
+          const idx = allOrders.findIndex((x) => x.orderId === o.orderId);
+          if (idx >= 0) allOrders[idx] = { ...allOrders[idx], ...data };
+          renderOrderModal(fresh);
+          if (data.labelEnsure?.ok) {
+            showStatus(
+              data.labelEnsure.cached
+                ? 'Etiqueta Correios já estava em cache.'
+                : ('Etiqueta Correios gerada' + (data.correiosTrackingCode ? ' — ' + data.correiosTrackingCode : '')),
+              'success'
+            );
+          } else if (data.labelEnsure && data.labelEnsure.ok === false) {
+            showStatus(data.labelEnsure.error || 'Não foi possível gerar a etiqueta agora.', 'warn');
+          }
+        }
+      } catch (err) {
+        console.warn('Ensure label on open:', err);
+      }
+    } else if (o.status === 'paid' && !isCorreiosBrOrder(o) && !isUberOrder(o) && !isMotoboyOrder(o)) {
+      if (body && !body.querySelector('.pedidos-intl-label-note')) {
+        body.insertAdjacentHTML(
+          'beforeend',
+          '<p class="pedidos-intl-label-note admin-meta">Envio internacional: a API de etiqueta Correios (pré-postagem) só vale para Brasil. Use o botão Etiqueta para packing slip local.</p>'
+        );
+      }
+    }
+
+    const needsAv = fresh.status === 'paid' && isCorreiosBrOrder(fresh) && !fresh.correiosTrackingCode
+      && (fresh.correiosPrePostagemId || fresh.correiosPrePostagemAt);
     if (!needsAv) return;
 
-    const body = document.getElementById('pedidos-order-modal-body');
-    if (body) {
-      body.insertAdjacentHTML('beforeend', '<p class="pedidos-detail-sync">Buscando código AV nos Correios…</p>');
+    if (body && !body.querySelector('.pedidos-detail-sync-av')) {
+      body.insertAdjacentHTML('beforeend', '<p class="pedidos-detail-sync pedidos-detail-sync-av">Buscando código AV nos Correios…</p>');
     }
-    await syncCorreiosOrders([o.orderId], true);
-    const fresh = allOrders.find((x) => x.orderId === o.orderId) || o;
+    await syncCorreiosOrders([fresh.orderId], true);
+    fresh = allOrders.find((x) => x.orderId === fresh.orderId) || fresh;
     renderOrderModal(fresh);
     applyFilters();
   }
