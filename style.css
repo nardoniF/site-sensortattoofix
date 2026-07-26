@@ -2888,6 +2888,64 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .admin-card h1 i { color: var(--primary); }
 .admin-intro, .admin-meta { color: var(--gray); margin-bottom: 24px; font-size: 0.95rem; }
+.forum-related-card {
+    margin-bottom: 14px;
+    padding: 16px 18px;
+}
+.forum-related-title {
+    margin: 0 0 6px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.forum-related-help {
+    margin: 0 0 12px !important;
+}
+.forum-related-form {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    width: 100%;
+}
+.forum-related-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ccc;
+}
+.forum-related-field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    color: #fff;
+    font: inherit;
+    font-weight: 400;
+}
+.forum-related-btn {
+    flex: 0 0 auto;
+    min-width: 0 !important;
+    white-space: nowrap;
+}
+.forum-related-results {
+    margin-top: 10px;
+}
+@media (max-width: 640px) {
+    .forum-related-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .forum-related-btn {
+        width: 100%;
+    }
+}
 .forum-admin-dashboard {
     display: flex;
     flex-direction: column;
