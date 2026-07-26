@@ -765,10 +765,10 @@
                         <div class="admin-card" style="margin-bottom:14px;padding:12px 14px">
                             <h3 style="margin:0 0 .5rem;font-size:1rem"><i class="fas fa-search"></i> Verificar tópico relacionado</h3>
                             <p class="admin-meta" style="margin-top:0">Digite o assunto que alguém quer postar. Se já existir tópico parecido, aparece aqui — peça para a pessoa responder nele em vez de abrir outro.</p>
-                            <form id="forum-related-form" class="admin-form" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-                                <label style="flex:1;min-width:220px">Assunto<input type="search" id="forum-related-q" name="q" required minlength="3" placeholder="ex: Apple Watch falhando após tatuagem"></label>
-                                <button type="submit" class="btn-primary"><i class="fas fa-search"></i> Buscar</button>
-                            </form>
+                            <div id="forum-related-form" class="admin-form" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+                                <label style="flex:1;min-width:220px">Assunto<input type="search" id="forum-related-q" name="q" minlength="3" placeholder="ex: Apple Watch falhando após tatuagem"></label>
+                                <button type="button" id="btn-forum-related-search" class="btn-primary"><i class="fas fa-search"></i> Buscar</button>
+                            </div>
                             <div id="forum-related-results" class="admin-meta" style="margin-top:10px"></div>
                         </div>
                         <p id="forum-admin-meta" class="admin-meta" hidden></p>
@@ -891,6 +891,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=106"></script>
+    <script src="js/admin.js?v=107"></script>
 </body>
 </html>

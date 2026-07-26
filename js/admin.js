@@ -2542,15 +2542,15 @@ ${worksheets}
                     <button type="button" class="btn-danger-outline" data-forum-reply-delete="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}"><i class="fas fa-trash-alt"></i> Excluir</button>
                   </div>
                 </div>
-                <form class="forum-admin-inline-edit" data-forum-reply-edit hidden>
+                <div class="forum-admin-inline-edit" data-forum-reply-edit hidden>
                   <label>Resposta
-                    <textarea name="body" rows="6" required>${escapeHtml(r.body || '')}</textarea>
+                    <textarea data-edit-body rows="6">${escapeHtml(r.body || '')}</textarea>
                   </label>
                   <div class="forum-admin-actions forum-admin-actions--inline">
-                    <button type="submit" class="btn-primary">Salvar</button>
+                    <button type="button" class="btn-primary" data-forum-save-reply>Salvar</button>
                     <button type="button" class="btn-secondary" data-forum-cancel-reply>Cancelar</button>
                   </div>
-                </form>
+                </div>
               </div>
             `).join('');
             const pendingReplyCount = (th.replies || []).filter((r) => r.status === 'pending').length;
@@ -2587,18 +2587,18 @@ ${worksheets}
                       <button type="button" class="btn-danger-outline" data-forum-delete="${escapeHtml(th.id)}"><i class="fas fa-trash-alt"></i> Excluir tópico</button>
                     </div>
                   </div>
-                  <form class="forum-admin-inline-edit" data-forum-thread-edit hidden>
+                  <div class="forum-admin-inline-edit" data-forum-thread-edit hidden>
                     <label>Título
-                      <input name="title" type="text" maxlength="120" required value="${escapeHtml(th.title || '')}">
+                      <input data-edit-title type="text" maxlength="120" value="${escapeHtml(th.title || '')}">
                     </label>
                     <label>Texto
-                      <textarea name="body" rows="8" required>${escapeHtml(th.body || '')}</textarea>
+                      <textarea data-edit-body rows="8">${escapeHtml(th.body || '')}</textarea>
                     </label>
                     <div class="forum-admin-actions">
-                      <button type="submit" class="btn-primary">Salvar</button>
+                      <button type="button" class="btn-primary" data-forum-save-thread>Salvar</button>
                       <button type="button" class="btn-secondary" data-forum-cancel-thread>Cancelar</button>
                     </div>
-                  </form>
+                  </div>
                   ${replies ? `<div class="forum-admin-replies"><div class="forum-admin-replies-title">Respostas</div>${replies}</div>` : '<div class="forum-admin-empty">Sem respostas ainda.</div>'}
                 </div>
               </details>`;
@@ -2621,11 +2621,11 @@ ${worksheets}
     root.querySelectorAll('[data-forum-cancel-thread]').forEach((btn) => {
       btn.addEventListener('click', () => cancelForumThreadEdit(btn.closest('[data-thread-id]')));
     });
-    root.querySelectorAll('form[data-forum-thread-edit]').forEach((form) => {
-      form.addEventListener('submit', (ev) => {
-        ev.preventDefault();
-        const card = form.closest('[data-thread-id]');
-        saveForumThreadEdit(card?.getAttribute('data-thread-id'), form);
+    root.querySelectorAll('[data-forum-save-thread]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('[data-thread-id]');
+        const panel = card?.querySelector('[data-forum-thread-edit]');
+        saveForumThreadEdit(card?.getAttribute('data-thread-id'), panel);
       });
     });
     root.querySelectorAll('[data-forum-reply-approve]').forEach((btn) => {
@@ -2643,14 +2643,14 @@ ${worksheets}
     root.querySelectorAll('[data-forum-cancel-reply]').forEach((btn) => {
       btn.addEventListener('click', () => cancelForumReplyEdit(btn.closest('[data-reply-id]')));
     });
-    root.querySelectorAll('form[data-forum-reply-edit]').forEach((form) => {
-      form.addEventListener('submit', (ev) => {
-        ev.preventDefault();
-        const wrap = form.closest('[data-reply-id]');
+    root.querySelectorAll('[data-forum-save-reply]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const wrap = btn.closest('[data-reply-id]');
+        const panel = wrap?.querySelector('[data-forum-reply-edit]');
         saveForumReplyEdit(
           wrap?.getAttribute('data-forum-reply-wrap'),
           wrap?.getAttribute('data-reply-id'),
-          form
+          panel
         );
       });
     });
@@ -2661,37 +2661,39 @@ ${worksheets}
     if (!card) return;
     card.open = true;
     const view = card.querySelector('[data-forum-thread-view]');
-    const form = card.querySelector('form[data-forum-thread-edit]');
-    if (!view || !form) return;
+    const panel = card.querySelector('[data-forum-thread-edit]');
+    if (!view || !panel) return;
     const th = forumAdminCache.find((t) => t.id === id);
     if (th) {
-      form.title.value = th.title || '';
-      form.body.value = th.body || '';
+      const titleInput = panel.querySelector('[data-edit-title]');
+      const bodyInput = panel.querySelector('[data-edit-body]');
+      if (titleInput) titleInput.value = th.title || '';
+      if (bodyInput) bodyInput.value = th.body || '';
     }
     view.hidden = true;
-    form.hidden = false;
-    form.querySelector('textarea[name="body"]')?.focus();
+    panel.hidden = false;
+    panel.querySelector('[data-edit-body]')?.focus();
   }
 
   function cancelForumThreadEdit(card) {
     if (!card) return;
     const view = card.querySelector('[data-forum-thread-view]');
-    const form = card.querySelector('form[data-forum-thread-edit]');
+    const panel = card.querySelector('[data-forum-thread-edit]');
     if (view) view.hidden = false;
-    if (form) form.hidden = true;
+    if (panel) panel.hidden = true;
   }
 
-  async function saveForumThreadEdit(id, form) {
+  async function saveForumThreadEdit(id, panel) {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
-    if (!token || !base || !id || !form) return;
-    const title = String(form.title?.value || '').trim();
-    const body = String(form.body?.value || '').trim();
+    if (!token || !base || !id || !panel) return;
+    const title = String(panel.querySelector('[data-edit-title]')?.value || '').trim();
+    const body = String(panel.querySelector('[data-edit-body]')?.value || '').trim();
     if (!title || !body) {
       alert('Título e texto são obrigatórios.');
       return;
     }
-    const submitBtn = form.querySelector('button[type="submit"]');
+    const submitBtn = panel.querySelector('[data-forum-save-thread]');
     if (submitBtn) submitBtn.disabled = true;
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(id)}`, {
@@ -2718,34 +2720,35 @@ ${worksheets}
     const card = wrap.closest('[data-thread-id]');
     if (card) card.open = true;
     const view = wrap.querySelector('[data-forum-reply-view]');
-    const form = wrap.querySelector('form[data-forum-reply-edit]');
-    if (!view || !form) return;
+    const panel = wrap.querySelector('[data-forum-reply-edit]');
+    if (!view || !panel) return;
     const th = forumAdminCache.find((t) => t.id === threadId);
     const reply = (th?.replies || []).find((r) => r.id === replyId);
-    if (reply) form.body.value = reply.body || '';
+    const bodyInput = panel.querySelector('[data-edit-body]');
+    if (reply && bodyInput) bodyInput.value = reply.body || '';
     view.hidden = true;
-    form.hidden = false;
-    form.querySelector('textarea[name="body"]')?.focus();
+    panel.hidden = false;
+    bodyInput?.focus();
   }
 
   function cancelForumReplyEdit(wrap) {
     if (!wrap) return;
     const view = wrap.querySelector('[data-forum-reply-view]');
-    const form = wrap.querySelector('form[data-forum-reply-edit]');
+    const panel = wrap.querySelector('[data-forum-reply-edit]');
     if (view) view.hidden = false;
-    if (form) form.hidden = true;
+    if (panel) panel.hidden = true;
   }
 
-  async function saveForumReplyEdit(threadId, replyId, form) {
+  async function saveForumReplyEdit(threadId, replyId, panel) {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
-    if (!token || !base || !threadId || !replyId || !form) return;
-    const body = String(form.body?.value || '').trim();
+    if (!token || !base || !threadId || !replyId || !panel) return;
+    const body = String(panel.querySelector('[data-edit-body]')?.value || '').trim();
     if (!body) {
       alert('Texto obrigatório.');
       return;
     }
-    const submitBtn = form.querySelector('button[type="submit"]');
+    const submitBtn = panel.querySelector('[data-forum-save-reply]');
     if (submitBtn) submitBtn.disabled = true;
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(threadId)}/replies/${encodeURIComponent(replyId)}`, {
@@ -2859,13 +2862,17 @@ ${worksheets}
       alert(data.message || data.error || (res.ok ? 'OK' : 'Erro'));
       loadForumAdmin();
     });
-    document.getElementById('forum-related-form')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    async function runForumRelatedSearch() {
       const token = sessionStorage.getItem(SESSION_KEY);
       const base = apiBase();
       const out = document.getElementById('forum-related-results');
       const q = document.getElementById('forum-related-q')?.value || '';
       if (!token || !base || !out) return;
+      if (String(q).trim().length < 3) {
+        out.innerHTML = '<span class="admin-status-bad">Digite pelo menos 3 caracteres.</span>';
+        document.getElementById('forum-related-q')?.focus();
+        return;
+      }
       out.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando…';
       try {
         const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/related?q=' + encodeURIComponent(q), {
@@ -2885,6 +2892,15 @@ ${worksheets}
           ).join('') + '</ul>';
       } catch (err) {
         out.innerHTML = `<span class="admin-status-bad">${escapeHtml(err.message)}</span>`;
+      }
+    }
+    document.getElementById('btn-forum-related-search')?.addEventListener('click', () => {
+      runForumRelatedSearch();
+    });
+    document.getElementById('forum-related-q')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        runForumRelatedSearch();
       }
     });
     document.getElementById('forum-public-toggle')?.addEventListener('change', async (e) => {
