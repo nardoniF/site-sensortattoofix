@@ -2469,6 +2469,7 @@ ${worksheets}
 
 
   let forumAdminLoading = false;
+  let forumAdminCache = [];
 
   function renderForumAdmin(data) {
     const root = document.getElementById('forum-admin-root');
@@ -2481,6 +2482,7 @@ ${worksheets}
       metaEl.textContent = `Pendências: ${data.pendingCount || 0} · tópicos: ${(data.threads || []).length} · público: ${data.meta?.public ? 'sim' : 'não'}`;
     }
     const threads = data.threads || [];
+    forumAdminCache = threads;
     if (!threads.length) {
       root.innerHTML = '<p class="admin-meta">Nenhum tópico ainda.</p>';
       return;
@@ -2488,7 +2490,7 @@ ${worksheets}
 
     const totalReplies = threads.reduce((sum, th) => sum + ((th.replies || []).length), 0);
     const pendingThreads = threads.filter((th) => th.status === 'pending').length;
-    const approvedThreads = threads.filter((th) => th.status === 'approved').length;
+    const approvedThreads = threads.filter((th) => th.status === 'approved' || th.status === 'published').length;
     const rejectedThreads = threads.filter((th) => th.status === 'rejected').length;
     const pendingReplies = threads.reduce((sum, th) => sum + ((th.replies || []).filter((r) => r.status === 'pending').length), 0);
 
@@ -2523,31 +2525,42 @@ ${worksheets}
         <div class="forum-admin-thread-list">
           ${threads.map((th) => {
             const replies = (th.replies || []).map((r) => `
-              <div class="forum-admin-reply">
+              <div class="forum-admin-reply" data-forum-reply-wrap="${escapeHtml(th.id)}" data-reply-id="${escapeHtml(r.id)}">
                 <div class="forum-admin-reply-meta"><strong>@${escapeHtml(r.author?.username || '')}</strong> · ${escapeHtml(r.status)} · ${escapeHtml(formatCustomerDate(r.createdAt))}</div>
-                <div class="forum-admin-reply-body">${escapeHtml(r.body || '')}</div>
-                <div class="forum-admin-actions forum-admin-actions--inline">
-                  ${r.status === 'pending' ? `
-                    <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
-                    <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
-                  ` : r.status === 'rejected' ? `
-                    <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
-                  ` : `
-                    <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
-                  `}
-                  <button type="button" class="btn-secondary" data-forum-edit-reply="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Editar resposta</button>
-                  <button type="button" class="btn-danger-outline" data-forum-reply-delete="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}"><i class="fas fa-trash-alt"></i> Excluir</button>
+                <div class="forum-admin-reply-view" data-forum-reply-view>
+                  <div class="forum-admin-reply-body">${escapeHtml(r.body || '')}</div>
+                  <div class="forum-admin-actions forum-admin-actions--inline">
+                    ${r.status === 'pending' ? `
+                      <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+                      <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+                    ` : r.status === 'rejected' ? `
+                      <button type="button" class="btn-secondary" data-forum-reply-approve="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Aprovar resposta</button>
+                    ` : `
+                      <button type="button" class="btn-danger-outline" data-forum-reply-reject="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Rejeitar</button>
+                    `}
+                    <button type="button" class="btn-secondary" data-forum-edit-reply="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}">Editar resposta</button>
+                    <button type="button" class="btn-danger-outline" data-forum-reply-delete="${escapeHtml(th.id)}" data-reply="${escapeHtml(r.id)}"><i class="fas fa-trash-alt"></i> Excluir</button>
+                  </div>
                 </div>
+                <form class="forum-admin-inline-edit" data-forum-reply-edit hidden>
+                  <label>Resposta
+                    <textarea name="body" rows="6" required>${escapeHtml(r.body || '')}</textarea>
+                  </label>
+                  <div class="forum-admin-actions forum-admin-actions--inline">
+                    <button type="submit" class="btn-primary">Salvar</button>
+                    <button type="button" class="btn-secondary" data-forum-cancel-reply>Cancelar</button>
+                  </div>
+                </form>
               </div>
             `).join('');
             const pendingReplyCount = (th.replies || []).filter((r) => r.status === 'pending').length;
             return `
-              <details class="admin-card forum-admin-thread-card" ${th.status === 'pending' ? 'open' : ''}>
+              <details class="admin-card forum-admin-thread-card" data-thread-id="${escapeHtml(th.id)}" ${th.status === 'pending' ? 'open' : ''}>
                 <summary class="forum-admin-thread-summary">
                   <div class="forum-admin-thread-summary-head">
                     <div>
                       <div class="forum-admin-thread-title-row">
-                        <h3>${escapeHtml(th.title || '')}</h3>
+                        <h3 data-forum-thread-title>${escapeHtml(th.title || '')}</h3>
                         <span class="forum-admin-thread-chip forum-admin-thread-chip--${escapeHtml(th.status || 'pending')}">${escapeHtml(th.status || 'pending')}</span>
                       </div>
                       <p class="forum-admin-thread-meta">@${escapeHtml(th.author?.username || '')} · ${escapeHtml(formatCustomerDate(th.createdAt))}</p>
@@ -2559,19 +2572,33 @@ ${worksheets}
                   </div>
                 </summary>
                 <div class="forum-admin-thread-body">
-                  <p class="forum-admin-excerpt">${escapeHtml((th.body || '').slice(0, 360))}</p>
-                  <div class="forum-admin-actions">
-                    ${th.status === 'pending' ? `
-                      <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
-                      <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
-                    ` : th.status === 'rejected' ? `
-                      <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
-                    ` : `
-                      <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
-                    `}
-                    <button type="button" class="btn-secondary" data-forum-edit-thread="${escapeHtml(th.id)}">Editar tópico</button>
-                    <button type="button" class="btn-danger-outline" data-forum-delete="${escapeHtml(th.id)}"><i class="fas fa-trash-alt"></i> Excluir tópico</button>
+                  <div class="forum-admin-thread-view" data-forum-thread-view>
+                    <p class="forum-admin-excerpt" data-forum-thread-body>${escapeHtml(th.body || '')}</p>
+                    <div class="forum-admin-actions">
+                      ${th.status === 'pending' ? `
+                        <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
+                        <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
+                      ` : th.status === 'rejected' ? `
+                        <button type="button" class="btn-primary" data-forum-approve="${escapeHtml(th.id)}">Aprovar tópico</button>
+                      ` : `
+                        <button type="button" class="btn-danger-outline" data-forum-reject="${escapeHtml(th.id)}">Rejeitar tópico</button>
+                      `}
+                      <button type="button" class="btn-secondary" data-forum-edit-thread="${escapeHtml(th.id)}">Editar tópico</button>
+                      <button type="button" class="btn-danger-outline" data-forum-delete="${escapeHtml(th.id)}"><i class="fas fa-trash-alt"></i> Excluir tópico</button>
+                    </div>
                   </div>
+                  <form class="forum-admin-inline-edit" data-forum-thread-edit hidden>
+                    <label>Título
+                      <input name="title" type="text" maxlength="120" required value="${escapeHtml(th.title || '')}">
+                    </label>
+                    <label>Texto
+                      <textarea name="body" rows="8" required>${escapeHtml(th.body || '')}</textarea>
+                    </label>
+                    <div class="forum-admin-actions">
+                      <button type="submit" class="btn-primary">Salvar</button>
+                      <button type="button" class="btn-secondary" data-forum-cancel-thread>Cancelar</button>
+                    </div>
+                  </form>
                   ${replies ? `<div class="forum-admin-replies"><div class="forum-admin-replies-title">Respostas</div>${replies}</div>` : '<div class="forum-admin-empty">Sem respostas ainda.</div>'}
                 </div>
               </details>`;
@@ -2589,7 +2616,17 @@ ${worksheets}
       btn.addEventListener('click', () => deleteForumThread(btn.getAttribute('data-forum-delete')));
     });
     root.querySelectorAll('[data-forum-edit-thread]').forEach((btn) => {
-      btn.addEventListener('click', () => editForumThread(btn.getAttribute('data-forum-edit-thread')));
+      btn.addEventListener('click', () => startForumThreadEdit(btn.getAttribute('data-forum-edit-thread')));
+    });
+    root.querySelectorAll('[data-forum-cancel-thread]').forEach((btn) => {
+      btn.addEventListener('click', () => cancelForumThreadEdit(btn.closest('[data-thread-id]')));
+    });
+    root.querySelectorAll('form[data-forum-thread-edit]').forEach((form) => {
+      form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const card = form.closest('[data-thread-id]');
+        saveForumThreadEdit(card?.getAttribute('data-thread-id'), form);
+      });
     });
     root.querySelectorAll('[data-forum-reply-approve]').forEach((btn) => {
       btn.addEventListener('click', () => moderateForumReply(btn.getAttribute('data-forum-reply-approve'), btn.getAttribute('data-reply'), 'approve'));
@@ -2601,42 +2638,130 @@ ${worksheets}
       btn.addEventListener('click', () => deleteForumReply(btn.getAttribute('data-forum-reply-delete'), btn.getAttribute('data-reply')));
     });
     root.querySelectorAll('[data-forum-edit-reply]').forEach((btn) => {
-      btn.addEventListener('click', () => editForumReply(btn.getAttribute('data-forum-edit-reply'), btn.getAttribute('data-reply')));
+      btn.addEventListener('click', () => startForumReplyEdit(btn.getAttribute('data-forum-edit-reply'), btn.getAttribute('data-reply')));
+    });
+    root.querySelectorAll('[data-forum-cancel-reply]').forEach((btn) => {
+      btn.addEventListener('click', () => cancelForumReplyEdit(btn.closest('[data-reply-id]')));
+    });
+    root.querySelectorAll('form[data-forum-reply-edit]').forEach((form) => {
+      form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const wrap = form.closest('[data-reply-id]');
+        saveForumReplyEdit(
+          wrap?.getAttribute('data-forum-reply-wrap'),
+          wrap?.getAttribute('data-reply-id'),
+          form
+        );
+      });
     });
   }
 
-  async function editForumThread(id) {
-    const token = sessionStorage.getItem(SESSION_KEY);
-    const base = apiBase();
-    if (!token || !base || !id) return;
-    const current = prompt('Editar título do tópico:', '');
-    if (current === null) return;
-    const body = prompt('Editar texto do tópico:', '');
-    if (body === null) return;
-    const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: current.trim(), body: body.trim() })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { alert(data.error || 'Erro ao editar tópico'); return; }
-    loadForumAdmin();
+  function startForumThreadEdit(id) {
+    const card = document.querySelector(`#forum-admin-root [data-thread-id="${CSS.escape(id)}"]`);
+    if (!card) return;
+    card.open = true;
+    const view = card.querySelector('[data-forum-thread-view]');
+    const form = card.querySelector('form[data-forum-thread-edit]');
+    if (!view || !form) return;
+    const th = forumAdminCache.find((t) => t.id === id);
+    if (th) {
+      form.title.value = th.title || '';
+      form.body.value = th.body || '';
+    }
+    view.hidden = true;
+    form.hidden = false;
+    form.querySelector('textarea[name="body"]')?.focus();
   }
 
-  async function editForumReply(threadId, replyId) {
+  function cancelForumThreadEdit(card) {
+    if (!card) return;
+    const view = card.querySelector('[data-forum-thread-view]');
+    const form = card.querySelector('form[data-forum-thread-edit]');
+    if (view) view.hidden = false;
+    if (form) form.hidden = true;
+  }
+
+  async function saveForumThreadEdit(id, form) {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
-    if (!token || !base || !threadId || !replyId) return;
-    const body = prompt('Editar resposta:', '');
-    if (body === null) return;
-    const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(threadId)}/replies/${encodeURIComponent(replyId)}`, {
-      method: 'PATCH',
-      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: body.trim() })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { alert(data.error || 'Erro ao editar resposta'); return; }
-    loadForumAdmin();
+    if (!token || !base || !id || !form) return;
+    const title = String(form.title?.value || '').trim();
+    const body = String(form.body?.value || '').trim();
+    if (!title || !body) {
+      alert('Título e texto são obrigatórios.');
+      return;
+    }
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Erro ao editar tópico');
+        return;
+      }
+      await loadForumAdmin();
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function startForumReplyEdit(threadId, replyId) {
+    const wrap = document.querySelector(
+      `#forum-admin-root [data-forum-reply-wrap="${CSS.escape(threadId)}"][data-reply-id="${CSS.escape(replyId)}"]`
+    );
+    if (!wrap) return;
+    const card = wrap.closest('[data-thread-id]');
+    if (card) card.open = true;
+    const view = wrap.querySelector('[data-forum-reply-view]');
+    const form = wrap.querySelector('form[data-forum-reply-edit]');
+    if (!view || !form) return;
+    const th = forumAdminCache.find((t) => t.id === threadId);
+    const reply = (th?.replies || []).find((r) => r.id === replyId);
+    if (reply) form.body.value = reply.body || '';
+    view.hidden = true;
+    form.hidden = false;
+    form.querySelector('textarea[name="body"]')?.focus();
+  }
+
+  function cancelForumReplyEdit(wrap) {
+    if (!wrap) return;
+    const view = wrap.querySelector('[data-forum-reply-view]');
+    const form = wrap.querySelector('form[data-forum-reply-edit]');
+    if (view) view.hidden = false;
+    if (form) form.hidden = true;
+  }
+
+  async function saveForumReplyEdit(threadId, replyId, form) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base || !threadId || !replyId || !form) return;
+    const body = String(form.body?.value || '').trim();
+    if (!body) {
+      alert('Texto obrigatório.');
+      return;
+    }
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/forum/threads/${encodeURIComponent(threadId)}/replies/${encodeURIComponent(replyId)}`, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Erro ao editar resposta');
+        return;
+      }
+      await loadForumAdmin();
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   }
 
   async function loadForumAdmin() {

@@ -3001,6 +3001,43 @@ body.admin-page.pedidos-login-only #pedidos-login {
     margin: 0 0 10px;
     color: #e8e8e8;
     line-height: 1.5;
+    white-space: pre-wrap;
+}
+.forum-admin-inline-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 12px;
+    border: 1px solid rgba(255, 193, 7, 0.35);
+    border-radius: 12px;
+    background: rgba(255, 193, 7, 0.06);
+}
+.forum-admin-inline-edit[hidden] {
+    display: none !important;
+}
+.forum-admin-inline-edit label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #ddd;
+}
+.forum-admin-inline-edit input,
+.forum-admin-inline-edit textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #444;
+    background: #111;
+    color: #fff;
+    font: inherit;
+    line-height: 1.45;
+    resize: vertical;
+}
+.forum-admin-inline-edit textarea {
+    min-height: 8rem;
 }
 .forum-admin-actions {
     display: flex;
