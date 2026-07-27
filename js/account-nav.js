@@ -78,9 +78,23 @@ window.STF_ACCOUNT = (function () {
       options.body = JSON.stringify(options.json);
       delete options.json;
     }
-    const res = await fetch(base + path, { ...options, headers, cache: 'no-store' });
+    let res;
+    try {
+      res = await fetch(base + path, { ...options, headers, cache: 'no-store' });
+    } catch (_) {
+      throw new Error(isIntlHost()
+        ? 'Connection failed. Please try again in a moment, or continue checkout without signing in.'
+        : 'Falha de conexão. Tente de novo em instantes, ou continue a compra sem entrar na conta.');
+    }
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || (isIntlHost() ? 'Request failed.' : 'Erro na requisição.'));
+    if (!res.ok) {
+      throw new Error(
+        data.error
+        || (res.status === 503
+          ? (isIntlHost() ? 'Service temporarily unavailable.' : 'Serviço temporariamente indisponível.')
+          : (isIntlHost() ? 'Request failed.' : 'Erro na requisição.'))
+      );
+    }
     return data;
   }
 

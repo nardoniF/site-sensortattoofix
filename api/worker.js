@@ -1546,15 +1546,76 @@ async function saveUser(env, user) {
   await env.STORE_KV.put('user:email:' + normalizeEmail(user.email), user.userId);
 }
 
+async function kvPutSafe(env, key, value, options) {
+  try {
+    if (options) await env.STORE_KV.put(key, value, options);
+    else await env.STORE_KV.put(key, value);
+    return true;
+  } catch (err) {
+    console.error('KV put failed:', key, err?.message || err);
+    return false;
+  }
+}
+
+async function kvDeleteSafe(env, key) {
+  try {
+    await env.STORE_KV.delete(key);
+    return true;
+  } catch (err) {
+    console.error('KV delete failed:', key, err?.message || err);
+    return false;
+  }
+}
+
+function isKvQuotaError(err) {
+  const msg = String(err?.message || err || '').toLowerCase();
+  return /429|quota|limit|put.*exceed|exceed.*put|write.*limit/i.test(msg);
+}
+
+function customerSessionCacheReq(token) {
+  return new Request('https://stf-internal/customerSession/' + encodeURIComponent(token));
+}
+
+async function putCustomerSessionCache(token, userId) {
+  try {
+    await caches.default.put(
+      customerSessionCacheReq(token),
+      new Response(userId, {
+        headers: {
+          'Content-Type': 'text/plain',
+          'Cache-Control': 'max-age=' + CUSTOMER_SESSION_TTL
+        }
+      })
+    );
+    return true;
+  } catch (err) {
+    console.error('session cache put:', err?.message || err);
+    return false;
+  }
+}
+
 async function createCustomerSession(env, userId) {
   const token = crypto.randomUUID();
-  await env.STORE_KV.put('customerSession:' + token, userId, { expirationTtl: CUSTOMER_SESSION_TTL });
-  return token;
+  const ok = await kvPutSafe(env, 'customerSession:' + token, userId, { expirationTtl: CUSTOMER_SESSION_TTL });
+  if (ok) return token;
+  // Free-tier KV write quota exhausted: keep login alive via Cache API until midnight UTC reset.
+  if (await putCustomerSessionCache(token, userId)) return token;
+  const err = new Error('LOGIN_STORAGE_UNAVAILABLE');
+  err.code = 'LOGIN_STORAGE_UNAVAILABLE';
+  throw err;
 }
 
 async function getCustomerUserId(env, token) {
   if (!token) return null;
-  return (await env.STORE_KV.get('customerSession:' + token)) || null;
+  const fromKv = await env.STORE_KV.get('customerSession:' + token);
+  if (fromKv) return fromKv;
+  try {
+    const hit = await caches.default.match(customerSessionCacheReq(token));
+    if (!hit) return null;
+    return (await hit.text()) || null;
+  } catch {
+    return null;
+  }
 }
 
 async function linkOrderToUser(env, userId, orderId) {
@@ -2833,7 +2894,64 @@ async function pixQrInlineAttachment(order) {
   }
 }
 
+async function recordLoginFailure(env, ip, scope = 'admin') {
+  const key = `login:${scope}:${ip}`;
+  // Prefer Cache API for customer lockouts — avoids burning free KV write quota on failed logins.
+  if (scope === 'customer') {
+    try {
+      const cache = caches.default;
+      const req = new Request(`https://stf-internal/login-lock/${scope}/${encodeURIComponent(ip)}`);
+      const hit = await cache.match(req);
+      const current = hit ? JSON.parse(await hit.text()) : { attempts: 0 };
+      if (current.lockedUntil && Date.now() < current.lockedUntil) return current;
+      const attempts = (current.attempts || 0) + 1;
+      const data = attempts >= LOGIN_MAX_ATTEMPTS
+        ? { attempts: 0, lockedUntil: Date.now() + LOGIN_LOCKOUT_SEC * 1000 }
+        : { attempts };
+      await cache.put(req, new Response(JSON.stringify(data), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': `max-age=${LOGIN_LOCKOUT_SEC}` }
+      }));
+      return data;
+    } catch (err) {
+      console.warn('login lock cache:', err.message);
+      return { attempts: 0 };
+    }
+  }
+  const current = (await getLoginLock(env, ip, scope)) || { attempts: 0 };
+  if (current.lockedUntil && Date.now() < current.lockedUntil) return current;
+  const attempts = (current.attempts || 0) + 1;
+  const data = attempts >= LOGIN_MAX_ATTEMPTS
+    ? { attempts: 0, lockedUntil: Date.now() + LOGIN_LOCKOUT_SEC * 1000 }
+    : { attempts };
+  await kvPutSafe(env, key, JSON.stringify(data), { expirationTtl: LOGIN_LOCKOUT_SEC });
+  return data;
+}
+
+async function clearLoginFailures(env, ip, scope = 'admin') {
+  if (scope === 'customer') {
+    try {
+      await caches.default.delete(new Request(`https://stf-internal/login-lock/${scope}/${encodeURIComponent(ip)}`));
+    } catch (_) { /* ignore */ }
+    return;
+  }
+  await kvDeleteSafe(env, `login:${scope}:${ip}`);
+}
+
 async function getLoginLock(env, ip, scope = 'admin') {
+  if (scope === 'customer') {
+    try {
+      const hit = await caches.default.match(
+        new Request(`https://stf-internal/login-lock/${scope}/${encodeURIComponent(ip)}`)
+      );
+      if (!hit) return null;
+      const data = JSON.parse(await hit.text());
+      if (data.lockedUntil && Date.now() < data.lockedUntil) return data;
+      if (data.lockedUntil && Date.now() >= data.lockedUntil) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  }
   const raw = await env.STORE_KV.get(`login:${scope}:${ip}`);
   if (!raw) return null;
   try {
@@ -2844,22 +2962,6 @@ async function getLoginLock(env, ip, scope = 'admin') {
   } catch {
     return null;
   }
-}
-
-async function recordLoginFailure(env, ip, scope = 'admin') {
-  const key = `login:${scope}:${ip}`;
-  const current = (await getLoginLock(env, ip, scope)) || { attempts: 0 };
-  if (current.lockedUntil && Date.now() < current.lockedUntil) return current;
-  const attempts = (current.attempts || 0) + 1;
-  const data = attempts >= LOGIN_MAX_ATTEMPTS
-    ? { attempts: 0, lockedUntil: Date.now() + LOGIN_LOCKOUT_SEC * 1000 }
-    : { attempts };
-  await env.STORE_KV.put(key, JSON.stringify(data), { expirationTtl: LOGIN_LOCKOUT_SEC });
-  return data;
-}
-
-async function clearLoginFailures(env, ip, scope = 'admin') {
-  await env.STORE_KV.delete(`login:${scope}:${ip}`);
 }
 
 function loginLockedResponse(lock, origin) {
@@ -7048,37 +7150,57 @@ async function registerCustomerUser(env, { nome, email, telefone, cpf, senha }) 
   return user;
 }
 
-async function handleCustomerRegister(request, env, origin) {
-  const body = await request.json();
+async function handleCustomerLogin(request, env, origin) {
   try {
-    const user = await registerCustomerUser(env, body);
-    await ensureTesterFlagFromEmail(env, user);
+    const ip = clientIp(request);
+    const lock = await getLoginLock(env, ip, 'customer');
+    if (lock?.lockedUntil && Date.now() < lock.lockedUntil) {
+      return loginLockedResponse(lock, origin);
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const email = normalizeEmail(body.email);
+    const senha = String(body.senha || '');
+    const user = await getUserByEmail(env, email);
+    if (!user || !(await verifyPassword(senha, user.passwordSalt, user.passwordHash))) {
+      await recordLoginFailure(env, ip, 'customer');
+      return json({ error: 'E-mail ou senha incorretos.' }, 401, origin);
+    }
+    await clearLoginFailures(env, ip, 'customer');
+    try {
+      await ensureTesterFlagFromEmail(env, user);
+    } catch (err) {
+      console.warn('tester flag:', err.message);
+    }
     const token = await createCustomerSession(env, user.userId);
     return json({ ok: true, token, user: publicUserView(user) }, 200, origin);
   } catch (err) {
-    return json({ error: err.message }, 400, origin);
+    console.error('customer login:', err?.message || err);
+    if (err?.code === 'LOGIN_STORAGE_UNAVAILABLE' || isKvQuotaError(err)) {
+      return json({
+        error: 'Login temporariamente indisponível (limite diário do servidor). Tente novamente após 21h (horário de Brasília) ou continue a compra sem conta.'
+      }, 503, origin);
+    }
+    return json({ error: 'Não foi possível entrar agora. Tente de novo em instantes.' }, 500, origin);
   }
 }
 
-async function handleCustomerLogin(request, env, origin) {
-  const ip = clientIp(request);
-  const lock = await getLoginLock(env, ip, 'customer');
-  if (lock?.lockedUntil && Date.now() < lock.lockedUntil) {
-    return loginLockedResponse(lock, origin);
+async function handleCustomerRegister(request, env, origin) {
+  const body = await request.json().catch(() => ({}));
+  try {
+    const user = await registerCustomerUser(env, body);
+    try { await ensureTesterFlagFromEmail(env, user); } catch (_) { /* ignore */ }
+    const token = await createCustomerSession(env, user.userId);
+    return json({ ok: true, token, user: publicUserView(user) }, 200, origin);
+  } catch (err) {
+    console.error('customer register:', err?.message || err);
+    if (err?.code === 'LOGIN_STORAGE_UNAVAILABLE' || isKvQuotaError(err)) {
+      return json({
+        error: 'Cadastro temporariamente indisponível (limite diário do servidor). Tente após 21h (horário de Brasília) ou continue sem criar conta.'
+      }, 503, origin);
+    }
+    return json({ error: err.message || 'Não foi possível criar a conta.' }, 400, origin);
   }
-
-  const body = await request.json();
-  const email = normalizeEmail(body.email);
-  const senha = String(body.senha || '');
-  const user = await getUserByEmail(env, email);
-  if (!user || !(await verifyPassword(senha, user.passwordSalt, user.passwordHash))) {
-    await recordLoginFailure(env, ip, 'customer');
-    return json({ error: 'E-mail ou senha incorretos.' }, 401, origin);
-  }
-  await clearLoginFailures(env, ip, 'customer');
-  await ensureTesterFlagFromEmail(env, user);
-  const token = await createCustomerSession(env, user.userId);
-  return json({ ok: true, token, user: publicUserView(user) }, 200, origin);
 }
 
 async function handleCustomerSession(request, env, origin) {
@@ -7091,7 +7213,12 @@ async function handleCustomerSession(request, env, origin) {
 
 async function handleCustomerLogout(request, env, origin) {
   const token = bearerToken(request);
-  if (token) await env.STORE_KV.delete('customerSession:' + token);
+  if (token) {
+    await kvDeleteSafe(env, 'customerSession:' + token);
+    try {
+      await caches.default.delete(customerSessionCacheReq(token));
+    } catch (_) { /* ignore */ }
+  }
   return json({ ok: true }, 200, origin);
 }
 
