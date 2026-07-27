@@ -1887,18 +1887,20 @@ function hydrateIntlOrderFields(order) {
 
 /**
  * Extrai campos de endereços internacionais salvos só em `endereco` (pedidos antigos).
- * Exemplos: "8 Davey Street, Brisbane — Queensland, Austrália, CEP 4123"
+ * Exemplos:
+ * - "8 Davey Street, Brisbane — Queensland, Austrália, CEP 4123"
+ * - "8 Davey Street — Brisbane, Queensland — Austrália 4123"
  */
 function parseIntlAddressFromOrder(order) {
   const blob = String(order.endereco || '').replace(/\s+/g, ' ').trim();
   if (!blob) return null;
   const out = {};
   const cepMatch = blob.match(/\bCEP[:\s]*([A-Z0-9][A-Z0-9 \-]{2,12})\b/i)
-    || blob.match(/\b(\d{4}(?:\s?\d{4})?|\d{5}(?:-\d{4})?|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\s*$/i);
+    || blob.match(/\b(\d{4})\s*$/)
+    || blob.match(/\b(\d{5}(?:-\d{4})?|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\s*$/i);
   if (cepMatch) out.cep = String(cepMatch[1] || cepMatch[0]).replace(/^CEP[:\s]*/i, '').trim();
 
-  // "rua, numero" ou "numero rua"
-  const streetNum = blob.match(/^(\d+[A-Za-z]?)\s+([^,]+)/)
+  const streetNum = blob.match(/^(\d+[A-Za-z]?)\s+([^,—\-]+)/)
     || blob.match(/^([^,]+?),\s*(\d+[A-Za-z]?)\b/);
   if (streetNum) {
     if (/^\d/.test(streetNum[1])) {
@@ -1913,12 +1915,13 @@ function parseIntlAddressFromOrder(order) {
     if (first) out.rua = first.slice(0, 50);
   }
 
-  const cityState = blob.match(/,\s*([^,—\-]+)\s*[—\-]\s*([^,]+)/)
+  // " — Brisbane, Queensland — Austrália 4123"
+  const cityState = blob.match(/[—\-]\s*([^,—\-]+),\s*([^,—\-]+)\s*[—\-]/)
+    || blob.match(/,\s*([^,—\-]+)\s*[—\-]\s*([^,]+)/)
     || blob.match(/,\s*([A-Za-zÀ-ÿ\s]+),\s*([A-Za-zÀ-ÿ\s]{2,})/);
   if (cityState) {
     out.cidade = cityState[1].trim().slice(0, 30);
     const st = cityState[2].trim();
-    // remove país do final do state chunk
     out.uf = st.replace(/\b(austr[aá]lia|brasil|italy|it[aá]lia|usa|eua|canada|canad[aá]|portugal|espanha|fran[cç]a)\b/ig, '').trim().slice(0, 30);
   }
 
@@ -2619,7 +2622,7 @@ async function tryCorreiosLabelPdfAttachment(env, order, config) {
       const token = await getCorreiosToken(env);
       const preId = order.correiosPrePostagemId;
       if (!token || !preId) return null;
-      const label = await fetchCorreiosLabelPdf(token, preId);
+      const label = await fetchCorreiosLabelPdf(token, preId, correiosLabelTipoOpts(order));
       pdfBase64 = label?.pdfBase64 || null;
       if (label?.trackingCode && !order.correiosTrackingCode) {
         order.correiosTrackingCode = String(label.trackingCode).trim().toUpperCase();
@@ -4158,27 +4161,58 @@ function normalizeIntlPostalCode(cep) {
   return String(cep || '').trim().replace(/\s+/g, ' ').slice(0, 17);
 }
 
+const AU_STATE_TO_REGIAO = {
+  QLD: 'Queensland', NSW: 'New South Wales', VIC: 'Victoria', WA: 'Western Australia',
+  SA: 'South Australia', TAS: 'Tasmania', ACT: 'Australian Capital Territory', NT: 'Northern Territory',
+  QUEENSLAND: 'Queensland', 'NEW SOUTH WALES': 'New South Wales', VICTORIA: 'Victoria'
+};
+
 function buildCorreiosIntlEndereco(order) {
   const pais = String(order.paisCode || '').trim().toUpperCase().slice(0, 2);
   if (!pais || pais === 'BR' || pais === 'OT' || pais === 'XX' || pais === 'T1') {
     throw new Error('Código ISO do país obrigatório para pré-postagem internacional (ex: AU, US, IT).');
   }
   const stateRaw = String(order.uf || order.estado || order.state || '').trim();
-  const region = String(order.regiao || order.region || stateRaw || order.cidade || pais).trim().slice(0, 50) || pais;
+  const stateKey = stripDiacritics(stateRaw).toUpperCase();
+  const region = String(
+    order.regiao || order.region || AU_STATE_TO_REGIAO[stateKey] || stateRaw || order.cidade || pais
+  ).trim().slice(0, 50) || pais;
+  // UF Correios exige 2 chars; estados AU (QLD/NSW) têm 3 — usa EX e guarda estado em regiao.
   let uf = stateRaw.toUpperCase();
   if (uf.length !== 2) uf = 'EX';
-  const bairro = String(order.bairro || order.cidade || 'Centro').trim().slice(0, 30) || 'Centro';
+
+  let rua = String(order.rua || order.logradouro || '').trim();
+  let numero = String(order.numero || '').trim();
+  // "8 Davey Street" no campo rua → separar número
+  if (rua && (!numero || rua.startsWith(numero + ' '))) {
+    const m = rua.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
+    if (m) {
+      numero = m[1];
+      rua = m[2];
+    }
+  }
+  if (!rua) rua = String(order.endereco || '').trim().split(/[—\-]/)[0]?.trim() || 'Address';
+  if (!numero) numero = 'S/N';
+
+  let bairro = String(order.bairro || '').trim();
+  // pedidos antigos colocaram o estado em bairro
+  if (!bairro || stripDiacritics(bairro).toUpperCase() === stateKey || AU_STATE_TO_REGIAO[stripDiacritics(bairro).toUpperCase()]) {
+    bairro = String(order.cidade || 'Centro').trim() || 'Centro';
+  }
+
   const postal = normalizeIntlPostalCode(order.cep || order.postalCode || order.postal);
   return {
-    cep: postal || '00000000',
-    logradouro: String(order.rua || order.logradouro || '').trim().slice(0, 50) || String(order.endereco || '').trim().slice(0, 50) || 'Address',
-    numero: String(order.numero || 'S/N').trim().slice(0, 6) || 'S/N',
+    // Código postal internacional (opcional na prática; vazio evita validação de CEP BR via Prazo).
+    cep: postal || '',
+    logradouro: rua.slice(0, 50),
+    numero: numero.slice(0, 6) || 'S/N',
     complemento: String(order.complemento || '').trim().slice(0, 30),
-    bairro,
+    bairro: bairro.slice(0, 30) || 'Centro',
     cidade: String(order.cidade || '').trim().slice(0, 30) || 'City',
     uf,
     regiao: region,
-    pais
+    pais,
+    codigoPais: pais
   };
 }
 
@@ -4628,7 +4662,8 @@ function extractCorreiosAvCode(data, depth = 0) {
   return null;
 }
 
-async function requestCorreiosLabelReceipt(token, prePostagemId) {
+async function requestCorreiosLabelReceipt(token, prePostagemId, opts = {}) {
+  const tipoRotulo = opts.tipoRotulo || 'P';
   const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens/rotulo/assincrono/pdf', {
     method: 'POST',
     headers: {
@@ -4638,8 +4673,8 @@ async function requestCorreiosLabelReceipt(token, prePostagemId) {
     },
     body: JSON.stringify({
       idsPrePostagem: [prePostagemId],
-      tipoRotulo: 'P',
-      formatoRotulo: 'ET'
+      tipoRotulo,
+      formatoRotulo: opts.formatoRotulo || 'ET'
     })
   });
   const bodyText = await res.text().catch(() => '');
@@ -4889,7 +4924,7 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts =
   }
   if (!code && opts.aggressive) {
     try {
-      const label = await fetchCorreiosLabelPdf(token, id);
+      const label = await fetchCorreiosLabelPdf(token, id, correiosLabelTipoOpts(order));
       code = label.trackingCode || await extractAvFromPdfBase64(label.pdfBase64);
     } catch (err) {
       console.warn('Correios AV pdf sync:', order.orderId, err.message);
@@ -5004,42 +5039,65 @@ async function cancelCorreiosPrePostagem(env, order) {
 }
 
 async function createCorreiosPrePostagem(token, order, config, env) {
-  const payload = buildPrePostagemPayload(order, config, env);
-  const modalities = isCorreiosIntlOrder(order)
-    ? [payload.modalidadePagamento || '2', '1', '2'].filter((v, i, a) => a.indexOf(v) === i)
-    : [payload.modalidadePagamento || '1'];
+  const basePayload = buildPrePostagemPayload(order, config, env);
+  const intl = isCorreiosIntlOrder(order);
+  const modalities = intl
+    ? [basePayload.modalidadePagamento || '2', '1', '2'].filter((v, i, a) => a.indexOf(v) === i)
+    : [basePayload.modalidadePagamento || '1'];
+
+  // Variantes de CEP: postal real → vazio (evita PRZ-101 em intl) → só dígitos
+  const cepVariants = [];
+  const destCep = basePayload?.destinatario?.endereco?.cep;
+  if (intl) {
+    cepVariants.push(String(destCep || ''));
+    if (destCep) cepVariants.push('');
+    const digits = onlyDigits(destCep || '');
+    if (digits && digits !== destCep) cepVariants.push(digits);
+  } else {
+    cepVariants.push(String(destCep || ''));
+  }
 
   let lastDetail = '';
   for (const modalidade of modalities) {
-    const body = { ...payload, modalidadePagamento: String(modalidade) };
-    const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + token,
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    const bodyText = await res.text().catch(() => '');
-    if (!res.ok) {
-      lastDetail = extractCorreiosApiError(res, bodyText) || bodyText.slice(0, 280) || `HTTP ${res.status}`;
-      console.warn('Correios prepostagem fail:', order.orderId, modalidade, lastDetail);
-      continue;
+    for (const cep of cepVariants) {
+      const body = JSON.parse(JSON.stringify(basePayload));
+      body.modalidadePagamento = String(modalidade);
+      if (body.destinatario?.endereco) {
+        body.destinatario.endereco.cep = cep;
+        if (intl && body.destinatario.endereco.pais) {
+          body.destinatario.endereco.codigoPais = body.destinatario.endereco.pais;
+        }
+      }
+      const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + token,
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      const bodyText = await res.text().catch(() => '');
+      if (!res.ok) {
+        lastDetail = extractCorreiosApiError(res, bodyText) || bodyText.slice(0, 280) || `HTTP ${res.status}`;
+        console.warn('Correios prepostagem fail:', order.orderId, modalidade, 'cep=' + JSON.stringify(cep), lastDetail);
+        continue;
+      }
+      let data;
+      try {
+        data = bodyText ? JSON.parse(bodyText) : {};
+      } catch {
+        throw new Error('Resposta inválida ao criar pré-postagem');
+      }
+      const id = data.id || data.idPrePostagem;
+      if (!id) throw new Error('Pré-postagem criada sem ID');
+      return {
+        id,
+        codigoObjeto: extractCorreiosAvCode(data),
+        modalidadePagamento: String(modalidade),
+        cepUsado: cep
+      };
     }
-    let data;
-    try {
-      data = bodyText ? JSON.parse(bodyText) : {};
-    } catch {
-      throw new Error('Resposta inválida ao criar pré-postagem');
-    }
-    const id = data.id || data.idPrePostagem;
-    if (!id) throw new Error('Pré-postagem criada sem ID');
-    return {
-      id,
-      codigoObjeto: extractCorreiosAvCode(data),
-      modalidadePagamento: String(modalidade)
-    };
   }
   throw new Error(lastDetail || 'Falha ao criar pré-postagem Correios');
 }
@@ -5048,8 +5106,17 @@ async function sleepMs(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchCorreiosLabelPdf(token, prePostagemId) {
-  const idRecibo = await requestCorreiosLabelReceipt(token, prePostagemId);
+function correiosLabelTipoOpts(order) {
+  if (!isCorreiosIntlOrder(order)) return { tipoRotulo: 'P', formatoRotulo: 'ET' };
+  // CI = Carta Internacional, EI = Encomenda Internacional (API rótulo)
+  return {
+    tipoRotulo: isIntlDocumentShipment(order) ? 'CI' : 'EI',
+    formatoRotulo: 'ET'
+  };
+}
+
+async function fetchCorreiosLabelPdf(token, prePostagemId, opts = {}) {
+  const idRecibo = await requestCorreiosLabelReceipt(token, prePostagemId, opts);
   if (!idRecibo) throw new Error('Recibo do rótulo não retornado');
   const result = await pollCorreiosLabelDownload(token, idRecibo, { requirePdf: true });
   if (!result?.pdfBase64) throw new Error('Tempo esgotado aguardando PDF do rótulo Correios');
@@ -7943,7 +8010,7 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
     const prePostagemId = order.correiosPrePostagemId;
     if (!prePostagemId) throw new Error('Pré-postagem não criada');
 
-    const label = await fetchCorreiosLabelPdf(token, prePostagemId);
+    const label = await fetchCorreiosLabelPdf(token, prePostagemId, correiosLabelTipoOpts(order));
     let labelCode = label.trackingCode
       ? String(label.trackingCode).trim().toUpperCase()
       : await extractAvFromPdfBase64(label.pdfBase64);
@@ -7976,15 +8043,21 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
       await saveOrder(env, order);
     } catch (_) { /* ignore */ }
     const blocked = msg.includes('GTW-012') || msg.includes('86720') || msg.includes('CON-011');
+    const intlCepBug = /PRZ-101|cepDestino|CEP destinatário/i.test(msg);
     const serviceMissing = /ausente no cartão|CON-011|não.*liberad|nao.*liberad|serviço.*não|servico.*nao/i.test(msg);
+    let error = msg;
+    if (blocked) {
+      error = 'Aguardando liberação Correios (API / serviços no cartão).';
+    } else if (intlCepBug) {
+      error = 'Correios API nacional rejeitou o CEP internacional (PRZ-101). Serviço 45039 está no cartão, mas a pré-postagem REST ainda valida CEP como Brasil. Use Minhas Exportações (MEXPO) ou agência; a etiqueta local continua disponível.';
+    } else if (serviceMissing) {
+      error = 'Serviço internacional não liberado no cartão de postagem: ' + msg;
+    }
     return json({
-      error: blocked
-        ? 'Aguardando liberação Correios (API / serviços no cartão).'
-        : (serviceMissing
-          ? ('Serviço internacional não liberado no cartão de postagem: ' + msg)
-          : msg),
+      error,
       detail: msg,
       international: isCorreiosIntlOrder(order) || orderLooksInternationalDestination(order),
+      mexpoUrl: 'https://minhasexportacoes.correios.com.br/',
       mode: blocked ? 'blocked' : 'html_fallback',
       useClient: true
     }, blocked ? 503 : 502, origin);
@@ -8849,6 +8922,140 @@ async function handleAdminCorreiosContract(request, env, origin) {
     servicosNoCartao: services,
     servicosInternacionais: correiosIntlServicesFrom(services),
     servicosErro: cardServices.error || null
+  }, 200, origin);
+}
+
+/** Diagnóstico: descobre endpoint intl e testa variantes de pré-postagem (sem expor token). */
+async function handleAdminCorreiosIntlProbe(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  const orderId = String(url.searchParams.get('orderId') || 'STF-20260726-CF26D2B504').trim();
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.', orderId }, 404, origin);
+
+  hydrateIntlOrderFields(order);
+  const config = await getConfig(env);
+  const token = await getCorreiosToken(env);
+  if (!token) return json({ error: 'Sem token Correios' }, 503, origin);
+
+  try {
+    const code = await resolveIntlExportServiceCode(order, config);
+    order.shippingServiceCode = code;
+  } catch (err) {
+    return json({ error: 'Falha ao resolver serviço: ' + err.message, orderId }, 200, origin);
+  }
+
+  const bases = [
+    'https://api.correios.com.br/prepostagem',
+    'https://api.correios.com.br/prepostageminternacional',
+    'https://api.correios.com.br/ppi',
+    'https://api.correios.com.br/mexpo',
+    'https://api.correios.com.br/exportacao',
+    'https://api.correios.com.br/minhasexportacoes',
+    'https://api.correios.com.br/packet',
+    'https://api.correios.com.br/cws',
+    'https://api.correios.com.br/rotulointernacional',
+    'https://api.correios.com.br/rotulagem'
+  ];
+  const discovery = [];
+  for (const base of bases) {
+    for (const path of ['/v1/api-docs', '/v2/api-docs', '/v3/api-docs', '']) {
+      try {
+        const res = await fetch(base + path, {
+          headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+        });
+        const text = await res.text().catch(() => '');
+        if (res.status === 404 || res.status === 503) continue;
+        discovery.push({
+          url: base + path,
+          status: res.status,
+          nuApi: (text.match(/"x-nuApi"\s*:\s*(\d+)/) || [])[1] || null,
+          title: (text.match(/"title"\s*:\s*"([^"]+)"/) || [])[1] || null,
+          snippet: text.replace(/\s+/g, ' ').slice(0, 160)
+        });
+      } catch (err) {
+        discovery.push({ url: base + path, status: 'ERR', snippet: err.message });
+      }
+    }
+  }
+
+  let payload;
+  try {
+    payload = buildPrePostagemPayload(order, config, env);
+  } catch (err) {
+    return json({ error: 'Payload: ' + err.message, discovery }, 200, origin);
+  }
+
+  const createUrls = [
+    'https://api.correios.com.br/prepostagem/v1/prepostagens',
+    'https://api.correios.com.br/prepostageminternacional/v1/prepostagens',
+    'https://api.correios.com.br/ppi/v1/prepostagens',
+    'https://api.correios.com.br/mexpo/v1/prepostagens',
+    'https://api.correios.com.br/exportacao/v1/prepostagens'
+  ];
+  const attempts = [];
+  const variants = [
+    { name: 'as_built', mutate: (p) => p },
+    { name: 'cep_empty', mutate: (p) => { p.destinatario.endereco.cep = ''; return p; } },
+    { name: 'cep_4123_only', mutate: (p) => { p.destinatario.endereco.cep = '4123'; return p; } },
+    {
+      name: 'pais_AU_codigoPais',
+      mutate: (p) => {
+        p.destinatario.endereco.pais = 'AU';
+        p.destinatario.endereco.codigoPais = 'AU';
+        return p;
+      }
+    }
+  ];
+
+  for (const createUrl of createUrls) {
+    for (const variant of variants) {
+      const body = variant.mutate(JSON.parse(JSON.stringify(payload)));
+      try {
+        const res = await fetch(createUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+        const text = await res.text().catch(() => '');
+        let parsed = null;
+        try { parsed = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+        attempts.push({
+          createUrl,
+          variant: variant.name,
+          status: res.status,
+          ok: res.ok,
+          id: parsed?.id || parsed?.idPrePostagem || null,
+          error: res.ok ? null : (extractCorreiosApiError(res, text) || text.slice(0, 220))
+        });
+        if (res.ok && (parsed?.id || parsed?.idPrePostagem)) {
+          // cancel immediately to avoid orphan pré-postagem
+          const id = parsed.id || parsed.idPrePostagem;
+          await fetch(`https://api.correios.com.br/prepostagem/v1/prepostagens/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+          }).catch(() => null);
+        }
+      } catch (err) {
+        attempts.push({ createUrl, variant: variant.name, status: 'ERR', error: err.message });
+      }
+    }
+  }
+
+  const sanePayload = JSON.parse(JSON.stringify(payload));
+  if (sanePayload?.remetente?.cpfCnpj) sanePayload.remetente.cpfCnpj = '***';
+  return json({
+    orderId,
+    serviceCode: order.shippingServiceCode,
+    discovery,
+    attempts,
+    payloadSample: sanePayload
   }, 200, origin);
 }
 
@@ -10317,6 +10524,9 @@ export default {
       }
       if (path === '/admin/correios-contract' && request.method === 'GET') {
         return handleAdminCorreiosContract(request, env, origin);
+      }
+      if (path === '/admin/correios-intl-probe' && request.method === 'GET') {
+        return handleAdminCorreiosIntlProbe(request, env, origin);
       }
       if (path === '/admin/customers' && request.method === 'GET') {
         return handleAdminCustomers(request, env, origin);

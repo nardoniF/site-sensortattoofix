@@ -1,11 +1,11 @@
-# Deploy estático — fila + retry (evita falha intermitente do Pages).
-# No GitHub: Settings → Pages → Build and deployment → GitHub Actions → "Deploy site (Pages)".
+# Deploy estático — OPCIONAL.
+# O site .com / .com.br é servido pelo Worker cloudflare/stf-com-proxy.js (pin COMMIT).
+# GitHub Pages está com billing locked e gerava e-mail de falha a cada push.
+# Dispare manualmente só se o Pages for reativado.
 
 name: Deploy site (Pages)
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -13,7 +13,6 @@ permissions:
   pages: write
   id-token: write
 
-# Deploy mais recente cancela o anterior (evita fila presa).
 concurrency:
   group: pages-deploy
   cancel-in-progress: true
@@ -76,7 +75,13 @@ jobs:
         id: deploy4
         if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure' && steps.deploy3.outcome == 'failure'
         uses: actions/deploy-pages@v4
+        continue-on-error: true
 
-      - name: Falhou após 4 tentativas
-        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure' && steps.deploy3.outcome == 'failure' && steps.deploy4.outcome == 'failure'
-        run: exit 1
+      - name: Resultado
+        run: |
+          if [ "${{ steps.deploy1.outcome }}" = "success" ] || [ "${{ steps.deploy2.outcome }}" = "success" ] || [ "${{ steps.deploy3.outcome }}" = "success" ] || [ "${{ steps.deploy4.outcome }}" = "success" ]; then
+            echo "Pages OK"
+            exit 0
+          fi
+          echo "::warning::GitHub Pages falhou (billing/lock). Site continua no Cloudflare proxy."
+          exit 0

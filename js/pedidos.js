@@ -967,6 +967,9 @@
         window.STF_ORDER_LABEL.print(order);
         const why = data.error || data.detail || data.message || 'Etiqueta local';
         showStatus('Correios oficial falhou — abri etiqueta local. Motivo: ' + why, 'warn');
+        if (data.mexpoUrl) {
+          console.warn('Pré-postagem internacional: use', data.mexpoUrl);
+        }
         return;
       }
       throw new Error(data.error || data.detail || 'Falha ao gerar etiqueta');
