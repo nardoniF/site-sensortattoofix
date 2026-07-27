@@ -160,8 +160,13 @@
     const st = String(o.shipmentType || '');
     if (st === 'documento' || st === 'encomenda') return true;
     if (o.internationalLensOnly) return true;
+    if (/internacional|international|exporta\s*f[aá]cil|documento\s+intern/i.test(String(o.shippingService || ''))) {
+      return true;
+    }
     const pais = String(o.paisCode || o.pais || '').toUpperCase();
     if (pais && pais !== 'BR' && !pais.includes('BRASIL')) return true;
+    const cepDigits = String(o.cep || '').replace(/\D/g, '');
+    if (cepDigits && cepDigits.length !== 8) return true;
     return false;
   }
 
@@ -960,14 +965,15 @@
       }
       if (data.useClient && window.STF_ORDER_LABEL) {
         window.STF_ORDER_LABEL.print(order);
-        showStatus((data.error || data.message || 'Etiqueta local') + ' (fallback HTML)', data.error ? 'warn' : 'success');
+        const why = data.error || data.detail || data.message || 'Etiqueta local';
+        showStatus('Correios oficial falhou — abri etiqueta local. Motivo: ' + why, 'warn');
         return;
       }
       throw new Error(data.error || data.detail || 'Falha ao gerar etiqueta');
     } catch (err) {
       if (window.STF_ORDER_LABEL) {
         window.STF_ORDER_LABEL.print(order);
-        showStatus((err.message || 'Erro') + ' — etiqueta local aberta.', 'warn');
+        showStatus('Correios oficial falhou — abri etiqueta local. Motivo: ' + (err.message || 'Erro'), 'warn');
       } else {
         showStatus(err.message || 'Erro ao gerar etiqueta', 'error');
       }

@@ -1784,15 +1784,154 @@ function isIntlCheckoutLocale(locale) {
 /** True when the destination is abroad even if paisCode was wrongly saved as BR. */
 function orderLooksInternationalDestination(order) {
   const code = String(order?.paisCode || '').trim().toUpperCase();
-  if (code && code !== 'BR') return true;
+  if (code && code !== 'BR' && code !== 'OTHER' && code !== 'XX' && code !== 'T1') return true;
   if (isIntlCheckoutLocale(order?.checkoutLocale)) return true;
   if (order?.internationalLensOnly) return true;
   if (order?.shipmentType === 'documento' || order?.shipmentType === 'encomenda') return true;
   if (String(order?.shippingMethodId || '').startsWith('int-')) return true;
   if (/internacional|international/i.test(String(order?.pais || ''))) return true;
+  if (/internacional|international|exporta\s*f[aá]cil|documento\s+intern/i.test(String(order?.shippingService || ''))) {
+    return true;
+  }
+  if (inferPaisCodeFromName(order?.pais)) return true;
   const cepDigits = String(order?.cep || '').replace(/\D/g, '');
-  if (cepDigits.length === 5 && order?.uf && String(order.uf).length <= 3) return true;
+  // CEP BR tem 8 dígitos; CEP/postal estrangeiro costuma ter outro tamanho.
+  if (cepDigits && cepDigits.length !== 8) {
+    if (inferPaisCodeFromName(order?.pais) || /austr|eua|usa|united|ital|espan|portug|fran[cç]|german|canad|mexic|japan|new zealand|irland/i.test(String(order?.pais || '') + ' ' + String(order?.endereco || ''))) {
+      return true;
+    }
+    if (cepDigits.length >= 3 && cepDigits.length <= 7) return true;
+  }
   return false;
+}
+
+const PAIS_NAME_TO_ISO = {
+  australia: 'AU',
+  'united states': 'US', 'estados unidos': 'US', eua: 'US', usa: 'US', america: 'US',
+  canada: 'CA',
+  'united kingdom': 'GB', uk: 'GB', england: 'GB', 'reino unido': 'GB',
+  italy: 'IT', italia: 'IT',
+  portugal: 'PT', spain: 'ES', espanha: 'ES', france: 'FR', franca: 'FR',
+  germany: 'DE', alemanha: 'DE', netherlands: 'NL', 'paises baixos': 'NL', belgium: 'BE', belgica: 'BE',
+  ireland: 'IE', irlanda: 'IE', 'new zealand': 'NZ', 'nova zelandia': 'NZ',
+  japan: 'JP', japao: 'JP', mexico: 'MX', argentina: 'AR', chile: 'CL',
+  colombia: 'CO', peru: 'PE', uruguay: 'UY', uruguai: 'UY', paraguay: 'PY', paraguai: 'PY'
+};
+
+function stripDiacritics(s) {
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function inferPaisCodeFromName(pais) {
+  const raw = stripDiacritics(String(pais || '').trim().toLowerCase());
+  if (!raw || raw === 'brasil' || raw === 'brazil') return null;
+  if (PAIS_NAME_TO_ISO[raw]) return PAIS_NAME_TO_ISO[raw];
+  for (const [name, iso] of Object.entries(PAIS_NAME_TO_ISO)) {
+    const normName = stripDiacritics(name);
+    if (raw.includes(normName) || normName.includes(raw)) return iso;
+  }
+  return null;
+}
+
+/** Completa paisCode / shipmentType / endereço estruturado em pedidos antigos. */
+function hydrateIntlOrderFields(order) {
+  if (!order) return { changed: false };
+  let changed = false;
+  const code = String(order.paisCode || '').trim().toUpperCase();
+  if (!code || code === 'BR' || code === 'OTHER' || code === 'XX' || code === 'T1') {
+    const inferred = inferPaisCodeFromName(order.pais)
+      || inferPaisCodeFromName(order.endereco)
+      || null;
+    if (inferred) {
+      order.paisCode = inferred;
+      changed = true;
+    }
+  }
+  if (!order.shipmentType) {
+    const hay = `${order.shippingService || ''} ${order.shippingMethodId || ''}`.toLowerCase();
+    if (/documento|carta|lens\s*only|lente/.test(hay) || order.internationalLensOnly) {
+      order.shipmentType = 'documento';
+      changed = true;
+    } else if (/encomenda|exporta|packet|mercadoria/.test(hay)) {
+      order.shipmentType = 'encomenda';
+      changed = true;
+    } else if (String(order.shippingMethodId || '').includes('documento')) {
+      order.shipmentType = 'documento';
+      changed = true;
+    } else if (String(order.shippingMethodId || '').includes('encomenda')) {
+      order.shipmentType = 'encomenda';
+      changed = true;
+    }
+  }
+  if (!order.shippingMethodId) {
+    if (order.shipmentType === 'documento') {
+      order.shippingMethodId = 'int-documento';
+      changed = true;
+    } else if (order.shipmentType === 'encomenda') {
+      order.shippingMethodId = 'int-encomenda';
+      changed = true;
+    }
+  }
+
+  const parsed = parseIntlAddressFromOrder(order);
+  if (parsed) {
+    for (const key of ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'cep']) {
+      if ((!order[key] || String(order[key]).trim() === '') && parsed[key]) {
+        order[key] = parsed[key];
+        changed = true;
+      }
+    }
+  }
+  return { changed };
+}
+
+/**
+ * Extrai campos de endereços internacionais salvos só em `endereco` (pedidos antigos).
+ * Exemplos: "8 Davey Street, Brisbane — Queensland, Austrália, CEP 4123"
+ */
+function parseIntlAddressFromOrder(order) {
+  const blob = String(order.endereco || '').replace(/\s+/g, ' ').trim();
+  if (!blob) return null;
+  const out = {};
+  const cepMatch = blob.match(/\bCEP[:\s]*([A-Z0-9][A-Z0-9 \-]{2,12})\b/i)
+    || blob.match(/\b(\d{4}(?:\s?\d{4})?|\d{5}(?:-\d{4})?|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\s*$/i);
+  if (cepMatch) out.cep = String(cepMatch[1] || cepMatch[0]).replace(/^CEP[:\s]*/i, '').trim();
+
+  // "rua, numero" ou "numero rua"
+  const streetNum = blob.match(/^(\d+[A-Za-z]?)\s+([^,]+)/)
+    || blob.match(/^([^,]+?),\s*(\d+[A-Za-z]?)\b/);
+  if (streetNum) {
+    if (/^\d/.test(streetNum[1])) {
+      out.numero = streetNum[1].slice(0, 6);
+      out.rua = streetNum[2].trim().slice(0, 50);
+    } else {
+      out.rua = streetNum[1].trim().slice(0, 50);
+      out.numero = streetNum[2].slice(0, 6);
+    }
+  } else {
+    const first = blob.split(/[,—\-]/)[0]?.trim();
+    if (first) out.rua = first.slice(0, 50);
+  }
+
+  const cityState = blob.match(/,\s*([^,—\-]+)\s*[—\-]\s*([^,]+)/)
+    || blob.match(/,\s*([A-Za-zÀ-ÿ\s]+),\s*([A-Za-zÀ-ÿ\s]{2,})/);
+  if (cityState) {
+    out.cidade = cityState[1].trim().slice(0, 30);
+    const st = cityState[2].trim();
+    // remove país do final do state chunk
+    out.uf = st.replace(/\b(austr[aá]lia|brasil|italy|it[aá]lia|usa|eua|canada|canad[aá]|portugal|espanha|fran[cç]a)\b/ig, '').trim().slice(0, 30);
+  }
+
+  if (!out.cidade) {
+    const m = blob.match(/\b(Brisbane|Sydney|Melbourne|London|Rome|Roma|Milan|Milano|New York|Los Angeles|Toronto|Lisbon|Lisboa|Madrid|Paris|Berlin)\b/i);
+    if (m) out.cidade = m[1].slice(0, 30);
+  }
+  if (!out.uf) {
+    const m = blob.match(/\b(Queensland|NSW|VIC|QLD|WA|SA|TAS|ACT|NT|California|Texas|Florida|England|Lazio|Lombardia)\b/i);
+    if (m) out.uf = m[1].slice(0, 30);
+  }
+  if (!out.bairro && out.cidade) out.bairro = out.cidade;
+  return Object.keys(out).length ? out : null;
 }
 
 async function intlUsdCharge(order, env) {
@@ -4763,6 +4902,10 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts =
 }
 
 async function ensureCorreiosPrePostagemForOrder(env, order, config) {
+  if (orderLooksInternationalDestination(order) || isCorreiosIntlOrder(order)) {
+    const hydrated = hydrateIntlOrderFields(order);
+    if (hydrated.changed) await saveOrder(env, order);
+  }
   if (!isCorreiosLabelOrder(order)) {
     return { skipped: true, reason: 'not_correios' };
   }
@@ -4862,32 +5005,43 @@ async function cancelCorreiosPrePostagem(env, order) {
 
 async function createCorreiosPrePostagem(token, order, config, env) {
   const payload = buildPrePostagemPayload(order, config, env);
-  const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + token,
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(payload)
-  });
-  const bodyText = await res.text().catch(() => '');
-  if (!res.ok) {
-    const detail = extractCorreiosApiError(res, bodyText) || bodyText.slice(0, 200) || `HTTP ${res.status}`;
-    throw new Error(detail);
+  const modalities = isCorreiosIntlOrder(order)
+    ? [payload.modalidadePagamento || '2', '1', '2'].filter((v, i, a) => a.indexOf(v) === i)
+    : [payload.modalidadePagamento || '1'];
+
+  let lastDetail = '';
+  for (const modalidade of modalities) {
+    const body = { ...payload, modalidadePagamento: String(modalidade) };
+    const res = await fetch('https://api.correios.com.br/prepostagem/v1/prepostagens', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    const bodyText = await res.text().catch(() => '');
+    if (!res.ok) {
+      lastDetail = extractCorreiosApiError(res, bodyText) || bodyText.slice(0, 280) || `HTTP ${res.status}`;
+      console.warn('Correios prepostagem fail:', order.orderId, modalidade, lastDetail);
+      continue;
+    }
+    let data;
+    try {
+      data = bodyText ? JSON.parse(bodyText) : {};
+    } catch {
+      throw new Error('Resposta inválida ao criar pré-postagem');
+    }
+    const id = data.id || data.idPrePostagem;
+    if (!id) throw new Error('Pré-postagem criada sem ID');
+    return {
+      id,
+      codigoObjeto: extractCorreiosAvCode(data),
+      modalidadePagamento: String(modalidade)
+    };
   }
-  let data;
-  try {
-    data = bodyText ? JSON.parse(bodyText) : {};
-  } catch {
-    throw new Error('Resposta inválida ao criar pré-postagem');
-  }
-  const id = data.id || data.idPrePostagem;
-  if (!id) throw new Error('Pré-postagem criada sem ID');
-  return {
-    id,
-    codigoObjeto: extractCorreiosAvCode(data)
-  };
+  throw new Error(lastDetail || 'Falha ao criar pré-postagem Correios');
 }
 
 async function sleepMs(ms) {
@@ -7816,14 +7970,23 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
     }, 200, origin);
   } catch (err) {
     const msg = String(err.message || 'Falha ao gerar etiqueta Correios');
-    const blocked = msg.includes('GTW-012') || msg.includes('86720') || msg.includes('CON-011') || msg.includes('04227');
+    try {
+      order.correiosPrePostagemError = msg;
+      order.correiosLabelEmailError = msg;
+      await saveOrder(env, order);
+    } catch (_) { /* ignore */ }
+    const blocked = msg.includes('GTW-012') || msg.includes('86720') || msg.includes('CON-011');
+    const serviceMissing = /ausente no cartão|CON-011|não.*liberad|nao.*liberad|serviço.*não|servico.*nao/i.test(msg);
     return json({
       error: blocked
-        ? 'Aguardando liberação Correios (API 36 / serviços 86720 e 04227 no cartão).'
-        : msg,
+        ? 'Aguardando liberação Correios (API / serviços no cartão).'
+        : (serviceMissing
+          ? ('Serviço internacional não liberado no cartão de postagem: ' + msg)
+          : msg),
       detail: msg,
+      international: isCorreiosIntlOrder(order) || orderLooksInternationalDestination(order),
       mode: blocked ? 'blocked' : 'html_fallback',
-      useClient: !blocked
+      useClient: true
     }, blocked ? 503 : 502, origin);
   }
 }
