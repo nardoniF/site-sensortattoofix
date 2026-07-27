@@ -2028,7 +2028,17 @@ ${worksheets}
   ];
 
   function productMarketsOf(p) {
-    return window.STF_SITE?.normalizeProductMarkets?.(p) || (p?.aggregated ? ['BR'] : ['BR', 'INT']);
+    if (window.STF_SITE?.normalizeProductMarkets) {
+      return window.STF_SITE.normalizeProductMarkets(p);
+    }
+    if (Array.isArray(p?.markets) && p.markets.length) {
+      return [...new Set(p.markets.map((m) => String(m || '').trim().toUpperCase()).filter(Boolean))];
+    }
+    if (p?.aggregated) return ['BR'];
+    const id = String(p?.id || p?.slug || '');
+    if (id === 'kit-sensor-tattoofix' || id === 'kit') return ['BR'];
+    if (/optical.?lens|lens-intl|sensortattoofix-optical/i.test(id)) return ['INT'];
+    return ['BR', 'INT'];
   }
 
   function isIntlMarketProduct(p) {
@@ -3375,15 +3385,17 @@ ${worksheets}
 
   document.getElementById('btn-add-intl-main-product')?.addEventListener('click', () => {
     const all = collectProductsFromDom();
+    const stamp = Date.now();
+    const slug = `optical-lens-intl-${stamp}`;
     all.push({
-      id: 'optical-lens-intl',
-      slug: 'optical-lens-intl',
+      id: slug,
+      slug,
       name: 'SensorTattooFix Optical Lens',
       nameEn: 'SensorTattooFix Optical Lens',
       nameIt: 'Lente ottica SensorTattooFix',
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuada.',
       price: 62.9,
       image: LENS_INTL_IMAGES[0],
       images: LENS_INTL_IMAGES.slice(),
@@ -3395,6 +3407,9 @@ ${worksheets}
     });
     renderProducts(all);
     showProductSubtab('intl-main');
+    showStatus('Produto .com adicionado. Preencha os campos e clique em Salvar.', 'success', 'save');
+    const panel = document.getElementById('admin-products-intl-main');
+    panel?.lastElementChild?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
