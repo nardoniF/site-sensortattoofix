@@ -32,11 +32,11 @@ const CUSTOMER_SESSION_TTL = 2592000; // 30 dias
 const DEFAULT_CONFIG = {
   product: {
     name: 'Kit Sensor Tattoo Fix',
-    nameEn: 'Sensor Tattoo Fix Kit',
-    nameIt: 'Kit Sensor Tattoo Fix',
+    nameEn: 'Sensor Tattoo Fix Lens',
+    nameIt: 'Lente Sensor Tattoo Fix',
     description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
-    descriptionEn: 'Optical lens for smartwatches on tattooed skin — full kit',
-    descriptionIt: 'Lente ottica per smartwatch su pelle tatuata — kit completo',
+    descriptionEn: 'Optical lens for smartwatches on tattooed skin',
+    descriptionIt: 'Lente ottica per smartwatch su pelle tatuata',
     price: 62.9,
     image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg'
   },
@@ -45,16 +45,41 @@ const DEFAULT_CONFIG = {
       id: 'kit-sensor-tattoofix',
       slug: 'kit-sensor-tattoofix',
       name: 'Kit Sensor Tattoo Fix',
-      nameEn: 'Sensor Tattoo Fix Kit',
-      nameIt: 'Kit Sensor Tattoo Fix',
+      nameEn: 'SensorTattooFix Optical Lens',
+      nameIt: 'Lente ottica SensorTattooFix',
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
-      descriptionEn: 'Optical lens for smartwatches on tattooed skin — full kit',
-      descriptionIt: 'Lente ottica per smartwatch su pelle tatuata — kit completo',
+      descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
+      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
       price: 62.9,
       image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg',
       active: true,
       requiresSmartwatch: true,
-      weightGrams: 3
+      weightGrams: 3,
+      markets: ['BR']
+    },
+    {
+      id: 'optical-lens-intl',
+      slug: 'optical-lens-intl',
+      name: 'SensorTattooFix Optical Lens',
+      nameEn: 'SensorTattooFix Optical Lens',
+      nameIt: 'Lente ottica SensorTattooFix',
+      description: 'Lente de correção óptica para smartwatch em pele tatuada.',
+      descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
+      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      price: 62.9,
+      image: '/site/lens-gallery/01-optical-correction-lens.png',
+      images: [
+        '/site/lens-gallery/01-optical-correction-lens.png',
+        '/site/lens-gallery/02-ultra-thin.png',
+        '/site/lens-gallery/03-high-optical-transparency.png',
+        '/site/lens-gallery/04-engineered-refraction.png',
+        '/site/lens-gallery/05-whats-included.png'
+      ],
+      active: true,
+      requiresSmartwatch: true,
+      weightGrams: 3,
+      sensorMm: 25,
+      markets: ['INT']
     }
   ],
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
@@ -5337,7 +5362,10 @@ function mapExportServiceToOption(service, config, country, weightGrams, method,
 }
 
 async function quoteCorreiosExportOptions(config, countryCode, opts = {}) {
-  const methods = getEnabledShippingMethods(config, 'INT');
+  let methods = getEnabledShippingMethods(config, 'INT');
+  if (opts.documentOnly) {
+    methods = methods.filter((m) => resolveIntlSimTipos(m).includes('D'));
+  }
   if (!methods.length) return [];
 
   const tiposNeeded = new Map();
@@ -5940,6 +5968,34 @@ function formatCorreiosApiLine(apiId) {
   return `${id} — ${name}`;
 }
 
+/** Ordem fixa da tabela Status das integrações (admin). */
+const INTEGRATION_ROW_ORDER = [
+  'worker',
+  'mercadopago',
+  'asaas',
+  'paypal',
+  'stripe',
+  'correios-br',
+  'correios-intl',
+  'correios-contract-apis',
+  'correios-intl-services',
+  'uber-direct',
+  'resend',
+  'formsubmit',
+  'zapi',
+  'ga4',
+  'address-autocomplete'
+];
+
+function sortIntegrationRows(rows) {
+  const rank = new Map(INTEGRATION_ROW_ORDER.map((id, i) => [id, i]));
+  return [...(rows || [])].sort((a, b) => {
+    const ra = rank.has(a.id) ? rank.get(a.id) : 900;
+    const rb = rank.has(b.id) ? rank.get(b.id) : 900;
+    return ra - rb;
+  });
+}
+
 function buildIntegrationRows(env, config, checks) {
   const {
     paypal, mercadoPago, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
@@ -5959,13 +6015,6 @@ function buildIntegrationRows(env, config, checks) {
       description: 'API central — pedidos, checkout e admin',
       status: 'ok',
       detail: 'Online e autenticado'
-    },
-    {
-      id: 'address-autocomplete',
-      label: 'Autocomplete de endereço',
-      description: 'Checkout internacional — Photon (grátis) ou Google Places',
-      status: 'ok',
-      detail: googlePlacesKey ? 'Google Places + Photon (fallback)' : 'Photon/OpenStreetMap (ativo)'
     }
   ];
 
@@ -6098,32 +6147,32 @@ function buildIntegrationRows(env, config, checks) {
     rows.push({
       id: 'correios-br',
       label: 'Correios BR',
-      description: 'Token, preço, prazo, pré-postagem e serviços do cartão',
+      description: 'Nacional: token, preço, prazo e pré-postagem',
       status: 'warn',
-      detail: 'Sem credenciais — checkout usa estimativa fixa',
+      detail: 'Sem credenciais',
       detailLines: [
         'Token — sem credenciais',
-        'API 34 Preço — aguardando',
-        'API 35 Prazo — aguardando',
-        'API 36 Pré-Postagem — aguardando',
-        'Serviço 04227 Mini Envios — aguardando',
-        'Serviço 86720 Pré-Postagem — aguardando'
+        '34 Preço — aguardando',
+        '35 Prazo — aguardando',
+        '36 Pré-Postagem — aguardando',
+        '04227 Mini Envios — aguardando',
+        '86720 Pré-Postagem — aguardando'
       ]
     });
   } else if (!correiosToken) {
     rows.push({
       id: 'correios-br',
       label: 'Correios BR',
-      description: 'Token, preço, prazo, pré-postagem e serviços do cartão',
+      description: 'Nacional: token, preço, prazo e pré-postagem',
       status: 'error',
-      detail: 'Credenciais configuradas, mas token não obtido',
+      detail: 'Token não obtido',
       detailLines: [
         'Token — falhou',
-        'API 34 Preço — sem token',
-        'API 35 Prazo — sem token',
-        'API 36 Pré-Postagem — sem token',
-        'Serviço 04227 Mini Envios — sem token',
-        'Serviço 86720 Pré-Postagem — sem token'
+        '34 Preço — sem token',
+        '35 Prazo — sem token',
+        '36 Pré-Postagem — sem token',
+        '04227 Mini Envios — sem token',
+        '86720 Pré-Postagem — sem token'
       ]
     });
   } else {
@@ -6136,19 +6185,38 @@ function buildIntegrationRows(env, config, checks) {
     rows.push({
       id: 'correios-br',
       label: 'Correios BR',
-      description: 'Token, preço, prazo, pré-postagem e serviços do cartão',
+      description: 'Nacional: token, preço, prazo e pré-postagem',
       status: worstIntegrationStatus([
         tokenStatus, precoStatus, prazoStatus, prePostStatus, s04227Status, s86720Status
       ]),
-      detail: 'Token obtido — detalhes abaixo',
+      detail: 'APIs em uso',
       detailLines: [
         'Token — OK',
-        `API 34 Preço — ${correiosPreco?.detail || 'falhou'}`,
-        `API 35 Prazo — ${correiosPrazo?.detail || 'falhou'}`,
-        `API 36 Pré-Postagem — ${correiosPrePostagem?.detail || 'falhou'}`,
-        `Serviço 04227 Mini Envios — ${correiosServico04227?.detail || 'não verificado'}`,
-        `Serviço 86720 Pré-Postagem — ${correiosServico86720?.detail || 'não verificado'}`
+        `34 Preço — ${correiosPreco?.detail || 'falhou'}`,
+        `35 Prazo — ${correiosPrazo?.detail || 'falhou'}`,
+        `36 Pré-Postagem — ${correiosPrePostagem?.detail || 'falhou'}`,
+        `04227 Mini Envios — ${correiosServico04227?.detail || 'não verificado'}`,
+        `86720 Pré-Postagem — ${correiosServico86720?.detail || 'não verificado'}`
       ]
+    });
+  }
+
+  if (exportOptions.length > 0 && exportQuote) {
+    const price = Number(exportQuote.price).toFixed(2).replace('.', ',');
+    rows.push({
+      id: 'correios-intl',
+      label: 'Correios Exporta Fácil',
+      description: 'Cotação internacional (documento / encomenda)',
+      status: 'ok',
+      detail: `Simulador OK — PT ~R$ ${price}`
+    });
+  } else {
+    rows.push({
+      id: 'correios-intl',
+      label: 'Correios Exporta Fácil',
+      description: 'Cotação internacional (documento / encomenda)',
+      status: 'error',
+      detail: 'Simulador indisponível — usa tabela fallback'
     });
   }
 
@@ -6188,25 +6256,6 @@ function buildIntegrationRows(env, config, checks) {
       detail: uber.sandbox
         ? `Sandbox conectado${priceHint}`
         : (uberEnabled ? `Produção conectada${priceHint}` : `Conectado — ative modalidade Uber no frete${priceHint}`)
-    });
-  }
-
-  if (exportOptions.length > 0 && exportQuote) {
-    const price = Number(exportQuote.price).toFixed(2).replace('.', ',');
-    rows.push({
-      id: 'correios-intl',
-      label: 'Correios Exporta Fácil',
-      description: 'Cotação de frete internacional',
-      status: 'ok',
-      detail: `Simulador OK — PT ~R$ ${price}`
-    });
-  } else {
-    rows.push({
-      id: 'correios-intl',
-      label: 'Correios Exporta Fácil',
-      description: 'Cotação de frete internacional',
-      status: 'error',
-      detail: 'Simulador indisponível — usa tabela fallback'
     });
   }
 
@@ -6276,6 +6325,16 @@ function buildIntegrationRows(env, config, checks) {
     description: 'Conversões de compra via Measurement Protocol',
     status: ga4Secret ? 'ok' : 'warn',
     detail: ga4Secret ? 'API secret configurado' : 'Só tag no site — sem conversão server-side'
+  });
+
+  rows.push({
+    id: 'address-autocomplete',
+    label: 'Sugestão de endereço',
+    description: 'Checkout .com — completa rua e cidade',
+    status: 'ok',
+    detail: googlePlacesKey
+      ? 'Google Places (principal) + OpenStreetMap (fallback)'
+      : 'OpenStreetMap / Photon (grátis)'
   });
 
   return rows;
@@ -6759,7 +6818,17 @@ async function handleShippingQuote(request, env, origin, ctx) {
   let options = [];
 
   if (country !== 'BR') {
-    options = await quoteCorreiosExportOptions(config, country, { weightGrams });
+    const documentOnly = isComSiteRequest(request)
+      || String(url.searchParams.get('documentOnly') || '') === '1';
+    options = await quoteCorreiosExportOptions(config, country, { weightGrams, documentOnly });
+    if (documentOnly) {
+      options = options.filter((o) => o.shipmentType === 'documento' || !o.shipmentType);
+      options = options.map((o) => ({
+        ...o,
+        shipmentType: 'documento',
+        methodId: o.methodId === 'int-encomenda' ? 'int-documento' : (o.methodId || 'int-documento')
+      }));
+    }
     if (options.some((o) => o.source === 'correios-export') && ctx) {
       ctx.waitUntil(
         updateIntlFallbackZone(env, country, options).catch((err) => {
@@ -7358,6 +7427,15 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const checkoutLocale = String(body.checkoutLocale || 'pt').toLowerCase();
   const intlEmbeddedCheckout = (isComSiteRequest(request) || body.intlEmbedded === true)
     && isIntlCheckoutLocale(checkoutLocale);
+
+  // .com / EN-IT: always document mail (lens only) — never kit/parcel choice.
+  if (isComSiteRequest(request) || isIntlCheckoutLocale(checkoutLocale)) {
+    body.shipmentType = 'documento';
+    body.internationalLensOnly = true;
+    if (String(body.shippingMethodId || '').includes('encomenda')) {
+      body.shippingMethodId = 'int-documento';
+    }
+  }
 
   // Brown-class bug: empty/missing paisCode became BR → PIX for a US address.
   let paisCode = String(body.paisCode || '').trim().toUpperCase();
@@ -8847,59 +8925,58 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   if (!contractInfo.ok) {
     correiosExtra.push({
       id: 'correios-contract-apis',
-      label: 'Correios — contrato (APIs habilitadas)',
-      description: 'Lista de APIs retornada na autenticação do cartão de postagem',
+      label: 'Correios APIs (cartão)',
+      description: 'APIs habilitadas no token do cartão',
       status: 'error',
       detail: contractInfo.detail || 'Falha ao autenticar'
     });
   } else {
-    const apiLines = (contractInfo.apis || []).map(formatCorreiosApiLine);
+    const apiIds = Array.isArray(contractInfo.apis) ? contractInfo.apis : [];
+    const apiLines = apiIds.map(formatCorreiosApiLine);
     correiosExtra.push({
       id: 'correios-contract-apis',
-      label: 'Correios — contrato (APIs habilitadas)',
+      label: 'Correios APIs (cartão)',
       description: `Cartão ${contractInfo.cartao} · contrato ${contractInfo.contrato || '?'}`,
       status: apiLines.length ? 'ok' : 'warn',
-      detail: apiLines.length ? `${apiLines.length} API(s) no cartão` : 'Nenhuma API listada no token',
+      detail: apiLines.length ? `${apiLines.length} API(s)` : 'Nenhuma API no token',
       detailLines: apiLines.length ? apiLines : ['Nenhuma API listada no token']
     });
     const cardServices = await listCorreiosCardServices(contractInfo.token, env).catch((err) => ({ error: err.message }));
     if (cardServices.error) {
       correiosExtra.push({
         id: 'correios-intl-services',
-        label: 'Correios — serviços internacionais no cartão',
-        description: 'Serviços do cartão via API Meu Contrato',
+        label: 'Correios serviços intl',
+        description: 'Serviços internacionais do cartão',
         status: 'error',
         detail: cardServices.error
       });
     } else {
       const intl = correiosIntlServicesFrom(cardServices.services);
-      const serviceLines = intl.map((s) => `${s.codigo || '?'} — ${s.descricao || 'serviço'}`);
+      const serviceLines = intl.map((s) => {
+        const code = s.codigo || '?';
+        const desc = String(s.descricao || 'serviço').trim();
+        const short = desc.length > 42 ? desc.slice(0, 40) + '…' : desc;
+        return `${code} — ${short}`;
+      });
       correiosExtra.push({
         id: 'correios-intl-services',
-        label: 'Correios — serviços internacionais no cartão',
-        description: `${cardServices.services.length} serviço(s) no cartão ao todo`,
+        label: 'Correios serviços intl',
+        description: `${(cardServices.services || []).length} serviço(s) no cartão`,
         status: serviceLines.length ? 'ok' : 'warn',
         detail: serviceLines.length
-          ? `${serviceLines.length} serviço(s) internacional(is)`
-          : 'Nenhum serviço internacional encontrado no cartão',
+          ? `${serviceLines.length} internacional(is)`
+          : 'Nenhum serviço intl',
         detailLines: serviceLines.length
           ? serviceLines
-          : ['Nenhum serviço internacional (Exporta Fácil/Packet/documento) encontrado no cartão']
+          : ['Nenhum Exporta Fácil / documento / Packet no cartão']
       });
     }
   }
 
-  const insertAfter = Math.max(
-    integrations.findIndex((r) => r.id === 'correios-intl'),
-    integrations.findIndex((r) => r.id === 'correios-br')
-  );
-  if (insertAfter >= 0) {
-    integrations.splice(insertAfter + 1, 0, ...correiosExtra);
-  } else {
-    integrations.push(...correiosExtra);
-  }
+  integrations.push(...correiosExtra);
+  const ordered = sortIntegrationRows(integrations);
 
-  return json({ integrations, checkedAt: new Date().toISOString() }, 200, origin);
+  return json({ integrations: ordered, checkedAt: new Date().toISOString() }, 200, origin);
 }
 
 async function handleAdminCorreiosContract(request, env, origin) {
@@ -8922,6 +8999,110 @@ async function handleAdminCorreiosContract(request, env, origin) {
     servicosNoCartao: services,
     servicosInternacionais: correiosIntlServicesFrom(services),
     servicosErro: cardServices.error || null
+  }, 200, origin);
+}
+
+/** Diagnóstico: tenta descobrir URL/base das APIs 586/587 com o token do cartão. */
+async function handleAdminCorreiosApi586Probe(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const token = await getCorreiosToken(env);
+  if (!token) return json({ error: 'Sem token Correios' }, 503, origin);
+
+  // Poucas URLs de propósito (limite de subrequests do Worker).
+  const urls = [
+    'https://api.correios.com.br/prepostagem/v3/api-docs',
+    'https://api.correios.com.br/packet/v3/api-docs',
+    'https://api.correios.com.br/prepostageminternacional/v3/api-docs',
+    'https://api.correios.com.br/ppi/v3/api-docs',
+    'https://api.correios.com.br/rotulageminternacional/v3/api-docs',
+    'https://api.correios.com.br/rotulointernacional/v3/api-docs',
+    'https://api.correios.com.br/mexpo/v3/api-docs',
+    'https://api.correios.com.br/exportacao/v3/api-docs',
+    'https://api.correios.com.br/prepostagem/internacional/v3/api-docs',
+    'https://api.correios.com.br/prepostagem/internacional/v1/prepostagens',
+    'https://api.correios.com.br/prepostagem/v1/internacional',
+    'https://api.correios.com.br/prepostageminternacional/v1/prepostagens',
+    'https://api.correios.com.br/ppi/v1/prepostagens'
+  ];
+
+  const discovery = [];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+      });
+      const text = await res.text().catch(() => '');
+      discovery.push({
+        url,
+        status: res.status,
+        nuApi: (text.match(/"x-nuApi"\s*:\s*(\d+)/) || [])[1] || null,
+        title: (text.match(/"title"\s*:\s*"([^"]+)"/) || [])[1] || null,
+        snippet: (extractCorreiosApiError(res, text) || text.replace(/\s+/g, ' ')).slice(0, 200)
+      });
+    } catch (err) {
+      discovery.push({ url, status: 'ERR', snippet: err.message });
+    }
+  }
+
+  const orderId = String(new URL(request.url).searchParams.get('orderId') || 'STF-20260726-CF26D2B504').trim();
+  const order = await getOrder(env, orderId);
+  const config = await getConfig(env);
+  const createAttempts = [];
+  if (order) {
+    hydrateIntlOrderFields(order);
+    try {
+      if (!order.shippingServiceCode) {
+        order.shippingServiceCode = await resolveIntlExportServiceCode(order, config);
+      }
+      const payload = buildPrePostagemPayload(order, config, env);
+      const createUrls = [
+        'https://api.correios.com.br/prepostagem/internacional/v1/prepostagens',
+        'https://api.correios.com.br/prepostageminternacional/v1/prepostagens',
+        'https://api.correios.com.br/ppi/v1/prepostagens',
+        'https://api.correios.com.br/prepostagem/v1/prepostagens'
+      ];
+      for (const createUrl of createUrls) {
+        const res = await fetch(createUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        const text = await res.text().catch(() => '');
+        let parsed = null;
+        try { parsed = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+        const id = parsed?.id || parsed?.idPrePostagem || null;
+        createAttempts.push({
+          createUrl,
+          status: res.status,
+          ok: res.ok,
+          id,
+          error: res.ok ? null : (extractCorreiosApiError(res, text) || text.slice(0, 220))
+        });
+        if (id) {
+          await fetch(`https://api.correios.com.br/prepostagem/v1/prepostagens/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+          }).catch(() => null);
+        }
+      }
+    } catch (err) {
+      createAttempts.push({ error: err.message });
+    }
+  }
+
+  return json({
+    ok: true,
+    note: 'Token do cartão usado. 200/OpenAPI = API existe. GTW-003 = path inexistente no gateway. PRZ-101 = API 36 nacional.',
+    discovery,
+    createAttempts,
+    orderId: order ? orderId : null
   }, 200, origin);
 }
 
@@ -10527,6 +10708,9 @@ export default {
       }
       if (path === '/admin/correios-intl-probe' && request.method === 'GET') {
         return handleAdminCorreiosIntlProbe(request, env, origin);
+      }
+      if (path === '/admin/correios-api586-probe' && request.method === 'GET') {
+        return handleAdminCorreiosApi586Probe(request, env, origin);
       }
       if (path === '/admin/customers' && request.method === 'GET') {
         return handleAdminCustomers(request, env, origin);

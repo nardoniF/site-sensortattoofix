@@ -1,11 +1,11 @@
 {
   "product": {
     "name": "Kit Sensor Tattoo Fix",
-    "nameEn": "Sensor Tattoo Fix Kit",
-    "nameIt": "Kit Sensor Tattoo Fix",
+    "nameEn": "Sensor Tattoo Fix Lens",
+    "nameIt": "Lente Sensor Tattoo Fix",
     "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
-    "descriptionEn": "Optical lens for smartwatches on tattooed skin — full kit",
-    "descriptionIt": "Lente ottica per smartwatch su pelle tatuata — kit completo",
+    "descriptionEn": "Optical lens for smartwatches on tattooed skin",
+    "descriptionIt": "Lente ottica per smartwatch su pelle tatuata",
     "price": 62.9,
     "image": "https://www.sensortattoofix.com.br/site/sensortattoofix.jpg"
   },
@@ -14,17 +14,47 @@
       "id": "kit-sensor-tattoofix",
       "slug": "kit-sensor-tattoofix",
       "name": "Kit Sensor Tattoo Fix",
-      "nameEn": "Sensor Tattoo Fix Kit",
-      "nameIt": "Kit Sensor Tattoo Fix",
+      "nameEn": "Sensor Tattoo Fix Lens",
+      "nameIt": "Lente Sensor Tattoo Fix",
       "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
-      "descriptionEn": "Optical lens for smartwatches on tattooed skin — full kit",
-      "descriptionIt": "Lente ottica per smartwatch su pelle tatuata — kit completo",
+      "descriptionEn": "Optical lens for smartwatches on tattooed skin",
+      "descriptionIt": "Lente ottica per smartwatch su pelle tatuata",
       "price": 62.9,
       "image": "https://www.sensortattoofix.com.br/site/sensortattoofix.jpg",
       "active": true,
       "requiresSmartwatch": true,
       "weightGrams": 3,
-      "sensorMm": 25
+      "sensorMm": 25,
+      "markets": [
+        "BR"
+      ]
+    },
+    {
+      "id": "optical-lens-intl",
+      "slug": "optical-lens-intl",
+      "name": "SensorTattooFix Optical Lens",
+      "nameEn": "SensorTattooFix Optical Lens",
+      "nameIt": "Lente ottica SensorTattooFix",
+      "description": "Lente de correção óptica para smartwatch em pele tatuada.",
+      "descriptionEn": "Designed for smartwatch optical sensors on tattooed skin.",
+      "descriptionIt": "Progettata per i sensori ottici degli smartwatch su pelle tatuata.",
+      "price": 62.9,
+      "image": "/site/lens-gallery/01-optical-correction-lens.png",
+      "images": [
+        "/site/lens-gallery/01-optical-correction-lens.png",
+        "/site/lens-gallery/02-ultra-thin.png",
+        "/site/lens-gallery/03-high-optical-transparency.png",
+        "/site/lens-gallery/04-engineered-refraction.png",
+        "/site/lens-gallery/05-whats-included.png"
+      ],
+      "active": true,
+      "requiresSmartwatch": true,
+      "weightGrams": 3,
+      "sensorMm": 25,
+      "markets": [
+        "INT"
+      ],
+      "aggregated": false
     },
     {
       "id": "pelicula-amazfit-bip-2",
@@ -45,7 +75,10 @@
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
+      "filmTypeEn": "flexible membrane",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-amazfit-gtr-3",
@@ -72,7 +105,10 @@
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
+      "filmTypeEn": "flexible membrane",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-amazfit-gtr-mini",
@@ -99,7 +135,10 @@
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
+      "filmTypeEn": "flexible membrane",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-amazfit-gts-2-mini",
@@ -127,7 +166,10 @@
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
+      "filmTypeEn": "flexible membrane",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-amazfit-gts-squircle-44mm",
@@ -155,7 +197,10 @@
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
+      "filmTypeEn": "flexible membrane",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-apple-38mm",
@@ -182,7 +227,10 @@
       ],
       "productType": "pelicula",
       "filmType": "cerâmica",
-      "filmTypeEn": "ceramic"
+      "filmTypeEn": "ceramic",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-apple-40mm",
@@ -209,7 +257,10 @@
       ],
       "productType": "pelicula",
       "filmType": "cerâmica",
-      "filmTypeEn": "ceramic"
+      "filmTypeEn": "ceramic",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-apple-41mm",
@@ -236,7 +287,10 @@
       ],
       "productType": "pelicula",
       "filmType": "cerâmica",
-      "filmTypeEn": "ceramic"
+      "filmTypeEn": "ceramic",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-apple-42mm",
@@ -261,7 +315,10 @@
       ],
       "productType": "pelicula",
       "filmType": "cerâmica",
-      "filmTypeEn": "ceramic"
+      "filmTypeEn": "ceramic",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-apple-44mm",
@@ -288,7 +345,10 @@
       ],
       "productType": "pelicula",
       "filmType": "cerâmica",
-      "filmTypeEn": "ceramic"
+      "filmTypeEn": "ceramic",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-apple-45mm",
@@ -315,7 +375,10 @@
       ],
       "productType": "pelicula",
       "filmType": "cerâmica",
-      "filmTypeEn": "ceramic"
+      "filmTypeEn": "ceramic",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-apple-46mm",
@@ -340,7 +403,10 @@
       ],
       "productType": "pelicula",
       "filmType": "cerâmica",
-      "filmTypeEn": "ceramic"
+      "filmTypeEn": "ceramic",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-huawei-gt-2",
@@ -367,7 +433,10 @@
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
+      "filmTypeEn": "flexible membrane",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-round-33mm",
@@ -400,7 +469,10 @@
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
+      "filmTypeEn": "flexible membrane",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pelicula-samsung-gw3-45mm",
@@ -425,7 +497,10 @@
       ],
       "productType": "pelicula",
       "filmType": "membrana flexível",
-      "filmTypeEn": "flexible membrane"
+      "filmTypeEn": "flexible membrane",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pulseira-alpine-verde-49",
@@ -456,6 +531,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -497,6 +575,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -538,6 +619,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -579,6 +663,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -620,7 +707,10 @@
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
       ],
-      "name": "Pulseira de Silicone Ocean Esportiva — branca"
+      "name": "Pulseira de Silicone Ocean Esportiva — branca",
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pulseira-ocean-verde-42-49",
@@ -661,6 +751,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -688,6 +781,9 @@
       },
       "compatibleWatchModels": [
         "Samsung Galaxy Watch Ultra (47mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -717,7 +813,10 @@
           41
         ]
       },
-      "compatibleWatchModels": []
+      "compatibleWatchModels": [],
+      "markets": [
+        "BR"
+      ]
     },
     {
       "id": "pulseira-sport-azul-40-45",
@@ -758,6 +857,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -799,6 +901,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -840,6 +945,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -873,6 +981,9 @@
         "Samsung Galaxy Watch 8 (40mm)",
         "Samsung Galaxy Watch 8 (44mm)",
         "Samsung Galaxy Watch 8 Classic (46mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -910,6 +1021,9 @@
         "Samsung Galaxy Watch 6 (44mm)",
         "Samsung Galaxy Watch 7 (40mm)",
         "Samsung Galaxy Watch 7 (44mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -952,6 +1066,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -981,6 +1098,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     },
     {
@@ -1012,6 +1132,9 @@
         "Apple Watch Ultra (49mm)",
         "Apple Watch Ultra 2 (49mm)",
         "Apple Watch Ultra 3 (49mm)"
+      ],
+      "markets": [
+        "BR"
       ]
     }
   ],

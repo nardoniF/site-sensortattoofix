@@ -575,6 +575,10 @@ html[lang="it"] .nav-actions { gap: 6px; }
 
 /* KIT BOX */
 .kit-box { background: #1a1a1a; padding: 24px; border-radius: 20px; margin-top: 30px; border-left: 5px solid var(--primary); text-align: left; }
+html.stf-lens-only .kit-box,
+body.stf-lens-only .kit-box { display: none !important; }
+.shipping-card--lens-only .shipping-card-main strong { font-size: 1rem; }
+.shipping-card--lens-only .shipping-card-main small { display: block; margin-top: 4px; opacity: 0.85; }
 .kit-box-layout {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -5418,25 +5422,38 @@ a.conta-forgot-link { display: inline-block; }
     background: #111;
 }
 .admin-api-status-table td:first-child { white-space: nowrap; }
-.admin-api-status-table td:nth-child(2) { color: #999; max-width: 280px; }
+.admin-api-status-table td:nth-child(2) {
+    color: #999;
+    max-width: 220px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
 .admin-api-status-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
 .admin-api-status-cell {
     white-space: normal;
+    overflow-wrap: anywhere;
     word-break: break-word;
-    max-width: 420px;
+    max-width: 340px;
 }
-.admin-api-detail-stack { display: flex; flex-direction: column; gap: 4px; }
+.admin-api-detail-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 100%;
+}
 .admin-api-detail-head { font-weight: 600; }
 .admin-api-detail-list {
     margin: 0;
-    padding: 0 0 0 1.1rem;
+    padding: 0 0 0 1.05rem;
     list-style: disc;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    max-width: 100%;
 }
 .admin-api-detail-list li {
     white-space: normal;
+    overflow-wrap: anywhere;
     word-break: break-word;
     line-height: 1.35;
 }

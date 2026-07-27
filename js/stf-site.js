@@ -74,8 +74,43 @@
     location.replace(target);
   }
 
+  /**
+   * Catalog market: BR = .com.br, INT = .com (gringa).
+   * Product.markets: ['BR'], ['INT'], or ['BR','INT'].
+   */
+  function catalogMarket() {
+    if (isIntlHost()) return 'INT';
+    const path = String(location.pathname || '');
+    if (path.includes('/en/') || path.includes('/it/')) return 'INT';
+    return 'BR';
+  }
+
+  function normalizeProductMarkets(product) {
+    const raw = product?.markets;
+    if (Array.isArray(raw) && raw.length) {
+      return [...new Set(raw.map((m) => String(m || '').trim().toUpperCase()).filter(Boolean))];
+    }
+    const id = String(product?.id || product?.slug || '');
+    if (product?.aggregated === true) return ['BR'];
+    if (id === 'kit-sensor-tattoofix' || id === 'kit') return ['BR'];
+    if (/optical.?lens|lens-intl|sensortattoofix-optical/i.test(id)) return ['INT'];
+    return ['BR', 'INT'];
+  }
+
+  function productVisibleOnMarket(product, market) {
+    const m = String(market || catalogMarket()).toUpperCase();
+    return normalizeProductMarkets(product).includes(m);
+  }
+
+  function filterProductsForMarket(products, market) {
+    return (products || []).filter((p) => productVisibleOnMarket(p, market || catalogMarket()));
+  }
+
   function apply() {
     redirectBrIntlPathsToCom();
+    try {
+      document.documentElement.dataset.stfMarket = catalogMarket();
+    } catch (_) { /* ignore */ }
   }
 
   window.STF_SITE = {
@@ -89,6 +124,10 @@
     intlUrl,
     brUrl,
     redirectBrIntlPathsToCom,
+    catalogMarket,
+    normalizeProductMarkets,
+    productVisibleOnMarket,
+    filterProductsForMarket,
     apply
   };
 })();

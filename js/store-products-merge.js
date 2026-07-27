@@ -20,7 +20,9 @@ window.STF_PRODUCT_MERGE = (function () {
     'nameEn',
     'nameIt',
     'descriptionEn',
-    'descriptionIt'
+    'descriptionIt',
+    'markets',
+    'images'
   ];
 
   const I18N_PRODUCT_FIELDS = ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt', 'colorEn', 'filmTypeEn'];
@@ -152,6 +154,10 @@ window.STF_PRODUCT_MERGE = (function () {
       merged.image = localProduct.image;
     }
     supplementI18nFields(merged, localProduct);
+    if (isEmptyValue(merged.markets) && localProduct?.markets) merged.markets = localProduct.markets;
+    if (isEmptyValue(merged.images) && Array.isArray(localProduct?.images) && localProduct.images.length) {
+      merged.images = localProduct.images;
+    }
     return merged;
   }
 

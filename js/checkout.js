@@ -1646,7 +1646,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return cfg.internationalProduct || {};
   }
 
+  /** .com / EN-IT checkout: only document mail (lens). No kit/parcel choice. */
+  function isLensOnlyIntlCheckout() {
+    return isIntlCheckoutShell() || isIntlHost();
+  }
+
   function buildIntlProductNote(shipmentType) {
+    // Lens-only market: no kit-vs-parcel notice (single shipping mode).
+    if (isLensOnlyIntlCheckout()) return '';
     if (isLocalizedSite()) {
       if (shipmentType === 'documento') return L('shipping.noticeDocument');
       if (shipmentType === 'encomenda') return L('shipping.noticeParcel');
@@ -1671,6 +1678,37 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       return `<p class="shipping-notice-line${foot}">${escapeHtml(p)}</p>`;
     }).join('');
     return `<div class="shipping-card-notice">${inner}</div>`;
+  }
+
+  function formatArrivalDate(days) {
+    const n = Math.max(1, Math.round(Number(days) || 15));
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    const loc = checkoutLocale() === 'it' ? 'it-IT'
+      : checkoutLocale() === 'en' ? 'en-US'
+        : 'pt-BR';
+    try {
+      return d.toLocaleDateString(loc, { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (_) {
+      return d.toISOString().slice(0, 10);
+    }
+  }
+
+  function filterIntlShippingForLensOnly(options) {
+    let list = options || [];
+    if (!isLensOnlyIntlCheckout()) return list;
+    const docs = list.filter((o) =>
+      o.shipmentType === 'documento'
+      || o.methodId === 'int-documento'
+      || /documento|document|carta/i.test(String(o.service || o.id || ''))
+    );
+    if (docs.length) return docs;
+    // Fallback quotes without shipmentType → treat as document for .com
+    return list.map((o) => ({
+      ...o,
+      shipmentType: o.shipmentType || 'documento',
+      methodId: o.methodId === 'int-encomenda' ? 'int-documento' : (o.methodId || 'int-documento')
+    }));
   }
 
   function isPayPalIntlAvailable() {
@@ -1838,7 +1876,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function selectShippingOption(option) {
     if (!option) return;
-    if (isIntlDocumentShipping(option) && cartHasAggregated()) {
+    if (isLensOnlyIntlCheckout() && isInternational) {
+      option = {
+        ...option,
+        shipmentType: 'documento',
+        methodId: option.methodId === 'int-encomenda' ? 'int-documento' : (option.methodId || 'int-documento')
+      };
+    }
+    if (isIntlDocumentShipping(option) && cartHasAggregated() && !isLensOnlyIntlCheckout()) {
       alert(L('alert.intlDocNoAggregated'));
       const alt = shippingOptions.find((o) => o.shipmentType !== 'documento');
       if (alt) {
@@ -1846,6 +1891,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         if (radio) radio.checked = true;
         selectShippingOption(alt);
       }
+      return;
+    }
+    if (isLensOnlyIntlCheckout() && cartHasAggregated()) {
+      alert(L('alert.intlDocNoAggregated'));
       return;
     }
     shippingInfo = option;
@@ -1876,14 +1925,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function renderShippingOptions(options) {
     if (!els.shippingOptionsEl || !els.shippingOptionsWrap) return;
     let list = options || [];
-    if (isInternational && cartHasAggregated()) {
+    if (isInternational && isLensOnlyIntlCheckout()) {
+      list = filterIntlShippingForLensOnly(list);
+    } else if (isInternational && cartHasAggregated()) {
       list = list.filter((o) => o.shipmentType !== 'documento');
     }
     shippingOptions = list;
     if (!shippingOptions.length) {
       clearShippingOptions();
       els.shippingHint.hidden = false;
-      els.shippingHint.textContent = isInternational && cartHasAggregated()
+      els.shippingHint.textContent = isInternational && cartHasAggregated() && !isLensOnlyIntlCheckout()
         ? L('shipping.intlDocBlockedAggregated')
         : L('shipping.none');
       return;
@@ -1891,14 +1942,40 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
     els.shippingHint.hidden = true;
     els.shippingOptionsWrap.hidden = false;
-    let defaultIdx = shippingOptions.findIndex((o) => o.isHighestBid);
-    if (defaultIdx < 0) {
+    let defaultIdx = 0;
+    if (!isLensOnlyIntlCheckout()) {
+      defaultIdx = shippingOptions.findIndex((o) => o.isHighestBid);
+      if (defaultIdx < 0) {
+        defaultIdx = shippingOptions.reduce((best, opt, i) =>
+          (Number(opt.price) > Number(shippingOptions[best]?.price) ? i : best), 0);
+      }
+    } else {
+      // Cheapest document option
       defaultIdx = shippingOptions.reduce((best, opt, i) =>
-        (Number(opt.price) > Number(shippingOptions[best]?.price) ? i : best), 0);
+        (Number(opt.price) < Number(shippingOptions[best]?.price) ? i : best), 0);
     }
+    const lensOnlyUi = isInternational && isLensOnlyIntlCheckout();
     els.shippingOptionsEl.innerHTML = shippingOptions.map((opt, i) => {
       const inputId = `ship-opt-${opt.id}`;
       const checked = i === defaultIdx ? 'checked' : '';
+      if (lensOnlyUi) {
+        const arrival = formatArrivalDate(opt.days);
+        return `
+        <label class="shipping-option" for="${inputId}">
+          <input type="radio" name="shippingOption" id="${inputId}" value="${opt.id}" ${checked}
+            data-index="${i}">
+          <div class="shipping-card shipping-card--lens-only">
+            <div class="shipping-card-row">
+              <div class="shipping-card-main">
+                <strong>${escapeHtml(L('shipping.lensOnlyTitle'))}</strong>
+                <small>${escapeHtml(L('shipping.arrivesBy', { date: arrival }))}</small>
+              </div>
+              <span class="shipping-card-price">${formatCheckoutMoney(opt.price)}</span>
+            </div>
+          </div>
+        </label>
+      `;
+      }
       const serviceName = localizeShippingServiceName(opt);
       const src = shippingSourceLabel(opt.source);
       const tipoHint = opt.shipmentType === 'documento' ? ` · ${L('shipping.document')}` : '';
@@ -1993,7 +2070,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         const code = els.paisCode.value;
         if (base) {
           const data = await fetchShippingQuote(
-            `${base}/shipping/quote?country=${code}&weightGrams=${encodeURIComponent(weight)}`
+            `${base}/shipping/quote?country=${code}&weightGrams=${encodeURIComponent(weight)}${isLensOnlyIntlCheckout() ? '&documentOnly=1' : ''}`
           );
           options = data?.options || [];
         }
@@ -2230,9 +2307,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           : (shippingInfo?.source === 'correios' ? 'correios' : null)),
       uberQuoteId: shippingInfo?.uberQuoteId || null,
       shippingDays: shippingInfo?.days,
-      shipmentType: shippingInfo?.shipmentType || null,
-      internationalLensOnly: isInternational && shippingInfo?.shipmentType === 'documento',
-      internationalProductNote: isInternational ? buildIntlProductNote(shippingInfo?.shipmentType) : '',
+      shipmentType: (isLensOnlyIntlCheckout() && isInternational)
+        ? 'documento'
+        : (shippingInfo?.shipmentType || null),
+      internationalLensOnly: isInternational && (
+        isLensOnlyIntlCheckout() || shippingInfo?.shipmentType === 'documento'
+      ),
+      internationalProductNote: isInternational ? buildIntlProductNote(
+        (isLensOnlyIntlCheckout() ? 'documento' : shippingInfo?.shipmentType)
+      ) : '',
       pagamento: f.querySelector('[name=pagamento]:checked').value,
       checkoutLocale: checkoutLocale(),
       intlEmbedded: isIntlEmbeddedCheckout(),

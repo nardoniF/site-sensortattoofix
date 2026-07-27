@@ -660,14 +660,14 @@
     const lines = Array.isArray(row.detailLines)
       ? row.detailLines.map((l) => String(l || '').trim()).filter(Boolean)
       : [];
-    if (lines.length > 1) {
+    if (lines.length) {
       const head = String(row.detail || '').trim() || `${lines.length} itens`;
       return `<div class="admin-api-detail-stack ${cls}">
         <div class="admin-api-detail-head">${icon} ${escAttr(head)}</div>
         <ul class="admin-api-detail-list">${lines.map((l) => `<li>${escAttr(l)}</li>`).join('')}</ul>
       </div>`;
     }
-    const single = lines[0] || String(row.detail || '').trim();
+    const single = String(row.detail || '').trim();
     return `<span class="${cls}">${icon} ${escAttr(single)}</span>`;
   }
 
@@ -2019,10 +2019,31 @@ ${worksheets}
     }
   }
 
-  function renderProductRow(p, i, isAggregated) {
+  const LENS_INTL_IMAGES = [
+    '/site/lens-gallery/01-optical-correction-lens.png',
+    '/site/lens-gallery/02-ultra-thin.png',
+    '/site/lens-gallery/03-high-optical-transparency.png',
+    '/site/lens-gallery/04-engineered-refraction.png',
+    '/site/lens-gallery/05-whats-included.png'
+  ];
+
+  function productMarketsOf(p) {
+    return window.STF_SITE?.normalizeProductMarkets?.(p) || (p?.aggregated ? ['BR'] : ['BR', 'INT']);
+  }
+
+  function isIntlMarketProduct(p) {
+    const m = productMarketsOf(p);
+    return m.includes('INT') && !m.includes('BR');
+  }
+
+  function renderProductRow(p, i, opts) {
+    const isAggregated = !!opts?.aggregated;
+    const market = opts?.market || 'BR';
     const badge = isAggregated
-      ? '<span class="admin-badge-aggregated">Agregado</span> '
-      : '<span class="admin-badge-main">Lente</span> ';
+      ? '<span class="admin-badge-aggregated">Agregado BR</span> '
+      : (market === 'INT'
+        ? '<span class="admin-badge-main">.com</span> '
+        : '<span class="admin-badge-main">Brasil</span> ');
     const title = p.name ? `${badge}Produto ${i + 1}: ${escAttr(p.name)}` : `${badge}Produto ${i + 1}`;
     const sensorField = !isAggregated ? `
           <label>Sensor da lente (mm)
@@ -2046,19 +2067,32 @@ ${worksheets}
             <input type="text" data-field="filmTypeEn" value="${escAttr(p.filmTypeEn || '')}" placeholder="ceramic">
           </label>
           <p class="admin-meta admin-aggregated-compat-hint"><i class="fas fa-link"></i> <strong>Regra do upsell:</strong> o produto só aparece se o modelo escolhido pelo cliente estiver nesta lista (1 agregado → vários modelos).</p>` : '';
+    const i18nFields = !isAggregated ? `
+          <label class="full">Nome EN <small class="admin-field-hint">título na loja .com / EN</small>
+            <input type="text" data-field="nameEn" value="${escAttr(p.nameEn || '')}" placeholder="SensorTattooFix Optical Lens">
+          </label>
+          <label class="full">Nome IT
+            <input type="text" data-field="nameIt" value="${escAttr(p.nameIt || '')}" placeholder="Lente ottica SensorTattooFix">
+          </label>
+          <label class="full">Descrição EN<textarea data-field="descriptionEn" rows="2">${escTextarea(p.descriptionEn || '')}</textarea></label>
+          <label class="full">Descrição IT<textarea data-field="descriptionIt" rows="2">${escTextarea(p.descriptionIt || '')}</textarea></label>
+          <label class="full">Álbum de fotos <small class="admin-field-hint">uma URL por linha — ordem do carrossel na loja</small>
+            <textarea data-field="images" rows="5" placeholder="/site/lens-gallery/01-….png">${escTextarea((Array.isArray(p.images) ? p.images : []).join('\n'))}</textarea>
+          </label>` : '';
     return `
-      <div class="admin-product-row${isAggregated ? ' admin-product-row--aggregated' : ' admin-product-row--main'}" data-product-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}">
+      <div class="admin-product-row${isAggregated ? ' admin-product-row--aggregated' : ' admin-product-row--main'}" data-product-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}" data-market="${escAttr(market)}">
         <h4>${title}</h4>
         <div class="form-grid">
-          <label class="full">Nome<input type="text" data-field="name" value="${escAttr(p.name)}" required></label>
-          <label class="full">Descrição<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
+          <label class="full">Nome (PT / cadastro)<input type="text" data-field="name" value="${escAttr(p.name)}" required></label>
+          <label class="full">Descrição (PT)<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
+          ${i18nFields}
           ${aggregatedFields}
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
           <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
           </label>
-          <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="kit-sensor-tattoofix"></label>
-          <label class="full">URL da imagem<input type="text" data-field="image" value="${escAttr(p.image || '')}" placeholder="/produtos/pulseira-sport-preta.svg ou /site/…" spellcheck="false" autocomplete="off"></label>
+          <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="${market === 'INT' ? 'optical-lens-intl' : 'kit-sensor-tattoofix'}"></label>
+          <label class="full">URL da imagem principal<input type="text" data-field="image" value="${escAttr(p.image || '')}" placeholder="/site/lens-gallery/01-optical-correction-lens.png" spellcheck="false" autocomplete="off"></label>
           ${sensorField}
           <label>Peso (g)<input type="number" data-field="weightGrams" min="0.1" step="0.1" value="${p.weightGrams ?? 3}"></label>
           <div class="admin-product-flags">
@@ -2066,48 +2100,65 @@ ${worksheets}
             <label class="label-check"><input type="checkbox" data-field="requiresSmartwatch" ${p.requiresSmartwatch !== false ? 'checked' : ''}><span>Pede modelo do relógio</span></label>
           </div>
         </div>
-        <button type="button" class="btn-secondary btn-remove-product" data-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
+        <button type="button" class="btn-secondary btn-remove-product" data-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}" data-market="${escAttr(market)}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
       </div>`;
   }
 
-  function renderProductList(products, listId, isAggregated) {
+  function renderProductList(products, listId, opts) {
     const list = document.getElementById(listId);
     if (!list) return;
+    const isAggregated = !!opts?.aggregated;
+    const market = opts?.market || 'BR';
     list.innerHTML = products.length
-      ? products.map((p, i) => renderProductRow(p, i, isAggregated)).join('')
-      : `<p class="admin-meta">${isAggregated ? 'Nenhum produto agregado cadastrado.' : 'Nenhuma lente cadastrada.'}</p>`;
+      ? products.map((p, i) => renderProductRow(p, i, { aggregated: isAggregated, market })).join('')
+      : `<p class="admin-meta">${isAggregated ? 'Nenhum agregado BR cadastrado.' : (market === 'INT' ? 'Nenhum produto .com cadastrado.' : 'Nenhum produto BR cadastrado.')}</p>`;
 
     list.querySelectorAll('.btn-remove-product').forEach((btn) => {
       btn.addEventListener('click', () => {
         const idx = Number(btn.getAttribute('data-index'));
         const agg = btn.getAttribute('data-aggregated') === '1';
+        const mkt = btn.getAttribute('data-market') || 'BR';
         const all = collectProductsFromDom();
-        const main = all.filter((p) => !p.aggregated);
-        const aggregated = all.filter((p) => p.aggregated);
-        if (agg) aggregated.splice(idx, 1);
-        else main.splice(idx, 1);
-        const next = [...main, ...aggregated];
-        renderProducts(next.length ? next : [{
+        const next = all.filter((p, i) => {
+          // rebuild by collecting again after splice of matching bucket
+          return true;
+        });
+        const brMain = all.filter((p) => !p.aggregated && productMarketsOf(p).includes('BR') && !isIntlMarketProduct(p));
+        const brAgg = all.filter((p) => p.aggregated);
+        const intlMain = all.filter((p) => !p.aggregated && isIntlMarketProduct(p));
+        if (agg) brAgg.splice(idx, 1);
+        else if (mkt === 'INT') intlMain.splice(idx, 1);
+        else brMain.splice(idx, 1);
+        const rebuilt = [
+          ...brMain.map((p) => ({ ...p, markets: ['BR'], aggregated: false })),
+          ...brAgg.map((p) => ({ ...p, markets: ['BR'], aggregated: true })),
+          ...intlMain.map((p) => ({ ...p, markets: ['INT'], aggregated: false }))
+        ];
+        renderProducts(rebuilt.length ? rebuilt : [{
           id: 'kit-sensor-tattoofix', slug: 'kit-sensor-tattoofix', name: 'Kit Sensor Tattoo Fix',
           description: '', price: 62.9, image: '/site/sensortattoofix.jpg', active: true,
-          requiresSmartwatch: true, weightGrams: 3, sensorMm: 25
+          requiresSmartwatch: true, weightGrams: 3, sensorMm: 25, markets: ['BR']
         }]);
       });
     });
   }
 
   function renderProducts(products) {
-    const main = products.filter((p) => !p.aggregated);
-    const aggregated = products.filter((p) => p.aggregated);
+    const list = products || [];
+    const brMain = list.filter((p) => !p.aggregated && productMarketsOf(p).includes('BR') && !isIntlMarketProduct(p));
+    const brAgg = list.filter((p) => p.aggregated);
+    const intlMain = list.filter((p) => !p.aggregated && (isIntlMarketProduct(p) || (productMarketsOf(p).includes('INT') && !productMarketsOf(p).includes('BR'))));
+    // Products tagged BOTH appear in BR main only (edit once); INT-only in intl panel.
     const summary = document.getElementById('admin-products-summary');
     if (summary) {
-      summary.textContent = `${main.length} lente(s) · ${aggregated.length} agregado(s)`;
+      summary.textContent = `BR ${brMain.length} principal(is) · ${brAgg.length} agregado(s) · .com ${intlMain.length} lente(s)`;
     }
-    renderProductList(main, 'admin-products-main', false);
-    renderProductList(aggregated, 'admin-products-aggregated', true);
+    renderProductList(brMain, 'admin-products-br-main', { market: 'BR', aggregated: false });
+    renderProductList(brAgg, 'admin-products-br-aggregated', { market: 'BR', aggregated: true });
+    renderProductList(intlMain, 'admin-products-intl-main', { market: 'INT', aggregated: false });
   }
 
-  function collectFromList(listEl, isAggregated) {
+  function collectFromList(listEl, isAggregated, market) {
     if (!listEl) return [];
     return [...listEl.querySelectorAll('.admin-product-row')].map((row, i) => {
       const val = (field) => {
@@ -2130,8 +2181,25 @@ ${worksheets}
         active: val('active'),
         aggregated: isAggregated,
         requiresSmartwatch: val('requiresSmartwatch'),
-        weightGrams: Number(val('weightGrams')) || 3
+        weightGrams: Number(val('weightGrams')) || 3,
+        markets: isAggregated ? ['BR'] : (market === 'INT' ? ['INT'] : ['BR'])
       };
+      if (!isAggregated) {
+        const nameEn = val('nameEn');
+        const nameIt = val('nameIt');
+        const descriptionEn = val('descriptionEn');
+        const descriptionIt = val('descriptionIt');
+        if (nameEn) product.nameEn = nameEn; else delete product.nameEn;
+        if (nameIt) product.nameIt = nameIt; else delete product.nameIt;
+        if (descriptionEn) product.descriptionEn = descriptionEn; else delete product.descriptionEn;
+        if (descriptionIt) product.descriptionIt = descriptionIt; else delete product.descriptionIt;
+        const imagesEl = row.querySelector('[data-field="images"]');
+        if (imagesEl) {
+          const imgs = imagesEl.value.split('\n').map((s) => s.trim()).filter(Boolean);
+          if (imgs.length) product.images = imgs;
+          else delete product.images;
+        }
+      }
       const stockEl = row.querySelector('[data-field="stock"]');
       if (stockEl && stockEl.value.trim() !== '') {
         product.stock = Math.max(0, Math.floor(Number(stockEl.value) || 0));
@@ -2163,8 +2231,9 @@ ${worksheets}
 
   function collectProductsFromDom() {
     return [
-      ...collectFromList(document.getElementById('admin-products-main'), false),
-      ...collectFromList(document.getElementById('admin-products-aggregated'), true)
+      ...collectFromList(document.getElementById('admin-products-br-main'), false, 'BR'),
+      ...collectFromList(document.getElementById('admin-products-br-aggregated'), true, 'BR'),
+      ...collectFromList(document.getElementById('admin-products-intl-main'), false, 'INT')
     ];
   }
 
@@ -2173,7 +2242,7 @@ ${worksheets}
   function showProductSubtab(subtabId) {
     const container = document.getElementById('admin-tab-produtos');
     if (!container) return;
-    const id = subtabId || 'main';
+    const id = subtabId || 'br-main';
     container.querySelectorAll('[data-product-subtab]').forEach((tab) => {
       const active = tab.dataset.productSubtab === id;
       tab.classList.toggle('active', active);
@@ -2195,8 +2264,10 @@ ${worksheets}
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => showProductSubtab(tab.dataset.productSubtab));
     });
-    let saved = 'main';
-    try { saved = localStorage.getItem('stf_admin_product_subtab') || 'main'; } catch (e) { /* ignore */ }
+    let saved = 'br-main';
+    try { saved = localStorage.getItem('stf_admin_product_subtab') || 'br-main'; } catch (e) { /* ignore */ }
+    if (saved === 'main') saved = 'br-main';
+    if (saved === 'aggregated') saved = 'br-aggregated';
     showProductSubtab(saved);
   }
 
@@ -2363,7 +2434,8 @@ ${worksheets}
   function collectForm() {
     const f = els.configForm;
     const products = collectProductsFromDom();
-    const primary = products.find((p) => p.active !== false && !p.aggregated)
+    const primary = products.find((p) => p.active !== false && !p.aggregated && productMarketsOf(p).includes('BR'))
+      || products.find((p) => p.active !== false && !p.aggregated)
       || products.find((p) => !p.aggregated)
       || products[0]
       || {};
@@ -3263,13 +3335,11 @@ ${worksheets}
     renderCoupons(coupons);
   });
 
-  document.getElementById('btn-add-main-product')?.addEventListener('click', () => {
+  document.getElementById('btn-add-br-main-product')?.addEventListener('click', () => {
     const all = collectProductsFromDom();
-    const main = all.filter((p) => !p.aggregated);
-    const aggregated = all.filter((p) => p.aggregated);
-    main.push({
-      id: 'lente-' + Date.now(),
-      slug: 'lente-' + Date.now(),
+    all.push({
+      id: 'lente-br-' + Date.now(),
+      slug: 'lente-br-' + Date.now(),
       name: 'Nova lente Sensor Tattoo Fix',
       description: '',
       price: 62.9,
@@ -3277,17 +3347,16 @@ ${worksheets}
       active: true,
       requiresSmartwatch: true,
       weightGrams: 3,
-      sensorMm: 25
+      sensorMm: 25,
+      markets: ['BR']
     });
-    renderProducts([...main, ...aggregated]);
-    showProductSubtab('main');
+    renderProducts(all);
+    showProductSubtab('br-main');
   });
 
-  document.getElementById('btn-add-aggregated-product')?.addEventListener('click', () => {
+  document.getElementById('btn-add-br-aggregated-product')?.addEventListener('click', () => {
     const all = collectProductsFromDom();
-    const main = all.filter((p) => !p.aggregated);
-    const aggregated = all.filter((p) => p.aggregated);
-    aggregated.push({
+    all.push({
       id: 'agregado-' + Date.now(),
       slug: 'agregado-' + Date.now(),
       name: 'Novo produto agregado',
@@ -3297,10 +3366,35 @@ ${worksheets}
       active: true,
       aggregated: true,
       requiresSmartwatch: false,
-      weightGrams: 1
+      weightGrams: 1,
+      markets: ['BR']
     });
-    renderProducts([...main, ...aggregated]);
-    showProductSubtab('aggregated');
+    renderProducts(all);
+    showProductSubtab('br-aggregated');
+  });
+
+  document.getElementById('btn-add-intl-main-product')?.addEventListener('click', () => {
+    const all = collectProductsFromDom();
+    all.push({
+      id: 'optical-lens-intl',
+      slug: 'optical-lens-intl',
+      name: 'SensorTattooFix Optical Lens',
+      nameEn: 'SensorTattooFix Optical Lens',
+      nameIt: 'Lente ottica SensorTattooFix',
+      description: 'Lente de correção óptica para smartwatch em pele tatuada.',
+      descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
+      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      price: 62.9,
+      image: LENS_INTL_IMAGES[0],
+      images: LENS_INTL_IMAGES.slice(),
+      active: true,
+      requiresSmartwatch: true,
+      weightGrams: 3,
+      sensorMm: 25,
+      markets: ['INT']
+    });
+    renderProducts(all);
+    showProductSubtab('intl-main');
   });
 
   document.addEventListener('DOMContentLoaded', async () => {

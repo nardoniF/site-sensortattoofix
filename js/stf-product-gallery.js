@@ -1,10 +1,11 @@
 /**
  * Product photo album — ←/→ on the image.
- * Store + product section: rotate kit gallery photos (locale-aware).
- * Kit box on homepage: left alone (static packaging photo).
+ * BR (PT): full kit gallery.
+ * .com / EN / IT (gringa): lens-only gallery (application + before/after).
+ * Extra lens photos can be appended to LENS_* arrays when ready.
  */
 (function () {
-  const KIT_IDS = new Set(['kit-sensor-tattoofix', 'kit']);
+  const KIT_IDS = new Set(['kit-sensor-tattoofix', 'kit', 'optical-lens-intl']);
 
   const PT_GALLERY = [
     '/site/kit-gallery/kit-03-aplicacao.jpg',
@@ -18,7 +19,7 @@
   /** Shared photo (little/no copy) reused across locales. */
   const SHARED_APLICACAO = '/site/kit-gallery/kit-03-aplicacao.jpg';
 
-  const EN_GALLERY = [
+  const EN_KIT_GALLERY = [
     '/site/kit-gallery/en/kit-03-aplicacao.jpg',
     '/site/kit-gallery/en/kit-01-embalagem.jpg',
     '/site/kit-gallery/en/kit-02-conteudo.jpg',
@@ -27,7 +28,7 @@
     '/site/kit-gallery/en/kit-07-beneficios.jpg'
   ];
 
-  const IT_GALLERY = [
+  const IT_KIT_GALLERY = [
     SHARED_APLICACAO,
     '/site/kit-gallery/it/kit-01-embalagem.jpg',
     '/site/kit-gallery/it/kit-02-conteudo.jpg',
@@ -36,9 +37,29 @@
     '/site/kit-gallery/it/kit-07-beneficios.jpg'
   ];
 
+  /** .com / EN / IT — lens only (more photos can be pushed later). */
+  const LENS_GALLERY_EN = [
+    '/site/kit-gallery/en/kit-03-aplicacao.jpg',
+    '/site/kit-gallery/en/kit-06-antes-depois.jpg'
+    // pending: lens pack + side view (user will provide)
+  ];
+
+  const LENS_GALLERY_IT = [
+    SHARED_APLICACAO,
+    '/site/kit-gallery/it/kit-06-antes-depois.jpg'
+    // pending: lens pack + side view (user will provide)
+  ];
+
+  const LENS_GALLERY_SHARED = [
+    SHARED_APLICACAO,
+    '/site/kit-gallery/kit-06-antes-depois.jpg'
+  ];
+
   /** @deprecated alias */
   const KIT_ALBUM = PT_GALLERY;
   const KIT_GALLERY = PT_GALLERY;
+  const EN_GALLERY = EN_KIT_GALLERY;
+  const IT_GALLERY = IT_KIT_GALLERY;
 
   function detectLang() {
     try {
@@ -50,6 +71,17 @@
     const host = String(location.hostname || '').toLowerCase();
     if (host === 'sensortattoofix.com' || host === 'www.sensortattoofix.com') return 'en';
     return 'pt';
+  }
+
+  /** International storefront: lens-only product presentation. */
+  function isLensOnlyMarket() {
+    try {
+      if (window.STF_SITE?.isIntlHost?.()) return true;
+    } catch (_) { /* ignore */ }
+    const host = String(location.hostname || '').toLowerCase();
+    if (host === 'sensortattoofix.com' || host === 'www.sensortattoofix.com') return true;
+    const lang = detectLang();
+    return lang === 'en' || lang === 'it';
   }
 
   function normalizeUrl(raw) {
@@ -89,20 +121,29 @@
     return KIT_IDS.has(id) || /kit.?sensor|sensor.?tattoo/i.test(id + ' ' + (product?.name || ''));
   }
 
-  function kitAlbum(lang) {
+  function lensAlbum(lang) {
     const l = lang || detectLang();
-    if (l === 'en') return EN_GALLERY.slice();
-    if (l === 'it') return IT_GALLERY.slice();
+    if (l === 'en') return LENS_GALLERY_EN.slice();
+    if (l === 'it') return LENS_GALLERY_IT.slice();
+    return LENS_GALLERY_SHARED.slice();
+  }
+
+  function kitAlbum(lang) {
+    if (isLensOnlyMarket()) return lensAlbum(lang);
+    const l = lang || detectLang();
+    if (l === 'en') return EN_KIT_GALLERY.slice();
+    if (l === 'it') return IT_KIT_GALLERY.slice();
     return PT_GALLERY.slice();
   }
 
   function resolveImages(product) {
+    const fromAlbum = Array.isArray(product?.images) ? product.images : [];
+    const primary = product?.image || '';
+    let list = uniqueUrls([primary, ...fromAlbum].filter((u) => u && !isLegacyKitHero(u)));
+    if (list.length) return list;
     if (isKitProduct(product)) {
       return kitAlbum();
     }
-    const fromConfig = Array.isArray(product?.images) ? product.images : [];
-    const primary = product?.image || '';
-    let list = uniqueUrls([primary, ...fromConfig].filter((u) => !isLegacyKitHero(u)));
     if (!list.length) list = kitAlbum();
     return list;
   }
@@ -178,7 +219,7 @@
     });
   }
 
-  /** Enhance product section only — never the kit packaging block. */
+  /** Enhance product section — never the kit packaging block (BR only). */
   function enhanceExisting(selector, images, alt) {
     document.querySelectorAll(selector).forEach((wrap) => {
       if (wrap.closest('.kit-box-media') || wrap.classList.contains('kit-box-media')) return;
@@ -221,13 +262,28 @@
     if (media) ro.observe(media);
   }
 
+  /** Hide kit packaging block on lens-only markets. */
+  function hideKitBoxIfNeeded() {
+    if (!isLensOnlyMarket()) return;
+    document.querySelectorAll('.kit-box').forEach((el) => {
+      el.hidden = true;
+      el.setAttribute('aria-hidden', 'true');
+    });
+    document.documentElement.classList.add('stf-lens-only');
+    document.body?.classList.add('stf-lens-only');
+  }
+
   window.STF_PRODUCT_GALLERY = {
     KIT_ALBUM,
     KIT_GALLERY,
     PT_GALLERY,
     EN_GALLERY,
     IT_GALLERY,
+    LENS_GALLERY_EN,
+    LENS_GALLERY_IT,
     kitAlbum,
+    lensAlbum,
+    isLensOnlyMarket,
     resolveImages,
     isKitProduct,
     renderMarkup,
@@ -239,8 +295,28 @@
   };
 
   function boot() {
-    enhanceExisting('.product-image-wrap', kitAlbum(), 'Sensor Tattoo Fix');
-    watchProductAlbumSize();
+    hideKitBoxIfNeeded();
+    const run = async () => {
+      let product = null;
+      try {
+        if (window.StoreConfig?.load) {
+          const cfg = await window.StoreConfig.load();
+          const market = window.STF_SITE?.catalogMarket?.() || (isLensOnlyMarket() ? 'INT' : 'BR');
+          const all = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
+          const filtered = window.STF_SITE?.filterProductsForMarket?.(all, market) || all;
+          product = filtered.find((p) => p.active !== false && !p.aggregated) || filtered[0] || null;
+        }
+      } catch (err) {
+        console.warn('STF_PRODUCT_GALLERY config:', err);
+      }
+      const imgs = product ? resolveImages(product) : kitAlbum();
+      const alt = product
+        ? (window.STF_PELICULA?.productLabel?.(product) || product.nameEn || product.name || 'Sensor Tattoo Fix')
+        : (isLensOnlyMarket() ? 'SensorTattooFix Optical Lens' : 'Sensor Tattoo Fix');
+      enhanceExisting('.product-image-wrap', imgs, alt);
+      watchProductAlbumSize();
+    };
+    run();
   }
 
   if (document.readyState === 'loading') {

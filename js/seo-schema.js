@@ -143,10 +143,11 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    let productName = isIt ? 'Kit Sensor Tattoo Fix' : isEn ? 'Sensor Tattoo Fix Kit' : 'Kit Sensor Tattoo Fix';
+    let productName = isIt ? 'Lente ottica SensorTattooFix' : isEn ? 'SensorTattooFix Optical Lens' : 'Kit Sensor Tattoo Fix';
     let productPrice = 62.9;
     let productImage = SITE + '/site/sensortattoofix.jpg';
     let productId = 'kit-sensor-tattoofix';
+    if (isEn || isIt) productId = 'optical-lens-intl';
     let productDescription = isIt
       ? 'Kit con lente ottica per smartwatch che chiede codice, non misura il battito o interrompe l\'allenamento — spesso per tatuaggio al polso. Ripristina rilevamento al polso, frequenza cardiaca e allenamenti.'
       : isEn

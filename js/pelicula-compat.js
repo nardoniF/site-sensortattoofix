@@ -89,22 +89,32 @@ window.STF_PELICULA = (function () {
     return product?.aggregated === true;
   }
 
-  function listAggregated(products) {
-    return (products || []).filter((p) => p.active !== false && isAggregated(p));
+  function listStorefront(products) {
+    const market = window.STF_SITE?.catalogMarket?.() || 'BR';
+    return (products || []).filter((p) => {
+      if (p.active === false || p.inStock === false || isAggregated(p)) return false;
+      if (window.STF_SITE?.productVisibleOnMarket) {
+        return window.STF_SITE.productVisibleOnMarket(p, market);
+      }
+      return true;
+    });
   }
 
-  function listStorefront(products) {
-    return (products || []).filter((p) => p.active !== false && p.inStock !== false && !isAggregated(p));
+  function listAggregated(products) {
+    const market = window.STF_SITE?.catalogMarket?.() || 'BR';
+    // .com never shows checkout aggregated upsells
+    if (market === 'INT' || window.STF_SITE?.isIntlHost?.()) return [];
+    return (products || []).filter((p) => p.active !== false && isAggregated(p));
   }
 
   const KIT_COPY = {
     en: {
-      name: 'Sensor Tattoo Fix Kit',
-      description: 'Optical lens for smartwatches on tattooed skin — full kit'
+      name: 'SensorTattooFix Optical Lens',
+      description: 'Designed for smartwatch optical sensors on tattooed skin.'
     },
     it: {
-      name: 'Kit Sensor Tattoo Fix',
-      description: 'Lente ottica per smartwatch su pelle tatuata — kit completo'
+      name: 'Lente ottica SensorTattooFix',
+      description: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.'
     }
   };
 
