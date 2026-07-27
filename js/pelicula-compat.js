@@ -90,12 +90,24 @@ window.STF_PELICULA = (function () {
   }
 
   function listStorefront(products) {
-    const market = window.STF_SITE?.catalogMarket?.() || 'BR';
+    const host = String(location.hostname || '').toLowerCase();
+    const path = String(location.pathname || '');
+    const intlHost = host === 'sensortattoofix.com' || host === 'www.sensortattoofix.com';
+    const market = window.STF_SITE?.catalogMarket?.()
+      || ((intlHost || path.includes('/en/') || path.includes('/it/')) ? 'INT' : 'BR');
     return (products || []).filter((p) => {
       if (p.active === false || p.inStock === false || isAggregated(p)) return false;
       if (window.STF_SITE?.productVisibleOnMarket) {
         return window.STF_SITE.productVisibleOnMarket(p, market);
       }
+      // Fallback sem stf-site.js: no .com só produtos INT (não misturar kit BR)
+      const markets = Array.isArray(p.markets) ? p.markets.map((m) => String(m).toUpperCase()) : null;
+      if (market === 'INT') {
+        if (markets && markets.length) return markets.includes('INT');
+        const id = String(p.id || p.slug || '');
+        return /optical.?lens|lens-intl/i.test(id);
+      }
+      if (markets && markets.length) return markets.includes('BR');
       return true;
     });
   }
