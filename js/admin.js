@@ -2024,7 +2024,9 @@ ${worksheets}
     '/site/lens-gallery/02-ultra-thin.png',
     '/site/lens-gallery/03-high-optical-transparency.png',
     '/site/lens-gallery/04-engineered-refraction.png',
-    '/site/lens-gallery/05-whats-included.png'
+    '/site/lens-gallery/05-whats-included.png',
+    '/site/kit-gallery/en/kit-03-aplicacao.jpg',
+    '/site/kit-gallery/en/kit-06-antes-depois.jpg'
   ];
 
   function productMarketsOf(p) {

@@ -1,8 +1,7 @@
 /**
  * Product photo album — ←/→ on the image.
  * BR (PT): full kit gallery.
- * .com / EN / IT (gringa): lens-only gallery (application + before/after).
- * Extra lens photos can be appended to LENS_* arrays when ready.
+ * .com / EN / IT (gringa): mesmo álbum de fotos na home, loja e checkout.
  */
 (function () {
   const KIT_IDS = new Set(['kit-sensor-tattoofix', 'kit', 'optical-lens-intl']);
@@ -37,20 +36,36 @@
     '/site/kit-gallery/it/kit-07-beneficios.jpg'
   ];
 
-  /** .com / EN / IT — lens only (more photos can be pushed later). */
+  /**
+   * .com / EN / IT — mesmo álbum na home, loja e checkout:
+   * 5 fotos da lente + aplicação + antes/depois.
+   */
   const LENS_GALLERY_EN = [
+    '/site/lens-gallery/01-optical-correction-lens.png',
+    '/site/lens-gallery/02-ultra-thin.png',
+    '/site/lens-gallery/03-high-optical-transparency.png',
+    '/site/lens-gallery/04-engineered-refraction.png',
+    '/site/lens-gallery/05-whats-included.png',
     '/site/kit-gallery/en/kit-03-aplicacao.jpg',
     '/site/kit-gallery/en/kit-06-antes-depois.jpg'
-    // pending: lens pack + side view (user will provide)
   ];
 
   const LENS_GALLERY_IT = [
+    '/site/lens-gallery/01-optical-correction-lens.png',
+    '/site/lens-gallery/02-ultra-thin.png',
+    '/site/lens-gallery/03-high-optical-transparency.png',
+    '/site/lens-gallery/04-engineered-refraction.png',
+    '/site/lens-gallery/05-whats-included.png',
     SHARED_APLICACAO,
     '/site/kit-gallery/it/kit-06-antes-depois.jpg'
-    // pending: lens pack + side view (user will provide)
   ];
 
   const LENS_GALLERY_SHARED = [
+    '/site/lens-gallery/01-optical-correction-lens.png',
+    '/site/lens-gallery/02-ultra-thin.png',
+    '/site/lens-gallery/03-high-optical-transparency.png',
+    '/site/lens-gallery/04-engineered-refraction.png',
+    '/site/lens-gallery/05-whats-included.png',
     SHARED_APLICACAO,
     '/site/kit-gallery/kit-06-antes-depois.jpg'
   ];
@@ -140,12 +155,13 @@
     const fromAlbum = Array.isArray(product?.images) ? product.images : [];
     const primary = product?.image || '';
     let list = uniqueUrls([primary, ...fromAlbum].filter((u) => u && !isLegacyKitHero(u)));
-    if (list.length) return list;
-    if (isKitProduct(product)) {
-      return kitAlbum();
+    // .com / EN / IT: home + loja + checkout usam o mesmo álbum completo
+    if (isLensOnlyMarket() && (isKitProduct(product) || !list.length)) {
+      return uniqueUrls([...list, ...lensAlbum()]);
     }
-    if (!list.length) list = kitAlbum();
-    return list;
+    if (list.length) return list;
+    if (isKitProduct(product)) return kitAlbum();
+    return kitAlbum();
   }
 
   function renderMarkup(images, alt, extraClass) {
