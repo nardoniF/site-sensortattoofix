@@ -52,6 +52,30 @@ window.STF_INTL_PAY = (function () {
     if (walletBox) walletBox.innerHTML = '';
   }
 
+  function paypalCurrency() {
+    try {
+      const lang = window.STF_I18N?.getLang?.();
+      if (lang === 'it') return 'EUR';
+    } catch (_) { /* ignore */ }
+    const path = String(location.pathname || '');
+    if (path.includes('/it/')) return 'EUR';
+    const htmlLang = String(document.documentElement.lang || '').toLowerCase();
+    if (htmlLang.startsWith('it')) return 'EUR';
+    return 'USD';
+  }
+
+  function payNoticeHtml(key) {
+    try {
+      const t = window.STF_I18N?.t?.(key);
+      if (t) return `<i class="fas fa-info-circle"></i> ${t}`;
+    } catch (_) { /* ignore */ }
+    const cur = paypalCurrency();
+    if (cur === 'EUR') {
+      return '<i class="fas fa-info-circle"></i> Addebito in EUR · spedizione tracciata.';
+    }
+    return '<i class="fas fa-info-circle"></i> Charged in USD · tracked shipping.';
+  }
+
   async function initUi() {
     if (!isActive()) return false;
     await loadConfig();
@@ -75,11 +99,11 @@ window.STF_INTL_PAY = (function () {
       }
     }
     if (hasStripe && notice && !notice.dataset.stfLocked) {
-      notice.innerHTML = '<i class="fas fa-info-circle"></i> Card, Apple Pay, Google Pay or PayPal · charged in USD · tracked shipping.';
+      notice.innerHTML = payNoticeHtml('pay.noticeIntlEmbeddedStripe');
     } else if (!hasStripe && hasPaypal && paypalInput) {
       paypalInput.checked = true;
       if (notice && !notice.dataset.stfLocked) {
-        notice.innerHTML = '<i class="fas fa-info-circle"></i> Secure PayPal checkout · charged in USD · tracked shipping.';
+        notice.innerHTML = payNoticeHtml('pay.noticeIntlEmbeddedPaypal');
       }
     }
     if (!hasStripe && !hasPaypal && notice) {
@@ -121,11 +145,13 @@ window.STF_INTL_PAY = (function () {
 
   async function loadPayPalJs(clientId) {
     const locale = paypalSdkLocale();
+    const currency = paypalCurrency();
+    const sdkKey = locale + ':' + currency;
     const existing = document.querySelector('script[data-stf-paypal-sdk]');
-    if (existing && existing.getAttribute('data-stf-paypal-locale') === locale && window.paypal?.Buttons) {
+    if (existing && existing.getAttribute('data-stf-paypal-key') === sdkKey && window.paypal?.Buttons) {
       return window.paypal;
     }
-    if (existing && existing.getAttribute('data-stf-paypal-locale') !== locale) {
+    if (existing && existing.getAttribute('data-stf-paypal-key') !== sdkKey) {
       existing.remove();
       try { delete window.paypal; } catch (_) { window.paypal = undefined; }
     }
@@ -138,9 +164,10 @@ window.STF_INTL_PAY = (function () {
       }
       const s = document.createElement('script');
       s.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(clientId)
-        + '&currency=USD&intent=capture&components=buttons'
+        + '&currency=' + encodeURIComponent(currency) + '&intent=capture&components=buttons'
         + '&locale=' + encodeURIComponent(locale);
       s.setAttribute('data-stf-paypal-sdk', '1');
+      s.setAttribute('data-stf-paypal-key', sdkKey);
       s.setAttribute('data-stf-paypal-locale', locale);
       s.onload = resolve;
       s.onerror = reject;

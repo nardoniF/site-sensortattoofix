@@ -2008,37 +2008,50 @@ async function syncIntlProductPricesFromFx(env) {
   return { updated, usdRate: fxUsd.rate, eurRate: fxEur.rate };
 }
 
-async function intlUsdCharge(order, env, config, items) {
-  const fx = await fetchFxRate(env, 'USD');
+async function intlForeignCharge(order, env, config, items, currency) {
+  const cur = String(currency || 'USD').toUpperCase();
+  const fx = await fetchFxRate(env, cur);
   const itemList = items || order.items || [];
   const products = getActiveProducts(config || await getConfig(env));
-  let productUsd = 0;
+  let productForeign = 0;
   let allConfigured = itemList.length > 0;
   for (const item of itemList) {
     const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const u = p ? productIntlUsd(p) : null;
-    if (u == null) { allConfigured = false; break; }
-    productUsd += u * (Number(item.qty) || 1);
+    const price = p ? (cur === 'EUR' ? productIntlEur(p) : productIntlUsd(p)) : null;
+    if (price == null) { allConfigured = false; break; }
+    productForeign += price * (Number(item.qty) || 1);
   }
-  let usd;
+  let amount;
   if (allConfigured && itemList.length) {
     const brlProducts = itemList.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
     const couponDisc = Number(order.couponDiscount) || 0;
     const ratio = brlProducts > 0 ? Math.max(0, (brlProducts - couponDisc) / brlProducts) : 1;
-    usd = Math.round(productUsd * ratio * 100) / 100;
+    amount = Math.round(productForeign * ratio * 100) / 100;
     const frete = Number(order.frete) || 0;
-    if (frete > 0) usd = Math.round((usd + frete * fx.rate) * 100) / 100;
+    if (frete > 0) amount = Math.round((amount + frete * fx.rate) * 100) / 100;
   } else {
     const brl = Number(order.total) || 0;
-    usd = Math.round(brl * fx.rate * 100) / 100;
+    amount = Math.round(brl * fx.rate * 100) / 100;
   }
   if (isSelfTestOrder(order)) {
-    const minUsd = (order.selfTestStripe || order.paymentProvider === 'stripe')
-      ? SELF_TEST_STRIPE_USD_AMOUNT
-      : SELF_TEST_USD_AMOUNT;
-    if (usd < minUsd) usd = minUsd;
+    const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
+    if (cur === 'EUR') {
+      const minEur = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+      if (amount < minEur) amount = minEur;
+    } else {
+      const minUsd = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+      if (amount < minUsd) amount = minUsd;
+    }
   }
-  return { currency: 'USD', amount: usd, amountCents: Math.round(usd * 100), fxRate: fx.rate };
+  return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
+}
+
+async function intlUsdCharge(order, env, config, items) {
+  return intlForeignCharge(order, env, config, items, 'USD');
+}
+
+function intlChargeCurrencyForLocale(locale) {
+  return String(locale || '').toLowerCase() === 'it' ? 'EUR' : 'USD';
 }
 
 function selfTestUsdAmountForOrder(order, billingType) {
@@ -2052,13 +2065,18 @@ function selfTestUsdAmountForOrder(order, billingType) {
 function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (!isSelfTestOrder(order)) return;
   if (intlUsd) {
-    const amount = selfTestUsdAmountForOrder(order, billingType);
-    order.chargeCurrency = 'USD';
+    const cur = intlChargeCurrencyForLocale(order.checkoutLocale);
+    const amount = cur === 'EUR'
+      ? ((billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe')
+        ? SELF_TEST_STRIPE_EUR_AMOUNT
+        : SELF_TEST_EUR_AMOUNT)
+      : selfTestUsdAmountForOrder(order, billingType);
+    order.chargeCurrency = cur;
     order.chargeAmount = amount;
-    order.displayCurrency = 'USD';
+    order.displayCurrency = cur;
     return;
   }
-  if (order.chargeCurrency === 'USD') {
+  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR') {
     delete order.chargeCurrency;
     delete order.chargeAmount;
     delete order.chargeFxRate;
@@ -2484,8 +2502,8 @@ function buildPendingConsultativeEmail(order, config, env, {
   includePixCode = false
 } = {}) {
   const copy = pendingRecoveryCopy(order, config, env, { paymentKind });
-  const total = order.chargeCurrency === 'USD' && order.chargeAmount != null
-    ? `US$ ${Number(order.chargeAmount).toFixed(2)}`
+  const total = (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR') && order.chargeAmount != null
+    ? formatOrderCharge(order)
     : formatBRL(order.total);
   const copyPaste = order.pixCopyPaste || '';
   const qrImg = hasQrImage
@@ -2517,7 +2535,7 @@ function buildPendingConsultativeEmail(order, config, env, {
     <p style="margin-top:24px"><strong>${escapeHtml(copy.contactsTitle)}</strong></p>
     <ul style="padding-left:18px;margin:8px 0 0">${contacts}</ul>
     <p style="margin-top:24px">${escapeHtml(copy.signOff)}<br>${escapeHtml(copy.signer)}</p>
-    ${copy.watchLine ? `<p style="font-size:12px;color:#666;margin-top:16px">${escapeHtml(copy.watchLine)}<br>Pedido ${escapeHtml(order.orderId)}</p>` : `<p style="font-size:12px;color:#666;margin-top:16px">Pedido ${escapeHtml(order.orderId)}</p>`}
+    ${copy.watchLine ? `<p style="font-size:12px;color:#666;margin-top:16px">${escapeHtml(copy.watchLine)}<br>${escapeHtml(orderRefLabel(order))} ${escapeHtml(order.orderId)}</p>` : `<p style="font-size:12px;color:#666;margin-top:16px">${escapeHtml(orderRefLabel(order))} ${escapeHtml(order.orderId)}</p>`}
   </div>`;
 
   const text = [
@@ -2540,7 +2558,7 @@ function buildPendingConsultativeEmail(order, config, env, {
     copy.signer,
     '',
     copy.watchLine,
-    `Pedido ${order.orderId}`
+    `${orderRefLabel(order)} ${order.orderId}`
   ].filter((line) => line !== '').join('\n');
 
   return { subject: copy.subject, html, text, resumeUrl: copy.resumeUrl };
@@ -2552,11 +2570,20 @@ function labelPrintUrl(config, orderId) {
 }
 
 function formatOrderCharge(order, value) {
-  if (order?.chargeCurrency === 'USD') {
-    const amt = order.chargeAmount != null ? Number(order.chargeAmount) : Number(value ?? order.total);
-    return `US$ ${Number(amt || 0).toFixed(2)}`;
+  const cur = String(order?.chargeCurrency || '').toUpperCase();
+  const amt = order.chargeAmount != null ? Number(order.chargeAmount) : Number(value ?? order.total);
+  if (cur === 'USD') return `US$ ${Number(amt || 0).toFixed(2)}`;
+  if (cur === 'EUR') {
+    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(Number(amt || 0));
   }
   return formatBRL(value ?? order?.total);
+}
+
+function orderRefLabel(order) {
+  const loc = orderCheckoutLocale(order);
+  if (loc === 'en') return 'Order';
+  if (loc === 'it') return 'Ordine';
+  return 'Pedido';
 }
 
 /** Paid confirmation copy — respects checkoutLocale (pt/en/it). */
@@ -3697,11 +3724,14 @@ const SELF_TEST_PIX_AMOUNT = 0.01;
 const SELF_TEST_BRL_AMOUNT = 0.01;
 /** Symbolic USD charge for international PayPal test orders. */
 const SELF_TEST_USD_AMOUNT = 0.01;
+/** Symbolic EUR charge for Italian PayPal test orders. */
+const SELF_TEST_EUR_AMOUNT = 0.01;
 /**
  * Stripe BR accounts reject USD that converts below R$ 0.50.
  * US$ 0.01 ≈ R$ 0.05 — use US$ 0.10 for Stripe self-test.
  */
 const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
+const SELF_TEST_STRIPE_EUR_AMOUNT = 0.10;
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -6410,26 +6440,31 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   const options = opts || {};
   const accessToken = await getPayPalAccessToken(env);
   const checkoutLocale = String(order.checkoutLocale || 'pt').toLowerCase();
-  const useUsd = isComSiteRequest(request) && isIntlCheckoutLocale(checkoutLocale);
+  const useForeign = isComSiteRequest(request) && isIntlCheckoutLocale(checkoutLocale);
+  const foreignCur = intlChargeCurrencyForLocale(checkoutLocale);
   let currencyCode = 'BRL';
   let amountValue = Number(order.total).toFixed(2);
   let locale = 'pt-BR';
-  if (useUsd) {
+  if (useForeign) {
     if (isSelfTestOrder(order)) {
-      currencyCode = 'USD';
-      amountValue = SELF_TEST_USD_AMOUNT.toFixed(2);
+      currencyCode = foreignCur;
+      const testAmt = foreignCur === 'EUR'
+        ? SELF_TEST_EUR_AMOUNT
+        : SELF_TEST_USD_AMOUNT;
+      amountValue = testAmt.toFixed(2);
       locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
-      order.chargeCurrency = 'USD';
-      order.chargeAmount = SELF_TEST_USD_AMOUNT;
-      order.displayCurrency = 'USD';
+      order.chargeCurrency = foreignCur;
+      order.chargeAmount = testAmt;
+      order.displayCurrency = foreignCur;
     } else {
-      const usd = await intlUsdCharge(order, env, config, items);
-      currencyCode = 'USD';
-      amountValue = Number(usd.amount).toFixed(2);
+      const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
+      currencyCode = foreignCur;
+      amountValue = Number(charge.amount).toFixed(2);
       locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
-      order.chargeCurrency = 'USD';
-      order.chargeAmount = usd.amount;
-      order.chargeFxRate = usd.fxRate;
+      order.chargeCurrency = foreignCur;
+      order.chargeAmount = charge.amount;
+      order.chargeFxRate = charge.fxRate;
+      order.displayCurrency = foreignCur;
     }
   } else if (isSelfTestOrder(order)) {
     amountValue = SELF_TEST_BRL_AMOUNT.toFixed(2);
@@ -6855,21 +6890,46 @@ async function notifyCustomerPendingPayment(env, config, order, billingType) {
     paymentKind: kind,
     includePixCode: false
   });
-  const fields = {
-    Pedido: order.orderId,
-    Status: orderCheckoutLocale(order) === 'en' ? 'Awaiting payment'
-      : orderCheckoutLocale(order) === 'it' ? 'In attesa di pagamento'
-        : 'Aguardando pagamento',
-    Total: order.chargeCurrency === 'USD' && order.chargeAmount != null
-      ? `US$ ${Number(order.chargeAmount).toFixed(2)}`
-      : formatBRL(order.total),
-    Pagamento: order.pagamento,
-    'Link do pedido': mail.resumeUrl,
-    ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
-    ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
-    ...orderWatchEmailFields(order),
-    ...orderIntlProductFields(order)
-  };
+  const fields = (() => {
+    const loc = orderCheckoutLocale(order);
+    if (loc === 'en') {
+      return {
+        Order: order.orderId,
+        Status: 'Awaiting payment',
+        Total: formatOrderCharge(order),
+        Payment: order.pagamento,
+        'Order link': mail.resumeUrl,
+        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal link': order.paypalApproveUrl } : {}),
+        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Payment link': order.invoiceUrl } : {}),
+        ...orderWatchEmailFields(order),
+        ...orderIntlProductFields(order)
+      };
+    }
+    if (loc === 'it') {
+      return {
+        Ordine: order.orderId,
+        Stato: 'In attesa di pagamento',
+        Totale: formatOrderCharge(order),
+        Pagamento: order.pagamento,
+        'Link ordine': mail.resumeUrl,
+        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
+        ...orderWatchEmailFields(order),
+        ...orderIntlProductFields(order)
+      };
+    }
+    return {
+      Pedido: order.orderId,
+      Status: 'Aguardando pagamento',
+      Total: formatOrderCharge(order),
+      Pagamento: order.pagamento,
+      'Link do pedido': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
+      ...orderWatchEmailFields(order),
+      ...orderIntlProductFields(order)
+    };
+  })();
   return notifyCustomer(env, config, order, mail.subject, fields, {
     html: mail.html,
     text: mail.text
@@ -7700,13 +7760,14 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   if (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')) {
     try {
-      const usd = await intlUsdCharge(order, env, config, items);
-      order.chargeCurrency = 'USD';
-      order.chargeAmount = usd.amount;
-      order.chargeFxRate = usd.fxRate;
-      order.displayCurrency = 'USD';
+      const foreignCur = intlChargeCurrencyForLocale(checkoutLocale);
+      const charge = await intlForeignCharge(order, env, config, items, foreignCur);
+      order.chargeCurrency = foreignCur;
+      order.chargeAmount = charge.amount;
+      order.chargeFxRate = charge.fxRate;
+      order.displayCurrency = foreignCur;
     } catch (err) {
-      console.warn('USD charge:', err.message);
+      console.warn('Intl charge:', err.message);
     }
   }
 
@@ -8604,40 +8665,51 @@ async function handlePayPalCreate(request, env, origin, orderId) {
 
 function stripeOrderCharge(order, request, env) {
   let amountCents;
-  let currency = 'usd';
-  let amountUsd = null;
-  if (order.chargeCurrency === 'USD' || isComSiteRequest(request)) {
-    let usd = Number(order.chargeAmount);
+  let currency = 'brl';
+  let amountForeign = null;
+  const chargeCur = String(order.chargeCurrency || '').toUpperCase();
+  const intlCharge = chargeCur === 'USD' || chargeCur === 'EUR'
+    || (isComSiteRequest(request) && !chargeCur);
+  if (intlCharge && (chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) {
+    const resolvedCur = chargeCur === 'EUR' ? 'EUR' : 'USD';
+    currency = resolvedCur.toLowerCase();
+    let amt = Number(order.chargeAmount);
     if (isSelfTestOrder(order)) {
-      usd = SELF_TEST_STRIPE_USD_AMOUNT;
-      order.chargeCurrency = 'USD';
-      order.chargeAmount = SELF_TEST_STRIPE_USD_AMOUNT;
-      order.selfTestStripe = true;
+      amt = order.selfTestStripe || order.paymentProvider === 'stripe'
+        ? (resolvedCur === 'EUR' ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_STRIPE_USD_AMOUNT)
+        : (resolvedCur === 'EUR' ? SELF_TEST_EUR_AMOUNT : SELF_TEST_USD_AMOUNT);
+      order.chargeCurrency = resolvedCur;
+      order.chargeAmount = amt;
+      if (order.paymentProvider === 'stripe') order.selfTestStripe = true;
     }
-    if (!Number.isFinite(usd) || usd <= 0) {
+    if (!Number.isFinite(amt) || amt <= 0) {
       return null;
     }
-    // Self-test Stripe: US$ 0.10 (BR account min). Normal: Stripe floor $0.50.
-    const minCents = isSelfTestOrder(order) ? Math.round(SELF_TEST_STRIPE_USD_AMOUNT * 100) : 50;
-    amountCents = Math.max(minCents, Math.round(usd * 100));
-    amountUsd = usd;
+    const minCents = isSelfTestOrder(order)
+      ? Math.round((resolvedCur === 'EUR' ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_STRIPE_USD_AMOUNT) * 100)
+      : 50;
+    amountCents = Math.max(minCents, Math.round(amt * 100));
+    amountForeign = amt;
   } else {
     const brl = isSelfTestOrder(order) ? SELF_TEST_BRL_AMOUNT : Number(order.total);
     amountCents = Math.max(isSelfTestOrder(order) ? 1 : 50, Math.round(brl * 100));
     currency = 'brl';
   }
-  return { amountCents, currency, amountUsd };
+  return { amountCents, currency, amountUsd: amountForeign };
 }
 
-async function ensureStripeUsdCharge(order, request, env) {
-  if (!(order.chargeCurrency === 'USD' || isComSiteRequest(request))) return;
-  let usd = Number(order.chargeAmount);
-  if (Number.isFinite(usd) && usd > 0) return;
+async function ensureStripeIntlCharge(order, request, env) {
+  const chargeCur = String(order.chargeCurrency || '').toUpperCase();
+  if (!(chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) return;
+  let amt = Number(order.chargeAmount);
+  if (Number.isFinite(amt) && amt > 0) return;
   const config = await getConfig(env);
-  const charge = await intlUsdCharge(order, env, config, order.items);
-  order.chargeCurrency = 'USD';
+  const foreignCur = intlChargeCurrencyForLocale(order.checkoutLocale);
+  const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
+  order.chargeCurrency = foreignCur;
   order.chargeAmount = charge.amount;
   order.chargeFxRate = charge.fxRate;
+  order.displayCurrency = foreignCur;
 }
 
 async function handleStripePaymentIntent(request, env, origin, orderId) {
@@ -8656,7 +8728,7 @@ async function handleStripePaymentIntent(request, env, origin, orderId) {
   }
   const config = await getConfig(env);
   const { publishableKey } = stripeCredentials(env);
-  await ensureStripeUsdCharge(order, request, env);
+  await ensureStripeIntlCharge(order, request, env);
   const charge = stripeOrderCharge(order, request, env);
   if (!charge) return json({ error: 'Could not compute charge amount.' }, 400, origin);
   const returnBase = storeBaseUrl(config, env, request);
@@ -8698,7 +8770,7 @@ async function handleStripeCheckoutSession(request, env, origin, orderId) {
     return json({ error: 'Card payment temporarily unavailable. Please use PayPal.' }, 503, origin);
   }
   const config = await getConfig(env);
-  await ensureStripeUsdCharge(order, request, env);
+  await ensureStripeIntlCharge(order, request, env);
   const charge = stripeOrderCharge(order, request, env);
   if (!charge) return json({ error: 'Could not compute charge amount.' }, 400, origin);
   const returnBase = storeBaseUrl(config, env, request);

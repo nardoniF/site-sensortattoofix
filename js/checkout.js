@@ -413,6 +413,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   let fxRate = null;
   let displayCurrency = 'BRL';
 
+  function intlDisplayCurrency() {
+    if (window.STF_MONEY?.visitorDisplayCurrency) {
+      const country = checkoutLocale() === 'it' ? 'IT' : 'US';
+      return window.STF_MONEY.visitorDisplayCurrency(country);
+    }
+    return checkoutLocale() === 'it' ? 'EUR' : 'USD';
+  }
+
   async function refreshDisplayCurrency() {
     if (!isInternational || !window.STF_MONEY) {
       fxRate = null;
@@ -420,8 +428,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       return;
     }
     if (window.STF_MONEY.isIntlHost?.()) {
-      displayCurrency = 'USD';
-      fxRate = await window.STF_MONEY.loadRate(apiBase(), 'USD');
+      displayCurrency = intlDisplayCurrency();
+      fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
       return;
     }
     const next = window.STF_MONEY.currencyForCountry(els.paisCode?.value || 'US');
@@ -435,11 +443,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
         return formatBRL(v);
       }
-      const country = els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US';
+      const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US');
       if (window.STF_MONEY.isIntlHost?.()) {
-        const usd = window.STF_MONEY.convertFromBrl(v, fxRate);
-        if (usd == null) return formatBRL(v);
-        return window.STF_MONEY.formatForeign(usd, 'USD', country);
+        const foreign = window.STF_MONEY.convertFromBrl(v, fxRate);
+        if (foreign == null) return formatBRL(v);
+        return window.STF_MONEY.formatForeign(foreign, displayCurrency, country);
       }
       return window.STF_MONEY.formatDual(v, displayCurrency, fxRate, country);
     } catch (e) {
@@ -448,19 +456,28 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
-  /** Format an amount that is already in USD (do not convert from BRL). */
-  function formatUsdMoney(v) {
+  /** Format an amount that is already in USD/EUR (do not convert from BRL). */
+  function formatChargeMoney(v, currency) {
     try {
-      const country = els.paisCode?.value || window.STF_MONEY?.visitorCountry?.() || 'US';
+      const cur = String(currency || displayCurrency || 'USD').toUpperCase();
+      const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY?.visitorCountry?.() || 'US');
       if (window.STF_MONEY?.formatForeign) {
-        return window.STF_MONEY.formatForeign(Number(v) || 0, 'USD', country);
+        return window.STF_MONEY.formatForeign(Number(v) || 0, cur, country);
       }
     } catch (_) { /* fall through */ }
+    if (String(currency || '').toUpperCase() === 'EUR') {
+      return `€ ${Number(v || 0).toFixed(2)}`;
+    }
     return `US$ ${Number(v || 0).toFixed(2)}`;
   }
 
+  function formatUsdMoney(v) {
+    return formatChargeMoney(v, 'USD');
+  }
+
   function formatSnapshotMoney(amount, currency) {
-    if (currency === 'USD') return formatUsdMoney(amount);
+    const cur = String(currency || '').toUpperCase();
+    if (cur === 'USD' || cur === 'EUR') return formatChargeMoney(amount, cur);
     return formatCheckoutMoney(amount);
   }
 
@@ -975,17 +992,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function snapshotFromOrder(data) {
     const selfTest = !!(data.selfTestPix || data.selfTestPayPal || data.selfTestStripe || data.selfTestTester);
-    const chargeUsd = data.chargeCurrency === 'USD' && data.chargeAmount != null
-      ? Number(data.chargeAmount)
-      : null;
-    const useUsdTotal = chargeUsd != null && (selfTest || isIntlEmbeddedCheckout() || window.STF_MONEY?.isIntlHost?.());
+    const chargeCur = String(data.chargeCurrency || '').toUpperCase();
+    const chargeAmt = data.chargeAmount != null ? Number(data.chargeAmount) : null;
+    const useForeignTotal = chargeAmt != null && (chargeCur === 'USD' || chargeCur === 'EUR')
+      && (selfTest || isIntlEmbeddedCheckout() || window.STF_MONEY?.isIntlHost?.());
     return {
       produto: data.produto || '',
       subtotal: resolveGrossProductTotal(data),
       desconto: data.couponDiscount ?? 0,
       frete: selfTest ? (data.freteOriginal ?? data.frete ?? 0) : (data.frete ?? 0),
-      total: useUsdTotal ? (selfTest ? Math.max(0.01, chargeUsd) : chargeUsd) : (data.total ?? 0),
-      totalCurrency: useUsdTotal ? 'USD' : 'BRL',
+      total: useForeignTotal ? (selfTest ? Math.max(0.01, chargeAmt) : chargeAmt) : (data.total ?? 0),
+      totalCurrency: useForeignTotal ? chargeCur : 'BRL',
       totalOriginal: selfTest ? (data.totalOriginal ?? null) : null,
       couponPercent: data.couponPercent ?? null,
       selfTest
@@ -1118,7 +1135,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       }
       els.summaryShipping.textContent = formatCheckoutMoney(snap.frete ?? 0);
       const totalEl = els.summaryTotal;
-      const totalCurrency = snap.totalCurrency === 'USD' ? 'USD' : 'BRL';
+      const totalCurrency = (snap.totalCurrency === 'USD' || snap.totalCurrency === 'EUR')
+        ? snap.totalCurrency
+        : 'BRL';
       if (totalEl) {
         totalEl.textContent = formatSnapshotMoney(snap.total ?? 0, totalCurrency);
         totalEl.closest('.summary-row')?.classList.toggle('is-self-test', !!snap.selfTest);
@@ -1131,8 +1150,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           totalEl?.closest('.checkout-summary')?.appendChild(selfTestNote);
         }
         const payLabel = formatSnapshotMoney(
-          totalCurrency === 'USD' ? (snap.total ?? 0.01) : (snap.total ?? 0),
-          totalCurrency === 'USD' ? 'USD' : 'BRL'
+          (snap.totalCurrency === 'USD' || snap.totalCurrency === 'EUR') ? (snap.total ?? 0.01) : (snap.total ?? 0),
+          totalCurrency
         );
         const ref = snap.totalOriginal != null
           ? (isInternational || window.STF_MONEY?.isIntlHost?.()
@@ -2630,12 +2649,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       lastPaymentMethod = wantsPaypal ? 'paypal' : ((wantsCardBr || wantsIntlCard) ? 'credit_card' : 'pix');
       const result = await createOrder(orderData);
       const selfTest = !!(result.order?.selfTestPix || result.order?.selfTestPayPal || result.order?.selfTestStripe || result.order?.selfTestTester);
-      const chargeUsd = result.order?.chargeCurrency === 'USD' && result.order?.chargeAmount != null
-        ? Number(result.order.chargeAmount)
-        : null;
-      const useUsdTotal = chargeUsd != null && (selfTest || isIntlEmbeddedCheckout());
-      const total = useUsdTotal
-        ? (selfTest ? Math.max(0.01, chargeUsd) : chargeUsd)
+      const chargeCur = String(result.order?.chargeCurrency || '').toUpperCase();
+      const chargeAmt = result.order?.chargeAmount != null ? Number(result.order.chargeAmount) : null;
+      const useForeignTotal = chargeAmt != null && (chargeCur === 'USD' || chargeCur === 'EUR')
+        && (selfTest || isIntlEmbeddedCheckout());
+      const total = useForeignTotal
+        ? (selfTest ? Math.max(0.01, chargeAmt) : chargeAmt)
         : (result.order?.total || (cartSubtotal() + orderData.frete));
       const orderSnapshot = {
         items: (window.STF_CART?.load() || []).map((i) => ({ ...i })),
@@ -2644,7 +2663,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         couponPercent: result.order?.couponPercent ?? appliedCoupon?.percent ?? null,
         frete: selfTest ? (result.order?.freteOriginal ?? orderData.frete) : (result.order?.frete ?? orderData.frete),
         total,
-        totalCurrency: useUsdTotal ? 'USD' : 'BRL',
+        totalCurrency: useForeignTotal ? chargeCur : 'BRL',
         totalOriginal: selfTest ? (result.order?.totalOriginal ?? null) : null,
         selfTest
       };

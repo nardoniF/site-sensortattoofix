@@ -180,6 +180,7 @@ window.STF_I18N = (function () {
       'pay.intlCard': 'Cartão internacional',
       'pay.intlCardHint': 'Visa, Mastercard, Amex — valor em R$, seu banco converte',
       'pay.paypal': 'PayPal',
+      'pay.stripe': 'Cartão / Apple Pay / Google Pay',
       'pay.paypalHint': 'Cartão, débito ou saldo PayPal',
       'pay.pixIntl': 'PIX',
       'pay.pixIntlHint': 'Para quem tem conta bancária no Brasil (mesmo morando fora)',
@@ -189,6 +190,10 @@ window.STF_I18N = (function () {
       'pay.noticeIntlNoPaypal': 'Valores aproximados na sua moeda; cobrança em BRL via cartão internacional.',
       'pay.noticeIntlPaypalOnly': 'Pagamento seguro via PayPal · envio internacional rastreado.',
       'pay.noticeIntlEmbedded': 'Cobrança em USD · PayPal ou cartão/Apple Pay/Google Pay via Stripe · envio rastreado.',
+      'pay.noticeIntlEmbeddedStripe': 'Cartão, Apple Pay, Google Pay ou PayPal · cobrança em USD · envio rastreado.',
+      'pay.noticeIntlEmbeddedPaypal': 'Pagamento seguro via PayPal · cobrança em USD · envio rastreado.',
+      'pay.stripeHint': 'Pagamento seguro via Stripe · cobrança em USD',
+      'pay.paypalHintUsd': 'Saldo PayPal, cartão ou débito · USD',
       'btn.continue': 'Continuar',
       'btn.back': 'Voltar',
       'btn.pay': 'Finalizar pedido',
@@ -496,7 +501,8 @@ window.STF_I18N = (function () {
       'pay.intlCard': 'International card',
       'pay.intlCardHint': 'Visa, Mastercard, Amex — charged in BRL; your bank converts',
       'pay.paypal': 'PayPal',
-      'pay.paypalHint': 'Card, debit or PayPal balance',
+      'pay.stripe': 'Card / Apple Pay / Google Pay',
+      'pay.paypalHint': 'Card, debit or PayPal balance · USD',
       'pay.pixIntl': 'PIX',
       'pay.pixIntlHint': 'If you have a Brazilian bank account (even abroad)',
       'pay.noticeBr': 'After payment, confirmation is automatic on this page and by email.',
@@ -505,6 +511,10 @@ window.STF_I18N = (function () {
       'pay.noticeIntlNoPaypal': 'Approximate prices in your currency; charged in BRL via international card.',
       'pay.noticeIntlPaypalOnly': 'Secure PayPal checkout · tracked international shipping.',
       'pay.noticeIntlEmbedded': 'Charged in USD · PayPal or card/Apple Pay/Google Pay via Stripe · tracked shipping.',
+      'pay.noticeIntlEmbeddedStripe': 'Card, Apple Pay, Google Pay or PayPal · charged in USD · tracked shipping.',
+      'pay.noticeIntlEmbeddedPaypal': 'Secure PayPal checkout · charged in USD · tracked shipping.',
+      'pay.stripeHint': 'Secure payment via Stripe · charged in USD',
+      'pay.paypalHintUsd': 'PayPal balance, card or debit · USD',
       'btn.continue': 'Continue',
       'btn.back': 'Back',
       'btn.pay': 'Place order',
@@ -979,6 +989,13 @@ window.STF_I18N = (function () {
     if (intlCard) {
       intlCard.querySelector('strong').textContent = t('pay.intlCard');
       intlCard.querySelector('small').textContent = t('pay.intlCardHint');
+    }
+    const intlStripe = document.querySelector('.payment-option-stripe');
+    if (intlStripe) {
+      const strong = intlStripe.querySelector('strong');
+      const small = intlStripe.querySelector('small');
+      if (strong) strong.textContent = t('pay.stripe') || strong.textContent;
+      if (small) small.textContent = t('pay.stripeHint');
     }
     const intlPaypal = document.querySelector('.payment-option-paypal');
     if (intlPaypal) {
