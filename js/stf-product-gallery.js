@@ -51,11 +51,11 @@
   ];
 
   const LENS_GALLERY_IT = [
-    '/site/lens-gallery/01-optical-correction-lens.png',
-    '/site/lens-gallery/02-ultra-thin.png',
-    '/site/lens-gallery/03-high-optical-transparency.png',
-    '/site/lens-gallery/04-engineered-refraction.png',
-    '/site/lens-gallery/05-whats-included.png',
+    '/site/lens-gallery/it/01-optical-correction-lens.png',
+    '/site/lens-gallery/it/02-ultra-thin.png',
+    '/site/lens-gallery/it/03-high-optical-transparency.png',
+    '/site/lens-gallery/it/04-engineered-refraction.png',
+    '/site/lens-gallery/it/05-whats-included.png',
     SHARED_APLICACAO,
     '/site/kit-gallery/it/kit-06-antes-depois.jpg'
   ];
@@ -151,13 +151,27 @@
     return PT_GALLERY.slice();
   }
 
+  function localizeLensUrls(urls, lang) {
+    const l = lang || detectLang();
+    if (l !== 'it') return urls;
+    return (urls || []).map((u) => {
+      const n = normalizeUrl(u);
+      // EN lens pack → IT pack
+      if (/^\/site\/lens-gallery\/(?!it\/)/.test(n)) {
+        return n.replace('/site/lens-gallery/', '/site/lens-gallery/it/');
+      }
+      return n;
+    });
+  }
+
   function resolveImages(product) {
     const fromAlbum = Array.isArray(product?.images) ? product.images : [];
     const primary = product?.image || '';
     let list = uniqueUrls([primary, ...fromAlbum].filter((u) => u && !isLegacyKitHero(u)));
-    // .com / EN / IT: home + loja + checkout usam o mesmo álbum completo
+    // .com / EN / IT: álbum completo por idioma (IT usa fotos em italiano)
     if (isLensOnlyMarket() && (isKitProduct(product) || !list.length)) {
-      return uniqueUrls([...list, ...lensAlbum()]);
+      const lang = detectLang();
+      return uniqueUrls(localizeLensUrls([...list, ...lensAlbum(lang)], lang));
     }
     if (list.length) return list;
     if (isKitProduct(product)) return kitAlbum();
