@@ -18,26 +18,33 @@
     return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  async function localizedPriceLine(price) {
+  async function localizedPriceLine(productOrPrice) {
+    const product = productOrPrice && typeof productOrPrice === 'object' ? productOrPrice : null;
+    const price = product ? (Number(product.price) || 0) : Number(productOrPrice) || 0;
     const frete = L('store.frete');
     if (!window.STF_I18N?.isLocalized?.() || !window.STF_MONEY) {
       return `${formatBRL(price)} + ${frete}`;
     }
     try {
       const cfg = await StoreConfig.load();
-      const text = await window.STF_MONEY.formatForVisitor(price, cfg);
+      const text = product && window.STF_MONEY.formatProductForVisitor
+        ? await window.STF_MONEY.formatProductForVisitor(product, cfg)
+        : await window.STF_MONEY.formatForVisitor(price, cfg);
       return `${text} + ${frete}`;
     } catch {
       return `${formatBRL(price)} + ${frete}`;
     }
   }
 
-  async function applyLocalizedPrices() {
-    const nodes = document.querySelectorAll('.loja-price[data-price-brl]');
+  async function applyLocalizedPrices(catalog) {
+    const list = catalog || products;
+    const nodes = document.querySelectorAll('.loja-price[data-product-id], .loja-price[data-price-brl]');
     if (!nodes.length) return;
     await Promise.all([...nodes].map(async (el) => {
+      const pid = el.getAttribute('data-product-id');
+      const p = pid ? list.find((x) => x.id === pid || x.slug === pid) : null;
       const price = Number(el.getAttribute('data-price-brl'));
-      el.textContent = await localizedPriceLine(price);
+      el.textContent = await localizedPriceLine(p || price);
     }));
   }
 
@@ -89,7 +96,7 @@
           <div class="loja-card-body">
             <h3>${escapeHtml(label)}</h3>
             <p>${escapeHtml(desc)}</p>
-            <strong class="loja-price" data-price-brl="${p.price}">${formatBRL(p.price)} + ${frete}</strong>
+            <strong class="loja-price" data-product-id="${escapeHtml(slug)}" data-price-brl="${p.price}">${formatBRL(p.price)} + ${frete}</strong>
             <div class="loja-card-actions">
               <button type="button" class="btn-secondary loja-btn-add" data-slug="${escapeHtml(slug)}">
                 <i class="fas fa-cart-plus"></i> ${escapeHtml(L('store.add'))}
@@ -147,7 +154,7 @@
       window.STF_CART?.initBadges();
       window.STF_STORE_PRICE?.apply(cfg);
       renderGrid();
-      applyLocalizedPrices();
+      applyLocalizedPrices(products);
     } catch (e) {
       const grid = document.getElementById('loja-grid');
       if (grid) grid.innerHTML = `<p class="conta-empty">${escapeHtml(L('store.errorLoad'))}</p>`;

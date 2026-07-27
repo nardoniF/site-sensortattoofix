@@ -22,7 +22,9 @@ window.STF_PRODUCT_MERGE = (function () {
     'descriptionEn',
     'descriptionIt',
     'markets',
-    'images'
+    'images',
+    'priceUsd',
+    'priceEur'
   ];
 
   const I18N_PRODUCT_FIELDS = ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt', 'colorEn', 'filmTypeEn'];

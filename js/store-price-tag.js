@@ -73,7 +73,10 @@ window.STF_STORE_PRICE = (function () {
       return buildPriceFreteLineSync(config);
     }
     try {
-      const text = await window.STF_MONEY.formatForVisitor(price, config);
+      const prod = primaryProduct(config);
+      const text = prod && window.STF_MONEY.formatProductForVisitor
+        ? await window.STF_MONEY.formatProductForVisitor(prod, config)
+        : await window.STF_MONEY.formatForVisitor(price, config);
       return `${text} ${frete}`;
     } catch {
       return buildPriceFreteLineSync(config);
@@ -140,7 +143,9 @@ window.STF_STORE_PRICE = (function () {
     const linePromise = isLocalized() && window.STF_MONEY
       ? (el?.getAttribute('data-store-price-layout') === 'split-price'
           ? buildPriceFreteLine(config)
-          : window.STF_MONEY.formatForVisitor(price, config)
+          : (primaryProduct(config) && window.STF_MONEY.formatProductForVisitor
+              ? window.STF_MONEY.formatProductForVisitor(primaryProduct(config), config)
+              : window.STF_MONEY.formatForVisitor(price, config))
               .then((priceText) => buildLocalizedLine(config, el, priceText)))
       : Promise.resolve(buildLine(config, el));
 

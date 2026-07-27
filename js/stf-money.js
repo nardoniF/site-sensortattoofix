@@ -112,12 +112,39 @@ window.STF_MONEY = (function () {
     return dual.includes(' (') ? dual.split(' (')[0] : dual;
   }
 
+  function visitorDisplayCurrency(countryCode) {
+    const country = String(countryCode || visitorCountry()).toUpperCase();
+    if (isIntlHost()) return country === 'IT' ? 'EUR' : 'USD';
+    const cur = currencyForCountry(country);
+    return cur === 'BRL' ? 'BRL' : cur;
+  }
+
+  function configuredForeignPrice(product, currency) {
+    if (!product) return null;
+    const cur = String(currency || 'USD').toUpperCase();
+    if (cur === 'EUR') {
+      const e = Number(product.priceEur);
+      return Number.isFinite(e) && e > 0 ? e : null;
+    }
+    const u = Number(product.priceUsd);
+    return Number.isFinite(u) && u > 0 ? u : null;
+  }
+
+  async function formatProductForVisitor(product, config, countryCode) {
+    const country = String(countryCode || visitorCountry()).toUpperCase();
+    const cur = visitorDisplayCurrency(country);
+    const fixed = configuredForeignPrice(product, cur);
+    if (fixed != null) return formatForeign(fixed, cur, country);
+    return formatForVisitor(Number(product?.price) || 0, config, countryCode);
+  }
+
   async function formatForVisitor(amountBrl, config, countryCode) {
     const country = String(countryCode || visitorCountry()).toUpperCase();
     if (isIntlHost()) {
-      const rate = await loadRate(apiBase(config), 'USD');
+      const cur = String(country || '').toUpperCase() === 'IT' ? 'EUR' : 'USD';
+      const rate = await loadRate(apiBase(config), cur);
       if (!rate) return formatBRL(amountBrl);
-      return formatForeign(convertFromBrl(amountBrl, rate), 'USD', country);
+      return formatForeign(convertFromBrl(amountBrl, rate), cur, country);
     }
     if (country === 'BR' && !isVisitorLocalized()) return formatBRL(amountBrl);
     const cur = currencyForCountry(country);
@@ -127,12 +154,17 @@ window.STF_MONEY = (function () {
     return formatDual(amountBrl, cur, rate, country);
   }
 
-  async function formatPrimaryForVisitor(amountBrl, config, countryCode) {
+  async function formatPrimaryForVisitor(amountBrl, config, countryCode, product) {
+    if (product && (isIntlHost() || isVisitorLocalized())) {
+      const text = await formatProductForVisitor(product, config, countryCode);
+      return text.includes(' (') ? text.split(' (')[0] : text;
+    }
     const country = String(countryCode || visitorCountry()).toUpperCase();
     if (isIntlHost()) {
-      const rate = await loadRate(apiBase(config), 'USD');
+      const cur = visitorDisplayCurrency(country);
+      const rate = await loadRate(apiBase(config), cur);
       if (!rate) return formatBRL(amountBrl);
-      return formatForeign(convertFromBrl(amountBrl, rate), 'USD', country);
+      return formatForeign(convertFromBrl(amountBrl, rate), cur, country);
     }
     if (country === 'BR' && !isVisitorLocalized()) return formatBRL(amountBrl);
     const cur = currencyForCountry(country);
@@ -161,6 +193,9 @@ window.STF_MONEY = (function () {
     formatForeign,
     formatDual,
     formatPrimary,
+    visitorDisplayCurrency,
+    configuredForeignPrice,
+    formatProductForVisitor,
     formatForVisitor,
     formatPrimaryForVisitor,
     visitorCountry,

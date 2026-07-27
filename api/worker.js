@@ -1132,7 +1132,9 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'descriptionEn',
     'descriptionIt',
     'markets',
-    'images'
+    'images',
+    'priceUsd',
+    'priceEur'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -1702,6 +1704,8 @@ function publicProductFields(p, config) {
   if (p.colorEn) row.colorEn = p.colorEn;
   if (Array.isArray(p.markets) && p.markets.length) row.markets = p.markets;
   if (Array.isArray(p.images) && p.images.length) row.images = p.images;
+  if (p.priceUsd != null) row.priceUsd = Number(p.priceUsd);
+  if (p.priceEur != null) row.priceEur = Number(p.priceEur);
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
@@ -1966,10 +1970,68 @@ function parseIntlAddressFromOrder(order) {
   return Object.keys(out).length ? out : null;
 }
 
-async function intlUsdCharge(order, env) {
+function productIntlUsd(product) {
+  const v = Number(product?.priceUsd);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+function productIntlEur(product) {
+  const v = Number(product?.priceEur);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+function isIntlMarketProductRow(p) {
+  const m = Array.isArray(p?.markets) ? p.markets.map((x) => String(x).toUpperCase()) : [];
+  return m.includes('INT') && !m.includes('BR');
+}
+
+async function syncIntlProductPricesFromFx(env) {
+  const config = await getConfig(env);
+  const products = config.products || [];
+  if (!products.length) return { updated: 0 };
+  const fxUsd = await fetchFxRate(env, 'USD');
+  const fxEur = await fetchFxRate(env, 'EUR');
+  let updated = 0;
+  products.forEach((p) => {
+    if (!isIntlMarketProductRow(p)) return;
+    const brl = Number(p.price) || 0;
+    if (!brl) return;
+    const usd = Math.round(brl * fxUsd.rate * 100) / 100;
+    const eur = Math.round(brl * fxEur.rate * 100) / 100;
+    if (p.priceUsd !== usd || p.priceEur !== eur) {
+      p.priceUsd = usd;
+      p.priceEur = eur;
+      updated += 1;
+    }
+  });
+  if (updated) await saveConfig(env, { ...config, products });
+  return { updated, usdRate: fxUsd.rate, eurRate: fxEur.rate };
+}
+
+async function intlUsdCharge(order, env, config, items) {
   const fx = await fetchFxRate(env, 'USD');
-  const brl = Number(order.total) || 0;
-  let usd = Math.round(brl * fx.rate * 100) / 100;
+  const itemList = items || order.items || [];
+  const products = getActiveProducts(config || await getConfig(env));
+  let productUsd = 0;
+  let allConfigured = itemList.length > 0;
+  for (const item of itemList) {
+    const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
+    const u = p ? productIntlUsd(p) : null;
+    if (u == null) { allConfigured = false; break; }
+    productUsd += u * (Number(item.qty) || 1);
+  }
+  let usd;
+  if (allConfigured && itemList.length) {
+    const brlProducts = itemList.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
+    const couponDisc = Number(order.couponDiscount) || 0;
+    const ratio = brlProducts > 0 ? Math.max(0, (brlProducts - couponDisc) / brlProducts) : 1;
+    usd = Math.round(productUsd * ratio * 100) / 100;
+    const frete = Number(order.frete) || 0;
+    if (frete > 0) usd = Math.round((usd + frete * fx.rate) * 100) / 100;
+  } else {
+    const brl = Number(order.total) || 0;
+    usd = Math.round(brl * fx.rate * 100) / 100;
+  }
   if (isSelfTestOrder(order)) {
     const minUsd = (order.selfTestStripe || order.paymentProvider === 'stripe')
       ? SELF_TEST_STRIPE_USD_AMOUNT
@@ -6361,7 +6423,7 @@ async function createPayPalCheckout(env, order, config, request, opts) {
       order.chargeAmount = SELF_TEST_USD_AMOUNT;
       order.displayCurrency = 'USD';
     } else {
-      const usd = await intlUsdCharge(order, env);
+      const usd = await intlUsdCharge(order, env, config, items);
       currencyCode = 'USD';
       amountValue = Number(usd.amount).toFixed(2);
       locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
@@ -7638,7 +7700,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   if (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')) {
     try {
-      const usd = await intlUsdCharge(order, env);
+      const usd = await intlUsdCharge(order, env, config, items);
       order.chargeCurrency = 'USD';
       order.chargeAmount = usd.amount;
       order.chargeFxRate = usd.fxRate;
@@ -8571,7 +8633,8 @@ async function ensureStripeUsdCharge(order, request, env) {
   if (!(order.chargeCurrency === 'USD' || isComSiteRequest(request))) return;
   let usd = Number(order.chargeAmount);
   if (Number.isFinite(usd) && usd > 0) return;
-  const charge = await intlUsdCharge(order, env);
+  const config = await getConfig(env);
+  const charge = await intlUsdCharge(order, env, config, order.items);
   order.chargeCurrency = 'USD';
   order.chargeAmount = charge.amount;
   order.chargeFxRate = charge.fxRate;
@@ -10870,6 +10933,11 @@ export default {
       ctx.waitUntil(
         runScheduledMonthlyReportIfDue(env).catch((err) => {
           console.error('Monthly report cron failed:', err.message);
+        })
+      );
+      ctx.waitUntil(
+        syncIntlProductPricesFromFx(env).catch((err) => {
+          console.error('Intl FX price sync cron failed:', err.message);
         })
       );
     }

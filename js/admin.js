@@ -2100,6 +2100,10 @@ ${worksheets}
           ${i18nFields}
           ${aggregatedFields}
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
+          ${market === 'INT' && !isAggregated ? `
+          <label>Preço USD (.com EN)<input type="number" data-field="priceUsd" step="0.01" min="0" value="${p.priceUsd != null ? p.priceUsd : ''}" placeholder="ex.: 12.99"></label>
+          <label>Preço EUR (.com IT)<input type="number" data-field="priceEur" step="0.01" min="0" value="${p.priceEur != null ? p.priceEur : ''}" placeholder="ex.: 11.99"></label>
+          <p class="admin-meta admin-field-hint full">Referência em R$ acima. USD/EUR são exibidos no .com (cobrança em USD). Atualizados automaticamente todo dia; você pode ajustar manualmente.</p>` : ''}
           <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
           </label>
@@ -2205,6 +2209,15 @@ ${worksheets}
         if (nameIt) product.nameIt = nameIt; else delete product.nameIt;
         if (descriptionEn) product.descriptionEn = descriptionEn; else delete product.descriptionEn;
         if (descriptionIt) product.descriptionIt = descriptionIt; else delete product.descriptionIt;
+        if (market === 'INT') {
+          const usd = val('priceUsd');
+          const eur = val('priceEur');
+          if (usd) product.priceUsd = Number(usd); else delete product.priceUsd;
+          if (eur) product.priceEur = Number(eur); else delete product.priceEur;
+        } else {
+          delete product.priceUsd;
+          delete product.priceEur;
+        }
         const imagesEl = row.querySelector('[data-field="images"]');
         if (imagesEl) {
           const imgs = imagesEl.value.split('\n').map((s) => s.trim()).filter(Boolean);
@@ -3399,6 +3412,8 @@ ${worksheets}
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuada.',
       price: 62.9,
+      priceUsd: 12.99,
+      priceEur: 11.99,
       image: LENS_INTL_IMAGES[0],
       images: LENS_INTL_IMAGES.slice(),
       active: true,
