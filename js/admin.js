@@ -256,7 +256,7 @@
   function formatQuoteOption(opt, i) {
     const price = Number(opt.price || 0).toFixed(2).replace('.', ',');
     const surchargeLine = opt.intlSurcharge > 0
-      ? `   (+ R$ ${Number(opt.intlSurcharge).toFixed(2).replace('.', ',')} acréscimo internacional)`
+      ? `   (+ R$ ${Number(opt.intlSurcharge).toFixed(2).replace('.', ',')}${opt.intlMultiplier ? ` · ×${opt.intlMultiplier}` : ''}${opt.intlFlatSurcharge ? ` + R$ ${Number(opt.intlFlatSurcharge).toFixed(2).replace('.', ',')}` : ''} sobre R$ ${Number(opt.intlBasePrice || 0).toFixed(2).replace('.', ',')})`
       : '';
     return [
       `${i + 1}. ${opt.service || '—'}`,
@@ -2331,6 +2331,7 @@ ${worksheets}
     renderCoupons(config.coupons || []);
     renderIntlShipping(config.internationalShipping || {});
     if (f.intlSurcharge) f.intlSurcharge.value = config.internationalSurcharge ?? 40;
+    if (f.intlShippingMultiplier) f.intlShippingMultiplier.value = config.internationalShippingMultiplier ?? 2;
     const intlProd = config.internationalProduct || {};
     if (f.intlProductTitle) f.intlProductTitle.value = intlProd.title || '';
     if (f.intlProductHint) f.intlProductHint.value = intlProd.hint || intlProd.notice || '';
@@ -2554,6 +2555,7 @@ ${worksheets}
       })(),
       internationalShipping: collectIntlShipping(),
       internationalSurcharge: Math.max(0, parseFloat(f.intlSurcharge?.value) || 0),
+      internationalShippingMultiplier: Math.max(1, parseFloat(f.intlShippingMultiplier?.value) || 2),
       internationalProduct: {
         title: f.intlProductTitle?.value.trim() || 'Envio internacional',
         hint: f.intlProductHint?.value.trim() || '',

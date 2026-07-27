@@ -141,6 +141,8 @@ const DEFAULT_CONFIG = {
     OTHER: { label: 'Outro país', price: 119.9, days: 25, currency: 'BRL' }
   },
   internationalSurcharge: 40,
+  /** Multiplies Correios intl quote (labor to go to the post office). 2 = double. */
+  internationalShippingMultiplier: 2,
   internationalProduct: {
     title: 'Envio internacional',
     hint: '',
@@ -1292,6 +1294,9 @@ function withConfigDefaults(stored) {
     internationalSurcharge: Number.isFinite(Number(stored.internationalSurcharge))
       ? Number(stored.internationalSurcharge)
       : base.internationalSurcharge,
+    internationalShippingMultiplier: Number.isFinite(Number(stored.internationalShippingMultiplier))
+      ? Math.max(1, Number(stored.internationalShippingMultiplier))
+      : base.internationalShippingMultiplier,
     internationalProduct: { ...base.internationalProduct, ...(stored.internationalProduct || {}) },
     payments: {
       ...base.payments,
@@ -1737,6 +1742,7 @@ function publicConfigView(config, env) {
     },
     internationalShipping: config.internationalShipping || {},
     internationalSurcharge: getIntlSurcharge(config),
+    internationalShippingMultiplier: getIntlShippingMultiplier(config),
     internationalProduct: config.internationalProduct || DEFAULT_CONFIG.internationalProduct,
     payments: {
       intlEmbedded: true,
@@ -5601,31 +5607,42 @@ function getIntlSurcharge(config) {
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
 }
 
+/** Multiplier on Correios base (min 1). Default 2 = double postage + labor. */
+function getIntlShippingMultiplier(config) {
+  const n = Number(config?.internationalShippingMultiplier ?? DEFAULT_CONFIG.internationalShippingMultiplier ?? 2);
+  if (!Number.isFinite(n) || n < 1) return 2;
+  return Math.round(n * 100) / 100;
+}
+
 function applyIntlSurcharge(config, option) {
   if (!option || typeof option !== 'object') return option;
   const surcharge = getIntlSurcharge(config);
-  if (!surcharge) return option;
+  const multiplier = getIntlShippingMultiplier(config);
   const base = Number(option.price) || 0;
+  const multiplied = Math.round(base * multiplier * 100) / 100;
+  const price = Math.round((multiplied + surcharge) * 100) / 100;
+  const markup = Math.round((price - base) * 100) / 100;
   return {
     ...option,
-    price: Math.round((base + surcharge) * 100) / 100,
-    intlSurcharge: surcharge,
-    intlBasePrice: base
+    price,
+    intlSurcharge: markup > 0 ? markup : undefined,
+    intlFlatSurcharge: surcharge || undefined,
+    intlMultiplier: multiplier !== 1 ? multiplier : undefined,
+    intlBasePrice: (multiplier !== 1 || surcharge) ? base : undefined
   };
 }
 
 function applyIntlSurchargeToOptions(config, options) {
   const list = options || [];
-  const surcharge = getIntlSurcharge(config);
   if (!list.length) return list;
   let highestIdx = 0;
   list.forEach((opt, i) => {
     if (Number(opt.price) > Number(list[highestIdx].price)) highestIdx = i;
   });
+  // Multiplier + flat surcharge apply to every international option (post-office labor).
   return list.map((opt, i) => {
     const marked = { ...opt, isHighestBid: i === highestIdx };
-    if (i === highestIdx && surcharge) return applyIntlSurcharge(config, marked);
-    return marked;
+    return applyIntlSurcharge(config, marked);
   });
 }
 
@@ -10301,6 +10318,9 @@ async function handlePutConfig(request, env, origin) {
     internationalSurcharge: body.internationalSurcharge != null
       ? Math.max(0, Number(body.internationalSurcharge) || 0)
       : current.internationalSurcharge,
+    internationalShippingMultiplier: body.internationalShippingMultiplier != null
+      ? Math.max(1, Number(body.internationalShippingMultiplier) || 1)
+      : (current.internationalShippingMultiplier ?? DEFAULT_CONFIG.internationalShippingMultiplier),
     internationalProduct: { ...current.internationalProduct, ...body.internationalProduct },
     payments: {
       ...current.payments,

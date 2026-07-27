@@ -295,10 +295,14 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-globe-americas"></i> Frete internacional</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-frete-intl" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-frete-intl" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>O checkout usa o <strong>simulador Exporta Fácil</strong> em tempo real. A tabela abaixo é fallback (se a API cair) e é atualizada automaticamente quando a API responde.</p>
-                            <p><strong>Acréscimo internacional:</strong> somado só na primeira opção de documento/carta (a mais barata). Encomenda Exporta Fácil e documento expresso não recebem.</p>
+                            <p><strong>Multiplicador:</strong> multiplica o valor dos Correios em <em>todas</em> as opções (ex.: 2 = dobro). Compensa o trabalho de ir à agência, postar e acompanhar — não é só o preço do selo.</p>
+                            <p><strong>Acréscimo fixo (R$):</strong> somado depois do multiplicador em todas as opções internacionais.</p>
                         </div>
                         <div class="form-grid" style="margin-bottom:12px">
-                            <label>Acréscimo internacional (R$)
+                            <label>Multiplicador internacional
+                                <input type="number" name="intlShippingMultiplier" min="1" step="0.1" value="2" title="2 = dobro do frete Correios">
+                            </label>
+                            <label>Acréscimo fixo (R$)
                                 <input type="number" name="intlSurcharge" min="0" step="0.01" value="40">
                             </label>
                         </div>
@@ -905,6 +909,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=115"></script>
+    <script src="js/admin.js?v=116"></script>
 </body>
 </html>

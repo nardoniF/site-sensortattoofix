@@ -1231,6 +1231,7 @@
     "couriers": []
   },
   "internationalSurcharge": 40,
+  "internationalShippingMultiplier": 2,
   "internationalProduct": {
     "title": "Envio internacional",
     "hint": "",

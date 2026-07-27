@@ -2097,17 +2097,23 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
           if (!z) throw new Error(L('country.unsupported'));
           const surcharge = Math.max(0, Number(cfg.internationalSurcharge) || 0);
+          const multiplier = Math.max(1, Number(cfg.internationalShippingMultiplier) || 2);
           const basePrice = Number(z.price) || 0;
+          const multiplied = Math.round(basePrice * multiplier * 100) / 100;
+          const finalPrice = Math.round((multiplied + surcharge) * 100) / 100;
+          const markup = Math.round((finalPrice - basePrice) * 100) / 100;
           options = [{
             id: 'config-fallback',
             methodId: 'config-fallback',
             service: L('shipping.intlDefault'),
-            price: Math.round((basePrice + surcharge) * 100) / 100,
+            price: finalPrice,
             days: z.days,
             source: 'config',
             isHighestBid: true,
-            intlSurcharge: surcharge || undefined,
-            intlBasePrice: surcharge ? basePrice : undefined
+            intlSurcharge: markup || undefined,
+            intlFlatSurcharge: surcharge || undefined,
+            intlMultiplier: multiplier !== 1 ? multiplier : undefined,
+            intlBasePrice: (multiplier !== 1 || surcharge) ? basePrice : undefined
           }];
         }
         await refreshDisplayCurrency();
