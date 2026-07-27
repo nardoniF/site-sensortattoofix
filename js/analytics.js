@@ -19,6 +19,17 @@
     return typeof window.gtag === 'function';
   }
 
+  /** Owner/admin browsing the store must not inflate the click log / KV writes. */
+  function shouldSkipSiteLog() {
+    try {
+      if (localStorage.getItem('stf_skip_analytics') === '1') return true;
+      if (sessionStorage.getItem('stf_admin_token')) return true;
+      const path = String(location.pathname || '');
+      if (/admin\.html|pedidos\.html|documentacao|imprimir-etiqueta/i.test(path)) return true;
+    } catch (_) { /* ignore */ }
+    return false;
+  }
+
   function track(evento, dados) {
     if (!canTrack()) return;
     window.gtag('event', evento, dados || {});
@@ -472,22 +483,22 @@
   }
 
   function enviarLogPayload(body, urgente) {
+    if (shouldSkipSiteLog()) return false;
     const urls = logClickEndpoints();
     if (!urls.length) return false;
     const payload = Object.assign({}, body, {
       log_key: window.CONFIG_BOOTSTRAP?.clickLogKey || '',
-      client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))))
+      client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)))),
+      owner_skip: shouldSkipSiteLog() || undefined
     });
     const json = JSON.stringify(payload);
     const primary = urls[0];
 
-    if (urgente) {
-      if (primary && typeof navigator.sendBeacon === 'function') {
-        try {
-          navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }));
-        } catch (_) { /* ignore */ }
-      }
-      enviarLogPixel(payload);
+    // Prefer a single POST path. Avoid parallel pixel+fetch (was doubling KV puts).
+    if (urgente && primary && typeof navigator.sendBeacon === 'function') {
+      try {
+        navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }));
+      } catch (_) { /* ignore */ }
     }
 
     enviarLogFetchSequencial(urls, json, payload, 0);
@@ -599,6 +610,7 @@
   }
 
   function registrarLog(data) {
+    if (shouldSkipSiteLog()) return;
     if (!logClickEndpoints().length) return;
 
     try {

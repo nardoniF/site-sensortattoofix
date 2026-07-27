@@ -919,7 +919,7 @@ ${worksheets}
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
-    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=400`, {
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=800`, {
       headers: { Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
@@ -1523,7 +1523,7 @@ ${worksheets}
     root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
 
     try {
-      const params = new URLSearchParams({ limit: '400' });
+      const params = new URLSearchParams({ limit: '800' });
       if (q) params.set('q', q);
       if (destino === 'pageview') params.set('tipo', 'pageview');
       else if (destino) params.set('destino', destino);
@@ -3097,6 +3097,10 @@ ${worksheets}
 
     const data = await res.json();
     sessionStorage.setItem(SESSION_KEY, data.token);
+    try {
+      // Keep owner/admin browsing off the public click log (saves KV puts too).
+      localStorage.setItem('stf_skip_analytics', '1');
+    } catch (_) { /* ignore */ }
     return true;
   }
 

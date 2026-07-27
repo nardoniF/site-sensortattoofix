@@ -27,7 +27,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Apertei a pulseira pra dormir e acordei com marca vermelha. Continua marcando 1h.', author: { ...A['seed-andre'] }, createdAt: iso(60*69), ref: 'a2' },
         { body: 'Apertar demais atrapalha circulação e piora o sinal. Não é solução.', author: { ...A['seed-marcelo'] }, createdAt: iso(60*62), parentRef: 'a2' },
         { body: 'No Amazfit o mesmo: cochilo de 40 min depois de uma noite inteira. Não é só Apple.', author: { ...A['seed-fernanda'] }, createdAt: iso(60*54), parentRef: 'a1b' },
-        { ...officialReply('O tracking noturno falha quando o retorno óptico fica irregular por horas. O Sensor Tattoo Fix estabiliza essa leitura no pulso tatuado. Acesse nossos canais e adquira nossas lentes.', iso(60*50)), ref: 'a3', parentRef: 'a1b' }
+        { ...officialReply('O tracking noturno falha quando o retorno óptico fica irregular por horas. O Sensor Tattoo Fix estabiliza essa leitura no pulso tatuado. Se quiser, Acesse nossos canais e adquira nossas lentes.', iso(60*50)), ref: 'a3', parentRef: 'a1b' }
       ]
     },
     {

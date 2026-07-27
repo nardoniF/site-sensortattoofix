@@ -9543,12 +9543,82 @@ async function purgeLegacyClickIndex(env, mode) {
 }
 
 async function appendClickLog(env, entry) {
-  const id = crypto.randomUUID();
-  const row = { id, ts: Date.now(), ...entry };
+  await appendClickLogBatch(env, [entry]);
+}
+
+/** One KV put for many events — cuts free-tier write usage sharply. */
+async function appendClickLogBatch(env, entries) {
+  const batch = (entries || []).filter(Boolean);
+  if (!batch.length) return null;
   let list = (await getClicksBlob(env)) || [];
-  list.unshift(row);
+  list = batch.concat(list);
   if (list.length > CLICKS_MAX) list.length = CLICKS_MAX;
   await saveClicksBlob(env, list);
+  return batch[0];
+}
+
+const CLICK_BUF_FLUSH_SIZE = 25;
+const CLICK_BUF_MAX_AGE_MS = 90_000;
+const CLICK_BUF_CACHE_URL = 'https://stf-internal/click-write-buffer';
+
+async function readClickWriteBuffer() {
+  try {
+    const hit = await caches.default.match(new Request(CLICK_BUF_CACHE_URL));
+    if (!hit) return { items: [], since: Date.now() };
+    const buf = await hit.json();
+    if (!buf || !Array.isArray(buf.items)) return { items: [], since: Date.now() };
+    return { items: buf.items, since: Number(buf.since) || Date.now() };
+  } catch {
+    return { items: [], since: Date.now() };
+  }
+}
+
+async function writeClickWriteBuffer(buf) {
+  await caches.default.put(
+    new Request(CLICK_BUF_CACHE_URL),
+    new Response(JSON.stringify(buf), {
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=600' }
+    })
+  );
+}
+
+function shouldSkipClickPersist(entry, body) {
+  if (!entry || typeof entry !== 'object') return true;
+  if (entry.teste === true || body?.teste === true || body?.skip_analytics === true || body?.owner_skip === true) {
+    return true;
+  }
+  const pagina = String(entry.pagina || body?.pagina || '').toLowerCase();
+  if (/admin\.html|\/admin(?:\?|$)|documentacao|pedidos\.html|imprimir-etiqueta/.test(pagina)) {
+    return true;
+  }
+  const vid = String(entry.visitante_id || '').trim();
+  if (/^v_(owner|admin|test|diag|proxy)/i.test(vid)) return true;
+  const sessao = String(entry.sessao_visita || '').toLowerCase();
+  if (/^admin_|^s_test|^test_|^owner_/.test(sessao)) return true;
+  return false;
+}
+
+/**
+ * Buffer clicks in Cache API and flush to KV in batches.
+ * ~1 put per 25 events (or every ~90s) instead of 1 put per click.
+ */
+async function persistClickLog(env, entry, ctx) {
+  const row = { id: crypto.randomUUID(), ts: Date.now(), ...entry };
+  const buf = await readClickWriteBuffer();
+  buf.items.unshift(row);
+  const age = Date.now() - (buf.since || Date.now());
+  const shouldFlush = buf.items.length >= CLICK_BUF_FLUSH_SIZE || age >= CLICK_BUF_MAX_AGE_MS;
+  if (!shouldFlush) {
+    await writeClickWriteBuffer(buf);
+    return row;
+  }
+  const toFlush = buf.items.slice();
+  await writeClickWriteBuffer({ items: [], since: Date.now() });
+  const flush = () => appendClickLogBatch(env, toFlush).catch((err) => {
+    console.error('click buffer flush:', err.message);
+  });
+  if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(flush());
+  else await flush();
   return row;
 }
 
@@ -9649,10 +9719,6 @@ function pixelResponse(origin, status) {
   });
 }
 
-async function persistClickLog(env, entry) {
-  await appendClickLog(env, entry);
-}
-
 const REAL_VISITOR_UUID = /^v_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REAL_VISITOR_TS = /^v_\d{10,13}$/;
 
@@ -9699,6 +9765,7 @@ async function handleAdminClearClicks(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
+  try { await flushClickWriteBufferToKv(env); } catch (_) { /* ignore */ }
   const body = await request.json().catch(() => ({}));
   const mode = body.mode === 'all' ? 'all' : 'tests';
 
@@ -9740,7 +9807,7 @@ async function checkClickRate(env, ip) {
   const req = new Request(`https://stf-click-rate/${encodeURIComponent(ip)}/${minute}`);
   const hit = await cache.match(req);
   const n = (hit ? parseInt(await hit.text(), 10) || 0 : 0) + 1;
-  if (n > 180) return false;
+  if (n > 40) return false;
   await cache.put(req, new Response(String(n), { headers: { 'Cache-Control': 'max-age=120' } }));
   return true;
 }
@@ -9767,9 +9834,12 @@ async function handleLogClick(request, env, origin, ctx) {
   else if (eventId) await markClickEventSeen(eventId);
 
   const entry = buildClickEntry(body, request);
+  if (shouldSkipClickPersist(entry, body)) {
+    return json({ ok: true, skipped: true }, 202, origin);
+  }
 
   try {
-    await persistClickLog(env, entry);
+    await persistClickLog(env, entry, ctx);
   } catch (err) {
     console.error('click log:', err.message);
     return json({ ok: false, error: 'storage', retry: true }, 503, origin);
@@ -9798,9 +9868,12 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   else if (eventId) await markClickEventSeen(eventId);
 
   const entry = buildClickEntry(params, request);
+  if (shouldSkipClickPersist(entry, params)) {
+    return pixelResponse(origin);
+  }
 
   try {
-    await persistClickLog(env, entry);
+    await persistClickLog(env, entry, ctx);
   } catch (err) {
     console.error('click pixel:', err.message);
   }
@@ -9841,9 +9914,23 @@ function enrichClickRowForAdmin(row) {
   return { ...row, dispositivo: devLabel };
 }
 
+async function flushClickWriteBufferToKv(env) {
+  const buf = await readClickWriteBuffer();
+  if (!buf.items.length) return 0;
+  const n = buf.items.length;
+  await writeClickWriteBuffer({ items: [], since: Date.now() });
+  await appendClickLogBatch(env, buf.items);
+  return n;
+}
+
 async function handleAdminListClicks(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+
+  // Show the freshest buffered clicks (not yet flushed to KV).
+  try { await flushClickWriteBufferToKv(env); } catch (err) {
+    console.warn('click buffer flush on list:', err.message);
   }
 
   const url = new URL(request.url);
@@ -9853,7 +9940,7 @@ async function handleAdminListClicks(request, env, origin) {
   const withNav = url.searchParams.get('nav') === '1'
     || url.searchParams.get('com_navegacao') === '1'
     || url.searchParams.get('navegacao') === '1';
-  const limit = Math.min(800, Math.max(20, parseInt(url.searchParams.get('limit') || '400', 10) || 400));
+  const limit = Math.min(2500, Math.max(20, parseInt(url.searchParams.get('limit') || '800', 10) || 800));
 
   const blobActive = await clicksBlobStoreActive(env);
   let loaded;
