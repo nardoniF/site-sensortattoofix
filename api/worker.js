@@ -1130,7 +1130,9 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'nameEn',
     'nameIt',
     'descriptionEn',
-    'descriptionIt'
+    'descriptionIt',
+    'markets',
+    'images'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -1698,6 +1700,8 @@ function publicProductFields(p, config) {
   if (p.bandStyle) row.bandStyle = p.bandStyle;
   if (p.color) row.color = p.color;
   if (p.colorEn) row.colorEn = p.colorEn;
+  if (Array.isArray(p.markets) && p.markets.length) row.markets = p.markets;
+  if (Array.isArray(p.images) && p.images.length) row.images = p.images;
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
