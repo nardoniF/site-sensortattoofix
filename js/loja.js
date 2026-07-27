@@ -142,14 +142,37 @@
     });
   }
 
+  /** Never mix INT (.com) products into BR (.com.br) — and vice versa. */
+  function filterStorefront(all) {
+    if (window.STF_PELICULA?.listStorefront) return window.STF_PELICULA.listStorefront(all);
+    if (window.STF_SITE?.filterProductsForMarket) {
+      return window.STF_SITE.filterProductsForMarket(all)
+        .filter((p) => p.active !== false && p.inStock !== false && p.aggregated !== true);
+    }
+    const host = String(location.hostname || '').toLowerCase();
+    const path = String(location.pathname || '');
+    const isIntl = ((host === 'sensortattoofix.com' || host === 'www.sensortattoofix.com')
+      || path.includes('/en/') || path.includes('/it/'))
+      && !host.endsWith('.com.br');
+    return (all || []).filter((p) => {
+      if (p.active === false || p.inStock === false || p.aggregated === true) return false;
+      const markets = Array.isArray(p.markets)
+        ? p.markets.map((m) => String(m || '').toUpperCase()).filter(Boolean)
+        : [];
+      const id = String(p.id || p.slug || '');
+      if (markets.length) return isIntl ? markets.includes('INT') : markets.includes('BR');
+      if (/optical.?lens|lens-intl/i.test(id)) return isIntl;
+      if (id === 'kit-sensor-tattoofix' || id === 'kit') return !isIntl;
+      return !isIntl;
+    });
+  }
+
   async function boot() {
     try {
       window.STF_I18N?.applyLojaDom?.();
       const cfg = await StoreConfig.load();
       const all = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
-      products = window.STF_PELICULA?.listStorefront(all)
-        ?? (window.STF_SITE?.filterProductsForMarket?.(all) || all)
-          .filter((p) => p.active !== false && p.inStock !== false && p.aggregated !== true);
+      products = filterStorefront(all);
       window.STF_CART?.syncPrices?.(all);
       window.STF_CART?.initBadges();
       window.STF_STORE_PRICE?.apply(cfg);
