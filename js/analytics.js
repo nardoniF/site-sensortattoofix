@@ -2,9 +2,12 @@
   const VENDA_KEY = 'stf_venda_registrada';
   const LOG_QUEUE_KEY = 'stf_log_queue';
   const LOG_QUEUE_MAX = 40;
-  /** Session trail kept locally — Cloudflare Cache buffer is not shared across edges. */
+  /** Session trail kept locally until marketplace/loja flush or 12 min batch. */
   const TRAIL_KEY = 'stf_click_trail';
   const TRAIL_MAX = 40;
+  /** After first marketplace/loja click, keep logging the rest of the visit in real time. */
+  const HOT_KEY = 'stf_hot_compra';
+  const TRAIL_FLUSH_MS = 12 * 60_000;
   const LOG_DEDUP_MS = 1200;
   let ultimoCliqueLink = { href: '', ts: 0 };
 
@@ -442,23 +445,24 @@
 
   function logClickEndpoints() {
     const urls = [];
-    const base = apiBaseUrl();
-    if (base) urls.push(base + '/analytics/click');
     const host = (location.hostname || '').toLowerCase();
-    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+    // Same-origin first — storefront proxy forwards to API (no CORS; beacon-safe).
+    if (/sensortattoofix\.com/.test(host)) {
       urls.push(sameOriginBase() + '/stf-log');
     }
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/click');
     return urls;
   }
 
   function logPixelEndpoints() {
     const urls = [];
-    const base = apiBaseUrl();
-    if (base) urls.push(base + '/analytics/pixel.gif');
     const host = (location.hostname || '').toLowerCase();
-    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+    if (/sensortattoofix\.com/.test(host)) {
       urls.push(sameOriginBase() + '/stf-log/pixel.gif');
     }
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/pixel.gif');
     return urls;
   }
 
@@ -501,20 +505,23 @@
     return res.status === 202 || !!(data && data.ok);
   }
 
-  function enviarLogFetchSequencial(urls, json, payload, idx) {
+  function enviarLogFetchSequencial(urls, json, payload, idx, onOk) {
     if (!urls[idx]) {
       enfileirarLog(payload);
       return;
     }
     postLogJson(urls[idx], json, true)
       .then((res) => res.json().catch(() => null).then((data) => {
-        if (respostaLogOk(res, data)) return;
-        enviarLogFetchSequencial(urls, json, payload, idx + 1);
+        if (respostaLogOk(res, data)) {
+          if (typeof onOk === 'function') onOk();
+          return;
+        }
+        enviarLogFetchSequencial(urls, json, payload, idx + 1, onOk);
       }))
-      .catch(() => enviarLogFetchSequencial(urls, json, payload, idx + 1));
+      .catch(() => enviarLogFetchSequencial(urls, json, payload, idx + 1, onOk));
   }
 
-  function enviarLogPayload(body, urgente) {
+  function enviarLogPayload(body, urgente, onOk) {
     if (shouldSkipSiteLog()) return false;
     const urls = logClickEndpoints();
     if (!urls.length) return false;
@@ -523,11 +530,17 @@
       client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))))
     });
     const json = JSON.stringify(payload);
+    const primary = urls[0];
 
-    // Always fetch+keepalive. sendBeacon+application/json fails silently cross-origin
-    // (returned true, never hit the Worker). KV client_event_id dedupe covers double posts.
-    void urgente;
-    enviarLogFetchSequencial(urls, json, payload, 0);
+    // text/plain beacon survives _blank marketplace opens and skips CORS preflight.
+    // Same client_event_id — Worker KV dedupes. Fetch confirms and clears trail.
+    if (urgente && primary && typeof navigator.sendBeacon === 'function') {
+      try {
+        navigator.sendBeacon(primary, new Blob([json], { type: 'text/plain;charset=UTF-8' }));
+      } catch (_) { /* ignore */ }
+    }
+
+    enviarLogFetchSequencial(urls, json, payload, 0, onOk);
     return true;
   }
 
@@ -599,10 +612,19 @@
     salvarTrilhaSessao(list);
   }
 
-  function consumirTrilhaSessao() {
-    const list = lerTrilhaSessao();
-    salvarTrilhaSessao([]);
-    return list;
+  function removerTrilhaIds(ids) {
+    const drop = new Set((ids || []).map((id) => String(id || '').trim()).filter(Boolean));
+    if (!drop.size) return;
+    const left = lerTrilhaSessao().filter((item) => !drop.has(String(item?.client_event_id || '').trim()));
+    salvarTrilhaSessao(left);
+  }
+
+  function isHotSession() {
+    try { return sessionStorage.getItem(HOT_KEY) === '1'; } catch (_) { return false; }
+  }
+
+  function markHotSession() {
+    try { sessionStorage.setItem(HOT_KEY, '1'); } catch (_) { /* ignore */ }
   }
 
   function montarCorpoLog(data) {
@@ -649,7 +671,6 @@
     if (!q.length) return;
     salvarFilaLog([]);
     q.forEach((body) => {
-      // Keep original client_event_id so KV dedupe works; only mint one if missing.
       const next = Object.assign({}, body);
       if (!next.client_event_id) {
         next.client_event_id = 'q_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)));
@@ -659,7 +680,7 @@
     });
   }
 
-  function flushTrilhaParaServidor() {
+  function flushTrilhaParaServidor(opts) {
     if (shouldSkipSiteLog()) return;
     if (!logClickEndpoints().length) return;
     const trilha = lerTrilhaSessao();
@@ -676,8 +697,24 @@
       body.urgente = true;
       body.flush_now = true;
       body.somente_trilha = true;
-      body.trilha = consumirTrilhaSessao();
-      enviarLogPayload(body, true);
+      body.trilha = trilha.slice();
+      const ids = trilha.map((item) => item.client_event_id).concat([body.client_event_id]);
+
+      if (opts && opts.unload) {
+        const primary = logClickEndpoints()[0];
+        if (primary && typeof navigator.sendBeacon === 'function') {
+          try {
+            const ok = navigator.sendBeacon(primary, new Blob([JSON.stringify(Object.assign({}, body, {
+              log_key: window.CONFIG_BOOTSTRAP?.clickLogKey || ''
+            }))], { type: 'text/plain;charset=UTF-8' }));
+            if (ok) salvarTrilhaSessao([]);
+          } catch (_) { /* ignore */ }
+        }
+        enviarLogPayload(body, true, () => removerTrilhaIds(ids));
+        return;
+      }
+
+      enviarLogPayload(body, true, () => removerTrilhaIds(ids));
     } catch (err) {
       console.warn('stf trail flush:', err);
     }
@@ -706,20 +743,25 @@
         || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))));
       const dest = String(body.destino || '').toLowerCase();
       const compra = isCliqueCompra(dest, data.href, data.el);
-      const urgente = !!data.urgente || compra;
+      if (compra) markHotSession();
+
+      // Marketplace/loja (and the rest of that visit after): send now with full trail.
+      // Otherwise keep local until 12 min flush.
+      const urgente = compra || isHotSession() || !!data.urgente;
 
       if (!urgente) {
-        // Keep locally only — server Cache buffer was losing these across edges.
         adicionarTrilhaSessao(body);
         return;
       }
 
       body.urgente = true;
-      const trilha = consumirTrilhaSessao().filter((item) => {
+      const trilha = lerTrilhaSessao().filter((item) => {
         return String(item?.client_event_id || '').trim() !== body.client_event_id;
       });
       if (trilha.length) body.trilha = trilha;
-      enviarLogPayload(body, true);
+      const ids = trilha.map((item) => item.client_event_id).concat([body.client_event_id]);
+      // Keep trail until fetch confirms — do not clear on beacon alone.
+      enviarLogPayload(body, true, () => removerTrilhaIds(ids));
     } catch (err) {
       console.warn('stf log:', err);
     }
@@ -860,13 +902,13 @@
     const destino = classificarDestino(href, link);
     const compra = isCliqueCompra(destino, abs, link);
 
-    // Give the urgent POST ~250ms before unload so loja/marketplace actually hits KV.
+    // Same-tab loja/checkout: hold navigation so beacon+fetch can finish.
     if (compra && link.target !== '_blank' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       trackSecaoLink(link);
       window.setTimeout(() => {
         try { location.assign(abs); } catch (_) { location.href = abs; }
-      }, 250);
+      }, 400);
       return;
     }
 
@@ -898,19 +940,14 @@
     }, true);
 
     window.addEventListener('pagehide', () => {
-      flushTrilhaParaServidor();
+      flushTrilhaParaServidor({ unload: true });
       flushLogQueue();
     });
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        flushTrilhaParaServidor();
-        flushLogQueue();
-      }
-    });
+    // Cold sessions only: batch every 12 minutes. Hot (after marketplace/loja) already logs live.
     setInterval(() => {
-      flushTrilhaParaServidor();
+      if (!isHotSession()) flushTrilhaParaServidor();
       flushLogQueue();
-    }, 8 * 60_000);
+    }, TRAIL_FLUSH_MS);
   }
 
   if (document.readyState === 'loading') {

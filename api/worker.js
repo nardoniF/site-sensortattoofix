@@ -10041,13 +10041,19 @@ async function checkClickRate(env, ip) {
   const req = new Request(`https://stf-click-rate/${encodeURIComponent(ip)}/${minute}`);
   const hit = await cache.match(req);
   const n = (hit ? parseInt(await hit.text(), 10) || 0 : 0) + 1;
-  if (n > 40) return false;
+  if (n > 120) return false;
   await cache.put(req, new Response(String(n), { headers: { 'Cache-Control': 'max-age=120' } }));
   return true;
 }
 
 async function handleLogClick(request, env, origin, ctx) {
-  const body = await request.json().catch(() => null);
+  let body = null;
+  try {
+    const text = await request.text();
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = null;
+  }
   if (!body || typeof body !== 'object') {
     return json({ error: 'Payload inválido.' }, 400, origin);
   }
@@ -10061,7 +10067,6 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   const eventId = String(body.client_event_id || '').trim().slice(0, 64);
-  // Do NOT mark seen before KV write — a failed put + retry returned deduped and dropped the event forever.
 
   const entry = buildClickEntry(body, request);
   if (shouldSkipClickPersist(entry, body) && !((Array.isArray(body.trilha) && body.trilha.length) || body.flush_now)) {

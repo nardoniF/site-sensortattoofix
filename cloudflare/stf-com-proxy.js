@@ -11,6 +11,7 @@ const ORIGINS = [
 ];
 const COM_ORIGIN = 'https://www.sensortattoofix.com';
 const BR_ORIGIN = 'https://www.sensortattoofix.com.br';
+const API_ORIGIN = 'https://api.sensortattoofix.com.br';
 const STF_COM_HOST_JS =
   "(function(){if(location.hostname==='sensortattoofix.com'){location.replace('https://www.sensortattoofix.com'+location.pathname+location.search+location.hash);}})();";
 
@@ -20,6 +21,7 @@ function isBrHost(hostname) {
 }
 
 function isStaticAsset(pathname) {
+  if (pathname === '/stf-log' || pathname.startsWith('/stf-log/')) return false;
   return (
     pathname.startsWith('/js/') ||
     pathname.startsWith('/site/') ||
@@ -140,10 +142,68 @@ async function fetchOrigin(originPath, search) {
   return last;
 }
 
+/** Same-origin click log — no CORS, works with sendBeacon from the storefront. */
+async function proxyClickLog(request, siteOrigin) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': siteOrigin,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Accept',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+  const body = await request.arrayBuffer();
+  const res = await fetch(API_ORIGIN + '/analytics/click', {
+    method: 'POST',
+    headers: {
+      'Content-Type': request.headers.get('Content-Type') || 'application/json',
+      Accept: 'application/json',
+      Origin: siteOrigin,
+      Referer: siteOrigin + '/',
+    },
+    body,
+  });
+  const text = await res.text();
+  return new Response(text, {
+    status: res.status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': siteOrigin,
+    },
+  });
+}
+
+async function proxyClickPixel(request, siteOrigin) {
+  const incoming = new URL(request.url);
+  const res = await fetch(API_ORIGIN + '/analytics/pixel.gif' + incoming.search, {
+    method: 'GET',
+    headers: {
+      Origin: siteOrigin,
+      Referer: siteOrigin + '/',
+    },
+  });
+  const buf = await res.arrayBuffer();
+  return new Response(buf, {
+    status: res.status,
+    headers: {
+      'Content-Type': 'image/gif',
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
     const br = isBrHost(url.hostname);
+    const siteOrigin = url.origin;
 
     if (url.hostname === 'sensortattoofix.com') {
       url.hostname = 'www.sensortattoofix.com';
@@ -152,6 +212,13 @@ export default {
     if (url.hostname === 'sensortattoofix.com.br') {
       url.hostname = 'www.sensortattoofix.com.br';
       return Response.redirect(url.toString(), 301);
+    }
+
+    if (url.pathname === '/stf-log' || url.pathname === '/stf-log/') {
+      return proxyClickLog(request, siteOrigin);
+    }
+    if (url.pathname === '/stf-log/pixel.gif') {
+      return proxyClickPixel(request, siteOrigin);
     }
 
     if (!br && (url.pathname.startsWith('/en/') || url.pathname === '/en')) {
