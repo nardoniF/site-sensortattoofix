@@ -649,10 +649,38 @@
     if (!q.length) return;
     salvarFilaLog([]);
     q.forEach((body) => {
-      enviarLogPayload(Object.assign({}, body, {
-        client_event_id: 'q_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)))
-      }), true);
+      // Keep original client_event_id so KV dedupe works; only mint one if missing.
+      const next = Object.assign({}, body);
+      if (!next.client_event_id) {
+        next.client_event_id = 'q_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)));
+      }
+      next.urgente = true;
+      enviarLogPayload(next, true);
     });
+  }
+
+  function flushTrilhaParaServidor() {
+    if (shouldSkipSiteLog()) return;
+    if (!logClickEndpoints().length) return;
+    const trilha = lerTrilhaSessao();
+    if (!trilha.length) return;
+    try {
+      const body = montarCorpoLog({
+        tipo: 'flush',
+        elemento: 'flush',
+        destino: 'flush_buffer',
+        rotulo: 'Flush trilha',
+        href: location.href
+      });
+      body.client_event_id = 'f_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)));
+      body.urgente = true;
+      body.flush_now = true;
+      body.somente_trilha = true;
+      body.trilha = consumirTrilhaSessao();
+      enviarLogPayload(body, true);
+    } catch (err) {
+      console.warn('stf trail flush:', err);
+    }
   }
 
   function linkSaiDaPagina(href) {
@@ -677,21 +705,21 @@
       body.client_event_id = body.client_event_id
         || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))));
       const dest = String(body.destino || '').toLowerCase();
-      // Only marketplaces + own store flush immediately. Other links batch on the server.
       const compra = isCliqueCompra(dest, data.href, data.el);
       const urgente = !!data.urgente || compra;
-      if (urgente) {
-        body.urgente = true;
-        // Cache API buffer on the Worker often misses prior clicks (different edge).
-        // Send this tab's trail with the purchase click so "Com navegação" is complete.
-        const trilha = consumirTrilhaSessao().filter((item) => {
-          return String(item?.client_event_id || '').trim() !== body.client_event_id;
-        });
-        if (trilha.length) body.trilha = trilha;
-      } else {
+
+      if (!urgente) {
+        // Keep locally only — server Cache buffer was losing these across edges.
         adicionarTrilhaSessao(body);
+        return;
       }
-      enviarLogPayload(body, urgente);
+
+      body.urgente = true;
+      const trilha = consumirTrilhaSessao().filter((item) => {
+        return String(item?.client_event_id || '').trim() !== body.client_event_id;
+      });
+      if (trilha.length) body.trilha = trilha;
+      enviarLogPayload(body, true);
     } catch (err) {
       console.warn('stf log:', err);
     }
@@ -828,6 +856,20 @@
     const link = e.target.closest('a[href]');
     if (!link || !linkRastreavel(link)) return;
     const href = link.getAttribute('href');
+    const abs = hrefAbsoluto(href);
+    const destino = classificarDestino(href, link);
+    const compra = isCliqueCompra(destino, abs, link);
+
+    // Give the urgent POST ~250ms before unload so loja/marketplace actually hits KV.
+    if (compra && link.target !== '_blank' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      trackSecaoLink(link);
+      window.setTimeout(() => {
+        try { location.assign(abs); } catch (_) { location.href = abs; }
+      }, 250);
+      return;
+    }
+
     if (!linkUrgenteParaLog(link, href)) return;
     trackSecaoLink(link);
   }
@@ -855,11 +897,20 @@
       if (details?.tagName === 'DETAILS' && details.open) trackFaqAbertura(details);
     }, true);
 
-    window.addEventListener('pagehide', flushLogQueue);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') flushLogQueue();
+    window.addEventListener('pagehide', () => {
+      flushTrilhaParaServidor();
+      flushLogQueue();
     });
-    setInterval(flushLogQueue, 8000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushTrilhaParaServidor();
+        flushLogQueue();
+      }
+    });
+    setInterval(() => {
+      flushTrilhaParaServidor();
+      flushLogQueue();
+    }, 8 * 60_000);
   }
 
   if (document.readyState === 'loading') {

@@ -9790,78 +9790,69 @@ function trailEntriesFromBody(body, request) {
 }
 
 /**
- * Buffer non-purchase clicks; purchase / urgent awaits KV write.
- * On marketplace/loja click, flush client-sent trail (+ any matching Cache buffer items).
+ * Persist clicks to KV. Client sends non-urgent trail only on purchase/flush —
+ * Cache API buffering was edge-local and dropped trails.
  */
 async function persistClickLog(env, entry, ctx, body, request) {
-  const row = { id: crypto.randomUUID(), ...entry, ts: clickRowTs(entry) };
-  const buf = await readClickWriteBuffer();
-  buf.items.unshift(row);
-  const age = Date.now() - (buf.since || Date.now());
   const urgent = isUrgentClickPersist(entry, body);
+  const trail = trailEntriesFromBody(body, request);
+  const dest = String(entry?.destino || body?.destino || '').toLowerCase();
+  const trailOnly = dest === 'flush_buffer' || body?.somente_trilha === true;
 
-  if (urgent) {
-    const vid = String(row.visitante_id || '').trim();
-    const sid = String(row.sessao_visita || '').trim();
-    const toFlush = [];
-    const keep = [];
-    const seenIds = new Set();
-    const seenEvents = new Set();
+  const toFlush = [];
+  const seenEvents = new Set();
 
-    function pushFlush(item) {
-      if (!item) return;
-      const id = String(item.id || '');
-      const eid = String(item.client_event_id || '').trim();
-      if (id && seenIds.has(id)) return;
-      if (eid && seenEvents.has(eid)) return;
-      if (id) seenIds.add(id);
-      if (eid) seenEvents.add(eid);
-      toFlush.push(item);
+  function pushRow(item) {
+    if (!item) return;
+    const eid = String(item.client_event_id || '').trim();
+    if (eid) {
+      if (seenEvents.has(eid)) return;
+      seenEvents.add(eid);
     }
+    toFlush.push(item);
+  }
 
-    for (const item of trailEntriesFromBody(body, request)) pushFlush(item);
+  for (const item of trail) pushRow(item);
 
-    for (const item of buf.items) {
-      const sameVisitor = !!(vid && String(item.visitante_id || '') === vid);
-      const sameSession = !!(sid && String(item.sessao_visita || '') === sid);
-      if (item.id === row.id || sameVisitor || sameSession) pushFlush(item);
-      else keep.push(item);
-    }
-
-    // Newest first — matches existing click blob prepend order
-    toFlush.sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0));
-
-    await writeClickWriteBuffer({
-      items: keep,
-      since: keep.length ? (buf.since || Date.now()) : Date.now()
+  if (!trailOnly && !shouldSkipClickPersist(entry, body)) {
+    pushRow({
+      id: crypto.randomUUID(),
+      ...entry,
+      ts: clickRowTs(entry),
+      client_event_id: String(body?.client_event_id || entry?.client_event_id || '').trim().slice(0, 64)
     });
-    await appendClickLogBatch(env, toFlush);
-    return row;
   }
 
-  const shouldFlush = buf.items.length >= CLICK_BUF_FLUSH_SIZE || age >= CLICK_BUF_MAX_AGE_MS;
-  if (!shouldFlush) {
-    await writeClickWriteBuffer(buf);
-    return row;
-  }
-  const toFlush = buf.items.slice();
-  await writeClickWriteBuffer({ items: [], since: Date.now() });
-  const flush = async () => {
+  if (!toFlush.length) return null;
+
+  // Newest first in blob
+  toFlush.sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0));
+
+  if (urgent || trail.length || trailOnly) {
+    await appendClickLogBatch(env, toFlush);
+    // Drop any stale Cache buffer leftovers for this visitor (best-effort, edge-local).
     try {
-      await appendClickLogBatch(env, toFlush);
-    } catch (err) {
-      console.error('click buffer flush:', err.message);
-      try {
-        const again = await readClickWriteBuffer();
-        again.items = toFlush.concat(again.items || []).slice(0, 200);
-        await writeClickWriteBuffer(again);
-      } catch (_) { /* ignore */ }
-      throw err;
-    }
-  };
-  if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(flush().catch(() => {}));
-  else await flush();
-  return row;
+      const vid = String(entry?.visitante_id || '').trim();
+      const sid = String(entry?.sessao_visita || '').trim();
+      if (vid || sid) {
+        const buf = await readClickWriteBuffer();
+        const keep = (buf.items || []).filter((item) => {
+          const sameVisitor = !!(vid && String(item.visitante_id || '') === vid);
+          const sameSession = !!(sid && String(item.sessao_visita || '') === sid);
+          return !(sameVisitor || sameSession);
+        });
+        await writeClickWriteBuffer({
+          items: keep,
+          since: keep.length ? (buf.since || Date.now()) : Date.now()
+        });
+      }
+    } catch (_) { /* ignore */ }
+    return toFlush[0];
+  }
+
+  // Legacy non-urgent single posts: still KV-write (no Cache) so admin sees them.
+  await appendClickLogBatch(env, toFlush);
+  return toFlush[0];
 }
 
 async function isDuplicateClickEvent(eventId) {
@@ -10070,20 +10061,10 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   const eventId = String(body.client_event_id || '').trim().slice(0, 64);
-  if (eventId && (await isDuplicateClickEvent(eventId))) {
-    return json({ ok: true, deduped: true }, 202, origin);
-  }
-  // Await mark before write — waitUntil raced with parallel beacon/fetch and doubled rows.
-  if (eventId) await markClickEventSeen(eventId);
-  if (Array.isArray(body.trilha)) {
-    for (const item of body.trilha.slice(-40)) {
-      const tid = String(item?.client_event_id || '').trim().slice(0, 64);
-      if (tid) await markClickEventSeen(tid);
-    }
-  }
+  // Do NOT mark seen before KV write — a failed put + retry returned deduped and dropped the event forever.
 
   const entry = buildClickEntry(body, request);
-  if (shouldSkipClickPersist(entry, body)) {
+  if (shouldSkipClickPersist(entry, body) && !((Array.isArray(body.trilha) && body.trilha.length) || body.flush_now)) {
     return json({ ok: true, skipped: true }, 202, origin);
   }
 
@@ -10092,6 +10073,11 @@ async function handleLogClick(request, env, origin, ctx) {
   } catch (err) {
     console.error('click log:', err.message);
     return json({ ok: false, error: 'storage', retry: true }, 503, origin);
+  }
+
+  if (eventId) {
+    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(markClickEventSeen(eventId));
+    else await markClickEventSeen(eventId);
   }
 
   return json({ ok: true }, 202, origin);
@@ -10110,10 +10096,6 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   }
 
   const eventId = String(params.client_event_id || '').trim().slice(0, 64);
-  if (eventId && (await isDuplicateClickEvent(eventId))) {
-    return pixelResponse(origin);
-  }
-  if (eventId) await markClickEventSeen(eventId);
 
   const entry = buildClickEntry(params, request);
   if (shouldSkipClickPersist(entry, params)) {
@@ -10124,6 +10106,11 @@ async function handleLogClickPixel(request, env, origin, ctx) {
     await persistClickLog(env, entry, ctx, params, request);
   } catch (err) {
     console.error('click pixel:', err.message);
+  }
+
+  if (eventId) {
+    if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(markClickEventSeen(eventId));
+    else await markClickEventSeen(eventId);
   }
 
   return pixelResponse(origin);
