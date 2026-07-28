@@ -2491,7 +2491,33 @@ line-height:1.8;
 .checkout-notice i { color: var(--primary); margin-top: 2px; }
 .checkout-notice a { color: #7ecbf0; text-decoration: underline; text-underline-offset: 2px; }
 
-/* EN / international trust bar (below header) */
+/* EN / international trust line — beside hero badge (not a top bar) */
+.hero-trust-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin: 0 0 14px;
+}
+.hero-trust-row .badge {
+    margin: 0;
+    flex: 0 0 auto;
+}
+.site-trust-inline-line {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+.site-trust-inline-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: #c5d4e2;
+}
 .site-trust-bar {
     background: linear-gradient(180deg, #121820 0%, #0e1218 100%);
     border-bottom: 1px solid #243040;
@@ -2573,7 +2599,9 @@ line-height:1.8;
 
 @media (max-width: 720px) {
     .site-trust-bar-sep { display: none; }
-    .site-trust-bar-main { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .site-trust-bar-main,
+    .site-trust-inline-main { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .hero-trust-row { gap: 10px; }
 }
 
 .checkout-actions {

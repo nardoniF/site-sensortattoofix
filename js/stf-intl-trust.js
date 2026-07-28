@@ -1,5 +1,7 @@
 /**
- * Slim trust bar for international storefront (.com and /en/ /it/).
+ * Trust line for international storefront (.com and /en/ /it/).
+ * Sits next to the hero "3N20 Technology • Patented" badge — not above the header
+ * (that pushed CTAs down on the first screen).
  */
 (function () {
   function isIntlPage() {
@@ -10,34 +12,49 @@
   if (!isIntlPage()) return;
 
   const EMAIL = window.STF_SITE?.supportEmail?.() || 'support@sensortattoofix.com';
+  const isIt = /\/it(\/|$)/i.test(location.pathname)
+    || (document.documentElement.lang || '').toLowerCase().startsWith('it');
+  const copy = isIt
+    ? { secure: 'Checkout sicuro', shipping: 'Spedizione tracciata', label: 'Checkout sicuro e spedizione tracciata' }
+    : { secure: 'Secure checkout', shipping: 'Tracked shipping', label: 'Secure checkout and tracked shipping' };
 
-  function injectTrustBar() {
-    const header = document.querySelector('header');
-    if (!header || document.querySelector('.site-trust-bar')) return;
+  function trustHtml() {
+    return (
+      '<p class="site-trust-inline-main">' +
+        '<span class="site-trust-bar-item"><i class="fas fa-lock" aria-hidden="true"></i> ' + copy.secure + '</span>' +
+        '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
+        '<span class="site-trust-bar-item"><i class="fas fa-truck" aria-hidden="true"></i> ' + copy.shipping + '</span>' +
+        '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
+        '<span class="site-trust-bar-item site-trust-bar-contact">' +
+          '<a href="mailto:' + EMAIL + '">' + EMAIL + '</a>' +
+        '</span>' +
+      '</p>'
+    );
+  }
 
-    const aside = document.createElement('aside');
-    aside.className = 'site-trust-bar';
-    aside.setAttribute('role', 'note');
-    aside.setAttribute('aria-label', 'Secure checkout and tracked shipping');
-    aside.innerHTML =
-      '<div class="container site-trust-bar-inner">' +
-        '<p class="site-trust-bar-main site-trust-bar-compact">' +
-          '<span class="site-trust-bar-item"><i class="fas fa-lock" aria-hidden="true"></i> Secure checkout</span>' +
-          '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
-          '<span class="site-trust-bar-item"><i class="fas fa-truck" aria-hidden="true"></i> Tracked shipping</span>' +
-          '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
-          '<span class="site-trust-bar-item site-trust-bar-contact">' +
-            '<a href="mailto:' + EMAIL + '">' + EMAIL + '</a>' +
-          '</span>' +
-        '</p>' +
-      '</div>';
+  function injectTrustLine() {
+    if (document.querySelector('.site-trust-inline, .site-trust-bar')) return;
 
-    header.insertAdjacentElement('afterend', aside);
+    const badge = document.querySelector('.hero-text > .badge, .hero-text .badge');
+    if (!badge || !badge.parentElement) return;
+
+    const row = document.createElement('div');
+    row.className = 'hero-trust-row site-trust-inline';
+    row.setAttribute('role', 'note');
+    row.setAttribute('aria-label', copy.label);
+
+    badge.replaceWith(row);
+    row.appendChild(badge);
+
+    const line = document.createElement('div');
+    line.className = 'site-trust-inline-line';
+    line.innerHTML = trustHtml();
+    row.appendChild(line);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', injectTrustBar);
+    document.addEventListener('DOMContentLoaded', injectTrustLine);
   } else {
-    injectTrustBar();
+    injectTrustLine();
   }
 })();
