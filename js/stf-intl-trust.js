@@ -1,7 +1,7 @@
 /**
  * Trust line for international storefront (.com and /en/ /it/).
- * Sits next to the hero "3N20 Technology • Patented" badge — not above the header
- * (that pushed CTAs down on the first screen).
+ * One horizontal line beside the hero "3N20 Technology • Patented" badge —
+ * never a top bar (that pushed Discover / Where to Buy off the first screen).
  */
 (function () {
   function isIntlPage() {
@@ -18,20 +18,6 @@
     ? { secure: 'Checkout sicuro', shipping: 'Spedizione tracciata', label: 'Checkout sicuro e spedizione tracciata' }
     : { secure: 'Secure checkout', shipping: 'Tracked shipping', label: 'Secure checkout and tracked shipping' };
 
-  function trustHtml() {
-    return (
-      '<p class="site-trust-inline-main">' +
-        '<span class="site-trust-bar-item"><i class="fas fa-lock" aria-hidden="true"></i> ' + copy.secure + '</span>' +
-        '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
-        '<span class="site-trust-bar-item"><i class="fas fa-truck" aria-hidden="true"></i> ' + copy.shipping + '</span>' +
-        '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
-        '<span class="site-trust-bar-item site-trust-bar-contact">' +
-          '<a href="mailto:' + EMAIL + '">' + EMAIL + '</a>' +
-        '</span>' +
-      '</p>'
-    );
-  }
-
   function injectTrustLine() {
     if (document.querySelector('.site-trust-inline, .site-trust-bar')) return;
 
@@ -46,9 +32,16 @@
     badge.replaceWith(row);
     row.appendChild(badge);
 
-    const line = document.createElement('div');
-    line.className = 'site-trust-inline-line';
-    line.innerHTML = trustHtml();
+    const line = document.createElement('p');
+    line.className = 'site-trust-inline-main';
+    line.innerHTML =
+      '<span class="site-trust-bar-item"><i class="fas fa-lock" aria-hidden="true"></i> ' + copy.secure + '</span>' +
+      '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
+      '<span class="site-trust-bar-item"><i class="fas fa-truck" aria-hidden="true"></i> ' + copy.shipping + '</span>' +
+      '<span class="site-trust-bar-sep" aria-hidden="true">·</span>' +
+      '<span class="site-trust-bar-item site-trust-bar-contact">' +
+        '<a href="mailto:' + EMAIL + '">' + EMAIL + '</a>' +
+      '</span>';
     row.appendChild(line);
   }
 

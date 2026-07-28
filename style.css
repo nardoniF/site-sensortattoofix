@@ -2491,32 +2491,46 @@ line-height:1.8;
 .checkout-notice i { color: var(--primary); margin-top: 2px; }
 .checkout-notice a { color: #7ecbf0; text-decoration: underline; text-underline-offset: 2px; }
 
-/* EN / international trust line — beside hero badge (not a top bar) */
+/* EN / international trust — single horizontal line beside hero badge (not a top bar) */
 .hero-trust-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 14px;
     margin: 0;
+    max-width: 100%;
 }
 .hero-trust-row .badge {
     margin: 0;
     flex: 0 0 auto;
 }
-.site-trust-inline-line {
-    flex: 1 1 220px;
-    min-width: 0;
-}
 .site-trust-inline-main {
-    display: flex;
-    flex-wrap: wrap;
+    display: inline-flex;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: 6px 8px;
+    gap: 6px 10px;
     margin: 0;
-    font-size: 0.78rem;
+    font-size: 0.88rem;
     font-weight: 600;
-    line-height: 1.35;
-    color: #c5d4e2;
+    line-height: 1.2;
+    color: #d8e4ef;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.site-trust-inline-main::-webkit-scrollbar { display: none; }
+.site-trust-inline-main .site-trust-bar-item {
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+/* Keep Discover / Where to Buy in the first viewport with the trust row */
+.hero-text:has(.hero-trust-row) > h1 {
+    margin: 14px 0 12px;
+    font-size: clamp(2.15rem, 3.6vw, 3.15rem);
+}
+.hero-text:has(.hero-trust-row) > p {
+    margin-bottom: 22px;
 }
 .site-trust-bar {
     background: linear-gradient(180deg, #121820 0%, #0e1218 100%);
@@ -2599,9 +2613,16 @@ line-height:1.8;
 
 @media (max-width: 720px) {
     .site-trust-bar-sep { display: none; }
-    .site-trust-bar-main,
-    .site-trust-inline-main { flex-direction: column; align-items: flex-start; gap: 6px; }
-    .hero-trust-row { gap: 10px; }
+    .site-trust-bar-main { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .hero-trust-row {
+        justify-content: center;
+        gap: 8px;
+    }
+    .site-trust-inline-main {
+        justify-content: center;
+        font-size: 0.82rem;
+        gap: 6px 8px;
+    }
 }
 
 .checkout-actions {
