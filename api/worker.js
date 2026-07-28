@@ -9684,8 +9684,8 @@ async function appendClickLogBatch(env, entries) {
   return batch[0];
 }
 
-const CLICK_BUF_FLUSH_SIZE = 25;
-const CLICK_BUF_MAX_AGE_MS = 90_000;
+const CLICK_BUF_FLUSH_SIZE = 40;
+const CLICK_BUF_MAX_AGE_MS = 12 * 60_000; // 12 min — fewer KV puts, still useful in admin
 const CLICK_BUF_CACHE_URL = 'https://stf-internal/click-write-buffer';
 
 async function readClickWriteBuffer() {
@@ -9704,7 +9704,7 @@ async function writeClickWriteBuffer(buf) {
   await caches.default.put(
     new Request(CLICK_BUF_CACHE_URL),
     new Response(JSON.stringify(buf), {
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=600' }
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=1800' }
     })
   );
 }
@@ -9722,19 +9722,39 @@ function shouldSkipClickPersist(entry, body) {
   if (/^v_(owner|admin|test|diag|proxy)/i.test(vid)) return true;
   const sessao = String(entry.sessao_visita || '').toLowerCase();
   if (/^admin_|^s_test|^test_|^owner_/.test(sessao)) return true;
+  // Home pageviews alone pollute the log (bots / bounce) — keep real clicks on home.
+  const tipo = String(entry.tipo || body?.tipo || '').toLowerCase();
+  const destino = String(entry.destino || body?.destino || '').toLowerCase();
+  if (tipo === 'pageview' && (/^entrada_home(_en|_it)?$/.test(destino) || destino === 'home')) {
+    return true;
+  }
+  return false;
+}
+
+function isUrgentClickPersist(entry, body) {
+  if (body?.urgente === true || body?.flush_now === true) return true;
+  const dest = String(entry?.destino || body?.destino || '').toLowerCase();
+  if (/^(mercado_livre|amazon|shopee|tiktok|tiktok_shop|instagram|facebook|whatsapp|youtube|linkedin)/.test(dest)) {
+    return true;
+  }
+  const href = String(entry?.href || body?.href || '');
+  if (/^https?:\/\//i.test(href) && !/sensortattoofix\.com/i.test(href)) return true;
   return false;
 }
 
 /**
  * Buffer clicks in Cache API and flush to KV in batches.
- * ~1 put per 25 events (or every ~90s) instead of 1 put per click.
+ * ~1 put per 40 events or every ~12 min; marketplace/external flushes immediately.
  */
-async function persistClickLog(env, entry, ctx) {
+async function persistClickLog(env, entry, ctx, body) {
   const row = { id: crypto.randomUUID(), ts: Date.now(), ...entry };
   const buf = await readClickWriteBuffer();
   buf.items.unshift(row);
   const age = Date.now() - (buf.since || Date.now());
-  const shouldFlush = buf.items.length >= CLICK_BUF_FLUSH_SIZE || age >= CLICK_BUF_MAX_AGE_MS;
+  const urgent = isUrgentClickPersist(entry, body);
+  const shouldFlush = urgent
+    || buf.items.length >= CLICK_BUF_FLUSH_SIZE
+    || age >= CLICK_BUF_MAX_AGE_MS;
   if (!shouldFlush) {
     await writeClickWriteBuffer(buf);
     return row;
@@ -9966,7 +9986,7 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   try {
-    await persistClickLog(env, entry, ctx);
+    await persistClickLog(env, entry, ctx, body);
   } catch (err) {
     console.error('click log:', err.message);
     return json({ ok: false, error: 'storage', retry: true }, 503, origin);
@@ -10000,7 +10020,7 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   }
 
   try {
-    await persistClickLog(env, entry, ctx);
+    await persistClickLog(env, entry, ctx, params);
   } catch (err) {
     console.error('click pixel:', err.message);
   }

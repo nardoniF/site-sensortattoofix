@@ -617,7 +617,8 @@
       const body = montarCorpoLog(data);
       const tipo = body.tipo || 'clique';
       const saiDaPagina = tipo !== 'pageview' && linkSaiDaPagina(data.href);
-      enviarLogPayload(body, !!saiDaPagina || !!data.urgente || tipo === 'pageview');
+      // Pageviews are not urgent (home pageviews are skipped). External/marketplace = flush now.
+      enviarLogPayload(body, !!saiDaPagina || !!data.urgente);
     } catch (err) {
       console.warn('stf log:', err);
     }
@@ -628,12 +629,16 @@
     const parts = path.split('/').filter(Boolean);
     const file = parts[parts.length - 1] || 'index.html';
     const isEn = parts.includes('en');
+    const isIt = parts.includes('it');
 
     if (isEn && (file === 'index.html' || parts[parts.length - 1] === 'en')) {
-      return { slug: 'home_en', rotulo: 'Entrada — Home EN' };
+      return { slug: 'home_en', rotulo: 'Entrada — Home EN', skipPageview: true };
+    }
+    if (isIt && (file === 'index.html' || parts[parts.length - 1] === 'it')) {
+      return { slug: 'home_it', rotulo: 'Entrada — Home IT', skipPageview: true };
     }
     if (file === 'index.html' || path.endsWith('/') || !file.includes('.')) {
-      return { slug: 'home', rotulo: 'Entrada — Home' };
+      return { slug: 'home', rotulo: 'Entrada — Home', skipPageview: true };
     }
     if (file.includes('loja')) return { slug: 'loja', rotulo: 'Entrada — Loja' };
     if (file.includes('comprar')) return { slug: 'checkout', rotulo: 'Entrada — Checkout' };
@@ -651,7 +656,9 @@
       sessionStorage.setItem(storageKey, '1');
     } catch (_) { /* ignore */ }
 
-    const { slug, rotulo } = classificarEntradaPagina();
+    const { slug, rotulo, skipPageview } = classificarEntradaPagina();
+    // Home-only pageviews pollute the click log (bots / bounce). Real clicks on home still log.
+    if (skipPageview) return;
     registrarLog({
       tipo: 'pageview',
       elemento: 'entrada',
