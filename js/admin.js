@@ -1323,27 +1323,39 @@ ${worksheets}
     if (!clicks?.length) {
       root.innerHTML = '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
     } else {
+      const recent = [...(clicks || [])]
+        .sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0))
+        .slice(0, 20);
+      let html = '<div class="clicks-recent">';
+      html += '<h3 class="clicks-recent-title">Últimos eventos (ao vivo)</h3>';
+      html += '<ol class="clicks-tree-steps clicks-recent-list">';
+      recent.forEach((c, idx) => { html += renderClickStep(c, idx); });
+      html += '</ol></div>';
+
       const tree = buildClicksTree(clicks);
       const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
-      let html = '<div class="clicks-tree">';
+      html += '<div class="clicks-tree">';
 
       years.forEach((year, yi) => {
         const y = tree[year];
         const yearPath = String(year);
-        html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"><summary>${clicksTreeSummary(year, y.count)}</summary><div class="clicks-tree-children">`;
+        const yearOpen = yi === 0 ? ' open' : '';
+        html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"${yearOpen}><summary>${clicksTreeSummary(year, y.count)}</summary><div class="clicks-tree-children">`;
 
         const months = Object.keys(y.months).sort((a, b) => Number(b) - Number(a));
         months.forEach((monthNum, mi) => {
           const m = y.months[monthNum];
           const monthPath = `${yearPath}|${monthNum}`;
-          html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${clicksTreeSummary(m.name, m.count)}</summary><div class="clicks-tree-children">`;
+          const monthOpen = yi === 0 && mi === 0 ? ' open' : '';
+          html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"${monthOpen}><summary>${clicksTreeSummary(m.name, m.count)}</summary><div class="clicks-tree-children">`;
 
           const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
           days.forEach((dateKey, di) => {
             const d = m.days[dateKey];
             const visitorCount = Object.keys(d.visitors).length;
             const dayPath = `${monthPath}|${dateKey}`;
-            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+            const dayOpen = yi === 0 && mi === 0 && di === 0 ? ' open' : '';
+            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"${dayOpen}><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
 
             const visitors = Object.entries(d.visitors).sort((a, b) => {
               const ta = Math.min(...Object.values(a[1].sessions).flat().map((e) => e.ts || 0));
@@ -1354,7 +1366,8 @@ ${worksheets}
             visitors.forEach(([vKey, v], vi) => {
               const sessionCount = Object.keys(v.sessions).length;
               const visitorPath = `${dayPath}|${escapeHtml(vKey)}`;
-              html += `<details class="clicks-tree-node clicks-tree-visitor" data-tree-path="${visitorPath}"><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+              const visitorOpen = yi === 0 && mi === 0 && di === 0 && vi === 0 ? ' open' : '';
+              html += `<details class="clicks-tree-node clicks-tree-visitor" data-tree-path="${visitorPath}"${visitorOpen}><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
 
               const sessions = Object.entries(v.sessions).sort((a, b) => {
                 const ta = (a[1][0]?.ts) || 0;
@@ -1369,7 +1382,8 @@ ${worksheets}
                 const origem = entradaEv ? clickOrigemLegivel(entradaEv) : null;
                 const passosMeta = origem && origem.label ? `${origemBadgeHtml(origem)} · passos` : 'passos';
                 const sessionPath = `${visitorPath}|${escapeHtml(sKey)}`;
-                html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"><summary>${clicksTreeSummary(pathLabel, events.length, passosMeta)}</summary>`;
+                const sessionOpen = yi === 0 && mi === 0 && di === 0 && vi === 0 && si === 0 ? ' open' : '';
+                html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"${sessionOpen}><summary>${clicksTreeSummary(pathLabel, events.length, passosMeta)}</summary>`;
                 html += '<ol class="clicks-tree-steps">';
                 events.forEach((c, idx) => { html += renderClickStep(c, idx); });
                 html += '</ol></details>';
@@ -1389,7 +1403,7 @@ ${worksheets}
 
       html += '</div>';
       root.innerHTML = html;
-      restoreClicksTreeOpenPaths(openPaths);
+      if (openPaths?.length) restoreClicksTreeOpenPaths(openPaths);
     }
 
     if (checkedEl) {
