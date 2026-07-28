@@ -523,17 +523,10 @@
       client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))))
     });
     const json = JSON.stringify(payload);
-    const primary = urls[0];
 
-    // One transport only — beacon+fetch was doubling rows when Cache dedupe missed across edges.
-    if (urgente && primary && typeof navigator.sendBeacon === 'function') {
-      try {
-        if (navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }))) {
-          return true;
-        }
-      } catch (_) { /* fall through to fetch */ }
-    }
-
+    // Always fetch+keepalive. sendBeacon+application/json fails silently cross-origin
+    // (returned true, never hit the Worker). KV client_event_id dedupe covers double posts.
+    void urgente;
     enviarLogFetchSequencial(urls, json, payload, 0);
     return true;
   }
