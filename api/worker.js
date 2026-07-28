@@ -9722,7 +9722,6 @@ function shouldSkipClickPersist(entry, body) {
   if (/^v_(owner|admin|test|diag|proxy)/i.test(vid)) return true;
   const sessao = String(entry.sessao_visita || '').toLowerCase();
   if (/^admin_|^s_test|^test_|^owner_/.test(sessao)) return true;
-  // Home pageviews alone pollute the log (bots / bounce) — keep real clicks on home.
   const tipo = String(entry.tipo || body?.tipo || '').toLowerCase();
   const destino = String(entry.destino || body?.destino || '').toLowerCase();
   if (tipo === 'pageview' && (/^entrada_home(_en|_it)?$/.test(destino) || destino === 'home')) {
@@ -9734,18 +9733,13 @@ function shouldSkipClickPersist(entry, body) {
 function isUrgentClickPersist(entry, body) {
   if (body?.urgente === true || body?.flush_now === true) return true;
   const dest = String(entry?.destino || body?.destino || '').toLowerCase();
-  // Purchase clicks always flush now: ML, Amazon, Shopee, TikTok Shop, own store, checkout.
-  if (/^(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|checkout|menu_comprar)$/.test(dest)) {
+  // Only purchase paths: marketplaces + own store / checkout.
+  if (/^(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|checkout)$/.test(dest)) {
     return true;
   }
-  if (/^entrada_(loja|checkout|onde_comprar)/.test(dest)) return true;
   const href = String(entry?.href || body?.href || '');
   if (/mercadolivre|amazon\.|amzn\.|a\.co\/|shopee|vt\.tiktok|tiktok_shop/i.test(href)) return true;
-  if (/loja\.html|comprar\.html|onde-comprar\.html/i.test(href)) return true;
-  const rotulo = String(entry?.rotulo || body?.rotulo || '').toLowerCase();
-  if (/mercado\s*livre|amazon|shopee|tiktok\s*shop|loja\s*oficial|buy\s*now|comprar/i.test(rotulo)) {
-    return true;
-  }
+  if (/loja\.html|comprar\.html/i.test(href)) return true;
   return false;
 }
 
@@ -10093,10 +10087,8 @@ async function handleAdminListClicks(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
 
-  // Show the freshest buffered clicks (not yet flushed to KV).
-  try { await flushClickWriteBufferToKv(env); } catch (err) {
-    console.warn('click buffer flush on list:', err.message);
-  }
+  // Do NOT flush the delayed buffer here — Atualizar only shows what is already in KV
+  // (urgent marketplace/loja clicks flush on write; other clicks batch every ~12 min).
 
   const url = new URL(request.url);
   const q = (url.searchParams.get('q') || '').trim().toLowerCase();

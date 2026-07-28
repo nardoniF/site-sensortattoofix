@@ -150,21 +150,20 @@
     }
   }
 
-  /** Compra = flush na hora (ML, Amazon, Shopee, TikTok Shop, loja própria, checkout). */
+  /** Compra = flush na hora (só ML, Amazon, Shopee, TikTok Shop, loja própria / checkout). */
   function isCliqueCompra(destino, href, el) {
     const dest = String(destino || '').toLowerCase();
-    if (/^(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|checkout|menu_comprar)$/.test(dest)) {
+    if (/^(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|checkout)$/.test(dest)) {
       return true;
     }
     const evento = String(el?.getAttribute?.('data-evento') || '').toLowerCase();
-    if (/clique_(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|buy_now|menu_comprar|onde_comprar)/.test(evento)) {
+    if (/clique_(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|buy_now)/.test(evento)) {
       return true;
     }
     if (el?.classList?.contains('store-link')
       || el?.classList?.contains('store-official-bar')
       || el?.classList?.contains('loja-mp-badge')
-      || el?.classList?.contains('loja-btn-buy')
-      || el?.classList?.contains('btn-nav-comprar')) {
+      || el?.classList?.contains('loja-btn-buy')) {
       return true;
     }
     const h = String(href || '').toLowerCase();
@@ -518,8 +517,7 @@
     if (!urls.length) return false;
     const payload = Object.assign({}, body, {
       log_key: window.CONFIG_BOOTSTRAP?.clickLogKey || '',
-      client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)))),
-      owner_skip: shouldSkipSiteLog() || undefined
+      client_event_id: body.client_event_id || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))))
     });
     const json = JSON.stringify(payload);
     const primary = urls[0];
@@ -645,12 +643,10 @@
 
     try {
       const body = montarCorpoLog(data);
-      const tipo = body.tipo || 'clique';
       const dest = String(body.destino || '').toLowerCase();
-      const saiDaPagina = tipo !== 'pageview' && linkSaiDaPagina(data.href);
+      // Only marketplaces + own store flush immediately. Other links batch on the server.
       const compra = isCliqueCompra(dest, data.href, data.el);
-      const urgente = !!saiDaPagina || !!data.urgente || compra;
-      // Server only flushes immediately when body.urgente (or destino is purchase).
+      const urgente = !!data.urgente || compra;
       if (urgente) body.urgente = true;
       enviarLogPayload(body, urgente);
     } catch (err) {
@@ -730,7 +726,7 @@
       elemento: 'link',
       href: abs,
       destino,
-      urgente: linkUrgenteParaLog(link, href) || isCliqueCompra(destino, abs, link),
+      urgente: isCliqueCompra(destino, abs, link),
       el: link
     });
     track('secao_link', payload);
