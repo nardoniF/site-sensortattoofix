@@ -616,9 +616,14 @@
     try {
       const body = montarCorpoLog(data);
       const tipo = body.tipo || 'clique';
+      const dest = String(body.destino || '').toLowerCase();
       const saiDaPagina = tipo !== 'pageview' && linkSaiDaPagina(data.href);
-      // Pageviews are not urgent (home pageviews are skipped). External/marketplace = flush now.
-      enviarLogPayload(body, !!saiDaPagina || !!data.urgente);
+      const lojaPropria = /^(loja_oficial|checkout|menu_comprar)$/.test(dest)
+        || /loja\.html|comprar\.html|onde-comprar\.html/i.test(String(data.href || ''));
+      const urgente = !!saiDaPagina || !!data.urgente || lojaPropria;
+      // Server buffer only flushes early when body.urgente is set (or destino is urgent).
+      if (urgente) body.urgente = true;
+      enviarLogPayload(body, urgente);
     } catch (err) {
       console.warn('stf log:', err);
     }

@@ -9734,10 +9734,13 @@ function shouldSkipClickPersist(entry, body) {
 function isUrgentClickPersist(entry, body) {
   if (body?.urgente === true || body?.flush_now === true) return true;
   const dest = String(entry?.destino || body?.destino || '').toLowerCase();
-  if (/^(mercado_livre|amazon|shopee|tiktok|tiktok_shop|instagram|facebook|whatsapp|youtube|linkedin)/.test(dest)) {
+  // Own store + checkout must flush now (same priority as marketplaces).
+  if (/^(mercado_livre|amazon|shopee|tiktok|tiktok_shop|instagram|facebook|whatsapp|youtube|linkedin|loja_oficial|checkout|menu_comprar)$/.test(dest)) {
     return true;
   }
+  if (/^entrada_(loja|checkout|onde_comprar)/.test(dest)) return true;
   const href = String(entry?.href || body?.href || '');
+  if (/loja\.html|comprar\.html|onde-comprar\.html/i.test(href)) return true;
   if (/^https?:\/\//i.test(href) && !/sensortattoofix\.com/i.test(href)) return true;
   return false;
 }
