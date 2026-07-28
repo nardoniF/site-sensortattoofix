@@ -525,11 +525,13 @@
     const json = JSON.stringify(payload);
     const primary = urls[0];
 
-    // Prefer a single POST path. Avoid parallel pixel+fetch (was doubling KV puts).
+    // One transport only — beacon+fetch was doubling rows when Cache dedupe missed across edges.
     if (urgente && primary && typeof navigator.sendBeacon === 'function') {
       try {
-        navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }));
-      } catch (_) { /* ignore */ }
+        if (navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }))) {
+          return true;
+        }
+      } catch (_) { /* fall through to fetch */ }
     }
 
     enviarLogFetchSequencial(urls, json, payload, 0);

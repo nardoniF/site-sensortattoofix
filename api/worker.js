@@ -9678,10 +9678,25 @@ async function appendClickLogBatch(env, entries) {
   const batch = (entries || []).filter(Boolean);
   if (!batch.length) return null;
   let list = (await getClicksBlob(env)) || [];
-  list = batch.concat(list);
+  const seen = new Set();
+  for (const row of list.slice(0, 800)) {
+    const eid = String(row?.client_event_id || '').trim();
+    if (eid) seen.add(eid);
+  }
+  const fresh = [];
+  for (const item of batch) {
+    const eid = String(item?.client_event_id || '').trim();
+    if (eid) {
+      if (seen.has(eid)) continue;
+      seen.add(eid);
+    }
+    fresh.push(item);
+  }
+  if (!fresh.length) return null;
+  list = fresh.concat(list);
   if (list.length > CLICKS_MAX) list.length = CLICKS_MAX;
   await saveClicksBlob(env, list);
-  return batch[0];
+  return fresh[0];
 }
 
 const CLICK_BUF_FLUSH_SIZE = 40;
@@ -9931,6 +9946,7 @@ function buildClickEntry(data, request) {
     utm_source: clickField(data, 'utm_source', 48),
     utm_medium: clickField(data, 'utm_medium', 32),
     utm_campaign: clickField(data, 'utm_campaign', 64),
+    client_event_id: clickField(data, 'client_event_id', 64),
     teste: data?.teste === true || data?.teste === 'true' || data?.is_test === true || data?.is_test === 'true'
   };
 }
@@ -10057,8 +10073,14 @@ async function handleLogClick(request, env, origin, ctx) {
   if (eventId && (await isDuplicateClickEvent(eventId))) {
     return json({ ok: true, deduped: true }, 202, origin);
   }
-  if (eventId && ctx) ctx.waitUntil(markClickEventSeen(eventId));
-  else if (eventId) await markClickEventSeen(eventId);
+  // Await mark before write — waitUntil raced with parallel beacon/fetch and doubled rows.
+  if (eventId) await markClickEventSeen(eventId);
+  if (Array.isArray(body.trilha)) {
+    for (const item of body.trilha.slice(-40)) {
+      const tid = String(item?.client_event_id || '').trim().slice(0, 64);
+      if (tid) await markClickEventSeen(tid);
+    }
+  }
 
   const entry = buildClickEntry(body, request);
   if (shouldSkipClickPersist(entry, body)) {
@@ -10091,8 +10113,7 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   if (eventId && (await isDuplicateClickEvent(eventId))) {
     return pixelResponse(origin);
   }
-  if (eventId && ctx) ctx.waitUntil(markClickEventSeen(eventId));
-  else if (eventId) await markClickEventSeen(eventId);
+  if (eventId) await markClickEventSeen(eventId);
 
   const entry = buildClickEntry(params, request);
   if (shouldSkipClickPersist(entry, params)) {
