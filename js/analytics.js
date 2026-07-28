@@ -445,13 +445,9 @@
 
   function logClickEndpoints() {
     const urls = [];
-    // API first — same-origin /stf-log was 522 when the proxy fetched api.* on the same zone.
+    // Only the payments API — same-origin /stf-log POSTs were Cloudflare 522 from the storefront Worker.
     const base = apiBaseUrl();
     if (base) urls.push(base + '/analytics/click');
-    const host = (location.hostname || '').toLowerCase();
-    if (/sensortattoofix\.com/.test(host)) {
-      urls.push(sameOriginBase() + '/stf-log');
-    }
     return urls;
   }
 
@@ -459,10 +455,6 @@
     const urls = [];
     const base = apiBaseUrl();
     if (base) urls.push(base + '/analytics/pixel.gif');
-    const host = (location.hostname || '').toLowerCase();
-    if (/sensortattoofix\.com/.test(host)) {
-      urls.push(sameOriginBase() + '/stf-log/pixel.gif');
-    }
     return urls;
   }
 
