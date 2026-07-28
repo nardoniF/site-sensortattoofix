@@ -9744,7 +9744,8 @@ function isUrgentClickPersist(entry, body) {
 }
 
 /**
- * Buffer non-purchase clicks; purchase / urgent always await KV write (no lost waitUntil).
+ * Buffer non-purchase clicks; purchase / urgent awaits KV write.
+ * On marketplace/loja click, also flush that visitor's buffered trail so admin "Com navegação" is complete.
  */
 async function persistClickLog(env, entry, ctx, body) {
   const row = { id: crypto.randomUUID(), ts: Date.now(), ...entry };
@@ -9752,9 +9753,27 @@ async function persistClickLog(env, entry, ctx, body) {
   buf.items.unshift(row);
   const age = Date.now() - (buf.since || Date.now());
   const urgent = isUrgentClickPersist(entry, body);
-  const shouldFlush = urgent
-    || buf.items.length >= CLICK_BUF_FLUSH_SIZE
-    || age >= CLICK_BUF_MAX_AGE_MS;
+
+  if (urgent) {
+    const vid = String(row.visitante_id || '').trim();
+    const sid = String(row.sessao_visita || '').trim();
+    const toFlush = [];
+    const keep = [];
+    for (const item of buf.items) {
+      const sameVisitor = !!(vid && String(item.visitante_id || '') === vid);
+      const sameSession = !!(sid && String(item.sessao_visita || '') === sid);
+      if (item.id === row.id || sameVisitor || sameSession) toFlush.push(item);
+      else keep.push(item);
+    }
+    await writeClickWriteBuffer({
+      items: keep,
+      since: keep.length ? (buf.since || Date.now()) : Date.now()
+    });
+    await appendClickLogBatch(env, toFlush);
+    return row;
+  }
+
+  const shouldFlush = buf.items.length >= CLICK_BUF_FLUSH_SIZE || age >= CLICK_BUF_MAX_AGE_MS;
   if (!shouldFlush) {
     await writeClickWriteBuffer(buf);
     return row;
@@ -9774,9 +9793,7 @@ async function persistClickLog(env, entry, ctx, body) {
       throw err;
     }
   };
-  // Urgent purchase clicks must finish before the response — waitUntil was dropping them.
-  if (urgent) await flush();
-  else if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(flush().catch(() => {}));
+  if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(flush().catch(() => {}));
   else await flush();
   return row;
 }
