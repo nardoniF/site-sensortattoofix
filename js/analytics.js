@@ -2,6 +2,9 @@
   const VENDA_KEY = 'stf_venda_registrada';
   const LOG_QUEUE_KEY = 'stf_log_queue';
   const LOG_QUEUE_MAX = 40;
+  /** Session trail kept locally — Cloudflare Cache buffer is not shared across edges. */
+  const TRAIL_KEY = 'stf_click_trail';
+  const TRAIL_MAX = 40;
   const LOG_DEDUP_MS = 1200;
   let ultimoCliqueLink = { href: '', ts: 0 };
 
@@ -574,6 +577,39 @@
     } catch (_) { /* ignore */ }
   }
 
+  function lerTrilhaSessao() {
+    try {
+      const raw = sessionStorage.getItem(TRAIL_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function salvarTrilhaSessao(list) {
+    try {
+      sessionStorage.setItem(TRAIL_KEY, JSON.stringify(list.slice(-TRAIL_MAX)));
+    } catch (_) { /* ignore */ }
+  }
+
+  function adicionarTrilhaSessao(body) {
+    if (!body || typeof body !== 'object') return;
+    const eid = String(body.client_event_id || '').trim();
+    const list = lerTrilhaSessao().filter((item) => {
+      if (!eid) return true;
+      return String(item?.client_event_id || '').trim() !== eid;
+    });
+    list.push(body);
+    salvarTrilhaSessao(list);
+  }
+
+  function consumirTrilhaSessao() {
+    const list = lerTrilhaSessao();
+    salvarTrilhaSessao([]);
+    return list;
+  }
+
   function montarCorpoLog(data) {
     const visitante = contextoVisitante();
     const origem = capturarOrigemSessao();
@@ -643,11 +679,23 @@
 
     try {
       const body = montarCorpoLog(data);
+      body.client_event_id = body.client_event_id
+        || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))));
       const dest = String(body.destino || '').toLowerCase();
       // Only marketplaces + own store flush immediately. Other links batch on the server.
       const compra = isCliqueCompra(dest, data.href, data.el);
       const urgente = !!data.urgente || compra;
-      if (urgente) body.urgente = true;
+      if (urgente) {
+        body.urgente = true;
+        // Cache API buffer on the Worker often misses prior clicks (different edge).
+        // Send this tab's trail with the purchase click so "Com navegação" is complete.
+        const trilha = consumirTrilhaSessao().filter((item) => {
+          return String(item?.client_event_id || '').trim() !== body.client_event_id;
+        });
+        if (trilha.length) body.trilha = trilha;
+      } else {
+        adicionarTrilhaSessao(body);
+      }
       enviarLogPayload(body, urgente);
     } catch (err) {
       console.warn('stf log:', err);

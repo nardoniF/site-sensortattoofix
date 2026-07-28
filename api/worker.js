@@ -9743,12 +9743,43 @@ function isUrgentClickPersist(entry, body) {
   return false;
 }
 
+function clickRowTs(entry) {
+  const clientTs = Number(entry?.client_ts) || 0;
+  return clientTs > 0 ? clientTs : Date.now();
+}
+
+/** Client session trail attached to marketplace/loja flush (Cache API buffer is edge-local). */
+function trailEntriesFromBody(body, request) {
+  const raw = Array.isArray(body?.trilha) ? body.trilha
+    : (Array.isArray(body?.trail) ? body.trail : []);
+  if (!raw.length) return [];
+  const out = [];
+  const seen = new Set();
+  for (const item of raw.slice(-40)) {
+    if (!item || typeof item !== 'object') continue;
+    const eid = String(item.client_event_id || '').trim().slice(0, 64);
+    if (eid) {
+      if (seen.has(eid)) continue;
+      seen.add(eid);
+    }
+    const entry = buildClickEntry(item, request);
+    if (shouldSkipClickPersist(entry, item)) continue;
+    out.push({
+      id: crypto.randomUUID(),
+      ...entry,
+      ts: clickRowTs(entry),
+      client_event_id: eid
+    });
+  }
+  return out;
+}
+
 /**
  * Buffer non-purchase clicks; purchase / urgent awaits KV write.
- * On marketplace/loja click, also flush that visitor's buffered trail so admin "Com navegação" is complete.
+ * On marketplace/loja click, flush client-sent trail (+ any matching Cache buffer items).
  */
-async function persistClickLog(env, entry, ctx, body) {
-  const row = { id: crypto.randomUUID(), ts: Date.now(), ...entry };
+async function persistClickLog(env, entry, ctx, body, request) {
+  const row = { id: crypto.randomUUID(), ...entry, ts: clickRowTs(entry) };
   const buf = await readClickWriteBuffer();
   buf.items.unshift(row);
   const age = Date.now() - (buf.since || Date.now());
@@ -9759,12 +9790,32 @@ async function persistClickLog(env, entry, ctx, body) {
     const sid = String(row.sessao_visita || '').trim();
     const toFlush = [];
     const keep = [];
+    const seenIds = new Set();
+    const seenEvents = new Set();
+
+    function pushFlush(item) {
+      if (!item) return;
+      const id = String(item.id || '');
+      const eid = String(item.client_event_id || '').trim();
+      if (id && seenIds.has(id)) return;
+      if (eid && seenEvents.has(eid)) return;
+      if (id) seenIds.add(id);
+      if (eid) seenEvents.add(eid);
+      toFlush.push(item);
+    }
+
+    for (const item of trailEntriesFromBody(body, request)) pushFlush(item);
+
     for (const item of buf.items) {
       const sameVisitor = !!(vid && String(item.visitante_id || '') === vid);
       const sameSession = !!(sid && String(item.sessao_visita || '') === sid);
-      if (item.id === row.id || sameVisitor || sameSession) toFlush.push(item);
+      if (item.id === row.id || sameVisitor || sameSession) pushFlush(item);
       else keep.push(item);
     }
+
+    // Newest first — matches existing click blob prepend order
+    toFlush.sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0));
+
     await writeClickWriteBuffer({
       items: keep,
       since: keep.length ? (buf.since || Date.now()) : Date.now()
@@ -10015,7 +10066,7 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   try {
-    await persistClickLog(env, entry, ctx, body);
+    await persistClickLog(env, entry, ctx, body, request);
   } catch (err) {
     console.error('click log:', err.message);
     return json({ ok: false, error: 'storage', retry: true }, 503, origin);
@@ -10049,7 +10100,7 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   }
 
   try {
-    await persistClickLog(env, entry, ctx, params);
+    await persistClickLog(env, entry, ctx, params, request);
   } catch (err) {
     console.error('click pixel:', err.message);
   }
