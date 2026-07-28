@@ -99,6 +99,15 @@
   }
 
   function classificarDestino(href, el) {
+    const evento = String(el?.getAttribute?.('data-evento') || '').toLowerCase();
+    if (evento === 'clique_mercado_livre') return 'mercado_livre';
+    if (evento === 'clique_amazon') return 'amazon';
+    if (evento === 'clique_shopee') return 'shopee';
+    if (evento === 'clique_tiktok_shop') return 'tiktok_shop';
+    if (evento === 'clique_loja_oficial') return 'loja_oficial';
+    if (evento === 'clique_buy_now') return 'checkout';
+    if (evento === 'clique_menu_comprar' || evento === 'clique_onde_comprar') return 'menu_comprar';
+    if (el?.classList?.contains('loja-btn-buy')) return 'loja_oficial';
     if (el?.classList?.contains('logo-img-link')) return 'logo';
     if (!href || href === '#') {
       if (el?.closest('.faq-item, #faq')) return 'faq';
@@ -112,7 +121,7 @@
       return frag ? 'ancora_' + frag.replace(/[^a-z0-9_-]/gi, '') : 'ancora';
     }
     if (h.includes('mercadolivre')) return 'mercado_livre';
-    if (h.includes('amazon.')) return 'amazon';
+    if (h.includes('amazon.') || h.includes('amzn.') || h.includes('a.co/')) return 'amazon';
     if (h.includes('shopee')) return 'shopee';
     if (h.includes('tiktok_shop') || h.includes('utm_content=tiktok_shop')) return 'tiktok_shop';
     if (h.includes('vt.tiktok.com')) return 'tiktok_shop';
@@ -139,6 +148,27 @@
     } catch {
       return 'outro';
     }
+  }
+
+  /** Compra = flush na hora (ML, Amazon, Shopee, TikTok Shop, loja própria, checkout). */
+  function isCliqueCompra(destino, href, el) {
+    const dest = String(destino || '').toLowerCase();
+    if (/^(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|checkout|menu_comprar)$/.test(dest)) {
+      return true;
+    }
+    const evento = String(el?.getAttribute?.('data-evento') || '').toLowerCase();
+    if (/clique_(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|buy_now|menu_comprar|onde_comprar)/.test(evento)) {
+      return true;
+    }
+    if (el?.classList?.contains('store-link')
+      || el?.classList?.contains('store-official-bar')
+      || el?.classList?.contains('loja-mp-badge')
+      || el?.classList?.contains('loja-btn-buy')
+      || el?.classList?.contains('btn-nav-comprar')) {
+      return true;
+    }
+    const h = String(href || '').toLowerCase();
+    return /mercadolivre|amazon\.|amzn\.|a\.co\/|shopee|vt\.tiktok|tiktok_shop|loja\.html|comprar\.html/.test(h);
   }
 
   function linkRastreavel(link) {
@@ -618,10 +648,9 @@
       const tipo = body.tipo || 'clique';
       const dest = String(body.destino || '').toLowerCase();
       const saiDaPagina = tipo !== 'pageview' && linkSaiDaPagina(data.href);
-      const lojaPropria = /^(loja_oficial|checkout|menu_comprar)$/.test(dest)
-        || /loja\.html|comprar\.html|onde-comprar\.html/i.test(String(data.href || ''));
-      const urgente = !!saiDaPagina || !!data.urgente || lojaPropria;
-      // Server buffer only flushes early when body.urgente is set (or destino is urgent).
+      const compra = isCliqueCompra(dest, data.href, data.el);
+      const urgente = !!saiDaPagina || !!data.urgente || compra;
+      // Server only flushes immediately when body.urgente (or destino is purchase).
       if (urgente) body.urgente = true;
       enviarLogPayload(body, urgente);
     } catch (err) {
@@ -696,11 +725,13 @@
     const now = Date.now();
     if (ultimoCliqueLink.href === abs && now - ultimoCliqueLink.ts < LOG_DEDUP_MS) return;
     ultimoCliqueLink = { href: abs, ts: now };
+    const destino = classificarDestino(href, link);
     const payload = payloadBase(link, {
       elemento: 'link',
       href: abs,
-      destino: classificarDestino(href, link),
-      urgente: linkUrgenteParaLog(link, href)
+      destino,
+      urgente: linkUrgenteParaLog(link, href) || isCliqueCompra(destino, abs, link),
+      el: link
     });
     track('secao_link', payload);
     registrarLog(payload);
@@ -733,11 +764,14 @@
       return;
     }
 
+    const destino = classificarDestino('', btn);
     const payload = payloadBase(btn, {
       elemento: 'botao',
       href: '',
-      destino: classificarDestino('', btn),
-      tipo_botao: btn.type || 'button'
+      destino,
+      tipo_botao: btn.type || 'button',
+      urgente: isCliqueCompra(destino, '', btn),
+      el: btn
     });
     if (payload.destino === 'ancora' && payload.secao === 'faq') payload.destino = 'faq';
     track('secao_link', payload);

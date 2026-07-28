@@ -9734,20 +9734,23 @@ function shouldSkipClickPersist(entry, body) {
 function isUrgentClickPersist(entry, body) {
   if (body?.urgente === true || body?.flush_now === true) return true;
   const dest = String(entry?.destino || body?.destino || '').toLowerCase();
-  // Own store + checkout must flush now (same priority as marketplaces).
-  if (/^(mercado_livre|amazon|shopee|tiktok|tiktok_shop|instagram|facebook|whatsapp|youtube|linkedin|loja_oficial|checkout|menu_comprar)$/.test(dest)) {
+  // Purchase clicks always flush now: ML, Amazon, Shopee, TikTok Shop, own store, checkout.
+  if (/^(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|checkout|menu_comprar)$/.test(dest)) {
     return true;
   }
   if (/^entrada_(loja|checkout|onde_comprar)/.test(dest)) return true;
   const href = String(entry?.href || body?.href || '');
+  if (/mercadolivre|amazon\.|amzn\.|a\.co\/|shopee|vt\.tiktok|tiktok_shop/i.test(href)) return true;
   if (/loja\.html|comprar\.html|onde-comprar\.html/i.test(href)) return true;
-  if (/^https?:\/\//i.test(href) && !/sensortattoofix\.com/i.test(href)) return true;
+  const rotulo = String(entry?.rotulo || body?.rotulo || '').toLowerCase();
+  if (/mercado\s*livre|amazon|shopee|tiktok\s*shop|loja\s*oficial|buy\s*now|comprar/i.test(rotulo)) {
+    return true;
+  }
   return false;
 }
 
 /**
- * Buffer clicks in Cache API and flush to KV in batches.
- * ~1 put per 40 events or every ~12 min; marketplace/external flushes immediately.
+ * Buffer non-purchase clicks; purchase / urgent always await KV write (no lost waitUntil).
  */
 async function persistClickLog(env, entry, ctx, body) {
   const row = { id: crypto.randomUUID(), ts: Date.now(), ...entry };
@@ -9764,10 +9767,22 @@ async function persistClickLog(env, entry, ctx, body) {
   }
   const toFlush = buf.items.slice();
   await writeClickWriteBuffer({ items: [], since: Date.now() });
-  const flush = () => appendClickLogBatch(env, toFlush).catch((err) => {
-    console.error('click buffer flush:', err.message);
-  });
-  if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(flush());
+  const flush = async () => {
+    try {
+      await appendClickLogBatch(env, toFlush);
+    } catch (err) {
+      console.error('click buffer flush:', err.message);
+      try {
+        const again = await readClickWriteBuffer();
+        again.items = toFlush.concat(again.items || []).slice(0, 200);
+        await writeClickWriteBuffer(again);
+      } catch (_) { /* ignore */ }
+      throw err;
+    }
+  };
+  // Urgent purchase clicks must finish before the response — waitUntil was dropping them.
+  if (urgent) await flush();
+  else if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(flush().catch(() => {}));
   else await flush();
   return row;
 }
