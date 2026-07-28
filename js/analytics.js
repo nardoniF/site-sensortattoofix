@@ -445,24 +445,24 @@
 
   function logClickEndpoints() {
     const urls = [];
+    // API first — same-origin /stf-log was 522 when the proxy fetched api.* on the same zone.
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/click');
     const host = (location.hostname || '').toLowerCase();
-    // Same-origin first — storefront proxy forwards to API (no CORS; beacon-safe).
     if (/sensortattoofix\.com/.test(host)) {
       urls.push(sameOriginBase() + '/stf-log');
     }
-    const base = apiBaseUrl();
-    if (base) urls.push(base + '/analytics/click');
     return urls;
   }
 
   function logPixelEndpoints() {
     const urls = [];
+    const base = apiBaseUrl();
+    if (base) urls.push(base + '/analytics/pixel.gif');
     const host = (location.hostname || '').toLowerCase();
     if (/sensortattoofix\.com/.test(host)) {
       urls.push(sameOriginBase() + '/stf-log/pixel.gif');
     }
-    const base = apiBaseUrl();
-    if (base) urls.push(base + '/analytics/pixel.gif');
     return urls;
   }
 

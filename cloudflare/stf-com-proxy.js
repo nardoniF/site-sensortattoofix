@@ -11,7 +11,7 @@ const ORIGINS = [
 ];
 const COM_ORIGIN = 'https://www.sensortattoofix.com';
 const BR_ORIGIN = 'https://www.sensortattoofix.com.br';
-const API_ORIGIN = 'https://api.sensortattoofix.com.br';
+const API_ORIGIN = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
 const STF_COM_HOST_JS =
   "(function(){if(location.hostname==='sensortattoofix.com'){location.replace('https://www.sensortattoofix.com'+location.pathname+location.search+location.hash);}})();";
 
