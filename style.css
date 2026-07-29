@@ -10,10 +10,10 @@
     --font-nav: 'Outfit', system-ui, -apple-system, sans-serif;
 }
 
-html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+html { scroll-behavior: smooth; scroll-padding-top: 70px; overflow-x: hidden; overflow-x: clip; }
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-body { background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
-.container { max-width: 1200px; margin: auto; padding: 0 25px; }
+body { background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; overflow-x: clip; max-width: 100%; }
+.container { max-width: 1200px; margin: auto; padding: 0 25px; width: 100%; }
 
 img { max-width: 100%; height: auto; }
 
@@ -291,8 +291,9 @@ html[lang="it"] .nav-actions { gap: 6px; }
     padding-bottom: 48px;
     scroll-margin-top: 0;
 }
-.home-page .hero > .container { width: 100%; }
-.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 55px; align-items: center; }
+.home-page .hero > .container { width: 100%; max-width: 100%; }
+.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 55px; align-items: center; min-width: 0; }
+.hero-text { min-width: 0; max-width: 100%; }
 .badge { color: var(--primary); font-weight: 800; text-transform: uppercase; border: 1px solid var(--primary); padding: 6px 14px; border-radius: 50px; font-size: 0.9rem; }
 .hero h1 { font-size: 3.5rem; font-weight: 900; line-height: 1.05; margin: 28px 0; }
 .hero p { font-size: 1.1rem; color: var(--gray); margin-bottom: 38px; }
@@ -2531,32 +2532,44 @@ line-height:1.8;
     gap: 8px 14px;
     margin: 0;
     max-width: 100%;
+    min-width: 0;
 }
 .hero-trust-row .badge {
     margin: 0;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
 }
 .site-trust-inline-main {
     display: inline-flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 6px 10px;
     margin: 0;
     font-size: 0.88rem;
     font-weight: 600;
     line-height: 1.2;
     color: #d8e4ef;
-    white-space: nowrap;
     max-width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
+    min-width: 0;
 }
-.site-trust-inline-main::-webkit-scrollbar { display: none; }
 .site-trust-inline-main .site-trust-bar-item {
     white-space: nowrap;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+}
+.site-trust-inline-main .site-trust-bar-contact {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 /* Keep Discover / Where to Buy in the first viewport with the trust row */
+.hero-text:has(.hero-trust-row) {
+    min-width: 0;
+    max-width: 100%;
+}
 .hero-text:has(.hero-trust-row) > h1 {
     margin: 14px 0 12px;
     font-size: clamp(2.15rem, 3.6vw, 3.15rem);
@@ -2652,19 +2665,38 @@ line-height:1.8;
         align-items: center;
         gap: 6px;
         margin-bottom: 2px;
+        width: 100%;
     }
     .site-trust-inline-main {
         justify-content: center;
         font-size: 0.72rem;
-        gap: 4px 6px;
+        gap: 4px 8px;
+        width: 100%;
         max-width: 100%;
+    }
+    /* Long email was the main width bomber on phones */
+    .site-trust-inline-main .site-trust-bar-contact a {
+        font-size: 0.7rem;
     }
     .hero-text:has(.hero-trust-row) > h1 {
         margin: 10px 0 10px;
         font-size: clamp(1.85rem, 8vw, 2.35rem);
+        overflow-wrap: anywhere;
     }
     .hero-text:has(.hero-trust-row) > p {
         margin-bottom: 16px;
+        overflow-wrap: anywhere;
+    }
+    .home-page .hero-btns {
+        width: 100%;
+        max-width: 100%;
+    }
+    .home-page .hero-btns .btn-primary,
+    .home-page .hero-btns .btn-secondary {
+        max-width: 100%;
+        width: min(100%, 280px);
+        min-width: 0;
+        box-sizing: border-box;
     }
 }
 
