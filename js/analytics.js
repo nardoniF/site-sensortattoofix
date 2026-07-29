@@ -2,12 +2,6 @@
   const VENDA_KEY = 'stf_venda_registrada';
   const LOG_QUEUE_KEY = 'stf_log_queue';
   const LOG_QUEUE_MAX = 40;
-  /** Session trail kept locally until marketplace/loja flush or 12 min batch. */
-  const TRAIL_KEY = 'stf_click_trail';
-  const TRAIL_MAX = 40;
-  /** After first marketplace/loja click, keep logging the rest of the visit in real time. */
-  const HOT_KEY = 'stf_hot_compra';
-  const TRAIL_FLUSH_MS = 12 * 60_000;
   const LOG_DEDUP_MS = 1200;
   let ultimoCliqueLink = { href: '', ts: 0 };
 
@@ -23,17 +17,6 @@
 
   function canTrack() {
     return typeof window.gtag === 'function';
-  }
-
-  /** Owner/admin browsing the store must not inflate the click log / KV writes. */
-  function shouldSkipSiteLog() {
-    try {
-      if (localStorage.getItem('stf_skip_analytics') === '1') return true;
-      if (sessionStorage.getItem('stf_admin_token')) return true;
-      const path = String(location.pathname || '');
-      if (/admin\.html|pedidos\.html|documentacao|imprimir-etiqueta/i.test(path)) return true;
-    } catch (_) { /* ignore */ }
-    return false;
   }
 
   function track(evento, dados) {
@@ -105,15 +88,6 @@
   }
 
   function classificarDestino(href, el) {
-    const evento = String(el?.getAttribute?.('data-evento') || '').toLowerCase();
-    if (evento === 'clique_mercado_livre') return 'mercado_livre';
-    if (evento === 'clique_amazon') return 'amazon';
-    if (evento === 'clique_shopee') return 'shopee';
-    if (evento === 'clique_tiktok_shop') return 'tiktok_shop';
-    if (evento === 'clique_loja_oficial') return 'loja_oficial';
-    if (evento === 'clique_buy_now') return 'checkout';
-    if (evento === 'clique_menu_comprar' || evento === 'clique_onde_comprar') return 'menu_comprar';
-    if (el?.classList?.contains('loja-btn-buy')) return 'loja_oficial';
     if (el?.classList?.contains('logo-img-link')) return 'logo';
     if (!href || href === '#') {
       if (el?.closest('.faq-item, #faq')) return 'faq';
@@ -127,7 +101,7 @@
       return frag ? 'ancora_' + frag.replace(/[^a-z0-9_-]/gi, '') : 'ancora';
     }
     if (h.includes('mercadolivre')) return 'mercado_livre';
-    if (h.includes('amazon.') || h.includes('amzn.') || h.includes('a.co/')) return 'amazon';
+    if (h.includes('amazon.')) return 'amazon';
     if (h.includes('shopee')) return 'shopee';
     if (h.includes('tiktok_shop') || h.includes('utm_content=tiktok_shop')) return 'tiktok_shop';
     if (h.includes('vt.tiktok.com')) return 'tiktok_shop';
@@ -154,26 +128,6 @@
     } catch {
       return 'outro';
     }
-  }
-
-  /** Compra = flush na hora (só ML, Amazon, Shopee, TikTok Shop, loja própria / checkout). */
-  function isCliqueCompra(destino, href, el) {
-    const dest = String(destino || '').toLowerCase();
-    if (/^(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|checkout)$/.test(dest)) {
-      return true;
-    }
-    const evento = String(el?.getAttribute?.('data-evento') || '').toLowerCase();
-    if (/clique_(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|buy_now)/.test(evento)) {
-      return true;
-    }
-    if (el?.classList?.contains('store-link')
-      || el?.classList?.contains('store-official-bar')
-      || el?.classList?.contains('loja-mp-badge')
-      || el?.classList?.contains('loja-btn-buy')) {
-      return true;
-    }
-    const h = String(href || '').toLowerCase();
-    return /mercadolivre|amazon\.|amzn\.|a\.co\/|shopee|vt\.tiktok|tiktok_shop|loja\.html|comprar\.html/.test(h);
   }
 
   function linkRastreavel(link) {
@@ -445,9 +399,12 @@
 
   function logClickEndpoints() {
     const urls = [];
-    // Only the payments API — same-origin /stf-log POSTs were Cloudflare 522 from the storefront Worker.
     const base = apiBaseUrl();
     if (base) urls.push(base + '/analytics/click');
+    const host = (location.hostname || '').toLowerCase();
+    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+      urls.push(sameOriginBase() + '/stf-log');
+    }
     return urls;
   }
 
@@ -455,6 +412,10 @@
     const urls = [];
     const base = apiBaseUrl();
     if (base) urls.push(base + '/analytics/pixel.gif');
+    const host = (location.hostname || '').toLowerCase();
+    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+      urls.push(sameOriginBase() + '/stf-log/pixel.gif');
+    }
     return urls;
   }
 
@@ -497,24 +458,20 @@
     return res.status === 202 || !!(data && data.ok);
   }
 
-  function enviarLogFetchSequencial(urls, json, payload, idx, onOk) {
+  function enviarLogFetchSequencial(urls, json, payload, idx) {
     if (!urls[idx]) {
       enfileirarLog(payload);
       return;
     }
     postLogJson(urls[idx], json, true)
       .then((res) => res.json().catch(() => null).then((data) => {
-        if (respostaLogOk(res, data)) {
-          if (typeof onOk === 'function') onOk();
-          return;
-        }
-        enviarLogFetchSequencial(urls, json, payload, idx + 1, onOk);
+        if (respostaLogOk(res, data)) return;
+        enviarLogFetchSequencial(urls, json, payload, idx + 1);
       }))
-      .catch(() => enviarLogFetchSequencial(urls, json, payload, idx + 1, onOk));
+      .catch(() => enviarLogFetchSequencial(urls, json, payload, idx + 1));
   }
 
-  function enviarLogPayload(body, urgente, onOk) {
-    if (shouldSkipSiteLog()) return false;
+  function enviarLogPayload(body, urgente) {
     const urls = logClickEndpoints();
     if (!urls.length) return false;
     const payload = Object.assign({}, body, {
@@ -524,15 +481,16 @@
     const json = JSON.stringify(payload);
     const primary = urls[0];
 
-    // text/plain beacon survives _blank marketplace opens and skips CORS preflight.
-    // Same client_event_id — Worker KV dedupes. Fetch confirms and clears trail.
-    if (urgente && primary && typeof navigator.sendBeacon === 'function') {
-      try {
-        navigator.sendBeacon(primary, new Blob([json], { type: 'text/plain;charset=UTF-8' }));
-      } catch (_) { /* ignore */ }
+    if (urgente) {
+      if (primary && typeof navigator.sendBeacon === 'function') {
+        try {
+          navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }));
+        } catch (_) { /* ignore */ }
+      }
+      enviarLogPixel(payload);
     }
 
-    enviarLogFetchSequencial(urls, json, payload, 0, onOk);
+    enviarLogFetchSequencial(urls, json, payload, 0);
     return true;
   }
 
@@ -575,48 +533,6 @@
       while (q.length > LOG_QUEUE_MAX) q.shift();
       salvarFilaLog(q);
     } catch (_) { /* ignore */ }
-  }
-
-  function lerTrilhaSessao() {
-    try {
-      const raw = sessionStorage.getItem(TRAIL_KEY);
-      const list = raw ? JSON.parse(raw) : [];
-      return Array.isArray(list) ? list : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function salvarTrilhaSessao(list) {
-    try {
-      sessionStorage.setItem(TRAIL_KEY, JSON.stringify(list.slice(-TRAIL_MAX)));
-    } catch (_) { /* ignore */ }
-  }
-
-  function adicionarTrilhaSessao(body) {
-    if (!body || typeof body !== 'object') return;
-    const eid = String(body.client_event_id || '').trim();
-    const list = lerTrilhaSessao().filter((item) => {
-      if (!eid) return true;
-      return String(item?.client_event_id || '').trim() !== eid;
-    });
-    list.push(body);
-    salvarTrilhaSessao(list);
-  }
-
-  function removerTrilhaIds(ids) {
-    const drop = new Set((ids || []).map((id) => String(id || '').trim()).filter(Boolean));
-    if (!drop.size) return;
-    const left = lerTrilhaSessao().filter((item) => !drop.has(String(item?.client_event_id || '').trim()));
-    salvarTrilhaSessao(left);
-  }
-
-  function isHotSession() {
-    try { return sessionStorage.getItem(HOT_KEY) === '1'; } catch (_) { return false; }
-  }
-
-  function markHotSession() {
-    try { sessionStorage.setItem(HOT_KEY, '1'); } catch (_) { /* ignore */ }
   }
 
   function montarCorpoLog(data) {
@@ -663,53 +579,10 @@
     if (!q.length) return;
     salvarFilaLog([]);
     q.forEach((body) => {
-      const next = Object.assign({}, body);
-      if (!next.client_event_id) {
-        next.client_event_id = 'q_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)));
-      }
-      next.urgente = true;
-      enviarLogPayload(next, true);
+      enviarLogPayload(Object.assign({}, body, {
+        client_event_id: 'q_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)))
+      }), true);
     });
-  }
-
-  function flushTrilhaParaServidor(opts) {
-    if (shouldSkipSiteLog()) return;
-    if (!logClickEndpoints().length) return;
-    const trilha = lerTrilhaSessao();
-    if (!trilha.length) return;
-    try {
-      const body = montarCorpoLog({
-        tipo: 'flush',
-        elemento: 'flush',
-        destino: 'flush_buffer',
-        rotulo: 'Flush trilha',
-        href: location.href
-      });
-      body.client_event_id = 'f_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8)));
-      body.urgente = true;
-      body.flush_now = true;
-      body.somente_trilha = true;
-      body.trilha = trilha.slice();
-      const ids = trilha.map((item) => item.client_event_id).concat([body.client_event_id]);
-
-      if (opts && opts.unload) {
-        const primary = logClickEndpoints()[0];
-        if (primary && typeof navigator.sendBeacon === 'function') {
-          try {
-            const ok = navigator.sendBeacon(primary, new Blob([JSON.stringify(Object.assign({}, body, {
-              log_key: window.CONFIG_BOOTSTRAP?.clickLogKey || ''
-            }))], { type: 'text/plain;charset=UTF-8' }));
-            if (ok) salvarTrilhaSessao([]);
-          } catch (_) { /* ignore */ }
-        }
-        enviarLogPayload(body, true, () => removerTrilhaIds(ids));
-        return;
-      }
-
-      enviarLogPayload(body, true, () => removerTrilhaIds(ids));
-    } catch (err) {
-      console.warn('stf trail flush:', err);
-    }
   }
 
   function linkSaiDaPagina(href) {
@@ -726,34 +599,13 @@
   }
 
   function registrarLog(data) {
-    if (shouldSkipSiteLog()) return;
     if (!logClickEndpoints().length) return;
 
     try {
       const body = montarCorpoLog(data);
-      body.client_event_id = body.client_event_id
-        || ('e_' + (crypto.randomUUID?.() || String(Date.now() + '_' + Math.random().toString(36).slice(2, 8))));
-      const dest = String(body.destino || '').toLowerCase();
-      const compra = isCliqueCompra(dest, data.href, data.el);
-      if (compra) markHotSession();
-
-      // Marketplace/loja (and the rest of that visit after): send now with full trail.
-      // Otherwise keep local until 12 min flush.
-      const urgente = compra || isHotSession() || !!data.urgente;
-
-      if (!urgente) {
-        adicionarTrilhaSessao(body);
-        return;
-      }
-
-      body.urgente = true;
-      const trilha = lerTrilhaSessao().filter((item) => {
-        return String(item?.client_event_id || '').trim() !== body.client_event_id;
-      });
-      if (trilha.length) body.trilha = trilha;
-      const ids = trilha.map((item) => item.client_event_id).concat([body.client_event_id]);
-      // Keep trail until fetch confirms — do not clear on beacon alone.
-      enviarLogPayload(body, true, () => removerTrilhaIds(ids));
+      const tipo = body.tipo || 'clique';
+      const saiDaPagina = tipo !== 'pageview' && linkSaiDaPagina(data.href);
+      enviarLogPayload(body, !!saiDaPagina || !!data.urgente || tipo === 'pageview');
     } catch (err) {
       console.warn('stf log:', err);
     }
@@ -764,16 +616,12 @@
     const parts = path.split('/').filter(Boolean);
     const file = parts[parts.length - 1] || 'index.html';
     const isEn = parts.includes('en');
-    const isIt = parts.includes('it');
 
     if (isEn && (file === 'index.html' || parts[parts.length - 1] === 'en')) {
-      return { slug: 'home_en', rotulo: 'Entrada — Home EN', skipPageview: true };
-    }
-    if (isIt && (file === 'index.html' || parts[parts.length - 1] === 'it')) {
-      return { slug: 'home_it', rotulo: 'Entrada — Home IT', skipPageview: true };
+      return { slug: 'home_en', rotulo: 'Entrada — Home EN' };
     }
     if (file === 'index.html' || path.endsWith('/') || !file.includes('.')) {
-      return { slug: 'home', rotulo: 'Entrada — Home', skipPageview: true };
+      return { slug: 'home', rotulo: 'Entrada — Home' };
     }
     if (file.includes('loja')) return { slug: 'loja', rotulo: 'Entrada — Loja' };
     if (file.includes('comprar')) return { slug: 'checkout', rotulo: 'Entrada — Checkout' };
@@ -791,9 +639,7 @@
       sessionStorage.setItem(storageKey, '1');
     } catch (_) { /* ignore */ }
 
-    const { slug, rotulo, skipPageview } = classificarEntradaPagina();
-    // Home-only pageviews pollute the click log (bots / bounce). Real clicks on home still log.
-    if (skipPageview) return;
+    const { slug, rotulo } = classificarEntradaPagina();
     registrarLog({
       tipo: 'pageview',
       elemento: 'entrada',
@@ -826,13 +672,11 @@
     const now = Date.now();
     if (ultimoCliqueLink.href === abs && now - ultimoCliqueLink.ts < LOG_DEDUP_MS) return;
     ultimoCliqueLink = { href: abs, ts: now };
-    const destino = classificarDestino(href, link);
     const payload = payloadBase(link, {
       elemento: 'link',
       href: abs,
-      destino,
-      urgente: isCliqueCompra(destino, abs, link),
-      el: link
+      destino: classificarDestino(href, link),
+      urgente: linkUrgenteParaLog(link, href)
     });
     track('secao_link', payload);
     registrarLog(payload);
@@ -865,14 +709,11 @@
       return;
     }
 
-    const destino = classificarDestino('', btn);
     const payload = payloadBase(btn, {
       elemento: 'botao',
       href: '',
-      destino,
-      tipo_botao: btn.type || 'button',
-      urgente: isCliqueCompra(destino, '', btn),
-      el: btn
+      destino: classificarDestino('', btn),
+      tipo_botao: btn.type || 'button'
     });
     if (payload.destino === 'ancora' && payload.secao === 'faq') payload.destino = 'faq';
     track('secao_link', payload);
@@ -890,20 +731,6 @@
     const link = e.target.closest('a[href]');
     if (!link || !linkRastreavel(link)) return;
     const href = link.getAttribute('href');
-    const abs = hrefAbsoluto(href);
-    const destino = classificarDestino(href, link);
-    const compra = isCliqueCompra(destino, abs, link);
-
-    // Same-tab loja/checkout: hold navigation so beacon+fetch can finish.
-    if (compra && link.target !== '_blank' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
-      e.preventDefault();
-      trackSecaoLink(link);
-      window.setTimeout(() => {
-        try { location.assign(abs); } catch (_) { location.href = abs; }
-      }, 400);
-      return;
-    }
-
     if (!linkUrgenteParaLog(link, href)) return;
     trackSecaoLink(link);
   }
@@ -931,15 +758,11 @@
       if (details?.tagName === 'DETAILS' && details.open) trackFaqAbertura(details);
     }, true);
 
-    window.addEventListener('pagehide', () => {
-      flushTrilhaParaServidor({ unload: true });
-      flushLogQueue();
+    window.addEventListener('pagehide', flushLogQueue);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushLogQueue();
     });
-    // Cold sessions only: batch every 12 minutes. Hot (after marketplace/loja) already logs live.
-    setInterval(() => {
-      if (!isHotSession()) flushTrilhaParaServidor();
-      flushLogQueue();
-    }, TRAIL_FLUSH_MS);
+    setInterval(flushLogQueue, 8000);
   }
 
   if (document.readyState === 'loading') {

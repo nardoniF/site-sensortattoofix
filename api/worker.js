@@ -492,7 +492,8 @@ async function googlePlacesAddressSuggest(apiKey, query, country) {
   for (const row of data.suggestions || []) {
     const pred = row.placePrediction;
     if (!pred?.placeId) continue;
-    const detailRes = await fetch(`https://places.googleapis.com/v1/${pred.placeId}`, {
+    // Places API (New) resource name is places/{placeId}
+    const detailRes = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(pred.placeId)}`, {
       headers: {
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': 'addressComponents,formattedAddress'
@@ -8778,6 +8779,45 @@ async function stripeApi(env, path, params) {
   return data;
 }
 
+/** Locale of Stripe receipt / invoice emails (Customer.preferred_locales). */
+function stripePreferredLocales(order, request) {
+  const loc = String(order?.checkoutLocale || '').toLowerCase();
+  if (loc.startsWith('it')) return ['it-IT', 'it', 'en'];
+  if (loc.startsWith('en') || isComSiteRequest(request) || isIntlCheckoutLocale(loc)) {
+    return ['en-US', 'en'];
+  }
+  return ['pt-BR', 'pt'];
+}
+
+/**
+ * Create/update Stripe Customer with preferred_locales so receipts are not stuck in
+ * the account default (pt-BR for 3N20) on .com EN/IT checkouts.
+ */
+async function ensureStripeCustomer(env, order, request) {
+  const locales = stripePreferredLocales(order, request);
+  const email = String(order.email || '').trim().slice(0, 500);
+  const name = String(order.nome || '').trim().slice(0, 200);
+  if (order.stripeCustomerId) {
+    const patch = { 'metadata[orderId]': order.orderId };
+    if (email) patch.email = email;
+    if (name) patch.name = name;
+    locales.forEach((l, i) => { patch[`preferred_locales[${i}]`] = l; });
+    try {
+      await stripeApi(env, `customers/${order.stripeCustomerId}`, patch);
+    } catch (err) {
+      console.warn('Stripe customer update:', err.message);
+    }
+    return order.stripeCustomerId;
+  }
+  const params = { 'metadata[orderId]': order.orderId };
+  if (email) params.email = email;
+  if (name) params.name = name;
+  locales.forEach((l, i) => { params[`preferred_locales[${i}]`] = l; });
+  const customer = await stripeApi(env, 'customers', params);
+  order.stripeCustomerId = customer.id;
+  return customer.id;
+}
+
 async function handlePayPalCreate(request, env, origin, orderId) {
   const body = await request.json().catch(() => ({}));
   const order = await getOrder(env, orderId);
@@ -8877,9 +8917,11 @@ async function handleStripePaymentIntent(request, env, origin, orderId) {
   if (!charge) return json({ error: 'Could not compute charge amount.' }, 400, origin);
   const returnBase = storeBaseUrl(config, env, request);
   try {
+    const customerId = await ensureStripeCustomer(env, order, request);
     const pi = await stripeApi(env, 'payment_intents', {
       amount: String(charge.amountCents),
       currency: charge.currency,
+      customer: customerId,
       'automatic_payment_methods[enabled]': 'true',
       'metadata[orderId]': order.orderId,
       description: `Sensor Tattoo Fix — ${order.orderId}`.slice(0, 500),
@@ -8934,16 +8976,18 @@ async function handleStripeCheckoutSession(request, env, origin, orderId) {
     || 'Sensor Tattoo Fix'
   ).toString().slice(0, 120);
   const localeRaw = String(body.locale || order.checkoutLocale || 'en').trim().toLowerCase();
+  // .com never uses pt-BR for Stripe UI/receipts — account default is Brazilian.
   const stripeLocale = localeRaw.startsWith('it')
     ? 'it'
-    : (localeRaw.startsWith('pt') ? 'pt-BR' : 'en');
+    : (localeRaw.startsWith('pt') && !isComSiteRequest(request) ? 'pt-BR' : 'en');
   try {
+    const customerId = await ensureStripeCustomer(env, order, request);
     const session = await stripeApi(env, 'checkout/sessions', {
       mode: 'payment',
       locale: stripeLocale,
       success_url: `${returnBase}/comprar.html?${successQs}`,
       cancel_url: `${returnBase}/comprar.html?${cancelQs}`,
-      customer_email: String(order.email || '').slice(0, 500),
+      customer: customerId,
       'line_items[0][quantity]': '1',
       'line_items[0][price_data][currency]': charge.currency,
       'line_items[0][price_data][unit_amount]': String(charge.amountCents),
@@ -9670,189 +9714,13 @@ async function purgeLegacyClickIndex(env, mode) {
 }
 
 async function appendClickLog(env, entry) {
-  await appendClickLogBatch(env, [entry]);
-}
-
-/** One KV put for many events — cuts free-tier write usage sharply. */
-async function appendClickLogBatch(env, entries) {
-  const batch = (entries || []).filter(Boolean);
-  if (!batch.length) return null;
+  const id = crypto.randomUUID();
+  const row = { id, ts: Date.now(), ...entry };
   let list = (await getClicksBlob(env)) || [];
-  const seen = new Set();
-  for (const row of list.slice(0, 800)) {
-    const eid = String(row?.client_event_id || '').trim();
-    if (eid) seen.add(eid);
-  }
-  const fresh = [];
-  for (const item of batch) {
-    const eid = String(item?.client_event_id || '').trim();
-    if (eid) {
-      if (seen.has(eid)) continue;
-      seen.add(eid);
-    }
-    fresh.push(item);
-  }
-  if (!fresh.length) return null;
-  list = fresh.concat(list);
+  list.unshift(row);
   if (list.length > CLICKS_MAX) list.length = CLICKS_MAX;
   await saveClicksBlob(env, list);
-  return fresh[0];
-}
-
-const CLICK_BUF_FLUSH_SIZE = 40;
-const CLICK_BUF_MAX_AGE_MS = 12 * 60_000; // 12 min — fewer KV puts, still useful in admin
-const CLICK_BUF_CACHE_URL = 'https://stf-internal/click-write-buffer';
-
-async function readClickWriteBuffer() {
-  try {
-    const hit = await caches.default.match(new Request(CLICK_BUF_CACHE_URL));
-    if (!hit) return { items: [], since: Date.now() };
-    const buf = await hit.json();
-    if (!buf || !Array.isArray(buf.items)) return { items: [], since: Date.now() };
-    return { items: buf.items, since: Number(buf.since) || Date.now() };
-  } catch {
-    return { items: [], since: Date.now() };
-  }
-}
-
-async function writeClickWriteBuffer(buf) {
-  await caches.default.put(
-    new Request(CLICK_BUF_CACHE_URL),
-    new Response(JSON.stringify(buf), {
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=1800' }
-    })
-  );
-}
-
-function shouldSkipClickPersist(entry, body) {
-  if (!entry || typeof entry !== 'object') return true;
-  if (entry.teste === true || body?.teste === true || body?.skip_analytics === true || body?.owner_skip === true) {
-    return true;
-  }
-  const pagina = String(entry.pagina || body?.pagina || '').toLowerCase();
-  if (/admin\.html|\/admin(?:\?|$)|documentacao|pedidos\.html|imprimir-etiqueta/.test(pagina)) {
-    return true;
-  }
-  const vid = String(entry.visitante_id || '').trim();
-  if (/^v_(owner|admin|test|diag|proxy)/i.test(vid)) return true;
-  const sessao = String(entry.sessao_visita || '').toLowerCase();
-  if (/^admin_|^s_test|^test_|^owner_/.test(sessao)) return true;
-  const tipo = String(entry.tipo || body?.tipo || '').toLowerCase();
-  const destino = String(entry.destino || body?.destino || '').toLowerCase();
-  if (tipo === 'pageview' && (/^entrada_home(_en|_it)?$/.test(destino) || destino === 'home')) {
-    return true;
-  }
-  return false;
-}
-
-function isUrgentClickPersist(entry, body) {
-  if (body?.urgente === true || body?.flush_now === true) return true;
-  const dest = String(entry?.destino || body?.destino || '').toLowerCase();
-  // Only purchase paths: marketplaces + own store / checkout.
-  if (/^(mercado_livre|amazon|shopee|tiktok_shop|loja_oficial|checkout)$/.test(dest)) {
-    return true;
-  }
-  const href = String(entry?.href || body?.href || '');
-  if (/mercadolivre|amazon\.|amzn\.|a\.co\/|shopee|vt\.tiktok|tiktok_shop/i.test(href)) return true;
-  if (/loja\.html|comprar\.html/i.test(href)) return true;
-  return false;
-}
-
-function clickRowTs(entry) {
-  const clientTs = Number(entry?.client_ts) || 0;
-  return clientTs > 0 ? clientTs : Date.now();
-}
-
-/** Client session trail attached to marketplace/loja flush (Cache API buffer is edge-local). */
-function trailEntriesFromBody(body, request) {
-  const raw = Array.isArray(body?.trilha) ? body.trilha
-    : (Array.isArray(body?.trail) ? body.trail : []);
-  if (!raw.length) return [];
-  const out = [];
-  const seen = new Set();
-  for (const item of raw.slice(-40)) {
-    if (!item || typeof item !== 'object') continue;
-    const eid = String(item.client_event_id || '').trim().slice(0, 64);
-    if (eid) {
-      if (seen.has(eid)) continue;
-      seen.add(eid);
-    }
-    const entry = buildClickEntry(item, request);
-    if (shouldSkipClickPersist(entry, item)) continue;
-    out.push({
-      id: crypto.randomUUID(),
-      ...entry,
-      ts: clickRowTs(entry),
-      client_event_id: eid
-    });
-  }
-  return out;
-}
-
-/**
- * Persist clicks to KV. Client sends non-urgent trail only on purchase/flush —
- * Cache API buffering was edge-local and dropped trails.
- */
-async function persistClickLog(env, entry, ctx, body, request) {
-  const urgent = isUrgentClickPersist(entry, body);
-  const trail = trailEntriesFromBody(body, request);
-  const dest = String(entry?.destino || body?.destino || '').toLowerCase();
-  const trailOnly = dest === 'flush_buffer' || body?.somente_trilha === true;
-
-  const toFlush = [];
-  const seenEvents = new Set();
-
-  function pushRow(item) {
-    if (!item) return;
-    const eid = String(item.client_event_id || '').trim();
-    if (eid) {
-      if (seenEvents.has(eid)) return;
-      seenEvents.add(eid);
-    }
-    toFlush.push(item);
-  }
-
-  for (const item of trail) pushRow(item);
-
-  if (!trailOnly && !shouldSkipClickPersist(entry, body)) {
-    pushRow({
-      id: crypto.randomUUID(),
-      ...entry,
-      ts: clickRowTs(entry),
-      client_event_id: String(body?.client_event_id || entry?.client_event_id || '').trim().slice(0, 64)
-    });
-  }
-
-  if (!toFlush.length) return null;
-
-  // Newest first in blob
-  toFlush.sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0));
-
-  if (urgent || trail.length || trailOnly) {
-    await appendClickLogBatch(env, toFlush);
-    // Drop any stale Cache buffer leftovers for this visitor (best-effort, edge-local).
-    try {
-      const vid = String(entry?.visitante_id || '').trim();
-      const sid = String(entry?.sessao_visita || '').trim();
-      if (vid || sid) {
-        const buf = await readClickWriteBuffer();
-        const keep = (buf.items || []).filter((item) => {
-          const sameVisitor = !!(vid && String(item.visitante_id || '') === vid);
-          const sameSession = !!(sid && String(item.sessao_visita || '') === sid);
-          return !(sameVisitor || sameSession);
-        });
-        await writeClickWriteBuffer({
-          items: keep,
-          since: keep.length ? (buf.since || Date.now()) : Date.now()
-        });
-      }
-    } catch (_) { /* ignore */ }
-    return toFlush[0];
-  }
-
-  // Legacy non-urgent single posts: still KV-write (no Cache) so admin sees them.
-  await appendClickLogBatch(env, toFlush);
-  return toFlush[0];
+  return row;
 }
 
 async function isDuplicateClickEvent(eventId) {
@@ -9937,7 +9805,6 @@ function buildClickEntry(data, request) {
     utm_source: clickField(data, 'utm_source', 48),
     utm_medium: clickField(data, 'utm_medium', 32),
     utm_campaign: clickField(data, 'utm_campaign', 64),
-    client_event_id: clickField(data, 'client_event_id', 64),
     teste: data?.teste === true || data?.teste === 'true' || data?.is_test === true || data?.is_test === 'true'
   };
 }
@@ -9951,6 +9818,10 @@ function pixelResponse(origin, status) {
       'Cache-Control': 'no-store'
     }
   });
+}
+
+async function persistClickLog(env, entry) {
+  await appendClickLog(env, entry);
 }
 
 const REAL_VISITOR_UUID = /^v_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -9999,7 +9870,6 @@ async function handleAdminClearClicks(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
-  try { await flushClickWriteBufferToKv(env); } catch (_) { /* ignore */ }
   const body = await request.json().catch(() => ({}));
   const mode = body.mode === 'all' ? 'all' : 'tests';
 
@@ -10041,19 +9911,13 @@ async function checkClickRate(env, ip) {
   const req = new Request(`https://stf-click-rate/${encodeURIComponent(ip)}/${minute}`);
   const hit = await cache.match(req);
   const n = (hit ? parseInt(await hit.text(), 10) || 0 : 0) + 1;
-  if (n > 120) return false;
+  if (n > 180) return false;
   await cache.put(req, new Response(String(n), { headers: { 'Cache-Control': 'max-age=120' } }));
   return true;
 }
 
 async function handleLogClick(request, env, origin, ctx) {
-  let body = null;
-  try {
-    const text = await request.text();
-    body = text ? JSON.parse(text) : null;
-  } catch {
-    body = null;
-  }
+  const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') {
     return json({ error: 'Payload inválido.' }, 400, origin);
   }
@@ -10067,19 +9931,20 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   const eventId = String(body.client_event_id || '').trim().slice(0, 64);
-
-  const entry = buildClickEntry(body, request);
-  if (shouldSkipClickPersist(entry, body) && !((Array.isArray(body.trilha) && body.trilha.length) || body.flush_now)) {
-    return json({ ok: true, skipped: true }, 202, origin);
+  if (eventId && (await isDuplicateClickEvent(eventId))) {
+    return json({ ok: true, deduped: true }, 202, origin);
   }
 
+  const entry = buildClickEntry(body, request);
+
   try {
-    await persistClickLog(env, entry, ctx, body, request);
+    await persistClickLog(env, entry);
   } catch (err) {
     console.error('click log:', err.message);
     return json({ ok: false, error: 'storage', retry: true }, 503, origin);
   }
 
+  // Mark after successful write — marking before put caused silent log loss on KV errors.
   if (eventId) {
     if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(markClickEventSeen(eventId));
     else await markClickEventSeen(eventId);
@@ -10101,14 +9966,14 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   }
 
   const eventId = String(params.client_event_id || '').trim().slice(0, 64);
-
-  const entry = buildClickEntry(params, request);
-  if (shouldSkipClickPersist(entry, params)) {
+  if (eventId && (await isDuplicateClickEvent(eventId))) {
     return pixelResponse(origin);
   }
 
+  const entry = buildClickEntry(params, request);
+
   try {
-    await persistClickLog(env, entry, ctx, params, request);
+    await persistClickLog(env, entry);
   } catch (err) {
     console.error('click pixel:', err.message);
   }
