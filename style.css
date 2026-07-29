@@ -1023,9 +1023,9 @@ body.stf-feedback-open { overflow: hidden; }
 
 .loja-page .loja-grid {
     width: 100%;
-    max-width: 340px;
+    max-width: 720px;
     margin-top: 0;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 @media (min-width: 768px) {
     .loja-page .loja-main {
@@ -1046,7 +1046,8 @@ body.stf-feedback-open { overflow: hidden; }
         max-width: 320px;
     }
     .loja-page .loja-grid {
-        flex: 0 0 340px;
+        flex: 1 1 auto;
+        max-width: 720px;
         order: -1;
     }
 }

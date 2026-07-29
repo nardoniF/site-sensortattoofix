@@ -1330,24 +1330,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function renderCheckoutKitAlbum() {
+    // Always hidden — cart now shows product thumbnails inline; big album is redundant.
     const mount = document.getElementById('checkout-product-album');
-    if (!mount || !window.STF_CART) return;
-    const items = window.STF_CART.load();
-    const kitItem = items.find((item) => {
-      const catalog = products.find((x) => x.id === item.productId || x.slug === item.productId);
-      return window.STF_PRODUCT_GALLERY?.isKitProduct?.(catalog || item);
-    });
-    if (!kitItem || !window.STF_PRODUCT_GALLERY?.renderMarkup) {
-      mount.hidden = true;
-      mount.innerHTML = '';
-      return;
-    }
-    const catalog = products.find((x) => x.id === kitItem.productId || x.slug === kitItem.productId) || kitItem;
-    const imgs = window.STF_PRODUCT_GALLERY.resolveImages(catalog);
-    const label = cartLineName(kitItem);
-    mount.hidden = false;
-    mount.innerHTML = window.STF_PRODUCT_GALLERY.renderMarkup(imgs, label, 'checkout-kit-album');
-    window.STF_PRODUCT_GALLERY.bind(mount);
+    if (mount) { mount.hidden = true; mount.innerHTML = ''; }
   }
 
   function renderCartSidebar() {
