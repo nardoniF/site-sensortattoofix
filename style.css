@@ -298,6 +298,7 @@ html[lang="it"] .nav-actions { gap: 6px; }
 .hero h1 { font-size: 3.5rem; font-weight: 900; line-height: 1.05; margin: 28px 0; }
 .hero p { font-size: 1.1rem; color: var(--gray); margin-bottom: 38px; }
 .hero-btns { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.hero-cta-buy-short { display: none; }
 .btn-primary { background: var(--primary); color: #000 !important; padding: 16px 26px; border-radius: 12px; text-decoration: none; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; text-align: center; border: none; min-width: 220px; cursor: pointer; }
 .product-img { width: 100%; border-radius: 20px; border: 1px solid #222; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
 
@@ -1743,6 +1744,8 @@ footer,
     .hero-grid { grid-template-columns: 1fr; text-align: center; padding-top: 40px; }
     .hero h1 { font-size: 2.2rem; }
     .hero-btns { flex-direction: column; width: 100%; }
+    .hero-cta-buy-full { display: none; }
+    .hero-cta-buy-short { display: inline; }
     .btn-primary { width: auto; min-width: unset; max-width: 220px; }
     .btn-primary, .btn-secondary { margin-left: auto; margin-right: auto; }
     #produtos .product-solution-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
