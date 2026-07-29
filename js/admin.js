@@ -1290,7 +1290,9 @@ ${worksheets}
       detalhe = c.secao_label || humanizarPaginaLog(c.pagina) || '—';
     }
     const hora = formatClickTime(c.ts);
-    const seq = c.sequencia || idx + 1;
+    // Step index only within this visit path (1, 2, 3…) — never c.sequencia
+    // (that field mixes across visitors and broke the live feed).
+    const seq = idx + 1;
     const tipParts = [
       isEntrada ? `Origem: ${origem.label}` : null,
       formatClickGeo(c) && `Local: ${formatClickGeo(c)}`,
@@ -1323,18 +1325,11 @@ ${worksheets}
     if (!clicks?.length) {
       root.innerHTML = '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
     } else {
-      const recent = [...(clicks || [])]
-        .sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0))
-        .slice(0, 20);
-      let html = '<div class="clicks-recent">';
-      html += '<h3 class="clicks-recent-title">Últimos eventos (ao vivo)</h3>';
-      html += '<ol class="clicks-tree-steps clicks-recent-list">';
-      recent.forEach((c, idx) => { html += renderClickStep(c, idx); });
-      html += '</ol></div>';
-
+      // Only day → visitor → visit path → steps (by time). No flat “ao vivo” list —
+      // that reused session sequencia across visitors and looked broken.
       const tree = buildClicksTree(clicks);
       const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
-      html += '<div class="clicks-tree">';
+      let html = '<div class="clicks-tree">';
 
       years.forEach((year, yi) => {
         const y = tree[year];
@@ -1370,22 +1365,23 @@ ${worksheets}
               html += `<details class="clicks-tree-node clicks-tree-visitor" data-tree-path="${visitorPath}"${visitorOpen}><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
 
               const sessions = Object.entries(v.sessions).sort((a, b) => {
-                const ta = (a[1][0]?.ts) || 0;
-                const tb = (b[1][0]?.ts) || 0;
-                return ta - tb;
+                const ta = Math.min(...(a[1].map((e) => e.ts || 0)));
+                const tb = Math.min(...(b[1].map((e) => e.ts || 0)));
+                return tb - ta;
               });
 
               sessions.forEach(([sKey, events], si) => {
-                const start = formatClickTime(events[0]?.ts);
+                const ordered = [...events].sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
+                const start = formatClickTime(ordered[0]?.ts);
                 const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
-                const entradaEv = events.find((e) => e.tipo === 'pageview' || String(e.destino || '').startsWith('entrada_')) || events[0];
+                const entradaEv = ordered.find((e) => e.tipo === 'pageview' || String(e.destino || '').startsWith('entrada_')) || ordered[0];
                 const origem = entradaEv ? clickOrigemLegivel(entradaEv) : null;
                 const passosMeta = origem && origem.label ? `${origemBadgeHtml(origem)} · passos` : 'passos';
                 const sessionPath = `${visitorPath}|${escapeHtml(sKey)}`;
                 const sessionOpen = yi === 0 && mi === 0 && di === 0 && vi === 0 && si === 0 ? ' open' : '';
-                html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"${sessionOpen}><summary>${clicksTreeSummary(pathLabel, events.length, passosMeta)}</summary>`;
+                html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"${sessionOpen}><summary>${clicksTreeSummary(pathLabel, ordered.length, passosMeta)}</summary>`;
                 html += '<ol class="clicks-tree-steps">';
-                events.forEach((c, idx) => { html += renderClickStep(c, idx); });
+                ordered.forEach((c, idx) => { html += renderClickStep(c, idx); });
                 html += '</ol></details>';
               });
 
