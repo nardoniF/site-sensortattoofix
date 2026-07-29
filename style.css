@@ -1594,12 +1594,42 @@ footer,
     .home-page .nav-actions {
         flex: 1;
         justify-content: flex-end;
+        align-items: center;
+        flex-wrap: nowrap;
         min-width: 0;
         margin-left: auto;
+        gap: 4px;
+    }
+    /* .com has PT+IT stacked — that blows the header into two rows on phones */
+    .nav-lang-stack {
+        flex-direction: row;
+        gap: 4px;
+        align-items: center;
+    }
+    .nav-lang-stack .nav-lang {
+        padding: 5px 6px;
+        min-width: 0;
+    }
+    .nav-lang-stack .nav-lang span {
+        display: none; /* flags only on narrow screens */
+    }
+    .account-nav-login {
+        padding: 6px 8px;
+        font-size: 0;
+        gap: 0;
+    }
+    .account-nav-login i {
+        font-size: 0.95rem;
+    }
+    .account-nav-login span {
+        display: none; /* icon only — “Log in” was wrapping the header */
+    }
+    .account-nav-name {
+        max-width: 72px;
     }
     .home-page .mobile-menu-icon {
         order: 99;
-        margin-left: 4px;
+        margin-left: 2px;
     }
     .home-page .hero-brand-mobile {
         display: block;
@@ -1635,6 +1665,8 @@ footer,
         border-left: none;
         padding-left: 0;
         gap: 6px;
+        flex-wrap: nowrap;
+        align-items: center;
     }
     .mobile-menu-icon {
         display: flex;
@@ -2616,12 +2648,23 @@ line-height:1.8;
     .site-trust-bar-main { flex-direction: column; align-items: flex-start; gap: 6px; }
     .hero-trust-row {
         justify-content: center;
-        gap: 8px;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 2px;
     }
     .site-trust-inline-main {
         justify-content: center;
-        font-size: 0.82rem;
-        gap: 6px 8px;
+        font-size: 0.72rem;
+        gap: 4px 6px;
+        max-width: 100%;
+    }
+    .hero-text:has(.hero-trust-row) > h1 {
+        margin: 10px 0 10px;
+        font-size: clamp(1.85rem, 8vw, 2.35rem);
+    }
+    .hero-text:has(.hero-trust-row) > p {
+        margin-bottom: 16px;
     }
 }
 
