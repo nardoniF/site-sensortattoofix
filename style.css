@@ -299,6 +299,7 @@ html[lang="it"] .nav-actions { gap: 6px; }
 .hero p { font-size: 1.1rem; color: var(--gray); margin-bottom: 38px; }
 .hero-btns { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .hero-cta-buy-short { display: none; }
+.hero-store-bar { display: none; }
 .btn-primary { background: var(--primary); color: #000 !important; padding: 16px 26px; border-radius: 12px; text-decoration: none; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; text-align: center; border: none; min-width: 220px; cursor: pointer; }
 .product-img { width: 100%; border-radius: 20px; border: 1px solid #222; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
 
@@ -1746,6 +1747,25 @@ footer,
     .hero-btns { flex-direction: column; width: 100%; }
     .hero-cta-buy-full { display: none; }
     .hero-cta-buy-short { display: inline; }
+    .hero-cta-buy { display: none !important; }
+    .hero-store-bar {
+        display: flex;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 10px 12px;
+        gap: 10px;
+        box-sizing: border-box;
+        transform: none;
+    }
+    .hero-store-bar:hover { transform: none; }
+    .hero-store-bar .store-icon-circle {
+        width: 52px;
+        height: 52px;
+    }
+    .hero-store-bar .store-official-info strong { font-size: 0.95rem; }
+    .hero-store-bar .store-official-price { font-size: 0.9rem; }
+    .hero-store-bar .store-official-shipping { font-size: 0.7rem; }
     .btn-primary { width: auto; min-width: unset; max-width: 220px; }
     .btn-primary, .btn-secondary { margin-left: auto; margin-right: auto; }
     #produtos .product-solution-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
@@ -2700,6 +2720,12 @@ line-height:1.8;
         width: min(100%, 280px);
         min-width: 0;
         box-sizing: border-box;
+    }
+    .home-page .hero-btns .hero-store-bar {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
     }
 }
 
