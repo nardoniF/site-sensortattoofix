@@ -5236,26 +5236,28 @@ body.stf-lightbox-open { overflow: hidden; }
 .checkout-product-album .stf-album {
   border-radius: 12px;
   background: #111;
-  /* Follow the photo — do not force a tall empty frame */
+  /* Frame follows the photo — no tall empty box */
   aspect-ratio: auto;
-  width: 100%;
-  max-width: min(100%, 340px);
+  width: fit-content;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
   overflow: hidden;
 }
 .checkout-product-album .stf-album img {
-  width: 100%;
+  /* Beat .checkout-product-card img { max-width: 200px } which left empty frame around the photo */
+  width: auto;
+  max-width: min(100%, 320px);
   height: auto;
   max-height: none;
   aspect-ratio: auto;
   object-fit: contain;
   display: block;
+  margin: 0;
   border-radius: 12px;
-  vertical-align: middle;
 }
 @media (max-width: 768px) {
-  .checkout-product-album .stf-album {
+  .checkout-product-album .stf-album img {
     max-width: min(100%, 280px);
   }
 }
