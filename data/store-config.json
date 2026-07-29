@@ -30,6 +30,60 @@
       ]
     },
     {
+      "id": "kit-smartband-tattoofix",
+      "slug": "kit-smartband-tattoofix",
+      "name": "Kit Smartband Tattoo Friendly",
+      "nameEn": "Kit Smartband Tattoo Friendly",
+      "nameIt": "Kit Smartband Tattoo Friendly",
+      "description": "Lente ótica para smartband em pele tatuada — kit completo",
+      "descriptionEn": "Optical lens for smartbands on tattooed skin — full kit",
+      "descriptionIt": "Lente ottica per smartband su pelle tatuata — kit completo",
+      "price": 62.9,
+      "image": "/site/smartband/kit-br/01-embalagem.jpg",
+      "images": [
+        "/site/smartband/kit-br/01-embalagem.jpg",
+        "/site/smartband/kit-br/02-conteudo.jpg",
+        "/site/smartband/kit-br/03-aplicacao.jpg",
+        "/site/smartband/kit-br/04-antes-depois.jpg",
+        "/site/smartband/kit-br/05-lente.jpg"
+      ],
+      "active": true,
+      "requiresSmartwatch": true,
+      "weightGrams": 3,
+      "sensorMm": 25,
+      "markets": [
+        "BR"
+      ]
+    },
+    {
+      "id": "optical-lens-smartband-intl",
+      "slug": "optical-lens-smartband-intl",
+      "name": "SensorTattooFix Smartband Lens",
+      "nameEn": "SensorTattooFix Smartband Lens",
+      "nameIt": "Lente Smartband SensorTattooFix",
+      "description": "Lente de correção óptica para smartband em pele tatuada.",
+      "descriptionEn": "Designed for smartband optical sensors on tattooed skin.",
+      "descriptionIt": "Progettata per i sensori ottici degli smartband su pelle tatuata.",
+      "price": 62.9,
+      "priceUsd": 12.99,
+      "priceEur": 11.99,
+      "image": "/site/smartband/lens-en/01-embalagem.jpg",
+      "images": [
+        "/site/smartband/lens-en/01-embalagem.jpg",
+        "/site/smartband/lens-en/02-conteudo.jpg",
+        "/site/smartband/lens-en/03-aplicacao.jpg",
+        "/site/smartband/lens-en/04-antes-depois.jpg"
+      ],
+      "active": true,
+      "requiresSmartwatch": true,
+      "weightGrams": 3,
+      "sensorMm": 25,
+      "markets": [
+        "INT"
+      ],
+      "aggregated": false
+    },
+    {
       "id": "optical-lens-intl",
       "slug": "optical-lens-intl",
       "name": "SensorTattooFix Optical Lens",

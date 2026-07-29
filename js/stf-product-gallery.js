@@ -4,7 +4,8 @@
  * .com / EN / IT (gringa): mesmo álbum de fotos na home, loja e checkout.
  */
 (function () {
-  const KIT_IDS = new Set(['kit-sensor-tattoofix', 'kit', 'optical-lens-intl']);
+  const KIT_IDS = new Set(['kit-sensor-tattoofix', 'kit', 'optical-lens-intl', 'kit-smartband-tattoofix', 'optical-lens-smartband-intl']);
+  const SMARTBAND_IDS = new Set(['kit-smartband-tattoofix', 'optical-lens-smartband-intl']);
 
   const PT_GALLERY = [
     '/site/kit-gallery/kit-03-aplicacao.jpg',
@@ -136,6 +137,40 @@
     return KIT_IDS.has(id) || /kit.?sensor|sensor.?tattoo/i.test(id + ' ' + (product?.name || ''));
   }
 
+  function isSmartbandProduct(product) {
+    const id = String(product?.id || product?.slug || '').trim();
+    return SMARTBAND_IDS.has(id) || /smartband/i.test(id + ' ' + (product?.name || ''));
+  }
+
+  const SMARTBAND_GALLERY_BR = [
+    '/site/smartband/kit-br/01-embalagem.jpg',
+    '/site/smartband/kit-br/02-conteudo.jpg',
+    '/site/smartband/kit-br/03-aplicacao.jpg',
+    '/site/smartband/kit-br/04-antes-depois.jpg',
+    '/site/smartband/kit-br/05-lente.jpg'
+  ];
+
+  const SMARTBAND_GALLERY_EN = [
+    '/site/smartband/lens-en/01-embalagem.jpg',
+    '/site/smartband/lens-en/02-conteudo.jpg',
+    '/site/smartband/lens-en/03-aplicacao.jpg',
+    '/site/smartband/lens-en/04-antes-depois.jpg'
+  ];
+
+  const SMARTBAND_GALLERY_IT = [
+    '/site/smartband/lens-it/01-embalagem.jpg',
+    '/site/smartband/lens-it/02-conteudo.jpg',
+    '/site/smartband/lens-it/03-aplicacao.jpg',
+    '/site/smartband/lens-it/04-antes-depois.jpg'
+  ];
+
+  function smartbandAlbum(lang) {
+    const l = lang || detectLang();
+    if (l === 'en') return SMARTBAND_GALLERY_EN.slice();
+    if (l === 'it') return SMARTBAND_GALLERY_IT.slice();
+    return SMARTBAND_GALLERY_BR.slice();
+  }
+
   function lensAlbum(lang) {
     const l = lang || detectLang();
     if (l === 'en') return LENS_GALLERY_EN.slice();
@@ -168,9 +203,13 @@
     const fromAlbum = Array.isArray(product?.images) ? product.images : [];
     const primary = product?.image || '';
     let list = uniqueUrls([primary, ...fromAlbum].filter((u) => u && !isLegacyKitHero(u)));
+    const lang = detectLang();
+    // Smartband: serve própria galeria por idioma/market
+    if (isSmartbandProduct(product)) {
+      return uniqueUrls([...list, ...smartbandAlbum(lang)]);
+    }
     // .com / EN / IT: álbum completo por idioma (IT usa fotos em italiano)
     if (isLensOnlyMarket() && (isKitProduct(product) || !list.length)) {
-      const lang = detectLang();
       return uniqueUrls(localizeLensUrls([...list, ...lensAlbum(lang)], lang));
     }
     if (list.length) return list;
