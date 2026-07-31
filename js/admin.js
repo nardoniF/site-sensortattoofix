@@ -1080,6 +1080,49 @@ ${worksheets}
     return 'Visitante sem identificação';
   }
 
+  /** Session with exactly one event: Entrada — Home (bounce). Display filter only — does not delete KV. */
+  function isHomeOnlyBounceSession(events) {
+    if (!Array.isArray(events) || events.length !== 1) return false;
+    const c = events[0];
+    const dest = String(c?.destino || '');
+    if (dest === 'entrada_home' || dest === 'entrada_home_en') return true;
+    const label = String(c?.rotulo || c?.destino_label || '');
+    if ((c?.tipo === 'pageview' || dest.startsWith('entrada_')) && /entrada\s*[—\-–]\s*home\b/i.test(label)) {
+      return true;
+    }
+    return false;
+  }
+
+  function pruneHomeOnlyBounceSessions(tree) {
+    Object.keys(tree).forEach((year) => {
+      const y = tree[year];
+      Object.keys(y.months).forEach((monthNum) => {
+        const m = y.months[monthNum];
+        Object.keys(m.days).forEach((dateKey) => {
+          const d = m.days[dateKey];
+          Object.keys(d.visitors).forEach((vKey) => {
+            const v = d.visitors[vKey];
+            Object.keys(v.sessions).forEach((sKey) => {
+              const events = v.sessions[sKey];
+              if (!isHomeOnlyBounceSession(events)) return;
+              const n = events.length;
+              delete v.sessions[sKey];
+              v.count -= n;
+              d.count -= n;
+              m.count -= n;
+              y.count -= n;
+            });
+            if (!Object.keys(v.sessions).length) delete d.visitors[vKey];
+          });
+          if (!Object.keys(d.visitors).length) delete m.days[dateKey];
+        });
+        if (!Object.keys(m.days).length) delete y.months[monthNum];
+      });
+      if (!Object.keys(y.months).length) delete tree[year];
+    });
+    return tree;
+  }
+
   function buildClicksTree(clicks) {
     const tree = {};
     (clicks || []).forEach((c) => {
@@ -1328,7 +1371,19 @@ ${worksheets}
       // Only day → visitor → visit path → steps (by time). No flat “ao vivo” list —
       // that reused session sequencia across visitors and looked broken.
       const tree = buildClicksTree(clicks);
+      const hideHomeOnly = !!document.getElementById('clicks-filter-hide-home-only')?.checked;
+      if (hideHomeOnly) pruneHomeOnlyBounceSessions(tree);
       const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
+      if (!years.length) {
+        root.innerHTML = hideHomeOnly
+          ? '<p class="admin-meta">Nenhuma visita com interação além da home. Desmarque <strong>Ocultar só-home</strong> para ver os bounces.</p>'
+          : '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
+        if (checkedEl) {
+          checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log`;
+          checkedEl.hidden = false;
+        }
+        return;
+      }
       let html = '<div class="clicks-tree">';
 
       years.forEach((year, yi) => {
@@ -3274,6 +3329,17 @@ ${worksheets}
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
   document.getElementById('clicks-filter-nav')?.addEventListener('change', () => loadClicks());
+  document.getElementById('clicks-filter-hide-home-only')?.addEventListener('change', () => {
+    if (!clicksCache.length) {
+      loadClicks();
+      return;
+    }
+    const openPaths = captureClicksTreeOpenPaths();
+    const checkedEl = document.getElementById('clicks-checked-at');
+    const totalMatch = checkedEl?.textContent?.match(/de (\d+) no log/);
+    const total = totalMatch ? Number(totalMatch[1]) : clicksCache.length;
+    renderClicksTree(clicksCache, new Date().toISOString(), total, openPaths);
+  });
   document.getElementById('btn-feedback-refresh')?.addEventListener('click', () => loadFeedback());
   document.getElementById('btn-feedback-clear')?.addEventListener('click', () => clearFeedback());
   document.getElementById('feedback-search')?.addEventListener('input', scheduleFeedbackReload);
