@@ -1904,6 +1904,23 @@ line-height:1.8;
 .faq-media-embed--tiktok .tiktok-embed {
     margin: 0 auto !important;
 }
+.warning-visual {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.paliativos-tiktok {
+    max-width: 325px;
+    width: 100%;
+}
+.paliativos-tiktok-caption {
+    margin: 0;
+    max-width: 325px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--gray, #aaa);
+    line-height: 1.4;
+}
 
 .btn-comprar-produto:hover{
     transform:translateY(-2px);
