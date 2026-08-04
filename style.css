@@ -375,7 +375,6 @@ html[lang="it"] .nav-actions { gap: 6px; }
 #paliativos {
     min-height: 100vh;
     box-sizing: border-box;
-    /* Sobe o bloco (sem centralizar) e empurra um pouco a seção de produtos */
     padding-top: 72px;
     padding-bottom: 110px;
     display: flex;
@@ -584,8 +583,8 @@ html[lang="it"] .nav-actions { gap: 6px; }
 .card i, .benefit-card i { font-size: 2.25rem; color: var(--primary); margin-bottom: 18px; }
 .card h3, .benefit-card h3 { margin-bottom: 10px; font-size: 1.25rem; }
 
-/* Problema: caber no viewport (título + intro + 6 cards) */
-#problema.content-section { padding: 18px 0 22px; }
+/* Problema: cards compactos, mas com o mesmo respiro do menu das outras seções */
+#problema.content-section { padding: 72px 0 28px; }
 #problema .section-title { margin-bottom: 8px; }
 #problema .problem-intro {
     margin-bottom: 12px;
