@@ -1,4 +1,4 @@
-/** FAQ — YouTube, Instagram e TikTok; TikTok só carrega ao clicar (evita overload-protect). */
+/** FAQ — YouTube, Instagram; TikTok abre no app/site oficial (embed bloqueia com overload-protect). */
 (function () {
   function processInstagram() {
     window.instgrm?.Embeds?.process();
@@ -33,95 +33,37 @@
     });
   }
 
-  function posterLabel(el) {
+  function labelWatch() {
     var lang = (document.documentElement.lang || 'pt').slice(0, 2).toLowerCase();
-    if (lang === 'en') return 'Watch video';
-    if (lang === 'it') return 'Guarda il video';
-    return 'Assistir vídeo';
-  }
-
-  function openLabel(el) {
-    var lang = (document.documentElement.lang || 'pt').slice(0, 2).toLowerCase();
-    if (lang === 'en') return 'Open on TikTok';
-    if (lang === 'it') return 'Apri su TikTok';
-    return 'Abrir no TikTok';
-  }
-
-  function unloadOtherTikToks(keep) {
-    document.querySelectorAll('.faq-media-embed--tiktok.is-playing').forEach(function (box) {
-      if (box === keep) return;
-      var id = box.getAttribute('data-tiktok-id');
-      var href = box.getAttribute('data-tiktok-href') || (id ? 'https://www.tiktok.com/video/' + id : '#');
-      var title = box.getAttribute('data-tiktok-title') || 'TikTok';
-      box.classList.remove('is-playing');
-      box.innerHTML = '';
-      box.appendChild(buildPoster(box, id, href, title));
-      box.appendChild(buildFallback(href));
-    });
-  }
-
-  function buildPoster(box, id, href, title) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'stf-tiktok-poster';
-    btn.setAttribute('aria-label', posterLabel(box) + ' — ' + title);
-    btn.innerHTML =
-      '<span class="stf-tiktok-poster-play" aria-hidden="true">▶</span>' +
-      '<span class="stf-tiktok-poster-label">' + posterLabel(box) + '</span>';
-    btn.addEventListener('click', function () {
-      loadTikTok(box, id, href, title);
-    });
-    return btn;
-  }
-
-  function buildFallback(href) {
-    var a = document.createElement('a');
-    a.className = 'stf-tiktok-fallback';
-    a.href = href;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.textContent = openLabel();
-    return a;
-  }
-
-  function loadTikTok(box, id, href, title) {
-    if (!id || box.classList.contains('is-playing')) return;
-    unloadOtherTikToks(box);
-    box.classList.add('is-playing');
-    var iframe = document.createElement('iframe');
-    iframe.src = 'https://www.tiktok.com/embed/v2/' + id + '?lang=pt-BR';
-    iframe.title = title || 'TikTok';
-    iframe.allow = 'fullscreen; encrypted-media; accelerometer; autoplay; clipboard-write; gyroscope; picture-in-picture';
-    iframe.allowFullscreen = true;
-    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-    box.innerHTML = '';
-    box.appendChild(iframe);
-    box.appendChild(buildFallback(href || ('https://www.tiktok.com/video/' + id)));
+    if (lang === 'en') return 'Watch on TikTok';
+    if (lang === 'it') return 'Guarda su TikTok';
+    return 'Assistir no TikTok';
   }
 
   function hydrateTikTok(box) {
     if (box.dataset.tiktokReady === '1') return;
-    var id = box.getAttribute('data-tiktok-id');
-    if (!id) {
-      var existing = box.querySelector('iframe[src*="tiktok.com/embed"]');
-      if (existing) {
-        var m = existing.src.match(/embed\/v2\/(\d+)/);
-        if (m) id = m[1];
-        var title = existing.getAttribute('title') || 'TikTok';
-        box.setAttribute('data-tiktok-id', id);
-        box.setAttribute('data-tiktok-title', title);
-        if (!box.getAttribute('data-tiktok-href')) {
-          box.setAttribute('data-tiktok-href', 'https://www.tiktok.com/video/' + id);
-        }
-      }
+    if (box.matches('a.stf-tiktok-card')) {
+      box.dataset.tiktokReady = '1';
+      return;
     }
-    if (!id) return;
-    var href = box.getAttribute('data-tiktok-href') || ('https://www.tiktok.com/video/' + id);
+    var id = box.getAttribute('data-tiktok-id');
+    var href = box.getAttribute('data-tiktok-href') || (id ? 'https://www.tiktok.com/video/' + id : '');
     var title = box.getAttribute('data-tiktok-title') || 'TikTok';
+    var handle = box.getAttribute('data-tiktok-handle') || '';
+    if (!href) return;
     box.dataset.tiktokReady = '1';
+    var a = document.createElement('a');
+    a.className = 'stf-tiktok-card';
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.setAttribute('aria-label', labelWatch() + ' — ' + title);
+    a.innerHTML =
+      '<span class="stf-tiktok-poster-play" aria-hidden="true">▶</span>' +
+      '<strong class="stf-tiktok-poster-label">' + labelWatch() + '</strong>' +
+      (handle ? '<span class="stf-tiktok-poster-sub">' + handle + '</span>' : '');
     box.innerHTML = '';
-    box.appendChild(buildPoster(box, id, href, title));
-    box.appendChild(buildFallback(href));
+    box.appendChild(a);
   }
 
   function initTikToks() {
