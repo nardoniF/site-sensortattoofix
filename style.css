@@ -1965,72 +1965,10 @@ line-height:1.8;
     gap: 10px;
     max-width: 240px;
 }
-.paliativos-tiktok {
-    max-width: 220px;
-    width: 100%;
-    position: relative;
-}
-.paliativos-tiktok iframe {
-    height: 390px;
-    max-height: 48vh;
-}
-.paliativos-tiktok-caption {
-    margin: 0;
-    max-width: 220px;
-    text-align: center;
-    font-size: 0.82rem;
-    color: var(--gray, #aaa);
-    line-height: 1.35;
-}
-.stf-tiktok-poster {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    height: 390px;
-    max-height: 48vh;
-    border: 0;
-    border-radius: 10px;
-    cursor: pointer;
-    background: linear-gradient(160deg, #1a1a1a 0%, #0d0d0d 55%, #141414 100%);
-    color: #fff;
-    font: inherit;
-    padding: 16px;
-    text-align: center;
-}
-.stf-tiktok-poster:hover {
-    background: linear-gradient(160deg, #222 0%, #111 55%, #1a1a1a 100%);
-}
-.stf-tiktok-poster-play {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: #fe2c55;
-    color: #fff;
-    font-size: 1.15rem;
-}
-.stf-tiktok-poster-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    line-height: 1.3;
-    color: #ddd;
-}
 @media (max-width: 767px) {
     .warning-visual {
         max-width: 200px;
         margin: 12px auto 0;
-    }
-    .paliativos-tiktok,
-    .paliativos-tiktok-caption {
-        max-width: 200px;
-    }
-    .paliativos-tiktok iframe,
-    .stf-tiktok-poster {
-        height: 340px;
     }
 }
 
