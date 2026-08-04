@@ -372,7 +372,17 @@ html[lang="it"] .nav-actions { gap: 6px; }
 
 /* SEÇÕES GERAIS */
 .content-section { padding: 60px 0; }
-#paliativos { padding-top: 90px; }
+#paliativos {
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding-top: 90px;
+    padding-bottom: 60px;
+    display: flex;
+    align-items: center;
+}
+#paliativos > .container {
+    width: 100%;
+}
 .grey-bg { background: #080808; }
 .section-title { font-size: 2.5rem; text-align: center; margin-bottom: 30px; font-weight: 900; }
 .problem-intro { text-align: center; max-width: 800px; margin: 0 auto 40px; font-size: 1.05rem; color: var(--gray); }
@@ -2013,18 +2023,6 @@ line-height:1.8;
 }
 .faq-media-embed--tiktok .tiktok-embed {
     margin: 0 auto !important;
-}
-.warning-visual {
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    max-width: 240px;
-}
-@media (max-width: 767px) {
-    .warning-visual {
-        max-width: 200px;
-        margin: 12px auto 0;
-    }
 }
 
 .btn-comprar-produto:hover{
