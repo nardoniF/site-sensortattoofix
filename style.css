@@ -375,13 +375,17 @@ html[lang="it"] .nav-actions { gap: 6px; }
 #paliativos {
     min-height: 100vh;
     box-sizing: border-box;
-    padding-top: 90px;
-    padding-bottom: 60px;
+    /* Sobe o bloco (sem centralizar) e empurra um pouco a seção de produtos */
+    padding-top: 72px;
+    padding-bottom: 110px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
 }
 #paliativos > .container {
     width: 100%;
+}
+#produtos.content-section {
+    padding-top: 72px;
 }
 .grey-bg { background: #080808; }
 .section-title { font-size: 2.5rem; text-align: center; margin-bottom: 30px; font-weight: 900; }
