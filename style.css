@@ -921,7 +921,7 @@ body.stf-feedback-open { overflow: hidden; }
     padding: 16px 0 48px;
 }
 .loja-shell {
-    max-width: 920px;
+    max-width: 1080px;
 }
 .loja-layout {
     display: flex;
@@ -955,69 +955,94 @@ body.stf-feedback-open { overflow: hidden; }
 }
 
 .loja-marketplaces {
-    margin-top: 14px;
+    margin-top: 0;
+}
+
+.loja-marketplaces--rail {
+    width: 100%;
+    max-width: 148px;
+    flex: 0 0 auto;
+    align-self: flex-start;
+    text-align: left;
 }
 
 .loja-marketplaces-label {
-    margin: 0 0 10px;
-    font-size: 0.82rem;
+    margin: 0 0 6px;
+    font-size: 0.65rem;
     font-weight: 600;
-    color: #aaa;
+    color: #888;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
+    line-height: 1.25;
 }
 
 .loja-marketplace-badges {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
 }
 
 .loja-mp-badge {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: 10px;
+    gap: 5px;
+    padding: 3px 0;
+    border-radius: 0;
     text-decoration: none;
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-size: 0.72rem;
+    font-weight: 600;
     line-height: 1.2;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    min-height: 40px;
+    transition: opacity 0.15s ease, color 0.15s ease;
+    border: none;
+    min-height: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #bbb !important;
+    max-width: 100%;
 }
 
 .loja-mp-badge i {
-    font-size: 1rem;
-    width: 1.1rem;
+    font-size: 0.75rem;
+    width: 0.85rem;
     text-align: center;
     flex-shrink: 0;
+    opacity: 0.9;
+}
+
+.loja-mp-badge span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .loja-mp-badge:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    transform: none;
+    box-shadow: none;
+    opacity: 1;
+    color: #fff !important;
 }
 
-.loja-mp-badge.store-ml { background: #FFE600; color: #2D3277 !important; }
-.loja-mp-badge.store-ml i { color: #2D3277 !important; }
-.loja-mp-badge.store-shopee { background: #EE4D2D; color: #fff !important; }
-.loja-mp-badge.store-shopee i { color: #fff !important; }
-.loja-mp-badge.store-amazon { background: #232F3E; color: #FF9900 !important; }
+/* Keep brand tint only on the icon — no big colored bars */
+.loja-mp-badge.store-ml { color: #c8c48a !important; }
+.loja-mp-badge.store-ml i { color: #FFE600 !important; }
+.loja-mp-badge.store-ml span { color: inherit !important; }
+.loja-mp-badge.store-shopee { color: #bbb !important; }
+.loja-mp-badge.store-shopee i { color: #EE4D2D !important; }
+.loja-mp-badge.store-amazon { color: #bbb !important; }
 .loja-mp-badge.store-amazon i { color: #FF9900 !important; }
-.loja-mp-badge.store-amazon span { color: #fff !important; }
-.loja-mp-badge.store-tiktok { background: #111; color: #fff !important; border-color: #333; }
+.loja-mp-badge.store-amazon span { color: inherit !important; }
+.loja-mp-badge.store-tiktok { color: #bbb !important; }
 .loja-mp-badge.store-tiktok i { color: #25f4ee !important; }
-.loja-mp-badge.store-tiktok span { color: #fff !important; }
+.loja-mp-badge.store-tiktok span { color: inherit !important; }
 
 @media (min-width: 768px) {
     .loja-marketplace-badges {
-        grid-template-columns: 1fr;
+        grid-template-columns: unset;
     }
     .loja-mp-badge {
-        font-size: 0.82rem;
-        padding: 9px 12px;
+        font-size: 0.72rem;
+        padding: 3px 0;
     }
 }
 
@@ -1036,19 +1061,24 @@ body.stf-feedback-open { overflow: hidden; }
     }
     .loja-layout {
         flex-direction: row;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
-        gap: clamp(28px, 6vw, 56px);
+        gap: clamp(16px, 3vw, 28px);
         width: 100%;
     }
     .loja-page .loja-hero {
-        flex: 0 1 300px;
-        max-width: 320px;
+        flex: 0 1 280px;
+        max-width: 300px;
+        padding-top: 4px;
     }
     .loja-page .loja-grid {
         flex: 1 1 auto;
         max-width: 720px;
+        order: 0;
+    }
+    .loja-marketplaces--rail {
         order: -1;
+        padding-top: 4px;
     }
 }
 @media (max-width: 767px) {
@@ -1059,6 +1089,23 @@ body.stf-feedback-open { overflow: hidden; }
     }
     .loja-page .loja-layout {
         padding-top: 0;
+        align-items: stretch;
+    }
+    .loja-marketplaces--rail {
+        order: 2;
+        max-width: none;
+        width: 100%;
+        margin-top: 4px;
+        text-align: center;
+    }
+    .loja-marketplaces--rail .loja-marketplaces-label {
+        text-align: center;
+    }
+    .loja-marketplace-badges {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px 12px;
     }
     .loja-page .loja-hero {
         order: 1;
