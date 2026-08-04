@@ -960,15 +960,15 @@ body.stf-feedback-open { overflow: hidden; }
 
 .loja-marketplaces--rail {
     width: 100%;
-    max-width: 148px;
-    flex: 0 0 auto;
+    max-width: 168px;
+    flex: 0 0 168px;
     align-self: flex-start;
     text-align: left;
 }
 
 .loja-marketplaces-label {
-    margin: 0 0 6px;
-    font-size: 0.65rem;
+    margin: 0 0 8px;
+    font-size: 0.68rem;
     font-weight: 600;
     color: #888;
     text-transform: uppercase;
@@ -979,35 +979,36 @@ body.stf-feedback-open { overflow: hidden; }
 .loja-marketplace-badges {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
 }
 
 .loja-mp-badge {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 0;
-    border-radius: 0;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border-radius: 8px;
     text-decoration: none;
-    font-size: 0.72rem;
-    font-weight: 600;
-    line-height: 1.2;
-    transition: opacity 0.15s ease, color 0.15s ease;
-    border: none;
-    min-height: 0;
-    background: transparent !important;
-    box-shadow: none !important;
-    color: #bbb !important;
-    max-width: 100%;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.15;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    min-height: 36px;
+    box-shadow: none;
 }
 
 .loja-mp-badge i {
-    font-size: 0.75rem;
-    width: 0.85rem;
+    font-size: 0.9rem;
+    width: 1rem;
     text-align: center;
     flex-shrink: 0;
-    opacity: 0.9;
+    opacity: 1;
 }
 
 .loja-mp-badge span {
@@ -1017,32 +1018,31 @@ body.stf-feedback-open { overflow: hidden; }
 }
 
 .loja-mp-badge:hover {
-    transform: none;
-    box-shadow: none;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
     opacity: 1;
-    color: #fff !important;
 }
 
-/* Keep brand tint only on the icon — no big colored bars */
-.loja-mp-badge.store-ml { color: #c8c48a !important; }
-.loja-mp-badge.store-ml i { color: #FFE600 !important; }
-.loja-mp-badge.store-ml span { color: inherit !important; }
-.loja-mp-badge.store-shopee { color: #bbb !important; }
-.loja-mp-badge.store-shopee i { color: #EE4D2D !important; }
-.loja-mp-badge.store-amazon { color: #bbb !important; }
+.loja-mp-badge.store-ml { background: #FFE600 !important; color: #2D3277 !important; }
+.loja-mp-badge.store-ml i { color: #2D3277 !important; }
+.loja-mp-badge.store-ml span { color: #2D3277 !important; }
+.loja-mp-badge.store-shopee { background: #EE4D2D !important; color: #fff !important; }
+.loja-mp-badge.store-shopee i { color: #fff !important; }
+.loja-mp-badge.store-shopee span { color: #fff !important; }
+.loja-mp-badge.store-amazon { background: #232F3E !important; color: #fff !important; }
 .loja-mp-badge.store-amazon i { color: #FF9900 !important; }
-.loja-mp-badge.store-amazon span { color: inherit !important; }
-.loja-mp-badge.store-tiktok { color: #bbb !important; }
+.loja-mp-badge.store-amazon span { color: #fff !important; }
+.loja-mp-badge.store-tiktok { background: #111 !important; color: #fff !important; border-color: #333; }
 .loja-mp-badge.store-tiktok i { color: #25f4ee !important; }
-.loja-mp-badge.store-tiktok span { color: inherit !important; }
+.loja-mp-badge.store-tiktok span { color: #fff !important; }
 
 @media (min-width: 768px) {
     .loja-marketplace-badges {
         grid-template-columns: unset;
     }
     .loja-mp-badge {
-        font-size: 0.72rem;
-        padding: 3px 0;
+        font-size: 0.78rem;
+        padding: 8px 10px;
     }
 }
 
@@ -1095,17 +1095,23 @@ body.stf-feedback-open { overflow: hidden; }
         order: 2;
         max-width: none;
         width: 100%;
-        margin-top: 4px;
+        flex: none;
+        margin-top: 8px;
         text-align: center;
     }
     .loja-marketplaces--rail .loja-marketplaces-label {
         text-align: center;
     }
     .loja-marketplace-badges {
-        flex-direction: row;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        max-width: 340px;
+        margin: 0 auto;
+    }
+    .loja-mp-badge {
+        width: 100%;
         justify-content: center;
-        gap: 6px 12px;
     }
     .loja-page .loja-hero {
         order: 1;
@@ -1939,11 +1945,13 @@ line-height:1.8;
     max-width: 100% !important;
 }
 .faq-media-embed--tiktok {
-    max-width: 380px;
+    max-width: 280px;
 }
 .faq-media-embed--tiktok iframe {
     width: 100%;
-    min-height: 620px;
+    height: 480px;
+    min-height: 0;
+    max-height: 52vh;
     border: 0;
     border-radius: 10px;
     display: block;
@@ -1954,19 +1962,76 @@ line-height:1.8;
 .warning-visual {
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    max-width: 240px;
 }
 .paliativos-tiktok {
-    max-width: 325px;
+    max-width: 220px;
     width: 100%;
+    position: relative;
+}
+.paliativos-tiktok iframe {
+    height: 390px;
+    max-height: 48vh;
 }
 .paliativos-tiktok-caption {
     margin: 0;
-    max-width: 325px;
+    max-width: 220px;
     text-align: center;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     color: var(--gray, #aaa);
-    line-height: 1.4;
+    line-height: 1.35;
+}
+.stf-tiktok-poster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    height: 390px;
+    max-height: 48vh;
+    border: 0;
+    border-radius: 10px;
+    cursor: pointer;
+    background: linear-gradient(160deg, #1a1a1a 0%, #0d0d0d 55%, #141414 100%);
+    color: #fff;
+    font: inherit;
+    padding: 16px;
+    text-align: center;
+}
+.stf-tiktok-poster:hover {
+    background: linear-gradient(160deg, #222 0%, #111 55%, #1a1a1a 100%);
+}
+.stf-tiktok-poster-play {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #fe2c55;
+    color: #fff;
+    font-size: 1.15rem;
+}
+.stf-tiktok-poster-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #ddd;
+}
+@media (max-width: 767px) {
+    .warning-visual {
+        max-width: 200px;
+        margin: 12px auto 0;
+    }
+    .paliativos-tiktok,
+    .paliativos-tiktok-caption {
+        max-width: 200px;
+    }
+    .paliativos-tiktok iframe,
+    .stf-tiktok-poster {
+        height: 340px;
+    }
 }
 
 .btn-comprar-produto:hover{
