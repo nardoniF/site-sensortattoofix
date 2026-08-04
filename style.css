@@ -570,6 +570,15 @@ html[lang="it"] .nav-actions { gap: 6px; }
 .card i, .benefit-card i { font-size: 2.25rem; color: var(--primary); margin-bottom: 18px; }
 .card h3, .benefit-card h3 { margin-bottom: 10px; font-size: 1.25rem; }
 
+/* Problema: cards um pouco mais baixos para caber no viewport */
+#problema.content-section { padding: 36px 0; }
+#problema .section-title { margin-bottom: 16px; }
+#problema .problem-intro { margin-bottom: 20px; }
+#problema .problem-grid { gap: 12px; }
+#problema .card { padding: 14px 22px; }
+#problema .card i { margin-bottom: 8px; }
+#problema .card h3 { margin-bottom: 6px; }
+
 /* PALIATIVOS */
 .flex-row { display: flex; align-items: center; gap: 50px; }
 .text-block { flex: 1; }
