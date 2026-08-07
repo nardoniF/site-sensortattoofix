@@ -5,7 +5,7 @@
 window.STF_STORE_PRICE = (function () {
   const PT_FALLBACK = {
     'store.frete': '+ frete',
-    'store.freteLine': '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)',
+    'store.freteLine': '+ Frete: Mini Envios no Brasil · entrega rápida até ~8 km da Zona Norte (SP)',
     'store.shippingChannelsIntl': 'Todo Brasil (Mini Envios) · São Paulo, SP (Entrega Própria) · Outros Países (Exporta Fácil)',
     'shipping.intlDefault': 'Documento / carta internacional'
   };

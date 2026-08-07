@@ -3547,7 +3547,8 @@ function uberEtaMinutes(data) {
   return 60;
 }
 
-const UBER_MAX_RADIUS_KM = 4.9;
+/** Pre-filter before Uber quote API. Uber Direct often allows ~10–15 km by market; we use 8 km. */
+const UBER_MAX_RADIUS_KM = 8;
 
 async function uberEstimatedRoadKm(config, dropoffParts) {
   const destCep = dropoffParts?.cep;
@@ -3607,7 +3608,7 @@ async function quoteUberShippingOptions(env, config, addressParams, opts = {}) {
 
   try {
     if (!(await isWithinUberRadius(config, dropoff))) {
-      console.warn('Uber quote: fora do raio (~5 km)', dropoff.cep);
+      console.warn(`Uber quote: fora do raio (~${UBER_MAX_RADIUS_KM} km)`, dropoff.cep);
       return [];
     }
     const quote = await requestUberQuote(env, config, dropoff);
@@ -3752,7 +3753,7 @@ async function checkUberIntegration(env, config) {
         authOk: true,
         quoteOk: false,
         sandbox,
-        error: 'OAuth OK, mas cotação vazia. Confira Customer ID (aba Developer). Uber entrega só em ~5 km da loja (Imirim).'
+        error: `OAuth OK, mas cotação vazia. Confira Customer ID (aba Developer). Raio pré-filtro do site: ~${UBER_MAX_RADIUS_KM} km da loja (Imirim).`
       };
     }
     return {
@@ -3769,7 +3770,7 @@ async function checkUberIntegration(env, config) {
         authOk: true,
         quoteOk: false,
         sandbox,
-        error: `OAuth OK. A Uber limita entrega a ~5 km (3,1 mi) da loja no Imirim — não dá para aumentar pelo site. Fora disso, o checkout oculta a opção Uber.`
+        error: `OAuth OK. Cotação Uber recusada por raio (API). Pré-filtro do site: ~${UBER_MAX_RADIUS_KM} km da loja no Imirim — fora disso o checkout oculta a opção.`
       };
     }
     const extra = err.metadata ? ` — ${JSON.stringify(err.metadata)}` : '';
@@ -6454,7 +6455,7 @@ function buildIntegrationRows(env, config, checks) {
       detail: uber.error || 'Falha na autenticação OAuth'
     });
   } else if (uber.quoteOk === false) {
-    const radiusLimit = uber.error && /5 km|3,1 mi/i.test(uber.error);
+    const radiusLimit = uber.error && /raio|radius|km|mi/i.test(uber.error);
     rows.push({
       id: 'uber-direct',
       label: 'Uber Direct',

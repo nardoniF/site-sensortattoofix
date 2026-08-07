@@ -219,7 +219,7 @@ window.STF_I18N = (function () {
       'store.outOfStock': 'Produto esgotado no momento.',
       'store.errorLoad': 'Erro ao carregar a loja.',
       'store.frete': 'frete',
-      'store.freteLine': '+ Frete: Mini Envios no Brasil · entrega rápida até 5 km da Zona Norte (SP)',
+      'store.freteLine': '+ Frete: Mini Envios no Brasil · entrega rápida até ~8 km da Zona Norte (SP)',
       'store.lojaFreteShort': '+ frete',
       'store.lojaPriceSuffix': 'Mini Envios · cartão e PayPal',
       'store.add': 'Adicionar',
