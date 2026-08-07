@@ -989,18 +989,18 @@ ${worksheets}
     const used = Number(cap.used ?? data?.total ?? 0) || 0;
     const max = Number(cap.max) > 0 ? Number(cap.max) : 2500;
 
-    // Outer flag: green when logging works; red only if KV daily quota is exhausted.
-    // No yellow — soft warnings live only inside Resumo.
+    // Outer: always show the X/1000 estimate. Green while logging; red only if quota exhausted.
+    // No yellow intermediate states.
     let outerHtml;
     if (wExhausted) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--full" role="status">
         <i class="fas fa-ban" aria-hidden="true"></i>
-        <span>COTA KV ESGOTADA — cliques pararam de gravar. Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>COTA KV ESGOTADA — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Cliques pararam. Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     } else {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--ok" role="status">
         <i class="fas fa-check-circle" aria-hidden="true"></i>
-        <span>Log gravando — ok</span>
+        <span>Writes Cloudflare (cliques): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     }
 
