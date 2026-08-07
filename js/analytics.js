@@ -252,12 +252,21 @@
     if (destino && destino.startsWith('entrada_')) {
       const slug = destino.replace(/^entrada_/, '').replace(/_/g, ' ');
       const map = {
-        home: 'Entrada — Home',
+        home: 'Entrada — Home BR',
         'home en': 'Entrada — Home EN',
-        loja: 'Entrada — Loja',
-        checkout: 'Entrada — Checkout',
-        'onde comprar': 'Entrada — Onde comprar',
-        'minha conta': 'Entrada — Minha conta'
+        'home it': 'Entrada — Home IT',
+        loja: 'Entrada — Loja BR',
+        'loja en': 'Entrada — Loja EN',
+        'loja it': 'Entrada — Loja IT',
+        checkout: 'Entrada — Checkout BR',
+        'checkout en': 'Entrada — Checkout EN',
+        'checkout it': 'Entrada — Checkout IT',
+        'onde comprar': 'Entrada — Onde comprar BR',
+        'onde comprar en': 'Entrada — Onde comprar EN',
+        'onde comprar it': 'Entrada — Onde comprar IT',
+        'minha conta': 'Entrada — Minha conta BR',
+        'minha conta en': 'Entrada — Minha conta EN',
+        'minha conta it': 'Entrada — Minha conta IT'
       };
       return map[slug] || ('Entrada — ' + slug.replace(/\b\w/g, (c) => c.toUpperCase()));
     }
@@ -318,13 +327,28 @@
     return map[secao] || (secao || '—').replace(/_/g, ' ').replace(/-/g, ' ');
   }
 
+  function siteLocaleTag() {
+    const lang = String(document.documentElement.lang || '').toLowerCase();
+    if (lang.startsWith('it')) return 'IT';
+    if (lang.startsWith('en')) return 'EN';
+    const path = String(location.pathname || '').toLowerCase();
+    if (/(^|\/)it(\/|$)/.test(path)) return 'IT';
+    if (/(^|\/)en(\/|$)/.test(path)) return 'EN';
+    const host = String(location.hostname || '').toLowerCase();
+    // .com serves EN at / and IT under /it/ (proxy strips /en)
+    if (/^(www\.)?sensortattoofix\.com$/.test(host)) return 'EN';
+    return 'BR';
+  }
+
   function humanizarPagina(path) {
     const raw = String(path || '').trim();
     if (!raw) return '';
     const pathOnly = raw.split('?')[0].split('#')[0] || '/';
     const norm = pathOnly.replace(/\\/g, '/').toLowerCase();
-    if (norm === '/' || norm.endsWith('/index.html') || norm === '/en' || norm.endsWith('/en/')) {
-      return norm.includes('/en') ? 'Home EN' : 'Home';
+    const loc = siteLocaleTag();
+    if (norm === '/' || norm.endsWith('/index.html') || norm === '/en' || norm.endsWith('/en/')
+      || norm === '/it' || norm.endsWith('/it/')) {
+      return 'Home ' + loc;
     }
     const parts = norm.split('/').filter(Boolean);
     const file = (parts[parts.length - 1] || '').replace(/\.html$/i, '');
@@ -336,8 +360,8 @@
       admin: 'Admin',
       pedidos: 'Pedidos'
     };
-    if (map[file]) return map[file];
-    return file.replace(/[-_]/g, ' ') || pathOnly;
+    if (map[file]) return map[file] + ' ' + loc;
+    return (file.replace(/[-_]/g, ' ') || pathOnly) + ' ' + loc;
   }
 
   function humanizarReferrer(ref) {
@@ -397,12 +421,17 @@
     navigator.serviceWorker.register('/stf-log-sw.js', { scope: '/' }).catch(() => {});
   }
 
+  function isStfPublicHost() {
+    const host = (location.hostname || '').toLowerCase();
+    return /^(www\.)?sensortattoofix\.com(\.br)?$/.test(host);
+  }
+
   function logClickEndpoints() {
     const urls = [];
     const base = apiBaseUrl();
     if (base) urls.push(base + '/analytics/click');
-    const host = (location.hostname || '').toLowerCase();
-    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+    // Same-origin beacon (.com and .com.br) — more reliable on fast Buy/PayPal exits
+    if (isStfPublicHost()) {
       urls.push(sameOriginBase() + '/stf-log');
     }
     return urls;
@@ -412,8 +441,7 @@
     const urls = [];
     const base = apiBaseUrl();
     if (base) urls.push(base + '/analytics/pixel.gif');
-    const host = (location.hostname || '').toLowerCase();
-    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) {
+    if (isStfPublicHost()) {
       urls.push(sameOriginBase() + '/stf-log/pixel.gif');
     }
     return urls;
@@ -615,20 +643,27 @@
     const path = location.pathname.replace(/\\/g, '/').toLowerCase();
     const parts = path.split('/').filter(Boolean);
     const file = parts[parts.length - 1] || 'index.html';
-    const isEn = parts.includes('en');
+    const loc = siteLocaleTag(); // BR | EN | IT
+    const suffix = loc === 'BR' ? '' : '_' + loc.toLowerCase();
+    const labelLoc = loc;
 
-    if (isEn && (file === 'index.html' || parts[parts.length - 1] === 'en')) {
-      return { slug: 'home_en', rotulo: 'Entrada — Home EN' };
+    function pack(baseSlug, baseLabel) {
+      return {
+        slug: baseSlug + suffix,
+        rotulo: 'Entrada — ' + baseLabel + ' ' + labelLoc
+      };
     }
-    if (file === 'index.html' || path.endsWith('/') || !file.includes('.')) {
-      return { slug: 'home', rotulo: 'Entrada — Home' };
+
+    if (file === 'index.html' || path.endsWith('/') || !file.includes('.')
+      || file === 'en' || file === 'it') {
+      return pack('home', 'Home');
     }
-    if (file.includes('loja')) return { slug: 'loja', rotulo: 'Entrada — Loja' };
-    if (file.includes('comprar')) return { slug: 'checkout', rotulo: 'Entrada — Checkout' };
-    if (file.includes('onde-comprar')) return { slug: 'onde_comprar', rotulo: 'Entrada — Onde comprar' };
-    if (file.includes('minha-conta')) return { slug: 'minha_conta', rotulo: 'Entrada — Minha conta' };
+    if (file.includes('loja')) return pack('loja', 'Loja');
+    if (file.includes('comprar')) return pack('checkout', 'Checkout');
+    if (file.includes('onde-comprar')) return pack('onde_comprar', 'Onde comprar');
+    if (file.includes('minha-conta')) return pack('minha_conta', 'Minha conta');
     const base = file.replace(/\.html$/i, '').replace(/[^a-z0-9_-]/gi, '_') || 'pagina';
-    return { slug: base, rotulo: 'Entrada — ' + base.replace(/_/g, ' ') };
+    return pack(base, base.replace(/_/g, ' '));
   }
 
   function registrarPageview() {
