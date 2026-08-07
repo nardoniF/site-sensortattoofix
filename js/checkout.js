@@ -869,7 +869,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
 
     const inCart = new Set((window.STF_CART?.load() || []).map((i) => i.productId));
-    const compatible = window.STF_PELICULA.findCompatible(watchModel, products, cfg.smartwatchModelMeta)
+    const compatible = window.STF_PELICULA.findCompatible(watchModel, products, cfg?.smartwatchModelMeta)
       .filter((p) => !inCart.has(p.id));
 
     if (!compatible.length) {
@@ -1961,8 +1961,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!isLensOnlyIntlCheckout()) {
       defaultIdx = shippingOptions.findIndex((o) => o.isHighestBid);
       if (defaultIdx < 0) {
-        defaultIdx = shippingOptions.reduce((best, opt, i) =>
-          (Number(opt.price) > Number(shippingOptions[best]?.price) ? i : best), 0);
+        // BR: cheapest; intl (when highest-bid missing): still prefer highest only for intl shell
+        defaultIdx = shippingOptions.reduce((best, opt, i) => {
+          const cur = Number(opt.price);
+          const prev = Number(shippingOptions[best]?.price);
+          if (isInternational) return cur > prev ? i : best;
+          return cur < prev ? i : best;
+        }, 0);
       }
     } else {
       // Cheapest document option
@@ -2156,45 +2161,58 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       updateSummary();
     } catch (err) {
       console.warn('Shipping quote failed:', err);
-      if (isInternational) {
-        const code = els.paisCode?.value;
-        const z = cfg?.internationalShipping?.[code] || cfg?.internationalShipping?.OTHER;
-        if (z) {
-          const surcharge = Math.max(0, Number(cfg?.internationalSurcharge) || 0);
-          const multiplier = Math.max(1, Number(cfg?.internationalShippingMultiplier) || 2);
-          const basePrice = Number(z.price) || 0;
-          const multiplied = Math.round(basePrice * multiplier * 100) / 100;
-          const finalPrice = Math.round((multiplied + surcharge) * 100) / 100;
-          const markup = Math.round((finalPrice - basePrice) * 100) / 100;
-          renderShippingOptions([{
-            id: 'config-fallback',
-            methodId: 'config-fallback',
-            service: L('shipping.intlDefault'),
-            price: finalPrice,
-            days: z.days,
-            source: 'config',
-            isHighestBid: true,
-            intlSurcharge: markup || undefined,
-            intlFlatSurcharge: surcharge || undefined,
-            intlMultiplier: multiplier !== 1 ? multiplier : undefined,
-            intlBasePrice: (multiplier !== 1 || surcharge) ? basePrice : undefined
-          }]);
+      try {
+        if (isInternational) {
+          const code = els.paisCode?.value;
+          const z = cfg?.internationalShipping?.[code] || cfg?.internationalShipping?.OTHER;
+          if (z) {
+            const surcharge = Math.max(0, Number(cfg?.internationalSurcharge) || 0);
+            const multiplier = Math.max(1, Number(cfg?.internationalShippingMultiplier) || 2);
+            const basePrice = Number(z.price) || 0;
+            const multiplied = Math.round(basePrice * multiplier * 100) / 100;
+            const finalPrice = Math.round((multiplied + surcharge) * 100) / 100;
+            const markup = Math.round((finalPrice - basePrice) * 100) / 100;
+            renderShippingOptions([{
+              id: 'config-fallback',
+              methodId: 'config-fallback',
+              service: L('shipping.intlDefault'),
+              price: finalPrice,
+              days: z.days,
+              source: 'config',
+              isHighestBid: true,
+              intlSurcharge: markup || undefined,
+              intlFlatSurcharge: surcharge || undefined,
+              intlMultiplier: multiplier !== 1 ? multiplier : undefined,
+              intlBasePrice: (multiplier !== 1 || surcharge) ? basePrice : undefined
+            }]);
+          } else {
+            clearShippingOptions();
+            if (els.shippingHint) els.shippingHint.textContent = L('shipping.error');
+          }
         } else {
-          clearShippingOptions();
+          const est = estimateBRMax();
+          renderShippingOptions([{
+            id: 'estimate',
+            methodId: 'estimate',
+            service: est.service,
+            price: est.price,
+            days: est.days,
+            source: 'estimate'
+          }]);
+        }
+        updateSummary();
+      } catch (err2) {
+        console.warn('Shipping fallback failed:', err2);
+        clearShippingOptions();
+        shippingCost = null;
+        shippingInfo = null;
+        shippingOptions = [];
+        if (els.shippingHint) {
+          els.shippingHint.hidden = false;
           els.shippingHint.textContent = L('shipping.error');
         }
-      } else {
-        const est = estimateBRMax();
-        renderShippingOptions([{
-          id: 'estimate',
-          methodId: 'estimate',
-          service: est.service,
-          price: est.price,
-          days: est.days,
-          source: 'estimate'
-        }]);
+        try { updateSummary(); } catch (_) { /* ignore */ }
       }
-      updateSummary();
     }
   }
 
@@ -2294,37 +2312,71 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     try {
       const addr = await fetchCep(cep);
       lastCepLookup = cep;
-      els.form.rua.value = addr.logradouro || '';
-      els.form.bairro.value = addr.bairro || '';
-      els.form.cidade.value = addr.localidade || '';
-      els.form.uf.value = addr.uf || '';
-      await quoteShipping();
-      if (els.form.numero && !els.form.numero.value) els.form.numero.focus();
-    } catch {
+      if (els.form?.rua) els.form.rua.value = addr.logradouro || '';
+      if (els.form?.bairro) els.form.bairro.value = addr.bairro || '';
+      if (els.form?.cidade) els.form.cidade.value = addr.localidade || '';
+      if (els.form?.uf) els.form.uf.value = addr.uf || '';
+    } catch (err) {
+      console.warn('CEP lookup failed:', err);
       lastCepLookup = '';
       if (els.shippingHint) {
         els.shippingHint.hidden = false;
         els.shippingHint.textContent = L('shipping.cepInvalid');
       }
+      return;
     } finally {
       els.cep?.classList.remove('loading');
     }
+    // Frete failures must NOT be reported as CEP inválido
+    try {
+      await quoteShipping();
+    } catch (err) {
+      console.warn('quote after CEP:', err);
+    }
+    if (els.form?.numero && !els.form.numero.value) els.form.numero.focus();
   }
 
   async function fetchCep(cep) {
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const data = await res.json();
-      if (data.erro) throw new Error('viacep');
-      return data;
-    } catch {
-      const base = window.CONFIG_BOOTSTRAP?.configApiUrl || '';
-      if (base) {
-        const res = await fetch(`${base.replace(/\/$/, '')}/cep/${cep}`);
-        if (res.ok) return res.json();
+    const digits = onlyDigits(cep);
+    const normalize = (data) => ({
+      logradouro: data.logradouro || data.street || '',
+      bairro: data.bairro || data.neighborhood || '',
+      localidade: data.localidade || data.city || '',
+      uf: data.uf || data.state || '',
+      cep: data.cep || digits
+    });
+
+    const base = (apiBase() || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
+    if (base) {
+      try {
+        const res = await fetch(`${base}/cep/${digits}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && !data.erro && (data.logradouro || data.localidade || data.street || data.city)) {
+            return normalize(data);
+          }
+        }
+      } catch (e) {
+        console.warn('CEP API loja:', e);
       }
-      throw new Error(L('shipping.cepInvalid'));
     }
+
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (!data?.erro) return normalize(data);
+    } catch (e) {
+      console.warn('ViaCEP:', e);
+    }
+
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cep/v1/${digits}`);
+      if (res.ok) return normalize(await res.json());
+    } catch (e) {
+      console.warn('BrasilAPI CEP:', e);
+    }
+
+    throw new Error(L('shipping.cepInvalid'));
   }
 
   function collectOrderData() {
