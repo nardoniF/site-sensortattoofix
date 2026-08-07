@@ -976,6 +976,33 @@ ${worksheets}
       ).join('')}</ul>`
       : '<p class="clicks-stats-empty">—</p>';
 
+    const dw = data?.dailyWrites || {};
+    const wUsed = Number(dw.clickWritesToday) || 0;
+    const wMax = Number(dw.limit) > 0 ? Number(dw.limit) : 1000;
+    const wPct = Number.isFinite(Number(dw.percent))
+      ? Number(dw.percent)
+      : (wMax > 0 ? Math.min(100, Math.round((wUsed / wMax) * 100)) : 0);
+    const wExhausted = !!dw.exhausted;
+    const wCrit = !!dw.critical || (!wExhausted && wPct >= 85);
+    const wNear = !!dw.near || (!wExhausted && !wCrit && wPct >= 70);
+    const resetBr = dw.resetsAtBr || dw.resetsHintBr || '21:00 Brasília (00:00 UTC)';
+    let writeClass = 'clicks-kv--ok';
+    let writeIcon = 'fa-tachometer-alt';
+    let writeMsg = `Writes Cloudflare (cliques): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${resetBr}.`;
+    if (wExhausted) {
+      writeClass = 'clicks-kv--full';
+      writeIcon = 'fa-ban';
+      writeMsg = `COTA KV ESGOTADA — gravação de cliques parou. Free plan = ${wMax}/dia. Renova às ${resetBr} (00:00 UTC). Até lá o log não recebe eventos novos.`;
+    } else if (wCrit) {
+      writeClass = 'clicks-kv--full';
+      writeIcon = 'fa-exclamation-triangle';
+      writeMsg = `Writes KV críticos: ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Quase no limite Free — em breve para de gravar. Renova às ${resetBr}.`;
+    } else if (wNear) {
+      writeClass = 'clicks-kv--warn';
+      writeIcon = 'fa-exclamation-circle';
+      writeMsg = `Writes KV altos: ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Atenção — cota Free Cloudflare. Renova às ${resetBr}.`;
+    }
+
     const cap = data?.capacity || {};
     const used = Number(cap.used ?? data?.total ?? 0) || 0;
     const max = Number(cap.max) > 0 ? Number(cap.max) : 2500;
@@ -985,29 +1012,33 @@ ${worksheets}
     const full = !!cap.full || used >= max;
     const near = !!cap.nearFull || (!full && used >= Math.floor(max * 0.9));
     let capClass = 'clicks-kv--ok';
-    let capTitle = 'Espaço no log (KV)';
-    let capMsg = `Log KV: ${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} (${pct}%) — ok`;
+    let capMsg = `Histórico guardado: ${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} (${pct}%) — ok`;
     if (full) {
-      capClass = 'clicks-kv--full';
-      capTitle = 'Log KV no limite';
-      capMsg = `Log KV CHEIO: ${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} (${pct}%). Novos cliques ainda entram; os mais antigos são apagados. Se “Hoje” estiver baixo, pode ser pouca visita — não é o KV “parado”.`;
+      capClass = 'clicks-kv--warn';
+      capMsg = `Histórico no teto (${max}): ainda grava novos e apaga os mais antigos (não é a cota diária).`;
     } else if (near) {
       capClass = 'clicks-kv--warn';
-      capTitle = 'Log KV quase cheio';
-      capMsg = `Log KV quase cheio: ${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} (${pct}%). Em breve começa a descartar os eventos mais antigos.`;
+      capMsg = `Histórico quase cheio: ${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} (${pct}%).`;
     }
 
-    el.innerHTML = `<div class="clicks-kv-flag ${capClass}" role="status" title="${escapeHtml(capTitle)}">
-        <i class="fas ${full ? 'fa-exclamation-triangle' : near ? 'fa-exclamation-circle' : 'fa-database'}" aria-hidden="true"></i>
+    el.innerHTML = `<div class="clicks-kv-flag ${writeClass}" role="status">
+        <i class="fas ${writeIcon}" aria-hidden="true"></i>
+        <span>${escapeHtml(writeMsg)}</span>
+      </div>
+      <div class="clicks-kv-flag ${capClass} clicks-kv-flag--secondary" role="status">
+        <i class="fas fa-database" aria-hidden="true"></i>
         <span>${escapeHtml(capMsg)}</span>
       </div>
+      <p class="clicks-kv-note">A cota Free da Cloudflare é <strong>1.000 writes/dia na conta toda</strong> (cliques + pedidos + admin). O medidor acima estima os writes do <em>log de cliques</em>. O painel Cloudflare é a fonte oficial. Zera todo dia às <strong>21:00 Brasília</strong> (meia-noite UTC).</p>
       <details class="clicks-stats-details">
       <summary class="clicks-stats-summary"><i class="fas fa-chevron-right clicks-stats-chevron" aria-hidden="true"></i> Resumo</summary>
       <dl class="clicks-stats-dl">
-        <div class="clicks-stats-row"><dt>Hoje</dt><dd>${data?.todayCount ?? 0} eventos</dd></div>
+        <div class="clicks-stats-row"><dt>Hoje (eventos)</dt><dd>${data?.todayCount ?? 0}</dd></div>
+        <div class="clicks-stats-row"><dt>Writes cliques (UTC)</dt><dd>${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}</dd></div>
         <div class="clicks-stats-row"><dt>Total no log</dt><dd>${data?.total ?? 0} <span class="clicks-kv-inline">/ ${max.toLocaleString('pt-BR')}</span></dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
         <div class="clicks-stats-row"><dt>Mais antigo no KV</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
+        <div class="clicks-stats-row"><dt>Renova cota</dt><dd>${escapeHtml(String(resetBr))}</dd></div>
         <div class="clicks-stats-row clicks-stats-row-top"><dt>Mais frequentes</dt><dd>${topList}</dd></div>
       </dl>
     </details>`;

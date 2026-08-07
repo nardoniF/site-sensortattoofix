@@ -21,6 +21,8 @@ const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
 const CLICKS_BLOB = 'clicks:blob';
 const CLICKS_MAX = 2500;
+/** Cloudflare Workers Free — KV writes/day (resets 00:00 UTC = 21:00 America/Sao_Paulo). */
+const KV_FREE_WRITES_PER_DAY = 1000;
 const FEEDBACK_BLOB = 'feedback:blob';
 const FEEDBACK_MAX = 500;
 const CLICK_TTL_SEC = 90 * 86400;
@@ -9676,7 +9678,101 @@ async function clicksBlobStoreActive(env) {
 }
 
 async function saveClicksBlob(env, list) {
-  await env.STORE_KV.put(CLICKS_BLOB, JSON.stringify(list));
+  try {
+    await env.STORE_KV.put(CLICKS_BLOB, JSON.stringify(list));
+    await bumpKvClickWriteCounter(1);
+  } catch (err) {
+    if (isKvQuotaError(err)) await markKvWriteQuotaExhausted();
+    throw err;
+  }
+}
+
+function utcDayKey(d = new Date()) {
+  return d.toISOString().slice(0, 10);
+}
+
+function nextUtcMidnightDate() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
+}
+
+async function getKvClickWriteCounter(day = utcDayKey()) {
+  try {
+    const hit = await caches.default.match(new Request(`https://stf-internal/kv-click-writes/${day}`));
+    if (!hit) return 0;
+    return Math.max(0, parseInt(await hit.text(), 10) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+async function bumpKvClickWriteCounter(n = 1) {
+  const day = utcDayKey();
+  const req = new Request(`https://stf-internal/kv-click-writes/${day}`);
+  let count = 0;
+  try {
+    const hit = await caches.default.match(req);
+    if (hit) count = parseInt(await hit.text(), 10) || 0;
+  } catch (_) { /* ignore */ }
+  count += Math.max(1, Number(n) || 1);
+  try {
+    await caches.default.put(req, new Response(String(count), {
+      headers: { 'Cache-Control': 'max-age=172800' }
+    }));
+  } catch (_) { /* ignore */ }
+  return count;
+}
+
+async function markKvWriteQuotaExhausted() {
+  const day = utcDayKey();
+  try {
+    await caches.default.put(
+      new Request(`https://stf-internal/kv-writes-exhausted/${day}`),
+      new Response('1', { headers: { 'Cache-Control': 'max-age=172800' } })
+    );
+  } catch (_) { /* ignore */ }
+}
+
+async function isKvWriteQuotaExhaustedMarked() {
+  try {
+    return !!(await caches.default.match(new Request(`https://stf-internal/kv-writes-exhausted/${utcDayKey()}`)));
+  } catch {
+    return false;
+  }
+}
+
+/** Estimate Cloudflare Free KV write pressure from click-log puts (1 put ≈ 1 write). */
+async function buildKvDailyWriteBudget(clickList) {
+  const day = utcDayKey();
+  const fromCounter = await getKvClickWriteCounter(day);
+  const fromBlob = (clickList || []).filter((r) => {
+    if (!r?.ts) return false;
+    return new Date(r.ts).toISOString().slice(0, 10) === day;
+  }).length;
+  const clickWritesToday = Math.max(fromCounter, fromBlob);
+  const limit = KV_FREE_WRITES_PER_DAY;
+  const percent = Math.min(100, Math.round((clickWritesToday / limit) * 100));
+  const exhausted = await isKvWriteQuotaExhaustedMarked();
+  const resetAt = nextUtcMidnightDate();
+  const resetsAtBr = resetAt.toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  return {
+    clickWritesToday,
+    limit,
+    percent,
+    near: !exhausted && percent >= 70,
+    critical: !exhausted && percent >= 85,
+    exhausted,
+    resetsAt: resetAt.toISOString(),
+    resetsAtBr,
+    // Midnight UTC → 21:00 in Brasília (UTC−3)
+    resetsHintBr: '21:00 (Brasília) / 00:00 UTC'
+  };
 }
 
 async function purgeLegacyClickIndex(env, mode) {
@@ -9942,7 +10038,13 @@ async function handleLogClick(request, env, origin, ctx) {
     await persistClickLog(env, entry);
   } catch (err) {
     console.error('click log:', err.message);
-    return json({ ok: false, error: 'storage', retry: true }, 503, origin);
+    if (isKvQuotaError(err)) await markKvWriteQuotaExhausted();
+    return json({
+      ok: false,
+      error: 'storage',
+      retry: true,
+      kvQuota: isKvQuotaError(err) || undefined
+    }, 503, origin);
   }
 
   // Mark after successful write — marking before put caused silent log loss on KV errors.
@@ -10140,6 +10242,7 @@ async function handleAdminListClicks(request, env, origin) {
   const capPercent = capMax > 0 ? Math.min(100, Math.round((capUsed / capMax) * 100)) : 0;
   const capFull = capUsed >= capMax;
   const capNearFull = !capFull && capUsed >= Math.floor(capMax * 0.9);
+  const dailyWrites = await buildKvDailyWriteBudget(loaded);
 
   return json({
     clicks,
@@ -10157,6 +10260,7 @@ async function handleAdminListClicks(request, env, origin) {
       // New clicks still write (unshift); oldest rows are trimmed when full.
       dropsOldestWhenFull: true
     },
+    dailyWrites,
     withNav: !!navSessionKeys,
     navSessions: navSessionKeys ? navSessionKeys.size : 0,
     checkedAt: new Date().toISOString()
