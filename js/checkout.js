@@ -1662,7 +1662,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   /** .com / EN-IT checkout: only document mail (lens). No kit/parcel choice. */
   function isLensOnlyIntlCheckout() {
-    return isIntlCheckoutShell() || isIntlHost();
+    // Do not call bare isIntlHost() — that helper lives in the STF_MONEY IIFE only.
+    return isIntlCheckoutShell()
+      || !!(window.STF_MONEY?.isIntlHost?.() || window.STF_SITE?.isIntlHost?.()
+        || /\.sensortattoofix\.com$/i.test(location.hostname));
   }
 
   function buildIntlProductNote(shipmentType) {
