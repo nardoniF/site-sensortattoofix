@@ -30,7 +30,7 @@ function isStaticAsset(pathname) {
     pathname.startsWith('/stf-') ||
     pathname === '/style.css' ||
     pathname === '/favicon.ico' ||
-    /\.(css|js|json|xml|ico|jpg|jpeg|png|gif|webp|svg|woff2?|ttf|map)$/i.test(pathname)
+    /\.(css|js|json|xml|ico|jpg|jpeg|png|gif|webp|svg|woff2?|ttf|map|pdf)$/i.test(pathname)
   );
 }
 
