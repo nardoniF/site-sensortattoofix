@@ -10130,6 +10130,16 @@ async function handleAdminListClicks(request, env, origin) {
   if (loaded.length && loaded[0]?.ts) {
     lastClickAt = new Date(loaded[0].ts).toISOString();
   }
+  let oldestClickAt = null;
+  if (loaded.length && loaded[loaded.length - 1]?.ts) {
+    oldestClickAt = new Date(loaded[loaded.length - 1].ts).toISOString();
+  }
+
+  const capUsed = total;
+  const capMax = CLICKS_MAX;
+  const capPercent = capMax > 0 ? Math.min(100, Math.round((capUsed / capMax) * 100)) : 0;
+  const capFull = capUsed >= capMax;
+  const capNearFull = !capFull && capUsed >= Math.floor(capMax * 0.9);
 
   return json({
     clicks,
@@ -10137,6 +10147,16 @@ async function handleAdminListClicks(request, env, origin) {
     todayCount,
     byDestino,
     lastClickAt,
+    oldestClickAt,
+    capacity: {
+      used: capUsed,
+      max: capMax,
+      percent: capPercent,
+      full: capFull,
+      nearFull: capNearFull,
+      // New clicks still write (unshift); oldest rows are trimmed when full.
+      dropsOldestWhenFull: true
+    },
     withNav: !!navSessionKeys,
     navSessions: navSessionKeys ? navSessionKeys.size : 0,
     checkedAt: new Date().toISOString()

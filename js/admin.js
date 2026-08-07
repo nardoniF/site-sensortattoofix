@@ -969,17 +969,45 @@ ${worksheets}
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6);
     const ultimo = data?.lastClickAt ? formatClickDate(data.lastClickAt) : '—';
+    const maisAntigo = data?.oldestClickAt ? formatClickDate(data.oldestClickAt) : '—';
     const topList = topEntries.length
       ? `<ul class="clicks-stats-top">${topEntries.map(([k, n]) =>
         `<li><span>${escapeHtml(clickDestinoLabel(k))}</span><strong>${n}</strong></li>`
       ).join('')}</ul>`
       : '<p class="clicks-stats-empty">—</p>';
-    el.innerHTML = `<details class="clicks-stats-details">
+
+    const cap = data?.capacity || {};
+    const used = Number(cap.used ?? data?.total ?? 0) || 0;
+    const max = Number(cap.max) > 0 ? Number(cap.max) : 2500;
+    const pct = Number.isFinite(Number(cap.percent))
+      ? Number(cap.percent)
+      : (max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0);
+    const full = !!cap.full || used >= max;
+    const near = !!cap.nearFull || (!full && used >= Math.floor(max * 0.9));
+    let capClass = 'clicks-kv--ok';
+    let capTitle = 'Espaço no log (KV)';
+    let capMsg = `Log KV: ${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} (${pct}%) — ok`;
+    if (full) {
+      capClass = 'clicks-kv--full';
+      capTitle = 'Log KV no limite';
+      capMsg = `Log KV CHEIO: ${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} (${pct}%). Novos cliques ainda entram; os mais antigos são apagados. Se “Hoje” estiver baixo, pode ser pouca visita — não é o KV “parado”.`;
+    } else if (near) {
+      capClass = 'clicks-kv--warn';
+      capTitle = 'Log KV quase cheio';
+      capMsg = `Log KV quase cheio: ${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} (${pct}%). Em breve começa a descartar os eventos mais antigos.`;
+    }
+
+    el.innerHTML = `<div class="clicks-kv-flag ${capClass}" role="status" title="${escapeHtml(capTitle)}">
+        <i class="fas ${full ? 'fa-exclamation-triangle' : near ? 'fa-exclamation-circle' : 'fa-database'}" aria-hidden="true"></i>
+        <span>${escapeHtml(capMsg)}</span>
+      </div>
+      <details class="clicks-stats-details">
       <summary class="clicks-stats-summary"><i class="fas fa-chevron-right clicks-stats-chevron" aria-hidden="true"></i> Resumo</summary>
       <dl class="clicks-stats-dl">
         <div class="clicks-stats-row"><dt>Hoje</dt><dd>${data?.todayCount ?? 0} eventos</dd></div>
-        <div class="clicks-stats-row"><dt>Total no log</dt><dd>${data?.total ?? 0}</dd></div>
+        <div class="clicks-stats-row"><dt>Total no log</dt><dd>${data?.total ?? 0} <span class="clicks-kv-inline">/ ${max.toLocaleString('pt-BR')}</span></dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
+        <div class="clicks-stats-row"><dt>Mais antigo no KV</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
         <div class="clicks-stats-row clicks-stats-row-top"><dt>Mais frequentes</dt><dd>${topList}</dd></div>
       </dl>
     </details>`;
