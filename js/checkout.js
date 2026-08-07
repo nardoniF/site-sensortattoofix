@@ -176,7 +176,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function localizeShippingServiceName(opt) {
-    if (!isLocalizedSite() || !opt) return opt?.service || '';
+    if (!opt) return '';
+    // BR / domestic: keep Correios/Uber/motoboy labels from the API
+    if (!isLocalizedSite()) return opt.service || '';
     if (opt.shipmentType === 'documento' || opt.methodId === 'int-documento') {
       return L('shipping.serviceDocument');
     }
@@ -186,7 +188,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (opt.source === 'config' || opt.methodId === 'config-fallback') {
       return L('shipping.intlDefault');
     }
-    return L('shipping.intlDefault');
+    return opt.service || L('shipping.intlDefault');
   }
 
   function lojaHref() {
@@ -837,6 +839,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function renderPeliculaUpsell() {
+    try {
+      renderPeliculaUpsellUnsafe();
+    } catch (err) {
+      console.warn('pelicula upsell:', err);
+    }
+  }
+
+  function renderPeliculaUpsellUnsafe() {
     const wrap = els.peliculaUpsell;
     if (!wrap || !window.STF_PELICULA) return;
     if (orderSidebarLocked) {
@@ -1921,14 +1931,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (actions) actions.classList.toggle('checkout-actions--sticky', show);
     if (show && wasHidden) {
       requestAnimationFrame(() => {
-        els.btnNext.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        try { els.btnNext.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { /* ignore */ }
       });
     }
   }
 
   function renderShippingOptions(options) {
     if (!els.shippingOptionsEl || !els.shippingOptionsWrap) return;
-    let list = options || [];
+    let list = Array.isArray(options) ? options : [];
+    list = list.filter((o) => o && typeof o === 'object');
     if (isInternational && isLensOnlyIntlCheckout()) {
       list = filterIntlShippingForLensOnly(list);
     } else if (isInternational && cartHasAggregated()) {
@@ -2017,16 +2028,31 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     els.shippingOptionsEl.querySelectorAll('input[name="shippingOption"]').forEach((input) => {
       input.addEventListener('change', () => {
         const idx = Number(input.getAttribute('data-index'));
-        selectShippingOption(shippingOptions[idx]);
+        try {
+          selectShippingOption(shippingOptions[idx]);
+        } catch (err) {
+          console.warn('selectShippingOption change:', err);
+        }
       });
     });
 
-    selectShippingOption(shippingOptions[defaultIdx]);
+    try {
+      selectShippingOption(shippingOptions[defaultIdx]);
+    } catch (err) {
+      console.warn('selectShippingOption:', err);
+      const opt = shippingOptions[defaultIdx];
+      if (opt) {
+        shippingInfo = opt;
+        shippingCost = Number(opt.price);
+        try { updateSummary(); } catch (_) { /* ignore */ }
+        try { updateContinueButtonVisibility(); } catch (_) { /* ignore */ }
+      }
+    }
   }
 
   /** Peso do pacote para frete: prioriza admin (Frete Mini Envios), não o catálogo antigo. */
   function shippingWeightGrams() {
-    const shipW = Number(cfg.shipping?.weightGrams);
+    const shipW = Number(cfg?.shipping?.weightGrams);
     if (shipW > 0) return shipW;
     const cartW = window.STF_CART?.totalWeight();
     if (cartW > 0) return cartW;
@@ -2034,10 +2060,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function estimateBRMax() {
-    const baseWeight = Number(cfg.shipping?.weightGrams) || 5;
+    const baseWeight = Number(cfg?.shipping?.weightGrams) || 5;
     const weightFactor = Math.min(2.5, Math.max(1, shippingWeightGrams() / baseWeight));
-    const maxPrice = Number(cfg.shipping?.estimateMaxPrice) > 0 ? Number(cfg.shipping.estimateMaxPrice) : 24.9;
-    const maxDays = Number(cfg.shipping?.estimateMaxDays) > 0 ? Number(cfg.shipping.estimateMaxDays) : 14;
+    const maxPrice = Number(cfg?.shipping?.estimateMaxPrice) > 0 ? Number(cfg.shipping.estimateMaxPrice) : 24.9;
+    const maxDays = Number(cfg?.shipping?.estimateMaxDays) > 0 ? Number(cfg.shipping.estimateMaxDays) : 14;
     return {
       price: Math.round(maxPrice * weightFactor * 100) / 100,
       days: maxDays,
@@ -2076,7 +2102,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           const data = await fetchShippingQuote(
             `${base}/shipping/quote?country=${code}&weightGrams=${encodeURIComponent(weight)}${isLensOnlyIntlCheckout() ? '&documentOnly=1' : ''}`
           );
-          options = data?.options || [];
+          options = Array.isArray(data?.options) ? data.options : [];
         }
         if (!options.length) {
           const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
@@ -2111,7 +2137,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           const data = await fetchShippingQuote(
             `${base}/shipping/quote?country=BR&cep=${cep}&weightGrams=${weight}&valor=${valor}&${addr.toString()}`
           );
-          options = data?.options || [];
+          options = Array.isArray(data?.options) ? data.options : [];
         }
         if (!options.length) {
           const est = estimateBRMax();
@@ -2128,12 +2154,46 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
       renderShippingOptions(options);
       updateSummary();
-    } catch {
-      clearShippingOptions();
-      shippingCost = null;
-      shippingInfo = null;
-      shippingOptions = [];
-      els.shippingHint.textContent = L('shipping.error');
+    } catch (err) {
+      console.warn('Shipping quote failed:', err);
+      if (isInternational) {
+        const code = els.paisCode?.value;
+        const z = cfg?.internationalShipping?.[code] || cfg?.internationalShipping?.OTHER;
+        if (z) {
+          const surcharge = Math.max(0, Number(cfg?.internationalSurcharge) || 0);
+          const multiplier = Math.max(1, Number(cfg?.internationalShippingMultiplier) || 2);
+          const basePrice = Number(z.price) || 0;
+          const multiplied = Math.round(basePrice * multiplier * 100) / 100;
+          const finalPrice = Math.round((multiplied + surcharge) * 100) / 100;
+          const markup = Math.round((finalPrice - basePrice) * 100) / 100;
+          renderShippingOptions([{
+            id: 'config-fallback',
+            methodId: 'config-fallback',
+            service: L('shipping.intlDefault'),
+            price: finalPrice,
+            days: z.days,
+            source: 'config',
+            isHighestBid: true,
+            intlSurcharge: markup || undefined,
+            intlFlatSurcharge: surcharge || undefined,
+            intlMultiplier: multiplier !== 1 ? multiplier : undefined,
+            intlBasePrice: (multiplier !== 1 || surcharge) ? basePrice : undefined
+          }]);
+        } else {
+          clearShippingOptions();
+          els.shippingHint.textContent = L('shipping.error');
+        }
+      } else {
+        const est = estimateBRMax();
+        renderShippingOptions([{
+          id: 'estimate',
+          methodId: 'estimate',
+          service: est.service,
+          price: est.price,
+          days: est.days,
+          source: 'estimate'
+        }]);
+      }
       updateSummary();
     }
   }
