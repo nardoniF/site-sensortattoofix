@@ -2850,12 +2850,15 @@ async function maybeNotifyTrackingAvailable(env, config, order) {
     };
   }
 
+  const shopCopy = String(config.formsubmit?.email || '').trim();
   const result = await notifyCustomer(env, config, order, subject, fields, {
     html: fieldsToHtmlLocalized(
       { [loc === 'en' ? 'Customer' : 'Cliente']: order.nome, ...fields },
       loc === 'pt' ? 'sensortattoofix.com.br' : 'sensortattoofix.com'
     ),
-    text: fieldsToText({ [loc === 'en' ? 'Customer' : 'Cliente']: order.nome, ...fields })
+    text: fieldsToText({ [loc === 'en' ? 'Customer' : 'Cliente']: order.nome, ...fields }),
+    // Cópia oculta pra loja (não vai pra "Enviados" do Gmail — chega na caixa da loja via BCC).
+    bcc: shopCopy || undefined
   });
   if (!result?.ok) {
     order.trackingEmailSentAt = null;
@@ -7569,6 +7572,7 @@ async function sendViaResend(env, config, to, subject, fields, replyTo, content)
   const apiKey = (env.RESEND_API_KEY || '').trim();
   if (!apiKey) return { ok: false, error: 'RESEND_API_KEY não configurada' };
 
+  const toAddr = String(to || '').trim().toLowerCase();
   const payload = {
     from: emailFrom(env, config),
     to: [to],
@@ -7578,6 +7582,13 @@ async function sendViaResend(env, config, to, subject, fields, replyTo, content)
   };
   if (replyTo) payload.reply_to = [replyTo];
   if (content?.attachments?.length) payload.attachments = content.attachments;
+  const bccRaw = content?.bcc;
+  if (bccRaw) {
+    const bccList = (Array.isArray(bccRaw) ? bccRaw : [bccRaw])
+      .map((e) => String(e || '').trim())
+      .filter((e) => e && e.toLowerCase() !== toAddr);
+    if (bccList.length) payload.bcc = bccList;
+  }
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
