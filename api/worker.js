@@ -6763,7 +6763,11 @@ function formatCorreiosApiLine(apiId) {
   return `${id} — ${name}`;
 }
 
-/** Ordem fixa da tabela Status das integrações (admin). */
+/**
+ * Ordem fixa da tabela Status das integrações (admin → API).
+ * Ao incluir qualquer API nova no site: adicionar id aqui + probe em
+ * check*Integration / buildIntegrationRows / handleAdminIntegrationsStatus.
+ */
 const INTEGRATION_ROW_ORDER = [
   'worker',
   'mercadopago',

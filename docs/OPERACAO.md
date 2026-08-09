@@ -77,15 +77,27 @@ Base Worker + `/webhook/mercadopago`, `/webhook/asaas`, `/webhook/paypal`.
 
 ## Frete
 
-- **BR sem Correios:** estimativa fixa (checkout funciona).
-- **BR com Correios:** API Mini Envios após contrato + cartão.
-- **Internacional:** Exporta Fácil + fallback no admin.
+- **BR Correios:** Mini Envios / serviços do cartão (quando `CORREIOS_*` no Worker).
+- **BR Super Frete:** PAC, SEDEX, Mini, Jadlog, Loggi — secret `SUPERFRETE_TOKEN`; só checkout Brasil.
+- **BR Uber Direct / motoboy:** entrega local (secrets Uber + cadastro motoboy no admin).
+- **Internacional:** Exporta Fácil + fallback no admin (etiqueta/rastreio manual quando a API intl não gera).
+
+### Checklist ao incluir uma API nova
+
+1. Secret(s) no Worker + linha em `api/DEPLOY.md`
+2. Linha em **Admin → API → Status das integrações** (`INTEGRATION_ROW_ORDER` + probe em `buildIntegrationRows`)
+3. Uso no fluxo real (checkout / pedido / e-mail)
+4. Texto de ajuda no admin + favoritos/docs se houver painel externo
 
 ---
 
-## Uber Direct (planejado)
+## Uber Direct
 
-Não implementado. Referência: https://direct.uber.com · direct-pt@uber.com
+Implementado. Painel: https://direct.uber.com · docs: https://developer.uber.com/docs/deliveries
+
+## Super Frete
+
+Implementado (só BR). Token: https://web.superfrete.com/#/integrations · docs: https://superfrete.readme.io/
 
 ---
 
