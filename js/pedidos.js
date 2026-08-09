@@ -317,9 +317,9 @@
       : '';
     const heading = isIntl ? 'Rastreio internacional' : 'Atualização manual';
     const hint = isIntl
-      ? 'Cole o código dos Correios (ex.: RN…BR). Ao salvar pela primeira vez, o e-mail de rastreio é enviado ao cliente automaticamente.'
-      : 'Use quando a API Correios falhar ou o envio foi feito fora do contrato (ex.: PAC no balcão). Ao salvar um código novo, o e-mail de rastreio é enviado ao cliente.';
-    const trackPlaceholder = isIntl ? 'Ex.: RN000707244BR' : 'Ex.: AP170797068BR';
+      ? 'Cole o código completo dos Correios (13 caracteres, ex.: RN000689771BR). O e-mail de rastreio só é enviado na primeira vez que um código válido é salvo — cliques repetidos não reenviam.'
+      : 'Use quando a API Correios falhar ou o envio foi feito fora do contrato (ex.: PAC no balcão). O e-mail de rastreio só sai na primeira vez que o código é salvo.';
+    const trackPlaceholder = isIntl ? 'Ex.: RN000689771BR' : 'Ex.: AP170797068BR';
     const brOnlyFields = isBr ? `
           <label class="pedidos-shipping-field">
             <span class="pedidos-shipping-label">Tipo envio</span>
@@ -616,7 +616,11 @@
           return;
         }
         if (!/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(code)) {
-          showFeedback('Código inválido. Ex.: AP170797068BR', 'error');
+          const need = 13 - code.length;
+          const hint = need > 0
+            ? `Incompleto (${code.length}/13). Faltam ${need} caractere(s) — ex.: RN000689771BR`
+            : 'Formato: 2 letras + 9 números + 2 letras — ex.: RN000689771BR';
+          showFeedback(hint, 'error');
           return;
         }
         payload.trackingCode = code;
@@ -667,7 +671,13 @@
         if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
         applyFilters();
         closeOrderModal();
-        const emailed = payload.trackingCode ? ' — e-mail de rastreio enviado ao cliente (se ainda não tinha código)' : '';
+        let emailed = '';
+        if (payload.trackingCode) {
+          if (saved.trackingEmailSent) emailed = ' — e-mail de rastreio enviado (só desta vez)';
+          else if (saved.trackingEmailSentAt || saved.trackingEmailSkipped) {
+            emailed = ' — e-mail de rastreio já tinha sido enviado antes (não reenviado)';
+          }
+        }
         showStatus('Envio atualizado' + (saved.trackingCode ? ': ' + saved.trackingCode : '') + emailed, 'success');
       } finally {
         if (saveBtn) {

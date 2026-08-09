@@ -9360,10 +9360,12 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     return json({ error: err.message }, 400, origin);
   }
   await saveOrder(env, order);
+  let trackingEmail = { skipped: true };
   try {
-    await notifyTrackingIfNew(env, config, order, previousCode);
+    trackingEmail = await notifyTrackingIfNew(env, config, order, previousCode) || { skipped: true };
   } catch (err) {
     console.warn('Tracking email after shipping update:', orderId, err.message);
+    trackingEmail = { skipped: true, error: err.message };
   }
   return json({
     ok: true,
@@ -9374,7 +9376,10 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     correiosShippingManualNote: order.correiosShippingManualNote || null,
     correiosFreteEstimado: order.correiosFreteEstimado ?? null,
     shippingDays: order.shippingDays ?? null,
-    shippingServiceCode: order.shippingServiceCode ?? null
+    shippingServiceCode: order.shippingServiceCode ?? null,
+    trackingEmailSentAt: order.trackingEmailSentAt || null,
+    trackingEmailSent: !!(trackingEmail && trackingEmail.ok),
+    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped)
   }, 200, origin);
 }
 
