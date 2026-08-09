@@ -1871,6 +1871,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (source === 'correios-export') return L('shipping.sourceExport');
     if (source === 'uber') return L('shipping.sourceUber');
     if (source === 'motoboy') return L('shipping.sourceMotoboy');
+    if (source === 'superfrete') return L('shipping.sourceSuperfrete');
     if (source === 'config') return L('shipping.sourceConfigShort');
     return L('shipping.sourceEstimateShort');
   }
@@ -2429,8 +2430,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       shippingMethodId: shippingInfo?.methodId || shippingInfo?.id || null,
       shippingProvider: shippingInfo?.source === 'uber' ? 'uber'
         : (shippingInfo?.source === 'motoboy' ? 'motoboy'
-          : (shippingInfo?.source === 'correios' ? 'correios' : null)),
+          : (shippingInfo?.source === 'superfrete' ? 'superfrete'
+            : (shippingInfo?.source === 'correios' ? 'correios' : null))),
       uberQuoteId: shippingInfo?.uberQuoteId || null,
+      superfreteService: shippingInfo?.superfreteService || null,
+      superfretePackage: shippingInfo?.superfretePackage || null,
       shippingDays: shippingInfo?.days,
       shipmentType: (isLensOnlyIntlCheckout() && isInternational)
         ? 'documento'

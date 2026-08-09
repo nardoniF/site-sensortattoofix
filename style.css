@@ -5546,8 +5546,19 @@ a.conta-forgot-link { display: inline-block; }
 .conta-order-status { font-size: 0.8rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
 .conta-order-status.status-paid { background: rgba(37,211,102,.15); color: #25d366; }
 .conta-order-status.status-pending_payment { background: rgba(255,193,7,.15); color: var(--primary); }
+.conta-order-status.status-cancelled_by_user,
+.conta-order-status.status-cancelled { background: rgba(244,67,54,.12); color: #ef9a9a; }
 .conta-order-meta { font-size: 0.85rem; color: var(--gray); margin: 0; }
 .conta-order-link { margin-top: 10px; display: inline-flex; text-decoration: none; }
+.conta-cancel-box { margin-top: 12px; font-size: 0.85rem; color: var(--gray); }
+.conta-cancel-box summary { cursor: pointer; color: #ef9a9a; font-weight: 600; }
+.conta-cancel-box label { display: block; margin: 8px 0; }
+.conta-cancel-box select,
+.conta-cancel-box textarea {
+  width: 100%; margin-top: 4px; background: #111; color: #fff; border: 1px solid #333; border-radius: 6px; padding: 8px;
+}
+.conta-cancel-alts { margin: 6px 0 10px; padding-left: 18px; }
+.conta-cancel-btn { margin-top: 8px; }
 .conta-empty { color: var(--gray); text-align: center; padding: 24px; }
 .product-picker { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .product-pick-btn {

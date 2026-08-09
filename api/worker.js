@@ -246,6 +246,13 @@ const DEFAULT_CONFIG = {
     paidUberPending: 'Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em breve.',
     paidIntlLens: 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.',
     paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    customerTrackingSubject: 'Rastreio disponível — {orderId}',
+    trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
+    abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
+    abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
+    abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
+    abandonedWeeklyIntro: 'Passou uma semana e seu pedido ainda aguarda pagamento. Se ainda quiser o Sensor Tattoo Fix, é só concluir pelo link.',
+    abandonedCta: 'Finalizar meu pedido',
     pixGreeting: 'Olá, {nome}!',
     pixIntro: 'Seu pedido {orderId} foi registrado. Para concluir a compra, pague o PIX abaixo:',
     pixFooter: 'Guarde este e-mail — se fechar a página, use o link acima para voltar ao QR Code.'
@@ -270,6 +277,9 @@ const DEFAULT_MOTOBOY_SHIPPING = {
 const DEFAULT_SHIPPING_METHODS = [
   { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
   { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
+  { id: 'br-sf-pac', enabled: false, scope: 'BR', label: 'PAC (Super Frete)', provider: 'superfrete', superfreteService: 1 },
+  { id: 'br-sf-sedex', enabled: false, scope: 'BR', label: 'SEDEX (Super Frete)', provider: 'superfrete', superfreteService: 2 },
+  { id: 'br-sf-mini', enabled: false, scope: 'BR', label: 'Mini Envios (Super Frete)', provider: 'superfrete', superfreteService: 17 },
   { id: 'br-motoboy', enabled: false, scope: 'BR', label: 'Envio particular (motoboy — até 24h)', provider: 'motoboy' },
   { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
   { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
@@ -325,6 +335,20 @@ function isMotoboyOrder(order) {
   return String(order.shippingMethodId || '').toLowerCase().includes('motoboy');
 }
 
+function isSuperfreteMethod(method) {
+  if (!method) return false;
+  if (method.provider === 'superfrete') return true;
+  const id = String(method.id || '').toLowerCase();
+  return id.includes('superfrete') || id.startsWith('br-sf-');
+}
+
+function isSuperfreteOrder(order) {
+  if (!order) return false;
+  if (order.shippingProvider === 'superfrete') return true;
+  const id = String(order.shippingMethodId || '').toLowerCase();
+  return id.includes('superfrete') || id.startsWith('br-sf-');
+}
+
 function isParticularDeliveryOrder(order) {
   return isUberOrder(order) || isMotoboyOrder(order);
 }
@@ -334,6 +358,7 @@ function isCorreiosBrOrder(order) {
   if ((order.paisCode || 'BR') !== 'BR') return false;
   if (order.internationalLensOnly) return false;
   if (orderLooksInternationalDestination(order)) return false;
+  if (isSuperfreteOrder(order)) return false;
   return !isParticularDeliveryOrder(order);
 }
 
@@ -2227,7 +2252,12 @@ function generateOrderId() {
   return `STF-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${suffix}`;
 }
 
+function orderTrackingCode(order) {
+  return String(order?.correiosTrackingCode || order?.superfreteTrackingCode || '').trim().toUpperCase() || null;
+}
+
 function publicOrderView(order, { includePayment = false, includeResumeToken = false } = {}) {
+  const trackingCode = order.status === 'paid' ? orderTrackingCode(order) : null;
   const view = {
     orderId: order.orderId,
     status: order.status,
@@ -2253,7 +2283,17 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     selfTestTester: !!order.selfTestTester,
     chargeCurrency: order.chargeCurrency || null,
     chargeAmount: order.chargeAmount != null ? Number(order.chargeAmount) : null,
-    chargeFxRate: order.chargeFxRate != null ? Number(order.chargeFxRate) : null
+    chargeFxRate: order.chargeFxRate != null ? Number(order.chargeFxRate) : null,
+    shippingService: order.status === 'paid' ? (order.shippingService || null) : null,
+    trackingCode,
+    trackingStatus: order.status === 'paid' ? (order.correiosTrackingStatus || null) : null,
+    trackingUrl: trackingCode
+      ? correiosTrackingUrl(trackingCode, customerSiteBase(order, DEFAULT_CONFIG))
+      : null,
+    uberTrackingUrl: order.status === 'paid' ? (order.uberTrackingUrl || null) : null,
+    canCancel: customerCanCancelOrder(order),
+    cancelReason: order.cancelReason || null,
+    cancelledAt: order.cancelledAt || null
   };
   if (includeResumeToken && order.status === 'pending_payment') {
     view.accessToken = order.accessToken;
@@ -2747,6 +2787,80 @@ function paidMessageForOrder(order, config) {
   return emailMessage(config, 'paidDefault');
 }
 
+function orderWantsTrackingEmail(order) {
+  if (!order || order.status !== 'paid') return false;
+  if (isUberOrder(order) || isMotoboyOrder(order)) return false;
+  return true;
+}
+
+/** Send customer e-mail when tracking first becomes available (idempotent). */
+async function maybeNotifyTrackingAvailable(env, config, order) {
+  const code = orderTrackingCode(order);
+  if (!code || !orderWantsTrackingEmail(order) || order.trackingEmailSentAt) {
+    return { skipped: true };
+  }
+  if (!order.paidEmailsSentAt) return { skipped: true, reason: 'paid_email_pending' };
+
+  order.trackingEmailSentAt = new Date().toISOString();
+  await saveOrder(env, order);
+
+  const trackUrl = correiosTrackingUrl(code, customerSiteBase(order, config));
+  const loc = orderCheckoutLocale(order);
+  let subject;
+  let message;
+  let fields;
+  if (loc === 'en') {
+    subject = `Tracking available — ${order.orderId}`;
+    message = `Your order has shipped. Tracking code: ${code}. Track here: ${trackUrl}`;
+    fields = {
+      Order: order.orderId,
+      Tracking: code,
+      'Track shipment': trackUrl,
+      Message: message
+    };
+  } else if (loc === 'it') {
+    subject = `Tracking disponibile — ${order.orderId}`;
+    message = `Il tuo ordine è stato spedito. Codice tracking: ${code}. Segui qui: ${trackUrl}`;
+    fields = {
+      Ordine: order.orderId,
+      Tracking: code,
+      'Segui spedizione': trackUrl,
+      Messaggio: message
+    };
+  } else {
+    subject = emailSubject(config, 'customerTrackingSubject', { orderId: order.orderId });
+    message = emailMessage(config, 'trackingAvailable', { code, url: trackUrl });
+    fields = {
+      Pedido: order.orderId,
+      Rastreio: code,
+      'Acompanhar envio': trackUrl,
+      Mensagem: message
+    };
+  }
+
+  const result = await notifyCustomer(env, config, order, subject, fields, {
+    html: fieldsToHtmlLocalized(
+      { [loc === 'en' ? 'Customer' : 'Cliente']: order.nome, ...fields },
+      loc === 'pt' ? 'sensortattoofix.com.br' : 'sensortattoofix.com'
+    ),
+    text: fieldsToText({ [loc === 'en' ? 'Customer' : 'Cliente']: order.nome, ...fields })
+  });
+  if (!result?.ok) {
+    order.trackingEmailSentAt = null;
+    order.trackingEmailError = result?.error || 'send_failed';
+    await saveOrder(env, order);
+    console.error('Tracking email:', order.orderId, order.trackingEmailError);
+  }
+  return result;
+}
+
+async function notifyTrackingIfNew(env, config, order, previousCode) {
+  const prev = String(previousCode || '').trim().toUpperCase();
+  const next = orderTrackingCode(order);
+  if (!next || prev === next) return { skipped: true };
+  return maybeNotifyTrackingAvailable(env, config || await getConfig(env), order);
+}
+
 function fieldsToHtmlLocalized(fields, footerSite) {
   const rows = Object.entries(fields)
     .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${k}</td><td style="padding:8px;border:1px solid #ddd">${String(v ?? '').replace(/</g, '&lt;')}</td></tr>`)
@@ -2756,6 +2870,8 @@ function fieldsToHtmlLocalized(fields, footerSite) {
 }
 
 const ABANDONED_CHECKOUT_DELAY_MS = 15 * 60 * 1000;
+const ABANDONED_WEEKLY_MS = 7 * 24 * 60 * 60 * 1000;
+const ABANDONED_WEEKLY_MAX = 4;
 const ABANDONED_CHECKOUT_CRON_MAX = 30;
 
 function orderPendingBillingType(order) {
@@ -2767,14 +2883,116 @@ function orderPendingBillingType(order) {
   return orderLooksInternationalDestination(order) ? 'PAYPAL' : 'PIX';
 }
 
+function buildAbandonedCartEmail(order, config, env, { weekly = false } = {}) {
+  const loc = orderCheckoutLocale(order);
+  const resumeUrl = resumeOrderUrl(config, order);
+  const product = order.produto || 'Sensor Tattoo Fix';
+  const total = formatOrderCharge(order, order.total);
+  const nome = String(order.nome || '').trim().split(/\s+/)[0] || (loc === 'en' ? 'there' : loc === 'it' ? '' : '');
+  let subject;
+  let intro;
+  let cta;
+  let greeting;
+  let footer;
+  if (loc === 'en') {
+    subject = weekly
+      ? `Weekly reminder — order ${order.orderId} still awaiting payment`
+      : `Your order ${order.orderId} is still reserved — finish when you're ready`;
+    greeting = nome ? `Hi ${nome},` : 'Hi,';
+    intro = weekly
+      ? 'A week has passed and your order is still unpaid. If you still want Sensor Tattoo Fix, finish checkout with the link below.'
+      : 'We noticed your order is still pending. Your items are reserved — complete payment with the link below.';
+    cta = 'Complete my order';
+    footer = 'Sensor Tattoo Fix — sensortattoofix.com';
+  } else if (loc === 'it') {
+    subject = weekly
+      ? `Promemoria settimanale — ordine ${order.orderId} in attesa di pagamento`
+      : `Il tuo ordine ${order.orderId} è ancora riservato — completa quando vuoi`;
+    greeting = nome ? `Ciao ${nome},` : 'Ciao,';
+    intro = weekly
+      ? 'È passata una settimana e il tuo ordine è ancora in attesa di pagamento. Se vuoi ancora Sensor Tattoo Fix, completa dal link qui sotto.'
+      : 'Abbiamo notato che il tuo ordine è ancora in sospeso. Gli articoli sono riservati — completa il pagamento dal link qui sotto.';
+    cta = 'Completa il mio ordine';
+    footer = 'Sensor Tattoo Fix — sensortattoofix.com';
+  } else {
+    subject = emailSubject(config, weekly ? 'abandonedWeeklySubject' : 'abandonedSubject', {
+      orderId: order.orderId
+    });
+    greeting = nome ? `Olá, ${nome}!` : 'Olá!';
+    intro = weekly
+      ? emailMessage(config, 'abandonedWeeklyIntro')
+      : emailMessage(config, 'abandonedIntro');
+    cta = emailMessage(config, 'abandonedCta') || 'Finalizar meu pedido';
+    footer = 'Sensor Tattoo Fix — sensortattoofix.com.br';
+  }
+
+  const support = customerSupportEmail(order, config);
+  const wa = shopWhatsAppUrl(config, env, loc === 'en'
+    ? `Hi! I want to finish order ${order.orderId}`
+    : loc === 'it'
+      ? `Ciao! Voglio completare l'ordine ${order.orderId}`
+      : `Olá! Quero finalizar o pedido ${order.orderId}`);
+
+  const html = `<div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;color:#1a1a1a;line-height:1.55;background:#faf8f5;padding:28px 24px;border-radius:4px">
+    <p style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#8a6a3a;margin:0 0 8px">Sensor Tattoo Fix</p>
+    <h1 style="font-size:22px;font-weight:600;margin:0 0 16px;line-height:1.3">${escapeHtml(weekly ? (loc === 'en' ? 'Still thinking it over?' : loc === 'it' ? 'Ci stai ancora pensando?' : 'Ainda pensando?') : (loc === 'en' ? 'Your order is waiting' : loc === 'it' ? 'Il tuo ordine ti aspetta' : 'Seu pedido está te esperando'))}</h1>
+    <p style="margin:0 0 12px">${escapeHtml(greeting)}</p>
+    <p style="margin:0 0 16px">${escapeHtml(intro)}</p>
+    <div style="background:#fff;border:1px solid #e8e0d4;padding:16px 18px;margin:0 0 20px">
+      <p style="margin:0 0 6px;font-size:13px;color:#666">${escapeHtml(loc === 'en' ? 'Order' : loc === 'it' ? 'Ordine' : 'Pedido')} <strong>${escapeHtml(order.orderId)}</strong></p>
+      <p style="margin:0 0 6px">${escapeHtml(product)}</p>
+      <p style="margin:0;font-size:18px"><strong>${escapeHtml(total)}</strong></p>
+    </div>
+    <p style="margin:0 0 24px"><a href="${escapeHtml(resumeUrl)}" style="display:inline-block;background:#1a1a1a;color:#faf8f5;text-decoration:none;font-weight:700;padding:14px 22px;font-family:Arial,sans-serif;font-size:14px">${escapeHtml(cta)}</a></p>
+    <p style="font-size:13px;color:#555;margin:0 0 8px">${escapeHtml(loc === 'en' ? 'Need help?' : loc === 'it' ? 'Serve aiuto?' : 'Precisa de ajuda?')}
+      ${support ? `<a href="mailto:${escapeHtml(support)}">${escapeHtml(support)}</a>` : ''}
+      ${wa ? ` · <a href="${escapeHtml(wa)}">WhatsApp</a>` : ''}
+    </p>
+    <p style="font-size:11px;color:#999;margin:20px 0 0">${escapeHtml(footer)}</p>
+  </div>`;
+
+  const text = [
+    greeting,
+    '',
+    intro,
+    '',
+    `${loc === 'en' ? 'Order' : loc === 'it' ? 'Ordine' : 'Pedido'}: ${order.orderId}`,
+    product,
+    total,
+    '',
+    `${cta}: ${resumeUrl}`,
+    support ? `E-mail: ${support}` : '',
+    wa ? `WhatsApp: ${wa}` : '',
+    '',
+    footer
+  ].filter(Boolean).join('\n');
+
+  return { subject, html, text, resumeUrl };
+}
+
+async function notifyAbandonedCart(env, config, order, { weekly = false } = {}) {
+  const mail = buildAbandonedCartEmail(order, config, env, { weekly });
+  const loc = orderCheckoutLocale(order);
+  const fields = loc === 'en'
+    ? { Order: order.orderId, Status: weekly ? 'Weekly reminder' : 'Abandoned checkout', Total: formatOrderCharge(order), 'Order link': mail.resumeUrl }
+    : loc === 'it'
+      ? { Ordine: order.orderId, Stato: weekly ? 'Promemoria settimanale' : 'Checkout abbandonato', Totale: formatOrderCharge(order), 'Link ordine': mail.resumeUrl }
+      : { Pedido: order.orderId, Status: weekly ? 'Lembrete semanal' : 'Checkout abandonado', Total: formatOrderCharge(order), 'Link do pedido': mail.resumeUrl };
+  return notifyCustomer(env, config, order, mail.subject, fields, {
+    html: mail.html,
+    text: mail.text
+  });
+}
+
 async function runAbandonedCheckoutEmails(env) {
   const index = await readOrdersIndex(env);
   const now = Date.now();
   const config = await getConfig(env);
   let sent = 0;
+  let weeklySent = 0;
   let skipped = 0;
   for (const item of index) {
-    if (sent >= ABANDONED_CHECKOUT_CRON_MAX) break;
+    if (sent + weeklySent >= ABANDONED_CHECKOUT_CRON_MAX) break;
     if (!item?.orderId || item.status === 'paid') continue;
     const created = Date.parse(item.createdAt || '');
     if (!Number.isFinite(created) || (now - created) < ABANDONED_CHECKOUT_DELAY_MS) {
@@ -2782,23 +3000,48 @@ async function runAbandonedCheckoutEmails(env) {
       continue;
     }
     const order = await getOrder(env, item.orderId);
-    if (!order || order.status === 'paid' || order.abandonedEmailSentAt || order.paidEmailsSentAt) continue;
+    if (!order || order.status === 'paid' || order.paidEmailsSentAt) continue;
 
-    // Claim before send to avoid duplicate cron races.
-    order.abandonedEmailSentAt = new Date().toISOString();
+    // First recovery e-mail (~15 min after create)
+    if (!order.abandonedEmailSentAt) {
+      order.abandonedEmailSentAt = new Date().toISOString();
+      order.abandonedEmailLastAt = order.abandonedEmailSentAt;
+      order.abandonedWeeklyCount = 0;
+      await saveOrder(env, order);
+      try {
+        const result = await notifyAbandonedCart(env, config, order, { weekly: false });
+        if (!result?.ok) {
+          console.error('Abandoned checkout email failed:', order.orderId, JSON.stringify(result));
+        } else {
+          sent += 1;
+        }
+      } catch (err) {
+        console.error('Abandoned checkout email:', order.orderId, err.message);
+      }
+      continue;
+    }
+
+    // Weekly reminders (up to ABANDONED_WEEKLY_MAX)
+    const lastAt = Date.parse(order.abandonedEmailLastAt || order.abandonedEmailSentAt || '');
+    const weeklyCount = Number(order.abandonedWeeklyCount) || 0;
+    if (!Number.isFinite(lastAt) || (now - lastAt) < ABANDONED_WEEKLY_MS) continue;
+    if (weeklyCount >= ABANDONED_WEEKLY_MAX) continue;
+
+    order.abandonedEmailLastAt = new Date().toISOString();
+    order.abandonedWeeklyCount = weeklyCount + 1;
     await saveOrder(env, order);
     try {
-      const result = await notifyCustomerPendingPayment(env, config, order, orderPendingBillingType(order));
+      const result = await notifyAbandonedCart(env, config, order, { weekly: true });
       if (!result?.ok) {
-        console.error('Abandoned checkout email failed:', order.orderId, JSON.stringify(result));
+        console.error('Abandoned weekly email failed:', order.orderId, JSON.stringify(result));
       } else {
-        sent += 1;
+        weeklySent += 1;
       }
     } catch (err) {
-      console.error('Abandoned checkout email:', order.orderId, err.message);
+      console.error('Abandoned weekly email:', order.orderId, err.message);
     }
   }
-  return { ok: true, sent, skipped };
+  return { ok: true, sent, weeklySent, skipped };
 }
 
 async function tryCorreiosLabelPdfAttachment(env, order, config) {
@@ -5164,8 +5407,16 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts =
     }
   }
   if (!code) return null;
+  const previousCode = order.correiosTrackingCode;
   order.correiosTrackingCode = code;
   await saveOrder(env, order);
+  if (env) {
+    try {
+      await notifyTrackingIfNew(env, null, order, previousCode);
+    } catch (err) {
+      console.warn('Tracking email after AV sync:', order.orderId, err.message);
+    }
+  }
   return code;
 }
 
@@ -5212,6 +5463,7 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
     }
   }
 
+  const previousCode = order.correiosTrackingCode;
   const created = await createCorreiosPrePostagem(token, order, config, env);
   order.correiosPrePostagemId = created.id;
   if (created.codigoObjeto) order.correiosTrackingCode = created.codigoObjeto;
@@ -5222,6 +5474,13 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   order.correiosPrePostagemError = null;
   order.correiosPrePostagemScope = isCorreiosIntlOrder(order) ? 'intl' : 'br';
   await saveOrder(env, order);
+  if (order.correiosTrackingCode) {
+    try {
+      await notifyTrackingIfNew(env, config, order, previousCode);
+    } catch (err) {
+      console.warn('Tracking email after pre-postagem:', order.orderId, err.message);
+    }
+  }
   return {
     ok: true,
     prePostagemId: order.correiosPrePostagemId,
@@ -5396,13 +5655,267 @@ async function quoteCorreiosService(env, config, destCep, method, opts = {}) {
   };
 }
 
+function superfreteConfigured(env) {
+  return !!(env.SUPERFRETE_TOKEN || '').trim();
+}
+
+function superfreteBaseUrl(env) {
+  return String(env.SUPERFRETE_SANDBOX || '').toLowerCase() === 'true'
+    ? 'https://sandbox.superfrete.com'
+    : 'https://api.superfrete.com';
+}
+
+function superfreteUserAgent(env) {
+  return (env.SUPERFRETE_USER_AGENT || 'SensorTattooFix (contato@sensortattoofix.com.br)').trim();
+}
+
+function superfreteServiceId(method) {
+  const n = Number(method?.superfreteService ?? method?.correiosCode);
+  if ([1, 2, 3, 17, 31, 33].includes(n)) return n;
+  const id = String(method?.id || '').toLowerCase();
+  if (id.includes('pac')) return 1;
+  if (id.includes('sedex')) return 2;
+  if (id.includes('mini')) return 17;
+  if (id.includes('jadlog')) return 3;
+  if (id.includes('loggi')) return 31;
+  if (id.includes('jt') || id.includes('j&t')) return 33;
+  return null;
+}
+
+function superfretePackageFromConfig(config, weightGrams) {
+  const ship = config.shipping || DEFAULT_CONFIG.shipping;
+  const grams = shippingWeightGrams(config, weightGrams);
+  return {
+    height: Math.max(2, Number(ship.heightCm) || 2),
+    width: Math.max(11, Number(ship.widthCm) || 12),
+    length: Math.max(16, Number(ship.lengthCm) || 16),
+    weight: Math.max(0.001, grams / 1000)
+  };
+}
+
+function personNameForSuperfrete(name, fallback = 'Loja SensorTattooFix') {
+  const n = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!n) return fallback;
+  if (!/\s/.test(n)) return `Loja ${n}`.slice(0, 50);
+  return n.slice(0, 50);
+}
+
+async function superfreteFetch(env, path, opts = {}) {
+  const token = (env.SUPERFRETE_TOKEN || '').trim();
+  if (!token) throw new Error('SUPERFRETE_TOKEN não configurado');
+  const res = await fetch(`${superfreteBaseUrl(env)}${path}`, {
+    ...opts,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'User-Agent': superfreteUserAgent(env),
+      accept: 'application/json',
+      'content-type': 'application/json',
+      ...(opts.headers || {})
+    }
+  });
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { raw: text };
+  }
+  if (!res.ok) {
+    const msg = data?.message || data?.error || data?.raw || text || res.statusText;
+    throw new Error(`Super Frete ${res.status}: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`);
+  }
+  return data;
+}
+
+async function quoteSuperfreteOptions(env, config, destCep, opts = {}) {
+  const methods = getEnabledShippingMethods(config, 'BR').filter(isSuperfreteMethod);
+  if (!methods.length || !superfreteConfigured(env)) return [];
+
+  const origin = onlyDigits(config.shipping?.originCep || DEFAULT_CONFIG.shipping.originCep);
+  const dest = onlyDigits(destCep);
+  if (dest.length !== 8) return [];
+
+  const serviceIds = [...new Set(methods.map(superfreteServiceId).filter(Boolean))];
+  if (!serviceIds.length) return [];
+
+  const pkg = superfretePackageFromConfig(config, opts.weightGrams);
+  const declared = Number(opts.declaredValue) || 0;
+  const weightGrams = shippingWeightGrams(config, opts.weightGrams);
+
+  try {
+    const rows = await superfreteFetch(env, '/api/v0/calculator', {
+      method: 'POST',
+      body: JSON.stringify({
+        from: { postal_code: origin },
+        to: { postal_code: dest },
+        services: serviceIds.join(','),
+        options: {
+          own_hand: false,
+          receipt: false,
+          insurance_value: declared > 0 ? declared : 0,
+          use_insurance_value: declared > 0
+        },
+        package: pkg
+      })
+    });
+    const list = Array.isArray(rows) ? rows : [];
+    const byService = new Map();
+    for (const row of list) {
+      if (row?.has_error) continue;
+      const id = Number(row.id);
+      const price = Number(row.price);
+      if (!id || !(price > 0)) continue;
+      byService.set(id, row);
+    }
+
+    const options = [];
+    for (const method of methods) {
+      const sid = superfreteServiceId(method);
+      const row = byService.get(sid);
+      if (!row) continue;
+      const company = row.company?.name || 'Super Frete';
+      const name = row.name || method.label || `Serviço ${sid}`;
+      options.push({
+        id: method.id,
+        methodId: method.id,
+        serviceCode: String(sid),
+        service: method.label || `${name} (${company})`,
+        price: Number(row.price),
+        days: Number(row.delivery_time) || Number(row.delivery_range?.max) || null,
+        source: 'superfrete',
+        provider: 'superfrete',
+        superfreteService: sid,
+        superfretePackage: pkg,
+        weightGrams,
+        company
+      });
+    }
+    return options.sort((a, b) => a.price - b.price);
+  } catch (err) {
+    console.warn('Super Frete quote:', err.message);
+    return [];
+  }
+}
+
+async function createSuperfreteCartForOrder(env, config, order) {
+  if (!isSuperfreteOrder(order) || !superfreteConfigured(env)) {
+    return { skipped: true, reason: 'not_superfrete' };
+  }
+  if (order.superfreteCartId) {
+    return { ok: true, alreadyExists: true, id: order.superfreteCartId };
+  }
+
+  const sender = config.shipping?.sender || DEFAULT_CONFIG.shipping.sender;
+  const service = Number(order.superfreteService || order.shippingServiceCode) || 17;
+  const pkg = order.superfretePackage || superfretePackageFromConfig(config);
+  const products = (order.items || []).map((i) => ({
+    name: String(i.name || 'Produto').slice(0, 80),
+    quantity: String(i.qty || 1),
+    unitary_value: String(Number(i.price) || Number(order.valorProduto) || 1)
+  }));
+  if (!products.length) {
+    products.push({
+      name: String(order.produto || 'SensorTattooFix').slice(0, 80),
+      quantity: '1',
+      unitary_value: String(Number(order.valorProduto) || 1)
+    });
+  }
+
+  const phoneDigits = onlyDigits(order.telefone).slice(-11);
+  const storeBase = String(config.storeUrlBr || config.storeUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
+  const payload = {
+    from: {
+      name: personNameForSuperfrete(sender.company || sender.brand),
+      address: String(sender.rua || '').slice(0, 50),
+      complement: String(sender.complemento || '').slice(0, 20),
+      number: String(sender.numero || ''),
+      district: String(sender.bairro || 'NA').slice(0, 60),
+      city: String(sender.cidade || '').slice(0, 50),
+      state_abbr: String(sender.uf || 'SP').toUpperCase(),
+      postal_code: onlyDigits(config.shipping?.originCep || ''),
+      document: onlyDigits(sender.cnpj || '')
+    },
+    to: {
+      name: personNameForSuperfrete(order.nome, 'Cliente SensorTattooFix'),
+      address: String(order.rua || '').slice(0, 50),
+      complement: String(order.complemento || '').slice(0, 20),
+      number: String(order.numero || ''),
+      district: String(order.bairro || 'NA').slice(0, 50),
+      city: String(order.cidade || '').slice(0, 50),
+      state_abbr: String(order.uf || '').toUpperCase(),
+      postal_code: onlyDigits(order.cep),
+      email: order.email || null,
+      document: onlyDigits(order.cpf),
+      ...(phoneDigits.length === 11 ? { phone: phoneDigits } : {})
+    },
+    service,
+    products,
+    volumes: {
+      height: Number(pkg.height),
+      width: Number(pkg.width),
+      length: Number(pkg.length),
+      weight: Number(pkg.weight)
+    },
+    options: {
+      non_commercial: true,
+      insurance_value: Number(order.valorProduto) || null,
+      tags: [{ tag: order.orderId, url: `${storeBase}/pedidos.html` }]
+    },
+    platform: 'SensorTattooFix',
+    tag: order.orderId
+  };
+
+  const data = await superfreteFetch(env, '/api/v0/cart', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  order.superfreteCartId = data.id;
+  order.superfreteCartStatus = data.status || 'pending';
+  order.superfreteCartPrice = data.price;
+  order.superfreteCartAt = new Date().toISOString();
+  await saveOrder(env, order);
+
+  if (String(env.SUPERFRETE_AUTO_CHECKOUT || '').toLowerCase() === 'true' && data.id) {
+    try {
+      const paid = await superfreteFetch(env, '/api/v0/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ orders: [data.id] })
+      });
+      order.superfreteCheckout = paid;
+      order.superfreteCartStatus = 'released';
+      const tracking = paid?.purchase?.orders?.[0]?.tracking
+        || paid?.orders?.[0]?.tracking
+        || null;
+      const previousCode = order.correiosTrackingCode;
+      if (tracking) {
+        order.superfreteTrackingCode = tracking;
+        if (!order.correiosTrackingCode) order.correiosTrackingCode = tracking;
+      }
+      await saveOrder(env, order);
+      if (tracking) {
+        try {
+          await notifyTrackingIfNew(env, config, order, previousCode);
+        } catch (err) {
+          console.warn('Tracking email after Super Frete:', order.orderId, err.message);
+        }
+      }
+    } catch (err) {
+      order.superfreteCheckoutError = err.message;
+      await saveOrder(env, order);
+    }
+  }
+  return { ok: true, id: data.id, status: order.superfreteCartStatus };
+}
+
 async function quoteCorreiosOptions(env, config, destCep, opts = {}) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const origin = onlyDigits(ship.originCep);
   const dest = onlyDigits(destCep);
   if (dest.length !== 8) throw new Error('CEP inválido');
 
-  const methods = getEnabledShippingMethods(config, 'BR').filter((m) => !isUberMethod(m) && !isMotoboyMethod(m));
+  const methods = getEnabledShippingMethods(config, 'BR').filter(
+    (m) => !isUberMethod(m) && !isMotoboyMethod(m) && !isSuperfreteMethod(m)
+  );
   const weightGrams = shippingWeightGrams(config, opts.weightGrams);
   const weightFactor = Math.min(2.5, Math.max(1, weightGrams / shippingWeightGrams(config)));
   const token = await getCorreiosToken(env);
@@ -7118,10 +7631,12 @@ async function handleShippingQuote(request, env, origin, ctx) {
     };
     try {
       options = await quoteCorreiosOptions(env, config, cep, { weightGrams, declaredValue });
+      const superfreteOptions = await quoteSuperfreteOptions(env, config, cep, { weightGrams, declaredValue });
       const motoboyOptions = await quoteMotoboyShippingOptions(env, config, addressParams, { weightGrams });
       const uberOptions = await quoteUberShippingOptions(env, config, addressParams, { weightGrams });
-      if (motoboyOptions.length || uberOptions.length) {
-        options = [...options, ...motoboyOptions, ...uberOptions].sort((a, b) => a.price - b.price);
+      if (superfreteOptions.length || motoboyOptions.length || uberOptions.length) {
+        options = [...options, ...superfreteOptions, ...motoboyOptions, ...uberOptions]
+          .sort((a, b) => a.price - b.price);
       }
     } catch (err) {
       return json({ error: err.message }, 400, origin);
@@ -7735,10 +8250,43 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const motoboyMethod = !isIntl && getMotoboyShippingMethods(config).find(
     (m) => m.id === body.shippingMethodId || body.shippingProvider === 'motoboy'
   );
+  const superfreteMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
+    (m) => isSuperfreteMethod(m) && (
+      m.id === body.shippingMethodId || body.shippingProvider === 'superfrete'
+    )
+  );
   let uberQuoteId = body.uberQuoteId || null;
   let motoboyDistanceKm = null;
+  let superfreteService = body.superfreteService || null;
+  let superfretePackage = body.superfretePackage || null;
 
-  if (motoboyMethod) {
+  if (superfreteMethod) {
+    if (!superfreteConfigured(env)) {
+      return json({ error: 'Super Frete indisponível no momento.' }, 400, origin);
+    }
+    const destCep = body.cep;
+    if (!destCep || String(destCep).replace(/\D/g, '').length !== 8) {
+      return json({ error: 'Informe um CEP válido para Super Frete.' }, 400, origin);
+    }
+    try {
+      const quotes = await quoteSuperfreteOptions(env, config, destCep, {
+        weightGrams: shippingWeightGrams(config),
+        declaredValue: Number(body.valorProduto) || undefined
+      });
+      const quote = quotes.find((q) => q.methodId === superfreteMethod.id) || quotes[0];
+      if (!quote) {
+        return json({ error: 'Super Frete sem cotação para este CEP. Escolha outro frete.' }, 400, origin);
+      }
+      if (Math.abs(quote.price - frete) > 0.05) {
+        return json({ error: 'Valor do frete Super Frete desatualizado. Recalcule o frete.' }, 400, origin);
+      }
+      frete = quote.price;
+      superfreteService = quote.superfreteService || superfreteServiceId(superfreteMethod);
+      superfretePackage = quote.superfretePackage || superfretePackage;
+    } catch (err) {
+      return json({ error: 'Super Frete indisponível: ' + err.message }, 400, origin);
+    }
+  } else if (motoboyMethod) {
     if (!motoboyOperational(config)) {
       return json({ error: 'Envio particular (motoboy) indisponível no momento.' }, 400, origin);
     }
@@ -7895,9 +8443,13 @@ async function handleCreateOrder(request, env, origin, ctx) {
     shippingService: body.shippingService || 'Mini Envios',
     shippingServiceCode: body.shippingServiceCode || null,
     shippingMethodId: body.shippingMethodId || null,
-    shippingProvider: uberMethod ? 'uber' : (motoboyMethod ? 'motoboy' : (body.shippingProvider || null)),
+    shippingProvider: uberMethod ? 'uber'
+      : (motoboyMethod ? 'motoboy'
+        : (superfreteMethod ? 'superfrete' : (body.shippingProvider || null))),
     uberQuoteId: uberQuoteId || null,
     motoboyDistanceKm: motoboyDistanceKm || null,
+    superfreteService: superfreteService || null,
+    superfretePackage: superfretePackage || null,
     shippingDays: body.shippingDays || null,
     shipmentType: body.shipmentType || null,
     internationalLensOnly: !!body.internationalLensOnly,
@@ -8122,6 +8674,14 @@ async function handlePaymentConfirmed(env, order, payment) {
       order.motoboyNotifyError = err.message;
       await saveOrder(env, order);
     }
+  } else if (isSuperfreteOrder(order)) {
+    try {
+      await createSuperfreteCartForOrder(env, config, order);
+    } catch (err) {
+      console.error('Super Frete cart:', order.orderId, err.message);
+      order.superfreteCartError = err.message;
+      await saveOrder(env, order);
+    }
   } else if (isCorreiosLabelOrder(order)) {
     try {
       await ensureCorreiosPrePostagemForOrder(env, order, config);
@@ -8157,6 +8717,14 @@ async function handlePaymentConfirmed(env, order, payment) {
       shopPaidFields['Motoboys avisados'] = order.motoboyCourierEmails.join(', ');
     }
     if (order.motoboyNotifyError) shopPaidFields['Erro e-mail motoboy'] = order.motoboyNotifyError;
+  } else if (isSuperfreteOrder(order)) {
+    shopPaidFields['Super Frete'] = order.superfreteCartId || 'pendente';
+    if (order.superfreteCartStatus) shopPaidFields['Status Super Frete'] = order.superfreteCartStatus;
+    if (order.superfreteTrackingCode || order.correiosTrackingCode) {
+      shopPaidFields['Rastreio'] = order.superfreteTrackingCode || order.correiosTrackingCode;
+    }
+    if (order.superfreteCartError) shopPaidFields['Erro Super Frete'] = order.superfreteCartError;
+    if (order.superfreteCheckoutError) shopPaidFields['Erro checkout Super Frete'] = order.superfreteCheckoutError;
   } else if (isCorreiosLabelOrder(order)) {
     if (order.correiosPrePostagemId) {
       shopPaidFields['Pré-postagem Correios'] = isCorreiosIntlOrder(order)
@@ -8222,6 +8790,12 @@ async function handlePaymentConfirmed(env, order, payment) {
     ),
     text: fieldsToText({ [receipt.customerLabel]: order.nome, ...receipt.fields })
   });
+
+  // Paid receipt already included tracking — skip the follow-up e-mail.
+  if (orderTrackingCode(order) && !order.trackingEmailSentAt) {
+    order.trackingEmailSentAt = new Date().toISOString();
+    await saveOrder(env, order);
+  }
 
   if (order.couponCommissionerEmail && order.couponCommissionAmount != null) {
     const commissionerPaid = await notifyCouponCommissioner(env, config, order);
@@ -8324,6 +8898,24 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   }
   if (isParticularDeliveryOrder(order)) {
     return json({ mode: 'html', useClient: true, message: 'Use etiqueta local para motoboy/Uber.' }, 200, origin);
+  }
+  if (isSuperfreteOrder(order)) {
+    const config = await getConfig(env);
+    try {
+      const created = await createSuperfreteCartForOrder(env, config, order);
+      return json({
+        mode: 'superfrete',
+        cartId: order.superfreteCartId || created.id || null,
+        status: order.superfreteCartStatus || null,
+        price: order.superfreteCartPrice ?? null,
+        checkoutError: order.superfreteCheckoutError || null,
+        message: order.superfreteCartId
+          ? 'Etiqueta Super Frete criada (pague no painel Super Frete ou ative SUPERFRETE_AUTO_CHECKOUT).'
+          : 'Não foi possível criar a etiqueta Super Frete.'
+      }, 200, origin);
+    } catch (err) {
+      return json({ error: err.message }, 400, origin);
+    }
   }
   if (!isCorreiosLabelOrder(order)) {
     return json({
@@ -8553,12 +9145,19 @@ async function handleOrderCorreiosAv(request, env, origin, orderId) {
   const body = await request.json().catch(() => ({}));
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const previousCode = order.correiosTrackingCode;
   try {
     applyOrderShippingManualUpdate(order, { trackingCode: body.trackingCode });
   } catch (err) {
     return json({ error: err.message }, 400, origin);
   }
   await saveOrder(env, order);
+  const config = await getConfig(env);
+  try {
+    await notifyTrackingIfNew(env, config, order, previousCode);
+  } catch (err) {
+    console.warn('Tracking email after manual AV:', orderId, err.message);
+  }
   return json({ ok: true, trackingCode: order.correiosTrackingCode }, 200, origin);
 }
 
@@ -8570,6 +9169,7 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
   const config = await getConfig(env);
+  const previousCode = order.correiosTrackingCode;
   try {
     applyOrderShippingManualUpdate(order, body);
 
@@ -8601,6 +9201,11 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     return json({ error: err.message }, 400, origin);
   }
   await saveOrder(env, order);
+  try {
+    await notifyTrackingIfNew(env, config, order, previousCode);
+  } catch (err) {
+    console.warn('Tracking email after shipping update:', orderId, err.message);
+  }
   return json({
     ok: true,
     trackingCode: order.correiosTrackingCode || null,
@@ -10585,6 +11190,121 @@ async function sendTestEmailByType(env, config, to, type, overrides = {}) {
   }
 }
 
+const CUSTOMER_CANCEL_REASONS = [
+  'changed_mind',
+  'found_cheaper',
+  'wrong_product',
+  'shipping_too_slow',
+  'payment_issue',
+  'other'
+];
+
+function customerCanCancelOrder(order) {
+  if (!order) return false;
+  if (order.status === 'cancelled_by_user' || order.status === 'cancelled') return false;
+  // Só antes do pagamento — pedido pago: cliente fala com a loja (e-mail/WhatsApp).
+  return order.status === 'pending_payment';
+}
+
+async function authorizeCustomerOrderAccess(request, env, order) {
+  const accessToken = new URL(request.url).searchParams.get('token')
+    || (await request.clone().json().catch(() => ({}))).accessToken
+    || '';
+  if (accessToken && order.accessToken && accessToken === order.accessToken) return true;
+  const customerId = await getCustomerUserId(env, bearerToken(request));
+  return !!(customerId && order.userId === customerId);
+}
+
+async function handleCustomerCancelOrder(request, env, origin, orderId) {
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  if (!(await authorizeCustomerOrderAccess(request, env, order))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (!customerCanCancelOrder(order)) {
+    const paidMsg = order.status === 'paid'
+      ? 'Pedido já pago não cancela pelo site. Envie um e-mail ou WhatsApp para solicitarmos o cancelamento.'
+      : 'Este pedido não pode ser cancelado pelo site. Fale conosco pelo WhatsApp ou e-mail.';
+    return json({ error: paidMsg, canCancel: false }, 400, origin);
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const reason = String(body.reason || '').trim();
+  if (!CUSTOMER_CANCEL_REASONS.includes(reason)) {
+    return json({
+      error: 'Informe o motivo do cancelamento.',
+      reasons: CUSTOMER_CANCEL_REASONS
+    }, 400, origin);
+  }
+  const note = String(body.note || body.reasonNote || '').trim().slice(0, 500);
+  if (reason === 'other' && note.length < 3) {
+    return json({ error: 'Descreva o motivo (mín. 3 caracteres).' }, 400, origin);
+  }
+
+  const previousStatus = order.status;
+  order.status = 'cancelled_by_user';
+  order.cancelledAt = new Date().toISOString();
+  order.cancelReason = reason;
+  order.cancelReasonNote = note || null;
+  order.cancelPreviousStatus = previousStatus;
+  order.cancelAlternatives = Array.isArray(body.consideredAlternatives)
+    ? body.consideredAlternatives.map((x) => String(x).slice(0, 40)).slice(0, 6)
+    : [];
+  await saveOrder(env, order);
+
+  const config = await getConfig(env);
+  const reasonLabel = {
+    changed_mind: 'Desisti da compra',
+    found_cheaper: 'Encontrei mais barato',
+    wrong_product: 'Produto errado / não era o que eu queria',
+    shipping_too_slow: 'Prazo de frete',
+    payment_issue: 'Problema no pagamento',
+    other: 'Outro'
+  }[reason] || reason;
+
+  try {
+    await notifyShop(env, config, `Cancelado pelo cliente — ${order.orderId}`, {
+      Pedido: order.orderId,
+      Status: 'cancelled_by_user',
+      Cliente: order.nome,
+      Email: order.email,
+      Motivo: reasonLabel,
+      Detalhe: note || '—',
+      'Status anterior': previousStatus,
+      Alternativas: (order.cancelAlternatives || []).join(', ') || '—'
+    });
+  } catch (err) {
+    console.warn('Cancel shop email:', order.orderId, err.message);
+  }
+
+  try {
+    const loc = orderCheckoutLocale(order);
+    const subject = loc === 'en'
+      ? `Order cancelled — ${order.orderId}`
+      : loc === 'it'
+        ? `Ordine annullato — ${order.orderId}`
+        : `Pedido cancelado — ${order.orderId}`;
+    const msg = loc === 'en'
+      ? 'Your order was cancelled. If this was a mistake, reply to this email or contact support.'
+      : loc === 'it'
+        ? 'Il tuo ordine è stato annullato. Se è un errore, rispondi a questa email o contatta il supporto.'
+        : 'Seu pedido foi cancelado. Se foi um engano, responda este e-mail ou fale conosco.';
+    await notifyCustomer(env, config, order, subject, {
+      [loc === 'en' ? 'Order' : loc === 'it' ? 'Ordine' : 'Pedido']: order.orderId,
+      [loc === 'en' ? 'Status' : 'Status']: 'cancelled_by_user',
+      [loc === 'en' ? 'Message' : loc === 'it' ? 'Messaggio' : 'Mensagem']: msg
+    });
+  } catch (err) {
+    console.warn('Cancel customer email:', order.orderId, err.message);
+  }
+
+  return json({
+    ok: true,
+    order: publicOrderView(order),
+    status: order.status
+  }, 200, origin);
+}
+
 async function handleGetOrder(request, env, origin, orderId) {
   let order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Não encontrado.' }, 404, origin);
@@ -10737,7 +11457,9 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     }
   }
 
-  if (!order.correiosTrackingCode && isCorreiosBrOrder(order)) {
+  const needsAvBackfill = !order.correiosTrackingCode
+    && (isCorreiosBrOrder(order) || isCorreiosIntlOrder(order));
+  if (needsAvBackfill) {
     if (!order.correiosPrePostagemId) {
       try {
         await ensureCorreiosPrePostagemForOrder(env, order, config);
@@ -11076,7 +11798,7 @@ async function runScheduledCorreiosTrackingSync(env) {
   for (const item of index) {
     if (item.status !== 'paid') continue;
     const order = await getOrder(env, item.orderId);
-    if (!order || !isCorreiosBrOrder(order)) continue;
+    if (!order || (!isCorreiosBrOrder(order) && !isCorreiosIntlOrder(order))) continue;
     if (isTrackingFinalStatus(order.correiosTrackingStatus)) continue;
     if (!order.correiosTrackingCode && !order.correiosPrePostagemId && !order.correiosPrePostagemAt) continue;
 
@@ -11314,6 +12036,10 @@ export default {
       const selfTestConfirmMatch = path.match(/^\/orders\/([^/]+)\/confirm-test$/);
       if (selfTestConfirmMatch && request.method === 'POST') {
         return handleConfirmSelfTestOrder(request, env, origin, selfTestConfirmMatch[1]);
+      }
+      const cancelMatch = path.match(/^\/orders\/([^/]+)\/cancel$/);
+      if (cancelMatch && request.method === 'POST') {
+        return handleCustomerCancelOrder(request, env, origin, cancelMatch[1]);
       }
 
       const m = path.match(/^\/orders\/([^/]+)$/);

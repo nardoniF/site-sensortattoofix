@@ -21,6 +21,13 @@
     paidUberPending: 'Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em breve.',
     paidIntlLens: 'Sua lente internacional será postada em até 2 dias úteis. Você receberá o rastreio por e-mail.',
     paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
+    customerTrackingSubject: 'Rastreio disponível — {orderId}',
+    trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
+    abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
+    abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
+    abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
+    abandonedWeeklyIntro: 'Passou uma semana e seu pedido ainda aguarda pagamento. Se ainda quiser o Sensor Tattoo Fix, é só concluir pelo link.',
+    abandonedCta: 'Finalizar meu pedido',
     pixGreeting: 'Olá, {nome}!',
     pixIntro: 'Seu pedido {orderId} foi registrado. Para concluir a compra, pague o PIX abaixo:',
     pixFooter: 'Guarde este e-mail — se fechar a página, use o link acima para voltar ao QR Code.'
@@ -279,6 +286,9 @@
     return [
       { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
       { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
+      { id: 'br-sf-pac', enabled: false, scope: 'BR', label: 'PAC (Super Frete)', provider: 'superfrete', superfreteService: 1 },
+      { id: 'br-sf-sedex', enabled: false, scope: 'BR', label: 'SEDEX (Super Frete)', provider: 'superfrete', superfreteService: 2 },
+      { id: 'br-sf-mini', enabled: false, scope: 'BR', label: 'Mini Envios (Super Frete)', provider: 'superfrete', superfreteService: 17 },
       { id: 'br-motoboy', enabled: false, scope: 'BR', label: 'Envio particular (motoboy — até 24h)', provider: 'motoboy' },
       { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
       { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
@@ -480,12 +490,23 @@
               <option value="INT" ${m.scope === 'INT' ? 'selected' : ''}>Internacional</option>
             </select>
           </label>
-          <label data-correios-code-wrap ${m.provider === 'uber' || m.provider === 'motoboy' ? 'hidden' : ''}>Código Correios
+          <label data-correios-code-wrap ${m.provider === 'uber' || m.provider === 'motoboy' || m.provider === 'superfrete' ? 'hidden' : ''}>Código Correios
             <input type="text" data-field="correiosCode" value="${escAttr(m.correiosCode || '')}" placeholder="04227 ou *">
+          </label>
+          <label data-sf-service-wrap ${m.provider === 'superfrete' ? '' : 'hidden'}>Serviço Super Frete
+            <select data-field="superfreteService">
+              <option value="1" ${Number(m.superfreteService) === 1 ? 'selected' : ''}>1 — PAC</option>
+              <option value="2" ${Number(m.superfreteService) === 2 ? 'selected' : ''}>2 — SEDEX</option>
+              <option value="17" ${Number(m.superfreteService) === 17 ? 'selected' : ''}>17 — Mini Envios</option>
+              <option value="3" ${Number(m.superfreteService) === 3 ? 'selected' : ''}>3 — Jadlog</option>
+              <option value="31" ${Number(m.superfreteService) === 31 ? 'selected' : ''}>31 — Loggi</option>
+              <option value="33" ${Number(m.superfreteService) === 33 ? 'selected' : ''}>33 — J&amp;T</option>
+            </select>
           </label>
           <label data-provider-wrap ${m.scope === 'BR' ? '' : 'hidden'}>Provedor
             <select data-field="provider">
               <option value="correios" ${(m.provider || 'correios') === 'correios' ? 'selected' : ''}>Correios</option>
+              <option value="superfrete" ${m.provider === 'superfrete' ? 'selected' : ''}>Super Frete</option>
               <option value="motoboy" ${m.provider === 'motoboy' ? 'selected' : ''}>Motoboy (particular)</option>
               <option value="uber" ${m.provider === 'uber' ? 'selected' : ''}>Uber Direct</option>
             </select>
@@ -519,10 +540,15 @@
         const wrap = row?.querySelector('[data-sim-tipo-wrap]');
         if (wrap) wrap.hidden = sel.value !== 'INT';
         const correiosWrap = row?.querySelector('[data-correios-code-wrap]');
+        const sfWrap = row?.querySelector('[data-sf-service-wrap]');
         const providerWrap = row?.querySelector('[data-provider-wrap]');
         const provider = row?.querySelector('[data-field="provider"]')?.value || 'correios';
         if (providerWrap) providerWrap.hidden = sel.value !== 'BR';
-        if (correiosWrap) correiosWrap.hidden = provider === 'uber' || provider === 'motoboy' || sel.value !== 'BR';
+        if (correiosWrap) {
+          correiosWrap.hidden = provider === 'uber' || provider === 'motoboy'
+            || provider === 'superfrete' || sel.value !== 'BR';
+        }
+        if (sfWrap) sfWrap.hidden = provider !== 'superfrete' || sel.value !== 'BR';
       });
     });
 
@@ -530,7 +556,12 @@
       sel.addEventListener('change', () => {
         const row = sel.closest('.admin-ship-method-row');
         const correiosWrap = row?.querySelector('[data-correios-code-wrap]');
-        if (correiosWrap) correiosWrap.hidden = sel.value === 'uber' || sel.value === 'motoboy';
+        const sfWrap = row?.querySelector('[data-sf-service-wrap]');
+        if (correiosWrap) {
+          correiosWrap.hidden = sel.value === 'uber' || sel.value === 'motoboy'
+            || sel.value === 'superfrete';
+        }
+        if (sfWrap) sfWrap.hidden = sel.value !== 'superfrete';
       });
     });
   }
@@ -555,7 +586,11 @@
         label: val('label') || id,
         provider
       };
-      if (provider !== 'uber' && provider !== 'motoboy') entry.correiosCode = val('correiosCode');
+      if (provider === 'superfrete') {
+        entry.superfreteService = Number(val('superfreteService')) || 1;
+      } else if (provider !== 'uber' && provider !== 'motoboy') {
+        entry.correiosCode = val('correiosCode');
+      }
       if (scope === 'INT') entry.simTipo = val('simTipo') || 'M';
       return entry;
     });
@@ -2469,6 +2504,27 @@ ${worksheets}
     if (f.emailPaidUberPending) f.emailPaidUberPending.value = emails.paidUberPending || '';
     if (f.emailPaidIntlLens) f.emailPaidIntlLens.value = emails.paidIntlLens || '';
     if (f.emailPaidIntlKit) f.emailPaidIntlKit.value = emails.paidIntlKit || '';
+    if (f.emailCustomerTrackingSubject) {
+      f.emailCustomerTrackingSubject.value = emails.customerTrackingSubject || DEFAULT_EMAILS.customerTrackingSubject;
+    }
+    if (f.emailTrackingAvailable) {
+      f.emailTrackingAvailable.value = emails.trackingAvailable || DEFAULT_EMAILS.trackingAvailable;
+    }
+    if (f.emailAbandonedSubject) {
+      f.emailAbandonedSubject.value = emails.abandonedSubject || DEFAULT_EMAILS.abandonedSubject;
+    }
+    if (f.emailAbandonedWeeklySubject) {
+      f.emailAbandonedWeeklySubject.value = emails.abandonedWeeklySubject || DEFAULT_EMAILS.abandonedWeeklySubject;
+    }
+    if (f.emailAbandonedIntro) {
+      f.emailAbandonedIntro.value = emails.abandonedIntro || DEFAULT_EMAILS.abandonedIntro;
+    }
+    if (f.emailAbandonedWeeklyIntro) {
+      f.emailAbandonedWeeklyIntro.value = emails.abandonedWeeklyIntro || DEFAULT_EMAILS.abandonedWeeklyIntro;
+    }
+    if (f.emailAbandonedCta) {
+      f.emailAbandonedCta.value = emails.abandonedCta || DEFAULT_EMAILS.abandonedCta;
+    }
     if (f.emailPixGreeting) f.emailPixGreeting.value = emails.pixGreeting || '';
     if (f.emailPixIntro) f.emailPixIntro.value = emails.pixIntro || '';
     if (f.emailPixFooter) f.emailPixFooter.value = emails.pixFooter || '';
@@ -2624,6 +2680,16 @@ ${worksheets}
         paidUberPending: f.emailPaidUberPending?.value.trim() || DEFAULT_EMAILS.paidUberPending,
         paidIntlLens: f.emailPaidIntlLens?.value.trim() || DEFAULT_EMAILS.paidIntlLens,
         paidIntlKit: f.emailPaidIntlKit?.value.trim() || DEFAULT_EMAILS.paidIntlKit,
+        customerTrackingSubject: f.emailCustomerTrackingSubject?.value.trim()
+          || DEFAULT_EMAILS.customerTrackingSubject,
+        trackingAvailable: f.emailTrackingAvailable?.value.trim() || DEFAULT_EMAILS.trackingAvailable,
+        abandonedSubject: f.emailAbandonedSubject?.value.trim() || DEFAULT_EMAILS.abandonedSubject,
+        abandonedWeeklySubject: f.emailAbandonedWeeklySubject?.value.trim()
+          || DEFAULT_EMAILS.abandonedWeeklySubject,
+        abandonedIntro: f.emailAbandonedIntro?.value.trim() || DEFAULT_EMAILS.abandonedIntro,
+        abandonedWeeklyIntro: f.emailAbandonedWeeklyIntro?.value.trim()
+          || DEFAULT_EMAILS.abandonedWeeklyIntro,
+        abandonedCta: f.emailAbandonedCta?.value.trim() || DEFAULT_EMAILS.abandonedCta,
         pixGreeting: f.emailPixGreeting?.value.trim() || DEFAULT_EMAILS.pixGreeting,
         pixIntro: f.emailPixIntro?.value.trim() || DEFAULT_EMAILS.pixIntro,
         pixFooter: f.emailPixFooter?.value.trim() || DEFAULT_EMAILS.pixFooter

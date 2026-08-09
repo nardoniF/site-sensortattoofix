@@ -60,7 +60,34 @@
   function statusLabel(status) {
     if (status === 'paid') return L('conta.statusPaid');
     if (status === 'pending_payment') return L('conta.statusPending');
+    if (status === 'cancelled_by_user' || status === 'cancelled') return L('conta.statusCancelled');
     return status || '—';
+  }
+
+  const CANCEL_REASONS = [
+    'changed_mind',
+    'found_cheaper',
+    'wrong_product',
+    'shipping_too_slow',
+    'payment_issue',
+    'other'
+  ];
+
+  function cancelReasonOptionsHtml() {
+    return CANCEL_REASONS.map((r) =>
+      `<option value="${r}">${escapeHtml(L('conta.cancelReason.' + r))}</option>`
+    ).join('');
+  }
+
+  async function cancelOrder(orderId, reason, note) {
+    return A().api(`/orders/${encodeURIComponent(orderId)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({
+        reason,
+        note,
+        consideredAlternatives: ['wait', 'contact_support']
+      })
+    });
   }
 
   function maskCep(value) {
@@ -192,7 +219,30 @@
       els.ordersList.innerHTML = `<p class="conta-empty">${L('conta.noOrders')} <a href="${lojaHref()}">${L('conta.goShop')}</a></p>`;
       return;
     }
-    els.ordersList.innerHTML = orders.map((o) => `
+    els.ordersList.innerHTML = orders.map((o) => {
+      const trackCode = o.trackingCode || o.uberTrackingUrl || '';
+      const trackHref = o.uberTrackingUrl || o.trackingUrl
+        || (o.trackingCode ? `rastreio.html?codigo=${encodeURIComponent(o.trackingCode)}` : '');
+      const trackBlock = trackHref
+        ? `<p class="conta-order-meta">${L('conta.tracking')}: <a href="${escapeHtml(trackHref)}" target="_blank" rel="noopener">${escapeHtml(trackCode || L('conta.trackShipment'))}</a></p>`
+        : '';
+      const cancelBlock = o.canCancel ? `
+        <details class="conta-cancel-box">
+          <summary>${L('conta.cancelOrder')}</summary>
+          <p class="conta-order-meta">${L('conta.cancelHint')}</p>
+          <ul class="conta-cancel-alts">
+            <li>${L('conta.cancelAlt.wait')}</li>
+            <li>${L('conta.cancelAlt.support')}</li>
+          </ul>
+          <label>${L('conta.cancelReasonLabel')}
+            <select data-cancel-reason data-order-id="${escapeHtml(o.orderId)}">${cancelReasonOptionsHtml()}</select>
+          </label>
+          <label>${L('conta.cancelNoteLabel')}
+            <textarea data-cancel-note data-order-id="${escapeHtml(o.orderId)}" rows="2" maxlength="500"></textarea>
+          </label>
+          <button type="button" class="btn-secondary conta-cancel-btn" data-cancel-order="${escapeHtml(o.orderId)}">${L('conta.cancelConfirm')}</button>
+        </details>` : '';
+      return `
       <article class="conta-order-card">
         <div class="conta-order-head">
           <strong>${escapeHtml(o.orderId)}</strong>
@@ -201,9 +251,30 @@
         <p>${L('conta.total')}: <strong>${formatBRL(o.total)}</strong></p>
         ${(o.modeloRelogio || o.smartwatch || o.observacoes) ? `<p class="conta-order-meta">${L('conta.watch')}: ${escapeHtml(window.STF_ORDER_WATCH?.formatModel(o) || o.smartwatch || '—')}</p>` : ''}
         <p class="conta-order-meta">${formatDate(o.paidAt || o.createdAt)} · ${escapeHtml(o.pagamento || '')}</p>
+        ${trackBlock}
         ${o.status === 'pending_payment' ? `<a class="btn-secondary conta-order-link" href="${comprarHref(o.orderId, o.accessToken)}">${L('conta.continuePay')}</a>` : ''}
+        ${cancelBlock}
       </article>
-    `).join('');
+    `;
+    }).join('');
+
+    els.ordersList.querySelectorAll('[data-cancel-order]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const orderId = btn.getAttribute('data-cancel-order');
+        const reason = els.ordersList.querySelector(`[data-cancel-reason][data-order-id="${CSS.escape(orderId)}"]`)?.value;
+        const note = els.ordersList.querySelector(`[data-cancel-note][data-order-id="${CSS.escape(orderId)}"]`)?.value || '';
+        if (!reason) return;
+        if (!window.confirm(L('conta.cancelConfirmAsk'))) return;
+        btn.disabled = true;
+        try {
+          await cancelOrder(orderId, reason, note);
+          await loadOrders();
+        } catch (err) {
+          alert(err.message || L('conta.cancelFailed'));
+          btn.disabled = false;
+        }
+      });
+    });
   }
 
   function bindTabs() {

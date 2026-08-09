@@ -79,6 +79,19 @@ wrangler secret put UBER_DIRECT_SANDBOX      # opcional: "true" para sandbox
 
 No admin → Frete, ative a modalidade **Entrega Uber (rápida)**. A cotação Uber exige endereço completo (rua, cidade, UF) no checkout.
 
+## 4c. Super Frete (cotação + etiqueta BR)
+
+Docs: [superfrete.readme.io](https://superfrete.readme.io/) · Token: painel → Integrações → Desenvolvedores.
+
+```bash
+wrangler secret put SUPERFRETE_TOKEN          # Bearer do ambiente (prod ou sandbox)
+wrangler secret put SUPERFRETE_SANDBOX        # opcional: "true" → sandbox.superfrete.com
+# wrangler secret put SUPERFRETE_AUTO_CHECKOUT  # opcional: "true" paga etiqueta com saldo na conta
+# wrangler secret put SUPERFRETE_USER_AGENT    # opcional (padrão: SensorTattooFix + e-mail)
+```
+
+No admin → Frete, ative as modalidades **PAC / SEDEX / Mini Envios (Super Frete)** (ou adicione Jadlog/Loggi/J&T). Sem `SUPERFRETE_TOKEN` as opções não aparecem no checkout. Pedido pago cria etiqueta no carrinho Super Frete (`pending`); com `SUPERFRETE_AUTO_CHECKOUT=true` tenta pagar com saldo.
+
 ## 5. Deploy
 
 ```bash
