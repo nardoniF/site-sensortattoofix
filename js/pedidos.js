@@ -267,6 +267,16 @@
         + (prazo ? `<br><small class="pedidos-frete-prazo">${escHtml(prazo)}</small>` : '');
     }
 
+    if (isCorreiosIntlOrder(o)) {
+      if (o.correiosTrackingCode) {
+        const code = escHtml(o.correiosTrackingCode);
+        const url = correiosTrackingPageUrl(o.correiosTrackingCode);
+        const status = escHtml(o.correiosTrackingStatus || 'Rastreio');
+        return `<a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link" onclick="event.stopPropagation()">${code}</a><br><small class="pedidos-track-status">${status}</small>`;
+      }
+      return '<small class="pedidos-track-warn">Sem rastreio</small>';
+    }
+
     return '<small class="pedidos-track-muted">—</small>';
   }
 
@@ -700,6 +710,7 @@
     if (data.correiosFreteEstimado != null) order.correiosFreteEstimado = data.correiosFreteEstimado;
     if (data.shippingDays != null) order.shippingDays = data.shippingDays;
     if (data.shippingServiceCode != null) order.shippingServiceCode = data.shippingServiceCode;
+    if (data.trackingEmailSentAt) order.trackingEmailSentAt = data.trackingEmailSentAt;
     order.correiosManualUpdatedAt = new Date().toISOString();
   }
 
