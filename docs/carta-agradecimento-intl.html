@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Thank You Letter (International) — Sensor TattooFix</title>
+  <style>
+    @page { size: A4 portrait; margin: 12mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #111;
+      --muted: #555;
+      --line: #ddd;
+      --accent: #c9a227;
+      --ph-bg: #fff8e1;
+      --ph-border: #e0c36a;
+    }
+    body {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: var(--ink);
+      background: #e8e8e8;
+    }
+    .toolbar {
+      position: sticky; top: 0; z-index: 5;
+      background: #1a1a1a; color: #fff;
+      padding: 10px 14px;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      font-family: system-ui, sans-serif; font-size: 13px;
+    }
+    .toolbar a, .toolbar button {
+      font: inherit; cursor: pointer;
+      padding: 8px 14px; border-radius: 6px; border: none;
+      background: #ffc107; color: #111; font-weight: 700; text-decoration: none;
+    }
+    .toolbar .ghost { background: #333; color: #fff; }
+    .toolbar .meta { color: #bbb; flex: 1; min-width: 180px; }
+    .sheet {
+      width: 210mm; min-height: 277mm;
+      margin: 16px auto; padding: 14mm 16mm;
+      background: #fff; box-shadow: 0 2px 14px rgba(0,0,0,.12);
+    }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none !important; }
+      .sheet { margin: 0; box-shadow: none; width: auto; min-height: auto; padding: 0; }
+      .ph { background: transparent !important; border: none !important; padding: 0 !important; }
+    }
+    .brand {
+      text-align: center; border-bottom: 2px solid var(--ink);
+      padding-bottom: 10px; margin-bottom: 14px;
+    }
+    .brand h1 {
+      font-size: 16pt; letter-spacing: .06em; font-weight: 700;
+      text-transform: uppercase;
+    }
+    .brand h1 span { color: var(--accent); }
+    .brand p {
+      font-family: system-ui, sans-serif; font-size: 7.5pt;
+      letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+      margin-top: 4px;
+    }
+    .meta-grid {
+      display: grid; grid-template-columns: 140px 1fr;
+      gap: 4px 10px; margin-bottom: 16px;
+      font-family: system-ui, sans-serif; font-size: 9pt;
+    }
+    .meta-grid dt { color: var(--muted); font-weight: 600; }
+    .meta-grid dd { font-weight: 500; }
+    h2 {
+      font-size: 13pt; margin: 0 0 8px;
+      font-family: system-ui, sans-serif;
+    }
+    .greeting { margin-bottom: 10px; }
+    .body p { margin-bottom: 8px; }
+    h3 {
+      font-family: system-ui, sans-serif; font-size: 10pt;
+      margin: 16px 0 8px; letter-spacing: .04em;
+    }
+    .cure {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin: 10px 0 14px;
+    }
+    .cure-card {
+      border: 1px solid var(--line); border-radius: 6px; padding: 10px 8px;
+      text-align: center; font-family: system-ui, sans-serif;
+    }
+    .cure-card strong { display: block; font-size: 12pt; margin-bottom: 2px; }
+    .cure-card span { display: block; font-size: 7.5pt; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .cure-card em { display: block; font-style: normal; font-size: 8pt; margin-top: 4px; }
+    .steps { list-style: none; counter-reset: step; margin: 8px 0 14px; }
+    .steps li {
+      counter-increment: step; position: relative;
+      padding: 8px 8px 8px 36px; margin-bottom: 6px;
+      border: 1px solid var(--line); border-radius: 6px;
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute; left: 8px; top: 8px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--ink); color: #fff;
+      font-family: system-ui, sans-serif; font-size: 9pt; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .steps li strong { font-family: system-ui, sans-serif; }
+    .notes {
+      background: #f7f7f7; border-left: 3px solid var(--accent);
+      padding: 10px 12px; margin: 12px 0; font-size: 9.5pt;
+    }
+    .notes ul { margin: 6px 0 0 16px; }
+    .sign { margin-top: 18px; }
+    .sign .team { font-weight: 700; }
+    .footer {
+      margin-top: 20px; padding-top: 8px; border-top: 1px solid var(--line);
+      font-family: system-ui, sans-serif; font-size: 7.5pt; color: var(--muted); text-align: center;
+    }
+    .ph {
+      display: inline;
+      background: var(--ph-bg); border: 1px dashed var(--ph-border);
+      border-radius: 3px; padding: 0 4px;
+      font-family: ui-monospace, monospace; font-size: 0.92em;
+    }
+    .sheet.filled .ph {
+      background: transparent; border: none; padding: 0;
+      font-family: inherit; font-size: inherit;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar no-print">
+    <button type="button" id="btn-print">Print letter</button>
+    <button type="button" class="ghost" id="btn-template">Show template placeholders</button>
+    <span class="meta" id="toolbar-meta">Template mode — open from an order to fill variables</span>
+    <a class="ghost" href="../admin.html">Admin</a>
+    <a class="ghost" href="../documentacao.html">Docs</a>
+  </div>
+
+  <article class="sheet" id="letter" data-mode="template">
+    <header class="brand">
+      <h1>Sensor Tattoo<span>Fix</span>®</h1>
+      <p>Precision optical interfaces for smartwatches</p>
+    </header>
+
+    <dl class="meta-grid">
+      <dt>Order</dt>
+      <dd><span class="ph" data-field="orderId">{{orderId}}</span></dd>
+      <dt>Recipient</dt>
+      <dd><span class="ph" data-field="nome">{{customerName}}</span></dd>
+      <dt>Shipping address</dt>
+      <dd><span class="ph" data-field="endereco">{{shippingAddress}}</span></dd>
+      <dt>Carrier / method</dt>
+      <dd><span class="ph" data-field="shippingService">{{carrierMethod}}</span></dd>
+      <dt>Tracking number</dt>
+      <dd><span class="ph" data-field="trackingCode">{{trackingNumber}}</span></dd>
+      <dt>Watch model</dt>
+      <dd><span class="ph" data-field="smartwatch">{{smartwatchModel}}</span></dd>
+    </dl>
+
+    <h2>Thank You for Your Order!</h2>
+    <p class="greeting">Hi <span class="ph" data-field="firstName">{{firstName}}</span>,</p>
+    <div class="body">
+      <p>Thank you so much for choosing Sensor TattooFix®! We are thrilled to help you get full, uninterrupted biometric functionality from your smartwatch over tattooed skin.</p>
+      <p>Your optical lens has been custom-manufactured and carefully packed. Please follow the instructions and curing times below to ensure maximum adhesion and optimal sensor performance.</p>
+    </div>
+
+    <h3>STEP-BY-STEP INSTALLATION GUIDE</h3>
+    <ol class="steps">
+      <li><strong>Surface cleaning:</strong> Thoroughly clean the optical sensor area on the back of your smartwatch using isopropyl alcohol or an alcohol wipe. Ensure it is 100% dry, clean, and free from oils or dust.</li>
+      <li><strong>Alignment:</strong> Carefully remove the protective film from the adhesive side of the Sensor TattooFix® lens and align it centrally over the optical sensor.</li>
+      <li><strong>Application:</strong> Press the lens firmly against the sensor for 30 to 45 seconds using uniform pressure to eliminate micro air bubbles and activate the adhesive bond.</li>
+    </ol>
+
+    <h3>⏳ ADHESIVE CURING SCHEDULE (CRUCIAL FOR MAXIMUM LONGEVITY)</h3>
+    <div class="cure">
+      <div class="cure-card"><strong>4 Hours</strong><span>Regular use</span><em>Safe for casual daily wear.</em></div>
+      <div class="cure-card"><strong>48 Hours</strong><span>Workouts / sweat</span><em>Required before heavy sweat or exercise.</em></div>
+      <div class="cure-card"><strong>72 Hours</strong><span>Water exposure</span><em>Full cure required for swimming or showers.</em></div>
+    </div>
+
+    <div class="notes">
+      <strong>IMPORTANT USAGE NOTES</strong>
+      <ul>
+        <li><strong>Wireless charging:</strong> Your Sensor TattooFix® lens is fully compatible with original OEM magnetic chargers. You do not need to remove the lens to charge.</li>
+        <li>Following the curing timeline above guarantees long-lasting adhesion even during high-intensity training.</li>
+      </ul>
+    </div>
+
+    <p>If you have any questions or need assistance, feel free to contact us anytime at <strong>support@sensortattoofix.com</strong>.</p>
+
+    <div class="sign">
+      <p>Best regards,</p>
+      <p class="team">Fabio Nardoni &amp; The Sensor TattooFix® Team</p>
+    </div>
+    <p class="footer">Sensor TattooFix® · Precision Optical Interfaces · Official International Order Attachment</p>
+  </article>
+
+  <script src="../js/config-bootstrap.js"></script>
+  <script>
+(function () {
+  const SESSION_KEY = 'stf_admin_token';
+  const letter = document.getElementById('letter');
+  const meta = document.getElementById('toolbar-meta');
+  const params = new URLSearchParams(location.search);
+  const orderId = (params.get('order') || params.get('pedido') || '').trim();
+  const bootstrap = window.CONFIG_BOOTSTRAP || {};
+
+  const PLACEHOLDERS = {
+    orderId: '{{orderId}}',
+    nome: '{{customerName}}',
+    firstName: '{{firstName}}',
+    endereco: '{{shippingAddress}}',
+    shippingService: '{{carrierMethod}}',
+    trackingCode: '{{trackingNumber}}',
+    smartwatch: '{{smartwatchModel}}'
+  };
+
+  function apiBase() {
+    return String(bootstrap.configApiUrl || 'https://api.sensortattoofix.com.br').replace(/\/$/, '');
+  }
+
+  function setFields(data) {
+    letter.querySelectorAll('[data-field]').forEach((el) => {
+      const key = el.getAttribute('data-field');
+      const val = data[key];
+      el.textContent = (val != null && String(val).trim()) ? String(val).trim() : '—';
+    });
+  }
+
+  function showTemplate() {
+    letter.classList.remove('filled');
+    letter.dataset.mode = 'template';
+    setFields(PLACEHOLDERS);
+    meta.textContent = 'Template mode — placeholders only (no customer data)';
+  }
+
+  function firstName(full) {
+    const n = String(full || '').trim();
+    if (!n) return '{{firstName}}';
+    return n.split(/\s+/)[0];
+  }
+
+  function addressFromOrder(o) {
+    if (o.endereco && String(o.endereco).trim()) return String(o.endereco).trim();
+    const parts = [
+      [o.rua, o.numero].filter(Boolean).join(', '),
+      o.complemento,
+      o.bairro,
+      [o.cidade, o.uf].filter(Boolean).join(' / '),
+      o.cep,
+      o.pais || o.paisCode
+    ].filter((p) => p && String(p).trim());
+    return parts.join(' · ') || '—';
+  }
+
+  function watchFromOrder(o) {
+    return o.modeloRelogio || o.smartwatch || o.observacoes || '—';
+  }
+
+  async function loadOrder(id) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    if (!token) {
+      meta.textContent = 'Login no admin necessário para carregar o pedido ' + id;
+      showTemplate();
+      return;
+    }
+    meta.textContent = 'Loading order ' + id + '…';
+    const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(id), {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      meta.textContent = err.error || ('Could not load order ' + id);
+      showTemplate();
+      return;
+    }
+    const o = await res.json();
+    letter.classList.add('filled');
+    letter.dataset.mode = 'filled';
+    setFields({
+      orderId: o.orderId,
+      nome: o.nome,
+      firstName: firstName(o.nome),
+      endereco: addressFromOrder(o),
+      shippingService: o.shippingService || 'International tracked mail',
+      trackingCode: o.correiosTrackingCode || o.superfreteTrackingCode || 'Pending',
+      smartwatch: watchFromOrder(o)
+    });
+    meta.textContent = 'Filled from order ' + o.orderId + ' — ready to print';
+  }
+
+  document.getElementById('btn-print').addEventListener('click', () => window.print());
+  document.getElementById('btn-template').addEventListener('click', showTemplate);
+
+  if (orderId) loadOrder(orderId).catch((e) => {
+    meta.textContent = e.message || 'Load failed';
+    showTemplate();
+  });
+  else showTemplate();
+})();
+  </script>
+</body>
+</html>

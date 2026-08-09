@@ -1008,6 +1008,7 @@
           <div class="pedidos-actions-inner">
           ${statusBadgeHtml(o.status)}
           ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
+          ${o.status === 'paid' && isCorreiosIntlOrder(o) ? `<button type="button" class="btn-print-letter" title="Carta thank-you internacional"><i class="fas fa-envelope-open-text"></i> Carta</button>` : ''}
           ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
           <button type="button" class="btn-delete-order" data-order-id="${o.orderId}" data-paid="${o.status === 'paid' ? '1' : '0'}" title="Excluir pedido"><i class="fas fa-trash-alt"></i> Excluir</button>
           </div>
@@ -1017,6 +1018,12 @@
       tr.querySelector('.btn-print-label')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
         printOrderLabel(o);
+      });
+
+      tr.querySelector('.btn-print-letter')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const url = `docs/carta-agradecimento-intl.html?order=${encodeURIComponent(o.orderId)}`;
+        window.open(url, '_blank', 'noopener');
       });
 
       tr.querySelector('.btn-confirm-pay')?.addEventListener('click', async (ev) => {
@@ -1055,7 +1062,7 @@
               'warn'
             );
           } else {
-            showStatus(`Pedido ${orderId} excluído.`, 'success');
+          showStatus(`Pedido ${orderId} excluído.`, 'success');
           }
           await loadOrders();
         } catch (err) {
@@ -1167,55 +1174,55 @@
     if (wired) return;
     wired = true;
 
-    els.loginForm?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      showStatus('Entrando...', '');
-      const base = apiBase();
+  els.loginForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showStatus('Entrando...', '');
+    const base = apiBase();
       if (!base) { showStatus('API não configurada. Verifique js/config-bootstrap.js.', 'error'); return; }
 
-      try {
-        const fd = new FormData(els.loginForm);
-        const res = await fetch(base + '/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') })
-        });
-        if (!res.ok) throw new Error('Login inválido.');
-        const data = await res.json();
-        sessionStorage.setItem(SESSION_KEY, data.token);
+    try {
+      const fd = new FormData(els.loginForm);
+      const res = await fetch(base + '/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') })
+      });
+      if (!res.ok) throw new Error('Login inválido.');
+      const data = await res.json();
+      sessionStorage.setItem(SESSION_KEY, data.token);
         showPanelView();
-        await loadOrders();
-        showStatus('', '');
-      } catch (err) {
-        showStatus(err.message, 'error');
-      }
-    });
+      await loadOrders();
+      showStatus('', '');
+    } catch (err) {
+      showStatus(err.message, 'error');
+    }
+  });
 
     $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
     $('btn-cleanup-pending')?.addEventListener('click', async () => {
-      const pending = allOrders.filter((o) => o.status !== 'paid').length;
-      if (!pending) {
-        showStatus('Nenhum pedido pendente para excluir.', '');
-        return;
-      }
-      if (!confirm(`Excluir ${pending} pedido(s) aguardando pagamento?\n\nSó remove da base do site. Pedidos pagos não são afetados.`)) return;
-      try {
-        const data = await apiDelete('/orders/pending');
-        showStatus(`${data.deleted || 0} pedido(s) pendente(s) excluído(s).`, 'success');
-        await loadOrders();
-      } catch (err) {
-        showStatus(err.message, 'error');
-      }
-    });
+    const pending = allOrders.filter((o) => o.status !== 'paid').length;
+    if (!pending) {
+      showStatus('Nenhum pedido pendente para excluir.', '');
+      return;
+    }
+    if (!confirm(`Excluir ${pending} pedido(s) aguardando pagamento?\n\nSó remove da base do site. Pedidos pagos não são afetados.`)) return;
+    try {
+      const data = await apiDelete('/orders/pending');
+      showStatus(`${data.deleted || 0} pedido(s) pendente(s) excluído(s).`, 'success');
+      await loadOrders();
+    } catch (err) {
+      showStatus(err.message, 'error');
+    }
+  });
     $('btn-export-csv')?.addEventListener('click', async () => {
-      const token = sessionStorage.getItem(SESSION_KEY);
-      const res = await fetch(apiBase() + '/orders?format=csv', { headers: { Authorization: 'Bearer ' + token } });
-      const blob = await res.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'pedidos-sensortattoofix.csv';
-      a.click();
-    });
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const res = await fetch(apiBase() + '/orders?format=csv', { headers: { Authorization: 'Bearer ' + token } });
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pedidos-sensortattoofix.csv';
+    a.click();
+  });
     $('btn-export-json')?.addEventListener('click', async () => {
       const token = sessionStorage.getItem(SESSION_KEY);
       const res = await fetch(apiBase() + '/orders?format=json', { headers: { Authorization: 'Bearer ' + token } });
@@ -1230,11 +1237,11 @@
       a.click();
     });
     $('btn-logout-pedidos')?.addEventListener('click', () => {
-      sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
       showLoginView();
-    });
-    els.filterSearch?.addEventListener('input', applyFilters);
-    els.filterStatus?.addEventListener('change', applyFilters);
+  });
+  els.filterSearch?.addEventListener('input', applyFilters);
+  els.filterStatus?.addEventListener('change', applyFilters);
   }
 
   function initStandalone() {

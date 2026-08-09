@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Mensagem marketplace — medida da lente — Sensor Tattoo Fix</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f4f4f4; color: #111; margin: 0; padding: 20px;
+      line-height: 1.45;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    .meta { color: #666; font-size: .9rem; margin-bottom: 20px; }
+    .card {
+      background: #fff; border: 1px solid #ddd; border-radius: 10px;
+      padding: 16px 18px; margin-bottom: 16px;
+    }
+    .card h2 { font-size: 1rem; margin: 0 0 10px; }
+    .msg {
+      white-space: pre-wrap; background: #fafafa; border: 1px solid #eee;
+      border-radius: 8px; padding: 12px 14px; font-size: .95rem;
+    }
+    .actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button, a.btn {
+      font: inherit; cursor: pointer; border: none; border-radius: 8px;
+      padding: 8px 14px; background: #ffc107; color: #111; font-weight: 700;
+      text-decoration: none; display: inline-block;
+    }
+    button.ghost, a.ghost { background: #222; color: #fff; }
+    .ok { color: #1b7a3a; font-size: .85rem; margin-left: 6px; }
+    .hint { font-size: .85rem; color: #666; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Mensagem marketplace — tamanho da lente</h1>
+    <p class="meta">Modelo para ML / Shopee / Amazon / TikTok Shop. Copie e envie ao comprador. Sem dados variáveis — peça modelo + diâmetro do sensor.</p>
+
+    <section class="card">
+      <h2>Português (padrão BR)</h2>
+      <div class="msg" id="msg-pt">Oiiii, blz???
+Buscando a excelência de nossos produtos, agora utilizamos tecnologia de corte sob medida em vez de tamanhos genéricos. Para enviarmos a lente perfeita para você, informe o modelo do seu smartwatch e o diâmetro do sensor (o pessoal costuma medir com uma régua de ponta a ponta do círculo). Qual seria o seu?</div>
+      <div class="actions">
+        <button type="button" data-copy="msg-pt">Copiar</button>
+      </div>
+      <p class="hint">Use no chat do anúncio / pergunta do comprador antes de postar.</p>
+    </section>
+
+    <section class="card">
+      <h2>English (gringa / intl marketplaces)</h2>
+      <div class="msg" id="msg-en">Hi! Hope you're doing well 🙂
+To deliver the best possible fit, we now cut each lens to measure instead of using generic sizes. Please tell us your smartwatch model and the sensor diameter (most people measure edge-to-edge across the circular sensor with a ruler). What would yours be?</div>
+      <div class="actions">
+        <button type="button" data-copy="msg-en">Copy</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Italiano</h2>
+      <div class="msg" id="msg-it">Ciao! Tutto bene?
+Per offrirti la massima precisione, ora tagliamo ogni lente su misura invece di usare taglie generiche. Per inviarti la lente perfetta, indica il modello del tuo smartwatch e il diametro del sensore (di solito si misura con un righello da un bordo all’altro del cerchio). Qual è il tuo?</div>
+      <div class="actions">
+        <button type="button" data-copy="msg-it">Copia</button>
+      </div>
+    </section>
+
+    <p class="actions">
+      <a class="ghost btn" href="../admin.html">Admin</a>
+      <a class="ghost btn" href="../documentacao.html">Documentação</a>
+      <a class="ghost btn" href="carta-agradecimento-intl.html">Carta thank-you (intl)</a>
+    </p>
+  </div>
+  <script>
+    document.querySelectorAll('[data-copy]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-copy');
+        const text = document.getElementById(id)?.textContent || '';
+        try {
+          await navigator.clipboard.writeText(text);
+          const ok = document.createElement('span');
+          ok.className = 'ok';
+          ok.textContent = 'Copiado';
+          btn.insertAdjacentElement('afterend', ok);
+          setTimeout(() => ok.remove(), 1600);
+        } catch (_) {
+          alert('Não foi possível copiar — selecione o texto manualmente.');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

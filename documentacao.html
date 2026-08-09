@@ -36,7 +36,7 @@
             <article id="doc-content" class="admin-card admin-doc" hidden>
                 <h1><i class="fas fa-book"></i> Manual de operação</h1>
                 <p class="admin-meta">Sensor Tattoo Fix · 3N20 Soluções Tecnológicas LTDA · CNPJ 29.321.223/0001-32</p>
-                <p class="admin-doc-updated">Última atualização: junho/2026</p>
+                <p class="admin-doc-updated">Última atualização: agosto/2026</p>
 
                 <nav class="admin-doc-toc" aria-label="Índice">
                     <a href="#site">Site e painéis</a>
@@ -48,6 +48,7 @@
                     <a href="#correios">Correios (passo a passo)</a>
                     <a href="#admin-abas">Abas do admin</a>
                     <a href="#cliques">Log de cliques</a>
+                    <a href="#templates">Modelos (carta + marketplace)</a>
                     <a href="#deploy">Deploy</a>
                     <a href="#uber">Uber Direct</a>
                 </nav>
@@ -184,6 +185,26 @@
                         <li>Validar: Admin → aba API → Correios BR ✓; Frete → Correios BR → testar CEP <code>01310-100</code>.</li>
                     </ol>
                     <p class="admin-meta">Inscrição estadual (se pedirem no contrato): consulta pública <a href="https://www.cadesp.fazenda.sp.gov.br" target="_blank" rel="noopener">CADESP</a>. Se não houver IE ativa, use <code>ISENTO</code>.</p>
+                </section>
+
+                <section id="templates" class="admin-doc-section">
+                    <h2>Modelos — carta intl e mensagem marketplace</h2>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Modelo</th><th>Uso</th><th>Link</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td>Carta thank-you (internacional)</td>
+                                <td>Template com <code>{{placeholders}}</code>. Para imprimir preenchida: Pedidos → botão <strong>Carta</strong>, ou abra com <code>?order=ID_DO_PEDIDO</code> (login admin).</td>
+                                <td><a href="docs/carta-agradecimento-intl.html" target="_blank" rel="noopener">docs/carta-agradecimento-intl.html</a></td>
+                            </tr>
+                            <tr>
+                                <td>Mensagem marketplace (medida da lente)</td>
+                                <td>Texto PT/EN/IT para pedir modelo do smartwatch + diâmetro do sensor (corte sob medida). Botão copiar.</td>
+                                <td><a href="docs/msg-marketplace-medida-lente.html" target="_blank" rel="noopener">docs/msg-marketplace-medida-lente.html</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="admin-meta">Atalhos também na aba <strong>Documentação</strong> do admin.</p>
                 </section>
 
                 <section id="admin-abas" class="admin-doc-section">
