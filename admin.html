@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.01">
+    <link rel="stylesheet" href="style.css?v=3.02">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -720,8 +720,8 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Faturamento importado por marketplace. No Mercado Livre: ano → mês → dia, com horário e valor líquido (bruto − taxa ML).</p>
-                            <p><strong>Atualizar ML</strong> sincroniza pedidos pagos da API. Shopee, Amazon e Consolidado entram nos próximos passos.</p>
+                            <p>Faturamento por canal. No Mercado Livre: ano → mês → dia, com horário e valor líquido (bruto − taxa ML).</p>
+                            <p><strong>Atualizar ML</strong> sincroniza pedidos pagos. <strong>Consolidado</strong> junta loja oficial + ML com totais do dia/semana/mês/ano e exportação Excel.</p>
                         </div>
                         <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
                             <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="loja" aria-selected="false" aria-controls="admin-vendas-loja"><i class="fas fa-store"></i> Loja oficial</button>
@@ -732,7 +732,7 @@
                         </nav>
 
                         <div id="admin-vendas-loja" class="admin-vendas-subpanel" role="tabpanel" hidden>
-                            <p class="admin-meta">Pedidos pagos da loja oficial ficam na aba <strong>Pedidos</strong>. O consolidado (todos os canais) chega no próximo passo.</p>
+                            <p class="admin-meta">Pedidos pagos da loja oficial ficam na aba <strong>Pedidos</strong>. No <strong>Consolidado</strong> eles entram junto com o Mercado Livre.</p>
                             <button type="button" class="btn-secondary" id="btn-vendas-goto-pedidos"><i class="fas fa-list"></i> Ir para Pedidos</button>
                         </div>
 
@@ -758,7 +758,18 @@
                             <p class="admin-meta">Amazon — em breve.</p>
                         </div>
                         <div id="admin-vendas-consolidado" class="admin-vendas-subpanel" role="tabpanel" hidden>
-                            <p class="admin-meta">Consolidado (loja + marketplaces) e exportação — próximo passo.</p>
+                            <div id="vendas-consol-periods" class="vendas-consol-periods"></div>
+                            <div id="vendas-consol-stats" class="admin-clicks-stats admin-meta"></div>
+                            <div class="admin-clicks-toolbar admin-toolbar-split">
+                                <div class="admin-toolbar-main">
+                                    <button type="button" id="btn-vendas-consol-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
+                                    <button type="button" id="btn-vendas-consol-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+                                </div>
+                            </div>
+                            <p id="vendas-consol-checked-at" class="admin-meta" hidden></p>
+                            <div id="vendas-consol-tree-root" class="clicks-tree-root">
+                                <p class="admin-meta">Abra esta subaba para carregar o consolidado.</p>
+                            </div>
                         </div>
                     </fieldset>
                     </div>
@@ -989,6 +1000,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=126"></script>
+    <script src="js/admin.js?v=127"></script>
 </body>
 </html>

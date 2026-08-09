@@ -705,6 +705,379 @@
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
+  const SALES_CHANNEL_LABELS = {
+    loja: 'Loja oficial',
+    mercadolivre: 'Mercado Livre',
+    shopee: 'Shopee',
+    amazon: 'Amazon'
+  };
+
+  function salesChannelLabel(channel) {
+    return SALES_CHANNEL_LABELS[channel] || channel || '—';
+  }
+
+  function storeOrderToSale(o) {
+    const gross = Number(o.total || 0);
+    const watch = o.smartwatch || o.watchModel || o.modelo || '';
+    return {
+      channel: 'loja',
+      externalId: String(o.orderId || ''),
+      soldAt: o.paidAt || o.createdAt || null,
+      status: o.status || null,
+      currency: 'BRL',
+      gross,
+      fees: 0,
+      net: gross,
+      shippingCost: Number(o.frete || o.shippingCost || 0),
+      buyer: {
+        id: null,
+        nickname: o.nome || o.email || '—'
+      },
+      items: watch ? [{ title: String(watch), quantity: 1, unitPrice: gross, saleFee: 0 }] : [],
+      payments: []
+    };
+  }
+
+  function annotateSale(sale) {
+    const ts = saleSoldTs(sale);
+    const gross = Number(sale.gross || 0);
+    const fees = Number(sale.fees || 0);
+    const net = Number(sale.net != null ? sale.net : gross - fees);
+    return { ...sale, _ts: ts, _gross: gross, _fees: fees, _net: net };
+  }
+
+  function sumAnnotated(list) {
+    return (list || []).reduce((acc, s) => {
+      acc.count += 1;
+      acc.gross += Number(s._gross || 0);
+      acc.fees += Number(s._fees || 0);
+      acc.net += Number(s._net || 0);
+      return acc;
+    }, { count: 0, gross: 0, fees: 0, net: 0 });
+  }
+
+  function salesInCurrentPeriod(sales, period) {
+    const nowKey = clicksPeriodBucket(Date.now(), period).key;
+    return (sales || []).filter((s) => s._ts && clicksPeriodBucket(s._ts, period).key === nowKey);
+  }
+
+  function buildConsolidatedSalesTree(sales) {
+    return buildSalesTree(sales);
+  }
+
+  function renderConsolidatedSaleRow(sale) {
+    const title = sale.items?.[0]?.title || 'Venda';
+    const buyer = sale.buyer?.nickname || '—';
+    const channel = salesChannelLabel(sale.channel);
+    return `<li class="sales-tree-row sales-tree-row--consol">
+      <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
+      <span class="sales-tree-channel">${escapeHtml(channel)}</span>
+      <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
+      <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
+      <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
+      <span class="sales-tree-net" title="Bruto ${formatSalesBRL(sale._gross)} · Taxa ${formatSalesBRL(sale._fees)}">${formatSalesBRL(sale._net)}</span>
+    </li>`;
+  }
+
+  function renderConsolidatedTree(tree) {
+    const years = Object.keys(tree || {}).sort((a, b) => Number(b) - Number(a));
+    if (!years.length) {
+      return '<p class="admin-meta">Nenhuma venda paga encontrada (loja + Mercado Livre).</p>';
+    }
+    let html = '<div class="clicks-tree sales-tree">';
+    years.forEach((year) => {
+      const y = tree[year];
+      const yearPath = `c|${year}`;
+      html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"><summary>${salesTreeSummary(year, y)}</summary><div class="clicks-tree-children">`;
+      const months = Object.keys(y.months).sort((a, b) => Number(b) - Number(a));
+      months.forEach((monthNum) => {
+        const m = y.months[monthNum];
+        const monthPath = `${yearPath}|${monthNum}`;
+        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m)}</summary><div class="clicks-tree-children">`;
+        const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
+        days.forEach((dateKey) => {
+          const d = m.days[dateKey];
+          const dayPath = `${monthPath}|${dateKey}`;
+          html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${salesTreeSummary(d.label, d)}</summary><div class="clicks-tree-children">`;
+          html += '<ul class="sales-tree-list">';
+          d.sales.forEach((sale) => {
+            html += renderConsolidatedSaleRow(sale);
+          });
+          html += '</ul></div></details>';
+        });
+        html += '</div></details>';
+      });
+      html += '</div></details>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderConsolidadoPeriods(sales) {
+    const el = document.getElementById('vendas-consol-periods');
+    if (!el) return;
+    const periods = [
+      { key: 'day', label: 'Hoje' },
+      { key: 'week', label: 'Esta semana' },
+      { key: 'month', label: 'Este mês' },
+      { key: 'year', label: 'Este ano' }
+    ];
+    el.innerHTML = periods.map(({ key, label }) => {
+      const subset = salesInCurrentPeriod(sales, key);
+      const tot = sumAnnotated(subset);
+      const byCh = {};
+      subset.forEach((s) => {
+        const ch = s.channel || 'outro';
+        if (!byCh[ch]) byCh[ch] = { count: 0, net: 0 };
+        byCh[ch].count += 1;
+        byCh[ch].net += Number(s._net || 0);
+      });
+      const chLines = Object.keys(byCh)
+        .sort()
+        .map((ch) => `<li><span>${escapeHtml(salesChannelLabel(ch))}</span><strong>${formatSalesBRL(byCh[ch].net)}</strong></li>`)
+        .join('') || '<li><span>—</span><strong>R$ 0,00</strong></li>';
+      return `<article class="vendas-consol-card">
+        <h3>${escapeHtml(label)}</h3>
+        <p class="vendas-consol-card-net">${formatSalesBRL(tot.net)}</p>
+        <p class="vendas-consol-card-meta">${tot.count} venda${tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(tot.gross)}</p>
+        <ul class="vendas-consol-card-channels">${chLines}</ul>
+      </article>`;
+    }).join('');
+  }
+
+  function renderConsolidadoStats(sales) {
+    const el = document.getElementById('vendas-consol-stats');
+    if (!el) return;
+    const tot = sumAnnotated(sales);
+    const byCh = {};
+    (sales || []).forEach((s) => {
+      const ch = s.channel || 'outro';
+      if (!byCh[ch]) byCh[ch] = { count: 0, net: 0, gross: 0, fees: 0 };
+      byCh[ch].count += 1;
+      byCh[ch].net += Number(s._net || 0);
+      byCh[ch].gross += Number(s._gross || 0);
+      byCh[ch].fees += Number(s._fees || 0);
+    });
+    const chRows = Object.keys(byCh).sort().map((ch) =>
+      `<div class="clicks-stats-row"><dt>${escapeHtml(salesChannelLabel(ch))}</dt><dd>${byCh[ch].count} · ${formatSalesBRL(byCh[ch].net)}</dd></div>`
+    ).join('');
+    el.innerHTML = `
+      <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${(sales || []).length} vendas · líquido ${formatSalesBRL(tot.net)}</dd></div>
+      <div class="clicks-stats-row"><dt>Bruto / taxas</dt><dd>${formatSalesBRL(tot.gross)} / ${formatSalesBRL(tot.fees)}</dd></div>
+      ${chRows}`;
+  }
+
+  async function fetchConsolidatedSales() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) throw new Error('Faça login no admin.');
+    const root = base.replace(/\/$/, '');
+    const headers = { Authorization: 'Bearer ' + token };
+    const [mlRes, ordersRes] = await Promise.all([
+      fetch(`${root}/admin/ml/sales?limit=2000`, { headers, cache: 'no-store' }),
+      fetch(`${root}/orders`, { headers, cache: 'no-store' })
+    ]);
+    const mlData = await mlRes.json().catch(() => ({}));
+    if (!mlRes.ok) throw new Error(mlData.error || 'Falha ao carregar vendas ML');
+    const ordersData = await ordersRes.json().catch(() => ({}));
+    if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
+    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).map(annotateSale);
+    const storeSales = (Array.isArray(ordersData) ? ordersData : [])
+      .filter((o) => o && o.status === 'paid')
+      .map((o) => annotateSale(storeOrderToSale(o)));
+    return [...storeSales, ...mlSales]
+      .filter((s) => s._ts)
+      .sort((a, b) => b._ts - a._ts);
+  }
+
+  function aggregateSalesForExport(sales, period) {
+    const buckets = new Map();
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const bucket = clicksPeriodBucket(s._ts, period);
+      if (!buckets.has(bucket.key)) {
+        buckets.set(bucket.key, {
+          label: bucket.label,
+          sortKey: bucket.sortKey,
+          count: 0,
+          gross: 0,
+          fees: 0,
+          net: 0,
+          byChannel: {}
+        });
+      }
+      const row = buckets.get(bucket.key);
+      const ch = s.channel || 'outro';
+      if (!row.byChannel[ch]) row.byChannel[ch] = { count: 0, gross: 0, fees: 0, net: 0 };
+      row.count += 1;
+      row.gross += s._gross;
+      row.fees += s._fees;
+      row.net += s._net;
+      row.byChannel[ch].count += 1;
+      row.byChannel[ch].gross += s._gross;
+      row.byChannel[ch].fees += s._fees;
+      row.byChannel[ch].net += s._net;
+    });
+    return [...buckets.values()].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+  }
+
+  function buildSalesExportPeriodRows(sales, period) {
+    const channels = ['loja', 'mercadolivre'];
+    const headers = ['Período', 'Qtd', 'Bruto', 'Taxas', 'Líquido'];
+    channels.forEach((ch) => {
+      headers.push(`${salesChannelLabel(ch)} qtd`);
+      headers.push(`${salesChannelLabel(ch)} líquido`);
+    });
+    const rows = [headers];
+    const totals = { count: 0, gross: 0, fees: 0, net: 0, byChannel: {} };
+    channels.forEach((ch) => { totals.byChannel[ch] = { count: 0, net: 0 }; });
+    aggregateSalesForExport(sales, period).forEach((row) => {
+      rows.push([
+        row.label,
+        row.count,
+        Math.round(row.gross * 100) / 100,
+        Math.round(row.fees * 100) / 100,
+        Math.round(row.net * 100) / 100,
+        ...channels.flatMap((ch) => {
+          const c = row.byChannel[ch] || { count: 0, net: 0 };
+          return [c.count, Math.round(c.net * 100) / 100];
+        })
+      ]);
+      totals.count += row.count;
+      totals.gross += row.gross;
+      totals.fees += row.fees;
+      totals.net += row.net;
+      channels.forEach((ch) => {
+        const c = row.byChannel[ch] || { count: 0, net: 0 };
+        totals.byChannel[ch].count += c.count;
+        totals.byChannel[ch].net += c.net;
+      });
+    });
+    if (rows.length > 2) {
+      rows.push([
+        'TOTAL GERAL',
+        totals.count,
+        Math.round(totals.gross * 100) / 100,
+        Math.round(totals.fees * 100) / 100,
+        Math.round(totals.net * 100) / 100,
+        ...channels.flatMap((ch) => [
+          totals.byChannel[ch].count,
+          Math.round(totals.byChannel[ch].net * 100) / 100
+        ])
+      ]);
+    }
+    return rows;
+  }
+
+  function buildSalesExportDetailRows(sales) {
+    const rows = [[
+      'Data', 'Hora', 'Canal', 'ID', 'Cliente', 'Bruto', 'Taxas', 'Líquido', 'Status', 'Item'
+    ]];
+    (sales || []).forEach((s) => {
+      const parts = s._ts ? brDateParts(s._ts) : null;
+      rows.push([
+        parts ? `${parts.day}/${parts.monthNum}/${parts.year}` : '',
+        formatSaleTime(s._ts),
+        salesChannelLabel(s.channel),
+        String(s.externalId || ''),
+        s.buyer?.nickname || '',
+        Math.round(s._gross * 100) / 100,
+        Math.round(s._fees * 100) / 100,
+        Math.round(s._net * 100) / 100,
+        s.status || '',
+        s.items?.[0]?.title || ''
+      ]);
+    });
+    return rows;
+  }
+
+  function buildSpreadsheetWorkbook(sheets) {
+    const worksheets = sheets.map(({ name, rows }) => {
+      const rowsXml = rows.map((row) => {
+        const cells = row.map((cell) => {
+          const type = typeof cell === 'number' && Number.isFinite(cell) ? 'Number' : 'String';
+          const value = type === 'Number' ? cell : xmlEscape(cell);
+          return `<Cell><Data ss:Type="${type}">${value}</Data></Cell>`;
+        }).join('');
+        return `<Row>${cells}</Row>`;
+      }).join('');
+      return `<Worksheet ss:Name="${xmlEscape(name.slice(0, 31))}"><Table>${rowsXml}</Table></Worksheet>`;
+    }).join('');
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+${worksheets}
+</Workbook>`;
+  }
+
+  function buildSalesExportWorkbook(sales) {
+    return buildSpreadsheetWorkbook([
+      { name: 'Detalhe', rows: buildSalesExportDetailRows(sales) },
+      { name: 'Por dia', rows: buildSalesExportPeriodRows(sales, 'day') },
+      { name: 'Por semana', rows: buildSalesExportPeriodRows(sales, 'week') },
+      { name: 'Por mês', rows: buildSalesExportPeriodRows(sales, 'month') },
+      { name: 'Por ano', rows: buildSalesExportPeriodRows(sales, 'year') }
+    ]);
+  }
+
+  let consolidatedSalesCache = null;
+
+  async function loadConsolidatedSales(preserveOpen) {
+    const root = document.getElementById('vendas-consol-tree-root');
+    const checked = document.getElementById('vendas-consol-checked-at');
+    if (!root) return;
+    const openPaths = preserveOpen
+      ? [...root.querySelectorAll('details[open][data-tree-path]')].map((el) => el.getAttribute('data-tree-path')).filter(Boolean)
+      : [];
+    root.innerHTML = '<p class="admin-meta">Carregando consolidado…</p>';
+    try {
+      const sales = await fetchConsolidatedSales();
+      consolidatedSalesCache = sales;
+      renderConsolidadoPeriods(sales);
+      renderConsolidadoStats(sales);
+      root.innerHTML = renderConsolidatedTree(buildConsolidatedSalesTree(sales));
+      if (preserveOpen && openPaths.length) {
+        const want = new Set(openPaths);
+        root.querySelectorAll('details[data-tree-path]').forEach((el) => {
+          if (want.has(el.getAttribute('data-tree-path'))) el.open = true;
+        });
+      }
+      if (checked) {
+        checked.hidden = false;
+        checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      }
+      showStatus('', '', 'vendas');
+    } catch (err) {
+      root.innerHTML = `<p class="admin-meta">${escapeHtml(err.message || 'Erro ao carregar.')}</p>`;
+      showStatus(err.message || 'Erro ao carregar consolidado.', 'error', 'vendas');
+    }
+  }
+
+  async function exportConsolidatedSales() {
+    const btn = document.getElementById('btn-vendas-consol-export');
+    if (btn) btn.disabled = true;
+    showStatus('Preparando exportação…', '', 'vendas');
+    try {
+      const sales = consolidatedSalesCache || await fetchConsolidatedSales();
+      consolidatedSalesCache = sales;
+      if (!sales.length) {
+        showStatus('Nenhuma venda para exportar.', 'error', 'vendas');
+        return;
+      }
+      const workbook = buildSalesExportWorkbook(sales);
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadTextFile(workbook, `vendas-consolidado-${stamp}.xls`, 'application/vnd.ms-excel;charset=utf-8');
+      showStatus(`Exportado: ${sales.length} vendas (detalhe + dia/semana/mês/ano).`, 'success', 'vendas');
+    } catch (err) {
+      showStatus(err.message || 'Erro ao exportar.', 'error', 'vendas');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   function renderSalesTree(tree) {
     const years = Object.keys(tree || {}).sort((a, b) => Number(b) - Number(a));
     if (!years.length) {
@@ -858,6 +1231,7 @@
     });
     try { localStorage.setItem('stf_admin_vendas_subtab', id); } catch (e) { /* ignore */ }
     if (id === 'mercadolivre') loadMlSales();
+    if (id === 'consolidado') loadConsolidatedSales();
   }
 
   let vendasSubtabsWired = false;
@@ -874,6 +1248,8 @@
     });
     document.getElementById('btn-vendas-ml-refresh')?.addEventListener('click', () => loadMlSales(true));
     document.getElementById('btn-vendas-ml-sync')?.addEventListener('click', () => syncMlSalesFromAdmin());
+    document.getElementById('btn-vendas-consol-refresh')?.addEventListener('click', () => loadConsolidatedSales(true));
+    document.getElementById('btn-vendas-consol-export')?.addEventListener('click', () => exportConsolidatedSales());
     document.getElementById('btn-vendas-goto-pedidos')?.addEventListener('click', () => {
       document.querySelector('.admin-tab[data-admin-tab="pedidos"]')?.click();
     });
