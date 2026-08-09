@@ -23,8 +23,8 @@
     }
     body {
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-size: 8pt;
-      line-height: 1.4;
+      font-size: 7.5pt;
+      line-height: 1.32;
       color: var(--ink-2);
       background: #c8c8cc;
     }
@@ -45,26 +45,78 @@
 
     .sheet {
       width: 210mm;
-      min-height: 297mm;
+      height: 297mm;
       margin: 16px auto;
       background: #fff;
       box-shadow: 0 2px 14px rgba(0,0,0,.18);
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
     .sheet-pad {
-      padding: 0 12mm 8mm;
+      padding: 0 11mm 5mm;
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
     }
 
     @media print {
-      body { background: #fff; }
-      .toolbar { display: none !important; }
-      .sheet { margin: 0; box-shadow: none; width: auto; min-height: 297mm; }
+      html, body {
+        background: #fff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm;
+        height: 297mm;
+      }
+      .toolbar, .no-print { display: none !important; }
+      .sheet {
+        margin: 0 !important;
+        box-shadow: none !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        max-height: 297mm !important;
+        overflow: hidden !important;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
       .ph { background: transparent !important; border: none !important; padding: 0 !important; font-family: inherit !important; }
-      .lens-pocket { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      /* Force backgrounds + orange accents on printers that default to B&W economy */
+      *,
+      *::before,
+      *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      .brand {
+        background: #0d0d0d !important;
+        color: #fff !important;
+      }
+      .brand::after { background: #ff6b00 !important; }
+      .brand h1 { color: #fff !important; }
+      .brand p { color: #a1a1a6 !important; }
+      .meta-panel { background: #f5f5f7 !important; }
+      .meta-row { border-bottom-color: #e5e5ea !important; }
+      .section-bar { background: #d2d2d7 !important; }
+      .steps .n { background: #0d0d0d !important; color: #fff !important; }
+      .cure { background: #f5f5f7 !important; }
+      .cure-card .cat { color: #ff6b00 !important; }
+      .notes { background: #e5e5ea !important; }
+      .lens-pocket {
+        border-color: #ff6b00 !important;
+        background: #fffaf6 !important;
+      }
+      .lens-copy .tag {
+        background: #ff6b00 !important;
+        color: #fff !important;
+      }
+      .lens-target {
+        border-color: #ff6b00 !important;
+        background: #fff8f2 !important;
+      }
+      .lens-target span { color: #ff6b00 !important; }
     }
 
     /* Header — matches PDF: dark bar + orange underline */
@@ -72,80 +124,82 @@
       background: var(--ink);
       color: #fff;
       text-align: center;
-      padding: 11mm 12mm 8mm;
+      padding: 7mm 11mm 5.5mm;
       position: relative;
+      flex-shrink: 0;
     }
     .brand::after {
       content: "";
       position: absolute; left: 0; right: 0; bottom: 0;
-      height: 3px; background: var(--accent);
+      height: 2.5px; background: var(--accent);
     }
     .brand h1 {
-      font-size: 14pt; font-weight: 800; letter-spacing: .08em;
+      font-size: 12.5pt; font-weight: 800; letter-spacing: .08em;
       text-transform: uppercase; color: #fff;
     }
     .brand p {
-      margin-top: 3px;
-      font-size: 7pt; font-weight: 500; letter-spacing: .16em;
+      margin-top: 2px;
+      font-size: 6.5pt; font-weight: 500; letter-spacing: .14em;
       text-transform: uppercase; color: #a1a1a6;
     }
 
     /* Order meta panel */
     .meta-panel {
-      margin-top: 5mm;
+      margin-top: 3.5mm;
       background: var(--panel);
       border-radius: 2px;
       overflow: hidden;
+      flex-shrink: 0;
     }
     .meta-row {
       display: grid;
-      grid-template-columns: 38mm 1fr;
-      gap: 3mm;
-      padding: 2.2mm 3.5mm;
+      grid-template-columns: 34mm 1fr;
+      gap: 2.5mm;
+      padding: 1.5mm 3mm;
       border-bottom: 0.75pt solid var(--panel-2);
       align-items: start;
     }
     .meta-row:last-child { border-bottom: none; }
     .meta-row dt {
-      font-size: 7pt; font-weight: 700; letter-spacing: .04em;
+      font-size: 6.5pt; font-weight: 700; letter-spacing: .04em;
       text-transform: uppercase; color: var(--muted);
       padding-top: 0.2mm;
     }
     .meta-row dd {
-      font-size: 8pt; font-weight: 600; color: var(--ink);
+      font-size: 7.5pt; font-weight: 600; color: var(--ink);
       word-break: break-word;
     }
 
     h2.thanks {
-      margin: 5mm 0 2mm;
-      font-size: 11pt; font-weight: 800; color: var(--ink);
+      margin: 3.5mm 0 1.2mm;
+      font-size: 10pt; font-weight: 800; color: var(--ink);
     }
-    .greeting { margin-bottom: 2mm; font-size: 8.5pt; color: var(--ink-2); }
-    .body p { margin-bottom: 2mm; font-size: 8pt; color: var(--ink-2); }
+    .greeting { margin-bottom: 1.2mm; font-size: 8pt; color: var(--ink-2); }
+    .body p { margin-bottom: 1.2mm; font-size: 7.5pt; color: var(--ink-2); }
 
     .section-bar {
-      margin: 4mm 0 2.5mm;
+      margin: 2.8mm 0 1.8mm;
       background: var(--bar);
       border-radius: 2px;
-      padding: 1.8mm 3mm;
-      font-size: 7.5pt; font-weight: 800; letter-spacing: .05em;
+      padding: 1.3mm 2.5mm;
+      font-size: 7pt; font-weight: 800; letter-spacing: .05em;
       text-transform: uppercase; color: var(--ink);
     }
 
-    .steps { list-style: none; margin: 0 0 1mm; }
+    .steps { list-style: none; margin: 0 0 0.5mm; }
     .steps li {
       display: grid;
-      grid-template-columns: 5.5mm 1fr;
-      gap: 2.5mm;
-      margin-bottom: 2.2mm;
+      grid-template-columns: 5mm 1fr;
+      gap: 2mm;
+      margin-bottom: 1.5mm;
       align-items: start;
     }
     .steps .n {
-      width: 5.5mm; height: 5.5mm; border-radius: 50%;
+      width: 5mm; height: 5mm; border-radius: 50%;
       background: var(--ink); color: #fff;
-      font-size: 7pt; font-weight: 800;
+      font-size: 6.5pt; font-weight: 800;
       display: flex; align-items: center; justify-content: center;
-      margin-top: 0.3mm;
+      margin-top: 0.2mm;
     }
     .steps strong { font-weight: 800; color: var(--ink); }
 
@@ -156,107 +210,108 @@
       background: var(--panel);
       border-radius: 2px;
       overflow: hidden;
-      margin-bottom: 1mm;
+      margin-bottom: 0.5mm;
     }
     .cure-card {
-      padding: 3mm 2.5mm;
+      padding: 2.2mm 2mm;
       text-align: center;
       border-right: 1.5pt solid #fff;
     }
     .cure-card:last-child { border-right: none; }
     .cure-card strong {
-      display: block; font-size: 10pt; font-weight: 800; color: var(--ink);
+      display: block; font-size: 9pt; font-weight: 800; color: var(--ink);
     }
     .cure-card .cat {
-      display: block; margin-top: 1mm;
-      font-size: 6.5pt; font-weight: 800; letter-spacing: .06em;
+      display: block; margin-top: 0.7mm;
+      font-size: 6pt; font-weight: 800; letter-spacing: .05em;
       text-transform: uppercase; color: var(--accent);
     }
     .cure-card em {
-      display: block; margin-top: 1.2mm;
-      font-style: normal; font-size: 6.5pt; color: var(--muted);
+      display: block; margin-top: 0.8mm;
+      font-style: normal; font-size: 6pt; color: var(--muted);
     }
 
     .notes {
-      margin-top: 3mm;
+      margin-top: 2mm;
       background: var(--panel-2);
       border-radius: 2px;
-      padding: 3mm 3.5mm;
+      padding: 2.2mm 3mm;
     }
     .notes .section-bar {
-      margin: 0 0 2mm; background: transparent; padding: 0;
-      font-size: 7.5pt;
+      margin: 0 0 1.2mm; background: transparent; padding: 0;
+      font-size: 7pt;
     }
-    .notes ul { margin: 0 0 0 3.5mm; }
-    .notes li { margin-bottom: 1.2mm; font-size: 7.5pt; color: var(--ink-2); }
+    .notes ul { margin: 0 0 0 3mm; }
+    .notes li { margin-bottom: 0.8mm; font-size: 7pt; color: var(--ink-2); }
 
-    .support { margin-top: 3mm; font-size: 8pt; color: var(--ink-2); }
+    .support { margin-top: 2mm; font-size: 7.5pt; color: var(--ink-2); }
     .support a, .support strong { color: var(--ink); font-weight: 800; text-decoration: none; }
 
-    .sign { margin-top: 3mm; font-size: 8pt; }
-    .sign .team { font-weight: 800; color: var(--ink); margin-top: 1mm; }
+    .sign { margin-top: 2mm; font-size: 7.5pt; }
+    .sign .team { font-weight: 800; color: var(--ink); margin-top: 0.6mm; }
 
     .footer-line {
-      margin-top: 4mm;
-      padding-top: 2mm;
+      margin-top: 2.5mm;
+      padding-top: 1.5mm;
       border-top: 0.75pt solid var(--line);
       text-align: center;
-      font-size: 6.5pt; letter-spacing: .08em; text-transform: uppercase;
+      font-size: 6pt; letter-spacing: .06em; text-transform: uppercase;
       color: var(--muted-2);
     }
 
     /* Lens affix zone — bottom of sheet, survives fold */
     .lens-pocket {
       margin-top: auto;
-      margin-bottom: 2mm;
+      margin-bottom: 0;
       border: 1.25pt dashed var(--accent);
       border-radius: 3px;
       background: linear-gradient(180deg, #fffaf6 0%, #fff 55%);
-      padding: 3.5mm 4mm;
+      padding: 2.5mm 3mm;
       display: grid;
-      grid-template-columns: 1fr 28mm;
-      gap: 4mm;
+      grid-template-columns: 1fr 27mm;
+      gap: 3mm;
       align-items: center;
+      flex-shrink: 0;
     }
     .lens-copy .tag {
       display: inline-block;
       background: var(--accent);
       color: #fff;
-      font-size: 6.5pt; font-weight: 800; letter-spacing: .1em;
+      font-size: 6pt; font-weight: 800; letter-spacing: .1em;
       text-transform: uppercase;
-      padding: 1.2mm 2.5mm;
+      padding: 1mm 2mm;
       border-radius: 2px;
-      margin-bottom: 2mm;
+      margin-bottom: 1.2mm;
     }
     .lens-copy h3 {
-      font-size: 9pt; font-weight: 800; color: var(--ink);
+      font-size: 8pt; font-weight: 800; color: var(--ink);
       letter-spacing: .02em;
-      margin-bottom: 1mm;
+      margin-bottom: 0.6mm;
     }
     .lens-copy p {
-      font-size: 7pt; color: var(--muted); line-height: 1.35;
+      font-size: 6.5pt; color: var(--muted); line-height: 1.3;
     }
     .lens-copy .watch {
-      margin-top: 1.5mm;
-      font-size: 7.5pt; font-weight: 700; color: var(--ink-2);
+      margin-top: 1mm;
+      font-size: 7pt; font-weight: 700; color: var(--ink-2);
     }
     .lens-target {
       width: 25mm; height: 25mm;
       border-radius: 50%;
       border: 1.5pt dashed var(--accent);
       background:
-        radial-gradient(circle at center, transparent 0 42%, rgba(255,107,0,.06) 43% 100%),
-        repeating-conic-gradient(from 0deg, #fff 0deg 8deg, #fff8f2 8deg 16deg);
+        radial-gradient(circle at center, transparent 0 42%, rgba(255,107,0,.08) 43% 100%),
+        #fff8f2;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-align: center;
       justify-self: end;
     }
     .lens-target span {
       font-size: 5.5pt; font-weight: 800; letter-spacing: .06em;
-      text-transform: uppercase; color: var(--accent); line-height: 1.2;
+      text-transform: uppercase; color: var(--accent); line-height: 1.15;
     }
     .lens-target small {
-      display: block; margin-top: 0.8mm;
+      display: block; margin-top: 0.5mm;
       font-size: 5pt; font-weight: 600; color: var(--muted-2);
       letter-spacing: .04em; text-transform: uppercase;
     }
