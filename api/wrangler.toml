@@ -24,6 +24,10 @@ crons = ["*/5 * * * *", "30 2 * * *"]
 # ML_CLIENT_ID         — Mercado Livre app pedidosml (vendas/marketplace)
 # ML_CLIENT_SECRET     — secret do app ML
 # ML_REFRESH_TOKEN     — OAuth refresh (bootstrap; após refresh fica no KV)
+# AMZ_LWA_CLIENT_ID    — Amazon SP-API LWA Client ID
+# AMZ_LWA_CLIENT_SECRET
+# AMZ_LWA_REFRESH_TOKEN — self-authorization (Brasil)
+# AMZ_MARKETPLACE_ID   — opcional (padrão A2Q3Y263D00KWC = Amazon.com.br)
 # MP_WEBHOOK_URL       — opcional: https://SEU-WORKER.workers.dev/webhook/mercadopago
 # ASAAS_API_KEY        — cartão de crédito (asaas.com)
 # ASAAS_WEBHOOK_TOKEN  — token do webhook Asaas (cartão)

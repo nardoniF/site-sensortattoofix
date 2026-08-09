@@ -3791,6 +3791,417 @@ async function handleAdminMlSales(request, env, origin) {
   return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
 }
 
+/** Amazon SP-API (Brasil) — LWA only, sem AWS SigV4. */
+const AMZ_API_HOST = 'https://sellingpartnerapi-na.amazon.com';
+const AMZ_LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token';
+const AMZ_TOKEN_KV_KEY = 'amz:token';
+const AMZ_OAUTH_KV_KEY = 'amz:oauth';
+const AMZ_SALE_PREFIX = 'sale:amz:';
+const AMZ_SALES_INDEX_KEY = 'sales:amz:index';
+const AMZ_SALES_META_KEY = 'sales:amz:meta';
+const AMZ_SYNC_LOOKBACK_DAYS = 90;
+const AMZ_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
+const AMZ_SALES_INDEX_MAX = 5000;
+const AMZ_SYNC_MAX_PAGES = 40;
+const AMZ_BR_MARKETPLACE = 'A2Q3Y263D00KWC';
+const AMZ_USER_AGENT = 'SensorTattooFix/1.0 (Language=JavaScript; Platform=CloudflareWorkers)';
+
+function amzClientId(env) {
+  return String(env.AMZ_LWA_CLIENT_ID || '').trim();
+}
+
+function amzClientSecret(env) {
+  return String(env.AMZ_LWA_CLIENT_SECRET || '').trim();
+}
+
+function amzMarketplaceId(env) {
+  return String(env.AMZ_MARKETPLACE_ID || AMZ_BR_MARKETPLACE).trim() || AMZ_BR_MARKETPLACE;
+}
+
+function amzAppConfigured(env) {
+  return !!(amzClientId(env) && amzClientSecret(env));
+}
+
+async function getAmzOAuthState(env) {
+  try {
+    const raw = await env.STORE_KV.get(AMZ_OAUTH_KV_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveAmzOAuthState(env, patch) {
+  const prev = (await getAmzOAuthState(env)) || {};
+  const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
+  await env.STORE_KV.put(AMZ_OAUTH_KV_KEY, JSON.stringify(next));
+  return next;
+}
+
+async function getAmzRefreshToken(env) {
+  const state = await getAmzOAuthState(env);
+  const fromKv = String(state?.refreshToken || '').trim();
+  if (fromKv) return fromKv;
+  return String(env.AMZ_LWA_REFRESH_TOKEN || '').trim();
+}
+
+async function getAmzAccessToken(env) {
+  if (!amzAppConfigured(env)) return null;
+  try {
+    const cached = await env.STORE_KV.get(AMZ_TOKEN_KV_KEY);
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (data?.token && data.expiresAt > Date.now()) return data.token;
+    }
+  } catch { /* refresh */ }
+
+  const refreshToken = await getAmzRefreshToken(env);
+  if (!refreshToken) return null;
+
+  const res = await fetch(AMZ_LWA_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: amzClientId(env),
+      client_secret: amzClientSecret(env)
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.warn('Amazon LWA refresh:', res.status, data.error_description || data.error || '');
+    await env.STORE_KV.delete(AMZ_TOKEN_KV_KEY).catch(() => {});
+    return null;
+  }
+  const access = String(data.access_token || '').trim();
+  if (!access) return null;
+  const ttl = Math.max(60, Number(data.expires_in || 3600) - 120);
+  await env.STORE_KV.put(AMZ_TOKEN_KV_KEY, JSON.stringify({
+    token: access,
+    expiresAt: Date.now() + ttl * 1000
+  }));
+  if (data.refresh_token) {
+    await saveAmzOAuthState(env, { refreshToken: String(data.refresh_token) });
+  }
+  return access;
+}
+
+async function checkAmazonIntegration(env) {
+  if (!amzAppConfigured(env)) {
+    return {
+      configured: false,
+      authOk: false,
+      error: 'AMZ_LWA_CLIENT_ID / AMZ_LWA_CLIENT_SECRET não configurados.'
+    };
+  }
+  const refreshToken = await getAmzRefreshToken(env);
+  if (!refreshToken) {
+    return {
+      configured: true,
+      authOk: false,
+      needsOAuth: true,
+      error: 'Sem refresh token — autorize o app no Solution Provider Portal.'
+    };
+  }
+  try {
+    const token = await getAmzAccessToken(env);
+    if (!token) {
+      return {
+        configured: true,
+        authOk: false,
+        needsOAuth: true,
+        error: 'Falha ao renovar token Amazon — confira Client Secret / Refresh token.'
+      };
+    }
+    const marketplaceId = amzMarketplaceId(env);
+    const createdAfter = new Date(Date.now() - 7 * 86400000).toISOString();
+    const qs = new URLSearchParams({
+      MarketplaceIds: marketplaceId,
+      CreatedAfter: createdAfter,
+      MaxResultsPerPage: '1'
+    });
+    const res = await fetch(`${AMZ_API_HOST}/orders/v0/orders?${qs}`, {
+      headers: {
+        'x-amz-access-token': token,
+        Accept: 'application/json',
+        'User-Agent': AMZ_USER_AGENT
+      }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data?.errors?.[0]?.message || data.message || `HTTP ${res.status}`;
+      return { configured: true, authOk: false, error: msg };
+    }
+    return {
+      configured: true,
+      authOk: true,
+      marketplaceId,
+      lastSyncedAt: (await getAmzSalesMeta(env))?.lastSyncedAt || null
+    };
+  } catch (err) {
+    return { configured: true, authOk: false, error: err.message };
+  }
+}
+
+async function getAmzSalesMeta(env) {
+  try {
+    const raw = await env.STORE_KV.get(AMZ_SALES_META_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveAmzSalesMeta(env, patch) {
+  const prev = (await getAmzSalesMeta(env)) || {};
+  const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
+  await env.STORE_KV.put(AMZ_SALES_META_KEY, JSON.stringify(next));
+  return next;
+}
+
+async function getAmzSalesIndex(env) {
+  try {
+    const raw = await env.STORE_KV.get(AMZ_SALES_INDEX_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeAmzOrder(order, items) {
+  const gross = Math.round(Number(order.OrderTotal?.Amount || 0) * 100) / 100;
+  const currency = order.OrderTotal?.CurrencyCode || 'BRL';
+  const mappedItems = (Array.isArray(items) ? items : []).map((row) => ({
+    id: row.ASIN || row.SellerSKU || null,
+    title: row.Title || null,
+    quantity: Number(row.QuantityOrdered || 0),
+    unitPrice: Number(row.ItemPrice?.Amount || 0),
+    saleFee: 0,
+    currency: row.ItemPrice?.CurrencyCode || currency
+  }));
+  // Fees via Finances API later — show gross as net until then (honest label in UI).
+  const fees = 0;
+  const net = gross;
+  return {
+    channel: 'amazon',
+    externalId: String(order.AmazonOrderId || ''),
+    packId: null,
+    soldAt: order.PurchaseDate || order.LastUpdateDate || null,
+    status: order.OrderStatus || null,
+    tags: [order.FulfillmentChannel, order.SalesChannel].filter(Boolean),
+    currency,
+    gross,
+    fees,
+    net,
+    shippingCost: Number(order.ShipmentServiceLevelCategory ? 0 : 0),
+    buyer: {
+      id: null,
+      nickname: order.BuyerInfo?.BuyerName || order.BuyerEmail || null
+    },
+    items: mappedItems,
+    payments: [],
+    shippingId: null,
+    dateCreated: order.PurchaseDate || null,
+    dateLastUpdated: order.LastUpdateDate || null,
+    syncedAt: new Date().toISOString(),
+    feesNote: 'Taxas Amazon não importadas ainda — líquido = total do pedido.'
+  };
+}
+
+async function upsertAmzSale(env, sale, index) {
+  await env.STORE_KV.put(AMZ_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+  const next = (index || []).filter((id) => id !== sale.externalId);
+  next.unshift(sale.externalId);
+  return next.slice(0, AMZ_SALES_INDEX_MAX);
+}
+
+async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nextToken }) {
+  const params = new URLSearchParams();
+  params.set('MarketplaceIds', amzMarketplaceId(env));
+  params.set('MaxResultsPerPage', '50');
+  if (nextToken) {
+    params.set('NextToken', nextToken);
+  } else {
+    params.set('CreatedAfter', createdAfter);
+    if (createdBefore) params.set('CreatedBefore', createdBefore);
+    params.set('OrderStatuses', 'Shipped,Unshipped,PartiallyShipped,InvoiceUnconfirmed');
+  }
+  const res = await fetch(`${AMZ_API_HOST}/orders/v0/orders?${params}`, {
+    headers: {
+      'x-amz-access-token': token,
+      Accept: 'application/json',
+      'User-Agent': AMZ_USER_AGENT
+    }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data?.errors?.[0]?.message || data.message || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
+  }
+  return data.payload || data;
+}
+
+async function amzFetchOrderItems(env, token, orderId) {
+  const res = await fetch(
+    `${AMZ_API_HOST}/orders/v0/orders/${encodeURIComponent(orderId)}/orderItems`,
+    {
+      headers: {
+        'x-amz-access-token': token,
+        Accept: 'application/json',
+        'User-Agent': AMZ_USER_AGENT
+      }
+    }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return [];
+  return data.payload?.OrderItems || data.OrderItems || [];
+}
+
+async function syncAmzOrders(env, options = {}) {
+  const token = await getAmzAccessToken(env);
+  if (!token) throw new Error('Amazon sem access token — confira Client ID/Secret/Refresh token.');
+
+  const meta = await getAmzSalesMeta(env);
+  const now = new Date();
+  const full = options.full === true || !meta?.lastSyncedAt;
+  const days = Math.min(365, Math.max(1, Number(options.days) || AMZ_SYNC_LOOKBACK_DAYS));
+  let from;
+  if (full || options.days) {
+    from = new Date(now.getTime() - days * 86400000);
+  } else {
+    const last = new Date(meta.lastSyncedAt);
+    from = new Date(last.getTime() - 2 * 86400000);
+  }
+
+  let nextToken = null;
+  let pages = 0;
+  let imported = 0;
+  let updated = 0;
+  let index = await getAmzSalesIndex(env);
+  let apiTotal = 0;
+
+  do {
+    const payload = await amzFetchOrdersPage(env, token, {
+      createdAfter: from.toISOString(),
+      createdBefore: now.toISOString(),
+      nextToken
+    });
+    const orders = Array.isArray(payload.Orders) ? payload.Orders : [];
+    apiTotal += orders.length;
+    for (const order of orders) {
+      if (!order?.AmazonOrderId) continue;
+      if (String(order.OrderStatus || '').toLowerCase() === 'canceled') continue;
+      let items = [];
+      try {
+        items = await amzFetchOrderItems(env, token, order.AmazonOrderId);
+      } catch { /* keep empty items */ }
+      const sale = normalizeAmzOrder(order, items);
+      if (!sale.externalId) continue;
+      const existingRaw = await env.STORE_KV.get(AMZ_SALE_PREFIX + sale.externalId);
+      if (existingRaw) updated += 1;
+      else imported += 1;
+      index = await upsertAmzSale(env, sale, index);
+    }
+    pages += 1;
+    nextToken = payload.NextToken || null;
+  } while (nextToken && pages < AMZ_SYNC_MAX_PAGES);
+
+  await env.STORE_KV.put(AMZ_SALES_INDEX_KEY, JSON.stringify(index));
+  const report = {
+    ok: true,
+    marketplaceId: amzMarketplaceId(env),
+    full,
+    from: from.toISOString(),
+    to: now.toISOString(),
+    pages,
+    apiTotal,
+    imported,
+    updated,
+    indexed: index.length,
+    lastSyncedAt: now.toISOString(),
+    lastError: null
+  };
+  await saveAmzSalesMeta(env, report);
+  return report;
+}
+
+async function runScheduledAmzOrdersSync(env) {
+  if (!amzAppConfigured(env)) return { skipped: true, reason: 'not_configured' };
+  const meta = await getAmzSalesMeta(env);
+  if (meta?.lastSyncedAt) {
+    const age = Date.now() - new Date(meta.lastSyncedAt).getTime();
+    if (Number.isFinite(age) && age < AMZ_SYNC_CRON_MIN_INTERVAL_MS) {
+      return { skipped: true, reason: 'throttle', ageMs: age };
+    }
+  }
+  try {
+    const report = await syncAmzOrders(env, { full: !meta?.lastSyncedAt });
+    console.log('Amazon orders sync cron:', JSON.stringify({
+      imported: report.imported,
+      updated: report.updated,
+      indexed: report.indexed
+    }));
+    return report;
+  } catch (err) {
+    await saveAmzSalesMeta(env, {
+      lastError: err.message || String(err),
+      lastErrorAt: new Date().toISOString()
+    }).catch(() => {});
+    throw err;
+  }
+}
+
+async function handleAdminAmzSync(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  if (request.method === 'GET') {
+    const meta = await getAmzSalesMeta(env);
+    const index = await getAmzSalesIndex(env);
+    return json({ ok: true, meta, indexed: index.length }, 200, origin);
+  }
+  const daysParam = url.searchParams.get('days');
+  const full = url.searchParams.get('full') === '1' || url.searchParams.get('full') === 'true';
+  try {
+    const report = await syncAmzOrders(env, {
+      full,
+      days: daysParam ? Number(daysParam) : undefined
+    });
+    return json(report, 200, origin);
+  } catch (err) {
+    return json({ error: err.message || String(err) }, 502, origin);
+  }
+}
+
+async function handleAdminAmzSales(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit')) || 200));
+  const index = await getAmzSalesIndex(env);
+  const ids = index.slice(0, limit);
+  const sales = [];
+  for (const id of ids) {
+    const raw = await env.STORE_KV.get(AMZ_SALE_PREFIX + id);
+    if (!raw) continue;
+    try {
+      sales.push(JSON.parse(raw));
+    } catch { /* skip */ }
+  }
+  const meta = await getAmzSalesMeta(env);
+  return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
+}
+
 /** Com token TEST-, PIX de teste não aprova sozinho — simula confirmação após alguns segundos. */
 async function maybeSandboxAutoConfirmPix(env, orderId, payment) {
   if (!isMpSandbox(env)) return;
@@ -7341,6 +7752,7 @@ const INTEGRATION_ROW_ORDER = [
   'worker',
   'mercadopago',
   'mercadolivre',
+  'amazon',
   'asaas',
   'paypal',
   'stripe',
@@ -7368,7 +7780,7 @@ function sortIntegrationRows(rows) {
 
 function buildIntegrationRows(env, config, checks) {
   const {
-    paypal, mercadoPago, mercadoLivre, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
+    paypal, mercadoPago, mercadoLivre, amazon, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
     correiosPrePostagem, correiosServico04227, correiosServico86720, exportOptions, uber, superfrete
   } = checks;
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
@@ -7441,6 +7853,35 @@ function buildIntegrationRows(env, config, checks) {
       description: 'Importação de pedidos/vendas (marketplace)',
       status: 'ok',
       detail: `Conectado${nick}${syncHint}`
+    });
+  }
+
+  if (!amazon?.configured) {
+    rows.push({
+      id: 'amazon',
+      label: 'Amazon',
+      description: 'Importação de pedidos/vendas (SP-API)',
+      status: 'off',
+      detail: 'Não configurado'
+    });
+  } else if (!amazon.authOk) {
+    rows.push({
+      id: 'amazon',
+      label: 'Amazon',
+      description: 'Importação de pedidos/vendas (SP-API)',
+      status: 'error',
+      detail: amazon.error || 'Falha na autenticação'
+    });
+  } else {
+    const syncHint = amazon.lastSyncedAt
+      ? ` · sync ${String(amazon.lastSyncedAt).slice(0, 16).replace('T', ' ')}`
+      : '';
+    rows.push({
+      id: 'amazon',
+      label: 'Amazon',
+      description: 'Importação de pedidos/vendas (SP-API)',
+      status: 'ok',
+      detail: `Conectado · BR${syncHint}`
     });
   }
 
@@ -10552,10 +10993,11 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     ])
     : [null, null, null];
 
-  const [paypal, mercadoPago, mercadoLivre, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
+  const [paypal, mercadoPago, mercadoLivre, amazon, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env),
     checkMercadoLivreIntegration(env),
+    checkAmazonIntegration(env),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
@@ -10569,6 +11011,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     paypal,
     mercadoPago,
     mercadoLivre,
+    amazon,
     asaas,
     resend,
     zapi,
@@ -12627,6 +13070,12 @@ export default {
       if (path === '/admin/ml/sales' && request.method === 'GET') {
         return handleAdminMlSales(request, env, origin);
       }
+      if (path === '/admin/amz/sync' && (request.method === 'GET' || request.method === 'POST')) {
+        return handleAdminAmzSync(request, env, origin);
+      }
+      if (path === '/admin/amz/sales' && request.method === 'GET') {
+        return handleAdminAmzSales(request, env, origin);
+      }
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
@@ -12804,6 +13253,11 @@ export default {
       ctx.waitUntil(
         runScheduledMlOrdersSync(env).catch((err) => {
           console.error('ML orders sync cron failed:', err.message);
+        })
+      );
+      ctx.waitUntil(
+        runScheduledAmzOrdersSync(env).catch((err) => {
+          console.error('Amazon orders sync cron failed:', err.message);
         })
       );
     }

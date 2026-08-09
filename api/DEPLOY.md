@@ -27,6 +27,9 @@ wrangler secret put MP_ACCESS_TOKEN         # Mercado Pago → Credenciais de pr
 wrangler secret put ML_CLIENT_ID            # Mercado Livre → app pedidosml (vendas)
 wrangler secret put ML_CLIENT_SECRET
 wrangler secret put ML_REFRESH_TOKEN        # OAuth offline (rotaciona no KV após refresh)
+wrangler secret put AMZ_LWA_CLIENT_ID       # Amazon SP-API (vendas)
+wrangler secret put AMZ_LWA_CLIENT_SECRET
+wrangler secret put AMZ_LWA_REFRESH_TOKEN
 wrangler secret put ASAAS_API_KEY           # Asaas → Integrações → API (cartão)
 wrangler secret put ASAAS_WEBHOOK_TOKEN     # token do webhook Asaas (cartão)
 wrangler secret put PAYPAL_CLIENT_ID          # PayPal Developer → app REST (internacional)

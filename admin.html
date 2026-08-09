@@ -755,7 +755,18 @@
                             <p class="admin-meta">Shopee — em breve (mesma estrutura do Mercado Livre).</p>
                         </div>
                         <div id="admin-vendas-amazon" class="admin-vendas-subpanel" role="tabpanel" hidden>
-                            <p class="admin-meta">Amazon — em breve.</p>
+                            <div id="vendas-amz-stats" class="admin-clicks-stats admin-meta"></div>
+                            <div class="admin-clicks-toolbar admin-toolbar-split">
+                                <div class="admin-toolbar-main">
+                                    <button type="button" id="btn-vendas-amz-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
+                                    <button type="button" id="btn-vendas-amz-sync" class="btn-primary"><i class="fas fa-cloud-download-alt"></i> Atualizar Amazon</button>
+                                </div>
+                            </div>
+                            <p id="vendas-amz-checked-at" class="admin-meta" hidden></p>
+                            <div id="vendas-amz-tree-root" class="clicks-tree-root">
+                                <p class="admin-meta">Abra esta subaba para carregar as vendas da Amazon.</p>
+                            </div>
+                            <p class="admin-meta">Nota: o líquido exibido é o total do pedido (taxas Amazon ainda não importadas via Finances API).</p>
                         </div>
                         <div id="admin-vendas-consolidado" class="admin-vendas-subpanel" role="tabpanel" hidden>
                             <div id="vendas-consol-periods" class="vendas-consol-periods"></div>
@@ -1000,6 +1011,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=127"></script>
+    <script src="js/admin.js?v=128"></script>
 </body>
 </html>

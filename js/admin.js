@@ -873,19 +873,23 @@
     if (!token || !base) throw new Error('Faça login no admin.');
     const root = base.replace(/\/$/, '');
     const headers = { Authorization: 'Bearer ' + token };
-    const [mlRes, ordersRes] = await Promise.all([
+    const [mlRes, amzRes, ordersRes] = await Promise.all([
       fetch(`${root}/admin/ml/sales?limit=2000`, { headers, cache: 'no-store' }),
+      fetch(`${root}/admin/amz/sales?limit=2000`, { headers, cache: 'no-store' }),
       fetch(`${root}/orders`, { headers, cache: 'no-store' })
     ]);
     const mlData = await mlRes.json().catch(() => ({}));
     if (!mlRes.ok) throw new Error(mlData.error || 'Falha ao carregar vendas ML');
+    const amzData = await amzRes.json().catch(() => ({}));
+    if (!amzRes.ok) throw new Error(amzData.error || 'Falha ao carregar vendas Amazon');
     const ordersData = await ordersRes.json().catch(() => ({}));
     if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
     const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).map(annotateSale);
+    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).map(annotateSale);
     const storeSales = (Array.isArray(ordersData) ? ordersData : [])
       .filter((o) => o && o.status === 'paid')
       .map((o) => annotateSale(storeOrderToSale(o)));
-    return [...storeSales, ...mlSales]
+    return [...storeSales, ...mlSales, ...amzSales]
       .filter((s) => s._ts)
       .sort((a, b) => b._ts - a._ts);
   }
@@ -922,7 +926,7 @@
   }
 
   function buildSalesExportPeriodRows(sales, period) {
-    const channels = ['loja', 'mercadolivre'];
+    const channels = ['loja', 'mercadolivre', 'amazon'];
     const headers = ['Período', 'Qtd', 'Bruto', 'Taxas', 'Líquido'];
     channels.forEach((ch) => {
       headers.push(`${salesChannelLabel(ch)} qtd`);
@@ -1190,6 +1194,103 @@ ${worksheets}
     }
   }
 
+  function captureAmzSalesTreeOpenPaths() {
+    const root = document.getElementById('vendas-amz-tree-root');
+    if (!root) return [];
+    return [...root.querySelectorAll('details[open][data-tree-path]')]
+      .map((el) => el.getAttribute('data-tree-path'))
+      .filter(Boolean);
+  }
+
+  function restoreAmzSalesTreeOpenPaths(paths) {
+    const root = document.getElementById('vendas-amz-tree-root');
+    if (!root || !paths?.length) return;
+    const want = new Set(paths);
+    root.querySelectorAll('details[data-tree-path]').forEach((el) => {
+      if (want.has(el.getAttribute('data-tree-path'))) el.open = true;
+    });
+  }
+
+  function renderAmzSalesStats(sales, meta) {
+    const el = document.getElementById('vendas-amz-stats');
+    if (!el) return;
+    const list = sales || [];
+    const gross = list.reduce((s, x) => s + Number(x.gross || 0), 0);
+    const fees = list.reduce((s, x) => s + Number(x.fees || 0), 0);
+    const net = list.reduce((s, x) => s + Number(x.net != null ? x.net : Number(x.gross || 0) - Number(x.fees || 0)), 0);
+    const synced = meta?.lastSyncedAt
+      ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+      : '—';
+    el.innerHTML = `
+      <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${list.length.toLocaleString('pt-BR')}${meta?.indexed != null && meta.indexed !== list.length ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas` : ''}</dd></div>
+      <div class="clicks-stats-row"><dt>Total pedidos</dt><dd>${formatSalesBRL(net)}</dd></div>
+      <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(gross)}</dd></div>
+      <div class="clicks-stats-row"><dt>Taxas Amazon</dt><dd>${formatSalesBRL(fees)} <small>(ainda não importadas)</small></dd></div>
+      <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
+  }
+
+  async function loadAmzSales(preserveOpen) {
+    const root = document.getElementById('vendas-amz-tree-root');
+    const checked = document.getElementById('vendas-amz-checked-at');
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!root) return;
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'vendas');
+      return;
+    }
+    const openPaths = preserveOpen ? captureAmzSalesTreeOpenPaths() : [];
+    root.innerHTML = '<p class="admin-meta">Carregando vendas Amazon…</p>';
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/amz/sales?limit=2000`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
+      renderAmzSalesStats(sales, meta);
+      root.innerHTML = renderSalesTree(buildSalesTree(sales));
+      if (preserveOpen) restoreAmzSalesTreeOpenPaths(openPaths);
+      if (checked) {
+        checked.hidden = false;
+        checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      }
+      showStatus('', '', 'vendas');
+    } catch (err) {
+      root.innerHTML = `<p class="admin-meta">${escapeHtml(err.message || 'Erro ao carregar.')}</p>`;
+      showStatus(err.message || 'Erro ao carregar vendas Amazon.', 'error', 'vendas');
+    }
+  }
+
+  async function syncAmzSalesFromAdmin() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'vendas');
+      return;
+    }
+    showStatus('Sincronizando Amazon…', '', 'vendas');
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/amz/sync`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      showStatus(
+        `Sync Amazon OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas (${data.indexed || 0} no índice).`,
+        'success',
+        'vendas'
+      );
+      await loadAmzSales(true);
+    } catch (err) {
+      showStatus(err.message || 'Falha no sync Amazon.', 'error', 'vendas');
+    }
+  }
+
   async function syncMlSalesFromAdmin() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -1231,6 +1332,7 @@ ${worksheets}
     });
     try { localStorage.setItem('stf_admin_vendas_subtab', id); } catch (e) { /* ignore */ }
     if (id === 'mercadolivre') loadMlSales();
+    if (id === 'amazon') loadAmzSales();
     if (id === 'consolidado') loadConsolidatedSales();
   }
 
@@ -1248,6 +1350,8 @@ ${worksheets}
     });
     document.getElementById('btn-vendas-ml-refresh')?.addEventListener('click', () => loadMlSales(true));
     document.getElementById('btn-vendas-ml-sync')?.addEventListener('click', () => syncMlSalesFromAdmin());
+    document.getElementById('btn-vendas-amz-refresh')?.addEventListener('click', () => loadAmzSales(true));
+    document.getElementById('btn-vendas-amz-sync')?.addEventListener('click', () => syncAmzSalesFromAdmin());
     document.getElementById('btn-vendas-consol-refresh')?.addEventListener('click', () => loadConsolidatedSales(true));
     document.getElementById('btn-vendas-consol-export')?.addEventListener('click', () => exportConsolidatedSales());
     document.getElementById('btn-vendas-goto-pedidos')?.addEventListener('click', () => {
