@@ -76,6 +76,7 @@
     if (target === 'frete') return els.statusFrete;
     if (target === 'contato') return els.statusContato;
     if (target === 'cliques') return document.getElementById('admin-status-cliques');
+    if (target === 'vendas') return document.getElementById('admin-status-vendas');
     if (target === 'pesquisa') return document.getElementById('admin-status-pesquisa');
     return els.statusMsg;
   }
@@ -637,6 +638,249 @@
     try { saved = localStorage.getItem('stf_admin_frete_subtab') || 'origem'; } catch (e) { /* ignore */ }
     if (!container.querySelector('#admin-frete-' + saved)) saved = 'origem';
     showFreteSubtab(saved);
+  }
+
+  function formatSalesBRL(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function saleSoldTs(sale) {
+    const raw = sale?.soldAt || sale?.dateCreated;
+    if (!raw) return 0;
+    const t = Date.parse(raw);
+    return Number.isFinite(t) ? t : 0;
+  }
+
+  function formatSaleTime(ts) {
+    if (!ts) return '—';
+    return new Date(ts).toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  function buildSalesTree(sales) {
+    const tree = {};
+    (sales || []).forEach((sale) => {
+      const ts = saleSoldTs(sale);
+      if (!ts) return;
+      const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
+      const gross = Number(sale.gross || 0);
+      const fees = Number(sale.fees || 0);
+      const net = Number(sale.net != null ? sale.net : gross - fees);
+      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, net: 0, months: {} };
+      const y = tree[year];
+      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, net: 0, days: {} };
+      const m = y.months[monthNum];
+      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, net: 0, sales: [] };
+      const d = m.days[dateKey];
+      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _net: net });
+      d.count += 1;
+      d.gross += gross;
+      d.fees += fees;
+      d.net += net;
+      m.count += 1;
+      m.gross += gross;
+      m.fees += fees;
+      m.net += net;
+      y.count += 1;
+      y.gross += gross;
+      y.fees += fees;
+      y.net += net;
+    });
+    Object.values(tree).forEach((y) => {
+      Object.values(y.months).forEach((m) => {
+        Object.values(m.days).forEach((d) => {
+          d.sales.sort((a, b) => (b._ts || 0) - (a._ts || 0));
+        });
+      });
+    });
+    return tree;
+  }
+
+  function salesTreeSummary(label, node) {
+    const count = node?.count || 0;
+    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}</span>`;
+    return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
+  }
+
+  function renderSalesTree(tree) {
+    const years = Object.keys(tree || {}).sort((a, b) => Number(b) - Number(a));
+    if (!years.length) {
+      return '<p class="admin-meta">Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.</p>';
+    }
+    let html = '<div class="clicks-tree sales-tree">';
+    years.forEach((year) => {
+      const y = tree[year];
+      const yearPath = String(year);
+      html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"><summary>${salesTreeSummary(year, y)}</summary><div class="clicks-tree-children">`;
+      const months = Object.keys(y.months).sort((a, b) => Number(b) - Number(a));
+      months.forEach((monthNum) => {
+        const m = y.months[monthNum];
+        const monthPath = `${yearPath}|${monthNum}`;
+        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m)}</summary><div class="clicks-tree-children">`;
+        const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
+        days.forEach((dateKey) => {
+          const d = m.days[dateKey];
+          const dayPath = `${monthPath}|${dateKey}`;
+          html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${salesTreeSummary(d.label, d)}</summary><div class="clicks-tree-children">`;
+          html += '<ul class="sales-tree-list">';
+          d.sales.forEach((sale) => {
+            const title = sale.items?.[0]?.title || 'Pedido ML';
+            const buyer = sale.buyer?.nickname || '—';
+            html += `<li class="sales-tree-row">
+              <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
+              <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
+              <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
+              <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
+              <span class="sales-tree-net" title="Bruto ${formatSalesBRL(sale._gross)} · Taxa ${formatSalesBRL(sale._fees)}">${formatSalesBRL(sale._net)}</span>
+            </li>`;
+          });
+          html += '</ul></div></details>';
+        });
+        html += '</div></details>';
+      });
+      html += '</div></details>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function captureSalesTreeOpenPaths() {
+    const root = document.getElementById('vendas-ml-tree-root');
+    if (!root) return [];
+    return [...root.querySelectorAll('details[open][data-tree-path]')]
+      .map((el) => el.getAttribute('data-tree-path'))
+      .filter(Boolean);
+  }
+
+  function restoreSalesTreeOpenPaths(paths) {
+    const root = document.getElementById('vendas-ml-tree-root');
+    if (!root || !paths?.length) return;
+    const want = new Set(paths);
+    root.querySelectorAll('details[data-tree-path]').forEach((el) => {
+      if (want.has(el.getAttribute('data-tree-path'))) el.open = true;
+    });
+  }
+
+  function renderMlSalesStats(sales, meta) {
+    const el = document.getElementById('vendas-ml-stats');
+    if (!el) return;
+    const list = sales || [];
+    const gross = list.reduce((s, x) => s + Number(x.gross || 0), 0);
+    const fees = list.reduce((s, x) => s + Number(x.fees || 0), 0);
+    const net = list.reduce((s, x) => s + Number(x.net != null ? x.net : Number(x.gross || 0) - Number(x.fees || 0)), 0);
+    const synced = meta?.lastSyncedAt
+      ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+      : '—';
+    el.innerHTML = `
+      <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${list.length.toLocaleString('pt-BR')}${meta?.indexed != null && meta.indexed !== list.length ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas` : ''}</dd></div>
+      <div class="clicks-stats-row"><dt>Líquido</dt><dd>${formatSalesBRL(net)}</dd></div>
+      <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(gross)}</dd></div>
+      <div class="clicks-stats-row"><dt>Taxas ML</dt><dd>${formatSalesBRL(fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
+  }
+
+  async function loadMlSales(preserveOpen) {
+    const root = document.getElementById('vendas-ml-tree-root');
+    const checked = document.getElementById('vendas-ml-checked-at');
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!root) return;
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'vendas');
+      return;
+    }
+    const openPaths = preserveOpen ? captureSalesTreeOpenPaths() : [];
+    root.innerHTML = '<p class="admin-meta">Carregando vendas ML…</p>';
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sales?limit=2000`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
+      renderMlSalesStats(sales, meta);
+      root.innerHTML = renderSalesTree(buildSalesTree(sales));
+      if (preserveOpen) restoreSalesTreeOpenPaths(openPaths);
+      if (checked) {
+        checked.hidden = false;
+        checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      }
+      showStatus('', '', 'vendas');
+    } catch (err) {
+      root.innerHTML = `<p class="admin-meta">${escapeHtml(err.message || 'Erro ao carregar.')}</p>`;
+      showStatus(err.message || 'Erro ao carregar vendas ML.', 'error', 'vendas');
+    }
+  }
+
+  async function syncMlSalesFromAdmin() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'vendas');
+      return;
+    }
+    showStatus('Sincronizando Mercado Livre…', '', 'vendas');
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sync`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      showStatus(
+        `Sync OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas (${data.indexed || 0} no índice).`,
+        'success',
+        'vendas'
+      );
+      await loadMlSales(true);
+    } catch (err) {
+      showStatus(err.message || 'Falha no sync ML.', 'error', 'vendas');
+    }
+  }
+
+  function showVendasSubtab(subtabId) {
+    const container = document.getElementById('admin-tab-vendas');
+    if (!container) return;
+    const id = subtabId || 'mercadolivre';
+    container.querySelectorAll('[data-vendas-subtab]').forEach((tab) => {
+      const active = tab.dataset.vendasSubtab === id;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    container.querySelectorAll('.admin-vendas-subpanel').forEach((panel) => {
+      panel.hidden = panel.id !== 'admin-vendas-' + id;
+    });
+    try { localStorage.setItem('stf_admin_vendas_subtab', id); } catch (e) { /* ignore */ }
+    if (id === 'mercadolivre') loadMlSales();
+  }
+
+  let vendasSubtabsWired = false;
+
+  function initVendasSubtabs() {
+    if (vendasSubtabsWired) return;
+    const container = document.getElementById('admin-tab-vendas');
+    if (!container) return;
+    const tabs = container.querySelectorAll('[data-vendas-subtab]');
+    if (!tabs.length) return;
+    vendasSubtabsWired = true;
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => showVendasSubtab(tab.dataset.vendasSubtab));
+    });
+    document.getElementById('btn-vendas-ml-refresh')?.addEventListener('click', () => loadMlSales(true));
+    document.getElementById('btn-vendas-ml-sync')?.addEventListener('click', () => syncMlSalesFromAdmin());
+    document.getElementById('btn-vendas-goto-pedidos')?.addEventListener('click', () => {
+      document.querySelector('.admin-tab[data-admin-tab="pedidos"]')?.click();
+    });
+    let saved = 'mercadolivre';
+    try { saved = localStorage.getItem('stf_admin_vendas_subtab') || 'mercadolivre'; } catch (e) { /* ignore */ }
+    if (!container.querySelector('#admin-vendas-' + saved)) saved = 'mercadolivre';
+    showVendasSubtab(saved);
   }
 
   async function runShippingQuote(mode) {
@@ -3176,6 +3420,7 @@ ${worksheets}
       if (id === 'clientes') loadCustomers();
       if (id === 'comunidade') loadForumAdmin();
       if (id === 'cliques') loadClicks();
+      if (id === 'vendas') initVendasSubtabs();
       if (id === 'pesquisa') loadFeedback();
       if (id === 'pedidos') {
         window.STF_PEDIDOS?.refresh?.().catch((err) => {

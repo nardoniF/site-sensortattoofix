@@ -24,6 +24,9 @@ wrangler kv namespace create STORE_KV
 ```bash
 wrangler secret put ADMIN_PASSWORD          # senha do admin/pedidos
 wrangler secret put MP_ACCESS_TOKEN         # Mercado Pago → Credenciais de produção
+wrangler secret put ML_CLIENT_ID            # Mercado Livre → app pedidosml (vendas)
+wrangler secret put ML_CLIENT_SECRET
+wrangler secret put ML_REFRESH_TOKEN        # OAuth offline (rotaciona no KV após refresh)
 wrangler secret put ASAAS_API_KEY           # Asaas → Integrações → API (cartão)
 wrangler secret put ASAAS_WEBHOOK_TOKEN     # token do webhook Asaas (cartão)
 wrangler secret put PAYPAL_CLIENT_ID          # PayPal Developer → app REST (internacional)
@@ -47,6 +50,27 @@ Opcional (outros):
 wrangler secret put MP_WEBHOOK_URL
 # Ex.: https://sensortattoofix-payments.xxx.workers.dev/webhook/mercadopago
 ```
+
+### Mercado Livre (vendas — app `pedidosml`)
+
+Separado do Mercado Pago (checkout). Redirect URI no app ML:
+
+`https://api.sensortattoofix.com.br/admin/ml/oauth/callback`
+
+Autorizar (gera `code=` e o callback troca por tokens):
+
+```
+https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=SEU_CLIENT_ID&redirect_uri=https://api.sensortattoofix.com.br/admin/ml/oauth/callback
+```
+
+O refresh token rotaciona a cada renovação e fica em `STORE_KV` (`ml:oauth`). `ML_REFRESH_TOKEN` é só bootstrap / fallback.
+
+Sync de pedidos pagos (KV `sale:ml:{id}`, índice `sales:ml:index`):
+
+- `POST /admin/ml/sync` — importa (padrão: últimos 90 dias; `?full=1&days=90`)
+- `GET /admin/ml/sync` — meta do último sync
+- `GET /admin/ml/sales` — lista normalizada (auth admin)
+- Cron `*/5` com throttle de 1h
 
 ## 3. WhatsApp automático (Z-API — z-api.io)
 

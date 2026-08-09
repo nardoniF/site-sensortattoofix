@@ -4250,7 +4250,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
     .clicks-device-badge { grid-area: device; justify-self: start; }
     .clicks-tree-step-geo { grid-area: geo; text-align: left; white-space: normal; }
 }
-.admin-frete-subtabs {
+.admin-frete-subtabs,
+.admin-vendas-subtabs {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -4260,7 +4261,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
     border-radius: 12px;
     background: #101010;
 }
-.admin-frete-subtab {
+.admin-frete-subtab,
+.admin-vendas-subtab {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -4275,26 +4277,70 @@ body.admin-page.pedidos-login-only #pedidos-login {
     transition: 0.2s;
     white-space: nowrap;
 }
-.admin-frete-subtab i {
+.admin-frete-subtab i,
+.admin-vendas-subtab i {
     color: #777;
     font-size: 0.85rem;
 }
-.admin-frete-subtab:hover {
+.admin-frete-subtab:hover,
+.admin-vendas-subtab:hover {
     border-color: #444;
     color: #fff;
 }
-.admin-frete-subtab.active {
+.admin-frete-subtab.active,
+.admin-vendas-subtab.active {
     background: rgba(255, 193, 7, 0.08);
     border-color: rgba(255, 193, 7, 0.55);
     color: var(--primary);
 }
-.admin-frete-subtab.active i { color: var(--primary); }
-.admin-frete-subpanel {
+.admin-frete-subtab.active i,
+.admin-vendas-subtab.active i { color: var(--primary); }
+.admin-frete-subpanel,
+.admin-vendas-subpanel {
     display: flex;
     flex-direction: column;
     gap: 24px;
 }
-.admin-frete-subpanel[hidden] { display: none !important; }
+.admin-frete-subpanel[hidden],
+.admin-vendas-subpanel[hidden] { display: none !important; }
+.sales-tree-list {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sales-tree-row {
+    display: grid;
+    grid-template-columns: 4.5rem 8.5rem minmax(5rem, 8rem) minmax(0, 1fr) 6.5rem;
+    gap: 8px 12px;
+    align-items: baseline;
+    padding: 8px 10px;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    background: #121212;
+    font-size: 0.84rem;
+}
+.sales-tree-time { color: #aaa; font-variant-numeric: tabular-nums; }
+.sales-tree-id { color: #ccc; font-family: ui-monospace, monospace; font-size: 0.78rem; }
+.sales-tree-buyer { color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sales-tree-title { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sales-tree-net { color: var(--primary); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 720px) {
+    .sales-tree-row {
+        grid-template-columns: 4rem 1fr auto;
+        grid-template-areas:
+            "time id net"
+            "buyer buyer buyer"
+            "title title title";
+    }
+    .sales-tree-time { grid-area: time; }
+    .sales-tree-id { grid-area: id; }
+    .sales-tree-net { grid-area: net; }
+    .sales-tree-buyer { grid-area: buyer; }
+    .sales-tree-title { grid-area: title; white-space: normal; }
+}
 
 .admin-product-subtabs {
     display: flex;

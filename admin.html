@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.00">
+    <link rel="stylesheet" href="style.css?v=3.01">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -42,6 +42,7 @@
                     <p class="admin-help-lead">Cockpit de gestão da loja Sensor Tattoo Fix — por prioridade:</p>
                     <ul class="admin-help-list">
                         <li><strong>Pedidos</strong> — lista, etiquetas, PIX e exportação na aba <strong>Pedidos</strong>.</li>
+                        <li><strong>Vendas</strong> — faturamento por canal (loja, Mercado Livre…).</li>
                         <li><strong>Clientes</strong> — contas criadas em Minha Conta.</li>
                         <li><strong>Cliques</strong> — log de visitas e links (ML, TikTok, loja…).</li>
                         <li><strong>Produtos</strong> — lentes na vitrine e agregados no checkout (preço, peso, imagem).</li>
@@ -82,6 +83,7 @@
 
                 <nav class="admin-tabs" role="tablist" aria-label="Seções do painel">
                     <button type="button" role="tab" class="admin-tab active" data-admin-tab="pedidos" aria-selected="true" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="vendas" aria-selected="false" aria-controls="admin-tab-vendas"><i class="fas fa-chart-line"></i> Vendas</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Cadastros</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pesquisa" aria-selected="false" aria-controls="admin-tab-pesquisa"><i class="fas fa-comment-dots"></i> Pesquisa</button>
@@ -714,6 +716,53 @@
                     </fieldset>
                     </div>
 
+                    <div id="admin-tab-vendas" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Faturamento importado por marketplace. No Mercado Livre: ano → mês → dia, com horário e valor líquido (bruto − taxa ML).</p>
+                            <p><strong>Atualizar ML</strong> sincroniza pedidos pagos da API. Shopee, Amazon e Consolidado entram nos próximos passos.</p>
+                        </div>
+                        <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
+                            <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="loja" aria-selected="false" aria-controls="admin-vendas-loja"><i class="fas fa-store"></i> Loja oficial</button>
+                            <button type="button" role="tab" class="admin-vendas-subtab active" data-vendas-subtab="mercadolivre" aria-selected="true" aria-controls="admin-vendas-mercadolivre"><i class="fas fa-shopping-bag"></i> Mercado Livre</button>
+                            <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="shopee" aria-selected="false" aria-controls="admin-vendas-shopee"><i class="fas fa-store"></i> Shopee</button>
+                            <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="amazon" aria-selected="false" aria-controls="admin-vendas-amazon"><i class="fas fa-box"></i> Amazon</button>
+                            <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="consolidado" aria-selected="false" aria-controls="admin-vendas-consolidado"><i class="fas fa-layer-group"></i> Consolidado</button>
+                        </nav>
+
+                        <div id="admin-vendas-loja" class="admin-vendas-subpanel" role="tabpanel" hidden>
+                            <p class="admin-meta">Pedidos pagos da loja oficial ficam na aba <strong>Pedidos</strong>. O consolidado (todos os canais) chega no próximo passo.</p>
+                            <button type="button" class="btn-secondary" id="btn-vendas-goto-pedidos"><i class="fas fa-list"></i> Ir para Pedidos</button>
+                        </div>
+
+                        <div id="admin-vendas-mercadolivre" class="admin-vendas-subpanel" role="tabpanel">
+                            <div id="vendas-ml-stats" class="admin-clicks-stats admin-meta"></div>
+                            <div class="admin-clicks-toolbar admin-toolbar-split">
+                                <div class="admin-toolbar-main">
+                                    <button type="button" id="btn-vendas-ml-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
+                                    <button type="button" id="btn-vendas-ml-sync" class="btn-primary"><i class="fas fa-cloud-download-alt"></i> Atualizar ML</button>
+                                </div>
+                            </div>
+                            <p id="admin-status-vendas" class="admin-status form-status" hidden></p>
+                            <p id="vendas-ml-checked-at" class="admin-meta" hidden></p>
+                            <div id="vendas-ml-tree-root" class="clicks-tree-root">
+                                <p class="admin-meta">Abra esta subaba para carregar as vendas do Mercado Livre.</p>
+                            </div>
+                        </div>
+
+                        <div id="admin-vendas-shopee" class="admin-vendas-subpanel" role="tabpanel" hidden>
+                            <p class="admin-meta">Shopee — em breve (mesma estrutura do Mercado Livre).</p>
+                        </div>
+                        <div id="admin-vendas-amazon" class="admin-vendas-subpanel" role="tabpanel" hidden>
+                            <p class="admin-meta">Amazon — em breve.</p>
+                        </div>
+                        <div id="admin-vendas-consolidado" class="admin-vendas-subpanel" role="tabpanel" hidden>
+                            <p class="admin-meta">Consolidado (loja + marketplaces) e exportação — próximo passo.</p>
+                        </div>
+                    </fieldset>
+                    </div>
+
                     <div id="admin-tab-cliques" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
@@ -940,6 +989,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=125"></script>
+    <script src="js/admin.js?v=126"></script>
 </body>
 </html>

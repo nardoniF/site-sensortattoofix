@@ -3272,6 +3272,525 @@ function isMpSandbox(env) {
   return mercadoPagoToken(env).startsWith('TEST-');
 }
 
+/** Mercado Livre (pedidos/vendas) — app separado do Mercado Pago (checkout). */
+const ML_API_BASE = 'https://api.mercadolibre.com';
+const ML_OAUTH_KV_KEY = 'ml:oauth';
+const ML_TOKEN_KV_KEY = 'ml:token';
+const ML_REDIRECT_URI = 'https://api.sensortattoofix.com.br/admin/ml/oauth/callback';
+
+function mlClientId(env) {
+  return String(env.ML_CLIENT_ID || '').trim();
+}
+
+function mlClientSecret(env) {
+  return String(env.ML_CLIENT_SECRET || '').trim();
+}
+
+function mlAppConfigured(env) {
+  return !!(mlClientId(env) && mlClientSecret(env));
+}
+
+async function getMlOAuthState(env) {
+  try {
+    const raw = await env.STORE_KV.get(ML_OAUTH_KV_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveMlOAuthState(env, patch) {
+  const prev = (await getMlOAuthState(env)) || {};
+  const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
+  await env.STORE_KV.put(ML_OAUTH_KV_KEY, JSON.stringify(next));
+  return next;
+}
+
+async function getMlRefreshToken(env) {
+  const state = await getMlOAuthState(env);
+  const fromKv = String(state?.refreshToken || '').trim();
+  if (fromKv) return fromKv;
+  return String(env.ML_REFRESH_TOKEN || '').trim();
+}
+
+async function exchangeMlOAuthToken(env, body) {
+  const res = await fetch(`${ML_API_BASE}/oauth/token`, {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data.message || data.error_description || data.error || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+async function persistMlTokens(env, data) {
+  const accessToken = String(data.access_token || '').trim();
+  const refreshToken = String(data.refresh_token || '').trim();
+  const userId = data.user_id != null ? String(data.user_id) : null;
+  const expiresIn = Math.max(60, Number(data.expires_in || 21600) - 120);
+  if (accessToken) {
+    await env.STORE_KV.put(ML_TOKEN_KV_KEY, JSON.stringify({
+      token: accessToken,
+      expiresAt: Date.now() + expiresIn * 1000,
+      userId
+    }));
+  }
+  const oauthPatch = {};
+  if (refreshToken) oauthPatch.refreshToken = refreshToken;
+  if (userId) oauthPatch.userId = userId;
+  if (Object.keys(oauthPatch).length) await saveMlOAuthState(env, oauthPatch);
+  return { accessToken, refreshToken, userId, expiresIn };
+}
+
+async function getMlAccessToken(env) {
+  if (!mlAppConfigured(env)) return null;
+  try {
+    const cached = await env.STORE_KV.get(ML_TOKEN_KV_KEY);
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (data?.token && data.expiresAt > Date.now()) return data.token;
+    }
+  } catch { /* refresh below */ }
+
+  const refreshToken = await getMlRefreshToken(env);
+  if (!refreshToken) return null;
+
+  try {
+    const data = await exchangeMlOAuthToken(env, {
+      grant_type: 'refresh_token',
+      client_id: mlClientId(env),
+      client_secret: mlClientSecret(env),
+      refresh_token: refreshToken
+    });
+    const persisted = await persistMlTokens(env, data);
+    return persisted.accessToken || null;
+  } catch (err) {
+    console.warn('ML OAuth refresh:', err.message || err);
+    await env.STORE_KV.delete(ML_TOKEN_KV_KEY).catch(() => {});
+    return null;
+  }
+}
+
+async function checkMercadoLivreIntegration(env) {
+  if (!mlAppConfigured(env)) {
+    return {
+      configured: false,
+      authOk: false,
+      error: 'ML_CLIENT_ID / ML_CLIENT_SECRET não configurados.'
+    };
+  }
+  const refreshToken = await getMlRefreshToken(env);
+  if (!refreshToken) {
+    return {
+      configured: true,
+      authOk: false,
+      needsOAuth: true,
+      error: 'Sem refresh token — autorize o app pedidosml.'
+    };
+  }
+  try {
+    const token = await getMlAccessToken(env);
+    if (!token) {
+      return {
+        configured: true,
+        authOk: false,
+        needsOAuth: true,
+        error: 'Falha ao renovar token ML — reautorize o app.'
+      };
+    }
+    const res = await fetch(`${ML_API_BASE}/users/me`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        configured: true,
+        authOk: false,
+        error: data.message || data.error || `HTTP ${res.status}`
+      };
+    }
+    return {
+      configured: true,
+      authOk: true,
+      userId: data.id != null ? String(data.id) : null,
+      nickname: data.nickname || null,
+      lastSyncedAt: (await getMlSalesMeta(env))?.lastSyncedAt || null
+    };
+  } catch (err) {
+    return { configured: true, authOk: false, error: err.message };
+  }
+}
+
+function mlOAuthHtmlPage({ title, ok, detail, code }) {
+  const color = ok ? '#1a7f37' : '#b42318';
+  const codeBlock = code
+    ? `<p style="margin:1rem 0 0;font-size:13px;word-break:break-all;background:#f4f4f5;padding:10px 12px;border-radius:6px;font-family:ui-monospace,monospace">${code}</p>`
+    : '';
+  return `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title></head>
+<body style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:48px auto;padding:0 20px;color:#18181b;line-height:1.5">
+  <h1 style="font-size:1.25rem;margin:0 0 8px;color:${color}">${title}</h1>
+  <p style="margin:0;color:#3f3f46">${detail}</p>
+  ${codeBlock}
+  <p style="margin:1.5rem 0 0;font-size:13px;color:#71717a">Sensor Tattoo Fix · Mercado Livre (pedidos)</p>
+</body></html>`;
+}
+
+async function handleMlOAuthCallback(request, env) {
+  const url = new URL(request.url);
+  const code = String(url.searchParams.get('code') || '').trim();
+  const oauthErr = String(url.searchParams.get('error') || '').trim();
+  const htmlHeaders = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' };
+
+  if (oauthErr) {
+    return new Response(mlOAuthHtmlPage({
+      title: 'Autorização recusada',
+      ok: false,
+      detail: oauthErr + (url.searchParams.get('error_description')
+        ? ` — ${url.searchParams.get('error_description')}`
+        : '')
+    }), { status: 400, headers: htmlHeaders });
+  }
+
+  if (!code) {
+    return new Response(mlOAuthHtmlPage({
+      title: 'Código ausente',
+      ok: false,
+      detail: 'Abra o link de autorização do app pedidosml e aceite o acesso.'
+    }), { status: 400, headers: htmlHeaders });
+  }
+
+  if (!mlAppConfigured(env)) {
+    return new Response(mlOAuthHtmlPage({
+      title: 'App não configurado',
+      ok: false,
+      detail: 'Configure ML_CLIENT_ID e ML_CLIENT_SECRET no Worker e tente de novo.',
+      code
+    }), { status: 503, headers: htmlHeaders });
+  }
+
+  try {
+    const data = await exchangeMlOAuthToken(env, {
+      grant_type: 'authorization_code',
+      client_id: mlClientId(env),
+      client_secret: mlClientSecret(env),
+      code,
+      redirect_uri: ML_REDIRECT_URI
+    });
+    const persisted = await persistMlTokens(env, data);
+    const nick = persisted.userId ? ` · user ${persisted.userId}` : '';
+    return new Response(mlOAuthHtmlPage({
+      title: 'Mercado Livre conectado',
+      ok: true,
+      detail: `Tokens salvos${nick}. Pode fechar esta aba e conferir Status das integrações no Admin.`
+    }), { status: 200, headers: htmlHeaders });
+  } catch (err) {
+    return new Response(mlOAuthHtmlPage({
+      title: 'Falha ao trocar o código',
+      ok: false,
+      detail: (err.message || String(err)) + ' — o código expira rápido; autorize de novo se precisar.',
+      code
+    }), { status: 400, headers: htmlHeaders });
+  }
+}
+
+const ML_SALE_PREFIX = 'sale:ml:';
+const ML_SALES_INDEX_KEY = 'sales:ml:index';
+const ML_SALES_META_KEY = 'sales:ml:meta';
+const ML_SYNC_LOOKBACK_DAYS = 90;
+const ML_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
+const ML_SALES_INDEX_MAX = 5000;
+const ML_SYNC_PAGE_LIMIT = 50;
+const ML_SYNC_MAX_PAGES = 40;
+
+async function getMlSellerId(env) {
+  const state = await getMlOAuthState(env);
+  if (state?.userId) return String(state.userId);
+  try {
+    const cached = await env.STORE_KV.get(ML_TOKEN_KV_KEY);
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (data?.userId) return String(data.userId);
+    }
+  } catch { /* fall through */ }
+  return null;
+}
+
+async function getMlSalesMeta(env) {
+  try {
+    const raw = await env.STORE_KV.get(ML_SALES_META_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveMlSalesMeta(env, patch) {
+  const prev = (await getMlSalesMeta(env)) || {};
+  const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
+  await env.STORE_KV.put(ML_SALES_META_KEY, JSON.stringify(next));
+  return next;
+}
+
+async function getMlSalesIndex(env) {
+  try {
+    const raw = await env.STORE_KV.get(ML_SALES_INDEX_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function mlDateParam(d) {
+  return d.toISOString().replace(/\.\d{3}Z$/, '.000-00:00');
+}
+
+function normalizeMlOrder(order) {
+  const items = (Array.isArray(order.order_items) ? order.order_items : []).map((row) => {
+    const item = row.item || {};
+    return {
+      id: item.id || null,
+      title: item.title || null,
+      quantity: Number(row.quantity || 0),
+      unitPrice: Number(row.unit_price ?? row.gross_price ?? 0),
+      saleFee: Number(row.sale_fee || 0),
+      currency: row.currency_id || order.currency_id || 'BRL'
+    };
+  });
+  const fees = Math.round(items.reduce((sum, it) => sum + Number(it.saleFee || 0), 0) * 100) / 100;
+  const gross = Math.round(Number(order.paid_amount ?? order.total_amount ?? 0) * 100) / 100;
+  const payments = (Array.isArray(order.payments) ? order.payments : []).map((p) => ({
+    id: p.id != null ? String(p.id) : null,
+    status: p.status || null,
+    totalPaid: Number(p.total_paid_amount ?? p.transaction_amount ?? 0),
+    shippingCost: Number(p.shipping_cost || 0),
+    marketplaceFee: p.marketplace_fee != null ? Number(p.marketplace_fee) : null
+  }));
+  const shippingFromPayments = payments.reduce((s, p) => s + Number(p.shippingCost || 0), 0);
+  const shippingCost = order.shipping_cost != null
+    ? Number(order.shipping_cost)
+    : shippingFromPayments;
+  const net = Math.round((gross - fees) * 100) / 100;
+  const soldAt = order.date_closed || order.date_created || null;
+  return {
+    channel: 'mercadolivre',
+    externalId: String(order.id),
+    packId: order.pack_id != null ? String(order.pack_id) : null,
+    soldAt,
+    status: order.status || null,
+    tags: Array.isArray(order.tags) ? order.tags : [],
+    currency: order.currency_id || 'BRL',
+    gross,
+    fees,
+    net,
+    shippingCost: Number(shippingCost || 0),
+    buyer: {
+      id: order.buyer?.id != null ? String(order.buyer.id) : null,
+      nickname: order.buyer?.nickname || null
+    },
+    items,
+    payments,
+    shippingId: order.shipping?.id != null ? String(order.shipping.id) : null,
+    dateCreated: order.date_created || null,
+    dateLastUpdated: order.date_last_updated || order.last_updated || null,
+    syncedAt: new Date().toISOString()
+  };
+}
+
+async function upsertMlSale(env, sale, index) {
+  await env.STORE_KV.put(ML_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+  const next = (index || []).filter((id) => id !== sale.externalId);
+  next.unshift(sale.externalId);
+  return next.slice(0, ML_SALES_INDEX_MAX);
+}
+
+async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit }) {
+  const params = new URLSearchParams({
+    seller: String(sellerId),
+    'order.status': 'paid',
+    sort: 'date_desc',
+    offset: String(offset || 0),
+    limit: String(limit || ML_SYNC_PAGE_LIMIT)
+  });
+  if (from) params.set('order.date_created.from', mlDateParam(from));
+  if (to) params.set('order.date_created.to', mlDateParam(to));
+  const res = await fetch(`${ML_API_BASE}/orders/search?${params}`, {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data.message || data.error || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+/**
+ * Sync paid ML orders into KV. Default window: last 90 days (or since last sync − 2d).
+ * options: { days, full, force }
+ */
+async function syncMlOrders(env, options = {}) {
+  const token = await getMlAccessToken(env);
+  if (!token) throw new Error('Mercado Livre sem access token — reautorize o app.');
+  let sellerId = await getMlSellerId(env);
+  if (!sellerId) {
+    const meRes = await fetch(`${ML_API_BASE}/users/me`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const me = await meRes.json().catch(() => ({}));
+    if (!meRes.ok || me.id == null) throw new Error('Não foi possível obter seller id ML.');
+    sellerId = String(me.id);
+    await saveMlOAuthState(env, { userId: sellerId, nickname: me.nickname || null });
+  }
+
+  const meta = await getMlSalesMeta(env);
+  const now = new Date();
+  const full = options.full === true || !meta?.lastSyncedAt;
+  const days = Math.min(365, Math.max(1, Number(options.days) || ML_SYNC_LOOKBACK_DAYS));
+  let from;
+  if (full || options.days) {
+    from = new Date(now.getTime() - days * 86400000);
+  } else {
+    const last = new Date(meta.lastSyncedAt);
+    from = new Date(last.getTime() - 2 * 86400000);
+  }
+  const to = now;
+
+  let offset = 0;
+  let pages = 0;
+  let imported = 0;
+  let updated = 0;
+  let index = await getMlSalesIndex(env);
+  let totalApi = null;
+
+  while (pages < ML_SYNC_MAX_PAGES) {
+    const data = await fetchMlOrdersPage(env, token, sellerId, {
+      from, to, offset, limit: ML_SYNC_PAGE_LIMIT
+    });
+    if (totalApi == null) totalApi = Number(data.paging?.total ?? 0);
+    const results = Array.isArray(data.results) ? data.results : [];
+    if (!results.length) break;
+
+    for (const order of results) {
+      const sale = normalizeMlOrder(order);
+      const existingRaw = await env.STORE_KV.get(ML_SALE_PREFIX + sale.externalId);
+      if (existingRaw) updated += 1;
+      else imported += 1;
+      index = await upsertMlSale(env, sale, index);
+    }
+
+    pages += 1;
+    offset += results.length;
+    const pagingTotal = Number(data.paging?.total ?? 0);
+    if (offset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
+  }
+
+  await env.STORE_KV.put(ML_SALES_INDEX_KEY, JSON.stringify(index));
+  const report = {
+    ok: true,
+    sellerId,
+    full,
+    from: from.toISOString(),
+    to: to.toISOString(),
+    pages,
+    apiTotal: totalApi,
+    imported,
+    updated,
+    indexed: index.length,
+    lastSyncedAt: now.toISOString(),
+    lastError: null
+  };
+  await saveMlSalesMeta(env, report);
+  return report;
+}
+
+async function runScheduledMlOrdersSync(env) {
+  if (!mlAppConfigured(env)) return { skipped: true, reason: 'not_configured' };
+  const meta = await getMlSalesMeta(env);
+  if (meta?.lastSyncedAt) {
+    const age = Date.now() - new Date(meta.lastSyncedAt).getTime();
+    if (Number.isFinite(age) && age < ML_SYNC_CRON_MIN_INTERVAL_MS) {
+      return { skipped: true, reason: 'throttle', ageMs: age };
+    }
+  }
+  try {
+    const report = await syncMlOrders(env, { full: !meta?.lastSyncedAt });
+    console.log('ML orders sync cron:', JSON.stringify({
+      imported: report.imported,
+      updated: report.updated,
+      indexed: report.indexed
+    }));
+    return report;
+  } catch (err) {
+    await saveMlSalesMeta(env, {
+      lastError: err.message || String(err),
+      lastErrorAt: new Date().toISOString()
+    }).catch(() => {});
+    throw err;
+  }
+}
+
+async function handleAdminMlSync(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  if (request.method === 'GET') {
+    const meta = await getMlSalesMeta(env);
+    const index = await getMlSalesIndex(env);
+    return json({ ok: true, meta, indexed: index.length }, 200, origin);
+  }
+  const daysParam = url.searchParams.get('days');
+  const full = url.searchParams.get('full') === '1' || url.searchParams.get('full') === 'true';
+  try {
+    const report = await syncMlOrders(env, {
+      full,
+      days: daysParam ? Number(daysParam) : undefined
+    });
+    return json(report, 200, origin);
+  } catch (err) {
+    return json({ error: err.message || String(err) }, 502, origin);
+  }
+}
+
+async function handleAdminMlSales(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit')) || 200));
+  const index = await getMlSalesIndex(env);
+  const ids = index.slice(0, limit);
+  const sales = [];
+  for (const id of ids) {
+    const raw = await env.STORE_KV.get(ML_SALE_PREFIX + id);
+    if (!raw) continue;
+    try {
+      sales.push(JSON.parse(raw));
+    } catch { /* skip bad row */ }
+  }
+  const meta = await getMlSalesMeta(env);
+  return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
+}
+
 /** Com token TEST-, PIX de teste não aprova sozinho — simula confirmação após alguns segundos. */
 async function maybeSandboxAutoConfirmPix(env, orderId, payment) {
   if (!isMpSandbox(env)) return;
@@ -6821,6 +7340,7 @@ function formatCorreiosApiLine(apiId) {
 const INTEGRATION_ROW_ORDER = [
   'worker',
   'mercadopago',
+  'mercadolivre',
   'asaas',
   'paypal',
   'stripe',
@@ -6848,7 +7368,7 @@ function sortIntegrationRows(rows) {
 
 function buildIntegrationRows(env, config, checks) {
   const {
-    paypal, mercadoPago, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
+    paypal, mercadoPago, mercadoLivre, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
     correiosPrePostagem, correiosServico04227, correiosServico86720, exportOptions, uber, superfrete
   } = checks;
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
@@ -6891,6 +7411,36 @@ function buildIntegrationRows(env, config, checks) {
       description: 'PIX e checkout no Brasil',
       status: mercadoPago.sandbox ? 'warn' : 'ok',
       detail: mercadoPago.sandbox ? 'Sandbox conectado' : 'Produção conectada'
+    });
+  }
+
+  if (!mercadoLivre?.configured) {
+    rows.push({
+      id: 'mercadolivre',
+      label: 'Mercado Livre',
+      description: 'Importação de pedidos/vendas (marketplace)',
+      status: 'off',
+      detail: 'Não configurado'
+    });
+  } else if (!mercadoLivre.authOk) {
+    rows.push({
+      id: 'mercadolivre',
+      label: 'Mercado Livre',
+      description: 'Importação de pedidos/vendas (marketplace)',
+      status: 'error',
+      detail: mercadoLivre.error || 'Falha na autenticação'
+    });
+  } else {
+    const nick = mercadoLivre.nickname ? ` · ${mercadoLivre.nickname}` : '';
+    const syncHint = mercadoLivre.lastSyncedAt
+      ? ` · sync ${String(mercadoLivre.lastSyncedAt).slice(0, 16).replace('T', ' ')}`
+      : '';
+    rows.push({
+      id: 'mercadolivre',
+      label: 'Mercado Livre',
+      description: 'Importação de pedidos/vendas (marketplace)',
+      status: 'ok',
+      detail: `Conectado${nick}${syncHint}`
     });
   }
 
@@ -10002,9 +10552,10 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     ])
     : [null, null, null];
 
-  const [paypal, mercadoPago, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
+  const [paypal, mercadoPago, mercadoLivre, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env),
+    checkMercadoLivreIntegration(env),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
@@ -10017,6 +10568,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   const integrations = buildIntegrationRows(env, config, {
     paypal,
     mercadoPago,
+    mercadoLivre,
     asaas,
     resend,
     zapi,
@@ -12066,6 +12618,15 @@ export default {
         return handleCustomerUpdateProfile(request, env, origin);
       }
       if (path === '/config' && request.method === 'PUT') return handlePutConfig(request, env, origin);
+      if (path === '/admin/ml/oauth/callback' && request.method === 'GET') {
+        return handleMlOAuthCallback(request, env);
+      }
+      if (path === '/admin/ml/sync' && (request.method === 'GET' || request.method === 'POST')) {
+        return handleAdminMlSync(request, env, origin);
+      }
+      if (path === '/admin/ml/sales' && request.method === 'GET') {
+        return handleAdminMlSales(request, env, origin);
+      }
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
@@ -12239,6 +12800,13 @@ export default {
         console.error('Abandoned checkout cron failed:', err.message);
       })
     );
+    if (event.cron === '*/5 * * * *') {
+      ctx.waitUntil(
+        runScheduledMlOrdersSync(env).catch((err) => {
+          console.error('ML orders sync cron failed:', err.message);
+        })
+      );
+    }
     if (event.cron === '30 2 * * *') {
       ctx.waitUntil(
         runScheduledMonthlyReportIfDue(env).catch((err) => {

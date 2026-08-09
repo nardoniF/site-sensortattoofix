@@ -21,6 +21,9 @@ crons = ["*/5 * * * *", "30 2 * * *"]
 # Secrets (wrangler secret put NOME):
 # ADMIN_PASSWORD       — senha do painel /admin.html
 # MP_ACCESS_TOKEN      — PIX via Mercado Pago (developers.mercadopago.com)
+# ML_CLIENT_ID         — Mercado Livre app pedidosml (vendas/marketplace)
+# ML_CLIENT_SECRET     — secret do app ML
+# ML_REFRESH_TOKEN     — OAuth refresh (bootstrap; após refresh fica no KV)
 # MP_WEBHOOK_URL       — opcional: https://SEU-WORKER.workers.dev/webhook/mercadopago
 # ASAAS_API_KEY        — cartão de crédito (asaas.com)
 # ASAAS_WEBHOOK_TOKEN  — token do webhook Asaas (cartão)
