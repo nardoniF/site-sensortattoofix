@@ -278,11 +278,11 @@ const DEFAULT_SHIPPING_METHODS = [
   { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
   // Carta Registrada não serve para kit/líquido — desligada.
   { id: 'br-carta-registrada', enabled: false, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
-  { id: 'br-sf-pac', enabled: false, scope: 'BR', label: 'PAC (Super Frete)', provider: 'superfrete', superfreteService: 1 },
-  { id: 'br-sf-sedex', enabled: false, scope: 'BR', label: 'SEDEX (Super Frete)', provider: 'superfrete', superfreteService: 2 },
-  { id: 'br-sf-mini', enabled: false, scope: 'BR', label: 'Mini Envios (Super Frete)', provider: 'superfrete', superfreteService: 17 },
-  { id: 'br-sf-jadlog', enabled: true, scope: 'BR', label: 'Jadlog (Super Frete)', provider: 'superfrete', superfreteService: 3 },
-  { id: 'br-sf-loggi', enabled: true, scope: 'BR', label: 'Loggi (Super Frete)', provider: 'superfrete', superfreteService: 31 },
+  { id: 'br-sf-pac', enabled: false, scope: 'BR', label: 'PAC', provider: 'superfrete', superfreteService: 1 },
+  { id: 'br-sf-sedex', enabled: false, scope: 'BR', label: 'SEDEX', provider: 'superfrete', superfreteService: 2 },
+  { id: 'br-sf-mini', enabled: false, scope: 'BR', label: 'Mini Envios', provider: 'superfrete', superfreteService: 17 },
+  { id: 'br-sf-jadlog', enabled: true, scope: 'BR', label: 'Jadlog', provider: 'superfrete', superfreteService: 3 },
+  { id: 'br-sf-loggi', enabled: true, scope: 'BR', label: 'Loggi', provider: 'superfrete', superfreteService: 31 },
   { id: 'br-motoboy', enabled: false, scope: 'BR', label: 'Envio particular (motoboy — até 24h)', provider: 'motoboy' },
   { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
   { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
@@ -309,6 +309,12 @@ function mergeShippingMethods(stored) {
   // Kit/líquido não vai por Carta Registrada — força desligado mesmo se estava ativo no KV.
   const carta = byId.get('br-carta-registrada');
   if (carta) byId.set('br-carta-registrada', { ...carta, enabled: false });
+  // Labels limpos no checkout (sem “Super Frete”); provedor continua no admin.
+  for (const [id, m] of byId) {
+    if (m.provider !== 'superfrete' && !String(id).startsWith('br-sf-')) continue;
+    const sid = superfreteServiceId(m);
+    byId.set(id, { ...m, label: superfreteCustomerLabel(sid, null, m) });
+  }
   return [...byId.values()];
 }
 
@@ -5744,6 +5750,46 @@ function superfreteServiceId(method) {
   return null;
 }
 
+/** Nome limpo para o cliente (sem “Super Frete”). */
+function superfreteCustomerLabel(sid, row, method) {
+  const bySid = { 1: 'PAC', 2: 'SEDEX', 17: 'Mini Envios', 3: 'Jadlog', 31: 'Loggi', 33: 'J&T' };
+  if (bySid[sid]) return bySid[sid];
+  const fromMethod = String(method?.label || '').replace(/\s*\(?\s*Super\s*Frete\s*\)?\s*/gi, '').trim();
+  if (fromMethod) return fromMethod;
+  let name = String(row?.name || '').trim();
+  if (/^jadlog/i.test(name)) return 'Jadlog';
+  if (/^loggi/i.test(name)) return 'Loggi';
+  return name || 'Frete';
+}
+
+function shippingOptionDedupeKey(opt) {
+  if (!opt) return 'unknown';
+  if (opt.source === 'uber' || opt.source === 'motoboy') {
+    return `${opt.source}:${opt.methodId || opt.id}`;
+  }
+  const sid = Number(opt.superfreteService || 0);
+  const code = String(opt.serviceCode || '').trim();
+  const label = String(opt.service || '').toLowerCase();
+  if (sid === 17 || code === '04227' || /mini\s*envios/.test(label)) return 'family:mini';
+  if (sid === 1 || /^pac\b/.test(label) || label.includes(' pac')) return 'family:pac';
+  if (sid === 2 || /sedex/.test(label)) return 'family:sedex';
+  if (sid === 3 || /jadlog/.test(label)) return 'family:jadlog';
+  if (sid === 31 || /loggi/.test(label)) return 'family:loggi';
+  if (sid === 33 || /j\s*&\s*t|j&t|\bjt\b/.test(label)) return 'family:jt';
+  return `id:${opt.methodId || opt.id || code || label}`;
+}
+
+/** Uma opção por família (PAC/Mini/…) — fica a mais barata (Correios ou Super Frete). */
+function dedupeShippingOptionsCheapest(options) {
+  const best = new Map();
+  for (const opt of options || []) {
+    const key = shippingOptionDedupeKey(opt);
+    const prev = best.get(key);
+    if (!prev || Number(opt.price) < Number(prev.price)) best.set(key, opt);
+  }
+  return [...best.values()].sort((a, b) => a.price - b.price);
+}
+
 function superfretePackageFromConfig(config, weightGrams) {
   const ship = config.shipping || DEFAULT_CONFIG.shipping;
   const grams = shippingWeightGrams(config, weightGrams);
@@ -5836,13 +5882,12 @@ async function quoteSuperfreteOptions(env, config, destCep, opts = {}) {
       const sid = superfreteServiceId(method);
       const row = byService.get(sid);
       if (!row) continue;
-      const company = row.company?.name || 'Super Frete';
-      const name = row.name || method.label || `Serviço ${sid}`;
+      const company = row.company?.name || '';
       options.push({
         id: method.id,
         methodId: method.id,
         serviceCode: String(sid),
-        service: method.label || `${name} (${company})`,
+        service: superfreteCustomerLabel(sid, row, method),
         price: Number(row.price),
         days: Number(row.delivery_time) || Number(row.delivery_range?.max) || null,
         source: 'superfrete',
@@ -7744,10 +7789,12 @@ async function handleShippingQuote(request, env, origin, ctx) {
       const superfreteOptions = await quoteSuperfreteOptions(env, config, cep, { weightGrams, declaredValue });
       const motoboyOptions = await quoteMotoboyShippingOptions(env, config, addressParams, { weightGrams });
       const uberOptions = await quoteUberShippingOptions(env, config, addressParams, { weightGrams });
-      if (superfreteOptions.length || motoboyOptions.length || uberOptions.length) {
-        options = [...options, ...superfreteOptions, ...motoboyOptions, ...uberOptions]
-          .sort((a, b) => a.price - b.price);
-      }
+      options = dedupeShippingOptionsCheapest([
+        ...options,
+        ...superfreteOptions,
+        ...motoboyOptions,
+        ...uberOptions
+      ]);
     } catch (err) {
       return json({ error: err.message }, 400, origin);
     }

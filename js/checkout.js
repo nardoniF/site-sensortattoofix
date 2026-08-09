@@ -177,8 +177,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function localizeShippingServiceName(opt) {
     if (!opt) return '';
-    // BR / domestic: keep Correios/Uber/motoboy labels from the API
-    if (!isLocalizedSite()) return opt.service || '';
+    const raw = String(opt.service || '').replace(/\s*\(?\s*Super\s*Frete\s*\)?\s*/gi, '').trim();
+    // BR / domestic: keep carrier labels from the API (PAC, Jadlog…) — no Super Frete branding
+    if (!isLocalizedSite()) return raw || opt.service || '';
     if (opt.shipmentType === 'documento' || opt.methodId === 'int-documento') {
       return L('shipping.serviceDocument');
     }
@@ -188,7 +189,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (opt.source === 'config' || opt.methodId === 'config-fallback') {
       return L('shipping.intlDefault');
     }
-    return opt.service || L('shipping.intlDefault');
+    return raw || opt.service || L('shipping.intlDefault');
   }
 
   function lojaHref() {
@@ -1866,12 +1867,21 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     updateContinueButtonVisibility();
   }
 
-  function shippingSourceLabel(source) {
+  function shippingSourceLabel(optOrSource) {
+    const opt = typeof optOrSource === 'object' && optOrSource ? optOrSource : null;
+    const source = opt ? opt.source : optOrSource;
     if (source === 'correios') return L('shipping.sourceCorreios');
     if (source === 'correios-export') return L('shipping.sourceExport');
     if (source === 'uber') return L('shipping.sourceUber');
     if (source === 'motoboy') return L('shipping.sourceMotoboy');
-    if (source === 'superfrete') return L('shipping.sourceSuperfrete');
+    if (source === 'superfrete') {
+      // Cliente vê a transportadora, não o agregador
+      const c = String(opt?.company || '').toLowerCase();
+      if (c.includes('jadlog')) return 'Jadlog';
+      if (c.includes('loggi')) return 'Loggi';
+      if (c.includes('j&t') || c.includes('jt express') || c === 'jt') return 'J&T';
+      return L('shipping.sourceCorreios');
+    }
     if (source === 'config') return L('shipping.sourceConfigShort');
     return L('shipping.sourceEstimateShort');
   }
@@ -2001,7 +2011,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       `;
       }
       const serviceName = localizeShippingServiceName(opt);
-      const src = shippingSourceLabel(opt.source);
+      const src = shippingSourceLabel(opt);
       const tipoHint = opt.shipmentType === 'documento' ? ` · ${L('shipping.document')}` : '';
       const timeLabel = opt.source === 'uber'
         ? `~${opt.etaMinutes || 60} ${L('shipping.minutes')}`
