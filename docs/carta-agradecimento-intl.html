@@ -6,29 +6,34 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Thank You Letter (International) — Sensor TattooFix</title>
   <style>
-    @page { size: A4 portrait; margin: 12mm; }
+    @page { size: A4 portrait; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --ink: #111;
-      --muted: #555;
-      --line: #ddd;
-      --accent: #c9a227;
-      --ph-bg: #fff8e1;
-      --ph-border: #e0c36a;
+      --ink: #0d0d0d;
+      --ink-2: #1d1d1f;
+      --muted: #6e6e73;
+      --muted-2: #8e8e93;
+      --line: #e5e5ea;
+      --bar: #d2d2d7;
+      --panel: #f5f5f7;
+      --panel-2: #e5e5ea;
+      --accent: #ff6b00;
+      --ph-bg: #fff4eb;
+      --ph-border: #ffb380;
     }
     body {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 10.5pt;
-      line-height: 1.45;
-      color: var(--ink);
-      background: #e8e8e8;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 8pt;
+      line-height: 1.4;
+      color: var(--ink-2);
+      background: #c8c8cc;
     }
     .toolbar {
       position: sticky; top: 0; z-index: 5;
       background: #1a1a1a; color: #fff;
       padding: 10px 14px;
       display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-      font-family: system-ui, sans-serif; font-size: 13px;
+      font-size: 13px;
     }
     .toolbar a, .toolbar button {
       font: inherit; cursor: pointer;
@@ -37,90 +42,230 @@
     }
     .toolbar .ghost { background: #333; color: #fff; }
     .toolbar .meta { color: #bbb; flex: 1; min-width: 180px; }
+
     .sheet {
-      width: 210mm; min-height: 277mm;
-      margin: 16px auto; padding: 14mm 16mm;
-      background: #fff; box-shadow: 0 2px 14px rgba(0,0,0,.12);
+      width: 210mm;
+      min-height: 297mm;
+      margin: 16px auto;
+      background: #fff;
+      box-shadow: 0 2px 14px rgba(0,0,0,.18);
+      display: flex;
+      flex-direction: column;
     }
+    .sheet-pad {
+      padding: 0 12mm 8mm;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
     @media print {
       body { background: #fff; }
       .toolbar { display: none !important; }
-      .sheet { margin: 0; box-shadow: none; width: auto; min-height: auto; padding: 0; }
-      .ph { background: transparent !important; border: none !important; padding: 0 !important; }
+      .sheet { margin: 0; box-shadow: none; width: auto; min-height: 297mm; }
+      .ph { background: transparent !important; border: none !important; padding: 0 !important; font-family: inherit !important; }
+      .lens-pocket { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
+
+    /* Header — matches PDF: dark bar + orange underline */
     .brand {
-      text-align: center; border-bottom: 2px solid var(--ink);
-      padding-bottom: 10px; margin-bottom: 14px;
+      background: var(--ink);
+      color: #fff;
+      text-align: center;
+      padding: 11mm 12mm 8mm;
+      position: relative;
+    }
+    .brand::after {
+      content: "";
+      position: absolute; left: 0; right: 0; bottom: 0;
+      height: 3px; background: var(--accent);
     }
     .brand h1 {
-      font-size: 16pt; letter-spacing: .06em; font-weight: 700;
-      text-transform: uppercase;
+      font-size: 14pt; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: #fff;
     }
-    .brand h1 span { color: var(--accent); }
     .brand p {
-      font-family: system-ui, sans-serif; font-size: 7.5pt;
-      letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
-      margin-top: 4px;
+      margin-top: 3px;
+      font-size: 7pt; font-weight: 500; letter-spacing: .16em;
+      text-transform: uppercase; color: #a1a1a6;
     }
-    .meta-grid {
-      display: grid; grid-template-columns: 140px 1fr;
-      gap: 4px 10px; margin-bottom: 16px;
-      font-family: system-ui, sans-serif; font-size: 9pt;
+
+    /* Order meta panel */
+    .meta-panel {
+      margin-top: 5mm;
+      background: var(--panel);
+      border-radius: 2px;
+      overflow: hidden;
     }
-    .meta-grid dt { color: var(--muted); font-weight: 600; }
-    .meta-grid dd { font-weight: 500; }
-    h2 {
-      font-size: 13pt; margin: 0 0 8px;
-      font-family: system-ui, sans-serif;
+    .meta-row {
+      display: grid;
+      grid-template-columns: 38mm 1fr;
+      gap: 3mm;
+      padding: 2.2mm 3.5mm;
+      border-bottom: 0.75pt solid var(--panel-2);
+      align-items: start;
     }
-    .greeting { margin-bottom: 10px; }
-    .body p { margin-bottom: 8px; }
-    h3 {
-      font-family: system-ui, sans-serif; font-size: 10pt;
-      margin: 16px 0 8px; letter-spacing: .04em;
+    .meta-row:last-child { border-bottom: none; }
+    .meta-row dt {
+      font-size: 7pt; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--muted);
+      padding-top: 0.2mm;
     }
+    .meta-row dd {
+      font-size: 8pt; font-weight: 600; color: var(--ink);
+      word-break: break-word;
+    }
+
+    h2.thanks {
+      margin: 5mm 0 2mm;
+      font-size: 11pt; font-weight: 800; color: var(--ink);
+    }
+    .greeting { margin-bottom: 2mm; font-size: 8.5pt; color: var(--ink-2); }
+    .body p { margin-bottom: 2mm; font-size: 8pt; color: var(--ink-2); }
+
+    .section-bar {
+      margin: 4mm 0 2.5mm;
+      background: var(--bar);
+      border-radius: 2px;
+      padding: 1.8mm 3mm;
+      font-size: 7.5pt; font-weight: 800; letter-spacing: .05em;
+      text-transform: uppercase; color: var(--ink);
+    }
+
+    .steps { list-style: none; margin: 0 0 1mm; }
+    .steps li {
+      display: grid;
+      grid-template-columns: 5.5mm 1fr;
+      gap: 2.5mm;
+      margin-bottom: 2.2mm;
+      align-items: start;
+    }
+    .steps .n {
+      width: 5.5mm; height: 5.5mm; border-radius: 50%;
+      background: var(--ink); color: #fff;
+      font-size: 7pt; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 0.3mm;
+    }
+    .steps strong { font-weight: 800; color: var(--ink); }
+
     .cure {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      margin: 10px 0 14px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      background: var(--panel);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 1mm;
     }
     .cure-card {
-      border: 1px solid var(--line); border-radius: 6px; padding: 10px 8px;
-      text-align: center; font-family: system-ui, sans-serif;
+      padding: 3mm 2.5mm;
+      text-align: center;
+      border-right: 1.5pt solid #fff;
     }
-    .cure-card strong { display: block; font-size: 12pt; margin-bottom: 2px; }
-    .cure-card span { display: block; font-size: 7.5pt; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-    .cure-card em { display: block; font-style: normal; font-size: 8pt; margin-top: 4px; }
-    .steps { list-style: none; counter-reset: step; margin: 8px 0 14px; }
-    .steps li {
-      counter-increment: step; position: relative;
-      padding: 8px 8px 8px 36px; margin-bottom: 6px;
-      border: 1px solid var(--line); border-radius: 6px;
+    .cure-card:last-child { border-right: none; }
+    .cure-card strong {
+      display: block; font-size: 10pt; font-weight: 800; color: var(--ink);
     }
-    .steps li::before {
-      content: counter(step);
-      position: absolute; left: 8px; top: 8px;
-      width: 20px; height: 20px; border-radius: 50%;
-      background: var(--ink); color: #fff;
-      font-family: system-ui, sans-serif; font-size: 9pt; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
+    .cure-card .cat {
+      display: block; margin-top: 1mm;
+      font-size: 6.5pt; font-weight: 800; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--accent);
     }
-    .steps li strong { font-family: system-ui, sans-serif; }
+    .cure-card em {
+      display: block; margin-top: 1.2mm;
+      font-style: normal; font-size: 6.5pt; color: var(--muted);
+    }
+
     .notes {
-      background: #f7f7f7; border-left: 3px solid var(--accent);
-      padding: 10px 12px; margin: 12px 0; font-size: 9.5pt;
+      margin-top: 3mm;
+      background: var(--panel-2);
+      border-radius: 2px;
+      padding: 3mm 3.5mm;
     }
-    .notes ul { margin: 6px 0 0 16px; }
-    .sign { margin-top: 18px; }
-    .sign .team { font-weight: 700; }
-    .footer {
-      margin-top: 20px; padding-top: 8px; border-top: 1px solid var(--line);
-      font-family: system-ui, sans-serif; font-size: 7.5pt; color: var(--muted); text-align: center;
+    .notes .section-bar {
+      margin: 0 0 2mm; background: transparent; padding: 0;
+      font-size: 7.5pt;
     }
+    .notes ul { margin: 0 0 0 3.5mm; }
+    .notes li { margin-bottom: 1.2mm; font-size: 7.5pt; color: var(--ink-2); }
+
+    .support { margin-top: 3mm; font-size: 8pt; color: var(--ink-2); }
+    .support a, .support strong { color: var(--ink); font-weight: 800; text-decoration: none; }
+
+    .sign { margin-top: 3mm; font-size: 8pt; }
+    .sign .team { font-weight: 800; color: var(--ink); margin-top: 1mm; }
+
+    .footer-line {
+      margin-top: 4mm;
+      padding-top: 2mm;
+      border-top: 0.75pt solid var(--line);
+      text-align: center;
+      font-size: 6.5pt; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted-2);
+    }
+
+    /* Lens affix zone — bottom of sheet, survives fold */
+    .lens-pocket {
+      margin-top: auto;
+      margin-bottom: 2mm;
+      border: 1.25pt dashed var(--accent);
+      border-radius: 3px;
+      background: linear-gradient(180deg, #fffaf6 0%, #fff 55%);
+      padding: 3.5mm 4mm;
+      display: grid;
+      grid-template-columns: 1fr 28mm;
+      gap: 4mm;
+      align-items: center;
+    }
+    .lens-copy .tag {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 6.5pt; font-weight: 800; letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 1.2mm 2.5mm;
+      border-radius: 2px;
+      margin-bottom: 2mm;
+    }
+    .lens-copy h3 {
+      font-size: 9pt; font-weight: 800; color: var(--ink);
+      letter-spacing: .02em;
+      margin-bottom: 1mm;
+    }
+    .lens-copy p {
+      font-size: 7pt; color: var(--muted); line-height: 1.35;
+    }
+    .lens-copy .watch {
+      margin-top: 1.5mm;
+      font-size: 7.5pt; font-weight: 700; color: var(--ink-2);
+    }
+    .lens-target {
+      width: 25mm; height: 25mm;
+      border-radius: 50%;
+      border: 1.5pt dashed var(--accent);
+      background:
+        radial-gradient(circle at center, transparent 0 42%, rgba(255,107,0,.06) 43% 100%),
+        repeating-conic-gradient(from 0deg, #fff 0deg 8deg, #fff8f2 8deg 16deg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      justify-self: end;
+    }
+    .lens-target span {
+      font-size: 5.5pt; font-weight: 800; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--accent); line-height: 1.2;
+    }
+    .lens-target small {
+      display: block; margin-top: 0.8mm;
+      font-size: 5pt; font-weight: 600; color: var(--muted-2);
+      letter-spacing: .04em; text-transform: uppercase;
+    }
+
     .ph {
       display: inline;
       background: var(--ph-bg); border: 1px dashed var(--ph-border);
-      border-radius: 3px; padding: 0 4px;
-      font-family: ui-monospace, monospace; font-size: 0.92em;
+      border-radius: 2px; padding: 0 3px;
+      font-family: ui-monospace, Menlo, monospace; font-size: 0.95em;
     }
     .sheet.filled .ph {
       background: transparent; border: none; padding: 0;
@@ -139,67 +284,117 @@
 
   <article class="sheet" id="letter" data-mode="template">
     <header class="brand">
-      <h1>Sensor Tattoo<span>Fix</span>®</h1>
+      <h1>Sensor TattooFix®</h1>
       <p>Precision optical interfaces for smartwatches</p>
     </header>
 
-    <dl class="meta-grid">
-      <dt>Order</dt>
-      <dd><span class="ph" data-field="orderId">{{orderId}}</span></dd>
-      <dt>Recipient</dt>
-      <dd><span class="ph" data-field="nome">{{customerName}}</span></dd>
-      <dt>Shipping address</dt>
-      <dd><span class="ph" data-field="endereco">{{shippingAddress}}</span></dd>
-      <dt>Carrier / method</dt>
-      <dd><span class="ph" data-field="shippingService">{{carrierMethod}}</span></dd>
-      <dt>Tracking number</dt>
-      <dd><span class="ph" data-field="trackingCode">{{trackingNumber}}</span></dd>
-      <dt>Watch model</dt>
-      <dd><span class="ph" data-field="smartwatch">{{smartwatchModel}}</span></dd>
-    </dl>
+    <div class="sheet-pad">
+      <dl class="meta-panel">
+        <div class="meta-row">
+          <dt>Order number</dt>
+          <dd><span class="ph" data-field="orderId">{{orderId}}</span></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Recipient</dt>
+          <dd><span class="ph" data-field="nome">{{customerName}}</span></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Shipping address</dt>
+          <dd><span class="ph" data-field="endereco">{{shippingAddress}}</span></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Watch model</dt>
+          <dd><span class="ph" data-field="smartwatch">{{smartwatchModel}}</span></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Carrier / method</dt>
+          <dd><span class="ph" data-field="shippingService">{{carrierMethod}}</span></dd>
+        </div>
+        <div class="meta-row">
+          <dt>Tracking number</dt>
+          <dd><span class="ph" data-field="trackingCode">{{trackingNumber}}</span></dd>
+        </div>
+      </dl>
 
-    <h2>Thank You for Your Order!</h2>
-    <p class="greeting">Hi <span class="ph" data-field="firstName">{{firstName}}</span>,</p>
-    <div class="body">
-      <p>Thank you so much for choosing Sensor TattooFix®! We are thrilled to help you get full, uninterrupted biometric functionality from your smartwatch over tattooed skin.</p>
-      <p>Your optical lens has been custom-manufactured and carefully packed. Please follow the instructions and curing times below to ensure maximum adhesion and optimal sensor performance.</p>
+      <h2 class="thanks">Thank You for Your Order!</h2>
+      <p class="greeting">Hi <span class="ph" data-field="firstName">{{firstName}}</span>,</p>
+      <div class="body">
+        <p>Thank you so much for choosing Sensor TattooFix®! We are thrilled to help you get full, uninterrupted biometric functionality from your smartwatch over tattooed skin.</p>
+        <p>Your optical lens has been custom-manufactured and carefully packed. Please follow the instructions and curing times below to ensure maximum adhesion and optimal sensor performance.</p>
+      </div>
+
+      <div class="section-bar">Step-by-step installation guide</div>
+      <ol class="steps">
+        <li>
+          <span class="n" aria-hidden="true">1</span>
+          <div><strong>Surface cleaning:</strong> Thoroughly clean the optical sensor area on the back of your smartwatch using isopropyl alcohol or an alcohol wipe. Ensure it is 100% dry, clean, and free from oils or dust.</div>
+        </li>
+        <li>
+          <span class="n" aria-hidden="true">2</span>
+          <div><strong>Alignment:</strong> Carefully remove the protective film from the adhesive side of the Sensor TattooFix® lens and align it centrally over the optical sensor.</div>
+        </li>
+        <li>
+          <span class="n" aria-hidden="true">3</span>
+          <div><strong>Application:</strong> Press the lens firmly against the sensor for 30 to 45 seconds using uniform pressure to eliminate micro air bubbles and activate the adhesive bond.</div>
+        </li>
+      </ol>
+
+      <div class="section-bar">Adhesive curing schedule (crucial for maximum longevity)</div>
+      <div class="cure">
+        <div class="cure-card">
+          <strong>4 Hours</strong>
+          <span class="cat">Regular use</span>
+          <em>Safe for casual daily wear.</em>
+        </div>
+        <div class="cure-card">
+          <strong>48 Hours</strong>
+          <span class="cat">Workouts / sweat</span>
+          <em>Required before heavy sweat or exercise.</em>
+        </div>
+        <div class="cure-card">
+          <strong>72 Hours</strong>
+          <span class="cat">Water exposure</span>
+          <em>Full cure required for swimming or showers.</em>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="section-bar">Important usage notes</div>
+        <ul>
+          <li><strong>Wireless charging:</strong> Your Sensor TattooFix® lens is fully compatible with original OEM magnetic chargers. You do not need to remove the lens to charge.</li>
+          <li>Following the curing timeline above guarantees long-lasting adhesion even during high-intensity training.</li>
+        </ul>
+      </div>
+
+      <p class="support">If you have any questions or need assistance, feel free to contact us anytime at <strong>support@sensortattoofix.com</strong>.</p>
+
+      <div class="sign">
+        <p>Best regards,</p>
+        <p class="team">Fabio Nardoni &amp; The Sensor TattooFix® Team</p>
+      </div>
+
+      <p class="footer-line">Sensor TattooFix® · Precision optical interfaces · Official international order attachment</p>
+
+      <aside class="lens-pocket" aria-label="Lens affix area">
+        <div class="lens-copy">
+          <span class="tag">Your lens</span>
+          <h3>Your Sensor TattooFix® solution is here</h3>
+          <p>Affix the optical lens inside the 25&nbsp;mm circle. Fold the letter so the lens sits protected in the crease for international mailing.</p>
+          <p class="watch">For: <span class="ph" data-field="smartwatchPocket">{{smartwatchModel}}</span></p>
+        </div>
+        <div class="lens-target" title="25 mm paste guide">
+          <span>Paste<br>lens</span>
+          <small>Ø 25 mm</small>
+        </div>
+      </aside>
     </div>
-
-    <h3>STEP-BY-STEP INSTALLATION GUIDE</h3>
-    <ol class="steps">
-      <li><strong>Surface cleaning:</strong> Thoroughly clean the optical sensor area on the back of your smartwatch using isopropyl alcohol or an alcohol wipe. Ensure it is 100% dry, clean, and free from oils or dust.</li>
-      <li><strong>Alignment:</strong> Carefully remove the protective film from the adhesive side of the Sensor TattooFix® lens and align it centrally over the optical sensor.</li>
-      <li><strong>Application:</strong> Press the lens firmly against the sensor for 30 to 45 seconds using uniform pressure to eliminate micro air bubbles and activate the adhesive bond.</li>
-    </ol>
-
-    <h3>⏳ ADHESIVE CURING SCHEDULE (CRUCIAL FOR MAXIMUM LONGEVITY)</h3>
-    <div class="cure">
-      <div class="cure-card"><strong>4 Hours</strong><span>Regular use</span><em>Safe for casual daily wear.</em></div>
-      <div class="cure-card"><strong>48 Hours</strong><span>Workouts / sweat</span><em>Required before heavy sweat or exercise.</em></div>
-      <div class="cure-card"><strong>72 Hours</strong><span>Water exposure</span><em>Full cure required for swimming or showers.</em></div>
-    </div>
-
-    <div class="notes">
-      <strong>IMPORTANT USAGE NOTES</strong>
-      <ul>
-        <li><strong>Wireless charging:</strong> Your Sensor TattooFix® lens is fully compatible with original OEM magnetic chargers. You do not need to remove the lens to charge.</li>
-        <li>Following the curing timeline above guarantees long-lasting adhesion even during high-intensity training.</li>
-      </ul>
-    </div>
-
-    <p>If you have any questions or need assistance, feel free to contact us anytime at <strong>support@sensortattoofix.com</strong>.</p>
-
-    <div class="sign">
-      <p>Best regards,</p>
-      <p class="team">Fabio Nardoni &amp; The Sensor TattooFix® Team</p>
-    </div>
-    <p class="footer">Sensor TattooFix® · Precision Optical Interfaces · Official International Order Attachment</p>
   </article>
 
   <script src="../js/config-bootstrap.js"></script>
   <script>
 (function () {
   const SESSION_KEY = 'stf_admin_token';
+  const HANDOFF_KEY = 'stf_letter_handoff';
   const letter = document.getElementById('letter');
   const meta = document.getElementById('toolbar-meta');
   const params = new URLSearchParams(location.search);
@@ -213,7 +408,8 @@
     endereco: '{{shippingAddress}}',
     shippingService: '{{carrierMethod}}',
     trackingCode: '{{trackingNumber}}',
-    smartwatch: '{{smartwatchModel}}'
+    smartwatch: '{{smartwatchModel}}',
+    smartwatchPocket: '{{smartwatchModel}}'
   };
 
   function apiBase() {
@@ -228,11 +424,43 @@
     });
   }
 
-  function showTemplate() {
+  function showTemplate(msg) {
     letter.classList.remove('filled');
     letter.dataset.mode = 'template';
     setFields(PLACEHOLDERS);
-    meta.textContent = 'Template mode — placeholders only (no customer data)';
+    meta.textContent = msg || 'Template mode — placeholders only (no customer data)';
+  }
+
+  function resolveAdminToken() {
+    try {
+      const existing = sessionStorage.getItem(SESSION_KEY);
+      if (existing) return existing;
+    } catch (_) { /* ignore */ }
+
+    try {
+      const raw = localStorage.getItem(HANDOFF_KEY);
+      if (raw) {
+        localStorage.removeItem(HANDOFF_KEY);
+        const handoff = JSON.parse(raw);
+        const age = Date.now() - Number(handoff?.at || 0);
+        if (handoff?.token && age >= 0 && age < 120000) {
+          sessionStorage.setItem(SESSION_KEY, handoff.token);
+          return handoff.token;
+        }
+      }
+    } catch (_) { /* ignore */ }
+
+    try {
+      if (window.opener && !window.opener.closed) {
+        const fromOpener = window.opener.sessionStorage.getItem(SESSION_KEY);
+        if (fromOpener) {
+          sessionStorage.setItem(SESSION_KEY, fromOpener);
+          return fromOpener;
+        }
+      }
+    } catch (_) { /* ignore */ }
+
+    return null;
   }
 
   function firstName(full) {
@@ -259,10 +487,9 @@
   }
 
   async function loadOrder(id) {
-    const token = sessionStorage.getItem(SESSION_KEY);
+    const token = resolveAdminToken();
     if (!token) {
-      meta.textContent = 'Login no admin necessário para carregar o pedido ' + id;
-      showTemplate();
+      showTemplate('Faça login no Admin e abra a Carta pelo botão do pedido (esta aba não tinha sessão).');
       return;
     }
     meta.textContent = 'Loading order ' + id + '…';
@@ -272,11 +499,11 @@
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      meta.textContent = err.error || ('Could not load order ' + id);
-      showTemplate();
+      showTemplate(err.error || ('Could not load order ' + id));
       return;
     }
     const o = await res.json();
+    const watch = watchFromOrder(o);
     letter.classList.add('filled');
     letter.dataset.mode = 'filled';
     setFields({
@@ -286,17 +513,17 @@
       endereco: addressFromOrder(o),
       shippingService: o.shippingService || 'International tracked mail',
       trackingCode: o.correiosTrackingCode || o.superfreteTrackingCode || 'Pending',
-      smartwatch: watchFromOrder(o)
+      smartwatch: watch,
+      smartwatchPocket: watch
     });
     meta.textContent = 'Filled from order ' + o.orderId + ' — ready to print';
   }
 
   document.getElementById('btn-print').addEventListener('click', () => window.print());
-  document.getElementById('btn-template').addEventListener('click', showTemplate);
+  document.getElementById('btn-template').addEventListener('click', () => showTemplate());
 
   if (orderId) loadOrder(orderId).catch((e) => {
-    meta.textContent = e.message || 'Load failed';
-    showTemplate();
+    showTemplate(e.message || 'Load failed');
   });
   else showTemplate();
 })();
