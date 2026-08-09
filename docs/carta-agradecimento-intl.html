@@ -379,7 +379,7 @@
         <div class="lens-copy">
           <span class="tag">Your lens</span>
           <h3>Your Sensor TattooFix® solution is here</h3>
-          <p>Affix the optical lens inside the 25&nbsp;mm circle. Fold the letter so the lens sits protected in the crease for international mailing.</p>
+          <p>Affix the optical lens inside the 25&nbsp;mm circle. Fold the letter carefully to keep the lens protected during international transit.</p>
           <p class="watch">For: <span class="ph" data-field="smartwatchPocket">{{smartwatchModel}}</span></p>
         </div>
         <div class="lens-target" title="25 mm paste guide">
@@ -469,17 +469,112 @@
     return n.split(/\s+/)[0];
   }
 
+  /** PT country labels → English for the EN letter. */
+  const COUNTRY_EN = {
+    'reino unido': 'United Kingdom',
+    'estados unidos': 'United States',
+    brasil: 'Brazil',
+    alemanha: 'Germany',
+    franca: 'France',
+    'frança': 'France',
+    italia: 'Italy',
+    'itália': 'Italy',
+    espanha: 'Spain',
+    canada: 'Canada',
+    'canadá': 'Canada',
+    mexico: 'Mexico',
+    'méxico': 'Mexico',
+    australia: 'Australia',
+    'austrália': 'Australia',
+    'nova zelandia': 'New Zealand',
+    'nova zelândia': 'New Zealand',
+    irlanda: 'Ireland',
+    'paises baixos': 'Netherlands',
+    'países baixos': 'Netherlands',
+    belgica: 'Belgium',
+    'bélgica': 'Belgium',
+    suica: 'Switzerland',
+    'suíça': 'Switzerland',
+    austria: 'Austria',
+    'áustria': 'Austria',
+    suecia: 'Sweden',
+    'suécia': 'Sweden',
+    noruega: 'Norway',
+    dinamarca: 'Denmark',
+    polonia: 'Poland',
+    'polônia': 'Poland',
+    'republica tcheca': 'Czech Republic',
+    'república tcheca': 'Czech Republic',
+    japao: 'Japan',
+    'japão': 'Japan',
+    'coreia do sul': 'South Korea',
+    singapura: 'Singapore',
+    'hong kong': 'Hong Kong',
+    'africa do sul': 'South Africa',
+    'áfrica do sul': 'South Africa',
+    'emirados arabes unidos': 'United Arab Emirates',
+    'emirados árabes unidos': 'United Arab Emirates',
+    chile: 'Chile',
+    colombia: 'Colombia',
+    'colômbia': 'Colombia',
+    uruguai: 'Uruguay',
+    paraguai: 'Paraguay',
+    argentina: 'Argentina',
+    portugal: 'Portugal',
+    'outro pais': 'Other',
+    'outro país': 'Other'
+  };
+
+  const COUNTRY_CODE_EN = {
+    GB: 'United Kingdom', UK: 'United Kingdom', US: 'United States', BR: 'Brazil',
+    DE: 'Germany', FR: 'France', IT: 'Italy', ES: 'Spain', CA: 'Canada', MX: 'Mexico',
+    AU: 'Australia', NZ: 'New Zealand', IE: 'Ireland', NL: 'Netherlands', BE: 'Belgium',
+    CH: 'Switzerland', AT: 'Austria', SE: 'Sweden', NO: 'Norway', DK: 'Denmark',
+    PL: 'Poland', CZ: 'Czech Republic', JP: 'Japan', KR: 'South Korea', SG: 'Singapore',
+    HK: 'Hong Kong', ZA: 'South Africa', AE: 'United Arab Emirates', PT: 'Portugal',
+    AR: 'Argentina', CL: 'Chile', CO: 'Colombia', UY: 'Uruguay', PY: 'Paraguay'
+  };
+
+  function localizeCountryEn(text) {
+    let out = String(text || '');
+    Object.keys(COUNTRY_EN)
+      .sort((a, b) => b.length - a.length)
+      .forEach((pt) => {
+        const re = new RegExp(pt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        out = out.replace(re, COUNTRY_EN[pt]);
+      });
+    return out;
+  }
+
+  function countryFromOrder(o) {
+    const code = String(o.paisCode || '').trim().toUpperCase();
+    if (code && COUNTRY_CODE_EN[code]) return COUNTRY_CODE_EN[code];
+    return localizeCountryEn(o.pais || '') || o.pais || '';
+  }
+
   function addressFromOrder(o) {
-    if (o.endereco && String(o.endereco).trim()) return String(o.endereco).trim();
+    if (o.endereco && String(o.endereco).trim()) {
+      return localizeCountryEn(String(o.endereco).trim());
+    }
     const parts = [
       [o.rua, o.numero].filter(Boolean).join(', '),
       o.complemento,
       o.bairro,
-      [o.cidade, o.uf].filter(Boolean).join(' / '),
-      o.cep,
-      o.pais || o.paisCode
+      [o.cidade, o.uf || o.estado].filter(Boolean).join(', '),
+      o.cep || o.zip,
+      countryFromOrder(o)
     ].filter((p) => p && String(p).trim());
-    return parts.join(' · ') || '—';
+    return parts.join(' — ') || '—';
+  }
+
+  function carrierFromOrder(o) {
+    const raw = String(o.shippingService || '').trim();
+    if (!raw) return 'Standard International Mail';
+    const norm = raw.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    if (/documento\s+internacional/.test(norm)) return 'Standard International Mail';
+    if (/encomenda\s+internacional|exporta\s*facil/.test(norm)) return 'International Parcel';
+    if (/carta\s+registrada/.test(norm)) return 'Registered Letter';
+    return localizeCountryEn(raw);
   }
 
   function watchFromOrder(o) {
@@ -511,7 +606,7 @@
       nome: o.nome,
       firstName: firstName(o.nome),
       endereco: addressFromOrder(o),
-      shippingService: o.shippingService || 'International tracked mail',
+      shippingService: carrierFromOrder(o),
       trackingCode: o.correiosTrackingCode || o.superfreteTrackingCode || 'Pending',
       smartwatch: watch,
       smartwatchPocket: watch
