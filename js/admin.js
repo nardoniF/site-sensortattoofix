@@ -285,10 +285,12 @@
   function defaultShippingMethods() {
     return [
       { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
-      { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
+      { id: 'br-carta-registrada', enabled: false, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
       { id: 'br-sf-pac', enabled: false, scope: 'BR', label: 'PAC (Super Frete)', provider: 'superfrete', superfreteService: 1 },
       { id: 'br-sf-sedex', enabled: false, scope: 'BR', label: 'SEDEX (Super Frete)', provider: 'superfrete', superfreteService: 2 },
       { id: 'br-sf-mini', enabled: false, scope: 'BR', label: 'Mini Envios (Super Frete)', provider: 'superfrete', superfreteService: 17 },
+      { id: 'br-sf-jadlog', enabled: true, scope: 'BR', label: 'Jadlog (Super Frete)', provider: 'superfrete', superfreteService: 3 },
+      { id: 'br-sf-loggi', enabled: true, scope: 'BR', label: 'Loggi (Super Frete)', provider: 'superfrete', superfreteService: 31 },
       { id: 'br-motoboy', enabled: false, scope: 'BR', label: 'Envio particular (motoboy — até 24h)', provider: 'motoboy' },
       { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
       { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },

@@ -49,7 +49,7 @@
                         <li><strong>Frete</strong> — remetente, modalidades, motoboy, Correios BR e internacional.</li>
                         <li><strong>Cupons</strong> — desconto ao cliente e comissão ao comissionado.</li>
                         <li><strong>Contato</strong> — WhatsApp, e-mails da loja, assuntos, mensagens e testes de envio.</li>
-                        <li><strong>API</strong> — URL do Worker e status das integrações (MP, Asaas, PayPal, Correios…).</li>
+                        <li><strong>API</strong> — URL do Worker e status das integrações (MP, Asaas, PayPal, Correios, Super Frete…).</li>
                         <li><strong>Documentação</strong> — guia técnico (secrets, webhooks, deploy).</li>
                     </ul>
                     <p class="admin-help-foot"><strong>Login:</strong> usuário <code>admin</code> + senha do secret <code>ADMIN_PASSWORD</code> no Cloudflare. Após 5 erros, bloqueio ~30 min.</p>
@@ -203,7 +203,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-list-check"></i> Modalidades de envio (cliente escolhe)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-frete-modalidades" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-frete-modalidades" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>O checkout lista preço e prazo de cada modalidade ativa.</p>
-                            <p><strong>Super Frete:</strong> ative PAC/SEDEX/Mini (ou Jadlog/Loggi/J&amp;T) com provedor Super Frete e configure o secret <code>SUPERFRETE_TOKEN</code> no Worker. Pedido pago cria a etiqueta no carrinho Super Frete.</p>
+                            <p><strong>Super Frete:</strong> ative PAC/SEDEX/Mini/Jadlog/Loggi com provedor Super Frete e configure <code>SUPERFRETE_TOKEN</code>. Pedido pago cria a etiqueta no carrinho Super Frete. <strong>Carta Registrada</strong> fica desligada (não serve para kit).</p>
                             <p>Internacional: tipo <strong>M</strong> = Exporta Fácil (encomenda); tipo <strong>D</strong> = documento/carta internacional (mais barato para lente fina). Use <code>*</code> para todos os serviços daquele tipo.</p>
                         </div>
                         <div class="admin-ship-methods-wrap">

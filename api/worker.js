@@ -276,10 +276,13 @@ const DEFAULT_MOTOBOY_SHIPPING = {
 
 const DEFAULT_SHIPPING_METHODS = [
   { id: 'br-mini-envios', enabled: true, scope: 'BR', label: 'Mini Envios', correiosCode: '04227', provider: 'correios' },
-  { id: 'br-carta-registrada', enabled: true, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
+  // Carta Registrada não serve para kit/líquido — desligada.
+  { id: 'br-carta-registrada', enabled: false, scope: 'BR', label: 'Carta Registrada', correiosCode: '8010', provider: 'correios' },
   { id: 'br-sf-pac', enabled: false, scope: 'BR', label: 'PAC (Super Frete)', provider: 'superfrete', superfreteService: 1 },
   { id: 'br-sf-sedex', enabled: false, scope: 'BR', label: 'SEDEX (Super Frete)', provider: 'superfrete', superfreteService: 2 },
   { id: 'br-sf-mini', enabled: false, scope: 'BR', label: 'Mini Envios (Super Frete)', provider: 'superfrete', superfreteService: 17 },
+  { id: 'br-sf-jadlog', enabled: true, scope: 'BR', label: 'Jadlog (Super Frete)', provider: 'superfrete', superfreteService: 3 },
+  { id: 'br-sf-loggi', enabled: true, scope: 'BR', label: 'Loggi (Super Frete)', provider: 'superfrete', superfreteService: 31 },
   { id: 'br-motoboy', enabled: false, scope: 'BR', label: 'Envio particular (motoboy — até 24h)', provider: 'motoboy' },
   { id: 'br-uber-direct', enabled: false, scope: 'BR', label: 'Entrega Uber (rápida)', provider: 'uber' },
   { id: 'int-encomenda', enabled: true, scope: 'INT', label: 'Encomenda internacional (Exporta Fácil)', correiosCode: '*', simTipo: 'M' },
@@ -303,6 +306,9 @@ function mergeShippingMethods(stored) {
     const base = byId.get(m.id) || {};
     byId.set(m.id, { ...base, ...m });
   });
+  // Kit/líquido não vai por Carta Registrada — força desligado mesmo se estava ativo no KV.
+  const carta = byId.get('br-carta-registrada');
+  if (carta) byId.set('br-carta-registrada', { ...carta, enabled: false });
   return [...byId.values()];
 }
 
@@ -3975,6 +3981,62 @@ function uberIntegrationTestDropoff(config) {
   };
 }
 
+async function checkSuperfreteIntegration(env, config) {
+  if (!superfreteConfigured(env)) {
+    return { configured: false, authOk: false, error: 'SUPERFRETE_TOKEN não configurado.' };
+  }
+  const sandbox = String(env.SUPERFRETE_SANDBOX || '').toLowerCase() === 'true';
+  const origin = onlyDigits(config.shipping?.originCep || DEFAULT_CONFIG.shipping.originCep);
+  const dest = '01310100';
+  const pkg = superfretePackageFromConfig(config);
+  try {
+    const rows = await superfreteFetch(env, '/api/v0/calculator', {
+      method: 'POST',
+      body: JSON.stringify({
+        from: { postal_code: origin },
+        to: { postal_code: dest },
+        services: '1,2,17',
+        options: {
+          own_hand: false,
+          receipt: false,
+          insurance_value: 0,
+          use_insurance_value: false
+        },
+        package: pkg
+      })
+    });
+    const list = Array.isArray(rows) ? rows.filter((r) => !r?.has_error && Number(r.price) > 0) : [];
+    if (!list.length) {
+      return {
+        configured: true,
+        authOk: true,
+        quoteOk: false,
+        sandbox,
+        error: 'Token OK, mas cotação vazia (PAC/SEDEX/Mini).'
+      };
+    }
+    const cheapest = [...list].sort((a, b) => Number(a.price) - Number(b.price))[0];
+    return {
+      configured: true,
+      authOk: true,
+      quoteOk: true,
+      sandbox,
+      samplePrice: Number(cheapest.price),
+      sampleService: cheapest.name || String(cheapest.id)
+    };
+  } catch (err) {
+    const msg = String(err.message || '');
+    const unauth = /401|403|unauthenticated|permission/i.test(msg);
+    return {
+      configured: true,
+      authOk: !unauth,
+      quoteOk: false,
+      sandbox,
+      error: msg || 'Falha na cotação Super Frete'
+    };
+  }
+}
+
 async function checkUberIntegration(env, config) {
   if (!uberConfigured(env)) {
     return { configured: false, authOk: false, error: 'UBER_DIRECT_* não configurados.' };
@@ -5739,8 +5801,9 @@ async function quoteSuperfreteOptions(env, config, destCep, opts = {}) {
   if (!serviceIds.length) return [];
 
   const pkg = superfretePackageFromConfig(config, opts.weightGrams);
-  const declared = Number(opts.declaredValue) || 0;
   const weightGrams = shippingWeightGrams(config, opts.weightGrams);
+  // Não enviar seguro na cotação — o app Super Frete também cotiza sem valor declarado;
+  // incluir `valor` do produto encarecia PAC/Mini/SEDEX vs o app.
 
   try {
     const rows = await superfreteFetch(env, '/api/v0/calculator', {
@@ -5752,8 +5815,8 @@ async function quoteSuperfreteOptions(env, config, destCep, opts = {}) {
         options: {
           own_hand: false,
           receipt: false,
-          insurance_value: declared > 0 ? declared : 0,
-          use_insurance_value: declared > 0
+          insurance_value: 0,
+          use_insurance_value: false
         },
         package: pkg
       })
@@ -6712,6 +6775,7 @@ const INTEGRATION_ROW_ORDER = [
   'correios-contract-apis',
   'correios-intl-services',
   'uber-direct',
+  'superfrete',
   'resend',
   'formsubmit',
   'zapi',
@@ -6731,7 +6795,7 @@ function sortIntegrationRows(rows) {
 function buildIntegrationRows(env, config, checks) {
   const {
     paypal, mercadoPago, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
-    correiosPrePostagem, correiosServico04227, correiosServico86720, exportOptions, uber
+    correiosPrePostagem, correiosServico04227, correiosServico86720, exportOptions, uber, superfrete
   } = checks;
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
   const formsubmitEmail = (config.formsubmit?.email || '').trim();
@@ -6988,6 +7052,48 @@ function buildIntegrationRows(env, config, checks) {
       detail: uber.sandbox
         ? `Sandbox conectado${priceHint}`
         : (uberEnabled ? `Produção conectada${priceHint}` : `Conectado — ative modalidade Uber no frete${priceHint}`)
+    });
+  }
+
+  const sfEnabled = getEnabledShippingMethods(config, 'BR').some(isSuperfreteMethod);
+  if (!superfrete?.configured) {
+    rows.push({
+      id: 'superfrete',
+      label: 'Super Frete',
+      description: 'Cotação e etiqueta BR (PAC/SEDEX/Mini…)',
+      status: 'off',
+      detail: sfEnabled ? 'Modalidade ativa no admin — configure SUPERFRETE_TOKEN' : 'Não configurado'
+    });
+  } else if (!superfrete.authOk) {
+    rows.push({
+      id: 'superfrete',
+      label: 'Super Frete',
+      description: 'Cotação e etiqueta BR (PAC/SEDEX/Mini…)',
+      status: 'error',
+      detail: superfrete.error || 'Token inválido'
+    });
+  } else if (!superfrete.quoteOk) {
+    rows.push({
+      id: 'superfrete',
+      label: 'Super Frete',
+      description: 'Cotação e etiqueta BR (PAC/SEDEX/Mini…)',
+      status: 'warn',
+      detail: superfrete.error || 'Token OK — cotação falhou'
+    });
+  } else {
+    const priceHint = superfrete.samplePrice != null
+      ? ` · teste ${superfrete.sampleService || ''} ~R$ ${Number(superfrete.samplePrice).toFixed(2)}`
+      : '';
+    rows.push({
+      id: 'superfrete',
+      label: 'Super Frete',
+      description: 'Cotação e etiqueta BR (PAC/SEDEX/Mini…)',
+      status: superfrete.sandbox ? 'warn' : (sfEnabled ? 'ok' : 'warn'),
+      detail: superfrete.sandbox
+        ? `Sandbox conectado${priceHint}`
+        : (sfEnabled
+          ? `Produção conectada${priceHint}`
+          : `Conectado — ative modalidade Super Frete no frete${priceHint}`)
     });
   }
 
@@ -9827,7 +9933,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     ])
     : [null, null, null];
 
-  const [paypal, mercadoPago, asaas, resend, zapi, exportOptions, uber, stripe] = await Promise.all([
+  const [paypal, mercadoPago, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env),
     checkAsaasIntegration(env),
@@ -9835,7 +9941,8 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     checkZApiIntegration(env),
     quoteCorreiosExportOptions(config, 'PT', { weightGrams }).catch(() => []),
     checkUberIntegration(env, config),
-    checkStripeIntegration(env)
+    checkStripeIntegration(env),
+    checkSuperfreteIntegration(env, config)
   ]);
 
   const integrations = buildIntegrationRows(env, config, {
@@ -9852,7 +9959,8 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     correiosServico04227,
     correiosServico86720,
     exportOptions,
-    uber
+    uber,
+    superfrete
   });
 
   const contractInfo = await fetchCorreiosContractInfo(env).catch((err) => ({ ok: false, detail: err.message }));
