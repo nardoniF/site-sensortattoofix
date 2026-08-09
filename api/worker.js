@@ -3500,6 +3500,8 @@ async function listOrdersForAdmin(env) {
     }
   }
 
+  // Index is "last saved first"; always return by order date (newest first).
+  orders.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
   return orders;
 }
 

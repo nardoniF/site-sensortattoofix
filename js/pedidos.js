@@ -1023,7 +1023,14 @@
       tr.querySelector('.btn-print-letter')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
         const url = `docs/carta-agradecimento-intl.html?order=${encodeURIComponent(o.orderId)}`;
-        window.open(url, '_blank', 'noopener');
+        // Hand off admin session to the new tab (sessionStorage is not shared across tabs).
+        try {
+          const token = sessionStorage.getItem('stf_admin_token');
+          if (token) {
+            localStorage.setItem('stf_letter_handoff', JSON.stringify({ token, at: Date.now() }));
+          }
+        } catch (_) { /* ignore */ }
+        window.open(url, '_blank');
       });
 
       tr.querySelector('.btn-confirm-pay')?.addEventListener('click', async (ev) => {
@@ -1083,6 +1090,7 @@
       const matchS = !st || o.status === st;
       return matchQ && matchS;
     });
+    filtered.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
     if (els.count) els.count.textContent = `${filtered.length} pedido(s)`;
     renderTable(filtered);
   }
