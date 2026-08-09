@@ -294,7 +294,10 @@
   }
 
   function manualShippingSection(o) {
-    if (o.status !== 'paid' || !isCorreiosBrOrder(o)) return '';
+    if (o.status !== 'paid') return '';
+    const isBr = isCorreiosBrOrder(o);
+    const isIntl = isCorreiosIntlOrder(o);
+    if (!isBr && !isIntl) return '';
     const currentStatus = String(o.correiosTrackingStatus || '').trim();
     const statusOpts = CORREIOS_STATUS_OPTIONS.map((opt) => {
       const selected = opt.value && opt.value === currentStatus ? ' selected' : '';
@@ -312,19 +315,12 @@
     const manualAt = o.correiosManualUpdatedAt
       ? `<p class="pedidos-detail-muted">Última atualização manual: ${formatDate(o.correiosManualUpdatedAt)}</p>`
       : '';
-    return `
-      <section class="pedidos-detail-section pedidos-detail-section--manual">
-        <h3 class="pedidos-detail-heading">Atualização manual</h3>
-        <p class="pedidos-detail-muted">Use quando a API Correios falhar ou o envio foi feito fora do contrato (ex.: PAC no balcão).</p>
-        <div class="pedidos-shipping-manual">
-          <label class="pedidos-shipping-field">
-            <span class="pedidos-shipping-label">Código rastreio</span>
-            <input type="text" class="pedidos-shipping-tracking" value="${trackingVal}" placeholder="Ex.: AP170797068BR" maxlength="13" />
-          </label>
-          <label class="pedidos-shipping-field">
-            <span class="pedidos-shipping-label">Status entrega</span>
-            <select class="pedidos-shipping-status">${statusOpts}</select>
-          </label>
+    const heading = isIntl ? 'Rastreio internacional' : 'Atualização manual';
+    const hint = isIntl
+      ? 'Cole o código dos Correios (ex.: RN…BR). Ao salvar pela primeira vez, o e-mail de rastreio é enviado ao cliente automaticamente.'
+      : 'Use quando a API Correios falhar ou o envio foi feito fora do contrato (ex.: PAC no balcão). Ao salvar um código novo, o e-mail de rastreio é enviado ao cliente.';
+    const trackPlaceholder = isIntl ? 'Ex.: RN000707244BR' : 'Ex.: AP170797068BR';
+    const brOnlyFields = isBr ? `
           <label class="pedidos-shipping-field">
             <span class="pedidos-shipping-label">Tipo envio</span>
             <select class="pedidos-shipping-method">${methodOpts}</select>
@@ -337,10 +333,24 @@
             <span class="pedidos-shipping-label">Prazo (dias)</span>
             <input type="number" class="pedidos-shipping-days" value="${escHtml(daysVal)}" min="1" max="60" placeholder="Ex.: 7" />
           </label>
-          <p class="pedidos-shipping-quote-hint pedidos-detail-muted"></p>
+          <p class="pedidos-shipping-quote-hint pedidos-detail-muted"></p>` : '';
+    return `
+      <section class="pedidos-detail-section pedidos-detail-section--manual">
+        <h3 class="pedidos-detail-heading">${heading}</h3>
+        <p class="pedidos-detail-muted">${hint}</p>
+        <div class="pedidos-shipping-manual">
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Código rastreio</span>
+            <input type="text" class="pedidos-shipping-tracking" value="${trackingVal}" placeholder="${trackPlaceholder}" maxlength="13" />
+          </label>
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Status entrega</span>
+            <select class="pedidos-shipping-status">${statusOpts}</select>
+          </label>
+          ${brOnlyFields}
           <label class="pedidos-shipping-field pedidos-shipping-field--wide">
             <span class="pedidos-shipping-label">Observação</span>
-            <input type="text" class="pedidos-shipping-note" value="${noteVal}" placeholder="Ex.: postado PAC balcão SP" maxlength="200" />
+            <input type="text" class="pedidos-shipping-note" value="${noteVal}" placeholder="${isIntl ? 'Ex.: postado documento intl' : 'Ex.: postado PAC balcão SP'}" maxlength="200" />
           </label>
           <button type="button" class="btn-save-shipping">Salvar envio</button>
           <p class="pedidos-shipping-feedback" hidden></p>
@@ -394,6 +404,23 @@
       const prazo = shippingDaysLabel(o);
       if (prazo) parts.push(`<small class="pedidos-frete-prazo">Prazo: ${escHtml(prazo)}</small>`);
       return parts.join('<br>') || '<span class="pedidos-track-muted">—</span>';
+    }
+    if (isCorreiosIntlOrder(o)) {
+      const parts = [`<strong>${escHtml(String(o.shippingService || 'International mail'))}</strong>`];
+      if (o.correiosTrackingCode) {
+        const url = correiosTrackingPageUrl(o.correiosTrackingCode);
+        parts.push(`<strong class="pedidos-detail-av"><a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(o.correiosTrackingCode)}</a></strong>`);
+        if (o.correiosTrackingStatus) parts.push(`<span class="pedidos-track-status">${escHtml(o.correiosTrackingStatus)}</span>`);
+        if (o.trackingEmailSentAt) {
+          parts.push(`<small class="pedidos-detail-muted">E-mail de rastreio enviado em ${formatDate(o.trackingEmailSentAt)}</small>`);
+        }
+      } else {
+        parts.push('<span class="pedidos-track-muted">Sem código — cole em Rastreio internacional abaixo</span>');
+      }
+      if (o.correiosShippingManualNote) {
+        parts.push(`<small class="pedidos-detail-muted">Obs.: ${escHtml(o.correiosShippingManualNote)}</small>`);
+      }
+      return parts.join('<br>');
     }
     return '<span class="pedidos-track-muted">—</span>';
   }
@@ -640,7 +667,8 @@
         if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
         applyFilters();
         closeOrderModal();
-        showStatus('Envio atualizado' + (saved.trackingCode ? ': ' + saved.trackingCode : ''), 'success');
+        const emailed = payload.trackingCode ? ' — e-mail de rastreio enviado ao cliente (se ainda não tinha código)' : '';
+        showStatus('Envio atualizado' + (saved.trackingCode ? ': ' + saved.trackingCode : '') + emailed, 'success');
       } finally {
         if (saveBtn) {
           saveBtn.disabled = false;
