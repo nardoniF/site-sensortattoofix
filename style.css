@@ -4398,11 +4398,115 @@ body.admin-page.pedidos-login-only #pedidos-login {
     color: #eee;
     font-variant-numeric: tabular-nums;
 }
+.vendas-when {
+    margin: 18px 0 20px;
+    padding: 16px 0 4px;
+    border-top: 1px solid #2a2a2a;
+}
+.vendas-when-title {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #eee;
+}
+.vendas-when-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    margin: 12px 0 14px;
+}
+.vendas-when-filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: #999;
+}
+.vendas-when-filters select {
+    min-width: 11rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #161616;
+    color: #eee;
+    font-size: 0.9rem;
+}
+.vendas-when-charts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.vendas-when-card {
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    background: #121212;
+    padding: 14px 14px 12px;
+    min-height: 0;
+}
+.vendas-when-card h4 {
+    margin: 0 0 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #bbb;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.vendas-when-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 22rem;
+    overflow: auto;
+}
+.vendas-when-row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem 3.6rem;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.78rem;
+}
+.vendas-when-label {
+    color: #ccc;
+    font-variant-numeric: tabular-nums;
+}
+.vendas-when-track {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: #1e1e1e;
+    overflow: hidden;
+}
+.vendas-when-bar {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2f6b4f, var(--primary, #4caf7a));
+    min-width: 0;
+}
+.vendas-when-row.is-top .vendas-when-bar {
+    background: linear-gradient(90deg, #3d8f62, #7ed9a8);
+}
+.vendas-when-value {
+    text-align: right;
+    color: #eee;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+.vendas-when-count {
+    text-align: right;
+    color: #777;
+    font-variant-numeric: tabular-nums;
+}
 @media (max-width: 960px) {
     .vendas-consol-periods { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .vendas-when-charts { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
     .vendas-consol-periods { grid-template-columns: 1fr; }
+    .vendas-when-row {
+        grid-template-columns: 3.6rem minmax(0, 1fr) 4.8rem;
+    }
+    .vendas-when-count { display: none; }
     .sales-tree-row--consol {
         grid-template-columns: 4rem 1fr auto;
         grid-template-areas:

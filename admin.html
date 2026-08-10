@@ -787,6 +787,35 @@
                                     <button type="button" id="btn-vendas-consol-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
                                 </div>
                             </div>
+                            <section class="vendas-when" aria-labelledby="vendas-when-title">
+                                <h3 id="vendas-when-title" class="vendas-when-title">Quando vendem</h3>
+                                <p class="admin-meta">Horário, dia da semana, dia do mês e mês — fuso São Paulo. Use para anúncio e estoque.</p>
+                                <div class="vendas-when-filters">
+                                    <label>Canal
+                                        <select id="vendas-when-channel" aria-label="Filtrar canal">
+                                            <option value="">Todos</option>
+                                            <option value="loja">Loja oficial</option>
+                                            <option value="mercadolivre">Mercado Livre</option>
+                                            <option value="amazon">Amazon</option>
+                                        </select>
+                                    </label>
+                                    <label>Métrica
+                                        <select id="vendas-when-metric" aria-label="Métrica do gráfico">
+                                            <option value="net">Líquido</option>
+                                            <option value="gross">Bruto</option>
+                                            <option value="count">Quantidade</option>
+                                        </select>
+                                    </label>
+                                    <label>Período
+                                        <select id="vendas-when-range" aria-label="Período">
+                                            <option value="90">Últimos 90 dias</option>
+                                            <option value="365">Últimos 12 meses</option>
+                                            <option value="all" selected>Tudo carregado</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div id="vendas-when-charts" class="vendas-when-charts" aria-live="polite"></div>
+                            </section>
                             <p id="vendas-consol-checked-at" class="admin-meta" hidden></p>
                             <div id="vendas-consol-tree-root" class="clicks-tree-root">
                                 <p class="admin-meta">Abra esta subaba para carregar o consolidado.</p>
@@ -1021,6 +1050,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=134"></script>
+    <script src="js/admin.js?v=135"></script>
 </body>
 </html>

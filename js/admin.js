@@ -1192,16 +1192,206 @@ ${worksheets}
       { name: 'Por dia', rows: buildSalesExportPeriodRows(sales, 'day') },
       { name: 'Por semana', rows: buildSalesExportPeriodRows(sales, 'week') },
       { name: 'Por mês', rows: buildSalesExportPeriodRows(sales, 'month') },
-      { name: 'Por ano', rows: buildSalesExportPeriodRows(sales, 'year') }
+      { name: 'Por ano', rows: buildSalesExportPeriodRows(sales, 'year') },
+      { name: 'Por hora', rows: buildSalesWhenExportRows(sales, 'hour') },
+      { name: 'Por dia sem', rows: buildSalesWhenExportRows(sales, 'weekday') },
+      { name: 'Por dia mes', rows: buildSalesWhenExportRows(sales, 'monthday') },
+      { name: 'Por mes ano', rows: buildSalesWhenExportRows(sales, 'month') }
     ]);
   }
 
+  const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // seg…dom (getDay: 0=dom)
+  const WEEKDAY_LABELS = {
+    0: 'Domingo',
+    1: 'Segunda',
+    2: 'Terça',
+    3: 'Quarta',
+    4: 'Quinta',
+    5: 'Sexta',
+    6: 'Sábado'
+  };
+  const MONTH_LABELS = {
+    '01': 'Janeiro', '02': 'Fevereiro', '03': 'Março', '04': 'Abril',
+    '05': 'Maio', '06': 'Junho', '07': 'Julho', '08': 'Agosto',
+    '09': 'Setembro', '10': 'Outubro', '11': 'Novembro', '12': 'Dezembro'
+  };
+
+  function brSaleClockParts(ts) {
+    const d = new Date(ts || Date.now());
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      hour: 'numeric',
+      hour12: false,
+      weekday: 'short'
+    });
+    const parts = Object.create(null);
+    fmt.formatToParts(d).forEach((p) => {
+      if (p.type !== 'literal') parts[p.type] = p.value;
+    });
+    let hour = Number(parts.hour);
+    if (hour === 24) hour = 0;
+    const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const weekday = weekdayMap[parts.weekday] != null ? weekdayMap[parts.weekday] : d.getDay();
+    const dateParts = brDateParts(ts);
+    return {
+      hour: Number.isFinite(hour) ? hour : 0,
+      weekday,
+      monthDay: Number(dateParts.day),
+      monthNum: dateParts.monthNum,
+      year: dateParts.year
+    };
+  }
+
+  function filterSalesForWhenCharts(sales) {
+    const channelEl = document.getElementById('vendas-when-channel');
+    const rangeEl = document.getElementById('vendas-when-range');
+    const channel = channelEl ? channelEl.value : '';
+    const range = rangeEl ? rangeEl.value : 'all';
+    let list = Array.isArray(sales) ? sales.slice() : [];
+    if (channel) list = list.filter((s) => s.channel === channel);
+    if (range === '90' || range === '365') {
+      const days = Number(range);
+      const cut = Date.now() - days * 86400000;
+      list = list.filter((s) => Number(s._ts || 0) >= cut);
+    }
+    return list;
+  }
+
+  function aggregateSalesWhen(sales, mode) {
+    const buckets = new Map();
+    const ensure = (key, label, sortKey) => {
+      if (!buckets.has(key)) buckets.set(key, { key, label, sortKey, count: 0, net: 0, gross: 0 });
+      return buckets.get(key);
+    };
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const clock = brSaleClockParts(s._ts);
+      let key;
+      let label;
+      let sortKey;
+      if (mode === 'hour') {
+        key = String(clock.hour);
+        label = `${String(clock.hour).padStart(2, '0')}h`;
+        sortKey = clock.hour;
+      } else if (mode === 'weekday') {
+        key = String(clock.weekday);
+        label = WEEKDAY_LABELS[clock.weekday] || key;
+        sortKey = WEEKDAY_ORDER.indexOf(clock.weekday);
+      } else if (mode === 'monthday') {
+        key = String(clock.monthDay);
+        label = `Dia ${clock.monthDay}`;
+        sortKey = clock.monthDay;
+      } else {
+        key = clock.monthNum;
+        label = MONTH_LABELS[clock.monthNum] || clock.monthNum;
+        sortKey = Number(clock.monthNum);
+      }
+      const b = ensure(key, label, sortKey);
+      b.count += 1;
+      b.net += Number(s._net || 0);
+      b.gross += Number(s._gross || 0);
+    });
+    return [...buckets.values()].sort((a, b) => a.sortKey - b.sortKey);
+  }
+
+  function buildSalesWhenExportRows(sales, mode) {
+    const rows = [['Faixa', 'Qtd', 'Bruto', 'Líquido']];
+    aggregateSalesWhen(sales, mode).forEach((b) => {
+      rows.push([
+        b.label,
+        b.count,
+        Math.round(b.gross * 100) / 100,
+        Math.round(b.net * 100) / 100
+      ]);
+    });
+    return rows;
+  }
+
+  function metricValue(bucket, metric) {
+    if (metric === 'count') return bucket.count;
+    if (metric === 'gross') return bucket.gross;
+    return bucket.net;
+  }
+
+  function formatWhenMetric(value, metric) {
+    if (metric === 'count') return Number(value || 0).toLocaleString('pt-BR');
+    return formatSalesBRL(value);
+  }
+
+  function renderWhenBarChart(title, rows, metric) {
+    const max = Math.max(0, ...rows.map((r) => metricValue(r, metric)));
+    const bars = rows.map((r) => {
+      const val = metricValue(r, metric);
+      const pct = max > 0 ? Math.max(2, Math.round((val / max) * 100)) : 0;
+      const top = max > 0 && val === max ? ' is-top' : '';
+      return `<div class="vendas-when-row${top}">
+        <span class="vendas-when-label">${escapeHtml(r.label)}</span>
+        <span class="vendas-when-track"><span class="vendas-when-bar" style="width:${pct}%"></span></span>
+        <span class="vendas-when-value">${escapeHtml(formatWhenMetric(val, metric))}</span>
+        <span class="vendas-when-count">${r.count} venda${r.count === 1 ? '' : 's'}</span>
+      </div>`;
+    }).join('') || '<p class="admin-meta">Sem dados neste recorte.</p>';
+    return `<article class="vendas-when-card">
+      <h4>${escapeHtml(title)}</h4>
+      <div class="vendas-when-bars">${bars}</div>
+    </article>`;
+  }
+
+  function renderConsolidadoWhenCharts(sales) {
+    const root = document.getElementById('vendas-when-charts');
+    if (!root) return;
+    const metricEl = document.getElementById('vendas-when-metric');
+    const metric = metricEl ? metricEl.value : 'net';
+    const filtered = filterSalesForWhenCharts(sales);
+    if (!filtered.length) {
+      root.innerHTML = '<p class="admin-meta">Sem vendas para este filtro.</p>';
+      return;
+    }
+    const empty = (key, label, sortKey) => ({ key, label, sortKey, count: 0, net: 0, gross: 0 });
+    const byHourMap = new Map(aggregateSalesWhen(filtered, 'hour').map((b) => [b.key, b]));
+    const hours = Array.from({ length: 24 }, (_, h) => (
+      byHourMap.get(String(h)) || empty(String(h), `${String(h).padStart(2, '0')}h`, h)
+    ));
+    const byWeekMap = new Map(aggregateSalesWhen(filtered, 'weekday').map((b) => [b.key, b]));
+    const weekdays = WEEKDAY_ORDER.map((d) => (
+      byWeekMap.get(String(d)) || empty(String(d), WEEKDAY_LABELS[d], WEEKDAY_ORDER.indexOf(d))
+    ));
+    const byDayMap = new Map(aggregateSalesWhen(filtered, 'monthday').map((b) => [b.key, b]));
+    const monthdays = Array.from({ length: 31 }, (_, i) => {
+      const day = i + 1;
+      return byDayMap.get(String(day)) || empty(String(day), `Dia ${day}`, day);
+    });
+    const byMonthMap = new Map(aggregateSalesWhen(filtered, 'month').map((b) => [b.key, b]));
+    const months = Object.keys(MONTH_LABELS).map((num) => (
+      byMonthMap.get(num) || empty(num, MONTH_LABELS[num], Number(num))
+    ));
+    root.innerHTML = [
+      renderWhenBarChart('Hora do dia', hours, metric),
+      renderWhenBarChart('Dia da semana', weekdays, metric),
+      renderWhenBarChart('Dia do mês', monthdays, metric),
+      renderWhenBarChart('Mês do ano', months, metric)
+    ].join('');
+  }
+
   let consolidatedSalesCache = null;
+  let vendasWhenFiltersWired = false;
+
+  function wireVendasWhenFilters() {
+    if (vendasWhenFiltersWired) return;
+    const ids = ['vendas-when-channel', 'vendas-when-metric', 'vendas-when-range'];
+    ids.forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', () => {
+        if (consolidatedSalesCache) renderConsolidadoWhenCharts(consolidatedSalesCache);
+      });
+    });
+    vendasWhenFiltersWired = true;
+  }
 
   async function loadConsolidatedSales(preserveOpen) {
     const root = document.getElementById('vendas-consol-tree-root');
     const checked = document.getElementById('vendas-consol-checked-at');
     if (!root) return;
+    wireVendasWhenFilters();
     const openPaths = preserveOpen
       ? [...root.querySelectorAll('details[open][data-tree-path]')].map((el) => el.getAttribute('data-tree-path')).filter(Boolean)
       : [];
@@ -1211,6 +1401,7 @@ ${worksheets}
       consolidatedSalesCache = sales;
       renderConsolidadoPeriods(sales);
       renderConsolidadoStats(sales);
+      renderConsolidadoWhenCharts(sales);
       root.innerHTML = renderConsolidatedTree(buildConsolidatedSalesTree(sales));
       if (preserveOpen && openPaths.length) {
         const want = new Set(openPaths);
