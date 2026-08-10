@@ -4816,35 +4816,49 @@ body.admin-page.pedidos-login-only #pedidos-login {
     letter-spacing: 0.02em;
     white-space: nowrap;
 }
-.pedidos-table th:nth-child(1), .pedidos-table td:nth-child(1) { width: 7%; }
-.pedidos-table th:nth-child(2), .pedidos-table td:nth-child(2) { width: 17%; }
-.pedidos-table th:nth-child(3), .pedidos-table td:nth-child(3) { width: 9%; }
-.pedidos-table th:nth-child(4), .pedidos-table td:nth-child(4) { width: 5%; }
-.pedidos-table th:nth-child(5), .pedidos-table td:nth-child(5) { width: 6%; }
-.pedidos-table th:nth-child(6), .pedidos-table td:nth-child(6) { width: 9%; }
-.pedidos-table th:nth-child(7), .pedidos-table td:nth-child(7) { width: 7%; }
-.pedidos-table th:nth-child(8), .pedidos-table td:nth-child(8) { width: 9%; }
-.pedidos-table th:nth-child(9), .pedidos-table td:nth-child(9) { width: 15%; }
-.pedidos-table th:nth-child(10), .pedidos-table td:nth-child(10) { width: 12%; }
+.pedidos-table th:nth-child(1), .pedidos-table td:nth-child(1) { width: 2.5rem; }
+.pedidos-table th:nth-child(2), .pedidos-table td:nth-child(2) { width: 7%; }
+.pedidos-table th:nth-child(3), .pedidos-table td:nth-child(3) { width: 16%; }
+.pedidos-table th:nth-child(4), .pedidos-table td:nth-child(4) { width: 9%; }
+.pedidos-table th:nth-child(5), .pedidos-table td:nth-child(5) { width: 5%; }
+.pedidos-table th:nth-child(6), .pedidos-table td:nth-child(6) { width: 6%; }
+.pedidos-table th:nth-child(7), .pedidos-table td:nth-child(7) { width: 9%; }
+.pedidos-table th:nth-child(8), .pedidos-table td:nth-child(8) { width: 7%; }
+.pedidos-table th:nth-child(9), .pedidos-table td:nth-child(9) { width: 9%; }
+.pedidos-table th:nth-child(10), .pedidos-table td:nth-child(10) { width: 14%; }
+.pedidos-table th:nth-child(11), .pedidos-table td:nth-child(11) { width: 12%; }
 .pedidos-table tbody tr {
     cursor: pointer;
     transition: 0.15s;
 }
 .pedidos-table tbody tr:hover { background: #141414; }
+.pedidos-table tbody tr.is-selected { background: #1a2420; }
 .pedidos-table small { color: var(--gray); font-size: 0.92em; }
-.pedidos-table td:nth-child(7),
-.pedidos-table td:nth-child(8) { white-space: nowrap; }
+.pedidos-table td:nth-child(8),
+.pedidos-table td:nth-child(9) { white-space: nowrap; }
 .pedidos-table td.pedidos-data {
   white-space: normal;
   line-height: 1.3;
 }
-.pedidos-table td:nth-child(2) {
+.pedidos-col-select {
+  width: 2.5rem;
+  text-align: center;
+  vertical-align: middle;
+  cursor: default;
+}
+.pedidos-col-select input {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: var(--primary, #4caf7a);
+}
+.pedidos-table td:nth-child(3) {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
-.pedidos-table td:nth-child(3),
-.pedidos-table td:nth-child(6),
-.pedidos-table td:nth-child(9) { word-break: break-word; }
+.pedidos-table td:nth-child(4),
+.pedidos-table td:nth-child(7),
+.pedidos-table td:nth-child(10) { word-break: break-word; }
 .pedidos-frete-correios { color: var(--gold); }
 .pedidos-entrega { line-height: 1.3; }
 .pedidos-track-link {
@@ -4919,7 +4933,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
     cursor: pointer;
 }
 .btn-confirm-pay:hover { filter: brightness(1.1); }
-.btn-delete-order,
 .btn-danger-outline {
   font-size: 0.65rem;
   padding: 4px 7px;
@@ -4929,7 +4942,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
   background: transparent;
   color: #f88;
 }
-.btn-delete-order:hover,
 .btn-danger-outline:hover {
   background: rgba(204, 68, 68, 0.15);
 }

@@ -67,7 +67,7 @@
                             <button type="button" id="btn-logout-pedidos" class="btn-secondary">Sair</button>
                         </div>
                         <div class="admin-toolbar-risk">
-                            <button type="button" id="btn-cleanup-pending" class="btn-danger-outline" title="Remove todos os pedidos aguardando pagamento"><i class="fas fa-trash-alt"></i> Limpar pendentes</button>
+                            <button type="button" id="btn-delete-selected" class="btn-danger-outline" title="Exclui os pedidos marcados na lista"><i class="fas fa-trash-alt"></i> Excluir</button>
                         </div>
                     </div>
                 </div>
@@ -85,6 +85,9 @@
                     <table class="pedidos-table" id="pedidos-table">
                         <thead>
                             <tr>
+                                <th class="pedidos-col-select" scope="col">
+                                    <input type="checkbox" id="pedidos-select-all" title="Marcar todos visíveis" aria-label="Marcar todos os pedidos visíveis">
+                                </th>
                                 <th>Data</th>
                                 <th>Cliente</th>
                                 <th>Smartwatch</th>
@@ -110,6 +113,6 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=8"></script>
     <script src="js/correios-label-print.js?v=4"></script>
-    <script src="js/pedidos.js?v=39"></script>
+    <script src="js/pedidos.js?v=46"></script>
 </body>
 </html>

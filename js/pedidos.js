@@ -4,6 +4,8 @@
   const embedded = !!document.getElementById('admin-tab-pedidos');
   let allOrders = [];
   let wired = false;
+  const selectedOrderIds = new Set();
+  let lastRenderedOrders = [];
 
   function $(id) {
     return document.getElementById(id);
@@ -1035,15 +1037,28 @@
   function renderTable(orders) {
     if (!els.tbody) return;
     els.tbody.innerHTML = '';
+    lastRenderedOrders = orders.slice();
+    const visibleIds = new Set(orders.map((o) => o.orderId));
+    [...selectedOrderIds].forEach((id) => {
+      if (!visibleIds.has(id) && !allOrders.some((o) => o.orderId === id)) {
+        selectedOrderIds.delete(id);
+      }
+    });
     if (!orders.length) {
       if (els.empty) els.empty.hidden = false;
+      syncSelectAllCheckbox();
       return;
     }
     if (els.empty) els.empty.hidden = true;
 
     orders.forEach((o) => {
       const tr = document.createElement('tr');
+      const checked = selectedOrderIds.has(o.orderId);
+      if (checked) tr.classList.add('is-selected');
       tr.innerHTML = `
+        <td class="pedidos-col-select" onclick="event.stopPropagation()">
+          <input type="checkbox" class="pedidos-row-select" data-order-id="${escHtml(o.orderId)}" ${checked ? 'checked' : ''} aria-label="Selecionar pedido ${escHtml(o.orderId)}">
+        </td>
         <td class="pedidos-data">${formatDateCell(o.createdAt)}</td>
         <td>${escHtml(o.nome)}<br><small>${escHtml(o.email || '')}</small><br><small>${escHtml(o.telefone || '')}</small></td>
         <td>${escHtml(watchModel(o))}</td>
@@ -1059,10 +1074,17 @@
           ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
           ${o.status === 'paid' && isCorreiosIntlOrder(o) ? `<button type="button" class="btn-print-letter" title="Carta thank-you internacional"><i class="fas fa-envelope-open-text"></i> Carta</button>` : ''}
           ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
-          <button type="button" class="btn-delete-order" data-order-id="${o.orderId}" data-paid="${o.status === 'paid' ? '1' : '0'}" title="Excluir pedido"><i class="fas fa-trash-alt"></i> Excluir</button>
           </div>
         </td>
       `;
+
+      tr.querySelector('.pedidos-row-select')?.addEventListener('change', (ev) => {
+        const id = ev.currentTarget.dataset.orderId;
+        if (ev.currentTarget.checked) selectedOrderIds.add(id);
+        else selectedOrderIds.delete(id);
+        tr.classList.toggle('is-selected', ev.currentTarget.checked);
+        syncSelectAllCheckbox();
+      });
 
       tr.querySelector('.btn-print-label')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -1095,40 +1117,80 @@
         }
       });
 
-      tr.querySelector('.btn-delete-order')?.addEventListener('click', async (ev) => {
-        ev.stopPropagation();
-        const orderId = ev.currentTarget.dataset.orderId;
-        const isPaid = ev.currentTarget.dataset.paid === '1';
-        const hasCorreios = isCorreiosBrOrder(o) && (o.correiosPrePostagemId || o.correiosTrackingCode);
-        const msg = isPaid
-          ? `Excluir o pedido PAGO ${orderId}?` +
-            (hasCorreios
-              ? `\n\nA pré-postagem Correios (${o.correiosTrackingCode || 'AV'}) será cancelada automaticamente.`
-              : '') +
-            `\n\nRemove da lista do site. Não estorna PIX/cartão no Mercado Pago ou Asaas.`
-          : `Excluir o pedido ${orderId}?\n\nIsso remove da base do site e do perfil do cliente. Não cancela cobrança no Asaas/MP.`;
-        if (!confirm(msg)) return;
-        try {
-          const data = await apiDelete(`/orders/${encodeURIComponent(orderId)}`);
-          if (data.correiosCancel?.ok) {
-            showStatus(`Pedido ${orderId} excluído — ${data.correiosCancel.detail || 'pré-postagem cancelada'}.`, 'success');
-          } else if (data.correiosCancel?.detail || data.correiosCancel?.error) {
-            showStatus(
-              `Pedido ${orderId} excluído, mas pré-postagem Correios não cancelada: ${data.correiosCancel.detail || data.correiosCancel.error}`,
-              'warn'
-            );
-          } else {
-          showStatus(`Pedido ${orderId} excluído.`, 'success');
-          }
-          await loadOrders();
-        } catch (err) {
-          showStatus(err.message, 'error');
-        }
-      });
-
       tr.addEventListener('click', () => showOrderDetails(o));
       els.tbody.appendChild(tr);
     });
+    syncSelectAllCheckbox();
+  }
+
+  function syncSelectAllCheckbox() {
+    const master = $('pedidos-select-all');
+    if (!master) return;
+    const n = lastRenderedOrders.length;
+    const selectedVisible = lastRenderedOrders.filter((o) => selectedOrderIds.has(o.orderId)).length;
+    master.checked = n > 0 && selectedVisible === n;
+    master.indeterminate = selectedVisible > 0 && selectedVisible < n;
+  }
+
+  function selectedOrders() {
+    return allOrders.filter((o) => selectedOrderIds.has(o.orderId));
+  }
+
+  function buildDeleteConfirmMessage(orders) {
+    const names = orders.map((o) => (o.nome || '').trim() || o.orderId);
+    const paidCount = orders.filter((o) => o.status === 'paid').length;
+    const correiosCount = orders.filter((o) => isCorreiosBrOrder(o) && (o.correiosPrePostagemId || o.correiosTrackingCode)).length;
+    let head;
+    if (orders.length === 1) {
+      head = `Tem certeza que deseja excluir o registro de compra de ${names[0]}?`;
+    } else if (orders.length <= 5) {
+      head = `Tem certeza que deseja excluir os registros de compra de ${names.join(', ')}?`;
+    } else {
+      head = `Tem certeza que deseja excluir ${orders.length} registros de compra?\n\nInclui: ${names.slice(0, 5).join(', ')}…`;
+    }
+    const notes = [
+      '',
+      'Remove da lista do site e do perfil do cliente.',
+      'Não estorna PIX/cartão no Mercado Pago ou Asaas.'
+    ];
+    if (paidCount) notes.push(`${paidCount} pedido(s) pago(s) na seleção.`);
+    if (correiosCount) {
+      notes.push(`${correiosCount} com pré-postagem Correios — será cancelada automaticamente quando possível.`);
+    }
+    return head + notes.join('\n');
+  }
+
+  async function deleteSelectedOrders() {
+    const orders = selectedOrders();
+    if (!orders.length) {
+      showStatus('Selecione pelo menos um pedido para excluir.', 'warn');
+      return;
+    }
+    if (!confirm(buildDeleteConfirmMessage(orders))) return;
+    let ok = 0;
+    let fail = 0;
+    const warnParts = [];
+    for (const o of orders) {
+      try {
+        const data = await apiDelete(`/orders/${encodeURIComponent(o.orderId)}`);
+        selectedOrderIds.delete(o.orderId);
+        ok += 1;
+        if (data.correiosCancel && !data.correiosCancel.ok && (data.correiosCancel.detail || data.correiosCancel.error)) {
+          warnParts.push(`${o.orderId}: ${data.correiosCancel.detail || data.correiosCancel.error}`);
+        }
+      } catch (err) {
+        fail += 1;
+        warnParts.push(`${o.orderId}: ${err.message || 'erro'}`);
+      }
+    }
+    if (fail && !ok) {
+      showStatus(`Falha ao excluir: ${warnParts.join(' · ')}`, 'error');
+    } else if (warnParts.length) {
+      showStatus(`${ok} excluído(s). Atenção: ${warnParts.join(' · ')}`, 'warn');
+    } else {
+      showStatus(ok === 1 ? 'Pedido excluído.' : `${ok} pedidos excluídos.`, 'success');
+    }
+    await loadOrders();
   }
 
   function applyFilters() {
@@ -1256,21 +1318,21 @@
   });
 
     $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
-    $('btn-cleanup-pending')?.addEventListener('click', async () => {
-    const pending = allOrders.filter((o) => o.status !== 'paid').length;
-    if (!pending) {
-      showStatus('Nenhum pedido pendente para excluir.', '');
-      return;
-    }
-    if (!confirm(`Excluir ${pending} pedido(s) aguardando pagamento?\n\nSó remove da base do site. Pedidos pagos não são afetados.`)) return;
-    try {
-      const data = await apiDelete('/orders/pending');
-      showStatus(`${data.deleted || 0} pedido(s) pendente(s) excluído(s).`, 'success');
-      await loadOrders();
-    } catch (err) {
-      showStatus(err.message, 'error');
-    }
-  });
+    $('btn-delete-selected')?.addEventListener('click', () => {
+      deleteSelectedOrders().catch((e) => showStatus(e.message, 'error'));
+    });
+    $('pedidos-select-all')?.addEventListener('change', (ev) => {
+      const on = !!ev.currentTarget.checked;
+      lastRenderedOrders.forEach((o) => {
+        if (on) selectedOrderIds.add(o.orderId);
+        else selectedOrderIds.delete(o.orderId);
+      });
+      els.tbody?.querySelectorAll('.pedidos-row-select').forEach((cb) => {
+        cb.checked = on;
+        cb.closest('tr')?.classList.toggle('is-selected', on);
+      });
+      syncSelectAllCheckbox();
+    });
     $('btn-export-csv')?.addEventListener('click', async () => {
     const token = sessionStorage.getItem(SESSION_KEY);
     const res = await fetch(apiBase() + '/orders?format=csv', { headers: { Authorization: 'Bearer ' + token } });
