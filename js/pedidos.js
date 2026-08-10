@@ -80,6 +80,32 @@
     els.status.hidden = !msg;
   }
 
+  function orderShortLabel(o) {
+    if (!o) return '';
+    const who = (o.nome || '').trim() || o.orderId || '';
+    return o.orderId && who && who !== o.orderId ? `${o.orderId} (${who})` : String(o.orderId || who);
+  }
+
+  /** Traduz erro bruto dos Correios para algo legível no Admin. */
+  function humanizeCorreiosMsg(raw, order) {
+    const msg = String(raw || '').trim();
+    if (!msg) return '';
+    const where = order ? ` Pedido ${orderShortLabel(order)}.` : '';
+    if (/PRZ-101|cepDestino|CEP destinat/i.test(msg)) {
+      if (order && (isCorreiosIntlOrder(order) || String(order.pais || '').toLowerCase() !== 'brasil')) {
+        return `Correios (API nacional) não aceitam CEP/código postal estrangeiro para prazo/pré-postagem.${where} Use Etiqueta local ou Minhas Exportações (MEXPO). Detalhe técnico: ${msg}`;
+      }
+      return `Correios recusaram o CEP de destino (inválido ou incompleto).${where} Confira o CEP no pedido. Detalhe técnico: ${msg}`;
+    }
+    if (/PPN-201|API Prazo/i.test(msg)) {
+      return `Falha ao consultar prazo nos Correios.${where} ${msg}`;
+    }
+    if (/GTW-012|86720|CON-011/i.test(msg)) {
+      return `Aguardando liberação de serviço no cartão Correios.${where} ${msg}`;
+    }
+    return msg + (where && !msg.includes(String(order?.orderId || '')) ? where : '');
+  }
+
   function formatDate(iso) {
     if (!iso) return '—';
     return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -282,7 +308,8 @@
 
     if (isCorreiosBrOrder(o)) {
       if (o.correiosPrePostagemError && !o.correiosTrackingCode) {
-        return `<small class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</small>`;
+        const tip = humanizeCorreiosMsg(o.correiosPrePostagemError, o);
+        return `<small class="pedidos-track-warn" title="${escAttr(tip)}">Falha na etiqueta Correios — passe o mouse</small>`;
       }
       if (!o.correiosTrackingCode) {
         if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
@@ -440,7 +467,9 @@
       } else {
         parts.push('<span class="pedidos-track-muted">Aguardando pré-postagem</span>');
       }
-      if (o.correiosPrePostagemError) parts.push(`<span class="pedidos-track-warn">${escHtml(o.correiosPrePostagemError)}</span>`);
+      if (o.correiosPrePostagemError) {
+        parts.push(`<span class="pedidos-track-warn">${escHtml(humanizeCorreiosMsg(o.correiosPrePostagemError, o))}</span>`);
+      }
       if (o.correiosShippingManualNote) {
         parts.push(`<small class="pedidos-detail-muted">Obs.: ${escHtml(o.correiosShippingManualNote)}</small>`);
       }
@@ -807,7 +836,10 @@
               'success'
             );
           } else if (data.labelEnsure && data.labelEnsure.ok === false) {
-            showStatus(data.labelEnsure.error || 'Não foi possível gerar a etiqueta agora.', 'warn');
+            showStatus(
+              humanizeCorreiosMsg(data.labelEnsure.error || data.labelEnsure.detail || 'Não foi possível gerar a etiqueta agora.', fresh),
+              'warn'
+            );
           }
         }
       } catch (err) {
@@ -822,9 +854,9 @@
     ) {
       body.insertAdjacentHTML(
         'beforeend',
-        '<p class="pedidos-intl-label-note admin-meta">Pré-postagem internacional falhou: '
-          + escHtml(o.correiosPrePostagemError)
-          + '. Você ainda pode usar Etiqueta (packing slip local) ou tentar de novo pelo botão Etiqueta.</p>'
+        '<p class="pedidos-intl-label-note admin-meta">'
+          + escHtml(humanizeCorreiosMsg(o.correiosPrePostagemError, o))
+          + '</p>'
       );
     }
 
@@ -1047,8 +1079,8 @@
       }
       if (data.useClient && window.STF_ORDER_LABEL) {
         window.STF_ORDER_LABEL.print(order);
-        const why = data.error || data.detail || data.message || 'Etiqueta local';
-        showStatus('Correios oficial falhou — abri etiqueta local. Motivo: ' + why, 'warn');
+        const why = humanizeCorreiosMsg(data.error || data.detail || data.message || 'Etiqueta local', order);
+        showStatus('Correios oficial falhou — abri etiqueta local. ' + why, 'warn');
         if (data.mexpoUrl) {
           console.warn('Pré-postagem internacional: use', data.mexpoUrl);
         }
@@ -1058,9 +1090,9 @@
     } catch (err) {
       if (window.STF_ORDER_LABEL) {
         window.STF_ORDER_LABEL.print(order);
-        showStatus('Correios oficial falhou — abri etiqueta local. Motivo: ' + (err.message || 'Erro'), 'warn');
+        showStatus('Correios oficial falhou — abri etiqueta local. ' + humanizeCorreiosMsg(err.message || 'Erro', order), 'warn');
       } else {
-        showStatus(err.message || 'Erro ao gerar etiqueta', 'error');
+        showStatus(humanizeCorreiosMsg(err.message || 'Erro ao gerar etiqueta', order), 'error');
       }
     }
   }
