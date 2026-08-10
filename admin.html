@@ -720,8 +720,8 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Faturamento por canal. Em cada venda: <strong>bruto</strong>, <strong>comissão</strong>, <strong>frete (custo do vendedor)</strong> e <strong>líquido real</strong>.</p>
-                            <p><strong>Atualizar ML / Amazon</strong> sincroniza pedidos. <strong>Consolidado</strong> junta loja + marketplaces com totais e exportação Excel.</p>
+                            <p>Faturamento por canal (loja, ML, Amazon). Resumo em cima e árvore ano → mês → dia. Conta: <strong>bruto − comissão − frete − estornos − outras = líquido</strong>.</p>
+                            <p><strong>Atualizar ML / Amazon</strong> sincroniza marketplaces. Loja oficial lê pedidos pagos da API. <strong>Consolidado</strong> junta tudo e exporta Excel.</p>
                         </div>
                         <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
                             <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="loja" aria-selected="false" aria-controls="admin-vendas-loja"><i class="fas fa-store"></i> Loja oficial</button>
@@ -733,8 +733,18 @@
                         <p id="admin-status-vendas" class="admin-status form-status" hidden></p>
 
                         <div id="admin-vendas-loja" class="admin-vendas-subpanel" role="tabpanel" hidden>
-                            <p class="admin-meta">Pedidos pagos da loja oficial ficam na aba <strong>Pedidos</strong>. No <strong>Consolidado</strong> eles entram junto com o Mercado Livre.</p>
-                            <button type="button" class="btn-secondary" id="btn-vendas-goto-pedidos"><i class="fas fa-list"></i> Ir para Pedidos</button>
+                            <div id="vendas-loja-stats" class="admin-clicks-stats admin-meta"></div>
+                            <div class="admin-clicks-toolbar admin-toolbar-split">
+                                <div class="admin-toolbar-main">
+                                    <button type="button" id="btn-vendas-loja-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
+                                    <button type="button" class="btn-secondary" id="btn-vendas-goto-pedidos"><i class="fas fa-list"></i> Ir para Pedidos</button>
+                                </div>
+                            </div>
+                            <p id="vendas-loja-checked-at" class="admin-meta" hidden></p>
+                            <div id="vendas-loja-tree-root" class="clicks-tree-root">
+                                <p class="admin-meta">Abra esta subaba para carregar as vendas da loja oficial.</p>
+                            </div>
+                            <p class="admin-meta">Somente pedidos <strong>pagos</strong> (não cancelados). Mesma conta: Bruto − Comissão − Frete − Estornos − Outras = Líquido.</p>
                         </div>
 
                         <div id="admin-vendas-mercadolivre" class="admin-vendas-subpanel" role="tabpanel">
@@ -1011,6 +1021,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=133"></script>
+    <script src="js/admin.js?v=134"></script>
 </body>
 </html>

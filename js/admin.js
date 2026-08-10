@@ -779,25 +779,111 @@
   }
 
   function storeOrderToSale(o) {
-    const gross = Number(o.total || 0);
+    const gross = Math.round(Number(o.total || 0) * 100) / 100;
+    const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
+    const qty = Number(o.qty || o.quantity || 1) || 1;
+    const title = watch
+      ? String(watch)
+      : (o.productName || o.produto || 'Pedido loja');
     return {
       channel: 'loja',
       externalId: String(o.orderId || ''),
       soldAt: o.paidAt || o.createdAt || null,
       status: o.status || null,
-      currency: 'BRL',
+      currency: o.currency || 'BRL',
       gross,
       fees: 0,
-      net: gross,
-      shippingCost: Number(o.frete || o.shippingCost || 0),
+      shippingCost,
+      refunds: 0,
+      otherFees: 0,
+      // líquido calculado na UI: bruto − frete (− comissão/estornos se houver)
       buyer: {
-        id: null,
+        id: o.userId || null,
         nickname: o.nome || o.email || '—'
       },
-      items: watch ? [{ title: String(watch), quantity: 1, unitPrice: gross, saleFee: 0 }] : [],
-      payments: []
+      items: [{
+        title,
+        quantity: qty,
+        unitPrice: gross,
+        saleFee: 0
+      }],
+      payments: o.paymentMethod || o.meioPagamento
+        ? [{ status: o.status || 'paid', method: o.paymentMethod || o.meioPagamento }]
+        : []
     };
+  }
+
+  function isStoreSaleOrder(o) {
+    if (!o) return false;
+    const st = String(o.status || '').toLowerCase();
+    if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'abandoned') return false;
+    return st === 'paid' || st === 'shipped' || st === 'delivered' || st === 'fulfilled';
+  }
+
+  async function fetchStoreSales() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) throw new Error('Faça login no admin.');
+    const res = await fetch(`${base.replace(/\/$/, '')}/orders`, {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+    const orders = Array.isArray(data) ? data : [];
+    return orders
+      .filter(isStoreSaleOrder)
+      .map((o) => annotateSale(storeOrderToSale(o)))
+      .filter((s) => s._ts)
+      .sort((a, b) => b._ts - a._ts);
+  }
+
+  function captureLojaSalesTreeOpenPaths() {
+    const root = document.getElementById('vendas-loja-tree-root');
+    if (!root) return [];
+    return [...root.querySelectorAll('details[open][data-tree-path]')]
+      .map((el) => el.getAttribute('data-tree-path'))
+      .filter(Boolean);
+  }
+
+  function restoreLojaSalesTreeOpenPaths(paths) {
+    const root = document.getElementById('vendas-loja-tree-root');
+    if (!root || !paths?.length) return;
+    const want = new Set(paths);
+    root.querySelectorAll('details[data-tree-path]').forEach((el) => {
+      if (want.has(el.getAttribute('data-tree-path'))) el.open = true;
+    });
+  }
+
+  function renderLojaSalesStats(sales) {
+    const el = document.getElementById('vendas-loja-stats');
+    if (!el) return;
+    el.innerHTML = renderSalesMoneyStats(sales, { lastSyncedAt: new Date().toISOString() });
+  }
+
+  async function loadLojaSales(preserveOpen) {
+    const root = document.getElementById('vendas-loja-tree-root');
+    const checked = document.getElementById('vendas-loja-checked-at');
+    if (!root) return;
+    const openPaths = preserveOpen ? captureLojaSalesTreeOpenPaths() : [];
+    root.innerHTML = '<p class="admin-meta">Carregando vendas da loja oficial…</p>';
+    try {
+      const sales = await fetchStoreSales();
+      renderLojaSalesStats(sales);
+      root.innerHTML = sales.length
+        ? renderSalesTree(buildSalesTree(sales), { channel: 'loja' })
+        : '<p class="admin-meta">Nenhuma venda paga na loja oficial.</p>';
+      if (preserveOpen) restoreLojaSalesTreeOpenPaths(openPaths);
+      if (checked) {
+        checked.hidden = false;
+        checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      }
+      showStatus('', '', 'vendas');
+    } catch (err) {
+      root.innerHTML = `<p class="admin-meta">${escapeHtml(err.message || 'Erro ao carregar.')}</p>`;
+      showStatus(err.message || 'Erro ao carregar vendas da loja.', 'error', 'vendas');
+    }
   }
 
   function annotateSale(sale) {
@@ -967,7 +1053,7 @@
     const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).map(annotateSale);
     const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).map(annotateSale);
     const storeSales = (Array.isArray(ordersData) ? ordersData : [])
-      .filter((o) => o && o.status === 'paid')
+      .filter(isStoreSaleOrder)
       .map((o) => annotateSale(storeOrderToSale(o)));
     return [...storeSales, ...mlSales, ...amzSales]
       .filter((s) => s._ts)
@@ -1169,8 +1255,14 @@ ${worksheets}
     const channel = options.channel || 'mercadolivre';
     const emptyHint = channel === 'amazon'
       ? 'Nenhuma venda Amazon indexada. Use <strong>Atualizar Amazon</strong>.'
-      : 'Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.';
-    const fallbackTitle = channel === 'amazon' ? 'Pedido Amazon' : 'Pedido ML';
+      : channel === 'loja'
+        ? 'Nenhuma venda paga na loja oficial.'
+        : 'Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.';
+    const fallbackTitle = channel === 'amazon'
+      ? 'Pedido Amazon'
+      : channel === 'loja'
+        ? 'Pedido loja'
+        : 'Pedido ML';
     const years = Object.keys(tree || {}).sort((a, b) => Number(b) - Number(a));
     if (!years.length) {
       return `<p class="admin-meta">${emptyHint}</p>`;
@@ -1399,6 +1491,7 @@ ${worksheets}
       panel.hidden = panel.id !== 'admin-vendas-' + id;
     });
     try { localStorage.setItem('stf_admin_vendas_subtab', id); } catch (e) { /* ignore */ }
+    if (id === 'loja') loadLojaSales();
     if (id === 'mercadolivre') loadMlSales();
     if (id === 'amazon') loadAmzSales();
     if (id === 'consolidado') loadConsolidatedSales();
@@ -1416,6 +1509,7 @@ ${worksheets}
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => showVendasSubtab(tab.dataset.vendasSubtab));
     });
+    document.getElementById('btn-vendas-loja-refresh')?.addEventListener('click', () => loadLojaSales(true));
     document.getElementById('btn-vendas-ml-refresh')?.addEventListener('click', () => loadMlSales(true));
     document.getElementById('btn-vendas-ml-sync')?.addEventListener('click', () => syncMlSalesFromAdmin());
     document.getElementById('btn-vendas-amz-refresh')?.addEventListener('click', () => loadAmzSales(true));
