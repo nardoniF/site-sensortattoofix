@@ -130,6 +130,37 @@
       .replace(/"/g, '&quot;');
   }
 
+  function escAttr(text) {
+    return escHtml(text).replace(/'/g, '&#39;');
+  }
+
+  function watchModelOnly(o) {
+    const model = String(o?.modeloRelogio || o?.smartwatch || '').trim();
+    const obs = String(o?.observacoes ?? '').trim();
+    if (o?.modeloRelogio) return o.modeloRelogio;
+    if (!model || model === 'N/A') return obs ? 'Outro / sob medida' : '—';
+    if (model.includes('Outro modelo')) return obs ? 'Outro modelo' : model;
+    return model || '—';
+  }
+
+  function watchCellHtml(o) {
+    const model = watchModelOnly(o);
+    const obs = String(o?.observacoes ?? '').trim();
+    const full = watchModel(o);
+    const tip = full && full !== model ? full : (obs ? `${model} — ${obs}` : model);
+    let inner = `<span class="pedidos-watch-model">${escHtml(model)}</span>`;
+    if (obs) {
+      inner += `<br><small class="pedidos-watch-obs">${escHtml(obs)}</small>`;
+    }
+    return `<div class="pedidos-clamp-3" title="${escAttr(tip)}">${inner}</div>`;
+  }
+
+  function paymentCellHtml(o) {
+    const pay = String(o.pagamento || '—').trim() || '—';
+    const html = escHtml(pay).replace(/ \/ /g, '<br>');
+    return `<div class="pedidos-clamp-3 pedidos-cell-pay" title="${escAttr(pay)}">${html}</div>`;
+  }
+
   function isUberOrder(o) {
     const provider = String(o.shippingProvider || '').toLowerCase();
     if (provider === 'uber') return true;
@@ -1060,10 +1091,10 @@
           <input type="checkbox" class="pedidos-row-select" data-order-id="${escHtml(o.orderId)}" ${checked ? 'checked' : ''} aria-label="Selecionar pedido ${escHtml(o.orderId)}">
         </td>
         <td class="pedidos-data">${formatDateCell(o.createdAt)}</td>
-        <td>${escHtml(o.nome)}<br><small>${escHtml(o.email || '')}</small><br><small>${escHtml(o.telefone || '')}</small></td>
-        <td>${escHtml(watchModel(o))}</td>
+        <td class="pedidos-cliente">${escHtml(o.nome)}<br><small>${escHtml(o.email || '')}</small><br><small>${escHtml(o.telefone || '')}</small></td>
+        <td class="pedidos-watch">${watchCellHtml(o)}</td>
         <td>${escHtml(o.pais || '—')}</td>
-        <td>${escHtml(o.pagamento || '—')}</td>
+        <td class="pedidos-pay">${paymentCellHtml(o)}</td>
         <td>${commissionerCell(o)}</td>
         <td>${formatBRL(o.total)}</td>
         <td class="pedidos-frete">${freteCell(o)}</td>
