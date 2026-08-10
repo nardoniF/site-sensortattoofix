@@ -48,7 +48,7 @@
                         <li><strong>Produtos</strong> — lentes na vitrine e agregados no checkout (preço, peso, imagem).</li>
                         <li><strong>Pagamento</strong> — cartão, PIX e PayPal internacional (processadores e chave PIX reserva).</li>
                         <li><strong>Frete</strong> — remetente, modalidades, motoboy, Correios BR e internacional.</li>
-                        <li><strong>Cupons</strong> — desconto ao cliente e comissão ao comissionado.</li>
+                        <li><strong>Cupons</strong> — desconto ao cliente; comissão/e-mail só se houver comissionado.</li>
                         <li><strong>Contato</strong> — WhatsApp, e-mails da loja, assuntos, mensagens e testes de envio.</li>
                         <li><strong>API</strong> — URL do Worker e status das integrações (MP, Asaas, PayPal, Correios, Super Frete…).</li>
                         <li><strong>Documentação</strong> — guia técnico (secrets, webhooks, deploy).</li>
@@ -598,9 +598,10 @@
 
                     <div id="admin-tab-cupons" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend class="admin-legend-row"><span><i class="fas fa-ticket-alt"></i> Cupons de comissionado</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cupons" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <legend class="admin-legend-row"><span><i class="fas fa-ticket-alt"></i> Cupons</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cupons" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cupons" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Códigos com desconto para o cliente e comissão para o comissionado. O e-mail com o valor da comissão é enviado só quando o pagamento for confirmado (PIX, cartão ou confirmação manual).</p>
+                            <p><strong>Só desconto (seu):</strong> preencha código + % de desconto. Deixe nome/e-mail vazios e comissão em 0 — o cliente ganha o desconto e ninguém recebe e-mail de comissão.</p>
+                            <p><strong>Comissionado:</strong> preencha e-mail (e nome). Aí a comissão é calculada e o e-mail vai só quando o pagamento for confirmado.</p>
                         </div>
                         <div id="admin-coupons" class="admin-coupons"></div>
                         <button type="button" id="btn-add-coupon" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar cupom</button>
@@ -1053,6 +1054,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=136"></script>
+    <script src="js/admin.js?v=137"></script>
 </body>
 </html>

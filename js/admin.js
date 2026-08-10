@@ -317,10 +317,13 @@
     if (!list) return;
     const rows = Array.isArray(coupons) ? coupons : [];
     if (!rows.length) {
-      list.innerHTML = '<p class="admin-meta">Nenhum cupom cadastrado. Adicione código, desconto, comissão e e-mail do comissionado.</p>';
+      list.innerHTML = '<p class="admin-meta">Nenhum cupom. Só código + desconto = cupom da loja. Com e-mail = comissionado (recebe e-mail na venda).</p>';
       return;
     }
-    list.innerHTML = rows.map((c, i) => `
+    list.innerHTML = rows.map((c, i) => {
+      const hasCommissioner = String(c.email || '').includes('@');
+      const defaultComm = hasCommissioner ? (c.commissionPercent ?? 20) : 0;
+      return `
       <div class="admin-coupon-row" data-coupon-index="${i}">
         <div class="admin-coupon-grid">
           <label class="label-check admin-coupon-active">
@@ -328,25 +331,27 @@
             <span>Ativo</span>
           </label>
           <label>Código
-            <input type="text" data-field="code" value="${escAttr(c.code || '')}" placeholder="MARIA10" maxlength="32" autocapitalize="characters">
+            <input type="text" data-field="code" value="${escAttr(c.code || '')}" placeholder="MEUKIT10" maxlength="32" autocapitalize="characters">
           </label>
-          <label>Nome do comissionado
-            <input type="text" data-field="name" value="${escAttr(c.name || '')}" placeholder="Maria">
+          <label>Nome do comissionado <span class="admin-field-hint">(opcional)</span>
+            <input type="text" data-field="name" value="${escAttr(c.name || '')}" placeholder="Deixe vazio se for cupom só seu">
           </label>
-          <label>E-mail do comissionado
-            <input type="email" data-field="email" value="${escAttr(c.email || '')}" placeholder="maria@email.com">
+          <label>E-mail do comissionado <span class="admin-field-hint">(opcional)</span>
+            <input type="email" data-field="email" value="${escAttr(c.email || '')}" placeholder="Vazio = sem e-mail de comissão">
           </label>
           <label>Desconto ao cliente (%)
             <input type="number" data-field="percent" min="0" max="100" step="0.01" value="${escAttr(c.percent ?? 10)}">
           </label>
           <label>Comissão do comissionado (%)
-            <input type="number" data-field="commissionPercent" min="0" max="100" step="0.01" value="${escAttr(c.commissionPercent ?? 10)}">
+            <input type="number" data-field="commissionPercent" min="0" max="100" step="0.01" value="${escAttr(defaultComm)}" title="Use 0 se não houver comissionado">
           </label>
           <input type="hidden" data-field="id" value="${escAttr(c.id || `coupon-${i + 1}`)}">
         </div>
+        <p class="admin-meta admin-coupon-kind">${hasCommissioner ? 'Comissionado — e-mail na venda paga' : 'Só desconto (loja) — sem e-mail de comissão'}</p>
         <button type="button" class="btn-secondary btn-remove-coupon" data-index="${i}"><i class="fas fa-trash"></i> Remover</button>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     list.querySelectorAll('.btn-remove-coupon').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -369,13 +374,16 @@
       };
       const code = String(val('code') || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
       const percent = Math.min(100, Math.max(0, parseFloat(val('percent')) || 0));
-      const commissionPercent = Math.min(100, Math.max(0, parseFloat(val('commissionPercent')) || 0));
+      const email = String(val('email') || '').trim().toLowerCase();
+      const hasCommissioner = email.includes('@');
+      let commissionPercent = Math.min(100, Math.max(0, parseFloat(val('commissionPercent')) || 0));
+      if (!hasCommissioner) commissionPercent = 0;
       return {
         id: String(val('id') || `coupon-${i + 1}`).trim(),
         active: val('active') !== false,
         code,
-        name: String(val('name') || '').trim(),
-        email: String(val('email') || '').trim().toLowerCase(),
+        name: hasCommissioner ? String(val('name') || '').trim() : '',
+        email: hasCommissioner ? email : '',
         percent,
         commissionPercent
       };
@@ -4613,7 +4621,7 @@ ${worksheets}
       name: '',
       email: '',
       percent: 10,
-      commissionPercent: 10
+      commissionPercent: 0
     });
     renderCoupons(coupons);
   });

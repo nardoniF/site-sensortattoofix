@@ -9622,10 +9622,15 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const valorProduto = Math.max(0, valorProdutoBruto - couponDiscount);
   let couponCommissionPercent = 0;
   let couponCommissionAmount = 0;
-  if (couponRecord) {
-    const commPct = couponRecord.commissionPercent == null || couponRecord.commissionPercent === ''
-      ? 10
-      : Number(couponRecord.commissionPercent) || 0;
+  // Comissão só existe com e-mail de comissionado; senão é cupom só de desconto (loja).
+  const commissionerEmail = couponRecord
+    ? String(couponRecord.email || '').trim().toLowerCase()
+    : '';
+  if (couponRecord && commissionerEmail.includes('@')) {
+    const rawComm = couponRecord.commissionPercent;
+    const commPct = rawComm == null || rawComm === ''
+      ? COMMISSIONER_COMMISSION_PERCENT
+      : Number(rawComm) || 0;
     const comm = computeCouponCommission(valorProduto, commPct);
     couponCommissionPercent = comm.percent;
     couponCommissionAmount = comm.amount;
@@ -10214,7 +10219,10 @@ async function handlePaymentConfirmed(env, order, payment) {
     await saveOrder(env, order);
   }
 
-  if (order.couponCommissionerEmail && order.couponCommissionAmount != null) {
+  if (
+    order.couponCommissionerEmail
+    && Number(order.couponCommissionAmount) > 0
+  ) {
     const commissionerPaid = await notifyCouponCommissioner(env, config, order);
     if (!commissionerPaid?.ok) console.error('E-mail comissão comissionado falhou:', JSON.stringify(commissionerPaid));
   }
