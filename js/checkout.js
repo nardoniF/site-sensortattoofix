@@ -1030,6 +1030,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     appliedCoupon = null;
     if (showMsg) showCouponMessage('', '');
     updateSummary();
+    maybeRefreshShippingAfterCoupon();
+  }
+
+  function maybeRefreshShippingAfterCoupon() {
+    try {
+      if (isInternational) return;
+      const cep = onlyDigits(els.cep?.value || '');
+      if (cep.length === 8 && typeof quoteShipping === 'function') {
+        quoteShipping();
+      }
+    } catch (_) { /* ignore */ }
   }
 
   function showCouponMessage(msg, type) {
@@ -1077,10 +1088,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       if (els.couponInput) els.couponInput.value = data.code;
       showCouponMessage(L('coupon.applied', { pct: data.percent }), 'success');
       updateSummary();
+      maybeRefreshShippingAfterCoupon();
     } catch (err) {
       appliedCoupon = null;
       showCouponMessage(err.message || L('coupon.invalid'), 'error');
       updateSummary();
+      maybeRefreshShippingAfterCoupon();
     } finally {
       els.btnApplyCoupon.disabled = false;
     }
@@ -1142,6 +1155,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
             ? L('coupon.discountLabel', { pct })
             : L('summary.discount');
           els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
+        } else if (els.summaryDiscount) {
+          els.summaryDiscount.textContent = '—';
         }
       }
       els.summaryShipping.textContent = formatCheckoutMoney(snap.frete ?? 0);
@@ -2245,6 +2260,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
             els.summaryDiscountLabel.textContent = L('coupon.discountLabel', { pct: appliedCoupon.percent });
           }
           if (els.summaryDiscount) els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
+        } else {
+          if (els.summaryDiscountLabel) els.summaryDiscountLabel.textContent = L('summary.discount');
+          if (els.summaryDiscount) els.summaryDiscount.textContent = '—';
         }
       }
       if (els.summaryShipping) els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship);
@@ -3048,6 +3066,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           appliedCoupon = null;
           showCouponMessage('', '');
           updateSummary();
+          maybeRefreshShippingAfterCoupon();
         }
       });
       eventsBound = true;

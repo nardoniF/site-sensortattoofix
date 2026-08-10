@@ -9699,7 +9699,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
       if (!quote) {
         return json({ error: 'Super Frete sem cotação para este CEP. Escolha outro frete.' }, 400, origin);
       }
-      if (Math.abs(quote.price - frete) > 0.05) {
+      // Só bloqueia se o cliente mandou frete bem abaixo da cotação atual (anti-fraude).
+      // Preço pode variar entre a lista e o "Continuar"; usamos sempre a cotação fresca.
+      if (quote.price - frete > 0.51) {
         return json({ error: 'Valor do frete Super Frete desatualizado. Recalcule o frete.' }, 400, origin);
       }
       frete = quote.price;
