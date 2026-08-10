@@ -21,7 +21,7 @@ window.STF_CART = (function () {
     if (window.STF_PRODUCT_MERGE?.resolveProductImage) {
       return window.STF_PRODUCT_MERGE.resolveProductImage(image, product);
     }
-    const raw = String(image || '').trim() || 'site/sensortattoofix.jpg';
+    const raw = String(image || '').trim() || 'images/brand/sensortattoofix.jpg';
     if (/^https?:\/\//i.test(raw)) return raw;
     return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
   }

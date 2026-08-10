@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Baixa fotos limpas de anúncios (Shopify/CDN) para produtos/peliculas/{id}.png
+ * Baixa fotos limpas de anúncios (Shopify/CDN) para images/produtos/peliculas/{id}.png
  * Películas = imagem de vitrine na internet por modelo/tamanho.
  * Pulseiras = usar import-pulseira-photos.js (fotos do usuário).
  */
@@ -9,7 +9,7 @@ const https = require('https');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const outDir = path.join(ROOT, 'produtos/peliculas');
+const outDir = path.join(ROOT, 'images/produtos/peliculas');
 const configPath = path.join(ROOT, 'data/store-config.json');
 
 const WOWBAND_CERAMIC =
@@ -65,12 +65,12 @@ async function main() {
 
   for (const [productId, url] of Object.entries(MAP)) {
     const dest = path.join(outDir, `${productId}.png`);
-    const webPath = `/produtos/peliculas/${productId}.png?v=2`;
+    const webPath = `/images/produtos/peliculas/${productId}.png?v=2`;
     try {
       const buf = await download(url);
       fs.writeFileSync(dest, buf);
       const p = config.products.find((x) => x.id === productId);
-      if (p) p.image = `/produtos/peliculas/${productId}.png`;
+      if (p) p.image = `/images/produtos/peliculas/${productId}.png`;
       console.log('OK', productId, '←', url.split('/').pop().split('?')[0]);
       ok += 1;
     } catch (e) {

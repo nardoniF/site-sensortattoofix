@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pulseiras: usa SOMENTE os 12 arquivos Pulseira_* aprovados em produtos/pulseiras/fontes/
+ * Pulseiras: usa SOMENTE os 12 arquivos Pulseira_* aprovados em images/produtos/pulseiras/fontes/
  * (copiados dos assets do Cursor). Nunca IMG_* nem outras versões antigas.
  */
 const fs = require('fs');
@@ -8,8 +8,8 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const ASSETS = '/Users/fabionardoni/.cursor/projects/Users-fabionardoni-Projetos-3N20-site-sensortattoofix/assets';
-const sourcesDir = path.join(ROOT, 'produtos/pulseiras/fontes');
-const outDir = path.join(ROOT, 'produtos/pulseiras');
+const sourcesDir = path.join(ROOT, 'images/produtos/pulseiras/fontes');
+const outDir = path.join(ROOT, 'images/produtos/pulseiras');
 const configPath = path.join(ROOT, 'data/store-config.json');
 
 /** Únicos arquivos-fonte permitidos (12 imagens limpas do usuário) */
@@ -89,7 +89,7 @@ Object.entries(MAP).forEach(([productId, filename]) => {
   }
   fs.copyFileSync(src, dest);
   const p = config.products.find((x) => x.id === productId);
-  if (p) p.image = `/produtos/pulseiras/${productId}.png`;
+  if (p) p.image = `/images/produtos/pulseiras/${productId}.png`;
   console.log('OK', productId, '←', filename);
   ok += 1;
 });
@@ -98,7 +98,7 @@ SVG_ONLY.forEach((productId) => {
   const png = path.join(outDir, `${productId}.png`);
   if (fs.existsSync(png)) fs.unlinkSync(png);
   const p = config.products.find((x) => x.id === productId);
-  if (p) p.image = `/produtos/${productId}.svg`;
+  if (p) p.image = `/images/produtos/${productId}.svg`;
   console.log('SVG', productId);
 });
 

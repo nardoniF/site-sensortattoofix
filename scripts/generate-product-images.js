@@ -8,7 +8,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/store-config.json'), 'utf8'));
-const outDir = path.join(ROOT, 'produtos');
+const outDir = path.join(ROOT, 'images/produtos');
 
 const BAND_COLORS = {
   cinza: ['#6b7280', '#4b5563', '#374151'],
@@ -252,7 +252,7 @@ function main() {
   let count = 0;
   aggregated.forEach((p) => {
     const isPulseira = p.productType === 'pulseira' || String(p.id || '').startsWith('pulseira-');
-    const pngPulseira = path.join(ROOT, `produtos/pulseiras/${p.id}.png`);
+    const pngPulseira = path.join(ROOT, `images/produtos/pulseiras/${p.id}.png`);
     if (isPulseira && fs.existsSync(pngPulseira)) {
       return;
     }
@@ -260,16 +260,16 @@ function main() {
     const file = path.join(outDir, `${p.id}.svg`);
     fs.writeFileSync(file, svg, 'utf8');
     if (isPulseira) {
-      if (!String(p.image || '').includes('/produtos/pulseiras/')) {
-        p.image = `/produtos/${p.id}.svg`;
+      if (!String(p.image || '').includes('/images/produtos/pulseiras/')) {
+        p.image = `/images/produtos/${p.id}.svg`;
       }
-    } else if (!String(p.image || '').includes('/produtos/peliculas/')) {
-      p.image = `/produtos/${p.id}.svg`;
+    } else if (!String(p.image || '').includes('/images/produtos/peliculas/')) {
+      p.image = `/images/produtos/${p.id}.svg`;
     }
     count += 1;
   });
   fs.writeFileSync(path.join(ROOT, 'data/store-config.json'), JSON.stringify(config, null, 2) + '\n', 'utf8');
-  console.log(`Geradas ${count} imagens em produtos/ e store-config.json atualizado.`);
+  console.log(`Geradas ${count} imagens em images/produtos/ e store-config.json atualizado.`);
 }
 
 main();

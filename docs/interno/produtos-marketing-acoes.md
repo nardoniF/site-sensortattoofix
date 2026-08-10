@@ -29,7 +29,7 @@ Atualizado em: 2026-06-20
 - [ ] Material para o estúdio (flyer A5, QR code → loja com UTM `utm_campaign=tatuador_{cidade}`)
 - [ ] Kit demonstração (lente + cartão explicativo “smartwatch + tatuagem”)
 - [ ] Lista de estúdios-alvo (SP primeiro? por bairro?)
-- [x] Script de abordagem e-mail/DM → ver `docs/email-parceria-tatuadores.md`
+- [x] Script de abordagem e-mail/DM → ver `sensortattoofix-privado/docs/email-parceria-tatuadores.md` (pasta local)
 - [ ] Script de abordagem presencial / indicação de cliente
 - [ ] Contrato ou termo simples de parceria / afiliado
 - [ ] Cupom ou link rastreável por tatuador (admin / UTM / código no checkout)

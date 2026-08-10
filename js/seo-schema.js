@@ -145,7 +145,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     let productName = isIt ? 'Lente ottica SensorTattooFix' : isEn ? 'SensorTattooFix Optical Lens' : 'Kit Sensor Tattoo Fix';
     let productPrice = 62.9;
-    let productImage = SITE + '/site/sensortattoofix.jpg';
+    let productImage = SITE + '/images/brand/sensortattoofix.jpg';
     let productId = 'kit-sensor-tattoofix';
     if (isEn || isIt) productId = 'optical-lens-intl';
     let productDescription = isIt
@@ -195,7 +195,7 @@
         name: 'Sensor Tattoo Fix',
         legalName: '3N20 Soluções Tecnológicas',
         url: SITE,
-        logo: SITE + '/site/logo.jpg',
+        logo: SITE + '/images/brand/logo.jpg',
         sameAs: [
           'https://www.instagram.com/sensortattoofix',
           'https://www.tiktok.com/@sensortattoofixofc',

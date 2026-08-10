@@ -36,12 +36,40 @@ window.STF_PRODUCT_MERGE = (function () {
   function isLegacyBrokenKitImage(url) {
     const u = String(url || '').trim();
     if (!u) return true;
-    return /sensortattoofix/i.test(u) && !/\/site\//i.test(u);
+    if (/\/(?:images|site|produtos|img)\//i.test(u)) return false;
+    return /sensortattoofix/i.test(u);
+  }
+
+  /** Old KV/bookmarks: /site/*, /produtos/*, /img/* → /images/... */
+  function normalizeLegacyImagePath(url) {
+    let s = String(url || '').trim();
+    if (!s) return s;
+    const mapExact = {
+      '/site/logo.jpg': '/images/brand/logo.jpg',
+      '/site/sensortattoofix.jpg': '/images/brand/sensortattoofix.jpg',
+      '/site/relogio_home.jpg': '/images/home/relogio_home.jpg',
+      '/site/relogio_home2.jpg': '/images/home/relogio_home2.jpg',
+      '/site/relogio_sensor.jpg': '/images/home/relogio_sensor.jpg',
+      '/site/kit-profissional.png': '/images/home/kit-profissional.png',
+      '/site/fundador-fabio.jpg': '/images/home/fundador-fabio.jpg'
+    };
+    const pathOnly = s.replace(/^https?:\/\/[^/]+/i, '');
+    if (mapExact[pathOnly]) {
+      return /^https?:\/\//i.test(s) ? s.replace(pathOnly, mapExact[pathOnly]) : mapExact[pathOnly];
+    }
+    s = s.replace(/\/site\/(kit-gallery|lens-gallery|smartband|comissionado)\//g, '/images/$1/');
+    if (s.includes('/produtos/') && !s.includes('/images/produtos/')) {
+      s = s.replace('/produtos/', '/images/produtos/');
+    }
+    if (s.includes('/img/') && !s.includes('/images/')) {
+      s = s.replace('/img/', '/images/depoimentos/');
+    }
+    return s;
   }
 
   function resolveKitImage(image, fallback) {
-    const fb = String(fallback || '/site/sensortattoofix.jpg').trim();
-    let raw = String(image || '').trim();
+    const fb = String(fallback || '/images/brand/sensortattoofix.jpg').trim();
+    let raw = normalizeLegacyImagePath(String(image || '').trim());
     if (isLegacyBrokenKitImage(raw)) raw = fb;
     if (!raw) raw = fb;
     if (/^https?:\/\//i.test(raw)) return raw;
@@ -49,22 +77,22 @@ window.STF_PRODUCT_MERGE = (function () {
   }
 
   function isKitOrMissingImage(url) {
-    const u = String(url || '').trim();
-    return !u || /sensortattoofix/i.test(u) || !u.includes('/produtos/');
+    const u = normalizeLegacyImagePath(String(url || '').trim());
+    return !u || /sensortattoofix/i.test(u) || !/\/(?:images\/)?produtos\//.test(u);
   }
 
   function inferAggregatedImage(product) {
     const id = String(product?.id || product?.slug || '').trim();
-    if (id) return `/produtos/${id}.svg`;
-    return '/produtos/pelicula-squircle.svg';
+    if (id) return `/images/produtos/${id}.svg`;
+    return '/images/produtos/pelicula-squircle.svg';
   }
 
   function isGenericSharedImage(url, productId) {
-    const u = String(url || '').trim();
+    const u = normalizeLegacyImagePath(String(url || '').trim());
     const id = String(productId || '').trim();
-    if (!u.includes('/produtos/')) return true;
-    if (id && (u === `/produtos/${id}.svg` || u.endsWith(`/${id}.svg`))) return false;
-    return /\/produtos\/(pelicula-(squircle|redonda|retangular)|pulseira-)/i.test(u);
+    if (!/\/(?:images\/)?produtos\//.test(u)) return true;
+    if (id && (u === `/images/produtos/${id}.svg` || u.endsWith(`/${id}.svg`))) return false;
+    return /\/(?:images\/)?produtos\/(pelicula-(squircle|redonda|retangular)|pulseira-)/i.test(u);
   }
 
   function isEmptyValue(value) {
@@ -132,7 +160,7 @@ window.STF_PRODUCT_MERGE = (function () {
   function supplementProductImage(target, source, productKey) {
     if (!source?.image) return;
     const srcImage = String(source.image);
-    if (srcImage.includes('/produtos/pulseiras/')) {
+    if (srcImage.includes('/images/produtos/pulseiras/')) {
       if (!target.image || isGenericSharedImage(target.image, productKey)) {
         target.image = source.image;
       }
@@ -172,7 +200,7 @@ window.STF_PRODUCT_MERGE = (function () {
 
   function resolveProductImage(image, product) {
     const id = String(product?.id || product?.slug || '').trim();
-    let raw = String(image || product?.image || '').trim();
+    let raw = normalizeLegacyImagePath(String(image || product?.image || '').trim());
     const isPulseira = product?.aggregated && (
       product.productType === 'pulseira' || id.startsWith('pulseira-')
     );
@@ -182,26 +210,26 @@ window.STF_PRODUCT_MERGE = (function () {
     if (isPulseira && id) {
       const svgOnly = /^(pulseira-link|pulseira-trail|pulseira-alpine)/.test(id);
       if (svgOnly) {
-        raw = `/produtos/${id}.svg`;
+        raw = `/images/produtos/${id}.svg`;
       } else {
-        const perId = `/produtos/pulseiras/${id}.png?v=6`;
+        const perId = `/images/produtos/pulseiras/${id}.png?v=6`;
         if (!raw || raw.endsWith('.svg') || isGenericSharedImage(raw, id)) {
           raw = perId;
-        } else if (raw.includes('/produtos/pulseiras/') && !raw.includes('?v=')) {
+        } else if (raw.includes('/images/produtos/pulseiras/') && !raw.includes('?v=')) {
           raw = `${raw.split('?')[0]}?v=6`;
         }
       }
     }
     if (isPelicula && id) {
-      const perId = `/produtos/peliculas/${id}.png?v=2`;
+      const perId = `/images/produtos/peliculas/${id}.png?v=2`;
       if (!raw || raw.endsWith('.svg') || isGenericSharedImage(raw, id)) {
         raw = perId;
-      } else if (raw.includes('/produtos/peliculas/') && !raw.includes('?v=')) {
+      } else if (raw.includes('/images/produtos/peliculas/') && !raw.includes('?v=')) {
         raw = `${raw.split('?')[0]}?v=2`;
       }
     }
     if (product?.aggregated && !isPulseira && !isPelicula) {
-      const perProduct = id ? `/produtos/${id}.svg` : '';
+      const perProduct = id ? `/images/produtos/${id}.svg` : '';
       if (isKitOrMissingImage(raw) || isGenericSharedImage(raw, id)) {
         raw = perProduct || inferAggregatedImage(product);
       }
@@ -234,27 +262,27 @@ window.STF_PRODUCT_MERGE = (function () {
 
     if (!isPulseira) {
       const shape = product.compatibility?.shape || '';
-      if (shape === 'round' || /round|gtr|gw3|huawei-gt/i.test(id)) return '/produtos/pelicula-redonda.svg';
-      if (shape === 'rect' || /rect|bip|gts|fit/i.test(id)) return '/produtos/pelicula-retangular.svg';
-      return '/produtos/pelicula-squircle.svg';
+      if (shape === 'round' || /round|gtr|gw3|huawei-gt/i.test(id)) return '/images/produtos/pelicula-redonda.svg';
+      if (shape === 'rect' || /rect|bip|gts|fit/i.test(id)) return '/images/produtos/pelicula-retangular.svg';
+      return '/images/produtos/pelicula-squircle.svg';
     }
 
     if (/^(pulseira-link|pulseira-trail|pulseira-alpine)/.test(id)) {
-      return `/produtos/${id}.svg`;
+      return `/images/produtos/${id}.svg`;
     }
     const resolved = resolveProductImage(image, product);
-    if (resolved.includes('/produtos/pulseiras/')) return resolved;
+    if (resolved.includes('/images/produtos/pulseiras/')) return resolved;
 
     const style = product.bandStyle || 'sport';
     const color = normalizeBandColor(product.color);
     if (style === 'milanese') {
-      return color === 'rose' ? '/produtos/pulseira-mesh-rose.svg' : '/produtos/pulseira-mesh-preta.svg';
+      return color === 'rose' ? '/images/produtos/pulseira-mesh-rose.svg' : '/images/produtos/pulseira-mesh-preta.svg';
     }
     if (style === 'ocean') {
-      return color === 'branca' ? '/produtos/pulseira-ocean-branca.svg' : '/produtos/pulseira-ocean-verde.svg';
+      return color === 'branca' ? '/images/produtos/pulseira-ocean-branca.svg' : '/images/produtos/pulseira-ocean-verde.svg';
     }
     const sportColor = ['cinza', 'preta', 'azul', 'branca', 'creme'].includes(color) ? color : 'cinza';
-    return `/produtos/pulseira-sport-${sportColor}.svg`;
+    return `/images/produtos/pulseira-sport-${sportColor}.svg`;
   }
 
   function patchAggregatedImages(products) {

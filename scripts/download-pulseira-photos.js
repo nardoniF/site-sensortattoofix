@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Baixa fotos limpas de produto (Apple Store CDN) para produtos/pulseiras/{id}.png
+ * Baixa fotos limpas de produto (Apple Store CDN) para images/produtos/pulseiras/{id}.png
  * e atualiza image em data/store-config.json.
  *
  * Fontes: páginas oficiais apple.com/shop/product (render 4000×4000, fundo neutro).
@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
 const https = require('https');
 
 const ROOT = path.join(__dirname, '..');
-const outDir = path.join(ROOT, 'produtos/pulseiras');
+const outDir = path.join(ROOT, 'images/produtos/pulseiras');
 const configPath = path.join(ROOT, 'data/store-config.json');
 
 /** productId -> { url, note } — mesma imagem pode servir a vários SKUs */
@@ -124,7 +124,7 @@ async function main() {
 
   for (const [productId, meta] of Object.entries(SOURCES)) {
     const dest = path.join(outDir, `${productId}.png`);
-    const webPath = `/produtos/pulseiras/${productId}.png`;
+    const webPath = `/images/produtos/pulseiras/${productId}.png`;
 
     if (meta.share) {
       const srcPath = path.join(outDir, `${meta.share}.png`);

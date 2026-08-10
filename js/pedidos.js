@@ -1125,7 +1125,7 @@
 
       tr.querySelector('.btn-print-letter')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        const url = `docs/carta-agradecimento-intl.html?order=${encodeURIComponent(o.orderId)}`;
+        const url = `docs/cartas/carta-agradecimento-intl.html?order=${encodeURIComponent(o.orderId)}`;
         // Hand off admin session to the new tab (sessionStorage is not shared across tabs).
         try {
           const token = sessionStorage.getItem('stf_admin_token');

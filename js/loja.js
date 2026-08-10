@@ -81,14 +81,14 @@
       const slug = p.slug || p.id || 'kit-sensor-tattoofix';
       const label = window.STF_PELICULA?.productLabel?.(p) || p.name;
       const desc = window.STF_PELICULA?.productDescription?.(p) || p.description || '';
-      const rawImg = p.image || 'site/sensortattoofix.jpg';
+      const rawImg = p.image || 'images/brand/sensortattoofix.jpg';
       const img = window.STF_PRODUCT_MERGE?.resolveProductImage
         ? window.STF_PRODUCT_MERGE.resolveProductImage(rawImg, p)
         : (/^https?:\/\//i.test(rawImg) ? rawImg : (rawImg.startsWith('/') ? rawImg : '/' + rawImg.replace(/^\.\//, '')));
       const albumImgs = window.STF_PRODUCT_GALLERY?.resolveImages?.(p) || [img];
       const media = window.STF_PRODUCT_GALLERY?.renderMarkup
         ? window.STF_PRODUCT_GALLERY.renderMarkup(albumImgs, label, 'loja-card-album')
-        : `<img src="${escapeHtml(img)}" alt="${escapeHtml(label)}" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">`;
+        : `<img src="${escapeHtml(img)}" alt="${escapeHtml(label)}" loading="lazy" onerror="this.onerror=null;this.src='/images/brand/sensortattoofix.jpg'">`;
       const frete = L('store.frete');
       return `
         <article class="loja-card">

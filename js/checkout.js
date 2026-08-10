@@ -200,7 +200,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (window.STF_PRODUCT_MERGE?.resolveProductImage) {
       return window.STF_PRODUCT_MERGE.resolveProductImage(image, product);
     }
-    const raw = String(image || '').trim() || 'site/sensortattoofix.jpg';
+    const raw = String(image || '').trim() || 'images/brand/sensortattoofix.jpg';
     if (/^https?:\/\//i.test(raw)) return raw;
     return raw.startsWith('/') ? raw : '/' + raw.replace(/^\.\//, '');
   }
@@ -216,7 +216,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (window.STF_PRODUCT_MERGE?.inferAggregatedImage) {
       return window.STF_PRODUCT_MERGE.inferAggregatedImage(product);
     }
-    return '/produtos/pelicula-squircle.svg';
+    return '/images/produtos/pelicula-squircle.svg';
   }
 
   let lightboxEls = null;
@@ -1113,7 +1113,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         const lineName = cartLineName(item);
         const thumb = item.aggregated
           ? renderZoomableThumb(imgFull, imgFull, lineName, imgFull, 'cart-line-img-btn')
-          : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">`;
+          : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/images/brand/sensortattoofix.jpg'">`;
         const qtyLabel = item.qty > 1 ? `${item.qty} × ${formatCheckoutMoney(item.price)}` : formatCheckoutMoney(item.price);
         return `
         <div class="cart-line cart-line-locked">
@@ -1366,7 +1366,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const lineName = cartLineName(item);
       const thumb = item.aggregated
         ? renderZoomableThumb(imgFull, imgFull, lineName, imgFull, 'cart-line-img-btn')
-        : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/site/sensortattoofix.jpg'">`;
+        : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/images/brand/sensortattoofix.jpg'">`;
       return `
       <div class="cart-line" data-product-id="${escapeHtml(item.productId)}">
         ${thumb}

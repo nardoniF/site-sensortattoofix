@@ -8,7 +8,7 @@ const path = require('path');
 const https = require('https');
 
 const ROOT = path.join(__dirname, '..');
-const outDir = path.join(ROOT, 'produtos/pulseiras');
+const outDir = path.join(ROOT, 'images/produtos/pulseiras');
 const styles = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/band-styles.json'), 'utf8'));
 
 /** Pexels — licença gratuita https://www.pexels.com/license/ */

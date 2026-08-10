@@ -8,33 +8,33 @@
   const SMARTBAND_IDS = new Set(['kit-smartband-tattoofix', 'optical-lens-smartband-intl']);
 
   const PT_GALLERY = [
-    '/site/kit-gallery/kit-03-aplicacao.jpg',
-    '/site/kit-gallery/kit-01-embalagem.jpg',
-    '/site/kit-gallery/kit-02-conteudo.jpg',
-    '/site/kit-gallery/kit-05-acompanha.jpg',
-    '/site/kit-gallery/kit-06-antes-depois.jpg',
-    '/site/kit-gallery/kit-07-beneficios.jpg'
+    '/images/kit-gallery/kit-03-aplicacao.jpg',
+    '/images/kit-gallery/kit-01-embalagem.jpg',
+    '/images/kit-gallery/kit-02-conteudo.jpg',
+    '/images/kit-gallery/kit-05-acompanha.jpg',
+    '/images/kit-gallery/kit-06-antes-depois.jpg',
+    '/images/kit-gallery/kit-07-beneficios.jpg'
   ];
 
   /** Shared photo (little/no copy) reused across locales. */
-  const SHARED_APLICACAO = '/site/kit-gallery/kit-03-aplicacao.jpg';
+  const SHARED_APLICACAO = '/images/kit-gallery/kit-03-aplicacao.jpg';
 
   const EN_KIT_GALLERY = [
-    '/site/kit-gallery/en/kit-03-aplicacao.jpg',
-    '/site/kit-gallery/en/kit-01-embalagem.jpg',
-    '/site/kit-gallery/en/kit-02-conteudo.jpg',
-    '/site/kit-gallery/en/kit-05-acompanha.jpg',
-    '/site/kit-gallery/en/kit-06-antes-depois.jpg',
-    '/site/kit-gallery/en/kit-07-beneficios.jpg'
+    '/images/kit-gallery/en/kit-03-aplicacao.jpg',
+    '/images/kit-gallery/en/kit-01-embalagem.jpg',
+    '/images/kit-gallery/en/kit-02-conteudo.jpg',
+    '/images/kit-gallery/en/kit-05-acompanha.jpg',
+    '/images/kit-gallery/en/kit-06-antes-depois.jpg',
+    '/images/kit-gallery/en/kit-07-beneficios.jpg'
   ];
 
   const IT_KIT_GALLERY = [
     SHARED_APLICACAO,
-    '/site/kit-gallery/it/kit-01-embalagem.jpg',
-    '/site/kit-gallery/it/kit-02-conteudo.jpg',
-    '/site/kit-gallery/it/kit-05-acompanha.jpg',
-    '/site/kit-gallery/it/kit-06-antes-depois.jpg',
-    '/site/kit-gallery/it/kit-07-beneficios.jpg'
+    '/images/kit-gallery/it/kit-01-embalagem.jpg',
+    '/images/kit-gallery/it/kit-02-conteudo.jpg',
+    '/images/kit-gallery/it/kit-05-acompanha.jpg',
+    '/images/kit-gallery/it/kit-06-antes-depois.jpg',
+    '/images/kit-gallery/it/kit-07-beneficios.jpg'
   ];
 
   /**
@@ -42,33 +42,33 @@
    * 5 fotos da lente + aplicação + antes/depois.
    */
   const LENS_GALLERY_EN = [
-    '/site/lens-gallery/01-optical-correction-lens.png',
-    '/site/lens-gallery/02-ultra-thin.png',
-    '/site/lens-gallery/03-high-optical-transparency.png',
-    '/site/lens-gallery/04-engineered-refraction.png',
-    '/site/lens-gallery/05-whats-included.png',
-    '/site/kit-gallery/en/kit-03-aplicacao.jpg',
-    '/site/kit-gallery/en/kit-06-antes-depois.jpg'
+    '/images/lens-gallery/01-optical-correction-lens.png',
+    '/images/lens-gallery/02-ultra-thin.png',
+    '/images/lens-gallery/03-high-optical-transparency.png',
+    '/images/lens-gallery/04-engineered-refraction.png',
+    '/images/lens-gallery/05-whats-included.png',
+    '/images/kit-gallery/en/kit-03-aplicacao.jpg',
+    '/images/kit-gallery/en/kit-06-antes-depois.jpg'
   ];
 
   const LENS_GALLERY_IT = [
-    '/site/lens-gallery/it/01-optical-correction-lens.png',
-    '/site/lens-gallery/it/02-ultra-thin.png',
-    '/site/lens-gallery/it/03-high-optical-transparency.png',
-    '/site/lens-gallery/it/04-engineered-refraction.png',
-    '/site/lens-gallery/it/05-whats-included.png',
+    '/images/lens-gallery/it/01-optical-correction-lens.png',
+    '/images/lens-gallery/it/02-ultra-thin.png',
+    '/images/lens-gallery/it/03-high-optical-transparency.png',
+    '/images/lens-gallery/it/04-engineered-refraction.png',
+    '/images/lens-gallery/it/05-whats-included.png',
     SHARED_APLICACAO,
-    '/site/kit-gallery/it/kit-06-antes-depois.jpg'
+    '/images/kit-gallery/it/kit-06-antes-depois.jpg'
   ];
 
   const LENS_GALLERY_SHARED = [
-    '/site/lens-gallery/01-optical-correction-lens.png',
-    '/site/lens-gallery/02-ultra-thin.png',
-    '/site/lens-gallery/03-high-optical-transparency.png',
-    '/site/lens-gallery/04-engineered-refraction.png',
-    '/site/lens-gallery/05-whats-included.png',
+    '/images/lens-gallery/01-optical-correction-lens.png',
+    '/images/lens-gallery/02-ultra-thin.png',
+    '/images/lens-gallery/03-high-optical-transparency.png',
+    '/images/lens-gallery/04-engineered-refraction.png',
+    '/images/lens-gallery/05-whats-included.png',
     SHARED_APLICACAO,
-    '/site/kit-gallery/kit-06-antes-depois.jpg'
+    '/images/kit-gallery/kit-06-antes-depois.jpg'
   ];
 
   /** @deprecated alias */
@@ -117,7 +117,7 @@
 
   function isLegacyKitHero(url) {
     const n = normalizeUrl(url).toLowerCase();
-    return /\/site\/sensortattoofix\.jpg(\?|$)/i.test(n);
+    return /\/(?:site|images\/brand)\/sensortattoofix\.jpg(\?|$)/i.test(n);
   }
 
   function uniqueUrls(list) {
@@ -143,25 +143,25 @@
   }
 
   const SMARTBAND_GALLERY_BR = [
-    '/site/smartband/kit-br/01-embalagem.jpg',
-    '/site/smartband/kit-br/02-conteudo.jpg',
-    '/site/smartband/kit-br/03-aplicacao.jpg',
-    '/site/smartband/kit-br/04-antes-depois.jpg',
-    '/site/smartband/kit-br/05-lente.jpg'
+    '/images/smartband/kit-br/01-embalagem.jpg',
+    '/images/smartband/kit-br/02-conteudo.jpg',
+    '/images/smartband/kit-br/03-aplicacao.jpg',
+    '/images/smartband/kit-br/04-antes-depois.jpg',
+    '/images/smartband/kit-br/05-lente.jpg'
   ];
 
   const SMARTBAND_GALLERY_EN = [
-    '/site/smartband/lens-en/01-embalagem.jpg',
-    '/site/smartband/lens-en/02-conteudo.jpg',
-    '/site/smartband/lens-en/03-aplicacao.jpg',
-    '/site/smartband/lens-en/04-antes-depois.jpg'
+    '/images/smartband/lens-en/01-embalagem.jpg',
+    '/images/smartband/lens-en/02-conteudo.jpg',
+    '/images/smartband/lens-en/03-aplicacao.jpg',
+    '/images/smartband/lens-en/04-antes-depois.jpg'
   ];
 
   const SMARTBAND_GALLERY_IT = [
-    '/site/smartband/lens-it/01-embalagem.jpg',
-    '/site/smartband/lens-it/02-conteudo.jpg',
-    '/site/smartband/lens-it/03-aplicacao.jpg',
-    '/site/smartband/lens-it/04-antes-depois.jpg'
+    '/images/smartband/lens-it/01-embalagem.jpg',
+    '/images/smartband/lens-it/02-conteudo.jpg',
+    '/images/smartband/lens-it/03-aplicacao.jpg',
+    '/images/smartband/lens-it/04-antes-depois.jpg'
   ];
 
   function smartbandAlbum(lang) {
@@ -192,8 +192,8 @@
     return (urls || []).map((u) => {
       const n = normalizeUrl(u);
       // EN lens pack → IT pack
-      if (/^\/site\/lens-gallery\/(?!it\/)/.test(n)) {
-        return n.replace('/site/lens-gallery/', '/site/lens-gallery/it/');
+      if (/^\/(?:site|images)\/lens-gallery\/(?!it\/)/.test(n)) {
+        return n.replace(/\/(?:site|images)\/lens-gallery\//, '/images/lens-gallery/it/');
       }
       return n;
     });

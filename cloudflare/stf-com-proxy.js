@@ -20,13 +20,40 @@ function isBrHost(hostname) {
   return h === 'sensortattoofix.com.br' || h === 'www.sensortattoofix.com.br';
 }
 
+/** Map legacy image URLs (/site/*, /produtos/*, /img/*) to /images/... */
+function rewriteLegacyImagePath(pathname) {
+  const p = String(pathname || '');
+  if (p.startsWith('/images/')) return p;
+  if (p.startsWith('/produtos/')) return '/images/produtos/' + p.slice('/produtos/'.length);
+  if (p.startsWith('/img/')) return '/images/depoimentos/' + p.slice('/img/'.length);
+
+  const brandHome = {
+    '/site/logo.jpg': '/images/brand/logo.jpg',
+    '/site/sensortattoofix.jpg': '/images/brand/sensortattoofix.jpg',
+    '/site/relogio_home.jpg': '/images/home/relogio_home.jpg',
+    '/site/relogio_home2.jpg': '/images/home/relogio_home2.jpg',
+    '/site/relogio_sensor.jpg': '/images/home/relogio_sensor.jpg',
+    '/site/kit-profissional.png': '/images/home/kit-profissional.png',
+    '/site/fundador-fabio.jpg': '/images/home/fundador-fabio.jpg',
+  };
+  if (brandHome[p]) return brandHome[p];
+
+  for (const section of ['kit-gallery', 'lens-gallery', 'smartband', 'comissionado']) {
+    const prefix = '/site/' + section + '/';
+    if (p.startsWith(prefix)) return '/images/' + section + '/' + p.slice(prefix.length);
+  }
+  return p;
+}
+
 function isStaticAsset(pathname) {
   if (pathname === '/stf-log' || pathname.startsWith('/stf-log/')) return false;
   return (
     pathname.startsWith('/js/') ||
+    pathname.startsWith('/images/') ||
     pathname.startsWith('/site/') ||
     pathname.startsWith('/data/') ||
     pathname.startsWith('/produtos/') ||
+    pathname.startsWith('/img/') ||
     pathname.startsWith('/stf-') ||
     pathname === '/style.css' ||
     pathname === '/favicon.ico' ||
@@ -234,6 +261,7 @@ export default {
     }
 
     let originPath = br ? mapPathBr(url.pathname) : mapPathCom(url.pathname);
+    originPath = rewriteLegacyImagePath(originPath);
     let res = await fetchOrigin(originPath, url.search);
     if (!res.ok) return new Response('Not found', { status: res.status });
 

@@ -44,7 +44,7 @@ const DEFAULT_CONFIG = {
     descriptionEn: 'Optical lens for smartwatches on tattooed skin',
     descriptionIt: 'Lente ottica per smartwatch su pelle tatuata',
     price: 62.9,
-    image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg'
+    image: 'https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg'
   },
   products: [
     {
@@ -57,7 +57,7 @@ const DEFAULT_CONFIG = {
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
       price: 62.9,
-      image: 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg',
+      image: 'https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg',
       active: true,
       requiresSmartwatch: true,
       weightGrams: 3,
@@ -73,13 +73,13 @@ const DEFAULT_CONFIG = {
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
       price: 62.9,
-      image: '/site/lens-gallery/01-optical-correction-lens.png',
+      image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
-        '/site/lens-gallery/01-optical-correction-lens.png',
-        '/site/lens-gallery/02-ultra-thin.png',
-        '/site/lens-gallery/03-high-optical-transparency.png',
-        '/site/lens-gallery/04-engineered-refraction.png',
-        '/site/lens-gallery/05-whats-included.png'
+        '/images/lens-gallery/01-optical-correction-lens.png',
+        '/images/lens-gallery/02-ultra-thin.png',
+        '/images/lens-gallery/03-high-optical-transparency.png',
+        '/images/lens-gallery/04-engineered-refraction.png',
+        '/images/lens-gallery/05-whats-included.png'
       ],
       active: true,
       requiresSmartwatch: true,
@@ -1124,20 +1124,21 @@ function mergeSmartwatchModelLists(stored, base) {
 function isLegacyBrokenKitImage(url) {
   const u = String(url || '').trim();
   if (!u) return true;
-  return /sensortattoofix/i.test(u) && !/\/site\//i.test(u);
+  if (/\/(?:images|site|produtos|img)\//i.test(u)) return false;
+  return /sensortattoofix/i.test(u);
 }
 
 function isKitOrMissingImage(url) {
   const u = String(url || '').trim();
-  return !u || /sensortattoofix/i.test(u) || !u.includes('/produtos/');
+  return !u || /sensortattoofix/i.test(u) || !/\/(?:images\/)?produtos\//.test(u);
 }
 
 function isGenericSharedImage(url, productId) {
   const u = String(url || '').trim();
   const id = String(productId || '').trim();
-  if (!u.includes('/produtos/')) return true;
-  if (id && (u === `/produtos/${id}.svg` || u.endsWith(`/${id}.svg`))) return false;
-  return /\/produtos\/(pelicula-(squircle|redonda|retangular)|pulseira-)/i.test(u);
+  if (!/\/(?:images\/)?produtos\//.test(u)) return true;
+  if (id && (u === `/images/produtos/${id}.svg` || u === `/produtos/${id}.svg` || u.endsWith(`/${id}.svg`))) return false;
+  return /\/(?:images\/)?produtos\/(pelicula-(squircle|redonda|retangular)|pulseira-)/i.test(u);
 }
 
 function isEmptyCatalogValue(value) {
@@ -1193,7 +1194,7 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
   ) {
     merged.compatibleWatchModels = siteProduct.compatibleWatchModels;
   }
-  if (siteProduct.image && String(siteProduct.image).includes('/produtos/pulseiras/')) {
+  if (siteProduct.image && String(siteProduct.image).includes('/images/produtos/pulseiras/')) {
     if (!kvProduct?.image || isGenericSharedImage(kvProduct.image, productKey)) {
       merged.image = siteProduct.image;
     }
@@ -1366,7 +1367,7 @@ function withConfigDefaults(stored) {
 function fixKitImageUrl(url) {
   const u = String(url || '').trim();
   if (!u || (/sensortattoofix/i.test(u) && !/\/site\//i.test(u))) {
-    return 'https://www.sensortattoofix.com.br/site/sensortattoofix.jpg';
+    return 'https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg';
   }
   return u;
 }

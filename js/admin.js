@@ -3229,13 +3229,13 @@ ${worksheets}
   }
 
   const LENS_INTL_IMAGES = [
-    '/site/lens-gallery/01-optical-correction-lens.png',
-    '/site/lens-gallery/02-ultra-thin.png',
-    '/site/lens-gallery/03-high-optical-transparency.png',
-    '/site/lens-gallery/04-engineered-refraction.png',
-    '/site/lens-gallery/05-whats-included.png',
-    '/site/kit-gallery/en/kit-03-aplicacao.jpg',
-    '/site/kit-gallery/en/kit-06-antes-depois.jpg'
+    '/images/lens-gallery/01-optical-correction-lens.png',
+    '/images/lens-gallery/02-ultra-thin.png',
+    '/images/lens-gallery/03-high-optical-transparency.png',
+    '/images/lens-gallery/04-engineered-refraction.png',
+    '/images/lens-gallery/05-whats-included.png',
+    '/images/kit-gallery/en/kit-03-aplicacao.jpg',
+    '/images/kit-gallery/en/kit-06-antes-depois.jpg'
   ];
 
   function productMarketsOf(p) {
@@ -3271,7 +3271,7 @@ ${worksheets}
             <span class="stf-help-tip" tabindex="0" aria-label="Como medir o sensor">
               <i class="fas fa-circle-question"></i>
               <span class="stf-help-tip-pop">
-                <img src="site/relogio_sensor.jpg" alt="Medir o sensor com régua no relógio">
+                <img src="images/home/relogio_sensor.jpg" alt="Medir o sensor com régua no relógio">
                 <small>Meça o diâmetro do círculo do sensor no fundo do relógio (em mm).</small>
               </span>
             </span>
@@ -3298,7 +3298,7 @@ ${worksheets}
           <label class="full">Descrição EN<textarea data-field="descriptionEn" rows="2">${escTextarea(p.descriptionEn || '')}</textarea></label>
           <label class="full">Descrição IT<textarea data-field="descriptionIt" rows="2">${escTextarea(p.descriptionIt || '')}</textarea></label>
           <label class="full">Álbum de fotos <small class="admin-field-hint">uma URL por linha — ordem do carrossel na loja</small>
-            <textarea data-field="images" rows="5" placeholder="/site/lens-gallery/01-….png">${escTextarea((Array.isArray(p.images) ? p.images : []).join('\n'))}</textarea>
+            <textarea data-field="images" rows="5" placeholder="/images/lens-gallery/01-….png">${escTextarea((Array.isArray(p.images) ? p.images : []).join('\n'))}</textarea>
           </label>` : '';
     return `
       <div class="admin-product-row${isAggregated ? ' admin-product-row--aggregated' : ' admin-product-row--main'}" data-product-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}" data-market="${escAttr(market)}">
@@ -3317,7 +3317,7 @@ ${worksheets}
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
           </label>
           <label>Slug (URL)<input type="text" data-field="slug" value="${p.slug || p.id || ''}" placeholder="${market === 'INT' ? 'optical-lens-intl' : 'kit-sensor-tattoofix'}"></label>
-          <label class="full">URL da imagem principal<input type="text" data-field="image" value="${escAttr(p.image || '')}" placeholder="/site/lens-gallery/01-optical-correction-lens.png" spellcheck="false" autocomplete="off"></label>
+          <label class="full">URL da imagem principal<input type="text" data-field="image" value="${escAttr(p.image || '')}" placeholder="/images/lens-gallery/01-optical-correction-lens.png" spellcheck="false" autocomplete="off"></label>
           ${sensorField}
           <label>Peso (g)<input type="number" data-field="weightGrams" min="0.1" step="0.1" value="${p.weightGrams ?? 3}"></label>
           <div class="admin-product-flags">
@@ -3361,7 +3361,7 @@ ${worksheets}
         ];
         renderProducts(rebuilt.length ? rebuilt : [{
           id: 'kit-sensor-tattoofix', slug: 'kit-sensor-tattoofix', name: 'Kit Sensor Tattoo Fix',
-          description: '', price: 62.9, image: '/site/sensortattoofix.jpg', active: true,
+          description: '', price: 62.9, image: '/images/brand/sensortattoofix.jpg', active: true,
           requiresSmartwatch: true, weightGrams: 3, sensorMm: 25, markets: ['BR']
         }]);
       });
@@ -4626,7 +4626,7 @@ ${worksheets}
       name: 'Nova lente Sensor Tattoo Fix',
       description: '',
       price: 62.9,
-      image: '/site/sensortattoofix.jpg',
+      image: '/images/brand/sensortattoofix.jpg',
       active: true,
       requiresSmartwatch: true,
       weightGrams: 3,
@@ -4645,7 +4645,7 @@ ${worksheets}
       name: 'Novo produto agregado',
       description: '',
       price: 20,
-      image: '/produtos/pelicula-redonda.svg',
+      image: '/images/produtos/pelicula-redonda.svg',
       active: true,
       aggregated: true,
       requiresSmartwatch: false,
