@@ -4294,6 +4294,38 @@ async function syncAmzOrders(env, options = {}) {
     nextToken = payload.NextToken || null;
   } while (nextToken && pages < AMZ_SYNC_MAX_PAGES);
 
+  // Pedidos antigos no índice sem Finances (sync incremental não os revisita).
+  let financesBackfilled = 0;
+  for (const id of index) {
+    let sale;
+    try {
+      const raw = await env.STORE_KV.get(AMZ_SALE_PREFIX + id);
+      if (!raw) continue;
+      sale = JSON.parse(raw);
+    } catch {
+      continue;
+    }
+    if (sale?.financesOk) continue;
+    try {
+      const events = await amzFetchOrderFinancials(env, token, id);
+      const fin = summarizeAmzFinancialEvents(events);
+      sale.fees = amzRound2(fin.commission);
+      sale.shippingCost = amzRound2(fin.shipping);
+      sale.otherFees = amzRound2(fin.otherFees || 0);
+      sale.net = amzRound2(fin.net);
+      sale.financesOk = true;
+      sale.hasRefund = !!fin.hasRefund;
+      sale.feesNote = null;
+      sale.syncedAt = new Date().toISOString();
+      await env.STORE_KV.put(AMZ_SALE_PREFIX + id, JSON.stringify(sale));
+      financesBackfilled += 1;
+      updated += 1;
+      await new Promise((r) => setTimeout(r, 250));
+    } catch (err) {
+      console.warn('Amazon finances backfill', id, err.message || err);
+    }
+  }
+
   await env.STORE_KV.put(AMZ_SALES_INDEX_KEY, JSON.stringify(index));
   const report = {
     ok: true,
@@ -4305,6 +4337,7 @@ async function syncAmzOrders(env, options = {}) {
     apiTotal,
     imported,
     updated,
+    financesBackfilled,
     indexed: index.length,
     lastSyncedAt: now.toISOString(),
     lastError: null

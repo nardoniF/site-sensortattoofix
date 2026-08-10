@@ -644,6 +644,17 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  /** Líquido exibido: ML/loja = bruto − comissão − frete; Amazon Finances = o que caiu na conta. */
+  function effectiveSaleNet(sale) {
+    const g = Number(sale.gross || 0);
+    const f = Number(sale.fees || 0);
+    const sh = Number(sale.shippingCost || 0);
+    if (sale.channel === 'amazon' && sale.financesOk && sale.net != null && sale.net !== '') {
+      return Math.round(Number(sale.net) * 100) / 100;
+    }
+    return Math.round((g - f - sh) * 100) / 100;
+  }
+
   function saleSoldTs(sale) {
     const raw = sale?.soldAt || sale?.dateCreated;
     if (!raw) return 0;
@@ -669,7 +680,7 @@
       const gross = Number(sale.gross || 0);
       const fees = Number(sale.fees || 0);
       const shipping = Number(sale.shippingCost || 0);
-      const net = Number(sale.net != null ? sale.net : gross - fees - shipping);
+      const net = effectiveSaleNet(sale);
       if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, net: 0, months: {} };
       const y = tree[year];
       if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, net: 0, days: {} };
@@ -747,7 +758,7 @@
     const gross = Number(sale.gross || 0);
     const fees = Number(sale.fees || 0);
     const shipping = Number(sale.shippingCost || 0);
-    const net = Number(sale.net != null ? sale.net : gross - fees - shipping);
+    const net = effectiveSaleNet(sale);
     return { ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _net: net };
   }
 
@@ -1169,12 +1180,7 @@ ${worksheets}
     const gross = list.reduce((s, x) => s + Number(x.gross || 0), 0);
     const fees = list.reduce((s, x) => s + Number(x.fees || 0), 0);
     const shipping = list.reduce((s, x) => s + Number(x.shippingCost || 0), 0);
-    const net = list.reduce((s, x) => {
-      const g = Number(x.gross || 0);
-      const f = Number(x.fees || 0);
-      const sh = Number(x.shippingCost || 0);
-      return s + Number(x.net != null ? x.net : g - f - sh);
-    }, 0);
+    const net = list.reduce((s, x) => s + effectiveSaleNet(x), 0);
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
@@ -1246,12 +1252,7 @@ ${worksheets}
     const gross = list.reduce((s, x) => s + Number(x.gross || 0), 0);
     const fees = list.reduce((s, x) => s + Number(x.fees || 0), 0);
     const shipping = list.reduce((s, x) => s + Number(x.shippingCost || 0), 0);
-    const net = list.reduce((s, x) => {
-      const g = Number(x.gross || 0);
-      const f = Number(x.fees || 0);
-      const sh = Number(x.shippingCost || 0);
-      return s + Number(x.net != null ? x.net : g - f - sh);
-    }, 0);
+    const net = list.reduce((s, x) => s + effectiveSaleNet(x), 0);
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
@@ -1308,7 +1309,7 @@ ${worksheets}
     }
     showStatus('Sincronizando Amazon…', '', 'vendas');
     try {
-      const res = await fetch(`${base.replace(/\/$/, '')}/admin/amz/sync`, {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/amz/sync?full=1`, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
