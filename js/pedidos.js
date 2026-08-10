@@ -199,12 +199,19 @@
     return String(o.shippingMethodId || '').toLowerCase().includes('motoboy');
   }
 
+  function isSuperfreteOrder(o) {
+    const provider = String(o.shippingProvider || '').toLowerCase();
+    if (provider === 'superfrete') return true;
+    const method = String(o.shippingMethodId || '').toLowerCase();
+    return method.includes('superfrete') || method.startsWith('br-sf-');
+  }
+
   function isCorreiosBrOrder(o) {
     if (o.internationalLensOnly) return false;
     const provider = String(o.shippingProvider || '').toLowerCase();
-    if (provider === 'uber' || provider === 'motoboy') return false;
+    if (provider === 'uber' || provider === 'motoboy' || provider === 'superfrete') return false;
     const method = String(o.shippingMethodId || '').toLowerCase();
-    if (method.includes('uber') || method.includes('motoboy')) return false;
+    if (method.includes('uber') || method.includes('motoboy') || method.includes('superfrete') || method.startsWith('br-sf-')) return false;
     const pais = String(o.paisCode || o.pais || '').toUpperCase();
     if (pais && pais !== 'BR' && !pais.includes('BRASIL')) return false;
     if (String(o.shipmentType || '') === 'documento' || String(o.shipmentType || '') === 'encomenda') return false;
@@ -304,6 +311,25 @@
     if (isMotoboyOrder(o)) {
       const notified = o.motoboyNotifiedAt ? 'Motoboy avisado' : 'Aguardando aviso';
       return `<small class="pedidos-track-status">Motoboy</small><br><small>${notified}</small>`;
+    }
+
+    if (isSuperfreteOrder(o)) {
+      if (o.superfreteSkipped) {
+        return `<small class="pedidos-track-muted" title="${escAttr(o.superfreteSkipped)}">Teste — sem etiqueta SF</small>`;
+      }
+      const track = o.superfreteTrackingCode || o.correiosTrackingCode;
+      if (track) {
+        return `<small class="pedidos-track-status">${escHtml(o.shippingService || 'Super Frete')}</small><br><small>${escHtml(track)}</small>`;
+      }
+      if (o.superfreteCartError || o.superfreteCheckoutError) {
+        const tip = o.superfreteCheckoutError || o.superfreteCartError;
+        return `<small class="pedidos-track-warn" title="${escAttr(tip)}">SF: pague saldo/cartão — passe o mouse</small>`;
+      }
+      if (o.superfreteCartId) {
+        const st = o.superfreteCartStatus === 'released' ? 'Liberada' : 'No carrinho SF — pague lá';
+        return `<small class="pedidos-track-status">${escHtml(o.shippingService || 'Super Frete')}</small><br><small>${st}</small>`;
+      }
+      return `<small class="pedidos-track-muted">${escHtml(o.shippingService || 'Super Frete')} — etiqueta pendente</small>`;
     }
 
     if (isCorreiosBrOrder(o)) {
@@ -1043,6 +1069,36 @@
           showStatus('Etiqueta Correios aberta' + track, 'success');
         } else {
           showStatus('Etiqueta aberta, mas AV não detectado. Abra o pedido e cole o AV da etiqueta.', 'warn');
+        }
+        return;
+      }
+      if (data.mode === 'superfrete') {
+        if (data.cartId) {
+          order.superfreteCartId = data.cartId;
+          order.superfreteCartStatus = data.status || order.superfreteCartStatus;
+          if (data.price != null) order.superfreteCartPrice = data.price;
+        }
+        if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
+        if (data.cartError) order.superfreteCartError = data.cartError;
+        if (data.skipped) order.superfreteSkipped = data.message;
+        const idx = allOrders.findIndex((x) => x.orderId === order.orderId);
+        if (idx >= 0) Object.assign(allOrders[idx], {
+          superfreteCartId: order.superfreteCartId,
+          superfreteCartStatus: order.superfreteCartStatus,
+          superfreteCartPrice: order.superfreteCartPrice,
+          superfreteCheckoutError: order.superfreteCheckoutError,
+          superfreteCartError: order.superfreteCartError,
+          superfreteSkipped: order.superfreteSkipped
+        });
+        applyFilters();
+        const panel = data.panelUrl || 'https://web.superfrete.com/#/minhas-etiquetas';
+        const wallet = data.walletUrl || 'https://web.superfrete.com/#/carteira';
+        const msg = data.message || data.error || 'Super Frete';
+        const needsPay = !!(data.checkoutError || data.cartError
+          || (data.cartId && data.status && data.status !== 'released'));
+        showStatus(msg, data.skipped ? 'warn' : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success')));
+        if (!data.skipped) {
+          window.open(needsPay && (data.checkoutError || data.cartError) ? wallet : panel, '_blank', 'noopener');
         }
         return;
       }
