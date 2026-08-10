@@ -1,0 +1,16 @@
+---
+description: Falar em português; retenção de vendas multi-ano
+alwaysApply: true
+---
+
+# Comunicação
+
+- Sempre responder ao usuário em **português** (mesmo se ele escrever em inglês).
+- Código, commits e nomes técnicos podem ficar em inglês quando o repo já usa inglês; a conversa com o usuário é em português.
+
+# Vendas (histórico e comparação)
+
+- **Cliques:** retenção ~90 dias é OK; não há interesse em cliques mais antigos.
+- **Vendas (loja, ML, Amazon, etc.):** manter do início da empresa em diante (anos). Não tratar 90 dias como retenção de vendas.
+- Objetivo de negócio: comparar ano a ano (ex.: este ano vs ano passado, períodos defasados).
+- Ao evoluir sync/Admin: priorizar backfill histórico + arquivo durável no KV (sem TTL em vendas) e UI de comparação YoY; sync de 90 dias é só janela de importação, não política de apagar dados.
