@@ -2091,7 +2091,7 @@ ${worksheets}
       : '<p class="clicks-stats-empty">—</p>';
 
     const dw = data?.dailyWrites || {};
-    const wUsed = Number(dw.clickWritesToday) || 0;
+    const wUsed = Number(dw.writesToday ?? dw.clickWritesToday) || 0;
     const wMax = Number(dw.limit) > 0 ? Number(dw.limit) : 1000;
     const wPct = Number.isFinite(Number(dw.percent))
       ? Number(dw.percent)
@@ -2109,12 +2109,12 @@ ${worksheets}
     if (wExhausted) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--full" role="status">
         <i class="fas fa-ban" aria-hidden="true"></i>
-        <span>COTA KV ESGOTADA — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Cliques pararam. Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>COTA KV ESGOTADA — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Writes pararam. Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     } else {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--ok" role="status">
         <i class="fas fa-check-circle" aria-hidden="true"></i>
-        <span>Writes Cloudflare (cliques): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>Writes KV hoje (tudo): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     }
 
@@ -2122,15 +2122,15 @@ ${worksheets}
       <details class="clicks-stats-details">
       <summary class="clicks-stats-summary"><i class="fas fa-chevron-right clicks-stats-chevron" aria-hidden="true"></i> Resumo</summary>
       <dl class="clicks-stats-dl">
-        <div class="clicks-stats-row"><dt>Hoje (eventos)</dt><dd>${data?.todayCount ?? 0}</dd></div>
-        <div class="clicks-stats-row"><dt>Writes cliques (UTC)</dt><dd>${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%)</dd></div>
-        <div class="clicks-stats-row"><dt>Total no log</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}</dd></div>
+        <div class="clicks-stats-row"><dt>Hoje (eventos clique)</dt><dd>${data?.todayCount ?? 0}</dd></div>
+        <div class="clicks-stats-row"><dt>Writes KV (UTC)</dt><dd>${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%)</dd></div>
+        <div class="clicks-stats-row"><dt>Total no log cliques</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}</dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
         <div class="clicks-stats-row"><dt>Mais antigo no KV</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
         <div class="clicks-stats-row"><dt>Renova cota</dt><dd>${escapeHtml(String(resetBr))}</dd></div>
         <div class="clicks-stats-row clicks-stats-row-top"><dt>Mais frequentes</dt><dd>${topList}</dd></div>
       </dl>
-      <p class="clicks-kv-note">Cota Free Cloudflare: 1.000 writes/dia na conta (cliques + pedidos + admin). Zera às 21:00 Brasília (00:00 UTC). O número de writes acima é estimativa do log de cliques.</p>
+      <p class="clicks-kv-note">Conta Free Cloudflare: ~1.000 writes/dia. Contamos <strong>todos</strong> os puts/deletes do Worker (cliques, pedidos, sync ML/Amazon, fórum, admin) desde 00:00 UTC (21:00 Brasília). Não é consulta à Cloudflare — é o nosso medidor. Se um put falhar por cota, marcamos esgotado.</p>
     </details>`;
   }
 

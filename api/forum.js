@@ -1,4 +1,27 @@
 import { buildForumSeedLangPacks } from './forum-seeds.js';
+import { bumpKvWriteCounter, isKvQuotaError, markKvWriteQuotaExhausted } from './kv-meter.js';
+
+async function kvPut(env, key, value, options) {
+  try {
+    if (options) await env.STORE_KV.put(key, value, options);
+    else await env.STORE_KV.put(key, value);
+    await bumpKvWriteCounter(1);
+  } catch (err) {
+    if (isKvQuotaError(err)) await markKvWriteQuotaExhausted();
+    throw err;
+  }
+}
+
+async function kvDelete(env, key) {
+  try {
+    await env.STORE_KV.delete(key);
+    await bumpKvWriteCounter(1);
+  } catch (err) {
+    if (isKvQuotaError(err)) await markKvWriteQuotaExhausted();
+    throw err;
+  }
+}
+
 
 /**
  * Community forum — gated to testers until publicly enabled.
@@ -165,7 +188,7 @@ async function getForumMeta(env) {
 }
 
 async function saveForumMeta(env, meta) {
-  await env.STORE_KV.put(FORUM_META_KEY, JSON.stringify(meta));
+  await kvPut(env, FORUM_META_KEY, JSON.stringify(meta));
 }
 
 async function getThreadIndex(env) {
@@ -177,7 +200,7 @@ async function getThreadIndex(env) {
 }
 
 async function saveThreadIndex(env, ids) {
-  await env.STORE_KV.put(FORUM_INDEX_KEY, JSON.stringify(ids.slice(0, FORUM_INDEX_MAX)));
+  await kvPut(env, FORUM_INDEX_KEY, JSON.stringify(ids.slice(0, FORUM_INDEX_MAX)));
 }
 
 async function getThread(env, id) {
@@ -187,18 +210,18 @@ async function getThread(env, id) {
 }
 
 async function saveThread(env, thread) {
-  await env.STORE_KV.put('forum:thread:' + thread.id, JSON.stringify(thread));
-  if (thread.slug) await env.STORE_KV.put('forum:slug:' + thread.slug, thread.id);
+  await kvPut(env, 'forum:thread:' + thread.id, JSON.stringify(thread));
+  if (thread.slug) await kvPut(env, 'forum:slug:' + thread.slug, thread.id);
 }
 
 async function deleteThreadCompletely(env, threadId) {
   const thread = await getThread(env, threadId);
   if (!thread) return false;
   if (thread.slug) {
-    try { await env.STORE_KV.delete('forum:slug:' + thread.slug); } catch (e) { /* ignore */ }
+    try { await kvDelete(env, 'forum:slug:' + thread.slug); } catch (e) { /* ignore */ }
   }
-  try { await env.STORE_KV.delete('forum:thread:' + threadId); } catch (e) { /* ignore */ }
-  try { await env.STORE_KV.delete('forum:replies:' + threadId); } catch (e) { /* ignore */ }
+  try { await kvDelete(env, 'forum:thread:' + threadId); } catch (e) { /* ignore */ }
+  try { await kvDelete(env, 'forum:replies:' + threadId); } catch (e) { /* ignore */ }
   const index = await getThreadIndex(env);
   await saveThreadIndex(env, index.filter((id) => id !== threadId));
   return true;
@@ -213,7 +236,7 @@ async function getReplies(env, threadId) {
 }
 
 async function saveReplies(env, threadId, replies) {
-  await env.STORE_KV.put('forum:replies:' + threadId, JSON.stringify(replies.slice(-FORUM_REPLIES_MAX)));
+  await kvPut(env, 'forum:replies:' + threadId, JSON.stringify(replies.slice(-FORUM_REPLIES_MAX)));
 }
 
 async function resolveThreadByParam(env, param) {
@@ -780,10 +803,10 @@ async function replaceSeededThreads(env) {
     if (!thread) continue;
     if (thread.seeded) {
       if (thread.slug) {
-        try { await env.STORE_KV.delete('forum:slug:' + thread.slug); } catch (e) { /* ignore */ }
+        try { await kvDelete(env, 'forum:slug:' + thread.slug); } catch (e) { /* ignore */ }
       }
-      try { await env.STORE_KV.delete('forum:thread:' + id); } catch (e) { /* ignore */ }
-      try { await env.STORE_KV.delete('forum:replies:' + id); } catch (e) { /* ignore */ }
+      try { await kvDelete(env, 'forum:thread:' + id); } catch (e) { /* ignore */ }
+      try { await kvDelete(env, 'forum:replies:' + id); } catch (e) { /* ignore */ }
       removed += 1;
     } else {
       kept.push(id);
@@ -1043,10 +1066,10 @@ export async function handleForumRoute(request, env, origin, deps) {
         return deps.json({ error: 'Este nome de usuário já está em uso.' }, 409, origin);
       }
       if (user.username && user.username !== username) {
-        await env.STORE_KV.delete('user:username:' + user.username);
+        await kvDelete(env, 'user:username:' + user.username);
       }
       user.username = username;
-      await env.STORE_KV.put('user:username:' + username, user.userId);
+      await kvPut(env, 'user:username:' + username, user.userId);
     }
     if (body.avatarId !== undefined) {
       const avatarId = String(body.avatarId || '');

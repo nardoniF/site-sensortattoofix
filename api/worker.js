@@ -5,6 +5,12 @@
 
 import { generateCommissionerStoryBanners } from './commissioner-banners.js';
 import { handleForumRoute } from './forum.js';
+import {
+  bumpKvWriteCounter,
+  buildKvDailyWriteBudget,
+  isKvQuotaError,
+  markKvWriteQuotaExhausted
+} from './kv-meter.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -21,8 +27,6 @@ const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
 const CLICKS_BLOB = 'clicks:blob';
 const CLICKS_MAX = 2500;
-/** Cloudflare Workers Free — KV writes/day (resets 00:00 UTC = 21:00 America/Sao_Paulo). */
-const KV_FREE_WRITES_PER_DAY = 1000;
 const FEEDBACK_BLOB = 'feedback:blob';
 const FEEDBACK_MAX = 500;
 const CLICK_TTL_SEC = 90 * 86400;
@@ -992,7 +996,7 @@ async function handleCommissionerRegister(request, env, origin) {
   if (rlCount >= 5) {
     return json({ error: 'Muitas tentativas hoje. Tente amanhã ou fale conosco.' }, 429, origin);
   }
-  await env.STORE_KV.put(rlKey, String(rlCount + 1), { expirationTtl: 86400 });
+  await kvPut(env, rlKey, String(rlCount + 1), { expirationTtl: 86400 });
 
   const config = await getConfig(env);
   const coupons = getCoupons(config);
@@ -1050,7 +1054,7 @@ async function handleCommissionerResendWelcome(request, env, origin) {
   if (rlCount >= 10) {
     return json({ error: 'Muitas tentativas de reenvio hoje. Tente amanhã.' }, 429, origin);
   }
-  await env.STORE_KV.put(rlKey, String(rlCount + 1), { expirationTtl: 86400 });
+  await kvPut(env, rlKey, String(rlCount + 1), { expirationTtl: 86400 });
 
   const config = await getConfig(env);
   const coupon = getCoupons(config).find(
@@ -1582,14 +1586,25 @@ async function getUserByEmail(env, email) {
 }
 
 async function saveUser(env, user) {
-  await env.STORE_KV.put('user:' + user.userId, JSON.stringify(user));
-  await env.STORE_KV.put('user:email:' + normalizeEmail(user.email), user.userId);
+  await kvPut(env, 'user:' + user.userId, JSON.stringify(user));
+  await kvPut(env, 'user:email:' + normalizeEmail(user.email), user.userId);
+}
+
+async function kvPut(env, key, value, options) {
+  try {
+    if (options) await env.STORE_KV.put(key, value, options);
+    else await env.STORE_KV.put(key, value);
+    await bumpKvWriteCounter(1);
+    return true;
+  } catch (err) {
+    if (isKvQuotaError(err)) await markKvWriteQuotaExhausted();
+    throw err;
+  }
 }
 
 async function kvPutSafe(env, key, value, options) {
   try {
-    if (options) await env.STORE_KV.put(key, value, options);
-    else await env.STORE_KV.put(key, value);
+    await kvPut(env, key, value, options);
     return true;
   } catch (err) {
     console.error('KV put failed:', key, err?.message || err);
@@ -1597,9 +1612,20 @@ async function kvPutSafe(env, key, value, options) {
   }
 }
 
-async function kvDeleteSafe(env, key) {
+async function kvDelete(env, key) {
   try {
     await env.STORE_KV.delete(key);
+    await bumpKvWriteCounter(1);
+    return true;
+  } catch (err) {
+    if (isKvQuotaError(err)) await markKvWriteQuotaExhausted();
+    throw err;
+  }
+}
+
+async function kvDeleteSafe(env, key) {
+  try {
+    await kvDelete(env, key);
     return true;
   } catch (err) {
     console.error('KV delete failed:', key, err?.message || err);
@@ -1607,10 +1633,6 @@ async function kvDeleteSafe(env, key) {
   }
 }
 
-function isKvQuotaError(err) {
-  const msg = String(err?.message || err || '').toLowerCase();
-  return /429|quota|limit|put.*exceed|exceed.*put|write.*limit/i.test(msg);
-}
 
 function customerSessionCacheReq(token) {
   return new Request('https://stf-internal/customerSession/' + encodeURIComponent(token));
@@ -1663,7 +1685,7 @@ async function linkOrderToUser(env, userId, orderId) {
   const list = JSON.parse((await env.STORE_KV.get(key)) || '[]');
   if (!list.includes(orderId)) {
     list.unshift(orderId);
-    await env.STORE_KV.put(key, JSON.stringify(list.slice(0, 500)));
+    await kvPut(env, key, JSON.stringify(list.slice(0, 500)));
   }
 }
 
@@ -3304,7 +3326,7 @@ async function getMlOAuthState(env) {
 async function saveMlOAuthState(env, patch) {
   const prev = (await getMlOAuthState(env)) || {};
   const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  await env.STORE_KV.put(ML_OAUTH_KV_KEY, JSON.stringify(next));
+  await kvPut(env, ML_OAUTH_KV_KEY, JSON.stringify(next));
   return next;
 }
 
@@ -3341,7 +3363,7 @@ async function persistMlTokens(env, data) {
   const userId = data.user_id != null ? String(data.user_id) : null;
   const expiresIn = Math.max(60, Number(data.expires_in || 21600) - 120);
   if (accessToken) {
-    await env.STORE_KV.put(ML_TOKEN_KV_KEY, JSON.stringify({
+    await kvPut(env, ML_TOKEN_KV_KEY, JSON.stringify({
       token: accessToken,
       expiresAt: Date.now() + expiresIn * 1000,
       userId
@@ -3378,7 +3400,7 @@ async function getMlAccessToken(env) {
     return persisted.accessToken || null;
   } catch (err) {
     console.warn('ML OAuth refresh:', err.message || err);
-    await env.STORE_KV.delete(ML_TOKEN_KV_KEY).catch(() => {});
+    await kvDelete(env, ML_TOKEN_KV_KEY).catch(() => {});
     return null;
   }
 }
@@ -3543,7 +3565,7 @@ async function getMlSalesMeta(env) {
 async function saveMlSalesMeta(env, patch) {
   const prev = (await getMlSalesMeta(env)) || {};
   const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  await env.STORE_KV.put(ML_SALES_META_KEY, JSON.stringify(next));
+  await kvPut(env, ML_SALES_META_KEY, JSON.stringify(next));
   return next;
 }
 
@@ -3648,7 +3670,7 @@ async function enrichMlSaleShippingCost(env, token, sale, sellerId) {
 }
 
 async function upsertMlSale(env, sale, index) {
-  await env.STORE_KV.put(ML_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+  await kvPut(env, ML_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
   const next = (index || []).filter((id) => id !== sale.externalId);
   next.unshift(sale.externalId);
   return next.slice(0, ML_SALES_INDEX_MAX);
@@ -3738,7 +3760,7 @@ async function syncMlOrders(env, options = {}) {
     if (offset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
   }
 
-  await env.STORE_KV.put(ML_SALES_INDEX_KEY, JSON.stringify(index));
+  await kvPut(env, ML_SALES_INDEX_KEY, JSON.stringify(index));
   const report = {
     ok: true,
     sellerId,
@@ -3871,7 +3893,7 @@ async function getAmzOAuthState(env) {
 async function saveAmzOAuthState(env, patch) {
   const prev = (await getAmzOAuthState(env)) || {};
   const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  await env.STORE_KV.put(AMZ_OAUTH_KV_KEY, JSON.stringify(next));
+  await kvPut(env, AMZ_OAUTH_KV_KEY, JSON.stringify(next));
   return next;
 }
 
@@ -3908,13 +3930,13 @@ async function getAmzAccessToken(env) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     console.warn('Amazon LWA refresh:', res.status, data.error_description || data.error || '');
-    await env.STORE_KV.delete(AMZ_TOKEN_KV_KEY).catch(() => {});
+    await kvDelete(env, AMZ_TOKEN_KV_KEY).catch(() => {});
     return null;
   }
   const access = String(data.access_token || '').trim();
   if (!access) return null;
   const ttl = Math.max(60, Number(data.expires_in || 3600) - 120);
-  await env.STORE_KV.put(AMZ_TOKEN_KV_KEY, JSON.stringify({
+  await kvPut(env, AMZ_TOKEN_KV_KEY, JSON.stringify({
     token: access,
     expiresAt: Date.now() + ttl * 1000
   }));
@@ -3995,7 +4017,7 @@ async function getAmzSalesMeta(env) {
 async function saveAmzSalesMeta(env, patch) {
   const prev = (await getAmzSalesMeta(env)) || {};
   const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  await env.STORE_KV.put(AMZ_SALES_META_KEY, JSON.stringify(next));
+  await kvPut(env, AMZ_SALES_META_KEY, JSON.stringify(next));
   return next;
 }
 
@@ -4194,7 +4216,7 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
 }
 
 async function upsertAmzSale(env, sale, index) {
-  await env.STORE_KV.put(AMZ_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+  await kvPut(env, AMZ_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
   const next = (index || []).filter((id) => id !== sale.externalId);
   next.unshift(sale.externalId);
   return next.slice(0, AMZ_SALES_INDEX_MAX);
@@ -4337,7 +4359,7 @@ async function syncAmzOrders(env, options = {}) {
       sale.hasRefund = hasRefund;
       sale.feesNote = null;
       sale.syncedAt = new Date().toISOString();
-      await env.STORE_KV.put(AMZ_SALE_PREFIX + id, JSON.stringify(sale));
+      await kvPut(env, AMZ_SALE_PREFIX + id, JSON.stringify(sale));
       financesBackfilled += 1;
       updated += 1;
       await new Promise((r) => setTimeout(r, 250));
@@ -4346,7 +4368,7 @@ async function syncAmzOrders(env, options = {}) {
     }
   }
 
-  await env.STORE_KV.put(AMZ_SALES_INDEX_KEY, JSON.stringify(index));
+  await kvPut(env, AMZ_SALES_INDEX_KEY, JSON.stringify(index));
   const report = {
     ok: true,
     marketplaceId: amzMarketplaceId(env),
@@ -4531,13 +4553,13 @@ async function getConfig(env) {
 async function saveConfig(env, config) {
   const normalized = withConfigDefaults(config);
   const toSave = { ...normalized, updatedAt: new Date().toISOString() };
-  await env.STORE_KV.put(CONFIG_KEY, JSON.stringify(toSave));
+  await kvPut(env, CONFIG_KEY, JSON.stringify(toSave));
   return toSave;
 }
 
 async function createSession(env) {
   const token = crypto.randomUUID();
-  await env.STORE_KV.put('session:' + token, '1', { expirationTtl: 86400 });
+  await kvPut(env, 'session:' + token, '1', { expirationTtl: 86400 });
   return token;
 }
 
@@ -4563,7 +4585,7 @@ async function getCachedLabelPdf(env, orderId) {
 async function saveCachedLabelPdf(env, orderId, pdfBase64) {
   if (!pdfBase64 || !orderId) return;
   try {
-    await env.STORE_KV.put(LABEL_PDF_PREFIX + orderId, String(pdfBase64));
+    await kvPut(env, LABEL_PDF_PREFIX + orderId, String(pdfBase64));
   } catch (err) {
     console.warn('label pdf cache:', orderId, err.message);
   }
@@ -4632,7 +4654,7 @@ async function rebuildOrdersIndexFromKv(env) {
   entries.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   const trimmed = entries.slice(0, 2000);
   if (trimmed.length) {
-    await env.STORE_KV.put(ORDERS_INDEX, JSON.stringify(trimmed));
+    await kvPut(env, ORDERS_INDEX, JSON.stringify(trimmed));
   }
   return trimmed;
 }
@@ -4672,15 +4694,15 @@ async function listOrdersForAdmin(env) {
 }
 
 async function saveOrder(env, order) {
-  await env.STORE_KV.put('order:' + order.orderId, JSON.stringify(order));
+  await kvPut(env, 'order:' + order.orderId, JSON.stringify(order));
   const trackingCode = String(order.correiosTrackingCode || '').trim().toUpperCase();
   if (trackingCode && CORREIOS_AV_RE.test(trackingCode)) {
-    await env.STORE_KV.put('tracking:' + trackingCode, order.orderId);
+    await kvPut(env, 'tracking:' + trackingCode, order.orderId);
   }
   const index = await readOrdersIndex(env);
   const filtered = index.filter((o) => o.orderId !== order.orderId);
   filtered.unshift(buildIndexEntry(order));
-  await env.STORE_KV.put(ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
+  await kvPut(env, ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
   if (order.userId) await linkOrderToUser(env, order.userId, order.orderId);
 }
 
@@ -4690,7 +4712,7 @@ async function unlinkOrderFromUser(env, userId, orderId) {
   const list = JSON.parse((await env.STORE_KV.get(key)) || '[]');
   const filtered = list.filter((id) => id !== orderId);
   if (filtered.length !== list.length) {
-    await env.STORE_KV.put(key, JSON.stringify(filtered));
+    await kvPut(env, key, JSON.stringify(filtered));
   }
 }
 
@@ -4698,10 +4720,10 @@ async function deleteOrder(env, orderId) {
   const order = await getOrder(env, orderId);
   if (!order) return false;
 
-  await env.STORE_KV.delete('order:' + orderId);
+  await kvDelete(env, 'order:' + orderId);
 
   const index = await readOrdersIndex(env);
-  await env.STORE_KV.put(
+  await kvPut(env, 
     ORDERS_INDEX,
     JSON.stringify(index.filter((o) => o.orderId !== orderId))
   );
@@ -4801,7 +4823,7 @@ async function getCorreiosToken(env) {
     return null;
   }
   const data = await res.json();
-  await env.STORE_KV.put(cacheKey, JSON.stringify({
+  await kvPut(env, cacheKey, JSON.stringify({
     token: data.token,
     expiresAt: Date.now() + (Number(data.expiraEm || 3600) - 60) * 1000
   }));
@@ -4921,11 +4943,11 @@ async function getUberAccessToken(env) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     console.warn('Uber OAuth:', res.status, data.error_description || data.error || '');
-    await env.STORE_KV.delete('uber:token').catch(() => {});
+    await kvDelete(env, 'uber:token').catch(() => {});
     return null;
   }
   const ttl = Math.max(60, Number(data.expires_in || 3600) - 60);
-  await env.STORE_KV.put('uber:token', JSON.stringify({
+  await kvPut(env, 'uber:token', JSON.stringify({
     token: data.access_token,
     expiresAt: Date.now() + ttl * 1000
   }));
@@ -6077,7 +6099,7 @@ async function findOrderByTrackingCode(env, trackingCode) {
     const order = await getOrder(env, item.orderId);
     if (!order) continue;
     if (String(order.correiosTrackingCode || '').trim().toUpperCase() === code) {
-      await env.STORE_KV.put('tracking:' + code, order.orderId);
+      await kvPut(env, 'tracking:' + code, order.orderId);
       return order;
     }
   }
@@ -7591,7 +7613,7 @@ async function fetchFxRate(env, toCurrency) {
     cachedAt: Date.now()
   };
   try {
-    await env.STORE_KV.put(cacheKey, JSON.stringify(row), { expirationTtl: 86400 });
+    await kvPut(env, cacheKey, JSON.stringify(row), { expirationTtl: 86400 });
   } catch { /* ignore */ }
   return row;
 }
@@ -9212,7 +9234,7 @@ async function enforceForgotPasswordRateLimit(env, ip) {
     state = { count: 0, startedAt: now };
   }
   state.count = Number(state.count || 0) + 1;
-  await env.STORE_KV.put(key, JSON.stringify(state), { expirationTtl: 60 * 60 });
+  await kvPut(env, key, JSON.stringify(state), { expirationTtl: 60 * 60 });
   return state.count <= 8;
 }
 
@@ -9229,7 +9251,7 @@ async function claimForgotPasswordSend(env, email) {
       }
     } catch (_) { /* replace */ }
   }
-  await env.STORE_KV.put(key, JSON.stringify({ at: now }), {
+  await kvPut(env, key, JSON.stringify({ at: now }), {
     expirationTtl: Math.ceil(FORGOT_PASSWORD_RESEND_COOLDOWN_MS / 1000) + 30
   });
   return true;
@@ -9284,10 +9306,10 @@ async function handleForgotPassword(request, env, origin) {
 
   const config = await getConfig(env);
   const prev = String(user.passwordResetToken || '').trim();
-  if (prev) await env.STORE_KV.delete('passwordReset:' + prev);
+  if (prev) await kvDelete(env, 'passwordReset:' + prev);
 
   const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-  await env.STORE_KV.put(
+  await kvPut(env, 
     'passwordReset:' + token,
     JSON.stringify({
       userId: user.userId,
@@ -9313,7 +9335,7 @@ async function handleForgotPassword(request, env, origin) {
   if (!sent?.ok) {
     console.error('Forgot password email failed:', user.email, sent);
     // Allow immediate retry if send failed.
-    await env.STORE_KV.delete(`forgotPwEmail:${email}`);
+    await kvDelete(env, `forgotPwEmail:${email}`);
     return json({
       error: locale === 'en'
         ? 'Could not send the email. Try again or contact support.'
@@ -9373,7 +9395,7 @@ async function handleResetPassword(request, env, origin) {
   user.passwordResetAt = null;
   user.updatedAt = new Date().toISOString();
   await saveUser(env, user);
-  await env.STORE_KV.delete('passwordReset:' + token);
+  await kvDelete(env, 'passwordReset:' + token);
 
   // Invalidate existing sessions by rotating: delete this user's sessions is hard without index;
   // create a fresh session for convenience after reset.
@@ -9429,12 +9451,12 @@ async function listAllCustomers(env, max = 500) {
 async function deleteCustomerUser(env, userId) {
   const user = await getUserById(env, userId);
   if (!user) return false;
-  await env.STORE_KV.delete('user:' + userId);
-  if (user.email) await env.STORE_KV.delete('user:email:' + normalizeEmail(user.email));
-  if (user.username) await env.STORE_KV.delete('user:username:' + String(user.username).toLowerCase());
-  await env.STORE_KV.delete('user:' + userId + ':orders');
+  await kvDelete(env, 'user:' + userId);
+  if (user.email) await kvDelete(env, 'user:email:' + normalizeEmail(user.email));
+  if (user.username) await kvDelete(env, 'user:username:' + String(user.username).toLowerCase());
+  await kvDelete(env, 'user:' + userId + ':orders');
   if (user.passwordResetToken) {
-    await env.STORE_KV.delete('passwordReset:' + user.passwordResetToken);
+    await kvDelete(env, 'passwordReset:' + user.passwordResetToken);
   }
   return true;
 }
@@ -11688,102 +11710,9 @@ async function clicksBlobStoreActive(env) {
 }
 
 async function saveClicksBlob(env, list) {
-  try {
-    await env.STORE_KV.put(CLICKS_BLOB, JSON.stringify(list));
-    await bumpKvClickWriteCounter(1);
-  } catch (err) {
-    if (isKvQuotaError(err)) await markKvWriteQuotaExhausted();
-    throw err;
-  }
+  await kvPut(env, CLICKS_BLOB, JSON.stringify(list));
 }
 
-function utcDayKey(d = new Date()) {
-  return d.toISOString().slice(0, 10);
-}
-
-function nextUtcMidnightDate() {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
-}
-
-async function getKvClickWriteCounter(day = utcDayKey()) {
-  try {
-    const hit = await caches.default.match(new Request(`https://stf-internal/kv-click-writes/${day}`));
-    if (!hit) return 0;
-    return Math.max(0, parseInt(await hit.text(), 10) || 0);
-  } catch {
-    return 0;
-  }
-}
-
-async function bumpKvClickWriteCounter(n = 1) {
-  const day = utcDayKey();
-  const req = new Request(`https://stf-internal/kv-click-writes/${day}`);
-  let count = 0;
-  try {
-    const hit = await caches.default.match(req);
-    if (hit) count = parseInt(await hit.text(), 10) || 0;
-  } catch (_) { /* ignore */ }
-  count += Math.max(1, Number(n) || 1);
-  try {
-    await caches.default.put(req, new Response(String(count), {
-      headers: { 'Cache-Control': 'max-age=172800' }
-    }));
-  } catch (_) { /* ignore */ }
-  return count;
-}
-
-async function markKvWriteQuotaExhausted() {
-  const day = utcDayKey();
-  try {
-    await caches.default.put(
-      new Request(`https://stf-internal/kv-writes-exhausted/${day}`),
-      new Response('1', { headers: { 'Cache-Control': 'max-age=172800' } })
-    );
-  } catch (_) { /* ignore */ }
-}
-
-async function isKvWriteQuotaExhaustedMarked() {
-  try {
-    return !!(await caches.default.match(new Request(`https://stf-internal/kv-writes-exhausted/${utcDayKey()}`)));
-  } catch {
-    return false;
-  }
-}
-
-/** Estimate Cloudflare Free KV write pressure from click-log puts (1 put ≈ 1 write). */
-async function buildKvDailyWriteBudget(clickList) {
-  const day = utcDayKey();
-  const fromCounter = await getKvClickWriteCounter(day);
-  const fromBlob = (clickList || []).filter((r) => {
-    if (!r?.ts) return false;
-    return new Date(r.ts).toISOString().slice(0, 10) === day;
-  }).length;
-  const clickWritesToday = Math.max(fromCounter, fromBlob);
-  const limit = KV_FREE_WRITES_PER_DAY;
-  const percent = Math.min(100, Math.round((clickWritesToday / limit) * 100));
-  const exhausted = await isKvWriteQuotaExhaustedMarked();
-  const resetAt = nextUtcMidnightDate();
-  const resetsAtBr = resetAt.toLocaleString('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  return {
-    clickWritesToday,
-    limit,
-    percent,
-    near: !exhausted && percent >= 70,
-    critical: !exhausted && percent >= 85,
-    exhausted,
-    resetsAt: resetAt.toISOString(),
-    resetsAtBr,
-    // Midnight UTC → 21:00 in Brasília (UTC−3)
-    resetsHintBr: '21:00 (Brasília) / 00:00 UTC'
-  };
-}
 
 async function purgeLegacyClickIndex(env, mode) {
   const ids = await getClicksIndex(env);
@@ -11802,7 +11731,7 @@ async function purgeLegacyClickIndex(env, mode) {
     } catch {
       if (mode === 'all') {
         removed++;
-        await env.STORE_KV.delete('click:' + id).catch(() => {});
+        await kvDelete(env, 'click:' + id).catch(() => {});
       } else {
         kept.push(id);
       }
@@ -11811,12 +11740,12 @@ async function purgeLegacyClickIndex(env, mode) {
     const drop = mode === 'all' || isTestClick(row);
     if (drop) {
       removed++;
-      await env.STORE_KV.delete('click:' + id).catch(() => {});
+      await kvDelete(env, 'click:' + id).catch(() => {});
     } else {
       kept.push(id);
     }
   }
-  await env.STORE_KV.put(CLICKS_INDEX, JSON.stringify(kept));
+  await kvPut(env, CLICKS_INDEX, JSON.stringify(kept));
   return removed;
 }
 
@@ -12252,7 +12181,7 @@ async function handleAdminListClicks(request, env, origin) {
   const capPercent = capMax > 0 ? Math.min(100, Math.round((capUsed / capMax) * 100)) : 0;
   const capFull = capUsed >= capMax;
   const capNearFull = !capFull && capUsed >= Math.floor(capMax * 0.9);
-  const dailyWrites = await buildKvDailyWriteBudget(loaded);
+  const dailyWrites = await buildKvDailyWriteBudget();
 
   return json({
     clicks,
@@ -12289,7 +12218,7 @@ async function getFeedbackList(env) {
 }
 
 async function saveFeedbackList(env, list) {
-  await env.STORE_KV.put(FEEDBACK_BLOB, JSON.stringify(list));
+  await kvPut(env, FEEDBACK_BLOB, JSON.stringify(list));
 }
 
 async function appendFeedback(env, entry) {
@@ -13144,7 +13073,7 @@ async function sendMonthlyReportEmail(env, config, year, month, { force = false 
   });
 
   if (result.ok) {
-    await env.STORE_KV.put(key, JSON.stringify({
+    await kvPut(env, key, JSON.stringify({
       sentAt: new Date().toISOString(),
       to,
       report: {
@@ -13232,7 +13161,7 @@ async function runScheduledCorreiosTrackingSync(env) {
     batch: batch.length,
     synced
   };
-  await env.STORE_KV.put('correios:tracking:cron:last', JSON.stringify(report));
+  await kvPut(env, 'correios:tracking:cron:last', JSON.stringify(report));
   console.log('Correios tracking cron:', JSON.stringify(report));
   return { ok: true, ...report };
 }
