@@ -3586,7 +3586,7 @@ function normalizeMlOrder(order) {
   const shippingCost = order.shipping_cost != null
     ? Number(order.shipping_cost)
     : shippingFromPayments;
-  const net = Math.round((gross - fees) * 100) / 100;
+  const net = Math.round((gross - fees - Number(shippingCost || 0)) * 100) / 100;
   const soldAt = order.date_closed || order.date_created || null;
   return {
     channel: 'mercadolivre',
@@ -3611,6 +3611,38 @@ function normalizeMlOrder(order) {
     dateLastUpdated: order.date_last_updated || order.last_updated || null,
     syncedAt: new Date().toISOString()
   };
+}
+
+async function enrichMlSaleShippingCost(env, token, sale, sellerId) {
+  if (!sale?.shippingId || !token) return sale;
+  try {
+    const res = await fetch(`${ML_API_BASE}/shipments/${encodeURIComponent(sale.shippingId)}/costs`, {
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/json',
+        'x-format-new': 'true'
+      }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return sale;
+    const senders = Array.isArray(data.senders) ? data.senders : [];
+    let sender = senders[0] || null;
+    if (sellerId) {
+      sender = senders.find((s) => String(s.user_id) === String(sellerId)) || sender;
+    }
+    const sellerShipping = Math.round(Number(sender?.cost || 0) * 100) / 100;
+    const buyerShipping = Math.round(Number(data.receiver?.cost || 0) * 100) / 100;
+    const net = Math.round((Number(sale.gross || 0) - Number(sale.fees || 0) - sellerShipping) * 100) / 100;
+    return {
+      ...sale,
+      shippingCost: sellerShipping,
+      buyerShippingCost: buyerShipping,
+      net,
+      shippingCostsOk: true
+    };
+  } catch {
+    return sale;
+  }
 }
 
 async function upsertMlSale(env, sale, index) {
@@ -3690,7 +3722,8 @@ async function syncMlOrders(env, options = {}) {
     if (!results.length) break;
 
     for (const order of results) {
-      const sale = normalizeMlOrder(order);
+      let sale = normalizeMlOrder(order);
+      sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
       const existingRaw = await env.STORE_KV.get(ML_SALE_PREFIX + sale.externalId);
       if (existingRaw) updated += 1;
       else imported += 1;
@@ -3974,8 +4007,132 @@ async function getAmzSalesIndex(env) {
   }
 }
 
-function normalizeAmzOrder(order, items) {
-  const gross = Math.round(Number(order.OrderTotal?.Amount || 0) * 100) / 100;
+const AMZ_COMMISSION_FEE_TYPES = new Set([
+  'Commission',
+  'GiftwrapCommission',
+  'RefundCommission',
+  'FixedClosingFee',
+  'VariableClosingFee',
+  'SalesTaxCollectionFee'
+]);
+
+const AMZ_SHIPPING_FEE_TYPES = new Set([
+  'ShippingHB',
+  'MFNPostageFee',
+  'MFNShippingChargeback',
+  'FBAPerUnitFulfillmentFee',
+  'FBAPerOrderFulfillmentFee',
+  'FBAWeightBasedFee',
+  'ShippingChargeback',
+  'PostageBilling',
+  'DeliveryServicesFee',
+  'FBATransportationFee'
+]);
+
+function amzMoney(amountObj) {
+  return Number(amountObj?.CurrencyAmount || 0);
+}
+
+function amzRound2(n) {
+  return Math.round(Number(n || 0) * 100) / 100;
+}
+
+/** Walk Finances payload → bruto / comissão / frete / líquido (o que caiu). */
+function summarizeAmzFinancialEvents(financialEvents) {
+  const fe = financialEvents && typeof financialEvents === 'object' ? financialEvents : {};
+  let principal = 0;
+  let commission = 0;
+  let shipping = 0;
+  let pocket = 0;
+  let otherFees = 0;
+  let hasRefund = false;
+  const feeSamples = [];
+
+  function noteFee(feeType, amount) {
+    pocket += amount;
+    const t = String(feeType || '');
+    if (AMZ_COMMISSION_FEE_TYPES.has(t)) {
+      commission -= amount; // Commission -8.4 → +8.4 gasto; reclaim +8.4 → -8.4
+    } else if (AMZ_SHIPPING_FEE_TYPES.has(t)) {
+      shipping -= amount;
+    } else {
+      otherFees -= amount;
+    }
+    if (feeSamples.length < 24 && amount !== 0) {
+      feeSamples.push({ type: t || 'Fee', amount: amzRound2(amount) });
+    }
+  }
+
+  function noteCharge(chargeType, amount) {
+    pocket += amount;
+    if (String(chargeType || '') === 'Principal') principal += amount;
+  }
+
+  function walkShipmentLike(list, isRefund) {
+    for (const sh of list || []) {
+      if (isRefund) hasRefund = true;
+      for (const fee of sh.ShipmentFeeList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
+      for (const fee of sh.ShipmentFeeAdjustmentList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
+      for (const ch of sh.OrderChargeList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount));
+      for (const ch of sh.OrderChargeAdjustmentList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount));
+      const itemLists = [
+        sh.ShipmentItemList,
+        sh.ShipmentItemAdjustmentList
+      ];
+      for (const items of itemLists) {
+        for (const it of items || []) {
+          for (const ch of it.ItemChargeList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount));
+          for (const ch of it.ItemChargeAdjustmentList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount));
+          for (const fee of it.ItemFeeList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
+          for (const fee of it.ItemFeeAdjustmentList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
+        }
+      }
+    }
+  }
+
+  walkShipmentLike(fe.ShipmentEventList, false);
+  walkShipmentLike(fe.RefundEventList, true);
+  walkShipmentLike(fe.GuaranteeClaimEventList, true);
+  walkShipmentLike(fe.ChargebackEventList, true);
+
+  for (const svc of fe.ServiceFeeEventList || []) {
+    for (const fee of svc.FeeList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
+  }
+
+  return {
+    principal: amzRound2(principal),
+    commission: amzRound2(Math.max(0, commission)),
+    shipping: amzRound2(Math.max(0, shipping)),
+    otherFees: amzRound2(otherFees),
+    net: amzRound2(pocket),
+    hasRefund,
+    feeSamples
+  };
+}
+
+async function amzFetchOrderFinancials(env, token, orderId) {
+  const res = await fetch(
+    `${AMZ_API_HOST}/finances/v0/orders/${encodeURIComponent(orderId)}/financialEvents?MaxResultsPerPage=100`,
+    {
+      headers: {
+        'x-amz-access-token': token,
+        Accept: 'application/json',
+        'User-Agent': AMZ_USER_AGENT
+      }
+    }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data?.errors?.[0]?.message || data.message || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
+  }
+  return data.payload?.FinancialEvents || data.FinancialEvents || {};
+}
+
+function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
+  const orderTotal = amzRound2(Number(order.OrderTotal?.Amount || 0));
   const currency = order.OrderTotal?.CurrencyCode || 'BRL';
   const mappedItems = (Array.isArray(items) ? items : []).map((row) => ({
     id: row.ASIN || row.SellerSKU || null,
@@ -3985,9 +4142,15 @@ function normalizeAmzOrder(order, items) {
     saleFee: 0,
     currency: row.ItemPrice?.CurrencyCode || currency
   }));
-  // Fees via Finances API later — show gross as net until then (honest label in UI).
-  const fees = 0;
-  const net = gross;
+  const fin = financeSummary && typeof financeSummary === 'object' ? financeSummary : null;
+  const displayGross = orderTotal
+    || (fin && Math.abs(Number(fin.principal || 0)))
+    || 0;
+  const fees = financesFetched && fin ? Number(fin.commission || 0) : 0;
+  const shippingCost = financesFetched && fin ? Number(fin.shipping || 0) : 0;
+  const net = financesFetched && fin
+    ? Number(fin.net)
+    : displayGross;
   return {
     channel: 'amazon',
     externalId: String(order.AmazonOrderId || ''),
@@ -3996,10 +4159,13 @@ function normalizeAmzOrder(order, items) {
     status: order.OrderStatus || null,
     tags: [order.FulfillmentChannel, order.SalesChannel].filter(Boolean),
     currency,
-    gross,
-    fees,
-    net,
-    shippingCost: Number(order.ShipmentServiceLevelCategory ? 0 : 0),
+    gross: amzRound2(displayGross),
+    fees: amzRound2(fees),
+    net: amzRound2(net),
+    shippingCost: amzRound2(shippingCost),
+    otherFees: financesFetched && fin ? amzRound2(fin.otherFees || 0) : 0,
+    financesOk: !!financesFetched,
+    hasRefund: !!(fin && fin.hasRefund),
     buyer: {
       id: null,
       nickname: order.BuyerInfo?.BuyerName || order.BuyerEmail || null
@@ -4010,7 +4176,9 @@ function normalizeAmzOrder(order, items) {
     dateCreated: order.PurchaseDate || null,
     dateLastUpdated: order.LastUpdateDate || null,
     syncedAt: new Date().toISOString(),
-    feesNote: 'Taxas Amazon não importadas ainda — líquido = total do pedido.'
+    feesNote: financesFetched
+      ? null
+      : 'Financeiro Amazon ainda não disponível para este pedido (pode demorar após a venda).'
   };
 }
 
@@ -4105,12 +4273,22 @@ async function syncAmzOrders(env, options = {}) {
       try {
         items = await amzFetchOrderItems(env, token, order.AmazonOrderId);
       } catch { /* keep empty items */ }
-      const sale = normalizeAmzOrder(order, items);
+      let financeSummary = null;
+      let financesFetched = false;
+      try {
+        const events = await amzFetchOrderFinancials(env, token, order.AmazonOrderId);
+        financeSummary = summarizeAmzFinancialEvents(events);
+        financesFetched = true;
+      } catch (err) {
+        console.warn('Amazon finances', order.AmazonOrderId, err.message || err);
+      }
+      const sale = normalizeAmzOrder(order, items, financeSummary, financesFetched);
       if (!sale.externalId) continue;
       const existingRaw = await env.STORE_KV.get(AMZ_SALE_PREFIX + sale.externalId);
       if (existingRaw) updated += 1;
       else imported += 1;
       index = await upsertAmzSale(env, sale, index);
+      await new Promise((r) => setTimeout(r, 250));
     }
     pages += 1;
     nextToken = payload.NextToken || null;

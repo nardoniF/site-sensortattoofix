@@ -668,25 +668,29 @@
       const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
       const gross = Number(sale.gross || 0);
       const fees = Number(sale.fees || 0);
-      const net = Number(sale.net != null ? sale.net : gross - fees);
-      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, net: 0, months: {} };
+      const shipping = Number(sale.shippingCost || 0);
+      const net = Number(sale.net != null ? sale.net : gross - fees - shipping);
+      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, net: 0, months: {} };
       const y = tree[year];
-      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, net: 0, days: {} };
+      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, net: 0, days: {} };
       const m = y.months[monthNum];
-      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, net: 0, sales: [] };
+      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, net: 0, sales: [] };
       const d = m.days[dateKey];
-      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _net: net });
+      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _net: net });
       d.count += 1;
       d.gross += gross;
       d.fees += fees;
+      d.shipping += shipping;
       d.net += net;
       m.count += 1;
       m.gross += gross;
       m.fees += fees;
+      m.shipping += shipping;
       m.net += net;
       y.count += 1;
       y.gross += gross;
       y.fees += fees;
+      y.shipping += shipping;
       y.net += net;
     });
     Object.values(tree).forEach((y) => {
@@ -742,8 +746,9 @@
     const ts = saleSoldTs(sale);
     const gross = Number(sale.gross || 0);
     const fees = Number(sale.fees || 0);
-    const net = Number(sale.net != null ? sale.net : gross - fees);
-    return { ...sale, _ts: ts, _gross: gross, _fees: fees, _net: net };
+    const shipping = Number(sale.shippingCost || 0);
+    const net = Number(sale.net != null ? sale.net : gross - fees - shipping);
+    return { ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _net: net };
   }
 
   function sumAnnotated(list) {
@@ -751,9 +756,10 @@
       acc.count += 1;
       acc.gross += Number(s._gross || 0);
       acc.fees += Number(s._fees || 0);
+      acc.shipping += Number(s._shipping || 0);
       acc.net += Number(s._net || 0);
       return acc;
-    }, { count: 0, gross: 0, fees: 0, net: 0 });
+    }, { count: 0, gross: 0, fees: 0, shipping: 0, net: 0 });
   }
 
   function salesInCurrentPeriod(sales, period) {
@@ -775,7 +781,10 @@
       <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
       <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
       <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
-      <span class="sales-tree-net" title="Bruto ${formatSalesBRL(sale._gross)} · Taxa ${formatSalesBRL(sale._fees)}">${formatSalesBRL(sale._net)}</span>
+      <span class="sales-tree-money" title="Bruto">${formatSalesBRL(sale._gross)}</span>
+      <span class="sales-tree-money sales-tree-fee" title="Comissão">${formatSalesBRL(sale._fees)}</span>
+      <span class="sales-tree-money sales-tree-ship" title="Frete (custo vendedor)">${formatSalesBRL(sale._shipping || 0)}</span>
+      <span class="sales-tree-net" title="Líquido real">${formatSalesBRL(sale._net)}</span>
     </li>`;
   }
 
@@ -852,18 +861,21 @@
     const byCh = {};
     (sales || []).forEach((s) => {
       const ch = s.channel || 'outro';
-      if (!byCh[ch]) byCh[ch] = { count: 0, net: 0, gross: 0, fees: 0 };
+      if (!byCh[ch]) byCh[ch] = { count: 0, net: 0, gross: 0, fees: 0, shipping: 0 };
       byCh[ch].count += 1;
       byCh[ch].net += Number(s._net || 0);
       byCh[ch].gross += Number(s._gross || 0);
       byCh[ch].fees += Number(s._fees || 0);
+      byCh[ch].shipping += Number(s._shipping || 0);
     });
     const chRows = Object.keys(byCh).sort().map((ch) =>
       `<div class="clicks-stats-row"><dt>${escapeHtml(salesChannelLabel(ch))}</dt><dd>${byCh[ch].count} · ${formatSalesBRL(byCh[ch].net)}</dd></div>`
     ).join('');
     el.innerHTML = `
       <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${(sales || []).length} vendas · líquido ${formatSalesBRL(tot.net)}</dd></div>
-      <div class="clicks-stats-row"><dt>Bruto / taxas</dt><dd>${formatSalesBRL(tot.gross)} / ${formatSalesBRL(tot.fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(tot.gross)}</dd></div>
+      <div class="clicks-stats-row"><dt>Comissão</dt><dd>${formatSalesBRL(tot.fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>Frete (custo)</dt><dd>${formatSalesBRL(tot.shipping || 0)}</dd></div>
       ${chRows}`;
   }
 
@@ -975,7 +987,7 @@
 
   function buildSalesExportDetailRows(sales) {
     const rows = [[
-      'Data', 'Hora', 'Canal', 'ID', 'Cliente', 'Bruto', 'Taxas', 'Líquido', 'Status', 'Item'
+      'Data', 'Hora', 'Canal', 'ID', 'Cliente', 'Bruto', 'Comissão', 'Frete', 'Líquido', 'Status', 'Item'
     ]];
     (sales || []).forEach((s) => {
       const parts = s._ts ? brDateParts(s._ts) : null;
@@ -987,6 +999,7 @@
         s.buyer?.nickname || '',
         Math.round(s._gross * 100) / 100,
         Math.round(s._fees * 100) / 100,
+        Math.round(Number(s._shipping || 0) * 100) / 100,
         Math.round(s._net * 100) / 100,
         s.status || '',
         s.items?.[0]?.title || ''
@@ -1116,7 +1129,10 @@ ${worksheets}
               <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
               <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
               <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
-              <span class="sales-tree-net" title="Bruto ${formatSalesBRL(sale._gross)} · Taxa ${formatSalesBRL(sale._fees)}">${formatSalesBRL(sale._net)}</span>
+              <span class="sales-tree-money" title="Bruto">${formatSalesBRL(sale._gross)}</span>
+              <span class="sales-tree-money sales-tree-fee" title="Comissão">${formatSalesBRL(sale._fees)}</span>
+              <span class="sales-tree-money sales-tree-ship" title="Frete (custo vendedor)">${formatSalesBRL(sale._shipping || 0)}</span>
+              <span class="sales-tree-net" title="Líquido real">${formatSalesBRL(sale._net)}</span>
             </li>`;
           });
           html += '</ul></div></details>';
@@ -1152,15 +1168,22 @@ ${worksheets}
     const list = sales || [];
     const gross = list.reduce((s, x) => s + Number(x.gross || 0), 0);
     const fees = list.reduce((s, x) => s + Number(x.fees || 0), 0);
-    const net = list.reduce((s, x) => s + Number(x.net != null ? x.net : Number(x.gross || 0) - Number(x.fees || 0)), 0);
+    const shipping = list.reduce((s, x) => s + Number(x.shippingCost || 0), 0);
+    const net = list.reduce((s, x) => {
+      const g = Number(x.gross || 0);
+      const f = Number(x.fees || 0);
+      const sh = Number(x.shippingCost || 0);
+      return s + Number(x.net != null ? x.net : g - f - sh);
+    }, 0);
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
     el.innerHTML = `
       <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${list.length.toLocaleString('pt-BR')}${meta?.indexed != null && meta.indexed !== list.length ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas` : ''}</dd></div>
-      <div class="clicks-stats-row"><dt>Líquido</dt><dd>${formatSalesBRL(net)}</dd></div>
+      <div class="clicks-stats-row"><dt>Líquido real</dt><dd>${formatSalesBRL(net)}</dd></div>
       <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(gross)}</dd></div>
-      <div class="clicks-stats-row"><dt>Taxas ML</dt><dd>${formatSalesBRL(fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>Comissão</dt><dd>${formatSalesBRL(fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>Frete (custo)</dt><dd>${formatSalesBRL(shipping)}</dd></div>
       <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
   }
 
@@ -1222,15 +1245,22 @@ ${worksheets}
     const list = sales || [];
     const gross = list.reduce((s, x) => s + Number(x.gross || 0), 0);
     const fees = list.reduce((s, x) => s + Number(x.fees || 0), 0);
-    const net = list.reduce((s, x) => s + Number(x.net != null ? x.net : Number(x.gross || 0) - Number(x.fees || 0)), 0);
+    const shipping = list.reduce((s, x) => s + Number(x.shippingCost || 0), 0);
+    const net = list.reduce((s, x) => {
+      const g = Number(x.gross || 0);
+      const f = Number(x.fees || 0);
+      const sh = Number(x.shippingCost || 0);
+      return s + Number(x.net != null ? x.net : g - f - sh);
+    }, 0);
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
     el.innerHTML = `
       <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${list.length.toLocaleString('pt-BR')}${meta?.indexed != null && meta.indexed !== list.length ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas` : ''}</dd></div>
-      <div class="clicks-stats-row"><dt>Total pedidos</dt><dd>${formatSalesBRL(net)}</dd></div>
+      <div class="clicks-stats-row"><dt>Líquido real</dt><dd>${formatSalesBRL(net)}</dd></div>
       <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(gross)}</dd></div>
-      <div class="clicks-stats-row"><dt>Taxas Amazon</dt><dd>${formatSalesBRL(fees)} <small>(ainda não importadas)</small></dd></div>
+      <div class="clicks-stats-row"><dt>Comissão</dt><dd>${formatSalesBRL(fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>Frete (custo)</dt><dd>${formatSalesBRL(shipping)}</dd></div>
       <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
   }
 

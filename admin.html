@@ -720,8 +720,8 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Faturamento por canal. No Mercado Livre: ano → mês → dia, com horário e valor líquido (bruto − taxa ML).</p>
-                            <p><strong>Atualizar ML</strong> sincroniza pedidos pagos. <strong>Consolidado</strong> junta loja oficial + ML com totais do dia/semana/mês/ano e exportação Excel.</p>
+                            <p>Faturamento por canal. Em cada venda: <strong>bruto</strong>, <strong>comissão</strong>, <strong>frete (custo do vendedor)</strong> e <strong>líquido real</strong>.</p>
+                            <p><strong>Atualizar ML / Amazon</strong> sincroniza pedidos. <strong>Consolidado</strong> junta loja + marketplaces com totais e exportação Excel.</p>
                         </div>
                         <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
                             <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="loja" aria-selected="false" aria-controls="admin-vendas-loja"><i class="fas fa-store"></i> Loja oficial</button>
@@ -766,7 +766,7 @@
                             <div id="vendas-amz-tree-root" class="clicks-tree-root">
                                 <p class="admin-meta">Abra esta subaba para carregar as vendas da Amazon.</p>
                             </div>
-                            <p class="admin-meta">Nota: o líquido exibido é o total do pedido (taxas Amazon ainda não importadas via Finances API).</p>
+                            <p class="admin-meta">Nota: cada venda mostra <strong>Bruto · Comissão · Frete · Líquido</strong>. Na Amazon o líquido vem da Finances API (o que caiu na conta, incluindo estornos).</p>
                         </div>
                         <div id="admin-vendas-consolidado" class="admin-vendas-subpanel" role="tabpanel" hidden>
                             <div id="vendas-consol-periods" class="vendas-consol-periods"></div>
@@ -1011,6 +1011,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=129"></script>
+    <script src="js/admin.js?v=130"></script>
 </body>
 </html>

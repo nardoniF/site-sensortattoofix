@@ -4313,8 +4313,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .sales-tree-row {
     display: grid;
-    grid-template-columns: 4.5rem 8.5rem minmax(5rem, 8rem) minmax(0, 1fr) 6.5rem;
-    gap: 8px 12px;
+    grid-template-columns: 4.5rem 8rem minmax(4rem, 7rem) minmax(0, 1fr) 5.2rem 5.2rem 5.2rem 5.8rem;
+    gap: 8px 10px;
     align-items: baseline;
     padding: 8px 10px;
     border: 1px solid #2a2a2a;
@@ -4326,9 +4326,17 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .sales-tree-id { color: #ccc; font-family: ui-monospace, monospace; font-size: 0.78rem; }
 .sales-tree-buyer { color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sales-tree-title { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sales-tree-money {
+    color: #bbb;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+}
+.sales-tree-fee { color: #e08a8a; }
+.sales-tree-ship { color: #9ab0d0; }
 .sales-tree-net { color: var(--primary); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 .sales-tree-row--consol {
-    grid-template-columns: 4.5rem 7rem 8.5rem minmax(5rem, 8rem) minmax(0, 1fr) 6.5rem;
+    grid-template-columns: 4.5rem 6.5rem 7.5rem minmax(4rem, 6.5rem) minmax(0, 1fr) 5rem 5rem 5rem 5.5rem;
 }
 .sales-tree-channel {
     color: #f0c040;
@@ -4400,7 +4408,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
             "time channel net"
             "id id id"
             "buyer buyer buyer"
-            "title title title";
+            "title title title"
+            "money money money";
     }
     .sales-tree-row--consol .sales-tree-time { grid-area: time; }
     .sales-tree-row--consol .sales-tree-channel { grid-area: channel; }
@@ -4408,6 +4417,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
     .sales-tree-row--consol .sales-tree-id { grid-area: id; }
     .sales-tree-row--consol .sales-tree-buyer { grid-area: buyer; }
     .sales-tree-row--consol .sales-tree-title { grid-area: title; white-space: normal; }
+    .sales-tree-row--consol .sales-tree-money { grid-area: money; }
 }
 @media (max-width: 720px) {
     .sales-tree-row {
@@ -4415,13 +4425,15 @@ body.admin-page.pedidos-login-only #pedidos-login {
         grid-template-areas:
             "time id net"
             "buyer buyer buyer"
-            "title title title";
+            "title title title"
+            "money money money";
     }
     .sales-tree-time { grid-area: time; }
     .sales-tree-id { grid-area: id; }
     .sales-tree-net { grid-area: net; }
     .sales-tree-buyer { grid-area: buyer; }
     .sales-tree-title { grid-area: title; white-space: normal; }
+    .sales-tree-money { grid-area: money; display: inline-block; margin-right: 8px; }
 }
 
 .admin-product-subtabs {
