@@ -812,40 +812,8 @@
     const body = document.getElementById('pedidos-order-modal-body');
     let fresh = o;
 
-    // First open of a paid Correios order (BR or intl): generate pré-postagem + PDF if missing.
-    if (o.status === 'paid' && isCorreiosLabelOrder(o) && !o.correiosLabelCachedAt) {
-      if (body) {
-        body.insertAdjacentHTML('beforeend', '<p class="pedidos-detail-sync">Gerando etiqueta Correios (primeira abertura)…</p>');
-      }
-      try {
-        const res = await fetch(
-          apiBase() + '/orders/' + encodeURIComponent(o.orderId) + '?_=' + Date.now(),
-          { headers: adminAuthHeaders(), cache: 'no-store' }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          fresh = data;
-          const idx = allOrders.findIndex((x) => x.orderId === o.orderId);
-          if (idx >= 0) allOrders[idx] = { ...allOrders[idx], ...data };
-          renderOrderModal(fresh);
-          if (data.labelEnsure?.ok) {
-            showStatus(
-              data.labelEnsure.cached
-                ? 'Etiqueta Correios já estava em cache.'
-                : ('Etiqueta Correios gerada' + (data.correiosTrackingCode ? ' — ' + data.correiosTrackingCode : '')),
-              'success'
-            );
-          } else if (data.labelEnsure && data.labelEnsure.ok === false) {
-            showStatus(
-              humanizeCorreiosMsg(data.labelEnsure.error || data.labelEnsure.detail || 'Não foi possível gerar a etiqueta agora.', fresh),
-              'warn'
-            );
-          }
-        }
-      } catch (err) {
-        console.warn('Ensure label on open:', err);
-      }
-    } else if (
+    // Não gera pré-postagem ao abrir — só no botão Etiqueta.
+    if (
       o.status === 'paid'
       && isCorreiosIntlOrder(o)
       && o.correiosPrePostagemError
@@ -860,6 +828,7 @@
       );
     }
 
+    // Se a pré-postagem já existe e falta o AV, só consulta rastreio (sem criar nada novo).
     const needsAv = fresh.status === 'paid' && isCorreiosLabelOrder(fresh) && !fresh.correiosTrackingCode
       && (fresh.correiosPrePostagemId || fresh.correiosPrePostagemAt);
     if (!needsAv) return;

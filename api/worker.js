@@ -12715,13 +12715,7 @@ async function handleGetOrder(request, env, origin, orderId) {
   if (!order) return json({ error: 'Não encontrado.' }, 404, origin);
 
   if (await isValidSession(env, bearerToken(request))) {
-    // First admin open: if payment-time label failed, generate pré-postagem + PDF now.
-    if (order.status === 'paid' && isCorreiosLabelOrder(order) && !order.correiosLabelCachedAt) {
-      const config = await getConfig(env);
-      const ensure = await ensureCorreiosLabelCached(env, order, config);
-      order = (await getOrder(env, orderId)) || order;
-      if (ensure && !ensure.skipped) order.labelEnsure = ensure;
-    }
+    // Pré-postagem / PDF só em POST /orders/:id/shipping-label (botão Etiqueta), não ao abrir o pedido.
     return json(order, 200, origin);
   }
 
