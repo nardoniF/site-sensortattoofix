@@ -1082,10 +1082,15 @@ ${worksheets}
     }
   }
 
-  function renderSalesTree(tree) {
+  function renderSalesTree(tree, options = {}) {
+    const channel = options.channel || 'mercadolivre';
+    const emptyHint = channel === 'amazon'
+      ? 'Nenhuma venda Amazon indexada. Use <strong>Atualizar Amazon</strong>.'
+      : 'Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.';
+    const fallbackTitle = channel === 'amazon' ? 'Pedido Amazon' : 'Pedido ML';
     const years = Object.keys(tree || {}).sort((a, b) => Number(b) - Number(a));
     if (!years.length) {
-      return '<p class="admin-meta">Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.</p>';
+      return `<p class="admin-meta">${emptyHint}</p>`;
     }
     let html = '<div class="clicks-tree sales-tree">';
     years.forEach((year) => {
@@ -1104,7 +1109,7 @@ ${worksheets}
           html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${salesTreeSummary(d.label, d)}</summary><div class="clicks-tree-children">`;
           html += '<ul class="sales-tree-list">';
           d.sales.forEach((sale) => {
-            const title = sale.items?.[0]?.title || 'Pedido ML';
+            const title = sale.items?.[0]?.title || fallbackTitle;
             const buyer = sale.buyer?.nickname || '—';
             html += `<li class="sales-tree-row">
               <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
@@ -1181,7 +1186,7 @@ ${worksheets}
       const sales = Array.isArray(data.sales) ? data.sales : [];
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       renderMlSalesStats(sales, meta);
-      root.innerHTML = renderSalesTree(buildSalesTree(sales));
+      root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'mercadolivre' });
       if (preserveOpen) restoreSalesTreeOpenPaths(openPaths);
       if (checked) {
         checked.hidden = false;
@@ -1251,7 +1256,7 @@ ${worksheets}
       const sales = Array.isArray(data.sales) ? data.sales : [];
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       renderAmzSalesStats(sales, meta);
-      root.innerHTML = renderSalesTree(buildSalesTree(sales));
+      root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'amazon' });
       if (preserveOpen) restoreAmzSalesTreeOpenPaths(openPaths);
       if (checked) {
         checked.hidden = false;

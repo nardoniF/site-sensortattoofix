@@ -4071,11 +4071,13 @@ async function syncAmzOrders(env, options = {}) {
 
   const meta = await getAmzSalesMeta(env);
   const now = new Date();
+  // SP-API exige CreatedBefore ≥ 2 min no passado (atraso sistemático de indexação).
+  const queryEnd = new Date(now.getTime() - 3 * 60 * 1000);
   const full = options.full === true || !meta?.lastSyncedAt;
   const days = Math.min(365, Math.max(1, Number(options.days) || AMZ_SYNC_LOOKBACK_DAYS));
   let from;
   if (full || options.days) {
-    from = new Date(now.getTime() - days * 86400000);
+    from = new Date(queryEnd.getTime() - days * 86400000);
   } else {
     const last = new Date(meta.lastSyncedAt);
     from = new Date(last.getTime() - 2 * 86400000);
@@ -4091,7 +4093,7 @@ async function syncAmzOrders(env, options = {}) {
   do {
     const payload = await amzFetchOrdersPage(env, token, {
       createdAfter: from.toISOString(),
-      createdBefore: now.toISOString(),
+      createdBefore: queryEnd.toISOString(),
       nextToken
     });
     const orders = Array.isArray(payload.Orders) ? payload.Orders : [];
@@ -4120,7 +4122,7 @@ async function syncAmzOrders(env, options = {}) {
     marketplaceId: amzMarketplaceId(env),
     full,
     from: from.toISOString(),
-    to: now.toISOString(),
+    to: queryEnd.toISOString(),
     pages,
     apiTotal,
     imported,
