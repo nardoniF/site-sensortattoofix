@@ -644,12 +644,54 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  /** Líquido = Bruto − Comissão − Frete (sempre). */
+  /** Líquido = Bruto − Comissão − Frete − Estornos − Outras taxas. */
   function effectiveSaleNet(sale) {
     const g = Number(sale.gross || 0);
     const f = Number(sale.fees || 0);
     const sh = Number(sale.shippingCost || 0);
-    return Math.round((g - f - sh) * 100) / 100;
+    const rf = Number(sale.refunds || 0);
+    const ot = Number(sale.otherFees || 0);
+    return Math.round((g - f - sh - rf - ot) * 100) / 100;
+  }
+
+  function saleMoneyParts(sale) {
+    return {
+      gross: Number(sale.gross || 0),
+      fees: Number(sale.fees || 0),
+      shipping: Number(sale.shippingCost || 0),
+      refunds: Number(sale.refunds || 0),
+      otherFees: Number(sale.otherFees || 0),
+      net: effectiveSaleNet(sale)
+    };
+  }
+
+  function renderSalesMoneyStats(list, meta, extraRowsHtml) {
+    const parts = (list || []).reduce((acc, x) => {
+      const p = saleMoneyParts(x);
+      acc.gross += p.gross;
+      acc.fees += p.fees;
+      acc.shipping += p.shipping;
+      acc.refunds += p.refunds;
+      acc.otherFees += p.otherFees;
+      acc.net += p.net;
+      return acc;
+    }, { gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0 });
+    const synced = meta?.lastSyncedAt
+      ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+      : '—';
+    const indexed = meta?.indexed != null && meta.indexed !== (list || []).length
+      ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas`
+      : '';
+    return `
+      <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${(list || []).length.toLocaleString('pt-BR')}${indexed}</dd></div>
+      <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Comissão</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Frete (custo)</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(parts.refunds)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(parts.otherFees)}</dd></div>
+      <div class="clicks-stats-row"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
+      ${extraRowsHtml || ''}
+      <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
   }
 
   function saleSoldTs(sale) {
@@ -677,28 +719,36 @@
       const gross = Number(sale.gross || 0);
       const fees = Number(sale.fees || 0);
       const shipping = Number(sale.shippingCost || 0);
+      const refunds = Number(sale.refunds || 0);
+      const otherFees = Number(sale.otherFees || 0);
       const net = effectiveSaleNet(sale);
-      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, net: 0, months: {} };
+      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0, months: {} };
       const y = tree[year];
-      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, net: 0, days: {} };
+      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0, days: {} };
       const m = y.months[monthNum];
-      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, net: 0, sales: [] };
+      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0, sales: [] };
       const d = m.days[dateKey];
-      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _net: net });
+      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _refunds: refunds, _otherFees: otherFees, _net: net });
       d.count += 1;
       d.gross += gross;
       d.fees += fees;
       d.shipping += shipping;
+      d.refunds += refunds;
+      d.otherFees += otherFees;
       d.net += net;
       m.count += 1;
       m.gross += gross;
       m.fees += fees;
       m.shipping += shipping;
+      m.refunds += refunds;
+      m.otherFees += otherFees;
       m.net += net;
       y.count += 1;
       y.gross += gross;
       y.fees += fees;
       y.shipping += shipping;
+      y.refunds += refunds;
+      y.otherFees += otherFees;
       y.net += net;
     });
     Object.values(tree).forEach((y) => {
@@ -752,11 +802,17 @@
 
   function annotateSale(sale) {
     const ts = saleSoldTs(sale);
-    const gross = Number(sale.gross || 0);
-    const fees = Number(sale.fees || 0);
-    const shipping = Number(sale.shippingCost || 0);
-    const net = effectiveSaleNet(sale);
-    return { ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _net: net };
+    const p = saleMoneyParts(sale);
+    return {
+      ...sale,
+      _ts: ts,
+      _gross: p.gross,
+      _fees: p.fees,
+      _shipping: p.shipping,
+      _refunds: p.refunds,
+      _otherFees: p.otherFees,
+      _net: p.net
+    };
   }
 
   function sumAnnotated(list) {
@@ -765,9 +821,11 @@
       acc.gross += Number(s._gross || 0);
       acc.fees += Number(s._fees || 0);
       acc.shipping += Number(s._shipping || 0);
+      acc.refunds += Number(s._refunds || 0);
+      acc.otherFees += Number(s._otherFees || 0);
       acc.net += Number(s._net || 0);
       return acc;
-    }, { count: 0, gross: 0, fees: 0, shipping: 0, net: 0 });
+    }, { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0 });
   }
 
   function salesInCurrentPeriod(sales, period) {
@@ -882,8 +940,10 @@
     el.innerHTML = `
       <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${(sales || []).length} vendas · líquido ${formatSalesBRL(tot.net)}</dd></div>
       <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(tot.gross)}</dd></div>
-      <div class="clicks-stats-row"><dt>Comissão</dt><dd>${formatSalesBRL(tot.fees)}</dd></div>
-      <div class="clicks-stats-row"><dt>Frete (custo)</dt><dd>${formatSalesBRL(tot.shipping || 0)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Comissão</dt><dd>${formatSalesBRL(tot.fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(tot.shipping || 0)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(tot.refunds || 0)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(tot.otherFees || 0)}</dd></div>
       ${chRows}`;
   }
 
@@ -995,7 +1055,7 @@
 
   function buildSalesExportDetailRows(sales) {
     const rows = [[
-      'Data', 'Hora', 'Canal', 'ID', 'Cliente', 'Bruto', 'Comissão', 'Frete', 'Líquido', 'Status', 'Item'
+      'Data', 'Hora', 'Canal', 'ID', 'Cliente', 'Bruto', 'Comissão', 'Frete', 'Estornos', 'Outras taxas', 'Líquido', 'Status', 'Item'
     ]];
     (sales || []).forEach((s) => {
       const parts = s._ts ? brDateParts(s._ts) : null;
@@ -1008,6 +1068,8 @@
         Math.round(s._gross * 100) / 100,
         Math.round(s._fees * 100) / 100,
         Math.round(Number(s._shipping || 0) * 100) / 100,
+        Math.round(Number(s._refunds || 0) * 100) / 100,
+        Math.round(Number(s._otherFees || 0) * 100) / 100,
         Math.round(s._net * 100) / 100,
         s.status || '',
         s.items?.[0]?.title || ''
@@ -1139,8 +1201,9 @@ ${worksheets}
               <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
               <span class="sales-tree-money" title="Bruto">${formatSalesBRL(sale._gross)}</span>
               <span class="sales-tree-money sales-tree-fee" title="Comissão">${formatSalesBRL(sale._fees)}</span>
-              <span class="sales-tree-money sales-tree-ship" title="Frete (custo vendedor)">${formatSalesBRL(sale._shipping || 0)}</span>
-              <span class="sales-tree-net" title="Líquido real">${formatSalesBRL(sale._net)}</span>
+              <span class="sales-tree-money sales-tree-ship" title="Frete">${formatSalesBRL(sale._shipping || 0)}</span>
+              <span class="sales-tree-money sales-tree-adj" title="Estornos + outras taxas">${formatSalesBRL((sale._refunds || 0) + (sale._otherFees || 0))}</span>
+              <span class="sales-tree-net" title="Líquido = bruto − comissão − frete − estornos − outras">${formatSalesBRL(sale._net)}</span>
             </li>`;
           });
           html += '</ul></div></details>';
@@ -1173,21 +1236,7 @@ ${worksheets}
   function renderMlSalesStats(sales, meta) {
     const el = document.getElementById('vendas-ml-stats');
     if (!el) return;
-    const list = sales || [];
-    const gross = list.reduce((s, x) => s + Number(x.gross || 0), 0);
-    const fees = list.reduce((s, x) => s + Number(x.fees || 0), 0);
-    const shipping = list.reduce((s, x) => s + Number(x.shippingCost || 0), 0);
-    const net = list.reduce((s, x) => s + effectiveSaleNet(x), 0);
-    const synced = meta?.lastSyncedAt
-      ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-      : '—';
-    el.innerHTML = `
-      <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${list.length.toLocaleString('pt-BR')}${meta?.indexed != null && meta.indexed !== list.length ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas` : ''}</dd></div>
-      <div class="clicks-stats-row"><dt>Líquido real</dt><dd>${formatSalesBRL(net)}</dd></div>
-      <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(gross)}</dd></div>
-      <div class="clicks-stats-row"><dt>Comissão</dt><dd>${formatSalesBRL(fees)}</dd></div>
-      <div class="clicks-stats-row"><dt>Frete (custo)</dt><dd>${formatSalesBRL(shipping)}</dd></div>
-      <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
+    el.innerHTML = renderSalesMoneyStats(sales, meta);
   }
 
   async function loadMlSales(preserveOpen) {
@@ -1245,21 +1294,7 @@ ${worksheets}
   function renderAmzSalesStats(sales, meta) {
     const el = document.getElementById('vendas-amz-stats');
     if (!el) return;
-    const list = sales || [];
-    const gross = list.reduce((s, x) => s + Number(x.gross || 0), 0);
-    const fees = list.reduce((s, x) => s + Number(x.fees || 0), 0);
-    const shipping = list.reduce((s, x) => s + Number(x.shippingCost || 0), 0);
-    const net = list.reduce((s, x) => s + effectiveSaleNet(x), 0);
-    const synced = meta?.lastSyncedAt
-      ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-      : '—';
-    el.innerHTML = `
-      <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${list.length.toLocaleString('pt-BR')}${meta?.indexed != null && meta.indexed !== list.length ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas` : ''}</dd></div>
-      <div class="clicks-stats-row"><dt>Líquido real</dt><dd>${formatSalesBRL(net)}</dd></div>
-      <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(gross)}</dd></div>
-      <div class="clicks-stats-row"><dt>Comissão</dt><dd>${formatSalesBRL(fees)}</dd></div>
-      <div class="clicks-stats-row"><dt>Frete (custo)</dt><dd>${formatSalesBRL(shipping)}</dd></div>
-      <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
+    el.innerHTML = renderSalesMoneyStats(sales, meta);
   }
 
   async function loadAmzSales(preserveOpen) {

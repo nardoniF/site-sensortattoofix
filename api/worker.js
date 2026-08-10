@@ -3600,6 +3600,8 @@ function normalizeMlOrder(order) {
     fees,
     net,
     shippingCost: Number(shippingCost || 0),
+    refunds: 0,
+    otherFees: 0,
     buyer: {
       id: order.buyer?.id != null ? String(order.buyer.id) : null,
       nickname: order.buyer?.nickname || null
@@ -4037,10 +4039,11 @@ function amzRound2(n) {
   return Math.round(Number(n || 0) * 100) / 100;
 }
 
-/** Walk Finances payload → bruto / comissão / frete / líquido (o que caiu). */
+/** Walk Finances payload → bruto / comissão / frete / estornos / outras. */
 function summarizeAmzFinancialEvents(financialEvents) {
   const fe = financialEvents && typeof financialEvents === 'object' ? financialEvents : {};
-  let principal = 0;
+  let principalSold = 0;
+  let refunds = 0;
   let commission = 0;
   let shipping = 0;
   let pocket = 0;
@@ -4052,7 +4055,7 @@ function summarizeAmzFinancialEvents(financialEvents) {
     pocket += amount;
     const t = String(feeType || '');
     if (AMZ_COMMISSION_FEE_TYPES.has(t)) {
-      commission -= amount; // Commission -8.4 → +8.4 gasto; reclaim +8.4 → -8.4
+      commission -= amount;
     } else if (AMZ_SHIPPING_FEE_TYPES.has(t)) {
       shipping -= amount;
     } else {
@@ -4063,9 +4066,15 @@ function summarizeAmzFinancialEvents(financialEvents) {
     }
   }
 
-  function noteCharge(chargeType, amount) {
+  function noteCharge(chargeType, amount, isRefundContext) {
     pocket += amount;
-    if (String(chargeType || '') === 'Principal') principal += amount;
+    if (String(chargeType || '') !== 'Principal') return;
+    if (isRefundContext || amount < 0) {
+      hasRefund = true;
+      if (amount < 0) refunds -= amount; // -(-56) = 56 estornado
+    } else {
+      principalSold += amount;
+    }
   }
 
   function walkShipmentLike(list, isRefund) {
@@ -4073,16 +4082,13 @@ function summarizeAmzFinancialEvents(financialEvents) {
       if (isRefund) hasRefund = true;
       for (const fee of sh.ShipmentFeeList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
       for (const fee of sh.ShipmentFeeAdjustmentList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
-      for (const ch of sh.OrderChargeList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount));
-      for (const ch of sh.OrderChargeAdjustmentList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount));
-      const itemLists = [
-        sh.ShipmentItemList,
-        sh.ShipmentItemAdjustmentList
-      ];
+      for (const ch of sh.OrderChargeList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount), isRefund);
+      for (const ch of sh.OrderChargeAdjustmentList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount), isRefund);
+      const itemLists = [sh.ShipmentItemList, sh.ShipmentItemAdjustmentList];
       for (const items of itemLists) {
         for (const it of items || []) {
-          for (const ch of it.ItemChargeList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount));
-          for (const ch of it.ItemChargeAdjustmentList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount));
+          for (const ch of it.ItemChargeList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount), isRefund);
+          for (const ch of it.ItemChargeAdjustmentList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount), isRefund);
           for (const fee of it.ItemFeeList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
           for (const fee of it.ItemFeeAdjustmentList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
         }
@@ -4100,10 +4106,12 @@ function summarizeAmzFinancialEvents(financialEvents) {
   }
 
   return {
-    principal: amzRound2(principal),
+    principalSold: amzRound2(principalSold),
+    principal: amzRound2(principalSold - refunds),
+    refunds: amzRound2(Math.max(0, refunds)),
     commission: amzRound2(Math.max(0, commission)),
     shipping: amzRound2(Math.max(0, shipping)),
-    otherFees: amzRound2(otherFees),
+    otherFees: amzRound2(Math.max(0, otherFees)),
     net: amzRound2(pocket),
     hasRefund,
     feeSamples
@@ -4144,18 +4152,14 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
   }));
   const fin = financeSummary && typeof financeSummary === 'object' ? financeSummary : null;
   const hasRefund = !!(fin && fin.hasRefund);
-  // Bruto: pedido normal = total; com estorno = principal que sobrou (souvent 0).
-  let gross = orderTotal;
-  if (financesFetched && fin) {
-    if (hasRefund) gross = amzRound2(Math.max(0, Number(fin.principal || 0)));
-    else if (!gross) gross = amzRound2(Math.max(0, Number(fin.principal || 0)));
-  }
-  // Comissão = comissão Amazon + outras taxas (fecha a conta com bruto − frete).
-  const fees = financesFetched && fin
-    ? amzRound2(Number(fin.commission || 0) + Math.max(0, Number(fin.otherFees || 0)))
-    : 0;
+  // Bruto = valor original do pedido (não zera com estorno).
+  const gross = orderTotal || (fin ? amzRound2(fin.principalSold || 0) : 0);
+  const fees = financesFetched && fin ? amzRound2(fin.commission) : 0;
   const shippingCost = financesFetched && fin ? amzRound2(fin.shipping) : 0;
-  const net = amzRound2(gross - fees - shippingCost);
+  const refunds = financesFetched && fin ? amzRound2(fin.refunds || 0) : 0;
+  const otherFees = financesFetched && fin ? amzRound2(fin.otherFees || 0) : 0;
+  // Líquido = bruto − comissão − frete − estornos − outras taxas
+  const net = amzRound2(gross - fees - shippingCost - refunds - otherFees);
   return {
     channel: 'amazon',
     externalId: String(order.AmazonOrderId || ''),
@@ -4168,7 +4172,8 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
     fees: amzRound2(fees),
     net,
     shippingCost: amzRound2(shippingCost),
-    otherFees: financesFetched && fin ? amzRound2(fin.otherFees || 0) : 0,
+    refunds: amzRound2(refunds),
+    otherFees: amzRound2(otherFees),
     pocketNet: financesFetched && fin ? amzRound2(fin.net) : null,
     financesOk: !!financesFetched,
     hasRefund,
@@ -4316,15 +4321,17 @@ async function syncAmzOrders(env, options = {}) {
       const events = await amzFetchOrderFinancials(env, token, id);
       const fin = summarizeAmzFinancialEvents(events);
       const hasRefund = !!fin.hasRefund;
-      let gross = amzRound2(Number(sale.gross || 0));
-      if (hasRefund) gross = amzRound2(Math.max(0, Number(fin.principal || 0)));
-      const fees = amzRound2(Number(fin.commission || 0) + Math.max(0, Number(fin.otherFees || 0)));
+      const gross = amzRound2(Number(sale.gross || 0) || fin.principalSold || 0);
+      const fees = amzRound2(fin.commission);
       const shippingCost = amzRound2(fin.shipping);
+      const refunds = amzRound2(fin.refunds || 0);
+      const otherFees = amzRound2(fin.otherFees || 0);
       sale.gross = gross;
       sale.fees = fees;
       sale.shippingCost = shippingCost;
-      sale.otherFees = amzRound2(fin.otherFees || 0);
-      sale.net = amzRound2(gross - fees - shippingCost);
+      sale.refunds = refunds;
+      sale.otherFees = otherFees;
+      sale.net = amzRound2(gross - fees - shippingCost - refunds - otherFees);
       sale.pocketNet = amzRound2(fin.net);
       sale.financesOk = true;
       sale.hasRefund = hasRefund;
