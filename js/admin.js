@@ -644,14 +644,11 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  /** Líquido exibido: ML/loja = bruto − comissão − frete; Amazon Finances = o que caiu na conta. */
+  /** Líquido = Bruto − Comissão − Frete (sempre). */
   function effectiveSaleNet(sale) {
     const g = Number(sale.gross || 0);
     const f = Number(sale.fees || 0);
     const sh = Number(sale.shippingCost || 0);
-    if (sale.channel === 'amazon' && sale.financesOk && sale.net != null && sale.net !== '') {
-      return Math.round(Number(sale.net) * 100) / 100;
-    }
     return Math.round((g - f - sh) * 100) / 100;
   }
 

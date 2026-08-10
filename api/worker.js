@@ -4143,14 +4143,19 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
     currency: row.ItemPrice?.CurrencyCode || currency
   }));
   const fin = financeSummary && typeof financeSummary === 'object' ? financeSummary : null;
-  const displayGross = orderTotal
-    || (fin && Math.abs(Number(fin.principal || 0)))
-    || 0;
-  const fees = financesFetched && fin ? Number(fin.commission || 0) : 0;
-  const shippingCost = financesFetched && fin ? Number(fin.shipping || 0) : 0;
-  const net = financesFetched && fin
-    ? Number(fin.net)
-    : displayGross;
+  const hasRefund = !!(fin && fin.hasRefund);
+  // Bruto: pedido normal = total; com estorno = principal que sobrou (souvent 0).
+  let gross = orderTotal;
+  if (financesFetched && fin) {
+    if (hasRefund) gross = amzRound2(Math.max(0, Number(fin.principal || 0)));
+    else if (!gross) gross = amzRound2(Math.max(0, Number(fin.principal || 0)));
+  }
+  // Comissão = comissão Amazon + outras taxas (fecha a conta com bruto − frete).
+  const fees = financesFetched && fin
+    ? amzRound2(Number(fin.commission || 0) + Math.max(0, Number(fin.otherFees || 0)))
+    : 0;
+  const shippingCost = financesFetched && fin ? amzRound2(fin.shipping) : 0;
+  const net = amzRound2(gross - fees - shippingCost);
   return {
     channel: 'amazon',
     externalId: String(order.AmazonOrderId || ''),
@@ -4159,13 +4164,14 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
     status: order.OrderStatus || null,
     tags: [order.FulfillmentChannel, order.SalesChannel].filter(Boolean),
     currency,
-    gross: amzRound2(displayGross),
+    gross: amzRound2(gross),
     fees: amzRound2(fees),
-    net: amzRound2(net),
+    net,
     shippingCost: amzRound2(shippingCost),
     otherFees: financesFetched && fin ? amzRound2(fin.otherFees || 0) : 0,
+    pocketNet: financesFetched && fin ? amzRound2(fin.net) : null,
     financesOk: !!financesFetched,
-    hasRefund: !!(fin && fin.hasRefund),
+    hasRefund,
     buyer: {
       id: null,
       nickname: order.BuyerInfo?.BuyerName || order.BuyerEmail || null
@@ -4294,7 +4300,7 @@ async function syncAmzOrders(env, options = {}) {
     nextToken = payload.NextToken || null;
   } while (nextToken && pages < AMZ_SYNC_MAX_PAGES);
 
-  // Pedidos antigos no índice sem Finances (sync incremental não os revisita).
+  // Atualiza Finances de todos os indexados (full) ou só os que faltam.
   let financesBackfilled = 0;
   for (const id of index) {
     let sale;
@@ -4305,16 +4311,23 @@ async function syncAmzOrders(env, options = {}) {
     } catch {
       continue;
     }
-    if (sale?.financesOk) continue;
+    if (sale?.financesOk && !full) continue;
     try {
       const events = await amzFetchOrderFinancials(env, token, id);
       const fin = summarizeAmzFinancialEvents(events);
-      sale.fees = amzRound2(fin.commission);
-      sale.shippingCost = amzRound2(fin.shipping);
+      const hasRefund = !!fin.hasRefund;
+      let gross = amzRound2(Number(sale.gross || 0));
+      if (hasRefund) gross = amzRound2(Math.max(0, Number(fin.principal || 0)));
+      const fees = amzRound2(Number(fin.commission || 0) + Math.max(0, Number(fin.otherFees || 0)));
+      const shippingCost = amzRound2(fin.shipping);
+      sale.gross = gross;
+      sale.fees = fees;
+      sale.shippingCost = shippingCost;
       sale.otherFees = amzRound2(fin.otherFees || 0);
-      sale.net = amzRound2(fin.net);
+      sale.net = amzRound2(gross - fees - shippingCost);
+      sale.pocketNet = amzRound2(fin.net);
       sale.financesOk = true;
-      sale.hasRefund = !!fin.hasRefund;
+      sale.hasRefund = hasRefund;
       sale.feesNote = null;
       sale.syncedAt = new Date().toISOString();
       await env.STORE_KV.put(AMZ_SALE_PREFIX + id, JSON.stringify(sale));
