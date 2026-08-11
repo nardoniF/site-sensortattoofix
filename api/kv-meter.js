@@ -1,9 +1,16 @@
 /**
- * Cloudflare Free KV write meter (account limit ≈ 1000 writes/day, resets 00:00 UTC = 21:00 Brasília).
- * Counts every put/delete we perform — Cloudflare does not expose remaining quota via API.
+ * Cloudflare Free KV usage meter.
+ * Prefer official account analytics (GraphQL) when CF_API_TOKEN is set;
+ * otherwise fall back to a local Cache-edge estimate (imprecise across POPs).
+ * Free limits reset daily at 00:00 UTC (= 21:00 Brasília).
  */
 
 export const KV_FREE_WRITES_PER_DAY = 1000;
+export const KV_FREE_READS_PER_DAY = 100000;
+export const KV_FREE_DELETES_PER_DAY = 1000;
+export const KV_FREE_LISTS_PER_DAY = 1000;
+
+const CF_USAGE_CACHE_TTL_SEC = 600; // 10 min — dashboard-grade, not live-to-the-second
 
 export function utcDayKey(d = new Date()) {
   return d.toISOString().slice(0, 10);
@@ -24,6 +31,31 @@ function legacyClickWritesReq(day = utcDayKey()) {
 
 function exhaustedReq(day = utcDayKey()) {
   return new Request(`https://stf-internal/kv-writes-exhausted/${day}`);
+}
+
+function cfUsageReq(day = utcDayKey()) {
+  return new Request(`https://stf-internal/kv-cf-usage/${day}`);
+}
+
+function resetFields() {
+  const resetAt = nextUtcMidnightDate();
+  const resetsAtBr = resetAt.toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  return {
+    resetsAt: resetAt.toISOString(),
+    resetsAtBr,
+    resetsHintBr: '21:00 (Brasília) / 00:00 UTC'
+  };
+}
+
+function pctOf(used, limit) {
+  if (!(limit > 0)) return 0;
+  return Math.min(100, Math.round((Number(used) / limit) * 100));
 }
 
 export async function getKvWriteCounter(day = utcDayKey()) {
@@ -87,34 +119,191 @@ export function isKvQuotaError(err) {
   return /429|quota|limit|put.*exceed|exceed.*put|write.*limit|delete.*exceed/i.test(msg);
 }
 
-/** Real budget from all instrumented puts/deletes today (UTC day). */
-export async function buildKvDailyWriteBudget() {
+function cfCredentials(env) {
+  const accountId = String(env?.CF_ACCOUNT_ID || '').trim();
+  const apiToken = String(env?.CF_API_TOKEN || '').trim();
+  if (!accountId || !apiToken) return null;
+  return { accountId, apiToken };
+}
+
+async function readCachedCfUsage(day) {
+  try {
+    const hit = await caches.default.match(cfUsageReq(day));
+    if (!hit) return null;
+    const data = await hit.json();
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCachedCfUsage(day, payload) {
+  try {
+    await caches.default.put(
+      cfUsageReq(day),
+      new Response(JSON.stringify(payload), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': `max-age=${CF_USAGE_CACHE_TTL_SEC}`
+        }
+      })
+    );
+  } catch (_) { /* ignore */ }
+}
+
+/**
+ * Same numbers as Dashboard → Workers KV (account-wide for the UTC day).
+ * https://developers.cloudflare.com/kv/observability/metrics-analytics/
+ */
+export async function fetchCloudflareKvUsage(env, { forceRefresh = false } = {}) {
+  const creds = cfCredentials(env);
+  if (!creds) return null;
+
+  const day = utcDayKey();
+  if (!forceRefresh) {
+    const cached = await readCachedCfUsage(day);
+    if (cached?.source === 'cloudflare' && cached.refreshedAt) return cached;
+  }
+
+  const query = `query KvOps($accountTag: string!, $start: Date, $end: Date) {
+    viewer {
+      accounts(filter: { accountTag: $accountTag }) {
+        kvOperationsAdaptiveGroups(
+          filter: { date_geq: $start, date_leq: $end }
+          limit: 100
+        ) {
+          sum { requests }
+          dimensions { actionType }
+        }
+      }
+    }
+  }`;
+
+  const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${creds.apiToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      query,
+      variables: {
+        accountTag: creds.accountId,
+        start: day,
+        end: day
+      }
+    })
+  });
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = body?.errors?.[0]?.message || body?.messages?.[0] || `HTTP ${res.status}`;
+    throw new Error(`Cloudflare Analytics: ${msg}`);
+  }
+  if (Array.isArray(body.errors) && body.errors.length) {
+    throw new Error(`Cloudflare Analytics: ${body.errors[0].message || 'GraphQL error'}`);
+  }
+
+  const groups = body?.data?.viewer?.accounts?.[0]?.kvOperationsAdaptiveGroups || [];
+  let readsToday = 0;
+  let writesToday = 0;
+  let deletesToday = 0;
+  let listsToday = 0;
+  for (const row of groups) {
+    const n = Number(row?.sum?.requests || 0) || 0;
+    const action = String(row?.dimensions?.actionType || '').toLowerCase();
+    if (action === 'read') readsToday += n;
+    else if (action === 'write') writesToday += n;
+    else if (action === 'delete') deletesToday += n;
+    else if (action === 'list') listsToday += n;
+  }
+
+  const writeLimit = KV_FREE_WRITES_PER_DAY;
+  const readLimit = KV_FREE_READS_PER_DAY;
+  const deleteLimit = KV_FREE_DELETES_PER_DAY;
+  const listLimit = KV_FREE_LISTS_PER_DAY;
+  const percent = pctOf(writesToday, writeLimit);
+  const readPercent = pctOf(readsToday, readLimit);
+  const exhausted = await isKvWriteQuotaExhaustedMarked();
+  const resets = resetFields();
+
+  const payload = {
+    source: 'cloudflare',
+    writesToday,
+    readsToday,
+    deletesToday,
+    listsToday,
+    clickWritesToday: writesToday,
+    limit: writeLimit,
+    writeLimit,
+    readLimit,
+    deleteLimit,
+    listLimit,
+    percent,
+    readPercent,
+    deletePercent: pctOf(deletesToday, deleteLimit),
+    listPercent: pctOf(listsToday, listLimit),
+    near: !exhausted && percent >= 70,
+    critical: !exhausted && percent >= 85,
+    exhausted: exhausted || writesToday >= writeLimit,
+    refreshedAt: new Date().toISOString(),
+    lagHint: 'Cloudflare Analytics (pode atrasar alguns minutos)',
+    sources: 'conta Cloudflare — mesma fonte do dashboard Workers KV',
+    ...resets
+  };
+
+  await writeCachedCfUsage(day, payload);
+  return payload;
+}
+
+/** Local Cache-edge estimate (imprecise). Kept as fallback when CF token is missing. */
+export async function buildLocalKvDailyWriteBudget() {
   const day = utcDayKey();
   const fromTotal = await getKvWriteCounter(day);
   const fromLegacyClicks = await getLegacyClickWriteCounter(day);
   const writesToday = Math.max(fromTotal, fromLegacyClicks);
   const limit = KV_FREE_WRITES_PER_DAY;
-  const percent = Math.min(100, Math.round((writesToday / limit) * 100));
+  const percent = pctOf(writesToday, limit);
   const exhausted = await isKvWriteQuotaExhaustedMarked();
-  const resetAt = nextUtcMidnightDate();
-  const resetsAtBr = resetAt.toLocaleString('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
   return {
+    source: 'local_estimate',
     writesToday,
-    clickWritesToday: writesToday, // compat com Admin antigo
+    clickWritesToday: writesToday,
+    readsToday: null,
+    deletesToday: null,
+    listsToday: null,
     limit,
+    writeLimit: limit,
+    readLimit: KV_FREE_READS_PER_DAY,
     percent,
+    readPercent: null,
     near: !exhausted && percent >= 70,
     critical: !exhausted && percent >= 85,
     exhausted,
-    resetsAt: resetAt.toISOString(),
-    resetsAtBr,
-    resetsHintBr: '21:00 (Brasília) / 00:00 UTC',
-    sources: 'todos os puts/deletes do Worker (pedidos, cliques, sync, fórum, admin)'
+    refreshedAt: new Date().toISOString(),
+    lagHint: null,
+    sources: 'estimativa local (imprecisa) — configure CF_API_TOKEN para números oficiais',
+    ...resetFields()
   };
+}
+
+/**
+ * Prefer Cloudflare GraphQL analytics; fall back to local estimate.
+ * Pass env from the Worker so secrets/vars are available.
+ */
+export async function buildKvDailyWriteBudget(env) {
+  if (env && cfCredentials(env)) {
+    try {
+      const cf = await fetchCloudflareKvUsage(env);
+      if (cf) return cf;
+    } catch (err) {
+      console.warn('KV Cloudflare usage:', err.message || err);
+      const local = await buildLocalKvDailyWriteBudget();
+      return {
+        ...local,
+        cfError: String(err.message || err).slice(0, 200)
+      };
+    }
+  }
+  return buildLocalKvDailyWriteBudget();
 }

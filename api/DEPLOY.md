@@ -22,6 +22,7 @@ wrangler kv namespace create STORE_KV
 ## 2. Secrets obrigatórios
 
 ```bash
+wrangler secret put CF_API_TOKEN            # Cloudflare → API Token → Account Analytics Read (KV real no Admin)
 wrangler secret put ADMIN_PASSWORD          # senha do admin/pedidos
 wrangler secret put MP_ACCESS_TOKEN         # Mercado Pago → Credenciais de produção
 wrangler secret put ML_CLIENT_ID            # Mercado Livre → app pedidosml (vendas)
@@ -38,6 +39,18 @@ wrangler secret put STRIPE_SECRET_KEY              # Stripe → Developers → S
 wrangler secret put STRIPE_PUBLISHABLE_KEY         # Stripe → pk_live_… ou pk_test_…
 wrangler secret put STRIPE_WEBHOOK_SECRET          # Stripe → Webhooks → signing secret
 ```
+
+### KV real no Admin (`CF_API_TOKEN`)
+
+O banner de % de writes no Admin lê a **mesma GraphQL Analytics** do dashboard Workers KV.
+
+1. Cloudflare → My Profile → **API Tokens** → Create Token  
+2. Template **Read analytics and logs**, ou custom com **Account → Account Analytics → Read**  
+3. Account Resources: a conta `f.nardoni@…`  
+4. `cd api && wrangler secret put CF_API_TOKEN` (cole o token)  
+5. `CF_ACCOUNT_ID` já está em `[vars]` no `wrangler.toml`  
+
+Sem o token, o Admin mostra só estimativa local (imprecisa) em amarelo.
 
 Opcional:
 

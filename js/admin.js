@@ -2100,31 +2100,75 @@ ${worksheets}
 
     const dw = data?.dailyWrites || {};
     const wUsed = Number(dw.writesToday ?? dw.clickWritesToday) || 0;
-    const wMax = Number(dw.limit) > 0 ? Number(dw.limit) : 1000;
+    const wMax = Number(dw.writeLimit ?? dw.limit) > 0 ? Number(dw.writeLimit ?? dw.limit) : 1000;
     const wPct = Number.isFinite(Number(dw.percent))
       ? Number(dw.percent)
       : (wMax > 0 ? Math.min(100, Math.round((wUsed / wMax) * 100)) : 0);
+    const rUsed = Number(dw.readsToday);
+    const rMax = Number(dw.readLimit) > 0 ? Number(dw.readLimit) : 100000;
+    const rPct = Number.isFinite(Number(dw.readPercent))
+      ? Number(dw.readPercent)
+      : (Number.isFinite(rUsed) ? Math.min(100, Math.round((rUsed / rMax) * 100)) : null);
     const wExhausted = !!dw.exhausted;
+    const wCritical = !!dw.critical || wPct >= 85;
+    const wNear = !!dw.near || wPct >= 70;
+    const fromCf = dw.source === 'cloudflare';
     const resetBr = dw.resetsAtBr || dw.resetsHintBr || '21:00 Brasília (00:00 UTC)';
+    const sourceLabel = fromCf ? 'Cloudflare' : 'estimativa local';
 
     const cap = data?.capacity || {};
     const used = Number(cap.used ?? data?.total ?? 0) || 0;
     const max = Number(cap.max) > 0 ? Number(cap.max) : 2500;
 
-    // Outer: always show the X/1000 estimate. Green while logging; red only if quota exhausted.
-    // No yellow intermediate states.
     let outerHtml;
     if (wExhausted) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--full" role="status">
         <i class="fas fa-ban" aria-hidden="true"></i>
-        <span>COTA KV ESGOTADA — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Writes pararam. Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>COTA KV ESGOTADA — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} writes (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
-    } else {
+    } else if (wCritical) {
+      outerHtml = `<div class="clicks-kv-flag clicks-kv--full" role="status">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        <span>Writes KV hoje (${escapeHtml(sourceLabel)}): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%) — crítico. Renova às ${escapeHtml(String(resetBr))}.</span>
+      </div>`;
+    } else if (wNear) {
+      outerHtml = `<div class="clicks-kv-flag clicks-kv--warn" role="status">
+        <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+        <span>Writes KV hoje (${escapeHtml(sourceLabel)}): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
+      </div>`;
+    } else if (fromCf) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--ok" role="status">
         <i class="fas fa-check-circle" aria-hidden="true"></i>
-        <span>Writes KV hoje (tudo): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>Writes KV hoje (Cloudflare): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
+      </div>`;
+    } else {
+      outerHtml = `<div class="clicks-kv-flag clicks-kv--warn" role="status">
+        <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+        <span>Writes KV (estimativa local, imprecisa): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Configure CF_API_TOKEN. Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     }
+
+    const readsRow = Number.isFinite(rUsed)
+      ? `<div class="clicks-stats-row"><dt>Reads KV (UTC)</dt><dd>${rUsed.toLocaleString('pt-BR')} / ${rMax.toLocaleString('pt-BR')} (${rPct}%)</dd></div>`
+      : '';
+    const deletesRow = Number.isFinite(Number(dw.deletesToday))
+      ? `<div class="clicks-stats-row"><dt>Deletes KV</dt><dd>${Number(dw.deletesToday).toLocaleString('pt-BR')} / ${(Number(dw.deleteLimit) || 1000).toLocaleString('pt-BR')}</dd></div>`
+      : '';
+    const listsRow = Number.isFinite(Number(dw.listsToday))
+      ? `<div class="clicks-stats-row"><dt>Lists KV</dt><dd>${Number(dw.listsToday).toLocaleString('pt-BR')} / ${(Number(dw.listLimit) || 1000).toLocaleString('pt-BR')}</dd></div>`
+      : '';
+    const refreshed = dw.refreshedAt
+      ? (() => {
+        try {
+          return new Date(dw.refreshedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        } catch {
+          return String(dw.refreshedAt);
+        }
+      })()
+      : '—';
+    const note = fromCf
+      ? `Fonte: <strong>Cloudflare Analytics</strong> (mesmos números do dashboard Workers KV). Cache ~10 min. ${escapeHtml(dw.lagHint || '')}`
+      : `Fonte: <strong>estimativa local</strong> (imprecisa entre edges). Para o % real no site: secret <code>CF_API_TOKEN</code> (Account Analytics Read) + var <code>CF_ACCOUNT_ID</code>.${dw.cfError ? ` Erro CF: ${escapeHtml(String(dw.cfError))}` : ''}`;
 
     el.innerHTML = `${outerHtml}
       <details class="clicks-stats-details">
@@ -2132,13 +2176,18 @@ ${worksheets}
       <dl class="clicks-stats-dl">
         <div class="clicks-stats-row"><dt>Hoje (eventos clique)</dt><dd>${data?.todayCount ?? 0}</dd></div>
         <div class="clicks-stats-row"><dt>Writes KV (UTC)</dt><dd>${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%)</dd></div>
+        ${readsRow}
+        ${deletesRow}
+        ${listsRow}
+        <div class="clicks-stats-row"><dt>Fonte da cota</dt><dd>${escapeHtml(fromCf ? 'Cloudflare Analytics' : 'Estimativa local')}</dd></div>
+        <div class="clicks-stats-row"><dt>Atualizado</dt><dd>${escapeHtml(refreshed)}</dd></div>
         <div class="clicks-stats-row"><dt>Total no log cliques</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}</dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
         <div class="clicks-stats-row"><dt>Mais antigo no KV</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
         <div class="clicks-stats-row"><dt>Renova cota</dt><dd>${escapeHtml(String(resetBr))}</dd></div>
         <div class="clicks-stats-row clicks-stats-row-top"><dt>Mais frequentes</dt><dd>${topList}</dd></div>
       </dl>
-      <p class="clicks-kv-note">Conta Free Cloudflare: ~1.000 writes/dia. Contamos <strong>todos</strong> os puts/deletes do Worker (cliques, pedidos, sync ML/Amazon, fórum, admin) desde 00:00 UTC (21:00 Brasília). Não é consulta à Cloudflare — é o nosso medidor. Se um put falhar por cota, marcamos esgotado.</p>
+      <p class="clicks-kv-note">${note}</p>
     </details>`;
   }
 

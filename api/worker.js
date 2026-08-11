@@ -12285,7 +12285,7 @@ async function handleAdminListClicks(request, env, origin) {
   const capPercent = capMax > 0 ? Math.min(100, Math.round((capUsed / capMax) * 100)) : 0;
   const capFull = capUsed >= capMax;
   const capNearFull = !capFull && capUsed >= Math.floor(capMax * 0.9);
-  const dailyWrites = await buildKvDailyWriteBudget();
+  const dailyWrites = await buildKvDailyWriteBudget(env);
 
   return json({
     clicks,

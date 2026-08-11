@@ -14,11 +14,14 @@ zone_name = "sensortattoofix.com.br"
 
 [vars]
 ADMIN_USERNAME = "admin"
+# Conta Cloudflare (dashboard URL) — uso real de KV no Admin via GraphQL Analytics
+CF_ACCOUNT_ID = "80ab4f6ff1553d2ee530c0880edce594"
 
 [triggers]
 crons = ["*/5 * * * *", "30 2 * * *"]
 
 # Secrets (wrangler secret put NOME):
+# CF_API_TOKEN         — Account Analytics Read (banner KV real no Admin)
 # ADMIN_PASSWORD       — senha do painel /admin.html
 # MP_ACCESS_TOKEN      — PIX via Mercado Pago (developers.mercadopago.com)
 # ML_CLIENT_ID         — Mercado Livre app pedidosml (vendas/marketplace)
