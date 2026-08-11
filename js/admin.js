@@ -2124,7 +2124,8 @@ ${worksheets}
 
     const cap = data?.capacity || {};
     const used = Number(cap.used ?? data?.total ?? 0) || 0;
-    const max = Number(cap.max) > 0 ? Number(cap.max) : 2500;
+    const max = Number(cap.max) > 0 ? Number(cap.max) : 25000;
+    const retentionDays = Number(cap.retentionDays) > 0 ? Number(cap.retentionDays) : 90;
 
     let outerHtml;
     if (wExhausted || wOver) {
@@ -2179,7 +2180,7 @@ ${worksheets}
         ${readsRow}
         <div class="clicks-stats-row"><dt>Fonte da cota</dt><dd>D1 Analytics</dd></div>
         <div class="clicks-stats-row"><dt>Atualizado</dt><dd>${escapeHtml(refreshed)}</dd></div>
-        <div class="clicks-stats-row"><dt>Total no log cliques</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}</dd></div>
+        <div class="clicks-stats-row"><dt>Total no log cliques</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} · retenção ${retentionDays} dias</dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
         <div class="clicks-stats-row"><dt>Mais antigo no log</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
         <div class="clicks-stats-row"><dt>Renova cota</dt><dd>${escapeHtml(String(resetBr))}</dd></div>
@@ -2381,6 +2382,25 @@ ${worksheets}
     return list;
   }
 
+  function daysInCalendarMonth(year, monthNum) {
+    return new Date(Date.UTC(Number(year), Number(monthNum), 0)).getUTCDate();
+  }
+
+  function isPartialMonthInRecord(year, monthNum, minTs, maxTs) {
+    if (!minTs || !maxTs) return true;
+    const start = brDateParts(minTs);
+    const end = brDateParts(maxTs);
+    const ym = `${year}-${String(monthNum).padStart(2, '0')}`;
+    const startYm = `${start.year}-${start.monthNum}`;
+    const endYm = `${end.year}-${end.monthNum}`;
+    if (ym === startYm && Number(start.day) > 1) return true;
+    if (ym === endYm) {
+      const last = daysInCalendarMonth(year, monthNum);
+      if (Number(end.day) < last) return true;
+    }
+    return false;
+  }
+
   function clicksRecordMonthKeys(clicks) {
     const stamps = (clicks || [])
       .map((c) => Number(c.ts || c.client_ts || 0))
@@ -2397,10 +2417,13 @@ ${worksheets}
     const keys = [];
     while (y < endY || (y === endY && m <= endM)) {
       const monthNum = String(m).padStart(2, '0');
+      const partial = isPartialMonthInRecord(y, monthNum, min, max);
+      const base = `${MONTH_LABELS[monthNum] || monthNum} ${y}`;
       keys.push({
         key: `${y}-${monthNum}`,
-        label: `${MONTH_LABELS[monthNum] || monthNum} ${y}`,
-        sortKey: y * 100 + m
+        label: partial ? `${base} (parcial)` : base,
+        sortKey: y * 100 + m,
+        partial
       });
       m += 1;
       if (m > 12) {
@@ -2492,23 +2515,33 @@ ${worksheets}
     // Day-of-month: only days that appear in the record (no 1–31 empty pad).
     const monthdays = aggregateClicksWhen(filtered, 'monthday');
 
-    // Months: only the span of the loaded log (e.g. last 3 months), not the whole year.
+    // Months: span of the loaded log; incomplete months labeled "(parcial)" — don't treat as full MoM.
     const byMonthMap = new Map(aggregateClicksWhen(filtered, 'month').map((b) => [b.key, b]));
-    const months = clicksRecordMonthKeys(filtered).map((slot) => (
-      byMonthMap.get(slot.key) || empty(slot.key, slot.label, slot.sortKey)
-    ));
+    const months = clicksRecordMonthKeys(filtered).map((slot) => {
+      const b = byMonthMap.get(slot.key) || empty(slot.key, slot.label, slot.sortKey);
+      return { ...b, label: slot.label };
+    });
 
     const bySiteMap = new Map(aggregateClicksWhen(filtered, 'site').map((b) => [b.key, b]));
     const sites = ['com.br', 'com']
       .map((host, i) => bySiteMap.get(host) || empty(host, host === 'com' ? '.com (intl)' : '.com.br (BR)', i))
       .filter((b) => b.count > 0);
 
-    root.innerHTML = exclNote + [
+    const stamps = filtered.map((c) => Number(c.ts || c.client_ts || 0)).filter(Boolean);
+    const spanDays = stamps.length
+      ? Math.max(1, Math.round((Math.max(...stamps) - Math.min(...stamps)) / 86400000) + 1)
+      : 0;
+    const spanNote = spanDays
+      ? ` · histórico carregado: <strong>${spanDays} dia${spanDays === 1 ? '' : 's'}</strong> (meta retenção 90 dias)`
+      : '';
+    const cleanLine = `<p class="admin-meta clicks-when-clean">Carregados: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong>${spanNote}</p>`;
+
+    root.innerHTML = cleanLine + [
       renderWhenBarChart('Site (.com / .com.br)', sites, metric, chartOpts),
       renderWhenBarChart('Hora do dia', hours, metric, chartOpts),
       renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts),
       renderWhenBarChart('Dia do mês (só dias com registro)', monthdays, metric, chartOpts),
-      renderWhenBarChart('Mês no histórico', months, metric, chartOpts)
+      renderWhenBarChart('Mês no histórico (parcial ≠ mês cheio)', months, metric, chartOpts)
     ].join('');
   }
 
@@ -3016,7 +3049,7 @@ ${worksheets}
     root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
 
     try {
-      const params = new URLSearchParams({ limit: '2500' });
+      const params = new URLSearchParams({ limit: '25000' });
       if (q) params.set('q', q);
       if (destino === 'pageview') params.set('tipo', 'pageview');
       else if (destino) params.set('destino', destino);

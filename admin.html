@@ -835,7 +835,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Histórico por dia e horário: ano → mês → dia → visitante → caminho da visita (passos 1, 2, 3… na ordem do tempo).</p>
-                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Ocultar só-home</strong> (ligado por padrão) esconde visitas com um único evento Entrada — Home na árvore (não apaga do log). Os gráficos <strong>Quando acessam</strong> usam só o intervalo com registro no log e <strong>sempre excluem</strong> só-home/bots e testes da estatística. <strong>Exportar Excel</strong> gera abas por dia, semana, mês e ano.</p>
+                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Ocultar só-home</strong> (ligado por padrão) esconde visitas com um único evento Entrada — Home na árvore (não apaga do log). Os gráficos <strong>Quando acessam</strong> usam retenção de <strong>90 dias</strong>; meses incompletos aparecem como (parcial). Só-home/bots e testes ficam sempre fora da estatística. <strong>Exportar Excel</strong> gera abas por dia, semana, mês e ano.</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-clicks-filters">
@@ -880,7 +880,7 @@
                         </div>
                         <section class="vendas-when" aria-labelledby="clicks-when-title">
                             <h3 id="clicks-when-title" class="vendas-when-title">Quando acessam</h3>
-                            <p class="admin-meta">Hora e dia da semana no fuso São Paulo. Meses e dias do mês seguem só o histórico carregado (sem meses vazios). Estatística <strong>sempre</strong> exclui só-home/bots e testes — o checkbox só afeta a árvore.</p>
+                            <p class="admin-meta">Hora e dia da semana no fuso São Paulo. Retenção do log: <strong>90 dias</strong> (para comparar mês cheio com mês cheio). Meses incompletos no gráfico aparecem como <strong>(parcial)</strong> — não use como MoM até o mês fechar. Estatística sempre exclui só-home/bots.</p>
                             <div class="vendas-when-filters">
                                 <label>Site
                                     <select id="clicks-when-site" aria-label="Filtrar site">
@@ -895,13 +895,13 @@
                                         <option value="visitors">Visitantes únicos</option>
                                     </select>
                                 </label>
-                                <label>Período
-                                    <select id="clicks-when-range" aria-label="Período">
-                                        <option value="90">Últimos 90 dias</option>
-                                        <option value="365">Últimos 12 meses</option>
-                                        <option value="all" selected>Tudo carregado</option>
-                                    </select>
-                                </label>
+                                    <label>Período
+                                        <select id="clicks-when-range" aria-label="Período">
+                                            <option value="90" selected>Últimos 90 dias</option>
+                                            <option value="365">Últimos 12 meses</option>
+                                            <option value="all">Tudo carregado</option>
+                                        </select>
+                                    </label>
                             </div>
                             <div id="clicks-when-charts" class="vendas-when-charts" aria-live="polite"></div>
                         </section>

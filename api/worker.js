@@ -27,10 +27,14 @@ const SITE_CATALOG_URL = 'https://www.sensortattoofix.com.br/data/store-config.j
 const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
 const CLICKS_BLOB = 'clicks:blob';
-const CLICKS_MAX = 2500;
+/** Soft ceiling (~120 events/day × 90d ≈ 11k; headroom for peaks). Primary trim is by age. */
+const CLICKS_MAX = 25000;
+/** Keep click history for month-over-month comparison (complete prior months). */
+const CLICKS_RETENTION_DAYS = 90;
+const CLICKS_RETENTION_MS = CLICKS_RETENTION_DAYS * 86400000;
 const FEEDBACK_BLOB = 'feedback:blob';
 const FEEDBACK_MAX = 500;
-const CLICK_TTL_SEC = 90 * 86400;
+const CLICK_TTL_SEC = CLICKS_RETENTION_DAYS * 86400;
 const CLICK_LOG_KEY_FALLBACK = 'stf_ck_7f3a9e2b1c';
 const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
 const CANONICAL_API_BASE = 'https://api.sensortattoofix.com.br';
@@ -11919,8 +11923,10 @@ async function insertClickD1(env, entry) {
     teste,
     JSON.stringify(row)
   ).run();
-  // Cap retention (~CLICKS_MAX) without rewriting the whole log.
-  if (Math.random() < 0.02) {
+  // Retention: keep ~90 days for month comparisons; hard ceiling CLICKS_MAX as safety.
+  if (Math.random() < 0.05) {
+    const cutoff = Date.now() - CLICKS_RETENTION_MS;
+    await db.prepare('DELETE FROM clicks WHERE ts < ?').bind(cutoff).run().catch(() => {});
     await db.prepare(`
       DELETE FROM clicks WHERE ts < (
         SELECT ts FROM clicks ORDER BY ts DESC LIMIT 1 OFFSET ?
@@ -11930,7 +11936,7 @@ async function insertClickD1(env, entry) {
   return row;
 }
 
-async function loadClicksFromD1(env, limit = 2500) {
+async function loadClicksFromD1(env, limit = CLICKS_MAX) {
   const db = clicksDb(env);
   if (!db) return null;
   await ensureClicksD1(env);
@@ -11938,7 +11944,7 @@ async function loadClicksFromD1(env, limit = 2500) {
   const total = Number(countRow?.n || 0);
   const res = await db.prepare(
     'SELECT payload FROM clicks ORDER BY ts DESC LIMIT ?'
-  ).bind(Math.min(2500, Math.max(1, limit))).all();
+  ).bind(Math.min(CLICKS_MAX, Math.max(1, limit))).all();
   const loaded = [];
   for (const r of res?.results || []) {
     try {
@@ -11957,7 +11963,7 @@ async function clearClicksD1(env, mode) {
     return { removed: Number(before?.n || 0), remaining: 0 };
   }
   // Remove non-real / test rows: pull candidates and delete by id (isTestClick is JS logic).
-  const res = await db.prepare('SELECT id, payload FROM clicks ORDER BY ts DESC LIMIT 5000').all();
+  const res = await db.prepare('SELECT id, payload FROM clicks ORDER BY ts DESC LIMIT 25000').all();
   const dropIds = [];
   for (const r of res?.results || []) {
     let row;
@@ -12372,11 +12378,11 @@ async function handleAdminListClicks(request, env, origin) {
   const withNav = url.searchParams.get('nav') === '1'
     || url.searchParams.get('com_navegacao') === '1'
     || url.searchParams.get('navegacao') === '1';
-  const limit = Math.min(2500, Math.max(20, parseInt(url.searchParams.get('limit') || '800', 10) || 800));
+  const limit = Math.min(CLICKS_MAX, Math.max(20, parseInt(url.searchParams.get('limit') || String(CLICKS_MAX), 10) || CLICKS_MAX));
 
   let loaded;
   let total;
-  const fromD1 = await loadClicksFromD1(env, Math.min(2500, Math.max(limit, 800)));
+  const fromD1 = await loadClicksFromD1(env, limit);
   if (fromD1) {
     loaded = fromD1.loaded;
     total = fromD1.total;
@@ -12489,7 +12495,8 @@ async function handleAdminListClicks(request, env, origin) {
       percent: capPercent,
       full: capFull,
       nearFull: capNearFull,
-      // New clicks still write (unshift); oldest rows are trimmed when full.
+      retentionDays: CLICKS_RETENTION_DAYS,
+      // Age trim (~90d) first; row ceiling only as safety.
       dropsOldestWhenFull: true
     },
     dailyD1,
