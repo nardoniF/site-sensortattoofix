@@ -224,7 +224,8 @@ export async function fetchCloudflareKvUsage(env, { forceRefresh = false } = {})
   const listLimit = KV_FREE_LISTS_PER_DAY;
   const percent = pctOf(writesToday, writeLimit);
   const readPercent = pctOf(readsToday, readLimit);
-  const exhausted = await isKvWriteQuotaExhaustedMarked();
+  const hardExhausted = await isKvWriteQuotaExhaustedMarked();
+  const overFreeLimit = writesToday >= writeLimit;
   const resets = resetFields();
 
   const payload = {
@@ -243,9 +244,12 @@ export async function fetchCloudflareKvUsage(env, { forceRefresh = false } = {})
     readPercent,
     deletePercent: pctOf(deletesToday, deleteLimit),
     listPercent: pctOf(listsToday, listLimit),
-    near: !exhausted && percent >= 70,
-    critical: !exhausted && percent >= 85,
-    exhausted: exhausted || writesToday >= writeLimit,
+    // "exhausted" = Worker actually got a KV quota/429 error — not merely analytics > 1000.
+    // Free tier often soft-overages; checkout can still write while count shows 1.4k+.
+    exhausted: hardExhausted,
+    overFreeLimit,
+    near: !hardExhausted && percent >= 70,
+    critical: !hardExhausted && (percent >= 85 || overFreeLimit),
     refreshedAt: new Date().toISOString(),
     lagHint: 'Cloudflare Analytics (pode atrasar alguns minutos)',
     sources: 'conta Cloudflare — mesma fonte do dashboard Workers KV',
@@ -277,9 +281,10 @@ export async function buildLocalKvDailyWriteBudget() {
     readLimit: KV_FREE_READS_PER_DAY,
     percent,
     readPercent: null,
-    near: !exhausted && percent >= 70,
-    critical: !exhausted && percent >= 85,
     exhausted,
+    overFreeLimit: writesToday >= limit,
+    near: !exhausted && percent >= 70,
+    critical: !exhausted && (percent >= 85 || writesToday >= limit),
     refreshedAt: new Date().toISOString(),
     lagHint: null,
     sources: 'estimativa local (imprecisa) — configure CF_API_TOKEN para números oficiais',

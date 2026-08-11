@@ -11853,14 +11853,78 @@ async function purgeLegacyClickIndex(env, mode) {
   return removed;
 }
 
-async function appendClickLog(env, entry) {
-  const id = crypto.randomUUID();
-  const row = { id, ts: Date.now(), ...entry };
+/** Batch click writes: many events → 1 KV put (protects free-tier write quota). */
+const CLICK_WRITE_BUF_REQ = () => new Request('https://stf-internal/click-write-buf/v1');
+const CLICK_BUF_MAX_ITEMS = 35;
+const CLICK_BUF_MAX_AGE_MS = 3 * 60 * 1000;
+const CLICK_URGENT_DESTINOS = new Set([
+  'mercado_livre', 'shopee', 'amazon', 'tiktok_shop', 'loja_oficial', 'whatsapp'
+]);
+
+function isCrawlerClick(entry, request) {
+  const ua = `${request?.headers?.get?.('User-Agent') || ''} ${entry?.user_agent || ''}`;
+  if (/googlebot|bingbot|yandexbot|baiduspider|duckduckbot|facebookexternalhit|bytespider|semrush|ahrefs|petalbot|gptbot|claudebot|applebot|slurp|dotbot|mj12bot|ia_archiver|pingdom|uptimerobot/i.test(ua)) {
+    return true;
+  }
+  const ip = String(entry?.ip || '');
+  if (/^66\.249\./.test(ip) || /^66\.102\./.test(ip)) return true; // Google
+  if (/^207\.46\./.test(ip) || /^40\.77\./.test(ip)) return true; // Bing
+  return false;
+}
+
+function isUrgentClickEntry(entry) {
+  const dest = String(entry?.destino || '').trim();
+  if (CLICK_URGENT_DESTINOS.has(dest)) return true;
+  const tipo = String(entry?.tipo || '').toLowerCase();
+  return tipo === 'clique' && CLICK_URGENT_DESTINOS.has(dest);
+}
+
+async function readClickWriteBuffer() {
+  try {
+    const hit = await caches.default.match(CLICK_WRITE_BUF_REQ());
+    if (!hit) return { items: [], since: Date.now() };
+    const data = JSON.parse(await hit.text());
+    const items = Array.isArray(data?.items) ? data.items : [];
+    return { items, since: Number(data?.since) || Date.now() };
+  } catch {
+    return { items: [], since: Date.now() };
+  }
+}
+
+async function writeClickWriteBuffer(buf) {
+  try {
+    await caches.default.put(
+      CLICK_WRITE_BUF_REQ(),
+      new Response(JSON.stringify({
+        items: Array.isArray(buf?.items) ? buf.items.slice(-200) : [],
+        since: Number(buf?.since) || Date.now()
+      }), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=86400' }
+      })
+    );
+  } catch (_) { /* ignore */ }
+}
+
+async function appendClickLogBatch(env, entries) {
+  const rowsIn = Array.isArray(entries) ? entries.filter(Boolean) : [];
+  if (!rowsIn.length) return [];
   let list = (await getClicksBlob(env)) || [];
-  list.unshift(row);
+  const written = [];
+  // Unshift in chronological order so the last (newest) event ends up at index 0.
+  for (const entry of rowsIn) {
+    const id = String(entry.id || crypto.randomUUID());
+    const row = { ...entry, id, ts: Number(entry.ts) || Date.now() };
+    list.unshift(row);
+    written.push(row);
+  }
   if (list.length > CLICKS_MAX) list.length = CLICKS_MAX;
   await saveClicksBlob(env, list);
-  return row;
+  return written;
+}
+
+async function appendClickLog(env, entry) {
+  const rows = await appendClickLogBatch(env, [entry]);
+  return rows[0] || null;
 }
 
 async function isDuplicateClickEvent(eventId) {
@@ -11960,8 +12024,29 @@ function pixelResponse(origin, status) {
   });
 }
 
-async function persistClickLog(env, entry) {
-  await appendClickLog(env, entry);
+/**
+ * Persist clicks with batching (Cache buffer → one KV put for many events).
+ * Marketplace/loja clicks flush immediately (still 1 put for buffer+event).
+ * Pageviews/nav batch up to ~35 events or ~3 minutes.
+ */
+async function persistClickLog(env, entry, { urgent = false } = {}) {
+  const row = {
+    ...entry,
+    id: entry.id || crypto.randomUUID(),
+    ts: Number(entry.ts) || Date.now()
+  };
+  const forceFlush = urgent || isUrgentClickEntry(row);
+  const buf = await readClickWriteBuffer();
+  const items = Array.isArray(buf.items) ? buf.items.slice() : [];
+  items.push(row);
+  const since = items.length === 1 ? Date.now() : (Number(buf.since) || Date.now());
+  const age = Date.now() - since;
+  if (forceFlush || items.length >= CLICK_BUF_MAX_ITEMS || age >= CLICK_BUF_MAX_AGE_MS) {
+    await writeClickWriteBuffer({ items: [], since: Date.now() });
+    await appendClickLogBatch(env, items);
+    return;
+  }
+  await writeClickWriteBuffer({ items, since });
 }
 
 const REAL_VISITOR_UUID = /^v_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12076,6 +12161,9 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   const entry = buildClickEntry(body, request);
+  if (isCrawlerClick(entry, request)) {
+    return json({ ok: true, dropped: true, reason: 'crawler' }, 202, origin);
+  }
 
   try {
     await persistClickLog(env, entry);
@@ -12117,6 +12205,9 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   }
 
   const entry = buildClickEntry(params, request);
+  if (isCrawlerClick(entry, request)) {
+    return pixelResponse(origin);
+  }
 
   try {
     await persistClickLog(env, entry);
@@ -12170,7 +12261,17 @@ async function flushClickWriteBufferToKv(env) {
   if (!buf.items.length) return 0;
   const n = buf.items.length;
   await writeClickWriteBuffer({ items: [], since: Date.now() });
-  await appendClickLogBatch(env, buf.items);
+  try {
+    await appendClickLogBatch(env, buf.items);
+  } catch (err) {
+    // Put buffer back so we do not lose analytics on transient KV errors.
+    const again = await readClickWriteBuffer();
+    await writeClickWriteBuffer({
+      items: [...buf.items, ...(again.items || [])].slice(-200),
+      since: Number(again.since) || Date.now()
+    });
+    throw err;
+  }
   return n;
 }
 
@@ -13510,6 +13611,11 @@ export default {
       })
     );
     if (event.cron === '*/5 * * * *') {
+      ctx.waitUntil(
+        flushClickWriteBufferToKv(env).catch((err) => {
+          console.error('Click buffer flush cron failed:', err.message);
+        })
+      );
       ctx.waitUntil(
         runScheduledMlOrdersSync(env).catch((err) => {
           console.error('ML orders sync cron failed:', err.message);

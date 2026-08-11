@@ -2110,6 +2110,7 @@ ${worksheets}
       ? Number(dw.readPercent)
       : (Number.isFinite(rUsed) ? Math.min(100, Math.round((rUsed / rMax) * 100)) : null);
     const wExhausted = !!dw.exhausted;
+    const wOver = !!dw.overFreeLimit || wPct >= 100;
     const wCritical = !!dw.critical || wPct >= 85;
     const wNear = !!dw.near || wPct >= 70;
     const fromCf = dw.source === 'cloudflare';
@@ -2124,7 +2125,12 @@ ${worksheets}
     if (wExhausted) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--full" role="status">
         <i class="fas fa-ban" aria-hidden="true"></i>
-        <span>COTA KV ESGOTADA — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} writes (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>KV recusou write (429/cota) — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}. Checkout pode falhar. Renova às ${escapeHtml(String(resetBr))}.</span>
+      </div>`;
+    } else if (wOver) {
+      outerHtml = `<div class="clicks-kv-flag clicks-kv--warn" role="status">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        <span>Writes KV (${escapeHtml(sourceLabel)}): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} — acima do free; ainda gravando (soft). Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     } else if (wCritical) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--full" role="status">
