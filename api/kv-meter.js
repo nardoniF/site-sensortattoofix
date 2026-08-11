@@ -10,6 +10,10 @@ export const KV_FREE_READS_PER_DAY = 100000;
 export const KV_FREE_DELETES_PER_DAY = 1000;
 export const KV_FREE_LISTS_PER_DAY = 1000;
 
+/** D1 Workers Free daily row limits (billing metrics). */
+export const D1_FREE_ROWS_WRITTEN_PER_DAY = 100000;
+export const D1_FREE_ROWS_READ_PER_DAY = 5000000;
+
 const CF_USAGE_CACHE_TTL_SEC = 600; // 10 min — dashboard-grade, not live-to-the-second
 
 export function utcDayKey(d = new Date()) {
@@ -35,6 +39,10 @@ function exhaustedReq(day = utcDayKey()) {
 
 function cfUsageReq(day = utcDayKey()) {
   return new Request(`https://stf-internal/kv-cf-usage/${day}`);
+}
+
+function cfD1UsageReq(day = utcDayKey()) {
+  return new Request(`https://stf-internal/d1-cf-usage/${day}`);
 }
 
 function resetFields() {
@@ -311,4 +319,190 @@ export async function buildKvDailyWriteBudget(env) {
     }
   }
   return buildLocalKvDailyWriteBudget();
+}
+
+async function readCachedD1Usage(day) {
+  try {
+    const hit = await caches.default.match(cfD1UsageReq(day));
+    if (!hit) return null;
+    const data = await hit.json();
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCachedD1Usage(day, payload) {
+  try {
+    await caches.default.put(
+      cfD1UsageReq(day),
+      new Response(JSON.stringify(payload), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': `max-age=${CF_USAGE_CACHE_TTL_SEC}`
+        }
+      })
+    );
+  } catch (_) { /* ignore */ }
+}
+
+function d1DatabaseId(env) {
+  return String(env?.CF_D1_DATABASE_ID || env?.CLICKS_D1_ID || '').trim();
+}
+
+/**
+ * Same numbers as Dashboard → D1 → Metrics (rows read/written for the UTC day).
+ * https://developers.cloudflare.com/d1/observability/metrics-analytics/
+ */
+export async function fetchCloudflareD1Usage(env, { forceRefresh = false } = {}) {
+  const creds = cfCredentials(env);
+  if (!creds) return null;
+  const databaseId = d1DatabaseId(env);
+  if (!databaseId) return null;
+
+  const day = utcDayKey();
+  if (!forceRefresh) {
+    const cached = await readCachedD1Usage(day);
+    if (cached?.source === 'cloudflare' && cached.refreshedAt) return cached;
+  }
+
+  const query = `query D1Ops($accountTag: string!, $start: Date, $end: Date, $databaseId: string) {
+    viewer {
+      accounts(filter: { accountTag: $accountTag }) {
+        d1AnalyticsAdaptiveGroups(
+          filter: { date_geq: $start, date_leq: $end, databaseId: $databaseId }
+          limit: 100
+        ) {
+          sum {
+            rowsRead
+            rowsWritten
+            readQueries
+            writeQueries
+          }
+        }
+      }
+    }
+  }`;
+
+  const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${creds.apiToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      query,
+      variables: {
+        accountTag: creds.accountId,
+        start: day,
+        end: day,
+        databaseId
+      }
+    })
+  });
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = body?.errors?.[0]?.message || body?.messages?.[0] || `HTTP ${res.status}`;
+    throw new Error(`Cloudflare D1 Analytics: ${msg}`);
+  }
+  if (Array.isArray(body.errors) && body.errors.length) {
+    throw new Error(`Cloudflare D1 Analytics: ${body.errors[0].message || 'GraphQL error'}`);
+  }
+
+  const groups = body?.data?.viewer?.accounts?.[0]?.d1AnalyticsAdaptiveGroups || [];
+  let rowsRead = 0;
+  let rowsWritten = 0;
+  let readQueries = 0;
+  let writeQueries = 0;
+  for (const row of groups) {
+    rowsRead += Number(row?.sum?.rowsRead || 0) || 0;
+    rowsWritten += Number(row?.sum?.rowsWritten || 0) || 0;
+    readQueries += Number(row?.sum?.readQueries || 0) || 0;
+    writeQueries += Number(row?.sum?.writeQueries || 0) || 0;
+  }
+
+  const writeLimit = D1_FREE_ROWS_WRITTEN_PER_DAY;
+  const readLimit = D1_FREE_ROWS_READ_PER_DAY;
+  const percent = pctOf(rowsWritten, writeLimit);
+  const readPercent = pctOf(rowsRead, readLimit);
+  const overFreeLimit = rowsWritten >= writeLimit;
+  const resets = resetFields();
+
+  const payload = {
+    source: 'cloudflare',
+    kind: 'd1',
+    databaseId,
+    rowsWritten,
+    rowsRead,
+    readQueries,
+    writeQueries,
+    // Alias so UI can reuse the same banner helpers as KV (writesToday = rows written).
+    writesToday: rowsWritten,
+    readsToday: rowsRead,
+    limit: writeLimit,
+    writeLimit,
+    readLimit,
+    percent,
+    readPercent,
+    exhausted: overFreeLimit,
+    overFreeLimit,
+    near: !overFreeLimit && percent >= 70,
+    critical: percent >= 85 || overFreeLimit,
+    refreshedAt: new Date().toISOString(),
+    lagHint: 'Cloudflare D1 Analytics (pode atrasar alguns minutos)',
+    sources: 'D1 stf-clicks — mesma fonte do dashboard D1 Metrics',
+    ...resets
+  };
+
+  await writeCachedD1Usage(day, payload);
+  return payload;
+}
+
+export async function buildD1DailyBudget(env) {
+  if (env && cfCredentials(env) && d1DatabaseId(env)) {
+    try {
+      const cf = await fetchCloudflareD1Usage(env);
+      if (cf) return cf;
+    } catch (err) {
+      console.warn('D1 Cloudflare usage:', err.message || err);
+      return {
+        source: 'unavailable',
+        kind: 'd1',
+        writesToday: 0,
+        readsToday: 0,
+        rowsWritten: 0,
+        rowsRead: 0,
+        limit: D1_FREE_ROWS_WRITTEN_PER_DAY,
+        writeLimit: D1_FREE_ROWS_WRITTEN_PER_DAY,
+        readLimit: D1_FREE_ROWS_READ_PER_DAY,
+        percent: 0,
+        exhausted: false,
+        overFreeLimit: false,
+        near: false,
+        critical: false,
+        cfError: String(err.message || err).slice(0, 200),
+        sources: 'falha ao ler Analytics D1',
+        ...resetFields()
+      };
+    }
+  }
+  return {
+    source: 'unconfigured',
+    kind: 'd1',
+    writesToday: 0,
+    readsToday: 0,
+    rowsWritten: 0,
+    rowsRead: 0,
+    limit: D1_FREE_ROWS_WRITTEN_PER_DAY,
+    writeLimit: D1_FREE_ROWS_WRITTEN_PER_DAY,
+    readLimit: D1_FREE_ROWS_READ_PER_DAY,
+    percent: 0,
+    exhausted: false,
+    overFreeLimit: false,
+    near: false,
+    critical: false,
+    sources: 'configure CF_API_TOKEN + CF_D1_DATABASE_ID',
+    ...resetFields()
+  };
 }

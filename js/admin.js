@@ -2098,14 +2098,14 @@ ${worksheets}
       ).join('')}</ul>`
       : '<p class="clicks-stats-empty">—</p>';
 
-    const dw = data?.dailyWrites || {};
-    const wUsed = Number(dw.writesToday ?? dw.clickWritesToday) || 0;
-    const wMax = Number(dw.writeLimit ?? dw.limit) > 0 ? Number(dw.writeLimit ?? dw.limit) : 1000;
+    const dw = data?.dailyD1 || {};
+    const wUsed = Number(dw.rowsWritten ?? dw.writesToday) || 0;
+    const wMax = Number(dw.writeLimit ?? dw.limit) > 0 ? Number(dw.writeLimit ?? dw.limit) : 100000;
     const wPct = Number.isFinite(Number(dw.percent))
       ? Number(dw.percent)
       : (wMax > 0 ? Math.min(100, Math.round((wUsed / wMax) * 100)) : 0);
-    const rUsed = Number(dw.readsToday);
-    const rMax = Number(dw.readLimit) > 0 ? Number(dw.readLimit) : 100000;
+    const rUsed = Number(dw.rowsRead ?? dw.readsToday);
+    const rMax = Number(dw.readLimit) > 0 ? Number(dw.readLimit) : 5000000;
     const rPct = Number.isFinite(Number(dw.readPercent))
       ? Number(dw.readPercent)
       : (Number.isFinite(rUsed) ? Math.min(100, Math.round((rUsed / rMax) * 100)) : null);
@@ -2115,53 +2115,41 @@ ${worksheets}
     const wNear = !!dw.near || wPct >= 70;
     const fromCf = dw.source === 'cloudflare';
     const resetBr = dw.resetsAtBr || dw.resetsHintBr || '21:00 Brasília (00:00 UTC)';
-    const sourceLabel = fromCf ? 'Cloudflare' : 'estimativa local';
 
     const cap = data?.capacity || {};
     const used = Number(cap.used ?? data?.total ?? 0) || 0;
     const max = Number(cap.max) > 0 ? Number(cap.max) : 2500;
 
     let outerHtml;
-    if (wExhausted) {
+    if (wExhausted || wOver) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--full" role="status">
         <i class="fas fa-ban" aria-hidden="true"></i>
-        <span>KV recusou write (429/cota) — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}. Checkout pode falhar. Renova às ${escapeHtml(String(resetBr))}.</span>
-      </div>`;
-    } else if (wOver) {
-      outerHtml = `<div class="clicks-kv-flag clicks-kv--warn" role="status">
-        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-        <span>Writes KV (${escapeHtml(sourceLabel)}): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} — acima do free; ainda gravando (soft). Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>D1 rows escritas hoje: ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%) — cota free. Log de cliques pode falhar. Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     } else if (wCritical) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--full" role="status">
         <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-        <span>Writes KV hoje (${escapeHtml(sourceLabel)}): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%) — crítico. Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>D1 rows escritas (Cloudflare): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%) — crítico. Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     } else if (wNear) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--warn" role="status">
         <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-        <span>Writes KV hoje (${escapeHtml(sourceLabel)}): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>D1 rows escritas (Cloudflare): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     } else if (fromCf) {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--ok" role="status">
         <i class="fas fa-check-circle" aria-hidden="true"></i>
-        <span>Writes KV hoje (Cloudflare): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>D1 rows escritas hoje: ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     } else {
       outerHtml = `<div class="clicks-kv-flag clicks-kv--warn" role="status">
         <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-        <span>Writes KV (estimativa local, imprecisa): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Configure CF_API_TOKEN. Renova às ${escapeHtml(String(resetBr))}.</span>
+        <span>Cota D1 indisponível — configure CF_API_TOKEN. Renova às ${escapeHtml(String(resetBr))}.</span>
       </div>`;
     }
 
     const readsRow = Number.isFinite(rUsed)
-      ? `<div class="clicks-stats-row"><dt>Reads KV (UTC)</dt><dd>${rUsed.toLocaleString('pt-BR')} / ${rMax.toLocaleString('pt-BR')} (${rPct}%)</dd></div>`
-      : '';
-    const deletesRow = Number.isFinite(Number(dw.deletesToday))
-      ? `<div class="clicks-stats-row"><dt>Deletes KV</dt><dd>${Number(dw.deletesToday).toLocaleString('pt-BR')} / ${(Number(dw.deleteLimit) || 1000).toLocaleString('pt-BR')}</dd></div>`
-      : '';
-    const listsRow = Number.isFinite(Number(dw.listsToday))
-      ? `<div class="clicks-stats-row"><dt>Lists KV</dt><dd>${Number(dw.listsToday).toLocaleString('pt-BR')} / ${(Number(dw.listLimit) || 1000).toLocaleString('pt-BR')}</dd></div>`
+      ? `<div class="clicks-stats-row"><dt>D1 rows lidas (UTC)</dt><dd>${rUsed.toLocaleString('pt-BR')} / ${rMax.toLocaleString('pt-BR')} (${rPct}%)</dd></div>`
       : '';
     const refreshed = dw.refreshedAt
       ? (() => {
@@ -2173,23 +2161,21 @@ ${worksheets}
       })()
       : '—';
     const note = fromCf
-      ? `Fonte: <strong>Cloudflare Analytics</strong> (mesmos números do dashboard Workers KV). Cache ~10 min. ${escapeHtml(dw.lagHint || '')}`
-      : `Fonte: <strong>estimativa local</strong> (imprecisa entre edges). Para o % real no site: secret <code>CF_API_TOKEN</code> (Account Analytics Read) + var <code>CF_ACCOUNT_ID</code>.${dw.cfError ? ` Erro CF: ${escapeHtml(String(dw.cfError))}` : ''}`;
+      ? `Fonte: <strong>Cloudflare D1 Analytics</strong> (dashboard D1 → Metrics). Free: 100 mil rows escritas/dia · 5 mi lidas/dia. Cache ~10 min.`
+      : `Cliques gravam em <strong>D1</strong> (não no KV). Sem token Analytics o % não aparece.${dw.cfError ? ` Erro: ${escapeHtml(String(dw.cfError))}` : ''}`;
 
     el.innerHTML = `${outerHtml}
       <details class="clicks-stats-details">
       <summary class="clicks-stats-summary"><i class="fas fa-chevron-right clicks-stats-chevron" aria-hidden="true"></i> Resumo</summary>
       <dl class="clicks-stats-dl">
         <div class="clicks-stats-row"><dt>Hoje (eventos clique)</dt><dd>${data?.todayCount ?? 0}</dd></div>
-        <div class="clicks-stats-row"><dt>Writes KV (UTC)</dt><dd>${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%)</dd></div>
+        <div class="clicks-stats-row"><dt>D1 rows escritas (UTC)</dt><dd>${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%)</dd></div>
         ${readsRow}
-        ${deletesRow}
-        ${listsRow}
-        <div class="clicks-stats-row"><dt>Fonte da cota</dt><dd>${escapeHtml(fromCf ? 'Cloudflare Analytics' : 'Estimativa local')}</dd></div>
+        <div class="clicks-stats-row"><dt>Fonte da cota</dt><dd>D1 Analytics</dd></div>
         <div class="clicks-stats-row"><dt>Atualizado</dt><dd>${escapeHtml(refreshed)}</dd></div>
         <div class="clicks-stats-row"><dt>Total no log cliques</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')}</dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
-        <div class="clicks-stats-row"><dt>Mais antigo no KV</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
+        <div class="clicks-stats-row"><dt>Mais antigo no log</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
         <div class="clicks-stats-row"><dt>Renova cota</dt><dd>${escapeHtml(String(resetBr))}</dd></div>
         <div class="clicks-stats-row clicks-stats-row-top"><dt>Mais frequentes</dt><dd>${topList}</dd></div>
       </dl>

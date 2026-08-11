@@ -673,7 +673,9 @@
                         <div id="help-pedidos" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Lista em tempo real: pagos e aguardando pagamento.</p>
                             <p>Imprimir <strong>etiqueta</strong> (Correios ou fallback), <strong>confirmar PIX</strong> e exportar CSV/JSON. Para excluir: marque os pedidos e use <strong>Excluir</strong> no topo (pede confirmação).</p>
+                            <p>A cota <strong>KV</strong> abaixo afeta gravação de pedidos (não o log de cliques — esse usa D1).</p>
                         </div>
+                        <div id="pedidos-kv-quota" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-form-actions admin-orders-toolbar admin-toolbar-split">
                             <div class="admin-toolbar-main">
                                 <p id="pedidos-count" class="admin-meta admin-orders-count"></p>
@@ -1024,7 +1026,7 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=8"></script>
     <script src="js/correios-label-print.js?v=4"></script>
-    <script src="js/pedidos.js?v=49"></script>
+    <script src="js/pedidos.js?v=50"></script>
     <script src="js/traffic-origin.js?v=1"></script>
     <script>
     (function () {
@@ -1054,6 +1056,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=137"></script>
+    <script src="js/admin.js?v=138"></script>
 </body>
 </html>

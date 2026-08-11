@@ -49,6 +49,101 @@
     return { Authorization: 'Bearer ' + token };
   }
 
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderKvQuotaBanner(dw) {
+    const el = $('pedidos-kv-quota');
+    if (!el) return;
+    if (!dw || typeof dw !== 'object') {
+      el.innerHTML = '';
+      return;
+    }
+    const wUsed = Number(dw.writesToday ?? dw.clickWritesToday) || 0;
+    const wMax = Number(dw.writeLimit ?? dw.limit) > 0 ? Number(dw.writeLimit ?? dw.limit) : 1000;
+    const wPct = Number.isFinite(Number(dw.percent))
+      ? Number(dw.percent)
+      : (wMax > 0 ? Math.min(100, Math.round((wUsed / wMax) * 100)) : 0);
+    const rUsed = Number(dw.readsToday);
+    const rMax = Number(dw.readLimit) > 0 ? Number(dw.readLimit) : 100000;
+    const rPct = Number.isFinite(Number(dw.readPercent))
+      ? Number(dw.readPercent)
+      : (Number.isFinite(rUsed) ? Math.min(100, Math.round((rUsed / rMax) * 100)) : null);
+    const exhausted = !!dw.exhausted;
+    const over = !!dw.overFreeLimit || wPct >= 100;
+    const critical = !!dw.critical || wPct >= 85;
+    const near = !!dw.near || wPct >= 70;
+    const fromCf = dw.source === 'cloudflare';
+    const resetBr = dw.resetsAtBr || dw.resetsHintBr || '21:00 Brasília (00:00 UTC)';
+    const sourceLabel = fromCf ? 'Cloudflare' : 'estimativa';
+
+    let flagClass = 'clicks-kv--ok';
+    let icon = 'fa-check-circle';
+    let text = `Writes KV hoje (${sourceLabel}): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${resetBr}.`;
+    if (exhausted) {
+      flagClass = 'clicks-kv--full';
+      icon = 'fa-ban';
+      text = `KV recusou write — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}. Checkout pode falhar. Renova às ${resetBr}.`;
+    } else if (over || critical) {
+      flagClass = over ? 'clicks-kv--warn' : 'clicks-kv--full';
+      icon = 'fa-exclamation-triangle';
+      text = `Writes KV (${sourceLabel}): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%)${over ? ' — acima do free' : ' — crítico'}. Renova às ${resetBr}.`;
+    } else if (near) {
+      flagClass = 'clicks-kv--warn';
+      icon = 'fa-exclamation-circle';
+    } else if (!fromCf) {
+      flagClass = 'clicks-kv--warn';
+      icon = 'fa-exclamation-circle';
+      text = `Writes KV (estimativa): ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%). Renova às ${resetBr}.`;
+    }
+
+    const readsLine = Number.isFinite(rUsed)
+      ? `<div class="clicks-stats-row"><dt>Reads KV</dt><dd>${rUsed.toLocaleString('pt-BR')} / ${rMax.toLocaleString('pt-BR')} (${rPct}%)</dd></div>`
+      : '';
+
+    el.innerHTML = `<div class="clicks-kv-flag ${flagClass}" role="status">
+        <i class="fas ${icon}" aria-hidden="true"></i>
+        <span>${escapeHtml(text)}</span>
+      </div>
+      <details class="clicks-stats-details">
+        <summary class="clicks-stats-summary"><i class="fas fa-chevron-right clicks-stats-chevron" aria-hidden="true"></i> Cota KV (pedidos)</summary>
+        <dl class="clicks-stats-dl">
+          <div class="clicks-stats-row"><dt>Writes (UTC)</dt><dd>${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')} (${wPct}%)</dd></div>
+          ${readsLine}
+          <div class="clicks-stats-row"><dt>Fonte</dt><dd>${escapeHtml(fromCf ? 'Cloudflare KV Analytics' : 'Estimativa local')}</dd></div>
+        </dl>
+        <p class="clicks-kv-note">Pedidos, sessões e sync usam <strong>STORE_KV</strong>. Cliques usam D1 (aba Cliques).</p>
+      </details>`;
+  }
+
+  async function loadKvQuota() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base || !$('pedidos-kv-quota')) return;
+    try {
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/kv-usage', {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha cota KV');
+      renderKvQuotaBanner(data.dailyWrites || {});
+    } catch (err) {
+      const el = $('pedidos-kv-quota');
+      if (el) {
+        el.innerHTML = `<div class="clicks-kv-flag clicks-kv--warn" role="status">
+          <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+          <span>Cota KV indisponível: ${escapeHtml(err.message || err)}</span>
+        </div>`;
+      }
+    }
+  }
+
   async function apiPost(path) {
     const res = await fetch(apiBase() + path, {
       method: 'POST',
@@ -1375,6 +1470,7 @@
     allOrders = data;
     await refreshCorreiosTracking(allOrders);
     applyFilters();
+    loadKvQuota().catch(() => {});
   }
 
   function wireControls() {

@@ -21,6 +21,8 @@ zone_name = "sensortattoofix.com.br"
 ADMIN_USERNAME = "admin"
 # Conta Cloudflare (dashboard URL) — uso real de KV no Admin via GraphQL Analytics
 CF_ACCOUNT_ID = "80ab4f6ff1553d2ee530c0880edce594"
+# D1 stf-clicks — cota de rows no banner Admin → Cliques
+CF_D1_DATABASE_ID = "94ffffbb-dd85-41f1-8301-521f19b75f75"
 
 [triggers]
 crons = ["*/5 * * * *", "30 2 * * *"]

@@ -8,6 +8,7 @@ import { handleForumRoute } from './forum.js';
 import {
   bumpKvWriteCounter,
   buildKvDailyWriteBudget,
+  buildD1DailyBudget,
   isKvQuotaError,
   markKvWriteQuotaExhausted
 } from './kv-meter.js';
@@ -12472,7 +12473,7 @@ async function handleAdminListClicks(request, env, origin) {
   const capPercent = capMax > 0 ? Math.min(100, Math.round((capUsed / capMax) * 100)) : 0;
   const capFull = capUsed >= capMax;
   const capNearFull = !capFull && capUsed >= Math.floor(capMax * 0.9);
-  const dailyWrites = await buildKvDailyWriteBudget(env);
+  const dailyD1 = await buildD1DailyBudget(env);
 
   return json({
     clicks,
@@ -12490,7 +12491,8 @@ async function handleAdminListClicks(request, env, origin) {
       // New clicks still write (unshift); oldest rows are trimmed when full.
       dropsOldestWhenFull: true
     },
-    dailyWrites,
+    dailyD1,
+    store: 'd1',
     withNav: !!navSessionKeys,
     navSessions: navSessionKeys ? navSessionKeys.size : 0,
     checkedAt: new Date().toISOString()
@@ -13556,6 +13558,13 @@ export default {
       }
       if (path === '/admin/clicks' && request.method === 'GET') {
         return handleAdminListClicks(request, env, origin);
+      }
+      if (path === '/admin/kv-usage' && request.method === 'GET') {
+        if (!(await isValidSession(env, bearerToken(request)))) {
+          return json({ error: 'Não autorizado.' }, 401, origin);
+        }
+        const dailyWrites = await buildKvDailyWriteBudget(env);
+        return json({ ok: true, dailyWrites, checkedAt: new Date().toISOString() }, 200, origin);
       }
       if ((path === '/admin/clicks/clear' && request.method === 'POST') ||
         (path === '/admin/clicks' && request.method === 'DELETE')) {
