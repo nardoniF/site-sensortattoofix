@@ -11853,13 +11853,37 @@ async function purgeLegacyClickIndex(env, mode) {
   return removed;
 }
 
-/** Batch click writes: many events → 1 KV put (protects free-tier write quota). */
-const CLICK_WRITE_BUF_REQ = () => new Request('https://stf-internal/click-write-buf/v1');
-const CLICK_BUF_MAX_ITEMS = 35;
-const CLICK_BUF_MAX_AGE_MS = 3 * 60 * 1000;
-const CLICK_URGENT_DESTINOS = new Set([
-  'mercado_livre', 'shopee', 'amazon', 'tiktok_shop', 'loja_oficial', 'whatsapp'
-]);
+/** D1 click store — one INSERT per event (no KV blob rewrite, no Cache buffer loss). */
+const CLICKS_D1_MIGRATE_KEY = 'clicks:d1-migrated-v1';
+let clicksD1SchemaReady = false;
+
+function clicksDb(env) {
+  return env.CLICKS_DB || null;
+}
+
+async function ensureClicksD1(env) {
+  const db = clicksDb(env);
+  if (!db) return null;
+  if (clicksD1SchemaReady) return db;
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS clicks (
+      id TEXT PRIMARY KEY NOT NULL,
+      ts INTEGER NOT NULL,
+      tipo TEXT,
+      destino TEXT,
+      visitante_id TEXT,
+      sessao_visita TEXT,
+      pagina TEXT,
+      teste INTEGER NOT NULL DEFAULT 0,
+      payload TEXT NOT NULL
+    )
+  `).run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_ts ON clicks(ts DESC)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_destino ON clicks(destino)').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_visitante ON clicks(visitante_id)').run();
+  clicksD1SchemaReady = true;
+  return db;
+}
 
 function isCrawlerClick(entry, request) {
   const ua = `${request?.headers?.get?.('User-Agent') || ''} ${entry?.user_agent || ''}`;
@@ -11867,64 +11891,149 @@ function isCrawlerClick(entry, request) {
     return true;
   }
   const ip = String(entry?.ip || '');
-  if (/^66\.249\./.test(ip) || /^66\.102\./.test(ip)) return true; // Google
-  if (/^207\.46\./.test(ip) || /^40\.77\./.test(ip)) return true; // Bing
+  if (/^66\.249\./.test(ip) || /^66\.102\./.test(ip)) return true;
+  if (/^207\.46\./.test(ip) || /^40\.77\./.test(ip)) return true;
   return false;
 }
 
-function isUrgentClickEntry(entry) {
-  const dest = String(entry?.destino || '').trim();
-  if (CLICK_URGENT_DESTINOS.has(dest)) return true;
-  const tipo = String(entry?.tipo || '').toLowerCase();
-  return tipo === 'clique' && CLICK_URGENT_DESTINOS.has(dest);
-}
-
-async function readClickWriteBuffer() {
-  try {
-    const hit = await caches.default.match(CLICK_WRITE_BUF_REQ());
-    if (!hit) return { items: [], since: Date.now() };
-    const data = JSON.parse(await hit.text());
-    const items = Array.isArray(data?.items) ? data.items : [];
-    return { items, since: Number(data?.since) || Date.now() };
-  } catch {
-    return { items: [], since: Date.now() };
+async function insertClickD1(env, entry) {
+  const db = await ensureClicksD1(env);
+  if (!db) throw new Error('CLICKS_DB (D1) não configurado no Worker.');
+  const id = String(entry.id || crypto.randomUUID());
+  const ts = Number(entry.ts) || Date.now();
+  const row = { ...entry, id, ts };
+  const teste = (row.teste === true || row.is_test === true) ? 1 : 0;
+  await db.prepare(
+    `INSERT OR REPLACE INTO clicks
+      (id, ts, tipo, destino, visitante_id, sessao_visita, pagina, teste, payload)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id,
+    ts,
+    String(row.tipo || '').slice(0, 24),
+    String(row.destino || '').slice(0, 48),
+    String(row.visitante_id || '').slice(0, 64),
+    String(row.sessao_visita || '').slice(0, 64),
+    String(row.pagina || '').slice(0, 200),
+    teste,
+    JSON.stringify(row)
+  ).run();
+  // Cap retention (~CLICKS_MAX) without rewriting the whole log.
+  if (Math.random() < 0.02) {
+    await db.prepare(`
+      DELETE FROM clicks WHERE ts < (
+        SELECT ts FROM clicks ORDER BY ts DESC LIMIT 1 OFFSET ?
+      )
+    `).bind(CLICKS_MAX - 1).run().catch(() => {});
   }
+  return row;
 }
 
-async function writeClickWriteBuffer(buf) {
+async function loadClicksFromD1(env, limit = 2500) {
+  const db = clicksDb(env);
+  if (!db) return null;
+  await ensureClicksD1(env);
+  const countRow = await db.prepare('SELECT COUNT(*) AS n FROM clicks').first();
+  const total = Number(countRow?.n || 0);
+  const res = await db.prepare(
+    'SELECT payload FROM clicks ORDER BY ts DESC LIMIT ?'
+  ).bind(Math.min(2500, Math.max(1, limit))).all();
+  const loaded = [];
+  for (const r of res?.results || []) {
+    try {
+      loaded.push(JSON.parse(r.payload));
+    } catch { /* skip */ }
+  }
+  return { loaded, total };
+}
+
+async function clearClicksD1(env, mode) {
+  const db = await ensureClicksD1(env);
+  if (!db) return { removed: 0, remaining: 0 };
+  if (mode === 'all') {
+    const before = await db.prepare('SELECT COUNT(*) AS n FROM clicks').first();
+    await db.prepare('DELETE FROM clicks').run();
+    return { removed: Number(before?.n || 0), remaining: 0 };
+  }
+  // Remove non-real / test rows: pull candidates and delete by id (isTestClick is JS logic).
+  const res = await db.prepare('SELECT id, payload FROM clicks ORDER BY ts DESC LIMIT 5000').all();
+  const dropIds = [];
+  for (const r of res?.results || []) {
+    let row;
+    try { row = JSON.parse(r.payload); } catch { dropIds.push(r.id); continue; }
+    if (isTestClick(row)) dropIds.push(r.id);
+  }
+  for (let i = 0; i < dropIds.length; i += 40) {
+    const chunk = dropIds.slice(i, i + 40);
+    const placeholders = chunk.map(() => '?').join(',');
+    await db.prepare(`DELETE FROM clicks WHERE id IN (${placeholders})`).bind(...chunk).run();
+  }
+  const after = await db.prepare('SELECT COUNT(*) AS n FROM clicks').first();
+  return { removed: dropIds.length, remaining: Number(after?.n || 0) };
+}
+
+async function maybeMigrateKvClicksToD1(env) {
+  const db = clicksDb(env);
+  if (!db) return;
   try {
-    await caches.default.put(
-      CLICK_WRITE_BUF_REQ(),
-      new Response(JSON.stringify({
-        items: Array.isArray(buf?.items) ? buf.items.slice(-200) : [],
-        since: Number(buf?.since) || Date.now()
-      }), {
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=86400' }
-      })
-    );
-  } catch (_) { /* ignore */ }
+    if (await env.STORE_KV.get(CLICKS_D1_MIGRATE_KEY)) return;
+  } catch { /* continue */ }
+  await ensureClicksD1(env);
+  const blob = (await getClicksBlob(env)) || [];
+  if (blob.length) {
+    const slice = blob.slice(0, CLICKS_MAX);
+    for (let i = 0; i < slice.length; i += 25) {
+      const chunk = slice.slice(i, i + 25);
+      const stmts = chunk.map((entry) => {
+        const id = String(entry.id || crypto.randomUUID());
+        const ts = Number(entry.ts) || Date.now();
+        const row = { ...entry, id, ts };
+        const teste = (row.teste === true || row.is_test === true) ? 1 : 0;
+        return db.prepare(
+          `INSERT OR IGNORE INTO clicks
+            (id, ts, tipo, destino, visitante_id, sessao_visita, pagina, teste, payload)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          id, ts,
+          String(row.tipo || '').slice(0, 24),
+          String(row.destino || '').slice(0, 48),
+          String(row.visitante_id || '').slice(0, 64),
+          String(row.sessao_visita || '').slice(0, 64),
+          String(row.pagina || '').slice(0, 200),
+          teste,
+          JSON.stringify(row)
+        );
+      });
+      await db.batch(stmts);
+    }
+  }
+  await kvPutSafe(env, CLICKS_D1_MIGRATE_KEY, new Date().toISOString());
+}
+
+async function appendClickLog(env, entry) {
+  return insertClickD1(env, entry);
 }
 
 async function appendClickLogBatch(env, entries) {
   const rowsIn = Array.isArray(entries) ? entries.filter(Boolean) : [];
   if (!rowsIn.length) return [];
-  let list = (await getClicksBlob(env)) || [];
   const written = [];
-  // Unshift in chronological order so the last (newest) event ends up at index 0.
   for (const entry of rowsIn) {
-    const id = String(entry.id || crypto.randomUUID());
-    const row = { ...entry, id, ts: Number(entry.ts) || Date.now() };
-    list.unshift(row);
-    written.push(row);
+    written.push(await insertClickD1(env, entry));
   }
-  if (list.length > CLICKS_MAX) list.length = CLICKS_MAX;
-  await saveClicksBlob(env, list);
   return written;
 }
 
-async function appendClickLog(env, entry) {
-  const rows = await appendClickLogBatch(env, [entry]);
-  return rows[0] || null;
+/**
+ * Persist one click immediately to D1 (durable). No Cache batching — that lost events across edges.
+ */
+async function persistClickLog(env, entry) {
+  await maybeMigrateKvClicksToD1(env).catch((err) => console.warn('clicks D1 migrate:', err.message || err));
+  return insertClickD1(env, {
+    ...entry,
+    id: entry.id || crypto.randomUUID(),
+    ts: Number(entry.ts) || Date.now()
+  });
 }
 
 async function isDuplicateClickEvent(eventId) {
@@ -12024,31 +12133,6 @@ function pixelResponse(origin, status) {
   });
 }
 
-/**
- * Persist clicks with batching (Cache buffer → one KV put for many events).
- * Marketplace/loja clicks flush immediately (still 1 put for buffer+event).
- * Pageviews/nav batch up to ~35 events or ~3 minutes.
- */
-async function persistClickLog(env, entry, { urgent = false } = {}) {
-  const row = {
-    ...entry,
-    id: entry.id || crypto.randomUUID(),
-    ts: Number(entry.ts) || Date.now()
-  };
-  const forceFlush = urgent || isUrgentClickEntry(row);
-  const buf = await readClickWriteBuffer();
-  const items = Array.isArray(buf.items) ? buf.items.slice() : [];
-  items.push(row);
-  const since = items.length === 1 ? Date.now() : (Number(buf.since) || Date.now());
-  const age = Date.now() - since;
-  if (forceFlush || items.length >= CLICK_BUF_MAX_ITEMS || age >= CLICK_BUF_MAX_AGE_MS) {
-    await writeClickWriteBuffer({ items: [], since: Date.now() });
-    await appendClickLogBatch(env, items);
-    return;
-  }
-  await writeClickWriteBuffer({ items, since });
-}
-
 const REAL_VISITOR_UUID = /^v_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REAL_VISITOR_TS = /^v_\d{10,13}$/;
 
@@ -12098,27 +12182,36 @@ async function handleAdminClearClicks(request, env, origin) {
   const body = await request.json().catch(() => ({}));
   const mode = body.mode === 'all' ? 'all' : 'tests';
 
+  await maybeMigrateKvClicksToD1(env).catch(() => {});
+
   let removed = 0;
   let remaining = 0;
-  const blobActive = await clicksBlobStoreActive(env);
 
+  if (clicksDb(env)) {
+    const d1 = await clearClicksD1(env, mode);
+    removed += d1.removed;
+    remaining = d1.remaining;
+  }
+
+  // Legacy KV cleanup (blob / per-key index) — once, then empty.
+  const blobActive = await clicksBlobStoreActive(env);
   if (blobActive) {
     const list = (await getClicksBlob(env)) || [];
     if (mode === 'all') {
       removed += list.length;
       await saveClicksBlob(env, []);
-      remaining = 0;
     } else {
       const kept = list.filter((row) => !isTestClick(row));
       removed += list.length - kept.length;
       await saveClicksBlob(env, kept);
-      remaining = kept.length;
     }
   }
-
   removed += await purgeLegacyClickIndex(env, mode);
 
-  if (mode === 'all') {
+  if (clicksDb(env)) {
+    const again = await loadClicksFromD1(env, 1);
+    remaining = again?.total ?? remaining;
+  } else if (mode === 'all') {
     remaining = 0;
   } else if (blobActive) {
     remaining = ((await getClicksBlob(env)) || []).length;
@@ -12126,7 +12219,7 @@ async function handleAdminClearClicks(request, env, origin) {
     remaining = (await getClicksIndex(env)).length;
   }
 
-  return json({ ok: true, mode, removed, remaining }, 200, origin);
+  return json({ ok: true, mode, removed, remaining, store: clicksDb(env) ? 'd1' : 'kv' }, 200, origin);
 }
 
 async function checkClickRate(env, ip) {
@@ -12257,22 +12350,9 @@ function enrichClickRowForAdmin(row) {
 }
 
 async function flushClickWriteBufferToKv(env) {
-  const buf = await readClickWriteBuffer();
-  if (!buf.items.length) return 0;
-  const n = buf.items.length;
-  await writeClickWriteBuffer({ items: [], since: Date.now() });
-  try {
-    await appendClickLogBatch(env, buf.items);
-  } catch (err) {
-    // Put buffer back so we do not lose analytics on transient KV errors.
-    const again = await readClickWriteBuffer();
-    await writeClickWriteBuffer({
-      items: [...buf.items, ...(again.items || [])].slice(-200),
-      since: Number(again.since) || Date.now()
-    });
-    throw err;
-  }
-  return n;
+  // Legacy no-op: click buffer removed. Ensure one-time KV→D1 migration runs.
+  await maybeMigrateKvClicksToD1(env);
+  return 0;
 }
 
 async function handleAdminListClicks(request, env, origin) {
@@ -12280,8 +12360,8 @@ async function handleAdminListClicks(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
 
-  // Do NOT flush the delayed buffer here — Atualizar only shows what is already in KV
-  // (urgent marketplace/loja clicks flush on write; other clicks batch every ~12 min).
+  // Prefer D1 (durable inserts). Fall back to legacy KV blob/index during transition.
+  await maybeMigrateKvClicksToD1(env).catch(() => {});
 
   const url = new URL(request.url);
   const q = (url.searchParams.get('q') || '').trim().toLowerCase();
@@ -12292,17 +12372,23 @@ async function handleAdminListClicks(request, env, origin) {
     || url.searchParams.get('navegacao') === '1';
   const limit = Math.min(2500, Math.max(20, parseInt(url.searchParams.get('limit') || '800', 10) || 800));
 
-  const blobActive = await clicksBlobStoreActive(env);
   let loaded;
   let total;
-  if (blobActive) {
-    loaded = (await getClicksBlob(env)) || [];
-    total = loaded.length;
+  const fromD1 = await loadClicksFromD1(env, Math.min(2500, Math.max(limit, 800)));
+  if (fromD1) {
+    loaded = fromD1.loaded;
+    total = fromD1.total;
   } else {
-    const ids = await getClicksIndex(env);
-    total = ids.length;
-    const scanIds = ids.slice(0, Math.min(ids.length, 500));
-    loaded = await loadClickRows(env, scanIds, scanIds.length);
+    const blobActive = await clicksBlobStoreActive(env);
+    if (blobActive) {
+      loaded = (await getClicksBlob(env)) || [];
+      total = loaded.length;
+    } else {
+      const ids = await getClicksIndex(env);
+      total = ids.length;
+      const scanIds = ids.slice(0, Math.min(ids.length, 500));
+      loaded = await loadClickRows(env, scanIds, scanIds.length);
+    }
   }
 
   function sessionKey(row) {

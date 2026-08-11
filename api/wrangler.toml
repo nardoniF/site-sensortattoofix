@@ -8,6 +8,11 @@ workers_dev = true
 binding = "STORE_KV"
 id = "4184c034aab941e58ce5cc1e3abaecdc"
 
+[[d1_databases]]
+binding = "CLICKS_DB"
+database_name = "stf-clicks"
+database_id = "94ffffbb-dd85-41f1-8301-521f19b75f75"
+
 [[routes]]
 pattern = "api.sensortattoofix.com.br/*"
 zone_name = "sensortattoofix.com.br"
