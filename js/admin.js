@@ -2338,15 +2338,46 @@ ${worksheets}
     const rangeEl = document.getElementById('clicks-when-range');
     const site = siteEl ? siteEl.value : '';
     const range = rangeEl ? rangeEl.value : 'all';
-    const hideHome = !!document.getElementById('clicks-filter-hide-home-only')?.checked;
-    let list = Array.isArray(clicks) ? clicks.slice() : [];
-    if (hideHome) list = filterClicksExcludingHomeOnly(list);
+    // Observability: always drop só-home bounces + test rows (UI checkbox only affects the tree).
+    let list = filterClicksExcludingHomeOnly(
+      (clicks || []).filter((c) => !(c.teste === true || c.is_test === true))
+    );
     if (site) list = list.filter((c) => clickSiteHost(c) === site);
     if (range === '90' || range === '365') {
       const cut = Date.now() - Number(range) * 86400000;
       list = list.filter((c) => Number(c.ts || c.client_ts || 0) >= cut);
     }
     return list;
+  }
+
+  function clicksRecordMonthKeys(clicks) {
+    const stamps = (clicks || [])
+      .map((c) => Number(c.ts || c.client_ts || 0))
+      .filter((ts) => ts > 0);
+    if (!stamps.length) return [];
+    const min = Math.min(...stamps);
+    const max = Math.max(...stamps);
+    const start = brDateParts(min);
+    const end = brDateParts(max);
+    let y = Number(start.year);
+    let m = Number(start.monthNum);
+    const endY = Number(end.year);
+    const endM = Number(end.monthNum);
+    const keys = [];
+    while (y < endY || (y === endY && m <= endM)) {
+      const monthNum = String(m).padStart(2, '0');
+      keys.push({
+        key: `${y}-${monthNum}`,
+        label: `${MONTH_LABELS[monthNum] || monthNum} ${y}`,
+        sortKey: y * 100 + m
+      });
+      m += 1;
+      if (m > 12) {
+        m = 1;
+        y += 1;
+      }
+    }
+    return keys;
   }
 
   function aggregateClicksWhen(clicks, mode) {
@@ -2382,9 +2413,11 @@ ${worksheets}
         label = host === 'com' ? '.com (intl)' : '.com.br (BR)';
         sortKey = host === 'com.br' ? 0 : 1;
       } else {
-        key = clock.monthNum;
-        label = MONTH_LABELS[clock.monthNum] || clock.monthNum;
-        sortKey = Number(clock.monthNum);
+        // Chronological month in the log (YYYY-MM), not empty Jan–Dec padding.
+        const monthNum = clock.monthNum;
+        key = `${clock.year}-${monthNum}`;
+        label = `${MONTH_LABELS[monthNum] || monthNum} ${clock.year}`;
+        sortKey = Number(clock.year) * 100 + Number(monthNum);
       }
       const b = ensure(key, label, sortKey);
       b.count += 1;
@@ -2404,7 +2437,7 @@ ${worksheets}
     const metric = metricEl ? metricEl.value : 'events';
     const filtered = filterClicksForWhenCharts(clicks);
     if (!filtered.length) {
-      root.innerHTML = '<p class="admin-meta">Sem acessos para este filtro.</p>';
+      root.innerHTML = '<p class="admin-meta">Sem acessos reais neste recorte (só-home/bots e testes ficam de fora da estatística).</p>';
       return;
     }
     const empty = (key, label, sortKey) => ({ key, label, sortKey, count: 0, visitors: 0, net: 0, gross: 0 });
@@ -2412,6 +2445,8 @@ ${worksheets}
       ? `${r.count} evento${r.count === 1 ? '' : 's'}`
       : `${r.visitors} visitante${r.visitors === 1 ? '' : 's'}`);
     const chartOpts = { sideLabel };
+
+    // Hour + weekday: keep full axes (zeros are meaningful for “when”).
     const byHourMap = new Map(aggregateClicksWhen(filtered, 'hour').map((b) => [b.key, b]));
     const hours = Array.from({ length: 24 }, (_, h) => (
       byHourMap.get(String(h)) || empty(String(h), `${String(h).padStart(2, '0')}h`, h)
@@ -2420,26 +2455,27 @@ ${worksheets}
     const weekdays = WEEKDAY_ORDER.map((d) => (
       byWeekMap.get(String(d)) || empty(String(d), WEEKDAY_LABELS[d], WEEKDAY_ORDER.indexOf(d))
     ));
-    const byDayMap = new Map(aggregateClicksWhen(filtered, 'monthday').map((b) => [b.key, b]));
-    const monthdays = Array.from({ length: 31 }, (_, i) => {
-      const day = i + 1;
-      return byDayMap.get(String(day)) || empty(String(day), `Dia ${day}`, day);
-    });
+
+    // Day-of-month: only days that appear in the record (no 1–31 empty pad).
+    const monthdays = aggregateClicksWhen(filtered, 'monthday');
+
+    // Months: only the span of the loaded log (e.g. last 3 months), not the whole year.
     const byMonthMap = new Map(aggregateClicksWhen(filtered, 'month').map((b) => [b.key, b]));
-    const months = Object.keys(MONTH_LABELS).map((num) => (
-      byMonthMap.get(num) || empty(num, MONTH_LABELS[num], Number(num))
+    const months = clicksRecordMonthKeys(filtered).map((slot) => (
+      byMonthMap.get(slot.key) || empty(slot.key, slot.label, slot.sortKey)
     ));
+
     const bySiteMap = new Map(aggregateClicksWhen(filtered, 'site').map((b) => [b.key, b]));
-    const sites = [
-      bySiteMap.get('com.br') || empty('com.br', '.com.br (BR)', 0),
-      bySiteMap.get('com') || empty('com', '.com (intl)', 1)
-    ];
+    const sites = ['com.br', 'com']
+      .map((host, i) => bySiteMap.get(host) || empty(host, host === 'com' ? '.com (intl)' : '.com.br (BR)', i))
+      .filter((b) => b.count > 0);
+
     root.innerHTML = [
       renderWhenBarChart('Site (.com / .com.br)', sites, metric, chartOpts),
       renderWhenBarChart('Hora do dia', hours, metric, chartOpts),
       renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts),
-      renderWhenBarChart('Dia do mês', monthdays, metric, chartOpts),
-      renderWhenBarChart('Mês do ano', months, metric, chartOpts)
+      renderWhenBarChart('Dia do mês (só dias com registro)', monthdays, metric, chartOpts),
+      renderWhenBarChart('Mês no histórico', months, metric, chartOpts)
     ].join('');
   }
 
