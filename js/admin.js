@@ -2284,17 +2284,26 @@ ${worksheets}
     return 'Visitante sem identificação';
   }
 
-  /** Session with exactly one event: Entrada — Home (bounce). Display filter only — does not delete from D1. */
-  function isHomeOnlyBounceSession(events) {
-    if (!Array.isArray(events) || events.length !== 1) return false;
-    const c = events[0];
-    const dest = String(c?.destino || '');
-    if (dest === 'entrada_home' || dest === 'entrada_home_en' || dest === 'entrada_home_it') return true;
-    const label = String(c?.rotulo || c?.destino_label || '');
-    if ((c?.tipo === 'pageview' || dest.startsWith('entrada_')) && /entrada\s*[—\-–]\s*home\b/i.test(label)) {
+  /** Home landing event (BR/EN/IT), including legacy destino "home". */
+  function isHomeEntradaEvent(c) {
+    const dest = String(c?.destino || '').toLowerCase();
+    if (dest === 'entrada_home' || dest === 'entrada_home_en' || dest === 'entrada_home_it' || dest === 'home') {
       return true;
     }
+    if (dest.startsWith('entrada_home')) return true;
+    const label = String(c?.rotulo || c?.destino_label || '');
+    if (/entrada\s*[—\-–]\s*home\b/i.test(label)) return true;
+    const pagina = String(c?.pagina || '');
+    if (/^home(\s+(br|en|it))?$/i.test(pagina.trim())) {
+      return c?.tipo === 'pageview' || dest.startsWith('entrada_') || dest === 'home';
+    }
     return false;
+  }
+
+  /** Session with only home landing(s) — bounce/bot noise. Used by tree + charts. */
+  function isHomeOnlyBounceSession(events) {
+    if (!Array.isArray(events) || !events.length) return false;
+    return events.every(isHomeEntradaEvent);
   }
 
   /** Infer .com vs .com.br from stored site_host or idioma/página/destino. */
@@ -2316,7 +2325,22 @@ ${worksheets}
   }
 
   function clickSessionKey(c) {
-    return `${visitorKey(c)}|${c?.sessao_visita || 'sem_sessao'}`;
+    const vid = visitorKey(c);
+    const sess = String(c?.sessao_visita || '').trim();
+    if (sess) return `${vid}|${sess}`;
+    // Sem sessão: cada evento conta sozinho (senão vários bounces viram 1 sessão “grande”).
+    return `${vid}|evt:${c?.id || c?.client_event_id || c?.ts || 'x'}`;
+  }
+
+  function isCrawlerClickRow(c) {
+    const ua = `${c?.user_agent || ''} ${c?.dispositivo || ''}`;
+    if (/googlebot|bingbot|yandexbot|baiduspider|duckduckbot|facebookexternalhit|bytespider|semrush|ahrefs|petalbot|gptbot|claudebot|applebot|slurp|dotbot|mj12bot|ia_archiver|pingdom|uptimerobot/i.test(ua)) {
+      return true;
+    }
+    const ip = String(c?.ip || '');
+    if (/^66\.249\./.test(ip) || /^66\.102\./.test(ip)) return true;
+    if (/^207\.46\./.test(ip) || /^40\.77\./.test(ip)) return true;
+    return false;
   }
 
   function filterClicksExcludingHomeOnly(clicks) {
@@ -2330,7 +2354,16 @@ ${worksheets}
     bySession.forEach((evs, sk) => {
       if (isHomeOnlyBounceSession(evs)) drop.add(sk);
     });
-    return (clicks || []).filter((c) => !drop.has(clickSessionKey(c)));
+    return (clicks || []).filter((c) => !drop.has(clickSessionKey(c)) && !isCrawlerClickRow(c));
+  }
+
+  function summarizeClicksForCharts(clicks) {
+    const raw = Array.isArray(clicks) ? clicks : [];
+    const withoutTests = raw.filter((c) => !(c.teste === true || c.is_test === true));
+    const testsDropped = raw.length - withoutTests.length;
+    const cleaned = filterClicksExcludingHomeOnly(withoutTests);
+    const botsDropped = withoutTests.length - cleaned.length;
+    return { raw, cleaned, testsDropped, botsDropped };
   }
 
   function filterClicksForWhenCharts(clicks) {
@@ -2338,10 +2371,8 @@ ${worksheets}
     const rangeEl = document.getElementById('clicks-when-range');
     const site = siteEl ? siteEl.value : '';
     const range = rangeEl ? rangeEl.value : 'all';
-    // Observability: always drop só-home bounces + test rows (UI checkbox only affects the tree).
-    let list = filterClicksExcludingHomeOnly(
-      (clicks || []).filter((c) => !(c.teste === true || c.is_test === true))
-    );
+    const { cleaned } = summarizeClicksForCharts(clicks);
+    let list = cleaned;
     if (site) list = list.filter((c) => clickSiteHost(c) === site);
     if (range === '90' || range === '365') {
       const cut = Date.now() - Number(range) * 86400000;
@@ -2435,9 +2466,11 @@ ${worksheets}
     if (!root) return;
     const metricEl = document.getElementById('clicks-when-metric');
     const metric = metricEl ? metricEl.value : 'events';
+    const summary = summarizeClicksForCharts(clicks);
     const filtered = filterClicksForWhenCharts(clicks);
+    const exclNote = `<p class="admin-meta clicks-when-clean">Carregados: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong></p>`;
     if (!filtered.length) {
-      root.innerHTML = '<p class="admin-meta">Sem acessos reais neste recorte (só-home/bots e testes ficam de fora da estatística).</p>';
+      root.innerHTML = `${exclNote}<p class="admin-meta">Sem acessos reais neste recorte.</p>`;
       return;
     }
     const empty = (key, label, sortKey) => ({ key, label, sortKey, count: 0, visitors: 0, net: 0, gross: 0 });
@@ -2470,7 +2503,7 @@ ${worksheets}
       .map((host, i) => bySiteMap.get(host) || empty(host, host === 'com' ? '.com (intl)' : '.com.br (BR)', i))
       .filter((b) => b.count > 0);
 
-    root.innerHTML = [
+    root.innerHTML = exclNote + [
       renderWhenBarChart('Site (.com / .com.br)', sites, metric, chartOpts),
       renderWhenBarChart('Hora do dia', hours, metric, chartOpts),
       renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts),
