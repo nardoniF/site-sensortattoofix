@@ -563,6 +563,13 @@
     } catch (_) { /* ignore */ }
   }
 
+  function siteHostTag() {
+    const host = String(location.hostname || '').toLowerCase();
+    if (/^(www\.)?sensortattoofix\.com\.br$/.test(host)) return 'com.br';
+    if (/^(www\.)?sensortattoofix\.com$/.test(host)) return 'com';
+    return /\.com\.br$/i.test(host) ? 'com.br' : 'com';
+  }
+
   function montarCorpoLog(data) {
     const visitante = contextoVisitante();
     const origem = capturarOrigemSessao();
@@ -579,6 +586,7 @@
       pagina: data.pagina ? humanizarPagina(data.pagina) : humanizarPagina(location.pathname),
       titulo_pagina: data.titulo_pagina || document.title || '',
       idioma: data.idioma || document.documentElement.lang || 'pt-br',
+      site_host: siteHostTag(),
       referrer: normalizarTexto(visitante.referrer || '(direto)'),
       dispositivo: humanizarDispositivo(visitante.dispositivo),
       fuso: visitante.fuso,

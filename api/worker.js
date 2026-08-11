@@ -12098,6 +12098,7 @@ function buildClickEntry(data, request) {
     pagina: clickField(data, 'pagina', 200),
     titulo_pagina: clickField(data, 'titulo_pagina', 120),
     idioma: clickField(data, 'idioma', 24),
+    site_host: clickField(data, 'site_host', 16),
     referrer: clickField(data, 'referrer', 200),
     dispositivo,
     user_agent: userAgent,

@@ -1316,17 +1316,23 @@ ${worksheets}
   }
 
   function metricValue(bucket, metric) {
-    if (metric === 'count') return bucket.count;
+    if (metric === 'count' || metric === 'events') return bucket.count;
+    if (metric === 'visitors') return Number(bucket.visitors || 0);
     if (metric === 'gross') return bucket.gross;
     return bucket.net;
   }
 
   function formatWhenMetric(value, metric) {
-    if (metric === 'count') return Number(value || 0).toLocaleString('pt-BR');
+    if (metric === 'count' || metric === 'events' || metric === 'visitors') {
+      return Number(value || 0).toLocaleString('pt-BR');
+    }
     return formatSalesBRL(value);
   }
 
-  function renderWhenBarChart(title, rows, metric) {
+  function renderWhenBarChart(title, rows, metric, opts = {}) {
+    const unitOne = opts.unitOne || 'venda';
+    const unitMany = opts.unitMany || `${unitOne}s`;
+    const sideLabel = opts.sideLabel || ((r) => `${r.count} ${r.count === 1 ? unitOne : unitMany}`);
     const max = Math.max(0, ...rows.map((r) => metricValue(r, metric)));
     const bars = rows.map((r) => {
       const val = metricValue(r, metric);
@@ -1336,7 +1342,7 @@ ${worksheets}
         <span class="vendas-when-label">${escapeHtml(r.label)}</span>
         <span class="vendas-when-track"><span class="vendas-when-bar" style="width:${pct}%"></span></span>
         <span class="vendas-when-value">${escapeHtml(formatWhenMetric(val, metric))}</span>
-        <span class="vendas-when-count">${r.count} venda${r.count === 1 ? '' : 's'}</span>
+        <span class="vendas-when-count">${escapeHtml(sideLabel(r))}</span>
       </div>`;
     }).join('') || '<p class="admin-meta">Sem dados neste recorte.</p>';
     return `<article class="vendas-when-card">
@@ -2278,17 +2284,175 @@ ${worksheets}
     return 'Visitante sem identificação';
   }
 
-  /** Session with exactly one event: Entrada — Home (bounce). Display filter only — does not delete KV. */
+  /** Session with exactly one event: Entrada — Home (bounce). Display filter only — does not delete from D1. */
   function isHomeOnlyBounceSession(events) {
     if (!Array.isArray(events) || events.length !== 1) return false;
     const c = events[0];
     const dest = String(c?.destino || '');
-    if (dest === 'entrada_home' || dest === 'entrada_home_en') return true;
+    if (dest === 'entrada_home' || dest === 'entrada_home_en' || dest === 'entrada_home_it') return true;
     const label = String(c?.rotulo || c?.destino_label || '');
     if ((c?.tipo === 'pageview' || dest.startsWith('entrada_')) && /entrada\s*[—\-–]\s*home\b/i.test(label)) {
       return true;
     }
     return false;
+  }
+
+  /** Infer .com vs .com.br from stored site_host or idioma/página/destino. */
+  function clickSiteHost(c) {
+    const explicit = String(c?.site_host || '').toLowerCase().trim();
+    if (explicit === 'com' || explicit === 'com.br') return explicit;
+    const host = String(c?.host || c?.hostname || '').toLowerCase();
+    if (/sensortattoofix\.com\.br/.test(host)) return 'com.br';
+    if (/sensortattoofix\.com(?!\.br)/.test(host)) return 'com';
+    const idioma = String(c?.idioma || '').toLowerCase();
+    if (idioma.startsWith('en') || idioma.startsWith('it')) return 'com';
+    if (idioma.startsWith('pt')) return 'com.br';
+    const pagina = String(c?.pagina || '');
+    if (/\b(EN|IT)\b/.test(pagina)) return 'com';
+    if (/\bBR\b/.test(pagina)) return 'com.br';
+    const dest = String(c?.destino || '');
+    if (/_(en|it)(_|$)/.test(dest) || /_(en|it)$/.test(dest)) return 'com';
+    return 'com.br';
+  }
+
+  function clickSessionKey(c) {
+    return `${visitorKey(c)}|${c?.sessao_visita || 'sem_sessao'}`;
+  }
+
+  function filterClicksExcludingHomeOnly(clicks) {
+    const bySession = new Map();
+    (clicks || []).forEach((c) => {
+      const sk = clickSessionKey(c);
+      if (!bySession.has(sk)) bySession.set(sk, []);
+      bySession.get(sk).push(c);
+    });
+    const drop = new Set();
+    bySession.forEach((evs, sk) => {
+      if (isHomeOnlyBounceSession(evs)) drop.add(sk);
+    });
+    return (clicks || []).filter((c) => !drop.has(clickSessionKey(c)));
+  }
+
+  function filterClicksForWhenCharts(clicks) {
+    const siteEl = document.getElementById('clicks-when-site');
+    const rangeEl = document.getElementById('clicks-when-range');
+    const site = siteEl ? siteEl.value : '';
+    const range = rangeEl ? rangeEl.value : 'all';
+    const hideHome = !!document.getElementById('clicks-filter-hide-home-only')?.checked;
+    let list = Array.isArray(clicks) ? clicks.slice() : [];
+    if (hideHome) list = filterClicksExcludingHomeOnly(list);
+    if (site) list = list.filter((c) => clickSiteHost(c) === site);
+    if (range === '90' || range === '365') {
+      const cut = Date.now() - Number(range) * 86400000;
+      list = list.filter((c) => Number(c.ts || c.client_ts || 0) >= cut);
+    }
+    return list;
+  }
+
+  function aggregateClicksWhen(clicks, mode) {
+    const buckets = new Map();
+    const ensure = (key, label, sortKey) => {
+      if (!buckets.has(key)) {
+        buckets.set(key, { key, label, sortKey, count: 0, visitors: 0, _vids: new Set(), net: 0, gross: 0 });
+      }
+      return buckets.get(key);
+    };
+    (clicks || []).forEach((c) => {
+      const ts = Number(c.ts || c.client_ts || 0);
+      if (!ts) return;
+      const clock = brSaleClockParts(ts);
+      let key;
+      let label;
+      let sortKey;
+      if (mode === 'hour') {
+        key = String(clock.hour);
+        label = `${String(clock.hour).padStart(2, '0')}h`;
+        sortKey = clock.hour;
+      } else if (mode === 'weekday') {
+        key = String(clock.weekday);
+        label = WEEKDAY_LABELS[clock.weekday] || key;
+        sortKey = WEEKDAY_ORDER.indexOf(clock.weekday);
+      } else if (mode === 'monthday') {
+        key = String(clock.monthDay);
+        label = `Dia ${clock.monthDay}`;
+        sortKey = clock.monthDay;
+      } else if (mode === 'site') {
+        const host = clickSiteHost(c);
+        key = host;
+        label = host === 'com' ? '.com (intl)' : '.com.br (BR)';
+        sortKey = host === 'com.br' ? 0 : 1;
+      } else {
+        key = clock.monthNum;
+        label = MONTH_LABELS[clock.monthNum] || clock.monthNum;
+        sortKey = Number(clock.monthNum);
+      }
+      const b = ensure(key, label, sortKey);
+      b.count += 1;
+      b._vids.add(visitorKey(c));
+      b.visitors = b._vids.size;
+    });
+    return [...buckets.values()].map((b) => {
+      const { _vids, ...rest } = b;
+      return { ...rest, visitors: _vids.size };
+    }).sort((a, b) => a.sortKey - b.sortKey);
+  }
+
+  function renderClicksWhenCharts(clicks) {
+    const root = document.getElementById('clicks-when-charts');
+    if (!root) return;
+    const metricEl = document.getElementById('clicks-when-metric');
+    const metric = metricEl ? metricEl.value : 'events';
+    const filtered = filterClicksForWhenCharts(clicks);
+    if (!filtered.length) {
+      root.innerHTML = '<p class="admin-meta">Sem acessos para este filtro.</p>';
+      return;
+    }
+    const empty = (key, label, sortKey) => ({ key, label, sortKey, count: 0, visitors: 0, net: 0, gross: 0 });
+    const sideLabel = (r) => (metric === 'visitors'
+      ? `${r.count} evento${r.count === 1 ? '' : 's'}`
+      : `${r.visitors} visitante${r.visitors === 1 ? '' : 's'}`);
+    const chartOpts = { sideLabel };
+    const byHourMap = new Map(aggregateClicksWhen(filtered, 'hour').map((b) => [b.key, b]));
+    const hours = Array.from({ length: 24 }, (_, h) => (
+      byHourMap.get(String(h)) || empty(String(h), `${String(h).padStart(2, '0')}h`, h)
+    ));
+    const byWeekMap = new Map(aggregateClicksWhen(filtered, 'weekday').map((b) => [b.key, b]));
+    const weekdays = WEEKDAY_ORDER.map((d) => (
+      byWeekMap.get(String(d)) || empty(String(d), WEEKDAY_LABELS[d], WEEKDAY_ORDER.indexOf(d))
+    ));
+    const byDayMap = new Map(aggregateClicksWhen(filtered, 'monthday').map((b) => [b.key, b]));
+    const monthdays = Array.from({ length: 31 }, (_, i) => {
+      const day = i + 1;
+      return byDayMap.get(String(day)) || empty(String(day), `Dia ${day}`, day);
+    });
+    const byMonthMap = new Map(aggregateClicksWhen(filtered, 'month').map((b) => [b.key, b]));
+    const months = Object.keys(MONTH_LABELS).map((num) => (
+      byMonthMap.get(num) || empty(num, MONTH_LABELS[num], Number(num))
+    ));
+    const bySiteMap = new Map(aggregateClicksWhen(filtered, 'site').map((b) => [b.key, b]));
+    const sites = [
+      bySiteMap.get('com.br') || empty('com.br', '.com.br (BR)', 0),
+      bySiteMap.get('com') || empty('com', '.com (intl)', 1)
+    ];
+    root.innerHTML = [
+      renderWhenBarChart('Site (.com / .com.br)', sites, metric, chartOpts),
+      renderWhenBarChart('Hora do dia', hours, metric, chartOpts),
+      renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts),
+      renderWhenBarChart('Dia do mês', monthdays, metric, chartOpts),
+      renderWhenBarChart('Mês do ano', months, metric, chartOpts)
+    ].join('');
+  }
+
+  let clicksWhenFiltersWired = false;
+
+  function wireClicksWhenFilters() {
+    if (clicksWhenFiltersWired) return;
+    ['clicks-when-site', 'clicks-when-metric', 'clicks-when-range'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', () => {
+        if (clicksCache.length) renderClicksWhenCharts(clicksCache);
+      });
+    });
+    clicksWhenFiltersWired = true;
   }
 
   function pruneHomeOnlyBounceSessions(tree) {
@@ -2767,6 +2931,8 @@ ${worksheets}
       return;
     }
 
+    wireClicksWhenFilters();
+
     const q = document.getElementById('clicks-search')?.value?.trim() || '';
     const destino = document.getElementById('clicks-filter-destino')?.value || '';
     const navEl = document.getElementById('clicks-filter-nav');
@@ -2781,7 +2947,7 @@ ${worksheets}
     root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
 
     try {
-      const params = new URLSearchParams({ limit: '800' });
+      const params = new URLSearchParams({ limit: '2500' });
       if (q) params.set('q', q);
       if (destino === 'pageview') params.set('tipo', 'pageview');
       else if (destino) params.set('destino', destino);
@@ -2794,6 +2960,7 @@ ${worksheets}
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       clicksCache = data.clicks || [];
       renderClicksStats(data);
+      renderClicksWhenCharts(clicksCache);
       renderClicksTree(clicksCache, data.checkedAt, data.total, openPaths);
       const checkedEl = document.getElementById('clicks-checked-at');
       if (checkedEl && data.withNav && destino) {
@@ -2802,6 +2969,8 @@ ${worksheets}
       }
     } catch (err) {
       root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+      const charts = document.getElementById('clicks-when-charts');
+      if (charts) charts.innerHTML = '';
     } finally {
       clicksLoading = false;
     }
@@ -4563,6 +4732,7 @@ ${worksheets}
     const checkedEl = document.getElementById('clicks-checked-at');
     const totalMatch = checkedEl?.textContent?.match(/de (\d+) no log/);
     const total = totalMatch ? Number(totalMatch[1]) : clicksCache.length;
+    renderClicksWhenCharts(clicksCache);
     renderClicksTree(clicksCache, new Date().toISOString(), total, openPaths);
   });
   document.getElementById('btn-feedback-refresh')?.addEventListener('click', () => loadFeedback());
