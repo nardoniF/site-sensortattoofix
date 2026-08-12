@@ -2246,10 +2246,10 @@ ${worksheets}
 
     const cap = data?.capacity || {};
     const used = Number(cap.used ?? data?.total ?? 0) || 0;
-    const max = Number(cap.max) > 0 ? Number(cap.max) : 25000;
-    const closedMonths = Number(cap.closedMonths) > 0 ? Number(cap.closedMonths) : 3;
+    const max = Number(cap.max) > 0 ? Number(cap.max) : 50000;
+    const closedMonths = Number(cap.closedMonths) > 0 ? Number(cap.closedMonths) : 5;
     const totalMonths = Number(cap.totalMonths) > 0 ? Number(cap.totalMonths) : closedMonths + 1;
-    const retentionLabel = `${closedMonths} fechados + atual (${totalMonths} meses)`;
+    const retentionLabel = `${totalMonths} meses`;
 
     let outerHtml;
     if (wExhausted || wOver) {

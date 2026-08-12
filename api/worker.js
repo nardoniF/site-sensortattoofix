@@ -27,12 +27,12 @@ const SITE_CATALOG_URL = 'https://www.sensortattoofix.com.br/data/store-config.j
 const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
 const CLICKS_BLOB = 'clicks:blob';
-/** Safety ceiling if traffic spikes (~200/day × ~120d). Primary trim is calendar months. */
-const CLICKS_MAX = 25000;
-/** Tree in Admin: recent visits only (full JSON). Charts use slim 4-month series. */
+/** Safety ceiling if traffic spikes (~250/day × ~200d). Primary trim is calendar months. */
+const CLICKS_MAX = 50000;
+/** Tree in Admin: recent visits only (full JSON). Charts use slim series for the retention window. */
 const CLICKS_TREE_MAX = 2500;
-/** Rolling window: 3 closed months + current month. Oldest closed month drops when a new month starts. */
-const CLICKS_CLOSED_MONTHS = 3;
+/** Rolling window: 5 closed months + current (= 6 months). Oldest closed month drops when a new month starts. */
+const CLICKS_CLOSED_MONTHS = 5;
 const FEEDBACK_BLOB = 'feedback:blob';
 const FEEDBACK_MAX = 500;
 const CLICK_TTL_SEC = 120 * 86400;
@@ -12479,7 +12479,7 @@ function spMidnightUtcMs(year, month, day = 1) {
 
 /**
  * Rolling click window: current month + previous CLICKS_CLOSED_MONTHS.
- * On 1 Sep, May drops; keep Jun–Aug closed + Sep current.
+ * With 5 closed + current (= 6 months): on 1 Sep, Mar drops; keep Apr–Aug closed + Sep current.
  */
 function clicksRetentionWindow(now = Date.now()) {
   const cur = spYmd(now);
@@ -12573,7 +12573,7 @@ async function insertClickD1(env, entry) {
     teste,
     JSON.stringify(row)
   ).run();
-  // Rolling calendar window (3 closed + current) + hard ceiling.
+  // Rolling calendar window (5 closed + current) + hard ceiling.
   if (Math.random() < 0.08) {
     const cutoff = clicksRetentionWindow().cutoffMs;
     await db.prepare('DELETE FROM clicks WHERE ts < ?').bind(cutoff).run().catch(() => {});
@@ -12604,7 +12604,7 @@ async function loadClicksFromD1(env, limit = CLICKS_TREE_MAX) {
   return { loaded, total };
 }
 
-/** Slim rows for 4-month charts — no full payload (keeps Admin fast). */
+/** Slim rows for retention-window charts — no full payload (keeps Admin fast). */
 async function loadClicksSlimFromD1(env, cutoffMs) {
   const db = clicksDb(env);
   if (!db) return [];
@@ -12647,7 +12647,7 @@ async function clearClicksD1(env, mode) {
     return { removed: Number(before?.n || 0), remaining: 0 };
   }
   // Remove non-real / test rows: pull candidates and delete by id (isTestClick is JS logic).
-  const res = await db.prepare('SELECT id, payload FROM clicks ORDER BY ts DESC LIMIT 25000').all();
+  const res = await db.prepare('SELECT id, payload FROM clicks ORDER BY ts DESC LIMIT ?').bind(CLICKS_MAX).all();
   const dropIds = [];
   for (const r of res?.results || []) {
     let row;
