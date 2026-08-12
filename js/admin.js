@@ -1012,7 +1012,7 @@
           </li>`;
         }).join('')
         : '<li><span>—</span><strong>R$ 0,00</strong></li>';
-      return `<article class="vendas-consol-card">
+      return `<article class="vendas-consol-card vendas-consol-card--${escapeHtml(key)}">
         <h3>${escapeHtml(label)}</h3>
         <p class="vendas-consol-card-kicker">Líquido real</p>
         <p class="vendas-consol-card-net">${formatSalesBRL(tot.net)}</p>
