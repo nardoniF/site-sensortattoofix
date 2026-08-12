@@ -768,7 +768,19 @@
                         </div>
 
                         <div id="admin-vendas-shopee" class="admin-vendas-subpanel" role="tabpanel" hidden>
-                            <p class="admin-meta">Shopee — em breve (mesma estrutura do Mercado Livre).</p>
+                            <div id="vendas-shopee-stats" class="admin-clicks-stats admin-meta"></div>
+                            <div class="admin-clicks-toolbar admin-toolbar-split">
+                                <div class="admin-toolbar-main">
+                                    <button type="button" id="btn-vendas-shopee-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
+                                    <button type="button" id="btn-vendas-shopee-auth" class="btn-secondary"><i class="fas fa-link"></i> Autorizar loja</button>
+                                    <button type="button" id="btn-vendas-shopee-sync" class="btn-primary"><i class="fas fa-cloud-download-alt"></i> Atualizar Shopee</button>
+                                </div>
+                            </div>
+                            <p id="vendas-shopee-checked-at" class="admin-meta" hidden></p>
+                            <div id="vendas-shopee-tree-root" class="clicks-tree-root">
+                                <p class="admin-meta">Abra esta subaba para carregar as vendas da Shopee.</p>
+                            </div>
+                            <p class="admin-meta">Redirect URL do app Open Platform: <code>https://api.sensortattoofix.com.br/admin/shopee/oauth/callback</code></p>
                         </div>
                         <div id="admin-vendas-amazon" class="admin-vendas-subpanel" role="tabpanel" hidden>
                             <div id="vendas-amz-stats" class="admin-clicks-stats admin-meta"></div>
@@ -803,6 +815,7 @@
                                             <option value="loja">Loja oficial</option>
                                             <option value="mercadolivre">Mercado Livre</option>
                                             <option value="amazon">Amazon</option>
+                                            <option value="shopee">Shopee</option>
                                         </select>
                                     </label>
                                     <label>Métrica

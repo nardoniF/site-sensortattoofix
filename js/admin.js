@@ -951,7 +951,7 @@
   function renderConsolidatedTree(tree) {
     const years = Object.keys(tree || {}).sort((a, b) => Number(b) - Number(a));
     if (!years.length) {
-      return '<p class="admin-meta">Nenhuma venda paga encontrada (loja + Mercado Livre).</p>';
+      return '<p class="admin-meta">Nenhuma venda paga encontrada (loja + ML + Amazon + Shopee).</p>';
     }
     let html = '<div class="clicks-tree sales-tree">';
     years.forEach((year) => {
@@ -1047,23 +1047,27 @@
     if (!token || !base) throw new Error('Faça login no admin.');
     const root = base.replace(/\/$/, '');
     const headers = { Authorization: 'Bearer ' + token };
-    const [mlRes, amzRes, ordersRes] = await Promise.all([
+    const [mlRes, amzRes, shopeeRes, ordersRes] = await Promise.all([
       fetch(`${root}/admin/ml/sales?limit=2000`, { headers, cache: 'no-store' }),
       fetch(`${root}/admin/amz/sales?limit=2000`, { headers, cache: 'no-store' }),
+      fetch(`${root}/admin/shopee/sales?limit=2000`, { headers, cache: 'no-store' }),
       fetch(`${root}/orders`, { headers, cache: 'no-store' })
     ]);
     const mlData = await mlRes.json().catch(() => ({}));
     if (!mlRes.ok) throw new Error(mlData.error || 'Falha ao carregar vendas ML');
     const amzData = await amzRes.json().catch(() => ({}));
     if (!amzRes.ok) throw new Error(amzData.error || 'Falha ao carregar vendas Amazon');
+    const shopeeData = await shopeeRes.json().catch(() => ({}));
+    if (!shopeeRes.ok) throw new Error(shopeeData.error || 'Falha ao carregar vendas Shopee');
     const ordersData = await ordersRes.json().catch(() => ({}));
     if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
     const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).map(annotateSale);
     const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).map(annotateSale);
+    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).map(annotateSale);
     const storeSales = (Array.isArray(ordersData) ? ordersData : [])
       .filter(isStoreSaleOrder)
       .map((o) => annotateSale(storeOrderToSale(o)));
-    return [...storeSales, ...mlSales, ...amzSales]
+    return [...storeSales, ...mlSales, ...amzSales, ...shopeeSales]
       .filter((s) => s._ts)
       .sort((a, b) => b._ts - a._ts);
   }
@@ -1100,7 +1104,7 @@
   }
 
   function buildSalesExportPeriodRows(sales, period) {
-    const channels = ['loja', 'mercadolivre', 'amazon'];
+    const channels = ['loja', 'mercadolivre', 'amazon', 'shopee'];
     const headers = ['Período', 'Qtd', 'Bruto', 'Taxas', 'Líquido'];
     channels.forEach((ch) => {
       headers.push(`${salesChannelLabel(ch)} qtd`);
@@ -1460,14 +1464,18 @@ ${worksheets}
     const channel = options.channel || 'mercadolivre';
     const emptyHint = channel === 'amazon'
       ? 'Nenhuma venda Amazon indexada. Use <strong>Atualizar Amazon</strong>.'
-      : channel === 'loja'
-        ? 'Nenhuma venda paga na loja oficial.'
-        : 'Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.';
+      : channel === 'shopee'
+        ? 'Nenhuma venda Shopee indexada. Autorize a loja e use <strong>Atualizar Shopee</strong>.'
+        : channel === 'loja'
+          ? 'Nenhuma venda paga na loja oficial.'
+          : 'Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.';
     const fallbackTitle = channel === 'amazon'
       ? 'Pedido Amazon'
-      : channel === 'loja'
-        ? 'Pedido loja'
-        : 'Pedido ML';
+      : channel === 'shopee'
+        ? 'Pedido Shopee'
+        : channel === 'loja'
+          ? 'Pedido loja'
+          : 'Pedido ML';
     const years = Object.keys(tree || {}).sort((a, b) => Number(b) - Number(a));
     if (!years.length) {
       return `<p class="admin-meta">${emptyHint}</p>`;
@@ -1656,6 +1664,103 @@ ${worksheets}
     }
   }
 
+  async function loadShopeeSales(preserveOpen) {
+    const root = document.getElementById('vendas-shopee-tree-root');
+    const checked = document.getElementById('vendas-shopee-checked-at');
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!root) return;
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'vendas');
+      return;
+    }
+    const openPaths = preserveOpen
+      ? [...root.querySelectorAll('details[open][data-tree-path]')].map((el) => el.getAttribute('data-tree-path')).filter(Boolean)
+      : [];
+    root.innerHTML = '<p class="admin-meta">Carregando vendas Shopee…</p>';
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/shopee/sales?limit=2000`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
+      const statsEl = document.getElementById('vendas-shopee-stats');
+      if (statsEl) statsEl.innerHTML = renderSalesMoneyStats(sales, meta);
+      root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'shopee' });
+      if (preserveOpen && openPaths.length) {
+        const want = new Set(openPaths);
+        root.querySelectorAll('details[data-tree-path]').forEach((el) => {
+          if (want.has(el.getAttribute('data-tree-path'))) el.open = true;
+        });
+      }
+      if (checked) {
+        checked.hidden = false;
+        checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      }
+      showStatus('', '', 'vendas');
+    } catch (err) {
+      root.innerHTML = `<p class="admin-meta">${escapeHtml(err.message || 'Erro ao carregar.')}</p>`;
+      showStatus(err.message || 'Erro ao carregar vendas Shopee.', 'error', 'vendas');
+    }
+  }
+
+  async function authorizeShopeeFromAdmin() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'vendas');
+      return;
+    }
+    showStatus('Abrindo autorização Shopee…', '', 'vendas');
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/shopee/auth-url`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!data.url) throw new Error('URL de autorização não veio da API.');
+      window.open(data.url, '_blank', 'noopener');
+      showStatus(
+        `Confira o Redirect URL no app Shopee: ${data.redirectUri || ''}`,
+        'success',
+        'vendas'
+      );
+    } catch (err) {
+      showStatus(err.message || 'Falha ao gerar link Shopee.', 'error', 'vendas');
+    }
+  }
+
+  async function syncShopeeSalesFromAdmin() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'vendas');
+      return;
+    }
+    showStatus('Sincronizando Shopee…', '', 'vendas');
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/shopee/sync?full=1`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      showStatus(
+        `Sync Shopee OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas (${data.indexed || 0} no índice).`,
+        'success',
+        'vendas'
+      );
+      await loadShopeeSales(true);
+    } catch (err) {
+      showStatus(err.message || 'Falha no sync Shopee.', 'error', 'vendas');
+    }
+  }
+
   async function syncMlSalesFromAdmin() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -1699,6 +1804,7 @@ ${worksheets}
     if (id === 'loja') loadLojaSales();
     if (id === 'mercadolivre') loadMlSales();
     if (id === 'amazon') loadAmzSales();
+    if (id === 'shopee') loadShopeeSales();
     if (id === 'consolidado') loadConsolidatedSales();
   }
 
@@ -1719,6 +1825,9 @@ ${worksheets}
     document.getElementById('btn-vendas-ml-sync')?.addEventListener('click', () => syncMlSalesFromAdmin());
     document.getElementById('btn-vendas-amz-refresh')?.addEventListener('click', () => loadAmzSales(true));
     document.getElementById('btn-vendas-amz-sync')?.addEventListener('click', () => syncAmzSalesFromAdmin());
+    document.getElementById('btn-vendas-shopee-refresh')?.addEventListener('click', () => loadShopeeSales(true));
+    document.getElementById('btn-vendas-shopee-sync')?.addEventListener('click', () => syncShopeeSalesFromAdmin());
+    document.getElementById('btn-vendas-shopee-auth')?.addEventListener('click', () => authorizeShopeeFromAdmin());
     document.getElementById('btn-vendas-consol-refresh')?.addEventListener('click', () => loadConsolidatedSales(true));
     document.getElementById('btn-vendas-consol-export')?.addEventListener('click', () => exportConsolidatedSales());
     document.getElementById('btn-vendas-goto-pedidos')?.addEventListener('click', () => {

@@ -23,6 +23,8 @@ ADMIN_USERNAME = "admin"
 CF_ACCOUNT_ID = "80ab4f6ff1553d2ee530c0880edce594"
 # D1 stf-clicks — cota de rows no banner Admin → Cliques
 CF_D1_DATABASE_ID = "94ffffbb-dd85-41f1-8301-521f19b75f75"
+# Shopee Open Platform — app SensorTattooFix Pedidos (Live Partner ID)
+SHOPEE_PARTNER_ID = "2041463"
 
 [triggers]
 crons = ["*/5 * * * *", "30 2 * * *"]
@@ -38,6 +40,9 @@ crons = ["*/5 * * * *", "30 2 * * *"]
 # AMZ_LWA_CLIENT_SECRET
 # AMZ_LWA_REFRESH_TOKEN — self-authorization (Brasil)
 # AMZ_MARKETPLACE_ID   — opcional (padrão A2Q3Y263D00KWC = Amazon.com.br)
+# SHOPEE_PARTNER_ID    — Open Platform Live Partner ID (app SensorTattooFix Pedidos)
+# SHOPEE_PARTNER_KEY   — Live API Partner Key
+# SHOPEE_SHOP_ID       — opcional; após OAuth fica no KV
 # MP_WEBHOOK_URL       — opcional: https://SEU-WORKER.workers.dev/webhook/mercadopago
 # ASAAS_API_KEY        — cartão de crédito (asaas.com)
 # ASAAS_WEBHOOK_TOKEN  — token do webhook Asaas (cartão)

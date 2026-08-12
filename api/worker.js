@@ -4464,6 +4464,566 @@ async function handleAdminAmzSales(request, env, origin) {
   return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
 }
 
+/** Shopee Open Platform v2 — Seller In House (BR). */
+const SHOPEE_API_HOST = 'https://openplatform.shopee.com.br';
+const SHOPEE_OAUTH_KV_KEY = 'shopee:oauth';
+const SHOPEE_TOKEN_KV_KEY = 'shopee:token';
+const SHOPEE_SALE_PREFIX = 'sale:shopee:';
+const SHOPEE_SALES_INDEX_KEY = 'sales:shopee:index';
+const SHOPEE_SALES_META_KEY = 'sales:shopee:meta';
+const SHOPEE_REDIRECT_URI = 'https://api.sensortattoofix.com.br/admin/shopee/oauth/callback';
+const SHOPEE_SYNC_LOOKBACK_DAYS = 90;
+const SHOPEE_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
+const SHOPEE_SALES_INDEX_MAX = 5000;
+const SHOPEE_ORDER_WINDOW_SEC = 15 * 86400;
+const SHOPEE_PAID_STATUSES = new Set([
+  'READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED'
+]);
+
+function shopeePartnerId(env) {
+  return String(env.SHOPEE_PARTNER_ID || '').trim();
+}
+
+function shopeePartnerKey(env) {
+  return String(env.SHOPEE_PARTNER_KEY || '').trim();
+}
+
+function shopeeAppConfigured(env) {
+  return !!(shopeePartnerId(env) && shopeePartnerKey(env));
+}
+
+async function shopeeHmacHex(key, message) {
+  const enc = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(key),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(message));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function shopeeSign(env, path, timestamp, accessToken, shopId) {
+  let base = `${shopeePartnerId(env)}${path}${timestamp}`;
+  if (accessToken) base += accessToken;
+  if (shopId) base += String(shopId);
+  return shopeeHmacHex(shopeePartnerKey(env), base);
+}
+
+async function getShopeeOAuthState(env) {
+  try {
+    const raw = await env.STORE_KV.get(SHOPEE_OAUTH_KV_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveShopeeOAuthState(env, patch) {
+  const prev = (await getShopeeOAuthState(env)) || {};
+  const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
+  await kvPut(env, SHOPEE_OAUTH_KV_KEY, JSON.stringify(next));
+  return next;
+}
+
+async function getShopeeSalesMeta(env) {
+  try {
+    const raw = await env.STORE_KV.get(SHOPEE_SALES_META_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveShopeeSalesMeta(env, patch) {
+  const prev = (await getShopeeSalesMeta(env)) || {};
+  const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
+  await kvPut(env, SHOPEE_SALES_META_KEY, JSON.stringify(next));
+  return next;
+}
+
+async function getShopeeSalesIndex(env) {
+  try {
+    const raw = await env.STORE_KV.get(SHOPEE_SALES_INDEX_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+async function persistShopeeTokens(env, data, shopId) {
+  const accessToken = String(data.access_token || '').trim();
+  const refreshToken = String(data.refresh_token || '').trim();
+  const sid = data.shop_id != null ? String(data.shop_id) : (shopId ? String(shopId) : null);
+  const expireIn = Math.max(60, Number(data.expire_in || data.expires_in || 14400) - 120);
+  if (accessToken) {
+    await kvPut(env, SHOPEE_TOKEN_KV_KEY, JSON.stringify({
+      token: accessToken,
+      expiresAt: Date.now() + expireIn * 1000,
+      shopId: sid
+    }));
+  }
+  const oauthPatch = {};
+  if (refreshToken) oauthPatch.refreshToken = refreshToken;
+  if (sid) oauthPatch.shopId = sid;
+  if (Object.keys(oauthPatch).length) await saveShopeeOAuthState(env, oauthPatch);
+  return { accessToken, refreshToken, shopId: sid };
+}
+
+async function shopeePublicPost(env, path, body) {
+  const ts = Math.floor(Date.now() / 1000);
+  const sign = await shopeeSign(env, path, ts);
+  const url = `${SHOPEE_API_HOST}${path}?partner_id=${encodeURIComponent(shopeePartnerId(env))}&timestamp=${ts}&sign=${sign}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    const msg = data.message || data.error || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+async function getShopeeAccessToken(env) {
+  if (!shopeeAppConfigured(env)) return null;
+  try {
+    const cached = await env.STORE_KV.get(SHOPEE_TOKEN_KV_KEY);
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (data?.token && data.expiresAt > Date.now()) return { token: data.token, shopId: data.shopId };
+    }
+  } catch { /* refresh */ }
+  const state = await getShopeeOAuthState(env);
+  const refreshToken = String(state?.refreshToken || '').trim();
+  const shopId = String(state?.shopId || env.SHOPEE_SHOP_ID || '').trim();
+  if (!refreshToken || !shopId) return null;
+  try {
+    const data = await shopeePublicPost(env, '/api/v2/auth/access_token/get', {
+      refresh_token: refreshToken,
+      partner_id: Number(shopeePartnerId(env)),
+      shop_id: Number(shopId)
+    });
+    const persisted = await persistShopeeTokens(env, data, shopId);
+    return persisted.accessToken ? { token: persisted.accessToken, shopId: persisted.shopId } : null;
+  } catch (err) {
+    console.warn('Shopee token refresh:', err.message || err);
+    await kvDelete(env, SHOPEE_TOKEN_KV_KEY).catch(() => {});
+    return null;
+  }
+}
+
+async function shopeeShopGet(env, path, token, shopId, extraParams) {
+  const ts = Math.floor(Date.now() / 1000);
+  const sign = await shopeeSign(env, path, ts, token, shopId);
+  const params = new URLSearchParams({
+    partner_id: shopeePartnerId(env),
+    timestamp: String(ts),
+    sign,
+    access_token: token,
+    shop_id: String(shopId),
+    ...(extraParams || {})
+  });
+  const res = await fetch(`${SHOPEE_API_HOST}${path}?${params}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    const msg = data.message || data.error || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+async function buildShopeeAuthUrl(env) {
+  const path = '/api/v2/shop/auth_partner';
+  const ts = Math.floor(Date.now() / 1000);
+  const sign = await shopeeSign(env, path, ts);
+  const params = new URLSearchParams({
+    partner_id: shopeePartnerId(env),
+    timestamp: String(ts),
+    sign,
+    redirect: SHOPEE_REDIRECT_URI
+  });
+  return `${SHOPEE_API_HOST}${path}?${params}`;
+}
+
+function shopeeOAuthHtmlPage({ title, ok, detail }) {
+  const color = ok ? '#1a7f37' : '#b42318';
+  return `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title></head>
+<body style="font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:48px auto;padding:0 20px;color:#18181b;line-height:1.5">
+  <h1 style="font-size:1.25rem;margin:0 0 8px;color:${color}">${title}</h1>
+  <p style="margin:0;color:#3f3f46">${detail}</p>
+  <p style="margin:1.5rem 0 0;font-size:13px;color:#71717a">Sensor Tattoo Fix · Shopee (pedidos)</p>
+</body></html>`;
+}
+
+async function handleShopeeOAuthCallback(request, env) {
+  const url = new URL(request.url);
+  const code = String(url.searchParams.get('code') || '').trim();
+  const shopId = String(url.searchParams.get('shop_id') || url.searchParams.get('shopid') || '').trim();
+  const oauthErr = String(url.searchParams.get('error') || '').trim();
+  const htmlHeaders = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' };
+
+  if (oauthErr) {
+    return new Response(shopeeOAuthHtmlPage({
+      title: 'Autorização recusada',
+      ok: false,
+      detail: oauthErr
+    }), { status: 400, headers: htmlHeaders });
+  }
+  if (!code || !shopId) {
+    return new Response(shopeeOAuthHtmlPage({
+      title: 'Código ou Shop ID ausente',
+      ok: false,
+      detail: 'Autorize de novo pelo Admin → Vendas → Shopee. Confira se o Redirect URL do app é exatamente ' + SHOPEE_REDIRECT_URI
+    }), { status: 400, headers: htmlHeaders });
+  }
+  if (!shopeeAppConfigured(env)) {
+    return new Response(shopeeOAuthHtmlPage({
+      title: 'App não configurado',
+      ok: false,
+      detail: 'Configure SHOPEE_PARTNER_ID e SHOPEE_PARTNER_KEY no Worker.'
+    }), { status: 503, headers: htmlHeaders });
+  }
+  try {
+    const data = await shopeePublicPost(env, '/api/v2/auth/token/get', {
+      code,
+      partner_id: Number(shopeePartnerId(env)),
+      shop_id: Number(shopId)
+    });
+    await persistShopeeTokens(env, data, shopId);
+    return new Response(shopeeOAuthHtmlPage({
+      title: 'Shopee conectada',
+      ok: true,
+      detail: `Loja ${shopId} autorizada. Pode fechar e atualizar vendas no Admin.`
+    }), { status: 200, headers: htmlHeaders });
+  } catch (err) {
+    return new Response(shopeeOAuthHtmlPage({
+      title: 'Falha ao trocar o código',
+      ok: false,
+      detail: err.message || String(err)
+    }), { status: 400, headers: htmlHeaders });
+  }
+}
+
+async function checkShopeeIntegration(env) {
+  if (!shopeeAppConfigured(env)) {
+    return {
+      configured: false,
+      authOk: false,
+      error: 'SHOPEE_PARTNER_ID / SHOPEE_PARTNER_KEY não configurados.',
+      redirectUri: SHOPEE_REDIRECT_URI
+    };
+  }
+  const state = await getShopeeOAuthState(env);
+  if (!state?.refreshToken || !state?.shopId) {
+    return {
+      configured: true,
+      authOk: false,
+      needsOAuth: true,
+      redirectUri: SHOPEE_REDIRECT_URI,
+      error: 'Sem loja autorizada — use Autorizar Shopee no Admin.'
+    };
+  }
+  try {
+    const tok = await getShopeeAccessToken(env);
+    if (!tok?.token) {
+      return {
+        configured: true,
+        authOk: false,
+        needsOAuth: true,
+        redirectUri: SHOPEE_REDIRECT_URI,
+        error: 'Falha ao renovar token Shopee — reautorize a loja.'
+      };
+    }
+    return {
+      configured: true,
+      authOk: true,
+      shopId: tok.shopId || state.shopId,
+      lastSyncedAt: (await getShopeeSalesMeta(env))?.lastSyncedAt || null,
+      redirectUri: SHOPEE_REDIRECT_URI
+    };
+  } catch (err) {
+    return { configured: true, authOk: false, error: err.message, redirectUri: SHOPEE_REDIRECT_URI };
+  }
+}
+
+function roundMoney(n) {
+  return Math.round(Number(n || 0) * 100) / 100;
+}
+
+function normalizeShopeeOrder(detail, escrow) {
+  const order = detail || {};
+  const income = escrow?.order_income || escrow || {};
+  const items = (Array.isArray(order.item_list) ? order.item_list : []).map((it) => ({
+    id: it.item_id != null ? String(it.item_id) : null,
+    title: it.item_name || it.model_name || null,
+    quantity: Number(it.model_quantity_purchased || it.quantity || 0),
+    unitPrice: Number(it.model_original_price ?? it.model_discounted_price ?? 0),
+    saleFee: 0,
+    currency: 'BRL'
+  }));
+  const gross = roundMoney(
+    income.buyer_total_amount
+    ?? income.original_cost_of_goods_sold
+    ?? order.total_amount
+    ?? items.reduce((s, it) => s + it.unitPrice * it.quantity, 0)
+  );
+  const fees = roundMoney(
+    Number(income.commission_fee || 0)
+    + Number(income.service_fee || 0)
+    + Number(income.seller_transaction_fee || 0)
+  );
+  const shippingCost = roundMoney(
+    Number(income.actual_shipping_fee || order.actual_shipping_fee || 0)
+    - Number(income.shipping_fee_rebate || 0)
+  );
+  const escrowAmt = income.escrow_amount != null ? roundMoney(income.escrow_amount) : null;
+  const net = escrowAmt != null
+    ? escrowAmt
+    : roundMoney(gross - fees - Math.max(0, shippingCost));
+  const soldAtSec = Number(order.pay_time || order.create_time || 0);
+  return {
+    channel: 'shopee',
+    externalId: String(order.order_sn || ''),
+    soldAt: soldAtSec ? new Date(soldAtSec * 1000).toISOString() : null,
+    status: order.order_status || null,
+    currency: 'BRL',
+    gross,
+    fees,
+    shippingCost: Math.max(0, shippingCost),
+    refunds: roundMoney(income.seller_return_refund || 0),
+    otherFees: roundMoney(Number(income.order_ams_commission_fee || 0) + Number(income.campaign_fee || 0)),
+    net,
+    buyer: {
+      id: order.buyer_user_id != null ? String(order.buyer_user_id) : null,
+      nickname: order.buyer_username || null
+    },
+    items,
+    payments: order.payment_method ? [{ status: order.order_status, method: order.payment_method }] : [],
+    dateCreated: order.create_time ? new Date(Number(order.create_time) * 1000).toISOString() : null,
+    syncedAt: new Date().toISOString()
+  };
+}
+
+async function upsertShopeeSale(env, sale, index) {
+  await kvPut(env, SHOPEE_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+  const next = (index || []).filter((id) => id !== sale.externalId);
+  next.unshift(sale.externalId);
+  return next.slice(0, SHOPEE_SALES_INDEX_MAX);
+}
+
+async function fetchShopeeOrderSns(env, token, shopId, timeFrom, timeTo) {
+  const sns = [];
+  let cursor = '';
+  for (let page = 0; page < 40; page++) {
+    const extra = {
+      time_range_field: 'create_time',
+      time_from: String(timeFrom),
+      time_to: String(timeTo),
+      page_size: '100'
+    };
+    if (cursor) extra.cursor = cursor;
+    const data = await shopeeShopGet(env, '/api/v2/order/get_order_list', token, shopId, extra);
+    const list = Array.isArray(data.response?.order_list) ? data.response.order_list : [];
+    for (const row of list) {
+      const status = String(row.order_status || '');
+      if (status && !SHOPEE_PAID_STATUSES.has(status) && status !== 'TO_RETURN' && status !== 'IN_CANCEL') {
+        if (status === 'UNPAID' || status === 'CANCELLED' || status === 'IN_CANCEL') continue;
+      }
+      if (status === 'UNPAID' || status === 'CANCELLED') continue;
+      if (row.order_sn) sns.push(String(row.order_sn));
+    }
+    if (!data.response?.more) break;
+    cursor = String(data.response?.next_cursor || '');
+    if (!cursor) break;
+  }
+  return sns;
+}
+
+async function fetchShopeeOrderDetails(env, token, shopId, sns) {
+  const out = [];
+  for (let i = 0; i < sns.length; i += 50) {
+    const chunk = sns.slice(i, i + 50);
+    const data = await shopeeShopGet(env, '/api/v2/order/get_order_detail', token, shopId, {
+      order_sn_list: chunk.join(','),
+      response_optional_fields: 'buyer_user_id,buyer_username,item_list,total_amount,actual_shipping_fee,pay_time,payment_method'
+    });
+    const list = Array.isArray(data.response?.order_list) ? data.response.order_list : [];
+    out.push(...list);
+  }
+  return out;
+}
+
+async function fetchShopeeEscrow(env, token, shopId, orderSn) {
+  try {
+    const data = await shopeeShopGet(env, '/api/v2/payment/get_escrow_detail', token, shopId, {
+      order_sn: String(orderSn)
+    });
+    return data.response || null;
+  } catch {
+    return null;
+  }
+}
+
+async function syncShopeeOrders(env, options = {}) {
+  const tok = await getShopeeAccessToken(env);
+  if (!tok?.token || !tok.shopId) throw new Error('Shopee sem token — autorize a loja no Admin.');
+  const { token, shopId } = tok;
+  const meta = await getShopeeSalesMeta(env);
+  const nowSec = Math.floor(Date.now() / 1000);
+  const full = options.full === true || !meta?.lastSyncedAt;
+  const days = Math.min(365, Math.max(1, Number(options.days) || SHOPEE_SYNC_LOOKBACK_DAYS));
+  let fromSec;
+  if (full || options.days) {
+    fromSec = nowSec - days * 86400;
+  } else {
+    const last = Math.floor(new Date(meta.lastSyncedAt).getTime() / 1000);
+    fromSec = Number.isFinite(last) ? last - 2 * 86400 : nowSec - days * 86400;
+  }
+
+  let imported = 0;
+  let updated = 0;
+  let index = await getShopeeSalesIndex(env);
+  const allSns = [];
+
+  for (let start = fromSec; start < nowSec; start += SHOPEE_ORDER_WINDOW_SEC) {
+    const end = Math.min(start + SHOPEE_ORDER_WINDOW_SEC, nowSec);
+    const sns = await fetchShopeeOrderSns(env, token, shopId, start, end);
+    allSns.push(...sns);
+  }
+  const uniqueSns = [...new Set(allSns)];
+  const details = await fetchShopeeOrderDetails(env, token, shopId, uniqueSns);
+
+  for (const detail of details) {
+    const status = String(detail.order_status || '');
+    if (status === 'UNPAID' || status === 'CANCELLED' || status === 'IN_CANCEL') continue;
+    const escrow = detail.order_sn
+      ? await fetchShopeeEscrow(env, token, shopId, detail.order_sn)
+      : null;
+    const sale = normalizeShopeeOrder(detail, escrow);
+    if (!sale.externalId) continue;
+    const existingRaw = await env.STORE_KV.get(SHOPEE_SALE_PREFIX + sale.externalId);
+    if (existingRaw) updated += 1;
+    else imported += 1;
+    index = await upsertShopeeSale(env, sale, index);
+  }
+
+  await kvPut(env, SHOPEE_SALES_INDEX_KEY, JSON.stringify(index));
+  const report = {
+    ok: true,
+    shopId,
+    full,
+    from: new Date(fromSec * 1000).toISOString(),
+    to: new Date(nowSec * 1000).toISOString(),
+    apiTotal: uniqueSns.length,
+    imported,
+    updated,
+    indexed: index.length,
+    lastSyncedAt: new Date().toISOString(),
+    lastError: null
+  };
+  await saveShopeeSalesMeta(env, report);
+  return report;
+}
+
+async function runScheduledShopeeOrdersSync(env) {
+  if (!shopeeAppConfigured(env)) return { skipped: true, reason: 'not_configured' };
+  const meta = await getShopeeSalesMeta(env);
+  if (meta?.lastSyncedAt) {
+    const age = Date.now() - new Date(meta.lastSyncedAt).getTime();
+    if (Number.isFinite(age) && age < SHOPEE_SYNC_CRON_MIN_INTERVAL_MS) {
+      return { skipped: true, reason: 'throttle', ageMs: age };
+    }
+  }
+  try {
+    const report = await syncShopeeOrders(env, { full: !meta?.lastSyncedAt });
+    console.log('Shopee orders sync cron:', JSON.stringify({
+      imported: report.imported,
+      updated: report.updated,
+      indexed: report.indexed
+    }));
+    return report;
+  } catch (err) {
+    await saveShopeeSalesMeta(env, {
+      lastError: err.message || String(err),
+      lastErrorAt: new Date().toISOString()
+    }).catch(() => {});
+    throw err;
+  }
+}
+
+async function handleAdminShopeeAuthUrl(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (!shopeeAppConfigured(env)) {
+    return json({ error: 'SHOPEE_PARTNER_ID / SHOPEE_PARTNER_KEY não configurados.', redirectUri: SHOPEE_REDIRECT_URI }, 400, origin);
+  }
+  const url = await buildShopeeAuthUrl(env);
+  return json({ ok: true, url, redirectUri: SHOPEE_REDIRECT_URI }, 200, origin);
+}
+
+async function handleAdminShopeeSync(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  if (request.method === 'GET') {
+    const meta = await getShopeeSalesMeta(env);
+    const index = await getShopeeSalesIndex(env);
+    const check = await checkShopeeIntegration(env);
+    return json({ ok: true, meta, indexed: index.length, integration: check }, 200, origin);
+  }
+  const daysParam = url.searchParams.get('days');
+  const full = url.searchParams.get('full') === '1' || url.searchParams.get('full') === 'true';
+  try {
+    const report = await syncShopeeOrders(env, {
+      full,
+      days: daysParam ? Number(daysParam) : undefined
+    });
+    return json(report, 200, origin);
+  } catch (err) {
+    return json({ error: err.message || String(err) }, 502, origin);
+  }
+}
+
+async function handleAdminShopeeSales(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit')) || 200));
+  const index = await getShopeeSalesIndex(env);
+  const ids = index.slice(0, limit);
+  const sales = [];
+  for (const id of ids) {
+    const raw = await env.STORE_KV.get(SHOPEE_SALE_PREFIX + id);
+    if (!raw) continue;
+    try {
+      sales.push(JSON.parse(raw));
+    } catch { /* skip */ }
+  }
+  const meta = await getShopeeSalesMeta(env);
+  return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
+}
+
 /** Com token TEST-, PIX de teste não aprova sozinho — simula confirmação após alguns segundos. */
 async function maybeSandboxAutoConfirmPix(env, orderId, payment) {
   if (!isMpSandbox(env)) return;
@@ -8051,6 +8611,7 @@ const INTEGRATION_ROW_ORDER = [
   'mercadopago',
   'mercadolivre',
   'amazon',
+  'shopee',
   'asaas',
   'paypal',
   'stripe',
@@ -8078,7 +8639,7 @@ function sortIntegrationRows(rows) {
 
 function buildIntegrationRows(env, config, checks) {
   const {
-    paypal, mercadoPago, mercadoLivre, amazon, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
+    paypal, mercadoPago, mercadoLivre, amazon, shopee, asaas, resend, zapi, stripe, correiosToken, correiosPreco, correiosPrazo,
     correiosPrePostagem, correiosServico04227, correiosServico86720, exportOptions, uber, superfrete
   } = checks;
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
@@ -8180,6 +8741,36 @@ function buildIntegrationRows(env, config, checks) {
       description: 'Importação de pedidos/vendas (SP-API)',
       status: 'ok',
       detail: `Conectado · BR${syncHint}`
+    });
+  }
+
+  if (!shopee?.configured) {
+    rows.push({
+      id: 'shopee',
+      label: 'Shopee',
+      description: 'Importação de pedidos/vendas (Open Platform)',
+      status: 'off',
+      detail: 'Não configurado'
+    });
+  } else if (!shopee.authOk) {
+    rows.push({
+      id: 'shopee',
+      label: 'Shopee',
+      description: 'Importação de pedidos/vendas (Open Platform)',
+      status: 'error',
+      detail: shopee.error || 'Autorize a loja no Admin → Vendas → Shopee'
+    });
+  } else {
+    const shopHint = shopee.shopId ? ` · shop ${shopee.shopId}` : '';
+    const syncHint = shopee.lastSyncedAt
+      ? ` · sync ${String(shopee.lastSyncedAt).slice(0, 16).replace('T', ' ')}`
+      : '';
+    rows.push({
+      id: 'shopee',
+      label: 'Shopee',
+      description: 'Importação de pedidos/vendas (Open Platform)',
+      status: 'ok',
+      detail: `Conectado${shopHint}${syncHint}`
     });
   }
 
@@ -11358,11 +11949,12 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     ])
     : [null, null, null];
 
-  const [paypal, mercadoPago, mercadoLivre, amazon, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
+  const [paypal, mercadoPago, mercadoLivre, amazon, shopee, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env),
     checkMercadoLivreIntegration(env),
     checkAmazonIntegration(env),
+    checkShopeeIntegration(env),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
@@ -11377,6 +11969,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     mercadoPago,
     mercadoLivre,
     amazon,
+    shopee,
     asaas,
     resend,
     zapi,
@@ -13632,6 +14225,18 @@ export default {
       if (path === '/admin/amz/sales' && request.method === 'GET') {
         return handleAdminAmzSales(request, env, origin);
       }
+      if (path === '/admin/shopee/oauth/callback' && request.method === 'GET') {
+        return handleShopeeOAuthCallback(request, env);
+      }
+      if (path === '/admin/shopee/auth-url' && request.method === 'GET') {
+        return handleAdminShopeeAuthUrl(request, env, origin);
+      }
+      if (path === '/admin/shopee/sync' && (request.method === 'GET' || request.method === 'POST')) {
+        return handleAdminShopeeSync(request, env, origin);
+      }
+      if (path === '/admin/shopee/sales' && request.method === 'GET') {
+        return handleAdminShopeeSales(request, env, origin);
+      }
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
@@ -13826,6 +14431,11 @@ export default {
       ctx.waitUntil(
         runScheduledAmzOrdersSync(env).catch((err) => {
           console.error('Amazon orders sync cron failed:', err.message);
+        })
+      );
+      ctx.waitUntil(
+        runScheduledShopeeOrdersSync(env).catch((err) => {
+          console.error('Shopee orders sync cron failed:', err.message);
         })
       );
     }
