@@ -4363,19 +4363,28 @@ body.admin-page.pedidos-login-only #pedidos-login {
     padding: 14px 16px;
 }
 .vendas-consol-card h3 {
-    margin: 0 0 6px;
+    margin: 0 0 4px;
     font-size: 0.78rem;
     font-weight: 600;
     color: #999;
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
-.vendas-consol-card-net {
+.vendas-consol-card-kicker {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 0.68rem;
     font-weight: 700;
-    color: var(--primary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #c8e6c9;
+}
+.vendas-consol-card-net {
+    margin: 2px 0 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #b8f0c8;
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(76, 175, 122, 0.25);
 }
 .vendas-consol-card-meta {
     margin: 4px 0 10px;
@@ -4393,13 +4402,30 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .vendas-consol-card-channels li {
     display: flex;
     justify-content: space-between;
+    align-items: baseline;
     gap: 8px;
     font-size: 0.78rem;
     color: #bbb;
 }
+.vendas-consol-rank-n {
+    flex: 0 0 1.6rem;
+    color: #777;
+    font-variant-numeric: tabular-nums;
+}
+.vendas-consol-rank.is-top {
+    color: #eee;
+}
+.vendas-consol-rank.is-top .vendas-consol-rank-n {
+    color: #7ed9a8;
+    font-weight: 700;
+}
+.vendas-consol-rank.is-top strong {
+    color: #b8f0c8;
+}
 .vendas-consol-card-channels strong {
     color: #eee;
     font-variant-numeric: tabular-nums;
+    margin-left: auto;
 }
 .vendas-when {
     margin: 18px 0 20px;

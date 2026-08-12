@@ -1001,12 +1001,20 @@
         byCh[ch].count += 1;
         byCh[ch].net += Number(s._net || 0);
       });
-      const chLines = Object.keys(byCh)
-        .sort()
-        .map((ch) => `<li><span>${escapeHtml(salesChannelLabel(ch))}</span><strong>${formatSalesBRL(byCh[ch].net)}</strong></li>`)
-        .join('') || '<li><span>—</span><strong>R$ 0,00</strong></li>';
+      const ranked = Object.entries(byCh).sort((a, b) => b[1].net - a[1].net);
+      const chLines = ranked.length
+        ? ranked.map(([ch, row], i) => {
+          const top = i === 0 ? ' is-top' : '';
+          return `<li class="vendas-consol-rank${top}">
+            <span class="vendas-consol-rank-n">${i + 1}º</span>
+            <span>${escapeHtml(salesChannelLabel(ch))}</span>
+            <strong>${formatSalesBRL(row.net)}</strong>
+          </li>`;
+        }).join('')
+        : '<li><span>—</span><strong>R$ 0,00</strong></li>';
       return `<article class="vendas-consol-card">
         <h3>${escapeHtml(label)}</h3>
+        <p class="vendas-consol-card-kicker">Líquido real</p>
         <p class="vendas-consol-card-net">${formatSalesBRL(tot.net)}</p>
         <p class="vendas-consol-card-meta">${tot.count} venda${tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(tot.gross)}</p>
         <ul class="vendas-consol-card-channels">${chLines}</ul>
@@ -1028,9 +1036,11 @@
       byCh[ch].fees += Number(s._fees || 0);
       byCh[ch].shipping += Number(s._shipping || 0);
     });
-    const chRows = Object.keys(byCh).sort().map((ch) =>
-      `<div class="clicks-stats-row"><dt>${escapeHtml(salesChannelLabel(ch))}</dt><dd>${byCh[ch].count} · ${formatSalesBRL(byCh[ch].net)}</dd></div>`
-    ).join('');
+    const chRows = Object.entries(byCh)
+      .sort((a, b) => b[1].net - a[1].net)
+      .map(([ch, row], i) =>
+        `<div class="clicks-stats-row"><dt>${i + 1}º ${escapeHtml(salesChannelLabel(ch))}</dt><dd>${row.count} · ${formatSalesBRL(row.net)}</dd></div>`
+      ).join('');
     el.innerHTML = `
       <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${(sales || []).length} vendas · líquido ${formatSalesBRL(tot.net)}</dd></div>
       <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(tot.gross)}</dd></div>
