@@ -1690,6 +1690,36 @@
     "Mobvoi TicWatch Pro 3 Ultra (47mm)",
     "Fitbit Versa / Sense",
     "Polar Pacer / Ignite",
+    "Fitbit Charge 4",
+    "Fitbit Charge 5",
+    "Fitbit Charge 6",
+    "Fitbit Inspire 3",
+    "Fitbit Luxe",
+    "Fitbit Ace 3",
+    "Fitbit Sense 2",
+    "Fitbit Versa 3",
+    "Fitbit Versa 4",
+    "Xiaomi Mi Band 5",
+    "Xiaomi Mi Band 6",
+    "Xiaomi Smart Band 7",
+    "Xiaomi Smart Band 8",
+    "Xiaomi Smart Band 8 Active",
+    "Xiaomi Smart Band 9",
+    "Xiaomi Smart Band 9 Active",
+    "Xiaomi Smart Band 9 Pro (33mm)",
+    "Huawei Band 6",
+    "Huawei Band 7",
+    "Huawei Band 8",
+    "Huawei Band 9",
+    "Samsung Galaxy Fit 2",
+    "Samsung Galaxy Fit e",
+    "Amazfit Band 5",
+    "Amazfit Band 7",
+    "Garmin vivosmart 5",
+    "Garmin vívofit 4",
+    "Honor Band 6",
+    "Honor Band 7",
+    "Honor Band 9",
     "Outro modelo (informar nas observações)"
   ],
   "smartwatchModelMeta": {
@@ -2462,6 +2492,126 @@
     "Mobvoi TicWatch Pro 5 (48mm)": {
       "shape": "round",
       "caseMm": 48
+    },
+    "Fitbit Charge 4": {
+      "shape": "rect",
+      "caseMm": 22
+    },
+    "Fitbit Charge 5": {
+      "shape": "rect",
+      "caseMm": 22
+    },
+    "Fitbit Charge 6": {
+      "shape": "rect",
+      "caseMm": 23
+    },
+    "Fitbit Inspire 3": {
+      "shape": "rect",
+      "caseMm": 18
+    },
+    "Fitbit Luxe": {
+      "shape": "rect",
+      "caseMm": 18
+    },
+    "Fitbit Ace 3": {
+      "shape": "rect",
+      "caseMm": 18
+    },
+    "Fitbit Sense 2": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Fitbit Versa 3": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Fitbit Versa 4": {
+      "shape": "squircle",
+      "caseMm": 40
+    },
+    "Xiaomi Mi Band 5": {
+      "shape": "rect",
+      "caseMm": 18
+    },
+    "Xiaomi Mi Band 6": {
+      "shape": "rect",
+      "caseMm": 20
+    },
+    "Xiaomi Smart Band 7": {
+      "shape": "rect",
+      "caseMm": 21
+    },
+    "Xiaomi Smart Band 8": {
+      "shape": "rect",
+      "caseMm": 21
+    },
+    "Xiaomi Smart Band 8 Active": {
+      "shape": "rect",
+      "caseMm": 21
+    },
+    "Xiaomi Smart Band 9": {
+      "shape": "rect",
+      "caseMm": 21
+    },
+    "Xiaomi Smart Band 9 Active": {
+      "shape": "rect",
+      "caseMm": 21
+    },
+    "Xiaomi Smart Band 9 Pro (33mm)": {
+      "shape": "rect",
+      "caseMm": 33
+    },
+    "Huawei Band 6": {
+      "shape": "rect",
+      "caseMm": 22
+    },
+    "Huawei Band 7": {
+      "shape": "rect",
+      "caseMm": 22
+    },
+    "Huawei Band 8": {
+      "shape": "rect",
+      "caseMm": 21
+    },
+    "Huawei Band 9": {
+      "shape": "rect",
+      "caseMm": 21
+    },
+    "Samsung Galaxy Fit 2": {
+      "shape": "rect",
+      "caseMm": 20
+    },
+    "Samsung Galaxy Fit e": {
+      "shape": "rect",
+      "caseMm": 18
+    },
+    "Amazfit Band 5": {
+      "shape": "rect",
+      "caseMm": 20
+    },
+    "Amazfit Band 7": {
+      "shape": "rect",
+      "caseMm": 20
+    },
+    "Garmin vivosmart 5": {
+      "shape": "rect",
+      "caseMm": 20
+    },
+    "Garmin vívofit 4": {
+      "shape": "rect",
+      "caseMm": 18
+    },
+    "Honor Band 6": {
+      "shape": "rect",
+      "caseMm": 22
+    },
+    "Honor Band 7": {
+      "shape": "rect",
+      "caseMm": 22
+    },
+    "Honor Band 9": {
+      "shape": "rect",
+      "caseMm": 21
     }
   },
   "formsubmit": {
@@ -2780,6 +2930,16 @@
         "label": "Samsung Galaxy Watch Ultra (47mm)",
         "model": "Galaxy Watch Ultra",
         "sizeMm": 47
+      },
+      {
+        "label": "Samsung Galaxy Fit 2",
+        "model": "Galaxy Fit 2",
+        "sizeMm": 20
+      },
+      {
+        "label": "Samsung Galaxy Fit e",
+        "model": "Galaxy Fit e",
+        "sizeMm": 18
       }
     ],
     "Garmin": [
@@ -3052,6 +3212,16 @@
         "label": "Garmin Fenix 8 (51mm)",
         "model": "Fenix 8",
         "sizeMm": 51
+      },
+      {
+        "label": "Garmin vivosmart 5",
+        "model": "vivosmart 5",
+        "sizeMm": 20
+      },
+      {
+        "label": "Garmin vívofit 4",
+        "model": "vívofit 4",
+        "sizeMm": 18
       }
     ],
     "Amazfit": [
@@ -3264,6 +3434,16 @@
         "label": "Amazfit T-Rex Ultra (47mm)",
         "model": "T-Rex Ultra",
         "sizeMm": 47
+      },
+      {
+        "label": "Amazfit Band 5",
+        "model": "Band 5",
+        "sizeMm": 20
+      },
+      {
+        "label": "Amazfit Band 7",
+        "model": "Band 7",
+        "sizeMm": 20
       }
     ],
     "Xiaomi": [
@@ -3336,6 +3516,46 @@
         "label": "Redmi Watch 4 (47mm)",
         "model": "Redmi Watch 4",
         "sizeMm": 47
+      },
+      {
+        "label": "Xiaomi Mi Band 5",
+        "model": "Mi Band 5",
+        "sizeMm": 18
+      },
+      {
+        "label": "Xiaomi Mi Band 6",
+        "model": "Mi Band 6",
+        "sizeMm": 20
+      },
+      {
+        "label": "Xiaomi Smart Band 7",
+        "model": "Smart Band 7",
+        "sizeMm": 21
+      },
+      {
+        "label": "Xiaomi Smart Band 8",
+        "model": "Smart Band 8",
+        "sizeMm": 21
+      },
+      {
+        "label": "Xiaomi Smart Band 8 Active",
+        "model": "Smart Band 8 Active",
+        "sizeMm": 21
+      },
+      {
+        "label": "Xiaomi Smart Band 9",
+        "model": "Smart Band 9",
+        "sizeMm": 21
+      },
+      {
+        "label": "Xiaomi Smart Band 9 Active",
+        "model": "Smart Band 9 Active",
+        "sizeMm": 21
+      },
+      {
+        "label": "Xiaomi Smart Band 9 Pro (33mm)",
+        "model": "Smart Band 9 Pro",
+        "sizeMm": 33
       }
     ],
     "Huawei": [
@@ -3438,6 +3658,26 @@
         "label": "Huawei Watch GT 3 SE (46mm)",
         "model": "Watch GT 3 SE",
         "sizeMm": 46
+      },
+      {
+        "label": "Huawei Band 6",
+        "model": "Band 6",
+        "sizeMm": 22
+      },
+      {
+        "label": "Huawei Band 7",
+        "model": "Band 7",
+        "sizeMm": 22
+      },
+      {
+        "label": "Huawei Band 8",
+        "model": "Band 8",
+        "sizeMm": 21
+      },
+      {
+        "label": "Huawei Band 9",
+        "model": "Band 9",
+        "sizeMm": 21
       }
     ],
     "Google": [
@@ -3486,6 +3726,51 @@
     ],
     "Fitbit": [
       {
+        "label": "Fitbit Charge 4",
+        "model": "Charge 4",
+        "sizeMm": 22
+      },
+      {
+        "label": "Fitbit Charge 5",
+        "model": "Charge 5",
+        "sizeMm": 22
+      },
+      {
+        "label": "Fitbit Charge 6",
+        "model": "Charge 6",
+        "sizeMm": 23
+      },
+      {
+        "label": "Fitbit Inspire 3",
+        "model": "Inspire 3",
+        "sizeMm": 18
+      },
+      {
+        "label": "Fitbit Luxe",
+        "model": "Luxe",
+        "sizeMm": 18
+      },
+      {
+        "label": "Fitbit Ace 3",
+        "model": "Ace 3",
+        "sizeMm": 18
+      },
+      {
+        "label": "Fitbit Sense 2",
+        "model": "Sense 2",
+        "sizeMm": 40
+      },
+      {
+        "label": "Fitbit Versa 3",
+        "model": "Versa 3",
+        "sizeMm": 40
+      },
+      {
+        "label": "Fitbit Versa 4",
+        "model": "Versa 4",
+        "sizeMm": 40
+      },
+      {
         "label": "Fitbit Versa / Sense",
         "model": "Versa / Sense",
         "sizeMm": null
@@ -3496,6 +3781,23 @@
         "label": "Polar Pacer / Ignite",
         "model": "Pacer / Ignite",
         "sizeMm": null
+      }
+    ],
+    "Honor": [
+      {
+        "label": "Honor Band 6",
+        "model": "Band 6",
+        "sizeMm": 22
+      },
+      {
+        "label": "Honor Band 7",
+        "model": "Band 7",
+        "sizeMm": 22
+      },
+      {
+        "label": "Honor Band 9",
+        "model": "Band 9",
+        "sizeMm": 21
       }
     ]
   }

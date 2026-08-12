@@ -2511,6 +2511,7 @@ function watchBrandForCopy(order) {
   if (/Amazfit/i.test(haystack)) return 'Amazfit';
   if (/Fitbit/i.test(haystack)) return 'Fitbit';
   if (/Polar/i.test(haystack)) return 'Polar';
+  if (/Honor/i.test(haystack)) return 'Honor';
   if (/Outro modelo|Other model|Altro modello/i.test(haystack)) return '';
   return haystack.split(/\s+[—\-]\s+/)[0].trim() || haystack;
 }

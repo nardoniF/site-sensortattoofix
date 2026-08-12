@@ -1483,6 +1483,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (m.startsWith('Mobvoi') || m.startsWith('TicWatch')) return 'Mobvoi';
     if (m.startsWith('Fitbit')) return 'Fitbit';
     if (m.startsWith('Polar')) return 'Polar';
+    if (m.startsWith('Honor')) return 'Honor';
     return L('watch.groupOthers');
   }
 
