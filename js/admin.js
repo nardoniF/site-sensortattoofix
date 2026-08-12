@@ -3129,6 +3129,45 @@ ${worksheets}
     if (day) day.open = true;
   }
 
+  const CLICKS_HIDE_HOME_KEY = 'stf_clicks_hide_home_only';
+
+  function readClicksHideHomePref() {
+    try {
+      const saved = localStorage.getItem(CLICKS_HIDE_HOME_KEY);
+      if (saved === '0') return false;
+      if (saved === '1') return true;
+    } catch { /* ignore */ }
+    return true;
+  }
+
+  function writeClicksHideHomePref(on) {
+    try {
+      localStorage.setItem(CLICKS_HIDE_HOME_KEY, on ? '1' : '0');
+    } catch { /* ignore */ }
+  }
+
+  function syncClicksHideHomeCheckbox() {
+    const el = document.getElementById('clicks-filter-hide-home-only');
+    if (!el) return;
+    el.checked = readClicksHideHomePref();
+  }
+
+  function applyClicksHideHomeFilter() {
+    const el = document.getElementById('clicks-filter-hide-home-only');
+    if (el) writeClicksHideHomePref(!!el.checked);
+    if (!clicksCache.length) {
+      loadClicks();
+      return;
+    }
+    const openPaths = captureClicksTreeOpenPaths();
+    const checkedEl = document.getElementById('clicks-checked-at');
+    const totalMatch = checkedEl?.textContent?.match(/de (\d+) no log/);
+    const total = totalMatch ? Number(totalMatch[1]) : clicksCache.length;
+    if (clicksWhenCache.length) renderClicksWhenCharts(clicksWhenCache);
+    renderClicksTree(clicksCache, new Date().toISOString(), total, openPaths);
+    document.getElementById('clicks-fold-log')?.setAttribute('open', '');
+  }
+
   function wireAdminFolds() {
     document.querySelectorAll('details.admin-fold[data-fold-key]').forEach((el) => {
       const key = el.getAttribute('data-fold-key');
@@ -5052,18 +5091,11 @@ ${worksheets}
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
   document.getElementById('clicks-filter-nav')?.addEventListener('change', () => loadClicks());
+  syncClicksHideHomeCheckbox();
   wireAdminFolds();
-  document.getElementById('clicks-filter-hide-home-only')?.addEventListener('change', () => {
-    if (!clicksCache.length) {
-      loadClicks();
-      return;
-    }
-    const openPaths = captureClicksTreeOpenPaths();
-    const checkedEl = document.getElementById('clicks-checked-at');
-    const totalMatch = checkedEl?.textContent?.match(/de (\d+) no log/);
-    const total = totalMatch ? Number(totalMatch[1]) : clicksCache.length;
-    if (clicksWhenCache.length) renderClicksWhenCharts(clicksWhenCache);
-    renderClicksTree(clicksCache, new Date().toISOString(), total, openPaths);
+  document.getElementById('clicks-filter-hide-home-only')?.addEventListener('change', applyClicksHideHomeFilter);
+  document.getElementById('clicks-filter-hide-home-only')?.addEventListener('click', (e) => {
+    e.stopPropagation();
   });
   document.getElementById('btn-feedback-refresh')?.addEventListener('click', () => loadFeedback());
   document.getElementById('btn-feedback-clear')?.addEventListener('click', () => clearFeedback());

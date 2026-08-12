@@ -3822,27 +3822,49 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .admin-clicks-filters {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: center;
     width: 100%;
     margin-bottom: 10px;
 }
 .admin-clicks-filters .admin-clicks-search {
-    flex: 1 1 auto;
+    flex: 1 1 220px;
     min-width: 0;
     margin: 0;
 }
 .admin-clicks-filters #clicks-filter-destino {
-    flex: 0 0 200px;
+    flex: 0 1 200px;
     min-width: 160px;
+}
+.admin-clicks-filters .admin-check {
+    flex: 0 0 auto;
+    min-width: max-content;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+    color: #ccc;
+    font-weight: 500;
+    font-size: 0.88rem;
+    user-select: none;
+    white-space: nowrap;
+}
+.admin-clicks-filters .admin-check input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--primary, #4caf7a);
 }
 .admin-clicks-filters .admin-clicks-nav-toggle {
     flex: 0 0 auto;
     white-space: nowrap;
     font-size: 0.88rem;
-    color: #444;
-    gap: 6px;
+    color: #ccc;
+    gap: 8px;
 }
 .admin-clicks-filters .admin-clicks-nav-toggle.is-disabled {
     opacity: 0.45;
