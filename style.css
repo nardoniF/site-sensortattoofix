@@ -3772,6 +3772,23 @@ body.admin-page.pedidos-login-only #pedidos-login {
     margin: 0;
     color: #ddd;
 }
+.clicks-stats-row--net {
+    margin-top: 4px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(129, 199, 132, 0.08);
+    border: 1px solid rgba(129, 199, 132, 0.28);
+}
+.clicks-stats-row--net dt {
+    color: #a5d6a7;
+    font-weight: 700;
+}
+.clicks-stats-row--net dd {
+    color: #81c784;
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
 .clicks-stats-row-top dd { min-width: 0; }
 .clicks-stats-top {
     list-style: none;

@@ -697,7 +697,7 @@
       <div class="clicks-stats-row"><dt>(−) Frete (custo)</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(parts.refunds)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(parts.otherFees)}</dd></div>
-      <div class="clicks-stats-row"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
+      <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
       ${extraRowsHtml || ''}
       <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
   }
@@ -1042,12 +1042,13 @@
         `<div class="clicks-stats-row"><dt>${i + 1}º ${escapeHtml(salesChannelLabel(ch))}</dt><dd>${row.count} · ${formatSalesBRL(row.net)}</dd></div>`
       ).join('');
     el.innerHTML = `
-      <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${(sales || []).length} vendas · líquido ${formatSalesBRL(tot.net)}</dd></div>
+      <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${(sales || []).length} vendas</dd></div>
       <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(tot.gross)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Comissão</dt><dd>${formatSalesBRL(tot.fees)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(tot.shipping || 0)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(tot.refunds || 0)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(tot.otherFees || 0)}</dd></div>
+      <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(tot.net)}</dd></div>
       ${chRows}`;
   }
 
