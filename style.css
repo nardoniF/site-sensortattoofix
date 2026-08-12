@@ -4485,6 +4485,54 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-weight: 700;
     color: #eee;
 }
+.admin-fold {
+    margin: 14px 0 12px;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    background: #121212;
+    overflow: hidden;
+}
+.admin-fold > summary {
+    list-style: none;
+}
+.admin-fold > summary::-webkit-details-marker { display: none; }
+.admin-fold-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+    color: #eee;
+}
+.admin-fold-summary:hover { background: #181818; }
+.admin-fold-chevron {
+    width: 14px;
+    color: var(--primary, #4caf7a);
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+}
+.admin-fold[open] > .admin-fold-summary .admin-fold-chevron {
+    transform: rotate(90deg);
+}
+.admin-fold-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+}
+.admin-fold-hint {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.admin-fold-body {
+    padding: 0 14px 14px;
+    border-top: 1px solid #252525;
+}
+.admin-fold-body > .admin-meta:first-child {
+    margin-top: 12px;
+}
 .vendas-when-filters {
     display: flex;
     flex-wrap: wrap;

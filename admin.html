@@ -891,31 +891,48 @@
                                 <button type="button" id="btn-clicks-clear-all" class="btn-danger-outline" title="Apaga todo o histórico de cliques"><i class="fas fa-trash-alt"></i> Limpar tudo</button>
                             </div>
                         </div>
-                        <section class="vendas-when" aria-labelledby="clicks-when-title">
-                            <h3 id="clicks-when-title" class="vendas-when-title">Quando acessam</h3>
-                            <p class="admin-meta">Site (compacto), mês, semana (1ª–5ª, média dos meses), dia da semana, dia do mês e hora. Mais recente em cima no mês. Fuso São Paulo. Estatística sempre exclui só-home/bots.</p>
-                            <div class="vendas-when-filters">
-                                <label>Site
-                                    <select id="clicks-when-site" aria-label="Filtrar site">
-                                        <option value="">Todos (.com + .com.br)</option>
-                                        <option value="com.br">.com.br (Brasil)</option>
-                                        <option value="com">.com (internacional)</option>
-                                    </select>
-                                </label>
-                                <label>Métrica
-                                    <select id="clicks-when-metric" aria-label="Métrica do gráfico">
-                                        <option value="events" selected>Eventos</option>
-                                        <option value="visitors">Visitantes únicos</option>
-                                    </select>
-                                </label>
+
+                        <details class="admin-fold" id="clicks-fold-when" data-fold-key="clicks-when">
+                            <summary class="admin-fold-summary">
+                                <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+                                <span class="admin-fold-title">Quando acessam</span>
+                                <span class="admin-fold-hint">gráficos</span>
+                            </summary>
+                            <div class="admin-fold-body">
+                                <p class="admin-meta">Site (compacto), mês, semana (1ª–5ª, média dos meses), dia da semana, dia do mês e hora. Mais recente em cima no mês. Fuso São Paulo. Estatística sempre exclui só-home/bots.</p>
+                                <div class="vendas-when-filters">
+                                    <label>Site
+                                        <select id="clicks-when-site" aria-label="Filtrar site">
+                                            <option value="">Todos (.com + .com.br)</option>
+                                            <option value="com.br">.com.br (Brasil)</option>
+                                            <option value="com">.com (internacional)</option>
+                                        </select>
+                                    </label>
+                                    <label>Métrica
+                                        <select id="clicks-when-metric" aria-label="Métrica do gráfico">
+                                            <option value="events" selected>Eventos</option>
+                                            <option value="visitors">Visitantes únicos</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div id="clicks-when-charts" class="vendas-when-charts" aria-live="polite"></div>
                             </div>
-                            <div id="clicks-when-charts" class="vendas-when-charts" aria-live="polite"></div>
-                        </section>
-                        <p id="admin-status-cliques" class="admin-status form-status" hidden></p>
-                        <p id="clicks-checked-at" class="admin-meta" hidden></p>
-                        <div id="clicks-tree-root" class="clicks-tree-root">
-                            <p class="admin-meta">Abra esta aba para carregar o histórico.</p>
-                        </div>
+                        </details>
+
+                        <details class="admin-fold" id="clicks-fold-log" data-fold-key="clicks-log" open>
+                            <summary class="admin-fold-summary">
+                                <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+                                <span class="admin-fold-title">Log de visitas</span>
+                                <span class="admin-fold-hint">ano → mês → dia</span>
+                            </summary>
+                            <div class="admin-fold-body">
+                                <p id="admin-status-cliques" class="admin-status form-status" hidden></p>
+                                <p id="clicks-checked-at" class="admin-meta" hidden></p>
+                                <div id="clicks-tree-root" class="clicks-tree-root">
+                                    <p class="admin-meta">Abra esta aba para carregar o histórico.</p>
+                                </div>
+                            </div>
+                        </details>
                     </fieldset>
                     </div>
 

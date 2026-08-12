@@ -3108,12 +3108,43 @@ ${worksheets}
       html += '</div>';
       root.innerHTML = html;
       if (openPaths?.length) restoreClicksTreeOpenPaths(openPaths);
+      else openLatestClicksTreeDay(root);
     }
 
     if (checkedEl) {
       checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log`;
       checkedEl.hidden = false;
     }
+  }
+
+  /** Abre ano → mês → dia mais recente para ir direto ao log atual. */
+  function openLatestClicksTreeDay(root) {
+    const year = root?.querySelector('details.clicks-tree-year');
+    if (!year) return;
+    year.open = true;
+    const month = year.querySelector('details.clicks-tree-month');
+    if (!month) return;
+    month.open = true;
+    const day = month.querySelector('details.clicks-tree-day');
+    if (day) day.open = true;
+  }
+
+  function wireAdminFolds() {
+    document.querySelectorAll('details.admin-fold[data-fold-key]').forEach((el) => {
+      const key = el.getAttribute('data-fold-key');
+      if (!key) return;
+      const storageKey = `stf_admin_fold_${key}`;
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved === '1') el.open = true;
+        else if (saved === '0') el.open = false;
+      } catch { /* ignore */ }
+      el.addEventListener('toggle', () => {
+        try {
+          localStorage.setItem(storageKey, el.open ? '1' : '0');
+        } catch { /* ignore */ }
+      });
+    });
   }
 
   async function clearClicksLog(mode) {
@@ -5021,6 +5052,7 @@ ${worksheets}
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
   document.getElementById('clicks-filter-nav')?.addEventListener('change', () => loadClicks());
+  wireAdminFolds();
   document.getElementById('clicks-filter-hide-home-only')?.addEventListener('change', () => {
     if (!clicksCache.length) {
       loadClicks();
