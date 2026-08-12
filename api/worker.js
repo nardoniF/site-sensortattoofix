@@ -27,14 +27,15 @@ const SITE_CATALOG_URL = 'https://www.sensortattoofix.com.br/data/store-config.j
 const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
 const CLICKS_BLOB = 'clicks:blob';
-/** Soft ceiling (~120 events/day × 90d ≈ 11k; headroom for peaks). Primary trim is by age. */
+/** Safety ceiling if traffic spikes (~200/day × ~120d). Primary trim is calendar months. */
 const CLICKS_MAX = 25000;
-/** Keep click history for month-over-month comparison (complete prior months). */
-const CLICKS_RETENTION_DAYS = 90;
-const CLICKS_RETENTION_MS = CLICKS_RETENTION_DAYS * 86400000;
+/** Tree in Admin: recent visits only (full JSON). Charts use slim 4-month series. */
+const CLICKS_TREE_MAX = 2500;
+/** Rolling window: 3 closed months + current month. Oldest closed month drops when a new month starts. */
+const CLICKS_CLOSED_MONTHS = 3;
 const FEEDBACK_BLOB = 'feedback:blob';
 const FEEDBACK_MAX = 500;
-const CLICK_TTL_SEC = CLICKS_RETENTION_DAYS * 86400;
+const CLICK_TTL_SEC = 120 * 86400;
 const CLICK_LOG_KEY_FALLBACK = 'stf_ck_7f3a9e2b1c';
 const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
 const CANONICAL_API_BASE = 'https://api.sensortattoofix.com.br';
@@ -11866,6 +11867,62 @@ function clicksDb(env) {
   return env.CLICKS_DB || null;
 }
 
+/** São Paulo calendar parts (no DST). */
+function spYmd(ts = Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date(ts));
+  const get = (t) => parts.find((p) => p.type === t)?.value;
+  return { year: Number(get('year')), month: Number(get('month')), day: Number(get('day')) };
+}
+
+/** Midnight SP → UTC ms. Brazil is UTC-3 year-round. */
+function spMidnightUtcMs(year, month, day = 1) {
+  return Date.UTC(year, month - 1, day, 3, 0, 0);
+}
+
+/**
+ * Rolling click window: current month + previous CLICKS_CLOSED_MONTHS.
+ * On 1 Sep, May drops; keep Jun–Aug closed + Sep current.
+ */
+function clicksRetentionWindow(now = Date.now()) {
+  const cur = spYmd(now);
+  let y = cur.year;
+  let m = cur.month - CLICKS_CLOSED_MONTHS;
+  while (m < 1) {
+    m += 12;
+    y -= 1;
+  }
+  const cutoffMs = spMidnightUtcMs(y, m, 1);
+  const months = [];
+  let yy = y;
+  let mm = m;
+  for (let i = 0; i <= CLICKS_CLOSED_MONTHS; i++) {
+    const key = `${yy}-${String(mm).padStart(2, '0')}`;
+    months.push({
+      year: yy,
+      month: mm,
+      key,
+      isCurrent: yy === cur.year && mm === cur.month
+    });
+    mm += 1;
+    if (mm > 12) {
+      mm = 1;
+      yy += 1;
+    }
+  }
+  return {
+    cutoffMs,
+    months,
+    closedMonths: CLICKS_CLOSED_MONTHS,
+    totalMonths: CLICKS_CLOSED_MONTHS + 1,
+    currentYm: `${cur.year}-${String(cur.month).padStart(2, '0')}`
+  };
+}
+
 async function ensureClicksD1(env) {
   const db = clicksDb(env);
   if (!db) return null;
@@ -11923,9 +11980,9 @@ async function insertClickD1(env, entry) {
     teste,
     JSON.stringify(row)
   ).run();
-  // Retention: keep ~90 days for month comparisons; hard ceiling CLICKS_MAX as safety.
-  if (Math.random() < 0.05) {
-    const cutoff = Date.now() - CLICKS_RETENTION_MS;
+  // Rolling calendar window (3 closed + current) + hard ceiling.
+  if (Math.random() < 0.08) {
+    const cutoff = clicksRetentionWindow().cutoffMs;
     await db.prepare('DELETE FROM clicks WHERE ts < ?').bind(cutoff).run().catch(() => {});
     await db.prepare(`
       DELETE FROM clicks WHERE ts < (
@@ -11936,7 +11993,7 @@ async function insertClickD1(env, entry) {
   return row;
 }
 
-async function loadClicksFromD1(env, limit = CLICKS_MAX) {
+async function loadClicksFromD1(env, limit = CLICKS_TREE_MAX) {
   const db = clicksDb(env);
   if (!db) return null;
   await ensureClicksD1(env);
@@ -11944,7 +12001,7 @@ async function loadClicksFromD1(env, limit = CLICKS_MAX) {
   const total = Number(countRow?.n || 0);
   const res = await db.prepare(
     'SELECT payload FROM clicks ORDER BY ts DESC LIMIT ?'
-  ).bind(Math.min(CLICKS_MAX, Math.max(1, limit))).all();
+  ).bind(Math.min(CLICKS_TREE_MAX, Math.max(1, limit))).all();
   const loaded = [];
   for (const r of res?.results || []) {
     try {
@@ -11952,6 +12009,40 @@ async function loadClicksFromD1(env, limit = CLICKS_MAX) {
     } catch { /* skip */ }
   }
   return { loaded, total };
+}
+
+/** Slim rows for 4-month charts — no full payload (keeps Admin fast). */
+async function loadClicksSlimFromD1(env, cutoffMs) {
+  const db = clicksDb(env);
+  if (!db) return [];
+  await ensureClicksD1(env);
+  const res = await db.prepare(`
+    SELECT ts, tipo, destino, visitante_id, sessao_visita, pagina, teste, id,
+      json_extract(payload, '$.site_host') AS site_host,
+      json_extract(payload, '$.idioma') AS idioma,
+      json_extract(payload, '$.user_agent') AS user_agent,
+      json_extract(payload, '$.ip') AS ip,
+      json_extract(payload, '$.destino_label') AS destino_label
+    FROM clicks
+    WHERE ts >= ?
+    ORDER BY ts DESC
+    LIMIT ?
+  `).bind(cutoffMs, CLICKS_MAX).all();
+  return (res?.results || []).map((r) => ({
+    id: r.id,
+    ts: Number(r.ts) || 0,
+    tipo: r.tipo || '',
+    destino: r.destino || '',
+    destino_label: r.destino_label || '',
+    visitante_id: r.visitante_id || '',
+    sessao_visita: r.sessao_visita || '',
+    pagina: r.pagina || '',
+    teste: Number(r.teste) === 1,
+    site_host: r.site_host || '',
+    idioma: r.idioma || '',
+    user_agent: r.user_agent || '',
+    ip: r.ip || ''
+  }));
 }
 
 async function clearClicksD1(env, mode) {
@@ -12378,7 +12469,8 @@ async function handleAdminListClicks(request, env, origin) {
   const withNav = url.searchParams.get('nav') === '1'
     || url.searchParams.get('com_navegacao') === '1'
     || url.searchParams.get('navegacao') === '1';
-  const limit = Math.min(CLICKS_MAX, Math.max(20, parseInt(url.searchParams.get('limit') || String(CLICKS_MAX), 10) || CLICKS_MAX));
+  const limit = Math.min(CLICKS_TREE_MAX, Math.max(20, parseInt(url.searchParams.get('limit') || String(CLICKS_TREE_MAX), 10) || CLICKS_TREE_MAX));
+  const window = clicksRetentionWindow();
 
   let loaded;
   let total;
@@ -12481,9 +12573,13 @@ async function handleAdminListClicks(request, env, origin) {
   const capFull = capUsed >= capMax;
   const capNearFull = !capFull && capUsed >= Math.floor(capMax * 0.9);
   const dailyD1 = await buildD1DailyBudget(env);
+  const whenClicks = fromD1
+    ? await loadClicksSlimFromD1(env, window.cutoffMs).catch(() => [])
+    : clicks.slice();
 
   return json({
     clicks,
+    whenClicks,
     total,
     todayCount,
     byDestino,
@@ -12495,8 +12591,11 @@ async function handleAdminListClicks(request, env, origin) {
       percent: capPercent,
       full: capFull,
       nearFull: capNearFull,
-      retentionDays: CLICKS_RETENTION_DAYS,
-      // Age trim (~90d) first; row ceiling only as safety.
+      closedMonths: window.closedMonths,
+      totalMonths: window.totalMonths,
+      currentYm: window.currentYm,
+      cutoffAt: new Date(window.cutoffMs).toISOString(),
+      months: window.months,
       dropsOldestWhenFull: true
     },
     dailyD1,

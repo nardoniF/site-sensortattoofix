@@ -1837,6 +1837,8 @@ ${worksheets}
   let feedbackLoading = false;
   let feedbackSearchTimer = null;
   let clicksCache = [];
+  let clicksWhenCache = [];
+  let clicksWhenWindow = null;
 
   const CLICK_DESTINO_LABELS = {
     pageview: 'Entrada',
@@ -2047,13 +2049,13 @@ ${worksheets}
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
-    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=800`, {
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=2500`, {
       headers: { Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
-    return data.clicks || [];
+    return data.whenClicks?.length ? data.whenClicks : (data.clicks || []);
   }
 
   async function exportClicksExcel() {
@@ -2125,7 +2127,9 @@ ${worksheets}
     const cap = data?.capacity || {};
     const used = Number(cap.used ?? data?.total ?? 0) || 0;
     const max = Number(cap.max) > 0 ? Number(cap.max) : 25000;
-    const retentionDays = Number(cap.retentionDays) > 0 ? Number(cap.retentionDays) : 90;
+    const closedMonths = Number(cap.closedMonths) > 0 ? Number(cap.closedMonths) : 3;
+    const totalMonths = Number(cap.totalMonths) > 0 ? Number(cap.totalMonths) : closedMonths + 1;
+    const retentionLabel = `${closedMonths} fechados + atual (${totalMonths} meses)`;
 
     let outerHtml;
     if (wExhausted || wOver) {
@@ -2180,7 +2184,7 @@ ${worksheets}
         ${readsRow}
         <div class="clicks-stats-row"><dt>Fonte da cota</dt><dd>D1 Analytics</dd></div>
         <div class="clicks-stats-row"><dt>Atualizado</dt><dd>${escapeHtml(refreshed)}</dd></div>
-        <div class="clicks-stats-row"><dt>Total no log cliques</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} · retenção ${retentionDays} dias</dd></div>
+        <div class="clicks-stats-row"><dt>Total no log cliques</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} · retenção ${escapeHtml(retentionLabel)}</dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
         <div class="clicks-stats-row"><dt>Mais antigo no log</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
         <div class="clicks-stats-row"><dt>Renova cota</dt><dd>${escapeHtml(String(resetBr))}</dd></div>
@@ -2369,17 +2373,10 @@ ${worksheets}
 
   function filterClicksForWhenCharts(clicks) {
     const siteEl = document.getElementById('clicks-when-site');
-    const rangeEl = document.getElementById('clicks-when-range');
     const site = siteEl ? siteEl.value : '';
-    const range = rangeEl ? rangeEl.value : 'all';
     const { cleaned } = summarizeClicksForCharts(clicks);
-    let list = cleaned;
-    if (site) list = list.filter((c) => clickSiteHost(c) === site);
-    if (range === '90' || range === '365') {
-      const cut = Date.now() - Number(range) * 86400000;
-      list = list.filter((c) => Number(c.ts || c.client_ts || 0) >= cut);
-    }
-    return list;
+    if (!site) return cleaned;
+    return cleaned.filter((c) => clickSiteHost(c) === site);
   }
 
   function daysInCalendarMonth(year, monthNum) {
@@ -2405,9 +2402,24 @@ ${worksheets}
     const stamps = (clicks || [])
       .map((c) => Number(c.ts || c.client_ts || 0))
       .filter((ts) => ts > 0);
+    const min = stamps.length ? Math.min(...stamps) : 0;
+    const max = stamps.length ? Math.max(...stamps) : Date.now();
+    const windowMonths = Array.isArray(clicksWhenWindow?.months) ? clicksWhenWindow.months : [];
+    if (windowMonths.length) {
+      return windowMonths.map((slot) => {
+        const monthNum = String(slot.month).padStart(2, '0');
+        const partial = slot.isCurrent || isPartialMonthInRecord(slot.year, monthNum, min || max, max);
+        const base = `${MONTH_LABELS[monthNum] || monthNum} ${slot.year}`;
+        return {
+          key: slot.key,
+          label: partial ? `${base} (parcial)` : `${base} (fechado)`,
+          sortKey: slot.year * 100 + slot.month,
+          partial,
+          isCurrent: !!slot.isCurrent
+        };
+      });
+    }
     if (!stamps.length) return [];
-    const min = Math.min(...stamps);
-    const max = Math.max(...stamps);
     const start = brDateParts(min);
     const end = brDateParts(max);
     let y = Number(start.year);
@@ -2421,7 +2433,7 @@ ${worksheets}
       const base = `${MONTH_LABELS[monthNum] || monthNum} ${y}`;
       keys.push({
         key: `${y}-${monthNum}`,
-        label: partial ? `${base} (parcial)` : base,
+        label: partial ? `${base} (parcial)` : `${base} (fechado)`,
         sortKey: y * 100 + m,
         partial
       });
@@ -2512,10 +2524,7 @@ ${worksheets}
       byWeekMap.get(String(d)) || empty(String(d), WEEKDAY_LABELS[d], WEEKDAY_ORDER.indexOf(d))
     ));
 
-    // Day-of-month: only days that appear in the record (no 1–31 empty pad).
-    const monthdays = aggregateClicksWhen(filtered, 'monthday');
-
-    // Months: span of the loaded log; incomplete months labeled "(parcial)" — don't treat as full MoM.
+    // Months: exactly the rolling window (3 closed + current). Empty slots stay 0 until history fills.
     const byMonthMap = new Map(aggregateClicksWhen(filtered, 'month').map((b) => [b.key, b]));
     const months = clicksRecordMonthKeys(filtered).map((slot) => {
       const b = byMonthMap.get(slot.key) || empty(slot.key, slot.label, slot.sortKey);
@@ -2527,21 +2536,16 @@ ${worksheets}
       .map((host, i) => bySiteMap.get(host) || empty(host, host === 'com' ? '.com (intl)' : '.com.br (BR)', i))
       .filter((b) => b.count > 0);
 
-    const stamps = filtered.map((c) => Number(c.ts || c.client_ts || 0)).filter(Boolean);
-    const spanDays = stamps.length
-      ? Math.max(1, Math.round((Math.max(...stamps) - Math.min(...stamps)) / 86400000) + 1)
-      : 0;
-    const spanNote = spanDays
-      ? ` · histórico carregado: <strong>${spanDays} dia${spanDays === 1 ? '' : 's'}</strong> (meta retenção 90 dias)`
-      : '';
-    const cleanLine = `<p class="admin-meta clicks-when-clean">Carregados: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong>${spanNote}</p>`;
+    const closed = Number(clicksWhenWindow?.closedMonths) || 3;
+    const totalM = Number(clicksWhenWindow?.totalMonths) || closed + 1;
+    const spanNote = ` · janela: <strong>${closed} fechados + atual</strong> (${totalM} meses)`;
+    const cleanLine = `<p class="admin-meta clicks-when-clean">Na janela: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong>${spanNote}</p>`;
 
     root.innerHTML = cleanLine + [
+      renderWhenBarChart('Mês (3 fechados + atual)', months, metric, chartOpts),
       renderWhenBarChart('Site (.com / .com.br)', sites, metric, chartOpts),
       renderWhenBarChart('Hora do dia', hours, metric, chartOpts),
-      renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts),
-      renderWhenBarChart('Dia do mês (só dias com registro)', monthdays, metric, chartOpts),
-      renderWhenBarChart('Mês no histórico (parcial ≠ mês cheio)', months, metric, chartOpts)
+      renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts)
     ].join('');
   }
 
@@ -2549,9 +2553,9 @@ ${worksheets}
 
   function wireClicksWhenFilters() {
     if (clicksWhenFiltersWired) return;
-    ['clicks-when-site', 'clicks-when-metric', 'clicks-when-range'].forEach((id) => {
+    ['clicks-when-site', 'clicks-when-metric'].forEach((id) => {
       document.getElementById(id)?.addEventListener('change', () => {
-        if (clicksCache.length) renderClicksWhenCharts(clicksCache);
+        if (clicksWhenCache.length) renderClicksWhenCharts(clicksWhenCache);
       });
     });
     clicksWhenFiltersWired = true;
@@ -3049,7 +3053,7 @@ ${worksheets}
     root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
 
     try {
-      const params = new URLSearchParams({ limit: '25000' });
+      const params = new URLSearchParams({ limit: '2500' });
       if (q) params.set('q', q);
       if (destino === 'pageview') params.set('tipo', 'pageview');
       else if (destino) params.set('destino', destino);
@@ -3061,8 +3065,10 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       clicksCache = data.clicks || [];
+      clicksWhenCache = data.whenClicks?.length ? data.whenClicks : clicksCache;
+      clicksWhenWindow = data.capacity || null;
       renderClicksStats(data);
-      renderClicksWhenCharts(clicksCache);
+      renderClicksWhenCharts(clicksWhenCache);
       renderClicksTree(clicksCache, data.checkedAt, data.total, openPaths);
       const checkedEl = document.getElementById('clicks-checked-at');
       if (checkedEl && data.withNav && destino) {
@@ -4834,7 +4840,7 @@ ${worksheets}
     const checkedEl = document.getElementById('clicks-checked-at');
     const totalMatch = checkedEl?.textContent?.match(/de (\d+) no log/);
     const total = totalMatch ? Number(totalMatch[1]) : clicksCache.length;
-    renderClicksWhenCharts(clicksCache);
+    if (clicksWhenCache.length) renderClicksWhenCharts(clicksWhenCache);
     renderClicksTree(clicksCache, new Date().toISOString(), total, openPaths);
   });
   document.getElementById('btn-feedback-refresh')?.addEventListener('click', () => loadFeedback());
