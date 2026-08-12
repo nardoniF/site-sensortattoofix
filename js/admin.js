@@ -1348,6 +1348,7 @@ ${worksheets}
     const unitOne = opts.unitOne || 'venda';
     const unitMany = opts.unitMany || `${unitOne}s`;
     const sideLabel = opts.sideLabel || ((r) => `${r.count} ${r.count === 1 ? unitOne : unitMany}`);
+    const cardClass = opts.cardClass ? ` ${opts.cardClass}` : '';
     const max = Math.max(0, ...rows.map((r) => metricValue(r, metric)));
     const bars = rows.map((r) => {
       const val = metricValue(r, metric);
@@ -1360,7 +1361,7 @@ ${worksheets}
         <span class="vendas-when-count">${escapeHtml(sideLabel(r))}</span>
       </div>`;
     }).join('') || '<p class="admin-meta">Sem dados neste recorte.</p>';
-    return `<article class="vendas-when-card">
+    return `<article class="vendas-when-card${cardClass}">
       <h4>${escapeHtml(title)}</h4>
       <div class="vendas-when-bars">${bars}</div>
     </article>`;
@@ -2593,10 +2594,15 @@ ${worksheets}
         key = String(clock.monthDay);
         label = `Dia ${clock.monthDay}`;
         sortKey = clock.monthDay;
+      } else if (mode === 'week') {
+        const wk = brWeekBucket(ts);
+        key = wk.key;
+        label = wk.label;
+        sortKey = wk.key;
       } else if (mode === 'site') {
         const host = clickSiteHost(c);
         key = host;
-        label = host === 'com' ? '.com (intl)' : '.com.br (BR)';
+        label = host === 'com' ? '.com' : '.com.br';
         sortKey = host === 'com.br' ? 0 : 1;
       } else {
         // Chronological month in the log (YYYY-MM), not empty Jan–Dec padding.
@@ -2634,24 +2640,21 @@ ${worksheets}
       : `${r.visitors} visitante${r.visitors === 1 ? '' : 's'}`);
     const chartOpts = { sideLabel };
 
-    // Hour + weekday: keep full axes (zeros are meaningful for “when”).
     const byHourMap = new Map(aggregateClicksWhen(filtered, 'hour').map((b) => [b.key, b]));
     const hours = Array.from({ length: 24 }, (_, h) => (
       byHourMap.get(String(h)) || empty(String(h), `${String(h).padStart(2, '0')}h`, h)
     ));
-    const byWeekMap = new Map(aggregateClicksWhen(filtered, 'weekday').map((b) => [b.key, b]));
+    const byWeekdayMap = new Map(aggregateClicksWhen(filtered, 'weekday').map((b) => [b.key, b]));
     const weekdays = WEEKDAY_ORDER.map((d) => (
-      byWeekMap.get(String(d)) || empty(String(d), WEEKDAY_LABELS[d], WEEKDAY_ORDER.indexOf(d))
+      byWeekdayMap.get(String(d)) || empty(String(d), WEEKDAY_LABELS[d], WEEKDAY_ORDER.indexOf(d))
     ));
 
-    // Day of month: which calendar days get the most access (1–31).
     const byDayMap = new Map(aggregateClicksWhen(filtered, 'monthday').map((b) => [b.key, b]));
     const monthdays = Array.from({ length: 31 }, (_, i) => {
       const day = i + 1;
       return byDayMap.get(String(day)) || empty(String(day), `Dia ${day}`, day);
     });
 
-    // Months: newest first (ago → jul → jun → mai).
     const byMonthMap = new Map(aggregateClicksWhen(filtered, 'month').map((b) => [b.key, b]));
     const months = clicksRecordMonthKeys(filtered)
       .map((slot) => {
@@ -2660,19 +2663,25 @@ ${worksheets}
       })
       .sort((a, b) => b.sortKey - a.sortKey);
 
+    // Calendar weeks in the log — newest first (same idea as months).
+    const weeks = aggregateClicksWhen(filtered, 'week')
+      .slice()
+      .sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)));
+
     const bySiteMap = new Map(aggregateClicksWhen(filtered, 'site').map((b) => [b.key, b]));
     const sites = ['com.br', 'com']
-      .map((host, i) => bySiteMap.get(host) || empty(host, host === 'com' ? '.com (intl)' : '.com.br (BR)', i))
+      .map((host, i) => bySiteMap.get(host) || empty(host, host === 'com' ? '.com' : '.com.br', i))
       .filter((b) => b.count > 0);
 
     const cleanLine = `<p class="admin-meta clicks-when-clean">Na janela: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong></p>`;
 
     root.innerHTML = cleanLine + [
+      renderWhenBarChart('Site', sites, metric, { ...chartOpts, cardClass: 'vendas-when-card--site' }),
       renderWhenBarChart('Por mês', months, metric, chartOpts),
+      renderWhenBarChart('Por semana', weeks, metric, chartOpts),
+      renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts),
       renderWhenBarChart('Dia do mês', monthdays, metric, chartOpts),
-      renderWhenBarChart('Site (.com / .com.br)', sites, metric, chartOpts),
-      renderWhenBarChart('Hora do dia', hours, metric, chartOpts),
-      renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts)
+      renderWhenBarChart('Hora do dia', hours, metric, chartOpts)
     ].join('');
   }
 

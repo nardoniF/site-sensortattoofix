@@ -4512,12 +4512,27 @@ body.admin-page.pedidos-login-only #pedidos-login {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
 }
+.vendas-when-charts > .clicks-when-clean {
+    grid-column: 1 / -1;
+    margin: 0 0 2px;
+}
 .vendas-when-card {
     border: 1px solid #2a2a2a;
     border-radius: 12px;
     background: #121212;
     padding: 14px 14px 12px;
     min-height: 0;
+}
+.vendas-when-card--site {
+    align-self: start;
+    max-width: 100%;
+}
+.vendas-when-card--site .vendas-when-bars {
+    max-height: none;
+    overflow: visible;
+}
+.vendas-when-card--site .vendas-when-row {
+    grid-template-columns: 3.8rem minmax(0, 1fr) 4.2rem 3.2rem;
 }
 .vendas-when-card h4 {
     margin: 0 0 10px;
