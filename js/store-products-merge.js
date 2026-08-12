@@ -360,8 +360,11 @@ window.STF_PRODUCT_MERGE = (function () {
     return next;
   }
 
-  /** Admin: só adiciona agregados que ainda não existem no KV — não sobrescreve o que foi salvo. */
-  function mergeMissingAggregated(apiConfig, localConfig) {
+  /**
+   * Admin: adiciona do Git qualquer produto que ainda não existe no KV
+   * (principais + agregados) — não sobrescreve o que já foi salvo.
+   */
+  function mergeMissingCatalogProducts(apiConfig, localConfig) {
     if (!localConfig?.products?.length) return apiConfig;
     const byId = new Map();
     (apiConfig.products || []).forEach((p) => {
@@ -370,7 +373,7 @@ window.STF_PRODUCT_MERGE = (function () {
     });
     localConfig.products.forEach((lp) => {
       const k = keyOf(lp);
-      if (!k || lp.aggregated !== true || byId.has(k)) return;
+      if (!k || byId.has(k)) return;
       byId.set(k, { ...lp });
     });
     const products = [...byId.values()].sort((a, b) => {
@@ -397,9 +400,15 @@ window.STF_PRODUCT_MERGE = (function () {
     };
   }
 
+  /** @deprecated alias — mesmos principais/agregados faltantes do Git. */
+  function mergeMissingAggregated(apiConfig, localConfig) {
+    return mergeMissingCatalogProducts(apiConfig, localConfig);
+  }
+
   return {
     mergeProductLists,
     mergeConfig,
+    mergeMissingCatalogProducts,
     mergeMissingAggregated,
     mergeSmartwatchLists,
     mergeSmartwatchMeta,

@@ -133,8 +133,10 @@
         });
         if (res.ok) {
           let apiConfig = await res.json();
-          if (local && window.STF_PRODUCT_MERGE?.mergeMissingAggregated) {
-            apiConfig = window.STF_PRODUCT_MERGE.mergeMissingAggregated(apiConfig, local);
+          if (local && window.STF_PRODUCT_MERGE) {
+            const mergeFn = window.STF_PRODUCT_MERGE.mergeMissingCatalogProducts
+              || window.STF_PRODUCT_MERGE.mergeMissingAggregated;
+            if (mergeFn) apiConfig = mergeFn(apiConfig, local);
           }
           currentConfig = apiConfig;
           setModeBadge(true);
