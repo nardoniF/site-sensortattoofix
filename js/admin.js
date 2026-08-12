@@ -1339,9 +1339,64 @@ ${worksheets}
 
   function formatWhenMetric(value, metric) {
     if (metric === 'count' || metric === 'events' || metric === 'visitors') {
-      return Number(value || 0).toLocaleString('pt-BR');
+      const n = Number(value || 0);
+      return n.toLocaleString('pt-BR', {
+        maximumFractionDigits: Number.isInteger(n) ? 0 : 1,
+        minimumFractionDigits: Number.isInteger(n) ? 0 : 1
+      });
     }
     return formatSalesBRL(value);
+  }
+
+  /** Week-of-month 1–5 from calendar day (1–7 → 1ª … 29–31 → 5ª). */
+  function clickWeekOfMonth(day) {
+    const d = Math.max(1, Number(day) || 1);
+    return Math.min(5, Math.ceil(d / 7));
+  }
+
+  /**
+   * Average events/visitors per week-of-month across months we have
+   * (1ª–5ª semana do mês).
+   */
+  function aggregateClicksWeekOfMonthAverage(clicks) {
+    const perMonth = new Map();
+    (clicks || []).forEach((c) => {
+      const ts = Number(c.ts || c.client_ts || 0);
+      if (!ts) return;
+      const clock = brSaleClockParts(ts);
+      const monthKey = `${clock.year}-${String(clock.monthNum).padStart(2, '0')}`;
+      const w = clickWeekOfMonth(clock.monthDay);
+      if (!perMonth.has(monthKey)) perMonth.set(monthKey, new Map());
+      const weeks = perMonth.get(monthKey);
+      if (!weeks.has(w)) weeks.set(w, { count: 0, vids: new Set() });
+      const cell = weeks.get(w);
+      cell.count += 1;
+      cell.vids.add(visitorKey(c));
+    });
+    const monthKeys = [...perMonth.keys()];
+    const nMonths = Math.max(1, monthKeys.length);
+    const labels = { 1: '1ª', 2: '2ª', 3: '3ª', 4: '4ª', 5: '5ª' };
+    return [1, 2, 3, 4, 5].map((w) => {
+      let sumCount = 0;
+      let sumVisitors = 0;
+      monthKeys.forEach((mk) => {
+        const cell = perMonth.get(mk)?.get(w);
+        sumCount += cell?.count || 0;
+        sumVisitors += cell?.vids.size || 0;
+      });
+      const avgCount = sumCount / nMonths;
+      const avgVisitors = sumVisitors / nMonths;
+      return {
+        key: String(w),
+        label: `${labels[w]}`,
+        sortKey: w,
+        count: Math.round(avgCount * 10) / 10,
+        visitors: Math.round(avgVisitors * 10) / 10,
+        monthsAveraged: nMonths,
+        net: 0,
+        gross: 0
+      };
+    });
   }
 
   function renderWhenBarChart(title, rows, metric, opts = {}) {
@@ -2594,11 +2649,6 @@ ${worksheets}
         key = String(clock.monthDay);
         label = `Dia ${clock.monthDay}`;
         sortKey = clock.monthDay;
-      } else if (mode === 'week') {
-        const wk = brWeekBucket(ts);
-        key = wk.key;
-        label = wk.label;
-        sortKey = wk.key;
       } else if (mode === 'site') {
         const host = clickSiteHost(c);
         key = host;
@@ -2663,10 +2713,12 @@ ${worksheets}
       })
       .sort((a, b) => b.sortKey - a.sortKey);
 
-    // Calendar weeks in the log — newest first (same idea as months).
-    const weeks = aggregateClicksWhen(filtered, 'week')
-      .slice()
-      .sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)));
+    // 1ª–5ª semana do mês: média entre os meses que temos.
+    const weeks = aggregateClicksWeekOfMonthAverage(filtered);
+    const weekOpts = {
+      ...chartOpts,
+      sideLabel: (r) => `média · ${r.monthsAveraged} mês${r.monthsAveraged === 1 ? '' : 'es'}`
+    };
 
     const bySiteMap = new Map(aggregateClicksWhen(filtered, 'site').map((b) => [b.key, b]));
     const sites = ['com.br', 'com']
@@ -2678,7 +2730,7 @@ ${worksheets}
     root.innerHTML = cleanLine + [
       renderWhenBarChart('Site', sites, metric, { ...chartOpts, cardClass: 'vendas-when-card--site' }),
       renderWhenBarChart('Por mês', months, metric, chartOpts),
-      renderWhenBarChart('Por semana', weeks, metric, chartOpts),
+      renderWhenBarChart('Por semana', weeks, metric, weekOpts),
       renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts),
       renderWhenBarChart('Dia do mês', monthdays, metric, chartOpts),
       renderWhenBarChart('Hora do dia', hours, metric, chartOpts)
