@@ -2528,11 +2528,11 @@ ${worksheets}
     if (windowMonths.length) {
       return windowMonths.map((slot) => {
         const monthNum = String(slot.month).padStart(2, '0');
-        const partial = slot.isCurrent || isPartialMonthInRecord(slot.year, monthNum, min || max, max);
         const base = `${MONTH_LABELS[monthNum] || monthNum} ${slot.year}`;
+        const partial = slot.isCurrent || isPartialMonthInRecord(slot.year, monthNum, min || max, max);
         return {
           key: slot.key,
-          label: partial ? `${base} (parcial)` : `${base} (fechado)`,
+          label: partial ? `${base} (parcial)` : base,
           sortKey: slot.year * 100 + slot.month,
           partial,
           isCurrent: !!slot.isCurrent
@@ -2553,7 +2553,7 @@ ${worksheets}
       const base = `${MONTH_LABELS[monthNum] || monthNum} ${y}`;
       keys.push({
         key: `${y}-${monthNum}`,
-        label: partial ? `${base} (parcial)` : `${base} (fechado)`,
+        label: partial ? `${base} (parcial)` : base,
         sortKey: y * 100 + m,
         partial
       });
@@ -2644,25 +2644,32 @@ ${worksheets}
       byWeekMap.get(String(d)) || empty(String(d), WEEKDAY_LABELS[d], WEEKDAY_ORDER.indexOf(d))
     ));
 
-    // Months: exactly the rolling window (3 closed + current). Empty slots stay 0 until history fills.
-    const byMonthMap = new Map(aggregateClicksWhen(filtered, 'month').map((b) => [b.key, b]));
-    const months = clicksRecordMonthKeys(filtered).map((slot) => {
-      const b = byMonthMap.get(slot.key) || empty(slot.key, slot.label, slot.sortKey);
-      return { ...b, label: slot.label };
+    // Day of month: which calendar days get the most access (1–31).
+    const byDayMap = new Map(aggregateClicksWhen(filtered, 'monthday').map((b) => [b.key, b]));
+    const monthdays = Array.from({ length: 31 }, (_, i) => {
+      const day = i + 1;
+      return byDayMap.get(String(day)) || empty(String(day), `Dia ${day}`, day);
     });
+
+    // Months: newest first (ago → jul → jun → mai).
+    const byMonthMap = new Map(aggregateClicksWhen(filtered, 'month').map((b) => [b.key, b]));
+    const months = clicksRecordMonthKeys(filtered)
+      .map((slot) => {
+        const b = byMonthMap.get(slot.key) || empty(slot.key, slot.label, slot.sortKey);
+        return { ...b, label: slot.label };
+      })
+      .sort((a, b) => b.sortKey - a.sortKey);
 
     const bySiteMap = new Map(aggregateClicksWhen(filtered, 'site').map((b) => [b.key, b]));
     const sites = ['com.br', 'com']
       .map((host, i) => bySiteMap.get(host) || empty(host, host === 'com' ? '.com (intl)' : '.com.br (BR)', i))
       .filter((b) => b.count > 0);
 
-    const closed = Number(clicksWhenWindow?.closedMonths) || 3;
-    const totalM = Number(clicksWhenWindow?.totalMonths) || closed + 1;
-    const spanNote = ` · janela: <strong>${closed} fechados + atual</strong> (${totalM} meses)`;
-    const cleanLine = `<p class="admin-meta clicks-when-clean">Na janela: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong>${spanNote}</p>`;
+    const cleanLine = `<p class="admin-meta clicks-when-clean">Na janela: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong></p>`;
 
     root.innerHTML = cleanLine + [
-      renderWhenBarChart('Mês (3 fechados + atual)', months, metric, chartOpts),
+      renderWhenBarChart('Por mês', months, metric, chartOpts),
+      renderWhenBarChart('Dia do mês', monthdays, metric, chartOpts),
       renderWhenBarChart('Site (.com / .com.br)', sites, metric, chartOpts),
       renderWhenBarChart('Hora do dia', hours, metric, chartOpts),
       renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts)
