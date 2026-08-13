@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.04">
+    <link rel="stylesheet" href="style.css?v=3.05">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -105,7 +105,7 @@
                             <p><strong>Brasil (.com.br):</strong> kit/lentes na vitrine + agregados (películas/pulseiras) só no checkout.</p>
                             <p><strong>Internacional (.com):</strong> cadastre <strong>Preço USD</strong> (EN) e <strong>Preço EUR</strong> (IT) além do R$ de referência. USD/EUR são atualizados automaticamente todo dia; você pode ajustar manualmente.</p>
                             <p><strong>Internacional (.com):</strong> só a lente Optical Lens — sem agregados, sem kit completo. Fotos e título vêm deste cadastro.</p>
-                            <p><strong>Custo do kit:</strong> cadastre o que você compra (quantidade + preço) e quanto usa em cada kit. O custo unitário entra como desconto no <strong>líquido real</strong> das vendas.</p>
+                            <p><strong>Custo do kit:</strong> Brasil (kit completo) e internacional (envelope + sulfite + lente). Película: preço ÷ folhas ÷ 30 lentes. O custo entra no <strong>líquido real</strong>.</p>
                         </div>
                         <nav class="admin-product-subtabs" role="tablist" aria-label="Mercados de produto">
                             <button type="button" role="tab" class="admin-product-subtab active" data-product-subtab="br-main" aria-selected="true" aria-controls="admin-products-br-main-panel"><i class="fas fa-flag"></i> Brasil — principais</button>
@@ -136,12 +136,21 @@
                             </div>
                         </div>
                         <div id="admin-products-kit-cost-panel" class="admin-product-subpanel" role="tabpanel" hidden>
-                            <p class="admin-meta">Quanto custa montar <strong>1 kit</strong>: preço da compra ÷ quantidade comprada × quanto você usa. Ex.: aplicador — caixa 100 por R$ 50, usa metade → R$ 0,25. Etiqueta de envio: uso 2. Manual Sofit: pacote 100, usa 1/10.</p>
+                            <p class="admin-meta">Custo = (preço ÷ qtd comprada ÷ <strong>quanto rende cada unidade</strong>) × uso no kit. Película: 10 folhas por R$ 52,37, cada uma rende 30 lentes → (52,37÷10)÷30 por lente.</p>
+                            <h4 class="admin-kit-cost-heading">Brasil — kit completo</h4>
+                            <p class="admin-meta">Sacola zip, aplicador, primer, lenço, película, etc.</p>
                             <div id="admin-kit-cost-rows" class="admin-kit-cost-rows"></div>
                             <div class="admin-form-actions" style="margin-top:8px">
-                                <button type="button" id="btn-add-kit-cost" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar item</button>
+                                <button type="button" id="btn-add-kit-cost" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar item BR</button>
                             </div>
                             <p id="admin-kit-cost-total" class="admin-kit-cost-total"></p>
+                            <h4 class="admin-kit-cost-heading">Internacional — envelope + lente colada</h4>
+                            <p class="admin-meta">Sem sacola: envelope, 1 sulfite (carta) e a lente recortada/colada.</p>
+                            <div id="admin-kit-cost-intl-rows" class="admin-kit-cost-rows"></div>
+                            <div class="admin-form-actions" style="margin-top:8px">
+                                <button type="button" id="btn-add-kit-cost-intl" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar item .com</button>
+                            </div>
+                            <p id="admin-kit-cost-intl-total" class="admin-kit-cost-total"></p>
                         </div>
                     </fieldset>
                     <fieldset>
@@ -1150,6 +1159,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=143"></script>
+    <script src="js/admin.js?v=144"></script>
 </body>
 </html>

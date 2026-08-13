@@ -271,22 +271,32 @@ const DEFAULT_CONFIG = {
   siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://api.sensortattoofix.com.br' },
   coupons: [],
+  kitCostVersion: 2,
   kitCost: {
     components: [
-      { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1000, buyPrice: 52.75, useQty: 2, notes: '2 etiquetas por envio' },
-      { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 500, buyPrice: 32.9, useQty: 1, notes: '' },
-      { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 0, buyPrice: 0, useQty: 1, notes: 'Ainda sem preço/quantidade' },
-      { id: 'kit-bag', name: 'Sacola zip do kit', buyQty: 100, buyPrice: 52, useQty: 1, notes: 'Zip que vai dentro' },
-      { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1000, buyPrice: 60, useQty: 1, notes: '' },
-      { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 1000, buyPrice: 59, useQty: 0.1, notes: '10 manuais por folha Sofit' },
-      { id: 'promo-print', name: 'Impresso promocional (Sofit)', buyQty: 1000, buyPrice: 59, useQty: 0.1, notes: '10 impressos por folha Sofit' },
-      { id: 'applicator', name: 'Haste aplicadora', buyQty: 200, buyPrice: 26.35, useQty: 0.5, notes: 'Meia haste por kit' },
-      { id: 'potentiator', name: 'Potencializador (primer)', buyQty: 100, buyPrice: 188, useQty: 0.2, notes: '1/5 ml por kit' },
-      { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 100, buyPrice: 149.8, useQty: 1, notes: 'Frasco 1 ml' },
-      { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 500, buyPrice: 35.92, useQty: 1, notes: '' },
-      { id: 'film', name: 'Película', buyQty: 10, buyPrice: 49.75, useQty: 1, notes: '' },
-      { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 0, buyPrice: 271, useQty: 1, notes: 'Informe a quantidade comprada nesse lote' },
-      { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 0, buyPrice: 300, useQty: 1, notes: 'Informe quantas lentes recortadas nesse lote' }
+      { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1000, buyPrice: 52.75, yieldQty: 1, useQty: 2, notes: '2 etiquetas por envio' },
+      { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 500, buyPrice: 32.9, yieldQty: 1, useQty: 1, notes: '' },
+      { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 0, buyPrice: 0, yieldQty: 1, useQty: 1, notes: 'Ainda sem preço/quantidade' },
+      { id: 'kit-bag', name: 'Sacola zip do kit', buyQty: 100, buyPrice: 52, yieldQty: 1, useQty: 1, notes: 'Zip que vai dentro' },
+      { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1000, buyPrice: 60, yieldQty: 1, useQty: 1, notes: '' },
+      { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 1000, buyPrice: 59, yieldQty: 10, useQty: 1, notes: '10 manuais por folha Sofit' },
+      { id: 'promo-print', name: 'Impresso promocional (Sofit)', buyQty: 1000, buyPrice: 59, yieldQty: 10, useQty: 1, notes: '10 impressos por folha Sofit' },
+      { id: 'applicator', name: 'Haste aplicadora', buyQty: 200, buyPrice: 26.35, yieldQty: 1, useQty: 0.5, notes: 'Meia haste por kit' },
+      { id: 'potentiator', name: 'Potencializador (primer)', buyQty: 100, buyPrice: 188, yieldQty: 1, useQty: 0.2, notes: '1/5 ml por kit' },
+      { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 100, buyPrice: 149.8, yieldQty: 1, useQty: 1, notes: 'Frasco 1 ml' },
+      { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 500, buyPrice: 35.92, yieldQty: 1, useQty: 1, notes: '' },
+      { id: 'film', name: 'Película / lente', buyQty: 10, buyPrice: 52.37, yieldQty: 30, useQty: 1, notes: '10 folhas × 30 lentes; custo = (preço÷10)÷30' },
+      { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Mesmo lote das 10 películas' },
+      { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 10, buyPrice: 300, yieldQty: 30, useQty: 1, notes: 'Mesmo lote das 10 películas' }
+    ]
+  },
+  kitCostIntl: {
+    components: [
+      { id: 'intl-envelope', name: 'Envelope internacional', buyQty: 100, buyPrice: 23, yieldQty: 1, useQty: 1, notes: 'Não é sacola — envelope' },
+      { id: 'intl-sulfite', name: 'Carta sulfite', buyQty: 1000, buyPrice: 59, yieldQty: 1, useQty: 1, notes: '1 folha impressa por envio' },
+      { id: 'film', name: 'Película / lente', buyQty: 10, buyPrice: 52.37, yieldQty: 30, useQty: 1, notes: '10 folhas × 30 lentes; custo = (preço÷10)÷30' },
+      { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Lente colada' },
+      { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 10, buyPrice: 300, yieldQty: 30, useQty: 1, notes: 'Lente recortada' }
     ]
   }
 };
@@ -1385,9 +1395,7 @@ function withConfigDefaults(stored) {
         : DEFAULT_MOTOBOY_SHIPPING.couriers
     },
     coupons: mergeCoupons(stored.coupons, base.coupons),
-    kitCost: kitCostNeedsSeed(stored.kitCost)
-      ? { components: (base.kitCost?.components || []).map((c) => ({ ...c })) }
-      : normalizeKitCost(stored.kitCost)
+    ...mergeKitCostConfig(stored, base)
   };
 }
 
@@ -1397,17 +1405,48 @@ function kitCostNeedsSeed(raw) {
   return !list.some((c) => Number(c?.buyPrice) > 0);
 }
 
+function cloneKitComponents(list) {
+  return (list || []).map((c) => ({ ...c }));
+}
+
+function upgradeBrKitCostV2(existing, seed) {
+  const byId = new Map((existing || []).map((c) => [c.id, { ...c }]));
+  const overwriteIds = new Set(['film', 'sticker-cut', 'cut-service', 'manual-sofit', 'promo-print']);
+  (seed || []).forEach((s) => {
+    if (!s?.id) return;
+    if (!byId.has(s.id) || overwriteIds.has(s.id)) byId.set(s.id, { ...s });
+  });
+  return [...byId.values()];
+}
+
+function mergeKitCostConfig(stored, base) {
+  const version = Number(stored?.kitCostVersion) || 0;
+  const brSeed = base?.kitCost?.components || [];
+  const intlSeed = base?.kitCostIntl?.components || [];
+  let brComps;
+  if (kitCostNeedsSeed(stored?.kitCost)) brComps = cloneKitComponents(brSeed);
+  else if (version < 2) brComps = upgradeBrKitCostV2(normalizeKitCost(stored.kitCost).components, brSeed);
+  else brComps = normalizeKitCost(stored.kitCost).components;
+  const intlComps = (kitCostNeedsSeed(stored?.kitCostIntl) || version < 2)
+    ? cloneKitComponents(intlSeed)
+    : normalizeKitCost(stored.kitCostIntl).components;
+  return {
+    kitCost: { components: brComps },
+    kitCostIntl: { components: intlComps },
+    kitCostVersion: Math.max(version, 2)
+  };
+}
+
 function normalizeKitCost(raw) {
-  const fallback = DEFAULT_CONFIG.kitCost?.components || [];
-  if (raw == null) return { components: fallback.map((c) => ({ ...c })) };
   const list = Array.isArray(raw?.components) ? raw.components : (Array.isArray(raw) ? raw : null);
-  if (!Array.isArray(list)) return { components: fallback.map((c) => ({ ...c })) };
+  if (!Array.isArray(list)) return { components: [] };
   return {
     components: list.map((c, i) => ({
       id: String(c?.id || `kit-comp-${i + 1}`).trim() || `kit-comp-${i + 1}`,
       name: String(c?.name || '').trim(),
       buyQty: Number(c?.buyQty) > 0 ? Number(c.buyQty) : 0,
       buyPrice: Number(c?.buyPrice) >= 0 ? Number(c.buyPrice) : 0,
+      yieldQty: Number(c?.yieldQty) > 0 ? Number(c.yieldQty) : 1,
       useQty: Number(c?.useQty) >= 0 ? Number(c.useQty) : 0,
       notes: String(c?.notes || '').trim()
     })).filter((c) => c.name)
@@ -13740,7 +13779,9 @@ async function handlePutConfig(request, env, origin) {
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
     emails: { ...(current.emails || {}), ...(body.emails || {}) },
     api: { ...current.api, ...body.api },
-    kitCost: body.kitCost != null ? normalizeKitCost(body.kitCost) : normalizeKitCost(current.kitCost)
+    kitCost: body.kitCost != null ? normalizeKitCost(body.kitCost) : normalizeKitCost(current.kitCost),
+    kitCostIntl: body.kitCostIntl != null ? normalizeKitCost(body.kitCostIntl) : normalizeKitCost(current.kitCostIntl),
+    kitCostVersion: body.kitCostVersion != null ? Number(body.kitCostVersion) || 2 : (current.kitCostVersion || 2)
   };
   if (merged.products?.[0]) {
     merged.product = {

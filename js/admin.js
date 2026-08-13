@@ -52,20 +52,28 @@
   let currentConfig = null;
 
   const DEFAULT_KIT_COST_COMPONENTS = [
-    { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1000, buyPrice: 52.75, useQty: 2, notes: '2 etiquetas por envio' },
-    { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 500, buyPrice: 32.9, useQty: 1, notes: '' },
-    { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 0, buyPrice: 0, useQty: 1, notes: 'Ainda sem preço/quantidade' },
-    { id: 'kit-bag', name: 'Sacola zip do kit', buyQty: 100, buyPrice: 52, useQty: 1, notes: 'Zip que vai dentro' },
-    { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1000, buyPrice: 60, useQty: 1, notes: '' },
-    { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 1000, buyPrice: 59, useQty: 0.1, notes: '10 manuais por folha Sofit' },
-    { id: 'promo-print', name: 'Impresso promocional (Sofit)', buyQty: 1000, buyPrice: 59, useQty: 0.1, notes: '10 impressos por folha Sofit' },
-    { id: 'applicator', name: 'Haste aplicadora', buyQty: 200, buyPrice: 26.35, useQty: 0.5, notes: 'Meia haste por kit' },
-    { id: 'potentiator', name: 'Potencializador (primer)', buyQty: 100, buyPrice: 188, useQty: 0.2, notes: '1/5 ml por kit' },
-    { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 100, buyPrice: 149.8, useQty: 1, notes: 'Frasco 1 ml' },
-    { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 500, buyPrice: 35.92, useQty: 1, notes: '' },
-    { id: 'film', name: 'Película', buyQty: 10, buyPrice: 49.75, useQty: 1, notes: '' },
-    { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 0, buyPrice: 271, useQty: 1, notes: 'Informe a quantidade comprada nesse lote' },
-    { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 0, buyPrice: 300, useQty: 1, notes: 'Informe quantas lentes recortadas nesse lote' }
+    { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1000, buyPrice: 52.75, yieldQty: 1, useQty: 2, notes: '2 etiquetas por envio' },
+    { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 500, buyPrice: 32.9, yieldQty: 1, useQty: 1, notes: '' },
+    { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 0, buyPrice: 0, yieldQty: 1, useQty: 1, notes: 'Ainda sem preço/quantidade' },
+    { id: 'kit-bag', name: 'Sacola zip do kit', buyQty: 100, buyPrice: 52, yieldQty: 1, useQty: 1, notes: 'Zip que vai dentro' },
+    { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1000, buyPrice: 60, yieldQty: 1, useQty: 1, notes: '' },
+    { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 1000, buyPrice: 59, yieldQty: 10, useQty: 1, notes: '10 manuais por folha Sofit' },
+    { id: 'promo-print', name: 'Impresso promocional (Sofit)', buyQty: 1000, buyPrice: 59, yieldQty: 10, useQty: 1, notes: '10 impressos por folha Sofit' },
+    { id: 'applicator', name: 'Haste aplicadora', buyQty: 200, buyPrice: 26.35, yieldQty: 1, useQty: 0.5, notes: 'Meia haste por kit' },
+    { id: 'potentiator', name: 'Potencializador (primer)', buyQty: 100, buyPrice: 188, yieldQty: 1, useQty: 0.2, notes: '1/5 ml por kit' },
+    { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 100, buyPrice: 149.8, yieldQty: 1, useQty: 1, notes: 'Frasco 1 ml' },
+    { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 500, buyPrice: 35.92, yieldQty: 1, useQty: 1, notes: '' },
+    { id: 'film', name: 'Película / lente', buyQty: 10, buyPrice: 52.37, yieldQty: 30, useQty: 1, notes: '10 folhas × 30 lentes; custo = (preço÷10)÷30' },
+    { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Mesmo lote das 10 películas' },
+    { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 10, buyPrice: 300, yieldQty: 30, useQty: 1, notes: 'Mesmo lote das 10 películas' }
+  ];
+
+  const DEFAULT_KIT_COST_INTL_COMPONENTS = [
+    { id: 'intl-envelope', name: 'Envelope internacional', buyQty: 100, buyPrice: 23, yieldQty: 1, useQty: 1, notes: 'Não é sacola — envelope' },
+    { id: 'intl-sulfite', name: 'Carta sulfite', buyQty: 1000, buyPrice: 59, yieldQty: 1, useQty: 1, notes: '1 folha impressa por envio' },
+    { id: 'film', name: 'Película / lente', buyQty: 10, buyPrice: 52.37, yieldQty: 30, useQty: 1, notes: '10 folhas × 30 lentes; custo = (preço÷10)÷30' },
+    { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Lente colada' },
+    { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 10, buyPrice: 300, yieldQty: 30, useQty: 1, notes: 'Lente recortada' }
   ];
 
   const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
@@ -692,19 +700,47 @@
   function kitComponentUnitCost(c) {
     const buyQty = Number(c?.buyQty);
     const buyPrice = Number(c?.buyPrice) || 0;
+    const yieldQty = Number(c?.yieldQty) > 0 ? Number(c.yieldQty) : 1;
     const useQty = Number(c?.useQty) || 0;
     if (!(buyQty > 0)) return 0;
-    return (buyPrice / buyQty) * useQty;
+    return (buyPrice / buyQty / yieldQty) * useQty;
   }
 
-  function kitUnitCostFromConfig(config) {
-    const comps = (config || currentConfig)?.kitCost?.components;
+  function kitUnitCostFromComponents(comps) {
     if (!Array.isArray(comps) || !comps.length) return 0;
     return comps.reduce((sum, c) => sum + kitComponentUnitCost(c), 0);
   }
 
+  function storeOrderIsIntl(o) {
+    const code = String(o?.paisCode || '').trim().toUpperCase();
+    if (code && code !== 'BR' && code !== 'OTHER' && code !== 'XX' && code !== 'T1') return true;
+    const loc = String(o?.checkoutLocale || o?.locale || '').toLowerCase();
+    if (loc === 'en' || loc === 'it') return true;
+    if (o?.internationalLensOnly) return true;
+    if (o?.shipmentType === 'documento' || o?.shipmentType === 'encomenda') return true;
+    if (String(o?.shippingMethodId || '').startsWith('int-')) return true;
+    const cur = String(o?.currency || '').toUpperCase();
+    if (cur === 'USD' || cur === 'EUR') return true;
+    if (/internacional|international/i.test(String(o?.pais || ''))) return true;
+    return false;
+  }
+
+  function isIntlSale(sale) {
+    if (sale?.market === 'INT' || sale?._market === 'INT') return true;
+    const cur = String(sale?.currency || '').toUpperCase();
+    return cur === 'USD' || cur === 'EUR';
+  }
+
+  function kitUnitCostFromConfig(config, sale) {
+    const cfg = config || currentConfig;
+    const comps = isIntlSale(sale)
+      ? cfg?.kitCostIntl?.components
+      : cfg?.kitCost?.components;
+    return kitUnitCostFromComponents(comps);
+  }
+
   function saleProductCost(sale, config) {
-    return Math.round(kitUnitCostFromConfig(config) * saleKitQty(sale) * 100) / 100;
+    return Math.round(kitUnitCostFromConfig(config, sale) * saleKitQty(sale) * 100) / 100;
   }
 
   function effectiveSaleNet(sale) {
@@ -861,6 +897,7 @@
       : (o.productName || o.produto || 'Pedido loja');
     return {
       channel: 'loja',
+      market: storeOrderIsIntl(o) ? 'INT' : 'BR',
       externalId: String(o.orderId || ''),
       soldAt: o.paidAt || o.createdAt || null,
       status: o.status || null,
@@ -4392,61 +4429,72 @@ ${worksheets}
     });
   }
 
-  function defaultKitCostComponents() {
-    return DEFAULT_KIT_COST_COMPONENTS.map((c) => ({ ...c }));
+  function defaultKitCostComponents(kind) {
+    const src = kind === 'intl' ? DEFAULT_KIT_COST_INTL_COMPONENTS : DEFAULT_KIT_COST_COMPONENTS;
+    return src.map((c) => ({ ...c }));
   }
 
-  function kitCostComponentsFrom(raw) {
-    if (raw == null) return defaultKitCostComponents();
+  function kitCostComponentsFrom(raw, kind) {
+    const fallback = defaultKitCostComponents(kind);
+    if (raw == null) return fallback;
     const list = Array.isArray(raw?.components) ? raw.components : (Array.isArray(raw) ? raw : null);
-    if (!Array.isArray(list) || !list.length) return defaultKitCostComponents();
+    if (!Array.isArray(list) || !list.length) return fallback;
     const mapped = list.map((c, i) => ({
       id: String(c?.id || `kit-comp-${i + 1}`).trim() || `kit-comp-${i + 1}`,
       name: String(c?.name || '').trim(),
       buyQty: Number(c?.buyQty) > 0 ? Number(c.buyQty) : 0,
       buyPrice: Number(c?.buyPrice) >= 0 ? Number(c.buyPrice) : 0,
+      yieldQty: Number(c?.yieldQty) > 0 ? Number(c.yieldQty) : 1,
       useQty: Number(c?.useQty) >= 0 ? Number(c.useQty) : 0,
       notes: String(c?.notes || '').trim()
     }));
-    return mapped.some((c) => c.buyPrice > 0) ? mapped : defaultKitCostComponents();
+    return mapped.some((c) => c.buyPrice > 0) ? mapped : fallback;
   }
 
-  function updateKitCostTotals() {
-    const totalEl = document.getElementById('admin-kit-cost-total');
-    const rows = document.querySelectorAll('#admin-kit-cost-rows .admin-kit-cost-row');
+  function updateKitCostTotals(kind) {
+    const rootId = kind === 'intl' ? 'admin-kit-cost-intl-rows' : 'admin-kit-cost-rows';
+    const totalId = kind === 'intl' ? 'admin-kit-cost-intl-total' : 'admin-kit-cost-total';
+    const totalEl = document.getElementById(totalId);
+    const rows = document.querySelectorAll(`#${rootId} .admin-kit-cost-row`);
     let total = 0;
     rows.forEach((row) => {
-      const buyQty = Number(row.querySelector('[data-kit-buy-qty]')?.value) || 0;
-      const buyPrice = Number(row.querySelector('[data-kit-buy-price]')?.value) || 0;
-      const useQty = Number(row.querySelector('[data-kit-use-qty]')?.value) || 0;
-      const unit = buyQty > 0 ? (buyPrice / buyQty) * useQty : 0;
+      const unit = kitComponentUnitCost({
+        buyQty: Number(row.querySelector('[data-kit-buy-qty]')?.value) || 0,
+        buyPrice: Number(row.querySelector('[data-kit-buy-price]')?.value) || 0,
+        yieldQty: Number(row.querySelector('[data-kit-yield-qty]')?.value) || 1,
+        useQty: Number(row.querySelector('[data-kit-use-qty]')?.value) || 0
+      });
       total += unit;
       const unitEl = row.querySelector('[data-kit-unit-cost]');
       if (unitEl) unitEl.textContent = formatKitUnitBRL(unit);
     });
     if (totalEl) {
-      totalEl.innerHTML = `Custo do kit: <strong>${formatKitUnitBRL(total)}</strong> por unidade vendida`;
+      const label = kind === 'intl' ? 'Custo do kit internacional' : 'Custo do kit Brasil';
+      totalEl.innerHTML = `${label}: <strong>${formatKitUnitBRL(total)}</strong> por unidade vendida`;
     }
   }
 
-  function renderKitCost(kitCost) {
-    const root = document.getElementById('admin-kit-cost-rows');
+  function renderKitCostList(rootId, kitCost, kind) {
+    const root = document.getElementById(rootId);
     if (!root) return;
-    const comps = kitCostComponentsFrom(kitCost);
+    const comps = kitCostComponentsFrom(kitCost, kind);
     root.innerHTML = comps.map((c, i) => {
-      const unit = c.buyQty > 0 ? (c.buyPrice / c.buyQty) * c.useQty : 0;
+      const unit = kitComponentUnitCost(c);
       return `<div class="admin-kit-cost-row" data-kit-id="${escapeHtml(c.id || `kit-comp-${i + 1}`)}">
         <label>Item
           <input type="text" data-kit-name value="${escapeHtml(c.name)}" placeholder="Ex.: Aplicador">
         </label>
         <label>Qtd comprada
-          <input type="number" data-kit-buy-qty min="0" step="any" value="${c.buyQty || ''}" placeholder="100">
+          <input type="number" data-kit-buy-qty min="0" step="any" value="${c.buyQty || ''}" placeholder="10">
         </label>
         <label>Preço da compra (R$)
-          <input type="number" data-kit-buy-price min="0" step="0.01" value="${c.buyPrice || ''}" placeholder="50">
+          <input type="number" data-kit-buy-price min="0" step="0.01" value="${c.buyPrice || ''}" placeholder="52.37">
+        </label>
+        <label>Rende / un.
+          <input type="number" data-kit-yield-qty min="0" step="any" value="${c.yieldQty > 0 ? c.yieldQty : 1}" placeholder="30">
         </label>
         <label>Uso por kit
-          <input type="number" data-kit-use-qty min="0" step="any" value="${c.useQty || ''}" placeholder="0,5">
+          <input type="number" data-kit-use-qty min="0" step="any" value="${c.useQty || ''}" placeholder="1">
         </label>
         <div class="admin-kit-cost-unit-wrap">
           <span class="admin-kit-cost-unit-label">Custo no kit</span>
@@ -4458,19 +4506,29 @@ ${worksheets}
         <button type="button" class="btn-secondary admin-kit-cost-remove" data-kit-remove title="Remover item"><i class="fas fa-trash"></i></button>
       </div>`;
     }).join('');
-    updateKitCostTotals();
+    updateKitCostTotals(kind);
   }
 
-  function collectKitCostFromDom() {
-    const root = document.getElementById('admin-kit-cost-rows');
+  function renderKitCost(config) {
+    renderKitCostList('admin-kit-cost-rows', config?.kitCost, 'br');
+    renderKitCostList('admin-kit-cost-intl-rows', config?.kitCostIntl, 'intl');
+  }
+
+  function collectKitCostFromDom(kind) {
+    const rootId = kind === 'intl' ? 'admin-kit-cost-intl-rows' : 'admin-kit-cost-rows';
+    const root = document.getElementById(rootId);
     if (!root) {
-      return { components: kitCostComponentsFrom(currentConfig?.kitCost) };
+      const stored = kind === 'intl' ? currentConfig?.kitCostIntl : currentConfig?.kitCost;
+      return { components: kitCostComponentsFrom(stored, kind) };
     }
     const components = [...root.querySelectorAll('.admin-kit-cost-row')].map((row, i) => ({
       id: row.getAttribute('data-kit-id') || `kit-comp-${i + 1}`,
       name: (row.querySelector('[data-kit-name]')?.value || '').trim(),
       buyQty: Number(row.querySelector('[data-kit-buy-qty]')?.value) || 0,
       buyPrice: Number(row.querySelector('[data-kit-buy-price]')?.value) || 0,
+      yieldQty: Number(row.querySelector('[data-kit-yield-qty]')?.value) > 0
+        ? Number(row.querySelector('[data-kit-yield-qty]')?.value)
+        : 1,
       useQty: Number(row.querySelector('[data-kit-use-qty]')?.value) || 0,
       notes: (row.querySelector('[data-kit-notes]')?.value || '').trim()
     })).filter((c) => c.name);
@@ -4515,7 +4573,7 @@ ${worksheets}
     const f = els.configForm;
     if (!f || !config) return;
     renderProducts(getProductsFromConfig(config));
-    renderKitCost(config.kitCost);
+    renderKitCost(config);
     initProductSubtabs();
     if (f.smartwatchModels) {
       f.smartwatchModels.value = (config.smartwatchModels || []).join('\n');
@@ -4812,7 +4870,9 @@ ${worksheets}
       shippingMethods: syncMotoboyShippingMethods(collectShippingMethods(), collectMotoboyShipping()),
       motoboyShipping: collectMotoboyShipping(),
       coupons: collectCoupons(),
-      kitCost: collectKitCostFromDom(),
+      kitCost: collectKitCostFromDom('br'),
+      kitCostIntl: collectKitCostFromDom('intl'),
+      kitCostVersion: 2,
       updatedAt: new Date().toISOString()
     };
   }
@@ -5659,30 +5719,40 @@ ${worksheets}
     showProductSubtab('br-aggregated');
   });
 
-  document.getElementById('btn-add-kit-cost')?.addEventListener('click', () => {
-    const kitCost = collectKitCostFromDom();
+  function addKitCostRow(kind) {
+    const kitCost = collectKitCostFromDom(kind);
     kitCost.components.push({
       id: 'kit-comp-' + Date.now(),
       name: '',
       buyQty: 1,
       buyPrice: 0,
+      yieldQty: 1,
       useQty: 1,
       notes: ''
     });
-    renderKitCost(kitCost);
+    if (kind === 'intl') renderKitCostList('admin-kit-cost-intl-rows', kitCost, 'intl');
+    else renderKitCostList('admin-kit-cost-rows', kitCost, 'br');
     showProductSubtab('kit-cost');
-  });
+  }
 
-  document.getElementById('admin-kit-cost-rows')?.addEventListener('input', (e) => {
-    if (e.target?.closest?.('.admin-kit-cost-row')) updateKitCostTotals();
-  });
+  document.getElementById('btn-add-kit-cost')?.addEventListener('click', () => addKitCostRow('br'));
+  document.getElementById('btn-add-kit-cost-intl')?.addEventListener('click', () => addKitCostRow('intl'));
 
-  document.getElementById('admin-kit-cost-rows')?.addEventListener('click', (e) => {
-    const btn = e.target?.closest?.('[data-kit-remove]');
-    if (!btn) return;
-    btn.closest('.admin-kit-cost-row')?.remove();
-    updateKitCostTotals();
-  });
+  function wireKitCostRoot(rootId, kind) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
+    root.addEventListener('input', (e) => {
+      if (e.target?.closest?.('.admin-kit-cost-row')) updateKitCostTotals(kind);
+    });
+    root.addEventListener('click', (e) => {
+      const btn = e.target?.closest?.('[data-kit-remove]');
+      if (!btn) return;
+      btn.closest('.admin-kit-cost-row')?.remove();
+      updateKitCostTotals(kind);
+    });
+  }
+  wireKitCostRoot('admin-kit-cost-rows', 'br');
+  wireKitCostRoot('admin-kit-cost-intl-rows', 'intl');
 
   document.getElementById('btn-add-intl-main-product')?.addEventListener('click', () => {
     const all = collectProductsFromDom();
