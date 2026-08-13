@@ -52,6 +52,8 @@ window.STF_CART = (function () {
       qty: Math.max(1, Math.min(cap, Number(qty) || 1)),
       stock,
       requiresSmartwatch: product.requiresSmartwatch !== false,
+      deviceType: product.deviceType
+        || (/smartband/i.test([product.id, product.slug, product.name, product.nameEn, product.nameIt].join(' ')) ? 'smartband' : 'smartwatch'),
       aggregated: product.aggregated === true,
       productType: product.productType,
       bandStyle: product.bandStyle,

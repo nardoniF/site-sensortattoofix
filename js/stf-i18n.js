@@ -66,8 +66,12 @@ window.STF_I18N = (function () {
       'form.watchBrand': 'Marca',
       'form.watchBrandSelect': 'Selecione a marca',
       'form.watchModel': 'Modelo',
-      'form.watchHint': 'O kit é feito para o seu modelo — escolha marca e modelo antes de continuar.',
+      'form.watchHint': 'O kit smartwatch é feito para o seu relógio — escolha marca e modelo antes de continuar.',
       'form.watchSelect': 'Selecione o modelo',
+      'form.bandHint': 'O kit smartband é feito para a sua pulseira — escolha marca e modelo da smartband.',
+      'form.bandBrandSelect': 'Selecione a marca da smartband',
+      'form.bandSelect': 'Selecione o modelo da smartband',
+      'form.bandNotesPhRequired': 'Informe marca e modelo da sua smartband',
       'form.observacoesHelpAria': 'Medição opcional do sensor',
       'form.observacoesMeasureTitle': 'Corte sob medida',
       'form.observacoesMeasureHint': 'Para mais precisão, meça o diâmetro do sensor no fundo do relógio (mm), com uma régua, de ponta a ponta do círculo.',
@@ -259,6 +263,8 @@ window.STF_I18N = (function () {
       'alert.phoneIntl': 'Informe um telefone internacional válido (ex.: +65 9123 4567).',
       'alert.watch': 'Selecione a marca e o modelo do smartwatch.',
       'alert.watchNotes': 'Informe o modelo do smartwatch nas observações.',
+      'alert.band': 'Selecione a marca e o modelo da smartband.',
+      'alert.bandNotes': 'Informe o modelo da smartband nas observações.',
       'alert.password': 'Crie uma senha com pelo menos 6 caracteres ou desmarque "Criar conta".',
       'alert.shippingWait': 'Aguarde o cálculo do frete e escolha uma opção de envio.',
       'alert.shippingPick': 'Selecione uma opção de frete.',
@@ -406,8 +412,12 @@ window.STF_I18N = (function () {
       'form.watchBrand': 'Brand',
       'form.watchBrandSelect': 'Select brand',
       'form.watchModel': 'Model',
-      'form.watchHint': 'The lens is made for your watch — pick brand and model before continuing.',
+      'form.watchHint': 'This smartwatch kit is made for your watch — pick brand and model before continuing.',
       'form.watchSelect': 'Select your model',
+      'form.bandHint': 'This smartband kit is made for your band — pick brand and model.',
+      'form.bandBrandSelect': 'Select smartband brand',
+      'form.bandSelect': 'Select smartband model',
+      'form.bandNotesPhRequired': 'Enter your smartband brand and model',
       'form.observacoesHelpAria': 'Optional sensor measurement',
       'form.observacoesMeasureTitle': 'Precision cut',
       'form.observacoesMeasureHint': 'For extra precision, measure the sensor diameter on the back of your watch (mm) with a ruler, edge to edge across the circle.',
@@ -601,6 +611,8 @@ window.STF_I18N = (function () {
       'alert.phoneIntl': 'Please enter a valid international phone (e.g. +65 9123 4567).',
       'alert.watch': 'Please select your smartwatch brand and model.',
       'alert.watchNotes': 'Enter your smartwatch model in the notes field.',
+      'alert.band': 'Please select your smartband brand and model.',
+      'alert.bandNotes': 'Enter your smartband model in the notes field.',
       'alert.password': 'Create a password with at least 6 characters or uncheck "Create account".',
       'alert.shippingWait': 'Wait for shipping quotes and choose an option.',
       'alert.shippingPick': 'Select a shipping option.',
@@ -740,6 +752,27 @@ window.STF_I18N = (function () {
     if (document.body?.classList?.contains('checkout-page-intl')) return 'intl';
     if (isLocalized()) return 'intl';
     return 'br';
+  }
+
+  function checkoutCartDeviceKind() {
+    try {
+      const items = JSON.parse(localStorage.getItem('stf_cart') || '[]');
+      if (!Array.isArray(items) || !items.length) return 'smartwatch';
+      let sawBand = false;
+      let sawWatch = false;
+      items.forEach((item) => {
+        if (!item || item.aggregated || item.requiresSmartwatch === false) return;
+        const type = String(item.deviceType || item.watchKind || '').toLowerCase();
+        const hay = [item.productId, item.slug, item.name].filter(Boolean).join(' ');
+        if (type === 'smartband' || type === 'band' || /smartband/i.test(hay)) sawBand = true;
+        else sawWatch = true;
+      });
+      if (sawBand && !sawWatch) return 'smartband';
+      if (sawWatch && !sawBand) return 'smartwatch';
+      return 'all';
+    } catch {
+      return 'smartwatch';
+    }
   }
 
   function isIntlCheckoutShell() {
@@ -980,7 +1013,7 @@ window.STF_I18N = (function () {
 
     applyText('.checkout-step[data-step="1"] .checkout-step-head h3', 'section.yourData');
     applyText('.checkout-step[data-step="1"] > h3', 'section.shippingDest');
-    applyText('#smartwatch-hint', 'form.watchHint');
+    applyText('#smartwatch-hint', checkoutCartDeviceKind() === 'smartband' ? 'form.bandHint' : 'form.watchHint');
     applyText('#observacoes-measure-title', 'form.observacoesMeasureTitle');
     applyText('#observacoes-measure-hint', 'form.observacoesMeasureHint');
     const obsHelp = document.getElementById('observacoes-help-tip');
@@ -1013,10 +1046,11 @@ window.STF_I18N = (function () {
     setPlaceholder('#uf-intl', 'form.stateIntlPh');
     setPlaceholder('#observacoes', 'form.notesPhDefault');
 
+    const band = checkoutCartDeviceKind() === 'smartband';
     const watchBrandSelect = document.getElementById('smartwatch-brand-select');
-    if (watchBrandSelect?.options[0]) watchBrandSelect.options[0].textContent = t('form.watchBrandSelect');
+    if (watchBrandSelect?.options[0]) watchBrandSelect.options[0].textContent = t(band ? 'form.bandBrandSelect' : 'form.watchBrandSelect');
     const watchSelect = document.getElementById('smartwatch-select');
-    if (watchSelect?.options[0]) watchSelect.options[0].textContent = t('form.watchSelect');
+    if (watchSelect?.options[0]) watchSelect.options[0].textContent = t(band ? 'form.bandSelect' : 'form.watchSelect');
 
     const payBrCard = document.querySelector('#payment-options-br .payment-option');
     if (payBrCard) {

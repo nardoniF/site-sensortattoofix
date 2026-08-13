@@ -15,6 +15,8 @@ window.STF_PRODUCT_MERGE = (function () {
     'packaging',
     'aggregated',
     'requiresSmartwatch',
+    'deviceType',
+    'watchKind',
     'slug',
     'id',
     'nameEn',
@@ -188,6 +190,8 @@ window.STF_PRODUCT_MERGE = (function () {
     if (isEmptyValue(merged.images) && Array.isArray(localProduct?.images) && localProduct.images.length) {
       merged.images = localProduct.images;
     }
+    if (isEmptyValue(merged.deviceType) && localProduct?.deviceType) merged.deviceType = localProduct.deviceType;
+    if (isEmptyValue(merged.watchKind) && localProduct?.watchKind) merged.watchKind = localProduct.watchKind;
     return merged;
   }
 

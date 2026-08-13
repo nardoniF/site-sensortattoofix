@@ -4357,6 +4357,10 @@ ${worksheets}
         weightGrams: Number(val('weightGrams')) || 3,
         markets: isAggregated ? ['BR'] : (market === 'INT' ? ['INT'] : ['BR'])
       };
+      if (!isAggregated && !product.deviceType) {
+        const hay = [product.id, product.slug, product.name, product.nameEn].join(' ');
+        product.deviceType = /smartband/i.test(hay) ? 'smartband' : 'smartwatch';
+      }
       if (!isAggregated) {
         const nameEn = val('nameEn');
         const nameIt = val('nameIt');

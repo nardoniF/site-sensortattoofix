@@ -773,6 +773,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (els.smartwatchBrandSelect) els.smartwatchBrandSelect.required = !!needsWatch;
     if (els.smartwatchSelect) els.smartwatchSelect.required = !!needsWatch;
     if (!needsWatch) clearWatchFieldError();
+    populateWatchSelect();
+    updateWatchBlockCopy();
     updateObservacoesField();
   }
 
@@ -793,7 +795,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (els.observacoesLabelText) {
       els.observacoesLabelText.textContent = outro ? `${L('form.notesRequired')} *` : L('form.notesOptional');
     }
-    els.observacoes.placeholder = outro ? L('form.notesPhRequired') : L('form.notesPhOptional');
+    const band = cartDeviceKind() === 'smartband';
+    els.observacoes.placeholder = outro
+      ? L(band ? 'form.bandNotesPhRequired' : 'form.notesPhRequired')
+      : L('form.notesPhOptional');
   }
 
   function cartLineName(item) {
@@ -1470,6 +1475,78 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     scheduleQuoteShippingIfReady();
   }
 
+  const SMARTBAND_PRODUCT_RE = /smartband/i;
+  const SMARTBAND_MODEL_RE = /\b((smart\s*)?band|mi\s*band|honor\s*band|huawei\s*band|amazfit\s*band|galaxy\s*fit|vivosmart|v[ií]vofit|fitbit\s*(charge|inspire|ace|luxe))\b/i;
+
+  function isSmartbandProduct(p) {
+    if (!p) return false;
+    const type = String(p.deviceType || p.watchKind || '').toLowerCase();
+    if (type === 'smartband' || type === 'band') return true;
+    if (type === 'smartwatch' || type === 'watch') return false;
+    const hay = [p.id, p.slug, p.productId, p.name, p.nameEn, p.nameIt].filter(Boolean).join(' ');
+    return SMARTBAND_PRODUCT_RE.test(hay);
+  }
+
+  function catalogEntryKind(row) {
+    if (!row) return 'smartwatch';
+    if (typeof row === 'object') {
+      const type = String(row.kind || row.deviceType || '').toLowerCase();
+      if (type === 'band' || type === 'smartband') return 'smartband';
+      if (type === 'watch' || type === 'smartwatch') return 'smartwatch';
+    }
+    const label = typeof row === 'string'
+      ? row
+      : [row.label, row.model].filter(Boolean).join(' ');
+    return SMARTBAND_MODEL_RE.test(String(label || '')) ? 'smartband' : 'smartwatch';
+  }
+
+  function cartDeviceKind() {
+    const cart = window.STF_CART?.load() || [];
+    let sawBand = false;
+    let sawWatch = false;
+    cart.forEach((item) => {
+      if (item?.aggregated) return;
+      const p = products.find((x) => x.id === item.productId || x.slug === item.productId || x.slug === item.slug)
+        || item;
+      if (!p || p.aggregated || p.requiresSmartwatch === false) return;
+      if (isSmartbandProduct(p)) sawBand = true;
+      else sawWatch = true;
+    });
+    if (sawBand && !sawWatch) return 'smartband';
+    if (sawWatch && !sawBand) return 'smartwatch';
+    return 'all';
+  }
+
+  function filterCatalogByDeviceKind(src, kind) {
+    if (!src || !kind || kind === 'all') return src;
+    const catalog = src.smartwatchCatalog;
+    if (catalog && typeof catalog === 'object') {
+      const next = {};
+      Object.entries(catalog).forEach(([brand, rows]) => {
+        const filtered = (rows || []).filter((row) => catalogEntryKind(row) === kind);
+        if (filtered.length) next[brand] = filtered;
+      });
+      return {
+        ...src,
+        smartwatchCatalog: next,
+        smartwatchModels: (src.smartwatchModels || []).filter((m) => catalogEntryKind(m) === kind)
+      };
+    }
+    return {
+      ...src,
+      smartwatchModels: (src.smartwatchModels || []).filter((m) => catalogEntryKind(m) === kind)
+    };
+  }
+
+  function updateWatchBlockCopy() {
+    const kind = cartDeviceKind();
+    const hint = document.getElementById('smartwatch-hint');
+    if (hint) hint.textContent = kind === 'smartband' ? L('form.bandHint') : L('form.watchHint');
+    if (els.checkoutWatchBlock) {
+      els.checkoutWatchBlock.dataset.deviceKind = kind;
+    }
+  }
+
   function smartwatchBrandOf(model) {
     const m = String(model || '');
     if (!m || m === OUTRO_MODELO || isOutroModelo(m)) return '__outro__';
@@ -1504,13 +1581,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function populateModelSelect(brand, config) {
-    const src = config || cfg || window.CHECKOUT_CONFIG;
+    const src = filterCatalogByDeviceKind(config || cfg || window.CHECKOUT_CONFIG, cartDeviceKind());
     if (!els.smartwatchSelect) return;
     const prev = els.smartwatchSelect.value;
     els.smartwatchSelect.innerHTML = '';
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = L('form.watchSelect');
+    placeholder.textContent = cartDeviceKind() === 'smartband' ? L('form.bandSelect') : L('form.watchSelect');
     els.smartwatchSelect.appendChild(placeholder);
 
     if (!brand) {
@@ -1534,7 +1611,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function populateWatchSelect(config) {
-    const src = config || cfg || window.CHECKOUT_CONFIG;
+    const kind = cartDeviceKind();
+    const src = filterCatalogByDeviceKind(config || cfg || window.CHECKOUT_CONFIG, kind);
     if (!src) return;
 
     const prevBrand = els.smartwatchBrandSelect?.value || '';
@@ -1544,7 +1622,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.smartwatchBrandSelect.innerHTML = '';
       const placeholder = document.createElement('option');
       placeholder.value = '';
-      placeholder.textContent = L('form.watchBrandSelect');
+      placeholder.textContent = kind === 'smartband' ? L('form.bandBrandSelect') : L('form.watchBrandSelect');
       els.smartwatchBrandSelect.appendChild(placeholder);
 
       const catalog = src.smartwatchCatalog;
@@ -2539,12 +2617,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       return false;
     }
     if (needsWatch && (!(f.smartwatchBrand?.value) || !f.smartwatch.value)) {
-      showWatchFieldError(L('alert.watch'));
+      showWatchFieldError(L(cartDeviceKind() === 'smartband' ? 'alert.band' : 'alert.watch'));
       focusCheckoutField(f.smartwatchBrand?.value ? f.smartwatch : (f.smartwatchBrand || f.smartwatch));
       return false;
     }
     if (needsWatch && isOutroModelo(f.smartwatch.value) && !(f.observacoes?.value || '').trim()) {
-      showObservacoesFieldError(L('alert.watchNotes'));
+      showObservacoesFieldError(L(cartDeviceKind() === 'smartband' ? 'alert.bandNotes' : 'alert.watchNotes'));
       focusCheckoutField(f.observacoes);
       return false;
     }
