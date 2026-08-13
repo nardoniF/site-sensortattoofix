@@ -54,26 +54,25 @@
   const DEFAULT_KIT_COST_COMPONENTS = [
     { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1000, buyPrice: 52.75, yieldQty: 1, useQty: 2, notes: '2 etiquetas por envio' },
     { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 500, buyPrice: 32.9, yieldQty: 1, useQty: 1, notes: '' },
-    { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 0, buyPrice: 0, yieldQty: 1, useQty: 1, notes: 'Ainda sem preço/quantidade' },
+    { id: 'shipping-bag-sticker', name: 'Adesivo da sacola / envelope', buyQty: 1000, buyPrice: 60, yieldQty: 1, useQty: 1, notes: '1 por sacola ou envelope (1 por lente)' },
     { id: 'kit-bag', name: 'Sacola zip do kit', buyQty: 100, buyPrice: 52, yieldQty: 1, useQty: 1, notes: 'Zip que vai dentro' },
-    { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1000, buyPrice: 60, yieldQty: 1, useQty: 1, notes: '' },
-    { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 1000, buyPrice: 59, yieldQty: 10, useQty: 1, notes: '10 manuais por folha Sofit' },
-    { id: 'promo-print', name: 'Impresso promocional (Sofit)', buyQty: 1000, buyPrice: 59, yieldQty: 10, useQty: 1, notes: '10 impressos por folha Sofit' },
+    { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1000, buyPrice: 60, yieldQty: 1, useQty: 1, notes: '1 por sacola zip' },
+    { id: 'manual-sofit', name: 'Manual (sulfite)', buyQty: 1000, buyPrice: 59, yieldQty: 10, useQty: 1, notes: '10 manuais por folha sulfite' },
+    { id: 'promo-print', name: 'Impresso promocional (sulfite)', buyQty: 1000, buyPrice: 59, yieldQty: 10, useQty: 1, notes: '10 impressos por folha sulfite' },
     { id: 'applicator', name: 'Haste aplicadora', buyQty: 200, buyPrice: 26.35, yieldQty: 1, useQty: 0.5, notes: 'Meia haste por kit' },
     { id: 'potentiator', name: 'Potencializador (primer)', buyQty: 100, buyPrice: 188, yieldQty: 1, useQty: 0.2, notes: '1/5 ml por kit' },
     { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 100, buyPrice: 149.8, yieldQty: 1, useQty: 1, notes: 'Frasco 1 ml' },
     { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 500, buyPrice: 35.92, yieldQty: 1, useQty: 1, notes: '' },
-    { id: 'film', name: 'Película / lente', buyQty: 10, buyPrice: 52.37, yieldQty: 30, useQty: 1, notes: '10 folhas × 30 lentes; custo = (preço÷10)÷30' },
-    { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Mesmo lote das 10 películas' },
-    { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 10, buyPrice: 300, yieldQty: 30, useQty: 1, notes: 'Mesmo lote das 10 películas' }
+    { id: 'film', name: 'Película / lente', buyQty: 10, buyPrice: 49, yieldQty: 30, useQty: 1, notes: '10 folhas a R$ 49; 30 lentes por folha' },
+    { id: 'sticker-cut', name: 'Adesivo + recorte das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Adesivo e recorte juntos; 10×30 = 300 lentes' }
   ];
 
   const DEFAULT_KIT_COST_INTL_COMPONENTS = [
     { id: 'intl-envelope', name: 'Envelope internacional', buyQty: 100, buyPrice: 23, yieldQty: 1, useQty: 1, notes: 'Não é sacola — envelope' },
-    { id: 'intl-sulfite', name: 'Carta sulfite', buyQty: 1000, buyPrice: 59, yieldQty: 1, useQty: 1, notes: '1 folha impressa por envio' },
-    { id: 'film', name: 'Película / lente', buyQty: 10, buyPrice: 52.37, yieldQty: 30, useQty: 1, notes: '10 folhas × 30 lentes; custo = (preço÷10)÷30' },
-    { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Lente colada' },
-    { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 10, buyPrice: 300, yieldQty: 30, useQty: 1, notes: 'Lente recortada' }
+    { id: 'intl-envelope-sticker', name: 'Adesivo do envelope', buyQty: 1000, buyPrice: 60, yieldQty: 1, useQty: 1, notes: 'Mesmo adesivo 1000×R$ 60; 1 por lente' },
+    { id: 'intl-sulfite', name: 'Carta sulfite', buyQty: 1000, buyPrice: 59, yieldQty: 1, useQty: 1, notes: '1 folha sulfite impressa por envio' },
+    { id: 'film', name: 'Película / lente', buyQty: 10, buyPrice: 49, yieldQty: 30, useQty: 1, notes: '10 folhas a R$ 49; 30 lentes por folha' },
+    { id: 'sticker-cut', name: 'Adesivo + recorte das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Adesivo e recorte juntos; 300 lentes' }
   ];
 
   const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
@@ -4488,7 +4487,7 @@ ${worksheets}
           <input type="number" data-kit-buy-qty min="0" step="any" value="${c.buyQty || ''}" placeholder="10">
         </label>
         <label>Preço da compra (R$)
-          <input type="number" data-kit-buy-price min="0" step="0.01" value="${c.buyPrice || ''}" placeholder="52.37">
+          <input type="number" data-kit-buy-price min="0" step="0.01" value="${c.buyPrice || ''}" placeholder="49">
         </label>
         <label>Rende / un.
           <input type="number" data-kit-yield-qty min="0" step="any" value="${c.yieldQty > 0 ? c.yieldQty : 1}" placeholder="30">
@@ -4872,7 +4871,7 @@ ${worksheets}
       coupons: collectCoupons(),
       kitCost: collectKitCostFromDom('br'),
       kitCostIntl: collectKitCostFromDom('intl'),
-      kitCostVersion: 2,
+      kitCostVersion: 3,
       updatedAt: new Date().toISOString()
     };
   }
