@@ -848,7 +848,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Histórico por dia e horário: ano → mês → dia → visitante → caminho da visita (passos 1, 2, 3… na ordem do tempo).</p>
-                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Ocultar só-home</strong> (ligado por padrão) esconde visitas com um único evento Entrada — Home na árvore (não apaga do log). Os gráficos <strong>Quando acessam</strong> guardam cerca de <strong>6 meses</strong>; no virar do mês o mais antigo some. Só-home/bots e testes ficam sempre fora da estatística. <strong>Exportar Excel</strong> gera abas por dia, semana, mês e ano.</p>
+                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> (ligado por padrão) esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> guardam cerca de <strong>6 meses</strong> e sempre excluem únicos/bots/testes. <strong>Exportar Excel</strong> gera abas por dia, semana, mês e ano.</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-clicks-filters">
@@ -875,9 +875,9 @@
                                 <input type="checkbox" id="clicks-filter-nav" checked>
                                 Com navegação
                             </label>
-                            <label class="admin-check" title="Esconde visitas com só 1 evento: Entrada — Home (bounce). Não apaga nada do log.">
-                                <input type="checkbox" id="clicks-filter-hide-home-only" checked>
-                                Ocultar só-home
+                            <label class="admin-check" title="Mostra só quem mudou de página/clique. Esconde único ou repetido no mesmo destino (home, loja, 3× o mesmo). Não apaga o log.">
+                                <input type="checkbox" id="clicks-filter-nav-only" checked>
+                                Somente navegação
                             </label>
                         </div>
                         <div class="admin-clicks-toolbar admin-toolbar-split">
@@ -899,7 +899,7 @@
                                 <span class="admin-fold-hint">gráficos</span>
                             </summary>
                             <div class="admin-fold-body">
-                                <p class="admin-meta">Site (compacto), mês, semana (1ª–5ª, média dos meses), dia da semana, dia do mês e hora. Mais recente em cima no mês. Fuso São Paulo. Estatística sempre exclui só-home/bots.</p>
+                                <p class="admin-meta">Site (compacto), mês, semana (1ª–5ª, média dos meses), dia da semana, dia do mês e hora. Mais recente em cima no mês. Fuso São Paulo. Estatística sempre exclui únicos/bots.</p>
                                 <div class="vendas-when-filters">
                                     <label>Site
                                         <select id="clicks-when-site" aria-label="Filtrar site">
@@ -1106,6 +1106,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=139"></script>
+    <script src="js/admin.js?v=140"></script>
 </body>
 </html>

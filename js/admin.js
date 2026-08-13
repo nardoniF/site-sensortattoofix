@@ -2483,10 +2483,29 @@ ${worksheets}
     return false;
   }
 
-  /** Session with only home landing(s) — bounce/bot noise. Used by tree + charts. */
-  function isHomeOnlyBounceSession(events) {
+  /** Normalize a step so 3× home (or 3× loja) count as the same destination. */
+  function clickSessionStepKey(c) {
+    if (isHomeEntradaEvent(c)) return 'home';
+    const dest = String(c?.destino || '').toLowerCase().trim();
+    if (dest) return dest;
+    const pagina = String(c?.pagina || '').toLowerCase().split('?')[0].replace(/\/+$/, '') || '';
+    if (pagina) return `p:${pagina}`;
+    return String(c?.tipo || 'outro').toLowerCase();
+  }
+
+  /**
+   * Unique / bot noise: 1 event OR several repeats of the same dest
+   * (só home, 3 homes seguidas, só loja, etc.). Navigation = 2+ destinos distintos.
+   */
+  function isUniqueOrRepeatOnlySession(events) {
     if (!Array.isArray(events) || !events.length) return false;
-    return events.every(isHomeEntradaEvent);
+    const keys = new Set(events.map(clickSessionStepKey));
+    return keys.size < 2;
+  }
+
+  /** @deprecated alias — same as unique/repeat-only. */
+  function isHomeOnlyBounceSession(events) {
+    return isUniqueOrRepeatOnlySession(events);
   }
 
   /** Infer .com vs .com.br from stored site_host or idioma/página/destino. */
@@ -2526,7 +2545,7 @@ ${worksheets}
     return false;
   }
 
-  function filterClicksExcludingHomeOnly(clicks) {
+  function filterClicksExcludingUniqueOrRepeat(clicks) {
     const bySession = new Map();
     (clicks || []).forEach((c) => {
       const sk = clickSessionKey(c);
@@ -2535,9 +2554,13 @@ ${worksheets}
     });
     const drop = new Set();
     bySession.forEach((evs, sk) => {
-      if (isHomeOnlyBounceSession(evs)) drop.add(sk);
+      if (isUniqueOrRepeatOnlySession(evs)) drop.add(sk);
     });
     return (clicks || []).filter((c) => !drop.has(clickSessionKey(c)) && !isCrawlerClickRow(c));
+  }
+
+  function filterClicksExcludingHomeOnly(clicks) {
+    return filterClicksExcludingUniqueOrRepeat(clicks);
   }
 
   function summarizeClicksForCharts(clicks) {
@@ -2681,7 +2704,7 @@ ${worksheets}
     const metric = metricEl ? metricEl.value : 'events';
     const summary = summarizeClicksForCharts(clicks);
     const filtered = filterClicksForWhenCharts(clicks);
-    const exclNote = `<p class="admin-meta clicks-when-clean">Carregados: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong></p>`;
+    const exclNote = `<p class="admin-meta clicks-when-clean">Carregados: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · únicos/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong></p>`;
     if (!filtered.length) {
       root.innerHTML = `${exclNote}<p class="admin-meta">Sem acessos reais neste recorte.</p>`;
       return;
@@ -2727,7 +2750,7 @@ ${worksheets}
       .map((host, i) => bySiteMap.get(host) || empty(host, host === 'com' ? '.com' : '.com.br', i))
       .filter((b) => b.count > 0);
 
-    const cleanLine = `<p class="admin-meta clicks-when-clean">Na janela: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · só-home/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong></p>`;
+    const cleanLine = `<p class="admin-meta clicks-when-clean">Na janela: <strong>${summary.raw.length.toLocaleString('pt-BR')}</strong> · únicos/bots fora: <strong>${summary.botsDropped.toLocaleString('pt-BR')}</strong>${summary.testsDropped ? ` · testes fora: <strong>${summary.testsDropped}</strong>` : ''} · na estatística: <strong>${filtered.length.toLocaleString('pt-BR')}</strong></p>`;
 
     root.innerHTML = cleanLine + [
       renderWhenBarChart('Site', sites, metric, { ...chartOpts, cardClass: 'vendas-when-card--site' }),
@@ -2751,7 +2774,7 @@ ${worksheets}
     clicksWhenFiltersWired = true;
   }
 
-  function pruneHomeOnlyBounceSessions(tree) {
+  function pruneUniqueOrRepeatSessions(tree) {
     Object.keys(tree).forEach((year) => {
       const y = tree[year];
       Object.keys(y.months).forEach((monthNum) => {
@@ -2762,7 +2785,7 @@ ${worksheets}
             const v = d.visitors[vKey];
             Object.keys(v.sessions).forEach((sKey) => {
               const events = v.sessions[sKey];
-              if (!isHomeOnlyBounceSession(events)) return;
+              if (!isUniqueOrRepeatOnlySession(events)) return;
               const n = events.length;
               delete v.sessions[sKey];
               v.count -= n;
@@ -3029,12 +3052,12 @@ ${worksheets}
       // Only day → visitor → visit path → steps (by time). No flat “ao vivo” list —
       // that reused session sequencia across visitors and looked broken.
       const tree = buildClicksTree(clicks);
-      const hideHomeOnly = !!document.getElementById('clicks-filter-hide-home-only')?.checked;
-      if (hideHomeOnly) pruneHomeOnlyBounceSessions(tree);
+      const navOnly = isClicksNavOnlyFilterOn();
+      if (navOnly) pruneUniqueOrRepeatSessions(tree);
       const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
       if (!years.length) {
-        root.innerHTML = hideHomeOnly
-          ? '<p class="admin-meta">Nenhuma visita com interação além da home. Desmarque <strong>Ocultar só-home</strong> para ver os bounces.</p>'
+        root.innerHTML = navOnly
+          ? '<p class="admin-meta">Nenhuma visita com navegação (2 destinos distintos). Desmarque <strong>Somente navegação</strong> para ver únicos/repetidos.</p>'
           : '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
         if (checkedEl) {
           checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log`;
@@ -3129,32 +3152,42 @@ ${worksheets}
     if (day) day.open = true;
   }
 
+  const CLICKS_NAV_ONLY_KEY = 'stf_clicks_nav_only';
   const CLICKS_HIDE_HOME_KEY = 'stf_clicks_hide_home_only';
 
-  function readClicksHideHomePref() {
+  function readClicksNavOnlyPref() {
     try {
-      const saved = localStorage.getItem(CLICKS_HIDE_HOME_KEY);
+      const saved = localStorage.getItem(CLICKS_NAV_ONLY_KEY);
       if (saved === '0') return false;
       if (saved === '1') return true;
+      const legacy = localStorage.getItem(CLICKS_HIDE_HOME_KEY);
+      if (legacy === '0') return false;
+      if (legacy === '1') return true;
     } catch { /* ignore */ }
     return true;
   }
 
-  function writeClicksHideHomePref(on) {
+  function writeClicksNavOnlyPref(on) {
     try {
-      localStorage.setItem(CLICKS_HIDE_HOME_KEY, on ? '1' : '0');
+      localStorage.setItem(CLICKS_NAV_ONLY_KEY, on ? '1' : '0');
     } catch { /* ignore */ }
   }
 
-  function syncClicksHideHomeCheckbox() {
-    const el = document.getElementById('clicks-filter-hide-home-only');
-    if (!el) return;
-    el.checked = readClicksHideHomePref();
+  function isClicksNavOnlyFilterOn() {
+    const el = document.getElementById('clicks-filter-nav-only');
+    if (el) return !!el.checked;
+    return readClicksNavOnlyPref();
   }
 
-  function applyClicksHideHomeFilter() {
-    const el = document.getElementById('clicks-filter-hide-home-only');
-    if (el) writeClicksHideHomePref(!!el.checked);
+  function syncClicksNavOnlyCheckbox() {
+    const el = document.getElementById('clicks-filter-nav-only');
+    if (!el) return;
+    el.checked = readClicksNavOnlyPref();
+  }
+
+  function applyClicksNavOnlyFilter() {
+    const el = document.getElementById('clicks-filter-nav-only');
+    if (el) writeClicksNavOnlyPref(!!el.checked);
     if (!clicksCache.length) {
       loadClicks();
       return;
@@ -5091,10 +5124,10 @@ ${worksheets}
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
   document.getElementById('clicks-filter-nav')?.addEventListener('change', () => loadClicks());
-  syncClicksHideHomeCheckbox();
+  syncClicksNavOnlyCheckbox();
   wireAdminFolds();
-  document.getElementById('clicks-filter-hide-home-only')?.addEventListener('change', applyClicksHideHomeFilter);
-  document.getElementById('clicks-filter-hide-home-only')?.addEventListener('click', (e) => {
+  document.getElementById('clicks-filter-nav-only')?.addEventListener('change', applyClicksNavOnlyFilter);
+  document.getElementById('clicks-filter-nav-only')?.addEventListener('click', (e) => {
     e.stopPropagation();
   });
   document.getElementById('btn-feedback-refresh')?.addEventListener('click', () => loadFeedback());
