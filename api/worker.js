@@ -273,20 +273,20 @@ const DEFAULT_CONFIG = {
   coupons: [],
   kitCost: {
     components: [
-      { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1, buyPrice: 0, useQty: 2, notes: '2 etiquetas por envio' },
-      { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'kit-bag', name: 'Sacola do kit', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 100, buyPrice: 0, useQty: 0.1, notes: 'Pacote 100; cada um rende 10 manuais' },
-      { id: 'promo-print', name: 'Impresso promocional', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'applicator', name: 'Aplicador', buyQty: 100, buyPrice: 0, useQty: 0.5, notes: 'Meio aplicador por kit' },
-      { id: 'potentiator', name: 'Potencializador', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'film', name: 'Película', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'sticker-cut', name: 'Adesivo e recorte', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
-      { id: 'cut-service', name: 'Serviço de recorte', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' }
+      { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1000, buyPrice: 52.75, useQty: 2, notes: '2 etiquetas por envio' },
+      { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 500, buyPrice: 32.9, useQty: 1, notes: '' },
+      { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 0, buyPrice: 0, useQty: 1, notes: 'Ainda sem preço/quantidade' },
+      { id: 'kit-bag', name: 'Sacola zip do kit', buyQty: 100, buyPrice: 52, useQty: 1, notes: 'Zip que vai dentro' },
+      { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1000, buyPrice: 60, useQty: 1, notes: '' },
+      { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 1000, buyPrice: 59, useQty: 0.1, notes: '10 manuais por folha Sofit' },
+      { id: 'promo-print', name: 'Impresso promocional (Sofit)', buyQty: 1000, buyPrice: 59, useQty: 0.1, notes: '10 impressos por folha Sofit' },
+      { id: 'applicator', name: 'Haste aplicadora', buyQty: 200, buyPrice: 26.35, useQty: 0.5, notes: 'Meia haste por kit' },
+      { id: 'potentiator', name: 'Potencializador (primer)', buyQty: 100, buyPrice: 188, useQty: 0.2, notes: '1/5 ml por kit' },
+      { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 100, buyPrice: 149.8, useQty: 1, notes: 'Frasco 1 ml' },
+      { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 500, buyPrice: 35.92, useQty: 1, notes: '' },
+      { id: 'film', name: 'Película', buyQty: 10, buyPrice: 49.75, useQty: 1, notes: '' },
+      { id: 'sticker-cut', name: 'Adesivo das lentes', buyQty: 0, buyPrice: 271, useQty: 1, notes: 'Informe a quantidade comprada nesse lote' },
+      { id: 'cut-service', name: 'Serviço de recorte das lentes', buyQty: 0, buyPrice: 300, useQty: 1, notes: 'Informe quantas lentes recortadas nesse lote' }
     ]
   }
 };
@@ -1385,8 +1385,16 @@ function withConfigDefaults(stored) {
         : DEFAULT_MOTOBOY_SHIPPING.couriers
     },
     coupons: mergeCoupons(stored.coupons, base.coupons),
-    kitCost: normalizeKitCost(stored.kitCost || base.kitCost)
+    kitCost: kitCostNeedsSeed(stored.kitCost)
+      ? { components: (base.kitCost?.components || []).map((c) => ({ ...c })) }
+      : normalizeKitCost(stored.kitCost)
   };
+}
+
+function kitCostNeedsSeed(raw) {
+  const list = Array.isArray(raw?.components) ? raw.components : null;
+  if (!list || !list.length) return true;
+  return !list.some((c) => Number(c?.buyPrice) > 0);
 }
 
 function normalizeKitCost(raw) {
