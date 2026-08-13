@@ -51,6 +51,23 @@
 
   let currentConfig = null;
 
+  const DEFAULT_KIT_COST_COMPONENTS = [
+    { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1, buyPrice: 0, useQty: 2, notes: '2 etiquetas por envio' },
+    { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'kit-bag', name: 'Sacola do kit', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 100, buyPrice: 0, useQty: 0.1, notes: 'Pacote 100; cada um rende 10 manuais' },
+    { id: 'promo-print', name: 'Impresso promocional', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'applicator', name: 'Aplicador', buyQty: 100, buyPrice: 0, useQty: 0.5, notes: 'Meio aplicador por kit' },
+    { id: 'potentiator', name: 'Potencializador', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'film', name: 'Película', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'sticker-cut', name: 'Adesivo e recorte', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+    { id: 'cut-service', name: 'Serviço de recorte', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' }
+  ];
+
   const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
 
   function resolveApiBaseUrl(raw) {
@@ -654,8 +671,8 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  /** Líquido = Bruto − Comissão − Frete − Estornos − Outras taxas. */
-  function effectiveSaleNet(sale) {
+  /** Líquido marketplace = Bruto − Comissão − Frete − Estornos − Outras. Líquido real = isso − custo do kit. */
+  function marketplaceSaleNet(sale) {
     const g = Number(sale.gross || 0);
     const f = Number(sale.fees || 0);
     const sh = Number(sale.shippingCost || 0);
@@ -664,14 +681,48 @@
     return Math.round((g - f - sh - rf - ot) * 100) / 100;
   }
 
+  function saleKitQty(sale) {
+    if (Array.isArray(sale?.items) && sale.items.length) {
+      const q = sale.items.reduce((n, i) => n + (Number(i.quantity || i.qty || 0) || 0), 0);
+      if (q > 0) return q;
+    }
+    return Math.max(1, Number(sale?.qty || sale?.quantity || 1) || 1);
+  }
+
+  function kitComponentUnitCost(c) {
+    const buyQty = Number(c?.buyQty);
+    const buyPrice = Number(c?.buyPrice) || 0;
+    const useQty = Number(c?.useQty) || 0;
+    if (!(buyQty > 0)) return 0;
+    return (buyPrice / buyQty) * useQty;
+  }
+
+  function kitUnitCostFromConfig(config) {
+    const comps = (config || currentConfig)?.kitCost?.components;
+    if (!Array.isArray(comps) || !comps.length) return 0;
+    return comps.reduce((sum, c) => sum + kitComponentUnitCost(c), 0);
+  }
+
+  function saleProductCost(sale, config) {
+    return Math.round(kitUnitCostFromConfig(config) * saleKitQty(sale) * 100) / 100;
+  }
+
+  function effectiveSaleNet(sale) {
+    return Math.round((marketplaceSaleNet(sale) - saleProductCost(sale)) * 100) / 100;
+  }
+
   function saleMoneyParts(sale) {
+    const marketplace = marketplaceSaleNet(sale);
+    const cogs = saleProductCost(sale);
     return {
       gross: Number(sale.gross || 0),
       fees: Number(sale.fees || 0),
       shipping: Number(sale.shippingCost || 0),
       refunds: Number(sale.refunds || 0),
       otherFees: Number(sale.otherFees || 0),
-      net: effectiveSaleNet(sale)
+      cogs,
+      marketplace,
+      net: Math.round((marketplace - cogs) * 100) / 100
     };
   }
 
@@ -683,9 +734,11 @@
       acc.shipping += p.shipping;
       acc.refunds += p.refunds;
       acc.otherFees += p.otherFees;
+      acc.cogs += p.cogs;
+      acc.marketplace += p.marketplace;
       acc.net += p.net;
       return acc;
-    }, { gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0 });
+    }, { gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0 });
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
@@ -699,6 +752,8 @@
       <div class="clicks-stats-row"><dt>(−) Frete (custo)</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(parts.refunds)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(parts.otherFees)}</dd></div>
+      <div class="clicks-stats-row"><dt>(=) Líquido marketplace</dt><dd>${formatSalesBRL(parts.marketplace)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Custo do kit</dt><dd>${formatSalesBRL(parts.cogs)}</dd></div>
       <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
       ${extraRowsHtml || ''}
       <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
@@ -731,20 +786,22 @@
       const shipping = Number(sale.shippingCost || 0);
       const refunds = Number(sale.refunds || 0);
       const otherFees = Number(sale.otherFees || 0);
+      const cogs = saleProductCost(sale);
       const net = effectiveSaleNet(sale);
-      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0, months: {} };
+      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, net: 0, months: {} };
       const y = tree[year];
-      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0, days: {} };
+      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, net: 0, days: {} };
       const m = y.months[monthNum];
-      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0, sales: [] };
+      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, net: 0, sales: [] };
       const d = m.days[dateKey];
-      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _refunds: refunds, _otherFees: otherFees, _net: net });
+      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _refunds: refunds, _otherFees: otherFees, _cogs: cogs, _net: net });
       d.count += 1;
       d.gross += gross;
       d.fees += fees;
       d.shipping += shipping;
       d.refunds += refunds;
       d.otherFees += otherFees;
+      d.cogs += cogs;
       d.net += net;
       m.count += 1;
       m.gross += gross;
@@ -752,6 +809,7 @@
       m.shipping += shipping;
       m.refunds += refunds;
       m.otherFees += otherFees;
+      m.cogs += cogs;
       m.net += net;
       y.count += 1;
       y.gross += gross;
@@ -759,6 +817,7 @@
       y.shipping += shipping;
       y.refunds += refunds;
       y.otherFees += otherFees;
+      y.cogs += cogs;
       y.net += net;
     });
     Object.values(tree).forEach((y) => {
@@ -773,7 +832,7 @@
 
   function salesTreeSummary(label, node) {
     const count = node?.count || 0;
-    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}</span>`;
+    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido real ${formatSalesBRL(node?.net || 0)}</span>`;
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
@@ -792,7 +851,11 @@
     const gross = Math.round(Number(o.total || 0) * 100) / 100;
     const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
-    const qty = Number(o.qty || o.quantity || 1) || 1;
+    let qty = Number(o.qty || o.quantity || 0) || 0;
+    if (!qty && Array.isArray(o.items) && o.items.length) {
+      qty = o.items.reduce((n, i) => n + (Number(i.qty || i.quantity || 0) || 0), 0);
+    }
+    qty = Math.max(1, qty || 1);
     const title = watch
       ? String(watch)
       : (o.productName || o.produto || 'Pedido loja');
@@ -907,6 +970,8 @@
       _shipping: p.shipping,
       _refunds: p.refunds,
       _otherFees: p.otherFees,
+      _cogs: p.cogs,
+      _marketplace: p.marketplace,
       _net: p.net
     };
   }
@@ -919,9 +984,11 @@
       acc.shipping += Number(s._shipping || 0);
       acc.refunds += Number(s._refunds || 0);
       acc.otherFees += Number(s._otherFees || 0);
+      acc.cogs += Number(s._cogs || 0);
+      acc.marketplace += Number(s._marketplace || 0);
       acc.net += Number(s._net || 0);
       return acc;
-    }, { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, net: 0 });
+    }, { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0 });
   }
 
   function salesInCurrentPeriod(sales, period) {
@@ -946,7 +1013,7 @@
       <span class="sales-tree-money" title="Bruto">${formatSalesBRL(sale._gross)}</span>
       <span class="sales-tree-money sales-tree-fee" title="Comissão">${formatSalesBRL(sale._fees)}</span>
       <span class="sales-tree-money sales-tree-ship" title="Frete (custo vendedor)">${formatSalesBRL(sale._shipping || 0)}</span>
-      <span class="sales-tree-net" title="Líquido real">${formatSalesBRL(sale._net)}</span>
+      <span class="sales-tree-net" title="Líquido real = marketplace − custo do kit">${formatSalesBRL(sale._net)}</span>
     </li>`;
   }
 
@@ -1018,7 +1085,7 @@
         <h3>${escapeHtml(label)}</h3>
         <p class="vendas-consol-card-kicker">Líquido real</p>
         <p class="vendas-consol-card-net">${formatSalesBRL(tot.net)}</p>
-        <p class="vendas-consol-card-meta">${tot.count} venda${tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(tot.gross)}</p>
+        <p class="vendas-consol-card-meta">${tot.count} venda${tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(tot.gross)} · custo kit ${formatSalesBRL(tot.cogs || 0)}</p>
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
@@ -1050,6 +1117,8 @@
       <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(tot.shipping || 0)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(tot.refunds || 0)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(tot.otherFees || 0)}</dd></div>
+      <div class="clicks-stats-row"><dt>(=) Líquido marketplace</dt><dd>${formatSalesBRL(tot.marketplace || 0)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Custo do kit</dt><dd>${formatSalesBRL(tot.cogs || 0)}</dd></div>
       <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(tot.net)}</dd></div>
       ${chRows}`;
   }
@@ -1166,7 +1235,7 @@
 
   function buildSalesExportDetailRows(sales) {
     const rows = [[
-      'Data', 'Hora', 'Canal', 'ID', 'Cliente', 'Bruto', 'Comissão', 'Frete', 'Estornos', 'Outras taxas', 'Líquido', 'Status', 'Item'
+      'Data', 'Hora', 'Canal', 'ID', 'Cliente', 'Bruto', 'Comissão', 'Frete', 'Estornos', 'Outras taxas', 'Custo kit', 'Líquido real', 'Status', 'Item'
     ]];
     (sales || []).forEach((s) => {
       const parts = s._ts ? brDateParts(s._ts) : null;
@@ -1181,6 +1250,7 @@
         Math.round(Number(s._shipping || 0) * 100) / 100,
         Math.round(Number(s._refunds || 0) * 100) / 100,
         Math.round(Number(s._otherFees || 0) * 100) / 100,
+        Math.round(Number(s._cogs || 0) * 100) / 100,
         Math.round(s._net * 100) / 100,
         s.status || '',
         s.items?.[0]?.title || ''
@@ -1577,7 +1647,7 @@ ${worksheets}
               <span class="sales-tree-money sales-tree-fee" title="Comissão">${formatSalesBRL(sale._fees)}</span>
               <span class="sales-tree-money sales-tree-ship" title="Frete">${formatSalesBRL(sale._shipping || 0)}</span>
               <span class="sales-tree-money sales-tree-adj" title="Estornos + outras taxas">${formatSalesBRL((sale._refunds || 0) + (sale._otherFees || 0))}</span>
-              <span class="sales-tree-net" title="Líquido = bruto − comissão − frete − estornos − outras">${formatSalesBRL(sale._net)}</span>
+              <span class="sales-tree-net" title="Líquido real = marketplace − custo do kit">${formatSalesBRL(sale._net)}</span>
             </li>`;
           });
           html += '</ul></div></details>';
@@ -4313,6 +4383,99 @@ ${worksheets}
     ];
   }
 
+  function formatKitUnitBRL(n) {
+    return Number(n || 0).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    });
+  }
+
+  function defaultKitCostComponents() {
+    return DEFAULT_KIT_COST_COMPONENTS.map((c) => ({ ...c }));
+  }
+
+  function kitCostComponentsFrom(raw) {
+    if (raw == null) return defaultKitCostComponents();
+    const list = Array.isArray(raw?.components) ? raw.components : (Array.isArray(raw) ? raw : null);
+    if (!Array.isArray(list)) return defaultKitCostComponents();
+    return list.map((c, i) => ({
+      id: String(c?.id || `kit-comp-${i + 1}`).trim() || `kit-comp-${i + 1}`,
+      name: String(c?.name || '').trim(),
+      buyQty: Number(c?.buyQty) > 0 ? Number(c.buyQty) : 0,
+      buyPrice: Number(c?.buyPrice) >= 0 ? Number(c.buyPrice) : 0,
+      useQty: Number(c?.useQty) >= 0 ? Number(c.useQty) : 0,
+      notes: String(c?.notes || '').trim()
+    }));
+  }
+
+  function updateKitCostTotals() {
+    const totalEl = document.getElementById('admin-kit-cost-total');
+    const rows = document.querySelectorAll('#admin-kit-cost-rows .admin-kit-cost-row');
+    let total = 0;
+    rows.forEach((row) => {
+      const buyQty = Number(row.querySelector('[data-kit-buy-qty]')?.value) || 0;
+      const buyPrice = Number(row.querySelector('[data-kit-buy-price]')?.value) || 0;
+      const useQty = Number(row.querySelector('[data-kit-use-qty]')?.value) || 0;
+      const unit = buyQty > 0 ? (buyPrice / buyQty) * useQty : 0;
+      total += unit;
+      const unitEl = row.querySelector('[data-kit-unit-cost]');
+      if (unitEl) unitEl.textContent = formatKitUnitBRL(unit);
+    });
+    if (totalEl) {
+      totalEl.innerHTML = `Custo do kit: <strong>${formatKitUnitBRL(total)}</strong> por unidade vendida`;
+    }
+  }
+
+  function renderKitCost(kitCost) {
+    const root = document.getElementById('admin-kit-cost-rows');
+    if (!root) return;
+    const comps = kitCostComponentsFrom(kitCost);
+    root.innerHTML = comps.map((c, i) => {
+      const unit = c.buyQty > 0 ? (c.buyPrice / c.buyQty) * c.useQty : 0;
+      return `<div class="admin-kit-cost-row" data-kit-id="${escapeHtml(c.id || `kit-comp-${i + 1}`)}">
+        <label>Item
+          <input type="text" data-kit-name value="${escapeHtml(c.name)}" placeholder="Ex.: Aplicador">
+        </label>
+        <label>Qtd comprada
+          <input type="number" data-kit-buy-qty min="0" step="any" value="${c.buyQty || ''}" placeholder="100">
+        </label>
+        <label>Preço da compra (R$)
+          <input type="number" data-kit-buy-price min="0" step="0.01" value="${c.buyPrice || ''}" placeholder="50">
+        </label>
+        <label>Uso por kit
+          <input type="number" data-kit-use-qty min="0" step="any" value="${c.useQty || ''}" placeholder="0,5">
+        </label>
+        <div class="admin-kit-cost-unit-wrap">
+          <span class="admin-kit-cost-unit-label">Custo no kit</span>
+          <span class="admin-kit-cost-unit" data-kit-unit-cost>${formatKitUnitBRL(unit)}</span>
+        </div>
+        <label>Nota
+          <input type="text" data-kit-notes value="${escapeHtml(c.notes || '')}" placeholder="Opcional">
+        </label>
+        <button type="button" class="btn-secondary admin-kit-cost-remove" data-kit-remove title="Remover item"><i class="fas fa-trash"></i></button>
+      </div>`;
+    }).join('');
+    updateKitCostTotals();
+  }
+
+  function collectKitCostFromDom() {
+    const root = document.getElementById('admin-kit-cost-rows');
+    if (!root) {
+      return { components: kitCostComponentsFrom(currentConfig?.kitCost) };
+    }
+    const components = [...root.querySelectorAll('.admin-kit-cost-row')].map((row, i) => ({
+      id: row.getAttribute('data-kit-id') || `kit-comp-${i + 1}`,
+      name: (row.querySelector('[data-kit-name]')?.value || '').trim(),
+      buyQty: Number(row.querySelector('[data-kit-buy-qty]')?.value) || 0,
+      buyPrice: Number(row.querySelector('[data-kit-buy-price]')?.value) || 0,
+      useQty: Number(row.querySelector('[data-kit-use-qty]')?.value) || 0,
+      notes: (row.querySelector('[data-kit-notes]')?.value || '').trim()
+    })).filter((c) => c.name);
+    return { components };
+  }
+
   let productSubtabsWired = false;
 
   function showProductSubtab(subtabId) {
@@ -4351,6 +4514,7 @@ ${worksheets}
     const f = els.configForm;
     if (!f || !config) return;
     renderProducts(getProductsFromConfig(config));
+    renderKitCost(config.kitCost);
     initProductSubtabs();
     if (f.smartwatchModels) {
       f.smartwatchModels.value = (config.smartwatchModels || []).join('\n');
@@ -4647,6 +4811,7 @@ ${worksheets}
       shippingMethods: syncMotoboyShippingMethods(collectShippingMethods(), collectMotoboyShipping()),
       motoboyShipping: collectMotoboyShipping(),
       coupons: collectCoupons(),
+      kitCost: collectKitCostFromDom(),
       updatedAt: new Date().toISOString()
     };
   }
@@ -5491,6 +5656,31 @@ ${worksheets}
     });
     renderProducts(all);
     showProductSubtab('br-aggregated');
+  });
+
+  document.getElementById('btn-add-kit-cost')?.addEventListener('click', () => {
+    const kitCost = collectKitCostFromDom();
+    kitCost.components.push({
+      id: 'kit-comp-' + Date.now(),
+      name: '',
+      buyQty: 1,
+      buyPrice: 0,
+      useQty: 1,
+      notes: ''
+    });
+    renderKitCost(kitCost);
+    showProductSubtab('kit-cost');
+  });
+
+  document.getElementById('admin-kit-cost-rows')?.addEventListener('input', (e) => {
+    if (e.target?.closest?.('.admin-kit-cost-row')) updateKitCostTotals();
+  });
+
+  document.getElementById('admin-kit-cost-rows')?.addEventListener('click', (e) => {
+    const btn = e.target?.closest?.('[data-kit-remove]');
+    if (!btn) return;
+    btn.closest('.admin-kit-cost-row')?.remove();
+    updateKitCostTotals();
   });
 
   document.getElementById('btn-add-intl-main-product')?.addEventListener('click', () => {

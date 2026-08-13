@@ -270,7 +270,25 @@ const DEFAULT_CONFIG = {
   whatsapp: '5511913394665',
   siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://api.sensortattoofix.com.br' },
-  coupons: []
+  coupons: [],
+  kitCost: {
+    components: [
+      { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1, buyPrice: 0, useQty: 2, notes: '2 etiquetas por envio' },
+      { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'shipping-bag-sticker', name: 'Adesivo da sacola de envio', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'kit-bag', name: 'Sacola do kit', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'kit-bag-sticker', name: 'Adesivo da sacola do kit', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'manual-sofit', name: 'Manual (Sofit)', buyQty: 100, buyPrice: 0, useQty: 0.1, notes: 'Pacote 100; cada um rende 10 manuais' },
+      { id: 'promo-print', name: 'Impresso promocional', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'applicator', name: 'Aplicador', buyQty: 100, buyPrice: 0, useQty: 0.5, notes: 'Meio aplicador por kit' },
+      { id: 'potentiator', name: 'Potencializador', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'potentiator-glass', name: 'Vidro do potencializador', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'alcohol-wipe', name: 'Lenço com álcool isopropílico', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'film', name: 'Película', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'sticker-cut', name: 'Adesivo e recorte', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' },
+      { id: 'cut-service', name: 'Serviço de recorte', buyQty: 1, buyPrice: 0, useQty: 1, notes: '' }
+    ]
+  }
 };
 
 const DEFAULT_MOTOBOY_SHIPPING = {
@@ -1366,7 +1384,25 @@ function withConfigDefaults(stored) {
         ? stored.motoboyShipping.couriers
         : DEFAULT_MOTOBOY_SHIPPING.couriers
     },
-    coupons: mergeCoupons(stored.coupons, base.coupons)
+    coupons: mergeCoupons(stored.coupons, base.coupons),
+    kitCost: normalizeKitCost(stored.kitCost || base.kitCost)
+  };
+}
+
+function normalizeKitCost(raw) {
+  const fallback = DEFAULT_CONFIG.kitCost?.components || [];
+  if (raw == null) return { components: fallback.map((c) => ({ ...c })) };
+  const list = Array.isArray(raw?.components) ? raw.components : (Array.isArray(raw) ? raw : null);
+  if (!Array.isArray(list)) return { components: fallback.map((c) => ({ ...c })) };
+  return {
+    components: list.map((c, i) => ({
+      id: String(c?.id || `kit-comp-${i + 1}`).trim() || `kit-comp-${i + 1}`,
+      name: String(c?.name || '').trim(),
+      buyQty: Number(c?.buyQty) > 0 ? Number(c.buyQty) : 0,
+      buyPrice: Number(c?.buyPrice) >= 0 ? Number(c.buyPrice) : 0,
+      useQty: Number(c?.useQty) >= 0 ? Number(c.useQty) : 0,
+      notes: String(c?.notes || '').trim()
+    })).filter((c) => c.name)
   };
 }
 
@@ -13695,7 +13731,8 @@ async function handlePutConfig(request, env, origin) {
     products: body.products?.length ? body.products : current.products,
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
     emails: { ...(current.emails || {}), ...(body.emails || {}) },
-    api: { ...current.api, ...body.api }
+    api: { ...current.api, ...body.api },
+    kitCost: body.kitCost != null ? normalizeKitCost(body.kitCost) : normalizeKitCost(current.kitCost)
   };
   if (merged.products?.[0]) {
     merged.product = {

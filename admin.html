@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.03">
+    <link rel="stylesheet" href="style.css?v=3.04">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -45,7 +45,7 @@
                         <li><strong>Vendas</strong> — faturamento por canal (loja, Mercado Livre…).</li>
                         <li><strong>Clientes</strong> — contas criadas em Minha Conta.</li>
                         <li><strong>Cliques</strong> — log de visitas e links (ML, TikTok, loja…).</li>
-                        <li><strong>Produtos</strong> — lentes na vitrine e agregados no checkout (preço, peso, imagem).</li>
+                        <li><strong>Produtos</strong> — lentes na vitrine, agregados no checkout e <strong>custo do kit</strong> (BOM) para o líquido real.</li>
                         <li><strong>Pagamento</strong> — cartão, PIX e PayPal internacional (processadores e chave PIX reserva).</li>
                         <li><strong>Frete</strong> — remetente, modalidades, motoboy, Correios BR e internacional.</li>
                         <li><strong>Cupons</strong> — desconto ao cliente; comissão/e-mail só se houver comissionado.</li>
@@ -105,11 +105,13 @@
                             <p><strong>Brasil (.com.br):</strong> kit/lentes na vitrine + agregados (películas/pulseiras) só no checkout.</p>
                             <p><strong>Internacional (.com):</strong> cadastre <strong>Preço USD</strong> (EN) e <strong>Preço EUR</strong> (IT) além do R$ de referência. USD/EUR são atualizados automaticamente todo dia; você pode ajustar manualmente.</p>
                             <p><strong>Internacional (.com):</strong> só a lente Optical Lens — sem agregados, sem kit completo. Fotos e título vêm deste cadastro.</p>
+                            <p><strong>Custo do kit:</strong> cadastre o que você compra (quantidade + preço) e quanto usa em cada kit. O custo unitário entra como desconto no <strong>líquido real</strong> das vendas.</p>
                         </div>
                         <nav class="admin-product-subtabs" role="tablist" aria-label="Mercados de produto">
                             <button type="button" role="tab" class="admin-product-subtab active" data-product-subtab="br-main" aria-selected="true" aria-controls="admin-products-br-main-panel"><i class="fas fa-flag"></i> Brasil — principais</button>
                             <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="br-aggregated" aria-selected="false" aria-controls="admin-products-br-aggregated-panel"><i class="fas fa-puzzle-piece"></i> Brasil — agregados</button>
                             <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="intl-main" aria-selected="false" aria-controls="admin-products-intl-main-panel"><i class="fas fa-globe-americas"></i> .com — lentes</button>
+                            <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="kit-cost" aria-selected="false" aria-controls="admin-products-kit-cost-panel"><i class="fas fa-coins"></i> Custo do kit</button>
                         </nav>
                         <p id="admin-products-summary" class="admin-meta admin-products-summary"></p>
                         <div id="admin-products-br-main-panel" class="admin-product-subpanel" role="tabpanel">
@@ -132,6 +134,14 @@
                             <div class="admin-form-actions" style="margin-top:8px">
                                 <button type="button" id="btn-add-intl-main-product" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar produto .com</button>
                             </div>
+                        </div>
+                        <div id="admin-products-kit-cost-panel" class="admin-product-subpanel" role="tabpanel" hidden>
+                            <p class="admin-meta">Quanto custa montar <strong>1 kit</strong>: preço da compra ÷ quantidade comprada × quanto você usa. Ex.: aplicador — caixa 100 por R$ 50, usa metade → R$ 0,25. Etiqueta de envio: uso 2. Manual Sofit: pacote 100, usa 1/10.</p>
+                            <div id="admin-kit-cost-rows" class="admin-kit-cost-rows"></div>
+                            <div class="admin-form-actions" style="margin-top:8px">
+                                <button type="button" id="btn-add-kit-cost" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar item</button>
+                            </div>
+                            <p id="admin-kit-cost-total" class="admin-kit-cost-total"></p>
                         </div>
                     </fieldset>
                     <fieldset>
@@ -726,7 +736,7 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Faturamento por canal (loja, ML, Amazon). Resumo em cima e árvore ano → mês → dia. Conta: <strong>bruto − comissão − frete − estornos − outras = líquido</strong>.</p>
+                            <p>Faturamento por canal (loja, ML, Amazon, Shopee). Conta marketplace: <strong>bruto − comissão − frete − estornos − outras</strong>. Depois: <strong>− custo do kit = líquido real</strong> (cadastro em Produtos → Custo do kit).</p>
                             <p><strong>Atualizar ML / Amazon</strong> sincroniza marketplaces. Loja oficial lê pedidos pagos da API. <strong>Consolidado</strong> junta tudo e exporta Excel.</p>
                         </div>
                         <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
@@ -750,7 +760,7 @@
                             <div id="vendas-loja-tree-root" class="clicks-tree-root">
                                 <p class="admin-meta">Abra esta subaba para carregar as vendas da loja oficial.</p>
                             </div>
-                            <p class="admin-meta">Somente pedidos <strong>pagos</strong> (não cancelados). Mesma conta: Bruto − Comissão − Frete − Estornos − Outras = Líquido.</p>
+                            <p class="admin-meta">Somente pedidos <strong>pagos</strong> (não cancelados). Líquido real = marketplace − custo do kit.</p>
                         </div>
 
                         <div id="admin-vendas-mercadolivre" class="admin-vendas-subpanel" role="tabpanel">
@@ -794,7 +804,7 @@
                             <div id="vendas-amz-tree-root" class="clicks-tree-root">
                                 <p class="admin-meta">Abra esta subaba para carregar as vendas da Amazon.</p>
                             </div>
-                            <p class="admin-meta">Conta fechada: <strong>Bruto − Comissão − Frete − Estornos − Outras taxas = Líquido</strong>. Nada some sem linha.</p>
+                            <p class="admin-meta">Conta fechada: <strong>Bruto − Comissão − Frete − Estornos − Outras = marketplace − custo do kit = líquido real</strong>.</p>
                         </div>
                         <div id="admin-vendas-consolidado" class="admin-vendas-subpanel" role="tabpanel" hidden>
                             <div id="vendas-consol-periods" class="vendas-consol-periods"></div>
@@ -1140,6 +1150,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=141"></script>
+    <script src="js/admin.js?v=142"></script>
 </body>
 </html>
