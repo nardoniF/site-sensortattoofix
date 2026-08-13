@@ -4597,6 +4597,12 @@ body.admin-page.pedidos-login-only #pedidos-login {
     align-self: start;
     max-width: 100%;
 }
+.vendas-when-card--noise .vendas-when-bar {
+    background: linear-gradient(90deg, #6b4c2f, #c9a227);
+}
+.vendas-when-card--noise .vendas-when-row.is-top .vendas-when-bar {
+    background: linear-gradient(90deg, #8a6238, #e6c35c);
+}
 .vendas-when-card--site .vendas-when-bars {
     max-height: none;
     overflow: visible;

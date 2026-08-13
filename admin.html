@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.02">
+    <link rel="stylesheet" href="style.css?v=3.03">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -848,7 +848,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Histórico por dia e horário: ano → mês → dia → visitante → caminho da visita (passos 1, 2, 3… na ordem do tempo).</p>
-                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> (ligado por padrão) esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> guardam cerca de <strong>6 meses</strong> e sempre excluem únicos/bots/testes. <strong>Exportar Excel</strong> gera abas por dia, semana, mês e ano.</p>
+                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> (ligado por padrão) esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> são o número oficial (sem únicos/bots). <strong>Únicos / repetidos</strong> é estatística à parte (origem, destino, dia, mês, ano). <strong>Exportar Excel</strong> gera abas oficiais + Unicos.</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-clicks-filters">
@@ -916,6 +916,40 @@
                                     </label>
                                 </div>
                                 <div id="clicks-when-charts" class="vendas-when-charts" aria-live="polite"></div>
+                            </div>
+                        </details>
+
+                        <details class="admin-fold" id="clicks-fold-noise" data-fold-key="clicks-noise">
+                            <summary class="admin-fold-summary">
+                                <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+                                <span class="admin-fold-title">Únicos / repetidos</span>
+                                <span class="admin-fold-hint">fora do oficial</span>
+                            </summary>
+                            <div class="admin-fold-body">
+                                <p class="admin-meta">Não entra no número oficial de cliques. Conta visita única (1 evento) e repetida no mesmo destino (ex.: 3 homes, só loja). Origem = de onde veio; destino = onde caiu.</p>
+                                <div class="vendas-when-filters">
+                                    <label>Site
+                                        <select id="clicks-noise-site" aria-label="Filtrar site dos únicos">
+                                            <option value="">Todos (.com + .com.br)</option>
+                                            <option value="com.br">.com.br (Brasil)</option>
+                                            <option value="com">.com (internacional)</option>
+                                        </select>
+                                    </label>
+                                    <label>Tipo
+                                        <select id="clicks-noise-kind" aria-label="Tipo de visita">
+                                            <option value="" selected>Únicas + repetidas</option>
+                                            <option value="unique">Só únicas</option>
+                                            <option value="repeat">Só repetidas</option>
+                                        </select>
+                                    </label>
+                                    <label>Métrica
+                                        <select id="clicks-noise-metric" aria-label="Métrica únicos">
+                                            <option value="visits" selected>Visitas</option>
+                                            <option value="events">Eventos</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div id="clicks-noise-charts" class="vendas-when-charts" aria-live="polite"></div>
                             </div>
                         </details>
 
@@ -1106,6 +1140,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=140"></script>
+    <script src="js/admin.js?v=141"></script>
 </body>
 </html>

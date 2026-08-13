@@ -2182,17 +2182,78 @@ ${worksheets}
       .replace(/"/g, '&quot;');
   }
 
+  function buildClicksNoiseExportSheetRows(sessions, period) {
+    const rows = [['Período', 'Únicas', 'Repetidas', 'Visitas', 'Eventos', 'Visitantes']];
+    const buckets = new Map();
+    (sessions || []).forEach((s) => {
+      if (!s.ts) return;
+      const b = clicksPeriodBucket(s.ts, period);
+      if (!buckets.has(b.key)) {
+        buckets.set(b.key, {
+          label: b.label,
+          sortKey: b.sortKey,
+          unique: 0,
+          repeat: 0,
+          events: 0,
+          visitors: new Set()
+        });
+      }
+      const row = buckets.get(b.key);
+      if (s.kind === 'repeat') row.repeat += 1;
+      else row.unique += 1;
+      row.events += s.count;
+      row.visitors.add(s.visitor);
+    });
+    [...buckets.values()]
+      .sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)))
+      .forEach((row) => {
+        rows.push([row.label, row.unique, row.repeat, row.unique + row.repeat, row.events, row.visitors.size]);
+      });
+    return rows;
+  }
+
+  function buildClicksNoiseBreakdownRows(sessions, field, labelKey) {
+    const rows = [['Faixa', 'Únicas', 'Repetidas', 'Visitas', 'Eventos']];
+    const buckets = new Map();
+    (sessions || []).forEach((s) => {
+      const key = s[field] || 'outro';
+      const label = s[labelKey] || key;
+      if (!buckets.has(key)) buckets.set(key, { label, unique: 0, repeat: 0, events: 0 });
+      const row = buckets.get(key);
+      if (s.kind === 'repeat') row.repeat += 1;
+      else row.unique += 1;
+      row.events += s.count;
+    });
+    [...buckets.values()]
+      .sort((a, b) => (b.unique + b.repeat) - (a.unique + a.repeat))
+      .forEach((row) => {
+        rows.push([row.label, row.unique, row.repeat, row.unique + row.repeat, row.events]);
+      });
+    return rows;
+  }
+
   function buildClicksExportWorkbook(clicks) {
+    const withoutTests = (clicks || []).filter((c) => !(c.teste === true || c.is_test === true));
+    const official = filterClicksExcludingUniqueOrRepeat(withoutTests);
+    const noise = listNoiseSessions(withoutTests);
     const periods = [
       { key: 'day', name: 'Por dia' },
       { key: 'week', name: 'Por semana' },
       { key: 'month', name: 'Por mês' },
       { key: 'year', name: 'Por ano' }
     ];
-    const sheets = periods.map(({ key, name }) => ({
-      name,
-      rows: buildClicksExportSheetRows(clicks, key)
-    }));
+    const sheets = [
+      ...periods.map(({ key, name }) => ({
+        name,
+        rows: buildClicksExportSheetRows(official, key)
+      })),
+      ...periods.map(({ key, name }) => ({
+        name: `Unicos ${name.replace('Por ', '')}`.slice(0, 31),
+        rows: buildClicksNoiseExportSheetRows(noise, key)
+      })),
+      { name: 'Unicos origem', rows: buildClicksNoiseBreakdownRows(noise, 'origemKey', 'origemLabel') },
+      { name: 'Unicos destino', rows: buildClicksNoiseBreakdownRows(noise, 'destKey', 'destLabel') }
+    ];
     const worksheets = sheets.map(({ name, rows }) => {
       const rowsXml = rows.map((row) => {
         const cells = row.map((cell) => {
@@ -2249,7 +2310,8 @@ ${worksheets}
       const workbook = buildClicksExportWorkbook(clicks);
       const stamp = new Date().toISOString().slice(0, 10);
       downloadTextFile(workbook, `cliques-${stamp}.xls`, 'application/vnd.ms-excel;charset=utf-8');
-      showStatus(`Exportado: ${clicks.length} eventos em 4 abas (dia, semana, mês, ano). Abra no Excel.`, 'success', 'cliques');
+      const noiseN = listNoiseSessions(clicks).length;
+      showStatus(`Exportado: oficiais + ${noiseN} únicos/repetidos (abas Unicos). Abra no Excel.`, 'success', 'cliques');
     } catch (err) {
       showStatus(err.message || 'Erro ao exportar.', 'error', 'cliques');
     } finally {
@@ -2563,6 +2625,46 @@ ${worksheets}
     return filterClicksExcludingUniqueOrRepeat(clicks);
   }
 
+  function groupClicksBySession(clicks) {
+    const bySession = new Map();
+    (clicks || []).forEach((c) => {
+      const sk = clickSessionKey(c);
+      if (!bySession.has(sk)) bySession.set(sk, []);
+      bySession.get(sk).push(c);
+    });
+    return bySession;
+  }
+
+  /** Unique = 1 event; repeat = 2+ of the same dest. Official nav stays out. */
+  function listNoiseSessions(clicks) {
+    const withoutTests = (clicks || []).filter((c) => !(c.teste === true || c.is_test === true));
+    const sessions = [];
+    groupClicksBySession(withoutTests).forEach((events, key) => {
+      if (!isUniqueOrRepeatOnlySession(events)) return;
+      const ordered = [...events].sort((a, b) => (Number(a.ts || a.client_ts) || 0) - (Number(b.ts || b.client_ts) || 0));
+      const first = ordered[0] || {};
+      const ts = Number(first.ts || first.client_ts || 0);
+      const destKey = clickSessionStepKey(first);
+      const origem = clickOrigemLegivel(first);
+      sessions.push({
+        key,
+        kind: ordered.length <= 1 ? 'unique' : 'repeat',
+        events: ordered,
+        count: ordered.length,
+        ts,
+        destKey,
+        destLabel: destKey === 'home'
+          ? 'Home'
+          : (clickDestinoLabel(first.destino || destKey, first.destino_label) || destKey),
+        origemKey: origem?.slug || 'direto',
+        origemLabel: origem?.label || 'Acesso direto',
+        site: clickSiteHost(first),
+        visitor: visitorKey(first)
+      });
+    });
+    return sessions;
+  }
+
   function summarizeClicksForCharts(clicks) {
     const raw = Array.isArray(clicks) ? clicks : [];
     const withoutTests = raw.filter((c) => !(c.teste === true || c.is_test === true));
@@ -2771,7 +2873,122 @@ ${worksheets}
         if (clicksWhenCache.length) renderClicksWhenCharts(clicksWhenCache);
       });
     });
+    ['clicks-noise-site', 'clicks-noise-metric', 'clicks-noise-kind'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', () => {
+        if (clicksWhenCache.length) renderClicksNoiseStats(clicksWhenCache);
+      });
+    });
     clicksWhenFiltersWired = true;
+  }
+
+  function aggregateNoiseSessions(sessions, field, labelField) {
+    const buckets = new Map();
+    (sessions || []).forEach((s) => {
+      const key = String(s[field] || 'outro');
+      const label = s[labelField] || key;
+      if (!buckets.has(key)) {
+        buckets.set(key, { key, label, sortKey: 0, count: 0, visitors: 0, unique: 0, repeat: 0, events: 0, _vids: new Set() });
+      }
+      const b = buckets.get(key);
+      b.count += 1;
+      b.events += s.count;
+      if (s.kind === 'repeat') b.repeat += 1;
+      else b.unique += 1;
+      b._vids.add(s.visitor);
+      b.visitors = b._vids.size;
+    });
+    return [...buckets.values()].map((b) => {
+      const { _vids, ...rest } = b;
+      return { ...rest, visitors: _vids.size };
+    }).sort((a, b) => b.count - a.count);
+  }
+
+  function aggregateNoiseByPeriod(sessions, period) {
+    const buckets = new Map();
+    (sessions || []).forEach((s) => {
+      if (!s.ts) return;
+      const slot = clicksPeriodBucket(s.ts, period);
+      if (!buckets.has(slot.key)) {
+        buckets.set(slot.key, {
+          key: slot.key,
+          label: slot.label,
+          sortKey: slot.sortKey,
+          count: 0,
+          visitors: 0,
+          unique: 0,
+          repeat: 0,
+          events: 0,
+          _vids: new Set()
+        });
+      }
+      const b = buckets.get(slot.key);
+      b.count += 1;
+      b.events += s.count;
+      if (s.kind === 'repeat') b.repeat += 1;
+      else b.unique += 1;
+      b._vids.add(s.visitor);
+      b.visitors = b._vids.size;
+    });
+    return [...buckets.values()].map((b) => {
+      const { _vids, ...rest } = b;
+      return { ...rest, visitors: _vids.size };
+    }).sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)));
+  }
+
+  function renderClicksNoiseStats(clicks) {
+    const root = document.getElementById('clicks-noise-charts');
+    if (!root) return;
+    const siteEl = document.getElementById('clicks-noise-site');
+    const metricEl = document.getElementById('clicks-noise-metric');
+    const kindEl = document.getElementById('clicks-noise-kind');
+    const site = siteEl ? siteEl.value : '';
+    const metric = metricEl ? metricEl.value : 'visits';
+    const kind = kindEl ? kindEl.value : '';
+    let sessions = listNoiseSessions(clicks);
+    if (site) sessions = sessions.filter((s) => s.site === site);
+    if (kind === 'unique' || kind === 'repeat') sessions = sessions.filter((s) => s.kind === kind);
+
+    const uniqueN = sessions.filter((s) => s.kind === 'unique').length;
+    const repeatN = sessions.filter((s) => s.kind === 'repeat').length;
+    const eventsN = sessions.reduce((n, s) => n + s.count, 0);
+    const visitorsN = new Set(sessions.map((s) => s.visitor)).size;
+    const summary = `<p class="admin-meta clicks-when-clean">Fora do oficial: <strong>${uniqueN.toLocaleString('pt-BR')}</strong> única${uniqueN === 1 ? '' : 's'} · <strong>${repeatN.toLocaleString('pt-BR')}</strong> repetida${repeatN === 1 ? '' : 's'} · <strong>${eventsN.toLocaleString('pt-BR')}</strong> evento${eventsN === 1 ? '' : 's'} · <strong>${visitorsN.toLocaleString('pt-BR')}</strong> visitante${visitorsN === 1 ? '' : 's'}</p>`;
+
+    if (!sessions.length) {
+      root.innerHTML = `${summary}<p class="admin-meta">Nenhuma visita única/repetida neste recorte.</p>`;
+      return;
+    }
+
+    const useEvents = metric === 'events';
+    const sideLabel = (r) => {
+      const visits = Number(r.visits != null ? r.visits : r.count) || 0;
+      const ev = Number(r.events || 0);
+      return useEvents
+        ? `${visits} visita${visits === 1 ? '' : 's'} · ${r.unique}ú / ${r.repeat}r`
+        : `${ev} evento${ev === 1 ? '' : 's'} · ${r.unique}ú / ${r.repeat}r`;
+    };
+    const chartOpts = { sideLabel, cardClass: 'vendas-when-card--noise' };
+    const toChart = (rows) => (useEvents
+      ? rows.map((r) => ({ ...r, visits: r.count, count: r.events }))
+      : rows.map((r) => ({ ...r, visits: r.count })));
+    const origins = toChart(aggregateNoiseSessions(sessions, 'origemKey', 'origemLabel'));
+    const dests = toChart(aggregateNoiseSessions(sessions, 'destKey', 'destLabel'));
+    const days = toChart(aggregateNoiseByPeriod(sessions, 'day'));
+    const months = toChart(aggregateNoiseByPeriod(sessions, 'month'));
+    const years = toChart(aggregateNoiseByPeriod(sessions, 'year'));
+    const sites = toChart(aggregateNoiseSessions(sessions, 'site', 'site').map((b) => ({
+      ...b,
+      label: b.key === 'com' ? '.com' : '.com.br'
+    })));
+
+    root.innerHTML = summary + [
+      renderWhenBarChart('Origem', origins, 'count', chartOpts),
+      renderWhenBarChart('Destino / local', dests, 'count', chartOpts),
+      renderWhenBarChart('Site', sites, 'count', { ...chartOpts, cardClass: 'vendas-when-card--noise vendas-when-card--site' }),
+      renderWhenBarChart('Por dia', days, 'count', chartOpts),
+      renderWhenBarChart('Por mês', months, 'count', chartOpts),
+      renderWhenBarChart('Por ano', years, 'count', chartOpts)
+    ].join('');
   }
 
   function pruneUniqueOrRepeatSessions(tree) {
@@ -3196,7 +3413,10 @@ ${worksheets}
     const checkedEl = document.getElementById('clicks-checked-at');
     const totalMatch = checkedEl?.textContent?.match(/de (\d+) no log/);
     const total = totalMatch ? Number(totalMatch[1]) : clicksCache.length;
-    if (clicksWhenCache.length) renderClicksWhenCharts(clicksWhenCache);
+    if (clicksWhenCache.length) {
+      renderClicksWhenCharts(clicksWhenCache);
+      renderClicksNoiseStats(clicksWhenCache);
+    }
     renderClicksTree(clicksCache, new Date().toISOString(), total, openPaths);
     document.getElementById('clicks-fold-log')?.setAttribute('open', '');
   }
@@ -3362,6 +3582,7 @@ ${worksheets}
       clicksWhenWindow = data.capacity || null;
       renderClicksStats(data);
       renderClicksWhenCharts(clicksWhenCache);
+      renderClicksNoiseStats(clicksWhenCache);
       renderClicksTree(clicksCache, data.checkedAt, data.total, openPaths);
       const checkedEl = document.getElementById('clicks-checked-at');
       if (checkedEl && data.withNav && destino) {
@@ -3372,6 +3593,8 @@ ${worksheets}
       root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
       const charts = document.getElementById('clicks-when-charts');
       if (charts) charts.innerHTML = '';
+      const noise = document.getElementById('clicks-noise-charts');
+      if (noise) noise.innerHTML = '';
     } finally {
       clicksLoading = false;
     }
