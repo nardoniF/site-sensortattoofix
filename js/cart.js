@@ -63,6 +63,12 @@ window.STF_CART = (function () {
     };
   }
 
+  function hasProduct(product) {
+    const id = product?.id || product?.slug || product?.productId || product;
+    const slug = product?.slug || product?.id;
+    return load().some((i) => i.productId === id || i.slug === id || (slug && (i.productId === slug || i.slug === slug)));
+  }
+
   function add(product, qty) {
     if (!product || product.inStock === false) return load();
     const items = load();
@@ -164,6 +170,7 @@ window.STF_CART = (function () {
     add,
     setQty,
     remove,
+    hasProduct,
     clear,
     isEmpty,
     count,

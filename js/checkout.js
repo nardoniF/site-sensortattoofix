@@ -976,11 +976,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!slug) return false;
     const p = products.find((x) => x.slug === slug || x.id === slug);
     if (!p || window.STF_PELICULA?.isAggregated(p)) return false;
-    if (params.get('comprar') === '1') {
-      // Only clear after we know the product exists — never wipe the cart on a failed seed.
-      window.STF_CART.clear();
+    // comprar=1 used to clear the cart and replace it with this SKU.
+    // If the shopper already has items (Adicionar mais produtos), only add.
+    if (!window.STF_CART.hasProduct?.(p)) {
+      window.STF_CART.add(p, 1);
     }
-    window.STF_CART.add(p, 1);
     params.delete('produto');
     params.delete('comprar');
     const q = params.toString();

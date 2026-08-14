@@ -9,9 +9,15 @@
     return window.STF_I18N?.isEn?.() || false;
   }
 
+  function cartHasItems() {
+    return !window.STF_CART?.isEmpty?.();
+  }
+
   function comprarHref(slug) {
     const base = window.STF_I18N?.comprarPageHref?.() || 'comprar.html';
-    return `${base}?produto=${encodeURIComponent(slug)}&comprar=1`;
+    // Cart already has items: add this SKU, never replace the cart.
+    const flag = cartHasItems() ? '0' : '1';
+    return `${base}?produto=${encodeURIComponent(slug)}&comprar=${flag}`;
   }
 
   function formatBRL(v) {
@@ -101,7 +107,7 @@
               <button type="button" class="btn-secondary loja-btn-add" data-slug="${escapeHtml(slug)}">
                 <i class="fas fa-cart-plus"></i> ${escapeHtml(L('store.add'))}
               </button>
-              <a href="${comprarHref(slug)}" class="btn-primary loja-btn-buy">
+              <a href="${comprarHref(slug)}" class="btn-primary loja-btn-buy" data-slug="${escapeHtml(slug)}" ${cartHasItems() ? 'hidden' : ''}>
                 ${escapeHtml(L('store.buy'))} <i class="fas fa-arrow-right"></i>
               </a>
             </div>
@@ -123,6 +129,7 @@
         window.STF_CART.add(p, 1);
         const label = window.STF_PELICULA?.productLabel?.(p) || p.name;
         flash(L('store.addedName', { name: label }));
+        refreshBuyButtons();
       });
     });
 
@@ -131,14 +138,25 @@
     grid.querySelectorAll('.loja-btn-buy').forEach((link) => {
       link.addEventListener('click', () => {
         try {
-          const href = link.getAttribute('href') || '';
-          const slug = new URL(href, location.href).searchParams.get('produto');
+          const slug = link.getAttribute('data-slug')
+            || new URL(link.getAttribute('href') || '', location.href).searchParams.get('produto');
           const p = findProduct(slug);
-          if (p && p.inStock !== false) window.STF_CART?.add(p, 1);
+          if (p && p.inStock !== false && !window.STF_CART?.hasProduct?.(p)) {
+            window.STF_CART.add(p, 1);
+          }
         } catch (e) {
           console.warn('Buy cart seed', e);
         }
       });
+    });
+  }
+
+  function refreshBuyButtons() {
+    document.querySelectorAll('.loja-btn-buy').forEach((link) => {
+      const slug = link.getAttribute('data-slug');
+      if (!slug) return;
+      link.setAttribute('href', comprarHref(slug));
+      link.hidden = cartHasItems();
     });
   }
 
@@ -177,6 +195,7 @@
       window.STF_CART?.initBadges();
       window.STF_STORE_PRICE?.apply(cfg);
       renderGrid();
+      window.addEventListener('stf-cart-updated', refreshBuyButtons);
       applyLocalizedPrices(products);
     } catch (e) {
       const grid = document.getElementById('loja-grid');

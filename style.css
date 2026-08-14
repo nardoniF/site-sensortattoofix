@@ -5498,18 +5498,23 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .loja-card-actions {
     display: flex;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: stretch;
     margin-top: auto;
     padding-top: 8px;
+    position: relative;
+    z-index: 1;
 }
 .loja-card-actions .btn-primary,
 .loja-card-actions .btn-secondary {
-    flex: 1;
-    min-width: 120px;
+    flex: 1 1 0;
+    min-width: 0;
     justify-content: center;
     text-decoration: none;
     font-size: 0.85rem;
     padding: 10px 12px;
+    position: relative;
+    z-index: 1;
 }
 .loja-toast {
     position: fixed;
