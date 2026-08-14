@@ -509,13 +509,14 @@
     const json = JSON.stringify(payload);
     const primary = urls[0];
 
-    if (urgente) {
-      if (primary && typeof navigator.sendBeacon === 'function') {
-        try {
-          navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }));
-        } catch (_) { /* ignore */ }
-      }
-      enviarLogPixel(payload);
+    // One transport per click. Beacon+fetch+pixel used to persist the same tap 3 times
+    // (server dedupe ran after the write, so concurrent copies all landed).
+    if (urgente && primary && typeof navigator.sendBeacon === 'function') {
+      try {
+        if (navigator.sendBeacon(primary, new Blob([json], { type: 'application/json' }))) {
+          return true;
+        }
+      } catch (_) { /* fall through to fetch */ }
     }
 
     enviarLogFetchSequencial(urls, json, payload, 0);

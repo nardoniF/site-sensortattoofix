@@ -12876,6 +12876,17 @@ async function isDuplicateClickEvent(eventId) {
   return !!(await cache.match(req));
 }
 
+/** Claim the event id before writing so beacon+fetch races cannot persist 3 rows. */
+async function claimClickEvent(eventId) {
+  const id = String(eventId || '').trim().slice(0, 64);
+  if (!id) return true;
+  const cache = caches.default;
+  const req = new Request(`https://stf-click-dedupe/${encodeURIComponent(id)}`);
+  if (await cache.match(req)) return false;
+  await cache.put(req, new Response('1', { headers: { 'Cache-Control': 'max-age=120' } }));
+  return true;
+}
+
 async function markClickEventSeen(eventId) {
   const id = String(eventId || '').trim().slice(0, 64);
   if (!id) return;
@@ -13082,7 +13093,7 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   const eventId = String(body.client_event_id || '').trim().slice(0, 64);
-  if (eventId && (await isDuplicateClickEvent(eventId))) {
+  if (eventId && !(await claimClickEvent(eventId))) {
     return json({ ok: true, deduped: true }, 202, origin);
   }
 
@@ -13126,7 +13137,7 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   }
 
   const eventId = String(params.client_event_id || '').trim().slice(0, 64);
-  if (eventId && (await isDuplicateClickEvent(eventId))) {
+  if (eventId && !(await claimClickEvent(eventId))) {
     return pixelResponse(origin);
   }
 

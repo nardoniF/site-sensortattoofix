@@ -1476,7 +1476,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   const SMARTBAND_PRODUCT_RE = /smartband/i;
-  const SMARTBAND_MODEL_RE = /\b((smart\s*)?band|mi\s*band|honor\s*band|huawei\s*band|amazfit\s*band|galaxy\s*fit|vivosmart|v[ií]vofit|fitbit\s*(charge|inspire|ace|luxe))\b/i;
+  const SMARTBAND_MODEL_RE = /\b((smart\s*)?band|mi\s*band|honor\s*band|huawei\s*band|amazfit\s*band|galaxy\s*fit|vivosmart|v[ií]vofit|fitbit\s*(charge|inspire|ace|luxe|air))\b/i;
 
   function isSmartbandProduct(p) {
     if (!p) return false;

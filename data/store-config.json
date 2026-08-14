@@ -1700,6 +1700,7 @@
     "Fitbit Inspire 3",
     "Fitbit Luxe",
     "Fitbit Ace 3",
+    "Fitbit Air",
     "Fitbit Sense 2",
     "Fitbit Versa 3",
     "Fitbit Versa 4",
@@ -3757,6 +3758,11 @@
       {
         "label": "Fitbit Ace 3",
         "model": "Ace 3",
+        "sizeMm": 18
+      },
+      {
+        "label": "Fitbit Air",
+        "model": "Air",
         "sizeMm": 18
       },
       {
