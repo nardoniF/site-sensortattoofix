@@ -635,14 +635,27 @@
     }
   }
 
+  function mesmaAbaSaiDaPagina(link, href) {
+    if (!link) return false;
+    const target = String(link.target || '').toLowerCase();
+    if (target === '_blank' || target === '_new') return false;
+    return linkSaiDaPagina(href);
+  }
+
   function registrarLog(data) {
     if (!logClickEndpoints().length) return;
 
     try {
       const body = montarCorpoLog(data);
       const tipo = body.tipo || 'clique';
-      const saiDaPagina = tipo !== 'pageview' && linkSaiDaPagina(data.href);
-      enviarLogPayload(body, !!saiDaPagina || !!data.urgente);
+      // Beacon only when this tab is actually leaving. Home, _blank (ML/Shopee/Amazon)
+      // and in-page clicks stay on fetch — beacon-only dropped pageviews after the
+      // triple-log fix.
+      const usarBeacon = tipo !== 'pageview' && mesmaAbaSaiDaPagina(
+        data.link || null,
+        data.href
+      );
+      enviarLogPayload(body, usarBeacon);
     } catch (err) {
       console.warn('stf log:', err);
     }
@@ -695,19 +708,6 @@
     });
   }
 
-  function linkUrgenteParaLog(link, href) {
-    if (link.target === '_blank') return true;
-    const h = (href || '').trim();
-    if (!h || h === '#' || h.startsWith('#')) return false;
-    try {
-      const dest = new URL(h, location.href);
-      if (dest.origin !== location.origin) return true;
-      return (dest.pathname + dest.search) !== (location.pathname + location.search);
-    } catch {
-      return true;
-    }
-  }
-
   function trackSecaoLink(link) {
     if (!linkRastreavel(link)) return;
     const href = link.getAttribute('href');
@@ -719,7 +719,8 @@
       elemento: 'link',
       href: abs,
       destino: classificarDestino(href, link),
-      urgente: linkUrgenteParaLog(link, href)
+      link,
+      urgente: mesmaAbaSaiDaPagina(link, href)
     });
     track('secao_link', payload);
     registrarLog(payload);
@@ -774,7 +775,7 @@
     const link = e.target.closest('a[href]');
     if (!link || !linkRastreavel(link)) return;
     const href = link.getAttribute('href');
-    if (!linkUrgenteParaLog(link, href)) return;
+    if (!mesmaAbaSaiDaPagina(link, href)) return;
     trackSecaoLink(link);
   }
 
