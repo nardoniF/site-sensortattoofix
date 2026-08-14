@@ -642,7 +642,7 @@
       const body = montarCorpoLog(data);
       const tipo = body.tipo || 'clique';
       const saiDaPagina = tipo !== 'pageview' && linkSaiDaPagina(data.href);
-      enviarLogPayload(body, !!saiDaPagina || !!data.urgente || tipo === 'pageview');
+      enviarLogPayload(body, !!saiDaPagina || !!data.urgente);
     } catch (err) {
       console.warn('stf log:', err);
     }
@@ -675,13 +675,11 @@
     return pack(base, base.replace(/_/g, ' '));
   }
 
+  let pageviewSentThisLoad = false;
+
   function registrarPageview() {
-    const pathKey = location.pathname + location.search;
-    const storageKey = 'stf_entrada:' + pathKey;
-    try {
-      if (sessionStorage.getItem(storageKey)) return;
-      sessionStorage.setItem(storageKey, '1');
-    } catch (_) { /* ignore */ }
+    if (pageviewSentThisLoad) return;
+    pageviewSentThisLoad = true;
 
     const { slug, rotulo } = classificarEntradaPagina();
     registrarLog({
@@ -692,7 +690,8 @@
       rotulo,
       href: location.href,
       pagina: humanizarPagina(location.pathname),
-      titulo_pagina: document.title || ''
+      titulo_pagina: document.title || '',
+      urgente: false
     });
   }
 
