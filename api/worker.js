@@ -12804,11 +12804,18 @@ async function clearClicksD1(env, mode) {
   return { removed: dropIds.length, remaining: Number(after?.n || 0) };
 }
 
+let clicksKvMigrated = false;
+let droppedLegacyClickKv = false;
+
 async function maybeMigrateKvClicksToD1(env) {
+  if (clicksKvMigrated) return;
   const db = clicksDb(env);
   if (!db) return;
   try {
-    if (await env.STORE_KV.get(CLICKS_D1_MIGRATE_KEY)) return;
+    if (await env.STORE_KV.get(CLICKS_D1_MIGRATE_KEY)) {
+      clicksKvMigrated = true;
+      return;
+    }
   } catch { /* continue */ }
   await ensureClicksD1(env);
   const blob = (await getClicksBlob(env)) || [];
@@ -12860,7 +12867,6 @@ async function appendClickLogBatch(env, entries) {
  * Persist one click immediately to D1 (durable). No Cache batching — that lost events across edges.
  */
 async function persistClickLog(env, entry) {
-  await maybeMigrateKvClicksToD1(env).catch((err) => console.warn('clicks D1 migrate:', err.message || err));
   return insertClickD1(env, {
     ...entry,
     id: entry.id || crypto.randomUUID(),
@@ -13026,8 +13032,6 @@ async function handleAdminClearClicks(request, env, origin) {
   const body = await request.json().catch(() => ({}));
   const mode = body.mode === 'all' ? 'all' : 'tests';
 
-  await maybeMigrateKvClicksToD1(env).catch(() => {});
-
   let removed = 0;
   let remaining = 0;
 
@@ -13037,33 +13041,7 @@ async function handleAdminClearClicks(request, env, origin) {
     remaining = d1.remaining;
   }
 
-  // Legacy KV cleanup (blob / per-key index) — once, then empty.
-  const blobActive = await clicksBlobStoreActive(env);
-  if (blobActive) {
-    const list = (await getClicksBlob(env)) || [];
-    if (mode === 'all') {
-      removed += list.length;
-      await saveClicksBlob(env, []);
-    } else {
-      const kept = list.filter((row) => !isTestClick(row));
-      removed += list.length - kept.length;
-      await saveClicksBlob(env, kept);
-    }
-  }
-  removed += await purgeLegacyClickIndex(env, mode);
-
-  if (clicksDb(env)) {
-    const again = await loadClicksFromD1(env, 1);
-    remaining = again?.total ?? remaining;
-  } else if (mode === 'all') {
-    remaining = 0;
-  } else if (blobActive) {
-    remaining = ((await getClicksBlob(env)) || []).length;
-  } else {
-    remaining = (await getClicksIndex(env)).length;
-  }
-
-  return json({ ok: true, mode, removed, remaining, store: clicksDb(env) ? 'd1' : 'kv' }, 200, origin);
+  return json({ ok: true, mode, removed, remaining, store: 'd1' }, 200, origin);
 }
 
 async function checkClickRate(env, ip) {
@@ -13194,18 +13172,25 @@ function enrichClickRowForAdmin(row) {
 }
 
 async function flushClickWriteBufferToKv(env) {
-  // Legacy no-op: click buffer removed. Ensure one-time KV→D1 migration runs.
-  await maybeMigrateKvClicksToD1(env);
   return 0;
+}
+
+async function dropLegacyClickKvShell(env) {
+  if (droppedLegacyClickKv) return;
+  droppedLegacyClickKv = true;
+  try {
+    if (await env.STORE_KV.get(CLICKS_BLOB) != null) await kvDelete(env, CLICKS_BLOB);
+    if (await env.STORE_KV.get(CLICKS_INDEX) != null) await kvDelete(env, CLICKS_INDEX);
+  } catch (err) {
+    droppedLegacyClickKv = false;
+    console.warn('drop legacy click KV:', err?.message || err);
+  }
 }
 
 async function handleAdminListClicks(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
-
-  // Prefer D1 (durable inserts). Fall back to legacy KV blob/index during transition.
-  await maybeMigrateKvClicksToD1(env).catch(() => {});
 
   const url = new URL(request.url);
   const q = (url.searchParams.get('q') || '').trim().toLowerCase();
@@ -13217,24 +13202,9 @@ async function handleAdminListClicks(request, env, origin) {
   const limit = Math.min(CLICKS_TREE_MAX, Math.max(20, parseInt(url.searchParams.get('limit') || String(CLICKS_TREE_MAX), 10) || CLICKS_TREE_MAX));
   const window = clicksRetentionWindow();
 
-  let loaded;
-  let total;
   const fromD1 = await loadClicksFromD1(env, limit);
-  if (fromD1) {
-    loaded = fromD1.loaded;
-    total = fromD1.total;
-  } else {
-    const blobActive = await clicksBlobStoreActive(env);
-    if (blobActive) {
-      loaded = (await getClicksBlob(env)) || [];
-      total = loaded.length;
-    } else {
-      const ids = await getClicksIndex(env);
-      total = ids.length;
-      const scanIds = ids.slice(0, Math.min(ids.length, 500));
-      loaded = await loadClickRows(env, scanIds, scanIds.length);
-    }
-  }
+  let loaded = fromD1?.loaded || [];
+  let total = fromD1?.total || 0;
 
   function sessionKey(row) {
     const vid = String(row?.visitante_id || '').trim();
@@ -14055,19 +14025,25 @@ function normalizePaymentLabel(pagamento) {
 }
 
 async function aggregateMonthlyMarketplaceClicks(env, year, month) {
-  const blob = (await getClicksBlob(env)) || [];
   const counts = Object.fromEntries(Object.keys(MARKETPLACE_DESTINOS).map((k) => [k, 0]));
   let total = 0;
-  for (const row of blob) {
-    if (!isRealClick(row)) continue;
+  let sampleSize = 0;
+  const db = await ensureClicksD1(env);
+  if (!db) return { counts, total, sampleSize };
+  const start = spMidnightUtcMs(year, month, 1);
+  const end = month === 12 ? spMidnightUtcMs(year + 1, 1, 1) : spMidnightUtcMs(year, month + 1, 1);
+  const res = await db.prepare(
+    'SELECT destino, COUNT(*) AS n FROM clicks WHERE ts >= ? AND ts < ? AND teste = 0 GROUP BY destino'
+  ).bind(start, end).all();
+  for (const row of res?.results || []) {
     const destino = String(row.destino || '').trim();
+    const n = Number(row.n) || 0;
+    sampleSize += n;
     if (!MARKETPLACE_DESTINOS[destino]) continue;
-    const ts = row.ts || row.client_ts;
-    if (!isTsInSaoPauloMonth(ts, year, month)) continue;
-    counts[destino] += 1;
-    total += 1;
+    counts[destino] += n;
+    total += n;
   }
-  return { counts, total, sampleSize: blob.length };
+  return { counts, total, sampleSize };
 }
 
 async function aggregateMonthlyOrders(env, year, month) {
@@ -14574,8 +14550,8 @@ export default {
     );
     if (event.cron === '*/5 * * * *') {
       ctx.waitUntil(
-        flushClickWriteBufferToKv(env).catch((err) => {
-          console.error('Click buffer flush cron failed:', err.message);
+        dropLegacyClickKvShell(env).catch((err) => {
+          console.error('Legacy click KV drop failed:', err.message);
         })
       );
       ctx.waitUntil(
