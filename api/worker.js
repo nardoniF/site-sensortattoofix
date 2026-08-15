@@ -3680,7 +3680,7 @@ async function handleMlOAuthCallback(request, env) {
 const ML_SALE_PREFIX = 'sale:ml:';
 const ML_SALES_INDEX_KEY = 'sales:ml:index';
 const ML_SALES_META_KEY = 'sales:ml:meta';
-const ML_SYNC_LOOKBACK_DAYS = 90;
+const ML_SYNC_LOOKBACK_DAYS = 400;
 const ML_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
 const ML_SALES_INDEX_MAX = 5000;
 const ML_SYNC_PAGE_LIMIT = 50;
@@ -3759,7 +3759,7 @@ function normalizeMlOrder(order) {
     shippingCost: Number(p.shipping_cost || 0),
     marketplaceFee: p.marketplace_fee != null ? Number(p.marketplace_fee) : null
   }));
-  const shippingCost = 0;
+  const shippingHint = mlHintShippingFromOrder(order);
   const net = Math.round((gross - fees) * 100) / 100;
   const soldAt = order.date_closed || order.date_created || null;
   return {
@@ -3784,6 +3784,7 @@ function normalizeMlOrder(order) {
     items,
     payments,
     shippingId: order.shipping?.id != null ? String(order.shipping.id) : null,
+    shippingHint,
     dateCreated: order.date_created || null,
     dateLastUpdated: order.date_last_updated || order.last_updated || null,
     syncedAt: new Date().toISOString()
@@ -3796,6 +3797,13 @@ function mlMoney(n) {
   return Math.round(v * 100) / 100;
 }
 
+function mlHintShippingFromOrder(order) {
+  const fromOrder = mlMoney(order?.shipping_cost);
+  if (fromOrder > 0) return fromOrder;
+  const pays = Array.isArray(order?.payments) ? order.payments : [];
+  return mlMoney(pays.reduce((s, p) => s + Number(p.shipping_cost || 0), 0));
+}
+
 function mlSellerCostFromCostsPayload(data, sellerId) {
   const senders = Array.isArray(data?.senders) ? data.senders : [];
   let sender = senders[0] || null;
@@ -3804,7 +3812,6 @@ function mlSellerCostFromCostsPayload(data, sellerId) {
   }
   return mlMoney(
     sender?.cost
-    ?? sender?.save
     ?? data?.sender?.cost
     ?? data?.gross_amount
     ?? 0
@@ -3824,15 +3831,26 @@ function mlSaleNetFromParts(sale, shippingCost) {
 function mergeMlSaleShipping(existing, sale) {
   const next = mlMoney(sale?.shippingCost);
   const prev = mlMoney(existing?.shippingCost);
-  const shippingCost = next > 0 ? next : prev;
-  const shippingCostsOk = !!(sale?.shippingCostsOk || (existing?.shippingCostsOk && prev > 0));
+  const hint = mlMoney(sale?.shippingHint) || mlMoney(existing?.shippingHint);
+  const shippingCost = next > 0 ? next : (prev > 0 ? prev : hint);
+  const shippingCostsOk = !!(sale?.shippingCostsOk || (existing?.shippingCostsOk && prev > 0) || shippingCost > 0);
   return {
     ...sale,
     shippingCost,
+    shippingHint: hint,
     buyerShippingCost: sale?.buyerShippingCost ?? existing?.buyerShippingCost,
     shippingCostsOk,
     net: mlSaleNetFromParts(sale, shippingCost)
   };
+}
+
+async function fetchMlOrderById(token, orderId) {
+  const res = await fetch(`${ML_API_BASE}/orders/${encodeURIComponent(orderId)}`, {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return null;
+  return data;
 }
 
 async function fetchMlShipmentSellerCost(token, shippingId) {
@@ -3845,32 +3863,53 @@ async function fetchMlShipmentSellerCost(token, shippingId) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return 0;
   const opt = data.shipping_option || {};
-  return mlMoney(opt.cost ?? data.base_cost ?? 0);
+  return mlMoney(opt.cost ?? opt.list_cost ?? data.base_cost ?? 0);
 }
 
 async function enrichMlSaleShippingCost(env, token, sale, sellerId) {
-  if (!sale?.shippingId || !token) return sale;
+  if (!token || !sale) return sale;
   try {
-    const res = await fetch(`${ML_API_BASE}/shipments/${encodeURIComponent(sale.shippingId)}/costs`, {
-      headers: {
-        Authorization: 'Bearer ' + token,
-        Accept: 'application/json',
-        'x-format-new': 'true'
+    let shippingId = sale.shippingId ? String(sale.shippingId) : '';
+    let hint = mlMoney(sale.shippingHint);
+    if (!shippingId || !(hint > 0)) {
+      const order = await fetchMlOrderById(token, sale.externalId);
+      if (order) {
+        if (!shippingId && order.shipping?.id != null) shippingId = String(order.shipping.id);
+        const fromOrder = mlHintShippingFromOrder(order);
+        if (fromOrder > 0) hint = fromOrder;
       }
-    });
-    const data = await res.json().catch(() => ({}));
-    let sellerShipping = res.ok ? mlSellerCostFromCostsPayload(data, sellerId) : 0;
-    const buyerShipping = res.ok ? mlMoney(data.receiver?.cost) : mlMoney(sale.buyerShippingCost);
-    if (!(sellerShipping > 0)) {
-      sellerShipping = await fetchMlShipmentSellerCost(token, sale.shippingId);
     }
-    if (!(sellerShipping > 0) && !(buyerShipping > 0)) return sale;
+    let sellerShipping = 0;
+    let buyerShipping = mlMoney(sale.buyerShippingCost);
+    if (shippingId) {
+      const res = await fetch(`${ML_API_BASE}/shipments/${encodeURIComponent(shippingId)}/costs`, {
+        headers: {
+          Authorization: 'Bearer ' + token,
+          Accept: 'application/json',
+          'x-format-new': 'true'
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        sellerShipping = mlSellerCostFromCostsPayload(data, sellerId);
+        buyerShipping = mlMoney(data.receiver?.cost) || buyerShipping;
+      }
+      if (!(sellerShipping > 0)) {
+        sellerShipping = await fetchMlShipmentSellerCost(token, shippingId);
+      }
+    }
+    if (!(sellerShipping > 0)) sellerShipping = hint;
+    if (!(sellerShipping > 0)) {
+      return { ...sale, shippingId: shippingId || sale.shippingId, shippingHint: hint };
+    }
     return {
       ...sale,
+      shippingId: shippingId || sale.shippingId,
+      shippingHint: hint,
       shippingCost: sellerShipping,
       buyerShippingCost: buyerShipping,
       net: mlSaleNetFromParts(sale, sellerShipping),
-      shippingCostsOk: sellerShipping > 0
+      shippingCostsOk: true
     };
   } catch {
     return sale;
@@ -3882,6 +3921,24 @@ async function upsertMlSale(env, sale, index) {
   const next = (index || []).filter((id) => id !== sale.externalId);
   next.unshift(sale.externalId);
   return next.slice(0, ML_SALES_INDEX_MAX);
+}
+
+async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
+  let filled = 0;
+  for (const id of index || []) {
+    if (filled >= limit) break;
+    const raw = await env.STORE_KV.get(ML_SALE_PREFIX + id);
+    if (!raw) continue;
+    let sale;
+    try { sale = JSON.parse(raw); } catch { continue; }
+    if (mlMoney(sale.shippingCost) > 0) continue;
+    const next = await enrichMlSaleShippingCost(env, token, sale, sellerId);
+    const merged = mergeMlSaleShipping(sale, next);
+    if (!(mlMoney(merged.shippingCost) > 0)) continue;
+    await kvPut(env, ML_SALE_PREFIX + merged.externalId, JSON.stringify(merged));
+    filled += 1;
+  }
+  return filled;
 }
 
 async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit }) {
@@ -3928,7 +3985,7 @@ async function syncMlOrders(env, options = {}) {
   const meta = await getMlSalesMeta(env);
   const now = new Date();
   const full = options.full === true || !meta?.lastSyncedAt;
-  const days = Math.min(365, Math.max(1, Number(options.days) || ML_SYNC_LOOKBACK_DAYS));
+  const days = Math.min(400, Math.max(1, Number(options.days) || ML_SYNC_LOOKBACK_DAYS));
   let from;
   if (full || options.days) {
     from = new Date(now.getTime() - days * 86400000);
@@ -3977,6 +4034,13 @@ async function syncMlOrders(env, options = {}) {
     if (offset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
   }
 
+  const backfillLimit = Math.max(0, Number(
+    options.backfillShipping != null ? options.backfillShipping : 80
+  ));
+  const shippingFilled = backfillLimit > 0
+    ? await backfillMlZeroShipping(env, token, sellerId, index, backfillLimit)
+    : 0;
+
   await kvPut(env, ML_SALES_INDEX_KEY, JSON.stringify(index));
   const report = {
     ok: true,
@@ -3989,6 +4053,7 @@ async function syncMlOrders(env, options = {}) {
     imported,
     updated,
     indexed: index.length,
+    shippingFilled,
     lastSyncedAt: now.toISOString(),
     lastError: null
   };
@@ -4037,7 +4102,8 @@ async function handleAdminMlSync(request, env, origin) {
   try {
     const report = await syncMlOrders(env, {
       full,
-      days: daysParam ? Number(daysParam) : undefined
+      days: daysParam ? Number(daysParam) : undefined,
+      backfillShipping: 400
     });
     return json(report, 200, origin);
   } catch (err) {

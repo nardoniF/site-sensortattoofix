@@ -1975,7 +1975,7 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       showStatus(
-        `Sync OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas (${data.indexed || 0} no índice).`,
+        `Sync OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas, ${data.shippingFilled || 0} com frete preenchido (${data.indexed || 0} no índice).`,
         'success',
         'vendas'
       );
