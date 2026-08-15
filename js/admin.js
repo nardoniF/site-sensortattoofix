@@ -1961,16 +1961,27 @@ ${worksheets}
   async function syncMlSalesFromAdmin() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
+    const btn = document.getElementById('btn-vendas-ml-sync');
     if (!token || !base) {
       showStatus('Faça login no admin.', 'error', 'vendas');
       return;
     }
-    showStatus('Sincronizando Mercado Livre…', '', 'vendas');
+    if (btn?.dataset.busy === '1') return;
+    const btnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.dataset.busy = '1';
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando ML…';
+    }
+    showStatus('Sincronizando Mercado Livre (pode levar até 1 minuto)…', '', 'vendas');
+    const ac = new AbortController();
+    const abortTimer = setTimeout(() => ac.abort(), 120000);
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sync?full=1&days=400`, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token },
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: ac.signal
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -1981,7 +1992,17 @@ ${worksheets}
       );
       await loadMlSales(true);
     } catch (err) {
-      showStatus(err.message || 'Falha no sync ML.', 'error', 'vendas');
+      const msg = err?.name === 'AbortError'
+        ? 'O sync ML passou de 2 minutos e foi interrompido. Tente de novo.'
+        : (err.message || 'Falha no sync ML.');
+      showStatus(msg, 'error', 'vendas');
+    } finally {
+      clearTimeout(abortTimer);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = btnHtml || '<i class="fas fa-cloud-download-alt"></i> Atualizar ML';
+        delete btn.dataset.busy;
+      }
     }
   }
 

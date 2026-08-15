@@ -4021,7 +4021,7 @@ async function syncMlOrders(env, options = {}) {
         imported += 1;
       }
       const alreadyPriced = Number(existing?.shippingCost || 0) > 0 && existing?.shippingCostsOk;
-      if (!alreadyPriced) {
+      if (!alreadyPriced && options.enrichShipping !== false) {
         sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
       }
       sale = mergeMlSaleShipping(existing, sale);
@@ -4103,7 +4103,8 @@ async function handleAdminMlSync(request, env, origin) {
     const report = await syncMlOrders(env, {
       full: true,
       days: daysParam ? Number(daysParam) : 400,
-      backfillShipping: 400
+      backfillShipping: 20,
+      enrichShipping: false
     });
     return json(report, 200, origin);
   } catch (err) {
@@ -4120,12 +4121,13 @@ async function handleAdminMlSales(request, env, origin) {
   const index = await getMlSalesIndex(env);
   const ids = index.slice(0, limit);
   const sales = [];
-  for (const id of ids) {
-    const raw = await env.STORE_KV.get(ML_SALE_PREFIX + id);
-    if (!raw) continue;
-    try {
-      sales.push(JSON.parse(raw));
-    } catch { /* skip bad row */ }
+  for (let i = 0; i < ids.length; i += 40) {
+    const chunk = ids.slice(i, i + 40);
+    const rows = await Promise.all(chunk.map((id) => env.STORE_KV.get(ML_SALE_PREFIX + id)));
+    for (const raw of rows) {
+      if (!raw) continue;
+      try { sales.push(JSON.parse(raw)); } catch { /* skip */ }
+    }
   }
   const meta = await getMlSalesMeta(env);
   return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
