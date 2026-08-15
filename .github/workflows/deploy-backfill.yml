@@ -1,0 +1,37 @@
+name: Deploy & Backfill
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy-and-backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies (api)
+        run: |
+          cd api
+          npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Deploy Worker (wrangler)
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          cd api
+          npx wrangler@latest deploy
+
+      - name: Backfill normalized (MercadoLivre)
+        env:
+          BACKFILL_KEY: ${{ secrets.BACKFILL_KEY }}
+        run: |
+          # adjust channel/limit as needed
+          RESPONSE=$(curl -s -X POST "https://api.sensortattoofix.com.br/admin/backfill-normalized?channel=mercadolivre&limit=5000&key=${BACKFILL_KEY}")
+          echo "$RESPONSE"
