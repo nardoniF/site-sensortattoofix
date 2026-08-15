@@ -3462,11 +3462,15 @@ ${worksheets}
             const d = m.days[dateKey];
             const visitorCount = Object.keys(d.visitors).length;
             const dayPath = `${monthPath}|${dateKey}`;
-            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+            const lastTs = Math.max(0, ...Object.values(d.visitors).flatMap((v) =>
+              Object.values(v.sessions).flat().map((e) => Number(e.ts) || 0)
+            ));
+            const lastHint = lastTs ? ('último ' + formatClickTime(lastTs)) : '';
+            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's') + (lastHint ? ' · ' + lastHint : ''))}</summary><div class="clicks-tree-children">`;
 
             const visitors = Object.entries(d.visitors).sort((a, b) => {
-              const ta = Math.min(...Object.values(a[1].sessions).flat().map((e) => e.ts || 0));
-              const tb = Math.min(...Object.values(b[1].sessions).flat().map((e) => e.ts || 0));
+              const ta = Math.max(0, ...Object.values(a[1].sessions).flat().map((e) => Number(e.ts) || 0));
+              const tb = Math.max(0, ...Object.values(b[1].sessions).flat().map((e) => Number(e.ts) || 0));
               return tb - ta;
             });
 
@@ -3476,8 +3480,8 @@ ${worksheets}
               html += `<details class="clicks-tree-node clicks-tree-visitor" data-tree-path="${visitorPath}"><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
 
               const sessions = Object.entries(v.sessions).sort((a, b) => {
-                const ta = Math.min(...(a[1].map((e) => e.ts || 0)));
-                const tb = Math.min(...(b[1].map((e) => e.ts || 0)));
+                const ta = Math.max(0, ...a[1].map((e) => Number(e.ts) || 0));
+                const tb = Math.max(0, ...b[1].map((e) => Number(e.ts) || 0));
                 return tb - ta;
               });
 
@@ -3531,7 +3535,7 @@ ${worksheets}
     if (day) day.open = true;
   }
 
-  const CLICKS_NAV_ONLY_KEY = 'stf_clicks_nav_only';
+  const CLICKS_NAV_ONLY_KEY = 'stf_clicks_nav_only_v2';
   const CLICKS_HIDE_HOME_KEY = 'stf_clicks_hide_home_only';
 
   function readClicksNavOnlyPref() {
@@ -3539,11 +3543,8 @@ ${worksheets}
       const saved = localStorage.getItem(CLICKS_NAV_ONLY_KEY);
       if (saved === '0') return false;
       if (saved === '1') return true;
-      const legacy = localStorage.getItem(CLICKS_HIDE_HOME_KEY);
-      if (legacy === '0') return false;
-      if (legacy === '1') return true;
     } catch { /* ignore */ }
-    return true;
+    return false;
   }
 
   function writeClicksNavOnlyPref(on) {
