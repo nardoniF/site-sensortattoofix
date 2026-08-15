@@ -3993,8 +3993,11 @@ async function syncMlOrders(env, options = {}) {
     const last = new Date(meta.lastSyncedAt);
     from = new Date(last.getTime() - 2 * 86400000);
   }
+  const maxPages = Math.min(
+    ML_SYNC_MAX_PAGES,
+    Math.max(1, Number(options.maxPages) || ML_SYNC_MAX_PAGES)
+  );
   const to = now;
-
   let offset = 0;
   let pages = 0;
   let imported = 0;
@@ -4002,7 +4005,7 @@ async function syncMlOrders(env, options = {}) {
   let index = await getMlSalesIndex(env);
   let totalApi = null;
 
-  while (pages < ML_SYNC_MAX_PAGES) {
+  while (pages < maxPages) {
     const data = await fetchMlOrdersPage(env, token, sellerId, {
       from, to, offset, limit: ML_SYNC_PAGE_LIMIT
     });
@@ -4103,8 +4106,9 @@ async function handleAdminMlSync(request, env, origin) {
     const report = await syncMlOrders(env, {
       full: true,
       days: daysParam ? Number(daysParam) : 400,
-      backfillShipping: 20,
-      enrichShipping: false
+      backfillShipping: 0,
+      enrichShipping: false,
+      maxPages: 8
     });
     return json(report, 200, origin);
   } catch (err) {
@@ -4117,7 +4121,7 @@ async function handleAdminMlSales(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
   const url = new URL(request.url);
-  const limit = Math.min(5000, Math.max(1, Number(url.searchParams.get('limit')) || 5000));
+  const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit')) || 400));
   const index = await getMlSalesIndex(env);
   const ids = index.slice(0, limit);
   const sales = [];

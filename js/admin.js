@@ -1188,7 +1188,7 @@
     const root = base.replace(/\/$/, '');
     const headers = { Authorization: 'Bearer ' + token };
     const [mlRes, amzRes, shopeeRes, ordersRes] = await Promise.all([
-      fetch(`${root}/admin/ml/sales?limit=5000`, { headers, cache: 'no-store' }),
+      fetch(`${root}/admin/ml/sales?limit=400`, { headers, cache: 'no-store' }),
       fetch(`${root}/admin/amz/sales?limit=5000`, { headers, cache: 'no-store' }),
       fetch(`${root}/admin/shopee/sales?limit=5000`, { headers, cache: 'no-store' }),
       fetch(`${root}/orders`, { headers, cache: 'no-store' })
@@ -1754,7 +1754,7 @@ ${worksheets}
     const openPaths = preserveOpen ? captureSalesTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas ML…</p>';
     try {
-      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sales?limit=5000`, {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sales?limit=400`, {
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
       });
@@ -1994,7 +1994,9 @@ ${worksheets}
     } catch (err) {
       const msg = err?.name === 'AbortError'
         ? 'O sync ML passou de 2 minutos e foi interrompido. Tente de novo.'
-        : (err.message || 'Falha no sync ML.');
+        : /subrequests/i.test(String(err.message || ''))
+          ? 'O Cloudflare cortou o sync (muitos pedidos de uma vez). Já está limitado; tenta Atualizar ML de novo.'
+          : (err.message || 'Falha no sync ML.');
       showStatus(msg, 'error', 'vendas');
     } finally {
       clearTimeout(abortTimer);
