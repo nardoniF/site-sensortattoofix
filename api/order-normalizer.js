@@ -18,6 +18,9 @@ export function normalizeMarketplaceSale(sale = {}, config = {}) {
       refunds: null,
       net: null
     },
+    mlFlex: null,
+    mlEstorno: null,
+    mlFlexListCost: null,
     productCost: null,
     otherCosts: null,
     profit: null,
@@ -28,25 +31,44 @@ export function normalizeMarketplaceSale(sale = {}, config = {}) {
 
   // Heurísticas: aceitar formatos comuns
   const payload = sale.payload || {};
-  const rawTotal = sale.total || payload.total || sale.price || null;
-  const rawShipping = sale.shipping || payload.shipping || sale.shippingPrice || null;
-  const rawFees = sale.marketplaceFees || payload.marketplaceFees || sale.fees || null;
+  const rawTotal = sale.gross || sale.total || payload.total || sale.price || null;
+  const rawShipping = sale.shippingCost || sale.buyerShippingCost || sale.buyerPaid || sale.shipping || payload.shipping || sale.shippingPrice || null;
+  const rawFees = sale.fees || sale.marketplaceFees || payload.marketplaceFees || null;
 
   if (rawTotal != null) normalized.totals.gross = Number(rawTotal);
   if (rawShipping != null) normalized.totals.shippingBuyer = Number(rawShipping);
   if (rawFees != null) normalized.totals.marketplaceFees = Number(rawFees);
 
-  // Flex / seller shipping cost: try common keys
-  const sellerShipping = sale.sellerShippingCost || payload.sellerShippingCost || sale.flexSellerCost || null;
-  if (sellerShipping != null) normalized.totals.shippingSellerCost = Number(sellerShipping);
+  // Flex / seller shipping cost: try common keys and MercadoLivre flex fields
+  const mlFlexListCost = (sale.mlFlexListCost != null) ? sale.mlFlexListCost : (payload.mlFlexListCost != null ? payload.mlFlexListCost : null);
+  const mlEstorno = (sale.mlEstorno != null) ? Number(sale.mlEstorno) : (payload.mlEstorno != null ? Number(payload.mlEstorno) : null);
+  const sellerShipping = sale.sellerShippingCost || payload.sellerShippingCost || sale.flexSellerCost || mlFlexListCost || null;
+  if (sellerShipping != null) {
+    // if we have flex list cost and an estorno, shipping seller cost is list - estorno
+    if (mlFlexListCost != null && mlEstorno != null) {
+      normalized.totals.shippingSellerCost = Number((Number(mlFlexListCost) - Number(mlEstorno)).toFixed(2));
+    } else {
+      normalized.totals.shippingSellerCost = Number(sellerShipping);
+    }
+  }
+
+  // expose ml-specific flags
+  normalized.mlFlex = (sale.mlFlex != null) ? sale.mlFlex : (payload.mlFlex != null ? payload.mlFlex : null);
+  normalized.mlEstorno = mlEstorno != null ? Number(mlEstorno) : null;
+  normalized.mlFlexListCost = mlFlexListCost != null ? Number(mlFlexListCost) : null;
 
   // Compute net if possible
   if (normalized.totals.gross != null) {
-    const shippingBuyer = Number(normalized.totals.shippingBuyer || 0);
     const fees = Number(normalized.totals.marketplaceFees || 0);
-    normalized.totals.net = Number((normalized.totals.gross - fees).toFixed(2));
-    // profit and costs unknown without product cost
+    // Prefer explicit net if available on sale
+    if (sale.net != null) normalized.totals.net = Number(sale.net);
+    else normalized.totals.net = Number((normalized.totals.gross - fees).toFixed(2));
+  } else if (sale.net != null) {
+    normalized.totals.net = Number(sale.net);
   }
+
+  // refunds fallback
+  normalized.totals.refunds = sale.refunds != null ? Number(sale.refunds) : (payload.refunds != null ? Number(payload.refunds) : 0);
 
   // product cost heuristics
   const productCost = payload.productCost || sale.productCost || null;
@@ -70,10 +92,11 @@ export function normalizeMarketplaceSale(sale = {}, config = {}) {
   }
 
   // Audit origins: map where we picked main numbers from
-  normalized.audit.origins.gross = sale.total != null ? 'sale.total' : (payload.total != null ? 'payload.total' : null);
-  normalized.audit.origins.shippingBuyer = sale.shipping != null ? 'sale.shipping' : (payload.shipping != null ? 'payload.shipping' : null);
-  normalized.audit.origins.marketplaceFees = sale.marketplaceFees != null ? 'sale.marketplaceFees' : (payload.marketplaceFees != null ? 'payload.marketplaceFees' : null);
-  normalized.audit.origins.sellerShippingCost = sellerShipping != null ? (sale.sellerShippingCost ? 'sale.sellerShippingCost' : 'payload.sellerShippingCost') : null;
+  normalized.audit.origins.gross = sale.gross != null ? 'sale.gross' : (sale.total != null ? 'sale.total' : (payload.total != null ? 'payload.total' : null));
+  normalized.audit.origins.shippingBuyer = sale.shippingCost != null ? 'sale.shippingCost' : (sale.buyerPaid != null ? 'sale.buyerPaid' : (payload.shipping != null ? 'payload.shipping' : null));
+  normalized.audit.origins.marketplaceFees = sale.fees != null ? 'sale.fees' : (sale.marketplaceFees != null ? 'sale.marketplaceFees' : (payload.marketplaceFees != null ? 'payload.marketplaceFees' : null));
+  normalized.audit.origins.sellerShippingCost = mlFlexListCost != null ? 'sale.mlFlexListCost' : (sellerShipping != null ? (sale.sellerShippingCost ? 'sale.sellerShippingCost' : 'payload.sellerShippingCost') : null);
+  normalized.audit.origins.mlEstorno = mlEstorno != null ? (sale.mlEstorno != null ? 'sale.mlEstorno' : 'payload.mlEstorno') : null;
   normalized.audit.generatedAt = (new Date()).toISOString();
 
   return normalized;
