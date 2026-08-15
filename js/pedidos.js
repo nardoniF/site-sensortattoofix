@@ -88,7 +88,7 @@
     if (exhausted) {
       flagClass = 'clicks-kv--full';
       icon = 'fa-ban';
-      text = `KV recusou write — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}. Checkout pode falhar. Renova às ${resetBr}.`;
+      text = `KV recusou write — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}. Pedido da loja vai no D1; só criar conta ainda usa KV. Renova às ${resetBr}.`;
     } else if (over || critical) {
       flagClass = over ? 'clicks-kv--warn' : 'clicks-kv--full';
       icon = 'fa-exclamation-triangle';
@@ -117,7 +117,7 @@
           ${readsLine}
           <div class="clicks-stats-row"><dt>Fonte</dt><dd>${escapeHtml(fromCf ? 'Cloudflare KV Analytics' : 'Estimativa local')}</dd></div>
         </dl>
-        <p class="clicks-kv-note">Pedidos, sessões e sync usam <strong>STORE_KV</strong>. Cliques usam D1 (aba Cliques).</p>
+        <p class="clicks-kv-note">Conta, sessão e tokens usam <strong>STORE_KV</strong>. Pedido da loja e vendas ML/Shopee/Amazon vão no D1. Cliques também D1.</p>
       </details>`;
   }
 

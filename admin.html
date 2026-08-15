@@ -151,6 +151,11 @@
                                 <button type="button" id="btn-add-kit-cost-intl" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar item .com</button>
                             </div>
                             <p id="admin-kit-cost-intl-total" class="admin-kit-cost-total"></p>
+                            <h4 class="admin-kit-cost-heading">Mercado Livre — Envio Flex</h4>
+                            <p class="admin-meta">O Flex você paga fora do ML. Frete na venda = este valor − o <strong>estorno</strong> do recibo (ex.: 11,90 − 1,10 = 10,80).</p>
+                            <label>Custo Flex que você paga (R$)
+                                <input type="number" name="mlFlexShippingCost" id="admin-ml-flex-cost" min="0" step="0.01" value="">
+                            </label>
                         </div>
                     </fieldset>
                     <fieldset>
@@ -745,7 +750,7 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Faturamento por canal (loja, ML, Amazon, Shopee). Conta marketplace: <strong>bruto − comissão − frete − estornos − outras</strong>. Depois: <strong>− custo do kit = líquido real</strong> (cadastro em Produtos → Custo do kit).</p>
+                            <p>Cada venda mostra: <strong>pagaram</strong> (preço do produto) → <strong>−tarifa</strong> e <strong>−frete Envios</strong> (o que o ML descontou) → <strong>na conta</strong> (caiu na conta) → <strong>−kit</strong> → <strong>lucro</strong>. O amarelo é lucro, não o depósito.</p>
                             <p><strong>Atualizar ML / Amazon</strong> sincroniza marketplaces. Loja oficial lê pedidos pagos da API. <strong>Consolidado</strong> junta tudo e exporta Excel.</p>
                         </div>
                         <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
@@ -895,7 +900,7 @@
                                 Com navegação
                             </label>
                             <label class="admin-check" title="Mostra só quem mudou de página/clique. Esconde único ou repetido no mesmo destino (home, loja, 3× o mesmo). Não apaga o log.">
-                                <input type="checkbox" id="clicks-filter-nav-only">
+                                <input type="checkbox" id="clicks-filter-nav-only" checked>
                                 Somente navegação
                             </label>
                         </div>
@@ -1159,6 +1164,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=154"></script>
+    <script src="js/admin.js?v=155"></script>
 </body>
 </html>

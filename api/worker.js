@@ -10,8 +10,29 @@ import {
   buildKvDailyWriteBudget,
   buildD1DailyBudget,
   isKvQuotaError,
+  isKvWriteQuotaExhaustedMarked,
   markKvWriteQuotaExhausted
 } from './kv-meter.js';
+import {
+  d1SaveOrder,
+  d1GetOrder,
+  d1ListOrders,
+  d1DeleteOrder,
+  d1OrdersForUser,
+  d1OrderIdByTracking,
+  d1SaveSale,
+  d1GetSale,
+  d1ListSaleIds,
+  d1ListSales,
+  d1CountSales
+} from './d1-store.js';
+import {
+  ML_SETTLEMENT_VERSION,
+  mlMoney,
+  enviosSellerCost,
+  flexSellerCost,
+  receiptPayout
+} from './ml-settlement.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -325,6 +346,7 @@ const DEFAULT_CONFIG = {
   siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://api.sensortattoofix.com.br' },
   coupons: [],
+  mlFlexShippingCost: 0,
   kitCostVersion: 3,
   kitCost: {
     components: [
@@ -1448,6 +1470,9 @@ function withConfigDefaults(stored) {
         : DEFAULT_MOTOBOY_SHIPPING.couriers
     },
     coupons: mergeCoupons(stored.coupons, base.coupons),
+    mlFlexShippingCost: Number(stored.mlFlexShippingCost) > 0
+      ? Math.round(Number(stored.mlFlexShippingCost) * 100) / 100
+      : base.mlFlexShippingCost,
     ...mergeKitCostConfig(stored, base)
   };
 }
@@ -1759,6 +1784,40 @@ async function kvPutSafe(env, key, value, options) {
   }
 }
 
+/** Checkout has absolute priority. Auto marketplace sync pauses when KV writes are tight. */
+async function marketplaceKvAllowsSync(env) {
+  if (await isKvWriteQuotaExhaustedMarked()) return false;
+  try {
+    const budget = await buildKvDailyWriteBudget(env);
+    if (budget?.exhausted) return false;
+    if (budget?.critical) return false;
+    if (Number(budget?.percent) >= 80) return false;
+  } catch (err) {
+    console.warn('KV budget for marketplace sync:', err.message || err);
+    return false;
+  }
+  return true;
+}
+
+function marketplaceSaleUnchanged(existing, next) {
+  if (!existing || !next) return false;
+  const keys = [
+    'status', 'gross', 'fees', 'shippingCost', 'refunds', 'otherFees',
+    'net', 'payoutNet', 'settlementVersion', 'shopeeIncomeOk', 'financesOk',
+    'soldAt', 'hasRefund'
+  ];
+  for (const k of keys) {
+    const a = existing[k];
+    const b = next[k];
+    if (Number.isFinite(Number(a)) && Number.isFinite(Number(b)) && a !== '' && b !== '') {
+      if (Math.abs(Number(a) - Number(b)) > 0.009) return false;
+      continue;
+    }
+    if (String(a ?? '') !== String(b ?? '')) return false;
+  }
+  return true;
+}
+
 async function kvDelete(env, key) {
   try {
     await env.STORE_KV.delete(key);
@@ -1829,10 +1888,14 @@ async function getCustomerUserId(env, token) {
 
 async function linkOrderToUser(env, userId, orderId) {
   const key = 'user:' + userId + ':orders';
-  const list = JSON.parse((await env.STORE_KV.get(key)) || '[]');
-  if (!list.includes(orderId)) {
-    list.unshift(orderId);
-    await kvPut(env, key, JSON.stringify(list.slice(0, 500)));
+  try {
+    const list = JSON.parse((await env.STORE_KV.get(key)) || '[]');
+    if (!list.includes(orderId)) {
+      list.unshift(orderId);
+      await kvPutSafe(env, key, JSON.stringify(list.slice(0, 500)));
+    }
+  } catch (err) {
+    console.warn('linkOrderToUser KV:', err.message);
   }
 }
 
@@ -3713,18 +3776,95 @@ async function getMlSalesMeta(env) {
 async function saveMlSalesMeta(env, patch) {
   const prev = (await getMlSalesMeta(env)) || {};
   const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  await kvPut(env, ML_SALES_META_KEY, JSON.stringify(next));
+  await kvPutSafe(env, ML_SALES_META_KEY, JSON.stringify(next));
   return next;
 }
 
-async function getMlSalesIndex(env) {
+function marketplaceKvSaleKey(channel, id) {
+  const prefixes = {
+    mercadolivre: 'sale:ml:',
+    amazon: 'sale:amz:',
+    shopee: 'sale:shopee:'
+  };
+  return (prefixes[channel] || 'sale:') + String(id);
+}
+
+async function loadMarketplaceSale(env, channel, saleId) {
+  const fromD1 = await d1GetSale(env, channel, saleId);
+  if (fromD1) return fromD1;
+  const fromKv = await env.STORE_KV.get(marketplaceKvSaleKey(channel, saleId), { type: 'json' });
+  if (fromKv) {
+    if (!fromKv.channel) fromKv.channel = channel;
+    if (!fromKv.externalId) fromKv.externalId = String(saleId);
+    await d1SaveSale(env, fromKv).catch(() => {});
+    return fromKv;
+  }
+  return null;
+}
+
+async function saveMarketplaceSale(env, sale) {
+  if (!sale?.externalId) return false;
   try {
-    const raw = await env.STORE_KV.get(ML_SALES_INDEX_KEY);
+    // Enriquecer resumo financeiro normalizado antes de persistir
+    const { calculateOrderFinancials } = await import('./order-financials.js');
+    const config = await getConfig(env).catch(() => ({}));
+    try {
+      const fin = calculateOrderFinancials(sale, config);
+      // Anexar sem sobrescrever campos originais
+      sale.normalizedFinancials = sale.normalizedFinancials || fin;
+    } catch (e) {
+      // não bloquear persistência por falha no cálculo
+      console.warn('calculateOrderFinancials failed:', e && e.message);
+    }
+  } catch (err) {
+    // import/fail: ignore, persist sale anyway
+  }
+  return d1SaveSale(env, sale);
+}
+
+async function listMarketplaceSales(env, channel, limit) {
+  const cap = Math.min(5000, Math.max(1, Number(limit) || 500));
+  const fromD1 = await d1ListSales(env, channel, cap);
+  if (fromD1.length) return fromD1;
+  const idxKey = channel === 'mercadolivre'
+    ? ML_SALES_INDEX_KEY
+    : channel === 'amazon'
+      ? AMZ_SALES_INDEX_KEY
+      : SHOPEE_SALES_INDEX_KEY;
+  let index = [];
+  try {
+    const raw = await env.STORE_KV.get(idxKey);
+    index = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(index)) index = [];
+  } catch {
+    index = [];
+  }
+  const sales = [];
+  for (const id of index.slice(0, cap)) {
+    const sale = await env.STORE_KV.get(marketplaceKvSaleKey(channel, id), { type: 'json' });
+    if (!sale) continue;
+    if (!sale.channel) sale.channel = channel;
+    if (!sale.externalId) sale.externalId = String(id);
+    sales.push(sale);
+    await d1SaveSale(env, sale).catch(() => {});
+  }
+  return sales;
+}
+
+async function getMarketplaceIndex(env, channel, kvKey, max) {
+  const fromD1 = await d1ListSaleIds(env, channel, max || 5000);
+  if (fromD1.length) return fromD1;
+  try {
+    const raw = await env.STORE_KV.get(kvKey);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
   } catch {
     return [];
   }
+}
+
+async function getMlSalesIndex(env) {
+  return getMarketplaceIndex(env, 'mercadolivre', ML_SALES_INDEX_KEY, ML_SALES_INDEX_MAX);
 }
 
 function mlDateParam(d) {
@@ -3759,7 +3899,7 @@ function normalizeMlOrder(order) {
     shippingCost: Number(p.shipping_cost || 0),
     marketplaceFee: p.marketplace_fee != null ? Number(p.marketplace_fee) : null
   }));
-  const shippingHint = mlHintShippingFromOrder(order);
+  const shippingHint = 0;
   const net = Math.round((gross - fees) * 100) / 100;
   const soldAt = order.date_closed || order.date_created || null;
   return {
@@ -3784,6 +3924,7 @@ function normalizeMlOrder(order) {
     items,
     payments,
     shippingId: order.shipping?.id != null ? String(order.shipping.id) : null,
+    logisticType: order.shipping?.logistic_type || order.shipping?.mode || null,
     shippingHint,
     dateCreated: order.date_created || null,
     dateLastUpdated: order.date_last_updated || order.last_updated || null,
@@ -3791,31 +3932,142 @@ function normalizeMlOrder(order) {
   };
 }
 
-function mlMoney(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v) || v < 0) return 0;
-  return Math.round(v * 100) / 100;
-}
-
-function mlHintShippingFromOrder(order) {
-  const fromOrder = mlMoney(order?.shipping_cost);
-  if (fromOrder > 0) return fromOrder;
-  const pays = Array.isArray(order?.payments) ? order.payments : [];
-  return mlMoney(pays.reduce((s, p) => s + Number(p.shipping_cost || 0), 0));
+function mlHasSettlement(sale) {
+  if (sale?.settlementVersion !== ML_SETTLEMENT_VERSION || sale?.settlementOk !== true) return false;
+  if (!(mlMoney(sale?.payoutNet) > 0)) return false;
+  const gross = mlMoney(sale.gross);
+  const fees = mlMoney(sale.fees);
+  const shipping = mlMoney(sale.shippingCost);
+  const payout = mlMoney(sale.payoutNet);
+  if (gross > 0 && Math.abs(gross - fees - shipping - payout) > 0.06) return false;
+  if (gross > 0 && shipping >= gross) return false;
+  return true;
 }
 
 function mlSellerCostFromCostsPayload(data, sellerId) {
   const senders = Array.isArray(data?.senders) ? data.senders : [];
-  let sender = senders[0] || null;
+  let sender = senders[0] || data?.sender || null;
   if (sellerId && senders.length) {
     sender = senders.find((s) => String(s.user_id) === String(sellerId)) || sender;
   }
-  return mlMoney(
-    sender?.cost
-    ?? data?.sender?.cost
-    ?? data?.gross_amount
-    ?? 0
-  );
+  return mlMoney(sender?.cost);
+}
+
+function mlBuyerShippingFromCosts(data) {
+  return mlMoney(data?.receiver?.cost);
+}
+
+function isMlFlexShipment(sale, shipment) {
+  const parts = [
+    sale?.logisticType,
+    sale?.shippingMode,
+    shipment?.logistic_type,
+    shipment?.mode,
+    ...(Array.isArray(sale?.tags) ? sale.tags : []),
+    ...(Array.isArray(shipment?.tags) ? shipment.tags : [])
+  ];
+  return /flex|self_service|self-service/i.test(parts.filter(Boolean).join(' '));
+}
+
+function mlEstornoFromPayments(docs, gross, fees) {
+  let estorno = 0;
+  let netApi = 0;
+  for (const p of docs || []) {
+    const st = String(p.status || '').toLowerCase();
+    if (st && !/approved|accredited/.test(st)) continue;
+    netApi += mlMoney(p.transaction_details?.net_received_amount);
+    estorno += mlMoney(p.coupon_amount);
+    for (const r of p.refunds || []) estorno += mlMoney(r.amount);
+    for (const c of p.charges_details || []) {
+      const name = `${c.name || ''} ${c.type || ''} ${c.owner || ''}`;
+      if (/refund|estorno|rebate|discount|compensation|credit/i.test(name)) {
+        const amt = c.amounts?.original ?? c.amounts?.current ?? c.amount;
+        estorno += Math.abs(mlMoney(amt));
+      }
+    }
+  }
+  estorno = mlMoney(estorno);
+  if (estorno < 0.01 && netApi > 0 && gross > 0) {
+    const credit = mlMoney(netApi - (gross - fees));
+    if (credit > 0.04 && credit < 25) estorno = credit;
+  }
+  return estorno;
+}
+
+function mlEnviosSellerCost(costs, sellerId) {
+  const sellerShip = costs ? mlSellerCostFromCostsPayload(costs, sellerId) : 0;
+  const buyerShip = costs ? mlBuyerShippingFromCosts(costs) : 0;
+  return enviosSellerCost(sellerShip, buyerShip);
+}
+
+function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {}) {
+  const docs = (paymentDocs || []).filter(Boolean);
+  const gross = mlMoney(sale.gross);
+  let marketplaceFee = 0;
+  for (const p of docs) {
+    const st = String(p.status || '').toLowerCase();
+    if (st && !/approved|accredited/.test(st)) continue;
+    marketplaceFee += mlMoney(p.marketplace_fee);
+  }
+  const fees = mlMoney(sale.fees) > 0
+    ? mlMoney(sale.fees)
+    : (marketplaceFee > 0 ? marketplaceFee : 0);
+
+  // flexCost should come from extras (passed in) or from config (mlFlexShippingCost).
+  const flexCost = mlMoney(extras.flexCost) > 0 ? mlMoney(extras.flexCost) : (Number(extras.config?.mlFlexShippingCost) > 0 ? Number(extras.config.mlFlexShippingCost) : 0);
+  const fromCosts = mlEnviosSellerCost(costs, sellerId);
+  const estorno = mlEstornoFromPayments(docs, gross, fees);
+  const isFlex = isMlFlexShipment(sale, extras.shipment)
+    || (!(fromCosts.shipping > 0) && estorno > 0);
+  let shipping = 0;
+  let buyerShip = fromCosts.buyerShip || mlMoney(sale.buyerShippingCost);
+  let source = 'envios';
+
+  if (isFlex) {
+    shipping = flexSellerCost(flexCost, estorno);
+    source = 'flex';
+  } else {
+    shipping = fromCosts.shipping;
+  }
+
+  const payout = receiptPayout(gross, fees, shipping);
+  if (!(gross > 0) || !(payout > 0)) return sale;
+  const next = {
+    ...sale,
+    fees,
+    shippingCost: shipping,
+    buyerShippingCost: buyerShip,
+    refunds: mlMoney(sale.refunds),
+    mlEstorno: estorno,
+    mlFlex: isFlex,
+    mlFlexListCost: isFlex ? flexCost : null,
+    logisticType: extras.shipment?.logistic_type || sale.logisticType || null,
+    net: payout,
+    payoutNet: payout,
+    settlementOk: true,
+    settlementVersion: ML_SETTLEMENT_VERSION,
+    shippingCostsOk: true,
+    shippingSource: source
+  };
+  if (!mlHasSettlement(next)) {
+    return { ...sale, settlementOk: false, settlementVersion: 0, shippingCostsOk: false, shippingSource: null };
+  }
+  return next;
+}
+
+async function fetchMlPaymentDoc(token, paymentId) {
+  if (!token || !paymentId) return null;
+  const headers = { Authorization: 'Bearer ' + token, Accept: 'application/json' };
+  const urls = [
+    `${ML_API_BASE}/v1/payments/${encodeURIComponent(paymentId)}`,
+    `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`
+  ];
+  for (const url of urls) {
+    const res = await fetch(url, { headers });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data && (data.id != null || data.transaction_details)) return data;
+  }
+  return null;
 }
 
 function mlSaleNetFromParts(sale, shippingCost) {
@@ -3829,18 +4081,37 @@ function mlSaleNetFromParts(sale, shippingCost) {
 }
 
 function mergeMlSaleShipping(existing, sale) {
-  const next = mlMoney(sale?.shippingCost);
-  const prev = mlMoney(existing?.shippingCost);
-  const hint = mlMoney(sale?.shippingHint) || mlMoney(existing?.shippingHint);
-  const shippingCost = next > 0 ? next : (prev > 0 ? prev : hint);
-  const shippingCostsOk = !!(sale?.shippingCostsOk || (existing?.shippingCostsOk && prev > 0) || shippingCost > 0);
+  if (mlHasSettlement(sale)) {
+    return {
+      ...sale,
+      shippingHint: 0,
+      shippingSource: 'payment',
+      shippingCostsOk: true,
+      settlementOk: true
+    };
+  }
+  if (mlHasSettlement(existing)) {
+    return {
+      ...existing,
+      ...sale,
+      fees: existing.fees,
+      shippingCost: existing.shippingCost,
+      net: existing.payoutNet || existing.net,
+      payoutNet: existing.payoutNet,
+      settlementOk: true,
+      shippingSource: 'payment',
+      shippingCostsOk: true,
+      shippingHint: 0
+    };
+  }
   return {
     ...sale,
-    shippingCost,
-    shippingHint: hint,
-    buyerShippingCost: sale?.buyerShippingCost ?? existing?.buyerShippingCost,
-    shippingCostsOk,
-    net: mlSaleNetFromParts(sale, shippingCost)
+    shippingCost: 0,
+    shippingHint: 0,
+    shippingSource: null,
+    shippingCostsOk: false,
+    settlementOk: false,
+    net: mlSaleNetFromParts(sale, 0)
   };
 }
 
@@ -3853,92 +4124,88 @@ async function fetchMlOrderById(token, orderId) {
   return data;
 }
 
-async function fetchMlShipmentSellerCost(token, shippingId) {
+async function fetchMlShipmentCostsPayload(token, shippingId) {
+  if (!token || !shippingId) return null;
+  const auth = { Authorization: 'Bearer ' + token, Accept: 'application/json' };
+  const url = `${ML_API_BASE}/shipments/${encodeURIComponent(shippingId)}/costs`;
+  let res = await fetch(url, { headers: { ...auth, 'x-format-new': 'true' } });
+  let data = await res.json().catch(() => ({}));
+  if (res.ok) return data;
+  res = await fetch(url, { headers: auth });
+  data = await res.json().catch(() => ({}));
+  return res.ok ? data : null;
+}
+
+async function fetchMlShipment(token, shippingId) {
+  if (!token || !shippingId) return null;
   const res = await fetch(`${ML_API_BASE}/shipments/${encodeURIComponent(shippingId)}`, {
-    headers: {
-      Authorization: 'Bearer ' + token,
-      Accept: 'application/json'
-    }
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) return 0;
-  const opt = data.shipping_option || {};
-  return mlMoney(opt.cost ?? opt.list_cost ?? data.base_cost ?? 0);
+  return res.ok ? data : null;
 }
 
 async function enrichMlSaleShippingCost(env, token, sale, sellerId) {
   if (!token || !sale) return sale;
   try {
+    const config = await getConfig(env);
+    const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+    let paymentIds = (sale.payments || []).map((p) => p && p.id).filter(Boolean);
     let shippingId = sale.shippingId ? String(sale.shippingId) : '';
-    let hint = mlMoney(sale.shippingHint);
-    if (!shippingId || !(hint > 0)) {
-      const order = await fetchMlOrderById(token, sale.externalId);
-      if (order) {
-        if (!shippingId && order.shipping?.id != null) shippingId = String(order.shipping.id);
-        const fromOrder = mlHintShippingFromOrder(order);
-        if (fromOrder > 0) hint = fromOrder;
+    let order = null;
+    if (!paymentIds.length || !shippingId || !sale.logisticType) {
+      order = await fetchMlOrderById(token, sale.externalId);
+      if (!paymentIds.length) {
+        paymentIds = (order?.payments || []).map((p) => p && p.id).filter(Boolean);
+      }
+      if (!shippingId && order?.shipping?.id != null) shippingId = String(order.shipping.id);
+      if (order?.shipping?.logistic_type) sale = { ...sale, logisticType: order.shipping.logistic_type };
+      if (Array.isArray(order?.tags) && order.tags.length) {
+        sale = { ...sale, tags: [...new Set([...(sale.tags || []), ...order.tags])] };
       }
     }
-    let sellerShipping = 0;
-    let buyerShipping = mlMoney(sale.buyerShippingCost);
-    if (shippingId) {
-      const res = await fetch(`${ML_API_BASE}/shipments/${encodeURIComponent(shippingId)}/costs`, {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          Accept: 'application/json',
-          'x-format-new': 'true'
-        }
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        sellerShipping = mlSellerCostFromCostsPayload(data, sellerId);
-        buyerShipping = mlMoney(data.receiver?.cost) || buyerShipping;
-      }
-      if (!(sellerShipping > 0)) {
-        sellerShipping = await fetchMlShipmentSellerCost(token, shippingId);
-      }
+    const docs = [];
+    for (const id of paymentIds) {
+      const doc = await fetchMlPaymentDoc(token, id);
+      if (doc) docs.push(doc);
     }
-    if (!(sellerShipping > 0)) sellerShipping = hint;
-    if (!(sellerShipping > 0)) {
-      return { ...sale, shippingId: shippingId || sale.shippingId, shippingHint: hint };
-    }
-    return {
-      ...sale,
-      shippingId: shippingId || sale.shippingId,
-      shippingHint: hint,
-      shippingCost: sellerShipping,
-      buyerShippingCost: buyerShipping,
-      net: mlSaleNetFromParts(sale, sellerShipping),
-      shippingCostsOk: true
-    };
+    const shipment = shippingId ? await fetchMlShipment(token, shippingId) : null;
+    const costs = shippingId ? await fetchMlShipmentCostsPayload(token, shippingId) : null;
+    return applyMlPaymentSettlement(sale, docs, costs, sellerId, { flexCost, shipment });
   } catch {
     return sale;
   }
 }
 
 async function upsertMlSale(env, sale, index) {
-  await kvPut(env, ML_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+  await saveMarketplaceSale(env, sale);
   const next = (index || []).filter((id) => id !== sale.externalId);
   next.unshift(sale.externalId);
   return next.slice(0, ML_SALES_INDEX_MAX);
 }
 
 async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
+  const cap = Math.max(1, Math.min(Number(limit) || 200, 200));
   let filled = 0;
+  let remaining = 0;
   for (const id of index || []) {
-    if (filled >= limit) break;
-    const raw = await env.STORE_KV.get(ML_SALE_PREFIX + id);
-    if (!raw) continue;
-    let sale;
-    try { sale = JSON.parse(raw); } catch { continue; }
-    if (mlMoney(sale.shippingCost) > 0) continue;
+    const sale = await loadMarketplaceSale(env, 'mercadolivre', id);
+    if (!sale) continue;
+    if (mlHasSettlement(sale)) continue;
+    if (filled >= cap) {
+      remaining += 1;
+      continue;
+    }
     const next = await enrichMlSaleShippingCost(env, token, sale, sellerId);
     const merged = mergeMlSaleShipping(sale, next);
-    if (!(mlMoney(merged.shippingCost) > 0)) continue;
-    await kvPut(env, ML_SALE_PREFIX + merged.externalId, JSON.stringify(merged));
+    if (!mlHasSettlement(merged)) {
+      remaining += 1;
+      continue;
+    }
+    await saveMarketplaceSale(env, merged);
     filled += 1;
   }
-  return filled;
+  return { filled, remaining };
 }
 
 async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit }) {
@@ -4017,22 +4284,21 @@ async function syncMlOrders(env, options = {}) {
       let sale = normalizeMlOrder(order);
       let existing = null;
       if (options.skipExistingRead !== true) {
-        const existingRaw = await env.STORE_KV.get(ML_SALE_PREFIX + sale.externalId);
-        if (existingRaw) {
-          updated += 1;
-          try { existing = JSON.parse(existingRaw); } catch { existing = null; }
-        } else {
-          imported += 1;
-        }
+        existing = await loadMarketplaceSale(env, 'mercadolivre', sale.externalId);
+        if (existing) updated += 1;
+        else imported += 1;
       } else {
         imported += 1;
       }
-      const alreadyPriced = Number(existing?.shippingCost || 0) > 0 && existing?.shippingCostsOk;
+      const alreadyPriced = mlHasSettlement(existing);
       if (!alreadyPriced && options.enrichShipping !== false) {
         sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
       }
       sale = mergeMlSaleShipping(existing, sale);
-      await env.STORE_KV.put(ML_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+      if (existing && marketplaceSaleUnchanged(existing, sale)) {
+        continue;
+      }
+      await saveMarketplaceSale(env, sale);
       const next = (index || []).filter((id) => id !== sale.externalId);
       next.unshift(sale.externalId);
       index = next.slice(0, ML_SALES_INDEX_MAX);
@@ -4045,13 +4311,13 @@ async function syncMlOrders(env, options = {}) {
   }
 
   const backfillLimit = Math.max(0, Number(
-    options.backfillShipping != null ? options.backfillShipping : 80
+    options.backfillShipping != null ? options.backfillShipping : 200
   ));
-  const shippingFilled = backfillLimit > 0
+  const shippingReport = backfillLimit > 0
     ? await backfillMlZeroShipping(env, token, sellerId, index, backfillLimit)
-    : 0;
+    : { filled: 0, remaining: 0 };
+  const shippingFilled = shippingReport.filled;
 
-  await kvPut(env, ML_SALES_INDEX_KEY, JSON.stringify(index));
   const report = {
     ok: true,
     sellerId,
@@ -4064,6 +4330,7 @@ async function syncMlOrders(env, options = {}) {
     updated,
     indexed: index.length,
     shippingFilled,
+    shippingRemaining: shippingReport.remaining,
     lastSyncedAt: now.toISOString(),
     lastError: null
   };
@@ -4073,31 +4340,14 @@ async function syncMlOrders(env, options = {}) {
 
 async function runScheduledMlOrdersSync(env) {
   if (!mlAppConfigured(env)) return { skipped: true, reason: 'not_configured' };
-  const meta = await getMlSalesMeta(env);
-  if (!meta?.fullCatchupAt) {
-    const report = await syncMlOrders(env, {
-      full: true,
-      days: 400,
-      maxPages: 2,
-      enrichShipping: false,
-      skipExistingRead: true,
-      backfillShipping: 0
-    });
-    await saveMlSalesMeta(env, { fullCatchupAt: new Date().toISOString() });
-    console.log('ML full catchup:', JSON.stringify({
-      imported: report.imported,
-      indexed: report.indexed
-    }));
-    return report;
-  }
-  if (meta?.lastSyncedAt) {
-    const age = Date.now() - new Date(meta.lastSyncedAt).getTime();
-    if (Number.isFinite(age) && age < ML_SYNC_CRON_MIN_INTERVAL_MS) {
-      return { skipped: true, reason: 'throttle', ageMs: age };
-    }
-  }
   try {
-    const report = await syncMlOrders(env, { full: !meta?.lastSyncedAt });
+    const report = await syncMlOrders(env, {
+      full: false,
+      enrichShipping: false,
+      skipExistingRead: false,
+      backfillShipping: 0,
+      maxPages: 2
+    });
     console.log('ML orders sync cron:', JSON.stringify({
       imported: report.imported,
       updated: report.updated,
@@ -4129,9 +4379,9 @@ async function handleAdminMlSync(request, env, origin) {
     const report = await syncMlOrders(env, {
       full: true,
       days: daysParam ? Number(daysParam) : 400,
-      backfillShipping: 0,
-      enrichShipping: false,
-      skipExistingRead: true,
+      backfillShipping: 500,
+      enrichShipping: true,
+      skipExistingRead: false,
       maxPages: 2
     });
     return json(report, 200, origin);
@@ -4146,19 +4396,10 @@ async function handleAdminMlSales(request, env, origin) {
   }
   const url = new URL(request.url);
   const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit')) || 400));
-  const index = await getMlSalesIndex(env);
-  const ids = index.slice(0, limit);
-  const sales = [];
-  for (let i = 0; i < ids.length; i += 40) {
-    const chunk = ids.slice(i, i + 40);
-    const rows = await Promise.all(chunk.map((id) => env.STORE_KV.get(ML_SALE_PREFIX + id)));
-    for (const raw of rows) {
-      if (!raw) continue;
-      try { sales.push(JSON.parse(raw)); } catch { /* skip */ }
-    }
-  }
+  const sales = await listMarketplaceSales(env, 'mercadolivre', limit);
+  const totalIndexed = await d1CountSales(env, 'mercadolivre');
   const meta = await getMlSalesMeta(env);
-  return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
+  return json({ ok: true, meta, totalIndexed: totalIndexed || sales.length, sales }, 200, origin);
 }
 
 /** Amazon SP-API (Brasil) — LWA only, sem AWS SigV4. */
@@ -4330,18 +4571,12 @@ async function getAmzSalesMeta(env) {
 async function saveAmzSalesMeta(env, patch) {
   const prev = (await getAmzSalesMeta(env)) || {};
   const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  await kvPut(env, AMZ_SALES_META_KEY, JSON.stringify(next));
+  await kvPutSafe(env, AMZ_SALES_META_KEY, JSON.stringify(next));
   return next;
 }
 
 async function getAmzSalesIndex(env) {
-  try {
-    const raw = await env.STORE_KV.get(AMZ_SALES_INDEX_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
+  return getMarketplaceIndex(env, 'amazon', AMZ_SALES_INDEX_KEY, AMZ_SALES_INDEX_MAX);
 }
 
 const AMZ_COMMISSION_FEE_TYPES = new Set([
@@ -4529,7 +4764,10 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
 }
 
 async function upsertAmzSale(env, sale, index) {
-  await kvPut(env, AMZ_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+  const existing = await loadMarketplaceSale(env, 'amazon', sale.externalId);
+  if (!existing || !marketplaceSaleUnchanged(existing, sale)) {
+    await saveMarketplaceSale(env, sale);
+  }
   const next = (index || []).filter((id) => id !== sale.externalId);
   next.unshift(sale.externalId);
   return next.slice(0, AMZ_SALES_INDEX_MAX);
@@ -4630,8 +4868,8 @@ async function syncAmzOrders(env, options = {}) {
       }
       const sale = normalizeAmzOrder(order, items, financeSummary, financesFetched);
       if (!sale.externalId) continue;
-      const existingRaw = await env.STORE_KV.get(AMZ_SALE_PREFIX + sale.externalId);
-      if (existingRaw) updated += 1;
+      const existing = await loadMarketplaceSale(env, 'amazon', sale.externalId);
+      if (existing) updated += 1;
       else imported += 1;
       index = await upsertAmzSale(env, sale, index);
       await new Promise((r) => setTimeout(r, 250));
@@ -4644,13 +4882,8 @@ async function syncAmzOrders(env, options = {}) {
   let financesBackfilled = 0;
   for (const id of index) {
     let sale;
-    try {
-      const raw = await env.STORE_KV.get(AMZ_SALE_PREFIX + id);
-      if (!raw) continue;
-      sale = JSON.parse(raw);
-    } catch {
-      continue;
-    }
+    sale = await loadMarketplaceSale(env, 'amazon', id);
+    if (!sale) continue;
     if (sale?.financesOk && !full) continue;
     try {
       const events = await amzFetchOrderFinancials(env, token, id);
@@ -4672,7 +4905,7 @@ async function syncAmzOrders(env, options = {}) {
       sale.hasRefund = hasRefund;
       sale.feesNote = null;
       sale.syncedAt = new Date().toISOString();
-      await kvPut(env, AMZ_SALE_PREFIX + id, JSON.stringify(sale));
+      await saveMarketplaceSale(env, sale);
       financesBackfilled += 1;
       updated += 1;
       await new Promise((r) => setTimeout(r, 250));
@@ -4681,7 +4914,6 @@ async function syncAmzOrders(env, options = {}) {
     }
   }
 
-  await kvPut(env, AMZ_SALES_INDEX_KEY, JSON.stringify(index));
   const report = {
     ok: true,
     marketplaceId: amzMarketplaceId(env),
@@ -4756,18 +4988,10 @@ async function handleAdminAmzSales(request, env, origin) {
   }
   const url = new URL(request.url);
   const limit = Math.min(5000, Math.max(1, Number(url.searchParams.get('limit')) || 5000));
-  const index = await getAmzSalesIndex(env);
-  const ids = index.slice(0, limit);
-  const sales = [];
-  for (const id of ids) {
-    const raw = await env.STORE_KV.get(AMZ_SALE_PREFIX + id);
-    if (!raw) continue;
-    try {
-      sales.push(JSON.parse(raw));
-    } catch { /* skip */ }
-  }
+  const sales = await listMarketplaceSales(env, 'amazon', limit);
+  const totalIndexed = await d1CountSales(env, 'amazon');
   const meta = await getAmzSalesMeta(env);
-  return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
+  return json({ ok: true, meta, totalIndexed: totalIndexed || sales.length, sales }, 200, origin);
 }
 
 /** Shopee Open Platform v2 — Seller In House (BR). */
@@ -4850,18 +5074,12 @@ async function getShopeeSalesMeta(env) {
 async function saveShopeeSalesMeta(env, patch) {
   const prev = (await getShopeeSalesMeta(env)) || {};
   const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  await kvPut(env, SHOPEE_SALES_META_KEY, JSON.stringify(next));
+  await kvPutSafe(env, SHOPEE_SALES_META_KEY, JSON.stringify(next));
   return next;
 }
 
 async function getShopeeSalesIndex(env) {
-  try {
-    const raw = await env.STORE_KV.get(SHOPEE_SALES_INDEX_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
+  return getMarketplaceIndex(env, 'shopee', SHOPEE_SALES_INDEX_KEY, SHOPEE_SALES_INDEX_MAX);
 }
 
 async function persistShopeeTokens(env, data, shopId) {
@@ -5081,29 +5299,57 @@ function normalizeShopeeOrder(detail, escrow) {
     id: it.item_id != null ? String(it.item_id) : null,
     title: it.item_name || it.model_name || null,
     quantity: Number(it.model_quantity_purchased || it.quantity || 0),
-    unitPrice: Number(it.model_original_price ?? it.model_discounted_price ?? 0),
+    unitPrice: Number(it.model_discounted_price ?? it.model_original_price ?? 0),
     saleFee: 0,
     currency: 'BRL'
   }));
+  const itemsGross = roundMoney(items.reduce((s, it) => s + it.unitPrice * (it.quantity > 0 ? it.quantity : 0), 0));
+  // Recibo Shopee: subtotal dos produtos. buyer_total_amount inclui frete do comprador.
   const gross = roundMoney(
-    income.buyer_total_amount
-    ?? income.original_cost_of_goods_sold
+    income.original_cost_of_goods_sold
+    ?? income.cost_of_goods_sold
+    ?? (itemsGross > 0 ? itemsGross : null)
     ?? order.total_amount
-    ?? items.reduce((s, it) => s + it.unitPrice * it.quantity, 0)
+    ?? 0
   );
-  const fees = roundMoney(
-    Number(income.commission_fee || 0)
-    + Number(income.service_fee || 0)
-    + Number(income.seller_transaction_fee || 0)
-  );
-  const shippingCost = roundMoney(
-    Number(income.actual_shipping_fee || order.actual_shipping_fee || 0)
-    - Number(income.shipping_fee_rebate || 0)
-  );
+  const refunds = roundMoney(income.seller_return_refund || 0);
   const escrowAmt = income.escrow_amount != null ? roundMoney(income.escrow_amount) : null;
+  const actualShip = Number(income.actual_shipping_fee || order.actual_shipping_fee || 0);
+  const buyerShip = Number(income.buyer_paid_shipping_fee || 0);
+  const shipRebate = Number(
+    income.shopee_shipping_rebate
+    || income.shipping_fee_rebate_from_shopee
+    || income.shipping_fee_rebate
+    || income.shipping_fee_discount_from_3pl
+    || 0
+  );
+  // Só o que a Shopee desconta de você. actual_shipping_fee sem rebate é a etiqueta, não o recibo.
+  let shippingCost = roundMoney(Math.max(0, actualShip - buyerShip - shipRebate));
+  const feesFromApi = roundMoney(
+    Number(income.net_commission_fee || 0)
+    + Number(income.net_service_fee || 0)
+    || (
+      Number(income.commission_fee || 0)
+      + Number(income.service_fee || 0)
+      + Number(income.seller_transaction_fee || 0)
+    )
+    + Number(income.campaign_fee || 0)
+    + Number(income.order_ams_commission_fee || 0)
+  );
+  let fees = feesFromApi;
+  let otherFees = 0;
+  // Recibo: Taxas e Encargos = produto − renda − frete do vendedor.
+  if (escrowAmt != null && gross > 0) {
+    const leftover = roundMoney(gross - escrowAmt - shippingCost - refunds);
+    if (leftover >= 0) fees = leftover;
+    else {
+      shippingCost = 0;
+      fees = roundMoney(Math.max(0, gross - escrowAmt - refunds));
+    }
+  }
   const net = escrowAmt != null
     ? escrowAmt
-    : roundMoney(gross - fees - Math.max(0, shippingCost));
+    : roundMoney(gross - fees - shippingCost - refunds);
   const soldAtSec = Number(order.pay_time || order.create_time || 0);
   return {
     channel: 'shopee',
@@ -5113,10 +5359,11 @@ function normalizeShopeeOrder(detail, escrow) {
     currency: 'BRL',
     gross,
     fees,
-    shippingCost: Math.max(0, shippingCost),
-    refunds: roundMoney(income.seller_return_refund || 0),
-    otherFees: roundMoney(Number(income.order_ams_commission_fee || 0) + Number(income.campaign_fee || 0)),
+    shippingCost,
+    refunds,
+    otherFees,
     net,
+    shopeeIncomeOk: escrowAmt != null,
     buyer: {
       id: order.buyer_user_id != null ? String(order.buyer_user_id) : null,
       nickname: order.buyer_username || null
@@ -5129,7 +5376,10 @@ function normalizeShopeeOrder(detail, escrow) {
 }
 
 async function upsertShopeeSale(env, sale, index) {
-  await kvPut(env, SHOPEE_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+  const existing = await loadMarketplaceSale(env, 'shopee', sale.externalId);
+  if (!existing || !marketplaceSaleUnchanged(existing, sale)) {
+    await saveMarketplaceSale(env, sale);
+  }
   const next = (index || []).filter((id) => id !== sale.externalId);
   next.unshift(sale.externalId);
   return next.slice(0, SHOPEE_SALES_INDEX_MAX);
@@ -5188,6 +5438,39 @@ async function fetchShopeeEscrow(env, token, shopId, orderSn) {
   }
 }
 
+async function backfillShopeeIndex(env, limit) {
+  const tok = await getShopeeAccessToken(env);
+  if (!tok?.token || !tok.shopId) return { filled: 0, remaining: 0, skipped: true };
+  const { token, shopId } = tok;
+  const index = await getShopeeSalesIndex(env);
+  const cap = Math.max(1, Math.min(Number(limit) || 80, 80));
+  let filled = 0;
+  let remaining = 0;
+  for (const sn of index || []) {
+    const sale = await loadMarketplaceSale(env, 'shopee', sn);
+    if (sale?.shopeeIncomeOk && Number(sale.fees || 0) > 0) continue;
+    if (filled >= cap) {
+      remaining += 1;
+      continue;
+    }
+    const details = await fetchShopeeOrderDetails(env, token, shopId, [sn]);
+    const detail = details[0];
+    if (!detail) {
+      remaining += 1;
+      continue;
+    }
+    const escrow = await fetchShopeeEscrow(env, token, shopId, sn);
+    const next = normalizeShopeeOrder(detail, escrow);
+    if (!next.externalId || !next.shopeeIncomeOk) {
+      remaining += 1;
+      continue;
+    }
+    await saveMarketplaceSale(env, next);
+    filled += 1;
+  }
+  return { filled, remaining };
+}
+
 async function syncShopeeOrders(env, options = {}) {
   const tok = await getShopeeAccessToken(env);
   if (!tok?.token || !tok.shopId) throw new Error('Shopee sem token — autorize a loja no Admin.');
@@ -5225,13 +5508,12 @@ async function syncShopeeOrders(env, options = {}) {
       : null;
     const sale = normalizeShopeeOrder(detail, escrow);
     if (!sale.externalId) continue;
-    const existingRaw = await env.STORE_KV.get(SHOPEE_SALE_PREFIX + sale.externalId);
-    if (existingRaw) updated += 1;
+    const existing = await loadMarketplaceSale(env, 'shopee', sale.externalId);
+    if (existing) updated += 1;
     else imported += 1;
     index = await upsertShopeeSale(env, sale, index);
   }
 
-  await kvPut(env, SHOPEE_SALES_INDEX_KEY, JSON.stringify(index));
   const report = {
     ok: true,
     shopId,
@@ -5300,11 +5582,15 @@ async function handleAdminShopeeSync(request, env, origin) {
   const daysParam = url.searchParams.get('days');
   const full = url.searchParams.get('full') === '1' || url.searchParams.get('full') === 'true';
   try {
+    const fix = await backfillShopeeIndex(env, 80);
+    if (fix.remaining > 0 || fix.filled > 0) {
+      return json({ ok: true, mode: 'index', ...fix }, 200, origin);
+    }
     const report = await syncShopeeOrders(env, {
-      full,
-      days: daysParam ? Number(daysParam) : undefined
+      full: true,
+      days: daysParam ? Number(daysParam) : 90
     });
-    return json(report, 200, origin);
+    return json({ ok: true, ...report, ...fix }, 200, origin);
   } catch (err) {
     return json({ error: err.message || String(err) }, 502, origin);
   }
@@ -5316,18 +5602,10 @@ async function handleAdminShopeeSales(request, env, origin) {
   }
   const url = new URL(request.url);
   const limit = Math.min(5000, Math.max(1, Number(url.searchParams.get('limit')) || 5000));
-  const index = await getShopeeSalesIndex(env);
-  const ids = index.slice(0, limit);
-  const sales = [];
-  for (const id of ids) {
-    const raw = await env.STORE_KV.get(SHOPEE_SALE_PREFIX + id);
-    if (!raw) continue;
-    try {
-      sales.push(JSON.parse(raw));
-    } catch { /* skip */ }
-  }
+  const sales = await listMarketplaceSales(env, 'shopee', limit);
+  const totalIndexed = await d1CountSales(env, 'shopee');
   const meta = await getShopeeSalesMeta(env);
-  return json({ ok: true, meta, totalIndexed: index.length, sales }, 200, origin);
+  return json({ ok: true, meta, totalIndexed: totalIndexed || sales.length, sales }, 200, origin);
 }
 
 /** Com token TEST-, PIX de teste não aprova sozinho — simula confirmação após alguns segundos. */
@@ -5441,8 +5719,15 @@ async function isValidSession(env, token) {
 }
 
 async function getOrder(env, orderId) {
+  if (!orderId) return null;
+  const fromD1 = await d1GetOrder(env, orderId);
+  if (fromD1) return fromD1;
   const raw = await env.STORE_KV.get('order:' + orderId);
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  let order;
+  try { order = JSON.parse(raw); } catch { return null; }
+  await d1SaveOrder(env, order).catch(() => {});
+  return order;
 }
 
 const LABEL_PDF_PREFIX = 'label-pdf:';
@@ -5533,6 +5818,11 @@ async function rebuildOrdersIndexFromKv(env) {
 }
 
 async function listOrdersForAdmin(env) {
+  const fromD1 = await d1ListOrders(env, 2000);
+  if (fromD1.length) {
+    fromD1.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
+    return fromD1;
+  }
   let index = await readOrdersIndex(env);
   if (!index.length) {
     index = await rebuildOrdersIndexFromKv(env);
@@ -5561,21 +5851,19 @@ async function listOrdersForAdmin(env) {
     }
   }
 
-  // Index is "last saved first"; always return by order date (newest first).
   orders.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
   return orders;
 }
 
 async function saveOrder(env, order) {
-  await kvPut(env, 'order:' + order.orderId, JSON.stringify(order));
-  const trackingCode = String(order.correiosTrackingCode || '').trim().toUpperCase();
-  if (trackingCode && CORREIOS_AV_RE.test(trackingCode)) {
-    await kvPut(env, 'tracking:' + trackingCode, order.orderId);
+  const ok = await d1SaveOrder(env, order);
+  if (!ok) {
+    await kvPut(env, 'order:' + order.orderId, JSON.stringify(order));
+    const index = await readOrdersIndex(env);
+    const filtered = index.filter((o) => o.orderId !== order.orderId);
+    filtered.unshift(buildIndexEntry(order));
+    await kvPut(env, ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
   }
-  const index = await readOrdersIndex(env);
-  const filtered = index.filter((o) => o.orderId !== order.orderId);
-  filtered.unshift(buildIndexEntry(order));
-  await kvPut(env, ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
   if (order.userId) await linkOrderToUser(env, order.userId, order.orderId);
 }
 
@@ -5592,15 +5880,12 @@ async function unlinkOrderFromUser(env, userId, orderId) {
 async function deleteOrder(env, orderId) {
   const order = await getOrder(env, orderId);
   if (!order) return false;
-
-  await kvDelete(env, 'order:' + orderId);
-
-  const index = await readOrdersIndex(env);
-  await kvPut(env, 
-    ORDERS_INDEX,
-    JSON.stringify(index.filter((o) => o.orderId !== orderId))
-  );
-
+  await d1DeleteOrder(env, orderId);
+  await kvDeleteSafe(env, 'order:' + orderId);
+  try {
+    const index = await readOrdersIndex(env);
+    await kvPutSafe(env, ORDERS_INDEX, JSON.stringify(index.filter((o) => o.orderId !== orderId)));
+  } catch (_) { /* ignore */ }
   if (order.userId) await unlinkOrderFromUser(env, order.userId, order.orderId);
   return true;
 }
@@ -6965,6 +7250,8 @@ function buildPrePostagemPayload(order, config, env) {
 async function findOrderByTrackingCode(env, trackingCode) {
   const code = String(trackingCode || '').trim().toUpperCase();
   if (!code) return null;
+  const d1Id = await d1OrderIdByTracking(env, code);
+  if (d1Id) return getOrder(env, d1Id);
   const orderId = await env.STORE_KV.get('tracking:' + code);
   if (orderId) return getOrder(env, orderId);
   const index = await readOrdersIndex(env);
@@ -6972,7 +7259,6 @@ async function findOrderByTrackingCode(env, trackingCode) {
     const order = await getOrder(env, item.orderId);
     if (!order) continue;
     if (String(order.correiosTrackingCode || '').trim().toUpperCase() === code) {
-      await kvPut(env, 'tracking:' + code, order.orderId);
       return order;
     }
   }
@@ -10362,7 +10648,10 @@ async function listAllCustomers(env, max = 500) {
       if (!userId) continue;
       const user = await getUserById(env, userId);
       if (!user) continue;
-      const orderIds = JSON.parse((await env.STORE_KV.get('user:' + userId + ':orders')) || '[]');
+      const fromD1 = await d1OrdersForUser(env, userId);
+      const orderIds = fromD1.length
+        ? fromD1.map((o) => o.orderId)
+        : JSON.parse((await env.STORE_KV.get('user:' + userId + ':orders')) || '[]');
       users.push({
         userId: user.userId,
         nome: user.nome,
@@ -10460,15 +10749,25 @@ async function handleAdminCustomers(request, env, origin) {
 async function handleCustomerOrders(request, env, origin) {
   const userId = await getCustomerUserId(env, bearerToken(request));
   if (!userId) return json({ error: 'Não autorizado.' }, 401, origin);
-  const ids = JSON.parse((await env.STORE_KV.get('user:' + userId + ':orders')) || '[]');
-  const orders = [];
-  for (const orderId of ids.slice(0, 100)) {
-    const order = await getOrder(env, orderId);
-    if (order && order.userId === userId) {
-      orders.push(publicOrderView(order, {
+  const fromD1 = await d1OrdersForUser(env, userId);
+  let orders = [];
+  if (fromD1.length) {
+    orders = fromD1.filter((order) => order && order.userId === userId).slice(0, 100).map((order) =>
+      publicOrderView(order, {
         includePayment: order.status === 'pending_payment',
         includeResumeToken: order.status === 'pending_payment'
-      }));
+      })
+    );
+  } else {
+    const ids = JSON.parse((await env.STORE_KV.get('user:' + userId + ':orders')) || '[]');
+    for (const orderId of ids.slice(0, 100)) {
+      const order = await getOrder(env, orderId);
+      if (order && order.userId === userId) {
+        orders.push(publicOrderView(order, {
+          includePayment: order.status === 'pending_payment',
+          includeResumeToken: order.status === 'pending_payment'
+        }));
+      }
     }
   }
   return json({ orders }, 200, origin);
@@ -13989,7 +14288,10 @@ async function handlePutConfig(request, env, origin) {
     api: { ...current.api, ...body.api },
     kitCost: body.kitCost != null ? normalizeKitCost(body.kitCost) : normalizeKitCost(current.kitCost),
     kitCostIntl: body.kitCostIntl != null ? normalizeKitCost(body.kitCostIntl) : normalizeKitCost(current.kitCostIntl),
-    kitCostVersion: body.kitCostVersion != null ? Number(body.kitCostVersion) || 3 : (current.kitCostVersion || 3)
+    kitCostVersion: body.kitCostVersion != null ? Number(body.kitCostVersion) || 3 : (current.kitCostVersion || 3),
+    mlFlexShippingCost: body.mlFlexShippingCost != null
+      ? Math.max(0, Math.round(Number(body.mlFlexShippingCost) * 100) / 100)
+      : (current.mlFlexShippingCost ?? 0)
   };
   if (merged.products?.[0]) {
     merged.product = {
@@ -14718,7 +15020,7 @@ export default {
         console.error('Abandoned checkout cron failed:', err.message);
       })
     );
-    if (event.cron === '*/5 * * * *') {
+    if (event.cron === '0 3,15 * * *') {
       ctx.waitUntil(
         trimClicksD1(env).catch((err) => {
           console.error('D1 click trim failed:', err.message);

@@ -678,6 +678,26 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  function salesMoneyCell(kind, value, label, title) {
+    return `<span class="sales-tree-money sales-tree-${kind}" title="${escapeHtml(title)}"><span class="sales-tree-k">${escapeHtml(label)}</span>${formatSalesBRL(value)}</span>`;
+  }
+
+  function renderSaleMoneyCols(sale) {
+    const other = (sale._refunds || 0) + (sale._otherFees || 0);
+    const feesShown = (sale._fees || 0) + other;
+    const conta = sale._marketplace != null
+      ? sale._marketplace
+      : Math.round(((sale._gross || 0) - (sale._fees || 0) - (sale._shipping || 0) - other) * 100) / 100;
+    return [
+      salesMoneyCell('paid', sale._gross, 'pagaram', 'Preço do produto (o que consta no anúncio / recibo)'),
+      salesMoneyCell('fee', feesShown, '−tarifa', 'Comissão do marketplace + estornos/outras'),
+      salesMoneyCell('ship', sale._shipping || 0, '−frete', 'O que o ML descontou de Envios (custo do vendedor)'),
+      salesMoneyCell('kit', Number(sale._cogs) || 0, '−kit', 'Custo do produto (BOM cadastrado em Produtos)'),
+      salesMoneyCell('conta', conta, 'na conta', 'O que entrou na conta: pagaram − tarifa − frete'),
+      salesMoneyCell('net', sale._net, 'lucro', 'Lucro real: o que entrou na conta − custo do kit')
+    ].join('');
+  }
+
   function isDroppedMarketplaceSale(sale) {
     const st = String(sale?.status || '').toLowerCase();
     return /cancel|invalid|refund/.test(st);
@@ -804,14 +824,13 @@
       : '';
     return `
       <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${(list || []).length.toLocaleString('pt-BR')}${indexed}</dd></div>
-      <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Comissão</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Frete (custo)</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(parts.refunds)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(parts.otherFees)}</dd></div>
-      <div class="clicks-stats-row"><dt>(=) Líquido marketplace</dt><dd>${formatSalesBRL(parts.marketplace)}</dd></div>
+      <div class="clicks-stats-row"><dt>Pagaram (produto)</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Tarifa ML</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Frete Envios</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Estornos / outras</dt><dd>${formatSalesBRL(parts.refunds + parts.otherFees)}</dd></div>
+      <div class="clicks-stats-row"><dt>(=) Entrou na conta</dt><dd>${formatSalesBRL(parts.marketplace)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Custo do kit</dt><dd>${formatSalesBRL(parts.cogs)}</dd></div>
-      <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
+      <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Lucro real</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
       ${extraRowsHtml || ''}
       <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
   }
@@ -845,13 +864,14 @@
       const otherFees = Number(sale.otherFees || 0);
       const cogs = saleProductCost(sale);
       const net = effectiveSaleNet(sale);
-      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, net: 0, months: {} };
+      const marketplace = Math.round((gross - fees - shipping - refunds - otherFees) * 100) / 100;
+      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, months: {} };
       const y = tree[year];
-      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, net: 0, days: {} };
+      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, days: {} };
       const m = y.months[monthNum];
-      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, net: 0, sales: [] };
+      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, sales: [] };
       const d = m.days[dateKey];
-      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _refunds: refunds, _otherFees: otherFees, _cogs: cogs, _net: net });
+      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _refunds: refunds, _otherFees: otherFees, _cogs: cogs, _marketplace: marketplace, _net: net });
       d.count += 1;
       d.gross += gross;
       d.fees += fees;
@@ -859,6 +879,7 @@
       d.refunds += refunds;
       d.otherFees += otherFees;
       d.cogs += cogs;
+      d.marketplace += marketplace;
       d.net += net;
       m.count += 1;
       m.gross += gross;
@@ -867,6 +888,7 @@
       m.refunds += refunds;
       m.otherFees += otherFees;
       m.cogs += cogs;
+      m.marketplace += marketplace;
       m.net += net;
       y.count += 1;
       y.gross += gross;
@@ -875,6 +897,7 @@
       y.refunds += refunds;
       y.otherFees += otherFees;
       y.cogs += cogs;
+      y.marketplace += marketplace;
       y.net += net;
     });
     Object.values(tree).forEach((y) => {
@@ -889,7 +912,7 @@
 
   function salesTreeSummary(label, node) {
     const count = node?.count || 0;
-    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido real ${formatSalesBRL(node?.net || 0)}</span>`;
+    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · na conta ${formatSalesBRL(node?.marketplace || 0)} · lucro ${formatSalesBRL(node?.net || 0)}</span>`;
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
@@ -1068,10 +1091,7 @@
       <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
       <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
       <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
-      <span class="sales-tree-money" title="Bruto">${formatSalesBRL(sale._gross)}</span>
-      <span class="sales-tree-money sales-tree-fee" title="Comissão">${formatSalesBRL(sale._fees)}</span>
-      <span class="sales-tree-money sales-tree-ship" title="Frete (custo vendedor)">${formatSalesBRL(sale._shipping || 0)}</span>
-      <span class="sales-tree-net" title="Líquido real = marketplace − custo do kit">${formatSalesBRL(sale._net)}</span>
+      ${renderSaleMoneyCols(sale)}
     </li>`;
   }
 
@@ -1701,11 +1721,7 @@ ${worksheets}
               <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
               <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
               <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
-              <span class="sales-tree-money" title="Bruto">${formatSalesBRL(sale._gross)}</span>
-              <span class="sales-tree-money sales-tree-fee" title="Comissão">${formatSalesBRL(sale._fees)}</span>
-              <span class="sales-tree-money sales-tree-ship" title="Frete">${formatSalesBRL(sale._shipping || 0)}</span>
-              <span class="sales-tree-money sales-tree-adj" title="Estornos + outras taxas">${formatSalesBRL((sale._refunds || 0) + (sale._otherFees || 0))}</span>
-              <span class="sales-tree-net" title="Líquido real = marketplace − custo do kit">${formatSalesBRL(sale._net)}</span>
+              ${renderSaleMoneyCols(sale)}
             </li>`;
           });
           html += '</ul></div></details>';
@@ -2721,6 +2737,37 @@ ${worksheets}
     return isUniqueOrRepeatOnlySession(events);
   }
 
+  /**
+   * Agrupa uma lista ordenada de eventos em visitas lógicas usando uma janela temporal.
+   * Retorna um array de arrays de eventos (cada sub-array é uma visita lógica).
+   * Não altera os eventos originais (mantém `sessao_visita` intacta).
+   */
+  function buildLogicalVisits(events, windowMs) {
+    const win = Number(windowMs) || 30 * 60 * 1000; // default 30 minutos
+    if (!Array.isArray(events) || !events.length) return [];
+    const sorted = [...events].sort((a, b) => (Number(a.ts || a.client_ts) || 0) - (Number(b.ts || b.client_ts) || 0));
+    const visits = [];
+    let cur = null;
+    for (let i = 0; i < sorted.length; i++) {
+      const e = sorted[i];
+      const ts = Number(e.ts || e.client_ts || 0) || 0;
+      if (!cur) {
+        cur = [e];
+        continue;
+      }
+      const last = cur[cur.length - 1];
+      const lastTs = Number(last.ts || last.client_ts || 0) || 0;
+      if (ts - lastTs <= win) {
+        cur.push(e);
+      } else {
+        visits.push(cur);
+        cur = [e];
+      }
+    }
+    if (cur) visits.push(cur);
+    return visits;
+  }
+
   /** Infer .com vs .com.br from stored site_host or idioma/página/destino. */
   function clickSiteHost(c) {
     const explicit = String(c?.site_host || '').toLowerCase().trim();
@@ -3213,20 +3260,27 @@ ${worksheets}
           visitante_id: c.visitante_id || v.meta.visitante_id
         };
       }
-      const sKey = c.sessao_visita || 'sem_sessao';
-      if (!v.sessions[sKey]) v.sessions[sKey] = [];
-      v.sessions[sKey].push(c);
+      // Acumula todos os eventos do visitante numa lista temporária.
+      // Vamos criar as "visitas lógicas" depois, usando uma janela temporal.
+      if (!v._events) v._events = [];
+      v._events.push(c);
       v.count++;
       d.count++;
       m.count++;
       y.count++;
     });
 
+    // Após agregar por visitante, convertemos os eventos acumulados em visitas lógicas
     Object.values(tree).forEach((y) => {
       Object.values(y.months).forEach((m) => {
         Object.values(m.days).forEach((d) => {
           Object.values(d.visitors).forEach((v) => {
-            Object.values(v.sessions).forEach((events) => {
+            // Se existirem eventos acumulados, gerar visitas lógicas (janela: 30 minutos)
+            const tmp = Array.isArray(v._events) ? v._events : [];
+            const visits = buildLogicalVisits(tmp, 30 * 60 * 1000);
+            v.sessions = {};
+            visits.forEach((events, idx) => {
+              // Ordena cada visita e propaga dispositivo inferido
               events.sort((a, b) => {
                 const sa = a.sequencia || 0;
                 const sb = b.sequencia || 0;
@@ -3242,7 +3296,11 @@ ${worksheets}
                   if (!e.dispositivo || e.dispositivo === '—') e.dispositivo = dev;
                 });
               }
+              const key = `visit:${idx + 1}`;
+              v.sessions[key] = events;
             });
+            // Limpamos o array temporário para não poluir a árvore final
+            delete v._events;
           });
         });
       });
@@ -3544,7 +3602,7 @@ ${worksheets}
       if (saved === '0') return false;
       if (saved === '1') return true;
     } catch { /* ignore */ }
-    return false;
+    return true;
   }
 
   function writeClicksNavOnlyPref(on) {
@@ -4634,6 +4692,11 @@ ${worksheets}
     if (!f || !config) return;
     renderProducts(getProductsFromConfig(config));
     renderKitCost(config);
+    if (f.mlFlexShippingCost) {
+      f.mlFlexShippingCost.value = Number(config.mlFlexShippingCost) > 0
+        ? Number(config.mlFlexShippingCost).toFixed(2)
+        : '11.90';
+    }
     initProductSubtabs();
     if (f.smartwatchModels) {
       f.smartwatchModels.value = (config.smartwatchModels || []).join('\n');
@@ -4933,6 +4996,7 @@ ${worksheets}
       kitCost: collectKitCostFromDom('br'),
       kitCostIntl: collectKitCostFromDom('intl'),
       kitCostVersion: 3,
+      mlFlexShippingCost: Math.max(0, parseFloat(f.mlFlexShippingCost?.value) || (currentConfig?.mlFlexShippingCost || 0)),
       updatedAt: new Date().toISOString()
     };
   }
