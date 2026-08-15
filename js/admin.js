@@ -2790,8 +2790,36 @@ ${worksheets}
     const vid = visitorKey(c);
     const sess = String(c?.sessao_visita || '').trim();
     if (sess) return `${vid}|${sess}`;
-    // Sem sessão: cada evento conta sozinho (senão vários bounces viram 1 sessão “grande”).
     return `${vid}|evt:${c?.id || c?.client_event_id || c?.ts || 'x'}`;
+  }
+
+  const LOGICAL_VISIT_GAP_MS = 30 * 60 * 1000;
+
+  function groupClicksByLogicalVisit(clicks) {
+    const byVisitor = new Map();
+    const orphans = [];
+    (clicks || []).forEach((c) => {
+      const vid = String(c.visitante_id || '').trim();
+      if (!vid) {
+        orphans.push(c);
+        return;
+      }
+      if (!byVisitor.has(vid)) byVisitor.set(vid, []);
+      byVisitor.get(vid).push(c);
+    });
+    const map = new Map();
+    byVisitor.forEach((events, vid) => {
+      buildLogicalVisits(events, LOGICAL_VISIT_GAP_MS).forEach((evs) => {
+        const ts = Number(evs[0]?.ts || evs[0]?.client_ts || 0);
+        map.set(`logical:${vid}:${ts}`, evs);
+      });
+    });
+    orphans.forEach((c) => {
+      const sk = clickSessionKey(c);
+      if (!map.has(sk)) map.set(sk, []);
+      map.get(sk).push(c);
+    });
+    return map;
   }
 
   function isCrawlerClickRow(c) {
@@ -2806,17 +2834,12 @@ ${worksheets}
   }
 
   function filterClicksExcludingUniqueOrRepeat(clicks) {
-    const bySession = new Map();
-    (clicks || []).forEach((c) => {
-      const sk = clickSessionKey(c);
-      if (!bySession.has(sk)) bySession.set(sk, []);
-      bySession.get(sk).push(c);
-    });
     const drop = new Set();
-    bySession.forEach((evs, sk) => {
-      if (isUniqueOrRepeatOnlySession(evs)) drop.add(sk);
+    groupClicksByLogicalVisit(clicks).forEach((evs) => {
+      if (!isUniqueOrRepeatOnlySession(evs)) return;
+      evs.forEach((c) => drop.add(c));
     });
-    return (clicks || []).filter((c) => !drop.has(clickSessionKey(c)) && !isCrawlerClickRow(c));
+    return (clicks || []).filter((c) => !drop.has(c) && !isCrawlerClickRow(c));
   }
 
   function filterClicksExcludingHomeOnly(clicks) {
@@ -2824,13 +2847,7 @@ ${worksheets}
   }
 
   function groupClicksBySession(clicks) {
-    const bySession = new Map();
-    (clicks || []).forEach((c) => {
-      const sk = clickSessionKey(c);
-      if (!bySession.has(sk)) bySession.set(sk, []);
-      bySession.get(sk).push(c);
-    });
-    return bySession;
+    return groupClicksByLogicalVisit(clicks);
   }
 
   /** Unique = 1 event; repeat = 2+ of the same dest. Official nav stays out. */
@@ -3277,7 +3294,7 @@ ${worksheets}
           Object.values(d.visitors).forEach((v) => {
             // Se existirem eventos acumulados, gerar visitas lógicas (janela: 30 minutos)
             const tmp = Array.isArray(v._events) ? v._events : [];
-            const visits = buildLogicalVisits(tmp, 30 * 60 * 1000);
+            const visits = buildLogicalVisits(tmp, LOGICAL_VISIT_GAP_MS);
             v.sessions = {};
             visits.forEach((events, idx) => {
               // Ordena cada visita e propaga dispositivo inferido

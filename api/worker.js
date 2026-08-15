@@ -3826,12 +3826,10 @@ async function saveMarketplaceSale(env, sale) {
     const newNormalizedStr = JSON.stringify(normalized);
     const existingNormalizedStr = existing?.payload?.normalized ? JSON.stringify(existing.payload.normalized) : null;
     if (existing && existingNormalizedStr === newNormalizedStr) {
-      // nada a fazer — manter registro atual (evita churn)
       return true;
     }
 
-    // anexar de forma não destrutiva (preserva payload.raw quando presente)
-    if (!sale.payload.normalized) sale.payload.normalized = normalized;
+    sale.payload.normalized = normalized;
   } catch (err) {
     console.warn('normalize/saveMarketplaceSale pipeline failed:', err && err.message);
   }
