@@ -2966,6 +2966,16 @@ ${worksheets}
       : `${r.visitors} visitante${r.visitors === 1 ? '' : 's'}`);
     const chartOpts = { sideLabel };
 
+    const todayKey = brDateParts(Date.now()).dateKey;
+    const todayClicks = filtered.filter((c) => {
+      const t = Number(c.ts || c.client_ts || 0);
+      return t > 0 && brDateParts(t).dateKey === todayKey;
+    });
+    const byHourTodayMap = new Map(aggregateClicksWhen(todayClicks, 'hour').map((b) => [b.key, b]));
+    const hoursToday = Array.from({ length: 24 }, (_, h) => (
+      byHourTodayMap.get(String(h)) || empty(String(h), `${String(h).padStart(2, '0')}h`, h)
+    ));
+
     const byHourMap = new Map(aggregateClicksWhen(filtered, 'hour').map((b) => [b.key, b]));
     const hours = Array.from({ length: 24 }, (_, h) => (
       byHourMap.get(String(h)) || empty(String(h), `${String(h).padStart(2, '0')}h`, h)
@@ -3005,11 +3015,12 @@ ${worksheets}
 
     root.innerHTML = cleanLine + [
       renderWhenBarChart('Site', sites, metric, { ...chartOpts, cardClass: 'vendas-when-card--site' }),
+      renderWhenBarChart('Hoje — por hora (Brasília)', hoursToday, metric, chartOpts),
       renderWhenBarChart('Por mês', months, metric, chartOpts),
       renderWhenBarChart('Por semana', weeks, metric, weekOpts),
       renderWhenBarChart('Dia da semana', weekdays, metric, chartOpts),
       renderWhenBarChart('Dia do mês', monthdays, metric, chartOpts),
-      renderWhenBarChart('Hora do dia', hours, metric, chartOpts)
+      renderWhenBarChart('Hora do dia (todos os dias somados)', hours, metric, chartOpts)
     ].join('');
   }
 
