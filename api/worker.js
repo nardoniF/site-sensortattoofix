@@ -4016,10 +4016,14 @@ async function syncMlOrders(env, options = {}) {
     for (const order of results) {
       let sale = normalizeMlOrder(order);
       let existing = null;
-      const existingRaw = await env.STORE_KV.get(ML_SALE_PREFIX + sale.externalId);
-      if (existingRaw) {
-        updated += 1;
-        try { existing = JSON.parse(existingRaw); } catch { existing = null; }
+      if (options.skipExistingRead !== true) {
+        const existingRaw = await env.STORE_KV.get(ML_SALE_PREFIX + sale.externalId);
+        if (existingRaw) {
+          updated += 1;
+          try { existing = JSON.parse(existingRaw); } catch { existing = null; }
+        } else {
+          imported += 1;
+        }
       } else {
         imported += 1;
       }
@@ -4028,7 +4032,10 @@ async function syncMlOrders(env, options = {}) {
         sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
       }
       sale = mergeMlSaleShipping(existing, sale);
-      index = await upsertMlSale(env, sale, index);
+      await env.STORE_KV.put(ML_SALE_PREFIX + sale.externalId, JSON.stringify(sale));
+      const next = (index || []).filter((id) => id !== sale.externalId);
+      next.unshift(sale.externalId);
+      index = next.slice(0, ML_SALES_INDEX_MAX);
     }
 
     pages += 1;
@@ -4108,7 +4115,8 @@ async function handleAdminMlSync(request, env, origin) {
       days: daysParam ? Number(daysParam) : 400,
       backfillShipping: 0,
       enrichShipping: false,
-      maxPages: 8
+      skipExistingRead: true,
+      maxPages: 2
     });
     return json(report, 200, origin);
   } catch (err) {
