@@ -3992,9 +3992,18 @@ function mlEstornoFromPayments(docs, gross, fees) {
   for (const p of docs || []) {
     const st = String(p.status || '').toLowerCase();
     if (st && !/approved|accredited/.test(st)) continue;
-    netApi += mlMoney(p.transaction_details?.net_received_amount);
-    estorno += mlMoney(p.coupon_amount);
-    for (const r of p.refunds || []) estorno += mlMoney(r.amount);
+    // try several fields that may contain the net received / total paid
+    const netFromDoc = p.transaction_details?.net_received_amount ?? p.transaction_details?.net_received_amount ?? p.net_received_amount ?? p.total_paid_amount ?? p.total_paid ?? 0;
+    netApi += mlMoney(netFromDoc);
+
+    estorno += mlMoney(p.coupon_amount ?? p.couponAmount ?? p.coupon ?? 0);
+
+    // refunds array (various shapes)
+    for (const r of p.refunds || []) {
+      estorno += mlMoney(r.amount ?? r.total_refunded ?? r.refund_amount ?? 0);
+    }
+
+    // charges_details / adjustments
     for (const c of p.charges_details || []) {
       const name = `${c.name || ''} ${c.type || ''} ${c.owner || ''}`;
       if (/refund|estorno|rebate|discount|compensation|credit/i.test(name)) {
@@ -4002,11 +4011,17 @@ function mlEstornoFromPayments(docs, gross, fees) {
         estorno += Math.abs(mlMoney(amt));
       }
     }
+
+    if (Array.isArray(p.adjustments)) {
+      for (const a of p.adjustments) estorno += mlMoney(a.amount ?? a.value ?? 0);
+    }
   }
+
   estorno = mlMoney(estorno);
+  // fallback: infer estorno by comparing net received vs (gross - fees)
   if (estorno < 0.01 && netApi > 0 && gross > 0) {
     const credit = mlMoney(netApi - (gross - fees));
-    if (credit > 0.04 && credit < 25) estorno = credit;
+    if (credit > 0.04 && credit < 100) estorno = credit;
   }
   return estorno;
 }
