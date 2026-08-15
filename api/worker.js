@@ -4101,8 +4101,8 @@ async function handleAdminMlSync(request, env, origin) {
   const full = url.searchParams.get('full') === '1' || url.searchParams.get('full') === 'true';
   try {
     const report = await syncMlOrders(env, {
-      full,
-      days: daysParam ? Number(daysParam) : undefined,
+      full: true,
+      days: daysParam ? Number(daysParam) : 400,
       backfillShipping: 400
     });
     return json(report, 200, origin);

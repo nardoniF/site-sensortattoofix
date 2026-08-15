@@ -1967,7 +1967,7 @@ ${worksheets}
     }
     showStatus('Sincronizando Mercado Livre…', '', 'vendas');
     try {
-      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sync`, {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sync?full=1&days=400`, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
