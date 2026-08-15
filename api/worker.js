@@ -14899,18 +14899,17 @@ export default {
             try {
               const sale = await d1GetSale(env, channel, id);
               if (!sale) continue;
-              const normalized = normalizeMarketplaceSale ? normalizeMarketplaceSale(sale, await getConfig(env).catch(() => ({}))) : null;
-              if (normalized && calculateOrderFinancials) {
-                try { normalized.financials = normalized.financials || calculateOrderFinancials(sale, await getConfig(env).catch(() => ({}))); } catch {}
-              }
               const existingNormalizedStr = sale.payload?.normalized ? JSON.stringify(sale.payload.normalized) : null;
-              const newStr = normalized ? JSON.stringify(normalized) : null;
-              if (newStr && existingNormalizedStr !== newStr) {
-                sale.payload = sale.payload || {};
-                sale.payload.normalized = normalized;
-                await d1SaveSale(env, sale).catch(() => {});
-                updated += 1;
+              // Use the same pipeline used elsewhere to normalize/enrich/save
+              try {
+                await saveMarketplaceSale(env, sale);
+              } catch (err) {
+                console.warn('saveMarketplaceSale failed during backfill', channel, id, err && err.message);
+                continue;
               }
+              const after = await d1GetSale(env, channel, id);
+              const newStr = after?.payload?.normalized ? JSON.stringify(after.payload.normalized) : null;
+              if (newStr && existingNormalizedStr !== newStr) updated += 1;
             } catch (err) {
               console.warn('backfill normalized item failed', channel, id, err && err.message);
             }
