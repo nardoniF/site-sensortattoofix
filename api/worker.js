@@ -4423,10 +4423,13 @@ async function handleAdminMlSync(request, env, origin) {
 }
 
 async function handleAdminMlSales(request, env, origin) {
-  if (!(await isValidSession(env, bearerToken(request)))) {
-    return json({ error: 'Não autorizado.' }, 401, origin);
-  }
   const url = new URL(request.url);
+  const key = url.searchParams.get('key') || '';
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    if (!env.BACKFILL_KEY || key !== String(env.BACKFILL_KEY)) {
+      return json({ error: 'Não autorizado.' }, 401, origin);
+    }
+  }
   const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit')) || 400));
   const sales = await listMarketplaceSales(env, 'mercadolivre', limit);
   const totalIndexed = await d1CountSales(env, 'mercadolivre');
