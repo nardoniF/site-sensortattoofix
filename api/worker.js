@@ -3804,21 +3804,38 @@ async function loadMarketplaceSale(env, channel, saleId) {
 
 async function saveMarketplaceSale(env, sale) {
   if (!sale?.externalId) return false;
+  // Normalizar e anexar `payload.normalized` sem sobrescrever
   try {
-    // Enriquecer resumo financeiro normalizado antes de persistir
-    const { calculateOrderFinancials } = await import('./order-financials.js');
+    const [{ normalizeMarketplaceSale }, { calculateOrderFinancials }] = await Promise.all([
+      import('./order-normalizer.js'),
+      import('./order-financials.js')
+    ]);
     const config = await getConfig(env).catch(() => ({}));
+    const normalized = normalizeMarketplaceSale(sale, config) || {};
+    // enrich with financials
     try {
       const fin = calculateOrderFinancials(sale, config);
-      // Anexar sem sobrescrever campos originais
-      sale.normalizedFinancials = sale.normalizedFinancials || fin;
+      normalized.financials = normalized.financials || fin;
     } catch (e) {
-      // não bloquear persistência por falha no cálculo
       console.warn('calculateOrderFinancials failed:', e && e.message);
     }
+
+    sale.payload = sale.payload || {};
+    // idempotência: se já existir e for igual, evitar regravar
+    const existing = await d1GetSale(env, sale.channel, sale.externalId).catch(() => null);
+    const newNormalizedStr = JSON.stringify(normalized);
+    const existingNormalizedStr = existing?.payload?.normalized ? JSON.stringify(existing.payload.normalized) : null;
+    if (existing && existingNormalizedStr === newNormalizedStr) {
+      // nada a fazer — manter registro atual (evita churn)
+      return true;
+    }
+
+    // anexar de forma não destrutiva (preserva payload.raw quando presente)
+    if (!sale.payload.normalized) sale.payload.normalized = normalized;
   } catch (err) {
-    // import/fail: ignore, persist sale anyway
+    console.warn('normalize/saveMarketplaceSale pipeline failed:', err && err.message);
   }
+
   return d1SaveSale(env, sale);
 }
 
@@ -14840,6 +14857,49 @@ export default {
       if (path === '/admin/shopee/sales' && request.method === 'GET') {
         return handleAdminShopeeSales(request, env, origin);
       }
+      if (path === '/admin/backfill-normalized' && (request.method === 'POST' || request.method === 'GET')) {
+        return handleAdminBackfillNormalized(request, env, origin);
+      }
+
+        async function handleAdminBackfillNormalized(request, env, origin) {
+          // Permitido para sessão admin válida ou uso de BACKFILL_KEY query
+          const url = new URL(request.url);
+          const key = url.searchParams.get('key') || '';
+          const isAuth = await isValidSession(env, bearerToken(request));
+          if (!isAuth && (!env.BACKFILL_KEY || key !== String(env.BACKFILL_KEY))) {
+            return json({ error: 'Não autorizado.' }, 401, origin);
+          }
+          const channel = (url.searchParams.get('channel') || 'mercadolivre').toLowerCase();
+          const limit = Number(url.searchParams.get('limit') || '5000');
+          const ids = await d1ListSaleIds(env, channel, limit).catch(() => []);
+          let updated = 0;
+          const [{ normalizeMarketplaceSale }, { calculateOrderFinancials }] = await Promise.all([
+            import('./order-normalizer.js'),
+            import('./order-financials.js')
+          ]).catch(() => [null, null]);
+          for (const id of ids) {
+            try {
+              const sale = await d1GetSale(env, channel, id);
+              if (!sale) continue;
+              const normalized = normalizeMarketplaceSale ? normalizeMarketplaceSale(sale, await getConfig(env).catch(() => ({}))) : null;
+              if (normalized && calculateOrderFinancials) {
+                try { normalized.financials = normalized.financials || calculateOrderFinancials(sale, await getConfig(env).catch(() => ({}))); } catch {}
+              }
+              const existingNormalizedStr = sale.payload?.normalized ? JSON.stringify(sale.payload.normalized) : null;
+              const newStr = normalized ? JSON.stringify(normalized) : null;
+              if (newStr && existingNormalizedStr !== newStr) {
+                sale.payload = sale.payload || {};
+                sale.payload.normalized = normalized;
+                await d1SaveSale(env, sale).catch(() => {});
+                updated += 1;
+              }
+            } catch (err) {
+              console.warn('backfill normalized item failed', channel, id, err && err.message);
+            }
+          }
+          return json({ ok: true, channel, total: ids.length, updated }, 200, origin);
+        }
+
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
