@@ -30,7 +30,7 @@ const CLICKS_BLOB = 'clicks:blob';
 /** Safety ceiling if traffic spikes (~250/day × ~200d). Primary trim is calendar months. */
 const CLICKS_MAX = 50000;
 /** Tree in Admin: recent visits only (full JSON). Charts use slim series for the retention window. */
-const CLICKS_TREE_MAX = 2500;
+const CLICKS_TREE_MAX = 4000;
 /** Rolling window: 5 closed months + current (= 6 months). Oldest closed month drops when a new month starts. */
 const CLICKS_CLOSED_MONTHS = 5;
 const FEEDBACK_BLOB = 'feedback:blob';
@@ -3744,7 +3744,14 @@ function normalizeMlOrder(order) {
     };
   });
   const fees = Math.round(items.reduce((sum, it) => sum + Number(it.saleFee || 0), 0) * 100) / 100;
-  const gross = Math.round(Number(order.paid_amount ?? order.total_amount ?? 0) * 100) / 100;
+  const itemsGross = Math.round(items.reduce((sum, it) => {
+    const qty = Number(it.quantity || 0) > 0 ? Number(it.quantity) : 1;
+    return sum + Number(it.unitPrice || 0) * qty;
+  }, 0) * 100) / 100;
+  const totalAmount = Math.round(Number(order.total_amount || 0) * 100) / 100;
+  const paidAmount = Math.round(Number(order.paid_amount || 0) * 100) / 100;
+  // Preço do produto (como no recibo ML). paid_amount inclui juros de parcela e frete do comprador.
+  const gross = itemsGross > 0 ? itemsGross : (totalAmount || paidAmount);
   const payments = (Array.isArray(order.payments) ? order.payments : []).map((p) => ({
     id: p.id != null ? String(p.id) : null,
     status: p.status || null,
@@ -3752,11 +3759,8 @@ function normalizeMlOrder(order) {
     shippingCost: Number(p.shipping_cost || 0),
     marketplaceFee: p.marketplace_fee != null ? Number(p.marketplace_fee) : null
   }));
-  const shippingFromPayments = payments.reduce((s, p) => s + Number(p.shippingCost || 0), 0);
-  const shippingCost = order.shipping_cost != null
-    ? Number(order.shipping_cost)
-    : shippingFromPayments;
-  const net = Math.round((gross - fees - Number(shippingCost || 0)) * 100) / 100;
+  const shippingCost = 0;
+  const net = Math.round((gross - fees) * 100) / 100;
   const soldAt = order.date_closed || order.date_created || null;
   return {
     channel: 'mercadolivre',
@@ -3767,9 +3771,10 @@ function normalizeMlOrder(order) {
     tags: Array.isArray(order.tags) ? order.tags : [],
     currency: order.currency_id || 'BRL',
     gross,
+    buyerPaid: paidAmount,
     fees,
     net,
-    shippingCost: Number(shippingCost || 0),
+    shippingCost: 0,
     refunds: 0,
     otherFees: 0,
     buyer: {
@@ -3785,6 +3790,64 @@ function normalizeMlOrder(order) {
   };
 }
 
+function mlMoney(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v < 0) return 0;
+  return Math.round(v * 100) / 100;
+}
+
+function mlSellerCostFromCostsPayload(data, sellerId) {
+  const senders = Array.isArray(data?.senders) ? data.senders : [];
+  let sender = senders[0] || null;
+  if (sellerId && senders.length) {
+    sender = senders.find((s) => String(s.user_id) === String(sellerId)) || sender;
+  }
+  return mlMoney(
+    sender?.cost
+    ?? sender?.save
+    ?? data?.sender?.cost
+    ?? data?.gross_amount
+    ?? 0
+  );
+}
+
+function mlSaleNetFromParts(sale, shippingCost) {
+  return Math.round((
+    Number(sale.gross || 0)
+    - Number(sale.fees || 0)
+    - Number(shippingCost || 0)
+    - Number(sale.refunds || 0)
+    - Number(sale.otherFees || 0)
+  ) * 100) / 100;
+}
+
+function mergeMlSaleShipping(existing, sale) {
+  const next = mlMoney(sale?.shippingCost);
+  const prev = mlMoney(existing?.shippingCost);
+  const shippingCost = next > 0 ? next : prev;
+  const shippingCostsOk = !!(sale?.shippingCostsOk || (existing?.shippingCostsOk && prev > 0));
+  return {
+    ...sale,
+    shippingCost,
+    buyerShippingCost: sale?.buyerShippingCost ?? existing?.buyerShippingCost,
+    shippingCostsOk,
+    net: mlSaleNetFromParts(sale, shippingCost)
+  };
+}
+
+async function fetchMlShipmentSellerCost(token, shippingId) {
+  const res = await fetch(`${ML_API_BASE}/shipments/${encodeURIComponent(shippingId)}`, {
+    headers: {
+      Authorization: 'Bearer ' + token,
+      Accept: 'application/json'
+    }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return 0;
+  const opt = data.shipping_option || {};
+  return mlMoney(opt.cost ?? data.base_cost ?? 0);
+}
+
 async function enrichMlSaleShippingCost(env, token, sale, sellerId) {
   if (!sale?.shippingId || !token) return sale;
   try {
@@ -3796,21 +3859,18 @@ async function enrichMlSaleShippingCost(env, token, sale, sellerId) {
       }
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return sale;
-    const senders = Array.isArray(data.senders) ? data.senders : [];
-    let sender = senders[0] || null;
-    if (sellerId) {
-      sender = senders.find((s) => String(s.user_id) === String(sellerId)) || sender;
+    let sellerShipping = res.ok ? mlSellerCostFromCostsPayload(data, sellerId) : 0;
+    const buyerShipping = res.ok ? mlMoney(data.receiver?.cost) : mlMoney(sale.buyerShippingCost);
+    if (!(sellerShipping > 0)) {
+      sellerShipping = await fetchMlShipmentSellerCost(token, sale.shippingId);
     }
-    const sellerShipping = Math.round(Number(sender?.cost || 0) * 100) / 100;
-    const buyerShipping = Math.round(Number(data.receiver?.cost || 0) * 100) / 100;
-    const net = Math.round((Number(sale.gross || 0) - Number(sale.fees || 0) - sellerShipping) * 100) / 100;
+    if (!(sellerShipping > 0) && !(buyerShipping > 0)) return sale;
     return {
       ...sale,
       shippingCost: sellerShipping,
       buyerShippingCost: buyerShipping,
-      net,
-      shippingCostsOk: true
+      net: mlSaleNetFromParts(sale, sellerShipping),
+      shippingCostsOk: sellerShipping > 0
     };
   } catch {
     return sale;
@@ -3895,10 +3955,19 @@ async function syncMlOrders(env, options = {}) {
 
     for (const order of results) {
       let sale = normalizeMlOrder(order);
-      sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
+      let existing = null;
       const existingRaw = await env.STORE_KV.get(ML_SALE_PREFIX + sale.externalId);
-      if (existingRaw) updated += 1;
-      else imported += 1;
+      if (existingRaw) {
+        updated += 1;
+        try { existing = JSON.parse(existingRaw); } catch { existing = null; }
+      } else {
+        imported += 1;
+      }
+      const alreadyPriced = Number(existing?.shippingCost || 0) > 0 && existing?.shippingCostsOk;
+      if (!alreadyPriced) {
+        sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
+      }
+      sale = mergeMlSaleShipping(existing, sale);
       index = await upsertMlSale(env, sale, index);
     }
 
@@ -3981,7 +4050,7 @@ async function handleAdminMlSales(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
   const url = new URL(request.url);
-  const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit')) || 200));
+  const limit = Math.min(5000, Math.max(1, Number(url.searchParams.get('limit')) || 5000));
   const index = await getMlSalesIndex(env);
   const ids = index.slice(0, limit);
   const sales = [];
@@ -4590,7 +4659,7 @@ async function handleAdminAmzSales(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
   const url = new URL(request.url);
-  const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit')) || 200));
+  const limit = Math.min(5000, Math.max(1, Number(url.searchParams.get('limit')) || 5000));
   const index = await getAmzSalesIndex(env);
   const ids = index.slice(0, limit);
   const sales = [];
@@ -5150,7 +5219,7 @@ async function handleAdminShopeeSales(request, env, origin) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
   const url = new URL(request.url);
-  const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit')) || 200));
+  const limit = Math.min(5000, Math.max(1, Number(url.searchParams.get('limit')) || 5000));
   const index = await getShopeeSalesIndex(env);
   const ids = index.slice(0, limit);
   const sales = [];
@@ -5375,7 +5444,7 @@ async function listOrdersForAdmin(env) {
 
   const orders = [];
   let missingFull = 0;
-  for (const item of index.slice(0, 500)) {
+  for (const item of index.slice(0, 2000)) {
     const full = await getOrder(env, item.orderId);
     if (full) orders.push(full);
     else {
@@ -5389,7 +5458,7 @@ async function listOrdersForAdmin(env) {
     const rebuilt = await rebuildOrdersIndexFromKv(env);
     if (rebuilt.length && rebuilt.length !== index.length) {
       orders.length = 0;
-      for (const item of rebuilt.slice(0, 500)) {
+      for (const item of rebuilt.slice(0, 2000)) {
         const full = await getOrder(env, item.orderId);
         orders.push(full || orderFromIndexRow(item));
       }
@@ -8506,14 +8575,14 @@ function paypalBase(env) {
 }
 
 function storeBaseUrl(config, env, request) {
-  if (request && isComSiteRequest(request)) {
-    return 'https://www.sensortattoofix.com';
+  if (request) {
+    return isComSiteRequest(request)
+      ? 'https://www.sensortattoofix.com'
+      : 'https://www.sensortattoofix.com.br';
   }
   const storeUrl = String(env.STORE_URL || config.store?.url || '').replace(/\/$/, '');
-  if (storeUrl && /\.sensortattoofix\.com$/i.test(storeUrl) && !/\.com\.br/i.test(storeUrl)) {
-    return storeUrl;
-  }
-  return String(env.STORE_URL || config.store?.url || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
+  if (storeUrl) return storeUrl;
+  return 'https://www.sensortattoofix.com.br';
 }
 
 function paypalReturnUrls(config, order, env, request) {
@@ -9447,11 +9516,11 @@ async function createMercadoPagoPixPayment(env, order, config) {
 }
 
 /** Checkout Pro — cartão internacional (Visa/Mastercard/Amex), valor em BRL. */
-async function createMercadoPagoCheckoutPro(env, order, config) {
+async function createMercadoPagoCheckoutPro(env, order, config, request) {
   const token = mercadoPagoToken(env);
   if (!token) throw new Error('Mercado Pago não configurado no Worker.');
 
-  const base = storeBaseUrl(config, env);
+  const base = storeBaseUrl(config, env, request);
   const successParams = new URLSearchParams({
     mp: 'success', orderId: order.orderId, accessToken: order.accessToken
   });
@@ -9477,7 +9546,7 @@ async function createMercadoPagoCheckoutPro(env, order, config) {
     external_reference: order.orderId,
     back_urls: {
       success: `${base}/comprar.html?${successParams}`,
-      failure: `${base}/comprar.html?${failureParams}`,
+      failure: `${base}/loja.html`,
       pending: `${base}/comprar.html?${pendingParams}`
     },
     auto_return: 'approved',
@@ -9513,29 +9582,29 @@ async function createMercadoPagoCheckoutPro(env, order, config) {
 }
 
 /** Cartão ou PIX BR — processador configurado no admin, com fallback Asaas ↔ Mercado Pago. */
-async function tryBrPaymentProvider(env, order, config, provider, billingType) {
+async function tryBrPaymentProvider(env, order, config, provider, billingType, request) {
   const hasAsaas = !!asaasApiKey(env);
   const hasMp = !!mercadoPagoToken(env);
   if (provider === 'mercadopago') {
     if (!hasMp) throw new Error('Mercado Pago não configurado no Worker.');
-    if (billingType === 'CREDIT_CARD') return createMercadoPagoCheckoutPro(env, order, config);
+    if (billingType === 'CREDIT_CARD') return createMercadoPagoCheckoutPro(env, order, config, request);
     return createMercadoPagoPixPayment(env, order, config);
   }
   if (!hasAsaas) throw new Error('Asaas não configurado no Worker.');
   return createAsaasPayment(env, order, config, billingType);
 }
 
-async function createBrPaymentWithFallback(env, order, config, billingType, getProvider, fallbackEnabled) {
+async function createBrPaymentWithFallback(env, order, config, billingType, getProvider, fallbackEnabled, request) {
   const primary = getProvider(config);
   const alternate = primary === 'mercadopago' ? 'asaas' : 'mercadopago';
   const label = billingType === 'PIX' ? 'PIX' : 'Cartão';
   try {
-    return await tryBrPaymentProvider(env, order, config, primary, billingType);
+    return await tryBrPaymentProvider(env, order, config, primary, billingType, request);
   } catch (primaryErr) {
     if (!fallbackEnabled(config)) throw primaryErr;
     console.error(`${label} ${primary}:`, primaryErr.message);
     try {
-      const payment = await tryBrPaymentProvider(env, order, config, alternate, billingType);
+      const payment = await tryBrPaymentProvider(env, order, config, alternate, billingType, request);
       console.log(`${label} fallback ${primary} → ${alternate}:`, order.orderId);
       return payment;
     } catch (altErr) {
@@ -9545,8 +9614,8 @@ async function createBrPaymentWithFallback(env, order, config, billingType, getP
   }
 }
 
-async function createBrCreditCardPayment(env, order, config) {
-  return createBrPaymentWithFallback(env, order, config, 'CREDIT_CARD', getCardBrProvider, cardBrFallbackEnabled);
+async function createBrCreditCardPayment(env, order, config, request) {
+  return createBrPaymentWithFallback(env, order, config, 'CREDIT_CARD', getCardBrProvider, cardBrFallbackEnabled, request);
 }
 
 async function createBrPixPayment(env, order, config) {
@@ -10710,13 +10779,13 @@ async function handleCreateOrder(request, env, origin, ctx) {
     if (billingType === 'PAYPAL' && !intlEmbeddedCheckout) {
       payment = await createPayPalCheckout(env, order, config, request);
     } else if (billingType === 'MP_CHECKOUT') {
-      payment = await createMercadoPagoCheckoutPro(env, order, config);
+      payment = await createMercadoPagoCheckoutPro(env, order, config, request);
     } else if (billingType === 'PIX') {
       if (hasMp || hasAsaas) {
         payment = await createBrPixPayment(env, order, config);
       }
     } else if (billingType === 'CREDIT_CARD') {
-      payment = await createBrCreditCardPayment(env, order, config);
+      payment = await createBrCreditCardPayment(env, order, config, request);
     }
   } catch (err) {
     console.error('Payment:', err.message);
@@ -12695,7 +12764,7 @@ function isCrawlerClick(entry, request) {
 async function insertClickD1(env, entry) {
   const db = await ensureClicksD1(env);
   if (!db) throw new Error('CLICKS_DB (D1) não configurado no Worker.');
-  const id = String(entry.id || crypto.randomUUID());
+  const id = String(entry.client_event_id || entry.id || crypto.randomUUID()).slice(0, 64);
   const ts = Number(entry.ts) || Date.now();
   const row = { ...entry, id, ts };
   const teste = (row.teste === true || row.is_test === true) ? 1 : 0;
@@ -12714,17 +12783,19 @@ async function insertClickD1(env, entry) {
     teste,
     JSON.stringify(row)
   ).run();
-  // Rolling calendar window (5 closed + current) + hard ceiling.
-  if (Math.random() < 0.08) {
-    const cutoff = clicksRetentionWindow().cutoffMs;
-    await db.prepare('DELETE FROM clicks WHERE ts < ?').bind(cutoff).run().catch(() => {});
-    await db.prepare(`
-      DELETE FROM clicks WHERE ts < (
-        SELECT ts FROM clicks ORDER BY ts DESC LIMIT 1 OFFSET ?
-      )
-    `).bind(CLICKS_MAX - 1).run().catch(() => {});
-  }
   return row;
+}
+
+async function trimClicksD1(env) {
+  const db = await ensureClicksD1(env);
+  if (!db) return;
+  const cutoff = clicksRetentionWindow().cutoffMs;
+  await db.prepare('DELETE FROM clicks WHERE ts < ?').bind(cutoff).run().catch(() => {});
+  await db.prepare(`
+    DELETE FROM clicks WHERE ts < (
+      SELECT ts FROM clicks ORDER BY ts DESC LIMIT 1 OFFSET ?
+    )
+  `).bind(CLICKS_MAX - 1).run().catch(() => {});
 }
 
 async function loadClicksFromD1(env, limit = CLICKS_TREE_MAX) {
@@ -12734,12 +12805,14 @@ async function loadClicksFromD1(env, limit = CLICKS_TREE_MAX) {
   const countRow = await db.prepare('SELECT COUNT(*) AS n FROM clicks').first();
   const total = Number(countRow?.n || 0);
   const res = await db.prepare(
-    'SELECT payload FROM clicks ORDER BY ts DESC LIMIT ?'
+    'SELECT ts, payload FROM clicks ORDER BY ts DESC LIMIT ?'
   ).bind(Math.min(CLICKS_TREE_MAX, Math.max(1, limit))).all();
   const loaded = [];
   for (const r of res?.results || []) {
     try {
-      loaded.push(JSON.parse(r.payload));
+      const row = JSON.parse(r.payload);
+      const ts = Number(row.ts) || Number(r.ts) || 0;
+      loaded.push({ ...row, ts });
     } catch { /* skip */ }
   }
   return { loaded, total };
@@ -12968,7 +13041,8 @@ function buildClickEntry(data, request) {
     utm_source: clickField(data, 'utm_source', 48),
     utm_medium: clickField(data, 'utm_medium', 32),
     utm_campaign: clickField(data, 'utm_campaign', 64),
-    teste: data?.teste === true || data?.teste === 'true' || data?.is_test === true || data?.is_test === 'true'
+    teste: data?.teste === true || data?.teste === 'true' || data?.is_test === true || data?.is_test === 'true',
+    client_event_id: clickField(data, 'client_event_id', 64)
   };
 }
 
@@ -13071,7 +13145,7 @@ async function handleLogClick(request, env, origin, ctx) {
   }
 
   const eventId = String(body.client_event_id || '').trim().slice(0, 64);
-  if (eventId && !(await claimClickEvent(eventId))) {
+  if (eventId && await isDuplicateClickEvent(eventId)) {
     return json({ ok: true, deduped: true }, 202, origin);
   }
 
@@ -13115,7 +13189,7 @@ async function handleLogClickPixel(request, env, origin, ctx) {
   }
 
   const eventId = String(params.client_event_id || '').trim().slice(0, 64);
-  if (eventId && !(await claimClickEvent(eventId))) {
+  if (eventId && await isDuplicateClickEvent(eventId)) {
     return pixelResponse(origin);
   }
 
@@ -14549,6 +14623,11 @@ export default {
       })
     );
     if (event.cron === '*/5 * * * *') {
+      ctx.waitUntil(
+        trimClicksD1(env).catch((err) => {
+          console.error('D1 click trim failed:', err.message);
+        })
+      );
       ctx.waitUntil(
         dropLegacyClickKvShell(env).catch((err) => {
           console.error('Legacy click KV drop failed:', err.message);

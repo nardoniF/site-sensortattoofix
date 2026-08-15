@@ -678,9 +678,31 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  function isDroppedMarketplaceSale(sale) {
+    const st = String(sale?.status || '').toLowerCase();
+    return /cancel|invalid|refund/.test(st);
+  }
+
+  /** Preço do produto ML — paid_amount / sale.gross antigo inclui juros de parcela e frete do comprador. */
+  function saleListedGross(sale) {
+    const ch = String(sale?.channel || '').toLowerCase();
+    if (ch === 'mercadolivre' || ch === 'ml') {
+      const items = sale?.items;
+      if (Array.isArray(items) && items.length) {
+        const sum = items.reduce((n, i) => {
+          const qty = Number(i.quantity || i.qty || 0);
+          const unit = Number(i.unitPrice || i.unit_price || 0);
+          return n + unit * (qty > 0 ? qty : 0);
+        }, 0);
+        if (sum > 0) return Math.round(sum * 100) / 100;
+      }
+    }
+    return Math.round(Number(sale.gross || 0) * 100) / 100;
+  }
+
   /** Líquido marketplace = Bruto − Comissão − Frete − Estornos − Outras. Líquido real = isso − custo do kit. */
   function marketplaceSaleNet(sale) {
-    const g = Number(sale.gross || 0);
+    const g = saleListedGross(sale);
     const f = Number(sale.fees || 0);
     const sh = Number(sale.shippingCost || 0);
     const rf = Number(sale.refunds || 0);
@@ -750,7 +772,7 @@
     const marketplace = marketplaceSaleNet(sale);
     const cogs = saleProductCost(sale);
     return {
-      gross: Number(sale.gross || 0),
+      gross: saleListedGross(sale),
       fees: Number(sale.fees || 0),
       shipping: Number(sale.shippingCost || 0),
       refunds: Number(sale.refunds || 0),
@@ -816,7 +838,7 @@
       const ts = saleSoldTs(sale);
       if (!ts) return;
       const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
-      const gross = Number(sale.gross || 0);
+      const gross = saleListedGross(sale);
       const fees = Number(sale.fees || 0);
       const shipping = Number(sale.shippingCost || 0);
       const refunds = Number(sale.refunds || 0);
@@ -1166,9 +1188,9 @@
     const root = base.replace(/\/$/, '');
     const headers = { Authorization: 'Bearer ' + token };
     const [mlRes, amzRes, shopeeRes, ordersRes] = await Promise.all([
-      fetch(`${root}/admin/ml/sales?limit=2000`, { headers, cache: 'no-store' }),
-      fetch(`${root}/admin/amz/sales?limit=2000`, { headers, cache: 'no-store' }),
-      fetch(`${root}/admin/shopee/sales?limit=2000`, { headers, cache: 'no-store' }),
+      fetch(`${root}/admin/ml/sales?limit=5000`, { headers, cache: 'no-store' }),
+      fetch(`${root}/admin/amz/sales?limit=5000`, { headers, cache: 'no-store' }),
+      fetch(`${root}/admin/shopee/sales?limit=5000`, { headers, cache: 'no-store' }),
       fetch(`${root}/orders`, { headers, cache: 'no-store' })
     ]);
     const mlData = await mlRes.json().catch(() => ({}));
@@ -1179,9 +1201,9 @@
     if (!shopeeRes.ok) throw new Error(shopeeData.error || 'Falha ao carregar vendas Shopee');
     const ordersData = await ordersRes.json().catch(() => ({}));
     if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
-    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).map(annotateSale);
-    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).map(annotateSale);
-    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).map(annotateSale);
+    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
+    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
+    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
     const storeSales = (Array.isArray(ordersData) ? ordersData : [])
       .filter(isStoreSaleOrder)
       .map((o) => annotateSale(storeOrderToSale(o)));
@@ -1732,13 +1754,13 @@ ${worksheets}
     const openPaths = preserveOpen ? captureSalesTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas ML…</p>';
     try {
-      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sales?limit=2000`, {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sales?limit=5000`, {
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const sales = (Array.isArray(data.sales) ? data.sales : []).filter((s) => !isDroppedMarketplaceSale(s));
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       renderMlSalesStats(sales, meta);
       root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'mercadolivre' });
@@ -1790,13 +1812,13 @@ ${worksheets}
     const openPaths = preserveOpen ? captureAmzSalesTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas Amazon…</p>';
     try {
-      const res = await fetch(`${base.replace(/\/$/, '')}/admin/amz/sales?limit=2000`, {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/amz/sales?limit=5000`, {
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const sales = (Array.isArray(data.sales) ? data.sales : []).filter((s) => !isDroppedMarketplaceSale(s));
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       renderAmzSalesStats(sales, meta);
       root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'amazon' });
@@ -1854,13 +1876,13 @@ ${worksheets}
       : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas Shopee…</p>';
     try {
-      const res = await fetch(`${base.replace(/\/$/, '')}/admin/shopee/sales?limit=2000`, {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/shopee/sales?limit=5000`, {
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const sales = (Array.isArray(data.sales) ? data.sales : []).filter((s) => !isDroppedMarketplaceSale(s));
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       const statsEl = document.getElementById('vendas-shopee-stats');
       if (statsEl) statsEl.innerHTML = renderSalesMoneyStats(sales, meta);
@@ -2394,7 +2416,7 @@ ${worksheets}
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
-    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=2500`, {
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=4000`, {
       headers: { Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
@@ -3672,7 +3694,7 @@ ${worksheets}
     root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
 
     try {
-      const params = new URLSearchParams({ limit: '2500' });
+      const params = new URLSearchParams({ limit: '4000' });
       if (q) params.set('q', q);
       if (destino === 'pageview') params.set('tipo', 'pageview');
       else if (destino) params.set('destino', destino);
