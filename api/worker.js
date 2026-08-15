@@ -4074,6 +4074,22 @@ async function syncMlOrders(env, options = {}) {
 async function runScheduledMlOrdersSync(env) {
   if (!mlAppConfigured(env)) return { skipped: true, reason: 'not_configured' };
   const meta = await getMlSalesMeta(env);
+  if (!meta?.fullCatchupAt) {
+    const report = await syncMlOrders(env, {
+      full: true,
+      days: 400,
+      maxPages: 2,
+      enrichShipping: false,
+      skipExistingRead: true,
+      backfillShipping: 0
+    });
+    await saveMlSalesMeta(env, { fullCatchupAt: new Date().toISOString() });
+    console.log('ML full catchup:', JSON.stringify({
+      imported: report.imported,
+      indexed: report.indexed
+    }));
+    return report;
+  }
   if (meta?.lastSyncedAt) {
     const age = Date.now() - new Date(meta.lastSyncedAt).getTime();
     if (Number.isFinite(age) && age < ML_SYNC_CRON_MIN_INTERVAL_MS) {
