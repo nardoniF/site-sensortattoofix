@@ -720,10 +720,22 @@
   }
 
   /** Líquido marketplace = Bruto − Comissão − Frete − Estornos − Outras. Líquido real = isso − custo do kit. */
+  function saleShippingCost(sale) {
+    const s = Math.round(Number(sale?.shippingCost || 0) * 100) / 100;
+    if (sale?.mlFlex) return s;
+    let b = Math.round(Number(sale?.buyerShippingCost || 0) * 100) / 100;
+    if (!(b > 0 && b < 40)) {
+      const pay = (sale?.payments || []).map((p) => Number(p.shippingCost || 0)).find((n) => n > 1 && n < 40);
+      b = Math.round(Number(pay || 0) * 100) / 100;
+    }
+    if (s > 0 && b > 0 && Math.abs(s + b - 12.35) <= 0.05) return 12.35;
+    return s;
+  }
+
   function marketplaceSaleNet(sale) {
     const g = saleListedGross(sale);
     const f = Number(sale.fees || 0);
-    const sh = Number(sale.shippingCost || 0);
+    const sh = saleShippingCost(sale);
     const rf = Number(sale.refunds || 0);
     const ot = Number(sale.otherFees || 0);
     return Math.round((g - f - sh - rf - ot) * 100) / 100;
@@ -795,7 +807,7 @@
     return {
       gross: saleListedGross(sale),
       fees: Number(sale.fees || 0),
-      shipping: Number(sale.shippingCost || 0),
+      shipping: saleShippingCost(sale),
       refunds: Number(sale.refunds || 0),
       otherFees: Number(sale.otherFees || 0),
       cogs,
@@ -859,7 +871,7 @@
       const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
       const gross = saleListedGross(sale);
       const fees = Number(sale.fees || 0);
-      const shipping = Number(sale.shippingCost || 0);
+      const shipping = saleShippingCost(sale);
       const refunds = Number(sale.refunds || 0);
       const otherFees = Number(sale.otherFees || 0);
       const cogs = saleProductCost(sale);

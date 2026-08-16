@@ -33,7 +33,8 @@ import {
   mlMoney,
   enviosSellerCost,
   flexSellerCost,
-  receiptPayout
+  receiptPayout,
+  repairEnviosAlreadyNet
 } from './ml-settlement.js';
 
 const ALLOWED_ORIGINS = [
@@ -3801,6 +3802,24 @@ const ML_SALES_INDEX_MAX = 5000;
 const ML_SYNC_PAGE_LIMIT = 50;
 const ML_SYNC_MAX_PAGES = 40;
 
+function healMlStoredShipping(sale) {
+  if (!sale || sale.mlFlex) return sale;
+  const ch = String(sale.channel || 'mercadolivre').toLowerCase();
+  if (ch !== 'mercadolivre' && ch !== 'ml') return sale;
+  const buyer = mlMoney(sale.buyerShippingCost)
+    || mlMoney((sale.payments || []).find((p) => mlMoney(p.shippingCost) > 1 && mlMoney(p.shippingCost) < 40)?.shippingCost);
+  const nextShip = repairEnviosAlreadyNet(sale.shippingCost, buyer);
+  if (nextShip === mlMoney(sale.shippingCost)) return sale;
+  const payout = receiptPayout(sale.gross, sale.fees, nextShip);
+  return {
+    ...sale,
+    shippingCost: nextShip,
+    net: payout,
+    payoutNet: payout,
+    settlementVersion: ML_SETTLEMENT_VERSION
+  };
+}
+
 async function getMlSellerId(env) {
   const state = await getMlOAuthState(env);
   if (state?.userId) return String(state.userId);
@@ -3856,6 +3875,7 @@ async function loadMarketplaceSale(env, channel, saleId) {
 
 async function saveMarketplaceSale(env, sale) {
   if (!sale?.externalId) return false;
+  sale = healMlStoredShipping(sale);
   // Normalizar e anexar `payload.normalized` sem sobrescrever
   try {
     const [{ normalizeMarketplaceSale }, { calculateOrderFinancials }] = await Promise.all([
@@ -3892,7 +3912,11 @@ async function saveMarketplaceSale(env, sale) {
 async function listMarketplaceSales(env, channel, limit) {
   const cap = Math.min(5000, Math.max(1, Number(limit) || 500));
   const fromD1 = await d1ListSales(env, channel, cap);
-  if (fromD1.length) return fromD1;
+  if (fromD1.length) {
+    return String(channel).toLowerCase() === 'mercadolivre'
+      ? fromD1.map(healMlStoredShipping)
+      : fromD1;
+  }
   const idxKey = channel === 'mercadolivre'
     ? ML_SALES_INDEX_KEY
     : channel === 'amazon'

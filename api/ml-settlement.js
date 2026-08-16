@@ -1,6 +1,6 @@
-/** Mercado Livre receipt math. Envios = what the seller pays, never buyer freight twice. */
+/** Mercado Livre receipt math. Envios = the receipt line (12,35). Never subtract buyer from that line. */
 
-export const ML_SETTLEMENT_VERSION = 4;
+export const ML_SETTLEMENT_VERSION = 5;
 
 export function mlMoney(n) {
   const v = Number(n);
@@ -9,20 +9,34 @@ export function mlMoney(n) {
 }
 
 /**
- * Recibo Envios = tarifa cheia − pagamento do comprador.
- * senders.cost sometimes is already that net (12,35), sometimes the full tariff (15,34 / 24,34 / 26,34).
+ * If a leftover was stored (12,35 − 11,99 = 0,36 or 12,35 − 2,99 = 9,36), restore Envios.
+ */
+export function repairEnviosAlreadyNet(shipping, buyerFreight) {
+  const s = mlMoney(shipping);
+  const b = mlMoney(buyerFreight);
+  if (!(s > 0) || !(b > 0)) return s;
+  const sum = mlMoney(s + b);
+  if (Math.abs(sum - 12.35) <= 0.05) return 12.35;
+  return s;
+}
+
+/**
+ * Use the Envios total as-is when it is already net (~12,35).
+ * Only subtract buyer from the FULL tariff (15,34 / 24,34 / 26,34).
  */
 export function enviosSellerCost(senderCost, buyerCost) {
   const sender = mlMoney(senderCost);
   const buyer = mlMoney(buyerCost);
   if (!(sender > 0)) return { shipping: 0, buyerShip: buyer };
+
+  const restored = repairEnviosAlreadyNet(sender, buyer);
+  if (restored !== sender) return { shipping: restored, buyerShip: buyer };
+
   if (!(buyer > 0)) return { shipping: sender, buyerShip: buyer };
-  const diff = mlMoney(sender - buyer);
-  // 12,35 − 11,99 = 0,36 or 12,35 − 2,99 = 9,36 → sender was already net Envios.
-  if (diff < 5) return { shipping: sender, buyerShip: buyer };
-  // Typical Mini Envios net is ~12,35 (< 15). Do not subtract buyer again.
-  if (sender < 15) return { shipping: sender, buyerShip: buyer };
-  return { shipping: Math.max(0, diff), buyerShip: buyer };
+  if (sender >= 15) {
+    return { shipping: mlMoney(Math.max(0, sender - buyer)), buyerShip: buyer };
+  }
+  return { shipping: sender, buyerShip: buyer };
 }
 
 /** Flex is paid outside ML: configured price minus receipt credit (estorno). */
