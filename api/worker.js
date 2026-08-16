@@ -1809,7 +1809,7 @@ function marketplaceSaleUnchanged(existing, next) {
   const keys = [
     'status', 'gross', 'fees', 'shippingCost', 'refunds', 'otherFees',
     'net', 'payoutNet', 'settlementVersion', 'shopeeIncomeOk', 'financesOk',
-    'soldAt', 'hasRefund'
+    'soldAt', 'hasRefund', 'dateLastUpdated'
   ];
   for (const k of keys) {
     const a = existing[k];
@@ -4254,10 +4254,15 @@ function mergeMlSaleShipping(existing, sale) {
       ...sale,
       fees: existing.fees,
       shippingCost: existing.shippingCost,
+      mlEstorno: existing.mlEstorno,
+      mlFlex: existing.mlFlex,
+      mlFlexListCost: existing.mlFlexListCost,
+      mlFlexBonusChecked: existing.mlFlexBonusChecked,
       net: existing.payoutNet || existing.net,
       payoutNet: existing.payoutNet,
       settlementOk: true,
-      shippingSource: 'payment',
+      settlementVersion: existing.settlementVersion,
+      shippingSource: existing.shippingSource || 'payment',
       shippingCostsOk: true,
       shippingHint: 0
     };
@@ -4458,6 +4463,7 @@ async function syncMlOrders(env, options = {}) {
   let pages = 0;
   let imported = 0;
   let updated = 0;
+  let unchanged = 0;
   let index = await getMlSalesIndex(env);
   let totalApi = null;
 
@@ -4474,10 +4480,6 @@ async function syncMlOrders(env, options = {}) {
       let existing = null;
       if (options.skipExistingRead !== true) {
         existing = await loadMarketplaceSale(env, 'mercadolivre', sale.externalId);
-        if (existing) updated += 1;
-        else imported += 1;
-      } else {
-        imported += 1;
       }
       const alreadyPriced = mlHasSettlement(existing);
       const shouldEnrich = options.enrichShipping === true
@@ -4487,8 +4489,11 @@ async function syncMlOrders(env, options = {}) {
       }
       sale = mergeMlSaleShipping(existing, sale);
       if (existing && marketplaceSaleUnchanged(existing, sale)) {
+        unchanged += 1;
         continue;
       }
+      if (existing) updated += 1;
+      else imported += 1;
       await saveMarketplaceSale(env, sale);
       const next = (index || []).filter((id) => id !== sale.externalId);
       next.unshift(sale.externalId);
@@ -4519,6 +4524,7 @@ async function syncMlOrders(env, options = {}) {
     apiTotal: totalApi,
     imported,
     updated,
+    unchanged,
     indexed: index.length,
     shippingFilled,
     shippingRemaining: shippingReport.remaining,
@@ -5138,6 +5144,7 @@ async function syncAmzOrders(env, options = {}) {
   let pages = 0;
   let imported = 0;
   let updated = 0;
+  let unchanged = 0;
   let index = await getAmzSalesIndex(env);
   let apiTotal = 0;
 
@@ -5168,7 +5175,8 @@ async function syncAmzOrders(env, options = {}) {
       const sale = normalizeAmzOrder(order, items, financeSummary, financesFetched);
       if (!sale.externalId) continue;
       const existing = await loadMarketplaceSale(env, 'amazon', sale.externalId);
-      if (existing) updated += 1;
+      if (existing && marketplaceSaleUnchanged(existing, sale)) unchanged += 1;
+      else if (existing) updated += 1;
       else imported += 1;
       index = await upsertAmzSale(env, sale, index);
       await new Promise((r) => setTimeout(r, 250));
@@ -5223,6 +5231,7 @@ async function syncAmzOrders(env, options = {}) {
     apiTotal,
     imported,
     updated,
+    unchanged,
     financesBackfilled,
     indexed: index.length,
     lastSyncedAt: now.toISOString(),
@@ -5684,12 +5693,12 @@ async function upsertShopeeSale(env, sale, index) {
   return next.slice(0, SHOPEE_SALES_INDEX_MAX);
 }
 
-async function fetchShopeeOrderSns(env, token, shopId, timeFrom, timeTo) {
+async function fetchShopeeOrderSns(env, token, shopId, timeFrom, timeTo, timeRangeField = 'create_time') {
   const sns = [];
   let cursor = '';
   for (let page = 0; page < 40; page++) {
     const extra = {
-      time_range_field: 'create_time',
+      time_range_field: timeRangeField,
       time_from: String(timeFrom),
       time_to: String(timeTo),
       page_size: '100'
@@ -5788,12 +5797,19 @@ async function syncShopeeOrders(env, options = {}) {
 
   let imported = 0;
   let updated = 0;
+  let unchanged = 0;
   let index = await getShopeeSalesIndex(env);
   const allSns = [];
 
   for (let start = fromSec; start < nowSec; start += SHOPEE_ORDER_WINDOW_SEC) {
     const end = Math.min(start + SHOPEE_ORDER_WINDOW_SEC, nowSec);
-    const sns = await fetchShopeeOrderSns(env, token, shopId, start, end);
+    const sns = await fetchShopeeOrderSns(env, token, shopId, start, end, 'create_time');
+    allSns.push(...sns);
+  }
+  const updateFrom = Math.max(fromSec, nowSec - 14 * 86400);
+  for (let start = updateFrom; start < nowSec; start += SHOPEE_ORDER_WINDOW_SEC) {
+    const end = Math.min(start + SHOPEE_ORDER_WINDOW_SEC, nowSec);
+    const sns = await fetchShopeeOrderSns(env, token, shopId, start, end, 'update_time');
     allSns.push(...sns);
   }
   const uniqueSns = [...new Set(allSns)];
@@ -5808,7 +5824,8 @@ async function syncShopeeOrders(env, options = {}) {
     const sale = normalizeShopeeOrder(detail, escrow);
     if (!sale.externalId) continue;
     const existing = await loadMarketplaceSale(env, 'shopee', sale.externalId);
-    if (existing) updated += 1;
+    if (existing && marketplaceSaleUnchanged(existing, sale)) unchanged += 1;
+    else if (existing) updated += 1;
     else imported += 1;
     index = await upsertShopeeSale(env, sale, index);
   }
@@ -5822,6 +5839,7 @@ async function syncShopeeOrders(env, options = {}) {
     apiTotal: uniqueSns.length,
     imported,
     updated,
+    unchanged,
     indexed: index.length,
     lastSyncedAt: new Date().toISOString(),
     lastError: null
@@ -5882,14 +5900,11 @@ async function handleAdminShopeeSync(request, env, origin) {
   const full = url.searchParams.get('full') === '1' || url.searchParams.get('full') === 'true';
   try {
     const fix = await backfillShopeeIndex(env, 80);
-    if (fix.remaining > 0 || fix.filled > 0) {
-      return json({ ok: true, mode: 'index', ...fix }, 200, origin);
-    }
     const report = await syncShopeeOrders(env, {
       full: true,
       days: daysParam ? Number(daysParam) : 90
     });
-    return json({ ok: true, ...report, ...fix }, 200, origin);
+    return json({ ok: true, ...report, indexFix: fix }, 200, origin);
   } catch (err) {
     return json({ error: err.message || String(err) }, 502, origin);
   }

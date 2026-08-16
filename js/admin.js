@@ -1898,7 +1898,7 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       showStatus(
-        `Sync Amazon OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas (${data.indexed || 0} no índice).`,
+        `Atualizar Amazon: ${data.imported || 0} novas, ${data.updated || 0} alteradas, ${data.unchanged || 0} iguais (${data.indexed || 0} no índice).`,
         'success',
         'vendas'
       );
@@ -2019,7 +2019,7 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       showStatus(
-        `Sync Shopee OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas (${data.indexed || 0} no índice).`,
+        `Atualizar Shopee: ${data.imported || 0} novas, ${data.updated || 0} alteradas, ${data.unchanged || 0} iguais (${data.indexed || 0} no índice).`,
         'success',
         'vendas'
       );
@@ -2060,11 +2060,8 @@ ${worksheets}
         showStatus(data.error || 'Corta no meio — clica Atualizar ML de novo.', '', 'vendas');
       } else {
         const more = data.hasMore ? ' Ainda tem pedido antigo na fila; clica de novo se a lista não completar.' : '';
-        const flexBit = Number(data.flexFilled || 0) || Number(data.flexRemaining || 0)
-          ? ` Flex: ${data.flexFilled || 0} bônus.`
-          : '';
         showStatus(
-          `Atualizar ML: ${data.imported || 0} novas, ${data.updated || 0} atualizadas, ${data.indexed || 0} no índice.${flexBit}${more}`,
+          `Atualizar ML: ${data.imported || 0} novas, ${data.updated || 0} alteradas, ${data.unchanged || 0} iguais (${data.indexed || 0} no índice).${more}`,
           more ? '' : 'success',
           'vendas'
         );
