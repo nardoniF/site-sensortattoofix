@@ -24,7 +24,9 @@ import {
   d1GetSale,
   d1ListSaleIds,
   d1ListSales,
-  d1CountSales
+  d1CountSales,
+  d1GetAppKv,
+  d1PutAppKv
 } from './d1-store.js';
 import {
   ML_SETTLEMENT_VERSION,
@@ -3523,28 +3525,53 @@ function mlAppConfigured(env) {
   return !!(mlClientId(env) && mlClientSecret(env));
 }
 
-async function getMlOAuthState(env) {
+async function readAppJson(env, key) {
   try {
-    const raw = await env.STORE_KV.get(ML_OAUTH_KV_KEY);
+    const fromD1 = await d1GetAppKv(env, key);
+    if (fromD1) {
+      const data = JSON.parse(fromD1);
+      if (data && typeof data === 'object') return data;
+    }
+  } catch { /* KV fallback */ }
+  try {
+    const raw = await env.STORE_KV.get(key);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    return data && typeof data === 'object' ? data : null;
-  } catch {
-    return null;
+    if (data && typeof data === 'object') {
+      await d1PutAppKv(env, key, raw).catch(() => {});
+      return data;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+async function writeAppJson(env, key, value) {
+  const raw = JSON.stringify(value);
+  let d1Ok = false;
+  try {
+    d1Ok = !!(await d1PutAppKv(env, key, raw));
+  } catch (err) {
+    console.warn('D1 app_kv put', key, err?.message || err);
   }
+  const kvOk = await kvPutSafe(env, key, raw);
+  if (!d1Ok && !kvOk) throw new Error('Não foi possível gravar ' + key + ' (D1 e KV falharam).');
+}
+
+async function getMlOAuthState(env) {
+  return readAppJson(env, ML_OAUTH_KV_KEY);
 }
 
 async function saveMlOAuthState(env, patch) {
   const prev = (await getMlOAuthState(env)) || {};
   const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
-  await kvPut(env, ML_OAUTH_KV_KEY, JSON.stringify(next));
+  await writeAppJson(env, ML_OAUTH_KV_KEY, next);
   return next;
 }
 
 async function getMlRefreshToken(env) {
   const state = await getMlOAuthState(env);
-  const fromKv = String(state?.refreshToken || '').trim();
-  if (fromKv) return fromKv;
+  const fromStore = String(state?.refreshToken || '').trim();
+  if (fromStore) return fromStore;
   return String(env.ML_REFRESH_TOKEN || '').trim();
 }
 
@@ -3573,34 +3600,26 @@ async function persistMlTokens(env, data) {
   const refreshToken = String(data.refresh_token || '').trim();
   const userId = data.user_id != null ? String(data.user_id) : null;
   const expiresIn = Math.max(60, Number(data.expires_in || 21600) - 120);
+  const oauthPatch = { lastRefreshError: null };
+  if (refreshToken) oauthPatch.refreshToken = refreshToken;
+  if (userId) oauthPatch.userId = userId;
+  if (refreshToken || userId) await saveMlOAuthState(env, oauthPatch);
   if (accessToken) {
-    await kvPut(env, ML_TOKEN_KV_KEY, JSON.stringify({
+    await writeAppJson(env, ML_TOKEN_KV_KEY, {
       token: accessToken,
       expiresAt: Date.now() + expiresIn * 1000,
       userId
-    }));
+    });
   }
-  const oauthPatch = {};
-  if (refreshToken) oauthPatch.refreshToken = refreshToken;
-  if (userId) oauthPatch.userId = userId;
-  if (Object.keys(oauthPatch).length) await saveMlOAuthState(env, oauthPatch);
   return { accessToken, refreshToken, userId, expiresIn };
 }
 
 async function getMlAccessToken(env) {
   if (!mlAppConfigured(env)) return null;
-  try {
-    const cached = await env.STORE_KV.get(ML_TOKEN_KV_KEY);
-    if (cached) {
-      const data = JSON.parse(cached);
-      if (data?.token && data.expiresAt > Date.now()) return data.token;
-    }
-  } catch { /* refresh below */ }
+  const cached = await readAppJson(env, ML_TOKEN_KV_KEY);
+  if (cached?.token && Number(cached.expiresAt) > Date.now()) return cached.token;
 
-  const refreshToken = await getMlRefreshToken(env);
-  if (!refreshToken) return null;
-
-  try {
+  async function refreshWith(refreshToken) {
     const data = await exchangeMlOAuthToken(env, {
       grant_type: 'refresh_token',
       client_id: mlClientId(env),
@@ -3608,11 +3627,44 @@ async function getMlAccessToken(env) {
       refresh_token: refreshToken
     });
     const persisted = await persistMlTokens(env, data);
-    return persisted.accessToken || null;
+    return persisted.accessToken || String(data.access_token || '').trim() || null;
+  }
+
+  const refreshToken = await getMlRefreshToken(env);
+  if (!refreshToken) return null;
+
+  try {
+    return await refreshWith(refreshToken);
   } catch (err) {
+    const latest = await getMlRefreshToken(env);
+    if (latest && latest !== refreshToken) {
+      try {
+        return await refreshWith(latest);
+      } catch (err2) {
+        err = err2;
+      }
+    }
+    const raced = await readAppJson(env, ML_TOKEN_KV_KEY);
+    if (raced?.token && Number(raced.expiresAt) > Date.now()) return raced.token;
     console.warn('ML OAuth refresh:', err.message || err);
-    await kvDelete(env, ML_TOKEN_KV_KEY).catch(() => {});
-    return null;
+    await saveMlOAuthState(env, {
+      lastRefreshError: String(err.message || err),
+      lastRefreshErrorAt: new Date().toISOString()
+    }).catch(() => {});
+    const wrapped = new Error(String(err.message || err));
+    wrapped.mlRefreshFailed = true;
+    throw wrapped;
+  }
+}
+
+async function keepMlAccessTokenAlive(env) {
+  if (!mlAppConfigured(env)) return { skipped: true, reason: 'not_configured' };
+  try {
+    const token = await getMlAccessToken(env);
+    return { ok: !!token };
+  } catch (err) {
+    console.warn('ML token keepalive:', err.message || err);
+    return { ok: false, error: String(err.message || err) };
   }
 }
 
@@ -4266,8 +4318,15 @@ async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit
  * options: { days, full, force }
  */
 async function syncMlOrders(env, options = {}) {
-  const token = await getMlAccessToken(env);
-  if (!token) throw new Error('Mercado Livre sem access token — reautorize o app.');
+  let token;
+  try {
+    token = await getMlAccessToken(env);
+  } catch (err) {
+    throw new Error(
+      'Mercado Livre: renovação automática falhou (' + (err.message || err) + ').'
+    );
+  }
+  if (!token) throw new Error('Mercado Livre sem token — o Worker não encontrou refresh token para renovar sozinho.');
   let sellerId = await getMlSellerId(env);
   if (!sellerId) {
     const meRes = await fetch(`${ML_API_BASE}/users/me`, {
@@ -4391,6 +4450,25 @@ async function runScheduledMlOrdersSync(env) {
     }).catch(() => {});
     throw err;
   }
+}
+
+function buildMlAuthUrl(env) {
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: mlClientId(env),
+    redirect_uri: ML_REDIRECT_URI
+  });
+  return `https://auth.mercadolivre.com.br/authorization?${params}`;
+}
+
+async function handleAdminMlAuthUrl(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (!mlAppConfigured(env)) {
+    return json({ error: 'ML_CLIENT_ID / ML_CLIENT_SECRET não configurados.', redirectUri: ML_REDIRECT_URI }, 400, origin);
+  }
+  return json({ ok: true, url: buildMlAuthUrl(env), redirectUri: ML_REDIRECT_URI }, 200, origin);
 }
 
 async function handleAdminMlSync(request, env, origin) {
@@ -14849,6 +14927,9 @@ export default {
       if (path === '/admin/ml/oauth/callback' && request.method === 'GET') {
         return handleMlOAuthCallback(request, env);
       }
+      if (path === '/admin/ml/auth-url' && request.method === 'GET') {
+        return handleAdminMlAuthUrl(request, env, origin);
+      }
       if (path === '/admin/ml/sync' && (request.method === 'GET' || request.method === 'POST')) {
         return handleAdminMlSync(request, env, origin);
       }
@@ -15095,7 +15176,19 @@ export default {
         console.error('Abandoned checkout cron failed:', err.message);
       })
     );
+    if (event.cron === '0 */4 * * *') {
+      ctx.waitUntil(
+        keepMlAccessTokenAlive(env).catch((err) => {
+          console.error('ML token keepalive cron failed:', err.message);
+        })
+      );
+    }
     if (event.cron === '0 3,15 * * *') {
+      ctx.waitUntil(
+        keepMlAccessTokenAlive(env).catch((err) => {
+          console.error('ML token keepalive failed:', err.message);
+        })
+      );
       ctx.waitUntil(
         trimClicksD1(env).catch((err) => {
           console.error('D1 click trim failed:', err.message);

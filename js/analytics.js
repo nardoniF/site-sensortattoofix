@@ -178,11 +178,16 @@
   }
 
   function visitanteId() {
-    let id = localStorage.getItem('stf_visitor_id');
-    if (!id) {
-      id = 'v_' + (crypto.randomUUID?.() || String(Date.now()));
-      localStorage.setItem('stf_visitor_id', id);
+    function readCookie(name) {
+      const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+      return m ? decodeURIComponent(m[1]) : '';
     }
+    let id = '';
+    try { id = localStorage.getItem('stf_visitor_id') || ''; } catch (_) { /* ignore */ }
+    if (!id) id = readCookie('stf_vid');
+    if (!id) id = 'v_' + (crypto.randomUUID?.() || String(Date.now()));
+    try { localStorage.setItem('stf_visitor_id', id); } catch (_) { /* ignore */ }
+    document.cookie = 'stf_vid=' + encodeURIComponent(id) + '; path=/; max-age=31536000; SameSite=Lax';
     return id;
   }
 

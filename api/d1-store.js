@@ -33,7 +33,14 @@ export async function ensureStoreD1(env) {
         PRIMARY KEY (channel, external_id)
       )
     `),
-    db.prepare('CREATE INDEX IF NOT EXISTS idx_mkt_sales_sold ON marketplace_sales(channel, sold_at DESC)')
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_mkt_sales_sold ON marketplace_sales(channel, sold_at DESC)'),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS app_kv (
+        k TEXT PRIMARY KEY NOT NULL,
+        v TEXT NOT NULL,
+        updated_at TEXT
+      )
+    `)
   ]);
   schemaReady = true;
   return db;
@@ -149,6 +156,23 @@ export async function d1ListSales(env, channel, limit = 5000) {
     'SELECT payload FROM marketplace_sales WHERE channel = ? ORDER BY sold_at DESC LIMIT ?'
   ).bind(String(channel).toLowerCase(), cap).all();
   return (res.results || []).map((r) => parsePayload(r.payload)).filter(Boolean);
+}
+
+export async function d1GetAppKv(env, key) {
+  const db = await ensureStoreD1(env);
+  if (!db || !key) return null;
+  const row = await db.prepare('SELECT v FROM app_kv WHERE k = ?').bind(String(key)).first();
+  return row?.v != null ? String(row.v) : null;
+}
+
+export async function d1PutAppKv(env, key, value) {
+  const db = await ensureStoreD1(env);
+  if (!db || !key) return false;
+  await db.prepare(`
+    INSERT OR REPLACE INTO app_kv (k, v, updated_at)
+    VALUES (?, ?, ?)
+  `).bind(String(key), String(value ?? ''), new Date().toISOString()).run();
+  return true;
 }
 
 export async function d1CountSales(env, channel) {

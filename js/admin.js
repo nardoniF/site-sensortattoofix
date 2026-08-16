@@ -678,8 +678,11 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  function salesMoneyCell(kind, value, label, title) {
-    return `<span class="sales-tree-money sales-tree-${kind}" title="${escapeHtml(title)}"><span class="sales-tree-k">${escapeHtml(label)}</span>${formatSalesBRL(value)}</span>`;
+  function salesMoneyCell(kind, value, label, title, op) {
+    const amount = formatSalesBRL(value);
+    const shown = op ? `${op}\u00a0${amount}` : amount;
+    const hint = `${label} — ${title}`;
+    return `<span class="sales-tree-money sales-tree-${kind}" data-label="${escapeHtml(label)}" title="${escapeHtml(hint)}">${escapeHtml(shown)}</span>`;
   }
 
   function renderSaleMoneyCols(sale) {
@@ -689,12 +692,12 @@
       ? sale._marketplace
       : Math.round(((sale._gross || 0) - (sale._fees || 0) - (sale._shipping || 0) - other) * 100) / 100;
     return [
-      salesMoneyCell('paid', sale._gross, 'pagaram', 'Preço do produto (o que consta no anúncio / recibo)'),
-      salesMoneyCell('fee', feesShown, '−tarifa', 'Comissão do marketplace + estornos/outras'),
-      salesMoneyCell('ship', sale._shipping || 0, '−frete', 'O que o ML descontou de Envios (custo do vendedor)'),
-      salesMoneyCell('kit', Number(sale._cogs) || 0, '−kit', 'Custo do produto (BOM cadastrado em Produtos)'),
-      salesMoneyCell('conta', conta, 'na conta', 'O que entrou na conta: pagaram − tarifa − frete'),
-      salesMoneyCell('net', sale._net, 'lucro', 'Lucro real: o que entrou na conta − custo do kit')
+      salesMoneyCell('paid', sale._gross, 'pagou', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('fee', feesShown, 'tarifa', 'Comissão do marketplace + estornos/outras', '−'),
+      salesMoneyCell('ship', sale._shipping || 0, 'frete', 'O que o ML descontou de Envios (custo do vendedor)', '−'),
+      salesMoneyCell('kit', Number(sale._cogs) || 0, 'kit', 'Custo do produto (BOM em Produtos)', '−'),
+      salesMoneyCell('conta', conta, 'na conta', 'O que entrou na conta: pagou − tarifa − frete', '='),
+      salesMoneyCell('net', sale._net, 'lucro', 'Lucro real: na conta − custo do kit', '=')
     ].join('');
   }
 
@@ -1920,6 +1923,29 @@ ${worksheets}
     }
   }
 
+  async function authorizeMlFromAdmin() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) {
+      showStatus('Faça login no admin.', 'error', 'vendas');
+      return;
+    }
+    showStatus('Abrindo autorização Mercado Livre (só precisa se a renovação automática tiver quebrado)…', '', 'vendas');
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/auth-url`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!data.url) throw new Error('URL de autorização não veio da API.');
+      window.open(data.url, '_blank', 'noopener');
+      showStatus('Autorize no Mercado Livre e volte. Depois disso o Worker renova sozinho.', 'success', 'vendas');
+    } catch (err) {
+      showStatus(err.message || 'Falha ao gerar link ML.', 'error', 'vendas');
+    }
+  }
+
   async function authorizeShopeeFromAdmin() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -2059,6 +2085,7 @@ ${worksheets}
     document.getElementById('btn-vendas-loja-refresh')?.addEventListener('click', () => loadLojaSales(true));
     document.getElementById('btn-vendas-ml-refresh')?.addEventListener('click', () => loadMlSales(true));
     document.getElementById('btn-vendas-ml-sync')?.addEventListener('click', () => syncMlSalesFromAdmin());
+    document.getElementById('btn-vendas-ml-auth')?.addEventListener('click', () => authorizeMlFromAdmin());
     document.getElementById('btn-vendas-amz-refresh')?.addEventListener('click', () => loadAmzSales(true));
     document.getElementById('btn-vendas-amz-sync')?.addEventListener('click', () => syncAmzSalesFromAdmin());
     document.getElementById('btn-vendas-shopee-refresh')?.addEventListener('click', () => loadShopeeSales(true));
@@ -2631,12 +2658,58 @@ ${worksheets}
     return String(ip).slice(0, 14) + '…';
   }
 
+  const LOGICAL_VISIT_GAP_MS = 30 * 60 * 1000;
+
   function visitorKey(c) {
     if (c.visitante_id) return `vid:${c.visitante_id}`;
     if (c.cliente_email) return `email:${String(c.cliente_email).toLowerCase()}`;
     if (c.ip) return `ip:${c.ip}`;
     if (c.ip_prefix) return `ipp:${c.ip_prefix}`;
     return `unk:${c.sessao_visita || c.id || 'x'}`;
+  }
+
+  function placeDeviceKey(c) {
+    const city = String(c?.cidade || '').trim().toLowerCase();
+    const st = String(c?.estado || '').trim().toLowerCase();
+    const dev = dispositivoLegivel(c?.dispositivo, c?.user_agent)?.slug || '';
+    if (!city || !st || !dev) return '';
+    return `${city}|${st}|${dev}`;
+  }
+
+  function eventsTimeRange(events) {
+    const ts = (events || []).map((e) => Number(e.ts || e.client_ts || 0)).filter((n) => n > 0);
+    if (!ts.length) return { min: 0, max: 0 };
+    return { min: Math.min.apply(null, ts), max: Math.max.apply(null, ts) };
+  }
+
+  /** Junta visitas com visitante_id diferente se forem o mesmo lugar+aparelho e ≤ 30 min. */
+  function mergeAdjacentVisitClusters(clusters, gapMs) {
+    const gap = Number(gapMs) || LOGICAL_VISIT_GAP_MS;
+    const sorted = [...clusters].sort((a, b) => a.min - b.min);
+    const used = new Set();
+    const out = [];
+    for (let i = 0; i < sorted.length; i++) {
+      if (used.has(i)) continue;
+      const acc = {
+        events: [...(sorted[i].events || [])],
+        min: sorted[i].min,
+        max: sorted[i].max,
+        place: sorted[i].place,
+        key: sorted[i].key
+      };
+      for (let j = i + 1; j < sorted.length; j++) {
+        if (used.has(j)) continue;
+        const b = sorted[j];
+        if (!acc.place || acc.place !== b.place) continue;
+        if (b.min - acc.max > gap) continue;
+        acc.events = acc.events.concat(b.events || []);
+        acc.max = Math.max(acc.max, b.max);
+        acc.min = Math.min(acc.min, b.min);
+        used.add(j);
+      }
+      out.push(acc);
+    }
+    return out;
   }
 
   function formatClickGeo(c) {
@@ -2793,8 +2866,6 @@ ${worksheets}
     return `${vid}|evt:${c?.id || c?.client_event_id || c?.ts || 'x'}`;
   }
 
-  const LOGICAL_VISIT_GAP_MS = 30 * 60 * 1000;
-
   function groupClicksByLogicalVisit(clicks) {
     const byVisitor = new Map();
     const orphans = [];
@@ -2807,17 +2878,28 @@ ${worksheets}
       if (!byVisitor.has(vid)) byVisitor.set(vid, []);
       byVisitor.get(vid).push(c);
     });
-    const map = new Map();
+    const clusters = [];
     byVisitor.forEach((events, vid) => {
       buildLogicalVisits(events, LOGICAL_VISIT_GAP_MS).forEach((evs) => {
-        const ts = Number(evs[0]?.ts || evs[0]?.client_ts || 0);
-        map.set(`logical:${vid}:${ts}`, evs);
+        const range = eventsTimeRange(evs);
+        const place = evs.map(placeDeviceKey).find(Boolean) || '';
+        clusters.push({ events: evs, min: range.min, max: range.max, place, key: vid });
       });
     });
     orphans.forEach((c) => {
-      const sk = clickSessionKey(c);
-      if (!map.has(sk)) map.set(sk, []);
-      map.get(sk).push(c);
+      const range = eventsTimeRange([c]);
+      clusters.push({
+        events: [c],
+        min: range.min,
+        max: range.max,
+        place: placeDeviceKey(c),
+        key: clickSessionKey(c)
+      });
+    });
+    const map = new Map();
+    mergeAdjacentVisitClusters(clusters).forEach((cl, i) => {
+      const ts = cl.min || Number(cl.events[0]?.ts || cl.events[0]?.client_ts || 0);
+      map.set(`logical:${cl.key || 'x'}:${ts}:${i}`, cl.events);
     });
     return map;
   }
@@ -3319,6 +3401,33 @@ ${worksheets}
             // Limpamos o array temporário para não poluir a árvore final
             delete v._events;
           });
+          const clusters = [];
+          Object.entries(d.visitors).forEach(([vKey, v]) => {
+            Object.values(v.sessions || {}).forEach((events) => {
+              const range = eventsTimeRange(events);
+              const place = (events || []).map(placeDeviceKey).find(Boolean) || '';
+              clusters.push({
+                events,
+                min: range.min,
+                max: range.max,
+                place,
+                key: vKey,
+                meta: v.meta
+              });
+            });
+          });
+          const next = {};
+          mergeAdjacentVisitClusters(clusters).forEach((cl) => {
+            const vKey = cl.key || visitorKey(cl.events[0] || {});
+            if (!next[vKey]) {
+              next[vKey] = { meta: cl.meta || cl.events[0], count: 0, sessions: {} };
+            }
+            const v = next[vKey];
+            v.count += (cl.events || []).length;
+            const n = Object.keys(v.sessions).length + 1;
+            v.sessions[`visit:${n}`] = cl.events;
+          });
+          d.visitors = next;
         });
       });
     });
