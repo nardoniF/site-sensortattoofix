@@ -722,20 +722,22 @@
   /** Líquido marketplace = Bruto − Comissão − Frete − Estornos − Outras. Líquido real = isso − custo do kit. */
   function saleShippingCost(sale) {
     const s = Math.round(Number(sale?.shippingCost || 0) * 100) / 100;
+    const ch = String(sale?.channel || '').toLowerCase();
+    const isMl = ch === 'mercadolivre' || ch === 'ml';
     const flexList = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
     const estorno = Number(sale?.mlEstorno || 0);
     const isFlex = sale?.mlFlex
       || /flex|self_service/i.test(String(sale?.logisticType || ''));
-    if (isFlex && flexList > 0) {
+    if (isMl && isFlex && flexList > 0) {
       return Math.round(Math.max(0, flexList - estorno) * 100) / 100;
     }
-    if (!(s > 0.04) || Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 12.35;
+    if (isMl && (!(s > 0.04) || Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 12.35;
     let b = Math.round(Number(sale?.buyerShippingCost || 0) * 100) / 100;
     if (!(b > 0 && b < 40)) {
       const pay = (sale?.payments || []).map((p) => Number(p.shippingCost || 0)).find((n) => n > 1 && n < 40);
       b = Math.round(Number(pay || 0) * 100) / 100;
     }
-    if (s > 0 && b > 0 && Math.abs(s + b - 12.35) <= 0.05) return 12.35;
+    if (isMl && s > 0 && b > 0 && Math.abs(s + b - 12.35) <= 0.05) return 12.35;
     return s;
   }
 
