@@ -3803,9 +3803,24 @@ const ML_SYNC_PAGE_LIMIT = 50;
 const ML_SYNC_MAX_PAGES = 40;
 
 function healMlStoredShipping(sale) {
-  if (!sale || sale.mlFlex) return sale;
+  if (!sale) return sale;
   const ch = String(sale.channel || 'mercadolivre').toLowerCase();
   if (ch !== 'mercadolivre' && ch !== 'ml') return sale;
+  if (sale.mlFlex || /flex|self_service/i.test(String(sale.logisticType || ''))) {
+    const list = mlMoney(sale.mlFlexListCost);
+    const est = mlMoney(sale.mlEstorno);
+    if (!(list > 0)) return sale;
+    const nextShip = flexSellerCost(list, est);
+    if (nextShip === mlMoney(sale.shippingCost)) return sale;
+    const payout = receiptPayout(sale.gross, sale.fees, nextShip);
+    return {
+      ...sale,
+      shippingCost: nextShip,
+      net: payout,
+      payoutNet: payout,
+      settlementVersion: ML_SETTLEMENT_VERSION
+    };
+  }
   const buyer = mlMoney(sale.buyerShippingCost)
     || mlMoney((sale.payments || []).find((p) => mlMoney(p.shippingCost) > 1 && mlMoney(p.shippingCost) < 40)?.shippingCost);
   const nextShip = repairEnviosAlreadyNet(sale.shippingCost, buyer);
@@ -4079,10 +4094,17 @@ function mlEstornoFromPayments(docs, gross, fees) {
 
     // charges_details / adjustments
     for (const c of p.charges_details || []) {
-      const name = `${c.name || ''} ${c.type || ''} ${c.owner || ''}`;
-      if (/refund|estorno|rebate|discount|compensation|credit/i.test(name)) {
+      const name = `${c.name || ''} ${c.type || ''} ${c.owner || ''} ${c.concept || ''}`;
+      if (/refund|estorno|rebate|discount|compensation|bonus|bônus|bonifica|shipping|envio/i.test(name)) {
         const amt = c.amounts?.original ?? c.amounts?.current ?? c.amount;
         estorno += Math.abs(mlMoney(amt));
+      }
+    }
+
+    for (const f of p.fee_details || []) {
+      const name = `${f.type || ''} ${f.fee_payer || ''} ${f.name || ''}`;
+      if (/bonus|bônus|estorno|shipping|envio/i.test(name)) {
+        estorno += Math.abs(mlMoney(f.amount));
       }
     }
 

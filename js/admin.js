@@ -722,7 +722,13 @@
   /** Líquido marketplace = Bruto − Comissão − Frete − Estornos − Outras. Líquido real = isso − custo do kit. */
   function saleShippingCost(sale) {
     const s = Math.round(Number(sale?.shippingCost || 0) * 100) / 100;
-    if (sale?.mlFlex) return s;
+    const flexList = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
+    const estorno = Number(sale?.mlEstorno || 0);
+    const isFlex = sale?.mlFlex
+      || /flex|self_service/i.test(String(sale?.logisticType || ''));
+    if (isFlex && flexList > 0) {
+      return Math.round(Math.max(0, flexList - estorno) * 100) / 100;
+    }
     if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 12.35;
     let b = Math.round(Number(sale?.buyerShippingCost || 0) * 100) / 100;
     if (!(b > 0 && b < 40)) {

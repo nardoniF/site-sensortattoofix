@@ -1,6 +1,6 @@
 /** Mercado Livre receipt math. Envios = the receipt line (12,35). Never subtract buyer from that line. */
 
-export const ML_SETTLEMENT_VERSION = 5;
+export const ML_SETTLEMENT_VERSION = 6;
 
 export function mlMoney(n) {
   const v = Number(n);
