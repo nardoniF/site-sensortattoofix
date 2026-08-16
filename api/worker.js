@@ -4047,6 +4047,9 @@ function mlHasSettlement(sale) {
   const payout = mlMoney(sale.payoutNet);
   if (gross > 0 && Math.abs(gross - fees - shipping - payout) > 0.06) return false;
   if (gross > 0 && shipping >= gross) return false;
+  const logistic = String(sale?.logisticType || '');
+  const pickup = /collect|pickup|to_agree/i.test(logistic);
+  if (!sale.mlFlex && !pickup && !(shipping > 0.04)) return false;
   return true;
 }
 
@@ -4232,14 +4235,17 @@ function mergeMlSaleShipping(existing, sale) {
       shippingHint: 0
     };
   }
+  const ship = mlMoney(sale.shippingCost) > 0
+    ? mlMoney(sale.shippingCost)
+    : mlMoney(existing?.shippingCost);
   return {
     ...sale,
-    shippingCost: 0,
+    shippingCost: ship,
     shippingHint: 0,
-    shippingSource: null,
-    shippingCostsOk: false,
+    shippingSource: ship > 0 ? (sale.shippingSource || existing?.shippingSource || null) : null,
+    shippingCostsOk: ship > 0,
     settlementOk: false,
-    net: mlSaleNetFromParts(sale, 0)
+    net: mlSaleNetFromParts(sale, ship)
   };
 }
 
