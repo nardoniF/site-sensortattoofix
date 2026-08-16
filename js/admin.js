@@ -685,15 +685,53 @@
     return `<span class="sales-tree-money sales-tree-${kind}" data-label="${escapeHtml(label)}" title="${escapeHtml(hint)}">${escapeHtml(shown)}</span>`;
   }
 
-  function renderSaleMoneyCols(sale) {
-    const other = (sale._refunds || 0) + (sale._otherFees || 0);
-    const feesShown = (sale._fees || 0) + other;
+  function saleChannelKey(sale) {
+    const ch = String(sale?.channel || '').toLowerCase();
+    if (ch === 'ml' || ch === 'mercadolivre') return 'mercadolivre';
+    if (ch === 'amz' || ch === 'amazon') return 'amazon';
+    if (ch === 'shp' || ch === 'shopee') return 'shopee';
+    if (ch === 'loja' || ch === 'store') return 'loja';
+    return ch;
+  }
+
+  function saleFeeHoverLabel(sale) {
+    switch (saleChannelKey(sale)) {
+      case 'mercadolivre': return 'Tarifa ML';
+      case 'shopee': return 'Tarifa Shopee';
+      case 'amazon': return 'Tarifa Amazon';
+      default: return 'Tarifa';
+    }
+  }
+
+  function saleFeeHoverHint(sale) {
+    switch (saleChannelKey(sale)) {
+      case 'mercadolivre': return 'Comissão do Mercado Livre';
+      case 'shopee': return 'Taxas e encargos da Shopee';
+      case 'amazon': return 'Comissão e taxas da Amazon';
+      case 'loja': return 'Taxas de pagamento';
+      default: return 'Comissão / taxas do canal';
+    }
+  }
+
+  function saleShipHoverHint(sale) {
+    switch (saleChannelKey(sale)) {
+      case 'mercadolivre': return 'Frete Envios ou Flex (custo do vendedor)';
+      case 'shopee': return 'Frete do vendedor no recibo (Shopee)';
+      case 'amazon': return 'Frete do vendedor (Amazon)';
+      default: return 'Frete (custo do vendedor)';
+    }
+  }
+
+  function renderSaleMoneyCols(sale, channelHint) {
+    const tagged = sale?.channel ? sale : { ...sale, channel: channelHint };
+    const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
+    const feesShown = (tagged._fees || 0) + other;
     return [
-      salesMoneyCell('paid', sale._gross, 'preço', 'Preço do produto (anúncio / recibo)', ''),
-      salesMoneyCell('fee', feesShown, 'tarifa ML', 'Comissão do Mercado Livre / marketplace', '−'),
-      salesMoneyCell('ship', sale._shipping || 0, 'frete', 'Frete Envios (custo do vendedor)', '−'),
-      salesMoneyCell('kit', Number(sale._cogs) || 0, 'kit', 'Custo do kit (BOM em Produtos)', '−'),
-      salesMoneyCell('net', sale._net, 'líquido', 'Líquido: preço − tarifa − frete − kit', '=')
+      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
+      salesMoneyCell('ship', tagged._shipping || 0, 'Frete', saleShipHoverHint(tagged), '−'),
+      salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
+      salesMoneyCell('net', tagged._net, 'Líquido', 'Líquido: Preço − Tarifa − Frete − Kit', '=')
     ].join('');
   }
 
@@ -843,7 +881,7 @@
     return `
       <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${(list || []).length.toLocaleString('pt-BR')}${indexed}</dd></div>
       <div class="clicks-stats-row"><dt>Preço</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Tarifa ML</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) ${escapeHtml(meta?.feeLabel || 'Tarifa')}</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Estornos / outras</dt><dd>${formatSalesBRL(parts.refunds + parts.otherFees)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Kit</dt><dd>${formatSalesBRL(parts.cogs)}</dd></div>
@@ -1030,7 +1068,7 @@
   function renderLojaSalesStats(sales) {
     const el = document.getElementById('vendas-loja-stats');
     if (!el) return;
-    el.innerHTML = renderSalesMoneyStats(sales, { lastSyncedAt: new Date().toISOString() });
+    el.innerHTML = renderSalesMoneyStats(sales, { lastSyncedAt: new Date().toISOString(), feeLabel: 'Tarifa' });
   }
 
   async function loadLojaSales(preserveOpen) {
@@ -1740,7 +1778,7 @@ ${worksheets}
               <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
               <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
               <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
-              ${renderSaleMoneyCols(sale)}
+              ${renderSaleMoneyCols(sale, channel)}
             </li>`;
           });
           html += '</ul></div></details>';
@@ -1773,7 +1811,7 @@ ${worksheets}
   function renderMlSalesStats(sales, meta) {
     const el = document.getElementById('vendas-ml-stats');
     if (!el) return;
-    el.innerHTML = renderSalesMoneyStats(sales, meta);
+    el.innerHTML = renderSalesMoneyStats(sales, { ...meta, feeLabel: 'Tarifa ML' });
   }
 
   async function ensureSalesConfig() {
@@ -1837,7 +1875,7 @@ ${worksheets}
   function renderAmzSalesStats(sales, meta) {
     const el = document.getElementById('vendas-amz-stats');
     if (!el) return;
-    el.innerHTML = renderSalesMoneyStats(sales, meta);
+    el.innerHTML = renderSalesMoneyStats(sales, { ...meta, feeLabel: 'Tarifa Amazon' });
   }
 
   async function loadAmzSales(preserveOpen) {
@@ -1928,7 +1966,7 @@ ${worksheets}
       const sales = (Array.isArray(data.sales) ? data.sales : []).filter((s) => !isDroppedMarketplaceSale(s));
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       const statsEl = document.getElementById('vendas-shopee-stats');
-      if (statsEl) statsEl.innerHTML = renderSalesMoneyStats(sales, meta);
+      if (statsEl) statsEl.innerHTML = renderSalesMoneyStats(sales, { ...meta, feeLabel: 'Tarifa Shopee' });
       root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'shopee' });
       if (preserveOpen && openPaths.length) {
         const want = new Set(openPaths);
