@@ -1,6 +1,6 @@
-/** Mercado Livre receipt math. Envios = the receipt line (12,35). Never subtract buyer from that line. */
+/** Mercado Livre Envios = senders[].cost from /shipments/{id}/costs. Never a fixed 12,35. */
 
-export const ML_SETTLEMENT_VERSION = 7;
+export const ML_SETTLEMENT_VERSION = 8;
 export const ML_ENVIOS_NET = 12.35;
 
 export function mlMoney(n) {
@@ -9,38 +9,23 @@ export function mlMoney(n) {
   return Math.round(v * 100) / 100;
 }
 
-/**
- * If a leftover was stored (12,35 − 11,99 = 0,36 or 12,35 − 2,99 = 9,36), restore Envios.
- */
+/** Leftovers from the wrong field (buyer subtracted twice). Treat as missing. */
 export function repairEnviosAlreadyNet(shipping, buyerFreight) {
   const s = mlMoney(shipping);
-  if (!(s > 0)) return s;
-  // Leftovers from subtracting buyer twice: 12,35−11,99 and 12,35−2,99.
-  if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return ML_ENVIOS_NET;
-  const buyers = [mlMoney(buyerFreight), 2.99, 11.99, 13.99];
-  for (const b of buyers) {
-    if (b > 0 && Math.abs(mlMoney(s + b) - 12.35) <= 0.05) return 12.35;
-  }
+  if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 0;
   return s;
 }
 
-/**
- * Use the Envios total as-is when it is already net (~12,35).
- * Only subtract buyer from the FULL tariff (15,34 / 24,34 / 26,34).
- */
+/** senders.cost is already the receipt Envios line. Do not subtract buyer. */
 export function enviosSellerCost(senderCost, buyerCost) {
-  const sender = mlMoney(senderCost);
-  const buyer = mlMoney(buyerCost);
-  if (!(sender > 0)) return { shipping: ML_ENVIOS_NET, buyerShip: buyer };
+  return { shipping: mlMoney(senderCost), buyerShip: mlMoney(buyerCost) };
+}
 
-  const restored = repairEnviosAlreadyNet(sender, buyer);
-  if (restored !== sender) return { shipping: restored, buyerShip: buyer };
-
-  if (!(buyer > 0)) return { shipping: sender, buyerShip: buyer };
-  if (sender >= 15) {
-    return { shipping: mlMoney(Math.max(0, sender - buyer)), buyerShip: buyer };
-  }
-  return { shipping: sender, buyerShip: buyer };
+/** Last resort if costs payload has no sender.cost: receipt Envios = gross − fee − liquid. */
+export function impliedEnviosFromReceipt(gross, fees, liquid) {
+  const v = mlMoney(mlMoney(gross) - mlMoney(fees) - mlMoney(liquid));
+  if (v > 0.04 && v < mlMoney(gross) - 0.04) return v;
+  return 0;
 }
 
 /** Flex is paid outside ML: configured price minus receipt credit (estorno). */

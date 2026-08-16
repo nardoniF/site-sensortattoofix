@@ -30,11 +30,11 @@ import {
 } from './d1-store.js';
 import {
   ML_SETTLEMENT_VERSION,
-  ML_ENVIOS_NET,
   mlMoney,
   enviosSellerCost,
   flexSellerCost,
   mlFlexBonusFromCosts,
+  impliedEnviosFromReceipt,
   receiptPayout,
   repairEnviosAlreadyNet
 } from './ml-settlement.js';
@@ -3830,8 +3830,7 @@ function healMlStoredShipping(sale, flexCfg) {
   }
   const buyer = mlMoney(sale.buyerShippingCost)
     || mlMoney((sale.payments || []).find((p) => mlMoney(p.shippingCost) > 1 && mlMoney(p.shippingCost) < 40)?.shippingCost);
-  let nextShip = repairEnviosAlreadyNet(sale.shippingCost, buyer);
-  if (!(nextShip > 0)) nextShip = ML_ENVIOS_NET;
+  const nextShip = repairEnviosAlreadyNet(sale.shippingCost, buyer);
   if (nextShip === mlMoney(sale.shippingCost)) return sale;
   const payout = receiptPayout(sale.gross, sale.fees, nextShip);
   return {
@@ -3839,7 +3838,7 @@ function healMlStoredShipping(sale, flexCfg) {
     shippingCost: nextShip,
     net: payout,
     payoutNet: payout,
-    settlementVersion: ML_SETTLEMENT_VERSION
+    settlementOk: nextShip > 0.04 ? sale.settlementOk : false
   };
 }
 
@@ -4172,7 +4171,15 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
     source = 'flex';
   } else {
     shipping = fromCosts.shipping;
-    if (!(shipping > 0)) shipping = ML_ENVIOS_NET;
+    if (!(shipping > 0)) {
+      let netApi = 0;
+      for (const p of docs) {
+        const st = String(p.status || '').toLowerCase();
+        if (st && !/approved|accredited/.test(st)) continue;
+        netApi += mlMoney(p.transaction_details?.net_received_amount);
+      }
+      shipping = impliedEnviosFromReceipt(gross, fees, netApi);
+    }
   }
 
   const payout = receiptPayout(gross, fees, shipping);
@@ -4363,14 +4370,16 @@ function mlNeedsPaymentEnrich(sale, flexCost) {
   if (mlLooksFlexSale(sale, flexCost)) {
     return mlMoney(sale.mlEstorno) < 0.01;
   }
-  if (mlHasSettlement(sale)) return false;
   const ship = mlMoney(sale.shippingCost);
-  if (Math.abs(ship - ML_ENVIOS_NET) <= 0.06) return false;
-  return !(ship > 0.04);
+  if (Math.abs(ship - 0.36) <= 0.02 || Math.abs(ship - 9.36) <= 0.02) return true;
+  if (!(ship > 0.04)) return true;
+  if (sale.shippingSource !== 'envios') return true;
+  if (sale.settlementVersion !== ML_SETTLEMENT_VERSION) return true;
+  return false;
 }
 
 async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
-  const cap = Math.max(0, Math.min(Number(limit) || 8, 8));
+  const cap = Math.max(0, Math.min(Number(limit) || 20, 20));
   const config = await getConfig(env).catch(() => ({}));
   const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
   let filled = 0;
@@ -4603,10 +4612,13 @@ async function handleAdminMlSync(request, env, origin, ctx) {
       skipExistingRead: false,
       maxPages: 8
     });
+    const envios = await refillPendingMlEnvios(env);
     const refill = await refillPendingMlFlex(env);
     report.flexFilled = refill.filled;
     report.flexRemaining = refill.remaining;
-    report.shippingFilled = (report.shippingFilled || 0) + refill.filled;
+    report.enviosFilled = envios.filled;
+    report.enviosRemaining = envios.remaining;
+    report.shippingFilled = (report.shippingFilled || 0) + refill.filled + envios.filled;
     if (ctx && typeof ctx.waitUntil === 'function') {
       if (report.hasMore) {
         ctx.waitUntil(syncMlOrders(env, {
@@ -4622,6 +4634,9 @@ async function handleAdminMlSync(request, env, origin, ctx) {
       }
       if (refill.remaining > 0) {
         ctx.waitUntil(refillPendingMlFlex(env).catch(() => {}));
+      }
+      if (envios.remaining > 0) {
+        ctx.waitUntil(refillPendingMlEnvios(env).catch(() => {}));
       }
     }
     return json(report, 200, origin);
@@ -4692,6 +4707,14 @@ async function refillPendingMlFlex(env) {
   return refillMlFlexBonus(env, sales, flexCost);
 }
 
+async function refillPendingMlEnvios(env) {
+  const token = await getMlAccessToken(env).catch(() => null);
+  if (!token) return { filled: 0, remaining: 0 };
+  const sellerId = await getMlSellerId(env);
+  const index = await getMlSalesIndex(env);
+  return backfillMlZeroShipping(env, token, sellerId, index, 20);
+}
+
 async function handleAdminMlSales(request, env, origin) {
   const url = new URL(request.url);
   const key = url.searchParams.get('key') || '';
@@ -4700,6 +4723,7 @@ async function handleAdminMlSales(request, env, origin) {
       return json({ error: 'Não autorizado.' }, 401, origin);
     }
   }
+  await refillPendingMlEnvios(env).catch(() => {});
   const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit')) || 400));
   const sales = await listMarketplaceSales(env, 'mercadolivre', limit);
   const totalIndexed = await d1CountSales(env, 'mercadolivre');
