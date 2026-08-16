@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   enviosSellerCost,
   flexSellerCost,
+  mlFlexBonusFromCosts,
   receiptPayout,
   liquidMatchesReceipt
 } from './ml-settlement.js';
@@ -45,6 +46,19 @@ test('Flex Isabella: 11,90 − estorno 1,10 = 10,80; na conta 57,18', () => {
   assert.equal(shipping, 10.8);
   assert.equal(receiptPayout(82.90, 14.92, shipping), 57.18);
   assert.equal(liquidMatchesReceipt(82.90, 14.92, shipping, 57.18), true);
+});
+
+test('Flex Rafael: bonus 1,10 comes from shipment costs discounts, not payment net', () => {
+  const bonus = mlFlexBonusFromCosts({
+    senders: [{
+      cost: 9.9,
+      save: 1.1,
+      discounts: [{ rate: 0.1, type: 'mandatory', promoted_amount: 1.1 }]
+    }]
+  });
+  assert.equal(bonus, 1.1);
+  assert.equal(flexSellerCost(11.9, bonus), 10.8);
+  assert.equal(receiptPayout(82.90, 14.92, 10.8), 57.18);
 });
 
 test('Douglas leftover 9,36 without buyer field is still Envios 12,35', () => {

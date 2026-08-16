@@ -2056,18 +2056,25 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      showStatus(
-        `Sync OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas, ${data.shippingFilled || 0} com frete preenchido (${data.indexed || 0} no índice).`,
-        'success',
-        'vendas'
-      );
+      if (data.truncated) {
+        showStatus(data.error || 'Corta no meio — clica Atualizar ML de novo.', '', 'vendas');
+      } else {
+        const extra = Number(data.flexRemaining) > 0
+          ? ` Ainda faltam ${data.flexRemaining} Flex; clica Atualizar ML de novo.`
+          : '';
+        showStatus(
+          `Atualizar ML OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas, ${data.flexFilled || data.shippingFilled || 0} Flex/frete.${extra} (${data.indexed || 0} no índice).`,
+          extra ? '' : 'success',
+          'vendas'
+        );
+      }
       await loadMlSales(true);
     } catch (err) {
       const msg = err?.name === 'AbortError'
-        ? 'O sync ML passou de 2 minutos e foi interrompido. Tente de novo.'
-        : /subrequests/i.test(String(err.message || ''))
-          ? 'O Cloudflare cortou o sync (muitos pedidos de uma vez). Já está limitado; tenta Atualizar ML de novo.'
-          : (err.message || 'Falha no sync ML.');
+        ? 'O Atualizar ML passou de 2 minutos. Clica de novo — continua.'
+        : /subrequest|cortou no meio/i.test(String(err.message || ''))
+          ? 'O Cloudflare cortou no meio. Clica Atualizar ML de novo.'
+          : (err.message || 'Falha no Atualizar ML.');
       showStatus(msg, 'error', 'vendas');
     } finally {
       clearTimeout(abortTimer);

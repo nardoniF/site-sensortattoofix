@@ -1,6 +1,6 @@
 /** Mercado Livre receipt math. Envios = the receipt line (12,35). Never subtract buyer from that line. */
 
-export const ML_SETTLEMENT_VERSION = 6;
+export const ML_SETTLEMENT_VERSION = 7;
 export const ML_ENVIOS_NET = 12.35;
 
 export function mlMoney(n) {
@@ -47,6 +47,19 @@ export function enviosSellerCost(senderCost, buyerCost) {
 export function flexSellerCost(flexListCost, estorno) {
   const list = mlMoney(flexListCost);
   return mlMoney(Math.max(0, list - mlMoney(estorno)));
+}
+
+/** Bônus Flex no /shipments/{id}/costs (senders.discounts.promoted_amount). Não soma save+desconto. */
+export function mlFlexBonusFromCosts(data) {
+  let bonus = 0;
+  for (const s of data?.senders || []) {
+    let fromDisc = 0;
+    for (const d of s.discounts || []) {
+      fromDisc += mlMoney(d.promoted_amount ?? d.amount ?? d.discount);
+    }
+    bonus += fromDisc > 0.01 ? fromDisc : mlMoney(s.save);
+  }
+  return mlMoney(bonus);
 }
 
 export function receiptPayout(gross, fees, shipping) {

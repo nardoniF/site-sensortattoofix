@@ -34,6 +34,7 @@ import {
   mlMoney,
   enviosSellerCost,
   flexSellerCost,
+  mlFlexBonusFromCosts,
   receiptPayout,
   repairEnviosAlreadyNet
 } from './ml-settlement.js';
@@ -4154,9 +4155,14 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
   // flexCost should come from extras (passed in) or from config (mlFlexShippingCost).
   const flexCost = mlMoney(extras.flexCost) > 0 ? mlMoney(extras.flexCost) : (Number(extras.config?.mlFlexShippingCost) > 0 ? Number(extras.config.mlFlexShippingCost) : 0);
   const fromCosts = mlEnviosSellerCost(costs, sellerId);
-  const estorno = mlEstornoFromPayments(docs, gross, fees);
-  const isFlex = isMlFlexShipment(sale, extras.shipment)
-    || (!(fromCosts.shipping > 0) && estorno > 0);
+  const payBonus = mlEstornoFromPayments(docs, gross, fees);
+  const costBonus = mlFlexBonusFromCosts(costs);
+  const isFlex = sale.mlFlex
+    || isMlFlexShipment(sale, extras.shipment)
+    || (!(fromCosts.shipping > 0) && (payBonus > 0 || costBonus > 0));
+  const estorno = isFlex
+    ? (costBonus > 0.01 ? costBonus : payBonus)
+    : payBonus;
   let shipping = 0;
   let buyerShip = fromCosts.buyerShip || mlMoney(sale.buyerShippingCost);
   let source = 'envios';
@@ -4171,6 +4177,7 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
 
   const payout = receiptPayout(gross, fees, shipping);
   if (!(gross > 0) || !(payout > 0)) return sale;
+  const flexNeedsPayment = isFlex && estorno < 0.01 && !docs.length;
   const next = {
     ...sale,
     fees,
@@ -4180,29 +4187,41 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
     mlEstorno: estorno,
     mlFlex: isFlex,
     mlFlexListCost: isFlex ? flexCost : null,
+    mlFlexBonusChecked: isFlex && (estorno > 0.01 || costs != null),
     logisticType: extras.shipment?.logistic_type || sale.logisticType || null,
     net: payout,
     payoutNet: payout,
-    settlementOk: true,
+    settlementOk: !flexNeedsPayment,
     settlementVersion: ML_SETTLEMENT_VERSION,
     shippingCostsOk: true,
     shippingSource: source
   };
   if (!mlHasSettlement(next)) {
-    return { ...sale, settlementOk: false, settlementVersion: 0, shippingCostsOk: false, shippingSource: null };
+    return {
+      ...sale,
+      mlFlex: isFlex || sale.mlFlex,
+      mlFlexListCost: isFlex ? flexCost : sale.mlFlexListCost,
+      shippingCost: isFlex ? shipping : sale.shippingCost,
+      settlementOk: false,
+      settlementVersion: 0,
+      shippingCostsOk: false,
+      shippingSource: null
+    };
   }
   return next;
 }
 
-async function fetchMlPaymentDoc(token, paymentId) {
-  if (!token || !paymentId) return null;
-  const headers = { Authorization: 'Bearer ' + token, Accept: 'application/json' };
-  const urls = [
-    `${ML_API_BASE}/v1/payments/${encodeURIComponent(paymentId)}`,
-    `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`
+async function fetchMlPaymentDoc(token, paymentId, env) {
+  if (!paymentId) return null;
+  const attempts = [
+    { auth: mercadoPagoToken(env), url: `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}` },
+    { auth: token, url: `${ML_API_BASE}/v1/payments/${encodeURIComponent(paymentId)}` }
   ];
-  for (const url of urls) {
-    const res = await fetch(url, { headers });
+  for (const { auth, url } of attempts) {
+    if (!auth) continue;
+    const res = await fetch(url, {
+      headers: { Authorization: 'Bearer ' + auth, Accept: 'application/json' }
+    });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data && (data.id != null || data.transaction_details)) return data;
   }
@@ -4308,7 +4327,7 @@ async function enrichMlSaleShippingCost(env, token, sale, sellerId) {
     }
     const docs = [];
     for (const id of paymentIds) {
-      const doc = await fetchMlPaymentDoc(token, id);
+      const doc = await fetchMlPaymentDoc(token, id, env);
       if (doc) docs.push(doc);
     }
     const shipment = shippingId ? await fetchMlShipment(token, shippingId) : null;
@@ -4326,14 +4345,35 @@ async function upsertMlSale(env, sale, index) {
   return next.slice(0, ML_SALES_INDEX_MAX);
 }
 
+function mlLooksFlexSale(sale, flexCost) {
+  const list = mlMoney(sale?.mlFlexListCost) || mlMoney(flexCost);
+  const ship = mlMoney(sale?.shippingCost);
+  return !!(sale?.mlFlex
+    || /flex|self_service/i.test(String(sale?.logisticType || ''))
+    || (list > 0 && Math.abs(ship - list) <= 0.06));
+}
+
+function mlNeedsPaymentEnrich(sale, flexCost) {
+  if (!sale) return false;
+  if (mlLooksFlexSale(sale, flexCost)) {
+    return mlMoney(sale.mlEstorno) < 0.01;
+  }
+  if (mlHasSettlement(sale)) return false;
+  const ship = mlMoney(sale.shippingCost);
+  if (Math.abs(ship - ML_ENVIOS_NET) <= 0.06) return false;
+  return !(ship > 0.04);
+}
+
 async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
-  const cap = Math.max(1, Math.min(Number(limit) || 200, 200));
+  const cap = Math.max(0, Math.min(Number(limit) || 8, 8));
+  const config = await getConfig(env).catch(() => ({}));
+  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
   let filled = 0;
   let remaining = 0;
   for (const id of index || []) {
     const sale = await loadMarketplaceSale(env, 'mercadolivre', id);
     if (!sale) continue;
-    if (mlHasSettlement(sale)) continue;
+    if (!mlNeedsPaymentEnrich(sale, flexCost)) continue;
     if (filled >= cap) {
       remaining += 1;
       continue;
@@ -4531,7 +4571,7 @@ async function handleAdminMlAuthUrl(request, env, origin) {
   return json({ ok: true, url: buildMlAuthUrl(env), redirectUri: ML_REDIRECT_URI }, 200, origin);
 }
 
-async function handleAdminMlSync(request, env, origin) {
+async function handleAdminMlSync(request, env, origin, ctx) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
@@ -4542,19 +4582,36 @@ async function handleAdminMlSync(request, env, origin) {
     return json({ ok: true, meta, indexed: index.length }, 200, origin);
   }
   const daysParam = url.searchParams.get('days');
-  const full = url.searchParams.get('full') === '1' || url.searchParams.get('full') === 'true';
   try {
     const report = await syncMlOrders(env, {
       full: true,
       days: daysParam ? Number(daysParam) : 400,
-      backfillShipping: 500,
-      enrichShipping: true,
+      backfillShipping: 0,
+      enrichShipping: false,
       skipExistingRead: false,
       maxPages: 2
     });
+    const refill = await refillPendingMlFlex(env);
+    report.flexFilled = refill.filled;
+    report.flexRemaining = refill.remaining;
+    report.shippingFilled = (report.shippingFilled || 0) + refill.filled;
+    if (refill.remaining > 0 && ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(refillPendingMlFlex(env).catch(() => {}));
+    }
     return json(report, 200, origin);
   } catch (err) {
-    return json({ error: err.message || String(err) }, 502, origin);
+    const msg = err.message || String(err);
+    if (/subrequest|1102|exceeded/i.test(msg)) {
+      return json({
+        ok: true,
+        truncated: true,
+        imported: 0,
+        updated: 0,
+        shippingFilled: 0,
+        error: 'O Cloudflare cortou no meio. Clica Atualizar ML de novo — continua de onde parou.'
+      }, 200, origin);
+    }
+    return json({ error: msg }, 502, origin);
   }
 }
 
@@ -4563,6 +4620,7 @@ async function refillMlFlexBonus(env, sales, flexCost) {
   const token = await getMlAccessToken(env).catch(() => null);
   const sellerId = await getMlSellerId(env);
   let filled = 0;
+  let remaining = 0;
   const out = [];
   for (const sale of sales || []) {
     let s = healMlStoredShipping(sale, listCost);
@@ -4574,9 +4632,9 @@ async function refillMlFlexBonus(env, sales, flexCost) {
     if (
       looksFlex
       && list > 0
-      && mlMoney(s.mlEstorno) < 0.01
       && token
-      && filled < 12
+      && filled < 8
+      && mlMoney(s.mlEstorno) < 0.01
     ) {
       try {
         const next = await enrichMlSaleShippingCost(env, token, {
@@ -4593,10 +4651,19 @@ async function refillMlFlexBonus(env, sales, flexCost) {
       } catch {
         /* keep healed row */
       }
+    } else if (looksFlex && list > 0 && mlMoney(s.mlEstorno) < 0.01) {
+      remaining += 1;
     }
     out.push(s);
   }
-  return out;
+  return { sales: out, filled, remaining };
+}
+
+async function refillPendingMlFlex(env) {
+  const config = await getConfig(env).catch(() => ({}));
+  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+  const sales = await listMarketplaceSales(env, 'mercadolivre', 400);
+  return refillMlFlexBonus(env, sales, flexCost);
 }
 
 async function handleAdminMlSales(request, env, origin) {
@@ -4608,10 +4675,7 @@ async function handleAdminMlSales(request, env, origin) {
     }
   }
   const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit')) || 400));
-  let sales = await listMarketplaceSales(env, 'mercadolivre', limit);
-  const config = await getConfig(env).catch(() => ({}));
-  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
-  sales = await refillMlFlexBonus(env, sales, flexCost);
+  const sales = await listMarketplaceSales(env, 'mercadolivre', limit);
   const totalIndexed = await d1CountSales(env, 'mercadolivre');
   const meta = await getMlSalesMeta(env);
   return json({ ok: true, meta, totalIndexed: totalIndexed || sales.length, sales }, 200, origin);
@@ -15035,7 +15099,7 @@ export default {
         return handleAdminMlAuthUrl(request, env, origin);
       }
       if (path === '/admin/ml/sync' && (request.method === 'GET' || request.method === 'POST')) {
-        return handleAdminMlSync(request, env, origin);
+        return handleAdminMlSync(request, env, origin, ctx);
       }
       if (path === '/admin/ml/sales' && request.method === 'GET') {
         return handleAdminMlSales(request, env, origin);
