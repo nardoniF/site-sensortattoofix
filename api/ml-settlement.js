@@ -13,10 +13,13 @@ export function mlMoney(n) {
  */
 export function repairEnviosAlreadyNet(shipping, buyerFreight) {
   const s = mlMoney(shipping);
-  const b = mlMoney(buyerFreight);
-  if (!(s > 0) || !(b > 0)) return s;
-  const sum = mlMoney(s + b);
-  if (Math.abs(sum - 12.35) <= 0.05) return 12.35;
+  if (!(s > 0)) return s;
+  // Leftovers from subtracting buyer twice: 12,35−11,99 and 12,35−2,99.
+  if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 12.35;
+  const buyers = [mlMoney(buyerFreight), 2.99, 11.99, 13.99];
+  for (const b of buyers) {
+    if (b > 0 && Math.abs(mlMoney(s + b) - 12.35) <= 0.05) return 12.35;
+  }
   return s;
 }
 

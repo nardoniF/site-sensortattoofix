@@ -47,9 +47,9 @@ test('Flex Isabella: 11,90 − estorno 1,10 = 10,80; na conta 57,18', () => {
   assert.equal(liquidMatchesReceipt(82.90, 14.92, shipping, 57.18), true);
 });
 
-test('stored leftover 0,36 + buyer 11,99 restores Envios 12,35', () => {
-  assert.equal(enviosSellerCost(0.36, 11.99).shipping, 12.35);
-  assert.equal(enviosSellerCost(9.36, 2.99).shipping, 12.35);
+test('Douglas leftover 9,36 without buyer field is still Envios 12,35', () => {
+  assert.equal(enviosSellerCost(9.36, 0).shipping, 12.35);
+  assert.equal(enviosSellerCost(0.36, 0).shipping, 12.35);
 });
 
 test('wrong leftover freights must fail the liquid test', () => {

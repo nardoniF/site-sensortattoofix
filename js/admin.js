@@ -723,6 +723,7 @@
   function saleShippingCost(sale) {
     const s = Math.round(Number(sale?.shippingCost || 0) * 100) / 100;
     if (sale?.mlFlex) return s;
+    if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 12.35;
     let b = Math.round(Number(sale?.buyerShippingCost || 0) * 100) / 100;
     if (!(b > 0 && b < 40)) {
       const pay = (sale?.payments || []).map((p) => Number(p.shippingCost || 0)).find((n) => n > 1 && n < 40);
