@@ -4355,7 +4355,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .sales-tree-row {
     display: grid;
-    grid-template-columns: 4.5rem 7.5rem minmax(4rem, 6.5rem) minmax(0, 1fr) repeat(6, minmax(4.4rem, 5.4rem));
+    grid-template-columns: 4.5rem 7.5rem minmax(4rem, 6.5rem) minmax(0, 1fr) repeat(5, minmax(4.6rem, 5.6rem));
     gap: 8px 8px;
     align-items: baseline;
     padding: 8px 10px;
@@ -4404,7 +4404,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .sales-tree-adj { color: #d0b070; }
 .sales-tree-net { color: var(--primary); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 .sales-tree-row--consol {
-    grid-template-columns: 4.5rem 6rem 7rem minmax(4rem, 6rem) minmax(0, 1fr) repeat(6, minmax(4.2rem, 5.2rem));
+    grid-template-columns: 4.5rem 6rem 7rem minmax(4rem, 6rem) minmax(0, 1fr) repeat(5, minmax(4.4rem, 5.4rem));
 }
 .sales-tree-channel {
     color: #f0c040;

@@ -688,16 +688,12 @@
   function renderSaleMoneyCols(sale) {
     const other = (sale._refunds || 0) + (sale._otherFees || 0);
     const feesShown = (sale._fees || 0) + other;
-    const conta = sale._marketplace != null
-      ? sale._marketplace
-      : Math.round(((sale._gross || 0) - (sale._fees || 0) - (sale._shipping || 0) - other) * 100) / 100;
     return [
-      salesMoneyCell('paid', sale._gross, 'pagou', 'Preço do produto (anúncio / recibo)', ''),
-      salesMoneyCell('fee', feesShown, 'tarifa', 'Comissão do marketplace + estornos/outras', '−'),
-      salesMoneyCell('ship', sale._shipping || 0, 'frete', 'O que o ML descontou de Envios (custo do vendedor)', '−'),
-      salesMoneyCell('kit', Number(sale._cogs) || 0, 'kit', 'Custo do produto (BOM em Produtos)', '−'),
-      salesMoneyCell('conta', conta, 'na conta', 'O que entrou na conta: pagou − tarifa − frete', '='),
-      salesMoneyCell('net', sale._net, 'lucro', 'Lucro real: na conta − custo do kit', '=')
+      salesMoneyCell('paid', sale._gross, 'preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('fee', feesShown, 'tarifa ML', 'Comissão do Mercado Livre / marketplace', '−'),
+      salesMoneyCell('ship', sale._shipping || 0, 'frete', 'Frete Envios (custo do vendedor)', '−'),
+      salesMoneyCell('kit', Number(sale._cogs) || 0, 'kit', 'Custo do kit (BOM em Produtos)', '−'),
+      salesMoneyCell('net', sale._net, 'líquido', 'Líquido: preço − tarifa − frete − kit', '=')
     ].join('');
   }
 
@@ -777,9 +773,11 @@
 
   function kitUnitCostFromConfig(config, sale) {
     const cfg = config || currentConfig;
-    const comps = isIntlSale(sale)
-      ? cfg?.kitCostIntl?.components
-      : cfg?.kitCost?.components;
+    const intl = isIntlSale(sale);
+    const comps = kitCostComponentsFrom(
+      intl ? cfg?.kitCostIntl : cfg?.kitCost,
+      intl ? 'intl' : 'br'
+    );
     return kitUnitCostFromComponents(comps);
   }
 
@@ -827,13 +825,12 @@
       : '';
     return `
       <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${(list || []).length.toLocaleString('pt-BR')}${indexed}</dd></div>
-      <div class="clicks-stats-row"><dt>Pagaram (produto)</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
+      <div class="clicks-stats-row"><dt>Preço</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Tarifa ML</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Frete Envios</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Estornos / outras</dt><dd>${formatSalesBRL(parts.refunds + parts.otherFees)}</dd></div>
-      <div class="clicks-stats-row"><dt>(=) Entrou na conta</dt><dd>${formatSalesBRL(parts.marketplace)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Custo do kit</dt><dd>${formatSalesBRL(parts.cogs)}</dd></div>
-      <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Lucro real</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
+      <div class="clicks-stats-row"><dt>(−) Kit</dt><dd>${formatSalesBRL(parts.cogs)}</dd></div>
+      <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
       ${extraRowsHtml || ''}
       <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
   }
@@ -915,7 +912,7 @@
 
   function salesTreeSummary(label, node) {
     const count = node?.count || 0;
-    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · na conta ${formatSalesBRL(node?.marketplace || 0)} · lucro ${formatSalesBRL(node?.net || 0)}</span>`;
+    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}</span>`;
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
@@ -1023,6 +1020,7 @@
     const root = document.getElementById('vendas-loja-tree-root');
     const checked = document.getElementById('vendas-loja-checked-at');
     if (!root) return;
+    await ensureSalesConfig();
     const openPaths = preserveOpen ? captureLojaSalesTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas da loja oficial…</p>';
     try {
@@ -1635,6 +1633,7 @@ ${worksheets}
       : [];
     root.innerHTML = '<p class="admin-meta">Carregando consolidado…</p>';
     try {
+      await ensureSalesConfig();
       const sales = await fetchConsolidatedSales();
       consolidatedSalesCache = sales;
       renderConsolidadoPeriods(sales);
@@ -1760,6 +1759,11 @@ ${worksheets}
     el.innerHTML = renderSalesMoneyStats(sales, meta);
   }
 
+  async function ensureSalesConfig() {
+    if (currentConfig?.kitCost?.components?.length) return;
+    try { await loadConfig(); } catch (_) { /* BOM padrão no fallback */ }
+  }
+
   async function loadMlSales(preserveOpen) {
     const root = document.getElementById('vendas-ml-tree-root');
     const checked = document.getElementById('vendas-ml-checked-at');
@@ -1770,6 +1774,7 @@ ${worksheets}
       showStatus('Faça login no admin.', 'error', 'vendas');
       return;
     }
+    await ensureSalesConfig();
     const openPaths = preserveOpen ? captureSalesTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas ML…</p>';
     try {
@@ -1828,6 +1833,7 @@ ${worksheets}
       showStatus('Faça login no admin.', 'error', 'vendas');
       return;
     }
+    await ensureSalesConfig();
     const openPaths = preserveOpen ? captureAmzSalesTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas Amazon…</p>';
     try {
@@ -1890,6 +1896,7 @@ ${worksheets}
       showStatus('Faça login no admin.', 'error', 'vendas');
       return;
     }
+    await ensureSalesConfig();
     const openPaths = preserveOpen
       ? [...root.querySelectorAll('details[open][data-tree-path]')].map((el) => el.getAttribute('data-tree-path')).filter(Boolean)
       : [];
@@ -5735,6 +5742,10 @@ ${worksheets}
       wireSenderCepLookup();
       wireShippingUi();
       await loadShippingStatus();
+      const vendasPanel = document.getElementById('admin-tab-vendas');
+      if (vendasPanel && !vendasPanel.hidden) {
+        loadMlSales(true).catch(() => {});
+      }
     } catch (err) {
       showStatus(err.message || 'Erro ao carregar configuração.', 'error', 'top');
       throw err;

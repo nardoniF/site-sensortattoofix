@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.06">
+    <link rel="stylesheet" href="style.css?v=3.07">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -750,7 +750,7 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Cada venda mostra: <strong>pagaram</strong> (preço do produto) → <strong>−tarifa</strong> e <strong>−frete Envios</strong> (o que o ML descontou) → <strong>na conta</strong> (caiu na conta) → <strong>−kit</strong> → <strong>lucro</strong>. O amarelo é lucro, não o depósito.</p>
+                            <p>Cada venda mostra só os valores: <strong>preço</strong> → <strong>−tarifa ML</strong> → <strong>−frete</strong> → <strong>−kit</strong> → <strong>= líquido</strong>. O nome aparece ao passar o mouse. O kit vem do BOM em Produtos.</p>
                             <p><strong>Atualizar ML / Amazon</strong> sincroniza marketplaces. Loja oficial lê pedidos pagos da API. <strong>Consolidado</strong> junta tudo e exporta Excel.</p>
                         </div>
                         <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
@@ -1165,6 +1165,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=160"></script>
+    <script src="js/admin.js?v=161"></script>
 </body>
 </html>
