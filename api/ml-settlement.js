@@ -1,6 +1,7 @@
 /** Mercado Livre receipt math. Envios = the receipt line (12,35). Never subtract buyer from that line. */
 
 export const ML_SETTLEMENT_VERSION = 6;
+export const ML_ENVIOS_NET = 12.35;
 
 export function mlMoney(n) {
   const v = Number(n);
@@ -15,7 +16,7 @@ export function repairEnviosAlreadyNet(shipping, buyerFreight) {
   const s = mlMoney(shipping);
   if (!(s > 0)) return s;
   // Leftovers from subtracting buyer twice: 12,35−11,99 and 12,35−2,99.
-  if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 12.35;
+  if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return ML_ENVIOS_NET;
   const buyers = [mlMoney(buyerFreight), 2.99, 11.99, 13.99];
   for (const b of buyers) {
     if (b > 0 && Math.abs(mlMoney(s + b) - 12.35) <= 0.05) return 12.35;
@@ -30,7 +31,7 @@ export function repairEnviosAlreadyNet(shipping, buyerFreight) {
 export function enviosSellerCost(senderCost, buyerCost) {
   const sender = mlMoney(senderCost);
   const buyer = mlMoney(buyerCost);
-  if (!(sender > 0)) return { shipping: 0, buyerShip: buyer };
+  if (!(sender > 0)) return { shipping: ML_ENVIOS_NET, buyerShip: buyer };
 
   const restored = repairEnviosAlreadyNet(sender, buyer);
   if (restored !== sender) return { shipping: restored, buyerShip: buyer };

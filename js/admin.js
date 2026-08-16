@@ -729,7 +729,7 @@
     if (isFlex && flexList > 0) {
       return Math.round(Math.max(0, flexList - estorno) * 100) / 100;
     }
-    if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 12.35;
+    if (!(s > 0.04) || Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 12.35;
     let b = Math.round(Number(sale?.buyerShippingCost || 0) * 100) / 100;
     if (!(b > 0 && b < 40)) {
       const pay = (sale?.payments || []).map((p) => Number(p.shippingCost || 0)).find((n) => n > 1 && n < 40);

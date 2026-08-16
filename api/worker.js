@@ -30,6 +30,7 @@ import {
 } from './d1-store.js';
 import {
   ML_SETTLEMENT_VERSION,
+  ML_ENVIOS_NET,
   mlMoney,
   enviosSellerCost,
   flexSellerCost,
@@ -3823,7 +3824,8 @@ function healMlStoredShipping(sale) {
   }
   const buyer = mlMoney(sale.buyerShippingCost)
     || mlMoney((sale.payments || []).find((p) => mlMoney(p.shippingCost) > 1 && mlMoney(p.shippingCost) < 40)?.shippingCost);
-  const nextShip = repairEnviosAlreadyNet(sale.shippingCost, buyer);
+  let nextShip = repairEnviosAlreadyNet(sale.shippingCost, buyer);
+  if (!(nextShip > 0)) nextShip = ML_ENVIOS_NET;
   if (nextShip === mlMoney(sale.shippingCost)) return sale;
   const payout = receiptPayout(sale.gross, sale.fees, nextShip);
   return {
@@ -4159,6 +4161,7 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
     source = 'flex';
   } else {
     shipping = fromCosts.shipping;
+    if (!(shipping > 0)) shipping = ML_ENVIOS_NET;
   }
 
   const payout = receiptPayout(gross, fees, shipping);

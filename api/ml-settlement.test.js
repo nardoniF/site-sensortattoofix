@@ -52,6 +52,12 @@ test('Douglas leftover 9,36 without buyer field is still Envios 12,35', () => {
   assert.equal(enviosSellerCost(0.36, 0).shipping, 12.35);
 });
 
+test('Mini Envios missing cost still uses receipt Envios 12,35', () => {
+  assert.equal(enviosSellerCost(0, 2.99).shipping, 12.35);
+  assert.equal(enviosSellerCost(0, 0).shipping, 12.35);
+  assert.equal(receiptPayout(79.90, 10.39, 12.35), 57.16);
+});
+
 test('wrong leftover freights must fail the liquid test', () => {
   assert.equal(liquidMatchesReceipt(53.59, 9.65, 9.36, 31.59), false);
   assert.equal(liquidMatchesReceipt(53.59, 9.65, 0.36, 31.59), false);
