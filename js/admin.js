@@ -2059,12 +2059,13 @@ ${worksheets}
       if (data.truncated) {
         showStatus(data.error || 'Corta no meio — clica Atualizar ML de novo.', '', 'vendas');
       } else {
-        const extra = Number(data.flexRemaining) > 0
-          ? ` Ainda faltam ${data.flexRemaining} Flex; clica Atualizar ML de novo.`
+        const more = data.hasMore ? ' Ainda tem pedido antigo na fila; clica de novo se a lista não completar.' : '';
+        const flexBit = Number(data.flexFilled || 0) || Number(data.flexRemaining || 0)
+          ? ` Flex: ${data.flexFilled || 0} bônus.`
           : '';
         showStatus(
-          `Atualizar ML OK: ${data.imported || 0} novas, ${data.updated || 0} atualizadas, ${data.flexFilled || data.shippingFilled || 0} Flex/frete.${extra} (${data.indexed || 0} no índice).`,
-          extra ? '' : 'success',
+          `Atualizar ML: ${data.imported || 0} novas, ${data.updated || 0} atualizadas, ${data.indexed || 0} no índice.${flexBit}${more}`,
+          more ? '' : 'success',
           'vendas'
         );
       }

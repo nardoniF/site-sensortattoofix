@@ -4454,7 +4454,7 @@ async function syncMlOrders(env, options = {}) {
     Math.max(1, Number(options.maxPages) || ML_SYNC_MAX_PAGES)
   );
   const to = now;
-  let offset = 0;
+  let offset = Math.max(0, Number(options.offset) || 0);
   let pages = 0;
   let imported = 0;
   let updated = 0;
@@ -4480,7 +4480,9 @@ async function syncMlOrders(env, options = {}) {
         imported += 1;
       }
       const alreadyPriced = mlHasSettlement(existing);
-      if (!alreadyPriced && options.enrichShipping !== false) {
+      const shouldEnrich = options.enrichShipping === true
+        || (options.enrichNewOnly === true && !existing);
+      if (!alreadyPriced && shouldEnrich) {
         sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
       }
       sale = mergeMlSaleShipping(existing, sale);
@@ -4520,6 +4522,8 @@ async function syncMlOrders(env, options = {}) {
     indexed: index.length,
     shippingFilled,
     shippingRemaining: shippingReport.remaining,
+    nextOffset: offset,
+    hasMore: totalApi != null && offset < totalApi,
     lastSyncedAt: now.toISOString(),
     lastError: null
   };
@@ -4586,17 +4590,33 @@ async function handleAdminMlSync(request, env, origin, ctx) {
     const report = await syncMlOrders(env, {
       full: true,
       days: daysParam ? Number(daysParam) : 400,
+      offset: 0,
       backfillShipping: 0,
       enrichShipping: false,
+      enrichNewOnly: true,
       skipExistingRead: false,
-      maxPages: 2
+      maxPages: 8
     });
     const refill = await refillPendingMlFlex(env);
     report.flexFilled = refill.filled;
     report.flexRemaining = refill.remaining;
     report.shippingFilled = (report.shippingFilled || 0) + refill.filled;
-    if (refill.remaining > 0 && ctx && typeof ctx.waitUntil === 'function') {
-      ctx.waitUntil(refillPendingMlFlex(env).catch(() => {}));
+    if (ctx && typeof ctx.waitUntil === 'function') {
+      if (report.hasMore) {
+        ctx.waitUntil(syncMlOrders(env, {
+          full: true,
+          days: daysParam ? Number(daysParam) : 400,
+          offset: report.nextOffset,
+          backfillShipping: 0,
+          enrichShipping: false,
+          enrichNewOnly: true,
+          skipExistingRead: false,
+          maxPages: 8
+        }).catch(() => {}));
+      }
+      if (refill.remaining > 0) {
+        ctx.waitUntil(refillPendingMlFlex(env).catch(() => {}));
+      }
     }
     return json(report, 200, origin);
   } catch (err) {

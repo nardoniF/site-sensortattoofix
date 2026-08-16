@@ -751,7 +751,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Cada venda mostra só os valores: <strong>preço</strong> → <strong>−tarifa ML</strong> → <strong>−frete</strong> → <strong>−kit</strong> → <strong>= líquido</strong>. O nome aparece ao passar o mouse. O kit vem do BOM em Produtos.</p>
-                            <p><strong>Atualizar ML</strong> busca pedidos novos e preenche frete/bônus Flex. Recarregar só relê o que já está gravado. Loja oficial lê pedidos pagos da API. <strong>Consolidado</strong> junta tudo e exporta Excel.</p>
+                            <p><strong>Atualizar ML</strong> baixa os pedidos pagos do Mercado Livre (novos e os que já estão na lista) e preenche frete: Mini Envios e Flex. Recarregar só relê o que já está gravado. <strong>Consolidado</strong> junta tudo e exporta Excel.</p>
                         </div>
                         <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
                             <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="loja" aria-selected="false" aria-controls="admin-vendas-loja"><i class="fas fa-store"></i> Loja oficial</button>
@@ -1165,6 +1165,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=169"></script>
+    <script src="js/admin.js?v=170"></script>
 </body>
 </html>
