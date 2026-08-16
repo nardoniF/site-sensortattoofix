@@ -732,6 +732,7 @@
     if (isMl && isFlex && flexList > 0) {
       return Math.round(Math.max(0, flexList - estorno) * 100) / 100;
     }
+    if (ch === 'shopee') return s;
     if (isMl && (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 0;
     return s;
   }

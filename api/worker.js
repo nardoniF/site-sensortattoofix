@@ -38,6 +38,10 @@ import {
   receiptPayout,
   repairEnviosAlreadyNet
 } from './ml-settlement.js';
+import {
+  shopeeOrderIncome,
+  shopeeReceiptFromEscrow
+} from './shopee-settlement.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -5626,7 +5630,7 @@ function roundMoney(n) {
 
 function normalizeShopeeOrder(detail, escrow) {
   const order = detail || {};
-  const income = escrow?.order_income || escrow || {};
+  const income = shopeeOrderIncome(escrow);
   const items = (Array.isArray(order.item_list) ? order.item_list : []).map((it) => ({
     id: it.item_id != null ? String(it.item_id) : null,
     title: it.item_name || it.model_name || null,
@@ -5636,7 +5640,6 @@ function normalizeShopeeOrder(detail, escrow) {
     currency: 'BRL'
   }));
   const itemsGross = roundMoney(items.reduce((s, it) => s + it.unitPrice * (it.quantity > 0 ? it.quantity : 0), 0));
-  // Recibo Shopee: subtotal dos produtos. buyer_total_amount inclui frete do comprador.
   const gross = roundMoney(
     income.original_cost_of_goods_sold
     ?? income.cost_of_goods_sold
@@ -5645,43 +5648,9 @@ function normalizeShopeeOrder(detail, escrow) {
     ?? 0
   );
   const refunds = roundMoney(income.seller_return_refund || 0);
-  const escrowAmt = income.escrow_amount != null ? roundMoney(income.escrow_amount) : null;
-  const actualShip = Number(income.actual_shipping_fee || order.actual_shipping_fee || 0);
-  const buyerShip = Number(income.buyer_paid_shipping_fee || 0);
-  const shipRebate = Number(
-    income.shopee_shipping_rebate
-    || income.shipping_fee_rebate_from_shopee
-    || income.shipping_fee_rebate
-    || income.shipping_fee_discount_from_3pl
-    || 0
-  );
-  // Só o que a Shopee desconta de você. actual_shipping_fee sem rebate é a etiqueta, não o recibo.
-  let shippingCost = roundMoney(Math.max(0, actualShip - buyerShip - shipRebate));
-  const feesFromApi = roundMoney(
-    Number(income.net_commission_fee || 0)
-    + Number(income.net_service_fee || 0)
-    || (
-      Number(income.commission_fee || 0)
-      + Number(income.service_fee || 0)
-      + Number(income.seller_transaction_fee || 0)
-    )
-    + Number(income.campaign_fee || 0)
-    + Number(income.order_ams_commission_fee || 0)
-  );
-  let fees = feesFromApi;
-  let otherFees = 0;
-  // Recibo: Taxas e Encargos = produto − renda − frete do vendedor.
-  if (escrowAmt != null && gross > 0) {
-    const leftover = roundMoney(gross - escrowAmt - shippingCost - refunds);
-    if (leftover >= 0) fees = leftover;
-    else {
-      shippingCost = 0;
-      fees = roundMoney(Math.max(0, gross - escrowAmt - refunds));
-    }
-  }
-  const net = escrowAmt != null
-    ? escrowAmt
-    : roundMoney(gross - fees - shippingCost - refunds);
+  const rawEscrow = income.escrow_amount ?? income.escrow_amount_after_adjustment;
+  const escrowAmt = rawEscrow != null ? roundMoney(rawEscrow) : null;
+  const parts = shopeeReceiptFromEscrow(gross, escrowAmt, refunds);
   const soldAtSec = Number(order.pay_time || order.create_time || 0);
   return {
     channel: 'shopee',
@@ -5690,12 +5659,12 @@ function normalizeShopeeOrder(detail, escrow) {
     status: order.order_status || null,
     currency: 'BRL',
     gross,
-    fees,
-    shippingCost,
+    fees: parts.fees,
+    shippingCost: parts.shippingCost,
     refunds,
-    otherFees,
-    net,
-    shopeeIncomeOk: escrowAmt != null,
+    otherFees: 0,
+    net: parts.net,
+    shopeeIncomeOk: parts.ok,
     buyer: {
       id: order.buyer_user_id != null ? String(order.buyer_user_id) : null,
       nickname: order.buyer_username || null
@@ -5764,8 +5733,9 @@ async function fetchShopeeEscrow(env, token, shopId, orderSn) {
     const data = await shopeeShopGet(env, '/api/v2/payment/get_escrow_detail', token, shopId, {
       order_sn: String(orderSn)
     });
-    return data.response || null;
-  } catch {
+    return data.response || data;
+  } catch (err) {
+    console.warn('Shopee escrow', orderSn, err && err.message);
     return null;
   }
 }
@@ -5780,7 +5750,7 @@ async function backfillShopeeIndex(env, limit) {
   let remaining = 0;
   for (const sn of index || []) {
     const sale = await loadMarketplaceSale(env, 'shopee', sn);
-    if (sale?.shopeeIncomeOk && Number(sale.fees || 0) > 0) continue;
+    if (sale?.shopeeIncomeOk && Number(sale.shippingCost || 0) < 0.01 && Number(sale.fees || 0) > 0) continue;
     if (filled >= cap) {
       remaining += 1;
       continue;
@@ -5940,6 +5910,7 @@ async function handleAdminShopeeSales(request, env, origin) {
   }
   const url = new URL(request.url);
   const limit = Math.min(5000, Math.max(1, Number(url.searchParams.get('limit')) || 5000));
+  await backfillShopeeIndex(env, 25).catch(() => {});
   const sales = await listMarketplaceSales(env, 'shopee', limit);
   const totalIndexed = await d1CountSales(env, 'shopee');
   const meta = await getShopeeSalesMeta(env);
