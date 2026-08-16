@@ -3803,19 +3803,24 @@ const ML_SALES_INDEX_MAX = 5000;
 const ML_SYNC_PAGE_LIMIT = 50;
 const ML_SYNC_MAX_PAGES = 40;
 
-function healMlStoredShipping(sale) {
+function healMlStoredShipping(sale, flexCfg) {
   if (!sale) return sale;
   const ch = String(sale.channel || 'mercadolivre').toLowerCase();
   if (ch !== 'mercadolivre' && ch !== 'ml') return sale;
-  if (sale.mlFlex || /flex|self_service/i.test(String(sale.logisticType || ''))) {
-    const list = mlMoney(sale.mlFlexListCost);
+  const flexList = mlMoney(sale.mlFlexListCost) || mlMoney(flexCfg);
+  const ship = mlMoney(sale.shippingCost);
+  const isFlex = sale.mlFlex
+    || /flex|self_service/i.test(String(sale.logisticType || ''))
+    || (flexList > 0 && Math.abs(ship - flexList) <= 0.06);
+  if (isFlex && flexList > 0) {
     const est = mlMoney(sale.mlEstorno);
-    if (!(list > 0)) return sale;
-    const nextShip = flexSellerCost(list, est);
-    if (nextShip === mlMoney(sale.shippingCost)) return sale;
+    const nextShip = flexSellerCost(flexList, est);
+    if (nextShip === ship && mlMoney(sale.mlFlexListCost) === flexList) return sale;
     const payout = receiptPayout(sale.gross, sale.fees, nextShip);
     return {
       ...sale,
+      mlFlex: true,
+      mlFlexListCost: flexList,
       shippingCost: nextShip,
       net: payout,
       payoutNet: payout,
@@ -4553,6 +4558,47 @@ async function handleAdminMlSync(request, env, origin) {
   }
 }
 
+async function refillMlFlexBonus(env, sales, flexCost) {
+  const listCost = mlMoney(flexCost);
+  const token = await getMlAccessToken(env).catch(() => null);
+  const sellerId = await getMlSellerId(env);
+  let filled = 0;
+  const out = [];
+  for (const sale of sales || []) {
+    let s = healMlStoredShipping(sale, listCost);
+    const list = mlMoney(s.mlFlexListCost) || listCost;
+    const looksFlex = s.mlFlex
+      || /flex|self_service/i.test(String(s.logisticType || ''))
+      || (list > 0 && Math.abs(mlMoney(s.shippingCost) - list) <= 0.06)
+      || (list > 0 && Math.abs(mlMoney(sale.shippingCost) - list) <= 0.06);
+    if (
+      looksFlex
+      && list > 0
+      && mlMoney(s.mlEstorno) < 0.01
+      && token
+      && filled < 12
+    ) {
+      try {
+        const next = await enrichMlSaleShippingCost(env, token, {
+          ...s,
+          mlFlex: true,
+          mlFlexListCost: list
+        }, sellerId);
+        if (next) {
+          const saved = healMlStoredShipping({ ...next, mlFlex: true, mlFlexListCost: list }, list);
+          await saveMarketplaceSale(env, saved).catch(() => {});
+          s = saved;
+          filled += 1;
+        }
+      } catch {
+        /* keep healed row */
+      }
+    }
+    out.push(s);
+  }
+  return out;
+}
+
 async function handleAdminMlSales(request, env, origin) {
   const url = new URL(request.url);
   const key = url.searchParams.get('key') || '';
@@ -4562,7 +4608,10 @@ async function handleAdminMlSales(request, env, origin) {
     }
   }
   const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit')) || 400));
-  const sales = await listMarketplaceSales(env, 'mercadolivre', limit);
+  let sales = await listMarketplaceSales(env, 'mercadolivre', limit);
+  const config = await getConfig(env).catch(() => ({}));
+  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+  sales = await refillMlFlexBonus(env, sales, flexCost);
   const totalIndexed = await d1CountSales(env, 'mercadolivre');
   const meta = await getMlSalesMeta(env);
   return json({ ok: true, meta, totalIndexed: totalIndexed || sales.length, sales }, 200, origin);

@@ -727,7 +727,8 @@
     const flexList = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
     const estorno = Number(sale?.mlEstorno || 0);
     const isFlex = sale?.mlFlex
-      || /flex|self_service/i.test(String(sale?.logisticType || ''));
+      || /flex|self_service/i.test(String(sale?.logisticType || ''))
+      || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06);
     if (isMl && isFlex && flexList > 0) {
       return Math.round(Math.max(0, flexList - estorno) * 100) / 100;
     }
