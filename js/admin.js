@@ -1755,7 +1755,7 @@ ${worksheets}
     const root = document.getElementById('vendas-when-charts');
     if (!root) return;
     const metricEl = document.getElementById('vendas-when-metric');
-    const metric = metricEl ? metricEl.value : 'net';
+    const metric = metricEl ? metricEl.value : 'count';
     const filtered = filterSalesForWhenCharts(sales);
     if (!filtered.length) {
       root.innerHTML = '<p class="admin-meta">Sem vendas para este filtro.</p>';
