@@ -1345,7 +1345,103 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
-    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}`;
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoFlexOwed(sales)}`;
+  }
+
+  function isMlFlexSale(sale) {
+    const ch = String(sale?.channel || '').toLowerCase();
+    if (ch !== 'mercadolivre' && ch !== 'ml') return false;
+    if (sale?.mlFlex || sale?.shippingSource === 'flex') return true;
+    return /flex|self_service/i.test(String(sale?.logisticType || ''));
+  }
+
+  /** Valor que você paga à empresa Flex (lista), antes do bônus do ML. */
+  function flexCompanyOwed(sale) {
+    const list = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
+    if (list > 0) return Math.round(list * 100) / 100;
+    const ship = Number(sale?.shippingCost || sale?._shipping || 0);
+    const bonus = Number(sale?.mlEstorno || 0);
+    return Math.round((ship + bonus) * 100) / 100;
+  }
+
+  function aggregateFlexOwedByMonth(sales) {
+    const map = new Map();
+    (sales || []).forEach((s) => {
+      if (!isMlFlexSale(s) || !s._ts) return;
+      const p = brDateParts(s._ts);
+      const key = `${p.year}-${p.monthNum}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          year: p.year,
+          monthNum: p.monthNum,
+          name: MONTH_LABELS[p.monthNum] || p.monthName,
+          count: 0,
+          owed: 0,
+          bonus: 0,
+          net: 0
+        });
+      }
+      const row = map.get(key);
+      const owed = flexCompanyOwed(s);
+      const bonus = Math.round(Number(s.mlEstorno || 0) * 100) / 100;
+      row.count += 1;
+      row.owed += owed;
+      row.bonus += bonus;
+      row.net += Math.round((owed - bonus) * 100) / 100;
+    });
+    return [...map.values()]
+      .map((r) => ({
+        ...r,
+        owed: Math.round(r.owed * 100) / 100,
+        bonus: Math.round(r.bonus * 100) / 100,
+        net: Math.round(r.net * 100) / 100
+      }))
+      .sort((a, b) => String(b.key).localeCompare(String(a.key)));
+  }
+
+  function renderConsolidadoFlexOwed(sales) {
+    const months = aggregateFlexOwedByMonth(sales);
+    const now = brDateParts(Date.now());
+    const currentKey = `${now.year}-${now.monthNum}`;
+    const thisMonth = months.find((m) => m.key === currentKey);
+    if (!months.length) {
+      return `<section class="vendas-consol-flex" aria-label="Flex a pagar">
+        <header class="vendas-consol-mtd-head">
+          <h3>Flex a pagar</h3>
+          <p>Nenhum envio Flex no recorte carregado. O valor é o custo da empresa (lista em Produtos), não o bônus do ML.</p>
+        </header>
+      </section>`;
+    }
+    const rows = months.map((m) => {
+      const isCurrent = m.key === currentKey ? ' is-current' : '';
+      const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+      return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
+        <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
+        <p class="vendas-consol-mtd-count">${m.count} Flex</p>
+        <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
+        <p class="vendas-consol-mtd-meta">a pagar à empresa</p>
+        <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
+      </article>`;
+    }).join('');
+    const kicker = thisMonth
+      ? `${thisMonth.name}: ${thisMonth.count} Flex · ${formatSalesBRL(thisMonth.owed)} a pagar`
+      : 'Por mês civil (fuso Brasília)';
+    return `<section class="vendas-consol-flex" aria-label="Flex a pagar por mês">
+      <header class="vendas-consol-mtd-head">
+        <h3>Flex a pagar</h3>
+        <p>${escapeHtml(kicker)}. Lista configurada em Produtos − o bônus entra no líquido da venda, não na fatura da empresa.</p>
+      </header>
+      <div class="vendas-consol-mtd-grid">${rows}</div>
+    </section>`;
+  }
+
+  function buildFlexOwedExportRows(sales) {
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
+    aggregateFlexOwedByMonth(sales).forEach((m) => {
+      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
+    });
+    return rows;
   }
 
   function renderConsolidadoStats(sales) {
@@ -1548,7 +1644,8 @@ ${worksheets}
       { name: 'Por hora', rows: buildSalesWhenExportRows(sales, 'hour') },
       { name: 'Por dia sem', rows: buildSalesWhenExportRows(sales, 'weekday') },
       { name: 'Por dia mes', rows: buildSalesWhenExportRows(sales, 'monthday') },
-      { name: 'Por mes ano', rows: buildSalesWhenExportRows(sales, 'month') }
+      { name: 'Por mes ano', rows: buildSalesWhenExportRows(sales, 'month') },
+      { name: 'Flex a pagar', rows: buildFlexOwedExportRows(sales) }
     ]);
   }
 
