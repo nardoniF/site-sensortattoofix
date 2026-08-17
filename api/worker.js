@@ -13533,7 +13533,12 @@ async function loadClicksSlimFromD1(env, cutoffMs) {
       json_extract(payload, '$.idioma') AS idioma,
       json_extract(payload, '$.user_agent') AS user_agent,
       json_extract(payload, '$.ip') AS ip,
-      json_extract(payload, '$.destino_label') AS destino_label
+      json_extract(payload, '$.destino_label') AS destino_label,
+      json_extract(payload, '$.cidade') AS cidade,
+      json_extract(payload, '$.estado') AS estado,
+      json_extract(payload, '$.pais') AS pais,
+      json_extract(payload, '$.pais_nome') AS pais_nome,
+      json_extract(payload, '$.dispositivo') AS dispositivo
     FROM clicks
     WHERE ts >= ?
     ORDER BY ts DESC
@@ -13552,7 +13557,12 @@ async function loadClicksSlimFromD1(env, cutoffMs) {
     site_host: r.site_host || '',
     idioma: r.idioma || '',
     user_agent: r.user_agent || '',
-    ip: r.ip || ''
+    ip: r.ip || '',
+    cidade: r.cidade || '',
+    estado: r.estado || '',
+    pais: r.pais || '',
+    pais_nome: r.pais_nome || '',
+    dispositivo: r.dispositivo || ''
   }));
 }
 

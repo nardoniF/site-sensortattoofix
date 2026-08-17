@@ -3108,6 +3108,18 @@ ${worksheets}
   }
 
   /** Unique = 1 event; repeat = 2+ of the same dest. Official nav stays out. */
+  function pickClickGeo(events) {
+    const list = Array.isArray(events) ? events : [events];
+    for (const c of list) {
+      if (!c) continue;
+      const cidade = String(c.cidade || '').trim();
+      const estado = String(c.estado || '').trim();
+      const pais = String(c.pais_nome || c.pais || '').trim();
+      if (cidade || estado || pais) return { cidade, estado, pais };
+    }
+    return { cidade: '', estado: '', pais: '' };
+  }
+
   function listNoiseSessions(clicks) {
     const withoutTests = (clicks || []).filter((c) => !(c.teste === true || c.is_test === true));
     const sessions = [];
@@ -3118,9 +3130,10 @@ ${worksheets}
       const ts = Number(first.ts || first.client_ts || 0);
       const destKey = clickSessionStepKey(first);
       const origem = clickOrigemLegivel(first);
-      const estadoRaw = String(first.estado || '').trim();
-      const cidadeRaw = String(first.cidade || '').trim();
-      const paisRaw = String(first.pais_nome || first.pais || '').trim();
+      const geo = pickClickGeo(ordered);
+      const estadoRaw = geo.estado;
+      const cidadeRaw = geo.cidade;
+      const paisRaw = geo.pais;
       const estadoKey = estadoRaw
         ? `${estadoRaw}|${paisRaw || ''}`.toLowerCase()
         : (paisRaw ? `pais:${paisRaw}`.toLowerCase() : 'sem-geo');
