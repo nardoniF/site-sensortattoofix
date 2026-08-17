@@ -678,11 +678,41 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  function salesMoneyCell(kind, value, label, title, op) {
+  function salesMoneyCell(kind, value, label, title, op, unresolved) {
+    if (unresolved) {
+      const shown = op ? `${op}\u00a0—` : '—';
+      const hint = `${label} — não identificado ainda (aguardando Envios do ML)`;
+      return `<span class="sales-tree-money sales-tree-${kind} sales-tree-unresolved" data-label="Frete não id." title="${escapeHtml(hint)}">${escapeHtml(shown)}</span>`;
+    }
     const amount = formatSalesBRL(value);
     const shown = op ? `${op}\u00a0${amount}` : amount;
     const hint = `${label} — ${title}`;
     return `<span class="sales-tree-money sales-tree-${kind}" data-label="${escapeHtml(label)}" title="${escapeHtml(hint)}">${escapeHtml(shown)}</span>`;
+  }
+
+  function mlShippingUnresolved(sale) {
+    const ch = String(sale?.channel || '').toLowerCase();
+    if (ch !== 'mercadolivre' && ch !== 'ml') return false;
+    if (sale?.mlFlex || /flex|self_service/i.test(String(sale?.logisticType || ''))) return false;
+    const src = String(sale?.shippingSource || '');
+    if (src === 'unresolved') return true;
+    if (sale?.shippingCost == null || sale?.shippingCost === '') return true;
+    if (!(Number(sale.shippingCost) > 0.04) && !src) return true;
+    return false;
+  }
+
+  function renderSaleMoneyCols(sale, channelHint) {
+    const tagged = sale?.channel ? sale : { ...sale, channel: channelHint };
+    const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
+    const feesShown = (tagged._fees || 0) + other;
+    const shipUnresolved = mlShippingUnresolved(tagged);
+    return [
+      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
+      salesMoneyCell('ship', tagged._shipping || 0, 'Frete', shipUnresolved ? 'Frete ainda não identificado no ML' : saleShipHoverHint(tagged), '−', shipUnresolved),
+      salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
+      salesMoneyCell('net', tagged._net, 'Líquido', shipUnresolved ? 'Líquido provisório (frete não identificado)' : 'Líquido: Preço − Tarifa − Frete − Kit', '=')
+    ].join('');
   }
 
   function saleChannelKey(sale) {
@@ -759,6 +789,7 @@
 
   /** Líquido marketplace = Bruto − Comissão − Frete − Estornos − Outras. Líquido real = isso − custo do kit. */
   function saleShippingCost(sale) {
+    if (mlShippingUnresolved(sale)) return 0;
     const s = Math.round(Number(sale?.shippingCost || 0) * 100) / 100;
     const ch = String(sale?.channel || '').toLowerCase();
     const isMl = ch === 'mercadolivre' || ch === 'ml';

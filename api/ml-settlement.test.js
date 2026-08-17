@@ -39,14 +39,18 @@ test('Murilo: senders.cost 12,35; liquid 57,16', () => {
   assert.equal(receiptPayout(79.90, 10.39, 12.35), 57.16);
 });
 
-test('missing senders.cost is 0, not a fixed 12,35', () => {
+test('missing senders.cost is not found (null), not a fixed 12,35', () => {
+  assert.equal(enviosSellerCost(null, 2.99).found, false);
+  assert.equal(enviosSellerCost(null, 2.99).shipping, null);
+  assert.equal(enviosSellerCost(0, 2.99).found, true);
   assert.equal(enviosSellerCost(0, 2.99).shipping, 0);
-  assert.equal(enviosSellerCost(0, 0).shipping, 0);
 });
 
 test('fallback Envios = gross − fee − liquid', () => {
   assert.equal(impliedEnviosFromReceipt(73.90, 9.61, 56.54), 7.75);
   assert.equal(impliedEnviosFromReceipt(165.80, 29.84, 111.26), 24.7);
+  assert.equal(impliedEnviosFromReceipt(79.90, 10.39, 57.16), 12.35);
+  assert.equal(impliedEnviosFromReceipt(79.90, 10.39, 0), null);
 });
 
 test('Flex Isabella: 11,90 − estorno 1,10 = 10,80; na conta 57,18', () => {

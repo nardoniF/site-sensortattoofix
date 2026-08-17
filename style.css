@@ -4399,6 +4399,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .sales-tree-fee { color: #e08a8a; }
 .sales-tree-ship { color: #9ab0d0; }
+.sales-tree-unresolved { color: #ffe082; font-style: italic; }
 .sales-tree-kit { color: #c8c8c8; }
 .sales-tree-conta { color: #b8d4c0; }
 .sales-tree-adj { color: #d0b070; }
