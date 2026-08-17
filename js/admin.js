@@ -1310,7 +1310,7 @@
         <h3>${escapeHtml(label)}</h3>
         <p class="vendas-consol-card-kicker">Líquido real</p>
         <p class="vendas-consol-card-net">${formatSalesBRL(tot.net)}</p>
-        <p class="vendas-consol-card-meta">${tot.count} venda${tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(tot.gross)} · custo kit ${formatSalesBRL(tot.cogs || 0)}</p>
+        <p class="vendas-consol-card-meta">${tot.count} venda${tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(tot.gross)}</p>
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
