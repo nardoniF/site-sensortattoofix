@@ -1185,6 +1185,89 @@
     return html;
   }
 
+  function shiftYearMonth(year, monthNum, deltaMonths) {
+    let y = Number(year);
+    let m = Number(monthNum) + Number(deltaMonths || 0);
+    while (m < 1) {
+      m += 12;
+      y -= 1;
+    }
+    while (m > 12) {
+      m -= 12;
+      y += 1;
+    }
+    return { year: String(y), monthNum: String(m).padStart(2, '0') };
+  }
+
+  /** Vendas do mês até o dia N (mesmo dia do calendário; corta no último dia do mês se for menor). */
+  function salesMonthToDate(sales, year, monthNum, throughDay) {
+    const ym = String(monthNum).padStart(2, '0');
+    const y = String(year);
+    const lastDay = Math.min(Number(throughDay) || 1, daysInCalendarMonth(y, ym));
+    return (sales || []).filter((s) => {
+      if (!s._ts) return false;
+      const p = brDateParts(s._ts);
+      if (p.year !== y || p.monthNum !== ym) return false;
+      return Number(p.day) <= lastDay;
+    });
+  }
+
+  function formatMtdDelta(current, previous) {
+    const cur = Number(current || 0);
+    const prev = Number(previous || 0);
+    if (!prev && !cur) return 'igual';
+    if (!prev) return 'novo';
+    const pct = Math.round(((cur - prev) / Math.abs(prev)) * 1000) / 10;
+    const sign = pct > 0 ? '+' : '';
+    return `${sign}${pct.toLocaleString('pt-BR')}%`;
+  }
+
+  function renderConsolidadoMtdCompare(sales) {
+    const now = brDateParts(Date.now());
+    const dayNum = Number(now.day);
+    const months = [0, -1, -2].map((delta) => {
+      const ym = shiftYearMonth(now.year, now.monthNum, delta);
+      const through = Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
+      const subset = salesMonthToDate(sales, ym.year, ym.monthNum, through);
+      const tot = sumAnnotated(subset);
+      const name = MONTH_LABELS[ym.monthNum] || ym.monthNum;
+      return {
+        delta,
+        year: ym.year,
+        monthNum: ym.monthNum,
+        through,
+        label: delta === 0 ? 'Este mês' : (delta === -1 ? 'Mês passado' : 'Mês retrasado'),
+        title: `${name} ${ym.year}`,
+        tot
+      };
+    });
+    // Ordem visual: retrasado → passado → atual
+    const ordered = [months[2], months[1], months[0]];
+    const rows = ordered.map((row, i) => {
+      const prev = i > 0 ? ordered[i - 1] : null;
+      const deltaTxt = prev ? formatMtdDelta(row.tot.net, prev.tot.net) : '—';
+      const deltaClass = prev
+        ? (row.tot.net > prev.tot.net ? ' is-up' : (row.tot.net < prev.tot.net ? ' is-down' : ''))
+        : '';
+      const isCurrent = row.delta === 0 ? ' is-current' : '';
+      return `<article class="vendas-consol-mtd-card${isCurrent}">
+        <h4>${escapeHtml(row.label)}</h4>
+        <p class="vendas-consol-mtd-title">${escapeHtml(row.title)}</p>
+        <p class="vendas-consol-mtd-range">dias 1–${row.through}</p>
+        <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}</p>
+        <p class="vendas-consol-mtd-meta">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(row.tot.gross)}</p>
+        <p class="vendas-consol-mtd-delta${deltaClass}">vs anterior: ${escapeHtml(deltaTxt)}</p>
+      </article>`;
+    }).join('');
+    return `<section class="vendas-consol-mtd" aria-label="Comparação até o dia ${dayNum}">
+      <header class="vendas-consol-mtd-head">
+        <h3>Até o dia ${dayNum} — 3 meses</h3>
+        <p>Mesmo recorte em cada mês (dia 1 até ${dayNum}). Líquido real.</p>
+      </header>
+      <div class="vendas-consol-mtd-grid">${rows}</div>
+    </section>`;
+  }
+
   function renderConsolidadoPeriods(sales) {
     const el = document.getElementById('vendas-consol-periods');
     if (!el) return;
@@ -1194,7 +1277,7 @@
       { key: 'month', label: 'Este mês' },
       { key: 'year', label: 'Este ano' }
     ];
-    el.innerHTML = periods.map(({ key, label }) => {
+    const cards = periods.map(({ key, label }) => {
       const subset = salesInCurrentPeriod(sales, key);
       const tot = sumAnnotated(subset);
       const byCh = {};
@@ -1223,6 +1306,7 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}`;
   }
 
   function renderConsolidadoStats(sales) {
