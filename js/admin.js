@@ -1346,6 +1346,7 @@
       </article>`;
     }).join('');
     el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    wireOneAdminFold(document.getElementById('vendas-consol-flex-fold'));
   }
 
   function isMlFlexSale(sale) {
@@ -1405,35 +1406,29 @@
     const now = brDateParts(Date.now());
     const currentKey = `${now.year}-${now.monthNum}`;
     const thisMonth = months.find((m) => m.key === currentKey);
-    if (!months.length) {
-      return `<section class="vendas-consol-flex" aria-label="Flex a pagar">
-        <header class="vendas-consol-mtd-head">
-          <h3>Flex a pagar</h3>
-          <p>Nenhum envio Flex no recorte carregado. O valor é o custo da empresa (lista em Produtos), não o bônus do ML.</p>
-        </header>
-      </section>`;
-    }
-    const rows = months.map((m) => {
-      const isCurrent = m.key === currentKey ? ' is-current' : '';
-      const yearNote = m.year !== now.year ? ` ${m.year}` : '';
-      return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
+    const hint = thisMonth
+      ? `${thisMonth.name} · ${thisMonth.count} · ${formatSalesBRL(thisMonth.owed)}`
+      : (months.length ? `${months[0].name} · ${months[0].count} · ${formatSalesBRL(months[0].owed)}` : '—');
+    const body = months.length
+      ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
+        const isCurrent = m.key === currentKey ? ' is-current' : '';
+        const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+        return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
-        <p class="vendas-consol-mtd-count">${m.count} Flex</p>
+        <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
-        <p class="vendas-consol-mtd-meta">a pagar à empresa</p>
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
-    }).join('');
-    const kicker = thisMonth
-      ? `${thisMonth.name}: ${thisMonth.count} Flex · ${formatSalesBRL(thisMonth.owed)} a pagar`
-      : 'Por mês civil (fuso Brasília)';
-    return `<section class="vendas-consol-flex" aria-label="Flex a pagar por mês">
-      <header class="vendas-consol-mtd-head">
-        <h3>Flex a pagar</h3>
-        <p>${escapeHtml(kicker)}. Lista configurada em Produtos − o bônus entra no líquido da venda, não na fatura da empresa.</p>
-      </header>
-      <div class="vendas-consol-mtd-grid">${rows}</div>
-    </section>`;
+      }).join('')}</div>`
+      : '<p class="admin-meta">Nenhum envio Flex no recorte carregado.</p>';
+    return `<details class="admin-fold vendas-consol-flex-fold" id="vendas-consol-flex-fold" data-fold-key="vendas-flex">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Flex</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">${body}</div>
+    </details>`;
   }
 
   function buildFlexOwedExportRows(sales) {
@@ -4124,22 +4119,26 @@ ${worksheets}
     document.getElementById('clicks-fold-log')?.setAttribute('open', '');
   }
 
-  function wireAdminFolds() {
-    document.querySelectorAll('details.admin-fold[data-fold-key]').forEach((el) => {
-      const key = el.getAttribute('data-fold-key');
-      if (!key) return;
-      const storageKey = `stf_admin_fold_${key}`;
+  function wireOneAdminFold(el) {
+    if (!el || el.dataset.foldWired) return;
+    const key = el.getAttribute('data-fold-key');
+    if (!key) return;
+    el.dataset.foldWired = '1';
+    const storageKey = `stf_admin_fold_${key}`;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved === '1') el.open = true;
+      else if (saved === '0') el.open = false;
+    } catch { /* ignore */ }
+    el.addEventListener('toggle', () => {
       try {
-        const saved = localStorage.getItem(storageKey);
-        if (saved === '1') el.open = true;
-        else if (saved === '0') el.open = false;
+        localStorage.setItem(storageKey, el.open ? '1' : '0');
       } catch { /* ignore */ }
-      el.addEventListener('toggle', () => {
-        try {
-          localStorage.setItem(storageKey, el.open ? '1' : '0');
-        } catch { /* ignore */ }
-      });
     });
+  }
+
+  function wireAdminFolds() {
+    document.querySelectorAll('details.admin-fold[data-fold-key]').forEach((el) => wireOneAdminFold(el));
   }
 
   async function clearClicksLog(mode) {

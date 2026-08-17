@@ -4426,11 +4426,11 @@ body.admin-page.pedidos-login-only #pedidos-login {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
 }
-.vendas-consol-flex {
-    border: 1px solid #2a2a2a;
-    border-radius: 12px;
-    background: #101010;
-    padding: 14px 16px;
+.vendas-consol-flex-fold {
+    margin-top: 14px;
+}
+.vendas-consol-flex-fold .vendas-consol-mtd-grid {
+    margin-top: 12px;
 }
 .vendas-consol-flex-bonus {
     margin: 6px 0 0;
