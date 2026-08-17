@@ -1229,16 +1229,14 @@
       const ym = shiftYearMonth(now.year, now.monthNum, delta);
       const through = Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
       const subset = salesMonthToDate(sales, ym.year, ym.monthNum, through);
-      const tot = sumAnnotated(subset);
       const name = MONTH_LABELS[ym.monthNum] || ym.monthNum;
       return {
         delta,
         year: ym.year,
         monthNum: ym.monthNum,
         through,
-        label: delta === 0 ? 'Este mês' : (delta === -1 ? 'Mês passado' : 'Mês retrasado'),
-        title: `${name} ${ym.year}`,
-        tot
+        name,
+        tot: sumAnnotated(subset)
       };
     });
     // Ordem visual: retrasado → passado → atual
@@ -1249,20 +1247,23 @@
       const deltaClass = prev
         ? (row.tot.net > prev.tot.net ? ' is-up' : (row.tot.net < prev.tot.net ? ' is-down' : ''))
         : '';
-      const isCurrent = row.delta === 0 ? ' is-current' : '';
-      return `<article class="vendas-consol-mtd-card${isCurrent}">
-        <h4>${escapeHtml(row.label)}</h4>
-        <p class="vendas-consol-mtd-title">${escapeHtml(row.title)}</p>
+      const isCurrent = row.delta === 0;
+      const heading = isCurrent ? 'Este mês' : row.name;
+      const sub = isCurrent
+        ? row.name
+        : (row.year !== now.year ? row.year : '');
+      return `<article class="vendas-consol-mtd-card${isCurrent ? ' is-current' : ''}">
+        <h4>${escapeHtml(heading)}</h4>
+        ${sub ? `<p class="vendas-consol-mtd-title">${escapeHtml(sub)}</p>` : ''}
         <p class="vendas-consol-mtd-range">dias 1–${row.through}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}</p>
         <p class="vendas-consol-mtd-meta">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(row.tot.gross)}</p>
         <p class="vendas-consol-mtd-delta${deltaClass}">vs anterior: ${escapeHtml(deltaTxt)}</p>
       </article>`;
     }).join('');
-    return `<section class="vendas-consol-mtd" aria-label="Comparação até o dia ${dayNum}">
+    return `<section class="vendas-consol-mtd" aria-label="Comparação dia 1 a hoje — 3 meses">
       <header class="vendas-consol-mtd-head">
-        <h3>Até o dia ${dayNum} — 3 meses</h3>
-        <p>Mesmo recorte em cada mês (dia 1 até ${dayNum}). Líquido real.</p>
+        <h3>Dia 1 a hoje — 3 meses · Líquido real</h3>
       </header>
       <div class="vendas-consol-mtd-grid">${rows}</div>
     </section>`;
