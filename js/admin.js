@@ -1243,23 +1243,30 @@
     const ordered = [months[2], months[1], months[0]];
     const rows = ordered.map((row, i) => {
       const prev = i > 0 ? ordered[i - 1] : null;
-      const deltaTxt = prev ? formatMtdDelta(row.tot.net, prev.tot.net) : '';
-      const deltaClass = prev
+      const netDelta = prev ? formatMtdDelta(row.tot.net, prev.tot.net) : '';
+      const netClass = prev
         ? (row.tot.net > prev.tot.net ? ' is-up' : (row.tot.net < prev.tot.net ? ' is-down' : ''))
+        : '';
+      const countDelta = prev ? formatMtdDelta(row.tot.count, prev.tot.count) : '';
+      const countClass = prev
+        ? (row.tot.count > prev.tot.count ? ' is-up' : (row.tot.count < prev.tot.count ? ' is-down' : ''))
         : '';
       const isCurrent = row.delta === 0;
       const yearNote = row.year !== now.year
         ? `<p class="vendas-consol-mtd-title">${escapeHtml(row.year)}</p>`
         : '';
-      const pct = deltaTxt
-        ? ` <span class="vendas-consol-mtd-pct${deltaClass}">(${escapeHtml(deltaTxt)})</span>`
+      const netPct = netDelta
+        ? ` <span class="vendas-consol-mtd-pct${netClass}">(${escapeHtml(netDelta)})</span>`
+        : '';
+      const countPct = countDelta
+        ? ` <span class="vendas-consol-mtd-pct${countClass}">(${escapeHtml(countDelta)})</span>`
         : '';
       return `<article class="vendas-consol-mtd-card${isCurrent ? ' is-current' : ''}">
         <h4>${escapeHtml(row.name)}</h4>
         ${yearNote}
         <p class="vendas-consol-mtd-range">Dias <strong>1–${row.through}</strong></p>
-        <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${pct}</p>
-        <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}</p>
+        <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${netPct}</p>
+        <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}</p>
       </article>`;
     }).join('');
     return `<section class="vendas-consol-mtd" aria-label="Comparação dia 1 a hoje — 3 meses">
