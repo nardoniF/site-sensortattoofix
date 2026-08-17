@@ -1245,11 +1245,11 @@
       const prev = i > 0 ? ordered[i - 1] : null;
       const netDelta = prev ? formatMtdDelta(row.tot.net, prev.tot.net) : '';
       const netClass = prev
-        ? (row.tot.net > prev.tot.net ? ' is-up' : (row.tot.net < prev.tot.net ? ' is-down' : ''))
+        ? (row.tot.net > prev.tot.net ? ' is-up' : (row.tot.net < prev.tot.net ? ' is-down' : ' is-same'))
         : '';
       const countDelta = prev ? formatMtdDelta(row.tot.count, prev.tot.count) : '';
       const countClass = prev
-        ? (row.tot.count > prev.tot.count ? ' is-up' : (row.tot.count < prev.tot.count ? ' is-down' : ''))
+        ? (row.tot.count > prev.tot.count ? ' is-up' : (row.tot.count < prev.tot.count ? ' is-down' : ' is-same'))
         : '';
       const isCurrent = row.delta === 0;
       const yearNote = row.year !== now.year

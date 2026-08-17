@@ -4505,8 +4505,9 @@ body.admin-page.pedidos-login-only #pedidos-login {
     color: #999;
     vertical-align: baseline;
 }
-.vendas-consol-mtd-pct.is-up { color: #81c784; }
+.vendas-consol-mtd-pct.is-up { color: #64b5f6; }
 .vendas-consol-mtd-pct.is-down { color: #e57373; }
+.vendas-consol-mtd-pct.is-same { color: #ffe082; }
 .vendas-consol-mtd-count {
     margin: 8px 0 0;
     font-size: 0.95rem;
