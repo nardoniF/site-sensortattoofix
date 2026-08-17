@@ -4475,28 +4475,37 @@ body.admin-page.pedidos-login-only #pedidos-login {
     color: #ddd;
 }
 .vendas-consol-mtd-range {
-    margin: 2px 0 0;
-    font-size: 0.72rem;
-    color: #777;
+    margin: 8px 0 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #cfd8dc;
+    letter-spacing: 0.02em;
+}
+.vendas-consol-mtd-range strong {
+    color: #fff;
+    font-size: 1.2rem;
+    font-variant-numeric: tabular-nums;
 }
 .vendas-consol-mtd-net {
-    margin: 8px 0 0;
-    font-size: 1.25rem;
+    margin: 10px 0 0;
+    font-size: 1.7rem;
     font-weight: 800;
     color: #b8f0c8;
     font-variant-numeric: tabular-nums;
+    line-height: 1.15;
 }
 .vendas-consol-mtd-card.is-current .vendas-consol-mtd-net {
     color: #81c784;
 }
-.vendas-consol-mtd-meta {
-    margin: 4px 0 0;
-    font-size: 0.72rem;
-    color: #888;
+.vendas-consol-mtd-count {
+    margin: 8px 0 0;
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: #ddd;
 }
 .vendas-consol-mtd-delta {
-    margin: 6px 0 0;
-    font-size: 0.72rem;
+    margin: 8px 0 0;
+    font-size: 0.78rem;
     font-weight: 600;
     color: #999;
 }

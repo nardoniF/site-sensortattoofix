@@ -1255,9 +1255,9 @@
       return `<article class="vendas-consol-mtd-card${isCurrent ? ' is-current' : ''}">
         <h4>${escapeHtml(heading)}</h4>
         ${sub ? `<p class="vendas-consol-mtd-title">${escapeHtml(sub)}</p>` : ''}
-        <p class="vendas-consol-mtd-range">dias 1–${row.through}</p>
+        <p class="vendas-consol-mtd-range">Dias <strong>1–${row.through}</strong></p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}</p>
-        <p class="vendas-consol-mtd-meta">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'} · bruto ${formatSalesBRL(row.tot.gross)}</p>
+        <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}</p>
         <p class="vendas-consol-mtd-delta${deltaClass}">vs anterior: ${escapeHtml(deltaTxt)}</p>
       </article>`;
     }).join('');
