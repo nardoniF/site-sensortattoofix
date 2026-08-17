@@ -2534,6 +2534,8 @@ ${worksheets}
         rows: buildClicksExportSheetRows(official, key)
       })),
       { name: 'Unicos hora', rows: buildClicksNoiseHourRows(noise) },
+      { name: 'Unicos estado', rows: buildClicksNoiseBreakdownRows(noise, 'estadoKey', 'estadoLabel') },
+      { name: 'Unicos cidade', rows: buildClicksNoiseBreakdownRows(noise, 'cidadeKey', 'cidadeLabel') },
       { name: 'Unicos local', rows: buildClicksNoiseBreakdownRows(noise, 'destKey', 'destLabel') },
       { name: 'Unicos site', rows: buildClicksNoiseSiteRows(noise) }
     ];
@@ -3032,6 +3034,21 @@ ${worksheets}
       const ts = Number(first.ts || first.client_ts || 0);
       const destKey = clickSessionStepKey(first);
       const origem = clickOrigemLegivel(first);
+      const estadoRaw = String(first.estado || '').trim();
+      const cidadeRaw = String(first.cidade || '').trim();
+      const paisRaw = String(first.pais_nome || first.pais || '').trim();
+      const estadoKey = estadoRaw
+        ? `${estadoRaw}|${paisRaw || ''}`.toLowerCase()
+        : (paisRaw ? `pais:${paisRaw}`.toLowerCase() : 'sem-geo');
+      const estadoLabel = estadoRaw
+        ? (paisRaw && !/brasil|brazil|br/i.test(paisRaw) ? `${estadoRaw} · ${paisRaw}` : estadoRaw)
+        : (paisRaw || 'Sem localização');
+      const cidadeKey = cidadeRaw
+        ? `${cidadeRaw}|${estadoRaw}|${paisRaw}`.toLowerCase()
+        : 'sem-cidade';
+      const cidadeLabel = cidadeRaw
+        ? [cidadeRaw, estadoRaw || paisRaw].filter(Boolean).join(', ')
+        : 'Sem cidade';
       sessions.push({
         key,
         kind: ordered.length <= 1 ? 'unique' : 'repeat',
@@ -3045,7 +3062,11 @@ ${worksheets}
         origemKey: origem?.slug || 'direto',
         origemLabel: origem?.label || 'Acesso direto',
         site: clickSiteHost(first),
-        visitor: visitorKey(first)
+        visitor: visitorKey(first),
+        estadoKey,
+        estadoLabel,
+        cidadeKey,
+        cidadeLabel
       });
     });
     return sessions;
@@ -3385,6 +3406,8 @@ ${worksheets}
 
     const hours = toChart(aggregateNoiseByHour(sessions));
     const places = toChart(aggregateNoiseSessions(sessions, 'destKey', 'destLabel'));
+    const states = toChart(aggregateNoiseSessions(sessions, 'estadoKey', 'estadoLabel'));
+    const cities = toChart(aggregateNoiseSessions(sessions, 'cidadeKey', 'cidadeLabel').slice(0, 40));
     const sites = toChart(aggregateNoiseSessions(sessions, 'site', 'site').map((b) => ({
       ...b,
       label: b.key === 'com' ? '.com' : '.com.br'
@@ -3392,7 +3415,9 @@ ${worksheets}
 
     root.innerHTML = summary + [
       renderWhenBarChart('Hora do dia (Brasília)', hours, 'count', chartOpts),
-      renderWhenBarChart('Local', places, 'count', chartOpts),
+      renderWhenBarChart('Estado (ranking)', states, 'count', chartOpts),
+      renderWhenBarChart('Cidade (top 40)', cities, 'count', chartOpts),
+      renderWhenBarChart('Local no site', places, 'count', chartOpts),
       renderWhenBarChart('Site', sites, 'count', { ...chartOpts, cardClass: 'vendas-when-card--noise vendas-when-card--site' })
     ].join('');
   }
