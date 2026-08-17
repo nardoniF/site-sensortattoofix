@@ -1264,14 +1264,13 @@
       return `<article class="vendas-consol-mtd-card${isCurrent ? ' is-current' : ''}">
         <h4>${escapeHtml(row.name)}</h4>
         ${yearNote}
-        <p class="vendas-consol-mtd-range">Dias <strong>1–${row.through}</strong></p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${netPct}</p>
         <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}</p>
       </article>`;
     }).join('');
-    return `<section class="vendas-consol-mtd" aria-label="Comparação dia 1 a hoje — 3 meses">
+    return `<section class="vendas-consol-mtd" aria-label="Comparação dias 1–${dayNum}">
       <header class="vendas-consol-mtd-head">
-        <h3>Dia 1 a hoje — 3 meses · Líquido real</h3>
+        <h3>Dias 1–${dayNum}</h3>
       </header>
       <div class="vendas-consol-mtd-grid">${rows}</div>
     </section>`;
