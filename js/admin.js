@@ -1243,22 +1243,23 @@
     const ordered = [months[2], months[1], months[0]];
     const rows = ordered.map((row, i) => {
       const prev = i > 0 ? ordered[i - 1] : null;
-      const deltaTxt = prev ? formatMtdDelta(row.tot.net, prev.tot.net) : '—';
+      const deltaTxt = prev ? formatMtdDelta(row.tot.net, prev.tot.net) : '';
       const deltaClass = prev
         ? (row.tot.net > prev.tot.net ? ' is-up' : (row.tot.net < prev.tot.net ? ' is-down' : ''))
         : '';
       const isCurrent = row.delta === 0;
-      const heading = isCurrent ? 'Este mês' : row.name;
-      const sub = isCurrent
-        ? row.name
-        : (row.year !== now.year ? row.year : '');
+      const yearNote = row.year !== now.year
+        ? `<p class="vendas-consol-mtd-title">${escapeHtml(row.year)}</p>`
+        : '';
+      const pct = deltaTxt
+        ? ` <span class="vendas-consol-mtd-pct${deltaClass}">(${escapeHtml(deltaTxt)})</span>`
+        : '';
       return `<article class="vendas-consol-mtd-card${isCurrent ? ' is-current' : ''}">
-        <h4>${escapeHtml(heading)}</h4>
-        ${sub ? `<p class="vendas-consol-mtd-title">${escapeHtml(sub)}</p>` : ''}
+        <h4>${escapeHtml(row.name)}</h4>
+        ${yearNote}
         <p class="vendas-consol-mtd-range">Dias <strong>1–${row.through}</strong></p>
-        <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}</p>
+        <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${pct}</p>
         <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}</p>
-        <p class="vendas-consol-mtd-delta${deltaClass}">vs anterior: ${escapeHtml(deltaTxt)}</p>
       </article>`;
     }).join('');
     return `<section class="vendas-consol-mtd" aria-label="Comparação dia 1 a hoje — 3 meses">

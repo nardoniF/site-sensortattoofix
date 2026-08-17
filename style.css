@@ -4497,20 +4497,22 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .vendas-consol-mtd-card.is-current .vendas-consol-mtd-net {
     color: #81c784;
 }
+.vendas-consol-mtd-pct {
+    font-size: 0.72em;
+    font-weight: 700;
+    margin-left: 0.35em;
+    white-space: nowrap;
+    color: #999;
+    vertical-align: baseline;
+}
+.vendas-consol-mtd-pct.is-up { color: #81c784; }
+.vendas-consol-mtd-pct.is-down { color: #e57373; }
 .vendas-consol-mtd-count {
     margin: 8px 0 0;
     font-size: 0.95rem;
     font-weight: 650;
     color: #ddd;
 }
-.vendas-consol-mtd-delta {
-    margin: 8px 0 0;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #999;
-}
-.vendas-consol-mtd-delta.is-up { color: #81c784; }
-.vendas-consol-mtd-delta.is-down { color: #e57373; }
 .vendas-consol-card {
     border: 1px solid #2a2a2a;
     border-radius: 12px;
