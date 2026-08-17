@@ -2443,36 +2443,6 @@ ${worksheets}
       .replace(/"/g, '&quot;');
   }
 
-  function buildClicksNoiseExportSheetRows(sessions, period) {
-    const rows = [['Período', 'Únicas', 'Repetidas', 'Visitas', 'Eventos', 'Visitantes']];
-    const buckets = new Map();
-    (sessions || []).forEach((s) => {
-      if (!s.ts) return;
-      const b = clicksPeriodBucket(s.ts, period);
-      if (!buckets.has(b.key)) {
-        buckets.set(b.key, {
-          label: b.label,
-          sortKey: b.sortKey,
-          unique: 0,
-          repeat: 0,
-          events: 0,
-          visitors: new Set()
-        });
-      }
-      const row = buckets.get(b.key);
-      if (s.kind === 'repeat') row.repeat += 1;
-      else row.unique += 1;
-      row.events += s.count;
-      row.visitors.add(s.visitor);
-    });
-    [...buckets.values()]
-      .sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)))
-      .forEach((row) => {
-        rows.push([row.label, row.unique, row.repeat, row.unique + row.repeat, row.events, row.visitors.size]);
-      });
-    return rows;
-  }
-
   function buildClicksNoiseBreakdownRows(sessions, field, labelKey) {
     const rows = [['Faixa', 'Únicas', 'Repetidas', 'Visitas', 'Eventos']];
     const buckets = new Map();
@@ -2493,6 +2463,61 @@ ${worksheets}
     return rows;
   }
 
+  function buildClicksNoiseHourRows(sessions) {
+    const rows = [['Hora', 'Únicas', 'Repetidas', 'Visitas', 'Eventos']];
+    const buckets = new Map();
+    (sessions || []).forEach((s) => {
+      if (!s.ts) return;
+      const hour = brSaleClockParts(s.ts).hour;
+      const key = String(hour);
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          label: `${String(hour).padStart(2, '0')}h`,
+          sortKey: hour,
+          unique: 0,
+          repeat: 0,
+          events: 0
+        });
+      }
+      const row = buckets.get(key);
+      if (s.kind === 'repeat') row.repeat += 1;
+      else row.unique += 1;
+      row.events += s.count;
+    });
+    Array.from({ length: 24 }, (_, h) => {
+      const key = String(h);
+      return buckets.get(key) || {
+        label: `${String(h).padStart(2, '0')}h`,
+        sortKey: h,
+        unique: 0,
+        repeat: 0,
+        events: 0
+      };
+    }).forEach((row) => {
+      rows.push([row.label, row.unique, row.repeat, row.unique + row.repeat, row.events]);
+    });
+    return rows;
+  }
+
+  function buildClicksNoiseSiteRows(sessions) {
+    const rows = [['Site', 'Únicas', 'Repetidas', 'Visitas', 'Eventos']];
+    const order = ['com.br', 'com'];
+    const buckets = new Map();
+    (sessions || []).forEach((s) => {
+      const key = s.site === 'com' ? 'com' : 'com.br';
+      if (!buckets.has(key)) buckets.set(key, { unique: 0, repeat: 0, events: 0 });
+      const row = buckets.get(key);
+      if (s.kind === 'repeat') row.repeat += 1;
+      else row.unique += 1;
+      row.events += s.count;
+    });
+    order.forEach((key) => {
+      const row = buckets.get(key) || { unique: 0, repeat: 0, events: 0 };
+      rows.push([key === 'com' ? '.com' : '.com.br', row.unique, row.repeat, row.unique + row.repeat, row.events]);
+    });
+    return rows;
+  }
+
   function buildClicksExportWorkbook(clicks) {
     const withoutTests = (clicks || []).filter((c) => !(c.teste === true || c.is_test === true));
     const official = filterClicksExcludingUniqueOrRepeat(withoutTests);
@@ -2508,12 +2533,9 @@ ${worksheets}
         name,
         rows: buildClicksExportSheetRows(official, key)
       })),
-      ...periods.map(({ key, name }) => ({
-        name: `Unicos ${name.replace('Por ', '')}`.slice(0, 31),
-        rows: buildClicksNoiseExportSheetRows(noise, key)
-      })),
-      { name: 'Unicos origem', rows: buildClicksNoiseBreakdownRows(noise, 'origemKey', 'origemLabel') },
-      { name: 'Unicos destino', rows: buildClicksNoiseBreakdownRows(noise, 'destKey', 'destLabel') }
+      { name: 'Unicos hora', rows: buildClicksNoiseHourRows(noise) },
+      { name: 'Unicos local', rows: buildClicksNoiseBreakdownRows(noise, 'destKey', 'destLabel') },
+      { name: 'Unicos site', rows: buildClicksNoiseSiteRows(noise) }
     ];
     const worksheets = sheets.map(({ name, rows }) => {
       const rowsXml = rows.map((row) => {
@@ -3278,16 +3300,17 @@ ${worksheets}
     }).sort((a, b) => b.count - a.count);
   }
 
-  function aggregateNoiseByPeriod(sessions, period) {
+  function aggregateNoiseByHour(sessions) {
     const buckets = new Map();
     (sessions || []).forEach((s) => {
       if (!s.ts) return;
-      const slot = clicksPeriodBucket(s.ts, period);
-      if (!buckets.has(slot.key)) {
-        buckets.set(slot.key, {
-          key: slot.key,
-          label: slot.label,
-          sortKey: slot.sortKey,
+      const hour = brSaleClockParts(s.ts).hour;
+      const key = String(hour);
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          key,
+          label: `${String(hour).padStart(2, '0')}h`,
+          sortKey: hour,
           count: 0,
           visitors: 0,
           unique: 0,
@@ -3296,7 +3319,7 @@ ${worksheets}
           _vids: new Set()
         });
       }
-      const b = buckets.get(slot.key);
+      const b = buckets.get(key);
       b.count += 1;
       b.events += s.count;
       if (s.kind === 'repeat') b.repeat += 1;
@@ -3304,10 +3327,23 @@ ${worksheets}
       b._vids.add(s.visitor);
       b.visitors = b._vids.size;
     });
-    return [...buckets.values()].map((b) => {
+    const map = new Map([...buckets.values()].map((b) => {
       const { _vids, ...rest } = b;
-      return { ...rest, visitors: _vids.size };
-    }).sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)));
+      return [rest.key, { ...rest, visitors: _vids.size }];
+    }));
+    return Array.from({ length: 24 }, (_, h) => {
+      const key = String(h);
+      return map.get(key) || {
+        key,
+        label: `${String(h).padStart(2, '0')}h`,
+        sortKey: h,
+        count: 0,
+        visitors: 0,
+        unique: 0,
+        repeat: 0,
+        events: 0
+      };
+    });
   }
 
   function renderClicksNoiseStats(clicks) {
@@ -3327,7 +3363,7 @@ ${worksheets}
     const repeatN = sessions.filter((s) => s.kind === 'repeat').length;
     const eventsN = sessions.reduce((n, s) => n + s.count, 0);
     const visitorsN = new Set(sessions.map((s) => s.visitor)).size;
-    const summary = `<p class="admin-meta clicks-when-clean">Fora do oficial: <strong>${uniqueN.toLocaleString('pt-BR')}</strong> única${uniqueN === 1 ? '' : 's'} · <strong>${repeatN.toLocaleString('pt-BR')}</strong> repetida${repeatN === 1 ? '' : 's'} · <strong>${eventsN.toLocaleString('pt-BR')}</strong> evento${eventsN === 1 ? '' : 's'} · <strong>${visitorsN.toLocaleString('pt-BR')}</strong> visitante${visitorsN === 1 ? '' : 's'}</p>`;
+    const summary = `<p class="admin-meta clicks-when-clean">Fora do oficial (bots / ruído): <strong>${uniqueN.toLocaleString('pt-BR')}</strong> única${uniqueN === 1 ? '' : 's'} · <strong>${repeatN.toLocaleString('pt-BR')}</strong> repetida${repeatN === 1 ? '' : 's'} · <strong>${eventsN.toLocaleString('pt-BR')}</strong> evento${eventsN === 1 ? '' : 's'} · <strong>${visitorsN.toLocaleString('pt-BR')}</strong> visitante${visitorsN === 1 ? '' : 's'}</p>`;
 
     if (!sessions.length) {
       root.innerHTML = `${summary}<p class="admin-meta">Nenhuma visita única/repetida neste recorte.</p>`;
@@ -3346,23 +3382,18 @@ ${worksheets}
     const toChart = (rows) => (useEvents
       ? rows.map((r) => ({ ...r, visits: r.count, count: r.events }))
       : rows.map((r) => ({ ...r, visits: r.count })));
-    const origins = toChart(aggregateNoiseSessions(sessions, 'origemKey', 'origemLabel'));
-    const dests = toChart(aggregateNoiseSessions(sessions, 'destKey', 'destLabel'));
-    const days = toChart(aggregateNoiseByPeriod(sessions, 'day'));
-    const months = toChart(aggregateNoiseByPeriod(sessions, 'month'));
-    const years = toChart(aggregateNoiseByPeriod(sessions, 'year'));
+
+    const hours = toChart(aggregateNoiseByHour(sessions));
+    const places = toChart(aggregateNoiseSessions(sessions, 'destKey', 'destLabel'));
     const sites = toChart(aggregateNoiseSessions(sessions, 'site', 'site').map((b) => ({
       ...b,
       label: b.key === 'com' ? '.com' : '.com.br'
-    })));
+    })).sort((a, b) => (a.key === 'com.br' ? 0 : 1) - (b.key === 'com.br' ? 0 : 1)));
 
     root.innerHTML = summary + [
-      renderWhenBarChart('Origem', origins, 'count', chartOpts),
-      renderWhenBarChart('Destino / local', dests, 'count', chartOpts),
-      renderWhenBarChart('Site', sites, 'count', { ...chartOpts, cardClass: 'vendas-when-card--noise vendas-when-card--site' }),
-      renderWhenBarChart('Por dia', days, 'count', chartOpts),
-      renderWhenBarChart('Por mês', months, 'count', chartOpts),
-      renderWhenBarChart('Por ano', years, 'count', chartOpts)
+      renderWhenBarChart('Hora do dia (Brasília)', hours, 'count', chartOpts),
+      renderWhenBarChart('Local', places, 'count', chartOpts),
+      renderWhenBarChart('Site', sites, 'count', { ...chartOpts, cardClass: 'vendas-when-card--noise vendas-when-card--site' })
     ].join('');
   }
 

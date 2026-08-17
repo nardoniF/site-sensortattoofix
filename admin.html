@@ -873,7 +873,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Histórico por dia e horário: ano → mês → dia → visitante → caminho da visita (passos 1, 2, 3… na ordem do tempo).</p>
-                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> são o número oficial (sem únicos/bots). <strong>Únicos / repetidos</strong> é estatística à parte (origem, destino, dia, mês, ano). <strong>Exportar Excel</strong> gera abas oficiais + Unicos.</p>
+                            <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> são o número oficial (sem únicos/bots). <strong>Únicos / repetidos</strong> foca em bots: <strong>hora</strong>, <strong>local</strong>, <strong>site</strong> (.com / .com.br) e se a visita é única ou repetida. <strong>Exportar Excel</strong> gera abas oficiais + Unicos (hora, local, site).</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-clicks-filters">
@@ -948,10 +948,10 @@
                             <summary class="admin-fold-summary">
                                 <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
                                 <span class="admin-fold-title">Únicos / repetidos</span>
-                                <span class="admin-fold-hint">fora do oficial</span>
+                                <span class="admin-fold-hint">hora · local · site</span>
                             </summary>
                             <div class="admin-fold-body">
-                                <p class="admin-meta">Não entra no número oficial de cliques. Conta visita única (1 evento) e repetida no mesmo destino (ex.: 3 homes, só loja). Origem = de onde veio; destino = onde caiu.</p>
+                                <p class="admin-meta">Não entra no número oficial. Para ver bots: <strong>hora do dia</strong> (Brasília), <strong>local</strong> (onde caiu) e <strong>site</strong> (.com / .com.br). Única = 1 evento; repetida = 2+ no mesmo destino. Filtro Tipo separa únicas e repetidas.</p>
                                 <div class="vendas-when-filters">
                                     <label>Site
                                         <select id="clicks-noise-site" aria-label="Filtrar site dos únicos">
@@ -1165,6 +1165,6 @@
       };
     })();
     </script>
-    <script src="js/admin.js?v=174"></script>
+    <script src="js/admin.js?v=175"></script>
 </body>
 </html>
