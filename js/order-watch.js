@@ -3,12 +3,16 @@ window.STF_ORDER_WATCH = (function () {
     return String(order?.observacoes ?? '').trim();
   }
 
+  function isPlaceholder(s) {
+    const t = String(s || '').trim();
+    if (!t || t === '—' || t === 'N/A') return true;
+    return /outro modelo|other model|altro modello/i.test(t);
+  }
+
   function formatModel(order) {
     const model = String(order?.modeloRelogio || order?.smartwatch || '').trim();
     const obs = trimObs(order);
-    if (order?.modeloRelogio) return order.modeloRelogio;
-    if (!model || model === 'N/A') return obs || '—';
-    if (model.includes('Outro modelo')) return obs || model;
+    if (isPlaceholder(model)) return obs || model || '—';
     return obs ? `${model} — ${obs}` : model;
   }
 

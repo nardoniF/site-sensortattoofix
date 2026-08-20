@@ -310,11 +310,6 @@
       font-size: 5.5pt; font-weight: 800; letter-spacing: .06em;
       text-transform: uppercase; color: var(--accent); line-height: 1.15;
     }
-    .lens-target small {
-      display: block; margin-top: 0.5mm;
-      font-size: 5pt; font-weight: 600; color: var(--muted-2);
-      letter-spacing: .04em; text-transform: uppercase;
-    }
 
     .ph {
       display: inline;
@@ -434,12 +429,11 @@
         <div class="lens-copy">
           <span class="tag">Your lens</span>
           <h3>Your Sensor TattooFix® solution is here</h3>
-          <p>Affix the optical lens inside the 25&nbsp;mm circle. Fold the letter carefully to keep the lens protected during international transit.</p>
+          <p>Affix the optical lens inside the circle. Fold the letter carefully to keep the lens protected during international transit.</p>
           <p class="watch">For: <span class="ph" data-field="smartwatchPocket">{{smartwatchModel}}</span></p>
         </div>
-        <div class="lens-target" title="25 mm paste guide">
+        <div class="lens-target" title="Paste lens here">
           <span>Paste<br>lens</span>
-          <small>Ø 25 mm</small>
         </div>
       </aside>
     </div>
@@ -632,8 +626,17 @@
     return localizeCountryEn(raw);
   }
 
+  function isPlaceholderWatch(s) {
+    const t = String(s || '').trim();
+    if (!t || t === '—' || t === 'N/A') return true;
+    return /outro modelo|other model|altro modello/i.test(t);
+  }
+
   function watchFromOrder(o) {
-    return o.modeloRelogio || o.smartwatch || o.observacoes || '—';
+    const obs = String(o.observacoes || o.notes || '').trim();
+    const raw = String(o.modeloRelogio || o.smartwatch || '').trim();
+    if (isPlaceholderWatch(raw)) return obs || raw || '—';
+    return raw || obs || '—';
   }
 
   async function loadOrder(id) {
