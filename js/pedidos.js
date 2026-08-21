@@ -953,6 +953,43 @@
       );
     }
 
+    // Super Frete liberada sem AV → consulta order/info (sem recriar etiqueta).
+    if (
+      fresh.status === 'paid'
+      && isSuperfreteOrder(fresh)
+      && fresh.superfreteCartId
+      && String(fresh.superfreteCartStatus || '').toLowerCase() === 'released'
+      && !fresh.superfreteTrackingCode
+      && !fresh.correiosTrackingCode
+    ) {
+      if (body && !body.querySelector('.pedidos-detail-sync-sf')) {
+        body.insertAdjacentHTML('beforeend', '<p class="pedidos-detail-sync pedidos-detail-sync-sf">Buscando rastreio no Super Frete…</p>');
+      }
+      try {
+        const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(fresh.orderId) + '/shipping-label', {
+          method: 'POST',
+          headers: adminAuthHeaders()
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.trackingCode) {
+          fresh.superfreteTrackingCode = data.trackingCode;
+          fresh.correiosTrackingCode = data.trackingCode;
+          fresh.correiosTrackingStatus = fresh.correiosTrackingStatus || 'Pré-postado';
+          fresh.superfreteCartStatus = data.status || fresh.superfreteCartStatus;
+          const idx = allOrders.findIndex((x) => x.orderId === fresh.orderId);
+          if (idx >= 0) Object.assign(allOrders[idx], {
+            superfreteTrackingCode: fresh.superfreteTrackingCode,
+            correiosTrackingCode: fresh.correiosTrackingCode,
+            correiosTrackingStatus: fresh.correiosTrackingStatus,
+            superfreteCartStatus: fresh.superfreteCartStatus
+          });
+          renderOrderModal(fresh);
+          applyFilters();
+        }
+      } catch (_) { /* ignore */ }
+      body?.querySelector('.pedidos-detail-sync-sf')?.remove();
+    }
+
     // Se a pré-postagem já existe e falta o AV, só consulta rastreio (sem criar nada novo).
     const needsAv = fresh.status === 'paid' && isCorreiosLabelOrder(fresh) && !fresh.correiosTrackingCode
       && (fresh.correiosPrePostagemId || fresh.correiosPrePostagemAt);
@@ -1136,7 +1173,11 @@
   async function printOrderLabel(order) {
     try {
       showStatus('Gerando etiqueta…', '');
-      const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(order.orderId) + '/shipping-label', {
+      const forceSf = !!(order.superfreteCheckoutError || order.superfreteCartError
+        || /cancel/i.test(String(order.superfreteCartStatus || '')));
+      const labelUrl = apiBase() + '/orders/' + encodeURIComponent(order.orderId) + '/shipping-label'
+        + (forceSf ? '?force=1' : '');
+      const res = await fetch(labelUrl, {
         method: 'POST',
         headers: adminAuthHeaders()
       });
@@ -1177,6 +1218,11 @@
           order.superfreteCartStatus = data.status || order.superfreteCartStatus;
           if (data.price != null) order.superfreteCartPrice = data.price;
         }
+        if (data.trackingCode) {
+          order.superfreteTrackingCode = data.trackingCode;
+          order.correiosTrackingCode = data.trackingCode;
+          order.correiosTrackingStatus = order.correiosTrackingStatus || 'Pré-postado';
+        }
         if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
         if (data.cartError) order.superfreteCartError = data.cartError;
         if (data.skipped) order.superfreteSkipped = data.message;
@@ -1185,6 +1231,9 @@
           superfreteCartId: order.superfreteCartId,
           superfreteCartStatus: order.superfreteCartStatus,
           superfreteCartPrice: order.superfreteCartPrice,
+          superfreteTrackingCode: order.superfreteTrackingCode,
+          correiosTrackingCode: order.correiosTrackingCode,
+          correiosTrackingStatus: order.correiosTrackingStatus,
           superfreteCheckoutError: order.superfreteCheckoutError,
           superfreteCartError: order.superfreteCartError,
           superfreteSkipped: order.superfreteSkipped

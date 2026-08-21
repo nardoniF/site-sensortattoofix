@@ -8591,6 +8591,75 @@ function clearSuperfreteCartFields(order) {
   order.superfreteCheckout = null;
 }
 
+function extractSuperfreteTracking(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  const candidates = [
+    payload.tracking,
+    payload.self_tracking,
+    payload.tracking_code,
+    payload.purchase?.orders?.[0]?.tracking,
+    payload.orders?.[0]?.tracking,
+    Array.isArray(payload) ? payload[0]?.tracking : null
+  ];
+  for (const c of candidates) {
+    const t = String(c || '').trim().toUpperCase();
+    if (t && /^[A-Z]{2}\d{9}[A-Z]{2}$/.test(t)) return t;
+    if (t && t.length >= 8) return t;
+  }
+  return null;
+}
+
+async function applySuperfreteTrackingToOrder(env, config, order, tracking) {
+  const code = String(tracking || '').trim().toUpperCase();
+  if (!code) return false;
+  const previousCode = order.correiosTrackingCode;
+  order.superfreteTrackingCode = code;
+  if (!order.correiosTrackingCode) order.correiosTrackingCode = code;
+  order.correiosTrackingStatus = order.correiosTrackingStatus || 'Pré-postado';
+  order.correiosTrackingUpdatedAt = new Date().toISOString();
+  await saveOrder(env, order);
+  try {
+    await notifyTrackingIfNew(env, config, order, previousCode);
+  } catch (err) {
+    console.warn('Tracking email after Super Frete sync:', order.orderId, err.message);
+  }
+  return true;
+}
+
+/** Busca rastreio em GET /api/v0/order/info/{id} (pode demorar alguns segundos após o checkout). */
+async function syncSuperfreteTrackingForOrder(env, config, order) {
+  const cartId = order.superfreteCartId;
+  if (!cartId || !superfreteConfigured(env)) return null;
+  const info = await superfreteFetch(env, `/api/v0/order/info/${encodeURIComponent(cartId)}`, { method: 'GET' });
+  const st = String(info?.status || info?.order_status || '').toLowerCase();
+  if (st) order.superfreteCartStatus = st;
+  if (info?.price != null && Number.isFinite(Number(info.price))) {
+    order.superfreteCartPrice = Number(info.price);
+  }
+  const tracking = extractSuperfreteTracking(info);
+  if (tracking) {
+    await applySuperfreteTrackingToOrder(env, config, order, tracking);
+    return tracking;
+  }
+  await saveOrder(env, order);
+  return null;
+}
+
+async function waitSuperfreteTracking(env, config, order, { attempts = 6, delayMs = 1200 } = {}) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const tracking = await syncSuperfreteTrackingForOrder(env, config, order);
+      if (tracking) return tracking;
+    } catch (err) {
+      console.warn('Super Frete tracking poll:', order.orderId, err.message);
+    }
+    if (i < attempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return order.superfreteTrackingCode || order.correiosTrackingCode || null;
+}
+
 async function checkoutSuperfreteCart(env, config, order, cartId) {
   const paid = await superfreteFetch(env, '/api/v0/checkout', {
     method: 'POST',
@@ -8600,21 +8669,12 @@ async function checkoutSuperfreteCart(env, config, order, cartId) {
   order.superfreteCartStatus = 'released';
   order.superfreteCheckoutError = null;
   order.superfreteCartError = null;
-  const tracking = paid?.purchase?.orders?.[0]?.tracking
-    || paid?.orders?.[0]?.tracking
-    || null;
-  const previousCode = order.correiosTrackingCode;
+  let tracking = extractSuperfreteTracking(paid);
   if (tracking) {
-    order.superfreteTrackingCode = tracking;
-    if (!order.correiosTrackingCode) order.correiosTrackingCode = tracking;
-  }
-  await saveOrder(env, order);
-  if (tracking) {
-    try {
-      await notifyTrackingIfNew(env, config, order, previousCode);
-    } catch (err) {
-      console.warn('Tracking email after Super Frete:', order.orderId, err.message);
-    }
+    await applySuperfreteTrackingToOrder(env, config, order, tracking);
+  } else {
+    await saveOrder(env, order);
+    tracking = await waitSuperfreteTracking(env, config, order);
   }
   return paid;
 }
@@ -8635,7 +8695,17 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
   if (order.superfreteCartId && !force) {
     const st = String(order.superfreteCartStatus || '').toLowerCase();
     if (st === 'released') {
-      return { ok: true, alreadyExists: true, id: order.superfreteCartId, status: 'released' };
+      // Checkout às vezes libera sem devolver o AV na hora — busca no order/info.
+      if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
+        await waitSuperfreteTracking(env, config, order, { attempts: 4, delayMs: 1000 });
+      }
+      return {
+        ok: true,
+        alreadyExists: true,
+        id: order.superfreteCartId,
+        status: 'released',
+        trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
+      };
     }
     // Etiqueta cancelada / falha de pagamento → limpa e recria (senão o Pedidos “não gera mais”).
     if (isSuperfreteCartTerminalFailure(order)) {
@@ -11975,7 +12045,10 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
       } else if (checkoutErr) {
         message = checkoutErr;
       } else if (order.superfreteCartId && order.superfreteCartStatus === 'released') {
-        message = 'Etiqueta Super Frete paga/liberada automaticamente. Imprima no painel Super Frete.';
+        const track = order.superfreteTrackingCode || order.correiosTrackingCode;
+        message = track
+          ? `Etiqueta Super Frete liberada. Rastreio: ${track}`
+          : 'Etiqueta Super Frete paga/liberada. Imprima no painel Super Frete (rastreio ainda não disponível na API).';
       } else if (order.superfreteCartId) {
         message = 'Pedido no carrinho Super Frete. Checkout automático só usa SALDO da carteira '
           + '(cartão do painel não paga via API). Recarregue a carteira e clique Etiqueta de novo.';
@@ -11987,6 +12060,7 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
         cartId: order.superfreteCartId || created.id || null,
         status: order.superfreteCartStatus || null,
         price: order.superfreteCartPrice ?? null,
+        trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || created?.trackingCode || null,
         checkoutError: checkoutErr,
         cartError: cartErr,
         panelUrl: 'https://web.superfrete.com/#/minhas-etiquetas',
