@@ -55,6 +55,16 @@
     return globalThis.STFSalesMoney || {};
   }
 
+  async function waitSalesMoney(ms = 8000) {
+    if (typeof sm().kitCostComponentsFrom === 'function') return true;
+    const start = Date.now();
+    while (Date.now() - start < ms) {
+      await new Promise((r) => setTimeout(r, 40));
+      if (typeof sm().kitCostComponentsFrom === 'function') return true;
+    }
+    return typeof sm().kitCostComponentsFrom === 'function';
+  }
+
   const DEFAULT_KIT_COST_COMPONENTS = sm().DEFAULT_KIT_COST_COMPONENTS || [
     { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1000, buyPrice: 52.75, yieldQty: 1, useQty: 2, notes: '2 etiquetas por envio' },
     { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 500, buyPrice: 32.9, yieldQty: 1, useQty: 1, notes: '' },
@@ -784,11 +794,21 @@
   }
 
   function kitComponentUnitCost(c) {
-    return sm().kitComponentUnitCost(c);
+    const fn = sm().kitComponentUnitCost;
+    if (typeof fn === 'function') return fn(c);
+    const buyQty = Number(c?.buyQty);
+    const buyPrice = Number(c?.buyPrice) || 0;
+    const yieldQty = Number(c?.yieldQty) > 0 ? Number(c.yieldQty) : 1;
+    const useQty = Number(c?.useQty) || 0;
+    if (!(buyQty > 0)) return 0;
+    return (buyPrice / buyQty / yieldQty) * useQty;
   }
 
   function kitUnitCostFromComponents(comps) {
-    return sm().kitUnitCostFromComponents(comps);
+    const fn = sm().kitUnitCostFromComponents;
+    if (typeof fn === 'function') return fn(comps);
+    if (!Array.isArray(comps) || !comps.length) return 0;
+    return comps.reduce((sum, c) => sum + kitComponentUnitCost(c), 0);
   }
 
   function storeOrderIsIntl(o) {
@@ -4924,11 +4944,29 @@ ${worksheets}
   }
 
   function defaultKitCostComponents(kind) {
-    return sm().defaultKitCostComponents(kind);
+    const fn = sm().defaultKitCostComponents;
+    if (typeof fn === 'function') return fn(kind);
+    const src = kind === 'intl' ? DEFAULT_KIT_COST_INTL_COMPONENTS : DEFAULT_KIT_COST_COMPONENTS;
+    return src.map((c) => ({ ...c }));
   }
 
-  function kitCostComponentsFrom(raw, kind) {
-    return sm().kitCostComponentsFrom(raw, kind);
+  function kitCostComponentsFrom(raw, kind = 'br') {
+    const fn = sm().kitCostComponentsFrom;
+    if (typeof fn === 'function') return fn(raw, kind);
+    const fallback = defaultKitCostComponents(kind);
+    if (raw == null) return fallback;
+    const list = Array.isArray(raw?.components) ? raw.components : (Array.isArray(raw) ? raw : null);
+    if (!Array.isArray(list) || !list.length) return fallback;
+    const mapped = list.map((c, i) => ({
+      id: String(c?.id || `kit-comp-${i + 1}`).trim() || `kit-comp-${i + 1}`,
+      name: String(c?.name || '').trim(),
+      buyQty: Number(c?.buyQty) > 0 ? Number(c.buyQty) : 0,
+      buyPrice: Number(c?.buyPrice) >= 0 ? Number(c.buyPrice) : 0,
+      yieldQty: Number(c?.yieldQty) > 0 ? Number(c.yieldQty) : 1,
+      useQty: Number(c?.useQty) >= 0 ? Number(c.useQty) : 0,
+      notes: String(c?.notes || '').trim()
+    }));
+    return mapped.some((c) => c.buyPrice > 0) ? mapped : fallback;
   }
 
   function updateKitCostTotals(kind) {
@@ -6329,6 +6367,7 @@ ${worksheets}
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
+    await waitSalesMoney();
     const token = sessionStorage.getItem(SESSION_KEY);
     if (token && apiBase()) {
       try {
