@@ -8645,7 +8645,7 @@ async function syncSuperfreteTrackingForOrder(env, config, order) {
   return null;
 }
 
-async function waitSuperfreteTracking(env, config, order, { attempts = 6, delayMs = 1200 } = {}) {
+async function waitSuperfreteTracking(env, config, order, { attempts = 8, delayMs = 2000 } = {}) {
   for (let i = 0; i < attempts; i++) {
     try {
       const tracking = await syncSuperfreteTrackingForOrder(env, config, order);
@@ -8697,7 +8697,8 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     if (st === 'released') {
       // Checkout às vezes libera sem devolver o AV na hora — busca no order/info.
       if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
-        await waitSuperfreteTracking(env, config, order, { attempts: 4, delayMs: 1000 });
+        // Liberação do AV no SF pode demorar; tenta ~20s aqui e o front continua tentando.
+        await waitSuperfreteTracking(env, config, order, { attempts: 8, delayMs: 2500 });
       }
       return {
         ok: true,
@@ -12011,6 +12012,37 @@ async function ensureCorreiosLabelCached(env, order, config) {
   }
 }
 
+async function handleOrderSuperfreteTracking(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  if (!isSuperfreteOrder(order) || !order.superfreteCartId) {
+    return json({ error: 'Pedido sem etiqueta Super Frete.' }, 400, origin);
+  }
+  const config = await getConfig(env);
+  const wait = new URL(request.url).searchParams.get('wait') === '1';
+  try {
+    let tracking = order.superfreteTrackingCode || order.correiosTrackingCode || null;
+    if (!tracking) {
+      tracking = wait
+        ? await waitSuperfreteTracking(env, config, order, { attempts: 10, delayMs: 3000 })
+        : await syncSuperfreteTrackingForOrder(env, config, order);
+    }
+    return json({
+      ok: true,
+      orderId,
+      cartId: order.superfreteCartId,
+      status: order.superfreteCartStatus || null,
+      trackingCode: tracking || order.superfreteTrackingCode || order.correiosTrackingCode || null,
+      pending: !(tracking || order.superfreteTrackingCode || order.correiosTrackingCode)
+    }, 200, origin);
+  } catch (err) {
+    return json({ error: humanizeSuperfreteError(err.message) }, 400, origin);
+  }
+}
+
 async function handleOrderShippingLabel(request, env, origin, orderId) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -15103,21 +15135,38 @@ async function handleAdminMonthlyReport(request, env, origin) {
 }
 
 async function runScheduledCorreiosTrackingSync(env) {
-  const token = await getCorreiosToken(env);
-  if (!token) {
-    console.warn('Correios tracking cron: token indisponível');
-    return { ok: false, reason: 'no_token' };
-  }
-
   const config = await getConfig(env);
   const now = Date.now();
   const index = await readOrdersIndex(env);
   const candidates = [];
+  let synced = 0;
+  let sfSynced = 0;
 
   for (const item of index) {
     if (item.status !== 'paid') continue;
     const order = await getOrder(env, item.orderId);
-    if (!order || (!isCorreiosBrOrder(order) && !isCorreiosIntlOrder(order))) continue;
+    if (!order) continue;
+
+    // Super Frete liberada sem rastreio — tenta puxar o código (SF às vezes demora).
+    if (
+      isSuperfreteOrder(order)
+      && order.superfreteCartId
+      && String(order.superfreteCartStatus || '').toLowerCase() === 'released'
+      && !order.superfreteTrackingCode
+      && !order.correiosTrackingCode
+      && superfreteConfigured(env)
+      && sfSynced < 15
+    ) {
+      try {
+        const t = await syncSuperfreteTrackingForOrder(env, config, order);
+        if (t) sfSynced += 1;
+      } catch (err) {
+        console.warn('Super Frete tracking cron:', order.orderId, err.message);
+      }
+      continue;
+    }
+
+    if (!isCorreiosBrOrder(order) && !isCorreiosIntlOrder(order)) continue;
     if (isTrackingFinalStatus(order.correiosTrackingStatus)) continue;
     if (!order.correiosTrackingCode && !order.correiosPrePostagemId && !order.correiosPrePostagemAt) continue;
 
@@ -15131,8 +15180,20 @@ async function runScheduledCorreiosTrackingSync(env) {
     candidates.push(order.orderId);
   }
 
+  const token = await getCorreiosToken(env);
+  if (!token) {
+    console.warn('Correios tracking cron: token indisponível');
+    const report = {
+      at: new Date().toISOString(),
+      sfSynced,
+      ok: false,
+      reason: 'no_token'
+    };
+    await kvPut(env, 'correios:tracking:cron:last', JSON.stringify(report));
+    return report;
+  }
+
   const batch = candidates.slice(0, CORREIOS_TRACKING_CRON_MAX);
-  let synced = 0;
   for (const orderId of batch) {
     try {
       const summary = await syncOneOrderCorreiosTracking(env, config, token, orderId, {
@@ -15150,7 +15211,8 @@ async function runScheduledCorreiosTrackingSync(env) {
     at: new Date().toISOString(),
     candidates: candidates.length,
     batch: batch.length,
-    synced
+    synced,
+    sfSynced
   };
   await kvPut(env, 'correios:tracking:cron:last', JSON.stringify(report));
   console.log('Correios tracking cron:', JSON.stringify(report));
@@ -15418,6 +15480,10 @@ export default {
       const labelMatch = path.match(/^\/orders\/([^/]+)\/shipping-label$/);
       if (labelMatch && request.method === 'POST') {
         return handleOrderShippingLabel(request, env, origin, labelMatch[1]);
+      }
+      const sfTrackMatch = path.match(/^\/orders\/([^/]+)\/superfrete-tracking$/);
+      if (sfTrackMatch && request.method === 'POST') {
+        return handleOrderSuperfreteTracking(request, env, origin, sfTrackMatch[1]);
       }
       const correiosAvMatch = path.match(/^\/orders\/([^/]+)\/correios-av$/);
       if (correiosAvMatch && request.method === 'PATCH') {

@@ -953,7 +953,7 @@
       );
     }
 
-    // Super Frete liberada sem AV → consulta order/info (sem recriar etiqueta).
+    // Super Frete liberada sem AV → tenta agora e continua tentando (SF às vezes demora o código).
     if (
       fresh.status === 'paid'
       && isSuperfreteOrder(fresh)
@@ -962,32 +962,7 @@
       && !fresh.superfreteTrackingCode
       && !fresh.correiosTrackingCode
     ) {
-      if (body && !body.querySelector('.pedidos-detail-sync-sf')) {
-        body.insertAdjacentHTML('beforeend', '<p class="pedidos-detail-sync pedidos-detail-sync-sf">Buscando rastreio no Super Frete…</p>');
-      }
-      try {
-        const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(fresh.orderId) + '/shipping-label', {
-          method: 'POST',
-          headers: adminAuthHeaders()
-        });
-        const data = await res.json().catch(() => ({}));
-        if (data.trackingCode) {
-          fresh.superfreteTrackingCode = data.trackingCode;
-          fresh.correiosTrackingCode = data.trackingCode;
-          fresh.correiosTrackingStatus = fresh.correiosTrackingStatus || 'Pré-postado';
-          fresh.superfreteCartStatus = data.status || fresh.superfreteCartStatus;
-          const idx = allOrders.findIndex((x) => x.orderId === fresh.orderId);
-          if (idx >= 0) Object.assign(allOrders[idx], {
-            superfreteTrackingCode: fresh.superfreteTrackingCode,
-            correiosTrackingCode: fresh.correiosTrackingCode,
-            correiosTrackingStatus: fresh.correiosTrackingStatus,
-            superfreteCartStatus: fresh.superfreteCartStatus
-          });
-          renderOrderModal(fresh);
-          applyFilters();
-        }
-      } catch (_) { /* ignore */ }
-      body?.querySelector('.pedidos-detail-sync-sf')?.remove();
+      pollSuperfreteTracking(fresh, body);
     }
 
     // Se a pré-postagem já existe e falta o AV, só consulta rastreio (sem criar nada novo).
@@ -1002,6 +977,49 @@
     fresh = allOrders.find((x) => x.orderId === fresh.orderId) || fresh;
     renderOrderModal(fresh);
     applyFilters();
+  }
+
+  async function pollSuperfreteTracking(order, body) {
+    const orderId = order.orderId;
+    if (body && !body.querySelector('.pedidos-detail-sync-sf')) {
+      body.insertAdjacentHTML(
+        'beforeend',
+        '<p class="pedidos-detail-sync pedidos-detail-sync-sf">Buscando rastreio no Super Frete (pode demorar alguns minutos)…</p>'
+      );
+    }
+    const maxAttempts = 36; // ~6 min a cada 10s
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const res = await fetch(
+          apiBase() + '/orders/' + encodeURIComponent(orderId) + '/superfrete-tracking',
+          { method: 'POST', headers: adminAuthHeaders() }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (data.trackingCode) {
+          const live = allOrders.find((x) => x.orderId === orderId) || order;
+          live.superfreteTrackingCode = data.trackingCode;
+          live.correiosTrackingCode = data.trackingCode;
+          live.correiosTrackingStatus = live.correiosTrackingStatus || 'Pré-postado';
+          if (data.status) live.superfreteCartStatus = data.status;
+          const idx = allOrders.findIndex((x) => x.orderId === orderId);
+          if (idx >= 0) Object.assign(allOrders[idx], {
+            superfreteTrackingCode: live.superfreteTrackingCode,
+            correiosTrackingCode: live.correiosTrackingCode,
+            correiosTrackingStatus: live.correiosTrackingStatus,
+            superfreteCartStatus: live.superfreteCartStatus
+          });
+          if (orderModalEl && !orderModalEl.hidden
+            && document.getElementById('pedidos-order-modal-title')?.textContent === orderId) {
+            renderOrderModal(live);
+          }
+          applyFilters();
+          showStatus('Rastreio Super Frete: ' + data.trackingCode, 'success');
+          break;
+        }
+      } catch (_) { /* keep trying */ }
+      if (i < maxAttempts - 1) await new Promise((r) => setTimeout(r, 10000));
+    }
+    document.querySelector('.pedidos-detail-sync-sf')?.remove();
   }
 
   function openPdfBase64(b64, filename) {
@@ -1247,6 +1265,9 @@
         showStatus(msg, data.skipped ? 'warn' : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success')));
         if (!data.skipped) {
           window.open(needsPay && (data.checkoutError || data.cartError) ? wallet : panel, '_blank', 'noopener');
+        }
+        if (!data.skipped && data.status === 'released' && !data.trackingCode && !order.correiosTrackingCode) {
+          pollSuperfreteTracking(order, document.getElementById('pedidos-order-modal-body'));
         }
         return;
       }
