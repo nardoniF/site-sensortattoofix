@@ -46,19 +46,88 @@ Opcional: troque também o usuário padrão `admin` em `api/wrangler.toml` (`ADM
 
 ## Integrações — painéis externos
 
-| Serviço | URL |
-|---------|-----|
-| Mercado Pago | https://www.mercadopago.com.br/developers/panel/app |
-| Asaas | https://www.asaas.com |
-| PayPal | https://developer.paypal.com/dashboard/ |
-| Meu Correios | https://meucorreios.correios.com.br |
-| Correios Empresas | https://empresas.correios.com.br |
-| CWS (API Correios) | https://cws.correios.com.br |
-| Contratar Correios | https://www.correios.com.br/correios-empresas |
-| CADESP (IE SP) | https://www.cadesp.fazenda.sp.gov.br |
-| Resend | https://resend.com |
-| Z-API | https://z-api.io |
-| GA4 | https://analytics.google.com |
+| Serviço | Função | URL |
+|---------|--------|-----|
+| Mercado Pago | PIX Brasil | https://www.mercadopago.com.br/developers/panel/app |
+| Asaas | Cartão crédito BR | https://www.asaas.com |
+| PayPal | Pagamentos internacionais | https://developer.paypal.com/dashboard/ |
+| Stripe | Cartão internacional | https://dashboard.stripe.com |
+| Mercado Livre | Marketplace BR | https://www.mercadolivre.com.br |
+| Amazon SP-API | Marketplace BR/intl | https://sellercentral.amazon.com.br |
+| Shopee | Marketplace BR | https://seller.shopee.com.br |
+| Meu Correios | Conta CNPJ | https://meucorreios.correios.com.br |
+| Correios Empresas | Contrato | https://empresas.correios.com.br |
+| CWS (API Correios) | Código de acesso API | https://cws.correios.com.br |
+| Contratar Correios | Clube / planos | https://www.correios.com.br/correios-empresas |
+| CADESP (IE SP) | Inscrição estadual | https://www.cadesp.fazenda.sp.gov.br |
+| Resend | E-mails transacionais | https://resend.com |
+| Z-API | WhatsApp automático | https://z-api.io |
+| GA4 | Métricas | https://analytics.google.com |
+
+---
+
+## Pagamentos
+
+### Stripe
+
+Pagamentos com cartão internacional. Endpoints Worker:
+- `POST /orders/{id}/stripe/payment-intent`
+- `POST /orders/{id}/stripe/checkout-session`
+- `POST /webhook/stripe`
+
+Secrets: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`.
+
+---
+
+## Cupons e comissionados
+
+- Criação: Admin → Cupons → Novo cupom.
+- Campos: código, desconto (% ou R$), comissionado (nome + e-mail + %), validade.
+- Ao vender com cupom: Worker envia e-mail automático ao comissionado.
+- Página pública de cadastro: `/comissionado.html`.
+
+---
+
+## Vendas dos marketplaces
+
+| Marketplace | Lookback padrão | Dados mantidos |
+|-------------|-----------------|----------------|
+| Mercado Livre | 400 dias | Desde início (sem TTL) |
+| Amazon SP-API | 90 dias (janela de import) | Desde início (sem TTL) |
+| Shopee | 90 dias (janela de import) | Desde início (sem TTL) |
+
+- Sync automático: cron no Worker, mínimo 1h de intervalo.
+- Sync manual: Admin → Vendas → botão Sincronizar.
+- Comparação YoY disponível no consolidado.
+- Exportação Excel: aba por marketplace + resumo + Flex a pagar.
+
+### Flex ML — a pagar
+
+- Admin → Vendas → seção "Flex a pagar" (colapsável).
+- Custo configurável em Admin → Frete → "Custo Flex por envio".
+- Bônus ML calculado via `api/ml-settlement.js` (`mlFlexBonusFromCosts`).
+- Settlement versão 9 — fonte de frete: `senders[].cost` → repair → implícito → não resolvido.
+
+---
+
+## Comunidade (fórum)
+
+- Página pública: `/comunidade.html`.
+- Modo beta (padrão): só usuários `tester`.
+- Liberar para todos: Admin → Comunidade → toggle.
+- Moderação, tópicos exemplo e busca de tópicos relacionados via aba Comunidade do admin.
+
+---
+
+## Testes unitários
+
+```bash
+cd api
+node --test *.test.js
+# Esperado: 0 fail
+```
+
+Arquivos: `kv-meter`, `order-financials`, `order-normalizer`, `sales-money`, `store-products-core`, `ml-settlement`, `shopee-settlement`, `amazon-settlement`, `store-rules` (cupons/frete), `forum` + `forum-seeds`, `d1-store`, `commissioner-banners`, `clicks-retention`, `front-scripts` (PIX, origem, película).
 
 ---
 

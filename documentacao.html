@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Documentação — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=2.65">
+    <link rel="stylesheet" href="style.css?v=2.66">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="admin-page admin-doc-page" id="doc-body">
@@ -44,6 +44,12 @@
                     <a href="#integracoes">Painéis das integrações</a>
                     <a href="#secrets">Secrets no Cloudflare</a>
                     <a href="#webhooks">Webhooks</a>
+                    <a href="#pagamentos">Pagamentos (Stripe, PayPal, PIX)</a>
+                    <a href="#cupons">Cupons e comissionados</a>
+                    <a href="#vendas-marketplace">Vendas dos marketplaces</a>
+                    <a href="#flex">Flex ML — a pagar</a>
+                    <a href="#comunidade">Comunidade (fórum)</a>
+                    <a href="#testes">Testes unitários</a>
                     <a href="#frete">Frete</a>
                     <a href="#correios">Correios (passo a passo)</a>
                     <a href="#admin-abas">Abas do admin</a>
@@ -104,6 +110,11 @@
                             <tr><td>Z-API</td><td>WhatsApp automático</td><td><a href="https://z-api.io" target="_blank" rel="noopener">z-api.io</a></td></tr>
                             <tr><td>Google Analytics 4</td><td>Métricas do site</td><td><a href="https://analytics.google.com" target="_blank" rel="noopener">analytics.google.com</a></td></tr>
                             <tr><td>Google Ads</td><td>Anúncios</td><td><a href="https://ads.google.com" target="_blank" rel="noopener">ads.google.com</a></td></tr>
+                            <tr><td>Stripe</td><td>Cartão de crédito internacional</td><td><a href="https://dashboard.stripe.com" target="_blank" rel="noopener">dashboard.stripe.com</a></td></tr>
+                            <tr><td>Mercado Livre</td><td>Marketplace BR</td><td><a href="https://developers.mercadolivre.com.br/pt_br/api-docs-pt-br" target="_blank" rel="noopener">developers.mercadolivre.com.br</a></td></tr>
+                            <tr><td>Amazon Seller Central</td><td>Marketplace BR / SP-API</td><td><a href="https://sellercentral.amazon.com.br" target="_blank" rel="noopener">sellercentral.amazon.com.br</a></td></tr>
+                            <tr><td>Shopee Seller</td><td>Marketplace BR</td><td><a href="https://seller.shopee.com.br" target="_blank" rel="noopener">seller.shopee.com.br</a></td></tr>
+                            <tr><td>Super Frete</td><td>PAC, SEDEX, Mini, Jadlog, Loggi</td><td><a href="https://web.superfrete.com" target="_blank" rel="noopener">web.superfrete.com</a></td></tr>
                         </tbody>
                     </table>
                 </section>
@@ -134,6 +145,22 @@
                             <tr><td><code>ZAPI_CLIENT_TOKEN</code></td><td>Opcional, se a instância exigir</td></tr>
                             <tr><td><code>GA4_API_SECRET</code></td><td>GA4 → Measurement Protocol</td></tr>
                             <tr><td><code>GA4_MEASUREMENT_ID</code></td><td>Opcional (padrão no código: G-TFLZHJG9RN)</td></tr>
+                            <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Stripe Dashboard → Developers → API keys → <code>sk_live_…</code></td></tr>
+                            <tr><td><code>STRIPE_PUBLISHABLE_KEY</code></td><td>Stripe Dashboard → Developers → API keys → <code>pk_live_…</code></td></tr>
+                            <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>Stripe → Webhooks → endpoint → Signing secret</td></tr>
+                            <tr><td><code>ML_APP_ID</code></td><td>Mercado Livre → Meus aplicativos → App ID</td></tr>
+                            <tr><td><code>ML_SECRET</code></td><td>Mercado Livre → Meus aplicativos → Client Secret</td></tr>
+                            <tr><td><code>ML_REFRESH_TOKEN</code></td><td>Obtido via OAuth ML — renova automaticamente</td></tr>
+                            <tr><td><code>AMZ_CLIENT_ID</code></td><td>Amazon SP-API → Apps &amp; Services → LWA Client ID</td></tr>
+                            <tr><td><code>AMZ_CLIENT_SECRET</code></td><td>Amazon SP-API → LWA Client Secret</td></tr>
+                            <tr><td><code>AMZ_REFRESH_TOKEN</code></td><td>Obtido via fluxo OAuth SP-API</td></tr>
+                            <tr><td><code>AMZ_SELLER_ID</code></td><td>Seller Central → Account Info → Merchant Token</td></tr>
+                            <tr><td><code>AMZ_MARKETPLACE_ID</code></td><td>Ex.: <code>A2Q3Y263D00KWC</code> (BR). Lista em docs SP-API</td></tr>
+                            <tr><td><code>SHOPEE_PARTNER_ID</code></td><td>Shopee Open Platform → App info → Partner ID</td></tr>
+                            <tr><td><code>SHOPEE_PARTNER_KEY</code></td><td>Shopee Open Platform → App info → Partner Key</td></tr>
+                            <tr><td><code>SHOPEE_SHOP_ID</code></td><td>ID da loja — obtido no callback OAuth Shopee</td></tr>
+                            <tr><td><code>SHOPEE_ACCESS_TOKEN</code></td><td>Token OAuth Shopee — renova automaticamente</td></tr>
+                            <tr><td><code>SUPERFRETE_TOKEN</code></td><td>web.superfrete.com → Integrações → Token</td></tr>
                         </tbody>
                     </table>
                 </section>
@@ -207,6 +234,177 @@
                     <p class="admin-meta">Atalhos também na aba <strong>Documentação</strong> do admin.</p>
                 </section>
 
+                <section id="pagamentos" class="admin-doc-section">
+                    <h2>Pagamentos</h2>
+                    <h3>Stripe (cartão internacional)</h3>
+                    <p>Pagamentos com cartão de crédito/débito para clientes internacionais. Usa <strong>Checkout Session</strong> (redirect) ou <strong>Payment Intent</strong> (elementos embutidos), configurável via secrets.</p>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Secret</th><th>Onde obter</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Stripe Dashboard → Developers → API keys → Secret key (<code>sk_live_…</code>)</td></tr>
+                            <tr><td><code>STRIPE_PUBLISHABLE_KEY</code></td><td>Mesmo painel → Publishable key (<code>pk_live_…</code>)</td></tr>
+                            <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>Dashboard → Webhooks → endpoint criado → Signing secret</td></tr>
+                        </tbody>
+                    </table>
+                    <ul class="admin-doc-list">
+                        <li><strong>Endpoints Worker:</strong> <code>POST /orders/{id}/stripe/payment-intent</code>, <code>POST /orders/{id}/stripe/checkout-session</code>, <code>POST /webhook/stripe</code>.</li>
+                        <li><strong>Status Admin → API:</strong> linha <em>Stripe</em> mostra ✓ (live), ⚠ (test keys) ou ✗ (não configurado).</li>
+                        <li><strong>Auto-teste:</strong> pedido <code>selfTestStripe</code> cobra US$ 0,10 / €0,10 em modo live — remover após validar.</li>
+                        <li><strong>Webhook:</strong> apontar para <code>/webhook/stripe</code> com evento <code>checkout.session.completed</code>, <code>payment_intent.succeeded</code> e <code>charge.refunded</code>.</li>
+                    </ul>
+                    <h3>PayPal, Mercado Pago (PIX) e Asaas (cartão BR)</h3>
+                    <p>Ver seção <a href="#secrets">Secrets</a> e <a href="#webhooks">Webhooks</a>. PIX reserva (QR estático) só entra em ação se Mercado Pago e Asaas falharem.</p>
+                </section>
+
+                <section id="cupons" class="admin-doc-section">
+                    <h2>Cupons e comissionados</h2>
+                    <p>Cupons dão <strong>desconto ao cliente</strong> e podem ter um <strong>comissionado vinculado</strong> (influencer, parceiro) que recebe e-mail automático a cada venda.</p>
+                    <h3>Como criar um cupom</h3>
+                    <ol class="admin-doc-list admin-doc-steps">
+                        <li>Admin → aba <strong>Cupons</strong> → <em>Novo cupom</em>.</li>
+                        <li>Defina: código (ex.: <code>MEUKIT10</code>), desconto (% ou R$), validade opcional e limite de usos.</li>
+                        <li>Para cupom com comissão: preencha nome, e-mail e percentual do comissionado.</li>
+                        <li>Salvar — o cupom fica ativo imediatamente no checkout.</li>
+                    </ol>
+                    <h3>Como funciona no checkout</h3>
+                    <ul class="admin-doc-list">
+                        <li>Cliente digita o código → desconto aplicado em tempo real.</li>
+                        <li>Após pagamento confirmado, o Worker envia e-mail ao comissionado com o valor da comissão.</li>
+                        <li>Pedido gravado com campos: <code>couponCode</code>, <code>couponDiscount</code>, <code>couponCommissionAmount</code>.</li>
+                    </ul>
+                    <h3>Página pública de cadastro de comissionados</h3>
+                    <p><a href="comissionado.html" target="_blank" rel="noopener">comissionado.html</a> — formulário público para interessados se candidatarem a virar comissionado. O admin aprova manualmente depois.</p>
+                    <h3>E-mails automáticos de cupom</h3>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Gatilho</th><th>Destinatário</th><th>Assunto configurável</th></tr></thead>
+                        <tbody>
+                            <tr><td>Pagamento confirmado com cupom</td><td>Comissionado</td><td><code>couponSubject</code> em Admin → Contato</td></tr>
+                            <tr><td>Cupom criado/ativado</td><td>Comissionado</td><td><code>commissionerWelcomeSubject</code></td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="vendas-marketplace" class="admin-doc-section">
+                    <h2>Vendas dos marketplaces (ML, Amazon, Shopee)</h2>
+                    <p>O Worker sincroniza automaticamente as vendas dos três marketplaces no Cloudflare D1 (banco SQL) e no KV. A aba <strong>Vendas</strong> do admin exibe consolidado, por canal e por período.</p>
+                    <h3>Sincronização automática (cron)</h3>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Marketplace</th><th>Lookback padrão</th><th>Intervalo mínimo</th><th>Páginas máx.</th></tr></thead>
+                        <tbody>
+                            <tr><td>Mercado Livre</td><td>400 dias</td><td>1 h</td><td>—</td></tr>
+                            <tr><td>Amazon SP-API</td><td>90 dias</td><td>1 h</td><td>40</td></tr>
+                            <tr><td>Shopee</td><td>90 dias</td><td>—</td><td>—</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="admin-meta">Vendas são mantidas <strong>desde o início da empresa</strong> (sem TTL). Apenas a <em>janela de importação</em> tem 90 dias no Amazon/Shopee — dados já importados não são deletados.</p>
+                    <h3>Sync manual</h3>
+                    <p>Admin → aba <strong>Vendas</strong> → botão <em>Sincronizar</em> de cada marketplace. Útil após mudar credenciais ou para backfill.</p>
+                    <h3>Endpoints</h3>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Ação</th><th>Endpoint</th></tr></thead>
+                        <tbody>
+                            <tr><td>Sync ML</td><td><code>POST /admin/ml/sync</code></td></tr>
+                            <tr><td>Listar vendas ML</td><td><code>GET /admin/ml/sales</code></td></tr>
+                            <tr><td>Sync Amazon</td><td><code>POST /admin/amz/sync</code></td></tr>
+                            <tr><td>Listar vendas Amazon</td><td><code>GET /admin/amz/sales</code></td></tr>
+                            <tr><td>Sync Shopee</td><td><code>POST /admin/shopee/sync</code></td></tr>
+                            <tr><td>Listar vendas Shopee</td><td><code>GET /admin/shopee/sales</code></td></tr>
+                        </tbody>
+                    </table>
+                    <h3>Secrets necessários por marketplace</h3>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Marketplace</th><th>Secrets</th></tr></thead>
+                        <tbody>
+                            <tr><td>Mercado Livre</td><td><code>ML_APP_ID</code>, <code>ML_SECRET</code>, <code>ML_REFRESH_TOKEN</code></td></tr>
+                            <tr><td>Amazon SP-API</td><td><code>AMZ_CLIENT_ID</code>, <code>AMZ_CLIENT_SECRET</code>, <code>AMZ_REFRESH_TOKEN</code>, <code>AMZ_SELLER_ID</code>, <code>AMZ_MARKETPLACE_ID</code></td></tr>
+                            <tr><td>Shopee</td><td><code>SHOPEE_PARTNER_ID</code>, <code>SHOPEE_PARTNER_KEY</code>, <code>SHOPEE_SHOP_ID</code>, <code>SHOPEE_ACCESS_TOKEN</code></td></tr>
+                        </tbody>
+                    </table>
+                    <h3>Consolidado — comparação anual (YoY)</h3>
+                    <p>A aba Vendas exibe períodos side-by-side (ex.: ago/2026 vs ago/2025) permitindo comparação ano a ano. Exportação Excel inclui aba por marketplace e aba de resumo consolidado.</p>
+                    <h3>Cálculo financeiro por pedido</h3>
+                    <p>Cada venda normalizada armazena: <code>gross</code> (bruto), <code>fees</code> (tarifas/comissão), <code>shipping</code> (frete líquido cobrado pelo marketplace ao vendedor), <code>liquid</code> (valor que cai na conta). A fórmula é:</p>
+                    <pre class="admin-doc-pre"><code>liquid = gross − fees − shipping</code></pre>
+                    <p>Módulos relevantes: <code>api/ml-settlement.js</code> (ML), <code>api/shopee-settlement.js</code> (Shopee), <code>api/order-financials.js</code> (geral).</p>
+                </section>
+
+                <section id="flex" class="admin-doc-section">
+                    <h2>Flex ML — a pagar</h2>
+                    <p>Vendas Mercado Livre com frete <strong>Flex</strong> (entrega no mesmo dia pelo próprio vendedor) têm custo de frete pago pela empresa. O consolidado exibe o total que a empresa deve ao longo do mês.</p>
+                    <h3>Como ver</h3>
+                    <p>Admin → aba <strong>Vendas</strong> → seção <strong>Flex a pagar</strong> (colapsável). Mostra por mês: quantidade de vendas Flex, valor do frete, bônus ML e líquido.</p>
+                    <h3>Como é calculado</h3>
+                    <ul class="admin-doc-list">
+                        <li><strong>Custo Flex ao vendedor:</strong> <code>mlFlexShippingCost</code> configurável em Admin → Frete → campo "Custo Flex por envio (R$)".</li>
+                        <li><strong>Bônus ML:</strong> ML paga bônus para incentivar o Flex — calculado via <code>mlFlexBonusFromCosts()</code> em <code>api/ml-settlement.js</code>.</li>
+                        <li><strong>Líquido:</strong> <code>custo − bônus</code>. Valor negativo = empresa ainda deve; positivo = ML cobriu mais que o custo.</li>
+                    </ul>
+                    <h3>Exportação</h3>
+                    <p>Excel exportado em <strong>Vendas → Exportar</strong> inclui aba <em>Flex a pagar</em> com o mesmo detalhamento mensal.</p>
+                    <h3>Settlement de frete ML (técnico)</h3>
+                    <p>Módulo <code>api/ml-settlement.js</code> (versão <code>ML_SETTLEMENT_VERSION = 9</code>). A fonte de frete é determinada por prioridade:</p>
+                    <ol class="admin-doc-list">
+                        <li><code>senders[].cost</code> da API de custos de envio (<code>/shipments/{id}/costs</code>) — fonte preferencial.</li>
+                        <li>Repair de Envios já-net (<code>repairEnviosAlreadyNet</code>) quando o custo já descontou o valor do comprador.</li>
+                        <li>Fallback: fórmula implícita <code>gross − fees − liquid</code>.</li>
+                        <li>Não resolvido (<code>source: null</code>) — exibido como "frete não identificado" no consolidado.</li>
+                    </ol>
+                </section>
+
+                <section id="comunidade" class="admin-doc-section">
+                    <h2>Comunidade (fórum)</h2>
+                    <p>Espaço onde clientes e usuários discutem dúvidas, dicas e experiências com o produto. Disponível em <a href="comunidade.html" target="_blank" rel="noopener">comunidade.html</a>.</p>
+                    <h3>Controle de acesso</h3>
+                    <ul class="admin-doc-list">
+                        <li><strong>Modo beta (padrão):</strong> só usuários com flag <code>tester</code> veem a comunidade.</li>
+                        <li><strong>Liberar para todos:</strong> Admin → aba <strong>Comunidade</strong> → toggle <em>"Liberar comunidade para todos"</em>. Altera a config <code>forumPublic: true</code> no KV.</li>
+                        <li><strong>Usuários tester:</strong> cadastro com pedido de R$ 0,01 no checkout; dão acesso à comunidade beta e ao conteúdo em desenvolvimento.</li>
+                    </ul>
+                    <h3>Gerenciamento (aba Comunidade no admin)</h3>
+                    <ul class="admin-doc-list">
+                        <li><strong>Atualizar:</strong> recarrega lista de tópicos e usuários.</li>
+                        <li><strong>Atualizar tópicos exemplo (dores reais):</strong> faz seed de tópicos iniciais com perguntas frequentes reais — útil para popular o fórum antes de liberar.</li>
+                        <li><strong>Verificar tópico relacionado:</strong> busca se já existe tópico semelhante ao que um usuário quer postar — evita duplicatas.</li>
+                        <li><strong>Abrir página:</strong> abre <code>comunidade.html</code> em nova aba.</li>
+                    </ul>
+                    <h3>Estrutura técnica</h3>
+                    <ul class="admin-doc-list">
+                        <li>Tópicos e respostas armazenados no Cloudflare KV com chaves <code>forum:topic:{id}</code> e <code>forum:reply:{id}</code>.</li>
+                        <li>Busca semântica de tópicos relacionados via endpoint <code>GET /admin/forum/related?q=…</code>.</li>
+                        <li>Moderação e deleção via Admin — sem necessidade de acessar o KV diretamente.</li>
+                    </ul>
+                </section>
+
+                <section id="testes" class="admin-doc-section">
+                    <h2>Testes unitários</h2>
+                    <p>Suite de testes automáticos para lógica pura da API. Usa <code>node:test</code> + <code>node:assert/strict</code> — sem dependências externas.</p>
+                    <h3>Executar</h3>
+                    <pre class="admin-doc-pre"><code>cd api
+node --test *.test.js</code></pre>
+                    <h3>Arquivos de teste</h3>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Arquivo</th><th>O que testa</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>api/kv-meter.test.js</code></td><td>Limites de quota do KV, cálculo de percentual, chave por dia UTC</td></tr>
+                            <tr><td><code>api/order-financials.test.js</code></td><td>Cálculo de custo de produto e financeiro do pedido</td></tr>
+                            <tr><td><code>api/order-normalizer.test.js</code></td><td>Normalização de vendas de diferentes marketplaces para o formato interno</td></tr>
+                            <tr><td><code>api/sales-money.test.js</code></td><td>Formatação de moeda, arredondamentos e cálculos monetários</td></tr>
+                            <tr><td><code>api/store-products-core.test.js</code></td><td>Lógica do catálogo de produtos (preços, disponibilidade)</td></tr>
+                            <tr><td><code>api/ml-settlement.test.js</code></td><td>Settlement ML: Envios, Flex, bônus, frete implícito e casos-limite</td></tr>
+                            <tr><td><code>api/shopee-settlement.test.js</code></td><td>Recibo Shopee: taxas vs etiqueta, escrow</td></tr>
+                            <tr><td><code>api/amazon-settlement.test.js</code></td><td>Finanças Amazon: comissão, frete FBA, estornos, identidade do recibo</td></tr>
+                            <tr><td><code>api/store-rules.test.js</code></td><td>Cupons, Super Frete/Uber/motoboy, URLs Correios, preço motoboy</td></tr>
+                            <tr><td><code>api/forum.test.js</code> / <code>forum-seeds.test.js</code></td><td>Slug, usuário, mídia, seeds PT/EN/IT</td></tr>
+                            <tr><td><code>api/d1-store.test.js</code></td><td>Pedidos e vendas no D1 (mock em memória)</td></tr>
+                            <tr><td><code>api/commissioner-banners.test.js</code></td><td>Anexos de story para comissionados</td></tr>
+                            <tr><td><code>api/front-scripts.test.js</code></td><td>PIX EMV, origem de tráfego, compatibilidade de película</td></tr>
+                            <tr><td><code>api/clicks-retention.test.js</code></td><td>Janela de 6 meses de cliques (calendário SP)</td></tr>
+                        </tbody>
+                    </table>
+                    <h3>CI / deploy</h3>
+                    <p>Os testes não estão integrados ao deploy automático ainda. Rodar manualmente antes de cada deploy: <code>node --test *.test.js</code> deve terminar com <strong>0 fail</strong>.</p>
+                </section>
+
                 <section id="admin-abas" class="admin-doc-section">
                     <h2>Abas do admin</h2>
                     <p class="admin-meta">Ordem de prioridade no painel (da esquerda para a direita):</p>
@@ -215,13 +413,15 @@
                         <tbody>
                             <tr><td>Pedidos</td><td>Atalho para <code>/pedidos.html</code>, exportação JSON/CSV</td></tr>
                             <tr><td>Cliques</td><td>Log de visitas e origem do tráfego — ver seção <a href="#cliques">Log de cliques</a></td></tr>
-                            <tr><td>Clientes</td><td>Contas criadas em Minha Conta</td></tr>
+                            <tr><td>Clientes</td><td>Contas criadas em Minha Conta; flag <code>tester</code> para usuários beta</td></tr>
                             <tr><td>Produtos</td><td>Catálogo (lentes + agregados), preços, peso, imagens</td></tr>
-                            <tr><td>Contato</td><td>WhatsApp, e-mail FormSubmit, assunto dos pedidos</td></tr>
-                            <tr><td>Frete</td><td>Remetente, modalidades, motoboy, Correios BR, internacional</td></tr>
-                            <tr><td>PIX</td><td>PIX reserva (QR estático): chave, tipo, nome e cidade — só se Mercado Pago e Asaas falharem. Pagamentos normais vão para a conta Mercado Pago.</td></tr>
-                            <tr><td>Cupons</td><td>Desconto ao cliente e comissão ao comissionado</td></tr>
-                            <tr><td>API</td><td>URL do Worker, status das integrações, cartão/PayPal, testes de e-mail</td></tr>
+                            <tr><td>Contato</td><td>WhatsApp, e-mail FormSubmit, assuntos dos e-mails (incluindo cupom)</td></tr>
+                            <tr><td>Frete</td><td>Remetente, modalidades, motoboy, Correios BR, internacional, custo Flex</td></tr>
+                            <tr><td>PIX</td><td>PIX reserva (QR estático): chave, tipo, nome e cidade — só se Mercado Pago e Asaas falharem</td></tr>
+                            <tr><td>Cupons</td><td>Desconto ao cliente e comissão ao comissionado — ver <a href="#cupons">seção Cupons</a></td></tr>
+                            <tr><td>Vendas</td><td>Consolidado de vendas ML/Amazon/Shopee, comparação YoY, exportação Excel, seção Flex a pagar</td></tr>
+                            <tr><td>Comunidade</td><td>Fórum de usuários — moderação, tópicos, toggle público/beta — ver <a href="#comunidade">seção Comunidade</a></td></tr>
+                            <tr><td>API</td><td>URL do Worker, status das integrações (incluindo Stripe), cartão/PayPal, testes de e-mail</td></tr>
                             <tr><td>Documentação</td><td>Este manual (incorporado no admin)</td></tr>
                         </tbody>
                     </table>

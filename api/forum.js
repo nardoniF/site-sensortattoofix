@@ -52,7 +52,7 @@ export const FORUM_AVATARS = [
 
 const AVATAR_IDS = new Set(FORUM_AVATARS.map((a) => a.id));
 
-function slugify(text) {
+export function slugify(text) {
   return String(text || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -62,7 +62,7 @@ function slugify(text) {
     .slice(0, 80) || 'topico';
 }
 
-function normalizeUsername(raw) {
+export function normalizeUsername(raw) {
   return String(raw || '')
     .trim()
     .toLowerCase()
@@ -70,11 +70,11 @@ function normalizeUsername(raw) {
     .slice(0, 20);
 }
 
-function isValidUsername(u) {
+export function isValidUsername(u) {
   return /^[a-z0-9_]{3,20}$/.test(u);
 }
 
-function sanitizeMediaList(raw) {
+export function sanitizeMediaList(raw) {
   if (!Array.isArray(raw)) return [];
   const out = [];
   for (const item of raw.slice(0, 6)) {

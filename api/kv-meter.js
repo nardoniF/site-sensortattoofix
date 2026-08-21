@@ -61,7 +61,7 @@ function resetFields() {
   };
 }
 
-function pctOf(used, limit) {
+export function pctOf(used, limit) {
   if (!(limit > 0)) return 0;
   return Math.min(100, Math.round((Number(used) / limit) * 100));
 }

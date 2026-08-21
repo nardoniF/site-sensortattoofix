@@ -43,6 +43,41 @@ import {
   shopeeOrderIncome,
   shopeeReceiptFromEscrow
 } from './shopee-settlement.js';
+import {
+  summarizeAmzFinancialEvents,
+  amzRound2
+} from './amazon-settlement.js';
+import {
+  CLICKS_CLOSED_MONTHS,
+  clicksRetentionWindow,
+  spYmd,
+  spMidnightUtcMs
+} from './clicks-retention.js';
+import {
+  COMMISSIONER_COMMISSION_PERCENT,
+  COMMISSIONER_DISCOUNT_PERCENT,
+  RESERVED_COUPON_CODES,
+  calcMotoboyPrice,
+  commissionerAttachmentLabel,
+  computeCouponCommission,
+  computeCouponDiscount,
+  correiosOfficialTrackingUrl,
+  correiosTrackingUrl,
+  findActiveCoupon,
+  getCoupons,
+  haversineKm,
+  isCorreiosImportOnlyServiceCode,
+  isIntlDocumentShipment,
+  isMotoboyMethod,
+  isMotoboyOrder,
+  isParticularDeliveryOrder,
+  isSuperfreteMethod,
+  isSuperfreteOrder,
+  isUberMethod,
+  isUberOrder,
+  normalizeCouponCode,
+  slugCouponId
+} from './store-rules.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -63,7 +98,6 @@ const CLICKS_MAX = 50000;
 /** Tree in Admin: recent visits only (full JSON). Charts use slim series for the retention window. */
 const CLICKS_TREE_MAX = 4000;
 /** Rolling window: 5 closed months + current (= 6 months). Oldest closed month drops when a new month starts. */
-const CLICKS_CLOSED_MONTHS = 5;
 const FEEDBACK_BLOB = 'feedback:blob';
 const FEEDBACK_MAX = 500;
 const CLICK_TTL_SEC = 120 * 86400;
@@ -446,48 +480,6 @@ function getEnabledShippingMethods(config, scope) {
   return list.filter((m) => m.enabled !== false && m.scope === scope);
 }
 
-function isUberMethod(method) {
-  if (!method) return false;
-  if (method.provider === 'uber') return true;
-  return String(method.id || '').toLowerCase().includes('uber');
-}
-
-function isUberOrder(order) {
-  if (!order) return false;
-  if (order.shippingProvider === 'uber') return true;
-  return String(order.shippingMethodId || '').toLowerCase().includes('uber');
-}
-
-function isMotoboyMethod(method) {
-  if (!method) return false;
-  if (method.provider === 'motoboy') return true;
-  return String(method.id || '').toLowerCase().includes('motoboy');
-}
-
-function isMotoboyOrder(order) {
-  if (!order) return false;
-  if (order.shippingProvider === 'motoboy') return true;
-  return String(order.shippingMethodId || '').toLowerCase().includes('motoboy');
-}
-
-function isSuperfreteMethod(method) {
-  if (!method) return false;
-  if (method.provider === 'superfrete') return true;
-  const id = String(method.id || '').toLowerCase();
-  return id.includes('superfrete') || id.startsWith('br-sf-');
-}
-
-function isSuperfreteOrder(order) {
-  if (!order) return false;
-  if (order.shippingProvider === 'superfrete') return true;
-  const id = String(order.shippingMethodId || '').toLowerCase();
-  return id.includes('superfrete') || id.startsWith('br-sf-');
-}
-
-function isParticularDeliveryOrder(order) {
-  return isUberOrder(order) || isMotoboyOrder(order);
-}
-
 function isCorreiosBrOrder(order) {
   if (!order) return false;
   if ((order.paisCode || 'BR') !== 'BR') return false;
@@ -495,12 +487,6 @@ function isCorreiosBrOrder(order) {
   if (orderLooksInternationalDestination(order)) return false;
   if (isSuperfreteOrder(order)) return false;
   return !isParticularDeliveryOrder(order);
-}
-
-/** Serviços Packet 331xx/399xx no cartão são de IMPORTAÇÃO (entrada no BR), não de exportação. */
-function isCorreiosImportOnlyServiceCode(code) {
-  const c = String(code || '').trim();
-  return /^331\d{2}$/.test(c) || /^399\d{2}$/.test(c);
 }
 
 function isCorreiosIntlOrder(order) {
@@ -519,25 +505,6 @@ function isCorreiosIntlOrder(order) {
 /** Pedidos que devem gerar pré-postagem + rótulo Correios (BR ou exportação). */
 function isCorreiosLabelOrder(order) {
   return isCorreiosBrOrder(order) || isCorreiosIntlOrder(order);
-}
-
-function isIntlDocumentShipment(order) {
-  if (!order) return false;
-  if (order.shipmentType === 'documento' || order.internationalLensOnly) return true;
-  return String(order.shippingMethodId || '').toLowerCase().includes('documento');
-}
-
-function correiosTrackingUrl(trackingCode, storeBase) {
-  const code = String(trackingCode || '').trim();
-  if (!code) return '';
-  const base = String(storeBase || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
-  return `${base}/rastreio.html?codigo=${encodeURIComponent(code)}`;
-}
-
-function correiosOfficialTrackingUrl(trackingCode) {
-  const code = String(trackingCode || '').trim();
-  if (!code) return 'https://rastreamento.correios.com.br/app/index.php';
-  return `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(code)}`;
 }
 
 function getMotoboyConfig(config) {
@@ -580,16 +547,6 @@ function getMotoboyShippingMethods(config) {
     label: 'Envio particular (motoboy — até 24h)',
     provider: 'motoboy'
   }];
-}
-
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const toRad = (d) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 async function geocodeAddressNominatim(query) {
@@ -815,16 +772,6 @@ async function fetchDestCoordinates(cep, addressParts = {}) {
   return fetchCepCoordinates(cep, addressParts);
 }
 
-function calcMotoboyPrice(cfg, distanceKm) {
-  const billableKm = Math.ceil(Math.max(0, distanceKm));
-  const raw = cfg.basePrice + billableKm * cfg.pricePerKm;
-  return {
-    price: Math.max(cfg.minPrice, Math.round(raw * 100) / 100),
-    billableKm,
-    distanceKm: Math.round(distanceKm * 10) / 10
-  };
-}
-
 async function computeMotoboyQuote(config, destCep, addressParts = {}) {
   const cfg = getMotoboyConfig(config);
   if (!cfg.enabled) return null;
@@ -914,38 +861,6 @@ async function notifyMotoboyCouriers(env, config, order) {
   return results;
 }
 
-function normalizeCouponCode(code) {
-  return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-
-function getCoupons(config) {
-  return Array.isArray(config?.coupons) ? config.coupons : [];
-}
-
-function findActiveCoupon(config, code) {
-  const norm = normalizeCouponCode(code);
-  if (!norm) return null;
-  if (norm === 'BRASIL20') return null;
-  const coupon = getCoupons(config).find(
-    (c) => c.active !== false && normalizeCouponCode(c.code) === norm
-  ) || null;
-  return coupon;
-}
-
-function computeCouponDiscount(valorProduto, percent) {
-  const pct = Math.min(100, Math.max(0, Number(percent) || 0));
-  const base = Math.max(0, Number(valorProduto) || 0);
-  const discount = Math.round(base * pct / 100 * 100) / 100;
-  return { percent: pct, discount: Math.min(discount, base) };
-}
-
-function computeCouponCommission(valorProduto, commissionPercent) {
-  const pct = Math.min(100, Math.max(0, Number(commissionPercent) || 0));
-  const base = Math.max(0, Number(valorProduto) || 0);
-  const amount = Math.round(base * pct / 100 * 100) / 100;
-  return { percent: pct, amount: Math.min(amount, base) };
-}
-
 function orderCouponEmailFields(order) {
   if (!order?.couponCode) return {};
   const fields = {
@@ -995,22 +910,6 @@ async function notifyCouponCommissioner(env, config, order) {
   const res = await notifyEmail(env, config, to, subject, fields, config.formsubmit?.email);
   if (!res.ok) console.error('E-mail comissionado cupom:', to, JSON.stringify(res));
   return res;
-}
-
-const COMMISSIONER_DISCOUNT_PERCENT = 10;
-const COMMISSIONER_COMMISSION_PERCENT = 20;
-const RESERVED_COUPON_CODES = new Set(['BRASIL20', 'TESTE', 'TEST', 'ADMIN', 'SENSOR', 'STF']);
-
-function slugCouponId(code) {
-  const norm = normalizeCouponCode(code).toLowerCase();
-  return `coupon-${norm.slice(0, 28) || 'artist'}`;
-}
-
-function commissionerAttachmentLabel(attachmentCount) {
-  if (!attachmentCount) return '';
-  return attachmentCount === 1
-    ? 'Arte em anexo pronta para divulgação nas redes sociais'
-    : `${attachmentCount} artes em anexo prontas para divulgação nas redes sociais`;
 }
 
 function commissionerWelcomeHtml(config, coupon, name, attachmentCount) {
@@ -2665,12 +2564,17 @@ function trimObs(order) {
   return String(order.observacoes ?? '').trim();
 }
 
+function isPlaceholderWatchModel(s) {
+  const t = String(s || '').trim();
+  if (!t || t === 'N/A') return true;
+  return /outro modelo|other model|altro modello/i.test(t);
+}
+
 /** Modelo final para produção/envio — usa observações quando for "Outro modelo". */
 function formatOrderSmartwatch(order) {
   const model = String(order?.smartwatch || '').trim();
   const obs = trimObs(order);
-  if (!model || model === 'N/A') return obs || 'N/A';
-  if (model.includes('Outro modelo')) return obs || model;
+  if (!model || isPlaceholderWatchModel(model)) return obs || model || 'N/A';
   return obs ? `${model} — ${obs}` : model;
 }
 
@@ -2690,8 +2594,7 @@ function orderWatchEmailFields(order) {
 function watchWhatsAppBlock(order) {
   const model = String(order?.smartwatch || '').trim();
   const obs = trimObs(order);
-  if (!model || model === 'N/A') return obs ? `📝 ${obs}` : '';
-  if (model.includes('Outro modelo')) return obs ? `⌚ ${obs}` : `⌚ ${model}`;
+  if (!model || isPlaceholderWatchModel(model)) return obs ? `⌚ ${obs}` : (model ? `⌚ ${model}` : '');
   if (obs) return `⌚ ${model}\n📝 ${obs}`;
   return `⌚ ${model}`;
 }
@@ -5027,115 +4930,6 @@ async function saveAmzSalesMeta(env, patch) {
 
 async function getAmzSalesIndex(env) {
   return getMarketplaceIndex(env, 'amazon', AMZ_SALES_INDEX_KEY, AMZ_SALES_INDEX_MAX);
-}
-
-const AMZ_COMMISSION_FEE_TYPES = new Set([
-  'Commission',
-  'GiftwrapCommission',
-  'RefundCommission',
-  'FixedClosingFee',
-  'VariableClosingFee',
-  'SalesTaxCollectionFee'
-]);
-
-const AMZ_SHIPPING_FEE_TYPES = new Set([
-  'ShippingHB',
-  'MFNPostageFee',
-  'MFNShippingChargeback',
-  'FBAPerUnitFulfillmentFee',
-  'FBAPerOrderFulfillmentFee',
-  'FBAWeightBasedFee',
-  'ShippingChargeback',
-  'PostageBilling',
-  'DeliveryServicesFee',
-  'FBATransportationFee'
-]);
-
-function amzMoney(amountObj) {
-  return Number(amountObj?.CurrencyAmount || 0);
-}
-
-function amzRound2(n) {
-  return Math.round(Number(n || 0) * 100) / 100;
-}
-
-/** Walk Finances payload → bruto / comissão / frete / estornos / outras. */
-function summarizeAmzFinancialEvents(financialEvents) {
-  const fe = financialEvents && typeof financialEvents === 'object' ? financialEvents : {};
-  let principalSold = 0;
-  let refunds = 0;
-  let commission = 0;
-  let shipping = 0;
-  let pocket = 0;
-  let otherFees = 0;
-  let hasRefund = false;
-  const feeSamples = [];
-
-  function noteFee(feeType, amount) {
-    pocket += amount;
-    const t = String(feeType || '');
-    if (AMZ_COMMISSION_FEE_TYPES.has(t)) {
-      commission -= amount;
-    } else if (AMZ_SHIPPING_FEE_TYPES.has(t)) {
-      shipping -= amount;
-    } else {
-      otherFees -= amount;
-    }
-    if (feeSamples.length < 24 && amount !== 0) {
-      feeSamples.push({ type: t || 'Fee', amount: amzRound2(amount) });
-    }
-  }
-
-  function noteCharge(chargeType, amount, isRefundContext) {
-    pocket += amount;
-    if (String(chargeType || '') !== 'Principal') return;
-    if (isRefundContext || amount < 0) {
-      hasRefund = true;
-      if (amount < 0) refunds -= amount; // -(-56) = 56 estornado
-    } else {
-      principalSold += amount;
-    }
-  }
-
-  function walkShipmentLike(list, isRefund) {
-    for (const sh of list || []) {
-      if (isRefund) hasRefund = true;
-      for (const fee of sh.ShipmentFeeList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
-      for (const fee of sh.ShipmentFeeAdjustmentList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
-      for (const ch of sh.OrderChargeList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount), isRefund);
-      for (const ch of sh.OrderChargeAdjustmentList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount), isRefund);
-      const itemLists = [sh.ShipmentItemList, sh.ShipmentItemAdjustmentList];
-      for (const items of itemLists) {
-        for (const it of items || []) {
-          for (const ch of it.ItemChargeList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount), isRefund);
-          for (const ch of it.ItemChargeAdjustmentList || []) noteCharge(ch.ChargeType, amzMoney(ch.ChargeAmount), isRefund);
-          for (const fee of it.ItemFeeList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
-          for (const fee of it.ItemFeeAdjustmentList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
-        }
-      }
-    }
-  }
-
-  walkShipmentLike(fe.ShipmentEventList, false);
-  walkShipmentLike(fe.RefundEventList, true);
-  walkShipmentLike(fe.GuaranteeClaimEventList, true);
-  walkShipmentLike(fe.ChargebackEventList, true);
-
-  for (const svc of fe.ServiceFeeEventList || []) {
-    for (const fee of svc.FeeList || []) noteFee(fee.FeeType, amzMoney(fee.FeeAmount));
-  }
-
-  return {
-    principalSold: amzRound2(principalSold),
-    principal: amzRound2(principalSold - refunds),
-    refunds: amzRound2(Math.max(0, refunds)),
-    commission: amzRound2(Math.max(0, commission)),
-    shipping: amzRound2(Math.max(0, shipping)),
-    otherFees: amzRound2(Math.max(0, otherFees)),
-    net: amzRound2(pocket),
-    hasRefund,
-    feeSamples
-  };
 }
 
 async function amzFetchOrderFinancials(env, token, orderId) {
@@ -12231,6 +12025,7 @@ function applyOrderShippingManualUpdate(order, body) {
       throw new Error('Código de rastreio inválido.');
     } else {
       order.correiosTrackingCode = trackingCode;
+      order.correiosPrePostagemError = null;
       changed = true;
     }
   }
@@ -13489,62 +13284,6 @@ let clicksD1SchemaReady = false;
 
 function clicksDb(env) {
   return env.CLICKS_DB || null;
-}
-
-/** São Paulo calendar parts (no DST). */
-function spYmd(ts = Date.now()) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).formatToParts(new Date(ts));
-  const get = (t) => parts.find((p) => p.type === t)?.value;
-  return { year: Number(get('year')), month: Number(get('month')), day: Number(get('day')) };
-}
-
-/** Midnight SP → UTC ms. Brazil is UTC-3 year-round. */
-function spMidnightUtcMs(year, month, day = 1) {
-  return Date.UTC(year, month - 1, day, 3, 0, 0);
-}
-
-/**
- * Rolling click window: current month + previous CLICKS_CLOSED_MONTHS.
- * With 5 closed + current (= 6 months): on 1 Sep, Mar drops; keep Apr–Aug closed + Sep current.
- */
-function clicksRetentionWindow(now = Date.now()) {
-  const cur = spYmd(now);
-  let y = cur.year;
-  let m = cur.month - CLICKS_CLOSED_MONTHS;
-  while (m < 1) {
-    m += 12;
-    y -= 1;
-  }
-  const cutoffMs = spMidnightUtcMs(y, m, 1);
-  const months = [];
-  let yy = y;
-  let mm = m;
-  for (let i = 0; i <= CLICKS_CLOSED_MONTHS; i++) {
-    const key = `${yy}-${String(mm).padStart(2, '0')}`;
-    months.push({
-      year: yy,
-      month: mm,
-      key,
-      isCurrent: yy === cur.year && mm === cur.month
-    });
-    mm += 1;
-    if (mm > 12) {
-      mm = 1;
-      yy += 1;
-    }
-  }
-  return {
-    cutoffMs,
-    months,
-    closedMonths: CLICKS_CLOSED_MONTHS,
-    totalMonths: CLICKS_CLOSED_MONTHS + 1,
-    currentYm: `${cur.year}-${String(cur.month).padStart(2, '0')}`
-  };
 }
 
 async function ensureClicksD1(env) {

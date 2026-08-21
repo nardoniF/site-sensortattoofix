@@ -51,7 +51,11 @@
 
   let currentConfig = null;
 
-  const DEFAULT_KIT_COST_COMPONENTS = [
+  function sm() {
+    return globalThis.STFSalesMoney || {};
+  }
+
+  const DEFAULT_KIT_COST_COMPONENTS = sm().DEFAULT_KIT_COST_COMPONENTS || [
     { id: 'shipping-label', name: 'Etiqueta de envio', buyQty: 1000, buyPrice: 52.75, yieldQty: 1, useQty: 2, notes: '2 etiquetas por envio' },
     { id: 'shipping-bag', name: 'Sacola de envio', buyQty: 500, buyPrice: 32.9, yieldQty: 1, useQty: 1, notes: '' },
     { id: 'shipping-bag-sticker', name: 'Adesivo da sacola / envelope', buyQty: 1000, buyPrice: 60, yieldQty: 1, useQty: 1, notes: '1 por sacola ou envelope (1 por lente)' },
@@ -67,7 +71,7 @@
     { id: 'sticker-cut', name: 'Adesivo + recorte das lentes', buyQty: 10, buyPrice: 271, yieldQty: 30, useQty: 1, notes: 'Adesivo e recorte juntos; 10×30 = 300 lentes' }
   ];
 
-  const DEFAULT_KIT_COST_INTL_COMPONENTS = [
+  const DEFAULT_KIT_COST_INTL_COMPONENTS = sm().DEFAULT_KIT_COST_INTL_COMPONENTS || [
     { id: 'intl-envelope', name: 'Envelope internacional', buyQty: 100, buyPrice: 23, yieldQty: 1, useQty: 1, notes: 'Não é sacola — envelope' },
     { id: 'intl-envelope-sticker', name: 'Adesivo do envelope', buyQty: 1000, buyPrice: 60, yieldQty: 1, useQty: 1, notes: 'Mesmo adesivo 1000×R$ 60; 1 por lente' },
     { id: 'intl-sulfite', name: 'Carta sulfite', buyQty: 1000, buyPrice: 59, yieldQty: 1, useQty: 1, notes: '1 folha sulfite impressa por envio' },
@@ -691,14 +695,7 @@
   }
 
   function mlShippingUnresolved(sale) {
-    const ch = String(sale?.channel || '').toLowerCase();
-    if (ch !== 'mercadolivre' && ch !== 'ml') return false;
-    if (sale?.mlFlex || /flex|self_service/i.test(String(sale?.logisticType || ''))) return false;
-    const src = String(sale?.shippingSource || '');
-    if (src === 'unresolved') return true;
-    if (sale?.shippingCost == null || sale?.shippingCost === '') return true;
-    if (!(Number(sale.shippingCost) > 0.04) && !src) return true;
-    return false;
+    return sm().mlShippingUnresolved ? sm().mlShippingUnresolved(sale) : false;
   }
 
   function renderSaleMoneyCols(sale, channelHint) {
@@ -770,71 +767,28 @@
     return /cancel|invalid|refund/.test(st);
   }
 
-  /** Preço do produto ML — paid_amount / sale.gross antigo inclui juros de parcela e frete do comprador. */
   function saleListedGross(sale) {
-    const ch = String(sale?.channel || '').toLowerCase();
-    if (ch === 'mercadolivre' || ch === 'ml') {
-      const items = sale?.items;
-      if (Array.isArray(items) && items.length) {
-        const sum = items.reduce((n, i) => {
-          const qty = Number(i.quantity || i.qty || 0);
-          const unit = Number(i.unitPrice || i.unit_price || 0);
-          return n + unit * (qty > 0 ? qty : 0);
-        }, 0);
-        if (sum > 0) return Math.round(sum * 100) / 100;
-      }
-    }
-    return Math.round(Number(sale.gross || 0) * 100) / 100;
+    return sm().saleListedGross(sale);
   }
 
-  /** Líquido marketplace = Bruto − Comissão − Frete − Estornos − Outras. Líquido real = isso − custo do kit. */
   function saleShippingCost(sale) {
-    if (mlShippingUnresolved(sale)) return 0;
-    const s = Math.round(Number(sale?.shippingCost || 0) * 100) / 100;
-    const ch = String(sale?.channel || '').toLowerCase();
-    const isMl = ch === 'mercadolivre' || ch === 'ml';
-    const flexList = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
-    const estorno = Number(sale?.mlEstorno || 0);
-    const isFlex = sale?.mlFlex
-      || /flex|self_service/i.test(String(sale?.logisticType || ''))
-      || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06);
-    if (isMl && isFlex && flexList > 0) {
-      return Math.round(Math.max(0, flexList - estorno) * 100) / 100;
-    }
-    if (ch === 'shopee') return s;
-    if (isMl && (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 0;
-    return s;
+    return sm().saleShippingCost(sale, currentConfig);
   }
 
   function marketplaceSaleNet(sale) {
-    const g = saleListedGross(sale);
-    const f = Number(sale.fees || 0);
-    const sh = saleShippingCost(sale);
-    const rf = Number(sale.refunds || 0);
-    const ot = Number(sale.otherFees || 0);
-    return Math.round((g - f - sh - rf - ot) * 100) / 100;
+    return sm().marketplaceSaleNet(sale, currentConfig);
   }
 
   function saleKitQty(sale) {
-    if (Array.isArray(sale?.items) && sale.items.length) {
-      const q = sale.items.reduce((n, i) => n + (Number(i.quantity || i.qty || 0) || 0), 0);
-      if (q > 0) return q;
-    }
-    return Math.max(1, Number(sale?.qty || sale?.quantity || 1) || 1);
+    return sm().saleKitQty(sale);
   }
 
   function kitComponentUnitCost(c) {
-    const buyQty = Number(c?.buyQty);
-    const buyPrice = Number(c?.buyPrice) || 0;
-    const yieldQty = Number(c?.yieldQty) > 0 ? Number(c.yieldQty) : 1;
-    const useQty = Number(c?.useQty) || 0;
-    if (!(buyQty > 0)) return 0;
-    return (buyPrice / buyQty / yieldQty) * useQty;
+    return sm().kitComponentUnitCost(c);
   }
 
   function kitUnitCostFromComponents(comps) {
-    if (!Array.isArray(comps) || !comps.length) return 0;
-    return comps.reduce((sum, c) => sum + kitComponentUnitCost(c), 0);
+    return sm().kitUnitCostFromComponents(comps);
   }
 
   function storeOrderIsIntl(o) {
@@ -852,42 +806,23 @@
   }
 
   function isIntlSale(sale) {
-    if (sale?.market === 'INT' || sale?._market === 'INT') return true;
-    const cur = String(sale?.currency || '').toUpperCase();
-    return cur === 'USD' || cur === 'EUR';
+    return sm().isIntlSale(sale);
   }
 
   function kitUnitCostFromConfig(config, sale) {
-    const cfg = config || currentConfig;
-    const intl = isIntlSale(sale);
-    const comps = kitCostComponentsFrom(
-      intl ? cfg?.kitCostIntl : cfg?.kitCost,
-      intl ? 'intl' : 'br'
-    );
-    return kitUnitCostFromComponents(comps);
+    return sm().kitUnitCostFromConfig(config || currentConfig, sale);
   }
 
   function saleProductCost(sale, config) {
-    return Math.round(kitUnitCostFromConfig(config, sale) * saleKitQty(sale) * 100) / 100;
+    return sm().saleProductCost(sale, config || currentConfig);
   }
 
   function effectiveSaleNet(sale) {
-    return Math.round((marketplaceSaleNet(sale) - saleProductCost(sale)) * 100) / 100;
+    return sm().effectiveSaleNet(sale, currentConfig);
   }
 
   function saleMoneyParts(sale) {
-    const marketplace = marketplaceSaleNet(sale);
-    const cogs = saleProductCost(sale);
-    return {
-      gross: saleListedGross(sale),
-      fees: Number(sale.fees || 0),
-      shipping: saleShippingCost(sale),
-      refunds: Number(sale.refunds || 0),
-      otherFees: Number(sale.otherFees || 0),
-      cogs,
-      marketplace,
-      net: Math.round((marketplace - cogs) * 100) / 100
-    };
+    return sm().saleMoneyParts(sale, currentConfig);
   }
 
   function renderSalesMoneyStats(list, meta, extraRowsHtml) {
@@ -1350,55 +1285,15 @@
   }
 
   function isMlFlexSale(sale) {
-    const ch = String(sale?.channel || '').toLowerCase();
-    if (ch !== 'mercadolivre' && ch !== 'ml') return false;
-    if (sale?.mlFlex || sale?.shippingSource === 'flex') return true;
-    return /flex|self_service/i.test(String(sale?.logisticType || ''));
+    return sm().isMlFlexSale(sale);
   }
 
-  /** Valor que você paga à empresa Flex (lista), antes do bônus do ML. */
   function flexCompanyOwed(sale) {
-    const list = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
-    if (list > 0) return Math.round(list * 100) / 100;
-    const ship = Number(sale?.shippingCost || sale?._shipping || 0);
-    const bonus = Number(sale?.mlEstorno || 0);
-    return Math.round((ship + bonus) * 100) / 100;
+    return sm().flexCompanyOwed(sale, currentConfig);
   }
 
   function aggregateFlexOwedByMonth(sales) {
-    const map = new Map();
-    (sales || []).forEach((s) => {
-      if (!isMlFlexSale(s) || !s._ts) return;
-      const p = brDateParts(s._ts);
-      const key = `${p.year}-${p.monthNum}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          key,
-          year: p.year,
-          monthNum: p.monthNum,
-          name: MONTH_LABELS[p.monthNum] || p.monthName,
-          count: 0,
-          owed: 0,
-          bonus: 0,
-          net: 0
-        });
-      }
-      const row = map.get(key);
-      const owed = flexCompanyOwed(s);
-      const bonus = Math.round(Number(s.mlEstorno || 0) * 100) / 100;
-      row.count += 1;
-      row.owed += owed;
-      row.bonus += bonus;
-      row.net += Math.round((owed - bonus) * 100) / 100;
-    });
-    return [...map.values()]
-      .map((r) => ({
-        ...r,
-        owed: Math.round(r.owed * 100) / 100,
-        bonus: Math.round(r.bonus * 100) / 100,
-        net: Math.round(r.net * 100) / 100
-      }))
-      .sort((a, b) => String(b.key).localeCompare(String(a.key)));
+    return sm().aggregateFlexOwedByMonth(sales, currentConfig);
   }
 
   function renderConsolidadoFlexOwed(sales) {
@@ -5029,25 +4924,11 @@ ${worksheets}
   }
 
   function defaultKitCostComponents(kind) {
-    const src = kind === 'intl' ? DEFAULT_KIT_COST_INTL_COMPONENTS : DEFAULT_KIT_COST_COMPONENTS;
-    return src.map((c) => ({ ...c }));
+    return sm().defaultKitCostComponents(kind);
   }
 
   function kitCostComponentsFrom(raw, kind) {
-    const fallback = defaultKitCostComponents(kind);
-    if (raw == null) return fallback;
-    const list = Array.isArray(raw?.components) ? raw.components : (Array.isArray(raw) ? raw : null);
-    if (!Array.isArray(list) || !list.length) return fallback;
-    const mapped = list.map((c, i) => ({
-      id: String(c?.id || `kit-comp-${i + 1}`).trim() || `kit-comp-${i + 1}`,
-      name: String(c?.name || '').trim(),
-      buyQty: Number(c?.buyQty) > 0 ? Number(c.buyQty) : 0,
-      buyPrice: Number(c?.buyPrice) >= 0 ? Number(c.buyPrice) : 0,
-      yieldQty: Number(c?.yieldQty) > 0 ? Number(c.yieldQty) : 1,
-      useQty: Number(c?.useQty) >= 0 ? Number(c.useQty) : 0,
-      notes: String(c?.notes || '').trim()
-    }));
-    return mapped.some((c) => c.buyPrice > 0) ? mapped : fallback;
+    return sm().kitCostComponentsFrom(raw, kind);
   }
 
   function updateKitCostTotals(kind) {

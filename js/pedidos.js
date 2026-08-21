@@ -883,7 +883,10 @@
 
   function applyShippingOverrideToOrder(order, data) {
     if (!order || !data) return;
-    if (data.trackingCode) order.correiosTrackingCode = data.trackingCode;
+    if (data.trackingCode) {
+      order.correiosTrackingCode = data.trackingCode;
+      order.correiosPrePostagemError = null;
+    }
     if (data.correiosTrackingStatus) order.correiosTrackingStatus = data.correiosTrackingStatus;
     if (data.shippingMethodId) order.shippingMethodId = data.shippingMethodId;
     if (data.shippingService) order.shippingService = data.shippingService;
@@ -938,6 +941,7 @@
       o.status === 'paid'
       && isCorreiosIntlOrder(o)
       && o.correiosPrePostagemError
+      && !o.correiosTrackingCode
       && body
       && !body.querySelector('.pedidos-intl-label-note')
     ) {
