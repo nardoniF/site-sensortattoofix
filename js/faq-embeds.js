@@ -1,4 +1,4 @@
-/** FAQ — YouTube, Instagram; TikTok abre no app/site oficial (embed bloqueia com overload-protect). */
+/** FAQ — Instagram; TikTok abre no app/site oficial (embed bloqueia com overload-protect). */
 (function () {
   function processInstagram() {
     window.instgrm?.Embeds?.process();

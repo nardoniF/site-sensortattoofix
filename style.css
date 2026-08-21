@@ -1280,6 +1280,13 @@ body.stf-feedback-open { overflow: hidden; }
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
 }
+.stores-grid-3 > [hidden],
+.site-social > [hidden],
+.loja-marketplace-badges > [hidden],
+[data-channel][hidden],
+[data-channel-group][hidden] {
+    display: none !important;
+}
 .store-link { text-decoration: none; display: block; height: 100%; }
 .store-card {
     padding: 44px 20px !important;
@@ -1319,7 +1326,7 @@ body.stf-feedback-open { overflow: hidden; }
 .store-tiktok h3 { color: #fff !important; }
 .store-tiktok p { color: #25f4ee !important; }
 @media (min-width: 900px) {
-    .stores-grid-3 { grid-template-columns: repeat(4, 1fr); }
+    .stores-grid-3 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 }
 .checkout-product-img {
     width: 100%;
@@ -6601,6 +6608,15 @@ a.conta-forgot-link { display: inline-block; }
     flex-wrap: wrap;
     gap: 16px 24px;
     padding-top: 4px;
+}
+.admin-channels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px 16px;
+    margin-bottom: 4px;
+}
+.admin-channels-grid .label-check {
+    margin: 0;
 }
 .admin-form .label-check,
 .form-grid .label-check {

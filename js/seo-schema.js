@@ -136,7 +136,10 @@
   }
 
   function inject(graph) {
+    const prev = document.getElementById('stf-seo-schema');
+    if (prev) prev.remove();
     const script = document.createElement('script');
+    script.id = 'stf-seo-schema';
     script.type = 'application/ld+json';
     script.textContent = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
     document.head.appendChild(script);
@@ -199,7 +202,6 @@
         sameAs: [
           'https://www.instagram.com/sensortattoofix',
           'https://www.tiktok.com/@sensortattoofixofc',
-          'https://youtube.com/@sensortattoofixofc',
           'https://www.facebook.com/profile.php?id=61588858629597'
         ]
       },

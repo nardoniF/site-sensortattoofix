@@ -389,6 +389,25 @@ const DEFAULT_CONFIG = {
   whatsapp: '5511913394665',
   siteUrl: 'https://www.sensortattoofix.com.br',
   api: { baseUrl: 'https://api.sensortattoofix.com.br' },
+  /** Visibilidade de redes e marketplaces no site (admin liga/desliga). */
+  channels: {
+    socials: {
+      instagram: { enabled: true, url: 'https://www.instagram.com/sensortattoofix' },
+      tiktok: { enabled: true, url: 'https://www.tiktok.com/@sensortattoofixofc' },
+      youtube: { enabled: false, url: 'https://youtube.com/@sensortattoofix-ofc' },
+      facebook: { enabled: true, url: 'https://www.facebook.com/profile.php?id=61588858629597' }
+    },
+    stores: {
+      oficial: { enabled: true },
+      mercadolivre: {
+        enabled: true,
+        url: 'https://produto.mercadolivre.com.br/MLB-6831525504-smartwatch-x-tatuagem-sensor-nao-funciona-lentes-reparadoras-_JM'
+      },
+      shopee: { enabled: true, url: 'https://shopee.com.br/product/479290797/58259628035/' },
+      tiktok_shop: { enabled: true, url: 'https://vt.tiktok.com/ZS9juMxSmKGjN-mns6O/' },
+      amazon: { enabled: true, url: 'https://www.amazon.com.br/dp/B0GYVBRGZS' }
+    }
+  },
   coupons: [],
   mlFlexShippingCost: 0,
   kitCostVersion: 3,
@@ -1332,6 +1351,54 @@ function mergeCoupons(stored, base) {
   return [...byCode.values()];
 }
 
+function mergeChannelEntry(baseEntry, storedEntry) {
+  const base = baseEntry && typeof baseEntry === 'object' ? baseEntry : { enabled: true };
+  const stored = storedEntry && typeof storedEntry === 'object' ? storedEntry : {};
+  const out = {
+    enabled: stored.enabled !== undefined ? stored.enabled !== false : base.enabled !== false
+  };
+  const url = String(stored.url || base.url || '').trim();
+  if (url) out.url = url;
+  return out;
+}
+
+function mergeChannelsConfig(stored, base) {
+  const baseChannels = base?.channels || DEFAULT_CONFIG.channels;
+  const raw = stored?.channels && typeof stored.channels === 'object' ? stored.channels : {};
+  const mergeGroup = (groupKey) => {
+    const baseGroup = baseChannels?.[groupKey] || {};
+    const storedGroup = raw[groupKey] && typeof raw[groupKey] === 'object' ? raw[groupKey] : {};
+    const keys = new Set([...Object.keys(baseGroup), ...Object.keys(storedGroup)]);
+    const out = {};
+    keys.forEach((key) => {
+      out[key] = mergeChannelEntry(baseGroup[key], storedGroup[key]);
+    });
+    return out;
+  };
+  return {
+    socials: mergeGroup('socials'),
+    stores: mergeGroup('stores')
+  };
+}
+
+function publicChannelsView(channels) {
+  const src = channels || DEFAULT_CONFIG.channels;
+  const mapGroup = (group) => {
+    const out = {};
+    Object.entries(group || {}).forEach(([key, entry]) => {
+      out[key] = {
+        enabled: entry?.enabled !== false,
+        ...(entry?.url ? { url: entry.url } : {})
+      };
+    });
+    return out;
+  };
+  return {
+    socials: mapGroup(src.socials),
+    stores: mapGroup(src.stores)
+  };
+}
+
 function withConfigDefaults(stored) {
   const base = structuredClone(DEFAULT_CONFIG);
   if (!stored || typeof stored !== 'object') return base;
@@ -1378,6 +1445,7 @@ function withConfigDefaults(stored) {
         ? stored.motoboyShipping.couriers
         : DEFAULT_MOTOBOY_SHIPPING.couriers
     },
+    channels: mergeChannelsConfig(stored, base),
     coupons: mergeCoupons(stored.coupons, base.coupons),
     mlFlexShippingCost: Number(stored.mlFlexShippingCost) > 0
       ? Math.round(Number(stored.mlFlexShippingCost) * 100) / 100
@@ -2014,6 +2082,7 @@ function publicConfigView(config, env) {
     whatsapp: config.whatsapp || DEFAULT_CONFIG.whatsapp,
     siteUrl: config.siteUrl || DEFAULT_CONFIG.siteUrl,
     api: { baseUrl: config.api?.baseUrl || DEFAULT_CONFIG.api.baseUrl },
+    channels: publicChannelsView(config.channels),
     integrations: {
       addressAutocomplete: true
     },
@@ -14461,6 +14530,9 @@ async function handlePutConfig(request, env, origin) {
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
     emails: { ...(current.emails || {}), ...(body.emails || {}) },
     api: { ...current.api, ...body.api },
+    channels: body.channels != null
+      ? mergeChannelsConfig({ channels: body.channels }, DEFAULT_CONFIG)
+      : mergeChannelsConfig(current, DEFAULT_CONFIG),
     kitCost: body.kitCost != null ? normalizeKitCost(body.kitCost) : normalizeKitCost(current.kitCost),
     kitCostIntl: body.kitCostIntl != null ? normalizeKitCost(body.kitCostIntl) : normalizeKitCost(current.kitCostIntl),
     kitCostVersion: body.kitCostVersion != null ? Number(body.kitCostVersion) || 3 : (current.kitCostVersion || 3),

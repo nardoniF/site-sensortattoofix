@@ -3811,5 +3811,46 @@
         "sizeMm": 21
       }
     ]
+  },
+  "channels": {
+    "socials": {
+      "instagram": {
+        "enabled": true,
+        "url": "https://www.instagram.com/sensortattoofix"
+      },
+      "tiktok": {
+        "enabled": true,
+        "url": "https://www.tiktok.com/@sensortattoofixofc"
+      },
+      "youtube": {
+        "enabled": false,
+        "url": "https://youtube.com/@sensortattoofix-ofc"
+      },
+      "facebook": {
+        "enabled": true,
+        "url": "https://www.facebook.com/profile.php?id=61588858629597"
+      }
+    },
+    "stores": {
+      "oficial": {
+        "enabled": true
+      },
+      "mercadolivre": {
+        "enabled": true,
+        "url": "https://produto.mercadolivre.com.br/MLB-6831525504-smartwatch-x-tatuagem-sensor-nao-funciona-lentes-reparadoras-_JM"
+      },
+      "shopee": {
+        "enabled": true,
+        "url": "https://shopee.com.br/product/479290797/58259628035/"
+      },
+      "tiktok_shop": {
+        "enabled": true,
+        "url": "https://vt.tiktok.com/ZS9juMxSmKGjN-mns6O/"
+      },
+      "amazon": {
+        "enabled": true,
+        "url": "https://www.amazon.com.br/dp/B0GYVBRGZS"
+      }
+    }
   }
 }

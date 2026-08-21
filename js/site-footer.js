@@ -10,10 +10,9 @@ window.STF_FOOTER = (function () {
   };
 
   const SOCIAL = [
-    { href: 'https://www.instagram.com/sensortattoofix', icon: 'fab fa-instagram', label: 'Instagram' },
-    { href: 'https://www.tiktok.com/@sensortattoofixofc', icon: 'fab fa-tiktok', label: 'TikTok' },
-    { href: 'https://youtube.com/@sensortattoofix-ofc?si=_h4gAZXia1fZP_U1', icon: 'fab fa-youtube', label: 'YouTube' },
-    { href: 'https://www.facebook.com/profile.php?id=61588858629597', icon: 'fab fa-facebook', label: 'Facebook' }
+    { id: 'instagram', href: 'https://www.instagram.com/sensortattoofix', icon: 'fab fa-instagram', label: 'Instagram' },
+    { id: 'tiktok', href: 'https://www.tiktok.com/@sensortattoofixofc', icon: 'fab fa-tiktok', label: 'TikTok' },
+    { id: 'facebook', href: 'https://www.facebook.com/profile.php?id=61588858629597', icon: 'fab fa-facebook', label: 'Facebook' }
   ];
 
   const I18N = {
@@ -75,6 +74,18 @@ window.STF_FOOTER = (function () {
     return location.pathname.includes('/en/') || location.pathname.includes('/it/') ? '../' : '';
   }
 
+  function socialEnabled(id) {
+    if (window.STF_CHANNELS?.entryEnabled) {
+      return window.STF_CHANNELS.entryEnabled('socials', id, window.CHECKOUT_CONFIG?.channels || null);
+    }
+    return true;
+  }
+
+  function socialHref(item) {
+    const url = window.CHECKOUT_CONFIG?.channels?.socials?.[item.id]?.url;
+    return (url && String(url).trim()) || item.href;
+  }
+
   function patentLine(lang) {
     const s = t(lang);
     if (isIntlHost()) {
@@ -110,16 +121,34 @@ window.STF_FOOTER = (function () {
 
   function socialBlock(lang, prefix) {
     const s = t(lang);
-    const links = SOCIAL.map((item) => {
+    const enabled = SOCIAL.filter((item) => socialEnabled(item.id));
+    if (!enabled.length) {
+      return `
+      <div class="footer-social">
+        <div class="footer-faq-link"><a href="#faq">${s.faq}</a> · <a href="${prefix}comunidade.html"><i class="fas fa-comments" aria-hidden="true"></i> ${s.community}</a></div>
+        <div class="footer-action-links">
+          <button type="button" class="footer-action-btn footer-action-btn--feedback stf-feedback-trigger">
+            <i class="fas fa-comment-dots" aria-hidden="true"></i>
+            <span>${s.feedback}</span>
+          </button>
+          ${isIntlHost() ? '' : `
+          <a class="footer-action-btn footer-action-btn--affiliate" href="${prefix}comissionado.html">
+            <i class="fas fa-handshake" aria-hidden="true"></i>
+            <span>${s.commissioner}</span>
+          </a>`}
+        </div>
+      </div>
+    `;
+    }
+    const links = enabled.map((item) => {
       const rotulo = `Footer ${item.label}${lang === 'en' ? ' EN' : lang === 'it' ? ' IT' : ''}`;
-      return `<a href="${item.href}" target="_blank" rel="noopener" class="social-link" data-rotulo="${rotulo}"><i class="${item.icon}"></i> ${item.label}</a>`;
+      return `<a href="${socialHref(item)}" target="_blank" rel="noopener" class="social-link" data-channel="social:${item.id}" data-rotulo="${rotulo}"><i class="${item.icon}"></i> ${item.label}</a>`;
     }).join('');
-    const faqHref = lang === 'en' ? '#faq' : '#faq';
     return `
       <div class="footer-social">
         <h4>${s.socialTitle}</h4>
         <div class="social-icons-footer">${links}</div>
-        <div class="footer-faq-link"><a href="${faqHref}">${s.faq}</a> · <a href="${prefix}comunidade.html"><i class="fas fa-comments" aria-hidden="true"></i> ${s.community}</a></div>
+        <div class="footer-faq-link"><a href="#faq">${s.faq}</a> · <a href="${prefix}comunidade.html"><i class="fas fa-comments" aria-hidden="true"></i> ${s.community}</a></div>
         <div class="footer-action-links">
           <button type="button" class="footer-action-btn footer-action-btn--feedback stf-feedback-trigger">
             <i class="fas fa-comment-dots" aria-hidden="true"></i>
@@ -143,12 +172,15 @@ window.STF_FOOTER = (function () {
     el.innerHTML = social + legalBlock(lang);
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  function refreshAll() {
     document.querySelectorAll('[data-site-footer]').forEach(render);
     document.querySelectorAll('.stf-feedback-trigger').forEach((btn) => {
       btn.addEventListener('click', () => window.STF_FEEDBACK?.open?.());
     });
-  });
+  }
 
-  return { INFO, render };
+  document.addEventListener('DOMContentLoaded', refreshAll);
+  window.addEventListener('stf-config-ready', refreshAll);
+
+  return { render, refreshAll, INFO, SOCIAL };
 })();

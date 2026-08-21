@@ -480,6 +480,29 @@
                     </fieldset>
 
                     <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-share-nodes"></i> Redes e lojas no site</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-channels" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-channels" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Liga ou desliga ícones de redes (header/footer) e cards de marketplace (onde comprar / loja). Itens desligados somem do layout sem deixar buraco.</p>
+                            <p>YouTube vem desligado por padrão enquanto o canal estiver inacessível. Os embeds de YouTube foram removidos da FAQ.</p>
+                        </div>
+                        <p class="admin-meta" style="margin:0 0 10px">Redes sociais</p>
+                        <div class="admin-channels-grid">
+                            <label class="label-check"><input type="checkbox" name="channelSocialInstagram" checked><span>Instagram</span></label>
+                            <label class="label-check"><input type="checkbox" name="channelSocialTiktok" checked><span>TikTok</span></label>
+                            <label class="label-check"><input type="checkbox" name="channelSocialYoutube"><span>YouTube</span></label>
+                            <label class="label-check"><input type="checkbox" name="channelSocialFacebook" checked><span>Facebook</span></label>
+                        </div>
+                        <p class="admin-meta" style="margin:16px 0 10px">Lojas / marketplaces</p>
+                        <div class="admin-channels-grid">
+                            <label class="label-check"><input type="checkbox" name="channelStoreOficial" checked><span>Loja oficial</span></label>
+                            <label class="label-check"><input type="checkbox" name="channelStoreMercadolivre" checked><span>Mercado Livre</span></label>
+                            <label class="label-check"><input type="checkbox" name="channelStoreShopee" checked><span>Shopee</span></label>
+                            <label class="label-check"><input type="checkbox" name="channelStoreTiktokShop" checked><span>TikTok Shop</span></label>
+                            <label class="label-check"><input type="checkbox" name="channelStoreAmazon" checked><span>Amazon</span></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-tag"></i> Assuntos dos e-mails</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-email-subjects" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-email-subjects" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Variáveis: <code>{orderId}</code> número do pedido · <code>{amount}</code> valor da comissão · <code>{hours}</code> prazo motoboy · <code>{url}</code> link de rastreio · <code>{nome}</code> nome do cliente.</p>

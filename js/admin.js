@@ -5049,6 +5049,57 @@ ${worksheets}
     showProductSubtab(saved);
   }
 
+  function fillChannelsForm(channels) {
+    const f = els.configForm;
+    if (!f) return;
+    const socials = channels?.socials || {};
+    const stores = channels?.stores || {};
+    const set = (name, enabled, fallback) => {
+      if (!f[name]) return;
+      f[name].checked = enabled !== undefined ? enabled !== false : fallback;
+    };
+    set('channelSocialInstagram', socials.instagram?.enabled, true);
+    set('channelSocialTiktok', socials.tiktok?.enabled, true);
+    set('channelSocialYoutube', socials.youtube?.enabled, false);
+    set('channelSocialFacebook', socials.facebook?.enabled, true);
+    set('channelStoreOficial', stores.oficial?.enabled, true);
+    set('channelStoreMercadolivre', stores.mercadolivre?.enabled, true);
+    set('channelStoreShopee', stores.shopee?.enabled, true);
+    set('channelStoreTiktokShop', stores.tiktok_shop?.enabled, true);
+    set('channelStoreAmazon', stores.amazon?.enabled, true);
+  }
+
+  function collectChannelsForm(f, current) {
+    const prev = current?.channels || {};
+    const prevSocial = prev.socials || {};
+    const prevStore = prev.stores || {};
+    const social = (id, checked, fallbackUrl) => ({
+      enabled: !!checked,
+      url: String(prevSocial[id]?.url || fallbackUrl || '').trim() || undefined
+    });
+    const store = (id, checked, fallbackUrl) => {
+      const out = { enabled: !!checked };
+      const url = String(prevStore[id]?.url || fallbackUrl || '').trim();
+      if (url) out.url = url;
+      return out;
+    };
+    return {
+      socials: {
+        instagram: social('instagram', f.channelSocialInstagram?.checked, 'https://www.instagram.com/sensortattoofix'),
+        tiktok: social('tiktok', f.channelSocialTiktok?.checked, 'https://www.tiktok.com/@sensortattoofixofc'),
+        youtube: social('youtube', f.channelSocialYoutube?.checked, 'https://youtube.com/@sensortattoofix-ofc'),
+        facebook: social('facebook', f.channelSocialFacebook?.checked, 'https://www.facebook.com/profile.php?id=61588858629597')
+      },
+      stores: {
+        oficial: store('oficial', f.channelStoreOficial?.checked),
+        mercadolivre: store('mercadolivre', f.channelStoreMercadolivre?.checked, 'https://produto.mercadolivre.com.br/MLB-6831525504-smartwatch-x-tatuagem-sensor-nao-funciona-lentes-reparadoras-_JM'),
+        shopee: store('shopee', f.channelStoreShopee?.checked, 'https://shopee.com.br/product/479290797/58259628035/'),
+        tiktok_shop: store('tiktok_shop', f.channelStoreTiktokShop?.checked, 'https://vt.tiktok.com/ZS9juMxSmKGjN-mns6O/'),
+        amazon: store('amazon', f.channelStoreAmazon?.checked, 'https://www.amazon.com.br/dp/B0GYVBRGZS')
+      }
+    };
+  }
+
   function fillForm(config) {
     const f = els.configForm;
     if (!f || !config) return;
@@ -5107,6 +5158,7 @@ ${worksheets}
     if (f.pixMerchantName) f.pixMerchantName.value = pix.merchantName || '';
     if (f.pixMerchantCity) f.pixMerchantCity.value = pix.merchantCity || '';
     if (f.whatsapp) f.whatsapp.value = config.whatsapp || '';
+    fillChannelsForm(config.channels);
     if (f.formsubmitEmail) f.formsubmitEmail.value = formsubmit.email || '';
     if (f.formsubmitSubject) f.formsubmitSubject.value = formsubmit.subject || '';
     const emails = { ...DEFAULT_EMAILS, ...(config.emails || {}) };
@@ -5319,6 +5371,7 @@ ${worksheets}
         pixFooter: f.emailPixFooter?.value.trim() || DEFAULT_EMAILS.pixFooter
       },
       whatsapp: f.whatsapp.value.replace(/\D/g, ''),
+      channels: collectChannelsForm(f, currentConfig),
       siteUrl: currentConfig?.siteUrl || 'https://www.sensortattoofix.com.br',
       api: {
         baseUrl: f.apiBaseUrl.value.trim()
