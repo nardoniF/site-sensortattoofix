@@ -126,11 +126,11 @@ Docs: [superfrete.readme.io](https://superfrete.readme.io/) · Token: painel →
 ```bash
 wrangler secret put SUPERFRETE_TOKEN          # Bearer do ambiente (prod ou sandbox)
 wrangler secret put SUPERFRETE_SANDBOX        # opcional: "true" → sandbox.superfrete.com
-# wrangler secret put SUPERFRETE_AUTO_CHECKOUT  # opcional: "true" paga etiqueta com saldo na conta
+# wrangler secret put SUPERFRETE_AUTO_CHECKOUT  # opcional: "false" desliga pagamento automático (padrão: ligado, só com SALDO)
 # wrangler secret put SUPERFRETE_USER_AGENT    # opcional (padrão: SensorTattooFix + e-mail)
 ```
 
-No admin → Frete, ative as modalidades **PAC / SEDEX / Mini Envios (Super Frete)** (ou adicione Jadlog/Loggi/J&T). Sem `SUPERFRETE_TOKEN` as opções não aparecem no checkout. Pedido pago cria etiqueta no carrinho Super Frete (`pending`); com `SUPERFRETE_AUTO_CHECKOUT=true` tenta pagar com saldo.
+No admin → Frete, ative as modalidades **PAC / SEDEX / Mini Envios (Super Frete)** (ou adicione Jadlog/Loggi/J&T). Sem `SUPERFRETE_TOKEN` as opções não aparecem no checkout. Pedido pago cria etiqueta no carrinho Super Frete e, por padrão, tenta pagar com **saldo da carteira** (`SUPERFRETE_AUTO_CHECKOUT=false` desliga). Cartão cadastrado no painel Super Frete **não** é usado pelo checkout da API.
 
 ## 5. Deploy
 
