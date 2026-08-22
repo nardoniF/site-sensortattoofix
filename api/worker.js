@@ -8408,14 +8408,7 @@ function superfreteServiceId(method) {
 }
 
 /** Resolve SF service id from the paid order — never invent PAC when the cliente chose SEDEX. */
-function resolveSuperfreteServiceForOrder(order, config) {
-  const direct = asSuperfreteServiceId(order?.superfreteService);
-  if (direct) return direct;
-
-  // shippingServiceCode só vale se já for id SF (1/2/17/…). Código Correios tipo 03220 NÃO é serviço SF.
-  const fromCode = asSuperfreteServiceId(order?.shippingServiceCode);
-  if (fromCode) return fromCode;
-
+function resolveSuperfreteServiceFromLabel(order, config) {
   const methods = config?.shippingMethods?.length ? config.shippingMethods : DEFAULT_SHIPPING_METHODS;
   const method = methods.find((m) => m.id === order?.shippingMethodId);
   const fromMethod = superfreteServiceId(method);
@@ -8428,6 +8421,26 @@ function resolveSuperfreteServiceForOrder(order, config) {
   if (hay.includes('jadlog')) return 3;
   if (hay.includes('loggi')) return 31;
   if (/\bj\s*&\s*t\b|\bjt\b/.test(hay)) return 33;
+  return null;
+}
+
+function resolveSuperfreteServiceForOrder(order, config) {
+  // Nome/método do frete pago mandam — superfreteService antigo pode estar errado (bug PAC).
+  const fromLabel = resolveSuperfreteServiceFromLabel(order, config);
+  const stored = asSuperfreteServiceId(order?.superfreteService);
+  const fromCode = asSuperfreteServiceId(order?.shippingServiceCode);
+
+  if (fromLabel && stored && fromLabel !== stored) {
+    console.warn(
+      'Super Frete service mismatch, using label/method:',
+      order?.orderId,
+      { stored, fromLabel, shippingService: order?.shippingService, shippingMethodId: order?.shippingMethodId }
+    );
+    return fromLabel;
+  }
+  if (fromLabel) return fromLabel;
+  if (stored) return stored;
+  if (fromCode) return fromCode;
   return null;
 }
 
