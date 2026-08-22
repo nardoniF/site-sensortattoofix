@@ -8424,34 +8424,62 @@ function resolveSuperfreteServiceFromLabel(order, config) {
   return null;
 }
 
-function resolveSuperfreteServiceForOrder(order, config) {
-  const stored = asSuperfreteServiceId(order?.superfreteService);
-  const fromMethodId = resolveSuperfreteServiceFromLabel(order, config);
-  const fromCode = asSuperfreteServiceId(order?.shippingServiceCode);
-  const fromLabel = (() => {
-    const hay = String(order?.shippingService || '').toLowerCase();
-    if (hay.includes('sedex')) return 2;
-    if (/\bpac\b/.test(hay)) return 1;
-    if (hay.includes('mini')) return 17;
-    if (hay.includes('jadlog')) return 3;
-    if (hay.includes('loggi')) return 31;
-    return null;
-  })();
+/** Resolve SF service id — frete pago manda (R$ 21,16 = PAC, não SEDEX ~R$ 33). */
+async function resolveSuperfreteServiceForOrder(env, config, order) {
+  const paidFrete = Number(order?.frete);
+  const cep = onlyDigits(order?.cep || '');
 
-  // Checkout grava superfreteService + frete; rótulo shippingService pode estar errado.
-  if (stored) {
-    if (fromLabel && fromLabel !== stored) {
-      console.warn(
-        'Super Frete: usando superfreteService do pedido (rótulo diverge):',
-        order?.orderId,
-        { stored, fromLabel, shippingService: order?.shippingService, frete: order?.frete }
-      );
+  if (Number.isFinite(paidFrete) && paidFrete > 0 && cep.length === 8 && superfreteConfigured(env)) {
+    try {
+      const quotes = await quoteSuperfreteOptions(env, config, cep, {
+        weightGrams: shippingWeightGrams(config)
+      });
+      let bestSid = null;
+      let bestDiff = Infinity;
+      for (const q of quotes) {
+        const sid = asSuperfreteServiceId(q.superfreteService);
+        if (!sid) continue;
+        const diff = Math.abs(Number(q.price) - paidFrete);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestSid = sid;
+        }
+      }
+      if (bestSid != null && bestDiff <= 1.5) {
+        const stored = asSuperfreteServiceId(order?.superfreteService);
+        if (stored && stored !== bestSid) {
+          console.warn('Super Frete: serviço pelo frete pago', order?.orderId, {
+            stored,
+            bestSid,
+            paidFrete,
+            bestDiff
+          });
+        }
+        return bestSid;
+      }
+    } catch (err) {
+      console.warn('Super Frete service from frete quote:', order?.orderId, err.message);
     }
-    return stored;
   }
+
+  if (Number.isFinite(paidFrete) && paidFrete > 0) {
+    if (paidFrete <= 27) return 1;
+    if (paidFrete >= 29) return 2;
+  }
+
+  const fromMethodId = resolveSuperfreteServiceFromLabel(order, config);
   if (fromMethodId) return fromMethodId;
+
+  const stored = asSuperfreteServiceId(order?.superfreteService);
+  if (stored) return stored;
+
+  const fromCode = asSuperfreteServiceId(order?.shippingServiceCode);
   if (fromCode) return fromCode;
-  if (fromLabel) return fromLabel;
+
+  const hay = String(order?.shippingService || '').toLowerCase();
+  if (hay.includes('sedex')) return 2;
+  if (/\bpac\b/.test(hay)) return 1;
+  if (hay.includes('mini')) return 17;
   return null;
 }
 
@@ -8849,7 +8877,7 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
   }
 
   const sender = config.shipping?.sender || DEFAULT_CONFIG.shipping.sender;
-  const service = resolveSuperfreteServiceForOrder(order, config);
+  const service = await resolveSuperfreteServiceForOrder(env, config, order);
   if (!service) {
     const friendly = `Não foi possível identificar o serviço Super Frete do pedido `
       + `(${order.shippingService || order.shippingMethodId || 'sem frete'}). `
@@ -8859,6 +8887,8 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     throw new Error(friendly);
   }
   order.superfreteService = service;
+  const svcLabel = superfreteServiceLabel(service);
+  if (svcLabel) order.shippingService = svcLabel;
   const pkg = order.superfretePackage || superfretePackageFromConfig(config);
   const products = (order.items || []).map((i) => ({
     name: String(i.name || 'Produto').slice(0, 80),
