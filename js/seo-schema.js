@@ -202,6 +202,7 @@
         sameAs: [
           'https://www.instagram.com/sensortattoofix',
           'https://www.tiktok.com/@sensortattoofixofc',
+          'https://www.youtube.com/channel/UCqjH0JSssVAFEP5eSglx0Wg',
           'https://www.facebook.com/profile.php?id=61588858629597'
         ]
       },

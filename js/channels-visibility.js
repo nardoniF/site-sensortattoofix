@@ -7,7 +7,7 @@ window.STF_CHANNELS = (function () {
     socials: {
       instagram: true,
       tiktok: true,
-      youtube: false,
+      youtube: true,
       facebook: true
     },
     stores: {
@@ -41,18 +41,21 @@ window.STF_CHANNELS = (function () {
       const on = entryEnabled(mapGroup, id, channels);
       setVisible(el, on);
       const url = channels?.[mapGroup]?.[id]?.url;
-      if (on && url && el.tagName === 'A') {
-        try {
-          const next = new URL(url, location.href);
-          const cur = new URL(el.href, location.href);
-          if (cur.origin + cur.pathname !== next.origin + next.pathname) {
-            const utm = cur.searchParams;
-            utm.forEach((v, k) => {
-              if (k.startsWith('utm_') && !next.searchParams.has(k)) next.searchParams.set(k, v);
-            });
-            el.href = next.toString();
-          }
-        } catch (_) { /* keep existing href */ }
+      if (on && url) {
+        const links = el.tagName === 'A' ? [el] : [...el.querySelectorAll(':scope > a[href]')];
+        links.forEach((link) => {
+          try {
+            const next = new URL(url, location.href);
+            const cur = new URL(link.href, location.href);
+            if (cur.origin + cur.pathname !== next.origin + next.pathname) {
+              const utm = cur.searchParams;
+              utm.forEach((v, k) => {
+                if (k.startsWith('utm_') && !next.searchParams.has(k)) next.searchParams.set(k, v);
+              });
+              link.href = next.toString();
+            }
+          } catch (_) { /* keep existing href */ }
+        });
       }
     });
 

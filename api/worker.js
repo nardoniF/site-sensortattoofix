@@ -394,7 +394,7 @@ const DEFAULT_CONFIG = {
     socials: {
       instagram: { enabled: true, url: 'https://www.instagram.com/sensortattoofix' },
       tiktok: { enabled: true, url: 'https://www.tiktok.com/@sensortattoofixofc' },
-      youtube: { enabled: false, url: 'https://youtube.com/@sensortattoofix-ofc' },
+      youtube: { enabled: true, url: 'https://www.youtube.com/channel/UCqjH0JSssVAFEP5eSglx0Wg' },
       facebook: { enabled: true, url: 'https://www.facebook.com/profile.php?id=61588858629597' }
     },
     stores: {
@@ -1351,13 +1351,21 @@ function mergeCoupons(stored, base) {
   return [...byCode.values()];
 }
 
-function mergeChannelEntry(baseEntry, storedEntry) {
+function mergeChannelEntry(baseEntry, storedEntry, key) {
   const base = baseEntry && typeof baseEntry === 'object' ? baseEntry : { enabled: true };
   const stored = storedEntry && typeof storedEntry === 'object' ? storedEntry : {};
   const out = {
     enabled: stored.enabled !== undefined ? stored.enabled !== false : base.enabled !== false
   };
-  const url = String(stored.url || base.url || '').trim();
+  let url = String(stored.url || base.url || '').trim();
+  if (key === 'youtube') {
+    const legacy = !String(stored.url || '').trim()
+      || /youtube\.com\/@sensortattoofix-ofc/i.test(String(stored.url || ''));
+    if (legacy) {
+      url = String(base.url || 'https://www.youtube.com/channel/UCqjH0JSssVAFEP5eSglx0Wg').trim();
+      if (stored.enabled === false) out.enabled = true;
+    }
+  }
   if (url) out.url = url;
   return out;
 }
@@ -1371,7 +1379,7 @@ function mergeChannelsConfig(stored, base) {
     const keys = new Set([...Object.keys(baseGroup), ...Object.keys(storedGroup)]);
     const out = {};
     keys.forEach((key) => {
-      out[key] = mergeChannelEntry(baseGroup[key], storedGroup[key]);
+      out[key] = mergeChannelEntry(baseGroup[key], storedGroup[key], key);
     });
     return out;
   };

@@ -5212,7 +5212,7 @@ ${worksheets}
     };
     set('channelSocialInstagram', socials.instagram?.enabled, true);
     set('channelSocialTiktok', socials.tiktok?.enabled, true);
-    set('channelSocialYoutube', socials.youtube?.enabled, false);
+    set('channelSocialYoutube', socials.youtube?.enabled, true);
     set('channelSocialFacebook', socials.facebook?.enabled, true);
     set('channelStoreOficial', stores.oficial?.enabled, true);
     set('channelStoreMercadolivre', stores.mercadolivre?.enabled, true);
@@ -5239,7 +5239,7 @@ ${worksheets}
       socials: {
         instagram: social('instagram', f.channelSocialInstagram?.checked, 'https://www.instagram.com/sensortattoofix'),
         tiktok: social('tiktok', f.channelSocialTiktok?.checked, 'https://www.tiktok.com/@sensortattoofixofc'),
-        youtube: social('youtube', f.channelSocialYoutube?.checked, 'https://youtube.com/@sensortattoofix-ofc'),
+        youtube: social('youtube', f.channelSocialYoutube?.checked, 'https://www.youtube.com/channel/UCqjH0JSssVAFEP5eSglx0Wg'),
         facebook: social('facebook', f.channelSocialFacebook?.checked, 'https://www.facebook.com/profile.php?id=61588858629597')
       },
       stores: {
