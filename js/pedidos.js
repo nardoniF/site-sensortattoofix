@@ -335,6 +335,12 @@
     return isCorreiosBrOrder(o) || isCorreiosIntlOrder(o);
   }
 
+  function superfreteServiceLabel(sid) {
+    const n = Number(sid);
+    const map = { 1: 'PAC', 2: 'SEDEX', 17: 'Mini Envios', 3: 'Jadlog', 31: 'Loggi', 33: 'J&T' };
+    return map[n] || null;
+  }
+
   function shippingKindLabel(o) {
     const provider = String(o.shippingProvider || '').toLowerCase();
     if (provider === 'uber') return 'Uber';
@@ -342,6 +348,10 @@
     const method = String(o.shippingMethodId || '').toLowerCase();
     if (method.includes('uber')) return 'Uber';
     if (method.includes('motoboy')) return 'Motoboy';
+    const fromSf = superfreteServiceLabel(o.superfreteService);
+    if (fromSf) return fromSf;
+    if (method.includes('sf-pac') || method.includes('pac')) return 'PAC';
+    if (method.includes('sf-sedex') || method.includes('sedex')) return 'SEDEX';
     const svc = String(o.shippingService || '').trim();
     if (svc) return svc;
     if (isCorreiosBrOrder(o)) return 'Correios';
@@ -618,6 +628,49 @@
     return '<span class="pedidos-track-muted">—</span>';
   }
 
+  function orderAuditRows(o) {
+    const bruto = Number(o.valorProdutoOriginal ?? o.valorProduto);
+    const pago = Number(o.valorProduto);
+    const frete = Number(o.frete);
+    const total = Number(o.total);
+    const rows = [];
+    if (Number.isFinite(bruto) && bruto > 0) {
+      rows.push(detailRow('Lente (tabela)', formatBRL(bruto)));
+    }
+    if (o.couponCode) {
+      let cupom = escHtml(o.couponCode);
+      if (o.couponPercent != null) cupom += ` (${o.couponPercent}%)`;
+      if (o.couponDiscount) cupom += ` — desc. ${formatBRL(o.couponDiscount)}`;
+      rows.push(detailRow('Cupom', cupom));
+    }
+    if (Number.isFinite(pago) && pago >= 0) {
+      rows.push(detailRow('Lente paga', `<strong>${formatBRL(pago)}</strong>`));
+    }
+    if (Number.isFinite(frete) && frete >= 0) {
+      rows.push(detailRow('Frete pago', `<strong>${formatBRL(frete)}</strong>`));
+    }
+    const sfLabel = superfreteServiceLabel(o.superfreteService);
+    const escolhido = sfLabel || shippingKindLabel(o);
+    rows.push(detailRow('Frete escolhido', escHtml(escolhido)));
+    if (o.shippingMethodId) {
+      rows.push(detailRow('ID método', `<code>${escHtml(o.shippingMethodId)}</code>`));
+    }
+    if (o.superfreteService != null) {
+      rows.push(detailRow('SF serviço', `<code>${escHtml(String(o.superfreteService))}</code>${sfLabel ? ` (${escHtml(sfLabel)})` : ''}`));
+    }
+    if (o.shippingService && sfLabel && String(o.shippingService).toUpperCase() !== sfLabel) {
+      rows.push(detailRow('Rótulo salvo', `<span class="pedidos-track-warn">${escHtml(o.shippingService)} (diverge)</span>`));
+    }
+    if (Number.isFinite(total) && total >= 0) {
+      rows.push(detailRow('Total pago', `<strong>${formatBRL(total)}</strong>`));
+    }
+    if (!rows.length) return '';
+    return `<section class="pedidos-detail-section pedidos-detail-section--audit">
+      <h3 class="pedidos-detail-heading">Auditoria do pedido</h3>
+      <div class="pedidos-detail-grid">${rows.join('')}</div>
+    </section>`;
+  }
+
   function freteDetailRows(o) {
     const kind = escHtml(shippingKindLabel(o));
     const paid = Number(o.frete);
@@ -773,6 +826,7 @@
         ${detailRow('Total', `<strong>${formatBRL(o.total)}</strong>`)}
         ${freteDetailRows(o)}
       </div>
+      ${orderAuditRows(o)}
       ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
       <section class="pedidos-detail-section pedidos-detail-section--entrega">
         <h3 class="pedidos-detail-heading">Entrega / Rastreio</h3>

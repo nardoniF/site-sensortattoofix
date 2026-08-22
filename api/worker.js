@@ -8407,7 +8407,7 @@ function superfreteServiceId(method) {
   return null;
 }
 
-/** Resolve SF service id from the paid order — never invent PAC when the cliente chose SEDEX. */
+/** Resolve SF service id from the paid order — confia no que foi salvo no checkout, não só no rótulo. */
 function resolveSuperfreteServiceFromLabel(order, config) {
   const methods = config?.shippingMethods?.length ? config.shippingMethods : DEFAULT_SHIPPING_METHODS;
   const method = methods.find((m) => m.id === order?.shippingMethodId);
@@ -8425,23 +8425,40 @@ function resolveSuperfreteServiceFromLabel(order, config) {
 }
 
 function resolveSuperfreteServiceForOrder(order, config) {
-  // Nome/método do frete pago mandam — superfreteService antigo pode estar errado (bug PAC).
-  const fromLabel = resolveSuperfreteServiceFromLabel(order, config);
   const stored = asSuperfreteServiceId(order?.superfreteService);
+  const fromMethodId = resolveSuperfreteServiceFromLabel(order, config);
   const fromCode = asSuperfreteServiceId(order?.shippingServiceCode);
+  const fromLabel = (() => {
+    const hay = String(order?.shippingService || '').toLowerCase();
+    if (hay.includes('sedex')) return 2;
+    if (/\bpac\b/.test(hay)) return 1;
+    if (hay.includes('mini')) return 17;
+    if (hay.includes('jadlog')) return 3;
+    if (hay.includes('loggi')) return 31;
+    return null;
+  })();
 
-  if (fromLabel && stored && fromLabel !== stored) {
-    console.warn(
-      'Super Frete service mismatch, using label/method:',
-      order?.orderId,
-      { stored, fromLabel, shippingService: order?.shippingService, shippingMethodId: order?.shippingMethodId }
-    );
-    return fromLabel;
+  // Checkout grava superfreteService + frete; rótulo shippingService pode estar errado.
+  if (stored) {
+    if (fromLabel && fromLabel !== stored) {
+      console.warn(
+        'Super Frete: usando superfreteService do pedido (rótulo diverge):',
+        order?.orderId,
+        { stored, fromLabel, shippingService: order?.shippingService, frete: order?.frete }
+      );
+    }
+    return stored;
   }
-  if (fromLabel) return fromLabel;
-  if (stored) return stored;
+  if (fromMethodId) return fromMethodId;
   if (fromCode) return fromCode;
+  if (fromLabel) return fromLabel;
   return null;
+}
+
+function superfreteServiceLabel(sid) {
+  const n = Number(sid);
+  const map = { 1: 'PAC', 2: 'SEDEX', 17: 'Mini Envios', 3: 'Jadlog', 31: 'Loggi', 33: 'J&T' };
+  return map[n] || null;
 }
 
 /** Nome limpo para o cliente (sem “Super Frete”). */
@@ -8893,7 +8910,9 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     },
     options: {
       non_commercial: true,
-      insurance_value: Number(order.valorProdutoOriginal || order.valorProduto) || null,
+      // Igual à cotação do checkout (sem seguro) — evita SEDEX ~R$33 quando o cliente pagou ~R$21.
+      insurance_value: 0,
+      use_insurance_value: false,
       tags: [{ tag: order.orderId, url: `${storeBase}/pedidos.html` }]
     },
     platform: 'SensorTattooFix',
