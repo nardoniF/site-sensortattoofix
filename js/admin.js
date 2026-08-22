@@ -55,14 +55,22 @@
     return globalThis.STFSalesMoney || {};
   }
 
+  function salesMoneyReady() {
+    return typeof sm().saleMoneyParts === 'function';
+  }
+
   async function waitSalesMoney(ms = 8000) {
-    if (typeof sm().kitCostComponentsFrom === 'function') return true;
+    if (salesMoneyReady()) return true;
     const start = Date.now();
     while (Date.now() - start < ms) {
       await new Promise((r) => setTimeout(r, 40));
-      if (typeof sm().kitCostComponentsFrom === 'function') return true;
+      if (salesMoneyReady()) return true;
     }
-    return typeof sm().kitCostComponentsFrom === 'function';
+    return salesMoneyReady();
+  }
+
+  function roundMoneyLocal(n) {
+    return Math.round(Number(n || 0) * 100) / 100;
   }
 
   const DEFAULT_KIT_COST_COMPONENTS = sm().DEFAULT_KIT_COST_COMPONENTS || [
@@ -778,19 +786,61 @@
   }
 
   function saleListedGross(sale) {
-    return sm().saleListedGross(sale);
+    const fn = sm().saleListedGross;
+    if (typeof fn === 'function') return fn(sale);
+    const ch = String(sale?.channel || '').toLowerCase();
+    if (ch === 'mercadolivre' || ch === 'ml') {
+      const items = sale?.items;
+      if (Array.isArray(items) && items.length) {
+        const sum = items.reduce((n, i) => {
+          const qty = Number(i.quantity || i.qty || 0);
+          const unit = Number(i.unitPrice || i.unit_price || 0);
+          return n + unit * (qty > 0 ? qty : 0);
+        }, 0);
+        if (sum > 0) return roundMoneyLocal(sum);
+      }
+    }
+    return roundMoneyLocal(sale?.gross || 0);
   }
 
   function saleShippingCost(sale) {
-    return sm().saleShippingCost(sale, currentConfig);
+    const fn = sm().saleShippingCost;
+    if (typeof fn === 'function') return fn(sale, currentConfig);
+    if (mlShippingUnresolved(sale)) return 0;
+    const s = roundMoneyLocal(sale?.shippingCost || 0);
+    const ch = String(sale?.channel || '').toLowerCase();
+    const isMl = ch === 'mercadolivre' || ch === 'ml';
+    const flexList = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
+    const estorno = Number(sale?.mlEstorno || 0);
+    const isFlex = sale?.mlFlex
+      || /flex|self_service/i.test(String(sale?.logisticType || ''))
+      || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06);
+    if (isMl && isFlex && flexList > 0) return roundMoneyLocal(Math.max(0, flexList - estorno));
+    if (ch === 'shopee') return s;
+    if (isMl && (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 0;
+    return s;
   }
 
   function marketplaceSaleNet(sale) {
-    return sm().marketplaceSaleNet(sale, currentConfig);
+    const fn = sm().marketplaceSaleNet;
+    if (typeof fn === 'function') return fn(sale, currentConfig);
+    return roundMoneyLocal(
+      saleListedGross(sale)
+      - Number(sale?.fees || 0)
+      - saleShippingCost(sale)
+      - Number(sale?.refunds || 0)
+      - Number(sale?.otherFees || 0)
+    );
   }
 
   function saleKitQty(sale) {
-    return sm().saleKitQty(sale);
+    const fn = sm().saleKitQty;
+    if (typeof fn === 'function') return fn(sale);
+    if (Array.isArray(sale?.items) && sale.items.length) {
+      const q = sale.items.reduce((n, i) => n + (Number(i.quantity || i.qty || 0) || 0), 0);
+      if (q > 0) return q;
+    }
+    return Math.max(1, Number(sale?.qty || sale?.quantity || 1) || 1);
   }
 
   function kitComponentUnitCost(c) {
@@ -826,23 +876,49 @@
   }
 
   function isIntlSale(sale) {
-    return sm().isIntlSale(sale);
+    const fn = sm().isIntlSale;
+    if (typeof fn === 'function') return fn(sale);
+    if (sale?.market === 'INT' || sale?._market === 'INT') return true;
+    const cur = String(sale?.currency || '').toUpperCase();
+    return cur === 'USD' || cur === 'EUR';
   }
 
   function kitUnitCostFromConfig(config, sale) {
-    return sm().kitUnitCostFromConfig(config || currentConfig, sale);
+    const fn = sm().kitUnitCostFromConfig;
+    if (typeof fn === 'function') return fn(config || currentConfig, sale);
+    const cfg = config || currentConfig;
+    const intl = isIntlSale(sale);
+    const comps = kitCostComponentsFrom(intl ? cfg?.kitCostIntl : cfg?.kitCost, intl ? 'intl' : 'br');
+    return kitUnitCostFromComponents(comps);
   }
 
   function saleProductCost(sale, config) {
-    return sm().saleProductCost(sale, config || currentConfig);
+    const fn = sm().saleProductCost;
+    if (typeof fn === 'function') return fn(sale, config || currentConfig);
+    return roundMoneyLocal(kitUnitCostFromConfig(config || currentConfig, sale) * saleKitQty(sale));
   }
 
   function effectiveSaleNet(sale) {
-    return sm().effectiveSaleNet(sale, currentConfig);
+    const fn = sm().effectiveSaleNet;
+    if (typeof fn === 'function') return fn(sale, currentConfig);
+    return roundMoneyLocal(marketplaceSaleNet(sale) - saleProductCost(sale));
   }
 
   function saleMoneyParts(sale) {
-    return sm().saleMoneyParts(sale, currentConfig);
+    const fn = sm().saleMoneyParts;
+    if (typeof fn === 'function') return fn(sale, currentConfig);
+    const marketplace = marketplaceSaleNet(sale);
+    const cogs = saleProductCost(sale);
+    return {
+      gross: saleListedGross(sale),
+      fees: Number(sale?.fees || 0),
+      shipping: saleShippingCost(sale),
+      refunds: Number(sale?.refunds || 0),
+      otherFees: Number(sale?.otherFees || 0),
+      cogs,
+      marketplace,
+      net: roundMoneyLocal(marketplace - cogs)
+    };
   }
 
   function renderSalesMoneyStats(list, meta, extraRowsHtml) {
@@ -1305,15 +1381,53 @@
   }
 
   function isMlFlexSale(sale) {
-    return sm().isMlFlexSale(sale);
+    const fn = sm().isMlFlexSale;
+    if (typeof fn === 'function') return fn(sale);
+    const ch = String(sale?.channel || '').toLowerCase();
+    if (ch !== 'mercadolivre' && ch !== 'ml') return false;
+    if (sale?.mlFlex || sale?.shippingSource === 'flex') return true;
+    return /flex|self_service/i.test(String(sale?.logisticType || ''));
   }
 
   function flexCompanyOwed(sale) {
-    return sm().flexCompanyOwed(sale, currentConfig);
+    const fn = sm().flexCompanyOwed;
+    if (typeof fn === 'function') return fn(sale, currentConfig);
+    const list = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
+    if (list > 0) return roundMoneyLocal(list);
+    const ship = Number(sale?.shippingCost || sale?._shipping || 0);
+    const bonus = Number(sale?.mlEstorno || 0);
+    return roundMoneyLocal(ship + bonus);
   }
 
   function aggregateFlexOwedByMonth(sales) {
-    return sm().aggregateFlexOwedByMonth(sales, currentConfig);
+    const fn = sm().aggregateFlexOwedByMonth;
+    if (typeof fn === 'function') return fn(sales, currentConfig);
+    const map = new Map();
+    (sales || []).forEach((s) => {
+      if (!isMlFlexSale(s) || !s._ts) return;
+      const p = brDateParts(s._ts);
+      const key = `${p.year}-${p.monthNum}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          year: p.year,
+          monthNum: p.monthNum,
+          name: (sm().MONTH_LABELS || {})[p.monthNum] || p.monthName,
+          count: 0,
+          owed: 0,
+          bonus: 0,
+          net: 0
+        });
+      }
+      const row = map.get(key);
+      const owed = flexCompanyOwed(s);
+      const bonus = roundMoneyLocal(Number(s.mlEstorno || 0));
+      row.count += 1;
+      row.owed += owed;
+      row.bonus += bonus;
+      row.net += roundMoneyLocal(owed - bonus);
+    });
+    return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
   }
 
   function renderConsolidadoFlexOwed(sales) {
