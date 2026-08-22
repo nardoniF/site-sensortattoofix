@@ -8383,16 +8383,51 @@ function superfreteUserAgent(env) {
   return (env.SUPERFRETE_USER_AGENT || 'SensorTattooFix (contato@sensortattoofix.com.br)').trim();
 }
 
+const SUPERFRETE_SERVICE_IDS = new Set([1, 2, 3, 17, 31, 33]);
+
+function asSuperfreteServiceId(value) {
+  const n = Number(value);
+  return SUPERFRETE_SERVICE_IDS.has(n) ? n : null;
+}
+
 function superfreteServiceId(method) {
-  const n = Number(method?.superfreteService ?? method?.correiosCode);
-  if ([1, 2, 3, 17, 31, 33].includes(n)) return n;
+  const n = asSuperfreteServiceId(method?.superfreteService ?? method?.correiosCode);
+  if (n) return n;
   const id = String(method?.id || '').toLowerCase();
-  if (id.includes('pac')) return 1;
   if (id.includes('sedex')) return 2;
+  if (id.includes('pac')) return 1;
   if (id.includes('mini')) return 17;
   if (id.includes('jadlog')) return 3;
   if (id.includes('loggi')) return 31;
   if (id.includes('jt') || id.includes('j&t')) return 33;
+  const label = String(method?.label || '').toLowerCase();
+  if (label.includes('sedex')) return 2;
+  if (/\bpac\b/.test(label)) return 1;
+  if (label.includes('mini')) return 17;
+  return null;
+}
+
+/** Resolve SF service id from the paid order — never invent PAC when the cliente chose SEDEX. */
+function resolveSuperfreteServiceForOrder(order, config) {
+  const direct = asSuperfreteServiceId(order?.superfreteService);
+  if (direct) return direct;
+
+  // shippingServiceCode só vale se já for id SF (1/2/17/…). Código Correios tipo 03220 NÃO é serviço SF.
+  const fromCode = asSuperfreteServiceId(order?.shippingServiceCode);
+  if (fromCode) return fromCode;
+
+  const methods = config?.shippingMethods?.length ? config.shippingMethods : DEFAULT_SHIPPING_METHODS;
+  const method = methods.find((m) => m.id === order?.shippingMethodId);
+  const fromMethod = superfreteServiceId(method);
+  if (fromMethod) return fromMethod;
+
+  const hay = `${order?.shippingService || ''} ${order?.shippingMethodId || ''}`.toLowerCase();
+  if (hay.includes('sedex')) return 2;
+  if (/\bpac\b/.test(hay)) return 1;
+  if (hay.includes('mini')) return 17;
+  if (hay.includes('jadlog')) return 3;
+  if (hay.includes('loggi')) return 31;
+  if (/\bj\s*&\s*t\b|\bjt\b/.test(hay)) return 33;
   return null;
 }
 
@@ -8751,7 +8786,16 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
   }
 
   const sender = config.shipping?.sender || DEFAULT_CONFIG.shipping.sender;
-  const service = Number(order.superfreteService || order.shippingServiceCode) || 17;
+  const service = resolveSuperfreteServiceForOrder(order, config);
+  if (!service) {
+    const friendly = `Não foi possível identificar o serviço Super Frete do pedido `
+      + `(${order.shippingService || order.shippingMethodId || 'sem frete'}). `
+      + `Abra o pedido e confira se o frete é PAC/SEDEX/Mini/Jadlog/Loggi.`;
+    order.superfreteCartError = friendly;
+    await saveOrder(env, order);
+    throw new Error(friendly);
+  }
+  order.superfreteService = service;
   const pkg = order.superfretePackage || superfretePackageFromConfig(config);
   const products = (order.items || []).map((i) => ({
     name: String(i.name || 'Produto').slice(0, 80),
@@ -11387,9 +11431,15 @@ async function handleCreateOrder(request, env, origin, ctx) {
         weightGrams: shippingWeightGrams(config),
         declaredValue: Number(body.valorProduto) || undefined
       });
-      const quote = quotes.find((q) => q.methodId === superfreteMethod.id) || quotes[0];
+      // Nunca cair no quotes[0] (mais barato = PAC): isso gerava etiqueta PAC com pedido SEDEX.
+      const wantedSid = asSuperfreteServiceId(body.superfreteService)
+        || superfreteServiceId(superfreteMethod);
+      const quote = quotes.find((q) => q.methodId === superfreteMethod.id)
+        || (wantedSid ? quotes.find((q) => Number(q.superfreteService) === wantedSid) : null);
       if (!quote) {
-        return json({ error: 'Super Frete sem cotação para este CEP. Escolha outro frete.' }, 400, origin);
+        return json({
+          error: `Super Frete sem cotação de ${superfreteMethod.label || 'frete'} para este CEP. Escolha outro frete.`
+        }, 400, origin);
       }
       // Só bloqueia se o cliente mandou frete bem abaixo da cotação atual (anti-fraude).
       // Pedido de testador (R$ 0,01) não precisa dessa trava — frete real vira 0 depois.
@@ -11397,7 +11447,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
         return json({ error: 'Valor do frete Super Frete desatualizado. Recalcule o frete.' }, 400, origin);
       }
       frete = quote.price;
-      superfreteService = quote.superfreteService || superfreteServiceId(superfreteMethod);
+      superfreteService = quote.superfreteService || wantedSid || superfreteServiceId(superfreteMethod);
       superfretePackage = quote.superfretePackage || superfretePackage;
     } catch (err) {
       return json({ error: 'Super Frete indisponível: ' + err.message }, 400, origin);
