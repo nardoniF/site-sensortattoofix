@@ -1192,7 +1192,9 @@
     try {
       showStatus('Gerando etiqueta…', '');
       const forceSf = !!(order.superfreteCheckoutError || order.superfreteCartError
-        || /cancel/i.test(String(order.superfreteCartStatus || '')));
+        || /cancel|reject|fail|expir/i.test(String(order.superfreteCartStatus || '')));
+      // Após cancelar no painel SF o status local ainda pode ser "released" — o Worker
+      // consulta a API e recria; force=1 só quando já sabemos que a etiqueta morreu.
       const labelUrl = apiBase() + '/orders/' + encodeURIComponent(order.orderId) + '/shipping-label'
         + (forceSf ? '?force=1' : '');
       const res = await fetch(labelUrl, {

@@ -8617,14 +8617,12 @@ function superfreteAutoCheckoutEnabled(env) {
 
 function isSuperfreteCartTerminalFailure(order) {
   const st = String(order?.superfreteCartStatus || '').toLowerCase();
-  if (st === 'canceled' || st === 'cancelled' || st === 'rejected' || st === 'failed') {
-    return true;
-  }
+  if (/cancel|reject|fail|expir|void|refund/.test(st)) return true;
   if (order?.superfreteCheckoutError) return true;
   return false;
 }
 
-function clearSuperfreteCartFields(order) {
+function clearSuperfreteCartFields(order, { clearTracking = false } = {}) {
   order.superfreteCartId = null;
   order.superfreteCartStatus = null;
   order.superfreteCartPrice = null;
@@ -8632,6 +8630,39 @@ function clearSuperfreteCartFields(order) {
   order.superfreteCartError = null;
   order.superfreteCheckoutError = null;
   order.superfreteCheckout = null;
+  if (clearTracking) {
+    const sfTrack = String(order.superfreteTrackingCode || '').trim().toUpperCase();
+    const av = String(order.correiosTrackingCode || '').trim().toUpperCase();
+    order.superfreteTrackingCode = null;
+    if (sfTrack && av && sfTrack === av) {
+      order.correiosTrackingCode = null;
+      if (/pré-?postado|pre-?postado/i.test(String(order.correiosTrackingStatus || ''))) {
+        order.correiosTrackingStatus = null;
+      }
+    }
+  }
+}
+
+/** Consulta status real no Super Frete (cancelamento no painel não atualiza o pedido sozinho). */
+async function refreshSuperfreteCartFromApi(env, order) {
+  const cartId = order?.superfreteCartId;
+  if (!cartId || !superfreteConfigured(env)) return null;
+  try {
+    const info = await superfreteFetch(env, `/api/v0/order/info/${encodeURIComponent(cartId)}`, { method: 'GET' });
+    const st = String(info?.status || info?.order_status || '').toLowerCase();
+    if (st) order.superfreteCartStatus = st;
+    if (info?.price != null && Number.isFinite(Number(info.price))) {
+      order.superfreteCartPrice = Number(info.price);
+    }
+    return info;
+  } catch (err) {
+    const raw = String(err.message || '');
+    if (/404|not.?found|não.?encontr|nao.?encontr|cancel|expir|gone/i.test(raw)) {
+      order.superfreteCartStatus = 'canceled';
+    }
+    console.warn('Super Frete order/info:', order.orderId, raw);
+    return null;
+  }
 }
 
 function extractSuperfreteTracking(payload) {
@@ -8736,8 +8767,15 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
   const autoPay = superfreteAutoCheckoutEnabled(env);
 
   if (order.superfreteCartId && !force) {
+    // Cancelou no painel SF? Nosso pedido ainda pode estar "released" — consulta a API.
+    await refreshSuperfreteCartFromApi(env, order);
+    await saveOrder(env, order);
+
     const st = String(order.superfreteCartStatus || '').toLowerCase();
-    if (st === 'released') {
+    if (isSuperfreteCartTerminalFailure(order)) {
+      clearSuperfreteCartFields(order, { clearTracking: true });
+      await saveOrder(env, order);
+    } else if (st === 'released') {
       // Checkout às vezes libera sem devolver o AV na hora — busca no order/info.
       if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
         // Liberação do AV no SF pode demorar; tenta ~20s aqui e o front continua tentando.
@@ -8750,11 +8788,6 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
         status: 'released',
         trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
       };
-    }
-    // Etiqueta cancelada / falha de pagamento → limpa e recria (senão o Pedidos “não gera mais”).
-    if (isSuperfreteCartTerminalFailure(order)) {
-      clearSuperfreteCartFields(order);
-      await saveOrder(env, order);
     } else if (autoPay) {
       // Ainda pending: tenta pagar; se o carrinho morreu no Super Frete, limpa e recria.
       try {
@@ -8763,7 +8796,7 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
       } catch (err) {
         const raw = String(err.message || '');
         if (/cancel|404|not.?found|não.?encontr|nao.?encontr|invalid.?order|expired|gone/i.test(raw)) {
-          clearSuperfreteCartFields(order);
+          clearSuperfreteCartFields(order, { clearTracking: true });
           await saveOrder(env, order);
         } else {
           order.superfreteCheckoutError = humanizeSuperfreteError(raw);
@@ -8781,7 +8814,7 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
       return { ok: true, alreadyExists: true, id: order.superfreteCartId, status: order.superfreteCartStatus };
     }
   } else if (order.superfreteCartId && force) {
-    clearSuperfreteCartFields(order);
+    clearSuperfreteCartFields(order, { clearTracking: true });
     await saveOrder(env, order);
   }
 
