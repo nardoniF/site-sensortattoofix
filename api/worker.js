@@ -258,6 +258,7 @@ const DEFAULT_CONFIG = {
     BE: { label: 'Bélgica', price: 94.9, days: 18, currency: 'BRL' },
     CH: { label: 'Suíça', price: 99.9, days: 16, currency: 'BRL' },
     AT: { label: 'Áustria', price: 94.9, days: 18, currency: 'BRL' },
+    SI: { label: 'Eslovênia', price: 94.9, days: 18, currency: 'BRL' },
     SE: { label: 'Suécia', price: 99.9, days: 20, currency: 'BRL' },
     NO: { label: 'Noruega', price: 99.9, days: 20, currency: 'BRL' },
     DK: { label: 'Dinamarca', price: 99.9, days: 20, currency: 'BRL' },
@@ -6097,12 +6098,17 @@ async function isValidSession(env, token) {
 async function getOrder(env, orderId) {
   if (!orderId) return null;
   const fromD1 = await d1GetOrder(env, orderId);
-  if (fromD1) return fromD1;
-  const raw = await env.STORE_KV.get('order:' + orderId);
-  if (!raw) return null;
-  let order;
-  try { order = JSON.parse(raw); } catch { return null; }
-  await d1SaveOrder(env, order).catch(() => {});
+  let order = fromD1;
+  if (!order) {
+    const raw = await env.STORE_KV.get('order:' + orderId);
+    if (!raw) return null;
+    try { order = JSON.parse(raw); } catch { return null; }
+    await d1SaveOrder(env, order).catch(() => {});
+  }
+  if (order) {
+    const { changed } = hydrateIntlOrderFields(order);
+    if (changed) await saveOrder(env, order);
+  }
   return order;
 }
 
@@ -7487,6 +7493,7 @@ function buildCorreiosIntlEndereco(order) {
 const CORREIOS_DDI_BY_COUNTRY = {
   US: '1', CA: '1', AU: '61', GB: '44', UK: '44', IT: '39', PT: '351', ES: '34',
   FR: '33', DE: '49', NL: '31', BE: '32', IE: '353', NZ: '64', JP: '81',
+  SI: '386',
   KR: '82', CN: '86', IN: '91', MX: '52', AR: '54', CL: '56', CO: '57',
   PE: '51', UY: '598', PY: '595', BO: '591', EC: '593', VE: '58', BR: '55'
 };

@@ -1423,6 +1423,12 @@
       "days": 18,
       "currency": "BRL"
     },
+    "SI": {
+      "label": "Eslovênia",
+      "price": 94.9,
+      "days": 18,
+      "currency": "BRL"
+    },
     "SE": {
       "label": "Suécia",
       "price": 99.9,

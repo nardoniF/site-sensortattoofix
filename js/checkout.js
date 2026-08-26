@@ -525,6 +525,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     BE: { flag: '🇧🇪', dial: '32' },
     CH: { flag: '🇨🇭', dial: '41' },
     AT: { flag: '🇦🇹', dial: '43' },
+    SI: { flag: '🇸🇮', dial: '386' },
     SE: { flag: '🇸🇪', dial: '46' },
     NO: { flag: '🇳🇴', dial: '47' },
     DK: { flag: '🇩🇰', dial: '45' },
