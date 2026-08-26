@@ -12,7 +12,7 @@ window.STF_FOOTER = (function () {
   const SOCIAL = [
     { id: 'instagram', href: 'https://www.instagram.com/sensortattoofix', icon: 'fab fa-instagram', label: 'Instagram' },
     { id: 'tiktok', href: 'https://www.tiktok.com/@sensortattoofixofc', icon: 'fab fa-tiktok', label: 'TikTok' },
-    { id: 'youtube', href: 'https://www.youtube.com/channel/UCqjH0JSssVAFEP5eSglx0Wg', icon: 'fab fa-youtube', label: 'YouTube' },
+    { id: 'youtube', href: 'https://www.youtube.com/@Sensortattoofix-ofc', icon: 'fab fa-youtube', label: 'YouTube' },
     { id: 'facebook', href: 'https://www.facebook.com/profile.php?id=61588858629597', icon: 'fab fa-facebook', label: 'Facebook' }
   ];
 

@@ -5204,7 +5204,7 @@ ${worksheets}
   const CHANNEL_SOCIAL_DEFAULTS = {
     instagram: 'https://www.instagram.com/sensortattoofix',
     tiktok: 'https://www.tiktok.com/@sensortattoofixofc',
-    youtube: 'https://www.youtube.com/channel/UCqjH0JSssVAFEP5eSglx0Wg',
+    youtube: 'https://www.youtube.com/@Sensortattoofix-ofc',
     facebook: 'https://www.facebook.com/profile.php?id=61588858629597'
   };
 
