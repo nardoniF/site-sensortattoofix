@@ -5585,10 +5585,11 @@ ${worksheets}
   }
 
   const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes']);
-  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'kit', 'pagamento', 'frete', 'cupons', 'contato']);
+  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'cupons', 'contato']);
   const CADASTROS_PANEL_BY_SECTION = {
     pessoas: 'clientes',
     produtos: 'produtos',
+    smartwatches: 'smartwatches',
     kit: 'produtos',
     pagamento: 'pagamento',
     frete: 'frete',
@@ -6325,12 +6326,17 @@ ${worksheets}
       if (sec === 'pessoas') loadCustomers();
       if (sec === 'frete') initFreteSubtabs();
       if (sec === 'produtos' || sec === 'kit') initProductSubtabs();
+      if (sec === 'smartwatches') {
+        wireSmartwatchCatalogUi();
+        renderSmartwatchCatalogTable();
+      }
     }
 
     function showTab(tabId) {
       let id = tabId || 'pedidos';
       const legacyCadastros = {
         produtos: 'produtos',
+        smartwatches: 'smartwatches',
         pagamento: 'pagamento',
         frete: 'frete',
         cupons: 'cupons',
@@ -6365,10 +6371,6 @@ ${worksheets}
       if (id === 'cliques') loadClicks();
       if (id === 'vendas') initVendasSubtabs();
       if (id === 'pesquisa') loadFeedback();
-      if (id === 'smartwatches') {
-        wireSmartwatchCatalogUi();
-        renderSmartwatchCatalogTable();
-      }
       if (id === 'pedidos') {
         window.STF_PEDIDOS?.refresh?.().catch((err) => {
           const st = document.getElementById('pedidos-orders-status');
