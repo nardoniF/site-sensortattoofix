@@ -4864,6 +4864,10 @@ body.admin-page.pedidos-login-only #pedidos-login {
     gap: 8px;
     margin: 12px 0 16px;
 }
+.admin-product-subtabs[hidden],
+.admin-cadastros-hub[hidden] {
+    display: none !important;
+}
 .admin-product-subtab {
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
