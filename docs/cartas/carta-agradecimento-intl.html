@@ -570,6 +570,8 @@
     paraguai: 'Paraguay',
     argentina: 'Argentina',
     portugal: 'Portugal',
+    eslovenia: 'Slovenia',
+    slovenia: 'Slovenia',
     'outro pais': 'Other',
     'outro país': 'Other'
   };
@@ -581,7 +583,8 @@
     CH: 'Switzerland', AT: 'Austria', SE: 'Sweden', NO: 'Norway', DK: 'Denmark',
     PL: 'Poland', CZ: 'Czech Republic', JP: 'Japan', KR: 'South Korea', SG: 'Singapore',
     HK: 'Hong Kong', ZA: 'South Africa', AE: 'United Arab Emirates', PT: 'Portugal',
-    AR: 'Argentina', CL: 'Chile', CO: 'Colombia', UY: 'Uruguay', PY: 'Paraguay'
+    AR: 'Argentina', CL: 'Chile', CO: 'Colombia', UY: 'Uruguay', PY: 'Paraguay',
+    SI: 'Slovenia'
   };
 
   function localizeCountryEn(text) {
@@ -597,22 +600,30 @@
 
   function countryFromOrder(o) {
     const code = String(o.paisCode || '').trim().toUpperCase();
-    if (code && COUNTRY_CODE_EN[code]) return COUNTRY_CODE_EN[code];
-    return localizeCountryEn(o.pais || '') || o.pais || '';
+    if (code && code !== 'OTHER' && code !== 'XX' && code !== 'T1' && COUNTRY_CODE_EN[code]) {
+      return COUNTRY_CODE_EN[code];
+    }
+    const named = localizeCountryEn(o.pais || '') || String(o.pais || '').trim();
+    if (named && !/^outro\s*pa[ií]s$/i.test(named) && !/^other$/i.test(named)) return named;
+    return '';
   }
 
   function addressFromOrder(o) {
-    if (o.endereco && String(o.endereco).trim()) {
-      return localizeCountryEn(String(o.endereco).trim());
+    const country = countryFromOrder(o);
+    const rawEndereco = String(o.endereco || '').trim();
+    // Rebuild when legacy "Outro país" / OTHER leaked into the saved address line.
+    const enderecoIsOther = /outro\s*pa[ií]s|\bOTHER\b/i.test(rawEndereco);
+    if (rawEndereco && !enderecoIsOther) {
+      return localizeCountryEn(rawEndereco);
     }
     const parts = [
       [o.rua, o.numero].filter(Boolean).join(', '),
       o.complemento,
       o.bairro,
-      [o.cidade, o.uf || o.estado].filter(Boolean).join(', '),
+      [o.cidade, (o.uf && !/^OTHER$/i.test(String(o.uf)) ? o.uf : o.estado)].filter(Boolean).join(', '),
       o.cep || o.zip,
-      countryFromOrder(o)
-    ].filter((p) => p && String(p).trim());
+      country
+    ].filter((p) => p && String(p).trim() && !/^outro\s*pa[ií]s$/i.test(String(p)) && !/^OTHER$/i.test(String(p)));
     return parts.join(' — ') || '—';
   }
 
@@ -620,10 +631,10 @@
     const raw = String(o.shippingService || '').trim();
     if (!raw) return 'Standard International Mail';
     const norm = raw.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-    if (/documento\s+internacional/.test(norm)) return 'Standard International Mail';
+    if (/documento\s+internacional|config-fallback|outro\s*pais/.test(norm)) return 'Standard International Mail';
     if (/encomenda\s+internacional|exporta\s*facil/.test(norm)) return 'International Parcel';
     if (/carta\s+registrada/.test(norm)) return 'Registered Letter';
-    return localizeCountryEn(raw);
+    return localizeCountryEn(raw).replace(/\s*[—\-]\s*Other\b/i, '').trim() || 'Standard International Mail';
   }
 
   function isPlaceholderWatch(s) {

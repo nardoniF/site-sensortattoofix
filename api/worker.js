@@ -2251,7 +2251,8 @@ const PAIS_NAME_TO_ISO = {
   germany: 'DE', alemanha: 'DE', netherlands: 'NL', 'paises baixos': 'NL', belgium: 'BE', belgica: 'BE',
   ireland: 'IE', irlanda: 'IE', 'new zealand': 'NZ', 'nova zelandia': 'NZ',
   japan: 'JP', japao: 'JP', mexico: 'MX', argentina: 'AR', chile: 'CL',
-  colombia: 'CO', peru: 'PE', uruguay: 'UY', uruguai: 'UY', paraguay: 'PY', paraguai: 'PY'
+  colombia: 'CO', peru: 'PE', uruguay: 'UY', uruguai: 'UY', paraguay: 'PY', paraguai: 'PY',
+  slovenia: 'SI', eslovenia: 'SI', 'eslovenia': 'SI'
 };
 
 function stripDiacritics(s) {
