@@ -5201,6 +5201,13 @@ ${worksheets}
     showProductSubtab(saved);
   }
 
+  const CHANNEL_SOCIAL_DEFAULTS = {
+    instagram: 'https://www.instagram.com/sensortattoofix',
+    tiktok: 'https://www.tiktok.com/@sensortattoofixofc',
+    youtube: 'https://www.youtube.com/channel/UCqjH0JSssVAFEP5eSglx0Wg',
+    facebook: 'https://www.facebook.com/profile.php?id=61588858629597'
+  };
+
   function fillChannelsForm(channels) {
     const f = els.configForm;
     if (!f) return;
@@ -5210,10 +5217,18 @@ ${worksheets}
       if (!f[name]) return;
       f[name].checked = enabled !== undefined ? enabled !== false : fallback;
     };
+    const setUrl = (name, stored, fallback) => {
+      if (!f[name]) return;
+      f[name].value = String(stored || fallback || '').trim();
+    };
     set('channelSocialInstagram', socials.instagram?.enabled, true);
     set('channelSocialTiktok', socials.tiktok?.enabled, true);
     set('channelSocialYoutube', socials.youtube?.enabled, true);
     set('channelSocialFacebook', socials.facebook?.enabled, true);
+    setUrl('channelSocialInstagramUrl', socials.instagram?.url, CHANNEL_SOCIAL_DEFAULTS.instagram);
+    setUrl('channelSocialTiktokUrl', socials.tiktok?.url, CHANNEL_SOCIAL_DEFAULTS.tiktok);
+    setUrl('channelSocialYoutubeUrl', socials.youtube?.url, CHANNEL_SOCIAL_DEFAULTS.youtube);
+    setUrl('channelSocialFacebookUrl', socials.facebook?.url, CHANNEL_SOCIAL_DEFAULTS.facebook);
     set('channelStoreOficial', stores.oficial?.enabled, true);
     set('channelStoreMercadolivre', stores.mercadolivre?.enabled, true);
     set('channelStoreShopee', stores.shopee?.enabled, true);
@@ -5223,12 +5238,15 @@ ${worksheets}
 
   function collectChannelsForm(f, current) {
     const prev = current?.channels || {};
-    const prevSocial = prev.socials || {};
     const prevStore = prev.stores || {};
-    const social = (id, checked, fallbackUrl) => ({
-      enabled: !!checked,
-      url: String(prevSocial[id]?.url || fallbackUrl || '').trim() || undefined
-    });
+    const social = (id, checked, urlField, fallbackUrl) => {
+      const typed = String(f[urlField]?.value || '').trim();
+      const url = typed || fallbackUrl || '';
+      return {
+        enabled: !!checked,
+        ...(url ? { url } : {})
+      };
+    };
     const store = (id, checked, fallbackUrl) => {
       const out = { enabled: !!checked };
       const url = String(prevStore[id]?.url || fallbackUrl || '').trim();
@@ -5237,10 +5255,10 @@ ${worksheets}
     };
     return {
       socials: {
-        instagram: social('instagram', f.channelSocialInstagram?.checked, 'https://www.instagram.com/sensortattoofix'),
-        tiktok: social('tiktok', f.channelSocialTiktok?.checked, 'https://www.tiktok.com/@sensortattoofixofc'),
-        youtube: social('youtube', f.channelSocialYoutube?.checked, 'https://www.youtube.com/channel/UCqjH0JSssVAFEP5eSglx0Wg'),
-        facebook: social('facebook', f.channelSocialFacebook?.checked, 'https://www.facebook.com/profile.php?id=61588858629597')
+        instagram: social('instagram', f.channelSocialInstagram?.checked, 'channelSocialInstagramUrl', CHANNEL_SOCIAL_DEFAULTS.instagram),
+        tiktok: social('tiktok', f.channelSocialTiktok?.checked, 'channelSocialTiktokUrl', CHANNEL_SOCIAL_DEFAULTS.tiktok),
+        youtube: social('youtube', f.channelSocialYoutube?.checked, 'channelSocialYoutubeUrl', CHANNEL_SOCIAL_DEFAULTS.youtube),
+        facebook: social('facebook', f.channelSocialFacebook?.checked, 'channelSocialFacebookUrl', CHANNEL_SOCIAL_DEFAULTS.facebook)
       },
       stores: {
         oficial: store('oficial', f.channelStoreOficial?.checked),
@@ -5266,6 +5284,7 @@ ${worksheets}
     if (f.smartwatchModels) {
       f.smartwatchModels.value = (config.smartwatchModels || []).join('\n');
     }
+    fillSmartwatchCatalog(config);
     const ship = config.shipping || {};
     const sender = ship.sender || {};
     const pix = config.pix || {};
@@ -5543,11 +5562,8 @@ ${worksheets}
           fallbackToAlternate: f.pixBrFallbackAlt?.checked !== false
         }
       },
-      smartwatchModels: (() => {
-        const raw = f.smartwatchModels?.value || '';
-        const lines = raw.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-        return lines.length ? lines : (currentConfig?.smartwatchModels || []);
-      })(),
+      smartwatchModels: flatModelsFromAdminCatalog(smartwatchCatalogState),
+      smartwatchCatalog: collectSmartwatchCatalog(),
       internationalShipping: collectIntlShipping(),
       internationalSurcharge: Math.max(0, parseFloat(f.intlSurcharge?.value) || 0),
       internationalShippingMultiplier: Math.max(1, parseFloat(f.intlShippingMultiplier?.value) || 2),
@@ -5568,7 +5584,261 @@ ${worksheets}
     };
   }
 
-  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api']);
+  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes']);
+  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'kit', 'pagamento', 'frete', 'cupons', 'contato']);
+  const CADASTROS_PANEL_BY_SECTION = {
+    pessoas: 'clientes',
+    produtos: 'produtos',
+    kit: 'produtos',
+    pagamento: 'pagamento',
+    frete: 'frete',
+    cupons: 'cupons',
+    contato: 'contato'
+  };
+  const OUTRO_MODELO_LABEL = 'Outro modelo (informar nas observações)';
+  const SW_SMARTBAND_RE = /\b((smart\s*)?band|mi\s*band|honor\s*band|huawei\s*band|amazfit\s*band|galaxy\s*fit|vivosmart|v[ií]vofit|fitbit\s*(charge|inspire|ace|luxe|air))\b/i;
+  let smartwatchCatalogState = {};
+  let swCatalogWired = false;
+
+  function swInferKind(label, explicit) {
+    const raw = String(explicit || '').toLowerCase();
+    if (raw === 'band' || raw === 'smartband') return 'smartband';
+    if (raw === 'watch' || raw === 'smartwatch') return 'smartwatch';
+    return SW_SMARTBAND_RE.test(String(label || '')) ? 'smartband' : 'smartwatch';
+  }
+
+  function swBrandOf(label) {
+    const m = String(label || '');
+    if (m.startsWith('Apple')) return 'Apple';
+    if (m.startsWith('Samsung')) return 'Samsung';
+    if (m.startsWith('Garmin')) return 'Garmin';
+    if (m.startsWith('Amazfit')) return 'Amazfit';
+    if (m.startsWith('Zepp')) return 'Zepp';
+    if (m.startsWith('Xiaomi') || m.startsWith('Redmi')) return 'Xiaomi';
+    if (m.startsWith('Huawei')) return 'Huawei';
+    if (m.startsWith('Google') || m.startsWith('Pixel')) return 'Google';
+    if (m.startsWith('Mobvoi') || m.startsWith('TicWatch')) return 'Mobvoi';
+    if (m.startsWith('Fitbit')) return 'Fitbit';
+    if (m.startsWith('Polar')) return 'Polar';
+    if (m.startsWith('Honor')) return 'Honor';
+    return 'Outros';
+  }
+
+  function normalizeAdminCatalog(catalog, models) {
+    const out = {};
+    const push = (brand, row) => {
+      const label = String(row?.label || row || '').trim();
+      if (!label || label === OUTRO_MODELO_LABEL) return;
+      const b = brand || swBrandOf(label);
+      const kind = swInferKind(label, row?.kind || row?.deviceType);
+      const sensor = row?.sensorMm != null && row?.sensorMm !== '' ? Number(row.sensorMm) : null;
+      const size = row?.sizeMm != null && row?.sizeMm !== '' ? Number(row.sizeMm) : null;
+      if (!out[b]) out[b] = [];
+      const existing = out[b].find((r) => r.label === label);
+      const next = {
+        label,
+        model: String(row?.model || label).trim() || label,
+        sizeMm: Number.isFinite(size) && size > 0 ? size : null,
+        kind,
+        sensorMm: Number.isFinite(sensor) && sensor > 0 ? sensor : null
+      };
+      if (existing) Object.assign(existing, next);
+      else out[b].push(next);
+    };
+    Object.entries(catalog || {}).forEach(([brand, rows]) => {
+      (rows || []).forEach((row) => push(brand, row));
+    });
+    (models || []).forEach((label) => {
+      const b = swBrandOf(label);
+      if (!out[b]?.some((r) => r.label === label)) push(b, { label, model: label });
+    });
+    return out;
+  }
+
+  function flatModelsFromAdminCatalog(catalog) {
+    const labels = [];
+    const seen = new Set();
+    Object.keys(catalog || {}).sort().forEach((brand) => {
+      (catalog[brand] || []).forEach((row) => {
+        if (!row?.label || seen.has(row.label)) return;
+        seen.add(row.label);
+        labels.push(row.label);
+      });
+    });
+    if (!seen.has(OUTRO_MODELO_LABEL)) labels.push(OUTRO_MODELO_LABEL);
+    return labels;
+  }
+
+  function syncSmartwatchModelsTextarea() {
+    const ta = document.getElementById('admin-smartwatch-models');
+    if (ta) ta.value = flatModelsFromAdminCatalog(smartwatchCatalogState).join('\n');
+  }
+
+  function renderSmartwatchCatalogTable() {
+    const kindEl = document.getElementById('admin-sw-kind');
+    const brandEl = document.getElementById('admin-sw-brand');
+    const tbody = document.getElementById('admin-sw-tbody');
+    const summary = document.getElementById('admin-sw-summary');
+    if (!kindEl || !brandEl || !tbody) return;
+    const kind = kindEl.value || 'smartwatch';
+    const brands = Object.keys(smartwatchCatalogState)
+      .filter((b) => (smartwatchCatalogState[b] || []).some((r) => swInferKind(r.label, r.kind) === kind))
+      .sort();
+    const prevBrand = brandEl.value;
+    brandEl.innerHTML = brands.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('')
+      || '<option value="">—</option>';
+    if (prevBrand && brands.includes(prevBrand)) brandEl.value = prevBrand;
+    else if (brands.length) brandEl.value = brands[0];
+    const brand = brandEl.value;
+    const rows = (smartwatchCatalogState[brand] || [])
+      .filter((r) => swInferKind(r.label, r.kind) === kind)
+      .sort((a, b) => String(a.label).localeCompare(String(b.label), 'pt'));
+    if (summary) {
+      summary.textContent = brand
+        ? `${rows.length} modelo(s) · ${kind === 'smartband' ? 'Smartband' : 'Smartwatch'} · ${brand}`
+        : 'Nenhum modelo neste filtro.';
+    }
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="admin-meta">Nenhum modelo nesta marca/tipo. Adicione abaixo.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map((row, idx) => `
+      <tr data-sw-label="${escapeHtml(row.label)}">
+        <td><input type="text" class="admin-sw-label" value="${escapeHtml(row.label)}" data-idx="${idx}"></td>
+        <td><input type="number" class="admin-sw-sensor" min="0" step="0.1" inputmode="decimal"
+          value="${row.sensorMm != null ? escapeHtml(String(row.sensorMm)) : ''}" placeholder="—" data-idx="${idx}"></td>
+        <td><button type="button" class="btn-secondary admin-sw-remove" data-label="${escapeHtml(row.label)}" title="Remover">×</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function findCatalogRow(label) {
+    for (const brand of Object.keys(smartwatchCatalogState)) {
+      const hit = (smartwatchCatalogState[brand] || []).find((r) => r.label === label);
+      if (hit) return { brand, row: hit };
+    }
+    return null;
+  }
+
+  function wireSmartwatchCatalogUi() {
+    if (swCatalogWired) return;
+    swCatalogWired = true;
+    const kindEl = document.getElementById('admin-sw-kind');
+    const brandEl = document.getElementById('admin-sw-brand');
+    const tbody = document.getElementById('admin-sw-tbody');
+    kindEl?.addEventListener('change', () => renderSmartwatchCatalogTable());
+    brandEl?.addEventListener('change', () => renderSmartwatchCatalogTable());
+    document.getElementById('admin-sw-apply-sensor')?.addEventListener('click', () => {
+      const bulk = Number(document.getElementById('admin-sw-sensor-bulk')?.value);
+      if (!(bulk > 0)) {
+        alert('Informe o sensor em mm para aplicar na lista.');
+        return;
+      }
+      const kind = kindEl?.value || 'smartwatch';
+      const brand = brandEl?.value;
+      if (!brand || !smartwatchCatalogState[brand]) return;
+      smartwatchCatalogState[brand].forEach((row) => {
+        if (swInferKind(row.label, row.kind) === kind) row.sensorMm = bulk;
+      });
+      syncSmartwatchModelsTextarea();
+      renderSmartwatchCatalogTable();
+    });
+    document.getElementById('admin-sw-add')?.addEventListener('click', () => {
+      const label = String(document.getElementById('admin-sw-new-label')?.value || '').trim();
+      if (!label) {
+        alert('Informe o nome do modelo.');
+        return;
+      }
+      if (label === OUTRO_MODELO_LABEL) {
+        alert('“Outro modelo…” já é gerado automaticamente.');
+        return;
+      }
+      if (findCatalogRow(label)) {
+        alert('Esse modelo já está cadastrado.');
+        return;
+      }
+      const kind = kindEl?.value || swInferKind(label);
+      const brand = brandEl?.value || swBrandOf(label);
+      const sensorRaw = document.getElementById('admin-sw-new-sensor')?.value;
+      const sensor = sensorRaw !== '' && sensorRaw != null ? Number(sensorRaw) : null;
+      if (!smartwatchCatalogState[brand]) smartwatchCatalogState[brand] = [];
+      smartwatchCatalogState[brand].push({
+        label,
+        model: label,
+        sizeMm: null,
+        kind,
+        sensorMm: Number.isFinite(sensor) && sensor > 0 ? sensor : null
+      });
+      if (kindEl) kindEl.value = kind;
+      if (brandEl) {
+        renderSmartwatchCatalogTable();
+        brandEl.value = brand;
+      }
+      const newLabel = document.getElementById('admin-sw-new-label');
+      const newSensor = document.getElementById('admin-sw-new-sensor');
+      if (newLabel) newLabel.value = '';
+      if (newSensor) newSensor.value = '';
+      syncSmartwatchModelsTextarea();
+      renderSmartwatchCatalogTable();
+    });
+    tbody?.addEventListener('change', (e) => {
+      const sensorInp = e.target.closest('.admin-sw-sensor');
+      const labelInp = e.target.closest('.admin-sw-label');
+      if (sensorInp) {
+        const tr = sensorInp.closest('tr');
+        const oldLabel = tr?.getAttribute('data-sw-label');
+        const hit = oldLabel ? findCatalogRow(oldLabel) : null;
+        if (!hit) return;
+        const n = sensorInp.value === '' ? null : Number(sensorInp.value);
+        hit.row.sensorMm = Number.isFinite(n) && n > 0 ? n : null;
+        syncSmartwatchModelsTextarea();
+        return;
+      }
+      if (labelInp) {
+        const tr = labelInp.closest('tr');
+        const oldLabel = tr?.getAttribute('data-sw-label');
+        const hit = oldLabel ? findCatalogRow(oldLabel) : null;
+        if (!hit) return;
+        const next = String(labelInp.value || '').trim();
+        if (!next) {
+          labelInp.value = hit.row.label;
+          return;
+        }
+        if (next !== oldLabel && findCatalogRow(next)) {
+          alert('Já existe um modelo com esse nome.');
+          labelInp.value = hit.row.label;
+          return;
+        }
+        hit.row.label = next;
+        hit.row.model = next;
+        tr.setAttribute('data-sw-label', next);
+        syncSmartwatchModelsTextarea();
+      }
+    });
+    tbody?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.admin-sw-remove');
+      if (!btn) return;
+      const label = btn.getAttribute('data-label');
+      const hit = label ? findCatalogRow(label) : null;
+      if (!hit) return;
+      if (!confirm(`Remover “${label}” do cadastro?`)) return;
+      smartwatchCatalogState[hit.brand] = (smartwatchCatalogState[hit.brand] || []).filter((r) => r.label !== label);
+      if (!smartwatchCatalogState[hit.brand].length) delete smartwatchCatalogState[hit.brand];
+      syncSmartwatchModelsTextarea();
+      renderSmartwatchCatalogTable();
+    });
+  }
+
+  function fillSmartwatchCatalog(config) {
+    smartwatchCatalogState = normalizeAdminCatalog(config?.smartwatchCatalog, config?.smartwatchModels);
+    syncSmartwatchModelsTextarea();
+    wireSmartwatchCatalogUi();
+    renderSmartwatchCatalogTable();
+  }
+
+  function collectSmartwatchCatalog() {
+    return JSON.parse(JSON.stringify(smartwatchCatalogState || {}));
+  }
 
   function loadDocFrame(forceReload) {
     const frame = document.getElementById('admin-doc-frame');
@@ -5985,6 +6255,7 @@ ${worksheets}
   }
 
   let adminTabsWired = false;
+  let cadastrosSection = 'pessoas';
 
   function initAdminTabs() {
     if (adminTabsWired) return;
@@ -5992,10 +6263,91 @@ ${worksheets}
     const tabs = Array.from(document.querySelectorAll('.admin-tab[data-admin-tab]'));
     const panels = Array.from(document.querySelectorAll('.admin-tab-panel'));
     const saveActions = document.getElementById('admin-save-actions');
+    const hubNav = document.getElementById('cadastros-hub-nav');
     if (!tabs.length || !panels.length) return;
 
+    function setHubSectionButtons(section) {
+      if (!hubNav) return;
+      hubNav.querySelectorAll('[data-cadastros-section]').forEach((btn) => {
+        const active = btn.dataset.cadastrosSection === section;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+
+    function showCadastrosSection(section) {
+      const sec = CADASTROS_SECTIONS.has(section) ? section : 'pessoas';
+      cadastrosSection = sec;
+      setHubSectionButtons(sec);
+      if (hubNav) hubNav.hidden = false;
+      tabs.forEach((tab) => {
+        const active = tab.dataset.adminTab === 'clientes';
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      const panelId = CADASTROS_PANEL_BY_SECTION[sec] || 'clientes';
+      panels.forEach((panel) => {
+        const active = panel.id === 'admin-tab-' + panelId;
+        panel.hidden = !active;
+        panel.classList.toggle('active', active);
+      });
+      const kitBtn = document.getElementById('admin-product-subtab-kit-cost');
+      const marketTabs = document.getElementById('admin-product-market-subtabs');
+      if (sec === 'kit') {
+        if (kitBtn) kitBtn.hidden = false;
+        if (marketTabs) {
+          marketTabs.querySelectorAll('[data-product-subtab]').forEach((btn) => {
+            btn.hidden = btn.dataset.productSubtab !== 'kit-cost';
+          });
+        }
+        showProductSubtab('kit-cost');
+      } else if (sec === 'produtos') {
+        if (kitBtn) kitBtn.hidden = true;
+        if (marketTabs) {
+          marketTabs.querySelectorAll('[data-product-subtab]').forEach((btn) => {
+            btn.hidden = btn.dataset.productSubtab === 'kit-cost';
+          });
+        }
+        const cur = (() => {
+          try { return localStorage.getItem('stf_admin_product_subtab') || 'br-main'; } catch (_) { return 'br-main'; }
+        })();
+        showProductSubtab(cur === 'kit-cost' ? 'br-main' : cur);
+      }
+      if (saveActions) {
+        saveActions.hidden = !ADMIN_SAVE_TABS.has(panelId) && panelId !== 'clientes';
+        if (sec === 'pessoas') saveActions.hidden = true;
+        else saveActions.hidden = false;
+      }
+      try {
+        localStorage.setItem('stf_admin_tab', 'clientes');
+        localStorage.setItem('stf_admin_cadastros_section', sec);
+      } catch (e) { /* ignore */ }
+      if (sec === 'pessoas') loadCustomers();
+      if (sec === 'frete') initFreteSubtabs();
+      if (sec === 'produtos' || sec === 'kit') initProductSubtabs();
+    }
+
     function showTab(tabId) {
-      const id = tabId || 'pedidos';
+      let id = tabId || 'pedidos';
+      const legacyCadastros = {
+        produtos: 'produtos',
+        pagamento: 'pagamento',
+        frete: 'frete',
+        cupons: 'cupons',
+        contato: 'contato',
+        pix: 'pagamento'
+      };
+      if (legacyCadastros[id]) {
+        showCadastrosSection(legacyCadastros[id]);
+        return;
+      }
+      if (id === 'clientes') {
+        let sec = 'pessoas';
+        try { sec = localStorage.getItem('stf_admin_cadastros_section') || 'pessoas'; } catch (_) { /* ignore */ }
+        showCadastrosSection(sec);
+        return;
+      }
+      if (hubNav) hubNav.hidden = true;
       tabs.forEach((tab) => {
         const active = tab.dataset.adminTab === id;
         tab.classList.toggle('active', active);
@@ -6009,11 +6361,14 @@ ${worksheets}
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'api') loadIntegrationsStatus();
-      if (id === 'clientes') loadCustomers();
       if (id === 'comunidade') loadForumAdmin();
       if (id === 'cliques') loadClicks();
       if (id === 'vendas') initVendasSubtabs();
       if (id === 'pesquisa') loadFeedback();
+      if (id === 'smartwatches') {
+        wireSmartwatchCatalogUi();
+        renderSmartwatchCatalogTable();
+      }
       if (id === 'pedidos') {
         window.STF_PEDIDOS?.refresh?.().catch((err) => {
           const st = document.getElementById('pedidos-orders-status');
@@ -6025,17 +6380,18 @@ ${worksheets}
         });
       }
       if (id === 'documentacao') loadDocFrame(true);
-      if (id === 'frete') initFreteSubtabs();
     }
 
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => showTab(tab.dataset.adminTab));
     });
+    hubNav?.querySelectorAll('[data-cadastros-section]').forEach((btn) => {
+      btn.addEventListener('click', () => showCadastrosSection(btn.dataset.cadastrosSection));
+    });
 
     let saved = 'pedidos';
     try { saved = localStorage.getItem('stf_admin_tab') || 'pedidos'; } catch (e) { /* ignore */ }
     if (saved === 'pix') saved = 'pagamento';
-    if (!panels.some((p) => p.id === 'admin-tab-' + saved)) saved = 'pedidos';
     showTab(saved);
   }
 

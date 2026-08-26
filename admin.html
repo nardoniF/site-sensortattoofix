@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.16">
+    <link rel="stylesheet" href="style.css?v=3.18">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -84,20 +84,25 @@
                 <nav class="admin-tabs" role="tablist" aria-label="Seções do painel">
                     <button type="button" role="tab" class="admin-tab active" data-admin-tab="pedidos" aria-selected="true" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="vendas" aria-selected="false" aria-controls="admin-tab-vendas"><i class="fas fa-chart-line"></i> Vendas</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-users"></i> Cadastros</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-folder-open"></i> Cadastros</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="smartwatches" aria-selected="false" aria-controls="admin-tab-smartwatches"><i class="fas fa-clock"></i> Smartwatches</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pesquisa" aria-selected="false" aria-controls="admin-tab-pesquisa"><i class="fas fa-comment-dots"></i> Pesquisa</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="produtos" aria-selected="false" aria-controls="admin-tab-produtos"><i class="fas fa-box"></i> Produtos</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="pagamento" aria-selected="false" aria-controls="admin-tab-pagamento"><i class="fas fa-credit-card"></i> Pagamento</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="frete" aria-selected="false" aria-controls="admin-tab-frete"><i class="fas fa-truck"></i> Frete</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="cupons" aria-selected="false" aria-controls="admin-tab-cupons"><i class="fas fa-ticket-alt"></i> Cupons</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="contato" aria-selected="false" aria-controls="admin-tab-contato"><i class="fas fa-headset"></i> Contato</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="documentacao" aria-selected="false" aria-controls="admin-tab-documentacao"><i class="fas fa-book"></i> Documentação</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="comunidade" aria-selected="false" aria-controls="admin-tab-comunidade"><i class="fas fa-comments"></i> Comunidade</button>
                 </nav>
 
                 <form id="admin-config-form" class="admin-form">
+                    <nav id="cadastros-hub-nav" class="admin-product-subtabs admin-cadastros-hub" role="tablist" aria-label="Seções de cadastros" hidden>
+                        <button type="button" role="tab" class="admin-product-subtab active" data-cadastros-section="pessoas" aria-selected="true"><i class="fas fa-users"></i> Pessoas</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="produtos" aria-selected="false"><i class="fas fa-box"></i> Produtos</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="kit" aria-selected="false"><i class="fas fa-coins"></i> Kit</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="pagamento" aria-selected="false"><i class="fas fa-credit-card"></i> Pagamentos</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="frete" aria-selected="false"><i class="fas fa-truck"></i> Frete</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="cupons" aria-selected="false"><i class="fas fa-ticket-alt"></i> Cupons</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="contato" aria-selected="false"><i class="fas fa-headset"></i> Contatos</button>
+                    </nav>
                     <div id="admin-tab-produtos" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-box"></i> Catálogo de produtos</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-produtos" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
@@ -107,11 +112,11 @@
                             <p><strong>Internacional (.com):</strong> só a lente Optical Lens — sem agregados, sem kit completo. Fotos e título vêm deste cadastro.</p>
                             <p><strong>Custo do kit:</strong> Brasil (kit completo) e internacional (envelope + sulfite + lente). Película: preço ÷ folhas ÷ 30 lentes. O custo entra no <strong>líquido real</strong>.</p>
                         </div>
-                        <nav class="admin-product-subtabs" role="tablist" aria-label="Mercados de produto">
-                            <button type="button" role="tab" class="admin-product-subtab active" data-product-subtab="br-main" aria-selected="true" aria-controls="admin-products-br-main-panel"><i class="fas fa-flag"></i> Brasil — principais</button>
+                        <nav class="admin-product-subtabs" role="tablist" aria-label="Mercados de produto" id="admin-product-market-subtabs">
+                            <button type="button" role="tab" class="admin-product-subtab active" data-product-subtab="br-main" aria-selected="true" aria-controls="admin-products-br-main-panel"><i class="fas fa-flag"></i> Brasil</button>
                             <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="br-aggregated" aria-selected="false" aria-controls="admin-products-br-aggregated-panel"><i class="fas fa-puzzle-piece"></i> Brasil — agregados</button>
-                            <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="intl-main" aria-selected="false" aria-controls="admin-products-intl-main-panel"><i class="fas fa-globe-americas"></i> .com — lentes</button>
-                            <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="kit-cost" aria-selected="false" aria-controls="admin-products-kit-cost-panel"><i class="fas fa-coins"></i> Custo do kit</button>
+                            <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="intl-main" aria-selected="false" aria-controls="admin-products-intl-main-panel"><i class="fas fa-globe-americas"></i> .com</button>
+                            <button type="button" role="tab" class="admin-product-subtab" data-product-subtab="kit-cost" id="admin-product-subtab-kit-cost" aria-selected="false" aria-controls="admin-products-kit-cost-panel" hidden><i class="fas fa-coins"></i> Kit</button>
                         </nav>
                         <p id="admin-products-summary" class="admin-meta admin-products-summary"></p>
                         <div id="admin-products-br-main-panel" class="admin-product-subpanel" role="tabpanel">
@@ -158,16 +163,56 @@
                             </label>
                         </div>
                     </fieldset>
+                    </div>
+
+                    <div id="admin-tab-smartwatches" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend class="admin-legend-row"><span><i class="fas fa-clock"></i> Cadastro de smartwatches (checkout)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-smartwatch-models" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
-                        <div id="help-smartwatch-models" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Lista do select <strong>Modelo do smartwatch</strong> no checkout. Um modelo por linha — pode cadastrar qualquer relógio que exista.</p>
-                            <p>Mantenha a linha <code>Outro modelo (informar nas observações)</code> no fim para quem não achar o seu.</p>
+                        <legend class="admin-legend-row"><span><i class="fas fa-clock"></i> Cadastro de smartwatches</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-smartwatch-catalog" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-smartwatch-catalog" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Catálogo usado no checkout (marca → modelo). Filtre por <strong>Smartwatch</strong> ou <strong>Smartband</strong> e pela marca.</p>
+                            <p><strong>Sensor (mm)</strong> = diâmetro do sensor óptico na parte de trás — para consulta ao aplicar a lente. Não altera o tamanho da caixa no label.</p>
+                            <p>A opção “Outro modelo…” continua no checkout automaticamente ao salvar.</p>
                         </div>
-                        <label class="full">Modelos (um por linha)
-                            <textarea name="smartwatchModels" id="admin-smartwatch-models" rows="14" placeholder="Apple Watch Series 9 (45mm)&#10;Samsung Galaxy Watch 7 (44mm)&#10;Outro modelo (informar nas observações)"></textarea>
-                        </label>
-                        <p class="admin-meta">Salve em <strong>Produtos</strong> para atualizar a lista na loja e no checkout.</p>
+                        <div class="admin-sw-filters">
+                            <label>Tipo
+                                <select id="admin-sw-kind">
+                                    <option value="smartwatch">Smartwatch</option>
+                                    <option value="smartband">Smartband</option>
+                                </select>
+                            </label>
+                            <label>Marca
+                                <select id="admin-sw-brand"></select>
+                            </label>
+                            <label class="admin-sw-sensor-bulk">Sensor da marca (mm)
+                                <input type="number" id="admin-sw-sensor-bulk" min="0" step="0.1" placeholder="ex.: 25" inputmode="decimal">
+                            </label>
+                            <button type="button" id="admin-sw-apply-sensor" class="btn-secondary" title="Aplica o mm a todos os modelos da marca+tipo filtrados">Aplicar mm na lista</button>
+                        </div>
+                        <p id="admin-sw-summary" class="admin-meta"></p>
+                        <div class="admin-table-wrap">
+                            <table class="admin-table admin-doc-table" id="admin-sw-table">
+                                <thead>
+                                    <tr>
+                                        <th>Modelo (checkout)</th>
+                                        <th style="width:110px">Sensor (mm)</th>
+                                        <th style="width:70px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-sw-tbody">
+                                    <tr><td colspan="3" class="admin-meta">Carregando…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="admin-form-actions" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:end">
+                            <label style="flex:1;min-width:220px">Novo modelo
+                                <input type="text" id="admin-sw-new-label" placeholder="Ex.: Apple Watch Series 11 (46mm)" autocomplete="off">
+                            </label>
+                            <label style="width:110px">Sensor (mm)
+                                <input type="number" id="admin-sw-new-sensor" min="0" step="0.1" placeholder="—" inputmode="decimal">
+                            </label>
+                            <button type="button" id="admin-sw-add" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar</button>
+                        </div>
+                        <textarea name="smartwatchModels" id="admin-smartwatch-models" hidden aria-hidden="true"></textarea>
                     </fieldset>
                     </div>
 
@@ -483,14 +528,26 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-share-nodes"></i> Redes e lojas no site</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-channels" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-channels" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Liga ou desliga ícones de redes (header/footer) e cards de marketplace (onde comprar / loja). Itens desligados somem do layout sem deixar buraco.</p>
-                            <p>YouTube aponta para o canal novo. FAQ continua com Reels do Instagram (não embeds de YouTube).</p>
+                            <p>Em cada rede, cadastre a URL oficial — o site (header, footer e schema) usa o link salvo aqui. Se trocar o canal do YouTube, atualize só este campo e salve.</p>
                         </div>
                         <p class="admin-meta" style="margin:0 0 10px">Redes sociais</p>
-                        <div class="admin-channels-grid">
-                            <label class="label-check"><input type="checkbox" name="channelSocialInstagram" checked><span>Instagram</span></label>
-                            <label class="label-check"><input type="checkbox" name="channelSocialTiktok" checked><span>TikTok</span></label>
-                            <label class="label-check"><input type="checkbox" name="channelSocialYoutube" checked><span>YouTube</span></label>
-                            <label class="label-check"><input type="checkbox" name="channelSocialFacebook" checked><span>Facebook</span></label>
+                        <div class="admin-channels-list">
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelSocialInstagram" checked><span>Instagram</span></label>
+                                <input type="url" name="channelSocialInstagramUrl" placeholder="https://www.instagram.com/…" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelSocialTiktok" checked><span>TikTok</span></label>
+                                <input type="url" name="channelSocialTiktokUrl" placeholder="https://www.tiktok.com/@…" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelSocialYoutube" checked><span>YouTube</span></label>
+                                <input type="url" name="channelSocialYoutubeUrl" placeholder="https://www.youtube.com/channel/…" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelSocialFacebook" checked><span>Facebook</span></label>
+                                <input type="url" name="channelSocialFacebookUrl" placeholder="https://www.facebook.com/…" autocomplete="off" spellcheck="false">
+                            </div>
                         </div>
                         <p class="admin-meta" style="margin:16px 0 10px">Lojas / marketplaces</p>
                         <div class="admin-channels-grid">
@@ -1073,13 +1130,13 @@
                     </div>
 <div id="admin-tab-clientes" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
-                        <legend class="admin-legend-row"><span><i class="fas fa-users"></i> Cadastros</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-clientes" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <legend class="admin-legend-row"><span><i class="fas fa-users"></i> Pessoas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-clientes" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-clientes" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p><strong>Clientes:</strong> contas reais da loja.</p>
                             <p><strong>Usuários de teste:</strong> flag tester — R$ 0,01 no checkout + acesso à comunidade beta.</p>
                             <p><strong>Adm:</strong> login do painel (não é conta de cliente).</p>
                         </div>
-                        <nav class="admin-product-subtabs" role="tablist" aria-label="Tipos de cadastro" id="customers-subtabs">
+                        <nav class="admin-product-subtabs" role="tablist" aria-label="Tipos de pessoas" id="customers-subtabs">
                             <button type="button" role="tab" class="admin-product-subtab active" data-customers-subtab="clientes" aria-selected="true"><i class="fas fa-user"></i> Clientes <span id="customers-count-clientes" class="admin-meta"></span></button>
                             <button type="button" role="tab" class="admin-product-subtab" data-customers-subtab="teste" aria-selected="false"><i class="fas fa-flask"></i> Usuários de teste <span id="customers-count-teste" class="admin-meta"></span></button>
                             <button type="button" role="tab" class="admin-product-subtab" data-customers-subtab="adm" aria-selected="false"><i class="fas fa-user-shield"></i> Adm</button>
@@ -1189,6 +1246,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=4"></script>
-    <script defer src="js/admin.js?v=193"></script>
+    <script defer src="js/admin.js?v=195"></script>
 </body>
 </html>

@@ -47,13 +47,12 @@ window.STF_CHANNELS = (function () {
           try {
             const next = new URL(url, location.href);
             const cur = new URL(link.href, location.href);
-            if (cur.origin + cur.pathname !== next.origin + next.pathname) {
-              const utm = cur.searchParams;
-              utm.forEach((v, k) => {
-                if (k.startsWith('utm_') && !next.searchParams.has(k)) next.searchParams.set(k, v);
-              });
-              link.href = next.toString();
-            }
+            // Sempre aplica a URL do Admin; preserva utm_* já no link da página.
+            const utm = cur.searchParams;
+            utm.forEach((v, k) => {
+              if (k.startsWith('utm_') && !next.searchParams.has(k)) next.searchParams.set(k, v);
+            });
+            link.href = next.toString();
           } catch (_) { /* keep existing href */ }
         });
       }

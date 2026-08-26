@@ -1158,6 +1158,85 @@ function mergeSmartwatchModelLists(stored, base) {
   return out;
 }
 
+function catalogRowCount(catalog) {
+  return Object.values(catalog || {}).reduce((n, arr) => n + (Array.isArray(arr) ? arr.length : 0), 0);
+}
+
+function normalizeSmartwatchCatalogRow(row, brand) {
+  if (!row) return null;
+  if (typeof row === 'string') {
+    const label = row.trim();
+    if (!label) return null;
+    return { label, model: label, sizeMm: null, kind: null, sensorMm: null, brand };
+  }
+  const label = String(row.label || row.model || '').trim();
+  if (!label) return null;
+  const kindRaw = String(row.kind || row.deviceType || '').toLowerCase();
+  let kind = null;
+  if (kindRaw === 'band' || kindRaw === 'smartband') kind = 'smartband';
+  else if (kindRaw === 'watch' || kindRaw === 'smartwatch') kind = 'smartwatch';
+  const sensor = row.sensorMm != null && row.sensorMm !== '' ? Number(row.sensorMm) : null;
+  const size = row.sizeMm != null && row.sizeMm !== '' ? Number(row.sizeMm) : null;
+  return {
+    label,
+    model: String(row.model || label).trim() || label,
+    sizeMm: Number.isFinite(size) && size > 0 ? size : null,
+    kind,
+    sensorMm: Number.isFinite(sensor) && sensor > 0 ? sensor : null,
+    brand: brand || row.brand || null
+  };
+}
+
+function mergeSmartwatchCatalog(stored, base) {
+  const storedCount = catalogRowCount(stored);
+  const baseCount = catalogRowCount(base);
+  const prefer = storedCount >= baseCount ? stored : base;
+  const other = prefer === stored ? base : stored;
+  const out = {};
+  const brands = new Set([
+    ...Object.keys(prefer || {}),
+    ...Object.keys(other || {})
+  ]);
+  brands.forEach((brand) => {
+    const byLabel = new Map();
+    [...(other?.[brand] || []), ...(prefer?.[brand] || [])].forEach((row) => {
+      const norm = normalizeSmartwatchCatalogRow(row, brand);
+      if (!norm) return;
+      const prev = byLabel.get(norm.label) || {};
+      byLabel.set(norm.label, {
+        label: norm.label,
+        model: norm.model || prev.model || norm.label,
+        sizeMm: norm.sizeMm != null ? norm.sizeMm : (prev.sizeMm ?? null),
+        kind: norm.kind || prev.kind || null,
+        sensorMm: norm.sensorMm != null ? norm.sensorMm : (prev.sensorMm ?? null)
+      });
+    });
+    if (byLabel.size) out[brand] = [...byLabel.values()];
+  });
+  return out;
+}
+
+function flatModelsFromCatalog(catalog, fallbackList) {
+  const labels = [];
+  const seen = new Set();
+  Object.keys(catalog || {}).sort().forEach((brand) => {
+    (catalog[brand] || []).forEach((row) => {
+      const label = typeof row === 'string' ? row : row?.label;
+      if (!label || seen.has(label)) return;
+      seen.add(label);
+      labels.push(label);
+    });
+  });
+  const outro = 'Outro modelo (informar nas observações)';
+  (fallbackList || []).forEach((m) => {
+    if (!m || seen.has(m)) return;
+    seen.add(m);
+    labels.push(m);
+  });
+  if (!seen.has(outro)) labels.push(outro);
+  return labels;
+}
+
 function isLegacyBrokenKitImage(url) {
   const u = String(url || '').trim();
   if (!u) return true;
@@ -1287,6 +1366,10 @@ function mergeSiteCatalog(config, site) {
   next.smartwatchModelMeta = mergeSiteCatalogSmartwatchMeta(
     config.smartwatchModelMeta,
     site.smartwatchModelMeta
+  );
+  next.smartwatchCatalog = mergeSmartwatchCatalog(
+    config.smartwatchCatalog,
+    site.smartwatchCatalog
   );
   if (site.products?.length) {
     next.products = mergeSiteCatalogProducts(config.products, site.products);
@@ -1444,6 +1527,8 @@ function withConfigDefaults(stored) {
       pixBr: mergePixBrConfig(base.payments?.pixBr, stored.payments?.pixBr)
     },
     smartwatchModels: mergeSmartwatchModelLists(stored.smartwatchModels, base.smartwatchModels),
+    smartwatchCatalog: mergeSmartwatchCatalog(stored.smartwatchCatalog, base.smartwatchCatalog),
+    smartwatchModelMeta: stored.smartwatchModelMeta || base.smartwatchModelMeta || {},
     products: normalizeProducts(stored, base),
     shippingMethods: mergeShippingMethods(stored.shippingMethods),
     motoboyShipping: {
@@ -2082,6 +2167,7 @@ function publicConfigView(config, env) {
       }
     },
     smartwatchModels: config.smartwatchModels || DEFAULT_CONFIG.smartwatchModels,
+    smartwatchCatalog: config.smartwatchCatalog || {},
     smartwatchModelMeta: config.smartwatchModelMeta || {},
     formsubmit: {
       email: config.formsubmit?.email || DEFAULT_CONFIG.formsubmit.email,
@@ -8407,6 +8493,22 @@ function superfreteServiceId(method) {
   return null;
 }
 
+/** Só casa superfreteService ou methodId — nunca “primeiro SF” por shippingProvider. */
+function findSuperfreteMethod(config, body) {
+  const methods = getEnabledShippingMethods(config, 'BR').filter(isSuperfreteMethod);
+  const wantedSid = asSuperfreteServiceId(body?.superfreteService);
+  if (wantedSid) {
+    const hit = methods.find((m) => superfreteServiceId(m) === wantedSid);
+    if (hit) return hit;
+  }
+  const methodId = String(body?.shippingMethodId || '').trim();
+  if (methodId) {
+    const hit = methods.find((m) => m.id === methodId);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 /** Resolve SF service id from the paid order — confia no que foi salvo no checkout, não só no rótulo. */
 function resolveSuperfreteServiceFromLabel(order, config) {
   const methods = config?.shippingMethods?.length ? config.shippingMethods : DEFAULT_SHIPPING_METHODS;
@@ -8466,9 +8568,6 @@ async function resolveSuperfreteServiceForOrder(env, config, order) {
     if (paidFrete <= 27) return 1;
     if (paidFrete >= 29) return 2;
   }
-
-  const fromMethodId = resolveSuperfreteServiceFromLabel(order, config);
-  if (fromMethodId) return fromMethodId;
 
   const stored = asSuperfreteServiceId(order?.superfreteService);
   if (stored) return stored;
@@ -8680,6 +8779,19 @@ function isSuperfreteCartTerminalFailure(order) {
   return false;
 }
 
+/** Carrinho SF com preço/serviço diferente do frete pago no pedido — descarta e recria. */
+async function superfreteCartMismatchPaidFrete(env, config, order) {
+  const paidFrete = Number(order?.frete);
+  if (!(Number.isFinite(paidFrete) && paidFrete > 0)) return false;
+  const cartPrice = Number(order?.superfreteCartPrice);
+  if (Number.isFinite(cartPrice) && cartPrice > 0 && Math.abs(cartPrice - paidFrete) > 1.5) {
+    return true;
+  }
+  const expected = await resolveSuperfreteServiceForOrder(env, config, order);
+  const cartSvc = asSuperfreteServiceId(order?.superfreteService);
+  return !!(expected && cartSvc && expected !== cartSvc);
+}
+
 function clearSuperfreteCartFields(order, { clearTracking = false } = {}) {
   order.superfreteCartId = null;
   order.superfreteCartStatus = null;
@@ -8830,7 +8942,15 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     await saveOrder(env, order);
 
     const st = String(order.superfreteCartStatus || '').toLowerCase();
-    if (isSuperfreteCartTerminalFailure(order)) {
+    const mismatch = await superfreteCartMismatchPaidFrete(env, config, order);
+    if (mismatch) {
+      console.warn('Super Frete: carrinho diverge do frete pago', order?.orderId, {
+        frete: order.frete,
+        cartPrice: order.superfreteCartPrice,
+        superfreteService: order.superfreteService
+      });
+    }
+    if (isSuperfreteCartTerminalFailure(order) || mismatch) {
       clearSuperfreteCartFields(order, { clearTracking: true });
       await saveOrder(env, order);
     } else if (st === 'released') {
@@ -8887,8 +9007,12 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     throw new Error(friendly);
   }
   order.superfreteService = service;
+  order.shippingServiceCode = String(service);
   const svcLabel = superfreteServiceLabel(service);
   if (svcLabel) order.shippingService = svcLabel;
+  const sfMethods = getEnabledShippingMethods(config, 'BR').filter(isSuperfreteMethod);
+  const methodForSvc = sfMethods.find((m) => superfreteServiceId(m) === service);
+  if (methodForSvc?.id) order.shippingMethodId = methodForSvc.id;
   const pkg = order.superfretePackage || superfretePackageFromConfig(config);
   const products = (order.items || []).map((i) => ({
     name: String(i.name || 'Produto').slice(0, 80),
@@ -11490,15 +11614,12 @@ async function handleCreateOrder(request, env, origin, ctx) {
   const motoboyMethod = !isIntl && getMotoboyShippingMethods(config).find(
     (m) => m.id === body.shippingMethodId || body.shippingProvider === 'motoboy'
   );
-  const superfreteMethod = !isIntl && getEnabledShippingMethods(config, 'BR').find(
-    (m) => isSuperfreteMethod(m) && (
-      m.id === body.shippingMethodId || body.shippingProvider === 'superfrete'
-    )
-  );
+  const superfreteMethod = !isIntl ? findSuperfreteMethod(config, body) : null;
   let uberQuoteId = body.uberQuoteId || null;
   let motoboyDistanceKm = null;
   let superfreteService = body.superfreteService || null;
   let superfretePackage = body.superfretePackage || null;
+  let superfreteQuoteMethodId = body.shippingMethodId || null;
 
   // Conta testadora / e-mail de teste → depois vira R$ 0,01; não travar em micro-diferença de frete.
   let testerCheckout = isSelfTestCustomerEmail(body.email);
@@ -11526,24 +11647,25 @@ async function handleCreateOrder(request, env, origin, ctx) {
         weightGrams: shippingWeightGrams(config),
         declaredValue: Number(body.valorProduto) || undefined
       });
-      // Nunca cair no quotes[0] (mais barato = PAC): isso gerava etiqueta PAC com pedido SEDEX.
       const wantedSid = asSuperfreteServiceId(body.superfreteService)
         || superfreteServiceId(superfreteMethod);
       const quote = quotes.find((q) => q.methodId === superfreteMethod.id)
-        || (wantedSid ? quotes.find((q) => Number(q.superfreteService) === wantedSid) : null);
+        || (wantedSid ? quotes.find((q) => Number(q.superfreteService) === wantedSid) : null)
+        || (Number.isFinite(frete) && frete > 0
+          ? quotes.find((q) => Math.abs(Number(q.price) - frete) <= 0.51)
+          : null);
       if (!quote) {
         return json({
           error: `Super Frete sem cotação de ${superfreteMethod.label || 'frete'} para este CEP. Escolha outro frete.`
         }, 400, origin);
       }
-      // Só bloqueia se o cliente mandou frete bem abaixo da cotação atual (anti-fraude).
-      // Pedido de testador (R$ 0,01) não precisa dessa trava — frete real vira 0 depois.
-      if (!testerCheckout && quote.price - frete > 0.51) {
+      if (!testerCheckout && Math.abs(Number(quote.price) - frete) > 0.51) {
         return json({ error: 'Valor do frete Super Frete desatualizado. Recalcule o frete.' }, 400, origin);
       }
       frete = quote.price;
       superfreteService = quote.superfreteService || wantedSid || superfreteServiceId(superfreteMethod);
       superfretePackage = quote.superfretePackage || superfretePackage;
+      superfreteQuoteMethodId = quote.methodId || superfreteMethod.id;
     } catch (err) {
       return json({ error: 'Super Frete indisponível: ' + err.message }, 400, origin);
     }
@@ -11701,15 +11823,21 @@ async function handleCreateOrder(request, env, origin, ctx) {
     paypalFee: paypalFee > 0 ? paypalFee : undefined,
     displayCurrency: isIntl ? currencyForCountryCode(body.paisCode) : 'BRL',
     total: valorProduto + frete + paypalFee,
-    shippingService: body.shippingService || 'Mini Envios',
-    shippingServiceCode: body.shippingServiceCode || null,
-    shippingMethodId: body.shippingMethodId || null,
+    shippingService: superfreteMethod
+      ? (superfreteServiceLabel(superfreteService) || body.shippingService || 'Frete')
+      : (body.shippingService || 'Mini Envios'),
+    shippingServiceCode: superfreteMethod && superfreteService
+      ? String(superfreteService)
+      : (body.shippingServiceCode || null),
+    shippingMethodId: superfreteMethod
+      ? (superfreteQuoteMethodId || superfreteMethod.id || body.shippingMethodId || null)
+      : (body.shippingMethodId || null),
     shippingProvider: uberMethod ? 'uber'
       : (motoboyMethod ? 'motoboy'
         : (superfreteMethod ? 'superfrete' : (body.shippingProvider || null))),
     uberQuoteId: uberQuoteId || null,
     motoboyDistanceKm: motoboyDistanceKm || null,
-    superfreteService: superfreteService || null,
+    superfreteService: superfreteMethod ? (superfreteService || null) : (body.superfreteService || null),
     superfretePackage: superfretePackage || null,
     shippingDays: body.shippingDays || null,
     shipmentType: body.shipmentType || null,
@@ -14826,7 +14954,8 @@ async function handleAdminGetConfig(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
-  return json(await getConfig(env), 200, origin);
+  // Inclui catálogo do site (smartwatches com sensorMm) mesclado ao KV.
+  return json(await getPublicConfig(env), 200, origin);
 }
 
 async function handlePutConfig(request, env, origin) {
@@ -14858,7 +14987,15 @@ async function handlePutConfig(request, env, origin) {
       pixBr: mergePixBrConfig(current.payments?.pixBr, body.payments?.pixBr)
     },
     shippingMethods: body.shippingMethods?.length ? body.shippingMethods : current.shippingMethods,
-    smartwatchModels: body.smartwatchModels || current.smartwatchModels,
+    smartwatchModels: body.smartwatchModels != null
+      ? (Array.isArray(body.smartwatchModels) ? body.smartwatchModels : current.smartwatchModels)
+      : current.smartwatchModels,
+    smartwatchCatalog: body.smartwatchCatalog != null
+      ? mergeSmartwatchCatalog(body.smartwatchCatalog, current.smartwatchCatalog || {})
+      : (current.smartwatchCatalog || {}),
+    smartwatchModelMeta: body.smartwatchModelMeta != null
+      ? { ...(current.smartwatchModelMeta || {}), ...body.smartwatchModelMeta }
+      : (current.smartwatchModelMeta || {}),
     products: body.products?.length ? body.products : current.products,
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
     emails: { ...(current.emails || {}), ...(body.emails || {}) },
