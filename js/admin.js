@@ -5721,6 +5721,63 @@ ${worksheets}
     return null;
   }
 
+  function buildSmartwatchCatalogExportWorkbook() {
+    const rows = [['Tipo', 'Marca', 'Modelo', 'Sensor (mm)']];
+    Object.keys(smartwatchCatalogState || {})
+      .sort((a, b) => a.localeCompare(b, 'pt'))
+      .forEach((brand) => {
+        (smartwatchCatalogState[brand] || [])
+          .slice()
+          .sort((a, b) => String(a.label).localeCompare(String(b.label), 'pt'))
+          .forEach((row) => {
+            const kind = swInferKind(row.label, row.kind);
+            const sensor = row.sensorMm != null && Number.isFinite(Number(row.sensorMm)) && Number(row.sensorMm) > 0
+              ? Number(row.sensorMm)
+              : '';
+            rows.push([
+              kind === 'smartband' ? 'Smartband' : 'Smartwatch',
+              brand,
+              String(row.label || ''),
+              sensor
+            ]);
+          });
+      });
+    const cellsXml = rows.map((row) => {
+      const cells = row.map((cell) => {
+        const type = typeof cell === 'number' && Number.isFinite(cell) ? 'Number' : 'String';
+        const value = type === 'Number' ? cell : xmlEscape(cell);
+        return `<Cell><Data ss:Type="${type}">${value}</Data></Cell>`;
+      }).join('');
+      return `<Row>${cells}</Row>`;
+    }).join('');
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="Modelos"><Table>${cellsXml}</Table></Worksheet>
+</Workbook>`;
+  }
+
+  function exportSmartwatchCatalogExcel() {
+    const btn = document.getElementById('admin-sw-export');
+    if (btn) btn.disabled = true;
+    try {
+      syncSmartwatchModelsTextarea();
+      const count = Object.values(smartwatchCatalogState || {}).reduce((n, rows) => n + (rows?.length || 0), 0);
+      if (!count) {
+        alert('Nenhum modelo para exportar.');
+        return;
+      }
+      const workbook = buildSmartwatchCatalogExportWorkbook();
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadTextFile(workbook, `smartwatches-${stamp}.xls`, 'application/vnd.ms-excel;charset=utf-8');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   function wireSmartwatchCatalogUi() {
     if (swCatalogWired) return;
     swCatalogWired = true;
@@ -5729,6 +5786,7 @@ ${worksheets}
     const tbody = document.getElementById('admin-sw-tbody');
     kindEl?.addEventListener('change', () => renderSmartwatchCatalogTable());
     brandEl?.addEventListener('change', () => renderSmartwatchCatalogTable());
+    document.getElementById('admin-sw-export')?.addEventListener('click', () => exportSmartwatchCatalogExcel());
     document.getElementById('admin-sw-apply-sensor')?.addEventListener('click', () => {
       const bulk = Number(document.getElementById('admin-sw-sensor-bulk')?.value);
       if (!(bulk > 0)) {
