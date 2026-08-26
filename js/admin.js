@@ -6391,10 +6391,7 @@ ${worksheets}
       btn.addEventListener('click', () => showCadastrosSection(btn.dataset.cadastrosSection));
     });
 
-    let saved = 'pedidos';
-    try { saved = localStorage.getItem('stf_admin_tab') || 'pedidos'; } catch (e) { /* ignore */ }
-    if (saved === 'pix') saved = 'pagamento';
-    showTab(saved);
+    showTab('cliques');
   }
 
   function showPanel() {
