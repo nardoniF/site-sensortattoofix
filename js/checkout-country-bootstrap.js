@@ -1,5 +1,6 @@
 /**
- * Preenche #pais-code a partir de /config — independente do checkout.js (evita cache stale no .com).
+ * Preenche #pais-code a partir de /config — lista completa de países (ISO),
+ * independente do checkout.js (evita cache stale no .com).
  */
 (function () {
   function locale() {
@@ -23,10 +24,18 @@
     if (!res.ok) return;
     const cfg = await res.json();
     const intl = cfg.internationalShipping || {};
+    const fromApi = Array.isArray(cfg.internationalCountries) ? cfg.internationalCountries : null;
     while (sel.options.length > 1) sel.remove(1);
-    Object.entries(intl)
-      .filter(([code]) => code !== 'OTHER')
-      .map(([code, z]) => ({ code, label: labelFor(code, z.label) }))
+    const entries = fromApi && fromApi.length
+      ? fromApi.map((row) => ({
+        code: String(row.code || '').toUpperCase(),
+        label: labelFor(row.code, row.label || intl[row.code]?.label)
+      }))
+      : Object.entries(intl)
+        .filter(([code]) => code !== 'OTHER')
+        .map(([code, z]) => ({ code, label: labelFor(code, z.label) }));
+    entries
+      .filter((e) => e.code && e.code !== 'BR' && e.code !== 'OTHER')
       .sort((a, b) => a.label.localeCompare(b.label, locale()))
       .forEach(({ code, label }) => {
         const o = document.createElement('option');
@@ -50,5 +59,4 @@
   } else {
     fillCountries().catch(console.warn);
   }
-  window.addEventListener('stf-config-ready', () => { fillCountries().catch(console.warn); });
 })();

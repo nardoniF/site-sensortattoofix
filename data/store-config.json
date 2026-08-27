@@ -1288,8 +1288,8 @@
     "deliveryHours": 24,
     "couriers": []
   },
-  "internationalSurcharge": 40,
-  "internationalShippingMultiplier": 2,
+  "internationalSurcharge": 0,
+  "internationalShippingMultiplier": 1,
   "internationalProduct": {
     "title": "Envio internacional",
     "hint": "",
@@ -1497,8 +1497,8 @@
     },
     "OTHER": {
       "label": "Outro país",
-      "price": 119.9,
-      "days": 25,
+      "price": 158.7,
+      "days": 18,
       "currency": "BRL"
     }
   },

@@ -5312,7 +5312,7 @@ ${worksheets}
     renderCoupons(config.coupons || []);
     renderIntlShipping(config.internationalShipping || {});
     if (f.intlSurcharge) f.intlSurcharge.value = config.internationalSurcharge ?? 40;
-    if (f.intlShippingMultiplier) f.intlShippingMultiplier.value = config.internationalShippingMultiplier ?? 2;
+    if (f.intlShippingMultiplier) f.intlShippingMultiplier.value = config.internationalShippingMultiplier ?? 1;
     const intlProd = config.internationalProduct || {};
     if (f.intlProductTitle) f.intlProductTitle.value = intlProd.title || '';
     if (f.intlProductHint) f.intlProductHint.value = intlProd.hint || intlProd.notice || '';
@@ -5566,7 +5566,7 @@ ${worksheets}
       smartwatchCatalog: collectSmartwatchCatalog(),
       internationalShipping: collectIntlShipping(),
       internationalSurcharge: Math.max(0, parseFloat(f.intlSurcharge?.value) || 0),
-      internationalShippingMultiplier: Math.max(1, parseFloat(f.intlShippingMultiplier?.value) || 2),
+      internationalShippingMultiplier: Math.max(1, parseFloat(f.intlShippingMultiplier?.value) || 1),
       internationalProduct: {
         title: f.intlProductTitle?.value.trim() || 'Envio internacional',
         hint: f.intlProductHint?.value.trim() || '',

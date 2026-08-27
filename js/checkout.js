@@ -1726,9 +1726,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.paisCode.remove(1);
     }
     const locale = intlCountryLocale();
-    Object.entries(intl)
-      .filter(([code]) => code !== 'OTHER')
-      .map(([code, z]) => ({ code, label: intlCountryLabel(code, z.label) }))
+    const fromApi = Array.isArray(src.internationalCountries) ? src.internationalCountries : null;
+    const entries = fromApi && fromApi.length
+      ? fromApi.map((row) => ({
+        code: String(row.code || '').toUpperCase(),
+        label: intlCountryLabel(row.code, row.label || intl[row.code]?.label)
+      }))
+      : Object.entries(intl)
+        .filter(([code]) => code !== 'OTHER')
+        .map(([code, z]) => ({ code, label: intlCountryLabel(code, z.label) }));
+    entries
+      .filter((e) => e.code && e.code !== 'BR' && e.code !== 'OTHER')
       .sort((a, b) => a.label.localeCompare(b.label, locale))
       .forEach(({ code, label }) => {
         const o = document.createElement('option');
@@ -2173,31 +2181,27 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return 5;
   }
 
-  function intlMedianFromCfg(fallback = 94.9) {
+  function intlMidpointFromCfg(fallback = 94.9) {
     const zones = cfg?.internationalShipping || {};
     const prices = Object.entries(zones)
       .filter(([k]) => k !== 'OTHER' && k !== 'BR')
       .map(([, z]) => Number(z?.price))
-      .filter((p) => Number.isFinite(p) && p > 0)
-      .sort((a, b) => a - b);
+      .filter((p) => Number.isFinite(p) && p > 0);
     if (!prices.length) return fallback;
-    const mid = Math.floor(prices.length / 2);
-    return prices.length % 2 ? prices[mid] : Math.round(((prices[mid - 1] + prices[mid]) / 2) * 100) / 100;
+    return Math.round(((Math.min(...prices) + Math.max(...prices)) / 2) * 100) / 100;
   }
 
-  function intlMedianDaysFromCfg(fallback = 18) {
+  function intlMidpointDaysFromCfg(fallback = 18) {
     const zones = cfg?.internationalShipping || {};
     const days = Object.entries(zones)
       .filter(([k]) => k !== 'OTHER' && k !== 'BR')
       .map(([, z]) => Number(z?.days))
-      .filter((d) => Number.isFinite(d) && d > 0)
-      .sort((a, b) => a - b);
+      .filter((d) => Number.isFinite(d) && d > 0);
     if (!days.length) return fallback;
-    const mid = Math.floor(days.length / 2);
-    return days.length % 2 ? days[mid] : Math.round((days[mid - 1] + days[mid]) / 2);
+    return Math.round((Math.min(...days) + Math.max(...days)) / 2);
   }
 
-  /** OTHER / país sem zona: mediana das tarifas, não o teto. */
+  /** OTHER / país sem zona: (menor + maior) / 2 — nunca o teto. */
   function intlZoneForQuote(code) {
     const zones = cfg?.internationalShipping || {};
     const c = String(code || '').toUpperCase();
@@ -2205,8 +2209,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const other = zones.OTHER || { label: 'Outro país', price: 94.9, days: 18 };
     return {
       ...other,
-      price: intlMedianFromCfg(other.price),
-      days: intlMedianDaysFromCfg(other.days || 18)
+      price: intlMidpointFromCfg(other.price),
+      days: intlMidpointDaysFromCfg(other.days || 18)
     };
   }
 

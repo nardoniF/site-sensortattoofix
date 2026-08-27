@@ -270,11 +270,11 @@ const DEFAULT_CONFIG = {
     HK: { label: 'Hong Kong', price: 99.9, days: 18, currency: 'BRL' },
     ZA: { label: 'África do Sul', price: 109.9, days: 22, currency: 'BRL' },
     AE: { label: 'Emirados Árabes Unidos', price: 99.9, days: 18, currency: 'BRL' },
-    OTHER: { label: 'Outro país', price: 119.9, days: 25, currency: 'BRL' }
+    OTHER: { label: 'Outro país', price: 158.7, days: 18, currency: 'BRL' }
   },
-  internationalSurcharge: 40,
-  /** Multiplies Correios intl quote (labor to go to the post office). 2 = double. */
-  internationalShippingMultiplier: 2,
+  internationalSurcharge: 0,
+  /** Multiplies Correios intl quote. 1 = sem markup (valor real da cotação). */
+  internationalShippingMultiplier: 1,
   internationalProduct: {
     title: 'Envio internacional',
     hint: '',
@@ -1504,7 +1504,10 @@ function withConfigDefaults(stored) {
     formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
     emails: { ...base.emails, ...(stored.emails || {}) },
     api: normalizeApiBaseUrl({ ...base.api, ...(stored.api || {}) }),
-    internationalShipping: { ...base.internationalShipping, ...(stored.internationalShipping || {}) },
+    internationalShipping: normalizeIntlOtherInZones({
+      ...base.internationalShipping,
+      ...(stored.internationalShipping || {})
+    }),
     internationalSurcharge: Number.isFinite(Number(stored.internationalSurcharge))
       ? Number(stored.internationalSurcharge)
       : base.internationalSurcharge,
@@ -2137,6 +2140,7 @@ function publicConfigView(config, env) {
       weightGrams: shippingWeightGrams(config)
     },
     internationalShipping: config.internationalShipping || {},
+    internationalCountries: publicIntlCountriesList(config.internationalShipping || {}),
     internationalSurcharge: getIntlSurcharge(config),
     internationalShippingMultiplier: getIntlShippingMultiplier(config),
     internationalProduct: config.internationalProduct || DEFAULT_CONFIG.internationalProduct,
@@ -9333,23 +9337,51 @@ function intlZoneDays(zones) {
     .filter((d) => Number.isFinite(d) && d > 0);
 }
 
-function medianOfNumbers(values) {
-  const sorted = [...values].sort((a, b) => a - b);
-  if (!sorted.length) return null;
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2
-    ? sorted[mid]
-    : Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 100) / 100;
+/** Meio-termo: (menor + maior) / 2 — fallback para país sem cotação / OTHER. */
+function intlMidpointZonePrice(zones, fallback = 94.9) {
+  const prices = intlZonePrices(zones);
+  if (!prices.length) return fallback;
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return Math.round(((min + max) / 2) * 100) / 100;
 }
 
-/** Preço mediano das zonas internacionais — fallback justo para OTHER / país sem cotação. */
-function intlMedianZonePrice(zones, fallback = 94.9) {
-  return medianOfNumbers(intlZonePrices(zones)) ?? fallback;
+function intlMidpointZoneDays(zones, fallback = 18) {
+  const days = intlZoneDays(zones);
+  if (!days.length) return fallback;
+  const min = Math.min(...days);
+  const max = Math.max(...days);
+  return Math.round((min + max) / 2);
 }
 
-function intlMedianZoneDays(zones, fallback = 18) {
-  const median = medianOfNumbers(intlZoneDays(zones));
-  return median != null ? Math.round(median) : fallback;
+function countryLabelPt(code) {
+  const c = String(code || '').toUpperCase();
+  try {
+    return new Intl.DisplayNames(['pt-BR'], { type: 'region' }).of(c) || c;
+  } catch {
+    return c;
+  }
+}
+
+/** ISO destinies for checkout — full list so the buyer picks their country (not a tiny curated table). */
+const INTL_ISO_COUNTRY_CODES = (
+  'AD,AE,AF,AG,AL,AM,AO,AR,AT,AU,AZ,BA,BB,BD,BE,BF,BG,BH,BI,BJ,BN,BO,BW,BY,BZ,CA,CD,CF,CG,CH,CI,CL,CM,CN,CO,CR,CU,CV,CY,CZ,'
+  + 'DE,DJ,DK,DM,DO,DZ,EC,EE,EG,ER,ES,ET,FI,FJ,FM,FR,GA,GB,GD,GE,GH,GM,GN,GQ,GR,GT,GW,GY,HK,HN,HR,HT,HU,ID,IE,IL,IN,IQ,IR,IS,IT,'
+  + 'JM,JO,JP,KE,KG,KH,KI,KM,KN,KP,KR,KW,KZ,LA,LB,LC,LI,LK,LR,LS,LT,LU,LV,LY,MA,MC,MD,ME,MG,MH,MK,ML,MM,MN,MO,MR,MT,MU,MV,MW,MX,MY,MZ,'
+  + 'NA,NE,NG,NI,NL,NO,NP,NR,NZ,OM,PA,PE,PG,PH,PK,PL,PR,PT,PW,PY,QA,RO,RS,RU,RW,SA,SB,SC,SD,SE,SG,SI,SK,SL,SM,SN,SO,SR,SS,ST,SV,SY,SZ,'
+  + 'TD,TG,TH,TJ,TL,TM,TN,TO,TR,TT,TV,TW,TZ,UA,UG,US,UY,UZ,VA,VC,VE,VN,VU,WS,YE,ZA,ZM,ZW'
+).split(',');
+
+function publicIntlCountriesList(zones) {
+  const z = zones || {};
+  const codes = new Set([...INTL_ISO_COUNTRY_CODES, ...Object.keys(z).filter((c) => c !== 'OTHER' && c !== 'BR')]);
+  return [...codes]
+    .sort((a, b) => countryLabelPt(a).localeCompare(countryLabelPt(b), 'pt-BR'))
+    .map((code) => ({
+      code,
+      label: (z[code] && z[code].label) || countryLabelPt(code),
+      hasZonePrice: !!(z[code] && Number(z[code].price) > 0)
+    }));
 }
 
 function resolveIntlShippingZone(zones, countryCode) {
@@ -9358,9 +9390,29 @@ function resolveIntlShippingZone(zones, countryCode) {
   const other = zones?.OTHER || { label: 'Outro país', price: 94.9, days: 18, currency: 'BRL' };
   return {
     ...other,
-    price: intlMedianZonePrice(zones, other.price),
-    days: intlMedianZoneDays(zones, other.days || 18)
+    label: (code && code !== 'OTHER') ? countryLabelPt(code) : other.label,
+    price: intlMidpointZonePrice(zones, other.price),
+    days: intlMidpointZoneDays(zones, other.days || 18)
   };
+}
+
+/** Garante que OTHER no KV/config use meio-termo (min+max)/2, nunca o teto antigo. */
+function normalizeIntlOtherInZones(zones) {
+  const z = { ...(zones || {}) };
+  if (!z.OTHER) {
+    z.OTHER = { label: 'Outro país', currency: 'BRL' };
+  }
+  const midPrice = intlMidpointZonePrice(z, 94.9);
+  const midDays = intlMidpointZoneDays(z, 18);
+  z.OTHER = {
+    ...z.OTHER,
+    label: z.OTHER.label || 'Outro país',
+    price: midPrice,
+    days: midDays,
+    currency: z.OTHER.currency || 'BRL',
+    lastSyncedSource: 'derived-midpoint'
+  };
+  return z;
 }
 
 function pickIntlFallbackQuote(options, config) {
@@ -9397,10 +9449,18 @@ async function updateIntlFallbackZone(env, countryCode, options) {
   const pick = pickIntlFallbackQuote(options, config);
   if (!pick || pick.source !== 'correios-export') return null;
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
-  const prev = zones[code];
-  if (!prev) return null;
+  const prev = zones[code] || {
+    label: countryLabelPt(code),
+    currency: 'BRL',
+    days: pick.days || 18
+  };
 
-  if (prev.price === pick.price && prev.days === pick.days && prev.lastSyncedSource === 'correios-export') {
+  if (
+    prev.price === pick.price
+    && prev.days === pick.days
+    && prev.lastSyncedSource === 'correios-export'
+    && zones[code]
+  ) {
     return config;
   }
 
@@ -9440,17 +9500,17 @@ async function syncAllIntlFallbackZones(env, config) {
     .filter((c) => results[c]?.ok)
     .map((c) => internationalShipping[c].price);
   if (syncedPrices.length && internationalShipping.OTHER) {
-    const medianPrice = intlMedianZonePrice(internationalShipping, internationalShipping.OTHER.price);
-    const medianDays = intlMedianZoneDays(internationalShipping, internationalShipping.OTHER.days || 18);
+    const midPrice = intlMidpointZonePrice(internationalShipping, internationalShipping.OTHER.price);
+    const midDays = intlMidpointZoneDays(internationalShipping, internationalShipping.OTHER.days || 18);
     internationalShipping.OTHER = {
       ...internationalShipping.OTHER,
-      price: medianPrice,
-      days: medianDays,
+      price: midPrice,
+      days: midDays,
       lastSyncedAt: new Date().toISOString(),
-      lastSyncedSource: 'derived-median'
+      lastSyncedSource: 'derived-midpoint'
     };
     updated = true;
-    results.OTHER = { ok: true, price: medianPrice, days: medianDays, derived: true, median: true };
+    results.OTHER = { ok: true, price: midPrice, days: midDays, derived: true, midpoint: true };
   }
 
   if (!updated) return { config, results, updated: false };
@@ -9464,10 +9524,10 @@ function getIntlSurcharge(config) {
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
 }
 
-/** Multiplier on Correios base (min 1). Default 2 = double postage + labor. */
+/** Multiplier on Correios base (min 1). Default 1 = sem markup. */
 function getIntlShippingMultiplier(config) {
-  const n = Number(config?.internationalShippingMultiplier ?? DEFAULT_CONFIG.internationalShippingMultiplier ?? 2);
-  if (!Number.isFinite(n) || n < 1) return 2;
+  const n = Number(config?.internationalShippingMultiplier ?? DEFAULT_CONFIG.internationalShippingMultiplier ?? 1);
+  if (!Number.isFinite(n) || n < 1) return 1;
   return Math.round(n * 100) / 100;
 }
 
