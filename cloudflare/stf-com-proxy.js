@@ -61,8 +61,14 @@ function isStaticAsset(pathname) {
   );
 }
 
+/** Pages that live at repo root and must work on .com (emails link here, no /en/ copy). */
+const COM_SHARED_ROOT_PAGES = new Set([
+  '/rastreio.html'
+]);
+
 function mapPathCom(pathname) {
   if (isStaticAsset(pathname)) return pathname;
+  if (COM_SHARED_ROOT_PAGES.has(pathname)) return pathname;
   if (pathname === '/it' || pathname === '/it/') return '/it/index.html';
   if (pathname.startsWith('/it/')) return pathname;
   if (pathname.startsWith('/en/')) {
