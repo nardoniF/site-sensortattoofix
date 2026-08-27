@@ -9256,7 +9256,7 @@ function prettifyCorreiosServiceName(name) {
 
 function mapExportServiceToOption(service, config, country, weightGrams, method, simTipo = 'M') {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
-  const zone = zones[country] || zones.OTHER || {};
+  const zone = resolveIntlShippingZone(zones, country);
   const code = String(service.codigo);
   const price = parseBRPrice(service.precoFinal);
   if (price <= 0) return null;
@@ -9317,6 +9317,50 @@ async function quoteCorreiosExportOptions(config, countryCode, opts = {}) {
   }
 
   return options.sort((a, b) => a.price - b.price);
+}
+
+function intlZonePrices(zones) {
+  return Object.entries(zones || {})
+    .filter(([k]) => k !== 'OTHER' && k !== 'BR')
+    .map(([, z]) => Number(z?.price))
+    .filter((p) => Number.isFinite(p) && p > 0);
+}
+
+function intlZoneDays(zones) {
+  return Object.entries(zones || {})
+    .filter(([k]) => k !== 'OTHER' && k !== 'BR')
+    .map(([, z]) => Number(z?.days))
+    .filter((d) => Number.isFinite(d) && d > 0);
+}
+
+function medianOfNumbers(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[mid]
+    : Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 100) / 100;
+}
+
+/** Preço mediano das zonas internacionais — fallback justo para OTHER / país sem cotação. */
+function intlMedianZonePrice(zones, fallback = 94.9) {
+  return medianOfNumbers(intlZonePrices(zones)) ?? fallback;
+}
+
+function intlMedianZoneDays(zones, fallback = 18) {
+  const median = medianOfNumbers(intlZoneDays(zones));
+  return median != null ? Math.round(median) : fallback;
+}
+
+function resolveIntlShippingZone(zones, countryCode) {
+  const code = String(countryCode || '').toUpperCase();
+  if (code && code !== 'OTHER' && zones?.[code]) return zones[code];
+  const other = zones?.OTHER || { label: 'Outro país', price: 94.9, days: 18, currency: 'BRL' };
+  return {
+    ...other,
+    price: intlMedianZonePrice(zones, other.price),
+    days: intlMedianZoneDays(zones, other.days || 18)
+  };
 }
 
 function pickIntlFallbackQuote(options, config) {
@@ -9396,20 +9440,17 @@ async function syncAllIntlFallbackZones(env, config) {
     .filter((c) => results[c]?.ok)
     .map((c) => internationalShipping[c].price);
   if (syncedPrices.length && internationalShipping.OTHER) {
-    const maxPrice = Math.max(...syncedPrices);
-    const maxDays = Math.max(
-      ...codes.filter((c) => results[c]?.ok).map((c) => internationalShipping[c].days || 0),
-      internationalShipping.OTHER.days || 25
-    );
+    const medianPrice = intlMedianZonePrice(internationalShipping, internationalShipping.OTHER.price);
+    const medianDays = intlMedianZoneDays(internationalShipping, internationalShipping.OTHER.days || 18);
     internationalShipping.OTHER = {
       ...internationalShipping.OTHER,
-      price: Math.round(Math.max(internationalShipping.OTHER.price, maxPrice * 1.15) * 100) / 100,
-      days: maxDays,
+      price: medianPrice,
+      days: medianDays,
       lastSyncedAt: new Date().toISOString(),
-      lastSyncedSource: 'derived-from-sync'
+      lastSyncedSource: 'derived-median'
     };
     updated = true;
-    results.OTHER = { ok: true, price: internationalShipping.OTHER.price, days: maxDays, derived: true };
+    results.OTHER = { ok: true, price: medianPrice, days: medianDays, derived: true, median: true };
   }
 
   if (!updated) return { config, results, updated: false };
@@ -9529,14 +9570,16 @@ async function handleFxRate(request, env, origin) {
 
 function quoteInternational(config, countryCode) {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
-  const zone = zones[countryCode] || zones.OTHER;
+  const code = String(countryCode || '').toUpperCase();
+  const zone = resolveIntlShippingZone(zones, code);
   if (!zone) throw new Error('País não atendido');
+  const unknown = !code || code === 'OTHER' || !zones[code];
   return {
     price: zone.price,
     days: zone.days,
     service: 'Correios Internacional — ' + zone.label,
-    source: 'config',
-    country: countryCode,
+    source: unknown ? 'config-median' : 'config',
+    country: code || 'OTHER',
     countryLabel: zone.label
   };
 }
@@ -10955,7 +10998,7 @@ async function handleShippingQuote(request, env, origin, ctx) {
         country,
         countryLabel: fallback.countryLabel,
         weightGrams,
-        isHighestBid: true
+        isHighestBid: false
       };
       options = [applyIntlSurcharge(config, baseOpt)];
     } else {
@@ -12582,6 +12625,25 @@ function applyOrderShippingManualUpdate(order, body) {
     changed = true;
   }
 
+  if (body.frete !== undefined) {
+    const frete = Number(body.frete);
+    if (!Number.isFinite(frete) || frete < 0) {
+      throw new Error('Frete do pedido inválido.');
+    }
+    const rounded = Math.round(frete * 100) / 100;
+    if (order.freteOriginal == null && order.frete != null && rounded !== Number(order.frete)) {
+      order.freteOriginal = Number(order.frete);
+    }
+    if (rounded !== Number(order.frete)) {
+      order.frete = rounded;
+      const valorProduto = Number(order.valorProduto) || 0;
+      const paypalFee = Number(order.paypalFee) || 0;
+      order.total = Math.round((valorProduto + rounded + paypalFee) * 100) / 100;
+      order.freteAdjustedAt = now;
+      changed = true;
+    }
+  }
+
   if (body.correiosFreteEstimado !== undefined) {
     const price = Number(body.correiosFreteEstimado);
     if (Number.isFinite(price) && price >= 0) {
@@ -12689,6 +12751,9 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     shippingService: order.shippingService || null,
     correiosShippingManualNote: order.correiosShippingManualNote || null,
     correiosFreteEstimado: order.correiosFreteEstimado ?? null,
+    frete: order.frete ?? null,
+    freteOriginal: order.freteOriginal ?? null,
+    total: order.total ?? null,
     shippingDays: order.shippingDays ?? null,
     shippingServiceCode: order.shippingServiceCode ?? null,
     trackingEmailSentAt: order.trackingEmailSentAt || null,

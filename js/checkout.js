@@ -2173,6 +2173,43 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return 5;
   }
 
+  function intlMedianFromCfg(fallback = 94.9) {
+    const zones = cfg?.internationalShipping || {};
+    const prices = Object.entries(zones)
+      .filter(([k]) => k !== 'OTHER' && k !== 'BR')
+      .map(([, z]) => Number(z?.price))
+      .filter((p) => Number.isFinite(p) && p > 0)
+      .sort((a, b) => a - b);
+    if (!prices.length) return fallback;
+    const mid = Math.floor(prices.length / 2);
+    return prices.length % 2 ? prices[mid] : Math.round(((prices[mid - 1] + prices[mid]) / 2) * 100) / 100;
+  }
+
+  function intlMedianDaysFromCfg(fallback = 18) {
+    const zones = cfg?.internationalShipping || {};
+    const days = Object.entries(zones)
+      .filter(([k]) => k !== 'OTHER' && k !== 'BR')
+      .map(([, z]) => Number(z?.days))
+      .filter((d) => Number.isFinite(d) && d > 0)
+      .sort((a, b) => a - b);
+    if (!days.length) return fallback;
+    const mid = Math.floor(days.length / 2);
+    return days.length % 2 ? days[mid] : Math.round((days[mid - 1] + days[mid]) / 2);
+  }
+
+  /** OTHER / país sem zona: mediana das tarifas, não o teto. */
+  function intlZoneForQuote(code) {
+    const zones = cfg?.internationalShipping || {};
+    const c = String(code || '').toUpperCase();
+    if (c && c !== 'OTHER' && zones[c]) return zones[c];
+    const other = zones.OTHER || { label: 'Outro país', price: 94.9, days: 18 };
+    return {
+      ...other,
+      price: intlMedianFromCfg(other.price),
+      days: intlMedianDaysFromCfg(other.days || 18)
+    };
+  }
+
   function estimateBRMax() {
     const baseWeight = Number(cfg?.shipping?.weightGrams) || 5;
     const weightFactor = Math.min(2.5, Math.max(1, shippingWeightGrams() / baseWeight));
@@ -2219,10 +2256,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           options = Array.isArray(data?.options) ? data.options : [];
         }
         if (!options.length) {
-          const z = cfg.internationalShipping[code] || cfg.internationalShipping.OTHER;
+          const z = intlZoneForQuote(code);
           if (!z) throw new Error(L('country.unsupported'));
           const surcharge = Math.max(0, Number(cfg.internationalSurcharge) || 0);
-          const multiplier = Math.max(1, Number(cfg.internationalShippingMultiplier) || 2);
+          const multiplier = Math.max(1, Number(cfg.internationalShippingMultiplier) || 1);
           const basePrice = Number(z.price) || 0;
           const multiplied = Math.round(basePrice * multiplier * 100) / 100;
           const finalPrice = Math.round((multiplied + surcharge) * 100) / 100;
@@ -2234,7 +2271,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
             price: finalPrice,
             days: z.days,
             source: 'config',
-            isHighestBid: true,
             intlSurcharge: markup || undefined,
             intlFlatSurcharge: surcharge || undefined,
             intlMultiplier: multiplier !== 1 ? multiplier : undefined,
@@ -2273,10 +2309,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       try {
         if (isInternational) {
           const code = els.paisCode?.value;
-          const z = cfg?.internationalShipping?.[code] || cfg?.internationalShipping?.OTHER;
+          const z = intlZoneForQuote(code);
           if (z) {
             const surcharge = Math.max(0, Number(cfg?.internationalSurcharge) || 0);
-            const multiplier = Math.max(1, Number(cfg?.internationalShippingMultiplier) || 2);
+            const multiplier = Math.max(1, Number(cfg?.internationalShippingMultiplier) || 1);
             const basePrice = Number(z.price) || 0;
             const multiplied = Math.round(basePrice * multiplier * 100) / 100;
             const finalPrice = Math.round((multiplied + surcharge) * 100) / 100;
@@ -2288,7 +2324,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
               price: finalPrice,
               days: z.days,
               source: 'config',
-              isHighestBid: true,
               intlSurcharge: markup || undefined,
               intlFlatSurcharge: surcharge || undefined,
               intlMultiplier: multiplier !== 1 ? multiplier : undefined,

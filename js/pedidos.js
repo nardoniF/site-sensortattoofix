@@ -628,6 +628,29 @@
     return '<span class="pedidos-track-muted">—</span>';
   }
 
+  function orderFreteEditSection(o) {
+    if (o.status !== 'paid') return '';
+    const freteVal = formatFreteInput(o.frete);
+    const origNote = o.freteOriginal != null && Number(o.freteOriginal) !== Number(o.frete)
+      ? `<p class="pedidos-detail-muted">Frete original no checkout: ${formatBRL(o.freteOriginal)}</p>`
+      : '';
+    return `
+      <section class="pedidos-detail-section pedidos-detail-section--frete">
+        <h3 class="pedidos-detail-heading">Frete do pedido</h3>
+        <p class="pedidos-detail-muted">Valor de frete gravado neste pedido. Ao salvar, o <strong>total do pedido</strong> é recalculado (lente + frete${o.paypalFee ? ' + taxa PayPal' : ''}). Use para corrigir contabilidade quando o frete cobrado no checkout estiver errado.</p>
+        ${origNote}
+        <div class="pedidos-shipping-manual">
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Frete do pedido (R$)</span>
+            <input type="text" class="pedidos-order-frete" value="${escHtml(freteVal)}" placeholder="Ex.: 94,90" inputmode="decimal" />
+          </label>
+          <p class="pedidos-detail-muted">Total atual: <strong class="pedidos-order-total">${formatBRL(o.total)}</strong></p>
+          <button type="button" class="btn-save-order-frete">Salvar frete</button>
+          <p class="pedidos-frete-feedback" hidden></p>
+        </div>
+      </section>`;
+  }
+
   function orderAuditRows(o) {
     const bruto = Number(o.valorProdutoOriginal ?? o.valorProduto);
     const pago = Number(o.valorProduto);
@@ -827,6 +850,7 @@
         ${freteDetailRows(o)}
       </div>
       ${orderAuditRows(o)}
+      ${orderFreteEditSection(o)}
       ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
       <section class="pedidos-detail-section pedidos-detail-section--entrega">
         <h3 class="pedidos-detail-heading">Entrega / Rastreio</h3>
@@ -836,6 +860,7 @@
     `;
 
     wireManualShippingForm(body, o);
+    wireOrderFreteForm(body, o);
 
     body.querySelector('.btn-save-shipping')?.addEventListener('click', async () => {
       const trackingInput = body.querySelector('.pedidos-shipping-tracking');
@@ -886,6 +911,12 @@
       if (noteVal !== String(o.correiosShippingManualNote || '').trim()) {
         payload.correiosShippingManualNote = noteVal;
       }
+      const orderFreteInput = body.querySelector('.pedidos-order-frete');
+      const orderFreteVal = parseFreteInput(orderFreteInput?.value);
+      const existingOrderFrete = Number(o.frete);
+      if (Number.isFinite(orderFreteVal) && orderFreteVal >= 0 && orderFreteVal !== existingOrderFrete) {
+        payload.frete = orderFreteVal;
+      }
       const priceVal = parseFreteInput(priceInput?.value);
       const existingPrice = Number(o.correiosFreteEstimado);
       if (priceVal > 0 && priceVal !== existingPrice) {
@@ -935,6 +966,55 @@
     });
   }
 
+  function wireOrderFreteForm(body, o) {
+    const freteInput = body.querySelector('.pedidos-order-frete');
+    const saveBtn = body.querySelector('.btn-save-order-frete');
+    const feedbackEl = body.querySelector('.pedidos-frete-feedback');
+    if (!freteInput || !saveBtn) return;
+
+    const showFeedback = (msg, type) => {
+      if (!feedbackEl) return;
+      feedbackEl.textContent = msg;
+      feedbackEl.className = 'pedidos-frete-feedback form-status ' + (type || '');
+      feedbackEl.hidden = !msg;
+    };
+
+    saveBtn.addEventListener('click', async () => {
+      const freteVal = parseFreteInput(freteInput.value);
+      const existing = Number(o.frete);
+      if (!Number.isFinite(freteVal) || freteVal < 0) {
+        showFeedback('Informe um valor de frete válido.', 'error');
+        return;
+      }
+      if (freteVal === existing) {
+        showFeedback('Nenhuma alteração no frete.', 'warn');
+        return;
+      }
+      saveBtn.disabled = true;
+      const prevLabel = saveBtn.textContent;
+      saveBtn.textContent = 'Salvando…';
+      showFeedback('', '');
+      try {
+        const saved = await saveShippingOverride(o.orderId, { frete: freteVal });
+        if (!saved || saved.error) {
+          showFeedback(saved?.error || 'Não foi possível salvar.', 'error');
+          return;
+        }
+        applyShippingOverrideToOrder(o, saved);
+        const idx = allOrders.findIndex((x) => x.orderId === o.orderId);
+        if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
+        applyFilters();
+        const totalEl = body.querySelector('.pedidos-order-total');
+        if (totalEl && saved.total != null) totalEl.textContent = formatBRL(saved.total);
+        showFeedback(`Frete atualizado — total do pedido: ${formatBRL(saved.total)}`, 'success');
+        showStatus(`Frete do pedido ${o.orderId} ajustado para ${formatBRL(saved.frete)}`, 'success');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = prevLabel;
+      }
+    });
+  }
+
   function applyShippingOverrideToOrder(order, data) {
     if (!order || !data) return;
     if (data.trackingCode) {
@@ -948,6 +1028,9 @@
       order.correiosShippingManualNote = data.correiosShippingManualNote;
     }
     if (data.correiosFreteEstimado != null) order.correiosFreteEstimado = data.correiosFreteEstimado;
+    if (data.frete != null) order.frete = data.frete;
+    if (data.freteOriginal != null) order.freteOriginal = data.freteOriginal;
+    if (data.total != null) order.total = data.total;
     if (data.shippingDays != null) order.shippingDays = data.shippingDays;
     if (data.shippingServiceCode != null) order.shippingServiceCode = data.shippingServiceCode;
     if (data.trackingEmailSentAt) order.trackingEmailSentAt = data.trackingEmailSentAt;
