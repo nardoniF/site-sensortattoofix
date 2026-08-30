@@ -78,6 +78,10 @@ import {
   normalizeCouponCode,
   slugCouponId
 } from './store-rules.js';
+import {
+  applyOrderFreteAccounting,
+  orderNeedsFreteProductRepair
+} from './sales-money.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -6203,10 +6207,22 @@ async function rebuildOrdersIndexFromKv(env) {
   return trimmed;
 }
 
+async function persistFreteProductRepairs(env, orders) {
+  let saved = 0;
+  for (const order of orders || []) {
+    if (saved >= 25) break;
+    if (!orderNeedsFreteProductRepair(order)) continue;
+    applyOrderFreteAccounting(order, Number(order.frete) || 0);
+    await saveOrder(env, order);
+    saved += 1;
+  }
+}
+
 async function listOrdersForAdmin(env) {
   const fromD1 = await d1ListOrders(env, 2000);
   if (fromD1.length) {
     fromD1.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
+    await persistFreteProductRepairs(env, fromD1);
     return fromD1;
   }
   let index = await readOrdersIndex(env);
@@ -6238,6 +6254,7 @@ async function listOrdersForAdmin(env) {
   }
 
   orders.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
+  await persistFreteProductRepairs(env, orders);
   return orders;
 }
 
@@ -12685,23 +12702,30 @@ function applyOrderShippingManualUpdate(order, body) {
     changed = true;
   }
 
-  if (body.frete !== undefined) {
-    const frete = Number(body.frete);
-    if (!Number.isFinite(frete) || frete < 0) {
+  const wantsFrete = body.frete !== undefined;
+  const wantsProduct = body.valorProduto !== undefined || body.productAdjust !== undefined;
+  if (wantsFrete || wantsProduct) {
+    const nextFrete = wantsFrete ? Number(body.frete) : Number(order.frete);
+    if (!Number.isFinite(nextFrete) || nextFrete < 0) {
       throw new Error('Frete do pedido inválido.');
     }
-    const rounded = Math.round(frete * 100) / 100;
-    if (order.freteOriginal == null && order.frete != null && rounded !== Number(order.frete)) {
-      order.freteOriginal = Number(order.frete);
+    if (body.valorProduto !== undefined) {
+      const vp = Number(body.valorProduto);
+      if (!Number.isFinite(vp) || vp < 0) throw new Error('Valor do produto inválido.');
     }
-    if (rounded !== Number(order.frete)) {
-      order.frete = rounded;
-      const valorProduto = Number(order.valorProduto) || 0;
-      const paypalFee = Number(order.paypalFee) || 0;
-      order.total = Math.round((valorProduto + rounded + paypalFee) * 100) / 100;
-      order.freteAdjustedAt = now;
-      changed = true;
+    if (body.productAdjust !== undefined) {
+      const adj = Number(body.productAdjust);
+      if (!Number.isFinite(adj)) throw new Error('Acerto de produto inválido.');
     }
+    applyOrderFreteAccounting(order, nextFrete, {
+      now,
+      valorProduto: body.valorProduto,
+      productAdjust: body.productAdjust
+    });
+    changed = true;
+  } else if (orderNeedsFreteProductRepair(order)) {
+    applyOrderFreteAccounting(order, Number(order.frete) || 0, { now });
+    changed = true;
   }
 
   if (body.correiosFreteEstimado !== undefined) {
@@ -12814,6 +12838,10 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     frete: order.frete ?? null,
     freteOriginal: order.freteOriginal ?? null,
     total: order.total ?? null,
+    totalPaid: order.totalPaid ?? null,
+    valorProduto: order.valorProduto ?? null,
+    productAdjust: order.productAdjust ?? null,
+    valorProdutoAtCheckout: order.valorProdutoAtCheckout ?? null,
     shippingDays: order.shippingDays ?? null,
     shippingServiceCode: order.shippingServiceCode ?? null,
     trackingEmailSentAt: order.trackingEmailSentAt || null,

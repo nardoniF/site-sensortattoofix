@@ -8,7 +8,10 @@ import {
   flexCompanyOwed,
   aggregateFlexOwedByMonth,
   kitComponentUnitCost,
-  kitUnitCostFromComponents
+  kitUnitCostFromComponents,
+  applyOrderFreteAccounting,
+  inferCustomerPaidTotal,
+  orderNeedsFreteProductRepair
 } from './sales-money.js';
 
 const config = { mlFlexShippingCost: 11.9 };
@@ -64,4 +67,49 @@ test('aggregateFlexOwedByMonth groups by BR month', () => {
   assert.equal(rows[0].owed, 11.9);
   assert.equal(rows[0].bonus, 1.1);
   assert.equal(rows[0].net, 10.8);
+});
+
+test('frete manual cut reallocates leftover onto product and keeps paid total', () => {
+  const order = {
+    valorProduto: 128,
+    frete: 328.1,
+    paypalFee: 0,
+    total: 456.1
+  };
+  applyOrderFreteAccounting(order, 28, { now: '2026-08-30T06:00:00.000Z' });
+  assert.equal(order.freteOriginal, 328.1);
+  assert.equal(order.frete, 28);
+  assert.equal(order.totalPaid, 456.1);
+  assert.equal(order.total, 456.1);
+  assert.equal(order.valorProduto, 428.1);
+  assert.equal(order.valorProdutoAtCheckout, 128);
+});
+
+test('recovers shrunk total after previous buggy frete edit', () => {
+  const order = {
+    valorProduto: 128,
+    frete: 28,
+    freteOriginal: 328.1,
+    paypalFee: 0,
+    total: 156
+  };
+  assert.equal(inferCustomerPaidTotal(order), 456.1);
+  assert.equal(orderNeedsFreteProductRepair(order), true);
+  applyOrderFreteAccounting(order, 28, { now: '2026-08-30T06:00:00.000Z' });
+  assert.equal(order.valorProduto, 428.1);
+  assert.equal(order.total, 456.1);
+  assert.equal(orderNeedsFreteProductRepair(order), false);
+});
+
+test('manual product acerto stores productAdjust on top of remainder', () => {
+  const order = {
+    valorProduto: 128,
+    frete: 300,
+    total: 428
+  };
+  applyOrderFreteAccounting(order, 28, { valorProduto: 472, now: '2026-08-30T06:00:00.000Z' });
+  assert.equal(order.frete, 28);
+  assert.equal(order.valorProduto, 472);
+  assert.equal(order.total, 428);
+  assert.equal(order.productAdjust, 72);
 });

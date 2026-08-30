@@ -631,21 +631,30 @@
   function orderFreteEditSection(o) {
     if (o.status !== 'paid') return '';
     const freteVal = formatFreteInput(o.frete);
+    const productVal = formatFreteInput(o.valorProduto);
     const origNote = o.freteOriginal != null && Number(o.freteOriginal) !== Number(o.frete)
-      ? `<p class="pedidos-detail-muted">Frete original no checkout: ${formatBRL(o.freteOriginal)}</p>`
+      ? `<p class="pedidos-detail-muted">Frete cobrado no checkout: ${formatBRL(o.freteOriginal)}</p>`
+      : '';
+    const checkoutProduct = o.valorProdutoAtCheckout != null
+      ? `<p class="pedidos-detail-muted">Produto no checkout: ${formatBRL(o.valorProdutoAtCheckout)}</p>`
       : '';
     return `
       <section class="pedidos-detail-section pedidos-detail-section--frete">
-        <h3 class="pedidos-detail-heading">Frete do pedido</h3>
-        <p class="pedidos-detail-muted">Valor de frete gravado neste pedido. Ao salvar, o <strong>total do pedido</strong> é recalculado (lente + frete${o.paypalFee ? ' + taxa PayPal' : ''}). Use para corrigir contabilidade quando o frete cobrado no checkout estiver errado.</p>
+        <h3 class="pedidos-detail-heading">Frete e acerto do pedido</h3>
+        <p class="pedidos-detail-muted">O cliente já pagou o total. Se você baixar o frete (custo real), a diferença vai para o <strong>produto</strong>. O total pago não muda. Dá para acertar o produto na mão também.</p>
         ${origNote}
+        ${checkoutProduct}
         <div class="pedidos-shipping-manual">
           <label class="pedidos-shipping-field">
-            <span class="pedidos-shipping-label">Frete do pedido (R$)</span>
-            <input type="text" class="pedidos-order-frete" value="${escHtml(freteVal)}" placeholder="Ex.: 94,90" inputmode="decimal" />
+            <span class="pedidos-shipping-label">Frete real (R$)</span>
+            <input type="text" class="pedidos-order-frete" value="${escHtml(freteVal)}" placeholder="Ex.: 28,00" inputmode="decimal" />
           </label>
-          <p class="pedidos-detail-muted">Total atual: <strong class="pedidos-order-total">${formatBRL(o.total)}</strong></p>
-          <button type="button" class="btn-save-order-frete">Salvar frete</button>
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Produto / acerto (R$)</span>
+            <input type="text" class="pedidos-order-produto" value="${escHtml(productVal)}" placeholder="Ex.: 472,00" inputmode="decimal" />
+          </label>
+          <p class="pedidos-detail-muted">Total pago pelo cliente: <strong class="pedidos-order-total">${formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong></p>
+          <button type="button" class="btn-save-order-frete">Salvar acerto</button>
           <p class="pedidos-frete-feedback" hidden></p>
         </div>
       </section>`;
@@ -667,7 +676,10 @@
       rows.push(detailRow('Cupom', cupom));
     }
     if (Number.isFinite(pago) && pago >= 0) {
-      rows.push(detailRow('Lente paga', `<strong>${formatBRL(pago)}</strong>`));
+      rows.push(detailRow('Lente / produto', `<strong>${formatBRL(pago)}</strong>`));
+    }
+    if (o.productAdjust != null && Number(o.productAdjust) !== 0) {
+      rows.push(detailRow('Acerto extra', formatBRL(o.productAdjust)));
     }
     if (Number.isFinite(frete) && frete >= 0) {
       rows.push(detailRow('Frete pago', `<strong>${formatBRL(frete)}</strong>`));
@@ -685,7 +697,7 @@
       rows.push(detailRow('Rótulo salvo', `<span class="pedidos-track-warn">${escHtml(o.shippingService)} (diverge)</span>`));
     }
     if (Number.isFinite(total) && total >= 0) {
-      rows.push(detailRow('Total pago', `<strong>${formatBRL(total)}</strong>`));
+      rows.push(detailRow('Total pago', `<strong>${formatBRL(o.totalPaid != null ? o.totalPaid : total)}</strong>`));
     }
     if (!rows.length) return '';
     return `<section class="pedidos-detail-section pedidos-detail-section--audit">
@@ -917,6 +929,12 @@
       if (Number.isFinite(orderFreteVal) && orderFreteVal >= 0 && orderFreteVal !== existingOrderFrete) {
         payload.frete = orderFreteVal;
       }
+      const orderProductInput = body.querySelector('.pedidos-order-produto');
+      const orderProductVal = parseFreteInput(orderProductInput?.value);
+      const existingProduct = Number(o.valorProduto);
+      if (Number.isFinite(orderProductVal) && orderProductVal >= 0 && orderProductVal !== existingProduct) {
+        payload.valorProduto = orderProductVal;
+      }
       const priceVal = parseFreteInput(priceInput?.value);
       const existingPrice = Number(o.correiosFreteEstimado);
       if (priceVal > 0 && priceVal !== existingPrice) {
@@ -980,14 +998,22 @@
     };
 
     saveBtn.addEventListener('click', async () => {
+      const productInput = body.querySelector('.pedidos-order-produto');
       const freteVal = parseFreteInput(freteInput.value);
-      const existing = Number(o.frete);
+      const productVal = parseFreteInput(productInput?.value);
+      const existingFrete = Number(o.frete);
+      const existingProduct = Number(o.valorProduto);
       if (!Number.isFinite(freteVal) || freteVal < 0) {
         showFeedback('Informe um valor de frete válido.', 'error');
         return;
       }
-      if (freteVal === existing) {
-        showFeedback('Nenhuma alteração no frete.', 'warn');
+      const payload = {};
+      if (freteVal !== existingFrete) payload.frete = freteVal;
+      if (Number.isFinite(productVal) && productVal >= 0 && productVal !== existingProduct) {
+        payload.valorProduto = productVal;
+      }
+      if (!Object.keys(payload).length) {
+        showFeedback('Nenhuma alteração para salvar.', 'warn');
         return;
       }
       saveBtn.disabled = true;
@@ -995,7 +1021,7 @@
       saveBtn.textContent = 'Salvando…';
       showFeedback('', '');
       try {
-        const saved = await saveShippingOverride(o.orderId, { frete: freteVal });
+        const saved = await saveShippingOverride(o.orderId, payload);
         if (!saved || saved.error) {
           showFeedback(saved?.error || 'Não foi possível salvar.', 'error');
           return;
@@ -1005,9 +1031,17 @@
         if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
         applyFilters();
         const totalEl = body.querySelector('.pedidos-order-total');
-        if (totalEl && saved.total != null) totalEl.textContent = formatBRL(saved.total);
-        showFeedback(`Frete atualizado — total do pedido: ${formatBRL(saved.total)}`, 'success');
-        showStatus(`Frete do pedido ${o.orderId} ajustado para ${formatBRL(saved.frete)}`, 'success');
+        if (totalEl && (saved.totalPaid != null || saved.total != null)) {
+          totalEl.textContent = formatBRL(saved.totalPaid != null ? saved.totalPaid : saved.total);
+        }
+        if (productInput && saved.valorProduto != null) {
+          productInput.value = formatFreteInput(saved.valorProduto);
+        }
+        showFeedback(
+          `Acerto salvo — produto ${formatBRL(saved.valorProduto)} · frete ${formatBRL(saved.frete)} · total pago ${formatBRL(saved.totalPaid != null ? saved.totalPaid : saved.total)}`,
+          'success'
+        );
+        showStatus(`Pedido ${o.orderId}: produto ${formatBRL(saved.valorProduto)}, frete ${formatBRL(saved.frete)}`, 'success');
       } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = prevLabel;
@@ -1031,6 +1065,10 @@
     if (data.frete != null) order.frete = data.frete;
     if (data.freteOriginal != null) order.freteOriginal = data.freteOriginal;
     if (data.total != null) order.total = data.total;
+    if (data.totalPaid != null) order.totalPaid = data.totalPaid;
+    if (data.valorProduto != null) order.valorProduto = data.valorProduto;
+    if (data.productAdjust != null) order.productAdjust = data.productAdjust;
+    if (data.valorProdutoAtCheckout != null) order.valorProdutoAtCheckout = data.valorProdutoAtCheckout;
     if (data.shippingDays != null) order.shippingDays = data.shippingDays;
     if (data.shippingServiceCode != null) order.shippingServiceCode = data.shippingServiceCode;
     if (data.trackingEmailSentAt) order.trackingEmailSentAt = data.trackingEmailSentAt;
