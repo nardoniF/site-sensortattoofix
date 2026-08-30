@@ -6645,7 +6645,8 @@ a.conta-forgot-link { display: inline-block; }
     min-width: 140px;
 }
 .admin-sw-filters select,
-.admin-sw-filters input[type="number"] {
+.admin-sw-filters input[type="number"],
+.admin-sw-filters input[type="text"] {
     min-width: 120px;
 }
 #admin-sw-table input[type="text"],

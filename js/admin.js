@@ -4140,7 +4140,7 @@ ${worksheets}
     const el = document.getElementById('clicks-filter-nav-only');
     if (el) writeClicksNavOnlyPref(!!el.checked);
     if (!clicksCache.length) {
-      loadClicks();
+      startClicksBackgroundLoad();
       return;
     }
     const openPaths = captureClicksTreeOpenPaths();
@@ -4203,7 +4203,7 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao limpar log');
       clicksCache = [];
-      await loadClicks(true);
+      await startClicksBackgroundLoad({ preserveOpen: true, force: true });
       const removed = data.removed || 0;
       showStatus(
         isAll
@@ -4270,7 +4270,7 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok && !data.ok) throw new Error(data.error || 'Falha ao gravar (' + res.status + ')');
       showStatus('Clique de teste gravado. Atualizando lista…', 'success', 'cliques');
-      await loadClicks(true);
+      await startClicksBackgroundLoad({ preserveOpen: true, force: true });
     } catch (err) {
       showStatus(err.message || 'Erro no teste.', 'error', 'cliques');
     } finally {
@@ -5668,6 +5668,49 @@ ${worksheets}
   let smartwatchCatalogState = {};
   let swCatalogWired = false;
 
+  function isSwBrandPlaceholder(row) {
+    return !!(row && row._brandPlaceholder);
+  }
+
+  function swRealCatalogRows(brand) {
+    return (smartwatchCatalogState[brand] || []).filter((r) => !isSwBrandPlaceholder(r));
+  }
+
+  function swBrandHasKind(brand, kind) {
+    const rows = smartwatchCatalogState[brand] || [];
+    if (rows.some((r) => !isSwBrandPlaceholder(r) && swInferKind(r.label, r.kind) === kind)) return true;
+    return rows.some((r) => isSwBrandPlaceholder(r) && r.kind === kind);
+  }
+
+  function normalizeSwBrandName(raw) {
+    return String(raw || '').trim().replace(/\s+/g, ' ');
+  }
+
+  function createSwBrand(rawBrand, kind) {
+    const brand = normalizeSwBrandName(rawBrand);
+    if (!brand) {
+      alert('Informe o nome da marca.');
+      return '';
+    }
+    if (brand === OUTRO_MODELO_LABEL || brand === 'Outros') {
+      alert('“Outros” é reservado. Escolha outro nome para a marca.');
+      return '';
+    }
+    if (smartwatchCatalogState[brand] && swRealCatalogRows(brand).length) {
+      alert(`A marca “${brand}” já existe. Selecione-a na lista e adicione modelos.`);
+      return '';
+    }
+    smartwatchCatalogState[brand] = [{ label: '', kind, _brandPlaceholder: true }];
+    syncSmartwatchModelsTextarea();
+    return brand;
+  }
+
+  function stripSwBrandPlaceholders(brand) {
+    if (!smartwatchCatalogState[brand]) return;
+    smartwatchCatalogState[brand] = (smartwatchCatalogState[brand] || []).filter((r) => !isSwBrandPlaceholder(r));
+    if (!smartwatchCatalogState[brand].length) delete smartwatchCatalogState[brand];
+  }
+
   function swInferKind(label, explicit) {
     const raw = String(explicit || '').toLowerCase();
     if (raw === 'band' || raw === 'smartband') return 'smartband';
@@ -5695,6 +5738,14 @@ ${worksheets}
   function normalizeAdminCatalog(catalog, models) {
     const out = {};
     const push = (brand, row) => {
+      if (row?._brandPlaceholder) {
+        const b = brand || 'Outros';
+        const kind = swInferKind('', row?.kind || row?.deviceType);
+        if (!out[b]) out[b] = [];
+        const existing = out[b].find((r) => isSwBrandPlaceholder(r) && r.kind === kind);
+        if (!existing) out[b].push({ label: '', kind, _brandPlaceholder: true });
+        return;
+      }
       const label = String(row?.label || row || '').trim();
       if (!label || label === OUTRO_MODELO_LABEL) return;
       const b = brand || swBrandOf(label);
@@ -5714,6 +5765,10 @@ ${worksheets}
       else out[b].push(next);
     };
     Object.entries(catalog || {}).forEach(([brand, rows]) => {
+      if (!rows?.length) {
+        if (!out[brand]) out[brand] = [];
+        return;
+      }
       (rows || []).forEach((row) => push(brand, row));
     });
     (models || []).forEach((label) => {
@@ -5728,7 +5783,7 @@ ${worksheets}
     const seen = new Set();
     Object.keys(catalog || {}).sort().forEach((brand) => {
       (catalog[brand] || []).forEach((row) => {
-        if (!row?.label || seen.has(row.label)) return;
+        if (!row?.label || isSwBrandPlaceholder(row) || seen.has(row.label)) return;
         seen.add(row.label);
         labels.push(row.label);
       });
@@ -5750,7 +5805,7 @@ ${worksheets}
     if (!kindEl || !brandEl || !tbody) return;
     const kind = kindEl.value || 'smartwatch';
     const brands = Object.keys(smartwatchCatalogState)
-      .filter((b) => (smartwatchCatalogState[b] || []).some((r) => swInferKind(r.label, r.kind) === kind))
+      .filter((b) => swBrandHasKind(b, kind))
       .sort();
     const prevBrand = brandEl.value;
     brandEl.innerHTML = brands.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('')
@@ -5758,7 +5813,7 @@ ${worksheets}
     if (prevBrand && brands.includes(prevBrand)) brandEl.value = prevBrand;
     else if (brands.length) brandEl.value = brands[0];
     const brand = brandEl.value;
-    const rows = (smartwatchCatalogState[brand] || [])
+    const rows = swRealCatalogRows(brand)
       .filter((r) => swInferKind(r.label, r.kind) === kind)
       .sort((a, b) => String(a.label).localeCompare(String(b.label), 'pt'));
     if (summary) {
@@ -5794,6 +5849,7 @@ ${worksheets}
       .sort((a, b) => a.localeCompare(b, 'pt'))
       .forEach((brand) => {
         (smartwatchCatalogState[brand] || [])
+          .filter((row) => !isSwBrandPlaceholder(row))
           .slice()
           .sort((a, b) => String(a.label).localeCompare(String(b.label), 'pt'))
           .forEach((row) => {
@@ -5832,7 +5888,10 @@ ${worksheets}
     if (btn) btn.disabled = true;
     try {
       syncSmartwatchModelsTextarea();
-      const count = Object.values(smartwatchCatalogState || {}).reduce((n, rows) => n + (rows?.length || 0), 0);
+      const count = Object.values(smartwatchCatalogState || {}).reduce(
+        (n, rows) => n + (rows || []).filter((r) => !isSwBrandPlaceholder(r)).length,
+        0
+      );
       if (!count) {
         alert('Nenhum modelo para exportar.');
         return;
@@ -5854,6 +5913,16 @@ ${worksheets}
     kindEl?.addEventListener('change', () => renderSmartwatchCatalogTable());
     brandEl?.addEventListener('change', () => renderSmartwatchCatalogTable());
     document.getElementById('admin-sw-export')?.addEventListener('click', () => exportSmartwatchCatalogExcel());
+    document.getElementById('admin-sw-add-brand')?.addEventListener('click', () => {
+      const kind = kindEl?.value || 'smartwatch';
+      const brand = createSwBrand(document.getElementById('admin-sw-new-brand')?.value, kind);
+      if (!brand) return;
+      const newBrandInput = document.getElementById('admin-sw-new-brand');
+      if (newBrandInput) newBrandInput.value = '';
+      renderSmartwatchCatalogTable();
+      if (brandEl) brandEl.value = brand;
+      renderSmartwatchCatalogTable();
+    });
     document.getElementById('admin-sw-apply-sensor')?.addEventListener('click', () => {
       const bulk = Number(document.getElementById('admin-sw-sensor-bulk')?.value);
       if (!(bulk > 0)) {
@@ -5864,6 +5933,7 @@ ${worksheets}
       const brand = brandEl?.value;
       if (!brand || !smartwatchCatalogState[brand]) return;
       smartwatchCatalogState[brand].forEach((row) => {
+        if (isSwBrandPlaceholder(row)) return;
         if (swInferKind(row.label, row.kind) === kind) row.sensorMm = bulk;
       });
       syncSmartwatchModelsTextarea();
@@ -5884,9 +5954,24 @@ ${worksheets}
         return;
       }
       const kind = kindEl?.value || swInferKind(label);
-      const brand = brandEl?.value || swBrandOf(label);
+      const newBrandRaw = normalizeSwBrandName(document.getElementById('admin-sw-new-brand')?.value);
+      let brand = newBrandRaw || brandEl?.value || swBrandOf(label);
+      if (newBrandRaw) {
+        if (!smartwatchCatalogState[newBrandRaw]) {
+          createSwBrand(newBrandRaw, kind);
+        } else if (!swBrandHasKind(newBrandRaw, kind)) {
+          smartwatchCatalogState[newBrandRaw].push({ label: '', kind, _brandPlaceholder: true });
+        }
+        brand = newBrandRaw;
+      }
+      if (!brand) {
+        alert('Selecione ou crie uma marca antes de adicionar o modelo.');
+        return;
+      }
       const sensorRaw = document.getElementById('admin-sw-new-sensor')?.value;
       const sensor = sensorRaw !== '' && sensorRaw != null ? Number(sensorRaw) : null;
+      if (!smartwatchCatalogState[brand]) smartwatchCatalogState[brand] = [];
+      stripSwBrandPlaceholders(brand);
       if (!smartwatchCatalogState[brand]) smartwatchCatalogState[brand] = [];
       smartwatchCatalogState[brand].push({
         label,
@@ -5902,8 +5987,10 @@ ${worksheets}
       }
       const newLabel = document.getElementById('admin-sw-new-label');
       const newSensor = document.getElementById('admin-sw-new-sensor');
+      const newBrandInput = document.getElementById('admin-sw-new-brand');
       if (newLabel) newLabel.value = '';
       if (newSensor) newSensor.value = '';
+      if (newBrandInput) newBrandInput.value = '';
       syncSmartwatchModelsTextarea();
       renderSmartwatchCatalogTable();
     });
@@ -5949,7 +6036,7 @@ ${worksheets}
       if (!hit) return;
       if (!confirm(`Remover “${label}” do cadastro?`)) return;
       smartwatchCatalogState[hit.brand] = (smartwatchCatalogState[hit.brand] || []).filter((r) => r.label !== label);
-      if (!smartwatchCatalogState[hit.brand].length) delete smartwatchCatalogState[hit.brand];
+      if (!swRealCatalogRows(hit.brand).length) delete smartwatchCatalogState[hit.brand];
       syncSmartwatchModelsTextarea();
       renderSmartwatchCatalogTable();
     });

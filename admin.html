@@ -170,6 +170,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-clock"></i> Cadastro de smartwatches</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-smartwatch-catalog" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-smartwatch-catalog" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Catálogo usado no checkout (marca → modelo). Filtre por <strong>Smartwatch</strong> ou <strong>Smartband</strong> e pela marca.</p>
+                            <p><strong>Nova marca:</strong> escolha o tipo (ex. Smartband), digite o nome em <strong>Nova marca</strong> e clique <strong>Criar marca</strong>. Depois cadastre os modelos abaixo e clique <strong>Salvar</strong> no rodapé.</p>
                             <p><strong>Sensor (mm)</strong> = diâmetro do sensor óptico na parte de trás — para consulta ao aplicar a lente. Não altera o tamanho da caixa no label.</p>
                             <p>A opção “Outro modelo…” continua no checkout automaticamente ao salvar.</p>
                         </div>
@@ -183,6 +184,10 @@
                             <label>Marca
                                 <select id="admin-sw-brand"></select>
                             </label>
+                            <label>Nova marca
+                                <input type="text" id="admin-sw-new-brand" placeholder="Ex.: Whoop" autocomplete="off">
+                            </label>
+                            <button type="button" id="admin-sw-add-brand" class="btn-secondary" title="Cria a marca para o tipo selecionado"><i class="fas fa-tag"></i> Criar marca</button>
                             <label class="admin-sw-sensor-bulk">Sensor da marca (mm)
                                 <input type="number" id="admin-sw-sensor-bulk" min="0" step="0.1" placeholder="ex.: 25" inputmode="decimal">
                             </label>
@@ -1247,6 +1252,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=199"></script>
+    <script defer src="js/admin.js?v=200"></script>
 </body>
 </html>

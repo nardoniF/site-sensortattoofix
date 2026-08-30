@@ -1524,7 +1524,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (catalog && typeof catalog === 'object') {
       const next = {};
       Object.entries(catalog).forEach(([brand, rows]) => {
-        const filtered = (rows || []).filter((row) => catalogEntryKind(row) === kind);
+        const filtered = (rows || []).filter((row) => row?.label && !row._brandPlaceholder && catalogEntryKind(row) === kind);
         if (filtered.length) next[brand] = filtered;
       });
       return {
@@ -1574,7 +1574,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (brand === '__outro__') return [OUTRO_MODELO];
     const catalog = src?.smartwatchCatalog;
     if (catalog && Array.isArray(catalog[brand])) {
-      return catalog[brand].map((row) => (typeof row === 'string' ? row : row?.label)).filter(Boolean);
+      return catalog[brand]
+        .filter((row) => row?.label && !row._brandPlaceholder)
+        .map((row) => (typeof row === 'string' ? row : row?.label))
+        .filter(Boolean);
     }
     return (src?.smartwatchModels || [])
       .map((m) => String(m || '').trim())
@@ -1628,7 +1631,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
       const catalog = src.smartwatchCatalog;
       let brands = catalog && typeof catalog === 'object'
-        ? Object.keys(catalog).filter((b) => (catalog[b] || []).length)
+        ? Object.keys(catalog).filter((b) => (catalog[b] || []).some((row) => row?.label && !row._brandPlaceholder))
         : [];
       if (!brands.length) {
         const seen = new Set();
