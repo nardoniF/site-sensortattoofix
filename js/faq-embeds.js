@@ -84,6 +84,13 @@
     });
   }
 
+  window.STF_FAQ_EMBEDS = {
+    refresh: function (root) {
+      initTikToks();
+      scheduleInstagram(root || document);
+    }
+  };
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

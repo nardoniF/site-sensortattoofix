@@ -438,6 +438,249 @@
     }).filter((c) => c.code || c.email || c.name);
   }
 
+  function renderHomeFaq(rows) {
+    const list = document.getElementById('admin-home-faq');
+    if (!list) return;
+    const items = Array.isArray(rows) ? rows.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+    if (!items.length) {
+      list.innerHTML = '<p class="admin-meta">Nenhuma pergunta. Clique em Adicionar pergunta.</p>';
+      return;
+    }
+    list.innerHTML = items.map((row, i) => {
+      const media = row.media || {};
+      return `
+      <div class="admin-coupon-row admin-home-faq-row" data-faq-index="${i}">
+        <div class="admin-coupon-grid">
+          <label class="label-check admin-coupon-active">
+            <input type="checkbox" data-field="active" ${row.active !== false ? 'checked' : ''}>
+            <span>Ativo</span>
+          </label>
+          <label>Ordem
+            <input type="number" data-field="order" min="1" step="1" value="${escAttr(row.order ?? i + 1)}">
+          </label>
+          <label class="full">Pergunta (PT)
+            <input type="text" data-field="question" value="${escAttr(row.question || '')}">
+          </label>
+          <label class="full">Pergunta (EN)
+            <input type="text" data-field="questionEn" value="${escAttr(row.questionEn || '')}">
+          </label>
+          <label class="full">Pergunta (IT)
+            <input type="text" data-field="questionIt" value="${escAttr(row.questionIt || '')}">
+          </label>
+          <label class="full">Resposta (PT) — HTML ok
+            <textarea data-field="answer" rows="3">${escTextarea(row.answer || '')}</textarea>
+          </label>
+          <label class="full">Resposta (EN)
+            <textarea data-field="answerEn" rows="3">${escTextarea(row.answerEn || '')}</textarea>
+          </label>
+          <label class="full">Resposta (IT)
+            <textarea data-field="answerIt" rows="3">${escTextarea(row.answerIt || '')}</textarea>
+          </label>
+          <label>Mídia
+            <select data-field="mediaType">
+              <option value="" ${!media.type ? 'selected' : ''}>Nenhuma</option>
+              <option value="instagram" ${media.type === 'instagram' ? 'selected' : ''}>Instagram</option>
+              <option value="tiktok" ${media.type === 'tiktok' ? 'selected' : ''}>TikTok</option>
+            </select>
+          </label>
+          <label class="full">URL Instagram (permalink)
+            <input type="url" data-field="instagramPermalink" value="${escAttr(media.instagramPermalink || '')}" placeholder="https://www.instagram.com/reel/...">
+          </label>
+          <label>ID TikTok
+            <input type="text" data-field="tiktokId" value="${escAttr(media.tiktokId || '')}">
+          </label>
+          <label class="full">URL TikTok
+            <input type="url" data-field="tiktokHref" value="${escAttr(media.tiktokHref || '')}">
+          </label>
+          <label>Handle TikTok
+            <input type="text" data-field="tiktokHandle" value="${escAttr(media.tiktokHandle || '')}" placeholder="@usuario">
+          </label>
+          <label class="full">Título TikTok (acessibilidade)
+            <input type="text" data-field="tiktokTitle" value="${escAttr(media.tiktokTitle || '')}">
+          </label>
+          <input type="hidden" data-field="id" value="${escAttr(row.id || `faq-${i + 1}`)}">
+        </div>
+        <button type="button" class="btn-secondary btn-remove-home-faq" data-index="${i}"><i class="fas fa-trash"></i> Remover</button>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.btn-remove-home-faq').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-index'));
+        renderHomeFaq(collectHomeFaq().filter((_, j) => j !== idx));
+      });
+    });
+  }
+
+  function collectHomeFaq() {
+    const list = document.getElementById('admin-home-faq');
+    if (!list) return currentConfig?.homeFaq || [];
+    return [...list.querySelectorAll('.admin-home-faq-row')].map((row, i) => {
+      const val = (field) => {
+        const el = row.querySelector(`[data-field="${field}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        return el.value;
+      };
+      const mediaType = String(val('mediaType') || '').trim();
+      let media = null;
+      if (mediaType === 'instagram') {
+        const url = String(val('instagramPermalink') || '').trim();
+        if (url) media = { type: 'instagram', instagramPermalink: url };
+      } else if (mediaType === 'tiktok') {
+        media = {
+          type: 'tiktok',
+          tiktokId: String(val('tiktokId') || '').trim(),
+          tiktokHref: String(val('tiktokHref') || '').trim(),
+          tiktokHandle: String(val('tiktokHandle') || '').trim(),
+          tiktokTitle: String(val('tiktokTitle') || '').trim()
+        };
+      }
+      return {
+        id: String(val('id') || `faq-${i + 1}`).trim(),
+        active: val('active') !== false,
+        order: Math.max(1, parseInt(val('order'), 10) || i + 1),
+        question: String(val('question') || '').trim(),
+        questionEn: String(val('questionEn') || '').trim(),
+        questionIt: String(val('questionIt') || '').trim(),
+        answer: String(val('answer') || '').trim(),
+        answerEn: String(val('answerEn') || '').trim(),
+        answerIt: String(val('answerIt') || '').trim(),
+        media
+      };
+    }).filter((r) => r.question || r.questionEn);
+  }
+
+  function renderHomeReviews(rows) {
+    const list = document.getElementById('admin-home-reviews');
+    if (!list) return;
+    const items = Array.isArray(rows) ? rows.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+    if (!items.length) {
+      list.innerHTML = '<p class="admin-meta">Nenhum elogio. Clique em Adicionar elogio.</p>';
+      return;
+    }
+    list.innerHTML = items.map((row, i) => `
+      <div class="admin-coupon-row admin-home-review-row" data-review-index="${i}">
+        <div class="admin-coupon-grid">
+          <label class="label-check admin-coupon-active">
+            <input type="checkbox" data-field="active" ${row.active !== false ? 'checked' : ''}>
+            <span>Ativo</span>
+          </label>
+          <label>Ordem
+            <input type="number" data-field="order" min="1" step="1" value="${escAttr(row.order ?? i + 1)}">
+          </label>
+          <label>Estrelas
+            <input type="number" data-field="rating" min="1" max="5" step="1" value="${escAttr(row.rating ?? 5)}">
+          </label>
+          <label class="full">Texto (PT)
+            <textarea data-field="body" rows="2">${escTextarea(row.body || '')}</textarea>
+          </label>
+          <label class="full">Texto (EN)
+            <textarea data-field="bodyEn" rows="2">${escTextarea(row.bodyEn || '')}</textarea>
+          </label>
+          <label class="full">Texto (IT)
+            <textarea data-field="bodyIt" rows="2">${escTextarea(row.bodyIt || '')}</textarea>
+          </label>
+          <label>Nome (PT)
+            <input type="text" data-field="author" value="${escAttr(row.author || '')}">
+          </label>
+          <label>Nome (EN)
+            <input type="text" data-field="authorEn" value="${escAttr(row.authorEn || '')}">
+          </label>
+          <label>Nome (IT)
+            <input type="text" data-field="authorIt" value="${escAttr(row.authorIt || '')}">
+          </label>
+          <label>Fonte (PT)
+            <input type="text" data-field="source" value="${escAttr(row.source || '')}" placeholder="Google, Mercado Livre…">
+          </label>
+          <label>Fonte (EN)
+            <input type="text" data-field="sourceEn" value="${escAttr(row.sourceEn || '')}">
+          </label>
+          <label>Fonte (IT)
+            <input type="text" data-field="sourceIt" value="${escAttr(row.sourceIt || '')}">
+          </label>
+          <input type="hidden" data-field="id" value="${escAttr(row.id || `review-${i + 1}`)}">
+        </div>
+        <button type="button" class="btn-secondary btn-remove-home-review" data-index="${i}"><i class="fas fa-trash"></i> Remover</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('.btn-remove-home-review').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-index'));
+        renderHomeReviews(collectHomeReviews().filter((_, j) => j !== idx));
+      });
+    });
+  }
+
+  function collectHomeReviews() {
+    const list = document.getElementById('admin-home-reviews');
+    if (!list) return currentConfig?.homeReviews || [];
+    return [...list.querySelectorAll('.admin-home-review-row')].map((row, i) => {
+      const val = (field) => {
+        const el = row.querySelector(`[data-field="${field}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        return el.value;
+      };
+      return {
+        id: String(val('id') || `review-${i + 1}`).trim(),
+        active: val('active') !== false,
+        order: Math.max(1, parseInt(val('order'), 10) || i + 1),
+        rating: Math.min(5, Math.max(1, parseInt(val('rating'), 10) || 5)),
+        body: String(val('body') || '').trim(),
+        bodyEn: String(val('bodyEn') || '').trim(),
+        bodyIt: String(val('bodyIt') || '').trim(),
+        author: String(val('author') || '').trim(),
+        authorEn: String(val('authorEn') || '').trim(),
+        authorIt: String(val('authorIt') || '').trim(),
+        source: String(val('source') || '').trim(),
+        sourceEn: String(val('sourceEn') || '').trim(),
+        sourceIt: String(val('sourceIt') || '').trim()
+      };
+    }).filter((r) => r.body || r.bodyEn);
+  }
+
+  function wireHomeContentAdmin() {
+    if (wireHomeContentAdmin._wired) return;
+    wireHomeContentAdmin._wired = true;
+    document.getElementById('btn-add-home-faq')?.addEventListener('click', () => {
+      const rows = collectHomeFaq();
+      const n = rows.length + 1;
+      rows.push({
+        id: `faq-${Date.now()}`,
+        active: true,
+        order: n,
+        question: '',
+        questionEn: '',
+        questionIt: '',
+        answer: '',
+        answerEn: '',
+        answerIt: '',
+        media: null
+      });
+      renderHomeFaq(rows);
+    });
+    document.getElementById('btn-add-home-review')?.addEventListener('click', () => {
+      const rows = collectHomeReviews();
+      const n = rows.length + 1;
+      rows.push({
+        id: `review-${Date.now()}`,
+        active: true,
+        order: n,
+        rating: 5,
+        body: '',
+        bodyEn: '',
+        bodyIt: '',
+        author: '',
+        authorEn: '',
+        authorIt: '',
+        source: '',
+        sourceEn: '',
+        sourceIt: ''
+      });
+      renderHomeReviews(rows);
+    });
+  }
+
   function renderMotoboyCouriers(couriers) {
     const list = document.getElementById('admin-motoboy-couriers');
     if (!list) return;
@@ -5377,6 +5620,8 @@ ${worksheets}
     if (f.motoboyDeliveryHours) f.motoboyDeliveryHours.value = motoboy.deliveryHours ?? 24;
     renderMotoboyCouriers(motoboy.couriers || []);
     renderCoupons(config.coupons || []);
+    renderHomeFaq(config.homeFaq || []);
+    renderHomeReviews(config.homeReviews || []);
     renderIntlShipping(config.internationalShipping || {});
     if (f.intlSurcharge) f.intlSurcharge.value = config.internationalSurcharge ?? 40;
     if (f.intlShippingMultiplier) f.intlShippingMultiplier.value = config.internationalShippingMultiplier ?? 1;
@@ -5647,12 +5892,14 @@ ${worksheets}
       kitCostIntl: collectKitCostFromDom('intl'),
       kitCostVersion: 3,
       mlFlexShippingCost: Math.max(0, parseFloat(f.mlFlexShippingCost?.value) || (currentConfig?.mlFlexShippingCost || 0)),
+      homeFaq: collectHomeFaq(),
+      homeReviews: collectHomeReviews(),
       updatedAt: new Date().toISOString()
     };
   }
 
-  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes']);
-  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'cupons', 'contato']);
+  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes', 'faq', 'elogios']);
+  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'cupons', 'faq', 'elogios', 'contato']);
   const CADASTROS_PANEL_BY_SECTION = {
     pessoas: 'clientes',
     produtos: 'produtos',
@@ -5661,6 +5908,8 @@ ${worksheets}
     pagamento: 'pagamento',
     frete: 'frete',
     cupons: 'cupons',
+    faq: 'faq',
+    elogios: 'elogios',
     contato: 'contato'
   };
   const OUTRO_MODELO_LABEL = 'Outro modelo (informar nas observações)';
@@ -6569,6 +6818,8 @@ ${worksheets}
         pagamento: 'pagamento',
         frete: 'frete',
         cupons: 'cupons',
+        faq: 'faq',
+        elogios: 'elogios',
         contato: 'contato',
         pix: 'pagamento'
       };
@@ -6763,6 +7014,7 @@ ${worksheets}
     try {
       await loadConfig();
       fillForm(currentConfig);
+      wireHomeContentAdmin();
       wireSenderCepLookup();
       wireShippingUi();
       await loadShippingStatus();
