@@ -202,6 +202,94 @@ export function flexCompanyOwed(sale, config = null) {
   return roundMoney(ship + bonus);
 }
 
+export function orderPaypalFee(order) {
+  return roundMoney(Number(order?.paypalFee) || 0);
+}
+
+/**
+ * What the customer actually paid. Recovers the original total when a previous
+ * frete edit shrank `total` to (produto + novo frete) instead of moving the
+ * difference onto the product.
+ */
+export function inferCustomerPaidTotal(order) {
+  if (order?.totalPaid != null && Number(order.totalPaid) > 0) {
+    return roundMoney(order.totalPaid);
+  }
+  const vp = roundMoney(order?.valorProduto);
+  const frete = roundMoney(order?.frete);
+  const origFrete = order?.freteOriginal != null ? roundMoney(order.freteOriginal) : frete;
+  const fee = orderPaypalFee(order);
+  const total = roundMoney(order?.total);
+  const shrunk = roundMoney(vp + frete + fee);
+  const fromOrigFrete = roundMoney(vp + origFrete + fee);
+  if (origFrete > frete + 0.009 && Math.abs(total - shrunk) <= 0.05) {
+    return fromOrigFrete;
+  }
+  if (total > 0) return total;
+  return fromOrigFrete;
+}
+
+export function orderNeedsFreteProductRepair(order) {
+  if (!order) return false;
+  const origFrete = order.freteOriginal != null ? roundMoney(order.freteOriginal) : null;
+  if (origFrete == null) return false;
+  const frete = roundMoney(order.frete);
+  if (!(origFrete > frete + 0.009)) return false;
+  const fee = orderPaypalFee(order);
+  const paid = inferCustomerPaidTotal(order);
+  const remainder = roundMoney(Math.max(0, paid - frete - fee));
+  const adjust = roundMoney(order.productAdjust || 0);
+  const expectedVp = roundMoney(Math.max(0, remainder + adjust));
+  return Math.abs(roundMoney(order.valorProduto) - expectedVp) > 0.05
+    || Math.abs(roundMoney(order.total) - paid) > 0.05
+    || order.totalPaid == null;
+}
+
+export function applyOrderFreteAccounting(order, newFrete, opts = {}) {
+  if (!order) return order;
+  const now = opts.now || new Date().toISOString();
+  const rounded = roundMoney(newFrete);
+  const fee = orderPaypalFee(order);
+  const oldFrete = roundMoney(order.frete);
+
+  if (order.freteOriginal == null && rounded !== oldFrete) {
+    order.freteOriginal = oldFrete;
+  }
+  if (order.valorProdutoAtCheckout == null && order.valorProduto != null) {
+    order.valorProdutoAtCheckout = roundMoney(order.valorProduto);
+  }
+
+  const paid = inferCustomerPaidTotal(order);
+  order.totalPaid = paid;
+  if (order.freteOriginal == null) order.freteOriginal = oldFrete;
+
+  order.frete = rounded;
+
+  let adjust = order.productAdjust != null ? roundMoney(order.productAdjust) : 0;
+  if (opts.productAdjust !== undefined) {
+    adjust = roundMoney(opts.productAdjust);
+    order.productAdjust = adjust;
+  }
+
+  const remainder = roundMoney(Math.max(0, paid - rounded - fee));
+
+  if (opts.valorProduto !== undefined) {
+    const vp = roundMoney(Math.max(0, Number(opts.valorProduto)));
+    order.valorProduto = vp;
+    order.productAdjust = roundMoney(vp - remainder);
+  } else {
+    order.valorProduto = roundMoney(Math.max(0, remainder + adjust));
+  }
+
+  order.total = paid;
+  order.freteAdjustedAt = now;
+  return order;
+}
+
+export function storeOrderListedGross(order) {
+  return inferCustomerPaidTotal(order);
+}
+
 export function aggregateFlexOwedByMonth(sales, config = null) {
   const map = new Map();
   (sales || []).forEach((s) => {
@@ -258,6 +346,11 @@ const exportsForBrowser = {
   isMlFlexSale,
   flexCompanyOwed,
   aggregateFlexOwedByMonth,
+  orderPaypalFee,
+  inferCustomerPaidTotal,
+  orderNeedsFreteProductRepair,
+  applyOrderFreteAccounting,
+  storeOrderListedGross,
   MONTH_LABELS,
   DEFAULT_KIT_COST_COMPONENTS,
   DEFAULT_KIT_COST_INTL_COMPONENTS

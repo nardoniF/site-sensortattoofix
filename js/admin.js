@@ -1045,8 +1045,12 @@
   }
 
   function storeOrderToSale(o) {
-    const gross = Math.round(Number(o.total || 0) * 100) / 100;
+    const listed = sm().storeOrderListedGross;
+    const gross = listed
+      ? listed(o)
+      : Math.round(Number(o.total || 0) * 100) / 100;
     const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
+    const paypalFee = Math.round(Number(o.paypalFee || 0) * 100) / 100;
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
     let qty = Number(o.qty || o.quantity || 0) || 0;
     if (!qty && Array.isArray(o.items) && o.items.length) {
@@ -1064,7 +1068,7 @@
       status: o.status || null,
       currency: o.currency || 'BRL',
       gross,
-      fees: 0,
+      fees: paypalFee,
       shippingCost,
       refunds: 0,
       otherFees: 0,
