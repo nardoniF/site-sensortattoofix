@@ -1182,7 +1182,8 @@ function normalizeSmartwatchCatalogRow(row, brand) {
   else if (kindRaw === 'watch' || kindRaw === 'smartwatch') kind = 'smartwatch';
   const sensor = row.sensorMm != null && row.sensorMm !== '' ? Number(row.sensorMm) : null;
   const size = row.sizeMm != null && row.sizeMm !== '' ? Number(row.sizeMm) : null;
-  return {
+  const kinds = Array.isArray(row.kinds) ? [...new Set(row.kinds.filter(Boolean))] : null;
+  const out = {
     label,
     model: String(row.model || label).trim() || label,
     sizeMm: Number.isFinite(size) && size > 0 ? size : null,
@@ -1190,6 +1191,8 @@ function normalizeSmartwatchCatalogRow(row, brand) {
     sensorMm: Number.isFinite(sensor) && sensor > 0 ? sensor : null,
     brand: brand || row.brand || null
   };
+  if (kinds?.length) out.kinds = kinds;
+  return out;
 }
 
 function mergeSmartwatchCatalog(stored, base) {
@@ -1213,7 +1216,8 @@ function mergeSmartwatchCatalog(stored, base) {
         model: norm.model || prev.model || norm.label,
         sizeMm: norm.sizeMm != null ? norm.sizeMm : (prev.sizeMm ?? null),
         kind: norm.kind || prev.kind || null,
-        sensorMm: norm.sensorMm != null ? norm.sensorMm : (prev.sensorMm ?? null)
+        sensorMm: norm.sensorMm != null ? norm.sensorMm : (prev.sensorMm ?? null),
+        ...(norm.kinds?.length ? { kinds: norm.kinds } : prev.kinds?.length ? { kinds: prev.kinds } : {})
       });
     });
     if (byLabel.size) out[brand] = [...byLabel.values()];
