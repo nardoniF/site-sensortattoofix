@@ -6,8 +6,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export CF_ACCOUNT_ID="${CF_ACCOUNT_ID:-80ab4f6ff1553d2ee530c0880edce594}"
 
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
-  echo "Erro: defina CLOUDFLARE_API_TOKEN (token Cloudflare com permissão Workers)." >&2
-  exit 1
+  if ! npx wrangler@4 whoami >/dev/null 2>&1; then
+    echo "Erro: defina CLOUDFLARE_API_TOKEN ou faça wrangler login (OAuth)." >&2
+    exit 1
+  fi
 fi
 
 echo "→ Deploy sensortattoofix-payments (API)…"
