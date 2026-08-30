@@ -1503,6 +1503,56 @@
     }
   },
   "smartwatchModels": [
+    "Amazfit Active 2",
+    "Amazfit Bip",
+    "Amazfit Bip 6",
+    "Amazfit Bip Lite",
+    "Amazfit Bip S",
+    "Amazfit Bip S Lite",
+    "Amazfit Bip U",
+    "Amazfit Falcon",
+    "Amazfit GTR 2e",
+    "Amazfit GTR Mini",
+    "Amazfit GTS 2 Mini",
+    "Amazfit GTS 2e",
+    "Amazfit GTS 4 Mini",
+    "Amazfit Helio",
+    "Amazfit Neo",
+    "Amazfit Pace",
+    "Amazfit Stratos",
+    "Amazfit T-Rex 3",
+    "Amazfit Verge",
+    "Amazfit Bip U Pro (40mm)",
+    "Amazfit GTS 2 mini (40mm)",
+    "Amazfit GTS 4 mini (41mm)",
+    "Amazfit Active (42mm)",
+    "Amazfit GTR (42mm)",
+    "Amazfit GTS 2 (42mm)",
+    "Amazfit GTS 3 (42mm)",
+    "Amazfit GTS 4 (42mm)",
+    "Amazfit GTS (43mm)",
+    "Amazfit Bip 3 (44mm)",
+    "Amazfit Bip 5 (45mm)",
+    "Amazfit GTR 3 (45mm)",
+    "Amazfit Balance (46mm)",
+    "Amazfit Cheetah (46mm)",
+    "Amazfit GTR 2 (46mm)",
+    "Amazfit GTR 3 Pro (46mm)",
+    "Amazfit GTR 4 (46mm)",
+    "Amazfit Cheetah Pro (47mm)",
+    "Amazfit GTR (47mm)",
+    "Amazfit T-Rex (47mm)",
+    "Amazfit T-Rex 2 (47mm)",
+    "Amazfit T-Rex Pro (47mm)",
+    "Amazfit T-Rex Ultra (47mm)",
+    "Amazfit Band 5",
+    "Amazfit Band 7",
+    "Amazfit Band 2 (20mm)",
+    "Amazfit Cor (31mm)",
+    "Amazfit Health Band 1S (20mm)",
+    "Amazfit Helio Strap (34mm)",
+    "Amazfit Helio Strap Pro (34mm)",
+    "Amazfit UP (20mm)",
     "Apple Watch Series 1 (38mm)",
     "Apple Watch Series 1 (42mm)",
     "Apple Watch Series 2 (38mm)",
@@ -1530,36 +1580,32 @@
     "Apple Watch Ultra (49mm)",
     "Apple Watch Ultra 2 (49mm)",
     "Apple Watch Ultra 3 (49mm)",
-    "Samsung Galaxy Fit 3 (28mm)",
-    "Samsung Galaxy Watch Active (40mm)",
-    "Samsung Galaxy Watch Active 2 (40mm)",
-    "Samsung Galaxy Watch FE (40mm)",
-    "Samsung Galaxy Gear (41mm)",
-    "Samsung Galaxy Gear S2 (42mm)",
-    "Samsung Galaxy Watch (42mm)",
-    "Samsung Galaxy Watch Active 2 (44mm)",
-    "Samsung Galaxy Gear S3 Classic (46mm)",
-    "Samsung Galaxy Gear S3 Frontier (46mm)",
-    "Samsung Galaxy Watch (46mm)",
-    "Samsung Galaxy Watch 3 (41mm)",
-    "Samsung Galaxy Watch 3 (45mm)",
-    "Samsung Galaxy Watch 4 (40mm)",
-    "Samsung Galaxy Watch 4 Classic (42mm)",
-    "Samsung Galaxy Watch 4 (44mm)",
-    "Samsung Galaxy Watch 4 Classic (46mm)",
-    "Samsung Galaxy Watch 5 (40mm)",
-    "Samsung Galaxy Watch 5 (44mm)",
-    "Samsung Galaxy Watch 5 Pro (45mm)",
-    "Samsung Galaxy Watch 6 (40mm)",
-    "Samsung Galaxy Watch 6 Classic (43mm)",
-    "Samsung Galaxy Watch 6 (44mm)",
-    "Samsung Galaxy Watch 6 Classic (47mm)",
-    "Samsung Galaxy Watch 7 (40mm)",
-    "Samsung Galaxy Watch 7 (44mm)",
-    "Samsung Galaxy Watch 8 (40mm)",
-    "Samsung Galaxy Watch 8 (44mm)",
-    "Samsung Galaxy Watch 8 Classic (46mm)",
-    "Samsung Galaxy Watch Ultra (47mm)",
+    "Coros Pace (47mm)",
+    "Fitbit Versa / Sense",
+    "Fitbit Charge 4",
+    "Fitbit Charge 5",
+    "Fitbit Charge 6",
+    "Fitbit Inspire 3",
+    "Fitbit Luxe",
+    "Fitbit Ace 3",
+    "Fitbit Air",
+    "Fitbit Sense 2",
+    "Fitbit Versa 3",
+    "Fitbit Versa 4",
+    "Fitbit Flex (15mm)",
+    "Fitbit Flex 2 (15mm)",
+    "Fitbit Alta (15mm)",
+    "Fitbit Alta HR (15mm)",
+    "Fitbit Charge (21mm)",
+    "Fitbit Charge HR (21mm)",
+    "Fitbit Charge 2 (21mm)",
+    "Fitbit Charge 3 (21mm)",
+    "Fitbit Inspire (20mm)",
+    "Fitbit Inspire HR (20mm)",
+    "Fitbit Inspire 2 (20mm)",
+    "Fitbit Ace (20mm)",
+    "Fitbit Ace 2 (20mm)",
+    "Fitbit Force (21mm)",
     "Garmin Enduro",
     "Garmin Enduro 2",
     "Garmin Enduro 3",
@@ -1614,62 +1660,37 @@
     "Garmin Fenix 6X (51mm)",
     "Garmin Fenix 7X (51mm)",
     "Garmin Fenix 8 (51mm)",
-    "Amazfit Active 2",
-    "Amazfit Bip",
-    "Amazfit Bip 6",
-    "Amazfit Bip Lite",
-    "Amazfit Bip S",
-    "Amazfit Bip S Lite",
-    "Amazfit Bip U",
-    "Amazfit Falcon",
-    "Amazfit GTR 2e",
-    "Amazfit GTR Mini",
-    "Amazfit GTS 2 Mini",
-    "Amazfit GTS 2e",
-    "Amazfit GTS 4 Mini",
-    "Amazfit Helio",
-    "Amazfit Neo",
-    "Amazfit Pace",
-    "Amazfit Stratos",
-    "Amazfit T-Rex 3",
-    "Amazfit Verge",
-    "Amazfit Bip U Pro (40mm)",
-    "Amazfit GTS 2 mini (40mm)",
-    "Amazfit GTS 4 mini (41mm)",
-    "Amazfit Active (42mm)",
-    "Amazfit GTR (42mm)",
-    "Amazfit GTS 2 (42mm)",
-    "Amazfit GTS 3 (42mm)",
-    "Amazfit GTS 4 (42mm)",
-    "Amazfit GTS (43mm)",
-    "Amazfit Bip 3 (44mm)",
-    "Amazfit Bip 5 (45mm)",
-    "Amazfit GTR 3 (45mm)",
-    "Amazfit Balance (46mm)",
-    "Amazfit Cheetah (46mm)",
-    "Amazfit GTR 2 (46mm)",
-    "Amazfit GTR 3 Pro (46mm)",
-    "Amazfit GTR 4 (46mm)",
-    "Amazfit Cheetah Pro (47mm)",
-    "Amazfit GTR (47mm)",
-    "Amazfit T-Rex (47mm)",
-    "Amazfit T-Rex 2 (47mm)",
-    "Amazfit T-Rex Pro (47mm)",
-    "Amazfit T-Rex Ultra (47mm)",
-    "Xiaomi Smart Band 7 Pro (28mm)",
-    "Xiaomi Smart Band 8 Pro (33mm)",
-    "Xiaomi Watch S2 (42mm)",
-    "Xiaomi Mi Watch (46mm)",
-    "Xiaomi Watch S1 (46mm)",
-    "Xiaomi Watch S1 Active (46mm)",
-    "Xiaomi Watch S1 Pro (46mm)",
-    "Xiaomi Watch S2 (46mm)",
-    "Xiaomi Watch S3 (47mm)",
-    "Xiaomi Watch 2 (46mm)",
-    "Xiaomi Watch 2 Pro (46mm)",
-    "Redmi Watch 3 (42mm)",
-    "Redmi Watch 3 Active (47mm)",
-    "Redmi Watch 4 (47mm)",
+    "Garmin vivosmart 5",
+    "Garmin vívofit 4",
+    "Garmin vivosmart (21mm)",
+    "Garmin vivosmart HR (21mm)",
+    "Garmin vivosmart HR+ (21mm)",
+    "Garmin vivosmart 3 (21mm)",
+    "Garmin vivosmart 4 (21mm)",
+    "Garmin vivosport (19mm)",
+    "Garmin vivofit (25mm)",
+    "Garmin vivofit 2 (25mm)",
+    "Garmin vivofit 3 (23mm)",
+    "Garmin vivofit Jr. (25mm)",
+    "Garmin vivofit Jr. 2 (25mm)",
+    "Garmin vivofit Jr. 3 (25mm)",
+    "Garmin ciRQA (22mm)",
+    "Google Pixel Watch (41mm)",
+    "Google Pixel Watch 2 (41mm)",
+    "Google Pixel Watch 3 (41mm)",
+    "Google Pixel Watch 3 (45mm)",
+    "Honor Band 6",
+    "Honor Band 7",
+    "Honor Band 9",
+    "Honor Band 3 (20mm)",
+    "Honor Band 4 (20mm)",
+    "Honor Band 4 Running Version (20mm)",
+    "Honor Band 5 (20mm)",
+    "Honor Band 5i (20mm)",
+    "Honor Band 5 Sport (20mm)",
+    "Honor Band 10 (25mm)",
+    "Honor Band A1 (20mm)",
+    "Honor Band A2 (20mm)",
     "Huawei Watch Fit (30mm)",
     "Huawei Watch Fit 2 (33mm)",
     "Huawei Watch Fit 3 (36mm)",
@@ -1690,26 +1711,117 @@
     "Huawei Watch 4 (46mm)",
     "Huawei Watch 4 Pro (48mm)",
     "Huawei Watch GT 3 SE (46mm)",
-    "Google Pixel Watch (41mm)",
-    "Google Pixel Watch 2 (41mm)",
-    "Google Pixel Watch 3 (41mm)",
-    "Google Pixel Watch 3 (45mm)",
+    "Huawei Band 6",
+    "Huawei Band 7",
+    "Huawei Band 8",
+    "Huawei Band 9",
+    "Huawei Band 2 (20mm)",
+    "Huawei Band 2 Pro (20mm)",
+    "Huawei Band 3 (20mm)",
+    "Huawei Band 3 Pro (20mm)",
+    "Huawei Band 3e (20mm)",
+    "Huawei Band 4 (20mm)",
+    "Huawei Band 4 Pro (20mm)",
+    "Huawei Band 6 Pro (25mm)",
+    "Huawei TalkBand B1 (20mm)",
+    "Huawei TalkBand B2 (20mm)",
+    "Huawei TalkBand B3 (20mm)",
+    "Huawei TalkBand B3 Lite (20mm)",
+    "Huawei TalkBand B5 (20mm)",
+    "Huawei Color Band A1 (20mm)",
+    "Huawei Color Band A2 (20mm)",
+    "Jawbone UP (14mm)",
+    "Jawbone UP2 (14mm)",
+    "Jawbone UP3 (14mm)",
+    "Jawbone UP4 (14mm)",
+    "Jawbone UP Move (30mm)",
+    "Misfit Shine (30mm)",
+    "Misfit Shine 2 (30mm)",
+    "Misfit Ray (12mm)",
+    "Misfit Flash (30mm)",
+    "Misfit Speedo Shine (30mm)",
     "Mobvoi TicWatch E3 (44mm)",
     "Mobvoi TicWatch Pro 3 GPS (47mm)",
     "Mobvoi TicWatch Pro 5 (48mm)",
     "Mobvoi TicWatch Pro 3 Ultra (47mm)",
-    "Fitbit Versa / Sense",
+    "OnePlus Band (23mm)",
+    "Oppo Band (23mm)",
+    "Oppo Band Style (23mm)",
+    "Oppo Band 2 (23mm)",
+    "Oura Ring Gen 1 (13mm)",
+    "Oura Ring Gen 2 (13mm)",
+    "Oura Ring Gen 3 Heritage (13mm)",
+    "Oura Ring Gen 3 Horizon (13mm)",
+    "Oura Ring 4 (13mm)",
+    "Oura Ring 5 (13mm)",
     "Polar Pacer / Ignite",
-    "Fitbit Charge 4",
-    "Fitbit Charge 5",
-    "Fitbit Charge 6",
-    "Fitbit Inspire 3",
-    "Fitbit Luxe",
-    "Fitbit Ace 3",
-    "Fitbit Air",
-    "Fitbit Sense 2",
-    "Fitbit Versa 3",
-    "Fitbit Versa 4",
+    "Polar Loop (20mm)",
+    "Polar Loop 2 (20mm)",
+    "Polar A360 (33mm)",
+    "Polar A370 (33mm)",
+    "Polar Ignite (43mm)",
+    "Polar Ignite 2 (43mm)",
+    "Polar Ignite 3 (43mm)",
+    "Realme Band (16mm)",
+    "Realme Band 2 (24mm)",
+    "Samsung Galaxy Fit 3 (28mm)",
+    "Samsung Galaxy Watch Active (40mm)",
+    "Samsung Galaxy Watch Active 2 (40mm)",
+    "Samsung Galaxy Watch FE (40mm)",
+    "Samsung Galaxy Gear (41mm)",
+    "Samsung Galaxy Gear S2 (42mm)",
+    "Samsung Galaxy Watch (42mm)",
+    "Samsung Galaxy Watch Active 2 (44mm)",
+    "Samsung Galaxy Gear S3 Classic (46mm)",
+    "Samsung Galaxy Gear S3 Frontier (46mm)",
+    "Samsung Galaxy Watch (46mm)",
+    "Samsung Galaxy Watch 3 (41mm)",
+    "Samsung Galaxy Watch 3 (45mm)",
+    "Samsung Galaxy Watch 4 (40mm)",
+    "Samsung Galaxy Watch 4 Classic (42mm)",
+    "Samsung Galaxy Watch 4 (44mm)",
+    "Samsung Galaxy Watch 4 Classic (46mm)",
+    "Samsung Galaxy Watch 5 (40mm)",
+    "Samsung Galaxy Watch 5 (44mm)",
+    "Samsung Galaxy Watch 5 Pro (45mm)",
+    "Samsung Galaxy Watch 6 (40mm)",
+    "Samsung Galaxy Watch 6 Classic (43mm)",
+    "Samsung Galaxy Watch 6 (44mm)",
+    "Samsung Galaxy Watch 6 Classic (47mm)",
+    "Samsung Galaxy Watch 7 (40mm)",
+    "Samsung Galaxy Watch 7 (44mm)",
+    "Samsung Galaxy Watch 8 (40mm)",
+    "Samsung Galaxy Watch 8 (44mm)",
+    "Samsung Galaxy Watch 8 Classic (46mm)",
+    "Samsung Galaxy Watch Ultra (47mm)",
+    "Samsung Galaxy Fit 2",
+    "Samsung Galaxy Fit e",
+    "Samsung Gear Fit 2 Pro (24mm)",
+    "Samsung Galaxy Fit (24mm)",
+    "Suunto 3 Fitness (41mm)",
+    "Whoop 1.0 (33mm)",
+    "Whoop 2.0 (33mm)",
+    "Whoop 3.0 (33mm)",
+    "Whoop 4.0 (33mm)",
+    "Whoop 5.0 (33mm)",
+    "Whoop MG (33mm)",
+    "Withings Pulse (18mm)",
+    "Withings Move (38mm)",
+    "Withings ScanWatch (42mm)",
+    "Xiaomi Smart Band 7 Pro (28mm)",
+    "Xiaomi Smart Band 8 Pro (33mm)",
+    "Xiaomi Watch S2 (42mm)",
+    "Xiaomi Mi Watch (46mm)",
+    "Xiaomi Watch S1 (46mm)",
+    "Xiaomi Watch S1 Active (46mm)",
+    "Xiaomi Watch S1 Pro (46mm)",
+    "Xiaomi Watch S2 (46mm)",
+    "Xiaomi Watch S3 (47mm)",
+    "Xiaomi Watch 2 (46mm)",
+    "Xiaomi Watch 2 Pro (46mm)",
+    "Redmi Watch 3 (42mm)",
+    "Redmi Watch 3 Active (47mm)",
+    "Redmi Watch 4 (47mm)",
     "Xiaomi Mi Band 5",
     "Xiaomi Mi Band 6",
     "Xiaomi Smart Band 7",
@@ -1718,20 +1830,17 @@
     "Xiaomi Smart Band 9",
     "Xiaomi Smart Band 9 Active",
     "Xiaomi Smart Band 9 Pro (33mm)",
-    "Huawei Band 6",
-    "Huawei Band 7",
-    "Huawei Band 8",
-    "Huawei Band 9",
-    "Samsung Galaxy Fit 2",
-    "Samsung Galaxy Fit e",
-    "Amazfit Band 5",
-    "Amazfit Band 7",
-    "Garmin vivosmart 5",
-    "Garmin vívofit 4",
-    "Honor Band 6",
-    "Honor Band 7",
-    "Honor Band 9",
-    "Outro modelo (informar nas observações)"
+    "Xiaomi Mi Band 1 (25mm)",
+    "Xiaomi Mi Band 1S (25mm)",
+    "Xiaomi Mi Band 2 (25mm)",
+    "Xiaomi Mi Band 3 (39mm)",
+    "Xiaomi Mi Band 4 (36mm)",
+    "Xiaomi Smart Band 10 (25mm)",
+    "Xiaomi Smart Band 10 Pro (25mm)",
+    "Redmi Smart Band (23mm)",
+    "Redmi Smart Band 2 (24mm)",
+    "Redmi Smart Band Pro (33mm)",
+    "Outro modelo…"
   ],
   "smartwatchModelMeta": {
     "Apple Watch Series 1 (38mm)": {
@@ -2659,189 +2768,189 @@
       {
         "label": "Apple Watch Series 1 (38mm)",
         "model": "Apple Watch Series 1 (38mm)",
-        "sizeMm": null,
+        "sizeMm": 38,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 1 (42mm)",
         "model": "Apple Watch Series 1 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 2 (38mm)",
         "model": "Apple Watch Series 2 (38mm)",
-        "sizeMm": null,
+        "sizeMm": 38,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 2 (42mm)",
         "model": "Apple Watch Series 2 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 3 (38mm)",
         "model": "Apple Watch Series 3 (38mm)",
-        "sizeMm": null,
+        "sizeMm": 38,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 3 (42mm)",
         "model": "Apple Watch Series 3 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 4 (40mm)",
         "model": "Apple Watch Series 4 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 4 (44mm)",
         "model": "Apple Watch Series 4 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 5 (40mm)",
         "model": "Apple Watch Series 5 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 5 (44mm)",
         "model": "Apple Watch Series 5 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch SE (1ª Geração) (40mm)",
         "model": "Apple Watch SE (1ª Geração) (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch SE (1ª Geração) (44mm)",
         "model": "Apple Watch SE (1ª Geração) (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch SE (2ª Geração) (40mm)",
         "model": "Apple Watch SE (2ª Geração) (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch SE (2ª Geração) (44mm)",
         "model": "Apple Watch SE (2ª Geração) (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 6 (40mm)",
         "model": "Apple Watch Series 6 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 6 (44mm)",
         "model": "Apple Watch Series 6 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 7 (41mm)",
         "model": "Apple Watch Series 7 (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 7 (45mm)",
         "model": "Apple Watch Series 7 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 8 (41mm)",
         "model": "Apple Watch Series 8 (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 8 (45mm)",
         "model": "Apple Watch Series 8 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 9 (41mm)",
         "model": "Apple Watch Series 9 (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 9 (45mm)",
         "model": "Apple Watch Series 9 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 10 (42mm)",
         "model": "Apple Watch Series 10 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Series 10 (46mm)",
         "model": "Apple Watch Series 10 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Ultra (49mm)",
         "model": "Apple Watch Ultra (49mm)",
-        "sizeMm": null,
+        "sizeMm": 49,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Ultra 2 (49mm)",
         "model": "Apple Watch Ultra 2 (49mm)",
-        "sizeMm": null,
+        "sizeMm": 49,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Apple Watch Ultra 3 (49mm)",
         "model": "Apple Watch Ultra 3 (49mm)",
-        "sizeMm": null,
+        "sizeMm": 49,
         "kind": "smartwatch",
         "sensorMm": null
       }
@@ -2850,224 +2959,238 @@
       {
         "label": "Samsung Galaxy Fit 3 (28mm)",
         "model": "Samsung Galaxy Fit 3 (28mm)",
-        "sizeMm": null,
+        "sizeMm": 28,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Samsung Galaxy Watch Active (40mm)",
         "model": "Samsung Galaxy Watch Active (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch Active 2 (40mm)",
         "model": "Samsung Galaxy Watch Active 2 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch FE (40mm)",
         "model": "Samsung Galaxy Watch FE (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Gear (41mm)",
         "model": "Samsung Galaxy Gear (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Gear S2 (42mm)",
         "model": "Samsung Galaxy Gear S2 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch (42mm)",
         "model": "Samsung Galaxy Watch (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch Active 2 (44mm)",
         "model": "Samsung Galaxy Watch Active 2 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Gear S3 Classic (46mm)",
         "model": "Samsung Galaxy Gear S3 Classic (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Gear S3 Frontier (46mm)",
         "model": "Samsung Galaxy Gear S3 Frontier (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch (46mm)",
         "model": "Samsung Galaxy Watch (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 3 (41mm)",
         "model": "Samsung Galaxy Watch 3 (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 3 (45mm)",
         "model": "Samsung Galaxy Watch 3 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 4 (40mm)",
         "model": "Samsung Galaxy Watch 4 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 4 Classic (42mm)",
         "model": "Samsung Galaxy Watch 4 Classic (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 4 (44mm)",
         "model": "Samsung Galaxy Watch 4 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 4 Classic (46mm)",
         "model": "Samsung Galaxy Watch 4 Classic (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 5 (40mm)",
         "model": "Samsung Galaxy Watch 5 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 5 (44mm)",
         "model": "Samsung Galaxy Watch 5 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 5 Pro (45mm)",
         "model": "Samsung Galaxy Watch 5 Pro (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 6 (40mm)",
         "model": "Samsung Galaxy Watch 6 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 6 Classic (43mm)",
         "model": "Samsung Galaxy Watch 6 Classic (43mm)",
-        "sizeMm": null,
+        "sizeMm": 43,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 6 (44mm)",
         "model": "Samsung Galaxy Watch 6 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 6 Classic (47mm)",
         "model": "Samsung Galaxy Watch 6 Classic (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 7 (40mm)",
         "model": "Samsung Galaxy Watch 7 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 7 (44mm)",
         "model": "Samsung Galaxy Watch 7 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 8 (40mm)",
         "model": "Samsung Galaxy Watch 8 (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 8 (44mm)",
         "model": "Samsung Galaxy Watch 8 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch 8 Classic (46mm)",
         "model": "Samsung Galaxy Watch 8 Classic (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Watch Ultra (47mm)",
         "model": "Samsung Galaxy Watch Ultra (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Samsung Galaxy Fit 2",
         "model": "Samsung Galaxy Fit 2",
-        "sizeMm": null,
+        "sizeMm": 24,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Samsung Galaxy Fit e",
         "model": "Samsung Galaxy Fit e",
-        "sizeMm": null,
+        "sizeMm": 18,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Samsung Gear Fit 2 Pro (24mm)",
+        "model": "Samsung Gear Fit 2 Pro (24mm)",
+        "sizeMm": 24,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Samsung Galaxy Fit (24mm)",
+        "model": "Samsung Galaxy Fit (24mm)",
+        "sizeMm": 24,
         "kind": "smartband",
         "sensorMm": null
       }
@@ -3209,259 +3332,350 @@
       {
         "label": "Garmin Instinct 2S (40mm)",
         "model": "Garmin Instinct 2S (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Venu 2S (40mm)",
         "model": "Garmin Venu 2S (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Vivoactive 4S (40mm)",
         "model": "Garmin Vivoactive 4S (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 255s (41mm)",
         "model": "Garmin Forerunner 255s (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Venu 3S (41mm)",
         "model": "Garmin Venu 3S (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Epix Pro (42mm)",
         "model": "Garmin Epix Pro (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 6S (42mm)",
         "model": "Garmin Fenix 6S (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 7S (42mm)",
         "model": "Garmin Fenix 7S (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 245 (42mm)",
         "model": "Garmin Forerunner 245 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 265s (42mm)",
         "model": "Garmin Forerunner 265s (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 55 (42mm)",
         "model": "Garmin Forerunner 55 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Vivoactive 5 (42mm)",
         "model": "Garmin Vivoactive 5 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 8 (43mm)",
         "model": "Garmin Fenix 8 (43mm)",
-        "sizeMm": null,
+        "sizeMm": 43,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 165 (43mm)",
         "model": "Garmin Forerunner 165 (43mm)",
-        "sizeMm": null,
+        "sizeMm": 43,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Venu 2 Plus (43mm)",
         "model": "Garmin Venu 2 Plus (43mm)",
-        "sizeMm": null,
+        "sizeMm": 43,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Instinct 2 (45mm)",
         "model": "Garmin Instinct 2 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Venu 2 (45mm)",
         "model": "Garmin Venu 2 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Venu 3 (45mm)",
         "model": "Garmin Venu 3 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Vivoactive 4 (45mm)",
         "model": "Garmin Vivoactive 4 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 255 (46mm)",
         "model": "Garmin Forerunner 255 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 265 (46mm)",
         "model": "Garmin Forerunner 265 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 955 (46mm)",
         "model": "Garmin Forerunner 955 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Epix Gen 2 (47mm)",
         "model": "Garmin Epix Gen 2 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Epix Pro (47mm)",
         "model": "Garmin Epix Pro (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 6 (47mm)",
         "model": "Garmin Fenix 6 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 7 (47mm)",
         "model": "Garmin Fenix 7 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 7 Pro (47mm)",
         "model": "Garmin Fenix 7 Pro (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 8 (47mm)",
         "model": "Garmin Fenix 8 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 945 (47mm)",
         "model": "Garmin Forerunner 945 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Forerunner 965 (47mm)",
         "model": "Garmin Forerunner 965 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Instinct 2X Solar (50mm)",
         "model": "Garmin Instinct 2X Solar (50mm)",
-        "sizeMm": null,
+        "sizeMm": 50,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Epix Pro (51mm)",
         "model": "Garmin Epix Pro (51mm)",
-        "sizeMm": null,
+        "sizeMm": 51,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 6X (51mm)",
         "model": "Garmin Fenix 6X (51mm)",
-        "sizeMm": null,
+        "sizeMm": 51,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 7X (51mm)",
         "model": "Garmin Fenix 7X (51mm)",
-        "sizeMm": null,
+        "sizeMm": 51,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin Fenix 8 (51mm)",
         "model": "Garmin Fenix 8 (51mm)",
-        "sizeMm": null,
+        "sizeMm": 51,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
         "label": "Garmin vivosmart 5",
         "model": "Garmin vivosmart 5",
-        "sizeMm": null,
+        "sizeMm": 21,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Garmin vívofit 4",
         "model": "Garmin vívofit 4",
-        "sizeMm": null,
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivosmart (21mm)",
+        "model": "Garmin vivosmart (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivosmart HR (21mm)",
+        "model": "Garmin vivosmart HR (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivosmart HR+ (21mm)",
+        "model": "Garmin vivosmart HR+ (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivosmart 3 (21mm)",
+        "model": "Garmin vivosmart 3 (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivosmart 4 (21mm)",
+        "model": "Garmin vivosmart 4 (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivosport (19mm)",
+        "model": "Garmin vivosport (19mm)",
+        "sizeMm": 19,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivofit (25mm)",
+        "model": "Garmin vivofit (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivofit 2 (25mm)",
+        "model": "Garmin vivofit 2 (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivofit 3 (23mm)",
+        "model": "Garmin vivofit 3 (23mm)",
+        "sizeMm": 23,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivofit Jr. (25mm)",
+        "model": "Garmin vivofit Jr. (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivofit Jr. 2 (25mm)",
+        "model": "Garmin vivofit Jr. 2 (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin vivofit Jr. 3 (25mm)",
+        "model": "Garmin vivofit Jr. 3 (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Garmin ciRQA (22mm)",
+        "model": "Garmin ciRQA (22mm)",
+        "sizeMm": 22,
         "kind": "smartband",
         "sensorMm": null
       }
@@ -3603,175 +3817,217 @@
       {
         "label": "Amazfit Bip U Pro (40mm)",
         "model": "Amazfit Bip U Pro (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTS 2 mini (40mm)",
         "model": "Amazfit GTS 2 mini (40mm)",
-        "sizeMm": null,
+        "sizeMm": 40,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTS 4 mini (41mm)",
         "model": "Amazfit GTS 4 mini (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit Active (42mm)",
         "model": "Amazfit Active (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTR (42mm)",
         "model": "Amazfit GTR (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTS 2 (42mm)",
         "model": "Amazfit GTS 2 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTS 3 (42mm)",
         "model": "Amazfit GTS 3 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTS 4 (42mm)",
         "model": "Amazfit GTS 4 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTS (43mm)",
         "model": "Amazfit GTS (43mm)",
-        "sizeMm": null,
+        "sizeMm": 43,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit Bip 3 (44mm)",
         "model": "Amazfit Bip 3 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit Bip 5 (45mm)",
         "model": "Amazfit Bip 5 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTR 3 (45mm)",
         "model": "Amazfit GTR 3 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit Balance (46mm)",
         "model": "Amazfit Balance (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit Cheetah (46mm)",
         "model": "Amazfit Cheetah (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTR 2 (46mm)",
         "model": "Amazfit GTR 2 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTR 3 Pro (46mm)",
         "model": "Amazfit GTR 3 Pro (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTR 4 (46mm)",
         "model": "Amazfit GTR 4 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit Cheetah Pro (47mm)",
         "model": "Amazfit Cheetah Pro (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit GTR (47mm)",
         "model": "Amazfit GTR (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit T-Rex (47mm)",
         "model": "Amazfit T-Rex (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit T-Rex 2 (47mm)",
         "model": "Amazfit T-Rex 2 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit T-Rex Pro (47mm)",
         "model": "Amazfit T-Rex Pro (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit T-Rex Ultra (47mm)",
         "model": "Amazfit T-Rex Ultra (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": 25
       },
       {
         "label": "Amazfit Band 5",
         "model": "Amazfit Band 5",
-        "sizeMm": null,
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Amazfit Band 7",
         "model": "Amazfit Band 7",
-        "sizeMm": null,
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Amazfit Band 2 (20mm)",
+        "model": "Amazfit Band 2 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Amazfit Cor (31mm)",
+        "model": "Amazfit Cor (31mm)",
+        "sizeMm": 31,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Amazfit Health Band 1S (20mm)",
+        "model": "Amazfit Health Band 1S (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Amazfit Helio Strap (34mm)",
+        "model": "Amazfit Helio Strap (34mm)",
+        "sizeMm": 34,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Amazfit Helio Strap Pro (34mm)",
+        "model": "Amazfit Helio Strap Pro (34mm)",
+        "sizeMm": 34,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Amazfit UP (20mm)",
+        "model": "Amazfit UP (20mm)",
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       }
@@ -3780,154 +4036,224 @@
       {
         "label": "Xiaomi Smart Band 7 Pro (28mm)",
         "model": "Xiaomi Smart Band 7 Pro (28mm)",
-        "sizeMm": null,
+        "sizeMm": 28,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Smart Band 8 Pro (33mm)",
         "model": "Xiaomi Smart Band 8 Pro (33mm)",
-        "sizeMm": null,
+        "sizeMm": 33,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Watch S2 (42mm)",
         "model": "Xiaomi Watch S2 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Mi Watch (46mm)",
         "model": "Xiaomi Mi Watch (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Watch S1 (46mm)",
         "model": "Xiaomi Watch S1 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Watch S1 Active (46mm)",
         "model": "Xiaomi Watch S1 Active (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Watch S1 Pro (46mm)",
         "model": "Xiaomi Watch S1 Pro (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Watch S2 (46mm)",
         "model": "Xiaomi Watch S2 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Watch S3 (47mm)",
         "model": "Xiaomi Watch S3 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Watch 2 (46mm)",
         "model": "Xiaomi Watch 2 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Watch 2 Pro (46mm)",
         "model": "Xiaomi Watch 2 Pro (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Redmi Watch 3 (42mm)",
         "model": "Redmi Watch 3 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Redmi Watch 3 Active (47mm)",
         "model": "Redmi Watch 3 Active (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Redmi Watch 4 (47mm)",
         "model": "Redmi Watch 4 (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Mi Band 5",
         "model": "Xiaomi Mi Band 5",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Mi Band 6",
         "model": "Xiaomi Mi Band 6",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Smart Band 7",
         "model": "Xiaomi Smart Band 7",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Smart Band 8",
         "model": "Xiaomi Smart Band 8",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Smart Band 8 Active",
         "model": "Xiaomi Smart Band 8 Active",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Smart Band 9",
         "model": "Xiaomi Smart Band 9",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Smart Band 9 Active",
         "model": "Xiaomi Smart Band 9 Active",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Xiaomi Smart Band 9 Pro (33mm)",
         "model": "Xiaomi Smart Band 9 Pro (33mm)",
-        "sizeMm": null,
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Xiaomi Mi Band 1 (25mm)",
+        "model": "Xiaomi Mi Band 1 (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Xiaomi Mi Band 1S (25mm)",
+        "model": "Xiaomi Mi Band 1S (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Xiaomi Mi Band 2 (25mm)",
+        "model": "Xiaomi Mi Band 2 (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Xiaomi Mi Band 3 (39mm)",
+        "model": "Xiaomi Mi Band 3 (39mm)",
+        "sizeMm": 39,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Xiaomi Mi Band 4 (36mm)",
+        "model": "Xiaomi Mi Band 4 (36mm)",
+        "sizeMm": 36,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Xiaomi Smart Band 10 (25mm)",
+        "model": "Xiaomi Smart Band 10 (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Xiaomi Smart Band 10 Pro (25mm)",
+        "model": "Xiaomi Smart Band 10 Pro (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Redmi Smart Band (23mm)",
+        "model": "Redmi Smart Band (23mm)",
+        "sizeMm": 23,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Redmi Smart Band 2 (24mm)",
+        "model": "Redmi Smart Band 2 (24mm)",
+        "sizeMm": 24,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Redmi Smart Band Pro (33mm)",
+        "model": "Redmi Smart Band Pro (33mm)",
+        "sizeMm": 33,
         "kind": "smartband",
         "sensorMm": null
       }
@@ -3936,168 +4262,285 @@
       {
         "label": "Huawei Watch Fit (30mm)",
         "model": "Huawei Watch Fit (30mm)",
-        "sizeMm": null,
+        "sizeMm": 30,
         "kind": "smartwatch",
-        "sensorMm": null
+        "sensorMm": null,
+        "kinds": [
+          "smartwatch",
+          "smartband"
+        ]
       },
       {
         "label": "Huawei Watch Fit 2 (33mm)",
         "model": "Huawei Watch Fit 2 (33mm)",
-        "sizeMm": null,
+        "sizeMm": 33,
         "kind": "smartwatch",
-        "sensorMm": null
+        "sensorMm": null,
+        "kinds": [
+          "smartwatch",
+          "smartband"
+        ]
       },
       {
         "label": "Huawei Watch Fit 3 (36mm)",
         "model": "Huawei Watch Fit 3 (36mm)",
-        "sizeMm": null,
+        "sizeMm": 36,
         "kind": "smartwatch",
-        "sensorMm": null
+        "sensorMm": null,
+        "kinds": [
+          "smartwatch",
+          "smartband"
+        ]
       },
       {
         "label": "Huawei Watch GT 4 (41mm)",
         "model": "Huawei Watch GT 4 (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 5 (41mm)",
         "model": "Huawei Watch GT 5 (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 2 (42mm)",
         "model": "Huawei Watch GT 2 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 3 (42mm)",
         "model": "Huawei Watch GT 3 (42mm)",
-        "sizeMm": null,
+        "sizeMm": 42,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 3 Pro (43mm)",
         "model": "Huawei Watch GT 3 Pro (43mm)",
-        "sizeMm": null,
+        "sizeMm": 43,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 2 (46mm)",
         "model": "Huawei Watch GT 2 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 2 Pro (46mm)",
         "model": "Huawei Watch GT 2 Pro (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 3 (46mm)",
         "model": "Huawei Watch GT 3 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 3 Pro (46mm)",
         "model": "Huawei Watch GT 3 Pro (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 4 (46mm)",
         "model": "Huawei Watch GT 4 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 5 (46mm)",
         "model": "Huawei Watch GT 5 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch Ultimate (48mm)",
         "model": "Huawei Watch Ultimate (48mm)",
-        "sizeMm": null,
+        "sizeMm": 48,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch 3 (46mm)",
         "model": "Huawei Watch 3 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch 3 Pro (48mm)",
         "model": "Huawei Watch 3 Pro (48mm)",
-        "sizeMm": null,
+        "sizeMm": 48,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch 4 (46mm)",
         "model": "Huawei Watch 4 (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch 4 Pro (48mm)",
         "model": "Huawei Watch 4 Pro (48mm)",
-        "sizeMm": null,
+        "sizeMm": 48,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Watch GT 3 SE (46mm)",
         "model": "Huawei Watch GT 3 SE (46mm)",
-        "sizeMm": null,
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Huawei Band 6",
         "model": "Huawei Band 6",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Huawei Band 7",
         "model": "Huawei Band 7",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Huawei Band 8",
         "model": "Huawei Band 8",
-        "sizeMm": null,
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Huawei Band 9",
         "model": "Huawei Band 9",
-        "sizeMm": null,
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 2 (20mm)",
+        "model": "Huawei Band 2 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 2 Pro (20mm)",
+        "model": "Huawei Band 2 Pro (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 3 (20mm)",
+        "model": "Huawei Band 3 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 3 Pro (20mm)",
+        "model": "Huawei Band 3 Pro (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 3e (20mm)",
+        "model": "Huawei Band 3e (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 4 (20mm)",
+        "model": "Huawei Band 4 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 4 Pro (20mm)",
+        "model": "Huawei Band 4 Pro (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 6 Pro (25mm)",
+        "model": "Huawei Band 6 Pro (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei TalkBand B1 (20mm)",
+        "model": "Huawei TalkBand B1 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei TalkBand B2 (20mm)",
+        "model": "Huawei TalkBand B2 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei TalkBand B3 (20mm)",
+        "model": "Huawei TalkBand B3 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei TalkBand B3 Lite (20mm)",
+        "model": "Huawei TalkBand B3 Lite (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei TalkBand B5 (20mm)",
+        "model": "Huawei TalkBand B5 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Color Band A1 (20mm)",
+        "model": "Huawei Color Band A1 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Color Band A2 (20mm)",
+        "model": "Huawei Color Band A2 (20mm)",
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       }
@@ -4106,28 +4549,28 @@
       {
         "label": "Google Pixel Watch (41mm)",
         "model": "Google Pixel Watch (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Google Pixel Watch 2 (41mm)",
         "model": "Google Pixel Watch 2 (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Google Pixel Watch 3 (41mm)",
         "model": "Google Pixel Watch 3 (41mm)",
-        "sizeMm": null,
+        "sizeMm": 41,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Google Pixel Watch 3 (45mm)",
         "model": "Google Pixel Watch 3 (45mm)",
-        "sizeMm": null,
+        "sizeMm": 45,
         "kind": "smartwatch",
         "sensorMm": null
       }
@@ -4136,28 +4579,28 @@
       {
         "label": "Mobvoi TicWatch E3 (44mm)",
         "model": "Mobvoi TicWatch E3 (44mm)",
-        "sizeMm": null,
+        "sizeMm": 44,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Mobvoi TicWatch Pro 3 GPS (47mm)",
         "model": "Mobvoi TicWatch Pro 3 GPS (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Mobvoi TicWatch Pro 5 (48mm)",
         "model": "Mobvoi TicWatch Pro 5 (48mm)",
-        "sizeMm": null,
+        "sizeMm": 48,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
         "label": "Mobvoi TicWatch Pro 3 Ultra (47mm)",
         "model": "Mobvoi TicWatch Pro 3 Ultra (47mm)",
-        "sizeMm": null,
+        "sizeMm": 47,
         "kind": "smartwatch",
         "sensorMm": null
       }
@@ -4173,49 +4616,49 @@
       {
         "label": "Fitbit Charge 4",
         "model": "Fitbit Charge 4",
-        "sizeMm": null,
+        "sizeMm": 21,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Fitbit Charge 5",
         "model": "Fitbit Charge 5",
-        "sizeMm": null,
+        "sizeMm": 21,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Fitbit Charge 6",
         "model": "Fitbit Charge 6",
-        "sizeMm": null,
+        "sizeMm": 21,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Fitbit Inspire 3",
         "model": "Fitbit Inspire 3",
-        "sizeMm": null,
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Fitbit Luxe",
         "model": "Fitbit Luxe",
-        "sizeMm": null,
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Fitbit Ace 3",
         "model": "Fitbit Ace 3",
-        "sizeMm": null,
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Fitbit Air",
         "model": "Fitbit Air",
-        "sizeMm": null,
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       },
@@ -4239,6 +4682,104 @@
         "sizeMm": null,
         "kind": "smartwatch",
         "sensorMm": null
+      },
+      {
+        "label": "Fitbit Flex (15mm)",
+        "model": "Fitbit Flex (15mm)",
+        "sizeMm": 15,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Flex 2 (15mm)",
+        "model": "Fitbit Flex 2 (15mm)",
+        "sizeMm": 15,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Alta (15mm)",
+        "model": "Fitbit Alta (15mm)",
+        "sizeMm": 15,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Alta HR (15mm)",
+        "model": "Fitbit Alta HR (15mm)",
+        "sizeMm": 15,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Charge (21mm)",
+        "model": "Fitbit Charge (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Charge HR (21mm)",
+        "model": "Fitbit Charge HR (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Charge 2 (21mm)",
+        "model": "Fitbit Charge 2 (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Charge 3 (21mm)",
+        "model": "Fitbit Charge 3 (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Inspire (20mm)",
+        "model": "Fitbit Inspire (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Inspire HR (20mm)",
+        "model": "Fitbit Inspire HR (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Inspire 2 (20mm)",
+        "model": "Fitbit Inspire 2 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Ace (20mm)",
+        "model": "Fitbit Ace (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Ace 2 (20mm)",
+        "model": "Fitbit Ace 2 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Fitbit Force (21mm)",
+        "model": "Fitbit Force (21mm)",
+        "sizeMm": 21,
+        "kind": "smartband",
+        "sensorMm": null
       }
     ],
     "Polar": [
@@ -4248,27 +4789,390 @@
         "sizeMm": null,
         "kind": "smartwatch",
         "sensorMm": null
+      },
+      {
+        "label": "Polar Loop (20mm)",
+        "model": "Polar Loop (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Polar Loop 2 (20mm)",
+        "model": "Polar Loop 2 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Polar A360 (33mm)",
+        "model": "Polar A360 (33mm)",
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Polar A370 (33mm)",
+        "model": "Polar A370 (33mm)",
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Polar Ignite (43mm)",
+        "model": "Polar Ignite (43mm)",
+        "sizeMm": 43,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Polar Ignite 2 (43mm)",
+        "model": "Polar Ignite 2 (43mm)",
+        "sizeMm": 43,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Polar Ignite 3 (43mm)",
+        "model": "Polar Ignite 3 (43mm)",
+        "sizeMm": 43,
+        "kind": "smartband",
+        "sensorMm": null
       }
     ],
     "Honor": [
       {
         "label": "Honor Band 6",
         "model": "Honor Band 6",
-        "sizeMm": null,
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Honor Band 7",
         "model": "Honor Band 7",
-        "sizeMm": null,
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       },
       {
         "label": "Honor Band 9",
         "model": "Honor Band 9",
-        "sizeMm": null,
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band 3 (20mm)",
+        "model": "Honor Band 3 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band 4 (20mm)",
+        "model": "Honor Band 4 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band 4 Running Version (20mm)",
+        "model": "Honor Band 4 Running Version (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band 5 (20mm)",
+        "model": "Honor Band 5 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band 5i (20mm)",
+        "model": "Honor Band 5i (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band 5 Sport (20mm)",
+        "model": "Honor Band 5 Sport (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band 10 (25mm)",
+        "model": "Honor Band 10 (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band A1 (20mm)",
+        "model": "Honor Band A1 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Honor Band A2 (20mm)",
+        "model": "Honor Band A2 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Whoop": [
+      {
+        "label": "Whoop 1.0 (33mm)",
+        "model": "Whoop 1.0 (33mm)",
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Whoop 2.0 (33mm)",
+        "model": "Whoop 2.0 (33mm)",
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Whoop 3.0 (33mm)",
+        "model": "Whoop 3.0 (33mm)",
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Whoop 4.0 (33mm)",
+        "model": "Whoop 4.0 (33mm)",
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Whoop 5.0 (33mm)",
+        "model": "Whoop 5.0 (33mm)",
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Whoop MG (33mm)",
+        "model": "Whoop MG (33mm)",
+        "sizeMm": 33,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Oura": [
+      {
+        "label": "Oura Ring Gen 1 (13mm)",
+        "model": "Oura Ring Gen 1 (13mm)",
+        "sizeMm": 13,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Oura Ring Gen 2 (13mm)",
+        "model": "Oura Ring Gen 2 (13mm)",
+        "sizeMm": 13,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Oura Ring Gen 3 Heritage (13mm)",
+        "model": "Oura Ring Gen 3 Heritage (13mm)",
+        "sizeMm": 13,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Oura Ring Gen 3 Horizon (13mm)",
+        "model": "Oura Ring Gen 3 Horizon (13mm)",
+        "sizeMm": 13,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Oura Ring 4 (13mm)",
+        "model": "Oura Ring 4 (13mm)",
+        "sizeMm": 13,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Oura Ring 5 (13mm)",
+        "model": "Oura Ring 5 (13mm)",
+        "sizeMm": 13,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Realme": [
+      {
+        "label": "Realme Band (16mm)",
+        "model": "Realme Band (16mm)",
+        "sizeMm": 16,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Realme Band 2 (24mm)",
+        "model": "Realme Band 2 (24mm)",
+        "sizeMm": 24,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Oppo": [
+      {
+        "label": "Oppo Band (23mm)",
+        "model": "Oppo Band (23mm)",
+        "sizeMm": 23,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Oppo Band Style (23mm)",
+        "model": "Oppo Band Style (23mm)",
+        "sizeMm": 23,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Oppo Band 2 (23mm)",
+        "model": "Oppo Band 2 (23mm)",
+        "sizeMm": 23,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "OnePlus": [
+      {
+        "label": "OnePlus Band (23mm)",
+        "model": "OnePlus Band (23mm)",
+        "sizeMm": 23,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Misfit": [
+      {
+        "label": "Misfit Shine (30mm)",
+        "model": "Misfit Shine (30mm)",
+        "sizeMm": 30,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Misfit Shine 2 (30mm)",
+        "model": "Misfit Shine 2 (30mm)",
+        "sizeMm": 30,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Misfit Ray (12mm)",
+        "model": "Misfit Ray (12mm)",
+        "sizeMm": 12,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Misfit Flash (30mm)",
+        "model": "Misfit Flash (30mm)",
+        "sizeMm": 30,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Misfit Speedo Shine (30mm)",
+        "model": "Misfit Speedo Shine (30mm)",
+        "sizeMm": 30,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Jawbone": [
+      {
+        "label": "Jawbone UP (14mm)",
+        "model": "Jawbone UP (14mm)",
+        "sizeMm": 14,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Jawbone UP2 (14mm)",
+        "model": "Jawbone UP2 (14mm)",
+        "sizeMm": 14,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Jawbone UP3 (14mm)",
+        "model": "Jawbone UP3 (14mm)",
+        "sizeMm": 14,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Jawbone UP4 (14mm)",
+        "model": "Jawbone UP4 (14mm)",
+        "sizeMm": 14,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Jawbone UP Move (30mm)",
+        "model": "Jawbone UP Move (30mm)",
+        "sizeMm": 30,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Withings": [
+      {
+        "label": "Withings Pulse (18mm)",
+        "model": "Withings Pulse (18mm)",
+        "sizeMm": 18,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Withings Move (38mm)",
+        "model": "Withings Move (38mm)",
+        "sizeMm": 38,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Withings ScanWatch (42mm)",
+        "model": "Withings ScanWatch (42mm)",
+        "sizeMm": 42,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Suunto": [
+      {
+        "label": "Suunto 3 Fitness (41mm)",
+        "model": "Suunto 3 Fitness (41mm)",
+        "sizeMm": 41,
+        "kind": "smartband",
+        "sensorMm": null
+      }
+    ],
+    "Coros": [
+      {
+        "label": "Coros Pace (47mm)",
+        "model": "Coros Pace (47mm)",
+        "sizeMm": 47,
         "kind": "smartband",
         "sensorMm": null
       }

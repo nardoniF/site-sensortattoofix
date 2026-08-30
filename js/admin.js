@@ -5689,7 +5689,23 @@ ${worksheets}
     if (m.startsWith('Fitbit')) return 'Fitbit';
     if (m.startsWith('Polar')) return 'Polar';
     if (m.startsWith('Honor')) return 'Honor';
+    if (m.startsWith('Whoop')) return 'Whoop';
+    if (m.startsWith('Oura')) return 'Oura';
+    if (m.startsWith('Realme')) return 'Realme';
+    if (m.startsWith('Oppo')) return 'Oppo';
+    if (m.startsWith('OnePlus')) return 'OnePlus';
+    if (m.startsWith('Misfit')) return 'Misfit';
+    if (m.startsWith('Jawbone')) return 'Jawbone';
+    if (m.startsWith('Withings')) return 'Withings';
+    if (m.startsWith('Suunto')) return 'Suunto';
+    if (m.startsWith('Coros')) return 'Coros';
     return 'Outros';
+  }
+
+  function swRowMatchesKind(row, kind) {
+    if (!row) return false;
+    if (Array.isArray(row.kinds) && row.kinds.length) return row.kinds.includes(kind);
+    return swInferKind(row.label, row.kind) === kind;
   }
 
   function normalizeAdminCatalog(catalog, models) {
@@ -5710,6 +5726,7 @@ ${worksheets}
         kind,
         sensorMm: Number.isFinite(sensor) && sensor > 0 ? sensor : null
       };
+      if (Array.isArray(row?.kinds) && row.kinds.length) next.kinds = [...row.kinds];
       if (existing) Object.assign(existing, next);
       else out[b].push(next);
     };
@@ -5750,7 +5767,7 @@ ${worksheets}
     if (!kindEl || !brandEl || !tbody) return;
     const kind = kindEl.value || 'smartwatch';
     const brands = Object.keys(smartwatchCatalogState)
-      .filter((b) => (smartwatchCatalogState[b] || []).some((r) => swInferKind(r.label, r.kind) === kind))
+      .filter((b) => (smartwatchCatalogState[b] || []).some((r) => swRowMatchesKind(r, kind)))
       .sort();
     const prevBrand = brandEl.value;
     brandEl.innerHTML = brands.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('')
@@ -5759,7 +5776,7 @@ ${worksheets}
     else if (brands.length) brandEl.value = brands[0];
     const brand = brandEl.value;
     const rows = (smartwatchCatalogState[brand] || [])
-      .filter((r) => swInferKind(r.label, r.kind) === kind)
+      .filter((r) => swRowMatchesKind(r, kind))
       .sort((a, b) => String(a.label).localeCompare(String(b.label), 'pt'));
     if (summary) {
       summary.textContent = brand
@@ -5864,7 +5881,7 @@ ${worksheets}
       const brand = brandEl?.value;
       if (!brand || !smartwatchCatalogState[brand]) return;
       smartwatchCatalogState[brand].forEach((row) => {
-        if (swInferKind(row.label, row.kind) === kind) row.sensorMm = bulk;
+        if (swRowMatchesKind(row, kind)) row.sensorMm = bulk;
       });
       syncSmartwatchModelsTextarea();
       renderSmartwatchCatalogTable();
