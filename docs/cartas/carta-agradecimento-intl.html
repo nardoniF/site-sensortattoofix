@@ -20,6 +20,8 @@
       --accent: #ff6b00;
       --ph-bg: #fff4eb;
       --ph-border: #ffb380;
+      --lens-w-mm: 25;
+      --lens-h-mm: 25;
     }
     body {
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -259,6 +261,20 @@
       color: var(--muted-2);
     }
 
+    .addon-badge {
+      margin-top: 3mm;
+      padding: 1.5mm 3mm;
+      border: 0.75pt solid #ffb380;
+      border-radius: 2px;
+      background: #fff4eb;
+      color: #8a4a00;
+      font-size: 6.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      text-align: center;
+    }
+
     /* Lens affix zone — bottom of sheet, survives fold */
     .lens-pocket {
       margin-top: auto;
@@ -268,7 +284,7 @@
       background: linear-gradient(180deg, #fffaf6 0%, #fff 55%);
       padding: 2.5mm 3mm;
       display: grid;
-      grid-template-columns: 1fr 27mm;
+      grid-template-columns: 1fr calc(var(--lens-w-mm) * 1mm + 6mm);
       gap: 3mm;
       align-items: center;
       flex-shrink: 0;
@@ -296,7 +312,10 @@
       font-size: 7pt; font-weight: 700; color: var(--ink-2);
     }
     .lens-target {
-      width: 25mm; height: 25mm;
+      width: calc(var(--lens-w-mm) * 1mm);
+      height: calc(var(--lens-h-mm) * 1mm);
+      min-width: calc(var(--lens-w-mm) * 1mm);
+      min-height: calc(var(--lens-h-mm) * 1mm);
       border-radius: 50%;
       border: 1.5pt dashed var(--accent);
       background:
@@ -306,9 +325,17 @@
       text-align: center;
       justify-self: end;
     }
+    .lens-target[data-shape="rect"] {
+      border-radius: 0.35mm;
+      background: #fff8f2;
+    }
     .lens-target span {
       font-size: 5.5pt; font-weight: 800; letter-spacing: .06em;
       text-transform: uppercase; color: var(--accent); line-height: 1.15;
+    }
+    .lens-target[data-shape="rect"] span {
+      font-size: 4.5pt;
+      line-height: 1.05;
     }
 
     .ph {
@@ -339,6 +366,7 @@
     </header>
 
     <div class="sheet-pad">
+      <p id="addon-badge" class="addon-badge" hidden data-i18n="addonBadge">Additional lens included with your order</p>
       <dl class="meta-panel">
         <div class="meta-row">
           <dt data-i18n="meta.order">Order number</dt>
@@ -449,28 +477,40 @@
   const params = new URLSearchParams(location.search);
   const orderId = (params.get('order') || params.get('pedido') || '').trim();
   const langOverride = (params.get('lang') || params.get('locale') || '').trim().toLowerCase();
+  const addonSmartband = params.get('addon') === 'smartband';
+  const forModelOverride = (params.get('for') || params.get('modelo') || '').trim();
   const bootstrap = window.CONFIG_BOOTSTRAP || {};
   let letterLocale = 'en';
 
+  const SMARTBAND_LENS = { shape: 'rect', widthMm: 17, heightMm: 0.8 };
+  const SMARTWATCH_LENS = { shape: 'circle', widthMm: 25, heightMm: 25 };
+
   const LETTER_COPY = {
     en: {
-      btnPrint: 'Print letter',
+      btnPrint: 'Print / Save as PDF',
       btnTemplate: 'Show template placeholders',
       btnDocs: 'Docs',
       brandTagline: 'Precision optical interfaces for smartwatches',
+      brandTaglineBand: 'Precision optical interfaces for smartbands & wearables',
       'meta.order': 'Order number',
       'meta.recipient': 'Recipient',
       'meta.address': 'Shipping address',
       'meta.watch': 'Watch model',
+      metaDevice: 'Smartband model',
+      addonBadge: 'Additional lens included with your order',
       'meta.carrier': 'Carrier / method',
       'meta.tracking': 'Tracking number',
       thanksTitle: 'Thank You for Your Order!',
+      thanksTitleAddon: 'Your smartband lens is here too!',
       greetingHi: 'Hi',
       body1: 'Thank you so much for choosing Sensor TattooFix®! We are thrilled to help you get full, uninterrupted biometric functionality from your smartwatch over tattooed skin.',
+      body1Band: 'Thank you so much for choosing Sensor TattooFix®! We are thrilled to help you get full, uninterrupted biometric functionality from your smartband over tattooed skin.',
+      body1Addon: 'As requested, we are including this <strong>second optical lens</strong> for your smartband — packed in the same shipment as your main order lens.',
       body2: 'Your optical lens has been custom-manufactured and carefully packed. Please follow the instructions and curing times below to ensure maximum adhesion and optimal sensor performance.',
       sectionSteps: 'Step-by-step installation guide',
       step1Title: 'Surface cleaning:',
       step1Text: 'Thoroughly clean the optical sensor area on the back of your smartwatch using isopropyl alcohol or an alcohol wipe. Ensure it is 100% dry, clean, and free from oils or dust.',
+      step1TextBand: 'Thoroughly clean the optical sensor on the back of your smartband using isopropyl alcohol or an alcohol wipe. Ensure it is 100% dry, clean, and free from oils or dust.',
       step2Title: 'Alignment:',
       step2Text: 'Carefully remove the protective film from the adhesive side of the Sensor TattooFix® lens and align it centrally over the optical sensor.',
       step3Title: 'Application:',
@@ -481,14 +521,18 @@
       cure72h: '72 Hours', cure72hCat: 'Water exposure', cure72hNote: 'Full cure required for swimming or showers.',
       sectionNotes: 'Important usage notes',
       noteCharge: '<strong>Wireless charging:</strong> Your Sensor TattooFix® lens is fully compatible with original OEM magnetic chargers. You do not need to remove the lens to charge.',
+      noteChargeWhoop: '<strong>Charging:</strong> Your Sensor TattooFix® lens is fully compatible with your Whoop battery pack — you do not need to remove the lens when charging.',
+      noteChargeBand: '<strong>Charging:</strong> Follow your device maker\'s charging instructions — the lens is designed to stay in place during normal charging.',
       noteCure: 'Following the curing timeline above guarantees long-lasting adhesion even during high-intensity training.',
       support: 'If you have any questions or need assistance, feel free to contact us anytime at <strong>support@sensortattoofix.com</strong>.',
       signRegards: 'Best regards,',
       signTeam: 'Fabio Nardoni & The Sensor TattooFix® Team',
       footerLine: 'Sensor TattooFix® · Precision optical interfaces · Official international order attachment',
       pocketTag: 'Your lens',
+      pocketTagBand: 'Your smartband lens',
       pocketTitle: 'Your Sensor TattooFix® solution is here',
       pocketText: 'Affix the optical lens inside the circle. Fold the letter carefully to keep the lens protected during international transit.',
+      pocketTextRect: 'Affix the optical lens inside the rectangle (true scale). Fold the letter carefully to keep the lens protected during international transit.',
       pocketFor: 'For:',
       pocketPaste: 'Paste<br>lens',
       carrierDefault: 'Standard International Mail',
@@ -838,6 +882,85 @@
     return raw || obs || '—';
   }
 
+  function normModelLabel(s) {
+    return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function findCatalogRow(catalog, modelLabel) {
+    const needle = normModelLabel(modelLabel);
+    if (!needle) return null;
+    for (const rows of Object.values(catalog || {})) {
+      if (!Array.isArray(rows)) continue;
+      for (const row of rows) {
+        if (row?._brandPlaceholder) continue;
+        const labels = [row.label, row.model].filter(Boolean).map(normModelLabel);
+        if (labels.some((l) => l === needle || needle.includes(l) || l.includes(needle))) return row;
+      }
+    }
+    return null;
+  }
+
+  function inferDeviceKind(row, modelLabel) {
+    if (row?.kind === 'smartband') return 'smartband';
+    if (Array.isArray(row?.kinds) && row.kinds.includes('smartband')) return 'smartband';
+    if (/whoop|mi band|honor band|galaxy fit|amazfit band|smartband|vivosmart|vivo fit|fitbit charge/i.test(modelLabel)) {
+      return 'smartband';
+    }
+    return 'smartwatch';
+  }
+
+  function lensProfileFor(row, kind) {
+    if (kind === 'smartband') {
+      const w = Number(row?.lensWmm) > 0 ? Number(row.lensWmm) : SMARTBAND_LENS.widthMm;
+      const h = Number(row?.lensHmm) > 0 ? Number(row.lensHmm) : SMARTBAND_LENS.heightMm;
+      return { kind, shape: 'rect', widthMm: w, heightMm: h };
+    }
+    return { kind: 'smartwatch', shape: SMARTWATCH_LENS.shape, widthMm: SMARTWATCH_LENS.widthMm, heightMm: SMARTWATCH_LENS.heightMm };
+  }
+
+  function applyLensProfile(profile) {
+    const target = document.querySelector('.lens-target');
+    if (!target || !letter) return;
+    letter.dataset.deviceKind = profile.kind;
+    target.dataset.shape = profile.shape;
+    document.documentElement.style.setProperty('--lens-w-mm', String(profile.widthMm));
+    document.documentElement.style.setProperty('--lens-h-mm', String(profile.heightMm));
+  }
+
+  function applyDevicePresentation(profile, modelLabel, addon) {
+    const copy = LETTER_COPY[letterLocale] || LETTER_COPY.en;
+    const isBand = profile.kind === 'smartband';
+    const isWhoop = /whoop/i.test(modelLabel);
+    const badge = document.getElementById('addon-badge');
+    if (badge) badge.hidden = !addon;
+
+    const setText = (key, text) => {
+      const el = document.querySelector(`[data-i18n="${key}"]`);
+      if (el && text != null) {
+        if (HTML_I18N_KEYS.has(key)) el.innerHTML = text;
+        else el.textContent = text;
+      }
+    };
+
+    setText('brandTagline', isBand ? (copy.brandTaglineBand || copy.brandTagline) : copy.brandTagline);
+    setText('meta.watch', isBand ? (copy.metaDevice || copy['meta.watch']) : copy['meta.watch']);
+    setText('thanksTitle', addon ? (copy.thanksTitleAddon || copy.thanksTitle) : copy.thanksTitle);
+    if (addon) {
+      const el = document.querySelector('[data-i18n="body1"]');
+      if (el) el.innerHTML = copy.body1Addon || copy.body1Band || copy.body1;
+    } else {
+      setText('body1', isBand ? (copy.body1Band || copy.body1) : copy.body1);
+    }
+    setText('step1Text', isBand ? (copy.step1TextBand || copy.step1Text) : copy.step1Text);
+    if (isWhoop) setText('noteCharge', copy.noteChargeWhoop || copy.noteCharge);
+    else if (isBand) setText('noteCharge', copy.noteChargeBand || copy.noteCharge);
+    else setText('noteCharge', copy.noteCharge);
+    setText('pocketTag', isBand ? (copy.pocketTagBand || copy.pocketTag) : copy.pocketTag);
+    setText('pocketText', profile.shape === 'rect'
+      ? (copy.pocketTextRect || copy.pocketText)
+      : copy.pocketText);
+  }
+
   async function loadOrder(id) {
     const token = resolveAdminToken();
     if (!token) {
@@ -855,8 +978,22 @@
       return;
     }
     const o = await res.json();
+    let config = {};
+    try {
+      const cfgRes = await fetch(apiBase() + '/config', { cache: 'no-store' });
+      if (cfgRes.ok) config = await cfgRes.json();
+    } catch (_) { /* ignore */ }
+
     applyLetterLocale(resolveLetterLocale(o));
-    const watch = watchFromOrder(o);
+    const model = addonSmartband && forModelOverride
+      ? forModelOverride
+      : watchFromOrder(o);
+    const row = findCatalogRow(config.smartwatchCatalog, model);
+    const kind = addonSmartband ? 'smartband' : inferDeviceKind(row, model);
+    const profile = lensProfileFor(row, kind);
+    applyLensProfile(profile);
+    applyDevicePresentation(profile, model, addonSmartband);
+
     const pending = (LETTER_COPY[letterLocale] || LETTER_COPY.en).trackingPending;
     letter.classList.add('filled');
     letter.dataset.mode = 'filled';
@@ -867,10 +1004,12 @@
       endereco: addressFromOrder(o),
       shippingService: carrierFromOrder(o),
       trackingCode: o.correiosTrackingCode || o.superfreteTrackingCode || pending,
-      smartwatch: watch,
-      smartwatchPocket: watch
+      smartwatch: model,
+      smartwatchPocket: model
     });
-    meta.textContent = letterToolbarMsg('toolbarFilled', { id: o.orderId, lang: letterLocale.toUpperCase() });
+    const modeLabel = addonSmartband ? 'add-on smartband' : profile.kind;
+    meta.textContent = letterToolbarMsg('toolbarFilled', { id: o.orderId, lang: letterLocale.toUpperCase() })
+      + ` · ${modeLabel} · ${profile.widthMm}×${profile.heightMm} mm`;
   }
 
   document.getElementById('btn-print').addEventListener('click', () => window.print());

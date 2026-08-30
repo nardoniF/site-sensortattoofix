@@ -4960,6 +4960,8 @@
         "model": "Whoop 5.0 (33mm)",
         "sizeMm": 33,
         "kind": "smartband",
+        "lensWmm": 17,
+        "lensHmm": 0.8,
         "sensorMm": null
       },
       {
@@ -4967,6 +4969,8 @@
         "model": "Whoop MG (33mm)",
         "sizeMm": 33,
         "kind": "smartband",
+        "lensWmm": 17,
+        "lensHmm": 0.8,
         "sensorMm": null
       }
     ],
