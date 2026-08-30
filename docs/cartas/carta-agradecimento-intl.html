@@ -388,10 +388,6 @@
           <dt data-i18n="meta.carrier">Carrier / method</dt>
           <dd><span class="ph" data-field="shippingService">{{carrierMethod}}</span></dd>
         </div>
-        <div class="meta-row">
-          <dt data-i18n="meta.tracking">Tracking number</dt>
-          <dd><span class="ph" data-field="trackingCode">{{trackingNumber}}</span></dd>
-        </div>
       </dl>
 
       <h2 class="thanks" data-i18n="thanksTitle">Thank You for Your Order!</h2>
@@ -674,7 +670,6 @@
     firstName: '{{firstName}}',
     endereco: '{{shippingAddress}}',
     shippingService: '{{carrierMethod}}',
-    trackingCode: '{{trackingNumber}}',
     smartwatch: '{{smartwatchModel}}',
     smartwatchPocket: '{{smartwatchModel}}'
   };
@@ -994,7 +989,6 @@
     applyLensProfile(profile);
     applyDevicePresentation(profile, model, addonSmartband);
 
-    const pending = (LETTER_COPY[letterLocale] || LETTER_COPY.en).trackingPending;
     letter.classList.add('filled');
     letter.dataset.mode = 'filled';
     setFields({
@@ -1003,7 +997,6 @@
       firstName: firstName(o.nome),
       endereco: addressFromOrder(o),
       shippingService: carrierFromOrder(o),
-      trackingCode: o.correiosTrackingCode || o.superfreteTrackingCode || pending,
       smartwatch: model,
       smartwatchPocket: model
     });
