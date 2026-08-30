@@ -2521,6 +2521,7 @@ ${worksheets}
   let customersLoading = false;
   let clicksLoading = false;
   let clicksSearchTimer = null;
+  let clicksTabLoaded = false;
   let feedbackLoading = false;
   let feedbackSearchTimer = null;
   let clicksCache = [];
@@ -6395,7 +6396,7 @@ ${worksheets}
     }
 
     function showTab(tabId) {
-      let id = tabId || 'pedidos';
+      let id = tabId || 'cliques';
       const legacyCadastros = {
         produtos: 'produtos',
         smartwatches: 'smartwatches',
@@ -6428,12 +6429,16 @@ ${worksheets}
       });
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
-      if (id === 'api') loadIntegrationsStatus();
-      if (id === 'comunidade') loadForumAdmin();
-      if (id === 'cliques') loadClicks();
-      if (id === 'vendas') initVendasSubtabs();
-      if (id === 'pesquisa') loadFeedback();
-      if (id === 'pedidos') {
+      if (id === 'cliques') {
+        if (!clicksTabLoaded) {
+          clicksTabLoaded = true;
+          loadClicks();
+        }
+      } else if (id === 'api') loadIntegrationsStatus();
+      else if (id === 'comunidade') loadForumAdmin();
+      else if (id === 'vendas') initVendasSubtabs();
+      else if (id === 'pesquisa') loadFeedback();
+      else if (id === 'pedidos') {
         window.STF_PEDIDOS?.refresh?.().catch((err) => {
           const st = document.getElementById('pedidos-orders-status');
           if (st) {
@@ -6442,8 +6447,7 @@ ${worksheets}
             st.hidden = false;
           }
         });
-      }
-      if (id === 'documentacao') loadDocFrame(true);
+      } else if (id === 'documentacao') loadDocFrame(true);
     }
 
     tabs.forEach((tab) => {
@@ -6678,7 +6682,10 @@ ${worksheets}
   });
 
   document.getElementById('btn-clicks-test')?.addEventListener('click', () => testClickLog());
-  document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => loadClicks(true));
+  document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => {
+    clicksTabLoaded = true;
+    loadClicks(true);
+  });
   document.getElementById('btn-clicks-export')?.addEventListener('click', () => exportClicksExcel());
   document.getElementById('btn-clicks-clear-tests')?.addEventListener('click', () => clearClicksLog('tests'));
   document.getElementById('btn-clicks-clear-all')?.addEventListener('click', () => clearClicksLog('all'));
