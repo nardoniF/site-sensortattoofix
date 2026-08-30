@@ -93,7 +93,13 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:5500'
 ];
 const CONFIG_KEY = 'store-config';
-const SITE_CATALOG_URL = 'https://www.sensortattoofix.com.br/data/store-config.json';
+/** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
+const SITE_CATALOG_COMMIT = '35f999200a2e8193f6cf8967a52f4953d21e55b7';
+const SITE_CATALOG_URLS = [
+  'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
+  'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
+  'https://www.sensortattoofix.com.br/data/store-config.json'
+];
 const ORDERS_INDEX = 'orders:index';
 const CLICKS_INDEX = 'clicks:index';
 const CLICKS_BLOB = 'clicks:blob';
@@ -1404,18 +1410,22 @@ let siteCatalogCache = null;
 let siteCatalogCachedAt = 0;
 
 async function fetchSiteCatalog() {
-  if (siteCatalogCache && Date.now() - siteCatalogCachedAt < 300000) {
+  if (siteCatalogCache && Date.now() - siteCatalogCachedAt < 60000) {
     return siteCatalogCache;
   }
-  try {
-    const res = await fetch(SITE_CATALOG_URL, { cf: { cacheTtl: 300 } });
-    if (!res.ok) return null;
-    siteCatalogCache = await res.json();
-    siteCatalogCachedAt = Date.now();
-    return siteCatalogCache;
-  } catch {
-    return null;
+  for (const baseUrl of SITE_CATALOG_URLS) {
+    try {
+      const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+      const res = await fetch(url, { cf: { cacheTtl: 0, cacheEverything: false } });
+      if (!res.ok) continue;
+      siteCatalogCache = await res.json();
+      siteCatalogCachedAt = Date.now();
+      return siteCatalogCache;
+    } catch {
+      /* próxima origem */
+    }
   }
+  return null;
 }
 
 async function getPublicConfig(env) {
