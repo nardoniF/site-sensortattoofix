@@ -145,7 +145,7 @@
     document.head.appendChild(script);
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
+  async function run() {
     let productName = isIt ? 'Lente ottica SensorTattooFix' : isEn ? 'SensorTattooFix Optical Lens' : 'Kit Sensor Tattoo Fix';
     let productPrice = 62.9;
     let productImage = SITE + '/images/brand/sensortattoofix.jpg';
@@ -236,5 +236,13 @@
     }
 
     inject(graph);
-  });
+  }
+
+  if (document.getElementById('home-faq-root') || document.getElementById('home-reviews-root')) {
+    document.addEventListener('stf-home-content-ready', run);
+  } else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run);
+  } else {
+    run();
+  }
 })();

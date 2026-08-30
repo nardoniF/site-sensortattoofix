@@ -113,6 +113,18 @@ window.StoreConfig = (function () {
                   if (count(localCat) >= count(apiCat) && localCat && Object.keys(localCat).length) return localCat;
                   return apiCat || localCat;
                 })(),
+                homeFaq: (() => {
+                  const apiList = apiConfig.homeFaq || [];
+                  const localList = local.homeFaq || [];
+                  if (localList.length > apiList.length) return localList;
+                  return apiList.length ? apiList : localList;
+                })(),
+                homeReviews: (() => {
+                  const apiList = apiConfig.homeReviews || [];
+                  const localList = local.homeReviews || [];
+                  if (localList.length > apiList.length) return localList;
+                  return apiList.length ? apiList : localList;
+                })(),
                 payments: local.payments
                   ? {
                     ...apiConfig.payments,

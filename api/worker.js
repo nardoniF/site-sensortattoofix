@@ -1386,6 +1386,16 @@ function mergeSiteCatalog(config, site) {
     config.smartwatchCatalog,
     site.smartwatchCatalog
   );
+  if (Array.isArray(site.homeFaq) && site.homeFaq.length) {
+    next.homeFaq = Array.isArray(config.homeFaq) && config.homeFaq.length
+      ? config.homeFaq
+      : site.homeFaq;
+  }
+  if (Array.isArray(site.homeReviews) && site.homeReviews.length) {
+    next.homeReviews = Array.isArray(config.homeReviews) && config.homeReviews.length
+      ? config.homeReviews
+      : site.homeReviews;
+  }
   if (site.products?.length) {
     next.products = mergeSiteCatalogProducts(config.products, site.products);
     const kit = next.products.find((p) => p.aggregated !== true && p.active !== false) || next.products[0];
@@ -2184,6 +2194,8 @@ function publicConfigView(config, env) {
     smartwatchModels: config.smartwatchModels || DEFAULT_CONFIG.smartwatchModels,
     smartwatchCatalog: config.smartwatchCatalog || {},
     smartwatchModelMeta: config.smartwatchModelMeta || {},
+    homeFaq: Array.isArray(config.homeFaq) ? config.homeFaq.filter((r) => r && r.active !== false) : [],
+    homeReviews: Array.isArray(config.homeReviews) ? config.homeReviews.filter((r) => r && r.active !== false) : [],
     formsubmit: {
       email: config.formsubmit?.email || DEFAULT_CONFIG.formsubmit.email,
       subject: config.formsubmit?.subject || DEFAULT_CONFIG.formsubmit.subject
@@ -15176,7 +15188,13 @@ async function handlePutConfig(request, env, origin) {
     kitCostVersion: body.kitCostVersion != null ? Number(body.kitCostVersion) || 3 : (current.kitCostVersion || 3),
     mlFlexShippingCost: body.mlFlexShippingCost != null
       ? Math.max(0, Math.round(Number(body.mlFlexShippingCost) * 100) / 100)
-      : (current.mlFlexShippingCost ?? 0)
+      : (current.mlFlexShippingCost ?? 0),
+    homeFaq: body.homeFaq != null
+      ? (Array.isArray(body.homeFaq) ? body.homeFaq : current.homeFaq || [])
+      : (current.homeFaq || []),
+    homeReviews: body.homeReviews != null
+      ? (Array.isArray(body.homeReviews) ? body.homeReviews : current.homeReviews || [])
+      : (current.homeReviews || [])
   };
   if (merged.products?.[0]) {
     merged.product = {

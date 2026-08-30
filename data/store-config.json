@@ -5218,5 +5218,411 @@
         "url": "https://www.amazon.com.br/dp/B0GYVBRGZS"
       }
     }
-  }
+  },
+  "homeFaq": [
+    {
+      "id": "faq-1",
+      "active": true,
+      "order": 1,
+      "question": "Por que meu smartwatch pede senha o tempo todo?",
+      "questionEn": "Why does my smartwatch ask for the passcode all the time?",
+      "questionIt": "Perché il mio smartwatch chiede il codice di continuo?",
+      "answer": "Quando o sensor ótico não detecta fluxo sanguíneo no pulso, o relógio entende que foi removido e exige a senha de novo — no Apple Watch isso pode ocorrer <strong>a cada 10 segundos</strong>. Em braços tatuados, a tinta bloqueia a luz do sensor; o relógio ativa o bloqueio por PIN e acha que saiu do braço. A lente Sensor Tattoo Fix restaura a leitura e para o bloqueio constante.",
+      "answerEn": "When the optical sensor can't detect blood flow on your wrist, the watch assumes it was removed and asks for the passcode again — on Apple Watch this can happen <strong>every 10 seconds</strong>. On tattooed skin, ink blocks the sensor light; the watch activates PIN lock and thinks it left your arm. The Sensor Tattoo Fix lens restores the reading and stops constant lockouts.",
+      "answerIt": "Quando il sensore ottico non rileva il flusso sanguigno al polso, l'orologio pensa di essere stato rimosso e chiede di nuovo il codice — su Apple Watch può succedere <strong>ogni 10 secondi</strong>. Su pelle tatuata, l'inchiostro blocca la luce del sensore; l'orologio attiva il blocco PIN e pensa di essere uscito dal braccio. La lente Sensor Tattoo Fix ripristina la lettura e ferma i blocchi continui.",
+      "media": {
+        "type": "instagram",
+        "instagramPermalink": "https://www.instagram.com/reel/DYrIqC-F4DM/"
+      }
+    },
+    {
+      "id": "faq-2",
+      "active": true,
+      "order": 2,
+      "question": "Por que meu smartwatch não mede batimentos cardíacos na tatuagem?",
+      "questionEn": "Why won't my smartwatch measure heart rate on tattooed skin?",
+      "questionIt": "Perché il mio smartwatch non misura la frequenza cardiaca sulla pelle tatuata?",
+      "answer": "O sensor usa luz para medir o fluxo sanguíneo. Tatuagem densa, cicatriz ou pigmentação escura impede o retorno do sinal — batimentos ficam zerados, imprecisos, somem no meio do treino ou o relógio para de monitorar. A lente Sensor Tattoo Fix corrige a leitura sem desativar o sensor.",
+      "answerEn": "The sensor uses light to measure blood flow. Dense tattoos, scars or dark pigment block the return signal — heart rate shows zero, inaccurate readings, drops mid-workout or the watch stops monitoring entirely. The Sensor Tattoo Fix lens fixes the reading without disabling the sensor.",
+      "answerIt": "Il sensore usa la luce per misurare il flusso sanguigno. Tatuaggi densi, cicatrici o pigmento scuro bloccano il segnale — il battito resta a zero, impreciso, scompare a metà allenamento o l'orologio smette di monitorare. La lente Sensor Tattoo Fix corregge la lettura senza disattivare il sensore.",
+      "media": {
+        "type": "instagram",
+        "instagramPermalink": "https://www.instagram.com/p/DYWHV_0M5Bj/"
+      }
+    },
+    {
+      "id": "faq-3",
+      "active": true,
+      "order": 3,
+      "question": "Por que meu relógio desconecta ou perde o pulso sozinho?",
+      "questionEn": "Why does my watch disconnect or lose wrist contact on its own?",
+      "questionIt": "Perché il mio orologio si disconnette o perde il polso da solo?",
+      "answer": "Perda de sinal do sensor faz o smartwatch achar que saiu do braço: desbloqueia, pausa treino, para de monitorar saúde ou pede senha de novo. Se você tem tatuagem onde o relógio encosta, essa é a causa mais comum — e tem solução com lente ótica profissional.",
+      "answerEn": "Lost sensor signal makes the smartwatch think it left your arm: it unlocks, pauses workouts, stops health monitoring or asks for passcode again. If you have a tattoo where the watch sits, that's the most common cause — and there's a professional optical lens fix.",
+      "answerIt": "La perdita di segnale del sensore fa credere allo smartwatch di essere uscito dal braccio: si sblocca, interrompe l'allenamento, smette di monitorare la salute o chiede di nuovo il codice. Se hai un tatuaggio dove l'orologio appoggia, è la causa più comune — e c'è una soluzione con lente ottica professionale.",
+      "media": null
+    },
+    {
+      "id": "faq-4",
+      "active": true,
+      "order": 4,
+      "question": "Por que meu relógio pausa os treinos e atividades físicas sozinho na tatuagem?",
+      "questionEn": "Why does my watch pause workouts and activities by itself on tattooed skin?",
+      "questionIt": "Perché il mio orologio interrompe allenamenti e attività da solo sulla pelle tatuata?",
+      "answer": "Como a tinta da tatuagem bloqueia a luz do sensor, o relógio não consegue calcular seus batimentos cardíacos. O sistema entende essa perda de sinal como se você tivesse interrompido o exercício ou tirado o aparelho, pausando a atividade automaticamente para economizar bateria.",
+      "answerEn": "Because tattoo ink blocks the sensor's light, the watch cannot calculate your heart rate. The system interprets this signal loss as if you had stopped exercising or removed the device, pausing the activity automatically to save battery.",
+      "answerIt": "Poiché l'inchiostro del tatuaggio blocca la luce del sensore, l'orologio non riesce a calcolare la frequenza cardiaca. Il sistema interpreta questa perdita di segnale come se avessi smesso di allenarti o rimosso il dispositivo, interrompendo automaticamente l'attività per risparmiare batteria.",
+      "media": {
+        "type": "instagram",
+        "instagramPermalink": "https://www.instagram.com/reel/DYrIqC-F4DM/"
+      }
+    },
+    {
+      "id": "faq-5",
+      "active": true,
+      "order": 5,
+      "question": "Como a lente da Sensor Tattoo Fix corrige o sensor?",
+      "questionEn": "How does the Sensor Tattoo Fix lens correct the sensor?",
+      "questionIt": "Come la lente Sensor Tattoo Fix corregge il sensore?",
+      "answer": "Nossa tecnologia de lente foi desenvolvida especificamente para contornar o bloqueio causado pela tinta da tatuagem. Ela atua como um transmissor de alta precisão que permite que o sensor biométrico realize a leitura através da pele tatuada, mantendo todas as funções do seu relógio (pagamento, saúde e treinos) 100% operacionais.",
+      "answerEn": "Our lens technology was developed specifically to bypass the blocking caused by tattoo ink. It acts as a high-precision transmitter that allows the biometric sensor to read through tattooed skin, keeping all watch functions (payments, health and workouts) 100% operational.",
+      "answerIt": "La nostra tecnologia della lente è stata sviluppata specificamente per aggirare il blocco causato dall'inchiostro del tatuaggio. Agisce come un trasmettitore ad alta precisione che permette al sensore biometrico di leggere attraverso la pelle tatuata, mantenendo tutte le funzioni dell'orologio (pagamenti, salute e allenamenti) operative al 100%.",
+      "media": null
+    },
+    {
+      "id": "faq-6",
+      "active": true,
+      "order": 6,
+      "question": "Funciona em Apple Watch?",
+      "questionEn": "Does it work on Apple Watch?",
+      "questionIt": "Funziona su Apple Watch?",
+      "answer": "Sim. A lente Sensor Tattoo Fix funciona em Apple Watch e em praticamente todo smartwatch que usa <strong>sensor ótico</strong> (luz verde ou infravermelho) na parte de trás do relógio — Apple, Samsung, Garmin, Xiaomi e outras marcas. O kit traz lentes nos diâmetros mais comuns. Demonstração antes e depois no Apple Watch:",
+      "answerEn": "Yes. The Sensor Tattoo Fix lens works on Apple Watch and on virtually any smartwatch that uses an <strong>optical sensor</strong> (green or infrared light) on the back — Apple, Samsung, Garmin, Xiaomi and other brands. Common sensor diameters available. Before and after demo on Apple Watch:",
+      "answerIt": "Sì. La lente Sensor Tattoo Fix funziona su Apple Watch e su praticamente tutti gli smartwatch con <strong>sensore ottico</strong> (luce verde o infrarossa) sul retro — Apple, Samsung, Garmin, Xiaomi e altri marchi. Diametri più comuni disponibili. Dimostrazione prima e dopo su Apple Watch:",
+      "media": {
+        "type": "instagram",
+        "instagramPermalink": "https://www.instagram.com/reel/DZQp0yqxjK1/"
+      }
+    },
+    {
+      "id": "faq-7",
+      "active": true,
+      "order": 7,
+      "question": "Funciona em Samsung Galaxy Watch?",
+      "questionEn": "Does it work on Samsung Galaxy Watch?",
+      "questionIt": "Funziona su Samsung Galaxy Watch?",
+      "answer": "Sim. Galaxy Watch e demais smartwatches Samsung com sensor ótico biométrico são compatíveis. A lente restaura pulso, batimentos e treinos sobre pele tatuada, como em qualquer marca com leitura por luz. Veja a demonstração no Galaxy Watch:",
+      "answerEn": "Yes. Galaxy Watch and other Samsung smartwatches with optical biometric sensors are compatible. The lens restores wrist detection, heart rate and workouts on tattooed skin, just like on any light-based sensor brand. Demo on Galaxy Watch:",
+      "answerIt": "Sì. Galaxy Watch e gli altri smartwatch Samsung con sensore ottico biometrico sono compatibili. La lente ripristina polso, battito e allenamenti sulla pelle tatuata, come su qualsiasi marca con lettura a luce. Dimostrazione su Galaxy Watch:",
+      "media": {
+        "type": "instagram",
+        "instagramPermalink": "https://www.instagram.com/reel/DZt08c_AaJn/"
+      }
+    },
+    {
+      "id": "faq-8",
+      "active": true,
+      "order": 8,
+      "question": "Tem depoimento real de cliente no Galaxy Watch Ultra?",
+      "questionEn": "Is there a real customer story with Galaxy Watch Ultra?",
+      "questionIt": "C'è una testimonianza reale con Galaxy Watch Ultra?",
+      "answer": "Sim. Cliente com braço tatuado instalou a lente no <strong>Galaxy Watch Ultra</strong> e voltou a ter batimentos cardíacos, treinos e uso no dia a dia — sem bloqueios nem leituras zeradas. No Reels abaixo, ele conta a experiência: a desconfiança inicial, a instalação e o resultado depois que o sensor voltou a funcionar 100%.",
+      "answerEn": "Yes. A customer with a tattooed arm installed the lens on a <strong>Galaxy Watch Ultra</strong> and got heart rate, workouts and daily use working again — no lockouts or zero readings. In the Reels below, he shares the experience: initial skepticism, installation and the result once the sensor worked 100% again.",
+      "answerIt": "Sì. Un cliente con braccio tatuato ha installato la lente su un <strong>Galaxy Watch Ultra</strong> e ha ripristinato frequenza cardiaca, allenamenti e uso quotidiano — senza blocchi né letture a zero. Nel Reels qui sotto racconta l'esperienza: scetticismo iniziale, installazione e risultato quando il sensore ha tornato a funzionare al 100%.",
+      "media": {
+        "type": "instagram",
+        "instagramPermalink": "https://www.instagram.com/reel/DZt08c_AaJn/"
+      }
+    },
+    {
+      "id": "faq-9",
+      "active": true,
+      "order": 9,
+      "question": "Epóxi ou esparadrapo funcionam? Pelo menos parcialmente?",
+      "questionEn": "Do epoxy or medical tape work — even partially?",
+      "questionIt": "Resina o cerotto funzionano — almeno in parte?",
+      "answer": "Não de forma confiável. Resina/epóxi solta com suor e água; esparadrapo e látex bloqueiam a luz do sensor e dão leitura falsa. No TikTok, @bruu_schmitt conta anos de gambiarra no Apple Watch — e como passou a usar normalmente com Sensor Tattoo Fix.",
+      "answerEn": "Not reliably. Resin/epoxy peels with sweat and water; tape and latex block the sensor light and cause false readings. In the TikTok below, @bruu_schmitt shares years of DIY hacks on Apple Watch — and how Sensor Tattoo Fix let them use the watch normally.",
+      "answerIt": "Non in modo affidabile. Resina/epoxy si stacca con sudore e acqua; cerotto e lattice bloccano la luce del sensore e danno letture false. Nel TikTok qui sotto, @bruu_schmitt racconta anni di ripieghi sull'Apple Watch — e come con Sensor Tattoo Fix usa di nuovo l'orologio normalmente.",
+      "media": {
+        "type": "tiktok",
+        "tiktokId": "7669434564908993799",
+        "tiktokHref": "https://www.tiktok.com/@bruu_schmitt/video/7669434564908993799",
+        "tiktokHandle": "@bruu_schmitt",
+        "tiktokTitle": "Depoimento TikTok — Apple Watch e Sensor Tattoo Fix"
+      }
+    },
+    {
+      "id": "faq-10",
+      "active": true,
+      "order": 10,
+      "question": "A película permite pagamento por aproximação (Apple Pay / Google Pay)?",
+      "questionEn": "Does the lens enable contactless payments (Apple Pay / Google Pay)?",
+      "questionIt": "La pellicola consente i pagamenti contactless (Apple Pay / Google Pay)?",
+      "answer": "Sim. Com a lente instalada, o relógio volta a detectar o pulso corretamente — e o <strong>pagamento por aproximação (NFC)</strong> funciona de novo, porque o smartwatch deixa de achar que saiu do seu braço. Não é preciso desativar a detecção de pulso:",
+      "answerEn": "Yes. With the lens installed, the watch detects your wrist again — so <strong>contactless NFC payments</strong> work again because the smartwatch no longer thinks it left your arm. No need to disable wrist detection:",
+      "answerIt": "Sì. Con la lente installata, l'orologio rileva di nuovo il polso — e i <strong>pagamenti NFC contactless</strong> tornano a funzionare perché lo smartwatch smette di pensare di essere uscito dal braccio. Non serve disattivare il rilevamento del polso:",
+      "media": {
+        "type": "instagram",
+        "instagramPermalink": "https://www.instagram.com/p/DZx0ImVO75A/"
+      }
+    },
+    {
+      "id": "faq-11",
+      "active": true,
+      "order": 11,
+      "question": "Desativar a detecção de pulso resolve o problema?",
+      "questionEn": "Does disabling pulse detection solve the problem?",
+      "questionIt": "Disattivare il rilevamento del polso risolve il problema?",
+      "answer": "Não. Desativar a detecção de pulso é a pior solução. Ao fazer isso, você desativa funções essenciais como pagamentos por aproximação (NFC), bloqueio automático de segurança e monitoramento contínuo de saúde. Basicamente, você transforma um smartwatch de última geração em um relógio comum que apenas mostra as horas.",
+      "answerEn": "No. Disabling pulse detection is the worst solution. It turns off essential features such as contactless payments (NFC), automatic security lock and continuous health monitoring. You effectively turn a cutting-edge smartwatch into a regular watch that only tells time.",
+      "answerIt": "No. Disattivare il rilevamento del polso è la soluzione peggiore. Disattiva funzioni essenziali come i pagamenti contactless (NFC), il blocco di sicurezza automatico e il monitoraggio continuo della salute. Di fatto trasformi uno smartwatch all'avanguardia in un normale orologio che segna solo l'ora.",
+      "media": null
+    },
+    {
+      "id": "faq-12",
+      "active": true,
+      "order": 12,
+      "question": "Como é feita a instalação da lente?",
+      "questionEn": "How is the lens installed?",
+      "questionIt": "Come si installa la lente?",
+      "answer": "A instalação é simples e rápida. Primeiro, limpe bem o sensor do seu smartwatch com o lenço de álcool isopropílico fornecido. Retire a película protetora do adesivo de fixação muito alta, alinhe a lente com o centro do sensor e pressione suavemente por 30 segundos para garantir a aderência total.",
+      "answerEn": "Installation is simple and quick. First, clean your watch sensor with the supplied isopropyl alcohol wipe. Peel the protective film from the very high-bond adhesive, align the lens with the center of the sensor and press gently for 30 seconds to ensure full adhesion.",
+      "answerIt": "L'installazione è semplice e veloce. Prima pulisci il sensore dell'orologio con la salvietta in alcol isopropilico fornita. Rimuovi la pellicola protettiva dall'adesivo ad altissima adesione, allinea la lente al centro del sensore e premi delicatamente per 30 secondi per garantire un'adesione completa.",
+      "media": {
+        "type": "instagram",
+        "instagramPermalink": "https://www.instagram.com/reel/DYC3ybORHMe/"
+      }
+    },
+    {
+      "id": "faq-13",
+      "active": true,
+      "order": 13,
+      "question": "Tem algum manual de instalação?",
+      "questionEn": "Is there an installation manual?",
+      "questionIt": "Esiste un manuale di installazione?",
+      "answer": "Sim. Todo kit acompanha um manual impresso com o passo a passo. Você também pode consultar e imprimir a versão completa aqui: <a href=\"docs/manuais/manual-instalacao-sensor-tattoo-fix.html\" target=\"_blank\" rel=\"noopener\">Manual de instalação Sensor Tattoo Fix</a>.",
+      "answerEn": "Yes. Every order includes a printed step-by-step guide. You can also view and print the full version here: <a href=\"../docs/manuais/manual-instalacao-sensor-tattoo-fix.html\" target=\"_blank\" rel=\"noopener\">Sensor Tattoo Fix installation manual</a>.",
+      "answerIt": "Sì. Ogni ordine include una guida stampata passo passo. Puoi anche consultare e stampare la versione completa qui: <a href=\"../docs/manuais/manual-instalacao-sensor-tattoo-fix.html\" target=\"_blank\" rel=\"noopener\">Manuale di installazione Sensor Tattoo Fix</a> (portoghese).",
+      "media": null
+    },
+    {
+      "id": "faq-14",
+      "active": true,
+      "order": 14,
+      "question": "Preciso remover alguma película protetora da lente após a colagem?",
+      "questionEn": "Do I need to remove a protective film from the lens after sticking it?",
+      "questionIt": "Devo rimuovere una pellicola protettiva dalla lente dopo averla applicata?",
+      "answer": "Não. A lente Sensor Tattoo Fix já vem pronta para o uso. Após colá-la e pressionar por 30 segundos, ela está pronta imediatamente. Não existe nenhuma película ou camada no topo da lente para remover; ela já possui a transparência e o acabamento ideal para o funcionamento do sensor.",
+      "answerEn": "No. The Sensor Tattoo Fix lens is ready to use. After sticking and pressing for 30 seconds, it is immediately ready. There is no film or layer on top of the lens to remove; it already has the ideal transparency and finish for sensor operation.",
+      "answerIt": "No. La lente Sensor Tattoo Fix è pronta all'uso. Dopo averla applicata e premuta per 30 secondi, è immediatamente pronta. Non c'è pellicola o strato sopra la lente da rimuovere; ha già la trasparenza e la finitura ideali per il funzionamento del sensore.",
+      "media": null
+    },
+    {
+      "id": "faq-15",
+      "active": true,
+      "order": 15,
+      "question": "A lente atrapalha o carregamento do relógio?",
+      "questionEn": "Does the lens get in the way of charging the watch?",
+      "questionIt": "La lente ostacola la ricarica dell'orologio?",
+      "answer": "Não. Foi desenvolvida com design ultrafino — espessura mínima — para não comprometer o encaixe na base de carregamento. Você carrega normalmente, com indução, sem precisar retirar a lente.",
+      "answerEn": "No. It was developed with an extra-fine design — minimal thickness — so it does not interfere with fitting on the charging dock. You charge normally, including wireless charging, without removing the lens.",
+      "answerIt": "No. È stata sviluppata con un design extra sottile — spessore minimo — per non compromettere l'inserimento nella base di ricarica. Ricarichi normalmente, anche a induzione, senza dover rimuovere la lente.",
+      "media": null
+    },
+    {
+      "id": "faq-16",
+      "active": true,
+      "order": 16,
+      "question": "Com quanto tempo a lente solta? Ela sai com facilidade?",
+      "questionEn": "How long until the lens comes off? Does it peel off easily?",
+      "questionIt": "Quanto tempo ci vuole perché la lente si stacchi? Si stacca facilmente?",
+      "answer": "Foi feita para permanecer fixa até você decidir retirar. Não solta no treino, com o tempo, com suor, na sauna, na piscina, no banho, ao lavar as mãos nem na água — pode nadar e treinar intensamente sem medo de que se solte. Se quiser tirar para vender o relógio ou deixá-lo como era originalmente, basta puxar com a mão.",
+      "answerEn": "It is made to stay in place until you decide to remove it. It will not come off during workouts, over time, with sweat, in the sauna, in the pool, in the shower, when washing your hands or in water — you can swim and train intensely without fear of it peeling off. If you want to take it off to sell your watch or return it to its original state, simply pull it off by hand.",
+      "answerIt": "È pensata per restare fissa finché non decidi di rimuoverla. Non si stacca durante l'allenamento, col tempo, con il sudore, in sauna, in piscina, sotto la doccia, lavandoti le mani né in acqua — puoi nuotare e allenarti intensamente senza paura che si stacchi. Se vuoi toglierla per vendere l'orologio o riportarlo allo stato originale, basta tirarla via a mano.",
+      "media": null
+    },
+    {
+      "id": "faq-17",
+      "active": true,
+      "order": 17,
+      "question": "Quanto tempo devo esperar antes de entrar na água?",
+      "questionEn": "How long should I wait before getting it wet?",
+      "questionIt": "Quanto devo aspettare prima di bagnarla?",
+      "answer": "Após a instalação, recomendamos aguardar um período de 72 horas antes de expor o relógio à água, natação ou atividades físicas intensas com suor excessivo. Esse é o tempo de cura ideal para que a colagem do adesivo de fixação muito alta atinja sua resistência máxima, garantindo uma vedação perfeita e duradoura.",
+      "answerEn": "After installation, we recommend waiting 72 hours before exposing the watch to water, swimming or intense sweating. This is the ideal cure time for the very high-bond adhesive to reach maximum strength, ensuring a perfect and lasting seal.",
+      "answerIt": "Dopo l'installazione, consigliamo di attendere 72 ore prima di esporre l'orologio ad acqua, nuoto o sudorazione intensa. Questo è il tempo di cura ideale affinché l'adesivo ad altissima adesione raggiunga la massima resistenza, garantendo una tenuta perfetta e duratura.",
+      "media": null
+    },
+    {
+      "id": "faq-18",
+      "active": true,
+      "order": 18,
+      "question": "Posso remover a lente quando for vender o relógio?",
+      "questionEn": "Can I remove the lens later if I sell my watch?",
+      "questionIt": "Posso rimuovere la lente in seguito se vendo il mio orologio?",
+      "answer": "Sim. Basta puxar com a mão — a lente foi feita para ficar fixa no dia a dia, mas sai quando você quiser. Qualquer resíduo de cola pode ser limpo com álcool isopropílico, deixando o sensor original intacto.",
+      "answerEn": "Yes. Simply pull it off by hand — the lens is made to stay put day to day, but comes off whenever you want. Any adhesive residue can be cleaned with isopropyl alcohol, leaving the original sensor intact.",
+      "answerIt": "Sì. Basta tirarla via a mano — la lente resta fissa nel quotidiano, ma si toglie quando vuoi. Eventuali residui di adesivo si puliscono con alcol isopropilico, lasciando intatto il sensore originale.",
+      "media": {
+        "type": "tiktok",
+        "tiktokId": "7642977229512723733",
+        "tiktokHref": "https://www.tiktok.com/@sensortattoofixofc/video/7642977229512723733",
+        "tiktokHandle": "@sensortattoofixofc",
+        "tiktokTitle": "Como remover a lente Sensor Tattoo Fix"
+      }
+    }
+  ],
+  "homeReviews": [
+    {
+      "id": "review-1",
+      "active": true,
+      "order": 1,
+      "rating": 5,
+      "body": "Produto excelente! Qualidade impecável, fácil aplicação e resultado surpreendente.",
+      "bodyEn": "Excellent product! Impeccable quality, easy to apply and amazing results.",
+      "bodyIt": "Prodotto eccellente! Qualità impeccabile, facile da applicare e risultati sorprendenti.",
+      "author": "Caroline Moreira",
+      "authorEn": "Caroline Moreira",
+      "authorIt": "Caroline Moreira",
+      "source": "Google",
+      "sourceEn": "Google",
+      "sourceIt": "Google"
+    },
+    {
+      "id": "review-2",
+      "active": true,
+      "order": 2,
+      "rating": 5,
+      "body": "Produto top, resolveu meu problema!",
+      "bodyEn": "Top product, it solved my problem!",
+      "bodyIt": "Prodotto top, ha risolto il mio problema!",
+      "author": "MANOEL Ricardo",
+      "authorEn": "MANOEL Ricardo",
+      "authorIt": "MANOEL Ricardo",
+      "source": "Google",
+      "sourceEn": "Google",
+      "sourceIt": "Google"
+    },
+    {
+      "id": "review-3",
+      "active": true,
+      "order": 3,
+      "rating": 5,
+      "body": "Achei no TikTok, comprei, e está funcionando perfeitamente. Muito obrigado!",
+      "bodyEn": "I found you on TikTok, bought it, and it's working perfectly. Thank you!",
+      "bodyIt": "Vi ho trovato su TikTok, ho comprato e funziona perfettamente. Grazie!",
+      "author": "Cliente",
+      "authorEn": "Customer",
+      "authorIt": "Cliente",
+      "source": "Mercado Livre",
+      "sourceEn": "Mercado Libre",
+      "sourceIt": "Mercado Libre"
+    },
+    {
+      "id": "review-4",
+      "active": true,
+      "order": 4,
+      "rating": 5,
+      "body": "Qualidade ótima. Produto top.",
+      "bodyEn": "Great quality. Top product.",
+      "bodyIt": "Qualità ottima. Prodotto top.",
+      "author": "Martin",
+      "authorEn": "Martin",
+      "authorIt": "Martin",
+      "source": "Mercado Livre · 5★",
+      "sourceEn": "Mercado Libre · 5★",
+      "sourceIt": "Mercado Livre · 5★"
+    },
+    {
+      "id": "review-5",
+      "active": true,
+      "order": 5,
+      "rating": 5,
+      "body": "Vendedor muito atencioso. Pedi na sexta à noite, enviou sábado de manhã e chegou na segunda — super rápido.",
+      "bodyEn": "Very attentive seller. Ordered Friday night, shipped Saturday morning, arrived Monday — super fast.",
+      "bodyIt": "Venditore molto attento. Ordine venerdì sera, spedito sabato mattina, arrivato lunedì — velocissimo.",
+      "author": "Reinaldo Jose",
+      "authorEn": "Reinaldo Jose",
+      "authorIt": "Reinaldo Jose",
+      "source": "Shopee · 5★",
+      "sourceEn": "Shopee · 5★",
+      "sourceIt": "Shopee · 5★"
+    },
+    {
+      "id": "review-6",
+      "active": true,
+      "order": 6,
+      "rating": 5,
+      "body": "Entrou em contato pelo site, comprou com PayPal e a lente foi enviada para Portugal — pedido concluído.",
+      "bodyEn": "Reached out through the website, paid with PayPal and the lens was shipped to Portugal — order completed.",
+      "bodyIt": "Ho contattato tramite il sito, pagato con PayPal e la lente è stata spedita in Portogallo — ordine completato.",
+      "author": "Pedro Almeida",
+      "authorEn": "Pedro Almeida",
+      "authorIt": "Pedro Almeida",
+      "source": "Matosinhos, Portugal",
+      "sourceEn": "Matosinhos, Portugal",
+      "sourceIt": "Matosinhos, Portogallo"
+    },
+    {
+      "id": "review-7",
+      "active": true,
+      "order": 7,
+      "rating": 5,
+      "body": "Tinha no Ultra 1 quando comprei a primeira, vendi o relógio e comprei o Ultra 3 — vim de novo.",
+      "bodyEn": "Had it on my Ultra 1 when I first bought, sold the watch and got the Ultra 3 — came back.",
+      "bodyIt": "L'avevo sull'Ultra 1 alla prima compra, ho venduto l'orologio e comprato l'Ultra 3 — sono tornato.",
+      "author": "Murilo Varconti",
+      "authorEn": "Murilo Varconti",
+      "authorIt": "Murilo Varconti",
+      "source": "Mercado Livre",
+      "sourceEn": "Mercado Libre",
+      "sourceIt": "Mercado Livre"
+    },
+    {
+      "id": "review-8",
+      "active": true,
+      "order": 8,
+      "rating": 5,
+      "body": "Se todo vendedor fosse igual a você, a gente tava no céu. Muito obrigado pela atenção.",
+      "bodyEn": "If every seller were like you, we'd be in heaven. Thank you so much for your attention.",
+      "bodyIt": "Se ogni venditore fosse come te, saremmo in paradiso. Grazie mille per l'attenzione.",
+      "author": "Willian",
+      "authorEn": "Willian",
+      "authorIt": "Willian",
+      "source": "WhatsApp",
+      "sourceEn": "WhatsApp",
+      "sourceIt": "WhatsApp"
+    },
+    {
+      "id": "review-9",
+      "active": true,
+      "order": 9,
+      "rating": 5,
+      "body": "Chegou no prazo, coloquei a lente e está funcionando tudo — batimentos, treino, sem bloquear.",
+      "bodyEn": "Arrived on time, applied the lens and everything works — heart rate, workouts, no lockouts.",
+      "bodyIt": "Arrivato in tempo, ho applicato la lente e funziona tutto — battito, allenamento, senza blocchi.",
+      "author": "Raphael do Rio",
+      "authorEn": "Raphael do Rio",
+      "authorIt": "Raphael do Rio",
+      "source": "Compra no site",
+      "sourceEn": "Website purchase",
+      "sourceIt": "Acquisto sul sito"
+    },
+    {
+      "id": "review-10",
+      "active": true,
+      "order": 10,
+      "rating": 5,
+      "body": "Encontrei a Sensor Tattoo Fix e resolveu todos os problemas do Apple Watch no braço tatuado.",
+      "bodyEn": "Found Sensor Tattoo Fix and it solved all my Apple Watch problems on tattooed skin.",
+      "bodyIt": "Ho trovato Sensor Tattoo Fix e ha risolto tutti i problemi dell'Apple Watch sul braccio tatuato.",
+      "author": "Pri",
+      "authorEn": "Pri",
+      "authorIt": "Pri",
+      "source": "Instagram · vídeo",
+      "sourceEn": "Instagram · video",
+      "sourceIt": "Instagram · video"
+    }
+  ]
 }

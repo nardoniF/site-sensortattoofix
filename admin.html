@@ -101,6 +101,8 @@
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="pagamento" aria-selected="false"><i class="fas fa-credit-card"></i> Pagamentos</button>
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="frete" aria-selected="false"><i class="fas fa-truck"></i> Frete</button>
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="cupons" aria-selected="false"><i class="fas fa-ticket-alt"></i> Cupons</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="faq" aria-selected="false"><i class="fas fa-circle-question"></i> FAQ</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="elogios" aria-selected="false"><i class="fas fa-star"></i> Elogios</button>
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="contato" aria-selected="false"><i class="fas fa-headset"></i> Contatos</button>
                     </nav>
                     <div id="admin-tab-produtos" class="admin-tab-panel" role="tabpanel" hidden>
@@ -718,6 +720,24 @@
                     </fieldset>
                     </div>
 
+                    <div id="admin-tab-faq" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-circle-question"></i> FAQ da home</span></legend>
+                        <p class="admin-meta">Perguntas da seção FAQ em <strong>index.html</strong> (PT), <strong>en/index.html</strong> e <strong>it/index.html</strong>. Resposta aceita HTML básico (&lt;strong&gt;, &lt;a&gt;…). Mídia: Instagram ou TikTok (opcional).</p>
+                        <div id="admin-home-faq" class="admin-home-content-list"></div>
+                        <button type="button" id="btn-add-home-faq" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar pergunta</button>
+                    </fieldset>
+                    </div>
+
+                    <div id="admin-tab-elogios" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-star"></i> Elogios da home</span></legend>
+                        <p class="admin-meta">Depoimentos da seção “O que dizem por aí?” — mesmas marcas em PT, EN e IT.</p>
+                        <div id="admin-home-reviews" class="admin-home-content-list"></div>
+                        <button type="button" id="btn-add-home-review" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar elogio</button>
+                    </fieldset>
+                    </div>
+
                     <div id="admin-tab-api" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-server"></i> API</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-api-url" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
@@ -1252,6 +1272,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=200"></script>
+    <script defer src="js/admin.js?v=201"></script>
 </body>
 </html>
