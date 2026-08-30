@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Thank You Letter — Whoop 5 MG add-on lens — Heath Aubin</title>
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0d0d0d;
+      --ink-2: #1d1d1f;
+      --muted: #6e6e73;
+      --muted-2: #8e8e93;
+      --line: #e5e5ea;
+      --bar: #d2d2d7;
+      --panel: #f5f5f7;
+      --panel-2: #e5e5ea;
+      --accent: #ff6b00;
+      --lens-mm: 17;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 7.5pt;
+      line-height: 1.32;
+      color: var(--ink-2);
+      background: #c8c8cc;
+    }
+    .toolbar {
+      position: sticky; top: 0; z-index: 5;
+      background: #1a1a1a; color: #fff;
+      padding: 10px 14px;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      font-size: 13px;
+    }
+    .toolbar button {
+      font: inherit; cursor: pointer;
+      padding: 8px 14px; border-radius: 6px; border: none;
+      background: #ffc107; color: #111; font-weight: 700;
+    }
+    .toolbar .meta { color: #bbb; flex: 1; min-width: 180px; }
+    .sheet {
+      width: 210mm;
+      height: 297mm;
+      margin: 16px auto;
+      background: #fff;
+      box-shadow: 0 2px 14px rgba(0,0,0,.18);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sheet-pad {
+      padding: 0 11mm 5mm;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    @media print {
+      html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; width: 210mm; height: 297mm; }
+      .toolbar { display: none !important; }
+      .sheet { margin: 0 !important; box-shadow: none !important; width: 210mm !important; height: 297mm !important; overflow: hidden !important; page-break-inside: avoid; }
+      *, *::before, *::after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .brand { background: #0d0d0d !important; color: #fff !important; }
+      .brand::after { background: #ff6b00 !important; }
+      .brand h1 { color: #fff !important; }
+      .brand p { color: #a1a1a6 !important; }
+      .meta-panel { background: #f5f5f7 !important; }
+      .addon-badge { background: #fff4eb !important; border-color: #ffb380 !important; color: #8a4a00 !important; }
+      .lens-pocket { border-color: #ff6b00 !important; background: #fffaf6 !important; }
+      .lens-copy .tag { background: #ff6b00 !important; color: #fff !important; }
+      .lens-target { border-color: #ff6b00 !important; background: #fff8f2 !important; }
+      .lens-target span { color: #ff6b00 !important; }
+    }
+    .brand {
+      background: var(--ink);
+      color: #fff;
+      text-align: center;
+      padding: 7mm 11mm 5.5mm;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .brand::after {
+      content: "";
+      position: absolute; left: 0; right: 0; bottom: 0;
+      height: 2.5px; background: var(--accent);
+    }
+    .brand h1 {
+      font-size: 12.5pt; font-weight: 800; letter-spacing: .08em;
+      text-transform: uppercase; color: #fff;
+    }
+    .brand p {
+      margin-top: 2px;
+      font-size: 6.5pt; font-weight: 500; letter-spacing: .14em;
+      text-transform: uppercase; color: #a1a1a6;
+    }
+    .addon-badge {
+      margin-top: 3mm;
+      padding: 1.5mm 3mm;
+      border: 0.75pt solid #ffb380;
+      border-radius: 2px;
+      background: #fff4eb;
+      color: #8a4a00;
+      font-size: 6.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      text-align: center;
+    }
+    .meta-panel {
+      margin-top: 2.5mm;
+      background: var(--panel);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .meta-row {
+      display: grid;
+      grid-template-columns: 34mm 1fr;
+      gap: 2.5mm;
+      padding: 1.5mm 3mm;
+      border-bottom: 0.75pt solid var(--panel-2);
+      align-items: start;
+    }
+    .meta-row:last-child { border-bottom: none; }
+    .meta-row dt {
+      font-size: 6.5pt; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .meta-row dd {
+      font-size: 7.5pt; font-weight: 600; color: var(--ink);
+      word-break: break-word;
+    }
+    h2.thanks { margin: 3.5mm 0 1.2mm; font-size: 10pt; font-weight: 800; color: var(--ink); }
+    .greeting { margin-bottom: 1.2mm; font-size: 8pt; }
+    .body p { margin-bottom: 1.2mm; font-size: 7.5pt; }
+    .section-bar {
+      margin: 2.8mm 0 1.8mm;
+      background: var(--bar);
+      border-radius: 2px;
+      padding: 1.3mm 2.5mm;
+      font-size: 7pt; font-weight: 800; letter-spacing: .05em;
+      text-transform: uppercase; color: var(--ink);
+    }
+    .steps { list-style: none; margin: 0 0 0.5mm; }
+    .steps li {
+      display: grid;
+      grid-template-columns: 5mm 1fr;
+      gap: 2mm;
+      margin-bottom: 1.5mm;
+      align-items: start;
+    }
+    .steps .n {
+      width: 5mm; height: 5mm; border-radius: 50%;
+      background: var(--ink); color: #fff;
+      font-size: 6.5pt; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .steps strong { font-weight: 800; color: var(--ink); }
+    .cure {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background: var(--panel);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 0.5mm;
+    }
+    .cure-card {
+      padding: 2.2mm 2mm;
+      text-align: center;
+      border-right: 1.5pt solid #fff;
+    }
+    .cure-card:last-child { border-right: none; }
+    .cure-card strong { display: block; font-size: 9pt; font-weight: 800; }
+    .cure-card .cat {
+      display: block; margin-top: 0.7mm;
+      font-size: 6pt; font-weight: 800; letter-spacing: .05em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .cure-card em { display: block; margin-top: 0.8mm; font-style: normal; font-size: 6pt; color: var(--muted); }
+    .notes {
+      margin-top: 2mm;
+      background: var(--panel-2);
+      border-radius: 2px;
+      padding: 2.2mm 3mm;
+    }
+    .notes .section-bar { margin: 0 0 1.2mm; background: transparent; padding: 0; }
+    .notes ul { margin: 0 0 0 3mm; }
+    .notes li { margin-bottom: 0.8mm; font-size: 7pt; }
+    .support { margin-top: 2mm; font-size: 7.5pt; }
+    .sign { margin-top: 2mm; font-size: 7.5pt; }
+    .sign .team { font-weight: 800; margin-top: 0.6mm; }
+    .footer-line {
+      margin-top: 2.5mm;
+      padding-top: 1.5mm;
+      border-top: 0.75pt solid var(--line);
+      text-align: center;
+      font-size: 6pt; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--muted-2);
+    }
+    .lens-pocket {
+      margin-top: auto;
+      border: 1.25pt dashed var(--accent);
+      border-radius: 3px;
+      background: linear-gradient(180deg, #fffaf6 0%, #fff 55%);
+      padding: 2.5mm 3mm;
+      display: grid;
+      grid-template-columns: 1fr calc(var(--lens-mm) * 1mm + 4mm);
+      gap: 3mm;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .lens-copy .tag {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 6pt; font-weight: 800; letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 1mm 2mm;
+      border-radius: 2px;
+      margin-bottom: 1.2mm;
+    }
+    .lens-copy h3 { font-size: 8pt; font-weight: 800; margin-bottom: 0.6mm; }
+    .lens-copy p { font-size: 6.5pt; color: var(--muted); line-height: 1.3; }
+    .lens-copy .device {
+      margin-top: 1mm;
+      font-size: 7pt; font-weight: 700; color: var(--ink-2);
+    }
+    .lens-target {
+      width: calc(var(--lens-mm) * 1mm);
+      height: calc(var(--lens-mm) * 1mm);
+      border-radius: 50%;
+      border: 1.5pt dashed var(--accent);
+      background:
+        radial-gradient(circle at center, transparent 0 42%, rgba(255,107,0,.08) 43% 100%),
+        #fff8f2;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      justify-self: end;
+    }
+    .lens-target span {
+      font-size: 4.8pt; font-weight: 800; letter-spacing: .05em;
+      text-transform: uppercase; color: var(--accent); line-height: 1.1;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button type="button" onclick="window.print()">Print letter</button>
+    <span class="meta">Whoop 5 MG add-on · 17 mm lens pocket · same shipment as Apple Watch lens</span>
+  </div>
+
+  <article class="sheet">
+    <header class="brand">
+      <h1>Sensor TattooFix®</h1>
+      <p>Precision optical interfaces for smartbands &amp; wearables</p>
+    </header>
+
+    <div class="sheet-pad">
+      <p class="addon-badge">Additional lens included with your order</p>
+
+      <dl class="meta-panel">
+        <div class="meta-row">
+          <dt>Order number</dt>
+          <dd>STF-20260830-875F70E8D6</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Recipient</dt>
+          <dd>Heath Aubin</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Shipping address</dt>
+          <dd>1028 Ashland Avenue — Saint Paul, Minnesota — United States 55104</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Smartband model</dt>
+          <dd>Whoop 5 MG</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Carrier / method</dt>
+          <dd>Standard International Mail</dd>
+        </div>
+        <div class="meta-row">
+          <dt>Tracking number</dt>
+          <dd>Pending</dd>
+        </div>
+      </dl>
+
+      <h2 class="thanks">Your Whoop lens is here too!</h2>
+      <p class="greeting">Hi Heath,</p>
+      <div class="body">
+        <p>As requested, we are including this <strong>second optical lens</strong> for your <strong>Whoop 5 MG</strong> smartband — packed in the same shipment as your Apple Watch lens.</p>
+        <p>This compact lens was custom-made for the smaller sensor on fitness bands and wearables. Please follow the same installation and curing steps below for best adhesion and sensor performance.</p>
+      </div>
+
+      <div class="section-bar">Step-by-step installation guide</div>
+      <ol class="steps">
+        <li>
+          <span class="n">1</span>
+          <div><strong>Surface cleaning:</strong> Thoroughly clean the optical sensor on the back of your Whoop band using isopropyl alcohol or an alcohol wipe. Ensure it is 100% dry, clean, and free from oils or dust.</div>
+        </li>
+        <li>
+          <span class="n">2</span>
+          <div><strong>Alignment:</strong> Remove the protective film from the adhesive side and center the lens over the optical sensor (this lens is smaller than our smartwatch lenses).</div>
+        </li>
+        <li>
+          <span class="n">3</span>
+          <div><strong>Application:</strong> Press firmly for 30 to 45 seconds with uniform pressure to eliminate micro air bubbles and activate the adhesive bond.</div>
+        </li>
+      </ol>
+
+      <div class="section-bar">Adhesive curing schedule (crucial for maximum longevity)</div>
+      <div class="cure">
+        <div class="cure-card">
+          <strong>4 Hours</strong>
+          <span class="cat">Regular use</span>
+          <em>Safe for casual daily wear.</em>
+        </div>
+        <div class="cure-card">
+          <strong>48 Hours</strong>
+          <span class="cat">Workouts / sweat</span>
+          <em>Required before heavy sweat or exercise.</em>
+        </div>
+        <div class="cure-card">
+          <strong>72 Hours</strong>
+          <span class="cat">Water exposure</span>
+          <em>Full cure required for swimming or showers.</em>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="section-bar">Important usage notes</div>
+        <ul>
+          <li><strong>Charging:</strong> The lens is fully compatible with your Whoop battery pack — you do not need to remove the lens when charging.</li>
+          <li>Following the curing timeline above guarantees long-lasting adhesion even during high-intensity training.</li>
+        </ul>
+      </div>
+
+      <p class="support">Questions? Contact us anytime at <strong>support@sensortattoofix.com</strong>.</p>
+
+      <div class="sign">
+        <p>Best regards,</p>
+        <p class="team">Fabio Nardoni &amp; The Sensor TattooFix® Team</p>
+      </div>
+
+      <p class="footer-line">Sensor TattooFix® · Smartband optical lens · Included with order STF-20260830-875F70E8D6</p>
+
+      <aside class="lens-pocket" aria-label="Lens affix area">
+        <div class="lens-copy">
+          <span class="tag">Your Whoop lens</span>
+          <h3>Affix your smartband lens here</h3>
+          <p>Paste the 17&nbsp;mm lens inside the small circle below. Fold carefully to protect it during transit.</p>
+          <p class="device">For: Whoop 5 MG</p>
+        </div>
+        <div class="lens-target" title="Paste 17 mm lens here">
+          <span>Paste<br>lens</span>
+        </div>
+      </aside>
+    </div>
+  </article>
+</body>
+</html>
