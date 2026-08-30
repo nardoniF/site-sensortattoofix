@@ -1,0 +1,5 @@
+{
+  "name": "Sensor Tattoo Fix (3N20)",
+  "install": "cd api && (npm ci --prefer-offline --no-audit --no-fund 2>/dev/null || true)",
+  "start": "command -v wrangler >/dev/null 2>&1 || npm i -g wrangler@4"
+}
