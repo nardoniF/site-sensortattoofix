@@ -11,7 +11,8 @@ import {
   kitUnitCostFromComponents,
   applyOrderFreteAccounting,
   inferCustomerPaidTotal,
-  orderNeedsFreteProductRepair
+  orderNeedsFreteProductRepair,
+  storeOrderListedGross
 } from './sales-money.js';
 
 const config = { mlFlexShippingCost: 11.9 };
@@ -101,15 +102,19 @@ test('recovers shrunk total after previous buggy frete edit', () => {
   assert.equal(orderNeedsFreteProductRepair(order), false);
 });
 
-test('manual product acerto stores productAdjust on top of remainder', () => {
+test('manual product acerto stores productAdjust and net total after PayPal fee', () => {
   const order = {
-    valorProduto: 128,
-    frete: 300,
-    total: 428
+    valorProduto: 100,
+    frete: 28,
+    freteOriginal: 389.62,
+    total: 128,
+    totalPaid: 489.62
   };
-  applyOrderFreteAccounting(order, 28, { valorProduto: 472, now: '2026-08-30T06:00:00.000Z' });
+  applyOrderFreteAccounting(order, 28, { valorProduto: 411.76, now: '2026-08-30T07:00:00.000Z' });
   assert.equal(order.frete, 28);
-  assert.equal(order.valorProduto, 472);
-  assert.equal(order.total, 428);
-  assert.equal(order.productAdjust, 72);
+  assert.equal(order.valorProduto, 411.76);
+  assert.equal(order.total, 439.76);
+  assert.equal(order.totalPaid, 489.62);
+  assert.equal(order.paypalFee, 49.86);
+  assert.equal(storeOrderListedGross(order), 439.76);
 });

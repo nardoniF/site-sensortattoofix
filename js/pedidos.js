@@ -641,7 +641,7 @@
     return `
       <section class="pedidos-detail-section pedidos-detail-section--frete">
         <h3 class="pedidos-detail-heading">Frete e acerto do pedido</h3>
-        <p class="pedidos-detail-muted">O cliente já pagou o total. Se você baixar o frete (custo real), a diferença vai para o <strong>produto</strong>. O total pago não muda. Dá para acertar o produto na mão também.</p>
+        <p class="pedidos-detail-muted">Checkout: cliente pagou <strong>${formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong>. Se baixar o frete, a diferença vai para o produto. Se você baixar o produto (taxa PayPal, etc.), o <strong>total que entrou</strong> vira produto + frete.</p>
         ${origNote}
         ${checkoutProduct}
         <div class="pedidos-shipping-manual">
@@ -653,7 +653,8 @@
             <span class="pedidos-shipping-label">Produto / acerto (R$)</span>
             <input type="text" class="pedidos-order-produto" value="${escHtml(productVal)}" placeholder="Ex.: 472,00" inputmode="decimal" />
           </label>
-          <p class="pedidos-detail-muted">Total pago pelo cliente: <strong class="pedidos-order-total">${formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong></p>
+          <p class="pedidos-detail-muted">Checkout (cliente): <strong>${formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong>${o.paypalFee ? ` · Taxa PayPal: ${formatBRL(o.paypalFee)}` : ''}</p>
+          <p class="pedidos-detail-muted">Entrou na conta: <strong class="pedidos-order-total">${formatBRL(o.total != null ? o.total : (Number(o.valorProduto || 0) + Number(o.frete || 0)))}</strong></p>
           <button type="button" class="btn-save-order-frete">Salvar acerto</button>
           <p class="pedidos-frete-feedback" hidden></p>
         </div>
@@ -661,7 +662,7 @@
   }
 
   function orderAuditRows(o) {
-    const bruto = Number(o.valorProdutoOriginal ?? o.valorProduto);
+    const bruto = Number(o.valorProdutoAtCheckout ?? o.valorProdutoOriginal ?? o.valorProduto);
     const pago = Number(o.valorProduto);
     const frete = Number(o.frete);
     const total = Number(o.total);
@@ -696,8 +697,14 @@
     if (o.shippingService && sfLabel && String(o.shippingService).toUpperCase() !== sfLabel) {
       rows.push(detailRow('Rótulo salvo', `<span class="pedidos-track-warn">${escHtml(o.shippingService)} (diverge)</span>`));
     }
+    if (o.paypalFee != null && Number(o.paypalFee) > 0) {
+      rows.push(detailRow('Taxa PayPal', `− ${formatBRL(o.paypalFee)}`));
+    }
+    if (o.totalPaid != null && Number.isFinite(Number(o.totalPaid))) {
+      rows.push(detailRow('Checkout (cliente)', formatBRL(o.totalPaid)));
+    }
     if (Number.isFinite(total) && total >= 0) {
-      rows.push(detailRow('Total pago', `<strong>${formatBRL(o.totalPaid != null ? o.totalPaid : total)}</strong>`));
+      rows.push(detailRow('Entrou na conta', `<strong>${formatBRL(total)}</strong>`));
     }
     if (!rows.length) return '';
     return `<section class="pedidos-detail-section pedidos-detail-section--audit">
@@ -1069,6 +1076,7 @@
     if (data.valorProduto != null) order.valorProduto = data.valorProduto;
     if (data.productAdjust != null) order.productAdjust = data.productAdjust;
     if (data.valorProdutoAtCheckout != null) order.valorProdutoAtCheckout = data.valorProdutoAtCheckout;
+    if (data.paypalFee != null) order.paypalFee = data.paypalFee;
     if (data.shippingDays != null) order.shippingDays = data.shippingDays;
     if (data.shippingServiceCode != null) order.shippingServiceCode = data.shippingServiceCode;
     if (data.trackingEmailSentAt) order.trackingEmailSentAt = data.trackingEmailSentAt;

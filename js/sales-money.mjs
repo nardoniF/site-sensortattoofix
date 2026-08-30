@@ -231,6 +231,7 @@ export function inferCustomerPaidTotal(order) {
 
 export function orderNeedsFreteProductRepair(order) {
   if (!order) return false;
+  if (order.productAdjust != null && Math.abs(Number(order.productAdjust)) > 0.009) return false;
   const origFrete = order.freteOriginal != null ? roundMoney(order.freteOriginal) : null;
   if (origFrete == null) return false;
   const frete = roundMoney(order.frete);
@@ -249,7 +250,6 @@ export function applyOrderFreteAccounting(order, newFrete, opts = {}) {
   if (!order) return order;
   const now = opts.now || new Date().toISOString();
   const rounded = roundMoney(newFrete);
-  const fee = orderPaypalFee(order);
   const oldFrete = roundMoney(order.frete);
 
   if (order.freteOriginal == null && rounded !== oldFrete) {
@@ -259,8 +259,8 @@ export function applyOrderFreteAccounting(order, newFrete, opts = {}) {
     order.valorProdutoAtCheckout = roundMoney(order.valorProduto);
   }
 
-  const paid = inferCustomerPaidTotal(order);
-  order.totalPaid = paid;
+  const grossPaid = inferCustomerPaidTotal(order);
+  if (order.totalPaid == null) order.totalPaid = grossPaid;
   if (order.freteOriginal == null) order.freteOriginal = oldFrete;
 
   order.frete = rounded;
@@ -271,22 +271,37 @@ export function applyOrderFreteAccounting(order, newFrete, opts = {}) {
     order.productAdjust = adjust;
   }
 
-  const remainder = roundMoney(Math.max(0, paid - rounded - fee));
+  const feeBefore = orderPaypalFee(order);
+  const remainder = roundMoney(Math.max(0, grossPaid - rounded - feeBefore));
 
   if (opts.valorProduto !== undefined) {
     const vp = roundMoney(Math.max(0, Number(opts.valorProduto)));
     order.valorProduto = vp;
+    const impliedFee = roundMoney(Math.max(0, grossPaid - vp - rounded));
+    if (impliedFee > 0.009) order.paypalFee = impliedFee;
     order.productAdjust = roundMoney(vp - remainder);
+    // Líquido que entrou na conta (produto + frete), após taxas PayPal etc.
+    order.total = roundMoney(vp + rounded);
+  } else if (opts.productAdjust !== undefined) {
+    order.valorProduto = roundMoney(Math.max(0, remainder + adjust));
+    order.total = grossPaid;
   } else {
     order.valorProduto = roundMoney(Math.max(0, remainder + adjust));
+    order.total = grossPaid;
   }
 
-  order.total = paid;
   order.freteAdjustedAt = now;
   return order;
 }
 
 export function storeOrderListedGross(order) {
+  const total = roundMoney(order?.total);
+  const grossPaid = roundMoney(order?.totalPaid);
+  const fee = orderPaypalFee(order);
+  if (total > 0 && grossPaid > 0 && fee > 0.009 && total < grossPaid - 0.05) {
+    return total;
+  }
+  if (total > 0) return total;
   return inferCustomerPaidTotal(order);
 }
 

@@ -12842,6 +12842,7 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     valorProduto: order.valorProduto ?? null,
     productAdjust: order.productAdjust ?? null,
     valorProdutoAtCheckout: order.valorProdutoAtCheckout ?? null,
+    paypalFee: order.paypalFee ?? null,
     shippingDays: order.shippingDays ?? null,
     shippingServiceCode: order.shippingServiceCode ?? null,
     trackingEmailSentAt: order.trackingEmailSentAt || null,
