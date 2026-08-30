@@ -2521,7 +2521,9 @@ ${worksheets}
   let customersLoading = false;
   let clicksLoading = false;
   let clicksSearchTimer = null;
-  let clicksTabLoaded = false;
+  let clicksBgStarted = false;
+  let clicksLoadPromise = null;
+  let clicksMetaCache = null;
   let feedbackLoading = false;
   let feedbackSearchTimer = null;
   let clicksCache = [];
@@ -4276,9 +4278,55 @@ ${worksheets}
     }
   }
 
+  function isClicksPanelVisible() {
+    const panel = document.getElementById('admin-tab-cliques');
+    return !!(panel && !panel.hidden);
+  }
+
+  function setClicksLoadStatus(msg, type) {
+    const el = document.getElementById('admin-status-cliques');
+    if (!el) return;
+    if (!msg) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.textContent = msg;
+    el.className = 'admin-status form-status ' + (type || '');
+    el.hidden = false;
+  }
+
+  function renderClicksFromCache(openPaths) {
+    if (!clicksCache.length || !clicksMetaCache) return;
+    renderClicksStats(clicksMetaCache);
+    renderClicksWhenCharts(clicksWhenCache);
+    renderClicksNoiseStats(clicksWhenCache);
+    renderClicksTree(
+      clicksCache,
+      clicksMetaCache.checkedAt,
+      clicksMetaCache.total,
+      openPaths || []
+    );
+  }
+
+  function startClicksBackgroundLoad(opts = {}) {
+    const preserveOpen = !!opts.preserveOpen;
+    const force = !!opts.force;
+    if (clicksLoadPromise && !force) return clicksLoadPromise;
+    clicksBgStarted = true;
+    clicksLoadPromise = loadClicks(preserveOpen).finally(() => {
+      clicksLoadPromise = null;
+    });
+    return clicksLoadPromise;
+  }
+
   async function loadClicks(preserveOpen) {
     const root = document.getElementById('clicks-tree-root');
-    if (!root || clicksLoading) return;
+    if (!root) return;
+    if (clicksLoading) {
+      if (clicksLoadPromise) return clicksLoadPromise;
+      return;
+    }
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) {
@@ -4299,7 +4347,15 @@ ${worksheets}
 
     clicksLoading = true;
     const openPaths = preserveOpen ? captureClicksTreeOpenPaths() : [];
-    root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
+    const panelVisible = isClicksPanelVisible();
+    setClicksLoadStatus(
+      panelVisible
+        ? 'Carregando histórico de cliques…'
+        : 'Carregando cliques em segundo plano — você pode usar outras abas.'
+    );
+    if (panelVisible && !clicksCache.length) {
+      root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
+    }
 
     try {
       const params = new URLSearchParams({ limit: '4000' });
@@ -4316,6 +4372,7 @@ ${worksheets}
       clicksCache = data.clicks || [];
       clicksWhenCache = data.whenClicks?.length ? data.whenClicks : clicksCache;
       clicksWhenWindow = data.capacity || null;
+      clicksMetaCache = data;
       renderClicksStats(data);
       renderClicksWhenCharts(clicksWhenCache);
       renderClicksNoiseStats(clicksWhenCache);
@@ -4325,8 +4382,13 @@ ${worksheets}
         const baseTxt = checkedEl.textContent || '';
         checkedEl.textContent = `${baseTxt} · navegação completa (${data.navSessions || 0} visita${(data.navSessions || 0) === 1 ? '' : 's'})`;
       }
+      setClicksLoadStatus('Cliques atualizados.', 'success');
+      window.setTimeout(() => setClicksLoadStatus(''), 2500);
     } catch (err) {
-      root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+      if (isClicksPanelVisible()) {
+        root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+      }
+      setClicksLoadStatus(err.message || 'Erro ao carregar cliques.', 'error');
       const charts = document.getElementById('clicks-when-charts');
       if (charts) charts.innerHTML = '';
       const noise = document.getElementById('clicks-noise-charts');
@@ -4338,7 +4400,7 @@ ${worksheets}
 
   function scheduleClicksReload() {
     clearTimeout(clicksSearchTimer);
-    clicksSearchTimer = setTimeout(() => loadClicks(), 350);
+    clicksSearchTimer = setTimeout(() => startClicksBackgroundLoad({ preserveOpen: true, force: true }), 350);
   }
 
   function formatFeedbackDate(ts) {
@@ -6430,9 +6492,12 @@ ${worksheets}
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'cliques') {
-        if (!clicksTabLoaded) {
-          clicksTabLoaded = true;
-          loadClicks();
+        if (clicksCache.length) renderClicksFromCache(captureClicksTreeOpenPaths());
+        else if (clicksLoading) {
+          setClicksLoadStatus('Carregando cliques em segundo plano…');
+        }
+        if (!clicksBgStarted) {
+          queueMicrotask(() => startClicksBackgroundLoad());
         }
       } else if (id === 'api') loadIntegrationsStatus();
       else if (id === 'comunidade') loadForumAdmin();
@@ -6683,15 +6748,18 @@ ${worksheets}
 
   document.getElementById('btn-clicks-test')?.addEventListener('click', () => testClickLog());
   document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => {
-    clicksTabLoaded = true;
-    loadClicks(true);
+    startClicksBackgroundLoad({ preserveOpen: true, force: true });
   });
   document.getElementById('btn-clicks-export')?.addEventListener('click', () => exportClicksExcel());
   document.getElementById('btn-clicks-clear-tests')?.addEventListener('click', () => clearClicksLog('tests'));
   document.getElementById('btn-clicks-clear-all')?.addEventListener('click', () => clearClicksLog('all'));
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
-  document.getElementById('clicks-filter-destino')?.addEventListener('change', () => loadClicks());
-  document.getElementById('clicks-filter-nav')?.addEventListener('change', () => loadClicks());
+  document.getElementById('clicks-filter-destino')?.addEventListener('change', () => {
+    startClicksBackgroundLoad({ force: true });
+  });
+  document.getElementById('clicks-filter-nav')?.addEventListener('change', () => {
+    startClicksBackgroundLoad({ force: true });
+  });
   syncClicksNavOnlyCheckbox();
   wireAdminFolds();
   document.getElementById('clicks-filter-nav-only')?.addEventListener('change', applyClicksNavOnlyFilter);
