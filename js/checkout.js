@@ -1501,6 +1501,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return SMARTBAND_MODEL_RE.test(String(label || '')) ? 'smartband' : 'smartwatch';
   }
 
+  function catalogRowMatchesKind(row, kind) {
+    if (!row || !kind || kind === 'all') return true;
+    if (typeof row === 'object' && Array.isArray(row.kinds) && row.kinds.length) {
+      return row.kinds.includes(kind);
+    }
+    return catalogEntryKind(row) === kind;
+  }
+
   function cartDeviceKind() {
     const cart = window.STF_CART?.load() || [];
     let sawBand = false;
@@ -1524,7 +1532,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (catalog && typeof catalog === 'object') {
       const next = {};
       Object.entries(catalog).forEach(([brand, rows]) => {
-        const filtered = (rows || []).filter((row) => catalogEntryKind(row) === kind);
+        const filtered = (rows || []).filter((row) => row?.label && !row._brandPlaceholder && catalogRowMatchesKind(row, kind));
         if (filtered.length) next[brand] = filtered;
       });
       return {
@@ -1562,6 +1570,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (m.startsWith('Fitbit')) return 'Fitbit';
     if (m.startsWith('Polar')) return 'Polar';
     if (m.startsWith('Honor')) return 'Honor';
+    if (m.startsWith('Whoop')) return 'Whoop';
+    if (m.startsWith('Oura')) return 'Oura';
+    if (m.startsWith('Realme')) return 'Realme';
+    if (m.startsWith('Oppo')) return 'Oppo';
+    if (m.startsWith('OnePlus')) return 'OnePlus';
+    if (m.startsWith('Misfit')) return 'Misfit';
+    if (m.startsWith('Jawbone')) return 'Jawbone';
+    if (m.startsWith('Withings')) return 'Withings';
+    if (m.startsWith('Suunto')) return 'Suunto';
+    if (m.startsWith('Coros')) return 'Coros';
     return L('watch.groupOthers');
   }
 
@@ -1574,7 +1592,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (brand === '__outro__') return [OUTRO_MODELO];
     const catalog = src?.smartwatchCatalog;
     if (catalog && Array.isArray(catalog[brand])) {
-      return catalog[brand].map((row) => (typeof row === 'string' ? row : row?.label)).filter(Boolean);
+      return catalog[brand]
+        .filter((row) => row?.label && !row._brandPlaceholder)
+        .map((row) => (typeof row === 'string' ? row : row?.label))
+        .filter(Boolean);
     }
     return (src?.smartwatchModels || [])
       .map((m) => String(m || '').trim())
@@ -1628,7 +1649,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
       const catalog = src.smartwatchCatalog;
       let brands = catalog && typeof catalog === 'object'
-        ? Object.keys(catalog).filter((b) => (catalog[b] || []).length)
+        ? Object.keys(catalog).filter((b) => (catalog[b] || []).some((row) => row?.label && !row._brandPlaceholder && catalogRowMatchesKind(row, kind)))
         : [];
       if (!brands.length) {
         const seen = new Set();
