@@ -106,6 +106,33 @@ window.STF_ORDER_LETTERS = (function () {
     return primary || 'Smartband';
   }
 
+  function itemQty(item) {
+    const q = Number(item?.qty ?? item?.quantity);
+    if (Number.isFinite(q) && q > 0) return Math.max(1, Math.min(10, Math.floor(q)));
+    return 1;
+  }
+
+  function lensQtyFromProduto(produto) {
+    const text = String(produto || '');
+    let sum = 0;
+    const re = /(\d+)\s*[x×]\s*/gi;
+    let m;
+    while ((m = re.exec(text))) {
+      sum += Math.max(1, Math.min(10, parseInt(m[1], 10)));
+    }
+    return sum > 0 ? Math.min(10, sum) : null;
+  }
+
+  function expandSlotsToQty(slots, targetQty) {
+    if (!targetQty || targetQty <= slots.length || !slots.length) return slots;
+    const base = slots[0];
+    const out = [];
+    for (let i = 0; i < targetQty; i++) {
+      out.push({ ...base, model: base.model, kind: base.kind, productSlug: base.productSlug, productName: base.productName });
+    }
+    return out;
+  }
+
   function buildOrderLetterSlots(order, config) {
     const products = config?.products || [];
     const catalog = config?.smartwatchCatalog || {};
@@ -118,7 +145,7 @@ window.STF_ORDER_LETTERS = (function () {
         const product = resolveProduct(item, products);
         if (!isLetterItem(item, product)) continue;
         const kind = deviceTypeForProduct(product, item);
-        const qty = Math.max(1, Math.min(10, Number(item.qty) || 1));
+        const qty = itemQty(item);
         for (let q = 0; q < qty; q++) {
           const model = kind === 'smartband'
             ? modelForSmartband(order, catalog, bandModelIdx++)
@@ -136,7 +163,17 @@ window.STF_ORDER_LETTERS = (function () {
     if (!slots.length) {
       const model = watchModelFromOrder(order);
       const row = findCatalogRow(catalog, model);
-      slots.push({ kind: inferDeviceKind(row, model), model });
+      const kind = inferDeviceKind(row, model);
+      const fromProduto = lensQtyFromProduto(order?.produto);
+      const qty = fromProduto || Math.max(1, Math.min(10, Number(order?.qty) || 1));
+      for (let q = 0; q < qty; q++) {
+        slots.push({ kind, model });
+      }
+    } else {
+      const fromProduto = lensQtyFromProduto(order?.produto);
+      if (fromProduto && fromProduto > slots.length && slots.every((s) => s.kind === 'smartwatch')) {
+        slots = expandSlotsToQty(slots, fromProduto);
+      }
     }
 
     const obs = String(order?.observacoes || order?.notes || '');
