@@ -4,7 +4,7 @@
  * - .com.br → Portuguese (repo root)
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
-const COMMIT = '76619688373b11c5c18f47cea86033aced64b357';
+const COMMIT = '9f2ada9b6214f027e9fbc3b6504501e9a15e1ce3';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
