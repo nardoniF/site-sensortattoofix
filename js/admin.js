@@ -2729,8 +2729,9 @@ ${worksheets}
     return `<span class="${cls}">${icon} ${escAttr(single)}</span>`;
   }
 
-  function renderPaymentBalancesGrid(balances, checkedAt) {
+  function renderPaymentBalancesGrid(balances, checkedAt, summary) {
     const grid = document.getElementById('payment-balances-grid');
+    const summaryEl = document.getElementById('payment-balances-summary');
     const checkedEl = document.getElementById('payment-balances-checked-at');
     if (!grid) return;
     const cards = ['mercadopago', 'paypal', 'stripe']
@@ -2738,6 +2739,10 @@ ${worksheets}
       .filter(Boolean);
     if (!cards.length) {
       grid.innerHTML = '<p class="admin-meta">Nenhum saldo retornado.</p>';
+      if (summaryEl) {
+        summaryEl.hidden = true;
+        summaryEl.innerHTML = '';
+      }
       if (checkedEl) checkedEl.hidden = true;
       return;
     }
@@ -2753,6 +2758,31 @@ ${worksheets}
         ${asOf}
       </article>`;
     }).join('');
+
+    if (summaryEl) {
+      const rows = summary?.rows || [];
+      if (!rows.length) {
+        summaryEl.hidden = true;
+        summaryEl.innerHTML = '';
+      } else {
+        summaryEl.hidden = false;
+        summaryEl.innerHTML = `
+          <h3 class="admin-payment-summary-title"><i class="fas fa-calculator"></i> Consolidado por moeda</h3>
+          <p class="admin-meta admin-payment-summary-note">Soma Mercado Pago + PayPal + Stripe. BRL e USD/EUR não são convertidos — cada moeda é separada. <strong>Total ainda nas gateways</strong> = dinheiro que ainda não saiu para o banco (disponível + a liberar).</p>
+          <div class="admin-payment-summary-grid">
+            ${rows.map((row) => `
+              <article class="admin-payment-summary-card">
+                <h4>${escAttr(row.currency)}</h4>
+                <ul class="admin-payment-summary-lines">
+                  ${(row.lines || []).map((l) => `<li>${escAttr(l)}</li>`).join('')}
+                </ul>
+                ${row.gateways?.length ? `<p class="admin-payment-summary-gateways">Fontes: ${escAttr(row.gateways.join(', '))}</p>` : ''}
+              </article>
+            `).join('')}
+          </div>`;
+      }
+    }
+
     if (checkedEl) {
       if (checkedAt) {
         checkedEl.textContent = 'Consulta: ' + new Date(checkedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -2780,7 +2810,7 @@ ${worksheets}
     }
     try {
       const data = await refreshIntegrationsCache();
-      renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt);
+      renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
       if (data?.integrations) renderIntegrationsTable(data.integrations, data.checkedAt);
     } catch (err) {
       grid.innerHTML = `<p class="admin-status-bad">✗ ${escAttr(err.message || 'Erro ao consultar saldos')}</p>`;
@@ -5062,7 +5092,7 @@ ${worksheets}
     try {
       const data = await refreshIntegrationsCache();
       renderIntegrationsTable(data?.integrations, data?.checkedAt);
-      renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt);
+      renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
     } catch (err) {
       lastIntegrations = null;
       tbody.innerHTML = '<tr><td colspan="3"><span class="admin-status-bad">✗ ' + escAttr(err.message || 'Erro ao verificar') + '</span></td></tr>';

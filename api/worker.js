@@ -9836,21 +9836,25 @@ function stripeAmountToMajor(amount, currency) {
 
 function parseStripeBalancePayload(data) {
   const lines = [];
+  const amounts = [];
   const buckets = [
-    ['available', 'Disponível'],
-    ['pending', 'Pendente'],
-    ['connect_reserved', 'Reservado Connect']
+    ['available', 'Disponível', 'available'],
+    ['pending', 'Pendente', 'pending'],
+    ['connect_reserved', 'Reservado Connect', 'reserved']
   ];
-  for (const [key, label] of buckets) {
+  for (const [key, label, kind] of buckets) {
     for (const item of data?.[key] || []) {
       const amt = stripeAmountToMajor(item.amount, item.currency);
       if (amt == null) continue;
-      lines.push(`${label} (${String(item.currency || '').toUpperCase()}): ${formatProviderMoney(amt, item.currency)}`);
+      const cur = String(item.currency || '').toUpperCase();
+      lines.push(`${label} (${cur}): ${formatProviderMoney(amt, item.currency)}`);
+      amounts.push({ kind, currency: cur, value: amt });
     }
   }
   return {
     ok: lines.length > 0,
     lines,
+    amounts,
     asOf: new Date().toISOString(),
     error: lines.length ? null : 'Resposta sem saldos.'
   };
@@ -9858,26 +9862,40 @@ function parseStripeBalancePayload(data) {
 
 function parsePayPalBalancePayload(data) {
   const lines = [];
+  const amounts = [];
   const list = Array.isArray(data?.balances) ? data.balances : (data?.balance ? [data.balance] : []);
   for (const row of list) {
-    const cur = row?.currency || row?.total_balance?.currency_code || row?.available_balance?.currency_code || 'USD';
+    const cur = String(row?.currency || row?.total_balance?.currency_code || row?.available_balance?.currency_code || 'USD').toUpperCase();
     const avail = row?.available_balance?.value;
     const total = row?.total_balance?.value;
     const withheld = row?.withheld_balance?.value;
-    if (avail != null && avail !== '') {
-      lines.push(`Disponível (${cur}): ${formatProviderMoney(Number(avail), cur)}`);
+    const availN = avail != null && avail !== '' ? Number(avail) : null;
+    const totalN = total != null && total !== '' ? Number(total) : null;
+    const withheldN = withheld != null && withheld !== '' ? Number(withheld) : 0;
+    if (availN != null && Number.isFinite(availN)) {
+      lines.push(`Disponível (${cur}): ${formatProviderMoney(availN, cur)}`);
+      amounts.push({ kind: 'available', currency: cur, value: availN });
     }
-    if (withheld != null && withheld !== '' && Number(withheld) > 0) {
-      lines.push(`Retido (${cur}): ${formatProviderMoney(Number(withheld), cur)}`);
+    if (Number.isFinite(withheldN) && withheldN > 0) {
+      lines.push(`Retido (${cur}): ${formatProviderMoney(withheldN, cur)}`);
+      amounts.push({ kind: 'withheld', currency: cur, value: withheldN });
     }
-    if (total != null && total !== '' && (avail == null || Number(total) !== Number(avail))) {
-      lines.push(`Total (${cur}): ${formatProviderMoney(Number(total), cur)}`);
+    if (totalN != null && Number.isFinite(totalN)) {
+      const pendingExtra = Math.max(0, totalN - (availN || 0) - withheldN);
+      if (pendingExtra > 0.001) {
+        lines.push(`A liberar (${cur}): ${formatProviderMoney(pendingExtra, cur)}`);
+        amounts.push({ kind: 'pending', currency: cur, value: pendingExtra });
+      }
+      if (availN == null || Math.abs(totalN - availN) > 0.001) {
+        lines.push(`Total na conta (${cur}): ${formatProviderMoney(totalN, cur)}`);
+      }
     }
   }
   const asOf = data?.as_of_time || data?.last_refresh_time || null;
   return {
     ok: lines.length > 0,
     lines,
+    amounts,
     asOf,
     error: lines.length ? null : 'PayPal não retornou saldos (verifique permissão reporting/balances).'
   };
@@ -9898,19 +9916,25 @@ async function fetchMercadoPagoBalance(token, userId) {
       };
     }
     const lines = [];
-    const cur = data.currency_id || data.currency || 'BRL';
+    const amounts = [];
+    const cur = String(data.currency_id || data.currency || 'BRL').toUpperCase();
     if (data.available_balance != null) {
-      lines.push(`Disponível: ${formatProviderMoney(Number(data.available_balance), cur)}`);
+      const v = Number(data.available_balance);
+      lines.push(`Disponível: ${formatProviderMoney(v, cur)}`);
+      amounts.push({ kind: 'available', currency: cur, value: v });
     }
     if (data.unavailable_balance != null && Number(data.unavailable_balance) > 0) {
-      lines.push(`A liberar: ${formatProviderMoney(Number(data.unavailable_balance), cur)}`);
+      const v = Number(data.unavailable_balance);
+      lines.push(`A liberar: ${formatProviderMoney(v, cur)}`);
+      amounts.push({ kind: 'pending', currency: cur, value: v });
     }
     if (data.total_amount != null) {
-      lines.push(`Total: ${formatProviderMoney(Number(data.total_amount), cur)}`);
+      lines.push(`Total na conta: ${formatProviderMoney(Number(data.total_amount), cur)}`);
     }
     return {
       ok: lines.length > 0,
       lines,
+      amounts,
       asOf: new Date().toISOString(),
       error: lines.length ? null : 'Resposta MP sem campos de saldo.'
     };
@@ -9960,9 +9984,56 @@ function buildPaymentBalanceCard(id, label, check) {
     status: paymentBalanceStatus(check),
     statusLabel,
     lines,
+    amounts: check.balance?.amounts || [],
     asOf: check.balance?.asOf || null,
     error: check.balance?.error || null
   };
+}
+
+function buildPaymentBalancesSummary(cards) {
+  const byCur = {};
+  const add = (cur, field, value, gatewayLabel) => {
+    const c = String(cur || 'BRL').toUpperCase();
+    if (!Number.isFinite(value) || value <= 0) return;
+    if (!byCur[c]) {
+      byCur[c] = { available: 0, pending: 0, withheld: 0, reserved: 0, gateways: [] };
+    }
+    byCur[c][field] += value;
+    if (gatewayLabel && !byCur[c].gateways.includes(gatewayLabel)) {
+      byCur[c].gateways.push(gatewayLabel);
+    }
+  };
+  for (const card of Object.values(cards || {})) {
+    if (!card || card.status === 'off' || card.status === 'error') continue;
+    for (const row of card.amounts || []) {
+      const kind = String(row.kind || '');
+      const field = kind === 'available' ? 'available'
+        : (kind === 'pending' ? 'pending'
+          : (kind === 'withheld' ? 'withheld'
+            : (kind === 'reserved' ? 'reserved' : null)));
+      if (!field) continue;
+      add(row.currency, field, Number(row.value), card.label);
+    }
+  }
+  const currencies = Object.keys(byCur).sort();
+  const rows = currencies.map((currency) => {
+    const r = byCur[currency];
+    const pendingTotal = r.pending + r.withheld + r.reserved;
+    const stillThere = r.available + pendingTotal;
+    return {
+      currency,
+      available: r.available,
+      pending: pendingTotal,
+      total: stillThere,
+      gateways: r.gateways.slice().sort(),
+      lines: [
+        `Disponível agora (pode sacar): ${formatProviderMoney(r.available, currency)}`,
+        `A liberar / pendente: ${formatProviderMoney(pendingTotal, currency)}`,
+        `Total ainda nas gateways: ${formatProviderMoney(stillThere, currency)}`
+      ]
+    };
+  });
+  return { currencies, rows };
 }
 
 function appendBalanceDetailLines(check, detailLines) {
@@ -13766,14 +13837,17 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   integrations.push(...correiosExtra);
   const ordered = sortIntegrationRows(integrations);
 
+  const paymentBalances = {
+    mercadopago: buildPaymentBalanceCard('mercadopago', 'Mercado Pago', mercadoPago),
+    paypal: buildPaymentBalanceCard('paypal', 'PayPal', paypal),
+    stripe: buildPaymentBalanceCard('stripe', 'Stripe', stripe)
+  };
+
   return json({
     integrations: ordered,
     checkedAt: new Date().toISOString(),
-    paymentBalances: {
-      mercadopago: buildPaymentBalanceCard('mercadopago', 'Mercado Pago', mercadoPago),
-      paypal: buildPaymentBalanceCard('paypal', 'PayPal', paypal),
-      stripe: buildPaymentBalanceCard('stripe', 'Stripe', stripe)
-    }
+    paymentBalances,
+    paymentBalancesSummary: buildPaymentBalancesSummary(paymentBalances)
   }, 200, origin);
 }
 

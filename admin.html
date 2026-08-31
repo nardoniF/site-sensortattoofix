@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.19">
+    <link rel="stylesheet" href="style.css?v=3.20">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -757,9 +757,9 @@
                     <fieldset class="admin-payment-balances-fieldset">
                         <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Consulta em tempo real — não é cadastro. Saldo <strong>disponível</strong>, <strong>pendente/a liberar</strong> e status da conta (Produção / Sandbox / erro).</p>
-                            <p>Mercado Pago, PayPal e Stripe via API do Worker. Atualiza ao abrir esta aba ou em <strong>Atualizar saldos</strong>.</p>
-                            <p>PayPal pode exigir permissão <code>reporting/balances</code>. Mercado Pago usa endpoint legado de saldo da conta. Resumo também aparece em <strong>API → Status das integrações</strong>.</p>
+                            <p>Consulta em tempo real — não é cadastro. Cada gateway mostra <strong>disponível</strong> (pode sacar agora), <strong>a liberar/pendente</strong> (venda feita, dinheiro ainda retido) e status da conta.</p>
+                            <p>Mercado Pago, PayPal e Stripe via API do Worker. No final, o <strong>consolidado por moeda</strong> soma o que ainda está nas três contas — o “real” antes de ir pro banco. BRL e USD/EUR não são convertidos.</p>
+                            <p>PayPal pode exigir permissão <code>reporting/balances</code>. Resumo também aparece em <strong>API → Status das integrações</strong>.</p>
                         </div>
                         <div class="admin-form-actions" style="margin-bottom:10px">
                             <button type="button" id="btn-refresh-payment-balances" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar saldos</button>
@@ -768,6 +768,7 @@
                         <div id="payment-balances-grid" class="admin-payment-balances-grid">
                             <p class="admin-meta">Faça login na API para carregar os saldos.</p>
                         </div>
+                        <div id="payment-balances-summary" class="admin-payment-balances-summary" hidden></div>
                     </fieldset>
                     </div>
 
@@ -1305,6 +1306,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=204"></script>
+    <script defer src="js/admin.js?v=205"></script>
 </body>
 </html>

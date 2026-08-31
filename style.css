@@ -6557,6 +6557,53 @@ a.conta-forgot-link { display: inline-block; }
     color: var(--gray, #888);
 }
 
+.admin-payment-balances-summary {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #2a2a2a;
+}
+.admin-payment-summary-title {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+    color: var(--primary, #c9a227);
+}
+.admin-payment-summary-note {
+    margin: 0 0 14px;
+    max-width: 720px;
+}
+.admin-payment-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+.admin-payment-summary-card {
+    border: 1px solid #3a3a2a;
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: linear-gradient(180deg, #151510 0%, #111 100%);
+}
+.admin-payment-summary-card h4 {
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+    letter-spacing: 0.06em;
+}
+.admin-payment-summary-lines {
+    margin: 0;
+    padding-left: 1.05rem;
+    line-height: 1.5;
+    font-size: 0.92rem;
+}
+.admin-payment-summary-lines li:last-child {
+    color: #e8d48a;
+    font-weight: 700;
+    margin-top: 6px;
+}
+.admin-payment-summary-gateways {
+    margin: 10px 0 0;
+    font-size: 0.75rem;
+    color: var(--gray, #888);
+}
+
 .admin-doc-page .admin-doc-container { max-width: 960px; }
 .admin-doc h1 { margin-bottom: 8px; }
 .admin-doc-updated { font-size: 0.82rem; color: var(--gray); margin-bottom: 20px; }
