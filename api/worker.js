@@ -10373,9 +10373,87 @@ async function setCachedMpReleaseBalance(env, data) {
   });
 }
 
+async function fetchMercadoPagoPendingToRelease(token) {
+  let offset = 0;
+  const limit = 100;
+  let pendingSum = 0;
+  const maxPages = 2;
+  try {
+    for (let page = 0; page < maxPages; page++) {
+      const url = 'https://api.mercadopago.com/v1/payments/search'
+        + '?sort=date_created&criteria=desc&range=date_created'
+        + '&begin_date=NOW-90DAYS&end_date=NOW&status=approved'
+        + `&limit=${limit}&offset=${offset}`;
+      const res = await fetch(url, {
+        headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { ok: false, value: 0, error: data.message || data.error || `HTTP ${res.status}` };
+      }
+      const results = Array.isArray(data.results) ? data.results : [];
+      for (const payment of results) {
+        if (String(payment.money_release_status || '').toLowerCase() !== 'pending') continue;
+        const net = Number(payment?.transaction_details?.net_received_amount ?? payment?.transaction_amount ?? 0);
+        if (Number.isFinite(net) && net > 0) pendingSum += net;
+      }
+      if (results.length < limit) break;
+      offset += limit;
+    }
+    return { ok: true, value: pendingSum, currency: 'BRL' };
+  } catch (err) {
+    return { ok: false, value: 0, error: err.message };
+  }
+}
+
+async function resolveMercadoPagoPendingRelease(token, cache, force = false) {
+  if (!force && cache?.pendingRelease != null && cache?.pendingCachedAt) {
+    const ageMs = Date.now() - new Date(cache.pendingCachedAt).getTime();
+    if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000) {
+      return Number(cache.pendingRelease);
+    }
+  }
+  const fetched = await fetchMercadoPagoPendingToRelease(token);
+  if (!fetched.ok) return cache?.pendingRelease != null ? Number(cache.pendingRelease) : null;
+  return Number(fetched.value);
+}
+
+function mergeMpPendingReleaseIntoResult(result, pendingRelease, cur = 'BRL') {
+  const pending = Number(pendingRelease);
+  if (!Number.isFinite(pending) || pending <= 0) return result;
+  const lines = [...(result.lines || [])];
+  const amounts = [...(result.amounts || [])];
+  const pendingLine = `A liberar: ${formatProviderMoney(pending, cur)}`;
+  if (!lines.some((l) => String(l).startsWith('A liberar:'))) {
+    const srcIdx = lines.findIndex((l) => String(l).startsWith('Fonte:'));
+    if (srcIdx >= 0) lines.splice(srcIdx, 0, pendingLine);
+    else lines.unshift(pendingLine);
+  }
+  if (!amounts.some((a) => a.kind === 'pending')) {
+    amounts.push({ kind: 'pending', currency: cur, value: pending });
+  }
+  return { ...result, lines, amounts };
+}
+
+async function buildMercadoPagoBalanceResult(token, cache, reportPending, opts = {}) {
+  const force = opts.force === true;
+  const cur = String(cache?.currency || 'BRL').toUpperCase();
+  const pendingRelease = await resolveMercadoPagoPendingRelease(token, cache, force);
+  if (reportPending) {
+    const base = formatMpReleaseBalanceResult(null, true);
+    return mergeMpPendingReleaseIntoResult(base, pendingRelease, cur);
+  }
+  const withPending = pendingRelease != null && Number.isFinite(pendingRelease)
+    ? { ...cache, pendingRelease, pendingCachedAt: new Date().toISOString() }
+    : cache;
+  const base = formatMpReleaseBalanceResult(withPending, false);
+  return mergeMpPendingReleaseIntoResult(base, pendingRelease, cur);
+}
+
 function formatMpReleaseBalanceResult(cache, pending) {
   const cur = String(cache?.currency || 'BRL').toUpperCase();
   const value = Number(cache?.available);
+  const pendingRelease = Number(cache?.pendingRelease);
   if (pending) {
     return {
       ok: false,
@@ -10390,13 +10468,19 @@ function formatMpReleaseBalanceResult(cache, pending) {
       source: 'release_report'
     };
   }
+  const lines = [
+    `Disponível: ${formatProviderMoney(value, cur)}`,
+    'Fonte: Relatório de Liberações MP (automático; cache ~6 h)'
+  ];
+  const amounts = [{ kind: 'available', currency: cur, value }];
+  if (Number.isFinite(pendingRelease) && pendingRelease > 0) {
+    lines.splice(1, 0, `A liberar: ${formatProviderMoney(pendingRelease, cur)}`);
+    amounts.push({ kind: 'pending', currency: cur, value: pendingRelease });
+  }
   return {
     ok: true,
-    lines: [
-      `Disponível: ${formatProviderMoney(value, cur)}`,
-      'Fonte: Relatório de Liberações MP (automático; cache ~6 h)'
-    ],
-    amounts: [{ kind: 'available', currency: cur, value }],
+    lines,
+    amounts,
     asOf: cache.reportAsOf || cache.cachedAt || new Date().toISOString(),
     error: null,
     source: 'release_report'
@@ -10410,7 +10494,7 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
     if (!force && state.balance?.available != null && state.balance?.cachedAt) {
       const ageMs = Date.now() - new Date(state.balance.cachedAt).getTime();
       if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000) {
-        return formatMpReleaseBalanceResult(state.balance);
+        return buildMercadoPagoBalanceResult(token, state.balance, false, { force });
       }
     }
 
@@ -10437,8 +10521,13 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
                 reportAsOf: quick.row.date_created || quick.row.generation_date || new Date().toISOString(),
                 cachedAt: new Date().toISOString()
               };
+              const pendingRelease = await resolveMercadoPagoPendingRelease(token, balance, force);
+              if (pendingRelease != null && Number.isFinite(pendingRelease)) {
+                balance.pendingRelease = pendingRelease;
+                balance.pendingCachedAt = new Date().toISOString();
+              }
               await setMpReleaseState(env, { ...state, balance, pending: null });
-              return formatMpReleaseBalanceResult(balance);
+              return buildMercadoPagoBalanceResult(token, balance, false, { force });
             }
             if (!mpCsvHasRecordTypeColumn(downloaded.csv)) {
               const badFiles = [...(pending.badFiles || []), quick.row.file_name];
@@ -10446,7 +10535,7 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
             }
           }
         }
-        return formatMpReleaseBalanceResult(null, true);
+        return buildMercadoPagoBalanceResult(token, state.balance || {}, true, { force });
       }
     }
 
@@ -10497,8 +10586,13 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
           reportAsOf: found.row.date_created || found.row.generation_date || new Date().toISOString(),
           cachedAt: new Date().toISOString()
         };
+        const pendingRelease = await resolveMercadoPagoPendingRelease(token, balance, force);
+        if (pendingRelease != null && Number.isFinite(pendingRelease)) {
+          balance.pendingRelease = pendingRelease;
+          balance.pendingCachedAt = new Date().toISOString();
+        }
         await setMpReleaseState(env, { ...freshState, balance, pending: null });
-        return formatMpReleaseBalanceResult(balance);
+        return buildMercadoPagoBalanceResult(token, balance, false, { force });
       }
       if (!mpCsvHasRecordTypeColumn(downloaded.csv)) {
         await ensureMercadoPagoReleaseReportConfigCached(token, env, true);
@@ -10528,12 +10622,14 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
       ...freshState,
       pending: { requestedAt: new Date().toISOString(), badFiles: freshState.pending?.badFiles || [] }
     });
-    return formatMpReleaseBalanceResult(null, true);
+    return buildMercadoPagoBalanceResult(token, freshState.balance || {}, true, { force });
   } catch (err) {
     const msg = String(err.message || err);
     if (/too many subrequests/i.test(msg)) {
       const cached = await getMpReleaseState(env);
-      if (cached?.balance?.available != null) return formatMpReleaseBalanceResult(cached.balance);
+      if (cached?.balance?.available != null) {
+        return buildMercadoPagoBalanceResult(token, cached.balance, false, { force: false });
+      }
       return {
         ok: false,
         pending: true,

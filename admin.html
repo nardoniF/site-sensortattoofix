@@ -758,7 +758,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Consulta automática — não é cadastro. Cada gateway mostra <strong>disponível</strong> (pode sacar) e, quando a API permitir, <strong>a liberar</strong>.</p>
-                            <p><strong>Mercado Pago:</strong> automático via <strong>Relatório de Liberações</strong> (API oficial). O Worker gera/baixa o CSV sozinho ao abrir ou clicar Atualizar. Na 1ª consulta do dia pode levar <strong>1–3 min</strong>; depois fica em cache ~6 h. Não precisa abrir o painel MP.</p>
+                            <p><strong>Mercado Pago:</strong> <strong>Disponível</strong> via Relatório de Liberações (CSV oficial); <strong>A liberar</strong> via pagamentos aprovados com liberação pendente (últimos 90 dias). Automático — na 1ª consulta pode levar 1–3 min.</p>
                             <p><strong>PayPal:</strong> exige <strong>Transaction Search</strong> no app REST Live (mesmo Client ID do Worker). Pode levar até 9h após marcar.</p>
                         </div>
                         <div class="admin-form-actions" style="margin-bottom:10px">
