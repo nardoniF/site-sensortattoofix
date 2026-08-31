@@ -9901,65 +9901,270 @@ function parsePayPalBalancePayload(data) {
   };
 }
 
-async function fetchMercadoPagoBalanceFromPayments(token) {
-  let offset = 0;
-  const limit = 100;
-  let pendingSum = 0;
-  let pendingCount = 0;
-  let totalApproved = 0;
-  const maxPages = 10;
+const MP_RELEASE_BALANCE_CACHE_KEY = 'admin:mp:release_balance';
+const MP_RELEASE_BALANCE_CACHE_TTL_SEC = 6 * 60 * 60;
+
+function mpReleaseAuthHeaders(token, extra = {}) {
+  return { Authorization: 'Bearer ' + token, Accept: 'application/json', ...extra };
+}
+
+function mpReleaseIsoUtc(date) {
+  return new Date(date).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+function mpReleaseReportDateRange() {
+  const end = new Date();
+  const begin = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return { beginDate: mpReleaseIsoUtc(begin), endDate: mpReleaseIsoUtc(end) };
+}
+
+function parseMpReleaseReportCsvForAvailableBalance(csvText) {
+  const lines = String(csvText || '').split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return { ok: false, error: 'CSV do relatório MP vazio.' };
+  const header = lines[0].split(',').map((h) => h.trim().toUpperCase());
+  const col = (name) => header.indexOf(name);
+  const rtIdx = col('RECORD_TYPE');
+  const grossIdx = col('GROSS_AMOUNT');
+  const netCreditIdx = col('NET_CREDIT_AMOUNT');
+  const netDebitIdx = col('NET_DEBIT_AMOUNT');
+  if (rtIdx < 0) return { ok: false, error: 'CSV MP sem coluna RECORD_TYPE.' };
+
+  const pickAmount = (cols) => {
+    const gross = grossIdx >= 0 ? Number(String(cols[grossIdx] || '').trim()) : NaN;
+    if (Number.isFinite(gross)) return gross;
+    const netC = netCreditIdx >= 0 ? Number(String(cols[netCreditIdx] || '').trim()) : 0;
+    const netD = netDebitIdx >= 0 ? Number(String(cols[netDebitIdx] || '').trim()) : 0;
+    if (Number.isFinite(netC) || Number.isFinite(netD)) return (netC || 0) - (netD || 0);
+    return null;
+  };
+
+  let totalValue = null;
+  let initialValue = null;
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    const rt = String(cols[rtIdx] || '').trim().toLowerCase();
+    if (rt === 'total') totalValue = pickAmount(cols);
+    if (rt === 'initial_available_balance') initialValue = pickAmount(cols);
+  }
+  const value = totalValue != null ? totalValue : initialValue;
+  if (value == null || !Number.isFinite(value)) {
+    return { ok: false, error: 'Saldo não encontrado no CSV (total / initial_available_balance).' };
+  }
+  return {
+    ok: true,
+    value,
+    currency: 'BRL',
+    recordType: totalValue != null ? 'total' : 'initial_available_balance'
+  };
+}
+
+function mpReleaseReportReady(row) {
+  if (!row?.file_name) return false;
+  const status = String(row.status || '').toLowerCase();
+  return status === 'enabled' || status === 'processed';
+}
+
+function pickLatestMpReleaseReport(rows) {
+  const ready = (Array.isArray(rows) ? rows : []).filter(mpReleaseReportReady);
+  ready.sort((a, b) => {
+    const ta = Date.parse(a.date_created || a.generation_date || a.last_modified || 0) || 0;
+    const tb = Date.parse(b.date_created || b.generation_date || b.last_modified || 0) || 0;
+    return tb - ta;
+  });
+  return ready[0] || null;
+}
+
+async function searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, limit = 10) {
+  const params = new URLSearchParams({
+    range: 'date_created',
+    range_begin_date: rangeBegin,
+    range_end_date: rangeEnd,
+    created_from: 'manual',
+    limit: String(limit)
+  });
+  const res = await fetch(`https://api.mercadopago.com/v1/account/release_report/search?${params}`, {
+    headers: mpReleaseAuthHeaders(token)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, results: [], error: data.message || data.error || `HTTP ${res.status}` };
+  }
+  return { ok: true, results: data.results || [] };
+}
+
+async function listMercadoPagoReleaseReports(token) {
+  const res = await fetch('https://api.mercadopago.com/v1/account/release_report/list', {
+    headers: mpReleaseAuthHeaders(token)
+  });
+  const data = await res.json().catch(() => ([]));
+  if (!res.ok) {
+    const err = data?.message || data?.error || `HTTP ${res.status}`;
+    return { ok: false, results: [], error: err };
+  }
+  return { ok: true, results: Array.isArray(data) ? data : [] };
+}
+
+async function requestMercadoPagoReleaseReport(token, beginDate, endDate) {
+  const res = await fetch('https://api.mercadopago.com/v1/account/release_report', {
+    method: 'POST',
+    headers: mpReleaseAuthHeaders(token, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ begin_date: beginDate, end_date: endDate })
+  });
+  if (res.status === 202 || res.status === 200) return { ok: true };
+  const data = await res.json().catch(() => ({}));
+  return {
+    ok: false,
+    error: data.message || data.error || `HTTP ${res.status}`,
+    retryDates: data.begin_date && data.end_date
+      ? { beginDate: data.begin_date, endDate: data.end_date }
+      : null
+  };
+}
+
+async function downloadMercadoPagoReleaseReportCsv(token, fileName) {
+  const res = await fetch(
+    `https://api.mercadopago.com/v1/account/release_report/${encodeURIComponent(fileName)}`,
+    { headers: { Authorization: 'Bearer ' + token, Accept: 'text/csv,application/octet-stream,*/*' } }
+  );
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    return { ok: false, error: errText || `HTTP ${res.status}` };
+  }
+  return { ok: true, csv: await res.text() };
+}
+
+async function getCachedMpReleaseBalance(env) {
+  if (!env?.STORE_KV) return null;
+  const raw = await env.STORE_KV.get(MP_RELEASE_BALANCE_CACHE_KEY);
+  if (!raw) return null;
   try {
-    for (let page = 0; page < maxPages; page++) {
-      const url = 'https://api.mercadopago.com/v1/payments/search'
-        + '?sort=date_created&criteria=desc&range=date_created'
-        + '&begin_date=NOW-365DAYS&end_date=NOW&status=approved'
-        + `&limit=${limit}&offset=${offset}`;
-      const res = await fetch(url, {
-        headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedMpReleaseBalance(env, data) {
+  await kvPutSafe(env, MP_RELEASE_BALANCE_CACHE_KEY, JSON.stringify(data), {
+    expirationTtl: MP_RELEASE_BALANCE_CACHE_TTL_SEC
+  });
+}
+
+function formatMpReleaseBalanceResult(cache, pending) {
+  const cur = String(cache?.currency || 'BRL').toUpperCase();
+  const value = Number(cache?.available);
+  if (pending) {
+    return {
+      ok: false,
+      pending: true,
+      lines: [
+        'Gerando relatório de Liberações no Mercado Pago…',
+        'Automático — clique Atualizar em 1–3 min se ainda não aparecer.'
+      ],
+      amounts: [],
+      asOf: null,
+      error: 'Relatório MP em processamento.',
+      source: 'release_report'
+    };
+  }
+  return {
+    ok: true,
+    lines: [
+      `Disponível: ${formatProviderMoney(value, cur)}`,
+      'Fonte: Relatório de Liberações MP (automático; cache ~6 h)'
+    ],
+    amounts: [{ kind: 'available', currency: cur, value }],
+    asOf: cache.reportAsOf || cache.cachedAt || new Date().toISOString(),
+    error: null,
+    source: 'release_report'
+  };
+}
+
+async function findReadyMpReleaseReport(token, rangeBegin, rangeEnd) {
+  const search = await searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, 15);
+  let row = pickLatestMpReleaseReport(search.results);
+  if (row) return row;
+  const list = await listMercadoPagoReleaseReports(token);
+  row = pickLatestMpReleaseReport(list.results);
+  return row || null;
+}
+
+async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
+  const force = opts.force === true;
+  try {
+    if (!force) {
+      const cached = await getCachedMpReleaseBalance(env);
+      if (cached?.available != null && cached.cachedAt) {
+        const ageMs = Date.now() - new Date(cached.cachedAt).getTime();
+        if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000) {
+          return formatMpReleaseBalanceResult(cached);
+        }
+      }
+    }
+
+    const now = new Date();
+    const rangeBegin = mpReleaseIsoUtc(new Date(now.getTime() - 6 * 60 * 60 * 1000));
+    const rangeEnd = mpReleaseIsoUtc(now);
+    let report = await findReadyMpReleaseReport(token, rangeBegin, rangeEnd);
+
+    if (!report) {
+      const { beginDate, endDate } = mpReleaseReportDateRange();
+      let created = await requestMercadoPagoReleaseReport(token, beginDate, endDate);
+      if (!created.ok && created.retryDates) {
+        created = await requestMercadoPagoReleaseReport(
+          token,
+          created.retryDates.beginDate,
+          created.retryDates.endDate
+        );
+      }
+      if (!created.ok) {
         return {
           ok: false,
           lines: [],
           amounts: [],
-          error: data.message || data.error || `HTTP ${res.status}`,
-          fixHint: paymentBalanceFixHint('mercadopago', data.message || data.error || '')
+          error: created.error || 'Falha ao solicitar relatório MP.',
+          fixHint: paymentBalanceFixHint('mercadopago', created.error || '')
         };
       }
-      const results = Array.isArray(data.results) ? data.results : [];
-      for (const payment of results) {
-        totalApproved += 1;
-        if (String(payment.money_release_status || '').toLowerCase() !== 'pending') continue;
-        pendingCount += 1;
-        const net = Number(payment?.transaction_details?.net_received_amount ?? payment?.transaction_amount ?? 0);
-        if (Number.isFinite(net) && net > 0) pendingSum += net;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        await sleepMs(2500);
+        report = await findReadyMpReleaseReport(token, rangeBegin, rangeEnd);
+        if (report) break;
       }
-      if (results.length < limit) break;
-      offset += limit;
+      if (!report) return formatMpReleaseBalanceResult(null, true);
     }
-    const cur = 'BRL';
-    const lines = [
-      `A liberar (retido pelo MP): ${formatProviderMoney(pendingSum, cur)}`,
-      `Base: ${pendingCount} pagamento(s) com liberação pendente · ${totalApproved} aprovado(s) em 365 dias`,
-      'Disponível para saque: painel MP → Suas vendas → Dinheiro na conta (API /balance bloqueada pelo MP)'
-    ];
-    const amounts = [];
-    if (pendingSum > 0) amounts.push({ kind: 'pending', currency: cur, value: pendingSum });
-    return {
-      ok: true,
-      lines,
-      amounts,
-      asOf: new Date().toISOString(),
-      error: null,
-      source: 'payments_search'
+
+    const downloaded = await downloadMercadoPagoReleaseReportCsv(token, report.file_name);
+    if (!downloaded.ok) {
+      return {
+        ok: false,
+        lines: [],
+        amounts: [],
+        error: downloaded.error || 'Falha ao baixar CSV do relatório MP.'
+      };
+    }
+
+    const parsed = parseMpReleaseReportCsvForAvailableBalance(downloaded.csv);
+    if (!parsed.ok) {
+      return { ok: false, lines: [], amounts: [], error: parsed.error };
+    }
+
+    const cacheEntry = {
+      available: parsed.value,
+      currency: parsed.currency || 'BRL',
+      fileName: report.file_name,
+      recordType: parsed.recordType,
+      reportAsOf: report.date_created || report.generation_date || new Date().toISOString(),
+      cachedAt: new Date().toISOString()
     };
+    await setCachedMpReleaseBalance(env, cacheEntry);
+    return formatMpReleaseBalanceResult(cacheEntry);
   } catch (err) {
     return { ok: false, lines: [], amounts: [], error: err.message };
   }
 }
 
-async function fetchMercadoPagoBalance(token, userId) {
+async function fetchMercadoPagoBalance(token, userId, env, opts = {}) {
   if (!userId) return { ok: false, lines: [], error: 'ID de usuário MP ausente.' };
   try {
     const res = await fetch(`https://api.mercadopago.com/users/${encodeURIComponent(userId)}/mercadopago_account/balance`, {
@@ -9970,8 +10175,7 @@ async function fetchMercadoPagoBalance(token, userId) {
       const errMsg = data.message || data.error || data.cause?.[0]?.description || `HTTP ${res.status}`;
       const low = String(errMsg).toLowerCase();
       if (res.status === 403 || low.includes('forbidden')) {
-        const fallback = await fetchMercadoPagoBalanceFromPayments(token);
-        if (fallback.ok) return fallback;
+        return fetchMercadoPagoBalanceViaReleaseReport(token, env, opts);
       }
       return {
         ok: false,
@@ -10018,8 +10222,11 @@ function humanizePaymentBalanceError(gatewayId, rawError) {
     }
   }
   if (gatewayId === 'mercadopago') {
+    if (low.includes('processamento') || low.includes('gerando relatório')) {
+      return 'Relatório de Liberações MP em processamento — aguarde 1–3 min e clique Atualizar.';
+    }
     if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
-      return 'API /balance do MP bloqueada — usando pagamentos aprovados como fallback.';
+      return 'API /balance bloqueada — consultando saldo via Relatório de Liberações MP.';
     }
   }
   return msg || 'Saldo indisponível via API.';
@@ -10033,8 +10240,11 @@ function paymentBalanceFixHint(gatewayId, rawError) {
     }
   }
   if (gatewayId === 'mercadopago') {
+    if (low.includes('processamento') || low.includes('gerando relatório')) {
+      return 'O Worker pediu o Relatório de Liberações automaticamente. Na 1ª vez pode levar 1–3 min — clique **Atualizar saldos** de novo.';
+    }
     if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
-      return 'Token de produção OK, mas o MP bloqueia `/balance`. Mostramos **a liberar** via API de pagamentos; **disponível** só no painel MP → Dinheiro na conta.';
+      return 'Token OK; `/balance` bloqueado pelo MP. Saldo **disponível** vem do Relatório de Liberações (automático, cache ~6 h).';
     }
   }
   return null;
@@ -10044,6 +10254,7 @@ function paymentBalanceStatus(check) {
   if (!check?.configured) return 'off';
   if (!check.authOk) return 'error';
   if (check.sandbox || check.mode === 'sandbox' || check.mode === 'test') return 'warn';
+  if (check.balance?.pending) return 'warn';
   if (check.balance && check.balance.ok === false) return 'warn';
   return 'ok';
 }
@@ -10288,7 +10499,7 @@ async function checkPayPalIntegration(env) {
   }
 }
 
-async function checkMercadoPagoIntegration(env) {
+async function checkMercadoPagoIntegration(env, opts = {}) {
   const token = mercadoPagoToken(env);
   const sandbox = isMpSandbox(env);
   if (!token) {
@@ -10308,7 +10519,7 @@ async function checkMercadoPagoIntegration(env) {
       };
     }
     const me = await res.json().catch(() => ({}));
-    const balance = await fetchMercadoPagoBalance(token, me?.id);
+    const balance = await fetchMercadoPagoBalance(token, me?.id, env, opts);
     return { configured: true, authOk: true, sandbox, balance, nickname: me?.nickname || null };
   } catch (err) {
     return { configured: true, authOk: false, sandbox, error: err.message };
@@ -13869,6 +14080,8 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
+  const refreshBalances = new URL(request.url).searchParams.get('refreshBalances') === '1';
+  const mpBalanceOpts = refreshBalances ? { force: true } : {};
   const config = await getConfig(env);
   const weightGrams = shippingWeightGrams(config);
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
@@ -13885,7 +14098,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
 
   const [paypal, mercadoPago, mercadoLivre, amazon, shopee, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
     checkPayPalIntegration(env),
-    checkMercadoPagoIntegration(env),
+    checkMercadoPagoIntegration(env, mpBalanceOpts),
     checkMercadoLivreIntegration(env),
     checkAmazonIntegration(env),
     checkShopeeIntegration(env),

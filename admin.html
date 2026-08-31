@@ -757,8 +757,8 @@
                     <fieldset class="admin-payment-balances-fieldset">
                         <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Consulta em tempo real — não é cadastro. Cada gateway mostra <strong>disponível</strong> (pode sacar) e <strong>a liberar</strong> (retido pelo gateway).</p>
-                            <p><strong>Mercado Pago:</strong> tenta API `/balance`; se o MP bloquear (403), mostra <strong>a liberar</strong> somando pagamentos com liberação pendente. <strong>Disponível</strong> para saque: painel MP → Dinheiro na conta.</p>
+                            <p>Consulta automática — não é cadastro. Cada gateway mostra <strong>disponível</strong> (pode sacar) e, quando a API permitir, <strong>a liberar</strong>.</p>
+                            <p><strong>Mercado Pago:</strong> automático via <strong>Relatório de Liberações</strong> (API oficial). O Worker gera/baixa o CSV sozinho ao abrir ou clicar Atualizar. Na 1ª consulta do dia pode levar <strong>1–3 min</strong>; depois fica em cache ~6 h. Não precisa abrir o painel MP.</p>
                             <p><strong>PayPal:</strong> exige <strong>Transaction Search</strong> no app REST Live (mesmo Client ID do Worker). Pode levar até 9h após marcar.</p>
                         </div>
                         <div class="admin-form-actions" style="margin-bottom:10px">
@@ -1306,6 +1306,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=206"></script>
+    <script defer src="js/admin.js?v=207"></script>
 </body>
 </html>

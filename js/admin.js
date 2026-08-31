@@ -2812,7 +2812,7 @@ ${worksheets}
       grid.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Consultando Mercado Pago, PayPal e Stripe…</p>';
     }
     try {
-      const data = await refreshIntegrationsCache();
+      const data = await refreshIntegrationsCache(force === true);
       renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
       if (data?.integrations) renderIntegrationsTable(data.integrations, data.checkedAt);
     } catch (err) {
@@ -5059,14 +5059,15 @@ ${worksheets}
     }
   }
 
-  async function refreshIntegrationsCache() {
+  async function refreshIntegrationsCache(refreshBalances) {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!base || !token) {
       lastIntegrations = null;
       return null;
     }
-    const res = await fetch(base.replace(/\/$/, '') + '/admin/integrations-status', {
+    const qs = refreshBalances ? '?refreshBalances=1' : '';
+    const res = await fetch(base.replace(/\/$/, '') + '/admin/integrations-status' + qs, {
       headers: { Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
@@ -5093,7 +5094,7 @@ ${worksheets}
     tbody.innerHTML = '<tr><td colspan="3" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Verificando integrações…</td></tr>';
 
     try {
-      const data = await refreshIntegrationsCache();
+      const data = await refreshIntegrationsCache(force === true);
       renderIntegrationsTable(data?.integrations, data?.checkedAt);
       renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
     } catch (err) {
