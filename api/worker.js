@@ -9918,48 +9918,217 @@ function mpReleaseReportDateRange() {
   return { beginDate: mpReleaseIsoUtc(begin), endDate: mpReleaseIsoUtc(end) };
 }
 
+function parseMpNumber(raw) {
+  let s = String(raw || '').trim().replace(/^"|"$/g, '');
+  if (!s) return null;
+  if (/^-?\d{1,3}(\.\d{3})+,\d+$/.test(s) || /^-?\d+,\d+$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    s = s.replace(/,/g, '');
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeMpCsvHeaderName(raw) {
+  return String(raw || '')
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+function detectMpCsvDelimiter(line) {
+  const sample = String(line || '');
+  const semis = (sample.match(/;/g) || []).length;
+  const commas = (sample.match(/,/g) || []).length;
+  const tabs = (sample.match(/\t/g) || []).length;
+  if (tabs >= semis && tabs >= commas && tabs > 0) return '\t';
+  if (semis > commas) return ';';
+  return ',';
+}
+
+function splitMpCsvLine(line, delimiter) {
+  const out = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') {
+        cur += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (!quoted && ch === delimiter) {
+      out.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+const MP_CSV_RECORD_TYPE_HEADERS = [
+  'RECORD_TYPE',
+  'TIPO_REGISTRO',
+  'TIPO_DE_REGISTRO',
+  'REGISTRY_TYPE',
+  'TIPO'
+];
+const MP_CSV_GROSS_HEADERS = ['GROSS_AMOUNT', 'VALOR_BRUTO', 'VALOR_BRUTO_DA_OPERACAO', 'GROSS_OPERATION_AMOUNT'];
+const MP_CSV_NET_CREDIT_HEADERS = ['NET_CREDIT_AMOUNT', 'VALOR_LIQUIDO_CREDITADO', 'VALOR_LIQUIDO_CREDITO'];
+const MP_CSV_NET_DEBIT_HEADERS = ['NET_DEBIT_AMOUNT', 'VALOR_LIQUIDO_DEBITADO', 'VALOR_LIQUIDO_DEBITO'];
+const MP_CSV_BALANCE_HEADERS = ['BALANCE_AMOUNT', 'SALDO', 'BALANCE'];
+
+function mpCsvColIndex(headerNorm, aliases) {
+  for (const alias of aliases) {
+    const idx = headerNorm.indexOf(alias);
+    if (idx >= 0) return idx;
+  }
+  for (let i = 0; i < headerNorm.length; i++) {
+    const h = headerNorm[i];
+    if (aliases.some((a) => h === a || h.includes(a))) return i;
+  }
+  return -1;
+}
+
+function parseMpReleaseReportCsvFallback(lines, delimiter) {
+  let totalValue = null;
+  let initialValue = null;
+  let lastBalance = null;
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (!/(^|[;,])initial_available_balance([;,]|$)/.test(lower)
+      && !/(^|[;,])total([;,]|$)/.test(lower)
+      && !/(^|[;,])available_balance([;,]|$)/.test(lower)) {
+      continue;
+    }
+    const cols = splitMpCsvLine(line, delimiter);
+    for (let i = 0; i < cols.length; i++) {
+      const token = String(cols[i] || '').trim().toLowerCase();
+      const nums = [];
+      for (let j = Math.max(0, i - 2); j < Math.min(cols.length, i + 8); j++) {
+        if (j === i) continue;
+        const n = parseMpNumber(cols[j]);
+        if (n != null) nums.push(n);
+      }
+      const pick = () => {
+        const grossLike = nums.find((n) => Math.abs(n) > 0.001);
+        return grossLike != null ? grossLike : (nums[0] != null ? nums[0] : null);
+      };
+      if (token === 'total') totalValue = pick();
+      if (token === 'initial_available_balance') initialValue = pick();
+      if (token === 'available_balance' && String(cols[i + 1] || '').toLowerCase().startsWith('pos')) {
+        lastBalance = pick();
+      }
+    }
+    const balanceMatch = line.match(/(?:^|[;,])available_balance[;,][^;,]*[;,](pos[^;,]*)[;,](-?\d[\d.,]*)/i);
+    if (balanceMatch) {
+      const n = parseMpNumber(balanceMatch[2]);
+      if (n != null) lastBalance = n;
+    }
+  }
+  const value = totalValue != null ? totalValue : (lastBalance != null ? lastBalance : initialValue);
+  if (value == null || !Number.isFinite(value)) return null;
+  return {
+    ok: true,
+    value,
+    currency: 'BRL',
+    recordType: totalValue != null ? 'total' : (lastBalance != null ? 'available_balance' : 'initial_available_balance')
+  };
+}
+
 function parseMpReleaseReportCsvForAvailableBalance(csvText) {
-  const lines = String(csvText || '').split(/\r?\n/).filter((l) => l.trim());
+  let text = String(csvText || '').replace(/^\uFEFF/, '').trim();
+  if (!text) return { ok: false, error: 'CSV do relatório MP vazio.' };
+  if (text.startsWith('{') || text.startsWith('[')) {
+    return { ok: false, error: 'Resposta MP não é CSV (JSON recebido).' };
+  }
+
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   if (!lines.length) return { ok: false, error: 'CSV do relatório MP vazio.' };
-  const header = lines[0].split(',').map((h) => h.trim().toUpperCase());
-  const col = (name) => header.indexOf(name);
-  const rtIdx = col('RECORD_TYPE');
-  const grossIdx = col('GROSS_AMOUNT');
-  const netCreditIdx = col('NET_CREDIT_AMOUNT');
-  const netDebitIdx = col('NET_DEBIT_AMOUNT');
-  if (rtIdx < 0) return { ok: false, error: 'CSV MP sem coluna RECORD_TYPE.' };
+
+  let headerIdx = 0;
+  let delimiter = detectMpCsvDelimiter(lines[0]);
+  for (let i = 0; i < Math.min(lines.length, 12); i++) {
+    delimiter = detectMpCsvDelimiter(lines[i]);
+    const norm = splitMpCsvLine(lines[i], delimiter).map(normalizeMpCsvHeaderName);
+    if (mpCsvColIndex(norm, MP_CSV_RECORD_TYPE_HEADERS) >= 0) {
+      headerIdx = i;
+      break;
+    }
+  }
+
+  const headerNorm = splitMpCsvLine(lines[headerIdx], delimiter).map(normalizeMpCsvHeaderName);
+  const rtIdx = mpCsvColIndex(headerNorm, MP_CSV_RECORD_TYPE_HEADERS);
+  const grossIdx = mpCsvColIndex(headerNorm, MP_CSV_GROSS_HEADERS);
+  const netCreditIdx = mpCsvColIndex(headerNorm, MP_CSV_NET_CREDIT_HEADERS);
+  const netDebitIdx = mpCsvColIndex(headerNorm, MP_CSV_NET_DEBIT_HEADERS);
+  const balanceIdx = mpCsvColIndex(headerNorm, MP_CSV_BALANCE_HEADERS);
+
+  if (rtIdx < 0) {
+    const fallback = parseMpReleaseReportCsvFallback(lines.slice(headerIdx + 1), delimiter);
+    if (fallback) return fallback;
+    const preview = headerNorm.slice(0, 6).join(', ') || lines[0].slice(0, 80);
+    return { ok: false, error: `CSV MP sem coluna RECORD_TYPE (cabeçalho: ${preview}).` };
+  }
 
   const pickAmount = (cols) => {
-    const gross = grossIdx >= 0 ? Number(String(cols[grossIdx] || '').trim()) : NaN;
-    if (Number.isFinite(gross)) return gross;
-    const netC = netCreditIdx >= 0 ? Number(String(cols[netCreditIdx] || '').trim()) : 0;
-    const netD = netDebitIdx >= 0 ? Number(String(cols[netDebitIdx] || '').trim()) : 0;
-    if (Number.isFinite(netC) || Number.isFinite(netD)) return (netC || 0) - (netD || 0);
+    if (balanceIdx >= 0) {
+      const bal = parseMpNumber(cols[balanceIdx]);
+      if (bal != null) return bal;
+    }
+    if (grossIdx >= 0) {
+      const gross = parseMpNumber(cols[grossIdx]);
+      if (gross != null) return gross;
+    }
+    const netC = netCreditIdx >= 0 ? parseMpNumber(cols[netCreditIdx]) : null;
+    const netD = netDebitIdx >= 0 ? parseMpNumber(cols[netDebitIdx]) : null;
+    if (netC != null || netD != null) return (netC || 0) - (netD || 0);
     return null;
   };
 
   let totalValue = null;
   let initialValue = null;
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',');
+  let lastBalance = null;
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const cols = splitMpCsvLine(lines[i], delimiter);
     const rt = String(cols[rtIdx] || '').trim().toLowerCase();
     if (rt === 'total') totalValue = pickAmount(cols);
     if (rt === 'initial_available_balance') initialValue = pickAmount(cols);
+    if (rt === 'available_balance') {
+      const desc = String(cols[rtIdx + 1] || cols[rtIdx + 2] || '').toLowerCase();
+      if (desc.startsWith('pos') || desc.includes('pos_')) lastBalance = pickAmount(cols);
+    }
   }
-  const value = totalValue != null ? totalValue : initialValue;
+
+  const value = totalValue != null ? totalValue : (lastBalance != null ? lastBalance : initialValue);
   if (value == null || !Number.isFinite(value)) {
+    const fallback = parseMpReleaseReportCsvFallback(lines.slice(headerIdx + 1), delimiter);
+    if (fallback) return fallback;
     return { ok: false, error: 'Saldo não encontrado no CSV (total / initial_available_balance).' };
   }
   return {
     ok: true,
     value,
     currency: 'BRL',
-    recordType: totalValue != null ? 'total' : 'initial_available_balance'
+    recordType: totalValue != null ? 'total' : (lastBalance != null ? 'available_balance' : 'initial_available_balance')
   };
 }
 
 function mpReleaseReportReady(row) {
   if (!row?.file_name) return false;
+  const fmt = String(row.format || '').toUpperCase();
+  if (fmt && fmt !== 'CSV') return false;
   const status = String(row.status || '').toLowerCase();
   return status === 'enabled' || status === 'processed';
 }
