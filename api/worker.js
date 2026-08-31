@@ -9815,6 +9815,166 @@ function paypalBase(env) {
     : 'https://api-m.paypal.com';
 }
 
+function formatProviderMoney(value, currency) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '—';
+  const cur = String(currency || 'BRL').toUpperCase();
+  try {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: cur }).format(n);
+  } catch (_) {
+    return `${cur} ${n.toFixed(2)}`;
+  }
+}
+
+function stripeAmountToMajor(amount, currency) {
+  const zeroDec = new Set(['bif', 'clp', 'djf', 'gnf', 'jpy', 'kmf', 'krw', 'mga', 'pyg', 'rwf', 'ugx', 'vnd', 'vuv', 'xaf', 'xof', 'xpf']);
+  const c = String(currency || '').toLowerCase();
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return null;
+  return zeroDec.has(c) ? n : n / 100;
+}
+
+function parseStripeBalancePayload(data) {
+  const lines = [];
+  const buckets = [
+    ['available', 'Disponível'],
+    ['pending', 'Pendente'],
+    ['connect_reserved', 'Reservado Connect']
+  ];
+  for (const [key, label] of buckets) {
+    for (const item of data?.[key] || []) {
+      const amt = stripeAmountToMajor(item.amount, item.currency);
+      if (amt == null) continue;
+      lines.push(`${label} (${String(item.currency || '').toUpperCase()}): ${formatProviderMoney(amt, item.currency)}`);
+    }
+  }
+  return {
+    ok: lines.length > 0,
+    lines,
+    asOf: new Date().toISOString(),
+    error: lines.length ? null : 'Resposta sem saldos.'
+  };
+}
+
+function parsePayPalBalancePayload(data) {
+  const lines = [];
+  const list = Array.isArray(data?.balances) ? data.balances : (data?.balance ? [data.balance] : []);
+  for (const row of list) {
+    const cur = row?.currency || row?.total_balance?.currency_code || row?.available_balance?.currency_code || 'USD';
+    const avail = row?.available_balance?.value;
+    const total = row?.total_balance?.value;
+    const withheld = row?.withheld_balance?.value;
+    if (avail != null && avail !== '') {
+      lines.push(`Disponível (${cur}): ${formatProviderMoney(Number(avail), cur)}`);
+    }
+    if (withheld != null && withheld !== '' && Number(withheld) > 0) {
+      lines.push(`Retido (${cur}): ${formatProviderMoney(Number(withheld), cur)}`);
+    }
+    if (total != null && total !== '' && (avail == null || Number(total) !== Number(avail))) {
+      lines.push(`Total (${cur}): ${formatProviderMoney(Number(total), cur)}`);
+    }
+  }
+  const asOf = data?.as_of_time || data?.last_refresh_time || null;
+  return {
+    ok: lines.length > 0,
+    lines,
+    asOf,
+    error: lines.length ? null : 'PayPal não retornou saldos (verifique permissão reporting/balances).'
+  };
+}
+
+async function fetchMercadoPagoBalance(token, userId) {
+  if (!userId) return { ok: false, lines: [], error: 'ID de usuário MP ausente.' };
+  try {
+    const res = await fetch(`https://api.mercadopago.com/users/${encodeURIComponent(userId)}/mercadopago_account/balance`, {
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        ok: false,
+        lines: [],
+        error: data.message || data.error || `HTTP ${res.status} — consulte saldo no painel MP se a API estiver descontinuada.`
+      };
+    }
+    const lines = [];
+    const cur = data.currency_id || data.currency || 'BRL';
+    if (data.available_balance != null) {
+      lines.push(`Disponível: ${formatProviderMoney(Number(data.available_balance), cur)}`);
+    }
+    if (data.unavailable_balance != null && Number(data.unavailable_balance) > 0) {
+      lines.push(`A liberar: ${formatProviderMoney(Number(data.unavailable_balance), cur)}`);
+    }
+    if (data.total_amount != null) {
+      lines.push(`Total: ${formatProviderMoney(Number(data.total_amount), cur)}`);
+    }
+    return {
+      ok: lines.length > 0,
+      lines,
+      asOf: new Date().toISOString(),
+      error: lines.length ? null : 'Resposta MP sem campos de saldo.'
+    };
+  } catch (err) {
+    return { ok: false, lines: [], error: err.message };
+  }
+}
+
+function paymentBalanceStatus(check) {
+  if (!check?.configured) return 'off';
+  if (!check.authOk) return 'error';
+  if (check.sandbox || check.mode === 'sandbox' || check.mode === 'test') return 'warn';
+  if (check.balance && check.balance.ok === false) return 'warn';
+  return 'ok';
+}
+
+function buildPaymentBalanceCard(id, label, check) {
+  if (!check?.configured) {
+    return {
+      id,
+      label,
+      status: 'off',
+      statusLabel: 'Não configurado',
+      lines: ['Configure os secrets no Worker Cloudflare.'],
+      error: check?.error || null
+    };
+  }
+  if (!check.authOk) {
+    return {
+      id,
+      label,
+      status: 'error',
+      statusLabel: 'Erro de conexão',
+      lines: [check.error || 'Falha na autenticação.'],
+      error: check.error || null
+    };
+  }
+  const statusLabel = check.sandbox || check.mode === 'sandbox'
+    ? 'Sandbox'
+    : (check.mode === 'test' ? 'Teste' : 'Produção');
+  const lines = check.balance?.lines?.length
+    ? [...check.balance.lines]
+    : [check.balance?.error || 'Conta OK — saldo indisponível via API.'];
+  return {
+    id,
+    label,
+    status: paymentBalanceStatus(check),
+    statusLabel,
+    lines,
+    asOf: check.balance?.asOf || null,
+    error: check.balance?.error || null
+  };
+}
+
+function appendBalanceDetailLines(check, detailLines) {
+  const lines = [...(detailLines || [])];
+  if (check?.balance?.lines?.length) {
+    check.balance.lines.forEach((l) => lines.push(`Saldo · ${l}`));
+  } else if (check?.balance?.error) {
+    lines.push(`Saldo · ${check.balance.error}`);
+  }
+  return lines.length ? lines : undefined;
+}
+
 function storeBaseUrl(config, env, request) {
   if (request) {
     return isComSiteRequest(request)
@@ -9885,14 +10045,26 @@ async function checkPayPalIntegration(env) {
     };
   }
   try {
-    await getPayPalAccessToken(env);
+    const accessToken = await getPayPalAccessToken(env);
+    let balance = { ok: false, lines: [], error: null };
+    try {
+      const balRes = await fetch(`${paypalBase(env)}/v1/reporting/balances`, {
+        headers: { Authorization: 'Bearer ' + accessToken, Accept: 'application/json' }
+      });
+      const balData = await balRes.json().catch(() => ({}));
+      if (balRes.ok) balance = parsePayPalBalancePayload(balData);
+      else balance = { ok: false, lines: [], error: balData.message || balData.error_description || `HTTP ${balRes.status}` };
+    } catch (err) {
+      balance = { ok: false, lines: [], error: err.message };
+    }
     return {
       configured: true,
       sandbox,
       selfTest,
       authOk: true,
       mode: sandbox ? 'sandbox' : 'live',
-      clientIdSuffix: clientId.slice(-8)
+      clientIdSuffix: clientId.slice(-8),
+      balance
     };
   } catch (err) {
     return {
@@ -9926,7 +10098,9 @@ async function checkMercadoPagoIntegration(env) {
         error: data.message || `HTTP ${res.status}`
       };
     }
-    return { configured: true, authOk: true, sandbox };
+    const me = await res.json().catch(() => ({}));
+    const balance = await fetchMercadoPagoBalance(token, me?.id);
+    return { configured: true, authOk: true, sandbox, balance, nickname: me?.nickname || null };
   } catch (err) {
     return { configured: true, authOk: false, sandbox, error: err.message };
   }
@@ -10127,12 +10301,15 @@ function buildIntegrationRows(env, config, checks) {
       detail: mercadoPago.error || 'Falha na autenticação'
     });
   } else {
+    const mpDetail = mercadoPago.sandbox ? 'Sandbox conectado' : 'Produção conectada';
+    const mpLines = appendBalanceDetailLines(mercadoPago, mercadoPago.nickname ? [`Conta · ${mercadoPago.nickname}`] : []);
     rows.push({
       id: 'mercadopago',
       label: 'Mercado Pago',
       description: 'PIX e checkout no Brasil',
-      status: mercadoPago.sandbox ? 'warn' : 'ok',
-      detail: mercadoPago.sandbox ? 'Sandbox conectado' : 'Produção conectada'
+      status: mercadoPago.sandbox ? 'warn' : (mercadoPago.balance?.ok === false ? 'warn' : 'ok'),
+      detail: mpDetail,
+      detailLines: mpLines
     });
   }
 
@@ -10275,8 +10452,9 @@ function buildIntegrationRows(env, config, checks) {
       id: 'paypal',
       label: 'PayPal',
       description: 'Pagamentos internacionais',
-      status: paypal.sandbox ? 'warn' : 'ok',
-      detail
+      status: paypal.sandbox ? 'warn' : (paypal.balance?.ok === false ? 'warn' : 'ok'),
+      detail,
+      detailLines: appendBalanceDetailLines(paypal)
     });
   }
 
@@ -10319,8 +10497,9 @@ function buildIntegrationRows(env, config, checks) {
       id: 'stripe',
       label: 'Stripe',
       description: 'Cartão, Apple Pay e Google Pay (.com)',
-      status: stripe.webhook ? 'ok' : 'warn',
-      detail: stripeDetail
+      status: stripe.webhook ? (stripe.balance?.ok === false ? 'warn' : 'ok') : 'warn',
+      detail: stripeDetail,
+      detailLines: appendBalanceDetailLines(stripe)
     });
   }
 
@@ -13020,8 +13199,8 @@ async function checkStripeIntegration(env) {
     const res = await fetch('https://api.stripe.com/v1/balance', {
       headers: { Authorization: 'Bearer ' + secretKey, Accept: 'application/json' }
     });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       return {
         configured: true,
         authOk: false,
@@ -13031,7 +13210,8 @@ async function checkStripeIntegration(env) {
         error: data.error?.message || 'Falha na autenticação Stripe.'
       };
     }
-    return { configured: true, authOk: true, webhook: !!webhookSecret, mode, liveReady, error: null };
+    const balance = parseStripeBalancePayload(data);
+    return { configured: true, authOk: true, webhook: !!webhookSecret, mode, liveReady, error: null, balance };
   } catch (err) {
     return { configured: true, authOk: false, webhook: !!webhookSecret, mode, liveReady: false, error: err.message };
   }
@@ -13586,7 +13766,15 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   integrations.push(...correiosExtra);
   const ordered = sortIntegrationRows(integrations);
 
-  return json({ integrations: ordered, checkedAt: new Date().toISOString() }, 200, origin);
+  return json({
+    integrations: ordered,
+    checkedAt: new Date().toISOString(),
+    paymentBalances: {
+      mercadopago: buildPaymentBalanceCard('mercadopago', 'Mercado Pago', mercadoPago),
+      paypal: buildPaymentBalanceCard('paypal', 'PayPal', paypal),
+      stripe: buildPaymentBalanceCard('stripe', 'Stripe', stripe)
+    }
+  }, 200, origin);
 }
 
 async function handleAdminCorreiosContract(request, env, origin) {

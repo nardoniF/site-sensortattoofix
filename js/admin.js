@@ -2729,6 +2729,66 @@ ${worksheets}
     return `<span class="${cls}">${icon} ${escAttr(single)}</span>`;
   }
 
+  function renderPaymentBalancesGrid(balances, checkedAt) {
+    const grid = document.getElementById('payment-balances-grid');
+    const checkedEl = document.getElementById('payment-balances-checked-at');
+    if (!grid) return;
+    const cards = ['mercadopago', 'paypal', 'stripe']
+      .map((id) => balances?.[id])
+      .filter(Boolean);
+    if (!cards.length) {
+      grid.innerHTML = '<p class="admin-meta">Nenhum saldo retornado.</p>';
+      if (checkedEl) checkedEl.hidden = true;
+      return;
+    }
+    grid.innerHTML = cards.map((card) => {
+      const cls = integrationStatusClass(card.status);
+      const lines = (card.lines || []).map((l) => `<li>${escAttr(l)}</li>`).join('');
+      const asOf = card.asOf
+        ? `<p class="admin-payment-balance-asof">Atualizado: ${escAttr(new Date(card.asOf).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}</p>`
+        : '';
+      return `<article class="admin-payment-balance-card">
+        <h3>${escAttr(card.label)} <span class="admin-payment-balance-status ${cls}">${escAttr(card.statusLabel || card.status)}</span></h3>
+        <ul class="admin-payment-balance-lines">${lines || '<li>—</li>'}</ul>
+        ${asOf}
+      </article>`;
+    }).join('');
+    if (checkedEl) {
+      if (checkedAt) {
+        checkedEl.textContent = 'Consulta: ' + new Date(checkedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        checkedEl.hidden = false;
+      } else {
+        checkedEl.hidden = true;
+      }
+    }
+  }
+
+  let paymentBalancesLoading = false;
+
+  async function loadPaymentBalances(force) {
+    const grid = document.getElementById('payment-balances-grid');
+    if (!grid || paymentBalancesLoading) return;
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      grid.innerHTML = '<p class="admin-meta">Faça login na API para carregar os saldos.</p>';
+      return;
+    }
+    paymentBalancesLoading = true;
+    if (force !== false) {
+      grid.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Consultando Mercado Pago, PayPal e Stripe…</p>';
+    }
+    try {
+      const data = await refreshIntegrationsCache();
+      renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt);
+      if (data?.integrations) renderIntegrationsTable(data.integrations, data.checkedAt);
+    } catch (err) {
+      grid.innerHTML = `<p class="admin-status-bad">✗ ${escAttr(err.message || 'Erro ao consultar saldos')}</p>`;
+    } finally {
+      paymentBalancesLoading = false;
+    }
+  }
+
   function renderIntegrationsTable(integrations, checkedAt) {
     const tbody = document.getElementById('api-integrations-tbody');
     const checkedEl = document.getElementById('api-integrations-checked-at');
@@ -5002,6 +5062,7 @@ ${worksheets}
     try {
       const data = await refreshIntegrationsCache();
       renderIntegrationsTable(data?.integrations, data?.checkedAt);
+      renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt);
     } catch (err) {
       lastIntegrations = null;
       tbody.innerHTML = '<tr><td colspan="3"><span class="admin-status-bad">✗ ' + escAttr(err.message || 'Erro ao verificar') + '</span></td></tr>';
@@ -6903,6 +6964,7 @@ ${worksheets}
         wireSmartwatchCatalogUi();
         renderSmartwatchCatalogTable();
       }
+      if (sec === 'pagamento') loadPaymentBalances(true);
     }
 
     function showTab(tabId) {
@@ -7422,6 +7484,8 @@ ${worksheets}
     const panel = document.getElementById('admin-products-intl-main');
     panel?.lastElementChild?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   });
+
+  document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));
 
   document.addEventListener('DOMContentLoaded', async () => {
     await waitSalesMoney();

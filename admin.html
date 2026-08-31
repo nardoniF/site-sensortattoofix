@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.18">
+    <link rel="stylesheet" href="style.css?v=3.19">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -432,6 +432,22 @@
                     </div>
 
                     <div id="admin-tab-pagamento" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset class="admin-payment-balances-fieldset">
+                        <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Saldo <strong>disponível</strong>, <strong>pendente/a liberar</strong> e status da conta (Produção / Sandbox / erro).</p>
+                            <p>Consulta em tempo real via API do Worker (Mercado Pago, PayPal, Stripe). Atualiza ao abrir esta aba.</p>
+                            <p>PayPal pode exigir permissão <code>reporting/balances</code>. Mercado Pago usa endpoint legado de saldo da conta.</p>
+                        </div>
+                        <div class="admin-form-actions" style="margin-bottom:10px">
+                            <button type="button" id="btn-refresh-payment-balances" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar saldos</button>
+                            <p id="payment-balances-checked-at" class="admin-meta" hidden></p>
+                        </div>
+                        <div id="payment-balances-grid" class="admin-payment-balances-grid">
+                            <p class="admin-meta">Faça login na API para carregar os saldos.</p>
+                        </div>
+                    </fieldset>
+
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-credit-card"></i> Cartão de crédito (Brasil)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-card-br" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-card-br" class="admin-help-panel admin-help-panel--fieldset" hidden>
@@ -1285,6 +1301,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=202"></script>
+    <script defer src="js/admin.js?v=203"></script>
 </body>
 </html>
