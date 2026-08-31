@@ -2736,7 +2736,7 @@ ${worksheets}
     if (!grid) return;
     const cleanBalances = applyBalanceSanitizers(balances, lastMpAuditSnapshot);
     const cleanSummary = rebuildPaymentBalancesSummary(cleanBalances);
-    const cards = ['mercadopago', 'paypal', 'stripe']
+    const cards = ['mercadopago', 'shopee', 'paypal', 'stripe']
       .map((id) => cleanBalances?.[id])
       .filter(Boolean);
     if (!cards.length) {
@@ -2773,7 +2773,7 @@ ${worksheets}
         summaryEl.hidden = false;
         summaryEl.innerHTML = `
           <h3 class="admin-payment-summary-title"><i class="fas fa-calculator"></i> Consolidado por moeda</h3>
-          <p class="admin-meta admin-payment-summary-note">Soma PayPal + Stripe + MP disponível. <strong>A liberar do MP</strong> só via Auditoria acima (estimativa desativada).</p>
+          <p class="admin-meta admin-payment-summary-note">Soma por gateway. MP “a liberar” só na auditoria. Shopee “a receber” = pedidos confirmados ainda não na carteira (não é total de vendas).</p>
           <div class="admin-payment-summary-grid">
             ${rows.map((row) => `
               <article class="admin-payment-summary-card">
@@ -2872,7 +2872,7 @@ ${worksheets}
   }
 
   function rebuildPaymentBalancesSummary(balances) {
-    const cards = ['mercadopago', 'paypal', 'stripe'].map((id) => balances?.[id]).filter(Boolean);
+    const cards = ['mercadopago', 'shopee', 'paypal', 'stripe'].map((id) => balances?.[id]).filter(Boolean);
     const byCur = {};
     const add = (cur, field, value, gatewayLabel) => {
       const c = String(cur || 'BRL').toUpperCase();
@@ -2901,7 +2901,9 @@ ${worksheets}
           `Disponível agora (pode sacar): ${formatBalanceMoney(r.available, currency)}`,
           pendingTotal > 0
             ? `A liberar / pendente: ${formatBalanceMoney(pendingTotal, currency)}`
-            : 'A liberar / pendente (MP): ver Auditoria MP acima',
+            : (currency === 'BRL'
+              ? 'A liberar / pendente (MP): ver Auditoria MP'
+              : `A liberar / pendente: ${formatBalanceMoney(0, currency)}`),
           `Total ainda nas gateways: ${formatBalanceMoney(stillThere, currency)}`
         ],
         gateways: r.gateways.slice().sort()

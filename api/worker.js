@@ -43,6 +43,11 @@ import {
   shopeeOrderIncome,
   shopeeReceiptFromEscrow
 } from './shopee-settlement.js';
+import {
+  formatShopeeBalanceResult,
+  fetchShopeeWalletAvailable,
+  sumShopeeToReceiveFromIndex
+} from './shopee-balance.js';
 import { handleAdminMpReleaseAudit } from './mp-release-audit.js';
 import {
   summarizeAmzFinancialEvents,
@@ -5694,6 +5699,88 @@ async function handleShopeeOAuthCallback(request, env) {
   }
 }
 
+const SHOPEE_BALANCE_KV_KEY = 'shopee:balance_snapshot';
+const SHOPEE_BALANCE_CACHE_MS = 15 * 60 * 1000;
+
+async function fetchShopeeBalance(env, force = false) {
+  if (!force) {
+    try {
+      const raw = await env.STORE_KV.get(SHOPEE_BALANCE_KV_KEY);
+      if (raw) {
+        const snap = JSON.parse(raw);
+        if (snap?.expiresAt > Date.now() && snap.data) return snap.data;
+      }
+    } catch { /* refresh */ }
+  }
+
+  const tok = await getShopeeAccessToken(env);
+  if (!tok?.token || !tok.shopId) {
+    return { ok: false, error: 'Sem token Shopee — autorize a loja em Vendas → Shopee.' };
+  }
+
+  let available = null;
+  try {
+    available = await fetchShopeeWalletAvailable({
+      shopeeShopGet,
+      token: tok.token,
+      shopId: tok.shopId,
+      env
+    });
+  } catch (err) {
+    console.warn('Shopee wallet balance:', err.message || err);
+  }
+
+  const index = await getShopeeSalesIndex(env);
+  const pending = await sumShopeeToReceiveFromIndex(index, async (sn) => loadMarketplaceSale(env, 'shopee', sn));
+  const meta = await getShopeeSalesMeta(env);
+
+  const data = {
+    ok: true,
+    available,
+    toReceive: pending.toReceive,
+    toReceiveCount: pending.count,
+    lastSyncedAt: meta?.lastSyncedAt || null,
+    asOf: new Date().toISOString()
+  };
+
+  await kvPutSafe(env, SHOPEE_BALANCE_KV_KEY, JSON.stringify({
+    expiresAt: Date.now() + SHOPEE_BALANCE_CACHE_MS,
+    data
+  }));
+
+  return data;
+}
+
+async function checkShopeeBalanceIntegration(env, opts = {}) {
+  const base = await checkShopeeIntegration(env);
+  if (!base.authOk) {
+    return {
+      ...base,
+      balance: {
+        ok: false,
+        lines: [base.error || 'Loja Shopee não autorizada.'],
+        amounts: [],
+        error: base.error || null
+      }
+    };
+  }
+  try {
+    const raw = await fetchShopeeBalance(env, opts.force === true);
+    return { ...base, balance: formatShopeeBalanceResult(raw) };
+  } catch (err) {
+    return {
+      ...base,
+      balance: {
+        ok: false,
+        lines: [],
+        amounts: [],
+        error: err.message || String(err),
+        fixHint: 'Vendas → Shopee → Autorizar loja e Atualizar Shopee.'
+      }
+    };
+  }
+}
+
 async function checkShopeeIntegration(env) {
   if (!shopeeAppConfigured(env)) {
     return {
@@ -6010,6 +6097,7 @@ async function handleAdminShopeeSync(request, env, origin) {
       full: true,
       days: daysParam ? Number(daysParam) : 90
     });
+    await kvDelete(env, SHOPEE_BALANCE_KV_KEY).catch(() => {});
     return json({ ok: true, ...report, indexFix: fix }, 200, origin);
   } catch (err) {
     return json({ error: err.message || String(err) }, 502, origin);
@@ -10998,6 +11086,11 @@ function humanizePaymentBalanceError(gatewayId, rawError) {
       return 'API /balance bloqueada — consultando saldo via Relatório de Liberações MP.';
     }
   }
+  if (gatewayId === 'shopee') {
+    if (low.includes('token') || low.includes('oauth') || low.includes('reautoriz')) {
+      return 'Reautorize a loja em Vendas → Shopee → Autorizar loja.';
+    }
+  }
   return msg || 'Saldo indisponível via API.';
 }
 
@@ -11014,6 +11107,11 @@ function paymentBalanceFixHint(gatewayId, rawError) {
     }
     if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
       return 'Token OK; `/balance` bloqueado pelo MP. Saldo **disponível** vem do Relatório de Liberações (automático, cache ~6 h).';
+    }
+  }
+  if (gatewayId === 'shopee') {
+    if (low.includes('permission') || low.includes('offline')) {
+      return 'Confira permissões do app Open Platform (Payment / Wallet) e reautorize a loja.';
     }
   }
   return null;
@@ -14865,12 +14963,13 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     ])
     : [null, null, null];
 
-  const [paypal, mercadoPago, mercadoLivre, amazon, shopee, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
+  const [paypal, mercadoPago, mercadoLivre, amazon, shopee, shopeeBalance, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
     checkPayPalIntegration(env),
     checkMercadoPagoIntegration(env, mpBalanceOpts),
     checkMercadoLivreIntegration(env),
     checkAmazonIntegration(env),
     checkShopeeIntegration(env),
+    checkShopeeBalanceIntegration(env, { force: refreshBalances }),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
@@ -14959,6 +15058,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
 
   const paymentBalances = {
     mercadopago: buildPaymentBalanceCard('mercadopago', 'Mercado Pago', mercadoPago),
+    shopee: buildPaymentBalanceCard('shopee', 'Shopee', shopeeBalance),
     paypal: buildPaymentBalanceCard('paypal', 'PayPal', paypal),
     stripe: buildPaymentBalanceCard('stripe', 'Stripe', stripe)
   };
