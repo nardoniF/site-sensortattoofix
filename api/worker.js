@@ -10505,39 +10505,36 @@ function formatMercadoPagoOfficialBalanceResult(official) {
   };
 }
 
-async function fetchMercadoPagoPendingToRelease(token) {
-  const sumPendingPayments = (results, seen) => {
-    let pendingSum = 0;
-    for (const payment of results) {
-      const id = payment?.id != null ? String(payment.id) : '';
-      if (id && seen.has(id)) continue;
-      if (id) seen.add(id);
-      if (String(payment.money_release_status || '').toLowerCase() !== 'pending') continue;
-      let net = Number(payment?.transaction_details?.net_received_amount);
-      if (!Number.isFinite(net) || net <= 0) {
-        const gross = Number(payment?.transaction_amount ?? 0);
-        const fee = (Array.isArray(payment?.fee_details) ? payment.fee_details : [])
-          .reduce((s, f) => s + Number(f?.amount || 0), 0);
-        net = gross - fee;
-      }
-      if (Number.isFinite(net) && net > 0) pendingSum += net;
-    }
-    return pendingSum;
-  };
+function mpPaymentNetAmount(payment) {
+  let net = Number(payment?.transaction_details?.net_received_amount);
+  if (!Number.isFinite(net) || net <= 0) {
+    const gross = Number(payment?.transaction_amount ?? 0);
+    const fee = (Array.isArray(payment?.fee_details) ? payment.fee_details : [])
+      .reduce((s, f) => s + Number(f?.amount || 0), 0);
+    net = gross - fee;
+  }
+  return Number.isFinite(net) && net > 0 ? net : 0;
+}
 
+function mpPaymentIsPendingRelease(payment, nowMs = Date.now()) {
+  if (String(payment?.status || '').toLowerCase() !== 'approved') return false;
+  const relStat = String(payment?.money_release_status || '').toLowerCase();
+  if (relStat === 'released') return false;
+  if (relStat === 'pending' || relStat === 'on_hold' || relStat === 'held') return true;
+  const legacyReleased = String(payment?.released || '').toLowerCase();
+  if (legacyReleased === 'yes' || legacyReleased === 'released') return false;
+  if (legacyReleased === 'no') return true;
+  const releaseMs = Date.parse(payment?.money_release_date || '');
+  return Number.isFinite(releaseMs) && releaseMs > nowMs - 60 * 60 * 1000;
+}
+
+async function fetchMercadoPagoPendingToRelease(token) {
   const seen = new Set();
   let pendingSum = 0;
-  let offset = 0;
-  const limit = 100;
-  const maxPages = 5;
 
-  const fetchPage = async (usePendingFilter) => {
-    let url = 'https://api.mercadopago.com/v1/payments/search'
-      + '?sort=date_created&criteria=desc&range=date_created'
-      + '&begin_date=NOW-365DAYS&end_date=NOW&status=approved';
-    if (usePendingFilter) url += '&money_release_status=pending';
-    url += `&limit=${limit}&offset=${offset}`;
-    const res = await fetch(url, {
+  const fetchPage = async (params, offset) => {
+    const qs = new URLSearchParams({ ...params, offset: String(offset) });
+    const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${qs}`, {
       headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
     });
     const data = await res.json().catch(() => ({}));
@@ -10545,27 +10542,52 @@ async function fetchMercadoPagoPendingToRelease(token) {
     return { ok: true, results: data.results || [], total: Number(data?.paging?.total) };
   };
 
-  try {
+  const scanSearch = async (params, maxPages = 4) => {
+    const limit = 100;
+    let offset = 0;
+    let added = 0;
     for (let page = 0; page < maxPages; page++) {
-      const pageData = await fetchPage(true);
-      if (!pageData.ok) return { ok: false, value: 0, error: pageData.error };
-      pendingSum += sumPendingPayments(pageData.results, seen);
+      const pageData = await fetchPage({ ...params, limit: String(limit) }, offset);
+      if (!pageData.ok) return { ok: false, added, error: pageData.error };
+      for (const payment of pageData.results) {
+        const id = payment?.id != null ? String(payment.id) : '';
+        if (id && seen.has(id)) continue;
+        if (id) seen.add(id);
+        if (!mpPaymentIsPendingRelease(payment)) continue;
+        const net = mpPaymentNetAmount(payment);
+        if (net > 0) {
+          pendingSum += net;
+          added += net;
+        }
+      }
       offset += limit;
       if (pageData.results.length < limit) break;
       if (Number.isFinite(pageData.total) && offset >= pageData.total) break;
     }
+    return { ok: true, added };
+  };
 
+  try {
+    // Pagamentos com liberação futura (filtro oficial suportado pela API).
+    await scanSearch({
+      sort: 'money_release_date',
+      criteria: 'asc',
+      range: 'money_release_date',
+      begin_date: 'NOW',
+      end_date: 'NOW+120DAYS',
+      status: 'approved'
+    }, 4);
+
+    // Fallback: pagamentos recentes aprovados — filtra money_release_status / released no cliente.
     if (pendingSum <= 0) {
-      offset = 0;
-      seen.clear();
-      for (let page = 0; page < maxPages; page++) {
-        const pageData = await fetchPage(false);
-        if (!pageData.ok) break;
-        pendingSum += sumPendingPayments(pageData.results, seen);
-        offset += limit;
-        if (pageData.results.length < limit) break;
-        if (Number.isFinite(pageData.total) && offset >= pageData.total) break;
-      }
+      await scanSearch({
+        sort: 'date_created',
+        criteria: 'desc',
+        range: 'date_created',
+        begin_date: 'NOW-365DAYS',
+        end_date: 'NOW',
+        status: 'approved'
+      }, 4);
     }
 
     return { ok: true, value: pendingSum, currency: 'BRL' };
@@ -10584,7 +10606,8 @@ async function resolveMercadoPagoPendingRelease(token, cache, force = false) {
   if (!fetched.ok) {
     return Number.isFinite(cached) && cached > 0 ? cached : null;
   }
-  return Number(fetched.value);
+  const value = Number(fetched.value);
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function mergeMpPendingReleaseIntoResult(result, pendingRelease, cur = 'BRL') {
@@ -10606,13 +10629,19 @@ function mergeMpPendingReleaseIntoResult(result, pendingRelease, cur = 'BRL') {
 
 async function buildMercadoPagoBalanceResult(token, cache, reportPending, opts = {}) {
   const force = opts.force === true;
-  let pendingRelease = cache?.pendingRelease;
-  if (force || pendingRelease == null || !cache?.pendingCachedAt) {
+  let pendingRelease = Number(cache?.pendingRelease);
+  const pendingAgeMs = cache?.pendingCachedAt
+    ? Date.now() - new Date(cache.pendingCachedAt).getTime()
+    : Number.POSITIVE_INFINITY;
+  const pendingStale = !Number.isFinite(pendingRelease) || pendingRelease <= 0 || pendingAgeMs > 15 * 60 * 1000;
+  if (force || pendingStale) {
     pendingRelease = await resolveMercadoPagoPendingRelease(token, cache, force);
   }
   const merged = {
     ...(cache || {}),
-    pendingRelease: pendingRelease != null && Number.isFinite(Number(pendingRelease)) ? Number(pendingRelease) : null,
+    pendingRelease: pendingRelease != null && Number.isFinite(Number(pendingRelease)) && Number(pendingRelease) > 0
+      ? Number(pendingRelease)
+      : null,
     pendingCachedAt: new Date().toISOString()
   };
   return formatMpReleaseBalanceResult(merged, reportPending);
@@ -10700,7 +10729,7 @@ async function parseAvailableFromMpReleaseReports(token, reportRows, force = fal
         cachedAt: new Date().toISOString()
       };
       const pendingRelease = await resolveMercadoPagoPendingRelease(token, balance, force);
-      if (pendingRelease != null && Number.isFinite(pendingRelease)) {
+      if (Number.isFinite(pendingRelease) && pendingRelease > 0) {
         balance.pendingRelease = pendingRelease;
         balance.pendingCachedAt = new Date().toISOString();
       }
@@ -10738,7 +10767,20 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
       const ageMs = Date.now() - new Date(state.balance.cachedAt).getTime();
       const avail = Number(state.balance.available);
       if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000 && Number.isFinite(avail) && avail > 0) {
-        return buildMercadoPagoBalanceResult(token, state.balance, false, { force });
+        const needPending = !(Number(state.balance.pendingRelease) > 0);
+        const result = await buildMercadoPagoBalanceResult(token, state.balance, false, { force: force || needPending });
+        const pendingAmt = Number(result?.amounts?.find((a) => a.kind === 'pending')?.value);
+        if (Number.isFinite(pendingAmt) && pendingAmt > 0 && pendingAmt !== Number(state.balance.pendingRelease)) {
+          await setMpReleaseState(env, {
+            ...state,
+            balance: {
+              ...state.balance,
+              pendingRelease: pendingAmt,
+              pendingCachedAt: new Date().toISOString()
+            }
+          });
+        }
+        return result;
       }
     }
 
