@@ -10965,7 +10965,12 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
 
     const partial = await mercadoPagoPendingOnlyBalanceResult(token, force, collectorId);
     if (partial) return partial;
-    return buildMercadoPagoBalanceResult(token, freshState.balance || {}, true, balanceOpts);
+    return buildMercadoPagoBalanceResult(
+      token,
+      mpReleaseStaleFallbackBalance(freshState, previousBalance),
+      true,
+      balanceOpts
+    );
   } catch (err) {
     const msg = String(err.message || err);
     if (/too many subrequests/i.test(msg)) {

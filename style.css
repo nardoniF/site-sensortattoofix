@@ -6571,6 +6571,22 @@ a.conta-forgot-link { display: inline-block; }
     padding-top: 18px;
     border-top: 1px solid #2a2a2a;
 }
+
+.admin-mp-audit-section {
+    margin-top: 24px;
+    padding: 16px 18px;
+    border: 2px solid rgba(201, 162, 39, 0.45);
+    border-radius: 12px;
+    background: rgba(201, 162, 39, 0.06);
+}
+.admin-mp-audit-heading {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+    color: var(--primary, #c9a227);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 .admin-payment-summary-title {
     margin: 0 0 8px;
     font-size: 1.05rem;

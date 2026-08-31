@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.20">
+    <link rel="stylesheet" href="style.css?v=3.21">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -763,48 +763,44 @@
                         </div>
                         <div class="admin-form-actions" style="margin-bottom:10px">
                             <button type="button" id="btn-refresh-payment-balances" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar saldos</button>
+                            <button type="button" id="btn-mp-release-audit-top" class="btn-primary"><i class="fas fa-search-dollar"></i> Auditoria MP</button>
                             <p id="payment-balances-checked-at" class="admin-meta" hidden></p>
                         </div>
                         <div id="payment-balances-grid" class="admin-payment-balances-grid">
                             <p class="admin-meta">Faça login na API para carregar os saldos.</p>
                         </div>
                         <div id="payment-balances-summary" class="admin-payment-balances-summary" hidden></div>
-                        <details class="admin-fold" id="mp-release-audit-fold" data-fold-key="mp-release-audit">
-                            <summary class="admin-fold-summary">
-                                <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
-                                <span class="admin-fold-title">Auditoria MP — Dinheiro a liberar (debug)</span>
-                                <span class="admin-fold-hint">não altera produção</span>
-                            </summary>
-                            <div class="admin-fold-body">
-                                <p class="admin-meta">Compara pagamentos reais da API MP com o app oficial. Alvo padrão: R$ 766,60. Mostra quais entram no cálculo atual (~R$ 944,92) e quais regras se aproximam do app.</p>
-                                <div class="admin-form-actions" style="margin-bottom:8px">
-                                    <label>Alvo app (R$)
-                                        <input type="number" id="mp-audit-target" min="0" step="0.01" value="766.60" style="max-width:120px">
-                                    </label>
-                                    <button type="button" id="btn-mp-release-audit" class="btn-secondary"><i class="fas fa-search-dollar"></i> Rodar auditoria</button>
-                                </div>
-                                <p id="mp-audit-status" class="admin-meta" hidden></p>
-                                <div id="mp-audit-summary" class="admin-meta"></div>
-                                <div id="mp-audit-excess" class="admin-meta"></div>
-                                <div id="mp-audit-table-wrap" class="admin-table-scroll" hidden>
-                                    <table class="admin-table admin-table-compact" id="mp-audit-table">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Status</th>
-                                                <th>Release st.</th>
-                                                <th>Release date</th>
-                                                <th>Bruto</th>
-                                                <th>Líquido</th>
-                                                <th>Prod.</th>
-                                                <th>Refund</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="mp-audit-tbody"></tbody>
-                                    </table>
-                                </div>
+
+                        <section id="mp-release-audit-section" class="admin-mp-audit-section" aria-labelledby="mp-audit-heading">
+                            <h3 id="mp-audit-heading" class="admin-mp-audit-heading"><i class="fas fa-microscope"></i> Auditoria MP — Dinheiro a liberar</h3>
+                            <p class="admin-meta">Compara <strong>todos os pagamentos</strong> da API com o app (alvo padrão R$ 766,60). Não altera o saldo exibido acima.</p>
+                            <div class="admin-form-actions" style="margin-bottom:8px">
+                                <label>Alvo app (R$)
+                                    <input type="number" id="mp-audit-target" min="0" step="0.01" value="766.60" style="max-width:120px">
+                                </label>
+                                <button type="button" id="btn-mp-release-audit" class="btn-primary"><i class="fas fa-play"></i> Rodar auditoria</button>
                             </div>
-                        </details>
+                            <p id="mp-audit-status" class="admin-meta" hidden></p>
+                            <div id="mp-audit-summary" class="admin-meta"></div>
+                            <div id="mp-audit-excess" class="admin-meta"></div>
+                            <div id="mp-audit-table-wrap" class="admin-table-scroll" hidden>
+                                <table class="admin-table admin-table-compact" id="mp-audit-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Status</th>
+                                            <th>Release st.</th>
+                                            <th>Release date</th>
+                                            <th>Bruto</th>
+                                            <th>Líquido</th>
+                                            <th>Prod.</th>
+                                            <th>Refund</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mp-audit-tbody"></tbody>
+                                </table>
+                            </div>
+                        </section>
                     </fieldset>
                     </div>
 
@@ -1342,6 +1338,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=211"></script>
+    <script defer src="js/admin.js?v=212"></script>
 </body>
 </html>

@@ -7837,6 +7837,10 @@ ${worksheets}
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));
   document.getElementById('btn-mp-release-audit')?.addEventListener('click', () => runMpReleaseAudit());
+  document.getElementById('btn-mp-release-audit-top')?.addEventListener('click', () => {
+    document.getElementById('mp-release-audit-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    runMpReleaseAudit();
+  });
 
   document.addEventListener('DOMContentLoaded', async () => {
     await waitSalesMoney();
