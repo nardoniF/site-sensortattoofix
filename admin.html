@@ -757,8 +757,8 @@
                     <fieldset class="admin-payment-balances-fieldset">
                         <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Consulta sob demanda — não atualiza sozinha ao abrir o admin. Cada gateway mostra <strong>disponível</strong> (pode sacar) e, quando a API permitir, <strong>a liberar</strong>. Use <strong>Atualizar saldos</strong>.</p>
-                            <p><strong>Mercado Pago:</strong> tenta API oficial <code>/balance</code> (disponível + a liberar). Se bloqueada, <strong>disponível</strong> via Relatório de Liberações e <strong>a liberar</strong> via pagamentos pendentes (só valor líquido).</p>
+                            <p>Consulta sob demanda — não atualiza sozinha ao abrir. <strong>Atualizar saldos</strong> pede relatório novo ao Mercado Pago (pode levar 1–3 min na 1ª vez do dia). Compare a linha <strong>Relatório MP gerado</strong> com o app.</p>
+                            <p><strong>Mercado Pago:</strong> disponível vem do Relatório de Liberações; <strong>A liberar</strong> é estimativa (API /balance bloqueada) — confira no app MP.</p>
                             <p><strong>PayPal:</strong> exige <strong>Transaction Search</strong> no app REST Live (mesmo Client ID do Worker). Pode levar até 9h após marcar.</p>
                         </div>
                         <div class="admin-form-actions" style="margin-bottom:10px">
