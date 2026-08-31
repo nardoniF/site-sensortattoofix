@@ -2813,6 +2813,7 @@ ${worksheets}
     }
     try {
       const data = await refreshIntegrationsCache(force === true);
+      saveBalancesSnapshot(data);
       renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
       if (data?.integrations) renderIntegrationsTable(data.integrations, data.checkedAt);
     } catch (err) {
@@ -2865,6 +2866,194 @@ ${worksheets}
   let clicksCache = [];
   let clicksWhenCache = [];
   let clicksWhenWindow = null;
+
+  const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v1';
+  const BALANCES_SNAPSHOT_KEY = 'stf_admin_balances_snapshot_v1';
+  const ADMIN_TAB_IDS = new Set(['vendas', 'pedidos', 'cliques', 'saldos', 'api', 'clientes', 'pesquisa', 'comunidade', 'documentacao']);
+  let lastBalancesSnapshot = null;
+
+  function resolveDefaultAdminTab() {
+    try {
+      const saved = localStorage.getItem('stf_admin_tab');
+      if (saved && ADMIN_TAB_IDS.has(saved)) return saved;
+    } catch (_) { /* ignore */ }
+    return 'pedidos';
+  }
+
+  function restoreAdminSnapshots() {
+    restoreClicksSnapshot();
+    restoreBalancesSnapshot();
+  }
+
+  function saveClicksSnapshot(data) {
+    if (!data?.clicks?.length) return;
+    try {
+      localStorage.setItem(CLICKS_SNAPSHOT_KEY, JSON.stringify({
+        savedAt: Date.now(),
+        meta: {
+          checkedAt: data.checkedAt,
+          total: data.total,
+          capacity: data.capacity,
+          byDestino: data.byDestino,
+          lastClickAt: data.lastClickAt,
+          oldestClickAt: data.oldestClickAt,
+          dailyD1: data.dailyD1,
+          withNav: data.withNav,
+          navSessions: data.navSessions
+        },
+        clicks: data.clicks,
+        whenClicks: data.whenClicks?.length ? data.whenClicks : data.clicks,
+        whenWindow: data.capacity || null
+      }));
+    } catch (_) { /* quota */ }
+  }
+
+  function restoreClicksSnapshot() {
+    try {
+      const raw = localStorage.getItem(CLICKS_SNAPSHOT_KEY);
+      if (!raw) return false;
+      const snap = JSON.parse(raw);
+      if (!snap?.clicks?.length) return false;
+      clicksCache = snap.clicks;
+      clicksWhenCache = snap.whenClicks?.length ? snap.whenClicks : clicksCache;
+      clicksWhenWindow = snap.whenWindow || null;
+      clicksMetaCache = {
+        ...snap.meta,
+        clicks: clicksCache,
+        whenClicks: clicksWhenCache,
+        capacity: snap.meta?.capacity || snap.whenWindow
+      };
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function saveBalancesSnapshot(data) {
+    if (!data?.paymentBalances) return;
+    try {
+      const snap = {
+        savedAt: Date.now(),
+        checkedAt: data.checkedAt,
+        paymentBalances: data.paymentBalances,
+        paymentBalancesSummary: data.paymentBalancesSummary,
+        integrations: data.integrations
+      };
+      localStorage.setItem(BALANCES_SNAPSHOT_KEY, JSON.stringify(snap));
+      lastBalancesSnapshot = snap;
+    } catch (_) { /* quota */ }
+  }
+
+  function restoreBalancesSnapshot() {
+    try {
+      const raw = localStorage.getItem(BALANCES_SNAPSHOT_KEY);
+      if (!raw) return false;
+      lastBalancesSnapshot = JSON.parse(raw);
+      return !!lastBalancesSnapshot?.paymentBalances;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showClicksCacheHint() {
+    const checkedEl = document.getElementById('clicks-checked-at');
+    if (!checkedEl) return;
+    const when = clicksMetaCache?.checkedAt
+      ? formatFeedbackDate(clicksMetaCache.checkedAt)
+      : '—';
+    checkedEl.textContent = `Última atualização: ${when} · cache local (clique Atualizar para buscar na API)`;
+    checkedEl.hidden = false;
+  }
+
+  function showClicksEmptyState() {
+    const root = document.getElementById('clicks-tree-root');
+    if (root) {
+      root.innerHTML = '<p class="admin-meta">Nenhum clique em cache. Clique <strong>Atualizar</strong> para carregar o histórico.</p>';
+    }
+    const stats = document.getElementById('clicks-stats');
+    if (stats) stats.innerHTML = '';
+    const charts = document.getElementById('clicks-when-charts');
+    if (charts) charts.innerHTML = '';
+    const noise = document.getElementById('clicks-noise-charts');
+    if (noise) noise.innerHTML = '';
+    const checkedEl = document.getElementById('clicks-checked-at');
+    if (checkedEl) checkedEl.hidden = true;
+  }
+
+  function filterClicksLocally(clicks, q, destino) {
+    let out = clicks || [];
+    if (destino === 'pageview') out = out.filter((c) => c.tipo === 'pageview');
+    else if (destino) out = out.filter((c) => c.destino === destino);
+    if (q) {
+      const ql = q.toLowerCase();
+      out = out.filter((c) => {
+        const hay = [c.destino, c.rotulo, c.pagina, c.visitante_id, c.secao, c.elemento, c.tipo]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return hay.includes(ql);
+      });
+    }
+    return out;
+  }
+
+  function reapplyClicksLocalFilters(openPaths) {
+    if (!clicksCache.length || !clicksMetaCache) {
+      showClicksEmptyState();
+      return;
+    }
+    wireClicksWhenFilters();
+    const q = document.getElementById('clicks-search')?.value?.trim() || '';
+    const destino = document.getElementById('clicks-filter-destino')?.value || '';
+    const withNav = !!document.getElementById('clicks-filter-nav')?.checked;
+    const navEl = document.getElementById('clicks-filter-nav');
+    if (navEl) {
+      navEl.disabled = !destino;
+      navEl.closest('label')?.classList.toggle('is-disabled', !destino);
+    }
+    renderClicksStats(clicksMetaCache);
+    renderClicksWhenCharts(clicksWhenCache);
+    renderClicksNoiseStats(clicksWhenCache);
+    const display = filterClicksLocally(clicksCache, q, destino);
+    renderClicksTree(
+      display,
+      clicksMetaCache.checkedAt,
+      clicksMetaCache.total,
+      openPaths || captureClicksTreeOpenPaths()
+    );
+    showClicksCacheHint();
+    if (destino && withNav) {
+      setClicksLoadStatus('Navegação completa por visita exige Atualizar (busca na API).', 'warning');
+      window.setTimeout(() => setClicksLoadStatus(''), 4000);
+    }
+  }
+
+  function showPaymentBalancesFromCache() {
+    const grid = document.getElementById('payment-balances-grid');
+    if (!grid) return;
+    if (lastBalancesSnapshot?.paymentBalances) {
+      renderPaymentBalancesGrid(
+        lastBalancesSnapshot.paymentBalances,
+        lastBalancesSnapshot.checkedAt,
+        lastBalancesSnapshot.paymentBalancesSummary
+      );
+      const checkedEl = document.getElementById('payment-balances-checked-at');
+      if (checkedEl && lastBalancesSnapshot.checkedAt) {
+        const when = new Date(lastBalancesSnapshot.checkedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        checkedEl.textContent = `Cache: ${when} · clique Atualizar saldos para consultar agora`;
+        checkedEl.hidden = false;
+      }
+      return;
+    }
+    grid.innerHTML = '<p class="admin-meta">Nenhum saldo em cache. Clique <strong>Atualizar saldos</strong> para consultar Mercado Pago, PayPal e Stripe.</p>';
+    const summaryEl = document.getElementById('payment-balances-summary');
+    if (summaryEl) {
+      summaryEl.hidden = true;
+      summaryEl.innerHTML = '';
+    }
+    const checkedEl = document.getElementById('payment-balances-checked-at');
+    if (checkedEl) checkedEl.hidden = true;
+  }
 
   const CLICK_DESTINO_LABELS = {
     pageview: 'Entrada',
@@ -4476,18 +4665,10 @@ ${worksheets}
     const el = document.getElementById('clicks-filter-nav-only');
     if (el) writeClicksNavOnlyPref(!!el.checked);
     if (!clicksCache.length) {
-      startClicksBackgroundLoad();
+      showClicksEmptyState();
       return;
     }
-    const openPaths = captureClicksTreeOpenPaths();
-    const checkedEl = document.getElementById('clicks-checked-at');
-    const totalMatch = checkedEl?.textContent?.match(/de (\d+) no log/);
-    const total = totalMatch ? Number(totalMatch[1]) : clicksCache.length;
-    if (clicksWhenCache.length) {
-      renderClicksWhenCharts(clicksWhenCache);
-      renderClicksNoiseStats(clicksWhenCache);
-    }
-    renderClicksTree(clicksCache, new Date().toISOString(), total, openPaths);
+    reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
     document.getElementById('clicks-fold-log')?.setAttribute('open', '');
   }
 
@@ -4709,6 +4890,7 @@ ${worksheets}
       clicksWhenCache = data.whenClicks?.length ? data.whenClicks : clicksCache;
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = data;
+      saveClicksSnapshot(data);
       renderClicksStats(data);
       renderClicksWhenCharts(clicksWhenCache);
       renderClicksNoiseStats(clicksWhenCache);
@@ -4736,7 +4918,7 @@ ${worksheets}
 
   function scheduleClicksReload() {
     clearTimeout(clicksSearchTimer);
-    clicksSearchTimer = setTimeout(() => startClicksBackgroundLoad({ preserveOpen: true, force: true }), 350);
+    clicksSearchTimer = setTimeout(() => reapplyClicksLocalFilters(captureClicksTreeOpenPaths()), 200);
   }
 
   function formatFeedbackDate(ts) {
@@ -5095,6 +5277,7 @@ ${worksheets}
 
     try {
       const data = await refreshIntegrationsCache(false);
+      saveBalancesSnapshot(data);
       renderIntegrationsTable(data?.integrations, data?.checkedAt);
       renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
     } catch (err) {
@@ -7037,14 +7220,17 @@ ${worksheets}
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'cliques') {
-        if (clicksCache.length) renderClicksFromCache(captureClicksTreeOpenPaths());
-        else if (clicksLoading) {
-          setClicksLoadStatus('Carregando cliques em segundo plano…');
+        syncClicksNavOnlyCheckbox();
+        if (clicksCache.length && clicksMetaCache) {
+          reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
+        } else if (clicksLoading) {
+          setClicksLoadStatus('Carregando cliques…');
+        } else {
+          showClicksEmptyState();
         }
-        if (!clicksBgStarted) {
-          queueMicrotask(() => startClicksBackgroundLoad());
-        }
-      } else if (id === 'saldos') loadPaymentBalances(true);
+      } else if (id === 'saldos') {
+        showPaymentBalancesFromCache();
+      }
       else if (id === 'api') loadIntegrationsStatus();
       else if (id === 'comunidade') loadForumAdmin();
       else if (id === 'vendas') initVendasSubtabs();
@@ -7068,7 +7254,8 @@ ${worksheets}
       btn.addEventListener('click', () => showCadastrosSection(btn.dataset.cadastrosSection));
     });
 
-    showTab('cliques');
+    restoreAdminSnapshots();
+    showTab(resolveDefaultAdminTab());
   }
 
   function showPanel() {
@@ -7302,10 +7489,10 @@ ${worksheets}
   document.getElementById('btn-clicks-clear-all')?.addEventListener('click', () => clearClicksLog('all'));
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => {
-    startClicksBackgroundLoad({ force: true });
+    reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
   });
   document.getElementById('clicks-filter-nav')?.addEventListener('change', () => {
-    startClicksBackgroundLoad({ force: true });
+    reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
   });
   syncClicksNavOnlyCheckbox();
   wireAdminFolds();

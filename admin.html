@@ -84,8 +84,8 @@
 
                 <nav class="admin-tabs" role="tablist" aria-label="Seções do painel">
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="vendas" aria-selected="false" aria-controls="admin-tab-vendas"><i class="fas fa-chart-line"></i> Vendas</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="pedidos" aria-selected="false" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
-                    <button type="button" role="tab" class="admin-tab active" data-admin-tab="cliques" aria-selected="true" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
+                    <button type="button" role="tab" class="admin-tab active" data-admin-tab="pedidos" aria-selected="true" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="saldos" aria-selected="false" aria-controls="admin-tab-saldos"><i class="fas fa-wallet"></i> Saldos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-folder-open"></i> Cadastros</button>
@@ -757,7 +757,7 @@
                     <fieldset class="admin-payment-balances-fieldset">
                         <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Consulta automática — não é cadastro. Cada gateway mostra <strong>disponível</strong> (pode sacar) e, quando a API permitir, <strong>a liberar</strong>.</p>
+                            <p>Consulta sob demanda — não atualiza sozinha ao abrir o admin. Cada gateway mostra <strong>disponível</strong> (pode sacar) e, quando a API permitir, <strong>a liberar</strong>. Use <strong>Atualizar saldos</strong>.</p>
                             <p><strong>Mercado Pago:</strong> tenta API oficial <code>/balance</code> (disponível + a liberar). Se bloqueada, <strong>disponível</strong> via Relatório de Liberações e <strong>a liberar</strong> via pagamentos pendentes (só valor líquido).</p>
                             <p><strong>PayPal:</strong> exige <strong>Transaction Search</strong> no app REST Live (mesmo Client ID do Worker). Pode levar até 9h após marcar.</p>
                         </div>
@@ -831,7 +831,7 @@
                         <iframe id="admin-doc-frame" title="Documentação Sensor Tattoo Fix"></iframe>
                     </div>
 
-                    <div id="admin-tab-pedidos" class="admin-tab-panel" role="tabpanel" hidden>
+                    <div id="admin-tab-pedidos" class="admin-tab-panel active" role="tabpanel">
                     <fieldset class="admin-orders-section">
                         <legend class="admin-legend-row"><span><i class="fas fa-list"></i> Pedidos da loja</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-pedidos" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-pedidos" class="admin-help-panel admin-help-panel--fieldset" hidden>
@@ -1008,11 +1008,11 @@
                     </fieldset>
                     </div>
 
-                    <div id="admin-tab-cliques" class="admin-tab-panel active" role="tabpanel">
+                    <div id="admin-tab-cliques" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Histórico por dia e horário: ano → mês → dia → visitante → caminho da visita (passos 1, 2, 3… na ordem do tempo).</p>
+                            <p>Histórico por dia e horário: ano → mês → dia → visitante → caminho da visita (passos 1, 2, 3… na ordem do tempo). <strong>Não busca na API ao abrir</strong> — mostra o último cache local; clique <strong>Atualizar</strong> para trazer dados novos.</p>
                             <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> são o número oficial (sem únicos/bots). <strong>Únicos / repetidos</strong> foca em bots: <strong>hora</strong>, ranking de <strong>estado</strong> e <strong>cidade</strong>, <strong>local no site</strong>, <strong>site</strong> (.com / .com.br) e se a visita é única ou repetida. <strong>Exportar Excel</strong> gera abas oficiais + Unicos (hora, estado, cidade, local, site).</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
@@ -1306,6 +1306,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=207"></script>
+    <script defer src="js/admin.js?v=208"></script>
 </body>
 </html>
