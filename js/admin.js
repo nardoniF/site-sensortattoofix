@@ -2734,8 +2734,10 @@ ${worksheets}
     const summaryEl = document.getElementById('payment-balances-summary');
     const checkedEl = document.getElementById('payment-balances-checked-at');
     if (!grid) return;
+    const cleanBalances = applyBalanceSanitizers(balances, lastMpAuditSnapshot);
+    const cleanSummary = rebuildPaymentBalancesSummary(cleanBalances);
     const cards = ['mercadopago', 'paypal', 'stripe']
-      .map((id) => balances?.[id])
+      .map((id) => cleanBalances?.[id])
       .filter(Boolean);
     if (!cards.length) {
       grid.innerHTML = '<p class="admin-meta">Nenhum saldo retornado.</p>';
@@ -2763,7 +2765,7 @@ ${worksheets}
     }).join('');
 
     if (summaryEl) {
-      const rows = summary?.rows || [];
+      const rows = cleanSummary?.rows || summary?.rows || [];
       if (!rows.length) {
         summaryEl.hidden = true;
         summaryEl.innerHTML = '';
@@ -2771,7 +2773,7 @@ ${worksheets}
         summaryEl.hidden = false;
         summaryEl.innerHTML = `
           <h3 class="admin-payment-summary-title"><i class="fas fa-calculator"></i> Consolidado por moeda</h3>
-          <p class="admin-meta admin-payment-summary-note">Soma Mercado Pago + PayPal + Stripe. MP: disponível = relatório MP; A liberar = estimativa se não for API oficial. BRL e USD/EUR não são convertidos.</p>
+          <p class="admin-meta admin-payment-summary-note">Soma PayPal + Stripe + MP disponível. <strong>A liberar do MP</strong> só via Auditoria acima (estimativa desativada).</p>
           <div class="admin-payment-summary-grid">
             ${rows.map((row) => `
               <article class="admin-payment-summary-card">
@@ -2800,6 +2802,179 @@ ${worksheets}
     const v = Number(n);
     if (!Number.isFinite(v)) return '—';
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function formatBalanceMoney(value, currency) {
+    const v = Number(value);
+    if (!Number.isFinite(v)) return '—';
+    const cur = String(currency || 'BRL').toUpperCase();
+    try {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: cur });
+    } catch {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+  }
+
+  const MP_AUDIT_SNAPSHOT_KEY = 'stf_admin_mp_audit_snapshot_v1';
+  let lastMpAuditSnapshot = null;
+
+  function saveMpAuditSnapshot(data) {
+    if (!data?.ok) return;
+    try {
+      const snap = { savedAt: Date.now(), ...data };
+      localStorage.setItem(MP_AUDIT_SNAPSHOT_KEY, JSON.stringify(snap));
+      lastMpAuditSnapshot = snap;
+    } catch (_) { /* quota */ }
+  }
+
+  function restoreMpAuditSnapshot() {
+    try {
+      const raw = localStorage.getItem(MP_AUDIT_SNAPSHOT_KEY);
+      if (!raw) return false;
+      lastMpAuditSnapshot = JSON.parse(raw);
+      return !!lastMpAuditSnapshot?.auditAt;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function sanitizeMercadoPagoBalanceCard(card, auditSnap) {
+    if (!card) return card;
+    const dropLine = (l) => /A liberar \(estimativa\)|Fonte A liberar: estimativa|consultando pagamentos MP/i.test(String(l));
+    let lines = (card.lines || []).filter((l) => !dropLine(l));
+    const amounts = (card.amounts || []).filter((a) => a.kind !== 'pending');
+    lines = lines.filter((l) => !/Auditoria MP acima|estimativa automática desativada/i.test(String(l)));
+
+    if (auditSnap?.analysis) {
+      const prod = auditSnap.buckets?.F_production_current_algorithm?.total;
+      const target = auditSnap.targetAppOficial;
+      const best = auditSnap.analysis.bestRule;
+      const delta = auditSnap.analysis.productionDeltaVsTarget;
+      const when = auditSnap.auditAt
+        ? new Date(auditSnap.auditAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+        : '—';
+      lines.splice(1, 0,
+        `Auditoria (app ${formatAuditMoney(target)}): algoritmo produção ${formatAuditMoney(prod)} · Δ ${formatAuditMoney(delta)}`,
+        `Melhor regra: ${formatAuditMoney(best?.total)} — ${escAttr(best?.label || '—')}`,
+        `Auditoria em ${when} — detalhes na seção acima`
+      );
+    } else {
+      lines.splice(1, 0, 'A liberar: rode Auditoria MP acima (estimativa automática desativada)');
+    }
+    return { ...card, lines, amounts };
+  }
+
+  function applyBalanceSanitizers(balances, auditSnap) {
+    if (!balances) return balances;
+    const next = { ...balances };
+    if (next.mercadopago) next.mercadopago = sanitizeMercadoPagoBalanceCard(next.mercadopago, auditSnap);
+    return next;
+  }
+
+  function rebuildPaymentBalancesSummary(balances) {
+    const cards = ['mercadopago', 'paypal', 'stripe'].map((id) => balances?.[id]).filter(Boolean);
+    const byCur = {};
+    const add = (cur, field, value, gatewayLabel) => {
+      const c = String(cur || 'BRL').toUpperCase();
+      if (!Number.isFinite(value)) return;
+      if (field === 'pending' && value <= 0) return;
+      if (field === 'available' && value === 0) return;
+      if (!byCur[c]) byCur[c] = { available: 0, pending: 0, gateways: [] };
+      byCur[c][field] += value;
+      if (gatewayLabel && !byCur[c].gateways.includes(gatewayLabel)) byCur[c].gateways.push(gatewayLabel);
+    };
+    for (const card of cards) {
+      if (card.status === 'off' || card.status === 'error') continue;
+      for (const row of card.amounts || []) {
+        const field = row.kind === 'available' ? 'available' : (row.kind === 'pending' ? 'pending' : null);
+        if (!field) continue;
+        add(row.currency, field, Number(row.value), card.label);
+      }
+    }
+    const rows = Object.keys(byCur).sort().map((currency) => {
+      const r = byCur[currency];
+      const pendingTotal = r.pending;
+      const stillThere = r.available + pendingTotal;
+      return {
+        currency,
+        lines: [
+          `Disponível agora (pode sacar): ${formatBalanceMoney(r.available, currency)}`,
+          pendingTotal > 0
+            ? `A liberar / pendente: ${formatBalanceMoney(pendingTotal, currency)}`
+            : 'A liberar / pendente (MP): ver Auditoria MP acima',
+          `Total ainda nas gateways: ${formatBalanceMoney(stillThere, currency)}`
+        ],
+        gateways: r.gateways.slice().sort()
+      };
+    });
+    return { rows };
+  }
+
+  function renderMpAuditResults(data, statusEl) {
+    const summaryEl = document.getElementById('mp-audit-summary');
+    const excessEl = document.getElementById('mp-audit-excess');
+    const wrap = document.getElementById('mp-audit-table-wrap');
+    const tbody = document.getElementById('mp-audit-tbody');
+    const b = data.buckets || {};
+    const a = data.analysis || {};
+    const prod = b.F_production_current_algorithm || {};
+    const best = a.bestRule || {};
+    const official = data.officialBalance || {};
+
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <p><strong>Alvo app:</strong> ${formatAuditMoney(data.targetAppOficial)} ·
+        <strong>Produção atual:</strong> ${formatAuditMoney(prod.total)} (${prod.count || 0} pag.) ·
+        <strong>Δ:</strong> ${formatAuditMoney(a.productionDeltaVsTarget)}</p>
+        <p><strong>API /balance:</strong> ${official.ok ? formatAuditMoney(official.unavailable_balance) : escAttr(official.error || official.skipped ? 'omitido' : 'indisponível')}</p>
+        <p><strong>Regra mais próxima:</strong> ${escAttr(best.label || '—')} → ${formatAuditMoney(best.total)} (Δ ${formatAuditMoney(best.deltaVsTarget)})</p>
+        <ul>${Object.entries(b).map(([k, v]) => `<li><code>${escAttr(k)}</code>: ${formatAuditMoney(v.total)} (${v.count || 0})</li>`).join('')}</ul>`;
+    }
+
+    const excess = a.excessInProduction || [];
+    if (excessEl) {
+      if (!excess.length) {
+        excessEl.innerHTML = '<p><strong>Excesso vs melhor regra:</strong> nenhum pagamento identificado (ou amostra truncada).</p>';
+      } else {
+        excessEl.innerHTML = `<p><strong>Entram na produção (${formatAuditMoney(a.productionTotal)}) mas NÃO na regra ${escAttr(best.id || '')} — soma ${formatAuditMoney(a.excessInProductionSum)}:</strong></p>
+          <ul>${excess.map((r) => `<li>#${escAttr(r.id)} · líq. ${formatAuditMoney(r.net_received_amount)} · release ${escAttr(r.money_release_date || '—')} · ${escAttr(r.money_release_status || '—')}${r.money_release_future ? ' · futuro' : ' · passado'}</li>`).join('')}</ul>`;
+      }
+    }
+
+    const rows = (data.payments || []).slice().sort((x, y) => {
+      if (x.inProductionPendingSum !== y.inProductionPendingSum) return x.inProductionPendingSum ? -1 : 1;
+      return Number(y.net_received_amount || 0) - Number(x.net_received_amount || 0);
+    });
+    if (tbody && wrap) {
+      tbody.innerHTML = rows.map((r) => `<tr class="${r.inProductionPendingSum ? 'mp-audit-prod' : ''}">
+        <td><code>${escAttr(r.id)}</code></td>
+        <td>${escAttr(r.status)}</td>
+        <td>${escAttr(r.money_release_status || '—')}</td>
+        <td>${escAttr(r.money_release_date ? new Date(r.money_release_date).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—')}</td>
+        <td>${formatAuditMoney(r.transaction_amount)}</td>
+        <td>${formatAuditMoney(r.net_received_amount)}</td>
+        <td>${r.inProductionPendingSum ? 'sim' : '—'}</td>
+        <td>${Number(r.transaction_amount_refunded) > 0 ? formatAuditMoney(r.transaction_amount_refunded) : '—'}</td>
+      </tr>`).join('');
+      wrap.hidden = !rows.length;
+    }
+
+    if (statusEl) {
+      if (data.coverage?.truncated) {
+        statusEl.textContent = `Amostra truncada: ${data.coverage.paymentsInReport}/${data.coverage.uniqueIdsFromSearch} pagamentos.`;
+        statusEl.className = 'admin-status form-status warning';
+        statusEl.hidden = false;
+      } else {
+        statusEl.textContent = `Auditoria concluída · ${data.coverage?.paymentsInReport || 0} pagamentos · ${data.subrequests?.used || '?'} subrequests · ${data.auditAt || ''}`;
+        statusEl.className = 'admin-status form-status success';
+        statusEl.hidden = false;
+      }
+    }
+  }
+
+  function renderMpAuditFromSnapshot() {
+    if (!lastMpAuditSnapshot) return;
+    renderMpAuditResults(lastMpAuditSnapshot, document.getElementById('mp-audit-status'));
   }
 
   async function runMpReleaseAudit() {
@@ -2845,56 +3020,14 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha na auditoria');
 
-      const b = data.buckets || {};
-      const a = data.analysis || {};
-      const prod = b.F_production_current_algorithm || {};
-      const best = a.bestRule || {};
-      const official = data.officialBalance || {};
-
-      if (summaryEl) {
-        summaryEl.innerHTML = `
-          <p><strong>Alvo app:</strong> ${formatAuditMoney(data.targetAppOficial)} ·
-          <strong>Produção atual:</strong> ${formatAuditMoney(prod.total)} (${prod.count || 0} pag.) ·
-          <strong>Δ:</strong> ${formatAuditMoney(a.productionDeltaVsTarget)}</p>
-          <p><strong>API /balance unavailable:</strong> ${official.ok ? formatAuditMoney(official.unavailable_balance) : escAttr(official.error || 'indisponível')}</p>
-          <p><strong>Regra mais próxima:</strong> ${escAttr(best.label || '—')} → ${formatAuditMoney(best.total)} (Δ ${formatAuditMoney(best.deltaVsTarget)})</p>
-          <ul>${Object.entries(b).map(([k, v]) => `<li><code>${escAttr(k)}</code>: ${formatAuditMoney(v.total)} (${v.count || 0})</li>`).join('')}</ul>`;
-      }
-
-      const excess = a.excessInProduction || [];
-      if (excessEl) {
-        if (!excess.length) {
-          excessEl.innerHTML = '<p><strong>Excesso vs melhor regra:</strong> nenhum pagamento identificado (ou amostra truncada).</p>';
-        } else {
-          excessEl.innerHTML = `<p><strong>Entram na produção (${formatAuditMoney(a.productionTotal)}) mas NÃO na regra ${escAttr(best.id || '')} — soma ${formatAuditMoney(a.excessInProductionSum)}:</strong></p>
-            <ul>${excess.map((r) => `<li>#${escAttr(r.id)} · líq. ${formatAuditMoney(r.net_received_amount)} · release ${escAttr(r.money_release_date || '—')} · ${escAttr(r.money_release_status || '—')}${r.money_release_future ? ' · futuro' : ' · passado'}</li>`).join('')}</ul>`;
-        }
-      }
-
-      const rows = (data.payments || []).slice().sort((x, y) => {
-        if (x.inProductionPendingSum !== y.inProductionPendingSum) return x.inProductionPendingSum ? -1 : 1;
-        return Number(y.net_received_amount || 0) - Number(x.net_received_amount || 0);
-      });
-      if (tbody && wrap) {
-        tbody.innerHTML = rows.map((r) => `<tr class="${r.inProductionPendingSum ? 'mp-audit-prod' : ''}">
-          <td><code>${escAttr(r.id)}</code></td>
-          <td>${escAttr(r.status)}</td>
-          <td>${escAttr(r.money_release_status || '—')}</td>
-          <td>${escAttr(r.money_release_date ? new Date(r.money_release_date).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—')}</td>
-          <td>${formatAuditMoney(r.transaction_amount)}</td>
-          <td>${formatAuditMoney(r.net_received_amount)}</td>
-          <td>${r.inProductionPendingSum ? 'sim' : '—'}</td>
-          <td>${Number(r.transaction_amount_refunded) > 0 ? formatAuditMoney(r.transaction_amount_refunded) : '—'}</td>
-        </tr>`).join('');
-        wrap.hidden = !rows.length;
-      }
-
-      if (data.coverage?.truncated && statusEl) {
-        statusEl.textContent = `Amostra truncada: ${data.coverage.paymentsInReport}/${data.coverage.uniqueIdsFromSearch} pagamentos.`;
-        statusEl.className = 'admin-status form-status warning';
-      } else if (statusEl) {
-        statusEl.textContent = `Auditoria concluída · ${data.coverage?.paymentsInReport || 0} pagamentos · ${data.subrequests?.used || '?'} subrequests · ${data.auditAt || ''}`;
-        statusEl.className = 'admin-status form-status success';
+      saveMpAuditSnapshot(data);
+      renderMpAuditResults(data, statusEl);
+      if (lastBalancesSnapshot?.paymentBalances) {
+        renderPaymentBalancesGrid(
+          lastBalancesSnapshot.paymentBalances,
+          lastBalancesSnapshot.checkedAt,
+          lastBalancesSnapshot.paymentBalancesSummary
+        );
       }
     } catch (err) {
       if (statusEl) {
@@ -2993,6 +3126,7 @@ ${worksheets}
   function restoreAdminSnapshots() {
     restoreClicksSnapshot();
     restoreBalancesSnapshot();
+    restoreMpAuditSnapshot();
   }
 
   function saveClicksSnapshot(data) {
@@ -7357,6 +7491,8 @@ ${worksheets}
           showClicksEmptyState();
         }
       } else if (id === 'saldos') {
+        restoreMpAuditSnapshot();
+        renderMpAuditFromSnapshot();
         showPaymentBalancesFromCache();
         loadPaymentBalances(false).catch(() => {});
       }
@@ -7837,10 +7973,6 @@ ${worksheets}
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));
   document.getElementById('btn-mp-release-audit')?.addEventListener('click', () => runMpReleaseAudit());
-  document.getElementById('btn-mp-release-audit-top')?.addEventListener('click', () => {
-    document.getElementById('mp-release-audit-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    runMpReleaseAudit();
-  });
 
   document.addEventListener('DOMContentLoaded', async () => {
     await waitSalesMoney();

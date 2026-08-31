@@ -10636,30 +10636,19 @@ function mergeMpPendingReleaseIntoResult(result, pendingRelease, cur = 'BRL') {
 }
 
 async function buildMercadoPagoBalanceResult(token, cache, reportPending, opts = {}) {
-  const force = opts.force === true;
-  const collectorId = opts.collectorId || null;
   const pendingFromOfficial = Number.isFinite(Number(opts.officialUnavailable)) && Number(opts.officialUnavailable) > 0
     ? Number(opts.officialUnavailable)
     : null;
-  let pendingRelease = pendingFromOfficial != null ? pendingFromOfficial : Number(cache?.pendingRelease);
-  const pendingAgeMs = cache?.pendingCachedAt
-    ? Date.now() - new Date(cache.pendingCachedAt).getTime()
-    : Number.POSITIVE_INFINITY;
-  const pendingStale = pendingFromOfficial == null
-    && (!Number.isFinite(pendingRelease) || pendingRelease <= 0 || pendingAgeMs > 15 * 60 * 1000);
-  if (pendingFromOfficial == null && (force || pendingStale)) {
-    pendingRelease = await resolveMercadoPagoPendingRelease(token, cache, force, collectorId);
-  }
   const merged = {
     ...(cache || {}),
-    pendingRelease: pendingRelease != null && Number.isFinite(Number(pendingRelease)) && Number(pendingRelease) > 0
-      ? Number(pendingRelease)
-      : null,
-    pendingCachedAt: new Date().toISOString(),
-    pendingSource: pendingFromOfficial != null ? 'official_balance' : (cache?.pendingSource || 'payments_pending')
+    pendingRelease: pendingFromOfficial,
+    pendingCachedAt: pendingFromOfficial != null ? new Date().toISOString() : null,
+    pendingSource: pendingFromOfficial != null ? 'official_balance' : null
   };
   return formatMpReleaseBalanceResult(merged, reportPending);
 }
+
+const MP_PENDING_AUDIT_HINT = 'A liberar: rode Auditoria MP abaixo (estimativa automática desativada)';
 
 function formatMpReleaseBalanceResult(cache, pending) {
   const cur = String(cache?.currency || 'BRL').toUpperCase();
@@ -10681,10 +10670,7 @@ function formatMpReleaseBalanceResult(cache, pending) {
         } catch { /* ignore */ }
       }
     }
-    if (Number.isFinite(pendingRelease) && pendingRelease > 0) {
-      lines.push(`A liberar (estimativa): ${formatProviderMoney(pendingRelease, cur)}`);
-      amounts.push({ kind: 'pending', currency: cur, value: pendingRelease });
-    }
+    lines.push(MP_PENDING_AUDIT_HINT);
     return {
       ok: Number.isFinite(value) && value > 0,
       pending: true,
@@ -10719,18 +10705,12 @@ function formatMpReleaseBalanceResult(cache, pending) {
     } catch { /* ignore */ }
   }
   const amounts = [{ kind: 'available', currency: cur, value }];
-  if (Number.isFinite(pendingRelease) && pendingRelease > 0) {
-    const pendingIsEstimate = cache?.pendingSource !== 'official_balance';
-    lines.splice(1, 0, pendingIsEstimate
-      ? `A liberar (estimativa): ${formatProviderMoney(pendingRelease, cur)}`
-      : `A liberar: ${formatProviderMoney(pendingRelease, cur)}`);
-    const pendingSourceLine = cache?.pendingSource === 'official_balance'
-      ? 'Fonte A liberar: API oficial MP (unavailable_balance)'
-      : 'Fonte A liberar: estimativa via pagamentos pending — confira no app MP';
-    lines.splice(2, 0, pendingSourceLine);
+  if (Number.isFinite(pendingRelease) && pendingRelease > 0 && cache?.pendingSource === 'official_balance') {
+    lines.splice(1, 0, `A liberar: ${formatProviderMoney(pendingRelease, cur)}`);
+    lines.splice(2, 0, 'Fonte A liberar: API oficial MP (unavailable_balance)');
     amounts.push({ kind: 'pending', currency: cur, value: pendingRelease });
-  } else if (!pending && Number.isFinite(value) && value > 0) {
-    lines.splice(1, 0, 'A liberar: consultando pagamentos MP…');
+  } else {
+    lines.splice(1, 0, MP_PENDING_AUDIT_HINT);
   }
   const pendingAsOf = cache?.pendingCachedAt || null;
   const asOf = pendingAsOf && cache?.reportAsOf
@@ -10769,11 +10749,6 @@ async function parseAvailableFromMpReleaseReports(token, reportRows, force = fal
         reportAsOf: row.date_created || row.generation_date || new Date().toISOString(),
         cachedAt: new Date().toISOString()
       };
-      const pendingRelease = await resolveMercadoPagoPendingRelease(token, balance, force, collectorId);
-      if (Number.isFinite(pendingRelease) && pendingRelease > 0) {
-        balance.pendingRelease = pendingRelease;
-        balance.pendingCachedAt = new Date().toISOString();
-      }
       return { ok: true, balance, badFiles };
     }
     badFiles.push(row.file_name);
@@ -10781,22 +10756,8 @@ async function parseAvailableFromMpReleaseReports(token, reportRows, force = fal
   return { ok: false, badFiles };
 }
 
-async function mercadoPagoPendingOnlyBalanceResult(token, force = false, collectorId = null) {
-  const pendingRelease = await resolveMercadoPagoPendingRelease(token, {}, force, collectorId);
-  if (!Number.isFinite(pendingRelease) || pendingRelease <= 0) return null;
-  return {
-    ok: true,
-    pending: true,
-    lines: [
-      `A liberar: ${formatProviderMoney(pendingRelease, 'BRL')}`,
-      'Disponível: aguardando relatório MP…',
-      'Fonte: pagamentos pendentes + Relatório de Liberações'
-    ],
-    amounts: [{ kind: 'pending', currency: 'BRL', value: pendingRelease }],
-    asOf: new Date().toISOString(),
-    error: null,
-    source: 'payments_pending'
-  };
+async function mercadoPagoPendingOnlyBalanceResult() {
+  return null;
 }
 
 function mpReleaseStaleFallbackBalance(state, previousBalance) {
@@ -10845,19 +10806,7 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
       const ageMs = Date.now() - new Date(state.balance.cachedAt).getTime();
       const avail = Number(state.balance.available);
       if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000 && Number.isFinite(avail) && avail > 0) {
-        const needPending = !(Number(state.balance.pendingRelease) > 0);
-        const result = await buildMercadoPagoBalanceResult(token, state.balance, false, { ...balanceOpts, force: force || needPending });
-        const pendingAmt = Number(result?.amounts?.find((a) => a.kind === 'pending')?.value);
-        if (Number.isFinite(pendingAmt) && pendingAmt > 0 && pendingAmt !== Number(state.balance.pendingRelease)) {
-          await setMpReleaseState(env, {
-            ...state,
-            balance: {
-              ...state.balance,
-              pendingRelease: pendingAmt,
-              pendingCachedAt: new Date().toISOString()
-            }
-          });
-        }
+        const result = await buildMercadoPagoBalanceResult(token, state.balance, false, balanceOpts);
         return result;
       }
     }

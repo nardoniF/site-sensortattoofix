@@ -6573,11 +6573,12 @@ a.conta-forgot-link { display: inline-block; }
 }
 
 .admin-mp-audit-section {
-    margin-top: 24px;
+    margin: 0 0 24px;
     padding: 16px 18px;
-    border: 2px solid rgba(201, 162, 39, 0.45);
+    border: 2px solid rgba(201, 162, 39, 0.55);
     border-radius: 12px;
-    background: rgba(201, 162, 39, 0.06);
+    background: rgba(201, 162, 39, 0.1);
+    box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.15);
 }
 .admin-mp-audit-heading {
     margin: 0 0 8px;
