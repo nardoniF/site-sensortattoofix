@@ -10104,28 +10104,52 @@ function parseMpReleaseReportCsvForAvailableBalance(csvText) {
   let totalValue = null;
   let initialValue = null;
   let lastBalance = null;
+  let lastBalanceAmount = null;
+  const descIdx = rtIdx + 1;
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const cols = splitMpCsvLine(lines[i], delimiter);
+    if (balanceIdx >= 0) {
+      const bal = parseMpNumber(cols[balanceIdx]);
+      if (bal != null) lastBalanceAmount = bal;
+    }
     const rt = String(cols[rtIdx] || '').trim().toLowerCase();
     if (rt === 'total') totalValue = pickAmount(cols);
     if (rt === 'initial_available_balance') initialValue = pickAmount(cols);
     if (rt === 'available_balance') {
-      const desc = String(cols[rtIdx + 1] || cols[rtIdx + 2] || '').toLowerCase();
+      const desc = String(cols[descIdx] || '').trim().toLowerCase();
       if (desc.startsWith('pos') || desc.includes('pos_')) lastBalance = pickAmount(cols);
     }
   }
 
-  const value = totalValue != null ? totalValue : (lastBalance != null ? lastBalance : initialValue);
+  let value = null;
+  let recordType = null;
+  if (lastBalanceAmount != null) {
+    value = lastBalanceAmount;
+    recordType = 'balance_amount';
+  } else if (lastBalance != null) {
+    value = lastBalance;
+    recordType = 'available_balance';
+  } else if (initialValue != null && initialValue > 0) {
+    value = initialValue;
+    recordType = 'initial_available_balance';
+  } else if (totalValue != null && Math.abs(totalValue) > 0.001) {
+    value = totalValue;
+    recordType = 'total';
+  }
+
   if (value == null || !Number.isFinite(value)) {
     const fallback = parseMpReleaseReportCsvFallback(lines.slice(headerIdx + 1), delimiter);
     if (fallback) return fallback;
-    return { ok: false, error: 'Saldo não encontrado no CSV (total / initial_available_balance).' };
+    return { ok: false, error: 'Saldo não encontrado no CSV (balance_amount / available_balance).' };
+  }
+  if (Math.abs(value) < 0.001) {
+    return { ok: false, error: 'CSV MP retornou saldo R$ 0 — relatório incompleto; clique Atualizar.' };
   }
   return {
     ok: true,
     value,
     currency: 'BRL',
-    recordType: totalValue != null ? 'total' : (lastBalance != null ? 'available_balance' : 'initial_available_balance')
+    recordType
   };
 }
 
@@ -10217,6 +10241,7 @@ async function clearCachedMpReleaseBalance(env) {
   if (!env?.STORE_KV) return;
   try {
     await env.STORE_KV.delete(MP_RELEASE_BALANCE_CACHE_KEY);
+    await env.STORE_KV.delete(MP_RELEASE_STATE_KEY);
   } catch {
     /* ignore */
   }
@@ -10431,40 +10456,68 @@ function formatMercadoPagoOfficialBalanceResult(official) {
 }
 
 async function fetchMercadoPagoPendingToRelease(token) {
+  const sumPendingPayments = (results, seen) => {
+    let pendingSum = 0;
+    for (const payment of results) {
+      const id = payment?.id != null ? String(payment.id) : '';
+      if (id && seen.has(id)) continue;
+      if (id) seen.add(id);
+      if (String(payment.money_release_status || '').toLowerCase() !== 'pending') continue;
+      let net = Number(payment?.transaction_details?.net_received_amount);
+      if (!Number.isFinite(net) || net <= 0) {
+        const gross = Number(payment?.transaction_amount ?? 0);
+        const fee = (Array.isArray(payment?.fee_details) ? payment.fee_details : [])
+          .reduce((s, f) => s + Number(f?.amount || 0), 0);
+        net = gross - fee;
+      }
+      if (Number.isFinite(net) && net > 0) pendingSum += net;
+    }
+    return pendingSum;
+  };
+
   const seen = new Set();
+  let pendingSum = 0;
   let offset = 0;
   const limit = 100;
-  let pendingSum = 0;
   const maxPages = 5;
+
+  const fetchPage = async (usePendingFilter) => {
+    let url = 'https://api.mercadopago.com/v1/payments/search'
+      + '?sort=date_created&criteria=desc&range=date_created'
+      + '&begin_date=NOW-365DAYS&end_date=NOW&status=approved';
+    if (usePendingFilter) url += '&money_release_status=pending';
+    url += `&limit=${limit}&offset=${offset}`;
+    const res = await fetch(url, {
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.message || data.error || `HTTP ${res.status}` };
+    return { ok: true, results: data.results || [], total: Number(data?.paging?.total) };
+  };
+
   try {
     for (let page = 0; page < maxPages; page++) {
-      const url = 'https://api.mercadopago.com/v1/payments/search'
-        + '?sort=date_created&criteria=desc&range=date_created'
-        + '&begin_date=NOW-365DAYS&end_date=NOW&status=approved'
-        + '&money_release_status=pending'
-        + `&limit=${limit}&offset=${offset}`;
-      const res = await fetch(url, {
-        headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        return { ok: false, value: 0, error: data.message || data.error || `HTTP ${res.status}` };
-      }
-      const results = Array.isArray(data.results) ? data.results : [];
-      for (const payment of results) {
-        const id = payment?.id != null ? String(payment.id) : '';
-        if (id && seen.has(id)) continue;
-        if (id) seen.add(id);
-        if (String(payment.money_release_status || '').toLowerCase() !== 'pending') continue;
-        const net = Number(payment?.transaction_details?.net_received_amount);
-        if (!Number.isFinite(net) || net <= 0) continue;
-        pendingSum += net;
-      }
-      const total = Number(data?.paging?.total);
+      const pageData = await fetchPage(true);
+      if (!pageData.ok) return { ok: false, value: 0, error: pageData.error };
+      pendingSum += sumPendingPayments(pageData.results, seen);
       offset += limit;
-      if (results.length < limit) break;
-      if (Number.isFinite(total) && offset >= total) break;
+      if (pageData.results.length < limit) break;
+      if (Number.isFinite(pageData.total) && offset >= pageData.total) break;
     }
+
+    if (pendingSum <= 0) {
+      offset = 0;
+      seen.clear();
+      for (let page = 0; page < maxPages; page++) {
+        const pageData = await fetchPage(false);
+        if (!pageData.ok) break;
+        pendingSum += sumPendingPayments(pageData.results, seen);
+        offset += limit;
+        if (pageData.results.length < limit) break;
+        if (Number.isFinite(pageData.total) && offset >= pageData.total) break;
+      }
+    }
+
     return { ok: true, value: pendingSum, currency: 'BRL' };
   } catch (err) {
     return { ok: false, value: 0, error: err.message };
@@ -10472,14 +10525,15 @@ async function fetchMercadoPagoPendingToRelease(token) {
 }
 
 async function resolveMercadoPagoPendingRelease(token, cache, force = false) {
-  if (!force && cache?.pendingRelease != null && cache?.pendingCachedAt) {
+  const cached = Number(cache?.pendingRelease);
+  if (!force && Number.isFinite(cached) && cached > 0 && cache?.pendingCachedAt) {
     const ageMs = Date.now() - new Date(cache.pendingCachedAt).getTime();
-    if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000) {
-      return Number(cache.pendingRelease);
-    }
+    if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000) return cached;
   }
   const fetched = await fetchMercadoPagoPendingToRelease(token);
-  if (!fetched.ok) return cache?.pendingRelease != null ? Number(cache.pendingRelease) : null;
+  if (!fetched.ok) {
+    return Number.isFinite(cached) && cached > 0 ? cached : null;
+  }
   return Number(fetched.value);
 }
 
@@ -10538,14 +10592,29 @@ function formatMpReleaseBalanceResult(cache, pending) {
       source: 'release_report'
     };
   }
+  if (!Number.isFinite(value) || value <= 0) {
+    return {
+      ok: false,
+      lines: [
+        'Saldo MP indisponível no cache — gerando novo relatório.',
+        'Clique Atualizar em 1–3 min.'
+      ],
+      amounts: [],
+      asOf: null,
+      error: 'Saldo MP zerado ou inválido no cache.',
+      source: 'release_report'
+    };
+  }
   const lines = [
     `Disponível: ${formatProviderMoney(value, cur)}`,
     'Fonte: Relatório de Liberações MP (automático; cache ~6 h)'
   ];
   const amounts = [{ kind: 'available', currency: cur, value }];
   if (Number.isFinite(pendingRelease) && pendingRelease > 0) {
-    lines.splice(1, 0, `A liberar: ${formatProviderMoney(pendingRelease, cur)} (estimativa via pagamentos)`);
+    lines.splice(1, 0, `A liberar: ${formatProviderMoney(pendingRelease, cur)}`);
     amounts.push({ kind: 'pending', currency: cur, value: pendingRelease });
+  } else if (!pending && Number.isFinite(value) && value > 0) {
+    lines.splice(1, 0, 'A liberar: consultando… (clique Atualizar se não aparecer)');
   }
   return {
     ok: true,
@@ -10563,7 +10632,8 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
     const state = (await getMpReleaseState(env)) || {};
     if (!force && state.balance?.available != null && state.balance?.cachedAt) {
       const ageMs = Date.now() - new Date(state.balance.cachedAt).getTime();
-      if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000) {
+      const avail = Number(state.balance.available);
+      if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000 && Number.isFinite(avail) && avail > 0) {
         return buildMercadoPagoBalanceResult(token, state.balance, false, { force });
       }
     }
@@ -10647,7 +10717,7 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
         };
       }
       const parsed = parseMpReleaseReportCsvForAvailableBalance(downloaded.csv);
-      if (parsed.ok) {
+      if (parsed.ok && parsed.value > 0) {
         const balance = {
           available: parsed.value,
           currency: parsed.currency || 'BRL',
@@ -10666,6 +10736,8 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
       }
       if (!mpCsvHasRecordTypeColumn(downloaded.csv)) {
         await ensureMercadoPagoReleaseReportConfigCached(token, env, true);
+      } else if (parsed.ok === false) {
+        return { ok: false, lines: [parsed.error || 'Falha ao ler saldo do CSV MP.'], amounts: [], error: parsed.error };
       }
     }
 
@@ -10719,7 +10791,12 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
 async function fetchMercadoPagoBalance(token, userId, env, opts = {}) {
   if (!userId) return { ok: false, lines: [], error: 'ID de usuário MP ausente.' };
   const official = await fetchMercadoPagoOfficialBalance(token, userId);
-  if (official.ok) {
+  const hasOfficialMoney = official.ok && (
+    (Number.isFinite(official.available) && official.available > 0)
+    || (Number.isFinite(official.unavailable) && official.unavailable > 0)
+    || (Number.isFinite(official.total) && official.total > 0)
+  );
+  if (hasOfficialMoney) {
     const cache = {
       available: official.available,
       pendingRelease: official.unavailable,
@@ -10736,6 +10813,7 @@ async function fetchMercadoPagoBalance(token, userId, env, opts = {}) {
     });
     return formatMercadoPagoOfficialBalanceResult(official);
   }
+  if (opts.force === true) await clearCachedMpReleaseBalance(env);
   return fetchMercadoPagoBalanceViaReleaseReport(token, env, opts);
 }
 
