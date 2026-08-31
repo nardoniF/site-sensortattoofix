@@ -5094,7 +5094,7 @@ ${worksheets}
     tbody.innerHTML = '<tr><td colspan="3" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Verificando integrações…</td></tr>';
 
     try {
-      const data = await refreshIntegrationsCache(force === true);
+      const data = await refreshIntegrationsCache(false);
       renderIntegrationsTable(data?.integrations, data?.checkedAt);
       renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
     } catch (err) {
