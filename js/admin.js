@@ -6964,7 +6964,6 @@ ${worksheets}
         wireSmartwatchCatalogUi();
         renderSmartwatchCatalogTable();
       }
-      if (sec === 'pagamento') loadPaymentBalances(true);
     }
 
     function showTab(tabId) {
@@ -7011,7 +7010,8 @@ ${worksheets}
         if (!clicksBgStarted) {
           queueMicrotask(() => startClicksBackgroundLoad());
         }
-      } else if (id === 'api') loadIntegrationsStatus();
+      } else if (id === 'saldos') loadPaymentBalances(true);
+      else if (id === 'api') loadIntegrationsStatus();
       else if (id === 'comunidade') loadForumAdmin();
       else if (id === 'vendas') initVendasSubtabs();
       else if (id === 'pesquisa') loadFeedback();

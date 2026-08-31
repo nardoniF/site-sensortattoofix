@@ -37,7 +37,7 @@
                         <i class="fas fa-circle-question" aria-hidden="true"></i>
                     </button>
                 </div>
-                <p class="admin-intro admin-intro-compact">Cockpit da loja: pedidos, clientes, cliques, produtos, pagamento, frete, cupons, contato, API e documentação.</p>
+                <p class="admin-intro admin-intro-compact">Cockpit da loja: pedidos, clientes, cliques, saldos, produtos, pagamento, frete, cupons, contato, API e documentação.</p>
                 <div id="admin-login-help" class="admin-help-panel" hidden>
                     <p class="admin-help-lead">Cockpit de gestão da loja Sensor Tattoo Fix — por prioridade:</p>
                     <ul class="admin-help-list">
@@ -45,8 +45,9 @@
                         <li><strong>Vendas</strong> — faturamento por canal (loja, Mercado Livre…).</li>
                         <li><strong>Clientes</strong> — contas criadas em Minha Conta.</li>
                         <li><strong>Cliques</strong> — log de visitas e links (ML, TikTok, loja…).</li>
+                        <li><strong>Saldos</strong> — consulta em tempo real: Mercado Pago, PayPal e Stripe (disponível, pendente, status).</li>
                         <li><strong>Produtos</strong> — lentes na vitrine, agregados no checkout e <strong>custo do kit</strong> (BOM) para o líquido real.</li>
-                        <li><strong>Pagamento</strong> — cartão, PIX e PayPal internacional (processadores e chave PIX reserva).</li>
+                        <li><strong>Pagamento</strong> — cadastro de processadores (cartão, PIX, PayPal internacional e chave PIX reserva).</li>
                         <li><strong>Frete</strong> — remetente, modalidades, motoboy, Correios BR e internacional.</li>
                         <li><strong>Cupons</strong> — desconto ao cliente; comissão/e-mail só se houver comissionado.</li>
                         <li><strong>Contato</strong> — WhatsApp, e-mails da loja, assuntos, mensagens e testes de envio.</li>
@@ -85,6 +86,7 @@
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="vendas" aria-selected="false" aria-controls="admin-tab-vendas"><i class="fas fa-chart-line"></i> Vendas</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pedidos" aria-selected="false" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
                     <button type="button" role="tab" class="admin-tab active" data-admin-tab="cliques" aria-selected="true" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="saldos" aria-selected="false" aria-controls="admin-tab-saldos"><i class="fas fa-wallet"></i> Saldos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-folder-open"></i> Cadastros</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pesquisa" aria-selected="false" aria-controls="admin-tab-pesquisa"><i class="fas fa-comment-dots"></i> Pesquisa</button>
@@ -432,22 +434,6 @@
                     </div>
 
                     <div id="admin-tab-pagamento" class="admin-tab-panel" role="tabpanel" hidden>
-                    <fieldset class="admin-payment-balances-fieldset">
-                        <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
-                        <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Saldo <strong>disponível</strong>, <strong>pendente/a liberar</strong> e status da conta (Produção / Sandbox / erro).</p>
-                            <p>Consulta em tempo real via API do Worker (Mercado Pago, PayPal, Stripe). Atualiza ao abrir esta aba.</p>
-                            <p>PayPal pode exigir permissão <code>reporting/balances</code>. Mercado Pago usa endpoint legado de saldo da conta.</p>
-                        </div>
-                        <div class="admin-form-actions" style="margin-bottom:10px">
-                            <button type="button" id="btn-refresh-payment-balances" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar saldos</button>
-                            <p id="payment-balances-checked-at" class="admin-meta" hidden></p>
-                        </div>
-                        <div id="payment-balances-grid" class="admin-payment-balances-grid">
-                            <p class="admin-meta">Faça login na API para carregar os saldos.</p>
-                        </div>
-                    </fieldset>
-
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-credit-card"></i> Cartão de crédito (Brasil)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-card-br" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-card-br" class="admin-help-panel admin-help-panel--fieldset" hidden>
@@ -764,6 +750,24 @@
                         <p class="admin-meta">Depoimentos da seção “O que dizem por aí?” — mesmas marcas em PT, EN e IT.</p>
                         <div id="admin-home-reviews" class="admin-home-content-list"></div>
                         <button type="button" id="btn-add-home-review" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar elogio</button>
+                    </fieldset>
+                    </div>
+
+                    <div id="admin-tab-saldos" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset class="admin-payment-balances-fieldset">
+                        <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Consulta em tempo real — não é cadastro. Saldo <strong>disponível</strong>, <strong>pendente/a liberar</strong> e status da conta (Produção / Sandbox / erro).</p>
+                            <p>Mercado Pago, PayPal e Stripe via API do Worker. Atualiza ao abrir esta aba ou em <strong>Atualizar saldos</strong>.</p>
+                            <p>PayPal pode exigir permissão <code>reporting/balances</code>. Mercado Pago usa endpoint legado de saldo da conta. Resumo também aparece em <strong>API → Status das integrações</strong>.</p>
+                        </div>
+                        <div class="admin-form-actions" style="margin-bottom:10px">
+                            <button type="button" id="btn-refresh-payment-balances" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar saldos</button>
+                            <p id="payment-balances-checked-at" class="admin-meta" hidden></p>
+                        </div>
+                        <div id="payment-balances-grid" class="admin-payment-balances-grid">
+                            <p class="admin-meta">Faça login na API para carregar os saldos.</p>
+                        </div>
                     </fieldset>
                     </div>
 
@@ -1301,6 +1305,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=203"></script>
+    <script defer src="js/admin.js?v=204"></script>
 </body>
 </html>
