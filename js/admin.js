@@ -2771,7 +2771,7 @@ ${worksheets}
         summaryEl.hidden = false;
         summaryEl.innerHTML = `
           <h3 class="admin-payment-summary-title"><i class="fas fa-calculator"></i> Consolidado por moeda</h3>
-          <p class="admin-meta admin-payment-summary-note">Soma Mercado Pago + PayPal + Stripe. BRL e USD/EUR não são convertidos — cada moeda é separada. <strong>Total ainda nas gateways</strong> = dinheiro que ainda não saiu para o banco (disponível + a liberar).</p>
+          <p class="admin-meta admin-payment-summary-note">Soma Mercado Pago + PayPal + Stripe. MP: disponível = relatório MP; A liberar = estimativa se não for API oficial. BRL e USD/EUR não são convertidos.</p>
           <div class="admin-payment-summary-grid">
             ${rows.map((row) => `
               <article class="admin-payment-summary-card">
@@ -3040,7 +3040,7 @@ ${worksheets}
       const checkedEl = document.getElementById('payment-balances-checked-at');
       if (checkedEl && lastBalancesSnapshot.checkedAt) {
         const when = new Date(lastBalancesSnapshot.checkedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-        checkedEl.textContent = `Cache: ${when} · clique Atualizar saldos para consultar agora`;
+        checkedEl.textContent = `Cache local: ${when} · clique Atualizar saldos (gera consulta nova; MP pode levar 1–3 min)`;
         checkedEl.hidden = false;
       }
       return;
