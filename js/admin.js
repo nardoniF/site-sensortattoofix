@@ -6017,6 +6017,8 @@ ${worksheets}
       const kind = swInferKind(label, row?.kind || row?.deviceType);
       const sensor = row?.sensorMm != null && row?.sensorMm !== '' ? Number(row.sensorMm) : null;
       const size = row?.sizeMm != null && row?.sizeMm !== '' ? Number(row.sizeMm) : null;
+      const lensW = row?.lensWmm != null && row?.lensWmm !== '' ? Number(row.lensWmm) : null;
+      const lensH = row?.lensHmm != null && row?.lensHmm !== '' ? Number(row.lensHmm) : null;
       if (!out[b]) out[b] = [];
       const existing = out[b].find((r) => r.label === label);
       const next = {
@@ -6026,6 +6028,8 @@ ${worksheets}
         kind,
         sensorMm: Number.isFinite(sensor) && sensor > 0 ? sensor : null
       };
+      if (Number.isFinite(lensW) && lensW > 0) next.lensWmm = lensW;
+      if (Number.isFinite(lensH) && lensH > 0) next.lensHmm = lensH;
       if (Array.isArray(row?.kinds) && row.kinds.length) next.kinds = [...row.kinds];
       if (existing) Object.assign(existing, next);
       else out[b].push(next);
@@ -6063,13 +6067,35 @@ ${worksheets}
     if (ta) ta.value = flatModelsFromAdminCatalog(smartwatchCatalogState).join('\n');
   }
 
+  function syncSwDimensionUi(kind) {
+    const isBand = kind === 'smartband';
+    document.querySelectorAll('.admin-sw-bulk-watch').forEach((el) => { el.hidden = isBand; });
+    document.querySelectorAll('.admin-sw-bulk-band').forEach((el) => { el.hidden = !isBand; });
+    document.querySelectorAll('.admin-sw-new-watch').forEach((el) => { el.hidden = isBand; });
+    document.querySelectorAll('.admin-sw-new-band').forEach((el) => { el.hidden = !isBand; });
+    const applyBtn = document.getElementById('admin-sw-apply-sensor');
+    if (applyBtn) {
+      applyBtn.title = isBand
+        ? 'Aplica largura × altura a todos os modelos smartband da marca filtrada'
+        : 'Aplica o diâmetro (mm) a todos os modelos smartwatch da marca filtrada';
+    }
+  }
+
   function renderSmartwatchCatalogTable() {
     const kindEl = document.getElementById('admin-sw-kind');
     const brandEl = document.getElementById('admin-sw-brand');
     const tbody = document.getElementById('admin-sw-tbody');
     const summary = document.getElementById('admin-sw-summary');
+    const thead = document.getElementById('admin-sw-thead');
     if (!kindEl || !brandEl || !tbody) return;
     const kind = kindEl.value || 'smartwatch';
+    syncSwDimensionUi(kind);
+    const isBand = kind === 'smartband';
+    if (thead) {
+      thead.innerHTML = isBand
+        ? '<th>Modelo (checkout)</th><th style="width:96px">Largura (mm)</th><th style="width:96px">Altura (mm)</th><th style="width:70px"></th>'
+        : '<th>Modelo (checkout)</th><th style="width:110px">Sensor Ø (mm)</th><th style="width:70px"></th>';
+    }
     const brands = Object.keys(smartwatchCatalogState)
       .filter((b) => swBrandHasKind(b, kind))
       .sort();
@@ -6088,17 +6114,29 @@ ${worksheets}
         : 'Nenhum modelo neste filtro.';
     }
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="3" class="admin-meta">Nenhum modelo nesta marca/tipo. Adicione abaixo.</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="${isBand ? 4 : 3}" class="admin-meta">Nenhum modelo nesta marca/tipo. Adicione abaixo.</td></tr>`;
       return;
     }
-    tbody.innerHTML = rows.map((row, idx) => `
+    tbody.innerHTML = rows.map((row, idx) => {
+      if (isBand) {
+        return `
+      <tr data-sw-label="${escapeHtml(row.label)}">
+        <td><input type="text" class="admin-sw-label" value="${escapeHtml(row.label)}" data-idx="${idx}"></td>
+        <td><input type="number" class="admin-sw-lensw" min="0" step="0.1" inputmode="decimal"
+          value="${row.lensWmm != null ? escapeHtml(String(row.lensWmm)) : ''}" placeholder="—" data-idx="${idx}"></td>
+        <td><input type="number" class="admin-sw-lensh" min="0" step="0.01" inputmode="decimal"
+          value="${row.lensHmm != null ? escapeHtml(String(row.lensHmm)) : ''}" placeholder="—" data-idx="${idx}"></td>
+        <td><button type="button" class="btn-secondary admin-sw-remove" data-label="${escapeHtml(row.label)}" title="Remover">×</button></td>
+      </tr>`;
+      }
+      return `
       <tr data-sw-label="${escapeHtml(row.label)}">
         <td><input type="text" class="admin-sw-label" value="${escapeHtml(row.label)}" data-idx="${idx}"></td>
         <td><input type="number" class="admin-sw-sensor" min="0" step="0.1" inputmode="decimal"
           value="${row.sensorMm != null ? escapeHtml(String(row.sensorMm)) : ''}" placeholder="—" data-idx="${idx}"></td>
         <td><button type="button" class="btn-secondary admin-sw-remove" data-label="${escapeHtml(row.label)}" title="Remover">×</button></td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
   }
 
   function findCatalogRow(label) {
@@ -6110,7 +6148,7 @@ ${worksheets}
   }
 
   function buildSmartwatchCatalogExportWorkbook() {
-    const rows = [['Tipo', 'Marca', 'Modelo', 'Sensor (mm)']];
+    const rows = [['Tipo', 'Marca', 'Modelo', 'Sensor Ø (mm)', 'Largura (mm)', 'Altura (mm)']];
     Object.keys(smartwatchCatalogState || {})
       .sort((a, b) => a.localeCompare(b, 'pt'))
       .forEach((brand) => {
@@ -6123,11 +6161,19 @@ ${worksheets}
             const sensor = row.sensorMm != null && Number.isFinite(Number(row.sensorMm)) && Number(row.sensorMm) > 0
               ? Number(row.sensorMm)
               : '';
+            const lensW = row.lensWmm != null && Number.isFinite(Number(row.lensWmm)) && Number(row.lensWmm) > 0
+              ? Number(row.lensWmm)
+              : '';
+            const lensH = row.lensHmm != null && Number.isFinite(Number(row.lensHmm)) && Number(row.lensHmm) > 0
+              ? Number(row.lensHmm)
+              : '';
             rows.push([
               kind === 'smartband' ? 'Smartband' : 'Smartwatch',
               brand,
               String(row.label || ''),
-              sensor
+              sensor,
+              lensW,
+              lensH
             ]);
           });
       });
@@ -6190,18 +6236,35 @@ ${worksheets}
       renderSmartwatchCatalogTable();
     });
     document.getElementById('admin-sw-apply-sensor')?.addEventListener('click', () => {
-      const bulk = Number(document.getElementById('admin-sw-sensor-bulk')?.value);
-      if (!(bulk > 0)) {
-        alert('Informe o sensor em mm para aplicar na lista.');
-        return;
-      }
       const kind = kindEl?.value || 'smartwatch';
       const brand = brandEl?.value;
       if (!brand || !smartwatchCatalogState[brand]) return;
-      smartwatchCatalogState[brand].forEach((row) => {
-        if (isSwBrandPlaceholder(row)) return;
-        if (swRowMatchesKind(row, kind)) row.sensorMm = bulk;
-      });
+      if (kind === 'smartband') {
+        const bulkW = Number(document.getElementById('admin-sw-lensw-bulk')?.value);
+        const bulkH = Number(document.getElementById('admin-sw-lensh-bulk')?.value);
+        if (!(bulkW > 0) || !(bulkH > 0)) {
+          alert('Informe largura e altura (mm) para aplicar na lista smartband.');
+          return;
+        }
+        smartwatchCatalogState[brand].forEach((row) => {
+          if (isSwBrandPlaceholder(row)) return;
+          if (swRowMatchesKind(row, kind)) {
+            row.lensWmm = bulkW;
+            row.lensHmm = bulkH;
+            delete row.sensorMm;
+          }
+        });
+      } else {
+        const bulk = Number(document.getElementById('admin-sw-sensor-bulk')?.value);
+        if (!(bulk > 0)) {
+          alert('Informe o diâmetro do sensor (mm) para aplicar na lista.');
+          return;
+        }
+        smartwatchCatalogState[brand].forEach((row) => {
+          if (isSwBrandPlaceholder(row)) return;
+          if (swRowMatchesKind(row, kind)) row.sensorMm = bulk;
+        });
+      }
       syncSmartwatchModelsTextarea();
       renderSmartwatchCatalogTable();
     });
@@ -6236,16 +6299,26 @@ ${worksheets}
       }
       const sensorRaw = document.getElementById('admin-sw-new-sensor')?.value;
       const sensor = sensorRaw !== '' && sensorRaw != null ? Number(sensorRaw) : null;
+      const lensWRaw = document.getElementById('admin-sw-new-lensw')?.value;
+      const lensHRaw = document.getElementById('admin-sw-new-lensh')?.value;
+      const lensW = lensWRaw !== '' && lensWRaw != null ? Number(lensWRaw) : null;
+      const lensH = lensHRaw !== '' && lensHRaw != null ? Number(lensHRaw) : null;
       if (!smartwatchCatalogState[brand]) smartwatchCatalogState[brand] = [];
       stripSwBrandPlaceholders(brand);
       if (!smartwatchCatalogState[brand]) smartwatchCatalogState[brand] = [];
-      smartwatchCatalogState[brand].push({
+      const entry = {
         label,
         model: label,
         sizeMm: null,
-        kind,
-        sensorMm: Number.isFinite(sensor) && sensor > 0 ? sensor : null
-      });
+        kind
+      };
+      if (kind === 'smartband') {
+        if (Number.isFinite(lensW) && lensW > 0) entry.lensWmm = lensW;
+        if (Number.isFinite(lensH) && lensH > 0) entry.lensHmm = lensH;
+      } else if (Number.isFinite(sensor) && sensor > 0) {
+        entry.sensorMm = sensor;
+      }
+      smartwatchCatalogState[brand].push(entry);
       if (kindEl) kindEl.value = kind;
       if (brandEl) {
         renderSmartwatchCatalogTable();
@@ -6253,15 +6326,21 @@ ${worksheets}
       }
       const newLabel = document.getElementById('admin-sw-new-label');
       const newSensor = document.getElementById('admin-sw-new-sensor');
+      const newLensW = document.getElementById('admin-sw-new-lensw');
+      const newLensH = document.getElementById('admin-sw-new-lensh');
       const newBrandInput = document.getElementById('admin-sw-new-brand');
       if (newLabel) newLabel.value = '';
       if (newSensor) newSensor.value = '';
+      if (newLensW) newLensW.value = '';
+      if (newLensH) newLensH.value = '';
       if (newBrandInput) newBrandInput.value = '';
       syncSmartwatchModelsTextarea();
       renderSmartwatchCatalogTable();
     });
     tbody?.addEventListener('change', (e) => {
       const sensorInp = e.target.closest('.admin-sw-sensor');
+      const lensWInp = e.target.closest('.admin-sw-lensw');
+      const lensHInp = e.target.closest('.admin-sw-lensh');
       const labelInp = e.target.closest('.admin-sw-label');
       if (sensorInp) {
         const tr = sensorInp.closest('tr');
@@ -6270,6 +6349,22 @@ ${worksheets}
         if (!hit) return;
         const n = sensorInp.value === '' ? null : Number(sensorInp.value);
         hit.row.sensorMm = Number.isFinite(n) && n > 0 ? n : null;
+        syncSmartwatchModelsTextarea();
+        return;
+      }
+      if (lensWInp || lensHInp) {
+        const tr = (lensWInp || lensHInp).closest('tr');
+        const oldLabel = tr?.getAttribute('data-sw-label');
+        const hit = oldLabel ? findCatalogRow(oldLabel) : null;
+        if (!hit) return;
+        const wInp = tr.querySelector('.admin-sw-lensw');
+        const hInp = tr.querySelector('.admin-sw-lensh');
+        const w = wInp?.value === '' ? null : Number(wInp?.value);
+        const h = hInp?.value === '' ? null : Number(hInp?.value);
+        hit.row.lensWmm = Number.isFinite(w) && w > 0 ? w : null;
+        hit.row.lensHmm = Number.isFinite(h) && h > 0 ? h : null;
+        if (hit.row.lensWmm == null) delete hit.row.lensWmm;
+        if (hit.row.lensHmm == null) delete hit.row.lensHmm;
         syncSmartwatchModelsTextarea();
         return;
       }

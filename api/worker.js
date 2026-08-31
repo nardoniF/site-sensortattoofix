@@ -1188,6 +1188,8 @@ function normalizeSmartwatchCatalogRow(row, brand) {
   else if (kindRaw === 'watch' || kindRaw === 'smartwatch') kind = 'smartwatch';
   const sensor = row.sensorMm != null && row.sensorMm !== '' ? Number(row.sensorMm) : null;
   const size = row.sizeMm != null && row.sizeMm !== '' ? Number(row.sizeMm) : null;
+  const lensW = row.lensWmm != null && row.lensWmm !== '' ? Number(row.lensWmm) : null;
+  const lensH = row.lensHmm != null && row.lensHmm !== '' ? Number(row.lensHmm) : null;
   const kinds = Array.isArray(row.kinds) ? [...new Set(row.kinds.filter(Boolean))] : null;
   const out = {
     label,
@@ -1197,6 +1199,8 @@ function normalizeSmartwatchCatalogRow(row, brand) {
     sensorMm: Number.isFinite(sensor) && sensor > 0 ? sensor : null,
     brand: brand || row.brand || null
   };
+  if (Number.isFinite(lensW) && lensW > 0) out.lensWmm = lensW;
+  if (Number.isFinite(lensH) && lensH > 0) out.lensHmm = lensH;
   if (kinds?.length) out.kinds = kinds;
   return out;
 }
@@ -1223,6 +1227,8 @@ function mergeSmartwatchCatalog(stored, base) {
         sizeMm: norm.sizeMm != null ? norm.sizeMm : (prev.sizeMm ?? null),
         kind: norm.kind || prev.kind || null,
         sensorMm: norm.sensorMm != null ? norm.sensorMm : (prev.sensorMm ?? null),
+        lensWmm: norm.lensWmm != null ? norm.lensWmm : (prev.lensWmm ?? null),
+        lensHmm: norm.lensHmm != null ? norm.lensHmm : (prev.lensHmm ?? null),
         ...(norm.kinds?.length ? { kinds: norm.kinds } : prev.kinds?.length ? { kinds: prev.kinds } : {})
       });
     });
