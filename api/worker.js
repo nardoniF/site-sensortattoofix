@@ -9902,7 +9902,11 @@ function parsePayPalBalancePayload(data) {
 }
 
 const MP_RELEASE_BALANCE_CACHE_KEY = 'admin:mp:release_balance';
+const MP_RELEASE_STATE_KEY = 'admin:mp:release_state';
+const MP_RELEASE_CONFIG_OK_KEY = 'admin:mp:release_config_ok';
+const MP_RELEASE_FILE_PREFIX = 'stf-admin-balance';
 const MP_RELEASE_BALANCE_CACHE_TTL_SEC = 6 * 60 * 60;
+const MP_RELEASE_PENDING_MAX_MS = 12 * 60 * 1000;
 
 function mpReleaseAuthHeaders(token, extra = {}) {
   return { Authorization: 'Bearer ' + token, Accept: 'application/json', ...extra };
@@ -10218,22 +10222,83 @@ async function clearCachedMpReleaseBalance(env) {
   }
 }
 
-function mpReleaseReportReady(row) {
-  if (!row?.file_name) return false;
-  const fmt = String(row.format || '').toUpperCase();
-  if (fmt && fmt !== 'CSV') return false;
-  const status = String(row.status || '').toLowerCase();
-  return status === 'enabled' || status === 'processed';
+async function getMpReleaseState(env) {
+  if (!env?.STORE_KV) return null;
+  const raw = await env.STORE_KV.get(MP_RELEASE_STATE_KEY);
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      /* fall through to legacy */
+    }
+  }
+  const legacy = await getCachedMpReleaseBalance(env);
+  if (!legacy) return null;
+  return { balance: legacy, pending: null };
 }
 
-function pickLatestMpReleaseReport(rows) {
-  const ready = (Array.isArray(rows) ? rows : []).filter(mpReleaseReportReady);
-  ready.sort((a, b) => {
-    const ta = Date.parse(a.date_created || a.generation_date || a.last_modified || 0) || 0;
-    const tb = Date.parse(b.date_created || b.generation_date || b.last_modified || 0) || 0;
-    return tb - ta;
+async function setMpReleaseState(env, state) {
+  await kvPutSafe(env, MP_RELEASE_STATE_KEY, JSON.stringify(state), {
+    expirationTtl: MP_RELEASE_BALANCE_CACHE_TTL_SEC
   });
-  return ready[0] || null;
+  if (state?.balance) {
+    await setCachedMpReleaseBalance(env, state.balance);
+  }
+}
+
+async function ensureMercadoPagoReleaseReportConfigCached(token, env, force = false) {
+  if (!force && env?.STORE_KV) {
+    const okFlag = await env.STORE_KV.get(MP_RELEASE_CONFIG_OK_KEY);
+    if (okFlag === '1') return { ok: true, updated: false };
+  }
+  const result = await ensureMercadoPagoReleaseReportConfig(token);
+  if (!result.ok) return result;
+  if (result.updated) {
+    await clearCachedMpReleaseBalance(env);
+    if (env?.STORE_KV) {
+      try {
+        await env.STORE_KV.delete(MP_RELEASE_CONFIG_OK_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
+    const prev = await getMpReleaseState(env);
+    await setMpReleaseState(env, {
+      ...(prev || {}),
+      pending: null,
+      configUpdatedAt: Date.now()
+    });
+  }
+  if (env?.STORE_KV) {
+    await kvPutSafe(env, MP_RELEASE_CONFIG_OK_KEY, '1', { expirationTtl: 7 * 86400 });
+  }
+  return result;
+}
+
+function mpReleaseReportCreatedMs(row) {
+  return Date.parse(row?.date_created || row?.generation_date || row?.last_modified || 0) || 0;
+}
+
+function pickMpReleaseReportRow(results, opts = {}) {
+  const minCreatedAfter = Number(opts.minCreatedAfter || 0);
+  const badFiles = new Set(Array.isArray(opts.badFiles) ? opts.badFiles : []);
+  const ready = (Array.isArray(results) ? results : [])
+    .filter(mpReleaseReportReady)
+    .filter((row) => !badFiles.has(row.file_name));
+  if (!ready.length) return null;
+
+  const prefixed = ready.filter((row) => String(row.file_name || '').includes(MP_RELEASE_FILE_PREFIX));
+  let pool = prefixed.length ? prefixed : ready.filter((row) => mpReleaseReportCreatedMs(row) >= minCreatedAfter);
+  if (!pool.length) pool = prefixed.length ? prefixed : ready.slice(0, 3);
+
+  pool.sort((a, b) => mpReleaseReportCreatedMs(b) - mpReleaseReportCreatedMs(a));
+  return pool[0] || null;
+}
+
+async function findLatestMpReleaseReportRow(token, rangeBegin, rangeEnd, opts = {}) {
+  const search = await searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, 5);
+  if (!search.ok) return { ok: false, row: null, error: search.error };
+  return { ok: true, row: pickMpReleaseReportRow(search.results, opts) };
 }
 
 async function searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, limit = 10) {
@@ -10254,16 +10319,12 @@ async function searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, limi
   return { ok: true, results: data.results || [] };
 }
 
-async function listMercadoPagoReleaseReports(token) {
-  const res = await fetch('https://api.mercadopago.com/v1/account/release_report/list', {
-    headers: mpReleaseAuthHeaders(token)
-  });
-  const data = await res.json().catch(() => ([]));
-  if (!res.ok) {
-    const err = data?.message || data?.error || `HTTP ${res.status}`;
-    return { ok: false, results: [], error: err };
-  }
-  return { ok: true, results: Array.isArray(data) ? data : [] };
+function mpReleaseReportReady(row) {
+  if (!row?.file_name) return false;
+  const fmt = String(row.format || '').toUpperCase();
+  if (fmt && fmt !== 'CSV') return false;
+  const status = String(row.status || '').toLowerCase();
+  return status === 'enabled' || status === 'processed';
 }
 
 async function requestMercadoPagoReleaseReport(token, beginDate, endDate) {
@@ -10342,43 +10403,54 @@ function formatMpReleaseBalanceResult(cache, pending) {
   };
 }
 
-async function findReadyMpReleaseReportWithBalance(token, rangeBegin, rangeEnd) {
-  const search = await searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, 15);
-  const list = await listMercadoPagoReleaseReports(token);
-  const candidates = [
-    ...(search.results || []),
-    ...(list.results || [])
-  ].filter(mpReleaseReportReady);
-  candidates.sort((a, b) => {
-    const ta = Date.parse(a.date_created || a.generation_date || a.last_modified || 0) || 0;
-    const tb = Date.parse(b.date_created || b.generation_date || b.last_modified || 0) || 0;
-    return tb - ta;
-  });
-  const seen = new Set();
-  for (const row of candidates) {
-    const key = row.file_name;
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    const downloaded = await downloadMercadoPagoReleaseReportCsv(token, key);
-    if (!downloaded.ok || !mpCsvHasRecordTypeColumn(downloaded.csv)) continue;
-    return { row, csv: downloaded.csv };
-  }
-  return null;
-}
-
-async function waitForMpReleaseReportWithBalance(token, rangeBegin, rangeEnd, attempts = 12) {
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    await sleepMs(2500);
-    const found = await findReadyMpReleaseReportWithBalance(token, rangeBegin, rangeEnd);
-    if (found) return found;
-  }
-  return null;
-}
-
 async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
   const force = opts.force === true;
   try {
-    const configResult = await ensureMercadoPagoReleaseReportConfig(token);
+    const state = (await getMpReleaseState(env)) || {};
+    if (!force && state.balance?.available != null && state.balance?.cachedAt) {
+      const ageMs = Date.now() - new Date(state.balance.cachedAt).getTime();
+      if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000) {
+        return formatMpReleaseBalanceResult(state.balance);
+      }
+    }
+
+    const pending = state.pending;
+    if (!force && pending?.requestedAt) {
+      const pendingAge = Date.now() - new Date(pending.requestedAt).getTime();
+      if (pendingAge < MP_RELEASE_PENDING_MAX_MS) {
+        const quick = await findLatestMpReleaseReportRow(
+          token,
+          mpReleaseIsoUtc(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+          mpReleaseIsoUtc(new Date()),
+          { minCreatedAfter: state.configUpdatedAt || 0, badFiles: pending.badFiles || [] }
+        );
+        if (quick.ok && quick.row) {
+          const downloaded = await downloadMercadoPagoReleaseReportCsv(token, quick.row.file_name);
+          if (downloaded.ok) {
+            const parsed = parseMpReleaseReportCsvForAvailableBalance(downloaded.csv);
+            if (parsed.ok) {
+              const balance = {
+                available: parsed.value,
+                currency: parsed.currency || 'BRL',
+                fileName: quick.row.file_name,
+                recordType: parsed.recordType,
+                reportAsOf: quick.row.date_created || quick.row.generation_date || new Date().toISOString(),
+                cachedAt: new Date().toISOString()
+              };
+              await setMpReleaseState(env, { ...state, balance, pending: null });
+              return formatMpReleaseBalanceResult(balance);
+            }
+            if (!mpCsvHasRecordTypeColumn(downloaded.csv)) {
+              const badFiles = [...(pending.badFiles || []), quick.row.file_name];
+              await setMpReleaseState(env, { ...state, pending: { ...pending, badFiles } });
+            }
+          }
+        }
+        return formatMpReleaseBalanceResult(null, true);
+      }
+    }
+
+    const configResult = await ensureMercadoPagoReleaseReportConfigCached(token, env, force);
     if (!configResult.ok) {
       return {
         ok: false,
@@ -10388,117 +10460,100 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
         fixHint: paymentBalanceFixHint('mercadopago', configResult.error || '')
       };
     }
-    if (configResult.updated) await clearCachedMpReleaseBalance(env);
 
-    if (!force && !configResult.updated) {
-      const cached = await getCachedMpReleaseBalance(env);
-      if (cached?.available != null && cached.cachedAt) {
-        const ageMs = Date.now() - new Date(cached.cachedAt).getTime();
-        if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000) {
-          return formatMpReleaseBalanceResult(cached);
-        }
-      }
+    const freshState = (await getMpReleaseState(env)) || state;
+    const rangeBegin = mpReleaseIsoUtc(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    const rangeEnd = mpReleaseIsoUtc(new Date());
+    const found = await findLatestMpReleaseReportRow(token, rangeBegin, rangeEnd, {
+      minCreatedAfter: freshState.configUpdatedAt || 0,
+      badFiles: freshState.pending?.badFiles || []
+    });
+    if (!found.ok) {
+      return {
+        ok: false,
+        lines: [],
+        amounts: [],
+        error: found.error || 'Falha ao listar relatórios MP.'
+      };
     }
 
-    const now = new Date();
-    const rangeBegin = mpReleaseIsoUtc(new Date(now.getTime() - 6 * 60 * 60 * 1000));
-    const rangeEnd = mpReleaseIsoUtc(now);
-    let bundle = configResult.updated ? null : await findReadyMpReleaseReportWithBalance(token, rangeBegin, rangeEnd);
-
-    if (!bundle) {
-      const { beginDate, endDate } = mpReleaseReportDateRange();
-      let created = await requestMercadoPagoReleaseReport(token, beginDate, endDate);
-      if (!created.ok && created.retryDates) {
-        created = await requestMercadoPagoReleaseReport(
-          token,
-          created.retryDates.beginDate,
-          created.retryDates.endDate
-        );
-      }
-      if (!created.ok) {
+    if (found.row) {
+      const downloaded = await downloadMercadoPagoReleaseReportCsv(token, found.row.file_name);
+      if (!downloaded.ok) {
         return {
           ok: false,
           lines: [],
           amounts: [],
-          error: created.error || 'Falha ao solicitar relatório MP.',
-          fixHint: paymentBalanceFixHint('mercadopago', created.error || '')
+          error: downloaded.error || 'Falha ao baixar CSV do relatório MP.'
         };
       }
-      bundle = await waitForMpReleaseReportWithBalance(token, rangeBegin, rangeEnd);
-      if (!bundle) return formatMpReleaseBalanceResult(null, true);
-    }
-
-    const parsed = parseMpReleaseReportCsvForAvailableBalance(bundle.csv);
-    if (!parsed.ok) {
-      if (String(parsed.error || '').includes('RECORD_TYPE')) {
-        await ensureMercadoPagoReleaseReportConfig(token);
-        await clearCachedMpReleaseBalance(env);
+      const parsed = parseMpReleaseReportCsvForAvailableBalance(downloaded.csv);
+      if (parsed.ok) {
+        const balance = {
+          available: parsed.value,
+          currency: parsed.currency || 'BRL',
+          fileName: found.row.file_name,
+          recordType: parsed.recordType,
+          reportAsOf: found.row.date_created || found.row.generation_date || new Date().toISOString(),
+          cachedAt: new Date().toISOString()
+        };
+        await setMpReleaseState(env, { ...freshState, balance, pending: null });
+        return formatMpReleaseBalanceResult(balance);
       }
-      return { ok: false, lines: [], amounts: [], error: parsed.error };
+      if (!mpCsvHasRecordTypeColumn(downloaded.csv)) {
+        await ensureMercadoPagoReleaseReportConfigCached(token, env, true);
+      }
     }
 
-    const cacheEntry = {
-      available: parsed.value,
-      currency: parsed.currency || 'BRL',
-      fileName: bundle.row.file_name,
-      recordType: parsed.recordType,
-      reportAsOf: bundle.row.date_created || bundle.row.generation_date || new Date().toISOString(),
-      cachedAt: new Date().toISOString()
-    };
-    await setCachedMpReleaseBalance(env, cacheEntry);
-    return formatMpReleaseBalanceResult(cacheEntry);
+    const { beginDate, endDate } = mpReleaseReportDateRange();
+    let created = await requestMercadoPagoReleaseReport(token, beginDate, endDate);
+    if (!created.ok && created.retryDates) {
+      created = await requestMercadoPagoReleaseReport(
+        token,
+        created.retryDates.beginDate,
+        created.retryDates.endDate
+      );
+    }
+    if (!created.ok) {
+      return {
+        ok: false,
+        lines: [],
+        amounts: [],
+        error: created.error || 'Falha ao solicitar relatório MP.',
+        fixHint: paymentBalanceFixHint('mercadopago', created.error || '')
+      };
+    }
+
+    await setMpReleaseState(env, {
+      ...freshState,
+      pending: { requestedAt: new Date().toISOString(), badFiles: freshState.pending?.badFiles || [] }
+    });
+    return formatMpReleaseBalanceResult(null, true);
   } catch (err) {
-    return { ok: false, lines: [], amounts: [], error: err.message };
+    const msg = String(err.message || err);
+    if (/too many subrequests/i.test(msg)) {
+      const cached = await getMpReleaseState(env);
+      if (cached?.balance?.available != null) return formatMpReleaseBalanceResult(cached.balance);
+      return {
+        ok: false,
+        pending: true,
+        lines: [
+          'Relatório MP ainda processando (limite de consultas do Worker).',
+          'Aguarde 1–2 min e clique Atualizar saldos.'
+        ],
+        amounts: [],
+        error: 'Relatório MP em processamento.',
+        source: 'release_report'
+      };
+    }
+    return { ok: false, lines: [], amounts: [], error: msg };
   }
 }
 
 async function fetchMercadoPagoBalance(token, userId, env, opts = {}) {
   if (!userId) return { ok: false, lines: [], error: 'ID de usuário MP ausente.' };
-  try {
-    const res = await fetch(`https://api.mercadopago.com/users/${encodeURIComponent(userId)}/mercadopago_account/balance`, {
-      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const errMsg = data.message || data.error || data.cause?.[0]?.description || `HTTP ${res.status}`;
-      const low = String(errMsg).toLowerCase();
-      if (res.status === 403 || low.includes('forbidden')) {
-        return fetchMercadoPagoBalanceViaReleaseReport(token, env, opts);
-      }
-      return {
-        ok: false,
-        lines: [],
-        amounts: [],
-        error: errMsg,
-        fixHint: paymentBalanceFixHint('mercadopago', errMsg)
-      };
-    }
-    const lines = [];
-    const amounts = [];
-    const cur = String(data.currency_id || data.currency || 'BRL').toUpperCase();
-    if (data.available_balance != null) {
-      const v = Number(data.available_balance);
-      lines.push(`Disponível: ${formatProviderMoney(v, cur)}`);
-      amounts.push({ kind: 'available', currency: cur, value: v });
-    }
-    if (data.unavailable_balance != null && Number(data.unavailable_balance) > 0) {
-      const v = Number(data.unavailable_balance);
-      lines.push(`A liberar: ${formatProviderMoney(v, cur)}`);
-      amounts.push({ kind: 'pending', currency: cur, value: v });
-    }
-    if (data.total_amount != null) {
-      lines.push(`Total na conta: ${formatProviderMoney(Number(data.total_amount), cur)}`);
-    }
-    return {
-      ok: lines.length > 0,
-      lines,
-      amounts,
-      asOf: new Date().toISOString(),
-      error: lines.length ? null : 'Resposta MP sem campos de saldo.'
-    };
-  } catch (err) {
-    return { ok: false, lines: [], error: err.message };
-  }
+  // /balance retorna 403 nesta conta; Relatório de Liberações economiza subrequests do Worker.
+  return fetchMercadoPagoBalanceViaReleaseReport(token, env, opts);
 }
 
 function humanizePaymentBalanceError(gatewayId, rawError) {
@@ -10510,6 +10565,9 @@ function humanizePaymentBalanceError(gatewayId, rawError) {
     }
   }
   if (gatewayId === 'mercadopago') {
+    if (low.includes('too many subrequests') || low.includes('subrequests')) {
+      return 'Relatório MP em processamento — aguarde 1–2 min e clique Atualizar saldos.';
+    }
     if (low.includes('processamento') || low.includes('gerando relatório')) {
       return 'Relatório de Liberações MP em processamento — aguarde 1–3 min e clique Atualizar.';
     }
