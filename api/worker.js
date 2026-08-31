@@ -9909,10 +9909,13 @@ async function fetchMercadoPagoBalance(token, userId) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      const errMsg = data.message || data.error || data.cause?.[0]?.description || `HTTP ${res.status}`;
       return {
         ok: false,
         lines: [],
-        error: data.message || data.error || `HTTP ${res.status} — consulte saldo no painel MP se a API estiver descontinuada.`
+        amounts: [],
+        error: errMsg,
+        fixHint: paymentBalanceFixHint('mercadopago', errMsg)
       };
     }
     const lines = [];
@@ -9941,6 +9944,37 @@ async function fetchMercadoPagoBalance(token, userId) {
   } catch (err) {
     return { ok: false, lines: [], error: err.message };
   }
+}
+
+function humanizePaymentBalanceError(gatewayId, rawError) {
+  const msg = String(rawError || '').trim();
+  const low = msg.toLowerCase();
+  if (gatewayId === 'paypal') {
+    if (low.includes('insufficient permissions') || low.includes('authorization failed') || low.includes('permission')) {
+      return 'Sem permissão de saldo no app PayPal (checkout funciona; saldo é permissão extra).';
+    }
+  }
+  if (gatewayId === 'mercadopago') {
+    if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
+      return 'Mercado Pago bloqueou consulta de saldo via API (PIX/cartão seguem OK).';
+    }
+  }
+  return msg || 'Saldo indisponível via API.';
+}
+
+function paymentBalanceFixHint(gatewayId, rawError) {
+  const low = String(rawError || '').toLowerCase();
+  if (gatewayId === 'paypal') {
+    if (low.includes('insufficient permissions') || low.includes('authorization failed') || low.includes('permission')) {
+      return 'PayPal Developer → My Apps & Credentials → Live → seu app REST → marque **Transaction Search** → Save. Pode levar até 9h para o token novo pegar a permissão.';
+    }
+  }
+  if (gatewayId === 'mercadopago') {
+    if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
+      return 'Confira se `MP_ACCESS_TOKEN` no Worker é o **Access Token de produção** da mesma conta vendedora (developers.mercadopago.com → Credenciais). Se estiver certo e continuar 403, o MP não libera saldo em tempo real — use Suas vendas → Relatórios → Dinheiro na conta.';
+    }
+  }
+  return null;
 }
 
 function paymentBalanceStatus(check) {
@@ -9977,7 +10011,9 @@ function buildPaymentBalanceCard(id, label, check) {
     : (check.mode === 'test' ? 'Teste' : 'Produção');
   const lines = check.balance?.lines?.length
     ? [...check.balance.lines]
-    : [check.balance?.error || 'Conta OK — saldo indisponível via API.'];
+    : [humanizePaymentBalanceError(id, check.balance?.error) || 'Conta OK — saldo indisponível via API.'];
+  const fixHint = check.balance?.fixHint || paymentBalanceFixHint(id, check.balance?.error);
+  if (fixHint && !check.balance?.lines?.length) lines.push('Como resolver: ' + fixHint);
   return {
     id,
     label,
@@ -9985,6 +10021,7 @@ function buildPaymentBalanceCard(id, label, check) {
     statusLabel,
     lines,
     amounts: check.balance?.amounts || [],
+    fixHint,
     asOf: check.balance?.asOf || null,
     error: check.balance?.error || null
   };
@@ -10075,9 +10112,14 @@ function paypalReturnUrls(config, order, env, request) {
   };
 }
 
-async function getPayPalAccessToken(env) {
+async function getPayPalAccessToken(env, opts = {}) {
   const { clientId, secret } = paypalCredentials(env);
   if (!clientId || !secret) throw new Error('PayPal não configurado no Worker.');
+
+  const scope = String(opts.scope || '').trim();
+  const body = scope
+    ? `grant_type=client_credentials&scope=${encodeURIComponent(scope)}`
+    : 'grant_type=client_credentials';
 
   const res = await fetch(`${paypalBase(env)}/v1/oauth2/token`, {
     method: 'POST',
@@ -10086,7 +10128,7 @@ async function getPayPalAccessToken(env) {
       'Content-Type': 'application/x-www-form-urlencoded',
       Accept: 'application/json'
     },
-    body: 'grant_type=client_credentials'
+    body
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -10116,17 +10158,28 @@ async function checkPayPalIntegration(env) {
     };
   }
   try {
-    const accessToken = await getPayPalAccessToken(env);
-    let balance = { ok: false, lines: [], error: null };
+    const accessToken = await getPayPalAccessToken(env, {
+      scope: 'https://uri.paypal.com/services/reporting/balances/read'
+    });
+    let balance = { ok: false, lines: [], amounts: [], error: null };
     try {
       const balRes = await fetch(`${paypalBase(env)}/v1/reporting/balances`, {
         headers: { Authorization: 'Bearer ' + accessToken, Accept: 'application/json' }
       });
       const balData = await balRes.json().catch(() => ({}));
       if (balRes.ok) balance = parsePayPalBalancePayload(balData);
-      else balance = { ok: false, lines: [], error: balData.message || balData.error_description || `HTTP ${balRes.status}` };
+      else {
+        const errMsg = balData.message || balData.error_description || balData.details?.[0]?.issue || `HTTP ${balRes.status}`;
+        balance = {
+          ok: false,
+          lines: [],
+          amounts: [],
+          error: errMsg,
+          fixHint: paymentBalanceFixHint('paypal', errMsg)
+        };
+      }
     } catch (err) {
-      balance = { ok: false, lines: [], error: err.message };
+      balance = { ok: false, lines: [], amounts: [], error: err.message, fixHint: paymentBalanceFixHint('paypal', err.message) };
     }
     return {
       configured: true,

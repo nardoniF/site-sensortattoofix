@@ -6551,6 +6551,15 @@ a.conta-forgot-link { display: inline-block; }
     line-height: 1.45;
 }
 .admin-payment-balance-lines li + li { margin-top: 4px; }
+.admin-payment-balance-fix {
+    color: #ffb74d;
+    list-style: none;
+    margin-left: -1.05rem;
+    padding: 8px 10px;
+    background: rgba(255, 183, 77, 0.08);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 183, 77, 0.25);
+}
 .admin-payment-balance-asof {
     margin: 8px 0 0;
     font-size: 0.75rem;

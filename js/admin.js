@@ -2748,7 +2748,10 @@ ${worksheets}
     }
     grid.innerHTML = cards.map((card) => {
       const cls = integrationStatusClass(card.status);
-      const lines = (card.lines || []).map((l) => `<li>${escAttr(l)}</li>`).join('');
+      const lines = (card.lines || []).map((l) => {
+        const isFix = String(l).startsWith('Como resolver:');
+        return `<li${isFix ? ' class="admin-payment-balance-fix"' : ''}>${escAttr(l)}</li>`;
+      }).join('');
       const asOf = card.asOf
         ? `<p class="admin-payment-balance-asof">Atualizado: ${escAttr(new Date(card.asOf).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}</p>`
         : '';

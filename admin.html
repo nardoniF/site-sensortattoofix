@@ -757,9 +757,9 @@
                     <fieldset class="admin-payment-balances-fieldset">
                         <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Consulta em tempo real — não é cadastro. Cada gateway mostra <strong>disponível</strong> (pode sacar agora), <strong>a liberar/pendente</strong> (venda feita, dinheiro ainda retido) e status da conta.</p>
-                            <p>Mercado Pago, PayPal e Stripe via API do Worker. No final, o <strong>consolidado por moeda</strong> soma o que ainda está nas três contas — o “real” antes de ir pro banco. BRL e USD/EUR não são convertidos.</p>
-                            <p>PayPal pode exigir permissão <code>reporting/balances</code>. Resumo também aparece em <strong>API → Status das integrações</strong>.</p>
+                            <p>Consulta em tempo real — não é cadastro. Cada gateway mostra <strong>disponível</strong> (pode sacar) e <strong>a liberar</strong> (retido pelo gateway).</p>
+                            <p><strong>PayPal:</strong> além de <code>PAYPAL_CLIENT_ID</code> / <code>SECRET</code>, o app REST Live precisa da permissão <strong>Transaction Search</strong> (developer.paypal.com → My Apps → seu app → Live → marcar → Save). Sem isso: “insufficient permissions”.</p>
+                            <p><strong>Mercado Pago:</strong> usa o <code>MP_ACCESS_TOKEN</code> de produção da conta vendedora. Se der <code>forbidden</code>, o MP bloqueou saldo em tempo real na API — PIX/cartão continuam OK; saldo no painel MP → Dinheiro na conta.</p>
                         </div>
                         <div class="admin-form-actions" style="margin-bottom:10px">
                             <button type="button" id="btn-refresh-payment-balances" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar saldos</button>
@@ -1306,6 +1306,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=205"></script>
+    <script defer src="js/admin.js?v=206"></script>
 </body>
 </html>
