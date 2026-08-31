@@ -79,9 +79,15 @@
         height: 297mm !important;
         max-height: 297mm !important;
         overflow: hidden !important;
-        page-break-after: avoid;
+        page-break-after: always;
         page-break-inside: avoid;
         break-inside: avoid;
+      }
+      #letters-root .sheet:last-child {
+        page-break-after: auto;
+      }
+      body.multi-letters #letters-root .sheet {
+        margin: 0 !important;
       }
       .ph { background: transparent !important; border: none !important; padding: 0 !important; font-family: inherit !important; }
       /* Force backgrounds + orange accents on printers that default to B&W economy */
@@ -333,9 +339,21 @@
       font-size: 5.5pt; font-weight: 800; letter-spacing: .06em;
       text-transform: uppercase; color: var(--accent); line-height: 1.15;
     }
-    .lens-target[data-shape="rect"] span {
+      .lens-target[data-shape="rect"] span {
       font-size: 4.5pt;
       line-height: 1.05;
+    }
+
+    body.multi-letters { background: #c8c8cc; }
+    #letters-root .sheet { margin-bottom: 16px; }
+    .sheet-lens-label {
+      margin: 0 0 2mm;
+      font-size: 6.5pt;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: right;
     }
 
     .ph {
@@ -359,6 +377,7 @@
     <a class="ghost" href="../documentacao.html" data-i18n="btnDocs">Docs</a>
   </div>
 
+  <div id="letters-root">
   <article class="sheet" id="letter" data-mode="template">
     <header class="brand">
       <h1>Sensor TattooFix®</h1>
@@ -462,13 +481,16 @@
       </aside>
     </div>
   </article>
+  </div>
 
   <script src="../js/config-bootstrap.js"></script>
+  <script src="../js/order-letters.js"></script>
   <script>
 (function () {
   const SESSION_KEY = 'stf_admin_token';
   const HANDOFF_KEY = 'stf_letter_handoff';
-  const letter = document.getElementById('letter');
+  const lettersRoot = document.getElementById('letters-root');
+  let letter = document.getElementById('letter');
   const meta = document.getElementById('toolbar-meta');
   const params = new URLSearchParams(location.search);
   const orderId = (params.get('order') || params.get('pedido') || '').trim();
@@ -477,9 +499,7 @@
   const forModelOverride = (params.get('for') || params.get('modelo') || '').trim();
   const bootstrap = window.CONFIG_BOOTSTRAP || {};
   let letterLocale = 'en';
-
-  const SMARTBAND_LENS = { shape: 'rect', widthMm: 17, heightMm: 0.8 };
-  const SMARTWATCH_LENS = { shape: 'circle', widthMm: 25, heightMm: 25 };
+  const L = () => window.STF_ORDER_LETTERS;
 
   const LETTER_COPY = {
     en: {
@@ -536,6 +556,7 @@
       carrierRegistered: 'Registered Letter',
       trackingPending: 'Pending',
       toolbarFilled: 'Filled from order {id} — {lang} — ready to print',
+      toolbarFilledMulti: 'Order {id} — {lang} — {count} letter(s) · {summary}',
       toolbarTemplate: 'Template mode — placeholders only (no customer data)'
     },
     it: {
@@ -678,8 +699,8 @@
     return String(bootstrap.configApiUrl || 'https://api.sensortattoofix.com.br').replace(/\/$/, '');
   }
 
-  function setFields(data) {
-    letter.querySelectorAll('[data-field]').forEach((el) => {
+  function setFields(root, data) {
+    root.querySelectorAll('[data-field]').forEach((el) => {
       const key = el.getAttribute('data-field');
       const val = data[key];
       el.textContent = (val != null && String(val).trim()) ? String(val).trim() : '—';
@@ -687,9 +708,11 @@
   }
 
   function showTemplate(msg) {
+    if (!letter) letter = document.getElementById('letter');
+    if (!letter) return;
     letter.classList.remove('filled');
     letter.dataset.mode = 'template';
-    setFields(PLACEHOLDERS);
+    setFields(letter, PLACEHOLDERS);
     meta.textContent = msg || letterToolbarMsg('toolbarTemplate');
   }
 
@@ -864,73 +887,24 @@
     return localizeCountryEn(raw).replace(/\s*[—\-]\s*Other\b/i, '').trim() || copy.carrierDefault;
   }
 
-  function isPlaceholderWatch(s) {
-    const t = String(s || '').trim();
-    if (!t || t === '—' || t === 'N/A') return true;
-    return /outro modelo|other model|altro modello/i.test(t);
-  }
-
-  function watchFromOrder(o) {
-    const obs = String(o.observacoes || o.notes || '').trim();
-    const raw = String(o.modeloRelogio || o.smartwatch || '').trim();
-    if (isPlaceholderWatch(raw)) return obs || raw || '—';
-    return raw || obs || '—';
-  }
-
-  function normModelLabel(s) {
-    return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-  }
-
-  function findCatalogRow(catalog, modelLabel) {
-    const needle = normModelLabel(modelLabel);
-    if (!needle) return null;
-    for (const rows of Object.values(catalog || {})) {
-      if (!Array.isArray(rows)) continue;
-      for (const row of rows) {
-        if (row?._brandPlaceholder) continue;
-        const labels = [row.label, row.model].filter(Boolean).map(normModelLabel);
-        if (labels.some((l) => l === needle || needle.includes(l) || l.includes(needle))) return row;
-      }
-    }
-    return null;
-  }
-
-  function inferDeviceKind(row, modelLabel) {
-    if (row?.kind === 'smartband') return 'smartband';
-    if (Array.isArray(row?.kinds) && row.kinds.includes('smartband')) return 'smartband';
-    if (/whoop|mi band|honor band|galaxy fit|amazfit band|smartband|vivosmart|vivo fit|fitbit charge/i.test(modelLabel)) {
-      return 'smartband';
-    }
-    return 'smartwatch';
-  }
-
-  function lensProfileFor(row, kind) {
-    if (kind === 'smartband') {
-      const w = Number(row?.lensWmm) > 0 ? Number(row.lensWmm) : SMARTBAND_LENS.widthMm;
-      const h = Number(row?.lensHmm) > 0 ? Number(row.lensHmm) : SMARTBAND_LENS.heightMm;
-      return { kind, shape: 'rect', widthMm: w, heightMm: h };
-    }
-    return { kind: 'smartwatch', shape: SMARTWATCH_LENS.shape, widthMm: SMARTWATCH_LENS.widthMm, heightMm: SMARTWATCH_LENS.heightMm };
-  }
-
-  function applyLensProfile(profile) {
-    const target = document.querySelector('.lens-target');
-    if (!target || !letter) return;
-    letter.dataset.deviceKind = profile.kind;
+  function applyLensProfile(root, profile) {
+    const target = root.querySelector('.lens-target');
+    if (!target) return;
+    root.dataset.deviceKind = profile.kind;
     target.dataset.shape = profile.shape;
-    document.documentElement.style.setProperty('--lens-w-mm', String(profile.widthMm));
-    document.documentElement.style.setProperty('--lens-h-mm', String(profile.heightMm));
+    root.style.setProperty('--lens-w-mm', String(profile.widthMm));
+    root.style.setProperty('--lens-h-mm', String(profile.heightMm));
   }
 
-  function applyDevicePresentation(profile, modelLabel, addon) {
+  function applyDevicePresentation(root, profile, modelLabel, addon) {
     const copy = LETTER_COPY[letterLocale] || LETTER_COPY.en;
     const isBand = profile.kind === 'smartband';
     const isWhoop = /whoop/i.test(modelLabel);
-    const badge = document.getElementById('addon-badge');
+    const badge = root.querySelector('.addon-badge');
     if (badge) badge.hidden = !addon;
 
     const setText = (key, text) => {
-      const el = document.querySelector(`[data-i18n="${key}"]`);
+      const el = root.querySelector(`[data-i18n="${key}"]`);
       if (el && text != null) {
         if (HTML_I18N_KEYS.has(key)) el.innerHTML = text;
         else el.textContent = text;
@@ -941,7 +915,7 @@
     setText('meta.watch', isBand ? (copy.metaDevice || copy['meta.watch']) : copy['meta.watch']);
     setText('thanksTitle', addon ? (copy.thanksTitleAddon || copy.thanksTitle) : copy.thanksTitle);
     if (addon) {
-      const el = document.querySelector('[data-i18n="body1"]');
+      const el = root.querySelector('[data-i18n="body1"]');
       if (el) el.innerHTML = copy.body1Addon || copy.body1Band || copy.body1;
     } else {
       setText('body1', isBand ? (copy.body1Band || copy.body1) : copy.body1);
@@ -954,6 +928,56 @@
     setText('pocketText', profile.shape === 'rect'
       ? (copy.pocketTextRect || copy.pocketText)
       : copy.pocketText);
+  }
+
+  function fillLetterSheet(sheet, order, slot, config) {
+    const letters = L();
+    if (!letters) return;
+    const row = letters.findCatalogRow(config.smartwatchCatalog, slot.model);
+    const profile = letters.lensProfileFor(row, slot.kind);
+    applyLensProfile(sheet, profile);
+    applyDevicePresentation(sheet, profile, slot.model, slot.addon);
+
+    sheet.classList.add('filled');
+    sheet.dataset.mode = 'filled';
+    setFields(sheet, {
+      orderId: order.orderId,
+      nome: order.nome,
+      firstName: firstName(order.nome),
+      endereco: addressFromOrder(order),
+      shippingService: carrierFromOrder(order),
+      smartwatch: slot.model,
+      smartwatchPocket: slot.model
+    });
+
+    if (slot.total > 1) {
+      let label = sheet.querySelector('.sheet-lens-label');
+      if (!label) {
+        label = document.createElement('p');
+        label.className = 'sheet-lens-label';
+        sheet.querySelector('.sheet-pad')?.prepend(label);
+      }
+      const kindLabel = slot.kind === 'smartband' ? 'smartband' : 'smartwatch';
+      label.textContent = `Letter ${slot.index + 1} of ${slot.total} · ${kindLabel} · ${profile.widthMm}×${profile.heightMm} mm`;
+    }
+  }
+
+  function renderLetterSheets(order, slots, config) {
+    const prototype = document.getElementById('letter');
+    if (!prototype || !lettersRoot) return;
+    const pristine = prototype.cloneNode(true);
+    prototype.remove();
+
+    slots.forEach((slot, i) => {
+      const sheet = pristine.cloneNode(true);
+      sheet.id = i === 0 ? 'letter' : `letter-${i}`;
+      sheet.dataset.lensIndex = String(slot.index);
+      lettersRoot.appendChild(sheet);
+      fillLetterSheet(sheet, order, slot, config);
+    });
+
+    letter = document.getElementById('letter');
+    if (slots.length > 1) document.body.classList.add('multi-letters');
   }
 
   async function loadOrder(id) {
@@ -980,29 +1004,46 @@
     } catch (_) { /* ignore */ }
 
     applyLetterLocale(resolveLetterLocale(o));
-    const model = addonSmartband && forModelOverride
-      ? forModelOverride
-      : watchFromOrder(o);
-    const row = findCatalogRow(config.smartwatchCatalog, model);
-    const kind = addonSmartband ? 'smartband' : inferDeviceKind(row, model);
-    const profile = lensProfileFor(row, kind);
-    applyLensProfile(profile);
-    applyDevicePresentation(profile, model, addonSmartband);
+    const letters = L();
+    if (!letters) {
+      showTemplate('order-letters.js não carregou.');
+      return;
+    }
 
-    letter.classList.add('filled');
-    letter.dataset.mode = 'filled';
-    setFields({
-      orderId: o.orderId,
-      nome: o.nome,
-      firstName: firstName(o.nome),
-      endereco: addressFromOrder(o),
-      shippingService: carrierFromOrder(o),
-      smartwatch: model,
-      smartwatchPocket: model
-    });
-    const modeLabel = addonSmartband ? 'add-on smartband' : profile.kind;
-    meta.textContent = letterToolbarMsg('toolbarFilled', { id: o.orderId, lang: letterLocale.toUpperCase() })
-      + ` · ${modeLabel} · ${profile.widthMm}×${profile.heightMm} mm`;
+    let slots = letters.buildOrderLetterSlots(o, config);
+    if (addonSmartband && forModelOverride) {
+      slots = [{
+        kind: 'smartband',
+        model: forModelOverride,
+        addon: true,
+        index: 0,
+        total: 1
+      }];
+    }
+
+    const lensParam = params.get('lens');
+    if (lensParam != null && lensParam !== '' && lensParam !== 'all') {
+      const idx = parseInt(lensParam, 10);
+      if (!Number.isNaN(idx) && slots[idx]) slots = [slots[idx]];
+    }
+
+    renderLetterSheets(o, slots, config);
+
+    const summary = letters.summarizeSlots(slots);
+    if (slots.length > 1) {
+      meta.textContent = letterToolbarMsg('toolbarFilledMulti', {
+        id: o.orderId,
+        lang: letterLocale.toUpperCase(),
+        count: String(slots.length),
+        summary
+      });
+    } else {
+      const slot = slots[0];
+      const row = letters.findCatalogRow(config.smartwatchCatalog, slot.model);
+      const profile = letters.lensProfileFor(row, slot.kind);
+      meta.textContent = letterToolbarMsg('toolbarFilled', { id: o.orderId, lang: letterLocale.toUpperCase() })
+        + ` · ${profile.kind} · ${profile.widthMm}×${profile.heightMm} mm`;
+    }
   }
 
   document.getElementById('btn-print').addEventListener('click', () => window.print());

@@ -1758,6 +1758,7 @@ function resolveOrderItems(config, body) {
         qty,
         aggregated: p.aggregated === true,
         requiresSmartwatch: p.requiresSmartwatch !== false,
+        deviceType: p.deviceType || null,
         weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
       };
     });
@@ -1772,6 +1773,7 @@ function resolveOrderItems(config, body) {
       qty: Math.max(1, Math.min(10, Number(body.qty) || 1)),
       aggregated: p.aggregated === true,
       requiresSmartwatch: p.requiresSmartwatch !== false,
+      deviceType: p.deviceType || null,
       weightGrams: Number(p.weightGrams) || shippingWeightGrams(config)
     }];
   }
@@ -2664,6 +2666,7 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
         qty: item.qty,
         image: item.image,
         requiresSmartwatch: item.requiresSmartwatch !== false,
+        deviceType: item.deviceType || null,
         aggregated: item.aggregated === true,
         productType: item.productType,
         bandStyle: item.bandStyle,

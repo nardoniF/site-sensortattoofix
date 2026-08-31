@@ -1514,7 +1514,11 @@
           <div class="pedidos-actions-inner">
           ${statusBadgeHtml(o.status)}
           ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
-          ${o.status === 'paid' && isCorreiosIntlOrder(o) ? `<button type="button" class="btn-print-letter" title="Carta thank-you internacional"><i class="fas fa-envelope-open-text"></i> Carta</button><button type="button" class="btn-print-letter-band" title="Carta smartband add-on (retângulo)"><i class="fas fa-ring"></i> Carta band</button>` : ''}
+          ${o.status === 'paid' && isCorreiosIntlOrder(o) ? (() => {
+            const n = letterCountForOrder(o);
+            const label = n > 1 ? `Cartas (${n})` : 'Carta';
+            return `<button type="button" class="btn-print-letter" title="Cartas thank-you internacionais — ${n} folha(s)"><i class="fas fa-envelope-open-text"></i> ${label}</button>`;
+          })() : ''}
           ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
           </div>
         </td>
@@ -1535,29 +1539,7 @@
 
       tr.querySelector('.btn-print-letter')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        const url = `docs/cartas/carta-agradecimento-intl.html?order=${encodeURIComponent(o.orderId)}`;
-        // Hand off admin session to the new tab (sessionStorage is not shared across tabs).
-        try {
-          const token = sessionStorage.getItem('stf_admin_token');
-          if (token) {
-            localStorage.setItem('stf_letter_handoff', JSON.stringify({ token, at: Date.now() }));
-          }
-        } catch (_) { /* ignore */ }
-        window.open(url, '_blank');
-      });
-
-      tr.querySelector('.btn-print-letter-band')?.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        const model = window.prompt('Modelo da smartband (ex.: Whoop 5 MG):', 'Whoop 5 MG');
-        if (!model || !String(model).trim()) return;
-        const url = `docs/cartas/carta-agradecimento-intl.html?order=${encodeURIComponent(o.orderId)}&addon=smartband&for=${encodeURIComponent(String(model).trim())}`;
-        try {
-          const token = sessionStorage.getItem('stf_admin_token');
-          if (token) {
-            localStorage.setItem('stf_letter_handoff', JSON.stringify({ token, at: Date.now() }));
-          }
-        } catch (_) { /* ignore */ }
-        window.open(url, '_blank');
+        openOrderLetters(o);
       });
 
       tr.querySelector('.btn-confirm-pay')?.addEventListener('click', async (ev) => {
@@ -1662,6 +1644,24 @@
     renderTable(filtered);
   }
 
+  let storeConfigCache = null;
+
+  function letterCountForOrder(o) {
+    if (!window.STF_ORDER_LETTERS) return 1;
+    return window.STF_ORDER_LETTERS.countSlots(o, storeConfigCache || {});
+  }
+
+  function openOrderLetters(o) {
+    const url = `docs/cartas/carta-agradecimento-intl.html?order=${encodeURIComponent(o.orderId)}`;
+    try {
+      const token = sessionStorage.getItem('stf_admin_token');
+      if (token) {
+        localStorage.setItem('stf_letter_handoff', JSON.stringify({ token, at: Date.now() }));
+      }
+    } catch (_) { /* ignore */ }
+    window.open(url, '_blank');
+  }
+
   async function validateSession() {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
@@ -1680,6 +1680,7 @@
         const res = await fetch(base + '/config', { cache: 'no-store' });
         if (res.ok) {
           const cfg = await res.json();
+          storeConfigCache = cfg;
           window.STF_ORDER_LABEL?.configure(cfg.shipping);
           return;
         }
@@ -1691,6 +1692,7 @@
       const res = await fetch('/data/store-config.json?v=' + Date.now());
       if (res.ok) {
         const cfg = await res.json();
+        storeConfigCache = cfg;
         window.STF_ORDER_LABEL?.configure(cfg.shipping);
       }
     } catch (e) {
