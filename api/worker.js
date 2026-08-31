@@ -9901,6 +9901,64 @@ function parsePayPalBalancePayload(data) {
   };
 }
 
+async function fetchMercadoPagoBalanceFromPayments(token) {
+  let offset = 0;
+  const limit = 100;
+  let pendingSum = 0;
+  let pendingCount = 0;
+  let totalApproved = 0;
+  const maxPages = 10;
+  try {
+    for (let page = 0; page < maxPages; page++) {
+      const url = 'https://api.mercadopago.com/v1/payments/search'
+        + '?sort=date_created&criteria=desc&range=date_created'
+        + '&begin_date=NOW-365DAYS&end_date=NOW&status=approved'
+        + `&limit=${limit}&offset=${offset}`;
+      const res = await fetch(url, {
+        headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return {
+          ok: false,
+          lines: [],
+          amounts: [],
+          error: data.message || data.error || `HTTP ${res.status}`,
+          fixHint: paymentBalanceFixHint('mercadopago', data.message || data.error || '')
+        };
+      }
+      const results = Array.isArray(data.results) ? data.results : [];
+      for (const payment of results) {
+        totalApproved += 1;
+        if (String(payment.money_release_status || '').toLowerCase() !== 'pending') continue;
+        pendingCount += 1;
+        const net = Number(payment?.transaction_details?.net_received_amount ?? payment?.transaction_amount ?? 0);
+        if (Number.isFinite(net) && net > 0) pendingSum += net;
+      }
+      if (results.length < limit) break;
+      offset += limit;
+    }
+    const cur = 'BRL';
+    const lines = [
+      `A liberar (retido pelo MP): ${formatProviderMoney(pendingSum, cur)}`,
+      `Base: ${pendingCount} pagamento(s) com liberação pendente · ${totalApproved} aprovado(s) em 365 dias`,
+      'Disponível para saque: painel MP → Suas vendas → Dinheiro na conta (API /balance bloqueada pelo MP)'
+    ];
+    const amounts = [];
+    if (pendingSum > 0) amounts.push({ kind: 'pending', currency: cur, value: pendingSum });
+    return {
+      ok: true,
+      lines,
+      amounts,
+      asOf: new Date().toISOString(),
+      error: null,
+      source: 'payments_search'
+    };
+  } catch (err) {
+    return { ok: false, lines: [], amounts: [], error: err.message };
+  }
+}
+
 async function fetchMercadoPagoBalance(token, userId) {
   if (!userId) return { ok: false, lines: [], error: 'ID de usuário MP ausente.' };
   try {
@@ -9910,6 +9968,11 @@ async function fetchMercadoPagoBalance(token, userId) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const errMsg = data.message || data.error || data.cause?.[0]?.description || `HTTP ${res.status}`;
+      const low = String(errMsg).toLowerCase();
+      if (res.status === 403 || low.includes('forbidden')) {
+        const fallback = await fetchMercadoPagoBalanceFromPayments(token);
+        if (fallback.ok) return fallback;
+      }
       return {
         ok: false,
         lines: [],
@@ -9956,7 +10019,7 @@ function humanizePaymentBalanceError(gatewayId, rawError) {
   }
   if (gatewayId === 'mercadopago') {
     if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
-      return 'Mercado Pago bloqueou consulta de saldo via API (PIX/cartão seguem OK).';
+      return 'API /balance do MP bloqueada — usando pagamentos aprovados como fallback.';
     }
   }
   return msg || 'Saldo indisponível via API.';
@@ -9966,12 +10029,12 @@ function paymentBalanceFixHint(gatewayId, rawError) {
   const low = String(rawError || '').toLowerCase();
   if (gatewayId === 'paypal') {
     if (low.includes('insufficient permissions') || low.includes('authorization failed') || low.includes('permission')) {
-      return 'PayPal Developer → My Apps & Credentials → Live → seu app REST → marque **Transaction Search** → Save. Pode levar até 9h para o token novo pegar a permissão.';
+      return 'PayPal Developer → My Apps & Credentials → **Live** → **mesmo app** do `PAYPAL_CLIENT_ID` → marque **Transaction Search** → Save. Pode levar até **9 horas** após marcar. Confira se Client ID/Secret no Worker são desse app Live (não Sandbox).';
     }
   }
   if (gatewayId === 'mercadopago') {
     if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
-      return 'Confira se `MP_ACCESS_TOKEN` no Worker é o **Access Token de produção** da mesma conta vendedora (developers.mercadopago.com → Credenciais). Se estiver certo e continuar 403, o MP não libera saldo em tempo real — use Suas vendas → Relatórios → Dinheiro na conta.';
+      return 'Token de produção OK, mas o MP bloqueia `/balance`. Mostramos **a liberar** via API de pagamentos; **disponível** só no painel MP → Dinheiro na conta.';
     }
   }
   return null;
@@ -10126,7 +10189,8 @@ async function getPayPalAccessToken(env, opts = {}) {
     headers: {
       Authorization: 'Basic ' + btoa(`${clientId}:${secret}`),
       'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json'
+      Accept: 'application/json',
+      'Accept-Language': 'en_US'
     },
     body
   });
@@ -10140,8 +10204,16 @@ async function getPayPalAccessToken(env, opts = {}) {
     }
     throw new Error(raw);
   }
+  if (opts.returnMeta) {
+    return { accessToken: data.access_token, scope: String(data.scope || '') };
+  }
   return data.access_token;
 }
+
+const PAYPAL_BALANCE_SCOPES = [
+  'https://uri.paypal.com/services/reporting/balances/read',
+  'https://uri.paypal.com/services/reporting/search/read'
+].join(' ');
 
 async function checkPayPalIntegration(env) {
   const { clientId, secret } = paypalCredentials(env);
@@ -10158,24 +10230,37 @@ async function checkPayPalIntegration(env) {
     };
   }
   try {
-    const accessToken = await getPayPalAccessToken(env, {
-      scope: 'https://uri.paypal.com/services/reporting/balances/read'
+    const tokenMeta = await getPayPalAccessToken(env, {
+      scope: PAYPAL_BALANCE_SCOPES,
+      returnMeta: true
     });
+    const accessToken = tokenMeta.accessToken;
+    const grantedScope = tokenMeta.scope || '';
     let balance = { ok: false, lines: [], amounts: [], error: null };
     try {
       const balRes = await fetch(`${paypalBase(env)}/v1/reporting/balances`, {
-        headers: { Authorization: 'Bearer ' + accessToken, Accept: 'application/json' }
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          Accept: 'application/json',
+          'Accept-Language': 'en_US',
+          'Content-Type': 'application/json'
+        }
       });
       const balData = await balRes.json().catch(() => ({}));
       if (balRes.ok) balance = parsePayPalBalancePayload(balData);
       else {
         const errMsg = balData.message || balData.error_description || balData.details?.[0]?.issue || `HTTP ${balRes.status}`;
+        let fixHint = paymentBalanceFixHint('paypal', errMsg);
+        if (!/\bbalances\/read\b/.test(grantedScope)) {
+          fixHint = (fixHint ? fixHint + ' ' : '')
+            + 'Token ainda sem scope balances/read — confira Transaction Search no app Live certo e aguarde até 9h.';
+        }
         balance = {
           ok: false,
           lines: [],
           amounts: [],
           error: errMsg,
-          fixHint: paymentBalanceFixHint('paypal', errMsg)
+          fixHint
         };
       }
     } catch (err) {

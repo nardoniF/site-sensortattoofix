@@ -758,8 +758,8 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-wallet"></i> Saldos dos gateways</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-payment-balances" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-payment-balances" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Consulta em tempo real — não é cadastro. Cada gateway mostra <strong>disponível</strong> (pode sacar) e <strong>a liberar</strong> (retido pelo gateway).</p>
-                            <p><strong>PayPal:</strong> além de <code>PAYPAL_CLIENT_ID</code> / <code>SECRET</code>, o app REST Live precisa da permissão <strong>Transaction Search</strong> (developer.paypal.com → My Apps → seu app → Live → marcar → Save). Sem isso: “insufficient permissions”.</p>
-                            <p><strong>Mercado Pago:</strong> usa o <code>MP_ACCESS_TOKEN</code> de produção da conta vendedora. Se der <code>forbidden</code>, o MP bloqueou saldo em tempo real na API — PIX/cartão continuam OK; saldo no painel MP → Dinheiro na conta.</p>
+                            <p><strong>Mercado Pago:</strong> tenta API `/balance`; se o MP bloquear (403), mostra <strong>a liberar</strong> somando pagamentos com liberação pendente. <strong>Disponível</strong> para saque: painel MP → Dinheiro na conta.</p>
+                            <p><strong>PayPal:</strong> exige <strong>Transaction Search</strong> no app REST Live (mesmo Client ID do Worker). Pode levar até 9h após marcar.</p>
                         </div>
                         <div class="admin-form-actions" style="margin-bottom:10px">
                             <button type="button" id="btn-refresh-payment-balances" class="btn-secondary"><i class="fas fa-sync"></i> Atualizar saldos</button>
