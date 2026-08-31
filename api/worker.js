@@ -10671,16 +10671,26 @@ function formatMpReleaseBalanceResult(cache, pending) {
       'Automático — clique Atualizar em 1–3 min se ainda não aparecer.'
     ];
     const amounts = [];
+    if (Number.isFinite(value) && value > 0) {
+      lines.unshift(`Disponível (último relatório): ${formatProviderMoney(value, cur)}`);
+      amounts.push({ kind: 'available', currency: cur, value });
+      if (cache?.reportAsOf) {
+        try {
+          const reportWhen = new Date(cache.reportAsOf).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+          lines.splice(1, 0, `Relatório MP gerado: ${reportWhen}`);
+        } catch { /* ignore */ }
+      }
+    }
     if (Number.isFinite(pendingRelease) && pendingRelease > 0) {
-      lines.unshift(`A liberar: ${formatProviderMoney(pendingRelease, cur)}`);
+      lines.push(`A liberar (estimativa): ${formatProviderMoney(pendingRelease, cur)}`);
       amounts.push({ kind: 'pending', currency: cur, value: pendingRelease });
     }
     return {
-      ok: false,
+      ok: Number.isFinite(value) && value > 0,
       pending: true,
       lines,
       amounts,
-      asOf: null,
+      asOf: cache?.reportAsOf || cache?.cachedAt || null,
       error: 'Relatório MP em processamento.',
       source: 'release_report'
     };
@@ -10789,6 +10799,15 @@ async function mercadoPagoPendingOnlyBalanceResult(token, force = false, collect
   };
 }
 
+function mpReleaseStaleFallbackBalance(state, previousBalance) {
+  const cur = state?.balance?.available;
+  if (Number.isFinite(Number(cur)) && Number(cur) > 0) return state.balance;
+  if (previousBalance && Number.isFinite(Number(previousBalance.available)) && Number(previousBalance.available) > 0) {
+    return previousBalance;
+  }
+  return state?.balance || previousBalance || {};
+}
+
 function mpReleaseReportPickOpts(state, force) {
   const forceFreshMs = 25 * 60 * 1000;
   return {
@@ -10817,7 +10836,8 @@ async function tryParseMpReleaseReports(token, env, state, reportRows, force, co
 async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
   const force = opts.force === true;
   const collectorId = opts.collectorId || null;
-  const balanceOpts = { force, collectorId, officialUnavailable: opts.officialUnavailable };
+  const previousBalance = opts.previousBalance || null;
+  const balanceOpts = { force, collectorId, officialUnavailable: opts.officialUnavailable, previousBalance };
   const { rangeBegin, rangeEnd } = mpReleaseReportSearchRange();
   try {
     const state = (await getMpReleaseState(env)) || {};
@@ -10935,7 +10955,12 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
         );
         if (retryResult) return retryResult;
       }
-      return buildMercadoPagoBalanceResult(token, {}, true, balanceOpts);
+      return buildMercadoPagoBalanceResult(
+        token,
+        mpReleaseStaleFallbackBalance(freshState, previousBalance),
+        true,
+        balanceOpts
+      );
     }
 
     const partial = await mercadoPagoPendingOnlyBalanceResult(token, force, collectorId);
@@ -10989,7 +11014,10 @@ async function fetchMercadoPagoBalance(token, userId, env, opts = {}) {
     });
     return formatMercadoPagoOfficialBalanceResult(official);
   }
-  if (opts.force === true) await clearCachedMpReleaseBalance(env);
+  if (opts.force === true) {
+    const prevState = await getMpReleaseState(env);
+    opts.previousBalance = prevState?.balance || null;
+  }
   return fetchMercadoPagoBalanceViaReleaseReport(token, env, {
     ...opts,
     collectorId: userId,

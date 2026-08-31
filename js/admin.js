@@ -3039,15 +3039,33 @@ ${worksheets}
     }
   }
 
+  function mergeBalancesSnapshot(prevSnap, nextData) {
+    if (!nextData?.paymentBalances) return nextData;
+    const prevMp = prevSnap?.paymentBalances?.mercadopago;
+    const nextMp = nextData.paymentBalances.mercadopago;
+    const prevHasAvail = (prevMp?.amounts || []).some((a) => a.kind === 'available');
+    const nextHasAvail = (nextMp?.amounts || []).some((a) => a.kind === 'available');
+    if (prevHasAvail && !nextHasAvail && prevMp) {
+      nextData.paymentBalances.mercadopago = {
+        ...nextMp,
+        lines: prevMp.lines?.length ? prevMp.lines : nextMp.lines,
+        amounts: prevMp.amounts?.length ? prevMp.amounts : nextMp.amounts,
+        asOf: nextMp.asOf || prevMp.asOf
+      };
+    }
+    return nextData;
+  }
+
   function saveBalancesSnapshot(data) {
     if (!data?.paymentBalances) return;
     try {
+      const merged = mergeBalancesSnapshot(lastBalancesSnapshot, data);
       const snap = {
         savedAt: Date.now(),
-        checkedAt: data.checkedAt,
-        paymentBalances: data.paymentBalances,
-        paymentBalancesSummary: data.paymentBalancesSummary,
-        integrations: data.integrations
+        checkedAt: merged.checkedAt,
+        paymentBalances: merged.paymentBalances,
+        paymentBalancesSummary: merged.paymentBalancesSummary,
+        integrations: merged.integrations
       };
       localStorage.setItem(BALANCES_SNAPSHOT_KEY, JSON.stringify(snap));
       lastBalancesSnapshot = snap;
@@ -7340,6 +7358,7 @@ ${worksheets}
         }
       } else if (id === 'saldos') {
         showPaymentBalancesFromCache();
+        loadPaymentBalances(false).catch(() => {});
       }
       else if (id === 'api') loadIntegrationsStatus();
       else if (id === 'comunidade') loadForumAdmin();
