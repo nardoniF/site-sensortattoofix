@@ -7184,7 +7184,7 @@ ${worksheets}
     }
 
     function showTab(tabId) {
-      let id = tabId || 'cliques';
+      let id = tabId || resolveDefaultAdminTab();
       const legacyCadastros = {
         produtos: 'produtos',
         smartwatches: 'smartwatches',
