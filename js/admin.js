@@ -2834,8 +2834,8 @@ ${worksheets}
     try {
       const qs = new URLSearchParams({
         target: String(target),
-        maxDetail: '300',
-        maxPages: '5',
+        maxDetail: '0',
+        maxPages: '3',
         includePayments: '1'
       });
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/mp/release-audit?${qs}`, {
@@ -2890,10 +2890,10 @@ ${worksheets}
       }
 
       if (data.coverage?.truncated && statusEl) {
-        statusEl.textContent = `Amostra truncada: ${data.coverage.paymentsFetchedFull}/${data.coverage.uniqueIdsFromSearch} pagamentos (aumente maxDetail no endpoint).`;
+        statusEl.textContent = `Amostra truncada: ${data.coverage.paymentsInReport}/${data.coverage.uniqueIdsFromSearch} pagamentos.`;
         statusEl.className = 'admin-status form-status warning';
       } else if (statusEl) {
-        statusEl.textContent = `Auditoria concluída · ${data.coverage?.paymentsFetchedFull || 0} pagamentos · ${data.auditAt || ''}`;
+        statusEl.textContent = `Auditoria concluída · ${data.coverage?.paymentsInReport || 0} pagamentos · ${data.subrequests?.used || '?'} subrequests · ${data.auditAt || ''}`;
         statusEl.className = 'admin-status form-status success';
       }
     } catch (err) {

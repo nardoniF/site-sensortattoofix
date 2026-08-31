@@ -1,10 +1,32 @@
 /**
  * Auditoria transacional MP — "Dinheiro a liberar"
  * Endpoint debug/admin only. Não altera saldo exibido em produção.
+ *
+ * Cloudflare Workers: ~50 subrequests/invocação. Usamos só /search (+ users/me);
+ * detalhe GET /payments/{id} só quando o resumo da busca não traz net_received.
  */
+
+const MP_AUDIT_SUBREQUEST_BUDGET = 46;
 
 function roundMoney(n) {
   return Math.round(Number(n || 0) * 100) / 100;
+}
+
+function createSubrequestTracker(budget = MP_AUDIT_SUBREQUEST_BUDGET) {
+  let used = 0;
+  return {
+    used: () => used,
+    remaining: () => Math.max(0, budget - used),
+    fetch: async (url, init) => {
+      if (used >= budget) {
+        const err = new Error(`Subrequest budget exhausted (${budget})`);
+        err.code = 'SUBREQUEST_BUDGET';
+        throw err;
+      }
+      used += 1;
+      return fetch(url, init);
+    }
+  };
 }
 
 function parseMpDateMs(raw) {
@@ -15,9 +37,9 @@ function parseMpDateMs(raw) {
   return Number.isFinite(ms) ? ms : null;
 }
 
-async function mpSearchPayments(token, params, offset = 0, limit = 100) {
+async function mpSearchPayments(tracker, token, params, offset = 0, limit = 100) {
   const qs = new URLSearchParams({ ...params, offset: String(offset), limit: String(limit) });
-  const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${qs}`, {
+  const res = await tracker.fetch(`https://api.mercadopago.com/v1/payments/search?${qs}`, {
     headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
   });
   const data = await res.json().catch(() => ({}));
@@ -32,8 +54,8 @@ async function mpSearchPayments(token, params, offset = 0, limit = 100) {
   };
 }
 
-async function mpFetchPayment(token, paymentId) {
-  const res = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(String(paymentId))}`, {
+async function mpFetchPayment(tracker, token, paymentId) {
+  const res = await tracker.fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(String(paymentId))}`, {
     headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
   });
   const data = await res.json().catch(() => ({}));
@@ -157,8 +179,8 @@ const AUDIT_SEARCHES = [
   }
 ];
 
-async function collectPaymentIndex(token, opts = {}) {
-  const maxPagesPerSearch = Number(opts.maxPagesPerSearch) || 5;
+async function collectPaymentIndex(tracker, token, opts = {}) {
+  const maxPagesPerSearch = Number(opts.maxPagesPerSearch) || 3;
   const pageLimit = Number(opts.pageLimit) || 100;
   const index = new Map();
   const searchStats = [];
@@ -171,7 +193,11 @@ async function collectPaymentIndex(token, opts = {}) {
     let lastError = null;
 
     while (pages < maxPagesPerSearch) {
-      const page = await mpSearchPayments(token, spec.params, offset, pageLimit);
+      if (tracker.remaining() < 2) {
+        lastError = lastError || 'Subrequest budget exhausted during search';
+        break;
+      }
+      const page = await mpSearchPayments(tracker, token, spec.params, offset, pageLimit);
       pages += 1;
       if (!page.ok) {
         lastError = page.error;
@@ -367,14 +393,14 @@ function buildExcessAnalysis(rows, target, productionRuleId = 'prod_current') {
   };
 }
 
-async function fetchOfficialBalance(token, userId) {
+async function fetchOfficialBalance(tracker, token, userId) {
   const urls = [
-    `https://api.mercadopago.com/users/${encodeURIComponent(userId)}/mercadopago_account/balance`,
-    'https://api.mercadopago.com/users/me/mercadopago_account/balance'
+    `https://api.mercadopago.com/users/${encodeURIComponent(userId)}/mercadopago_account/balance`
   ];
   for (const url of urls) {
+    if (tracker.remaining() < 1) break;
     try {
-      const res = await fetch(url, {
+      const res = await tracker.fetch(url, {
         headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
       });
       const data = await res.json().catch(() => ({}));
@@ -406,23 +432,44 @@ export async function runMpReleaseAudit(env, opts) {
   const token = opts.token;
   const collectorId = opts.collectorId || null;
   const target = Number(opts.target) > 0 ? Number(opts.target) : 766.6;
-  const maxDetailFetches = Number(opts.maxDetailFetches) > 0 ? Number(opts.maxDetailFetches) : 300;
-  const maxPagesPerSearch = Number(opts.maxPagesPerSearch) > 0 ? Number(opts.maxPagesPerSearch) : 5;
+  const maxDetailFetches = Number(opts.maxDetailFetches) >= 0 ? Number(opts.maxDetailFetches) : 0;
+  const maxPagesPerSearch = Number(opts.maxPagesPerSearch) > 0 ? Number(opts.maxPagesPerSearch) : 3;
+  const includeBalance = opts.includeBalance === true;
   const nowMs = Date.now();
+  const tracker = opts.tracker || createSubrequestTracker();
 
-  const { index, searchStats } = await collectPaymentIndex(token, { maxPagesPerSearch });
+  const { index, searchStats } = await collectPaymentIndex(tracker, token, { maxPagesPerSearch });
   const ids = [...index.keys()];
   const payments = [];
   const fetchErrors = [];
   let detailFetches = 0;
+  let usedSearchSummaries = 0;
 
   for (const id of ids) {
-    if (detailFetches >= maxDetailFetches) break;
-    detailFetches += 1;
     const hit = index.get(id);
-    const full = await mpFetchPayment(token, id);
+    const summary = hit?.summary;
+    if (summary && mpPaymentNetAmountStrict(summary) != null) {
+      usedSearchSummaries += 1;
+      payments.push(extractAuditPayment(summary, {
+        collectorId,
+        nowMs,
+        foundInSearches: hit?.searchHits || []
+      }));
+      continue;
+    }
+    if (detailFetches >= maxDetailFetches || tracker.remaining() < 1) continue;
+    detailFetches += 1;
+    const full = await mpFetchPayment(tracker, token, id);
     if (!full.ok || !full.payment) {
       fetchErrors.push({ id, error: full.error || 'fetch failed' });
+      if (summary) {
+        usedSearchSummaries += 1;
+        payments.push(extractAuditPayment(summary, {
+          collectorId,
+          nowMs,
+          foundInSearches: hit?.searchHits || []
+        }));
+      }
       continue;
     }
     payments.push(extractAuditPayment(full.payment, {
@@ -434,7 +481,9 @@ export async function runMpReleaseAudit(env, opts) {
 
   const buckets = computeBuckets(payments);
   const analysis = buildExcessAnalysis(payments, target);
-  const official = collectorId ? await fetchOfficialBalance(token, collectorId) : { ok: false };
+  const official = includeBalance && collectorId
+    ? await fetchOfficialBalance(tracker, token, collectorId)
+    : { ok: false, skipped: true, error: 'omitido (economia de subrequests)' };
 
   return {
     ok: true,
@@ -443,9 +492,15 @@ export async function runMpReleaseAudit(env, opts) {
     collectorId,
     officialBalance: official,
     searchStats,
+    subrequests: {
+      budget: MP_AUDIT_SUBREQUEST_BUDGET,
+      used: tracker.used(),
+      remaining: tracker.remaining()
+    },
     coverage: {
       uniqueIdsFromSearch: ids.length,
-      paymentsFetchedFull: payments.length,
+      paymentsInReport: payments.length,
+      usedSearchSummaries,
       detailFetches,
       maxDetailFetches,
       truncated: ids.length > payments.length,
@@ -469,13 +524,15 @@ export async function handleAdminMpReleaseAudit(request, env, origin, helpers) {
 
   const url = new URL(request.url);
   const target = Number(url.searchParams.get('target') || '766.6');
-  const maxDetail = Number(url.searchParams.get('maxDetail') || '300');
-  const maxPages = Number(url.searchParams.get('maxPages') || '5');
+  const maxDetail = Number(url.searchParams.get('maxDetail') || '0');
+  const maxPages = Number(url.searchParams.get('maxPages') || '3');
   const includePayments = url.searchParams.get('includePayments') !== '0';
+  const includeBalance = url.searchParams.get('includeBalance') === '1';
 
   let collectorId = url.searchParams.get('collectorId');
+  const tracker = createSubrequestTracker();
   if (!collectorId) {
-    const meRes = await fetch('https://api.mercadopago.com/users/me', {
+    const meRes = await tracker.fetch('https://api.mercadopago.com/users/me', {
       headers: { Authorization: 'Bearer ' + token }
     });
     const me = await meRes.json().catch(() => ({}));
@@ -488,7 +545,9 @@ export async function handleAdminMpReleaseAudit(request, env, origin, helpers) {
       collectorId,
       target,
       maxDetailFetches: maxDetail,
-      maxPagesPerSearch: maxPages
+      maxPagesPerSearch: maxPages,
+      includeBalance,
+      tracker
     });
     if (!includePayments) {
       const { payments, ...rest } = report;
