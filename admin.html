@@ -769,6 +769,42 @@
                             <p class="admin-meta">Faça login na API para carregar os saldos.</p>
                         </div>
                         <div id="payment-balances-summary" class="admin-payment-balances-summary" hidden></div>
+                        <details class="admin-fold" id="mp-release-audit-fold" data-fold-key="mp-release-audit">
+                            <summary class="admin-fold-summary">
+                                <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+                                <span class="admin-fold-title">Auditoria MP — Dinheiro a liberar (debug)</span>
+                                <span class="admin-fold-hint">não altera produção</span>
+                            </summary>
+                            <div class="admin-fold-body">
+                                <p class="admin-meta">Compara pagamentos reais da API MP com o app oficial. Alvo padrão: R$ 766,60. Mostra quais entram no cálculo atual (~R$ 944,92) e quais regras se aproximam do app.</p>
+                                <div class="admin-form-actions" style="margin-bottom:8px">
+                                    <label>Alvo app (R$)
+                                        <input type="number" id="mp-audit-target" min="0" step="0.01" value="766.60" style="max-width:120px">
+                                    </label>
+                                    <button type="button" id="btn-mp-release-audit" class="btn-secondary"><i class="fas fa-search-dollar"></i> Rodar auditoria</button>
+                                </div>
+                                <p id="mp-audit-status" class="admin-meta" hidden></p>
+                                <div id="mp-audit-summary" class="admin-meta"></div>
+                                <div id="mp-audit-excess" class="admin-meta"></div>
+                                <div id="mp-audit-table-wrap" class="admin-table-scroll" hidden>
+                                    <table class="admin-table admin-table-compact" id="mp-audit-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Status</th>
+                                                <th>Release st.</th>
+                                                <th>Release date</th>
+                                                <th>Bruto</th>
+                                                <th>Líquido</th>
+                                                <th>Prod.</th>
+                                                <th>Refund</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="mp-audit-tbody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </details>
                     </fieldset>
                     </div>
 
@@ -1306,6 +1342,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=209"></script>
+    <script defer src="js/admin.js?v=210"></script>
 </body>
 </html>

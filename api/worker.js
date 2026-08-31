@@ -43,6 +43,7 @@ import {
   shopeeOrderIncome,
   shopeeReceiptFromEscrow
 } from './shopee-settlement.js';
+import { handleAdminMpReleaseAudit } from './mp-release-audit.js';
 import {
   summarizeAmzFinancialEvents,
   amzRound2
@@ -17235,6 +17236,14 @@ export default {
       }
       if (path === '/admin/integrations-status' && request.method === 'GET') {
         return handleAdminIntegrationsStatus(request, env, origin);
+      }
+      if (path === '/admin/mp/release-audit' && request.method === 'GET') {
+        return handleAdminMpReleaseAudit(request, env, origin, {
+          isValidSession,
+          bearerToken,
+          json,
+          mercadoPagoToken
+        });
       }
       if (path === '/admin/correios-contract' && request.method === 'GET') {
         return handleAdminCorreiosContract(request, env, origin);

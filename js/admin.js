@@ -2796,6 +2796,116 @@ ${worksheets}
     }
   }
 
+  function formatAuditMoney(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return '—';
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  async function runMpReleaseAudit() {
+    const statusEl = document.getElementById('mp-audit-status');
+    const summaryEl = document.getElementById('mp-audit-summary');
+    const excessEl = document.getElementById('mp-audit-excess');
+    const wrap = document.getElementById('mp-audit-table-wrap');
+    const tbody = document.getElementById('mp-audit-tbody');
+    const btn = document.getElementById('btn-mp-release-audit');
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      if (statusEl) {
+        statusEl.textContent = 'Faça login na API.';
+        statusEl.className = 'admin-status form-status error';
+        statusEl.hidden = false;
+      }
+      return;
+    }
+    const target = Number(document.getElementById('mp-audit-target')?.value || '766.6');
+    if (btn) btn.disabled = true;
+    if (statusEl) {
+      statusEl.textContent = 'Buscando pagamentos na API MP (pode levar 1–2 min)…';
+      statusEl.className = 'admin-status form-status';
+      statusEl.hidden = false;
+    }
+    if (summaryEl) summaryEl.innerHTML = '';
+    if (excessEl) excessEl.innerHTML = '';
+    if (wrap) wrap.hidden = true;
+    if (tbody) tbody.innerHTML = '';
+
+    try {
+      const qs = new URLSearchParams({
+        target: String(target),
+        maxDetail: '300',
+        maxPages: '5',
+        includePayments: '1'
+      });
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/mp/release-audit?${qs}`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha na auditoria');
+
+      const b = data.buckets || {};
+      const a = data.analysis || {};
+      const prod = b.F_production_current_algorithm || {};
+      const best = a.bestRule || {};
+      const official = data.officialBalance || {};
+
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+          <p><strong>Alvo app:</strong> ${formatAuditMoney(data.targetAppOficial)} ·
+          <strong>Produção atual:</strong> ${formatAuditMoney(prod.total)} (${prod.count || 0} pag.) ·
+          <strong>Δ:</strong> ${formatAuditMoney(a.productionDeltaVsTarget)}</p>
+          <p><strong>API /balance unavailable:</strong> ${official.ok ? formatAuditMoney(official.unavailable_balance) : escAttr(official.error || 'indisponível')}</p>
+          <p><strong>Regra mais próxima:</strong> ${escAttr(best.label || '—')} → ${formatAuditMoney(best.total)} (Δ ${formatAuditMoney(best.deltaVsTarget)})</p>
+          <ul>${Object.entries(b).map(([k, v]) => `<li><code>${escAttr(k)}</code>: ${formatAuditMoney(v.total)} (${v.count || 0})</li>`).join('')}</ul>`;
+      }
+
+      const excess = a.excessInProduction || [];
+      if (excessEl) {
+        if (!excess.length) {
+          excessEl.innerHTML = '<p><strong>Excesso vs melhor regra:</strong> nenhum pagamento identificado (ou amostra truncada).</p>';
+        } else {
+          excessEl.innerHTML = `<p><strong>Entram na produção (${formatAuditMoney(a.productionTotal)}) mas NÃO na regra ${escAttr(best.id || '')} — soma ${formatAuditMoney(a.excessInProductionSum)}:</strong></p>
+            <ul>${excess.map((r) => `<li>#${escAttr(r.id)} · líq. ${formatAuditMoney(r.net_received_amount)} · release ${escAttr(r.money_release_date || '—')} · ${escAttr(r.money_release_status || '—')}${r.money_release_future ? ' · futuro' : ' · passado'}</li>`).join('')}</ul>`;
+        }
+      }
+
+      const rows = (data.payments || []).slice().sort((x, y) => {
+        if (x.inProductionPendingSum !== y.inProductionPendingSum) return x.inProductionPendingSum ? -1 : 1;
+        return Number(y.net_received_amount || 0) - Number(x.net_received_amount || 0);
+      });
+      if (tbody && wrap) {
+        tbody.innerHTML = rows.map((r) => `<tr class="${r.inProductionPendingSum ? 'mp-audit-prod' : ''}">
+          <td><code>${escAttr(r.id)}</code></td>
+          <td>${escAttr(r.status)}</td>
+          <td>${escAttr(r.money_release_status || '—')}</td>
+          <td>${escAttr(r.money_release_date ? new Date(r.money_release_date).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—')}</td>
+          <td>${formatAuditMoney(r.transaction_amount)}</td>
+          <td>${formatAuditMoney(r.net_received_amount)}</td>
+          <td>${r.inProductionPendingSum ? 'sim' : '—'}</td>
+          <td>${Number(r.transaction_amount_refunded) > 0 ? formatAuditMoney(r.transaction_amount_refunded) : '—'}</td>
+        </tr>`).join('');
+        wrap.hidden = !rows.length;
+      }
+
+      if (data.coverage?.truncated && statusEl) {
+        statusEl.textContent = `Amostra truncada: ${data.coverage.paymentsFetchedFull}/${data.coverage.uniqueIdsFromSearch} pagamentos (aumente maxDetail no endpoint).`;
+        statusEl.className = 'admin-status form-status warning';
+      } else if (statusEl) {
+        statusEl.textContent = `Auditoria concluída · ${data.coverage?.paymentsFetchedFull || 0} pagamentos · ${data.auditAt || ''}`;
+        statusEl.className = 'admin-status form-status success';
+      }
+    } catch (err) {
+      if (statusEl) {
+        statusEl.textContent = err.message || 'Erro na auditoria';
+        statusEl.className = 'admin-status form-status error';
+      }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   let paymentBalancesLoading = false;
 
   async function loadPaymentBalances(force) {
@@ -7707,6 +7817,7 @@ ${worksheets}
   });
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));
+  document.getElementById('btn-mp-release-audit')?.addEventListener('click', () => runMpReleaseAudit());
 
   document.addEventListener('DOMContentLoaded', async () => {
     await waitSalesMoney();
