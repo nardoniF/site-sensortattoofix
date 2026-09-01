@@ -37,6 +37,26 @@ function parseMpDateMs(raw) {
   return Number.isFinite(ms) ? ms : null;
 }
 
+function mpStartOfTodayBrtMs(nowMs = Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date(nowMs));
+  const y = Number(parts.find((p) => p.type === 'year')?.value);
+  const m = Number(parts.find((p) => p.type === 'month')?.value);
+  const d = Number(parts.find((p) => p.type === 'day')?.value);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return nowMs;
+  return Date.UTC(y, m - 1, d, 3, 0, 0, 0);
+}
+
+function mpPaymentApprovedTodayBrt(payment, nowMs = Date.now()) {
+  const approvedMs = parseMpDateMs(payment?.date_approved);
+  if (approvedMs == null) return false;
+  return approvedMs >= mpStartOfTodayBrtMs(nowMs);
+}
+
 async function mpSearchPayments(tracker, token, params, offset = 0, limit = 100) {
   const qs = new URLSearchParams({ ...params, offset: String(offset), limit: String(limit) });
   const res = await tracker.fetch(`https://api.mercadopago.com/v1/payments/search?${qs}`, {
@@ -109,6 +129,7 @@ function extractAuditPayment(payment, meta = {}) {
     transaction_details: td,
     money_release_future: releaseMs != null && releaseMs > nowMs,
     money_release_past_or_now: releaseMs != null && releaseMs <= nowMs,
+    approved_today_brt: mpPaymentApprovedTodayBrt(payment, nowMs),
     inProductionPendingSum: mpPaymentIsPendingRelease(payment, collectorId) && net != null,
     productionPendingNet: mpPaymentIsPendingRelease(payment, collectorId) && net != null ? roundMoney(net) : 0,
     foundInSearches: meta.foundInSearches || [],
@@ -284,6 +305,18 @@ function computeBuckets(rows) {
     L_sum_net_with_refunds_excluded: sumRows(
       rows.filter((r) => r.inProductionPendingSum && !(Number(r.transaction_amount_refunded) > 0)),
       (r) => r.productionPendingNet
+    ),
+    M_sum_net_pending_future_excl_today_brt: sumRows(
+      approved.filter((r) => String(r.money_release_status).toLowerCase() === 'pending'
+        && r.money_release_future
+        && !r.approved_today_brt),
+      (r) => r.net_received_amount
+    ),
+    N_sum_net_pending_future_today_brt_only: sumRows(
+      approved.filter((r) => String(r.money_release_status).toLowerCase() === 'pending'
+        && r.money_release_future
+        && r.approved_today_brt),
+      (r) => r.net_received_amount
     )
   };
 }
@@ -308,6 +341,10 @@ const CANDIDATE_RULES = [
   {
     id: 'approved_pending_past_release',
     label: 'approved + pending + money_release_date passado + net>0'
+  },
+  {
+    id: 'approved_pending_future_excl_today_brt',
+    label: 'produção: futuro + net>0, exceto aprovados hoje (BRT) — alinha com app MP'
   }
 ];
 
@@ -331,6 +368,13 @@ function ruleMatches(ruleId, row) {
         && String(row.money_release_status).toLowerCase() === 'pending'
         && row.money_release_past_or_now
         && row.net_received_amount > 0;
+    case 'approved_pending_future_excl_today_brt':
+      return String(row.status).toLowerCase() === 'approved'
+        && String(row.money_release_status).toLowerCase() === 'pending'
+        && row.money_release_future
+        && !row.approved_today_brt
+        && row.net_received_amount > 0
+        && !(Number(row.transaction_amount_refunded) > 0);
     default:
       return false;
   }
