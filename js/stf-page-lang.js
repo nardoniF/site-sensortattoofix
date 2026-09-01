@@ -26,6 +26,8 @@ window.STF_PAGE_LANG = (function () {
       const fromI18n = window.STF_I18N?.getLang?.();
       if (fromI18n && LANGS.includes(fromI18n)) return fromI18n;
     } catch (_) { /* ignore */ }
+    // Prefixo /es/, /de/, etc. tem prioridade sobre <html lang> (evita PT errado no scaffold)
+    if (INTL_PATH_RE.test(location.pathname)) return fromPath();
     const html = String(document.documentElement.lang || '').slice(0, 2).toLowerCase();
     if (LANGS.includes(html)) return html;
     return fromPath();

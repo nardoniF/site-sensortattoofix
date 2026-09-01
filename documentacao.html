@@ -36,10 +36,11 @@
             <article id="doc-content" class="admin-card admin-doc" hidden>
                 <h1><i class="fas fa-book"></i> Manual de operação</h1>
                 <p class="admin-meta">Sensor Tattoo Fix · 3N20 Soluções Tecnológicas LTDA · CNPJ 29.321.223/0001-32</p>
-                <p class="admin-doc-updated">Última atualização: agosto/2026</p>
+                <p class="admin-doc-updated">Última atualização: setembro/2026</p>
 
                 <nav class="admin-doc-toc" aria-label="Índice">
                     <a href="#site">Site e painéis</a>
+                    <a href="#i18n">Idiomas do site</a>
                     <a href="#api">API (Worker)</a>
                     <a href="#integracoes">Painéis das integrações</a>
                     <a href="#secrets">Secrets no Cloudflare</a>
@@ -74,6 +75,25 @@
                         </tbody>
                     </table>
                     <p class="admin-meta">Login admin/pedidos: usuário <code>admin</code> + senha definida no secret <code>ADMIN_PASSWORD</code> do Worker.</p>
+                </section>
+
+                <section id="i18n" class="admin-doc-section">
+                    <h2>Idiomas do site (PT / EN / IT / DE / ES / PL)</h2>
+                    <p>O site público tem <strong>seis</strong> frentes. Alterações visíveis no PT devem ser replicadas nas outras línguas na mesma tarefa quando aplicável.</p>
+                    <table class="admin-doc-table">
+                        <thead><tr><th>Área</th><th>PT</th><th>EN / IT</th><th>DE / ES / PL</th></tr></thead>
+                        <tbody>
+                            <tr><td>Home</td><td><code>index.html</code></td><td><code>en/</code>, <code>it/</code></td><td><code>de/</code>, <code>es/</code>, <code>pl/</code> — FAQ/elogios em <code>data/home-content-l10n.json</code></td></tr>
+                            <tr><td>Loja / checkout</td><td><code>loja.html</code>, <code>comprar.html</code></td><td><code>?lang=en|it</code></td><td><code>de|es|pl/loja.html</code> — overrides em <code>js/stf-i18n-{de,es,pl}-overrides.js</code></td></tr>
+                            <tr><td>Footer / feedback</td><td>PT nativo</td><td><code>site-footer.js</code>, <code>site-feedback.js</code></td><td>mesmos scripts (objetos <code>de</code>/<code>es</code>/<code>pl</code>)</td></tr>
+                            <tr><td>Comunidade</td><td><code>comunidade.html</code></td><td>EN/IT em <code>forum.js</code></td><td><code>data/forum-l10n.json</code></td></tr>
+                            <tr><td>Seletor de idioma</td><td colspan="3"><code>js/stf-lang-nav.js</code> — menu compacto nas 6 línguas</td></tr>
+                            <tr><td>Detecção de mercado</td><td colspan="3"><code>catalogMarket()</code> em <code>js/stf-site.js</code> — <code>/en|it|de|es|pl/</code> → catálogo internacional</td></tr>
+                        </tbody>
+                    </table>
+                    <p><strong>Manuais de instalação:</strong> PDF/HTML em <code>docs/manuais/</code> estão apenas em <strong>português</strong> (produto enviado no Brasil). Carta de agradecimento internacional: <code>docs/cartas/carta-agradecimento-intl.html</code> (inglês). Não há versão DE/ES/PL dos manuais — o link no rodapé aponta para o mesmo PDF em todos os idiomas.</p>
+                    <p><strong>Testes automáticos:</strong> <code>node --test api/i18n-site.test.js</code> (bundles, overrides, FAQ/elogios, <code>catalogMarket</code>). <strong>Auditoria:</strong> <code>node scripts/audit-i18n-shell.mjs</code> (scripts obrigatórios nas pastas de idioma; avisa HTML estático EN e manuais só PT).</p>
+                    <p>Páginas internas (<code>admin.html</code>, <code>pedidos.html</code>, <code>documentacao.html</code>) permanecem só em português.</p>
                 </section>
 
                 <section id="api" class="admin-doc-section">
@@ -399,8 +419,12 @@ node --test *.test.js</code></pre>
                             <tr><td><code>api/commissioner-banners.test.js</code></td><td>Anexos de story para comissionados</td></tr>
                             <tr><td><code>api/front-scripts.test.js</code></td><td>PIX EMV, origem de tráfego, compatibilidade de película</td></tr>
                             <tr><td><code>api/clicks-retention.test.js</code></td><td>Janela de 6 meses de cliques (calendário SP)</td></tr>
+                            <tr><td><code>api/i18n-site.test.js</code></td><td>i18n: <code>STF_PAGE_LANG</code>, <code>catalogMarket</code>, overrides DE/ES/PL, FAQ/elogios, bundle HTML</td></tr>
                         </tbody>
                     </table>
+                    <h3>Auditoria i18n (shell HTML)</h3>
+                    <pre class="admin-doc-pre"><code>node scripts/audit-i18n-shell.mjs</code></pre>
+                    <p>Verifica scripts obrigatórios em <code>de/</code>, <code>es/</code>, <code>pl/</code> e emite avisos sobre HTML estático em inglês (substituído em runtime pelo JS).</p>
                     <h3>CI / deploy</h3>
                     <p>Os testes não estão integrados ao deploy automático ainda. Rodar manualmente antes de cada deploy: <code>node --test *.test.js</code> deve terminar com <strong>0 fail</strong>.</p>
                 </section>
