@@ -163,15 +163,12 @@
   /** Never mix INT (.com) products into BR (.com.br) — and vice versa. */
   function filterStorefront(all) {
     if (window.STF_PELICULA?.listStorefront) return window.STF_PELICULA.listStorefront(all);
+    const market = window.STF_SITE?.catalogMarket?.() || window.STF_PAGE_LANG?.catalogMarket?.() || 'BR';
     if (window.STF_SITE?.filterProductsForMarket) {
-      return window.STF_SITE.filterProductsForMarket(all)
+      return window.STF_SITE.filterProductsForMarket(all, market)
         .filter((p) => p.active !== false && p.inStock !== false && p.aggregated !== true);
     }
-    const host = String(location.hostname || '').toLowerCase();
-    const path = String(location.pathname || '');
-    const isIntl = ((host === 'sensortattoofix.com' || host === 'www.sensortattoofix.com')
-      || path.includes('/en/') || path.includes('/it/'))
-      && !host.endsWith('.com.br');
+    const isIntl = market === 'INT';
     return (all || []).filter((p) => {
       if (p.active === false || p.inStock === false || p.aggregated === true) return false;
       const markets = Array.isArray(p.markets)

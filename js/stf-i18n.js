@@ -841,7 +841,10 @@ window.STF_I18N = (function () {
   function t(key, vars) {
     const lang = getLang();
     ensureExtraStrings();
-    let s = STRINGS[lang]?.[key] ?? STRINGS.pt[key] ?? key;
+    let s = STRINGS[lang]?.[key];
+    if (!s && ['de', 'es', 'pl'].includes(lang)) s = STRINGS.en?.[key];
+    if (!s && lang === 'it') s = STRINGS.en?.[key];
+    if (!s) s = STRINGS.pt[key] ?? key;
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
         s = s.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
@@ -995,6 +998,34 @@ window.STF_I18N = (function () {
 
   function comprarPageHref() {
     return pageHref('comprar');
+  }
+
+  function applyShellDom() {
+    if (!isLocalized()) return;
+    applyText('.logo-tagline', 'brand.tagline');
+    const cartLink = document.querySelector('.cart-nav-link');
+    if (cartLink) {
+      const badge = cartLink.querySelector('[data-cart-badge]');
+      const count = badge ? badge.textContent : '0';
+      const hidden = badge ? badge.hidden : true;
+      cartLink.href = comprarPageHref();
+      cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} <span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
+      window.STF_CART?.initBadges?.();
+    }
+    const shopLink = document.querySelector('.checkout-nav a[href*="loja"]:not(.cart-nav-link)');
+    if (shopLink) {
+      shopLink.href = lojaHref();
+      shopLink.innerHTML = `<i class="fas fa-store"></i> ${t('store.title')}`;
+    }
+    const backLink = document.querySelector('.checkout-nav a[href*="index"]:not([href*="#"])');
+    if (backLink) {
+      backLink.href = pageHref('index');
+      backLink.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.home')}`;
+    }
+    const footer = document.querySelector('[data-site-footer]');
+    if (footer) footer.dataset.lang = getLang();
+    if (typeof window.STF_FOOTER?.refreshAll === 'function') window.STF_FOOTER.refreshAll();
+    if (window.STF_ACCOUNT?.initNav) window.STF_ACCOUNT.initNav();
   }
 
   function applyCheckoutDom() {
@@ -1309,7 +1340,8 @@ window.STF_I18N = (function () {
     if (document.body?.classList.contains('checkout-page')) applyCheckoutDom();
     if (document.body?.classList.contains('loja-page')) applyLojaDom();
     if (document.body?.classList.contains('conta-page')) applyContaDom();
-    if (window.STF_ACCOUNT?.initNav) window.STF_ACCOUNT.initNav();
+    if (document.body?.classList.contains('forum-page')) applyShellDom();
+    if (window.STF_ACCOUNT?.initNav && !document.body?.classList.contains('forum-page')) window.STF_ACCOUNT.initNav();
   }
 
   if (document.readyState === 'loading') {
@@ -1318,9 +1350,17 @@ window.STF_I18N = (function () {
     init();
   }
 
+  window.addEventListener('stf-config-ready', () => {
+    ensureExtraStrings();
+    if (document.body?.classList.contains('checkout-page')) applyCheckoutDom();
+    if (document.body?.classList.contains('loja-page')) applyLojaDom();
+    if (document.body?.classList.contains('conta-page')) applyContaDom();
+    if (document.body?.classList.contains('forum-page')) applyShellDom();
+  });
+
   return {
     t, getLang, isEn, isIt, isDe, isEs, isPl, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
-    applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom,
+    applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom, applyShellDom,
     langQuery, lojaHref, STRINGS
   };
 })();

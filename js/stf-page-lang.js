@@ -3,6 +3,8 @@
  */
 window.STF_PAGE_LANG = (function () {
   const LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl'];
+  const INTL_PATH_LANGS = ['en', 'it', 'de', 'es', 'pl'];
+  const INTL_PATH_RE = /^\/(en|it|de|es|pl)(\/|$)/;
 
   function isComHost() {
     const h = String(location.hostname || '').toLowerCase();
@@ -29,5 +31,17 @@ window.STF_PAGE_LANG = (function () {
     return fromPath();
   }
 
-  return { get, LANGS, isComHost, fromPath };
+  function isIntlPath(path) {
+    const p = path || location.pathname;
+    return INTL_PATH_RE.test(p);
+  }
+
+  /** Catálogo INT (.com / lente internacional) vs BR (kit nacional). */
+  function catalogMarket() {
+    if (isComHost()) return 'INT';
+    if (isIntlPath()) return 'INT';
+    return 'BR';
+  }
+
+  return { get, LANGS, INTL_PATH_LANGS, isComHost, fromPath, isIntlPath, catalogMarket };
 })();

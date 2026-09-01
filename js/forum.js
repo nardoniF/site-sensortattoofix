@@ -169,6 +169,24 @@
     }
   };
 
+  let forumL10nReady = false;
+
+  async function ensureForumL10n() {
+    const code = lang();
+    if (!['de', 'es', 'pl'].includes(code) || STRINGS[code]) {
+      forumL10nReady = true;
+      return;
+    }
+    try {
+      const res = await fetch('/data/forum-l10n.json?v=1', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data[code]) STRINGS[code] = Object.assign({}, STRINGS.en, data[code]);
+      }
+    } catch (_) { /* ignore */ }
+    forumL10nReady = true;
+  }
+
   function lang() {
     if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
     return window.STF_I18N?.getLang?.() || 'pt';
@@ -895,6 +913,11 @@
   }
 
   async function boot() {
+    await ensureForumL10n();
+    window.STF_I18N?.applyShellDom?.();
+    if (window.STF_I18N?.t) {
+      document.title = `${ft('title')} (beta) | Sensor Tattoo Fix`;
+    }
     const loading = el('forum-root');
     if (loading && loading.querySelector('.fa-spinner')) {
       loading.innerHTML = `<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> ${escapeHtml(ft('loading'))}</p>`;

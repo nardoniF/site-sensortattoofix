@@ -90,11 +90,9 @@ window.STF_PELICULA = (function () {
   }
 
   function listStorefront(products) {
-    const host = String(location.hostname || '').toLowerCase();
-    const path = String(location.pathname || '');
-    const intlHost = host === 'sensortattoofix.com' || host === 'www.sensortattoofix.com';
     const market = window.STF_SITE?.catalogMarket?.()
-      || ((intlHost || path.includes('/en/') || path.includes('/it/')) ? 'INT' : 'BR');
+      || window.STF_PAGE_LANG?.catalogMarket?.()
+      || 'BR';
     return (products || []).filter((p) => {
       if (p.active === false || p.inStock === false || isAggregated(p)) return false;
       if (window.STF_SITE?.productVisibleOnMarket) {

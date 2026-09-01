@@ -43,21 +43,19 @@ window.STF_MONEY = (function () {
   }
 
   function visitorCountry() {
-    if (isIntlHost()) {
-      const path = typeof location !== 'undefined' ? location.pathname : '';
-      if (path.includes('/it/')) return 'IT';
-      return 'US';
-    }
     const path = typeof location !== 'undefined' ? location.pathname : '';
     if (path.includes('/it/')) return 'IT';
-    if (path.includes('/en/')) return 'US';
+    if (path.includes('/de/')) return 'DE';
+    if (path.includes('/es/')) return 'ES';
+    if (path.includes('/pl/')) return 'PL';
+    if (isIntlHost() || path.includes('/en/')) return 'US';
     return 'BR';
   }
 
   function isVisitorLocalized() {
     if (isIntlHost()) return true;
     const path = typeof location !== 'undefined' ? location.pathname : '';
-    return path.includes('/en/') || path.includes('/it/');
+    return /^\/(en|it|de|es|pl)(\/|$)/.test(path);
   }
 
   function formatBRL(n) {
