@@ -18329,6 +18329,14 @@ export default {
     }
     if (event.cron === '30 2 * * *') {
       ctx.waitUntil(
+        syncIntlProductPricesFromFx(env).catch((err) => {
+          console.error('Intl FX price sync cron failed:', err.message);
+        })
+      );
+    }
+    // 02:59 UTC = 23:59 horário de Brasília — último dia do mês
+    if (event.cron === '59 2 * * *') {
+      ctx.waitUntil(
         runScheduledMonthlyReportIfDue(env).catch((err) => {
           console.error('Monthly report cron failed:', err.message);
         })
@@ -18336,11 +18344,6 @@ export default {
       ctx.waitUntil(
         runScheduledMonthlySalesReportIfDue(env).catch((err) => {
           console.error('Monthly sales report cron failed:', err.message);
-        })
-      );
-      ctx.waitUntil(
-        syncIntlProductPricesFromFx(env).catch((err) => {
-          console.error('Intl FX price sync cron failed:', err.message);
         })
       );
     }
