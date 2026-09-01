@@ -17482,7 +17482,43 @@ function saleInReportMonth(sale, year, month) {
 }
 
 function emptySalesChannelRow(label) {
-  return { label, count: 0, gross: 0, net: 0, discountsCount: 0, discountsTotal: 0 };
+  return {
+    label,
+    count: 0,
+    gross: 0,
+    fees: 0,
+    shipping: 0,
+    refunds: 0,
+    otherFees: 0,
+    cogs: 0,
+    net: 0,
+    couponCount: 0,
+    couponTotal: 0
+  };
+}
+
+function addSalePartsToRow(row, parts) {
+  row.count += 1;
+  row.gross += parts.gross;
+  row.fees += parts.fees;
+  row.shipping += parts.shipping;
+  row.refunds += parts.refunds;
+  row.otherFees += parts.otherFees;
+  row.cogs += parts.cogs;
+  row.net += parts.net;
+}
+
+function finalizeSalesChannelRow(row) {
+  row.gross = roundReportMoney(row.gross);
+  row.fees = roundReportMoney(row.fees);
+  row.shipping = roundReportMoney(row.shipping);
+  row.refunds = roundReportMoney(row.refunds);
+  row.otherFees = roundReportMoney(row.otherFees);
+  row.cogs = roundReportMoney(row.cogs);
+  row.net = roundReportMoney(row.net);
+  row.couponTotal = roundReportMoney(row.couponTotal);
+  row.deductions = roundReportMoney(row.gross - row.net);
+  return row;
 }
 
 function roundReportMoney(n) {
@@ -17504,27 +17540,15 @@ async function aggregateMonthlySales(env, year, month) {
 
   for (const sale of mlSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    const parts = saleMoneyParts(sale, config);
-    const row = byChannel.mercadolivre;
-    row.count += 1;
-    row.gross += parts.gross;
-    row.net += parts.net;
+    addSalePartsToRow(byChannel.mercadolivre, saleMoneyParts(sale, config));
   }
   for (const sale of amzSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    const parts = saleMoneyParts(sale, config);
-    const row = byChannel.amazon;
-    row.count += 1;
-    row.gross += parts.gross;
-    row.net += parts.net;
+    addSalePartsToRow(byChannel.amazon, saleMoneyParts(sale, config));
   }
   for (const sale of shopeeSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    const parts = saleMoneyParts(sale, config);
-    const row = byChannel.shopee;
-    row.count += 1;
-    row.gross += parts.gross;
-    row.net += parts.net;
+    addSalePartsToRow(byChannel.shopee, saleMoneyParts(sale, config));
   }
   for (const order of storeOrders) {
     if (!isStorePaidOrder(order)) continue;
@@ -17532,30 +17556,28 @@ async function aggregateMonthlySales(env, year, month) {
     if (!paidAt || !isTsInSaoPauloMonth(paidAt, year, month)) continue;
     const sale = storeOrderToReportSale(order);
     const parts = saleMoneyParts(sale, config);
-    const disc = orderDiscountMeta(order);
     const row = byChannel.loja;
-    row.count += 1;
-    row.gross += parts.gross;
-    row.net += parts.net;
-    row.discountsCount += disc.count;
-    row.discountsTotal += disc.total;
+    addSalePartsToRow(row, parts);
+    const disc = orderDiscountMeta(order);
+    row.couponCount += disc.count;
+    row.couponTotal += disc.total;
   }
 
   const total = emptySalesChannelRow('Total');
   for (const ch of SALES_REPORT_CHANNELS) {
-    const row = byChannel[ch.key];
-    row.gross = roundReportMoney(row.gross);
-    row.net = roundReportMoney(row.net);
-    row.discountsTotal = roundReportMoney(row.discountsTotal);
+    const row = finalizeSalesChannelRow(byChannel[ch.key]);
     total.count += row.count;
     total.gross += row.gross;
+    total.fees += row.fees;
+    total.shipping += row.shipping;
+    total.refunds += row.refunds;
+    total.otherFees += row.otherFees;
+    total.cogs += row.cogs;
     total.net += row.net;
-    total.discountsCount += row.discountsCount;
-    total.discountsTotal += row.discountsTotal;
+    total.couponCount += row.couponCount;
+    total.couponTotal += row.couponTotal;
   }
-  total.gross = roundReportMoney(total.gross);
-  total.net = roundReportMoney(total.net);
-  total.discountsTotal = roundReportMoney(total.discountsTotal);
+  finalizeSalesChannelRow(total);
 
   return { byChannel, total };
 }
@@ -17573,55 +17595,111 @@ async function buildMonthlySalesReport(env, year, month) {
   };
 }
 
-function salesReportLineQty(byChannel, total) {
-  const parts = SALES_REPORT_CHANNELS.map((ch) => {
-    const row = byChannel[ch.key];
-    return `${ch.label}: ${row.count}`;
-  });
-  parts.push(`Total: ${total.count}`);
-  return parts.join(' · ');
-}
-
-function salesReportLineValues(byChannel) {
-  return SALES_REPORT_CHANNELS.map((ch) => {
-    const row = byChannel[ch.key];
-    return `${ch.label}: ${formatBRL(row.gross)} / ${formatBRL(row.net)}`;
-  }).join(' · ');
-}
-
-function salesReportLineDiscounts(byChannel, total) {
-  const parts = SALES_REPORT_CHANNELS
-    .filter((ch) => byChannel[ch.key].discountsCount > 0 || byChannel[ch.key].discountsTotal > 0)
-    .map((ch) => {
-      const row = byChannel[ch.key];
-      return `${ch.label}: ${row.discountsCount} (${formatBRL(row.discountsTotal)})`;
-    });
-  parts.push(`Total: ${total.discountsCount} (${formatBRL(total.discountsTotal)})`);
-  return parts.join(' · ');
+function salesReportTableRow(cells, { bold = false, header = false } = {}) {
+  const bg = header ? ' style="background:#f5f5f5"' : (bold ? ' style="background:#fafafa"' : '');
+  const weight = bold ? ' font-weight:700' : '';
+  const tds = cells.map((cell, i) => {
+    const align = i === 0 ? 'left' : 'right';
+    return `<td style="padding:8px;border:1px solid #ddd;text-align:${align}${weight}">${cell}</td>`;
+  }).join('');
+  return `<tr${bg}>${tds}</tr>`;
 }
 
 function buildMonthlySalesReportFields(report) {
   const { byChannel, total } = report.sales;
-  return {
-    Período: `${report.periodStart} a ${report.periodEnd} (horário de Brasília)`,
-    Quantidades: salesReportLineQty(byChannel, total),
-    'Valores (bruto / líquido)': salesReportLineValues(byChannel),
-    'Descontos (qtd / valor)': salesReportLineDiscounts(byChannel, total),
-    'Total bruto': formatBRL(total.gross),
-    'Total líquido': formatBRL(total.net)
+  const fields = {
+    Período: `${report.periodStart} a ${report.periodEnd} (horário de Brasília)`
   };
+  for (const ch of SALES_REPORT_CHANNELS) {
+    const row = byChannel[ch.key];
+    fields[`${ch.label} — vendas`] = String(row.count);
+    fields[`${ch.label} — bruto / líquido`] = `${formatBRL(row.gross)} / ${formatBRL(row.net)}`;
+    fields[`${ch.label} — comissão / frete / kit`] = `${formatBRL(row.fees)} / ${formatBRL(row.shipping)} / ${formatBRL(row.cogs)}`;
+  }
+  fields['Total — vendas'] = String(total.count);
+  fields['Total — bruto / líquido'] = `${formatBRL(total.gross)} / ${formatBRL(total.net)}`;
+  fields['Total — deduções (bruto − líquido)'] = formatBRL(total.deductions);
+  if (total.couponCount > 0) {
+    fields['Cupons de desconto (loja)'] = `${total.couponCount} pedido(s) — ${formatBRL(total.couponTotal)}`;
+  }
+  return fields;
 }
 
 function buildMonthlySalesReportHtml(report) {
   const { byChannel, total } = report.sales;
-  return `<div style="font-family:Arial,sans-serif;max-width:720px;color:#222">
+
+  const qtyRows = SALES_REPORT_CHANNELS.map((ch) => {
+    const row = byChannel[ch.key];
+    return salesReportTableRow([ch.label, String(row.count)]);
+  }).join('');
+  const qtyTotal = salesReportTableRow(['Total', String(total.count)], { bold: true });
+
+  const valueRows = SALES_REPORT_CHANNELS.map((ch) => {
+    const row = byChannel[ch.key];
+    return salesReportTableRow([ch.label, formatBRL(row.gross), formatBRL(row.net), formatBRL(row.deductions)]);
+  }).join('');
+  const valueTotal = salesReportTableRow([
+    'Total',
+    formatBRL(total.gross),
+    formatBRL(total.net),
+    formatBRL(total.deductions)
+  ], { bold: true });
+
+  const costRows = SALES_REPORT_CHANNELS.map((ch) => {
+    const row = byChannel[ch.key];
+    return salesReportTableRow([
+      ch.label,
+      formatBRL(row.fees),
+      formatBRL(row.shipping),
+      formatBRL(row.refunds + row.otherFees),
+      formatBRL(row.cogs),
+      formatBRL(row.deductions)
+    ]);
+  }).join('');
+  const costTotal = salesReportTableRow([
+    'Total',
+    formatBRL(total.fees),
+    formatBRL(total.shipping),
+    formatBRL(total.refunds + total.otherFees),
+    formatBRL(total.cogs),
+    formatBRL(total.deductions)
+  ], { bold: true });
+
+  const couponSection = total.couponCount > 0
+    ? `<h3 style="margin:24px 0 8px;font-size:16px">Cupons de desconto (loja)</h3>
+    <p style="margin:0 0 16px">Pedidos com cupom no mês: <strong>${total.couponCount}</strong> — desconto concedido ao cliente: <strong>${formatBRL(total.couponTotal)}</strong></p>`
+    : '';
+
+  return `<div style="font-family:Arial,sans-serif;max-width:640px;color:#222">
     <h2 style="margin:0 0 8px;color:#111">Relatório de vendas — ${report.label}</h2>
     <p style="margin:0 0 20px;color:#555">Período: ${report.periodStart} a ${report.periodEnd} (horário de Brasília)</p>
 
-    <p style="margin:0 0 12px"><strong>Quantidades:</strong> ${salesReportLineQty(byChannel, total)}</p>
-    <p style="margin:0 0 12px"><strong>Valores (bruto / líquido):</strong> ${salesReportLineValues(byChannel)}</p>
-    <p style="margin:0 0 12px"><strong>Descontos (qtd / valor):</strong> ${salesReportLineDiscounts(byChannel, total)}</p>
-    <p style="margin:0 0 24px"><strong>Consolidado:</strong> ${total.count} vendas · bruto ${formatBRL(total.gross)} · líquido ${formatBRL(total.net)}</p>
+    <h3 style="margin:24px 0 8px;font-size:16px">Quantidade de vendas</h3>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      ${salesReportTableRow(['Canal', 'Vendas'], { header: true })}
+      ${qtyRows}
+      ${qtyTotal}
+    </table>
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Valores — bruto e líquido</h3>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      ${salesReportTableRow(['Canal', 'Bruto', 'Líquido', 'Deduções'], { header: true })}
+      ${valueRows}
+      ${valueTotal}
+    </table>
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Deduções e custos (bruto → líquido)</h3>
+    <p style="margin:0 0 8px;color:#555;font-size:13px">Comissão/tarifa do canal, frete, estornos/outras taxas e custo do kit.</p>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      ${salesReportTableRow(['Canal', 'Comissão', 'Frete', 'Estornos/outras', 'Custo kit', 'Total deduções'], { header: true })}
+      ${costRows}
+      ${costTotal}
+    </table>
+
+    ${couponSection}
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Consolidado</h3>
+    <p style="margin:0 0 24px"><strong>${total.count}</strong> vendas · bruto <strong>${formatBRL(total.gross)}</strong> · líquido <strong>${formatBRL(total.net)}</strong></p>
 
     <p style="color:#666;font-size:12px;margin:0">Sensor Tattoo Fix — sensortattoofix.com.br · gerado automaticamente</p>
   </div>`;
