@@ -15015,6 +15015,33 @@ async function handleSession(request, env, origin) {
   return json({ ok: true, username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
 }
 
+async function handleLocalSmokeMpBalance(request, env, origin) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key') || '';
+  const smokeKey = env.SMOKE_KEY ? String(env.SMOKE_KEY) : '';
+  const backfillKey = env.BACKFILL_KEY ? String(env.BACKFILL_KEY) : '';
+  const authorized = (smokeKey && key === smokeKey) || (backfillKey && key === backfillKey);
+  if (!authorized) {
+    return json({ error: 'Not found' }, 404, origin);
+  }
+  const mp = await checkMercadoPagoIntegration(env, { force: true });
+  const amounts = mp.balance?.amounts || [];
+  const avail = amounts.find((a) => a.kind === 'available');
+  const pend = amounts.find((a) => a.kind === 'pending');
+  const state = await getMpReleaseState(env);
+  return json({
+    ok: !!(Number(avail?.value) > 0 && Number(pend?.value) > 0),
+    mercadopago: {
+      disponivel: avail?.value ?? null,
+      pendente: pend?.value ?? null,
+      amounts,
+      asOf: mp.balance?.asOf || null,
+      pendingSource: state?.balance?.pendingSource || null,
+      pendingMeta: state?.balance?.pendingMeta || null
+    }
+  }, 200, origin);
+}
+
 async function handleAdminIntegrationsStatus(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -17387,6 +17414,9 @@ export default {
       if (path === '/admin/shipping-status' && request.method === 'GET') return handleAdminShippingStatus(request, env, origin);
       if (path === '/admin/correios-tracking' && request.method === 'POST') {
         return handleAdminCorreiosTracking(request, env, origin);
+      }
+      if (path === '/_local/smoke/mp-balance' && request.method === 'GET') {
+        return handleLocalSmokeMpBalance(request, env, origin);
       }
       if (path === '/admin/integrations-status' && request.method === 'GET') {
         return handleAdminIntegrationsStatus(request, env, origin);
