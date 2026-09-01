@@ -10638,7 +10638,7 @@ function mpPaymentPendingFutureRelease(payment, collectorId, nowMs = Date.now())
   if (!mpPaymentIsPendingRelease(payment, collectorId)) return false;
   if (Number(payment?.transaction_amount_refunded) > 0) return false;
   const releaseMs = parseMpDateMs(payment?.money_release_date);
-  if (releaseMs == null) return true;
+  if (releaseMs == null) return false;
   return releaseMs > nowMs;
 }
 
@@ -10751,16 +10751,7 @@ async function buildMercadoPagoBalanceResult(token, cache, reportPending, opts =
 
   let pendingRelease = pendingFromOfficial;
   if (pendingRelease == null) {
-    const cached = Number(cache?.pendingRelease);
-    const pendingAgeMs = cache?.pendingCachedAt
-      ? Date.now() - new Date(cache.pendingCachedAt).getTime()
-      : Number.POSITIVE_INFINITY;
-    const pendingFresh = Number.isFinite(cached) && cached > 0 && pendingAgeMs < 15 * 60 * 1000;
-    if (pendingFresh && !force) {
-      pendingRelease = cached;
-    } else {
-      pendingRelease = await resolveMercadoPagoPendingRelease(token, cache, force, collectorId);
-    }
+    pendingRelease = await resolveMercadoPagoPendingRelease(token, cache, true, collectorId);
   }
 
   const merged = {

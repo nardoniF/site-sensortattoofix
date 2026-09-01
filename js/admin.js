@@ -2734,23 +2734,25 @@ ${worksheets}
     const avail = amounts.filter((a) => a.kind === 'available');
     const pend = amounts.filter((a) => a.kind === 'pending');
     const lines = [];
+
     if (!avail.length) {
       lines.push('Disponível: —');
+    } else if (avail.length === 1) {
+      const a = avail[0];
+      lines.push(`Disponível: ${formatBalanceMoney(a.value, a.currency || 'BRL')}`);
     } else {
-      avail.forEach((a) => {
-        const cur = String(a.currency || 'BRL').toUpperCase();
-        const suffix = avail.length > 1 || cur !== 'BRL' ? ` (${cur})` : '';
-        lines.push(`Disponível${suffix}: ${formatBalanceMoney(a.value, cur)}`);
-      });
+      const parts = avail.map((a) => formatBalanceMoney(a.value, a.currency || 'BRL'));
+      lines.push(`Disponível: ${parts.join(' · ')}`);
     }
+
     if (!pend.length) {
       lines.push('Pendente: —');
+    } else if (pend.length === 1) {
+      const a = pend[0];
+      lines.push(`Pendente: ${formatBalanceMoney(a.value, a.currency || 'BRL')}`);
     } else {
-      pend.forEach((a) => {
-        const cur = String(a.currency || 'BRL').toUpperCase();
-        const suffix = pend.length > 1 || (cur !== 'BRL' && card?.id === 'stripe') ? ` (${cur})` : '';
-        lines.push(`Pendente${suffix}: ${formatBalanceMoney(a.value, cur)}`);
-      });
+      const parts = pend.map((a) => formatBalanceMoney(a.value, a.currency || 'BRL'));
+      lines.push(`Pendente: ${parts.join(' · ')}`);
     }
     return lines;
   }
