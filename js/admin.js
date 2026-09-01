@@ -3092,7 +3092,7 @@ ${worksheets}
   let clicksWhenWindow = null;
 
   const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v1';
-  const BALANCES_SNAPSHOT_KEY = 'stf_admin_balances_snapshot_v1';
+  const BALANCES_SNAPSHOT_KEY = 'stf_admin_balances_snapshot_v2';
   const ADMIN_TAB_IDS = new Set(['vendas', 'pedidos', 'cliques', 'saldos', 'api', 'clientes', 'pesquisa', 'comunidade', 'documentacao']);
   let lastBalancesSnapshot = null;
 
@@ -3158,14 +3158,15 @@ ${worksheets}
     if (!nextData?.paymentBalances) return nextData;
     const prevMp = prevSnap?.paymentBalances?.mercadopago;
     const nextMp = nextData.paymentBalances.mercadopago;
-    const prevHasAvail = (prevMp?.amounts || []).some((a) => a.kind === 'available');
-    const nextHasAvail = (nextMp?.amounts || []).some((a) => a.kind === 'available');
-    if (prevHasAvail && !nextHasAvail && prevMp) {
+    if (!prevMp || !nextMp) return nextData;
+    const prevAvail = (prevMp.amounts || []).filter((a) => a.kind === 'available');
+    const nextAvail = (nextMp.amounts || []).filter((a) => a.kind === 'available');
+    const nextPending = (nextMp.amounts || []).filter((a) => a.kind === 'pending');
+    if (prevAvail.length && !nextAvail.length) {
       nextData.paymentBalances.mercadopago = {
         ...nextMp,
-        lines: prevMp.lines?.length ? prevMp.lines : nextMp.lines,
-        amounts: prevMp.amounts?.length ? prevMp.amounts : nextMp.amounts,
-        asOf: nextMp.asOf || prevMp.asOf
+        amounts: [...prevAvail, ...nextPending],
+        lines: []
       };
     }
     return nextData;

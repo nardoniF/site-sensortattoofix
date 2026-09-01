@@ -10626,6 +10626,22 @@ async function mpFetchPaymentDoc(token, paymentId) {
   return data;
 }
 
+function parseMpDateMs(raw) {
+  if (raw == null || raw === '') return null;
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 1e9) return n < 1e12 ? n * 1000 : n;
+  const ms = Date.parse(String(raw));
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function mpPaymentPendingFutureRelease(payment, collectorId, nowMs = Date.now()) {
+  if (!mpPaymentIsPendingRelease(payment, collectorId)) return false;
+  if (Number(payment?.transaction_amount_refunded) > 0) return false;
+  const releaseMs = parseMpDateMs(payment?.money_release_date);
+  if (releaseMs == null) return true;
+  return releaseMs > nowMs;
+}
+
 async function fetchMercadoPagoPendingToRelease(token, collectorId) {
   const seen = new Set();
   const docCache = new Map();
@@ -10677,7 +10693,7 @@ async function fetchMercadoPagoPendingToRelease(token, collectorId) {
         if (!mpPaymentIsPendingRelease(doc, collectorId) || mpPaymentNetAmountStrict(doc) == null) {
           doc = await loadDoc(id);
         }
-        if (!doc || !mpPaymentIsPendingRelease(doc, collectorId)) continue;
+        if (!doc || !mpPaymentPendingFutureRelease(doc, collectorId)) continue;
         const net = mpPaymentNetAmountStrict(doc);
         if (net != null) pendingSum += net;
       }
