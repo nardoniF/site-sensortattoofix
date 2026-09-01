@@ -2729,15 +2729,39 @@ ${worksheets}
     return `<span class="${cls}">${icon} ${escAttr(single)}</span>`;
   }
 
+  function paymentBalanceDisplayLines(card) {
+    const amounts = card?.amounts || [];
+    const avail = amounts.filter((a) => a.kind === 'available');
+    const pend = amounts.filter((a) => a.kind === 'pending');
+    const lines = [];
+    if (!avail.length) {
+      lines.push('Disponível: —');
+    } else {
+      avail.forEach((a) => {
+        const cur = String(a.currency || 'BRL').toUpperCase();
+        const suffix = avail.length > 1 || cur !== 'BRL' ? ` (${cur})` : '';
+        lines.push(`Disponível${suffix}: ${formatBalanceMoney(a.value, cur)}`);
+      });
+    }
+    if (!pend.length) {
+      lines.push('Pendente: —');
+    } else {
+      pend.forEach((a) => {
+        const cur = String(a.currency || 'BRL').toUpperCase();
+        const suffix = pend.length > 1 || (cur !== 'BRL' && card?.id === 'stripe') ? ` (${cur})` : '';
+        lines.push(`Pendente${suffix}: ${formatBalanceMoney(a.value, cur)}`);
+      });
+    }
+    return lines;
+  }
+
   function renderPaymentBalancesGrid(balances, checkedAt, summary) {
     const grid = document.getElementById('payment-balances-grid');
     const summaryEl = document.getElementById('payment-balances-summary');
     const checkedEl = document.getElementById('payment-balances-checked-at');
     if (!grid) return;
-    const cleanBalances = applyBalanceSanitizers(balances, lastMpAuditSnapshot);
-    const cleanSummary = rebuildPaymentBalancesSummary(cleanBalances);
     const cards = ['mercadopago', 'shopee', 'paypal', 'stripe']
-      .map((id) => cleanBalances?.[id])
+      .map((id) => balances?.[id])
       .filter(Boolean);
     if (!cards.length) {
       grid.innerHTML = '<p class="admin-meta">Nenhum saldo retornado.</p>';
@@ -2750,10 +2774,7 @@ ${worksheets}
     }
     grid.innerHTML = cards.map((card) => {
       const cls = integrationStatusClass(card.status);
-      const lines = (card.lines || []).map((l) => {
-        const isFix = String(l).startsWith('Como resolver:');
-        return `<li${isFix ? ' class="admin-payment-balance-fix"' : ''}>${escAttr(l)}</li>`;
-      }).join('');
+      const lines = paymentBalanceDisplayLines(card).map((l) => `<li>${escAttr(l)}</li>`).join('');
       const asOf = card.asOf
         ? `<p class="admin-payment-balance-asof">Atualizado: ${escAttr(new Date(card.asOf).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}</p>`
         : '';
@@ -2765,6 +2786,9 @@ ${worksheets}
     }).join('');
 
     if (summaryEl) {
+      const cleanSummary = rebuildPaymentBalancesSummary(
+        Object.fromEntries(cards.map((c) => [c.id, c]))
+      );
       const rows = cleanSummary?.rows || summary?.rows || [];
       if (!rows.length) {
         summaryEl.hidden = true;
@@ -2773,7 +2797,6 @@ ${worksheets}
         summaryEl.hidden = false;
         summaryEl.innerHTML = `
           <h3 class="admin-payment-summary-title"><i class="fas fa-calculator"></i> Consolidado por moeda</h3>
-          <p class="admin-meta admin-payment-summary-note">Soma por gateway. MP “a liberar” só na auditoria. Shopee “a receber” = pedidos confirmados ainda não na carteira (não é total de vendas).</p>
           <div class="admin-payment-summary-grid">
             ${rows.map((row) => `
               <article class="admin-payment-summary-card">
@@ -2838,39 +2861,6 @@ ${worksheets}
     }
   }
 
-  function sanitizeMercadoPagoBalanceCard(card, auditSnap) {
-    if (!card) return card;
-    const dropLine = (l) => /A liberar \(estimativa\)|Fonte A liberar: estimativa|consultando pagamentos MP/i.test(String(l));
-    let lines = (card.lines || []).filter((l) => !dropLine(l));
-    const amounts = (card.amounts || []).filter((a) => a.kind !== 'pending');
-    lines = lines.filter((l) => !/Auditoria MP acima|estimativa automática desativada/i.test(String(l)));
-
-    if (auditSnap?.analysis) {
-      const prod = auditSnap.buckets?.F_production_current_algorithm?.total;
-      const target = auditSnap.targetAppOficial;
-      const best = auditSnap.analysis.bestRule;
-      const delta = auditSnap.analysis.productionDeltaVsTarget;
-      const when = auditSnap.auditAt
-        ? new Date(auditSnap.auditAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-        : '—';
-      lines.splice(1, 0,
-        `Auditoria (app ${formatAuditMoney(target)}): algoritmo produção ${formatAuditMoney(prod)} · Δ ${formatAuditMoney(delta)}`,
-        `Melhor regra: ${formatAuditMoney(best?.total)} — ${escAttr(best?.label || '—')}`,
-        `Auditoria em ${when} — detalhes na seção acima`
-      );
-    } else {
-      lines.splice(1, 0, 'A liberar: rode Auditoria MP acima (estimativa automática desativada)');
-    }
-    return { ...card, lines, amounts };
-  }
-
-  function applyBalanceSanitizers(balances, auditSnap) {
-    if (!balances) return balances;
-    const next = { ...balances };
-    if (next.mercadopago) next.mercadopago = sanitizeMercadoPagoBalanceCard(next.mercadopago, auditSnap);
-    return next;
-  }
-
   function rebuildPaymentBalancesSummary(balances) {
     const cards = ['mercadopago', 'shopee', 'paypal', 'stripe'].map((id) => balances?.[id]).filter(Boolean);
     const byCur = {};
@@ -2898,13 +2888,9 @@ ${worksheets}
       return {
         currency,
         lines: [
-          `Disponível agora (pode sacar): ${formatBalanceMoney(r.available, currency)}`,
-          pendingTotal > 0
-            ? `A liberar / pendente: ${formatBalanceMoney(pendingTotal, currency)}`
-            : (currency === 'BRL'
-              ? 'A liberar / pendente (MP): ver Auditoria MP'
-              : `A liberar / pendente: ${formatBalanceMoney(0, currency)}`),
-          `Total ainda nas gateways: ${formatBalanceMoney(stillThere, currency)}`
+          `Disponível agora: ${formatBalanceMoney(r.available, currency)}`,
+          `Pendente: ${formatBalanceMoney(pendingTotal, currency)}`,
+          `Total nas gateways: ${formatBalanceMoney(stillThere, currency)}`
         ],
         gateways: r.gateways.slice().sort()
       };
@@ -3024,13 +3010,6 @@ ${worksheets}
 
       saveMpAuditSnapshot(data);
       renderMpAuditResults(data, statusEl);
-      if (lastBalancesSnapshot?.paymentBalances) {
-        renderPaymentBalancesGrid(
-          lastBalancesSnapshot.paymentBalances,
-          lastBalancesSnapshot.checkedAt,
-          lastBalancesSnapshot.paymentBalancesSummary
-        );
-      }
     } catch (err) {
       if (statusEl) {
         statusEl.textContent = err.message || 'Erro na auditoria';

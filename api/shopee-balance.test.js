@@ -23,20 +23,15 @@ test('soma só pedidos confirmados em trânsito', async () => {
   assert.equal(SHOPEE_AWAITING_RELEASE_STATUSES.has('COMPLETED'), false);
 });
 
-test('formata card com disponível e a receber', () => {
+test('formata card só com disponível e pendente', () => {
   const card = formatShopeeBalanceResult({
     ok: true,
-    available: 120.5,
-    toReceive: 80.5,
-    toReceiveCount: 2,
-    lastSyncedAt: '2026-08-31T12:00:00.000Z',
+    available: 238.96,
+    toReceive: 237.53,
     asOf: '2026-08-31T12:00:00.000Z'
   });
   assert.equal(card.ok, true);
-  assert.deepEqual(card.amounts, [
-    { kind: 'available', currency: 'BRL', value: 120.5 },
-    { kind: 'pending', currency: 'BRL', value: 80.5 }
-  ]);
-  assert.equal(card.lines.some((l) => l.includes('A receber')), true);
-  assert.equal(card.lines.some((l) => l.includes('Não inclui vendas totais')), true);
+  assert.equal(card.lines.length, 2);
+  assert.equal(card.lines[0], 'Disponível: R$\u00a0238,96');
+  assert.equal(card.lines[1], 'Pendente: R$\u00a0237,53');
 });

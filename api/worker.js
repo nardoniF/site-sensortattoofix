@@ -10656,7 +10656,7 @@ async function fetchMercadoPagoPendingToRelease(token, collectorId) {
   try {
     const limit = 100;
     let offset = 0;
-    const maxPages = 4;
+    const maxPages = 6;
     for (let page = 0; page < maxPages; page++) {
       const pageData = await fetchPage({
         sort: 'money_release_date',
@@ -10673,7 +10673,10 @@ async function fetchMercadoPagoPendingToRelease(token, collectorId) {
         if (!id || seen.has(id)) continue;
         seen.add(id);
 
-        const doc = await loadDoc(id);
+        let doc = payment;
+        if (!mpPaymentIsPendingRelease(doc, collectorId) || mpPaymentNetAmountStrict(doc) == null) {
+          doc = await loadDoc(id);
+        }
         if (!doc || !mpPaymentIsPendingRelease(doc, collectorId)) continue;
         const net = mpPaymentNetAmountStrict(doc);
         if (net != null) pendingSum += net;
@@ -10724,92 +10727,63 @@ function mergeMpPendingReleaseIntoResult(result, pendingRelease, cur = 'BRL') {
 }
 
 async function buildMercadoPagoBalanceResult(token, cache, reportPending, opts = {}) {
+  const force = opts.force === true;
+  const collectorId = opts.collectorId || null;
   const pendingFromOfficial = Number.isFinite(Number(opts.officialUnavailable)) && Number(opts.officialUnavailable) > 0
     ? Number(opts.officialUnavailable)
     : null;
+
+  let pendingRelease = pendingFromOfficial;
+  if (pendingRelease == null) {
+    const cached = Number(cache?.pendingRelease);
+    const pendingAgeMs = cache?.pendingCachedAt
+      ? Date.now() - new Date(cache.pendingCachedAt).getTime()
+      : Number.POSITIVE_INFINITY;
+    const pendingFresh = Number.isFinite(cached) && cached > 0 && pendingAgeMs < 15 * 60 * 1000;
+    if (pendingFresh && !force) {
+      pendingRelease = cached;
+    } else {
+      pendingRelease = await resolveMercadoPagoPendingRelease(token, cache, force, collectorId);
+    }
+  }
+
   const merged = {
     ...(cache || {}),
-    pendingRelease: pendingFromOfficial,
-    pendingCachedAt: pendingFromOfficial != null ? new Date().toISOString() : null,
-    pendingSource: pendingFromOfficial != null ? 'official_balance' : null
+    pendingRelease: pendingRelease != null && Number.isFinite(Number(pendingRelease)) && Number(pendingRelease) >= 0
+      ? Number(pendingRelease)
+      : null,
+    pendingCachedAt: new Date().toISOString(),
+    pendingSource: pendingFromOfficial != null ? 'official_balance' : 'payments_pending'
   };
   return formatMpReleaseBalanceResult(merged, reportPending);
 }
 
-const MP_PENDING_AUDIT_HINT = 'A liberar: rode Auditoria MP abaixo (estimativa automática desativada)';
-
-function formatMpReleaseBalanceResult(cache, pending) {
+function formatMpReleaseBalanceResult(cache, reportPending) {
   const cur = String(cache?.currency || 'BRL').toUpperCase();
   const value = Number(cache?.available);
   const pendingRelease = Number(cache?.pendingRelease);
-  if (pending) {
-    const lines = [
-      'Gerando relatório de Liberações no Mercado Pago…',
-      'Automático — clique Atualizar em 1–3 min se ainda não aparecer.'
-    ];
-    const amounts = [];
-    if (Number.isFinite(value) && value > 0) {
-      lines.unshift(`Disponível (último relatório): ${formatProviderMoney(value, cur)}`);
-      amounts.push({ kind: 'available', currency: cur, value });
-      if (cache?.reportAsOf) {
-        try {
-          const reportWhen = new Date(cache.reportAsOf).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-          lines.splice(1, 0, `Relatório MP gerado: ${reportWhen}`);
-        } catch { /* ignore */ }
-      }
-    }
-    lines.push(MP_PENDING_AUDIT_HINT);
-    return {
-      ok: Number.isFinite(value) && value > 0,
-      pending: true,
-      lines,
-      amounts,
-      asOf: cache?.reportAsOf || cache?.cachedAt || null,
-      error: 'Relatório MP em processamento.',
-      source: 'release_report'
-    };
-  }
-  if (!Number.isFinite(value) || value <= 0) {
-    return {
-      ok: false,
-      lines: [
-        'Saldo MP indisponível no cache — gerando novo relatório.',
-        'Clique Atualizar em 1–3 min.'
-      ],
-      amounts: [],
-      asOf: null,
-      error: 'Saldo MP zerado ou inválido no cache.',
-      source: 'release_report'
-    };
-  }
-  const lines = [
-    `Disponível: ${formatProviderMoney(value, cur)}`,
-    'Fonte disponível: Relatório de Liberações MP'
-  ];
-  if (cache?.reportAsOf) {
-    try {
-      const reportWhen = new Date(cache.reportAsOf).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-      lines.push(`Relatório MP gerado: ${reportWhen}`);
-    } catch { /* ignore */ }
-  }
-  const amounts = [{ kind: 'available', currency: cur, value }];
-  if (Number.isFinite(pendingRelease) && pendingRelease > 0 && cache?.pendingSource === 'official_balance') {
-    lines.splice(1, 0, `A liberar: ${formatProviderMoney(pendingRelease, cur)}`);
-    lines.splice(2, 0, 'Fonte A liberar: API oficial MP (unavailable_balance)');
-    amounts.push({ kind: 'pending', currency: cur, value: pendingRelease });
+  const lines = [];
+  const amounts = [];
+
+  if (Number.isFinite(value)) {
+    lines.push(`Disponível: ${formatProviderMoney(value, cur)}`);
+    amounts.push({ kind: 'available', currency: cur, value });
   } else {
-    lines.splice(1, 0, MP_PENDING_AUDIT_HINT);
+    lines.push('Disponível: —');
   }
-  const pendingAsOf = cache?.pendingCachedAt || null;
-  const asOf = pendingAsOf && cache?.reportAsOf
-    ? (new Date(pendingAsOf) > new Date(cache.reportAsOf) ? pendingAsOf : cache.reportAsOf)
-    : (pendingAsOf || cache.reportAsOf || cache.cachedAt || new Date().toISOString());
+
+  const pend = Number.isFinite(pendingRelease) && pendingRelease >= 0 ? pendingRelease : 0;
+  lines.push(`Pendente: ${formatProviderMoney(pend, cur)}`);
+  if (pend > 0) amounts.push({ kind: 'pending', currency: cur, value: pend });
+
+  const asOf = cache?.reportAsOf || cache?.pendingCachedAt || cache?.cachedAt || new Date().toISOString();
   return {
-    ok: true,
+    ok: Number.isFinite(value) && value > 0,
+    pending: !!reportPending,
     lines,
     amounts,
     asOf,
-    error: null,
+    error: reportPending ? 'Relatório MP em processamento.' : null,
     source: 'release_report'
   };
 }
