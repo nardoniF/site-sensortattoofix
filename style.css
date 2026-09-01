@@ -221,6 +221,65 @@ nav,
     height: 12px;
 }
 
+/* Seletor compacto de idiomas (PT, EN, IT, DE, ES, PL) */
+.nav-lang-switcher {
+    position: relative;
+    flex-direction: row;
+    align-items: center;
+}
+
+.nav-lang-toggle {
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    background: #111;
+}
+
+.nav-lang-toggle .nav-lang-chevron {
+    font-size: 0.55rem;
+    opacity: 0.7;
+    margin-left: 1px;
+    transition: transform 0.15s ease;
+}
+
+.nav-lang-switcher--open .nav-lang-chevron {
+    transform: rotate(180deg);
+}
+
+.nav-lang-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 1200;
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    min-width: 88px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.nav-lang-menu[hidden] {
+    display: none;
+}
+
+.nav-lang-menu .nav-lang {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: flex-start;
+}
+
+.nav-lang-menu .nav-lang--active {
+    border-color: var(--primary);
+    color: var(--primary);
+    pointer-events: none;
+}
+
 .btn-nav {
     background: var(--primary);
     color: #000 !important;
@@ -1700,18 +1759,21 @@ footer,
         margin-left: auto;
         gap: 4px;
     }
-    /* .com has PT+IT stacked — that blows the header into two rows on phones */
+    /* idiomas: um botão compacto em vez de várias bandeiras empilhadas */
     .nav-lang-stack {
         flex-direction: row;
-        gap: 4px;
+        gap: 0;
         align-items: center;
     }
     .nav-lang-stack .nav-lang {
         padding: 5px 6px;
         min-width: 0;
     }
-    .nav-lang-stack .nav-lang span {
-        display: none; /* flags only on narrow screens */
+    .nav-lang-toggle span {
+        display: inline;
+    }
+    .nav-lang-menu .nav-lang span {
+        display: inline;
     }
     .account-nav-login {
         padding: 6px 8px;

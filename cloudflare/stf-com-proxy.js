@@ -158,7 +158,7 @@ function patchHtml(html, originPath, br) {
     html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
   }
   if (!/stf-lang-nav\.js/i.test(html)) {
-    html = html.replace(/<head([^>]*)>/i, `<head$1><script src="/js/stf-lang-nav.js?v=2"></script>`);
+    html = html.replace(/<head([^>]*)>/i, `<head$1><script src="/js/stf-lang-nav.js?v=4"></script>`);
   }
   return html;
 }
