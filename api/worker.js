@@ -17312,22 +17312,50 @@ function orderDiscountMeta(order) {
   return { count: total > 0.009 ? 1 : 0, total };
 }
 
+function isOrderPendingPayment(order) {
+  const st = String(order?.status || '').toLowerCase();
+  return st === 'pending_payment' || st === 'pending';
+}
+
+function isOrderExcludedFromStoreMetrics(order) {
+  const st = String(order?.status || '').toLowerCase();
+  return st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'test';
+}
+
 async function aggregateMonthlyOrders(env, year, month) {
   const pending = { count: 0, total: 0, produto: 0, frete: 0 };
-  const created = { count: 0, total: 0 };
+  const notConverted = { count: 0, total: 0, produto: 0, frete: 0 };
+  const created = { count: 0, total: 0, produto: 0, frete: 0 };
   const paid = { count: 0, total: 0, produto: 0, frete: 0, byPayment: {} };
+  const paidFromCreated = { count: 0, total: 0 };
 
   const orders = await listOrdersForReports(env);
   for (const order of orders) {
+    if (isOrderExcludedFromStoreMetrics(order)) continue;
+
     const createdInMonth = isTsInSaoPauloMonth(order.createdAt, year, month);
     if (createdInMonth) {
       created.count += 1;
       created.total += Number(order.total) || 0;
-      if (order.status === 'pending_payment') {
+      created.produto += Number(order.valorProduto) || 0;
+      created.frete += Number(order.frete) || 0;
+
+      if (isOrderPendingPayment(order)) {
         pending.count += 1;
         pending.total += Number(order.total) || 0;
         pending.produto += Number(order.valorProduto) || 0;
         pending.frete += Number(order.frete) || 0;
+      } else if (!isStorePaidOrder(order)) {
+        notConverted.count += 1;
+        notConverted.total += Number(order.total) || 0;
+        notConverted.produto += Number(order.valorProduto) || 0;
+        notConverted.frete += Number(order.frete) || 0;
+      } else {
+        const paidAt = order.paidAt || order.createdAt;
+        if (paidAt && isTsInSaoPauloMonth(paidAt, year, month)) {
+          paidFromCreated.count += 1;
+          paidFromCreated.total += Number(order.total) || 0;
+        }
       }
     }
 
@@ -17346,10 +17374,10 @@ async function aggregateMonthlyOrders(env, year, month) {
   }
 
   const conversionPct = created.count
-    ? Math.round((paid.count / created.count) * 1000) / 10
+    ? Math.round((paidFromCreated.count / created.count) * 1000) / 10
     : 0;
 
-  return { pending, created, paid, conversionPct };
+  return { pending, notConverted, created, paid, paidFromCreated, conversionPct };
 }
 
 async function buildMonthlyReport(env, year, month) {
@@ -17379,14 +17407,18 @@ function buildMonthlyReportFields(report) {
     'Amazon (cliques)': String(report.clicks.counts.amazon || 0),
     'Total cliques marketplaces': String(report.clicks.total || 0),
     '— Loja oficial —': '',
-    'Pedidos criados no mês': String(report.orders.created.count),
+    'Pedidos criados no mês': `${report.orders.created.count} — ${formatBRL(report.orders.created.total)}`,
+    'Produtos (criados)': formatBRL(report.orders.created.produto),
+    'Frete (criados)': formatBRL(report.orders.created.frete),
     'Possíveis compras (aguardando pagamento)': `${report.orders.pending.count} — ${formatBRL(report.orders.pending.total)}`,
     'Valor produtos (pendentes)': formatBRL(report.orders.pending.produto),
     'Frete (pendentes)': formatBRL(report.orders.pending.frete),
+    'Não convertidos (abandonados/cancelados)': `${report.orders.notConverted.count} — ${formatBRL(report.orders.notConverted.total)}`,
     'Compras realizadas (pagas no mês)': `${report.orders.paid.count} — ${formatBRL(report.orders.paid.total)}`,
     'Valor produtos (pagos)': formatBRL(report.orders.paid.produto),
     'Frete (pagos)': formatBRL(report.orders.paid.frete),
-    'Taxa de conversão (pagos / criados)': `${report.orders.conversionPct}%`
+    'Pagos entre os criados no mês': `${report.orders.paidFromCreated.count} — ${formatBRL(report.orders.paidFromCreated.total)}`,
+    'Taxa de conversão (pagos no mês / criados)': `${report.orders.conversionPct}%`
   };
 
   for (const [pay, data] of Object.entries(report.orders.paid.byPayment).sort((a, b) => b[1].count - a[1].count)) {
@@ -17411,28 +17443,37 @@ function buildMonthlyReportHtml(report) {
     )
     .join('') || '<tr><td colspan="3" style="padding:8px;border:1px solid #ddd;color:#666">Nenhuma compra paga no período</td></tr>';
 
+  const lojaSummaryRows = [
+    ['Pedidos criados no mês', report.orders.created.count, formatBRL(report.orders.created.total), formatBRL(report.orders.created.produto), formatBRL(report.orders.created.frete)],
+    ['Aguardando pagamento', report.orders.pending.count, formatBRL(report.orders.pending.total), formatBRL(report.orders.pending.produto), formatBRL(report.orders.pending.frete)],
+    ['Não convertidos', report.orders.notConverted.count, formatBRL(report.orders.notConverted.total), formatBRL(report.orders.notConverted.produto), formatBRL(report.orders.notConverted.frete)],
+    ['Pagos no mês (criados no mês)', report.orders.paidFromCreated.count, formatBRL(report.orders.paidFromCreated.total), '—', '—']
+  ].map((cells) => salesReportTableRow(cells)).join('');
+
   return `<div style="font-family:Arial,sans-serif;max-width:640px;color:#222">
     <h2 style="margin:0 0 8px;color:#111">Relatório de cliques — ${report.label}</h2>
     <p style="margin:0 0 20px;color:#555">Período: ${report.periodStart} a ${report.periodEnd} (horário de Brasília)</p>
 
     <h3 style="margin:24px 0 8px;font-size:16px">Marketplaces — cliques outbound</h3>
     <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
-      <tr style="background:#f5f5f5"><th style="padding:8px;border:1px solid #ddd;text-align:left">Canal</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Cliques</th></tr>
+      ${salesReportTableRow(['Canal', 'Cliques'], { header: true })}
       ${marketplaceRows}
-      <tr style="background:#fafafa"><td style="padding:8px;border:1px solid #ddd;font-weight:700">Total</td><td style="padding:8px;border:1px solid #ddd;text-align:right;font-weight:700">${report.clicks.total}</td></tr>
+      ${salesReportTableRow(['Total', String(report.clicks.total)], { bold: true })}
     </table>
 
-    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — possíveis compras</h3>
-    <p style="margin:0 0 16px">Pedidos criados no mês aguardando pagamento: <strong>${report.orders.pending.count}</strong> — total <strong>${formatBRL(report.orders.pending.total)}</strong><br>
-    Produtos: ${formatBRL(report.orders.pending.produto)} · Frete: ${formatBRL(report.orders.pending.frete)}</p>
+    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — resumo do mês</h3>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      ${salesReportTableRow(['Situação', 'Qtd', 'Total', 'Produtos', 'Frete'], { header: true })}
+      ${lojaSummaryRows}
+    </table>
 
-    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — compras realizadas</h3>
+    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — compras realizadas (pagas no mês)</h3>
     <p style="margin:0 0 8px">Pagamentos confirmados no mês: <strong>${report.orders.paid.count}</strong> — total <strong>${formatBRL(report.orders.paid.total)}</strong><br>
     Produtos: ${formatBRL(report.orders.paid.produto)} · Frete: ${formatBRL(report.orders.paid.frete)}</p>
-    <p style="margin:0 0 16px">Pedidos criados no mês: ${report.orders.created.count} · Conversão (pagos/criados): <strong>${report.orders.conversionPct}%</strong></p>
+    <p style="margin:0 0 16px">Conversão dos criados no mês: <strong>${report.orders.conversionPct}%</strong> (${report.orders.paidFromCreated.count} de ${report.orders.created.count})</p>
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:24px">
-      <tr style="background:#f5f5f5"><th style="padding:8px;border:1px solid #ddd;text-align:left">Pagamento</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Qtd</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Total</th></tr>
+      ${salesReportTableRow(['Pagamento', 'Qtd', 'Total'], { header: true })}
       ${paymentRows}
     </table>
 
@@ -17802,6 +17843,25 @@ async function handleLocalSmokeMonthlySalesReport(request, env, origin) {
   return json(result, result.ok ? 200 : 502, origin);
 }
 
+async function handleLocalSmokeMonthlyClicksReport(request, env, origin) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key') || '';
+  const smokeKey = env.SMOKE_KEY ? String(env.SMOKE_KEY) : '';
+  const backfillKey = env.BACKFILL_KEY ? String(env.BACKFILL_KEY) : '';
+  const authorized = (smokeKey && key === smokeKey) || (backfillKey && key === backfillKey);
+  if (!authorized) return json({ error: 'Not found' }, 404, origin);
+  const year = Number(url.searchParams.get('year')) || 2026;
+  const month = Number(url.searchParams.get('month')) || 8;
+  const force = url.searchParams.get('force') === '1';
+  const preview = url.searchParams.get('preview') === '1';
+  if (preview) {
+    const report = await buildMonthlyReport(env, year, month);
+    return json(report, 200, origin);
+  }
+  const result = await sendMonthlyReportEmail(env, await getConfig(env), year, month, { force });
+  return json(result, result.ok ? 200 : 502, origin);
+}
+
 async function runScheduledCorreiosTrackingSync(env) {
   const config = await getConfig(env);
   const now = Date.now();
@@ -18028,6 +18088,9 @@ export default {
       }
       if (path === '/_local/smoke/monthly-sales-report' && request.method === 'GET') {
         return handleLocalSmokeMonthlySalesReport(request, env, origin);
+      }
+      if (path === '/_local/smoke/monthly-clicks-report' && request.method === 'GET') {
+        return handleLocalSmokeMonthlyClicksReport(request, env, origin);
       }
       if (path === '/_local/smoke/mp-balance' && request.method === 'GET') {
         return handleLocalSmokeMpBalance(request, env, origin);
