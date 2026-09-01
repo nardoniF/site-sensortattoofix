@@ -1,6 +1,6 @@
 /**
- * Traduções PT/EN — checkout, loja e UI compartilhada.
- * Ative com ?lang=en|it ou vindo de /en/ ou /it/
+ * Traduções PT/EN/IT/DE/ES/PL — checkout, loja e UI compartilhada.
+ * Ative com ?lang= ou vindo de /en/, /it/, /de/, /es/, /pl/
  */
 window.STF_I18N = (function () {
   const STRINGS = {
@@ -709,10 +709,55 @@ window.STF_I18N = (function () {
     }
   };
 
-  function ensureItStrings() {
-    if (!STRINGS.it && typeof window !== 'undefined' && window.STF_I18N_IT) {
-      STRINGS.it = Object.assign({}, STRINGS.en, window.STF_I18N_IT);
+  const PATH_LANGS = ['en', 'it', 'de', 'es', 'pl'];
+  const OVERRIDE_GLOBALS = {
+    it: 'STF_I18N_IT',
+    de: 'STF_I18N_DE',
+    es: 'STF_I18N_ES',
+    pl: 'STF_I18N_PL'
+  };
+
+  function ensureExtraStrings() {
+    if (typeof window === 'undefined') return;
+    for (const [lang, globalName] of Object.entries(OVERRIDE_GLOBALS)) {
+      if (!STRINGS[lang] && window[globalName]) {
+        STRINGS[lang] = Object.assign({}, STRINGS.en, window[globalName]);
+      }
     }
+  }
+
+  function ensureItStrings() {
+    ensureExtraStrings();
+  }
+
+  function checkoutTitleKey(lang) {
+    const map = {
+      it: 'page.checkoutTitleIt',
+      de: 'page.checkoutTitleDe',
+      es: 'page.checkoutTitleEs',
+      pl: 'page.checkoutTitlePl'
+    };
+    return map[lang] || 'page.checkoutTitleEn';
+  }
+
+  function checkoutDescKey(lang) {
+    const map = {
+      it: 'page.checkoutDescIt',
+      de: 'page.checkoutDescDe',
+      es: 'page.checkoutDescEs',
+      pl: 'page.checkoutDescPl'
+    };
+    return map[lang] || 'page.checkoutDescEn';
+  }
+
+  function storeMetaDescKey(lang) {
+    const map = {
+      it: 'store.metaDescIt',
+      de: 'store.metaDescDe',
+      es: 'store.metaDescEs',
+      pl: 'store.metaDescPl'
+    };
+    return map[lang] || 'store.metaDescEn';
   }
 
   function isComHost() {
@@ -721,16 +766,18 @@ window.STF_I18N = (function () {
   }
 
   function getPathLang() {
-    if (isComHost()) {
-      if (location.pathname.includes('/it/')) return 'it';
-      return 'en';
+    const path = location.pathname;
+    for (const lang of ['it', 'de', 'es', 'pl']) {
+      if (path.includes(`/${lang}/`) || path === `/${lang}`) return lang;
     }
-    if (location.pathname.includes('/it/')) return 'it';
-    if (location.pathname.includes('/en/')) return 'en';
+    if (isComHost()) return 'en';
+    if (path.includes('/en/')) return 'en';
     return 'pt';
   }
 
   function getLang() {
+    const q = new URLSearchParams(location.search).get('lang');
+    if (q && PATH_LANGS.includes(q)) return q;
     return getPathLang();
   }
 
@@ -741,6 +788,10 @@ window.STF_I18N = (function () {
   function isIt() {
     return getLang() === 'it';
   }
+
+  function isDe() { return getLang() === 'de'; }
+  function isEs() { return getLang() === 'es'; }
+  function isPl() { return getLang() === 'pl'; }
 
   function isLocalized() {
     return getLang() !== 'pt';
@@ -780,15 +831,16 @@ window.STF_I18N = (function () {
   }
 
   function setLang(lang) {
-    const l = lang === 'en' || lang === 'it' ? lang : 'pt';
+    const htmlLang = { pt: 'pt-BR', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl' };
+    const l = PATH_LANGS.includes(lang) ? lang : (lang === 'pt' ? 'pt' : 'en');
     try { sessionStorage.setItem('stf_lang', l); } catch (e) { /* ignore */ }
-    document.documentElement.lang = l === 'en' ? 'en' : l === 'it' ? 'it' : 'pt-BR';
+    document.documentElement.lang = htmlLang[l] || l;
     return l;
   }
 
   function t(key, vars) {
     const lang = getLang();
-    ensureItStrings();
+    ensureExtraStrings();
     let s = STRINGS[lang]?.[key] ?? STRINGS.pt[key] ?? key;
     if (vars) {
       Object.entries(vars).forEach(([k, v]) => {
@@ -888,16 +940,27 @@ window.STF_I18N = (function () {
 
   function inLangDir() {
     if (isComHost()) return true;
-    return location.pathname.includes('/en/') || location.pathname.includes('/it/');
+    return PATH_LANGS.some((l) => location.pathname.includes(`/${l}/`));
   }
 
   function inEnDir() {
-    if (isComHost() && !location.pathname.includes('/it/')) return true;
+    if (isComHost() && !['it', 'de', 'es', 'pl'].some((l) => location.pathname.includes(`/${l}/`))) return true;
     return location.pathname.includes('/en/');
   }
 
   function inItDir() {
     return location.pathname.includes('/it/');
+  }
+
+  function langDirFor(lang) {
+    return lang === 'pt' ? '' : `${lang}/`;
+  }
+
+  function inDirFor(lang) {
+    if (lang === 'en' && isComHost()) {
+      return !['it', 'de', 'es', 'pl'].some((l) => location.pathname.includes(`/${l}/`));
+    }
+    return location.pathname.includes(`/${lang}/`);
   }
 
   function assetPrefix() {
@@ -906,29 +969,20 @@ window.STF_I18N = (function () {
 
   function pageHref(page) {
     const lang = getLang();
-    const dir = lang === 'en' ? 'en/' : lang === 'it' ? 'it/' : '';
-    const inDir = lang === 'en' ? inEnDir() : lang === 'it' ? inItDir() : false;
-    if (page === 'index') {
-      return lang === 'pt' ? 'index.html' : (inDir ? 'index.html' : dir + 'index.html');
+    if (lang === 'pt') {
+      if (page === 'index') return 'index.html';
+      return `${page}.html`;
     }
-    if (page === 'loja') {
-      return lang === 'pt' ? 'loja.html' : (inDir ? 'loja.html' : dir + 'loja.html');
-    }
-    if (page === 'comprar') {
-      return lang === 'pt' ? 'comprar.html' : (inDir ? 'comprar.html' : dir + 'comprar.html');
-    }
-    if (page === 'account') {
-      return lang === 'pt' ? 'minha-conta.html' : (inDir ? 'minha-conta.html' : dir + 'minha-conta.html');
-    }
-    return page;
+    const file = page === 'index' ? 'index.html' : `${page}.html`;
+    return inDirFor(lang) ? file : langDirFor(lang) + file;
   }
 
   function langQuery() {
     if (inLangDir()) return '';
     const lang = getLang();
-    if (lang === 'en') return location.search ? '&lang=en' : '?lang=en';
-    if (lang === 'it') return location.search ? '&lang=it' : '?lang=it';
-    return '';
+    if (lang === 'pt') return '';
+    const param = `lang=${lang}`;
+    return location.search ? `&${param}` : `?${param}`;
   }
 
   function lojaHref() {
@@ -948,9 +1002,9 @@ window.STF_I18N = (function () {
 
     if (!isLocalized()) return;
 
-    document.title = isIt() ? t('page.checkoutTitleIt') : t('page.checkoutTitleEn');
+    document.title = t(checkoutTitleKey(getLang()));
     const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.content = isIt() ? t('page.checkoutDescIt') : t('page.checkoutDescEn');
+    if (metaDesc) metaDesc.content = t(checkoutDescKey(getLang()));
 
     applyText('.logo-tagline', 'brand.tagline');
 
@@ -1110,7 +1164,7 @@ window.STF_I18N = (function () {
     document.title = t('store.title') + ' | Sensor Tattoo Fix';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.content = isIt() ? t('store.metaDescIt') : t('store.metaDescEn');
+      metaDesc.content = t(storeMetaDescKey(getLang()));
     }
     applyText('.logo-tagline', 'brand.tagline');
     applyText('h1.section-title', 'store.title');
@@ -1246,7 +1300,7 @@ window.STF_I18N = (function () {
   }
 
   function init() {
-    ensureItStrings();
+    ensureExtraStrings();
     try {
       setLang(getPathLang());
     } catch (e) {
@@ -1265,7 +1319,7 @@ window.STF_I18N = (function () {
   }
 
   return {
-    t, getLang, isEn, isIt, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
+    t, getLang, isEn, isIt, isDe, isEs, isPl, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
     applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom,
     langQuery, lojaHref, STRINGS
   };

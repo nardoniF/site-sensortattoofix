@@ -44,6 +44,12 @@ import {
   shopeeReceiptFromEscrow
 } from './shopee-settlement.js';
 import {
+  formatShopeeBalanceResult,
+  fetchShopeeWalletAvailable,
+  sumShopeeToReceiveFromIndex
+} from './shopee-balance.js';
+import { handleAdminMpReleaseAudit } from './mp-release-audit.js';
+import {
   summarizeAmzFinancialEvents,
   amzRound2
 } from './amazon-settlement.js';
@@ -80,7 +86,9 @@ import {
 } from './store-rules.js';
 import {
   applyOrderFreteAccounting,
-  orderNeedsFreteProductRepair
+  orderNeedsFreteProductRepair,
+  saleMoneyParts,
+  storeOrderListedGross
 } from './sales-money.js';
 
 const ALLOWED_ORIGINS = [
@@ -375,7 +383,8 @@ const DEFAULT_CONFIG = {
     commissionerWelcomeSubject: 'Seu cupom {code} está ativo — divulgue Sensor Tattoo Fix',
     testSubject: 'Teste — Sensor Tattoo Fix',
     testTo: '',
-    monthlyReportSubject: 'Relatório mensal — {month}/{year} — Sensor Tattoo Fix',
+    monthlyReportSubject: 'Relatório de cliques — {month}/{year} — Sensor Tattoo Fix',
+    monthlySalesReportSubject: 'Relatório de vendas — {month}/{year} — Sensor Tattoo Fix',
     monthlyReportTo: '',
     pendingPaypal: 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.',
     pendingCard: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
@@ -2257,7 +2266,16 @@ function isComSiteRequest(request) {
 
 function isIntlCheckoutLocale(locale) {
   const l = String(locale || '').toLowerCase();
-  return l === 'en' || l === 'it';
+  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl';
+}
+
+function orderCheckoutLangPath(order) {
+  const l = String(order?.checkoutLocale || 'pt').toLowerCase();
+  if (l === 'it') return '/it';
+  if (l === 'de') return '/de';
+  if (l === 'es') return '/es';
+  if (l === 'pl') return '/pl';
+  return '';
 }
 
 /** True when the destination is abroad even if paisCode was wrongly saved as BR. */
@@ -2801,6 +2819,7 @@ function watchWhatsAppBlock(order) {
 
 function orderCheckoutLocale(order) {
   const l = String(order?.checkoutLocale || 'pt').toLowerCase();
+  if (l === 'de' || l === 'es' || l === 'pl') return 'en';
   if (l === 'en' || l === 'it') return l;
   return 'pt';
 }
@@ -2854,7 +2873,8 @@ function shopWhatsAppUrl(config, env, text) {
 function resumeOrderUrl(config, order) {
   const loc = orderCheckoutLocale(order);
   const site = customerSiteBase(order, config);
-  const path = loc === 'it' ? '/it/comprar.html' : '/comprar.html';
+  const prefix = orderCheckoutLangPath(order);
+  const path = `${prefix}/comprar.html`.replace(/\/\//, '/');
   return `${site}${path}?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
 }
 
@@ -5693,6 +5713,88 @@ async function handleShopeeOAuthCallback(request, env) {
   }
 }
 
+const SHOPEE_BALANCE_KV_KEY = 'shopee:balance_snapshot';
+const SHOPEE_BALANCE_CACHE_MS = 15 * 60 * 1000;
+
+async function fetchShopeeBalance(env, force = false) {
+  if (!force) {
+    try {
+      const raw = await env.STORE_KV.get(SHOPEE_BALANCE_KV_KEY);
+      if (raw) {
+        const snap = JSON.parse(raw);
+        if (snap?.expiresAt > Date.now() && snap.data) return snap.data;
+      }
+    } catch { /* refresh */ }
+  }
+
+  const tok = await getShopeeAccessToken(env);
+  if (!tok?.token || !tok.shopId) {
+    return { ok: false, error: 'Sem token Shopee — autorize a loja em Vendas → Shopee.' };
+  }
+
+  let available = null;
+  try {
+    available = await fetchShopeeWalletAvailable({
+      shopeeShopGet,
+      token: tok.token,
+      shopId: tok.shopId,
+      env
+    });
+  } catch (err) {
+    console.warn('Shopee wallet balance:', err.message || err);
+  }
+
+  const index = await getShopeeSalesIndex(env);
+  const pending = await sumShopeeToReceiveFromIndex(index, async (sn) => loadMarketplaceSale(env, 'shopee', sn));
+  const meta = await getShopeeSalesMeta(env);
+
+  const data = {
+    ok: true,
+    available,
+    toReceive: pending.toReceive,
+    toReceiveCount: pending.count,
+    lastSyncedAt: meta?.lastSyncedAt || null,
+    asOf: new Date().toISOString()
+  };
+
+  await kvPutSafe(env, SHOPEE_BALANCE_KV_KEY, JSON.stringify({
+    expiresAt: Date.now() + SHOPEE_BALANCE_CACHE_MS,
+    data
+  }));
+
+  return data;
+}
+
+async function checkShopeeBalanceIntegration(env, opts = {}) {
+  const base = await checkShopeeIntegration(env);
+  if (!base.authOk) {
+    return {
+      ...base,
+      balance: {
+        ok: false,
+        lines: [base.error || 'Loja Shopee não autorizada.'],
+        amounts: [],
+        error: base.error || null
+      }
+    };
+  }
+  try {
+    const raw = await fetchShopeeBalance(env, opts.force === true);
+    return { ...base, balance: formatShopeeBalanceResult(raw) };
+  } catch (err) {
+    return {
+      ...base,
+      balance: {
+        ok: false,
+        lines: [],
+        amounts: [],
+        error: err.message || String(err),
+        fixHint: 'Vendas → Shopee → Autorizar loja e Atualizar Shopee.'
+      }
+    };
+  }
+}
+
 async function checkShopeeIntegration(env) {
   if (!shopeeAppConfigured(env)) {
     return {
@@ -6009,6 +6111,7 @@ async function handleAdminShopeeSync(request, env, origin) {
       full: true,
       days: daysParam ? Number(daysParam) : 90
     });
+    await kvDelete(env, SHOPEE_BALANCE_KV_KEY).catch(() => {});
     return json({ ok: true, ...report, indexFix: fix }, 200, origin);
   } catch (err) {
     return json({ error: err.message || String(err) }, 502, origin);
@@ -9901,112 +10004,1153 @@ function parsePayPalBalancePayload(data) {
   };
 }
 
-async function fetchMercadoPagoBalanceFromPayments(token) {
-  let offset = 0;
-  const limit = 100;
-  let pendingSum = 0;
-  let pendingCount = 0;
-  let totalApproved = 0;
-  const maxPages = 10;
+const MP_RELEASE_BALANCE_CACHE_KEY = 'admin:mp:release_balance';
+const MP_RELEASE_STATE_KEY = 'admin:mp:release_state';
+const MP_RELEASE_CONFIG_OK_KEY = 'admin:mp:release_config_ok';
+const MP_RELEASE_FILE_PREFIX = 'stf-admin-balance';
+const MP_RELEASE_BALANCE_CACHE_TTL_SEC = 6 * 60 * 60;
+const MP_RELEASE_PENDING_MAX_MS = 12 * 60 * 1000;
+
+function mpReleaseAuthHeaders(token, extra = {}) {
+  return { Authorization: 'Bearer ' + token, Accept: 'application/json', ...extra };
+}
+
+function mpReleaseIsoUtc(date) {
+  return new Date(date).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+function mpReleaseReportDateRange() {
+  const end = new Date();
+  const begin = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+  return { beginDate: mpReleaseIsoUtc(begin), endDate: mpReleaseIsoUtc(end) };
+}
+
+function mpReleaseReportSearchRange() {
+  const end = new Date();
+  const begin = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+  return { rangeBegin: mpReleaseIsoUtc(begin), rangeEnd: mpReleaseIsoUtc(end) };
+}
+
+function parseMpNumber(raw) {
+  let s = String(raw || '').trim().replace(/^"|"$/g, '');
+  if (!s) return null;
+  if (/^-?\d{1,3}(\.\d{3})+,\d+$/.test(s) || /^-?\d+,\d+$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    s = s.replace(/,/g, '');
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeMpCsvHeaderName(raw) {
+  return String(raw || '')
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+function detectMpCsvDelimiter(line) {
+  const sample = String(line || '');
+  const semis = (sample.match(/;/g) || []).length;
+  const commas = (sample.match(/,/g) || []).length;
+  const tabs = (sample.match(/\t/g) || []).length;
+  if (tabs >= semis && tabs >= commas && tabs > 0) return '\t';
+  if (semis > commas) return ';';
+  return ',';
+}
+
+function splitMpCsvLine(line, delimiter) {
+  const out = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') {
+        cur += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (!quoted && ch === delimiter) {
+      out.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+const MP_CSV_RECORD_TYPE_HEADERS = [
+  'RECORD_TYPE',
+  'TIPO_REGISTRO',
+  'TIPO_DE_REGISTRO',
+  'REGISTRY_TYPE',
+  'TIPO'
+];
+const MP_CSV_GROSS_HEADERS = ['GROSS_AMOUNT', 'VALOR_BRUTO', 'VALOR_BRUTO_DA_OPERACAO', 'GROSS_OPERATION_AMOUNT'];
+const MP_CSV_NET_CREDIT_HEADERS = ['NET_CREDIT_AMOUNT', 'VALOR_LIQUIDO_CREDITADO', 'VALOR_LIQUIDO_CREDITO'];
+const MP_CSV_NET_DEBIT_HEADERS = ['NET_DEBIT_AMOUNT', 'VALOR_LIQUIDO_DEBITADO', 'VALOR_LIQUIDO_DEBITO'];
+const MP_CSV_BALANCE_HEADERS = ['BALANCE_AMOUNT', 'SALDO', 'BALANCE'];
+
+function mpCsvColIndex(headerNorm, aliases) {
+  for (const alias of aliases) {
+    const idx = headerNorm.indexOf(alias);
+    if (idx >= 0) return idx;
+  }
+  for (let i = 0; i < headerNorm.length; i++) {
+    const h = headerNorm[i];
+    if (aliases.some((a) => h === a || h.includes(a))) return i;
+  }
+  return -1;
+}
+
+function mpReleaseRowAvailableAmount(cols, rt, indices) {
+  const { balanceIdx, grossIdx, netCreditIdx, netDebitIdx } = indices;
+  const rtNorm = String(rt || '').trim().toLowerCase();
+  const netC = netCreditIdx >= 0 ? parseMpNumber(cols[netCreditIdx]) : null;
+  const netD = netDebitIdx >= 0 ? parseMpNumber(cols[netDebitIdx]) : null;
+  const gross = grossIdx >= 0 ? parseMpNumber(cols[grossIdx]) : null;
+  const bal = balanceIdx >= 0 ? parseMpNumber(cols[balanceIdx]) : null;
+  const positive = (n) => n != null && Number.isFinite(n) && Math.abs(n) > 0.001;
+
+  if (rtNorm === 'initial_available_balance') {
+    if (positive(netC)) return netC;
+    if (positive(gross)) return gross;
+    if (positive(bal)) return bal;
+    return netC ?? gross ?? bal;
+  }
+  if (rtNorm === 'available_balance') {
+    if (positive(bal)) return bal;
+    if (positive(netC)) return netC;
+    if (positive(gross)) return gross;
+    return bal ?? netC ?? gross;
+  }
+  if (rtNorm === 'total') return null;
+  if (positive(bal)) return bal;
+  if (netC != null || netD != null) {
+    const net = (netC || 0) - (netD || 0);
+    if (Math.abs(net) > 0.001) return net;
+  }
+  return gross;
+}
+
+function parseMpReleaseReportCsvFallback(lines, delimiter) {
+  let initialValue = null;
+  let posBalance = null;
+  let lastNonZeroBalance = null;
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (!/(^|[;,])initial_available_balance([;,]|$)/.test(lower)
+      && !/(^|[;,])available_balance([;,]|$)/.test(lower)
+      && !/(^|[;,])balance_amount([;,]|$)/.test(lower)) {
+      continue;
+    }
+    const cols = splitMpCsvLine(line, delimiter);
+    for (let i = 0; i < cols.length; i++) {
+      const token = String(cols[i] || '').trim().toLowerCase();
+      const nums = [];
+      for (let j = Math.max(0, i - 2); j < Math.min(cols.length, i + 8); j++) {
+        if (j === i) continue;
+        const n = parseMpNumber(cols[j]);
+        if (n != null && Math.abs(n) > 0.001) nums.push(n);
+      }
+      const pick = () => (nums.length ? nums[nums.length - 1] : null);
+      if (token === 'initial_available_balance') initialValue = pick();
+      if (token === 'available_balance' && String(cols[i + 1] || '').toLowerCase().startsWith('pos')) {
+        posBalance = pick();
+      }
+    }
+    const balanceMatch = line.match(/(?:^|[;,])available_balance[;,][^;,]*[;,](pos[^;,]*)[;,](-?\d[\d.,]*)/i);
+    if (balanceMatch) {
+      const n = parseMpNumber(balanceMatch[2]);
+      if (n != null && Math.abs(n) > 0.001) posBalance = n;
+    }
+    const balMatch = line.match(/(?:^|[;,])(?:release|payment)[;,][^;,]*[;,](-?\d[\d.,]*)\s*$/i);
+    if (balMatch) {
+      const n = parseMpNumber(balMatch[1]);
+      if (n != null && Math.abs(n) > 0.001) lastNonZeroBalance = n;
+    }
+  }
+  const value = posBalance != null ? posBalance : (lastNonZeroBalance != null ? lastNonZeroBalance : initialValue);
+  if (value == null || !Number.isFinite(value) || Math.abs(value) < 0.001) return null;
+  return {
+    ok: true,
+    value,
+    currency: 'BRL',
+    recordType: posBalance != null ? 'available_balance' : (lastNonZeroBalance != null ? 'balance_amount' : 'initial_available_balance')
+  };
+}
+
+function parseMpReleaseReportCsvForAvailableBalance(csvText) {
+  let text = String(csvText || '').replace(/^\uFEFF/, '').trim();
+  if (!text) return { ok: false, error: 'CSV do relatório MP vazio.' };
+  if (text.startsWith('{') || text.startsWith('[')) {
+    return { ok: false, error: 'Resposta MP não é CSV (JSON recebido).' };
+  }
+
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return { ok: false, error: 'CSV do relatório MP vazio.' };
+
+  let headerIdx = 0;
+  let delimiter = detectMpCsvDelimiter(lines[0]);
+  for (let i = 0; i < Math.min(lines.length, 12); i++) {
+    delimiter = detectMpCsvDelimiter(lines[i]);
+    const norm = splitMpCsvLine(lines[i], delimiter).map(normalizeMpCsvHeaderName);
+    if (mpCsvColIndex(norm, MP_CSV_RECORD_TYPE_HEADERS) >= 0) {
+      headerIdx = i;
+      break;
+    }
+  }
+
+  const headerNorm = splitMpCsvLine(lines[headerIdx], delimiter).map(normalizeMpCsvHeaderName);
+  const rtIdx = mpCsvColIndex(headerNorm, MP_CSV_RECORD_TYPE_HEADERS);
+  const grossIdx = mpCsvColIndex(headerNorm, MP_CSV_GROSS_HEADERS);
+  const netCreditIdx = mpCsvColIndex(headerNorm, MP_CSV_NET_CREDIT_HEADERS);
+  const netDebitIdx = mpCsvColIndex(headerNorm, MP_CSV_NET_DEBIT_HEADERS);
+  const balanceIdx = mpCsvColIndex(headerNorm, MP_CSV_BALANCE_HEADERS);
+
+  if (rtIdx < 0) {
+    const fallback = parseMpReleaseReportCsvFallback(lines.slice(headerIdx + 1), delimiter);
+    if (fallback) return fallback;
+    const preview = headerNorm.slice(0, 6).join(', ') || lines[0].slice(0, 80);
+    return { ok: false, error: `CSV MP sem coluna RECORD_TYPE (cabeçalho: ${preview}).` };
+  }
+
+  const indices = { balanceIdx, grossIdx, netCreditIdx, netDebitIdx };
+  const descIdx = headerNorm.findIndex((h) => h === 'DESCRIPTION' || h === 'DESCRICAO');
+  const descriptionIdx = descIdx >= 0 ? descIdx : rtIdx + 1;
+
+  let posAvailable = null;
+  let lastNonZeroBalance = null;
+  let initialAvailable = null;
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const cols = splitMpCsvLine(lines[i], delimiter);
+    const rt = String(cols[rtIdx] || '').trim().toLowerCase();
+    if (!rt || rt === 'total') continue;
+    const desc = String(cols[descriptionIdx] || '').trim().toLowerCase();
+    const amt = mpReleaseRowAvailableAmount(cols, rt, indices);
+    if (rt === 'initial_available_balance' && amt != null) initialAvailable = amt;
+    if (rt === 'available_balance' && (desc.startsWith('pos') || desc.includes('pos_'))) {
+      if (amt != null && Math.abs(amt) > 0.001) posAvailable = amt;
+    }
+    if (balanceIdx >= 0) {
+      const bal = parseMpNumber(cols[balanceIdx]);
+      if (bal != null && Math.abs(bal) > 0.001) lastNonZeroBalance = bal;
+    }
+  }
+
+  for (let i = lines.length - 1; i > headerIdx; i--) {
+    const cols = splitMpCsvLine(lines[i], delimiter);
+    const rt = String(cols[rtIdx] || '').trim().toLowerCase();
+    if (!rt || rt === 'total') continue;
+    if (balanceIdx >= 0) {
+      const bal = parseMpNumber(cols[balanceIdx]);
+      if (bal != null && Math.abs(bal) > 0.001) {
+        lastNonZeroBalance = bal;
+        break;
+      }
+    }
+    const amt = mpReleaseRowAvailableAmount(cols, rt, indices);
+    if (amt != null && Math.abs(amt) > 0.001 && rt === 'available_balance') {
+      posAvailable = amt;
+      break;
+    }
+  }
+
+  let value = null;
+  let recordType = null;
+  if (posAvailable != null) {
+    value = posAvailable;
+    recordType = 'available_balance';
+  } else if (lastNonZeroBalance != null) {
+    value = lastNonZeroBalance;
+    recordType = 'balance_amount';
+  } else if (initialAvailable != null && Math.abs(initialAvailable) > 0.001) {
+    value = initialAvailable;
+    recordType = 'initial_available_balance';
+  }
+
+  if (value == null || !Number.isFinite(value)) {
+    const fallback = parseMpReleaseReportCsvFallback(lines.slice(headerIdx + 1), delimiter);
+    if (fallback) return fallback;
+    return { ok: false, error: 'Saldo não encontrado no CSV (pos available_balance / balance_amount / initial).' };
+  }
+  if (Math.abs(value) < 0.001) {
+    return { ok: false, error: 'CSV MP sem saldo positivo — tentando novo relatório.' };
+  }
+  return {
+    ok: true,
+    value,
+    currency: 'BRL',
+    recordType
+  };
+}
+
+function mpCsvHeaderInfo(csvText) {
+  let text = String(csvText || '').replace(/^\uFEFF/, '').trim();
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  for (let i = 0; i < Math.min(lines.length, 12); i++) {
+    const delimiter = detectMpCsvDelimiter(lines[i]);
+    const norm = splitMpCsvLine(lines[i], delimiter).map(normalizeMpCsvHeaderName);
+    if (norm.some((h) => h && h !== 'SOURCE_ID')) {
+      return { headerIdx: i, delimiter, headerNorm: norm, lines };
+    }
+  }
+  const delimiter = detectMpCsvDelimiter(lines[0]);
+  return {
+    headerIdx: 0,
+    delimiter,
+    headerNorm: splitMpCsvLine(lines[0], delimiter).map(normalizeMpCsvHeaderName),
+    lines
+  };
+}
+
+function mpCsvHasRecordTypeColumn(csvText) {
+  const info = mpCsvHeaderInfo(csvText);
+  if (!info) return false;
+  return mpCsvColIndex(info.headerNorm, MP_CSV_RECORD_TYPE_HEADERS) >= 0;
+}
+
+const MP_RELEASE_BALANCE_COLUMN_KEYS = [
+  'DATE',
+  'SOURCE_ID',
+  'EXTERNAL_REFERENCE',
+  'RECORD_TYPE',
+  'DESCRIPTION',
+  'NET_CREDIT_AMOUNT',
+  'NET_DEBIT_AMOUNT',
+  'GROSS_AMOUNT',
+  'BALANCE_AMOUNT'
+];
+
+async function getMercadoPagoReleaseReportConfig(token) {
+  const res = await fetch('https://api.mercadopago.com/v1/account/release_report/config', {
+    headers: mpReleaseAuthHeaders(token)
+  });
+  if (res.status === 404) return { ok: false, missing: true };
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, error: data.message || data.error || `HTTP ${res.status}` };
+  }
+  return { ok: true, config: data };
+}
+
+function mpReleaseConfigHasRecordType(config) {
+  const keys = (config?.columns || []).map((c) => String(c?.key || c).trim().toUpperCase());
+  return keys.includes('RECORD_TYPE') && keys.includes('BALANCE_AMOUNT');
+}
+
+async function ensureMercadoPagoReleaseReportConfig(token) {
+  const current = await getMercadoPagoReleaseReportConfig(token);
+  if (current.ok && mpReleaseConfigHasRecordType(current.config)) {
+    return { ok: true, updated: false };
+  }
+  const body = {
+    columns: MP_RELEASE_BALANCE_COLUMN_KEYS.map((key) => ({ key })),
+    file_name_prefix: 'stf-admin-balance',
+    separator: ',',
+    display_timezone: 'GMT-03',
+    report_translation: 'en',
+    include_withdrawal_at_end: true,
+    check_available_balance: true,
+    compensate_detail: true,
+    execute_after_withdrawal: false
+  };
+  const method = current.missing ? 'POST' : 'PUT';
+  const res = await fetch('https://api.mercadopago.com/v1/account/release_report/config', {
+    method,
+    headers: mpReleaseAuthHeaders(token, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok && res.status !== 201) {
+    return { ok: false, error: data.message || data.error || `HTTP ${res.status}` };
+  }
+  return { ok: true, updated: true };
+}
+
+async function clearCachedMpReleaseBalance(env) {
+  if (!env?.STORE_KV) return;
   try {
-    for (let page = 0; page < maxPages; page++) {
-      const url = 'https://api.mercadopago.com/v1/payments/search'
-        + '?sort=date_created&criteria=desc&range=date_created'
-        + '&begin_date=NOW-365DAYS&end_date=NOW&status=approved'
-        + `&limit=${limit}&offset=${offset}`;
+    await env.STORE_KV.delete(MP_RELEASE_BALANCE_CACHE_KEY);
+    await env.STORE_KV.delete(MP_RELEASE_STATE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+async function getMpReleaseState(env) {
+  if (!env?.STORE_KV) return null;
+  const raw = await env.STORE_KV.get(MP_RELEASE_STATE_KEY);
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      /* fall through to legacy */
+    }
+  }
+  const legacy = await getCachedMpReleaseBalance(env);
+  if (!legacy) return null;
+  return { balance: legacy, pending: null };
+}
+
+async function setMpReleaseState(env, state) {
+  await kvPutSafe(env, MP_RELEASE_STATE_KEY, JSON.stringify(state), {
+    expirationTtl: MP_RELEASE_BALANCE_CACHE_TTL_SEC
+  });
+  if (state?.balance) {
+    await setCachedMpReleaseBalance(env, state.balance);
+  }
+}
+
+async function ensureMercadoPagoReleaseReportConfigCached(token, env, force = false) {
+  if (!force && env?.STORE_KV) {
+    const okFlag = await env.STORE_KV.get(MP_RELEASE_CONFIG_OK_KEY);
+    if (okFlag === '1') {
+      const current = await getMercadoPagoReleaseReportConfig(token);
+      if (current.ok && mpReleaseConfigHasRecordType(current.config)) {
+        return { ok: true, updated: false };
+      }
+    }
+  }
+  const result = await ensureMercadoPagoReleaseReportConfig(token);
+  if (!result.ok) return result;
+  if (result.updated) {
+    await clearCachedMpReleaseBalance(env);
+    if (env?.STORE_KV) {
+      try {
+        await env.STORE_KV.delete(MP_RELEASE_CONFIG_OK_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
+    const prev = await getMpReleaseState(env);
+    await setMpReleaseState(env, {
+      ...(prev || {}),
+      pending: null,
+      configUpdatedAt: Date.now()
+    });
+  }
+  if (env?.STORE_KV) {
+    await kvPutSafe(env, MP_RELEASE_CONFIG_OK_KEY, '1', { expirationTtl: 7 * 86400 });
+  }
+  return result;
+}
+
+function mpReleaseReportCreatedMs(row) {
+  return Date.parse(row?.date_created || row?.generation_date || row?.last_modified || 0) || 0;
+}
+
+function pickMpReleaseReportRows(results, opts = {}, max = 3) {
+  const minCreatedAfter = Number(opts.minCreatedAfter || 0);
+  const strictMinAge = opts.strictMinAge === true;
+  const badFiles = new Set(Array.isArray(opts.badFiles) ? opts.badFiles : []);
+  const ageOk = (row) => mpReleaseReportCreatedMs(row) >= minCreatedAfter;
+  const ready = (Array.isArray(results) ? results : [])
+    .filter(mpReleaseReportReady)
+    .filter((row) => !badFiles.has(row.file_name));
+  if (!ready.length) return [];
+
+  const prefixed = ready.filter((row) => String(row.file_name || '').includes(MP_RELEASE_FILE_PREFIX));
+  const prefixedFresh = prefixed.filter(ageOk);
+  const readyFresh = ready.filter(ageOk);
+  let pool = prefixedFresh.length ? prefixedFresh : readyFresh;
+  if (!pool.length && !strictMinAge) pool = prefixed.length ? prefixed : ready;
+
+  pool.sort((a, b) => mpReleaseReportCreatedMs(b) - mpReleaseReportCreatedMs(a));
+  return pool.slice(0, max);
+}
+
+function pickMpReleaseReportRow(results, opts = {}) {
+  return pickMpReleaseReportRows(results, opts, 1)[0] || null;
+}
+
+async function findLatestMpReleaseReportRow(token, rangeBegin, rangeEnd, opts = {}) {
+  const search = await searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, 5);
+  if (!search.ok) return { ok: false, row: null, error: search.error };
+  return { ok: true, row: pickMpReleaseReportRow(search.results, opts) };
+}
+
+async function searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, limit = 10) {
+  const params = new URLSearchParams({
+    range: 'date_created',
+    range_begin_date: rangeBegin,
+    range_end_date: rangeEnd,
+    created_from: 'manual',
+    limit: String(limit)
+  });
+  const res = await fetch(`https://api.mercadopago.com/v1/account/release_report/search?${params}`, {
+    headers: mpReleaseAuthHeaders(token)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, results: [], error: data.message || data.error || `HTTP ${res.status}` };
+  }
+  return { ok: true, results: data.results || [] };
+}
+
+function mpReleaseReportReady(row) {
+  if (!row?.file_name) return false;
+  const fmt = String(row.format || '').toUpperCase();
+  if (fmt && fmt !== 'CSV') return false;
+  const status = String(row.status || '').toLowerCase();
+  return status === 'enabled' || status === 'processed';
+}
+
+async function requestMercadoPagoReleaseReport(token, beginDate, endDate) {
+  const res = await fetch('https://api.mercadopago.com/v1/account/release_report', {
+    method: 'POST',
+    headers: mpReleaseAuthHeaders(token, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ begin_date: beginDate, end_date: endDate })
+  });
+  if (res.status === 202 || res.status === 200) return { ok: true };
+  const data = await res.json().catch(() => ({}));
+  return {
+    ok: false,
+    error: data.message || data.error || `HTTP ${res.status}`,
+    retryDates: data.begin_date && data.end_date
+      ? { beginDate: data.begin_date, endDate: data.end_date }
+      : null
+  };
+}
+
+async function downloadMercadoPagoReleaseReportCsv(token, fileName) {
+  const res = await fetch(
+    `https://api.mercadopago.com/v1/account/release_report/${encodeURIComponent(fileName)}`,
+    { headers: { Authorization: 'Bearer ' + token, Accept: 'text/csv,application/octet-stream,*/*' } }
+  );
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    return { ok: false, error: errText || `HTTP ${res.status}` };
+  }
+  return { ok: true, csv: await res.text() };
+}
+
+async function getCachedMpReleaseBalance(env) {
+  if (!env?.STORE_KV) return null;
+  const raw = await env.STORE_KV.get(MP_RELEASE_BALANCE_CACHE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedMpReleaseBalance(env, data) {
+  await kvPutSafe(env, MP_RELEASE_BALANCE_CACHE_KEY, JSON.stringify(data), {
+    expirationTtl: MP_RELEASE_BALANCE_CACHE_TTL_SEC
+  });
+}
+
+async function fetchMercadoPagoOfficialBalance(token, userId) {
+  if (!userId) return { ok: false, error: 'ID de usuário MP ausente.' };
+  const urls = [
+    `https://api.mercadopago.com/users/${encodeURIComponent(userId)}/mercadopago_account/balance`,
+    'https://api.mercadopago.com/users/me/mercadopago_account/balance'
+  ];
+  let lastErr = null;
+  for (const url of urls) {
+    try {
       const res = await fetch(url, {
         headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        return {
-          ok: false,
-          lines: [],
-          amounts: [],
-          error: data.message || data.error || `HTTP ${res.status}`,
-          fixHint: paymentBalanceFixHint('mercadopago', data.message || data.error || '')
-        };
+        lastErr = data.message || data.error || `HTTP ${res.status}`;
+        continue;
       }
-      const results = Array.isArray(data.results) ? data.results : [];
-      for (const payment of results) {
-        totalApproved += 1;
-        if (String(payment.money_release_status || '').toLowerCase() !== 'pending') continue;
-        pendingCount += 1;
-        const net = Number(payment?.transaction_details?.net_received_amount ?? payment?.transaction_amount ?? 0);
-        if (Number.isFinite(net) && net > 0) pendingSum += net;
-      }
-      if (results.length < limit) break;
-      offset += limit;
+      const cur = String(data.currency_id || data.currency || 'BRL').toUpperCase();
+      return {
+        ok: true,
+        available: Number(data.available_balance),
+        unavailable: Number(data.unavailable_balance),
+        total: Number(data.total_amount),
+        currency: cur,
+        asOf: data.last_modified || new Date().toISOString()
+      };
+    } catch (err) {
+      lastErr = err.message;
     }
-    const cur = 'BRL';
-    const lines = [
-      `A liberar (retido pelo MP): ${formatProviderMoney(pendingSum, cur)}`,
-      `Base: ${pendingCount} pagamento(s) com liberação pendente · ${totalApproved} aprovado(s) em 365 dias`,
-      'Disponível para saque: painel MP → Suas vendas → Dinheiro na conta (API /balance bloqueada pelo MP)'
-    ];
-    const amounts = [];
-    if (pendingSum > 0) amounts.push({ kind: 'pending', currency: cur, value: pendingSum });
-    return {
-      ok: true,
-      lines,
-      amounts,
-      asOf: new Date().toISOString(),
-      error: null,
-      source: 'payments_search'
-    };
-  } catch (err) {
-    return { ok: false, lines: [], amounts: [], error: err.message };
   }
+  return { ok: false, status: 403, error: lastErr || 'Saldo oficial MP indisponível.' };
 }
 
-async function fetchMercadoPagoBalance(token, userId) {
-  if (!userId) return { ok: false, lines: [], error: 'ID de usuário MP ausente.' };
-  try {
-    const res = await fetch(`https://api.mercadopago.com/users/${encodeURIComponent(userId)}/mercadopago_account/balance`, {
+function formatMercadoPagoOfficialBalanceResult(official) {
+  const cur = String(official.currency || 'BRL').toUpperCase();
+  const available = Number(official.available);
+  const unavailable = Number(official.unavailable);
+  const lines = [];
+  const amounts = [];
+  if (Number.isFinite(available)) {
+    lines.push(`Disponível: ${formatProviderMoney(available, cur)}`);
+    amounts.push({ kind: 'available', currency: cur, value: available });
+  }
+  if (Number.isFinite(unavailable) && unavailable > 0) {
+    lines.push(`A liberar: ${formatProviderMoney(unavailable, cur)}`);
+    amounts.push({ kind: 'pending', currency: cur, value: unavailable });
+  }
+  if (Number.isFinite(official.total) && Math.abs(official.total - available - unavailable) > 0.01) {
+    lines.push(`Total na conta: ${formatProviderMoney(official.total, cur)}`);
+  }
+  lines.push('Fonte: API oficial MP (/mercadopago_account/balance)');
+  return {
+    ok: lines.length > 1,
+    lines,
+    amounts,
+    asOf: official.asOf || new Date().toISOString(),
+    error: null,
+    source: 'official_balance'
+  };
+}
+
+function mpPaymentNetAmountStrict(payment) {
+  const net = Number(payment?.transaction_details?.net_received_amount);
+  return Number.isFinite(net) && net > 0 ? net : null;
+}
+
+function mpPaymentIsPendingRelease(payment, collectorId) {
+  if (String(payment?.status || '').toLowerCase() !== 'approved') return false;
+  if (collectorId != null && payment?.collector_id != null
+    && String(payment.collector_id) !== String(collectorId)) {
+    return false;
+  }
+  return String(payment?.money_release_status || '').toLowerCase() === 'pending';
+}
+
+async function mpFetchPaymentDoc(token, paymentId) {
+  const key = String(paymentId);
+  const res = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(key)}`, {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return null;
+  return data;
+}
+
+function parseMpDateMs(raw) {
+  if (raw == null || raw === '') return null;
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 1e9) return n < 1e12 ? n * 1000 : n;
+  const ms = Date.parse(String(raw));
+  return Number.isFinite(ms) ? ms : null;
+}
+
+/** Meia-noite de hoje em America/Sao_Paulo (BRT = UTC−3, sem horário de verão). */
+function mpStartOfTodayBrtMs(nowMs = Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date(nowMs));
+  const y = Number(parts.find((p) => p.type === 'year')?.value);
+  const m = Number(parts.find((p) => p.type === 'month')?.value);
+  const d = Number(parts.find((p) => p.type === 'day')?.value);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return nowMs;
+  return Date.UTC(y, m - 1, d, 3, 0, 0, 0);
+}
+
+function mpPaymentApprovedTodayBrt(payment, nowMs = Date.now()) {
+  const approvedMs = parseMpDateMs(payment?.date_approved);
+  if (approvedMs == null) return false;
+  return approvedMs >= mpStartOfTodayBrtMs(nowMs);
+}
+
+function mpPaymentPendingFutureRelease(payment, collectorId, nowMs = Date.now()) {
+  if (!mpPaymentIsPendingRelease(payment, collectorId)) return false;
+  if (Number(payment?.transaction_amount_refunded) > 0) return false;
+  const releaseMs = parseMpDateMs(payment?.money_release_date);
+  if (releaseMs == null) return false;
+  return releaseMs > nowMs;
+}
+
+async function fetchMercadoPagoPendingToRelease(token, collectorId, opts = {}) {
+  const excludeTodayBrt = opts.excludeTodayBrt !== false;
+  const seen = new Set();
+  const docCache = new Map();
+  let pendingSum = 0;
+  let excludedTodaySum = 0;
+  let excludedTodayCount = 0;
+  let detailFetches = 0;
+  const maxDetailFetches = 60;
+
+  const fetchPage = async (params, offset) => {
+    const qs = new URLSearchParams({ ...params, offset: String(offset) });
+    const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${qs}`, {
       headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const errMsg = data.message || data.error || data.cause?.[0]?.description || `HTTP ${res.status}`;
-      const low = String(errMsg).toLowerCase();
-      if (res.status === 403 || low.includes('forbidden')) {
-        const fallback = await fetchMercadoPagoBalanceFromPayments(token);
-        if (fallback.ok) return fallback;
+    if (!res.ok) return { ok: false, error: data.message || data.error || `HTTP ${res.status}` };
+    return { ok: true, results: data.results || [], total: Number(data?.paging?.total) };
+  };
+
+  const loadDoc = async (paymentId) => {
+    const key = String(paymentId);
+    if (docCache.has(key)) return docCache.get(key);
+    if (detailFetches >= maxDetailFetches) return null;
+    detailFetches += 1;
+    const full = await mpFetchPaymentDoc(token, key);
+    docCache.set(key, full);
+    return full;
+  };
+
+  try {
+    const limit = 100;
+    let offset = 0;
+    const maxPages = 6;
+    for (let page = 0; page < maxPages; page++) {
+      const pageData = await fetchPage({
+        sort: 'money_release_date',
+        criteria: 'asc',
+        range: 'money_release_date',
+        begin_date: 'NOW',
+        end_date: 'NOW+120DAYS',
+        status: 'approved'
+      }, offset);
+      if (!pageData.ok) return { ok: false, value: 0, error: pageData.error };
+
+      for (const payment of pageData.results) {
+        const id = payment?.id != null ? String(payment.id) : '';
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+
+        let doc = payment;
+        const needsDetail = mpPaymentNetAmountStrict(doc) == null
+          || (mpPaymentIsPendingRelease(doc, collectorId) && parseMpDateMs(doc?.money_release_date) == null);
+        if (needsDetail) doc = await loadDoc(id);
+        if (!doc || !mpPaymentPendingFutureRelease(doc, collectorId)) continue;
+        const net = mpPaymentNetAmountStrict(doc);
+        if (net == null) continue;
+        // Vendas aprovadas hoje (BRT) ainda podem não entrar no "Dinheiro a liberar" do app.
+        if (excludeTodayBrt && mpPaymentApprovedTodayBrt(doc)) {
+          excludedTodaySum += net;
+          excludedTodayCount += 1;
+          continue;
+        }
+        pendingSum += net;
       }
+
+      offset += limit;
+      if (pageData.results.length < limit) break;
+      if (Number.isFinite(pageData.total) && offset >= pageData.total) break;
+    }
+
+    pendingSum = Math.round(pendingSum * 100) / 100;
+    excludedTodaySum = Math.round(excludedTodaySum * 100) / 100;
+    return {
+      ok: true,
+      value: pendingSum,
+      currency: 'BRL',
+      excludedToday: excludedTodayCount > 0
+        ? { count: excludedTodayCount, sum: excludedTodaySum }
+        : null
+    };
+  } catch (err) {
+    return { ok: false, value: 0, error: err.message };
+  }
+}
+
+async function resolveMercadoPagoPendingForBalance(token, cache, collectorId, officialUnavailable) {
+  const officialN = Number(officialUnavailable);
+  if (Number.isFinite(officialN) && officialN > 0) {
+    return { value: officialN, meta: { source: 'official_balance' } };
+  }
+
+  const withExcl = await fetchMercadoPagoPendingToRelease(token, collectorId, { excludeTodayBrt: true });
+  if (withExcl.ok) {
+    const v = Number(withExcl.value);
+    if (Number.isFinite(v) && v > 0) {
+      return {
+        value: v,
+        meta: {
+          source: 'payments_pending_excl_today_brt',
+          excludedToday: withExcl.excludedToday || null
+        }
+      };
+    }
+  }
+
+  const full = await fetchMercadoPagoPendingToRelease(token, collectorId, { excludeTodayBrt: false });
+  if (full.ok) {
+    const v = Number(full.value);
+    if (Number.isFinite(v) && v > 0) {
+      return { value: v, meta: { source: 'payments_pending' } };
+    }
+  }
+
+  const cached = Number(cache?.pendingRelease);
+  if (Number.isFinite(cached) && cached > 0) {
+    return { value: cached, meta: cache?.pendingMeta || null };
+  }
+  return { value: null, meta: null };
+}
+
+async function resolveMercadoPagoPendingRelease(token, cache, force = false, collectorId = null) {
+  const cached = Number(cache?.pendingRelease);
+  const pendingCacheTtlMs = 15 * 60 * 1000;
+  if (!force && Number.isFinite(cached) && cached > 0 && cache?.pendingCachedAt) {
+    const ageMs = Date.now() - new Date(cache.pendingCachedAt).getTime();
+    if (ageMs < pendingCacheTtlMs) return { value: cached, meta: cache?.pendingMeta || null };
+  }
+  return resolveMercadoPagoPendingForBalance(token, cache, collectorId, null);
+}
+
+function mergeMpPendingReleaseIntoResult(result, pendingRelease, cur = 'BRL') {
+  const pending = Number(pendingRelease);
+  if (!Number.isFinite(pending) || pending <= 0) return result;
+  const lines = [...(result.lines || [])];
+  const amounts = [...(result.amounts || [])];
+  const pendingLine = `A liberar: ${formatProviderMoney(pending, cur)}`;
+  if (!lines.some((l) => String(l).startsWith('A liberar:'))) {
+    const srcIdx = lines.findIndex((l) => String(l).startsWith('Fonte:'));
+    if (srcIdx >= 0) lines.splice(srcIdx, 0, pendingLine);
+    else lines.unshift(pendingLine);
+  }
+  if (!amounts.some((a) => a.kind === 'pending')) {
+    amounts.push({ kind: 'pending', currency: cur, value: pending });
+  }
+  return { ...result, lines, amounts };
+}
+
+async function buildMercadoPagoBalanceResult(token, cache, reportPending, opts = {}) {
+  const force = opts.force === true;
+  const collectorId = opts.collectorId || null;
+  const officialN = Number(opts.officialUnavailable);
+  const resolved = await resolveMercadoPagoPendingForBalance(
+    token, cache, collectorId, Number.isFinite(officialN) && officialN > 0 ? officialN : null
+  );
+  const pendingRelease = resolved?.value ?? null;
+  const pendingMeta = resolved?.meta || null;
+
+  const merged = {
+    ...(cache || {}),
+    pendingRelease: pendingRelease != null && Number.isFinite(Number(pendingRelease)) && Number(pendingRelease) >= 0
+      ? Number(pendingRelease)
+      : null,
+    pendingCachedAt: new Date().toISOString(),
+    pendingSource: pendingMeta?.source || 'payments_pending',
+    pendingMeta: pendingMeta?.excludedToday ? { excludedToday: pendingMeta.excludedToday } : null
+  };
+  return formatMpReleaseBalanceResult(merged, reportPending);
+}
+
+function formatMpReleaseBalanceResult(cache, reportPending) {
+  const cur = String(cache?.currency || 'BRL').toUpperCase();
+  const value = Number(cache?.available);
+  const pendingRelease = Number(cache?.pendingRelease);
+  const lines = [];
+  const amounts = [];
+
+  if (Number.isFinite(value)) {
+    lines.push(`Disponível: ${formatProviderMoney(value, cur)}`);
+    amounts.push({ kind: 'available', currency: cur, value });
+  } else {
+    lines.push('Disponível: —');
+  }
+
+  const pend = Number.isFinite(pendingRelease) && pendingRelease >= 0 ? pendingRelease : 0;
+  lines.push(`Pendente: ${formatProviderMoney(pend, cur)}`);
+  if (pend > 0) amounts.push({ kind: 'pending', currency: cur, value: pend });
+
+  const asOf = cache?.reportAsOf || cache?.pendingCachedAt || cache?.cachedAt || new Date().toISOString();
+  return {
+    ok: Number.isFinite(value) && value > 0,
+    pending: !!reportPending,
+    lines,
+    amounts,
+    asOf,
+    error: reportPending ? 'Relatório MP em processamento.' : null,
+    source: 'release_report'
+  };
+}
+
+async function parseAvailableFromMpReleaseReports(token, reportRows, force = false, collectorId = null) {
+  const badFiles = [];
+  for (const row of reportRows) {
+    if (!row?.file_name) continue;
+    const downloaded = await downloadMercadoPagoReleaseReportCsv(token, row.file_name);
+    if (!downloaded.ok) {
+      badFiles.push(row.file_name);
+      continue;
+    }
+    if (!mpCsvHasRecordTypeColumn(downloaded.csv)) {
+      badFiles.push(row.file_name);
+      continue;
+    }
+    const parsed = parseMpReleaseReportCsvForAvailableBalance(downloaded.csv);
+    if (parsed.ok && parsed.value > 0) {
+      const balance = {
+        available: parsed.value,
+        currency: parsed.currency || 'BRL',
+        fileName: row.file_name,
+        recordType: parsed.recordType,
+        reportAsOf: row.date_created || row.generation_date || new Date().toISOString(),
+        cachedAt: new Date().toISOString()
+      };
+      return { ok: true, balance, badFiles };
+    }
+    badFiles.push(row.file_name);
+  }
+  return { ok: false, badFiles };
+}
+
+async function mercadoPagoPendingOnlyBalanceResult() {
+  return null;
+}
+
+function mpReleaseStaleFallbackBalance(state, previousBalance) {
+  const cur = state?.balance?.available;
+  if (Number.isFinite(Number(cur)) && Number(cur) > 0) return state.balance;
+  if (previousBalance && Number.isFinite(Number(previousBalance.available)) && Number(previousBalance.available) > 0) {
+    return previousBalance;
+  }
+  return state?.balance || previousBalance || {};
+}
+
+function mpReleaseReportPickOpts(state, force) {
+  const forceFreshMs = 25 * 60 * 1000;
+  return {
+    minCreatedAfter: force ? Date.now() - forceFreshMs : (state?.configUpdatedAt || 0),
+    strictMinAge: force,
+    badFiles: force ? [] : (state?.pending?.badFiles || [])
+  };
+}
+
+async function tryParseMpReleaseReports(token, env, state, reportRows, force, collectorId, balanceOpts) {
+  if (!reportRows?.length) return null;
+  const parsed = await parseAvailableFromMpReleaseReports(token, reportRows, force, collectorId);
+  if (parsed.ok) {
+    const result = await buildMercadoPagoBalanceResult(token, parsed.balance, false, balanceOpts);
+    const pendingRow = (result.amounts || []).find((a) => a.kind === 'pending');
+    await setMpReleaseState(env, {
+      ...state,
+      balance: {
+        ...parsed.balance,
+        pendingRelease: pendingRow?.value ?? null,
+        pendingCachedAt: new Date().toISOString(),
+        pendingSource: pendingRow ? 'resolved' : null
+      },
+      pending: null
+    });
+    return result;
+  }
+  if (parsed.badFiles?.length && !force) {
+    await setMpReleaseState(env, {
+      ...state,
+      pending: { ...(state?.pending || {}), badFiles: [...new Set([...(state?.pending?.badFiles || []), ...parsed.badFiles])] }
+    });
+  }
+  return null;
+}
+
+async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
+  const force = opts.force === true;
+  const collectorId = opts.collectorId || null;
+  const previousBalance = opts.previousBalance || null;
+  const balanceOpts = { force, collectorId, officialUnavailable: opts.officialUnavailable, previousBalance };
+  const { rangeBegin, rangeEnd } = mpReleaseReportSearchRange();
+  try {
+    const state = (await getMpReleaseState(env)) || {};
+    if (!force && state.balance?.available != null && state.balance?.cachedAt) {
+      const ageMs = Date.now() - new Date(state.balance.cachedAt).getTime();
+      const avail = Number(state.balance.available);
+      if (ageMs < MP_RELEASE_BALANCE_CACHE_TTL_SEC * 1000 && Number.isFinite(avail) && avail > 0) {
+        const result = await buildMercadoPagoBalanceResult(token, state.balance, false, balanceOpts);
+        return result;
+      }
+    }
+
+    const pending = state.pending;
+    if (!force && pending?.requestedAt) {
+      const pendingAge = Date.now() - new Date(pending.requestedAt).getTime();
+      if (pendingAge < MP_RELEASE_PENDING_MAX_MS) {
+        const quick = await searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, 10);
+        if (quick.ok) {
+          const rows = pickMpReleaseReportRows(quick.results, mpReleaseReportPickOpts(state, false), 3);
+          const quickResult = await tryParseMpReleaseReports(token, env, state, rows, force, collectorId, balanceOpts);
+          if (quickResult) return quickResult;
+        }
+        const partial = await mercadoPagoPendingOnlyBalanceResult(token, force, collectorId);
+        if (partial) return partial;
+        return buildMercadoPagoBalanceResult(token, state.balance || {}, true, balanceOpts);
+      }
+    }
+
+    const configResult = await ensureMercadoPagoReleaseReportConfigCached(token, env, force);
+    if (!configResult.ok) {
+      const partial = await mercadoPagoPendingOnlyBalanceResult(token, force, collectorId);
+      if (partial) return partial;
       return {
         ok: false,
         lines: [],
         amounts: [],
-        error: errMsg,
-        fixHint: paymentBalanceFixHint('mercadopago', errMsg)
+        error: configResult.error || 'Falha ao configurar relatório MP.',
+        fixHint: paymentBalanceFixHint('mercadopago', configResult.error || '')
       };
     }
-    const lines = [];
-    const amounts = [];
-    const cur = String(data.currency_id || data.currency || 'BRL').toUpperCase();
-    if (data.available_balance != null) {
-      const v = Number(data.available_balance);
-      lines.push(`Disponível: ${formatProviderMoney(v, cur)}`);
-      amounts.push({ kind: 'available', currency: cur, value: v });
+
+    const freshState = (await getMpReleaseState(env)) || state;
+    const search = await searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, 10);
+    if (!search.ok) {
+      const partial = await mercadoPagoPendingOnlyBalanceResult(token, force, collectorId);
+      if (partial) return partial;
+      return {
+        ok: false,
+        lines: [],
+        amounts: [],
+        error: search.error || 'Falha ao listar relatórios MP.'
+      };
     }
-    if (data.unavailable_balance != null && Number(data.unavailable_balance) > 0) {
-      const v = Number(data.unavailable_balance);
-      lines.push(`A liberar: ${formatProviderMoney(v, cur)}`);
-      amounts.push({ kind: 'pending', currency: cur, value: v });
+
+    const pickOpts = mpReleaseReportPickOpts(freshState, force);
+    const reportRows = pickMpReleaseReportRows(search.results, pickOpts, 3);
+    const parsedResult = await tryParseMpReleaseReports(token, env, freshState, reportRows, force, collectorId, balanceOpts);
+    if (parsedResult) return parsedResult;
+    if (reportRows.length && !mpReleaseConfigHasRecordType((await getMercadoPagoReleaseReportConfig(token)).config || {})) {
+      await ensureMercadoPagoReleaseReportConfigCached(token, env, true);
     }
-    if (data.total_amount != null) {
-      lines.push(`Total na conta: ${formatProviderMoney(Number(data.total_amount), cur)}`);
+
+    const requestStartedAt = Date.now();
+    const { beginDate, endDate } = mpReleaseReportDateRange();
+    let created = await requestMercadoPagoReleaseReport(token, beginDate, endDate);
+    if (!created.ok && created.retryDates) {
+      created = await requestMercadoPagoReleaseReport(
+        token,
+        created.retryDates.beginDate,
+        created.retryDates.endDate
+      );
     }
-    return {
-      ok: lines.length > 0,
-      lines,
-      amounts,
-      asOf: new Date().toISOString(),
-      error: lines.length ? null : 'Resposta MP sem campos de saldo.'
-    };
+    if (!created.ok) {
+      const partial = await mercadoPagoPendingOnlyBalanceResult(token, force, collectorId);
+      if (partial) return partial;
+      return {
+        ok: false,
+        lines: [],
+        amounts: [],
+        error: created.error || 'Falha ao solicitar relatório MP.',
+        fixHint: paymentBalanceFixHint('mercadopago', created.error || '')
+      };
+    }
+
+    await setMpReleaseState(env, {
+      ...freshState,
+      pending: {
+        requestedAt: new Date().toISOString(),
+        badFiles: [...new Set([...(freshState.pending?.badFiles || []), ...(reportRows.map((r) => r.file_name))])]
+      }
+    });
+
+    if (force) {
+      const retrySearch = await searchMercadoPagoReleaseReports(token, rangeBegin, rangeEnd, 10);
+      if (retrySearch.ok) {
+        const freshRows = pickMpReleaseReportRows(retrySearch.results, {
+          minCreatedAfter: requestStartedAt - 120000,
+          strictMinAge: true,
+          badFiles: []
+        }, 3);
+        const retryResult = await tryParseMpReleaseReports(
+          token, env, freshState, freshRows, force, collectorId, balanceOpts
+        );
+        if (retryResult) return retryResult;
+      }
+      return buildMercadoPagoBalanceResult(
+        token,
+        mpReleaseStaleFallbackBalance(freshState, previousBalance),
+        true,
+        balanceOpts
+      );
+    }
+
+    const partial = await mercadoPagoPendingOnlyBalanceResult(token, force, collectorId);
+    if (partial) return partial;
+    return buildMercadoPagoBalanceResult(
+      token,
+      mpReleaseStaleFallbackBalance(freshState, previousBalance),
+      true,
+      balanceOpts
+    );
   } catch (err) {
-    return { ok: false, lines: [], error: err.message };
+    const msg = String(err.message || err);
+    if (/too many subrequests/i.test(msg)) {
+      const cached = await getMpReleaseState(env);
+      if (cached?.balance?.available != null) {
+        return buildMercadoPagoBalanceResult(token, cached.balance, false, { ...balanceOpts, force: false });
+      }
+      return {
+        ok: false,
+        pending: true,
+        lines: [
+          'Relatório MP ainda processando (limite de consultas do Worker).',
+          'Aguarde 1–2 min e clique Atualizar saldos.'
+        ],
+        amounts: [],
+        error: 'Relatório MP em processamento.',
+        source: 'release_report'
+      };
+    }
+    return { ok: false, lines: [], amounts: [], error: msg };
   }
+}
+
+async function fetchMercadoPagoBalance(token, userId, env, opts = {}) {
+  if (!userId) return { ok: false, lines: [], error: 'ID de usuário MP ausente.' };
+  const official = await fetchMercadoPagoOfficialBalance(token, userId);
+  const officialUnavailable = official.ok && Number.isFinite(Number(official.unavailable)) && Number(official.unavailable) > 0
+    ? Number(official.unavailable)
+    : null;
+
+  if (opts.force === true) {
+    const prevState = await getMpReleaseState(env);
+    opts.previousBalance = prevState?.balance || null;
+  }
+
+  // Disponível: Relatório de Liberações (confirmado). Pendente: API oficial (igual ao app) ou estimativa sem vendas de hoje.
+  const reportResult = await fetchMercadoPagoBalanceViaReleaseReport(token, env, {
+    ...opts,
+    collectorId: userId,
+    officialUnavailable
+  });
+  const hasReportAvailable = (reportResult?.amounts || []).some(
+    (a) => a.kind === 'available' && Number.isFinite(Number(a.value)) && Number(a.value) > 0
+  );
+  if (hasReportAvailable || reportResult?.ok) return reportResult;
+
+  const hasOfficialMoney = official.ok && (
+    (Number.isFinite(official.available) && official.available > 0)
+    || (Number.isFinite(official.unavailable) && official.unavailable > 0)
+    || (Number.isFinite(official.total) && official.total > 0)
+  );
+  if (hasOfficialMoney) {
+    const cache = {
+      available: official.available,
+      pendingRelease: official.unavailable,
+      currency: official.currency,
+      cachedAt: new Date().toISOString(),
+      pendingCachedAt: new Date().toISOString(),
+      reportAsOf: official.asOf,
+      source: 'official_balance'
+    };
+    await setMpReleaseState(env, {
+      ...(await getMpReleaseState(env)),
+      balance: cache,
+      pending: null
+    });
+    return formatMercadoPagoOfficialBalanceResult(official);
+  }
+  return reportResult;
 }
 
 function humanizePaymentBalanceError(gatewayId, rawError) {
@@ -10018,8 +11162,19 @@ function humanizePaymentBalanceError(gatewayId, rawError) {
     }
   }
   if (gatewayId === 'mercadopago') {
+    if (low.includes('too many subrequests') || low.includes('subrequests')) {
+      return 'Relatório MP em processamento — aguarde 1–2 min e clique Atualizar saldos.';
+    }
+    if (low.includes('processamento') || low.includes('gerando relatório')) {
+      return 'Relatório de Liberações MP em processamento — aguarde 1–3 min e clique Atualizar.';
+    }
     if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
-      return 'API /balance do MP bloqueada — usando pagamentos aprovados como fallback.';
+      return 'API /balance bloqueada — consultando saldo via Relatório de Liberações MP.';
+    }
+  }
+  if (gatewayId === 'shopee') {
+    if (low.includes('token') || low.includes('oauth') || low.includes('reautoriz')) {
+      return 'Reautorize a loja em Vendas → Shopee → Autorizar loja.';
     }
   }
   return msg || 'Saldo indisponível via API.';
@@ -10033,8 +11188,16 @@ function paymentBalanceFixHint(gatewayId, rawError) {
     }
   }
   if (gatewayId === 'mercadopago') {
+    if (low.includes('processamento') || low.includes('gerando relatório')) {
+      return 'O Worker pediu o Relatório de Liberações automaticamente. Na 1ª vez pode levar 1–3 min — clique **Atualizar saldos** de novo.';
+    }
     if (low.includes('forbidden') || low.includes('403') || low.includes('unauthorized')) {
-      return 'Token de produção OK, mas o MP bloqueia `/balance`. Mostramos **a liberar** via API de pagamentos; **disponível** só no painel MP → Dinheiro na conta.';
+      return 'Token OK; `/balance` bloqueado pelo MP. Saldo **disponível** vem do Relatório de Liberações (automático, cache ~6 h).';
+    }
+  }
+  if (gatewayId === 'shopee') {
+    if (low.includes('permission') || low.includes('offline')) {
+      return 'Confira permissões do app Open Platform (Payment / Wallet) e reautorize a loja.';
     }
   }
   return null;
@@ -10044,6 +11207,7 @@ function paymentBalanceStatus(check) {
   if (!check?.configured) return 'off';
   if (!check.authOk) return 'error';
   if (check.sandbox || check.mode === 'sandbox' || check.mode === 'test') return 'warn';
+  if (check.balance?.pending) return 'warn';
   if (check.balance && check.balance.ok === false) return 'warn';
   return 'ok';
 }
@@ -10288,7 +11452,7 @@ async function checkPayPalIntegration(env) {
   }
 }
 
-async function checkMercadoPagoIntegration(env) {
+async function checkMercadoPagoIntegration(env, opts = {}) {
   const token = mercadoPagoToken(env);
   const sandbox = isMpSandbox(env);
   if (!token) {
@@ -10308,7 +11472,7 @@ async function checkMercadoPagoIntegration(env) {
       };
     }
     const me = await res.json().catch(() => ({}));
-    const balance = await fetchMercadoPagoBalance(token, me?.id);
+    const balance = await fetchMercadoPagoBalance(token, me?.id, env, opts);
     return { configured: true, authOk: true, sandbox, balance, nickname: me?.nickname || null };
   } catch (err) {
     return { configured: true, authOk: false, sandbox, error: err.message };
@@ -11634,24 +12798,38 @@ const PASSWORD_RESET_TTL = 3600; // 1 hora
 
 function passwordResetLocaleFromRequest(request, bodyLocale) {
   const explicit = String(bodyLocale || '').toLowerCase();
-  if (explicit === 'en' || explicit === 'it' || explicit === 'pt') return explicit;
+  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'pt') return explicit;
   const lang = (request.headers.get('Accept-Language') || '').toLowerCase();
   if (lang.startsWith('it')) return 'it';
+  if (lang.startsWith('de')) return 'de';
+  if (lang.startsWith('es')) return 'es';
+  if (lang.startsWith('pl')) return 'pl';
   if (lang.startsWith('en')) return 'en';
   const hay = `${request.headers.get('Origin') || ''} ${request.headers.get('Referer') || ''}`.toLowerCase();
   if (hay.includes('/it/') || hay.includes('lang=it')) return 'it';
+  if (hay.includes('/de/') || hay.includes('lang=de')) return 'de';
+  if (hay.includes('/es/') || hay.includes('lang=es')) return 'es';
+  if (hay.includes('/pl/') || hay.includes('lang=pl')) return 'pl';
   if (hay.includes('sensortattoofix.com') && !hay.includes('.com.br')) return 'en';
   return 'pt';
 }
 
 function passwordResetSiteBase(locale, config) {
-  if (locale === 'en' || locale === 'it') return 'https://www.sensortattoofix.com';
+  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl') {
+    return 'https://www.sensortattoofix.com';
+  }
   return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
 }
 
 function passwordResetUrl(locale, config, token) {
   const base = passwordResetSiteBase(locale, config);
-  const path = locale === 'it' ? '/it/minha-conta.html' : '/minha-conta.html';
+  const pathByLocale = {
+    it: '/it/minha-conta.html',
+    de: '/de/minha-conta.html',
+    es: '/es/minha-conta.html',
+    pl: '/pl/minha-conta.html'
+  };
+  const path = pathByLocale[locale] || '/minha-conta.html';
   return `${base}${path}?reset=${encodeURIComponent(token)}`;
 }
 
@@ -13865,10 +15043,257 @@ async function handleSession(request, env, origin) {
   return json({ ok: true, username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
 }
 
+async function diagnoseMercadoPagoPending(token, collectorId) {
+  const tokenOk = token;
+  if (!tokenOk) return { error: 'sem token' };
+  const meRes = await fetch('https://api.mercadopago.com/users/me', {
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+  });
+  const me = await meRes.json().catch(() => ({}));
+  const userId = collectorId || me?.id;
+  const official = await fetchMercadoPagoOfficialBalance(token, userId);
+  const full = await fetchMercadoPagoPendingToRelease(token, userId, { excludeTodayBrt: false });
+  const exclToday = await fetchMercadoPagoPendingToRelease(token, userId, { excludeTodayBrt: true });
+
+  const byType = {};
+  const byCardBrand = {};
+  let pastReleaseSum = 0;
+  let futureReleaseSum = 0;
+  let creditCardSum = 0;
+  let nonCardSum = 0;
+  const nowMs = Date.now();
+  const seen = new Set();
+  let offset = 0;
+  const limit = 100;
+  for (let page = 0; page < 6; page++) {
+    const qs = new URLSearchParams({
+      sort: 'money_release_date',
+      criteria: 'asc',
+      range: 'money_release_date',
+      begin_date: 'NOW',
+      end_date: 'NOW+120DAYS',
+      status: 'approved',
+      offset: String(offset),
+      limit: String(limit)
+    });
+    const res = await fetch(`https://api.mercadopago.com/v1/payments/search?${qs}`, {
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) break;
+    for (const p of data.results || []) {
+      const id = p?.id != null ? String(p.id) : '';
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      if (!mpPaymentIsPendingRelease(p, userId)) continue;
+      const net = mpPaymentNetAmountStrict(p);
+      if (net == null) continue;
+      const type = String(p?.payment_type_id || 'unknown').toLowerCase();
+      byType[type] = (byType[type] || 0) + net;
+      const brand = String(p?.payment_method_id || 'unknown').toLowerCase();
+      if (type === 'credit_card' || type === 'debit_card') {
+        byCardBrand[brand] = (byCardBrand[brand] || 0) + net;
+        creditCardSum += net;
+      } else {
+        nonCardSum += net;
+      }
+      const releaseMs = parseMpDateMs(p?.money_release_date);
+      if (releaseMs != null && releaseMs <= nowMs) pastReleaseSum += net;
+      else if (releaseMs != null && releaseMs > nowMs) futureReleaseSum += net;
+    }
+    offset += limit;
+    if ((data.results || []).length < limit) break;
+  }
+  const round = (n) => Math.round(n * 100) / 100;
+  for (const k of Object.keys(byType)) byType[k] = round(byType[k]);
+  for (const k of Object.keys(byCardBrand)) byCardBrand[k] = round(byCardBrand[k]);
+  return {
+    official: official.ok ? {
+      available: official.available,
+      unavailable: official.unavailable,
+      total: official.total
+    } : { error: official.error },
+    searchFull: full.ok ? { value: full.value, excludedToday: full.excludedToday } : { error: full.error },
+    searchExclToday: exclToday.ok ? { value: exclToday.value, excludedToday: exclToday.excludedToday } : { error: exclToday.error },
+    breakdown: {
+      byPaymentType: byType,
+      byCardBrand,
+      creditCardSum: round(creditCardSum),
+      nonCardSum: round(nonCardSum),
+      pastReleaseDateSum: round(pastReleaseSum),
+      futureReleaseDateSum: round(futureReleaseSum),
+      paymentCount: seen.size
+    }
+  };
+}
+
+/** ISO 3166-1 alpha-2 → idioma(s) principais do país (para priorizar tradução do site). */
+const COUNTRY_PRIMARY_LANGUAGES = {
+  AD: ['ca', 'es'], AE: ['ar', 'en'], AF: ['fa', 'ps'], AL: ['sq'], AM: ['hy'],
+  AR: ['es'], AT: ['de'], AU: ['en'], AZ: ['az'],
+  BA: ['bs', 'hr', 'sr'], BD: ['bn'], BE: ['nl', 'fr', 'de'], BG: ['bg'], BH: ['ar'],
+  BO: ['es'], BR: ['pt'], BY: ['be', 'ru'], BZ: ['en', 'es'],
+  CA: ['en', 'fr'], CH: ['de', 'fr', 'it'], CL: ['es'], CN: ['zh'], CO: ['es'],
+  CR: ['es'], CY: ['el', 'tr'], CZ: ['cs'],
+  DE: ['de'], DK: ['da'], DO: ['es'],
+  EC: ['es'], EE: ['et'], EG: ['ar'], ES: ['es'], ET: ['am'],
+  FI: ['fi', 'sv'], FR: ['fr'], GB: ['en'], GR: ['el'], GT: ['es'],
+  HK: ['zh', 'en'], HN: ['es'], HR: ['hr'], HU: ['hu'],
+  ID: ['id'], IE: ['en', 'ga'], IL: ['he', 'ar'], IN: ['hi', 'en'], IS: ['is'], IT: ['it'],
+  JP: ['ja'], KE: ['sw', 'en'], KR: ['ko'], KW: ['ar'],
+  KZ: ['kk', 'ru'], LB: ['ar'], LI: ['de'], LT: ['lt'], LU: ['fr', 'de', 'lb'], LV: ['lv'],
+  MA: ['ar', 'fr'], MD: ['ro'], ME: ['sr'], MK: ['mk'], MT: ['mt', 'en'], MX: ['es'], MY: ['ms', 'en'],
+  NG: ['en'], NI: ['es'], NL: ['nl'], NO: ['no'], NZ: ['en'],
+  PA: ['es'], PE: ['es'], PH: ['en', 'tl'], PK: ['ur', 'en'], PL: ['pl'], PT: ['pt'], PY: ['es'],
+  QA: ['ar'], RO: ['ro'], RS: ['sr'], RU: ['ru'],
+  SA: ['ar'], SE: ['sv'], SG: ['en', 'zh', 'ms'], SI: ['sl'], SK: ['sk'], SV: ['es'],
+  TH: ['th'], TR: ['tr'], TW: ['zh'], UA: ['uk'], US: ['en'], UY: ['es'], UZ: ['uz'],
+  VE: ['es'], VN: ['vi'], ZA: ['en', 'af', 'zu']
+};
+
+const LANG_LABELS = {
+  pt: 'Português', en: 'Inglês', es: 'Espanhol', it: 'Italiano', de: 'Alemão', pl: 'Polonês',
+  is: 'Islandês', fr: 'Francês', nl: 'Holandês', ar: 'Árabe', zh: 'Chinês', ja: 'Japonês',
+  ko: 'Coreano', ru: 'Russo', uk: 'Ucraniano', sv: 'Sueco', da: 'Dinamarquês', fi: 'Finlandês',
+  no: 'Norueguês', cs: 'Tcheco', hu: 'Húngaro', ro: 'Romeno', el: 'Grego', tr: 'Turco',
+  he: 'Hebraico', hi: 'Hindi', id: 'Indonésio', th: 'Tailandês', vi: 'Vietnamita', ca: 'Catalão',
+  hr: 'Croata', sr: 'Sérvio', sl: 'Esloveno', sk: 'Eslovaco', bg: 'Búlgaro', lt: 'Lituano',
+  lv: 'Letão', et: 'Estoniano', fa: 'Persa', bn: 'Bengali', sq: 'Albanês', hy: 'Armênio',
+  az: 'Azeri', be: 'Bielorrusso', bs: 'Bósnio', ga: 'Irlandês', kk: 'Cazaque', lb: 'Luxemburguês',
+  mk: 'Macedônio', ms: 'Malaio', mt: 'Maltês', ps: 'Pashto', sw: 'Suaíli', tl: 'Filipino',
+  ur: 'Urdu', uz: 'Uzbeque', af: 'Africâner', zu: 'Zulu', am: 'Amárico'
+};
+
+function normalizeClickLang(raw) {
+  const s = String(raw || '').trim().toLowerCase().replace('_', '-');
+  if (!s || s === '—') return '';
+  if (s.startsWith('pt')) return 'pt';
+  if (s.startsWith('en')) return 'en';
+  if (s.startsWith('it')) return 'it';
+  if (s.startsWith('es')) return 'es';
+  if (s.startsWith('de')) return 'de';
+  if (s.startsWith('pl')) return 'pl';
+  if (s.startsWith('is')) return 'is';
+  return s.split('-')[0] || s;
+}
+
+async function aggregateClicksGeoReport(env) {
+  const db = await ensureClicksD1(env);
+  if (!db) return { error: 'D1 indisponível' };
+  const res = await db.prepare(`
+    SELECT
+      COALESCE(NULLIF(json_extract(payload, '$.pais'), ''), '—') AS pais,
+      COALESCE(NULLIF(json_extract(payload, '$.pais_nome'), ''), '') AS pais_nome,
+      COALESCE(NULLIF(json_extract(payload, '$.idioma'), ''), '—') AS idioma,
+      COUNT(*) AS visitas,
+      COUNT(DISTINCT visitante_id) AS visitantes
+    FROM clicks
+    WHERE teste = 0
+    GROUP BY pais, pais_nome, idioma
+    ORDER BY visitas DESC
+  `).all();
+  const rows = res?.results || [];
+  const byCountry = new Map();
+  for (const r of rows) {
+    const cc = String(r.pais || '—').toUpperCase();
+    const cur = byCountry.get(cc) || {
+      pais: cc,
+      pais_nome: r.pais_nome || '',
+      visitas: 0,
+      visitantes: 0,
+      idiomas_no_navegador: new Map()
+    };
+    cur.visitas += Number(r.visitas) || 0;
+    cur.visitantes += Number(r.visitantes) || 0;
+    const lang = normalizeClickLang(r.idioma);
+    if (lang) {
+      cur.idiomas_no_navegador.set(lang, (cur.idiomas_no_navegador.get(lang) || 0) + Number(r.visitas));
+    }
+    if (!cur.pais_nome && r.pais_nome) cur.pais_nome = r.pais_nome;
+    byCountry.set(cc, cur);
+  }
+  const report = [...byCountry.values()]
+    .sort((a, b) => b.visitas - a.visitas)
+    .map((c) => {
+      const primary = COUNTRY_PRIMARY_LANGUAGES[c.pais] || ['en'];
+      const browserLangs = [...c.idiomas_no_navegador.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([code, n]) => ({ code, label: LANG_LABELS[code] || code, visitas: n }));
+      const suggestTranslate = [...new Set(primary.filter((l) => !['pt', 'en', 'it'].includes(l)))];
+      return {
+        pais: c.pais,
+        pais_nome: c.pais_nome || c.pais,
+        visitas: c.visitas,
+        visitantes: c.visitantes,
+        idioma_principal_do_pais: primary.map((code) => ({ code, label: LANG_LABELS[code] || code })),
+        idioma_do_navegador: browserLangs,
+        traduzir_site: suggestTranslate.map((code) => ({ code, label: LANG_LABELS[code] || code }))
+      };
+    });
+  const allSuggest = [...new Set(report.flatMap((r) => r.traduzir_site.map((l) => l.code)))].sort();
+  return {
+    total_visitas: report.reduce((s, r) => s + r.visitas, 0),
+    paises: report.length,
+    ja_tem_no_site: ['pt', 'en', 'it'],
+    prioridade_traducao: allSuggest.map((code) => ({ code, label: LANG_LABELS[code] || code })),
+    por_regiao: report
+  };
+}
+
+async function handleLocalSmokeClicksGeo(request, env, origin) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key') || '';
+  const smokeKey = env.SMOKE_KEY ? String(env.SMOKE_KEY) : '';
+  const backfillKey = env.BACKFILL_KEY ? String(env.BACKFILL_KEY) : '';
+  const authorized = (smokeKey && key === smokeKey) || (backfillKey && key === backfillKey);
+  if (!authorized) return json({ error: 'Not found' }, 404, origin);
+  return json(await aggregateClicksGeoReport(env), 200, origin);
+}
+
+async function handleLocalSmokeMpBalance(request, env, origin) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key') || '';
+  const smokeKey = env.SMOKE_KEY ? String(env.SMOKE_KEY) : '';
+  const backfillKey = env.BACKFILL_KEY ? String(env.BACKFILL_KEY) : '';
+  const authorized = (smokeKey && key === smokeKey) || (backfillKey && key === backfillKey);
+  if (!authorized) {
+    return json({ error: 'Not found' }, 404, origin);
+  }
+  const mp = await checkMercadoPagoIntegration(env, { force: true });
+  const amounts = mp.balance?.amounts || [];
+  const avail = amounts.find((a) => a.kind === 'available');
+  const pend = amounts.find((a) => a.kind === 'pending');
+  const state = await getMpReleaseState(env);
+  const diagnose = url.searchParams.get('diagnose') === '1';
+  let diag = null;
+  if (diagnose) {
+    const token = mercadoPagoToken(env);
+    const meRes = await fetch('https://api.mercadopago.com/users/me', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const me = await meRes.json().catch(() => ({}));
+    diag = await diagnoseMercadoPagoPending(token, me?.id);
+  }
+  return json({
+    ok: !!(Number(avail?.value) > 0 && Number(pend?.value) > 0),
+    mercadopago: {
+      disponivel: avail?.value ?? null,
+      pendente: pend?.value ?? null,
+      amounts,
+      asOf: mp.balance?.asOf || null,
+      pendingSource: state?.balance?.pendingSource || null,
+      pendingMeta: state?.balance?.pendingMeta || null
+    },
+    diagnose: diag
+  }, 200, origin);
+}
+
 async function handleAdminIntegrationsStatus(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
+  const refreshBalances = new URL(request.url).searchParams.get('refreshBalances') === '1';
+  const mpBalanceOpts = refreshBalances ? { force: true } : {};
   const config = await getConfig(env);
   const weightGrams = shippingWeightGrams(config);
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
@@ -13883,12 +15308,13 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     ])
     : [null, null, null];
 
-  const [paypal, mercadoPago, mercadoLivre, amazon, shopee, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
+  const [paypal, mercadoPago, mercadoLivre, amazon, shopee, shopeeBalance, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
     checkPayPalIntegration(env),
-    checkMercadoPagoIntegration(env),
+    checkMercadoPagoIntegration(env, mpBalanceOpts),
     checkMercadoLivreIntegration(env),
     checkAmazonIntegration(env),
     checkShopeeIntegration(env),
+    checkShopeeBalanceIntegration(env, { force: refreshBalances }),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
@@ -13977,6 +15403,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
 
   const paymentBalances = {
     mercadopago: buildPaymentBalanceCard('mercadopago', 'Mercado Pago', mercadoPago),
+    shopee: buildPaymentBalanceCard('shopee', 'Shopee', shopeeBalance),
     paypal: buildPaymentBalanceCard('paypal', 'PayPal', paypal),
     stripe: buildPaymentBalanceCard('stripe', 'Stripe', stripe)
   };
@@ -15740,6 +17167,13 @@ const CORREIOS_TRACKING_CRON_MAX = 40;
 
 const SAO_PAULO_TZ = 'America/Sao_Paulo';
 const MONTHLY_REPORT_KV_PREFIX = 'report:monthly:';
+const MONTHLY_SALES_REPORT_KV_PREFIX = 'report:sales:';
+const SALES_REPORT_CHANNELS = [
+  { key: 'mercadolivre', label: 'Mercado Livre' },
+  { key: 'amazon', label: 'Amazon' },
+  { key: 'shopee', label: 'Shopee' },
+  { key: 'loja', label: 'Loja oficial' }
+];
 const MARKETPLACE_DESTINOS = {
   mercado_livre: 'Mercado Livre',
   shopee: 'Shopee',
@@ -15830,30 +17264,129 @@ async function aggregateMonthlyMarketplaceClicks(env, year, month) {
   return { counts, total, sampleSize };
 }
 
-async function aggregateMonthlyOrders(env, year, month) {
+async function listOrdersForReports(env) {
+  const fromD1 = await d1ListOrders(env, 5000);
+  if (fromD1.length) {
+    fromD1.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
+    return fromD1;
+  }
   let index = await readOrdersIndex(env);
   if (!index.length) index = await rebuildOrdersIndexFromKv(env);
+  const orders = [];
+  for (const item of index.slice(0, 5000)) {
+    const full = await getOrder(env, item.orderId);
+    if (full) orders.push(full);
+    else {
+      const fallback = orderFromIndexRow(item);
+      if (fallback) orders.push(fallback);
+    }
+  }
+  orders.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
+  return orders;
+}
 
+function isStorePaidOrder(order) {
+  if (!order) return false;
+  const st = String(order.status || '').toLowerCase();
+  if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'abandoned') return false;
+  return st === 'paid' || st === 'shipped' || st === 'delivered' || st === 'fulfilled';
+}
+
+function isDroppedMarketplaceSale(sale) {
+  const st = String(sale?.status || '').toLowerCase();
+  return /cancel|invalid|refund/.test(st);
+}
+
+function storeOrderToReportSale(order) {
+  const gross = storeOrderListedGross(order);
+  const shippingCost = Math.round(Number(order.frete || order.shippingCost || 0) * 100) / 100;
+  const paypalFee = Math.round(Number(order.paypalFee || 0) * 100) / 100;
+  const watch = order.smartwatch || order.watchModel || order.modelo || '';
+  let qty = Number(order.qty || order.quantity || 0) || 0;
+  if (!qty && Array.isArray(order.items) && order.items.length) {
+    qty = order.items.reduce((n, i) => n + (Number(i.qty || i.quantity || 0) || 0), 0);
+  }
+  qty = Math.max(1, qty || 1);
+  const title = watch ? String(watch) : (order.productName || order.produto || 'Pedido loja');
+  return {
+    channel: 'loja',
+    externalId: String(order.orderId || ''),
+    soldAt: order.paidAt || order.createdAt || null,
+    status: order.status || null,
+    currency: order.currency || 'BRL',
+    gross,
+    fees: paypalFee,
+    shippingCost,
+    refunds: 0,
+    otherFees: 0,
+    buyer: {
+      id: order.userId || null,
+      nickname: order.nome || order.email || '—'
+    },
+    items: [{
+      title,
+      quantity: qty,
+      unitPrice: gross,
+      saleFee: 0
+    }]
+  };
+}
+
+function orderDiscountMeta(order) {
+  const total = Math.round((Number(order.couponDiscount) || 0) * 100) / 100;
+  return { count: total > 0.009 ? 1 : 0, total };
+}
+
+function isOrderPendingPayment(order) {
+  const st = String(order?.status || '').toLowerCase();
+  return st === 'pending_payment' || st === 'pending';
+}
+
+function isOrderExcludedFromStoreMetrics(order) {
+  const st = String(order?.status || '').toLowerCase();
+  return st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'test';
+}
+
+async function aggregateMonthlyOrders(env, year, month) {
   const pending = { count: 0, total: 0, produto: 0, frete: 0 };
-  const created = { count: 0, total: 0 };
+  const notConverted = { count: 0, total: 0, produto: 0, frete: 0 };
+  const created = { count: 0, total: 0, produto: 0, frete: 0 };
   const paid = { count: 0, total: 0, produto: 0, frete: 0, byPayment: {} };
+  const paidFromCreated = { count: 0, total: 0 };
 
-  for (const item of index) {
-    const createdInMonth = isTsInSaoPauloMonth(item.createdAt, year, month);
+  const orders = await listOrdersForReports(env);
+  for (const order of orders) {
+    if (isOrderExcludedFromStoreMetrics(order)) continue;
+
+    const createdInMonth = isTsInSaoPauloMonth(order.createdAt, year, month);
     if (createdInMonth) {
       created.count += 1;
-      created.total += Number(item.total) || 0;
-      if (item.status === 'pending_payment') {
+      created.total += Number(order.total) || 0;
+      created.produto += Number(order.valorProduto) || 0;
+      created.frete += Number(order.frete) || 0;
+
+      if (isOrderPendingPayment(order)) {
         pending.count += 1;
-        pending.total += Number(item.total) || 0;
-        pending.produto += Number(item.valorProduto) || 0;
-        pending.frete += Number(item.frete) || 0;
+        pending.total += Number(order.total) || 0;
+        pending.produto += Number(order.valorProduto) || 0;
+        pending.frete += Number(order.frete) || 0;
+      } else if (!isStorePaidOrder(order)) {
+        notConverted.count += 1;
+        notConverted.total += Number(order.total) || 0;
+        notConverted.produto += Number(order.valorProduto) || 0;
+        notConverted.frete += Number(order.frete) || 0;
+      } else {
+        const paidAt = order.paidAt || order.createdAt;
+        if (paidAt && isTsInSaoPauloMonth(paidAt, year, month)) {
+          paidFromCreated.count += 1;
+          paidFromCreated.total += Number(order.total) || 0;
+        }
       }
     }
 
-    if (item.status !== 'paid') continue;
-    const order = await getOrder(env, item.orderId);
-    if (!order?.paidAt || !isTsInSaoPauloMonth(order.paidAt, year, month)) continue;
+    if (!isStorePaidOrder(order)) continue;
+    const paidAt = order.paidAt || order.createdAt;
+    if (!paidAt || !isTsInSaoPauloMonth(paidAt, year, month)) continue;
 
     paid.count += 1;
     paid.total += Number(order.total) || 0;
@@ -15866,10 +17399,10 @@ async function aggregateMonthlyOrders(env, year, month) {
   }
 
   const conversionPct = created.count
-    ? Math.round((paid.count / created.count) * 1000) / 10
+    ? Math.round((paidFromCreated.count / created.count) * 1000) / 10
     : 0;
 
-  return { pending, created, paid, conversionPct };
+  return { pending, notConverted, created, paid, paidFromCreated, conversionPct };
 }
 
 async function buildMonthlyReport(env, year, month) {
@@ -15899,14 +17432,18 @@ function buildMonthlyReportFields(report) {
     'Amazon (cliques)': String(report.clicks.counts.amazon || 0),
     'Total cliques marketplaces': String(report.clicks.total || 0),
     '— Loja oficial —': '',
-    'Pedidos criados no mês': String(report.orders.created.count),
+    'Pedidos criados no mês': `${report.orders.created.count} — ${formatBRL(report.orders.created.total)}`,
+    'Produtos (criados)': formatBRL(report.orders.created.produto),
+    'Frete (criados)': formatBRL(report.orders.created.frete),
     'Possíveis compras (aguardando pagamento)': `${report.orders.pending.count} — ${formatBRL(report.orders.pending.total)}`,
     'Valor produtos (pendentes)': formatBRL(report.orders.pending.produto),
     'Frete (pendentes)': formatBRL(report.orders.pending.frete),
+    'Não convertidos (abandonados/cancelados)': `${report.orders.notConverted.count} — ${formatBRL(report.orders.notConverted.total)}`,
     'Compras realizadas (pagas no mês)': `${report.orders.paid.count} — ${formatBRL(report.orders.paid.total)}`,
     'Valor produtos (pagos)': formatBRL(report.orders.paid.produto),
     'Frete (pagos)': formatBRL(report.orders.paid.frete),
-    'Taxa de conversão (pagos / criados)': `${report.orders.conversionPct}%`
+    'Pagos entre os criados no mês': `${report.orders.paidFromCreated.count} — ${formatBRL(report.orders.paidFromCreated.total)}`,
+    'Taxa de conversão (pagos no mês / criados)': `${report.orders.conversionPct}%`
   };
 
   for (const [pay, data] of Object.entries(report.orders.paid.byPayment).sort((a, b) => b[1].count - a[1].count)) {
@@ -15931,33 +17468,50 @@ function buildMonthlyReportHtml(report) {
     )
     .join('') || '<tr><td colspan="3" style="padding:8px;border:1px solid #ddd;color:#666">Nenhuma compra paga no período</td></tr>';
 
+  const lojaSummaryRows = [
+    ['Pedidos criados no mês', report.orders.created.count, formatBRL(report.orders.created.total), formatBRL(report.orders.created.produto), formatBRL(report.orders.created.frete)],
+    ['Aguardando pagamento', report.orders.pending.count, formatBRL(report.orders.pending.total), formatBRL(report.orders.pending.produto), formatBRL(report.orders.pending.frete)],
+    ['Não convertidos', report.orders.notConverted.count, formatBRL(report.orders.notConverted.total), formatBRL(report.orders.notConverted.produto), formatBRL(report.orders.notConverted.frete)],
+    ['Pagos no mês (criados no mês)', report.orders.paidFromCreated.count, formatBRL(report.orders.paidFromCreated.total), '—', '—']
+  ].map((cells) => salesReportTableRow(cells)).join('');
+
   return `<div style="font-family:Arial,sans-serif;max-width:640px;color:#222">
-    <h2 style="margin:0 0 8px;color:#111">Relatório mensal — ${report.label}</h2>
+    <h2 style="margin:0 0 8px;color:#111">Relatório de cliques — ${report.label}</h2>
     <p style="margin:0 0 20px;color:#555">Período: ${report.periodStart} a ${report.periodEnd} (horário de Brasília)</p>
 
     <h3 style="margin:24px 0 8px;font-size:16px">Marketplaces — cliques outbound</h3>
     <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
-      <tr style="background:#f5f5f5"><th style="padding:8px;border:1px solid #ddd;text-align:left">Canal</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Cliques</th></tr>
+      ${salesReportTableRow(['Canal', 'Cliques'], { header: true })}
       ${marketplaceRows}
-      <tr style="background:#fafafa"><td style="padding:8px;border:1px solid #ddd;font-weight:700">Total</td><td style="padding:8px;border:1px solid #ddd;text-align:right;font-weight:700">${report.clicks.total}</td></tr>
+      ${salesReportTableRow(['Total', String(report.clicks.total)], { bold: true })}
     </table>
 
-    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — possíveis compras</h3>
-    <p style="margin:0 0 16px">Pedidos criados no mês aguardando pagamento: <strong>${report.orders.pending.count}</strong> — total <strong>${formatBRL(report.orders.pending.total)}</strong><br>
-    Produtos: ${formatBRL(report.orders.pending.produto)} · Frete: ${formatBRL(report.orders.pending.frete)}</p>
+    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — resumo do mês</h3>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      ${salesReportTableRow(['Situação', 'Qtd', 'Total', 'Produtos', 'Frete'], { header: true })}
+      ${lojaSummaryRows}
+    </table>
 
-    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — compras realizadas</h3>
+    <h3 style="margin:24px 0 8px;font-size:16px">Loja oficial — compras realizadas (pagas no mês)</h3>
     <p style="margin:0 0 8px">Pagamentos confirmados no mês: <strong>${report.orders.paid.count}</strong> — total <strong>${formatBRL(report.orders.paid.total)}</strong><br>
     Produtos: ${formatBRL(report.orders.paid.produto)} · Frete: ${formatBRL(report.orders.paid.frete)}</p>
-    <p style="margin:0 0 16px">Pedidos criados no mês: ${report.orders.created.count} · Conversão (pagos/criados): <strong>${report.orders.conversionPct}%</strong></p>
+    <p style="margin:0 0 16px">Conversão dos criados no mês: <strong>${report.orders.conversionPct}%</strong> (${report.orders.paidFromCreated.count} de ${report.orders.created.count})</p>
 
     <table style="border-collapse:collapse;width:100%;margin-bottom:24px">
-      <tr style="background:#f5f5f5"><th style="padding:8px;border:1px solid #ddd;text-align:left">Pagamento</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Qtd</th><th style="padding:8px;border:1px solid #ddd;text-align:right">Total</th></tr>
+      ${salesReportTableRow(['Pagamento', 'Qtd', 'Total'], { header: true })}
       ${paymentRows}
     </table>
 
     <p style="color:#666;font-size:12px;margin:0">Sensor Tattoo Fix — sensortattoofix.com.br · gerado automaticamente</p>
   </div>`;
+}
+
+function monthlyClicksReportSubject(config, monthName, year) {
+  let subject = emailSubject(config, 'monthlyReportSubject', { month: monthName, year: String(year) });
+  if (!/cliques/i.test(subject)) {
+    subject = `Relatório de cliques — ${monthName}/${year} — Sensor Tattoo Fix`;
+  }
+  return subject;
 }
 
 async function sendMonthlyReportEmail(env, config, year, month, { force = false } = {}) {
@@ -15969,7 +17523,7 @@ async function sendMonthlyReportEmail(env, config, year, month, { force = false 
 
   const report = await buildMonthlyReport(env, year, month);
   const monthName = MONTH_NAMES_PT[month - 1] || String(month);
-  const subject = emailSubject(config, 'monthlyReportSubject', { month: monthName, year: String(year) });
+  const subject = monthlyClicksReportSubject(config, monthName, String(year));
   const to = (getEmails(config).monthlyReportTo || config.formsubmit?.email || '').trim();
   if (!to) return { ok: false, error: 'E-mail de destino não configurado (formsubmit.email).' };
 
@@ -15995,6 +17549,271 @@ async function sendMonthlyReportEmail(env, config, year, month, { force = false 
   return { ok: result.ok, to, subject, report, ...result };
 }
 
+function saleInReportMonth(sale, year, month) {
+  const raw = sale?.soldAt || sale?.dateCreated;
+  if (!raw) return false;
+  return isTsInSaoPauloMonth(raw, year, month);
+}
+
+function emptySalesChannelRow(label) {
+  return {
+    label,
+    count: 0,
+    gross: 0,
+    fees: 0,
+    shipping: 0,
+    refunds: 0,
+    otherFees: 0,
+    cogs: 0,
+    net: 0,
+    couponCount: 0,
+    couponTotal: 0
+  };
+}
+
+function addSalePartsToRow(row, parts) {
+  row.count += 1;
+  row.gross += parts.gross;
+  row.fees += parts.fees;
+  row.shipping += parts.shipping;
+  row.refunds += parts.refunds;
+  row.otherFees += parts.otherFees;
+  row.cogs += parts.cogs;
+  row.net += parts.net;
+}
+
+function finalizeSalesChannelRow(row) {
+  row.gross = roundReportMoney(row.gross);
+  row.fees = roundReportMoney(row.fees);
+  row.shipping = roundReportMoney(row.shipping);
+  row.refunds = roundReportMoney(row.refunds);
+  row.otherFees = roundReportMoney(row.otherFees);
+  row.cogs = roundReportMoney(row.cogs);
+  row.net = roundReportMoney(row.net);
+  row.couponTotal = roundReportMoney(row.couponTotal);
+  row.deductions = roundReportMoney(row.gross - row.net);
+  return row;
+}
+
+function roundReportMoney(n) {
+  return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+async function aggregateMonthlySales(env, year, month) {
+  const config = await getConfig(env);
+  const byChannel = Object.fromEntries(
+    SALES_REPORT_CHANNELS.map((ch) => [ch.key, emptySalesChannelRow(ch.label)])
+  );
+
+  const [mlSales, amzSales, shopeeSales, storeOrders] = await Promise.all([
+    listMarketplaceSales(env, 'mercadolivre', 5000),
+    listMarketplaceSales(env, 'amazon', 5000),
+    listMarketplaceSales(env, 'shopee', 5000),
+    listOrdersForReports(env)
+  ]);
+
+  for (const sale of mlSales) {
+    if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
+    addSalePartsToRow(byChannel.mercadolivre, saleMoneyParts(sale, config));
+  }
+  for (const sale of amzSales) {
+    if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
+    addSalePartsToRow(byChannel.amazon, saleMoneyParts(sale, config));
+  }
+  for (const sale of shopeeSales) {
+    if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
+    addSalePartsToRow(byChannel.shopee, saleMoneyParts(sale, config));
+  }
+  for (const order of storeOrders) {
+    if (!isStorePaidOrder(order)) continue;
+    const paidAt = order.paidAt || order.createdAt;
+    if (!paidAt || !isTsInSaoPauloMonth(paidAt, year, month)) continue;
+    const sale = storeOrderToReportSale(order);
+    const parts = saleMoneyParts(sale, config);
+    const row = byChannel.loja;
+    addSalePartsToRow(row, parts);
+    const disc = orderDiscountMeta(order);
+    row.couponCount += disc.count;
+    row.couponTotal += disc.total;
+  }
+
+  const total = emptySalesChannelRow('Total');
+  for (const ch of SALES_REPORT_CHANNELS) {
+    const row = finalizeSalesChannelRow(byChannel[ch.key]);
+    total.count += row.count;
+    total.gross += row.gross;
+    total.fees += row.fees;
+    total.shipping += row.shipping;
+    total.refunds += row.refunds;
+    total.otherFees += row.otherFees;
+    total.cogs += row.cogs;
+    total.net += row.net;
+    total.couponCount += row.couponCount;
+    total.couponTotal += row.couponTotal;
+  }
+  finalizeSalesChannelRow(total);
+
+  return { byChannel, total };
+}
+
+async function buildMonthlySalesReport(env, year, month) {
+  const sales = await aggregateMonthlySales(env, year, month);
+  return {
+    year,
+    month,
+    label: monthLabelPt(year, month),
+    periodStart: `01/${String(month).padStart(2, '0')}/${year}`,
+    periodEnd: `${String(lastDayOfMonth(year, month)).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`,
+    sales,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+function salesReportTableRow(cells, { bold = false, header = false } = {}) {
+  const bg = header ? ' style="background:#f5f5f5"' : (bold ? ' style="background:#fafafa"' : '');
+  const weight = bold ? ' font-weight:700' : '';
+  const tds = cells.map((cell, i) => {
+    const align = i === 0 ? 'left' : 'right';
+    return `<td style="padding:8px;border:1px solid #ddd;text-align:${align}${weight}">${cell}</td>`;
+  }).join('');
+  return `<tr${bg}>${tds}</tr>`;
+}
+
+function buildMonthlySalesReportFields(report) {
+  const { byChannel, total } = report.sales;
+  const fields = {
+    Período: `${report.periodStart} a ${report.periodEnd} (horário de Brasília)`
+  };
+  for (const ch of SALES_REPORT_CHANNELS) {
+    const row = byChannel[ch.key];
+    fields[`${ch.label} — vendas`] = String(row.count);
+    fields[`${ch.label} — bruto / líquido`] = `${formatBRL(row.gross)} / ${formatBRL(row.net)}`;
+    fields[`${ch.label} — comissão / frete / kit`] = `${formatBRL(row.fees)} / ${formatBRL(row.shipping)} / ${formatBRL(row.cogs)}`;
+  }
+  fields['Total — vendas'] = String(total.count);
+  fields['Total — bruto / líquido'] = `${formatBRL(total.gross)} / ${formatBRL(total.net)}`;
+  fields['Total — deduções (bruto − líquido)'] = formatBRL(total.deductions);
+  if (total.couponCount > 0) {
+    fields['Cupons de desconto (loja)'] = `${total.couponCount} pedido(s) — ${formatBRL(total.couponTotal)}`;
+  }
+  return fields;
+}
+
+function buildMonthlySalesReportHtml(report) {
+  const { byChannel, total } = report.sales;
+
+  const qtyRows = SALES_REPORT_CHANNELS.map((ch) => {
+    const row = byChannel[ch.key];
+    return salesReportTableRow([ch.label, String(row.count)]);
+  }).join('');
+  const qtyTotal = salesReportTableRow(['Total', String(total.count)], { bold: true });
+
+  const valueRows = SALES_REPORT_CHANNELS.map((ch) => {
+    const row = byChannel[ch.key];
+    return salesReportTableRow([ch.label, formatBRL(row.gross), formatBRL(row.net), formatBRL(row.deductions)]);
+  }).join('');
+  const valueTotal = salesReportTableRow([
+    'Total',
+    formatBRL(total.gross),
+    formatBRL(total.net),
+    formatBRL(total.deductions)
+  ], { bold: true });
+
+  const costRows = SALES_REPORT_CHANNELS.map((ch) => {
+    const row = byChannel[ch.key];
+    return salesReportTableRow([
+      ch.label,
+      formatBRL(row.fees),
+      formatBRL(row.shipping),
+      formatBRL(row.refunds + row.otherFees),
+      formatBRL(row.cogs),
+      formatBRL(row.deductions)
+    ]);
+  }).join('');
+  const costTotal = salesReportTableRow([
+    'Total',
+    formatBRL(total.fees),
+    formatBRL(total.shipping),
+    formatBRL(total.refunds + total.otherFees),
+    formatBRL(total.cogs),
+    formatBRL(total.deductions)
+  ], { bold: true });
+
+  const couponSection = total.couponCount > 0
+    ? `<h3 style="margin:24px 0 8px;font-size:16px">Cupons de desconto (loja)</h3>
+    <p style="margin:0 0 16px">Pedidos com cupom no mês: <strong>${total.couponCount}</strong> — desconto concedido ao cliente: <strong>${formatBRL(total.couponTotal)}</strong></p>`
+    : '';
+
+  return `<div style="font-family:Arial,sans-serif;max-width:640px;color:#222">
+    <h2 style="margin:0 0 8px;color:#111">Relatório de vendas — ${report.label}</h2>
+    <p style="margin:0 0 20px;color:#555">Período: ${report.periodStart} a ${report.periodEnd} (horário de Brasília)</p>
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Quantidade de vendas</h3>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      ${salesReportTableRow(['Canal', 'Vendas'], { header: true })}
+      ${qtyRows}
+      ${qtyTotal}
+    </table>
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Valores — bruto e líquido</h3>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      ${salesReportTableRow(['Canal', 'Bruto', 'Líquido', 'Deduções'], { header: true })}
+      ${valueRows}
+      ${valueTotal}
+    </table>
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Deduções e custos (bruto → líquido)</h3>
+    <p style="margin:0 0 8px;color:#555;font-size:13px">Comissão/tarifa do canal, frete, estornos/outras taxas e custo do kit.</p>
+    <table style="border-collapse:collapse;width:100%;margin-bottom:8px">
+      ${salesReportTableRow(['Canal', 'Comissão', 'Frete', 'Estornos/outras', 'Custo kit', 'Total deduções'], { header: true })}
+      ${costRows}
+      ${costTotal}
+    </table>
+
+    ${couponSection}
+
+    <h3 style="margin:24px 0 8px;font-size:16px">Consolidado</h3>
+    <p style="margin:0 0 24px"><strong>${total.count}</strong> vendas · bruto <strong>${formatBRL(total.gross)}</strong> · líquido <strong>${formatBRL(total.net)}</strong></p>
+
+    <p style="color:#666;font-size:12px;margin:0">Sensor Tattoo Fix — sensortattoofix.com.br · gerado automaticamente</p>
+  </div>`;
+}
+
+async function sendMonthlySalesReportEmail(env, config, year, month, { force = false } = {}) {
+  const key = `${MONTHLY_SALES_REPORT_KV_PREFIX}${year}-${String(month).padStart(2, '0')}`;
+  if (!force) {
+    const sent = await env.STORE_KV.get(key);
+    if (sent) return { ok: true, skipped: true, reason: 'already_sent', key };
+  }
+
+  const report = await buildMonthlySalesReport(env, year, month);
+  const monthName = MONTH_NAMES_PT[month - 1] || String(month);
+  const subject = emailSubject(config, 'monthlySalesReportSubject', { month: monthName, year: String(year) });
+  const to = (getEmails(config).monthlyReportTo || config.formsubmit?.email || '').trim();
+  if (!to) return { ok: false, error: 'E-mail de destino não configurado (formsubmit.email).' };
+
+  const fields = buildMonthlySalesReportFields(report);
+  const html = buildMonthlySalesReportHtml(report);
+  const result = await notifyEmail(env, config, to, subject, fields, undefined, {
+    html,
+    text: fieldsToText(fields)
+  });
+
+  if (result.ok) {
+    await kvPut(env, key, JSON.stringify({
+      sentAt: new Date().toISOString(),
+      to,
+      report: {
+        count: report.sales.total.count,
+        gross: report.sales.total.gross,
+        net: report.sales.total.net
+      }
+    }));
+  }
+
+  return { ok: result.ok, to, subject, report, ...result };
+}
+
 async function runScheduledMonthlyReportIfDue(env) {
   if (!isLastDayOfMonthInSaoPaulo()) {
     return { ok: true, skipped: true, reason: 'not_last_day' };
@@ -16002,6 +17821,16 @@ async function runScheduledMonthlyReportIfDue(env) {
   const { year, month } = currentMonthYearSaoPaulo();
   const result = await sendMonthlyReportEmail(env, await getConfig(env), year, month);
   console.log('Monthly report cron:', JSON.stringify({ year, month, ...result }));
+  return result;
+}
+
+async function runScheduledMonthlySalesReportIfDue(env) {
+  if (!isLastDayOfMonthInSaoPaulo()) {
+    return { ok: true, skipped: true, reason: 'not_last_day' };
+  }
+  const { year, month } = currentMonthYearSaoPaulo();
+  const result = await sendMonthlySalesReportEmail(env, await getConfig(env), year, month);
+  console.log('Monthly sales report cron:', JSON.stringify({ year, month, ...result }));
   return result;
 }
 
@@ -16016,6 +17845,53 @@ async function handleAdminMonthlyReport(request, env, origin) {
   const month = Number(body.month) || now.month;
   if (month < 1 || month > 12) return json({ error: 'Mês inválido.' }, 400, origin);
   const result = await sendMonthlyReportEmail(env, config, year, month, { force: !!body.force });
+  return json(result, result.ok ? 200 : 502, origin);
+}
+
+async function handleAdminMonthlySalesReport(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const config = await getConfig(env);
+  const body = await request.json().catch(() => ({}));
+  const now = currentMonthYearSaoPaulo();
+  const year = Number(body.year) || now.year;
+  const month = Number(body.month) || now.month;
+  if (month < 1 || month > 12) return json({ error: 'Mês inválido.' }, 400, origin);
+  const result = await sendMonthlySalesReportEmail(env, config, year, month, { force: !!body.force });
+  return json(result, result.ok ? 200 : 502, origin);
+}
+
+async function handleLocalSmokeMonthlySalesReport(request, env, origin) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key') || '';
+  const smokeKey = env.SMOKE_KEY ? String(env.SMOKE_KEY) : '';
+  const backfillKey = env.BACKFILL_KEY ? String(env.BACKFILL_KEY) : '';
+  const authorized = (smokeKey && key === smokeKey) || (backfillKey && key === backfillKey);
+  if (!authorized) return json({ error: 'Not found' }, 404, origin);
+  const year = Number(url.searchParams.get('year')) || 2026;
+  const month = Number(url.searchParams.get('month')) || 8;
+  const force = url.searchParams.get('force') === '1';
+  const result = await sendMonthlySalesReportEmail(env, await getConfig(env), year, month, { force });
+  return json(result, result.ok ? 200 : 502, origin);
+}
+
+async function handleLocalSmokeMonthlyClicksReport(request, env, origin) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key') || '';
+  const smokeKey = env.SMOKE_KEY ? String(env.SMOKE_KEY) : '';
+  const backfillKey = env.BACKFILL_KEY ? String(env.BACKFILL_KEY) : '';
+  const authorized = (smokeKey && key === smokeKey) || (backfillKey && key === backfillKey);
+  if (!authorized) return json({ error: 'Not found' }, 404, origin);
+  const year = Number(url.searchParams.get('year')) || 2026;
+  const month = Number(url.searchParams.get('month')) || 8;
+  const force = url.searchParams.get('force') === '1';
+  const preview = url.searchParams.get('preview') === '1';
+  if (preview) {
+    const report = await buildMonthlyReport(env, year, month);
+    return json(report, 200, origin);
+  }
+  const result = await sendMonthlyReportEmail(env, await getConfig(env), year, month, { force });
   return json(result, result.ok ? 200 : 502, origin);
 }
 
@@ -16230,12 +18106,38 @@ export default {
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
+      if (path === '/admin/report/monthly-clicks' && request.method === 'POST') {
+        return handleAdminMonthlyReport(request, env, origin);
+      }
+      if (path === '/admin/report/monthly-sales' && request.method === 'POST') {
+        return handleAdminMonthlySalesReport(request, env, origin);
+      }
       if (path === '/admin/shipping-status' && request.method === 'GET') return handleAdminShippingStatus(request, env, origin);
       if (path === '/admin/correios-tracking' && request.method === 'POST') {
         return handleAdminCorreiosTracking(request, env, origin);
       }
+      if (path === '/_local/smoke/clicks-geo' && request.method === 'GET') {
+        return handleLocalSmokeClicksGeo(request, env, origin);
+      }
+      if (path === '/_local/smoke/monthly-sales-report' && request.method === 'GET') {
+        return handleLocalSmokeMonthlySalesReport(request, env, origin);
+      }
+      if (path === '/_local/smoke/monthly-clicks-report' && request.method === 'GET') {
+        return handleLocalSmokeMonthlyClicksReport(request, env, origin);
+      }
+      if (path === '/_local/smoke/mp-balance' && request.method === 'GET') {
+        return handleLocalSmokeMpBalance(request, env, origin);
+      }
       if (path === '/admin/integrations-status' && request.method === 'GET') {
         return handleAdminIntegrationsStatus(request, env, origin);
+      }
+      if (path === '/admin/mp/release-audit' && request.method === 'GET') {
+        return handleAdminMpReleaseAudit(request, env, origin, {
+          isValidSession,
+          bearerToken,
+          json,
+          mercadoPagoToken
+        });
       }
       if (path === '/admin/correios-contract' && request.method === 'GET') {
         return handleAdminCorreiosContract(request, env, origin);
@@ -16452,13 +18354,21 @@ export default {
     }
     if (event.cron === '30 2 * * *') {
       ctx.waitUntil(
+        syncIntlProductPricesFromFx(env).catch((err) => {
+          console.error('Intl FX price sync cron failed:', err.message);
+        })
+      );
+    }
+    // 02:59 UTC = 23:59 horário de Brasília — último dia do mês
+    if (event.cron === '59 2 * * *') {
+      ctx.waitUntil(
         runScheduledMonthlyReportIfDue(env).catch((err) => {
           console.error('Monthly report cron failed:', err.message);
         })
       );
       ctx.waitUntil(
-        syncIntlProductPricesFromFx(env).catch((err) => {
-          console.error('Intl FX price sync cron failed:', err.message);
+        runScheduledMonthlySalesReportIfDue(env).catch((err) => {
+          console.error('Monthly sales report cron failed:', err.message);
         })
       );
     }

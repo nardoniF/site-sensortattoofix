@@ -2,11 +2,24 @@
   const isIntlHost = !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
   const SITE = isIntlHost ? 'https://www.sensortattoofix.com' : 'https://www.sensortattoofix.com.br';
   const lang = (document.documentElement.lang || 'pt-BR').toLowerCase();
-  const isIt = lang.startsWith('it') || /\/it\//i.test(location.pathname);
-  const isEn = !isIt && (lang.startsWith('en') || isIntlHost || /\/en\//i.test(location.pathname));
+  const pathLang = (() => {
+    const p = location.pathname;
+    if (/\/it\//i.test(p)) return 'it';
+    if (/\/de\//i.test(p)) return 'de';
+    if (/\/es\//i.test(p)) return 'es';
+    if (/\/pl\//i.test(p)) return 'pl';
+    if (/\/en\//i.test(p) || isIntlHost) return 'en';
+    return 'pt';
+  })();
+  const isIt = pathLang === 'it';
+  const isDe = pathLang === 'de';
+  const isEs = pathLang === 'es';
+  const isPl = pathLang === 'pl';
+  const isEn = pathLang === 'en';
+  const langPrefix = isIt ? '/it/' : isDe ? '/de/' : isEs ? '/es/' : isPl ? '/pl/' : isEn ? '/en/' : '/';
   const pageUrl = isIntlHost
-    ? (isIt ? SITE + '/it/' : SITE + '/')
-    : (isIt ? SITE + '/it/' : isEn ? SITE + '/en/' : SITE + '/');
+    ? (pathLang === 'en' ? SITE + '/' : SITE + langPrefix)
+    : (pathLang === 'pt' ? SITE + '/' : SITE + langPrefix);
 
   function reviewsFromDom() {
     const section = document.querySelector('.reviews-section');
@@ -150,10 +163,10 @@
     let productPrice = 62.9;
     let productImage = SITE + '/images/brand/sensortattoofix.jpg';
     let productId = 'kit-sensor-tattoofix';
-    if (isEn || isIt) productId = 'optical-lens-intl';
+    if (isEn || isIt || isDe || isEs || isPl) productId = 'optical-lens-intl';
     let productDescription = isIt
       ? 'Kit con lente ottica per smartwatch che chiede codice, non misura il battito o interrompe l\'allenamento — spesso per tatuaggio al polso. Ripristina rilevamento al polso, frequenza cardiaca e allenamenti.'
-      : isEn
+      : isEn || isDe || isEs || isPl
       ? 'Optical lens kit for smartwatch passcode loops, heart rate failures and paused workouts — often caused by wrist tattoo ink. Restores wrist detection, heart rate and training.'
       : 'Kit com lente ótica para smartwatch que pede senha, não mede batimentos ou pausa treino — muitas vezes por tatuagem no pulso. Restaura pulso, batimentos e treinos.';
 
@@ -211,7 +224,7 @@
         '@id': SITE + '/#website',
         url: SITE,
         name: 'Sensor Tattoo Fix',
-        inLanguage: isIt ? 'it' : isEn ? 'en' : 'pt-BR',
+        inLanguage: isIt ? 'it' : isDe ? 'de' : isEs ? 'es' : isPl ? 'pl' : isEn ? 'en' : 'pt-BR',
         publisher: { '@id': SITE + '/#organization' }
       },
       {
@@ -221,7 +234,7 @@
         name: document.title,
         description: document.querySelector('meta[name="description"]')?.content || '',
         isPartOf: { '@id': SITE + '/#website' },
-        inLanguage: isIt ? 'it' : isEn ? 'en' : 'pt-BR'
+        inLanguage: isIt ? 'it' : isDe ? 'de' : isEs ? 'es' : isPl ? 'pl' : isEn ? 'en' : 'pt-BR'
       },
       productNode
     ];

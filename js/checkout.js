@@ -113,8 +113,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function checkoutLocale() {
     if (!isIntlCheckoutShell()) return 'pt';
-    const lang = (document.documentElement.lang || '').toLowerCase();
-    return lang.startsWith('it') ? 'it' : 'en';
+    const lang = window.STF_I18N?.getLang?.() || 'en';
+    if (lang === 'it' || lang === 'de' || lang === 'es' || lang === 'pl' || lang === 'en') return lang;
+    return 'en';
   }
 
   /** EN/IT checkout on .com.br path: PayPal only. On .com: Stripe (if live) + PayPal. */

@@ -2729,12 +2729,40 @@ ${worksheets}
     return `<span class="${cls}">${icon} ${escAttr(single)}</span>`;
   }
 
+  function paymentBalanceDisplayLines(card) {
+    const amounts = card?.amounts || [];
+    const avail = amounts.filter((a) => a.kind === 'available');
+    const pend = amounts.filter((a) => a.kind === 'pending');
+    const lines = [];
+
+    if (!avail.length) {
+      lines.push('Disponível: —');
+    } else if (avail.length === 1) {
+      const a = avail[0];
+      lines.push(`Disponível: ${formatBalanceMoney(a.value, a.currency || 'BRL')}`);
+    } else {
+      const parts = avail.map((a) => formatBalanceMoney(a.value, a.currency || 'BRL'));
+      lines.push(`Disponível: ${parts.join(' · ')}`);
+    }
+
+    if (!pend.length) {
+      lines.push('Pendente: —');
+    } else if (pend.length === 1) {
+      const a = pend[0];
+      lines.push(`Pendente: ${formatBalanceMoney(a.value, a.currency || 'BRL')}`);
+    } else {
+      const parts = pend.map((a) => formatBalanceMoney(a.value, a.currency || 'BRL'));
+      lines.push(`Pendente: ${parts.join(' · ')}`);
+    }
+    return lines;
+  }
+
   function renderPaymentBalancesGrid(balances, checkedAt, summary) {
     const grid = document.getElementById('payment-balances-grid');
     const summaryEl = document.getElementById('payment-balances-summary');
     const checkedEl = document.getElementById('payment-balances-checked-at');
     if (!grid) return;
-    const cards = ['mercadopago', 'paypal', 'stripe']
+    const cards = ['mercadopago', 'shopee', 'paypal', 'stripe']
       .map((id) => balances?.[id])
       .filter(Boolean);
     if (!cards.length) {
@@ -2748,10 +2776,7 @@ ${worksheets}
     }
     grid.innerHTML = cards.map((card) => {
       const cls = integrationStatusClass(card.status);
-      const lines = (card.lines || []).map((l) => {
-        const isFix = String(l).startsWith('Como resolver:');
-        return `<li${isFix ? ' class="admin-payment-balance-fix"' : ''}>${escAttr(l)}</li>`;
-      }).join('');
+      const lines = paymentBalanceDisplayLines(card).map((l) => `<li>${escAttr(l)}</li>`).join('');
       const asOf = card.asOf
         ? `<p class="admin-payment-balance-asof">Atualizado: ${escAttr(new Date(card.asOf).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}</p>`
         : '';
@@ -2763,7 +2788,10 @@ ${worksheets}
     }).join('');
 
     if (summaryEl) {
-      const rows = summary?.rows || [];
+      const cleanSummary = rebuildPaymentBalancesSummary(
+        Object.fromEntries(cards.map((c) => [c.id, c]))
+      );
+      const rows = cleanSummary?.rows || summary?.rows || [];
       if (!rows.length) {
         summaryEl.hidden = true;
         summaryEl.innerHTML = '';
@@ -2771,7 +2799,6 @@ ${worksheets}
         summaryEl.hidden = false;
         summaryEl.innerHTML = `
           <h3 class="admin-payment-summary-title"><i class="fas fa-calculator"></i> Consolidado por moeda</h3>
-          <p class="admin-meta admin-payment-summary-note">Soma Mercado Pago + PayPal + Stripe. BRL e USD/EUR não são convertidos — cada moeda é separada. <strong>Total ainda nas gateways</strong> = dinheiro que ainda não saiu para o banco (disponível + a liberar).</p>
           <div class="admin-payment-summary-grid">
             ${rows.map((row) => `
               <article class="admin-payment-summary-card">
@@ -2796,6 +2823,205 @@ ${worksheets}
     }
   }
 
+  function formatAuditMoney(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return '—';
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function formatBalanceMoney(value, currency) {
+    const v = Number(value);
+    if (!Number.isFinite(v)) return '—';
+    const cur = String(currency || 'BRL').toUpperCase();
+    try {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: cur });
+    } catch {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+  }
+
+  const MP_AUDIT_SNAPSHOT_KEY = 'stf_admin_mp_audit_snapshot_v1';
+  let lastMpAuditSnapshot = null;
+
+  function saveMpAuditSnapshot(data) {
+    if (!data?.ok) return;
+    try {
+      const snap = { savedAt: Date.now(), ...data };
+      localStorage.setItem(MP_AUDIT_SNAPSHOT_KEY, JSON.stringify(snap));
+      lastMpAuditSnapshot = snap;
+    } catch (_) { /* quota */ }
+  }
+
+  function restoreMpAuditSnapshot() {
+    try {
+      const raw = localStorage.getItem(MP_AUDIT_SNAPSHOT_KEY);
+      if (!raw) return false;
+      lastMpAuditSnapshot = JSON.parse(raw);
+      return !!lastMpAuditSnapshot?.auditAt;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function rebuildPaymentBalancesSummary(balances) {
+    const cards = ['mercadopago', 'shopee', 'paypal', 'stripe'].map((id) => balances?.[id]).filter(Boolean);
+    const byCur = {};
+    const add = (cur, field, value, gatewayLabel) => {
+      const c = String(cur || 'BRL').toUpperCase();
+      if (!Number.isFinite(value)) return;
+      if (field === 'pending' && value <= 0) return;
+      if (field === 'available' && value === 0) return;
+      if (!byCur[c]) byCur[c] = { available: 0, pending: 0, gateways: [] };
+      byCur[c][field] += value;
+      if (gatewayLabel && !byCur[c].gateways.includes(gatewayLabel)) byCur[c].gateways.push(gatewayLabel);
+    };
+    for (const card of cards) {
+      if (card.status === 'off' || card.status === 'error') continue;
+      for (const row of card.amounts || []) {
+        const field = row.kind === 'available' ? 'available' : (row.kind === 'pending' ? 'pending' : null);
+        if (!field) continue;
+        add(row.currency, field, Number(row.value), card.label);
+      }
+    }
+    const rows = Object.keys(byCur).sort().map((currency) => {
+      const r = byCur[currency];
+      const pendingTotal = r.pending;
+      const stillThere = r.available + pendingTotal;
+      return {
+        currency,
+        lines: [
+          `Disponível agora: ${formatBalanceMoney(r.available, currency)}`,
+          `Pendente: ${formatBalanceMoney(pendingTotal, currency)}`,
+          `Total nas gateways: ${formatBalanceMoney(stillThere, currency)}`
+        ],
+        gateways: r.gateways.slice().sort()
+      };
+    });
+    return { rows };
+  }
+
+  function renderMpAuditResults(data, statusEl) {
+    const summaryEl = document.getElementById('mp-audit-summary');
+    const excessEl = document.getElementById('mp-audit-excess');
+    const wrap = document.getElementById('mp-audit-table-wrap');
+    const tbody = document.getElementById('mp-audit-tbody');
+    const b = data.buckets || {};
+    const a = data.analysis || {};
+    const prod = b.F_production_current_algorithm || {};
+    const best = a.bestRule || {};
+    const official = data.officialBalance || {};
+
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <p><strong>Alvo app:</strong> ${formatAuditMoney(data.targetAppOficial)} ·
+        <strong>Produção atual:</strong> ${formatAuditMoney(prod.total)} (${prod.count || 0} pag.) ·
+        <strong>Δ:</strong> ${formatAuditMoney(a.productionDeltaVsTarget)}</p>
+        <p><strong>API /balance:</strong> ${official.ok ? formatAuditMoney(official.unavailable_balance) : escAttr(official.error || official.skipped ? 'omitido' : 'indisponível')}</p>
+        <p><strong>Regra mais próxima:</strong> ${escAttr(best.label || '—')} → ${formatAuditMoney(best.total)} (Δ ${formatAuditMoney(best.deltaVsTarget)})</p>
+        <ul>${Object.entries(b).map(([k, v]) => `<li><code>${escAttr(k)}</code>: ${formatAuditMoney(v.total)} (${v.count || 0})</li>`).join('')}</ul>`;
+    }
+
+    const excess = a.excessInProduction || [];
+    if (excessEl) {
+      if (!excess.length) {
+        excessEl.innerHTML = '<p><strong>Excesso vs melhor regra:</strong> nenhum pagamento identificado (ou amostra truncada).</p>';
+      } else {
+        excessEl.innerHTML = `<p><strong>Entram na produção (${formatAuditMoney(a.productionTotal)}) mas NÃO na regra ${escAttr(best.id || '')} — soma ${formatAuditMoney(a.excessInProductionSum)}:</strong></p>
+          <ul>${excess.map((r) => `<li>#${escAttr(r.id)} · líq. ${formatAuditMoney(r.net_received_amount)} · release ${escAttr(r.money_release_date || '—')} · ${escAttr(r.money_release_status || '—')}${r.money_release_future ? ' · futuro' : ' · passado'}</li>`).join('')}</ul>`;
+      }
+    }
+
+    const rows = (data.payments || []).slice().sort((x, y) => {
+      if (x.inProductionPendingSum !== y.inProductionPendingSum) return x.inProductionPendingSum ? -1 : 1;
+      return Number(y.net_received_amount || 0) - Number(x.net_received_amount || 0);
+    });
+    if (tbody && wrap) {
+      tbody.innerHTML = rows.map((r) => `<tr class="${r.inProductionPendingSum ? 'mp-audit-prod' : ''}">
+        <td><code>${escAttr(r.id)}</code></td>
+        <td>${escAttr(r.status)}</td>
+        <td>${escAttr(r.money_release_status || '—')}</td>
+        <td>${escAttr(r.money_release_date ? new Date(r.money_release_date).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—')}</td>
+        <td>${formatAuditMoney(r.transaction_amount)}</td>
+        <td>${formatAuditMoney(r.net_received_amount)}</td>
+        <td>${r.inProductionPendingSum ? 'sim' : '—'}</td>
+        <td>${Number(r.transaction_amount_refunded) > 0 ? formatAuditMoney(r.transaction_amount_refunded) : '—'}</td>
+      </tr>`).join('');
+      wrap.hidden = !rows.length;
+    }
+
+    if (statusEl) {
+      if (data.coverage?.truncated) {
+        statusEl.textContent = `Amostra truncada: ${data.coverage.paymentsInReport}/${data.coverage.uniqueIdsFromSearch} pagamentos.`;
+        statusEl.className = 'admin-status form-status warning';
+        statusEl.hidden = false;
+      } else {
+        statusEl.textContent = `Auditoria concluída · ${data.coverage?.paymentsInReport || 0} pagamentos · ${data.subrequests?.used || '?'} subrequests · ${data.auditAt || ''}`;
+        statusEl.className = 'admin-status form-status success';
+        statusEl.hidden = false;
+      }
+    }
+  }
+
+  function renderMpAuditFromSnapshot() {
+    if (!lastMpAuditSnapshot) return;
+    renderMpAuditResults(lastMpAuditSnapshot, document.getElementById('mp-audit-status'));
+  }
+
+  async function runMpReleaseAudit() {
+    const statusEl = document.getElementById('mp-audit-status');
+    const summaryEl = document.getElementById('mp-audit-summary');
+    const excessEl = document.getElementById('mp-audit-excess');
+    const wrap = document.getElementById('mp-audit-table-wrap');
+    const tbody = document.getElementById('mp-audit-tbody');
+    const btn = document.getElementById('btn-mp-release-audit');
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!base || !token) {
+      if (statusEl) {
+        statusEl.textContent = 'Faça login na API.';
+        statusEl.className = 'admin-status form-status error';
+        statusEl.hidden = false;
+      }
+      return;
+    }
+    const target = Number(document.getElementById('mp-audit-target')?.value || '766.6');
+    if (btn) btn.disabled = true;
+    if (statusEl) {
+      statusEl.textContent = 'Buscando pagamentos na API MP (pode levar 1–2 min)…';
+      statusEl.className = 'admin-status form-status';
+      statusEl.hidden = false;
+    }
+    if (summaryEl) summaryEl.innerHTML = '';
+    if (excessEl) excessEl.innerHTML = '';
+    if (wrap) wrap.hidden = true;
+    if (tbody) tbody.innerHTML = '';
+
+    try {
+      const qs = new URLSearchParams({
+        target: String(target),
+        maxDetail: '0',
+        maxPages: '3',
+        includePayments: '1'
+      });
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/mp/release-audit?${qs}`, {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha na auditoria');
+
+      saveMpAuditSnapshot(data);
+      renderMpAuditResults(data, statusEl);
+    } catch (err) {
+      if (statusEl) {
+        statusEl.textContent = err.message || 'Erro na auditoria';
+        statusEl.className = 'admin-status form-status error';
+      }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   let paymentBalancesLoading = false;
 
   async function loadPaymentBalances(force) {
@@ -2812,7 +3038,8 @@ ${worksheets}
       grid.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Consultando Mercado Pago, PayPal e Stripe…</p>';
     }
     try {
-      const data = await refreshIntegrationsCache();
+      const data = await refreshIntegrationsCache(force === true);
+      saveBalancesSnapshot(data);
       renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
       if (data?.integrations) renderIntegrationsTable(data.integrations, data.checkedAt);
     } catch (err) {
@@ -2865,6 +3092,214 @@ ${worksheets}
   let clicksCache = [];
   let clicksWhenCache = [];
   let clicksWhenWindow = null;
+
+  const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v1';
+  const BALANCES_SNAPSHOT_KEY = 'stf_admin_balances_snapshot_v2';
+  const ADMIN_TAB_IDS = new Set(['vendas', 'pedidos', 'cliques', 'saldos', 'api', 'clientes', 'pesquisa', 'comunidade', 'documentacao']);
+  let lastBalancesSnapshot = null;
+
+  function resolveDefaultAdminTab() {
+    try {
+      const saved = localStorage.getItem('stf_admin_tab');
+      if (saved && ADMIN_TAB_IDS.has(saved)) return saved;
+    } catch (_) { /* ignore */ }
+    return 'pedidos';
+  }
+
+  function restoreAdminSnapshots() {
+    restoreClicksSnapshot();
+    restoreBalancesSnapshot();
+    restoreMpAuditSnapshot();
+  }
+
+  function saveClicksSnapshot(data) {
+    if (!data?.clicks?.length) return;
+    try {
+      localStorage.setItem(CLICKS_SNAPSHOT_KEY, JSON.stringify({
+        savedAt: Date.now(),
+        meta: {
+          checkedAt: data.checkedAt,
+          total: data.total,
+          capacity: data.capacity,
+          byDestino: data.byDestino,
+          lastClickAt: data.lastClickAt,
+          oldestClickAt: data.oldestClickAt,
+          dailyD1: data.dailyD1,
+          withNav: data.withNav,
+          navSessions: data.navSessions
+        },
+        clicks: data.clicks,
+        whenClicks: data.whenClicks?.length ? data.whenClicks : data.clicks,
+        whenWindow: data.capacity || null
+      }));
+    } catch (_) { /* quota */ }
+  }
+
+  function restoreClicksSnapshot() {
+    try {
+      const raw = localStorage.getItem(CLICKS_SNAPSHOT_KEY);
+      if (!raw) return false;
+      const snap = JSON.parse(raw);
+      if (!snap?.clicks?.length) return false;
+      clicksCache = snap.clicks;
+      clicksWhenCache = snap.whenClicks?.length ? snap.whenClicks : clicksCache;
+      clicksWhenWindow = snap.whenWindow || null;
+      clicksMetaCache = {
+        ...snap.meta,
+        clicks: clicksCache,
+        whenClicks: clicksWhenCache,
+        capacity: snap.meta?.capacity || snap.whenWindow
+      };
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function mergeBalancesSnapshot(prevSnap, nextData) {
+    if (!nextData?.paymentBalances) return nextData;
+    const prevMp = prevSnap?.paymentBalances?.mercadopago;
+    const nextMp = nextData.paymentBalances.mercadopago;
+    if (!prevMp || !nextMp) return nextData;
+    const prevAvail = (prevMp.amounts || []).filter((a) => a.kind === 'available');
+    const nextAvail = (nextMp.amounts || []).filter((a) => a.kind === 'available');
+    const nextPending = (nextMp.amounts || []).filter((a) => a.kind === 'pending');
+    if (prevAvail.length && !nextAvail.length) {
+      nextData.paymentBalances.mercadopago = {
+        ...nextMp,
+        amounts: [...prevAvail, ...nextPending],
+        lines: []
+      };
+    }
+    return nextData;
+  }
+
+  function saveBalancesSnapshot(data) {
+    if (!data?.paymentBalances) return;
+    try {
+      const merged = mergeBalancesSnapshot(lastBalancesSnapshot, data);
+      const snap = {
+        savedAt: Date.now(),
+        checkedAt: merged.checkedAt,
+        paymentBalances: merged.paymentBalances,
+        paymentBalancesSummary: merged.paymentBalancesSummary,
+        integrations: merged.integrations
+      };
+      localStorage.setItem(BALANCES_SNAPSHOT_KEY, JSON.stringify(snap));
+      lastBalancesSnapshot = snap;
+    } catch (_) { /* quota */ }
+  }
+
+  function restoreBalancesSnapshot() {
+    try {
+      const raw = localStorage.getItem(BALANCES_SNAPSHOT_KEY);
+      if (!raw) return false;
+      lastBalancesSnapshot = JSON.parse(raw);
+      return !!lastBalancesSnapshot?.paymentBalances;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function showClicksCacheHint() {
+    const checkedEl = document.getElementById('clicks-checked-at');
+    if (!checkedEl) return;
+    const when = clicksMetaCache?.checkedAt
+      ? formatFeedbackDate(clicksMetaCache.checkedAt)
+      : '—';
+    checkedEl.textContent = `Última atualização: ${when} · cache local (clique Atualizar para buscar na API)`;
+    checkedEl.hidden = false;
+  }
+
+  function showClicksEmptyState() {
+    const root = document.getElementById('clicks-tree-root');
+    if (root) {
+      root.innerHTML = '<p class="admin-meta">Nenhum clique em cache. Clique <strong>Atualizar</strong> para carregar o histórico.</p>';
+    }
+    const stats = document.getElementById('clicks-stats');
+    if (stats) stats.innerHTML = '';
+    const charts = document.getElementById('clicks-when-charts');
+    if (charts) charts.innerHTML = '';
+    const noise = document.getElementById('clicks-noise-charts');
+    if (noise) noise.innerHTML = '';
+    const checkedEl = document.getElementById('clicks-checked-at');
+    if (checkedEl) checkedEl.hidden = true;
+  }
+
+  function filterClicksLocally(clicks, q, destino) {
+    let out = clicks || [];
+    if (destino === 'pageview') out = out.filter((c) => c.tipo === 'pageview');
+    else if (destino) out = out.filter((c) => c.destino === destino);
+    if (q) {
+      const ql = q.toLowerCase();
+      out = out.filter((c) => {
+        const hay = [c.destino, c.rotulo, c.pagina, c.visitante_id, c.secao, c.elemento, c.tipo]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return hay.includes(ql);
+      });
+    }
+    return out;
+  }
+
+  function reapplyClicksLocalFilters(openPaths) {
+    if (!clicksCache.length || !clicksMetaCache) {
+      showClicksEmptyState();
+      return;
+    }
+    wireClicksWhenFilters();
+    const q = document.getElementById('clicks-search')?.value?.trim() || '';
+    const destino = document.getElementById('clicks-filter-destino')?.value || '';
+    const withNav = !!document.getElementById('clicks-filter-nav')?.checked;
+    const navEl = document.getElementById('clicks-filter-nav');
+    if (navEl) {
+      navEl.disabled = !destino;
+      navEl.closest('label')?.classList.toggle('is-disabled', !destino);
+    }
+    renderClicksStats(clicksMetaCache);
+    renderClicksWhenCharts(clicksWhenCache);
+    renderClicksNoiseStats(clicksWhenCache);
+    const display = filterClicksLocally(clicksCache, q, destino);
+    renderClicksTree(
+      display,
+      clicksMetaCache.checkedAt,
+      clicksMetaCache.total,
+      openPaths || captureClicksTreeOpenPaths()
+    );
+    showClicksCacheHint();
+    if (destino && withNav) {
+      setClicksLoadStatus('Navegação completa por visita exige Atualizar (busca na API).', 'warning');
+      window.setTimeout(() => setClicksLoadStatus(''), 4000);
+    }
+  }
+
+  function showPaymentBalancesFromCache() {
+    const grid = document.getElementById('payment-balances-grid');
+    if (!grid) return;
+    if (lastBalancesSnapshot?.paymentBalances) {
+      renderPaymentBalancesGrid(
+        lastBalancesSnapshot.paymentBalances,
+        lastBalancesSnapshot.checkedAt,
+        lastBalancesSnapshot.paymentBalancesSummary
+      );
+      const checkedEl = document.getElementById('payment-balances-checked-at');
+      if (checkedEl && lastBalancesSnapshot.checkedAt) {
+        const when = new Date(lastBalancesSnapshot.checkedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        checkedEl.textContent = `Cache local: ${when} · clique Atualizar saldos (gera consulta nova; MP pode levar 1–3 min)`;
+        checkedEl.hidden = false;
+      }
+      return;
+    }
+    grid.innerHTML = '<p class="admin-meta">Nenhum saldo em cache. Clique <strong>Atualizar saldos</strong> para consultar Mercado Pago, PayPal e Stripe.</p>';
+    const summaryEl = document.getElementById('payment-balances-summary');
+    if (summaryEl) {
+      summaryEl.hidden = true;
+      summaryEl.innerHTML = '';
+    }
+    const checkedEl = document.getElementById('payment-balances-checked-at');
+    if (checkedEl) checkedEl.hidden = true;
+  }
 
   const CLICK_DESTINO_LABELS = {
     pageview: 'Entrada',
@@ -4476,18 +4911,10 @@ ${worksheets}
     const el = document.getElementById('clicks-filter-nav-only');
     if (el) writeClicksNavOnlyPref(!!el.checked);
     if (!clicksCache.length) {
-      startClicksBackgroundLoad();
+      showClicksEmptyState();
       return;
     }
-    const openPaths = captureClicksTreeOpenPaths();
-    const checkedEl = document.getElementById('clicks-checked-at');
-    const totalMatch = checkedEl?.textContent?.match(/de (\d+) no log/);
-    const total = totalMatch ? Number(totalMatch[1]) : clicksCache.length;
-    if (clicksWhenCache.length) {
-      renderClicksWhenCharts(clicksWhenCache);
-      renderClicksNoiseStats(clicksWhenCache);
-    }
-    renderClicksTree(clicksCache, new Date().toISOString(), total, openPaths);
+    reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
     document.getElementById('clicks-fold-log')?.setAttribute('open', '');
   }
 
@@ -4709,6 +5136,7 @@ ${worksheets}
       clicksWhenCache = data.whenClicks?.length ? data.whenClicks : clicksCache;
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = data;
+      saveClicksSnapshot(data);
       renderClicksStats(data);
       renderClicksWhenCharts(clicksWhenCache);
       renderClicksNoiseStats(clicksWhenCache);
@@ -4736,7 +5164,7 @@ ${worksheets}
 
   function scheduleClicksReload() {
     clearTimeout(clicksSearchTimer);
-    clicksSearchTimer = setTimeout(() => startClicksBackgroundLoad({ preserveOpen: true, force: true }), 350);
+    clicksSearchTimer = setTimeout(() => reapplyClicksLocalFilters(captureClicksTreeOpenPaths()), 200);
   }
 
   function formatFeedbackDate(ts) {
@@ -5059,14 +5487,15 @@ ${worksheets}
     }
   }
 
-  async function refreshIntegrationsCache() {
+  async function refreshIntegrationsCache(refreshBalances) {
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!base || !token) {
       lastIntegrations = null;
       return null;
     }
-    const res = await fetch(base.replace(/\/$/, '') + '/admin/integrations-status', {
+    const qs = refreshBalances ? '?refreshBalances=1' : '';
+    const res = await fetch(base.replace(/\/$/, '') + '/admin/integrations-status' + qs, {
       headers: { Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
@@ -5093,7 +5522,8 @@ ${worksheets}
     tbody.innerHTML = '<tr><td colspan="3" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Verificando integrações…</td></tr>';
 
     try {
-      const data = await refreshIntegrationsCache();
+      const data = await refreshIntegrationsCache(false);
+      saveBalancesSnapshot(data);
       renderIntegrationsTable(data?.integrations, data?.checkedAt);
       renderPaymentBalancesGrid(data?.paymentBalances, data?.checkedAt, data?.paymentBalancesSummary);
     } catch (err) {
@@ -7000,7 +7430,7 @@ ${worksheets}
     }
 
     function showTab(tabId) {
-      let id = tabId || 'cliques';
+      let id = tabId || resolveDefaultAdminTab();
       const legacyCadastros = {
         produtos: 'produtos',
         smartwatches: 'smartwatches',
@@ -7036,14 +7466,20 @@ ${worksheets}
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'cliques') {
-        if (clicksCache.length) renderClicksFromCache(captureClicksTreeOpenPaths());
-        else if (clicksLoading) {
-          setClicksLoadStatus('Carregando cliques em segundo plano…');
+        syncClicksNavOnlyCheckbox();
+        if (clicksCache.length && clicksMetaCache) {
+          reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
+        } else if (clicksLoading) {
+          setClicksLoadStatus('Carregando cliques…');
+        } else {
+          showClicksEmptyState();
         }
-        if (!clicksBgStarted) {
-          queueMicrotask(() => startClicksBackgroundLoad());
-        }
-      } else if (id === 'saldos') loadPaymentBalances(true);
+      } else if (id === 'saldos') {
+        restoreMpAuditSnapshot();
+        renderMpAuditFromSnapshot();
+        showPaymentBalancesFromCache();
+        loadPaymentBalances(false).catch(() => {});
+      }
       else if (id === 'api') loadIntegrationsStatus();
       else if (id === 'comunidade') loadForumAdmin();
       else if (id === 'vendas') initVendasSubtabs();
@@ -7067,7 +7503,8 @@ ${worksheets}
       btn.addEventListener('click', () => showCadastrosSection(btn.dataset.cadastrosSection));
     });
 
-    showTab('cliques');
+    restoreAdminSnapshots();
+    showTab(resolveDefaultAdminTab());
   }
 
   function showPanel() {
@@ -7301,10 +7738,10 @@ ${worksheets}
   document.getElementById('btn-clicks-clear-all')?.addEventListener('click', () => clearClicksLog('all'));
   document.getElementById('clicks-search')?.addEventListener('input', scheduleClicksReload);
   document.getElementById('clicks-filter-destino')?.addEventListener('change', () => {
-    startClicksBackgroundLoad({ force: true });
+    reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
   });
   document.getElementById('clicks-filter-nav')?.addEventListener('change', () => {
-    startClicksBackgroundLoad({ force: true });
+    reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
   });
   syncClicksNavOnlyCheckbox();
   wireAdminFolds();
@@ -7519,6 +7956,7 @@ ${worksheets}
   });
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));
+  document.getElementById('btn-mp-release-audit')?.addEventListener('click', () => runMpReleaseAudit());
 
   document.addEventListener('DOMContentLoaded', async () => {
     await waitSalesMoney();
