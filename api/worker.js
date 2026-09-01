@@ -2266,7 +2266,16 @@ function isComSiteRequest(request) {
 
 function isIntlCheckoutLocale(locale) {
   const l = String(locale || '').toLowerCase();
-  return l === 'en' || l === 'it';
+  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl';
+}
+
+function orderCheckoutLangPath(order) {
+  const l = String(order?.checkoutLocale || 'pt').toLowerCase();
+  if (l === 'it') return '/it';
+  if (l === 'de') return '/de';
+  if (l === 'es') return '/es';
+  if (l === 'pl') return '/pl';
+  return '';
 }
 
 /** True when the destination is abroad even if paisCode was wrongly saved as BR. */
@@ -2810,6 +2819,7 @@ function watchWhatsAppBlock(order) {
 
 function orderCheckoutLocale(order) {
   const l = String(order?.checkoutLocale || 'pt').toLowerCase();
+  if (l === 'de' || l === 'es' || l === 'pl') return 'en';
   if (l === 'en' || l === 'it') return l;
   return 'pt';
 }
@@ -2863,7 +2873,8 @@ function shopWhatsAppUrl(config, env, text) {
 function resumeOrderUrl(config, order) {
   const loc = orderCheckoutLocale(order);
   const site = customerSiteBase(order, config);
-  const path = loc === 'it' ? '/it/comprar.html' : '/comprar.html';
+  const prefix = orderCheckoutLangPath(order);
+  const path = `${prefix}/comprar.html`.replace(/\/\//, '/');
   return `${site}${path}?pedido=${encodeURIComponent(order.orderId)}&token=${encodeURIComponent(order.accessToken)}`;
 }
 
@@ -12787,24 +12798,38 @@ const PASSWORD_RESET_TTL = 3600; // 1 hora
 
 function passwordResetLocaleFromRequest(request, bodyLocale) {
   const explicit = String(bodyLocale || '').toLowerCase();
-  if (explicit === 'en' || explicit === 'it' || explicit === 'pt') return explicit;
+  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'pt') return explicit;
   const lang = (request.headers.get('Accept-Language') || '').toLowerCase();
   if (lang.startsWith('it')) return 'it';
+  if (lang.startsWith('de')) return 'de';
+  if (lang.startsWith('es')) return 'es';
+  if (lang.startsWith('pl')) return 'pl';
   if (lang.startsWith('en')) return 'en';
   const hay = `${request.headers.get('Origin') || ''} ${request.headers.get('Referer') || ''}`.toLowerCase();
   if (hay.includes('/it/') || hay.includes('lang=it')) return 'it';
+  if (hay.includes('/de/') || hay.includes('lang=de')) return 'de';
+  if (hay.includes('/es/') || hay.includes('lang=es')) return 'es';
+  if (hay.includes('/pl/') || hay.includes('lang=pl')) return 'pl';
   if (hay.includes('sensortattoofix.com') && !hay.includes('.com.br')) return 'en';
   return 'pt';
 }
 
 function passwordResetSiteBase(locale, config) {
-  if (locale === 'en' || locale === 'it') return 'https://www.sensortattoofix.com';
+  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl') {
+    return 'https://www.sensortattoofix.com';
+  }
   return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
 }
 
 function passwordResetUrl(locale, config, token) {
   const base = passwordResetSiteBase(locale, config);
-  const path = locale === 'it' ? '/it/minha-conta.html' : '/minha-conta.html';
+  const pathByLocale = {
+    it: '/it/minha-conta.html',
+    de: '/de/minha-conta.html',
+    es: '/es/minha-conta.html',
+    pl: '/pl/minha-conta.html'
+  };
+  const path = pathByLocale[locale] || '/minha-conta.html';
   return `${base}${path}?reset=${encodeURIComponent(token)}`;
 }
 

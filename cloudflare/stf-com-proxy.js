@@ -1,6 +1,6 @@
 /**
  * Storefront proxy — serves pinned GitHub commit via jsDelivr.
- * - .com / www.sensortattoofix.com → English (/en/*) + Italian (/it/*)
+ * - .com / www.sensortattoofix.com → English (/) + IT/DE/ES/PL (/it/, /de/, /es/, /pl/)
  * - .com.br → Portuguese (repo root)
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
@@ -66,11 +66,15 @@ const COM_SHARED_ROOT_PAGES = new Set([
   '/rastreio.html'
 ]);
 
+const INTL_LANGS = ['it', 'de', 'es', 'pl'];
+
 function mapPathCom(pathname) {
   if (isStaticAsset(pathname)) return pathname;
   if (COM_SHARED_ROOT_PAGES.has(pathname)) return pathname;
-  if (pathname === '/it' || pathname === '/it/') return '/it/index.html';
-  if (pathname.startsWith('/it/')) return pathname;
+  for (const lang of INTL_LANGS) {
+    if (pathname === `/${lang}` || pathname === `/${lang}/`) return `/${lang}/index.html`;
+    if (pathname.startsWith(`/${lang}/`)) return pathname;
+  }
   if (pathname.startsWith('/en/')) {
     const rest = pathname.slice(3) || '/';
     return rest === '/' ? '/en/index.html' : '/en' + rest;
@@ -93,12 +97,22 @@ function mapPathBr(pathname) {
 
 function pageFileFromOrigin(originPath) {
   let rest = originPath;
-  if (rest.startsWith('/it/')) rest = rest.slice(3);
-  else if (rest.startsWith('/en/')) rest = rest.slice(3);
+  for (const lang of INTL_LANGS) {
+    if (rest.startsWith(`/${lang}/`)) {
+      rest = rest.slice(lang.length + 1);
+      break;
+    }
+  }
+  if (rest.startsWith('/en/')) rest = rest.slice(3);
   else rest = rest.replace(/^\//, '');
   rest = rest.replace(/^\/+/, '');
   if (!rest || rest === 'index.html') return 'index.html';
   return rest;
+}
+
+function comLangUrl(originPath, lang) {
+  const f = pageFileFromOrigin(originPath);
+  return f === 'index.html' ? `${COM_ORIGIN}/${lang}/` : `${COM_ORIGIN}/${lang}/${f}`;
 }
 
 function brPtUrl(originPath) {
@@ -112,8 +126,7 @@ function comEnUrl(originPath) {
 }
 
 function comItUrl(originPath) {
-  const f = pageFileFromOrigin(originPath);
-  return f === 'index.html' ? COM_ORIGIN + '/it/' : COM_ORIGIN + '/it/' + f;
+  return comLangUrl(originPath, 'it');
 }
 
 function isJsDelivrListing(html) {
