@@ -10663,7 +10663,8 @@ function mpPaymentPendingFutureRelease(payment, collectorId, nowMs = Date.now())
   return releaseMs > nowMs;
 }
 
-async function fetchMercadoPagoPendingToRelease(token, collectorId) {
+async function fetchMercadoPagoPendingToRelease(token, collectorId, opts = {}) {
+  const excludeTodayBrt = opts.excludeTodayBrt !== false;
   const seen = new Set();
   const docCache = new Map();
   let pendingSum = 0;
@@ -10720,7 +10721,7 @@ async function fetchMercadoPagoPendingToRelease(token, collectorId) {
         const net = mpPaymentNetAmountStrict(doc);
         if (net == null) continue;
         // Vendas aprovadas hoje (BRT) ainda podem não entrar no "Dinheiro a liberar" do app.
-        if (mpPaymentApprovedTodayBrt(doc)) {
+        if (excludeTodayBrt && mpPaymentApprovedTodayBrt(doc)) {
           excludedTodaySum += net;
           excludedTodayCount += 1;
           continue;
@@ -10748,6 +10749,41 @@ async function fetchMercadoPagoPendingToRelease(token, collectorId) {
   }
 }
 
+async function resolveMercadoPagoPendingForBalance(token, cache, collectorId, officialUnavailable) {
+  const officialN = Number(officialUnavailable);
+  if (Number.isFinite(officialN) && officialN > 0) {
+    return { value: officialN, meta: { source: 'official_balance' } };
+  }
+
+  const withExcl = await fetchMercadoPagoPendingToRelease(token, collectorId, { excludeTodayBrt: true });
+  if (withExcl.ok) {
+    const v = Number(withExcl.value);
+    if (Number.isFinite(v) && v > 0) {
+      return {
+        value: v,
+        meta: {
+          source: 'payments_pending_excl_today_brt',
+          excludedToday: withExcl.excludedToday || null
+        }
+      };
+    }
+  }
+
+  const full = await fetchMercadoPagoPendingToRelease(token, collectorId, { excludeTodayBrt: false });
+  if (full.ok) {
+    const v = Number(full.value);
+    if (Number.isFinite(v) && v > 0) {
+      return { value: v, meta: { source: 'payments_pending' } };
+    }
+  }
+
+  const cached = Number(cache?.pendingRelease);
+  if (Number.isFinite(cached) && cached > 0) {
+    return { value: cached, meta: cache?.pendingMeta || null };
+  }
+  return { value: null, meta: null };
+}
+
 async function resolveMercadoPagoPendingRelease(token, cache, force = false, collectorId = null) {
   const cached = Number(cache?.pendingRelease);
   const pendingCacheTtlMs = 15 * 60 * 1000;
@@ -10755,16 +10791,7 @@ async function resolveMercadoPagoPendingRelease(token, cache, force = false, col
     const ageMs = Date.now() - new Date(cache.pendingCachedAt).getTime();
     if (ageMs < pendingCacheTtlMs) return { value: cached, meta: cache?.pendingMeta || null };
   }
-  const fetched = await fetchMercadoPagoPendingToRelease(token, collectorId);
-  if (!fetched.ok) {
-    return { value: Number.isFinite(cached) && cached > 0 ? cached : null, meta: null };
-  }
-  const value = Number(fetched.value);
-  const resolved = Number.isFinite(value) && value >= 0 ? value : null;
-  return {
-    value: resolved,
-    meta: fetched.excludedToday ? { excludedToday: fetched.excludedToday, source: 'payments_pending_excl_today_brt' } : { source: 'payments_pending' }
-  };
+  return resolveMercadoPagoPendingForBalance(token, cache, collectorId, null);
 }
 
 function mergeMpPendingReleaseIntoResult(result, pendingRelease, cur = 'BRL') {
@@ -10788,15 +10815,11 @@ async function buildMercadoPagoBalanceResult(token, cache, reportPending, opts =
   const force = opts.force === true;
   const collectorId = opts.collectorId || null;
   const officialN = Number(opts.officialUnavailable);
-  const pendingFromOfficial = Number.isFinite(officialN) && officialN >= 0 ? officialN : null;
-
-  let pendingRelease = pendingFromOfficial;
-  let pendingMeta = pendingFromOfficial != null ? { source: 'official_balance' } : null;
-  if (pendingRelease == null) {
-    const resolved = await resolveMercadoPagoPendingRelease(token, cache, true, collectorId);
-    pendingRelease = resolved?.value ?? null;
-    pendingMeta = resolved?.meta || { source: 'payments_pending' };
-  }
+  const resolved = await resolveMercadoPagoPendingForBalance(
+    token, cache, collectorId, Number.isFinite(officialN) && officialN > 0 ? officialN : null
+  );
+  const pendingRelease = resolved?.value ?? null;
+  const pendingMeta = resolved?.meta || null;
 
   const merged = {
     ...(cache || {}),
@@ -10804,7 +10827,7 @@ async function buildMercadoPagoBalanceResult(token, cache, reportPending, opts =
       ? Number(pendingRelease)
       : null,
     pendingCachedAt: new Date().toISOString(),
-    pendingSource: pendingMeta?.source || (pendingFromOfficial != null ? 'official_balance' : 'payments_pending'),
+    pendingSource: pendingMeta?.source || 'payments_pending',
     pendingMeta: pendingMeta?.excludedToday ? { excludedToday: pendingMeta.excludedToday } : null
   };
   return formatMpReleaseBalanceResult(merged, reportPending);
@@ -10896,8 +10919,19 @@ async function tryParseMpReleaseReports(token, env, state, reportRows, force, co
   if (!reportRows?.length) return null;
   const parsed = await parseAvailableFromMpReleaseReports(token, reportRows, force, collectorId);
   if (parsed.ok) {
-    await setMpReleaseState(env, { ...state, balance: parsed.balance, pending: null });
-    return buildMercadoPagoBalanceResult(token, parsed.balance, false, balanceOpts);
+    const result = await buildMercadoPagoBalanceResult(token, parsed.balance, false, balanceOpts);
+    const pendingRow = (result.amounts || []).find((a) => a.kind === 'pending');
+    await setMpReleaseState(env, {
+      ...state,
+      balance: {
+        ...parsed.balance,
+        pendingRelease: pendingRow?.value ?? null,
+        pendingCachedAt: new Date().toISOString(),
+        pendingSource: pendingRow ? 'resolved' : null
+      },
+      pending: null
+    });
+    return result;
   }
   if (parsed.badFiles?.length && !force) {
     await setMpReleaseState(env, {
@@ -11060,7 +11094,7 @@ async function fetchMercadoPagoBalanceViaReleaseReport(token, env, opts = {}) {
 async function fetchMercadoPagoBalance(token, userId, env, opts = {}) {
   if (!userId) return { ok: false, lines: [], error: 'ID de usuário MP ausente.' };
   const official = await fetchMercadoPagoOfficialBalance(token, userId);
-  const officialUnavailable = official.ok && Number.isFinite(Number(official.unavailable)) && Number(official.unavailable) >= 0
+  const officialUnavailable = official.ok && Number.isFinite(Number(official.unavailable)) && Number(official.unavailable) > 0
     ? Number(official.unavailable)
     : null;
 
