@@ -66,11 +66,16 @@
     if (!window.STF_SITE_ENABLE_BR_INTL_REDIRECT) return;
     if (!isBrHost()) return;
     const path = location.pathname;
-    if (!/^\/(en|it)(\/|$)/.test(path)) return;
-    const rest = path.replace(/^\/(en|it)/, '') || '/';
-    const target = rest === '/' || rest === '/index.html'
-      ? COM_ORIGIN + (path.startsWith('/it') ? '/it/' : '/')
-      : COM_ORIGIN + (path.startsWith('/it') ? '/it' : '') + rest;
+    if (!/^\/(en|it|de|es|pl)(\/|$)/.test(path)) return;
+    const m = path.match(/^\/(en|it|de|es|pl)(\/|$)/);
+    const lang = m[1];
+    const rest = path.replace(/^\/(en|it|de|es|pl)/, '') || '/';
+    let target;
+    if (lang === 'en') {
+      target = rest === '/' || rest === '/index.html' ? COM_ORIGIN + '/' : COM_ORIGIN + rest;
+    } else {
+      target = rest === '/' || rest === '/index.html' ? `${COM_ORIGIN}/${lang}/` : `${COM_ORIGIN}/${lang}${rest}`;
+    }
     location.replace(target);
   }
 
@@ -79,9 +84,10 @@
    * Product.markets: ['BR'], ['INT'], or ['BR','INT'].
    */
   function catalogMarket() {
+    if (window.STF_PAGE_LANG?.catalogMarket) return window.STF_PAGE_LANG.catalogMarket();
     if (isIntlHost()) return 'INT';
     const path = String(location.pathname || '');
-    if (path.includes('/en/') || path.includes('/it/')) return 'INT';
+    if (/^\/(en|it|de|es|pl)(\/|$)/.test(path)) return 'INT';
     return 'BR';
   }
 
