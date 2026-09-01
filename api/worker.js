@@ -17481,6 +17481,14 @@ function buildMonthlyReportHtml(report) {
   </div>`;
 }
 
+function monthlyClicksReportSubject(config, monthName, year) {
+  let subject = emailSubject(config, 'monthlyReportSubject', { month: monthName, year: String(year) });
+  if (/relat[oó]rio mensal/i.test(subject)) {
+    subject = `Relatório de cliques — ${monthName}/${year} — Sensor Tattoo Fix`;
+  }
+  return subject;
+}
+
 async function sendMonthlyReportEmail(env, config, year, month, { force = false } = {}) {
   const key = `${MONTHLY_REPORT_KV_PREFIX}${year}-${String(month).padStart(2, '0')}`;
   if (!force) {
@@ -17490,7 +17498,7 @@ async function sendMonthlyReportEmail(env, config, year, month, { force = false 
 
   const report = await buildMonthlyReport(env, year, month);
   const monthName = MONTH_NAMES_PT[month - 1] || String(month);
-  const subject = emailSubject(config, 'monthlyReportSubject', { month: monthName, year: String(year) });
+  const subject = monthlyClicksReportSubject(config, monthName, String(year));
   const to = (getEmails(config).monthlyReportTo || config.formsubmit?.email || '').trim();
   if (!to) return { ok: false, error: 'E-mail de destino não configurado (formsubmit.email).' };
 
