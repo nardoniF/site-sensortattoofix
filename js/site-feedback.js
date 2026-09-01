@@ -58,12 +58,70 @@
       thanks: 'Grazie! Il tuo feedback ci aiuta a migliorare il sito.',
       err: 'Invio non riuscito. Riprova o scrivi a support@sensortattoofix.com.',
       errShort: 'Descrivi cosa cercavi (almeno 8 caratteri).'
+    },
+    de: {
+      fab: 'Feedback',
+      fabAria: 'Sagen Sie uns, was auf der Website gefehlt hat',
+      title: 'Helfen Sie uns, besser zu werden',
+      intro: 'Nicht gefunden, was Sie brauchen? Ein paar Worte reichen — wir lesen jede Antwort.',
+      buscava: 'Wonach haben Sie gesucht?',
+      buscavaPh: 'Z. B. Kit-Preis, Garmin-Kompatibilität, Lieferzeit…',
+      sugestao: 'Was hat gefehlt oder ein Vorschlag (optional)',
+      sugestaoPh: 'Z. B. Installationsvideo, Modellvergleich, internationaler Versand…',
+      email: 'Ihre E-Mail (optional)',
+      emailPh: 'Nur wenn Sie eine Antwort möchten',
+      send: 'Senden',
+      sending: 'Wird gesendet…',
+      close: 'Schließen',
+      thanks: 'Danke! Ihr Feedback hilft uns, die Website zu verbessern.',
+      err: 'Senden fehlgeschlagen. Versuchen Sie es erneut oder schreiben Sie an support@sensortattoofix.com.',
+      errShort: 'Beschreiben Sie, wonach Sie gesucht haben (mindestens 8 Zeichen).'
+    },
+    es: {
+      fab: 'Comentarios',
+      fabAria: 'Cuéntanos qué faltaba en el sitio',
+      title: 'Ayúdanos a mejorar',
+      intro: '¿No encontraste lo que buscabas? Unas palabras bastan — leemos cada respuesta.',
+      buscava: '¿Qué estabas buscando?',
+      buscavaPh: 'Ej.: precio del kit, compatibilidad Garmin, plazo de entrega…',
+      sugestao: 'Qué faltaba o una sugerencia (opcional)',
+      sugestaoPh: 'Ej.: video de instalación, comparativa de modelos, envío internacional…',
+      email: 'Tu correo (opcional)',
+      emailPh: 'Solo si quieres respuesta',
+      send: 'Enviar',
+      sending: 'Enviando…',
+      close: 'Cerrar',
+      thanks: '¡Gracias! Tu comentario nos ayuda a mejorar el sitio.',
+      err: 'No se pudo enviar. Inténtalo de nuevo o escribe a support@sensortattoofix.com.',
+      errShort: 'Describe qué buscabas (al menos 8 caracteres).'
+    },
+    pl: {
+      fab: 'Opinie',
+      fabAria: 'Powiedz, czego brakowało na stronie',
+      title: 'Pomóż nam się poprawić',
+      intro: 'Nie znalazłeś tego, czego szukasz? Kilka słów wystarczy — czytamy każdą odpowiedź.',
+      buscava: 'Czego szukałeś?',
+      buscavaPh: 'Np. cena zestawu, kompatybilność Garmin, czas dostawy…',
+      sugestao: 'Czego brakowało lub sugestia (opcjonalnie)',
+      sugestaoPh: 'Np. film instalacji, porównanie modeli, wysyłka międzynarodowa…',
+      email: 'Twój e-mail (opcjonalnie)',
+      emailPh: 'Tylko jeśli chcesz odpowiedź',
+      send: 'Wyślij',
+      sending: 'Wysyłanie…',
+      close: 'Zamknij',
+      thanks: 'Dziękujemy! Twoja opinia pomaga nam ulepszać stronę.',
+      err: 'Nie udało się wysłać. Spróbuj ponownie lub napisz na support@sensortattoofix.com.',
+      errShort: 'Opisz, czego szukałeś (co najmniej 8 znaków).'
     }
   };
 
   function lang() {
+    if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
     const htmlLang = String(document.documentElement.lang || '').toLowerCase();
     if (htmlLang.startsWith('it') || location.pathname.includes('/it/')) return 'it';
+    if (htmlLang.startsWith('de') || location.pathname.includes('/de/')) return 'de';
+    if (htmlLang.startsWith('es') || location.pathname.includes('/es/')) return 'es';
+    if (htmlLang.startsWith('pl') || location.pathname.includes('/pl/')) return 'pl';
     if (
       htmlLang.startsWith('en') ||
       location.pathname.includes('/en/') ||
@@ -76,7 +134,8 @@
   }
 
   function t(key) {
-    return (I18N[lang()] || I18N.pt)[key] || key;
+    const code = lang();
+    return (I18N[code] || I18N.pt)[key] || key;
   }
 
   function apiBase() {
