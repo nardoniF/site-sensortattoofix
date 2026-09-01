@@ -1,18 +1,33 @@
 /**
- * Renderiza FAQ e elogios da home a partir de store-config (PT / EN / IT).
+ * Renderiza FAQ e elogios da home a partir de store-config (PT / EN / IT / DE / ES / PL).
  */
 (function () {
+  let l10nCache = null;
+
   function pageLang() {
+    if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
+    if (window.STF_I18N?.getLang) return window.STF_I18N.getLang();
     const lang = (document.documentElement.lang || 'pt').slice(0, 2).toLowerCase();
-    if (lang === 'it' || /\/it\//i.test(location.pathname)) return 'it';
-    if (lang === 'en' || /\/en\//i.test(location.pathname)) return 'en';
+    if (['pt', 'en', 'it', 'de', 'es', 'pl'].includes(lang)) return lang;
     return 'pt';
   }
 
   function pick(row, base, lang) {
-    if (lang === 'en') return row[base + 'En'] || row[base] || '';
-    if (lang === 'it') return row[base + 'It'] || row[base + 'En'] || row[base] || '';
+    const suffixMap = { en: 'En', it: 'It', de: 'De', es: 'Es', pl: 'Pl' };
+    const suffix = suffixMap[lang];
+    if (suffix) {
+      const localized = row[base + suffix];
+      if (localized) return localized;
+      if (lang === 'it') return row[base + 'En'] || row[base] || '';
+      if (lang === 'de' || lang === 'es' || lang === 'pl') return row[base + 'En'] || '';
+    }
     return row[base] || '';
+  }
+
+  function pickL10n(kind, id, field, lang) {
+    if (!l10nCache || !['de', 'es', 'pl'].includes(lang)) return '';
+    const bucket = l10nCache[lang]?.[kind]?.[id];
+    return bucket?.[field] || '';
   }
 
   function escapeHtml(s) {
@@ -53,8 +68,8 @@
       .slice()
       .sort((a, b) => (a.order || 0) - (b.order || 0));
     root.innerHTML = rows.map((row) => {
-      const q = pick(row, 'question', lang);
-      const a = pick(row, 'answer', lang);
+      const q = pickL10n('faq', row.id, 'question', lang) || pick(row, 'question', lang);
+      const a = pickL10n('faq', row.id, 'answer', lang) || pick(row, 'answer', lang);
       if (!q) return '';
       return `<details class="faq-item">
         <summary>${q}</summary>
@@ -77,10 +92,16 @@
       ? rows.reduce((s, r) => s + (Number(r.rating) || 5), 0) / rows.length
       : 5;
     section.setAttribute('data-aggregate-rating', String(Math.round(avg * 10) / 10));
+
+    const summaryEl = section.querySelector('.reviews-summary');
+    if (summaryEl && l10nCache?.[lang]?.reviewsSummary) {
+      summaryEl.innerHTML = `<i class="fas fa-star" aria-hidden="true"></i> ${l10nCache[lang].reviewsSummary}`;
+    }
+
     grid.innerHTML = rows.map((row) => {
-      const body = pick(row, 'body', lang);
-      const author = pick(row, 'author', lang);
-      const source = pick(row, 'source', lang);
+      const body = pickL10n('reviews', row.id, 'body', lang) || pick(row, 'body', lang);
+      const author = pickL10n('reviews', row.id, 'author', lang) || pick(row, 'author', lang);
+      const source = pickL10n('reviews', row.id, 'source', lang) || pick(row, 'source', lang);
       const rating = Number(row.rating) || 5;
       if (!body) return '';
       return `<article class="review-card review-quote" data-review-rating="${rating}">
@@ -103,6 +124,18 @@
     return null;
   }
 
+  async function loadL10n() {
+    if (l10nCache) return l10nCache;
+    try {
+      const res = await fetch('/data/home-content-l10n.json?v=1', { cache: 'no-store' });
+      if (res.ok) l10nCache = await res.json();
+    } catch (e) {
+      console.warn('home-content: falha ao carregar l10n', e);
+    }
+    l10nCache = l10nCache || {};
+    return l10nCache;
+  }
+
   async function loadConfig() {
     const fromStore = resolveConfig();
     if (fromStore) return fromStore;
@@ -115,12 +148,13 @@
     return { homeFaq: [], homeReviews: [] };
   }
 
-  async function init() {
+  async function renderAll() {
     const root = document.getElementById('home-faq-root');
     const reviews = document.getElementById('home-reviews-root');
     if (!root && !reviews) return;
-    const cfg = await loadConfig();
     const lang = pageLang();
+    if (['de', 'es', 'pl'].includes(lang)) await loadL10n();
+    const cfg = await loadConfig();
     renderFaq(cfg.homeFaq, lang);
     renderReviews(cfg.homeReviews, lang);
     if (typeof window.STF_FAQ_EMBEDS?.refresh === 'function') {
@@ -130,20 +164,10 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', renderAll);
   } else {
-    init();
+    renderAll();
   }
 
-  document.addEventListener('stf-config-ready', () => {
-    const cfg = resolveConfig();
-    if (!cfg) return;
-    const lang = pageLang();
-    renderFaq(cfg.homeFaq, lang);
-    renderReviews(cfg.homeReviews, lang);
-    if (typeof window.STF_FAQ_EMBEDS?.refresh === 'function') {
-      window.STF_FAQ_EMBEDS.refresh(document.getElementById('faq') || document);
-    }
-    document.dispatchEvent(new CustomEvent('stf-home-content-ready', { detail: { lang, config: cfg } }));
-  });
+  document.addEventListener('stf-config-ready', renderAll);
 })();

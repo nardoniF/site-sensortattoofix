@@ -79,10 +79,14 @@
 
   function detectLang() {
     try {
+      if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
       if (window.STF_I18N?.getLang) return window.STF_I18N.getLang();
     } catch (_) { /* ignore */ }
     const path = String(location.pathname || '');
     if (path.includes('/it/')) return 'it';
+    if (path.includes('/de/')) return 'de';
+    if (path.includes('/es/')) return 'es';
+    if (path.includes('/pl/')) return 'pl';
     if (path.includes('/en/')) return 'en';
     const host = String(location.hostname || '').toLowerCase();
     if (host === 'sensortattoofix.com' || host === 'www.sensortattoofix.com') return 'en';
@@ -97,7 +101,7 @@
     const host = String(location.hostname || '').toLowerCase();
     if (host === 'sensortattoofix.com' || host === 'www.sensortattoofix.com') return true;
     const lang = detectLang();
-    return lang === 'en' || lang === 'it';
+    return lang === 'en' || lang === 'it' || lang === 'de' || lang === 'es' || lang === 'pl';
   }
 
   function normalizeUrl(raw) {

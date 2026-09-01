@@ -170,19 +170,20 @@
   };
 
   function lang() {
+    if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
     return window.STF_I18N?.getLang?.() || 'pt';
   }
 
   function ft(key) {
-    const L = STRINGS[lang()] || STRINGS.pt;
+    const code = lang();
+    const L = STRINGS[code] || STRINGS.en || STRINGS.pt;
     return L[key] || STRINGS.pt[key] || key;
   }
 
   function localeTag() {
     const l = lang();
-    if (l === 'it') return 'it-IT';
-    if (l === 'en') return 'en-US';
-    return 'pt-BR';
+    const map = { it: 'it-IT', en: 'en-US', de: 'de-DE', es: 'es-ES', pl: 'pl-PL' };
+    return map[l] || 'pt-BR';
   }
 
   function apiBase() {
@@ -207,8 +208,9 @@
   function forumReturnPath() {
     const file = location.pathname.split('/').pop() || 'comunidade.html';
     const q = location.search || '';
-    if (location.pathname.includes('/it/')) return 'it/' + file + q;
-    if (location.pathname.includes('/en/')) return 'en/' + file + q;
+    for (const code of ['it', 'de', 'es', 'pl', 'en']) {
+      if (location.pathname.includes(`/${code}/`)) return `${code}/${file}${q}`;
+    }
     return file + q;
   }
 

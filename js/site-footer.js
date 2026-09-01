@@ -46,13 +46,41 @@ window.STF_FOOTER = (function () {
       patentLinePrefix: 'Brevetto nazionale',
       patentLineJoin: 'Internazionale',
       rights: 'Tutti i diritti riservati.'
+    },
+    de: {
+      socialTitle: 'Folgen Sie unseren offiziellen Kanälen',
+      faq: 'FAQ',
+      community: 'Community',
+      feedback: 'Was hat auf der Website gefehlt?',
+      commissioner: 'Partner werden',
+      patentLinePrefix: 'Nationales Patent',
+      patentLineJoin: 'International',
+      rights: 'Alle Rechte vorbehalten.'
+    },
+    es: {
+      socialTitle: 'Sigue nuestras redes oficiales',
+      faq: 'FAQ',
+      community: 'Comunidad',
+      feedback: '¿Qué faltaba en el sitio?',
+      commissioner: 'Sé afiliado',
+      patentLinePrefix: 'Patente nacional',
+      patentLineJoin: 'Internacional',
+      rights: 'Todos los derechos reservados.'
+    },
+    pl: {
+      socialTitle: 'Obserwuj nasze oficjalne kanały',
+      faq: 'FAQ',
+      community: 'Społeczność',
+      feedback: 'Czego brakowało na stronie?',
+      commissioner: 'Zostań partnerem',
+      patentLinePrefix: 'Patent krajowy',
+      patentLineJoin: 'Międzynarodowy',
+      rights: 'Wszelkie prawa zastrzeżone.'
     }
   };
 
   function t(lang) {
-    if (lang === 'it') return I18N.it;
-    if (lang === 'en') return I18N.en;
-    return I18N.pt;
+    return I18N[lang] || I18N.pt;
   }
 
   function isIntlHost() {
@@ -60,19 +88,29 @@ window.STF_FOOTER = (function () {
   }
 
   function detectLang() {
+    if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
+    if (window.STF_I18N?.getLang) return window.STF_I18N.getLang();
     if (isIntlHost()) {
       if (location.pathname.includes('/it/')) return 'it';
+      if (location.pathname.includes('/de/')) return 'de';
+      if (location.pathname.includes('/es/')) return 'es';
+      if (location.pathname.includes('/pl/')) return 'pl';
       return 'en';
     }
     if (location.pathname.includes('/it/')) return 'it';
+    if (location.pathname.includes('/de/')) return 'de';
+    if (location.pathname.includes('/es/')) return 'es';
+    if (location.pathname.includes('/pl/')) return 'pl';
     if (location.pathname.includes('/en/')) return 'en';
     return 'pt';
   }
 
   function prefixFrom(el) {
     if (el.dataset.prefix) return el.dataset.prefix;
-    if (isIntlHost() && !location.pathname.includes('/it/')) return '';
-    return location.pathname.includes('/en/') || location.pathname.includes('/it/') ? '../' : '';
+    const lang = detectLang();
+    if (isIntlHost() && lang === 'en') return '';
+    if (lang !== 'pt') return '../';
+    return '';
   }
 
   function socialEnabled(id) {
@@ -90,9 +128,14 @@ window.STF_FOOTER = (function () {
   function patentLine(lang) {
     const s = t(lang);
     if (isIntlHost()) {
-      return lang === 'it'
-        ? `Tecnologia brevettata · ${INFO.patentInternational}`
-        : `Patented technology · ${INFO.patentInternational}`;
+      const intl = {
+        de: `Patentierte Technologie · ${INFO.patentInternational}`,
+        es: `Tecnología patentada · ${INFO.patentInternational}`,
+        pl: `Opatentowana technologia · ${INFO.patentInternational}`,
+        it: `Tecnologia brevettata · ${INFO.patentInternational}`,
+        en: `Patented technology · ${INFO.patentInternational}`
+      };
+      return intl[lang] || intl.en;
     }
     return `${s.patentLinePrefix} ${INFO.patentNational} / ${s.patentLineJoin} ${INFO.patentInternational}`;
   }
@@ -142,7 +185,7 @@ window.STF_FOOTER = (function () {
     `;
     }
     const links = enabled.map((item) => {
-      const rotulo = `Footer ${item.label}${lang === 'en' ? ' EN' : lang === 'it' ? ' IT' : ''}`;
+      const rotulo = `Footer ${item.label}${lang !== 'pt' ? ' ' + lang.toUpperCase() : ''}`;
       return `<a href="${socialHref(item)}" target="_blank" rel="noopener" class="social-link" data-channel="social:${item.id}" data-rotulo="${rotulo}"><i class="${item.icon}"></i> ${item.label}</a>`;
     }).join('');
     return `
@@ -167,7 +210,7 @@ window.STF_FOOTER = (function () {
 
   function render(el) {
     const mode = el.dataset.siteFooter || 'compact';
-    const lang = el.dataset.lang || detectLang();
+    const lang = detectLang();
     const prefix = prefixFrom(el);
     const social = mode === 'full' ? socialBlock(lang, prefix) : '';
     el.innerHTML = social + legalBlock(lang);
