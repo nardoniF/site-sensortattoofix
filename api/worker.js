@@ -17483,7 +17483,7 @@ function buildMonthlyReportHtml(report) {
 
 function monthlyClicksReportSubject(config, monthName, year) {
   let subject = emailSubject(config, 'monthlyReportSubject', { month: monthName, year: String(year) });
-  if (/relat[oó]rio mensal/i.test(subject)) {
+  if (!/cliques/i.test(subject)) {
     subject = `Relatório de cliques — ${monthName}/${year} — Sensor Tattoo Fix`;
   }
   return subject;
