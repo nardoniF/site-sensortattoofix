@@ -771,12 +771,13 @@ window.STF_I18N = (function () {
     }
   };
 
-  const PATH_LANGS = ['en', 'it', 'de', 'es', 'pl'];
+  const PATH_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
   const OVERRIDE_GLOBALS = {
     it: 'STF_I18N_IT',
     de: 'STF_I18N_DE',
     es: 'STF_I18N_ES',
-    pl: 'STF_I18N_PL'
+    pl: 'STF_I18N_PL',
+    sl: 'STF_I18N_SL'
   };
 
   function ensureExtraStrings() {
@@ -797,7 +798,8 @@ window.STF_I18N = (function () {
       it: 'page.checkoutTitleIt',
       de: 'page.checkoutTitleDe',
       es: 'page.checkoutTitleEs',
-      pl: 'page.checkoutTitlePl'
+      pl: 'page.checkoutTitlePl',
+      sl: 'page.checkoutTitleSl'
     };
     return map[lang] || 'page.checkoutTitleEn';
   }
@@ -807,7 +809,8 @@ window.STF_I18N = (function () {
       it: 'page.checkoutDescIt',
       de: 'page.checkoutDescDe',
       es: 'page.checkoutDescEs',
-      pl: 'page.checkoutDescPl'
+      pl: 'page.checkoutDescPl',
+      sl: 'page.checkoutDescSl'
     };
     return map[lang] || 'page.checkoutDescEn';
   }
@@ -817,7 +820,8 @@ window.STF_I18N = (function () {
       it: 'store.metaDescIt',
       de: 'store.metaDescDe',
       es: 'store.metaDescEs',
-      pl: 'store.metaDescPl'
+      pl: 'store.metaDescPl',
+      sl: 'store.metaDescSl'
     };
     return map[lang] || 'store.metaDescEn';
   }
@@ -827,7 +831,8 @@ window.STF_I18N = (function () {
       it: 'ondeComprar.pageTitleIt',
       de: 'ondeComprar.pageTitleDe',
       es: 'ondeComprar.pageTitleEs',
-      pl: 'ondeComprar.pageTitlePl'
+      pl: 'ondeComprar.pageTitlePl',
+      sl: 'ondeComprar.pageTitleSl'
     };
     if (lang === 'pt') return 'ondeComprar.pageTitle';
     return map[lang] || 'ondeComprar.pageTitleEn';
@@ -838,7 +843,8 @@ window.STF_I18N = (function () {
       it: 'ondeComprar.metaDescIt',
       de: 'ondeComprar.metaDescDe',
       es: 'ondeComprar.metaDescEs',
-      pl: 'ondeComprar.metaDescPl'
+      pl: 'ondeComprar.metaDescPl',
+      sl: 'ondeComprar.metaDescSl'
     };
     if (lang === 'pt') return 'ondeComprar.metaDesc';
     return map[lang] || 'ondeComprar.metaDescEn';
@@ -875,7 +881,7 @@ window.STF_I18N = (function () {
 
   function getPathLang() {
     const path = location.pathname;
-    for (const lang of ['it', 'de', 'es', 'pl']) {
+    for (const lang of ['it', 'de', 'es', 'pl', 'sl']) {
       if (path.includes(`/${lang}/`) || path === `/${lang}`) return lang;
     }
     if (isComHost()) return 'en';
@@ -900,6 +906,7 @@ window.STF_I18N = (function () {
   function isDe() { return getLang() === 'de'; }
   function isEs() { return getLang() === 'es'; }
   function isPl() { return getLang() === 'pl'; }
+  function isSl() { return getLang() === 'sl'; }
 
   function isLocalized() {
     return getLang() !== 'pt';
@@ -939,7 +946,7 @@ window.STF_I18N = (function () {
   }
 
   function setLang(lang) {
-    const htmlLang = { pt: 'pt-BR', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl' };
+    const htmlLang = { pt: 'pt-BR', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl' };
     const l = PATH_LANGS.includes(lang) ? lang : (lang === 'pt' ? 'pt' : 'en');
     try { sessionStorage.setItem('stf_lang', l); } catch (e) { /* ignore */ }
     document.documentElement.lang = htmlLang[l] || l;
@@ -950,7 +957,7 @@ window.STF_I18N = (function () {
     const lang = getLang();
     ensureExtraStrings();
     let s = STRINGS[lang]?.[key];
-    if (!s && ['de', 'es', 'pl'].includes(lang)) s = STRINGS.en?.[key];
+    if (!s && ['de', 'es', 'pl', 'sl'].includes(lang)) s = STRINGS.en?.[key];
     if (!s && lang === 'it') s = STRINGS.en?.[key];
     if (!s) s = STRINGS.pt[key] ?? key;
     if (vars) {
@@ -1567,7 +1574,7 @@ window.STF_I18N = (function () {
   });
 
   return {
-    t, getLang, isEn, isIt, isDe, isEs, isPl, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
+    t, getLang, isEn, isIt, isDe, isEs, isPl, isSl, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
     applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom, applyOndeComprarDom, applyShellDom,
     langQuery, lojaHref, STRINGS
   };

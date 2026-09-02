@@ -460,5 +460,159 @@
         "source": "Shopee · 5★"
       }
     }
+  },
+  "sl": {
+    "reviewsSummary": "5,0 · prave ocene (Google, Mercado Libre, WhatsApp, Shopee, Instagram in drugo)",
+    "faq": {
+      "faq-1": {
+        "question": "Zakaj moja pametna ura ves čas zahteva kodo?",
+        "answer": "Ko optični senzor ne zazna pretoka krvi na zapestju, ura predvideva, da ste jo sneli, in znova zahteva kodo — pri Apple Watchu se to lahko zgodi <strong>vsakih 10 sekund</strong>. Na tetovirani koži tinta blokira svetlobo senzorja; ura aktivira PIN zaklepanje in misli, da ni več na roki. Leča Sensor Tattoo Fix obnovi meritev in konča stalna zaklepanja."
+      },
+      "faq-2": {
+        "question": "Zakaj moja pametna ura ne meri pulza na tetovirani koži?",
+        "answer": "Senzor uporablja svetlobo za merjenje pretoka krvi. Goste tetovaže, brazgotine ali temen pigment blokirajo povratni signal — pulz kaže ničlo, netočne vrednosti, pade sredi vadbe ali ura popolnoma preneha spremljati. Leča Sensor Tattoo Fix popravi meritev brez izklopa senzorja."
+      },
+      "faq-3": {
+        "question": "Zakaj se moja ura sama prekine ali izgubi stik z zapestjem?",
+        "answer": "Izguba signala senzorja naredi pametno uro prepričano, da je bila snjeta z roke: odklene se, ustavi vadbe, preneha spremljati zdravje ali znova zahteva kodo. Če imate tetovažo tam, kjer ura leži, je to najpogostejši vzrok — in obstaja profesionalna rešitev z optično lečo."
+      },
+      "faq-4": {
+        "question": "Zakaj moja ura sama ustavi vadbe in aktivnosti na tetovirani koži?",
+        "answer": "Ker tinta tetovaže blokira svetlobo senzorja, ura ne more izračunati pulza. Sistem izgubo signala interpretira kot da ste prekinili vadbo ali sneli napravo, in samodejno ustavi aktivnost za varčevanje z baterijo."
+      },
+      "faq-5": {
+        "question": "Kako leča Sensor Tattoo Fix popravi senzor?",
+        "answer": "Naša tehnologija leč je bila posebej razvita za obhod blokade, ki jo povzroča tinta tetovaže. Deluje kot visoko natančen posrednik, ki biometričnemu senzorju omogoča merjenje skozi tetovirano kožo, in ohranja vse funkcije ure (plačila, zdravje in vadbe) 100-odstotno delujoče."
+      },
+      "faq-6": {
+        "question": "Ali deluje z Apple Watch?",
+        "answer": "Da. Leča Sensor Tattoo Fix deluje z Apple Watch in praktično vsako pametno uro z <strong>optičnim senzorjem</strong> (zelena ali infrardeča svetloba) na hrbtni strani — Apple, Samsung, Garmin, Xiaomi in druge znamke. Na voljo najpogostejši premeri senzorjev. Pred-po predstavitev na Apple Watch:"
+      },
+      "faq-7": {
+        "question": "Ali deluje s Samsung Galaxy Watch?",
+        "answer": "Da. Galaxy Watch in druge Samsung pametne ure z optičnim biometričnim senzorjem so združljive. Leča obnovi zaznavanje zapestja, pulz in vadbe na tetovirani koži, kot pri vsaki znamki z merjenjem na osnovi svetlobe. Predstavitev na Galaxy Watch:"
+      },
+      "faq-8": {
+        "question": "Ali obstaja resnična zgodba stranke z Galaxy Watch Ultra?",
+        "answer": "Da. Stranka s tetovirano roko je namestila lečo na <strong>Galaxy Watch Ultra</strong> in obnovila pulz, vadbe in vsakodnevno uporabo — brez zaklepanj ali ničelnih vrednosti. V spodnjem Reelsu pripoveduje o izkušnji: začetni skepticizem, namestitev in rezultat, ko je senzor spet deloval 100-odstotno."
+      },
+      "faq-9": {
+        "question": "Ali epoksid ali lepilni trak delujeta — vsaj delno?",
+        "answer": "Ne zanesljivo. Smola/epoksid se odlepi zaradi potu in vode; lepilni trak in lateks blokirata svetlobo senzorja in povzročata napačne meritve. V spodnjem TikToku @bruu_schmitt pripoveduje o letih domačih trikov z Apple Watch — in kako je z Sensor Tattoo Fix spet normalno uporabljal uro."
+      },
+      "faq-10": {
+        "question": "Ali leča omogoča brezstična plačila (Apple Pay / Google Pay)?",
+        "answer": "Da. Z nameščeno lečo ura spet zazna vaše zapestje — zato <strong>brezstična NFC plačila</strong> spet delujejo, ker pametna ura ne misli več, da je bila snjeta z roke. Ni treba izklopiti zaznavanja zapestja:"
+      },
+      "faq-11": {
+        "question": "Ali izklop zaznavanja pulza reši težavo?",
+        "answer": "Ne. Izklop zaznavanja pulza je najslabša rešitev. Izklopi ključne funkcije, kot so brezstična plačila (NFC), samodejno varnostno zaklepanje in neprekinjeno spremljanje zdravja. V bistvu spremenite vrhunsko pametno uro v navadno uro, ki prikazuje samo čas."
+      },
+      "faq-12": {
+        "question": "Kako se leča namesti?",
+        "answer": "Namestitev je preprosta in hitra. Najprej temeljito očistite senzor ure z priloženim alkoholnim robčkom z izopropilnim alkoholom. Odstranite zaščitno folijo z zelo močnega lepila, poravnajte lečo s središčem senzorja in nežno pritisnite 30 sekund za popolno oprijem."
+      },
+      "faq-13": {
+        "question": "Ali obstaja navodilo za namestitev?",
+        "answer": "Pri mednarodnih pošiljkah prejmete samo lečo po pošti — brez prajmerja (pošiljanje dokumentov ne dovoljuje tekočin). V ovoju je tiskan vodnik v vašem jeziku — ista zahvalno pismo s korak-za-korakom navodili. Predogled: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=sl\" target=\"_blank\" rel=\"noopener\">Namestitveno pismo Sensor Tattoo Fix</a>."
+      },
+      "faq-14": {
+        "question": "Ali moram po lepljenju odstraniti zaščitno folijo z leče?",
+        "answer": "Ne. Leča Sensor Tattoo Fix je pripravljena za uporabo. Po lepljenju in 30 sekundah pritiska je takoj pripravljena. Na vrhu leče ni folije ali plasti za odstranitev; že ima idealno prosojnost in površino za delovanje senzorja."
+      },
+      "faq-15": {
+        "question": "Ali leča moti polnjenje ure?",
+        "answer": "Ne. Zasnovana je z ultra tanko konstrukcijo — minimalne debeline — da ne ovira namestitve na polnilno postajo. Polnite normalno, tudi brezžično, brez odstranjevanja leče."
+      },
+      "faq-16": {
+        "question": "Kako dolgo leča drži? Ali se zlahka odlepi?",
+        "answer": "Zasnovana je, da ostane na mestu, dokler jo sami ne odstranite. Ne odlepi se med vadbo, s časom, zaradi potu, v savni, na bazenu, pod tušem, pri umivanju rok ali v vodi — lahko plavate in intenzivno trenirate brez skrbi, da bi odstopila. Če jo želite odstraniti za prodajo ure ali vrnitev v prvotno stanje, jo preprosto odstranite z roko."
+      },
+      "faq-17": {
+        "question": "Kako dolgo naj počakam, preden jo namočim?",
+        "answer": "Po namestitvi priporočamo, da počakate 72 ur, preden uro izpostavite vodi, plavanju ali intenzivnemu potenju. To je idealni čas strjevanja za zelo močno lepilo, da doseže največjo trdnost in zagotovi popolno, trajno tesnjenje."
+      },
+      "faq-18": {
+        "question": "Ali lahko lečo pozneje odstranim, če prodam uro?",
+        "answer": "Da. Preprosto jo odstranite z roko — leča je zasnovana za vsakodnevno oprijem, a jo lahko kadar koli odstranite. Morebitne ostanke lepila očistite z izopropilnim alkoholom, originalni senzor pa ostane nedotaknjen."
+      }
+    },
+    "reviews": {
+      "review-1": {
+        "body": "Odličen izdelek! Brezhibna kakovost, enostavna uporaba in neverjetni rezultati.",
+        "author": "Caroline Moreira",
+        "source": "Google"
+      },
+      "review-2": {
+        "body": "Vrhunski izdelek, rešil je moj problem!",
+        "author": "MANOEL Ricardo",
+        "source": "Google"
+      },
+      "review-3": {
+        "body": "Našel sem vas na TikToku, kupil in deluje popolnoma. Hvala!",
+        "author": "Customer",
+        "source": "Mercado Libre"
+      },
+      "review-4": {
+        "body": "Odlična kakovost. Vrhunski izdelek.",
+        "author": "Martin",
+        "source": "Mercado Libre · 5★"
+      },
+      "review-5": {
+        "body": "Zelo pozoren prodajalec. Naročil v petek zvečer, poslano v soboto zjutraj, prispelo v ponedeljek — super hitro.",
+        "author": "Reinaldo Jose",
+        "source": "Shopee · 5★"
+      },
+      "review-6": {
+        "body": "Kontaktiral prek spletne strani, plačal s PayPalom in leča je bila poslana na Portugalsko — naročilo zaključeno.",
+        "author": "Pedro Almeida",
+        "source": "Matosinhos, Portugalska"
+      },
+      "review-7": {
+        "body": "Imel sem jo na Ultra 1 ob prvem nakupu, prodal uro in kupil Ultra 3 — spet sem se vrnil.",
+        "author": "Murilo Varconti",
+        "source": "Mercado Libre"
+      },
+      "review-8": {
+        "body": "Če bi bil vsak prodajalec kot ti, bi bili v nebesih. Hvala za tvojo pozornost.",
+        "author": "Willian",
+        "source": "WhatsApp"
+      },
+      "review-9": {
+        "body": "Prispelo pravočasno, namestil lečo in vse deluje — pulz, vadbe, brez zaklepanj.",
+        "author": "Raphael do Rio",
+        "source": "Nakup prek spletne strani"
+      },
+      "review-10": {
+        "body": "Našel Sensor Tattoo Fix in rešil vse težave Apple Watch na tetovirani koži.",
+        "author": "Pri",
+        "source": "Instagram · video"
+      },
+      "review-11": {
+        "body": "Tako sem vesel! Ni mi bilo treba zategniti traka — sedi normalno na roki, brez bolečine. Poleg odličnega izdelka si odličen fant. Hvala še enkrat!",
+        "author": "Leandro Figliolia",
+        "source": "WhatsApp"
+      },
+      "review-12": {
+        "body": "Kratka povratna informacija: senzacionalno. Nikoli prej nisem videl, da bi ura pri meni pravilno delovala.",
+        "author": "Thiago Lopes",
+        "source": "WhatsApp"
+      },
+      "review-13": {
+        "body": "Prispelo dan po nakupu, zelo enostavna uporaba, in ura res ne zaklepa več, če imaš tetovažo na roki. Polnjenje tudi deluje normalno — zelo dobro.",
+        "author": "store_general",
+        "source": "Shopee · 5★"
+      },
+      "review-14": {
+        "body": "Zelo pozoren prodajalec, prijazen in nam pomaga pri vsem. Zdaj vse meritve delujejo popolnoma.",
+        "author": "oitiih",
+        "source": "Shopee · 5★"
+      },
+      "review-15": {
+        "body": "Hitro prispelo in drži, kar obljublja. Priporočam.",
+        "author": "Amauri",
+        "source": "Shopee · 5★"
+      }
+    }
   }
 }

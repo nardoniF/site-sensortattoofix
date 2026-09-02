@@ -48,6 +48,7 @@ window.STF_MONEY = (function () {
     if (path.includes('/de/')) return 'DE';
     if (path.includes('/es/')) return 'ES';
     if (path.includes('/pl/')) return 'PL';
+    if (path.includes('/sl/')) return 'SI';
     if (isIntlHost() || path.includes('/en/')) return 'US';
     return 'BR';
   }
@@ -55,7 +56,7 @@ window.STF_MONEY = (function () {
   function isVisitorLocalized() {
     if (isIntlHost()) return true;
     const path = typeof location !== 'undefined' ? location.pathname : '';
-    return /^\/(en|it|de|es|pl)(\/|$)/.test(path);
+    return /^\/(en|it|de|es|pl|sl)(\/|$)/.test(path);
   }
 
   function formatBRL(n) {

@@ -102,7 +102,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '9a29f11f2fd52908978a2735b9f119e30a6a520c';
+const SITE_CATALOG_COMMIT = 'b695431200db6b59cd3c0721e88dcf26de2b47c8';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -2266,7 +2266,7 @@ function isComSiteRequest(request) {
 
 function isIntlCheckoutLocale(locale) {
   const l = String(locale || '').toLowerCase();
-  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl';
+  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl';
 }
 
 function orderCheckoutLangPath(order) {
@@ -2275,6 +2275,7 @@ function orderCheckoutLangPath(order) {
   if (l === 'de') return '/de';
   if (l === 'es') return '/es';
   if (l === 'pl') return '/pl';
+  if (l === 'sl') return '/sl';
   return '';
 }
 
@@ -2825,7 +2826,7 @@ function orderCheckoutLocale(order) {
 
 /** E-mails intl: DE/ES/PL usam cópia própria; EN/IT/PT como antes. */
 function isWesternIntlEmailLocale(loc) {
-  return loc === 'en' || loc === 'de' || loc === 'es' || loc === 'pl';
+  return loc === 'en' || loc === 'de' || loc === 'es' || loc === 'pl' || loc === 'sl';
 }
 
 function customerFieldLabel(loc) {
@@ -2833,7 +2834,261 @@ function customerFieldLabel(loc) {
   if (loc === 'de') return 'Kunde';
   if (loc === 'es' || loc === 'it') return 'Cliente';
   if (loc === 'pl') return 'Klient';
+  if (loc === 'sl') return 'Stranka';
   return 'Cliente';
+}
+
+function pendingPaymentEmailFields(order, mail, billingType) {
+  const loc = orderCheckoutLocale(order);
+  const extras = {
+    ...orderWatchEmailFields(order),
+    ...orderIntlProductFields(order)
+  };
+  if (loc === 'de') {
+    return {
+      Bestellung: order.orderId,
+      Status: 'Zahlung ausstehend',
+      Betrag: formatOrderCharge(order),
+      Zahlung: order.pagamento,
+      'Bestelllink': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal-Link': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Zahlungslink': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'es') {
+    return {
+      Pedido: order.orderId,
+      Estado: 'Pendiente de pago',
+      Total: formatOrderCharge(order),
+      Pago: order.pagamento,
+      'Enlace del pedido': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Enlace PayPal': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Enlace de pago': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'pl') {
+    return {
+      Zamówienie: order.orderId,
+      Status: 'Oczekuje na płatność',
+      Razem: formatOrderCharge(order),
+      Płatność: order.pagamento,
+      'Link zamówienia': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link płatności': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'en') {
+    return {
+      Order: order.orderId,
+      Status: 'Awaiting payment',
+      Total: formatOrderCharge(order),
+      Payment: order.pagamento,
+      'Order link': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal link': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Payment link': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'it') {
+    return {
+      Ordine: order.orderId,
+      Stato: 'In attesa di pagamento',
+      Totale: formatOrderCharge(order),
+      Pagamento: order.pagamento,
+      'Link ordine': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'sl') {
+    return {
+      Naročilo: order.orderId,
+      Status: 'Čaka na plačilo',
+      Skupaj: formatOrderCharge(order),
+      Plačilo: order.pagamento,
+      'Povezava naročila': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal povezava': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Povezava za plačilo': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  return {
+    Pedido: order.orderId,
+    Status: 'Aguardando pagamento',
+    Total: formatOrderCharge(order),
+    Pagamento: order.pagamento,
+    'Link do pedido': mail.resumeUrl,
+    ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+    ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
+    ...extras
+  };
+}
+
+function packingSlipCopy(loc) {
+  if (loc === 'de') {
+    return {
+      title: 'Lieferschein',
+      order: 'Bestellung',
+      customer: 'Kunde',
+      email: 'E-Mail',
+      phone: 'Telefon',
+      country: 'Land',
+      address: 'Adresse',
+      product: 'Produkt',
+      watch: 'Uhr',
+      shipping: 'Versand',
+      total: 'Gesamt'
+    };
+  }
+  if (loc === 'es') {
+    return {
+      title: 'Albarán de envío',
+      order: 'Pedido',
+      customer: 'Cliente',
+      email: 'Email',
+      phone: 'Teléfono',
+      country: 'País',
+      address: 'Dirección',
+      product: 'Producto',
+      watch: 'Reloj',
+      shipping: 'Envío',
+      total: 'Total'
+    };
+  }
+  if (loc === 'pl') {
+    return {
+      title: 'List przewozowy',
+      order: 'Zamówienie',
+      customer: 'Klient',
+      email: 'E-mail',
+      phone: 'Telefon',
+      country: 'Kraj',
+      address: 'Adres',
+      product: 'Produkt',
+      watch: 'Zegarek',
+      shipping: 'Wysyłka',
+      total: 'Razem'
+    };
+  }
+  if (loc === 'it') {
+    return {
+      title: 'Documento di spedizione',
+      order: 'Ordine',
+      customer: 'Cliente',
+      email: 'Email',
+      phone: 'Telefono',
+      country: 'Paese',
+      address: 'Indirizzo',
+      product: 'Prodotto',
+      watch: 'Orologio',
+      shipping: 'Spedizione',
+      total: 'Totale'
+    };
+  }
+  if (loc === 'en') {
+    return {
+      title: 'Packing slip',
+      order: 'Order',
+      customer: 'Customer',
+      email: 'Email',
+      phone: 'Phone',
+      country: 'Country',
+      address: 'Address',
+      product: 'Product',
+      watch: 'Watch',
+      shipping: 'Shipping',
+      total: 'Total'
+    };
+  }
+  if (loc === 'sl') {
+    return {
+      title: 'Paketni list',
+      order: 'Naročilo',
+      customer: 'Stranka',
+      email: 'E-pošta',
+      phone: 'Telefon',
+      country: 'Država',
+      address: 'Naslov',
+      product: 'Izdelek',
+      watch: 'Ura',
+      shipping: 'Poštnina',
+      total: 'Skupaj'
+    };
+  }
+  return {
+    title: 'Romaneio / packing slip',
+    order: 'Pedido',
+    customer: 'Cliente',
+    email: 'Email',
+    phone: 'Telefone',
+    country: 'País',
+    address: 'Endereço',
+    product: 'Produto',
+    watch: 'Relógio',
+    shipping: 'Envio',
+    total: 'Total'
+  };
+}
+
+function cancelOrderCustomerCopy(loc, orderId) {
+  if (loc === 'de') {
+    return {
+      subject: `Bestellung storniert — ${orderId}`,
+      msg: 'Ihre Bestellung wurde storniert. Wenn dies ein Fehler war, antworten Sie auf diese E-Mail oder kontaktieren Sie den Support.',
+      orderKey: 'Bestellung',
+      messageKey: 'Nachricht'
+    };
+  }
+  if (loc === 'es') {
+    return {
+      subject: `Pedido cancelado — ${orderId}`,
+      msg: 'Tu pedido ha sido cancelado. Si fue un error, responde a este email o contacta con soporte.',
+      orderKey: 'Pedido',
+      messageKey: 'Mensaje'
+    };
+  }
+  if (loc === 'pl') {
+    return {
+      subject: `Zamówienie anulowane — ${orderId}`,
+      msg: 'Twoje zamówienie zostało anulowane. Jeśli to pomyłka, odpowiedz na ten e-mail lub skontaktuj się z pomocą techniczną.',
+      orderKey: 'Zamówienie',
+      messageKey: 'Wiadomość'
+    };
+  }
+  if (loc === 'en') {
+    return {
+      subject: `Order cancelled — ${orderId}`,
+      msg: 'Your order was cancelled. If this was a mistake, reply to this email or contact support.',
+      orderKey: 'Order',
+      messageKey: 'Message'
+    };
+  }
+  if (loc === 'it') {
+    return {
+      subject: `Ordine annullato — ${orderId}`,
+      msg: 'Il tuo ordine è stato annullato. Se è un errore, rispondi a questa email o contatta il supporto.',
+      orderKey: 'Ordine',
+      messageKey: 'Messaggio'
+    };
+  }
+  if (loc === 'sl') {
+    return {
+      subject: `Naročilo preklicano — ${orderId}`,
+      msg: 'Vaše naročilo je bilo preklicano. Če gre za napako, odgovorite na to e-pošto ali kontaktirajte podporo.',
+      orderKey: 'Naročilo',
+      messageKey: 'Sporočilo'
+    };
+  }
+  return {
+    subject: `Pedido cancelado — ${orderId}`,
+    msg: 'Seu pedido foi cancelado. Se foi um engano, responda este e-mail ou fale conosco.',
+    orderKey: 'Pedido',
+    messageKey: 'Mensagem'
+  };
 }
 
 function intlPaidShipMessage(loc, kind, ctx = {}) {
@@ -2862,6 +3117,14 @@ function intlPaidShipMessage(loc, kind, ctx = {}) {
       intlLens: 'Twoja soczewka międzynarodowa zostanie wysłana w ciągu 2 dni roboczych. Otrzymasz śledzenie e-mailem.',
       intlKit: 'Twój zestaw Prime zostanie wysłany w ciągu 2 dni roboczych. Otrzymasz śledzenie e-mailem.',
       default: 'Twój zestaw zostanie wysłany w ciągu 2 dni roboczych. Otrzymasz śledzenie e-mailem.',
+    },
+    sl: {
+      uberTrack: `Dostava Uber potrjena. Sledite tukaj: ${url}`,
+      uberPending: 'Dostava Uber je naročena. Povezavo za sledenje boste kmalu prejeli po e-pošti.',
+      motoboy: `Vaše naročilo bo dostavljeno s kurirjem v približno ${hours} urah. Voznik vas lahko po potrebi kontaktira.`,
+      intlLens: 'Vaša mednarodna leča bo poslana v 2 delovnih dneh. Sledenje boste prejeli po e-pošti.',
+      intlKit: 'Vaš Prime komplet bo poslan v 2 delovnih dneh. Sledenje boste prejeli po e-pošti.',
+      default: 'Vaš komplet bo poslan v 2 delovnih dneh. Sledenje boste prejeli po e-pošti.',
     },
     en: {
       uberTrack: `Uber delivery confirmed. Track it here: ${url}`,
@@ -2944,7 +3207,9 @@ function pendingRecoveryCopy(order, config, env, { paymentKind = 'pix' } = {}) {
       ? `¡Hola! Empecé el pedido ${order.orderId}${watch ? ` para mi ${watch}` : ''} y necesito ayuda para completar el pago.`
       : loc === 'pl'
         ? `Cześć! Rozpocząłem/am zamówienie ${order.orderId}${watch ? ` dla mojego ${watch}` : ''} i potrzebuję pomocy przy płatności.`
-        : loc === 'en'
+        : loc === 'sl'
+          ? `Pozdravljeni! Začel sem naročilo ${order.orderId}${watch ? ` za mojo ${watch}` : ''} in potrebujem pomoč pri plačilu.`
+          : loc === 'en'
           ? `Hi! I started order ${order.orderId}${watch ? ` for my ${watch}` : ''} and need a little help finishing payment.`
           : loc === 'it'
             ? `Ciao! Ho iniziato l’ordine ${order.orderId}${watch ? ` per il mio ${watch}` : ''} e vorrei un aiuto per completare il pagamento.`
@@ -3106,6 +3371,36 @@ function pendingRecoveryCopy(order, config, env, { paymentKind = 'pix' } = {}) {
     };
   }
 
+  if (loc === 'sl') {
+    const subject = watch
+      ? `Je vse v redu z vašo ${watch}${first ? `, ${first}` : ''}?`
+      : `Potrebujete pomoč pri naročilu Sensor Tattoo Fix${first ? `, ${first}` : ''}?`;
+    const paymentLine = paymentKind === 'paypal'
+      ? 'Opazili smo, da ste začeli blagajno za lečo Sensor Tattoo Fix®, vendar plačilo PayPal ni bilo zaključeno.'
+      : 'Opazili smo, da ste začeli blagajno za lečo Sensor Tattoo Fix®, vendar plačilo ni bilo zaključeno.';
+    return {
+      subject,
+      greeting: first ? `Pozdravljeni, ${first}!` : 'Pozdravljeni!',
+      intro: watch
+        ? `V sistemu vidim, da ste želeli naročiti lečo Sensor Tattoo Fix® za vašo ${watch}, vendar plačilo ni bilo zaključeno.`
+        : paymentLine,
+      help: 'Vsak model ure ima specifično velikost senzorja — z veseljem pomagam pri izbiri velikosti leče ali namestitvi.',
+      offer: 'Če potrebujete novo povezavo za plačilo, drug način plačila ali pomoč pri merjenju, odgovorite tukaj ali pišite na WhatsApp.',
+      ctaPay: 'Odpri naročilo in dokončaj plačilo',
+      contactsTitle: 'Za vsa vprašanja smo na voljo:',
+      emailLabel: 'E-pošta',
+      whatsappLabel: 'WhatsApp',
+      signOff: 'Lep pozdrav,',
+      signer: 'Fabio | Sensor Tattoo Fix®',
+      watchLine: fullWatch && fullWatch !== 'N/A' ? `Model ure: ${fullWatch}` : '',
+      supportEmail,
+      waUrl,
+      resumeUrl,
+      pixHint: 'Skenirajte QR kodo v bančni aplikaciji ali kopirajte PIX kodo spodaj:',
+      totalLabel: 'Skupaj'
+    };
+  }
+
   const subject = watch
     ? `Tudo certo com o seu ${watch}${first ? `, ${first}` : ''}?`
     : `Dúvida sobre a lente Sensor Tattoo Fix${first ? ` — ${first}` : ''}`;
@@ -3223,6 +3518,7 @@ function orderRefLabel(order) {
   if (loc === 'de') return 'Bestellung';
   if (loc === 'es') return 'Pedido';
   if (loc === 'pl') return 'Zamówienie';
+  if (loc === 'sl') return 'Naročilo';
   if (loc === 'it') return 'Ordine';
   return 'Pedido';
 }
@@ -3277,6 +3573,23 @@ function paidReceiptCopy(order, config, message) {
         ...(order.correiosTrackingCode ? {
           'Śledzenie przesyłki': order.correiosTrackingCode,
           'Śledź przesyłkę': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        } : {})
+      },
+      footerSite: 'sensortattoofix.com'
+    };
+  }
+  if (loc === 'sl') {
+    return {
+      subject: `Plačilo potrjeno — ${order.orderId}`,
+      customerLabel: 'Stranka',
+      fields: {
+        Naročilo: order.orderId,
+        Status: 'PLAČANO',
+        Znesek: amount,
+        Sporočilo: message,
+        ...(order.correiosTrackingCode ? {
+          'Sledenje pošiljke': order.correiosTrackingCode,
+          'Sledi pošiljki': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
         } : {})
       },
       footerSite: 'sensortattoofix.com'
@@ -3427,6 +3740,15 @@ async function maybeNotifyTrackingAvailable(env, config, order) {
       'Śledź przesyłkę': trackUrl,
       Wiadomość: message
     };
+  } else if (loc === 'sl') {
+    subject = `Sledenje na voljo — ${order.orderId}`;
+    message = `Vaše naročilo je bilo poslano. Koda sledenja: ${code}. Sledite tukaj: ${trackUrl}`;
+    fields = {
+      Naročilo: order.orderId,
+      Sledenje: code,
+      'Sledi pošiljki': trackUrl,
+      Sporočilo: message
+    };
   } else if (loc === 'it') {
     subject = `Tracking disponibile — ${order.orderId}`;
     message = `Il tuo ordine è stato spedito. Codice tracking: ${code}. Segui qui: ${trackUrl}`;
@@ -3556,6 +3878,16 @@ function buildAbandonedCartEmail(order, config, env, { weekly = false } = {}) {
       : 'Twoje zamówienie jest nadal oczekujące. Produkty są zarezerwowane — dokończ płatność linkiem poniżej.';
     cta = 'Dokończ moje zamówienie';
     footer = 'Sensor Tattoo Fix — sensortattoofix.com';
+  } else if (loc === 'sl') {
+    subject = weekly
+      ? `Tedenski opomnik — naročilo ${order.orderId} čaka na plačilo`
+      : `Vaše naročilo ${order.orderId} je še vedno rezervirano — dokončajte, ko ste pripravljeni`;
+    greeting = nome && nome !== 'there' ? `Pozdravljeni ${nome},` : 'Pozdravljeni,';
+    intro = weekly
+      ? 'Minil je teden in naročilo še ni plačano. Če še vedno želite Sensor Tattoo Fix, dokončajte blagajno s spodnjo povezavo.'
+      : 'Vaše naročilo je še vedno odprto. Izdelki so rezervirani — dokončajte plačilo s spodnjo povezavo.';
+    cta = 'Dokončaj moje naročilo';
+    footer = 'Sensor Tattoo Fix — sensortattoofix.com';
   } else {
     subject = emailSubject(config, weekly ? 'abandonedWeeklySubject' : 'abandonedSubject', {
       orderId: order.orderId
@@ -3575,7 +3907,9 @@ function buildAbandonedCartEmail(order, config, env, { weekly = false } = {}) {
       ? `¡Hola! Quiero completar el pedido ${order.orderId}`
       : loc === 'pl'
         ? `Cześć! Chcę dokończyć zamówienie ${order.orderId}`
-        : loc === 'en'
+        : loc === 'sl'
+          ? `Pozdravljeni! Želim dokončati naročilo ${order.orderId}`
+          : loc === 'en'
           ? `Hi! I want to finish order ${order.orderId}`
           : loc === 'it'
             ? `Ciao! Voglio completare l'ordine ${order.orderId}`
@@ -3585,19 +3919,22 @@ function buildAbandonedCartEmail(order, config, env, { weekly = false } = {}) {
   const h1Weekly = loc === 'de' ? 'Noch am Überlegen?'
     : loc === 'es' ? '¿Aún lo estás pensando?'
       : loc === 'pl' ? 'Nadal się zastanawiasz?'
-        : loc === 'en' ? 'Still thinking it over?'
+        : loc === 'sl' ? 'Še raz razmišljate?'
+          : loc === 'en' ? 'Still thinking it over?'
           : loc === 'it' ? 'Ci stai ancora pensando?'
             : 'Ainda pensando?';
   const h1Pending = loc === 'de' ? 'Ihre Bestellung wartet'
     : loc === 'es' ? 'Tu pedido te espera'
       : loc === 'pl' ? 'Twoje zamówienie czeka'
-        : loc === 'en' ? 'Your order is waiting'
+        : loc === 'sl' ? 'Vaše naročilo čaka'
+          : loc === 'en' ? 'Your order is waiting'
           : loc === 'it' ? 'Il tuo ordine ti aspetta'
             : 'Seu pedido está te esperando';
   const helpLine = loc === 'de' ? 'Brauchen Sie Hilfe?'
     : loc === 'es' ? '¿Necesitas ayuda?'
       : loc === 'pl' ? 'Potrzebujesz pomocy?'
-        : loc === 'en' ? 'Need help?'
+        : loc === 'sl' ? 'Potrebujete pomoč?'
+          : loc === 'en' ? 'Need help?'
           : loc === 'it' ? 'Serve aiuto?'
             : 'Precisa de ajuda?';
 
@@ -3649,7 +3986,9 @@ async function notifyAbandonedCart(env, config, order, { weekly = false } = {}) 
         ? { Pedido: order.orderId, Estado: weekly ? 'Recordatorio semanal' : 'Checkout abandonado', Total: formatOrderCharge(order), 'Enlace del pedido': mail.resumeUrl }
         : loc === 'pl'
           ? { Zamówienie: order.orderId, Status: weekly ? 'Cotygodniowe przypomnienie' : 'Porzucony checkout', Razem: formatOrderCharge(order), 'Link zamówienia': mail.resumeUrl }
-          : loc === 'it'
+          : loc === 'sl'
+            ? { Naročilo: order.orderId, Status: weekly ? 'Tedenski opomnik' : 'Opustena blagajna', Skupaj: formatOrderCharge(order), 'Povezava naročila': mail.resumeUrl }
+            : loc === 'it'
             ? { Ordine: order.orderId, Stato: weekly ? 'Promemoria settimanale' : 'Checkout abbandonato', Totale: formatOrderCharge(order), 'Link ordine': mail.resumeUrl }
             : { Pedido: order.orderId, Status: weekly ? 'Lembrete semanal' : 'Checkout abandonado', Total: formatOrderCharge(order), 'Link do pedido': mail.resumeUrl };
   return notifyCustomer(env, config, order, mail.subject, fields, {
@@ -3755,19 +4094,19 @@ async function tryCorreiosLabelPdfAttachment(env, order, config) {
 
 function buildIntlPackingSlipAttachment(order) {
   const loc = orderCheckoutLocale(order);
-  const title = loc === 'en' ? 'Packing slip' : loc === 'it' ? 'Documento di spedizione' : 'Romaneio / packing slip';
+  const L = packingSlipCopy(loc);
   const lines = [
-    `<h1 style="font-family:Arial,sans-serif">${title}</h1>`,
-    `<p><strong>Order:</strong> ${escapeHtml(order.orderId)}</p>`,
-    `<p><strong>Customer:</strong> ${escapeHtml(order.nome || '')}</p>`,
-    `<p><strong>Email:</strong> ${escapeHtml(order.email || '')}</p>`,
-    `<p><strong>Phone:</strong> ${escapeHtml(order.telefone || '')}</p>`,
-    `<p><strong>Country:</strong> ${escapeHtml(order.pais || order.paisCode || '')}</p>`,
-    `<p><strong>Address:</strong><br>${escapeHtml(order.endereco || '').replace(/\n/g, '<br>')}</p>`,
-    `<p><strong>Product:</strong> ${escapeHtml(order.produto || '')}</p>`,
-    `<p><strong>Watch:</strong> ${escapeHtml(formatOrderSmartwatch(order) || '')}</p>`,
-    `<p><strong>Shipping:</strong> ${escapeHtml(order.shippingService || '')}</p>`,
-    `<p><strong>Total:</strong> ${escapeHtml(formatOrderCharge(order, order.total))}</p>`
+    `<h1 style="font-family:Arial,sans-serif">${L.title}</h1>`,
+    `<p><strong>${L.order}:</strong> ${escapeHtml(order.orderId)}</p>`,
+    `<p><strong>${L.customer}:</strong> ${escapeHtml(order.nome || '')}</p>`,
+    `<p><strong>${L.email}:</strong> ${escapeHtml(order.email || '')}</p>`,
+    `<p><strong>${L.phone}:</strong> ${escapeHtml(order.telefone || '')}</p>`,
+    `<p><strong>${L.country}:</strong> ${escapeHtml(order.pais || order.paisCode || '')}</p>`,
+    `<p><strong>${L.address}:</strong><br>${escapeHtml(order.endereco || '').replace(/\n/g, '<br>')}</p>`,
+    `<p><strong>${L.product}:</strong> ${escapeHtml(order.produto || '')}</p>`,
+    `<p><strong>${L.watch}:</strong> ${escapeHtml(formatOrderSmartwatch(order) || '')}</p>`,
+    `<p><strong>${L.shipping}:</strong> ${escapeHtml(order.shippingService || '')}</p>`,
+    `<p><strong>${L.total}:</strong> ${escapeHtml(formatOrderCharge(order, order.total))}</p>`
   ].join('\n');
   const html = `<!DOCTYPE html><html><body>${lines}</body></html>`;
   const bytes = new TextEncoder().encode(html);
@@ -12822,7 +13161,7 @@ async function notifyShop(env, config, subject, fields, content) {
 
 async function notifyCustomer(env, config, order, subject, fields, content) {
   const loc = orderCheckoutLocale(order);
-  const nameKey = loc === 'en' ? 'Customer' : 'Cliente';
+  const nameKey = customerFieldLabel(loc);
   return notifyEmail(env, config, order.email, subject, { [nameKey]: order.nome, ...fields }, config.formsubmit?.email, content);
 }
 
@@ -12870,46 +13209,7 @@ async function notifyCustomerPendingPayment(env, config, order, billingType) {
     paymentKind: kind,
     includePixCode: false
   });
-  const fields = (() => {
-    const loc = orderCheckoutLocale(order);
-    if (loc === 'en') {
-      return {
-        Order: order.orderId,
-        Status: 'Awaiting payment',
-        Total: formatOrderCharge(order),
-        Payment: order.pagamento,
-        'Order link': mail.resumeUrl,
-        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal link': order.paypalApproveUrl } : {}),
-        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Payment link': order.invoiceUrl } : {}),
-        ...orderWatchEmailFields(order),
-        ...orderIntlProductFields(order)
-      };
-    }
-    if (loc === 'it') {
-      return {
-        Ordine: order.orderId,
-        Stato: 'In attesa di pagamento',
-        Totale: formatOrderCharge(order),
-        Pagamento: order.pagamento,
-        'Link ordine': mail.resumeUrl,
-        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
-        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
-        ...orderWatchEmailFields(order),
-        ...orderIntlProductFields(order)
-      };
-    }
-    return {
-      Pedido: order.orderId,
-      Status: 'Aguardando pagamento',
-      Total: formatOrderCharge(order),
-      Pagamento: order.pagamento,
-      'Link do pedido': mail.resumeUrl,
-      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
-      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
-      ...orderWatchEmailFields(order),
-      ...orderIntlProductFields(order)
-    };
-  })();
+  const fields = pendingPaymentEmailFields(order, mail, billingType);
   return notifyCustomer(env, config, order, mail.subject, fields, {
     html: mail.html,
     text: mail.text
@@ -13091,24 +13391,26 @@ const PASSWORD_RESET_TTL = 3600; // 1 hora
 
 function passwordResetLocaleFromRequest(request, bodyLocale) {
   const explicit = String(bodyLocale || '').toLowerCase();
-  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'pt') return explicit;
+  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'sl' || explicit === 'pt') return explicit;
   const lang = (request.headers.get('Accept-Language') || '').toLowerCase();
   if (lang.startsWith('it')) return 'it';
   if (lang.startsWith('de')) return 'de';
   if (lang.startsWith('es')) return 'es';
   if (lang.startsWith('pl')) return 'pl';
+  if (lang.startsWith('sl')) return 'sl';
   if (lang.startsWith('en')) return 'en';
   const hay = `${request.headers.get('Origin') || ''} ${request.headers.get('Referer') || ''}`.toLowerCase();
   if (hay.includes('/it/') || hay.includes('lang=it')) return 'it';
   if (hay.includes('/de/') || hay.includes('lang=de')) return 'de';
   if (hay.includes('/es/') || hay.includes('lang=es')) return 'es';
   if (hay.includes('/pl/') || hay.includes('lang=pl')) return 'pl';
+  if (hay.includes('/sl/') || hay.includes('lang=sl')) return 'sl';
   if (hay.includes('sensortattoofix.com') && !hay.includes('.com.br')) return 'en';
   return 'pt';
 }
 
 function passwordResetSiteBase(locale, config) {
-  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl') {
+  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl' || locale === 'sl') {
     return 'https://www.sensortattoofix.com';
   }
   return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
@@ -13120,7 +13422,8 @@ function passwordResetUrl(locale, config, token) {
     it: '/it/minha-conta.html',
     de: '/de/minha-conta.html',
     es: '/es/minha-conta.html',
-    pl: '/pl/minha-conta.html'
+    pl: '/pl/minha-conta.html',
+    sl: '/sl/minha-conta.html'
   };
   const path = pathByLocale[locale] || '/minha-conta.html';
   return `${base}${path}?reset=${encodeURIComponent(token)}`;
@@ -13151,6 +13454,19 @@ function passwordResetEmailCopy(locale, resetUrl) {
         <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
       </div>`,
       text: `Reimposta la password di Sensor Tattoo Fix:\n${resetUrl}\n\nIl link scade tra 1 ora.`
+    };
+  }
+  if (locale === 'sl') {
+    return {
+      subject: 'Ponastavitev gesla Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Ponastavitev gesla</h2>
+        <p>Prejeli smo zahtevo za ponastavitev gesla vašega računa Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Izberite novo geslo</a></p>
+        <p style="font-size:13px;color:#666">Povezava poteče v 1 uri. Če tega niste zahtevali, prezrite to sporočilo.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Ponastavitev gesla Sensor Tattoo Fix:\n${resetUrl}\n\nPovezava poteče v 1 uri.`
     };
   }
   return {
@@ -17211,20 +17527,11 @@ async function handleCustomerCancelOrder(request, env, origin, orderId) {
 
   try {
     const loc = orderCheckoutLocale(order);
-    const subject = loc === 'en'
-      ? `Order cancelled — ${order.orderId}`
-      : loc === 'it'
-        ? `Ordine annullato — ${order.orderId}`
-        : `Pedido cancelado — ${order.orderId}`;
-    const msg = loc === 'en'
-      ? 'Your order was cancelled. If this was a mistake, reply to this email or contact support.'
-      : loc === 'it'
-        ? 'Il tuo ordine è stato annullato. Se è un errore, rispondi a questa email o contatta il supporto.'
-        : 'Seu pedido foi cancelado. Se foi um engano, responda este e-mail ou fale conosco.';
-    await notifyCustomer(env, config, order, subject, {
-      [loc === 'en' ? 'Order' : loc === 'it' ? 'Ordine' : 'Pedido']: order.orderId,
-      [loc === 'en' ? 'Status' : 'Status']: 'cancelled_by_user',
-      [loc === 'en' ? 'Message' : loc === 'it' ? 'Messaggio' : 'Mensagem']: msg
+    const copy = cancelOrderCustomerCopy(loc, order.orderId);
+    await notifyCustomer(env, config, order, copy.subject, {
+      [copy.orderKey]: order.orderId,
+      Status: 'cancelled_by_user',
+      [copy.messageKey]: copy.msg
     });
   } catch (err) {
     console.warn('Cancel customer email:', order.orderId, err.message);

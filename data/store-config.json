@@ -31,7 +31,8 @@
       ],
       "nameDe": "Sensor Tattoo Fix Lens",
       "nameEs": "Sensor Tattoo Fix Lens",
-      "namePl": "Sensor Tattoo Fix Lens"
+      "namePl": "Sensor Tattoo Fix Lens",
+      "nameSl": "Sensor Tattoo Fix Lens"
     },
     {
       "id": "kit-smartband-tattoofix",
@@ -61,7 +62,8 @@
       ],
       "nameDe": "Kit Smartband Tattoo Friendly",
       "nameEs": "Kit Smartband Tattoo Friendly",
-      "namePl": "Kit Smartband Tattoo Friendly"
+      "namePl": "Kit Smartband Tattoo Friendly",
+      "nameSl": "Kit Smartband Tattoo Friendly"
     },
     {
       "id": "optical-lens-smartband-intl",
@@ -96,7 +98,9 @@
       "markets": [
         "INT"
       ],
-      "aggregated": false
+      "aggregated": false,
+      "nameSl": "SensorTattooFix Smartband Lens",
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
     },
     {
       "id": "optical-lens-intl",
@@ -134,7 +138,9 @@
       "markets": [
         "INT"
       ],
-      "aggregated": false
+      "aggregated": false,
+      "nameSl": "SensorTattooFix Optical Lens",
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
     },
     {
       "id": "pelicula-amazfit-bip-2",
@@ -167,7 +173,10 @@
       "filmTypeEs": "membrana flexible",
       "namePl": "Folia ochronna — Amazfit Bip 2",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "elastyczna membrana"
+      "filmTypePl": "elastyczna membrana",
+      "nameSl": "Zaščitna folija — Amazfit Bip 2",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "prožna membrana"
     },
     {
       "id": "pelicula-amazfit-gtr-3",
@@ -206,7 +215,10 @@
       "filmTypeEs": "membrana flexible",
       "namePl": "Folia ochronna — Amazfit GTR 3 / GTR 3 Pro",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "elastyczna membrana"
+      "filmTypePl": "elastyczna membrana",
+      "nameSl": "Zaščitna folija — Amazfit GTR 3 / GTR 3 Pro",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "prožna membrana"
     },
     {
       "id": "pelicula-amazfit-gtr-mini",
@@ -245,7 +257,10 @@
       "filmTypeEs": "membrana flexible",
       "namePl": "Folia ochronna — Amazfit GTR Mini",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "elastyczna membrana"
+      "filmTypePl": "elastyczna membrana",
+      "nameSl": "Zaščitna folija — Amazfit GTR Mini",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "prožna membrana"
     },
     {
       "id": "pelicula-amazfit-gts-2-mini",
@@ -285,7 +300,10 @@
       "filmTypeEs": "membrana flexible",
       "namePl": "Folia ochronna — Amazfit GTS 2 Mini",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "elastyczna membrana"
+      "filmTypePl": "elastyczna membrana",
+      "nameSl": "Zaščitna folija — Amazfit GTS 2 Mini",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "prožna membrana"
     },
     {
       "id": "pelicula-amazfit-gts-squircle-44mm",
@@ -325,7 +343,10 @@
       "filmTypeEs": "membrana flexible",
       "namePl": "Folia ochronna — Amazfit GTS 44 mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "elastyczna membrana"
+      "filmTypePl": "elastyczna membrana",
+      "nameSl": "Zaščitna folija — Amazfit GTS 44 mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "prožna membrana"
     },
     {
       "id": "pelicula-apple-38mm",
@@ -364,7 +385,10 @@
       "filmTypeEs": "cerámica",
       "namePl": "Folia ochronna — Apple Watch 38mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "ceramika"
+      "filmTypePl": "ceramika",
+      "nameSl": "Zaščitna folija — Apple Watch 38mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "keramika"
     },
     {
       "id": "pelicula-apple-40mm",
@@ -403,7 +427,10 @@
       "filmTypeEs": "cerámica",
       "namePl": "Folia ochronna — Apple Watch 40mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "ceramika"
+      "filmTypePl": "ceramika",
+      "nameSl": "Zaščitna folija — Apple Watch 40mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "keramika"
     },
     {
       "id": "pelicula-apple-41mm",
@@ -442,7 +469,10 @@
       "filmTypeEs": "cerámica",
       "namePl": "Folia ochronna — Apple Watch 41mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "ceramika"
+      "filmTypePl": "ceramika",
+      "nameSl": "Zaščitna folija — Apple Watch 41mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "keramika"
     },
     {
       "id": "pelicula-apple-42mm",
@@ -479,7 +509,10 @@
       "filmTypeEs": "cerámica",
       "namePl": "Folia ochronna — Apple Watch 42mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "ceramika"
+      "filmTypePl": "ceramika",
+      "nameSl": "Zaščitna folija — Apple Watch 42mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "keramika"
     },
     {
       "id": "pelicula-apple-44mm",
@@ -518,7 +551,10 @@
       "filmTypeEs": "cerámica",
       "namePl": "Folia ochronna — Apple Watch 44mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "ceramika"
+      "filmTypePl": "ceramika",
+      "nameSl": "Zaščitna folija — Apple Watch 44mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "keramika"
     },
     {
       "id": "pelicula-apple-45mm",
@@ -557,7 +593,10 @@
       "filmTypeEs": "cerámica",
       "namePl": "Folia ochronna — Apple Watch 45mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "ceramika"
+      "filmTypePl": "ceramika",
+      "nameSl": "Zaščitna folija — Apple Watch 45mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "keramika"
     },
     {
       "id": "pelicula-apple-46mm",
@@ -594,7 +633,10 @@
       "filmTypeEs": "cerámica",
       "namePl": "Folia ochronna — Apple Watch 46mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "ceramika"
+      "filmTypePl": "ceramika",
+      "nameSl": "Zaščitna folija — Apple Watch 46mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "keramika"
     },
     {
       "id": "pelicula-huawei-gt-2",
@@ -633,7 +675,10 @@
       "filmTypeEs": "membrana flexible",
       "namePl": "Folia ochronna — Huawei Watch GT 2",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "elastyczna membrana"
+      "filmTypePl": "elastyczna membrana",
+      "nameSl": "Zaščitna folija — Huawei Watch GT 2",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "prožna membrana"
     },
     {
       "id": "pelicula-round-33mm",
@@ -678,7 +723,10 @@
       "filmTypeEs": "membrana flexible",
       "namePl": "Folia ochronna — round ~33mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "elastyczna membrana"
+      "filmTypePl": "elastyczna membrana",
+      "nameSl": "Zaščitna folija — round ~33mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "prožna membrana"
     },
     {
       "id": "pelicula-samsung-gw3-45mm",
@@ -715,7 +763,10 @@
       "filmTypeEs": "membrana flexible",
       "namePl": "Folia ochronna — Samsung Galaxy Watch 3 45mm",
       "descriptionPl": "Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.",
-      "filmTypePl": "elastyczna membrana"
+      "filmTypePl": "elastyczna membrana",
+      "nameSl": "Zaščitna folija — Samsung Galaxy Watch 3 45mm",
+      "descriptionSl": "Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.",
+      "filmTypeSl": "prožna membrana"
     },
     {
       "id": "pulseira-alpine-verde-49",
@@ -755,7 +806,9 @@
       "nameEs": "Correa Alpine Loop de nailon trenzado — olive green (49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Pasek Alpine Loop z plecionego nylonu — olive green (49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Trak Alpine Loop iz pletenega najlona — olive green (49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-link-grafite-42-49",
@@ -805,7 +858,9 @@
       "nameEs": "Correa de acero inoxidable — graphite (42/44/45/49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Luksusowa stalowa bransoleta — graphite (42/44/45/49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Luksuzna jeklena zapestnica — graphite (42/44/45/49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-mesh-preta-42-49",
@@ -855,7 +910,9 @@
       "nameEs": "Correa milanesa magnética de acero — graphite (42/44/45/49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Magnetyczna bransoleta mediolańska — graphite (42/44/45/49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Magnetna milanska jeklena zapestnica — graphite (42/44/45/49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-mesh-rose-38-41",
@@ -905,7 +962,9 @@
       "nameEs": "Correa milanesa magnética de acero — rose gold (42/44/45/49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Magnetyczna bransoleta mediolańska — rose gold (42/44/45/49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Magnetna milanska jeklena zapestnica — rose gold (42/44/45/49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-ocean-branca-42-49",
@@ -955,7 +1014,9 @@
       "nameEs": "Correa Ocean Sport de silicona — white",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Silikonowy pasek Ocean Sport — white",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Silikonski trak Ocean Sport — white",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-ocean-verde-42-49",
@@ -1005,7 +1066,9 @@
       "nameEs": "Correa Ocean Sport de silicona — olive green (42/44/45/49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Silikonowy pasek Ocean Sport — olive green (42/44/45/49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Silikonski trak Ocean Sport — olive green (42/44/45/49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-air-preta-42-49",
@@ -1041,7 +1104,9 @@
       "nameEs": "Correa deportiva de silicona transpirable — black (Galaxy Watch Ultra 47mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Oddychający sportowy pasek silikonowy — black (Galaxy Watch Ultra 47mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Dišeči športni silikonski trak — black (Galaxy Watch Ultra 47mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-azul-38-41",
@@ -1079,7 +1144,9 @@
       "nameEs": "Correa clásica de silicona suave — dark blue (38/40/41mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Klasyczny miękki pasek silikonowy — dark blue (38/40/41mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Klasičen mehak silikonski trak — dark blue (38/40/41mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-azul-40-45",
@@ -1129,7 +1196,9 @@
       "nameEs": "Correa clásica de silicona suave — dark blue (Apple Watch 42/44/45/49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Klasyczny miękki pasek silikonowy — dark blue (Apple Watch 42/44/45/49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Klasičen mehak silikonski trak — dark blue (Apple Watch 42/44/45/49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-branca-42-49",
@@ -1179,7 +1248,9 @@
       "nameEs": "Correa clásica de silicona suave — white (42/44/45/49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Klasyczny miękki pasek silikonowy — white (42/44/45/49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Klasičen mehak silikonski trak — white (42/44/45/49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-cinza-38-41",
@@ -1229,7 +1300,9 @@
       "nameEs": "Correa clásica de silicona suave — gray (Apple Watch 42/44/45/49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Klasyczny miękki pasek silikonowy — gray (Apple Watch 42/44/45/49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Klasičen mehak silikonski trak — gray (Apple Watch 42/44/45/49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-creme-41-45",
@@ -1271,7 +1344,9 @@
       "nameEs": "Correa deportiva de silicona — cream (Samsung Galaxy Watch 8 — 40 / 44 / Classic 46 mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Sportowy pasek silikonowy — cream (Samsung Galaxy Watch 8 — 40 / 44 / Classic 46 mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Športni silikonski trak — cream (Samsung Galaxy Watch 8 — 40 / 44 / Classic 46 mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-samsung-gw4-7",
@@ -1317,7 +1392,9 @@
       "nameEs": "Correa deportiva de silicona — dark blue (Samsung Galaxy Watch 4/5/6/7)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Sportowy pasek silikonowy — dark blue (Samsung Galaxy Watch 4/5/6/7)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Športni silikonski trak — dark blue (Samsung Galaxy Watch 4/5/6/7)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-preta-42-49",
@@ -1368,7 +1445,9 @@
       "nameEs": "Correa clásica de silicona suave — black (42/44/45/46mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Klasyczny miękki pasek silikonowy — black (42/44/45/46mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Klasičen mehak silikonski trak — black (42/44/45/46mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-sport-preta-ultra-49",
@@ -1406,7 +1485,9 @@
       "nameEs": "Correa clásica de silicona suave — black (49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Klasyczny miękki pasek silikonowy — black (49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Klasičen mehak silikonski trak — black (49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     },
     {
       "id": "pulseira-trail-preta-ultra-49",
@@ -1446,7 +1527,9 @@
       "nameEs": "Correa Trail Loop de nailon — black (49mm)",
       "descriptionEs": "Comodidad y estilo en el mismo envío — compatible con tu smartwatch.",
       "namePl": "Pasek Trail Loop z nylonu — black (49mm)",
-      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha."
+      "descriptionPl": "Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.",
+      "nameSl": "Udoben najlonski trak Trail Loop — black (49mm)",
+      "descriptionSl": "Udobje in stil v eni pošiljki — primerno za vašo pametno uro."
     }
   ],
   "pix": {

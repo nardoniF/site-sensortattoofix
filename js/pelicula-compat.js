@@ -144,8 +144,12 @@ window.STF_PELICULA = (function () {
     return !!(window.STF_I18N?.isPl?.() || /\/pl\//i.test(location.pathname));
   }
 
+  function isSl() {
+    return !!(window.STF_I18N?.isSl?.() || /\/sl\//i.test(location.pathname));
+  }
+
   function isEn() {
-    if (isIt() || isDe() || isEs() || isPl()) return false;
+    if (isIt() || isDe() || isEs() || isPl() || isSl()) return false;
     return !!(
       window.STF_I18N?.isEn?.() ||
       window.STF_SITE?.isIntlHost?.() ||
@@ -155,13 +159,13 @@ window.STF_PELICULA = (function () {
   }
 
   function isLocalized() {
-    return isEn() || isIt() || isDe() || isEs() || isPl() || !!(window.STF_I18N?.isLocalized?.());
+    return isEn() || isIt() || isDe() || isEs() || isPl() || isSl() || !!(window.STF_I18N?.isLocalized?.());
   }
 
-  /** EN + DE/ES/PL + .com: catálogo localizado (nativo ou fallback nameEn). */
+  /** EN + DE/ES/PL/SL + .com: catálogo localizado (nativo ou fallback nameEn). */
   function usesEnProductCopy() {
     if (isIt()) return false;
-    return isEn() || isDe() || isEs() || isPl();
+    return isEn() || isDe() || isEs() || isPl() || isSl();
   }
 
   function localizedNameField(product) {
@@ -169,6 +173,7 @@ window.STF_PELICULA = (function () {
     if (isDe()) return product.nameDe || product.nameEn || '';
     if (isEs()) return product.nameEs || product.nameEn || '';
     if (isPl()) return product.namePl || product.nameEn || '';
+    if (isSl()) return product.nameSl || product.nameEn || '';
     if (usesEnProductCopy()) return product.nameEn || '';
     return '';
   }
@@ -178,6 +183,7 @@ window.STF_PELICULA = (function () {
     if (isDe()) return product.descriptionDe || product.descriptionEn || '';
     if (isEs()) return product.descriptionEs || product.descriptionEn || '';
     if (isPl()) return product.descriptionPl || product.descriptionEn || '';
+    if (isSl()) return product.descriptionSl || product.descriptionEn || '';
     if (usesEnProductCopy()) return product.descriptionEn || '';
     return '';
   }
@@ -244,6 +250,7 @@ window.STF_PELICULA = (function () {
     if (isDe() && product.filmTypeDe) return product.filmTypeDe;
     if (isEs() && product.filmTypeEs) return product.filmTypeEs;
     if (isPl() && product.filmTypePl) return product.filmTypePl;
+    if (isSl() && product.filmTypeSl) return product.filmTypeSl;
     if (isIt() && product.filmTypeIt) return product.filmTypeIt;
     if (isLocalized() && product.filmTypeEn) return product.filmTypeEn;
     if (product.filmType && !isLocalized()) return product.filmType;

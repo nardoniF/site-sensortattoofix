@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const SNIPPETS = ['Official Store', 'Peace between ink and silicon', 'Your cart', 'Loading products...'];
 
-for (const lang of ['de', 'es', 'pl']) {
+for (const lang of ['de', 'es', 'pl', 'sl']) {
   test(`${lang}/loja.html: título nativo e sem flash EN no shell`, async ({ page }) => {
     await page.goto(`/${lang}/loja.html`);
     await expect(page.locator('h1.section-title')).not.toHaveText(/Official Store/i);
@@ -15,6 +15,7 @@ for (const lang of ['de', 'es', 'pl']) {
     if (lang === 'de') expect(joined).toMatch(/Optische Linse|Smartband-Linse|Schutzfolie/i);
     if (lang === 'es') expect(joined).toMatch(/óptica|Smartband|Protector de pantalla/i);
     if (lang === 'pl') expect(joined).toMatch(/Soczewka|Smartband|Folia ochronna/i);
+    if (lang === 'sl') expect(joined).toMatch(/Optična leča|Smartband|Zaščitna folija/i);
     const html = await page.content();
     for (const s of SNIPPETS) {
       expect(html.includes(s), `shell ainda contém "${s}"`).toBe(false);
@@ -44,5 +45,6 @@ for (const lang of ['de', 'es', 'pl']) {
     if (lang === 'de') expect(html).toMatch(/Ihre Daten|Zahlungsmethode/);
     if (lang === 'es') expect(html).toMatch(/Tus datos|Método de pago/);
     if (lang === 'pl') expect(html).toMatch(/Twoje dane|Metoda płatności/);
+    if (lang === 'sl') expect(html).toMatch(/Vaši podatki|Način plačila/);
   });
 }

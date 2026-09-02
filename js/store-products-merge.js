@@ -12,6 +12,7 @@ window.STF_PRODUCT_MERGE = (function () {
     'filmTypeDe',
     'filmTypeEs',
     'filmTypePl',
+    'filmTypeSl',
     'bandStyle',
     'color',
     'colorEn',
@@ -27,11 +28,13 @@ window.STF_PRODUCT_MERGE = (function () {
     'nameDe',
     'nameEs',
     'namePl',
+    'nameSl',
     'descriptionEn',
     'descriptionIt',
     'descriptionDe',
     'descriptionEs',
     'descriptionPl',
+    'descriptionSl',
     'markets',
     'images',
     'priceUsd',
@@ -39,9 +42,9 @@ window.STF_PRODUCT_MERGE = (function () {
   ];
 
   const I18N_PRODUCT_FIELDS = [
-    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl',
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
     'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl',
-    'colorEn', 'filmTypeEn', 'filmTypeDe', 'filmTypeEs', 'filmTypePl'
+    'colorEn', 'filmTypeEn', 'filmTypeDe', 'filmTypeEs', 'filmTypePl', 'filmTypeSl'
   ];
 
   function keyOf(p) {

@@ -8,7 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const LANGS = ['de', 'es', 'pl'];
+const LANGS = ['de', 'es', 'pl', 'sl'];
 const PAGES = ['index.html', 'loja.html', 'comprar.html', 'minha-conta.html', 'comunidade.html', 'onde-comprar.html'];
 const EN_SNIPPETS = ['Official Store', 'Peace between ink and silicon', 'Your cart', 'Loading products', 'Community (beta)'];
 
