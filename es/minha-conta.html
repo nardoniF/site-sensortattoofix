@@ -64,22 +64,22 @@
 
                 <div data-conta-panel="forgot" hidden>
                     <form id="conta-forgot-form" class="admin-form">
-                        <p class="admin-meta">Enter your account email. We’ll send a link to choose a new password.</p>
+                        <p class="admin-meta">Introduce el email de tu cuenta. Te enviaremos un enlace para elegir una nueva contraseña.</p>
                         <label>Correo electrónico<input type="email" name="email" required autocomplete="username"></label>
-                        <button type="submit" class="btn-primary">Send reset link</button>
-                        <p class="conta-forgot-row"><button type="button" class="conta-forgot-link" data-conta-show="login">Back to sign in</button></p>
+                        <button type="submit" class="btn-primary">Enviar enlace</button>
+                        <p class="conta-forgot-row"><button type="button" class="conta-forgot-link" data-conta-show="login">Volver a iniciar sesión</button></p>
                         <p id="conta-forgot-status" class="admin-status form-status" hidden></p>
                     </form>
                 </div>
 
                 <div data-conta-panel="reset" hidden>
                     <form id="conta-reset-form" class="admin-form">
-                        <p class="admin-meta">Choose a new password for your account.</p>
+                        <p class="admin-meta">Elige una nueva contraseña para tu cuenta.</p>
                         <input type="hidden" name="token" id="conta-reset-token">
                         <label>Nueva contraseña<input type="password" name="password" required minlength="6" autocomplete="new-password"></label>
-                        <label>Confirm password<input type="password" name="passwordConfirm" required minlength="6" autocomplete="new-password"></label>
-                        <button type="submit" class="btn-primary">Save new password</button>
-                        <p class="conta-forgot-row"><button type="button" class="conta-forgot-link" data-conta-show="login">Back to sign in</button></p>
+                        <label>Confirmar contraseña<input type="password" name="passwordConfirm" required minlength="6" autocomplete="new-password"></label>
+                        <button type="submit" class="btn-primary">Guardar nueva contraseña</button>
+                        <p class="conta-forgot-row"><button type="button" class="conta-forgot-link" data-conta-show="login">Volver a iniciar sesión</button></p>
                         <p id="conta-reset-status" class="admin-status form-status" hidden></p>
                     </form>
                 </div>
@@ -124,7 +124,7 @@
                     <form id="conta-profile-form" class="admin-form">
                         <h3 class="conta-form-section">Datos personales</h3>
                         <div class="form-grid">
-                            <label class="full">Full name<input type="text" name="nome" required></label>
+                            <label class="full">Nombre completo<input type="text" name="nome" required></label>
                             <label>Correo electrónico<input type="email" name="email" readonly disabled></label>
                             <label>WhatsApp<input type="tel" name="telefone" required></label>
                             <label>Documento <small>(opcional)</small><input type="text" name="cpf" placeholder="Opcional"></label>
