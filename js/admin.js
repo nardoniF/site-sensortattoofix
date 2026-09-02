@@ -5702,8 +5702,20 @@ ${worksheets}
           <label class="full">Nome IT
             <input type="text" data-field="nameIt" value="${escAttr(p.nameIt || '')}" placeholder="Lente ottica SensorTattooFix">
           </label>
+          <label class="full">Nome DE
+            <input type="text" data-field="nameDe" value="${escAttr(p.nameDe || '')}" placeholder="SensorTattooFix Optische Linse">
+          </label>
+          <label class="full">Nome ES
+            <input type="text" data-field="nameEs" value="${escAttr(p.nameEs || '')}" placeholder="Lente óptica SensorTattooFix">
+          </label>
+          <label class="full">Nome PL
+            <input type="text" data-field="namePl" value="${escAttr(p.namePl || '')}" placeholder="Soczewka optyczna SensorTattooFix">
+          </label>
           <label class="full">Descrição EN<textarea data-field="descriptionEn" rows="2">${escTextarea(p.descriptionEn || '')}</textarea></label>
           <label class="full">Descrição IT<textarea data-field="descriptionIt" rows="2">${escTextarea(p.descriptionIt || '')}</textarea></label>
+          <label class="full">Descrição DE<textarea data-field="descriptionDe" rows="2">${escTextarea(p.descriptionDe || '')}</textarea></label>
+          <label class="full">Descrição ES<textarea data-field="descriptionEs" rows="2">${escTextarea(p.descriptionEs || '')}</textarea></label>
+          <label class="full">Descrição PL<textarea data-field="descriptionPl" rows="2">${escTextarea(p.descriptionPl || '')}</textarea></label>
           <label class="full">Álbum de fotos <small class="admin-field-hint">uma URL por linha — ordem do carrossel na loja</small>
             <textarea data-field="images" rows="5" placeholder="/images/lens-gallery/01-….png">${escTextarea((Array.isArray(p.images) ? p.images : []).join('\n'))}</textarea>
           </label>` : '';
@@ -5823,12 +5835,24 @@ ${worksheets}
       if (!isAggregated) {
         const nameEn = val('nameEn');
         const nameIt = val('nameIt');
+        const nameDe = val('nameDe');
+        const nameEs = val('nameEs');
+        const namePl = val('namePl');
         const descriptionEn = val('descriptionEn');
         const descriptionIt = val('descriptionIt');
+        const descriptionDe = val('descriptionDe');
+        const descriptionEs = val('descriptionEs');
+        const descriptionPl = val('descriptionPl');
         if (nameEn) product.nameEn = nameEn; else delete product.nameEn;
         if (nameIt) product.nameIt = nameIt; else delete product.nameIt;
+        if (nameDe) product.nameDe = nameDe; else delete product.nameDe;
+        if (nameEs) product.nameEs = nameEs; else delete product.nameEs;
+        if (namePl) product.namePl = namePl; else delete product.namePl;
         if (descriptionEn) product.descriptionEn = descriptionEn; else delete product.descriptionEn;
         if (descriptionIt) product.descriptionIt = descriptionIt; else delete product.descriptionIt;
+        if (descriptionDe) product.descriptionDe = descriptionDe; else delete product.descriptionDe;
+        if (descriptionEs) product.descriptionEs = descriptionEs; else delete product.descriptionEs;
+        if (descriptionPl) product.descriptionPl = descriptionPl; else delete product.descriptionPl;
         if (market === 'INT') {
           const usd = val('priceUsd');
           const eur = val('priceEur');

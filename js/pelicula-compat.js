@@ -132,8 +132,20 @@ window.STF_PELICULA = (function () {
     return !!(window.STF_I18N?.isIt?.() || /\/it\//i.test(location.pathname));
   }
 
+  function isDe() {
+    return !!(window.STF_I18N?.isDe?.() || /\/de\//i.test(location.pathname));
+  }
+
+  function isEs() {
+    return !!(window.STF_I18N?.isEs?.() || /\/es\//i.test(location.pathname));
+  }
+
+  function isPl() {
+    return !!(window.STF_I18N?.isPl?.() || /\/pl\//i.test(location.pathname));
+  }
+
   function isEn() {
-    if (isIt()) return false;
+    if (isIt() || isDe() || isEs() || isPl()) return false;
     return !!(
       window.STF_I18N?.isEn?.() ||
       window.STF_SITE?.isIntlHost?.() ||
@@ -143,13 +155,31 @@ window.STF_PELICULA = (function () {
   }
 
   function isLocalized() {
-    return isEn() || isIt() || !!(window.STF_I18N?.isLocalized?.());
+    return isEn() || isIt() || isDe() || isEs() || isPl() || !!(window.STF_I18N?.isLocalized?.());
   }
 
-  /** EN + DE/ES/PL + .com: nomes/descrições do catálogo em inglês (fallback nameEn). */
+  /** EN + DE/ES/PL + .com: catálogo localizado (nativo ou fallback nameEn). */
   function usesEnProductCopy() {
     if (isIt()) return false;
-    return isEn() || !!(window.STF_I18N?.isDe?.() || window.STF_I18N?.isEs?.() || window.STF_I18N?.isPl?.());
+    return isEn() || isDe() || isEs() || isPl();
+  }
+
+  function localizedNameField(product) {
+    if (isIt()) return product.nameIt || product.nameEn || '';
+    if (isDe()) return product.nameDe || product.nameEn || '';
+    if (isEs()) return product.nameEs || product.nameEn || '';
+    if (isPl()) return product.namePl || product.nameEn || '';
+    if (usesEnProductCopy()) return product.nameEn || '';
+    return '';
+  }
+
+  function localizedDescriptionField(product) {
+    if (isIt()) return product.descriptionIt || product.descriptionEn || '';
+    if (isDe()) return product.descriptionDe || product.descriptionEn || '';
+    if (isEs()) return product.descriptionEs || product.descriptionEn || '';
+    if (isPl()) return product.descriptionPl || product.descriptionEn || '';
+    if (usesEnProductCopy()) return product.descriptionEn || '';
+    return '';
   }
 
   function isKitProduct(product) {
@@ -162,29 +192,19 @@ window.STF_PELICULA = (function () {
 
   function productLabel(product) {
     if (!product) return '';
-    if (isIt()) {
-      if (product.nameIt) return product.nameIt;
-      if (product.nameEn) return product.nameEn;
-      if (isKitProduct(product)) return KIT_COPY.it.name;
-    }
-    if (usesEnProductCopy()) {
-      if (product.nameEn) return product.nameEn;
-      if (isKitProduct(product)) return KIT_COPY.en.name;
-    }
+    const localized = localizedNameField(product);
+    if (localized) return localized;
+    if (isIt() && isKitProduct(product)) return KIT_COPY.it.name;
+    if (usesEnProductCopy() && isKitProduct(product)) return KIT_COPY.en.name;
     return product.name || product.id;
   }
 
   function productDescription(product) {
     if (!product) return '';
-    if (isIt()) {
-      if (product.descriptionIt) return product.descriptionIt;
-      if (product.descriptionEn) return product.descriptionEn;
-      if (isKitProduct(product)) return KIT_COPY.it.description;
-    }
-    if (usesEnProductCopy()) {
-      if (product.descriptionEn) return product.descriptionEn;
-      if (isKitProduct(product)) return KIT_COPY.en.description;
-    }
+    const localized = localizedDescriptionField(product);
+    if (localized) return localized;
+    if (isIt() && isKitProduct(product)) return KIT_COPY.it.description;
+    if (usesEnProductCopy() && isKitProduct(product)) return KIT_COPY.en.description;
     return product.description || '';
   }
 

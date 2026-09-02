@@ -21,15 +21,25 @@ window.STF_PRODUCT_MERGE = (function () {
     'id',
     'nameEn',
     'nameIt',
+    'nameDe',
+    'nameEs',
+    'namePl',
     'descriptionEn',
     'descriptionIt',
+    'descriptionDe',
+    'descriptionEs',
+    'descriptionPl',
     'markets',
     'images',
     'priceUsd',
     'priceEur'
   ];
 
-  const I18N_PRODUCT_FIELDS = ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt', 'colorEn', 'filmTypeEn'];
+  const I18N_PRODUCT_FIELDS = [
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl',
+    'colorEn', 'filmTypeEn'
+  ];
 
   function keyOf(p) {
     return String(p?.id || p?.slug || '').trim();

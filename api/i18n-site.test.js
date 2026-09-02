@@ -206,22 +206,53 @@ test('FAQ intl faq-13 aponta para carta, não manual BR', () => {
   }
 });
 
-test('STF_PELICULA: /de/ e /pl/ também usam nameEn', () => {
-  for (const lang of ['de', 'pl']) {
-    const flags = { de: 'isDe', pl: 'isPl' }[lang];
-    const p = loadPelicula({
-      hostname: 'www.sensortattoofix.com.br',
-      pathname: `/${lang}/loja.html`,
-      i18n: {
-        [flags]: () => true,
-        isIt: () => false,
-        isEn: () => false,
-        isEs: () => false,
-        isDe: () => lang === 'de',
-        isPl: () => lang === 'pl',
-        isLocalized: () => true
-      }
-    });
-    assert.equal(p.productLabel({ name: 'Nome PT', nameEn: 'EN name' }), 'EN name', lang);
+test('STF_PELICULA: /de/ e /pl/ usam nameDe/namePl com fallback nameEn', () => {
+  const de = loadPelicula({
+    hostname: 'www.sensortattoofix.com.br',
+    pathname: '/de/loja.html',
+    i18n: {
+      isDe: () => true,
+      isIt: () => false,
+      isEn: () => false,
+      isEs: () => false,
+      isPl: () => false,
+      isLocalized: () => true
+    }
+  });
+  assert.equal(
+    de.productLabel({ name: 'Nome PT', nameEn: 'EN name', nameDe: 'DE name' }),
+    'DE name'
+  );
+  assert.equal(
+    de.productLabel({ name: 'Nome PT', nameEn: 'EN name' }),
+    'EN name'
+  );
+
+  const pl = loadPelicula({
+    hostname: 'www.sensortattoofix.com.br',
+    pathname: '/pl/loja.html',
+    i18n: {
+      isPl: () => true,
+      isIt: () => false,
+      isEn: () => false,
+      isEs: () => false,
+      isDe: () => false,
+      isLocalized: () => true
+    }
+  });
+  assert.equal(
+    pl.productLabel({ name: 'Nome PT', nameEn: 'EN name', namePl: 'PL name' }),
+    'PL name'
+  );
+});
+
+test('store-config: produtos intl têm nameDe/nameEs/namePl', () => {
+  const cfg = JSON.parse(fs.readFileSync(path.join(root, 'data/store-config.json'), 'utf8'));
+  for (const id of ['optical-lens-intl', 'optical-lens-smartband-intl']) {
+    const p = cfg.products.find((x) => x.id === id);
+    assert.ok(p, id);
+    for (const field of ['nameDe', 'nameEs', 'namePl', 'descriptionDe', 'descriptionEs', 'descriptionPl']) {
+      assert.ok(p[field], `${id}.${field}`);
+    }
   }
 });
