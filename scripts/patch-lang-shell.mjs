@@ -81,6 +81,9 @@ function ensureI18nBundle(html, lang, page) {
     out = out.replace(/<body class="checkout-page conta-page">/g, '<body class="conta-page">');
   }
 
+  out = out.replace(/stf-i18n\.js\?v=\d+/g, 'stf-i18n.js?v=49');
+  out = out.replace(/stf-i18n-[a-z]{2}-overrides\.js\?v=\d+/g, (m) => m.replace(/\?v=\d+/, '?v=2'));
+
   return out;
 }
 
