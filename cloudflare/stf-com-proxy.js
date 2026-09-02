@@ -63,7 +63,8 @@ function isStaticAsset(pathname) {
 
 /** Pages that live at repo root and must work on .com (emails link here, no /en/ copy). */
 const COM_SHARED_ROOT_PAGES = new Set([
-  '/rastreio.html'
+  '/rastreio.html',
+  '/google7b1cb2c1f70b0fda.html',
 ]);
 
 const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
