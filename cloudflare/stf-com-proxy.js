@@ -57,6 +57,9 @@ function isStaticAsset(pathname) {
     pathname.startsWith('/stf-') ||
     pathname === '/style.css' ||
     pathname === '/favicon.ico' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/sitemap-com.xml' ||
     /\.(css|js|json|xml|ico|jpg|jpeg|png|gif|webp|svg|woff2?|ttf|map|pdf)$/i.test(pathname)
   );
 }
