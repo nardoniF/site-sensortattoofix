@@ -9,6 +9,9 @@ window.STF_PRODUCT_MERGE = (function () {
     'productType',
     'filmType',
     'filmTypeEn',
+    'filmTypeDe',
+    'filmTypeEs',
+    'filmTypePl',
     'bandStyle',
     'color',
     'colorEn',
@@ -38,7 +41,7 @@ window.STF_PRODUCT_MERGE = (function () {
   const I18N_PRODUCT_FIELDS = [
     'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl',
     'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl',
-    'colorEn', 'filmTypeEn'
+    'colorEn', 'filmTypeEn', 'filmTypeDe', 'filmTypeEs', 'filmTypePl'
   ];
 
   function keyOf(p) {

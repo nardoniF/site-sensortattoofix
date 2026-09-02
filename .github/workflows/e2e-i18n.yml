@@ -1,0 +1,39 @@
+name: E2E i18n (DE/ES/PL)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'de/**'
+      - 'es/**'
+      - 'pl/**'
+      - 'js/**'
+      - 'data/store-config.json'
+      - 'e2e/**'
+  pull_request:
+    paths:
+      - 'de/**'
+      - 'es/**'
+      - 'pl/**'
+      - 'js/**'
+      - 'data/store-config.json'
+      - 'e2e/**'
+
+jobs:
+  e2e-i18n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install E2E deps
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install chromium --with-deps
+      - name: Run Playwright i18n tests
+        working-directory: e2e
+        run: npm test

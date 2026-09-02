@@ -2819,9 +2819,13 @@ function watchWhatsAppBlock(order) {
 
 function orderCheckoutLocale(order) {
   const l = String(order?.checkoutLocale || 'pt').toLowerCase();
-  if (l === 'de' || l === 'es' || l === 'pl') return 'en';
-  if (l === 'en' || l === 'it') return l;
+  if (isIntlCheckoutLocale(l)) return l;
   return 'pt';
+}
+
+/** E-mails intl: DE/ES/PL usam cópia própria; EN/IT/PT como antes. */
+function isWesternIntlEmailLocale(loc) {
+  return loc === 'en' || loc === 'de' || loc === 'es' || loc === 'pl';
 }
 
 function customerFirstName(order) {
@@ -2853,13 +2857,13 @@ function watchBrandForCopy(order) {
 
 function customerSupportEmail(order, config) {
   const loc = orderCheckoutLocale(order);
-  if (loc === 'en' || loc === 'it') return 'support@sensortattoofix.com';
+  if (isIntlCheckoutLocale(loc)) return 'support@sensortattoofix.com';
   return String(config?.formsubmit?.email || 'contato@sensortattoofix.com.br').trim();
 }
 
 function customerSiteBase(order, config) {
   const loc = orderCheckoutLocale(order);
-  if (loc === 'en' || loc === 'it') return 'https://www.sensortattoofix.com';
+  if (isIntlCheckoutLocale(loc)) return 'https://www.sensortattoofix.com';
   return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
 }
 
@@ -3070,14 +3074,68 @@ function formatOrderCharge(order, value) {
 function orderRefLabel(order) {
   const loc = orderCheckoutLocale(order);
   if (loc === 'en') return 'Order';
+  if (loc === 'de') return 'Bestellung';
+  if (loc === 'es') return 'Pedido';
+  if (loc === 'pl') return 'Zamówienie';
   if (loc === 'it') return 'Ordine';
   return 'Pedido';
 }
 
-/** Paid confirmation copy — respects checkoutLocale (pt/en/it). */
+/** Paid confirmation copy — respects checkoutLocale (pt/en/it/de/es/pl). */
 function paidReceiptCopy(order, config, message) {
   const loc = orderCheckoutLocale(order);
   const amount = formatOrderCharge(order, order.total);
+  if (loc === 'de') {
+    return {
+      subject: `Zahlung bestätigt — ${order.orderId}`,
+      customerLabel: 'Kunde',
+      fields: {
+        Bestellung: order.orderId,
+        Status: 'BEZAHLT',
+        Betrag: amount,
+        Nachricht: message,
+        ...(order.correiosTrackingCode ? {
+          Sendungsverfolgung: order.correiosTrackingCode,
+          'Sendung verfolgen': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        } : {})
+      },
+      footerSite: 'sensortattoofix.com'
+    };
+  }
+  if (loc === 'es') {
+    return {
+      subject: `Pago confirmado — ${order.orderId}`,
+      customerLabel: 'Cliente',
+      fields: {
+        Pedido: order.orderId,
+        Estado: 'PAGADO',
+        Importe: amount,
+        Mensaje: message,
+        ...(order.correiosTrackingCode ? {
+          'Seguimiento de envío': order.correiosTrackingCode,
+          'Rastrear envío': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        } : {})
+      },
+      footerSite: 'sensortattoofix.com'
+    };
+  }
+  if (loc === 'pl') {
+    return {
+      subject: `Płatność potwierdzona — ${order.orderId}`,
+      customerLabel: 'Klient',
+      fields: {
+        Zamówienie: order.orderId,
+        Status: 'OPŁACONE',
+        Kwota: amount,
+        Wiadomość: message,
+        ...(order.correiosTrackingCode ? {
+          'Śledzenie przesyłki': order.correiosTrackingCode,
+          'Śledź przesyłkę': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        } : {})
+      },
+      footerSite: 'sensortattoofix.com'
+    };
+  }
   if (loc === 'en') {
     return {
       subject: `Payment confirmed — ${order.orderId}`,
@@ -16702,7 +16760,7 @@ function buildTestOrder(config, to, overrides = {}) {
   const orderId = 'STF-TESTE-' + Date.now();
   const price = Number(config.product?.price) || 62.9;
   const locale = String(overrides.checkoutLocale || 'pt').toLowerCase();
-  const isIntl = locale === 'en' || locale === 'it';
+  const isIntl = isIntlCheckoutLocale(locale);
   return {
     orderId,
     nome: overrides.nome || (isIntl ? 'Nicolas Brown' : 'Nicolas Brown'),
@@ -16722,7 +16780,7 @@ function buildTestOrder(config, to, overrides = {}) {
     shippingService: overrides.shippingService || (isIntl ? 'Tracked mail' : 'Mini Envios'),
     pixCopyPaste: '00020126580014BR.GOV.BCB.PIX0136123456789012345204000053039865405' + String(Math.round(price * 100)).padStart(4, '0') + '5802BR6009SAO PAULO62070503***6304TEST',
     status: 'pending_payment',
-    checkoutLocale: locale === 'en' || locale === 'it' ? locale : 'pt',
+    checkoutLocale: isIntl ? locale : 'pt',
     accessToken: 'test-token-' + orderId
   };
 }

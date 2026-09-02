@@ -241,6 +241,10 @@ window.STF_PELICULA = (function () {
   }
 
   function filmTypeLabel(product) {
+    if (isDe() && product.filmTypeDe) return product.filmTypeDe;
+    if (isEs() && product.filmTypeEs) return product.filmTypeEs;
+    if (isPl() && product.filmTypePl) return product.filmTypePl;
+    if (isIt() && product.filmTypeIt) return product.filmTypeIt;
     if (isLocalized() && product.filmTypeEn) return product.filmTypeEn;
     if (product.filmType && !isLocalized()) return product.filmType;
     if (product.packaging === 'box') {

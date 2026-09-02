@@ -256,3 +256,28 @@ test('store-config: produtos intl têm nameDe/nameEs/namePl', () => {
     }
   }
 });
+
+test('store-config: agregados têm nameDe (película exemplo)', () => {
+  const cfg = JSON.parse(fs.readFileSync(path.join(root, 'data/store-config.json'), 'utf8'));
+  const p = cfg.products.find((x) => x.id === 'pelicula-amazfit-bip-2');
+  assert.ok(p?.nameDe?.startsWith('Schutzfolie'), p?.nameDe);
+  assert.ok(p?.nameEs?.startsWith('Protector de pantalla'), p?.nameEs);
+});
+
+test('shell DE/ES/PL sem snippets EN estáticos (loja/comprar/conta)', () => {
+  const EN_SNIPPETS = ['Official Store', 'Peace between ink and silicon', 'Your cart', 'Loading products', 'Community (beta)'];
+  const pages = ['loja.html', 'comprar.html', 'minha-conta.html', 'comunidade.html', 'onde-comprar.html'];
+  for (const lang of ['de', 'es', 'pl']) {
+    for (const page of pages) {
+      const html = fs.readFileSync(path.join(root, lang, page), 'utf8');
+      const found = EN_SNIPPETS.filter((s) => html.includes(s));
+      assert.equal(found.length, 0, `${lang}/${page}: ${found.join(', ')}`);
+    }
+  }
+});
+
+test('buildTestOrder preserva checkoutLocale de/es/pl', () => {
+  const src = fs.readFileSync(path.join(root, 'api/worker.js'), 'utf8');
+  assert.match(src, /checkoutLocale: isIntl \? locale : 'pt'/);
+  assert.match(src, /if \(loc === 'de'\)/);
+});
