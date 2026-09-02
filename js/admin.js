@@ -5685,6 +5685,22 @@ ${worksheets}
             <input type="number" data-field="sensorMm" step="0.5" min="0" value="${p.sensorMm != null ? p.sensorMm : ''}" placeholder="ex.: 25">
           </label>` : '';
     const aggregatedFields = isAggregated ? `
+          <label class="full">Nome EN <small class="admin-field-hint">título na loja intl / upsell</small>
+            <input type="text" data-field="nameEn" value="${escAttr(p.nameEn || '')}" placeholder="Screen protector — Amazfit Bip 2">
+          </label>
+          <label class="full">Nome DE
+            <input type="text" data-field="nameDe" value="${escAttr(p.nameDe || '')}" placeholder="Schutzfolie — Amazfit Bip 2">
+          </label>
+          <label class="full">Nome ES
+            <input type="text" data-field="nameEs" value="${escAttr(p.nameEs || '')}" placeholder="Protector de pantalla — Amazfit Bip 2">
+          </label>
+          <label class="full">Nome PL
+            <input type="text" data-field="namePl" value="${escAttr(p.namePl || '')}" placeholder="Folia ochronna — Amazfit Bip 2">
+          </label>
+          <label class="full">Descrição EN<textarea data-field="descriptionEn" rows="2">${escTextarea(p.descriptionEn || '')}</textarea></label>
+          <label class="full">Descrição DE<textarea data-field="descriptionDe" rows="2">${escTextarea(p.descriptionDe || '')}</textarea></label>
+          <label class="full">Descrição ES<textarea data-field="descriptionEs" rows="2">${escTextarea(p.descriptionEs || '')}</textarea></label>
+          <label class="full">Descrição PL<textarea data-field="descriptionPl" rows="2">${escTextarea(p.descriptionPl || '')}</textarea></label>
           <label class="full">Modelos compatíveis <small class="admin-field-hint">um por linha — mesmos nomes do select do checkout</small>
             <textarea data-field="compatibleWatchModels" rows="4" placeholder="Apple Watch Series 9 (45mm)">${escTextarea((p.compatibleWatchModels || []).join('\n'))}</textarea>
           </label>
@@ -5693,6 +5709,15 @@ ${worksheets}
           </label>
           <label>Tipo da película (EN) <small class="admin-field-hint">ex.: ceramic, flexible membrane</small>
             <input type="text" data-field="filmTypeEn" value="${escAttr(p.filmTypeEn || '')}" placeholder="ceramic">
+          </label>
+          <label>Tipo da película (DE)
+            <input type="text" data-field="filmTypeDe" value="${escAttr(p.filmTypeDe || '')}" placeholder="flexible Membran">
+          </label>
+          <label>Tipo da película (ES)
+            <input type="text" data-field="filmTypeEs" value="${escAttr(p.filmTypeEs || '')}" placeholder="membrana flexible">
+          </label>
+          <label>Tipo da película (PL)
+            <input type="text" data-field="filmTypePl" value="${escAttr(p.filmTypePl || '')}" placeholder="elastyczna membrana">
           </label>
           <p class="admin-meta admin-aggregated-compat-hint"><i class="fas fa-link"></i> <strong>Regra do upsell:</strong> o produto só aparece se o modelo escolhido pelo cliente estiver nesta lista (1 agregado → vários modelos).</p>` : '';
     const i18nFields = !isAggregated ? `
@@ -5895,12 +5920,37 @@ ${worksheets}
           if (lines.length) product.compatibleWatchModels = lines;
           else delete product.compatibleWatchModels;
         }
+        const nameEn = val('nameEn');
+        const nameDe = val('nameDe');
+        const nameEs = val('nameEs');
+        const namePl = val('namePl');
+        const descriptionEn = val('descriptionEn');
+        const descriptionDe = val('descriptionDe');
+        const descriptionEs = val('descriptionEs');
+        const descriptionPl = val('descriptionPl');
+        if (nameEn) product.nameEn = nameEn; else delete product.nameEn;
+        if (nameDe) product.nameDe = nameDe; else delete product.nameDe;
+        if (nameEs) product.nameEs = nameEs; else delete product.nameEs;
+        if (namePl) product.namePl = namePl; else delete product.namePl;
+        if (descriptionEn) product.descriptionEn = descriptionEn; else delete product.descriptionEn;
+        if (descriptionDe) product.descriptionDe = descriptionDe; else delete product.descriptionDe;
+        if (descriptionEs) product.descriptionEs = descriptionEs; else delete product.descriptionEs;
+        if (descriptionPl) product.descriptionPl = descriptionPl; else delete product.descriptionPl;
         const filmType = val('filmType');
         const filmTypeEn = val('filmTypeEn');
+        const filmTypeDe = val('filmTypeDe');
+        const filmTypeEs = val('filmTypeEs');
+        const filmTypePl = val('filmTypePl');
         if (filmType) product.filmType = filmType;
         else delete product.filmType;
         if (filmTypeEn) product.filmTypeEn = filmTypeEn;
         else delete product.filmTypeEn;
+        if (filmTypeDe) product.filmTypeDe = filmTypeDe;
+        else delete product.filmTypeDe;
+        if (filmTypeEs) product.filmTypeEs = filmTypeEs;
+        else delete product.filmTypeEs;
+        if (filmTypePl) product.filmTypePl = filmTypePl;
+        else delete product.filmTypePl;
       }
       return product;
     });

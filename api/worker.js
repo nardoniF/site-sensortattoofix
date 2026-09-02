@@ -2838,6 +2838,259 @@ function customerFieldLabel(loc) {
   return 'Cliente';
 }
 
+function pendingPaymentEmailFields(order, mail, billingType) {
+  const loc = orderCheckoutLocale(order);
+  const extras = {
+    ...orderWatchEmailFields(order),
+    ...orderIntlProductFields(order)
+  };
+  if (loc === 'de') {
+    return {
+      Bestellung: order.orderId,
+      Status: 'Zahlung ausstehend',
+      Betrag: formatOrderCharge(order),
+      Zahlung: order.pagamento,
+      'Bestelllink': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal-Link': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Zahlungslink': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'es') {
+    return {
+      Pedido: order.orderId,
+      Estado: 'Pendiente de pago',
+      Total: formatOrderCharge(order),
+      Pago: order.pagamento,
+      'Enlace del pedido': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Enlace PayPal': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Enlace de pago': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'pl') {
+    return {
+      Zamówienie: order.orderId,
+      Status: 'Oczekuje na płatność',
+      Razem: formatOrderCharge(order),
+      Płatność: order.pagamento,
+      'Link zamówienia': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link płatności': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'en') {
+    return {
+      Order: order.orderId,
+      Status: 'Awaiting payment',
+      Total: formatOrderCharge(order),
+      Payment: order.pagamento,
+      'Order link': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal link': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Payment link': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'it') {
+    return {
+      Ordine: order.orderId,
+      Stato: 'In attesa di pagamento',
+      Totale: formatOrderCharge(order),
+      Pagamento: order.pagamento,
+      'Link ordine': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  if (loc === 'sl') {
+    return {
+      Naročilo: order.orderId,
+      Status: 'Čaka na plačilo',
+      Skupaj: formatOrderCharge(order),
+      Plačilo: order.pagamento,
+      'Povezava naročila': mail.resumeUrl,
+      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal povezava': order.paypalApproveUrl } : {}),
+      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Povezava za plačilo': order.invoiceUrl } : {}),
+      ...extras
+    };
+  }
+  return {
+    Pedido: order.orderId,
+    Status: 'Aguardando pagamento',
+    Total: formatOrderCharge(order),
+    Pagamento: order.pagamento,
+    'Link do pedido': mail.resumeUrl,
+    ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
+    ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
+    ...extras
+  };
+}
+
+function packingSlipCopy(loc) {
+  if (loc === 'de') {
+    return {
+      title: 'Lieferschein',
+      order: 'Bestellung',
+      customer: 'Kunde',
+      email: 'E-Mail',
+      phone: 'Telefon',
+      country: 'Land',
+      address: 'Adresse',
+      product: 'Produkt',
+      watch: 'Uhr',
+      shipping: 'Versand',
+      total: 'Gesamt'
+    };
+  }
+  if (loc === 'es') {
+    return {
+      title: 'Albarán de envío',
+      order: 'Pedido',
+      customer: 'Cliente',
+      email: 'Email',
+      phone: 'Teléfono',
+      country: 'País',
+      address: 'Dirección',
+      product: 'Producto',
+      watch: 'Reloj',
+      shipping: 'Envío',
+      total: 'Total'
+    };
+  }
+  if (loc === 'pl') {
+    return {
+      title: 'List przewozowy',
+      order: 'Zamówienie',
+      customer: 'Klient',
+      email: 'E-mail',
+      phone: 'Telefon',
+      country: 'Kraj',
+      address: 'Adres',
+      product: 'Produkt',
+      watch: 'Zegarek',
+      shipping: 'Wysyłka',
+      total: 'Razem'
+    };
+  }
+  if (loc === 'it') {
+    return {
+      title: 'Documento di spedizione',
+      order: 'Ordine',
+      customer: 'Cliente',
+      email: 'Email',
+      phone: 'Telefono',
+      country: 'Paese',
+      address: 'Indirizzo',
+      product: 'Prodotto',
+      watch: 'Orologio',
+      shipping: 'Spedizione',
+      total: 'Totale'
+    };
+  }
+  if (loc === 'en') {
+    return {
+      title: 'Packing slip',
+      order: 'Order',
+      customer: 'Customer',
+      email: 'Email',
+      phone: 'Phone',
+      country: 'Country',
+      address: 'Address',
+      product: 'Product',
+      watch: 'Watch',
+      shipping: 'Shipping',
+      total: 'Total'
+    };
+  }
+  if (loc === 'sl') {
+    return {
+      title: 'Paketni list',
+      order: 'Naročilo',
+      customer: 'Stranka',
+      email: 'E-pošta',
+      phone: 'Telefon',
+      country: 'Država',
+      address: 'Naslov',
+      product: 'Izdelek',
+      watch: 'Ura',
+      shipping: 'Poštnina',
+      total: 'Skupaj'
+    };
+  }
+  return {
+    title: 'Romaneio / packing slip',
+    order: 'Pedido',
+    customer: 'Cliente',
+    email: 'Email',
+    phone: 'Telefone',
+    country: 'País',
+    address: 'Endereço',
+    product: 'Produto',
+    watch: 'Relógio',
+    shipping: 'Envio',
+    total: 'Total'
+  };
+}
+
+function cancelOrderCustomerCopy(loc, orderId) {
+  if (loc === 'de') {
+    return {
+      subject: `Bestellung storniert — ${orderId}`,
+      msg: 'Ihre Bestellung wurde storniert. Wenn dies ein Fehler war, antworten Sie auf diese E-Mail oder kontaktieren Sie den Support.',
+      orderKey: 'Bestellung',
+      messageKey: 'Nachricht'
+    };
+  }
+  if (loc === 'es') {
+    return {
+      subject: `Pedido cancelado — ${orderId}`,
+      msg: 'Tu pedido ha sido cancelado. Si fue un error, responde a este email o contacta con soporte.',
+      orderKey: 'Pedido',
+      messageKey: 'Mensaje'
+    };
+  }
+  if (loc === 'pl') {
+    return {
+      subject: `Zamówienie anulowane — ${orderId}`,
+      msg: 'Twoje zamówienie zostało anulowane. Jeśli to pomyłka, odpowiedz na ten e-mail lub skontaktuj się z pomocą techniczną.',
+      orderKey: 'Zamówienie',
+      messageKey: 'Wiadomość'
+    };
+  }
+  if (loc === 'en') {
+    return {
+      subject: `Order cancelled — ${orderId}`,
+      msg: 'Your order was cancelled. If this was a mistake, reply to this email or contact support.',
+      orderKey: 'Order',
+      messageKey: 'Message'
+    };
+  }
+  if (loc === 'it') {
+    return {
+      subject: `Ordine annullato — ${orderId}`,
+      msg: 'Il tuo ordine è stato annullato. Se è un errore, rispondi a questa email o contatta il supporto.',
+      orderKey: 'Ordine',
+      messageKey: 'Messaggio'
+    };
+  }
+  if (loc === 'sl') {
+    return {
+      subject: `Naročilo preklicano — ${orderId}`,
+      msg: 'Vaše naročilo je bilo preklicano. Če gre za napako, odgovorite na to e-pošto ali kontaktirajte podporo.',
+      orderKey: 'Naročilo',
+      messageKey: 'Sporočilo'
+    };
+  }
+  return {
+    subject: `Pedido cancelado — ${orderId}`,
+    msg: 'Seu pedido foi cancelado. Se foi um engano, responda este e-mail ou fale conosco.',
+    orderKey: 'Pedido',
+    messageKey: 'Mensagem'
+  };
+}
+
 function intlPaidShipMessage(loc, kind, ctx = {}) {
   const { hours, url } = ctx;
   const M = {
@@ -3841,25 +4094,19 @@ async function tryCorreiosLabelPdfAttachment(env, order, config) {
 
 function buildIntlPackingSlipAttachment(order) {
   const loc = orderCheckoutLocale(order);
-  const title = loc === 'sl' ? 'Paketni list'
-    : loc === 'de' ? 'Lieferschein'
-      : loc === 'es' ? 'Albarán de envío'
-        : loc === 'pl' ? 'List przewozowy'
-          : loc === 'en' ? 'Packing slip'
-            : loc === 'it' ? 'Documento di spedizione'
-              : 'Romaneio / packing slip';
+  const L = packingSlipCopy(loc);
   const lines = [
-    `<h1 style="font-family:Arial,sans-serif">${title}</h1>`,
-    `<p><strong>Order:</strong> ${escapeHtml(order.orderId)}</p>`,
-    `<p><strong>Customer:</strong> ${escapeHtml(order.nome || '')}</p>`,
-    `<p><strong>Email:</strong> ${escapeHtml(order.email || '')}</p>`,
-    `<p><strong>Phone:</strong> ${escapeHtml(order.telefone || '')}</p>`,
-    `<p><strong>Country:</strong> ${escapeHtml(order.pais || order.paisCode || '')}</p>`,
-    `<p><strong>Address:</strong><br>${escapeHtml(order.endereco || '').replace(/\n/g, '<br>')}</p>`,
-    `<p><strong>Product:</strong> ${escapeHtml(order.produto || '')}</p>`,
-    `<p><strong>Watch:</strong> ${escapeHtml(formatOrderSmartwatch(order) || '')}</p>`,
-    `<p><strong>Shipping:</strong> ${escapeHtml(order.shippingService || '')}</p>`,
-    `<p><strong>Total:</strong> ${escapeHtml(formatOrderCharge(order, order.total))}</p>`
+    `<h1 style="font-family:Arial,sans-serif">${L.title}</h1>`,
+    `<p><strong>${L.order}:</strong> ${escapeHtml(order.orderId)}</p>`,
+    `<p><strong>${L.customer}:</strong> ${escapeHtml(order.nome || '')}</p>`,
+    `<p><strong>${L.email}:</strong> ${escapeHtml(order.email || '')}</p>`,
+    `<p><strong>${L.phone}:</strong> ${escapeHtml(order.telefone || '')}</p>`,
+    `<p><strong>${L.country}:</strong> ${escapeHtml(order.pais || order.paisCode || '')}</p>`,
+    `<p><strong>${L.address}:</strong><br>${escapeHtml(order.endereco || '').replace(/\n/g, '<br>')}</p>`,
+    `<p><strong>${L.product}:</strong> ${escapeHtml(order.produto || '')}</p>`,
+    `<p><strong>${L.watch}:</strong> ${escapeHtml(formatOrderSmartwatch(order) || '')}</p>`,
+    `<p><strong>${L.shipping}:</strong> ${escapeHtml(order.shippingService || '')}</p>`,
+    `<p><strong>${L.total}:</strong> ${escapeHtml(formatOrderCharge(order, order.total))}</p>`
   ].join('\n');
   const html = `<!DOCTYPE html><html><body>${lines}</body></html>`;
   const bytes = new TextEncoder().encode(html);
@@ -12914,7 +13161,7 @@ async function notifyShop(env, config, subject, fields, content) {
 
 async function notifyCustomer(env, config, order, subject, fields, content) {
   const loc = orderCheckoutLocale(order);
-  const nameKey = loc === 'en' ? 'Customer' : 'Cliente';
+  const nameKey = customerFieldLabel(loc);
   return notifyEmail(env, config, order.email, subject, { [nameKey]: order.nome, ...fields }, config.formsubmit?.email, content);
 }
 
@@ -12962,98 +13209,7 @@ async function notifyCustomerPendingPayment(env, config, order, billingType) {
     paymentKind: kind,
     includePixCode: false
   });
-  const fields = (() => {
-    const loc = orderCheckoutLocale(order);
-    if (loc === 'en') {
-      return {
-        Order: order.orderId,
-        Status: 'Awaiting payment',
-        Total: formatOrderCharge(order),
-        Payment: order.pagamento,
-        'Order link': mail.resumeUrl,
-        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal link': order.paypalApproveUrl } : {}),
-        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Payment link': order.invoiceUrl } : {}),
-        ...orderWatchEmailFields(order),
-        ...orderIntlProductFields(order)
-      };
-    }
-    if (loc === 'it') {
-      return {
-        Ordine: order.orderId,
-        Stato: 'In attesa di pagamento',
-        Totale: formatOrderCharge(order),
-        Pagamento: order.pagamento,
-        'Link ordine': mail.resumeUrl,
-        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
-        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
-        ...orderWatchEmailFields(order),
-        ...orderIntlProductFields(order)
-      };
-    }
-    if (loc === 'de') {
-      return {
-        Bestellung: order.orderId,
-        Status: 'Zahlung ausstehend',
-        Betrag: formatOrderCharge(order),
-        Zahlung: order.pagamento,
-        'Bestelllink': mail.resumeUrl,
-        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal-Link': order.paypalApproveUrl } : {}),
-        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Zahlungslink': order.invoiceUrl } : {}),
-        ...orderWatchEmailFields(order),
-        ...orderIntlProductFields(order)
-      };
-    }
-    if (loc === 'es') {
-      return {
-        Pedido: order.orderId,
-        Estado: 'Pendiente de pago',
-        Total: formatOrderCharge(order),
-        Pago: order.pagamento,
-        'Enlace del pedido': mail.resumeUrl,
-        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Enlace PayPal': order.paypalApproveUrl } : {}),
-        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Enlace de pago': order.invoiceUrl } : {}),
-        ...orderWatchEmailFields(order),
-        ...orderIntlProductFields(order)
-      };
-    }
-    if (loc === 'pl') {
-      return {
-        Zamówienie: order.orderId,
-        Status: 'Oczekuje na płatność',
-        Razem: formatOrderCharge(order),
-        Płatność: order.pagamento,
-        'Link zamówienia': mail.resumeUrl,
-        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
-        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link płatności': order.invoiceUrl } : {}),
-        ...orderWatchEmailFields(order),
-        ...orderIntlProductFields(order)
-      };
-    }
-    if (loc === 'sl') {
-      return {
-        Naročilo: order.orderId,
-        Status: 'Čaka na plačilo',
-        Skupaj: formatOrderCharge(order),
-        Plačilo: order.pagamento,
-        'Povezava naročila': mail.resumeUrl,
-        ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'PayPal povezava': order.paypalApproveUrl } : {}),
-        ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Povezava za plačilo': order.invoiceUrl } : {}),
-        ...orderWatchEmailFields(order),
-        ...orderIntlProductFields(order)
-      };
-    }
-    return {
-      Pedido: order.orderId,
-      Status: 'Aguardando pagamento',
-      Total: formatOrderCharge(order),
-      Pagamento: order.pagamento,
-      'Link do pedido': mail.resumeUrl,
-      ...(billingType === 'PAYPAL' && order.paypalApproveUrl ? { 'Link PayPal': order.paypalApproveUrl } : {}),
-      ...(billingType === 'MP_CHECKOUT' && order.invoiceUrl ? { 'Link pagamento': order.invoiceUrl } : {}),
-      ...orderWatchEmailFields(order),
-      ...orderIntlProductFields(order)
-    };
-  })();
+  const fields = pendingPaymentEmailFields(order, mail, billingType);
   return notifyCustomer(env, config, order, mail.subject, fields, {
     html: mail.html,
     text: mail.text
@@ -17371,20 +17527,11 @@ async function handleCustomerCancelOrder(request, env, origin, orderId) {
 
   try {
     const loc = orderCheckoutLocale(order);
-    const subject = loc === 'en'
-      ? `Order cancelled — ${order.orderId}`
-      : loc === 'it'
-        ? `Ordine annullato — ${order.orderId}`
-        : `Pedido cancelado — ${order.orderId}`;
-    const msg = loc === 'en'
-      ? 'Your order was cancelled. If this was a mistake, reply to this email or contact support.'
-      : loc === 'it'
-        ? 'Il tuo ordine è stato annullato. Se è un errore, rispondi a questa email o contatta il supporto.'
-        : 'Seu pedido foi cancelado. Se foi um engano, responda este e-mail ou fale conosco.';
-    await notifyCustomer(env, config, order, subject, {
-      [loc === 'en' ? 'Order' : loc === 'it' ? 'Ordine' : 'Pedido']: order.orderId,
-      [loc === 'en' ? 'Status' : 'Status']: 'cancelled_by_user',
-      [loc === 'en' ? 'Message' : loc === 'it' ? 'Messaggio' : 'Mensagem']: msg
+    const copy = cancelOrderCustomerCopy(loc, order.orderId);
+    await notifyCustomer(env, config, order, copy.subject, {
+      [copy.orderKey]: order.orderId,
+      Status: 'cancelled_by_user',
+      [copy.messageKey]: copy.msg
     });
   } catch (err) {
     console.warn('Cancel customer email:', order.orderId, err.message);

@@ -292,8 +292,25 @@ test('comprar DE/ES/PL sem texto EN no shell do checkout', () => {
 test('worker: funções de e-mail intl para de/es/pl/sl', () => {
   const src = fs.readFileSync(path.join(root, 'api/worker.js'), 'utf8');
   assert.match(src, /function intlPaidShipMessage/);
+  assert.match(src, /function pendingPaymentEmailFields/);
+  assert.match(src, /function packingSlipCopy/);
+  assert.match(src, /function cancelOrderCustomerCopy/);
   assert.match(src, /Sendungsverfolgung verfügbar/);
   assert.match(src, /Wöchentliche Erinnerung/);
   assert.match(src, /Sledenje na voljo/);
   assert.match(src, /Tedenski opomnik/);
+  assert.match(src, /Lieferschein/);
+  assert.match(src, /Bestellung storniert/);
+});
+
+test('admin.js: agregados têm campos i18n editáveis', () => {
+  const src = fs.readFileSync(path.join(jsDir, 'admin.js'), 'utf8');
+  const aggBlock = src.match(/const aggregatedFields = isAggregated \? `([\s\S]*?)` : '';/);
+  assert.ok(aggBlock, 'aggregatedFields');
+  const block = aggBlock[1];
+  for (const field of ['nameDe', 'nameEs', 'namePl', 'descriptionDe', 'filmTypeDe', 'filmTypeEs', 'filmTypePl']) {
+    assert.match(block, new RegExp(`data-field="${field}"`), `aggregated ${field}`);
+  }
+  assert.match(src, /if \(nameDe\) product\.nameDe = nameDe/);
+  assert.match(src, /if \(filmTypePl\) product\.filmTypePl = filmTypePl/);
 });
