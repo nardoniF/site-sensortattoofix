@@ -84,7 +84,7 @@
       }
       return 'en';
     }
-    const m = path.match(/^\/(en|it|de|es|pl)(\/|$)/);
+    const m = path.match(/^\/(en|it|de|es|pl|sl)(\/|$)/);
     return m ? m[1] : 'pt';
   }
 

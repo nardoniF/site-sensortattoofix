@@ -46,7 +46,9 @@ const NAME_PREFIX = {
     ['Trail Loop Nylon Comfort Band — ', 'Pasek Trail Loop z nylonu — '],
   ],
   sl: [
-    ['Screen protector — ', 'Zaščitna folija — '],
+    ['SensorTattooFix Optical Lens', 'Optična leča SensorTattooFix'],
+    ['SensorTattooFix Smartband Lens', 'Leča SensorTattooFix za pametno zapestnico'],
+    ['Sensor Tattoo Fix Lens', 'Optična leča Sensor Tattoo Fix'],
     ['Alpine Loop Braided Nylon Band — ', 'Trak Alpine Loop iz pletenega najlona — '],
     ['Luxury Stainless Steel Link Band — ', 'Luksuzna jeklena zapestnica — '],
     ['Magnetic Milanese Steel Band — ', 'Magnetna milanska jeklena zapestnica — '],

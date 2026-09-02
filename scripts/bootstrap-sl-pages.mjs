@@ -39,6 +39,7 @@ for (const page of PAGES) {
 const deIndex = fs.readFileSync(path.join(ROOT, 'de', 'index.html'), 'utf8');
 const slIndex = patchFromDe(deIndex, 'index.html')
   .replace(/stf-i18n-de-overrides/g, 'stf-i18n-sl-overrides')
+  .replace(/<li class="nav-lang-stack">[\s\S]*?<\/li>/, '<li class="nav-lang-stack" aria-label="Language"></li>')
   .replace(/WhatsApp flutuante DE/g, 'WhatsApp flutuante SL')
   .replace(/Harmonie zwischen Tinte und Silizium/g, 'Mir med tinto in silicijem')
   .replace(/Offizieller Shop/g, 'Uradna trgovina')
