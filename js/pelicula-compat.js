@@ -146,6 +146,12 @@ window.STF_PELICULA = (function () {
     return isEn() || isIt() || !!(window.STF_I18N?.isLocalized?.());
   }
 
+  /** EN + DE/ES/PL + .com: nomes/descrições do catálogo em inglês (fallback nameEn). */
+  function usesEnProductCopy() {
+    if (isIt()) return false;
+    return isEn() || !!(window.STF_I18N?.isDe?.() || window.STF_I18N?.isEs?.() || window.STF_I18N?.isPl?.());
+  }
+
   function isKitProduct(product) {
     const id = String(product?.id || product?.slug || '');
     if (id === 'kit-sensor-tattoofix') return true;
@@ -161,7 +167,7 @@ window.STF_PELICULA = (function () {
       if (product.nameEn) return product.nameEn;
       if (isKitProduct(product)) return KIT_COPY.it.name;
     }
-    if (isEn()) {
+    if (usesEnProductCopy()) {
       if (product.nameEn) return product.nameEn;
       if (isKitProduct(product)) return KIT_COPY.en.name;
     }
@@ -175,7 +181,7 @@ window.STF_PELICULA = (function () {
       if (product.descriptionEn) return product.descriptionEn;
       if (isKitProduct(product)) return KIT_COPY.it.description;
     }
-    if (isEn()) {
+    if (usesEnProductCopy()) {
       if (product.descriptionEn) return product.descriptionEn;
       if (isKitProduct(product)) return KIT_COPY.en.description;
     }
@@ -209,8 +215,8 @@ window.STF_PELICULA = (function () {
     const type = productType(product);
     const key = type === 'pulseira' ? 'agregados.descPulseira' : 'agregados.descPelicula';
     const fallback = type === 'pulseira'
-      ? (isIt() ? 'Comfort e stile nella stessa spedizione' : isEn() ? 'Comfort and style in the same shipment' : 'Conforto e estilo no mesmo envio')
-      : (isIt() ? 'Protegge lo schermo dello smartwatch dai graffi' : isEn() ? 'Protects your smartwatch screen from scratches' : 'Protege a tela do seu smartwatch dos riscos');
+      ? (isIt() ? 'Comfort e stile nella stessa spedizione' : usesEnProductCopy() ? 'Comfort and style in the same shipment' : 'Conforto e estilo no mesmo envio')
+      : (isIt() ? 'Protegge lo schermo dello smartwatch dai graffi' : usesEnProductCopy() ? 'Protects your smartwatch screen from scratches' : 'Protege a tela do seu smartwatch dos riscos');
     return window.STF_I18N?.t?.(key) || fallback;
   }
 
@@ -219,12 +225,12 @@ window.STF_PELICULA = (function () {
     if (product.filmType && !isLocalized()) return product.filmType;
     if (product.packaging === 'box') {
       if (isIt()) return 'ceramica';
-      if (isEn()) return 'ceramic';
+      if (usesEnProductCopy()) return 'ceramic';
       return 'cerâmica';
     }
     if (product.packaging === 'saquinho') {
       if (isIt()) return 'membrana flessibile';
-      if (isEn()) return 'flexible membrane';
+      if (usesEnProductCopy()) return 'flexible membrane';
       return 'membrana flexível';
     }
     return isLocalized() ? '' : (product.filmType || '');
@@ -287,7 +293,7 @@ window.STF_PELICULA = (function () {
       return label;
     }
     const filmType = filmTypeLabel(product);
-    let label = isIt() ? 'Pellicola schermo' : isEn() ? 'Screen protector' : 'Película de tela';
+    let label = isIt() ? 'Pellicola schermo' : usesEnProductCopy() ? 'Screen protector' : 'Película de tela';
     if (filmType) label += ` · ${filmType}`;
     return label;
   }

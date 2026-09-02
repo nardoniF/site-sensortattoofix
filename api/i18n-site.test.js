@@ -158,3 +158,51 @@ test('overrides DE/ES/PL definem ondeComprar e conta intl', () => {
     assert.ok(o['ondeComprar.trustEn'], `${file} ondeComprar.trustEn`);
   }
 });
+
+function loadPelicula(location) {
+  const loc = { hostname: location.hostname, pathname: location.pathname, search: '', hash: '' };
+  const window = {
+    location: loc,
+    STF_I18N: location.i18n || {},
+    STF_SITE: location.site || {}
+  };
+  const sandbox = { window, globalThis: window, location: loc, console };
+  vm.runInNewContext(fs.readFileSync(path.join(jsDir, 'pelicula-compat.js'), 'utf8'), sandbox, { filename: 'pelicula-compat.js' });
+  return sandbox.window.STF_PELICULA;
+}
+
+test('STF_PELICULA: /es/ usa nameEn em vez de name PT', () => {
+  const p = loadPelicula({
+    hostname: 'www.sensortattoofix.com.br',
+    pathname: '/es/loja.html',
+    i18n: { isEs: () => true, isIt: () => false, isEn: () => false, isDe: () => false, isPl: () => false, isLocalized: () => true }
+  });
+  const product = {
+    name: 'Kit Sensor Tattoo Fix',
+    nameEn: 'Sensor Tattoo Fix Lens',
+    description: 'Descrição em português',
+    descriptionEn: 'English product description'
+  };
+  assert.equal(p.productLabel(product), 'Sensor Tattoo Fix Lens');
+  assert.equal(p.productDescription(product), 'English product description');
+});
+
+test('STF_PELICULA: /de/ e /pl/ também usam nameEn', () => {
+  for (const lang of ['de', 'pl']) {
+    const flags = { de: 'isDe', pl: 'isPl' }[lang];
+    const p = loadPelicula({
+      hostname: 'www.sensortattoofix.com.br',
+      pathname: `/${lang}/loja.html`,
+      i18n: {
+        [flags]: () => true,
+        isIt: () => false,
+        isEn: () => false,
+        isEs: () => false,
+        isDe: () => lang === 'de',
+        isPl: () => lang === 'pl',
+        isLocalized: () => true
+      }
+    });
+    assert.equal(p.productLabel({ name: 'Nome PT', nameEn: 'EN name' }), 'EN name', lang);
+  }
+});

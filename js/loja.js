@@ -85,8 +85,11 @@
     }
     grid.innerHTML = products.map((p) => {
       const slug = p.slug || p.id || 'kit-sensor-tattoofix';
-      const label = window.STF_PELICULA?.productLabel?.(p) || p.name;
-      const desc = window.STF_PELICULA?.productDescription?.(p) || p.description || '';
+      const label = window.STF_PELICULA?.productLabel?.(p)
+        || (window.STF_I18N?.isLocalized?.() ? (p.nameEn || p.name) : p.name);
+      const desc = window.STF_PELICULA?.productDescription?.(p)
+        || (window.STF_I18N?.isLocalized?.() && !window.STF_I18N?.isIt?.() ? (p.descriptionEn || p.description) : p.description)
+        || '';
       const rawImg = p.image || 'images/brand/sensortattoofix.jpg';
       const img = window.STF_PRODUCT_MERGE?.resolveProductImage
         ? window.STF_PRODUCT_MERGE.resolveProductImage(rawImg, p)
@@ -127,7 +130,8 @@
           return;
         }
         window.STF_CART.add(p, 1);
-        const label = window.STF_PELICULA?.productLabel?.(p) || p.name;
+        const label = window.STF_PELICULA?.productLabel?.(p)
+          || (window.STF_I18N?.isLocalized?.() ? (p.nameEn || p.name) : p.name);
         flash(L('store.addedName', { name: label }));
         refreshBuyButtons();
       });

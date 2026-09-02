@@ -175,10 +175,13 @@
         const cfg = await StoreConfig.load();
         const p = window.STF_STORE_PRICE?.primaryProduct(cfg) || cfg.product;
         if (p) {
-          productName = window.STF_PELICULA?.productLabel?.(p) || (isIt ? (p.nameIt || p.nameEn) : isEn ? p.nameEn : null) || p.name || productName;
+          productName = window.STF_PELICULA?.productLabel?.(p)
+            || (isIt ? (p.nameIt || p.nameEn) : (isEn || isDe || isEs || isPl) ? p.nameEn : null)
+            || p.name
+            || productName;
           productDescription = window.STF_PELICULA?.productDescription?.(p)
-            || (isIt ? (p.descriptionIt || p.descriptionEn) : isEn ? p.descriptionEn : null)
-            || (isEn || isIt ? productDescription : p.description)
+            || (isIt ? (p.descriptionIt || p.descriptionEn) : (isEn || isDe || isEs || isPl) ? p.descriptionEn : null)
+            || ((isEn || isIt || isDe || isEs || isPl) ? productDescription : p.description)
             || productDescription;
           if (p.price != null) productPrice = Number(p.price);
           if (p.image) productImage = p.image.startsWith('http') ? p.image : SITE + '/' + p.image.replace(/^\//, '');
