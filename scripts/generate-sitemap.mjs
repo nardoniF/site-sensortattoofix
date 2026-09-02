@@ -1,13 +1,19 @@
 #!/usr/bin/env node
 /**
- * Gera sitemap.xml com todas as versões de idioma + hreflang xhtml.
+ * Gera sitemaps por domínio (regra Google: <loc> só no mesmo host do sitemap).
+ * - sitemap.xml → apenas URLs sensortattoofix.com.br (PT, DE, ES, PL, SL)
+ * - sitemap-com.xml → apenas URLs sensortattoofix.com (EN, IT)
+ * Hreflang xhtml em cada entrada continua apontando para todos os idiomas.
  */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
 import {
-  HREFLANG_ORDER,
+  BR,
+  COM,
   PUBLIC_PAGES,
+  BR_SITEMAP_LANGS,
+  COM_SITEMAP_LANGS,
   hreflangUrl,
   xhtmlLinkTags,
 } from './hreflang-config.mjs';
@@ -28,30 +34,48 @@ const CHANGEFREQ = {
   'comunidade.html': 'daily',
 };
 
-const LOCALE_LANGS = ['pt-BR', 'en', 'it', 'de', 'es', 'pl', 'sl'];
-
-const urls = [];
-
-for (const page of PUBLIC_PAGES) {
-  const xhtml = xhtmlLinkTags(page);
-  for (const lang of LOCALE_LANGS) {
-    const loc = hreflangUrl(lang, page);
-    urls.push(`  <url>
+function buildUrlset(langs) {
+  const urls = [];
+  for (const page of PUBLIC_PAGES) {
+    const xhtml = xhtmlLinkTags(page);
+    for (const lang of langs) {
+      const loc = hreflangUrl(lang, page);
+      urls.push(`  <url>
     <loc>${loc}</loc>
 ${xhtml}
     <changefreq>${CHANGEFREQ[page]}</changefreq>
     <priority>${PRIORITY[page]}</priority>
   </url>`);
+    }
   }
-}
-
-const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls.join('\n')}
 </urlset>
 `;
+}
 
-const out = path.join(ROOT, 'sitemap.xml');
-fs.writeFileSync(out, xml);
-console.log(`Wrote ${out} — ${urls.length} URLs (${PUBLIC_PAGES.length} páginas × ${LOCALE_LANGS.length} idiomas)`);
+function assertLocsOnly(xml, allowedPrefix, file) {
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  for (const loc of locs) {
+    if (!loc.startsWith(allowedPrefix)) {
+      throw new Error(`${file}: <loc> fora do domínio permitido: ${loc}`);
+    }
+  }
+}
+
+const brXml = buildUrlset(BR_SITEMAP_LANGS);
+const comXml = buildUrlset(COM_SITEMAP_LANGS);
+assertLocsOnly(brXml, BR, 'sitemap.xml');
+assertLocsOnly(comXml, COM, 'sitemap-com.xml');
+
+const brOut = path.join(ROOT, 'sitemap.xml');
+const comOut = path.join(ROOT, 'sitemap-com.xml');
+fs.writeFileSync(brOut, brXml);
+fs.writeFileSync(comOut, comXml);
+
+const brCount = BR_SITEMAP_LANGS.length * PUBLIC_PAGES.length;
+const comCount = COM_SITEMAP_LANGS.length * PUBLIC_PAGES.length;
+console.log(`Wrote ${brOut} — ${brCount} URLs (.com.br)`);
+console.log(`Wrote ${comOut} — ${comCount} URLs (.com)`);

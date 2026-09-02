@@ -14,30 +14,6 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://www.sensortattoofix.com/</loc>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/"/>
-    <xhtml:link rel="alternate" hreflang="sl" href="https://www.sensortattoofix.com.br/sl/"/>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://www.sensortattoofix.com/it/</loc>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/"/>
-    <xhtml:link rel="alternate" hreflang="sl" href="https://www.sensortattoofix.com.br/sl/"/>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
     <loc>https://www.sensortattoofix.com.br/de/</loc>
     <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/"/>
@@ -87,30 +63,6 @@
   </url>
   <url>
     <loc>https://www.sensortattoofix.com.br/loja.html</loc>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="sl" href="https://www.sensortattoofix.com.br/sl/loja.html"/>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.sensortattoofix.com/loja.html</loc>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/loja.html"/>
-    <xhtml:link rel="alternate" hreflang="sl" href="https://www.sensortattoofix.com.br/sl/loja.html"/>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.sensortattoofix.com/it/loja.html</loc>
     <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/loja.html"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/loja.html"/>
     <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/loja.html"/>
@@ -182,30 +134,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.sensortattoofix.com/onde-comprar.html</loc>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="sl" href="https://www.sensortattoofix.com.br/sl/onde-comprar.html"/>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.sensortattoofix.com/it/onde-comprar.html</loc>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/onde-comprar.html"/>
-    <xhtml:link rel="alternate" hreflang="sl" href="https://www.sensortattoofix.com.br/sl/onde-comprar.html"/>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://www.sensortattoofix.com.br/de/onde-comprar.html</loc>
     <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/onde-comprar.html"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/onde-comprar.html"/>
@@ -255,30 +183,6 @@
   </url>
   <url>
     <loc>https://www.sensortattoofix.com.br/comunidade.html</loc>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="sl" href="https://www.sensortattoofix.com.br/sl/comunidade.html"/>
-    <changefreq>daily</changefreq>
-    <priority>0.75</priority>
-  </url>
-  <url>
-    <loc>https://www.sensortattoofix.com/comunidade.html</loc>
-    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/comunidade.html"/>
-    <xhtml:link rel="alternate" hreflang="sl" href="https://www.sensortattoofix.com.br/sl/comunidade.html"/>
-    <changefreq>daily</changefreq>
-    <priority>0.75</priority>
-  </url>
-  <url>
-    <loc>https://www.sensortattoofix.com/it/comunidade.html</loc>
     <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.sensortattoofix.com.br/comunidade.html"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://www.sensortattoofix.com/comunidade.html"/>
     <xhtml:link rel="alternate" hreflang="it" href="https://www.sensortattoofix.com/it/comunidade.html"/>

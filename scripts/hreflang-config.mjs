@@ -18,6 +18,10 @@ export const ALL_PAGES = [...PUBLIC_PAGES, ...NOINDEX_PAGES];
 
 export const LANG_DIRS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
 
+/** Idiomas cujo <loc> canônico fica em cada domínio (regra do Search Console). */
+export const BR_SITEMAP_LANGS = ['pt-BR', 'de', 'es', 'pl', 'sl'];
+export const COM_SITEMAP_LANGS = ['en', 'it'];
+
 /** @param {'pt-BR'|'en'|'it'|'de'|'es'|'pl'|'sl'|'x-default'} lang */
 export function hreflangUrl(lang, page) {
   const file = page === 'index' ? '' : page;

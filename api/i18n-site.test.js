@@ -316,13 +316,24 @@ test('hreflang: homes incluem sl/de e sem URLs quebradas', () => {
   }
 });
 
-test('sitemap.xml: 28 URLs públicas com hreflang sl/de', () => {
-  const xml = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
-  assert.match(xml, /hreflang="sl"/);
-  assert.match(xml, /sensortattoofix\.com\.br\/de\//);
-  assert.match(xml, /sensortattoofix\.com\/loja\.html/);
-  const locCount = (xml.match(/<loc>/g) || []).length;
-  assert.equal(locCount, 28);
+test('sitemap.xml: só URLs .com.br; sitemap-com.xml só .com', () => {
+  const brXml = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
+  const comXml = fs.readFileSync(path.join(root, 'sitemap-com.xml'), 'utf8');
+  const brLocs = [...brXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  const comLocs = [...comXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  assert.equal(brLocs.length, 20);
+  assert.equal(comLocs.length, 8);
+  for (const loc of brLocs) {
+    assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\.br\//, `loc .com.br: ${loc}`);
+    assert.doesNotMatch(loc, /sensortattoofix\.com\//, `loc cruzado em sitemap.xml: ${loc}`);
+  }
+  for (const loc of comLocs) {
+    assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\//, `loc .com: ${loc}`);
+    assert.doesNotMatch(loc, /sensortattoofix\.com\.br/, `loc cruzado em sitemap-com.xml: ${loc}`);
+  }
+  assert.match(brXml, /hreflang="sl"/);
+  assert.match(brXml, /xhtml:link[^>]+hreflang="en"[^>]+href="https:\/\/www\.sensortattoofix\.com\//);
+  assert.match(comXml, /sensortattoofix\.com\.br\/de\//);
 });
 
 test('worker: funções de e-mail intl para de/es/pl/sl', () => {
