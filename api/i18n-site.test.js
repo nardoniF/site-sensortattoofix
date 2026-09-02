@@ -276,8 +276,18 @@ test('shell DE/ES/PL sem snippets EN estáticos (loja/comprar/conta)', () => {
   }
 });
 
-test('buildTestOrder preserva checkoutLocale de/es/pl', () => {
+test('comprar DE/ES/PL sem texto EN no shell do checkout', () => {
+  const EN = ['Your details', 'Discount code', 'Secure checkout', 'Payment method', 'Place order', 'Select country'];
+  for (const lang of ['de', 'es', 'pl']) {
+    const html = fs.readFileSync(path.join(root, lang, 'comprar.html'), 'utf8');
+    const found = EN.filter((s) => html.includes(s));
+    assert.equal(found.length, 0, `${lang}/comprar.html: ${found.join(', ')}`);
+  }
+});
+
+test('worker: funções de e-mail intl para de/es/pl', () => {
   const src = fs.readFileSync(path.join(root, 'api/worker.js'), 'utf8');
-  assert.match(src, /checkoutLocale: isIntl \? locale : 'pt'/);
-  assert.match(src, /if \(loc === 'de'\)/);
+  assert.match(src, /function intlPaidShipMessage/);
+  assert.match(src, /Sendungsverfolgung verfügbar/);
+  assert.match(src, /Wöchentliche Erinnerung/);
 });

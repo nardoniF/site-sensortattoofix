@@ -76,7 +76,7 @@
                     <form id="conta-reset-form" class="admin-form">
                         <p class="admin-meta">Choose a new password for your account.</p>
                         <input type="hidden" name="token" id="conta-reset-token">
-                        <label>New password<input type="password" name="password" required minlength="6" autocomplete="new-password"></label>
+                        <label>Neues Passwort<input type="password" name="password" required minlength="6" autocomplete="new-password"></label>
                         <label>Confirm password<input type="password" name="passwordConfirm" required minlength="6" autocomplete="new-password"></label>
                         <button type="submit" class="btn-primary">Save new password</button>
                         <p class="conta-forgot-row"><button type="button" class="conta-forgot-link" data-conta-show="login">Back to sign in</button></p>
@@ -86,12 +86,12 @@
 
                 <div data-conta-panel="register" hidden>
                     <form id="conta-register-form" class="admin-form">
-                        <label>Full name<input type="text" name="nome" required></label>
+                        <label>Vollständiger Name<input type="text" name="nome" required></label>
                         <label>E-Mail<input type="email" name="email" required></label>
                         <label>WhatsApp<input type="tel" name="telefone" required></label>
-                        <label>Tax ID <small>(optional)</small><input type="text" name="cpf" placeholder="Optional"></label>
-                        <label>Password (min. 6 characters)<input type="password" name="password" required minlength="6"></label>
-                        <button type="submit" class="btn-primary">Create account</button>
+                        <label>Ausweisdokument <small>(optional)</small><input type="text" name="cpf" placeholder="Optional"></label>
+                        <label>Passwort (mind. 6 Zeichen)<input type="password" name="password" required minlength="6"></label>
+                        <button type="submit" class="btn-primary">Konto erstellen</button>
                         <p id="conta-register-status" class="admin-status form-status" hidden></p>
                     </form>
                 </div>
@@ -101,7 +101,7 @@
             <section id="conta-panel" class="admin-card" hidden>
                 <div class="admin-panel-header">
                     <div>
-                        <h1>Hello, <span id="conta-user-name">Customer</span></h1>
+                        <h1>Hallo, <span id="conta-user-name">Kunde</span></h1>
                         <p class="admin-meta">Ihre Bestellungen im offiziellen Shop</p>
                     </div>
                     <button type="button" id="conta-logout" class="btn-secondary">Abmelden</button>
@@ -120,33 +120,33 @@
                 </div>
 
                 <div id="conta-panel-profile" data-conta-panel-view="profile" hidden>
-                    <p class="admin-meta">Update your details for checkout and order notifications. Email cannot be changed here.</p>
+                    <p class="admin-meta">Aktualisieren Sie Ihre Daten für Checkout und Bestellbenachrichtigungen. Die E-Mail kann hier nicht geändert werden.</p>
                     <form id="conta-profile-form" class="admin-form">
-                        <h3 class="conta-form-section">Personal details</h3>
+                        <h3 class="conta-form-section">Persönliche Daten</h3>
                         <div class="form-grid">
                             <label class="full">Full name<input type="text" name="nome" required></label>
                             <label>E-Mail<input type="email" name="email" readonly disabled></label>
                             <label>WhatsApp<input type="tel" name="telefone" required></label>
-                            <label>Tax ID <small>(optional)</small><input type="text" name="cpf" placeholder="Optional"></label>
+                            <label>Ausweisdokument <small>(optional)</small><input type="text" name="cpf" placeholder="Optional"></label>
                         </div>
-                        <h3 class="conta-form-section">Default shipping address</h3>
-                        <p class="admin-meta">Used to pre-fill checkout automatically.</p>
+                        <h3 class="conta-form-section">Standard-Lieferadresse</h3>
+                        <p class="admin-meta">Wird beim Checkout automatisch vorausgefüllt.</p>
                         <div class="form-grid">
-                            <label class="full">Country<input type="text" name="pais" placeholder="United States"></label>
-                            <label>Postal / ZIP code<input type="text" name="cep" id="conta-cep" autocomplete="postal-code"></label>
-                            <label class="span-2">Street address<input type="text" name="rua"></label>
-                            <label>Apt / number<input type="text" name="numero"></label>
-                            <label>City<input type="text" name="cidade"></label>
-                            <label>State / province<input type="text" name="uf" placeholder="CA"></label>
+                            <label class="full">Land<input type="text" name="pais" placeholder="United States"></label>
+                            <label>Postleitzahl<input type="text" name="cep" id="conta-cep" autocomplete="postal-code"></label>
+                            <label class="span-2">Straße und Hausnummer<input type="text" name="rua"></label>
+                            <label>Wohnung / Nr.<input type="text" name="numero"></label>
+                            <label>Stadt<input type="text" name="cidade"></label>
+                            <label>Bundesland / Provinz<input type="text" name="uf" placeholder="CA"></label>
                         </div>
-                        <h3 class="conta-form-section">Change password</h3>
-                        <p class="admin-meta">Leave blank if you do not want to change your password.</p>
+                        <h3 class="conta-form-section">Passwort ändern</h3>
+                        <p class="admin-meta">Leer lassen, wenn Sie das Passwort nicht ändern möchten.</p>
                         <div class="form-grid">
-                            <label>Current password<input type="password" name="senhaAtual" autocomplete="current-password"></label>
-                            <label>New password<input type="password" name="senhaNova" minlength="6" autocomplete="new-password"></label>
+                            <label>Aktuelles Passwort<input type="password" name="senhaAtual" autocomplete="current-password"></label>
+                            <label>Neues Passwort<input type="password" name="senhaNova" minlength="6" autocomplete="new-password"></label>
                         </div>
                         <div class="admin-form-actions">
-                            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save changes</button>
+                            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Änderungen speichern</button>
                         </div>
                         <p id="conta-profile-status" class="admin-status form-status" hidden></p>
                     </form>

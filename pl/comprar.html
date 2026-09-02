@@ -8,7 +8,7 @@
     <script src="../js/stf-site.js?v=7"></script>
     <script src="../js/ad-landing.js?v=5"></script>
     <title>Kasa | Sensor Tattoo Fix — Oficjalny Sklep</title>
-    <meta name="description" content="Official Sensor Tattoo Fix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked shipping in USD.">
+    <meta name="description" content="Oficjalna kasa Sensor Tattoo Fix — PayPal, karty, śledzenie przesyłki w USD.">
     <link rel="stylesheet" href="../style.css?v=3.05">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
@@ -44,56 +44,56 @@
                     <div id="checkout-product-album" class="checkout-product-album" hidden></div>
                     <div id="cart-sidebar-items" class="cart-sidebar-items"></div>
                     <div class="checkout-coupon" id="checkout-coupon">
-                        <label class="checkout-coupon-label" for="coupon-code">Discount code</label>
+                        <label class="checkout-coupon-label" for="coupon-code">Kod rabatowy</label>
                         <div class="checkout-coupon-row">
-                            <input type="text" id="coupon-code" maxlength="32" autocomplete="off" placeholder="e.g. SAVE10" autocapitalize="characters">
-                            <button type="button" id="btn-apply-coupon" class="btn-secondary">Apply</button>
+                            <input type="text" id="coupon-code" maxlength="32" autocomplete="off" placeholder="Np. MARIA10" autocapitalize="characters">
+                            <button type="button" id="btn-apply-coupon" class="btn-secondary">Zastosuj</button>
                         </div>
                         <p id="coupon-message" class="checkout-coupon-msg" hidden></p>
                     </div>
                     <div class="checkout-summary">
-                        <div class="summary-row"><span>Subtotal</span><strong id="summary-product">—</strong></div>
+                        <div class="summary-row"><span>Suma częściowa</span><strong id="summary-product">—</strong></div>
                         <div class="summary-row summary-discount" id="summary-discount-row" hidden>
-                            <span id="summary-discount-label">Discount</span>
+                            <span id="summary-discount-label">Rabat</span>
                             <strong id="summary-discount">—</strong>
                         </div>
-                        <div class="summary-row"><span id="summary-shipping-label">Shipping</span><strong id="summary-shipping">—</strong></div>
+                        <div class="summary-row"><span id="summary-shipping-label">Wysyłka</span><strong id="summary-shipping">—</strong></div>
                         <div class="summary-row summary-paypal" id="summary-paypal-row" hidden style="display:none">
-                            <span id="summary-paypal-label">PayPal fee</span><strong id="summary-paypal">—</strong>
+                            <span id="summary-paypal-label">Opłata PayPal</span><strong id="summary-paypal">—</strong>
                         </div>
-                        <div class="summary-row total"><span>Total</span><strong id="summary-total">—</strong></div>
+                        <div class="summary-row total"><span>Razem</span><strong id="summary-total">—</strong></div>
                     </div>
                     <div class="checkout-trust">
-                        <span><i class="fas fa-lock"></i> Secure checkout</span>
-                        <span><i class="fas fa-truck"></i> Tracked shipping</span>
-                        <span><i class="fas fa-envelope"></i> Email confirmation</span>
+                        <span><i class="fas fa-lock"></i> Bezpieczna płatność</span>
+                        <span><i class="fas fa-truck"></i> Śledzenie przesyłki</span>
+                        <span><i class="fas fa-envelope"></i> Potwierdzenie e-mailem</span>
                     </div>
-                    <a href="loja.html" class="cart-add-more"><i class="fas fa-plus"></i> Add more products</a>
+                    <a href="loja.html" class="cart-add-more"><i class="fas fa-plus"></i> Dodaj więcej produktów</a>
                 </div>
                 <div id="self-test-pay-wrap" class="self-test-pay-sidebar" hidden>
                     <button type="button" id="btn-skip-test-pay" class="btn-secondary btn-skip-test-pay">
-                        <i class="fas fa-flask"></i> Confirm test (no payment)
+                        <i class="fas fa-flask"></i> Potwierdź test (pomiń płatność)
                     </button>
-                    <p class="self-test-pay-hint">Test order detected — confirm without payment.</p>
+                    <p class="self-test-pay-hint">Wykryto zamówienie testowe — potwierdź bez płatności.</p>
                 </div>
                 <div id="pelicula-upsell" class="pelicula-upsell checkout-upsell-panel" hidden></div>
             </aside>
 
             <section class="checkout-content">
                 <div class="checkout-steps-bar">
-                    <div class="step-indicator active" data-step="1"><span>1</span> Details</div>
-                    <div class="step-indicator" data-step="2"><span>2</span> Payment</div>
-                    <div class="step-indicator" data-step="3"><span>3</span> Confirmation</div>
+                    <div class="step-indicator active" data-step="1"><span>1</span> Dane</div>
+                    <div class="step-indicator" data-step="2"><span>2</span> Płatność</div>
+                    <div class="step-indicator" data-step="3"><span>3</span> Potwierdzenie</div>
                 </div>
 
                 <form id="checkout-form" class="checkout-form" novalidate>
                     <div class="checkout-step active" data-step="1">
                         <div class="checkout-step-head">
-                            <h3>Your details</h3>
+                            <h3>Twoje dane</h3>
                             <div id="checkout-account-status" class="checkout-account-status">
                                 <div id="account-logged-wrap" class="account-logged-banner account-logged-compact" hidden>
-                                    <p><i class="fas fa-user-check"></i> Hello, <strong id="account-logged-name">Customer</strong> — you are signed in.</p>
-                                    <p class="checkout-hint">Your orders are in <a href="minha-conta.html">My Account</a>.</p>
+                                    <p><i class="fas fa-user-check"></i> Cześć, <strong id="account-logged-name">Kliencie</strong> — jesteś zalogowany.</p>
+                                    <p class="checkout-hint">Twoje zamówienia są w <a href="minha-conta.html">Moje konto</a>.</p>
                                 </div>
                             </div>
                         </div>
@@ -113,19 +113,19 @@
                         <div id="checkout-watch-block" class="checkout-watch-block" hidden>
                             <div class="checkout-watch-fields">
                                 <label class="checkout-watch-label">
-                                    <span data-i18n-label="form.watchBrand" data-i18n-required="1">Brand</span>
+                                    <span data-i18n-label="form.watchBrand" data-i18n-required="1">Marka</span>
                                     <select name="smartwatchBrand" id="smartwatch-brand-select" required aria-describedby="smartwatch-hint smartwatch-error">
-                                        <option value="">Select brand</option>
+                                        <option value="">Wybierz markę</option>
                                     </select>
                                 </label>
                                 <label class="checkout-watch-label">
                                     <span data-i18n-label="form.watchModel" data-i18n-required="1">Model</span>
                                     <select name="smartwatch" id="smartwatch-select" required aria-describedby="smartwatch-hint smartwatch-error" disabled>
-                                        <option value="">Select your model</option>
+                                        <option value="">Wybierz model</option>
                                     </select>
                                 </label>
                             </div>
-                            <p id="smartwatch-hint" class="checkout-watch-hint">The lens is made for your watch — pick brand and model before continuing.</p>
+                            <p id="smartwatch-hint" class="checkout-watch-hint">Soczewka jest dopasowana do Twojego zegarka — wybierz markę i model przed kontynuacją.</p>
                             <p id="smartwatch-sensor-warn" class="checkout-watch-sensor-warn" hidden role="status"></p>
                             <p id="smartwatch-error" class="field-error" hidden role="alert"></p>
                         </div>
@@ -133,126 +133,126 @@
                         <div id="observacoes-wrap" class="checkout-notes-block" hidden>
                             <label class="full" id="observacoes-label">
                                 <span class="checkout-notes-label-row">
-                                    <span id="observacoes-label-text">Notes (optional)</span>
-                                    <span class="stf-help-tip" tabindex="0" id="observacoes-help-tip" aria-label="Optional sensor measurement">
+                                    <span id="observacoes-label-text">Uwagi (opcjonalnie)</span>
+                                    <span class="stf-help-tip" tabindex="0" id="observacoes-help-tip" aria-label="Opcjonalny pomiar czujnika">
                                         <i class="fas fa-circle-info" aria-hidden="true"></i>
                                         <span class="stf-help-tip-pop stf-help-tip-pop--wide">
-                                            <img src="../images/home/relogio_sensor.jpg" alt="Smartwatch sensor diagram on the back">
-                                            <strong id="observacoes-measure-title">Precision cut</strong>
-                                            <p id="observacoes-measure-hint">For extra precision, measure the sensor diameter on the back of your watch (mm) with a ruler, edge to edge across the circle.</p>
+                                            <img src="../images/home/relogio_sensor.jpg" alt="Czujnik smartwatcha z tyłu">
+                                            <strong id="observacoes-measure-title">Precyzyjne cięcie</strong>
+                                            <p id="observacoes-measure-hint">Dla większej precyzji zmierz średnicę czujnika z tyłu zegarka (mm) linijką, od krawędzi do krawędzi okręgu.</p>
                                         </span>
                                     </span>
                                 </span>
-                                <textarea name="observacoes" id="observacoes" rows="3" placeholder="Optional: sensor diameter (mm), delivery instructions…"></textarea>
+                                <textarea name="observacoes" id="observacoes" rows="3" placeholder="Opcjonalnie: średnica czujnika (mm), instrukcje dostawy…"></textarea>
                             </label>
                             <p id="observacoes-error" class="field-error" hidden role="alert"></p>
                         </div>
 
                         <div id="account-create-wrap" class="checkout-account-block">
                             <div id="account-guest-wrap">
-                                <p class="checkout-account-title"><i class="fas fa-user-plus"></i> Account (optional)</p>
+                                <p class="checkout-account-title"><i class="fas fa-user-plus"></i> Konto (opcjonalnie)</p>
                                 <div class="conta-tabs checkout-account-tabs">
-                                    <button type="button" class="conta-tab active" data-checkout-account-tab="register">Create account</button>
-                                    <button type="button" class="conta-tab" data-checkout-account-tab="login">I have an account</button>
+                                    <button type="button" class="conta-tab active" data-checkout-account-tab="register">Utwórz konto</button>
+                                    <button type="button" class="conta-tab" data-checkout-account-tab="login">Mam już konto</button>
                                 </div>
                                 <div id="checkout-account-register">
                                     <label class="account-check">
                                         <input type="checkbox" name="criarConta" id="criar-conta" checked>
-                                        <span>Create an account to track orders (recommended)</span>
+                                        <span>Utwórz konto, aby śledzić zamówienia (zalecane)</span>
                                     </label>
                                     <label id="senha-wrap" class="checkout-field checkout-field-password">
-                                        <span id="senha-label-text" class="checkout-field-label">Account password (min. 6 characters)</span>
+                                        <span id="senha-label-text" class="checkout-field-label">Hasło konta (min. 6 znaków)</span>
                                         <span class="checkout-password-wrap">
-                                            <input type="password" name="senha" id="checkout-senha" minlength="6" autocomplete="new-password" placeholder="Create your password">
-                                            <button type="button" class="checkout-password-toggle" id="checkout-senha-toggle" aria-label="Show password" aria-pressed="false">
+                                            <input type="password" name="senha" id="checkout-senha" minlength="6" autocomplete="new-password" placeholder="Utwórz hasło">
+                                            <button type="button" class="checkout-password-toggle" id="checkout-senha-toggle" aria-label="Pokaż hasło" aria-pressed="false">
                                                 <i class="fas fa-eye" aria-hidden="true"></i>
                                             </button>
                                         </span>
                                     </label>
                                 </div>
                                 <div id="checkout-account-login" hidden>
-                                    <p class="checkout-hint">Sign in to fill in your details automatically.</p>
+                                    <p class="checkout-hint">Zaloguj się, aby automatycznie wypełnić dane.</p>
                                     <label class="checkout-field">
-                                        <span class="checkout-field-label">Account email</span>
-                                        <input type="email" id="checkout-login-email" autocomplete="username" placeholder="you@email.com">
+                                        <span class="checkout-field-label">E-mail konta</span>
+                                        <input type="email" id="checkout-login-email" autocomplete="username" placeholder="twoj@email.pl">
                                     </label>
                                     <label class="checkout-field checkout-field-password">
-                                        <span class="checkout-field-label">Password</span>
+                                        <span class="checkout-field-label">Hasło</span>
                                         <span class="checkout-password-wrap">
-                                            <input type="password" id="checkout-login-senha" autocomplete="current-password" placeholder="Your password">
-                                            <button type="button" class="checkout-password-toggle" id="checkout-login-senha-toggle" aria-label="Show password" aria-pressed="false">
+                                            <input type="password" id="checkout-login-senha" autocomplete="current-password" placeholder="Twoje hasło">
+                                            <button type="button" class="checkout-password-toggle" id="checkout-login-senha-toggle" aria-label="Pokaż hasło" aria-pressed="false">
                                                 <i class="fas fa-eye" aria-hidden="true"></i>
                                             </button>
                                         </span>
                                     </label>
-                                    <button type="button" id="btn-checkout-login" class="btn-secondary"><i class="fas fa-sign-in-alt"></i> Sign in</button>
+                                    <button type="button" id="btn-checkout-login" class="btn-secondary"><i class="fas fa-sign-in-alt"></i> Zaloguj się</button>
                                     <p class="conta-forgot-row"><a class="conta-forgot-link" href="minha-conta.html?forgot=1" id="checkout-forgot-link">Zapomniałeś hasła?</a></p>
                                     <p id="checkout-login-status" class="admin-status form-status" hidden></p>
                                 </div>
                             </div>
                         </div>
 
-                        <h3>Shipping destination</h3>
+                        <h3>Adres dostawy</h3>
                         <div class="form-grid">
                             <label class="full" data-i18n-label="form.country" data-i18n-required="1">
                                 <select name="paisCode" id="pais-code" required>
-                                    <option value="">Select country</option>
+                                    <option value="">Wybierz kraj</option>
                                 </select>
                             </label>
                         </div>
 
                         <div id="address-intl">
                             <div class="form-grid">
-                                <label class="full" data-i18n-label="form.streetIntl" data-i18n-required="1"><input type="text" name="ruaIntl" id="rua-intl" placeholder="10 Main Street" autocomplete="off"></label>
+                                <label class="full" data-i18n-label="form.streetIntl" data-i18n-required="1"><input type="text" name="ruaIntl" id="rua-intl" placeholder="10 Przykładowa" autocomplete="off"></label>
                                 <label data-i18n-label="form.postal" data-i18n-required="1"><input type="text" name="postalIntl" id="postal-intl" autocomplete="postal-code"></label>
                                 <label data-i18n-label="form.city" data-i18n-required="1"><input type="text" name="cidadeIntl" id="cidade-intl" autocomplete="address-level2"></label>
-                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="State / province" autocomplete="address-level1"></label>
+                                <label data-i18n-label="form.stateIntl"><input type="text" name="ufIntl" id="uf-intl" placeholder="Województwo / region" autocomplete="address-level1"></label>
                             </div>
                         </div>
                         <div id="shipping-options-wrap" class="shipping-options-wrap" hidden>
-                            <h4 class="shipping-options-title">Choose shipping</h4>
-                            <div id="shipping-options" class="shipping-options" role="radiogroup" aria-label="Shipping options"></div>
+                            <h4 class="shipping-options-title">Wybierz wysyłkę</h4>
+                            <div id="shipping-options" class="shipping-options" role="radiogroup" aria-label="Opcje wysyłki"></div>
                         </div>
-                        <p id="shipping-hint" class="shipping-hint">Enter your destination to calculate shipping.</p>
+                        <p id="shipping-hint" class="shipping-hint">Podaj adres dostawy, aby obliczyć wysyłkę.</p>
                     </div>
 
                     <div class="checkout-step" data-step="2">
-                        <h3>Payment method</h3>
+                        <h3>Metoda płatności</h3>
                         <div id="payment-options-br" class="payment-options" hidden>
                             <label class="payment-option">
                                 <input type="radio" name="pagamento" value="CARTAO">
-                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Credit card</strong></div></div>
+                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Karta kredytowa</strong></div></div>
                             </label>
                         </div>
                         <div id="payment-options-intl" class="payment-options">
                             <label class="payment-option payment-option-stripe" hidden>
                                 <input type="radio" name="pagamento" value="STRIPE" disabled>
-                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Card / Apple Pay / Google Pay</strong><small>Secure checkout via Stripe · charged in USD</small></div></div>
+                                <div class="payment-card"><i class="fas fa-credit-card"></i><div><strong>Card / Apple Pay / Google Pay</strong><small>Bezpieczna płatność via Stripe · charged in USD</small></div></div>
                             </label>
                             <label class="payment-option payment-option-paypal">
                                 <input type="radio" name="pagamento" value="PAYPAL" checked>
-                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>PayPal balance, card or debit · USD</small></div></div>
+                                <div class="payment-card payment-card-paypal"><i class="fab fa-paypal"></i><div><strong>PayPal</strong><small>Saldo PayPal, karta lub debet · USD</small></div></div>
                             </label>
                         </div>
                         <div id="payment-notice-br" class="checkout-notice" hidden></div>
-                        <div id="payment-notice-intl" class="checkout-notice"><i class="fas fa-info-circle"></i> Charged in USD · tracked shipping · confirmation by email. Questions? <a href="mailto:support@sensortattoofix.com">Email us</a>.</div>
+                        <div id="payment-notice-intl" class="checkout-notice"><i class="fas fa-info-circle"></i> Obciążenie w USD · śledzenie przesyłki · potwierdzenie e-mailem. Pytania? <a href="mailto:support@sensortattoofix.com">E-mail</a>.</div>
 
                         <div id="intl-embedded-pay" class="intl-embedded-pay" hidden>
                             <div id="intl-stripe-wrap" class="intl-pay-section" hidden>
                                 <div id="stripe-payment-element" class="stripe-payment-element"></div>
                                 <div id="stripe-pay-error" class="checkout-pay-error" role="alert" hidden></div>
                                 <button type="button" id="btn-stripe-confirm" class="btn-primary btn-stripe-confirm" hidden>
-                                    <i class="fas fa-lock"></i> Complete payment
+                                    <i class="fas fa-lock"></i> Dokończ płatność
                                 </button>
                                 <a id="stripe-redirect-link" class="stripe-redirect-link paypal-redirect-link" href="#" target="_blank" rel="noopener" hidden>
-                                    <i class="fas fa-external-link-alt"></i> Continue on Stripe.com
+                                    <i class="fas fa-external-link-alt"></i> Kontynuuj na Stripe.com
                                 </a>
                             </div>
                             <div id="intl-paypal-wrap" class="intl-pay-section" hidden>
                                 <div id="paypal-button-container"></div>
                                 <div id="paypal-wallet-buttons" class="paypal-wallet-buttons"></div>
                                 <a id="paypal-redirect-link" class="paypal-redirect-link" href="#" target="_blank" rel="noopener" hidden>
-                                    <i class="fab fa-paypal"></i> Continue on PayPal.com
+                                    <i class="fab fa-paypal"></i> Kontynuuj na PayPal.com
                                 </a>
                             </div>
                         </div>
@@ -261,29 +261,29 @@
                     <div class="checkout-step" data-step="3">
                         <div id="payment-panel" class="pix-panel">
                             <div class="pix-success-icon"><i class="fas fa-check-circle"></i></div>
-                            <h3 id="confirm-title">Order placed!</h3>
-                            <p>Order <strong id="order-id">—</strong></p>
-                            <p class="pix-amount-label">Total: <strong id="pix-amount">—</strong></p>
+                            <h3 id="confirm-title">Zamówienie złożone!</h3>
+                            <p>Zamówienie <strong id="order-id">—</strong></p>
+                            <p class="pix-amount-label">Razem: <strong id="pix-amount">—</strong></p>
                             <div id="payment-status" class="payment-status waiting" hidden></div>
                             <div id="pix-ui" class="checkout-pix-ui" hidden></div>
                             <div id="card-ui" class="checkout-card-ui" hidden></div>
                             <div id="paypal-ui" class="checkout-paypal-ui" hidden></div>
-                            <p class="checkout-hint" id="confirm-hint">Confirmation will be sent by email automatically.</p>
+                            <p class="checkout-hint" id="confirm-hint">Potwierdzenie zostanie wysłane automatycznie e-mailem.</p>
                         </div>
                     </div>
 
                     <div class="checkout-actions">
                         <button type="button" id="btn-back" class="btn-secondary btn-checkout-back" style="display:none">
                             <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-arrow-left"></i></span>
-                            <span class="btn-checkout-label">Back</span>
+                            <span class="btn-checkout-label">Wstecz</span>
                         </button>
                         <button type="button" id="btn-next" class="btn-primary btn-checkout-next" style="display:none">
-                            <span class="btn-checkout-label">Continue</span>
+                            <span class="btn-checkout-label">Kontynuuj</span>
                             <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
                         </button>
                         <button type="button" id="btn-pay" class="btn-primary btn-checkout-pay" style="display:none">
                             <span class="btn-checkout-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
-                            <span class="btn-checkout-label">Place order</span>
+                            <span class="btn-checkout-label">Złóż zamówienie</span>
                         </button>
                     </div>
                 </form>
@@ -292,7 +292,7 @@
     </main>
 
     <div id="stf-product-lightbox" class="stf-product-lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="stf-lightbox-caption">
-        <button type="button" class="stf-lightbox-close" aria-label="Close">&times;</button>
+        <button type="button" class="stf-lightbox-close" aria-label="Zamknij">&times;</button>
         <figure class="stf-lightbox-figure">
             <img id="stf-lightbox-img" src="" alt="">
             <figcaption id="stf-lightbox-caption"></figcaption>

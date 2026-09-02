@@ -2828,6 +2828,54 @@ function isWesternIntlEmailLocale(loc) {
   return loc === 'en' || loc === 'de' || loc === 'es' || loc === 'pl';
 }
 
+function customerFieldLabel(loc) {
+  if (loc === 'en') return 'Customer';
+  if (loc === 'de') return 'Kunde';
+  if (loc === 'es' || loc === 'it') return 'Cliente';
+  if (loc === 'pl') return 'Klient';
+  return 'Cliente';
+}
+
+function intlPaidShipMessage(loc, kind, ctx = {}) {
+  const { hours, url } = ctx;
+  const M = {
+    de: {
+      uberTrack: `Uber-Lieferung bestätigt. Verfolgen Sie hier: ${url}`,
+      uberPending: 'Uber-Lieferung angefordert. Sie erhalten den Tracking-Link in Kürze per E-Mail.',
+      motoboy: `Ihre Bestellung wird innerhalb von ca. ${hours} Stunden per Kurier zugestellt. Der Fahrer kann Sie bei Bedarf kontaktieren.`,
+      intlLens: 'Ihre internationale Linse wird innerhalb von 2 Werktagen versendet. Sie erhalten die Sendungsverfolgung per E-Mail.',
+      intlKit: 'Ihr Prime-Kit wird innerhalb von 2 Werktagen versendet. Sie erhalten die Sendungsverfolgung per E-Mail.',
+      default: 'Ihr Kit wird innerhalb von 2 Werktagen versendet. Sie erhalten die Sendungsverfolgung per E-Mail.',
+    },
+    es: {
+      uberTrack: `Entrega Uber confirmada. Sigue aquí: ${url}`,
+      uberPending: 'Entrega Uber solicitada. Recibirás el enlace de seguimiento por email en breve.',
+      motoboy: `Tu pedido será entregado por mensajero en unas ${hours} horas. El repartidor puede contactarte si es necesario.`,
+      intlLens: 'Tu lente internacional se enviará en 2 días laborables. Recibirás el seguimiento por email.',
+      intlKit: 'Tu kit Prime se enviará en 2 días laborables. Recibirás el seguimiento por email.',
+      default: 'Tu kit se enviará en 2 días laborables. Recibirás el seguimiento por email.',
+    },
+    pl: {
+      uberTrack: `Dostawa Uber potwierdzona. Śledź tutaj: ${url}`,
+      uberPending: 'Zamówiono dostawę Uber. Link do śledzenia otrzymasz wkrótce e-mailem.',
+      motoboy: `Twoje zamówienie zostanie dostarczone kurierem w ciągu ok. ${hours} godzin. Kierowca może się skontaktować w razie potrzeby.`,
+      intlLens: 'Twoja soczewka międzynarodowa zostanie wysłana w ciągu 2 dni roboczych. Otrzymasz śledzenie e-mailem.',
+      intlKit: 'Twój zestaw Prime zostanie wysłany w ciągu 2 dni roboczych. Otrzymasz śledzenie e-mailem.',
+      default: 'Twój zestaw zostanie wysłany w ciągu 2 dni roboczych. Otrzymasz śledzenie e-mailem.',
+    },
+    en: {
+      uberTrack: `Uber delivery confirmed. Track it here: ${url}`,
+      uberPending: 'Uber delivery requested. You will receive the tracking link by email shortly.',
+      motoboy: `Your order will be delivered by courier within about ${hours} hours. The driver may contact you if needed.`,
+      intlLens: 'Your international lens will ship within 2 business days. You will receive tracking by email.',
+      intlKit: 'Your Prime kit will ship within 2 business days. You will receive tracking by email.',
+      default: 'Your kit will ship within 2 business days. You will receive tracking by email.',
+    },
+  };
+  const bucket = M[loc] || M.en;
+  return bucket[kind] || bucket.default;
+}
+
 function customerFirstName(order) {
   const first = String(order?.nome || '').trim().split(/\s+/)[0] || '';
   return first;
@@ -2890,11 +2938,17 @@ function pendingRecoveryCopy(order, config, env, { paymentKind = 'pix' } = {}) {
   const supportEmail = customerSupportEmail(order, config);
   const resumeUrl = resumeOrderUrl(config, order);
 
-  const waPrefill = loc === 'en'
-    ? `Hi! I started order ${order.orderId}${watch ? ` for my ${watch}` : ''} and need a little help finishing payment.`
-    : loc === 'it'
-      ? `Ciao! Ho iniziato l’ordine ${order.orderId}${watch ? ` per il mio ${watch}` : ''} e vorrei un aiuto per completare il pagamento.`
-      : `Olá! Comecei o pedido ${order.orderId}${watch ? ` para o meu ${watch}` : ''} e preciso de uma ajuda para concluir o pagamento.`;
+  const waPrefill = loc === 'de'
+    ? `Hallo! Ich habe die Bestellung ${order.orderId}${watch ? ` für meine ${watch}` : ''} gestartet und brauche Hilfe beim Abschluss der Zahlung.`
+    : loc === 'es'
+      ? `¡Hola! Empecé el pedido ${order.orderId}${watch ? ` para mi ${watch}` : ''} y necesito ayuda para completar el pago.`
+      : loc === 'pl'
+        ? `Cześć! Rozpocząłem/am zamówienie ${order.orderId}${watch ? ` dla mojego ${watch}` : ''} i potrzebuję pomocy przy płatności.`
+        : loc === 'en'
+          ? `Hi! I started order ${order.orderId}${watch ? ` for my ${watch}` : ''} and need a little help finishing payment.`
+          : loc === 'it'
+            ? `Ciao! Ho iniziato l’ordine ${order.orderId}${watch ? ` per il mio ${watch}` : ''} e vorrei un aiuto per completare il pagamento.`
+            : `Olá! Comecei o pedido ${order.orderId}${watch ? ` para o meu ${watch}` : ''} e preciso de uma ajuda para concluir o pagamento.`;
   const waUrl = shopWhatsAppUrl(config, env, waPrefill);
 
   if (loc === 'en') {
@@ -2957,6 +3011,98 @@ function pendingRecoveryCopy(order, config, env, { paymentKind = 'pix' } = {}) {
       resumeUrl,
       pixHint: 'Inquadra il QR Code nell’app della tua banca oppure copia e incolla il codice PIX qui sotto:',
       totalLabel: 'Totale'
+    };
+  }
+
+  if (loc === 'de') {
+    const subject = watch
+      ? `Alles in Ordnung mit Ihrer ${watch}${first ? `, ${first}` : ''}?`
+      : `Brauchen Sie Hilfe bei Ihrer Sensor Tattoo Fix Bestellung${first ? `, ${first}` : ''}?`;
+    const paymentLine = paymentKind === 'paypal'
+      ? 'Wir haben gesehen, dass Sie den Checkout für die Sensor Tattoo Fix® Linse gestartet haben, aber die PayPal-Zahlung nicht abgeschlossen wurde.'
+      : paymentKind === 'pix'
+        ? 'Wir haben gesehen, dass Sie den Checkout für die Sensor Tattoo Fix® Linse gestartet haben, aber die Zahlung nicht abgeschlossen wurde.'
+        : 'Wir haben gesehen, dass Sie den Checkout für die Sensor Tattoo Fix® Linse gestartet haben, aber die Kartenzahlung nicht abgeschlossen wurde.';
+    return {
+      subject,
+      greeting: first ? `Hallo, ${first}!` : 'Hallo!',
+      intro: watch
+        ? `Ich habe gesehen, dass Sie die Sensor Tattoo Fix® Linse für Ihre ${watch} sichern wollten, aber die Zahlung nicht abgeschlossen wurde.`
+        : paymentLine,
+      help: 'Jedes Uhrmodell hat eine bestimmte Sensorgröße — bei Fragen zur idealen Linsengröße oder zur Anwendung helfe ich gerne.',
+      offer: 'Wenn Sie einen neuen Zahlungslink, eine andere Zahlungsmethode oder Hilfe bei der genauen Messung brauchen, antworten Sie hier oder schreiben Sie uns auf WhatsApp.',
+      ctaPay: 'Bestellung öffnen und Zahlung abschließen',
+      contactsTitle: 'Bei Fragen sind wir erreichbar:',
+      emailLabel: 'E-Mail',
+      whatsappLabel: 'WhatsApp',
+      signOff: 'Herzliche Grüße,',
+      signer: 'Fabio | Sensor Tattoo Fix®',
+      watchLine: fullWatch && fullWatch !== 'N/A' ? `Uhrmodell: ${fullWatch}` : '',
+      supportEmail,
+      waUrl,
+      resumeUrl,
+      pixHint: 'Scannen Sie den QR-Code in Ihrer Banking-App oder kopieren Sie den PIX-Code unten:',
+      totalLabel: 'Gesamt'
+    };
+  }
+
+  if (loc === 'es') {
+    const subject = watch
+      ? `¿Todo bien con tu ${watch}${first ? `, ${first}` : ''}?`
+      : `¿Necesitas ayuda con tu pedido Sensor Tattoo Fix${first ? `, ${first}` : ''}?`;
+    const paymentLine = paymentKind === 'paypal'
+      ? 'Vimos que iniciaste el checkout de la lente Sensor Tattoo Fix®, pero el pago con PayPal no se completó.'
+      : 'Vimos que iniciaste el checkout de la lente Sensor Tattoo Fix®, pero el pago no se completó.';
+    return {
+      subject,
+      greeting: first ? `Hola, ${first}!` : '¡Hola!',
+      intro: watch
+        ? `Vi que estabas asegurando la lente Sensor Tattoo Fix® para tu ${watch}, pero el pago no se completó.`
+        : paymentLine,
+      help: 'Cada modelo de reloj tiene un tamaño de sensor específico — si tienes dudas sobre la medida ideal o la aplicación, encantado de ayudar.',
+      offer: 'Si necesitas un nuevo enlace de pago, otro método o ayuda para confirmar la medida exacta, responde aquí o escríbenos por WhatsApp.',
+      ctaPay: 'Abrir pedido y completar pago',
+      contactsTitle: 'Para cualquier duda estamos disponibles:',
+      emailLabel: 'Email',
+      whatsappLabel: 'WhatsApp',
+      signOff: 'Un saludo,',
+      signer: 'Fabio | Sensor Tattoo Fix®',
+      watchLine: fullWatch && fullWatch !== 'N/A' ? `Modelo de reloj: ${fullWatch}` : '',
+      supportEmail,
+      waUrl,
+      resumeUrl,
+      pixHint: 'Escanea el código QR en tu app bancaria o copia el código PIX abajo:',
+      totalLabel: 'Total'
+    };
+  }
+
+  if (loc === 'pl') {
+    const subject = watch
+      ? `Wszystko w porządku z Twoim ${watch}${first ? `, ${first}` : ''}?`
+      : `Potrzebujesz pomocy z zamówieniem Sensor Tattoo Fix${first ? `, ${first}` : ''}?`;
+    const paymentLine = paymentKind === 'paypal'
+      ? 'Widzimy, że rozpocząłeś/aś checkout soczewki Sensor Tattoo Fix®, ale płatność PayPal nie została zakończona.'
+      : 'Widzimy, że rozpocząłeś/aś checkout soczewki Sensor Tattoo Fix®, ale płatność nie została zakończona.';
+    return {
+      subject,
+      greeting: first ? `Cześć, ${first}!` : 'Cześć!',
+      intro: watch
+        ? `Widzę, że chciałeś/aś zamówić soczewkę Sensor Tattoo Fix® dla ${watch}, ale płatność nie została zakończona.`
+        : paymentLine,
+      help: 'Każdy model zegarka ma określony rozmiar czujnika — chętnie pomogę przy doborze rozmiaru lub aplikacji.',
+      offer: 'Jeśli potrzebujesz nowego linku płatności, innej metody lub pomocy przy pomiarze, odpowiedz tutaj lub napisz na WhatsApp.',
+      ctaPay: 'Otwórz zamówienie i dokończ płatność',
+      contactsTitle: 'W razie pytań jesteśmy dostępni:',
+      emailLabel: 'E-mail',
+      whatsappLabel: 'WhatsApp',
+      signOff: 'Pozdrawiam,',
+      signer: 'Fabio | Sensor Tattoo Fix®',
+      watchLine: fullWatch && fullWatch !== 'N/A' ? `Model zegarka: ${fullWatch}` : '',
+      supportEmail,
+      waUrl,
+      resumeUrl,
+      pixHint: 'Zeskanuj kod QR w aplikacji bankowej lub skopiuj kod PIX poniżej:',
+      totalLabel: 'Razem'
     };
   }
 
@@ -3195,30 +3341,30 @@ function paidMessageForOrder(order, config) {
   const hours = getMotoboyConfig(config).deliveryHours;
   if (isUberOrder(order)) {
     if (order.uberTrackingUrl) {
-      if (loc === 'en') return `Uber delivery confirmed. Track it here: ${order.uberTrackingUrl}`;
+      if (isWesternIntlEmailLocale(loc)) return intlPaidShipMessage(loc, 'uberTrack', { url: order.uberTrackingUrl });
       if (loc === 'it') return `Consegna Uber confermata. Segui qui: ${order.uberTrackingUrl}`;
       return emailMessage(config, 'paidUberTracking', { url: order.uberTrackingUrl });
     }
-    if (loc === 'en') return 'Uber delivery requested. You will receive the tracking link by email shortly.';
+    if (isWesternIntlEmailLocale(loc)) return intlPaidShipMessage(loc, 'uberPending');
     if (loc === 'it') return 'Consegna Uber richiesta. Riceverai il link di tracking via email a breve.';
     return emailMessage(config, 'paidUberPending');
   }
   if (isMotoboyOrder(order)) {
-    if (loc === 'en') return `Your order will be delivered by courier within about ${hours} hours. The driver may contact you if needed.`;
+    if (isWesternIntlEmailLocale(loc)) return intlPaidShipMessage(loc, 'motoboy', { hours });
     if (loc === 'it') return `Il tuo ordine sarà consegnato da un corriere entro circa ${hours} ore. Il fattorino potrà contattarti se necessario.`;
     return emailMessage(config, 'paidMotoboy', { hours });
   }
   if (order.internationalLensOnly) {
-    if (loc === 'en') return 'Your international lens will ship within 2 business days. You will receive tracking by email.';
+    if (isWesternIntlEmailLocale(loc)) return intlPaidShipMessage(loc, 'intlLens');
     if (loc === 'it') return 'La tua lente internazionale sarà spedita entro 2 giorni lavorativi. Riceverai il tracking via email.';
     return emailMessage(config, 'paidIntlLens');
   }
   if (order.paisCode && order.paisCode !== 'BR') {
-    if (loc === 'en') return 'Your Prime kit will ship within 2 business days. You will receive tracking by email.';
+    if (isWesternIntlEmailLocale(loc)) return intlPaidShipMessage(loc, 'intlKit');
     if (loc === 'it') return 'Il tuo kit Prime sarà spedito entro 2 giorni lavorativi. Riceverai il tracking via email.';
     return emailMessage(config, 'paidIntlKit');
   }
-  if (loc === 'en') return 'Your kit will ship within 2 business days. You will receive tracking by email.';
+  if (isWesternIntlEmailLocale(loc)) return intlPaidShipMessage(loc, 'default');
   if (loc === 'it') return 'Il tuo kit sarà spedito entro 2 giorni lavorativi. Riceverai il tracking via email.';
   return emailMessage(config, 'paidDefault');
 }
@@ -3254,6 +3400,33 @@ async function maybeNotifyTrackingAvailable(env, config, order) {
       'Track shipment': trackUrl,
       Message: message
     };
+  } else if (loc === 'de') {
+    subject = `Sendungsverfolgung verfügbar — ${order.orderId}`;
+    message = `Ihre Bestellung wurde versendet. Sendungsnummer: ${code}. Verfolgen: ${trackUrl}`;
+    fields = {
+      Bestellung: order.orderId,
+      Sendungsverfolgung: code,
+      'Sendung verfolgen': trackUrl,
+      Nachricht: message
+    };
+  } else if (loc === 'es') {
+    subject = `Seguimiento disponible — ${order.orderId}`;
+    message = `Tu pedido ha sido enviado. Código de seguimiento: ${code}. Rastrea aquí: ${trackUrl}`;
+    fields = {
+      Pedido: order.orderId,
+      Seguimiento: code,
+      'Rastrear envío': trackUrl,
+      Mensaje: message
+    };
+  } else if (loc === 'pl') {
+    subject = `Śledzenie dostępne — ${order.orderId}`;
+    message = `Twoje zamówienie zostało wysłane. Kod śledzenia: ${code}. Śledź tutaj: ${trackUrl}`;
+    fields = {
+      Zamówienie: order.orderId,
+      Śledzenie: code,
+      'Śledź przesyłkę': trackUrl,
+      Wiadomość: message
+    };
   } else if (loc === 'it') {
     subject = `Tracking disponibile — ${order.orderId}`;
     message = `Il tuo ordine è stato spedito. Codice tracking: ${code}. Segui qui: ${trackUrl}`;
@@ -3277,10 +3450,10 @@ async function maybeNotifyTrackingAvailable(env, config, order) {
   const shopCopy = String(config.formsubmit?.email || '').trim();
   const result = await notifyCustomer(env, config, order, subject, fields, {
     html: fieldsToHtmlLocalized(
-      { [loc === 'en' ? 'Customer' : 'Cliente']: order.nome, ...fields },
+      { [customerFieldLabel(loc)]: order.nome, ...fields },
       loc === 'pt' ? 'sensortattoofix.com.br' : 'sensortattoofix.com'
     ),
-    text: fieldsToText({ [loc === 'en' ? 'Customer' : 'Cliente']: order.nome, ...fields }),
+    text: fieldsToText({ [customerFieldLabel(loc)]: order.nome, ...fields }),
     // Cópia oculta pra loja (não vai pra "Enviados" do Gmail — chega na caixa da loja via BCC).
     bcc: shopCopy || undefined
   });
@@ -3327,7 +3500,7 @@ function buildAbandonedCartEmail(order, config, env, { weekly = false } = {}) {
   const resumeUrl = resumeOrderUrl(config, order);
   const product = order.produto || 'Sensor Tattoo Fix';
   const total = formatOrderCharge(order, order.total);
-  const nome = String(order.nome || '').trim().split(/\s+/)[0] || (loc === 'en' ? 'there' : loc === 'it' ? '' : '');
+  const nome = String(order.nome || '').trim().split(/\s+/)[0] || (isWesternIntlEmailLocale(loc) ? 'there' : loc === 'it' ? '' : '');
   let subject;
   let intro;
   let cta;
@@ -3353,6 +3526,36 @@ function buildAbandonedCartEmail(order, config, env, { weekly = false } = {}) {
       : 'Abbiamo notato che il tuo ordine è ancora in sospeso. Gli articoli sono riservati — completa il pagamento dal link qui sotto.';
     cta = 'Completa il mio ordine';
     footer = 'Sensor Tattoo Fix — sensortattoofix.com';
+  } else if (loc === 'de') {
+    subject = weekly
+      ? `Wöchentliche Erinnerung — Bestellung ${order.orderId} wartet auf Zahlung`
+      : `Ihre Bestellung ${order.orderId} ist noch reserviert — schließen Sie ab, wenn Sie bereit sind`;
+    greeting = nome && nome !== 'there' ? `Hallo ${nome},` : 'Hallo,';
+    intro = weekly
+      ? 'Eine Woche ist vergangen und Ihre Bestellung ist noch unbezahlt. Wenn Sie Sensor Tattoo Fix noch möchten, schließen Sie den Checkout über den Link unten ab.'
+      : 'Ihre Bestellung ist noch ausstehend. Die Artikel sind reserviert — schließen Sie die Zahlung über den Link unten ab.';
+    cta = 'Meine Bestellung abschließen';
+    footer = 'Sensor Tattoo Fix — sensortattoofix.com';
+  } else if (loc === 'es') {
+    subject = weekly
+      ? `Recordatorio semanal — pedido ${order.orderId} pendiente de pago`
+      : `Tu pedido ${order.orderId} sigue reservado — finaliza cuando quieras`;
+    greeting = nome && nome !== 'there' ? `Hola ${nome},` : 'Hola,';
+    intro = weekly
+      ? 'Ha pasado una semana y tu pedido sigue sin pagar. Si aún quieres Sensor Tattoo Fix, completa el checkout con el enlace de abajo.'
+      : 'Tu pedido sigue pendiente. Los artículos están reservados — completa el pago con el enlace de abajo.';
+    cta = 'Completar mi pedido';
+    footer = 'Sensor Tattoo Fix — sensortattoofix.com';
+  } else if (loc === 'pl') {
+    subject = weekly
+      ? `Cotygodniowe przypomnienie — zamówienie ${order.orderId} oczekuje na płatność`
+      : `Twoje zamówienie ${order.orderId} jest nadal zarezerwowane — dokończ, gdy będziesz gotowy/a`;
+    greeting = nome && nome !== 'there' ? `Cześć ${nome},` : 'Cześć,';
+    intro = weekly
+      ? 'Minął tydzień, a zamówienie nadal nie jest opłacone. Jeśli nadal chcesz Sensor Tattoo Fix, dokończ checkout linkiem poniżej.'
+      : 'Twoje zamówienie jest nadal oczekujące. Produkty są zarezerwowane — dokończ płatność linkiem poniżej.';
+    cta = 'Dokończ moje zamówienie';
+    footer = 'Sensor Tattoo Fix — sensortattoofix.com';
   } else {
     subject = emailSubject(config, weekly ? 'abandonedWeeklySubject' : 'abandonedSubject', {
       orderId: order.orderId
@@ -3366,24 +3569,50 @@ function buildAbandonedCartEmail(order, config, env, { weekly = false } = {}) {
   }
 
   const support = customerSupportEmail(order, config);
-  const wa = shopWhatsAppUrl(config, env, loc === 'en'
-    ? `Hi! I want to finish order ${order.orderId}`
-    : loc === 'it'
-      ? `Ciao! Voglio completare l'ordine ${order.orderId}`
-      : `Olá! Quero finalizar o pedido ${order.orderId}`);
+  const wa = shopWhatsAppUrl(config, env, loc === 'de'
+    ? `Hallo! Ich möchte die Bestellung ${order.orderId} abschließen`
+    : loc === 'es'
+      ? `¡Hola! Quiero completar el pedido ${order.orderId}`
+      : loc === 'pl'
+        ? `Cześć! Chcę dokończyć zamówienie ${order.orderId}`
+        : loc === 'en'
+          ? `Hi! I want to finish order ${order.orderId}`
+          : loc === 'it'
+            ? `Ciao! Voglio completare l'ordine ${order.orderId}`
+            : `Olá! Quero finalizar o pedido ${order.orderId}`);
+
+  const orderWord = orderRefLabel(order);
+  const h1Weekly = loc === 'de' ? 'Noch am Überlegen?'
+    : loc === 'es' ? '¿Aún lo estás pensando?'
+      : loc === 'pl' ? 'Nadal się zastanawiasz?'
+        : loc === 'en' ? 'Still thinking it over?'
+          : loc === 'it' ? 'Ci stai ancora pensando?'
+            : 'Ainda pensando?';
+  const h1Pending = loc === 'de' ? 'Ihre Bestellung wartet'
+    : loc === 'es' ? 'Tu pedido te espera'
+      : loc === 'pl' ? 'Twoje zamówienie czeka'
+        : loc === 'en' ? 'Your order is waiting'
+          : loc === 'it' ? 'Il tuo ordine ti aspetta'
+            : 'Seu pedido está te esperando';
+  const helpLine = loc === 'de' ? 'Brauchen Sie Hilfe?'
+    : loc === 'es' ? '¿Necesitas ayuda?'
+      : loc === 'pl' ? 'Potrzebujesz pomocy?'
+        : loc === 'en' ? 'Need help?'
+          : loc === 'it' ? 'Serve aiuto?'
+            : 'Precisa de ajuda?';
 
   const html = `<div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;color:#1a1a1a;line-height:1.55;background:#faf8f5;padding:28px 24px;border-radius:4px">
     <p style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#8a6a3a;margin:0 0 8px">Sensor Tattoo Fix</p>
-    <h1 style="font-size:22px;font-weight:600;margin:0 0 16px;line-height:1.3">${escapeHtml(weekly ? (loc === 'en' ? 'Still thinking it over?' : loc === 'it' ? 'Ci stai ancora pensando?' : 'Ainda pensando?') : (loc === 'en' ? 'Your order is waiting' : loc === 'it' ? 'Il tuo ordine ti aspetta' : 'Seu pedido está te esperando'))}</h1>
+    <h1 style="font-size:22px;font-weight:600;margin:0 0 16px;line-height:1.3">${escapeHtml(weekly ? h1Weekly : h1Pending)}</h1>
     <p style="margin:0 0 12px">${escapeHtml(greeting)}</p>
     <p style="margin:0 0 16px">${escapeHtml(intro)}</p>
     <div style="background:#fff;border:1px solid #e8e0d4;padding:16px 18px;margin:0 0 20px">
-      <p style="margin:0 0 6px;font-size:13px;color:#666">${escapeHtml(loc === 'en' ? 'Order' : loc === 'it' ? 'Ordine' : 'Pedido')} <strong>${escapeHtml(order.orderId)}</strong></p>
+      <p style="margin:0 0 6px;font-size:13px;color:#666">${escapeHtml(orderWord)} <strong>${escapeHtml(order.orderId)}</strong></p>
       <p style="margin:0 0 6px">${escapeHtml(product)}</p>
       <p style="margin:0;font-size:18px"><strong>${escapeHtml(total)}</strong></p>
     </div>
     <p style="margin:0 0 24px"><a href="${escapeHtml(resumeUrl)}" style="display:inline-block;background:#1a1a1a;color:#faf8f5;text-decoration:none;font-weight:700;padding:14px 22px;font-family:Arial,sans-serif;font-size:14px">${escapeHtml(cta)}</a></p>
-    <p style="font-size:13px;color:#555;margin:0 0 8px">${escapeHtml(loc === 'en' ? 'Need help?' : loc === 'it' ? 'Serve aiuto?' : 'Precisa de ajuda?')}
+    <p style="font-size:13px;color:#555;margin:0 0 8px">${escapeHtml(helpLine)}
       ${support ? `<a href="mailto:${escapeHtml(support)}">${escapeHtml(support)}</a>` : ''}
       ${wa ? ` · <a href="${escapeHtml(wa)}">WhatsApp</a>` : ''}
     </p>
@@ -3395,7 +3624,7 @@ function buildAbandonedCartEmail(order, config, env, { weekly = false } = {}) {
     '',
     intro,
     '',
-    `${loc === 'en' ? 'Order' : loc === 'it' ? 'Ordine' : 'Pedido'}: ${order.orderId}`,
+    `${orderWord}: ${order.orderId}`,
     product,
     total,
     '',
@@ -3414,9 +3643,15 @@ async function notifyAbandonedCart(env, config, order, { weekly = false } = {}) 
   const loc = orderCheckoutLocale(order);
   const fields = loc === 'en'
     ? { Order: order.orderId, Status: weekly ? 'Weekly reminder' : 'Abandoned checkout', Total: formatOrderCharge(order), 'Order link': mail.resumeUrl }
-    : loc === 'it'
-      ? { Ordine: order.orderId, Stato: weekly ? 'Promemoria settimanale' : 'Checkout abbandonato', Totale: formatOrderCharge(order), 'Link ordine': mail.resumeUrl }
-      : { Pedido: order.orderId, Status: weekly ? 'Lembrete semanal' : 'Checkout abandonado', Total: formatOrderCharge(order), 'Link do pedido': mail.resumeUrl };
+    : loc === 'de'
+      ? { Bestellung: order.orderId, Status: weekly ? 'Wöchentliche Erinnerung' : 'Checkout abgebrochen', Gesamt: formatOrderCharge(order), 'Bestelllink': mail.resumeUrl }
+      : loc === 'es'
+        ? { Pedido: order.orderId, Estado: weekly ? 'Recordatorio semanal' : 'Checkout abandonado', Total: formatOrderCharge(order), 'Enlace del pedido': mail.resumeUrl }
+        : loc === 'pl'
+          ? { Zamówienie: order.orderId, Status: weekly ? 'Cotygodniowe przypomnienie' : 'Porzucony checkout', Razem: formatOrderCharge(order), 'Link zamówienia': mail.resumeUrl }
+          : loc === 'it'
+            ? { Ordine: order.orderId, Stato: weekly ? 'Promemoria settimanale' : 'Checkout abbandonato', Totale: formatOrderCharge(order), 'Link ordine': mail.resumeUrl }
+            : { Pedido: order.orderId, Status: weekly ? 'Lembrete semanal' : 'Checkout abandonado', Total: formatOrderCharge(order), 'Link do pedido': mail.resumeUrl };
   return notifyCustomer(env, config, order, mail.subject, fields, {
     html: mail.html,
     text: mail.text

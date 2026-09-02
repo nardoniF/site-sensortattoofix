@@ -21,10 +21,28 @@ for (const lang of ['de', 'es', 'pl']) {
     }
   });
 
-  test(`${lang}/comprar.html: shell sem "Your cart"`, async ({ page }) => {
-    await page.goto(`/${lang}/comprar.html`);
+  test(`${lang}/comprar.html: shell checkout nativo`, async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('stf_cart', JSON.stringify([{
+        productId: 'optical-lens-intl',
+        slug: 'optical-lens-intl',
+        name: 'Lens',
+        price: 62.9,
+        image: '/images/lens-gallery/01-optical-correction-lens.png',
+        qty: 1,
+        requiresSmartwatch: true,
+        deviceType: 'smartwatch',
+      }]));
+    });
+    await page.goto(`/${lang}/comprar.html`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('h3', { timeout: 15_000 });
     const html = await page.content();
     expect(html.includes('Your cart')).toBe(false);
+    expect(html.includes('Your details')).toBe(false);
+    expect(html.includes('Discount code')).toBe(false);
     expect(html.includes('Peace between ink and silicon')).toBe(false);
+    if (lang === 'de') expect(html).toMatch(/Ihre Daten|Zahlungsmethode/);
+    if (lang === 'es') expect(html).toMatch(/Tus datos|Método de pago/);
+    if (lang === 'pl') expect(html).toMatch(/Twoje dane|Metoda płatności/);
   });
 }
