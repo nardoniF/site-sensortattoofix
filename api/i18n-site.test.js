@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const jsDir = path.join(root, 'js');
@@ -268,10 +269,10 @@ test('store-config: agregados têm nameDe (película exemplo)', () => {
   assert.ok(p?.nameEs?.startsWith('Protector de pantalla'), p?.nameEs);
 });
 
-test('shell DE/ES/PL sem snippets EN estáticos (loja/comprar/conta)', () => {
+test('shell DE/ES/PL/SL sem snippets EN estáticos (loja/comprar/conta)', () => {
   const EN_SNIPPETS = ['Official Store', 'Peace between ink and silicon', 'Your cart', 'Loading products', 'Community (beta)'];
   const pages = ['loja.html', 'comprar.html', 'minha-conta.html', 'comunidade.html', 'onde-comprar.html'];
-  for (const lang of ['de', 'es', 'pl']) {
+  for (const lang of LANGS) {
     for (const page of pages) {
       const html = fs.readFileSync(path.join(root, lang, page), 'utf8');
       const found = EN_SNIPPETS.filter((s) => html.includes(s));
@@ -280,13 +281,27 @@ test('shell DE/ES/PL sem snippets EN estáticos (loja/comprar/conta)', () => {
   }
 });
 
-test('comprar DE/ES/PL sem texto EN no shell do checkout', () => {
+test('comprar DE/ES/PL/SL sem texto EN no shell do checkout', () => {
   const EN = ['Your details', 'Discount code', 'Secure checkout', 'Payment method', 'Place order', 'Select country'];
-  for (const lang of ['de', 'es', 'pl']) {
+  for (const lang of LANGS) {
     const html = fs.readFileSync(path.join(root, lang, 'comprar.html'), 'utf8');
     const found = EN.filter((s) => html.includes(s));
     assert.equal(found.length, 0, `${lang}/comprar.html: ${found.join(', ')}`);
   }
+});
+
+test('audit-i18n-leaks: sem vazamentos críticos DE/ES/PL/SL', () => {
+  const script = path.join(root, 'scripts/audit-i18n-leaks.mjs');
+  const result = spawnSync(process.execPath, [script], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stdout || result.stderr);
+});
+
+test('sl/index.html sem blocos alemães óbvios', () => {
+  const html = fs.readFileSync(path.join(root, 'sl/index.html'), 'utf8');
+  const DE_SNIPPETS = ['Das Problem', 'Jetzt kaufen', 'Über uns', 'Häufig gestellte Fragen', 'Offizieller Shop'];
+  const found = DE_SNIPPETS.filter((s) => html.includes(s));
+  assert.equal(found.length, 0, `sl/index.html: ${found.join(', ')}`);
+  assert.match(html, /Mir med tinto in silicijem/, 'sl/index tagline');
 });
 
 test('worker: funções de e-mail intl para de/es/pl/sl', () => {
