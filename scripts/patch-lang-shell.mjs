@@ -83,6 +83,10 @@ function ensureI18nBundle(html, lang, page) {
 
   out = out.replace(/stf-i18n\.js\?v=\d+/g, 'stf-i18n.js?v=49');
   out = out.replace(/stf-i18n-[a-z]{2}-overrides\.js\?v=\d+/g, (m) => m.replace(/\?v=\d+/, '?v=2'));
+  out = out.replace(
+    /(<script>try\{sessionStorage\.setItem\('stf_lang','[^']+'\);\}catch\(e\)\{\}<\/script>\s*)+/g,
+    `<script>try{sessionStorage.setItem('stf_lang','${lang.code}');}catch(e){}</script>\n    `
+  );
 
   return out;
 }
