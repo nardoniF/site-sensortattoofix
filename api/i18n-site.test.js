@@ -304,6 +304,27 @@ test('sl/index.html sem blocos alemães óbvios', () => {
   assert.match(html, /Mir med tinto in silicijem/, 'sl/index tagline');
 });
 
+test('hreflang: homes incluem sl/de e sem URLs quebradas', () => {
+  const broken = [/\.br\/loja/, /\/de\/it\//, /\/sl\/it\//, /\/pl\/\.br\//];
+  for (const file of ['index.html', 'de/index.html', 'sl/index.html', 'en/index.html']) {
+    const html = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.match(html, /hreflang="sl"/, file);
+    assert.match(html, /hreflang="de"/, file);
+    for (const re of broken) {
+      assert.doesNotMatch(html, re, `${file} URL quebrada ${re}`);
+    }
+  }
+});
+
+test('sitemap.xml: 28 URLs públicas com hreflang sl/de', () => {
+  const xml = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
+  assert.match(xml, /hreflang="sl"/);
+  assert.match(xml, /sensortattoofix\.com\.br\/de\//);
+  assert.match(xml, /sensortattoofix\.com\/loja\.html/);
+  const locCount = (xml.match(/<loc>/g) || []).length;
+  assert.equal(locCount, 28);
+});
+
 test('worker: funções de e-mail intl para de/es/pl/sl', () => {
   const src = fs.readFileSync(path.join(root, 'api/worker.js'), 'utf8');
   assert.match(src, /function intlPaidShipMessage/);
