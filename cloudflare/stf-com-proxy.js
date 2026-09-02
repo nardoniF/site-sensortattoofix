@@ -4,7 +4,7 @@
  * - .com.br → Portuguese (repo root)
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
-const COMMIT = 'ae4c218c1bde2b41eddf58a650a06c5f8e596e2b';
+const COMMIT = 'ceaf51491afdece296ee5165643077d3011c7ff3';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
@@ -171,6 +171,8 @@ function mimeFor(pathname) {
   if (pathname.endsWith('.css')) return 'text/css; charset=utf-8';
   if (pathname.endsWith('.js')) return 'application/javascript; charset=utf-8';
   if (pathname.endsWith('.json')) return 'application/json; charset=utf-8';
+  if (pathname.endsWith('.xml')) return 'application/xml; charset=utf-8';
+  if (pathname.endsWith('.txt')) return 'text/plain; charset=utf-8';
   if (pathname.endsWith('.svg')) return 'image/svg+xml';
   if (/\.pdf$/i.test(pathname)) return 'application/pdf';
   if (/\.(png|jpg|jpeg|gif|webp|ico)$/i.test(pathname)) return undefined;
