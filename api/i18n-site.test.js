@@ -126,3 +126,35 @@ test('páginas loja/checkout têm classe body para applyLojaDom/applyCheckoutDom
     assert.match(comprar, /class="[^"]*checkout-page/, `${lang}/comprar.html checkout-page`);
   }
 });
+
+test('minha-conta DE/ES/PL usa conta-page sem checkout-page', () => {
+  for (const lang of LANGS) {
+    const html = fs.readFileSync(path.join(root, lang, 'minha-conta.html'), 'utf8');
+    assert.match(html, /class="conta-page"/, `${lang}/minha-conta conta-page`);
+    assert.doesNotMatch(html, /checkout-page conta-page/, `${lang}/minha-conta sem checkout-page`);
+  }
+});
+
+test('onde-comprar DE/ES/PL tem classe onde-comprar-page', () => {
+  for (const lang of LANGS) {
+    const html = fs.readFileSync(path.join(root, lang, 'onde-comprar.html'), 'utf8');
+    assert.match(html, /onde-comprar-page/, `${lang}/onde-comprar-page`);
+  }
+});
+
+test('overrides DE/ES/PL definem ondeComprar e conta intl', () => {
+  const langs = [
+    { file: 'stf-i18n-de-overrides.js', global: 'STF_I18N_DE', ondeTitle: 'ondeComprar.pageTitleDe' },
+    { file: 'stf-i18n-es-overrides.js', global: 'STF_I18N_ES', ondeTitle: 'ondeComprar.pageTitleEs' },
+    { file: 'stf-i18n-pl-overrides.js', global: 'STF_I18N_PL', ondeTitle: 'ondeComprar.pageTitlePl' }
+  ];
+  for (const { file, global, ondeTitle } of langs) {
+    const sandbox = { window: {} };
+    vm.runInNewContext(fs.readFileSync(path.join(jsDir, file), 'utf8'), sandbox, { filename: file });
+    const o = sandbox.window[global];
+    assert.ok(o[ondeTitle], `${file} ${ondeTitle}`);
+    assert.ok(o['conta.forgotIntro'], `${file} conta.forgotIntro`);
+    assert.ok(o['conta.sectionAddressIntl'], `${file} conta.sectionAddressIntl`);
+    assert.ok(o['ondeComprar.trustEn'], `${file} ondeComprar.trustEn`);
+  }
+});

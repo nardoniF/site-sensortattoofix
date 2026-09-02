@@ -191,6 +191,37 @@ window.STF_I18N = (function () {
       'conta.formDistrict': 'Bairro',
       'conta.formCity': 'Cidade',
       'conta.formState': 'UF',
+      'conta.forgotIntro': 'Informe o e-mail da conta. Enviaremos um link para definir uma nova senha.',
+      'conta.forgotBtn': 'Enviar link de redefinição',
+      'conta.backToLogin': 'Voltar para entrar',
+      'conta.resetIntro': 'Escolha uma nova senha para sua conta.',
+      'conta.confirmPassword': 'Confirmar senha',
+      'conta.btnResetPassword': 'Salvar nova senha',
+      'conta.cpfOptional': '(opcional)',
+      'conta.customerDefault': 'Cliente',
+      'conta.sectionAddressIntl': 'Endereço de entrega padrão',
+      'conta.formCountry': 'País',
+      'conta.formZipIntl': 'CEP / código postal',
+      'conta.formStreetIntl': 'Endereço',
+      'conta.formAptNumber': 'Apto / número',
+      'conta.formStateIntl': 'Estado / província',
+      'ondeComprar.pageTitle': 'Onde Comprar | Sensor Tattoo Fix',
+      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
+      'ondeComprar.metaDesc': 'Relógio pede senha, não lê batimentos ou pausa treino? Compre a lente Sensor Tattoo Fix na loja oficial.',
+      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.badge': 'Kit Sensor Tattoo Fix',
+      'ondeComprar.badgeIntl': 'Sensor Tattoo Fix Lens',
+      'ondeComprar.h1': 'Escolha onde comprar com segurança',
+      'ondeComprar.intro': 'Avaliações <strong>5 estrelas</strong> de clientes reais.',
+      'ondeComprar.introEn': '<strong>5-star reviews</strong> from verified buyers.',
+      'ondeComprar.navAbout': 'Sobre o produto',
+      'ondeComprar.navAboutEn': 'About the product',
+      'ondeComprar.payCard': 'Cartão',
+      'ondeComprar.payCardEn': 'Card',
+      'ondeComprar.paymentsAria': 'Formas de pagamento',
+      'ondeComprar.paymentsAriaEn': 'Payment methods',
+      'ondeComprar.trust': '5,0 em Google, Mercado Livre, Shopee e Amazon',
+      'ondeComprar.trustEn': '5.0 · verified buyers',
       'nav.whereBuy': 'Onde comprar',
       'nav.langEn': 'EN',
       'nav.langPt': 'PT',
@@ -537,6 +568,37 @@ window.STF_I18N = (function () {
       'conta.formDistrict': 'District',
       'conta.formCity': 'City',
       'conta.formState': 'State',
+      'conta.forgotIntro': 'Enter your account email. We’ll send a link to choose a new password.',
+      'conta.forgotBtn': 'Send reset link',
+      'conta.backToLogin': 'Back to sign in',
+      'conta.resetIntro': 'Choose a new password for your account.',
+      'conta.confirmPassword': 'Confirm password',
+      'conta.btnResetPassword': 'Save new password',
+      'conta.cpfOptional': '(optional)',
+      'conta.customerDefault': 'Customer',
+      'conta.sectionAddressIntl': 'Default shipping address',
+      'conta.formCountry': 'Country',
+      'conta.formZipIntl': 'Postal / ZIP code',
+      'conta.formStreetIntl': 'Street address',
+      'conta.formAptNumber': 'Apt / number',
+      'conta.formStateIntl': 'State / province',
+      'ondeComprar.pageTitle': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
+      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
+      'ondeComprar.metaDesc': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.badge': 'Sensor Tattoo Fix Lens',
+      'ondeComprar.badgeIntl': 'Sensor Tattoo Fix Lens',
+      'ondeComprar.h1': 'Official store',
+      'ondeComprar.intro': '<strong>5-star reviews</strong> from verified buyers.',
+      'ondeComprar.introEn': '<strong>5-star reviews</strong> from verified buyers.',
+      'ondeComprar.navAbout': 'About the product',
+      'ondeComprar.navAboutEn': 'About the product',
+      'ondeComprar.payCard': 'Card',
+      'ondeComprar.payCardEn': 'Card',
+      'ondeComprar.paymentsAria': 'Payment methods',
+      'ondeComprar.paymentsAriaEn': 'Payment methods',
+      'ondeComprar.trust': '5.0 · verified buyers',
+      'ondeComprar.trustEn': '5.0 · verified buyers',
       'nav.whereBuy': 'Where to buy',
       'nav.langEn': 'EN',
       'nav.langPt': 'PT',
@@ -758,6 +820,52 @@ window.STF_I18N = (function () {
       pl: 'store.metaDescPl'
     };
     return map[lang] || 'store.metaDescEn';
+  }
+
+  function ondeComprarTitleKey(lang) {
+    const map = {
+      it: 'ondeComprar.pageTitleIt',
+      de: 'ondeComprar.pageTitleDe',
+      es: 'ondeComprar.pageTitleEs',
+      pl: 'ondeComprar.pageTitlePl'
+    };
+    if (lang === 'pt') return 'ondeComprar.pageTitle';
+    return map[lang] || 'ondeComprar.pageTitleEn';
+  }
+
+  function ondeComprarMetaDescKey(lang) {
+    const map = {
+      it: 'ondeComprar.metaDescIt',
+      de: 'ondeComprar.metaDescDe',
+      es: 'ondeComprar.metaDescEs',
+      pl: 'ondeComprar.metaDescPl'
+    };
+    if (lang === 'pt') return 'ondeComprar.metaDesc';
+    return map[lang] || 'ondeComprar.metaDescEn';
+  }
+
+  function ondeComprarIntroKey(lang) {
+    return lang === 'pt' ? 'ondeComprar.intro' : 'ondeComprar.introEn';
+  }
+
+  function ondeComprarNavAboutKey(lang) {
+    return lang === 'pt' ? 'ondeComprar.navAbout' : 'ondeComprar.navAboutEn';
+  }
+
+  function ondeComprarPayCardKey(lang) {
+    return lang === 'pt' ? 'ondeComprar.payCard' : 'ondeComprar.payCardEn';
+  }
+
+  function ondeComprarPaymentsAriaKey(lang) {
+    return lang === 'pt' ? 'ondeComprar.paymentsAria' : 'ondeComprar.paymentsAriaEn';
+  }
+
+  function ondeComprarTrustKey(lang) {
+    return lang === 'pt' ? 'ondeComprar.trust' : 'ondeComprar.trustEn';
+  }
+
+  function ondeComprarBadgeKey(lang) {
+    return lang === 'pt' ? 'ondeComprar.badge' : 'ondeComprar.badgeIntl';
   }
 
   function isComHost() {
@@ -1239,6 +1347,54 @@ window.STF_I18N = (function () {
     }
   }
 
+  function applyOndeComprarDom() {
+    const lang = getLang();
+    if (lang === 'pt') return;
+
+    document.title = t(ondeComprarTitleKey(lang));
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.content = t(ondeComprarMetaDescKey(lang));
+
+    const aboutLink = document.querySelector('.site-nav a[href*="#produtos"]');
+    if (aboutLink) aboutLink.innerHTML = `<i class="fas fa-info-circle"></i> ${t(ondeComprarNavAboutKey(lang))}`;
+
+    const badge = document.querySelector('.onde-comprar-hero .badge');
+    if (badge) badge.textContent = t(ondeComprarBadgeKey(lang));
+
+    const h1 = document.querySelector('.onde-comprar-hero h1');
+    if (h1) h1.textContent = lang === 'pt' ? t('ondeComprar.h1') : t('store.title');
+
+    const intro = document.querySelector('.onde-comprar-intro');
+    if (intro) intro.innerHTML = t(ondeComprarIntroKey(lang));
+
+    const storeTitle = document.querySelector('.store-official-head strong');
+    if (storeTitle) storeTitle.textContent = t('store.title');
+
+    const paymentsAria = document.querySelector('.store-official-payments');
+    if (paymentsAria) paymentsAria.setAttribute('aria-label', t(ondeComprarPaymentsAriaKey(lang)));
+
+    document.querySelectorAll('.store-pay-item .fa-credit-card').forEach((icon) => {
+      const label = icon.closest('.store-pay-item')?.querySelector('.store-pay-label');
+      if (label) label.textContent = t(ondeComprarPayCardKey(lang));
+    });
+
+    const shippingLine = document.querySelector('[data-store-shipping-line]');
+    if (shippingLine) shippingLine.textContent = t('store.shippingChannelsIntl') || t('store.freteLine');
+
+    const trust = document.querySelector('.onde-comprar-trust');
+    if (trust) trust.innerHTML = `<i class="fas fa-star" aria-hidden="true"></i> ${t(ondeComprarTrustKey(lang))}`;
+
+    const storeBar = document.querySelector('.store-official-bar');
+    if (storeBar) {
+      const utm = storeBar.href.includes('?') ? storeBar.href.slice(storeBar.href.indexOf('?')) : '';
+      storeBar.href = lojaHref() + utm;
+    }
+
+    const footer = document.querySelector('[data-site-footer]');
+    if (footer) footer.dataset.lang = lang;
+    if (typeof window.STF_FOOTER?.refreshAll === 'function') window.STF_FOOTER.refreshAll();
+  }
+
   function applyContaDom() {
     if (!isLocalized()) return;
 
@@ -1280,8 +1436,43 @@ window.STF_I18N = (function () {
       setLabelText(regForm.querySelector('label:has([name="telefone"])'), 'conta.whatsapp', true);
       setLabelText(regForm.querySelector('label:has([name="cpf"])'), 'conta.cpf', true);
       setLabelText(regForm.querySelector('label:has([name="password"])'), 'conta.passwordRegister', true);
+      const cpfSmall = regForm.querySelector('label:has([name="cpf"]) small');
+      if (cpfSmall) cpfSmall.textContent = t('conta.cpfOptional');
       const btn = regForm.querySelector('button[type="submit"]');
       if (btn) btn.textContent = t('conta.btnRegister');
+    }
+
+    const forgotForm = document.getElementById('conta-forgot-form');
+    if (forgotForm) {
+      applyText('#conta-forgot-form > .admin-meta', 'conta.forgotIntro');
+      setLabelText(forgotForm.querySelector('label:has([name="email"])'), 'conta.email');
+      const btn = forgotForm.querySelector('button[type="submit"]');
+      if (btn) btn.textContent = t('conta.forgotBtn');
+      forgotForm.querySelectorAll('[data-conta-show="login"]').forEach((el) => {
+        el.textContent = t('conta.backToLogin');
+      });
+    }
+
+    const resetForm = document.getElementById('conta-reset-form');
+    if (resetForm) {
+      applyText('#conta-reset-form > .admin-meta', 'conta.resetIntro');
+      setLabelText(resetForm.querySelector('label:has([name="password"])'), 'conta.newPassword');
+      setLabelText(resetForm.querySelector('label:has([name="passwordConfirm"])'), 'conta.confirmPassword');
+      const btn = resetForm.querySelector('button[type="submit"]');
+      if (btn) btn.textContent = t('conta.btnResetPassword');
+      resetForm.querySelectorAll('[data-conta-show="login"]').forEach((el) => {
+        el.textContent = t('conta.backToLogin');
+      });
+    }
+
+    document.querySelectorAll('[data-conta-show="forgot"]').forEach((el) => {
+      el.textContent = t('conta.forgotLink');
+    });
+
+    const panelH1 = document.querySelector('#conta-panel .admin-panel-header h1');
+    if (panelH1) {
+      const name = document.getElementById('conta-user-name')?.textContent || t('conta.customerDefault');
+      panelH1.innerHTML = t('conta.hello', { name: `<span id="conta-user-name">${name}</span>` });
     }
 
     const logoutBtn = document.getElementById('conta-logout');
@@ -1296,9 +1487,10 @@ window.STF_I18N = (function () {
     applyText('#conta-panel-profile > .admin-meta', 'conta.profileIntro');
     const profileForm = document.getElementById('conta-profile-form');
     if (profileForm) {
+      const intlAddress = !!profileForm.querySelector('[name="pais"]');
       const sections = profileForm.querySelectorAll('.conta-form-section');
       if (sections[0]) sections[0].textContent = t('conta.sectionPersonal');
-      if (sections[1]) sections[1].textContent = t('conta.sectionAddress');
+      if (sections[1]) sections[1].textContent = t(intlAddress ? 'conta.sectionAddressIntl' : 'conta.sectionAddress');
       if (sections[2]) sections[2].textContent = t('conta.sectionPassword');
       const metaPs = profileForm.querySelectorAll('p.admin-meta');
       if (metaPs[0]) metaPs[0].textContent = t('conta.addressHint');
@@ -1306,14 +1498,28 @@ window.STF_I18N = (function () {
       setLabelText(profileForm.querySelector('label:has([name="nome"])'), 'conta.fullName', true);
       setLabelText(profileForm.querySelector('label:has([name="email"])'), 'conta.email');
       setLabelText(profileForm.querySelector('label:has([name="telefone"])'), 'conta.whatsapp', true);
-      setLabelText(profileForm.querySelector('label:has([name="cpf"])'), 'conta.cpf');
-      setLabelText(profileForm.querySelector('label:has([name="cep"])'), 'conta.formCep');
-      setLabelText(profileForm.querySelector('label:has([name="rua"])'), 'conta.formStreet');
-      setLabelText(profileForm.querySelector('label:has([name="numero"])'), 'conta.formNumber');
-      setLabelText(profileForm.querySelector('label:has([name="complemento"])'), 'conta.formComplement');
-      setLabelText(profileForm.querySelector('label:has([name="bairro"])'), 'conta.formDistrict');
-      setLabelText(profileForm.querySelector('label:has([name="cidade"])'), 'conta.formCity');
-      setLabelText(profileForm.querySelector('label:has([name="uf"])'), 'conta.formState');
+      const cpfLabel = profileForm.querySelector('label:has([name="cpf"])');
+      if (cpfLabel) {
+        setLabelText(cpfLabel, 'conta.cpf', true);
+        const cpfSmall = cpfLabel.querySelector('small');
+        if (cpfSmall) cpfSmall.textContent = t('conta.cpfOptional');
+      }
+      if (intlAddress) {
+        setLabelText(profileForm.querySelector('label:has([name="pais"])'), 'conta.formCountry', true);
+        setLabelText(profileForm.querySelector('label:has([name="cep"])'), 'conta.formZipIntl');
+        setLabelText(profileForm.querySelector('label:has([name="rua"])'), 'conta.formStreetIntl', true);
+        setLabelText(profileForm.querySelector('label:has([name="numero"])'), 'conta.formAptNumber');
+        setLabelText(profileForm.querySelector('label:has([name="cidade"])'), 'conta.formCity');
+        setLabelText(profileForm.querySelector('label:has([name="uf"])'), 'conta.formStateIntl');
+      } else {
+        setLabelText(profileForm.querySelector('label:has([name="cep"])'), 'conta.formCep');
+        setLabelText(profileForm.querySelector('label:has([name="rua"])'), 'conta.formStreet');
+        setLabelText(profileForm.querySelector('label:has([name="numero"])'), 'conta.formNumber');
+        setLabelText(profileForm.querySelector('label:has([name="complemento"])'), 'conta.formComplement');
+        setLabelText(profileForm.querySelector('label:has([name="bairro"])'), 'conta.formDistrict');
+        setLabelText(profileForm.querySelector('label:has([name="cidade"])'), 'conta.formCity');
+        setLabelText(profileForm.querySelector('label:has([name="uf"])'), 'conta.formState');
+      }
       setLabelText(profileForm.querySelector('label:has([name="senhaAtual"])'), 'conta.currentPassword');
       setLabelText(profileForm.querySelector('label:has([name="senhaNova"])'), 'conta.newPassword');
       const saveBtn = profileForm.querySelector('button[type="submit"]');
@@ -1337,9 +1543,10 @@ window.STF_I18N = (function () {
     } catch (e) {
       setLang(getPathLang());
     }
-    if (document.body?.classList.contains('checkout-page')) applyCheckoutDom();
+    if (document.body?.classList.contains('checkout-page') && !document.body?.classList.contains('conta-page')) applyCheckoutDom();
     if (document.body?.classList.contains('loja-page')) applyLojaDom();
     if (document.body?.classList.contains('conta-page')) applyContaDom();
+    if (document.body?.classList.contains('onde-comprar-page')) applyOndeComprarDom();
     if (document.body?.classList.contains('forum-page')) applyShellDom();
     if (window.STF_ACCOUNT?.initNav && !document.body?.classList.contains('forum-page')) window.STF_ACCOUNT.initNav();
   }
@@ -1352,15 +1559,16 @@ window.STF_I18N = (function () {
 
   window.addEventListener('stf-config-ready', () => {
     ensureExtraStrings();
-    if (document.body?.classList.contains('checkout-page')) applyCheckoutDom();
+    if (document.body?.classList.contains('checkout-page') && !document.body?.classList.contains('conta-page')) applyCheckoutDom();
     if (document.body?.classList.contains('loja-page')) applyLojaDom();
     if (document.body?.classList.contains('conta-page')) applyContaDom();
+    if (document.body?.classList.contains('onde-comprar-page')) applyOndeComprarDom();
     if (document.body?.classList.contains('forum-page')) applyShellDom();
   });
 
   return {
     t, getLang, isEn, isIt, isDe, isEs, isPl, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
-    applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom, applyShellDom,
+    applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom, applyOndeComprarDom, applyShellDom,
     langQuery, lojaHref, STRINGS
   };
 })();

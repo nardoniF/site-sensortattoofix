@@ -20,12 +20,19 @@ function dedupePageLang(html) {
   );
 }
 
-function ensureI18nBundle(html, lang) {
+function ensureI18nBundle(html, lang, page) {
   let out = dedupePageLang(html);
   const bundle = `<script src="../js/stf-page-lang.js?v=2"></script>
     <script src="../js/${lang.override}?v=2"></script>
-    <script src="../js/stf-i18n.js?v=48"></script>
+    <script src="../js/stf-i18n.js?v=49"></script>
     <script>try{sessionStorage.setItem('stf_lang','${lang.code}');}catch(e){}</script>`;
+
+  if (!out.includes('stf-page-lang.js')) {
+    out = out.replace(
+      /(<script src="\.\.\/js\/stf-i18n-[^"]+-overrides\.js[^"]*"><\/script>)/,
+      `<script src="../js/stf-page-lang.js?v=2"></script>\n    $1`
+    );
+  }
 
   if (!out.includes('stf-i18n.js')) {
     out = out.replace(
@@ -40,7 +47,7 @@ function ensureI18nBundle(html, lang) {
     if (!out.includes(`stf_lang','${lang.code}`)) {
       out = out.replace(
         /<script src="\.\.\/js\/stf-i18n\.js[^"]*"><\/script>/,
-        `<script src="../js/stf-i18n.js?v=48"></script>\n    <script>try{sessionStorage.setItem('stf_lang','${lang.code}');}catch(e){}</script>`
+        `<script src="../js/stf-i18n.js?v=49"></script>\n    <script>try{sessionStorage.setItem('stf_lang','${lang.code}');}catch(e){}</script>`
       );
     }
   }
@@ -48,7 +55,7 @@ function ensureI18nBundle(html, lang) {
   if (!out.includes('stf-lang-nav.js') && out.includes('checkout-nav')) {
     out = out.replace(
       /<script src="\.\.\/js\/stf-i18n\.js[^"]*"><\/script>/,
-      `<script src="../js/stf-i18n.js?v=48"></script>\n    <script src="../js/stf-lang-nav.js?v=4"></script>`
+      `<script src="../js/stf-i18n.js?v=49"></script>\n    <script src="../js/stf-lang-nav.js?v=4"></script>`
     );
   }
 
@@ -70,6 +77,10 @@ function ensureI18nBundle(html, lang) {
     '<li class="nav-lang-stack" aria-label="Language"></li>'
   );
 
+  if (page === 'minha-conta.html') {
+    out = out.replace(/<body class="checkout-page conta-page">/g, '<body class="conta-page">');
+  }
+
   return out;
 }
 
@@ -77,7 +88,7 @@ for (const lang of LANGS) {
   for (const page of PAGES) {
     const file = path.join(ROOT, lang.code, page);
     if (!fs.existsSync(file)) continue;
-    const html = ensureI18nBundle(fs.readFileSync(file, 'utf8'), lang);
+    const html = ensureI18nBundle(fs.readFileSync(file, 'utf8'), lang, page);
     fs.writeFileSync(file, html);
     console.log('patched', `${lang.code}/${page}`);
   }
