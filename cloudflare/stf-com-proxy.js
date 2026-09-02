@@ -1,10 +1,10 @@
 /**
  * Storefront proxy — serves pinned GitHub commit via jsDelivr.
- * - .com / www.sensortattoofix.com → English (/) + IT/DE/ES/PL (/it/, /de/, /es/, /pl/)
+ * - .com / www.sensortattoofix.com → English (/) + IT/DE/ES/PL/SL (/it/, /de/, /es/, /pl/, /sl/)
  * - .com.br → Portuguese (repo root)
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
-const COMMIT = 'be243bfae711f68046583978d3d164d0a11fd407';
+const COMMIT = 'd50e878249f79a1dd992cedb032d10c9f95768b4';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
