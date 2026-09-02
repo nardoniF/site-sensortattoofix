@@ -76,6 +76,16 @@ window.STF_FOOTER = (function () {
       patentLinePrefix: 'Patent krajowy',
       patentLineJoin: 'Międzynarodowy',
       rights: 'Wszelkie prawa zastrzeżone.'
+    },
+    sl: {
+      socialTitle: 'Sledite našim uradnim kanalom',
+      faq: 'FAQ',
+      community: 'Skupnost',
+      feedback: 'Kaj je manjkalo na spletni strani?',
+      commissioner: 'Postanite partner',
+      patentLinePrefix: 'Nacionalni patent',
+      patentLineJoin: 'Mednarodni',
+      rights: 'Vse pravice pridržane.'
     }
   };
 
@@ -95,12 +105,14 @@ window.STF_FOOTER = (function () {
       if (location.pathname.includes('/de/')) return 'de';
       if (location.pathname.includes('/es/')) return 'es';
       if (location.pathname.includes('/pl/')) return 'pl';
+      if (location.pathname.includes('/sl/')) return 'sl';
       return 'en';
     }
     if (location.pathname.includes('/it/')) return 'it';
     if (location.pathname.includes('/de/')) return 'de';
     if (location.pathname.includes('/es/')) return 'es';
     if (location.pathname.includes('/pl/')) return 'pl';
+    if (location.pathname.includes('/sl/')) return 'sl';
     if (location.pathname.includes('/en/')) return 'en';
     return 'pt';
   }
@@ -132,6 +144,7 @@ window.STF_FOOTER = (function () {
         de: `Patentierte Technologie · ${INFO.patentInternational}`,
         es: `Tecnología patentada · ${INFO.patentInternational}`,
         pl: `Opatentowana technologia · ${INFO.patentInternational}`,
+        sl: `Patentirana tehnologija · ${INFO.patentInternational}`,
         it: `Tecnologia brevettata · ${INFO.patentInternational}`,
         en: `Patented technology · ${INFO.patentInternational}`
       };

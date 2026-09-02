@@ -1,10 +1,10 @@
 /**
- * Detecção centralizada de idioma do site (PT, EN, IT, DE, ES, PL).
+ * Detecção centralizada de idioma do site (PT, EN, IT, DE, ES, PL, SL).
  */
 window.STF_PAGE_LANG = (function () {
-  const LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl'];
-  const INTL_PATH_LANGS = ['en', 'it', 'de', 'es', 'pl'];
-  const INTL_PATH_RE = /^\/(en|it|de|es|pl)(\/|$)/;
+  const LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
+  const INTL_PATH_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
+  const INTL_PATH_RE = /^\/(en|it|de|es|pl|sl)(\/|$)/;
 
   function isComHost() {
     const h = String(location.hostname || '').toLowerCase();
@@ -13,7 +13,7 @@ window.STF_PAGE_LANG = (function () {
 
   function fromPath() {
     const path = location.pathname;
-    for (const lang of ['it', 'de', 'es', 'pl']) {
+    for (const lang of ['it', 'de', 'es', 'pl', 'sl']) {
       if (path === `/${lang}` || path.includes(`/${lang}/`)) return lang;
     }
     if (isComHost()) return 'en';

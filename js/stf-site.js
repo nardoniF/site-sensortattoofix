@@ -66,10 +66,10 @@
     if (!window.STF_SITE_ENABLE_BR_INTL_REDIRECT) return;
     if (!isBrHost()) return;
     const path = location.pathname;
-    if (!/^\/(en|it|de|es|pl)(\/|$)/.test(path)) return;
-    const m = path.match(/^\/(en|it|de|es|pl)(\/|$)/);
+    if (!/^\/(en|it|de|es|pl|sl)(\/|$)/.test(path)) return;
+    const m = path.match(/^\/(en|it|de|es|pl|sl)(\/|$)/);
     const lang = m[1];
-    const rest = path.replace(/^\/(en|it|de|es|pl)/, '') || '/';
+    const rest = path.replace(/^\/(en|it|de|es|pl|sl)/, '') || '/';
     let target;
     if (lang === 'en') {
       target = rest === '/' || rest === '/index.html' ? COM_ORIGIN + '/' : COM_ORIGIN + rest;
@@ -87,7 +87,7 @@
     if (window.STF_PAGE_LANG?.catalogMarket) return window.STF_PAGE_LANG.catalogMarket();
     if (isIntlHost()) return 'INT';
     const path = String(location.pathname || '');
-    if (/^\/(en|it|de|es|pl)(\/|$)/.test(path)) return 'INT';
+    if (/^\/(en|it|de|es|pl|sl)(\/|$)/.test(path)) return 'INT';
     return 'BR';
   }
 

@@ -66,7 +66,7 @@ const COM_SHARED_ROOT_PAGES = new Set([
   '/rastreio.html'
 ]);
 
-const INTL_LANGS = ['it', 'de', 'es', 'pl'];
+const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
 
 function mapPathCom(pathname) {
   if (isStaticAsset(pathname)) return pathname;

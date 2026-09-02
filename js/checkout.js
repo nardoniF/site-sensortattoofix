@@ -114,7 +114,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function checkoutLocale() {
     if (!isIntlCheckoutShell()) return 'pt';
     const lang = window.STF_I18N?.getLang?.() || 'en';
-    if (lang === 'it' || lang === 'de' || lang === 'es' || lang === 'pl' || lang === 'en') return lang;
+    if (lang === 'it' || lang === 'de' || lang === 'es' || lang === 'pl' || lang === 'sl' || lang === 'en') return lang;
     return 'en';
   }
 

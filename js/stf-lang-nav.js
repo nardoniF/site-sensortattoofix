@@ -1,12 +1,12 @@
 /**
- * Navegação entre mercados + seletor compacto de idiomas (PT, EN, IT, DE, ES, PL).
- * .com = EN (/) + IT/DE/ES/PL (/it/, /de/, /es/, /pl/)  |  .com.br = PT + /en/ + /it/ + /de/ + /es/ + /pl/
+ * Navegação entre mercados + seletor compacto de idiomas (PT, EN, IT, DE, ES, PL, SL).
+ * .com = EN (/) + IT/DE/ES/PL/SL (/it/, /de/, /es/, /pl/, /sl/)  |  .com.br = PT + /en/ + /it/ + /de/ + /es/ + /pl/ + /sl/
  */
 (function () {
   const BR = 'https://www.sensortattoofix.com.br';
   const COM = 'https://www.sensortattoofix.com';
-  const INTL_LANGS = ['it', 'de', 'es', 'pl'];
-  const ALL_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl'];
+  const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
+  const ALL_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
 
   const LANG_META = {
     pt: { code: 'PT', flag: 'br', label: 'Português (Brasil)' },
@@ -15,6 +15,7 @@
     de: { code: 'DE', flag: 'de', label: 'Deutsch' },
     es: { code: 'ES', flag: 'es', label: 'Español' },
     pl: { code: 'PL', flag: 'pl', label: 'Polski' },
+    sl: { code: 'SL', flag: 'si', label: 'Slovenščina' },
   };
 
   function host() {

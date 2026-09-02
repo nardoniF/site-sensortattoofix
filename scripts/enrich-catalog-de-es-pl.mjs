@@ -45,6 +45,17 @@ const NAME_PREFIX = {
     ['Sport Silicone Band — ', 'Sportowy pasek silikonowy — '],
     ['Trail Loop Nylon Comfort Band — ', 'Pasek Trail Loop z nylonu — '],
   ],
+  sl: [
+    ['Screen protector — ', 'Zaščitna folija — '],
+    ['Alpine Loop Braided Nylon Band — ', 'Trak Alpine Loop iz pletenega najlona — '],
+    ['Luxury Stainless Steel Link Band — ', 'Luksuzna jeklena zapestnica — '],
+    ['Magnetic Milanese Steel Band — ', 'Magnetna milanska jeklena zapestnica — '],
+    ['Ocean Sport Silicone Band — ', 'Silikonski trak Ocean Sport — '],
+    ['Breathable Sport Silicone Band — ', 'Dišeči športni silikonski trak — '],
+    ['Classic Soft Smooth Silicone Band — ', 'Klasičen mehak silikonski trak — '],
+    ['Sport Silicone Band — ', 'Športni silikonski trak — '],
+    ['Trail Loop Nylon Comfort Band — ', 'Udoben najlonski trak Trail Loop — '],
+  ],
 };
 
 const DESC_BY_TYPE = {
@@ -52,16 +63,20 @@ const DESC_BY_TYPE = {
     de: 'Schützt das Smartwatch-Display — dünner Film, einfache Montage, gleiche Lieferung.',
     es: 'Protege la pantalla del smartwatch — lámina fina, fácil instalación, mismo envío.',
     pl: 'Chroni ekran smartwatcha — cienka folia, łatwy montaż, ta sama przesyłka.',
+    sl: 'Ščiti zaslon pametne ure — tanek film, enostavna namestitev, ista pošiljka.',
   },
   pulseira: {
     de: 'Komfort und Stil in einer Lieferung — passend zu Ihrer Smartwatch.',
     es: 'Comodidad y estilo en el mismo envío — compatible con tu smartwatch.',
     pl: 'Komfort i styl w jednej przesyłce — pasuje do Twojego smartwatcha.',
+    sl: 'Udobje in stil v eni pošiljki — primerno za vašo pametno uro.',
   },
   default: {
     de: 'Offizielles Zubehör von Sensor Tattoo Fix.',
     es: 'Accesorio oficial de Sensor Tattoo Fix.',
     pl: 'Oficjalne akcesorium Sensor Tattoo Fix.',
+    sl: 'Uradna oprema Sensor Tattoo Fix.',
+    intlLens: 'Zasnovana za optične senzorje pametnih ur na tetovirani koži.',
   },
 };
 
@@ -69,6 +84,7 @@ const FILM_TYPE = {
   de: { ceramic: 'Keramik', 'flexible membrane': 'flexible Membran' },
   es: { ceramic: 'cerámica', 'flexible membrane': 'membrana flexible' },
   pl: { ceramic: 'ceramika', 'flexible membrane': 'elastyczna membrana' },
+  sl: { ceramic: 'keramika', 'flexible membrane': 'prožna membrana' },
 };
 
 function translateName(nameEn, lang) {
@@ -91,15 +107,18 @@ let touched = 0;
 for (const p of cfg.products || []) {
   if (!p.nameEn) continue;
   const kind = productKind(p);
-  for (const lang of ['de', 'es', 'pl']) {
+  for (const lang of ['de', 'es', 'pl', 'sl']) {
     const nameKey = `name${lang.charAt(0).toUpperCase()}${lang.slice(1)}`;
     const descKey = `description${lang.charAt(0).toUpperCase()}${lang.slice(1)}`;
     if (!p[nameKey]) {
       p[nameKey] = translateName(p.nameEn, lang);
       touched++;
     }
-    if (!p[descKey] && (p.aggregated || kind !== 'default')) {
-      p[descKey] = DESC_BY_TYPE[kind][lang] || DESC_BY_TYPE.default[lang];
+    if (!p[descKey] && (p.aggregated || kind !== 'default' || (Array.isArray(p.markets) && p.markets.includes('INT')))) {
+      const intlLens = /lens|linse|lente|soczewka|leča/i.test(String(p.nameEn || ''));
+      p[descKey] = (lang === 'sl' && intlLens && kind === 'default')
+        ? DESC_BY_TYPE.default.intlLens
+        : (DESC_BY_TYPE[kind][lang] || DESC_BY_TYPE.default[lang]);
       touched++;
     }
     if (p.filmTypeEn && !p[`filmType${lang.charAt(0).toUpperCase()}${lang.slice(1)}`]) {

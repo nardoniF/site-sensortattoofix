@@ -34,21 +34,24 @@ function loadSiteWithPageLang(location) {
   return sandbox.window.STF_SITE;
 }
 
-test('STF_PAGE_LANG: detecta es/de/pl no path .com.br', () => {
+test('STF_PAGE_LANG: detecta es/de/pl/sl no path .com.br', () => {
   const es = loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/es/loja.html' });
   const de = loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/de/comprar.html' });
   const pl = loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/pl/' });
+  const sl = loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/sl/loja.html' });
   const pt = loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/loja.html' });
   assert.equal(es.get(), 'es');
   assert.equal(de.get(), 'de');
   assert.equal(pl.get(), 'pl');
+  assert.equal(sl.get(), 'sl');
   assert.equal(pt.get(), 'pt');
 });
 
-test('STF_PAGE_LANG: catalogMarket INT para /es|/de|/pl no .com.br', () => {
+test('STF_PAGE_LANG: catalogMarket INT para /es|/de|/pl|/sl no .com.br', () => {
   assert.equal(loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/es/loja.html' }).catalogMarket(), 'INT');
   assert.equal(loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/de/loja.html' }).catalogMarket(), 'INT');
   assert.equal(loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/pl/loja.html' }).catalogMarket(), 'INT');
+  assert.equal(loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/sl/loja.html' }).catalogMarket(), 'INT');
   assert.equal(loadPageLang({ hostname: 'www.sensortattoofix.com.br', pathname: '/loja.html' }).catalogMarket(), 'BR');
 });
 
@@ -68,7 +71,8 @@ test('overrides DE/ES/PL definem store.title e page.checkoutTitle*', () => {
   const langs = [
     { file: 'stf-i18n-de-overrides.js', global: 'STF_I18N_DE', titleKey: 'page.checkoutTitleDe' },
     { file: 'stf-i18n-es-overrides.js', global: 'STF_I18N_ES', titleKey: 'page.checkoutTitleEs' },
-    { file: 'stf-i18n-pl-overrides.js', global: 'STF_I18N_PL', titleKey: 'page.checkoutTitlePl' }
+    { file: 'stf-i18n-pl-overrides.js', global: 'STF_I18N_PL', titleKey: 'page.checkoutTitlePl' },
+    { file: 'stf-i18n-sl-overrides.js', global: 'STF_I18N_SL', titleKey: 'page.checkoutTitleSl' }
   ];
   for (const { file, global, titleKey } of langs) {
     const sandbox = { window: {} };
@@ -101,7 +105,7 @@ test('forum-l10n.json cobre chaves principais em de/es/pl', () => {
 });
 
 const LANG_SHELL_PAGES = ['loja.html', 'comprar.html', 'minha-conta.html', 'comunidade.html', 'onde-comprar.html'];
-const LANGS = ['de', 'es', 'pl'];
+const LANGS = ['de', 'es', 'pl', 'sl'];
 
 test('páginas DE/ES/PL carregam bundle i18n obrigatório', () => {
   for (const lang of LANGS) {
@@ -246,12 +250,12 @@ test('STF_PELICULA: /de/ e /pl/ usam nameDe/namePl com fallback nameEn', () => {
   );
 });
 
-test('store-config: produtos intl têm nameDe/nameEs/namePl', () => {
+test('store-config: produtos intl têm nameDe/nameEs/namePl/nameSl', () => {
   const cfg = JSON.parse(fs.readFileSync(path.join(root, 'data/store-config.json'), 'utf8'));
   for (const id of ['optical-lens-intl', 'optical-lens-smartband-intl']) {
     const p = cfg.products.find((x) => x.id === id);
     assert.ok(p, id);
-    for (const field of ['nameDe', 'nameEs', 'namePl', 'descriptionDe', 'descriptionEs', 'descriptionPl']) {
+    for (const field of ['nameDe', 'nameEs', 'namePl', 'nameSl', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl']) {
       assert.ok(p[field], `${id}.${field}`);
     }
   }
@@ -285,9 +289,11 @@ test('comprar DE/ES/PL sem texto EN no shell do checkout', () => {
   }
 });
 
-test('worker: funções de e-mail intl para de/es/pl', () => {
+test('worker: funções de e-mail intl para de/es/pl/sl', () => {
   const src = fs.readFileSync(path.join(root, 'api/worker.js'), 'utf8');
   assert.match(src, /function intlPaidShipMessage/);
   assert.match(src, /Sendungsverfolgung verfügbar/);
   assert.match(src, /Wöchentliche Erinnerung/);
+  assert.match(src, /Sledenje na voljo/);
+  assert.match(src, /Tedenski opomnik/);
 });
