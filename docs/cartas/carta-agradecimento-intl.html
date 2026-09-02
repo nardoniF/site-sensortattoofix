@@ -651,15 +651,24 @@
     }
   };
 
-  const HTML_I18N_KEYS = new Set(['noteCharge', 'noteCure', 'support', 'pocketPaste']);
+  const HTML_I18N_KEYS = new Set(['noteCharge', 'noteCure', 'support', 'pocketPaste', 'body1Addon']);
+
+  let letterLocalesReady = false;
+  async function ensureLetterLocales() {
+    if (letterLocalesReady) return;
+    try {
+      const res = await fetch('../data/letter-l10n.json?v=1', { cache: 'no-store' });
+      if (res.ok) Object.assign(LETTER_COPY, await res.json());
+    } catch (_) { /* ignore */ }
+    letterLocalesReady = true;
+  }
 
   function resolveLetterLocale(order) {
     if (langOverride && LETTER_COPY[langOverride]) return langOverride;
     const checkout = String(order?.checkoutLocale || '').toLowerCase();
-    if (checkout === 'it') return 'it';
+    if (LETTER_COPY[checkout]) return checkout;
     const country = String(order?.paisCode || '').toUpperCase();
-    if (country === 'SI') return 'sl';
-    if (checkout === 'en') return 'en';
+    if (country === 'SI' && LETTER_COPY.sl) return 'sl';
     return 'en';
   }
 
@@ -1049,13 +1058,20 @@
   document.getElementById('btn-print').addEventListener('click', () => window.print());
   document.getElementById('btn-template').addEventListener('click', () => showTemplate());
 
-  if (orderId) loadOrder(orderId).catch((e) => {
-    showTemplate(e.message || 'Load failed');
-  });
-  else {
+  async function boot() {
+    await ensureLetterLocales();
+    if (orderId) {
+      try {
+        await loadOrder(orderId);
+      } catch (e) {
+        showTemplate(e.message || 'Load failed');
+      }
+      return;
+    }
     applyLetterLocale(langOverride && LETTER_COPY[langOverride] ? langOverride : 'en');
     showTemplate();
   }
+  boot();
 })();
   </script>
 </body>

@@ -62,6 +62,10 @@ for (const m of manuals) {
 if (!fs.existsSync(path.join(ROOT, 'docs/cartas/carta-agradecimento-intl.html'))) {
   warnings.push('carta internacional EN ausente');
 }
+if (!fs.existsSync(path.join(ROOT, 'data/letter-l10n.json'))) {
+  errors++;
+  console.error('ERRO data/letter-l10n.json ausente');
+}
 
 console.log('## Avisos (esperados ou a melhorar)');
 warnings.forEach((w) => console.log('-', w));

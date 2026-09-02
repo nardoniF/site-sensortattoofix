@@ -1108,7 +1108,7 @@
     const code = String(o?.paisCode || '').trim().toUpperCase();
     if (code && code !== 'BR' && code !== 'OTHER' && code !== 'XX' && code !== 'T1') return true;
     const loc = String(o?.checkoutLocale || o?.locale || '').toLowerCase();
-    if (loc === 'en' || loc === 'it') return true;
+    if (loc === 'en' || loc === 'it' || loc === 'de' || loc === 'es' || loc === 'pl') return true;
     if (o?.internationalLensOnly) return true;
     if (o?.shipmentType === 'documento' || o?.shipmentType === 'encomenda') return true;
     if (String(o?.shippingMethodId || '').startsWith('int-')) return true;

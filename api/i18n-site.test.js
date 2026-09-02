@@ -187,6 +187,25 @@ test('STF_PELICULA: /es/ usa nameEn em vez de name PT', () => {
   assert.equal(p.productDescription(product), 'English product description');
 });
 
+test('letter-l10n.json cobre DE/ES/PL com chaves da carta EN', () => {
+  const data = JSON.parse(fs.readFileSync(path.join(root, 'data/letter-l10n.json'), 'utf8'));
+  const required = ['thanksTitle', 'sectionSteps', 'step1Text', 'body2', 'pocketTitle', 'toolbarFilled'];
+  for (const lang of ['de', 'es', 'pl']) {
+    for (const key of required) {
+      assert.ok(data[lang]?.[key], `${lang}.${key}`);
+    }
+  }
+});
+
+test('FAQ intl faq-13 aponta para carta, não manual BR', () => {
+  const l10n = JSON.parse(fs.readFileSync(path.join(root, 'data/home-content-l10n.json'), 'utf8'));
+  for (const lang of ['de', 'es', 'pl']) {
+    const ans = l10n[lang]?.faq?.['faq-13']?.answer || '';
+    assert.match(ans, /carta-agradecimento-intl\.html\?lang=/, `${lang} faq-13`);
+    assert.doesNotMatch(ans, /manual-instalacao-sensor-tattoo-fix/, `${lang} faq-13 sem manual BR`);
+  }
+});
+
 test('STF_PELICULA: /de/ e /pl/ também usam nameEn', () => {
   for (const lang of ['de', 'pl']) {
     const flags = { de: 'isDe', pl: 'isPl' }[lang];

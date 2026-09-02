@@ -92,7 +92,12 @@
                             <tr><td>Detecção de mercado</td><td colspan="3"><code>catalogMarket()</code> em <code>js/stf-site.js</code> — <code>/en|it|de|es|pl/</code> → catálogo internacional</td></tr>
                         </tbody>
                     </table>
-                    <p><strong>Manuais de instalação:</strong> PDF/HTML em <code>docs/manuais/</code> estão apenas em <strong>português</strong> (produto enviado no Brasil). Carta de agradecimento internacional: <code>docs/cartas/carta-agradecimento-intl.html</code> (inglês). Não há versão DE/ES/PL dos manuais — o link no rodapé aponta para o mesmo PDF em todos os idiomas.</p>
+                    <p><strong>Manuais e carta internacional:</strong></p>
+                    <ul>
+                        <li><strong>Brasil (kit completo):</strong> manual em <code>docs/manuais/</code> — inclui passo do <em>primer</em> (potencializador). Só para envio nacional.</li>
+                        <li><strong>Exterior (só lente, documento internacional):</strong> não vai o manual BR — vai a <strong>carta</strong> impressa no envelope (<code>docs/cartas/carta-agradecimento-intl.html</code>), com passo a passo sem primer. Idioma = <code>checkoutLocale</code> do pedido (EN/IT/DE/ES/PL; SL para Eslovênia).</li>
+                        <li>Traduções DE/ES/PL da carta: <code>data/letter-l10n.json</code>. Preview: <code>?lang=de|es|pl</code>.</li>
+                    </ul>
                     <p><strong>Testes automáticos:</strong> <code>node --test api/i18n-site.test.js</code> (bundles, overrides, FAQ/elogios, <code>catalogMarket</code>). <strong>Auditoria:</strong> <code>node scripts/audit-i18n-shell.mjs</code> (scripts obrigatórios nas pastas de idioma; avisa HTML estático EN e manuais só PT).</p>
                     <p>Páginas internas (<code>admin.html</code>, <code>pedidos.html</code>, <code>documentacao.html</code>) permanecem só em português.</p>
                 </section>
