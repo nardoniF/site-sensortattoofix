@@ -5807,6 +5807,42 @@
         "tiktokHandle": "@sensortattoofixofc",
         "tiktokTitle": "Como remover a lente Sensor Tattoo Fix"
       }
+    },
+    {
+      "id": "faq-19",
+      "active": true,
+      "order": 19,
+      "question": "Vocês enviam para outros países? Como funciona o frete internacional?",
+      "questionEn": "Do you ship internationally? How does international shipping work?",
+      "questionIt": "Spedite all'estero? Come funziona la spedizione internazionale?",
+      "answer": "Sim. Pedidos internacionais saem da loja oficial com <strong>PayPal ou cartão</strong> e <strong>rastreio</strong>. O envio é feito como documento/carta com a lente (sem líquidos). O prazo depende do país — em geral algumas semanas. Você recebe e-mail com o código de rastreio quando o pedido for despachado.",
+      "answerEn": "Yes. International orders go through the official store with <strong>PayPal or card</strong> and <strong>tracked shipping</strong>. We ship the lens as a letter/document (no liquids). Delivery time depends on the country — usually a few weeks. You get an email with the tracking code when the order ships.",
+      "answerIt": "Sì. Gli ordini internazionali passano dal negozio ufficiale con <strong>PayPal o carta</strong> e <strong>spedizione tracciata</strong>. Inviamo la lente come lettera/documento (senza liquidi). I tempi dipendono dal Paese — di solito alcune settimane. Ricevi un'email con il codice di tracking quando la spedizione parte.",
+      "media": null
+    },
+    {
+      "id": "faq-20",
+      "active": true,
+      "order": 20,
+      "question": "Tem garantia? E se a lente não resolver no meu caso?",
+      "questionEn": "Is there a warranty? What if the lens does not fix my case?",
+      "questionIt": "C'è garanzia? E se la lente non risolve il mio caso?",
+      "answer": "Trabalhamos para que a lente resolva detecção de pulso, batimentos e treinos na tatuagem. Se após a instalação correta o problema continuar, fale conosco pelo e-mail ou WhatsApp do site — analisamos o caso e orientamos (compatibilidade, diâmetro, reinstalação). Políticas de troca/reembolso seguem as regras da loja oficial no checkout.",
+      "answerEn": "We design the lens to restore wrist detection, heart rate and workouts on tattooed skin. If the issue continues after correct installation, contact us via the site email or WhatsApp — we review your case and guide you (compatibility, diameter, reinstall). Exchange/refund policies follow the official store rules at checkout.",
+      "answerIt": "Progettiamo la lente per ripristinare rilevamento polso, battito e allenamenti sulla pelle tatuata. Se dopo l'installazione corretta il problema resta, contattaci via email o WhatsApp del sito — analizziamo il caso e ti guidiamo (compatibilità, diametro, reinstallazione). Scambio/rimborso seguono le regole del negozio ufficiale al checkout.",
+      "media": null
+    },
+    {
+      "id": "faq-21",
+      "active": true,
+      "order": 21,
+      "question": "Funciona em Garmin e outras marcas além de Apple e Samsung?",
+      "questionEn": "Does it work on Garmin and brands other than Apple and Samsung?",
+      "questionIt": "Funziona su Garmin e marchi diversi da Apple e Samsung?",
+      "answer": "Sim. Qualquer smartwatch com <strong>sensor óptico</strong> (luz verde/infravermelho) na parte de trás — incluindo <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei e similares — pode se beneficiar da lente. O essencial é o diâmetro do sensor; na loja oficial você escolhe o modelo/tamanho compatível.",
+      "answerEn": "Yes. Any smartwatch with an <strong>optical sensor</strong> (green/infrared light) on the back — including <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei and similar brands — can benefit from the lens. What matters is the sensor diameter; in the official store you pick the compatible size/model.",
+      "answerIt": "Sì. Qualsiasi smartwatch con <strong>sensore ottico</strong> (luce verde/infrarossa) sul retro — inclusi <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei e marchi simili — può beneficiare della lente. Conta il diametro del sensore; nel negozio ufficiale scegli la misura/modello compatibile.",
+      "media": null
     }
   ],
   "homeReviews": [

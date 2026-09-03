@@ -85,12 +85,14 @@ test('overrides DE/ES/PL definem store.title e page.checkoutTitle*', () => {
   }
 });
 
-test('home-content-l10n.json cobre 18 FAQs e 15 reviews em de/es/pl', () => {
+test('home-content-l10n.json cobre 21 FAQs e 15 reviews em de/es/pl/sl', () => {
   const data = JSON.parse(fs.readFileSync(path.join(root, 'data/home-content-l10n.json'), 'utf8'));
-  for (const lang of ['de', 'es', 'pl']) {
+  for (const lang of ['de', 'es', 'pl', 'sl']) {
     const block = data[lang];
     assert.ok(block?.reviewsSummary, lang);
-    assert.equal(Object.keys(block.faq).length, 18, `${lang} faq`);
+    assert.equal(Object.keys(block.faq).length, 21, `${lang} faq`);
+    assert.ok(block.faq['faq-19']?.question, `${lang} faq-19`);
+    assert.ok(block.faq['faq-21']?.question, `${lang} faq-21`);
     assert.equal(Object.keys(block.reviews).length, 15, `${lang} reviews`);
   }
 });
