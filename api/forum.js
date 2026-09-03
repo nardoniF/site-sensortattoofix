@@ -1,5 +1,10 @@
 import { buildForumSeedLangPacks } from './forum-seeds.js';
 import { bumpKvWriteCounter, isKvQuotaError, markKvWriteQuotaExhausted } from './kv-meter.js';
+import {
+  normalizeSiteLang,
+  localizeForumThreadFields,
+  localizeForumReplyFields
+} from './site-l10n.js';
 
 async function kvPut(env, key, value, options) {
   try {
@@ -239,6 +244,38 @@ async function saveReplies(env, threadId, replies) {
   await kvPut(env, 'forum:replies:' + threadId, JSON.stringify(replies.slice(-FORUM_REPLIES_MAX)));
 }
 
+function scheduleI18n(deps, work) {
+  const run = Promise.resolve().then(work).catch((err) => console.warn('forum i18n:', err?.message || err));
+  const ctx = deps?.ctx;
+  if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run);
+  return run;
+}
+
+async function fillThreadI18n(env, threadId) {
+  const thread = await getThread(env, threadId);
+  if (!thread) return;
+  const next = await localizeForumThreadFields(env, thread);
+  if (next !== thread) await saveThread(env, next);
+}
+
+async function fillReplyI18n(env, threadId, replyId) {
+  const replies = await getReplies(env, threadId);
+  const idx = replies.findIndex((r) => r.id === replyId);
+  if (idx < 0) return;
+  replies[idx] = await localizeForumReplyFields(env, replies[idx]);
+  await saveReplies(env, threadId, replies);
+}
+
+const FORUM_SUBMIT_MSG = {
+  pt: { topic: 'Tópico enviado. Aparece após aprovação do administrador.', reply: 'Resposta enviada. Aparece após aprovação do administrador.' },
+  en: { topic: 'Topic submitted. It appears after admin approval.', reply: 'Reply submitted. It appears after admin approval.' },
+  it: { topic: 'Argomento inviato. Compare dopo l’approvazione.', reply: 'Risposta inviata. Compare dopo l’approvazione.' },
+  de: { topic: 'Thema gesendet. Es erscheint nach der Freigabe.', reply: 'Antwort gesendet. Sie erscheint nach der Freigabe.' },
+  es: { topic: 'Tema enviado. Aparece tras la aprobación.', reply: 'Respuesta enviada. Aparece tras la aprobación.' },
+  pl: { topic: 'Wątek wysłany. Pojawi się po akceptacji.', reply: 'Odpowiedź wysłana. Pojawi się po akceptacji.' },
+  sl: { topic: 'Tema poslana. Prikaže se po odobritvi.', reply: 'Odgovor poslan. Prikaže se po odobritvi.' }
+};
+
 async function resolveThreadByParam(env, param) {
   const key = String(param || '').trim();
   if (!key) return null;
@@ -410,9 +447,7 @@ function officialReply(body, createdAt) {
 }
 
 function normalizeForumLang(raw) {
-  const l = String(raw || '').trim().toLowerCase().slice(0, 2);
-  if (l === 'en' || l === 'it') return l;
-  return 'pt';
+  return normalizeSiteLang(raw);
 }
 
 function threadMatchesLang(thread, lang) {
@@ -866,7 +901,11 @@ export async function handleForumRoute(request, env, origin, deps) {
     const hub = [
       { loc: 'https://www.sensortattoofix.com.br/comunidade.html', lang: 'pt' },
       { loc: 'https://www.sensortattoofix.com/comunidade.html', lang: 'en' },
-      { loc: 'https://www.sensortattoofix.com/it/comunidade.html', lang: 'it' }
+      { loc: 'https://www.sensortattoofix.com/it/comunidade.html', lang: 'it' },
+      { loc: 'https://www.sensortattoofix.com/de/comunidade.html', lang: 'de' },
+      { loc: 'https://www.sensortattoofix.com/es/comunidade.html', lang: 'es' },
+      { loc: 'https://www.sensortattoofix.com/pl/comunidade.html', lang: 'pl' },
+      { loc: 'https://www.sensortattoofix.com/sl/comunidade.html', lang: 'sl' }
     ];
     for (const h of hub) {
       urls.push(`  <url>\n    <loc>${h.loc}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.75</priority>\n  </url>`);
@@ -876,11 +915,15 @@ export async function handleForumRoute(request, env, origin, deps) {
       if (!t || t.status !== 'published') continue;
       const slug = encodeURIComponent(t.slug || t.id);
       const lastmod = (t.updatedAt || t.createdAt || '').slice(0, 10);
-      // Same topic in every locale — one slug, three public URLs.
+      // Same topic in every locale — one slug, all public URLs.
       const locs = [
         `https://www.sensortattoofix.com.br/comunidade.html?t=${slug}`,
         `https://www.sensortattoofix.com/comunidade.html?t=${slug}`,
-        `https://www.sensortattoofix.com/it/comunidade.html?t=${slug}`
+        `https://www.sensortattoofix.com/it/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/de/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/es/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/pl/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/sl/comunidade.html?t=${slug}`
       ];
       for (const loc of locs) {
         urls.push(`  <url>\n    <loc>${loc}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ''}\n    <changefreq>weekly</changefreq>\n    <priority>0.65</priority>\n  </url>`);
@@ -1132,6 +1175,8 @@ export async function handleForumRoute(request, env, origin, deps) {
       id, slug, title, body: text, status: 'pending', createdAt: now, updatedAt: now,
       replyCount: 0, publishedReplyCount: 0,
       lang,
+      sourceLang: lang,
+      i18n: {},
       tags: Array.isArray(body.tags)
         ? body.tags.map((t) => String(t).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 24)).filter(Boolean).slice(0, 5)
         : [],
@@ -1143,12 +1188,9 @@ export async function handleForumRoute(request, env, origin, deps) {
     index.unshift(id);
     await saveThreadIndex(env, index);
     await saveReplies(env, id, []);
-    const msg = lang === 'en'
-      ? 'Topic submitted. It appears after admin approval.'
-      : lang === 'it'
-        ? 'Argomento inviato. Compare dopo l’approvazione.'
-        : 'Tópico enviado. Aparece após aprovação do administrador.';
-    return deps.json({ ok: true, thread: publicThread(thread), message: msg }, 201, origin);
+    scheduleI18n(deps, () => fillThreadI18n(env, id));
+    const msg = (FORUM_SUBMIT_MSG[lang] || FORUM_SUBMIT_MSG.pt).topic;
+    return deps.json({ ok: true, thread: publicThread(thread, { lang }), message: msg }, 201, origin);
   }
 
   const replyMatch = path.match(/^\/forum\/threads\/([^/]+)\/replies$/);
@@ -1177,6 +1219,8 @@ export async function handleForumRoute(request, env, origin, deps) {
       author: publicAuthor(gate.user),
       media: sanitizeMediaList(body.media),
       lang: replyLang,
+      sourceLang: replyLang,
+      i18n: {},
       parentId: parentId || undefined
     };
     replies.push(reply);
@@ -1184,12 +1228,9 @@ export async function handleForumRoute(request, env, origin, deps) {
     thread.replyCount = replies.length;
     thread.updatedAt = reply.createdAt;
     await saveThread(env, thread);
-    const replyMsg = replyLang === 'en'
-      ? 'Reply submitted. It appears after admin approval.'
-      : replyLang === 'it'
-        ? 'Risposta inviata. Compare dopo l’approvazione.'
-        : 'Resposta enviada. Aparece após aprovação do administrador.';
-    return deps.json({ ok: true, reply: publicReply(reply), message: replyMsg }, 201, origin);
+    scheduleI18n(deps, () => fillReplyI18n(env, thread.id, reply.id));
+    const replyMsg = (FORUM_SUBMIT_MSG[replyLang] || FORUM_SUBMIT_MSG.pt).reply;
+    return deps.json({ ok: true, reply: publicReply(reply, null, replyLang), message: replyMsg }, 201, origin);
   }
 
   if (path === '/admin/forum' && method === 'GET') {

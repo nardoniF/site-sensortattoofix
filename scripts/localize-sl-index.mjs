@@ -172,7 +172,7 @@ function applyFooterScripts(html) {
     .replace(/stf-i18n-sl-overrides\.js\?v=\d+/g, 'stf-i18n-sl-overrides.js?v=2')
     .replace(/stf-i18n\.js\?v=\d+/g, 'stf-i18n.js?v=49')
     .replace(/sessionStorage\.setItem\('stf_lang', '[^']+'\)/g, "sessionStorage.setItem('stf_lang', 'sl')")
-    .replace(/home-content\.js\?v=\d+/g, 'home-content.js?v=2');
+    .replace(/home-content\.js\?v=\d+/g, 'home-content.js?v=3');
 }
 
 function applyRules(html) {

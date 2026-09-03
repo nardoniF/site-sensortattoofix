@@ -5,6 +5,7 @@
 
 import { generateCommissionerStoryBanners } from './commissioner-banners.js';
 import { handleForumRoute } from './forum.js';
+import { refreshHomeContentI18n, mergePreservedI18n } from './site-l10n.js';
 import {
   bumpKvWriteCounter,
   buildKvDailyWriteBudget,
@@ -17574,7 +17575,7 @@ async function handleAdminGetConfig(request, env, origin) {
   return json(await getPublicConfig(env), 200, origin);
 }
 
-async function handlePutConfig(request, env, origin) {
+async function handlePutConfig(request, env, origin, ctx) {
   if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
   const body = await request.json();
   const current = await getConfig(env);
@@ -17626,10 +17627,10 @@ async function handlePutConfig(request, env, origin) {
       ? Math.max(0, Math.round(Number(body.mlFlexShippingCost) * 100) / 100)
       : (current.mlFlexShippingCost ?? 0),
     homeFaq: body.homeFaq != null
-      ? (Array.isArray(body.homeFaq) ? body.homeFaq : current.homeFaq || [])
+      ? mergePreservedI18n(Array.isArray(body.homeFaq) ? body.homeFaq : current.homeFaq || [], current.homeFaq || [])
       : (current.homeFaq || []),
     homeReviews: body.homeReviews != null
-      ? (Array.isArray(body.homeReviews) ? body.homeReviews : current.homeReviews || [])
+      ? mergePreservedI18n(Array.isArray(body.homeReviews) ? body.homeReviews : current.homeReviews || [], current.homeReviews || [])
       : (current.homeReviews || [])
   };
   if (merged.products?.[0]) {
@@ -17640,7 +17641,13 @@ async function handlePutConfig(request, env, origin) {
       image: merged.products[0].image
     };
   }
-  return json(await saveConfig(env, merged), 200, origin);
+  const saved = await saveConfig(env, merged);
+  const runI18n = refreshHomeContentI18n(env, saved)
+    .then((next) => saveConfig(env, next))
+    .catch((err) => console.warn('home i18n:', err?.message || err));
+  if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(runI18n);
+  else await runI18n;
+  return json(saved, 200, origin);
 }
 
 async function handleDeleteOrder(request, env, origin, orderId) {
@@ -18630,7 +18637,7 @@ export default {
       if (path === '/me/profile' && request.method === 'PATCH') {
         return handleCustomerUpdateProfile(request, env, origin);
       }
-      if (path === '/config' && request.method === 'PUT') return handlePutConfig(request, env, origin);
+      if (path === '/config' && request.method === 'PUT') return handlePutConfig(request, env, origin, ctx);
       if (path === '/admin/ml/oauth/callback' && request.method === 'GET') {
         return handleMlOAuthCallback(request, env);
       }
@@ -18776,7 +18783,7 @@ export default {
       }
       if (path.startsWith('/forum') || path.startsWith('/admin/forum')) {
         const forumRes = await handleForumRoute(request, env, origin, {
-          json, bearerToken, isValidSession, getCustomerUserId, getUserById, saveUser, publicUserView
+          json, bearerToken, isValidSession, getCustomerUserId, getUserById, saveUser, publicUserView, ctx
         });
         if (forumRes) return forumRes;
       }

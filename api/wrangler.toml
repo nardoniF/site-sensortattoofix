@@ -17,6 +17,9 @@ database_id = "94ffffbb-dd85-41f1-8301-521f19b75f75"
 pattern = "api.sensortattoofix.com.br/*"
 zone_name = "sensortattoofix.com.br"
 
+[ai]
+binding = "AI"
+
 [vars]
 ADMIN_USERNAME = "admin"
 # Conta Cloudflare (dashboard URL) — uso real de KV no Admin via GraphQL Analytics

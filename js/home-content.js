@@ -13,6 +13,8 @@
   }
 
   function pick(row, base, lang) {
+    const fromI18n = row?.i18n?.[lang]?.[base];
+    if (fromI18n) return fromI18n;
     const suffixMap = { en: 'En', it: 'It', de: 'De', es: 'Es', pl: 'Pl', sl: 'Sl' };
     const suffix = suffixMap[lang];
     if (suffix) {

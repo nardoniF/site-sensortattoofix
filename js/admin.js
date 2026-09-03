@@ -458,23 +458,11 @@
           <label>Ordem
             <input type="number" data-field="order" min="1" step="1" value="${escAttr(row.order ?? i + 1)}">
           </label>
-          <label class="full">Pergunta (PT)
+          <label class="full">Pergunta
             <input type="text" data-field="question" value="${escAttr(row.question || '')}">
           </label>
-          <label class="full">Pergunta (EN)
-            <input type="text" data-field="questionEn" value="${escAttr(row.questionEn || '')}">
-          </label>
-          <label class="full">Pergunta (IT)
-            <input type="text" data-field="questionIt" value="${escAttr(row.questionIt || '')}">
-          </label>
-          <label class="full">Resposta (PT) — HTML ok
+          <label class="full">Resposta — HTML ok
             <textarea data-field="answer" rows="3">${escTextarea(row.answer || '')}</textarea>
-          </label>
-          <label class="full">Resposta (EN)
-            <textarea data-field="answerEn" rows="3">${escTextarea(row.answerEn || '')}</textarea>
-          </label>
-          <label class="full">Resposta (IT)
-            <textarea data-field="answerIt" rows="3">${escTextarea(row.answerIt || '')}</textarea>
           </label>
           <label>Mídia
             <select data-field="mediaType">
@@ -535,19 +523,23 @@
           tiktokTitle: String(val('tiktokTitle') || '').trim()
         };
       }
+      const prev = (currentConfig?.homeFaq || []).find((p) => p.id === String(val('id') || '').trim()) || {};
       return {
         id: String(val('id') || `faq-${i + 1}`).trim(),
         active: val('active') !== false,
         order: Math.max(1, parseInt(val('order'), 10) || i + 1),
         question: String(val('question') || '').trim(),
-        questionEn: String(val('questionEn') || '').trim(),
-        questionIt: String(val('questionIt') || '').trim(),
         answer: String(val('answer') || '').trim(),
-        answerEn: String(val('answerEn') || '').trim(),
-        answerIt: String(val('answerIt') || '').trim(),
-        media
+        media,
+        sourceLang: 'pt',
+        i18n: prev.i18n,
+        i18nHash: prev.i18nHash,
+        questionEn: prev.questionEn,
+        questionIt: prev.questionIt,
+        answerEn: prev.answerEn,
+        answerIt: prev.answerIt
       };
-    }).filter((r) => r.question || r.questionEn);
+    }).filter((r) => r.question);
   }
 
   function renderHomeReviews(rows) {
@@ -571,32 +563,14 @@
           <label>Estrelas
             <input type="number" data-field="rating" min="1" max="5" step="1" value="${escAttr(row.rating ?? 5)}">
           </label>
-          <label class="full">Texto (PT)
+          <label class="full">Texto
             <textarea data-field="body" rows="2">${escTextarea(row.body || '')}</textarea>
           </label>
-          <label class="full">Texto (EN)
-            <textarea data-field="bodyEn" rows="2">${escTextarea(row.bodyEn || '')}</textarea>
-          </label>
-          <label class="full">Texto (IT)
-            <textarea data-field="bodyIt" rows="2">${escTextarea(row.bodyIt || '')}</textarea>
-          </label>
-          <label>Nome (PT)
+          <label>Nome
             <input type="text" data-field="author" value="${escAttr(row.author || '')}">
           </label>
-          <label>Nome (EN)
-            <input type="text" data-field="authorEn" value="${escAttr(row.authorEn || '')}">
-          </label>
-          <label>Nome (IT)
-            <input type="text" data-field="authorIt" value="${escAttr(row.authorIt || '')}">
-          </label>
-          <label>Fonte (PT)
+          <label>Fonte
             <input type="text" data-field="source" value="${escAttr(row.source || '')}" placeholder="Google, Mercado Livre…">
-          </label>
-          <label>Fonte (EN)
-            <input type="text" data-field="sourceEn" value="${escAttr(row.sourceEn || '')}">
-          </label>
-          <label>Fonte (IT)
-            <input type="text" data-field="sourceIt" value="${escAttr(row.sourceIt || '')}">
           </label>
           <input type="hidden" data-field="id" value="${escAttr(row.id || `review-${i + 1}`)}">
         </div>
@@ -621,22 +595,26 @@
         if (el.type === 'checkbox') return el.checked;
         return el.value;
       };
+      const prev = (currentConfig?.homeReviews || []).find((p) => p.id === String(val('id') || '').trim()) || {};
       return {
         id: String(val('id') || `review-${i + 1}`).trim(),
         active: val('active') !== false,
         order: Math.max(1, parseInt(val('order'), 10) || i + 1),
         rating: Math.min(5, Math.max(1, parseInt(val('rating'), 10) || 5)),
         body: String(val('body') || '').trim(),
-        bodyEn: String(val('bodyEn') || '').trim(),
-        bodyIt: String(val('bodyIt') || '').trim(),
         author: String(val('author') || '').trim(),
-        authorEn: String(val('authorEn') || '').trim(),
-        authorIt: String(val('authorIt') || '').trim(),
         source: String(val('source') || '').trim(),
-        sourceEn: String(val('sourceEn') || '').trim(),
-        sourceIt: String(val('sourceIt') || '').trim()
+        sourceLang: 'pt',
+        i18n: prev.i18n,
+        i18nHash: prev.i18nHash,
+        bodyEn: prev.bodyEn,
+        bodyIt: prev.bodyIt,
+        authorEn: prev.authorEn,
+        authorIt: prev.authorIt,
+        sourceEn: prev.sourceEn,
+        sourceIt: prev.sourceIt
       };
-    }).filter((r) => r.body || r.bodyEn);
+    }).filter((r) => r.body);
   }
 
   function wireHomeContentAdmin() {
@@ -650,11 +628,7 @@
         active: true,
         order: n,
         question: '',
-        questionEn: '',
-        questionIt: '',
         answer: '',
-        answerEn: '',
-        answerIt: '',
         media: null
       });
       renderHomeFaq(rows);
@@ -668,14 +642,8 @@
         order: n,
         rating: 5,
         body: '',
-        bodyEn: '',
-        bodyIt: '',
         author: '',
-        authorEn: '',
-        authorIt: '',
-        source: '',
-        sourceEn: '',
-        sourceIt: ''
+        source: ''
       });
       renderHomeReviews(rows);
     });
