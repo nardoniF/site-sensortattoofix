@@ -5719,6 +5719,9 @@ ${worksheets}
           <label>Tipo da película (PL)
             <input type="text" data-field="filmTypePl" value="${escAttr(p.filmTypePl || '')}" placeholder="elastyczna membrana">
           </label>
+          <label>Tipo da película (SL)
+            <input type="text" data-field="filmTypeSl" value="${escAttr(p.filmTypeSl || '')}" placeholder="prožna membrana">
+          </label>
           <p class="admin-meta admin-aggregated-compat-hint"><i class="fas fa-link"></i> <strong>Regra do upsell:</strong> o produto só aparece se o modelo escolhido pelo cliente estiver nesta lista (1 agregado → vários modelos).</p>` : '';
     const i18nFields = !isAggregated ? `
           <label class="full">Nome EN <small class="admin-field-hint">título na loja .com / EN</small>
@@ -5941,6 +5944,7 @@ ${worksheets}
         const filmTypeDe = val('filmTypeDe');
         const filmTypeEs = val('filmTypeEs');
         const filmTypePl = val('filmTypePl');
+        const filmTypeSl = val('filmTypeSl');
         if (filmType) product.filmType = filmType;
         else delete product.filmType;
         if (filmTypeEn) product.filmTypeEn = filmTypeEn;
@@ -5951,6 +5955,8 @@ ${worksheets}
         else delete product.filmTypeEs;
         if (filmTypePl) product.filmTypePl = filmTypePl;
         else delete product.filmTypePl;
+        if (filmTypeSl) product.filmTypeSl = filmTypeSl;
+        else delete product.filmTypeSl;
       }
       return product;
     });
