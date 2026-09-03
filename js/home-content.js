@@ -127,7 +127,7 @@
   async function loadL10n() {
     if (l10nCache) return l10nCache;
     try {
-      const res = await fetch('/data/home-content-l10n.json?v=1', { cache: 'no-store' });
+      const res = await fetch('/data/home-content-l10n.json?v=2', { cache: 'no-store' });
       if (res.ok) l10nCache = await res.json();
     } catch (e) {
       console.warn('home-content: falha ao carregar l10n', e);
