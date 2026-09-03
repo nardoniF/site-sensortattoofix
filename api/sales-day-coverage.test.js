@@ -57,6 +57,7 @@ test('admin.js expõe cobertura de dias no consolidado', () => {
   const src = fs.readFileSync(path.join(root, 'js', 'admin.js'), 'utf8');
   assert.match(src, /function monthSalesDayCoverage/);
   assert.match(src, /function renderConsolidadoDaysCoverage/);
-  assert.match(src, /Dias com \/ sem venda/);
-  assert.match(src, /c\/ venda/);
+  assert.match(src, /Dias com venda/);
+  assert.match(src, /data-fold-key="vendas-dias"/);
+  assert.match(src, /vendas-consol-days-split/);
 });

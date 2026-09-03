@@ -1569,50 +1569,68 @@
     return `${list.slice(0, -1).join(', ')} e ${list[list.length - 1]}`;
   }
 
-  function formatDaysCoverageLine(cov) {
-    const soldLabel = cov.soldDays === 1 ? '1 dia com venda' : `${cov.soldDays} dias com venda`;
-    if (!cov.emptyCount) {
-      return `${soldLabel} · nenhum dia sem venda`;
-    }
-    const emptyLabel = cov.emptyCount === 1 ? '1 sem venda' : `${cov.emptyCount} sem venda`;
-    const which = formatDayNumberList(cov.emptyDays);
-    return `${soldLabel} · ${emptyLabel} (dia${cov.emptyCount === 1 ? '' : 's'} ${which})`;
-  }
-
   function renderConsolidadoDaysCoverage(sales) {
     const now = brDateParts(Date.now());
     const dayNum = Number(now.day);
-    // Mês cheio nos 2 anteriores; este mês só até o dia corrente
     const specs = [
       { delta: -2, full: true },
       { delta: -1, full: true },
       { delta: 0, full: false }
     ];
-    const rows = specs.map(({ delta, full }) => {
+    const months = specs.map(({ delta, full }) => {
       const ym = shiftYearMonth(now.year, now.monthNum, delta);
       const through = full
         ? daysInCalendarMonth(ym.year, ym.monthNum)
         : Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
       const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through);
-      const name = MONTH_LABELS[ym.monthNum] || ym.monthNum;
-      const yearNote = ym.year !== now.year ? ` ${ym.year}` : '';
-      const rangeNote = full
-        ? `mês cheio (${through} dias)`
-        : `dias 1–${through}`;
-      const emptyClass = cov.emptyCount ? ' has-empty' : ' is-full';
-      return `<li class="vendas-consol-days-row${emptyClass}">
-        <span class="vendas-consol-days-month">${escapeHtml(name)}${escapeHtml(yearNote)}</span>
-        <span class="vendas-consol-days-range">${escapeHtml(rangeNote)}</span>
-        <span class="vendas-consol-days-line">${escapeHtml(formatDaysCoverageLine(cov))}</span>
-      </li>`;
+      return {
+        delta,
+        year: ym.year,
+        monthNum: ym.monthNum,
+        name: MONTH_LABELS[ym.monthNum] || ym.monthNum,
+        through,
+        cov
+      };
+    });
+    const prev = months[1];
+    const hint = prev
+      ? `${prev.name} · ${prev.cov.soldDays}/${prev.through} dias`
+      : '—';
+    const cards = months.map((row) => {
+      const isCurrent = row.delta === 0;
+      const yearNote = row.year !== now.year
+        ? `<p class="vendas-consol-mtd-title">${escapeHtml(row.year)}</p>`
+        : '';
+      const emptyHint = row.cov.emptyCount
+        ? `<p class="vendas-consol-days-empty">sem: ${escapeHtml(formatDayNumberList(row.cov.emptyDays))}</p>`
+        : '<p class="vendas-consol-days-empty is-ok">nenhum dia zerado</p>';
+      return `<article class="vendas-consol-mtd-card vendas-consol-days-card${isCurrent ? ' is-current' : ''}">
+        <h4>${escapeHtml(row.name)}</h4>
+        ${yearNote}
+        <p class="vendas-consol-days-total">${row.through} dia${row.through === 1 ? '' : 's'}</p>
+        <div class="vendas-consol-days-split" role="group" aria-label="Com e sem venda">
+          <div class="vendas-consol-days-col">
+            <span class="vendas-consol-days-label">Com</span>
+            <strong class="vendas-consol-days-num is-sold">${row.cov.soldDays}</strong>
+          </div>
+          <div class="vendas-consol-days-col">
+            <span class="vendas-consol-days-label">Sem</span>
+            <strong class="vendas-consol-days-num is-empty">${row.cov.emptyCount}</strong>
+          </div>
+        </div>
+        ${emptyHint}
+      </article>`;
     }).join('');
-    return `<section class="vendas-consol-days" aria-label="Dias com e sem venda">
-      <header class="vendas-consol-mtd-head">
-        <h3>Dias com / sem venda</h3>
-        <p>Quantos dias do calendário tiveram pelo menos uma venda (todos os canais). Nos meses anteriores = mês inteiro.</p>
-      </header>
-      <ul class="vendas-consol-days-list">${rows}</ul>
-    </section>`;
+    return `<details class="admin-fold vendas-consol-days-fold" id="vendas-consol-days-fold" data-fold-key="vendas-dias">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Dias com venda</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">
+        <div class="vendas-consol-mtd-grid">${cards}</div>
+      </div>
+    </details>`;
   }
 
   function renderConsolidadoMtdCompare(sales) {
@@ -1623,15 +1641,13 @@
       const through = Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
       const subset = salesMonthToDate(sales, ym.year, ym.monthNum, through);
       const name = MONTH_LABELS[ym.monthNum] || ym.monthNum;
-      const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through);
       return {
         delta,
         year: ym.year,
         monthNum: ym.monthNum,
         through,
         name,
-        tot: sumAnnotated(subset),
-        cov
+        tot: sumAnnotated(subset)
       };
     });
     // Ordem visual: retrasado → passado → atual
@@ -1656,12 +1672,11 @@
       const countPct = countDelta
         ? ` <span class="vendas-consol-mtd-pct${countClass}">(${escapeHtml(countDelta)})</span>`
         : '';
-      const daysParen = ` (${row.cov.soldDays} dia${row.cov.soldDays === 1 ? '' : 's'} c/ venda · ${row.cov.emptyCount} sem)`;
       return `<article class="vendas-consol-mtd-card${isCurrent ? ' is-current' : ''}">
         <h4>${escapeHtml(row.name)}</h4>
         ${yearNote}
         <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${netPct}</p>
-        <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}<span class="vendas-consol-mtd-days">${escapeHtml(daysParen)}</span></p>
+        <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}</p>
       </article>`;
     }).join('');
     return `<section class="vendas-consol-mtd" aria-label="Comparação dias 1–${dayNum}">
@@ -1669,7 +1684,6 @@
         <h3>Dias 1–${dayNum}</h3>
       </header>
       <div class="vendas-consol-mtd-grid">${rows}</div>
-      ${renderConsolidadoDaysCoverage(sales)}
     </section>`;
   }
 
@@ -1711,7 +1725,8 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
-    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    wireOneAdminFold(document.getElementById('vendas-consol-days-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-flex-fold'));
   }
 

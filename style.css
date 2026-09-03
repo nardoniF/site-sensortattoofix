@@ -4606,53 +4606,59 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-weight: 650;
     color: #ddd;
 }
-.vendas-consol-mtd-days {
-    font-weight: 550;
-    color: #9aa;
-    font-size: 0.88em;
+.vendas-consol-days-fold {
+    margin-top: 12px;
 }
-.vendas-consol-days {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid #2a2a2a;
+.vendas-consol-days-card .vendas-consol-days-total {
+    margin: 8px 0 0;
+    font-size: 0.9rem;
+    font-weight: 650;
+    color: #bbb;
 }
-.vendas-consol-days-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+.vendas-consol-days-split {
     display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
+    margin-top: 12px;
 }
-.vendas-consol-days-row {
-    display: grid;
-    grid-template-columns: minmax(5.5rem, auto) minmax(7rem, auto) 1fr;
-    gap: 8px 12px;
-    align-items: baseline;
-    padding: 8px 10px;
+.vendas-consol-days-col {
+    text-align: center;
+    padding: 8px 6px;
     border-radius: 8px;
-    background: #161616;
+    background: #101010;
     border: 1px solid #2a2a2a;
-    font-size: 0.88rem;
 }
-.vendas-consol-days-row.has-empty {
-    border-color: #3a3428;
-    background: #181612;
-}
-.vendas-consol-days-row.is-full {
-    border-color: #2a3a2a;
-}
-.vendas-consol-days-month {
+.vendas-consol-days-label {
+    display: block;
+    font-size: 0.68rem;
     font-weight: 700;
-    color: #e0e0e0;
-    text-transform: capitalize;
-}
-.vendas-consol-days-range {
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: #888;
-    font-size: 0.8rem;
 }
-.vendas-consol-days-line {
-    color: #cfd8dc;
+.vendas-consol-days-num {
+    display: block;
+    margin-top: 4px;
+    font-size: 1.55rem;
+    font-weight: 800;
     font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    color: #e0e0e0;
+}
+.vendas-consol-days-num.is-sold {
+    color: #81c784;
+}
+.vendas-consol-days-num.is-empty {
+    color: #ffcc80;
+}
+.vendas-consol-days-empty {
+    margin: 10px 0 0;
+    font-size: 0.75rem;
+    color: #9aa;
+    line-height: 1.35;
+}
+.vendas-consol-days-empty.is-ok {
+    color: #6a9;
 }
 .vendas-consol-card {
     border: 1px solid #2a2a2a;
@@ -4926,10 +4932,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
 @media (max-width: 960px) {
     .vendas-consol-periods-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .vendas-consol-mtd-grid { grid-template-columns: 1fr; }
-    .vendas-consol-days-row {
-        grid-template-columns: 1fr;
-        gap: 4px;
-    }
     .vendas-when-charts { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
