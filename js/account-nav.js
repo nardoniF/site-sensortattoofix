@@ -7,9 +7,10 @@ window.STF_ACCOUNT = (function () {
   }
 
   function pathPrefix() {
-    if (location.pathname.includes('/en/') || location.pathname.includes('/it/')) return '';
+    const p = location.pathname;
+    if (['/en/', '/it/', '/de/', '/es/', '/pl/', '/sl/'].some((seg) => p.includes(seg))) return '';
     const lang = window.STF_I18N?.getLang?.() || 'pt';
-    if (lang === 'it') return 'it/';
+    if (lang && lang !== 'pt' && lang !== 'en') return `${lang}/`;
     if (lang === 'en') return 'en/';
     return '';
   }

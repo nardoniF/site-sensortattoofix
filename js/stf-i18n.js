@@ -1062,7 +1062,7 @@ window.STF_I18N = (function () {
   }
 
   function inEnDir() {
-    if (isComHost() && !['it', 'de', 'es', 'pl'].some((l) => location.pathname.includes(`/${l}/`))) return true;
+    if (isComHost() && !['it', 'de', 'es', 'pl', 'sl'].some((l) => location.pathname.includes(`/${l}/`))) return true;
     return location.pathname.includes('/en/');
   }
 
@@ -1076,7 +1076,7 @@ window.STF_I18N = (function () {
 
   function inDirFor(lang) {
     if (lang === 'en' && isComHost()) {
-      return !['it', 'de', 'es', 'pl'].some((l) => location.pathname.includes(`/${l}/`));
+      return !['it', 'de', 'es', 'pl', 'sl'].some((l) => location.pathname.includes(`/${l}/`));
     }
     return location.pathname.includes(`/${lang}/`);
   }

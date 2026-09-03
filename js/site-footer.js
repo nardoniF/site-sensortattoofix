@@ -120,7 +120,8 @@ window.STF_FOOTER = (function () {
   function prefixFrom(el) {
     if (el.dataset.prefix) return el.dataset.prefix;
     const lang = detectLang();
-    if (isIntlHost() && lang === 'en') return '';
+    // .com already lives at / or /de/ /es/ … — same-folder links, no ../
+    if (isIntlHost()) return '';
     if (lang !== 'pt') return '../';
     return '';
   }

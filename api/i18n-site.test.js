@@ -358,6 +358,30 @@ test('worker: funções de e-mail intl para de/es/pl/sl', () => {
   assert.match(src, /Bestellung storniert/);
 });
 
+test('proxy .com: <base href> por idioma (DE/ES/PL/SL não herdam a home EN)', () => {
+  const src = fs.readFileSync(path.join(root, 'cloudflare/stf-com-proxy.js'), 'utf8');
+  assert.match(src, /function comBaseHref/);
+  const fn = src.match(/function comBaseHref\(originPath\) \{([\s\S]*?)\n\}/);
+  assert.ok(fn, 'comBaseHref body');
+  const COM_ORIGIN = 'https://www.sensortattoofix.com';
+  const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
+  function comBaseHref(originPath) {
+    for (const lang of INTL_LANGS) {
+      if (originPath === `/${lang}` || originPath.startsWith(`/${lang}/`)) {
+        return `${COM_ORIGIN}/${lang}/`;
+      }
+    }
+    return `${COM_ORIGIN}/`;
+  }
+  assert.equal(comBaseHref('/de/index.html'), 'https://www.sensortattoofix.com/de/');
+  assert.equal(comBaseHref('/es/comprar.html'), 'https://www.sensortattoofix.com/es/');
+  assert.equal(comBaseHref('/pl/'), 'https://www.sensortattoofix.com/pl/');
+  assert.equal(comBaseHref('/sl/comunidade.html'), 'https://www.sensortattoofix.com/sl/');
+  assert.equal(comBaseHref('/it/index.html'), 'https://www.sensortattoofix.com/it/');
+  assert.equal(comBaseHref('/en/index.html'), 'https://www.sensortattoofix.com/');
+  assert.doesNotMatch(src, /originPath\.startsWith\('\/it\/'\) \? `\$\{COM_ORIGIN\}\/it\/`/);
+});
+
 test('admin.js: agregados têm campos i18n editáveis', () => {
   const src = fs.readFileSync(path.join(jsDir, 'admin.js'), 'utf8');
   const aggBlock = src.match(/const aggregatedFields = isAggregated \? `([\s\S]*?)` : '';/);

@@ -157,7 +157,7 @@ function applyLocalePatches(html) {
   out = out.replace(/data-lang="de"/g, 'data-lang="sl"');
   out = out.replace(/hreflang="de"/g, 'hreflang="sl"');
   out = out.replace(/og:locale" content="de_DE"/g, 'og:locale" content="sl_SI"');
-  out = out.replace(/stf-lang-nav\.js\?v=\d+/g, 'stf-lang-nav.js?v=5');
+  out = out.replace(/stf-lang-nav\.js\?v=\d+/g, 'stf-lang-nav.js?v=6');
   out = out.replace(
     /<li class="nav-lang-stack">[\s\S]*?<\/li>/,
     '<li class="nav-lang-stack" aria-label="Language"></li>',

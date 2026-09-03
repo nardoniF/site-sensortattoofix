@@ -151,18 +151,25 @@ function fixNavLangHrefs(html, originPath) {
   );
 }
 
+function comBaseHref(originPath) {
+  for (const lang of INTL_LANGS) {
+    if (originPath === `/${lang}` || originPath.startsWith(`/${lang}/`)) {
+      return `${COM_ORIGIN}/${lang}/`;
+    }
+  }
+  return `${COM_ORIGIN}/`;
+}
+
 function patchHtml(html, originPath, br) {
   html = html.replace(/<script[^>]+stf-com-host\.js[^>]*>\s*<\/script>\s*/gi, '');
   html = html.replace(/(href|src)=["']\.\.\/([^"']+)["']/gi, '$1="/$2"');
   html = fixNavLangHrefs(html, originPath);
-  const baseHref = br
-    ? `${BR_ORIGIN}/`
-    : (originPath.startsWith('/it/') ? `${COM_ORIGIN}/it/` : `${COM_ORIGIN}/`);
+  const baseHref = br ? `${BR_ORIGIN}/` : comBaseHref(originPath);
   if (!/<base\s/i.test(html)) {
     html = html.replace(/<head([^>]*)>/i, `<head$1><base href="${baseHref}">`);
   }
   if (!/stf-lang-nav\.js/i.test(html)) {
-    html = html.replace(/<head([^>]*)>/i, `<head$1><script src="/js/stf-lang-nav.js?v=4"></script>`);
+    html = html.replace(/<head([^>]*)>/i, `<head$1><script src="/js/stf-lang-nav.js?v=6"></script>`);
   }
   return html;
 }

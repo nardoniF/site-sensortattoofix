@@ -55,12 +55,12 @@ function ensureI18nBundle(html, lang, page) {
   if (!out.includes('stf-lang-nav.js') && out.includes('checkout-nav')) {
     out = out.replace(
       /<script src="\.\.\/js\/stf-i18n\.js[^"]*"><\/script>/,
-      `<script src="../js/stf-i18n.js?v=49"></script>\n    <script src="../js/stf-lang-nav.js?v=4"></script>`
+      `<script src="../js/stf-i18n.js?v=49"></script>\n    <script src="../js/stf-lang-nav.js?v=6"></script>`
     );
   }
 
   out = out.replace(/data-lang="en"/g, `data-lang="${lang.code}"`);
-  out = out.replace(/site-footer\.js\?v=\d+/g, 'site-footer.js?v=15');
+  out = out.replace(/site-footer\.js\?v=\d+/g, 'site-footer.js?v=16');
   out = out.replace(/site-feedback\.js\?v=\d+/g, 'site-feedback.js?v=7');
   out = out.replace(/loja\.js\?v=\d+/g, 'loja.js?v=20');
   out = out.replace(/stf-site\.js\?v=\d+/g, 'stf-site.js?v=7');
@@ -68,7 +68,7 @@ function ensureI18nBundle(html, lang, page) {
   if (out.includes('forum-page') && !out.includes('site-feedback.js')) {
     out = out.replace(
       /<script src="\.\.\/js\/site-footer\.js[^"]*"><\/script>/,
-      `<script src="../js/site-footer.js?v=15"></script>\n    <script src="../js/site-feedback.js?v=7"></script>`
+      `<script src="../js/site-footer.js?v=16"></script>\n    <script src="../js/site-feedback.js?v=7"></script>`
     );
   }
 

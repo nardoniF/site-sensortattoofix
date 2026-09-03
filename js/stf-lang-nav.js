@@ -91,10 +91,10 @@
   function redirectBrIntlToCom() {
     if (!isBr()) return;
     const path = location.pathname;
-    const m = path.match(/^\/(en|it|de|es|pl)(\/|$)/);
+    const m = path.match(/^\/(en|it|de|es|pl|sl)(\/|$)/);
     if (!m) return;
     const lang = m[1];
-    const rest = path.replace(/^\/(en|it|de|es|pl)/, '') || '/';
+    const rest = path.replace(/^\/(en|it|de|es|pl|sl)/, '') || '/';
     let target;
     if (lang === 'en') {
       target = rest === '/' || rest === '/index.html' ? COM + '/' : COM + rest;
