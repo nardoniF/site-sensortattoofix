@@ -1,7 +1,7 @@
 /**
  * Storefront proxy — serves pinned GitHub commit via jsDelivr.
- * - .com / www.sensortattoofix.com → English (/) + IT/DE/ES/PL/SL (/it/, /de/, /es/, /pl/, /sl/)
- * - .com.br → Portuguese (repo root)
+ * - .com / www.sensortattoofix.com → EN (/) + IT/DE/ES/PL/SL (/it/, /de/, …)
+ * - .com.br → Portuguese (repo root); paths /de|/es|/pl|/sl|/it|/en redirecionam ao .com
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
 const COMMIT = '3299494b66c054c868ae927cc36d63658d342a46';
@@ -255,17 +255,44 @@ async function proxyClickPixel(request, siteOrigin) {
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    const br = isBrHost(url.hostname);
-    const siteOrigin = url.origin;
 
-    if (url.hostname === 'sensortattoofix.com') {
-      url.hostname = 'www.sensortattoofix.com';
+    // Força HTTPS (Search Console / SEO)
+    if (url.protocol === 'http:') {
+      url.protocol = 'https:';
       return Response.redirect(url.toString(), 301);
     }
-    if (url.hostname === 'sensortattoofix.com.br') {
-      url.hostname = 'www.sensortattoofix.com.br';
+
+    // Apex → www
+    if (url.hostname === 'sensortattoofix.com' || url.hostname === 'sensortattoofix.com.br') {
+      url.hostname = url.hostname === 'sensortattoofix.com.br'
+        ? 'www.sensortattoofix.com.br'
+        : 'www.sensortattoofix.com';
+    }
+
+    const br = isBrHost(url.hostname);
+
+    // Intl canônico no .com — consolidar .com.br/{de,es,pl,sl,it,en}/ → .com
+    if (br) {
+      const m = url.pathname.match(/^\/(de|es|pl|sl|it)(\/.*)?$/i);
+      if (m) {
+        const dest = new URL(`https://www.sensortattoofix.com/${m[1].toLowerCase()}${m[2] || '/'}`);
+        dest.search = url.search;
+        return Response.redirect(dest.toString(), 301);
+      }
+      if (url.pathname === '/en' || url.pathname.startsWith('/en/')) {
+        const rest = url.pathname.replace(/^\/en/, '') || '/';
+        const dest = new URL(`https://www.sensortattoofix.com${rest}`);
+        dest.search = url.search;
+        return Response.redirect(dest.toString(), 301);
+      }
+    }
+
+    // Se só normalizamos apex→www, redireciona
+    if (url.href !== request.url) {
       return Response.redirect(url.toString(), 301);
     }
+
+    const siteOrigin = url.origin;
 
     if (url.pathname === '/stf-log' || url.pathname === '/stf-log/') {
       return proxyClickLog(request, siteOrigin);

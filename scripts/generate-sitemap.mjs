@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Gera sitemaps por domínio (regra Google: <loc> só no mesmo host do sitemap).
- * - sitemap.xml → apenas URLs sensortattoofix.com.br (PT, DE, ES, PL, SL)
- * - sitemap-com.xml → apenas URLs sensortattoofix.com (EN, IT)
+ * - sitemap.xml → apenas URLs sensortattoofix.com.br (PT)
+ * - sitemap-com.xml → URLs sensortattoofix.com (EN/IT/DE/ES/PL/SL)
  * Hreflang xhtml em cada entrada continua apontando para todos os idiomas.
  */
 import fs from 'fs';
