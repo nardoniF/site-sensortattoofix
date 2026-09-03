@@ -363,9 +363,10 @@ test('admin.js: agregados têm campos i18n editáveis', () => {
   const aggBlock = src.match(/const aggregatedFields = isAggregated \? `([\s\S]*?)` : '';/);
   assert.ok(aggBlock, 'aggregatedFields');
   const block = aggBlock[1];
-  for (const field of ['nameDe', 'nameEs', 'namePl', 'descriptionDe', 'filmTypeDe', 'filmTypeEs', 'filmTypePl']) {
+  for (const field of ['nameDe', 'nameEs', 'namePl', 'descriptionDe', 'filmTypeDe', 'filmTypeEs', 'filmTypePl', 'filmTypeSl']) {
     assert.match(block, new RegExp(`data-field="${field}"`), `aggregated ${field}`);
   }
   assert.match(src, /if \(nameDe\) product\.nameDe = nameDe/);
   assert.match(src, /if \(filmTypePl\) product\.filmTypePl = filmTypePl/);
+  assert.match(src, /if \(filmTypeSl\) product\.filmTypeSl = filmTypeSl/);
 });
