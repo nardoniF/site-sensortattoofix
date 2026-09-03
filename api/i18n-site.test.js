@@ -306,36 +306,42 @@ test('sl/index.html sem blocos alemães óbvios', () => {
   assert.match(html, /Mir med tinto in silicijem/, 'sl/index tagline');
 });
 
-test('hreflang: homes incluem sl/de e sem URLs quebradas', () => {
+test('hreflang: homes intl canônicas no .com; PT no .com.br', () => {
   const broken = [/\.br\/loja/, /\/de\/it\//, /\/sl\/it\//, /\/pl\/\.br\//];
   for (const file of ['index.html', 'de/index.html', 'sl/index.html', 'en/index.html']) {
     const html = fs.readFileSync(path.join(root, file), 'utf8');
     assert.match(html, /hreflang="sl"/, file);
     assert.match(html, /hreflang="de"/, file);
+    assert.match(html, /hreflang="de" href="https:\/\/www\.sensortattoofix\.com\/de\/"/, file);
+    assert.doesNotMatch(html, /hreflang="de" href="https:\/\/www\.sensortattoofix\.com\.br\/de\/"/, file);
     for (const re of broken) {
       assert.doesNotMatch(html, re, `${file} URL quebrada ${re}`);
     }
   }
+  const de = fs.readFileSync(path.join(root, 'de/index.html'), 'utf8');
+  assert.match(de, /rel="canonical" href="https:\/\/www\.sensortattoofix\.com\/de\/"/);
+  const pt = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  assert.match(pt, /rel="canonical" href="https:\/\/www\.sensortattoofix\.com\.br\/"/);
 });
 
-test('sitemap.xml: só URLs .com.br; sitemap-com.xml só .com', () => {
+test('sitemap.xml: só PT no .com.br; sitemap-com.xml intl no .com', () => {
   const brXml = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
   const comXml = fs.readFileSync(path.join(root, 'sitemap-com.xml'), 'utf8');
   const brLocs = [...brXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   const comLocs = [...comXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-  assert.equal(brLocs.length, 20);
-  assert.equal(comLocs.length, 8);
+  assert.equal(brLocs.length, 4);
+  assert.equal(comLocs.length, 24);
   for (const loc of brLocs) {
     assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\.br\//, `loc .com.br: ${loc}`);
-    assert.doesNotMatch(loc, /sensortattoofix\.com\//, `loc cruzado em sitemap.xml: ${loc}`);
+    assert.doesNotMatch(loc, /\/(de|es|pl|sl|it)\//, `PT sitemap sem intl: ${loc}`);
   }
   for (const loc of comLocs) {
     assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\//, `loc .com: ${loc}`);
     assert.doesNotMatch(loc, /sensortattoofix\.com\.br/, `loc cruzado em sitemap-com.xml: ${loc}`);
   }
-  assert.match(brXml, /hreflang="sl"/);
-  assert.match(brXml, /xhtml:link[^>]+hreflang="en"[^>]+href="https:\/\/www\.sensortattoofix\.com\//);
-  assert.match(comXml, /sensortattoofix\.com\.br\/de\//);
+  assert.match(brXml, /hreflang="sl" href="https:\/\/www\.sensortattoofix\.com\/sl\//);
+  assert.match(comXml, /hreflang="de" href="https:\/\/www\.sensortattoofix\.com\/de\//);
+  assert.match(comXml, /<loc>https:\/\/www\.sensortattoofix\.com\/es\/<\/loc>/);
 });
 
 test('worker: funções de e-mail intl para de/es/pl/sl', () => {

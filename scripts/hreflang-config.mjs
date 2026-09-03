@@ -1,7 +1,7 @@
 /**
  * URLs canônicas hreflang — fonte única para HTML e sitemap.xml.
- * PT + DE/ES/PL/SL → sensortattoofix.com.br
- * EN + IT → sensortattoofix.com
+ * PT → sensortattoofix.com.br
+ * EN/IT/DE/ES/PL/SL → sensortattoofix.com
  */
 export const BR = 'https://www.sensortattoofix.com.br';
 export const COM = 'https://www.sensortattoofix.com';
@@ -19,8 +19,14 @@ export const ALL_PAGES = [...PUBLIC_PAGES, ...NOINDEX_PAGES];
 export const LANG_DIRS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
 
 /** Idiomas cujo <loc> canônico fica em cada domínio (regra do Search Console). */
-export const BR_SITEMAP_LANGS = ['pt-BR', 'de', 'es', 'pl', 'sl'];
-export const COM_SITEMAP_LANGS = ['en', 'it'];
+export const BR_SITEMAP_LANGS = ['pt-BR'];
+export const COM_SITEMAP_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
+
+/** Host canônico do idioma (sem path). */
+export function canonicalHost(lang) {
+  if (lang === 'pt-BR' || lang === 'pt') return BR;
+  return COM;
+}
 
 /** @param {'pt-BR'|'en'|'it'|'de'|'es'|'pl'|'sl'|'x-default'} lang */
 export function hreflangUrl(lang, page) {
@@ -28,12 +34,18 @@ export function hreflangUrl(lang, page) {
   if (lang === 'pt-BR') return file ? `${BR}/${file}` : `${BR}/`;
   if (lang === 'en') return file ? `${COM}/${file}` : `${COM}/`;
   if (lang === 'it') return file ? `${COM}/it/${file}` : `${COM}/it/`;
-  if (lang === 'de') return file ? `${BR}/de/${file}` : `${BR}/de/`;
-  if (lang === 'es') return file ? `${BR}/es/${file}` : `${BR}/es/`;
-  if (lang === 'pl') return file ? `${BR}/pl/${file}` : `${BR}/pl/`;
-  if (lang === 'sl') return file ? `${BR}/sl/${file}` : `${BR}/sl/`;
+  if (lang === 'de') return file ? `${COM}/de/${file}` : `${COM}/de/`;
+  if (lang === 'es') return file ? `${COM}/es/${file}` : `${COM}/es/`;
+  if (lang === 'pl') return file ? `${COM}/pl/${file}` : `${COM}/pl/`;
+  if (lang === 'sl') return file ? `${COM}/sl/${file}` : `${COM}/sl/`;
   if (lang === 'x-default') return file ? `${BR}/${file}` : `${BR}/`;
   throw new Error(`hreflang desconhecido: ${lang}`);
+}
+
+/** Canônica da página no locale do arquivo (pt-BR | en | it | …). */
+export function canonicalUrl(lang, page) {
+  const code = lang === 'pt' ? 'pt-BR' : lang;
+  return hreflangUrl(code === 'pt-BR' ? 'pt-BR' : code, page);
 }
 
 export function hreflangLinkTags(page, indent = '    ') {

@@ -32,7 +32,10 @@ function patchHtml(html, lang) {
   });
   out = out.replace(/hreflang="en"/g, `hreflang="${lang.htmlLang}"`);
   out = out.replace(/<link rel="alternate" hreflang="it"/g,
-    `<link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com.br/de/"\n    />\n    <link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com.br/es/"\n    />\n    <link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com.br/pl/"\n    />\n    <link rel="alternate" hreflang="it"`);
+    `<link rel="alternate" hreflang="de" href="https://www.sensortattoofix.com/de/"\n    />\n    <link rel="alternate" hreflang="es" href="https://www.sensortattoofix.com/es/"\n    />\n    <link rel="alternate" hreflang="pl" href="https://www.sensortattoofix.com/pl/"\n    />\n    <link rel="alternate" hreflang="it"`);
+  // Canonical host for new locales: .com (intl), not .com.br
+  out = out.replace(/https:\/\/www\.sensortattoofix\.com\.br\/(de|es|pl|sl)\b/g, 'https://www.sensortattoofix.com/$1');
+
   if (!out.includes(`hreflang="${lang.htmlLang}"`)) {
     out = out.replace('</head>', `    <link rel="alternate" hreflang="${lang.htmlLang}" href="${base}/">\n</head>`);
   }
