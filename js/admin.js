@@ -1531,6 +1531,90 @@
     return `${sign}${pct.toLocaleString('pt-BR')}%`;
   }
 
+  /** Dias do calendário (1…throughDay) com ≥1 venda vs dias zerados. */
+  function monthSalesDayCoverage(sales, year, monthNum, throughDay) {
+    const ym = String(monthNum).padStart(2, '0');
+    const y = String(year);
+    const lastDay = Math.min(
+      Math.max(1, Number(throughDay) || 1),
+      daysInCalendarMonth(y, ym)
+    );
+    const sold = new Set();
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const p = brDateParts(s._ts);
+      if (p.year !== y || p.monthNum !== ym) return;
+      const day = Number(p.day);
+      if (day >= 1 && day <= lastDay) sold.add(day);
+    });
+    const emptyDays = [];
+    for (let d = 1; d <= lastDay; d += 1) {
+      if (!sold.has(d)) emptyDays.push(d);
+    }
+    return {
+      year: y,
+      monthNum: ym,
+      through: lastDay,
+      soldDays: sold.size,
+      emptyDays,
+      emptyCount: emptyDays.length
+    };
+  }
+
+  function formatDayNumberList(days) {
+    const list = (days || []).map((d) => Number(d)).filter((n) => n > 0);
+    if (!list.length) return '';
+    if (list.length === 1) return String(list[0]);
+    if (list.length === 2) return `${list[0]} e ${list[1]}`;
+    return `${list.slice(0, -1).join(', ')} e ${list[list.length - 1]}`;
+  }
+
+  function formatDaysCoverageLine(cov) {
+    const soldLabel = cov.soldDays === 1 ? '1 dia com venda' : `${cov.soldDays} dias com venda`;
+    if (!cov.emptyCount) {
+      return `${soldLabel} · nenhum dia sem venda`;
+    }
+    const emptyLabel = cov.emptyCount === 1 ? '1 sem venda' : `${cov.emptyCount} sem venda`;
+    const which = formatDayNumberList(cov.emptyDays);
+    return `${soldLabel} · ${emptyLabel} (dia${cov.emptyCount === 1 ? '' : 's'} ${which})`;
+  }
+
+  function renderConsolidadoDaysCoverage(sales) {
+    const now = brDateParts(Date.now());
+    const dayNum = Number(now.day);
+    // Mês cheio nos 2 anteriores; este mês só até o dia corrente
+    const specs = [
+      { delta: -2, full: true },
+      { delta: -1, full: true },
+      { delta: 0, full: false }
+    ];
+    const rows = specs.map(({ delta, full }) => {
+      const ym = shiftYearMonth(now.year, now.monthNum, delta);
+      const through = full
+        ? daysInCalendarMonth(ym.year, ym.monthNum)
+        : Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
+      const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through);
+      const name = MONTH_LABELS[ym.monthNum] || ym.monthNum;
+      const yearNote = ym.year !== now.year ? ` ${ym.year}` : '';
+      const rangeNote = full
+        ? `mês cheio (${through} dias)`
+        : `dias 1–${through}`;
+      const emptyClass = cov.emptyCount ? ' has-empty' : ' is-full';
+      return `<li class="vendas-consol-days-row${emptyClass}">
+        <span class="vendas-consol-days-month">${escapeHtml(name)}${escapeHtml(yearNote)}</span>
+        <span class="vendas-consol-days-range">${escapeHtml(rangeNote)}</span>
+        <span class="vendas-consol-days-line">${escapeHtml(formatDaysCoverageLine(cov))}</span>
+      </li>`;
+    }).join('');
+    return `<section class="vendas-consol-days" aria-label="Dias com e sem venda">
+      <header class="vendas-consol-mtd-head">
+        <h3>Dias com / sem venda</h3>
+        <p>Quantos dias do calendário tiveram pelo menos uma venda (todos os canais). Nos meses anteriores = mês inteiro.</p>
+      </header>
+      <ul class="vendas-consol-days-list">${rows}</ul>
+    </section>`;
+  }
+
   function renderConsolidadoMtdCompare(sales) {
     const now = brDateParts(Date.now());
     const dayNum = Number(now.day);
@@ -1539,13 +1623,15 @@
       const through = Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
       const subset = salesMonthToDate(sales, ym.year, ym.monthNum, through);
       const name = MONTH_LABELS[ym.monthNum] || ym.monthNum;
+      const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through);
       return {
         delta,
         year: ym.year,
         monthNum: ym.monthNum,
         through,
         name,
-        tot: sumAnnotated(subset)
+        tot: sumAnnotated(subset),
+        cov
       };
     });
     // Ordem visual: retrasado → passado → atual
@@ -1570,11 +1656,12 @@
       const countPct = countDelta
         ? ` <span class="vendas-consol-mtd-pct${countClass}">(${escapeHtml(countDelta)})</span>`
         : '';
+      const daysParen = ` (${row.cov.soldDays} dia${row.cov.soldDays === 1 ? '' : 's'} c/ venda · ${row.cov.emptyCount} sem)`;
       return `<article class="vendas-consol-mtd-card${isCurrent ? ' is-current' : ''}">
         <h4>${escapeHtml(row.name)}</h4>
         ${yearNote}
         <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${netPct}</p>
-        <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}</p>
+        <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}<span class="vendas-consol-mtd-days">${escapeHtml(daysParen)}</span></p>
       </article>`;
     }).join('');
     return `<section class="vendas-consol-mtd" aria-label="Comparação dias 1–${dayNum}">
@@ -1582,6 +1669,7 @@
         <h3>Dias 1–${dayNum}</h3>
       </header>
       <div class="vendas-consol-mtd-grid">${rows}</div>
+      ${renderConsolidadoDaysCoverage(sales)}
     </section>`;
   }
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.23">
+    <link rel="stylesheet" href="style.css?v=3.24">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -933,7 +933,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-chart-line"></i> Vendas por canal</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-vendas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-vendas" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Cada venda mostra só os valores: <strong>Preço</strong> → <strong>−Tarifa</strong> → <strong>−Frete</strong> → <strong>−Kit</strong> → <strong>= Líquido</strong>. O nome (Tarifa ML, Tarifa Shopee, Tarifa Amazon) aparece ao passar o mouse. O kit vem do BOM em Produtos.</p>
-                            <p><strong>Atualizar ML / Shopee / Amazon</strong> busca pedidos na loja: inclui os novos e regrava os que mudaram (status, valor, tarifa, frete). Recarregar só relê o que já está gravado. Mini Envios é o Correios da loja oficial, não o nome do frete do Mercado Livre (lá o recibo chama de Envios / Flex). <strong>Consolidado</strong> junta tudo, exporta Excel, compara os 3 últimos meses até o mesmo dia e mostra <strong>Flex a pagar</strong> por mês (o que você deve à empresa de Flex, pela lista em Produtos — o bônus do ML não entra nessa fatura).</p>
+                            <p><strong>Atualizar ML / Shopee / Amazon</strong> busca pedidos na loja: inclui os novos e regrava os que mudaram (status, valor, tarifa, frete). Recarregar só relê o que já está gravado. Mini Envios é o Correios da loja oficial, não o nome do frete do Mercado Livre (lá o recibo chama de Envios / Flex). <strong>Consolidado</strong> junta tudo, exporta Excel, compara os 3 últimos meses até o mesmo dia, lista <strong>dias com / sem venda</strong> (mês cheio nos anteriores) e mostra <strong>Flex a pagar</strong> por mês (o que você deve à empresa de Flex, pela lista em Produtos — o bônus do ML não entra nessa fatura).</p>
                         </div>
                         <nav class="admin-vendas-subtabs" role="tablist" aria-label="Canais de vendas">
                             <button type="button" role="tab" class="admin-vendas-subtab" data-vendas-subtab="loja" aria-selected="false" aria-controls="admin-vendas-loja"><i class="fas fa-store"></i> Loja oficial</button>
@@ -1348,6 +1348,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=218"></script>
+    <script defer src="js/admin.js?v=219"></script>
 </body>
 </html>
