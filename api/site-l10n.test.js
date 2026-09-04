@@ -30,6 +30,29 @@ test('parseModelJson aceita fence e texto solto', () => {
   assert.equal(parseModelJson('nope'), null);
 });
 
+test('extractAiText lê choices.message.content do Workers AI', async () => {
+  const { extractAiText } = await import('./site-l10n.js');
+  assert.equal(
+    extractAiText({ result: { choices: [{ message: { content: '{"q":"1"}' } }] } }),
+    '{"q":"1"}'
+  );
+  assert.equal(extractAiText({ response: 'legacy' }), 'legacy');
+  assert.equal(extractAiText({ foo: 1 }), null);
+});
+
+test('seedFaqI18nFromStatic preenche DE a partir do JSON', async () => {
+  const { seedFaqI18nFromStatic, seedFaqI18nFromLegacy } = await import('./site-l10n.js');
+  const i18n = seedFaqI18nFromLegacy({
+    id: 'faq-1',
+    question: 'PT',
+    questionEn: 'EN',
+    answerEn: 'A'
+  });
+  assert.equal(i18n.en.question, 'EN');
+  assert.ok(String(i18n.de?.question || '').includes('Warum') || String(i18n.de?.question || '').length > 5);
+  assert.ok(String(i18n.sl?.question || '').length > 5);
+});
+
 test('seedFaqI18nFromLegacy reaproveita EN/IT já cadastrados', () => {
   const i18n = seedFaqI18nFromLegacy({
     question: 'Por que pede senha?',

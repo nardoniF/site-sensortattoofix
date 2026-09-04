@@ -4,6 +4,8 @@
  * saem de um rewrite nativo (não tradução palavra a palavra).
  */
 
+import homeL10nStatic from './home-content-l10n.json' with { type: 'json' };
+
 export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
 
 export const LANG_NATIVE = {
@@ -68,13 +70,24 @@ Return ONLY a JSON object with the same keys as the input. No markdown, no comme
 Do not invent facts. Do not drop links or @handles.`;
 }
 
-async function runLlama(env, messages) {
-  if (!env?.AI || typeof env.AI.run !== 'function') return null;
-  const out = await env.AI.run(L10N_MODEL, { messages, max_tokens: 1200 });
+export function extractAiText(out) {
   if (typeof out === 'string') return out;
   if (out && typeof out.response === 'string') return out.response;
   if (out && typeof out.result === 'string') return out.result;
+  // Workers AI chat shape: { result: { choices: [{ message: { content } }] } }
+  const choiceContent =
+    out?.result?.choices?.[0]?.message?.content
+    ?? out?.choices?.[0]?.message?.content
+    ?? out?.result?.response
+    ?? null;
+  if (typeof choiceContent === 'string' && choiceContent.trim()) return choiceContent;
   return null;
+}
+
+async function runLlama(env, messages) {
+  if (!env?.AI || typeof env.AI.run !== 'function') return null;
+  const out = await env.AI.run(L10N_MODEL, { messages, max_tokens: 1200 });
+  return extractAiText(out);
 }
 
 /**
@@ -141,6 +154,40 @@ export function seedFaqI18nFromLegacy(item) {
       answer: String(i18n[lang]?.answer || a || '')
     };
   });
+  return seedFaqI18nFromStatic(item, i18n);
+}
+
+/** Preenche DE/ES/PL/SL a partir do arquivo estático (mesmas IDs da home). */
+export function seedFaqI18nFromStatic(item, i18nIn) {
+  const i18n = { ...(i18nIn || {}) };
+  const id = String(item?.id || '').trim();
+  if (!id) return i18n;
+  for (const lang of ['de', 'es', 'pl', 'sl']) {
+    if (String(i18n[lang]?.question || '').trim()) continue;
+    const pack = homeL10nStatic?.[lang]?.faq?.[id];
+    if (!pack) continue;
+    const q = String(pack.question || '').trim();
+    const a = String(pack.answer || '').trim();
+    if (!q && !a) continue;
+    i18n[lang] = { question: q, answer: a };
+  }
+  return i18n;
+}
+
+export function seedReviewI18nFromStatic(item, i18nIn) {
+  const i18n = { ...(i18nIn || {}) };
+  const id = String(item?.id || '').trim();
+  if (!id) return i18n;
+  for (const lang of ['de', 'es', 'pl', 'sl']) {
+    if (String(i18n[lang]?.body || '').trim()) continue;
+    const pack = homeL10nStatic?.[lang]?.reviews?.[id];
+    if (!pack) continue;
+    i18n[lang] = {
+      body: String(pack.body || ''),
+      author: String(pack.author || item?.author || ''),
+      source: String(pack.source || item?.source || '')
+    };
+  }
   return i18n;
 }
 
@@ -186,7 +233,7 @@ export async function refreshFaqItemI18n(env, item) {
 }
 
 function seedReviewI18nFromLegacy(item) {
-  const i18n = { ...(item?.i18n && typeof item.i18n === 'object' ? item.i18n : {}) };
+  let i18n = { ...(item?.i18n && typeof item.i18n === 'object' ? item.i18n : {}) };
   if (item?.bodyEn || item?.authorEn || item?.sourceEn) {
     i18n.en = {
       body: item.bodyEn || i18n.en?.body || '',
@@ -201,7 +248,7 @@ function seedReviewI18nFromLegacy(item) {
       source: item.sourceIt || i18n.it?.source || ''
     };
   }
-  return i18n;
+  return seedReviewI18nFromStatic(item, i18n);
 }
 
 export async function refreshReviewItemI18n(env, item) {
