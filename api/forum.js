@@ -253,9 +253,41 @@ function scheduleI18n(deps, work) {
 
 async function fillThreadI18n(env, threadId) {
   const thread = await getThread(env, threadId);
-  if (!thread) return;
+  if (!thread) return null;
   const next = await localizeForumThreadFields(env, thread);
   if (next !== thread) await saveThread(env, next);
+  const replies = await getReplies(env, threadId);
+  let changed = next !== thread;
+  for (let i = 0; i < replies.length; i += 1) {
+    const updated = await localizeForumReplyFields(env, replies[i]);
+    if (updated !== replies[i]) {
+      replies[i] = updated;
+      changed = true;
+    }
+  }
+  if (changed) await saveReplies(env, threadId, replies);
+  return next;
+}
+
+/** Backfill i18n faltante (DE/ES/PL/SL…) em todos os tópicos. */
+async function refreshAllForumI18n(env, { onProgress, limit = 200 } = {}) {
+  const index = await getThreadIndex(env);
+  let done = 0;
+  let skipped = 0;
+  for (const id of index.slice(0, Math.max(1, Number(limit) || 200))) {
+    const before = await getThread(env, id);
+    if (!before) continue;
+    const after = await fillThreadI18n(env, id);
+    if (!after) continue;
+    const beforeKeys = Object.keys(before.i18n || {}).length;
+    const afterKeys = Object.keys(after.i18n || {}).length;
+    if (afterKeys > beforeKeys || after.i18nHash !== before.i18nHash) done += 1;
+    else skipped += 1;
+    if (typeof onProgress === 'function') {
+      await onProgress({ done, skipped, id, langs: Object.keys(after.i18n || {}) });
+    }
+  }
+  return { ok: true, total: index.length, done, skipped };
 }
 
 async function fillReplyI18n(env, threadId, replyId) {
@@ -1231,6 +1263,30 @@ export async function handleForumRoute(request, env, origin, deps) {
     scheduleI18n(deps, () => fillReplyI18n(env, thread.id, reply.id));
     const replyMsg = (FORUM_SUBMIT_MSG[replyLang] || FORUM_SUBMIT_MSG.pt).reply;
     return deps.json({ ok: true, reply: publicReply(reply, null, replyLang), message: replyMsg }, 201, origin);
+  }
+
+  if (path === '/admin/forum/i18n/refresh' && method === 'POST') {
+    if (!(await deps.isValidSession(env, deps.bearerToken(request)))) {
+      return deps.json({ error: 'Não autorizado.' }, 401, origin);
+    }
+    const body = await request.json().catch(() => ({}));
+    const limit = Math.min(400, Math.max(1, Number(body.limit) || 200));
+    const run = refreshAllForumI18n(env, { limit })
+      .catch((err) => {
+        console.warn('forum i18n refresh:', err?.message || err);
+        return null;
+      });
+    if (deps.ctx && typeof deps.ctx.waitUntil === 'function') {
+      deps.ctx.waitUntil(run);
+      return deps.json({
+        ok: true,
+        started: true,
+        limit,
+        message: 'Gerando traduções da comunidade em segundo plano (1–5 min).'
+      }, 202, origin);
+    }
+    const result = await run;
+    return deps.json({ ok: true, started: false, result }, 200, origin);
   }
 
   if (path === '/admin/forum' && method === 'GET') {
