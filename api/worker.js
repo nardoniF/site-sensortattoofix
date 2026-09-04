@@ -5,7 +5,7 @@
 
 import { generateCommissionerStoryBanners } from './commissioner-banners.js';
 import { handleForumRoute } from './forum.js';
-import { refreshHomeContentI18n, mergePreservedI18n } from './site-l10n.js';
+import { refreshHomeContentI18n, mergePreservedI18n, homeContentI18nStatus } from './site-l10n.js';
 import {
   bumpKvWriteCounter,
   buildKvDailyWriteBudget,
@@ -17642,12 +17642,54 @@ async function handlePutConfig(request, env, origin, ctx) {
     };
   }
   const saved = await saveConfig(env, merged);
-  const runI18n = refreshHomeContentI18n(env, saved)
-    .then((next) => saveConfig(env, next))
+  const persistI18nPartial = async (partial) => {
+    const latest = await getConfig(env);
+    await saveConfig(env, {
+      ...latest,
+      homeFaq: partial.homeFaq,
+      homeReviews: partial.homeReviews
+    });
+  };
+  const runI18n = refreshHomeContentI18n(env, saved, { onProgress: persistI18nPartial })
+    .then((next) => persistI18nPartial(next))
     .catch((err) => console.warn('home i18n:', err?.message || err));
   if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(runI18n);
   else await runI18n;
   return json(saved, 200, origin);
+}
+
+async function handleAdminHomeI18nRefresh(request, env, origin, ctx) {
+  if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
+  const current = await getConfig(env);
+  const before = homeContentI18nStatus(current);
+  const persistI18nPartial = async (partial) => {
+    const latest = await getConfig(env);
+    await saveConfig(env, {
+      ...latest,
+      homeFaq: partial.homeFaq,
+      homeReviews: partial.homeReviews
+    });
+  };
+  const runI18n = refreshHomeContentI18n(env, current, { onProgress: persistI18nPartial })
+    .then(async (next) => {
+      await persistI18nPartial(next);
+      return homeContentI18nStatus(next);
+    })
+    .catch((err) => {
+      console.warn('home i18n refresh:', err?.message || err);
+      return null;
+    });
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(runI18n);
+    return json({
+      ok: true,
+      started: true,
+      before,
+      message: 'Gerando traduções em segundo plano. Recarregue a FAQ em 1–3 minutos.'
+    }, 202, origin);
+  }
+  const after = await runI18n;
+  return json({ ok: true, started: false, before, after }, 200, origin);
 }
 
 async function handleDeleteOrder(request, env, origin, orderId) {
@@ -18627,6 +18669,9 @@ export default {
         return handleAddressSuggest(request, env, origin);
       }
       if (path === '/admin/config' && request.method === 'GET') return handleAdminGetConfig(request, env, origin);
+      if (path === '/admin/home-i18n/refresh' && request.method === 'POST') {
+        return handleAdminHomeI18nRefresh(request, env, origin, ctx);
+      }
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
       if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);
       if (path === '/auth/logout' && request.method === 'POST') return handleCustomerLogout(request, env, origin);

@@ -69,6 +69,35 @@ test('mergePreservedI18n não apaga i18n do KV se o Admin não mandou', () => {
   assert.equal(out[0].i18nHash, 'abc');
 });
 
+test('homeContentI18nStatus conta pendentes', async () => {
+  const { homeContentI18nStatus } = await import('./site-l10n.js');
+  const status = homeContentI18nStatus({
+    homeFaq: [
+      { question: 'A', i18n: { en: { question: 'A' }, it: { question: 'A' }, de: { question: 'A' }, es: { question: 'A' }, pl: { question: 'A' }, sl: { question: 'A' } } },
+      { question: 'B', i18n: { en: { question: 'B' } } }
+    ],
+    homeReviews: [{ body: 'ok', i18n: {} }]
+  });
+  assert.equal(status.faqTotal, 2);
+  assert.equal(status.faqReady, 1);
+  assert.equal(status.faqPending, 1);
+  assert.equal(status.reviewsPending, 1);
+});
+
+test('worker expõe refresh home-i18n e save incremental', () => {
+  const src = fs.readFileSync(path.join(root, 'api', 'worker.js'), 'utf8');
+  assert.match(src, /\/admin\/home-i18n\/refresh/);
+  assert.match(src, /handleAdminHomeI18nRefresh/);
+  assert.match(src, /onProgress:\s*persistI18nPartial/);
+});
+
+test('admin tem botão Gerar traduções agora', () => {
+  const html = fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
+  assert.match(html, /btn-refresh-home-i18n/);
+  const src = fs.readFileSync(path.join(root, 'js', 'admin.js'), 'utf8');
+  assert.match(src, /\/admin\/home-i18n\/refresh/);
+});
+
 test('admin FAQ e elogios: só campos PT no formulário', () => {
   const src = fs.readFileSync(path.join(root, 'js', 'admin.js'), 'utf8');
   const faqBlock = src.match(/function renderHomeFaq[\s\S]*?function collectHomeFaq/);

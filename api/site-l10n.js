@@ -160,7 +160,9 @@ export async function refreshFaqItemI18n(env, item) {
   if (!question && !answer) return item;
   const fp = fieldsFingerprint({ question, answer });
   const hash = await hashSource(fp);
-  const seeded = seedFaqI18nFromLegacy(item);
+  const ptChanged = Boolean(item.i18nHash) && item.i18nHash !== hash;
+  // PT mudou → descarta i18n antigo (mantém só campos legado EN/IT no seed).
+  const seeded = seedFaqI18nFromLegacy(ptChanged ? { ...item, i18n: {} } : item);
   const missing = otherSiteLangs('pt').filter((lang) => {
     const pack = seeded[lang];
     return !pack || !String(pack.question || '').trim();
@@ -168,15 +170,38 @@ export async function refreshFaqItemI18n(env, item) {
   if (item.i18nHash === hash && !missing.length) {
     return { ...item, i18n: seeded, i18nHash: hash, sourceLang: 'pt' };
   }
-  const targets = item.i18nHash === hash ? missing : otherSiteLangs('pt');
-  const generated = await localizeToAllLangs(env, {
-    sourceLang: 'pt',
-    fields: { question, answer },
-    kind: 'faq',
-    targets
-  });
-  const i18n = { ...seeded, ...generated };
+  const targets = ptChanged ? otherSiteLangs('pt') : missing;
+  const generated = targets.length
+    ? await localizeToAllLangs(env, {
+      sourceLang: 'pt',
+      fields: { question, answer },
+      kind: 'faq',
+      targets
+    })
+    : {};
+  const i18n = ptChanged
+    ? { ...seedFaqI18nFromLegacy({ ...item, i18n: {} }), ...generated }
+    : { ...seeded, ...generated };
   return { ...item, i18n, i18nHash: hash, sourceLang: 'pt' };
+}
+
+function seedReviewI18nFromLegacy(item) {
+  const i18n = { ...(item?.i18n && typeof item.i18n === 'object' ? item.i18n : {}) };
+  if (item?.bodyEn || item?.authorEn || item?.sourceEn) {
+    i18n.en = {
+      body: item.bodyEn || i18n.en?.body || '',
+      author: item.authorEn || i18n.en?.author || '',
+      source: item.sourceEn || i18n.en?.source || ''
+    };
+  }
+  if (item?.bodyIt || item?.authorIt || item?.sourceIt) {
+    i18n.it = {
+      body: item.bodyIt || i18n.it?.body || '',
+      author: item.authorIt || i18n.it?.author || '',
+      source: item.sourceIt || i18n.it?.source || ''
+    };
+  }
+  return i18n;
 }
 
 export async function refreshReviewItemI18n(env, item) {
@@ -188,34 +213,25 @@ export async function refreshReviewItemI18n(env, item) {
     source: String(item?.source || '')
   });
   const hash = await hashSource(fp);
-  const i18n = { ...(item?.i18n && typeof item.i18n === 'object' ? item.i18n : {}) };
-  if (item.bodyEn || item.authorEn || item.sourceEn) {
-    i18n.en = {
-      body: item.bodyEn || i18n.en?.body || '',
-      author: item.authorEn || i18n.en?.author || '',
-      source: item.sourceEn || i18n.en?.source || ''
-    };
-  }
-  if (item.bodyIt || item.authorIt || item.sourceIt) {
-    i18n.it = {
-      body: item.bodyIt || i18n.it?.body || '',
-      author: item.authorIt || i18n.it?.author || '',
-      source: item.sourceIt || i18n.it?.source || ''
-    };
-  }
+  const ptChanged = Boolean(item.i18nHash) && item.i18nHash !== hash;
+  const i18n = seedReviewI18nFromLegacy(ptChanged ? { ...item, i18n: {} } : item);
   const missing = otherSiteLangs('pt').filter((lang) => !String(i18n[lang]?.body || '').trim());
   if (item.i18nHash === hash && !missing.length) {
     return { ...item, i18n, i18nHash: hash, sourceLang: 'pt' };
   }
-  const generated = await localizeToAllLangs(env, {
-    sourceLang: 'pt',
-    fields: {
-      body,
-      author: String(item?.author || ''),
-      source: String(item?.source || '')
-    },
-    kind: 'review'
-  });
+  const targets = ptChanged ? otherSiteLangs('pt') : missing;
+  const generated = targets.length
+    ? await localizeToAllLangs(env, {
+      sourceLang: 'pt',
+      fields: {
+        body,
+        author: String(item?.author || ''),
+        source: String(item?.source || '')
+      },
+      kind: 'review',
+      targets
+    })
+    : {};
   otherSiteLangs('pt').forEach((lang) => {
     if (generated[lang]) i18n[lang] = generated[lang];
   });
@@ -247,18 +263,50 @@ export function mergePreservedI18n(incoming, previous) {
   });
 }
 
-export async function refreshHomeContentI18n(env, config) {
-  const homeFaq = Array.isArray(config?.homeFaq) ? config.homeFaq : [];
-  const homeReviews = Array.isArray(config?.homeReviews) ? config.homeReviews : [];
-  const nextFaq = [];
-  for (const item of homeFaq) {
-    nextFaq.push(await refreshFaqItemI18n(env, item));
+/**
+ * Gera i18n faltante de FAQ/elogios.
+ * onProgress(partialConfig) — chamado após cada item (para save incremental no KV).
+ */
+export async function refreshHomeContentI18n(env, config, { onProgress } = {}) {
+  const homeFaq = Array.isArray(config?.homeFaq) ? [...config.homeFaq] : [];
+  const homeReviews = Array.isArray(config?.homeReviews) ? [...config.homeReviews] : [];
+
+  const emit = async () => {
+    if (typeof onProgress !== 'function') return;
+    await onProgress({ ...config, homeFaq: [...homeFaq], homeReviews: [...homeReviews] });
+  };
+
+  for (let i = 0; i < homeFaq.length; i += 1) {
+    homeFaq[i] = await refreshFaqItemI18n(env, homeFaq[i]);
+    await emit();
   }
-  const nextReviews = [];
-  for (const item of homeReviews) {
-    nextReviews.push(await refreshReviewItemI18n(env, item));
+  for (let i = 0; i < homeReviews.length; i += 1) {
+    homeReviews[i] = await refreshReviewItemI18n(env, homeReviews[i]);
+    await emit();
   }
-  return { ...config, homeFaq: nextFaq, homeReviews: nextReviews };
+  return { ...config, homeFaq, homeReviews };
+}
+
+/** Conta itens ainda sem i18n completo (todas as línguas intl). */
+export function homeContentI18nStatus(config) {
+  const faq = Array.isArray(config?.homeFaq) ? config.homeFaq : [];
+  const reviews = Array.isArray(config?.homeReviews) ? config.homeReviews : [];
+  const faqReady = faq.filter((item) => {
+    const i18n = item?.i18n || {};
+    return otherSiteLangs('pt').every((lang) => String(i18n[lang]?.question || '').trim());
+  }).length;
+  const reviewsReady = reviews.filter((item) => {
+    const i18n = item?.i18n || {};
+    return otherSiteLangs('pt').every((lang) => String(i18n[lang]?.body || '').trim());
+  }).length;
+  return {
+    faqTotal: faq.length,
+    faqReady,
+    faqPending: Math.max(0, faq.length - faqReady),
+    reviewsTotal: reviews.length,
+    reviewsReady,
+    reviewsPending: Math.max(0, reviews.length - reviewsReady)
+  };
 }
 
 export async function localizeForumThreadFields(env, thread) {
