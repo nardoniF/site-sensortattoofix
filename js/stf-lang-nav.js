@@ -76,6 +76,13 @@
     return isCom() ? comLangUrl(lang) : brLangUrl(lang);
   }
 
+  function persistPref(lang) {
+    try {
+      document.cookie = 'stf_pref_lang=' + encodeURIComponent(lang)
+        + '; Path=/; Max-Age=31536000; SameSite=Lax; Secure';
+    } catch (e) { /* ignore */ }
+  }
+
   function currentLang() {
     const path = location.pathname;
     if (isCom()) {
@@ -148,6 +155,7 @@
       a.setAttribute('aria-label', meta.label);
       a.innerHTML = flagImg(lang) + ` <span>${meta.code}</span>`;
       if (lang === active) a.setAttribute('aria-current', 'true');
+      a.addEventListener('click', () => persistPref(lang));
       li.appendChild(a);
       menu.appendChild(li);
     });
@@ -187,6 +195,7 @@
   }
 
   redirectBrIntlToCom();
+  persistPref(currentLang());
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initLangNav);
   } else {
