@@ -362,13 +362,23 @@ export async function localizeForumThreadFields(env, thread) {
     title: String(thread?.title || ''),
     body: String(thread?.body || '')
   };
+  if (!fields.title.trim() && !fields.body.trim()) return thread;
   const fp = fieldsFingerprint(fields);
   const hash = await hashSource(`${sourceLang}\n${fp}`);
-  if (thread.i18nHash === hash && thread.i18n && Object.keys(thread.i18n).length) {
-    return thread;
+  const sourceChanged = Boolean(thread.i18nHash) && thread.i18nHash !== hash;
+  let i18n = sourceChanged ? {} : { ...(thread.i18n || {}) };
+  // Preserve EN/IT seed packs when source did not change.
+  const missing = otherSiteLangs(sourceLang).filter((lang) => {
+    const pack = i18n[lang];
+    return !(pack && String(pack.title || pack.body || '').trim());
+  });
+  if (thread.i18nHash === hash && !missing.length) {
+    return { ...thread, sourceLang, lang: sourceLang, i18n, i18nHash: hash };
   }
-  const i18n = { ...(thread.i18n || {}) };
-  const generated = await localizeToAllLangs(env, { sourceLang, fields, kind: 'forum' });
+  const targets = sourceChanged ? otherSiteLangs(sourceLang) : missing;
+  const generated = targets.length
+    ? await localizeToAllLangs(env, { sourceLang, fields, kind: 'forum', targets })
+    : {};
   Object.assign(i18n, generated);
   return { ...thread, sourceLang, lang: sourceLang, i18n, i18nHash: hash };
 }
@@ -376,13 +386,23 @@ export async function localizeForumThreadFields(env, thread) {
 export async function localizeForumReplyFields(env, reply) {
   const sourceLang = normalizeSiteLang(reply?.sourceLang || reply?.lang || 'pt');
   const fields = { body: String(reply?.body || '') };
+  if (!fields.body.trim()) return reply;
   const fp = fieldsFingerprint(fields);
   const hash = await hashSource(`${sourceLang}\n${fp}`);
-  if (reply.i18nHash === hash && reply.i18n && Object.keys(reply.i18n).length) {
-    return reply;
+  const sourceChanged = Boolean(reply.i18nHash) && reply.i18nHash !== hash;
+  let i18n = sourceChanged ? {} : { ...(reply.i18n || {}) };
+  const missing = otherSiteLangs(sourceLang).filter((lang) => {
+    const pack = i18n[lang];
+    const body = typeof pack === 'string' ? pack : pack?.body;
+    return !String(body || '').trim();
+  });
+  if (reply.i18nHash === hash && !missing.length) {
+    return { ...reply, sourceLang, lang: sourceLang, i18n, i18nHash: hash };
   }
-  const i18n = { ...(reply.i18n || {}) };
-  const generated = await localizeToAllLangs(env, { sourceLang, fields, kind: 'forum' });
+  const targets = sourceChanged ? otherSiteLangs(sourceLang) : missing;
+  const generated = targets.length
+    ? await localizeToAllLangs(env, { sourceLang, fields, kind: 'forum', targets })
+    : {};
   Object.assign(i18n, generated);
   return { ...reply, sourceLang, lang: sourceLang, i18n, i18nHash: hash };
 }
