@@ -52,16 +52,17 @@
   if (!fromAds && !fromGoogleReferrer) return;
 
   var path = window.location.pathname || '/';
-  var inEn = /\/en(?:\/|$)/.test(path);
-  var inIt = /\/it(?:\/|$)/.test(path);
+  var langPrefix = '';
+  var m = path.match(/^\/(en|it|de|es|pl|sl)(?=\/|$)/);
+  if (m) langPrefix = '/' + m[1];
   var parts = path.replace(/\/+$/, '').split('/');
   var leaf = parts[parts.length - 1] || '';
-  var isIndex = !leaf || leaf === 'index.html';
+  var isIndex = !leaf || leaf === 'index.html' || leaf === 'en' || leaf === 'it' || leaf === 'de' || leaf === 'es' || leaf === 'pl' || leaf === 'sl';
   var isStore = leaf === 'loja.html' || leaf === 'comprar.html' || leaf === 'onde-comprar.html';
 
   if (!isIndex && !isStore) return;
   if (isIndex && window.location.hash === '#onde-comprar') return;
 
-  var target = (inIt ? '/it/index.html' : inEn ? '/en/index.html' : '/index.html') + window.location.search + '#onde-comprar';
-  window.location.replace(target);
+  var target = langPrefix ? (langPrefix + '/') : '/';
+  window.location.replace(target + window.location.search + '#onde-comprar');
 })();

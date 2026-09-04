@@ -2,8 +2,17 @@
  * Storefront proxy — serves pinned GitHub commit via jsDelivr.
  * - .com / www.sensortattoofix.com → EN (/) + IT/DE/ES/PL/SL (/it/, /de/, …)
  * - .com.br → Portuguese (repo root); paths /de|/es|/pl|/sl|/it|/en redirecionam ao .com
+ * - First-hit: cookie / CF-IPCountry / Accept-Language → redirect para idioma nativo
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
+import {
+  resolvePreferredLang,
+  localeRedirectTarget,
+  prefCookieHeader,
+  langFromPathname,
+  isBotUserAgent
+} from './geo-lang.js';
+
 const COMMIT = '40be9df61508e843a078d8e8c67ea6d9510736b2';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
@@ -301,6 +310,42 @@ export default {
 
     const siteOrigin = url.origin;
 
+    // First-hit locale: Polônia → /pl/, Alemanha → /de/, etc. (não aplica a bots)
+    if (!isBotUserAgent(request.headers.get('user-agent'))) {
+      const force = String(url.searchParams.get('stf_lang') || '').toLowerCase();
+      const forcedLang = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'].includes(force) ? force : null;
+      if (forcedLang) url.searchParams.delete('stf_lang');
+      const preferred = forcedLang || resolvePreferredLang({
+        cookieHeader: request.headers.get('cookie'),
+        country: request.cf?.country || request.headers.get('CF-IPCountry'),
+        acceptLanguage: request.headers.get('accept-language'),
+        fallback: br ? 'pt' : 'en'
+      });
+      const dest = localeRedirectTarget({
+        hostOrigin: siteOrigin,
+        pathname: url.pathname,
+        search: url.search,
+        br,
+        preferred
+      });
+      if (dest) {
+        const destUrl = new URL(dest);
+        if (destUrl.pathname !== url.pathname || destUrl.origin !== url.origin) {
+          return new Response(null, {
+            status: 302,
+            headers: {
+              Location: dest,
+              'Set-Cookie': prefCookieHeader(preferred),
+              'Cache-Control': 'no-store'
+            }
+          });
+        }
+      } else if (forcedLang) {
+        // Stay on current URL but persist explicit preference (e.g. ?stf_lang=en on /)
+        // fall through after cookie set via HTML response below when possible
+      }
+    }
+
     if (url.pathname === '/stf-log' || url.pathname === '/stf-log/') {
       return proxyClickLog(request, siteOrigin);
     }
@@ -354,13 +399,16 @@ export default {
     }
 
     html = patchHtml(html, originPath, br);
+    const pathLang = langFromPathname(url.pathname, br);
+    const headers = {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store, max-age=0',
+      'x-stf-commit': COMMIT,
+      'Set-Cookie': prefCookieHeader(pathLang)
+    };
     return new Response(html, {
       status: 200,
-      headers: {
-        'content-type': 'text/html; charset=utf-8',
-        'cache-control': 'no-store, max-age=0',
-        'x-stf-commit': COMMIT
-      },
+      headers
     });
   },
 };

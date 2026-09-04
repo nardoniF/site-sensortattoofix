@@ -334,13 +334,21 @@
 
   function siteLocaleTag() {
     const lang = String(document.documentElement.lang || '').toLowerCase();
-    if (lang.startsWith('it')) return 'IT';
+    if (lang.startsWith('pt')) return 'BR';
     if (lang.startsWith('en')) return 'EN';
+    if (lang.startsWith('it')) return 'IT';
+    if (lang.startsWith('de')) return 'DE';
+    if (lang.startsWith('es')) return 'ES';
+    if (lang.startsWith('pl')) return 'PL';
+    if (lang.startsWith('sl')) return 'SL';
     const path = String(location.pathname || '').toLowerCase();
-    if (/(^|\/)it(\/|$)/.test(path)) return 'IT';
-    if (/(^|\/)en(\/|$)/.test(path)) return 'EN';
+    const m = path.match(/\/(it|de|es|pl|sl|en)(\/|$)/);
+    if (m) {
+      const map = { it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SL', en: 'EN' };
+      return map[m[1]] || 'EN';
+    }
     const host = String(location.hostname || '').toLowerCase();
-    // .com serves EN at / and IT under /it/ (proxy strips /en)
+    if (/sensortattoofix\.com\.br$/.test(host)) return 'BR';
     if (/^(www\.)?sensortattoofix\.com$/.test(host)) return 'EN';
     return 'BR';
   }
@@ -352,7 +360,11 @@
     const norm = pathOnly.replace(/\\/g, '/').toLowerCase();
     const loc = siteLocaleTag();
     if (norm === '/' || norm.endsWith('/index.html') || norm === '/en' || norm.endsWith('/en/')
-      || norm === '/it' || norm.endsWith('/it/')) {
+      || norm === '/it' || norm.endsWith('/it/')
+      || norm === '/de' || norm.endsWith('/de/')
+      || norm === '/es' || norm.endsWith('/es/')
+      || norm === '/pl' || norm.endsWith('/pl/')
+      || norm === '/sl' || norm.endsWith('/sl/')) {
       return 'Home ' + loc;
     }
     const parts = norm.split('/').filter(Boolean);
