@@ -140,14 +140,28 @@
 
   async function loadConfig() {
     const fromStore = resolveConfig();
-    if (fromStore) return fromStore;
+    if (fromStore && Array.isArray(fromStore.homeFaq) && fromStore.homeFaq.length) {
+      return fromStore;
+    }
+    const apiBase = String(window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
+    if (apiBase) {
+      try {
+        const res = await fetch(apiBase + '/config', { cache: 'no-store' });
+        if (res.ok) {
+          const api = await res.json();
+          if (Array.isArray(api?.homeFaq) && api.homeFaq.length) return api;
+        }
+      } catch (e) {
+        console.warn('home-content: falha API config', e);
+      }
+    }
     try {
       const res = await fetch('/data/store-config.json?v=' + Date.now(), { cache: 'no-store' });
       if (res.ok) return res.json();
     } catch (e) {
       console.warn('home-content: falha ao carregar store-config', e);
     }
-    return { homeFaq: [], homeReviews: [] };
+    return fromStore || { homeFaq: [], homeReviews: [] };
   }
 
   async function renderAll() {
