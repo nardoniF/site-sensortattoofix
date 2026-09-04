@@ -14,3 +14,4 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
   },
 });
+// ci-probe: billing unlock check
