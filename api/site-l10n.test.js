@@ -30,6 +30,29 @@ test('parseModelJson aceita fence e texto solto', () => {
   assert.equal(parseModelJson('nope'), null);
 });
 
+test('extractAiText lê choices.message.content do Workers AI', async () => {
+  const { extractAiText } = await import('./site-l10n.js');
+  assert.equal(
+    extractAiText({ result: { choices: [{ message: { content: '{"q":"1"}' } }] } }),
+    '{"q":"1"}'
+  );
+  assert.equal(extractAiText({ response: 'legacy' }), 'legacy');
+  assert.equal(extractAiText({ foo: 1 }), null);
+});
+
+test('seedFaqI18nFromStatic preenche DE a partir do JSON', async () => {
+  const { seedFaqI18nFromStatic, seedFaqI18nFromLegacy } = await import('./site-l10n.js');
+  const i18n = seedFaqI18nFromLegacy({
+    id: 'faq-1',
+    question: 'PT',
+    questionEn: 'EN',
+    answerEn: 'A'
+  });
+  assert.equal(i18n.en.question, 'EN');
+  assert.ok(String(i18n.de?.question || '').includes('Warum') || String(i18n.de?.question || '').length > 5);
+  assert.ok(String(i18n.sl?.question || '').length > 5);
+});
+
 test('seedFaqI18nFromLegacy reaproveita EN/IT já cadastrados', () => {
   const i18n = seedFaqI18nFromLegacy({
     question: 'Por que pede senha?',
@@ -67,6 +90,35 @@ test('mergePreservedI18n não apaga i18n do KV se o Admin não mandou', () => {
   const out = mergePreservedI18n(incoming, previous);
   assert.equal(out[0].i18n.sl.question, 'SL');
   assert.equal(out[0].i18nHash, 'abc');
+});
+
+test('homeContentI18nStatus conta pendentes', async () => {
+  const { homeContentI18nStatus } = await import('./site-l10n.js');
+  const status = homeContentI18nStatus({
+    homeFaq: [
+      { question: 'A', i18n: { en: { question: 'A' }, it: { question: 'A' }, de: { question: 'A' }, es: { question: 'A' }, pl: { question: 'A' }, sl: { question: 'A' } } },
+      { question: 'B', i18n: { en: { question: 'B' } } }
+    ],
+    homeReviews: [{ body: 'ok', i18n: {} }]
+  });
+  assert.equal(status.faqTotal, 2);
+  assert.equal(status.faqReady, 1);
+  assert.equal(status.faqPending, 1);
+  assert.equal(status.reviewsPending, 1);
+});
+
+test('worker expõe refresh home-i18n e save incremental', () => {
+  const src = fs.readFileSync(path.join(root, 'api', 'worker.js'), 'utf8');
+  assert.match(src, /\/admin\/home-i18n\/refresh/);
+  assert.match(src, /handleAdminHomeI18nRefresh/);
+  assert.match(src, /onProgress:\s*persistI18nPartial/);
+});
+
+test('admin tem botão Gerar traduções agora', () => {
+  const html = fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
+  assert.match(html, /btn-refresh-home-i18n/);
+  const src = fs.readFileSync(path.join(root, 'js', 'admin.js'), 'utf8');
+  assert.match(src, /\/admin\/home-i18n\/refresh/);
 });
 
 test('admin FAQ e elogios: só campos PT no formulário', () => {

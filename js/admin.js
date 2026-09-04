@@ -647,6 +647,45 @@
       });
       renderHomeReviews(rows);
     });
+    document.getElementById('btn-refresh-home-i18n')?.addEventListener('click', async () => {
+      const base = apiBase();
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const statusEl = document.getElementById('home-i18n-status');
+      const btn = document.getElementById('btn-refresh-home-i18n');
+      if (!base || !token) {
+        setStatus('Faça login na API para gerar traduções.', true);
+        return;
+      }
+      if (btn) btn.disabled = true;
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = 'Iniciando geração…';
+      }
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/home-i18n/refresh', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token },
+          cache: 'no-store'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || ('HTTP ' + res.status));
+        }
+        const pending = (data.before?.faqPending || 0) + (data.before?.reviewsPending || 0);
+        const msg = data.message
+          || (pending
+            ? `Gerando ${pending} item(ns) em segundo plano. Recarregue em 1–3 min.`
+            : 'Traduções já estavam completas.');
+        if (statusEl) statusEl.textContent = msg;
+        setStatus(msg, false);
+      } catch (err) {
+        const msg = 'Falha ao gerar traduções: ' + (err?.message || err);
+        if (statusEl) statusEl.textContent = msg;
+        setStatus(msg, true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
   }
 
   function renderMotoboyCouriers(couriers) {

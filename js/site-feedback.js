@@ -112,6 +112,24 @@
       thanks: 'Dziękujemy! Twoja opinia pomaga nam ulepszać stronę.',
       err: 'Nie udało się wysłać. Spróbuj ponownie lub napisz na support@sensortattoofix.com.',
       errShort: 'Opisz, czego szukałeś (co najmniej 8 znaków).'
+    },
+    sl: {
+      fab: 'Predlogi',
+      fabAria: 'Povejte, kaj je manjkalo na spletni strani',
+      title: 'Pomagajte nam izboljšati',
+      intro: 'Niste našli, kar ste iskali? Nekaj besed zadošča — preberemo vsak odgovor.',
+      buscava: 'Kaj ste iskali?',
+      buscavaPh: 'Npr. cena kompleta, združljivost z Garmin, rok dostave…',
+      sugestao: 'Kaj je manjkalo ali predlog (neobvezno)',
+      sugestaoPh: 'Npr. video namestitve, primerjava modelov, mednarodna dostava…',
+      email: 'Vaš e-poštni naslov (neobvezno)',
+      emailPh: 'Samo če želite odgovor',
+      send: 'Pošlji',
+      sending: 'Pošiljanje…',
+      close: 'Zapri',
+      thanks: 'Hvala! Vaše mnenje nam pomaga izboljšati stran.',
+      err: 'Pošiljanje ni uspelo. Poskusite znova ali pišite na support@sensortattoofix.com.',
+      errShort: 'Opišite, kaj ste iskali (vsaj 8 znakov).'
     }
   };
 
@@ -122,6 +140,7 @@
     if (htmlLang.startsWith('de') || location.pathname.includes('/de/')) return 'de';
     if (htmlLang.startsWith('es') || location.pathname.includes('/es/')) return 'es';
     if (htmlLang.startsWith('pl') || location.pathname.includes('/pl/')) return 'pl';
+    if (htmlLang.startsWith('sl') || location.pathname.includes('/sl/')) return 'sl';
     if (
       htmlLang.startsWith('en') ||
       location.pathname.includes('/en/') ||

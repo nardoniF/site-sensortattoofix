@@ -740,7 +740,11 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-circle-question"></i> FAQ da home</span></legend>
                         <p class="admin-meta">Cadastre só em <strong>português</strong>. EN, IT, DE, ES, PL e SL são gerados automaticamente (texto nativo de cada país, não tradução palavra a palavra). Resposta aceita HTML básico (&lt;strong&gt;, &lt;a&gt;…). Mídia: Instagram ou TikTok (opcional).</p>
                         <div id="admin-home-faq" class="admin-home-content-list"></div>
-                        <button type="button" id="btn-add-home-faq" class="btn-secondary" style="margin-top:8px"><i class="fas fa-plus"></i> Adicionar pergunta</button>
+                        <div class="admin-form-actions" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                          <button type="button" id="btn-add-home-faq" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar pergunta</button>
+                          <button type="button" id="btn-refresh-home-i18n" class="btn-secondary"><i class="fas fa-language"></i> Gerar traduções agora</button>
+                          <span id="home-i18n-status" class="admin-meta" hidden></span>
+                        </div>
                     </fieldset>
                     </div>
 
@@ -1348,6 +1352,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=222"></script>
+    <script defer src="js/admin.js?v=223"></script>
 </body>
 </html>
