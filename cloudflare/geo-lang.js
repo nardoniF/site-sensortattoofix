@@ -128,34 +128,30 @@ export function isBrHomePath(pathname) {
 }
 
 /**
+ * Same-host only: never bounce .com ↔ .com.br.
+ * Cookies are not shared across those registrable domains, so cross-domain
+ * auto-redirects create ERR_TOO_MANY_REDIRECTS (pt cookie on .com → .br,
+ * then country/Accept-Language en on .br → .com, forever).
+ *
  * @returns {string|null} absolute URL to redirect to, or null
  */
 export function localeRedirectTarget({ hostOrigin, pathname, search, br, preferred }) {
   const lang = normalizeSiteLang(preferred) || 'en';
   const COM = 'https://www.sensortattoofix.com';
-  const BR = 'https://www.sensortattoofix.com.br';
   const path = pathname || '/';
   const q = search || '';
 
-  if (br) {
-    if (!isBrHomePath(path)) return null;
-    if (lang === 'pt') return null;
-    // Visitante intl na home BR → mercado .com no idioma certo
-    if (lang === 'en') return q ? `${COM}/${q}` : `${COM}/`;
-    return q ? `${COM}/${lang}/${q}` : `${COM}/${lang}/`;
-  }
+  // .com.br: stay on BR; language switcher / path 301s handle intl intentionally.
+  if (br) return null;
 
   if (!isComEnglishEntryPath(path)) return null;
-  if (lang === 'en') return null;
+  // en stays on English entry; pt stays on .com (no cross-domain bounce).
+  if (lang === 'en' || lang === 'pt') return null;
 
   const isHome = path === '/' || path === '' || path === '/index.html';
   const file = isHome ? '' : path.replace(/^\//, '');
   const base = String(hostOrigin || COM).replace(/\/$/, '');
 
-  if (lang === 'pt') {
-    if (isHome) return q ? `${BR}/${q}` : `${BR}/`;
-    return `${BR}/${file}${q}`;
-  }
   if (isHome) return q ? `${base}/${lang}/${q}` : `${base}/${lang}/`;
   return `${base}/${lang}/${file}${q}`;
 }

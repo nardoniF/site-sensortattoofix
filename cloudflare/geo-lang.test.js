@@ -49,10 +49,8 @@ test('localeRedirectTarget .com home', () => {
     localeRedirectTarget({ ...base, preferred: 'de', search: '?utm=1' }),
     'https://www.sensortattoofix.com/de/?utm=1'
   );
-  assert.equal(
-    localeRedirectTarget({ ...base, preferred: 'pt' }),
-    'https://www.sensortattoofix.com.br/'
-  );
+  // pt must NOT cross to .com.br (cookie domains differ → redirect loop)
+  assert.equal(localeRedirectTarget({ ...base, preferred: 'pt' }), null);
 });
 
 test('localeRedirectTarget .com loja.html', () => {
@@ -70,7 +68,7 @@ test('localeRedirectTarget .com loja.html', () => {
   assert.equal(isComEnglishEntryPath('/pl/loja.html'), false);
 });
 
-test('localeRedirectTarget .com.br home intl', () => {
+test('localeRedirectTarget never cross-domain', () => {
   assert.equal(
     localeRedirectTarget({
       hostOrigin: 'https://www.sensortattoofix.com.br',
@@ -79,7 +77,7 @@ test('localeRedirectTarget .com.br home intl', () => {
       br: true,
       preferred: 'pl'
     }),
-    'https://www.sensortattoofix.com/pl/'
+    null
   );
   assert.equal(
     localeRedirectTarget({
@@ -87,6 +85,16 @@ test('localeRedirectTarget .com.br home intl', () => {
       pathname: '/',
       search: '',
       br: true,
+      preferred: 'en'
+    }),
+    null
+  );
+  assert.equal(
+    localeRedirectTarget({
+      hostOrigin: 'https://www.sensortattoofix.com',
+      pathname: '/',
+      search: '',
+      br: false,
       preferred: 'pt'
     }),
     null

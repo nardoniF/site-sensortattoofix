@@ -2,7 +2,8 @@
  * Storefront proxy — serves pinned GitHub commit via jsDelivr.
  * - .com / www.sensortattoofix.com → EN (/) + IT/DE/ES/PL/SL (/it/, /de/, …)
  * - .com.br → Portuguese (repo root); paths /de|/es|/pl|/sl|/it|/en redirecionam ao .com
- * - First-hit: cookie / CF-IPCountry / Accept-Language → redirect para idioma nativo
+ * - First-hit no .com: cookie / CF-IPCountry / Accept-Language → /pl|/de|/es|/it|/sl
+ *   (nunca .com↔.com.br: cookies não são compartilhados e geram redirect loop)
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
 import {
