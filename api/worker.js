@@ -2267,7 +2267,8 @@ function isComSiteRequest(request) {
 
 function isIntlCheckoutLocale(locale) {
   const l = String(locale || '').toLowerCase();
-  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl';
+  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'sv' || l === 'no' || l === 'fi';
 }
 
 function orderCheckoutLangPath(order) {
@@ -2277,6 +2278,11 @@ function orderCheckoutLangPath(order) {
   if (l === 'es') return '/es';
   if (l === 'pl') return '/pl';
   if (l === 'sl') return '/sl';
+  if (l === 'fr') return '/fr';
+  if (l === 'nl') return '/nl';
+  if (l === 'sv') return '/sv';
+  if (l === 'no') return '/no';
+  if (l === 'fi') return '/fi';
   return '';
 }
 
@@ -13392,13 +13398,19 @@ const PASSWORD_RESET_TTL = 3600; // 1 hora
 
 function passwordResetLocaleFromRequest(request, bodyLocale) {
   const explicit = String(bodyLocale || '').toLowerCase();
-  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'sl' || explicit === 'pt') return explicit;
+  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'sl'
+    || explicit === 'fr' || explicit === 'nl' || explicit === 'sv' || explicit === 'no' || explicit === 'fi' || explicit === 'pt') return explicit;
   const lang = (request.headers.get('Accept-Language') || '').toLowerCase();
   if (lang.startsWith('it')) return 'it';
   if (lang.startsWith('de')) return 'de';
   if (lang.startsWith('es')) return 'es';
   if (lang.startsWith('pl')) return 'pl';
   if (lang.startsWith('sl')) return 'sl';
+  if (lang.startsWith('fr')) return 'fr';
+  if (lang.startsWith('nl')) return 'nl';
+  if (lang.startsWith('sv')) return 'sv';
+  if (lang.startsWith('nb') || lang.startsWith('nn') || lang.startsWith('no')) return 'no';
+  if (lang.startsWith('fi')) return 'fi';
   if (lang.startsWith('en')) return 'en';
   const hay = `${request.headers.get('Origin') || ''} ${request.headers.get('Referer') || ''}`.toLowerCase();
   if (hay.includes('/it/') || hay.includes('lang=it')) return 'it';
@@ -13406,12 +13418,18 @@ function passwordResetLocaleFromRequest(request, bodyLocale) {
   if (hay.includes('/es/') || hay.includes('lang=es')) return 'es';
   if (hay.includes('/pl/') || hay.includes('lang=pl')) return 'pl';
   if (hay.includes('/sl/') || hay.includes('lang=sl')) return 'sl';
+  if (hay.includes('/fr/') || hay.includes('lang=fr')) return 'fr';
+  if (hay.includes('/nl/') || hay.includes('lang=nl')) return 'nl';
+  if (hay.includes('/sv/') || hay.includes('lang=sv')) return 'sv';
+  if (hay.includes('/no/') || hay.includes('lang=no')) return 'no';
+  if (hay.includes('/fi/') || hay.includes('lang=fi')) return 'fi';
   if (hay.includes('sensortattoofix.com') && !hay.includes('.com.br')) return 'en';
   return 'pt';
 }
 
 function passwordResetSiteBase(locale, config) {
-  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl' || locale === 'sl') {
+  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl' || locale === 'sl'
+    || locale === 'fr' || locale === 'nl' || locale === 'sv' || locale === 'no' || locale === 'fi') {
     return 'https://www.sensortattoofix.com';
   }
   return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
@@ -13424,7 +13442,12 @@ function passwordResetUrl(locale, config, token) {
     de: '/de/minha-conta.html',
     es: '/es/minha-conta.html',
     pl: '/pl/minha-conta.html',
-    sl: '/sl/minha-conta.html'
+    sl: '/sl/minha-conta.html',
+    fr: '/fr/minha-conta.html',
+    nl: '/nl/minha-conta.html',
+    sv: '/sv/minha-conta.html',
+    no: '/no/minha-conta.html',
+    fi: '/fi/minha-conta.html'
   };
   const path = pathByLocale[locale] || '/minha-conta.html';
   return `${base}${path}?reset=${encodeURIComponent(token)}`;
@@ -13468,6 +13491,110 @@ function passwordResetEmailCopy(locale, resetUrl) {
         <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
       </div>`,
       text: `Ponastavitev gesla Sensor Tattoo Fix:\n${resetUrl}\n\nPovezava poteče v 1 uri.`
+    };
+  }
+  if (locale === 'de') {
+    return {
+      subject: 'Setzen Sie Ihr Sensor Tattoo Fix-Passwort zurück',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Passwort zurücksetzen</h2>
+        <p>Wir haben eine Anfrage erhalten, das Passwort Ihres Sensor Tattoo Fix-Kontos zurückzusetzen.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Neues Passwort wählen</a></p>
+        <p style="font-size:13px;color:#666">Dieser Link läuft in 1 Stunde ab. Wenn Sie das nicht angefordert haben, ignorieren Sie diese E-Mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Setzen Sie Ihr Sensor Tattoo Fix-Passwort zurück:\n${resetUrl}\n\nDieser Link läuft in 1 Stunde ab.`
+    };
+  }
+  if (locale === 'es') {
+    return {
+      subject: 'Restablece tu contraseña de Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Restablecer contraseña</h2>
+        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta de Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Elegir nueva contraseña</a></p>
+        <p style="font-size:13px;color:#666">Este enlace caduca en 1 hora. Si no lo solicitaste, puedes ignorar este correo.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Restablece tu contraseña de Sensor Tattoo Fix:\n${resetUrl}\n\nEste enlace caduca en 1 hora.`
+    };
+  }
+  if (locale === 'pl') {
+    return {
+      subject: 'Zresetuj hasło do Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Resetowanie hasła</h2>
+        <p>Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Wybierz nowe hasło</a></p>
+        <p style="font-size:13px;color:#666">Ten link wygasa za 1 godzinę. Jeśli nie prosiłeś o to, zignoruj ten e-mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Zresetuj hasło do Sensor Tattoo Fix:\n${resetUrl}\n\nTen link wygasa za 1 godzinę.`
+    };
+  }
+  if (locale === 'fr') {
+    return {
+      subject: 'Réinitialisez votre mot de passe Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Réinitialisation du mot de passe</h2>
+        <p>Nous avons reçu une demande de réinitialisation du mot de passe de votre compte Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Choisir un nouveau mot de passe</a></p>
+        <p style="font-size:13px;color:#666">Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Réinitialisez votre mot de passe Sensor Tattoo Fix :\n${resetUrl}\n\nCe lien expire dans 1 heure.`
+    };
+  }
+  if (locale === 'nl') {
+    return {
+      subject: 'Stel uw Sensor Tattoo Fix-wachtwoord opnieuw in',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Wachtwoord opnieuw instellen</h2>
+        <p>We hebben een verzoek ontvangen om het wachtwoord van uw Sensor Tattoo Fix-account opnieuw in te stellen.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Nieuw wachtwoord kiezen</a></p>
+        <p style="font-size:13px;color:#666">Deze link verloopt over 1 uur. Als u dit niet heeft aangevraagd, kunt u deze e-mail negeren.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Stel uw Sensor Tattoo Fix-wachtwoord opnieuw in:\n${resetUrl}\n\nDeze link verloopt over 1 uur.`
+    };
+  }
+  if (locale === 'sv') {
+    return {
+      subject: 'Återställ ditt Sensor Tattoo Fix-lösenord',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Återställ lösenord</h2>
+        <p>Vi har fått en begäran om att återställa lösenordet för ditt Sensor Tattoo Fix-konto.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Välj nytt lösenord</a></p>
+        <p style="font-size:13px;color:#666">Länken upphör om 1 timme. Om du inte begärde detta kan du ignorera det här e-postmeddelandet.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Återställ ditt Sensor Tattoo Fix-lösenord:\n${resetUrl}\n\nLänken upphör om 1 timme.`
+    };
+  }
+  if (locale === 'no') {
+    return {
+      subject: 'Tilbakestill Sensor Tattoo Fix-passordet ditt',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Tilbakestill passord</h2>
+        <p>Vi har mottatt en forespørsel om å tilbakestille passordet til Sensor Tattoo Fix-kontoen din.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Velg nytt passord</a></p>
+        <p style="font-size:13px;color:#666">Denne lenken utløper om 1 time. Hvis du ikke ba om dette, kan du ignorere denne e-posten.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Tilbakestill Sensor Tattoo Fix-passordet ditt:\n${resetUrl}\n\nDenne lenken utløper om 1 time.`
+    };
+  }
+  if (locale === 'fi') {
+    return {
+      subject: 'Vaihda Sensor Tattoo Fix -salasanasi',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Salasanan vaihto</h2>
+        <p>Saimme pyynnön vaihtaa Sensor Tattoo Fix -tilisi salasana.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Valitse uusi salasana</a></p>
+        <p style="font-size:13px;color:#666">Tämä linkki vanhenee 1 tunnin kuluttua. Jos et pyytänyt tätä, voit jättää tämän sähköpostin huomiotta.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Vaihda Sensor Tattoo Fix -salasanasi:\n${resetUrl}\n\nTämä linkki vanhenee 1 tunnin kuluttua.`
     };
   }
   return {

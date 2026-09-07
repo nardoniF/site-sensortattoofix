@@ -56,7 +56,7 @@ window.STF_MONEY = (function () {
   function isVisitorLocalized() {
     if (isIntlHost()) return true;
     const path = typeof location !== 'undefined' ? location.pathname : '';
-    return /^\/(en|it|de|es|pl|sl)(\/|$)/.test(path);
+    return /^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/.test(path);
   }
 
   function formatBRL(n) {

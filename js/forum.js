@@ -173,7 +173,7 @@
 
   async function ensureForumL10n() {
     const code = lang();
-    if (!['de', 'es', 'pl', 'sl'].includes(code) || STRINGS[code]) {
+    if (!['de','es','pl','sl','fr','nl','sv','no','fi'].includes(code) || STRINGS[code]) {
       forumL10nReady = true;
       return;
     }

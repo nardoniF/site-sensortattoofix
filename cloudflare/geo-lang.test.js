@@ -15,6 +15,11 @@ test('country → lang', () => {
   assert.equal(langFromCountry('DE'), 'de');
   assert.equal(langFromCountry('BR'), 'pt');
   assert.equal(langFromCountry('SI'), 'sl');
+  assert.equal(langFromCountry('FR'), 'fr');
+  assert.equal(langFromCountry('NL'), 'nl');
+  assert.equal(langFromCountry('SE'), 'sv');
+  assert.equal(langFromCountry('NO'), 'no');
+  assert.equal(langFromCountry('FI'), 'fi');
   assert.equal(langFromCountry('XX'), null);
 });
 
@@ -22,6 +27,9 @@ test('Accept-Language', () => {
   assert.equal(langFromAcceptLanguage('pl-PL,pl;q=0.9,en;q=0.8'), 'pl');
   assert.equal(langFromAcceptLanguage('de-AT,de;q=0.9'), 'de');
   assert.equal(langFromAcceptLanguage('en-US,en;q=0.9'), 'en');
+  assert.equal(langFromAcceptLanguage('fr-FR,fr;q=0.9'), 'fr');
+  assert.equal(langFromAcceptLanguage('nb-NO,nb;q=0.9,no;q=0.8'), 'no');
+  assert.equal(langFromAcceptLanguage('sv-SE,sv;q=0.9'), 'sv');
 });
 
 test('cookie wins over country', () => {
@@ -49,10 +57,8 @@ test('localeRedirectTarget .com home', () => {
     localeRedirectTarget({ ...base, preferred: 'de', search: '?utm=1' }),
     'https://www.sensortattoofix.com/de/?utm=1'
   );
-  assert.equal(
-    localeRedirectTarget({ ...base, preferred: 'pt' }),
-    'https://www.sensortattoofix.com.br/'
-  );
+  // pt must NOT cross to .com.br (cookie domains differ → redirect loop)
+  assert.equal(localeRedirectTarget({ ...base, preferred: 'pt' }), null);
 });
 
 test('localeRedirectTarget .com loja.html', () => {
@@ -70,7 +76,7 @@ test('localeRedirectTarget .com loja.html', () => {
   assert.equal(isComEnglishEntryPath('/pl/loja.html'), false);
 });
 
-test('localeRedirectTarget .com.br home intl', () => {
+test('localeRedirectTarget never cross-domain', () => {
   assert.equal(
     localeRedirectTarget({
       hostOrigin: 'https://www.sensortattoofix.com.br',
@@ -79,7 +85,7 @@ test('localeRedirectTarget .com.br home intl', () => {
       br: true,
       preferred: 'pl'
     }),
-    'https://www.sensortattoofix.com/pl/'
+    null
   );
   assert.equal(
     localeRedirectTarget({
@@ -87,11 +93,22 @@ test('localeRedirectTarget .com.br home intl', () => {
       pathname: '/',
       search: '',
       br: true,
+      preferred: 'en'
+    }),
+    null
+  );
+  assert.equal(
+    localeRedirectTarget({
+      hostOrigin: 'https://www.sensortattoofix.com',
+      pathname: '/',
+      search: '',
+      br: false,
       preferred: 'pt'
     }),
     null
   );
 });
+
 
 test('bots skipped helper', () => {
   assert.equal(isBotUserAgent('Mozilla/5.0 (compatible; Googlebot/2.1)'), true);
