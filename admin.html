@@ -738,7 +738,7 @@
                     <div id="admin-tab-faq" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-circle-question"></i> FAQ da home</span></legend>
-                        <p class="admin-meta">Cadastre só em <strong>português</strong>. EN, IT, DE, ES, PL e SL são gerados automaticamente (texto nativo de cada país, não tradução palavra a palavra). Resposta aceita HTML básico (&lt;strong&gt;, &lt;a&gt;…). Mídia: Instagram ou TikTok (opcional).</p>
+                        <p class="admin-meta">Cadastre só em <strong>português</strong>. As outras línguas (EN, IT, DE, ES, PL, SL, FR, NL, SV, NO, FI) saem automaticamente — texto nativo, não palavra a palavra. Depois de editar/salvar, clique <strong>Gerar traduções agora</strong>. Resposta aceita HTML básico (&lt;strong&gt;, &lt;a&gt;…). Mídia: Instagram ou TikTok (opcional).</p>
                         <div id="admin-home-faq" class="admin-home-content-list"></div>
                         <div class="admin-form-actions" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
                           <button type="button" id="btn-add-home-faq" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar pergunta</button>
@@ -1210,9 +1210,11 @@
                     <div id="admin-tab-comunidade" class="admin-tab-panel" role="tabpanel" hidden>
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-comments"></i> Comunidade (beta)</span></legend>
-                        <p class="admin-meta">Modere posts pendentes. Use a busca abaixo para ver se um assunto já tem tópico (evita duplicar). Posts exemplo usam nomes variados — o botão de seed também atualiza esses nomes.</p>
+                        <p class="admin-meta">Modere posts pendentes. <strong>Atualizar</strong> só recarrega a lista. Para traduzir tópicos antigos nas línguas novas (FR/NL/SV/NO/FI…), use <strong>Gerar traduções da comunidade</strong> (1–5 min em segundo plano).</p>
                         <div class="admin-form-actions" style="margin-bottom:12px;gap:8px;display:flex;flex-wrap:wrap">
                             <button type="button" id="btn-forum-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                            <button type="button" id="btn-forum-i18n-refresh" class="btn-secondary"><i class="fas fa-language"></i> Gerar traduções da comunidade</button>
+                            <span id="forum-i18n-status" class="admin-meta" hidden></span>
                             <button type="button" id="btn-forum-seed" class="btn-secondary"><i class="fas fa-seedling"></i> Atualizar tópicos exemplo (dores reais)</button>
                             <label class="admin-check" style="display:inline-flex;align-items:center;gap:8px;margin:0">
                                 <input type="checkbox" id="forum-public-toggle"> Liberar comunidade para todos
@@ -1352,6 +1354,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=223"></script>
+    <script defer src="js/admin.js?v=224"></script>
 </body>
 </html>
