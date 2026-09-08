@@ -87,7 +87,7 @@ test('overrides DE/ES/PL definem store.title e page.checkoutTitle*', () => {
 
 test('home-content-l10n.json cobre 21 FAQs e 15 reviews em de/es/pl/sl', () => {
   const data = JSON.parse(fs.readFileSync(path.join(root, 'data/home-content-l10n.json'), 'utf8'));
-  for (const lang of ['de', 'es', 'pl', 'sl']) {
+  for (const lang of ['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']) {
     const block = data[lang];
     assert.ok(block?.reviewsSummary, lang);
     assert.equal(Object.keys(block.faq).length, 21, `${lang} faq`);
@@ -108,7 +108,7 @@ test('forum-l10n.json cobre chaves principais em de/es/pl', () => {
 });
 
 const LANG_SHELL_PAGES = ['loja.html', 'comprar.html', 'minha-conta.html', 'comunidade.html', 'onde-comprar.html'];
-const LANGS = ['de', 'es', 'pl', 'sl'];
+const LANGS = ['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
 test('páginas DE/ES/PL carregam bundle i18n obrigatório', () => {
   for (const lang of LANGS) {
@@ -330,10 +330,10 @@ test('sitemap.xml: só PT no .com.br; sitemap-com.xml intl no .com', () => {
   const brLocs = [...brXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   const comLocs = [...comXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   assert.equal(brLocs.length, 4);
-  assert.equal(comLocs.length, 24);
+  assert.equal(comLocs.length, 44);
   for (const loc of brLocs) {
     assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\.br\//, `loc .com.br: ${loc}`);
-    assert.doesNotMatch(loc, /\/(de|es|pl|sl|it)\//, `PT sitemap sem intl: ${loc}`);
+    assert.doesNotMatch(loc, /\/(de|es|pl|sl|it|fr|nl|sv|no|fi)\//, `PT sitemap sem intl: ${loc}`);
   }
   for (const loc of comLocs) {
     assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\//, `loc .com: ${loc}`);
@@ -364,7 +364,7 @@ test('proxy .com: <base href> por idioma (DE/ES/PL/SL não herdam a home EN)', (
   const fn = src.match(/function comBaseHref\(originPath\) \{([\s\S]*?)\n\}/);
   assert.ok(fn, 'comBaseHref body');
   const COM_ORIGIN = 'https://www.sensortattoofix.com';
-  const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
+  const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
   function comBaseHref(originPath) {
     for (const lang of INTL_LANGS) {
       if (originPath === `/${lang}` || originPath.startsWith(`/${lang}/`)) {

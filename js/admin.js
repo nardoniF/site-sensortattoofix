@@ -5769,6 +5769,122 @@ ${worksheets}
     return ['BR', 'INT'];
   }
 
+  const DEFAULT_INTL_CURRENCIES = [
+    { code: 'USD', label: 'Dólar (USD)', langs: ['en'], countries: ['US', 'GB', 'CA', 'AU', 'NZ', 'SG', 'HK'], pppRate: 0.20652, decimals: 2, active: true },
+    { code: 'EUR', label: 'Euro (EUR)', langs: ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'fi'], countries: ['IT', 'DE', 'ES', 'PL', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'], pppRate: 0.19062, decimals: 2, active: true },
+    { code: 'SEK', label: 'Coroa sueca (SEK)', langs: ['sv'], countries: ['SE'], pppRate: 2.05087, decimals: 0, active: true },
+    { code: 'NOK', label: 'Coroa norueguesa (NOK)', langs: ['no'], countries: ['NO'], pppRate: 2.20986, decimals: 0, active: true }
+  ];
+
+  function intlPriceFieldName(code) {
+    const c = String(code || '').toUpperCase();
+    if (!/^[A-Z]{3}$/.test(c)) return null;
+    return 'price' + c[0] + c.slice(1).toLowerCase();
+  }
+
+  function normalizeAdminIntlCurrency(row, fallback) {
+    const base = fallback && typeof fallback === 'object' ? fallback : {};
+    const code = String(row?.code || base.code || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+    if (code.length !== 3) return null;
+    const langs = String(row?.langsText != null ? row.langsText : (Array.isArray(row?.langs) ? row.langs.join(', ') : (base.langs || []).join(', ')))
+      .split(/[\s,;]+/).map((s) => s.toLowerCase().trim()).filter(Boolean);
+    const countries = String(row?.countriesText != null ? row.countriesText : (Array.isArray(row?.countries) ? row.countries.join(', ') : (base.countries || []).join(', ')))
+      .split(/[\s,;]+/).map((s) => s.toUpperCase().trim()).filter(Boolean);
+    const pppRate = Number(row?.pppRate != null ? row.pppRate : base.pppRate);
+    const decimals = Number.isFinite(Number(row?.decimals != null ? row.decimals : base.decimals))
+      ? Math.max(0, Math.min(4, Math.floor(Number(row?.decimals != null ? row.decimals : base.decimals))))
+      : 2;
+    return {
+      code,
+      label: String(row?.label || base.label || code).trim() || code,
+      langs,
+      countries,
+      pppRate: Number.isFinite(pppRate) && pppRate > 0 ? pppRate : Number(base.pppRate) || 0,
+      decimals,
+      active: row?.active != null ? row.active !== false : base.active !== false
+    };
+  }
+
+  function getAdminIntlCurrencies(config) {
+    const byCode = new Map(DEFAULT_INTL_CURRENCIES.map((c) => [c.code, { ...c, langs: c.langs.slice(), countries: c.countries.slice() }]));
+    (Array.isArray(config?.intlCurrencies) ? config.intlCurrencies : []).forEach((row) => {
+      const n = normalizeAdminIntlCurrency(row, byCode.get(String(row?.code || '').toUpperCase()) || { code: row?.code });
+      if (n) byCode.set(n.code, n);
+    });
+    return Array.from(byCode.values());
+  }
+
+  function applyPppAmountAdmin(brl, rate, decimals) {
+    const amount = Math.max(0, Number(brl) || 0) * Math.max(0, Number(rate) || 0);
+    const d = Number.isFinite(Number(decimals)) ? Math.max(0, Math.min(4, Math.floor(Number(decimals)))) : 2;
+    const factor = 10 ** d;
+    return Math.round(amount * factor) / factor;
+  }
+
+  function applyPppToProductsAdmin(products, currencies) {
+    const list = (currencies || []).filter((c) => c.active !== false && Number(c.pppRate) > 0);
+    return (products || []).map((p) => {
+      if (!isIntlMarketProduct(p)) return p;
+      const brl = Number(p.price) || 0;
+      if (!(brl > 0)) return p;
+      const next = { ...p };
+      list.forEach((cur) => {
+        const field = intlPriceFieldName(cur.code);
+        if (field) next[field] = applyPppAmountAdmin(brl, cur.pppRate, cur.decimals);
+      });
+      return next;
+    });
+  }
+
+  function renderIntlCurrencies(list) {
+    const root = document.getElementById('admin-intl-currencies');
+    if (!root) return;
+    const rows = (list && list.length) ? list : DEFAULT_INTL_CURRENCIES;
+    root.innerHTML = rows.map((c, i) => `
+      <div class="admin-product-row admin-intl-currency-row" data-currency-index="${i}">
+        <h4>${escAttr(c.label || c.code)} <span class="admin-meta">(${escAttr(c.code)})</span></h4>
+        <div class="form-grid">
+          <label>Código ISO<input type="text" data-cur-field="code" maxlength="3" value="${escAttr(c.code || '')}" placeholder="USD"></label>
+          <label>Nome<input type="text" data-cur-field="label" value="${escAttr(c.label || '')}" placeholder="Dólar (USD)"></label>
+          <label>Fator PPP (moeda = R$ × fator)<input type="number" data-cur-field="pppRate" step="0.00001" min="0" value="${c.pppRate != null ? c.pppRate : ''}" placeholder="0.20652"></label>
+          <label>Casas decimais<input type="number" data-cur-field="decimals" min="0" max="4" step="1" value="${c.decimals != null ? c.decimals : 2}"></label>
+          <label class="full">Línguas do site (códigos)<input type="text" data-cur-field="langs" value="${escAttr((c.langs || []).join(', '))}" placeholder="en"></label>
+          <label class="full">Países (ISO)<input type="text" data-cur-field="countries" value="${escAttr((c.countries || []).join(', '))}" placeholder="US, GB, CA"></label>
+          <label class="label-check"><input type="checkbox" data-cur-field="active" ${c.active !== false ? 'checked' : ''}><span>Ativa</span></label>
+        </div>
+        <button type="button" class="btn-secondary btn-remove-intl-currency" data-index="${i}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
+      </div>
+    `).join('');
+    root.querySelectorAll('.btn-remove-intl-currency').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const all = collectIntlCurrencies();
+        all.splice(Number(btn.getAttribute('data-index')), 1);
+        renderIntlCurrencies(all.length ? all : DEFAULT_INTL_CURRENCIES);
+      });
+    });
+  }
+
+  function collectIntlCurrencies() {
+    const root = document.getElementById('admin-intl-currencies');
+    if (!root) return getAdminIntlCurrencies(currentConfig);
+    const out = [];
+    root.querySelectorAll('.admin-intl-currency-row').forEach((row) => {
+      const val = (name) => row.querySelector(`[data-cur-field="${name}"]`)?.value?.trim() || '';
+      const active = row.querySelector('[data-cur-field="active"]')?.checked !== false;
+      const n = normalizeAdminIntlCurrency({
+        code: val('code'),
+        label: val('label'),
+        pppRate: val('pppRate'),
+        decimals: val('decimals'),
+        langsText: val('langs'),
+        countriesText: val('countries'),
+        active
+      });
+      if (n) out.push(n);
+    });
+    return out.length ? out : DEFAULT_INTL_CURRENCIES.slice();
+  }
+
   function isIntlMarketProduct(p) {
     const m = productMarketsOf(p);
     return m.includes('INT') && !m.includes('BR');
@@ -5870,10 +5986,18 @@ ${worksheets}
           ${i18nFields}
           ${aggregatedFields}
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
-          ${market === 'INT' && !isAggregated ? `
-          <label>Preço USD (.com EN)<input type="number" data-field="priceUsd" step="0.01" min="0" value="${p.priceUsd != null ? p.priceUsd : ''}" placeholder="ex.: 12.99"></label>
-          <label>Preço EUR (.com IT)<input type="number" data-field="priceEur" step="0.01" min="0" value="${p.priceEur != null ? p.priceEur : ''}" placeholder="ex.: 11.99"></label>
-          <p class="admin-meta admin-field-hint full">Referência em R$ acima. USD/EUR são exibidos no .com (cobrança em USD). Atualizados automaticamente todo dia; você pode ajustar manualmente.</p>` : ''}
+          ${market === 'INT' && !isAggregated ? (() => {
+            const currencies = collectIntlCurrencies().filter((c) => c.active !== false);
+            const fields = currencies.map((cur) => {
+              const field = intlPriceFieldName(cur.code);
+              const step = cur.decimals === 0 ? '1' : (cur.decimals === 1 ? '0.1' : '0.01');
+              const langs = (cur.langs || []).map((l) => String(l).toUpperCase()).join('/');
+              const val = p[field] != null ? p[field] : '';
+              return `<label>Preço ${escAttr(cur.code)}${langs ? ` (.com ${escAttr(langs)})` : ''}<input type="number" data-field="${escAttr(field)}" data-intl-price="1" step="${step}" min="0" value="${val}" placeholder="${cur.code === 'USD' ? '12.99' : ''}"></label>`;
+            }).join('\n          ');
+            return `${fields}
+          <p class="admin-meta admin-field-hint full">Referência em R$ acima. Moedas locais usam <strong>poder de compra</strong> (aba Moedas) — não câmbio oficial. Com automático ligado, o fator PPP recalcula ao salvar.</p>`;
+          })() : ''}
           <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
           </label>
@@ -6000,13 +6124,24 @@ ${worksheets}
         if (descriptionPl) product.descriptionPl = descriptionPl; else delete product.descriptionPl;
         if (descriptionSl) product.descriptionSl = descriptionSl; else delete product.descriptionSl;
         if (market === 'INT') {
-          const usd = val('priceUsd');
-          const eur = val('priceEur');
-          if (usd) product.priceUsd = Number(usd); else delete product.priceUsd;
-          if (eur) product.priceEur = Number(eur); else delete product.priceEur;
+          const currencies = collectIntlCurrencies();
+          const knownFields = new Set(currencies.map((c) => intlPriceFieldName(c.code)).filter(Boolean));
+          ['priceUsd', 'priceEur', 'priceSek', 'priceNok', ...knownFields].forEach((field) => {
+            if (!field) return;
+            delete product[field];
+          });
+          row.querySelectorAll('[data-intl-price="1"]').forEach((input) => {
+            const field = input.getAttribute('data-field');
+            if (!field) return;
+            const raw = String(input.value || '').trim();
+            if (raw) product[field] = Number(raw);
+          });
         } else {
-          delete product.priceUsd;
-          delete product.priceEur;
+          ['priceUsd', 'priceEur', 'priceSek', 'priceNok'].forEach((field) => { delete product[field]; });
+          collectIntlCurrencies().forEach((c) => {
+            const field = intlPriceFieldName(c.code);
+            if (field) delete product[field];
+          });
         }
         const imagesEl = row.querySelector('[data-field="images"]');
         if (imagesEl) {
@@ -6305,6 +6440,9 @@ ${worksheets}
   function fillForm(config) {
     const f = els.configForm;
     if (!f || !config) return;
+    renderIntlCurrencies(getAdminIntlCurrencies(config));
+    const autoPpp = document.getElementById('admin-intl-auto-ppp');
+    if (autoPpp) autoPpp.checked = config.intlCurrenciesAutoPpp !== false;
     renderProducts(getProductsFromConfig(config));
     renderKitCost(config);
     if (f.mlFlexShippingCost) {
@@ -6502,7 +6640,7 @@ ${worksheets}
       || products.find((p) => !p.aggregated)
       || products[0]
       || {};
-    return {
+    const payload = {
       product: {
         name: primary.name || '',
         description: primary.description || '',
@@ -6616,12 +6754,18 @@ ${worksheets}
       mlFlexShippingCost: Math.max(0, parseFloat(f.mlFlexShippingCost?.value) || (currentConfig?.mlFlexShippingCost || 0)),
       homeFaq: collectHomeFaq(),
       homeReviews: collectHomeReviews(),
+      intlCurrencies: collectIntlCurrencies(),
+      intlCurrenciesAutoPpp: document.getElementById('admin-intl-auto-ppp')?.checked !== false,
       updatedAt: new Date().toISOString()
     };
+    if (payload.intlCurrenciesAutoPpp !== false) {
+      payload.products = applyPppToProductsAdmin(payload.products, payload.intlCurrencies);
+    }
+    return payload;
   }
 
-  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes', 'faq', 'elogios']);
-  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'cupons', 'faq', 'elogios', 'contato']);
+  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'moedas', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes', 'faq', 'elogios']);
+  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'moedas', 'cupons', 'faq', 'elogios', 'contato']);
   const CADASTROS_PANEL_BY_SECTION = {
     pessoas: 'clientes',
     produtos: 'produtos',
@@ -6629,6 +6773,7 @@ ${worksheets}
     kit: 'produtos',
     pagamento: 'pagamento',
     frete: 'frete',
+    moedas: 'moedas',
     cupons: 'cupons',
     faq: 'faq',
     elogios: 'elogios',
@@ -7477,6 +7622,55 @@ ${worksheets}
 
   function wireForumAdminControls() {
     document.getElementById('btn-forum-refresh')?.addEventListener('click', () => loadForumAdmin());
+    document.getElementById('btn-forum-i18n-refresh')?.addEventListener('click', async () => {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const base = apiBase();
+      const statusEl = document.getElementById('forum-i18n-status');
+      const btn = document.getElementById('btn-forum-i18n-refresh');
+      if (!token || !base) {
+        alert('Faça login na API para gerar traduções da comunidade.');
+        return;
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.dataset.label = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando…';
+      }
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.className = 'admin-meta admin-status-ok';
+        statusEl.textContent = 'Pedido enviado. Traduzindo tópicos em segundo plano (1–5 min)…';
+      }
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/i18n/refresh', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: 200 })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        const msg = data.message || 'Traduções em segundo plano. Atualize a lista em alguns minutos e abra /fr/comunidade.html para conferir.';
+        if (statusEl) {
+          statusEl.hidden = false;
+          statusEl.className = 'admin-meta admin-status-ok';
+          statusEl.textContent = '✓ ' + msg;
+        }
+        alert('✓ ' + msg);
+      } catch (err) {
+        const msg = err?.message || String(err);
+        if (statusEl) {
+          statusEl.hidden = false;
+          statusEl.className = 'admin-meta admin-status-bad';
+          statusEl.textContent = '✗ Falha: ' + msg;
+        }
+        alert('Falha ao gerar traduções da comunidade: ' + msg);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          if (btn.dataset.label) btn.innerHTML = btn.dataset.label;
+        }
+      }
+    });
     document.getElementById('btn-forum-seed')?.addEventListener('click', async () => {
       const token = sessionStorage.getItem(SESSION_KEY);
       const base = apiBase();
@@ -8126,7 +8320,8 @@ ${worksheets}
     const all = collectProductsFromDom();
     const stamp = Date.now();
     const slug = `optical-lens-intl-${stamp}`;
-    all.push({
+    const currencies = collectIntlCurrencies();
+    const base = {
       id: slug,
       slug,
       name: 'SensorTattooFix Optical Lens',
@@ -8134,10 +8329,8 @@ ${worksheets}
       nameIt: 'Lente ottica SensorTattooFix',
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuada.',
+      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
       price: 62.9,
-      priceUsd: 12.99,
-      priceEur: 11.99,
       image: LENS_INTL_IMAGES[0],
       images: LENS_INTL_IMAGES.slice(),
       active: true,
@@ -8145,12 +8338,79 @@ ${worksheets}
       weightGrams: 3,
       sensorMm: 25,
       markets: ['INT']
-    });
+    };
+    all.push(applyPppToProductsAdmin([base], currencies)[0]);
     renderProducts(all);
     showProductSubtab('intl-main');
     showStatus('Produto .com adicionado. Preencha os campos e clique em Salvar.', 'success', 'save');
     const panel = document.getElementById('admin-products-intl-main');
     panel?.lastElementChild?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  });
+
+  document.getElementById('btn-add-intl-currency')?.addEventListener('click', () => {
+    const all = collectIntlCurrencies();
+    all.push({
+      code: '',
+      label: 'Nova moeda',
+      langs: [],
+      countries: [],
+      pppRate: 0.2,
+      decimals: 2,
+      active: true
+    });
+    renderIntlCurrencies(all);
+  });
+
+  document.getElementById('btn-apply-intl-ppp')?.addEventListener('click', async () => {
+    const status = document.getElementById('admin-intl-ppp-status');
+    const currencies = collectIntlCurrencies();
+    const auto = document.getElementById('admin-intl-auto-ppp')?.checked !== false;
+    const products = applyPppToProductsAdmin(collectProductsFromDom(), currencies);
+    renderProducts(products);
+    if (status) {
+      status.hidden = false;
+      status.textContent = 'Aplicando PPP nos produtos .com…';
+    }
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (token && base) {
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/intl-money/apply-ppp', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ intlCurrencies: currencies, intlCurrenciesAutoPpp: auto })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Falha ao aplicar PPP.');
+        if (data.products) {
+          const byId = new Map(data.products.map((p) => [p.id, p]));
+          const merged = collectProductsFromDom().map((p) => {
+            const live = byId.get(p.id);
+            return live ? { ...p, ...live } : p;
+          });
+          renderProducts(merged);
+        }
+        if (currentConfig) {
+          currentConfig.intlCurrencies = currencies;
+          currentConfig.intlCurrenciesAutoPpp = auto;
+          if (Array.isArray(currentConfig.products)) {
+            currentConfig.products = applyPppToProductsAdmin(currentConfig.products, currencies);
+          }
+        }
+        showStatus(`PPP aplicado em ${data.updated ?? 0} produto(s) .com.`, 'success', 'save');
+        if (status) status.textContent = `Atualizado: ${data.updated ?? 0} produto(s).`;
+        return;
+      } catch (err) {
+        showStatus(err.message || 'PPP aplicado só na tela — salve para gravar.', 'warning', 'save');
+        if (status) status.textContent = 'PPP na tela; salve para gravar no servidor.';
+        return;
+      }
+    }
+    showStatus('PPP aplicado na tela. Clique em Salvar para gravar.', 'success', 'save');
+    if (status) status.textContent = 'PPP na tela — salve para gravar.';
   });
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));

@@ -113,9 +113,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function checkoutLocale() {
     if (!isIntlCheckoutShell()) return 'pt';
-    const lang = window.STF_I18N?.getLang?.() || 'en';
-    if (lang === 'it' || lang === 'de' || lang === 'es' || lang === 'pl' || lang === 'sl' || lang === 'en') return lang;
-    return 'en';
+    const lang = window.STF_I18N?.getLang?.() || window.STF_PAGE_LANG?.get?.() || 'en';
+    const ok = ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
+    return ok.includes(lang) ? lang : 'en';
   }
 
   /** EN/IT checkout on .com.br path: PayPal only. On .com: Stripe (if live) + PayPal. */
@@ -153,8 +153,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         els.summaryPaypalRow.style.display = 'none';
       }
       if (els.selfTestPayWrap) els.selfTestPayWrap.hidden = true;
+      syncIntlDisplayCurrency();
     } else {
       // BR shell keeps CEP/PIX defaults; country can still switch to intl later
+      displayCurrency = 'BRL';
+      pppRate = null;
+      fxRate = null;
       if (els.addressBr) els.addressBr.hidden = false;
       if (els.addressIntl) els.addressIntl.hidden = true;
       if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = false;
@@ -415,63 +419,125 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   let fxRate = null;
+  let pppRate = null;
   let displayCurrency = 'BRL';
+
+  const DEFAULT_PPP_RATES = {
+    USD: { rate: 0.20652, decimals: 2 },
+    EUR: { rate: 0.19062, decimals: 2 },
+    SEK: { rate: 2.05087, decimals: 0 },
+    NOK: { rate: 2.20986, decimals: 0 }
+  };
 
   function intlDisplayCurrency() {
     if (window.STF_MONEY?.visitorDisplayCurrency) {
-      const country = checkoutLocale() === 'it' ? 'IT' : 'US';
-      return window.STF_MONEY.visitorDisplayCurrency(country);
+      return window.STF_MONEY.visitorDisplayCurrency(window.STF_MONEY.visitorCountry?.(), cfg);
     }
-    return checkoutLocale() === 'it' ? 'EUR' : 'USD';
+    if (window.STF_MONEY?.currencyForLang) {
+      return window.STF_MONEY.currencyForLang(checkoutLocale(), cfg);
+    }
+    const loc = checkoutLocale();
+    if (loc === 'sv') return 'SEK';
+    if (loc === 'no') return 'NOK';
+    if (['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'fi'].includes(loc)) return 'EUR';
+    return 'USD';
+  }
+
+  function pppInfoForCurrency(currency) {
+    const cur = String(currency || '').toUpperCase();
+    const list = Array.isArray(cfg?.intlCurrencies) ? cfg.intlCurrencies : [];
+    const row = list.find((c) => String(c?.code || '').toUpperCase() === cur && c.active !== false);
+    if (row && Number(row.pppRate) > 0) {
+      const decimals = Number.isFinite(Number(row.decimals))
+        ? Math.max(0, Math.min(4, Math.floor(Number(row.decimals))))
+        : 2;
+      return { rate: Number(row.pppRate), decimals };
+    }
+    return DEFAULT_PPP_RATES[cur] || null;
+  }
+
+  function applyPppAmount(amountBrl, rate, decimals) {
+    const d = Number.isFinite(Number(decimals)) ? Math.max(0, Math.min(4, Math.floor(Number(decimals)))) : 2;
+    const factor = 10 ** d;
+    return Math.round(Math.max(0, Number(amountBrl) || 0) * Math.max(0, Number(rate) || 0) * factor) / factor;
+  }
+
+  function syncIntlDisplayCurrency() {
+    if (!isInternational && !isIntlCheckoutShell()) {
+      displayCurrency = 'BRL';
+      pppRate = null;
+      return;
+    }
+    isInternational = true;
+    displayCurrency = intlDisplayCurrency() || 'USD';
+    const info = pppInfoForCurrency(displayCurrency);
+    pppRate = info?.rate || null;
   }
 
   async function refreshDisplayCurrency() {
-    if (!isInternational || !window.STF_MONEY) {
+    if (!isInternational && !isIntlCheckoutShell()) {
       fxRate = null;
+      pppRate = null;
       displayCurrency = 'BRL';
       return;
     }
-    if (window.STF_MONEY.isIntlHost?.()) {
-      displayCurrency = intlDisplayCurrency();
+    syncIntlDisplayCurrency();
+    if (window.STF_MONEY?.loadRate) {
       fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
-      return;
     }
-    const next = window.STF_MONEY.currencyForCountry(els.paisCode?.value || 'US');
-    if (next !== displayCurrency) window.STF_MONEY.resetCache?.();
-    displayCurrency = next;
-    fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
   }
 
-  function formatCheckoutMoney(v) {
+  function formatCheckoutMoney(v, product) {
     try {
-      if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
-        return formatBRL(v);
+      const onIntl = isInternational || isIntlCheckoutShell() || window.STF_MONEY?.isIntlHost?.();
+      if (!onIntl) return formatBRL(v);
+      if (!displayCurrency || displayCurrency === 'BRL') syncIntlDisplayCurrency();
+      const cur = displayCurrency || intlDisplayCurrency() || 'USD';
+      if (cur === 'BRL') return formatBRL(v);
+
+      const brl = Number(v) || 0;
+      const country = window.STF_MONEY?.visitorCountry?.() || els.paisCode?.value || 'US';
+
+      if (product && window.STF_MONEY?.configuredForeignPrice) {
+        const unitForeign = window.STF_MONEY.configuredForeignPrice(product, cur, cfg);
+        const unitBrl = Number(product.price) || 0;
+        if (unitForeign != null && unitBrl > 0) {
+          const qty = Math.abs(brl - unitBrl) < 0.001 ? 1 : brl / unitBrl;
+          if (Number.isFinite(qty) && qty > 0) {
+            return formatChargeMoney(Math.round(unitForeign * qty * 100) / 100, cur);
+          }
+        }
       }
-      const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US');
-      if (window.STF_MONEY.isIntlHost?.()) {
-        const foreign = window.STF_MONEY.convertFromBrl(v, fxRate);
-        if (foreign == null) return formatBRL(v);
-        return window.STF_MONEY.formatForeign(foreign, displayCurrency, country);
+
+      const info = pppInfoForCurrency(cur);
+      const rate = info?.rate || pppRate || fxRate;
+      if (rate) {
+        const foreign = applyPppAmount(brl, rate, info?.decimals ?? (cur === 'SEK' || cur === 'NOK' ? 0 : 2));
+        if (window.STF_MONEY?.formatForeign) {
+          return window.STF_MONEY.formatForeign(foreign, cur, country);
+        }
+        return formatChargeMoney(foreign, cur);
       }
-      return window.STF_MONEY.formatDual(v, displayCurrency, fxRate, country);
+      return formatBRL(v);
     } catch (e) {
       console.warn('formatCheckoutMoney', e);
       return formatBRL(v);
     }
   }
 
-  /** Format an amount that is already in USD/EUR (do not convert from BRL). */
+  /** Format an amount that is already in USD/EUR/SEK/NOK (do not convert from BRL). */
   function formatChargeMoney(v, currency) {
     try {
       const cur = String(currency || displayCurrency || 'USD').toUpperCase();
-      const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY?.visitorCountry?.() || 'US');
+      const country = window.STF_MONEY?.visitorCountry?.() || els.paisCode?.value || 'US';
       if (window.STF_MONEY?.formatForeign) {
         return window.STF_MONEY.formatForeign(Number(v) || 0, cur, country);
       }
     } catch (_) { /* fall through */ }
-    if (String(currency || '').toUpperCase() === 'EUR') {
-      return `€ ${Number(v || 0).toFixed(2)}`;
-    }
+    const c = String(currency || '').toUpperCase();
+    if (c === 'EUR') return `€ ${Number(v || 0).toFixed(2)}`;
+    if (c === 'SEK') return `${Math.round(Number(v) || 0)} kr`;
+    if (c === 'NOK') return `${Math.round(Number(v) || 0)} kr`;
     return `US$ ${Number(v || 0).toFixed(2)}`;
   }
 
@@ -481,7 +547,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function formatSnapshotMoney(amount, currency) {
     const cur = String(currency || '').toUpperCase();
-    if (cur === 'USD' || cur === 'EUR') return formatChargeMoney(amount, cur);
+    if (cur === 'USD' || cur === 'EUR' || cur === 'SEK' || cur === 'NOK') return formatChargeMoney(amount, cur);
     return formatCheckoutMoney(amount);
   }
 
@@ -1394,7 +1460,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         ${thumb}
         <div class="cart-line-info">
           <strong>${escapeHtml(cartLineName(item))}</strong>
-          <span class="cart-line-price">${formatCheckoutMoney(item.price)}</span>
+          <span class="cart-line-price">${formatCheckoutMoney(item.price, lineProduct)}</span>
           <div class="cart-qty" role="group" aria-label="${escapeHtml(L('cart.qty'))}">
             <button type="button" class="cart-qty-btn" data-delta="-1" aria-label="${escapeHtml(L('cart.decrease'))}">−</button>
             <span class="cart-qty-val">${item.qty}</span>
@@ -3489,6 +3555,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       window.STF_I18N?.applyCheckoutDom?.();
       cfg = await StoreConfig.load();
       products = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
+      if (isIntlCheckoutShell()) {
+        isInternational = true;
+        syncIntlDisplayCurrency();
+      }
       window.STF_CART?.syncPrices?.(products);
       // Seed BEFORE any later await/throw — otherwise Buy?produto=&comprar=1 bounces to loja.
       seedCartFromUrl();
