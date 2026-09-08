@@ -6,7 +6,7 @@
 export const BR = 'https://www.sensortattoofix.com.br';
 export const COM = 'https://www.sensortattoofix.com';
 
-export const HREFLANG_ORDER = ['pt-BR', 'en', 'it', 'de', 'es', 'pl', 'sl', 'x-default'];
+export const HREFLANG_ORDER = ['pt-BR', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi', 'x-default'];
 
 /** Páginas indexáveis (SEO). */
 export const PUBLIC_PAGES = ['index', 'loja.html', 'onde-comprar.html', 'comunidade.html'];
@@ -16,11 +16,11 @@ export const NOINDEX_PAGES = ['comprar.html', 'minha-conta.html'];
 
 export const ALL_PAGES = [...PUBLIC_PAGES, ...NOINDEX_PAGES];
 
-export const LANG_DIRS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
+export const LANG_DIRS = ['en','it','de','es','pl','sl','fr','nl','sv','no','fi'];
 
 /** Idiomas cujo <loc> canônico fica em cada domínio (regra do Search Console). */
 export const BR_SITEMAP_LANGS = ['pt-BR'];
-export const COM_SITEMAP_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
+export const COM_SITEMAP_LANGS = ['en','it','de','es','pl','sl','fr','nl','sv','no','fi'];
 
 /** Host canônico do idioma (sem path). */
 export function canonicalHost(lang) {
@@ -28,7 +28,7 @@ export function canonicalHost(lang) {
   return COM;
 }
 
-/** @param {'pt-BR'|'en'|'it'|'de'|'es'|'pl'|'sl'|'x-default'} lang */
+/** @param {'pt-BR'|'en'|'it'|'de'|'es'|'pl'|'sl'|'fr'|'nl'|'sv'|'no'|'fi'|'x-default'} lang */
 export function hreflangUrl(lang, page) {
   const file = page === 'index' ? '' : page;
   if (lang === 'pt-BR') return file ? `${BR}/${file}` : `${BR}/`;
@@ -38,6 +38,11 @@ export function hreflangUrl(lang, page) {
   if (lang === 'es') return file ? `${COM}/es/${file}` : `${COM}/es/`;
   if (lang === 'pl') return file ? `${COM}/pl/${file}` : `${COM}/pl/`;
   if (lang === 'sl') return file ? `${COM}/sl/${file}` : `${COM}/sl/`;
+  if (lang === 'fr') return file ? `${COM}/fr/${file}` : `${COM}/fr/`;
+  if (lang === 'nl') return file ? `${COM}/nl/${file}` : `${COM}/nl/`;
+  if (lang === 'sv') return file ? `${COM}/sv/${file}` : `${COM}/sv/`;
+  if (lang === 'no') return file ? `${COM}/no/${file}` : `${COM}/no/`;
+  if (lang === 'fi') return file ? `${COM}/fi/${file}` : `${COM}/fi/`;
   if (lang === 'x-default') return file ? `${BR}/${file}` : `${BR}/`;
   throw new Error(`hreflang desconhecido: ${lang}`);
 }
@@ -55,7 +60,7 @@ export function hreflangLinkTags(page, indent = '    ') {
 }
 
 export function xhtmlLinkTags(page, indent = '    ') {
-  return HREFLANG_ORDER.filter((l) => l !== 'x-default').map(
+  return HREFLANG_ORDER.map(
     (lang) => `${indent}<xhtml:link rel="alternate" hreflang="${lang}" href="${hreflangUrl(lang, page)}"/>`
   ).join('\n');
 }
@@ -63,7 +68,7 @@ export function xhtmlLinkTags(page, indent = '    ') {
 /** @returns {{ lang: string, page: string } | null} */
 export function parseLocaleFile(rel) {
   const norm = rel.replace(/\\/g, '/');
-  const m = norm.match(/^(?:(en|it|de|es|pl|sl)\/)?([^/]+\.html|index\.html)$/);
+  const m = norm.match(/^(?:(en|it|de|es|pl|sl|fr|nl|sv|no|fi)\/)?([^/]+\.html|index\.html)$/);
   if (!m) return null;
   const lang = m[1] || 'pt-BR';
   const page = m[2] === 'index.html' ? 'index' : m[2];
