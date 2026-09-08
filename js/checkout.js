@@ -1102,7 +1102,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const selfTest = !!(data.selfTestPix || data.selfTestPayPal || data.selfTestStripe || data.selfTestTester);
     const chargeCur = String(data.chargeCurrency || '').toUpperCase();
     const chargeAmt = data.chargeAmount != null ? Number(data.chargeAmount) : null;
-    const useForeignTotal = chargeAmt != null && (chargeCur === 'USD' || chargeCur === 'EUR')
+    const useForeignTotal = chargeAmt != null && (chargeCur === 'USD' || chargeCur === 'EUR' || chargeCur === 'SEK' || chargeCur === 'NOK' || chargeCur === 'PLN')
       && (selfTest || isIntlEmbeddedCheckout() || window.STF_MONEY?.isIntlHost?.());
     return {
       produto: data.produto || '',
@@ -1283,7 +1283,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           totalEl?.closest('.checkout-summary')?.appendChild(selfTestNote);
         }
         const payLabel = formatSnapshotMoney(
-          (snap.totalCurrency === 'USD' || snap.totalCurrency === 'EUR') ? (snap.total ?? 0.01) : (snap.total ?? 0),
+          (snap.totalCurrency === 'USD' || snap.totalCurrency === 'EUR' || snap.totalCurrency === 'SEK' || snap.totalCurrency === 'NOK' || snap.totalCurrency === 'PLN')
+            ? (snap.total ?? 0.01)
+            : (snap.total ?? 0),
           totalCurrency
         );
         const ref = snap.totalOriginal != null
@@ -3034,7 +3036,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const selfTest = !!(result.order?.selfTestPix || result.order?.selfTestPayPal || result.order?.selfTestStripe || result.order?.selfTestTester);
       const chargeCur = String(result.order?.chargeCurrency || '').toUpperCase();
       const chargeAmt = result.order?.chargeAmount != null ? Number(result.order.chargeAmount) : null;
-      const useForeignTotal = chargeAmt != null && (chargeCur === 'USD' || chargeCur === 'EUR')
+      const useForeignTotal = chargeAmt != null && (chargeCur === 'USD' || chargeCur === 'EUR' || chargeCur === 'SEK' || chargeCur === 'NOK' || chargeCur === 'PLN')
         && (selfTest || isIntlEmbeddedCheckout());
       const total = useForeignTotal
         ? (selfTest ? Math.max(0.01, chargeAmt) : chargeAmt)
