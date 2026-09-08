@@ -13325,12 +13325,10 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   if (useForeign) {
     if (isSelfTestOrder(order)) {
       currencyCode = foreignCur;
-      const testAmt = stripeSelfTestAmount(foreignCur, billingType === 'STRIPE' || order.paymentProvider === 'stripe');
-      // PayPal self-test uses smaller symbolic amounts than Stripe mins when not Stripe.
       const payAmt = (foreignCur === 'SEK')
-        ? (order.paymentProvider === 'stripe' ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT)
+        ? SELF_TEST_SEK_AMOUNT
         : (foreignCur === 'NOK')
-          ? (order.paymentProvider === 'stripe' ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT)
+          ? SELF_TEST_NOK_AMOUNT
           : (foreignCur === 'EUR')
             ? SELF_TEST_EUR_AMOUNT
             : SELF_TEST_USD_AMOUNT;
