@@ -141,11 +141,29 @@ const DEFAULT_CONFIG = {
       id: 'kit-sensor-tattoofix',
       slug: 'kit-sensor-tattoofix',
       name: 'Kit Sensor Tattoo Fix',
-      nameEn: 'SensorTattooFix Optical Lens',
-      nameIt: 'Lente ottica SensorTattooFix',
+      nameEn: "Sensor Tattoo Fix Lens",
+      nameIt: "Lente Sensor Tattoo Fix",
+      nameSv: "Sensor Tattoo Fix-lins",
+      nameSl: "Sensor Tattoo Fix Lens",
+      namePl: "Sensor Tattoo Fix Lens",
+      nameNo: "Sensor Tattoo Fix-linse",
+      nameNl: "Sensor Tattoo Fix Lens",
+      nameFr: "Lentille Sensor Tattoo Fix",
+      nameFi: "Sensor Tattoo Fix -linssi",
+      nameEs: "Sensor Tattoo Fix Lens",
+      nameDe: "Sensor Tattoo Fix Lens",
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
-      descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      descriptionEn: "Optical lens for smartwatches on tattooed skin",
+      descriptionIt: "Lente ottica per smartwatch su pelle tatuata",
+      descriptionSv: "Optisk lins för smartklockor på tatuerad hud",
+      descriptionSl: "Optična leča za pametne ure na tetovirani koži",
+      descriptionPl: "Soczewka optyczna do smartwatchy na tatuowanej skórze",
+      descriptionNo: "Optisk linse for smartklokker på tatovert hud",
+      descriptionNl: "Optische lens voor smartwatches op getatoeëerde huid",
+      descriptionFr: "Lentille optique pour smartwatch sur peau tatouée",
+      descriptionFi: "Optinen linssi älykelloille tatuoidulle iholle",
+      descriptionEs: "Lente óptica para smartwatches en piel tatuada",
+      descriptionDe: "Optische Linse für Smartwatches auf tätowierter Haut",
       price: 62.9,
       image: 'https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg',
       active: true,
@@ -158,12 +176,30 @@ const DEFAULT_CONFIG = {
       id: 'kit-smartband-tattoofix',
       slug: 'kit-smartband-tattoofix',
       name: 'Kit Smartband Tattoo Friendly',
-      nameEn: 'Kit Smartband Tattoo Friendly',
-      nameIt: 'Kit Smartband Tattoo Friendly',
+      nameEn: "Kit Smartband Tattoo Friendly",
+      nameIt: "Kit Smartband Tattoo Friendly",
+      nameSv: "Kit Smartband Tattoo Friendly",
+      nameSl: "Kit Smartband Tattoo Friendly",
+      namePl: "Kit Smartband Tattoo Friendly",
+      nameNo: "Kit Smartband Tattoo Friendly",
+      nameNl: "Kit Smartband Tattoo Friendly",
+      nameFr: "Kit Smartband Tattoo Friendly",
+      nameFi: "Kit Smartband Tattoo Friendly",
+      nameEs: "Kit Smartband Tattoo Friendly",
+      nameDe: "Kit Smartband Tattoo Friendly",
       deviceType: 'smartband',
       description: 'Lente ótica para smartband em pele tatuada — kit completo',
-      descriptionEn: 'Optical lens for smartbands on tattooed skin — full kit',
-      descriptionIt: 'Lente ottica per smartband su pelle tatuata — kit completo',
+      descriptionEn: "Optical lens for smartbands on tattooed skin — full kit",
+      descriptionIt: "Lente ottica per smartband su pelle tatuata — kit completo",
+      descriptionSv: "Optisk lins för smartbands på tatuerad hud — komplett kit",
+      descriptionSl: "Optična leča za pametne zapestnice na tetovirani koži — komplet",
+      descriptionPl: "Soczewka optyczna do opasek na tatuowanej skórze — pełny zestaw",
+      descriptionNo: "Optisk linse for smartbånd på tatovert hud — komplett sett",
+      descriptionNl: "Optische lens voor smartbands op getatoeëerde huid — complete kit",
+      descriptionFr: "Lentille optique pour smartband sur peau tatouée — kit complet",
+      descriptionFi: "Optinen linssi älyrannekkeille tatuoidulle iholle — täysi paketti",
+      descriptionEs: "Lente óptica para smartbands en piel tatuada — kit completo",
+      descriptionDe: "Optische Linse für Smartbands auf tätowierter Haut — komplettes Kit",
       price: 62.9,
       image: '/images/smartband/kit-br/01-embalagem.jpg',
       images: [
@@ -183,12 +219,30 @@ const DEFAULT_CONFIG = {
       id: 'optical-lens-smartband-intl',
       slug: 'optical-lens-smartband-intl',
       name: 'SensorTattooFix Smartband Lens',
-      nameEn: 'SensorTattooFix Smartband Lens',
-      nameIt: 'Lente Smartband SensorTattooFix',
+      nameEn: "SensorTattooFix Smartband Lens",
+      nameIt: "Lente Smartband SensorTattooFix",
+      nameSv: "SensorTattooFix smartband-lins",
+      nameSl: "Leča SensorTattooFix za pametno zapestnico",
+      namePl: "Soczewka SensorTattooFix do opasek",
+      nameNo: "SensorTattooFix smartband-linse",
+      nameNl: "SensorTattooFix Smartband-lens",
+      nameFr: "Lentille Smartband SensorTattooFix",
+      nameFi: "SensorTattooFix-älyrannekkeen linssi",
+      nameEs: "Lente Smartband SensorTattooFix",
+      nameDe: "SensorTattooFix Smartband-Linse",
       deviceType: 'smartband',
       description: 'Lente de correção óptica para smartband em pele tatuada.',
-      descriptionEn: 'Designed for smartband optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartband su pelle tatuata.',
+      descriptionEn: "Designed for smartband optical sensors on tattooed skin.",
+      descriptionIt: "Progettata per i sensori ottici degli smartband su pelle tatuata.",
+      descriptionSv: "Utformad för smartbands optiska sensorer på tatuerad hud.",
+      descriptionSl: "Zasnovana za optične senzorje pametnih zapestnic na tetovirani koži.",
+      descriptionPl: "Zaprojektowana dla czujników optycznych opasek na tatuowanej skórze.",
+      descriptionNo: "Designet for smartbånds optiske sensorer på tatovert hud.",
+      descriptionNl: "Ontworpen voor optische sensoren van smartbands op getatoeëerde huid.",
+      descriptionFr: "Conçue pour les capteurs optiques de smartband sur peau tatouée.",
+      descriptionFi: "Suunniteltu älyrannekkeiden optisille antureille tatuoidulle iholle.",
+      descriptionEs: "Diseñada para sensores ópticos de smartband en piel tatuada.",
+      descriptionDe: "Entwickelt für optische Sensoren von Smartbands auf tätowierter Haut.",
       price: 62.9,
       priceUsd: 12.99,
       priceEur: 11.99,
@@ -210,11 +264,29 @@ const DEFAULT_CONFIG = {
       id: 'optical-lens-intl',
       slug: 'optical-lens-intl',
       name: 'SensorTattooFix Optical Lens',
-      nameEn: 'SensorTattooFix Optical Lens',
-      nameIt: 'Lente ottica SensorTattooFix',
+      nameEn: "SensorTattooFix Optical Lens",
+      nameIt: "Lente ottica SensorTattooFix",
+      nameSv: "SensorTattooFix optisk lins",
+      nameSl: "Optična leča SensorTattooFix",
+      namePl: "Soczewka optyczna SensorTattooFix",
+      nameNo: "SensorTattooFix optisk linse",
+      nameNl: "SensorTattooFix Optische Lens",
+      nameFr: "Lentille optique SensorTattooFix",
+      nameFi: "SensorTattooFix-optinen linssi",
+      nameEs: "Lente óptica SensorTattooFix",
+      nameDe: "SensorTattooFix Optische Linse",
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
-      descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      descriptionEn: "Designed for smartwatch optical sensors on tattooed skin.",
+      descriptionIt: "Progettata per i sensori ottici degli smartwatch su pelle tatuata.",
+      descriptionSv: "Utformad för smartklockors optiska sensorer på tatuerad hud.",
+      descriptionSl: "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      descriptionPl: "Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.",
+      descriptionNo: "Designet for smartklokkers optiske sensorer på tatovert hud.",
+      descriptionNl: "Ontworpen voor optische sensoren van smartwatches op getatoeëerde huid.",
+      descriptionFr: "Conçue pour les capteurs optiques de smartwatch sur peau tatouée.",
+      descriptionFi: "Suunniteltu älykellojen optisille antureille tatuoidulle iholle.",
+      descriptionEs: "Diseñada para sensores ópticos de smartwatch en piel tatuada.",
+      descriptionDe: "Entwickelt für optische Sensoren von Smartwatches auf tätowierter Haut.",
       price: 62.9,
       image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
@@ -1300,7 +1372,13 @@ function supplementKitFromSite(kvProduct, siteProduct) {
   if (siteProduct?.image && isLegacyBrokenKitImage(kvProduct?.image)) {
     merged.image = siteProduct.image;
   }
-  ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt'].forEach((field) => {
+  const i18nFields = [
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi'
+  ];
+  i18nFields.forEach((field) => {
     if (!merged[field] && siteProduct?.[field]) merged[field] = siteProduct[field];
   });
   return merged;
@@ -1323,8 +1401,30 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'requiresSmartwatch',
     'nameEn',
     'nameIt',
+    'nameDe',
+    'nameEs',
+    'namePl',
+    'nameSl',
+    'nameFr',
+    'nameNl',
+    'nameSv',
+    'nameNo',
+    'nameFi',
     'descriptionEn',
     'descriptionIt',
+    'descriptionDe',
+    'descriptionEs',
+    'descriptionPl',
+    'descriptionSl',
+    'descriptionFr',
+    'descriptionNl',
+    'descriptionSv',
+    'descriptionNo',
+    'descriptionFi',
+    'filmTypeDe',
+    'filmTypeEs',
+    'filmTypePl',
+    'filmTypeSl',
     'markets',
     'images',
     'priceUsd',
@@ -2140,10 +2240,15 @@ function publicProductFields(p, config) {
     weightGrams: Number(p.weightGrams) || shippingWeightGrams(config),
     aggregated: p.aggregated === true
   };
-  if (p.nameEn) row.nameEn = p.nameEn;
-  if (p.nameIt) row.nameIt = p.nameIt;
-  if (p.descriptionEn) row.descriptionEn = p.descriptionEn;
-  if (p.descriptionIt) row.descriptionIt = p.descriptionIt;
+  [
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi',
+    'filmType', 'filmTypeEn', 'filmTypeDe', 'filmTypeEs', 'filmTypePl', 'filmTypeSl'
+  ].forEach((field) => {
+    if (p[field]) row[field] = p[field];
+  });
   if (p.packaging) row.packaging = p.packaging;
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
@@ -2156,6 +2261,11 @@ function publicProductFields(p, config) {
   if (Array.isArray(p.images) && p.images.length) row.images = p.images;
   if (p.priceUsd != null) row.priceUsd = Number(p.priceUsd);
   if (p.priceEur != null) row.priceEur = Number(p.priceEur);
+  if (p.priceSek != null) row.priceSek = Number(p.priceSek);
+  if (p.priceNok != null) row.priceNok = Number(p.priceNok);
+  if (p.pricePln != null) row.pricePln = Number(p.pricePln);
+  if (p.priceGbp != null) row.priceGbp = Number(p.priceGbp);
+  if (p.deviceType) row.deviceType = p.deviceType;
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
@@ -2173,9 +2283,27 @@ function publicConfigView(config, env) {
       name: primary.name,
       nameEn: primary.nameEn,
       nameIt: primary.nameIt,
+      nameDe: primary.nameDe,
+      nameEs: primary.nameEs,
+      namePl: primary.namePl,
+      nameSl: primary.nameSl,
+      nameFr: primary.nameFr,
+      nameNl: primary.nameNl,
+      nameSv: primary.nameSv,
+      nameNo: primary.nameNo,
+      nameFi: primary.nameFi,
       description: primary.description,
       descriptionEn: primary.descriptionEn,
       descriptionIt: primary.descriptionIt,
+      descriptionDe: primary.descriptionDe,
+      descriptionEs: primary.descriptionEs,
+      descriptionPl: primary.descriptionPl,
+      descriptionSl: primary.descriptionSl,
+      descriptionFr: primary.descriptionFr,
+      descriptionNl: primary.descriptionNl,
+      descriptionSv: primary.descriptionSv,
+      descriptionNo: primary.descriptionNo,
+      descriptionFi: primary.descriptionFi,
       price: primary.price,
       image: primary.image
     } : config.product,

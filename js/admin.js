@@ -183,6 +183,10 @@
             const mergeFn = window.STF_PRODUCT_MERGE.mergeMissingCatalogProducts
               || window.STF_PRODUCT_MERGE.mergeMissingAggregated;
             if (mergeFn) apiConfig = mergeFn(apiConfig, local);
+            // Preenche name*/description* vazios do KV com o catálogo Git (senão Admin fica em branco).
+            if (window.STF_PRODUCT_MERGE.mergeConfig) {
+              apiConfig = window.STF_PRODUCT_MERGE.mergeConfig(apiConfig, local);
+            }
           }
           currentConfig = apiConfig;
           setModeBadge(true);
@@ -5852,12 +5856,32 @@ ${worksheets}
           <label class="full">Nome SL
             <input type="text" data-field="nameSl" value="${escAttr(p.nameSl || '')}" placeholder="Optična leča SensorTattooFix">
           </label>
+          <label class="full">Nome FR
+            <input type="text" data-field="nameFr" value="${escAttr(p.nameFr || '')}" placeholder="Lentille optique SensorTattooFix">
+          </label>
+          <label class="full">Nome NL
+            <input type="text" data-field="nameNl" value="${escAttr(p.nameNl || '')}" placeholder="SensorTattooFix Optische Lens">
+          </label>
+          <label class="full">Nome SV
+            <input type="text" data-field="nameSv" value="${escAttr(p.nameSv || '')}" placeholder="SensorTattooFix optisk lins">
+          </label>
+          <label class="full">Nome NO
+            <input type="text" data-field="nameNo" value="${escAttr(p.nameNo || '')}" placeholder="SensorTattooFix optisk linse">
+          </label>
+          <label class="full">Nome FI
+            <input type="text" data-field="nameFi" value="${escAttr(p.nameFi || '')}" placeholder="SensorTattooFix-optinen linssi">
+          </label>
           <label class="full">Descrição EN<textarea data-field="descriptionEn" rows="2">${escTextarea(p.descriptionEn || '')}</textarea></label>
           <label class="full">Descrição IT<textarea data-field="descriptionIt" rows="2">${escTextarea(p.descriptionIt || '')}</textarea></label>
           <label class="full">Descrição DE<textarea data-field="descriptionDe" rows="2">${escTextarea(p.descriptionDe || '')}</textarea></label>
           <label class="full">Descrição ES<textarea data-field="descriptionEs" rows="2">${escTextarea(p.descriptionEs || '')}</textarea></label>
           <label class="full">Descrição PL<textarea data-field="descriptionPl" rows="2">${escTextarea(p.descriptionPl || '')}</textarea></label>
           <label class="full">Descrição SL<textarea data-field="descriptionSl" rows="2">${escTextarea(p.descriptionSl || '')}</textarea></label>
+          <label class="full">Descrição FR<textarea data-field="descriptionFr" rows="2">${escTextarea(p.descriptionFr || '')}</textarea></label>
+          <label class="full">Descrição NL<textarea data-field="descriptionNl" rows="2">${escTextarea(p.descriptionNl || '')}</textarea></label>
+          <label class="full">Descrição SV<textarea data-field="descriptionSv" rows="2">${escTextarea(p.descriptionSv || '')}</textarea></label>
+          <label class="full">Descrição NO<textarea data-field="descriptionNo" rows="2">${escTextarea(p.descriptionNo || '')}</textarea></label>
+          <label class="full">Descrição FI<textarea data-field="descriptionFi" rows="2">${escTextarea(p.descriptionFi || '')}</textarea></label>
           <label class="full">Álbum de fotos <small class="admin-field-hint">uma URL por linha — ordem do carrossel na loja</small>
             <textarea data-field="images" rows="5" placeholder="/images/lens-gallery/01-….png">${escTextarea((Array.isArray(p.images) ? p.images : []).join('\n'))}</textarea>
           </label>` : '';
@@ -5981,24 +6005,44 @@ ${worksheets}
         const nameEs = val('nameEs');
         const namePl = val('namePl');
         const nameSl = val('nameSl');
+        const nameFr = val('nameFr');
+        const nameNl = val('nameNl');
+        const nameSv = val('nameSv');
+        const nameNo = val('nameNo');
+        const nameFi = val('nameFi');
         const descriptionEn = val('descriptionEn');
         const descriptionIt = val('descriptionIt');
         const descriptionDe = val('descriptionDe');
         const descriptionEs = val('descriptionEs');
         const descriptionPl = val('descriptionPl');
         const descriptionSl = val('descriptionSl');
+        const descriptionFr = val('descriptionFr');
+        const descriptionNl = val('descriptionNl');
+        const descriptionSv = val('descriptionSv');
+        const descriptionNo = val('descriptionNo');
+        const descriptionFi = val('descriptionFi');
         if (nameEn) product.nameEn = nameEn; else delete product.nameEn;
         if (nameIt) product.nameIt = nameIt; else delete product.nameIt;
         if (nameDe) product.nameDe = nameDe; else delete product.nameDe;
         if (nameEs) product.nameEs = nameEs; else delete product.nameEs;
         if (namePl) product.namePl = namePl; else delete product.namePl;
         if (nameSl) product.nameSl = nameSl; else delete product.nameSl;
+        if (nameFr) product.nameFr = nameFr; else delete product.nameFr;
+        if (nameNl) product.nameNl = nameNl; else delete product.nameNl;
+        if (nameSv) product.nameSv = nameSv; else delete product.nameSv;
+        if (nameNo) product.nameNo = nameNo; else delete product.nameNo;
+        if (nameFi) product.nameFi = nameFi; else delete product.nameFi;
         if (descriptionEn) product.descriptionEn = descriptionEn; else delete product.descriptionEn;
         if (descriptionIt) product.descriptionIt = descriptionIt; else delete product.descriptionIt;
         if (descriptionDe) product.descriptionDe = descriptionDe; else delete product.descriptionDe;
         if (descriptionEs) product.descriptionEs = descriptionEs; else delete product.descriptionEs;
         if (descriptionPl) product.descriptionPl = descriptionPl; else delete product.descriptionPl;
         if (descriptionSl) product.descriptionSl = descriptionSl; else delete product.descriptionSl;
+        if (descriptionFr) product.descriptionFr = descriptionFr; else delete product.descriptionFr;
+        if (descriptionNl) product.descriptionNl = descriptionNl; else delete product.descriptionNl;
+        if (descriptionSv) product.descriptionSv = descriptionSv; else delete product.descriptionSv;
+        if (descriptionNo) product.descriptionNo = descriptionNo; else delete product.descriptionNo;
+        if (descriptionFi) product.descriptionFi = descriptionFi; else delete product.descriptionFi;
         if (market === 'INT') {
           const usd = val('priceUsd');
           const eur = val('priceEur');
