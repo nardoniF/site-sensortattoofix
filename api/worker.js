@@ -13325,13 +13325,19 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   if (useForeign) {
     if (isSelfTestOrder(order)) {
       currencyCode = foreignCur;
-      const testAmt = foreignCur === 'EUR'
-        ? SELF_TEST_EUR_AMOUNT
-        : SELF_TEST_USD_AMOUNT;
-      amountValue = testAmt.toFixed(2);
-      locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
+      const testAmt = stripeSelfTestAmount(foreignCur, billingType === 'STRIPE' || order.paymentProvider === 'stripe');
+      // PayPal self-test uses smaller symbolic amounts than Stripe mins when not Stripe.
+      const payAmt = (foreignCur === 'SEK')
+        ? (order.paymentProvider === 'stripe' ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT)
+        : (foreignCur === 'NOK')
+          ? (order.paymentProvider === 'stripe' ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT)
+          : (foreignCur === 'EUR')
+            ? SELF_TEST_EUR_AMOUNT
+            : SELF_TEST_USD_AMOUNT;
+      amountValue = Number(payAmt).toFixed(foreignCur === 'SEK' || foreignCur === 'NOK' ? 0 : 2);
+      locale = checkoutLocale === 'it' ? 'it-IT' : (checkoutLocale === 'sv' ? 'sv-SE' : 'en-US');
       order.chargeCurrency = foreignCur;
-      order.chargeAmount = testAmt;
+      order.chargeAmount = Number(payAmt);
       order.displayCurrency = foreignCur;
     } else {
       const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
