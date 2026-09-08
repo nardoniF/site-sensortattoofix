@@ -48,7 +48,13 @@ window.STF_PRODUCT_MERGE = (function () {
     'markets',
     'images',
     'priceUsd',
-    'priceEur'
+    'priceEur',
+    'priceSek',
+    'priceNok',
+    'pricePln',
+    'priceGbp',
+    'priceCad',
+    'priceAud'
   ];
 
   const I18N_PRODUCT_FIELDS = [
