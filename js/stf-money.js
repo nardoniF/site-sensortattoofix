@@ -1,21 +1,46 @@
 /**
- * BRL → visitor currency display. On .com, checkout is charged in USD.
+ * BRL → visitor currency. .com uses list prices (PPP-style), not raw FX, for products.
+ * Shipping may still use FX rates.
  */
 window.STF_MONEY = (function () {
   const COUNTRY_CURRENCY = {
     US: 'USD', CA: 'CAD', MX: 'MXN', GB: 'GBP', IE: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR',
-    ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
-    DK: 'DKK', PL: 'PLN', CZ: 'CZK', AU: 'AUD', NZ: 'NZD', JP: 'JPY', KR: 'KRW', CN: 'CNY',
-    HK: 'HKD', SG: 'SGD', IN: 'INR', AE: 'AED', IL: 'ILS', ZA: 'ZAR', AR: 'ARS', CL: 'CLP',
-    CO: 'COP', UY: 'UYU', PY: 'PYG', BR: 'BRL'
+    ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', FI: 'EUR', SI: 'EUR', CH: 'CHF',
+    SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN', CZ: 'CZK', AU: 'AUD', NZ: 'NZD', JP: 'JPY',
+    KR: 'KRW', CN: 'CNY', HK: 'HKD', SG: 'SGD', IN: 'INR', AE: 'AED', IL: 'ILS', ZA: 'ZAR',
+    AR: 'ARS', CL: 'CLP', CO: 'COP', UY: 'UYU', PY: 'PYG', BR: 'BRL'
+  };
+
+  /** Page lang → charge/display currency on .com (list price / PPP). */
+  const LANG_CURRENCY = {
+    pt: 'BRL',
+    en: 'USD',
+    it: 'EUR',
+    de: 'EUR',
+    es: 'EUR',
+    pl: 'EUR',
+    sl: 'EUR',
+    fr: 'EUR',
+    nl: 'EUR',
+    fi: 'EUR',
+    sv: 'SEK',
+    no: 'NOK'
+  };
+
+  const LANG_COUNTRY = {
+    en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
+    fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
   };
 
   const LOCALE = {
     USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB', CAD: 'en-CA', AUD: 'en-AU', CHF: 'de-CH',
-    JPY: 'ja-JP', BRL: 'pt-BR'
+    JPY: 'ja-JP', BRL: 'pt-BR', SEK: 'sv-SE', NOK: 'nb-NO', PLN: 'pl-PL'
   };
 
-  const COUNTRY_LOCALE = { IT: 'it-IT', US: 'en-US', GB: 'en-GB', BR: 'pt-BR' };
+  const COUNTRY_LOCALE = {
+    IT: 'it-IT', US: 'en-US', GB: 'en-GB', BR: 'pt-BR', FR: 'fr-FR', NL: 'nl-NL',
+    DE: 'de-DE', ES: 'es-ES', PL: 'pl-PL', SI: 'sl-SI', SE: 'sv-SE', NO: 'nb-NO', FI: 'fi-FI'
+  };
 
   let cache = { currency: null, rate: null, at: 0 };
 
@@ -27,9 +52,24 @@ window.STF_MONEY = (function () {
     return !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
   }
 
+  function pageLang() {
+    if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
+    if (window.STF_I18N?.getLang) return window.STF_I18N.getLang();
+    const path = typeof location !== 'undefined' ? location.pathname : '';
+    const m = path.match(/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/i);
+    if (m) return m[1].toLowerCase();
+    if (isIntlHost()) return 'en';
+    return 'pt';
+  }
+
   function currencyForCountry(code) {
     const c = String(code || '').toUpperCase();
     return COUNTRY_CURRENCY[c] || 'USD';
+  }
+
+  function currencyForLang(lang) {
+    const l = String(lang || pageLang() || 'en').toLowerCase();
+    return LANG_CURRENCY[l] || (isIntlHost() ? 'USD' : 'BRL');
   }
 
   function localeFor(currency, countryCode) {
@@ -43,13 +83,9 @@ window.STF_MONEY = (function () {
   }
 
   function visitorCountry() {
-    const path = typeof location !== 'undefined' ? location.pathname : '';
-    if (path.includes('/it/')) return 'IT';
-    if (path.includes('/de/')) return 'DE';
-    if (path.includes('/es/')) return 'ES';
-    if (path.includes('/pl/')) return 'PL';
-    if (path.includes('/sl/')) return 'SI';
-    if (isIntlHost() || path.includes('/en/')) return 'US';
+    const lang = pageLang();
+    if (LANG_COUNTRY[lang]) return LANG_COUNTRY[lang];
+    if (isIntlHost()) return 'US';
     return 'BR';
   }
 
@@ -112,21 +148,28 @@ window.STF_MONEY = (function () {
   }
 
   function visitorDisplayCurrency(countryCode) {
+    if (isIntlHost() || isVisitorLocalized()) {
+      return currencyForLang(pageLang());
+    }
     const country = String(countryCode || visitorCountry()).toUpperCase();
-    if (isIntlHost()) return country === 'IT' ? 'EUR' : 'USD';
     const cur = currencyForCountry(country);
     return cur === 'BRL' ? 'BRL' : cur;
   }
 
+  /** List / PPP prices — not Frankfurter FX. */
   function configuredForeignPrice(product, currency) {
     if (!product) return null;
     const cur = String(currency || 'USD').toUpperCase();
-    if (cur === 'EUR') {
-      const e = Number(product.priceEur);
-      return Number.isFinite(e) && e > 0 ? e : null;
-    }
-    const u = Number(product.priceUsd);
-    return Number.isFinite(u) && u > 0 ? u : null;
+    const pick = (key) => {
+      const n = Number(product[key]);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    if (cur === 'EUR') return pick('priceEur');
+    if (cur === 'SEK') return pick('priceSek');
+    if (cur === 'NOK') return pick('priceNok');
+    if (cur === 'PLN') return pick('pricePln');
+    if (cur === 'USD') return pick('priceUsd');
+    return null;
   }
 
   async function formatProductForVisitor(product, config, countryCode) {
@@ -139,13 +182,14 @@ window.STF_MONEY = (function () {
 
   async function formatForVisitor(amountBrl, config, countryCode) {
     const country = String(countryCode || visitorCountry()).toUpperCase();
-    if (isIntlHost()) {
-      const cur = String(country || '').toUpperCase() === 'IT' ? 'EUR' : 'USD';
+    if (isIntlHost() || isVisitorLocalized()) {
+      const cur = visitorDisplayCurrency(country);
+      if (cur === 'BRL') return formatBRL(amountBrl);
       const rate = await loadRate(apiBase(config), cur);
       if (!rate) return formatBRL(amountBrl);
       return formatForeign(convertFromBrl(amountBrl, rate), cur, country);
     }
-    if (country === 'BR' && !isVisitorLocalized()) return formatBRL(amountBrl);
+    if (country === 'BR') return formatBRL(amountBrl);
     const cur = currencyForCountry(country);
     if (cur === 'BRL') return formatBRL(amountBrl);
     const rate = await loadRate(apiBase(config), cur);
@@ -159,13 +203,13 @@ window.STF_MONEY = (function () {
       return text.includes(' (') ? text.split(' (')[0] : text;
     }
     const country = String(countryCode || visitorCountry()).toUpperCase();
-    if (isIntlHost()) {
+    if (isIntlHost() || isVisitorLocalized()) {
       const cur = visitorDisplayCurrency(country);
       const rate = await loadRate(apiBase(config), cur);
       if (!rate) return formatBRL(amountBrl);
       return formatForeign(convertFromBrl(amountBrl, rate), cur, country);
     }
-    if (country === 'BR' && !isVisitorLocalized()) return formatBRL(amountBrl);
+    if (country === 'BR') return formatBRL(amountBrl);
     const cur = currencyForCountry(country);
     if (cur === 'BRL') return formatBRL(amountBrl);
     const rate = await loadRate(apiBase(config), cur);
@@ -185,6 +229,8 @@ window.STF_MONEY = (function () {
 
   return {
     currencyForCountry,
+    currencyForLang,
+    pageLang,
     loadRate,
     resetCache,
     convertFromBrl,
@@ -200,6 +246,7 @@ window.STF_MONEY = (function () {
     visitorCountry,
     isIntlHost,
     apiBase,
-    computePayPalFee
+    computePayPalFee,
+    LANG_CURRENCY
   };
 })();

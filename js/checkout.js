@@ -113,9 +113,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function checkoutLocale() {
     if (!isIntlCheckoutShell()) return 'pt';
-    const lang = window.STF_I18N?.getLang?.() || 'en';
-    if (lang === 'it' || lang === 'de' || lang === 'es' || lang === 'pl' || lang === 'sl' || lang === 'en') return lang;
-    return 'en';
+    const lang = window.STF_I18N?.getLang?.() || window.STF_PAGE_LANG?.get?.() || 'en';
+    const ok = ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
+    return ok.includes(lang) ? lang : 'en';
   }
 
   /** EN/IT checkout on .com.br path: PayPal only. On .com: Stripe (if live) + PayPal. */
@@ -419,9 +419,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function intlDisplayCurrency() {
     if (window.STF_MONEY?.visitorDisplayCurrency) {
-      const country = checkoutLocale() === 'it' ? 'IT' : 'US';
-      return window.STF_MONEY.visitorDisplayCurrency(country);
+      return window.STF_MONEY.visitorDisplayCurrency(window.STF_MONEY.visitorCountry?.());
     }
+    if (window.STF_MONEY?.currencyForLang) return window.STF_MONEY.currencyForLang(checkoutLocale());
     return checkoutLocale() === 'it' ? 'EUR' : 'USD';
   }
 
@@ -447,7 +447,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
         return formatBRL(v);
       }
-      const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US');
+      const country = window.STF_MONEY.visitorCountry?.() || els.paisCode?.value || 'US';
       if (window.STF_MONEY.isIntlHost?.()) {
         const foreign = window.STF_MONEY.convertFromBrl(v, fxRate);
         if (foreign == null) return formatBRL(v);
@@ -464,14 +464,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function formatChargeMoney(v, currency) {
     try {
       const cur = String(currency || displayCurrency || 'USD').toUpperCase();
-      const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY?.visitorCountry?.() || 'US');
+      const country = window.STF_MONEY?.visitorCountry?.() || els.paisCode?.value || 'US';
       if (window.STF_MONEY?.formatForeign) {
         return window.STF_MONEY.formatForeign(Number(v) || 0, cur, country);
       }
     } catch (_) { /* fall through */ }
-    if (String(currency || '').toUpperCase() === 'EUR') {
-      return `€ ${Number(v || 0).toFixed(2)}`;
-    }
+    const c = String(currency || '').toUpperCase();
+    if (c === 'EUR') return `€ ${Number(v || 0).toFixed(2)}`;
+    if (c === 'SEK') return `${Number(v || 0).toFixed(2)} kr`;
+    if (c === 'NOK') return `${Number(v || 0).toFixed(2)} kr`;
     return `US$ ${Number(v || 0).toFixed(2)}`;
   }
 
@@ -481,7 +482,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function formatSnapshotMoney(amount, currency) {
     const cur = String(currency || '').toUpperCase();
-    if (cur === 'USD' || cur === 'EUR') return formatChargeMoney(amount, cur);
+    if (cur === 'USD' || cur === 'EUR' || cur === 'SEK' || cur === 'NOK') return formatChargeMoney(amount, cur);
     return formatCheckoutMoney(amount);
   }
 

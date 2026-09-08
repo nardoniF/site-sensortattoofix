@@ -5872,7 +5872,9 @@ ${worksheets}
           <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
           ${market === 'INT' && !isAggregated ? `
           <label>Preço USD (.com EN)<input type="number" data-field="priceUsd" step="0.01" min="0" value="${p.priceUsd != null ? p.priceUsd : ''}" placeholder="ex.: 12.99"></label>
-          <label>Preço EUR (.com IT)<input type="number" data-field="priceEur" step="0.01" min="0" value="${p.priceEur != null ? p.priceEur : ''}" placeholder="ex.: 11.99"></label>
+          <label>Preço EUR (.com IT/DE/ES/FR/NL/FI…)<input type="number" data-field="priceEur" step="0.01" min="0" value="${p.priceEur != null ? p.priceEur : ''}" placeholder="ex.: 11.99"></label>
+          <label>Preço SEK (.com SV)<input type="number" data-field="priceSek" step="1" min="0" value="${p.priceSek != null ? p.priceSek : ''}" placeholder="ex.: 129"></label>
+          <label>Preço NOK (.com NO)<input type="number" data-field="priceNok" step="1" min="0" value="${p.priceNok != null ? p.priceNok : ''}" placeholder="ex.: 139"></label>
           <p class="admin-meta admin-field-hint full">Referência em R$ acima. USD/EUR são exibidos no .com (cobrança em USD). Atualizados automaticamente todo dia; você pode ajustar manualmente.</p>` : ''}
           <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
@@ -6002,11 +6004,17 @@ ${worksheets}
         if (market === 'INT') {
           const usd = val('priceUsd');
           const eur = val('priceEur');
+          const sek = val('priceSek');
+          const nok = val('priceNok');
           if (usd) product.priceUsd = Number(usd); else delete product.priceUsd;
           if (eur) product.priceEur = Number(eur); else delete product.priceEur;
+          if (sek) product.priceSek = Number(sek); else delete product.priceSek;
+          if (nok) product.priceNok = Number(nok); else delete product.priceNok;
         } else {
           delete product.priceUsd;
           delete product.priceEur;
+          delete product.priceSek;
+          delete product.priceNok;
         }
         const imagesEl = row.querySelector('[data-field="images"]');
         if (imagesEl) {
@@ -7486,10 +7494,15 @@ ${worksheets}
         alert('Faça login na API para gerar traduções da comunidade.');
         return;
       }
-      if (btn) btn.disabled = true;
+      if (btn) {
+        btn.disabled = true;
+        btn.dataset.label = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando…';
+      }
       if (statusEl) {
         statusEl.hidden = false;
-        statusEl.textContent = 'Iniciando traduções (1–5 min)…';
+        statusEl.className = 'admin-meta admin-status-ok';
+        statusEl.textContent = 'Pedido enviado. Traduzindo tópicos em segundo plano (1–5 min)…';
       }
       try {
         const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/i18n/refresh', {
@@ -7499,14 +7512,26 @@ ${worksheets}
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
-        if (statusEl) statusEl.textContent = data.message || 'Traduções em segundo plano. Atualize a lista em alguns minutos.';
-        alert(data.message || 'Traduções da comunidade iniciadas em segundo plano.');
+        const msg = data.message || 'Traduções em segundo plano. Atualize a lista em alguns minutos e abra /fr/comunidade.html para conferir.';
+        if (statusEl) {
+          statusEl.hidden = false;
+          statusEl.className = 'admin-meta admin-status-ok';
+          statusEl.textContent = '✓ ' + msg;
+        }
+        alert('✓ ' + msg);
       } catch (err) {
         const msg = err?.message || String(err);
-        if (statusEl) statusEl.textContent = 'Falha: ' + msg;
+        if (statusEl) {
+          statusEl.hidden = false;
+          statusEl.className = 'admin-meta admin-status-bad';
+          statusEl.textContent = '✗ Falha: ' + msg;
+        }
         alert('Falha ao gerar traduções da comunidade: ' + msg);
       } finally {
-        if (btn) btn.disabled = false;
+        if (btn) {
+          btn.disabled = false;
+          if (btn.dataset.label) btn.innerHTML = btn.dataset.label;
+        }
       }
     });
     document.getElementById('btn-forum-seed')?.addEventListener('click', async () => {
@@ -8170,6 +8195,8 @@ ${worksheets}
       price: 62.9,
       priceUsd: 12.99,
       priceEur: 11.99,
+      priceSek: 129,
+      priceNok: 139,
       image: LENS_INTL_IMAGES[0],
       images: LENS_INTL_IMAGES.slice(),
       active: true,

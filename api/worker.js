@@ -192,6 +192,8 @@ const DEFAULT_CONFIG = {
       price: 62.9,
       priceUsd: 12.99,
       priceEur: 11.99,
+      priceSek: 129,
+      priceNok: 139,
       image: '/images/smartband/lens-en/01-embalagem.jpg',
       images: [
         '/images/smartband/lens-en/01-embalagem.jpg',
@@ -216,6 +218,10 @@ const DEFAULT_CONFIG = {
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
       price: 62.9,
+      priceUsd: 12.99,
+      priceEur: 11.99,
+      priceSek: 129,
+      priceNok: 139,
       image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
         '/images/lens-gallery/01-optical-correction-lens.png',
@@ -1328,7 +1334,9 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'markets',
     'images',
     'priceUsd',
-    'priceEur'
+    'priceEur',
+    'priceSek',
+    'priceNok'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -2156,6 +2164,8 @@ function publicProductFields(p, config) {
   if (Array.isArray(p.images) && p.images.length) row.images = p.images;
   if (p.priceUsd != null) row.priceUsd = Number(p.priceUsd);
   if (p.priceEur != null) row.priceEur = Number(p.priceEur);
+  if (p.priceSek != null) row.priceSek = Number(p.priceSek);
+  if (p.priceNok != null) row.priceNok = Number(p.priceNok);
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
@@ -2453,6 +2463,25 @@ function productIntlEur(product) {
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
+function productIntlSek(product) {
+  const v = Number(product?.priceSek);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+function productIntlNok(product) {
+  const v = Number(product?.priceNok);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/** List / PPP price for charge currency (not Frankfurter FX). */
+function productIntlListPrice(product, currency) {
+  const cur = String(currency || 'USD').toUpperCase();
+  if (cur === 'EUR') return productIntlEur(product);
+  if (cur === 'SEK') return productIntlSek(product);
+  if (cur === 'NOK') return productIntlNok(product);
+  return productIntlUsd(product);
+}
+
 function isIntlMarketProductRow(p) {
   const m = Array.isArray(p?.markets) ? p.markets.map((x) => String(x).toUpperCase()) : [];
   return m.includes('INT') && !m.includes('BR');
@@ -2490,7 +2519,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   let allConfigured = itemList.length > 0;
   for (const item of itemList) {
     const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const price = p ? (cur === 'EUR' ? productIntlEur(p) : productIntlUsd(p)) : null;
+    const price = p ? productIntlListPrice(p, cur) : null;
     if (price == null) { allConfigured = false; break; }
     productForeign += price * (Number(item.qty) || 1);
   }
@@ -2508,13 +2537,12 @@ async function intlForeignCharge(order, env, config, items, currency) {
   }
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
-    if (cur === 'EUR') {
-      const minEur = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-      if (amount < minEur) amount = minEur;
-    } else {
-      const minUsd = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
-      if (amount < minUsd) amount = minUsd;
-    }
+    let minAmt;
+    if (cur === 'EUR') minAmt = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') minAmt = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') minAmt = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else minAmt = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+    if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
 }
@@ -2524,7 +2552,12 @@ async function intlUsdCharge(order, env, config, items) {
 }
 
 function intlChargeCurrencyForLocale(locale) {
-  return String(locale || '').toLowerCase() === 'it' ? 'EUR' : 'USD';
+  const l = String(locale || '').toLowerCase();
+  if (l === 'sv') return 'SEK';
+  if (l === 'no') return 'NOK';
+  if (l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'fi') return 'EUR';
+  return 'USD';
 }
 
 function selfTestUsdAmountForOrder(order, billingType) {
@@ -2539,17 +2572,18 @@ function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (!isSelfTestOrder(order)) return;
   if (intlUsd) {
     const cur = intlChargeCurrencyForLocale(order.checkoutLocale);
-    const amount = cur === 'EUR'
-      ? ((billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe')
-        ? SELF_TEST_STRIPE_EUR_AMOUNT
-        : SELF_TEST_EUR_AMOUNT)
-      : selfTestUsdAmountForOrder(order, billingType);
+    const stripe = billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe';
+    let amount;
+    if (cur === 'EUR') amount = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') amount = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') amount = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else amount = selfTestUsdAmountForOrder(order, billingType);
     order.chargeCurrency = cur;
     order.chargeAmount = amount;
     order.displayCurrency = cur;
     return;
   }
-  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR') {
+  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR' || order.chargeCurrency === 'SEK' || order.chargeCurrency === 'NOK') {
     delete order.chargeCurrency;
     delete order.chargeAmount;
     delete order.chargeFxRate;
@@ -7677,12 +7711,16 @@ const SELF_TEST_BRL_AMOUNT = 0.01;
 const SELF_TEST_USD_AMOUNT = 0.01;
 /** Symbolic EUR charge for Italian PayPal test orders. */
 const SELF_TEST_EUR_AMOUNT = 0.01;
+const SELF_TEST_SEK_AMOUNT = 1;
+const SELF_TEST_NOK_AMOUNT = 1;
 /**
  * Stripe BR accounts reject USD that converts below R$ 0.50.
  * US$ 0.01 ≈ R$ 0.05 — use US$ 0.10 for Stripe self-test.
  */
 const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_EUR_AMOUNT = 0.10;
+const SELF_TEST_STRIPE_SEK_AMOUNT = 10;
+const SELF_TEST_STRIPE_NOK_AMOUNT = 10;
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -10369,7 +10407,7 @@ function computePayPalFee(amountBrl, config) {
 
 const FX_CURRENCY_MAP = {
   US: 'USD', CA: 'CAD', MX: 'MXN', GB: 'GBP', IE: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR',
-  ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
+  ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', FI: 'EUR', SI: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
   DK: 'DKK', PL: 'PLN', CZ: 'CZK', AU: 'AUD', NZ: 'NZD', JP: 'JPY', KR: 'KRW', CN: 'CNY',
   HK: 'HKD', SG: 'SGD', IN: 'INR', AE: 'AED', IL: 'ILS', ZA: 'ZAR', AR: 'ARS', CL: 'CLP',
   CO: 'COP', UY: 'UYU', PY: 'PYG', BR: 'BRL'

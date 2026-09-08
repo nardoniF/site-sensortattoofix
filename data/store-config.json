@@ -100,7 +100,9 @@
       ],
       "aggregated": false,
       "nameSl": "Leča SensorTattooFix za pametno zapestnico",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      "priceSek": 129,
+      "priceNok": 139
     },
     {
       "id": "optical-lens-intl",
@@ -140,7 +142,9 @@
       ],
       "aggregated": false,
       "nameSl": "Optična leča SensorTattooFix",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      "priceSek": 129,
+      "priceNok": 139
     },
     {
       "id": "pelicula-amazfit-bip-2",
