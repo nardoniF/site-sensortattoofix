@@ -606,6 +606,12 @@
       }
       const prazo = shippingDaysLabel(o);
       if (prazo) parts.push(`<small class="pedidos-frete-prazo">Prazo: ${escHtml(prazo)}</small>`);
+      if (o.trackingEmailSentAt) {
+        parts.push(`<small class="pedidos-detail-muted">E-mail de rastreio enviado em ${formatDate(o.trackingEmailSentAt)}</small>`);
+      }
+      if (o.deliveredEmailSentAt) {
+        parts.push(`<small class="pedidos-detail-muted">Pesquisa de satisfação enviada em ${formatDate(o.deliveredEmailSentAt)}</small>`);
+      }
       return parts.join('<br>') || '<span class="pedidos-track-muted">—</span>';
     }
     if (isCorreiosIntlOrder(o)) {
@@ -616,6 +622,9 @@
         if (o.correiosTrackingStatus) parts.push(`<span class="pedidos-track-status">${escHtml(o.correiosTrackingStatus)}</span>`);
         if (o.trackingEmailSentAt) {
           parts.push(`<small class="pedidos-detail-muted">E-mail de rastreio enviado em ${formatDate(o.trackingEmailSentAt)}</small>`);
+        }
+        if (o.deliveredEmailSentAt) {
+          parts.push(`<small class="pedidos-detail-muted">Pesquisa de satisfação enviada em ${formatDate(o.deliveredEmailSentAt)}</small>`);
         }
       } else {
         parts.push('<span class="pedidos-track-muted">Sem código — cole em Rastreio internacional abaixo</span>');
@@ -975,7 +984,9 @@
         applyFilters();
         closeOrderModal();
         let emailed = '';
-        if (payload.trackingCode) {
+        if (saved.deliveredEmailSent) {
+          emailed = ' — pesquisa de satisfação enviada';
+        } else if (payload.trackingCode) {
           if (saved.trackingEmailSent) emailed = ' — e-mail de rastreio enviado (só desta vez)';
           else if (saved.trackingEmailSentAt || saved.trackingEmailSkipped) {
             emailed = ' — e-mail de rastreio já tinha sido enviado antes (não reenviado)';
@@ -1080,6 +1091,7 @@
     if (data.shippingDays != null) order.shippingDays = data.shippingDays;
     if (data.shippingServiceCode != null) order.shippingServiceCode = data.shippingServiceCode;
     if (data.trackingEmailSentAt) order.trackingEmailSentAt = data.trackingEmailSentAt;
+    if (data.deliveredEmailSentAt) order.deliveredEmailSentAt = data.deliveredEmailSentAt;
     order.correiosManualUpdatedAt = new Date().toISOString();
   }
 

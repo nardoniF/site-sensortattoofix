@@ -23,6 +23,8 @@
     paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
     customerTrackingSubject: 'Rastreio disponível — {orderId}',
     trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
+    customerDeliveredSubject: 'Pedido entregue — {orderId} · como foi a experiência?',
+    deliveredMessage: 'Seu pedido {orderId} acabou de ser marcado como entregue.\n\nQueremos saber: deu tudo certo? A lente funcionou direitinho no seu relógio? Como você se sentiu ao ver o sensor voltar a funcionar?\n\nSe puder, responda este e-mail com um depoimento curto — esse feedback ajuda muito outras pessoas.\n\nE se quiser, grave um vídeo rápido do relógio funcionando: se apresente, diga de onde você é e mostre o resultado. Com sua autorização, podemos compartilhar no Instagram, TikTok e YouTube do Sensor Tattoo Fix.\n\nInstagram: {instagram}\nTikTok: {tiktok}\nYouTube: {youtube}\n\nObrigado por confiar na gente!',
     abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
     abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
     abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
@@ -6676,6 +6678,12 @@ ${worksheets}
     if (f.emailTrackingAvailable) {
       f.emailTrackingAvailable.value = emails.trackingAvailable || DEFAULT_EMAILS.trackingAvailable;
     }
+    if (f.emailCustomerDeliveredSubject) {
+      f.emailCustomerDeliveredSubject.value = emails.customerDeliveredSubject || DEFAULT_EMAILS.customerDeliveredSubject;
+    }
+    if (f.emailDeliveredMessage) {
+      f.emailDeliveredMessage.value = emails.deliveredMessage || DEFAULT_EMAILS.deliveredMessage;
+    }
     if (f.emailAbandonedSubject) {
       f.emailAbandonedSubject.value = emails.abandonedSubject || DEFAULT_EMAILS.abandonedSubject;
     }
@@ -6849,6 +6857,9 @@ ${worksheets}
         customerTrackingSubject: f.emailCustomerTrackingSubject?.value.trim()
           || DEFAULT_EMAILS.customerTrackingSubject,
         trackingAvailable: f.emailTrackingAvailable?.value.trim() || DEFAULT_EMAILS.trackingAvailable,
+        customerDeliveredSubject: f.emailCustomerDeliveredSubject?.value.trim()
+          || DEFAULT_EMAILS.customerDeliveredSubject,
+        deliveredMessage: f.emailDeliveredMessage?.value.trim() || DEFAULT_EMAILS.deliveredMessage,
         abandonedSubject: f.emailAbandonedSubject?.value.trim() || DEFAULT_EMAILS.abandonedSubject,
         abandonedWeeklySubject: f.emailAbandonedWeeklySubject?.value.trim()
           || DEFAULT_EMAILS.abandonedWeeklySubject,
@@ -8300,6 +8311,7 @@ ${worksheets}
     customer_order_mp: 'Cliente — Mercado Pago',
     customer_pix: 'Cliente — PIX',
     customer_paid: 'Cliente — pagamento confirmado',
+    customer_delivered: 'Cliente — pedido entregue (pesquisa)',
     motoboy: 'Motoboy',
     coupon: 'Comissionado — cupom'
   };

@@ -503,6 +503,8 @@ const DEFAULT_CONFIG = {
     paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
     customerTrackingSubject: 'Rastreio disponível — {orderId}',
     trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
+    customerDeliveredSubject: 'Pedido entregue — {orderId} · como foi a experiência?',
+    deliveredMessage: 'Seu pedido {orderId} acabou de ser marcado como entregue.\n\nQueremos saber: deu tudo certo? A lente funcionou direitinho no seu relógio? Como você se sentiu ao ver o sensor voltar a funcionar?\n\nSe puder, responda este e-mail com um depoimento curto — esse feedback ajuda muito outras pessoas.\n\nE se quiser, grave um vídeo rápido do relógio funcionando: se apresente, diga de onde você é e mostre o resultado. Com sua autorização, podemos compartilhar no Instagram, TikTok e YouTube do Sensor Tattoo Fix.\n\nInstagram: {instagram}\nTikTok: {tiktok}\nYouTube: {youtube}\n\nObrigado por confiar na gente!',
     abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
     abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
     abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
@@ -4079,6 +4081,180 @@ async function notifyTrackingIfNew(env, config, order, previousCode) {
   const next = orderTrackingCode(order);
   if (!next || prev === next) return { skipped: true };
   return maybeNotifyTrackingAvailable(env, config || await getConfig(env), order);
+}
+
+function satisfactionSocialUrls(config) {
+  const socials = config?.channels?.socials || {};
+  return {
+    instagram: String(socials.instagram?.url || 'https://www.instagram.com/sensortattoofix').trim(),
+    tiktok: String(socials.tiktok?.url || 'https://www.tiktok.com/@sensortattoofixofc').trim(),
+    youtube: String(socials.youtube?.url || 'https://www.youtube.com/@Sensortattoofix-ofc').trim()
+  };
+}
+
+/** Locale used for delivered / satisfaction e-mails (fr/nl/sv/no/fi → EN). */
+function deliveredEmailLocale(order) {
+  const loc = orderCheckoutLocale(order);
+  if (loc === 'pt' || loc === 'en' || loc === 'it' || loc === 'de' || loc === 'es' || loc === 'pl' || loc === 'sl') {
+    return loc;
+  }
+  return 'en';
+}
+
+function buildDeliveredSatisfactionCopy(order, config) {
+  const loc = deliveredEmailLocale(order);
+  const social = satisfactionSocialUrls(config);
+  const orderId = order.orderId;
+  const nome = String(order.nome || '').trim().split(/\s+/)[0] || '';
+  const vars = { orderId, nome, ...social };
+
+  if (loc === 'en') {
+    return {
+      loc,
+      subject: `Order delivered — ${orderId} · how was your experience?`,
+      message: `Your order ${orderId} was just marked as delivered.\n\nWe'd love to hear from you: did everything go well? Did the lens work properly on your watch? How did it feel to see the sensor working again?\n\nIf you can, reply to this e-mail with a short testimonial — that feedback helps many other people.\n\nAnd if you'd like, record a quick video of your watch working: introduce yourself, say where you're from, and show the result. With your permission, we may share it on Sensor Tattoo Fix Instagram, TikTok, and YouTube.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nThank you for trusting us!`
+    };
+  }
+  if (loc === 'it') {
+    return {
+      loc,
+      subject: `Ordine consegnato — ${orderId} · com'è andata?`,
+      message: `Il tuo ordine ${orderId} è appena stato segnato come consegnato.\n\nVorremmo sapere: è andato tutto bene? La lente ha funzionato bene sul tuo orologio? Come ti sei sentito nel vedere di nuovo il sensore funzionare?\n\nSe puoi, rispondi a questa e-mail con una breve testimonianza — il tuo feedback aiuta tante altre persone.\n\nE se vuoi, registra un video rapido dell'orologio che funziona: presentati, di' da dove sei e mostra il risultato. Con il tuo permesso, possiamo condividerlo su Instagram, TikTok e YouTube di Sensor Tattoo Fix.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nGrazie per la fiducia!`
+    };
+  }
+  if (loc === 'de') {
+    return {
+      loc,
+      subject: `Bestellung zugestellt — ${orderId} · wie war Ihre Erfahrung?`,
+      message: `Ihre Bestellung ${orderId} wurde gerade als zugestellt markiert.\n\nWir möchten wissen: Ist alles gut gelaufen? Hat die Linse an Ihrer Uhr richtig funktioniert? Wie haben Sie sich gefühlt, als der Sensor wieder arbeitete?\n\nWenn möglich, antworten Sie auf diese E-Mail mit einem kurzen Erfahrungsbericht — dieses Feedback hilft vielen anderen.\n\nUnd wenn Sie möchten, nehmen Sie ein kurzes Video Ihrer funktionierenden Uhr auf: Stellen Sie sich vor, sagen Sie, woher Sie kommen, und zeigen Sie das Ergebnis. Mit Ihrer Erlaubnis können wir es auf Instagram, TikTok und YouTube von Sensor Tattoo Fix teilen.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nDanke für Ihr Vertrauen!`
+    };
+  }
+  if (loc === 'es') {
+    return {
+      loc,
+      subject: `Pedido entregado — ${orderId} · ¿cómo fue la experiencia?`,
+      message: `Tu pedido ${orderId} acaba de marcarse como entregado.\n\nQueremos saber: ¿salió todo bien? ¿La lente funcionó bien en tu reloj? ¿Cómo te sentiste al ver el sensor funcionar de nuevo?\n\nSi puedes, responde este correo con un testimonio breve — ese feedback ayuda mucho a otras personas.\n\nY si quieres, graba un vídeo rápido del reloj funcionando: preséntate, di de dónde eres y muestra el resultado. Con tu autorización, podemos compartirlo en Instagram, TikTok y YouTube de Sensor Tattoo Fix.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\n¡Gracias por confiar en nosotros!`
+    };
+  }
+  if (loc === 'pl') {
+    return {
+      loc,
+      subject: `Zamówienie doręczone — ${orderId} · jak poszło?`,
+      message: `Twoje zamówienie ${orderId} właśnie oznaczono jako doręczone.\n\nChcielibyśmy wiedzieć: czy wszystko poszło dobrze? Czy soczewka działała prawidłowo na zegarku? Jak się czułeś/aś, gdy sensor znów zaczął działać?\n\nJeśli możesz, odpowiedz na tę wiadomość krótką opinią — ta informacja bardzo pomaga innym.\n\nA jeśli chcesz, nagraj krótki film działającego zegarka: przedstaw się, powiedz skąd jesteś i pokaż efekt. Za Twoją zgodą możemy udostępnić go na Instagramie, TikToku i YouTube Sensor Tattoo Fix.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nDziękujemy za zaufanie!`
+    };
+  }
+  if (loc === 'sl') {
+    return {
+      loc,
+      subject: `Naročilo dostavljeno — ${orderId} · kako je bilo?`,
+      message: `Vaše naročilo ${orderId} je bilo pravkar označeno kot dostavljeno.\n\nRadi bi vedeli: je šlo vse v redu? Ali je leča pravilno delovala na vaši uri? Kako ste se počutili, ko je senzor spet začel delovati?\n\nČe lahko, odgovorite na to e-pošto s kratko izkušnjo — ta povratna informacija zelo pomaga drugim.\n\nIn če želite, posnemite kratek video delujoče ure: predstavite se, povejte od kod ste in pokažite rezultat. Z vašim dovoljenjem ga lahko delimo na Instagramu, TikToku in YouTubu Sensor Tattoo Fix.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nHvala za zaupanje!`
+    };
+  }
+
+  return {
+    loc: 'pt',
+    subject: emailSubject(config, 'customerDeliveredSubject', vars)
+      || `Pedido entregue — ${orderId} · como foi a experiência?`,
+    message: emailMessage(config, 'deliveredMessage', vars)
+      || applyEmailTemplate(DEFAULT_CONFIG.emails.deliveredMessage, vars)
+  };
+}
+
+function deliveredSatisfactionHtml(copy, order, config) {
+  const loc = copy.loc || 'pt';
+  const nome = String(order.nome || '').trim().split(/\s+/)[0] || '';
+  const greeting = loc === 'en'
+    ? (nome ? `Hi, ${nome}!` : 'Hi!')
+    : loc === 'it'
+      ? (nome ? `Ciao, ${nome}!` : 'Ciao!')
+      : loc === 'de'
+        ? (nome ? `Hallo, ${nome}!` : 'Hallo!')
+        : loc === 'es'
+          ? (nome ? `¡Hola, ${nome}!` : '¡Hola!')
+          : loc === 'pl'
+            ? (nome ? `Cześć, ${nome}!` : 'Cześć!')
+            : loc === 'sl'
+              ? (nome ? `Živjo, ${nome}!` : 'Živjo!')
+              : (nome ? `Olá, ${nome}!` : 'Olá!');
+  const body = String(copy.message || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  const site = loc === 'pt' ? 'sensortattoofix.com.br' : 'sensortattoofix.com';
+  return `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222"><p style="margin:0 0 12px">${greeting}</p><p style="margin:0;white-space:pre-wrap">${body}</p><p style="color:#666;font-size:12px;margin-top:16px">Sensor Tattoo Fix — ${site}</p></div>`;
+}
+
+/** Send satisfaction survey when order first becomes delivered (idempotent). */
+async function maybeNotifyDelivered(env, config, order, previousStatus) {
+  if (!order || order.status !== 'paid') return { skipped: true };
+  if (!isTrackingFinalStatus(order.correiosTrackingStatus)) return { skipped: true };
+  if (order.deliveredEmailSentAt) return { skipped: true };
+  const wasFinal = isTrackingFinalStatus(previousStatus);
+  if (wasFinal && !order.deliveredEmailError) return { skipped: true };
+
+  const cfg = config || await getConfig(env);
+  const nowIso = new Date().toISOString();
+  order.deliveredEmailSentAt = nowIso;
+  order.deliveredAt = order.deliveredAt || nowIso;
+  order.deliveredEmailError = null;
+  await saveOrder(env, order);
+
+  const copy = buildDeliveredSatisfactionCopy(order, cfg);
+  const fields = {
+    Pedido: order.orderId,
+    Status: 'Entregue',
+    Mensagem: copy.message
+  };
+  if (copy.loc === 'en') {
+    fields.Order = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Delivered';
+    fields.Message = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'it') {
+    fields.Ordine = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Consegnato';
+    fields.Messaggio = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'de') {
+    fields.Bestellung = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Zugestellt';
+    fields.Nachricht = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'es') {
+    fields.Status = 'Entregado';
+    fields.Mensaje = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'pl') {
+    fields.Zamówienie = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Doręczone';
+    fields.Wiadomość = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'sl') {
+    fields.Naročilo = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Dostavljeno';
+    fields.Sporočilo = copy.message;
+    delete fields.Mensagem;
+  }
+
+  const shopCopy = String(cfg.formsubmit?.email || '').trim();
+  const result = await notifyCustomer(env, cfg, order, copy.subject, fields, {
+    html: deliveredSatisfactionHtml(copy, order, cfg),
+    text: `${String(order.nome || '').trim().split(/\s+/)[0] || ''}\n\n${copy.message}`.trim(),
+    bcc: shopCopy || undefined
+  });
+  if (!result?.ok) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = result?.error || 'send_failed';
+    await saveOrder(env, order);
+    console.error('Delivered satisfaction email:', order.orderId, order.deliveredEmailError);
+  }
+  return result;
 }
 
 function fieldsToHtmlLocalized(fields, footerSite) {
@@ -15421,6 +15597,7 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
   const config = await getConfig(env);
   const previousCode = order.correiosTrackingCode;
+  const previousStatus = order.correiosTrackingStatus;
   try {
     applyOrderShippingManualUpdate(order, body);
 
@@ -15459,6 +15636,13 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     console.warn('Tracking email after shipping update:', orderId, err.message);
     trackingEmail = { skipped: true, error: err.message };
   }
+  let deliveredEmail = { skipped: true };
+  try {
+    deliveredEmail = await maybeNotifyDelivered(env, config, order, previousStatus) || { skipped: true };
+  } catch (err) {
+    console.warn('Delivered email after shipping update:', orderId, err.message);
+    deliveredEmail = { skipped: true, error: err.message };
+  }
   return json({
     ok: true,
     trackingCode: order.correiosTrackingCode || null,
@@ -15479,7 +15663,10 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     shippingServiceCode: order.shippingServiceCode ?? null,
     trackingEmailSentAt: order.trackingEmailSentAt || null,
     trackingEmailSent: !!(trackingEmail && trackingEmail.ok),
-    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped)
+    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped),
+    deliveredEmailSentAt: order.deliveredEmailSentAt || null,
+    deliveredEmailSent: !!(deliveredEmail && deliveredEmail.ok),
+    deliveredEmailSkipped: !!(deliveredEmail && deliveredEmail.skipped)
   }, 200, origin);
 }
 
@@ -17687,6 +17874,7 @@ async function handleTestEmail(request, env, origin) {
     'customer_order_mp',
     'customer_pix',
     'customer_paid',
+    'customer_delivered',
     'motoboy',
     'coupon'
   ];
@@ -17817,6 +18005,21 @@ async function sendTestEmailByType(env, config, to, type, overrides = {}) {
         Valor: formatBRL(price),
         Mensagem: emailMessage(config, 'paidDefault')
       });
+
+    case 'customer_delivered': {
+      const copy = buildDeliveredSatisfactionCopy(
+        { ...order, correiosTrackingStatus: 'Entregue' },
+        config
+      );
+      return notifyCustomer(env, config, order, copy.subject, {
+        Pedido: order.orderId,
+        Status: 'Entregue (TESTE)',
+        Mensagem: copy.message
+      }, {
+        html: deliveredSatisfactionHtml(copy, order, config),
+        text: copy.message
+      });
+    }
 
     case 'motoboy':
       return notifyEmail(env, config, to, emailSubject(config, 'motoboySubject', { orderId: order.orderId }), {
@@ -18286,6 +18489,7 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     return Object.keys(payload).length ? payload : null;
   }
 
+  const previousStatus = order.correiosTrackingStatus;
   const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
   const hasApiEvents = Array.isArray(summary?.events) && summary.events.length > 0;
   const hasManual = order.correiosManualUpdatedAt && order.correiosTrackingStatus;
@@ -18299,6 +18503,11 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     order.correiosTrackingUpdatedAt = new Date().toISOString();
   }
   await saveOrder(env, order);
+  try {
+    await maybeNotifyDelivered(env, config, order, previousStatus);
+  } catch (err) {
+    console.warn('Delivered email after Correios sync:', orderId, err.message);
+  }
   return {
     ...(hasApiEvents ? summary : trackingSummaryFromOrder(order) || summary),
     trackingCode: order.correiosTrackingCode,
