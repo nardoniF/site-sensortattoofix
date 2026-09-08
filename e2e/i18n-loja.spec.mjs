@@ -87,6 +87,19 @@ function pathFor(locale, page) {
 for (const locale of LOCALES) {
   const { lang, currency } = locale;
 
+  test(`${lang}/index.html: sem vazamento EN óbvio no shell`, async ({ page }) => {
+    await page.goto(`/${lang}/index.html`);
+    await expect(page.locator('h1, .hero-text, .section-title').first()).toBeVisible({ timeout: 15_000 });
+    const html = await page.content();
+    if (!locale.allowEnShell) {
+      expect(html.includes('Peace between ink and silicon')).toBe(false);
+      expect(html.includes('The discovery and development')).toBe(false);
+      expect(html.includes('Frequently Asked Questions (FAQ)')).toBe(false);
+      expect(html.includes('was born from a real experience')).toBe(false);
+      expect(html.includes('Kjøp Now') || html.includes('Acheter Now') || html.includes('Osta Now') || html.includes('Köp Now') || html.includes('Kopen Now')).toBe(false);
+    }
+  });
+
   test(`${lang}/loja.html: título nativo e sem flash EN no shell`, async ({ page }) => {
     await page.goto(pathFor(locale, 'loja.html'));
     await expect(page.locator('h1.section-title')).toBeVisible({ timeout: 15_000 });
