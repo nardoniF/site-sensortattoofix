@@ -14,7 +14,7 @@ const ROOT = path.join(__dirname, '..', '..');
 const NS = '4184c034aab941e58ce5cc1e3abaecdc';
 const ACCOUNT = '80ab4f6ff1553d2ee530c0880edce594';
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
-const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
+const SITE_LANGS = ['pt','en','it','de','es','pl','sl','fr','nl','sv','no','fi'];
 const LANG_NATIVE = {
   pt: 'português brasileiro',
   en: 'English',

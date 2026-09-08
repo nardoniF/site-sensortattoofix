@@ -6,7 +6,7 @@
     "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
     "descriptionEn": "Optical lens for smartwatches on tattooed skin",
     "descriptionIt": "Lente ottica per smartwatch su pelle tatuata",
-    "price": 62.9,
+    "price": 72.9,
     "image": "https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg"
   },
   "products": [
@@ -19,7 +19,7 @@
       "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
       "descriptionEn": "Optical lens for smartwatches on tattooed skin",
       "descriptionIt": "Lente ottica per smartwatch su pelle tatuata",
-      "price": 62.9,
+      "price": 72.9,
       "image": "https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg",
       "active": true,
       "requiresSmartwatch": true,
@@ -32,7 +32,21 @@
       "nameDe": "Sensor Tattoo Fix Lens",
       "nameEs": "Sensor Tattoo Fix Lens",
       "namePl": "Sensor Tattoo Fix Lens",
-      "nameSl": "Sensor Tattoo Fix Lens"
+      "nameSl": "Sensor Tattoo Fix Lens",
+      "descriptionDe": "Optische Linse für Smartwatches auf tätowierter Haut",
+      "descriptionEs": "Lente óptica para smartwatches en piel tatuada",
+      "descriptionPl": "Soczewka optyczna do smartwatchy na tatuowanej skórze",
+      "descriptionSl": "Optična leča za pametne ure na tetovirani koži",
+      "nameFr": "Lentille Sensor Tattoo Fix",
+      "descriptionFr": "Lentille optique pour smartwatch sur peau tatouée",
+      "nameNl": "Sensor Tattoo Fix Lens",
+      "descriptionNl": "Optische lens voor smartwatches op getatoeëerde huid",
+      "nameSv": "Sensor Tattoo Fix-lins",
+      "descriptionSv": "Optisk lins för smartklockor på tatuerad hud",
+      "nameNo": "Sensor Tattoo Fix-linse",
+      "descriptionNo": "Optisk linse for smartklokker på tatovert hud",
+      "nameFi": "Sensor Tattoo Fix -linssi",
+      "descriptionFi": "Optinen linssi älykelloille tatuoidulle iholle"
     },
     {
       "id": "kit-smartband-tattoofix",
@@ -63,7 +77,21 @@
       "nameDe": "Kit Smartband Tattoo Friendly",
       "nameEs": "Kit Smartband Tattoo Friendly",
       "namePl": "Kit Smartband Tattoo Friendly",
-      "nameSl": "Kit Smartband Tattoo Friendly"
+      "nameSl": "Kit Smartband Tattoo Friendly",
+      "descriptionDe": "Optische Linse für Smartbands auf tätowierter Haut — komplettes Kit",
+      "descriptionEs": "Lente óptica para smartbands en piel tatuada — kit completo",
+      "descriptionPl": "Soczewka optyczna do opasek na tatuowanej skórze — pełny zestaw",
+      "descriptionSl": "Optična leča za pametne zapestnice na tetovirani koži — komplet",
+      "nameFr": "Kit Smartband Tattoo Friendly",
+      "descriptionFr": "Lentille optique pour smartband sur peau tatouée — kit complet",
+      "nameNl": "Kit Smartband Tattoo Friendly",
+      "descriptionNl": "Optische lens voor smartbands op getatoeëerde huid — complete kit",
+      "nameSv": "Kit Smartband Tattoo Friendly",
+      "descriptionSv": "Optisk lins för smartbands på tatuerad hud — komplett kit",
+      "nameNo": "Kit Smartband Tattoo Friendly",
+      "descriptionNo": "Optisk linse for smartbånd på tatovert hud — komplett sett",
+      "nameFi": "Kit Smartband Tattoo Friendly",
+      "descriptionFi": "Optinen linssi älyrannekkeille tatuoidulle iholle — täysi paketti"
     },
     {
       "id": "optical-lens-smartband-intl",
@@ -73,17 +101,17 @@
       "nameIt": "Lente Smartband SensorTattooFix",
       "nameDe": "SensorTattooFix Smartband-Linse",
       "nameEs": "Lente Smartband SensorTattooFix",
-      "namePl": "Soczewka Smartband SensorTattooFix",
+      "namePl": "Soczewka SensorTattooFix do opasek",
       "deviceType": "smartband",
       "description": "Lente de correção óptica para smartband em pele tatuada.",
       "descriptionEn": "Designed for smartband optical sensors on tattooed skin.",
       "descriptionIt": "Progettata per i sensori ottici degli smartband su pelle tatuata.",
       "descriptionDe": "Entwickelt für optische Sensoren von Smartbands auf tätowierter Haut.",
       "descriptionEs": "Diseñada para sensores ópticos de smartband en piel tatuada.",
-      "descriptionPl": "Zaprojektowana dla czujników optycznych smartband na tatuowanej skórze.",
+      "descriptionPl": "Zaprojektowana dla czujników optycznych opasek na tatuowanej skórze.",
       "price": 62.9,
-      "priceUsd": 12.99,
-      "priceEur": 11.99,
+      "priceUsd": 20.25,
+      "priceEur": 17.42,
       "image": "/images/smartband/lens-en/01-embalagem.jpg",
       "images": [
         "/images/smartband/lens-en/01-embalagem.jpg",
@@ -100,7 +128,23 @@
       ],
       "aggregated": false,
       "nameSl": "Leča SensorTattooFix za pametno zapestnico",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih zapestnic na tetovirani koži.",
+      "nameFr": "Lentille Smartband SensorTattooFix",
+      "descriptionFr": "Conçue pour les capteurs optiques de smartband sur peau tatouée.",
+      "nameNl": "SensorTattooFix Smartband-lens",
+      "descriptionNl": "Ontworpen voor optische sensoren van smartbands op getatoeëerde huid.",
+      "nameSv": "SensorTattooFix smartband-lins",
+      "descriptionSv": "Utformad för smartbands optiska sensorer på tatuerad hud.",
+      "nameNo": "SensorTattooFix smartband-linse",
+      "descriptionNo": "Designet for smartbånds optiske sensorer på tatovert hud.",
+      "nameFi": "SensorTattooFix-älyrannekkeen linssi",
+      "descriptionFi": "Suunniteltu älyrannekkeiden optisille antureille tatuoidulle iholle.",
+      "priceSek": 194,
+      "priceNok": 188,
+      "priceGbp": 14.96,
+      "pricePln": 75.09,
+      "intlMarkupPercent": 65,
+      "intlBaseBrl": 103.79
     },
     {
       "id": "optical-lens-intl",
@@ -117,9 +161,9 @@
       "descriptionDe": "Entwickelt für optische Sensoren von Smartwatches auf tätowierter Haut.",
       "descriptionEs": "Diseñada para sensores ópticos de smartwatch en piel tatuada.",
       "descriptionPl": "Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.",
-      "price": 62.9,
-      "priceUsd": 12.99,
-      "priceEur": 11.99,
+      "price": 72.9,
+      "priceUsd": 23.47,
+      "priceEur": 20.19,
       "image": "/images/lens-gallery/01-optical-correction-lens.png",
       "images": [
         "/images/lens-gallery/01-optical-correction-lens.png",
@@ -140,7 +184,23 @@
       ],
       "aggregated": false,
       "nameSl": "Optična leča SensorTattooFix",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      "nameFr": "Lentille optique SensorTattooFix",
+      "descriptionFr": "Conçue pour les capteurs optiques de smartwatch sur peau tatouée.",
+      "nameNl": "SensorTattooFix Optische Lens",
+      "descriptionNl": "Ontworpen voor optische sensoren van smartwatches op getatoeëerde huid.",
+      "nameSv": "SensorTattooFix optisk lins",
+      "descriptionSv": "Utformad för smartklockors optiska sensorer på tatuerad hud.",
+      "nameNo": "SensorTattooFix optisk linse",
+      "descriptionNo": "Designet for smartklokkers optiske sensorer på tatovert hud.",
+      "nameFi": "SensorTattooFix-optinen linssi",
+      "descriptionFi": "Suunniteltu älykellojen optisille antureille tatuoidulle iholle.",
+      "priceSek": 225,
+      "priceNok": 218,
+      "priceGbp": 17.34,
+      "pricePln": 87.03,
+      "intlMarkupPercent": 65,
+      "intlBaseBrl": 120.29
     },
     {
       "id": "pelicula-amazfit-bip-2",
@@ -6071,5 +6131,100 @@
       "sourceEn": "Shopee · 5★",
       "sourceIt": "Shopee · 5★"
     }
-  ]
+  ],
+  "intlCurrencies": [
+    {
+      "code": "USD",
+      "label": "Dólar (USD)",
+      "langs": [
+        "en"
+      ],
+      "countries": [
+        "US",
+        "CA",
+        "AU",
+        "NZ",
+        "SG",
+        "HK"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "GBP",
+      "label": "Libra (GBP)",
+      "langs": [],
+      "countries": [
+        "GB"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "EUR",
+      "label": "Euro (EUR)",
+      "langs": [
+        "it",
+        "de",
+        "es",
+        "sl",
+        "fr",
+        "nl",
+        "fi"
+      ],
+      "countries": [
+        "IT",
+        "DE",
+        "ES",
+        "SI",
+        "FR",
+        "NL",
+        "FI",
+        "AT",
+        "BE",
+        "PT",
+        "IE"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "PLN",
+      "label": "Złoty (PLN)",
+      "langs": [
+        "pl"
+      ],
+      "countries": [
+        "PL"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "SEK",
+      "label": "Coroa sueca (SEK)",
+      "langs": [
+        "sv"
+      ],
+      "countries": [
+        "SE"
+      ],
+      "decimals": 0,
+      "active": true
+    },
+    {
+      "code": "NOK",
+      "label": "Coroa norueguesa (NOK)",
+      "langs": [
+        "no"
+      ],
+      "countries": [
+        "NO"
+      ],
+      "decimals": 0,
+      "active": true
+    }
+  ],
+  "intlCurrenciesAutoPpp": true,
+  "intlCurrenciesAutoFx": true
 }
