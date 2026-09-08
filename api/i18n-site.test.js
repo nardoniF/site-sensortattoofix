@@ -87,7 +87,7 @@ test('overrides DE/ES/PL definem store.title e page.checkoutTitle*', () => {
 
 test('home-content-l10n.json cobre 21 FAQs e 15 reviews em de/es/pl/sl', () => {
   const data = JSON.parse(fs.readFileSync(path.join(root, 'data/home-content-l10n.json'), 'utf8'));
-  for (const lang of ['de', 'es', 'pl', 'sl']) {
+  for (const lang of ['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']) {
     const block = data[lang];
     assert.ok(block?.reviewsSummary, lang);
     assert.equal(Object.keys(block.faq).length, 21, `${lang} faq`);
@@ -108,7 +108,7 @@ test('forum-l10n.json cobre chaves principais em de/es/pl', () => {
 });
 
 const LANG_SHELL_PAGES = ['loja.html', 'comprar.html', 'minha-conta.html', 'comunidade.html', 'onde-comprar.html'];
-const LANGS = ['de', 'es', 'pl', 'sl'];
+const LANGS = ['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
 test('páginas DE/ES/PL carregam bundle i18n obrigatório', () => {
   for (const lang of LANGS) {
@@ -182,7 +182,15 @@ test('STF_PELICULA: /es/ usa nameEn em vez de name PT', () => {
   const p = loadPelicula({
     hostname: 'www.sensortattoofix.com.br',
     pathname: '/es/loja.html',
-    i18n: { isEs: () => true, isIt: () => false, isEn: () => false, isDe: () => false, isPl: () => false, isLocalized: () => true }
+    i18n: {
+      getLang: () => 'es',
+      isEs: () => true,
+      isIt: () => false,
+      isEn: () => false,
+      isDe: () => false,
+      isPl: () => false,
+      isLocalized: () => true
+    }
   });
   const product = {
     name: 'Kit Sensor Tattoo Fix',
@@ -192,6 +200,32 @@ test('STF_PELICULA: /es/ usa nameEn em vez de name PT', () => {
   };
   assert.equal(p.productLabel(product), 'Sensor Tattoo Fix Lens');
   assert.equal(p.productDescription(product), 'English product description');
+});
+
+test('STF_PELICULA: /nl/ usa nameNl (não trata .com como EN)', () => {
+  const p = loadPelicula({
+    hostname: 'www.sensortattoofix.com',
+    pathname: '/nl/loja.html',
+    i18n: {
+      getLang: () => 'nl',
+      isEn: () => false,
+      isLocalized: () => true
+    },
+    site: { isIntlHost: () => true }
+  });
+  const product = {
+    name: 'Nome PT',
+    nameEn: 'English Optical Lens',
+    nameNl: 'Nederlandse Optische Lens',
+    descriptionEn: 'English description',
+    descriptionNl: 'Nederlandse beschrijving'
+  };
+  assert.equal(p.productLabel(product), 'Nederlandse Optische Lens');
+  assert.equal(p.productDescription(product), 'Nederlandse beschrijving');
+  assert.equal(
+    p.productLabel({ name: 'Nome PT', nameEn: 'English Optical Lens' }),
+    'English Optical Lens'
+  );
 });
 
 test('letter-l10n.json cobre DE/ES/PL com chaves da carta EN', () => {
@@ -218,6 +252,7 @@ test('STF_PELICULA: /de/ e /pl/ usam nameDe/namePl com fallback nameEn', () => {
     hostname: 'www.sensortattoofix.com.br',
     pathname: '/de/loja.html',
     i18n: {
+      getLang: () => 'de',
       isDe: () => true,
       isIt: () => false,
       isEn: () => false,
@@ -239,6 +274,7 @@ test('STF_PELICULA: /de/ e /pl/ usam nameDe/namePl com fallback nameEn', () => {
     hostname: 'www.sensortattoofix.com.br',
     pathname: '/pl/loja.html',
     i18n: {
+      getLang: () => 'pl',
       isPl: () => true,
       isIt: () => false,
       isEn: () => false,
@@ -253,12 +289,16 @@ test('STF_PELICULA: /de/ e /pl/ usam nameDe/namePl com fallback nameEn', () => {
   );
 });
 
-test('store-config: produtos intl têm nameDe/nameEs/namePl/nameSl', () => {
+test('store-config: produtos intl têm nameDe/Es/Pl/Sl/Fr/Nl e descriptions', () => {
   const cfg = JSON.parse(fs.readFileSync(path.join(root, 'data/store-config.json'), 'utf8'));
   for (const id of ['optical-lens-intl', 'optical-lens-smartband-intl']) {
     const p = cfg.products.find((x) => x.id === id);
     assert.ok(p, id);
-    for (const field of ['nameDe', 'nameEs', 'namePl', 'nameSl', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl']) {
+    for (const field of [
+      'nameDe', 'nameEs', 'namePl', 'nameSl', 'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+      'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+      'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi'
+    ]) {
       assert.ok(p[field], `${id}.${field}`);
     }
   }
@@ -330,10 +370,10 @@ test('sitemap.xml: só PT no .com.br; sitemap-com.xml intl no .com', () => {
   const brLocs = [...brXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   const comLocs = [...comXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   assert.equal(brLocs.length, 4);
-  assert.equal(comLocs.length, 24);
+  assert.equal(comLocs.length, 44);
   for (const loc of brLocs) {
     assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\.br\//, `loc .com.br: ${loc}`);
-    assert.doesNotMatch(loc, /\/(de|es|pl|sl|it)\//, `PT sitemap sem intl: ${loc}`);
+    assert.doesNotMatch(loc, /\/(de|es|pl|sl|it|fr|nl|sv|no|fi)\//, `PT sitemap sem intl: ${loc}`);
   }
   for (const loc of comLocs) {
     assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\//, `loc .com: ${loc}`);
@@ -364,7 +404,7 @@ test('proxy .com: <base href> por idioma (DE/ES/PL/SL não herdam a home EN)', (
   const fn = src.match(/function comBaseHref\(originPath\) \{([\s\S]*?)\n\}/);
   assert.ok(fn, 'comBaseHref body');
   const COM_ORIGIN = 'https://www.sensortattoofix.com';
-  const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
+  const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
   function comBaseHref(originPath) {
     for (const lang of INTL_LANGS) {
       if (originPath === `/${lang}` || originPath.startsWith(`/${lang}/`)) {
@@ -393,4 +433,14 @@ test('admin.js: agregados têm campos i18n editáveis', () => {
   assert.match(src, /if \(nameDe\) product\.nameDe = nameDe/);
   assert.match(src, /if \(filmTypePl\) product\.filmTypePl = filmTypePl/);
   assert.match(src, /if \(filmTypeSl\) product\.filmTypeSl = filmTypeSl/);
+});
+
+test('admin.js: produtos principais têm FR/NL/SV/NO/FI editáveis', () => {
+  const src = fs.readFileSync(path.join(jsDir, 'admin.js'), 'utf8');
+  for (const field of ['nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi', 'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi', 'descriptionDe']) {
+    assert.match(src, new RegExp(`data-field="${field}"`), field);
+  }
+  assert.match(src, /if \(nameNl\) product\.nameNl = nameNl/);
+  assert.match(src, /if \(descriptionNl\) product\.descriptionNl = descriptionNl/);
+  assert.match(src, /mergeConfig\(apiConfig, local\)/);
 });
