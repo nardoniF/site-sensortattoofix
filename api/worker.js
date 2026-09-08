@@ -504,7 +504,7 @@ const DEFAULT_CONFIG = {
     customerTrackingSubject: 'Rastreio disponível — {orderId}',
     trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
     customerDeliveredSubject: 'Pedido entregue — {orderId} · como foi a experiência?',
-    deliveredMessage: 'Seu pedido {orderId} acabou de ser marcado como entregue.\n\nQueremos saber: deu tudo certo? A lente funcionou direitinho no seu relógio? Como você se sentiu ao ver o sensor voltar a funcionar?\n\nSe puder, responda este e-mail com um depoimento curto — esse feedback ajuda muito outras pessoas.\n\nE se quiser, grave um vídeo rápido do relógio funcionando: se apresente, diga de onde você é e mostre o resultado. Com sua autorização, podemos compartilhar no Instagram, TikTok e YouTube do Sensor Tattoo Fix.\n\nInstagram: {instagram}\nTikTok: {tiktok}\nYouTube: {youtube}\n\nObrigado por confiar na gente!',
+    deliveredMessage: 'Olá!\n\nConsta aqui que o seu pedido {orderId} acabou de ser entregue.\n\nQueremos muito saber: deu tudo certo na aplicação? A lente funcionou direitinho e o seu relógio voltou a monitorar seus treinos/batimentos normalmente sobre a tattoo?\n\nSe puder responder a este e-mail com um depoimento curto, vai nos ajudar demais!\n\nQue tal ajudar outros tatuados a resolverem esse problema também? 🎥\n\nSe você puder gravar um vídeo bem simples do celular (15 a 30 segundos) mostrando a lente aplicada e o relógio funcionando, seria incrível! Você pode se apresentar, dizer de onde é e mostrar o resultado. Com a sua autorização, adoraríamos postar nas nossas redes sociais!\n\nAcompanhe a gente por lá:\n\nInstagram: {instagram}\n\nTikTok: {tiktok}\n\nYouTube: {youtube}\n\nSe tiver qualquer dúvida ou precisar de suporte na aplicação, é só nos chamar por aqui.\n\nMuito obrigado por confiar na Sensor TattooFix®!\n\nAtenciosamente,\n\nFabio Nardoni\n\nEquipe Sensor TattooFix®\n\n{site}',
     abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
     abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
     abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
@@ -4092,13 +4092,17 @@ function satisfactionSocialUrls(config) {
   };
 }
 
-/** Locale used for delivered / satisfaction e-mails (fr/nl/sv/no/fi → EN). */
-function deliveredEmailLocale(order) {
+/** Site shown in satisfaction e-mail footer: .com.br (PT) or .com[/lang] (intl). */
+function satisfactionSiteDisplay(order) {
   const loc = orderCheckoutLocale(order);
-  if (loc === 'pt' || loc === 'en' || loc === 'it' || loc === 'de' || loc === 'es' || loc === 'pl' || loc === 'sl') {
-    return loc;
-  }
-  return 'en';
+  if (!isIntlCheckoutLocale(loc)) return 'www.sensortattoofix.com.br';
+  const path = orderCheckoutLangPath(order);
+  return 'www.sensortattoofix.com' + path;
+}
+
+/** Locale for delivered / satisfaction e-mails = checkout locale of the order. */
+function deliveredEmailLocale(order) {
+  return orderCheckoutLocale(order);
 }
 
 function buildDeliveredSatisfactionCopy(order, config) {
@@ -4106,49 +4110,61 @@ function buildDeliveredSatisfactionCopy(order, config) {
   const social = satisfactionSocialUrls(config);
   const orderId = order.orderId;
   const nome = String(order.nome || '').trim().split(/\s+/)[0] || '';
-  const vars = { orderId, nome, ...social };
+  const site = satisfactionSiteDisplay(order);
+  const vars = { orderId, nome, site, ...social };
+  const ig = social.instagram;
+  const tt = social.tiktok;
+  const yt = social.youtube;
 
-  if (loc === 'en') {
-    return {
-      loc,
+  const byLoc = {
+    en: {
       subject: `Order delivered — ${orderId} · how was your experience?`,
-      message: `Your order ${orderId} was just marked as delivered.\n\nWe'd love to hear from you: did everything go well? Did the lens work properly on your watch? How did it feel to see the sensor working again?\n\nIf you can, reply to this e-mail with a short testimonial — that feedback helps many other people.\n\nAnd if you'd like, record a quick video of your watch working: introduce yourself, say where you're from, and show the result. With your permission, we may share it on Sensor Tattoo Fix Instagram, TikTok, and YouTube.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nThank you for trusting us!`
-    };
-  }
-  if (loc === 'it') {
-    return {
-      loc,
+      message: `Hello!\n\nWe're writing because your order ${orderId} has just been delivered.\n\nWe'd really love to know: did the application go well? Did the lens work properly, and is your watch monitoring your workouts/heart rate normally again over the tattoo?\n\nIf you can reply to this e-mail with a short testimonial, it would help us a lot!\n\nWant to help other tattooed people solve this problem too? 🎥\n\nIf you can record a simple phone video (15 to 30 seconds) showing the lens applied and the watch working, that would be amazing! You can introduce yourself, say where you're from, and show the result. With your permission, we'd love to post it on our social channels!\n\nFollow us there:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nIf you have any questions or need support with the application, just reply here.\n\nThank you so much for trusting Sensor TattooFix®!\n\nBest regards,\n\nFabio Nardoni\n\nSensor TattooFix® Team\n\n${site}`
+    },
+    it: {
       subject: `Ordine consegnato — ${orderId} · com'è andata?`,
-      message: `Il tuo ordine ${orderId} è appena stato segnato come consegnato.\n\nVorremmo sapere: è andato tutto bene? La lente ha funzionato bene sul tuo orologio? Come ti sei sentito nel vedere di nuovo il sensore funzionare?\n\nSe puoi, rispondi a questa e-mail con una breve testimonianza — il tuo feedback aiuta tante altre persone.\n\nE se vuoi, registra un video rapido dell'orologio che funziona: presentati, di' da dove sei e mostra il risultato. Con il tuo permesso, possiamo condividerlo su Instagram, TikTok e YouTube di Sensor Tattoo Fix.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nGrazie per la fiducia!`
-    };
-  }
-  if (loc === 'de') {
-    return {
-      loc,
+      message: `Ciao!\n\nRisulta che il tuo ordine ${orderId} è appena stato consegnato.\n\nVorremmo davvero sapere: l'applicazione è andata bene? La lente ha funzionato correttamente e il tuo orologio è tornato a monitorare allenamenti/battito normalmente sopra il tatuaggio?\n\nSe puoi rispondere a questa e-mail con una breve testimonianza, ci aiuteresti tantissimo!\n\nChe ne dici di aiutare anche altri tatuati a risolvere questo problema? 🎥\n\nSe riesci a registrare un video semplice dal telefono (15-30 secondi) mostrando la lente applicata e l'orologio che funziona, sarebbe fantastico! Puoi presentarti, dire da dove sei e mostrare il risultato. Con la tua autorizzazione, ci piacerebbe molto pubblicarlo sui nostri social!\n\nSeguici qui:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nSe hai dubbi o hai bisogno di supporto per l'applicazione, rispondi pure qui.\n\nGrazie mille per aver scelto Sensor TattooFix®!\n\nCordiali saluti,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    de: {
       subject: `Bestellung zugestellt — ${orderId} · wie war Ihre Erfahrung?`,
-      message: `Ihre Bestellung ${orderId} wurde gerade als zugestellt markiert.\n\nWir möchten wissen: Ist alles gut gelaufen? Hat die Linse an Ihrer Uhr richtig funktioniert? Wie haben Sie sich gefühlt, als der Sensor wieder arbeitete?\n\nWenn möglich, antworten Sie auf diese E-Mail mit einem kurzen Erfahrungsbericht — dieses Feedback hilft vielen anderen.\n\nUnd wenn Sie möchten, nehmen Sie ein kurzes Video Ihrer funktionierenden Uhr auf: Stellen Sie sich vor, sagen Sie, woher Sie kommen, und zeigen Sie das Ergebnis. Mit Ihrer Erlaubnis können wir es auf Instagram, TikTok und YouTube von Sensor Tattoo Fix teilen.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nDanke für Ihr Vertrauen!`
-    };
-  }
-  if (loc === 'es') {
-    return {
-      loc,
+      message: `Hallo!\n\nBei uns steht, dass Ihre Bestellung ${orderId} gerade zugestellt wurde.\n\nWir würden sehr gerne wissen: Hat die Anwendung gut geklappt? Hat die Linse richtig funktioniert und überwacht Ihre Uhr Training/Herzfrequenz wieder normal über dem Tattoo?\n\nWenn Sie auf diese E-Mail mit einem kurzen Erfahrungsbericht antworten können, hilft uns das enorm!\n\nMöchten Sie auch anderen Tätowierten helfen, dieses Problem zu lösen? 🎥\n\nWenn Sie ein einfaches Handyvideo (15–30 Sekunden) aufnehmen können, das die aufgebrachte Linse und die funktionierende Uhr zeigt, wäre das großartig! Sie können sich vorstellen, sagen, woher Sie kommen, und das Ergebnis zeigen. Mit Ihrer Erlaubnis würden wir es gerne in unseren sozialen Netzwerken posten!\n\nFolgen Sie uns hier:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nBei Fragen oder wenn Sie Hilfe bei der Anwendung brauchen, antworten Sie einfach hier.\n\nVielen Dank für Ihr Vertrauen in Sensor TattooFix®!\n\nMit freundlichen Grüßen,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    es: {
       subject: `Pedido entregado — ${orderId} · ¿cómo fue la experiencia?`,
-      message: `Tu pedido ${orderId} acaba de marcarse como entregado.\n\nQueremos saber: ¿salió todo bien? ¿La lente funcionó bien en tu reloj? ¿Cómo te sentiste al ver el sensor funcionar de nuevo?\n\nSi puedes, responde este correo con un testimonio breve — ese feedback ayuda mucho a otras personas.\n\nY si quieres, graba un vídeo rápido del reloj funcionando: preséntate, di de dónde eres y muestra el resultado. Con tu autorización, podemos compartirlo en Instagram, TikTok y YouTube de Sensor Tattoo Fix.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\n¡Gracias por confiar en nosotros!`
-    };
-  }
-  if (loc === 'pl') {
-    return {
-      loc,
+      message: `¡Hola!\n\nAquí figura que tu pedido ${orderId} acaba de ser entregado.\n\nQueremos mucho saber: ¿salió todo bien en la aplicación? ¿La lente funcionó bien y tu reloj volvió a monitorear tus entrenamientos/pulsaciones normalmente sobre el tatuaje?\n\nSi puedes responder a este correo con un testimonio corto, ¡nos ayudas un montón!\n\n¿Qué tal ayudar a otras personas tatuadas a resolver este problema también? 🎥\n\nSi puedes grabar un vídeo sencillo con el móvil (15 a 30 segundos) mostrando la lente aplicada y el reloj funcionando, ¡sería increíble! Puedes presentarte, decir de dónde eres y mostrar el resultado. Con tu autorización, ¡nos encantaría publicarlo en nuestras redes!\n\nSíguenos por aquí:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nSi tienes cualquier duda o necesitas soporte con la aplicación, escríbenos por aquí.\n\n¡Muchas gracias por confiar en Sensor TattooFix®!\n\nAtentamente,\n\nFabio Nardoni\n\nEquipo Sensor TattooFix®\n\n${site}`
+    },
+    pl: {
       subject: `Zamówienie doręczone — ${orderId} · jak poszło?`,
-      message: `Twoje zamówienie ${orderId} właśnie oznaczono jako doręczone.\n\nChcielibyśmy wiedzieć: czy wszystko poszło dobrze? Czy soczewka działała prawidłowo na zegarku? Jak się czułeś/aś, gdy sensor znów zaczął działać?\n\nJeśli możesz, odpowiedz na tę wiadomość krótką opinią — ta informacja bardzo pomaga innym.\n\nA jeśli chcesz, nagraj krótki film działającego zegarka: przedstaw się, powiedz skąd jesteś i pokaż efekt. Za Twoją zgodą możemy udostępnić go na Instagramie, TikToku i YouTube Sensor Tattoo Fix.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nDziękujemy za zaufanie!`
-    };
-  }
-  if (loc === 'sl') {
-    return {
-      loc,
+      message: `Cześć!\n\nU nas widać, że Twoje zamówienie ${orderId} właśnie zostało doręczone.\n\nBardzo chcemy wiedzieć: czy aplikacja poszła dobrze? Czy soczewka zadziałała prawidłowo i Twój zegarek znów normalnie monitoruje treningi/tętno nad tatuażem?\n\nJeśli możesz odpowiedzieć na tę wiadomość krótką opinią, bardzo nam pomożesz!\n\nA może pomożesz też innym osobom z tatuażami rozwiązać ten problem? 🎥\n\nJeśli możesz nagrać prosty film telefonem (15–30 sekund) pokazujący założoną soczewkę i działający zegarek, byłoby super! Możesz się przedstawić, powiedzieć skąd jesteś i pokazać efekt. Za Twoją zgodą chętnie opublikujemy go w naszych mediach społecznościowych!\n\nObserwuj nas tutaj:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nJeśli masz pytania lub potrzebujesz pomocy z aplikacją, po prostu odpisz tutaj.\n\nDziękujemy za zaufanie do Sensor TattooFix®!\n\nZ pozdrowieniami,\n\nFabio Nardoni\n\nZespół Sensor TattooFix®\n\n${site}`
+    },
+    sl: {
       subject: `Naročilo dostavljeno — ${orderId} · kako je bilo?`,
-      message: `Vaše naročilo ${orderId} je bilo pravkar označeno kot dostavljeno.\n\nRadi bi vedeli: je šlo vse v redu? Ali je leča pravilno delovala na vaši uri? Kako ste se počutili, ko je senzor spet začel delovati?\n\nČe lahko, odgovorite na to e-pošto s kratko izkušnjo — ta povratna informacija zelo pomaga drugim.\n\nIn če želite, posnemite kratek video delujoče ure: predstavite se, povejte od kod ste in pokažite rezultat. Z vašim dovoljenjem ga lahko delimo na Instagramu, TikToku in YouTubu Sensor Tattoo Fix.\n\nInstagram: ${social.instagram}\nTikTok: ${social.tiktok}\nYouTube: ${social.youtube}\n\nHvala za zaupanje!`
-    };
+      message: `Živjo!\n\nPri nas piše, da je bilo vaše naročilo ${orderId} pravkar dostavljeno.\n\nZelo bi radi vedeli: je aplikacija potekala v redu? Ali je leča pravilno delovala in ura spet normalno spremlja treninge/srčni utrip nad tatoviranjem?\n\nČe lahko odgovorite na to e-pošto s kratko izkušnjo, nam zelo pomagate!\n\nKaj pa, če pomagate tudi drugim tetoviranimi rešiti ta problem? 🎥\n\nČe lahko posnamete preprost video s telefonom (15–30 sekund), ki pokaže nameščeno lečo in delujočo uro, bi bilo odlično! Predstavite se, povejte od kod ste in pokažite rezultat. Z vašim dovoljenjem bi radi objavili na naših družbenih omrežjih!\n\nSledite nam tukaj:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nČe imate vprašanja ali potrebujete pomoč pri aplikaciji, samo odgovorite tukaj.\n\nNajlepša hvala za zaupanje v Sensor TattooFix®!\n\nLep pozdrav,\n\nFabio Nardoni\n\nEkipa Sensor TattooFix®\n\n${site}`
+    },
+    fr: {
+      subject: `Commande livrée — ${orderId} · comment s'est passée l'expérience ?`,
+      message: `Bonjour !\n\nNous voyons ici que votre commande ${orderId} vient d'être livrée.\n\nNous aimerions vraiment savoir : l'application s'est-elle bien passée ? La lentille a-t-elle bien fonctionné et votre montre surveille-t-elle à nouveau normalement vos entraînements/battements au-dessus du tatouage ?\n\nSi vous pouvez répondre à cet e-mail avec un court témoignage, cela nous aiderait énormément !\n\nEt si vous aidiez d'autres personnes tatouées à résoudre ce problème aussi ? 🎥\n\nSi vous pouvez enregistrer une courte vidéo avec votre téléphone (15 à 30 secondes) montrant la lentille appliquée et la montre qui fonctionne, ce serait génial ! Vous pouvez vous présenter, dire d'où vous venez et montrer le résultat. Avec votre autorisation, nous serions ravis de la publier sur nos réseaux !\n\nSuivez-nous ici :\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nPour toute question ou besoin d'aide pour l'application, répondez simplement ici.\n\nMerci beaucoup de faire confiance à Sensor TattooFix® !\n\nCordialement,\n\nFabio Nardoni\n\nÉquipe Sensor TattooFix®\n\n${site}`
+    },
+    nl: {
+      subject: `Bestelling bezorgd — ${orderId} · hoe was de ervaring?`,
+      message: `Hallo!\n\nHier staat dat je bestelling ${orderId} zojuist is bezorgd.\n\nWe willen heel graag weten: ging de applicatie goed? Werkt de lens goed en meet je horloge je trainingen/hartslag weer normaal over de tattoo?\n\nAls je op deze e-mail kunt antwoorden met een korte review, helpt dat ons enorm!\n\nZin om ook andere getatoeëerde mensen te helpen dit probleem op te lossen? 🎥\n\nAls je een eenvoudig telefoonfilmpje (15 tot 30 seconden) kunt maken van de aangebrachte lens en het werkende horloge, zou dat geweldig zijn! Je kunt jezelf voorstellen, zeggen waar je vandaan komt en het resultaat laten zien. Met jouw toestemming plaatsen we het graag op onze socials!\n\nVolg ons hier:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nHeb je vragen of hulp nodig bij de applicatie? Antwoord gerust hier.\n\nHeel erg bedankt dat je Sensor TattooFix® vertrouwt!\n\nMet vriendelijke groet,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    sv: {
+      subject: `Order levererad — ${orderId} · hur var upplevelsen?`,
+      message: `Hej!\n\nHär syns att din order ${orderId} just har levererats.\n\nVi vill verkligen veta: gick appliceringen bra? Fungerade linsen som den ska, och övervakar din klocka träning/puls normalt igen över tatueringen?\n\nOm du kan svara på det här mejlet med ett kort omdöme hjälper det oss jättemycket!\n\nVill du också hjälpa andra tatuerade att lösa det här problemet? 🎥\n\nOm du kan spela in en enkel mobilvideo (15–30 sekunder) som visar den applicerade linsen och klockan som fungerar vore det fantastiskt! Du kan presentera dig, säga varifrån du är och visa resultatet. Med ditt tillstånd skulle vi gärna lägga upp det i våra sociala medier!\n\nFölj oss här:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nHar du frågor eller behöver stöd med appliceringen? Svara bara här.\n\nTack så mycket för att du litar på Sensor TattooFix®!\n\nVänliga hälsningar,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    no: {
+      subject: `Ordre levert — ${orderId} · hvordan var opplevelsen?`,
+      message: `Hei!\n\nHer står det at bestillingen din ${orderId} nettopp er levert.\n\nVi vil gjerne vite: gikk påføringen bra? Fungerte linsen som den skal, og overvåker klokken trening/puls normalt igjen over tatoveringen?\n\nHvis du kan svare på denne e-posten med en kort tilbakemelding, hjelper det oss enormt!\n\nHva med å hjelpe andre tatoverte med å løse dette problemet også? 🎥\n\nHvis du kan ta en enkel mobilvideo (15–30 sekunder) som viser linsen påført og klokken i gang, hadde det vært fantastisk! Du kan presentere deg, si hvor du er fra og vise resultatet. Med din tillatelse vil vi gjerne legge det ut på våre sosiale medier!\n\nFølg oss her:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nHar du spørsmål eller trenger hjelp med påføringen? Bare svar her.\n\nTusen takk for at du stoler på Sensor TattooFix®!\n\nMed vennlig hilsen,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    fi: {
+      subject: `Tilaus toimitettu — ${orderId} · millainen kokemus oli?`,
+      message: `Hei!\n\nMeillä näkyy, että tilauksesi ${orderId} on juuri toimitettu.\n\nHaluaisimme todella tietää: sujuiko asennus hyvin? Toimiko linssi kunnolla ja seuraako kellosi treenejä/sykettä taas normaalisti tatuoinnin päällä?\n\nJos voit vastata tähän sähköpostiin lyhyellä kokemuksella, se auttaa meitä valtavasti!\n\nHaluaisitko auttaa myös muita tatuoituja ratkaisemaan tämän ongelman? 🎥\n\nJos voit kuvata yksinkertaisen puhelinvideon (15–30 sekuntia), jossa näkyy asennettu linssi ja toimiva kello, se olisi upeaa! Voit esitellä itsesi, kertoa mistä olet ja näyttää tuloksen. Luvallasi julkaisisimme sen mielellämme somessamme!\n\nSeuraa meitä täällä:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nJos sinulla on kysyttävää tai tarvitset tukea asennukseen, vastaa vain tähän.\n\nKiitos paljon, että luotat Sensor TattooFix® -tuotteeseen!\n\nYstävällisin terveisin,\n\nFabio Nardoni\n\nSensor TattooFix® -tiimi\n\n${site}`
+    }
+  };
+
+  if (byLoc[loc]) {
+    return { loc, ...byLoc[loc] };
   }
 
   return {
@@ -4160,29 +4176,15 @@ function buildDeliveredSatisfactionCopy(order, config) {
   };
 }
 
-function deliveredSatisfactionHtml(copy, order, config) {
+function deliveredSatisfactionHtml(copy) {
   const loc = copy.loc || 'pt';
-  const nome = String(order.nome || '').trim().split(/\s+/)[0] || '';
-  const greeting = loc === 'en'
-    ? (nome ? `Hi, ${nome}!` : 'Hi!')
-    : loc === 'it'
-      ? (nome ? `Ciao, ${nome}!` : 'Ciao!')
-      : loc === 'de'
-        ? (nome ? `Hallo, ${nome}!` : 'Hallo!')
-        : loc === 'es'
-          ? (nome ? `¡Hola, ${nome}!` : '¡Hola!')
-          : loc === 'pl'
-            ? (nome ? `Cześć, ${nome}!` : 'Cześć!')
-            : loc === 'sl'
-              ? (nome ? `Živjo, ${nome}!` : 'Živjo!')
-              : (nome ? `Olá, ${nome}!` : 'Olá!');
   const body = String(copy.message || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>');
   const site = loc === 'pt' ? 'sensortattoofix.com.br' : 'sensortattoofix.com';
-  return `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222"><p style="margin:0 0 12px">${greeting}</p><p style="margin:0;white-space:pre-wrap">${body}</p><p style="color:#666;font-size:12px;margin-top:16px">Sensor Tattoo Fix — ${site}</p></div>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222"><p style="margin:0;white-space:pre-wrap">${body}</p><p style="color:#666;font-size:12px;margin-top:16px">Sensor TattooFix® — ${site}</p></div>`;
 }
 
 /** Send satisfaction survey when order first becomes delivered (idempotent). */
@@ -4240,12 +4242,42 @@ async function maybeNotifyDelivered(env, config, order, previousStatus) {
     fields.Status = 'Dostavljeno';
     fields.Sporočilo = copy.message;
     delete fields.Mensagem;
+  } else if (copy.loc === 'fr') {
+    fields.Commande = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Livré';
+    fields.Message = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'nl') {
+    fields.Bestelling = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Bezorgd';
+    fields.Bericht = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'sv') {
+    fields.Order = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Levererad';
+    fields.Meddelande = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'no') {
+    fields.Ordre = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Levert';
+    fields.Melding = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'fi') {
+    fields.Tilaus = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Toimitettu';
+    fields.Viesti = copy.message;
+    delete fields.Mensagem;
   }
 
   const shopCopy = String(cfg.formsubmit?.email || '').trim();
   const result = await notifyCustomer(env, cfg, order, copy.subject, fields, {
-    html: deliveredSatisfactionHtml(copy, order, cfg),
-    text: `${String(order.nome || '').trim().split(/\s+/)[0] || ''}\n\n${copy.message}`.trim(),
+    html: deliveredSatisfactionHtml(copy),
+    text: copy.message,
     bcc: shopCopy || undefined
   });
   if (!result?.ok) {
@@ -18016,7 +18048,7 @@ async function sendTestEmailByType(env, config, to, type, overrides = {}) {
         Status: 'Entregue (TESTE)',
         Mensagem: copy.message
       }, {
-        html: deliveredSatisfactionHtml(copy, order, config),
+        html: deliveredSatisfactionHtml(copy),
         text: copy.message
       });
     }
