@@ -82,8 +82,8 @@
       "descriptionEs": "Diseñada para sensores ópticos de smartband en piel tatuada.",
       "descriptionPl": "Zaprojektowana dla czujników optycznych smartband na tatuowanej skórze.",
       "price": 62.9,
-      "priceUsd": 16.59,
-      "priceEur": 12.56,
+      "priceUsd": 20.25,
+      "priceEur": 17.42,
       "image": "/images/smartband/lens-en/01-embalagem.jpg",
       "images": [
         "/images/smartband/lens-en/01-embalagem.jpg",
@@ -101,10 +101,12 @@
       "aggregated": false,
       "nameSl": "Leča SensorTattooFix za pametno zapestnico",
       "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
-      "priceSek": 150,
-      "priceNok": 155,
-      "priceGbp": 11.73,
-      "pricePln": 46.55
+      "priceSek": 194,
+      "priceNok": 188,
+      "priceGbp": 14.96,
+      "pricePln": 75.09,
+      "intlMarkupPercent": 65,
+      "intlBaseBrl": 103.79
     },
     {
       "id": "optical-lens-intl",
@@ -122,8 +124,8 @@
       "descriptionEs": "Diseñada para sensores ópticos de smartwatch en piel tatuada.",
       "descriptionPl": "Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.",
       "price": 72.9,
-      "priceUsd": 19.23,
-      "priceEur": 14.56,
+      "priceUsd": 23.47,
+      "priceEur": 20.19,
       "image": "/images/lens-gallery/01-optical-correction-lens.png",
       "images": [
         "/images/lens-gallery/01-optical-correction-lens.png",
@@ -145,10 +147,12 @@
       "aggregated": false,
       "nameSl": "Optična leča SensorTattooFix",
       "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
-      "priceSek": 174,
-      "priceNok": 180,
-      "priceGbp": 13.6,
-      "pricePln": 53.96
+      "priceSek": 225,
+      "priceNok": 218,
+      "priceGbp": 17.34,
+      "pricePln": 87.03,
+      "intlMarkupPercent": 65,
+      "intlBaseBrl": 120.29
     },
     {
       "id": "pelicula-amazfit-bip-2",
@@ -6095,10 +6099,8 @@
         "SG",
         "HK"
       ],
-      "pppRate": 0.26382,
       "decimals": 2,
-      "active": true,
-      "pppSource": "Blend 35% WB PPP + FX (not full 2× PPP)"
+      "active": true
     },
     {
       "code": "GBP",
@@ -6107,10 +6109,8 @@
       "countries": [
         "GB"
       ],
-      "pppRate": 0.1865,
       "decimals": 2,
-      "active": true,
-      "pppSource": "Blend 35% WB PPP + FX"
+      "active": true
     },
     {
       "code": "EUR",
@@ -6137,10 +6137,8 @@
         "PT",
         "IE"
       ],
-      "pppRate": 0.19969,
       "decimals": 2,
-      "active": true,
-      "pppSource": "Blend 35% WB PPP + FX"
+      "active": true
     },
     {
       "code": "PLN",
@@ -6151,10 +6149,8 @@
       "countries": [
         "PL"
       ],
-      "pppRate": 0.74014,
       "decimals": 2,
-      "active": true,
-      "pppSource": "Blend 35% WB PPP + FX"
+      "active": true
     },
     {
       "code": "SEK",
@@ -6165,10 +6161,8 @@
       "countries": [
         "SE"
       ],
-      "pppRate": 2.38914,
       "decimals": 0,
-      "active": true,
-      "pppSource": "Blend 35% WB PPP + FX"
+      "active": true
     },
     {
       "code": "NOK",
@@ -6179,11 +6173,10 @@
       "countries": [
         "NO"
       ],
-      "pppRate": 2.47051,
       "decimals": 0,
-      "active": true,
-      "pppSource": "Blend 35% WB PPP + FX"
+      "active": true
     }
   ],
-  "intlCurrenciesAutoPpp": true
+  "intlCurrenciesAutoPpp": true,
+  "intlCurrenciesAutoFx": true
 }

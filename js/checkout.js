@@ -157,7 +157,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     } else {
       // BR shell keeps CEP/PIX defaults; country can still switch to intl later
       displayCurrency = 'BRL';
-      pppRate = null;
       fxRate = null;
       if (els.addressBr) els.addressBr.hidden = false;
       if (els.addressIntl) els.addressIntl.hidden = true;
@@ -419,15 +418,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   let fxRate = null;
-  let pppRate = null;
   let displayCurrency = 'BRL';
-
-  const DEFAULT_PPP_RATES = {
-    USD: { rate: 0.26382, decimals: 2 },
-    EUR: { rate: 0.19062, decimals: 2 },
-    SEK: { rate: 2.05087, decimals: 0 },
-    NOK: { rate: 2.20986, decimals: 0 }
-  };
 
   function intlDisplayCurrency() {
     if (window.STF_MONEY?.visitorDisplayCurrency) {
@@ -439,45 +430,23 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const loc = checkoutLocale();
     if (loc === 'sv') return 'SEK';
     if (loc === 'no') return 'NOK';
-    if (['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'fi'].includes(loc)) return 'EUR';
+    if (loc === 'pl') return 'PLN';
+    if (['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'].includes(loc)) return 'EUR';
     return 'USD';
-  }
-
-  function pppInfoForCurrency(currency) {
-    const cur = String(currency || '').toUpperCase();
-    const list = Array.isArray(cfg?.intlCurrencies) ? cfg.intlCurrencies : [];
-    const row = list.find((c) => String(c?.code || '').toUpperCase() === cur && c.active !== false);
-    if (row && Number(row.pppRate) > 0) {
-      const decimals = Number.isFinite(Number(row.decimals))
-        ? Math.max(0, Math.min(4, Math.floor(Number(row.decimals))))
-        : 2;
-      return { rate: Number(row.pppRate), decimals };
-    }
-    return DEFAULT_PPP_RATES[cur] || null;
-  }
-
-  function applyPppAmount(amountBrl, rate, decimals) {
-    const d = Number.isFinite(Number(decimals)) ? Math.max(0, Math.min(4, Math.floor(Number(decimals)))) : 2;
-    const factor = 10 ** d;
-    return Math.round(Math.max(0, Number(amountBrl) || 0) * Math.max(0, Number(rate) || 0) * factor) / factor;
   }
 
   function syncIntlDisplayCurrency() {
     if (!isInternational && !isIntlCheckoutShell()) {
       displayCurrency = 'BRL';
-      pppRate = null;
       return;
     }
     isInternational = true;
     displayCurrency = intlDisplayCurrency() || 'USD';
-    const info = pppInfoForCurrency(displayCurrency);
-    pppRate = info?.rate || null;
   }
 
   async function refreshDisplayCurrency() {
     if (!isInternational && !isIntlCheckoutShell()) {
       fxRate = null;
-      pppRate = null;
       displayCurrency = 'BRL';
       return;
     }
@@ -509,10 +478,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         }
       }
 
-      const info = pppInfoForCurrency(cur);
-      const rate = info?.rate || pppRate || fxRate;
-      if (rate) {
-        const foreign = applyPppAmount(brl, rate, info?.decimals ?? (cur === 'SEK' || cur === 'NOK' ? 0 : 2));
+      // Shipping / extras: market FX on BRL (product list prices already include markup).
+      if (fxRate) {
+        const decimals = (cur === 'SEK' || cur === 'NOK') ? 0 : 2;
+        const factor = 10 ** decimals;
+        const foreign = Math.round(brl * fxRate * factor) / factor;
         if (window.STF_MONEY?.formatForeign) {
           return window.STF_MONEY.formatForeign(foreign, cur, country);
         }

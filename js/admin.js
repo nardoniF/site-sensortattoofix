@@ -5769,14 +5769,53 @@ ${worksheets}
     return ['BR', 'INT'];
   }
 
+  const DEFAULT_INTL_MARKUP_PERCENT = 65;
+
   const DEFAULT_INTL_CURRENCIES = [
-    { code: 'USD', label: 'Dólar (USD)', langs: ['en'], countries: ['US', 'CA', 'AU', 'NZ', 'SG', 'HK'], pppRate: 0.26382, decimals: 2, active: true },
-    { code: 'GBP', label: 'Libra (GBP)', langs: [], countries: ['GB'], pppRate: 0.1865, decimals: 2, active: true },
-    { code: 'EUR', label: 'Euro (EUR)', langs: ['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'], countries: ['IT', 'DE', 'ES', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'], pppRate: 0.19969, decimals: 2, active: true },
-    { code: 'PLN', label: 'Złoty (PLN)', langs: ['pl'], countries: ['PL'], pppRate: 0.74014, decimals: 2, active: true },
-    { code: 'SEK', label: 'Coroa sueca (SEK)', langs: ['sv'], countries: ['SE'], pppRate: 2.38914, decimals: 0, active: true },
-    { code: 'NOK', label: 'Coroa norueguesa (NOK)', langs: ['no'], countries: ['NO'], pppRate: 2.47051, decimals: 0, active: true }
+    { code: 'USD', label: 'Dólar (USD)', langs: ['en'], countries: ['US', 'CA', 'AU', 'NZ', 'SG', 'HK'], decimals: 2, active: true },
+    { code: 'GBP', label: 'Libra (GBP)', langs: [], countries: ['GB'], decimals: 2, active: true },
+    { code: 'EUR', label: 'Euro (EUR)', langs: ['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'], countries: ['IT', 'DE', 'ES', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'], decimals: 2, active: true },
+    { code: 'PLN', label: 'Złoty (PLN)', langs: ['pl'], countries: ['PL'], decimals: 2, active: true },
+    { code: 'SEK', label: 'Coroa sueca (SEK)', langs: ['sv'], countries: ['SE'], decimals: 0, active: true },
+    { code: 'NOK', label: 'Coroa norueguesa (NOK)', langs: ['no'], countries: ['NO'], decimals: 0, active: true }
   ];
+
+  let adminFxRatesCache = { rates: null, at: 0 };
+
+  async function loadAdminFxRates() {
+    if (adminFxRatesCache.rates && Date.now() - adminFxRatesCache.at < 300000) {
+      return adminFxRatesCache.rates;
+    }
+    const base = (window.CONFIG_BOOTSTRAP?.configApiUrl || currentConfig?.api?.baseUrl || '').replace(/\/$/, '');
+    if (!base) return {};
+    try {
+      const res = await fetch(`${base}/fx/rates?to=USD,EUR,GBP,PLN,SEK,NOK`, { cache: 'no-store' });
+      if (!res.ok) return adminFxRatesCache.rates || {};
+      const data = await res.json();
+      adminFxRatesCache = { rates: data.rates || {}, at: Date.now() };
+      return adminFxRatesCache.rates;
+    } catch {
+      return adminFxRatesCache.rates || {};
+    }
+  }
+
+  function intlBaseFromInputs(price, markup) {
+    const brl = Math.max(0, Number(price) || 0);
+    const m = Number(markup);
+    const pct = Number.isFinite(m) && m >= 0 ? m : DEFAULT_INTL_MARKUP_PERCENT;
+    return Math.round(brl * (1 + pct / 100) * 100) / 100;
+  }
+
+  function formatAdminBrl(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function applyFxAmountAdmin(amountBrl, rate, decimals) {
+    const amount = Math.max(0, Number(amountBrl) || 0) * Math.max(0, Number(rate) || 0);
+    const d = Number.isFinite(Number(decimals)) ? Math.max(0, Math.min(4, Math.floor(Number(decimals)))) : 2;
+    const factor = 10 ** d;
+    return Math.round(amount * factor) / factor;
+  }
 
   function intlPriceFieldName(code) {
     const c = String(code || '').toUpperCase();
@@ -5792,7 +5831,6 @@ ${worksheets}
       .split(/[\s,;]+/).map((s) => s.toLowerCase().trim()).filter(Boolean);
     const countries = String(row?.countriesText != null ? row.countriesText : (Array.isArray(row?.countries) ? row.countries.join(', ') : (base.countries || []).join(', ')))
       .split(/[\s,;]+/).map((s) => s.toUpperCase().trim()).filter(Boolean);
-    const pppRate = Number(row?.pppRate != null ? row.pppRate : base.pppRate);
     const decimals = Number.isFinite(Number(row?.decimals != null ? row.decimals : base.decimals))
       ? Math.max(0, Math.min(4, Math.floor(Number(row?.decimals != null ? row.decimals : base.decimals))))
       : 2;
@@ -5801,7 +5839,6 @@ ${worksheets}
       label: String(row?.label || base.label || code).trim() || code,
       langs,
       countries,
-      pppRate: Number.isFinite(pppRate) && pppRate > 0 ? pppRate : Number(base.pppRate) || 0,
       decimals,
       active: row?.active != null ? row.active !== false : base.active !== false
     };
@@ -5816,23 +5853,26 @@ ${worksheets}
     return Array.from(byCode.values());
   }
 
-  function applyPppAmountAdmin(brl, rate, decimals) {
-    const amount = Math.max(0, Number(brl) || 0) * Math.max(0, Number(rate) || 0);
-    const d = Number.isFinite(Number(decimals)) ? Math.max(0, Math.min(4, Math.floor(Number(decimals)))) : 2;
-    const factor = 10 ** d;
-    return Math.round(amount * factor) / factor;
-  }
-
-  function applyPppToProductsAdmin(products, currencies) {
-    const list = (currencies || []).filter((c) => c.active !== false && Number(c.pppRate) > 0);
+  function applyMarkupFxToProductsAdmin(products, currencies, fxRates) {
+    const list = (currencies || []).filter((c) => c.active !== false);
+    const rates = fxRates || {};
     return (products || []).map((p) => {
-      if (!isIntlMarketProduct(p)) return p;
+      if (!isIntlMarketProduct(p)) {
+        const cleaned = { ...p };
+        delete cleaned.intlMarkupPercent;
+        delete cleaned.intlBaseBrl;
+        return cleaned;
+      }
       const brl = Number(p.price) || 0;
       if (!(brl > 0)) return p;
-      const next = { ...p };
+      const markup = Number(p.intlMarkupPercent);
+      const pct = Number.isFinite(markup) && markup >= 0 ? markup : DEFAULT_INTL_MARKUP_PERCENT;
+      const base = intlBaseFromInputs(brl, pct);
+      const next = { ...p, intlMarkupPercent: pct, intlBaseBrl: base };
       list.forEach((cur) => {
         const field = intlPriceFieldName(cur.code);
-        if (field) next[field] = applyPppAmountAdmin(brl, cur.pppRate, cur.decimals);
+        const rate = Number(rates[cur.code]);
+        if (field && rate > 0) next[field] = applyFxAmountAdmin(base, rate, cur.decimals);
       });
       return next;
     });
@@ -5848,10 +5888,9 @@ ${worksheets}
         <div class="form-grid">
           <label>Código ISO<input type="text" data-cur-field="code" maxlength="3" value="${escAttr(c.code || '')}" placeholder="USD"></label>
           <label>Nome<input type="text" data-cur-field="label" value="${escAttr(c.label || '')}" placeholder="Dólar (USD)"></label>
-          <label>Fator PPP (moeda = R$ × fator)<input type="number" data-cur-field="pppRate" step="0.00001" min="0" value="${c.pppRate != null ? c.pppRate : ''}" placeholder="0.26382"></label>
           <label>Casas decimais<input type="number" data-cur-field="decimals" min="0" max="4" step="1" value="${c.decimals != null ? c.decimals : 2}"></label>
           <label class="full">Línguas do site (códigos)<input type="text" data-cur-field="langs" value="${escAttr((c.langs || []).join(', '))}" placeholder="en"></label>
-          <label class="full">Países (ISO)<input type="text" data-cur-field="countries" value="${escAttr((c.countries || []).join(', '))}" placeholder="US, GB, CA"></label>
+          <label class="full">Países (ISO)<input type="text" data-cur-field="countries" value="${escAttr((c.countries || []).join(', '))}" placeholder="US, CA, AU"></label>
           <label class="label-check"><input type="checkbox" data-cur-field="active" ${c.active !== false ? 'checked' : ''}><span>Ativa</span></label>
         </div>
         <button type="button" class="btn-secondary btn-remove-intl-currency" data-index="${i}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
@@ -5876,7 +5915,6 @@ ${worksheets}
       const n = normalizeAdminIntlCurrency({
         code: val('code'),
         label: val('label'),
-        pppRate: val('pppRate'),
         decimals: val('decimals'),
         langsText: val('langs'),
         countriesText: val('countries'),
@@ -5987,18 +6025,26 @@ ${worksheets}
           <label class="full">Descrição (PT)<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
           ${i18nFields}
           ${aggregatedFields}
-          <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
+          <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}" ${market === 'INT' && !isAggregated ? 'data-intl-brl="1"' : ''}></label>
           ${market === 'INT' && !isAggregated ? (() => {
+            const markup = p.intlMarkupPercent != null ? p.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT;
+            const baseBrl = p.intlBaseBrl != null ? p.intlBaseBrl : intlBaseFromInputs(p.price, markup);
             const currencies = collectIntlCurrencies().filter((c) => c.active !== false);
             const fields = currencies.map((cur) => {
               const field = intlPriceFieldName(cur.code);
               const step = cur.decimals === 0 ? '1' : (cur.decimals === 1 ? '0.1' : '0.01');
               const langs = (cur.langs || []).map((l) => String(l).toUpperCase()).join('/');
               const val = p[field] != null ? p[field] : '';
-              return `<label>Preço ${escAttr(cur.code)}${langs ? ` (.com ${escAttr(langs)})` : ''}<input type="number" data-field="${escAttr(field)}" data-intl-price="1" step="${step}" min="0" value="${val}" placeholder="${cur.code === 'USD' ? '12.99' : ''}"></label>`;
+              return `<label class="admin-intl-price-ro">Preço ${escAttr(cur.code)}${langs ? ` (.com ${escAttr(langs)})` : ''}
+                <input type="number" data-field="${escAttr(field)}" data-intl-price="1" step="${step}" min="0" value="${val}" readonly tabindex="-1">
+                <small class="admin-intl-base-brl" data-intl-base-label>≈ ${formatAdminBrl(baseBrl)}</small>
+              </label>`;
             }).join('\n          ');
-            return `${fields}
-          <p class="admin-meta admin-field-hint full">R$ da lente smartwatch INT acompanha o kit BR (hoje R$ 72,90). Fatores = blend FX + 35% do PPP World Bank (~1,35× câmbio, não 2×). Capa .com = optical-lens-intl, nunca smartband.</p>`;
+            return `<label>Markup internacional (%)
+              <input type="number" data-field="intlMarkupPercent" data-intl-markup="1" step="0.1" min="0" value="${markup}">
+            </label>
+            <p class="admin-meta admin-field-hint full" data-intl-base-summary>Base internacional = R$ × (1 + markup) = <strong>${formatAdminBrl(baseBrl)}</strong> — depois convertida pela cotação. Moedas abaixo são calculadas (não editáveis). Capa .com = optical-lens-intl (smartwatch).</p>
+          ${fields}`;
           })() : ''}
           <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
@@ -6055,12 +6101,46 @@ ${worksheets}
     });
   }
 
+  function refreshIntlPriceRow(row, rates) {
+    if (!row || row.getAttribute('data-market') !== 'INT') return;
+    const priceEl = row.querySelector('[data-field="price"]');
+    const markupEl = row.querySelector('[data-field="intlMarkupPercent"]');
+    const brl = Number(priceEl?.value) || 0;
+    const markup = Number(markupEl?.value);
+    const pct = Number.isFinite(markup) && markup >= 0 ? markup : DEFAULT_INTL_MARKUP_PERCENT;
+    const base = intlBaseFromInputs(brl, pct);
+    const summary = row.querySelector('[data-intl-base-summary]');
+    if (summary) {
+      summary.innerHTML = `Base internacional = R$ × (1 + markup) = <strong>${formatAdminBrl(base)}</strong> — depois convertida pela cotação. Moedas abaixo são calculadas (não editáveis). Capa .com = optical-lens-intl (smartwatch).`;
+    }
+    row.querySelectorAll('[data-intl-base-label]').forEach((el) => {
+      el.textContent = `≈ ${formatAdminBrl(base)}`;
+    });
+    const currencies = collectIntlCurrencies().filter((c) => c.active !== false);
+    currencies.forEach((cur) => {
+      const field = intlPriceFieldName(cur.code);
+      const input = field ? row.querySelector(`[data-field="${field}"]`) : null;
+      const rate = Number(rates?.[cur.code]);
+      if (input && rate > 0) input.value = String(applyFxAmountAdmin(base, rate, cur.decimals));
+    });
+  }
+
+  async function bindIntlMarkupRecalc(listEl) {
+    if (!listEl) return;
+    const rates = await loadAdminFxRates();
+    listEl.querySelectorAll('.admin-product-row[data-market="INT"]').forEach((row) => {
+      const onChange = () => refreshIntlPriceRow(row, rates);
+      row.querySelector('[data-field="price"]')?.addEventListener('input', onChange);
+      row.querySelector('[data-field="intlMarkupPercent"]')?.addEventListener('input', onChange);
+      refreshIntlPriceRow(row, rates);
+    });
+  }
+
   function renderProducts(products) {
     const list = products || [];
     const brMain = list.filter((p) => !p.aggregated && productMarketsOf(p).includes('BR') && !isIntlMarketProduct(p));
     const brAgg = list.filter((p) => p.aggregated);
     const intlMain = list.filter((p) => !p.aggregated && (isIntlMarketProduct(p) || (productMarketsOf(p).includes('INT') && !productMarketsOf(p).includes('BR'))));
-    // Products tagged BOTH appear in BR main only (edit once); INT-only in intl panel.
     const summary = document.getElementById('admin-products-summary');
     if (summary) {
       summary.textContent = `BR ${brMain.length} principal(is) · ${brAgg.length} agregado(s) · .com ${intlMain.length} lente(s)`;
@@ -6068,6 +6148,7 @@ ${worksheets}
     renderProductList(brMain, 'admin-products-br-main', { market: 'BR', aggregated: false });
     renderProductList(brAgg, 'admin-products-br-aggregated', { market: 'BR', aggregated: true });
     renderProductList(intlMain, 'admin-products-intl-main', { market: 'INT', aggregated: false });
+    bindIntlMarkupRecalc(document.getElementById('admin-products-intl-main'));
   }
 
   function collectFromList(listEl, isAggregated, market) {
@@ -6128,10 +6209,17 @@ ${worksheets}
         if (market === 'INT') {
           const currencies = collectIntlCurrencies();
           const knownFields = new Set(currencies.map((c) => intlPriceFieldName(c.code)).filter(Boolean));
-          ['priceUsd', 'priceEur', 'priceSek', 'priceNok', ...knownFields].forEach((field) => {
+          ['priceUsd', 'priceEur', 'priceSek', 'priceNok', 'pricePln', 'priceGbp', ...knownFields].forEach((field) => {
             if (!field) return;
             delete product[field];
           });
+          const markupRaw = val('intlMarkupPercent');
+          const markupNum = Number(markupRaw);
+          product.intlMarkupPercent = Number.isFinite(markupNum) && markupNum >= 0
+            ? markupNum
+            : DEFAULT_INTL_MARKUP_PERCENT;
+          product.intlBaseBrl = intlBaseFromInputs(product.price, product.intlMarkupPercent);
+          // Foreign list prices are server-calculated on save (markup → FX). Keep shown values if present.
           row.querySelectorAll('[data-intl-price="1"]').forEach((input) => {
             const field = input.getAttribute('data-field');
             if (!field) return;
@@ -6139,7 +6227,7 @@ ${worksheets}
             if (raw) product[field] = Number(raw);
           });
         } else {
-          ['priceUsd', 'priceEur', 'priceSek', 'priceNok'].forEach((field) => { delete product[field]; });
+          ['priceUsd', 'priceEur', 'priceSek', 'priceNok', 'pricePln', 'priceGbp', 'intlMarkupPercent', 'intlBaseBrl'].forEach((field) => { delete product[field]; });
           collectIntlCurrencies().forEach((c) => {
             const field = intlPriceFieldName(c.code);
             if (field) delete product[field];
@@ -6443,8 +6531,8 @@ ${worksheets}
     const f = els.configForm;
     if (!f || !config) return;
     renderIntlCurrencies(getAdminIntlCurrencies(config));
-    const autoPpp = document.getElementById('admin-intl-auto-ppp');
-    if (autoPpp) autoPpp.checked = config.intlCurrenciesAutoPpp !== false;
+    const autoFx = document.getElementById('admin-intl-auto-ppp');
+    if (autoFx) autoFx.checked = config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false;
     renderProducts(getProductsFromConfig(config));
     renderKitCost(config);
     if (f.mlFlexShippingCost) {
@@ -6757,12 +6845,11 @@ ${worksheets}
       homeFaq: collectHomeFaq(),
       homeReviews: collectHomeReviews(),
       intlCurrencies: collectIntlCurrencies(),
+      intlCurrenciesAutoFx: document.getElementById('admin-intl-auto-ppp')?.checked !== false,
       intlCurrenciesAutoPpp: document.getElementById('admin-intl-auto-ppp')?.checked !== false,
       updatedAt: new Date().toISOString()
     };
-    if (payload.intlCurrenciesAutoPpp !== false) {
-      payload.products = applyPppToProductsAdmin(payload.products, payload.intlCurrencies);
-    }
+    // Server recalculates foreign prices on save via markup + FX.
     return payload;
   }
 
@@ -8332,7 +8419,8 @@ ${worksheets}
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
-      price: 62.9,
+      price: 72.9,
+      intlMarkupPercent: DEFAULT_INTL_MARKUP_PERCENT,
       image: LENS_INTL_IMAGES[0],
       images: LENS_INTL_IMAGES.slice(),
       active: true,
@@ -8341,7 +8429,7 @@ ${worksheets}
       sensorMm: 25,
       markets: ['INT']
     };
-    all.push(applyPppToProductsAdmin([base], currencies)[0]);
+    all.push(base);
     renderProducts(all);
     showProductSubtab('intl-main');
     showStatus('Produto .com adicionado. Preencha os campos e clique em Salvar.', 'success', 'save');
@@ -8356,7 +8444,6 @@ ${worksheets}
       label: 'Nova moeda',
       langs: [],
       countries: [],
-      pppRate: 0.2,
       decimals: 2,
       active: true
     });
@@ -8367,26 +8454,27 @@ ${worksheets}
     const status = document.getElementById('admin-intl-ppp-status');
     const currencies = collectIntlCurrencies();
     const auto = document.getElementById('admin-intl-auto-ppp')?.checked !== false;
-    const products = applyPppToProductsAdmin(collectProductsFromDom(), currencies);
+    const rates = await loadAdminFxRates();
+    const products = applyMarkupFxToProductsAdmin(collectProductsFromDom(), currencies, rates);
     renderProducts(products);
     if (status) {
       status.hidden = false;
-      status.textContent = 'Aplicando PPP nos produtos .com…';
+      status.textContent = 'Recalculando moedas (R$ + markup + FX)…';
     }
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (token && base) {
       try {
-        const res = await fetch(base.replace(/\/$/, '') + '/admin/intl-money/apply-ppp', {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/intl-money/apply-markup-fx', {
           method: 'POST',
           headers: {
             Authorization: 'Bearer ' + token,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ intlCurrencies: currencies, intlCurrenciesAutoPpp: auto })
+          body: JSON.stringify({ intlCurrencies: currencies, intlCurrenciesAutoFx: auto, intlCurrenciesAutoPpp: auto })
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Falha ao aplicar PPP.');
+        if (!res.ok) throw new Error(data.error || 'Falha ao recalcular moedas.');
         if (data.products) {
           const byId = new Map(data.products.map((p) => [p.id, p]));
           const merged = collectProductsFromDom().map((p) => {
@@ -8397,22 +8485,20 @@ ${worksheets}
         }
         if (currentConfig) {
           currentConfig.intlCurrencies = currencies;
+          currentConfig.intlCurrenciesAutoFx = auto;
           currentConfig.intlCurrenciesAutoPpp = auto;
-          if (Array.isArray(currentConfig.products)) {
-            currentConfig.products = applyPppToProductsAdmin(currentConfig.products, currencies);
-          }
         }
-        showStatus(`PPP aplicado em ${data.updated ?? 0} produto(s) .com.`, 'success', 'save');
+        showStatus(`Moedas recalculadas em ${data.updated ?? 0} produto(s) .com.`, 'success', 'save');
         if (status) status.textContent = `Atualizado: ${data.updated ?? 0} produto(s).`;
         return;
       } catch (err) {
-        showStatus(err.message || 'PPP aplicado só na tela — salve para gravar.', 'warning', 'save');
-        if (status) status.textContent = 'PPP na tela; salve para gravar no servidor.';
+        showStatus(err.message || 'Recálculo só na tela — salve para gravar.', 'warning', 'save');
+        if (status) status.textContent = 'Recálculo na tela; salve para gravar no servidor.';
         return;
       }
     }
-    showStatus('PPP aplicado na tela. Clique em Salvar para gravar.', 'success', 'save');
-    if (status) status.textContent = 'PPP na tela — salve para gravar.';
+    showStatus('Moedas recalculadas na tela. Salve para gravar.', 'success', 'save');
+    if (status) status.textContent = 'Recálculo local — clique em Salvar.';
   });
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));

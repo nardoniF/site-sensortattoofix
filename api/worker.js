@@ -93,14 +93,17 @@ import {
 } from './sales-money.js';
 import {
   DEFAULT_INTL_CURRENCIES,
+  DEFAULT_INTL_MARKUP_PERCENT,
   normalizeIntlCurrencies,
   activeIntlCurrencies,
-  applyPppToIntlProducts,
+  applyMarkupFxToIntlProducts,
   syncOpticalIntlBrlFromBrKit,
   currencyForLocaleFromRegistry,
   productListPriceFromRegistry,
   intlPriceField,
-  intlPriceFieldNames
+  intlPriceFieldNames,
+  intlBaseBrl,
+  normalizeMarkupPercent
 } from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
@@ -201,12 +204,14 @@ const DEFAULT_CONFIG = {
       descriptionEn: 'Designed for smartband optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartband su pelle tatuata.',
       price: 62.9,
-      priceUsd: 16.59,
-      priceEur: 12.56,
-      priceSek: 150,
-      priceNok: 155,
-      pricePln: 46.55,
-      priceGbp: 11.73,
+      intlMarkupPercent: 65,
+      intlBaseBrl: 103.79,
+      priceUsd: 20.25,
+      priceEur: 17.42,
+      priceSek: 194,
+      priceNok: 188,
+      pricePln: 75.09,
+      priceGbp: 14.96,
       image: '/images/smartband/lens-en/01-embalagem.jpg',
       images: [
         '/images/smartband/lens-en/01-embalagem.jpg',
@@ -231,12 +236,14 @@ const DEFAULT_CONFIG = {
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
       price: 72.9,
-      priceUsd: 19.23,
-      priceEur: 14.56,
-      priceSek: 174,
-      priceNok: 180,
-      pricePln: 53.96,
-      priceGbp: 13.6,
+      intlMarkupPercent: 65,
+      intlBaseBrl: 120.29,
+      priceUsd: 23.47,
+      priceEur: 20.19,
+      priceSek: 225,
+      priceNok: 218,
+      pricePln: 87.03,
+      priceGbp: 17.34,
       image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
         '/images/lens-gallery/01-optical-correction-lens.png',
@@ -253,9 +260,11 @@ const DEFAULT_CONFIG = {
       markets: ['INT']
     }
   ],
-  /** PPP list currencies for .com — foreign = R$ × pppRate (not Frankfurter FX). */
+  /** .com currencies (langs/countries). Product foreign prices = (R$ × markup%) × FX. */
   intlCurrencies: DEFAULT_INTL_CURRENCIES,
-  /** When true, daily cron + save recompute INT foreign prices from R$ × PPP. */
+  /** When true, save + daily cron recompute INT foreign prices from R$ + markup + FX. */
+  intlCurrenciesAutoFx: true,
+  /** @deprecated legacy alias — prefer intlCurrenciesAutoFx */
   intlCurrenciesAutoPpp: true,
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: {
@@ -1613,9 +1622,16 @@ function withConfigDefaults(stored) {
       ? Math.round(Number(stored.mlFlexShippingCost) * 100) / 100
       : base.mlFlexShippingCost,
     intlCurrencies: normalizeIntlCurrencies(stored.intlCurrencies),
-    intlCurrenciesAutoPpp: stored.intlCurrenciesAutoPpp != null
-      ? stored.intlCurrenciesAutoPpp !== false
-      : base.intlCurrenciesAutoPpp !== false,
+    intlCurrenciesAutoFx: stored.intlCurrenciesAutoFx != null
+      ? stored.intlCurrenciesAutoFx !== false
+      : (stored.intlCurrenciesAutoPpp != null
+        ? stored.intlCurrenciesAutoPpp !== false
+        : base.intlCurrenciesAutoFx !== false),
+    intlCurrenciesAutoPpp: stored.intlCurrenciesAutoFx != null
+      ? stored.intlCurrenciesAutoFx !== false
+      : (stored.intlCurrenciesAutoPpp != null
+        ? stored.intlCurrenciesAutoPpp !== false
+        : base.intlCurrenciesAutoPpp !== false),
     ...mergeKitCostConfig(stored, base)
   };
 }
@@ -2260,7 +2276,8 @@ function publicConfigView(config, env) {
       addressAutocomplete: true
     },
     intlCurrencies: activeIntlCurrencies(config),
-    intlCurrenciesAutoPpp: config.intlCurrenciesAutoPpp !== false,
+    intlCurrenciesAutoFx: config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false,
+    intlCurrenciesAutoPpp: config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false,
     updatedAt: config.updatedAt || null
   };
 }
@@ -2519,21 +2536,53 @@ function isIntlMarketProductRow(p) {
   return m.includes('INT') && !m.includes('BR');
 }
 
-/** Recompute INT foreign list prices from R$ × PPP registry (never market FX). */
-async function syncIntlProductPricesFromPpp(env, { force = false } = {}) {
-  const config = await getConfig(env);
-  if (!force && config.intlCurrenciesAutoPpp === false) return { updated: 0, skipped: true };
-  const currencies = normalizeIntlCurrencies(config.intlCurrencies);
-  const synced = syncOpticalIntlBrlFromBrKit(config.products || []);
-  const { products, updated } = applyPppToIntlProducts(synced.products, currencies);
-  const changed = updated || synced.synced;
-  if (changed) await saveConfig(env, { ...config, products, intlCurrencies: currencies });
-  return { updated: updated + (synced.synced ? 1 : 0), currencies: currencies.map((c) => c.code) };
+async function fetchFxRatesMap(env, currencyCodes) {
+  const codes = [...new Set((currencyCodes || []).map((c) => String(c || '').toUpperCase()).filter((c) => c && c !== 'BRL'))];
+  const out = {};
+  await Promise.all(codes.map(async (code) => {
+    try {
+      const row = await fetchFxRate(env, code);
+      if (row?.rate > 0) out[code] = Number(row.rate);
+    } catch { /* skip missing */ }
+  }));
+  return out;
 }
 
-/** Legacy name — cron used to overwrite with Frankfurter FX; now PPP only. */
+function autoFxEnabled(config) {
+  if (config?.intlCurrenciesAutoFx === false) return false;
+  if (config?.intlCurrenciesAutoPpp === false) return false;
+  return true;
+}
+
+/** Recompute INT foreign list prices: (R$ × markup%) × FX. */
+async function syncIntlProductPricesFromMarkupFx(env, { force = false } = {}) {
+  const config = await getConfig(env);
+  if (!force && !autoFxEnabled(config)) return { updated: 0, skipped: true };
+  const currencies = normalizeIntlCurrencies(config.intlCurrencies);
+  const synced = syncOpticalIntlBrlFromBrKit(config.products || []);
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  const { products, updated } = applyMarkupFxToIntlProducts(synced.products, currencies, fxRates);
+  const changed = updated || synced.synced;
+  if (changed) {
+    await saveConfig(env, {
+      ...config,
+      products,
+      intlCurrencies: currencies,
+      intlCurrenciesAutoFx: true,
+      intlCurrenciesAutoPpp: true
+    });
+  }
+  return { updated: updated + (synced.synced ? 1 : 0), currencies: currencies.map((c) => c.code), fxRates };
+}
+
+/** @deprecated name — cron used PPP; now markup + FX */
+async function syncIntlProductPricesFromPpp(env, opts) {
+  return syncIntlProductPricesFromMarkupFx(env, opts);
+}
+
+/** Legacy name — still points at markup+FX sync */
 async function syncIntlProductPricesFromFx(env) {
-  return syncIntlProductPricesFromPpp(env);
+  return syncIntlProductPricesFromMarkupFx(env);
 }
 
 async function intlForeignCharge(order, env, config, items, currency) {
@@ -10488,6 +10537,17 @@ async function handleFxRate(request, env, origin) {
   }
 }
 
+async function handleFxRates(request, env, origin) {
+  const raw = new URL(request.url).searchParams.get('to') || 'USD,EUR,GBP,PLN,SEK,NOK';
+  const codes = raw.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+  try {
+    const rates = await fetchFxRatesMap(env, codes);
+    return json({ base: 'BRL', rates, fetchedAt: new Date().toISOString() }, 200, origin);
+  } catch (err) {
+    return json({ error: err.message || 'Câmbio indisponível.' }, 502, origin);
+  }
+}
+
 function quoteInternational(config, countryCode) {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
   const code = String(countryCode || '').toUpperCase();
@@ -17760,7 +17820,7 @@ async function handleGetOrder(request, env, origin, orderId) {
   return json({ error: 'Não autorizado.' }, 401, origin);
 }
 
-async function handleAdminApplyIntlPpp(request, env, origin) {
+async function handleAdminApplyIntlMarkupFx(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
@@ -17774,25 +17834,32 @@ async function handleAdminApplyIntlPpp(request, env, origin) {
   const currencies = body.intlCurrencies != null
     ? normalizeIntlCurrencies(body.intlCurrencies)
     : normalizeIntlCurrencies(current.intlCurrencies);
-  const auto = body.intlCurrenciesAutoPpp != null
-    ? body.intlCurrenciesAutoPpp !== false
-    : current.intlCurrenciesAutoPpp !== false;
+  const auto = body.intlCurrenciesAutoFx != null
+    ? body.intlCurrenciesAutoFx !== false
+    : (body.intlCurrenciesAutoPpp != null
+      ? body.intlCurrenciesAutoPpp !== false
+      : autoFxEnabled(current));
   const synced = syncOpticalIntlBrlFromBrKit(current.products || []);
-  const { products, updated } = applyPppToIntlProducts(synced.products, currencies);
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  const { products, updated } = applyMarkupFxToIntlProducts(synced.products, currencies, fxRates);
   const saved = await saveConfig(env, {
     ...current,
     products,
     intlCurrencies: currencies,
+    intlCurrenciesAutoFx: auto,
     intlCurrenciesAutoPpp: auto
   });
   return json({
     ok: true,
     updated: updated + (synced.synced ? 1 : 0),
     syncedOpticalBrl: synced.synced,
-    currencies: currencies.map((c) => ({ code: c.code, pppRate: c.pppRate, decimals: c.decimals })),
+    fxRates,
+    currencies: currencies.map((c) => ({ code: c.code, decimals: c.decimals })),
     products: (saved.products || []).filter(isIntlMarketProductRow).map((p) => ({
       id: p.id,
       price: p.price,
+      intlMarkupPercent: p.intlMarkupPercent,
+      intlBaseBrl: p.intlBaseBrl,
       priceUsd: p.priceUsd,
       priceEur: p.priceEur,
       priceSek: p.priceSek,
@@ -17801,6 +17868,11 @@ async function handleAdminApplyIntlPpp(request, env, origin) {
       priceGbp: p.priceGbp
     }))
   }, 200, origin);
+}
+
+/** @deprecated alias */
+async function handleAdminApplyIntlPpp(request, env, origin) {
+  return handleAdminApplyIntlMarkupFx(request, env, origin);
 }
 
 async function handleAdminGetConfig(request, env, origin) {
@@ -17871,13 +17943,21 @@ async function handlePutConfig(request, env, origin, ctx) {
     intlCurrencies: body.intlCurrencies != null
       ? normalizeIntlCurrencies(body.intlCurrencies)
       : normalizeIntlCurrencies(current.intlCurrencies),
-    intlCurrenciesAutoPpp: body.intlCurrenciesAutoPpp != null
-      ? body.intlCurrenciesAutoPpp !== false
-      : (current.intlCurrenciesAutoPpp !== false)
+    intlCurrenciesAutoFx: body.intlCurrenciesAutoFx != null
+      ? body.intlCurrenciesAutoFx !== false
+      : (body.intlCurrenciesAutoPpp != null
+        ? body.intlCurrenciesAutoPpp !== false
+        : autoFxEnabled(current)),
+    intlCurrenciesAutoPpp: body.intlCurrenciesAutoFx != null
+      ? body.intlCurrenciesAutoFx !== false
+      : (body.intlCurrenciesAutoPpp != null
+        ? body.intlCurrenciesAutoPpp !== false
+        : autoFxEnabled(current))
   };
-  if (merged.intlCurrenciesAutoPpp !== false) {
+  if (autoFxEnabled(merged)) {
     const synced = syncOpticalIntlBrlFromBrKit(merged.products || []);
-    const applied = applyPppToIntlProducts(synced.products, merged.intlCurrencies);
+    const fxRates = await fetchFxRatesMap(env, (merged.intlCurrencies || []).map((c) => c.code));
+    const applied = applyMarkupFxToIntlProducts(synced.products, merged.intlCurrencies, fxRates);
     merged.products = applied.products;
   }
   if (merged.products?.[0]) {
@@ -18920,7 +19000,10 @@ export default {
         return handleAdminHomeI18nRefresh(request, env, origin, ctx);
       }
       if (path === '/admin/intl-money/apply-ppp' && request.method === 'POST') {
-        return handleAdminApplyIntlPpp(request, env, origin);
+        return handleAdminApplyIntlMarkupFx(request, env, origin);
+      }
+      if (path === '/admin/intl-money/apply-markup-fx' && request.method === 'POST') {
+        return handleAdminApplyIntlMarkupFx(request, env, origin);
       }
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
       if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);
@@ -19100,6 +19183,9 @@ export default {
       }
       if (path === '/fx/rate' && request.method === 'GET') {
         return handleFxRate(request, env, origin);
+      }
+      if (path === '/fx/rates' && request.method === 'GET') {
+        return handleFxRates(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);

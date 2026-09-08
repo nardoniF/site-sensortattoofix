@@ -184,7 +184,7 @@ window.STF_MONEY = (function () {
     return 'price' + cur[0] + cur.slice(1).toLowerCase();
   }
 
-  /** List / PPP prices — not Frankfurter FX. */
+  /** List prices from product (markup×FX already applied on save). */
   function configuredForeignPrice(product, currency, config) {
     if (!product) return null;
     const cur = String(currency || 'USD').toUpperCase();
@@ -196,14 +196,6 @@ window.STF_MONEY = (function () {
     if (field) {
       const direct = pick(field);
       if (direct != null) return direct;
-    }
-    const list = registryCurrencies(config);
-    const row = list && list.find((c) => String(c.code).toUpperCase() === cur);
-    const brl = Number(product.price) || 0;
-    if (row && brl > 0 && Number(row.pppRate) > 0) {
-      const d = Number.isFinite(Number(row.decimals)) ? Math.max(0, Math.min(4, Math.floor(Number(row.decimals)))) : 2;
-      const factor = 10 ** d;
-      return Math.round(brl * Number(row.pppRate) * factor) / factor;
     }
     return null;
   }
