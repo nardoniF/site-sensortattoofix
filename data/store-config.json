@@ -6075,5 +6075,84 @@
       "sourceEn": "Shopee · 5★",
       "sourceIt": "Shopee · 5★"
     }
-  ]
+  ],
+  "intlCurrencies": [
+    {
+      "code": "USD",
+      "label": "Dólar (USD)",
+      "langs": [
+        "en"
+      ],
+      "countries": [
+        "US",
+        "GB",
+        "CA",
+        "AU",
+        "NZ",
+        "SG",
+        "HK"
+      ],
+      "pppRate": 0.20652,
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "EUR",
+      "label": "Euro (EUR)",
+      "langs": [
+        "it",
+        "de",
+        "es",
+        "pl",
+        "sl",
+        "fr",
+        "nl",
+        "fi"
+      ],
+      "countries": [
+        "IT",
+        "DE",
+        "ES",
+        "PL",
+        "SI",
+        "FR",
+        "NL",
+        "FI",
+        "AT",
+        "BE",
+        "PT",
+        "IE"
+      ],
+      "pppRate": 0.19062,
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "SEK",
+      "label": "Coroa sueca (SEK)",
+      "langs": [
+        "sv"
+      ],
+      "countries": [
+        "SE"
+      ],
+      "pppRate": 2.05087,
+      "decimals": 0,
+      "active": true
+    },
+    {
+      "code": "NOK",
+      "label": "Coroa norueguesa (NOK)",
+      "langs": [
+        "no"
+      ],
+      "countries": [
+        "NO"
+      ],
+      "pppRate": 2.20986,
+      "decimals": 0,
+      "active": true
+    }
+  ],
+  "intlCurrenciesAutoPpp": true
 }

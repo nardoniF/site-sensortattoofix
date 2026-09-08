@@ -91,6 +91,16 @@ import {
   saleMoneyParts,
   storeOrderListedGross
 } from './sales-money.js';
+import {
+  DEFAULT_INTL_CURRENCIES,
+  normalizeIntlCurrencies,
+  activeIntlCurrencies,
+  applyPppToIntlProducts,
+  currencyForLocaleFromRegistry,
+  productListPriceFromRegistry,
+  intlPriceField,
+  intlPriceFieldNames
+} from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -238,6 +248,10 @@ const DEFAULT_CONFIG = {
       markets: ['INT']
     }
   ],
+  /** PPP list currencies for .com — foreign = R$ × pppRate (not Frankfurter FX). */
+  intlCurrencies: DEFAULT_INTL_CURRENCIES,
+  /** When true, daily cron + save recompute INT foreign prices from R$ × PPP. */
+  intlCurrenciesAutoPpp: true,
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: {
     originCep: '02537190',
@@ -1336,7 +1350,9 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'priceUsd',
     'priceEur',
     'priceSek',
-    'priceNok'
+    'priceNok',
+    'pricePln',
+    'priceGbp'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -1591,6 +1607,10 @@ function withConfigDefaults(stored) {
     mlFlexShippingCost: Number(stored.mlFlexShippingCost) > 0
       ? Math.round(Number(stored.mlFlexShippingCost) * 100) / 100
       : base.mlFlexShippingCost,
+    intlCurrencies: normalizeIntlCurrencies(stored.intlCurrencies),
+    intlCurrenciesAutoPpp: stored.intlCurrenciesAutoPpp != null
+      ? stored.intlCurrenciesAutoPpp !== false
+      : base.intlCurrenciesAutoPpp !== false,
     ...mergeKitCostConfig(stored, base)
   };
 }
@@ -2162,10 +2182,9 @@ function publicProductFields(p, config) {
   if (p.colorEn) row.colorEn = p.colorEn;
   if (Array.isArray(p.markets) && p.markets.length) row.markets = p.markets;
   if (Array.isArray(p.images) && p.images.length) row.images = p.images;
-  if (p.priceUsd != null) row.priceUsd = Number(p.priceUsd);
-  if (p.priceEur != null) row.priceEur = Number(p.priceEur);
-  if (p.priceSek != null) row.priceSek = Number(p.priceSek);
-  if (p.priceNok != null) row.priceNok = Number(p.priceNok);
+  intlPriceFieldNames(DEFAULT_INTL_CURRENCIES).forEach((field) => {
+    if (p[field] != null && Number.isFinite(Number(p[field]))) row[field] = Number(p[field]);
+  });
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
@@ -2235,6 +2254,8 @@ function publicConfigView(config, env) {
     integrations: {
       addressAutocomplete: true
     },
+    intlCurrencies: activeIntlCurrencies(config),
+    intlCurrenciesAutoPpp: config.intlCurrenciesAutoPpp !== false,
     updatedAt: config.updatedAt || null
   };
 }
@@ -2474,7 +2495,13 @@ function productIntlNok(product) {
 }
 
 /** List / PPP price for charge currency (not Frankfurter FX). */
-function productIntlListPrice(product, currency) {
+function productIntlListPrice(product, currency, config) {
+  const fromRegistry = productListPriceFromRegistry(
+    product,
+    currency,
+    config?.intlCurrencies || DEFAULT_INTL_CURRENCIES
+  );
+  if (fromRegistry != null) return fromRegistry;
   const cur = String(currency || 'USD').toUpperCase();
   if (cur === 'EUR') return productIntlEur(product);
   if (cur === 'SEK') return productIntlSek(product);
@@ -2487,27 +2514,19 @@ function isIntlMarketProductRow(p) {
   return m.includes('INT') && !m.includes('BR');
 }
 
-async function syncIntlProductPricesFromFx(env) {
+/** Recompute INT foreign list prices from R$ × PPP registry (never market FX). */
+async function syncIntlProductPricesFromPpp(env, { force = false } = {}) {
   const config = await getConfig(env);
-  const products = config.products || [];
-  if (!products.length) return { updated: 0 };
-  const fxUsd = await fetchFxRate(env, 'USD');
-  const fxEur = await fetchFxRate(env, 'EUR');
-  let updated = 0;
-  products.forEach((p) => {
-    if (!isIntlMarketProductRow(p)) return;
-    const brl = Number(p.price) || 0;
-    if (!brl) return;
-    const usd = Math.round(brl * fxUsd.rate * 100) / 100;
-    const eur = Math.round(brl * fxEur.rate * 100) / 100;
-    if (p.priceUsd !== usd || p.priceEur !== eur) {
-      p.priceUsd = usd;
-      p.priceEur = eur;
-      updated += 1;
-    }
-  });
-  if (updated) await saveConfig(env, { ...config, products });
-  return { updated, usdRate: fxUsd.rate, eurRate: fxEur.rate };
+  if (!force && config.intlCurrenciesAutoPpp === false) return { updated: 0, skipped: true };
+  const currencies = normalizeIntlCurrencies(config.intlCurrencies);
+  const { products, updated } = applyPppToIntlProducts(config.products || [], currencies);
+  if (updated) await saveConfig(env, { ...config, products, intlCurrencies: currencies });
+  return { updated, currencies: currencies.map((c) => c.code) };
+}
+
+/** Legacy name — cron used to overwrite with Frankfurter FX; now PPP only. */
+async function syncIntlProductPricesFromFx(env) {
+  return syncIntlProductPricesFromPpp(env);
 }
 
 async function intlForeignCharge(order, env, config, items, currency) {
@@ -2519,7 +2538,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   let allConfigured = itemList.length > 0;
   for (const item of itemList) {
     const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const price = p ? productIntlListPrice(p, cur) : null;
+    const price = p ? productIntlListPrice(p, cur, config) : null;
     if (price == null) { allConfigured = false; break; }
     productForeign += price * (Number(item.qty) || 1);
   }
@@ -2551,7 +2570,9 @@ async function intlUsdCharge(order, env, config, items) {
   return intlForeignCharge(order, env, config, items, 'USD');
 }
 
-function intlChargeCurrencyForLocale(locale) {
+function intlChargeCurrencyForLocale(locale, config) {
+  const fromRegistry = currencyForLocaleFromRegistry(locale, config?.intlCurrencies || DEFAULT_INTL_CURRENCIES);
+  if (fromRegistry && fromRegistry !== 'BRL') return fromRegistry;
   const l = String(locale || '').toLowerCase();
   if (l === 'sv') return 'SEK';
   if (l === 'no') return 'NOK';
@@ -17732,6 +17753,45 @@ async function handleGetOrder(request, env, origin, orderId) {
   return json({ error: 'Não autorizado.' }, 401, origin);
 }
 
+async function handleAdminApplyIntlPpp(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const current = await getConfig(env);
+  const currencies = body.intlCurrencies != null
+    ? normalizeIntlCurrencies(body.intlCurrencies)
+    : normalizeIntlCurrencies(current.intlCurrencies);
+  const auto = body.intlCurrenciesAutoPpp != null
+    ? body.intlCurrenciesAutoPpp !== false
+    : current.intlCurrenciesAutoPpp !== false;
+  const { products, updated } = applyPppToIntlProducts(current.products || [], currencies);
+  const saved = await saveConfig(env, {
+    ...current,
+    products,
+    intlCurrencies: currencies,
+    intlCurrenciesAutoPpp: auto
+  });
+  return json({
+    ok: true,
+    updated,
+    currencies: currencies.map((c) => ({ code: c.code, pppRate: c.pppRate, decimals: c.decimals })),
+    products: (saved.products || []).filter(isIntlMarketProductRow).map((p) => ({
+      id: p.id,
+      price: p.price,
+      priceUsd: p.priceUsd,
+      priceEur: p.priceEur,
+      priceSek: p.priceSek,
+      priceNok: p.priceNok
+    }))
+  }, 200, origin);
+}
+
 async function handleAdminGetConfig(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -17796,8 +17856,18 @@ async function handlePutConfig(request, env, origin, ctx) {
       : (current.homeFaq || []),
     homeReviews: body.homeReviews != null
       ? mergePreservedI18n(Array.isArray(body.homeReviews) ? body.homeReviews : current.homeReviews || [], current.homeReviews || [])
-      : (current.homeReviews || [])
+      : (current.homeReviews || []),
+    intlCurrencies: body.intlCurrencies != null
+      ? normalizeIntlCurrencies(body.intlCurrencies)
+      : normalizeIntlCurrencies(current.intlCurrencies),
+    intlCurrenciesAutoPpp: body.intlCurrenciesAutoPpp != null
+      ? body.intlCurrenciesAutoPpp !== false
+      : (current.intlCurrenciesAutoPpp !== false)
   };
+  if (merged.intlCurrenciesAutoPpp !== false) {
+    const applied = applyPppToIntlProducts(merged.products || [], merged.intlCurrencies);
+    merged.products = applied.products;
+  }
   if (merged.products?.[0]) {
     merged.product = {
       name: merged.products[0].name,
@@ -18837,6 +18907,9 @@ export default {
       if (path === '/admin/home-i18n/refresh' && request.method === 'POST') {
         return handleAdminHomeI18nRefresh(request, env, origin, ctx);
       }
+      if (path === '/admin/intl-money/apply-ppp' && request.method === 'POST') {
+        return handleAdminApplyIntlPpp(request, env, origin);
+      }
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
       if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);
       if (path === '/auth/logout' && request.method === 'POST') return handleCustomerLogout(request, env, origin);
@@ -19171,8 +19244,8 @@ export default {
     }
     if (event.cron === '30 2 * * *') {
       ctx.waitUntil(
-        syncIntlProductPricesFromFx(env).catch((err) => {
-          console.error('Intl FX price sync cron failed:', err.message);
+        syncIntlProductPricesFromPpp(env).catch((err) => {
+          console.error('Intl PPP price sync cron failed:', err.message);
         })
       );
     }

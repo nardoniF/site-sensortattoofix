@@ -102,6 +102,7 @@
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="kit" aria-selected="false"><i class="fas fa-coins"></i> Kit</button>
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="pagamento" aria-selected="false"><i class="fas fa-credit-card"></i> Pagamentos</button>
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="frete" aria-selected="false"><i class="fas fa-truck"></i> Frete</button>
+                        <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="moedas" aria-selected="false"><i class="fas fa-coins"></i> Moedas</button>
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="cupons" aria-selected="false"><i class="fas fa-ticket-alt"></i> Cupons</button>
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="faq" aria-selected="false"><i class="fas fa-circle-question"></i> FAQ</button>
                         <button type="button" role="tab" class="admin-product-subtab" data-cadastros-section="elogios" aria-selected="false"><i class="fas fa-star"></i> Elogios</button>
@@ -112,7 +113,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-box"></i> Catálogo de produtos</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-produtos" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-produtos" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p><strong>Brasil (.com.br):</strong> kit/lentes na vitrine + agregados (películas/pulseiras) só no checkout.</p>
-                            <p><strong>Internacional (.com):</strong> cadastre <strong>Preço USD</strong> (EN) e <strong>Preço EUR</strong> (IT) além do R$ de referência. USD/EUR são atualizados automaticamente todo dia; você pode ajustar manualmente.</p>
+                            <p><strong>Internacional (.com):</strong> cadastre o preço em <strong>R$</strong> de referência. As moedas locais (USD, EUR, SEK, NOK…) vêm do cadastro <strong>Moedas</strong> com câmbio por <strong>poder de compra (PPP)</strong> — não o câmbio oficial. Use o botão “Aplicar PPP” ou deixe o automático ligado.</p>
                             <p><strong>Internacional (.com):</strong> só a lente Optical Lens — sem agregados, sem kit completo. Fotos e título vêm deste cadastro.</p>
                             <p><strong>Custo do kit:</strong> Brasil (kit completo) e internacional (envelope + sulfite + lente). Película: preço ÷ folhas ÷ 30 lentes. O custo entra no <strong>líquido real</strong>.</p>
                         </div>
@@ -720,6 +721,27 @@
                             <button type="button" id="btn-test-email-all" class="btn-secondary"><i class="fas fa-envelopes-bulk"></i> Enviar todos os testes</button>
                         </div>
                         <p id="admin-status-contato" class="admin-status form-status" hidden></p>
+                    </fieldset>
+                    </div>
+
+                    <div id="admin-tab-moedas" class="admin-tab-panel" role="tabpanel" hidden>
+                    <fieldset>
+                        <legend class="admin-legend-row"><span><i class="fas fa-coins"></i> Moedas .com (poder de compra)</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-moedas" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
+                        <div id="help-moedas" class="admin-help-panel admin-help-panel--fieldset" hidden>
+                            <p>Cada moeda tem <strong>países</strong>, <strong>línguas do site</strong> e um <strong>fator PPP</strong> (preço na moeda = R$ × fator). Não use o câmbio do banco — é poder de compra, igual ao dólar de lista.</p>
+                            <p>Ex.: R$ 62,90 × 0,20652 ≈ US$ 12,99. Ajuste o fator e clique <strong>Aplicar câmbio por poder de compra</strong> para atualizar os produtos .com.</p>
+                        </div>
+                        <p class="admin-meta">Valor estrangeiro = preço em reais × fator PPP. Frete internacional ainda pode usar câmbio de mercado.</p>
+                        <label class="label-check" style="margin:8px 0;display:inline-flex;gap:8px;align-items:center">
+                            <input type="checkbox" id="admin-intl-auto-ppp" checked>
+                            <span>Atualizar automaticamente a partir do R$ (ao salvar e todo dia)</span>
+                        </label>
+                        <div id="admin-intl-currencies" class="admin-intl-currencies"></div>
+                        <div class="admin-form-actions" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                            <button type="button" id="btn-add-intl-currency" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar moeda</button>
+                            <button type="button" id="btn-apply-intl-ppp" class="btn-secondary"><i class="fas fa-scale-balanced"></i> Aplicar câmbio por poder de compra</button>
+                            <span id="admin-intl-ppp-status" class="admin-meta" hidden></span>
+                        </div>
                     </fieldset>
                     </div>
 
@@ -1354,6 +1376,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=224"></script>
+    <script defer src="js/admin.js?v=225"></script>
 </body>
 </html>
