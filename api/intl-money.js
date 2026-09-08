@@ -1,75 +1,109 @@
 /**
- * International list prices via World Bank GDP PPP (PA.NUS.PPP), not Frankfurter FX.
+ * International list prices via moderated purchasing-power rates vs BRL —
+ * not raw Frankfurter FX, and not full World Bank GDP PPP (~2× FX).
  *
  * foreign = round(brl * pppRate, decimals)
- * pppRate = PPP_foreign_LCU_per_intl$ / PPP_Brazil_LCU_per_intl$
  *
- * Source: World Bank WDI 2025 (Brazil 2.5544 BRL / intl $).
- * Result: foreign list ≈ ~2× FX for USD — dollars buy more than reais, so
- * the equivalent purchasing-power price is higher than a market conversion.
+ * Method (2025):
+ *   fullPpp = World Bank PA.NUS.PPP (LCU_foreign / LCU_Brazil)
+ *   fx      = market rate BRL→foreign
+ *   pppRate = 0.65 * fx + 0.35 * fullPpp
+ *   (~35% of the way from FX toward full PPP — commercial “poder de compra”
+ *   without doubling the BR price in dollars.)
+ *
+ * Cover / Where-to-buy uses optical-lens-intl (smartwatch), whose R$ reference
+ * must match the BR smartwatch kit (currently R$ 72,90) — not the smartband.
  */
 
-/** World Bank GDP PPP factors (foreign LCU per intl $ ÷ Brazil BRL per intl $). */
+const FX_ANCHOR = {
+  USD: 0.19508,
+  EUR: 0.16785,
+  SEK: 1.8736,
+  NOK: 1.8084,
+  PLN: 0.7235,
+  GBP: 0.14418
+};
+
+/** World Bank GDP PPP factors (foreign / Brazil), 2025. */
+const FULL_PPP = {
+  USD: 0.39148,
+  EUR: 0.25883,
+  SEK: 3.34656,
+  NOK: 3.70014,
+  PLN: 0.77104,
+  GBP: 0.26508
+};
+
+/** Share of the FX→full-PPP gap to apply (0 = FX only, 1 = full World Bank). */
+const PPP_BLEND = 0.35;
+
+function blendedRate(code) {
+  const fx = FX_ANCHOR[code];
+  const full = FULL_PPP[code];
+  if (!(fx > 0) || !(full > 0)) return full || fx || 0;
+  return Math.round(((1 - PPP_BLEND) * fx + PPP_BLEND * full) * 100000) / 100000;
+}
+
 export const DEFAULT_INTL_CURRENCIES = [
   {
     code: 'USD',
     label: 'Dólar (USD)',
     langs: ['en'],
     countries: ['US', 'CA', 'AU', 'NZ', 'SG', 'HK'],
-    pppRate: 0.39148,
+    pppRate: blendedRate('USD'),
     decimals: 2,
     active: true,
-    pppSource: 'World Bank PA.NUS.PPP 2025 (USA/BRA)'
+    pppSource: `Blend ${PPP_BLEND * 100}% WB PPP + FX (not full 2× PPP)`
   },
   {
     code: 'GBP',
     label: 'Libra (GBP)',
     langs: [],
     countries: ['GB'],
-    pppRate: 0.26508,
+    pppRate: blendedRate('GBP'),
     decimals: 2,
     active: true,
-    pppSource: 'World Bank PA.NUS.PPP 2025 (GBR/BRA)'
+    pppSource: `Blend ${PPP_BLEND * 100}% WB PPP + FX`
   },
   {
     code: 'EUR',
     label: 'Euro (EUR)',
     langs: ['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'],
     countries: ['IT', 'DE', 'ES', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'],
-    pppRate: 0.25883,
+    pppRate: blendedRate('EUR'),
     decimals: 2,
     active: true,
-    pppSource: 'World Bank PA.NUS.PPP 2025 (avg DE/IT/ES/SI/FR/NL/FI ÷ BRA)'
+    pppSource: `Blend ${PPP_BLEND * 100}% WB PPP + FX`
   },
   {
     code: 'PLN',
     label: 'Złoty (PLN)',
     langs: ['pl'],
     countries: ['PL'],
-    pppRate: 0.77104,
+    pppRate: blendedRate('PLN'),
     decimals: 2,
     active: true,
-    pppSource: 'World Bank PA.NUS.PPP 2025 (POL/BRA)'
+    pppSource: `Blend ${PPP_BLEND * 100}% WB PPP + FX`
   },
   {
     code: 'SEK',
     label: 'Coroa sueca (SEK)',
     langs: ['sv'],
     countries: ['SE'],
-    pppRate: 3.34656,
+    pppRate: blendedRate('SEK'),
     decimals: 0,
     active: true,
-    pppSource: 'World Bank PA.NUS.PPP 2025 (SWE/BRA)'
+    pppSource: `Blend ${PPP_BLEND * 100}% WB PPP + FX`
   },
   {
     code: 'NOK',
     label: 'Coroa norueguesa (NOK)',
     langs: ['no'],
     countries: ['NO'],
-    pppRate: 3.70014,
+    pppRate: blendedRate('NOK'),
     decimals: 0,
     active: true,
-    pppSource: 'World Bank PA.NUS.PPP 2025 (NOR/BRA)'
+    pppSource: `Blend ${PPP_BLEND * 100}% WB PPP + FX`
   }
 ];
 
@@ -177,6 +211,26 @@ export function applyPppToIntlProducts(products, currencies) {
     return product;
   });
   return { products: next, updated };
+}
+
+/**
+ * Keep INT smartwatch lens R$ in sync with the BR smartwatch kit.
+ * Cover / price tags must never use smartband pricing.
+ */
+export function syncOpticalIntlBrlFromBrKit(products) {
+  const list = Array.isArray(products) ? products.map((p) => ({ ...p })) : [];
+  const brKit = list.find((p) => {
+    const id = String(p?.id || p?.slug || '');
+    return id === 'kit-sensor-tattoofix' || id === 'kit';
+  });
+  const optical = list.find((p) => String(p?.id || p?.slug || '') === 'optical-lens-intl');
+  if (!brKit || !optical) return { products: list, synced: false };
+  const brl = Number(brKit.price);
+  if (!(brl > 0) || Number(optical.price) === brl) {
+    return { products: list, synced: false };
+  }
+  optical.price = brl;
+  return { products: list, synced: true };
 }
 
 export function currencyForLocaleFromRegistry(locale, currencies) {

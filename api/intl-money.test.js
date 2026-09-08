@@ -6,6 +6,7 @@ import {
   applyPppAmount,
   applyPppToProduct,
   applyPppToIntlProducts,
+  syncOpticalIntlBrlFromBrKit,
   currencyForLocaleFromRegistry,
   normalizeIntlCurrencies
 } from './intl-money.js';
@@ -19,40 +20,51 @@ test('intlPriceField maps ISO code to product field', () => {
   assert.equal(intlPriceField('GBP'), 'priceGbp');
 });
 
-test('World Bank PPP rates: R$100 ≈ 2× FX USD and maps all list currencies', () => {
-  const brl = 100;
+test('blended PPP: above FX but far below full World Bank (~2×)', () => {
   const by = Object.fromEntries(DEFAULT_INTL_CURRENCIES.map((c) => [c.code, c]));
-  assert.equal(applyPppAmount(brl, by.USD.pppRate, by.USD.decimals), 39.15);
-  assert.equal(applyPppAmount(brl, by.EUR.pppRate, by.EUR.decimals), 25.88);
-  assert.equal(applyPppAmount(brl, by.SEK.pppRate, by.SEK.decimals), 335);
-  assert.equal(applyPppAmount(brl, by.NOK.pppRate, by.NOK.decimals), 370);
-  assert.equal(applyPppAmount(brl, by.PLN.pppRate, by.PLN.decimals), 77.1);
-  assert.equal(applyPppAmount(brl, by.GBP.pppRate, by.GBP.decimals), 26.51);
-  // Must stay well above market FX (~R$5.1/USD → ~$19.5)
-  assert.ok(by.USD.pppRate > 0.35);
-  assert.ok(applyPppAmount(brl, by.USD.pppRate, 2) > 35);
+  // FX USD ~0.195; full PPP ~0.391; blend ~0.264
+  assert.ok(by.USD.pppRate > 0.22);
+  assert.ok(by.USD.pppRate < 0.32);
+  const watch = applyPppAmount(72.9, by.USD.pppRate, by.USD.decimals);
+  assert.equal(watch, 19.23);
+  assert.ok(watch > 72.9 * 0.195); // above FX
+  assert.ok(watch < 72.9 * 0.39); // below full PPP
 });
 
-test('smartband R$62.90 uses same PPP factors (not the old FX-style 12.99)', () => {
-  const { product } = applyPppToProduct({ price: 62.9 }, DEFAULT_INTL_CURRENCIES);
-  assert.equal(product.priceUsd, 24.62);
-  assert.equal(product.priceEur, 16.28);
-  assert.equal(product.priceSek, 210);
-  assert.equal(product.priceNok, 233);
-  assert.equal(product.pricePln, 48.5);
+test('smartwatch R$72.90 and smartband R$62.90 stay distinct', () => {
+  const watch = applyPppToProduct({ price: 72.9 }, DEFAULT_INTL_CURRENCIES).product;
+  const band = applyPppToProduct({ price: 62.9 }, DEFAULT_INTL_CURRENCIES).product;
+  assert.equal(watch.priceUsd, 19.23);
+  assert.equal(band.priceUsd, 16.59);
+  assert.notEqual(watch.priceUsd, band.priceUsd);
+  assert.equal(watch.priceEur, 14.56);
+  assert.equal(watch.priceSek, 174);
+  assert.equal(watch.priceNok, 180);
+  assert.equal(watch.pricePln, 53.96);
+});
+
+test('syncOpticalIntlBrlFromBrKit copies BR smartwatch kit price', () => {
+  const { products, synced } = syncOpticalIntlBrlFromBrKit([
+    { id: 'kit-sensor-tattoofix', markets: ['BR'], price: 72.9 },
+    { id: 'optical-lens-intl', markets: ['INT'], price: 100 },
+    { id: 'optical-lens-smartband-intl', markets: ['INT'], price: 62.9 }
+  ]);
+  assert.equal(synced, true);
+  assert.equal(products.find((p) => p.id === 'optical-lens-intl').price, 72.9);
+  assert.equal(products.find((p) => p.id === 'optical-lens-smartband-intl').price, 62.9);
 });
 
 test('applyPppToIntlProducts only touches INT market rows', () => {
   const { products, updated } = applyPppToIntlProducts(
     [
-      { id: 'br', markets: ['BR'], price: 62.9 },
-      { id: 'intl', markets: ['INT'], price: 100, priceUsd: 1 }
+      { id: 'br', markets: ['BR'], price: 72.9 },
+      { id: 'intl', markets: ['INT'], price: 72.9, priceUsd: 1 }
     ],
     DEFAULT_INTL_CURRENCIES
   );
   assert.equal(updated, 1);
   assert.equal(products[0].priceUsd, undefined);
-  assert.equal(products[1].priceUsd, 39.15);
+  assert.equal(products[1].priceUsd, 19.23);
 });
 
 test('currencyForLocaleFromRegistry follows langs', () => {

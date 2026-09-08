@@ -96,6 +96,7 @@ import {
   normalizeIntlCurrencies,
   activeIntlCurrencies,
   applyPppToIntlProducts,
+  syncOpticalIntlBrlFromBrKit,
   currencyForLocaleFromRegistry,
   productListPriceFromRegistry,
   intlPriceField,
@@ -200,12 +201,12 @@ const DEFAULT_CONFIG = {
       descriptionEn: 'Designed for smartband optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartband su pelle tatuata.',
       price: 62.9,
-      priceUsd: 24.62,
-      priceEur: 16.28,
-      priceSek: 210,
-      priceNok: 233,
-      pricePln: 48.5,
-      priceGbp: 16.67,
+      priceUsd: 16.59,
+      priceEur: 12.56,
+      priceSek: 150,
+      priceNok: 155,
+      pricePln: 46.55,
+      priceGbp: 11.73,
       image: '/images/smartband/lens-en/01-embalagem.jpg',
       images: [
         '/images/smartband/lens-en/01-embalagem.jpg',
@@ -229,13 +230,13 @@ const DEFAULT_CONFIG = {
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
-      price: 100,
-      priceUsd: 39.15,
-      priceEur: 25.88,
-      priceSek: 335,
-      priceNok: 370,
-      pricePln: 77.1,
-      priceGbp: 26.51,
+      price: 72.9,
+      priceUsd: 19.23,
+      priceEur: 14.56,
+      priceSek: 174,
+      priceNok: 180,
+      pricePln: 53.96,
+      priceGbp: 13.6,
       image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
         '/images/lens-gallery/01-optical-correction-lens.png',
@@ -2523,9 +2524,11 @@ async function syncIntlProductPricesFromPpp(env, { force = false } = {}) {
   const config = await getConfig(env);
   if (!force && config.intlCurrenciesAutoPpp === false) return { updated: 0, skipped: true };
   const currencies = normalizeIntlCurrencies(config.intlCurrencies);
-  const { products, updated } = applyPppToIntlProducts(config.products || [], currencies);
-  if (updated) await saveConfig(env, { ...config, products, intlCurrencies: currencies });
-  return { updated, currencies: currencies.map((c) => c.code) };
+  const synced = syncOpticalIntlBrlFromBrKit(config.products || []);
+  const { products, updated } = applyPppToIntlProducts(synced.products, currencies);
+  const changed = updated || synced.synced;
+  if (changed) await saveConfig(env, { ...config, products, intlCurrencies: currencies });
+  return { updated: updated + (synced.synced ? 1 : 0), currencies: currencies.map((c) => c.code) };
 }
 
 /** Legacy name — cron used to overwrite with Frankfurter FX; now PPP only. */
@@ -17774,7 +17777,8 @@ async function handleAdminApplyIntlPpp(request, env, origin) {
   const auto = body.intlCurrenciesAutoPpp != null
     ? body.intlCurrenciesAutoPpp !== false
     : current.intlCurrenciesAutoPpp !== false;
-  const { products, updated } = applyPppToIntlProducts(current.products || [], currencies);
+  const synced = syncOpticalIntlBrlFromBrKit(current.products || []);
+  const { products, updated } = applyPppToIntlProducts(synced.products, currencies);
   const saved = await saveConfig(env, {
     ...current,
     products,
@@ -17783,7 +17787,8 @@ async function handleAdminApplyIntlPpp(request, env, origin) {
   });
   return json({
     ok: true,
-    updated,
+    updated: updated + (synced.synced ? 1 : 0),
+    syncedOpticalBrl: synced.synced,
     currencies: currencies.map((c) => ({ code: c.code, pppRate: c.pppRate, decimals: c.decimals })),
     products: (saved.products || []).filter(isIntlMarketProductRow).map((p) => ({
       id: p.id,
@@ -17791,7 +17796,9 @@ async function handleAdminApplyIntlPpp(request, env, origin) {
       priceUsd: p.priceUsd,
       priceEur: p.priceEur,
       priceSek: p.priceSek,
-      priceNok: p.priceNok
+      priceNok: p.priceNok,
+      pricePln: p.pricePln,
+      priceGbp: p.priceGbp
     }))
   }, 200, origin);
 }
@@ -17869,7 +17876,8 @@ async function handlePutConfig(request, env, origin, ctx) {
       : (current.intlCurrenciesAutoPpp !== false)
   };
   if (merged.intlCurrenciesAutoPpp !== false) {
-    const applied = applyPppToIntlProducts(merged.products || [], merged.intlCurrencies);
+    const synced = syncOpticalIntlBrlFromBrKit(merged.products || []);
+    const applied = applyPppToIntlProducts(synced.products, merged.intlCurrencies);
     merged.products = applied.products;
   }
   if (merged.products?.[0]) {
