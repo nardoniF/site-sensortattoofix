@@ -371,6 +371,38 @@ window.STF_PRODUCT_MERGE = (function () {
     return next;
   }
 
+  function mergeHomeContentById(primaryList, supplementList) {
+    const byId = new Map();
+    (primaryList || []).forEach((row) => {
+      const id = String(row?.id || '').trim();
+      if (id) byId.set(id, { ...row });
+    });
+    (supplementList || []).forEach((row) => {
+      const id = String(row?.id || '').trim();
+      if (!id) return;
+      if (!byId.has(id)) {
+        byId.set(id, { ...row });
+        return;
+      }
+      const prev = byId.get(id);
+      const next = { ...row, ...prev };
+      ['body', 'bodyEn', 'bodyIt', 'author', 'authorEn', 'authorIt', 'source', 'sourceEn', 'sourceIt',
+        'question', 'questionEn', 'questionIt', 'answer', 'answerEn', 'answerIt'].forEach((field) => {
+        if ((prev[field] == null || String(prev[field]).trim() === '') && row[field] != null && String(row[field]).trim() !== '') {
+          next[field] = row[field];
+        }
+      });
+      if (prev.i18n || row.i18n) {
+        next.i18n = { ...(row.i18n || {}), ...(prev.i18n || {}) };
+        Object.keys(row.i18n || {}).forEach((lang) => {
+          next.i18n[lang] = { ...(row.i18n[lang] || {}), ...(prev.i18n?.[lang] || {}) };
+        });
+      }
+      byId.set(id, next);
+    });
+    return [...byId.values()].sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+  }
+
   function mergeConfig(apiConfig, localConfig) {
     if (!localConfig) return apiConfig;
     const next = { ...apiConfig };
@@ -395,6 +427,12 @@ window.STF_PRODUCT_MERGE = (function () {
       apiConfig.smartwatchCatalog,
       localConfig.smartwatchCatalog
     );
+    if (localConfig.homeReviews?.length || apiConfig.homeReviews?.length) {
+      next.homeReviews = mergeHomeContentById(apiConfig.homeReviews, localConfig.homeReviews);
+    }
+    if (localConfig.homeFaq?.length || apiConfig.homeFaq?.length) {
+      next.homeFaq = mergeHomeContentById(apiConfig.homeFaq, localConfig.homeFaq);
+    }
     return next;
   }
 
@@ -444,6 +482,7 @@ window.STF_PRODUCT_MERGE = (function () {
   }
 
   return {
+    mergeHomeContentById,
     mergeProductLists,
     mergeConfig,
     mergeMissingCatalogProducts,

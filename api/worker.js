@@ -1525,6 +1525,39 @@ function mergeSiteCatalogSmartwatchMeta(kvMeta, siteMeta) {
   return out;
 }
 
+function mergeHomeContentById(kvList, siteList) {
+  const byId = new Map();
+  (kvList || []).forEach((row) => {
+    const id = String(row?.id || '').trim();
+    if (id) byId.set(id, { ...row });
+  });
+  (siteList || []).forEach((row) => {
+    const id = String(row?.id || '').trim();
+    if (!id) return;
+    if (!byId.has(id)) {
+      byId.set(id, { ...row });
+      return;
+    }
+    // KV wins for edited fields; fill blanks from Git catalog.
+    const prev = byId.get(id);
+    const next = { ...row, ...prev };
+    ['body', 'bodyEn', 'bodyIt', 'author', 'authorEn', 'authorIt', 'source', 'sourceEn', 'sourceIt',
+      'question', 'questionEn', 'questionIt', 'answer', 'answerEn', 'answerIt'].forEach((field) => {
+      if ((prev[field] == null || String(prev[field]).trim() === '') && row[field] != null && String(row[field]).trim() !== '') {
+        next[field] = row[field];
+      }
+    });
+    if (prev.i18n || row.i18n) {
+      next.i18n = { ...(row.i18n || {}), ...(prev.i18n || {}) };
+      Object.keys(row.i18n || {}).forEach((lang) => {
+        next.i18n[lang] = { ...(row.i18n[lang] || {}), ...(prev.i18n?.[lang] || {}) };
+      });
+    }
+    byId.set(id, next);
+  });
+  return [...byId.values()].sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+}
+
 function mergeSiteCatalog(config, site) {
   if (!site || typeof site !== 'object') return config;
   const next = { ...config };
@@ -1540,14 +1573,10 @@ function mergeSiteCatalog(config, site) {
     site.smartwatchCatalog
   );
   if (Array.isArray(site.homeFaq) && site.homeFaq.length) {
-    next.homeFaq = Array.isArray(config.homeFaq) && config.homeFaq.length
-      ? config.homeFaq
-      : site.homeFaq;
+    next.homeFaq = mergeHomeContentById(config.homeFaq, site.homeFaq);
   }
   if (Array.isArray(site.homeReviews) && site.homeReviews.length) {
-    next.homeReviews = Array.isArray(config.homeReviews) && config.homeReviews.length
-      ? config.homeReviews
-      : site.homeReviews;
+    next.homeReviews = mergeHomeContentById(config.homeReviews, site.homeReviews);
   }
   if (site.products?.length) {
     next.products = mergeSiteCatalogProducts(config.products, site.products);
@@ -1594,7 +1623,23 @@ async function fetchSiteCatalog() {
 async function getPublicConfig(env) {
   const config = await getConfig(env);
   const site = await fetchSiteCatalog();
-  return mergeSiteCatalog(config, site);
+  const merged = mergeSiteCatalog(config, site);
+  // Se o Git tiver elogios/FAQ a mais que o KV (ex.: save parcial no Admin),
+  // completa e persiste para o painel e o /config não ficarem para trás.
+  const kvReviews = Array.isArray(config.homeReviews) ? config.homeReviews : [];
+  const mergedReviews = Array.isArray(merged.homeReviews) ? merged.homeReviews : [];
+  const kvFaq = Array.isArray(config.homeFaq) ? config.homeFaq : [];
+  const mergedFaq = Array.isArray(merged.homeFaq) ? merged.homeFaq : [];
+  if (mergedReviews.length > kvReviews.length || mergedFaq.length > kvFaq.length) {
+    try {
+      await saveConfig(env, {
+        ...config,
+        homeReviews: mergedReviews.length ? mergedReviews : kvReviews,
+        homeFaq: mergedFaq.length ? mergedFaq : kvFaq
+      });
+    } catch (_) { /* non-fatal */ }
+  }
+  return merged;
 }
 
 function normalizeApiBaseUrl(api) {

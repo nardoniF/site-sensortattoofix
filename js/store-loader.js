@@ -116,12 +116,18 @@ window.StoreConfig = (function () {
                 homeFaq: (() => {
                   const apiList = apiConfig.homeFaq || [];
                   const localList = local.homeFaq || [];
+                  if (window.STF_PRODUCT_MERGE?.mergeHomeContentById) {
+                    return window.STF_PRODUCT_MERGE.mergeHomeContentById(apiList, localList);
+                  }
                   if (localList.length > apiList.length) return localList;
                   return apiList.length ? apiList : localList;
                 })(),
                 homeReviews: (() => {
                   const apiList = apiConfig.homeReviews || [];
                   const localList = local.homeReviews || [];
+                  if (window.STF_PRODUCT_MERGE?.mergeHomeContentById) {
+                    return window.STF_PRODUCT_MERGE.mergeHomeContentById(apiList, localList);
+                  }
                   if (localList.length > apiList.length) return localList;
                   return apiList.length ? apiList : localList;
                 })(),

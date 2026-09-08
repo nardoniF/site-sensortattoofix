@@ -187,6 +187,19 @@
             if (window.STF_PRODUCT_MERGE.mergeConfig) {
               apiConfig = window.STF_PRODUCT_MERGE.mergeConfig(apiConfig, local);
             }
+            if (window.STF_PRODUCT_MERGE.mergeHomeContentById) {
+              apiConfig = {
+                ...apiConfig,
+                homeReviews: window.STF_PRODUCT_MERGE.mergeHomeContentById(
+                  apiConfig.homeReviews,
+                  local.homeReviews
+                ),
+                homeFaq: window.STF_PRODUCT_MERGE.mergeHomeContentById(
+                  apiConfig.homeFaq,
+                  local.homeFaq
+                )
+              };
+            }
           }
           currentConfig = apiConfig;
           setModeBadge(true);
