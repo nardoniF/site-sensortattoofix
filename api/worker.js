@@ -4126,24 +4126,48 @@ function satisfactionSocialUrls(config) {
 }
 
 /** Site shown in satisfaction e-mail footer: .com.br (PT) or .com[/lang] (intl). */
-function satisfactionSiteDisplay(order) {
-  const loc = orderCheckoutLocale(order);
-  if (!isIntlCheckoutLocale(loc)) return 'www.sensortattoofix.com.br';
-  const path = orderCheckoutLangPath(order);
+function satisfactionSiteDisplay(order, locOverride) {
+  const loc = locOverride || satisfactionEmailLocale(order);
+  if (loc === 'pt' || !isIntlCheckoutLocale(loc)) return 'www.sensortattoofix.com.br';
+  const path = loc === 'en' ? '' : `/${loc}`;
   return 'www.sensortattoofix.com' + path;
 }
 
-/** Locale for delivered / satisfaction e-mails = checkout locale of the order. */
+/**
+ * Locale for delivered / satisfaction e-mails.
+ * Prefer explicit checkout language; if checkout was EN, use the destination
+ * country language when we have a translation (ex.: SI → sl).
+ */
+function satisfactionEmailLocale(order) {
+  const supported = new Set(['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']);
+  const checkout = orderCheckoutLocale(order);
+  if (checkout && checkout !== 'en' && supported.has(checkout)) return checkout;
+
+  const codes = [
+    String(order?.paisCode || '').trim().toUpperCase(),
+    inferPaisCodeFromName(order?.pais) || ''
+  ].filter(Boolean);
+  for (const code of codes) {
+    const langs = COUNTRY_PRIMARY_LANGUAGES[code] || [];
+    for (const lang of langs) {
+      if (supported.has(lang) && lang !== 'en') return lang;
+    }
+  }
+  if (supported.has(checkout)) return checkout;
+  return 'en';
+}
+
+/** @deprecated use satisfactionEmailLocale */
 function deliveredEmailLocale(order) {
-  return orderCheckoutLocale(order);
+  return satisfactionEmailLocale(order);
 }
 
 function buildDeliveredSatisfactionCopy(order, config) {
-  const loc = deliveredEmailLocale(order);
+  const loc = satisfactionEmailLocale(order);
   const social = satisfactionSocialUrls(config);
   const orderId = order.orderId;
   const nome = String(order.nome || '').trim().split(/\s+/)[0] || '';
-  const site = satisfactionSiteDisplay(order);
+  const site = satisfactionSiteDisplay(order, loc);
   const vars = { orderId, nome, site, ...social };
   const ig = social.instagram;
   const tt = social.tiktok;
