@@ -15,43 +15,51 @@ test('intlPriceField maps ISO code to product field', () => {
   assert.equal(intlPriceField('eur'), 'priceEur');
   assert.equal(intlPriceField('SEK'), 'priceSek');
   assert.equal(intlPriceField('NOK'), 'priceNok');
+  assert.equal(intlPriceField('PLN'), 'pricePln');
+  assert.equal(intlPriceField('GBP'), 'priceGbp');
 });
 
-test('default PPP rates match intentional list prices at R$ 62.90', () => {
-  const brl = 62.9;
+test('World Bank PPP rates: R$100 ≈ 2× FX USD and maps all list currencies', () => {
+  const brl = 100;
   const by = Object.fromEntries(DEFAULT_INTL_CURRENCIES.map((c) => [c.code, c]));
-  assert.equal(applyPppAmount(brl, by.USD.pppRate, by.USD.decimals), 12.99);
-  assert.equal(applyPppAmount(brl, by.EUR.pppRate, by.EUR.decimals), 11.99);
-  assert.equal(applyPppAmount(brl, by.SEK.pppRate, by.SEK.decimals), 129);
-  assert.equal(applyPppAmount(brl, by.NOK.pppRate, by.NOK.decimals), 139);
+  assert.equal(applyPppAmount(brl, by.USD.pppRate, by.USD.decimals), 39.15);
+  assert.equal(applyPppAmount(brl, by.EUR.pppRate, by.EUR.decimals), 25.88);
+  assert.equal(applyPppAmount(brl, by.SEK.pppRate, by.SEK.decimals), 335);
+  assert.equal(applyPppAmount(brl, by.NOK.pppRate, by.NOK.decimals), 370);
+  assert.equal(applyPppAmount(brl, by.PLN.pppRate, by.PLN.decimals), 77.1);
+  assert.equal(applyPppAmount(brl, by.GBP.pppRate, by.GBP.decimals), 26.51);
+  // Must stay well above market FX (~R$5.1/USD → ~$19.5)
+  assert.ok(by.USD.pppRate > 0.35);
+  assert.ok(applyPppAmount(brl, by.USD.pppRate, 2) > 35);
 });
 
-test('applyPppToProduct writes all currency fields', () => {
-  const { product, changed } = applyPppToProduct({ price: 62.9 }, DEFAULT_INTL_CURRENCIES);
-  assert.equal(changed, true);
-  assert.equal(product.priceUsd, 12.99);
-  assert.equal(product.priceEur, 11.99);
-  assert.equal(product.priceSek, 129);
-  assert.equal(product.priceNok, 139);
+test('smartband R$62.90 uses same PPP factors (not the old FX-style 12.99)', () => {
+  const { product } = applyPppToProduct({ price: 62.9 }, DEFAULT_INTL_CURRENCIES);
+  assert.equal(product.priceUsd, 24.62);
+  assert.equal(product.priceEur, 16.28);
+  assert.equal(product.priceSek, 210);
+  assert.equal(product.priceNok, 233);
+  assert.equal(product.pricePln, 48.5);
 });
 
 test('applyPppToIntlProducts only touches INT market rows', () => {
   const { products, updated } = applyPppToIntlProducts(
     [
       { id: 'br', markets: ['BR'], price: 62.9 },
-      { id: 'intl', markets: ['INT'], price: 62.9, priceUsd: 1 }
+      { id: 'intl', markets: ['INT'], price: 100, priceUsd: 1 }
     ],
     DEFAULT_INTL_CURRENCIES
   );
   assert.equal(updated, 1);
   assert.equal(products[0].priceUsd, undefined);
-  assert.equal(products[1].priceUsd, 12.99);
+  assert.equal(products[1].priceUsd, 39.15);
 });
 
 test('currencyForLocaleFromRegistry follows langs', () => {
   assert.equal(currencyForLocaleFromRegistry('fr', DEFAULT_INTL_CURRENCIES), 'EUR');
   assert.equal(currencyForLocaleFromRegistry('sv', DEFAULT_INTL_CURRENCIES), 'SEK');
   assert.equal(currencyForLocaleFromRegistry('no', DEFAULT_INTL_CURRENCIES), 'NOK');
+  assert.equal(currencyForLocaleFromRegistry('pl', DEFAULT_INTL_CURRENCIES), 'PLN');
   assert.equal(currencyForLocaleFromRegistry('en', DEFAULT_INTL_CURRENCIES), 'USD');
   assert.equal(currencyForLocaleFromRegistry('pt', DEFAULT_INTL_CURRENCIES), 'BRL');
 });
@@ -62,4 +70,5 @@ test('normalizeIntlCurrencies merges custom rate over defaults', () => {
   assert.equal(usd.pppRate, 0.2);
   assert.deepEqual(usd.countries, ['US']);
   assert.ok(list.find((c) => c.code === 'EUR'));
+  assert.ok(list.find((c) => c.code === 'PLN'));
 });

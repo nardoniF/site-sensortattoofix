@@ -5770,10 +5770,12 @@ ${worksheets}
   }
 
   const DEFAULT_INTL_CURRENCIES = [
-    { code: 'USD', label: 'Dólar (USD)', langs: ['en'], countries: ['US', 'GB', 'CA', 'AU', 'NZ', 'SG', 'HK'], pppRate: 0.20652, decimals: 2, active: true },
-    { code: 'EUR', label: 'Euro (EUR)', langs: ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'fi'], countries: ['IT', 'DE', 'ES', 'PL', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'], pppRate: 0.19062, decimals: 2, active: true },
-    { code: 'SEK', label: 'Coroa sueca (SEK)', langs: ['sv'], countries: ['SE'], pppRate: 2.05087, decimals: 0, active: true },
-    { code: 'NOK', label: 'Coroa norueguesa (NOK)', langs: ['no'], countries: ['NO'], pppRate: 2.20986, decimals: 0, active: true }
+    { code: 'USD', label: 'Dólar (USD)', langs: ['en'], countries: ['US', 'CA', 'AU', 'NZ', 'SG', 'HK'], pppRate: 0.39148, decimals: 2, active: true },
+    { code: 'GBP', label: 'Libra (GBP)', langs: [], countries: ['GB'], pppRate: 0.26508, decimals: 2, active: true },
+    { code: 'EUR', label: 'Euro (EUR)', langs: ['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'], countries: ['IT', 'DE', 'ES', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'], pppRate: 0.25883, decimals: 2, active: true },
+    { code: 'PLN', label: 'Złoty (PLN)', langs: ['pl'], countries: ['PL'], pppRate: 0.77104, decimals: 2, active: true },
+    { code: 'SEK', label: 'Coroa sueca (SEK)', langs: ['sv'], countries: ['SE'], pppRate: 3.34656, decimals: 0, active: true },
+    { code: 'NOK', label: 'Coroa norueguesa (NOK)', langs: ['no'], countries: ['NO'], pppRate: 3.70014, decimals: 0, active: true }
   ];
 
   function intlPriceFieldName(code) {
@@ -5846,7 +5848,7 @@ ${worksheets}
         <div class="form-grid">
           <label>Código ISO<input type="text" data-cur-field="code" maxlength="3" value="${escAttr(c.code || '')}" placeholder="USD"></label>
           <label>Nome<input type="text" data-cur-field="label" value="${escAttr(c.label || '')}" placeholder="Dólar (USD)"></label>
-          <label>Fator PPP (moeda = R$ × fator)<input type="number" data-cur-field="pppRate" step="0.00001" min="0" value="${c.pppRate != null ? c.pppRate : ''}" placeholder="0.20652"></label>
+          <label>Fator PPP World Bank (moeda = R$ × fator)<input type="number" data-cur-field="pppRate" step="0.00001" min="0" value="${c.pppRate != null ? c.pppRate : ''}" placeholder="0.39148"></label>
           <label>Casas decimais<input type="number" data-cur-field="decimals" min="0" max="4" step="1" value="${c.decimals != null ? c.decimals : 2}"></label>
           <label class="full">Línguas do site (códigos)<input type="text" data-cur-field="langs" value="${escAttr((c.langs || []).join(', '))}" placeholder="en"></label>
           <label class="full">Países (ISO)<input type="text" data-cur-field="countries" value="${escAttr((c.countries || []).join(', '))}" placeholder="US, GB, CA"></label>
@@ -5996,7 +5998,7 @@ ${worksheets}
               return `<label>Preço ${escAttr(cur.code)}${langs ? ` (.com ${escAttr(langs)})` : ''}<input type="number" data-field="${escAttr(field)}" data-intl-price="1" step="${step}" min="0" value="${val}" placeholder="${cur.code === 'USD' ? '12.99' : ''}"></label>`;
             }).join('\n          ');
             return `${fields}
-          <p class="admin-meta admin-field-hint full">Referência em R$ acima. Moedas locais usam <strong>poder de compra</strong> (aba Moedas) — não câmbio oficial. Com automático ligado, o fator PPP recalcula ao salvar.</p>`;
+          <p class="admin-meta admin-field-hint full">Referência em R$ = poder de compra no Brasil. Moedas locais usam fatores <strong>World Bank PPP</strong> (aba Moedas) — tipicamente ~2× o câmbio oficial. Capa .com = lente smartwatch (optical-lens-intl), não smartband.</p>`;
           })() : ''}
           <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">

@@ -18,7 +18,7 @@ window.STF_MONEY = (function () {
     it: 'EUR',
     de: 'EUR',
     es: 'EUR',
-    pl: 'EUR',
+    pl: 'PLN',
     sl: 'EUR',
     fr: 'EUR',
     nl: 'EUR',

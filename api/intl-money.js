@@ -1,45 +1,75 @@
 /**
- * International list prices via purchasing-power (PPP) rates vs BRL —
- * not Frankfurter market FX. foreign = round(brl * pppRate, decimals).
+ * International list prices via World Bank GDP PPP (PA.NUS.PPP), not Frankfurter FX.
+ *
+ * foreign = round(brl * pppRate, decimals)
+ * pppRate = PPP_foreign_LCU_per_intl$ / PPP_Brazil_LCU_per_intl$
+ *
+ * Source: World Bank WDI 2025 (Brazil 2.5544 BRL / intl $).
+ * Result: foreign list ≈ ~2× FX for USD — dollars buy more than reais, so
+ * the equivalent purchasing-power price is higher than a market conversion.
  */
 
-/** Defaults calibrated so R$ 62,90 → US$ 12,99 / € 11,99 / 129 kr / 139 kr. */
+/** World Bank GDP PPP factors (foreign LCU per intl $ ÷ Brazil BRL per intl $). */
 export const DEFAULT_INTL_CURRENCIES = [
   {
     code: 'USD',
     label: 'Dólar (USD)',
     langs: ['en'],
-    countries: ['US', 'GB', 'CA', 'AU', 'NZ', 'SG', 'HK'],
-    pppRate: 0.20652,
+    countries: ['US', 'CA', 'AU', 'NZ', 'SG', 'HK'],
+    pppRate: 0.39148,
     decimals: 2,
-    active: true
+    active: true,
+    pppSource: 'World Bank PA.NUS.PPP 2025 (USA/BRA)'
+  },
+  {
+    code: 'GBP',
+    label: 'Libra (GBP)',
+    langs: [],
+    countries: ['GB'],
+    pppRate: 0.26508,
+    decimals: 2,
+    active: true,
+    pppSource: 'World Bank PA.NUS.PPP 2025 (GBR/BRA)'
   },
   {
     code: 'EUR',
     label: 'Euro (EUR)',
-    langs: ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'fi'],
-    countries: ['IT', 'DE', 'ES', 'PL', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'],
-    pppRate: 0.19062,
+    langs: ['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'],
+    countries: ['IT', 'DE', 'ES', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'],
+    pppRate: 0.25883,
     decimals: 2,
-    active: true
+    active: true,
+    pppSource: 'World Bank PA.NUS.PPP 2025 (avg DE/IT/ES/SI/FR/NL/FI ÷ BRA)'
+  },
+  {
+    code: 'PLN',
+    label: 'Złoty (PLN)',
+    langs: ['pl'],
+    countries: ['PL'],
+    pppRate: 0.77104,
+    decimals: 2,
+    active: true,
+    pppSource: 'World Bank PA.NUS.PPP 2025 (POL/BRA)'
   },
   {
     code: 'SEK',
     label: 'Coroa sueca (SEK)',
     langs: ['sv'],
     countries: ['SE'],
-    pppRate: 2.05087,
+    pppRate: 3.34656,
     decimals: 0,
-    active: true
+    active: true,
+    pppSource: 'World Bank PA.NUS.PPP 2025 (SWE/BRA)'
   },
   {
     code: 'NOK',
     label: 'Coroa norueguesa (NOK)',
     langs: ['no'],
     countries: ['NO'],
-    pppRate: 2.20986,
+    pppRate: 3.70014,
     decimals: 0,
-    active: true
+    active: true,
+    pppSource: 'World Bank PA.NUS.PPP 2025 (NOR/BRA)'
   }
 ];
 
@@ -70,6 +100,7 @@ export function normalizeIntlCurrencyRow(row, fallback) {
   const decimalsRaw = row?.decimals != null ? row.decimals : base.decimals;
   const decimals = Number.isFinite(Number(decimalsRaw)) ? Math.max(0, Math.min(4, Math.floor(Number(decimalsRaw)))) : 2;
   const active = row?.active != null ? row.active !== false : base.active !== false;
+  const pppSource = String(row?.pppSource || base.pppSource || '').trim();
   return {
     code,
     label: String(row?.label || base.label || code).trim() || code,
@@ -77,13 +108,20 @@ export function normalizeIntlCurrencyRow(row, fallback) {
     countries,
     pppRate: Number.isFinite(pppRate) && pppRate > 0 ? pppRate : Number(base.pppRate) || 0,
     decimals,
-    active
+    active,
+    ...(pppSource ? { pppSource } : {})
   };
 }
 
 export function normalizeIntlCurrencies(list) {
   const byCode = new Map();
-  DEFAULT_INTL_CURRENCIES.forEach((d) => byCode.set(d.code, { ...d, langs: d.langs.slice(), countries: d.countries.slice() }));
+  DEFAULT_INTL_CURRENCIES.forEach((d) =>
+    byCode.set(d.code, {
+      ...d,
+      langs: d.langs.slice(),
+      countries: d.countries.slice()
+    })
+  );
   (Array.isArray(list) ? list : []).forEach((row) => {
     const code = String(row?.code || '')
       .toUpperCase()

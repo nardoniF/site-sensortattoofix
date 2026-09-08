@@ -18,7 +18,7 @@ const LOCALES = [
   },
   {
     lang: 'pl',
-    currency: 'EUR',
+    currency: 'PLN',
     lojaTitle: /Soczewka|Smartband|Folia ochronna/i,
     checkout: /Twoje dane|Metoda płatności/,
   },
@@ -76,6 +76,8 @@ const LOCALES = [
 function currencyPattern(code) {
   if (code === 'EUR') return /€|EUR/i;
   if (code === 'USD') return /\$|USD|US\$/i;
+  if (code === 'PLN') return /zł|PLN|zlot/i;
+  if (code === 'GBP') return /£|GBP/i;
   if (code === 'SEK' || code === 'NOK') return /\bkr\b|SEK|NOK/i;
   return new RegExp(code, 'i');
 }

@@ -423,7 +423,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   let displayCurrency = 'BRL';
 
   const DEFAULT_PPP_RATES = {
-    USD: { rate: 0.20652, decimals: 2 },
+    USD: { rate: 0.39148, decimals: 2 },
     EUR: { rate: 0.19062, decimals: 2 },
     SEK: { rate: 2.05087, decimals: 0 },
     NOK: { rate: 2.20986, decimals: 0 }
