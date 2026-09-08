@@ -1,9 +1,0 @@
-{
-  "name": "Piloto de viagem",
-  "short_name": "Viagem",
-  "start_url": "./piloto-viagem.html",
-  "display": "standalone",
-  "background_color": "#0b0f14",
-  "theme_color": "#0b0f14",
-  "lang": "pt-BR"
-}
