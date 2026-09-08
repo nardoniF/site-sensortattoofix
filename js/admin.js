@@ -6682,7 +6682,13 @@ ${worksheets}
       f.emailCustomerDeliveredSubject.value = emails.customerDeliveredSubject || DEFAULT_EMAILS.customerDeliveredSubject;
     }
     if (f.emailDeliveredMessage) {
-      f.emailDeliveredMessage.value = emails.deliveredMessage || DEFAULT_EMAILS.deliveredMessage;
+      const body = String(emails.deliveredMessage || '');
+      const isLegacy = !body.trim()
+        || body.includes('acabou de ser marcado como entregue')
+        || (body.includes('Queremos saber: deu tudo certo?') && !body.includes('Fabio Nardoni'));
+      f.emailDeliveredMessage.value = isLegacy
+        ? DEFAULT_EMAILS.deliveredMessage
+        : body;
     }
     if (f.emailAbandonedSubject) {
       f.emailAbandonedSubject.value = emails.abandonedSubject || DEFAULT_EMAILS.abandonedSubject;

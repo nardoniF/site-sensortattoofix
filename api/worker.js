@@ -1711,6 +1711,39 @@ function publicChannelsView(channels) {
   };
 }
 
+function mergeEmailsConfig(baseEmails, storedEmails) {
+  const base = { ...(baseEmails || {}) };
+  const stored = { ...(storedEmails || {}) };
+  const merged = { ...base, ...stored };
+
+  // Upgrade known legacy satisfaction copy so Admin/KV pick up the Fabio letter.
+  const legacyBodies = [
+    'Seu pedido {orderId} acabou de ser marcado como entregue.',
+    'Queremos saber: deu tudo certo? A lente funcionou direitinho no seu relógio?'
+  ];
+  const body = String(merged.deliveredMessage || '');
+  const isLegacyBody = !body.trim()
+    || legacyBodies.some((frag) => body.includes(frag));
+  if (isLegacyBody && base.deliveredMessage) {
+    merged.deliveredMessage = base.deliveredMessage;
+  }
+
+  const legacySubjects = [
+    'Pedido entregue — {orderId} · como foi a experiência?'
+  ];
+  // Keep subject if custom; only fill when empty.
+  if (!String(merged.customerDeliveredSubject || '').trim() && base.customerDeliveredSubject) {
+    merged.customerDeliveredSubject = base.customerDeliveredSubject;
+  } else if (
+    legacySubjects.includes(String(merged.customerDeliveredSubject || '').trim())
+    && base.customerDeliveredSubject
+  ) {
+    merged.customerDeliveredSubject = base.customerDeliveredSubject;
+  }
+
+  return merged;
+}
+
 function withConfigDefaults(stored) {
   const base = structuredClone(DEFAULT_CONFIG);
   if (!stored || typeof stored !== 'object') return base;
@@ -1730,7 +1763,7 @@ function withConfigDefaults(stored) {
       sender: { ...base.shipping.sender, ...(stored.shipping?.sender || {}) }
     },
     formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
-    emails: { ...base.emails, ...(stored.emails || {}) },
+    emails: mergeEmailsConfig(base.emails, stored.emails),
     api: normalizeApiBaseUrl({ ...base.api, ...(stored.api || {}) }),
     internationalShipping: normalizeIntlOtherInZones({
       ...base.internationalShipping,
@@ -18326,7 +18359,7 @@ async function handlePutConfig(request, env, origin, ctx) {
       : (current.smartwatchModelMeta || {}),
     products: body.products?.length ? body.products : current.products,
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
-    emails: { ...(current.emails || {}), ...(body.emails || {}) },
+    emails: mergeEmailsConfig(current.emails || {}, body.emails || {}),
     api: { ...current.api, ...body.api },
     channels: body.channels != null
       ? mergeChannelsConfig({ channels: body.channels }, DEFAULT_CONFIG)
