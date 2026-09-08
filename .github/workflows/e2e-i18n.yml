@@ -1,4 +1,4 @@
-name: E2E i18n (DE/ES/PL)
+name: E2E i18n (all .com langs + money)
 
 on:
   push:
@@ -8,18 +8,36 @@ on:
       - 'es/**'
       - 'pl/**'
       - 'sl/**'
+      - 'fr/**'
+      - 'nl/**'
+      - 'sv/**'
+      - 'no/**'
+      - 'fi/**'
+      - 'it/**'
+      - 'en/**'
       - 'js/**'
       - 'data/store-config.json'
       - 'e2e/**'
+      - 'comprar.html'
+      - 'loja.html'
   pull_request:
     paths:
       - 'de/**'
       - 'es/**'
       - 'pl/**'
       - 'sl/**'
+      - 'fr/**'
+      - 'nl/**'
+      - 'sv/**'
+      - 'no/**'
+      - 'fi/**'
+      - 'it/**'
+      - 'en/**'
       - 'js/**'
       - 'data/store-config.json'
       - 'e2e/**'
+      - 'comprar.html'
+      - 'loja.html'
 
 jobs:
   e2e-i18n:

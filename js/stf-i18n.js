@@ -631,6 +631,9 @@ window.STF_I18N = (function () {
       'btn.copyPix': 'Copy PIX code',
       'btn.openCard': 'Open card payment',
       'btn.payPaypal': 'Pay with PayPal',
+      'btn.continueStripe': 'Continue on Stripe.com',
+      'btn.continuePaypal': 'Continue on PayPal.com',
+      'btn.completePayment': 'Complete payment',
       'selfTest.btn': 'Confirm test (skip payment)',
       'selfTest.hint': 'Test order detected — confirm without payment.',
       'selfTest.summaryRef': 'Test order: full amount {ref} — symbolic charge {pay}.',
@@ -771,13 +774,18 @@ window.STF_I18N = (function () {
     }
   };
 
-  const PATH_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
+  const PATH_LANGS = ['en','it','de','es','pl','sl','fr','nl','sv','no','fi'];
   const OVERRIDE_GLOBALS = {
     it: 'STF_I18N_IT',
     de: 'STF_I18N_DE',
     es: 'STF_I18N_ES',
     pl: 'STF_I18N_PL',
-    sl: 'STF_I18N_SL'
+    sl: 'STF_I18N_SL',
+    fr: 'STF_I18N_FR',
+    nl: 'STF_I18N_NL',
+    sv: 'STF_I18N_SV',
+    no: 'STF_I18N_NO',
+    fi: 'STF_I18N_FI'
   };
 
   function ensureExtraStrings() {
@@ -799,7 +807,12 @@ window.STF_I18N = (function () {
       de: 'page.checkoutTitleDe',
       es: 'page.checkoutTitleEs',
       pl: 'page.checkoutTitlePl',
-      sl: 'page.checkoutTitleSl'
+      sl: 'page.checkoutTitleSl',
+      fr: 'page.checkoutTitleFr',
+      nl: 'page.checkoutTitleNl',
+      sv: 'page.checkoutTitleSv',
+      no: 'page.checkoutTitleNo',
+      fi: 'page.checkoutTitleFi'
     };
     return map[lang] || 'page.checkoutTitleEn';
   }
@@ -810,7 +823,12 @@ window.STF_I18N = (function () {
       de: 'page.checkoutDescDe',
       es: 'page.checkoutDescEs',
       pl: 'page.checkoutDescPl',
-      sl: 'page.checkoutDescSl'
+      sl: 'page.checkoutDescSl',
+      fr: 'page.checkoutDescFr',
+      nl: 'page.checkoutDescNl',
+      sv: 'page.checkoutDescSv',
+      no: 'page.checkoutDescNo',
+      fi: 'page.checkoutDescFi'
     };
     return map[lang] || 'page.checkoutDescEn';
   }
@@ -821,7 +839,12 @@ window.STF_I18N = (function () {
       de: 'store.metaDescDe',
       es: 'store.metaDescEs',
       pl: 'store.metaDescPl',
-      sl: 'store.metaDescSl'
+      sl: 'store.metaDescSl',
+      fr: 'store.metaDescFr',
+      nl: 'store.metaDescNl',
+      sv: 'store.metaDescSv',
+      no: 'store.metaDescNo',
+      fi: 'store.metaDescFi'
     };
     return map[lang] || 'store.metaDescEn';
   }
@@ -832,7 +855,12 @@ window.STF_I18N = (function () {
       de: 'ondeComprar.pageTitleDe',
       es: 'ondeComprar.pageTitleEs',
       pl: 'ondeComprar.pageTitlePl',
-      sl: 'ondeComprar.pageTitleSl'
+      sl: 'ondeComprar.pageTitleSl',
+      fr: 'ondeComprar.pageTitleFr',
+      nl: 'ondeComprar.pageTitleNl',
+      sv: 'ondeComprar.pageTitleSv',
+      no: 'ondeComprar.pageTitleNo',
+      fi: 'ondeComprar.pageTitleFi'
     };
     if (lang === 'pt') return 'ondeComprar.pageTitle';
     return map[lang] || 'ondeComprar.pageTitleEn';
@@ -844,7 +872,12 @@ window.STF_I18N = (function () {
       de: 'ondeComprar.metaDescDe',
       es: 'ondeComprar.metaDescEs',
       pl: 'ondeComprar.metaDescPl',
-      sl: 'ondeComprar.metaDescSl'
+      sl: 'ondeComprar.metaDescSl',
+      fr: 'ondeComprar.metaDescFr',
+      nl: 'ondeComprar.metaDescNl',
+      sv: 'ondeComprar.metaDescSv',
+      no: 'ondeComprar.metaDescNo',
+      fi: 'ondeComprar.metaDescFi'
     };
     if (lang === 'pt') return 'ondeComprar.metaDesc';
     return map[lang] || 'ondeComprar.metaDescEn';
@@ -881,7 +914,7 @@ window.STF_I18N = (function () {
 
   function getPathLang() {
     const path = location.pathname;
-    for (const lang of ['it', 'de', 'es', 'pl', 'sl']) {
+    for (const lang of ['it','de','es','pl','sl','fr','nl','sv','no','fi']) {
       if (path.includes(`/${lang}/`) || path === `/${lang}`) return lang;
     }
     if (isComHost()) return 'en';
@@ -957,7 +990,7 @@ window.STF_I18N = (function () {
     const lang = getLang();
     ensureExtraStrings();
     let s = STRINGS[lang]?.[key];
-    if (!s && ['de', 'es', 'pl', 'sl'].includes(lang)) s = STRINGS.en?.[key];
+    if (!s && ['de','es','pl','sl','fr','nl','sv','no','fi'].includes(lang)) s = STRINGS.en?.[key];
     if (!s && lang === 'it') s = STRINGS.en?.[key];
     if (!s) s = STRINGS.pt[key] ?? key;
     if (vars) {
@@ -1062,7 +1095,7 @@ window.STF_I18N = (function () {
   }
 
   function inEnDir() {
-    if (isComHost() && !['it', 'de', 'es', 'pl', 'sl'].some((l) => location.pathname.includes(`/${l}/`))) return true;
+    if (isComHost() && !['it','de','es','pl','sl','fr','nl','sv','no','fi'].some((l) => location.pathname.includes(`/${l}/`))) return true;
     return location.pathname.includes('/en/');
   }
 
@@ -1076,7 +1109,7 @@ window.STF_I18N = (function () {
 
   function inDirFor(lang) {
     if (lang === 'en' && isComHost()) {
-      return !['it', 'de', 'es', 'pl', 'sl'].some((l) => location.pathname.includes(`/${l}/`));
+      return !['it','de','es','pl','sl','fr','nl','sv','no','fi'].some((l) => location.pathname.includes(`/${l}/`));
     }
     return location.pathname.includes(`/${lang}/`);
   }
@@ -1297,6 +1330,12 @@ window.STF_I18N = (function () {
     applyText('#confirm-hint', 'confirm.hint');
     applyText('#shipping-hint', 'shipping.hint');
     applyText('#paypal-ui .card-pay-text', 'paypal.redirect');
+    const stripeConfirmBtn = document.getElementById('btn-stripe-confirm');
+    if (stripeConfirmBtn) stripeConfirmBtn.innerHTML = `<i class="fas fa-lock"></i> ${t('btn.completePayment')}`;
+    const stripeRedirectLink = document.getElementById('stripe-redirect-link');
+    if (stripeRedirectLink) stripeRedirectLink.innerHTML = `<i class="fas fa-external-link-alt"></i> ${t('btn.continueStripe')}`;
+    const paypalRedirectLink = document.getElementById('paypal-redirect-link');
+    if (paypalRedirectLink) paypalRedirectLink.innerHTML = `<i class="fab fa-paypal"></i> ${t('btn.continuePaypal')}`;
 
     const shippingOpts = document.getElementById('shipping-options');
     if (shippingOpts) shippingOpts.setAttribute('aria-label', t('shipping.optionsAria'));

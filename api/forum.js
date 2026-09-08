@@ -937,7 +937,12 @@ export async function handleForumRoute(request, env, origin, deps) {
       { loc: 'https://www.sensortattoofix.com/de/comunidade.html', lang: 'de' },
       { loc: 'https://www.sensortattoofix.com/es/comunidade.html', lang: 'es' },
       { loc: 'https://www.sensortattoofix.com/pl/comunidade.html', lang: 'pl' },
-      { loc: 'https://www.sensortattoofix.com/sl/comunidade.html', lang: 'sl' }
+      { loc: 'https://www.sensortattoofix.com/sl/comunidade.html', lang: 'sl' },
+      { loc: 'https://www.sensortattoofix.com/fr/comunidade.html', lang: 'fr' },
+      { loc: 'https://www.sensortattoofix.com/nl/comunidade.html', lang: 'nl' },
+      { loc: 'https://www.sensortattoofix.com/sv/comunidade.html', lang: 'sv' },
+      { loc: 'https://www.sensortattoofix.com/no/comunidade.html', lang: 'no' },
+      { loc: 'https://www.sensortattoofix.com/fi/comunidade.html', lang: 'fi' }
     ];
     for (const h of hub) {
       urls.push(`  <url>\n    <loc>${h.loc}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.75</priority>\n  </url>`);
@@ -955,7 +960,12 @@ export async function handleForumRoute(request, env, origin, deps) {
         `https://www.sensortattoofix.com/de/comunidade.html?t=${slug}`,
         `https://www.sensortattoofix.com/es/comunidade.html?t=${slug}`,
         `https://www.sensortattoofix.com/pl/comunidade.html?t=${slug}`,
-        `https://www.sensortattoofix.com/sl/comunidade.html?t=${slug}`
+        `https://www.sensortattoofix.com/sl/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/fr/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/nl/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/sv/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/no/comunidade.html?t=${slug}`,
+        `https://www.sensortattoofix.com/fi/comunidade.html?t=${slug}`
       ];
       for (const loc of locs) {
         urls.push(`  <url>\n    <loc>${loc}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ''}\n    <changefreq>weekly</changefreq>\n    <priority>0.65</priority>\n  </url>`);
