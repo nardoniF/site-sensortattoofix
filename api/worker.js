@@ -4244,13 +4244,13 @@ function deliveredSatisfactionHtml(copy) {
   return `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222"><p style="margin:0;white-space:pre-wrap">${body}</p><p style="color:#666;font-size:12px;margin-top:16px">Sensor TattooFix® — ${site}</p></div>`;
 }
 
-/** Send satisfaction survey when order first becomes delivered (idempotent). */
-async function maybeNotifyDelivered(env, config, order, previousStatus) {
-  if (!order || order.status !== 'paid') return { skipped: true };
-  if (!isTrackingFinalStatus(order.correiosTrackingStatus)) return { skipped: true };
-  if (order.deliveredEmailSentAt) return { skipped: true };
-  const wasFinal = isTrackingFinalStatus(previousStatus);
-  if (wasFinal && !order.deliveredEmailError) return { skipped: true };
+/** Send satisfaction survey when order is delivered (idempotent via deliveredEmailSentAt). */
+async function maybeNotifyDelivered(env, config, order, _previousStatus) {
+  if (!order || order.status !== 'paid') return { skipped: true, reason: 'not_paid' };
+  if (!isTrackingFinalStatus(order.correiosTrackingStatus)) {
+    return { skipped: true, reason: 'not_delivered' };
+  }
+  if (order.deliveredEmailSentAt) return { skipped: true, reason: 'already_sent' };
 
   const cfg = config || await getConfig(env);
   const nowIso = new Date().toISOString();
@@ -15717,6 +15717,20 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   } catch (err) {
     return json({ error: err.message }, 400, origin);
   }
+
+  const nowFinal = isTrackingFinalStatus(order.correiosTrackingStatus);
+  const wasFinal = isTrackingFinalStatus(previousStatus);
+  // Sair de Entregue libera reenvio da pesquisa na próxima vez.
+  if (wasFinal && !nowFinal) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = null;
+  }
+  // Reenvio explícito (mesmo já estando Entregue).
+  if (body.resendDeliveredEmail === true && nowFinal) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = null;
+  }
+
   await saveOrder(env, order);
   let trackingEmail = { skipped: true };
   try {
@@ -15755,7 +15769,11 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped),
     deliveredEmailSentAt: order.deliveredEmailSentAt || null,
     deliveredEmailSent: !!(deliveredEmail && deliveredEmail.ok),
-    deliveredEmailSkipped: !!(deliveredEmail && deliveredEmail.skipped)
+    deliveredEmailSkipped: !!(deliveredEmail && deliveredEmail.skipped),
+    deliveredEmailSkipReason: deliveredEmail?.reason || null,
+    deliveredEmailLocale: deliveredEmail?.ok
+      ? satisfactionEmailLocale(order)
+      : (nowFinal ? satisfactionEmailLocale(order) : null)
   }, 200, origin);
 }
 
