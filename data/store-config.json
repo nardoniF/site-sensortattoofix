@@ -6,7 +6,7 @@
     "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
     "descriptionEn": "Optical lens for smartwatches on tattooed skin",
     "descriptionIt": "Lente ottica per smartwatch su pelle tatuata",
-    "price": 62.9,
+    "price": 72.9,
     "image": "https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg"
   },
   "products": [
@@ -19,7 +19,7 @@
       "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
       "descriptionEn": "Optical lens for smartwatches on tattooed skin",
       "descriptionIt": "Lente ottica per smartwatch su pelle tatuata",
-      "price": 62.9,
+      "price": 72.9,
       "image": "https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg",
       "active": true,
       "requiresSmartwatch": true,
@@ -82,8 +82,8 @@
       "descriptionEs": "Diseñada para sensores ópticos de smartband en piel tatuada.",
       "descriptionPl": "Zaprojektowana dla czujników optycznych smartband na tatuowanej skórze.",
       "price": 62.9,
-      "priceUsd": 12.99,
-      "priceEur": 11.99,
+      "priceUsd": 16.59,
+      "priceEur": 12.56,
       "image": "/images/smartband/lens-en/01-embalagem.jpg",
       "images": [
         "/images/smartband/lens-en/01-embalagem.jpg",
@@ -100,7 +100,11 @@
       ],
       "aggregated": false,
       "nameSl": "Leča SensorTattooFix za pametno zapestnico",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      "priceSek": 150,
+      "priceNok": 155,
+      "priceGbp": 11.73,
+      "pricePln": 46.55
     },
     {
       "id": "optical-lens-intl",
@@ -117,9 +121,9 @@
       "descriptionDe": "Entwickelt für optische Sensoren von Smartwatches auf tätowierter Haut.",
       "descriptionEs": "Diseñada para sensores ópticos de smartwatch en piel tatuada.",
       "descriptionPl": "Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.",
-      "price": 62.9,
-      "priceUsd": 12.99,
-      "priceEur": 11.99,
+      "price": 72.9,
+      "priceUsd": 19.23,
+      "priceEur": 14.56,
       "image": "/images/lens-gallery/01-optical-correction-lens.png",
       "images": [
         "/images/lens-gallery/01-optical-correction-lens.png",
@@ -140,7 +144,11 @@
       ],
       "aggregated": false,
       "nameSl": "Optična leča SensorTattooFix",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      "priceSek": 174,
+      "priceNok": 180,
+      "priceGbp": 13.6,
+      "pricePln": 53.96
     },
     {
       "id": "pelicula-amazfit-bip-2",
@@ -6071,5 +6079,111 @@
       "sourceEn": "Shopee · 5★",
       "sourceIt": "Shopee · 5★"
     }
-  ]
+  ],
+  "intlCurrencies": [
+    {
+      "code": "USD",
+      "label": "Dólar (USD)",
+      "langs": [
+        "en"
+      ],
+      "countries": [
+        "US",
+        "CA",
+        "AU",
+        "NZ",
+        "SG",
+        "HK"
+      ],
+      "pppRate": 0.26382,
+      "decimals": 2,
+      "active": true,
+      "pppSource": "Blend 35% WB PPP + FX (not full 2× PPP)"
+    },
+    {
+      "code": "GBP",
+      "label": "Libra (GBP)",
+      "langs": [],
+      "countries": [
+        "GB"
+      ],
+      "pppRate": 0.1865,
+      "decimals": 2,
+      "active": true,
+      "pppSource": "Blend 35% WB PPP + FX"
+    },
+    {
+      "code": "EUR",
+      "label": "Euro (EUR)",
+      "langs": [
+        "it",
+        "de",
+        "es",
+        "sl",
+        "fr",
+        "nl",
+        "fi"
+      ],
+      "countries": [
+        "IT",
+        "DE",
+        "ES",
+        "SI",
+        "FR",
+        "NL",
+        "FI",
+        "AT",
+        "BE",
+        "PT",
+        "IE"
+      ],
+      "pppRate": 0.19969,
+      "decimals": 2,
+      "active": true,
+      "pppSource": "Blend 35% WB PPP + FX"
+    },
+    {
+      "code": "PLN",
+      "label": "Złoty (PLN)",
+      "langs": [
+        "pl"
+      ],
+      "countries": [
+        "PL"
+      ],
+      "pppRate": 0.74014,
+      "decimals": 2,
+      "active": true,
+      "pppSource": "Blend 35% WB PPP + FX"
+    },
+    {
+      "code": "SEK",
+      "label": "Coroa sueca (SEK)",
+      "langs": [
+        "sv"
+      ],
+      "countries": [
+        "SE"
+      ],
+      "pppRate": 2.38914,
+      "decimals": 0,
+      "active": true,
+      "pppSource": "Blend 35% WB PPP + FX"
+    },
+    {
+      "code": "NOK",
+      "label": "Coroa norueguesa (NOK)",
+      "langs": [
+        "no"
+      ],
+      "countries": [
+        "NO"
+      ],
+      "pppRate": 2.47051,
+      "decimals": 0,
+      "active": true,
+      "pppSource": "Blend 35% WB PPP + FX"
+    }
+  ],
+  "intlCurrenciesAutoPpp": true
 }

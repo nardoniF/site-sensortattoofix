@@ -86,6 +86,56 @@ window.STF_FOOTER = (function () {
       patentLinePrefix: 'Nacionalni patent',
       patentLineJoin: 'Mednarodni',
       rights: 'Vse pravice pridržane.'
+    },
+    fr: {
+      socialTitle: 'Suivez nos réseaux officiels',
+      faq: 'FAQ',
+      community: 'Communauté',
+      feedback: 'Qu\'est-ce qui manquait sur le site ?',
+      commissioner: 'Devenir affilié',
+      patentLinePrefix: 'Brevet national',
+      patentLineJoin: 'International',
+      rights: 'Tous droits réservés.'
+    },
+    nl: {
+      socialTitle: 'Volg onze officiële kanalen',
+      faq: 'FAQ',
+      community: 'Community',
+      feedback: 'Wat ontbrak er op de site?',
+      commissioner: 'Word affiliate',
+      patentLinePrefix: 'Nationaal patent',
+      patentLineJoin: 'Internationaal',
+      rights: 'Alle rechten voorbehouden.'
+    },
+    sv: {
+      socialTitle: 'Följ våra officiella kanaler',
+      faq: 'FAQ',
+      community: 'Community',
+      feedback: 'Vad saknades på sajten?',
+      commissioner: 'Bli partner',
+      patentLinePrefix: 'Nationellt patent',
+      patentLineJoin: 'Internationellt',
+      rights: 'Alla rättigheter förbehållna.'
+    },
+    no: {
+      socialTitle: 'Følg våre offisielle kanaler',
+      faq: 'FAQ',
+      community: 'Community',
+      feedback: 'Hva manglet på siden?',
+      commissioner: 'Bli partner',
+      patentLinePrefix: 'Nasjonalt patent',
+      patentLineJoin: 'Internasjonalt',
+      rights: 'Alle rettigheter reservert.'
+    },
+    fi: {
+      socialTitle: 'Seuraa virallisia kanaviamme',
+      faq: 'FAQ',
+      community: 'Yhteisö',
+      feedback: 'Mitä sivustolta puuttui?',
+      commissioner: 'Ryhdy kumppaniksi',
+      patentLinePrefix: 'Kansallinen patentti',
+      patentLineJoin: 'Kansainvälinen',
+      rights: 'Kaikki oikeudet pidätetään.'
     }
   };
 
@@ -106,6 +156,11 @@ window.STF_FOOTER = (function () {
       if (location.pathname.includes('/es/')) return 'es';
       if (location.pathname.includes('/pl/')) return 'pl';
       if (location.pathname.includes('/sl/')) return 'sl';
+      if (location.pathname.includes('/fr/')) return 'fr';
+      if (location.pathname.includes('/nl/')) return 'nl';
+      if (location.pathname.includes('/sv/')) return 'sv';
+      if (location.pathname.includes('/no/')) return 'no';
+      if (location.pathname.includes('/fi/')) return 'fi';
       return 'en';
     }
     if (location.pathname.includes('/it/')) return 'it';
@@ -113,6 +168,11 @@ window.STF_FOOTER = (function () {
     if (location.pathname.includes('/es/')) return 'es';
     if (location.pathname.includes('/pl/')) return 'pl';
     if (location.pathname.includes('/sl/')) return 'sl';
+    if (location.pathname.includes('/fr/')) return 'fr';
+    if (location.pathname.includes('/nl/')) return 'nl';
+    if (location.pathname.includes('/sv/')) return 'sv';
+    if (location.pathname.includes('/no/')) return 'no';
+    if (location.pathname.includes('/fi/')) return 'fi';
     if (location.pathname.includes('/en/')) return 'en';
     return 'pt';
   }
@@ -147,6 +207,11 @@ window.STF_FOOTER = (function () {
         pl: `Opatentowana technologia · ${INFO.patentInternational}`,
         sl: `Patentirana tehnologija · ${INFO.patentInternational}`,
         it: `Tecnologia brevettata · ${INFO.patentInternational}`,
+        fr: `Technologie brevetée · ${INFO.patentInternational}`,
+        nl: `Gepatenteerde technologie · ${INFO.patentInternational}`,
+        sv: `Patenterad teknik · ${INFO.patentInternational}`,
+        no: `Patentert teknologi · ${INFO.patentInternational}`,
+        fi: `Patentoitu teknologia · ${INFO.patentInternational}`,
         en: `Patented technology · ${INFO.patentInternational}`
       };
       return intl[lang] || intl.en;

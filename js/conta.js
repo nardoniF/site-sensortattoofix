@@ -5,14 +5,29 @@
     return window.STF_I18N?.t(key, vars) || key;
   }
 
+  const LOCALE_MAP = {
+    pt: 'pt-BR',
+    en: 'en-US',
+    it: 'it-IT',
+    de: 'de-DE',
+    es: 'es-ES',
+    pl: 'pl-PL',
+    sl: 'sl-SI',
+    fr: 'fr-FR',
+    nl: 'nl-NL',
+    sv: 'sv-SE',
+    no: 'nb-NO',
+    fi: 'fi-FI'
+  };
+
   function locale() {
     const lang = window.STF_I18N?.getLang?.() || 'pt';
-    return lang === 'it' ? 'it-IT' : lang === 'en' ? 'en-US' : 'pt-BR';
+    return LOCALE_MAP[lang] || 'pt-BR';
   }
 
   function langCode() {
     const lang = window.STF_I18N?.getLang?.() || 'pt';
-    if (lang === 'it' || lang === 'en') return lang;
+    if (LOCALE_MAP[lang]) return lang;
     return 'pt';
   }
 

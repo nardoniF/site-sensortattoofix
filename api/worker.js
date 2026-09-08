@@ -91,6 +91,17 @@ import {
   saleMoneyParts,
   storeOrderListedGross
 } from './sales-money.js';
+import {
+  DEFAULT_INTL_CURRENCIES,
+  normalizeIntlCurrencies,
+  activeIntlCurrencies,
+  applyPppToIntlProducts,
+  syncOpticalIntlBrlFromBrKit,
+  currencyForLocaleFromRegistry,
+  productListPriceFromRegistry,
+  intlPriceField,
+  intlPriceFieldNames
+} from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -103,7 +114,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '3299494b66c054c868ae927cc36d63658d342a46';
+const SITE_CATALOG_COMMIT = '79517db1483f73f66277536c575c15f355668d0c';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -190,8 +201,12 @@ const DEFAULT_CONFIG = {
       descriptionEn: 'Designed for smartband optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartband su pelle tatuata.',
       price: 62.9,
-      priceUsd: 12.99,
-      priceEur: 11.99,
+      priceUsd: 16.59,
+      priceEur: 12.56,
+      priceSek: 150,
+      priceNok: 155,
+      pricePln: 46.55,
+      priceGbp: 11.73,
       image: '/images/smartband/lens-en/01-embalagem.jpg',
       images: [
         '/images/smartband/lens-en/01-embalagem.jpg',
@@ -215,7 +230,13 @@ const DEFAULT_CONFIG = {
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
-      price: 62.9,
+      price: 72.9,
+      priceUsd: 19.23,
+      priceEur: 14.56,
+      priceSek: 174,
+      priceNok: 180,
+      pricePln: 53.96,
+      priceGbp: 13.6,
       image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
         '/images/lens-gallery/01-optical-correction-lens.png',
@@ -232,6 +253,10 @@ const DEFAULT_CONFIG = {
       markets: ['INT']
     }
   ],
+  /** PPP list currencies for .com — foreign = R$ × pppRate (not Frankfurter FX). */
+  intlCurrencies: DEFAULT_INTL_CURRENCIES,
+  /** When true, daily cron + save recompute INT foreign prices from R$ × PPP. */
+  intlCurrenciesAutoPpp: true,
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: {
     originCep: '02537190',
@@ -1328,7 +1353,11 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'markets',
     'images',
     'priceUsd',
-    'priceEur'
+    'priceEur',
+    'priceSek',
+    'priceNok',
+    'pricePln',
+    'priceGbp'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -1583,6 +1612,10 @@ function withConfigDefaults(stored) {
     mlFlexShippingCost: Number(stored.mlFlexShippingCost) > 0
       ? Math.round(Number(stored.mlFlexShippingCost) * 100) / 100
       : base.mlFlexShippingCost,
+    intlCurrencies: normalizeIntlCurrencies(stored.intlCurrencies),
+    intlCurrenciesAutoPpp: stored.intlCurrenciesAutoPpp != null
+      ? stored.intlCurrenciesAutoPpp !== false
+      : base.intlCurrenciesAutoPpp !== false,
     ...mergeKitCostConfig(stored, base)
   };
 }
@@ -2154,8 +2187,9 @@ function publicProductFields(p, config) {
   if (p.colorEn) row.colorEn = p.colorEn;
   if (Array.isArray(p.markets) && p.markets.length) row.markets = p.markets;
   if (Array.isArray(p.images) && p.images.length) row.images = p.images;
-  if (p.priceUsd != null) row.priceUsd = Number(p.priceUsd);
-  if (p.priceEur != null) row.priceEur = Number(p.priceEur);
+  intlPriceFieldNames(DEFAULT_INTL_CURRENCIES).forEach((field) => {
+    if (p[field] != null && Number.isFinite(Number(p[field]))) row[field] = Number(p[field]);
+  });
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
@@ -2225,6 +2259,8 @@ function publicConfigView(config, env) {
     integrations: {
       addressAutocomplete: true
     },
+    intlCurrencies: activeIntlCurrencies(config),
+    intlCurrenciesAutoPpp: config.intlCurrenciesAutoPpp !== false,
     updatedAt: config.updatedAt || null
   };
 }
@@ -2267,7 +2303,8 @@ function isComSiteRequest(request) {
 
 function isIntlCheckoutLocale(locale) {
   const l = String(locale || '').toLowerCase();
-  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl';
+  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'sv' || l === 'no' || l === 'fi';
 }
 
 function orderCheckoutLangPath(order) {
@@ -2277,6 +2314,11 @@ function orderCheckoutLangPath(order) {
   if (l === 'es') return '/es';
   if (l === 'pl') return '/pl';
   if (l === 'sl') return '/sl';
+  if (l === 'fr') return '/fr';
+  if (l === 'nl') return '/nl';
+  if (l === 'sv') return '/sv';
+  if (l === 'no') return '/no';
+  if (l === 'fi') return '/fi';
   return '';
 }
 
@@ -2447,32 +2489,51 @@ function productIntlEur(product) {
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
+function productIntlSek(product) {
+  const v = Number(product?.priceSek);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+function productIntlNok(product) {
+  const v = Number(product?.priceNok);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/** List / PPP price for charge currency (not Frankfurter FX). */
+function productIntlListPrice(product, currency, config) {
+  const fromRegistry = productListPriceFromRegistry(
+    product,
+    currency,
+    config?.intlCurrencies || DEFAULT_INTL_CURRENCIES
+  );
+  if (fromRegistry != null) return fromRegistry;
+  const cur = String(currency || 'USD').toUpperCase();
+  if (cur === 'EUR') return productIntlEur(product);
+  if (cur === 'SEK') return productIntlSek(product);
+  if (cur === 'NOK') return productIntlNok(product);
+  return productIntlUsd(product);
+}
+
 function isIntlMarketProductRow(p) {
   const m = Array.isArray(p?.markets) ? p.markets.map((x) => String(x).toUpperCase()) : [];
   return m.includes('INT') && !m.includes('BR');
 }
 
-async function syncIntlProductPricesFromFx(env) {
+/** Recompute INT foreign list prices from R$ × PPP registry (never market FX). */
+async function syncIntlProductPricesFromPpp(env, { force = false } = {}) {
   const config = await getConfig(env);
-  const products = config.products || [];
-  if (!products.length) return { updated: 0 };
-  const fxUsd = await fetchFxRate(env, 'USD');
-  const fxEur = await fetchFxRate(env, 'EUR');
-  let updated = 0;
-  products.forEach((p) => {
-    if (!isIntlMarketProductRow(p)) return;
-    const brl = Number(p.price) || 0;
-    if (!brl) return;
-    const usd = Math.round(brl * fxUsd.rate * 100) / 100;
-    const eur = Math.round(brl * fxEur.rate * 100) / 100;
-    if (p.priceUsd !== usd || p.priceEur !== eur) {
-      p.priceUsd = usd;
-      p.priceEur = eur;
-      updated += 1;
-    }
-  });
-  if (updated) await saveConfig(env, { ...config, products });
-  return { updated, usdRate: fxUsd.rate, eurRate: fxEur.rate };
+  if (!force && config.intlCurrenciesAutoPpp === false) return { updated: 0, skipped: true };
+  const currencies = normalizeIntlCurrencies(config.intlCurrencies);
+  const synced = syncOpticalIntlBrlFromBrKit(config.products || []);
+  const { products, updated } = applyPppToIntlProducts(synced.products, currencies);
+  const changed = updated || synced.synced;
+  if (changed) await saveConfig(env, { ...config, products, intlCurrencies: currencies });
+  return { updated: updated + (synced.synced ? 1 : 0), currencies: currencies.map((c) => c.code) };
+}
+
+/** Legacy name — cron used to overwrite with Frankfurter FX; now PPP only. */
+async function syncIntlProductPricesFromFx(env) {
+  return syncIntlProductPricesFromPpp(env);
 }
 
 async function intlForeignCharge(order, env, config, items, currency) {
@@ -2484,7 +2545,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   let allConfigured = itemList.length > 0;
   for (const item of itemList) {
     const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const price = p ? (cur === 'EUR' ? productIntlEur(p) : productIntlUsd(p)) : null;
+    const price = p ? productIntlListPrice(p, cur, config) : null;
     if (price == null) { allConfigured = false; break; }
     productForeign += price * (Number(item.qty) || 1);
   }
@@ -2502,13 +2563,12 @@ async function intlForeignCharge(order, env, config, items, currency) {
   }
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
-    if (cur === 'EUR') {
-      const minEur = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-      if (amount < minEur) amount = minEur;
-    } else {
-      const minUsd = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
-      if (amount < minUsd) amount = minUsd;
-    }
+    let minAmt;
+    if (cur === 'EUR') minAmt = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') minAmt = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') minAmt = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else minAmt = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+    if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
 }
@@ -2517,8 +2577,15 @@ async function intlUsdCharge(order, env, config, items) {
   return intlForeignCharge(order, env, config, items, 'USD');
 }
 
-function intlChargeCurrencyForLocale(locale) {
-  return String(locale || '').toLowerCase() === 'it' ? 'EUR' : 'USD';
+function intlChargeCurrencyForLocale(locale, config) {
+  const fromRegistry = currencyForLocaleFromRegistry(locale, config?.intlCurrencies || DEFAULT_INTL_CURRENCIES);
+  if (fromRegistry && fromRegistry !== 'BRL') return fromRegistry;
+  const l = String(locale || '').toLowerCase();
+  if (l === 'sv') return 'SEK';
+  if (l === 'no') return 'NOK';
+  if (l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'fi') return 'EUR';
+  return 'USD';
 }
 
 function selfTestUsdAmountForOrder(order, billingType) {
@@ -2533,17 +2600,18 @@ function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (!isSelfTestOrder(order)) return;
   if (intlUsd) {
     const cur = intlChargeCurrencyForLocale(order.checkoutLocale);
-    const amount = cur === 'EUR'
-      ? ((billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe')
-        ? SELF_TEST_STRIPE_EUR_AMOUNT
-        : SELF_TEST_EUR_AMOUNT)
-      : selfTestUsdAmountForOrder(order, billingType);
+    const stripe = billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe';
+    let amount;
+    if (cur === 'EUR') amount = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') amount = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') amount = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else amount = selfTestUsdAmountForOrder(order, billingType);
     order.chargeCurrency = cur;
     order.chargeAmount = amount;
     order.displayCurrency = cur;
     return;
   }
-  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR') {
+  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR' || order.chargeCurrency === 'SEK' || order.chargeCurrency === 'NOK') {
     delete order.chargeCurrency;
     delete order.chargeAmount;
     delete order.chargeFxRate;
@@ -7671,12 +7739,16 @@ const SELF_TEST_BRL_AMOUNT = 0.01;
 const SELF_TEST_USD_AMOUNT = 0.01;
 /** Symbolic EUR charge for Italian PayPal test orders. */
 const SELF_TEST_EUR_AMOUNT = 0.01;
+const SELF_TEST_SEK_AMOUNT = 1;
+const SELF_TEST_NOK_AMOUNT = 1;
 /**
  * Stripe BR accounts reject USD that converts below R$ 0.50.
  * US$ 0.01 ≈ R$ 0.05 — use US$ 0.10 for Stripe self-test.
  */
 const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_EUR_AMOUNT = 0.10;
+const SELF_TEST_STRIPE_SEK_AMOUNT = 10;
+const SELF_TEST_STRIPE_NOK_AMOUNT = 10;
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -10363,7 +10435,7 @@ function computePayPalFee(amountBrl, config) {
 
 const FX_CURRENCY_MAP = {
   US: 'USD', CA: 'CAD', MX: 'MXN', GB: 'GBP', IE: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR',
-  ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
+  ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', FI: 'EUR', SI: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
   DK: 'DKK', PL: 'PLN', CZ: 'CZK', AU: 'AUD', NZ: 'NZD', JP: 'JPY', KR: 'KRW', CN: 'CNY',
   HK: 'HKD', SG: 'SGD', IN: 'INR', AE: 'AED', IL: 'ILS', ZA: 'ZAR', AR: 'ARS', CL: 'CLP',
   CO: 'COP', UY: 'UYU', PY: 'PYG', BR: 'BRL'
@@ -13392,13 +13464,19 @@ const PASSWORD_RESET_TTL = 3600; // 1 hora
 
 function passwordResetLocaleFromRequest(request, bodyLocale) {
   const explicit = String(bodyLocale || '').toLowerCase();
-  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'sl' || explicit === 'pt') return explicit;
+  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'sl'
+    || explicit === 'fr' || explicit === 'nl' || explicit === 'sv' || explicit === 'no' || explicit === 'fi' || explicit === 'pt') return explicit;
   const lang = (request.headers.get('Accept-Language') || '').toLowerCase();
   if (lang.startsWith('it')) return 'it';
   if (lang.startsWith('de')) return 'de';
   if (lang.startsWith('es')) return 'es';
   if (lang.startsWith('pl')) return 'pl';
   if (lang.startsWith('sl')) return 'sl';
+  if (lang.startsWith('fr')) return 'fr';
+  if (lang.startsWith('nl')) return 'nl';
+  if (lang.startsWith('sv')) return 'sv';
+  if (lang.startsWith('nb') || lang.startsWith('nn') || lang.startsWith('no')) return 'no';
+  if (lang.startsWith('fi')) return 'fi';
   if (lang.startsWith('en')) return 'en';
   const hay = `${request.headers.get('Origin') || ''} ${request.headers.get('Referer') || ''}`.toLowerCase();
   if (hay.includes('/it/') || hay.includes('lang=it')) return 'it';
@@ -13406,12 +13484,18 @@ function passwordResetLocaleFromRequest(request, bodyLocale) {
   if (hay.includes('/es/') || hay.includes('lang=es')) return 'es';
   if (hay.includes('/pl/') || hay.includes('lang=pl')) return 'pl';
   if (hay.includes('/sl/') || hay.includes('lang=sl')) return 'sl';
+  if (hay.includes('/fr/') || hay.includes('lang=fr')) return 'fr';
+  if (hay.includes('/nl/') || hay.includes('lang=nl')) return 'nl';
+  if (hay.includes('/sv/') || hay.includes('lang=sv')) return 'sv';
+  if (hay.includes('/no/') || hay.includes('lang=no')) return 'no';
+  if (hay.includes('/fi/') || hay.includes('lang=fi')) return 'fi';
   if (hay.includes('sensortattoofix.com') && !hay.includes('.com.br')) return 'en';
   return 'pt';
 }
 
 function passwordResetSiteBase(locale, config) {
-  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl' || locale === 'sl') {
+  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl' || locale === 'sl'
+    || locale === 'fr' || locale === 'nl' || locale === 'sv' || locale === 'no' || locale === 'fi') {
     return 'https://www.sensortattoofix.com';
   }
   return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
@@ -13424,7 +13508,12 @@ function passwordResetUrl(locale, config, token) {
     de: '/de/minha-conta.html',
     es: '/es/minha-conta.html',
     pl: '/pl/minha-conta.html',
-    sl: '/sl/minha-conta.html'
+    sl: '/sl/minha-conta.html',
+    fr: '/fr/minha-conta.html',
+    nl: '/nl/minha-conta.html',
+    sv: '/sv/minha-conta.html',
+    no: '/no/minha-conta.html',
+    fi: '/fi/minha-conta.html'
   };
   const path = pathByLocale[locale] || '/minha-conta.html';
   return `${base}${path}?reset=${encodeURIComponent(token)}`;
@@ -13468,6 +13557,110 @@ function passwordResetEmailCopy(locale, resetUrl) {
         <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
       </div>`,
       text: `Ponastavitev gesla Sensor Tattoo Fix:\n${resetUrl}\n\nPovezava poteče v 1 uri.`
+    };
+  }
+  if (locale === 'de') {
+    return {
+      subject: 'Setzen Sie Ihr Sensor Tattoo Fix-Passwort zurück',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Passwort zurücksetzen</h2>
+        <p>Wir haben eine Anfrage erhalten, das Passwort Ihres Sensor Tattoo Fix-Kontos zurückzusetzen.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Neues Passwort wählen</a></p>
+        <p style="font-size:13px;color:#666">Dieser Link läuft in 1 Stunde ab. Wenn Sie das nicht angefordert haben, ignorieren Sie diese E-Mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Setzen Sie Ihr Sensor Tattoo Fix-Passwort zurück:\n${resetUrl}\n\nDieser Link läuft in 1 Stunde ab.`
+    };
+  }
+  if (locale === 'es') {
+    return {
+      subject: 'Restablece tu contraseña de Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Restablecer contraseña</h2>
+        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta de Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Elegir nueva contraseña</a></p>
+        <p style="font-size:13px;color:#666">Este enlace caduca en 1 hora. Si no lo solicitaste, puedes ignorar este correo.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Restablece tu contraseña de Sensor Tattoo Fix:\n${resetUrl}\n\nEste enlace caduca en 1 hora.`
+    };
+  }
+  if (locale === 'pl') {
+    return {
+      subject: 'Zresetuj hasło do Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Resetowanie hasła</h2>
+        <p>Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Wybierz nowe hasło</a></p>
+        <p style="font-size:13px;color:#666">Ten link wygasa za 1 godzinę. Jeśli nie prosiłeś o to, zignoruj ten e-mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Zresetuj hasło do Sensor Tattoo Fix:\n${resetUrl}\n\nTen link wygasa za 1 godzinę.`
+    };
+  }
+  if (locale === 'fr') {
+    return {
+      subject: 'Réinitialisez votre mot de passe Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Réinitialisation du mot de passe</h2>
+        <p>Nous avons reçu une demande de réinitialisation du mot de passe de votre compte Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Choisir un nouveau mot de passe</a></p>
+        <p style="font-size:13px;color:#666">Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Réinitialisez votre mot de passe Sensor Tattoo Fix :\n${resetUrl}\n\nCe lien expire dans 1 heure.`
+    };
+  }
+  if (locale === 'nl') {
+    return {
+      subject: 'Stel uw Sensor Tattoo Fix-wachtwoord opnieuw in',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Wachtwoord opnieuw instellen</h2>
+        <p>We hebben een verzoek ontvangen om het wachtwoord van uw Sensor Tattoo Fix-account opnieuw in te stellen.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Nieuw wachtwoord kiezen</a></p>
+        <p style="font-size:13px;color:#666">Deze link verloopt over 1 uur. Als u dit niet heeft aangevraagd, kunt u deze e-mail negeren.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Stel uw Sensor Tattoo Fix-wachtwoord opnieuw in:\n${resetUrl}\n\nDeze link verloopt over 1 uur.`
+    };
+  }
+  if (locale === 'sv') {
+    return {
+      subject: 'Återställ ditt Sensor Tattoo Fix-lösenord',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Återställ lösenord</h2>
+        <p>Vi har fått en begäran om att återställa lösenordet för ditt Sensor Tattoo Fix-konto.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Välj nytt lösenord</a></p>
+        <p style="font-size:13px;color:#666">Länken upphör om 1 timme. Om du inte begärde detta kan du ignorera det här e-postmeddelandet.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Återställ ditt Sensor Tattoo Fix-lösenord:\n${resetUrl}\n\nLänken upphör om 1 timme.`
+    };
+  }
+  if (locale === 'no') {
+    return {
+      subject: 'Tilbakestill Sensor Tattoo Fix-passordet ditt',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Tilbakestill passord</h2>
+        <p>Vi har mottatt en forespørsel om å tilbakestille passordet til Sensor Tattoo Fix-kontoen din.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Velg nytt passord</a></p>
+        <p style="font-size:13px;color:#666">Denne lenken utløper om 1 time. Hvis du ikke ba om dette, kan du ignorere denne e-posten.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Tilbakestill Sensor Tattoo Fix-passordet ditt:\n${resetUrl}\n\nDenne lenken utløper om 1 time.`
+    };
+  }
+  if (locale === 'fi') {
+    return {
+      subject: 'Vaihda Sensor Tattoo Fix -salasanasi',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Salasanan vaihto</h2>
+        <p>Saimme pyynnön vaihtaa Sensor Tattoo Fix -tilisi salasana.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Valitse uusi salasana</a></p>
+        <p style="font-size:13px;color:#666">Tämä linkki vanhenee 1 tunnin kuluttua. Jos et pyytänyt tätä, voit jättää tämän sähköpostin huomiotta.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Vaihda Sensor Tattoo Fix -salasanasi:\n${resetUrl}\n\nTämä linkki vanhenee 1 tunnin kuluttua.`
     };
   }
   return {
@@ -17567,6 +17760,49 @@ async function handleGetOrder(request, env, origin, orderId) {
   return json({ error: 'Não autorizado.' }, 401, origin);
 }
 
+async function handleAdminApplyIntlPpp(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const current = await getConfig(env);
+  const currencies = body.intlCurrencies != null
+    ? normalizeIntlCurrencies(body.intlCurrencies)
+    : normalizeIntlCurrencies(current.intlCurrencies);
+  const auto = body.intlCurrenciesAutoPpp != null
+    ? body.intlCurrenciesAutoPpp !== false
+    : current.intlCurrenciesAutoPpp !== false;
+  const synced = syncOpticalIntlBrlFromBrKit(current.products || []);
+  const { products, updated } = applyPppToIntlProducts(synced.products, currencies);
+  const saved = await saveConfig(env, {
+    ...current,
+    products,
+    intlCurrencies: currencies,
+    intlCurrenciesAutoPpp: auto
+  });
+  return json({
+    ok: true,
+    updated: updated + (synced.synced ? 1 : 0),
+    syncedOpticalBrl: synced.synced,
+    currencies: currencies.map((c) => ({ code: c.code, pppRate: c.pppRate, decimals: c.decimals })),
+    products: (saved.products || []).filter(isIntlMarketProductRow).map((p) => ({
+      id: p.id,
+      price: p.price,
+      priceUsd: p.priceUsd,
+      priceEur: p.priceEur,
+      priceSek: p.priceSek,
+      priceNok: p.priceNok,
+      pricePln: p.pricePln,
+      priceGbp: p.priceGbp
+    }))
+  }, 200, origin);
+}
+
 async function handleAdminGetConfig(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -17631,8 +17867,19 @@ async function handlePutConfig(request, env, origin, ctx) {
       : (current.homeFaq || []),
     homeReviews: body.homeReviews != null
       ? mergePreservedI18n(Array.isArray(body.homeReviews) ? body.homeReviews : current.homeReviews || [], current.homeReviews || [])
-      : (current.homeReviews || [])
+      : (current.homeReviews || []),
+    intlCurrencies: body.intlCurrencies != null
+      ? normalizeIntlCurrencies(body.intlCurrencies)
+      : normalizeIntlCurrencies(current.intlCurrencies),
+    intlCurrenciesAutoPpp: body.intlCurrenciesAutoPpp != null
+      ? body.intlCurrenciesAutoPpp !== false
+      : (current.intlCurrenciesAutoPpp !== false)
   };
+  if (merged.intlCurrenciesAutoPpp !== false) {
+    const synced = syncOpticalIntlBrlFromBrKit(merged.products || []);
+    const applied = applyPppToIntlProducts(synced.products, merged.intlCurrencies);
+    merged.products = applied.products;
+  }
   if (merged.products?.[0]) {
     merged.product = {
       name: merged.products[0].name,
@@ -18672,6 +18919,9 @@ export default {
       if (path === '/admin/home-i18n/refresh' && request.method === 'POST') {
         return handleAdminHomeI18nRefresh(request, env, origin, ctx);
       }
+      if (path === '/admin/intl-money/apply-ppp' && request.method === 'POST') {
+        return handleAdminApplyIntlPpp(request, env, origin);
+      }
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
       if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);
       if (path === '/auth/logout' && request.method === 'POST') return handleCustomerLogout(request, env, origin);
@@ -19006,8 +19256,8 @@ export default {
     }
     if (event.cron === '30 2 * * *') {
       ctx.waitUntil(
-        syncIntlProductPricesFromFx(env).catch((err) => {
-          console.error('Intl FX price sync cron failed:', err.message);
+        syncIntlProductPricesFromPpp(env).catch((err) => {
+          console.error('Intl PPP price sync cron failed:', err.message);
         })
       );
     }
