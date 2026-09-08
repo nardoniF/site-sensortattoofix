@@ -331,8 +331,17 @@ html[lang="it"] .logo-img-link { width: 74px; height: 74px; }
 html[lang="it"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
 html[lang="it"] .nav-actions { gap: 6px; }
 
+/* Header FR: mesmo alívio de espaço do IT (rótulos naturalmente longos) */
+html[lang="fr"] .site-nav { gap: 10px; }
+html[lang="fr"] .logo-text { font-size: 1.18rem; }
+html[lang="fr"] .logo-tagline { font-size: 0.74rem; }
+html[lang="fr"] .logo-img-link { width: 74px; height: 74px; }
+html[lang="fr"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
+html[lang="fr"] .nav-actions { gap: 6px; }
+
 @media (max-width: 1360px) {
     html[lang="it"] .logo-lockup .logo-tagline { display: none; }
+    html[lang="fr"] .logo-lockup .logo-tagline { display: none; }
 }
 
 @media (max-width: 1180px) {
