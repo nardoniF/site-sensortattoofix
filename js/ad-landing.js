@@ -53,7 +53,7 @@
 
   var path = window.location.pathname || '/';
   var langPrefix = '';
-  var m = path.match(/^\/(en|it|de|es|pl|sl)(?=\/|$)/);
+  var m = path.match(/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(?=\/|$)/);
   if (m) langPrefix = '/' + m[1];
   var parts = path.replace(/\/+$/, '').split('/');
   var leaf = parts[parts.length - 1] || '';

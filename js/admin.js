@@ -23,6 +23,8 @@
     paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
     customerTrackingSubject: 'Rastreio disponível — {orderId}',
     trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
+    customerDeliveredSubject: 'Pedido entregue — {orderId} · como foi a experiência?',
+    deliveredMessage: 'Olá!\n\nConsta aqui que o seu pedido {orderId} acabou de ser entregue.\n\nQueremos muito saber: deu tudo certo na aplicação? A lente funcionou direitinho e o seu relógio voltou a monitorar seus treinos/batimentos normalmente sobre a tattoo?\n\nSe puder responder a este e-mail com um depoimento curto, vai nos ajudar demais!\n\nQue tal ajudar outros tatuados a resolverem esse problema também? 🎥\n\nSe você puder gravar um vídeo bem simples do celular (15 a 30 segundos) mostrando a lente aplicada e o relógio funcionando, seria incrível! Você pode se apresentar, dizer de onde é e mostrar o resultado. Com a sua autorização, adoraríamos postar nas nossas redes sociais!\n\nAcompanhe a gente por lá:\n\nInstagram: {instagram}\n\nTikTok: {tiktok}\n\nYouTube: {youtube}\n\nSe tiver qualquer dúvida ou precisar de suporte na aplicação, é só nos chamar por aqui.\n\nMuito obrigado por confiar na Sensor TattooFix®!\n\nAtenciosamente,\n\nFabio Nardoni\n\nEquipe Sensor TattooFix®\n\n{site}',
     abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
     abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
     abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
@@ -183,6 +185,23 @@
             const mergeFn = window.STF_PRODUCT_MERGE.mergeMissingCatalogProducts
               || window.STF_PRODUCT_MERGE.mergeMissingAggregated;
             if (mergeFn) apiConfig = mergeFn(apiConfig, local);
+            // Preenche name*/description* vazios do KV com o catálogo Git (senão Admin fica em branco).
+            if (window.STF_PRODUCT_MERGE.mergeConfig) {
+              apiConfig = window.STF_PRODUCT_MERGE.mergeConfig(apiConfig, local);
+            }
+            if (window.STF_PRODUCT_MERGE.mergeHomeContentById) {
+              apiConfig = {
+                ...apiConfig,
+                homeReviews: window.STF_PRODUCT_MERGE.mergeHomeContentById(
+                  apiConfig.homeReviews,
+                  local.homeReviews
+                ),
+                homeFaq: window.STF_PRODUCT_MERGE.mergeHomeContentById(
+                  apiConfig.homeFaq,
+                  local.homeFaq
+                )
+              };
+            }
           }
           currentConfig = apiConfig;
           setModeBadge(true);
@@ -5769,6 +5788,162 @@ ${worksheets}
     return ['BR', 'INT'];
   }
 
+  const DEFAULT_INTL_MARKUP_PERCENT = 65;
+
+  const DEFAULT_INTL_CURRENCIES = [
+    { code: 'USD', label: 'Dólar (USD)', langs: ['en'], countries: ['US', 'CA', 'AU', 'NZ', 'SG', 'HK'], decimals: 2, active: true },
+    { code: 'GBP', label: 'Libra (GBP)', langs: [], countries: ['GB'], decimals: 2, active: true },
+    { code: 'EUR', label: 'Euro (EUR)', langs: ['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'], countries: ['IT', 'DE', 'ES', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'], decimals: 2, active: true },
+    { code: 'PLN', label: 'Złoty (PLN)', langs: ['pl'], countries: ['PL'], decimals: 2, active: true },
+    { code: 'SEK', label: 'Coroa sueca (SEK)', langs: ['sv'], countries: ['SE'], decimals: 0, active: true },
+    { code: 'NOK', label: 'Coroa norueguesa (NOK)', langs: ['no'], countries: ['NO'], decimals: 0, active: true }
+  ];
+
+  let adminFxRatesCache = { rates: null, at: 0 };
+
+  async function loadAdminFxRates() {
+    if (adminFxRatesCache.rates && Date.now() - adminFxRatesCache.at < 300000) {
+      return adminFxRatesCache.rates;
+    }
+    const base = (window.CONFIG_BOOTSTRAP?.configApiUrl || currentConfig?.api?.baseUrl || '').replace(/\/$/, '');
+    if (!base) return {};
+    try {
+      const res = await fetch(`${base}/fx/rates?to=USD,EUR,GBP,PLN,SEK,NOK`, { cache: 'no-store' });
+      if (!res.ok) return adminFxRatesCache.rates || {};
+      const data = await res.json();
+      adminFxRatesCache = { rates: data.rates || {}, at: Date.now() };
+      return adminFxRatesCache.rates;
+    } catch {
+      return adminFxRatesCache.rates || {};
+    }
+  }
+
+  function intlBaseFromInputs(price, markup) {
+    const brl = Math.max(0, Number(price) || 0);
+    const m = Number(markup);
+    const pct = Number.isFinite(m) && m >= 0 ? m : DEFAULT_INTL_MARKUP_PERCENT;
+    return Math.round(brl * (1 + pct / 100) * 100) / 100;
+  }
+
+  function formatAdminBrl(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function applyFxAmountAdmin(amountBrl, rate, decimals) {
+    const amount = Math.max(0, Number(amountBrl) || 0) * Math.max(0, Number(rate) || 0);
+    const d = Number.isFinite(Number(decimals)) ? Math.max(0, Math.min(4, Math.floor(Number(decimals)))) : 2;
+    const factor = 10 ** d;
+    return Math.round(amount * factor) / factor;
+  }
+
+  function intlPriceFieldName(code) {
+    const c = String(code || '').toUpperCase();
+    if (!/^[A-Z]{3}$/.test(c)) return null;
+    return 'price' + c[0] + c.slice(1).toLowerCase();
+  }
+
+  function normalizeAdminIntlCurrency(row, fallback) {
+    const base = fallback && typeof fallback === 'object' ? fallback : {};
+    const code = String(row?.code || base.code || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+    if (code.length !== 3) return null;
+    const langs = String(row?.langsText != null ? row.langsText : (Array.isArray(row?.langs) ? row.langs.join(', ') : (base.langs || []).join(', ')))
+      .split(/[\s,;]+/).map((s) => s.toLowerCase().trim()).filter(Boolean);
+    const countries = String(row?.countriesText != null ? row.countriesText : (Array.isArray(row?.countries) ? row.countries.join(', ') : (base.countries || []).join(', ')))
+      .split(/[\s,;]+/).map((s) => s.toUpperCase().trim()).filter(Boolean);
+    const decimals = Number.isFinite(Number(row?.decimals != null ? row.decimals : base.decimals))
+      ? Math.max(0, Math.min(4, Math.floor(Number(row?.decimals != null ? row.decimals : base.decimals))))
+      : 2;
+    return {
+      code,
+      label: String(row?.label || base.label || code).trim() || code,
+      langs,
+      countries,
+      decimals,
+      active: row?.active != null ? row.active !== false : base.active !== false
+    };
+  }
+
+  function getAdminIntlCurrencies(config) {
+    const byCode = new Map(DEFAULT_INTL_CURRENCIES.map((c) => [c.code, { ...c, langs: c.langs.slice(), countries: c.countries.slice() }]));
+    (Array.isArray(config?.intlCurrencies) ? config.intlCurrencies : []).forEach((row) => {
+      const n = normalizeAdminIntlCurrency(row, byCode.get(String(row?.code || '').toUpperCase()) || { code: row?.code });
+      if (n) byCode.set(n.code, n);
+    });
+    return Array.from(byCode.values());
+  }
+
+  function applyMarkupFxToProductsAdmin(products, currencies, fxRates) {
+    const list = (currencies || []).filter((c) => c.active !== false);
+    const rates = fxRates || {};
+    return (products || []).map((p) => {
+      if (!isIntlMarketProduct(p)) {
+        const cleaned = { ...p };
+        delete cleaned.intlMarkupPercent;
+        delete cleaned.intlBaseBrl;
+        return cleaned;
+      }
+      const brl = Number(p.price) || 0;
+      if (!(brl > 0)) return p;
+      const markup = Number(p.intlMarkupPercent);
+      const pct = Number.isFinite(markup) && markup >= 0 ? markup : DEFAULT_INTL_MARKUP_PERCENT;
+      const base = intlBaseFromInputs(brl, pct);
+      const next = { ...p, intlMarkupPercent: pct, intlBaseBrl: base };
+      list.forEach((cur) => {
+        const field = intlPriceFieldName(cur.code);
+        const rate = Number(rates[cur.code]);
+        if (field && rate > 0) next[field] = applyFxAmountAdmin(base, rate, cur.decimals);
+      });
+      return next;
+    });
+  }
+
+  function renderIntlCurrencies(list) {
+    const root = document.getElementById('admin-intl-currencies');
+    if (!root) return;
+    const rows = (list && list.length) ? list : DEFAULT_INTL_CURRENCIES;
+    root.innerHTML = rows.map((c, i) => `
+      <div class="admin-product-row admin-intl-currency-row" data-currency-index="${i}">
+        <h4>${escAttr(c.label || c.code)} <span class="admin-meta">(${escAttr(c.code)})</span></h4>
+        <div class="form-grid">
+          <label>Código ISO<input type="text" data-cur-field="code" maxlength="3" value="${escAttr(c.code || '')}" placeholder="USD"></label>
+          <label>Nome<input type="text" data-cur-field="label" value="${escAttr(c.label || '')}" placeholder="Dólar (USD)"></label>
+          <label>Casas decimais<input type="number" data-cur-field="decimals" min="0" max="4" step="1" value="${c.decimals != null ? c.decimals : 2}"></label>
+          <label class="full">Línguas do site (códigos)<input type="text" data-cur-field="langs" value="${escAttr((c.langs || []).join(', '))}" placeholder="en"></label>
+          <label class="full">Países (ISO)<input type="text" data-cur-field="countries" value="${escAttr((c.countries || []).join(', '))}" placeholder="US, CA, AU"></label>
+          <label class="label-check"><input type="checkbox" data-cur-field="active" ${c.active !== false ? 'checked' : ''}><span>Ativa</span></label>
+        </div>
+        <button type="button" class="btn-secondary btn-remove-intl-currency" data-index="${i}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
+      </div>
+    `).join('');
+    root.querySelectorAll('.btn-remove-intl-currency').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const all = collectIntlCurrencies();
+        all.splice(Number(btn.getAttribute('data-index')), 1);
+        renderIntlCurrencies(all.length ? all : DEFAULT_INTL_CURRENCIES);
+      });
+    });
+  }
+
+  function collectIntlCurrencies() {
+    const root = document.getElementById('admin-intl-currencies');
+    if (!root) return getAdminIntlCurrencies(currentConfig);
+    const out = [];
+    root.querySelectorAll('.admin-intl-currency-row').forEach((row) => {
+      const val = (name) => row.querySelector(`[data-cur-field="${name}"]`)?.value?.trim() || '';
+      const active = row.querySelector('[data-cur-field="active"]')?.checked !== false;
+      const n = normalizeAdminIntlCurrency({
+        code: val('code'),
+        label: val('label'),
+        decimals: val('decimals'),
+        langsText: val('langs'),
+        countriesText: val('countries'),
+        active
+      });
+      if (n) out.push(n);
+    });
+    return out.length ? out : DEFAULT_INTL_CURRENCIES.slice();
+  }
+
   function isIntlMarketProduct(p) {
     const m = productMarketsOf(p);
     return m.includes('INT') && !m.includes('BR');
@@ -5852,12 +6027,32 @@ ${worksheets}
           <label class="full">Nome SL
             <input type="text" data-field="nameSl" value="${escAttr(p.nameSl || '')}" placeholder="Optična leča SensorTattooFix">
           </label>
+          <label class="full">Nome FR
+            <input type="text" data-field="nameFr" value="${escAttr(p.nameFr || '')}" placeholder="Lentille optique SensorTattooFix">
+          </label>
+          <label class="full">Nome NL
+            <input type="text" data-field="nameNl" value="${escAttr(p.nameNl || '')}" placeholder="SensorTattooFix Optische Lens">
+          </label>
+          <label class="full">Nome SV
+            <input type="text" data-field="nameSv" value="${escAttr(p.nameSv || '')}" placeholder="SensorTattooFix optisk lins">
+          </label>
+          <label class="full">Nome NO
+            <input type="text" data-field="nameNo" value="${escAttr(p.nameNo || '')}" placeholder="SensorTattooFix optisk linse">
+          </label>
+          <label class="full">Nome FI
+            <input type="text" data-field="nameFi" value="${escAttr(p.nameFi || '')}" placeholder="SensorTattooFix-optinen linssi">
+          </label>
           <label class="full">Descrição EN<textarea data-field="descriptionEn" rows="2">${escTextarea(p.descriptionEn || '')}</textarea></label>
           <label class="full">Descrição IT<textarea data-field="descriptionIt" rows="2">${escTextarea(p.descriptionIt || '')}</textarea></label>
           <label class="full">Descrição DE<textarea data-field="descriptionDe" rows="2">${escTextarea(p.descriptionDe || '')}</textarea></label>
           <label class="full">Descrição ES<textarea data-field="descriptionEs" rows="2">${escTextarea(p.descriptionEs || '')}</textarea></label>
           <label class="full">Descrição PL<textarea data-field="descriptionPl" rows="2">${escTextarea(p.descriptionPl || '')}</textarea></label>
           <label class="full">Descrição SL<textarea data-field="descriptionSl" rows="2">${escTextarea(p.descriptionSl || '')}</textarea></label>
+          <label class="full">Descrição FR<textarea data-field="descriptionFr" rows="2">${escTextarea(p.descriptionFr || '')}</textarea></label>
+          <label class="full">Descrição NL<textarea data-field="descriptionNl" rows="2">${escTextarea(p.descriptionNl || '')}</textarea></label>
+          <label class="full">Descrição SV<textarea data-field="descriptionSv" rows="2">${escTextarea(p.descriptionSv || '')}</textarea></label>
+          <label class="full">Descrição NO<textarea data-field="descriptionNo" rows="2">${escTextarea(p.descriptionNo || '')}</textarea></label>
+          <label class="full">Descrição FI<textarea data-field="descriptionFi" rows="2">${escTextarea(p.descriptionFi || '')}</textarea></label>
           <label class="full">Álbum de fotos <small class="admin-field-hint">uma URL por linha — ordem do carrossel na loja</small>
             <textarea data-field="images" rows="5" placeholder="/images/lens-gallery/01-….png">${escTextarea((Array.isArray(p.images) ? p.images : []).join('\n'))}</textarea>
           </label>` : '';
@@ -5869,11 +6064,27 @@ ${worksheets}
           <label class="full">Descrição (PT)<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
           ${i18nFields}
           ${aggregatedFields}
-          <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
-          ${market === 'INT' && !isAggregated ? `
-          <label>Preço USD (.com EN)<input type="number" data-field="priceUsd" step="0.01" min="0" value="${p.priceUsd != null ? p.priceUsd : ''}" placeholder="ex.: 12.99"></label>
-          <label>Preço EUR (.com IT)<input type="number" data-field="priceEur" step="0.01" min="0" value="${p.priceEur != null ? p.priceEur : ''}" placeholder="ex.: 11.99"></label>
-          <p class="admin-meta admin-field-hint full">Referência em R$ acima. USD/EUR são exibidos no .com (cobrança em USD). Atualizados automaticamente todo dia; você pode ajustar manualmente.</p>` : ''}
+          <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}" ${market === 'INT' && !isAggregated ? 'data-intl-brl="1"' : ''}></label>
+          ${market === 'INT' && !isAggregated ? (() => {
+            const markup = p.intlMarkupPercent != null ? p.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT;
+            const baseBrl = p.intlBaseBrl != null ? p.intlBaseBrl : intlBaseFromInputs(p.price, markup);
+            const currencies = collectIntlCurrencies().filter((c) => c.active !== false);
+            const fields = currencies.map((cur) => {
+              const field = intlPriceFieldName(cur.code);
+              const step = cur.decimals === 0 ? '1' : (cur.decimals === 1 ? '0.1' : '0.01');
+              const langs = (cur.langs || []).map((l) => String(l).toUpperCase()).join('/');
+              const val = p[field] != null ? p[field] : '';
+              return `<label class="admin-intl-price-ro">Preço ${escAttr(cur.code)}${langs ? ` (.com ${escAttr(langs)})` : ''}
+                <input type="number" data-field="${escAttr(field)}" data-intl-price="1" step="${step}" min="0" value="${val}" readonly tabindex="-1">
+                <small class="admin-intl-base-brl" data-intl-base-label>≈ ${formatAdminBrl(baseBrl)}</small>
+              </label>`;
+            }).join('\n          ');
+            return `<label>Markup internacional (%)
+              <input type="number" data-field="intlMarkupPercent" data-intl-markup="1" step="0.1" min="0" value="${markup}">
+            </label>
+            <p class="admin-meta admin-field-hint full" data-intl-base-summary>Base internacional = R$ × (1 + markup) = <strong>${formatAdminBrl(baseBrl)}</strong> — depois convertida pela cotação. Moedas abaixo são calculadas (não editáveis). Capa .com = optical-lens-intl (smartwatch).</p>
+          ${fields}`;
+          })() : ''}
           <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
           </label>
@@ -5929,12 +6140,46 @@ ${worksheets}
     });
   }
 
+  function refreshIntlPriceRow(row, rates) {
+    if (!row || row.getAttribute('data-market') !== 'INT') return;
+    const priceEl = row.querySelector('[data-field="price"]');
+    const markupEl = row.querySelector('[data-field="intlMarkupPercent"]');
+    const brl = Number(priceEl?.value) || 0;
+    const markup = Number(markupEl?.value);
+    const pct = Number.isFinite(markup) && markup >= 0 ? markup : DEFAULT_INTL_MARKUP_PERCENT;
+    const base = intlBaseFromInputs(brl, pct);
+    const summary = row.querySelector('[data-intl-base-summary]');
+    if (summary) {
+      summary.innerHTML = `Base internacional = R$ × (1 + markup) = <strong>${formatAdminBrl(base)}</strong> — depois convertida pela cotação. Moedas abaixo são calculadas (não editáveis). Capa .com = optical-lens-intl (smartwatch).`;
+    }
+    row.querySelectorAll('[data-intl-base-label]').forEach((el) => {
+      el.textContent = `≈ ${formatAdminBrl(base)}`;
+    });
+    const currencies = collectIntlCurrencies().filter((c) => c.active !== false);
+    currencies.forEach((cur) => {
+      const field = intlPriceFieldName(cur.code);
+      const input = field ? row.querySelector(`[data-field="${field}"]`) : null;
+      const rate = Number(rates?.[cur.code]);
+      if (input && rate > 0) input.value = String(applyFxAmountAdmin(base, rate, cur.decimals));
+    });
+  }
+
+  async function bindIntlMarkupRecalc(listEl) {
+    if (!listEl) return;
+    const rates = await loadAdminFxRates();
+    listEl.querySelectorAll('.admin-product-row[data-market="INT"]').forEach((row) => {
+      const onChange = () => refreshIntlPriceRow(row, rates);
+      row.querySelector('[data-field="price"]')?.addEventListener('input', onChange);
+      row.querySelector('[data-field="intlMarkupPercent"]')?.addEventListener('input', onChange);
+      refreshIntlPriceRow(row, rates);
+    });
+  }
+
   function renderProducts(products) {
     const list = products || [];
     const brMain = list.filter((p) => !p.aggregated && productMarketsOf(p).includes('BR') && !isIntlMarketProduct(p));
     const brAgg = list.filter((p) => p.aggregated);
     const intlMain = list.filter((p) => !p.aggregated && (isIntlMarketProduct(p) || (productMarketsOf(p).includes('INT') && !productMarketsOf(p).includes('BR'))));
-    // Products tagged BOTH appear in BR main only (edit once); INT-only in intl panel.
     const summary = document.getElementById('admin-products-summary');
     if (summary) {
       summary.textContent = `BR ${brMain.length} principal(is) · ${brAgg.length} agregado(s) · .com ${intlMain.length} lente(s)`;
@@ -5942,6 +6187,7 @@ ${worksheets}
     renderProductList(brMain, 'admin-products-br-main', { market: 'BR', aggregated: false });
     renderProductList(brAgg, 'admin-products-br-aggregated', { market: 'BR', aggregated: true });
     renderProductList(intlMain, 'admin-products-intl-main', { market: 'INT', aggregated: false });
+    bindIntlMarkupRecalc(document.getElementById('admin-products-intl-main'));
   }
 
   function collectFromList(listEl, isAggregated, market) {
@@ -5981,32 +6227,70 @@ ${worksheets}
         const nameEs = val('nameEs');
         const namePl = val('namePl');
         const nameSl = val('nameSl');
+        const nameFr = val('nameFr');
+        const nameNl = val('nameNl');
+        const nameSv = val('nameSv');
+        const nameNo = val('nameNo');
+        const nameFi = val('nameFi');
         const descriptionEn = val('descriptionEn');
         const descriptionIt = val('descriptionIt');
         const descriptionDe = val('descriptionDe');
         const descriptionEs = val('descriptionEs');
         const descriptionPl = val('descriptionPl');
         const descriptionSl = val('descriptionSl');
+        const descriptionFr = val('descriptionFr');
+        const descriptionNl = val('descriptionNl');
+        const descriptionSv = val('descriptionSv');
+        const descriptionNo = val('descriptionNo');
+        const descriptionFi = val('descriptionFi');
         if (nameEn) product.nameEn = nameEn; else delete product.nameEn;
         if (nameIt) product.nameIt = nameIt; else delete product.nameIt;
         if (nameDe) product.nameDe = nameDe; else delete product.nameDe;
         if (nameEs) product.nameEs = nameEs; else delete product.nameEs;
         if (namePl) product.namePl = namePl; else delete product.namePl;
         if (nameSl) product.nameSl = nameSl; else delete product.nameSl;
+        if (nameFr) product.nameFr = nameFr; else delete product.nameFr;
+        if (nameNl) product.nameNl = nameNl; else delete product.nameNl;
+        if (nameSv) product.nameSv = nameSv; else delete product.nameSv;
+        if (nameNo) product.nameNo = nameNo; else delete product.nameNo;
+        if (nameFi) product.nameFi = nameFi; else delete product.nameFi;
         if (descriptionEn) product.descriptionEn = descriptionEn; else delete product.descriptionEn;
         if (descriptionIt) product.descriptionIt = descriptionIt; else delete product.descriptionIt;
         if (descriptionDe) product.descriptionDe = descriptionDe; else delete product.descriptionDe;
         if (descriptionEs) product.descriptionEs = descriptionEs; else delete product.descriptionEs;
         if (descriptionPl) product.descriptionPl = descriptionPl; else delete product.descriptionPl;
         if (descriptionSl) product.descriptionSl = descriptionSl; else delete product.descriptionSl;
+        if (descriptionFr) product.descriptionFr = descriptionFr; else delete product.descriptionFr;
+        if (descriptionNl) product.descriptionNl = descriptionNl; else delete product.descriptionNl;
+        if (descriptionSv) product.descriptionSv = descriptionSv; else delete product.descriptionSv;
+        if (descriptionNo) product.descriptionNo = descriptionNo; else delete product.descriptionNo;
+        if (descriptionFi) product.descriptionFi = descriptionFi; else delete product.descriptionFi;
         if (market === 'INT') {
-          const usd = val('priceUsd');
-          const eur = val('priceEur');
-          if (usd) product.priceUsd = Number(usd); else delete product.priceUsd;
-          if (eur) product.priceEur = Number(eur); else delete product.priceEur;
+          const currencies = collectIntlCurrencies();
+          const knownFields = new Set(currencies.map((c) => intlPriceFieldName(c.code)).filter(Boolean));
+          ['priceUsd', 'priceEur', 'priceSek', 'priceNok', 'pricePln', 'priceGbp', ...knownFields].forEach((field) => {
+            if (!field) return;
+            delete product[field];
+          });
+          const markupRaw = val('intlMarkupPercent');
+          const markupNum = Number(markupRaw);
+          product.intlMarkupPercent = Number.isFinite(markupNum) && markupNum >= 0
+            ? markupNum
+            : DEFAULT_INTL_MARKUP_PERCENT;
+          product.intlBaseBrl = intlBaseFromInputs(product.price, product.intlMarkupPercent);
+          // Foreign list prices are server-calculated on save (markup → FX). Keep shown values if present.
+          row.querySelectorAll('[data-intl-price="1"]').forEach((input) => {
+            const field = input.getAttribute('data-field');
+            if (!field) return;
+            const raw = String(input.value || '').trim();
+            if (raw) product[field] = Number(raw);
+          });
         } else {
-          delete product.priceUsd;
-          delete product.priceEur;
+          ['priceUsd', 'priceEur', 'priceSek', 'priceNok', 'pricePln', 'priceGbp', 'intlMarkupPercent', 'intlBaseBrl'].forEach((field) => { delete product[field]; });
+          collectIntlCurrencies().forEach((c) => {
+            const field = intlPriceFieldName(c.code);
+            if (field) delete product[field];
+          });
         }
         const imagesEl = row.querySelector('[data-field="images"]');
         if (imagesEl) {
@@ -6305,6 +6589,9 @@ ${worksheets}
   function fillForm(config) {
     const f = els.configForm;
     if (!f || !config) return;
+    renderIntlCurrencies(getAdminIntlCurrencies(config));
+    const autoFx = document.getElementById('admin-intl-auto-ppp');
+    if (autoFx) autoFx.checked = config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false;
     renderProducts(getProductsFromConfig(config));
     renderKitCost(config);
     if (f.mlFlexShippingCost) {
@@ -6390,6 +6677,18 @@ ${worksheets}
     }
     if (f.emailTrackingAvailable) {
       f.emailTrackingAvailable.value = emails.trackingAvailable || DEFAULT_EMAILS.trackingAvailable;
+    }
+    if (f.emailCustomerDeliveredSubject) {
+      f.emailCustomerDeliveredSubject.value = emails.customerDeliveredSubject || DEFAULT_EMAILS.customerDeliveredSubject;
+    }
+    if (f.emailDeliveredMessage) {
+      const body = String(emails.deliveredMessage || '');
+      const isLegacy = !body.trim()
+        || body.includes('acabou de ser marcado como entregue')
+        || (body.includes('Queremos saber: deu tudo certo?') && !body.includes('Fabio Nardoni'));
+      f.emailDeliveredMessage.value = isLegacy
+        ? DEFAULT_EMAILS.deliveredMessage
+        : body;
     }
     if (f.emailAbandonedSubject) {
       f.emailAbandonedSubject.value = emails.abandonedSubject || DEFAULT_EMAILS.abandonedSubject;
@@ -6502,7 +6801,7 @@ ${worksheets}
       || products.find((p) => !p.aggregated)
       || products[0]
       || {};
-    return {
+    const payload = {
       product: {
         name: primary.name || '',
         description: primary.description || '',
@@ -6564,6 +6863,9 @@ ${worksheets}
         customerTrackingSubject: f.emailCustomerTrackingSubject?.value.trim()
           || DEFAULT_EMAILS.customerTrackingSubject,
         trackingAvailable: f.emailTrackingAvailable?.value.trim() || DEFAULT_EMAILS.trackingAvailable,
+        customerDeliveredSubject: f.emailCustomerDeliveredSubject?.value.trim()
+          || DEFAULT_EMAILS.customerDeliveredSubject,
+        deliveredMessage: f.emailDeliveredMessage?.value.trim() || DEFAULT_EMAILS.deliveredMessage,
         abandonedSubject: f.emailAbandonedSubject?.value.trim() || DEFAULT_EMAILS.abandonedSubject,
         abandonedWeeklySubject: f.emailAbandonedWeeklySubject?.value.trim()
           || DEFAULT_EMAILS.abandonedWeeklySubject,
@@ -6616,12 +6918,17 @@ ${worksheets}
       mlFlexShippingCost: Math.max(0, parseFloat(f.mlFlexShippingCost?.value) || (currentConfig?.mlFlexShippingCost || 0)),
       homeFaq: collectHomeFaq(),
       homeReviews: collectHomeReviews(),
+      intlCurrencies: collectIntlCurrencies(),
+      intlCurrenciesAutoFx: document.getElementById('admin-intl-auto-ppp')?.checked !== false,
+      intlCurrenciesAutoPpp: document.getElementById('admin-intl-auto-ppp')?.checked !== false,
       updatedAt: new Date().toISOString()
     };
+    // Server recalculates foreign prices on save via markup + FX.
+    return payload;
   }
 
-  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes', 'faq', 'elogios']);
-  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'cupons', 'faq', 'elogios', 'contato']);
+  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'moedas', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes', 'faq', 'elogios']);
+  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'moedas', 'cupons', 'faq', 'elogios', 'contato']);
   const CADASTROS_PANEL_BY_SECTION = {
     pessoas: 'clientes',
     produtos: 'produtos',
@@ -6629,6 +6936,7 @@ ${worksheets}
     kit: 'produtos',
     pagamento: 'pagamento',
     frete: 'frete',
+    moedas: 'moedas',
     cupons: 'cupons',
     faq: 'faq',
     elogios: 'elogios',
@@ -7477,6 +7785,55 @@ ${worksheets}
 
   function wireForumAdminControls() {
     document.getElementById('btn-forum-refresh')?.addEventListener('click', () => loadForumAdmin());
+    document.getElementById('btn-forum-i18n-refresh')?.addEventListener('click', async () => {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const base = apiBase();
+      const statusEl = document.getElementById('forum-i18n-status');
+      const btn = document.getElementById('btn-forum-i18n-refresh');
+      if (!token || !base) {
+        alert('Faça login na API para gerar traduções da comunidade.');
+        return;
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.dataset.label = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando…';
+      }
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.className = 'admin-meta admin-status-ok';
+        statusEl.textContent = 'Pedido enviado. Traduzindo tópicos em segundo plano (1–5 min)…';
+      }
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/i18n/refresh', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: 200 })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        const msg = data.message || 'Traduções em segundo plano. Atualize a lista em alguns minutos e abra /fr/comunidade.html para conferir.';
+        if (statusEl) {
+          statusEl.hidden = false;
+          statusEl.className = 'admin-meta admin-status-ok';
+          statusEl.textContent = '✓ ' + msg;
+        }
+        alert('✓ ' + msg);
+      } catch (err) {
+        const msg = err?.message || String(err);
+        if (statusEl) {
+          statusEl.hidden = false;
+          statusEl.className = 'admin-meta admin-status-bad';
+          statusEl.textContent = '✗ Falha: ' + msg;
+        }
+        alert('Falha ao gerar traduções da comunidade: ' + msg);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          if (btn.dataset.label) btn.innerHTML = btn.dataset.label;
+        }
+      }
+    });
     document.getElementById('btn-forum-seed')?.addEventListener('click', async () => {
       const token = sessionStorage.getItem(SESSION_KEY);
       const base = apiBase();
@@ -7960,6 +8317,7 @@ ${worksheets}
     customer_order_mp: 'Cliente — Mercado Pago',
     customer_pix: 'Cliente — PIX',
     customer_paid: 'Cliente — pagamento confirmado',
+    customer_delivered: 'Cliente — pedido entregue (pesquisa)',
     motoboy: 'Motoboy',
     coupon: 'Comissionado — cupom'
   };
@@ -8126,7 +8484,8 @@ ${worksheets}
     const all = collectProductsFromDom();
     const stamp = Date.now();
     const slug = `optical-lens-intl-${stamp}`;
-    all.push({
+    const currencies = collectIntlCurrencies();
+    const base = {
       id: slug,
       slug,
       name: 'SensorTattooFix Optical Lens',
@@ -8134,10 +8493,9 @@ ${worksheets}
       nameIt: 'Lente ottica SensorTattooFix',
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuada.',
-      price: 62.9,
-      priceUsd: 12.99,
-      priceEur: 11.99,
+      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      price: 72.9,
+      intlMarkupPercent: DEFAULT_INTL_MARKUP_PERCENT,
       image: LENS_INTL_IMAGES[0],
       images: LENS_INTL_IMAGES.slice(),
       active: true,
@@ -8145,12 +8503,77 @@ ${worksheets}
       weightGrams: 3,
       sensorMm: 25,
       markets: ['INT']
-    });
+    };
+    all.push(base);
     renderProducts(all);
     showProductSubtab('intl-main');
     showStatus('Produto .com adicionado. Preencha os campos e clique em Salvar.', 'success', 'save');
     const panel = document.getElementById('admin-products-intl-main');
     panel?.lastElementChild?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  });
+
+  document.getElementById('btn-add-intl-currency')?.addEventListener('click', () => {
+    const all = collectIntlCurrencies();
+    all.push({
+      code: '',
+      label: 'Nova moeda',
+      langs: [],
+      countries: [],
+      decimals: 2,
+      active: true
+    });
+    renderIntlCurrencies(all);
+  });
+
+  document.getElementById('btn-apply-intl-ppp')?.addEventListener('click', async () => {
+    const status = document.getElementById('admin-intl-ppp-status');
+    const currencies = collectIntlCurrencies();
+    const auto = document.getElementById('admin-intl-auto-ppp')?.checked !== false;
+    const rates = await loadAdminFxRates();
+    const products = applyMarkupFxToProductsAdmin(collectProductsFromDom(), currencies, rates);
+    renderProducts(products);
+    if (status) {
+      status.hidden = false;
+      status.textContent = 'Recalculando moedas (R$ + markup + FX)…';
+    }
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (token && base) {
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/intl-money/apply-markup-fx', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ intlCurrencies: currencies, intlCurrenciesAutoFx: auto, intlCurrenciesAutoPpp: auto })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Falha ao recalcular moedas.');
+        if (data.products) {
+          const byId = new Map(data.products.map((p) => [p.id, p]));
+          const merged = collectProductsFromDom().map((p) => {
+            const live = byId.get(p.id);
+            return live ? { ...p, ...live } : p;
+          });
+          renderProducts(merged);
+        }
+        if (currentConfig) {
+          currentConfig.intlCurrencies = currencies;
+          currentConfig.intlCurrenciesAutoFx = auto;
+          currentConfig.intlCurrenciesAutoPpp = auto;
+        }
+        showStatus(`Moedas recalculadas em ${data.updated ?? 0} produto(s) .com.`, 'success', 'save');
+        if (status) status.textContent = `Atualizado: ${data.updated ?? 0} produto(s).`;
+        return;
+      } catch (err) {
+        showStatus(err.message || 'Recálculo só na tela — salve para gravar.', 'warning', 'save');
+        if (status) status.textContent = 'Recálculo na tela; salve para gravar no servidor.';
+        return;
+      }
+    }
+    showStatus('Moedas recalculadas na tela. Salve para gravar.', 'success', 'save');
+    if (status) status.textContent = 'Recálculo local — clique em Salvar.';
   });
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));

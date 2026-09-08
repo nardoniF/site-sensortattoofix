@@ -91,6 +91,20 @@ import {
   saleMoneyParts,
   storeOrderListedGross
 } from './sales-money.js';
+import {
+  DEFAULT_INTL_CURRENCIES,
+  DEFAULT_INTL_MARKUP_PERCENT,
+  normalizeIntlCurrencies,
+  activeIntlCurrencies,
+  applyMarkupFxToIntlProducts,
+  syncOpticalIntlBrlFromBrKit,
+  currencyForLocaleFromRegistry,
+  productListPriceFromRegistry,
+  intlPriceField,
+  intlPriceFieldNames,
+  intlBaseBrl,
+  normalizeMarkupPercent
+} from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -103,7 +117,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '3299494b66c054c868ae927cc36d63658d342a46';
+const SITE_CATALOG_COMMIT = '8891134ef6eb611972ba69fff6c77bfd4d77b075';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -141,11 +155,29 @@ const DEFAULT_CONFIG = {
       id: 'kit-sensor-tattoofix',
       slug: 'kit-sensor-tattoofix',
       name: 'Kit Sensor Tattoo Fix',
-      nameEn: 'SensorTattooFix Optical Lens',
-      nameIt: 'Lente ottica SensorTattooFix',
+      nameEn: "Sensor Tattoo Fix Lens",
+      nameIt: "Lente Sensor Tattoo Fix",
+      nameSv: "Sensor Tattoo Fix-lins",
+      nameSl: "Sensor Tattoo Fix Lens",
+      namePl: "Sensor Tattoo Fix Lens",
+      nameNo: "Sensor Tattoo Fix-linse",
+      nameNl: "Sensor Tattoo Fix Lens",
+      nameFr: "Lentille Sensor Tattoo Fix",
+      nameFi: "Sensor Tattoo Fix -linssi",
+      nameEs: "Sensor Tattoo Fix Lens",
+      nameDe: "Sensor Tattoo Fix Lens",
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
-      descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      descriptionEn: "Optical lens for smartwatches on tattooed skin",
+      descriptionIt: "Lente ottica per smartwatch su pelle tatuata",
+      descriptionSv: "Optisk lins för smartklockor på tatuerad hud",
+      descriptionSl: "Optična leča za pametne ure na tetovirani koži",
+      descriptionPl: "Soczewka optyczna do smartwatchy na tatuowanej skórze",
+      descriptionNo: "Optisk linse for smartklokker på tatovert hud",
+      descriptionNl: "Optische lens voor smartwatches op getatoeëerde huid",
+      descriptionFr: "Lentille optique pour smartwatch sur peau tatouée",
+      descriptionFi: "Optinen linssi älykelloille tatuoidulle iholle",
+      descriptionEs: "Lente óptica para smartwatches en piel tatuada",
+      descriptionDe: "Optische Linse für Smartwatches auf tätowierter Haut",
       price: 62.9,
       image: 'https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg',
       active: true,
@@ -158,12 +190,30 @@ const DEFAULT_CONFIG = {
       id: 'kit-smartband-tattoofix',
       slug: 'kit-smartband-tattoofix',
       name: 'Kit Smartband Tattoo Friendly',
-      nameEn: 'Kit Smartband Tattoo Friendly',
-      nameIt: 'Kit Smartband Tattoo Friendly',
+      nameEn: "Kit Smartband Tattoo Friendly",
+      nameIt: "Kit Smartband Tattoo Friendly",
+      nameSv: "Kit Smartband Tattoo Friendly",
+      nameSl: "Kit Smartband Tattoo Friendly",
+      namePl: "Kit Smartband Tattoo Friendly",
+      nameNo: "Kit Smartband Tattoo Friendly",
+      nameNl: "Kit Smartband Tattoo Friendly",
+      nameFr: "Kit Smartband Tattoo Friendly",
+      nameFi: "Kit Smartband Tattoo Friendly",
+      nameEs: "Kit Smartband Tattoo Friendly",
+      nameDe: "Kit Smartband Tattoo Friendly",
       deviceType: 'smartband',
       description: 'Lente ótica para smartband em pele tatuada — kit completo',
-      descriptionEn: 'Optical lens for smartbands on tattooed skin — full kit',
-      descriptionIt: 'Lente ottica per smartband su pelle tatuata — kit completo',
+      descriptionEn: "Optical lens for smartbands on tattooed skin — full kit",
+      descriptionIt: "Lente ottica per smartband su pelle tatuata — kit completo",
+      descriptionSv: "Optisk lins för smartbands på tatuerad hud — komplett kit",
+      descriptionSl: "Optična leča za pametne zapestnice na tetovirani koži — komplet",
+      descriptionPl: "Soczewka optyczna do opasek na tatuowanej skórze — pełny zestaw",
+      descriptionNo: "Optisk linse for smartbånd på tatovert hud — komplett sett",
+      descriptionNl: "Optische lens voor smartbands op getatoeëerde huid — complete kit",
+      descriptionFr: "Lentille optique pour smartband sur peau tatouée — kit complet",
+      descriptionFi: "Optinen linssi älyrannekkeille tatuoidulle iholle — täysi paketti",
+      descriptionEs: "Lente óptica para smartbands en piel tatuada — kit completo",
+      descriptionDe: "Optische Linse für Smartbands auf tätowierter Haut — komplettes Kit",
       price: 62.9,
       image: '/images/smartband/kit-br/01-embalagem.jpg',
       images: [
@@ -183,15 +233,39 @@ const DEFAULT_CONFIG = {
       id: 'optical-lens-smartband-intl',
       slug: 'optical-lens-smartband-intl',
       name: 'SensorTattooFix Smartband Lens',
-      nameEn: 'SensorTattooFix Smartband Lens',
-      nameIt: 'Lente Smartband SensorTattooFix',
+      nameEn: "SensorTattooFix Smartband Lens",
+      nameIt: "Lente Smartband SensorTattooFix",
+      nameSv: "SensorTattooFix smartband-lins",
+      nameSl: "Leča SensorTattooFix za pametno zapestnico",
+      namePl: "Soczewka SensorTattooFix do opasek",
+      nameNo: "SensorTattooFix smartband-linse",
+      nameNl: "SensorTattooFix Smartband-lens",
+      nameFr: "Lentille Smartband SensorTattooFix",
+      nameFi: "SensorTattooFix-älyrannekkeen linssi",
+      nameEs: "Lente Smartband SensorTattooFix",
+      nameDe: "SensorTattooFix Smartband-Linse",
       deviceType: 'smartband',
       description: 'Lente de correção óptica para smartband em pele tatuada.',
-      descriptionEn: 'Designed for smartband optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartband su pelle tatuata.',
+      descriptionEn: "Designed for smartband optical sensors on tattooed skin.",
+      descriptionIt: "Progettata per i sensori ottici degli smartband su pelle tatuata.",
+      descriptionSv: "Utformad för smartbands optiska sensorer på tatuerad hud.",
+      descriptionSl: "Zasnovana za optične senzorje pametnih zapestnic na tetovirani koži.",
+      descriptionPl: "Zaprojektowana dla czujników optycznych opasek na tatuowanej skórze.",
+      descriptionNo: "Designet for smartbånds optiske sensorer på tatovert hud.",
+      descriptionNl: "Ontworpen voor optische sensoren van smartbands op getatoeëerde huid.",
+      descriptionFr: "Conçue pour les capteurs optiques de smartband sur peau tatouée.",
+      descriptionFi: "Suunniteltu älyrannekkeiden optisille antureille tatuoidulle iholle.",
+      descriptionEs: "Diseñada para sensores ópticos de smartband en piel tatuada.",
+      descriptionDe: "Entwickelt für optische Sensoren von Smartbands auf tätowierter Haut.",
       price: 62.9,
-      priceUsd: 12.99,
-      priceEur: 11.99,
+      intlMarkupPercent: 65,
+      intlBaseBrl: 103.79,
+      priceUsd: 20.25,
+      priceEur: 17.42,
+      priceSek: 194,
+      priceNok: 188,
+      pricePln: 75.09,
+      priceGbp: 14.96,
       image: '/images/smartband/lens-en/01-embalagem.jpg',
       images: [
         '/images/smartband/lens-en/01-embalagem.jpg',
@@ -210,13 +284,38 @@ const DEFAULT_CONFIG = {
       id: 'optical-lens-intl',
       slug: 'optical-lens-intl',
       name: 'SensorTattooFix Optical Lens',
-      nameEn: 'SensorTattooFix Optical Lens',
-      nameIt: 'Lente ottica SensorTattooFix',
+      nameEn: "SensorTattooFix Optical Lens",
+      nameIt: "Lente ottica SensorTattooFix",
+      nameSv: "SensorTattooFix optisk lins",
+      nameSl: "Optična leča SensorTattooFix",
+      namePl: "Soczewka optyczna SensorTattooFix",
+      nameNo: "SensorTattooFix optisk linse",
+      nameNl: "SensorTattooFix Optische Lens",
+      nameFr: "Lentille optique SensorTattooFix",
+      nameFi: "SensorTattooFix-optinen linssi",
+      nameEs: "Lente óptica SensorTattooFix",
+      nameDe: "SensorTattooFix Optische Linse",
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
-      descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
-      price: 62.9,
-      image: '/images/lens-gallery/01-optical-correction-lens.png',
+      descriptionEn: "Designed for smartwatch optical sensors on tattooed skin.",
+      descriptionIt: "Progettata per i sensori ottici degli smartwatch su pelle tatuata.",
+      descriptionSv: "Utformad för smartklockors optiska sensorer på tatuerad hud.",
+      descriptionSl: "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      descriptionPl: "Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.",
+      descriptionNo: "Designet for smartklokkers optiske sensorer på tatovert hud.",
+      descriptionNl: "Ontworpen voor optische sensoren van smartwatches op getatoeëerde huid.",
+      descriptionFr: "Conçue pour les capteurs optiques de smartwatch sur peau tatouée.",
+      descriptionFi: "Suunniteltu älykellojen optisille antureille tatuoidulle iholle.",
+      descriptionEs: "Diseñada para sensores ópticos de smartwatch en piel tatuada.",
+      descriptionDe: "Entwickelt für optische Sensoren von Smartwatches auf tätowierter Haut.",
+      price: 72.9,
+      intlMarkupPercent: 65,
+      intlBaseBrl: 120.29,
+      priceUsd: 23.47,
+      priceEur: 20.19,
+      priceSek: 225,
+      priceNok: 218,
+      pricePln: 87.03,
+      priceGbp: 17.34,      image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
         '/images/lens-gallery/01-optical-correction-lens.png',
         '/images/lens-gallery/02-ultra-thin.png',
@@ -232,6 +331,12 @@ const DEFAULT_CONFIG = {
       markets: ['INT']
     }
   ],
+  /** .com currencies (langs/countries). Product foreign prices = (R$ × markup%) × FX. */
+  intlCurrencies: DEFAULT_INTL_CURRENCIES,
+  /** When true, save + daily cron recompute INT foreign prices from R$ + markup + FX. */
+  intlCurrenciesAutoFx: true,
+  /** @deprecated legacy alias — prefer intlCurrenciesAutoFx */
+  intlCurrenciesAutoPpp: true,
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: {
     originCep: '02537190',
@@ -398,6 +503,8 @@ const DEFAULT_CONFIG = {
     paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
     customerTrackingSubject: 'Rastreio disponível — {orderId}',
     trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
+    customerDeliveredSubject: 'Pedido entregue — {orderId} · como foi a experiência?',
+    deliveredMessage: 'Olá!\n\nConsta aqui que o seu pedido {orderId} acabou de ser entregue.\n\nQueremos muito saber: deu tudo certo na aplicação? A lente funcionou direitinho e o seu relógio voltou a monitorar seus treinos/batimentos normalmente sobre a tattoo?\n\nSe puder responder a este e-mail com um depoimento curto, vai nos ajudar demais!\n\nQue tal ajudar outros tatuados a resolverem esse problema também? 🎥\n\nSe você puder gravar um vídeo bem simples do celular (15 a 30 segundos) mostrando a lente aplicada e o relógio funcionando, seria incrível! Você pode se apresentar, dizer de onde é e mostrar o resultado. Com a sua autorização, adoraríamos postar nas nossas redes sociais!\n\nAcompanhe a gente por lá:\n\nInstagram: {instagram}\n\nTikTok: {tiktok}\n\nYouTube: {youtube}\n\nSe tiver qualquer dúvida ou precisar de suporte na aplicação, é só nos chamar por aqui.\n\nMuito obrigado por confiar na Sensor TattooFix®!\n\nAtenciosamente,\n\nFabio Nardoni\n\nEquipe Sensor TattooFix®\n\n{site}',
     abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
     abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
     abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
@@ -1300,7 +1407,13 @@ function supplementKitFromSite(kvProduct, siteProduct) {
   if (siteProduct?.image && isLegacyBrokenKitImage(kvProduct?.image)) {
     merged.image = siteProduct.image;
   }
-  ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt'].forEach((field) => {
+  const i18nFields = [
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi'
+  ];
+  i18nFields.forEach((field) => {
     if (!merged[field] && siteProduct?.[field]) merged[field] = siteProduct[field];
   });
   return merged;
@@ -1323,12 +1436,38 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'requiresSmartwatch',
     'nameEn',
     'nameIt',
+    'nameDe',
+    'nameEs',
+    'namePl',
+    'nameSl',
+    'nameFr',
+    'nameNl',
+    'nameSv',
+    'nameNo',
+    'nameFi',
     'descriptionEn',
     'descriptionIt',
+    'descriptionDe',
+    'descriptionEs',
+    'descriptionPl',
+    'descriptionSl',
+    'descriptionFr',
+    'descriptionNl',
+    'descriptionSv',
+    'descriptionNo',
+    'descriptionFi',
+    'filmTypeDe',
+    'filmTypeEs',
+    'filmTypePl',
+    'filmTypeSl',
     'markets',
     'images',
     'priceUsd',
-    'priceEur'
+    'priceEur',
+    'priceSek',
+    'priceNok',
+    'pricePln',
+    'priceGbp'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -1388,6 +1527,39 @@ function mergeSiteCatalogSmartwatchMeta(kvMeta, siteMeta) {
   return out;
 }
 
+function mergeHomeContentById(kvList, siteList) {
+  const byId = new Map();
+  (kvList || []).forEach((row) => {
+    const id = String(row?.id || '').trim();
+    if (id) byId.set(id, { ...row });
+  });
+  (siteList || []).forEach((row) => {
+    const id = String(row?.id || '').trim();
+    if (!id) return;
+    if (!byId.has(id)) {
+      byId.set(id, { ...row });
+      return;
+    }
+    // KV wins for edited fields; fill blanks from Git catalog.
+    const prev = byId.get(id);
+    const next = { ...row, ...prev };
+    ['body', 'bodyEn', 'bodyIt', 'author', 'authorEn', 'authorIt', 'source', 'sourceEn', 'sourceIt',
+      'question', 'questionEn', 'questionIt', 'answer', 'answerEn', 'answerIt'].forEach((field) => {
+      if ((prev[field] == null || String(prev[field]).trim() === '') && row[field] != null && String(row[field]).trim() !== '') {
+        next[field] = row[field];
+      }
+    });
+    if (prev.i18n || row.i18n) {
+      next.i18n = { ...(row.i18n || {}), ...(prev.i18n || {}) };
+      Object.keys(row.i18n || {}).forEach((lang) => {
+        next.i18n[lang] = { ...(row.i18n[lang] || {}), ...(prev.i18n?.[lang] || {}) };
+      });
+    }
+    byId.set(id, next);
+  });
+  return [...byId.values()].sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+}
+
 function mergeSiteCatalog(config, site) {
   if (!site || typeof site !== 'object') return config;
   const next = { ...config };
@@ -1403,14 +1575,10 @@ function mergeSiteCatalog(config, site) {
     site.smartwatchCatalog
   );
   if (Array.isArray(site.homeFaq) && site.homeFaq.length) {
-    next.homeFaq = Array.isArray(config.homeFaq) && config.homeFaq.length
-      ? config.homeFaq
-      : site.homeFaq;
+    next.homeFaq = mergeHomeContentById(config.homeFaq, site.homeFaq);
   }
   if (Array.isArray(site.homeReviews) && site.homeReviews.length) {
-    next.homeReviews = Array.isArray(config.homeReviews) && config.homeReviews.length
-      ? config.homeReviews
-      : site.homeReviews;
+    next.homeReviews = mergeHomeContentById(config.homeReviews, site.homeReviews);
   }
   if (site.products?.length) {
     next.products = mergeSiteCatalogProducts(config.products, site.products);
@@ -1457,7 +1625,23 @@ async function fetchSiteCatalog() {
 async function getPublicConfig(env) {
   const config = await getConfig(env);
   const site = await fetchSiteCatalog();
-  return mergeSiteCatalog(config, site);
+  const merged = mergeSiteCatalog(config, site);
+  // Se o Git tiver elogios/FAQ a mais que o KV (ex.: save parcial no Admin),
+  // completa e persiste para o painel e o /config não ficarem para trás.
+  const kvReviews = Array.isArray(config.homeReviews) ? config.homeReviews : [];
+  const mergedReviews = Array.isArray(merged.homeReviews) ? merged.homeReviews : [];
+  const kvFaq = Array.isArray(config.homeFaq) ? config.homeFaq : [];
+  const mergedFaq = Array.isArray(merged.homeFaq) ? merged.homeFaq : [];
+  if (mergedReviews.length > kvReviews.length || mergedFaq.length > kvFaq.length) {
+    try {
+      await saveConfig(env, {
+        ...config,
+        homeReviews: mergedReviews.length ? mergedReviews : kvReviews,
+        homeFaq: mergedFaq.length ? mergedFaq : kvFaq
+      });
+    } catch (_) { /* non-fatal */ }
+  }
+  return merged;
 }
 
 function normalizeApiBaseUrl(api) {
@@ -1527,6 +1711,39 @@ function publicChannelsView(channels) {
   };
 }
 
+function mergeEmailsConfig(baseEmails, storedEmails) {
+  const base = { ...(baseEmails || {}) };
+  const stored = { ...(storedEmails || {}) };
+  const merged = { ...base, ...stored };
+
+  // Upgrade known legacy satisfaction copy so Admin/KV pick up the Fabio letter.
+  const legacyBodies = [
+    'Seu pedido {orderId} acabou de ser marcado como entregue.',
+    'Queremos saber: deu tudo certo? A lente funcionou direitinho no seu relógio?'
+  ];
+  const body = String(merged.deliveredMessage || '');
+  const isLegacyBody = !body.trim()
+    || legacyBodies.some((frag) => body.includes(frag));
+  if (isLegacyBody && base.deliveredMessage) {
+    merged.deliveredMessage = base.deliveredMessage;
+  }
+
+  const legacySubjects = [
+    'Pedido entregue — {orderId} · como foi a experiência?'
+  ];
+  // Keep subject if custom; only fill when empty.
+  if (!String(merged.customerDeliveredSubject || '').trim() && base.customerDeliveredSubject) {
+    merged.customerDeliveredSubject = base.customerDeliveredSubject;
+  } else if (
+    legacySubjects.includes(String(merged.customerDeliveredSubject || '').trim())
+    && base.customerDeliveredSubject
+  ) {
+    merged.customerDeliveredSubject = base.customerDeliveredSubject;
+  }
+
+  return merged;
+}
+
 function withConfigDefaults(stored) {
   const base = structuredClone(DEFAULT_CONFIG);
   if (!stored || typeof stored !== 'object') return base;
@@ -1546,7 +1763,7 @@ function withConfigDefaults(stored) {
       sender: { ...base.shipping.sender, ...(stored.shipping?.sender || {}) }
     },
     formsubmit: { ...base.formsubmit, ...(stored.formsubmit || {}) },
-    emails: { ...base.emails, ...(stored.emails || {}) },
+    emails: mergeEmailsConfig(base.emails, stored.emails),
     api: normalizeApiBaseUrl({ ...base.api, ...(stored.api || {}) }),
     internationalShipping: normalizeIntlOtherInZones({
       ...base.internationalShipping,
@@ -1583,6 +1800,17 @@ function withConfigDefaults(stored) {
     mlFlexShippingCost: Number(stored.mlFlexShippingCost) > 0
       ? Math.round(Number(stored.mlFlexShippingCost) * 100) / 100
       : base.mlFlexShippingCost,
+    intlCurrencies: normalizeIntlCurrencies(stored.intlCurrencies),
+    intlCurrenciesAutoFx: stored.intlCurrenciesAutoFx != null
+      ? stored.intlCurrenciesAutoFx !== false
+      : (stored.intlCurrenciesAutoPpp != null
+        ? stored.intlCurrenciesAutoPpp !== false
+        : base.intlCurrenciesAutoFx !== false),
+    intlCurrenciesAutoPpp: stored.intlCurrenciesAutoFx != null
+      ? stored.intlCurrenciesAutoFx !== false
+      : (stored.intlCurrenciesAutoPpp != null
+        ? stored.intlCurrenciesAutoPpp !== false
+        : base.intlCurrenciesAutoPpp !== false),
     ...mergeKitCostConfig(stored, base)
   };
 }
@@ -2140,10 +2368,15 @@ function publicProductFields(p, config) {
     weightGrams: Number(p.weightGrams) || shippingWeightGrams(config),
     aggregated: p.aggregated === true
   };
-  if (p.nameEn) row.nameEn = p.nameEn;
-  if (p.nameIt) row.nameIt = p.nameIt;
-  if (p.descriptionEn) row.descriptionEn = p.descriptionEn;
-  if (p.descriptionIt) row.descriptionIt = p.descriptionIt;
+  [
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi',
+    'filmType', 'filmTypeEn', 'filmTypeDe', 'filmTypeEs', 'filmTypePl', 'filmTypeSl'
+  ].forEach((field) => {
+    if (p[field]) row[field] = p[field];
+  });
   if (p.packaging) row.packaging = p.packaging;
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
@@ -2154,8 +2387,10 @@ function publicProductFields(p, config) {
   if (p.colorEn) row.colorEn = p.colorEn;
   if (Array.isArray(p.markets) && p.markets.length) row.markets = p.markets;
   if (Array.isArray(p.images) && p.images.length) row.images = p.images;
-  if (p.priceUsd != null) row.priceUsd = Number(p.priceUsd);
-  if (p.priceEur != null) row.priceEur = Number(p.priceEur);
+  intlPriceFieldNames(DEFAULT_INTL_CURRENCIES).forEach((field) => {
+    if (p[field] != null && Number.isFinite(Number(p[field]))) row[field] = Number(p[field]);
+  });
+  if (p.deviceType) row.deviceType = p.deviceType;
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
@@ -2173,9 +2408,27 @@ function publicConfigView(config, env) {
       name: primary.name,
       nameEn: primary.nameEn,
       nameIt: primary.nameIt,
+      nameDe: primary.nameDe,
+      nameEs: primary.nameEs,
+      namePl: primary.namePl,
+      nameSl: primary.nameSl,
+      nameFr: primary.nameFr,
+      nameNl: primary.nameNl,
+      nameSv: primary.nameSv,
+      nameNo: primary.nameNo,
+      nameFi: primary.nameFi,
       description: primary.description,
       descriptionEn: primary.descriptionEn,
       descriptionIt: primary.descriptionIt,
+      descriptionDe: primary.descriptionDe,
+      descriptionEs: primary.descriptionEs,
+      descriptionPl: primary.descriptionPl,
+      descriptionSl: primary.descriptionSl,
+      descriptionFr: primary.descriptionFr,
+      descriptionNl: primary.descriptionNl,
+      descriptionSv: primary.descriptionSv,
+      descriptionNo: primary.descriptionNo,
+      descriptionFi: primary.descriptionFi,
       price: primary.price,
       image: primary.image
     } : config.product,
@@ -2225,6 +2478,9 @@ function publicConfigView(config, env) {
     integrations: {
       addressAutocomplete: true
     },
+    intlCurrencies: activeIntlCurrencies(config),
+    intlCurrenciesAutoFx: config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false,
+    intlCurrenciesAutoPpp: config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false,
     updatedAt: config.updatedAt || null
   };
 }
@@ -2267,7 +2523,8 @@ function isComSiteRequest(request) {
 
 function isIntlCheckoutLocale(locale) {
   const l = String(locale || '').toLowerCase();
-  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl';
+  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'sv' || l === 'no' || l === 'fi';
 }
 
 function orderCheckoutLangPath(order) {
@@ -2277,6 +2534,11 @@ function orderCheckoutLangPath(order) {
   if (l === 'es') return '/es';
   if (l === 'pl') return '/pl';
   if (l === 'sl') return '/sl';
+  if (l === 'fr') return '/fr';
+  if (l === 'nl') return '/nl';
+  if (l === 'sv') return '/sv';
+  if (l === 'no') return '/no';
+  if (l === 'fi') return '/fi';
   return '';
 }
 
@@ -2447,32 +2709,83 @@ function productIntlEur(product) {
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
+function productIntlSek(product) {
+  const v = Number(product?.priceSek);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+function productIntlNok(product) {
+  const v = Number(product?.priceNok);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/** List / PPP price for charge currency (not Frankfurter FX). */
+function productIntlListPrice(product, currency, config) {
+  const fromRegistry = productListPriceFromRegistry(
+    product,
+    currency,
+    config?.intlCurrencies || DEFAULT_INTL_CURRENCIES
+  );
+  if (fromRegistry != null) return fromRegistry;
+  const cur = String(currency || 'USD').toUpperCase();
+  if (cur === 'EUR') return productIntlEur(product);
+  if (cur === 'SEK') return productIntlSek(product);
+  if (cur === 'NOK') return productIntlNok(product);
+  return productIntlUsd(product);
+}
+
 function isIntlMarketProductRow(p) {
   const m = Array.isArray(p?.markets) ? p.markets.map((x) => String(x).toUpperCase()) : [];
   return m.includes('INT') && !m.includes('BR');
 }
 
-async function syncIntlProductPricesFromFx(env) {
+async function fetchFxRatesMap(env, currencyCodes) {
+  const codes = [...new Set((currencyCodes || []).map((c) => String(c || '').toUpperCase()).filter((c) => c && c !== 'BRL'))];
+  const out = {};
+  await Promise.all(codes.map(async (code) => {
+    try {
+      const row = await fetchFxRate(env, code);
+      if (row?.rate > 0) out[code] = Number(row.rate);
+    } catch { /* skip missing */ }
+  }));
+  return out;
+}
+
+function autoFxEnabled(config) {
+  if (config?.intlCurrenciesAutoFx === false) return false;
+  if (config?.intlCurrenciesAutoPpp === false) return false;
+  return true;
+}
+
+/** Recompute INT foreign list prices: (R$ × markup%) × FX. */
+async function syncIntlProductPricesFromMarkupFx(env, { force = false } = {}) {
   const config = await getConfig(env);
-  const products = config.products || [];
-  if (!products.length) return { updated: 0 };
-  const fxUsd = await fetchFxRate(env, 'USD');
-  const fxEur = await fetchFxRate(env, 'EUR');
-  let updated = 0;
-  products.forEach((p) => {
-    if (!isIntlMarketProductRow(p)) return;
-    const brl = Number(p.price) || 0;
-    if (!brl) return;
-    const usd = Math.round(brl * fxUsd.rate * 100) / 100;
-    const eur = Math.round(brl * fxEur.rate * 100) / 100;
-    if (p.priceUsd !== usd || p.priceEur !== eur) {
-      p.priceUsd = usd;
-      p.priceEur = eur;
-      updated += 1;
-    }
-  });
-  if (updated) await saveConfig(env, { ...config, products });
-  return { updated, usdRate: fxUsd.rate, eurRate: fxEur.rate };
+  if (!force && !autoFxEnabled(config)) return { updated: 0, skipped: true };
+  const currencies = normalizeIntlCurrencies(config.intlCurrencies);
+  const synced = syncOpticalIntlBrlFromBrKit(config.products || []);
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  const { products, updated } = applyMarkupFxToIntlProducts(synced.products, currencies, fxRates);
+  const changed = updated || synced.synced;
+  if (changed) {
+    await saveConfig(env, {
+      ...config,
+      products,
+      intlCurrencies: currencies,
+      intlCurrenciesAutoFx: true,
+      intlCurrenciesAutoPpp: true
+    });
+  }
+  return { updated: updated + (synced.synced ? 1 : 0), currencies: currencies.map((c) => c.code), fxRates };
+}
+
+/** @deprecated name — cron used PPP; now markup + FX */
+async function syncIntlProductPricesFromPpp(env, opts) {
+  return syncIntlProductPricesFromMarkupFx(env, opts);
+}
+
+/** Legacy name — still points at markup+FX sync */
+async function syncIntlProductPricesFromFx(env) {
+  return syncIntlProductPricesFromMarkupFx(env);
 }
 
 async function intlForeignCharge(order, env, config, items, currency) {
@@ -2484,7 +2797,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   let allConfigured = itemList.length > 0;
   for (const item of itemList) {
     const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const price = p ? (cur === 'EUR' ? productIntlEur(p) : productIntlUsd(p)) : null;
+    const price = p ? productIntlListPrice(p, cur, config) : null;
     if (price == null) { allConfigured = false; break; }
     productForeign += price * (Number(item.qty) || 1);
   }
@@ -2502,13 +2815,12 @@ async function intlForeignCharge(order, env, config, items, currency) {
   }
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
-    if (cur === 'EUR') {
-      const minEur = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-      if (amount < minEur) amount = minEur;
-    } else {
-      const minUsd = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
-      if (amount < minUsd) amount = minUsd;
-    }
+    let minAmt;
+    if (cur === 'EUR') minAmt = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') minAmt = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') minAmt = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else minAmt = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+    if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
 }
@@ -2517,8 +2829,15 @@ async function intlUsdCharge(order, env, config, items) {
   return intlForeignCharge(order, env, config, items, 'USD');
 }
 
-function intlChargeCurrencyForLocale(locale) {
-  return String(locale || '').toLowerCase() === 'it' ? 'EUR' : 'USD';
+function intlChargeCurrencyForLocale(locale, config) {
+  const fromRegistry = currencyForLocaleFromRegistry(locale, config?.intlCurrencies || DEFAULT_INTL_CURRENCIES);
+  if (fromRegistry && fromRegistry !== 'BRL') return fromRegistry;
+  const l = String(locale || '').toLowerCase();
+  if (l === 'sv') return 'SEK';
+  if (l === 'no') return 'NOK';
+  if (l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'fi') return 'EUR';
+  return 'USD';
 }
 
 function selfTestUsdAmountForOrder(order, billingType) {
@@ -2533,17 +2852,18 @@ function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (!isSelfTestOrder(order)) return;
   if (intlUsd) {
     const cur = intlChargeCurrencyForLocale(order.checkoutLocale);
-    const amount = cur === 'EUR'
-      ? ((billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe')
-        ? SELF_TEST_STRIPE_EUR_AMOUNT
-        : SELF_TEST_EUR_AMOUNT)
-      : selfTestUsdAmountForOrder(order, billingType);
+    const stripe = billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe';
+    let amount;
+    if (cur === 'EUR') amount = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') amount = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') amount = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else amount = selfTestUsdAmountForOrder(order, billingType);
     order.chargeCurrency = cur;
     order.chargeAmount = amount;
     order.displayCurrency = cur;
     return;
   }
-  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR') {
+  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR' || order.chargeCurrency === 'SEK' || order.chargeCurrency === 'NOK') {
     delete order.chargeCurrency;
     delete order.chargeAmount;
     delete order.chargeFxRate;
@@ -3794,6 +4114,236 @@ async function notifyTrackingIfNew(env, config, order, previousCode) {
   const next = orderTrackingCode(order);
   if (!next || prev === next) return { skipped: true };
   return maybeNotifyTrackingAvailable(env, config || await getConfig(env), order);
+}
+
+function satisfactionSocialUrls(config) {
+  const socials = config?.channels?.socials || {};
+  return {
+    instagram: String(socials.instagram?.url || 'https://www.instagram.com/sensortattoofix').trim(),
+    tiktok: String(socials.tiktok?.url || 'https://www.tiktok.com/@sensortattoofixofc').trim(),
+    youtube: String(socials.youtube?.url || 'https://www.youtube.com/@Sensortattoofix-ofc').trim()
+  };
+}
+
+/** Site shown in satisfaction e-mail footer: .com.br (PT) or .com[/lang] (intl). */
+function satisfactionSiteDisplay(order, locOverride) {
+  const loc = locOverride || satisfactionEmailLocale(order);
+  if (loc === 'pt' || !isIntlCheckoutLocale(loc)) return 'www.sensortattoofix.com.br';
+  const path = loc === 'en' ? '' : `/${loc}`;
+  return 'www.sensortattoofix.com' + path;
+}
+
+/**
+ * Locale for delivered / satisfaction e-mails.
+ * Prefer explicit checkout language; if checkout was EN, use the destination
+ * country language when we have a translation (ex.: SI → sl).
+ */
+function satisfactionEmailLocale(order) {
+  const supported = new Set(['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']);
+  const checkout = orderCheckoutLocale(order);
+  if (checkout && checkout !== 'en' && supported.has(checkout)) return checkout;
+
+  const codes = [
+    String(order?.paisCode || '').trim().toUpperCase(),
+    inferPaisCodeFromName(order?.pais) || ''
+  ].filter(Boolean);
+  for (const code of codes) {
+    const langs = COUNTRY_PRIMARY_LANGUAGES[code] || [];
+    for (const lang of langs) {
+      if (supported.has(lang) && lang !== 'en') return lang;
+    }
+  }
+  if (supported.has(checkout)) return checkout;
+  return 'en';
+}
+
+/** @deprecated use satisfactionEmailLocale */
+function deliveredEmailLocale(order) {
+  return satisfactionEmailLocale(order);
+}
+
+function buildDeliveredSatisfactionCopy(order, config) {
+  const loc = satisfactionEmailLocale(order);
+  const social = satisfactionSocialUrls(config);
+  const orderId = order.orderId;
+  const nome = String(order.nome || '').trim().split(/\s+/)[0] || '';
+  const site = satisfactionSiteDisplay(order, loc);
+  const vars = { orderId, nome, site, ...social };
+  const ig = social.instagram;
+  const tt = social.tiktok;
+  const yt = social.youtube;
+
+  const byLoc = {
+    en: {
+      subject: `Order delivered — ${orderId} · how was your experience?`,
+      message: `Hello!\n\nWe're writing because your order ${orderId} has just been delivered.\n\nWe'd really love to know: did the application go well? Did the lens work properly, and is your watch monitoring your workouts/heart rate normally again over the tattoo?\n\nIf you can reply to this e-mail with a short testimonial, it would help us a lot!\n\nWant to help other tattooed people solve this problem too? 🎥\n\nIf you can record a simple phone video (15 to 30 seconds) showing the lens applied and the watch working, that would be amazing! You can introduce yourself, say where you're from, and show the result. With your permission, we'd love to post it on our social channels!\n\nFollow us there:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nIf you have any questions or need support with the application, just reply here.\n\nThank you so much for trusting Sensor TattooFix®!\n\nBest regards,\n\nFabio Nardoni\n\nSensor TattooFix® Team\n\n${site}`
+    },
+    it: {
+      subject: `Ordine consegnato — ${orderId} · com'è andata?`,
+      message: `Ciao!\n\nRisulta che il tuo ordine ${orderId} è appena stato consegnato.\n\nVorremmo davvero sapere: l'applicazione è andata bene? La lente ha funzionato correttamente e il tuo orologio è tornato a monitorare allenamenti/battito normalmente sopra il tatuaggio?\n\nSe puoi rispondere a questa e-mail con una breve testimonianza, ci aiuteresti tantissimo!\n\nChe ne dici di aiutare anche altri tatuati a risolvere questo problema? 🎥\n\nSe riesci a registrare un video semplice dal telefono (15-30 secondi) mostrando la lente applicata e l'orologio che funziona, sarebbe fantastico! Puoi presentarti, dire da dove sei e mostrare il risultato. Con la tua autorizzazione, ci piacerebbe molto pubblicarlo sui nostri social!\n\nSeguici qui:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nSe hai dubbi o hai bisogno di supporto per l'applicazione, rispondi pure qui.\n\nGrazie mille per aver scelto Sensor TattooFix®!\n\nCordiali saluti,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    de: {
+      subject: `Bestellung zugestellt — ${orderId} · wie war Ihre Erfahrung?`,
+      message: `Hallo!\n\nBei uns steht, dass Ihre Bestellung ${orderId} gerade zugestellt wurde.\n\nWir würden sehr gerne wissen: Hat die Anwendung gut geklappt? Hat die Linse richtig funktioniert und überwacht Ihre Uhr Training/Herzfrequenz wieder normal über dem Tattoo?\n\nWenn Sie auf diese E-Mail mit einem kurzen Erfahrungsbericht antworten können, hilft uns das enorm!\n\nMöchten Sie auch anderen Tätowierten helfen, dieses Problem zu lösen? 🎥\n\nWenn Sie ein einfaches Handyvideo (15–30 Sekunden) aufnehmen können, das die aufgebrachte Linse und die funktionierende Uhr zeigt, wäre das großartig! Sie können sich vorstellen, sagen, woher Sie kommen, und das Ergebnis zeigen. Mit Ihrer Erlaubnis würden wir es gerne in unseren sozialen Netzwerken posten!\n\nFolgen Sie uns hier:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nBei Fragen oder wenn Sie Hilfe bei der Anwendung brauchen, antworten Sie einfach hier.\n\nVielen Dank für Ihr Vertrauen in Sensor TattooFix®!\n\nMit freundlichen Grüßen,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    es: {
+      subject: `Pedido entregado — ${orderId} · ¿cómo fue la experiencia?`,
+      message: `¡Hola!\n\nAquí figura que tu pedido ${orderId} acaba de ser entregado.\n\nQueremos mucho saber: ¿salió todo bien en la aplicación? ¿La lente funcionó bien y tu reloj volvió a monitorear tus entrenamientos/pulsaciones normalmente sobre el tatuaje?\n\nSi puedes responder a este correo con un testimonio corto, ¡nos ayudas un montón!\n\n¿Qué tal ayudar a otras personas tatuadas a resolver este problema también? 🎥\n\nSi puedes grabar un vídeo sencillo con el móvil (15 a 30 segundos) mostrando la lente aplicada y el reloj funcionando, ¡sería increíble! Puedes presentarte, decir de dónde eres y mostrar el resultado. Con tu autorización, ¡nos encantaría publicarlo en nuestras redes!\n\nSíguenos por aquí:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nSi tienes cualquier duda o necesitas soporte con la aplicación, escríbenos por aquí.\n\n¡Muchas gracias por confiar en Sensor TattooFix®!\n\nAtentamente,\n\nFabio Nardoni\n\nEquipo Sensor TattooFix®\n\n${site}`
+    },
+    pl: {
+      subject: `Zamówienie doręczone — ${orderId} · jak poszło?`,
+      message: `Cześć!\n\nU nas widać, że Twoje zamówienie ${orderId} właśnie zostało doręczone.\n\nBardzo chcemy wiedzieć: czy aplikacja poszła dobrze? Czy soczewka zadziałała prawidłowo i Twój zegarek znów normalnie monitoruje treningi/tętno nad tatuażem?\n\nJeśli możesz odpowiedzieć na tę wiadomość krótką opinią, bardzo nam pomożesz!\n\nA może pomożesz też innym osobom z tatuażami rozwiązać ten problem? 🎥\n\nJeśli możesz nagrać prosty film telefonem (15–30 sekund) pokazujący założoną soczewkę i działający zegarek, byłoby super! Możesz się przedstawić, powiedzieć skąd jesteś i pokazać efekt. Za Twoją zgodą chętnie opublikujemy go w naszych mediach społecznościowych!\n\nObserwuj nas tutaj:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nJeśli masz pytania lub potrzebujesz pomocy z aplikacją, po prostu odpisz tutaj.\n\nDziękujemy za zaufanie do Sensor TattooFix®!\n\nZ pozdrowieniami,\n\nFabio Nardoni\n\nZespół Sensor TattooFix®\n\n${site}`
+    },
+    sl: {
+      subject: `Naročilo dostavljeno — ${orderId} · kako je bilo?`,
+      message: `Živjo!\n\nPri nas piše, da je bilo vaše naročilo ${orderId} pravkar dostavljeno.\n\nZelo bi radi vedeli: je aplikacija potekala v redu? Ali je leča pravilno delovala in ura spet normalno spremlja treninge/srčni utrip nad tatoviranjem?\n\nČe lahko odgovorite na to e-pošto s kratko izkušnjo, nam zelo pomagate!\n\nKaj pa, če pomagate tudi drugim tetoviranimi rešiti ta problem? 🎥\n\nČe lahko posnamete preprost video s telefonom (15–30 sekund), ki pokaže nameščeno lečo in delujočo uro, bi bilo odlično! Predstavite se, povejte od kod ste in pokažite rezultat. Z vašim dovoljenjem bi radi objavili na naših družbenih omrežjih!\n\nSledite nam tukaj:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nČe imate vprašanja ali potrebujete pomoč pri aplikaciji, samo odgovorite tukaj.\n\nNajlepša hvala za zaupanje v Sensor TattooFix®!\n\nLep pozdrav,\n\nFabio Nardoni\n\nEkipa Sensor TattooFix®\n\n${site}`
+    },
+    fr: {
+      subject: `Commande livrée — ${orderId} · comment s'est passée l'expérience ?`,
+      message: `Bonjour !\n\nNous voyons ici que votre commande ${orderId} vient d'être livrée.\n\nNous aimerions vraiment savoir : l'application s'est-elle bien passée ? La lentille a-t-elle bien fonctionné et votre montre surveille-t-elle à nouveau normalement vos entraînements/battements au-dessus du tatouage ?\n\nSi vous pouvez répondre à cet e-mail avec un court témoignage, cela nous aiderait énormément !\n\nEt si vous aidiez d'autres personnes tatouées à résoudre ce problème aussi ? 🎥\n\nSi vous pouvez enregistrer une courte vidéo avec votre téléphone (15 à 30 secondes) montrant la lentille appliquée et la montre qui fonctionne, ce serait génial ! Vous pouvez vous présenter, dire d'où vous venez et montrer le résultat. Avec votre autorisation, nous serions ravis de la publier sur nos réseaux !\n\nSuivez-nous ici :\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nPour toute question ou besoin d'aide pour l'application, répondez simplement ici.\n\nMerci beaucoup de faire confiance à Sensor TattooFix® !\n\nCordialement,\n\nFabio Nardoni\n\nÉquipe Sensor TattooFix®\n\n${site}`
+    },
+    nl: {
+      subject: `Bestelling bezorgd — ${orderId} · hoe was de ervaring?`,
+      message: `Hallo!\n\nHier staat dat je bestelling ${orderId} zojuist is bezorgd.\n\nWe willen heel graag weten: ging de applicatie goed? Werkt de lens goed en meet je horloge je trainingen/hartslag weer normaal over de tattoo?\n\nAls je op deze e-mail kunt antwoorden met een korte review, helpt dat ons enorm!\n\nZin om ook andere getatoeëerde mensen te helpen dit probleem op te lossen? 🎥\n\nAls je een eenvoudig telefoonfilmpje (15 tot 30 seconden) kunt maken van de aangebrachte lens en het werkende horloge, zou dat geweldig zijn! Je kunt jezelf voorstellen, zeggen waar je vandaan komt en het resultaat laten zien. Met jouw toestemming plaatsen we het graag op onze socials!\n\nVolg ons hier:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nHeb je vragen of hulp nodig bij de applicatie? Antwoord gerust hier.\n\nHeel erg bedankt dat je Sensor TattooFix® vertrouwt!\n\nMet vriendelijke groet,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    sv: {
+      subject: `Order levererad — ${orderId} · hur var upplevelsen?`,
+      message: `Hej!\n\nHär syns att din order ${orderId} just har levererats.\n\nVi vill verkligen veta: gick appliceringen bra? Fungerade linsen som den ska, och övervakar din klocka träning/puls normalt igen över tatueringen?\n\nOm du kan svara på det här mejlet med ett kort omdöme hjälper det oss jättemycket!\n\nVill du också hjälpa andra tatuerade att lösa det här problemet? 🎥\n\nOm du kan spela in en enkel mobilvideo (15–30 sekunder) som visar den applicerade linsen och klockan som fungerar vore det fantastiskt! Du kan presentera dig, säga varifrån du är och visa resultatet. Med ditt tillstånd skulle vi gärna lägga upp det i våra sociala medier!\n\nFölj oss här:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nHar du frågor eller behöver stöd med appliceringen? Svara bara här.\n\nTack så mycket för att du litar på Sensor TattooFix®!\n\nVänliga hälsningar,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    no: {
+      subject: `Ordre levert — ${orderId} · hvordan var opplevelsen?`,
+      message: `Hei!\n\nHer står det at bestillingen din ${orderId} nettopp er levert.\n\nVi vil gjerne vite: gikk påføringen bra? Fungerte linsen som den skal, og overvåker klokken trening/puls normalt igjen over tatoveringen?\n\nHvis du kan svare på denne e-posten med en kort tilbakemelding, hjelper det oss enormt!\n\nHva med å hjelpe andre tatoverte med å løse dette problemet også? 🎥\n\nHvis du kan ta en enkel mobilvideo (15–30 sekunder) som viser linsen påført og klokken i gang, hadde det vært fantastisk! Du kan presentere deg, si hvor du er fra og vise resultatet. Med din tillatelse vil vi gjerne legge det ut på våre sosiale medier!\n\nFølg oss her:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nHar du spørsmål eller trenger hjelp med påføringen? Bare svar her.\n\nTusen takk for at du stoler på Sensor TattooFix®!\n\nMed vennlig hilsen,\n\nFabio Nardoni\n\nTeam Sensor TattooFix®\n\n${site}`
+    },
+    fi: {
+      subject: `Tilaus toimitettu — ${orderId} · millainen kokemus oli?`,
+      message: `Hei!\n\nMeillä näkyy, että tilauksesi ${orderId} on juuri toimitettu.\n\nHaluaisimme todella tietää: sujuiko asennus hyvin? Toimiko linssi kunnolla ja seuraako kellosi treenejä/sykettä taas normaalisti tatuoinnin päällä?\n\nJos voit vastata tähän sähköpostiin lyhyellä kokemuksella, se auttaa meitä valtavasti!\n\nHaluaisitko auttaa myös muita tatuoituja ratkaisemaan tämän ongelman? 🎥\n\nJos voit kuvata yksinkertaisen puhelinvideon (15–30 sekuntia), jossa näkyy asennettu linssi ja toimiva kello, se olisi upeaa! Voit esitellä itsesi, kertoa mistä olet ja näyttää tuloksen. Luvallasi julkaisisimme sen mielellämme somessamme!\n\nSeuraa meitä täällä:\n\nInstagram: ${ig}\n\nTikTok: ${tt}\n\nYouTube: ${yt}\n\nJos sinulla on kysyttävää tai tarvitset tukea asennukseen, vastaa vain tähän.\n\nKiitos paljon, että luotat Sensor TattooFix® -tuotteeseen!\n\nYstävällisin terveisin,\n\nFabio Nardoni\n\nSensor TattooFix® -tiimi\n\n${site}`
+    }
+  };
+
+  if (byLoc[loc]) {
+    return { loc, ...byLoc[loc] };
+  }
+
+  return {
+    loc: 'pt',
+    subject: emailSubject(config, 'customerDeliveredSubject', vars)
+      || `Pedido entregue — ${orderId} · como foi a experiência?`,
+    message: emailMessage(config, 'deliveredMessage', vars)
+      || applyEmailTemplate(DEFAULT_CONFIG.emails.deliveredMessage, vars)
+  };
+}
+
+function deliveredSatisfactionHtml(copy) {
+  const loc = copy.loc || 'pt';
+  const body = String(copy.message || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  const site = loc === 'pt' ? 'sensortattoofix.com.br' : 'sensortattoofix.com';
+  return `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222"><p style="margin:0;white-space:pre-wrap">${body}</p><p style="color:#666;font-size:12px;margin-top:16px">Sensor TattooFix® — ${site}</p></div>`;
+}
+
+/** Send satisfaction survey when order is delivered (idempotent via deliveredEmailSentAt). */
+async function maybeNotifyDelivered(env, config, order, _previousStatus) {
+  if (!order || order.status !== 'paid') return { skipped: true, reason: 'not_paid' };
+  if (!isTrackingFinalStatus(order.correiosTrackingStatus)) {
+    return { skipped: true, reason: 'not_delivered' };
+  }
+  if (order.deliveredEmailSentAt) return { skipped: true, reason: 'already_sent' };
+
+  const cfg = config || await getConfig(env);
+  const nowIso = new Date().toISOString();
+  order.deliveredEmailSentAt = nowIso;
+  order.deliveredAt = order.deliveredAt || nowIso;
+  order.deliveredEmailError = null;
+  await saveOrder(env, order);
+
+  const copy = buildDeliveredSatisfactionCopy(order, cfg);
+  const fields = {
+    Pedido: order.orderId,
+    Status: 'Entregue',
+    Mensagem: copy.message
+  };
+  if (copy.loc === 'en') {
+    fields.Order = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Delivered';
+    fields.Message = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'it') {
+    fields.Ordine = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Consegnato';
+    fields.Messaggio = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'de') {
+    fields.Bestellung = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Zugestellt';
+    fields.Nachricht = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'es') {
+    fields.Status = 'Entregado';
+    fields.Mensaje = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'pl') {
+    fields.Zamówienie = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Doręczone';
+    fields.Wiadomość = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'sl') {
+    fields.Naročilo = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Dostavljeno';
+    fields.Sporočilo = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'fr') {
+    fields.Commande = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Livré';
+    fields.Message = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'nl') {
+    fields.Bestelling = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Bezorgd';
+    fields.Bericht = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'sv') {
+    fields.Order = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Levererad';
+    fields.Meddelande = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'no') {
+    fields.Ordre = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Levert';
+    fields.Melding = copy.message;
+    delete fields.Mensagem;
+  } else if (copy.loc === 'fi') {
+    fields.Tilaus = order.orderId;
+    delete fields.Pedido;
+    fields.Status = 'Toimitettu';
+    fields.Viesti = copy.message;
+    delete fields.Mensagem;
+  }
+
+  const shopCopy = String(cfg.formsubmit?.email || '').trim();
+  const result = await notifyCustomer(env, cfg, order, copy.subject, fields, {
+    html: deliveredSatisfactionHtml(copy),
+    text: copy.message,
+    bcc: shopCopy || undefined
+  });
+  if (!result?.ok) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = result?.error || 'send_failed';
+    await saveOrder(env, order);
+    console.error('Delivered satisfaction email:', order.orderId, order.deliveredEmailError);
+  }
+  return result;
 }
 
 function fieldsToHtmlLocalized(fields, footerSite) {
@@ -7671,12 +8221,16 @@ const SELF_TEST_BRL_AMOUNT = 0.01;
 const SELF_TEST_USD_AMOUNT = 0.01;
 /** Symbolic EUR charge for Italian PayPal test orders. */
 const SELF_TEST_EUR_AMOUNT = 0.01;
+const SELF_TEST_SEK_AMOUNT = 1;
+const SELF_TEST_NOK_AMOUNT = 1;
 /**
  * Stripe BR accounts reject USD that converts below R$ 0.50.
  * US$ 0.01 ≈ R$ 0.05 — use US$ 0.10 for Stripe self-test.
  */
 const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_EUR_AMOUNT = 0.10;
+const SELF_TEST_STRIPE_SEK_AMOUNT = 10;
+const SELF_TEST_STRIPE_NOK_AMOUNT = 10;
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -7806,11 +8360,11 @@ function applySelfTestPayPalPricing(order, env, billingType) {
   return true;
 }
 
-/** Stripe Live self-test (US$ 0,01) — mesmos e-mails testadores do PayPal. */
+/** Stripe Live self-test — e-mails testadores OU conta isTester. */
 function isSelfTestStripeEligible(env, order, billingType) {
   if (billingType !== 'STRIPE') return false;
   if (!stripeLiveReady(env)) return false;
-  return isSelfTestCustomerEmail(order?.email);
+  return isSelfTestCustomerEmail(order?.email) || !!order?.selfTestTester;
 }
 
 function applySelfTestStripePricing(order, env, billingType) {
@@ -10363,7 +10917,7 @@ function computePayPalFee(amountBrl, config) {
 
 const FX_CURRENCY_MAP = {
   US: 'USD', CA: 'CAD', MX: 'MXN', GB: 'GBP', IE: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR',
-  ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
+  ES: 'EUR', PT: 'EUR', NL: 'EUR', BE: 'EUR', AT: 'EUR', FI: 'EUR', SI: 'EUR', CH: 'CHF', SE: 'SEK', NO: 'NOK',
   DK: 'DKK', PL: 'PLN', CZ: 'CZK', AU: 'AUD', NZ: 'NZD', JP: 'JPY', KR: 'KRW', CN: 'CNY',
   HK: 'HKD', SG: 'SGD', IN: 'INR', AE: 'AED', IL: 'ILS', ZA: 'ZAR', AR: 'ARS', CL: 'CLP',
   CO: 'COP', UY: 'UYU', PY: 'PYG', BR: 'BRL'
@@ -10411,6 +10965,17 @@ async function handleFxRate(request, env, origin) {
   try {
     const data = await fetchFxRate(env, to);
     return json(data, 200, origin);
+  } catch (err) {
+    return json({ error: err.message || 'Câmbio indisponível.' }, 502, origin);
+  }
+}
+
+async function handleFxRates(request, env, origin) {
+  const raw = new URL(request.url).searchParams.get('to') || 'USD,EUR,GBP,PLN,SEK,NOK';
+  const codes = raw.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+  try {
+    const rates = await fetchFxRatesMap(env, codes);
+    return json({ base: 'BRL', rates, fetchedAt: new Date().toISOString() }, 200, origin);
   } catch (err) {
     return json({ error: err.message || 'Câmbio indisponível.' }, 502, origin);
   }
@@ -12760,13 +13325,17 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   if (useForeign) {
     if (isSelfTestOrder(order)) {
       currencyCode = foreignCur;
-      const testAmt = foreignCur === 'EUR'
-        ? SELF_TEST_EUR_AMOUNT
-        : SELF_TEST_USD_AMOUNT;
-      amountValue = testAmt.toFixed(2);
-      locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
+      const payAmt = (foreignCur === 'SEK')
+        ? SELF_TEST_SEK_AMOUNT
+        : (foreignCur === 'NOK')
+          ? SELF_TEST_NOK_AMOUNT
+          : (foreignCur === 'EUR')
+            ? SELF_TEST_EUR_AMOUNT
+            : SELF_TEST_USD_AMOUNT;
+      amountValue = Number(payAmt).toFixed(foreignCur === 'SEK' || foreignCur === 'NOK' ? 0 : 2);
+      locale = checkoutLocale === 'it' ? 'it-IT' : (checkoutLocale === 'sv' ? 'sv-SE' : 'en-US');
       order.chargeCurrency = foreignCur;
-      order.chargeAmount = testAmt;
+      order.chargeAmount = Number(payAmt);
       order.displayCurrency = foreignCur;
     } else {
       const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
@@ -13392,13 +13961,19 @@ const PASSWORD_RESET_TTL = 3600; // 1 hora
 
 function passwordResetLocaleFromRequest(request, bodyLocale) {
   const explicit = String(bodyLocale || '').toLowerCase();
-  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'sl' || explicit === 'pt') return explicit;
+  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'sl'
+    || explicit === 'fr' || explicit === 'nl' || explicit === 'sv' || explicit === 'no' || explicit === 'fi' || explicit === 'pt') return explicit;
   const lang = (request.headers.get('Accept-Language') || '').toLowerCase();
   if (lang.startsWith('it')) return 'it';
   if (lang.startsWith('de')) return 'de';
   if (lang.startsWith('es')) return 'es';
   if (lang.startsWith('pl')) return 'pl';
   if (lang.startsWith('sl')) return 'sl';
+  if (lang.startsWith('fr')) return 'fr';
+  if (lang.startsWith('nl')) return 'nl';
+  if (lang.startsWith('sv')) return 'sv';
+  if (lang.startsWith('nb') || lang.startsWith('nn') || lang.startsWith('no')) return 'no';
+  if (lang.startsWith('fi')) return 'fi';
   if (lang.startsWith('en')) return 'en';
   const hay = `${request.headers.get('Origin') || ''} ${request.headers.get('Referer') || ''}`.toLowerCase();
   if (hay.includes('/it/') || hay.includes('lang=it')) return 'it';
@@ -13406,12 +13981,18 @@ function passwordResetLocaleFromRequest(request, bodyLocale) {
   if (hay.includes('/es/') || hay.includes('lang=es')) return 'es';
   if (hay.includes('/pl/') || hay.includes('lang=pl')) return 'pl';
   if (hay.includes('/sl/') || hay.includes('lang=sl')) return 'sl';
+  if (hay.includes('/fr/') || hay.includes('lang=fr')) return 'fr';
+  if (hay.includes('/nl/') || hay.includes('lang=nl')) return 'nl';
+  if (hay.includes('/sv/') || hay.includes('lang=sv')) return 'sv';
+  if (hay.includes('/no/') || hay.includes('lang=no')) return 'no';
+  if (hay.includes('/fi/') || hay.includes('lang=fi')) return 'fi';
   if (hay.includes('sensortattoofix.com') && !hay.includes('.com.br')) return 'en';
   return 'pt';
 }
 
 function passwordResetSiteBase(locale, config) {
-  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl' || locale === 'sl') {
+  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl' || locale === 'sl'
+    || locale === 'fr' || locale === 'nl' || locale === 'sv' || locale === 'no' || locale === 'fi') {
     return 'https://www.sensortattoofix.com';
   }
   return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
@@ -13424,7 +14005,12 @@ function passwordResetUrl(locale, config, token) {
     de: '/de/minha-conta.html',
     es: '/es/minha-conta.html',
     pl: '/pl/minha-conta.html',
-    sl: '/sl/minha-conta.html'
+    sl: '/sl/minha-conta.html',
+    fr: '/fr/minha-conta.html',
+    nl: '/nl/minha-conta.html',
+    sv: '/sv/minha-conta.html',
+    no: '/no/minha-conta.html',
+    fi: '/fi/minha-conta.html'
   };
   const path = pathByLocale[locale] || '/minha-conta.html';
   return `${base}${path}?reset=${encodeURIComponent(token)}`;
@@ -13468,6 +14054,110 @@ function passwordResetEmailCopy(locale, resetUrl) {
         <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
       </div>`,
       text: `Ponastavitev gesla Sensor Tattoo Fix:\n${resetUrl}\n\nPovezava poteče v 1 uri.`
+    };
+  }
+  if (locale === 'de') {
+    return {
+      subject: 'Setzen Sie Ihr Sensor Tattoo Fix-Passwort zurück',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Passwort zurücksetzen</h2>
+        <p>Wir haben eine Anfrage erhalten, das Passwort Ihres Sensor Tattoo Fix-Kontos zurückzusetzen.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Neues Passwort wählen</a></p>
+        <p style="font-size:13px;color:#666">Dieser Link läuft in 1 Stunde ab. Wenn Sie das nicht angefordert haben, ignorieren Sie diese E-Mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Setzen Sie Ihr Sensor Tattoo Fix-Passwort zurück:\n${resetUrl}\n\nDieser Link läuft in 1 Stunde ab.`
+    };
+  }
+  if (locale === 'es') {
+    return {
+      subject: 'Restablece tu contraseña de Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Restablecer contraseña</h2>
+        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta de Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Elegir nueva contraseña</a></p>
+        <p style="font-size:13px;color:#666">Este enlace caduca en 1 hora. Si no lo solicitaste, puedes ignorar este correo.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Restablece tu contraseña de Sensor Tattoo Fix:\n${resetUrl}\n\nEste enlace caduca en 1 hora.`
+    };
+  }
+  if (locale === 'pl') {
+    return {
+      subject: 'Zresetuj hasło do Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Resetowanie hasła</h2>
+        <p>Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Wybierz nowe hasło</a></p>
+        <p style="font-size:13px;color:#666">Ten link wygasa za 1 godzinę. Jeśli nie prosiłeś o to, zignoruj ten e-mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Zresetuj hasło do Sensor Tattoo Fix:\n${resetUrl}\n\nTen link wygasa za 1 godzinę.`
+    };
+  }
+  if (locale === 'fr') {
+    return {
+      subject: 'Réinitialisez votre mot de passe Sensor Tattoo Fix',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Réinitialisation du mot de passe</h2>
+        <p>Nous avons reçu une demande de réinitialisation du mot de passe de votre compte Sensor Tattoo Fix.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Choisir un nouveau mot de passe</a></p>
+        <p style="font-size:13px;color:#666">Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Réinitialisez votre mot de passe Sensor Tattoo Fix :\n${resetUrl}\n\nCe lien expire dans 1 heure.`
+    };
+  }
+  if (locale === 'nl') {
+    return {
+      subject: 'Stel uw Sensor Tattoo Fix-wachtwoord opnieuw in',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Wachtwoord opnieuw instellen</h2>
+        <p>We hebben een verzoek ontvangen om het wachtwoord van uw Sensor Tattoo Fix-account opnieuw in te stellen.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Nieuw wachtwoord kiezen</a></p>
+        <p style="font-size:13px;color:#666">Deze link verloopt over 1 uur. Als u dit niet heeft aangevraagd, kunt u deze e-mail negeren.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Stel uw Sensor Tattoo Fix-wachtwoord opnieuw in:\n${resetUrl}\n\nDeze link verloopt over 1 uur.`
+    };
+  }
+  if (locale === 'sv') {
+    return {
+      subject: 'Återställ ditt Sensor Tattoo Fix-lösenord',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Återställ lösenord</h2>
+        <p>Vi har fått en begäran om att återställa lösenordet för ditt Sensor Tattoo Fix-konto.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Välj nytt lösenord</a></p>
+        <p style="font-size:13px;color:#666">Länken upphör om 1 timme. Om du inte begärde detta kan du ignorera det här e-postmeddelandet.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Återställ ditt Sensor Tattoo Fix-lösenord:\n${resetUrl}\n\nLänken upphör om 1 timme.`
+    };
+  }
+  if (locale === 'no') {
+    return {
+      subject: 'Tilbakestill Sensor Tattoo Fix-passordet ditt',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Tilbakestill passord</h2>
+        <p>Vi har mottatt en forespørsel om å tilbakestille passordet til Sensor Tattoo Fix-kontoen din.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Velg nytt passord</a></p>
+        <p style="font-size:13px;color:#666">Denne lenken utløper om 1 time. Hvis du ikke ba om dette, kan du ignorere denne e-posten.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Tilbakestill Sensor Tattoo Fix-passordet ditt:\n${resetUrl}\n\nDenne lenken utløper om 1 time.`
+    };
+  }
+  if (locale === 'fi') {
+    return {
+      subject: 'Vaihda Sensor Tattoo Fix -salasanasi',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222">
+        <h2 style="margin:0 0 12px">Salasanan vaihto</h2>
+        <p>Saimme pyynnön vaihtaa Sensor Tattoo Fix -tilisi salasana.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:8px">Valitse uusi salasana</a></p>
+        <p style="font-size:13px;color:#666">Tämä linkki vanhenee 1 tunnin kuluttua. Jos et pyytänyt tätä, voit jättää tämän sähköpostin huomiotta.</p>
+        <p style="font-size:12px;color:#888;word-break:break-all">${resetUrl}</p>
+      </div>`,
+      text: `Vaihda Sensor Tattoo Fix -salasanasi:\n${resetUrl}\n\nTämä linkki vanhenee 1 tunnin kuluttua.`
     };
   }
   return {
@@ -14289,13 +14979,27 @@ async function handleCreateOrder(request, env, origin, ctx) {
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...(order.selfTestStripe ? {
-        'Teste Stripe produção': `US$ ${SELF_TEST_STRIPE_USD_AMOUNT.toFixed(2)} — mínimo Stripe conta BR`,
+        'Teste Stripe produção': order.chargeCurrency === 'SEK'
+          ? `SEK ${SELF_TEST_STRIPE_SEK_AMOUNT} — mínimo Stripe`
+          : order.chargeCurrency === 'NOK'
+            ? `NOK ${SELF_TEST_STRIPE_NOK_AMOUNT} — mínimo Stripe`
+            : order.chargeCurrency === 'EUR'
+              ? `€ ${SELF_TEST_STRIPE_EUR_AMOUNT.toFixed(2)} — mínimo Stripe`
+              : order.chargeCurrency === 'USD'
+                ? `US$ ${SELF_TEST_STRIPE_USD_AMOUNT.toFixed(2)} — mínimo Stripe`
+                : `R$ 0,50 — mínimo Stripe BR`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...(order.selfTestTester && !order.selfTestPayPal && !order.selfTestStripe && !order.selfTestPix ? {
-        'Teste conta testadora': order.chargeCurrency === 'USD'
-          ? `US$ ${Number(order.chargeAmount || SELF_TEST_USD_AMOUNT).toFixed(2)} — pedido internacional`
-          : `R$ ${SELF_TEST_BRL_AMOUNT.toFixed(2)} — pedido Brasil`,
+        'Teste conta testadora': order.chargeCurrency === 'SEK'
+          ? `SEK ${Number(order.chargeAmount || SELF_TEST_STRIPE_SEK_AMOUNT)} — pedido internacional`
+          : order.chargeCurrency === 'NOK'
+            ? `NOK ${Number(order.chargeAmount || SELF_TEST_STRIPE_NOK_AMOUNT)} — pedido internacional`
+            : order.chargeCurrency === 'EUR'
+              ? `€ ${Number(order.chargeAmount || SELF_TEST_STRIPE_EUR_AMOUNT).toFixed(2)} — pedido internacional`
+              : order.chargeCurrency === 'USD'
+                ? `US$ ${Number(order.chargeAmount || SELF_TEST_STRIPE_USD_AMOUNT).toFixed(2)} — pedido internacional`
+                : `R$ ${SELF_TEST_BRL_AMOUNT.toFixed(2)} — pedido Brasil`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...orderWatchEmailFields(order)
@@ -15000,6 +15704,7 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
   const config = await getConfig(env);
   const previousCode = order.correiosTrackingCode;
+  const previousStatus = order.correiosTrackingStatus;
   try {
     applyOrderShippingManualUpdate(order, body);
 
@@ -15030,6 +15735,20 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   } catch (err) {
     return json({ error: err.message }, 400, origin);
   }
+
+  const nowFinal = isTrackingFinalStatus(order.correiosTrackingStatus);
+  const wasFinal = isTrackingFinalStatus(previousStatus);
+  // Sair de Entregue libera reenvio da pesquisa na próxima vez.
+  if (wasFinal && !nowFinal) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = null;
+  }
+  // Reenvio explícito (mesmo já estando Entregue).
+  if (body.resendDeliveredEmail === true && nowFinal) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = null;
+  }
+
   await saveOrder(env, order);
   let trackingEmail = { skipped: true };
   try {
@@ -15037,6 +15756,13 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   } catch (err) {
     console.warn('Tracking email after shipping update:', orderId, err.message);
     trackingEmail = { skipped: true, error: err.message };
+  }
+  let deliveredEmail = { skipped: true };
+  try {
+    deliveredEmail = await maybeNotifyDelivered(env, config, order, previousStatus) || { skipped: true };
+  } catch (err) {
+    console.warn('Delivered email after shipping update:', orderId, err.message);
+    deliveredEmail = { skipped: true, error: err.message };
   }
   return json({
     ok: true,
@@ -15058,7 +15784,14 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     shippingServiceCode: order.shippingServiceCode ?? null,
     trackingEmailSentAt: order.trackingEmailSentAt || null,
     trackingEmailSent: !!(trackingEmail && trackingEmail.ok),
-    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped)
+    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped),
+    deliveredEmailSentAt: order.deliveredEmailSentAt || null,
+    deliveredEmailSent: !!(deliveredEmail && deliveredEmail.ok),
+    deliveredEmailSkipped: !!(deliveredEmail && deliveredEmail.skipped),
+    deliveredEmailSkipReason: deliveredEmail?.reason || null,
+    deliveredEmailLocale: deliveredEmail?.ok
+      ? satisfactionEmailLocale(order)
+      : (nowFinal ? satisfactionEmailLocale(order) : null)
   }, 200, origin);
 }
 
@@ -15299,48 +16032,82 @@ async function handlePayPalCreate(request, env, origin, orderId) {
   }
 }
 
+function stripeSupportedForeignCurrencies() {
+  return new Set(['USD', 'EUR', 'SEK', 'NOK', 'PLN', 'GBP']);
+}
+
+function stripeSelfTestAmount(currency, forStripe = true) {
+  const cur = String(currency || 'USD').toUpperCase();
+  if (cur === 'EUR') return forStripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+  if (cur === 'SEK') return forStripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+  if (cur === 'NOK') return forStripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+  if (cur === 'PLN') return forStripe ? 1 : 1;
+  return forStripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+}
+
 function stripeOrderCharge(order, request, env) {
   let amountCents;
   let currency = 'brl';
   let amountForeign = null;
   const chargeCur = String(order.chargeCurrency || '').toUpperCase();
-  const intlCharge = chargeCur === 'USD' || chargeCur === 'EUR'
+  const foreignOk = stripeSupportedForeignCurrencies();
+  const wantsForeign = foreignOk.has(chargeCur)
     || (isComSiteRequest(request) && !chargeCur);
-  if (intlCharge && (chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) {
-    const resolvedCur = chargeCur === 'EUR' ? 'EUR' : 'USD';
+  if (wantsForeign) {
+    const resolvedCur = foreignOk.has(chargeCur)
+      ? chargeCur
+      : intlChargeCurrencyForLocale(order.checkoutLocale);
     currency = resolvedCur.toLowerCase();
     let amt = Number(order.chargeAmount);
     if (isSelfTestOrder(order)) {
-      amt = order.selfTestStripe || order.paymentProvider === 'stripe'
-        ? (resolvedCur === 'EUR' ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_STRIPE_USD_AMOUNT)
-        : (resolvedCur === 'EUR' ? SELF_TEST_EUR_AMOUNT : SELF_TEST_USD_AMOUNT);
+      amt = stripeSelfTestAmount(resolvedCur, true);
       order.chargeCurrency = resolvedCur;
       order.chargeAmount = amt;
-      if (order.paymentProvider === 'stripe') order.selfTestStripe = true;
+      if (order.paymentProvider === 'stripe' || !order.paymentProvider) order.selfTestStripe = true;
     }
     if (!Number.isFinite(amt) || amt <= 0) {
       return null;
     }
-    const minCents = isSelfTestOrder(order)
-      ? Math.round((resolvedCur === 'EUR' ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_STRIPE_USD_AMOUNT) * 100)
-      : 50;
-    amountCents = Math.max(minCents, Math.round(amt * 100));
+    const minMajor = isSelfTestOrder(order)
+      ? stripeSelfTestAmount(resolvedCur, true)
+      : (resolvedCur === 'SEK' || resolvedCur === 'NOK' || resolvedCur === 'JPY' ? 3 : 0.5);
+    amountCents = Math.max(
+      Math.round(minMajor * 100),
+      Math.round(amt * 100)
+    );
     amountForeign = amt;
   } else {
     const brl = isSelfTestOrder(order) ? SELF_TEST_BRL_AMOUNT : Number(order.total);
-    amountCents = Math.max(isSelfTestOrder(order) ? 1 : 50, Math.round(brl * 100));
+    // Stripe BR rejeita abaixo de R$ 0,50 — teste simbólico usa 0,50.
+    const brlCharge = isSelfTestOrder(order) ? Math.max(0.5, brl) : brl;
+    amountCents = Math.max(isSelfTestOrder(order) ? 50 : 50, Math.round(brlCharge * 100));
     currency = 'brl';
+    if (isSelfTestOrder(order)) {
+      order.chargeCurrency = 'BRL';
+      order.chargeAmount = brlCharge;
+    }
   }
   return { amountCents, currency, amountUsd: amountForeign };
 }
 
 async function ensureStripeIntlCharge(order, request, env) {
   const chargeCur = String(order.chargeCurrency || '').toUpperCase();
-  if (!(chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) return;
+  const foreignOk = stripeSupportedForeignCurrencies();
+  if (!(foreignOk.has(chargeCur) || isComSiteRequest(request))) return;
   let amt = Number(order.chargeAmount);
-  if (Number.isFinite(amt) && amt > 0) return;
+  if (Number.isFinite(amt) && amt > 0 && !isSelfTestOrder(order)) return;
   const config = await getConfig(env);
-  const foreignCur = intlChargeCurrencyForLocale(order.checkoutLocale);
+  const foreignCur = foreignOk.has(chargeCur)
+    ? chargeCur
+    : intlChargeCurrencyForLocale(order.checkoutLocale, config);
+  if (isSelfTestOrder(order)) {
+    const minAmt = stripeSelfTestAmount(foreignCur, true);
+    order.chargeCurrency = foreignCur;
+    order.chargeAmount = minAmt;
+    order.displayCurrency = foreignCur;
+    order.selfTestStripe = true;
+    return;
+  }
   const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
   order.chargeCurrency = foreignCur;
   order.chargeAmount = charge.amount;
@@ -17266,6 +18033,7 @@ async function handleTestEmail(request, env, origin) {
     'customer_order_mp',
     'customer_pix',
     'customer_paid',
+    'customer_delivered',
     'motoboy',
     'coupon'
   ];
@@ -17396,6 +18164,21 @@ async function sendTestEmailByType(env, config, to, type, overrides = {}) {
         Valor: formatBRL(price),
         Mensagem: emailMessage(config, 'paidDefault')
       });
+
+    case 'customer_delivered': {
+      const copy = buildDeliveredSatisfactionCopy(
+        { ...order, correiosTrackingStatus: 'Entregue' },
+        config
+      );
+      return notifyCustomer(env, config, order, copy.subject, {
+        Pedido: order.orderId,
+        Status: 'Entregue (TESTE)',
+        Mensagem: copy.message
+      }, {
+        html: deliveredSatisfactionHtml(copy),
+        text: copy.message
+      });
+    }
 
     case 'motoboy':
       return notifyEmail(env, config, to, emailSubject(config, 'motoboySubject', { orderId: order.orderId }), {
@@ -17567,6 +18350,61 @@ async function handleGetOrder(request, env, origin, orderId) {
   return json({ error: 'Não autorizado.' }, 401, origin);
 }
 
+async function handleAdminApplyIntlMarkupFx(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const current = await getConfig(env);
+  const currencies = body.intlCurrencies != null
+    ? normalizeIntlCurrencies(body.intlCurrencies)
+    : normalizeIntlCurrencies(current.intlCurrencies);
+  const auto = body.intlCurrenciesAutoFx != null
+    ? body.intlCurrenciesAutoFx !== false
+    : (body.intlCurrenciesAutoPpp != null
+      ? body.intlCurrenciesAutoPpp !== false
+      : autoFxEnabled(current));
+  const synced = syncOpticalIntlBrlFromBrKit(current.products || []);
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  const { products, updated } = applyMarkupFxToIntlProducts(synced.products, currencies, fxRates);
+  const saved = await saveConfig(env, {
+    ...current,
+    products,
+    intlCurrencies: currencies,
+    intlCurrenciesAutoFx: auto,
+    intlCurrenciesAutoPpp: auto
+  });
+  return json({
+    ok: true,
+    updated: updated + (synced.synced ? 1 : 0),
+    syncedOpticalBrl: synced.synced,
+    fxRates,
+    currencies: currencies.map((c) => ({ code: c.code, decimals: c.decimals })),
+    products: (saved.products || []).filter(isIntlMarketProductRow).map((p) => ({
+      id: p.id,
+      price: p.price,
+      intlMarkupPercent: p.intlMarkupPercent,
+      intlBaseBrl: p.intlBaseBrl,
+      priceUsd: p.priceUsd,
+      priceEur: p.priceEur,
+      priceSek: p.priceSek,
+      priceNok: p.priceNok,
+      pricePln: p.pricePln,
+      priceGbp: p.priceGbp
+    }))
+  }, 200, origin);
+}
+
+/** @deprecated alias */
+async function handleAdminApplyIntlPpp(request, env, origin) {
+  return handleAdminApplyIntlMarkupFx(request, env, origin);
+}
+
 async function handleAdminGetConfig(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
@@ -17615,7 +18453,7 @@ async function handlePutConfig(request, env, origin, ctx) {
       : (current.smartwatchModelMeta || {}),
     products: body.products?.length ? body.products : current.products,
     formsubmit: { ...current.formsubmit, ...body.formsubmit },
-    emails: { ...(current.emails || {}), ...(body.emails || {}) },
+    emails: mergeEmailsConfig(current.emails || {}, body.emails || {}),
     api: { ...current.api, ...body.api },
     channels: body.channels != null
       ? mergeChannelsConfig({ channels: body.channels }, DEFAULT_CONFIG)
@@ -17631,8 +18469,27 @@ async function handlePutConfig(request, env, origin, ctx) {
       : (current.homeFaq || []),
     homeReviews: body.homeReviews != null
       ? mergePreservedI18n(Array.isArray(body.homeReviews) ? body.homeReviews : current.homeReviews || [], current.homeReviews || [])
-      : (current.homeReviews || [])
+      : (current.homeReviews || []),
+    intlCurrencies: body.intlCurrencies != null
+      ? normalizeIntlCurrencies(body.intlCurrencies)
+      : normalizeIntlCurrencies(current.intlCurrencies),
+    intlCurrenciesAutoFx: body.intlCurrenciesAutoFx != null
+      ? body.intlCurrenciesAutoFx !== false
+      : (body.intlCurrenciesAutoPpp != null
+        ? body.intlCurrenciesAutoPpp !== false
+        : autoFxEnabled(current)),
+    intlCurrenciesAutoPpp: body.intlCurrenciesAutoFx != null
+      ? body.intlCurrenciesAutoFx !== false
+      : (body.intlCurrenciesAutoPpp != null
+        ? body.intlCurrenciesAutoPpp !== false
+        : autoFxEnabled(current))
   };
+  if (autoFxEnabled(merged)) {
+    const synced = syncOpticalIntlBrlFromBrKit(merged.products || []);
+    const fxRates = await fetchFxRatesMap(env, (merged.intlCurrencies || []).map((c) => c.code));
+    const applied = applyMarkupFxToIntlProducts(synced.products, merged.intlCurrencies, fxRates);
+    merged.products = applied.products;
+  }
   if (merged.products?.[0]) {
     merged.product = {
       name: merged.products[0].name,
@@ -17791,6 +18648,7 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     return Object.keys(payload).length ? payload : null;
   }
 
+  const previousStatus = order.correiosTrackingStatus;
   const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
   const hasApiEvents = Array.isArray(summary?.events) && summary.events.length > 0;
   const hasManual = order.correiosManualUpdatedAt && order.correiosTrackingStatus;
@@ -17804,6 +18662,11 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     order.correiosTrackingUpdatedAt = new Date().toISOString();
   }
   await saveOrder(env, order);
+  try {
+    await maybeNotifyDelivered(env, config, order, previousStatus);
+  } catch (err) {
+    console.warn('Delivered email after Correios sync:', orderId, err.message);
+  }
   return {
     ...(hasApiEvents ? summary : trackingSummaryFromOrder(order) || summary),
     trackingCode: order.correiosTrackingCode,
@@ -18672,6 +19535,12 @@ export default {
       if (path === '/admin/home-i18n/refresh' && request.method === 'POST') {
         return handleAdminHomeI18nRefresh(request, env, origin, ctx);
       }
+      if (path === '/admin/intl-money/apply-ppp' && request.method === 'POST') {
+        return handleAdminApplyIntlMarkupFx(request, env, origin);
+      }
+      if (path === '/admin/intl-money/apply-markup-fx' && request.method === 'POST') {
+        return handleAdminApplyIntlMarkupFx(request, env, origin);
+      }
       if (path === '/auth/register' && request.method === 'POST') return handleCustomerRegister(request, env, origin);
       if (path === '/auth/login' && request.method === 'POST') return handleCustomerLogin(request, env, origin);
       if (path === '/auth/logout' && request.method === 'POST') return handleCustomerLogout(request, env, origin);
@@ -18851,6 +19720,9 @@ export default {
       if (path === '/fx/rate' && request.method === 'GET') {
         return handleFxRate(request, env, origin);
       }
+      if (path === '/fx/rates' && request.method === 'GET') {
+        return handleFxRates(request, env, origin);
+      }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);
       }
@@ -19006,8 +19878,8 @@ export default {
     }
     if (event.cron === '30 2 * * *') {
       ctx.waitUntil(
-        syncIntlProductPricesFromFx(env).catch((err) => {
-          console.error('Intl FX price sync cron failed:', err.message);
+        syncIntlProductPricesFromPpp(env).catch((err) => {
+          console.error('Intl PPP price sync cron failed:', err.message);
         })
       );
     }

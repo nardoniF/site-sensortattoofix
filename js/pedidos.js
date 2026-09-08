@@ -554,6 +554,11 @@
             <input type="text" class="pedidos-shipping-note" value="${noteVal}" placeholder="${isIntl ? 'Ex.: postado documento intl' : 'Ex.: postado PAC balcão SP'}" maxlength="200" />
           </label>
           <button type="button" class="btn-save-shipping">Salvar envio</button>
+          <button type="button" class="btn-resend-delivered-email"${
+            /entregue/i.test(String(o.correiosTrackingStatus || '')) || o.deliveredEmailSentAt
+              ? ''
+              : ' hidden'
+          }>Reenviar pesquisa</button>
           <p class="pedidos-shipping-feedback" hidden></p>
         </div>
         ${manualAt}
@@ -606,6 +611,12 @@
       }
       const prazo = shippingDaysLabel(o);
       if (prazo) parts.push(`<small class="pedidos-frete-prazo">Prazo: ${escHtml(prazo)}</small>`);
+      if (o.trackingEmailSentAt) {
+        parts.push(`<small class="pedidos-detail-muted">E-mail de rastreio enviado em ${formatDate(o.trackingEmailSentAt)}</small>`);
+      }
+      if (o.deliveredEmailSentAt) {
+        parts.push(`<small class="pedidos-detail-muted">Pesquisa de satisfação enviada em ${formatDate(o.deliveredEmailSentAt)}</small>`);
+      }
       return parts.join('<br>') || '<span class="pedidos-track-muted">—</span>';
     }
     if (isCorreiosIntlOrder(o)) {
@@ -616,6 +627,9 @@
         if (o.correiosTrackingStatus) parts.push(`<span class="pedidos-track-status">${escHtml(o.correiosTrackingStatus)}</span>`);
         if (o.trackingEmailSentAt) {
           parts.push(`<small class="pedidos-detail-muted">E-mail de rastreio enviado em ${formatDate(o.trackingEmailSentAt)}</small>`);
+        }
+        if (o.deliveredEmailSentAt) {
+          parts.push(`<small class="pedidos-detail-muted">Pesquisa de satisfação enviada em ${formatDate(o.deliveredEmailSentAt)}</small>`);
         }
       } else {
         parts.push('<span class="pedidos-track-muted">Sem código — cole em Rastreio internacional abaixo</span>');
@@ -975,7 +989,12 @@
         applyFilters();
         closeOrderModal();
         let emailed = '';
-        if (payload.trackingCode) {
+        if (saved.deliveredEmailSent) {
+          const loc = saved.deliveredEmailLocale ? ` (${saved.deliveredEmailLocale})` : '';
+          emailed = ` — pesquisa de satisfação enviada${loc}`;
+        } else if (saved.deliveredEmailSkipReason === 'already_sent') {
+          emailed = ' — pesquisa já tinha sido enviada (use Reenviar pesquisa)';
+        } else if (payload.trackingCode) {
           if (saved.trackingEmailSent) emailed = ' — e-mail de rastreio enviado (só desta vez)';
           else if (saved.trackingEmailSentAt || saved.trackingEmailSkipped) {
             emailed = ' — e-mail de rastreio já tinha sido enviado antes (não reenviado)';
@@ -986,6 +1005,52 @@
         if (saveBtn) {
           saveBtn.disabled = false;
           saveBtn.textContent = prevLabel;
+        }
+      }
+    });
+
+    body.querySelector('.btn-resend-delivered-email')?.addEventListener('click', async () => {
+      const feedbackEl = body.querySelector('.pedidos-shipping-feedback');
+      const btn = body.querySelector('.btn-resend-delivered-email');
+      const showFeedback = (msg, type) => {
+        if (!feedbackEl) return;
+        feedbackEl.textContent = msg;
+        feedbackEl.className = 'pedidos-shipping-feedback form-status ' + (type || '');
+        feedbackEl.hidden = !msg;
+      };
+      if (!confirm(`Reenviar pesquisa de satisfação do pedido ${o.orderId}?`)) return;
+      const prev = btn?.textContent || '';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Enviando…';
+      }
+      try {
+        const saved = await saveShippingOverride(o.orderId, {
+          correiosTrackingStatus: o.correiosTrackingStatus || 'Entregue',
+          resendDeliveredEmail: true
+        });
+        if (!saved || saved.error) {
+          showFeedback(saved?.error || 'Falha ao reenviar.', 'error');
+          return;
+        }
+        applyShippingOverrideToOrder(o, saved);
+        const idx = allOrders.findIndex((x) => x.orderId === o.orderId);
+        if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
+        applyFilters();
+        if (saved.deliveredEmailSent) {
+          const loc = saved.deliveredEmailLocale ? ` (${saved.deliveredEmailLocale})` : '';
+          showStatus(`Pesquisa de satisfação reenviada${loc}`, 'success');
+          showFeedback(`Reenviada${loc}`, 'success');
+        } else {
+          showFeedback(
+            `Não enviou (${saved.deliveredEmailSkipReason || 'skipped'}). Confira se o status é Entregue.`,
+            'warn'
+          );
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = prev;
         }
       }
     });
@@ -1080,6 +1145,7 @@
     if (data.shippingDays != null) order.shippingDays = data.shippingDays;
     if (data.shippingServiceCode != null) order.shippingServiceCode = data.shippingServiceCode;
     if (data.trackingEmailSentAt) order.trackingEmailSentAt = data.trackingEmailSentAt;
+    if (data.deliveredEmailSentAt) order.deliveredEmailSentAt = data.deliveredEmailSentAt;
     order.correiosManualUpdatedAt = new Date().toISOString();
   }
 
