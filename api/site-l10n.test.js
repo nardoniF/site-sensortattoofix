@@ -18,10 +18,11 @@ import {
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('SITE_LANGS cobre PT + intl atuais', () => {
-  assert.deepEqual(SITE_LANGS, ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl']);
+  assert.deepEqual(SITE_LANGS, ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']);
   assert.equal(normalizeSiteLang('SL'), 'sl');
-  assert.equal(normalizeSiteLang('fr'), 'pt');
-  assert.deepEqual(otherSiteLangs('pt'), ['en', 'it', 'de', 'es', 'pl', 'sl']);
+  assert.equal(normalizeSiteLang('fr'), 'fr');
+  assert.equal(normalizeSiteLang('xx'), 'pt');
+  assert.deepEqual(otherSiteLangs('pt'), ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']);
 });
 
 test('parseModelJson aceita fence e texto solto', () => {
@@ -96,7 +97,7 @@ test('homeContentI18nStatus conta pendentes', async () => {
   const { homeContentI18nStatus } = await import('./site-l10n.js');
   const status = homeContentI18nStatus({
     homeFaq: [
-      { question: 'A', i18n: { en: { question: 'A' }, it: { question: 'A' }, de: { question: 'A' }, es: { question: 'A' }, pl: { question: 'A' }, sl: { question: 'A' } } },
+      { question: 'A', i18n: { en: { question: 'A' }, it: { question: 'A' }, de: { question: 'A' }, es: { question: 'A' }, pl: { question: 'A' }, sl: { question: 'A' }, fr: { question: 'A' }, nl: { question: 'A' }, sv: { question: 'A' }, no: { question: 'A' }, fi: { question: 'A' } } },
       { question: 'B', i18n: { en: { question: 'B' } } }
     ],
     homeReviews: [{ body: 'ok', i18n: {} }]

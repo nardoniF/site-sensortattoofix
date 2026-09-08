@@ -9,7 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const LANGS = ['de', 'es', 'pl', 'sl'];
+const LANGS = ['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 const SHELL_PAGES = ['loja.html', 'comprar.html', 'minha-conta.html', 'comunidade.html', 'onde-comprar.html'];
 const ALL_PAGES = ['index.html', ...SHELL_PAGES];
 
