@@ -11,6 +11,7 @@ on:
       - 'js/**'
       - 'data/store-config.json'
       - 'e2e/**'
+      - '.github/workflows/e2e-i18n.yml'
   pull_request:
     paths:
       - 'de/**'
@@ -20,6 +21,7 @@ on:
       - 'js/**'
       - 'data/store-config.json'
       - 'e2e/**'
+      - '.github/workflows/e2e-i18n.yml'
 
 jobs:
   e2e-i18n:
@@ -35,7 +37,14 @@ jobs:
         working-directory: e2e
         run: |
           npm ci
-          npx playwright install chromium --with-deps
+          # --with-deps às vezes quebra no apt do Google Chrome (Hash Sum mismatch).
+          # Tenta com deps; se falhar, sobe só o Chromium do Playwright (suficiente no ubuntu-latest).
+          if ! npx playwright install chromium --with-deps; then
+            echo "playwright --with-deps falhou; tentando sem deps do sistema…"
+            sudo apt-get clean || true
+            sudo rm -rf /var/lib/apt/lists/* || true
+            npx playwright install chromium
+          fi
       - name: Run Playwright i18n tests
         working-directory: e2e
         run: npm test
