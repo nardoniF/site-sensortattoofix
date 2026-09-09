@@ -1198,12 +1198,12 @@
         ${detailRow('Comissionado', commissioner)}
         ${hasForeignCharge ? chargeBreakdownRows(o) : freteDetailRows(o)}
       </div>
-      ${orderAuditRows(o)}
       ${foldSection(
         'Entrega e rastreio',
         `${deliveryDetailBlock(o)}${manualShippingSection(o)}`,
         { className: 'pedidos-fold--entrega' }
       )}
+      ${orderAuditRows(o)}
     `;
 
     wireManualShippingForm(body, o);
