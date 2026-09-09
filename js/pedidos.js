@@ -708,18 +708,109 @@
     return o.pagamento || '—';
   }
 
-  function formatOrderAddress(o) {
-    const parts = [];
-    const line1 = [o.rua, o.numero].filter(Boolean).join(', ');
-    if (line1) parts.push(line1);
-    if (o.complemento) parts.push(String(o.complemento));
-    if (o.bairro) parts.push(String(o.bairro));
-    const city = [o.cidade, o.uf].filter(Boolean).join(' — ');
-    if (city) parts.push(city);
-    if (o.cep) parts.push(`CEP ${o.cep}`);
-    if (o.pais) parts.push(String(o.pais));
-    if (parts.length) return parts.join(', ');
-    return String(o.endereco || '').trim() || '—';
+  function isBrazilOrder(o) {
+    const code = String(o?.paisCode || '').trim().toUpperCase();
+    if (code === 'BR') return true;
+    if (code && code !== 'BR') return false;
+    return /brasil/i.test(String(o?.pais || ''));
+  }
+
+  function orderStreetLine(o) {
+    const rua = String(o?.rua || '').trim();
+    const num = String(o?.numero || '').trim();
+    if (rua && num) {
+      if (rua === num) return rua;
+      if (rua.startsWith(num + ' ') || rua.startsWith(num + ',')) return rua;
+      if (new RegExp(`\\b${num.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(rua)) return rua;
+      // Internacional: número faz parte da rua (ex.: 12012 Amber Meadows Lane)
+      if (!isBrazilOrder(o) && /^\d+[A-Za-z]?$/.test(num)) return `${num} ${rua}`.replace(/\s+/g, ' ').trim();
+      return `${rua}, ${num}`;
+    }
+    if (rua) return rua;
+    const blob = String(o?.endereco || '').replace(/\s+/g, ' ').trim();
+    if (!blob) return '';
+    return blob.split(/\s*[,—]\s*/)[0].trim();
+  }
+
+  function orderCityLine(o) {
+    return String(o?.cidade || '').trim();
+  }
+
+  function orderStateLine(o) {
+    return String(o?.uf || o?.estado || o?.state || '').trim();
+  }
+
+  function orderPostalCode(o) {
+    const postal = String(o?.cep || o?.postalCode || o?.postal || '').trim();
+    if (!postal) return '';
+    const num = String(o?.numero || '').trim();
+    // Número da casa mal gravado como “CEP”
+    if (num && postal === num) return '';
+    const street = orderStreetLine(o);
+    if (street && (street.startsWith(postal + ' ') || street === postal) && /^\d{4,6}$/.test(postal) && !isBrazilOrder(o)) {
+      return '';
+    }
+    return postal;
+  }
+
+  function orderAddressRows(o) {
+    const rows = [];
+    const street = orderStreetLine(o);
+    const city = orderCityLine(o);
+    const state = orderStateLine(o);
+    const postal = orderPostalCode(o);
+    const complemento = String(o?.complemento || '').trim();
+    const bairro = String(o?.bairro || '').trim();
+    const br = isBrazilOrder(o);
+
+    if (street) rows.push(detailRow('Endereço', escHtml(street)));
+    else if (o.endereco) rows.push(detailRow('Endereço', escHtml(String(o.endereco).trim())));
+    if (complemento) rows.push(detailRow('Complemento', escHtml(complemento)));
+    if (br && bairro && bairro.toLowerCase() !== city.toLowerCase()) {
+      rows.push(detailRow('Bairro', escHtml(bairro)));
+    }
+    if (city) rows.push(detailRow('Cidade', escHtml(city)));
+    if (state) rows.push(detailRow('Estado', escHtml(state)));
+    if (postal) rows.push(detailRow(br ? 'CEP' : 'Caixa postal', escHtml(postal)));
+    return rows.join('');
+  }
+
+  function chargeBreakdownRows(o) {
+    const cur = String(o.chargeCurrency || '').toUpperCase();
+    const totalF = o.chargeAmount != null ? Number(o.chargeAmount) : null;
+    const fx = o.chargeFxRate != null ? Number(o.chargeFxRate) : null;
+    const freteBrl = Number(o.frete);
+    const totalBrl = Number(o.total);
+    const kind = escHtml(shippingKindLabel(o));
+    const prazo = shippingDaysLabel(o);
+    const rows = [];
+
+    if (cur && cur !== 'BRL' && Number.isFinite(totalF)) {
+      const freteF = Number.isFinite(fx) && fx > 0 && Number.isFinite(freteBrl)
+        ? Math.round(freteBrl * fx * 100) / 100
+        : null;
+      const prodF = freteF != null ? Math.round((totalF - freteF) * 100) / 100 : null;
+      if (prodF != null) rows.push(detailRow('Produto', escHtml(formatMoney(prodF, cur))));
+      if (freteF != null) rows.push(detailRow('Frete', escHtml(formatMoney(freteF, cur))));
+      const totalTxt = Number.isFinite(totalBrl)
+        ? `<strong>${escHtml(formatMoney(totalF, cur))}</strong> — ${formatBRL(totalBrl)}`
+        : `<strong>${escHtml(formatMoney(totalF, cur))}</strong>`;
+      rows.push(detailRow('Total', totalTxt));
+      rows.push(detailRow('Tipo envio', kind));
+      if (prazo) rows.push(detailRow('Prazo entrega', prazo));
+      return rows.join('');
+    }
+
+    const paid = Number(o.frete);
+    const hasPaid = Number.isFinite(paid) && paid >= 0;
+    const est = Number(o.correiosFreteEstimado);
+    const hasEst = isCorreiosBrOrder(o) && Number.isFinite(est) && est > 0;
+    if (hasEst) rows.push(detailRow('Correios (est.)', `<strong>${formatBRL(est)}</strong>`));
+    rows.push(detailRow('Total', `<strong>${formatBRL(o.total)}</strong>`));
+    if (hasPaid) rows.push(detailRow('Frete', formatBRL(paid)));
+    rows.push(detailRow('Tipo envio', kind));
+    if (prazo) rows.push(detailRow('Prazo entrega', prazo));
+    return rows.join('');
   }
 
   function externalTrackLinksHtml(code) {
@@ -738,6 +829,50 @@
     return `<div class="pedidos-track-ext">${links.map((l) =>
       `<a href="${escHtml(l.url)}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(l.label)}</a>`
     ).join(' · ')}</div>`;
+  }
+
+  function freteMarkupBreakdown(o) {
+    const frete = Number(o.frete);
+    if (!Number.isFinite(frete) || frete < 0) return null;
+    const baseStored = Number(o.intlBasePrice);
+    const markupStored = Number(o.intlSurcharge);
+    if (Number.isFinite(baseStored) && baseStored > 0) {
+      const markup = Number.isFinite(markupStored) && markupStored >= 0
+        ? markupStored
+        : Math.round((frete - baseStored) * 100) / 100;
+      return { base: baseStored, markup, frete };
+    }
+    const cfg = storeConfigCache || {};
+    const flat = Number(o.intlFlatSurcharge ?? cfg.internationalSurcharge) || 0;
+    const mult = Math.max(1, Number(o.intlMultiplier ?? cfg.internationalShippingMultiplier) || 1);
+    if ((flat > 0 || mult > 1) && !isBrazilOrder(o)) {
+      const base = Math.round(((frete - flat) / mult) * 100) / 100;
+      if (base > 0 && base <= frete + 0.001) {
+        return {
+          base,
+          markup: Math.round((frete - base) * 100) / 100,
+          frete,
+          flat,
+          mult
+        };
+      }
+    }
+    return null;
+  }
+
+  function catalogProductBrl(o) {
+    const products = storeConfigCache?.products || [];
+    if (!products.length || !Array.isArray(o.items) || !o.items.length) return null;
+    let sum = 0;
+    let found = 0;
+    for (const item of o.items) {
+      const p = products.find((x) => x.id === item.productId || x.slug === item.productId || x.id === item.slug);
+      const price = Number(p?.price);
+      if (!p || !Number.isFinite(price) || price <= 0) continue;
+      sum += price * (Number(item.qty) || 1);
+      found += 1;
+    }
+    return found ? Math.round(sum * 100) / 100 : null;
   }
 
   function orderItemsAuditHtml(o) {
@@ -766,16 +901,21 @@
     const chargeAmt = o.chargeAmount != null ? Number(o.chargeAmount) : null;
     const fx = o.chargeFxRate != null ? Number(o.chargeFxRate) : null;
     if (chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt)) {
-      rows.push(detailRow('Cobrado do cliente', `<strong>${escHtml(formatMoney(chargeAmt, chargeCur))}</strong>`));
+      const freteBrl = Number(o.frete);
+      const fxOk = Number.isFinite(fx) && fx > 0 && Number.isFinite(freteBrl);
+      const freteF = fxOk ? Math.round(freteBrl * fx * 100) / 100 : null;
+      const prodF = freteF != null ? Math.round((chargeAmt - freteF) * 100) / 100 : null;
+      if (prodF != null) rows.push(detailRow('Produto', escHtml(formatMoney(prodF, chargeCur))));
+      if (freteF != null) rows.push(detailRow('Frete', escHtml(formatMoney(freteF, chargeCur))));
+      rows.push(detailRow(
+        'Cobrado do cliente',
+        `<strong>${escHtml(formatMoney(chargeAmt, chargeCur))}</strong>${Number.isFinite(Number(o.total)) ? ` — ${formatBRL(Number(o.total))}` : ''}`
+      ));
       if (Number.isFinite(fx) && fx > 0) {
-        const brlApprox = chargeAmt / fx;
-        rows.push(detailRow('Câmbio (BRL→moeda)', `${fx} · ≈ ${formatBRL(brlApprox)} no livro`));
+        rows.push(detailRow('Câmbio (BRL→moeda)', String(fx)));
       }
     } else {
       rows.push(detailRow('Moeda de cobrança', escHtml(chargeCur || 'BRL')));
-    }
-    if (o.displayCurrency && String(o.displayCurrency).toUpperCase() !== chargeCur) {
-      rows.push(detailRow('Moeda exibida', escHtml(String(o.displayCurrency).toUpperCase())));
     }
 
     rows.push(detailRow('Meio de pagamento', `${escHtml(paymentProviderLabel(o))}${o.pagamento ? ` · ${escHtml(o.pagamento)}` : ''}`));
@@ -797,8 +937,22 @@
     const pago = Number(o.valorProduto);
     const frete = Number(o.frete);
     const total = Number(o.total);
+    const catalog = catalogProductBrl(o);
+    const flatMarkup = Number(o.intlFlatSurcharge ?? storeConfigCache?.internationalSurcharge) || 0;
+
     if (Number.isFinite(bruto) && bruto > 0) {
-      rows.push(detailRow('Produto (tabela BRL)', formatBRL(bruto)));
+      let note = '';
+      if (catalog != null && catalog > 0) {
+        const diff = Math.round((bruto - catalog) * 100) / 100;
+        if (diff > 0.009 && flatMarkup > 0 && Math.abs(diff - flatMarkup) < 0.05) {
+          note = ` <small>(${formatBRL(catalog)} + markup ${formatBRL(flatMarkup)})</small>`;
+        } else if (diff > 0.009) {
+          note = ` <small>(cadastro ${formatBRL(catalog)} + ${formatBRL(diff)})</small>`;
+        } else {
+          note = ` <small>(cadastro ${formatBRL(catalog)})</small>`;
+        }
+      }
+      rows.push(detailRow('Produto (tabela BRL)', `<strong>${formatBRL(bruto)}</strong>${note}`));
     }
     if (o.couponCode) {
       let cupom = escHtml(o.couponCode);
@@ -806,14 +960,22 @@
       if (o.couponDiscount) cupom += ` — desc. ${formatBRL(o.couponDiscount)}`;
       rows.push(detailRow('Cupom', cupom));
     }
-    if (Number.isFinite(pago) && pago >= 0) {
+    if (Number.isFinite(pago) && pago >= 0 && (!Number.isFinite(bruto) || Math.abs(pago - bruto) > 0.009)) {
       rows.push(detailRow('Produto no livro (BRL)', `<strong>${formatBRL(pago)}</strong>`));
     }
     if (o.productAdjust != null && Number(o.productAdjust) !== 0) {
       rows.push(detailRow('Acerto extra', formatBRL(o.productAdjust)));
     }
     if (Number.isFinite(frete) && frete >= 0) {
-      rows.push(detailRow('Frete (BRL)', `<strong>${formatBRL(frete)}</strong>`));
+      const brk = freteMarkupBreakdown(o);
+      if (brk && brk.markup > 0.009) {
+        rows.push(detailRow(
+          'Frete (BRL)',
+          `<strong>${formatBRL(frete)}</strong> <small>(cotação ${formatBRL(brk.base)} + markup ${formatBRL(brk.markup)})</small>`
+        ));
+      } else {
+        rows.push(detailRow('Frete (BRL)', `<strong>${formatBRL(frete)}</strong>`));
+      }
     }
     const sfLabel = superfreteServiceLabel(o.superfreteService);
     const escolhido = sfLabel || shippingKindLabel(o);
@@ -844,18 +1006,7 @@
   }
 
   function freteDetailRows(o) {
-    const kind = escHtml(shippingKindLabel(o));
-    const paid = Number(o.frete);
-    const hasPaid = Number.isFinite(paid) && paid >= 0;
-    const est = Number(o.correiosFreteEstimado);
-    const hasEst = isCorreiosBrOrder(o) && Number.isFinite(est) && est > 0;
-    const rows = [];
-    if (hasEst) rows.push(detailRow('Correios (est.)', `<strong>${formatBRL(est)}</strong>`));
-    if (hasPaid) rows.push(detailRow('Cliente pagou', formatBRL(paid)));
-    rows.push(detailRow('Tipo envio', kind));
-    const prazo = shippingDaysLabel(o);
-    if (prazo) rows.push(detailRow('Prazo entrega', prazo));
-    return rows.join('');
+    return chargeBreakdownRows(o);
   }
 
   let orderModalEl = null;
@@ -984,23 +1135,21 @@
 
     const chargeCur = String(o.chargeCurrency || '').toUpperCase();
     const chargeAmt = o.chargeAmount != null ? Number(o.chargeAmount) : null;
-    const paidSummary = (chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt))
-      ? `${formatMoney(chargeAmt, chargeCur)} · livro ${formatBRL(o.total)}`
-      : `<strong>${formatBRL(o.total)}</strong>`;
+    const hasForeignCharge = chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt);
 
     body.innerHTML = `
       <div class="pedidos-detail-grid">
         ${detailRow('Data', formatDateCell(o.createdAt))}
         ${detailRow('Cliente', `${escHtml(o.nome)}<br><small>${escHtml(o.email || '—')}</small><br><small>${escHtml(o.telefone || '—')}</small>`)}
         ${o.cpf ? detailRow('CPF', escHtml(o.cpf)) : ''}
-        ${detailRow('Endereço', escHtml(formatOrderAddress(o)))}
+        ${orderAddressRows(o)}
         ${detailRow('Smartwatch', watch)}
         ${detailRow('País', escHtml(o.pais || '—'))}
         ${detailRow('Idioma do site', escHtml(checkoutLocaleLabel(o.checkoutLocale)))}
         ${detailRow('Pagamento', escHtml(paymentProviderLabel(o)))}
         ${detailRow('Comissionado', commissioner)}
-        ${detailRow('Total', paidSummary)}
-        ${freteDetailRows(o)}
+        ${hasForeignCharge ? '' : freteDetailRows(o)}
+        ${hasForeignCharge ? chargeBreakdownRows(o) : ''}
       </div>
       ${orderAuditRows(o)}
       ${orderFreteEditSection(o)}
