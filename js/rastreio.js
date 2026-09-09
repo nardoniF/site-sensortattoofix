@@ -28,9 +28,11 @@
   const code = normalizeCode(params.get('codigo') || params.get('objeto') || '');
   const codeEl = document.getElementById('rastreio-code');
   const statusEl = document.getElementById('rastreio-status');
+  const sourceEl = document.getElementById('rastreio-source');
   const metaEl = document.getElementById('rastreio-meta');
   const loadingEl = document.getElementById('rastreio-loading');
   const errorEl = document.getElementById('rastreio-error');
+  const bannerEl = document.getElementById('rastreio-banner');
   const timelineEl = document.getElementById('rastreio-timeline');
   const footerEl = document.getElementById('rastreio-footer');
 
@@ -46,6 +48,10 @@
 
   if (codeEl) codeEl.textContent = code;
 
+  function isLiveCorreios(data) {
+    return data && data.source === 'correios' && data.apiHadEvents !== false;
+  }
+
   function renderTracking(data, ok) {
     if (!ok) {
       if (errorEl) {
@@ -57,9 +63,39 @@
 
     if (errorEl) errorEl.hidden = true;
 
+    const live = isLiveCorreios(data);
+    const officialUrl = data.officialUrl || '';
+
+    if (bannerEl) {
+      if (!live && officialUrl) {
+        bannerEl.hidden = false;
+        bannerEl.innerHTML = `
+          <strong>Sem eventos ao vivo na API do contrato.</strong>
+          O status abaixo veio do cadastro da loja — não é o histórico atual dos Correios.
+          <a class="rastreio-official-btn" href="${escHtml(officialUrl)}" target="_blank" rel="noopener">Abrir rastreio oficial dos Correios</a>`;
+      } else {
+        bannerEl.hidden = true;
+        bannerEl.innerHTML = '';
+      }
+    }
+
     if (statusEl && data.status) {
       statusEl.hidden = false;
       statusEl.textContent = data.status;
+      statusEl.classList.toggle('rastreio-status--manual', !live);
+    }
+
+    if (sourceEl) {
+      if (live) {
+        sourceEl.hidden = false;
+        sourceEl.textContent = 'Fonte: API Correios (ao vivo)';
+      } else if (data.source === 'order') {
+        sourceEl.hidden = false;
+        sourceEl.textContent = 'Fonte: status lançado pela loja (API sem eventos)';
+      } else {
+        sourceEl.hidden = false;
+        sourceEl.textContent = 'Fonte: sem eventos na API Correios';
+      }
     }
 
     if (metaEl) {
@@ -91,9 +127,10 @@
     if (footerEl) {
       const bits = [];
       if (data.note) bits.push(escHtml(data.note));
-      bits.push('<small>Atualiza automaticamente a cada 5 min.</small>');
-      if (data.officialUrl) {
-        bits.push(`Consulte também no site dos <a href="${escHtml(data.officialUrl)}" target="_blank" rel="noopener">Correios</a> (exige captcha).`);
+      if (live) bits.push('<small>Atualiza automaticamente a cada 5 min.</small>');
+      else bits.push('<small>A API do contrato é consultada a cada 5 min; se continuar sem eventos, use o site oficial.</small>');
+      if (officialUrl) {
+        bits.push(`Site oficial: <a href="${escHtml(officialUrl)}" target="_blank" rel="noopener">Correios</a> (captcha).`);
       }
       footerEl.hidden = false;
       footerEl.innerHTML = bits.join(' ');
@@ -101,7 +138,10 @@
   }
 
   async function loadTracking(silent) {
-    if (!silent && loadingEl) loadingEl.hidden = false;
+    if (!silent && loadingEl) {
+      loadingEl.hidden = false;
+      loadingEl.textContent = 'Consultando API Correios (contrato)…';
+    }
     try {
       const res = await fetch(apiBase() + '/tracking/' + encodeURIComponent(code));
       const data = await res.json().catch(() => ({}));

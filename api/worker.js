@@ -8479,13 +8479,16 @@ function mergeTrackingSummaries(apiSummary, orderSummary) {
   const fromOrder = orderSummary || null;
   const apiEvents = Array.isArray(api.events) ? api.events : [];
   const orderEvents = Array.isArray(fromOrder?.events) ? fromOrder.events : [];
+  const apiHadEvents = apiEvents.length > 0;
 
-  if (apiEvents.length) {
+  if (apiHadEvents) {
     return {
       ...api,
       service: fromOrder?.service || null,
       shippingDays: fromOrder?.shippingDays ?? null,
-      source: 'correios'
+      source: 'correios',
+      apiQueried: true,
+      apiHadEvents: true
     };
   }
 
@@ -8497,7 +8500,9 @@ function mergeTrackingSummaries(apiSummary, orderSummary) {
       service: fromOrder.service,
       shippingDays: fromOrder.shippingDays,
       source: 'order',
-      note: 'Envio registrado manualmente — a API Correios do contrato não retorna objetos postados fora do contrato.'
+      apiQueried: true,
+      apiHadEvents: false,
+      note: 'A API do contrato Correios não devolveu eventos deste objeto (comum em postagem fora do cartão). O status abaixo é o que a loja registrou — o site oficial dos Correios pode estar mais atualizado (captcha).'
     };
   }
 
@@ -8506,7 +8511,9 @@ function mergeTrackingSummaries(apiSummary, orderSummary) {
     lastEvent: api.lastEvent,
     events: [],
     source: 'none',
-    note: 'Sem eventos na API Correios. Consulte também o site oficial (captcha).'
+    apiQueried: true,
+    apiHadEvents: false,
+    note: 'Consultamos a API Correios e não há eventos. Use o site oficial (captcha) para o histórico completo.'
   };
 }
 
