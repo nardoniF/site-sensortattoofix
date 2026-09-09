@@ -71,6 +71,7 @@ import {
   correiosOfficialTrackingUrl,
   correiosTrackingUrl,
   externalTrackingLinks,
+  isIntlTrackingCode,
   findActiveCoupon,
   getCoupons,
   haversineKm,
@@ -8555,18 +8556,39 @@ async function handlePublicTracking(request, env, origin, code) {
   if (!CORREIOS_AV_RE.test(trackingCode)) {
     return json({ error: 'Código de rastreio inválido.' }, 400, origin);
   }
+  const trackLinks = externalTrackingLinks(trackingCode);
+  const officialUrl = correiosOfficialTrackingUrl(trackingCode);
+
+  // Internacional: API do contrato não cobre — só links públicos (sem consultar SRO).
+  if (isIntlTrackingCode(trackingCode)) {
+    return json({
+      trackingCode,
+      officialUrl,
+      trackLinks,
+      source: 'links',
+      apiQueried: false,
+      apiHadEvents: false
+    }, 200, origin);
+  }
+
   const token = await getCorreiosToken(env);
   if (!token) {
-    return json({ error: 'Rastreamento temporariamente indisponível.' }, 503, origin);
+    return json({
+      trackingCode,
+      officialUrl,
+      trackLinks,
+      source: 'links',
+      apiQueried: false,
+      apiHadEvents: false
+    }, 200, origin);
   }
   const order = await findOrderByTrackingCode(env, trackingCode);
   const apiSummary = await fetchCorreiosTrackingSummary(token, trackingCode);
   const orderSummary = trackingSummaryFromOrder(order);
   const summary = mergeTrackingSummaries(apiSummary, orderSummary);
-  const trackLinks = externalTrackingLinks(trackingCode);
   return json({
     trackingCode,
-    officialUrl: correiosOfficialTrackingUrl(trackingCode),
+    officialUrl,
     trackLinks,
     ...summary
   }, 200, origin);

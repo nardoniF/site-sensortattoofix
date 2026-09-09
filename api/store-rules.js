@@ -115,28 +115,34 @@ export function correiosOfficialTrackingUrl(trackingCode) {
 }
 
 /** Links públicos com o código já preenchido (API do contrato não cobre postagem fora do cartão). */
+export function isIntlTrackingCode(trackingCode) {
+  const code = String(trackingCode || '').trim().toUpperCase();
+  return /^(RN|RR|CP|CD|CK|CL|CM|CN|CO|CR|CS|CT|CU|CV|CW|CX|CY|CZ|LK|LM|LP|LV|LY|UA|UB|UC|UD|UE|UF|UG|UH|UI|UJ|UK|UL|UM|UN|UP|UQ|UR|US|UT|UU|UV|UW|UX|UY|UZ)/.test(code);
+}
+
 export function externalTrackingLinks(trackingCode) {
   const code = String(trackingCode || '').trim().toUpperCase();
   if (!code) return [];
   const q = encodeURIComponent(code);
+  if (isIntlTrackingCode(code)) {
+    return [
+      {
+        id: '17track',
+        label: '17TRACK',
+        url: `https://www.17track.net/pt/track?nums=${q}`
+      },
+      {
+        id: 'parcelsapp',
+        label: 'ParcelsApp',
+        url: `https://parcelsapp.com/en/tracking/${q}`
+      }
+    ];
+  }
   return [
     {
       id: 'correios',
-      label: 'Correios (oficial)',
-      url: correiosOfficialTrackingUrl(code),
-      hint: 'Captcha; objeto já na URL'
-    },
-    {
-      id: '17track',
-      label: '17TRACK',
-      url: `https://www.17track.net/pt/track?nums=${q}`,
-      hint: 'Bom para exportação / exterior'
-    },
-    {
-      id: 'parcelsapp',
-      label: 'ParcelsApp',
-      url: `https://parcelsapp.com/en/tracking/${q}`,
-      hint: 'Rastreio global'
+      label: 'Correios',
+      url: correiosOfficialTrackingUrl(code)
     }
   ];
 }
