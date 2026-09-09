@@ -2605,6 +2605,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       superfreteService: shippingInfo?.superfreteService || null,
       superfretePackage: shippingInfo?.superfretePackage || null,
       shippingDays: shippingInfo?.days,
+      intlBasePrice: shippingInfo?.intlBasePrice ?? null,
+      intlSurcharge: shippingInfo?.intlSurcharge ?? null,
+      intlFlatSurcharge: shippingInfo?.intlFlatSurcharge ?? null,
+      intlMultiplier: shippingInfo?.intlMultiplier ?? null,
       shipmentType: (isLensOnlyIntlCheckout() && isInternational)
         ? 'documento'
         : (shippingInfo?.shipmentType || null),

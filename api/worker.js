@@ -2379,7 +2379,18 @@ function hydrateIntlOrderFields(order) {
   if (parsed) {
     for (const key of ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'cep']) {
       if ((!order[key] || String(order[key]).trim() === '') && parsed[key]) {
+        // Não gravar número da casa como CEP/caixa postal
+        if (key === 'cep' && parsed.numero && String(parsed.cep) === String(parsed.numero)) continue;
+        if (key === 'cep' && order.numero && String(parsed.cep) === String(order.numero).trim()) continue;
         order[key] = parsed[key];
+        changed = true;
+      }
+    }
+    // Limpa CEP espúrio já igual ao número da casa (pedidos antigos)
+    if (order.cep && order.numero && String(order.cep).trim() === String(order.numero).trim()) {
+      const street = String(order.rua || '');
+      if (street.startsWith(String(order.numero).trim() + ' ') || /^\d{4,6}$/.test(String(order.cep).trim())) {
+        order.cep = '';
         changed = true;
       }
     }
@@ -2397,25 +2408,29 @@ function parseIntlAddressFromOrder(order) {
   const blob = String(order.endereco || '').replace(/\s+/g, ' ').trim();
   if (!blob) return null;
   const out = {};
-  const cepMatch = blob.match(/\bCEP[:\s]*([A-Z0-9][A-Z0-9 \-]{2,12})\b/i)
-    || blob.match(/\b(\d{4})\s*$/)
+  const cepMatch = blob.match(/\b(?:CEP|ZIP|postal(?:\s*code)?)[:\s]*([A-Z0-9][A-Z0-9 \-]{2,12})\b/i)
     || blob.match(/\b(\d{5}(?:-\d{4})?|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\s*$/i);
-  if (cepMatch) out.cep = String(cepMatch[1] || cepMatch[0]).replace(/^CEP[:\s]*/i, '').trim();
+  if (cepMatch) out.cep = String(cepMatch[1] || cepMatch[0]).replace(/^(?:CEP|ZIP|postal(?:\s*code)?)[:\s]*/i, '').trim();
 
-  const streetNum = blob.match(/^(\d+[A-Za-z]?)\s+([^,—\-]+)/)
-    || blob.match(/^([^,]+?),\s*(\d+[A-Za-z]?)\b/);
-  if (streetNum) {
-    if (/^\d/.test(streetNum[1])) {
-      out.numero = streetNum[1].slice(0, 6);
-      out.rua = streetNum[2].trim().slice(0, 50);
-    } else {
+  // "12012 Amber Meadows Lane" → rua completa (não separar número como CEP)
+  const usStreet = blob.match(/^(\d+[A-Za-z]?)\s+([A-Za-z].+?)(?=\s*[,—]|$)/);
+  if (usStreet) {
+    out.numero = usStreet[1].slice(0, 10);
+    out.rua = `${usStreet[1]} ${usStreet[2].trim()}`.replace(/\s+/g, ' ').slice(0, 80);
+  } else {
+    const streetNum = blob.match(/^([^,]+?),\s*(\d+[A-Za-z]?)\b/);
+    if (streetNum) {
       out.rua = streetNum[1].trim().slice(0, 50);
       out.numero = streetNum[2].slice(0, 6);
+    } else {
+      const first = blob.split(/[,—\-]/)[0]?.trim();
+      if (first) out.rua = first.slice(0, 80);
     }
-  } else {
-    const first = blob.split(/[,—\-]/)[0]?.trim();
-    if (first) out.rua = first.slice(0, 50);
   }
+
+  // Se o “CEP” for só o número da casa no início da rua, descarta
+  if (out.cep && out.numero && out.cep === out.numero) delete out.cep;
+  if (out.cep && out.rua && out.rua.startsWith(out.cep + ' ') && /^\d{4,6}$/.test(out.cep)) delete out.cep;
 
   // " — Brisbane, Queensland — Austrália 4123"
   const cityState = blob.match(/[—\-]\s*([^,—\-]+),\s*([^,—\-]+)\s*[—\-]/)
@@ -14186,6 +14201,10 @@ async function handleCreateOrder(request, env, origin, ctx) {
     paypalFee: paypalFee > 0 ? paypalFee : undefined,
     displayCurrency: isIntl ? currencyForCountryCode(body.paisCode) : 'BRL',
     total: valorProduto + frete + paypalFee,
+    intlBasePrice: body.intlBasePrice != null ? Number(body.intlBasePrice) : undefined,
+    intlSurcharge: body.intlSurcharge != null ? Number(body.intlSurcharge) : undefined,
+    intlFlatSurcharge: body.intlFlatSurcharge != null ? Number(body.intlFlatSurcharge) : undefined,
+    intlMultiplier: body.intlMultiplier != null ? Number(body.intlMultiplier) : undefined,
     shippingService: superfreteMethod
       ? (superfreteServiceLabel(superfreteService) || body.shippingService || 'Frete')
       : (body.shippingService || 'Mini Envios'),
