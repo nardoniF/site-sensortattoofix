@@ -5597,6 +5597,70 @@ body.admin-page.pedidos-login-only #pedidos-login {
   border: 1px solid #2a2a2a;
   background: #0f0f0f;
 }
+.pedidos-fold {
+  margin-top: 14px;
+  border-radius: 12px;
+  border: 1px solid #2a2a2a;
+  background: #0f0f0f;
+  overflow: hidden;
+}
+.pedidos-fold--entrega { border-color: rgba(37, 211, 102, 0.28); }
+.pedidos-fold--audit { border-color: #333; }
+.pedidos-fold-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  user-select: none;
+}
+.pedidos-fold-summary::-webkit-details-marker { display: none; }
+.pedidos-fold-chevron {
+  font-size: 0.75rem;
+  color: var(--gray);
+  transition: transform 0.15s ease;
+}
+.pedidos-fold[open] > .pedidos-fold-summary .pedidos-fold-chevron {
+  transform: rotate(180deg);
+}
+.pedidos-fold-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid #222;
+}
+.pedidos-subheading {
+  margin: 12px 0 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ddd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pedidos-info-tip {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #666;
+  background: #1a1a1a;
+  color: #ccc;
+  font: 700 0.7rem/1 ui-sans-serif, system-ui, sans-serif;
+  cursor: help;
+  padding: 0;
+  flex: 0 0 auto;
+}
+.pedidos-info-tip:hover,
+.pedidos-info-tip:focus {
+  border-color: var(--primary);
+  color: var(--primary);
+  outline: none;
+}
 .pedidos-detail-section--entrega { border-color: rgba(37, 211, 102, 0.28); }
 .pedidos-detail-section--entrega .pedidos-detail-av {
   display: block;
