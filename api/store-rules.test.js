@@ -10,6 +10,7 @@ import {
   computeCouponDiscount,
   correiosOfficialTrackingUrl,
   correiosTrackingUrl,
+  externalTrackingLinks,
   findActiveCoupon,
   haversineKm,
   isCorreiosImportOnlyServiceCode,
@@ -80,6 +81,15 @@ test('Correios tracking URLs', () => {
     'https://www.sensortattoofix.com.br/rastreio.html?codigo=AA123BR'
   );
   assert.match(correiosOfficialTrackingUrl('AA123BR'), /objeto=AA123BR/);
+});
+
+test('externalTrackingLinks include Correios objeto + aggregators', () => {
+  const links = externalTrackingLinks('RN000899371BR');
+  assert.equal(links.length, 3);
+  assert.match(links[0].url, /objeto=RN000899371BR/);
+  assert.match(links[1].url, /nums=RN000899371BR/);
+  assert.match(links[2].url, /tracking\/RN000899371BR/);
+  assert.deepEqual(externalTrackingLinks(''), []);
 });
 
 test('haversineKm SP to nearby is a few km', () => {

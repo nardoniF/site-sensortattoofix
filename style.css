@@ -5731,6 +5731,16 @@ body.admin-page.pedidos-login-only #pedidos-login {
   gap: 8px;
 }
 .pedidos-detail-secondary .pedidos-detail-label { font-size: 0.72rem; }
+.pedidos-audit-items {
+  margin: 0;
+  padding-left: 1.1rem;
+  list-style: disc;
+}
+.pedidos-audit-items li { margin: 0.15rem 0; }
+.pedidos-track-ext {
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
 
 .btn-whatsapp-proof {
     display: inline-flex;

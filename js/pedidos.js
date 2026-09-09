@@ -593,6 +593,7 @@
         if (o.correiosTrackingLastEvent?.date) {
           parts.push(`<small class="pedidos-detail-muted">${formatDate(o.correiosTrackingLastEvent.date)}</small>`);
         }
+        parts.push(externalTrackLinksHtml(o.correiosTrackingCode));
       } else if (o.correiosPrePostagemId || o.correiosPrePostagemAt) {
         parts.push('<span class="pedidos-track-status">Pré-postado</span> — aguardando código de rastreio');
       } else {
@@ -614,6 +615,7 @@
         const url = correiosTrackingPageUrl(o.correiosTrackingCode);
         parts.push(`<strong class="pedidos-detail-av"><a href="${url}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(o.correiosTrackingCode)}</a></strong>`);
         if (o.correiosTrackingStatus) parts.push(`<span class="pedidos-track-status">${escHtml(o.correiosTrackingStatus)}</span>`);
+        parts.push(externalTrackLinksHtml(o.correiosTrackingCode));
         if (o.trackingEmailSentAt) {
           parts.push(`<small class="pedidos-detail-muted">E-mail de rastreio enviado em ${formatDate(o.trackingEmailSentAt)}</small>`);
         }
@@ -661,14 +663,138 @@
       </section>`;
   }
 
+  function formatMoney(amount, currency) {
+    const n = Number(amount);
+    const cur = String(currency || 'BRL').toUpperCase();
+    if (!Number.isFinite(n)) return '—';
+    try {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: cur }).format(n);
+    } catch {
+      return `${cur} ${n.toFixed(2)}`;
+    }
+  }
+
+  function checkoutLocaleLabel(locale) {
+    const map = {
+      pt: 'Português (BR)',
+      en: 'English',
+      it: 'Italiano',
+      de: 'Deutsch',
+      es: 'Español',
+      pl: 'Polski',
+      sl: 'Slovenščina',
+      fr: 'Français',
+      nl: 'Nederlands',
+      sv: 'Svenska',
+      no: 'Norsk',
+      fi: 'Suomi'
+    };
+    const l = String(locale || '').trim().toLowerCase();
+    if (!l) return '— (não gravado)';
+    return map[l] || l.toUpperCase();
+  }
+
+  function paymentProviderLabel(o) {
+    const p = String(o.paymentProvider || '').toLowerCase();
+    if (p === 'stripe') return 'Stripe (cartão)';
+    if (p === 'paypal') return 'PayPal';
+    if (p === 'asaas') return 'Asaas';
+    if (p === 'static_pix' || p === 'mercadopago' || p === 'mp') return 'PIX / Mercado Pago';
+    if (p) return p;
+    const pay = String(o.pagamento || '').toLowerCase();
+    if (pay.includes('stripe')) return 'Stripe (cartão)';
+    if (pay.includes('paypal')) return 'PayPal';
+    if (pay.includes('pix')) return 'PIX';
+    return o.pagamento || '—';
+  }
+
+  function formatOrderAddress(o) {
+    const parts = [];
+    const line1 = [o.rua, o.numero].filter(Boolean).join(', ');
+    if (line1) parts.push(line1);
+    if (o.complemento) parts.push(String(o.complemento));
+    if (o.bairro) parts.push(String(o.bairro));
+    const city = [o.cidade, o.uf].filter(Boolean).join(' — ');
+    if (city) parts.push(city);
+    if (o.cep) parts.push(`CEP ${o.cep}`);
+    if (o.pais) parts.push(String(o.pais));
+    if (parts.length) return parts.join(', ');
+    return String(o.endereco || '').trim() || '—';
+  }
+
+  function externalTrackLinksHtml(code) {
+    const c = normalizeTrackingCode(code);
+    if (!c) return '';
+    const q = encodeURIComponent(c);
+    const links = [
+      { label: 'Correios', url: `https://rastreamento.correios.com.br/app/index.php?objeto=${q}` },
+      { label: '17TRACK', url: `https://www.17track.net/pt/track?nums=${q}` },
+      { label: 'ParcelsApp', url: `https://parcelsapp.com/en/tracking/${q}` }
+    ];
+    return `<div class="pedidos-track-ext">${links.map((l) =>
+      `<a href="${escHtml(l.url)}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(l.label)}</a>`
+    ).join(' · ')}</div>`;
+  }
+
+  function orderItemsAuditHtml(o) {
+    const items = Array.isArray(o.items) ? o.items : [];
+    if (!items.length) {
+      if (o.produto) return detailRow('Itens', escHtml(o.produto));
+      return '';
+    }
+    const list = items.map((item) => {
+      const qty = Number(item.qty) || 1;
+      const name = item.name || item.nome || item.productId || 'Item';
+      const price = Number(item.price);
+      const priceTxt = Number.isFinite(price) ? ` · ${formatBRL(price)}` : '';
+      const id = item.productId || item.slug ? ` <code>${escHtml(item.productId || item.slug)}</code>` : '';
+      return `<li>${escHtml(String(qty))}× ${escHtml(name)}${priceTxt}${id}</li>`;
+    }).join('');
+    return detailRow('Itens pedidos', `<ul class="pedidos-audit-items">${list}</ul>`);
+  }
+
   function orderAuditRows(o) {
+    const rows = [];
+    rows.push(detailRow('Idioma do site', escHtml(checkoutLocaleLabel(o.checkoutLocale))));
+    rows.push(detailRow('País / código', `${escHtml(o.pais || '—')}${o.paisCode ? ` · <code>${escHtml(o.paisCode)}</code>` : ''}`));
+
+    const chargeCur = String(o.chargeCurrency || o.displayCurrency || '').toUpperCase();
+    const chargeAmt = o.chargeAmount != null ? Number(o.chargeAmount) : null;
+    const fx = o.chargeFxRate != null ? Number(o.chargeFxRate) : null;
+    if (chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt)) {
+      rows.push(detailRow('Cobrado do cliente', `<strong>${escHtml(formatMoney(chargeAmt, chargeCur))}</strong>`));
+      if (Number.isFinite(fx) && fx > 0) {
+        const brlApprox = chargeAmt / fx;
+        rows.push(detailRow('Câmbio (BRL→moeda)', `${fx} · ≈ ${formatBRL(brlApprox)} no livro`));
+      }
+    } else {
+      rows.push(detailRow('Moeda de cobrança', escHtml(chargeCur || 'BRL')));
+    }
+    if (o.displayCurrency && String(o.displayCurrency).toUpperCase() !== chargeCur) {
+      rows.push(detailRow('Moeda exibida', escHtml(String(o.displayCurrency).toUpperCase())));
+    }
+
+    rows.push(detailRow('Meio de pagamento', `${escHtml(paymentProviderLabel(o))}${o.pagamento ? ` · ${escHtml(o.pagamento)}` : ''}`));
+    if (o.stripePaymentIntentId) {
+      rows.push(detailRow('Stripe PI', `<code>${escHtml(o.stripePaymentIntentId)}</code>`));
+    }
+    if (o.paypalOrderId) {
+      rows.push(detailRow('PayPal order', `<code>${escHtml(o.paypalOrderId)}</code>`));
+    }
+
+    const itemsRow = orderItemsAuditHtml(o);
+    if (itemsRow) rows.push(itemsRow);
+    if (o.smartwatch || o.modeloRelogio) {
+      rows.push(detailRow('Smartwatch', escHtml(watchModel(o))));
+    }
+    if (o.observacoes) rows.push(detailRow('Observações', escHtml(o.observacoes)));
+
     const bruto = Number(o.valorProdutoAtCheckout ?? o.valorProdutoOriginal ?? o.valorProduto);
     const pago = Number(o.valorProduto);
     const frete = Number(o.frete);
     const total = Number(o.total);
-    const rows = [];
     if (Number.isFinite(bruto) && bruto > 0) {
-      rows.push(detailRow('Lente (tabela)', formatBRL(bruto)));
+      rows.push(detailRow('Produto (tabela BRL)', formatBRL(bruto)));
     }
     if (o.couponCode) {
       let cupom = escHtml(o.couponCode);
@@ -677,13 +803,13 @@
       rows.push(detailRow('Cupom', cupom));
     }
     if (Number.isFinite(pago) && pago >= 0) {
-      rows.push(detailRow('Lente / produto', `<strong>${formatBRL(pago)}</strong>`));
+      rows.push(detailRow('Produto no livro (BRL)', `<strong>${formatBRL(pago)}</strong>`));
     }
     if (o.productAdjust != null && Number(o.productAdjust) !== 0) {
       rows.push(detailRow('Acerto extra', formatBRL(o.productAdjust)));
     }
     if (Number.isFinite(frete) && frete >= 0) {
-      rows.push(detailRow('Frete pago', `<strong>${formatBRL(frete)}</strong>`));
+      rows.push(detailRow('Frete (BRL)', `<strong>${formatBRL(frete)}</strong>`));
     }
     const sfLabel = superfreteServiceLabel(o.superfreteService);
     const escolhido = sfLabel || shippingKindLabel(o);
@@ -691,24 +817,24 @@
     if (o.shippingMethodId) {
       rows.push(detailRow('ID método', `<code>${escHtml(o.shippingMethodId)}</code>`));
     }
-    if (o.superfreteService != null) {
-      rows.push(detailRow('SF serviço', `<code>${escHtml(String(o.superfreteService))}</code>${sfLabel ? ` (${escHtml(sfLabel)})` : ''}`));
-    }
-    if (o.shippingService && sfLabel && String(o.shippingService).toUpperCase() !== sfLabel) {
-      rows.push(detailRow('Rótulo salvo', `<span class="pedidos-track-warn">${escHtml(o.shippingService)} (diverge)</span>`));
+    if (o.shipmentType) {
+      rows.push(detailRow('Tipo remessa', escHtml(o.shipmentType)));
     }
     if (o.paypalFee != null && Number(o.paypalFee) > 0) {
       rows.push(detailRow('Taxa PayPal', `− ${formatBRL(o.paypalFee)}`));
     }
     if (o.totalPaid != null && Number.isFinite(Number(o.totalPaid))) {
-      rows.push(detailRow('Checkout (cliente)', formatBRL(o.totalPaid)));
+      rows.push(detailRow('Checkout (cliente, BRL)', formatBRL(o.totalPaid)));
     }
     if (Number.isFinite(total) && total >= 0) {
-      rows.push(detailRow('Entrou na conta', `<strong>${formatBRL(total)}</strong>`));
+      rows.push(detailRow('Entrou na conta (BRL)', `<strong>${formatBRL(total)}</strong>`));
     }
-    if (!rows.length) return '';
+    if (o.paidAt) rows.push(detailRow('Pago em', formatDate(o.paidAt)));
+    if (o.createdAt) rows.push(detailRow('Criado em', formatDate(o.createdAt)));
+
     return `<section class="pedidos-detail-section pedidos-detail-section--audit">
       <h3 class="pedidos-detail-heading">Auditoria do pedido</h3>
+      <p class="pedidos-detail-muted">O que a cliente fez no checkout: idioma, moeda cobrada, itens e pagamento.</p>
       <div class="pedidos-detail-grid">${rows.join('')}</div>
     </section>`;
   }
@@ -852,25 +978,28 @@
           : o.couponDiscount ? ` — desc. −${formatBRL(o.couponDiscount)}` : '')
       : '—';
 
-    const secondary = [];
-    if (o.cpf) secondary.push(detailRow('CPF', escHtml(o.cpf)));
-    if (o.endereco) secondary.push(detailRow('Endereço', escHtml(o.endereco)));
-    if (o.couponCode) secondary.push(detailRow('Cupom', escHtml(o.couponCode)));
+    const chargeCur = String(o.chargeCurrency || '').toUpperCase();
+    const chargeAmt = o.chargeAmount != null ? Number(o.chargeAmount) : null;
+    const paidSummary = (chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt))
+      ? `${formatMoney(chargeAmt, chargeCur)} · livro ${formatBRL(o.total)}`
+      : `<strong>${formatBRL(o.total)}</strong>`;
 
     body.innerHTML = `
       <div class="pedidos-detail-grid">
         ${detailRow('Data', formatDateCell(o.createdAt))}
         ${detailRow('Cliente', `${escHtml(o.nome)}<br><small>${escHtml(o.email || '—')}</small><br><small>${escHtml(o.telefone || '—')}</small>`)}
+        ${o.cpf ? detailRow('CPF', escHtml(o.cpf)) : ''}
+        ${detailRow('Endereço', escHtml(formatOrderAddress(o)))}
         ${detailRow('Smartwatch', watch)}
         ${detailRow('País', escHtml(o.pais || '—'))}
-        ${detailRow('Pagamento', escHtml(o.pagamento || '—'))}
+        ${detailRow('Idioma do site', escHtml(checkoutLocaleLabel(o.checkoutLocale)))}
+        ${detailRow('Pagamento', escHtml(paymentProviderLabel(o)))}
         ${detailRow('Comissionado', commissioner)}
-        ${detailRow('Total', `<strong>${formatBRL(o.total)}</strong>`)}
+        ${detailRow('Total', paidSummary)}
         ${freteDetailRows(o)}
       </div>
       ${orderAuditRows(o)}
       ${orderFreteEditSection(o)}
-      ${secondary.length ? `<div class="pedidos-detail-secondary">${secondary.join('')}</div>` : ''}
       <section class="pedidos-detail-section pedidos-detail-section--entrega">
         <h3 class="pedidos-detail-heading">Entrega / Rastreio</h3>
         ${deliveryDetailBlock(o)}
