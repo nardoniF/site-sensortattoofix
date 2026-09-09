@@ -70,6 +70,7 @@ import {
   computeCouponDiscount,
   correiosOfficialTrackingUrl,
   correiosTrackingUrl,
+  externalTrackingLinks,
   findActiveCoupon,
   getCoupons,
   haversineKm,
@@ -8562,9 +8563,11 @@ async function handlePublicTracking(request, env, origin, code) {
   const apiSummary = await fetchCorreiosTrackingSummary(token, trackingCode);
   const orderSummary = trackingSummaryFromOrder(order);
   const summary = mergeTrackingSummaries(apiSummary, orderSummary);
+  const trackLinks = externalTrackingLinks(trackingCode);
   return json({
     trackingCode,
     officialUrl: correiosOfficialTrackingUrl(trackingCode),
+    trackLinks,
     ...summary
   }, 200, origin);
 }

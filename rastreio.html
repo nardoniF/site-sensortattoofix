@@ -27,6 +27,28 @@
       font-size: 0.9rem; line-height: 1.45;
     }
     .rastreio-banner strong { display: block; margin-bottom: 4px; color: #ffd27a; }
+    .rastreio-banner code { color: #ffe09a; font-size: 0.92em; }
+    .rastreio-links { margin-top: 16px; }
+    .rastreio-links-title {
+      margin: 0 0 8px; font-size: 0.92rem; font-weight: 700; color: #eee;
+    }
+    .rastreio-links-grid {
+      display: grid; gap: 8px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 520px) {
+      .rastreio-links-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    .rastreio-link-card {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 12px 12px; border-radius: 10px;
+      background: #1c1c1c; border: 1px solid #3a3a3a;
+      color: #eee !important; text-decoration: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .rastreio-link-card:hover { border-color: var(--primary); background: #222; }
+    .rastreio-link-card strong { color: var(--primary); font-size: 0.95rem; }
+    .rastreio-link-card span { font-size: 0.78rem; color: #aaa; line-height: 1.35; }
     .rastreio-official-btn {
       display: inline-block; margin-top: 10px; padding: 8px 12px;
       border-radius: 8px; background: var(--primary); color: #111 !important;
@@ -62,12 +84,13 @@
       <p id="rastreio-source" class="rastreio-source" hidden></p>
       <p id="rastreio-meta" class="rastreio-meta" hidden></p>
       <div id="rastreio-banner" class="rastreio-banner" hidden></div>
+      <div id="rastreio-links" class="rastreio-links" hidden></div>
       <p id="rastreio-loading" class="rastreio-loading">Consultando API Correios (contrato)…</p>
       <p id="rastreio-error" class="rastreio-error" hidden></p>
       <ul id="rastreio-timeline" class="rastreio-timeline" hidden></ul>
       <p id="rastreio-footer" class="rastreio-footer" hidden></p>
     </div>
   </main>
-  <script src="js/rastreio.js?v=4"></script>
+  <script src="js/rastreio.js?v=5"></script>
 </body>
 </html>

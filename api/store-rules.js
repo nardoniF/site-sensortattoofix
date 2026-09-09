@@ -109,9 +109,36 @@ export function correiosTrackingUrl(trackingCode, storeBase) {
 }
 
 export function correiosOfficialTrackingUrl(trackingCode) {
-  const code = String(trackingCode || '').trim();
+  const code = String(trackingCode || '').trim().toUpperCase();
   if (!code) return 'https://rastreamento.correios.com.br/app/index.php';
   return `https://rastreamento.correios.com.br/app/index.php?objeto=${encodeURIComponent(code)}`;
+}
+
+/** Links públicos com o código já preenchido (API do contrato não cobre postagem fora do cartão). */
+export function externalTrackingLinks(trackingCode) {
+  const code = String(trackingCode || '').trim().toUpperCase();
+  if (!code) return [];
+  const q = encodeURIComponent(code);
+  return [
+    {
+      id: 'correios',
+      label: 'Correios (oficial)',
+      url: correiosOfficialTrackingUrl(code),
+      hint: 'Captcha; objeto já na URL'
+    },
+    {
+      id: '17track',
+      label: '17TRACK',
+      url: `https://www.17track.net/pt/track?nums=${q}`,
+      hint: 'Bom para exportação / exterior'
+    },
+    {
+      id: 'parcelsapp',
+      label: 'ParcelsApp',
+      url: `https://parcelsapp.com/en/tracking/${q}`,
+      hint: 'Rastreio global'
+    }
+  ];
 }
 
 export function haversineKm(lat1, lon1, lat2, lon2) {
