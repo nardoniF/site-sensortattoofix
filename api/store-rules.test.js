@@ -83,12 +83,18 @@ test('Correios tracking URLs', () => {
   assert.match(correiosOfficialTrackingUrl('AA123BR'), /objeto=AA123BR/);
 });
 
-test('externalTrackingLinks include Correios objeto + aggregators', () => {
-  const links = externalTrackingLinks('RN000899371BR');
-  assert.equal(links.length, 3);
-  assert.match(links[0].url, /objeto=RN000899371BR/);
-  assert.match(links[1].url, /nums=RN000899371BR/);
-  assert.match(links[2].url, /tracking\/RN000899371BR/);
+test('externalTrackingLinks: nacional = Correios; internacional = 17TRACK + ParcelsApp', () => {
+  const nat = externalTrackingLinks('AP170797068BR');
+  assert.equal(nat.length, 1);
+  assert.equal(nat[0].id, 'correios');
+  assert.match(nat[0].url, /objeto=AP170797068BR/);
+
+  const intl = externalTrackingLinks('RN000899371BR');
+  assert.equal(intl.length, 2);
+  assert.equal(intl[0].id, '17track');
+  assert.equal(intl[1].id, 'parcelsapp');
+  assert.match(intl[0].url, /nums=RN000899371BR/);
+  assert.match(intl[1].url, /tracking\/RN000899371BR/);
   assert.deepEqual(externalTrackingLinks(''), []);
 });
 

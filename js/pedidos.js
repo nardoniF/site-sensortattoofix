@@ -726,11 +726,15 @@
     const c = normalizeTrackingCode(code);
     if (!c) return '';
     const q = encodeURIComponent(c);
-    const links = [
-      { label: 'Correios', url: `https://rastreamento.correios.com.br/app/index.php?objeto=${q}` },
-      { label: '17TRACK', url: `https://www.17track.net/pt/track?nums=${q}` },
-      { label: 'ParcelsApp', url: `https://parcelsapp.com/en/tracking/${q}` }
-    ];
+    const intl = /^(RN|RR|CP|CD|CK|CL|CM|CN|CO|CR|CS|CT|CU|CV|CW|CX|CY|CZ|LK|LM|LP|LV|LY|UA|UB|UC|UD|UE|UF|UG|UH|UI|UJ|UK|UL|UM|UN|UP|UQ|UR|US|UT|UU|UV|UW|UX|UY|UZ)/.test(c);
+    const links = intl
+      ? [
+        { label: '17TRACK', url: `https://www.17track.net/pt/track?nums=${q}` },
+        { label: 'ParcelsApp', url: `https://parcelsapp.com/en/tracking/${q}` }
+      ]
+      : [
+        { label: 'Correios', url: `https://rastreamento.correios.com.br/app/index.php?objeto=${q}` }
+      ];
     return `<div class="pedidos-track-ext">${links.map((l) =>
       `<a href="${escHtml(l.url)}" target="_blank" rel="noopener" class="pedidos-track-link">${escHtml(l.label)}</a>`
     ).join(' · ')}</div>`;
