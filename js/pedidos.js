@@ -494,6 +494,40 @@
     return `<div class="pedidos-detail-row"><span class="pedidos-detail-label">${label}</span><span class="pedidos-detail-value">${valueHtml}</span></div>`;
   }
 
+  function infoTip(text) {
+    const t = String(text || '').trim();
+    if (!t) return '';
+    return `<button type="button" class="pedidos-info-tip" title="${escAttr(t)}" aria-label="Ajuda">i</button>`;
+  }
+
+  function foldSection(title, innerHtml, opts = {}) {
+    if (!innerHtml) return '';
+    const open = opts.open ? ' open' : '';
+    const extra = opts.className ? ` ${opts.className}` : '';
+    return `
+      <details class="pedidos-fold${extra}"${open}>
+        <summary class="pedidos-fold-summary">
+          <span>${escHtml(title)}</span>
+          <i class="fas fa-chevron-down pedidos-fold-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="pedidos-fold-body">${innerHtml}</div>
+      </details>`;
+  }
+
+  function orderItemsSummaryHtml(o) {
+    const items = Array.isArray(o.items) ? o.items : [];
+    if (!items.length) {
+      if (o.produto) return detailRow('Pedido', escHtml(o.produto));
+      return detailRow('Pedido', '—');
+    }
+    const list = items.map((item) => {
+      const qty = Number(item.qty) || 1;
+      const name = item.name || item.nome || item.productId || 'Item';
+      return `<li>${escHtml(String(qty))}× ${escHtml(name)}</li>`;
+    }).join('');
+    return detailRow('Pedido', `<ul class="pedidos-audit-items">${list}</ul>`);
+  }
+
   function manualShippingSection(o) {
     if (o.status !== 'paid') return '';
     const isBr = isCorreiosBrOrder(o);
@@ -516,7 +550,7 @@
     const manualAt = o.correiosManualUpdatedAt
       ? `<p class="pedidos-detail-muted">Última atualização manual: ${formatDate(o.correiosManualUpdatedAt)}</p>`
       : '';
-    const heading = isIntl ? 'Rastreio internacional' : 'Atualização manual';
+    const heading = isIntl ? 'Atualizar rastreio' : 'Atualização manual';
     const hint = isIntl
       ? 'Cole o código completo dos Correios (13 caracteres, ex.: RN000689771BR). O e-mail de rastreio só é enviado na primeira vez que um código válido é salvo — cliques repetidos não reenviam.'
       : 'Use quando a API Correios falhar ou o envio foi feito fora do contrato (ex.: PAC no balcão). O e-mail de rastreio só sai na primeira vez que o código é salvo.';
@@ -536,9 +570,8 @@
           </label>
           <p class="pedidos-shipping-quote-hint pedidos-detail-muted"></p>` : '';
     return `
-      <section class="pedidos-detail-section pedidos-detail-section--manual">
-        <h3 class="pedidos-detail-heading">${heading}</h3>
-        <p class="pedidos-detail-muted">${hint}</p>
+      <div class="pedidos-shipping-block">
+        <h4 class="pedidos-subheading">${escHtml(heading)} ${infoTip(hint)}</h4>
         <div class="pedidos-shipping-manual">
           <label class="pedidos-shipping-field">
             <span class="pedidos-shipping-label">Código rastreio</span>
@@ -557,7 +590,40 @@
           <p class="pedidos-shipping-feedback" hidden></p>
         </div>
         ${manualAt}
-      </section>`;
+      </div>`;
+  }
+
+  function orderFreteEditSection(o) {
+    if (o.status !== 'paid') return '';
+    const freteVal = formatFreteInput(o.frete);
+    const productVal = formatFreteInput(o.valorProduto);
+    const help = 'Checkout: valor que o cliente pagou. Se baixar o frete, a diferença vai para o produto. Se baixar o produto (taxa PayPal, etc.), o total que entrou vira produto + frete.';
+    const origNote = o.freteOriginal != null && Number(o.freteOriginal) !== Number(o.frete)
+      ? `<p class="pedidos-detail-muted">Frete cobrado no checkout: ${formatBRL(o.freteOriginal)}</p>`
+      : '';
+    const checkoutProduct = o.valorProdutoAtCheckout != null
+      ? `<p class="pedidos-detail-muted">Produto no checkout: ${formatBRL(o.valorProdutoAtCheckout)}</p>`
+      : '';
+    return `
+      <div class="pedidos-acerto-block">
+        <h4 class="pedidos-subheading">Frete e acerto do pedido ${infoTip(help)}</h4>
+        ${origNote}
+        ${checkoutProduct}
+        <div class="pedidos-shipping-manual">
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Frete real (R$)</span>
+            <input type="text" class="pedidos-order-frete" value="${escHtml(freteVal)}" placeholder="Ex.: 28,00" inputmode="decimal" />
+          </label>
+          <label class="pedidos-shipping-field">
+            <span class="pedidos-shipping-label">Produto / acerto (R$)</span>
+            <input type="text" class="pedidos-order-produto" value="${escHtml(productVal)}" placeholder="Ex.: 472,00" inputmode="decimal" />
+          </label>
+          <p class="pedidos-detail-muted">Checkout (cliente): <strong>${formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong>${o.paypalFee ? ` · Taxa PayPal: ${formatBRL(o.paypalFee)}` : ''}</p>
+          <p class="pedidos-detail-muted">Entrou na conta: <strong class="pedidos-order-total">${formatBRL(o.total != null ? o.total : (Number(o.valorProduto || 0) + Number(o.frete || 0)))}</strong></p>
+          <button type="button" class="btn-save-order-frete">Salvar acerto</button>
+          <p class="pedidos-frete-feedback" hidden></p>
+        </div>
+      </div>`;
   }
 
   function deliveryDetailBlock(o) {
@@ -628,39 +694,6 @@
       return parts.join('<br>');
     }
     return '<span class="pedidos-track-muted">—</span>';
-  }
-
-  function orderFreteEditSection(o) {
-    if (o.status !== 'paid') return '';
-    const freteVal = formatFreteInput(o.frete);
-    const productVal = formatFreteInput(o.valorProduto);
-    const origNote = o.freteOriginal != null && Number(o.freteOriginal) !== Number(o.frete)
-      ? `<p class="pedidos-detail-muted">Frete cobrado no checkout: ${formatBRL(o.freteOriginal)}</p>`
-      : '';
-    const checkoutProduct = o.valorProdutoAtCheckout != null
-      ? `<p class="pedidos-detail-muted">Produto no checkout: ${formatBRL(o.valorProdutoAtCheckout)}</p>`
-      : '';
-    return `
-      <section class="pedidos-detail-section pedidos-detail-section--frete">
-        <h3 class="pedidos-detail-heading">Frete e acerto do pedido</h3>
-        <p class="pedidos-detail-muted">Checkout: cliente pagou <strong>${formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong>. Se baixar o frete, a diferença vai para o produto. Se você baixar o produto (taxa PayPal, etc.), o <strong>total que entrou</strong> vira produto + frete.</p>
-        ${origNote}
-        ${checkoutProduct}
-        <div class="pedidos-shipping-manual">
-          <label class="pedidos-shipping-field">
-            <span class="pedidos-shipping-label">Frete real (R$)</span>
-            <input type="text" class="pedidos-order-frete" value="${escHtml(freteVal)}" placeholder="Ex.: 28,00" inputmode="decimal" />
-          </label>
-          <label class="pedidos-shipping-field">
-            <span class="pedidos-shipping-label">Produto / acerto (R$)</span>
-            <input type="text" class="pedidos-order-produto" value="${escHtml(productVal)}" placeholder="Ex.: 472,00" inputmode="decimal" />
-          </label>
-          <p class="pedidos-detail-muted">Checkout (cliente): <strong>${formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong>${o.paypalFee ? ` · Taxa PayPal: ${formatBRL(o.paypalFee)}` : ''}</p>
-          <p class="pedidos-detail-muted">Entrou na conta: <strong class="pedidos-order-total">${formatBRL(o.total != null ? o.total : (Number(o.valorProduto || 0) + Number(o.frete || 0)))}</strong></p>
-          <button type="button" class="btn-save-order-frete">Salvar acerto</button>
-          <p class="pedidos-frete-feedback" hidden></p>
-        </div>
-      </section>`;
   }
 
   function formatMoney(amount, currency) {
@@ -836,15 +869,15 @@
     if (!Number.isFinite(frete) || frete < 0) return null;
     const baseStored = Number(o.intlBasePrice);
     const markupStored = Number(o.intlSurcharge);
+    const cfg = storeConfigCache || {};
+    const flat = Number(o.intlFlatSurcharge ?? cfg.internationalSurcharge) || 0;
+    const mult = Math.max(1, Number(o.intlMultiplier ?? cfg.internationalShippingMultiplier) || 1);
     if (Number.isFinite(baseStored) && baseStored > 0) {
       const markup = Number.isFinite(markupStored) && markupStored >= 0
         ? markupStored
         : Math.round((frete - baseStored) * 100) / 100;
-      return { base: baseStored, markup, frete };
+      return { base: baseStored, markup, frete, flat, mult };
     }
-    const cfg = storeConfigCache || {};
-    const flat = Number(o.intlFlatSurcharge ?? cfg.internationalSurcharge) || 0;
-    const mult = Math.max(1, Number(o.intlMultiplier ?? cfg.internationalShippingMultiplier) || 1);
     if ((flat > 0 || mult > 1) && !isBrazilOrder(o)) {
       const base = Math.round(((frete - flat) / mult) * 100) / 100;
       if (base > 0 && base <= frete + 0.001) {
@@ -857,7 +890,39 @@
         };
       }
     }
-    return null;
+    return { base: frete, markup: 0, frete, flat, mult };
+  }
+
+  function formatFreteMarkupNote(brk) {
+    if (!brk) return '';
+    const parts = [];
+    if (brk.base > 0 && brk.markup > 0.009) {
+      parts.push(`cotação ${formatBRL(brk.base)}`);
+      if (brk.mult > 1.001) {
+        const pct = Math.round((brk.mult - 1) * 100);
+        parts.push(`× ${String(brk.mult).replace('.', ',')} (+${pct}% markup)`);
+      }
+      if (brk.flat > 0.009) parts.push(`+ acréscimo fixo ${formatBRL(brk.flat)}`);
+      parts.push(`= markup ${formatBRL(brk.markup)}`);
+      return ` <small>(${parts.join(' ')})</small>`;
+    }
+    if (brk.mult <= 1.001 && !(brk.flat > 0.009)) {
+      return ' <small>(sem markup de frete internacional)</small>';
+    }
+    return '';
+  }
+
+  function formatProductTableNote(o, bruto, catalog) {
+    if (catalog == null || !(catalog > 0)) return '';
+    const diff = Math.round((bruto - catalog) * 100) / 100;
+    if (Math.abs(diff) <= 0.009) {
+      return ` <small>(cadastro ${formatBRL(catalog)} — sem acréscimo no produto)</small>`;
+    }
+    if (diff > 0) {
+      const pct = Math.round((diff / catalog) * 100);
+      return ` <small>(cadastro ${formatBRL(catalog)} + acréscimo ${formatBRL(diff)}${pct ? ` ≈ +${pct}%` : ''})</small>`;
+    }
+    return ` <small>(cadastro ${formatBRL(catalog)} − ${formatBRL(Math.abs(diff))})</small>`;
   }
 
   function catalogProductBrl(o) {
@@ -938,21 +1003,12 @@
     const frete = Number(o.frete);
     const total = Number(o.total);
     const catalog = catalogProductBrl(o);
-    const flatMarkup = Number(o.intlFlatSurcharge ?? storeConfigCache?.internationalSurcharge) || 0;
 
     if (Number.isFinite(bruto) && bruto > 0) {
-      let note = '';
-      if (catalog != null && catalog > 0) {
-        const diff = Math.round((bruto - catalog) * 100) / 100;
-        if (diff > 0.009 && flatMarkup > 0 && Math.abs(diff - flatMarkup) < 0.05) {
-          note = ` <small>(${formatBRL(catalog)} + markup ${formatBRL(flatMarkup)})</small>`;
-        } else if (diff > 0.009) {
-          note = ` <small>(cadastro ${formatBRL(catalog)} + ${formatBRL(diff)})</small>`;
-        } else {
-          note = ` <small>(cadastro ${formatBRL(catalog)})</small>`;
-        }
-      }
-      rows.push(detailRow('Produto (tabela BRL)', `<strong>${formatBRL(bruto)}</strong>${note}`));
+      rows.push(detailRow(
+        'Produto (tabela BRL)',
+        `<strong>${formatBRL(bruto)}</strong>${formatProductTableNote(o, bruto, catalog)}`
+      ));
     }
     if (o.couponCode) {
       let cupom = escHtml(o.couponCode);
@@ -968,24 +1024,14 @@
     }
     if (Number.isFinite(frete) && frete >= 0) {
       const brk = freteMarkupBreakdown(o);
-      if (brk && brk.markup > 0.009) {
-        rows.push(detailRow(
-          'Frete (BRL)',
-          `<strong>${formatBRL(frete)}</strong> <small>(cotação ${formatBRL(brk.base)} + markup ${formatBRL(brk.markup)})</small>`
-        ));
-      } else {
-        rows.push(detailRow('Frete (BRL)', `<strong>${formatBRL(frete)}</strong>`));
-      }
+      rows.push(detailRow(
+        'Frete (BRL)',
+        `<strong>${formatBRL(frete)}</strong>${formatFreteMarkupNote(brk)}`
+      ));
     }
     const sfLabel = superfreteServiceLabel(o.superfreteService);
     const escolhido = sfLabel || shippingKindLabel(o);
     rows.push(detailRow('Frete escolhido', escHtml(escolhido)));
-    if (o.shippingMethodId) {
-      rows.push(detailRow('ID método', `<code>${escHtml(o.shippingMethodId)}</code>`));
-    }
-    if (o.shipmentType) {
-      rows.push(detailRow('Tipo remessa', escHtml(o.shipmentType)));
-    }
     if (o.paypalFee != null && Number(o.paypalFee) > 0) {
       rows.push(detailRow('Taxa PayPal', `− ${formatBRL(o.paypalFee)}`));
     }
@@ -998,11 +1044,12 @@
     if (o.paidAt) rows.push(detailRow('Pago em', formatDate(o.paidAt)));
     if (o.createdAt) rows.push(detailRow('Criado em', formatDate(o.createdAt)));
 
-    return `<section class="pedidos-detail-section pedidos-detail-section--audit">
-      <h3 class="pedidos-detail-heading">Auditoria do pedido</h3>
-      <p class="pedidos-detail-muted">O que a cliente fez no checkout: idioma, moeda cobrada, itens e pagamento.</p>
-      <div class="pedidos-detail-grid">${rows.join('')}</div>
-    </section>`;
+    const acerto = orderFreteEditSection(o);
+    return foldSection(
+      'Auditoria do pedido',
+      `<div class="pedidos-detail-grid">${rows.join('')}</div>${acerto || ''}`,
+      { className: 'pedidos-fold--audit' }
+    );
   }
 
   function freteDetailRows(o) {
@@ -1142,26 +1189,33 @@
         ${detailRow('Data', formatDateCell(o.createdAt))}
         ${detailRow('Cliente', `${escHtml(o.nome)}<br><small>${escHtml(o.email || '—')}</small><br><small>${escHtml(o.telefone || '—')}</small>`)}
         ${o.cpf ? detailRow('CPF', escHtml(o.cpf)) : ''}
-        ${orderAddressRows(o)}
         ${detailRow('Smartwatch', watch)}
+        ${orderItemsSummaryHtml(o)}
+        ${orderAddressRows(o)}
         ${detailRow('País', escHtml(o.pais || '—'))}
         ${detailRow('Idioma do site', escHtml(checkoutLocaleLabel(o.checkoutLocale)))}
         ${detailRow('Pagamento', escHtml(paymentProviderLabel(o)))}
         ${detailRow('Comissionado', commissioner)}
-        ${hasForeignCharge ? '' : freteDetailRows(o)}
-        ${hasForeignCharge ? chargeBreakdownRows(o) : ''}
+        ${hasForeignCharge ? chargeBreakdownRows(o) : freteDetailRows(o)}
       </div>
       ${orderAuditRows(o)}
-      ${orderFreteEditSection(o)}
-      <section class="pedidos-detail-section pedidos-detail-section--entrega">
-        <h3 class="pedidos-detail-heading">Entrega / Rastreio</h3>
-        ${deliveryDetailBlock(o)}
-      </section>
-      ${manualShippingSection(o)}
+      ${foldSection(
+        'Entrega e rastreio',
+        `${deliveryDetailBlock(o)}${manualShippingSection(o)}`,
+        { className: 'pedidos-fold--entrega' }
+      )}
     `;
 
     wireManualShippingForm(body, o);
     wireOrderFreteForm(body, o);
+    body.querySelectorAll('.pedidos-info-tip').forEach((btn) => {
+      btn.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const msg = btn.getAttribute('title') || '';
+        if (msg) window.alert(msg);
+      });
+    });
 
     body.querySelector('.btn-save-shipping')?.addEventListener('click', async () => {
       const trackingInput = body.querySelector('.pedidos-shipping-tracking');
