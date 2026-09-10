@@ -14182,6 +14182,25 @@ async function handleSession(request, env, origin) {
   return json({ ok: true, username: env.ADMIN_USERNAME || 'admin' }, 200, origin);
 }
 
+function normalizeClickLang(raw) {
+  const s = String(raw || '').trim().toLowerCase().replace('_', '-');
+  if (!s || s === '—') return '';
+  if (s.startsWith('pt')) return 'pt';
+  if (s.startsWith('en')) return 'en';
+  if (s.startsWith('it')) return 'it';
+  if (s.startsWith('es')) return 'es';
+  if (s.startsWith('de')) return 'de';
+  if (s.startsWith('pl')) return 'pl';
+  if (s.startsWith('sl')) return 'sl';
+  if (s.startsWith('fr')) return 'fr';
+  if (s.startsWith('nl')) return 'nl';
+  if (s.startsWith('sv')) return 'sv';
+  if (s.startsWith('no') || s.startsWith('nb') || s.startsWith('nn')) return 'no';
+  if (s.startsWith('fi')) return 'fi';
+  if (s.startsWith('is')) return 'is';
+  return s.split('-')[0] || s;
+}
+
 async function aggregateClicksGeoReport(env) {
   const db = await ensureClicksD1(env);
   if (!db) return { error: 'D1 indisponível' };

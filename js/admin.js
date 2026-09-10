@@ -2944,6 +2944,79 @@ ${worksheets}
     }
   }
 
+  function showClicksCacheHint() {
+    const checkedEl = document.getElementById('clicks-checked-at');
+    if (!checkedEl) return;
+    const when = clicksMetaCache?.checkedAt
+      ? formatFeedbackDate(clicksMetaCache.checkedAt)
+      : '—';
+    checkedEl.textContent = `Última atualização: ${when} · cache local (clique Atualizar para buscar na API)`;
+    checkedEl.hidden = false;
+  }
+
+  function showClicksEmptyState() {
+    const root = document.getElementById('clicks-tree-root');
+    if (root) {
+      root.innerHTML = '<p class="admin-meta">Nenhum clique em cache. Clique <strong>Atualizar</strong> para carregar o histórico.</p>';
+    }
+    const stats = document.getElementById('clicks-stats');
+    if (stats) stats.innerHTML = '';
+    const charts = document.getElementById('clicks-when-charts');
+    if (charts) charts.innerHTML = '';
+    const noise = document.getElementById('clicks-noise-charts');
+    if (noise) noise.innerHTML = '';
+    const checkedEl = document.getElementById('clicks-checked-at');
+    if (checkedEl) checkedEl.hidden = true;
+  }
+
+  function filterClicksLocally(clicks, q, destino) {
+    let out = clicks || [];
+    if (destino === 'pageview') out = out.filter((c) => c.tipo === 'pageview');
+    else if (destino) out = out.filter((c) => c.destino === destino);
+    if (q) {
+      const ql = q.toLowerCase();
+      out = out.filter((c) => {
+        const hay = [c.destino, c.rotulo, c.pagina, c.visitante_id, c.secao, c.elemento, c.tipo]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return hay.includes(ql);
+      });
+    }
+    return out;
+  }
+
+  function reapplyClicksLocalFilters(openPaths) {
+    if (!clicksCache.length || !clicksMetaCache) {
+      showClicksEmptyState();
+      return;
+    }
+    wireClicksWhenFilters();
+    const q = document.getElementById('clicks-search')?.value?.trim() || '';
+    const destino = document.getElementById('clicks-filter-destino')?.value || '';
+    const withNav = !!document.getElementById('clicks-filter-nav')?.checked;
+    const navEl = document.getElementById('clicks-filter-nav');
+    if (navEl) {
+      navEl.disabled = !destino;
+      navEl.closest('label')?.classList.toggle('is-disabled', !destino);
+    }
+    renderClicksStats(clicksMetaCache);
+    renderClicksWhenCharts(clicksWhenCache);
+    renderClicksNoiseStats(clicksWhenCache);
+    const display = filterClicksLocally(clicksCache, q, destino);
+    renderClicksTree(
+      display,
+      clicksMetaCache.checkedAt,
+      clicksMetaCache.total,
+      openPaths || captureClicksTreeOpenPaths()
+    );
+    showClicksCacheHint();
+    if (destino && withNav) {
+      setClicksLoadStatus('Navegação completa por visita exige Atualizar (busca na API).', 'warning');
+      window.setTimeout(() => setClicksLoadStatus(''), 4000);
+    }
+  }
+
   const CLICK_DESTINO_LABELS = {
     pageview: 'Entrada',
     entrada_home: 'Entrada — Home',

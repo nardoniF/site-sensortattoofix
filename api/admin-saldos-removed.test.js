@@ -67,3 +67,27 @@ test('documentação registra remoção da aba Saldos', () => {
   const op = fs.readFileSync(path.join(root, 'docs/interno/OPERACAO.md'), 'utf8');
   assert.match(op, /Saldos foi removida/);
 });
+
+test('admin.js mantém helpers de Cliques (não apagados com Saldos)', () => {
+  const js = fs.readFileSync(path.join(root, 'js/admin.js'), 'utf8');
+  for (const fn of [
+    'let clicksCache = []',
+    'let clicksLoading = false',
+    'let clicksLoadPromise = null',
+    'function renderIntegrationsTable',
+    'function showClicksEmptyState',
+    'function showClicksCacheHint',
+    'function filterClicksLocally',
+    'function reapplyClicksLocalFilters',
+    'function startClicksBackgroundLoad',
+    'async function loadClicks'
+  ]) {
+    assert.equal(js.includes(fn), true, fn);
+  }
+});
+
+test('worker mantém normalizeClickLang para geo-report de cliques', () => {
+  const worker = fs.readFileSync(path.join(root, 'api/worker.js'), 'utf8');
+  assert.match(worker, /function normalizeClickLang\s*\(/);
+  assert.match(worker, /normalizeClickLang\(r\.idioma\)/);
+});
