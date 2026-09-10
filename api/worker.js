@@ -1336,7 +1336,13 @@ function supplementKitFromSite(kvProduct, siteProduct) {
   if (siteProduct?.image && isLegacyBrokenKitImage(kvProduct?.image)) {
     merged.image = siteProduct.image;
   }
-  ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt'].forEach((field) => {
+  const TEXT_I18N_FIELDS = [
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi'
+  ];
+  TEXT_I18N_FIELDS.forEach((field) => {
     if (!merged[field] && siteProduct?.[field]) merged[field] = siteProduct[field];
   });
   return merged;
@@ -1357,14 +1363,20 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'packaging',
     'aggregated',
     'requiresSmartwatch',
-    'nameEn',
-    'nameIt',
-    'descriptionEn',
-    'descriptionIt',
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi',
     'markets',
     'images',
     'priceUsd',
-    'priceEur'
+    'priceEur',
+    'priceSek',
+    'priceNok',
+    'pricePln',
+    'priceGbp',
+    'intlMarkupPercent',
+    'intlBaseBrl'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -2189,8 +2201,26 @@ function publicProductFields(p, config) {
   };
   if (p.nameEn) row.nameEn = p.nameEn;
   if (p.nameIt) row.nameIt = p.nameIt;
+  if (p.nameDe) row.nameDe = p.nameDe;
+  if (p.nameEs) row.nameEs = p.nameEs;
+  if (p.namePl) row.namePl = p.namePl;
+  if (p.nameSl) row.nameSl = p.nameSl;
+  if (p.nameFr) row.nameFr = p.nameFr;
+  if (p.nameNl) row.nameNl = p.nameNl;
+  if (p.nameSv) row.nameSv = p.nameSv;
+  if (p.nameNo) row.nameNo = p.nameNo;
+  if (p.nameFi) row.nameFi = p.nameFi;
   if (p.descriptionEn) row.descriptionEn = p.descriptionEn;
   if (p.descriptionIt) row.descriptionIt = p.descriptionIt;
+  if (p.descriptionDe) row.descriptionDe = p.descriptionDe;
+  if (p.descriptionEs) row.descriptionEs = p.descriptionEs;
+  if (p.descriptionPl) row.descriptionPl = p.descriptionPl;
+  if (p.descriptionSl) row.descriptionSl = p.descriptionSl;
+  if (p.descriptionFr) row.descriptionFr = p.descriptionFr;
+  if (p.descriptionNl) row.descriptionNl = p.descriptionNl;
+  if (p.descriptionSv) row.descriptionSv = p.descriptionSv;
+  if (p.descriptionNo) row.descriptionNo = p.descriptionNo;
+  if (p.descriptionFi) row.descriptionFi = p.descriptionFi;
   if (p.packaging) row.packaging = p.packaging;
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;

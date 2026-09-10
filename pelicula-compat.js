@@ -128,70 +128,64 @@ window.STF_PELICULA = (function () {
     }
   };
 
-  const PRODUCT_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
-
-  function pageLang() {
-    if (window.STF_PAGE_LANG?.get) {
-      const l = String(window.STF_PAGE_LANG.get() || '').toLowerCase();
-      if (PRODUCT_LANGS.includes(l) || l === 'pt') return l;
-    }
-    if (window.STF_I18N?.getLang) {
-      const l = String(window.STF_I18N.getLang() || '').toLowerCase();
-      if (PRODUCT_LANGS.includes(l) || l === 'pt') return l;
-    }
-    const path = typeof location !== 'undefined' ? location.pathname : '';
-    const m = path.match(/\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/i);
-    if (m) return m[1].toLowerCase();
-    if (window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname || '')) {
-      return 'en';
-    }
-    return 'pt';
+  function isIt() {
+    return !!(window.STF_I18N?.isIt?.() || /\/it\//i.test(location.pathname));
   }
 
-  function isIt() { return pageLang() === 'it'; }
-  function isDe() { return pageLang() === 'de'; }
-  function isEs() { return pageLang() === 'es'; }
-  function isPl() { return pageLang() === 'pl'; }
-  function isSl() { return pageLang() === 'sl'; }
-  function isFr() { return pageLang() === 'fr'; }
-  function isNl() { return pageLang() === 'nl'; }
-  function isSv() { return pageLang() === 'sv'; }
-  function isNo() { return pageLang() === 'no'; }
-  function isFi() { return pageLang() === 'fi'; }
+  function isDe() {
+    return !!(window.STF_I18N?.isDe?.() || /\/de\//i.test(location.pathname));
+  }
+
+  function isEs() {
+    return !!(window.STF_I18N?.isEs?.() || /\/es\//i.test(location.pathname));
+  }
+
+  function isPl() {
+    return !!(window.STF_I18N?.isPl?.() || /\/pl\//i.test(location.pathname));
+  }
+
+  function isSl() {
+    return !!(window.STF_I18N?.isSl?.() || /\/sl\//i.test(location.pathname));
+  }
 
   function isEn() {
-    return pageLang() === 'en';
+    if (isIt() || isDe() || isEs() || isPl() || isSl()) return false;
+    return !!(
+      window.STF_I18N?.isEn?.() ||
+      window.STF_SITE?.isIntlHost?.() ||
+      /\.sensortattoofix\.com$/i.test(location.hostname) ||
+      /\/en\//i.test(location.pathname)
+    );
   }
 
   function isLocalized() {
-    return pageLang() !== 'pt' || !!(window.STF_I18N?.isLocalized?.());
+    return isEn() || isIt() || isDe() || isEs() || isPl() || isSl() || !!(window.STF_I18N?.isLocalized?.());
   }
 
-  /** Qualquer página intl (.com / idioma ≠ PT): usa campos nativos ou fallback nameEn. */
+  /** EN + DE/ES/PL/SL + .com: catálogo localizado (nativo ou fallback nameEn). */
   function usesEnProductCopy() {
-    const lang = pageLang();
-    return lang !== 'pt' && lang !== 'it';
-  }
-
-  function localizedField(product, kind) {
-    if (!product) return '';
-    const lang = pageLang();
-    if (lang === 'pt') return '';
-    const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
-    const key = kind + suffix; // nameNl / descriptionFr
-    const direct = product[key];
-    if (direct != null && String(direct).trim()) return String(direct).trim();
-    const en = product[kind + 'En'];
-    if (en != null && String(en).trim()) return String(en).trim();
-    return '';
+    if (isIt()) return false;
+    return isEn() || isDe() || isEs() || isPl() || isSl();
   }
 
   function localizedNameField(product) {
-    return localizedField(product, 'name');
+    if (isIt()) return product.nameIt || product.nameEn || '';
+    if (isDe()) return product.nameDe || product.nameEn || '';
+    if (isEs()) return product.nameEs || product.nameEn || '';
+    if (isPl()) return product.namePl || product.nameEn || '';
+    if (isSl()) return product.nameSl || product.nameEn || '';
+    if (usesEnProductCopy()) return product.nameEn || '';
+    return '';
   }
 
   function localizedDescriptionField(product) {
-    return localizedField(product, 'description');
+    if (isIt()) return product.descriptionIt || product.descriptionEn || '';
+    if (isDe()) return product.descriptionDe || product.descriptionEn || '';
+    if (isEs()) return product.descriptionEs || product.descriptionEn || '';
+    if (isPl()) return product.descriptionPl || product.descriptionEn || '';
+    if (isSl()) return product.descriptionSl || product.descriptionEn || '';
+    if (usesEnProductCopy()) return product.descriptionEn || '';
+    return '';
   }
 
   function isKitProduct(product) {
