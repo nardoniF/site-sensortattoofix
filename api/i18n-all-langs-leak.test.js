@@ -83,3 +83,22 @@ test('putConfig limita FAQ i18n no waitUntil e prioriza IDs alterados', () => {
   assert.match(src, /skipReviews:\s*true/);
   assert.match(src, /faqLimit:\s*6/);
 });
+
+test('looksLikePortugueseLeak rejeita EN ainda em PT', async () => {
+  const mod = await import('./site-l10n.js');
+  assert.equal(
+    mod.looksLikePortugueseLeak(
+      'Olá. O adesivo dura quanto tempo aplicado no relógio?',
+      'en'
+    ),
+    true
+  );
+  assert.equal(
+    mod.looksLikePortugueseLeak(
+      'Hi. How long does the sticker last on the watch?',
+      'en'
+    ),
+    false
+  );
+  assert.equal(mod.looksLikePortugueseLeak('Olá tudo bem', 'pt'), false);
+});

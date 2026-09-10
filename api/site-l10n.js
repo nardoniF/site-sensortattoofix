@@ -74,7 +74,18 @@ function systemPrompt(targetLang, kind) {
   return `You are a native ${meta.name} copywriter for Sensor Tattoo Fix (${meta.region}).
 ${kindHint}
 Return ONLY a JSON object with the same keys as the input. No markdown, no commentary.
-Do not invent facts. Do not drop links or @handles.`;
+Do not invent facts. Do not drop links or @handles.
+CRITICAL: write every string value fully in ${meta.name}. Never leave Portuguese (olá, você, então, relógio, adesivo, preciso, quanto tempo) in the output when the target is not Portuguese.`;
+}
+
+/** Detecta se o modelo devolveu PT em vez do idioma alvo. */
+export function looksLikePortugueseLeak(text, targetLang) {
+  if (normalizeSiteLang(targetLang) === 'pt') return false;
+  const s = String(text || '');
+  if (!s.trim()) return false;
+  // Diacríticos típicos do PT que quase não existem em EN e são raros em outros alvos com o mesmo padrão.
+  if (normalizeSiteLang(targetLang) === 'en' && /[áàâãéêíóôõúçÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(s)) return true;
+  return /\b(olá|vocês|você|então|adesivo|relógio|preciso ficar|dura quanto|obrigad[oa]|show de bola)\b/i.test(s);
 }
 
 export function extractAiText(out) {
@@ -122,6 +133,9 @@ export async function localizeFields(env, { sourceLang, fields, targetLang, kind
       const v = parsed[k];
       out[k] = v != null && String(v).trim() ? String(v) : payload[k];
     });
+    // Rejeita “tradução” que ainda está em português.
+    const joined = keys.map((k) => out[k]).join('\n');
+    if (looksLikePortugueseLeak(joined, tgt)) return null;
     return out;
   };
   try {
