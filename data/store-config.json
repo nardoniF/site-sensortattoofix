@@ -82,8 +82,8 @@
       "descriptionEs": "Diseñada para sensores ópticos de smartband en piel tatuada.",
       "descriptionPl": "Zaprojektowana dla czujników optycznych smartband na tatuowanej skórze.",
       "price": 62.9,
-      "priceUsd": 12.99,
-      "priceEur": 11.99,
+      "priceUsd": 20.25,
+      "priceEur": 17.42,
       "image": "/images/smartband/lens-en/01-embalagem.jpg",
       "images": [
         "/images/smartband/lens-en/01-embalagem.jpg",
@@ -100,7 +100,13 @@
       ],
       "aggregated": false,
       "nameSl": "Leča SensorTattooFix za pametno zapestnico",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      "intlMarkupPercent": 65,
+      "intlBaseBrl": 103.79,
+      "priceSek": 194,
+      "priceNok": 188,
+      "pricePln": 75.09,
+      "priceGbp": 14.96
     },
     {
       "id": "optical-lens-intl",
@@ -117,9 +123,9 @@
       "descriptionDe": "Entwickelt für optische Sensoren von Smartwatches auf tätowierter Haut.",
       "descriptionEs": "Diseñada para sensores ópticos de smartwatch en piel tatuada.",
       "descriptionPl": "Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.",
-      "price": 62.9,
-      "priceUsd": 12.99,
-      "priceEur": 11.99,
+      "price": 72.9,
+      "priceUsd": 23.47,
+      "priceEur": 20.19,
       "image": "/images/lens-gallery/01-optical-correction-lens.png",
       "images": [
         "/images/lens-gallery/01-optical-correction-lens.png",
@@ -140,7 +146,13 @@
       ],
       "aggregated": false,
       "nameSl": "Optična leča SensorTattooFix",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      "intlMarkupPercent": 65,
+      "intlBaseBrl": 120.29,
+      "priceSek": 225,
+      "priceNok": 218,
+      "pricePln": 87.03,
+      "priceGbp": 17.34
     },
     {
       "id": "pelicula-amazfit-bip-2",
@@ -6071,5 +6083,100 @@
       "sourceEn": "Shopee · 5★",
       "sourceIt": "Shopee · 5★"
     }
-  ]
+  ],
+  "intlCurrencies": [
+    {
+      "code": "USD",
+      "label": "Dólar (USD)",
+      "langs": [
+        "en"
+      ],
+      "countries": [
+        "US",
+        "CA",
+        "AU",
+        "NZ",
+        "SG",
+        "HK"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "GBP",
+      "label": "Libra (GBP)",
+      "langs": [],
+      "countries": [
+        "GB"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "EUR",
+      "label": "Euro (EUR)",
+      "langs": [
+        "it",
+        "de",
+        "es",
+        "sl",
+        "fr",
+        "nl",
+        "fi"
+      ],
+      "countries": [
+        "IT",
+        "DE",
+        "ES",
+        "SI",
+        "FR",
+        "NL",
+        "FI",
+        "AT",
+        "BE",
+        "PT",
+        "IE"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "PLN",
+      "label": "Złoty (PLN)",
+      "langs": [
+        "pl"
+      ],
+      "countries": [
+        "PL"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "SEK",
+      "label": "Coroa sueca (SEK)",
+      "langs": [
+        "sv"
+      ],
+      "countries": [
+        "SE"
+      ],
+      "decimals": 0,
+      "active": true
+    },
+    {
+      "code": "NOK",
+      "label": "Coroa norueguesa (NOK)",
+      "langs": [
+        "no"
+      ],
+      "countries": [
+        "NO"
+      ],
+      "decimals": 0,
+      "active": true
+    }
+  ],
+  "intlCurrenciesAutoPpp": true,
+  "intlCurrenciesAutoFx": true
 }
