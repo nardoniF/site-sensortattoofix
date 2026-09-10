@@ -5,7 +5,7 @@
 
 import { generateCommissionerStoryBanners } from './commissioner-banners.js';
 import { handleForumRoute } from './forum.js';
-import { refreshHomeContentI18n, mergePreservedI18n, homeContentI18nStatus } from './site-l10n.js';
+import { refreshHomeContentI18n, refreshProductsTextI18n, mergePreservedI18n, homeContentI18nStatus } from './site-l10n.js';
 import {
   bumpKvWriteCounter,
   buildKvDailyWriteBudget,
@@ -93,6 +93,20 @@ import {
   saleMoneyParts,
   storeOrderListedGross
 } from './sales-money.js';
+import {
+  DEFAULT_INTL_CURRENCIES,
+  DEFAULT_INTL_MARKUP_PERCENT,
+  normalizeIntlCurrencies,
+  activeIntlCurrencies,
+  applyMarkupFxToIntlProducts,
+  syncOpticalIntlBrlFromBrKit,
+  currencyForLocaleFromRegistry,
+  productListPriceFromRegistry,
+  intlPriceField,
+  intlPriceFieldNames,
+  intlBaseBrl,
+  normalizeMarkupPercent
+} from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -105,7 +119,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '3299494b66c054c868ae927cc36d63658d342a46';
+const SITE_CATALOG_COMMIT = '9f9eb601070c5fcc96dc0da8eb08ed891d24ac54';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -148,6 +162,24 @@ const DEFAULT_CONFIG = {
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      nameDe: 'Sensor Tattoo Fix Lens',
+      nameEs: 'Sensor Tattoo Fix Lens',
+      namePl: 'Sensor Tattoo Fix Lens',
+      nameSl: 'Sensor Tattoo Fix Lens',
+      nameFr: 'Lentille Sensor Tattoo Fix',
+      nameNl: 'Sensor Tattoo Fix Lens',
+      nameSv: 'Sensor Tattoo Fix-lins',
+      nameNo: 'Sensor Tattoo Fix-linse',
+      nameFi: 'Sensor Tattoo Fix -linssi',
+      descriptionDe: 'Optische Linse für Smartwatches auf tätowierter Haut',
+      descriptionEs: 'Lente óptica para smartwatches en piel tatuada',
+      descriptionPl: 'Soczewka optyczna do smartwatchy na tatuowanej skórze',
+      descriptionSl: 'Optična leča za pametne ure na tetovirani koži',
+      descriptionFr: 'Lentille optique pour smartwatch sur peau tatouée',
+      descriptionNl: 'Optische lens voor smartwatches op getatoeëerde huid',
+      descriptionSv: 'Optisk lins för smartklockor på tatuerad hud',
+      descriptionNo: 'Optisk linse for smartklokker på tatovert hud',
+      descriptionFi: 'Optinen linssi älykelloille tatuoidulle iholle',
       price: 62.9,
       image: 'https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg',
       active: true,
@@ -166,6 +198,24 @@ const DEFAULT_CONFIG = {
       description: 'Lente ótica para smartband em pele tatuada — kit completo',
       descriptionEn: 'Optical lens for smartbands on tattooed skin — full kit',
       descriptionIt: 'Lente ottica per smartband su pelle tatuata — kit completo',
+      nameDe: 'Kit Smartband Tattoo Friendly',
+      nameEs: 'Kit Smartband Tattoo Friendly',
+      namePl: 'Kit Smartband Tattoo Friendly',
+      nameSl: 'Kit Smartband Tattoo Friendly',
+      nameFr: 'Kit Smartband Tattoo Friendly',
+      nameNl: 'Kit Smartband Tattoo Friendly',
+      nameSv: 'Kit Smartband Tattoo Friendly',
+      nameNo: 'Kit Smartband Tattoo Friendly',
+      nameFi: 'Kit Smartband Tattoo Friendly',
+      descriptionDe: 'Optische Linse für Smartbands auf tätowierter Haut — komplettes Kit',
+      descriptionEs: 'Lente óptica para smartbands en piel tatuada — kit completo',
+      descriptionPl: 'Soczewka optyczna do opasek na tatuowanej skórze — pełny zestaw',
+      descriptionSl: 'Optična leča za pametne zapestnice na tetovirani koži — komplet',
+      descriptionFr: 'Lentille optique pour smartband sur peau tatouée — kit complet',
+      descriptionNl: 'Optische lens voor smartbands op getatoeëerde huid — complete kit',
+      descriptionSv: 'Optisk lins för smartbands på tatuerad hud — komplett kit',
+      descriptionNo: 'Optisk linse for smartbånd på tatovert hud — komplett sett',
+      descriptionFi: 'Optinen linssi älyrannekkeille tatuoidulle iholle — täysi paketti',
       price: 62.9,
       image: '/images/smartband/kit-br/01-embalagem.jpg',
       images: [
@@ -191,9 +241,33 @@ const DEFAULT_CONFIG = {
       description: 'Lente de correção óptica para smartband em pele tatuada.',
       descriptionEn: 'Designed for smartband optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartband su pelle tatuata.',
+      nameDe: 'SensorTattooFix Smartband-Linse',
+      nameEs: 'Lente Smartband SensorTattooFix',
+      namePl: 'Soczewka SensorTattooFix do opasek',
+      nameSl: 'Leča SensorTattooFix za pametno zapestnico',
+      nameFr: 'Lentille Smartband SensorTattooFix',
+      nameNl: 'SensorTattooFix Smartband-lens',
+      nameSv: 'SensorTattooFix smartband-lins',
+      nameNo: 'SensorTattooFix smartband-linse',
+      nameFi: 'SensorTattooFix-älyrannekkeen linssi',
+      descriptionDe: 'Entwickelt für optische Sensoren von Smartbands auf tätowierter Haut.',
+      descriptionEs: 'Diseñada para sensores ópticos de smartband en piel tatuada.',
+      descriptionPl: 'Zaprojektowana dla czujników optycznych opasek na tatuowanej skórze.',
+      descriptionSl: 'Zasnovana za optične senzorje pametnih zapestnic na tetovirani koži.',
+      descriptionFr: 'Conçue pour les capteurs optiques de smartband sur peau tatouée.',
+      descriptionNl: 'Ontworpen voor optische sensoren van smartbands op getatoeëerde huid.',
+      descriptionSv: 'Utformad för smartbands optiska sensorer på tatuerad hud.',
+      descriptionNo: 'Designet for smartbånds optiske sensorer på tatovert hud.',
+      descriptionFi: 'Suunniteltu älyrannekkeiden optisille antureille tatuoidulle iholle.',
       price: 62.9,
-      priceUsd: 12.99,
-      priceEur: 11.99,
+      intlMarkupPercent: 65,
+      intlBaseBrl: 103.79,
+      priceUsd: 20.25,
+      priceEur: 17.42,
+      priceSek: 194,
+      priceNok: 188,
+      pricePln: 75.09,
+      priceGbp: 14.96,
       image: '/images/smartband/lens-en/01-embalagem.jpg',
       images: [
         '/images/smartband/lens-en/01-embalagem.jpg',
@@ -217,7 +291,33 @@ const DEFAULT_CONFIG = {
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
-      price: 62.9,
+      nameDe: 'SensorTattooFix Optische Linse',
+      nameEs: 'Lente óptica SensorTattooFix',
+      namePl: 'Soczewka optyczna SensorTattooFix',
+      nameSl: 'Optična leča SensorTattooFix',
+      nameFr: 'Lentille optique SensorTattooFix',
+      nameNl: 'SensorTattooFix Optische Lens',
+      nameSv: 'SensorTattooFix optisk lins',
+      nameNo: 'SensorTattooFix optisk linse',
+      nameFi: 'SensorTattooFix-optinen linssi',
+      descriptionDe: 'Entwickelt für optische Sensoren von Smartwatches auf tätowierter Haut.',
+      descriptionEs: 'Diseñada para sensores ópticos de smartwatch en piel tatuada.',
+      descriptionPl: 'Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.',
+      descriptionSl: 'Zasnovana za optične senzorje pametnih ur na tetovirani koži.',
+      descriptionFr: 'Conçue pour les capteurs optiques de smartwatch sur peau tatouée.',
+      descriptionNl: 'Ontworpen voor optische sensoren van smartwatches op getatoeëerde huid.',
+      descriptionSv: 'Utformad för smartklockors optiska sensorer på tatuerad hud.',
+      descriptionNo: 'Designet for smartklokkers optiske sensorer på tatovert hud.',
+      descriptionFi: 'Suunniteltu älykellojen optisille antureille tatuoidulle iholle.',
+      price: 72.9,
+      intlMarkupPercent: 65,
+      intlBaseBrl: 120.29,
+      priceUsd: 23.47,
+      priceEur: 20.19,
+      priceSek: 225,
+      priceNok: 218,
+      pricePln: 87.03,
+      priceGbp: 17.34,
       image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
         '/images/lens-gallery/01-optical-correction-lens.png',
@@ -234,6 +334,12 @@ const DEFAULT_CONFIG = {
       markets: ['INT']
     }
   ],
+  /** .com currencies (langs/countries). Product foreign prices = (R$ × markup%) × FX. */
+  intlCurrencies: DEFAULT_INTL_CURRENCIES,
+  /** When true, save + daily cron recompute INT foreign prices from R$ + markup + FX. */
+  intlCurrenciesAutoFx: true,
+  /** @deprecated legacy alias — prefer intlCurrenciesAutoFx */
+  intlCurrenciesAutoPpp: true,
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: {
     originCep: '02537190',
@@ -1302,7 +1408,13 @@ function supplementKitFromSite(kvProduct, siteProduct) {
   if (siteProduct?.image && isLegacyBrokenKitImage(kvProduct?.image)) {
     merged.image = siteProduct.image;
   }
-  ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt'].forEach((field) => {
+  const TEXT_I18N_FIELDS = [
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi'
+  ];
+  TEXT_I18N_FIELDS.forEach((field) => {
     if (!merged[field] && siteProduct?.[field]) merged[field] = siteProduct[field];
   });
   return merged;
@@ -1323,14 +1435,20 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'packaging',
     'aggregated',
     'requiresSmartwatch',
-    'nameEn',
-    'nameIt',
-    'descriptionEn',
-    'descriptionIt',
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi',
     'markets',
     'images',
     'priceUsd',
-    'priceEur'
+    'priceEur',
+    'priceSek',
+    'priceNok',
+    'pricePln',
+    'priceGbp',
+    'intlMarkupPercent',
+    'intlBaseBrl'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -1585,6 +1703,17 @@ function withConfigDefaults(stored) {
     mlFlexShippingCost: Number(stored.mlFlexShippingCost) > 0
       ? Math.round(Number(stored.mlFlexShippingCost) * 100) / 100
       : base.mlFlexShippingCost,
+    intlCurrencies: normalizeIntlCurrencies(stored.intlCurrencies),
+    intlCurrenciesAutoFx: stored.intlCurrenciesAutoFx != null
+      ? stored.intlCurrenciesAutoFx !== false
+      : (stored.intlCurrenciesAutoPpp != null
+        ? stored.intlCurrenciesAutoPpp !== false
+        : base.intlCurrenciesAutoFx !== false),
+    intlCurrenciesAutoPpp: stored.intlCurrenciesAutoFx != null
+      ? stored.intlCurrenciesAutoFx !== false
+      : (stored.intlCurrenciesAutoPpp != null
+        ? stored.intlCurrenciesAutoPpp !== false
+        : base.intlCurrenciesAutoPpp !== false),
     ...mergeKitCostConfig(stored, base)
   };
 }
@@ -2144,8 +2273,26 @@ function publicProductFields(p, config) {
   };
   if (p.nameEn) row.nameEn = p.nameEn;
   if (p.nameIt) row.nameIt = p.nameIt;
+  if (p.nameDe) row.nameDe = p.nameDe;
+  if (p.nameEs) row.nameEs = p.nameEs;
+  if (p.namePl) row.namePl = p.namePl;
+  if (p.nameSl) row.nameSl = p.nameSl;
+  if (p.nameFr) row.nameFr = p.nameFr;
+  if (p.nameNl) row.nameNl = p.nameNl;
+  if (p.nameSv) row.nameSv = p.nameSv;
+  if (p.nameNo) row.nameNo = p.nameNo;
+  if (p.nameFi) row.nameFi = p.nameFi;
   if (p.descriptionEn) row.descriptionEn = p.descriptionEn;
   if (p.descriptionIt) row.descriptionIt = p.descriptionIt;
+  if (p.descriptionDe) row.descriptionDe = p.descriptionDe;
+  if (p.descriptionEs) row.descriptionEs = p.descriptionEs;
+  if (p.descriptionPl) row.descriptionPl = p.descriptionPl;
+  if (p.descriptionSl) row.descriptionSl = p.descriptionSl;
+  if (p.descriptionFr) row.descriptionFr = p.descriptionFr;
+  if (p.descriptionNl) row.descriptionNl = p.descriptionNl;
+  if (p.descriptionSv) row.descriptionSv = p.descriptionSv;
+  if (p.descriptionNo) row.descriptionNo = p.descriptionNo;
+  if (p.descriptionFi) row.descriptionFi = p.descriptionFi;
   if (p.packaging) row.packaging = p.packaging;
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
@@ -2156,8 +2303,15 @@ function publicProductFields(p, config) {
   if (p.colorEn) row.colorEn = p.colorEn;
   if (Array.isArray(p.markets) && p.markets.length) row.markets = p.markets;
   if (Array.isArray(p.images) && p.images.length) row.images = p.images;
-  if (p.priceUsd != null) row.priceUsd = Number(p.priceUsd);
-  if (p.priceEur != null) row.priceEur = Number(p.priceEur);
+  intlPriceFieldNames(DEFAULT_INTL_CURRENCIES).forEach((field) => {
+    if (p[field] != null && Number.isFinite(Number(p[field]))) row[field] = Number(p[field]);
+  });
+  if (p.intlMarkupPercent != null && Number.isFinite(Number(p.intlMarkupPercent))) {
+    row.intlMarkupPercent = Number(p.intlMarkupPercent);
+  }
+  if (p.intlBaseBrl != null && Number.isFinite(Number(p.intlBaseBrl))) {
+    row.intlBaseBrl = Number(p.intlBaseBrl);
+  }
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
@@ -2175,9 +2329,27 @@ function publicConfigView(config, env) {
       name: primary.name,
       nameEn: primary.nameEn,
       nameIt: primary.nameIt,
+      nameDe: primary.nameDe,
+      nameEs: primary.nameEs,
+      namePl: primary.namePl,
+      nameSl: primary.nameSl,
+      nameFr: primary.nameFr,
+      nameNl: primary.nameNl,
+      nameSv: primary.nameSv,
+      nameNo: primary.nameNo,
+      nameFi: primary.nameFi,
       description: primary.description,
       descriptionEn: primary.descriptionEn,
       descriptionIt: primary.descriptionIt,
+      descriptionDe: primary.descriptionDe,
+      descriptionEs: primary.descriptionEs,
+      descriptionPl: primary.descriptionPl,
+      descriptionSl: primary.descriptionSl,
+      descriptionFr: primary.descriptionFr,
+      descriptionNl: primary.descriptionNl,
+      descriptionSv: primary.descriptionSv,
+      descriptionNo: primary.descriptionNo,
+      descriptionFi: primary.descriptionFi,
       price: primary.price,
       image: primary.image
     } : config.product,
@@ -2227,6 +2399,9 @@ function publicConfigView(config, env) {
     integrations: {
       addressAutocomplete: true
     },
+    intlCurrencies: activeIntlCurrencies(config),
+    intlCurrenciesAutoFx: config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false,
+    intlCurrenciesAutoPpp: config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false,
     updatedAt: config.updatedAt || null
   };
 }
@@ -2464,32 +2639,83 @@ function productIntlEur(product) {
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
+function productIntlSek(product) {
+  const v = Number(product?.priceSek);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+function productIntlNok(product) {
+  const v = Number(product?.priceNok);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/** List price for charge currency (markup×FX stored on product — not raw Frankfurter on R$). */
+function productIntlListPrice(product, currency, config) {
+  const fromRegistry = productListPriceFromRegistry(
+    product,
+    currency,
+    config?.intlCurrencies || DEFAULT_INTL_CURRENCIES
+  );
+  if (fromRegistry != null) return fromRegistry;
+  const cur = String(currency || 'USD').toUpperCase();
+  if (cur === 'EUR') return productIntlEur(product);
+  if (cur === 'SEK') return productIntlSek(product);
+  if (cur === 'NOK') return productIntlNok(product);
+  return productIntlUsd(product);
+}
+
 function isIntlMarketProductRow(p) {
   const m = Array.isArray(p?.markets) ? p.markets.map((x) => String(x).toUpperCase()) : [];
   return m.includes('INT') && !m.includes('BR');
 }
 
-async function syncIntlProductPricesFromFx(env) {
+async function fetchFxRatesMap(env, currencyCodes) {
+  const codes = [...new Set((currencyCodes || []).map((c) => String(c || '').toUpperCase()).filter((c) => c && c !== 'BRL'))];
+  const out = {};
+  await Promise.all(codes.map(async (code) => {
+    try {
+      const row = await fetchFxRate(env, code);
+      if (row?.rate > 0) out[code] = Number(row.rate);
+    } catch { /* skip missing */ }
+  }));
+  return out;
+}
+
+function autoFxEnabled(config) {
+  if (config?.intlCurrenciesAutoFx === false) return false;
+  if (config?.intlCurrenciesAutoPpp === false) return false;
+  return true;
+}
+
+/** Recompute INT foreign list prices: (R$ × markup%) × FX. */
+async function syncIntlProductPricesFromMarkupFx(env, { force = false } = {}) {
   const config = await getConfig(env);
-  const products = config.products || [];
-  if (!products.length) return { updated: 0 };
-  const fxUsd = await fetchFxRate(env, 'USD');
-  const fxEur = await fetchFxRate(env, 'EUR');
-  let updated = 0;
-  products.forEach((p) => {
-    if (!isIntlMarketProductRow(p)) return;
-    const brl = Number(p.price) || 0;
-    if (!brl) return;
-    const usd = Math.round(brl * fxUsd.rate * 100) / 100;
-    const eur = Math.round(brl * fxEur.rate * 100) / 100;
-    if (p.priceUsd !== usd || p.priceEur !== eur) {
-      p.priceUsd = usd;
-      p.priceEur = eur;
-      updated += 1;
-    }
-  });
-  if (updated) await saveConfig(env, { ...config, products });
-  return { updated, usdRate: fxUsd.rate, eurRate: fxEur.rate };
+  if (!force && !autoFxEnabled(config)) return { updated: 0, skipped: true };
+  const currencies = normalizeIntlCurrencies(config.intlCurrencies);
+  const synced = syncOpticalIntlBrlFromBrKit(config.products || []);
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  const { products, updated } = applyMarkupFxToIntlProducts(synced.products, currencies, fxRates);
+  const changed = updated || synced.synced;
+  if (changed) {
+    await saveConfig(env, {
+      ...config,
+      products,
+      intlCurrencies: currencies,
+      intlCurrenciesAutoFx: true,
+      intlCurrenciesAutoPpp: true
+    });
+  }
+  return { updated: updated + (synced.synced ? 1 : 0), currencies: currencies.map((c) => c.code), fxRates };
+}
+
+/** @deprecated name — cron used PPP; now markup + FX */
+async function syncIntlProductPricesFromPpp(env, opts) {
+  return syncIntlProductPricesFromMarkupFx(env, opts);
+}
+
+/** Legacy name — still points at markup+FX sync */
+async function syncIntlProductPricesFromFx(env) {
+  return syncIntlProductPricesFromMarkupFx(env);
 }
 
 async function intlForeignCharge(order, env, config, items, currency) {
@@ -2501,7 +2727,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   let allConfigured = itemList.length > 0;
   for (const item of itemList) {
     const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const price = p ? (cur === 'EUR' ? productIntlEur(p) : productIntlUsd(p)) : null;
+    const price = p ? productIntlListPrice(p, cur, config) : null;
     if (price == null) { allConfigured = false; break; }
     productForeign += price * (Number(item.qty) || 1);
   }
@@ -2519,13 +2745,12 @@ async function intlForeignCharge(order, env, config, items, currency) {
   }
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
-    if (cur === 'EUR') {
-      const minEur = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-      if (amount < minEur) amount = minEur;
-    } else {
-      const minUsd = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
-      if (amount < minUsd) amount = minUsd;
-    }
+    let minAmt;
+    if (cur === 'EUR') minAmt = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') minAmt = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') minAmt = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else minAmt = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+    if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
 }
@@ -2534,8 +2759,15 @@ async function intlUsdCharge(order, env, config, items) {
   return intlForeignCharge(order, env, config, items, 'USD');
 }
 
-function intlChargeCurrencyForLocale(locale) {
-  return String(locale || '').toLowerCase() === 'it' ? 'EUR' : 'USD';
+function intlChargeCurrencyForLocale(locale, config) {
+  const fromRegistry = currencyForLocaleFromRegistry(locale, config?.intlCurrencies || DEFAULT_INTL_CURRENCIES);
+  if (fromRegistry && fromRegistry !== 'BRL') return fromRegistry;
+  const l = String(locale || '').toLowerCase();
+  if (l === 'sv') return 'SEK';
+  if (l === 'no') return 'NOK';
+  if (l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'fi') return 'EUR';
+  return 'USD';
 }
 
 function selfTestUsdAmountForOrder(order, billingType) {
@@ -2550,17 +2782,18 @@ function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (!isSelfTestOrder(order)) return;
   if (intlUsd) {
     const cur = intlChargeCurrencyForLocale(order.checkoutLocale);
-    const amount = cur === 'EUR'
-      ? ((billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe')
-        ? SELF_TEST_STRIPE_EUR_AMOUNT
-        : SELF_TEST_EUR_AMOUNT)
-      : selfTestUsdAmountForOrder(order, billingType);
+    const stripe = billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe';
+    let amount;
+    if (cur === 'EUR') amount = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') amount = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') amount = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else amount = selfTestUsdAmountForOrder(order, billingType);
     order.chargeCurrency = cur;
     order.chargeAmount = amount;
     order.displayCurrency = cur;
     return;
   }
-  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR') {
+  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR' || order.chargeCurrency === 'SEK' || order.chargeCurrency === 'NOK') {
     delete order.chargeCurrency;
     delete order.chargeAmount;
     delete order.chargeFxRate;
@@ -7688,12 +7921,17 @@ const SELF_TEST_BRL_AMOUNT = 0.01;
 const SELF_TEST_USD_AMOUNT = 0.01;
 /** Symbolic EUR charge for Italian PayPal test orders. */
 const SELF_TEST_EUR_AMOUNT = 0.01;
+/** Symbolic SEK/NOK charges for Nordic test orders. */
+const SELF_TEST_SEK_AMOUNT = 1;
+const SELF_TEST_NOK_AMOUNT = 1;
 /**
  * Stripe BR accounts reject USD that converts below R$ 0.50.
  * US$ 0.01 ≈ R$ 0.05 — use US$ 0.10 for Stripe self-test.
  */
 const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_EUR_AMOUNT = 0.10;
+const SELF_TEST_STRIPE_SEK_AMOUNT = 10;
+const SELF_TEST_STRIPE_NOK_AMOUNT = 10;
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -17682,8 +17920,29 @@ async function handlePutConfig(request, env, origin, ctx) {
       : (current.homeFaq || []),
     homeReviews: body.homeReviews != null
       ? mergePreservedI18n(Array.isArray(body.homeReviews) ? body.homeReviews : current.homeReviews || [], current.homeReviews || [])
-      : (current.homeReviews || [])
+      : (current.homeReviews || []),
+    intlCurrencies: body.intlCurrencies != null
+      ? normalizeIntlCurrencies(body.intlCurrencies)
+      : normalizeIntlCurrencies(current.intlCurrencies),
+    intlCurrenciesAutoFx: body.intlCurrenciesAutoFx != null
+      ? body.intlCurrenciesAutoFx !== false
+      : (body.intlCurrenciesAutoPpp != null
+        ? body.intlCurrenciesAutoPpp !== false
+        : autoFxEnabled(current)),
+    intlCurrenciesAutoPpp: body.intlCurrenciesAutoFx != null
+      ? body.intlCurrenciesAutoFx !== false
+      : (body.intlCurrenciesAutoPpp != null
+        ? body.intlCurrenciesAutoPpp !== false
+        : autoFxEnabled(current))
   };
+  // Textos GLOBAL (name/description): auto-traduz após save.
+  // MARKET-SPECIFIC (images, markets, price, kit vs lente) NÃO passa por i18n.
+  if (autoFxEnabled(merged)) {
+    const synced = syncOpticalIntlBrlFromBrKit(merged.products || []);
+    const fxRates = await fetchFxRatesMap(env, (merged.intlCurrencies || []).map((c) => c.code));
+    const applied = applyMarkupFxToIntlProducts(synced.products, merged.intlCurrencies, fxRates);
+    merged.products = applied.products;
+  }
   if (merged.products?.[0]) {
     merged.product = {
       name: merged.products[0].name,
@@ -17697,16 +17956,99 @@ async function handlePutConfig(request, env, origin, ctx) {
     const latest = await getConfig(env);
     await saveConfig(env, {
       ...latest,
-      homeFaq: partial.homeFaq,
-      homeReviews: partial.homeReviews
+      homeFaq: partial.homeFaq != null ? partial.homeFaq : latest.homeFaq,
+      homeReviews: partial.homeReviews != null ? partial.homeReviews : latest.homeReviews,
+      products: partial.products != null ? partial.products : latest.products
     });
   };
-  const runI18n = refreshHomeContentI18n(env, saved, { onProgress: persistI18nPartial })
-    .then((next) => persistI18nPartial(next))
-    .catch((err) => console.warn('home i18n:', err?.message || err));
+  // FAQs que mudaram neste save (novas ou PT editado) — prioridade no waitUntil.
+  const prevFaqById = new Map((current.homeFaq || []).map((f) => [String(f?.id || ''), f]));
+  const changedFaqIds = (saved.homeFaq || [])
+    .filter((f) => {
+      const id = String(f?.id || '');
+      if (!id || !String(f?.question || '').trim()) return false;
+      const prev = prevFaqById.get(id);
+      if (!prev) return true;
+      return String(prev.question || '') !== String(f.question || '')
+        || String(prev.answer || '') !== String(f.answer || '');
+    })
+    .map((f) => String(f.id));
+  // FAQ primeiro (limitado: 11 línguas × N itens estoura waitUntil). Cron/botão cobrem o resto.
+  const runI18n = (async () => {
+    const withHome = await refreshHomeContentI18n(env, saved, {
+      onProgress: (partial) => persistI18nPartial(partial),
+      preferIds: changedFaqIds,
+      faqLimit: Math.max(2, Math.min(3, changedFaqIds.length || 2)),
+      skipReviews: true
+    });
+    await persistI18nPartial(withHome);
+    try {
+      const products = await refreshProductsTextI18n(env, withHome.products || saved.products || [], {
+        onProgress: (list) => persistI18nPartial({ products: list })
+      });
+      await persistI18nPartial({ products });
+    } catch (err) {
+      console.warn('product text i18n:', err?.message || err);
+    }
+  })().catch((err) => console.warn('content i18n:', err?.message || err));
   if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(runI18n);
   else await runI18n;
   return json(saved, 200, origin);
+}
+
+async function handleAdminApplyIntlMarkupFx(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const current = await getConfig(env);
+  const currencies = body.intlCurrencies != null
+    ? normalizeIntlCurrencies(body.intlCurrencies)
+    : normalizeIntlCurrencies(current.intlCurrencies);
+  const auto = body.intlCurrenciesAutoFx != null
+    ? body.intlCurrenciesAutoFx !== false
+    : (body.intlCurrenciesAutoPpp != null
+      ? body.intlCurrenciesAutoPpp !== false
+      : autoFxEnabled(current));
+  const synced = syncOpticalIntlBrlFromBrKit(current.products || []);
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  const { products, updated } = applyMarkupFxToIntlProducts(synced.products, currencies, fxRates);
+  const saved = await saveConfig(env, {
+    ...current,
+    products,
+    intlCurrencies: currencies,
+    intlCurrenciesAutoFx: auto,
+    intlCurrenciesAutoPpp: auto
+  });
+  return json({
+    ok: true,
+    updated: updated + (synced.synced ? 1 : 0),
+    syncedOpticalBrl: synced.synced,
+    fxRates,
+    currencies: currencies.map((c) => ({ code: c.code, decimals: c.decimals })),
+    products: (saved.products || []).filter(isIntlMarketProductRow).map((p) => ({
+      id: p.id,
+      price: p.price,
+      intlMarkupPercent: p.intlMarkupPercent,
+      intlBaseBrl: p.intlBaseBrl,
+      priceUsd: p.priceUsd,
+      priceEur: p.priceEur,
+      priceSek: p.priceSek,
+      priceNok: p.priceNok,
+      pricePln: p.pricePln,
+      priceGbp: p.priceGbp
+    }))
+  }, 200, origin);
+}
+
+/** @deprecated alias — PPP removed; markup + FX */
+async function handleAdminApplyIntlPpp(request, env, origin) {
+  return handleAdminApplyIntlMarkupFx(request, env, origin);
 }
 
 async function handleAdminHomeI18nRefresh(request, env, origin, ctx) {
@@ -17717,15 +18059,20 @@ async function handleAdminHomeI18nRefresh(request, env, origin, ctx) {
     const latest = await getConfig(env);
     await saveConfig(env, {
       ...latest,
-      homeFaq: partial.homeFaq,
-      homeReviews: partial.homeReviews
+      homeFaq: partial.homeFaq != null ? partial.homeFaq : latest.homeFaq,
+      homeReviews: partial.homeReviews != null ? partial.homeReviews : latest.homeReviews,
+      products: partial.products != null ? partial.products : latest.products
     });
   };
-  const runI18n = refreshHomeContentI18n(env, current, { onProgress: persistI18nPartial })
-    .then(async (next) => {
-      await persistI18nPartial(next);
-      return homeContentI18nStatus(next);
-    })
+  const runI18n = (async () => {
+    const withHome = await refreshHomeContentI18n(env, current, { onProgress: persistI18nPartial });
+    await persistI18nPartial(withHome);
+    const products = await refreshProductsTextI18n(env, withHome.products || current.products || [], {
+      onProgress: (list) => persistI18nPartial({ products: list })
+    });
+    await persistI18nPartial({ products });
+    return homeContentI18nStatus({ ...withHome, products });
+  })()
     .catch((err) => {
       console.warn('home i18n refresh:', err?.message || err);
       return null;
@@ -18720,6 +19067,12 @@ export default {
         return handleAddressSuggest(request, env, origin);
       }
       if (path === '/admin/config' && request.method === 'GET') return handleAdminGetConfig(request, env, origin);
+      if (path === '/admin/intl-money/apply-ppp' && request.method === 'POST') {
+        return handleAdminApplyIntlMarkupFx(request, env, origin);
+      }
+      if (path === '/admin/intl-money/apply-markup-fx' && request.method === 'POST') {
+        return handleAdminApplyIntlMarkupFx(request, env, origin);
+      }
       if (path === '/admin/home-i18n/refresh' && request.method === 'POST') {
         return handleAdminHomeI18nRefresh(request, env, origin, ctx);
       }
@@ -19061,6 +19414,28 @@ export default {
           console.error('Intl FX price sync cron failed:', err.message);
         })
       );
+      // Backfill FAQ/elogios incompletos (lote) — novas perguntas em PT → todos os idiomas
+      ctx.waitUntil((async () => {
+        const current = await getConfig(env);
+        const next = await refreshHomeContentI18n(env, current, {
+          faqLimit: 6,
+          onProgress: async (partial) => {
+            const latest = await getConfig(env);
+            await saveConfig(env, {
+              ...latest,
+              homeFaq: partial.homeFaq,
+              homeReviews: partial.homeReviews
+            });
+          }
+        });
+        const latest = await getConfig(env);
+        await saveConfig(env, {
+          ...latest,
+          homeFaq: next.homeFaq,
+          homeReviews: next.homeReviews
+        });
+        console.log('Home FAQ i18n cron:', homeContentI18nStatus(next));
+      })().catch((err) => console.error('Home FAQ i18n cron failed:', err?.message || err)));
     }
     // 02:59 UTC = 23:59 horário de Brasília — último dia do mês
     if (event.cron === '59 2 * * *') {
