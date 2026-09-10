@@ -7710,6 +7710,40 @@ ${worksheets}
 
   function wireForumAdminControls() {
     document.getElementById('btn-forum-refresh')?.addEventListener('click', () => loadForumAdmin());
+    document.getElementById('btn-forum-i18n-refresh')?.addEventListener('click', async () => {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const base = apiBase();
+      const statusEl = document.getElementById('forum-i18n-status');
+      const btn = document.getElementById('btn-forum-i18n-refresh');
+      if (!token || !base) {
+        setStatus('Faça login na API para gerar traduções da comunidade.', true);
+        return;
+      }
+      if (btn) btn.disabled = true;
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = 'Iniciando traduções da comunidade…';
+      }
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/i18n/refresh', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: 50 }),
+          cache: 'no-store'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        const msg = data.message || 'Gerando traduções em segundo plano. Recarregue a comunidade em 2–5 min.';
+        if (statusEl) statusEl.textContent = msg;
+        setStatus(msg, false);
+      } catch (err) {
+        const msg = 'Falha ao traduzir comunidade: ' + (err?.message || err);
+        if (statusEl) statusEl.textContent = msg;
+        setStatus(msg, true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
     document.getElementById('btn-forum-seed')?.addEventListener('click', async () => {
       const token = sessionStorage.getItem(SESSION_KEY);
       const base = apiBase();

@@ -1236,7 +1236,9 @@
                         <p class="admin-meta">Modere posts pendentes. Use a busca abaixo para ver se um assunto já tem tópico (evita duplicar). Posts exemplo usam nomes variados — o botão de seed também atualiza esses nomes.</p>
                         <div class="admin-form-actions" style="margin-bottom:12px;gap:8px;display:flex;flex-wrap:wrap">
                             <button type="button" id="btn-forum-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                            <button type="button" id="btn-forum-i18n-refresh" class="btn-secondary"><i class="fas fa-language"></i> Gerar traduções (todos os idiomas)</button>
                             <button type="button" id="btn-forum-seed" class="btn-secondary"><i class="fas fa-seedling"></i> Atualizar tópicos exemplo (dores reais)</button>
+                            <span id="forum-i18n-status" class="admin-meta" hidden></span>
                             <label class="admin-check" style="display:inline-flex;align-items:center;gap:8px;margin:0">
                                 <input type="checkbox" id="forum-public-toggle"> Liberar comunidade para todos
                             </label>
@@ -1375,6 +1377,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=230"></script>
+    <script defer src="js/admin.js?v=231"></script>
 </body>
 </html>
