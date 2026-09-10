@@ -110,7 +110,7 @@
                         <tbody>
                             <tr><td>API base (produção)</td><td><a href="https://sensortattoofix-payments.sensortattoofix.workers.dev" target="_blank" rel="noopener">https://sensortattoofix-payments.sensortattoofix.workers.dev</a></td></tr>
                             <tr><td>Config pública</td><td><code>GET /config</code></td></tr>
-                            <tr><td>Status integrações (admin)</td><td><code>GET /admin/integrations-status</code></td></tr>
+                            <tr><td>Status integrações (admin)</td><td><code>GET /admin/integrations-status</code> — auth/conexão das APIs (sem saldos)</td></tr>
                             <tr><td>Cotação frete</td><td><code>GET /shipping/quote</code></td></tr>
                             <tr><td>Cloudflare Dashboard</td><td><a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> → Workers → sensortattoofix-payments → Settings → Secrets</td></tr>
                         </tbody>
@@ -437,21 +437,17 @@ node --test *.test.js</code></pre>
 
                 <section id="admin-abas" class="admin-doc-section">
                     <h2>Abas do admin</h2>
-                    <p class="admin-meta">Ordem de prioridade no painel (da esquerda para a direita):</p>
+                    <p class="admin-meta">Ordem no painel (da esquerda para a direita). A antiga aba <strong>Saldos</strong> foi removida — os saldos das gateways nunca batiam com o extrato real (Stripe sem “em trânsito”, MP inconsistente, etc.). Use o painel de cada gateway para dinheiro.</p>
                     <table class="admin-doc-table">
                         <thead><tr><th>Aba</th><th>Função</th></tr></thead>
                         <tbody>
-                            <tr><td>Pedidos</td><td>Atalho para <code>/pedidos.html</code>, exportação JSON/CSV</td></tr>
+                            <tr><td>Vendas</td><td>Consolidado da loja + marketplaces (ML/Amazon/Shopee), períodos e exportação</td></tr>
+                            <tr><td>Pedidos</td><td>Pedidos da loja (etiquetas, PIX, status) — também em <code>/pedidos.html</code></td></tr>
                             <tr><td>Cliques</td><td>Log de visitas e origem do tráfego — ver seção <a href="#cliques">Log de cliques</a></td></tr>
-                            <tr><td>Clientes</td><td>Contas criadas em Minha Conta; flag <code>tester</code> para usuários beta</td></tr>
-                            <tr><td>Produtos</td><td>Catálogo (lentes + agregados), preços, peso, imagens</td></tr>
-                            <tr><td>Contato</td><td>WhatsApp, e-mail FormSubmit, assuntos dos e-mails (incluindo cupom)</td></tr>
-                            <tr><td>Frete</td><td>Remetente, modalidades, motoboy, Correios BR, internacional, custo Flex</td></tr>
-                            <tr><td>PIX</td><td>PIX reserva (QR estático): chave, tipo, nome e cidade — só se Mercado Pago e Asaas falharem</td></tr>
-                            <tr><td>Cupons</td><td>Desconto ao cliente e comissão ao comissionado — ver <a href="#cupons">seção Cupons</a></td></tr>
-                            <tr><td>Vendas</td><td>Consolidado de vendas ML/Amazon/Shopee, comparação YoY, exportação Excel, seção Flex a pagar</td></tr>
-                            <tr><td>Comunidade</td><td>Fórum de usuários — moderação, tópicos, toggle público/beta — ver <a href="#comunidade">seção Comunidade</a></td></tr>
-                            <tr><td>API</td><td>URL do Worker, status das integrações (incluindo Stripe), cartão/PayPal, testes de e-mail</td></tr>
+                            <tr><td>API</td><td>URL do Worker e <strong>status de conexão</strong> das integrações (sem saldos/carteiras)</td></tr>
+                            <tr><td>Cadastros</td><td>Clientes, produtos, frete, pagamento, cupons, contato e conteúdos</td></tr>
+                            <tr><td>Pesquisa</td><td>Feedback / pesquisa de satisfação</td></tr>
+                            <tr><td>Comunidade</td><td>Fórum — moderação e seeds — ver <a href="#comunidade">Comunidade</a></td></tr>
                             <tr><td>Documentação</td><td>Este manual (incorporado no admin)</td></tr>
                         </tbody>
                     </table>

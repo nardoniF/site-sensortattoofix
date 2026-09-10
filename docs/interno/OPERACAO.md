@@ -9,6 +9,9 @@ Versão para o repositório (espelho de [documentacao.html](../documentacao.html
 
 ## Site e painéis
 
+> **Saldos:** a aba Admin → Saldos foi removida. Os valores das gateways (MP/Stripe/PayPal/Shopee) não eram confiáveis (faltava “em trânsito” no Stripe, MP inconsistente). Consulte o extrato em cada painel. A aba **API** mostra só se a integração autentica.
+
+
 | O quê | URL |
 |-------|-----|
 | Site | https://www.sensortattoofix.com.br |
