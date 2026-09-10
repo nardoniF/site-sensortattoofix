@@ -6,7 +6,7 @@
 
 import homeL10nStatic from './home-content-l10n.json' with { type: 'json' };
 
-export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
+export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
 export const LANG_NATIVE = {
   pt: { name: 'português brasileiro', region: 'Brasil' },
@@ -15,7 +15,12 @@ export const LANG_NATIVE = {
   de: { name: 'Deutsch', region: 'Deutschland und Österreich' },
   es: { name: 'español de España', region: 'España' },
   pl: { name: 'polski', region: 'Polska' },
-  sl: { name: 'slovenščina', region: 'Slovenija' }
+  sl: { name: 'slovenščina', region: 'Slovenija' },
+  fr: { name: 'français', region: 'France' },
+  nl: { name: 'Nederlands', region: 'Nederland' },
+  sv: { name: 'svenska', region: 'Sverige' },
+  no: { name: 'norsk bokmål', region: 'Norge' },
+  fi: { name: 'suomi', region: 'Suomi' }
 };
 
 const L10N_MODEL = '@cf/meta/llama-3.1-8b-instruct';
