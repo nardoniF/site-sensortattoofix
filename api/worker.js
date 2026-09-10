@@ -3180,6 +3180,7 @@ function watchBrandForCopy(order) {
   if (/Fitbit/i.test(haystack)) return 'Fitbit';
   if (/Polar/i.test(haystack)) return 'Polar';
   if (/Honor/i.test(haystack)) return 'Honor';
+  if (/WearZone/i.test(haystack)) return 'WearZone';
   if (/Outro modelo|Other model|Altro modello/i.test(haystack)) return '';
   return haystack.split(/\s+[—\-]\s+/)[0].trim() || haystack;
 }
