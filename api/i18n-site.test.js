@@ -218,6 +218,7 @@ test('STF_PELICULA: /de/ e /pl/ usam nameDe/namePl com fallback nameEn', () => {
     hostname: 'www.sensortattoofix.com.br',
     pathname: '/de/loja.html',
     i18n: {
+      getLang: () => 'de',
       isDe: () => true,
       isIt: () => false,
       isEn: () => false,
@@ -239,6 +240,7 @@ test('STF_PELICULA: /de/ e /pl/ usam nameDe/namePl com fallback nameEn', () => {
     hostname: 'www.sensortattoofix.com.br',
     pathname: '/pl/loja.html',
     i18n: {
+      getLang: () => 'pl',
       isPl: () => true,
       isIt: () => false,
       isEn: () => false,
@@ -253,15 +255,122 @@ test('STF_PELICULA: /de/ e /pl/ usam nameDe/namePl com fallback nameEn', () => {
   );
 });
 
-test('store-config: produtos intl têm nameDe/nameEs/namePl/nameSl', () => {
+test('STF_PELICULA: /fr/ usa nameFr (não cai em inglês quando nameFr existe)', () => {
+  const fr = loadPelicula({
+    hostname: 'www.sensortattoofix.com',
+    pathname: '/fr/loja.html',
+    i18n: { getLang: () => 'fr', isLocalized: () => true },
+    site: { isIntlHost: () => true }
+  });
+  assert.equal(
+    fr.productLabel({
+      name: 'Nome PT',
+      nameEn: 'SensorTattooFix Optical Lens',
+      nameFr: 'Lentille optique SensorTattooFix'
+    }),
+    'Lentille optique SensorTattooFix'
+  );
+  assert.equal(
+    fr.productDescription({
+      description: 'PT',
+      descriptionEn: 'Designed for smartwatch…',
+      descriptionFr: 'Conçue pour les capteurs optiques…'
+    }),
+    'Conçue pour les capteurs optiques…'
+  );
+  // Sem nameFr → fallback EN (não PT)
+  assert.equal(
+    fr.productLabel({ name: 'Nome PT', nameEn: 'EN only' }),
+    'EN only'
+  );
+});
+
+test('STF_PELICULA: /nl/ /sv/ /no/ /fi/ preferem name nativo', () => {
+  const cases = [
+    ['nl', 'nameNl', 'SensorTattooFix Optische Lens'],
+    ['sv', 'nameSv', 'SensorTattooFix optisk lins'],
+    ['no', 'nameNo', 'SensorTattooFix optisk linse'],
+    ['fi', 'nameFi', 'SensorTattooFix-optinen linssi']
+  ];
+  for (const [lang, field, expected] of cases) {
+    const p = loadPelicula({
+      hostname: 'www.sensortattoofix.com',
+      pathname: `/${lang}/loja.html`,
+      i18n: { getLang: () => lang, isLocalized: () => true },
+      site: { isIntlHost: () => true }
+    });
+    assert.equal(
+      p.productLabel({ name: 'PT', nameEn: 'EN Optical Lens', [field]: expected }),
+      expected,
+      lang
+    );
+  }
+});
+
+test('store-config: produtos intl têm nameDe/Es/Pl/Sl/Fr/Nl/Sv/No/Fi', () => {
   const cfg = JSON.parse(fs.readFileSync(path.join(root, 'data/store-config.json'), 'utf8'));
   for (const id of ['optical-lens-intl', 'optical-lens-smartband-intl']) {
     const p = cfg.products.find((x) => x.id === id);
     assert.ok(p, id);
-    for (const field of ['nameDe', 'nameEs', 'namePl', 'nameSl', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl']) {
+    for (const field of [
+      'nameDe', 'nameEs', 'namePl', 'nameSl', 'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+      'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+      'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi'
+    ]) {
       assert.ok(p[field], `${id}.${field}`);
     }
   }
+  const frName = cfg.products.find((x) => x.id === 'optical-lens-intl').nameFr;
+  assert.notEqual(frName, 'SensorTattooFix Optical Lens');
+  assert.match(frName, /Lentille/i);
+});
+
+test('site-feedback: fr/nl/sv/no/fi têm fab nativo (não Sugestões)', () => {
+  const src = fs.readFileSync(path.join(jsDir, 'site-feedback.js'), 'utf8');
+  assert.match(src, /fr:\s*\{[\s\S]*?fab:\s*'Suggestions'/);
+  assert.match(src, /nl:\s*\{[\s\S]*?fab:\s*'Feedback'/);
+  assert.match(src, /sv:\s*\{[\s\S]*?fab:\s*'Feedback'/);
+  assert.match(src, /no:\s*\{[\s\S]*?fab:\s*'Tilbakemelding'/);
+  assert.match(src, /fi:\s*\{[\s\S]*?fab:\s*'Palaute'/);
+  assert.match(src, /pathname\.includes\('\/fr\/'\)/);
+  assert.match(src, /pathname\.includes\('\/nl\/'\)/);
+  assert.match(src, /pathname\.includes\('\/sv\/'\)/);
+  assert.match(src, /pathname\.includes\('\/no\/'\)/);
+  assert.match(src, /pathname\.includes\('\/fi\/'\)/);
+  // Packs existem — regressão clássica era cair em I18N.pt → Sugestões
+  for (const lang of ['fr', 'nl', 'sv', 'no', 'fi']) {
+    assert.match(src, new RegExp(`\\b${lang}:\\s*\\{`), `pack ${lang}`);
+  }
+});
+
+test('site-footer: fr/nl/sv/no/fi sem SIGA NOSSAS / Sugestões em PT', () => {
+  const src = fs.readFileSync(path.join(jsDir, 'site-footer.js'), 'utf8');
+  assert.match(src, /fr:\s*\{[\s\S]*?socialTitle:\s*'Suivez nos réseaux officiels'/);
+  assert.match(src, /nl:\s*\{[\s\S]*?socialTitle:\s*'Volg onze officiële kanalen'/);
+  assert.match(src, /sv:\s*\{[\s\S]*?socialTitle:\s*'Följ våra officiella kanaler'/);
+  assert.match(src, /no:\s*\{[\s\S]*?socialTitle:\s*'Følg våre offisielle kanaler'/);
+  assert.match(src, /fi:\s*\{[\s\S]*?socialTitle:\s*'Seuraa virallisia kanaviamme'/);
+  assert.match(src, /pathname\.includes\('\/fr\/'\)/);
+  // PT string só no bloco pt
+  const ptBlock = src.match(/pt:\s*\{[\s\S]*?\n\s*\},/);
+  assert.ok(ptBlock, 'pt block');
+  assert.match(ptBlock[0], /Siga nossas redes oficiais/i);
+  // Fora do bloco pt, socialTitle FR/NL/… não deve repetir o PT
+  const afterPt = src.slice(src.indexOf('en:'));
+  assert.doesNotMatch(afterPt, /Siga nossas redes oficiais/i);
+  assert.doesNotMatch(afterPt, /SIGA NOSSAS/i);
+});
+
+test('forum-l10n: fr/nl/sv/no/fi com título de chrome nativo', () => {
+  const data = JSON.parse(fs.readFileSync(path.join(root, 'data/forum-l10n.json'), 'utf8'));
+  assert.equal(data.fr.title, 'Communauté');
+  assert.equal(data.sv.title, 'Gemenskap');
+  assert.equal(data.no.title, 'Fellesskap');
+  assert.equal(data.fi.title, 'Yhteisö');
+  assert.ok(data.nl.title);
+  const forum = fs.readFileSync(path.join(jsDir, 'forum.js'), 'utf8');
+  assert.match(forum, /'fr',\s*'nl',\s*'sv',\s*'no',\s*'fi'/);
+  assert.match(forum, /forum-l10n\.json\?v=2/);
 });
 
 test('store-config: agregados têm nameDe (película exemplo)', () => {

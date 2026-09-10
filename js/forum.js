@@ -178,7 +178,7 @@
       return;
     }
     try {
-      const res = await fetch('/data/forum-l10n.json?v=1', { cache: 'no-store' });
+      const res = await fetch('/data/forum-l10n.json?v=2', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data[code]) STRINGS[code] = Object.assign({}, STRINGS.en, data[code]);
