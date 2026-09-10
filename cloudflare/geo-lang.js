@@ -129,33 +129,29 @@ export function isBrHomePath(pathname) {
 
 /**
  * @returns {string|null} absolute URL to redirect to, or null
+ *
+ * IMPORTANT: never auto-bounce between .com and .com.br.
+ * Those are different markets (INT lens vs BR kit). Cross-host is only via
+ * explicit language switcher / ?stf_lang= (handled in the proxy).
+ * Host-scoped cookies + bilingual Accept-Language used to cause ERR_TOO_MANY_REDIRECTS.
  */
 export function localeRedirectTarget({ hostOrigin, pathname, search, br, preferred }) {
   const lang = normalizeSiteLang(preferred) || 'en';
-  const COM = 'https://www.sensortattoofix.com';
-  const BR = 'https://www.sensortattoofix.com.br';
   const path = pathname || '/';
   const q = search || '';
 
+  // .com.br home stays PT — do not auto-send intl visitors to .com
   if (br) {
-    if (!isBrHomePath(path)) return null;
-    if (lang === 'pt') return null;
-    // Visitante intl na home BR → mercado .com no idioma certo
-    if (lang === 'en') return q ? `${COM}/${q}` : `${COM}/`;
-    return q ? `${COM}/${lang}/${q}` : `${COM}/${lang}/`;
+    return null;
   }
 
+  // .com: only prefix /de|/pl|… within the same host; never send pt → .com.br
   if (!isComEnglishEntryPath(path)) return null;
-  if (lang === 'en') return null;
+  if (lang === 'en' || lang === 'pt') return null;
 
   const isHome = path === '/' || path === '' || path === '/index.html';
   const file = isHome ? '' : path.replace(/^\//, '');
-  const base = String(hostOrigin || COM).replace(/\/$/, '');
-
-  if (lang === 'pt') {
-    if (isHome) return q ? `${BR}/${q}` : `${BR}/`;
-    return `${BR}/${file}${q}`;
-  }
+  const base = String(hostOrigin || 'https://www.sensortattoofix.com').replace(/\/$/, '');
   if (isHome) return q ? `${base}/${lang}/${q}` : `${base}/${lang}/`;
   return `${base}/${lang}/${file}${q}`;
 }
