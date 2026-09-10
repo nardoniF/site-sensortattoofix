@@ -2186,7 +2186,21 @@
     "Huawei Watch GT 6 Pro (46mm)",
     "Huawei Watch GT 7 (41mm)",
     "Huawei Watch GT 7 (46mm)",
-    "Huawei Watch GT 7 Pro (46mm)"
+    "Huawei Watch GT 7 Pro (46mm)",
+    "WearZone Action",
+    "WearZone Brave",
+    "WearZone Easy",
+    "WearZone Fênix",
+    "WearZone Flare",
+    "WearZone Horizon Lite+",
+    "WearZone Horizon Pro",
+    "WearZone Horizon Titan",
+    "WearZone Kron",
+    "WearZone Life",
+    "WearZone Órion",
+    "WearZone Pulse",
+    "WearZone Royals Classic",
+    "WearZone Thunder"
   ],
   "smartwatchModelMeta": {
     "Apple Watch Series 1 (38mm)": {
@@ -3134,6 +3148,62 @@
     "Huawei Watch GT 7 Pro (46mm)": {
       "shape": "round",
       "caseMm": 46
+    },
+    "WearZone Action": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Brave": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Easy": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Fênix": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Flare": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Horizon Lite+": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Horizon Pro": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Horizon Titan": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Kron": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Life": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Órion": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Pulse": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Royals Classic": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Thunder": {
+      "shape": "round",
+      "caseMm": null
     }
   },
   "formsubmit": {
@@ -5679,6 +5749,106 @@
         "sizeMm": 47,
         "kind": "smartband",
         "sensorMm": null
+      }
+    ],
+    "WearZone": [
+      {
+        "label": "WearZone Action",
+        "model": "WearZone Action",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Brave",
+        "model": "WearZone Brave",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Easy",
+        "model": "WearZone Easy",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Fênix",
+        "model": "WearZone Fênix",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Flare",
+        "model": "WearZone Flare",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Horizon Lite+",
+        "model": "WearZone Horizon Lite+",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Horizon Pro",
+        "model": "WearZone Horizon Pro",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Horizon Titan",
+        "model": "WearZone Horizon Titan",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Kron",
+        "model": "WearZone Kron",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Life",
+        "model": "WearZone Life",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Órion",
+        "model": "WearZone Órion",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Pulse",
+        "model": "WearZone Pulse",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Royals Classic",
+        "model": "WearZone Royals Classic",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Thunder",
+        "model": "WearZone Thunder",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
       }
     ]
   },

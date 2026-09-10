@@ -1581,6 +1581,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (m.startsWith('Withings')) return 'Withings';
     if (m.startsWith('Suunto')) return 'Suunto';
     if (m.startsWith('Coros')) return 'Coros';
+    if (/^WearZone/i.test(m)) return 'WearZone';
     return L('watch.groupOthers');
   }
 
