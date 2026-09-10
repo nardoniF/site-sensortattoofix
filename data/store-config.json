@@ -2200,7 +2200,8 @@
     "WearZone Órion",
     "WearZone Pulse",
     "WearZone Royals Classic",
-    "WearZone Thunder"
+    "WearZone Thunder",
+    "WearZone Dune"
   ],
   "smartwatchModelMeta": {
     "Apple Watch Series 1 (38mm)": {
@@ -3202,6 +3203,10 @@
       "caseMm": null
     },
     "WearZone Thunder": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Dune": {
       "shape": "round",
       "caseMm": null
     }
@@ -5767,6 +5772,13 @@
         "sensorMm": 20
       },
       {
+        "label": "WearZone Dune",
+        "model": "WearZone Dune",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
         "label": "WearZone Easy",
         "model": "WearZone Easy",
         "sizeMm": null,
@@ -5774,15 +5786,15 @@
         "sensorMm": 20
       },
       {
-        "label": "WearZone Fênix",
-        "model": "WearZone Fênix",
+        "label": "WearZone Flare",
+        "model": "WearZone Flare",
         "sizeMm": null,
         "kind": "smartwatch",
         "sensorMm": 20
       },
       {
-        "label": "WearZone Flare",
-        "model": "WearZone Flare",
+        "label": "WearZone Fênix",
+        "model": "WearZone Fênix",
         "sizeMm": null,
         "kind": "smartwatch",
         "sensorMm": 20
@@ -5823,13 +5835,6 @@
         "sensorMm": 20
       },
       {
-        "label": "WearZone Órion",
-        "model": "WearZone Órion",
-        "sizeMm": null,
-        "kind": "smartwatch",
-        "sensorMm": 20
-      },
-      {
         "label": "WearZone Pulse",
         "model": "WearZone Pulse",
         "sizeMm": null,
@@ -5846,6 +5851,13 @@
       {
         "label": "WearZone Thunder",
         "model": "WearZone Thunder",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Órion",
+        "model": "WearZone Órion",
         "sizeMm": null,
         "kind": "smartwatch",
         "sensorMm": 20
