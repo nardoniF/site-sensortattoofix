@@ -105,7 +105,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '3299494b66c054c868ae927cc36d63658d342a46';
+const SITE_CATALOG_COMMIT = 'f732758c6c6c3cc0647df9999353412eefdb5c17';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -3180,6 +3180,7 @@ function watchBrandForCopy(order) {
   if (/Fitbit/i.test(haystack)) return 'Fitbit';
   if (/Polar/i.test(haystack)) return 'Polar';
   if (/Honor/i.test(haystack)) return 'Honor';
+  if (/WearZone/i.test(haystack)) return 'WearZone';
   if (/Outro modelo|Other model|Altro modello/i.test(haystack)) return '';
   return haystack.split(/\s+[—\-]\s+/)[0].trim() || haystack;
 }

@@ -2172,7 +2172,36 @@
     "Redmi Smart Band (23mm)",
     "Redmi Smart Band 2 (24mm)",
     "Redmi Smart Band Pro (33mm)",
-    "Outro modelo…"
+    "Outro modelo…",
+    "Huawei Watch GT (42mm)",
+    "Huawei Watch GT (46mm)",
+    "Huawei Watch GT 2e (46mm)",
+    "Huawei Watch GT Runner (46mm)",
+    "Huawei Watch GT Runner 2 (46mm)",
+    "Huawei Watch GT Cyber (46mm)",
+    "Huawei Watch GT 5 Pro (42mm)",
+    "Huawei Watch GT 5 Pro (46mm)",
+    "Huawei Watch GT 6 (41mm)",
+    "Huawei Watch GT 6 (46mm)",
+    "Huawei Watch GT 6 Pro (46mm)",
+    "Huawei Watch GT 7 (41mm)",
+    "Huawei Watch GT 7 (46mm)",
+    "Huawei Watch GT 7 Pro (46mm)",
+    "WearZone Action",
+    "WearZone Brave",
+    "WearZone Easy",
+    "WearZone Fênix",
+    "WearZone Flare",
+    "WearZone Horizon Lite+",
+    "WearZone Horizon Pro",
+    "WearZone Horizon Titan",
+    "WearZone Kron",
+    "WearZone Life",
+    "WearZone Órion",
+    "WearZone Pulse",
+    "WearZone Royals Classic",
+    "WearZone Thunder",
+    "WearZone Dune"
   ],
   "smartwatchModelMeta": {
     "Apple Watch Series 1 (38mm)": {
@@ -3064,6 +3093,122 @@
     "Honor Band 9": {
       "shape": "rect",
       "caseMm": 21
+    },
+    "Huawei Watch GT (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Huawei Watch GT (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 2e (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT Runner (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT Runner 2 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT Cyber (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 5 Pro (42mm)": {
+      "shape": "round",
+      "caseMm": 42
+    },
+    "Huawei Watch GT 5 Pro (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 6 (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Huawei Watch GT 6 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 6 Pro (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 7 (41mm)": {
+      "shape": "round",
+      "caseMm": 41
+    },
+    "Huawei Watch GT 7 (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "Huawei Watch GT 7 Pro (46mm)": {
+      "shape": "round",
+      "caseMm": 46
+    },
+    "WearZone Action": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Brave": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Easy": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Fênix": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Flare": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Horizon Lite+": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Horizon Pro": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Horizon Titan": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Kron": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Life": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Órion": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Pulse": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Royals Classic": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Thunder": {
+      "shape": "round",
+      "caseMm": null
+    },
+    "WearZone Dune": {
+      "shape": "round",
+      "caseMm": null
     }
   },
   "formsubmit": {
@@ -4639,6 +4784,27 @@
         "sensorMm": null
       },
       {
+        "label": "Huawei Watch GT 6 (41mm)",
+        "model": "Huawei Watch GT 6 (41mm)",
+        "sizeMm": 41,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT 7 (41mm)",
+        "model": "Huawei Watch GT 7 (41mm)",
+        "sizeMm": 41,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT (42mm)",
+        "model": "Huawei Watch GT (42mm)",
+        "sizeMm": 42,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
         "label": "Huawei Watch GT 2 (42mm)",
         "model": "Huawei Watch GT 2 (42mm)",
         "sizeMm": 42,
@@ -4653,9 +4819,37 @@
         "sensorMm": null
       },
       {
+        "label": "Huawei Watch GT 5 Pro (42mm)",
+        "model": "Huawei Watch GT 5 Pro (42mm)",
+        "sizeMm": 42,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
         "label": "Huawei Watch GT 3 Pro (43mm)",
         "model": "Huawei Watch GT 3 Pro (43mm)",
         "sizeMm": 43,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch 3 (46mm)",
+        "model": "Huawei Watch 3 (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch 4 (46mm)",
+        "model": "Huawei Watch 4 (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT (46mm)",
+        "model": "Huawei Watch GT (46mm)",
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
@@ -4669,6 +4863,13 @@
       {
         "label": "Huawei Watch GT 2 Pro (46mm)",
         "model": "Huawei Watch GT 2 Pro (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT 2e (46mm)",
+        "model": "Huawei Watch GT 2e (46mm)",
         "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
@@ -4688,6 +4889,13 @@
         "sensorMm": null
       },
       {
+        "label": "Huawei Watch GT 3 SE (46mm)",
+        "model": "Huawei Watch GT 3 SE (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
         "label": "Huawei Watch GT 4 (46mm)",
         "model": "Huawei Watch GT 4 (46mm)",
         "sizeMm": 46,
@@ -4702,15 +4910,57 @@
         "sensorMm": null
       },
       {
-        "label": "Huawei Watch Ultimate (48mm)",
-        "model": "Huawei Watch Ultimate (48mm)",
-        "sizeMm": 48,
+        "label": "Huawei Watch GT 5 Pro (46mm)",
+        "model": "Huawei Watch GT 5 Pro (46mm)",
+        "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
       },
       {
-        "label": "Huawei Watch 3 (46mm)",
-        "model": "Huawei Watch 3 (46mm)",
+        "label": "Huawei Watch GT 6 (46mm)",
+        "model": "Huawei Watch GT 6 (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT 6 Pro (46mm)",
+        "model": "Huawei Watch GT 6 Pro (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT 7 (46mm)",
+        "model": "Huawei Watch GT 7 (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT 7 Pro (46mm)",
+        "model": "Huawei Watch GT 7 Pro (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT Cyber (46mm)",
+        "model": "Huawei Watch GT Cyber (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT Runner (46mm)",
+        "model": "Huawei Watch GT Runner (46mm)",
+        "sizeMm": 46,
+        "kind": "smartwatch",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Watch GT Runner 2 (46mm)",
+        "model": "Huawei Watch GT Runner 2 (46mm)",
         "sizeMm": 46,
         "kind": "smartwatch",
         "sensorMm": null
@@ -4723,13 +4973,6 @@
         "sensorMm": null
       },
       {
-        "label": "Huawei Watch 4 (46mm)",
-        "model": "Huawei Watch 4 (46mm)",
-        "sizeMm": 46,
-        "kind": "smartwatch",
-        "sensorMm": null
-      },
-      {
         "label": "Huawei Watch 4 Pro (48mm)",
         "model": "Huawei Watch 4 Pro (48mm)",
         "sizeMm": 48,
@@ -4737,38 +4980,10 @@
         "sensorMm": null
       },
       {
-        "label": "Huawei Watch GT 3 SE (46mm)",
-        "model": "Huawei Watch GT 3 SE (46mm)",
-        "sizeMm": 46,
+        "label": "Huawei Watch Ultimate (48mm)",
+        "model": "Huawei Watch Ultimate (48mm)",
+        "sizeMm": 48,
         "kind": "smartwatch",
-        "sensorMm": null
-      },
-      {
-        "label": "Huawei Band 6",
-        "model": "Huawei Band 6",
-        "sizeMm": 25,
-        "kind": "smartband",
-        "sensorMm": null
-      },
-      {
-        "label": "Huawei Band 7",
-        "model": "Huawei Band 7",
-        "sizeMm": 25,
-        "kind": "smartband",
-        "sensorMm": null
-      },
-      {
-        "label": "Huawei Band 8",
-        "model": "Huawei Band 8",
-        "sizeMm": 25,
-        "kind": "smartband",
-        "sensorMm": null
-      },
-      {
-        "label": "Huawei Band 9",
-        "model": "Huawei Band 9",
-        "sizeMm": 25,
-        "kind": "smartband",
         "sensorMm": null
       },
       {
@@ -4821,9 +5036,16 @@
         "sensorMm": null
       },
       {
-        "label": "Huawei Band 6 Pro (25mm)",
-        "model": "Huawei Band 6 Pro (25mm)",
-        "sizeMm": 25,
+        "label": "Huawei Color Band A1 (20mm)",
+        "model": "Huawei Color Band A1 (20mm)",
+        "sizeMm": 20,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Color Band A2 (20mm)",
+        "model": "Huawei Color Band A2 (20mm)",
+        "sizeMm": 20,
         "kind": "smartband",
         "sensorMm": null
       },
@@ -4863,16 +5085,37 @@
         "sensorMm": null
       },
       {
-        "label": "Huawei Color Band A1 (20mm)",
-        "model": "Huawei Color Band A1 (20mm)",
-        "sizeMm": 20,
+        "label": "Huawei Band 6",
+        "model": "Huawei Band 6",
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       },
       {
-        "label": "Huawei Color Band A2 (20mm)",
-        "model": "Huawei Color Band A2 (20mm)",
-        "sizeMm": 20,
+        "label": "Huawei Band 6 Pro (25mm)",
+        "model": "Huawei Band 6 Pro (25mm)",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 7",
+        "model": "Huawei Band 7",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 8",
+        "model": "Huawei Band 8",
+        "sizeMm": 25,
+        "kind": "smartband",
+        "sensorMm": null
+      },
+      {
+        "label": "Huawei Band 9",
+        "model": "Huawei Band 9",
+        "sizeMm": 25,
         "kind": "smartband",
         "sensorMm": null
       }
@@ -5511,6 +5754,113 @@
         "sizeMm": 47,
         "kind": "smartband",
         "sensorMm": null
+      }
+    ],
+    "WearZone": [
+      {
+        "label": "WearZone Action",
+        "model": "WearZone Action",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Brave",
+        "model": "WearZone Brave",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Dune",
+        "model": "WearZone Dune",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Easy",
+        "model": "WearZone Easy",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Flare",
+        "model": "WearZone Flare",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Fênix",
+        "model": "WearZone Fênix",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Horizon Lite+",
+        "model": "WearZone Horizon Lite+",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Horizon Pro",
+        "model": "WearZone Horizon Pro",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Horizon Titan",
+        "model": "WearZone Horizon Titan",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Kron",
+        "model": "WearZone Kron",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Life",
+        "model": "WearZone Life",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Pulse",
+        "model": "WearZone Pulse",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Royals Classic",
+        "model": "WearZone Royals Classic",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Thunder",
+        "model": "WearZone Thunder",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
+      },
+      {
+        "label": "WearZone Órion",
+        "model": "WearZone Órion",
+        "sizeMm": null,
+        "kind": "smartwatch",
+        "sensorMm": 20
       }
     ]
   },
