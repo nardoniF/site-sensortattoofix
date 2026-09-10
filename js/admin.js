@@ -2839,6 +2839,49 @@ ${worksheets}
     return `<span class="${cls}">${icon} ${escAttr(single)}</span>`;
   }
 
+  function renderIntegrationsTable(integrations, checkedAt) {
+    const tbody = document.getElementById('api-integrations-tbody');
+    const checkedEl = document.getElementById('api-integrations-checked-at');
+    if (!tbody) return;
+
+    if (!integrations?.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="admin-meta">Nenhuma integração retornada.</td></tr>';
+      if (checkedEl) checkedEl.hidden = true;
+      return;
+    }
+
+    tbody.innerHTML = integrations.map((row) => {
+      return `<tr>
+        <td><strong>${escAttr(row.label)}</strong></td>
+        <td>${escAttr(row.description)}</td>
+        <td class="admin-api-status-cell">${renderIntegrationDetailCell(row)}</td>
+      </tr>`;
+    }).join('');
+
+    if (checkedEl) {
+      if (checkedAt) {
+        const when = new Date(checkedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        checkedEl.textContent = 'Última verificação: ' + when;
+        checkedEl.hidden = false;
+      } else {
+        checkedEl.hidden = true;
+      }
+    }
+  }
+
+  let integrationsLoading = false;
+  let lastIntegrations = null;
+  let customersLoading = false;
+  let clicksLoading = false;
+  let clicksSearchTimer = null;
+  let clicksBgStarted = false;
+  let clicksLoadPromise = null;
+  let clicksMetaCache = null;
+  let feedbackLoading = false;
+  let feedbackSearchTimer = null;
+  let clicksCache = [];
+  let clicksWhenCache = [];
+  let clicksWhenWindow = null;
 
   const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v1';
   const ADMIN_TAB_IDS = new Set(['vendas', 'pedidos', 'cliques', 'api', 'clientes', 'pesquisa', 'comunidade', 'documentacao']);
