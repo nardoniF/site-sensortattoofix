@@ -49,7 +49,6 @@ import {
   fetchShopeeWalletAvailable,
   sumShopeeToReceiveFromIndex
 } from './shopee-balance.js';
-import { handleAdminMpReleaseAudit } from './mp-release-audit.js';
 import {
   summarizeAmzFinancialEvents,
   amzRound2
@@ -11981,12 +11980,8 @@ function buildPaymentBalancesSummary(cards) {
 }
 
 function appendBalanceDetailLines(check, detailLines) {
+  // Saldos removidos do Admin — só detalhes de conexão/auth.
   const lines = [...(detailLines || [])];
-  if (check?.balance?.lines?.length) {
-    check.balance.lines.forEach((l) => lines.push(`Saldo · ${l}`));
-  } else if (check?.balance?.error) {
-    lines.push(`Saldo · ${check.balance.error}`);
-  }
   return lines.length ? lines : undefined;
 }
 
@@ -12074,50 +12069,15 @@ async function checkPayPalIntegration(env) {
     };
   }
   try {
-    const tokenMeta = await getPayPalAccessToken(env, {
-      scope: PAYPAL_BALANCE_SCOPES,
-      returnMeta: true
-    });
-    const accessToken = tokenMeta.accessToken;
-    const grantedScope = tokenMeta.scope || '';
-    let balance = { ok: false, lines: [], amounts: [], error: null };
-    try {
-      const balRes = await fetch(`${paypalBase(env)}/v1/reporting/balances`, {
-        headers: {
-          Authorization: 'Bearer ' + accessToken,
-          Accept: 'application/json',
-          'Accept-Language': 'en_US',
-          'Content-Type': 'application/json'
-        }
-      });
-      const balData = await balRes.json().catch(() => ({}));
-      if (balRes.ok) balance = parsePayPalBalancePayload(balData);
-      else {
-        const errMsg = balData.message || balData.error_description || balData.details?.[0]?.issue || `HTTP ${balRes.status}`;
-        let fixHint = paymentBalanceFixHint('paypal', errMsg);
-        if (!/\bbalances\/read\b/.test(grantedScope)) {
-          fixHint = (fixHint ? fixHint + ' ' : '')
-            + 'Token ainda sem scope balances/read — confira Transaction Search no app Live certo e aguarde até 9h.';
-        }
-        balance = {
-          ok: false,
-          lines: [],
-          amounts: [],
-          error: errMsg,
-          fixHint
-        };
-      }
-    } catch (err) {
-      balance = { ok: false, lines: [], amounts: [], error: err.message, fixHint: paymentBalanceFixHint('paypal', err.message) };
-    }
+    // Auth only — saldos removidos do Admin.
+    await getPayPalAccessToken(env);
     return {
       configured: true,
       sandbox,
       selfTest,
       authOk: true,
       mode: sandbox ? 'sandbox' : 'live',
-      clientIdSuffix: clientId.slice(-8),
-      balance
+      clientIdSuffix: clientId.slice(-8)
     };
   } catch (err) {
     return {
@@ -12152,8 +12112,7 @@ async function checkMercadoPagoIntegration(env, opts = {}) {
       };
     }
     const me = await res.json().catch(() => ({}));
-    const balance = await fetchMercadoPagoBalance(token, me?.id, env, opts);
-    return { configured: true, authOk: true, sandbox, balance, nickname: me?.nickname || null };
+    return { configured: true, authOk: true, sandbox, nickname: me?.nickname || null };
   } catch (err) {
     return { configured: true, authOk: false, sandbox, error: err.message };
   }
@@ -12360,7 +12319,7 @@ function buildIntegrationRows(env, config, checks) {
       id: 'mercadopago',
       label: 'Mercado Pago',
       description: 'PIX e checkout no Brasil',
-      status: mercadoPago.sandbox ? 'warn' : (mercadoPago.balance?.ok === false ? 'warn' : 'ok'),
+      status: mercadoPago.sandbox ? 'warn' : 'ok',
       detail: mpDetail,
       detailLines: mpLines
     });
@@ -12505,7 +12464,7 @@ function buildIntegrationRows(env, config, checks) {
       id: 'paypal',
       label: 'PayPal',
       description: 'Pagamentos internacionais',
-      status: paypal.sandbox ? 'warn' : (paypal.balance?.ok === false ? 'warn' : 'ok'),
+      status: paypal.sandbox ? 'warn' : 'ok',
       detail,
       detailLines: appendBalanceDetailLines(paypal)
     });
@@ -12550,7 +12509,7 @@ function buildIntegrationRows(env, config, checks) {
       id: 'stripe',
       label: 'Stripe',
       description: 'Cartão, Apple Pay e Google Pay (.com)',
-      status: stripe.webhook ? (stripe.balance?.ok === false ? 'warn' : 'ok') : 'warn',
+      status: stripe.webhook ? 'ok' : 'warn',
       detail: stripeDetail,
       detailLines: appendBalanceDetailLines(stripe)
     });
@@ -15258,8 +15217,7 @@ async function checkStripeIntegration(env) {
         error: data.error?.message || 'Falha na autenticação Stripe.'
       };
     }
-    const balance = parseStripeBalancePayload(data);
-    return { configured: true, authOk: true, webhook: !!webhookSecret, mode, liveReady, error: null, balance };
+    return { configured: true, authOk: true, webhook: !!webhookSecret, mode, liveReady, error: null };
   } catch (err) {
     return { configured: true, authOk: false, webhook: !!webhookSecret, mode, liveReady: false, error: err.message };
   }
@@ -15953,8 +15911,7 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
-  const refreshBalances = new URL(request.url).searchParams.get('refreshBalances') === '1';
-  const mpBalanceOpts = refreshBalances ? { force: true } : {};
+  // Saldos removidos: não consulta balance das gateways nesta rota.
   const config = await getConfig(env);
   const weightGrams = shippingWeightGrams(config);
   const hasCorreiosCreds = !!(env.CORREIOS_USER && env.CORREIOS_PASSWORD);
@@ -15969,13 +15926,12 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
     ])
     : [null, null, null];
 
-  const [paypal, mercadoPago, mercadoLivre, amazon, shopee, shopeeBalance, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
+  const [paypal, mercadoPago, mercadoLivre, amazon, shopee, asaas, resend, zapi, exportOptions, uber, stripe, superfrete] = await Promise.all([
     checkPayPalIntegration(env),
-    checkMercadoPagoIntegration(env, mpBalanceOpts),
+    checkMercadoPagoIntegration(env),
     checkMercadoLivreIntegration(env),
     checkAmazonIntegration(env),
     checkShopeeIntegration(env),
-    checkShopeeBalanceIntegration(env, { force: refreshBalances }),
     checkAsaasIntegration(env),
     checkResendIntegration(env),
     checkZApiIntegration(env),
@@ -16062,18 +16018,9 @@ async function handleAdminIntegrationsStatus(request, env, origin) {
   integrations.push(...correiosExtra);
   const ordered = sortIntegrationRows(integrations);
 
-  const paymentBalances = {
-    mercadopago: buildPaymentBalanceCard('mercadopago', 'Mercado Pago', mercadoPago),
-    shopee: buildPaymentBalanceCard('shopee', 'Shopee', shopeeBalance),
-    paypal: buildPaymentBalanceCard('paypal', 'PayPal', paypal),
-    stripe: buildPaymentBalanceCard('stripe', 'Stripe', stripe)
-  };
-
   return json({
     integrations: ordered,
-    checkedAt: new Date().toISOString(),
-    paymentBalances,
-    paymentBalancesSummary: buildPaymentBalancesSummary(paymentBalances)
+    checkedAt: new Date().toISOString()
   }, 200, origin);
 }
 
@@ -18828,19 +18775,8 @@ export default {
       if (path === '/_local/smoke/monthly-clicks-report' && request.method === 'GET') {
         return handleLocalSmokeMonthlyClicksReport(request, env, origin);
       }
-      if (path === '/_local/smoke/mp-balance' && request.method === 'GET') {
-        return handleLocalSmokeMpBalance(request, env, origin);
-      }
       if (path === '/admin/integrations-status' && request.method === 'GET') {
         return handleAdminIntegrationsStatus(request, env, origin);
-      }
-      if (path === '/admin/mp/release-audit' && request.method === 'GET') {
-        return handleAdminMpReleaseAudit(request, env, origin, {
-          isValidSession,
-          bearerToken,
-          json,
-          mercadoPagoToken
-        });
       }
       if (path === '/admin/correios-contract' && request.method === 'GET') {
         return handleAdminCorreiosContract(request, env, origin);
