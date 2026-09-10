@@ -5,7 +5,7 @@
 
 import { generateCommissionerStoryBanners } from './commissioner-banners.js';
 import { handleForumRoute } from './forum.js';
-import { refreshHomeContentI18n, mergePreservedI18n, homeContentI18nStatus } from './site-l10n.js';
+import { refreshHomeContentI18n, refreshProductsTextI18n, mergePreservedI18n, homeContentI18nStatus } from './site-l10n.js';
 import {
   bumpKvWriteCounter,
   buildKvDailyWriteBudget,
@@ -17815,9 +17815,8 @@ async function handlePutConfig(request, env, origin, ctx) {
         ? body.intlCurrenciesAutoPpp !== false
         : autoFxEnabled(current))
   };
-  // Product name*/description* i18n: Admin fields exist; auto-translate on product save
-  // is NOT wired here (home FAQ/reviews use refreshHomeContentI18n). TODO: product text
-  // refresh endpoint separate from home-i18n — do not invent a full system in markup saves.
+  // Textos GLOBAL (name/description): auto-traduz após save.
+  // MARKET-SPECIFIC (images, markets, price, kit vs lente) NÃO passa por i18n.
   if (autoFxEnabled(merged)) {
     const synced = syncOpticalIntlBrlFromBrKit(merged.products || []);
     const fxRates = await fetchFxRatesMap(env, (merged.intlCurrencies || []).map((c) => c.code));
@@ -17837,13 +17836,21 @@ async function handlePutConfig(request, env, origin, ctx) {
     const latest = await getConfig(env);
     await saveConfig(env, {
       ...latest,
-      homeFaq: partial.homeFaq,
-      homeReviews: partial.homeReviews
+      homeFaq: partial.homeFaq != null ? partial.homeFaq : latest.homeFaq,
+      homeReviews: partial.homeReviews != null ? partial.homeReviews : latest.homeReviews,
+      products: partial.products != null ? partial.products : latest.products
     });
   };
-  const runI18n = refreshHomeContentI18n(env, saved, { onProgress: persistI18nPartial })
-    .then((next) => persistI18nPartial(next))
-    .catch((err) => console.warn('home i18n:', err?.message || err));
+  const runI18n = (async () => {
+    const withHome = await refreshHomeContentI18n(env, saved, {
+      onProgress: (partial) => persistI18nPartial(partial)
+    });
+    await persistI18nPartial(withHome);
+    const products = await refreshProductsTextI18n(env, withHome.products || saved.products || [], {
+      onProgress: (list) => persistI18nPartial({ products: list })
+    });
+    await persistI18nPartial({ products });
+  })().catch((err) => console.warn('content i18n:', err?.message || err));
   if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(runI18n);
   else await runI18n;
   return json(saved, 200, origin);
@@ -17912,15 +17919,20 @@ async function handleAdminHomeI18nRefresh(request, env, origin, ctx) {
     const latest = await getConfig(env);
     await saveConfig(env, {
       ...latest,
-      homeFaq: partial.homeFaq,
-      homeReviews: partial.homeReviews
+      homeFaq: partial.homeFaq != null ? partial.homeFaq : latest.homeFaq,
+      homeReviews: partial.homeReviews != null ? partial.homeReviews : latest.homeReviews,
+      products: partial.products != null ? partial.products : latest.products
     });
   };
-  const runI18n = refreshHomeContentI18n(env, current, { onProgress: persistI18nPartial })
-    .then(async (next) => {
-      await persistI18nPartial(next);
-      return homeContentI18nStatus(next);
-    })
+  const runI18n = (async () => {
+    const withHome = await refreshHomeContentI18n(env, current, { onProgress: persistI18nPartial });
+    await persistI18nPartial(withHome);
+    const products = await refreshProductsTextI18n(env, withHome.products || current.products || [], {
+      onProgress: (list) => persistI18nPartial({ products: list })
+    });
+    await persistI18nPartial({ products });
+    return homeContentI18nStatus({ ...withHome, products });
+  })()
     .catch((err) => {
       console.warn('home i18n refresh:', err?.message || err);
       return null;
