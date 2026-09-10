@@ -7316,3 +7316,16 @@ a.conta-forgot-link { display: inline-block; }
 .forum-related-pick span { color: #555; font-size: .88rem; }
 .forum-related-pick small { color: #888; }
 .forum-related-actions { margin-top: .85rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+
+/* Admin: readonly intl prices + ≈ R$ base */
+.admin-intl-price-ro input[readonly] {
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: default;
+}
+.admin-intl-base-brl {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  opacity: 0.7;
+}

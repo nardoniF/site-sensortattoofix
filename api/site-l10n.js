@@ -6,7 +6,7 @@
 
 import homeL10nStatic from './home-content-l10n.json' with { type: 'json' };
 
-export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
+export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
 export const LANG_NATIVE = {
   pt: { name: 'português brasileiro', region: 'Brasil' },
@@ -15,7 +15,12 @@ export const LANG_NATIVE = {
   de: { name: 'Deutsch', region: 'Deutschland und Österreich' },
   es: { name: 'español de España', region: 'España' },
   pl: { name: 'polski', region: 'Polska' },
-  sl: { name: 'slovenščina', region: 'Slovenija' }
+  sl: { name: 'slovenščina', region: 'Slovenija' },
+  fr: { name: 'français', region: 'France' },
+  nl: { name: 'Nederlands', region: 'Nederland' },
+  sv: { name: 'svenska', region: 'Sverige' },
+  no: { name: 'norsk bokmål', region: 'Norge' },
+  fi: { name: 'suomi', region: 'Suomi' }
 };
 
 const L10N_MODEL = '@cf/meta/llama-3.1-8b-instruct';
@@ -63,7 +68,9 @@ function systemPrompt(targetLang, kind) {
     ? 'This is a product FAQ for an optical lens that restores smartwatch sensors on tattooed skin. Keep HTML tags (<strong>, <a href="...">) intact. Keep brand names (Sensor Tattoo Fix, Apple Watch, Garmin, Samsung, PayPal). Adapt how locals talk about watches, tattoos, payments and shipping — not a literal translation.'
     : kind === 'review'
       ? 'This is a short customer testimonial. Keep the person\'s name as-is. Sound like a real local review, not marketing copy.'
-      : 'This is a community forum post or reply written by a customer. Keep the original meaning, tone and any product/model names. Write how a native in that country would write a forum comment — informal if the source is informal.';
+      : kind === 'product'
+        ? 'This is a product name and short description. Keep brand names (Sensor Tattoo Fix, SensorTattooFix, Apple Watch, Garmin, Samsung). If the source says "Kit", keep the commercial meaning of a kit; if it says "Lens"/"Lente", keep it as lens-only — never turn a kit into a lens or vice versa. Do not add accessories (liquid, cloth, stick) that are not in the source.'
+        : 'This is a community forum post or reply written by a customer. Keep the original meaning, tone and any product/model names. Write how a native in that country would write a forum comment — informal if the source is informal.';
   return `You are a native ${meta.name} copywriter for Sensor Tattoo Fix (${meta.region}).
 ${kindHint}
 Return ONLY a JSON object with the same keys as the input. No markdown, no commentary.
@@ -308,6 +315,87 @@ export function mergePreservedI18n(incoming, previous) {
       sourceIt: item.sourceIt || prev.sourceIt
     };
   });
+}
+
+/** Sufixo de campo legado no produto: en → En, de → De, … */
+export const PRODUCT_TEXT_LANG_SUFFIX = {
+  en: 'En',
+  it: 'It',
+  de: 'De',
+  es: 'Es',
+  pl: 'Pl',
+  sl: 'Sl'
+};
+
+/**
+ * Textos GLOBAL do produto (nome/descrição PT → nameEn/descriptionEn…).
+ * NÃO toca imagens, preço, markets, markup nem estrutura kit/lente.
+ * Locks: product.textI18nLocks = { en: true } evita sobrescrever um idioma market-specific.
+ */
+export async function refreshProductTextI18n(env, product) {
+  if (!product || typeof product !== 'object') return product;
+  const name = String(product.name || '').trim();
+  const description = String(product.description || '').trim();
+  if (!name && !description) return product;
+
+  const locks = product.textI18nLocks && typeof product.textI18nLocks === 'object'
+    ? product.textI18nLocks
+    : {};
+  const fp = fieldsFingerprint({ name, description });
+  const hash = await hashSource(fp);
+  const ptChanged = Boolean(product.textI18nHash) && product.textI18nHash !== hash;
+
+  const missing = otherSiteLangs('pt').filter((lang) => {
+    if (locks[lang]) return false;
+    const suf = PRODUCT_TEXT_LANG_SUFFIX[lang];
+    if (!suf) return false;
+    return !String(product['name' + suf] || '').trim();
+  });
+
+  if (product.textI18nHash === hash && !missing.length) {
+    return { ...product, textI18nHash: hash, textSourceLang: 'pt' };
+  }
+
+  const targets = (ptChanged ? otherSiteLangs('pt') : missing).filter((lang) => !locks[lang]);
+  const generated = targets.length
+    ? await localizeToAllLangs(env, {
+      sourceLang: 'pt',
+      fields: { name, description },
+      kind: 'product',
+      targets
+    })
+    : {};
+
+  const next = { ...product, textI18nHash: hash, textSourceLang: 'pt' };
+  for (const lang of targets) {
+    const pack = generated[lang];
+    const suf = PRODUCT_TEXT_LANG_SUFFIX[lang];
+    if (!pack || !suf) continue;
+    if (String(pack.name || '').trim()) next['name' + suf] = String(pack.name).trim();
+    if (String(pack.description || '').trim()) next['description' + suf] = String(pack.description).trim();
+  }
+  // Nunca copiar/alterar campos de mercado
+  return next;
+}
+
+/** Atualiza textos GLOBAL de todos os produtos; preserva images/price/markets. */
+export async function refreshProductsTextI18n(env, products, { onProgress } = {}) {
+  const list = Array.isArray(products) ? [...products] : [];
+  for (let i = 0; i < list.length; i += 1) {
+    const before = list[i];
+    const images = Array.isArray(before?.images) ? before.images.slice() : before?.images;
+    const image = before?.image;
+    const markets = Array.isArray(before?.markets) ? before.markets.slice() : before?.markets;
+    const price = before?.price;
+    list[i] = await refreshProductTextI18n(env, before);
+    // Blindagem: mesmo se o modelo falhar, não deixar vazar alteração de market-specific
+    if (images !== undefined) list[i].images = images;
+    if (image !== undefined) list[i].image = image;
+    if (markets !== undefined) list[i].markets = markets;
+    if (price !== undefined) list[i].price = price;
+    if (typeof onProgress === 'function') await onProgress(list);
+  }
+  return list;
 }
 
 /**
