@@ -289,7 +289,7 @@ window.STF_FOOTER = (function () {
 
   function render(el) {
     const mode = el.dataset.siteFooter || 'compact';
-    const lang = detectLang();
+    const lang = el.dataset.lang || detectLang();
     const prefix = prefixFrom(el);
     const social = mode === 'full' ? socialBlock(lang, prefix) : '';
     el.innerHTML = social + legalBlock(lang);
