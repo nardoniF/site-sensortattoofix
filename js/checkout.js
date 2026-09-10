@@ -1803,13 +1803,24 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function defaultIntlCountry() {
-    const lang = (document.documentElement.lang || '').toLowerCase();
-    if (lang.startsWith('it')) return 'IT';
-    if (lang.startsWith('en')) return 'US';
-    return null;
+    const lang = (
+      window.STF_PAGE_LANG?.get?.()
+      || window.STF_I18N?.getLang?.()
+      || document.documentElement.lang
+      || ''
+    ).toLowerCase().slice(0, 2);
+    const map = {
+      en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
+      fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
+    };
+    return map[lang] || null;
   }
 
   async function resolveDefaultIntlCountry() {
+    // País = idioma/site de entrada (IT→Itália, FR→França, SV→Suécia…).
+    // Geo IP só como fallback se o idioma não mapear.
+    const fromLang = defaultIntlCountry();
+    if (fromLang) return fromLang;
     const base = apiBase() || (window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
     if (base) {
       try {
@@ -1821,7 +1832,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         }
       } catch { /* geo indisponível */ }
     }
-    return defaultIntlCountry();
+    return 'US';
   }
 
   async function initializeLocalizedCheckout() {
@@ -1829,7 +1840,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!def || !els.paisCode) return;
     const has = [...els.paisCode.options].some((o) => o.value === def);
     if (!has) return;
-    if (!els.paisCode.value || els.paisCode.value === 'BR') {
+    // Sempre alinha ao idioma da página no primeiro load (não deixa US grudado em FR/NL/…).
+    if (!els.paisCode.value || els.paisCode.value === 'BR' || els.paisCode.value !== def) {
       els.paisCode.value = def;
       toggleAddressForm();
     }
