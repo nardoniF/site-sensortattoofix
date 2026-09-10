@@ -331,8 +331,82 @@ html[lang="it"] .logo-img-link { width: 74px; height: 74px; }
 html[lang="it"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
 html[lang="it"] .nav-actions { gap: 6px; }
 
+/* Header FR/NL/DE/FI/ES/SV/NO/SL: alívio de espaço (traduções estouravam sobre a marca e redes) */
+html[lang="fr"] .site-nav,
+html[lang="nl"] .site-nav,
+html[lang="de"] .site-nav,
+html[lang="fi"] .site-nav,
+html[lang="es"] .site-nav,
+html[lang="sv"] .site-nav,
+html[lang="no"] .site-nav,
+html[lang="sl"] .site-nav { gap: 10px; }
+html[lang="fr"] .logo-text,
+html[lang="nl"] .logo-text,
+html[lang="de"] .logo-text,
+html[lang="fi"] .logo-text,
+html[lang="es"] .logo-text,
+html[lang="sv"] .logo-text,
+html[lang="no"] .logo-text,
+html[lang="sl"] .logo-text { font-size: 1.18rem; }
+html[lang="fr"] .logo-tagline,
+html[lang="nl"] .logo-tagline,
+html[lang="de"] .logo-tagline,
+html[lang="fi"] .logo-tagline,
+html[lang="es"] .logo-tagline,
+html[lang="sv"] .logo-tagline,
+html[lang="no"] .logo-tagline,
+html[lang="sl"] .logo-tagline { font-size: 0.74rem; }
+html[lang="fr"] .logo-img-link,
+html[lang="nl"] .logo-img-link,
+html[lang="de"] .logo-img-link,
+html[lang="fi"] .logo-img-link,
+html[lang="es"] .logo-img-link,
+html[lang="sv"] .logo-img-link,
+html[lang="no"] .logo-img-link,
+html[lang="sl"] .logo-img-link { width: 74px; height: 74px; }
+html[lang="fr"] .site-social,
+html[lang="nl"] .site-social,
+html[lang="de"] .site-social,
+html[lang="fi"] .site-social,
+html[lang="es"] .site-social,
+html[lang="sv"] .site-social,
+html[lang="no"] .site-social,
+html[lang="sl"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
+html[lang="fr"] .nav-actions,
+html[lang="nl"] .nav-actions,
+html[lang="de"] .nav-actions,
+html[lang="fi"] .nav-actions,
+html[lang="es"] .nav-actions,
+html[lang="sv"] .nav-actions,
+html[lang="no"] .nav-actions,
+html[lang="sl"] .nav-actions { gap: 6px; }
+html[lang="fr"] .nav-main,
+html[lang="nl"] .nav-main,
+html[lang="de"] .nav-main,
+html[lang="fi"] .nav-main,
+html[lang="es"] .nav-main,
+html[lang="sv"] .nav-main,
+html[lang="no"] .nav-main,
+html[lang="sl"] .nav-main { gap: 3px 7px; }
+html[lang="fr"] .nav-main a,
+html[lang="nl"] .nav-main a,
+html[lang="de"] .nav-main a,
+html[lang="fi"] .nav-main a,
+html[lang="es"] .nav-main a,
+html[lang="sv"] .nav-main a,
+html[lang="no"] .nav-main a,
+html[lang="sl"] .nav-main a { font-size: 0.72rem; padding: 4px 1px; }
+
 @media (max-width: 1360px) {
-    html[lang="it"] .logo-lockup .logo-tagline { display: none; }
+    html[lang="it"] .logo-lockup .logo-tagline,
+    html[lang="fr"] .logo-lockup .logo-tagline,
+    html[lang="nl"] .logo-lockup .logo-tagline,
+    html[lang="de"] .logo-lockup .logo-tagline,
+    html[lang="fi"] .logo-lockup .logo-tagline,
+    html[lang="es"] .logo-lockup .logo-tagline,
+    html[lang="sv"] .logo-lockup .logo-tagline,
+    html[lang="no"] .logo-lockup .logo-tagline,
+    html[lang="sl"] .logo-lockup .logo-tagline { display: none; }
 }
 
 @media (max-width: 1180px) {
@@ -7316,3 +7390,16 @@ a.conta-forgot-link { display: inline-block; }
 .forum-related-pick span { color: #555; font-size: .88rem; }
 .forum-related-pick small { color: #888; }
 .forum-related-actions { margin-top: .85rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+
+/* Admin: readonly intl prices + ≈ R$ base */
+.admin-intl-price-ro input[readonly] {
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: default;
+}
+.admin-intl-base-brl {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
