@@ -110,7 +110,7 @@ export async function localizeFields(env, { sourceLang, fields, targetLang, kind
   if (!keys.length) return {};
   const payload = {};
   keys.forEach((k) => { payload[k] = String(fields[k] || ''); });
-  try {
+  const attempt = async () => {
     const raw = await runLlama(env, [
       { role: 'system', content: systemPrompt(tgt, kind) },
       { role: 'user', content: `Source language: ${LANG_NATIVE[src]?.name || src}\nJSON:\n${JSON.stringify(payload)}` }
@@ -123,9 +123,20 @@ export async function localizeFields(env, { sourceLang, fields, targetLang, kind
       out[k] = v != null && String(v).trim() ? String(v) : payload[k];
     });
     return out;
+  };
+  try {
+    const first = await attempt();
+    if (first) return first;
+    // Uma retentativa: modelo às vezes devolve markdown/lixo na 1ª vez (ex.: sl).
+    return await attempt();
   } catch (err) {
     console.warn('site-l10n: AI failed', tgt, err?.message || err);
-    return null;
+    try {
+      return await attempt();
+    } catch (err2) {
+      console.warn('site-l10n: AI retry failed', tgt, err2?.message || err2);
+      return null;
+    }
   }
 }
 
@@ -150,7 +161,12 @@ export function seedFaqI18nFromLegacy(item) {
     ['de', 'questionDe', 'answerDe'],
     ['es', 'questionEs', 'answerEs'],
     ['pl', 'questionPl', 'answerPl'],
-    ['sl', 'questionSl', 'answerSl']
+    ['sl', 'questionSl', 'answerSl'],
+    ['fr', 'questionFr', 'answerFr'],
+    ['nl', 'questionNl', 'answerNl'],
+    ['sv', 'questionSv', 'answerSv'],
+    ['no', 'questionNo', 'answerNo'],
+    ['fi', 'questionFi', 'answerFi']
   ];
   pairs.forEach(([lang, qk, ak]) => {
     const q = String(item?.[qk] || '').trim();
@@ -162,6 +178,24 @@ export function seedFaqI18nFromLegacy(item) {
     };
   });
   return seedFaqI18nFromStatic(item, i18n);
+}
+
+/** Espelha i18n.en/it/… nos campos legados questionEn/answerEn para o front antigo. */
+export function syncLegacyFaqFieldsFromI18n(item) {
+  if (!item || typeof item !== 'object') return item;
+  const i18n = item.i18n && typeof item.i18n === 'object' ? item.i18n : {};
+  const next = { ...item };
+  const map = [
+    ['en', 'En'], ['it', 'It'], ['de', 'De'], ['es', 'Es'], ['pl', 'Pl'], ['sl', 'Sl'],
+    ['fr', 'Fr'], ['nl', 'Nl'], ['sv', 'Sv'], ['no', 'No'], ['fi', 'Fi']
+  ];
+  map.forEach(([lang, suf]) => {
+    const q = String(i18n[lang]?.question || '').trim();
+    const a = String(i18n[lang]?.answer || '').trim();
+    if (q) next['question' + suf] = q;
+    if (a) next['answer' + suf] = a;
+  });
+  return next;
 }
 
 /** Preenche DE/ES/PL/SL a partir do arquivo estático (mesmas IDs da home). */
@@ -222,7 +256,7 @@ export async function refreshFaqItemI18n(env, item) {
     return !pack || !String(pack.question || '').trim();
   });
   if (item.i18nHash === hash && !missing.length) {
-    return { ...item, i18n: seeded, i18nHash: hash, sourceLang: 'pt' };
+    return syncLegacyFaqFieldsFromI18n({ ...item, i18n: seeded, i18nHash: hash, sourceLang: 'pt' });
   }
   const targets = ptChanged ? otherSiteLangs('pt') : missing;
   const generated = targets.length
@@ -236,7 +270,15 @@ export async function refreshFaqItemI18n(env, item) {
   const i18n = ptChanged
     ? { ...seedFaqI18nFromLegacy({ ...item, i18n: {} }), ...generated }
     : { ...seeded, ...generated };
-  return { ...item, i18n, i18nHash: hash, sourceLang: 'pt' };
+  // Só grava hash se pelo menos EN saiu — senão o próximo save/cron tenta de novo.
+  const hasEn = Boolean(String(i18n.en?.question || '').trim());
+  const next = {
+    ...item,
+    i18n,
+    sourceLang: 'pt',
+    i18nHash: hasEn || !targets.length ? hash : (item.i18nHash || null)
+  };
+  return syncLegacyFaqFieldsFromI18n(next);
 }
 
 function seedReviewI18nFromLegacy(item) {
@@ -400,24 +442,57 @@ export async function refreshProductsTextI18n(env, products, { onProgress } = {}
 
 /**
  * Gera i18n faltante de FAQ/elogios.
+ * Prioriza: IDs preferidos (acabaram de salvar) → incompletos → resto.
+ * faqLimit limita quantos FAQs *pendentes* processar (evita estourar waitUntil
+ * ao traduzir 11 línguas × N itens numa única request).
  * onProgress(partialConfig) — chamado após cada item (para save incremental no KV).
  */
-export async function refreshHomeContentI18n(env, config, { onProgress } = {}) {
+export async function refreshHomeContentI18n(env, config, {
+  onProgress,
+  faqLimit = 0,
+  preferIds = [],
+  skipReviews = false
+} = {}) {
   const homeFaq = Array.isArray(config?.homeFaq) ? [...config.homeFaq] : [];
   const homeReviews = Array.isArray(config?.homeReviews) ? [...config.homeReviews] : [];
+  const prefer = new Set((preferIds || []).map((id) => String(id || '').trim()).filter(Boolean));
+
+  const faqNeedsWork = (item) => {
+    if (!item || !String(item.question || '').trim()) return false;
+    const seeded = seedFaqI18nFromLegacy(item);
+    return otherSiteLangs('pt').some((lang) => !String(seeded[lang]?.question || '').trim());
+  };
+
+  const order = homeFaq
+    .map((item, index) => ({
+      item,
+      index,
+      pending: faqNeedsWork(item),
+      preferred: prefer.has(String(item?.id || ''))
+    }))
+    .sort((a, b) => (
+      Number(b.preferred) - Number(a.preferred)
+      || Number(b.pending) - Number(a.pending)
+      || a.index - b.index
+    ));
 
   const emit = async () => {
     if (typeof onProgress !== 'function') return;
     await onProgress({ ...config, homeFaq: [...homeFaq], homeReviews: [...homeReviews] });
   };
 
-  for (let i = 0; i < homeFaq.length; i += 1) {
-    homeFaq[i] = await refreshFaqItemI18n(env, homeFaq[i]);
+  let faqDone = 0;
+  for (const { item, index, pending } of order) {
+    if (faqLimit > 0 && pending && faqDone >= faqLimit) continue;
+    homeFaq[index] = await refreshFaqItemI18n(env, item);
+    if (pending) faqDone += 1;
     await emit();
   }
-  for (let i = 0; i < homeReviews.length; i += 1) {
-    homeReviews[i] = await refreshReviewItemI18n(env, homeReviews[i]);
-    await emit();
+  if (!skipReviews) {
+    for (let i = 0; i < homeReviews.length; i += 1) {
+      homeReviews[i] = await refreshReviewItemI18n(env, homeReviews[i]);
+      await emit();
+    }
   }
   return { ...config, homeFaq, homeReviews };
 }

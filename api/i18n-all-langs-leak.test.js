@@ -50,3 +50,36 @@ test('forum-l10n.json covers fr/nl/sv/no/fi chrome titles', () => {
   assert.match(forum, /forum-l10n\.json/);
   assert.match(forum, /fr','nl','sv','no','fi/);
 });
+
+test('refreshHomeContentI18n prioriza FAQs sem i18n', async () => {
+  const mod = await import('./site-l10n.js');
+  const src = fs.readFileSync(path.join(root, 'api/site-l10n.js'), 'utf8');
+  assert.match(src, /faqNeedsWork|pending/);
+  assert.match(src, /syncLegacyFaqFieldsFromI18n/);
+  assert.match(src, /faqLimit/);
+  assert.match(src, /preferIds/);
+  assert.equal(typeof mod.syncLegacyFaqFieldsFromI18n, 'function');
+  const synced = mod.syncLegacyFaqFieldsFromI18n({
+    question: 'PT',
+    i18n: { en: { question: 'EN Q', answer: 'EN A' }, fr: { question: 'FR Q', answer: 'FR A' } }
+  });
+  assert.equal(synced.questionEn, 'EN Q');
+  assert.equal(synced.answerEn, 'EN A');
+  assert.equal(synced.questionFr, 'FR Q');
+});
+
+test('home-content.js não faz fallback PT em páginas intl', () => {
+  const src = fs.readFileSync(path.join(root, 'js/home-content.js'), 'utf8');
+  assert.match(src, /não cair no português|NÃO cair no português/i);
+  assert.match(src, /fr: 'Fr'/);
+  assert.match(src, /'fr', 'nl', 'sv', 'no', 'fi'/);
+});
+
+test('putConfig limita FAQ i18n no waitUntil e prioriza IDs alterados', () => {
+  const src = fs.readFileSync(path.join(root, 'api/worker.js'), 'utf8');
+  assert.match(src, /changedFaqIds/);
+  assert.match(src, /preferIds:\s*changedFaqIds/);
+  assert.match(src, /faqLimit:/);
+  assert.match(src, /skipReviews:\s*true/);
+  assert.match(src, /faqLimit:\s*6/);
+});

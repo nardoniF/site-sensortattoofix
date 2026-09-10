@@ -17961,15 +17961,35 @@ async function handlePutConfig(request, env, origin, ctx) {
       products: partial.products != null ? partial.products : latest.products
     });
   };
+  // FAQs que mudaram neste save (novas ou PT editado) — prioridade no waitUntil.
+  const prevFaqById = new Map((current.homeFaq || []).map((f) => [String(f?.id || ''), f]));
+  const changedFaqIds = (saved.homeFaq || [])
+    .filter((f) => {
+      const id = String(f?.id || '');
+      if (!id || !String(f?.question || '').trim()) return false;
+      const prev = prevFaqById.get(id);
+      if (!prev) return true;
+      return String(prev.question || '') !== String(f.question || '')
+        || String(prev.answer || '') !== String(f.answer || '');
+    })
+    .map((f) => String(f.id));
+  // FAQ primeiro (limitado: 11 línguas × N itens estoura waitUntil). Cron/botão cobrem o resto.
   const runI18n = (async () => {
     const withHome = await refreshHomeContentI18n(env, saved, {
-      onProgress: (partial) => persistI18nPartial(partial)
+      onProgress: (partial) => persistI18nPartial(partial),
+      preferIds: changedFaqIds,
+      faqLimit: Math.max(2, Math.min(3, changedFaqIds.length || 2)),
+      skipReviews: true
     });
     await persistI18nPartial(withHome);
-    const products = await refreshProductsTextI18n(env, withHome.products || saved.products || [], {
-      onProgress: (list) => persistI18nPartial({ products: list })
-    });
-    await persistI18nPartial({ products });
+    try {
+      const products = await refreshProductsTextI18n(env, withHome.products || saved.products || [], {
+        onProgress: (list) => persistI18nPartial({ products: list })
+      });
+      await persistI18nPartial({ products });
+    } catch (err) {
+      console.warn('product text i18n:', err?.message || err);
+    }
   })().catch((err) => console.warn('content i18n:', err?.message || err));
   if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(runI18n);
   else await runI18n;
@@ -19394,6 +19414,28 @@ export default {
           console.error('Intl FX price sync cron failed:', err.message);
         })
       );
+      // Backfill FAQ/elogios incompletos (lote) — novas perguntas em PT → todos os idiomas
+      ctx.waitUntil((async () => {
+        const current = await getConfig(env);
+        const next = await refreshHomeContentI18n(env, current, {
+          faqLimit: 6,
+          onProgress: async (partial) => {
+            const latest = await getConfig(env);
+            await saveConfig(env, {
+              ...latest,
+              homeFaq: partial.homeFaq,
+              homeReviews: partial.homeReviews
+            });
+          }
+        });
+        const latest = await getConfig(env);
+        await saveConfig(env, {
+          ...latest,
+          homeFaq: next.homeFaq,
+          homeReviews: next.homeReviews
+        });
+        console.log('Home FAQ i18n cron:', homeContentI18nStatus(next));
+      })().catch((err) => console.error('Home FAQ i18n cron failed:', err?.message || err)));
     }
     // 02:59 UTC = 23:59 horário de Brasília — último dia do mês
     if (event.cron === '59 2 * * *') {
