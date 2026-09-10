@@ -6713,6 +6713,7 @@ ${worksheets}
     if (m.startsWith('Withings')) return 'Withings';
     if (m.startsWith('Suunto')) return 'Suunto';
     if (m.startsWith('Coros')) return 'Coros';
+    if (/^WearZone/i.test(m)) return 'WearZone';
     return 'Outros';
   }
 
