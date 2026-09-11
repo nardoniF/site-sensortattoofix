@@ -4840,6 +4840,10 @@ body.admin-page.pedidos-login-only #pedidos-login {
     padding: 16px 0 4px;
     border-top: 1px solid #2a2a2a;
 }
+.vendas-when.admin-fold {
+    padding: 0;
+    border-top: none;
+}
 .vendas-when-title {
     margin: 0 0 4px;
     font-size: 1.05rem;
