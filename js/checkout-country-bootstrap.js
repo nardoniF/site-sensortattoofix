@@ -1,11 +1,32 @@
 /**
  * Preenche #pais-code a partir de /config — lista completa de países (ISO),
  * independente do checkout.js (evita cache stale no .com).
+ * Default do país = idioma da página (IT→IT, FR→FR, SV→SE, …).
  */
 (function () {
+  const LANG_COUNTRY = {
+    en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
+    fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
+  };
+
+  function pageLang() {
+    if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
+    if (window.STF_I18N?.getLang) return window.STF_I18N.getLang();
+    const lang = String(document.documentElement.lang || 'en').toLowerCase().slice(0, 2);
+    return lang || 'en';
+  }
+
   function locale() {
-    const lang = (document.documentElement.lang || 'en').toLowerCase();
-    return lang.startsWith('it') ? 'it' : 'en';
+    const lang = pageLang();
+    const map = {
+      en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl',
+      fr: 'fr', nl: 'nl', sv: 'sv', no: 'nb', fi: 'fi'
+    };
+    return map[lang] || 'en';
+  }
+
+  function defaultCountry() {
+    return LANG_COUNTRY[pageLang()] || 'US';
   }
 
   function labelFor(code, fallback) {
@@ -14,6 +35,15 @@
     } catch {
       return fallback || code;
     }
+  }
+
+  function otherCountryLabel() {
+    const labels = {
+      it: 'Altro paese', de: 'Anderes Land', es: 'Otro país', pl: 'Inny kraj',
+      sl: 'Druga država', fr: 'Autre pays', nl: 'Ander land', sv: 'Annat land',
+      no: 'Annet land', fi: 'Muu maa', en: 'Other country'
+    };
+    return labels[pageLang()] || labels.en;
   }
 
   async function fillCountries() {
@@ -45,10 +75,10 @@
       });
     const other = document.createElement('option');
     other.value = 'OTHER';
-    other.textContent = locale() === 'it' ? 'Altro paese' : 'Other country';
+    other.textContent = otherCountryLabel();
     sel.appendChild(other);
     if (!sel.value) {
-      const def = locale() === 'it' ? 'IT' : 'US';
+      const def = defaultCountry();
       if ([...sel.options].some((o) => o.value === def)) sel.value = def;
     }
     sel.dispatchEvent(new Event('change', { bubbles: true }));
