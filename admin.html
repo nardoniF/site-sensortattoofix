@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.26">
+    <link rel="stylesheet" href="style.css?v=3.27">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -1124,6 +1124,7 @@
                             <div class="admin-toolbar-main">
                                 <button type="button" id="btn-clicks-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Atualizar</button>
                                 <button type="button" id="btn-clicks-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+                                <span id="clicks-refresh-status" class="admin-status form-status admin-clicks-refresh-status" hidden></span>
                             </div>
                             <div class="admin-toolbar-risk">
                                 <button type="button" id="btn-clicks-test" class="btn-warning-outline" title="Grava um clique de teste e recarrega o log"><i class="fas fa-vial"></i> Testar log</button>
@@ -1383,6 +1384,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=232"></script>
+    <script defer src="js/admin.js?v=233"></script>
 </body>
 </html>

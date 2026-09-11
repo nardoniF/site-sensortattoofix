@@ -4045,6 +4045,10 @@ body.admin-page.pedidos-login-only #pedidos-login {
     flex: 1 1 auto;
     min-width: 0;
 }
+.admin-clicks-refresh-status {
+    margin: 0;
+    font-size: 0.85rem;
+}
 .admin-toolbar-risk {
     display: flex;
     flex-wrap: wrap;

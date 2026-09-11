@@ -3197,6 +3197,9 @@ ${worksheets}
   let clicksBgStarted = false;
   let clicksLoadPromise = null;
   let clicksMetaCache = null;
+  let clicksUiPainted = false;
+  let clicksPaintToken = 0;
+  let clicksAbort = null;
   let feedbackLoading = false;
   let feedbackSearchTimer = null;
   let clicksCache = [];
@@ -3238,9 +3241,8 @@ ${worksheets}
           withNav: data.withNav,
           navSessions: data.navSessions
         },
-        clicks: data.clicks,
-        whenClicks: data.whenClicks?.length ? data.whenClicks : data.clicks,
-        whenWindow: data.capacity || null
+        clicks: data.clicks
+        // whenClicks omitido se igual a clicks — snapshot menor, parse mais rápido
       }));
     } catch (_) { /* quota */ }
   }
@@ -3353,9 +3355,15 @@ ${worksheets}
     return out;
   }
 
-  function reapplyClicksLocalFilters(openPaths) {
+  function reapplyClicksLocalFilters(openPaths, opts = {}) {
     if (!clicksCache.length || !clicksMetaCache) {
+      clicksUiPainted = false;
       showClicksEmptyState();
+      return;
+    }
+    // Evita remontar árvore/gráficos toda vez que o usuário só reabre a aba.
+    if (opts.skipIfPainted && clicksUiPainted) {
+      showClicksCacheHint();
       return;
     }
     wireClicksWhenFilters();
@@ -3367,21 +3375,39 @@ ${worksheets}
       navEl.disabled = !destino;
       navEl.closest('label')?.classList.toggle('is-disabled', !destino);
     }
-    renderClicksStats(clicksMetaCache);
-    renderClicksWhenCharts(clicksWhenCache);
-    renderClicksNoiseStats(clicksWhenCache);
-    const display = filterClicksLocally(clicksCache, q, destino);
-    renderClicksTree(
-      display,
-      clicksMetaCache.checkedAt,
-      clicksMetaCache.total,
-      openPaths || captureClicksTreeOpenPaths()
-    );
-    showClicksCacheHint();
-    if (destino && withNav) {
-      setClicksLoadStatus('Navegação completa por visita exige Atualizar (busca na API).', 'warning');
-      window.setTimeout(() => setClicksLoadStatus(''), 4000);
+    const token = ++clicksPaintToken;
+    const paths = openPaths || captureClicksTreeOpenPaths();
+    const run = () => {
+      if (token !== clicksPaintToken) return;
+      renderClicksStats(clicksMetaCache);
+      renderClicksWhenCharts(clicksWhenCache);
+      renderClicksNoiseStats(clicksWhenCache);
+      const display = filterClicksLocally(clicksCache, q, destino);
+      renderClicksTree(
+        display,
+        clicksMetaCache.checkedAt,
+        clicksMetaCache.total,
+        paths
+      );
+      clicksUiPainted = true;
+      showClicksCacheHint();
+      if (destino && withNav) {
+        setClicksLoadStatus('Navegação completa por visita exige Atualizar (busca na API).', 'warning');
+        window.setTimeout(() => setClicksLoadStatus(''), 4000);
+      }
+    };
+    // Deixa a aba pintar primeiro; depois monta a árvore (evita “página não responde”).
+    if (opts.defer) {
+      setClicksLoadStatus('Montando lista de cliques…');
+      window.requestAnimationFrame(() => {
+        window.setTimeout(() => {
+          run();
+          if (token === clicksPaintToken) setClicksLoadStatus('');
+        }, 0);
+      });
+      return;
     }
+    run();
   }
 
   function showPaymentBalancesFromCache() {
@@ -5157,16 +5183,43 @@ ${worksheets}
   }
 
   function setClicksLoadStatus(msg, type) {
+    const fold = document.getElementById('clicks-fold-log');
     const el = document.getElementById('admin-status-cliques');
-    if (!el) return;
-    if (!msg) {
-      el.hidden = true;
-      el.textContent = '';
+    const top = document.getElementById('clicks-refresh-status');
+    const apply = (node) => {
+      if (!node) return;
+      if (!msg) {
+        node.hidden = true;
+        node.textContent = '';
+        return;
+      }
+      node.textContent = msg;
+      node.className = 'admin-status form-status ' + (type || '');
+      node.hidden = false;
+    };
+    if (msg && fold && !fold.open) fold.open = true;
+    apply(el);
+    apply(top);
+  }
+
+  function setClicksRefreshBusy(busy, label) {
+    const btn = document.getElementById('btn-clicks-refresh');
+    if (!btn) return;
+    if (busy) {
+      if (!btn.dataset.labelHtml) btn.dataset.labelHtml = btn.innerHTML;
+      btn.dataset.busy = '1';
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ${label || 'Atualizando…'}`;
       return;
     }
-    el.textContent = msg;
-    el.className = 'admin-status form-status ' + (type || '');
-    el.hidden = false;
+    btn.dataset.busy = '0';
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    if (btn.dataset.labelHtml) {
+      btn.innerHTML = btn.dataset.labelHtml;
+      delete btn.dataset.labelHtml;
+    }
   }
 
   function renderClicksFromCache(openPaths) {
@@ -5186,6 +5239,10 @@ ${worksheets}
     const preserveOpen = !!opts.preserveOpen;
     const force = !!opts.force;
     if (clicksLoadPromise && !force) return clicksLoadPromise;
+    if (clicksLoadPromise && force) {
+      // Já tem carga em andamento — não empilha outra (botão busy cuida do clique).
+      return clicksLoadPromise;
+    }
     clicksBgStarted = true;
     clicksLoadPromise = loadClicks(preserveOpen).finally(() => {
       clicksLoadPromise = null;
@@ -5219,8 +5276,15 @@ ${worksheets}
     }
 
     clicksLoading = true;
+    clicksUiPainted = false;
+    if (clicksAbort) {
+      try { clicksAbort.abort(); } catch (_) { /* ignore */ }
+    }
+    clicksAbort = new AbortController();
+    const abortTimer = window.setTimeout(() => clicksAbort.abort(), 90000);
     const openPaths = preserveOpen ? captureClicksTreeOpenPaths() : [];
     const panelVisible = isClicksPanelVisible();
+    setClicksRefreshBusy(true, 'Atualizando…');
     setClicksLoadStatus(
       panelVisible
         ? 'Carregando histórico de cliques…'
@@ -5238,7 +5302,8 @@ ${worksheets}
       if (destino && withNav) params.set('nav', '1');
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
         headers: { Authorization: 'Bearer ' + token },
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: clicksAbort.signal
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
@@ -5247,10 +5312,15 @@ ${worksheets}
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = data;
       saveClicksSnapshot(data);
+      setClicksLoadStatus('Montando lista de cliques…');
+      // Yield para o spinner aparecer antes do render pesado.
+      await new Promise((r) => window.setTimeout(r, 0));
       renderClicksStats(data);
       renderClicksWhenCharts(clicksWhenCache);
       renderClicksNoiseStats(clicksWhenCache);
+      await new Promise((r) => window.setTimeout(r, 0));
       renderClicksTree(clicksCache, data.checkedAt, data.total, openPaths);
+      clicksUiPainted = true;
       const checkedEl = document.getElementById('clicks-checked-at');
       if (checkedEl && data.withNav && destino) {
         const baseTxt = checkedEl.textContent || '';
@@ -5259,16 +5329,24 @@ ${worksheets}
       setClicksLoadStatus('Cliques atualizados.', 'success');
       window.setTimeout(() => setClicksLoadStatus(''), 2500);
     } catch (err) {
-      if (isClicksPanelVisible()) {
-        root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+      if (err?.name === 'AbortError') {
+        setClicksLoadStatus('Atualização de cliques passou de 90s — tente de novo.', 'error');
+      } else {
+        if (isClicksPanelVisible() && !clicksCache.length) {
+          root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+        }
+        setClicksLoadStatus(err.message || 'Erro ao carregar cliques.', 'error');
       }
-      setClicksLoadStatus(err.message || 'Erro ao carregar cliques.', 'error');
-      const charts = document.getElementById('clicks-when-charts');
-      if (charts) charts.innerHTML = '';
-      const noise = document.getElementById('clicks-noise-charts');
-      if (noise) noise.innerHTML = '';
+      if (!clicksCache.length) {
+        const charts = document.getElementById('clicks-when-charts');
+        if (charts) charts.innerHTML = '';
+        const noise = document.getElementById('clicks-noise-charts');
+        if (noise) noise.innerHTML = '';
+      }
     } finally {
+      window.clearTimeout(abortTimer);
       clicksLoading = false;
+      setClicksRefreshBusy(false);
     }
   }
 
@@ -7933,7 +8011,10 @@ ${worksheets}
       if (id === 'cliques') {
         syncClicksNavOnlyCheckbox();
         if (clicksCache.length && clicksMetaCache) {
-          reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
+          reapplyClicksLocalFilters(captureClicksTreeOpenPaths(), {
+            skipIfPainted: true,
+            defer: true
+          });
         } else if (clicksLoading) {
           setClicksLoadStatus('Carregando cliques…');
         } else {
@@ -8196,6 +8277,8 @@ ${worksheets}
 
   document.getElementById('btn-clicks-test')?.addEventListener('click', () => testClickLog());
   document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => {
+    const btn = document.getElementById('btn-clicks-refresh');
+    if (btn?.dataset.busy === '1' || clicksLoading) return;
     startClicksBackgroundLoad({ preserveOpen: true, force: true });
   });
   document.getElementById('btn-clicks-export')?.addEventListener('click', () => exportClicksExcel());
