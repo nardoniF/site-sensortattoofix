@@ -1773,7 +1773,8 @@
           count: 0,
           owed: 0,
           bonus: 0,
-          net: 0
+          net: 0,
+          daySet: new Set()
         });
       }
       const row = map.get(key);
@@ -1783,8 +1784,21 @@
       row.owed += owed;
       row.bonus += bonus;
       row.net += roundMoneyLocal(owed - bonus);
+      const day = Number(p.day);
+      if (Number.isFinite(day) && day > 0) row.daySet.add(day);
     });
-    return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
+    return Array.from(map.values())
+      .map((r) => {
+        const { daySet, ...rest } = r;
+        return { ...rest, days: [...daySet].sort((a, b) => a - b) };
+      })
+      .sort((a, b) => String(b.key).localeCompare(String(a.key)));
+  }
+
+  function formatFlexOrderDays(days) {
+    const list = Array.isArray(days) ? days.filter((d) => Number(d) > 0) : [];
+    if (!list.length) return '';
+    return `dias ${list.join(', ')}`;
   }
 
   function renderConsolidadoFlexOwed(sales) {
@@ -1799,10 +1813,15 @@
       ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+        const daysLabel = formatFlexOrderDays(m.days);
+        const daysHtml = daysLabel
+          ? `<p class="vendas-consol-flex-days" title="Dias dos pedidos Flex deste mês">${escapeHtml(daysLabel)}</p>`
+          : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
+        ${daysHtml}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
       }).join('')}</div>`
@@ -1818,9 +1837,9 @@
   }
 
   function buildFlexOwedExportRows(sales) {
-    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias dos pedidos']];
     aggregateFlexOwedByMonth(sales).forEach((m) => {
-      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
+      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net, formatFlexOrderDays(m.days).replace(/^dias\s+/, '')]);
     });
     return rows;
   }
