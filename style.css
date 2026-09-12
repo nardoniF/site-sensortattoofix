@@ -4584,6 +4584,13 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-size: 0.72rem;
     color: #888;
 }
+.vendas-consol-flex-days {
+    margin: 2px 0 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: #c8c8c8;
+    word-break: break-word;
+}
 .vendas-consol-flex-card .vendas-consol-mtd-net {
     color: #ffe082;
 }
