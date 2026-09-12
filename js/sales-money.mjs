@@ -320,7 +320,8 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
         count: 0,
         owed: 0,
         bonus: 0,
-        net: 0
+        net: 0,
+        daySet: new Set()
       });
     }
     const row = map.get(key);
@@ -330,14 +331,20 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
     row.owed += owed;
     row.bonus += bonus;
     row.net += roundMoney(owed - bonus);
+    const day = Number(p.day);
+    if (Number.isFinite(day) && day > 0) row.daySet.add(day);
   });
   return [...map.values()]
-    .map((r) => ({
-      ...r,
-      owed: roundMoney(r.owed),
-      bonus: roundMoney(r.bonus),
-      net: roundMoney(r.net)
-    }))
+    .map((r) => {
+      const { daySet, ...rest } = r;
+      return {
+        ...rest,
+        owed: roundMoney(r.owed),
+        bonus: roundMoney(r.bonus),
+        net: roundMoney(r.net),
+        days: [...daySet].sort((a, b) => a - b)
+      };
+    })
     .sort((a, b) => String(b.key).localeCompare(String(a.key)));
 }
 

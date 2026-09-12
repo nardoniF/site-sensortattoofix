@@ -68,6 +68,18 @@ test('aggregateFlexOwedByMonth groups by BR month', () => {
   assert.equal(rows[0].owed, 11.9);
   assert.equal(rows[0].bonus, 1.1);
   assert.equal(rows[0].net, 10.8);
+  assert.deepEqual(rows[0].days, [15]);
+});
+
+test('aggregateFlexOwedByMonth lists unique order days under the month', () => {
+  const rows = aggregateFlexOwedByMonth([
+    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-02T12:00:00-03:00') },
+    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-02T18:00:00-03:00') },
+    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-10T10:00:00-03:00') }
+  ], config);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].count, 3);
+  assert.deepEqual(rows[0].days, [2, 10]);
 });
 
 test('frete manual cut reallocates leftover onto product and keeps paid total', () => {
