@@ -38,6 +38,7 @@ import {
   impliedEnviosFromReceipt,
   receiptPayout,
   repairEnviosAlreadyNet,
+  resolveEnviosShipping,
   mlShippingResolved
 } from './ml-settlement.js';
 import {
@@ -4843,8 +4844,8 @@ function healMlStoredShipping(sale, flexCfg) {
       settlementVersion: ML_SETTLEMENT_VERSION
     };
   }
-  // Legacy leftovers 0,36 / 9,36 → unresolved (not frete grátis)
-  const repaired = repairEnviosAlreadyNet(shipRaw, null);
+  // Legacy leftovers 0,36 / 9,36 / 0,05 → unresolved (not frete grátis)
+  const repaired = repairEnviosAlreadyNet(shipRaw, sale.buyerShippingCost);
   if (repaired === null && (shipRaw != null && shipRaw !== '') && mlMoney(shipRaw) > 0) {
     const payout = receiptPayout(sale.gross, sale.fees, 0);
     return {
@@ -5210,28 +5211,32 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
   let source = 'unresolved';
   let buyerShip = fromCosts.buyerShip || mlMoney(sale.buyerShippingCost);
 
+  let netApi = 0;
+  for (const p of docs) {
+    const st = String(p.status || '').toLowerCase();
+    if (st && !/approved|accredited/.test(st)) continue;
+    netApi += mlMoney(
+      p.transaction_details?.net_received_amount
+      ?? p.transaction_details?.net_received_amount
+      ?? p.net_received_amount
+    );
+  }
+
   if (isFlex) {
     shipping = flexSellerCost(flexCost, estorno);
     source = 'flex';
-  } else if (fromCosts.found) {
-    // Includes real seller cost 0,00 when ML returns cost: 0
-    shipping = fromCosts.shipping;
-    source = 'envios';
   } else {
-    let netApi = 0;
-    for (const p of docs) {
-      const st = String(p.status || '').toLowerCase();
-      if (st && !/approved|accredited/.test(st)) continue;
-      netApi += mlMoney(p.transaction_details?.net_received_amount);
-    }
-    const implied = impliedEnviosFromReceipt(gross, fees, netApi);
-    if (implied != null) {
-      shipping = implied;
-      source = 'payment_fallback';
-    } else {
-      shipping = null;
-      source = 'unresolved';
-    }
+    // Always validate Envios against payment liquid; tiny residuals (0,05) are invalid.
+    const resolved = resolveEnviosShipping({
+      gross,
+      fees,
+      liquid: netApi,
+      senderCost: fromCosts.found ? fromCosts.shipping : null,
+      buyerCost: buyerShip
+    });
+    shipping = resolved.shipping;
+    source = resolved.source;
+    buyerShip = resolved.buyerShip || buyerShip;
   }
 
   if (!(gross > 0)) return sale;
@@ -5459,6 +5464,8 @@ function mlNeedsPaymentEnrich(sale, flexCost) {
   if (sale.shippingCost == null || sale.shippingCost === '') return true;
   const ship = mlMoney(sale.shippingCost);
   if (Math.abs(ship - 0.36) <= 0.02 || Math.abs(ship - 9.36) <= 0.02) return true;
+  // Tiny residual freights (e.g. 0,05 = Envios − buyer) must be re-resolved.
+  if (ship > 0 && ship < 1) return true;
   // Legacy "payment" without settlement version — re-resolve via Envios API
   if (sale.shippingSource === 'payment' || sale.shippingSource == null) return true;
   if (sale.shippingSource !== 'envios' && sale.shippingSource !== 'payment_fallback' && sale.shippingSource !== 'flex') {

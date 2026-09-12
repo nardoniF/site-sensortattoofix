@@ -92,6 +92,7 @@ export function saleShippingCost(sale, config = null) {
     return roundMoney(Math.max(0, flexList - estorno));
   }
   if (ch === 'shopee') return s;
+  if (isMl && !isFlex && s > 0 && s < 1) return 0;
   if (isMl && (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 0;
   return s;
 }

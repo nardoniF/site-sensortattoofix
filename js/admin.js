@@ -1067,6 +1067,7 @@
       || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06);
     if (isMl && isFlex && flexList > 0) return roundMoneyLocal(Math.max(0, flexList - estorno));
     if (ch === 'shopee') return s;
+    if (isMl && !isFlex && s > 0 && s < 1) return 0;
     if (isMl && (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 0;
     return s;
   }
