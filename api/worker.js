@@ -4826,20 +4826,7 @@ function healMlStoredShipping(sale, flexCfg) {
   const ship = shipRaw == null || shipRaw === '' ? null : mlMoney(shipRaw);
   const src = String(sale.shippingSource || '');
   const logisticFlex = /flex|self_service/i.test(String(sale.logisticType || ''));
-  // Residual miúdo (0,05) — nunca é frete resolvido se a logística não é Flex de verdade
-  if (ship != null && ship > 0 && ship < 1 && !logisticFlex) {
-    const payout = receiptPayout(sale.gross, sale.fees, 0);
-    return {
-      ...sale,
-      mlFlex: false,
-      shippingCost: null,
-      shippingSource: 'unresolved',
-      settlementOk: false,
-      shippingCostsOk: false,
-      net: payout,
-      payoutNet: payout
-    };
-  }
+  // Flex de verdade primeiro — NÃO apagar residual de Flex (list − bônus pode ser 0,05)
   const isFlex = logisticFlex
     || src === 'flex'
     || (sale.mlFlex && src !== 'envios' && src !== 'payment_fallback' && src !== 'payment');
@@ -4861,7 +4848,21 @@ function healMlStoredShipping(sale, flexCfg) {
       settlementVersion: ML_SETTLEMENT_VERSION
     };
   }
-  // Legacy leftovers 0,36 / 9,36 / 0,05 → unresolved (not frete grátis)
+  // Residual miúdo só em Envios (não-Flex) — ex.: DANPROS 0,05
+  if (ship != null && ship > 0 && ship < 1) {
+    const payout = receiptPayout(sale.gross, sale.fees, 0);
+    return {
+      ...sale,
+      mlFlex: false,
+      shippingCost: null,
+      shippingSource: 'unresolved',
+      settlementOk: false,
+      shippingCostsOk: false,
+      net: payout,
+      payoutNet: payout
+    };
+  }
+  // Legacy leftovers 0,36 / 9,36 → unresolved (not frete grátis)
   const repaired = repairEnviosAlreadyNet(shipRaw, sale.buyerShippingCost);
   if (repaired === null && (shipRaw != null && shipRaw !== '') && mlMoney(shipRaw) > 0) {
     const payout = receiptPayout(sale.gross, sale.fees, 0);
@@ -5478,13 +5479,15 @@ async function upsertMlSale(env, sale, index) {
 
 function mlLooksFlexSale(sale, flexCost) {
   const src = String(sale?.shippingSource || '');
+  const logisticFlex = /flex|self_service/i.test(String(sale?.logisticType || ''));
   // Envios / payment_fallback nunca são Flex — evita travar reprocessamento do residual 0,05
   if (src === 'envios' || src === 'payment_fallback' || src === 'payment') return false;
   const ship = mlMoney(sale?.shippingCost);
-  if (ship > 0 && ship < 1 && src !== 'flex') return false;
+  // Residual miúdo só desqualifica se NÃO for Flex de verdade
+  if (ship > 0 && ship < 1 && src !== 'flex' && !logisticFlex && !sale?.mlFlex) return false;
   return !!(sale?.mlFlex
     || src === 'flex'
-    || /flex|self_service/i.test(String(sale?.logisticType || '')));
+    || logisticFlex);
 }
 
 function mlNeedsPaymentEnrich(sale, flexCost) {
