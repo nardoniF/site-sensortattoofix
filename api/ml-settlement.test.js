@@ -6,7 +6,9 @@ import {
   mlFlexBonusFromCosts,
   impliedEnviosFromReceipt,
   receiptPayout,
-  liquidMatchesReceipt
+  liquidMatchesReceipt,
+  repairEnviosAlreadyNet,
+  resolveEnviosShipping
 } from './ml-settlement.js';
 
 test('senders.cost 12,35 is used as-is (buyer 2,99 is not Envios)', () => {
@@ -75,4 +77,33 @@ test('Flex Rafael: bonus 1,10 comes from shipment costs discounts', () => {
 test('wrong leftover freights must fail the liquid test', () => {
   assert.equal(liquidMatchesReceipt(53.59, 9.65, 9.36, 31.59), false);
   assert.equal(liquidMatchesReceipt(53.59, 9.65, 0.36, 31.59), false);
+  assert.equal(liquidMatchesReceipt(92.20, 16.60, 0.05, 62.65), false);
+});
+
+test('DANPROS: residual 0,05 is rejected and receipt liquid restores Envios 12,95', () => {
+  assert.equal(repairEnviosAlreadyNet(0.05, 12.90), null);
+  assert.equal(repairEnviosAlreadyNet(0.05, null), null);
+  assert.equal(impliedEnviosFromReceipt(92.20, 16.60, 62.65), 12.95);
+  const resolved = resolveEnviosShipping({
+    gross: 92.20,
+    fees: 16.60,
+    liquid: 62.65,
+    senderCost: 0.05,
+    buyerCost: 12.90
+  });
+  assert.equal(resolved.shipping, 12.95);
+  assert.equal(resolved.source, 'payment_fallback');
+  assert.equal(liquidMatchesReceipt(92.20, 16.60, resolved.shipping, 62.65), true);
+});
+
+test('resolveEnviosShipping keeps valid senders.cost when liquid matches', () => {
+  const resolved = resolveEnviosShipping({
+    gross: 92.20,
+    fees: 16.60,
+    liquid: 62.65,
+    senderCost: 12.95,
+    buyerCost: 0
+  });
+  assert.equal(resolved.shipping, 12.95);
+  assert.equal(resolved.source, 'envios');
 });

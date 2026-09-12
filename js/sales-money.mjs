@@ -54,11 +54,20 @@ export function brDateParts(ts) {
 export function mlShippingUnresolved(sale) {
   const ch = String(sale?.channel || '').toLowerCase();
   if (ch !== 'mercadolivre' && ch !== 'ml') return false;
-  if (sale?.mlFlex || /flex|self_service/i.test(String(sale?.logisticType || ''))) return false;
   const src = String(sale?.shippingSource || '');
   if (src === 'unresolved') return true;
-  if (sale?.shippingCost == null || sale?.shippingCost === '') return true;
-  if (!(Number(sale.shippingCost) > 0.04) && !src) return true;
+  const shipRaw = sale?.shippingCost;
+  const ship = shipRaw == null || shipRaw === '' ? null : Number(shipRaw);
+  const logisticFlex = /flex|self_service/i.test(String(sale?.logisticType || ''));
+  // Residual miúdo (0,05) é frete inválido — mesmo se mlFlex/source flex foram marcados errado
+  if (ship != null && Number.isFinite(ship) && ship > 0 && ship < 1 && !logisticFlex) {
+    return true;
+  }
+  // Flex de verdade: logística/source flex (não basta mlFlex + source envios)
+  if (logisticFlex || src === 'flex') return false;
+  if (sale?.mlFlex && src !== 'envios' && src !== 'payment_fallback' && src !== 'payment') return false;
+  if (ship == null) return true;
+  if (!(ship > 0.04) && !src) return true;
   return false;
 }
 
@@ -83,16 +92,23 @@ export function saleShippingCost(sale, config = null) {
   const s = roundMoney(sale?.shippingCost || 0);
   const ch = String(sale?.channel || '').toLowerCase();
   const isMl = ch === 'mercadolivre' || ch === 'ml';
+  if (ch === 'shopee') return s;
+  if (!isMl) return s;
+
+  const src = String(sale?.shippingSource || '');
+  const logisticFlex = /flex|self_service/i.test(String(sale?.logisticType || ''));
+  // Residual miúdo nunca vira frete na UI (exceto Flex logístico de verdade)
+  if (s > 0 && s < 1 && !logisticFlex) return 0;
+
   const flexList = Number(sale?.mlFlexListCost || config?.mlFlexShippingCost || 0);
   const estorno = Number(sale?.mlEstorno || 0);
-  const isFlex = sale?.mlFlex
-    || /flex|self_service/i.test(String(sale?.logisticType || ''))
-    || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06);
-  if (isMl && isFlex && flexList > 0) {
+  const isFlex = (logisticFlex || src === 'flex'
+    || (sale?.mlFlex && src !== 'envios' && src !== 'payment_fallback' && src !== 'payment'))
+    && src !== 'envios' && src !== 'payment_fallback';
+  if (isFlex && flexList > 0) {
     return roundMoney(Math.max(0, flexList - estorno));
   }
-  if (ch === 'shopee') return s;
-  if (isMl && (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 0;
+  if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 0;
   return s;
 }
 

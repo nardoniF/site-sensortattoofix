@@ -118,3 +118,35 @@ test('manual product acerto stores productAdjust and net total after PayPal fee'
   assert.equal(order.paypalFee, 49.86);
   assert.equal(storeOrderListedGross(order), 439.76);
 });
+
+
+test('DANPROS residual 0,05 with false mlFlex shows 0 frete (not list-estorno)', () => {
+  const sale = {
+    channel: 'mercadolivre',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 11.85,
+    shippingCost: 0.05,
+    shippingSource: 'envios',
+    logisticType: 'drop_off',
+    gross: 92.2,
+    fees: 16.6
+  };
+  assert.equal(saleShippingCost(sale, config), 0);
+  assert.equal(marketplaceSaleNet(sale, config), 75.6);
+});
+
+test('real Flex keeps list − estorno even when net is under 1', () => {
+  const sale = {
+    channel: 'ml',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 11.85,
+    shippingCost: 0.05,
+    shippingSource: 'flex',
+    logisticType: 'self_service',
+    gross: 82.9,
+    fees: 14.92
+  };
+  assert.equal(saleShippingCost(sale, config), 0.05);
+});
