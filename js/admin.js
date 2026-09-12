@@ -1060,15 +1060,18 @@
     const s = roundMoneyLocal(sale?.shippingCost || 0);
     const ch = String(sale?.channel || '').toLowerCase();
     const isMl = ch === 'mercadolivre' || ch === 'ml';
+    if (ch === 'shopee') return s;
+    if (!isMl) return s;
+    const src = String(sale?.shippingSource || '');
+    const logisticFlex = /flex|self_service/i.test(String(sale?.logisticType || ''));
+    if (s > 0 && s < 1 && !logisticFlex) return 0;
     const flexList = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
     const estorno = Number(sale?.mlEstorno || 0);
-    const isFlex = sale?.mlFlex
-      || /flex|self_service/i.test(String(sale?.logisticType || ''))
-      || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06);
-    if (isMl && isFlex && flexList > 0) return roundMoneyLocal(Math.max(0, flexList - estorno));
-    if (ch === 'shopee') return s;
-    if (isMl && !isFlex && s > 0 && s < 1) return 0;
-    if (isMl && (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 0;
+    const isFlex = (logisticFlex || src === 'flex'
+      || (sale?.mlFlex && src !== 'envios' && src !== 'payment_fallback' && src !== 'payment'))
+      && src !== 'envios' && src !== 'payment_fallback';
+    if (isFlex && flexList > 0) return roundMoneyLocal(Math.max(0, flexList - estorno));
+    if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 0;
     return s;
   }
 

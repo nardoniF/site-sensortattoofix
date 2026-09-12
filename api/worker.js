@@ -37,6 +37,7 @@ import {
   mlFlexBonusFromCosts,
   impliedEnviosFromReceipt,
   receiptPayout,
+  liquidMatchesReceipt,
   repairEnviosAlreadyNet,
   resolveEnviosShipping,
   mlShippingResolved
@@ -4823,9 +4824,25 @@ function healMlStoredShipping(sale, flexCfg) {
   const flexList = mlMoney(sale.mlFlexListCost) || mlMoney(flexCfg);
   const shipRaw = sale.shippingCost;
   const ship = shipRaw == null || shipRaw === '' ? null : mlMoney(shipRaw);
-  const isFlex = sale.mlFlex
-    || /flex|self_service/i.test(String(sale.logisticType || ''))
-    || (flexList > 0 && ship != null && Math.abs(ship - flexList) <= 0.06);
+  const src = String(sale.shippingSource || '');
+  const logisticFlex = /flex|self_service/i.test(String(sale.logisticType || ''));
+  // Residual miúdo (0,05) — nunca é frete resolvido se a logística não é Flex de verdade
+  if (ship != null && ship > 0 && ship < 1 && !logisticFlex) {
+    const payout = receiptPayout(sale.gross, sale.fees, 0);
+    return {
+      ...sale,
+      mlFlex: false,
+      shippingCost: null,
+      shippingSource: 'unresolved',
+      settlementOk: false,
+      shippingCostsOk: false,
+      net: payout,
+      payoutNet: payout
+    };
+  }
+  const isFlex = logisticFlex
+    || src === 'flex'
+    || (sale.mlFlex && src !== 'envios' && src !== 'payment_fallback' && src !== 'payment');
   if (isFlex && flexList > 0) {
     const est = mlMoney(sale.mlEstorno);
     const nextShip = flexSellerCost(flexList, est);
@@ -5093,6 +5110,8 @@ function mlHasSettlement(sale) {
   const src = String(sale.shippingSource || '');
   // Real frete 0 only when source says so (envios/flex with cost 0)
   if (!sale.mlFlex && !pickup && !(shipping > 0.04) && src !== 'envios' && src !== 'flex') return false;
+  // Residual miúdo nunca conta como settlement ok em Envios
+  if (!sale.mlFlex && src !== 'flex' && shipping > 0 && shipping < 1) return false;
   return true;
 }
 
@@ -5199,17 +5218,6 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
   const fromCosts = mlEnviosSellerCost(costs, sellerId);
   const payBonus = mlEstornoFromPayments(docs, gross, fees);
   const costBonus = mlFlexBonusFromCosts(costs);
-  const isFlex = sale.mlFlex
-    || isMlFlexShipment(sale, extras.shipment)
-    || (!fromCosts.found && (payBonus > 0 || costBonus > 0) && flexCost > 0
-      && /flex|self_service/i.test(String(sale.logisticType || extras.shipment?.logistic_type || '')));
-  const estorno = isFlex
-    ? (costBonus > 0.01 ? costBonus : payBonus)
-    : payBonus;
-
-  let shipping = null;
-  let source = 'unresolved';
-  let buyerShip = fromCosts.buyerShip || mlMoney(sale.buyerShippingCost);
 
   let netApi = 0;
   for (const p of docs) {
@@ -5221,6 +5229,28 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
       ?? p.net_received_amount
     );
   }
+
+  // Envios real (senders.cost bate com o líquido) nunca vira Flex
+  const enviosMatchesLiquid = fromCosts.found
+    && netApi > 0
+    && liquidMatchesReceipt(gross, fees, fromCosts.shipping, netApi);
+  let isFlex = !enviosMatchesLiquid && (
+    isMlFlexShipment(sale, extras.shipment)
+    || (!fromCosts.found && (payBonus > 0 || costBonus > 0) && flexCost > 0
+      && /flex|self_service/i.test(String(sale.logisticType || extras.shipment?.logistic_type || '')))
+    || (sale.mlFlex && isMlFlexShipment(sale, extras.shipment))
+  );
+  // senders.cost >= 1 e logística não-Flex = Envios
+  if (fromCosts.found && mlMoney(fromCosts.shipping) >= 1 && !isMlFlexShipment(sale, extras.shipment)) {
+    isFlex = false;
+  }
+  const estorno = isFlex
+    ? (costBonus > 0.01 ? costBonus : payBonus)
+    : payBonus;
+
+  let shipping = null;
+  let source = 'unresolved';
+  let buyerShip = fromCosts.buyerShip || mlMoney(sale.buyerShippingCost);
 
   if (isFlex) {
     shipping = flexSellerCost(flexCost, estorno);
@@ -5447,22 +5477,28 @@ async function upsertMlSale(env, sale, index) {
 }
 
 function mlLooksFlexSale(sale, flexCost) {
-  const list = mlMoney(sale?.mlFlexListCost) || mlMoney(flexCost);
+  const src = String(sale?.shippingSource || '');
+  // Envios / payment_fallback nunca são Flex — evita travar reprocessamento do residual 0,05
+  if (src === 'envios' || src === 'payment_fallback' || src === 'payment') return false;
   const ship = mlMoney(sale?.shippingCost);
+  if (ship > 0 && ship < 1 && src !== 'flex') return false;
   return !!(sale?.mlFlex
-    || /flex|self_service/i.test(String(sale?.logisticType || ''))
-    || (list > 0 && Math.abs(ship - list) <= 0.06));
+    || src === 'flex'
+    || /flex|self_service/i.test(String(sale?.logisticType || '')));
 }
 
 function mlNeedsPaymentEnrich(sale, flexCost) {
   if (!sale) return false;
+  const shipEarly = mlMoney(sale.shippingCost);
+  // Residual miúdo sempre reprocessa (mesmo se mlFlex tiver sido marcado errado)
+  if (shipEarly > 0 && shipEarly < 1 && String(sale.shippingSource || '') !== 'flex') return true;
   if (mlLooksFlexSale(sale, flexCost)) {
     return mlMoney(sale.mlEstorno) < 0.01;
   }
   if (!mlShippingResolved(sale)) return true;
   if (sale.shippingSource === 'unresolved') return true;
   if (sale.shippingCost == null || sale.shippingCost === '') return true;
-  const ship = mlMoney(sale.shippingCost);
+  const ship = shipEarly;
   if (Math.abs(ship - 0.36) <= 0.02 || Math.abs(ship - 9.36) <= 0.02) return true;
   // Tiny residual freights (e.g. 0,05 = Envios − buyer) must be re-resolved.
   if (ship > 0 && ship < 1) return true;
@@ -5476,19 +5512,31 @@ function mlNeedsPaymentEnrich(sale, flexCost) {
 }
 
 async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
-  const cap = Math.max(0, Math.min(Number(limit) || 25, 40));
+  const cap = Math.max(0, Math.min(Number(limit) || 40, 60));
   const config = await getConfig(env).catch(() => ({}));
   const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
   let filled = 0;
   let remaining = 0;
   let attempted = 0;
+  const residualIds = [];
+  const otherIds = [];
   for (const id of index || []) {
+    const sale = await loadMarketplaceSale(env, 'mercadolivre', id);
+    if (!sale) continue;
+    if (!mlNeedsPaymentEnrich(sale, flexCost)) continue;
+    const ship = mlMoney(sale.shippingCost);
+    if (ship > 0 && ship < 1) residualIds.push(id);
+    else otherIds.push(id);
+  }
+  for (const id of residualIds.concat(otherIds)) {
     const sale = await loadMarketplaceSale(env, 'mercadolivre', id);
     if (!sale) continue;
     if (!mlNeedsPaymentEnrich(sale, flexCost)) continue;
     if (sale.shippingSource === 'unresolved' && sale.shippingResolvedAt) {
       const age = Date.now() - Date.parse(sale.shippingResolvedAt);
-      if (Number.isFinite(age) && age < 6 * 3600 * 1000) continue;
+      const ship = mlMoney(sale.shippingCost);
+      // Residual miúdo: não espera 6h — corrige já
+      if (!(ship > 0 && ship < 1) && Number.isFinite(age) && age < 6 * 3600 * 1000) continue;
     }
     if (attempted >= cap) {
       remaining += 1;
@@ -5640,7 +5688,7 @@ async function syncMlOrders(env, options = {}) {
   }
 
   const backfillLimit = Math.max(0, Number(
-    options.backfillShipping != null ? options.backfillShipping : 25
+    options.backfillShipping != null ? options.backfillShipping : 40
   ));
   const shippingReport = backfillLimit > 0
     ? await backfillMlZeroShipping(env, token, sellerId, index, backfillLimit)

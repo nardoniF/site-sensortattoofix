@@ -1,6 +1,6 @@
 /** Mercado Livre Envios = senders[].cost from /shipments/{id}/costs. Never a fixed freight. */
 
-export const ML_SETTLEMENT_VERSION = 10;
+export const ML_SETTLEMENT_VERSION = 11;
 
 /** @deprecated kept only so old tests/imports do not break — never use as a default freight. */
 export const ML_ENVIOS_NET = 12.35;
