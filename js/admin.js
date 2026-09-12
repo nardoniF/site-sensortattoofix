@@ -1060,14 +1060,18 @@
     const s = roundMoneyLocal(sale?.shippingCost || 0);
     const ch = String(sale?.channel || '').toLowerCase();
     const isMl = ch === 'mercadolivre' || ch === 'ml';
+    if (ch === 'shopee') return s;
+    if (!isMl) return s;
+    const src = String(sale?.shippingSource || '');
+    const logisticFlex = /flex|self_service/i.test(String(sale?.logisticType || ''));
+    if (s > 0 && s < 1 && !logisticFlex) return 0;
     const flexList = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
     const estorno = Number(sale?.mlEstorno || 0);
-    const isFlex = sale?.mlFlex
-      || /flex|self_service/i.test(String(sale?.logisticType || ''))
-      || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06);
-    if (isMl && isFlex && flexList > 0) return roundMoneyLocal(Math.max(0, flexList - estorno));
-    if (ch === 'shopee') return s;
-    if (isMl && (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02)) return 0;
+    const isFlex = (logisticFlex || src === 'flex'
+      || (sale?.mlFlex && src !== 'envios' && src !== 'payment_fallback' && src !== 'payment'))
+      && src !== 'envios' && src !== 'payment_fallback';
+    if (isFlex && flexList > 0) return roundMoneyLocal(Math.max(0, flexList - estorno));
+    if (Math.abs(s - 0.36) <= 0.02 || Math.abs(s - 9.36) <= 0.02) return 0;
     return s;
   }
 
@@ -1773,7 +1777,8 @@
           count: 0,
           owed: 0,
           bonus: 0,
-          net: 0
+          net: 0,
+          daySet: new Set()
         });
       }
       const row = map.get(key);
@@ -1783,8 +1788,21 @@
       row.owed += owed;
       row.bonus += bonus;
       row.net += roundMoneyLocal(owed - bonus);
+      const day = Number(p.day);
+      if (Number.isFinite(day) && day > 0) row.daySet.add(day);
     });
-    return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
+    return Array.from(map.values())
+      .map((r) => {
+        const { daySet, ...rest } = r;
+        return { ...rest, days: [...daySet].sort((a, b) => a - b) };
+      })
+      .sort((a, b) => String(a.key).localeCompare(String(b.key)));
+  }
+
+  function formatFlexOrderDays(days) {
+    const list = Array.isArray(days) ? days.filter((d) => Number(d) > 0) : [];
+    if (!list.length) return '';
+    return `dias ${list.join(', ')}`;
   }
 
   function renderConsolidadoFlexOwed(sales) {
@@ -1799,10 +1817,15 @@
       ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+        const daysLabel = formatFlexOrderDays(m.days);
+        const daysHtml = daysLabel
+          ? `<p class="vendas-consol-flex-days" title="Dias dos pedidos Flex deste mês">${escapeHtml(daysLabel)}</p>`
+          : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
+        ${daysHtml}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
       }).join('')}</div>`
@@ -1818,9 +1841,16 @@
   }
 
   function buildFlexOwedExportRows(sales) {
-    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias dos pedidos']];
     aggregateFlexOwedByMonth(sales).forEach((m) => {
-      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
+      rows.push([
+        `${m.name} ${m.year}`,
+        m.count,
+        m.owed,
+        m.bonus,
+        m.net,
+        formatFlexOrderDays(m.days).replace(/^dias\s+/, '')
+      ]);
     });
     return rows;
   }
@@ -3197,6 +3227,9 @@ ${worksheets}
   let clicksBgStarted = false;
   let clicksLoadPromise = null;
   let clicksMetaCache = null;
+  let clicksUiPainted = false;
+  let clicksPaintToken = 0;
+  let clicksAbort = null;
   let feedbackLoading = false;
   let feedbackSearchTimer = null;
   let clicksCache = [];
@@ -3238,9 +3271,8 @@ ${worksheets}
           withNav: data.withNav,
           navSessions: data.navSessions
         },
-        clicks: data.clicks,
-        whenClicks: data.whenClicks?.length ? data.whenClicks : data.clicks,
-        whenWindow: data.capacity || null
+        clicks: data.clicks
+        // whenClicks omitido se igual a clicks — snapshot menor, parse mais rápido
       }));
     } catch (_) { /* quota */ }
   }
@@ -3353,9 +3385,15 @@ ${worksheets}
     return out;
   }
 
-  function reapplyClicksLocalFilters(openPaths) {
+  function reapplyClicksLocalFilters(openPaths, opts = {}) {
     if (!clicksCache.length || !clicksMetaCache) {
+      clicksUiPainted = false;
       showClicksEmptyState();
+      return;
+    }
+    // Evita remontar árvore/gráficos toda vez que o usuário só reabre a aba.
+    if (opts.skipIfPainted && clicksUiPainted) {
+      showClicksCacheHint();
       return;
     }
     wireClicksWhenFilters();
@@ -3367,21 +3405,39 @@ ${worksheets}
       navEl.disabled = !destino;
       navEl.closest('label')?.classList.toggle('is-disabled', !destino);
     }
-    renderClicksStats(clicksMetaCache);
-    renderClicksWhenCharts(clicksWhenCache);
-    renderClicksNoiseStats(clicksWhenCache);
-    const display = filterClicksLocally(clicksCache, q, destino);
-    renderClicksTree(
-      display,
-      clicksMetaCache.checkedAt,
-      clicksMetaCache.total,
-      openPaths || captureClicksTreeOpenPaths()
-    );
-    showClicksCacheHint();
-    if (destino && withNav) {
-      setClicksLoadStatus('Navegação completa por visita exige Atualizar (busca na API).', 'warning');
-      window.setTimeout(() => setClicksLoadStatus(''), 4000);
+    const token = ++clicksPaintToken;
+    const paths = openPaths || captureClicksTreeOpenPaths();
+    const run = () => {
+      if (token !== clicksPaintToken) return;
+      renderClicksStats(clicksMetaCache);
+      renderClicksWhenCharts(clicksWhenCache);
+      renderClicksNoiseStats(clicksWhenCache);
+      const display = filterClicksLocally(clicksCache, q, destino);
+      renderClicksTree(
+        display,
+        clicksMetaCache.checkedAt,
+        clicksMetaCache.total,
+        paths
+      );
+      clicksUiPainted = true;
+      showClicksCacheHint();
+      if (destino && withNav) {
+        setClicksLoadStatus('Navegação completa por visita exige Atualizar (busca na API).', 'warning');
+        window.setTimeout(() => setClicksLoadStatus(''), 4000);
+      }
+    };
+    // Deixa a aba pintar primeiro; depois monta a árvore (evita “página não responde”).
+    if (opts.defer) {
+      setClicksLoadStatus('Montando lista de cliques…');
+      window.requestAnimationFrame(() => {
+        window.setTimeout(() => {
+          run();
+          if (token === clicksPaintToken) setClicksLoadStatus('');
+        }, 0);
+      });
+      return;
     }
+    run();
   }
 
   function showPaymentBalancesFromCache() {
@@ -5157,16 +5213,43 @@ ${worksheets}
   }
 
   function setClicksLoadStatus(msg, type) {
+    const fold = document.getElementById('clicks-fold-log');
     const el = document.getElementById('admin-status-cliques');
-    if (!el) return;
-    if (!msg) {
-      el.hidden = true;
-      el.textContent = '';
+    const top = document.getElementById('clicks-refresh-status');
+    const apply = (node) => {
+      if (!node) return;
+      if (!msg) {
+        node.hidden = true;
+        node.textContent = '';
+        return;
+      }
+      node.textContent = msg;
+      node.className = 'admin-status form-status ' + (type || '');
+      node.hidden = false;
+    };
+    if (msg && fold && !fold.open) fold.open = true;
+    apply(el);
+    apply(top);
+  }
+
+  function setClicksRefreshBusy(busy, label) {
+    const btn = document.getElementById('btn-clicks-refresh');
+    if (!btn) return;
+    if (busy) {
+      if (!btn.dataset.labelHtml) btn.dataset.labelHtml = btn.innerHTML;
+      btn.dataset.busy = '1';
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ${label || 'Atualizando…'}`;
       return;
     }
-    el.textContent = msg;
-    el.className = 'admin-status form-status ' + (type || '');
-    el.hidden = false;
+    btn.dataset.busy = '0';
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    if (btn.dataset.labelHtml) {
+      btn.innerHTML = btn.dataset.labelHtml;
+      delete btn.dataset.labelHtml;
+    }
   }
 
   function renderClicksFromCache(openPaths) {
@@ -5186,6 +5269,10 @@ ${worksheets}
     const preserveOpen = !!opts.preserveOpen;
     const force = !!opts.force;
     if (clicksLoadPromise && !force) return clicksLoadPromise;
+    if (clicksLoadPromise && force) {
+      // Já tem carga em andamento — não empilha outra (botão busy cuida do clique).
+      return clicksLoadPromise;
+    }
     clicksBgStarted = true;
     clicksLoadPromise = loadClicks(preserveOpen).finally(() => {
       clicksLoadPromise = null;
@@ -5219,8 +5306,15 @@ ${worksheets}
     }
 
     clicksLoading = true;
+    clicksUiPainted = false;
+    if (clicksAbort) {
+      try { clicksAbort.abort(); } catch (_) { /* ignore */ }
+    }
+    clicksAbort = new AbortController();
+    const abortTimer = window.setTimeout(() => clicksAbort.abort(), 90000);
     const openPaths = preserveOpen ? captureClicksTreeOpenPaths() : [];
     const panelVisible = isClicksPanelVisible();
+    setClicksRefreshBusy(true, 'Atualizando…');
     setClicksLoadStatus(
       panelVisible
         ? 'Carregando histórico de cliques…'
@@ -5238,7 +5332,8 @@ ${worksheets}
       if (destino && withNav) params.set('nav', '1');
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
         headers: { Authorization: 'Bearer ' + token },
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: clicksAbort.signal
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
@@ -5247,10 +5342,15 @@ ${worksheets}
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = data;
       saveClicksSnapshot(data);
+      setClicksLoadStatus('Montando lista de cliques…');
+      // Yield para o spinner aparecer antes do render pesado.
+      await new Promise((r) => window.setTimeout(r, 0));
       renderClicksStats(data);
       renderClicksWhenCharts(clicksWhenCache);
       renderClicksNoiseStats(clicksWhenCache);
+      await new Promise((r) => window.setTimeout(r, 0));
       renderClicksTree(clicksCache, data.checkedAt, data.total, openPaths);
+      clicksUiPainted = true;
       const checkedEl = document.getElementById('clicks-checked-at');
       if (checkedEl && data.withNav && destino) {
         const baseTxt = checkedEl.textContent || '';
@@ -5259,16 +5359,24 @@ ${worksheets}
       setClicksLoadStatus('Cliques atualizados.', 'success');
       window.setTimeout(() => setClicksLoadStatus(''), 2500);
     } catch (err) {
-      if (isClicksPanelVisible()) {
-        root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+      if (err?.name === 'AbortError') {
+        setClicksLoadStatus('Atualização de cliques passou de 90s — tente de novo.', 'error');
+      } else {
+        if (isClicksPanelVisible() && !clicksCache.length) {
+          root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
+        }
+        setClicksLoadStatus(err.message || 'Erro ao carregar cliques.', 'error');
       }
-      setClicksLoadStatus(err.message || 'Erro ao carregar cliques.', 'error');
-      const charts = document.getElementById('clicks-when-charts');
-      if (charts) charts.innerHTML = '';
-      const noise = document.getElementById('clicks-noise-charts');
-      if (noise) noise.innerHTML = '';
+      if (!clicksCache.length) {
+        const charts = document.getElementById('clicks-when-charts');
+        if (charts) charts.innerHTML = '';
+        const noise = document.getElementById('clicks-noise-charts');
+        if (noise) noise.innerHTML = '';
+      }
     } finally {
+      window.clearTimeout(abortTimer);
       clicksLoading = false;
+      setClicksRefreshBusy(false);
     }
   }
 
@@ -5769,6 +5877,162 @@ ${worksheets}
     return ['BR', 'INT'];
   }
 
+  const DEFAULT_INTL_MARKUP_PERCENT = 65;
+
+  const DEFAULT_INTL_CURRENCIES = [
+    { code: 'USD', label: 'Dólar (USD)', langs: ['en'], countries: ['US', 'CA', 'AU', 'NZ', 'SG', 'HK'], decimals: 2, active: true },
+    { code: 'GBP', label: 'Libra (GBP)', langs: [], countries: ['GB'], decimals: 2, active: true },
+    { code: 'EUR', label: 'Euro (EUR)', langs: ['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'], countries: ['IT', 'DE', 'ES', 'SI', 'FR', 'NL', 'FI', 'AT', 'BE', 'PT', 'IE'], decimals: 2, active: true },
+    { code: 'PLN', label: 'Złoty (PLN)', langs: ['pl'], countries: ['PL'], decimals: 2, active: true },
+    { code: 'SEK', label: 'Coroa sueca (SEK)', langs: ['sv'], countries: ['SE'], decimals: 0, active: true },
+    { code: 'NOK', label: 'Coroa norueguesa (NOK)', langs: ['no'], countries: ['NO'], decimals: 0, active: true }
+  ];
+
+  let adminFxRatesCache = { rates: null, at: 0 };
+
+  async function loadAdminFxRates() {
+    if (adminFxRatesCache.rates && Date.now() - adminFxRatesCache.at < 300000) {
+      return adminFxRatesCache.rates;
+    }
+    const base = (window.CONFIG_BOOTSTRAP?.configApiUrl || currentConfig?.api?.baseUrl || '').replace(/\/$/, '');
+    if (!base) return {};
+    try {
+      const res = await fetch(`${base}/fx/rates?to=USD,EUR,GBP,PLN,SEK,NOK`, { cache: 'no-store' });
+      if (!res.ok) return adminFxRatesCache.rates || {};
+      const data = await res.json();
+      adminFxRatesCache = { rates: data.rates || {}, at: Date.now() };
+      return adminFxRatesCache.rates;
+    } catch {
+      return adminFxRatesCache.rates || {};
+    }
+  }
+
+  function intlBaseFromInputs(price, markup) {
+    const brl = Math.max(0, Number(price) || 0);
+    const m = Number(markup);
+    const pct = Number.isFinite(m) && m >= 0 ? m : DEFAULT_INTL_MARKUP_PERCENT;
+    return Math.round(brl * (1 + pct / 100) * 100) / 100;
+  }
+
+  function formatAdminBrl(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function applyFxAmountAdmin(amountBrl, rate, decimals) {
+    const amount = Math.max(0, Number(amountBrl) || 0) * Math.max(0, Number(rate) || 0);
+    const d = Number.isFinite(Number(decimals)) ? Math.max(0, Math.min(4, Math.floor(Number(decimals)))) : 2;
+    const factor = 10 ** d;
+    return Math.round(amount * factor) / factor;
+  }
+
+  function intlPriceFieldName(code) {
+    const c = String(code || '').toUpperCase();
+    if (!/^[A-Z]{3}$/.test(c)) return null;
+    return 'price' + c[0] + c.slice(1).toLowerCase();
+  }
+
+  function normalizeAdminIntlCurrency(row, fallback) {
+    const base = fallback && typeof fallback === 'object' ? fallback : {};
+    const code = String(row?.code || base.code || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+    if (code.length !== 3) return null;
+    const langs = String(row?.langsText != null ? row.langsText : (Array.isArray(row?.langs) ? row.langs.join(', ') : (base.langs || []).join(', ')))
+      .split(/[\s,;]+/).map((s) => s.toLowerCase().trim()).filter(Boolean);
+    const countries = String(row?.countriesText != null ? row.countriesText : (Array.isArray(row?.countries) ? row.countries.join(', ') : (base.countries || []).join(', ')))
+      .split(/[\s,;]+/).map((s) => s.toUpperCase().trim()).filter(Boolean);
+    const decimals = Number.isFinite(Number(row?.decimals != null ? row.decimals : base.decimals))
+      ? Math.max(0, Math.min(4, Math.floor(Number(row?.decimals != null ? row.decimals : base.decimals))))
+      : 2;
+    return {
+      code,
+      label: String(row?.label || base.label || code).trim() || code,
+      langs,
+      countries,
+      decimals,
+      active: row?.active != null ? row.active !== false : base.active !== false
+    };
+  }
+
+  function getAdminIntlCurrencies(config) {
+    const byCode = new Map(DEFAULT_INTL_CURRENCIES.map((c) => [c.code, { ...c, langs: c.langs.slice(), countries: c.countries.slice() }]));
+    (Array.isArray(config?.intlCurrencies) ? config.intlCurrencies : []).forEach((row) => {
+      const n = normalizeAdminIntlCurrency(row, byCode.get(String(row?.code || '').toUpperCase()) || { code: row?.code });
+      if (n) byCode.set(n.code, n);
+    });
+    return Array.from(byCode.values());
+  }
+
+  function applyMarkupFxToProductsAdmin(products, currencies, fxRates) {
+    const list = (currencies || []).filter((c) => c.active !== false);
+    const rates = fxRates || {};
+    return (products || []).map((p) => {
+      if (!isIntlMarketProduct(p)) {
+        const cleaned = { ...p };
+        delete cleaned.intlMarkupPercent;
+        delete cleaned.intlBaseBrl;
+        return cleaned;
+      }
+      const brl = Number(p.price) || 0;
+      if (!(brl > 0)) return p;
+      const markup = Number(p.intlMarkupPercent);
+      const pct = Number.isFinite(markup) && markup >= 0 ? markup : DEFAULT_INTL_MARKUP_PERCENT;
+      const base = intlBaseFromInputs(brl, pct);
+      const next = { ...p, intlMarkupPercent: pct, intlBaseBrl: base };
+      list.forEach((cur) => {
+        const field = intlPriceFieldName(cur.code);
+        const rate = Number(rates[cur.code]);
+        if (field && rate > 0) next[field] = applyFxAmountAdmin(base, rate, cur.decimals);
+      });
+      return next;
+    });
+  }
+
+  function renderIntlCurrencies(list) {
+    const root = document.getElementById('admin-intl-currencies');
+    if (!root) return;
+    const rows = (list && list.length) ? list : DEFAULT_INTL_CURRENCIES;
+    root.innerHTML = rows.map((c, i) => `
+      <div class="admin-product-row admin-intl-currency-row" data-currency-index="${i}">
+        <h4>${escAttr(c.label || c.code)} <span class="admin-meta">(${escAttr(c.code)})</span></h4>
+        <div class="form-grid">
+          <label>Código ISO<input type="text" data-cur-field="code" maxlength="3" value="${escAttr(c.code || '')}" placeholder="USD"></label>
+          <label>Nome<input type="text" data-cur-field="label" value="${escAttr(c.label || '')}" placeholder="Dólar (USD)"></label>
+          <label>Casas decimais<input type="number" data-cur-field="decimals" min="0" max="4" step="1" value="${c.decimals != null ? c.decimals : 2}"></label>
+          <label class="full">Línguas do site (códigos)<input type="text" data-cur-field="langs" value="${escAttr((c.langs || []).join(', '))}" placeholder="en"></label>
+          <label class="full">Países (ISO)<input type="text" data-cur-field="countries" value="${escAttr((c.countries || []).join(', '))}" placeholder="US, CA, AU"></label>
+          <label class="label-check"><input type="checkbox" data-cur-field="active" ${c.active !== false ? 'checked' : ''}><span>Ativa</span></label>
+        </div>
+        <button type="button" class="btn-secondary btn-remove-intl-currency" data-index="${i}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
+      </div>
+    `).join('');
+    root.querySelectorAll('.btn-remove-intl-currency').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const all = collectIntlCurrencies();
+        all.splice(Number(btn.getAttribute('data-index')), 1);
+        renderIntlCurrencies(all.length ? all : DEFAULT_INTL_CURRENCIES);
+      });
+    });
+  }
+
+  function collectIntlCurrencies() {
+    const root = document.getElementById('admin-intl-currencies');
+    if (!root) return getAdminIntlCurrencies(currentConfig);
+    const out = [];
+    root.querySelectorAll('.admin-intl-currency-row').forEach((row) => {
+      const val = (name) => row.querySelector(`[data-cur-field="${name}"]`)?.value?.trim() || '';
+      const active = row.querySelector('[data-cur-field="active"]')?.checked !== false;
+      const n = normalizeAdminIntlCurrency({
+        code: val('code'),
+        label: val('label'),
+        decimals: val('decimals'),
+        langsText: val('langs'),
+        countriesText: val('countries'),
+        active
+      });
+      if (n) out.push(n);
+    });
+    return out.length ? out : DEFAULT_INTL_CURRENCIES.slice();
+  }
+
   function isIntlMarketProduct(p) {
     const m = productMarketsOf(p);
     return m.includes('INT') && !m.includes('BR');
@@ -5869,11 +6133,27 @@ ${worksheets}
           <label class="full">Descrição (PT)<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
           ${i18nFields}
           ${aggregatedFields}
-          <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}"></label>
-          ${market === 'INT' && !isAggregated ? `
-          <label>Preço USD (.com EN)<input type="number" data-field="priceUsd" step="0.01" min="0" value="${p.priceUsd != null ? p.priceUsd : ''}" placeholder="ex.: 12.99"></label>
-          <label>Preço EUR (.com IT)<input type="number" data-field="priceEur" step="0.01" min="0" value="${p.priceEur != null ? p.priceEur : ''}" placeholder="ex.: 11.99"></label>
-          <p class="admin-meta admin-field-hint full">Referência em R$ acima. USD/EUR são exibidos no .com (cobrança em USD). Atualizados automaticamente todo dia; você pode ajustar manualmente.</p>` : ''}
+          <label>Preço (R$)<input type="number" data-field="price" step="0.01" min="0" value="${p.price ?? 0}" ${market === 'INT' && !isAggregated ? 'data-intl-brl="1"' : ''}></label>
+          ${market === 'INT' && !isAggregated ? (() => {
+            const markup = p.intlMarkupPercent != null ? p.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT;
+            const baseBrl = p.intlBaseBrl != null ? p.intlBaseBrl : intlBaseFromInputs(p.price, markup);
+            const currencies = collectIntlCurrencies().filter((c) => c.active !== false);
+            const fields = currencies.map((cur) => {
+              const field = intlPriceFieldName(cur.code);
+              const step = cur.decimals === 0 ? '1' : (cur.decimals === 1 ? '0.1' : '0.01');
+              const langs = (cur.langs || []).map((l) => String(l).toUpperCase()).join('/');
+              const val = p[field] != null ? p[field] : '';
+              return `<label class="admin-intl-price-ro">Preço ${escAttr(cur.code)}${langs ? ` (.com ${escAttr(langs)})` : ''}
+                <input type="number" data-field="${escAttr(field)}" data-intl-price="1" step="${step}" min="0" value="${val}" readonly tabindex="-1">
+                <small class="admin-intl-base-brl" data-intl-base-label>≈ ${formatAdminBrl(baseBrl)}</small>
+              </label>`;
+            }).join('\n          ');
+            return `<label>Markup internacional (%)
+              <input type="number" data-field="intlMarkupPercent" data-intl-markup="1" step="0.1" min="0" value="${markup}">
+            </label>
+            <p class="admin-meta admin-field-hint full" data-intl-base-summary>Base internacional = R$ × (1 + markup) = <strong>${formatAdminBrl(baseBrl)}</strong> — depois convertida pela cotação. Moedas abaixo são calculadas (não editáveis). Capa .com = optical-lens-intl (smartwatch).</p>
+          ${fields}`;
+          })() : ''}
           <label>Estoque <small class="admin-field-hint">vazio = ilimitado · 0 = esgotado (some da loja)</small>
             <input type="number" data-field="stock" min="0" step="1" value="${p.stock != null ? p.stock : ''}" placeholder="ilimitado">
           </label>
@@ -5929,6 +6209,41 @@ ${worksheets}
     });
   }
 
+  function refreshIntlPriceRow(row, rates) {
+    if (!row || row.getAttribute('data-market') !== 'INT') return;
+    const priceEl = row.querySelector('[data-field="price"]');
+    const markupEl = row.querySelector('[data-field="intlMarkupPercent"]');
+    const brl = Number(priceEl?.value) || 0;
+    const markup = Number(markupEl?.value);
+    const pct = Number.isFinite(markup) && markup >= 0 ? markup : DEFAULT_INTL_MARKUP_PERCENT;
+    const base = intlBaseFromInputs(brl, pct);
+    const summary = row.querySelector('[data-intl-base-summary]');
+    if (summary) {
+      summary.innerHTML = `Base internacional = R$ × (1 + markup) = <strong>${formatAdminBrl(base)}</strong> — depois convertida pela cotação. Moedas abaixo são calculadas (não editáveis). Capa .com = optical-lens-intl (smartwatch).`;
+    }
+    row.querySelectorAll('[data-intl-base-label]').forEach((el) => {
+      el.textContent = `≈ ${formatAdminBrl(base)}`;
+    });
+    const currencies = collectIntlCurrencies().filter((c) => c.active !== false);
+    currencies.forEach((cur) => {
+      const field = intlPriceFieldName(cur.code);
+      const input = field ? row.querySelector(`[data-field="${field}"]`) : null;
+      const rate = Number(rates?.[cur.code]);
+      if (input && rate > 0) input.value = String(applyFxAmountAdmin(base, rate, cur.decimals));
+    });
+  }
+
+  async function bindIntlMarkupRecalc(listEl) {
+    if (!listEl) return;
+    const rates = await loadAdminFxRates();
+    listEl.querySelectorAll('.admin-product-row[data-market="INT"]').forEach((row) => {
+      const onChange = () => refreshIntlPriceRow(row, rates);
+      row.querySelector('[data-field="price"]')?.addEventListener('input', onChange);
+      row.querySelector('[data-field="intlMarkupPercent"]')?.addEventListener('input', onChange);
+      refreshIntlPriceRow(row, rates);
+    });
+  }
+
   function renderProducts(products) {
     const list = products || [];
     const brMain = list.filter((p) => !p.aggregated && productMarketsOf(p).includes('BR') && !isIntlMarketProduct(p));
@@ -5942,6 +6257,7 @@ ${worksheets}
     renderProductList(brMain, 'admin-products-br-main', { market: 'BR', aggregated: false });
     renderProductList(brAgg, 'admin-products-br-aggregated', { market: 'BR', aggregated: true });
     renderProductList(intlMain, 'admin-products-intl-main', { market: 'INT', aggregated: false });
+    bindIntlMarkupRecalc(document.getElementById('admin-products-intl-main'));
   }
 
   function collectFromList(listEl, isAggregated, market) {
@@ -6000,13 +6316,31 @@ ${worksheets}
         if (descriptionPl) product.descriptionPl = descriptionPl; else delete product.descriptionPl;
         if (descriptionSl) product.descriptionSl = descriptionSl; else delete product.descriptionSl;
         if (market === 'INT') {
-          const usd = val('priceUsd');
-          const eur = val('priceEur');
-          if (usd) product.priceUsd = Number(usd); else delete product.priceUsd;
-          if (eur) product.priceEur = Number(eur); else delete product.priceEur;
+          const currencies = collectIntlCurrencies();
+          const knownFields = new Set(currencies.map((c) => intlPriceFieldName(c.code)).filter(Boolean));
+          ['priceUsd', 'priceEur', 'priceSek', 'priceNok', 'pricePln', 'priceGbp', ...knownFields].forEach((field) => {
+            if (!field) return;
+            delete product[field];
+          });
+          const markupRaw = val('intlMarkupPercent');
+          const markupNum = Number(markupRaw);
+          product.intlMarkupPercent = Number.isFinite(markupNum) && markupNum >= 0
+            ? markupNum
+            : DEFAULT_INTL_MARKUP_PERCENT;
+          product.intlBaseBrl = intlBaseFromInputs(product.price, product.intlMarkupPercent);
+          // Foreign list prices are server-calculated on save (markup → FX). Keep shown values if present.
+          row.querySelectorAll('[data-intl-price="1"]').forEach((input) => {
+            const field = input.getAttribute('data-field');
+            if (!field) return;
+            const raw = String(input.value || '').trim();
+            if (raw) product[field] = Number(raw);
+          });
         } else {
-          delete product.priceUsd;
-          delete product.priceEur;
+          ['priceUsd', 'priceEur', 'priceSek', 'priceNok', 'pricePln', 'priceGbp', 'intlMarkupPercent', 'intlBaseBrl'].forEach((field) => { delete product[field]; });
+          collectIntlCurrencies().forEach((c) => {
+            const field = intlPriceFieldName(c.code);
+            if (field) delete product[field];
+          });
         }
         const imagesEl = row.querySelector('[data-field="images"]');
         if (imagesEl) {
@@ -6305,6 +6639,9 @@ ${worksheets}
   function fillForm(config) {
     const f = els.configForm;
     if (!f || !config) return;
+    renderIntlCurrencies(getAdminIntlCurrencies(config));
+    const autoFx = document.getElementById('admin-intl-auto-ppp');
+    if (autoFx) autoFx.checked = config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false;
     renderProducts(getProductsFromConfig(config));
     renderKitCost(config);
     if (f.mlFlexShippingCost) {
@@ -6616,12 +6953,15 @@ ${worksheets}
       mlFlexShippingCost: Math.max(0, parseFloat(f.mlFlexShippingCost?.value) || (currentConfig?.mlFlexShippingCost || 0)),
       homeFaq: collectHomeFaq(),
       homeReviews: collectHomeReviews(),
+      intlCurrencies: collectIntlCurrencies(),
+      intlCurrenciesAutoFx: document.getElementById('admin-intl-auto-ppp')?.checked !== false,
+      intlCurrenciesAutoPpp: document.getElementById('admin-intl-auto-ppp')?.checked !== false,
       updatedAt: new Date().toISOString()
     };
   }
 
-  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes', 'faq', 'elogios']);
-  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'cupons', 'faq', 'elogios', 'contato']);
+  const ADMIN_SAVE_TABS = new Set(['produtos', 'frete', 'moedas', 'pagamento', 'contato', 'cupons', 'api', 'smartwatches', 'clientes', 'faq', 'elogios']);
+  const CADASTROS_SECTIONS = new Set(['pessoas', 'produtos', 'smartwatches', 'kit', 'pagamento', 'frete', 'moedas', 'cupons', 'faq', 'elogios', 'contato']);
   const CADASTROS_PANEL_BY_SECTION = {
     pessoas: 'clientes',
     produtos: 'produtos',
@@ -6629,6 +6969,7 @@ ${worksheets}
     kit: 'produtos',
     pagamento: 'pagamento',
     frete: 'frete',
+    moedas: 'moedas',
     cupons: 'cupons',
     faq: 'faq',
     elogios: 'elogios',
@@ -7477,6 +7818,40 @@ ${worksheets}
 
   function wireForumAdminControls() {
     document.getElementById('btn-forum-refresh')?.addEventListener('click', () => loadForumAdmin());
+    document.getElementById('btn-forum-i18n-refresh')?.addEventListener('click', async () => {
+      const token = sessionStorage.getItem(SESSION_KEY);
+      const base = apiBase();
+      const statusEl = document.getElementById('forum-i18n-status');
+      const btn = document.getElementById('btn-forum-i18n-refresh');
+      if (!token || !base) {
+        setStatus('Faça login na API para gerar traduções da comunidade.', true);
+        return;
+      }
+      if (btn) btn.disabled = true;
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = 'Iniciando traduções da comunidade…';
+      }
+      try {
+        const res = await fetch(base.replace(/\/$/, '') + '/admin/forum/i18n/refresh', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: 50 }),
+          cache: 'no-store'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        const msg = data.message || 'Gerando traduções em segundo plano. Recarregue a comunidade em 2–5 min.';
+        if (statusEl) statusEl.textContent = msg;
+        setStatus(msg, false);
+      } catch (err) {
+        const msg = 'Falha ao traduzir comunidade: ' + (err?.message || err);
+        if (statusEl) statusEl.textContent = msg;
+        setStatus(msg, true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
     document.getElementById('btn-forum-seed')?.addEventListener('click', async () => {
       const token = sessionStorage.getItem(SESSION_KEY);
       const base = apiBase();
@@ -7666,7 +8041,10 @@ ${worksheets}
       if (id === 'cliques') {
         syncClicksNavOnlyCheckbox();
         if (clicksCache.length && clicksMetaCache) {
-          reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
+          reapplyClicksLocalFilters(captureClicksTreeOpenPaths(), {
+            skipIfPainted: true,
+            defer: true
+          });
         } else if (clicksLoading) {
           setClicksLoadStatus('Carregando cliques…');
         } else {
@@ -7929,6 +8307,8 @@ ${worksheets}
 
   document.getElementById('btn-clicks-test')?.addEventListener('click', () => testClickLog());
   document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => {
+    const btn = document.getElementById('btn-clicks-refresh');
+    if (btn?.dataset.busy === '1' || clicksLoading) return;
     startClicksBackgroundLoad({ preserveOpen: true, force: true });
   });
   document.getElementById('btn-clicks-export')?.addEventListener('click', () => exportClicksExcel());
@@ -8134,10 +8514,9 @@ ${worksheets}
       nameIt: 'Lente ottica SensorTattooFix',
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
-      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuada.',
-      price: 62.9,
-      priceUsd: 12.99,
-      priceEur: 11.99,
+      descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      price: 72.9,
+      intlMarkupPercent: DEFAULT_INTL_MARKUP_PERCENT,
       image: LENS_INTL_IMAGES[0],
       images: LENS_INTL_IMAGES.slice(),
       active: true,
@@ -8151,6 +8530,70 @@ ${worksheets}
     showStatus('Produto .com adicionado. Preencha os campos e clique em Salvar.', 'success', 'save');
     const panel = document.getElementById('admin-products-intl-main');
     panel?.lastElementChild?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  });
+
+  document.getElementById('btn-add-intl-currency')?.addEventListener('click', () => {
+    const all = collectIntlCurrencies();
+    all.push({
+      code: '',
+      label: 'Nova moeda',
+      langs: [],
+      countries: [],
+      decimals: 2,
+      active: true
+    });
+    renderIntlCurrencies(all);
+  });
+
+  document.getElementById('btn-apply-intl-ppp')?.addEventListener('click', async () => {
+    const status = document.getElementById('admin-intl-ppp-status');
+    const currencies = collectIntlCurrencies();
+    const auto = document.getElementById('admin-intl-auto-ppp')?.checked !== false;
+    const rates = await loadAdminFxRates();
+    const products = applyMarkupFxToProductsAdmin(collectProductsFromDom(), currencies, rates);
+    renderProducts(products);
+    if (status) {
+      status.hidden = false;
+      status.textContent = 'Recalculando moedas (R$ + markup + FX)…';
+    }
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const baseUrl = apiBase();
+    if (token && baseUrl) {
+      try {
+        const res = await fetch(baseUrl.replace(/\/$/, '') + '/admin/intl-money/apply-markup-fx', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ intlCurrencies: currencies, intlCurrenciesAutoFx: auto, intlCurrenciesAutoPpp: auto })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Falha ao recalcular moedas.');
+        if (data.products) {
+          const byId = new Map(data.products.map((p) => [p.id, p]));
+          const merged = collectProductsFromDom().map((p) => {
+            const live = byId.get(p.id);
+            return live ? { ...p, ...live } : p;
+          });
+          renderProducts(merged);
+        }
+        if (currentConfig) {
+          currentConfig.intlCurrencies = currencies;
+          currentConfig.intlCurrenciesAutoFx = auto;
+          currentConfig.intlCurrenciesAutoPpp = auto;
+        }
+        showStatus(`Moedas recalculadas em ${data.updated ?? 0} produto(s) .com.`, 'success', 'save');
+        if (status) status.textContent = `Atualizado: ${data.updated ?? 0} produto(s).`;
+        return;
+      } catch (err) {
+        showStatus(err.message || 'Recálculo só na tela — salve para gravar.', 'warning', 'save');
+        if (status) status.textContent = 'Recálculo na tela; salve para gravar no servidor.';
+        return;
+      }
+    }
+    showStatus('Moedas recalculadas na tela. Salve para gravar.', 'success', 'save');
+    if (status) status.textContent = 'Recálculo local — clique em Salvar.';
   });
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));
