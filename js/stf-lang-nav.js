@@ -1,12 +1,12 @@
 /**
- * Navegação entre mercados + seletor compacto de idiomas (PT, EN, IT, DE, ES, PL, SL).
- * .com = EN (/) + IT/DE/ES/PL/SL (/it/, /de/, /es/, /pl/, /sl/)  |  .com.br = PT + /en/ + /it/ + /de/ + /es/ + /pl/ + /sl/
+ * Navegação entre mercados + seletor compacto de idiomas (PT, EN, IT, DE, ES, PL, SL, FR, NL, SV, NO, FI).
+ * .com = EN (/) + IT/DE/ES/PL/SL/FR/NL/SV/NO/FI (/it/, /de/, …)  |  .com.br = PT + /en/ + intl prefixes
  */
 (function () {
   const BR = 'https://www.sensortattoofix.com.br';
   const COM = 'https://www.sensortattoofix.com';
-  const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
-  const ALL_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
+  const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
+  const ALL_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
   const LANG_META = {
     pt: { code: 'PT', flag: 'br', label: 'Português (Brasil)' },
@@ -16,6 +16,11 @@
     es: { code: 'ES', flag: 'es', label: 'Español' },
     pl: { code: 'PL', flag: 'pl', label: 'Polski' },
     sl: { code: 'SL', flag: 'si', label: 'Slovenščina' },
+    fr: { code: 'FR', flag: 'fr', label: 'Français' },
+    nl: { code: 'NL', flag: 'nl', label: 'Nederlands' },
+    sv: { code: 'SV', flag: 'se', label: 'Svenska' },
+    no: { code: 'NO', flag: 'no', label: 'Norsk' },
+    fi: { code: 'FI', flag: 'fi', label: 'Suomi' },
   };
 
   function host() {
@@ -91,17 +96,17 @@
       }
       return 'en';
     }
-    const m = path.match(/^\/(en|it|de|es|pl|sl)(\/|$)/);
+    const m = path.match(/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/);
     return m ? m[1] : 'pt';
   }
 
   function redirectBrIntlToCom() {
     if (!isBr()) return;
     const path = location.pathname;
-    const m = path.match(/^\/(en|it|de|es|pl|sl)(\/|$)/);
+    const m = path.match(/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/);
     if (!m) return;
     const lang = m[1];
-    const rest = path.replace(/^\/(en|it|de|es|pl|sl)/, '') || '/';
+    const rest = path.replace(/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)/, '') || '/';
     let target;
     if (lang === 'en') {
       target = rest === '/' || rest === '/index.html' ? COM + '/' : COM + rest;

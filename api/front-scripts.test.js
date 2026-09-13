@@ -62,3 +62,26 @@ test('película compat: case mm, Apple squircle, other model skipped', () => {
   assert.equal(STF_PELICULA.isCompatible(null, 'Apple Watch Series 10 (46 mm)'), false);
   assert.equal(STF_PELICULA.findCompatible('Outro modelo', []).length, 0);
 });
+
+test('store-price-tag primaryProduct on .com prefers optical-lens-intl, not BR kit', () => {
+  const code = fs.readFileSync(path.join(jsDir, 'store-price-tag.js'), 'utf8');
+  const location = { hostname: 'www.sensortattoofix.com', pathname: '/' };
+  const document = {
+    readyState: 'complete',
+    querySelectorAll: () => [],
+    addEventListener: () => {}
+  };
+  const window = { location, document, addEventListener: () => {} };
+  const sandbox = { window, document, location, console };
+  vm.runInNewContext(code, sandbox, { filename: 'store-price-tag.js' });
+  const cfg = {
+    products: [
+      { id: 'kit-sensor-tattoofix', price: 72.9, active: true },
+      { id: 'optical-lens-intl', price: 100, priceUsd: 20.65, active: true },
+      { id: 'optical-lens-smartband-intl', price: 62.9, priceUsd: 12.99, active: true }
+    ]
+  };
+  const primary = window.STF_STORE_PRICE.primaryProduct(cfg);
+  assert.equal(primary.id, 'optical-lens-intl');
+  assert.equal(primary.priceUsd, 20.65);
+});
