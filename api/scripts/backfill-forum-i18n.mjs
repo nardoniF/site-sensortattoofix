@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Backfill DE/ES/PL/SL on forum threads (+ replies) via Workers AI + KV.
+ * Backfill forum thread/reply i18n (PT → all SITE_LANGS) via Workers AI + KV.
  * Usage: node api/scripts/backfill-forum-i18n.mjs [--limit=28]
  */
 import { execFileSync } from 'node:child_process';
@@ -14,7 +14,7 @@ const ROOT = path.join(__dirname, '..', '..');
 const NS = '4184c034aab941e58ce5cc1e3abaecdc';
 const ACCOUNT = '80ab4f6ff1553d2ee530c0880edce594';
 const MODEL = '@cf/meta/llama-3.1-8b-instruct';
-const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
+const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 const LANG_NATIVE = {
   pt: 'português brasileiro',
   en: 'English',
@@ -22,7 +22,12 @@ const LANG_NATIVE = {
   de: 'Deutsch',
   es: 'español de España',
   pl: 'polski',
-  sl: 'slovenščina'
+  sl: 'slovenščina',
+  fr: 'français',
+  nl: 'Nederlands',
+  sv: 'svenska',
+  no: 'norsk bokmål',
+  fi: 'suomi'
 };
 
 const limitArg = process.argv.find((a) => a.startsWith('--limit='));

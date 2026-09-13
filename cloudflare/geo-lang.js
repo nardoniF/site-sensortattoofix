@@ -4,7 +4,7 @@
  */
 
 export const PREF_COOKIE = 'stf_pref_lang';
-export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
+export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
 /** País ISO → idioma do site (só mapeamentos claros). */
 export const COUNTRY_LANG = {
@@ -42,7 +42,13 @@ export const COUNTRY_LANG = {
   AU: 'en',
   NZ: 'en',
   IE: 'en',
-  CA: 'en'
+  CA: 'en',
+  FR: 'fr',
+  MC: 'fr',
+  NL: 'nl',
+  SE: 'sv',
+  NO: 'no',
+  FI: 'fi'
 };
 
 const BOT_RE = /googlebot|bingbot|yandex|baidu|duckduck|slurp|facebookexternalhit|twitterbot|linkedinbot|embedly|quora|pinterest|redditbot|applebot|semrush|ahrefs|mj12bot|dotbot|petalbot|bytespider|crawler|spider|bot\b/i;
@@ -83,6 +89,11 @@ export function langFromAcceptLanguage(header) {
     if (tag.startsWith('de')) return 'de';
     if (tag.startsWith('es')) return 'es';
     if (tag.startsWith('it')) return 'it';
+    if (tag.startsWith('fr')) return 'fr';
+    if (tag.startsWith('nl')) return 'nl';
+    if (tag.startsWith('sv')) return 'sv';
+    if (tag.startsWith('nb') || tag.startsWith('nn') || tag.startsWith('no')) return 'no';
+    if (tag.startsWith('fi')) return 'fi';
     if (tag.startsWith('en')) return 'en';
   }
   return null;
@@ -96,7 +107,7 @@ export function prefLangFromCookie(cookieHeader) {
 
 /**
  * @param {{ cookieHeader?: string, country?: string, acceptLanguage?: string, fallback?: string }} opts
- * @returns {'pt'|'en'|'it'|'de'|'es'|'pl'|'sl'}
+ * @returns {'pt'|'en'|'it'|'de'|'es'|'pl'|'sl'|'fr'|'nl'|'sv'|'no'|'fi'}
  */
 export function resolvePreferredLang({ cookieHeader, country, acceptLanguage, fallback = 'en' } = {}) {
   return (
@@ -117,7 +128,7 @@ export function prefCookieHeader(lang, maxAgeSec = 60 * 60 * 24 * 365) {
 export function isComEnglishEntryPath(pathname) {
   const p = String(pathname || '');
   if (p === '/' || p === '' || p === '/index.html') return true;
-  if (/^\/(en|it|de|es|pl|sl)(\/|$)/i.test(p)) return false;
+  if (/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/i.test(p)) return false;
   if (/^\/[a-z0-9_-]+\.html$/i.test(p)) return true;
   return false;
 }
@@ -129,33 +140,29 @@ export function isBrHomePath(pathname) {
 
 /**
  * @returns {string|null} absolute URL to redirect to, or null
+ *
+ * IMPORTANT: never auto-bounce between .com and .com.br.
+ * Those are different markets (INT lens vs BR kit). Cross-host is only via
+ * explicit language switcher / ?stf_lang= (handled in the proxy).
+ * Host-scoped cookies + bilingual Accept-Language used to cause ERR_TOO_MANY_REDIRECTS.
  */
 export function localeRedirectTarget({ hostOrigin, pathname, search, br, preferred }) {
   const lang = normalizeSiteLang(preferred) || 'en';
-  const COM = 'https://www.sensortattoofix.com';
-  const BR = 'https://www.sensortattoofix.com.br';
   const path = pathname || '/';
   const q = search || '';
 
+  // .com.br home stays PT — do not auto-send intl visitors to .com
   if (br) {
-    if (!isBrHomePath(path)) return null;
-    if (lang === 'pt') return null;
-    // Visitante intl na home BR → mercado .com no idioma certo
-    if (lang === 'en') return q ? `${COM}/${q}` : `${COM}/`;
-    return q ? `${COM}/${lang}/${q}` : `${COM}/${lang}/`;
+    return null;
   }
 
+  // .com: only prefix /de|/pl|… within the same host; never send pt → .com.br
   if (!isComEnglishEntryPath(path)) return null;
-  if (lang === 'en') return null;
+  if (lang === 'en' || lang === 'pt') return null;
 
   const isHome = path === '/' || path === '' || path === '/index.html';
   const file = isHome ? '' : path.replace(/^\//, '');
-  const base = String(hostOrigin || COM).replace(/\/$/, '');
-
-  if (lang === 'pt') {
-    if (isHome) return q ? `${BR}/${q}` : `${BR}/`;
-    return `${BR}/${file}${q}`;
-  }
+  const base = String(hostOrigin || 'https://www.sensortattoofix.com').replace(/\/$/, '');
   if (isHome) return q ? `${base}/${lang}/${q}` : `${base}/${lang}/`;
   return `${base}/${lang}/${file}${q}`;
 }
@@ -163,7 +170,7 @@ export function localeRedirectTarget({ hostOrigin, pathname, search, br, preferr
 /** Lang implied by current path (for setting preference cookie). */
 export function langFromPathname(pathname, br) {
   const path = String(pathname || '');
-  const m = path.match(/^\/(en|it|de|es|pl|sl)(\/|$)/i);
+  const m = path.match(/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/i);
   if (m) return m[1].toLowerCase();
   if (br) return 'pt';
   return 'en';

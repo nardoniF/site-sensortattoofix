@@ -36,6 +36,24 @@ Opcional: troque também o usuário padrão `admin` em `api/wrangler.toml` (`ADM
 
 ---
 
+## Conteúdo GLOBAL vs MARKET-SPECIFIC
+
+Regra: **compartilhar o que é global; separar o que é específico de cada mercado.**
+O `.com` **não** é cópia do `.com.br`.
+
+| GLOBAL (auto / traduzido a partir do PT) | MARKET-SPECIFIC (independente) |
+|---|---|
+| `name` / `description` → `nameEn`, `descriptionIt`, … | Imagens (`image`, `images`) BR ≠ INT |
+| FAQ / elogios (`homeFaq`, `homeReviews` + i18n) | Oferta: BR = **kit**; INT = **só lente** |
+| Strings de UI (`stf-i18n*`, HTML por idioma) | Preço: BRL editável; INT = BRL × markup% × FX (moedas readonly) |
+| Registry de moedas (idiomas/países) | Frete/notices documento vs encomenda; `kitCost` vs `kitCostIntl` |
+
+Lock opcional por idioma no produto: `textI18nLocks: { "en": true }` — não sobrescreve tradução market-specific.
+
+Fontes de verdade: **KV `store-config`** (Admin) > `data/store-config.json` pinado > `DEFAULT_CONFIG`. Proxy `COMMIT` e Worker `SITE_CATALOG_COMMIT` devem acompanhar o mesmo deploy de catálogo.
+
+---
+
 ## API (Worker)
 
 - Base: `https://sensortattoofix-payments.sensortattoofix.workers.dev`

@@ -68,6 +68,53 @@ test('aggregateFlexOwedByMonth groups by BR month', () => {
   assert.equal(rows[0].owed, 11.9);
   assert.equal(rows[0].bonus, 1.1);
   assert.equal(rows[0].net, 10.8);
+  assert.deepEqual(rows[0].days, [15]);
+});
+
+test('aggregateFlexOwedByMonth lists unique order days under the month', () => {
+  const rows = aggregateFlexOwedByMonth([
+    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-02T12:00:00-03:00') },
+    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-02T18:00:00-03:00') },
+    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-10T10:00:00-03:00') }
+  ], config);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].count, 3);
+  assert.deepEqual(rows[0].days, [2, 10]);
+});
+
+test('aggregateFlexOwedByMonth sorts months ascending Jul → Ago → Set', () => {
+  const mk = (iso, n = 1) => Array.from({ length: n }, () => ({
+    channel: 'ml',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 0,
+    _ts: Date.parse(iso)
+  }));
+  const rows = aggregateFlexOwedByMonth([
+    ...mk('2026-09-05T12:00:00-03:00', 2),
+    ...mk('2026-07-20T12:00:00-03:00', 4),
+    ...mk('2026-08-12T12:00:00-03:00', 9)
+  ], config);
+  assert.deepEqual(rows.map((r) => r.monthNum), ['07', '08', '09']);
+  assert.deepEqual(rows.map((r) => r.count), [4, 9, 2]);
+  assert.equal(rows[0].owed, 47.6);
+  assert.equal(rows[1].owed, 107.1);
+});
+
+test('Flex with residual 0,05 and source flex still counts as Flex frete', () => {
+  const sale = {
+    channel: 'ml',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 11.85,
+    shippingCost: 0.05,
+    shippingSource: 'flex',
+    logisticType: '',
+    gross: 82.9,
+    fees: 14.92
+  };
+  assert.equal(isMlFlexSale(sale), true);
+  assert.equal(saleShippingCost(sale, config), 0.05);
 });
 
 test('frete manual cut reallocates leftover onto product and keeps paid total', () => {
@@ -117,4 +164,36 @@ test('manual product acerto stores productAdjust and net total after PayPal fee'
   assert.equal(order.totalPaid, 489.62);
   assert.equal(order.paypalFee, 49.86);
   assert.equal(storeOrderListedGross(order), 439.76);
+});
+
+
+test('DANPROS residual 0,05 with false mlFlex shows 0 frete (not list-estorno)', () => {
+  const sale = {
+    channel: 'mercadolivre',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 11.85,
+    shippingCost: 0.05,
+    shippingSource: 'envios',
+    logisticType: 'drop_off',
+    gross: 92.2,
+    fees: 16.6
+  };
+  assert.equal(saleShippingCost(sale, config), 0);
+  assert.equal(marketplaceSaleNet(sale, config), 75.6);
+});
+
+test('real Flex keeps list − estorno even when net is under 1', () => {
+  const sale = {
+    channel: 'ml',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 11.85,
+    shippingCost: 0.05,
+    shippingSource: 'flex',
+    logisticType: 'self_service',
+    gross: 82.9,
+    fees: 14.92
+  };
+  assert.equal(saleShippingCost(sale, config), 0.05);
 });
