@@ -105,7 +105,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '3299494b66c054c868ae927cc36d63658d342a46';
+const SITE_CATALOG_COMMIT = 'f444d2b1ecad6e9c5290cad59e9c50d3280ce8da';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -2399,6 +2399,25 @@ function hydrateIntlOrderFields(order) {
 }
 
 /**
+ * Separa número da casa da rua (US no início, EU no fim).
+ * Ex.: "10 Main St" → {rua:"Main St", numero:"10"}; "Calle Mayor 12" → {rua:"Calle Mayor", numero:"12"}
+ */
+function splitIntlStreetAndNumber(rua, numero) {
+  let street = String(rua || '').trim();
+  let num = String(numero || '').trim();
+  if (num) {
+    // Se a rua já começa com o mesmo número, remove da rua para o Correios
+    if (street.startsWith(num + ' ')) street = street.slice(num.length).trim();
+    return { rua: street, numero: num };
+  }
+  let m = street.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
+  if (m) return { rua: m[2].trim(), numero: m[1] };
+  m = street.match(/^(.+?[A-Za-zÀ-ÿ])\s+(\d+[A-Za-z]?(?:\/[A-Za-z0-9]+)?)$/);
+  if (m) return { rua: m[1].trim(), numero: m[2] };
+  return { rua: street, numero: num };
+}
+
+/**
  * Extrai campos de endereços internacionais salvos só em `endereco` (pedidos antigos).
  * Exemplos:
  * - "8 Davey Street, Brisbane — Queensland, Austrália, CEP 4123"
@@ -2412,19 +2431,16 @@ function parseIntlAddressFromOrder(order) {
     || blob.match(/\b(\d{5}(?:-\d{4})?|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\s*$/i);
   if (cepMatch) out.cep = String(cepMatch[1] || cepMatch[0]).replace(/^(?:CEP|ZIP|postal(?:\s*code)?)[:\s]*/i, '').trim();
 
-  // "12012 Amber Meadows Lane" → rua completa (não separar número como CEP)
-  const usStreet = blob.match(/^(\d+[A-Za-z]?)\s+([A-Za-z].+?)(?=\s*[,—]|$)/);
-  if (usStreet) {
-    out.numero = usStreet[1].slice(0, 10);
-    out.rua = `${usStreet[1]} ${usStreet[2].trim()}`.replace(/\s+/g, ' ').slice(0, 80);
-  } else {
-    const streetNum = blob.match(/^([^,]+?),\s*(\d+[A-Za-z]?)\b/);
+  const first = blob.split(/[,—]/)[0]?.trim() || '';
+  const split = splitIntlStreetAndNumber(first, order.numero);
+  if (split.rua) out.rua = split.rua.slice(0, 80);
+  if (split.numero) out.numero = String(split.numero).slice(0, 10);
+  // "Calle X, 12 — City" pattern
+  if (!out.numero) {
+    const streetNum = blob.match(/^([^,]+?),\s*(\d+[A-Za-z]?(?:\/[A-Za-z0-9]+)?)\b/);
     if (streetNum) {
       out.rua = streetNum[1].trim().slice(0, 50);
-      out.numero = streetNum[2].slice(0, 6);
-    } else {
-      const first = blob.split(/[,—\-]/)[0]?.trim();
-      if (first) out.rua = first.slice(0, 80);
+      out.numero = streetNum[2].slice(0, 10);
     }
   }
 
@@ -8266,14 +8282,10 @@ function buildCorreiosIntlEndereco(order) {
 
   let rua = String(order.rua || order.logradouro || '').trim();
   let numero = String(order.numero || '').trim();
-  // "8 Davey Street" no campo rua → separar número
-  if (rua && (!numero || rua.startsWith(numero + ' '))) {
-    const m = rua.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
-    if (m) {
-      numero = m[1];
-      rua = m[2];
-    }
-  }
+  // "8 Davey Street" / "Calle Mayor 12" no campo rua → separar número
+  const split = splitIntlStreetAndNumber(rua, numero);
+  rua = split.rua;
+  numero = split.numero;
   if (!rua) rua = String(order.endereco || '').trim().split(/[—\-]/)[0]?.trim() || 'Address';
   if (!numero) numero = 'S/N';
 
@@ -14228,6 +14240,17 @@ async function handleCreateOrder(request, env, origin, ctx) {
     pagamento: pagamentoLabel,
     checkoutLocale
   };
+
+  if (isIntl) {
+    const split = splitIntlStreetAndNumber(order.rua, order.numero);
+    order.rua = split.rua;
+    order.numero = split.numero;
+    if (split.numero) {
+      const streetLine = `${split.rua}, ${split.numero}`;
+      const rest = String(order.endereco || '').split('—').slice(1).join('—').trim();
+      order.endereco = rest ? `${streetLine} — ${rest}` : streetLine;
+    }
+  }
 
   if (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')) {
     try {

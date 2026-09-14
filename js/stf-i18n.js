@@ -90,11 +90,11 @@ window.STF_I18N = (function () {
       'form.city': 'Cidade',
       'form.state': 'UF',
       'form.postal': 'Código postal',
-      'form.streetIntl': 'Endereço (número + rua)',
+      'form.streetIntl': 'Rua / logradouro',
       'form.stateIntl': 'Estado / Província',
       'form.stateIntlPh': 'Opcional',
-      'form.streetIntlPh': '10 Main Street',
-      'form.numberIntlPh': '78',
+      'form.streetIntlPh': 'Main Street',
+      'form.numberIntlPh': '10',
       'form.phonePh': '(11) 99999-9999',
       'form.phoneNationalPh': '4123 456 789',
       'account.logged': 'Olá, {name} — você está logado.',
@@ -302,7 +302,7 @@ window.STF_I18N = (function () {
       'alert.paypalOnlyIntl': 'Neste checkout use PayPal para pagamento internacional.',
       'alert.intlDocNoAggregated': 'Carta/documento internacional envia só a lente do kit — remova películas e pulseiras do carrinho ou escolha envio em encomenda.',
       'alert.addrBr': 'Preencha o endereço brasileiro completo.',
-      'alert.addrIntl': 'Preencha o endereço internacional.',
+      'alert.addrIntl': 'Preencha rua, número, cidade e código postal.',
       'alert.pixIntlCpf': 'Para pagar com PIX no exterior, informe seu CPF (conta bancária no Brasil).',
       'alert.orderError': 'Erro ao processar pedido.',
       'alert.orderInvalid': 'Resposta inválida da API ao registrar pedido.',
@@ -467,11 +467,11 @@ window.STF_I18N = (function () {
       'form.city': 'City',
       'form.state': 'State',
       'form.postal': 'Postal / ZIP code',
-      'form.streetIntl': 'Street address',
+      'form.streetIntl': 'Street',
       'form.stateIntl': 'State / Province',
       'form.stateIntlPh': 'Optional',
-      'form.streetIntlPh': '10 Main Street',
-      'form.numberIntlPh': '78',
+      'form.streetIntlPh': 'Main Street',
+      'form.numberIntlPh': '10',
       'form.phonePh': '+65 9123 4567',
       'form.phoneNationalPh': '4123 456 789',
       'account.logged': 'Hello, {name} — you are signed in.',
@@ -681,7 +681,7 @@ window.STF_I18N = (function () {
       'alert.paypalOnlyIntl': 'On this checkout, use PayPal for international payment.',
       'alert.intlDocNoAggregated': 'International letter mail ships the lens only — remove screen protectors and bands from your cart, or choose parcel shipping.',
       'alert.addrBr': 'Please complete the Brazilian address.',
-      'alert.addrIntl': 'Please complete the international address.',
+      'alert.addrIntl': 'Please fill in street, house number, city and postal code.',
       'alert.pixIntlCpf': 'To pay with PIX abroad, enter your CPF (Brazilian bank account).',
       'alert.orderError': 'Error processing order.',
       'alert.orderInvalid': 'Invalid response when creating order.',
@@ -1243,6 +1243,7 @@ window.STF_I18N = (function () {
 
     setPlaceholder('[name="telefone"]', 'form.whatsapp');
     setPlaceholder('#rua-intl', 'form.streetIntlPh');
+    setPlaceholder('#numero-intl', 'form.numberIntlPh');
     setPlaceholder('#uf-intl', 'form.stateIntlPh');
     setPlaceholder('#observacoes', 'form.notesPhDefault');
 

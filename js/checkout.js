@@ -1473,6 +1473,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       if (f.bairro && a.bairro) f.bairro.value = a.bairro;
       if (f.cidade && a.cidade) f.cidade.value = a.cidade;
       if (f.uf && a.uf) f.uf.value = a.uf;
+      const ruaIntl = document.getElementById('rua-intl');
+      const numeroIntl = document.getElementById('numero-intl');
+      const cidadeIntl = document.getElementById('cidade-intl');
+      const postalIntl = document.getElementById('postal-intl');
+      const ufIntl = document.getElementById('uf-intl');
+      if (ruaIntl && a.rua) ruaIntl.value = a.rua;
+      if (numeroIntl && a.numero) numeroIntl.value = a.numero;
+      if (cidadeIntl && a.cidade) cidadeIntl.value = a.cidade;
+      if (postalIntl && a.cep) postalIntl.value = a.cep;
+      if (ufIntl && a.uf) ufIntl.value = a.uf;
     }
     scheduleQuoteShippingIfReady();
   }
@@ -2552,6 +2562,19 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     throw new Error(L('shipping.cepInvalid'));
   }
 
+  function splitIntlStreetNumber(rua, numero) {
+    let street = String(rua || '').trim();
+    let num = String(numero || '').trim();
+    if (num) return { rua: street, numero: num };
+    // US-style: "10 Main Street"
+    let m = street.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
+    if (m) return { rua: m[2].trim(), numero: m[1] };
+    // EU-style trailing: "Calle Mayor 10" / "Via Noalese 212/E"
+    m = street.match(/^(.+?[A-Za-zÀ-ÿ])\s+(\d+[A-Za-z]?(?:\/[A-Za-z0-9]+)?)$/);
+    if (m) return { rua: m[1].trim(), numero: m[2] };
+    return { rua: street, numero: num };
+  }
+
   function collectOrderData() {
     const f = els.form;
     const paisCode = els.paisCode.value;
@@ -2561,21 +2584,25 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     let data;
     let endereco;
     if (isInternational) {
-      const rua = document.getElementById('rua-intl').value.trim();
+      const split = splitIntlStreetNumber(
+        document.getElementById('rua-intl')?.value || '',
+        document.getElementById('numero-intl')?.value || ''
+      );
       const cidade = document.getElementById('cidade-intl').value.trim();
       const provincia = document.getElementById('uf-intl').value.trim();
       const cep = document.getElementById('postal-intl').value.trim();
       data = {
         cep,
-        rua,
-        numero: '',
+        rua: split.rua,
+        numero: split.numero,
         complemento: '',
-        bairro: '',
+        bairro: cidade || '',
         cidade,
         uf: provincia || paisCode
       };
       const linha2 = provincia ? `${cidade}, ${provincia}` : cidade;
-      endereco = `${rua} — ${linha2} — ${paisLabel} ${cep}`;
+      const streetLine = split.numero ? `${split.rua}, ${split.numero}` : split.rua;
+      endereco = `${streetLine} — ${linha2} — ${paisLabel} ${cep}`;
     } else {
       data = {
         cep: f.cep.value.trim(), rua: f.rua.value.trim(), numero: f.numero.value.trim(),
@@ -2723,10 +2750,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       }
     } else {
       const ruaIntl = document.getElementById('rua-intl');
+      const numeroIntl = document.getElementById('numero-intl');
       const cidadeIntl = document.getElementById('cidade-intl');
-      if (!ruaIntl?.value || !cidadeIntl?.value) {
+      const postalIntl = document.getElementById('postal-intl');
+      if (!ruaIntl?.value?.trim() || !numeroIntl?.value?.trim() || !cidadeIntl?.value?.trim() || !postalIntl?.value?.trim()) {
         alert(L('alert.addrIntl'));
-        focusCheckoutField(ruaIntl || cidadeIntl);
+        focusCheckoutField(
+          !ruaIntl?.value?.trim() ? ruaIntl
+            : (!numeroIntl?.value?.trim() ? numeroIntl
+              : (!postalIntl?.value?.trim() ? postalIntl : cidadeIntl))
+        );
         return false;
       }
     }
@@ -3162,7 +3195,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         });
       });
 
-      ['postal-intl', 'rua-intl', 'cidade-intl'].forEach((id) => {
+      ['postal-intl', 'rua-intl', 'numero-intl', 'cidade-intl'].forEach((id) => {
         const input = document.getElementById(id);
         input?.addEventListener('blur', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
         input?.addEventListener('change', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
