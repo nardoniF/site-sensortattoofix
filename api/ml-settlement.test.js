@@ -6,7 +6,12 @@ import {
   mlFlexBonusFromCosts,
   impliedEnviosFromReceipt,
   receiptPayout,
-  liquidMatchesReceipt
+  liquidMatchesReceipt,
+  repairEnviosAlreadyNet,
+  resolveEnviosShipping,
+  mlOrderItemsSaleFees,
+  resolveMlSaleFees,
+  mlFeesLookShort
 } from './ml-settlement.js';
 
 test('senders.cost 12,35 is used as-is (buyer 2,99 is not Envios)', () => {
@@ -75,4 +80,84 @@ test('Flex Rafael: bonus 1,10 comes from shipment costs discounts', () => {
 test('wrong leftover freights must fail the liquid test', () => {
   assert.equal(liquidMatchesReceipt(53.59, 9.65, 9.36, 31.59), false);
   assert.equal(liquidMatchesReceipt(53.59, 9.65, 0.36, 31.59), false);
+  assert.equal(liquidMatchesReceipt(92.20, 16.60, 0.05, 62.65), false);
+});
+
+test('DANPROS: residual 0,05 is rejected and receipt liquid restores Envios 12,95', () => {
+  assert.equal(repairEnviosAlreadyNet(0.05, 12.90), null);
+  assert.equal(repairEnviosAlreadyNet(0.05, null), null);
+  assert.equal(impliedEnviosFromReceipt(92.20, 16.60, 62.65), 12.95);
+  const resolved = resolveEnviosShipping({
+    gross: 92.20,
+    fees: 16.60,
+    liquid: 62.65,
+    senderCost: 0.05,
+    buyerCost: 12.90
+  });
+  assert.equal(resolved.shipping, 12.95);
+  assert.equal(resolved.source, 'payment_fallback');
+  assert.equal(liquidMatchesReceipt(92.20, 16.60, resolved.shipping, 62.65), true);
+});
+
+test('resolveEnviosShipping keeps valid senders.cost when liquid matches', () => {
+  const resolved = resolveEnviosShipping({
+    gross: 92.20,
+    fees: 16.60,
+    liquid: 62.65,
+    senderCost: 12.95,
+    buyerCost: 0
+  });
+  assert.equal(resolved.shipping, 12.95);
+  assert.equal(resolved.source, 'envios');
+});
+
+test('sale_fee is per unit — 2 units must double the fee', () => {
+  assert.equal(mlOrderItemsSaleFees([{ quantity: 2, saleFee: 12.76 }]), 25.52);
+  assert.equal(mlOrderItemsSaleFees([{ quantity: 1, saleFee: 9.61 }]), 9.61);
+  assert.equal(
+    resolveMlSaleFees({
+      marketplaceFee: 0,
+      items: [{ quantity: 2, saleFee: 12.76 }],
+      saleFees: 12.76
+    }),
+    25.52
+  );
+  assert.equal(
+    resolveMlSaleFees({
+      marketplaceFee: 25.52,
+      items: [{ quantity: 2, saleFee: 12.76 }],
+      saleFees: 12.76
+    }),
+    25.52
+  );
+});
+
+test('receipt June 19 / 2 units: frete 24,70 and líquido 91,58 (not 70,45 / 52,84)', () => {
+  // Wrong legacy: fee half (12,76) + frete inventado → líquido falso
+  assert.equal(receiptPayout(141.80, 12.76, 70.45), 58.59);
+  // Recibo: preço 141,80 − tarifa 25,52 − Envios 24,70 = 91,58
+  assert.equal(receiptPayout(141.80, 25.52, 24.70), 91.58);
+  assert.equal(impliedEnviosFromReceipt(141.80, 25.52, 91.58), 24.7);
+  // senders.cost = tarifa cheia 57,69 → fallback pelo líquido restaura 24,70
+  const resolved = resolveEnviosShipping({
+    gross: 141.80,
+    fees: 25.52,
+    liquid: 91.58,
+    senderCost: 57.69,
+    buyerCost: 32.99
+  });
+  assert.equal(resolved.shipping, 24.7);
+  assert.equal(resolved.source, 'payment_fallback');
+  assert.equal(liquidMatchesReceipt(141.80, 25.52, resolved.shipping, 91.58), true);
+});
+
+test('mlFeesLookShort detects classic half-fee on 2-unit order', () => {
+  assert.equal(mlFeesLookShort({
+    fees: 12.76,
+    items: [{ quantity: 2, saleFee: 12.76 }]
+  }), true);
+  assert.equal(mlFeesLookShort({
+    fees: 25.52,
+    items: [{ quantity: 2, saleFee: 12.76 }]
+  }), false);
 });

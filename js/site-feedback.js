@@ -130,6 +130,96 @@
       thanks: 'Hvala! Vaše mnenje nam pomaga izboljšati stran.',
       err: 'Pošiljanje ni uspelo. Poskusite znova ali pišite na support@sensortattoofix.com.',
       errShort: 'Opišite, kaj ste iskali (vsaj 8 znakov).'
+    },
+    fr: {
+      fab: 'Suggestions',
+      fabAria: "Dites-nous ce qui manquait sur le site",
+      title: 'Aidez-nous à nous améliorer',
+      intro: "Vous n'avez pas trouvé ce que vous cherchiez ? Quelques mots suffisent — nous lisons chaque réponse.",
+      buscava: 'Que cherchiez-vous ?',
+      buscavaPh: 'Ex. : prix du kit, compatibilité Garmin, délai de livraison…',
+      sugestao: 'Ce qui manquait ou une suggestion (facultatif)',
+      sugestaoPh: "Ex. : vidéo d'installation, comparatif des modèles, livraison internationale…",
+      email: 'Votre e-mail (facultatif)',
+      emailPh: 'Seulement si vous souhaitez une réponse',
+      send: 'Envoyer',
+      sending: 'Envoi…',
+      close: 'Fermer',
+      thanks: 'Merci ! Votre retour nous aide à améliorer le site.',
+      err: "Envoi impossible. Réessayez ou écrivez à support@sensortattoofix.com.",
+      errShort: 'Décrivez ce que vous cherchiez (au moins 8 caractères).'
+    },
+    nl: {
+      fab: 'Feedback',
+      fabAria: 'Laat ons weten wat er op de site ontbrak',
+      title: 'Help ons verbeteren',
+      intro: 'Niet gevonden wat u zocht? Een paar woorden zijn genoeg — we lezen elke reactie.',
+      buscava: 'Wat zocht u?',
+      buscavaPh: 'Bijv.: prijs van de kit, Garmin-compatibiliteit, levertijd…',
+      sugestao: 'Wat ontbrak of een suggestie (optioneel)',
+      sugestaoPh: 'Bijv.: installatievideo, modelvergelijking, internationale verzending…',
+      email: 'Uw e-mail (optioneel)',
+      emailPh: 'Alleen als u een antwoord wilt',
+      send: 'Versturen',
+      sending: 'Versturen…',
+      close: 'Sluiten',
+      thanks: 'Dank u! Uw feedback helpt ons de site te verbeteren.',
+      err: 'Verzenden mislukt. Probeer het opnieuw of mail support@sensortattoofix.com.',
+      errShort: 'Beschrijf wat u zocht (minstens 8 tekens).'
+    },
+    sv: {
+      fab: 'Feedback',
+      fabAria: 'Berätta vad som saknades på sajten',
+      title: 'Hjälp oss att bli bättre',
+      intro: 'Hittade du inte det du sökte? Några ord räcker — vi läser alla svar.',
+      buscava: 'Vad letade du efter?',
+      buscavaPh: 'T.ex.: pris på kit, Garmin-kompatibilitet, leveranstid…',
+      sugestao: 'Vad saknades eller ett förslag (valfritt)',
+      sugestaoPh: 'T.ex.: installationsvideo, modelljämförelse, internationell frakt…',
+      email: 'Din e-post (valfritt)',
+      emailPh: 'Endast om du vill ha ett svar',
+      send: 'Skicka',
+      sending: 'Skickar…',
+      close: 'Stäng',
+      thanks: 'Tack! Din feedback hjälper oss att förbättra sajten.',
+      err: 'Kunde inte skicka. Försök igen eller skriv till support@sensortattoofix.com.',
+      errShort: 'Beskriv vad du letade efter (minst 8 tecken).'
+    },
+    no: {
+      fab: 'Tilbakemelding',
+      fabAria: 'Fortell oss hva som manglet på siden',
+      title: 'Hjelp oss å bli bedre',
+      intro: 'Fant du ikke det du søkte etter? Noen ord er nok — vi leser alle svar.',
+      buscava: 'Hva lette du etter?',
+      buscavaPh: 'F.eks.: pris på kit, Garmin-kompatibilitet, leveringstid…',
+      sugestao: 'Hva manglet eller et forslag (valgfritt)',
+      sugestaoPh: 'F.eks.: installasjonsvideo, modellsammenligning, internasjonal frakt…',
+      email: 'Din e-post (valgfritt)',
+      emailPh: 'Bare hvis du vil ha svar',
+      send: 'Send',
+      sending: 'Sender…',
+      close: 'Lukk',
+      thanks: 'Takk! Din tilbakemelding hjelper oss å forbedre siden.',
+      err: 'Kunne ikke sende. Prøv igjen eller skriv til support@sensortattoofix.com.',
+      errShort: 'Beskriv hva du lette etter (minst 8 tegn).'
+    },
+    fi: {
+      fab: 'Palaute',
+      fabAria: 'Kerro, mitä sivustolta puuttui',
+      title: 'Auta meitä parantamaan',
+      intro: 'Etkö löytänyt etsimääsi? Muutama sana riittää — luemme kaikki vastaukset.',
+      buscava: 'Mitä etsit?',
+      buscavaPh: 'Esim.: sarjan hinta, Garmin-yhteensopivuus, toimitusaika…',
+      sugestao: 'Mitä puuttui tai ehdotus (valinnainen)',
+      sugestaoPh: 'Esim.: asennusvideo, mallivertailu, kansainvälinen toimitus…',
+      email: 'Sähköpostisi (valinnainen)',
+      emailPh: 'Vain jos haluat vastauksen',
+      send: 'Lähetä',
+      sending: 'Lähetetään…',
+      close: 'Sulje',
+      thanks: 'Kiitos! Palautteesi auttaa meitä parantamaan sivustoa.',
+      err: 'Lähetys epäonnistui. Yritä uudelleen tai kirjoita support@sensortattoofix.com.',
+      errShort: 'Kuvaile, mitä etsit (vähintään 8 merkkiä).'
     }
   };
 
@@ -141,6 +231,11 @@
     if (htmlLang.startsWith('es') || location.pathname.includes('/es/')) return 'es';
     if (htmlLang.startsWith('pl') || location.pathname.includes('/pl/')) return 'pl';
     if (htmlLang.startsWith('sl') || location.pathname.includes('/sl/')) return 'sl';
+    if (htmlLang.startsWith('fr') || location.pathname.includes('/fr/')) return 'fr';
+    if (htmlLang.startsWith('nl') || location.pathname.includes('/nl/')) return 'nl';
+    if (htmlLang.startsWith('sv') || location.pathname.includes('/sv/')) return 'sv';
+    if (htmlLang.startsWith('no') || htmlLang.startsWith('nb') || location.pathname.includes('/no/')) return 'no';
+    if (htmlLang.startsWith('fi') || location.pathname.includes('/fi/')) return 'fi';
     if (
       htmlLang.startsWith('en') ||
       location.pathname.includes('/en/') ||
