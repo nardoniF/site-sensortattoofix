@@ -5,7 +5,7 @@
 
 import { generateCommissionerStoryBanners } from './commissioner-banners.js';
 import { handleForumRoute } from './forum.js';
-import { refreshHomeContentI18n, mergePreservedI18n, homeContentI18nStatus } from './site-l10n.js';
+import { refreshHomeContentI18n, refreshProductsTextI18n, mergePreservedI18n, homeContentI18nStatus } from './site-l10n.js';
 import {
   bumpKvWriteCounter,
   buildKvDailyWriteBudget,
@@ -37,8 +37,13 @@ import {
   mlFlexBonusFromCosts,
   impliedEnviosFromReceipt,
   receiptPayout,
+  liquidMatchesReceipt,
   repairEnviosAlreadyNet,
-  mlShippingResolved
+  resolveEnviosShipping,
+  mlShippingResolved,
+  mlOrderItemsSaleFees,
+  resolveMlSaleFees,
+  mlFeesLookShort
 } from './ml-settlement.js';
 import {
   shopeeOrderIncome,
@@ -93,6 +98,20 @@ import {
   saleMoneyParts,
   storeOrderListedGross
 } from './sales-money.js';
+import {
+  DEFAULT_INTL_CURRENCIES,
+  DEFAULT_INTL_MARKUP_PERCENT,
+  normalizeIntlCurrencies,
+  activeIntlCurrencies,
+  applyMarkupFxToIntlProducts,
+  syncOpticalIntlBrlFromBrKit,
+  currencyForLocaleFromRegistry,
+  productListPriceFromRegistry,
+  intlPriceField,
+  intlPriceFieldNames,
+  intlBaseBrl,
+  normalizeMarkupPercent
+} from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
   'https://sensortattoofix.com.br',
@@ -105,7 +124,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '3299494b66c054c868ae927cc36d63658d342a46';
+const SITE_CATALOG_COMMIT = '9fe26d25325da9353b5df63e65150fd31247866b';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -148,6 +167,24 @@ const DEFAULT_CONFIG = {
       description: 'Lente ótica para smartwatch em pele tatuada — kit completo',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
+      nameDe: 'Sensor Tattoo Fix Lens',
+      nameEs: 'Sensor Tattoo Fix Lens',
+      namePl: 'Sensor Tattoo Fix Lens',
+      nameSl: 'Sensor Tattoo Fix Lens',
+      nameFr: 'Lentille Sensor Tattoo Fix',
+      nameNl: 'Sensor Tattoo Fix Lens',
+      nameSv: 'Sensor Tattoo Fix-lins',
+      nameNo: 'Sensor Tattoo Fix-linse',
+      nameFi: 'Sensor Tattoo Fix -linssi',
+      descriptionDe: 'Optische Linse für Smartwatches auf tätowierter Haut',
+      descriptionEs: 'Lente óptica para smartwatches en piel tatuada',
+      descriptionPl: 'Soczewka optyczna do smartwatchy na tatuowanej skórze',
+      descriptionSl: 'Optična leča za pametne ure na tetovirani koži',
+      descriptionFr: 'Lentille optique pour smartwatch sur peau tatouée',
+      descriptionNl: 'Optische lens voor smartwatches op getatoeëerde huid',
+      descriptionSv: 'Optisk lins för smartklockor på tatuerad hud',
+      descriptionNo: 'Optisk linse for smartklokker på tatovert hud',
+      descriptionFi: 'Optinen linssi älykelloille tatuoidulle iholle',
       price: 62.9,
       image: 'https://www.sensortattoofix.com.br/images/brand/sensortattoofix.jpg',
       active: true,
@@ -166,6 +203,24 @@ const DEFAULT_CONFIG = {
       description: 'Lente ótica para smartband em pele tatuada — kit completo',
       descriptionEn: 'Optical lens for smartbands on tattooed skin — full kit',
       descriptionIt: 'Lente ottica per smartband su pelle tatuata — kit completo',
+      nameDe: 'Kit Smartband Tattoo Friendly',
+      nameEs: 'Kit Smartband Tattoo Friendly',
+      namePl: 'Kit Smartband Tattoo Friendly',
+      nameSl: 'Kit Smartband Tattoo Friendly',
+      nameFr: 'Kit Smartband Tattoo Friendly',
+      nameNl: 'Kit Smartband Tattoo Friendly',
+      nameSv: 'Kit Smartband Tattoo Friendly',
+      nameNo: 'Kit Smartband Tattoo Friendly',
+      nameFi: 'Kit Smartband Tattoo Friendly',
+      descriptionDe: 'Optische Linse für Smartbands auf tätowierter Haut — komplettes Kit',
+      descriptionEs: 'Lente óptica para smartbands en piel tatuada — kit completo',
+      descriptionPl: 'Soczewka optyczna do opasek na tatuowanej skórze — pełny zestaw',
+      descriptionSl: 'Optična leča za pametne zapestnice na tetovirani koži — komplet',
+      descriptionFr: 'Lentille optique pour smartband sur peau tatouée — kit complet',
+      descriptionNl: 'Optische lens voor smartbands op getatoeëerde huid — complete kit',
+      descriptionSv: 'Optisk lins för smartbands på tatuerad hud — komplett kit',
+      descriptionNo: 'Optisk linse for smartbånd på tatovert hud — komplett sett',
+      descriptionFi: 'Optinen linssi älyrannekkeille tatuoidulle iholle — täysi paketti',
       price: 62.9,
       image: '/images/smartband/kit-br/01-embalagem.jpg',
       images: [
@@ -191,9 +246,33 @@ const DEFAULT_CONFIG = {
       description: 'Lente de correção óptica para smartband em pele tatuada.',
       descriptionEn: 'Designed for smartband optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartband su pelle tatuata.',
+      nameDe: 'SensorTattooFix Smartband-Linse',
+      nameEs: 'Lente Smartband SensorTattooFix',
+      namePl: 'Soczewka SensorTattooFix do opasek',
+      nameSl: 'Leča SensorTattooFix za pametno zapestnico',
+      nameFr: 'Lentille Smartband SensorTattooFix',
+      nameNl: 'SensorTattooFix Smartband-lens',
+      nameSv: 'SensorTattooFix smartband-lins',
+      nameNo: 'SensorTattooFix smartband-linse',
+      nameFi: 'SensorTattooFix-älyrannekkeen linssi',
+      descriptionDe: 'Entwickelt für optische Sensoren von Smartbands auf tätowierter Haut.',
+      descriptionEs: 'Diseñada para sensores ópticos de smartband en piel tatuada.',
+      descriptionPl: 'Zaprojektowana dla czujników optycznych opasek na tatuowanej skórze.',
+      descriptionSl: 'Zasnovana za optične senzorje pametnih zapestnic na tetovirani koži.',
+      descriptionFr: 'Conçue pour les capteurs optiques de smartband sur peau tatouée.',
+      descriptionNl: 'Ontworpen voor optische sensoren van smartbands op getatoeëerde huid.',
+      descriptionSv: 'Utformad för smartbands optiska sensorer på tatuerad hud.',
+      descriptionNo: 'Designet for smartbånds optiske sensorer på tatovert hud.',
+      descriptionFi: 'Suunniteltu älyrannekkeiden optisille antureille tatuoidulle iholle.',
       price: 62.9,
-      priceUsd: 12.99,
-      priceEur: 11.99,
+      intlMarkupPercent: 65,
+      intlBaseBrl: 103.79,
+      priceUsd: 20.25,
+      priceEur: 17.42,
+      priceSek: 194,
+      priceNok: 188,
+      pricePln: 75.09,
+      priceGbp: 14.96,
       image: '/images/smartband/lens-en/01-embalagem.jpg',
       images: [
         '/images/smartband/lens-en/01-embalagem.jpg',
@@ -217,7 +296,33 @@ const DEFAULT_CONFIG = {
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuata.',
-      price: 62.9,
+      nameDe: 'SensorTattooFix Optische Linse',
+      nameEs: 'Lente óptica SensorTattooFix',
+      namePl: 'Soczewka optyczna SensorTattooFix',
+      nameSl: 'Optična leča SensorTattooFix',
+      nameFr: 'Lentille optique SensorTattooFix',
+      nameNl: 'SensorTattooFix Optische Lens',
+      nameSv: 'SensorTattooFix optisk lins',
+      nameNo: 'SensorTattooFix optisk linse',
+      nameFi: 'SensorTattooFix-optinen linssi',
+      descriptionDe: 'Entwickelt für optische Sensoren von Smartwatches auf tätowierter Haut.',
+      descriptionEs: 'Diseñada para sensores ópticos de smartwatch en piel tatuada.',
+      descriptionPl: 'Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.',
+      descriptionSl: 'Zasnovana za optične senzorje pametnih ur na tetovirani koži.',
+      descriptionFr: 'Conçue pour les capteurs optiques de smartwatch sur peau tatouée.',
+      descriptionNl: 'Ontworpen voor optische sensoren van smartwatches op getatoeëerde huid.',
+      descriptionSv: 'Utformad för smartklockors optiska sensorer på tatuerad hud.',
+      descriptionNo: 'Designet for smartklokkers optiske sensorer på tatovert hud.',
+      descriptionFi: 'Suunniteltu älykellojen optisille antureille tatuoidulle iholle.',
+      price: 72.9,
+      intlMarkupPercent: 65,
+      intlBaseBrl: 120.29,
+      priceUsd: 23.47,
+      priceEur: 20.19,
+      priceSek: 225,
+      priceNok: 218,
+      pricePln: 87.03,
+      priceGbp: 17.34,
       image: '/images/lens-gallery/01-optical-correction-lens.png',
       images: [
         '/images/lens-gallery/01-optical-correction-lens.png',
@@ -234,6 +339,12 @@ const DEFAULT_CONFIG = {
       markets: ['INT']
     }
   ],
+  /** .com currencies (langs/countries). Product foreign prices = (R$ × markup%) × FX. */
+  intlCurrencies: DEFAULT_INTL_CURRENCIES,
+  /** When true, save + daily cron recompute INT foreign prices from R$ + markup + FX. */
+  intlCurrenciesAutoFx: true,
+  /** @deprecated legacy alias — prefer intlCurrenciesAutoFx */
+  intlCurrenciesAutoPpp: true,
   pix: { key: '29321223000132', keyType: 'cnpj', merchantName: '3N20 SOLUCOES TEC', merchantCity: 'SAO PAULO' },
   shipping: {
     originCep: '02537190',
@@ -1302,7 +1413,13 @@ function supplementKitFromSite(kvProduct, siteProduct) {
   if (siteProduct?.image && isLegacyBrokenKitImage(kvProduct?.image)) {
     merged.image = siteProduct.image;
   }
-  ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt'].forEach((field) => {
+  const TEXT_I18N_FIELDS = [
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi'
+  ];
+  TEXT_I18N_FIELDS.forEach((field) => {
     if (!merged[field] && siteProduct?.[field]) merged[field] = siteProduct[field];
   });
   return merged;
@@ -1323,14 +1440,20 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'packaging',
     'aggregated',
     'requiresSmartwatch',
-    'nameEn',
-    'nameIt',
-    'descriptionEn',
-    'descriptionIt',
+    'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi',
     'markets',
     'images',
     'priceUsd',
-    'priceEur'
+    'priceEur',
+    'priceSek',
+    'priceNok',
+    'pricePln',
+    'priceGbp',
+    'intlMarkupPercent',
+    'intlBaseBrl'
   ];
   catalogFields.forEach((field) => {
     if (!isEmptyCatalogValue(merged[field])) return;
@@ -1585,6 +1708,17 @@ function withConfigDefaults(stored) {
     mlFlexShippingCost: Number(stored.mlFlexShippingCost) > 0
       ? Math.round(Number(stored.mlFlexShippingCost) * 100) / 100
       : base.mlFlexShippingCost,
+    intlCurrencies: normalizeIntlCurrencies(stored.intlCurrencies),
+    intlCurrenciesAutoFx: stored.intlCurrenciesAutoFx != null
+      ? stored.intlCurrenciesAutoFx !== false
+      : (stored.intlCurrenciesAutoPpp != null
+        ? stored.intlCurrenciesAutoPpp !== false
+        : base.intlCurrenciesAutoFx !== false),
+    intlCurrenciesAutoPpp: stored.intlCurrenciesAutoFx != null
+      ? stored.intlCurrenciesAutoFx !== false
+      : (stored.intlCurrenciesAutoPpp != null
+        ? stored.intlCurrenciesAutoPpp !== false
+        : base.intlCurrenciesAutoPpp !== false),
     ...mergeKitCostConfig(stored, base)
   };
 }
@@ -2144,8 +2278,26 @@ function publicProductFields(p, config) {
   };
   if (p.nameEn) row.nameEn = p.nameEn;
   if (p.nameIt) row.nameIt = p.nameIt;
+  if (p.nameDe) row.nameDe = p.nameDe;
+  if (p.nameEs) row.nameEs = p.nameEs;
+  if (p.namePl) row.namePl = p.namePl;
+  if (p.nameSl) row.nameSl = p.nameSl;
+  if (p.nameFr) row.nameFr = p.nameFr;
+  if (p.nameNl) row.nameNl = p.nameNl;
+  if (p.nameSv) row.nameSv = p.nameSv;
+  if (p.nameNo) row.nameNo = p.nameNo;
+  if (p.nameFi) row.nameFi = p.nameFi;
   if (p.descriptionEn) row.descriptionEn = p.descriptionEn;
   if (p.descriptionIt) row.descriptionIt = p.descriptionIt;
+  if (p.descriptionDe) row.descriptionDe = p.descriptionDe;
+  if (p.descriptionEs) row.descriptionEs = p.descriptionEs;
+  if (p.descriptionPl) row.descriptionPl = p.descriptionPl;
+  if (p.descriptionSl) row.descriptionSl = p.descriptionSl;
+  if (p.descriptionFr) row.descriptionFr = p.descriptionFr;
+  if (p.descriptionNl) row.descriptionNl = p.descriptionNl;
+  if (p.descriptionSv) row.descriptionSv = p.descriptionSv;
+  if (p.descriptionNo) row.descriptionNo = p.descriptionNo;
+  if (p.descriptionFi) row.descriptionFi = p.descriptionFi;
   if (p.packaging) row.packaging = p.packaging;
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
@@ -2156,8 +2308,15 @@ function publicProductFields(p, config) {
   if (p.colorEn) row.colorEn = p.colorEn;
   if (Array.isArray(p.markets) && p.markets.length) row.markets = p.markets;
   if (Array.isArray(p.images) && p.images.length) row.images = p.images;
-  if (p.priceUsd != null) row.priceUsd = Number(p.priceUsd);
-  if (p.priceEur != null) row.priceEur = Number(p.priceEur);
+  intlPriceFieldNames(DEFAULT_INTL_CURRENCIES).forEach((field) => {
+    if (p[field] != null && Number.isFinite(Number(p[field]))) row[field] = Number(p[field]);
+  });
+  if (p.intlMarkupPercent != null && Number.isFinite(Number(p.intlMarkupPercent))) {
+    row.intlMarkupPercent = Number(p.intlMarkupPercent);
+  }
+  if (p.intlBaseBrl != null && Number.isFinite(Number(p.intlBaseBrl))) {
+    row.intlBaseBrl = Number(p.intlBaseBrl);
+  }
   const stock = productStockQty(p);
   row.inStock = productInStock(p, 1);
   if (stock != null) row.stock = stock;
@@ -2175,9 +2334,27 @@ function publicConfigView(config, env) {
       name: primary.name,
       nameEn: primary.nameEn,
       nameIt: primary.nameIt,
+      nameDe: primary.nameDe,
+      nameEs: primary.nameEs,
+      namePl: primary.namePl,
+      nameSl: primary.nameSl,
+      nameFr: primary.nameFr,
+      nameNl: primary.nameNl,
+      nameSv: primary.nameSv,
+      nameNo: primary.nameNo,
+      nameFi: primary.nameFi,
       description: primary.description,
       descriptionEn: primary.descriptionEn,
       descriptionIt: primary.descriptionIt,
+      descriptionDe: primary.descriptionDe,
+      descriptionEs: primary.descriptionEs,
+      descriptionPl: primary.descriptionPl,
+      descriptionSl: primary.descriptionSl,
+      descriptionFr: primary.descriptionFr,
+      descriptionNl: primary.descriptionNl,
+      descriptionSv: primary.descriptionSv,
+      descriptionNo: primary.descriptionNo,
+      descriptionFi: primary.descriptionFi,
       price: primary.price,
       image: primary.image
     } : config.product,
@@ -2227,6 +2404,9 @@ function publicConfigView(config, env) {
     integrations: {
       addressAutocomplete: true
     },
+    intlCurrencies: activeIntlCurrencies(config),
+    intlCurrenciesAutoFx: config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false,
+    intlCurrenciesAutoPpp: config.intlCurrenciesAutoFx !== false && config.intlCurrenciesAutoPpp !== false,
     updatedAt: config.updatedAt || null
   };
 }
@@ -2399,6 +2579,25 @@ function hydrateIntlOrderFields(order) {
 }
 
 /**
+ * Separa número da casa da rua (US no início, EU no fim).
+ * Ex.: "10 Main St" → {rua:"Main St", numero:"10"}; "Calle Mayor 12" → {rua:"Calle Mayor", numero:"12"}
+ */
+function splitIntlStreetAndNumber(rua, numero) {
+  let street = String(rua || '').trim();
+  let num = String(numero || '').trim();
+  if (num) {
+    // Se a rua já começa com o mesmo número, remove da rua para o Correios
+    if (street.startsWith(num + ' ')) street = street.slice(num.length).trim();
+    return { rua: street, numero: num };
+  }
+  let m = street.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
+  if (m) return { rua: m[2].trim(), numero: m[1] };
+  m = street.match(/^(.+?[A-Za-zÀ-ÿ])\s+(\d+[A-Za-z]?(?:\/[A-Za-z0-9]+)?)$/);
+  if (m) return { rua: m[1].trim(), numero: m[2] };
+  return { rua: street, numero: num };
+}
+
+/**
  * Extrai campos de endereços internacionais salvos só em `endereco` (pedidos antigos).
  * Exemplos:
  * - "8 Davey Street, Brisbane — Queensland, Austrália, CEP 4123"
@@ -2412,19 +2611,16 @@ function parseIntlAddressFromOrder(order) {
     || blob.match(/\b(\d{5}(?:-\d{4})?|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})\s*$/i);
   if (cepMatch) out.cep = String(cepMatch[1] || cepMatch[0]).replace(/^(?:CEP|ZIP|postal(?:\s*code)?)[:\s]*/i, '').trim();
 
-  // "12012 Amber Meadows Lane" → rua completa (não separar número como CEP)
-  const usStreet = blob.match(/^(\d+[A-Za-z]?)\s+([A-Za-z].+?)(?=\s*[,—]|$)/);
-  if (usStreet) {
-    out.numero = usStreet[1].slice(0, 10);
-    out.rua = `${usStreet[1]} ${usStreet[2].trim()}`.replace(/\s+/g, ' ').slice(0, 80);
-  } else {
-    const streetNum = blob.match(/^([^,]+?),\s*(\d+[A-Za-z]?)\b/);
+  const first = blob.split(/[,—]/)[0]?.trim() || '';
+  const split = splitIntlStreetAndNumber(first, order.numero);
+  if (split.rua) out.rua = split.rua.slice(0, 80);
+  if (split.numero) out.numero = String(split.numero).slice(0, 10);
+  // "Calle X, 12 — City" pattern
+  if (!out.numero) {
+    const streetNum = blob.match(/^([^,]+?),\s*(\d+[A-Za-z]?(?:\/[A-Za-z0-9]+)?)\b/);
     if (streetNum) {
       out.rua = streetNum[1].trim().slice(0, 50);
-      out.numero = streetNum[2].slice(0, 6);
-    } else {
-      const first = blob.split(/[,—\-]/)[0]?.trim();
-      if (first) out.rua = first.slice(0, 80);
+      out.numero = streetNum[2].slice(0, 10);
     }
   }
 
@@ -2464,32 +2660,83 @@ function productIntlEur(product) {
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
+function productIntlSek(product) {
+  const v = Number(product?.priceSek);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+function productIntlNok(product) {
+  const v = Number(product?.priceNok);
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/** List price for charge currency (markup×FX stored on product — not raw Frankfurter on R$). */
+function productIntlListPrice(product, currency, config) {
+  const fromRegistry = productListPriceFromRegistry(
+    product,
+    currency,
+    config?.intlCurrencies || DEFAULT_INTL_CURRENCIES
+  );
+  if (fromRegistry != null) return fromRegistry;
+  const cur = String(currency || 'USD').toUpperCase();
+  if (cur === 'EUR') return productIntlEur(product);
+  if (cur === 'SEK') return productIntlSek(product);
+  if (cur === 'NOK') return productIntlNok(product);
+  return productIntlUsd(product);
+}
+
 function isIntlMarketProductRow(p) {
   const m = Array.isArray(p?.markets) ? p.markets.map((x) => String(x).toUpperCase()) : [];
   return m.includes('INT') && !m.includes('BR');
 }
 
-async function syncIntlProductPricesFromFx(env) {
+async function fetchFxRatesMap(env, currencyCodes) {
+  const codes = [...new Set((currencyCodes || []).map((c) => String(c || '').toUpperCase()).filter((c) => c && c !== 'BRL'))];
+  const out = {};
+  await Promise.all(codes.map(async (code) => {
+    try {
+      const row = await fetchFxRate(env, code);
+      if (row?.rate > 0) out[code] = Number(row.rate);
+    } catch { /* skip missing */ }
+  }));
+  return out;
+}
+
+function autoFxEnabled(config) {
+  if (config?.intlCurrenciesAutoFx === false) return false;
+  if (config?.intlCurrenciesAutoPpp === false) return false;
+  return true;
+}
+
+/** Recompute INT foreign list prices: (R$ × markup%) × FX. */
+async function syncIntlProductPricesFromMarkupFx(env, { force = false } = {}) {
   const config = await getConfig(env);
-  const products = config.products || [];
-  if (!products.length) return { updated: 0 };
-  const fxUsd = await fetchFxRate(env, 'USD');
-  const fxEur = await fetchFxRate(env, 'EUR');
-  let updated = 0;
-  products.forEach((p) => {
-    if (!isIntlMarketProductRow(p)) return;
-    const brl = Number(p.price) || 0;
-    if (!brl) return;
-    const usd = Math.round(brl * fxUsd.rate * 100) / 100;
-    const eur = Math.round(brl * fxEur.rate * 100) / 100;
-    if (p.priceUsd !== usd || p.priceEur !== eur) {
-      p.priceUsd = usd;
-      p.priceEur = eur;
-      updated += 1;
-    }
-  });
-  if (updated) await saveConfig(env, { ...config, products });
-  return { updated, usdRate: fxUsd.rate, eurRate: fxEur.rate };
+  if (!force && !autoFxEnabled(config)) return { updated: 0, skipped: true };
+  const currencies = normalizeIntlCurrencies(config.intlCurrencies);
+  const synced = syncOpticalIntlBrlFromBrKit(config.products || []);
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  const { products, updated } = applyMarkupFxToIntlProducts(synced.products, currencies, fxRates);
+  const changed = updated || synced.synced;
+  if (changed) {
+    await saveConfig(env, {
+      ...config,
+      products,
+      intlCurrencies: currencies,
+      intlCurrenciesAutoFx: true,
+      intlCurrenciesAutoPpp: true
+    });
+  }
+  return { updated: updated + (synced.synced ? 1 : 0), currencies: currencies.map((c) => c.code), fxRates };
+}
+
+/** @deprecated name — cron used PPP; now markup + FX */
+async function syncIntlProductPricesFromPpp(env, opts) {
+  return syncIntlProductPricesFromMarkupFx(env, opts);
+}
+
+/** Legacy name — still points at markup+FX sync */
+async function syncIntlProductPricesFromFx(env) {
+  return syncIntlProductPricesFromMarkupFx(env);
 }
 
 async function intlForeignCharge(order, env, config, items, currency) {
@@ -2501,7 +2748,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   let allConfigured = itemList.length > 0;
   for (const item of itemList) {
     const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const price = p ? (cur === 'EUR' ? productIntlEur(p) : productIntlUsd(p)) : null;
+    const price = p ? productIntlListPrice(p, cur, config) : null;
     if (price == null) { allConfigured = false; break; }
     productForeign += price * (Number(item.qty) || 1);
   }
@@ -2519,23 +2766,53 @@ async function intlForeignCharge(order, env, config, items, currency) {
   }
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
-    if (cur === 'EUR') {
-      const minEur = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-      if (amount < minEur) amount = minEur;
-    } else {
-      const minUsd = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
-      if (amount < minUsd) amount = minUsd;
-    }
+    let minAmt;
+    if (cur === 'EUR') minAmt = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') minAmt = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') minAmt = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else minAmt = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+    if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
+}
+
+/** Livro BRL do cobrado em moeda estrangeira: total/totalPaid = charge/fx; markup vai pro produto. */
+function applyIntlChargedBrlLedger(order) {
+  if (!order) return order;
+  const cur = String(order.chargeCurrency || order.displayCurrency || '').toUpperCase();
+  const amt = order.chargeAmount != null ? Number(order.chargeAmount) : NaN;
+  const fx = order.chargeFxRate != null ? Number(order.chargeFxRate) : NaN;
+  if (!cur || cur === 'BRL' || !Number.isFinite(amt) || amt < 0 || !Number.isFinite(fx) || fx <= 0) {
+    return order;
+  }
+  const paidBrl = Math.round((amt / fx) * 100) / 100;
+  const frete = Math.round((Number(order.frete) || 0) * 100) / 100;
+  if (order.valorProdutoAtCheckout == null && order.valorProduto != null) {
+    order.valorProdutoAtCheckout = Math.round(Number(order.valorProduto) * 100) / 100;
+  }
+  if (order.totalOriginal == null && order.total != null) {
+    order.totalOriginal = Math.round(Number(order.total) * 100) / 100;
+  }
+  order.totalPaid = paidBrl;
+  order.total = paidBrl;
+  order.valorProduto = Math.round(Math.max(0, paidBrl - frete) * 100) / 100;
+  order.intlChargedBrl = paidBrl;
+  return order;
 }
 
 async function intlUsdCharge(order, env, config, items) {
   return intlForeignCharge(order, env, config, items, 'USD');
 }
 
-function intlChargeCurrencyForLocale(locale) {
-  return String(locale || '').toLowerCase() === 'it' ? 'EUR' : 'USD';
+function intlChargeCurrencyForLocale(locale, config) {
+  const fromRegistry = currencyForLocaleFromRegistry(locale, config?.intlCurrencies || DEFAULT_INTL_CURRENCIES);
+  if (fromRegistry && fromRegistry !== 'BRL') return fromRegistry;
+  const l = String(locale || '').toLowerCase();
+  if (l === 'sv') return 'SEK';
+  if (l === 'no') return 'NOK';
+  if (l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'fi') return 'EUR';
+  return 'USD';
 }
 
 function selfTestUsdAmountForOrder(order, billingType) {
@@ -2550,17 +2827,18 @@ function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (!isSelfTestOrder(order)) return;
   if (intlUsd) {
     const cur = intlChargeCurrencyForLocale(order.checkoutLocale);
-    const amount = cur === 'EUR'
-      ? ((billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe')
-        ? SELF_TEST_STRIPE_EUR_AMOUNT
-        : SELF_TEST_EUR_AMOUNT)
-      : selfTestUsdAmountForOrder(order, billingType);
+    const stripe = billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe';
+    let amount;
+    if (cur === 'EUR') amount = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+    else if (cur === 'SEK') amount = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+    else if (cur === 'NOK') amount = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+    else amount = selfTestUsdAmountForOrder(order, billingType);
     order.chargeCurrency = cur;
     order.chargeAmount = amount;
     order.displayCurrency = cur;
     return;
   }
-  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR') {
+  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR' || order.chargeCurrency === 'SEK' || order.chargeCurrency === 'NOK') {
     delete order.chargeCurrency;
     delete order.chargeAmount;
     delete order.chargeFxRate;
@@ -4589,9 +4867,12 @@ function healMlStoredShipping(sale, flexCfg) {
   const flexList = mlMoney(sale.mlFlexListCost) || mlMoney(flexCfg);
   const shipRaw = sale.shippingCost;
   const ship = shipRaw == null || shipRaw === '' ? null : mlMoney(shipRaw);
-  const isFlex = sale.mlFlex
-    || /flex|self_service/i.test(String(sale.logisticType || ''))
-    || (flexList > 0 && ship != null && Math.abs(ship - flexList) <= 0.06);
+  const src = String(sale.shippingSource || '');
+  const logisticFlex = /flex|self_service/i.test(String(sale.logisticType || ''));
+  // Flex de verdade primeiro — NÃO apagar residual de Flex (list − bônus pode ser 0,05)
+  const isFlex = logisticFlex
+    || src === 'flex'
+    || (sale.mlFlex && src !== 'envios' && src !== 'payment_fallback' && src !== 'payment');
   if (isFlex && flexList > 0) {
     const est = mlMoney(sale.mlEstorno);
     const nextShip = flexSellerCost(flexList, est);
@@ -4610,8 +4891,48 @@ function healMlStoredShipping(sale, flexCfg) {
       settlementVersion: ML_SETTLEMENT_VERSION
     };
   }
+  // Tarifa pela metade (sale_fee sem × qty) → não mostrar frete/líquido errados; força re-settle
+  if (mlFeesLookShort(sale)) {
+    let payFee = 0;
+    for (const p of sale.payments || []) {
+      const st = String(p.status || '').toLowerCase();
+      if (st && !/approved|accredited/.test(st)) continue;
+      payFee += mlMoney(p.marketplaceFee ?? p.marketplace_fee);
+    }
+    const fees = resolveMlSaleFees({
+      marketplaceFee: payFee,
+      items: sale.items,
+      saleFees: sale.fees
+    });
+    const payout = receiptPayout(sale.gross, fees, 0);
+    return {
+      ...sale,
+      fees,
+      mlFlex: false,
+      shippingCost: null,
+      shippingSource: 'unresolved',
+      settlementOk: false,
+      shippingCostsOk: false,
+      net: payout,
+      payoutNet: payout
+    };
+  }
+  // Residual miúdo só em Envios (não-Flex) — ex.: DANPROS 0,05
+  if (ship != null && ship > 0 && ship < 1) {
+    const payout = receiptPayout(sale.gross, sale.fees, 0);
+    return {
+      ...sale,
+      mlFlex: false,
+      shippingCost: null,
+      shippingSource: 'unresolved',
+      settlementOk: false,
+      shippingCostsOk: false,
+      net: payout,
+      payoutNet: payout
+    };
+  }
   // Legacy leftovers 0,36 / 9,36 → unresolved (not frete grátis)
-  const repaired = repairEnviosAlreadyNet(shipRaw, null);
+  const repaired = repairEnviosAlreadyNet(shipRaw, sale.buyerShippingCost);
   if (repaired === null && (shipRaw != null && shipRaw !== '') && mlMoney(shipRaw) > 0) {
     const payout = receiptPayout(sale.gross, sale.fees, 0);
     return {
@@ -4792,7 +5113,8 @@ function normalizeMlOrder(order) {
       currency: row.currency_id || order.currency_id || 'BRL'
     };
   });
-  const fees = Math.round(items.reduce((sum, it) => sum + Number(it.saleFee || 0), 0) * 100) / 100;
+  // sale_fee is per unit — must multiply by quantity (2 un → 2 × fee).
+  const fees = mlOrderItemsSaleFees(items);
   const itemsGross = Math.round(items.reduce((sum, it) => {
     const qty = Number(it.quantity || 0) > 0 ? Number(it.quantity) : 1;
     return sum + Number(it.unitPrice || 0) * qty;
@@ -4859,6 +5181,8 @@ function mlHasSettlement(sale) {
   const src = String(sale.shippingSource || '');
   // Real frete 0 only when source says so (envios/flex with cost 0)
   if (!sale.mlFlex && !pickup && !(shipping > 0.04) && src !== 'envios' && src !== 'flex') return false;
+  // Residual miúdo nunca conta como settlement ok em Envios
+  if (!sale.mlFlex && src !== 'flex' && shipping > 0 && shipping < 1) return false;
   return true;
 }
 
@@ -4955,9 +5279,13 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
     if (st && !/approved|accredited/.test(st)) continue;
     marketplaceFee += mlMoney(p.marketplace_fee);
   }
-  const fees = mlMoney(sale.fees) > 0
-    ? mlMoney(sale.fees)
-    : (marketplaceFee > 0 ? marketplaceFee : 0);
+  // Prefer payment marketplace_fee (receipt "Tarifa de venda total").
+  // Old sale.fees often ignored qty (sale_fee × 1 instead of × quantity).
+  const fees = resolveMlSaleFees({
+    marketplaceFee,
+    items: sale.items,
+    saleFees: sale.fees
+  });
 
   const flexCost = mlMoney(extras.flexCost) > 0
     ? mlMoney(extras.flexCost)
@@ -4965,10 +5293,32 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
   const fromCosts = mlEnviosSellerCost(costs, sellerId);
   const payBonus = mlEstornoFromPayments(docs, gross, fees);
   const costBonus = mlFlexBonusFromCosts(costs);
-  const isFlex = sale.mlFlex
-    || isMlFlexShipment(sale, extras.shipment)
+
+  let netApi = 0;
+  for (const p of docs) {
+    const st = String(p.status || '').toLowerCase();
+    if (st && !/approved|accredited/.test(st)) continue;
+    netApi += mlMoney(
+      p.transaction_details?.net_received_amount
+      ?? p.transaction_details?.net_received_amount
+      ?? p.net_received_amount
+    );
+  }
+
+  // Envios real (senders.cost bate com o líquido) nunca vira Flex
+  const enviosMatchesLiquid = fromCosts.found
+    && netApi > 0
+    && liquidMatchesReceipt(gross, fees, fromCosts.shipping, netApi);
+  let isFlex = !enviosMatchesLiquid && (
+    isMlFlexShipment(sale, extras.shipment)
     || (!fromCosts.found && (payBonus > 0 || costBonus > 0) && flexCost > 0
-      && /flex|self_service/i.test(String(sale.logisticType || extras.shipment?.logistic_type || '')));
+      && /flex|self_service/i.test(String(sale.logisticType || extras.shipment?.logistic_type || '')))
+    || (sale.mlFlex && isMlFlexShipment(sale, extras.shipment))
+  );
+  // senders.cost >= 1 e logística não-Flex = Envios
+  if (fromCosts.found && mlMoney(fromCosts.shipping) >= 1 && !isMlFlexShipment(sale, extras.shipment)) {
+    isFlex = false;
+  }
   const estorno = isFlex
     ? (costBonus > 0.01 ? costBonus : payBonus)
     : payBonus;
@@ -4980,25 +5330,18 @@ function applyMlPaymentSettlement(sale, paymentDocs, costs, sellerId, extras = {
   if (isFlex) {
     shipping = flexSellerCost(flexCost, estorno);
     source = 'flex';
-  } else if (fromCosts.found) {
-    // Includes real seller cost 0,00 when ML returns cost: 0
-    shipping = fromCosts.shipping;
-    source = 'envios';
   } else {
-    let netApi = 0;
-    for (const p of docs) {
-      const st = String(p.status || '').toLowerCase();
-      if (st && !/approved|accredited/.test(st)) continue;
-      netApi += mlMoney(p.transaction_details?.net_received_amount);
-    }
-    const implied = impliedEnviosFromReceipt(gross, fees, netApi);
-    if (implied != null) {
-      shipping = implied;
-      source = 'payment_fallback';
-    } else {
-      shipping = null;
-      source = 'unresolved';
-    }
+    // Always validate Envios against payment liquid; tiny residuals (0,05) are invalid.
+    const resolved = resolveEnviosShipping({
+      gross,
+      fees,
+      liquid: netApi,
+      senderCost: fromCosts.found ? fromCosts.shipping : null,
+      buyerCost: buyerShip
+    });
+    shipping = resolved.shipping;
+    source = resolved.source;
+    buyerShip = resolved.buyerShip || buyerShip;
   }
 
   if (!(gross > 0)) return sale;
@@ -5209,46 +5552,70 @@ async function upsertMlSale(env, sale, index) {
 }
 
 function mlLooksFlexSale(sale, flexCost) {
-  const list = mlMoney(sale?.mlFlexListCost) || mlMoney(flexCost);
+  const src = String(sale?.shippingSource || '');
+  const logisticFlex = /flex|self_service/i.test(String(sale?.logisticType || ''));
+  // Envios / payment_fallback nunca são Flex — evita travar reprocessamento do residual 0,05
+  if (src === 'envios' || src === 'payment_fallback' || src === 'payment') return false;
   const ship = mlMoney(sale?.shippingCost);
+  // Residual miúdo só desqualifica se NÃO for Flex de verdade
+  if (ship > 0 && ship < 1 && src !== 'flex' && !logisticFlex && !sale?.mlFlex) return false;
   return !!(sale?.mlFlex
-    || /flex|self_service/i.test(String(sale?.logisticType || ''))
-    || (list > 0 && Math.abs(ship - list) <= 0.06));
+    || src === 'flex'
+    || logisticFlex);
 }
 
 function mlNeedsPaymentEnrich(sale, flexCost) {
   if (!sale) return false;
+  const shipEarly = mlMoney(sale.shippingCost);
+  // Residual miúdo sempre reprocessa (mesmo se mlFlex tiver sido marcado errado)
+  if (shipEarly > 0 && shipEarly < 1 && String(sale.shippingSource || '') !== 'flex') return true;
   if (mlLooksFlexSale(sale, flexCost)) {
     return mlMoney(sale.mlEstorno) < 0.01;
   }
   if (!mlShippingResolved(sale)) return true;
   if (sale.shippingSource === 'unresolved') return true;
   if (sale.shippingCost == null || sale.shippingCost === '') return true;
-  const ship = mlMoney(sale.shippingCost);
+  const ship = shipEarly;
   if (Math.abs(ship - 0.36) <= 0.02 || Math.abs(ship - 9.36) <= 0.02) return true;
+  // Tiny residual freights (e.g. 0,05 = Envios − buyer) must be re-resolved.
+  if (ship > 0 && ship < 1) return true;
   // Legacy "payment" without settlement version — re-resolve via Envios API
   if (sale.shippingSource === 'payment' || sale.shippingSource == null) return true;
   if (sale.shippingSource !== 'envios' && sale.shippingSource !== 'payment_fallback' && sale.shippingSource !== 'flex') {
     return true;
   }
   if (sale.settlementVersion !== ML_SETTLEMENT_VERSION) return true;
+  // Half-fee bug (sale_fee not × qty) → frete/líquido wrong until re-settled
+  if (mlFeesLookShort(sale)) return true;
   return false;
 }
 
 async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
-  const cap = Math.max(0, Math.min(Number(limit) || 25, 40));
+  const cap = Math.max(0, Math.min(Number(limit) || 40, 60));
   const config = await getConfig(env).catch(() => ({}));
   const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
   let filled = 0;
   let remaining = 0;
   let attempted = 0;
+  const residualIds = [];
+  const otherIds = [];
   for (const id of index || []) {
+    const sale = await loadMarketplaceSale(env, 'mercadolivre', id);
+    if (!sale) continue;
+    if (!mlNeedsPaymentEnrich(sale, flexCost)) continue;
+    const ship = mlMoney(sale.shippingCost);
+    if (ship > 0 && ship < 1) residualIds.push(id);
+    else otherIds.push(id);
+  }
+  for (const id of residualIds.concat(otherIds)) {
     const sale = await loadMarketplaceSale(env, 'mercadolivre', id);
     if (!sale) continue;
     if (!mlNeedsPaymentEnrich(sale, flexCost)) continue;
     if (sale.shippingSource === 'unresolved' && sale.shippingResolvedAt) {
       const age = Date.now() - Date.parse(sale.shippingResolvedAt);
-      if (Number.isFinite(age) && age < 6 * 3600 * 1000) continue;
+      const ship = mlMoney(sale.shippingCost);
+      // Residual miúdo: não espera 6h — corrige já
+      if (!(ship > 0 && ship < 1) && Number.isFinite(age) && age < 6 * 3600 * 1000) continue;
     }
     if (attempted >= cap) {
       remaining += 1;
@@ -5400,7 +5767,7 @@ async function syncMlOrders(env, options = {}) {
   }
 
   const backfillLimit = Math.max(0, Number(
-    options.backfillShipping != null ? options.backfillShipping : 25
+    options.backfillShipping != null ? options.backfillShipping : 40
   ));
   const shippingReport = backfillLimit > 0
     ? await backfillMlZeroShipping(env, token, sellerId, index, backfillLimit)
@@ -7688,12 +8055,17 @@ const SELF_TEST_BRL_AMOUNT = 0.01;
 const SELF_TEST_USD_AMOUNT = 0.01;
 /** Symbolic EUR charge for Italian PayPal test orders. */
 const SELF_TEST_EUR_AMOUNT = 0.01;
+/** Symbolic SEK/NOK charges for Nordic test orders. */
+const SELF_TEST_SEK_AMOUNT = 1;
+const SELF_TEST_NOK_AMOUNT = 1;
 /**
  * Stripe BR accounts reject USD that converts below R$ 0.50.
  * US$ 0.01 ≈ R$ 0.05 — use US$ 0.10 for Stripe self-test.
  */
 const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_EUR_AMOUNT = 0.10;
+const SELF_TEST_STRIPE_SEK_AMOUNT = 10;
+const SELF_TEST_STRIPE_NOK_AMOUNT = 10;
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -8266,14 +8638,10 @@ function buildCorreiosIntlEndereco(order) {
 
   let rua = String(order.rua || order.logradouro || '').trim();
   let numero = String(order.numero || '').trim();
-  // "8 Davey Street" no campo rua → separar número
-  if (rua && (!numero || rua.startsWith(numero + ' '))) {
-    const m = rua.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
-    if (m) {
-      numero = m[1];
-      rua = m[2];
-    }
-  }
+  // "8 Davey Street" / "Calle Mayor 12" no campo rua → separar número
+  const split = splitIntlStreetAndNumber(rua, numero);
+  rua = split.rua;
+  numero = split.numero;
   if (!rua) rua = String(order.endereco || '').trim().split(/[—\-]/)[0]?.trim() || 'Address';
   if (!numero) numero = 'S/N';
 
@@ -12824,6 +13192,7 @@ async function createPayPalCheckout(env, order, config, request, opts) {
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
       order.displayCurrency = foreignCur;
+      applyIntlChargedBrlLedger(order);
     }
   } else if (isSelfTestOrder(order)) {
     amountValue = SELF_TEST_BRL_AMOUNT.toFixed(2);
@@ -14229,6 +14598,17 @@ async function handleCreateOrder(request, env, origin, ctx) {
     checkoutLocale
   };
 
+  if (isIntl) {
+    const split = splitIntlStreetAndNumber(order.rua, order.numero);
+    order.rua = split.rua;
+    order.numero = split.numero;
+    if (split.numero) {
+      const streetLine = `${split.rua}, ${split.numero}`;
+      const rest = String(order.endereco || '').split('—').slice(1).join('—').trim();
+      order.endereco = rest ? `${streetLine} — ${rest}` : streetLine;
+    }
+  }
+
   if (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')) {
     try {
       const foreignCur = intlChargeCurrencyForLocale(checkoutLocale);
@@ -14237,6 +14617,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
       order.displayCurrency = foreignCur;
+      applyIntlChargedBrlLedger(order);
     } catch (err) {
       console.warn('Intl charge:', err.message);
     }
@@ -14261,6 +14642,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
   if (intlSelfTestUsd) {
     console.log('Intl self-test USD charge:', order.orderId, order.chargeAmount, billingType);
   }
+  applyIntlChargedBrlLedger(order);
 
   let payment = null;
   const hasAsaas = !!asaasApiKey(env);
@@ -15397,6 +15779,7 @@ async function ensureStripeIntlCharge(order, request, env) {
   order.chargeAmount = charge.amount;
   order.chargeFxRate = charge.fxRate;
   order.displayCurrency = foreignCur;
+  applyIntlChargedBrlLedger(order);
 }
 
 async function handleStripePaymentIntent(request, env, origin, orderId) {
@@ -17682,8 +18065,29 @@ async function handlePutConfig(request, env, origin, ctx) {
       : (current.homeFaq || []),
     homeReviews: body.homeReviews != null
       ? mergePreservedI18n(Array.isArray(body.homeReviews) ? body.homeReviews : current.homeReviews || [], current.homeReviews || [])
-      : (current.homeReviews || [])
+      : (current.homeReviews || []),
+    intlCurrencies: body.intlCurrencies != null
+      ? normalizeIntlCurrencies(body.intlCurrencies)
+      : normalizeIntlCurrencies(current.intlCurrencies),
+    intlCurrenciesAutoFx: body.intlCurrenciesAutoFx != null
+      ? body.intlCurrenciesAutoFx !== false
+      : (body.intlCurrenciesAutoPpp != null
+        ? body.intlCurrenciesAutoPpp !== false
+        : autoFxEnabled(current)),
+    intlCurrenciesAutoPpp: body.intlCurrenciesAutoFx != null
+      ? body.intlCurrenciesAutoFx !== false
+      : (body.intlCurrenciesAutoPpp != null
+        ? body.intlCurrenciesAutoPpp !== false
+        : autoFxEnabled(current))
   };
+  // Textos GLOBAL (name/description): auto-traduz após save.
+  // MARKET-SPECIFIC (images, markets, price, kit vs lente) NÃO passa por i18n.
+  if (autoFxEnabled(merged)) {
+    const synced = syncOpticalIntlBrlFromBrKit(merged.products || []);
+    const fxRates = await fetchFxRatesMap(env, (merged.intlCurrencies || []).map((c) => c.code));
+    const applied = applyMarkupFxToIntlProducts(synced.products, merged.intlCurrencies, fxRates);
+    merged.products = applied.products;
+  }
   if (merged.products?.[0]) {
     merged.product = {
       name: merged.products[0].name,
@@ -17697,16 +18101,99 @@ async function handlePutConfig(request, env, origin, ctx) {
     const latest = await getConfig(env);
     await saveConfig(env, {
       ...latest,
-      homeFaq: partial.homeFaq,
-      homeReviews: partial.homeReviews
+      homeFaq: partial.homeFaq != null ? partial.homeFaq : latest.homeFaq,
+      homeReviews: partial.homeReviews != null ? partial.homeReviews : latest.homeReviews,
+      products: partial.products != null ? partial.products : latest.products
     });
   };
-  const runI18n = refreshHomeContentI18n(env, saved, { onProgress: persistI18nPartial })
-    .then((next) => persistI18nPartial(next))
-    .catch((err) => console.warn('home i18n:', err?.message || err));
+  // FAQs que mudaram neste save (novas ou PT editado) — prioridade no waitUntil.
+  const prevFaqById = new Map((current.homeFaq || []).map((f) => [String(f?.id || ''), f]));
+  const changedFaqIds = (saved.homeFaq || [])
+    .filter((f) => {
+      const id = String(f?.id || '');
+      if (!id || !String(f?.question || '').trim()) return false;
+      const prev = prevFaqById.get(id);
+      if (!prev) return true;
+      return String(prev.question || '') !== String(f.question || '')
+        || String(prev.answer || '') !== String(f.answer || '');
+    })
+    .map((f) => String(f.id));
+  // FAQ primeiro (limitado: 11 línguas × N itens estoura waitUntil). Cron/botão cobrem o resto.
+  const runI18n = (async () => {
+    const withHome = await refreshHomeContentI18n(env, saved, {
+      onProgress: (partial) => persistI18nPartial(partial),
+      preferIds: changedFaqIds,
+      faqLimit: Math.max(2, Math.min(3, changedFaqIds.length || 2)),
+      skipReviews: true
+    });
+    await persistI18nPartial(withHome);
+    try {
+      const products = await refreshProductsTextI18n(env, withHome.products || saved.products || [], {
+        onProgress: (list) => persistI18nPartial({ products: list })
+      });
+      await persistI18nPartial({ products });
+    } catch (err) {
+      console.warn('product text i18n:', err?.message || err);
+    }
+  })().catch((err) => console.warn('content i18n:', err?.message || err));
   if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(runI18n);
   else await runI18n;
   return json(saved, 200, origin);
+}
+
+async function handleAdminApplyIntlMarkupFx(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const current = await getConfig(env);
+  const currencies = body.intlCurrencies != null
+    ? normalizeIntlCurrencies(body.intlCurrencies)
+    : normalizeIntlCurrencies(current.intlCurrencies);
+  const auto = body.intlCurrenciesAutoFx != null
+    ? body.intlCurrenciesAutoFx !== false
+    : (body.intlCurrenciesAutoPpp != null
+      ? body.intlCurrenciesAutoPpp !== false
+      : autoFxEnabled(current));
+  const synced = syncOpticalIntlBrlFromBrKit(current.products || []);
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  const { products, updated } = applyMarkupFxToIntlProducts(synced.products, currencies, fxRates);
+  const saved = await saveConfig(env, {
+    ...current,
+    products,
+    intlCurrencies: currencies,
+    intlCurrenciesAutoFx: auto,
+    intlCurrenciesAutoPpp: auto
+  });
+  return json({
+    ok: true,
+    updated: updated + (synced.synced ? 1 : 0),
+    syncedOpticalBrl: synced.synced,
+    fxRates,
+    currencies: currencies.map((c) => ({ code: c.code, decimals: c.decimals })),
+    products: (saved.products || []).filter(isIntlMarketProductRow).map((p) => ({
+      id: p.id,
+      price: p.price,
+      intlMarkupPercent: p.intlMarkupPercent,
+      intlBaseBrl: p.intlBaseBrl,
+      priceUsd: p.priceUsd,
+      priceEur: p.priceEur,
+      priceSek: p.priceSek,
+      priceNok: p.priceNok,
+      pricePln: p.pricePln,
+      priceGbp: p.priceGbp
+    }))
+  }, 200, origin);
+}
+
+/** @deprecated alias — PPP removed; markup + FX */
+async function handleAdminApplyIntlPpp(request, env, origin) {
+  return handleAdminApplyIntlMarkupFx(request, env, origin);
 }
 
 async function handleAdminHomeI18nRefresh(request, env, origin, ctx) {
@@ -17717,15 +18204,20 @@ async function handleAdminHomeI18nRefresh(request, env, origin, ctx) {
     const latest = await getConfig(env);
     await saveConfig(env, {
       ...latest,
-      homeFaq: partial.homeFaq,
-      homeReviews: partial.homeReviews
+      homeFaq: partial.homeFaq != null ? partial.homeFaq : latest.homeFaq,
+      homeReviews: partial.homeReviews != null ? partial.homeReviews : latest.homeReviews,
+      products: partial.products != null ? partial.products : latest.products
     });
   };
-  const runI18n = refreshHomeContentI18n(env, current, { onProgress: persistI18nPartial })
-    .then(async (next) => {
-      await persistI18nPartial(next);
-      return homeContentI18nStatus(next);
-    })
+  const runI18n = (async () => {
+    const withHome = await refreshHomeContentI18n(env, current, { onProgress: persistI18nPartial });
+    await persistI18nPartial(withHome);
+    const products = await refreshProductsTextI18n(env, withHome.products || current.products || [], {
+      onProgress: (list) => persistI18nPartial({ products: list })
+    });
+    await persistI18nPartial({ products });
+    return homeContentI18nStatus({ ...withHome, products });
+  })()
     .catch((err) => {
       console.warn('home i18n refresh:', err?.message || err);
       return null;
@@ -18720,6 +19212,12 @@ export default {
         return handleAddressSuggest(request, env, origin);
       }
       if (path === '/admin/config' && request.method === 'GET') return handleAdminGetConfig(request, env, origin);
+      if (path === '/admin/intl-money/apply-ppp' && request.method === 'POST') {
+        return handleAdminApplyIntlMarkupFx(request, env, origin);
+      }
+      if (path === '/admin/intl-money/apply-markup-fx' && request.method === 'POST') {
+        return handleAdminApplyIntlMarkupFx(request, env, origin);
+      }
       if (path === '/admin/home-i18n/refresh' && request.method === 'POST') {
         return handleAdminHomeI18nRefresh(request, env, origin, ctx);
       }
@@ -19061,6 +19559,28 @@ export default {
           console.error('Intl FX price sync cron failed:', err.message);
         })
       );
+      // Backfill FAQ/elogios incompletos (lote) — novas perguntas em PT → todos os idiomas
+      ctx.waitUntil((async () => {
+        const current = await getConfig(env);
+        const next = await refreshHomeContentI18n(env, current, {
+          faqLimit: 6,
+          onProgress: async (partial) => {
+            const latest = await getConfig(env);
+            await saveConfig(env, {
+              ...latest,
+              homeFaq: partial.homeFaq,
+              homeReviews: partial.homeReviews
+            });
+          }
+        });
+        const latest = await getConfig(env);
+        await saveConfig(env, {
+          ...latest,
+          homeFaq: next.homeFaq,
+          homeReviews: next.homeReviews
+        });
+        console.log('Home FAQ i18n cron:', homeContentI18nStatus(next));
+      })().catch((err) => console.error('Home FAQ i18n cron failed:', err?.message || err)));
     }
     // 02:59 UTC = 23:59 horário de Brasília — último dia do mês
     if (event.cron === '59 2 * * *') {

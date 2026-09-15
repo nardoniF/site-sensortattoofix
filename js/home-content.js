@@ -1,33 +1,42 @@
 /**
- * Renderiza FAQ e elogios da home a partir de store-config (PT / EN / IT / DE / ES / PL).
+ * Renderiza FAQ e elogios da home a partir de store-config (PT + todos os idiomas .com).
  */
 (function () {
   let l10nCache = null;
+  const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
+  const SUFFIX = {
+    en: 'En', it: 'It', de: 'De', es: 'Es', pl: 'Pl', sl: 'Sl',
+    fr: 'Fr', nl: 'Nl', sv: 'Sv', no: 'No', fi: 'Fi'
+  };
 
   function pageLang() {
     if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
     if (window.STF_I18N?.getLang) return window.STF_I18N.getLang();
     const lang = (document.documentElement.lang || 'pt').slice(0, 2).toLowerCase();
-    if (['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'].includes(lang)) return lang;
+    if (SITE_LANGS.includes(lang)) return lang;
+    const path = location.pathname || '';
+    for (const code of SITE_LANGS) {
+      if (code !== 'pt' && path.includes(`/${code}/`)) return code;
+    }
+    if (/\.sensortattoofix\.com$/i.test(location.hostname)) return 'en';
     return 'pt';
   }
 
   function pick(row, base, lang) {
+    if (lang === 'pt') return row[base] || '';
     const fromI18n = row?.i18n?.[lang]?.[base];
     if (fromI18n) return fromI18n;
-    const suffixMap = { en: 'En', it: 'It', de: 'De', es: 'Es', pl: 'Pl', sl: 'Sl' };
-    const suffix = suffixMap[lang];
+    const suffix = SUFFIX[lang];
     if (suffix) {
       const localized = row[base + suffix];
       if (localized) return localized;
-      if (lang === 'it') return row[base + 'En'] || row[base] || '';
-      if (lang === 'de' || lang === 'es' || lang === 'pl' || lang === 'sl') return row[base + 'En'] || '';
     }
-    return row[base] || '';
+    // Intl: não cair no português (evita FAQ PT na home EN/FR/…)
+    return '';
   }
 
   function pickL10n(kind, id, field, lang) {
-    if (!l10nCache || !['de', 'es', 'pl', 'sl'].includes(lang)) return '';
+    if (!l10nCache || !['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].includes(lang)) return '';
     const bucket = l10nCache[lang]?.[kind]?.[id];
     return bucket?.[field] || '';
   }
@@ -89,9 +98,15 @@
       .filter((r) => r && r.active !== false)
       .slice()
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-    section.setAttribute('data-review-count', String(rows.length));
-    const avg = rows.length
-      ? rows.reduce((s, r) => s + (Number(r.rating) || 5), 0) / rows.length
+    const localizedRows = lang === 'pt'
+      ? rows
+      : rows.filter((row) => {
+        const body = pickL10n('reviews', row.id, 'body', lang) || pick(row, 'body', lang);
+        return Boolean(body);
+      });
+    section.setAttribute('data-review-count', String(localizedRows.length));
+    const avg = localizedRows.length
+      ? localizedRows.reduce((s, r) => s + (Number(r.rating) || 5), 0) / localizedRows.length
       : 5;
     section.setAttribute('data-aggregate-rating', String(Math.round(avg * 10) / 10));
 
@@ -100,7 +115,7 @@
       summaryEl.innerHTML = `<i class="fas fa-star" aria-hidden="true"></i> ${l10nCache[lang].reviewsSummary}`;
     }
 
-    grid.innerHTML = rows.map((row) => {
+    grid.innerHTML = localizedRows.map((row) => {
       const body = pickL10n('reviews', row.id, 'body', lang) || pick(row, 'body', lang);
       const author = pickL10n('reviews', row.id, 'author', lang) || pick(row, 'author', lang);
       const source = pickL10n('reviews', row.id, 'source', lang) || pick(row, 'source', lang);
@@ -129,7 +144,7 @@
   async function loadL10n() {
     if (l10nCache) return l10nCache;
     try {
-      const res = await fetch('/data/home-content-l10n.json?v=2', { cache: 'no-store' });
+      const res = await fetch('/data/home-content-l10n.json?v=3', { cache: 'no-store' });
       if (res.ok) l10nCache = await res.json();
     } catch (e) {
       console.warn('home-content: falha ao carregar l10n', e);
@@ -169,7 +184,7 @@
     const reviews = document.getElementById('home-reviews-root');
     if (!root && !reviews) return;
     const lang = pageLang();
-    if (['de', 'es', 'pl', 'sl'].includes(lang)) await loadL10n();
+    if (['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].includes(lang)) await loadL10n();
     const cfg = await loadConfig();
     renderFaq(cfg.homeFaq, lang);
     renderReviews(cfg.homeReviews, lang);

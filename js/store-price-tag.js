@@ -23,21 +23,10 @@ window.STF_STORE_PRICE = (function () {
 
   function pathLang() {
     if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
-    if (isIntlHost()) {
-      const path = location.pathname;
-      if (path.includes('/it/')) return 'it';
-      if (path.includes('/de/')) return 'de';
-      if (path.includes('/es/')) return 'es';
-      if (path.includes('/pl/')) return 'pl';
-      return 'en';
-    }
-    const path = location.pathname;
-    if (path.includes('/it/')) return 'it';
-    if (path.includes('/de/')) return 'de';
-    if (path.includes('/es/')) return 'es';
-    if (path.includes('/pl/')) return 'pl';
-    if (path.includes('/en/')) return 'en';
-    return 'pt';
+    const path = location.pathname || '';
+    const m = path.match(/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/i);
+    if (m) return m[1].toLowerCase();
+    return isIntlHost() ? 'en' : 'pt';
   }
 
   function isLocalized() {
@@ -59,12 +48,54 @@ window.STF_STORE_PRICE = (function () {
     return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  /**
+   * Flagship for price tags (Where to buy / loja intro).
+   * On .com must NOT pick the BR kit — that caused $15 FX vs list price.
+   */
   function primaryProduct(config) {
-    if (config.products?.length) {
-      const active = config.products.find((p) => p.active !== false);
-      return active || config.products[0];
+    const products = config?.products?.length
+      ? config.products
+      : (config?.product ? [config.product] : []);
+    const active = products.filter((p) => p && p.active !== false);
+    if (!active.length) return config?.product || products[0] || null;
+
+    const market = window.STF_SITE?.catalogMarket?.()
+      || (isIntlHost() || isLocalized() ? 'INT' : 'BR');
+
+    let pool = active;
+    if (window.STF_SITE?.filterProductsForMarket) {
+      pool = window.STF_SITE.filterProductsForMarket(active, market);
+    } else {
+      const isIntl = market === 'INT';
+      pool = active.filter((p) => {
+        const markets = Array.isArray(p.markets)
+          ? p.markets.map((m) => String(m || '').toUpperCase()).filter(Boolean)
+          : [];
+        const id = String(p.id || p.slug || '');
+        if (markets.length) return isIntl ? markets.includes('INT') : markets.includes('BR');
+        if (/optical.?lens|lens-intl/i.test(id)) return isIntl;
+        if (id === 'kit-sensor-tattoofix' || id === 'kit') return !isIntl;
+        return !isIntl;
+      });
     }
-    return config.product || null;
+    if (!pool.length) pool = active;
+
+    if (market === 'INT') {
+      const flagship = pool.find((p) => {
+        const id = String(p.id || p.slug || '');
+        return id === 'optical-lens-intl';
+      });
+      if (flagship) return flagship;
+      const withList = pool.find((p) => Number(p.priceUsd) > 0 || Number(p.priceEur) > 0);
+      if (withList) return withList;
+    } else {
+      const kit = pool.find((p) => {
+        const id = String(p.id || p.slug || '');
+        return id === 'kit-sensor-tattoofix' || id === 'kit';
+      });
+      if (kit) return kit;
+    }
+    return pool[0] || active[0] || config?.product || null;
   }
 
   function productPrice(config) {

@@ -113,9 +113,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function checkoutLocale() {
     if (!isIntlCheckoutShell()) return 'pt';
-    const lang = window.STF_I18N?.getLang?.() || 'en';
-    if (lang === 'it' || lang === 'de' || lang === 'es' || lang === 'pl' || lang === 'sl' || lang === 'en') return lang;
-    return 'en';
+    const lang = window.STF_I18N?.getLang?.() || window.STF_PAGE_LANG?.get?.() || 'en';
+    const ok = ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
+    return ok.includes(lang) ? lang : 'en';
   }
 
   /** EN/IT checkout on .com.br path: PayPal only. On .com: Stripe (if live) + PayPal. */
@@ -153,8 +153,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         els.summaryPaypalRow.style.display = 'none';
       }
       if (els.selfTestPayWrap) els.selfTestPayWrap.hidden = true;
+      syncIntlDisplayCurrency();
     } else {
       // BR shell keeps CEP/PIX defaults; country can still switch to intl later
+      displayCurrency = 'BRL';
+      fxRate = null;
       if (els.addressBr) els.addressBr.hidden = false;
       if (els.addressIntl) els.addressIntl.hidden = true;
       if (els.paymentOptionsBr) els.paymentOptionsBr.hidden = false;
@@ -419,59 +422,146 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function intlDisplayCurrency() {
     if (window.STF_MONEY?.visitorDisplayCurrency) {
-      const country = checkoutLocale() === 'it' ? 'IT' : 'US';
-      return window.STF_MONEY.visitorDisplayCurrency(country);
+      return window.STF_MONEY.visitorDisplayCurrency(window.STF_MONEY.visitorCountry?.(), cfg);
     }
-    return checkoutLocale() === 'it' ? 'EUR' : 'USD';
+    if (window.STF_MONEY?.currencyForLang) {
+      return window.STF_MONEY.currencyForLang(checkoutLocale(), cfg);
+    }
+    const loc = checkoutLocale();
+    if (loc === 'sv') return 'SEK';
+    if (loc === 'no') return 'NOK';
+    if (loc === 'pl') return 'PLN';
+    if (['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'].includes(loc)) return 'EUR';
+    return 'USD';
+  }
+
+  function syncIntlDisplayCurrency() {
+    if (!isInternational && !isIntlCheckoutShell()) {
+      displayCurrency = 'BRL';
+      return;
+    }
+    isInternational = true;
+    displayCurrency = intlDisplayCurrency() || 'USD';
   }
 
   async function refreshDisplayCurrency() {
-    if (!isInternational || !window.STF_MONEY) {
+    if (!isInternational && !isIntlCheckoutShell()) {
       fxRate = null;
       displayCurrency = 'BRL';
       return;
     }
-    if (window.STF_MONEY.isIntlHost?.()) {
-      displayCurrency = intlDisplayCurrency();
+    syncIntlDisplayCurrency();
+    if (window.STF_MONEY?.loadRate) {
       fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
-      return;
     }
-    const next = window.STF_MONEY.currencyForCountry(els.paisCode?.value || 'US');
-    if (next !== displayCurrency) window.STF_MONEY.resetCache?.();
-    displayCurrency = next;
-    fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
   }
 
-  function formatCheckoutMoney(v) {
+  function formatCheckoutMoney(v, product, mode) {
     try {
-      if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
-        return formatBRL(v);
+      const onIntl = isInternational || isIntlCheckoutShell() || window.STF_MONEY?.isIntlHost?.();
+      if (!onIntl) return formatBRL(v);
+      if (!displayCurrency || displayCurrency === 'BRL') syncIntlDisplayCurrency();
+      const cur = displayCurrency || intlDisplayCurrency() || 'USD';
+      if (cur === 'BRL') return formatBRL(v);
+
+      const brl = Number(v) || 0;
+      const country = window.STF_MONEY?.visitorCountry?.() || els.paisCode?.value || 'US';
+      const decimals = (cur === 'SEK' || cur === 'NOK') ? 0 : 2;
+      const factor = 10 ** decimals;
+      const roundFx = (n) => Math.round(Number(n || 0) * factor) / factor;
+
+      function emit(foreign) {
+        if (window.STF_MONEY?.formatForeign) {
+          return window.STF_MONEY.formatForeign(foreign, cur, country);
+        }
+        return formatChargeMoney(foreign, cur);
       }
-      const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US');
-      if (window.STF_MONEY.isIntlHost?.()) {
-        const foreign = window.STF_MONEY.convertFromBrl(v, fxRate);
-        if (foreign == null) return formatBRL(v);
-        return window.STF_MONEY.formatForeign(foreign, displayCurrency, country);
+
+      /** Convert cart line / product using stored list price (R$ + markup → FX already applied). */
+      if (product && window.STF_MONEY?.configuredForeignPrice) {
+        const unitForeign = window.STF_MONEY.configuredForeignPrice(product, cur, cfg);
+        const unitBrl = Number(product.price) || 0;
+        if (unitForeign != null && unitBrl > 0) {
+          const qty = Math.abs(brl - unitBrl) < 0.001 ? 1 : brl / unitBrl;
+          if (Number.isFinite(qty) && qty > 0) {
+            return emit(Math.round(unitForeign * qty * 100) / 100);
+          }
+        }
       }
-      return window.STF_MONEY.formatDual(v, displayCurrency, fxRate, country);
+
+      /** Cart product totals / discounts: same list-price basis as line items (never raw FX on R$). */
+      if (mode === 'cart-products' || mode === 'cart-total') {
+        const overrideItems = orderSidebarLocked && orderSidebarSnapshot?.items?.length
+          ? orderSidebarSnapshot.items
+          : null;
+        const parts = cartForeignMoneyParts(cur, overrideItems);
+        if (parts.brlProduct > 0 && parts.foreignProduct > 0) {
+          const scaled = parts.foreignProduct * (brl / parts.brlProduct);
+          if (mode === 'cart-products') return emit(roundFx(scaled));
+          const shipBrl = shippingCost == null
+            ? (orderSidebarLocked ? Number(orderSidebarSnapshot?.frete ?? 0) || 0 : 0)
+            : Number(shippingCost) || 0;
+          const productBrl = Math.max(0, brl - shipBrl);
+          const foreignProd = parts.foreignProduct * (parts.brlProduct > 0 ? productBrl / parts.brlProduct : 0);
+          const foreignShip = (fxRate && shipBrl) ? roundFx(shipBrl * fxRate) : 0;
+          return emit(roundFx(foreignProd + foreignShip));
+        }
+      }
+
+      // Shipping / extras: market FX on BRL.
+      if (fxRate) return emit(roundFx(brl * fxRate));
+      return formatBRL(v);
     } catch (e) {
       console.warn('formatCheckoutMoney', e);
       return formatBRL(v);
     }
   }
 
-  /** Format an amount that is already in USD/EUR (do not convert from BRL). */
+  /** Sum cart BRL vs foreign list prices so subtotal matches line items. */
+  function cartForeignMoneyParts(currency, itemsOverride) {
+    const cur = String(currency || displayCurrency || 'USD').toUpperCase();
+    const items = Array.isArray(itemsOverride) ? itemsOverride : (window.STF_CART?.load() || []);
+    let brlProduct = 0;
+    let foreignProduct = 0;
+    const decimals = (cur === 'SEK' || cur === 'NOK') ? 0 : 2;
+    const factor = 10 ** decimals;
+    items.forEach((item) => {
+      const catalog = products.find((x) => x.id === item.productId || x.slug === item.productId);
+      const p = catalog || item;
+      const unitBrl = Number(item.price != null ? item.price : p.price) || 0;
+      const qty = Math.max(1, Number(item.qty) || 1);
+      brlProduct += unitBrl * qty;
+      let unitF = window.STF_MONEY?.configuredForeignPrice?.(p, cur, cfg);
+      if (unitF == null && catalog) {
+        unitF = window.STF_MONEY?.configuredForeignPrice?.(catalog, cur, cfg);
+      }
+      if (unitF == null && fxRate) {
+        const markup = Number(p.intlMarkupPercent ?? catalog?.intlMarkupPercent);
+        const pct = Number.isFinite(markup) && markup >= 0 ? markup : 65;
+        const base = unitBrl * (1 + pct / 100);
+        unitF = Math.round(base * fxRate * factor) / factor;
+      }
+      if (unitF != null) foreignProduct += Number(unitF) * qty;
+    });
+    return {
+      brlProduct: Math.round(brlProduct * 100) / 100,
+      foreignProduct: Math.round(foreignProduct * factor) / factor
+    };
+  }
+
+  /** Format an amount that is already in USD/EUR/SEK/NOK (do not convert from BRL). */
   function formatChargeMoney(v, currency) {
     try {
       const cur = String(currency || displayCurrency || 'USD').toUpperCase();
-      const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY?.visitorCountry?.() || 'US');
+      const country = window.STF_MONEY?.visitorCountry?.() || els.paisCode?.value || 'US';
       if (window.STF_MONEY?.formatForeign) {
         return window.STF_MONEY.formatForeign(Number(v) || 0, cur, country);
       }
     } catch (_) { /* fall through */ }
-    if (String(currency || '').toUpperCase() === 'EUR') {
-      return `€ ${Number(v || 0).toFixed(2)}`;
-    }
+    const c = String(currency || '').toUpperCase();
+    if (c === 'EUR') return `€ ${Number(v || 0).toFixed(2)}`;
+    if (c === 'SEK') return `${Math.round(Number(v) || 0)} kr`;
+    if (c === 'NOK') return `${Math.round(Number(v) || 0)} kr`;
     return `US$ ${Number(v || 0).toFixed(2)}`;
   }
 
@@ -481,7 +571,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function formatSnapshotMoney(amount, currency) {
     const cur = String(currency || '').toUpperCase();
-    if (cur === 'USD' || cur === 'EUR') return formatChargeMoney(amount, cur);
+    if (cur === 'USD' || cur === 'EUR' || cur === 'SEK' || cur === 'NOK') return formatChargeMoney(amount, cur);
     return formatCheckoutMoney(amount);
   }
 
@@ -907,7 +997,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           <div class="pelicula-upsell-info">
             <strong>${escapeHtml(title)}</strong>
             ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
-            <span class="pelicula-upsell-price">${formatCheckoutMoney(p.price)}</span>
+            <span class="pelicula-upsell-price">${formatCheckoutMoney(p.price, p)}</span>
           </div>
           <button type="button" class="pelicula-upsell-btn" data-pelicula-add="${escapeHtml(p.id)}" data-product-type="${escapeHtml(type)}">${escapeHtml(L(addKey))}</button>
         </div>
@@ -1134,13 +1224,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         const thumb = item.aggregated
           ? renderZoomableThumb(imgFull, imgFull, lineName, imgFull, 'cart-line-img-btn')
           : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/images/brand/sensortattoofix.jpg'">`;
-        const qtyLabel = item.qty > 1 ? `${item.qty} × ${formatCheckoutMoney(item.price)}` : formatCheckoutMoney(item.price);
+        const qtyLabel = item.qty > 1
+          ? `${item.qty} × ${formatCheckoutMoney(item.price, lineProduct)}`
+          : formatCheckoutMoney(item.price, lineProduct);
         return `
         <div class="cart-line cart-line-locked">
           ${thumb}
           <div class="cart-line-info">
             <strong>${escapeHtml(lineName)}</strong>
-            <span class="cart-line-price">${formatCheckoutMoney(item.price * item.qty)}</span>
+            <span class="cart-line-price">${formatCheckoutMoney(item.price * item.qty, lineProduct)}</span>
             <span class="cart-line-qty-label">${escapeHtml(qtyLabel)}</span>
           </div>
         </div>`;
@@ -1152,7 +1244,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.cartSidebar.innerHTML = '';
     }
     if (snap) {
-      els.summaryProduct.textContent = formatCheckoutMoney(resolveGrossProductTotal(snap));
+      els.summaryProduct.textContent = formatCheckoutMoney(resolveGrossProductTotal(snap), null, 'cart-products');
       const disc = snap.desconto ?? 0;
       if (els.summaryDiscountRow) {
         els.summaryDiscountRow.hidden = !disc;
@@ -1161,18 +1253,25 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           els.summaryDiscountLabel.textContent = pct != null
             ? L('coupon.discountLabel', { pct })
             : L('summary.discount');
-          els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
+          els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc, null, 'cart-products');
         } else if (els.summaryDiscount) {
           els.summaryDiscount.textContent = '—';
         }
       }
-      els.summaryShipping.textContent = formatCheckoutMoney(snap.frete ?? 0);
+      els.summaryShipping.textContent = formatCheckoutMoney(snap.frete ?? 0, null, 'shipping');
       const totalEl = els.summaryTotal;
-      const totalCurrency = (snap.totalCurrency === 'USD' || snap.totalCurrency === 'EUR')
+      const totalCurrency = (snap.totalCurrency === 'USD' || snap.totalCurrency === 'EUR' || snap.totalCurrency === 'SEK' || snap.totalCurrency === 'NOK')
         ? snap.totalCurrency
         : 'BRL';
       if (totalEl) {
-        totalEl.textContent = formatSnapshotMoney(snap.total ?? 0, totalCurrency);
+        if (snap.totalCurrency && snap.totalCurrency !== 'BRL') {
+          totalEl.textContent = formatChargeMoney(snap.total, snap.totalCurrency);
+        } else {
+          const frete = Number(snap.frete ?? 0) || 0;
+          const gross = resolveGrossProductTotal(snap);
+          const after = Math.max(0, gross - (disc || 0));
+          totalEl.textContent = formatCheckoutMoney(after + frete, null, 'cart-total');
+        }
         totalEl.closest('.summary-row')?.classList.toggle('is-self-test', !!snap.selfTest);
       }
       let selfTestNote = els.checkoutSidebar?.querySelector('.checkout-self-test-note');
@@ -1183,7 +1282,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           totalEl?.closest('.checkout-summary')?.appendChild(selfTestNote);
         }
         const payLabel = formatSnapshotMoney(
-          (snap.totalCurrency === 'USD' || snap.totalCurrency === 'EUR') ? (snap.total ?? 0.01) : (snap.total ?? 0),
+          (snap.totalCurrency && snap.totalCurrency !== 'BRL') ? (snap.total ?? 0.01) : (snap.total ?? 0),
           totalCurrency
         );
         const ref = snap.totalOriginal != null
@@ -1394,7 +1493,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         ${thumb}
         <div class="cart-line-info">
           <strong>${escapeHtml(cartLineName(item))}</strong>
-          <span class="cart-line-price">${formatCheckoutMoney(item.price)}</span>
+          <span class="cart-line-price">${formatCheckoutMoney(item.price, lineProduct)}</span>
           <div class="cart-qty" role="group" aria-label="${escapeHtml(L('cart.qty'))}">
             <button type="button" class="cart-qty-btn" data-delta="-1" aria-label="${escapeHtml(L('cart.decrease'))}">−</button>
             <span class="cart-qty-val">${item.qty}</span>
@@ -1473,6 +1572,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       if (f.bairro && a.bairro) f.bairro.value = a.bairro;
       if (f.cidade && a.cidade) f.cidade.value = a.cidade;
       if (f.uf && a.uf) f.uf.value = a.uf;
+      const ruaIntl = document.getElementById('rua-intl');
+      const numeroIntl = document.getElementById('numero-intl');
+      const cidadeIntl = document.getElementById('cidade-intl');
+      const postalIntl = document.getElementById('postal-intl');
+      const ufIntl = document.getElementById('uf-intl');
+      if (ruaIntl && a.rua) ruaIntl.value = a.rua;
+      if (numeroIntl && a.numero) numeroIntl.value = a.numero;
+      if (cidadeIntl && a.cidade) cidadeIntl.value = a.cidade;
+      if (postalIntl && a.cep) postalIntl.value = a.cep;
+      if (ufIntl && a.uf) ufIntl.value = a.uf;
     }
     scheduleQuoteShippingIfReady();
   }
@@ -1704,13 +1813,24 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function defaultIntlCountry() {
-    const lang = (document.documentElement.lang || '').toLowerCase();
-    if (lang.startsWith('it')) return 'IT';
-    if (lang.startsWith('en')) return 'US';
-    return null;
+    const lang = (
+      window.STF_PAGE_LANG?.get?.()
+      || window.STF_I18N?.getLang?.()
+      || document.documentElement.lang
+      || ''
+    ).toLowerCase().slice(0, 2);
+    const map = {
+      en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
+      fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
+    };
+    return map[lang] || null;
   }
 
   async function resolveDefaultIntlCountry() {
+    // País = idioma/site de entrada (IT→Itália, FR→França, SV→Suécia…).
+    // Geo IP só como fallback se o idioma não mapear.
+    const fromLang = defaultIntlCountry();
+    if (fromLang) return fromLang;
     const base = apiBase() || (window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
     if (base) {
       try {
@@ -1722,7 +1842,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         }
       } catch { /* geo indisponível */ }
     }
-    return defaultIntlCountry();
+    return 'US';
   }
 
   async function initializeLocalizedCheckout() {
@@ -1730,7 +1850,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!def || !els.paisCode) return;
     const has = [...els.paisCode.options].some((o) => o.value === def);
     if (!has) return;
-    if (!els.paisCode.value || els.paisCode.value === 'BR') {
+    // Sempre alinha ao idioma da página no primeiro load (não deixa US grudado em FR/NL/…).
+    if (!els.paisCode.value || els.paisCode.value === 'BR' || els.paisCode.value !== def) {
       els.paisCode.value = def;
       toggleAddressForm();
     }
@@ -2393,29 +2514,33 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const afterDisc = Math.max(0, gross - disc);
       const ship = shippingCost;
       const paypalFee = ship === null ? 0 : currentPayPalFee(afterDisc + ship);
-      if (els.summaryProduct) els.summaryProduct.textContent = formatCheckoutMoney(gross);
+      if (els.summaryProduct) els.summaryProduct.textContent = formatCheckoutMoney(gross, null, 'cart-products');
       if (els.summaryDiscountRow) {
         els.summaryDiscountRow.hidden = !disc;
         if (disc) {
           if (els.summaryDiscountLabel) {
             els.summaryDiscountLabel.textContent = L('coupon.discountLabel', { pct: appliedCoupon.percent });
           }
-          if (els.summaryDiscount) els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
+          if (els.summaryDiscount) els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc, null, 'cart-products');
         } else {
           if (els.summaryDiscountLabel) els.summaryDiscountLabel.textContent = L('summary.discount');
           if (els.summaryDiscount) els.summaryDiscount.textContent = '—';
         }
       }
-      if (els.summaryShipping) els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship);
+      if (els.summaryShipping) els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship, null, 'shipping');
       if (els.summaryPaypalRow) {
         els.summaryPaypalRow.hidden = !paypalFee;
         if (paypalFee === 0) els.summaryPaypalRow.style.display = 'none';
         else els.summaryPaypalRow.style.display = '';
         if (paypalFee && els.summaryPaypal) {
-          els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee);
+          els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee, null, 'shipping');
         }
       }
-      if (els.summaryTotal) els.summaryTotal.textContent = ship === null ? '—' : formatCheckoutMoney(afterDisc + ship + paypalFee);
+      if (els.summaryTotal) {
+        els.summaryTotal.textContent = ship === null
+          ? '—'
+          : formatCheckoutMoney(afterDisc + ship + paypalFee, null, 'cart-total');
+      }
       if (els.checkoutCoupon) els.checkoutCoupon.hidden = orderSidebarLocked;
     } catch (e) {
       console.warn('updateSummary', e);
@@ -2552,6 +2677,19 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     throw new Error(L('shipping.cepInvalid'));
   }
 
+  function splitIntlStreetNumber(rua, numero) {
+    let street = String(rua || '').trim();
+    let num = String(numero || '').trim();
+    if (num) return { rua: street, numero: num };
+    // US-style: "10 Main Street"
+    let m = street.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
+    if (m) return { rua: m[2].trim(), numero: m[1] };
+    // EU-style trailing: "Calle Mayor 10" / "Via Noalese 212/E"
+    m = street.match(/^(.+?[A-Za-zÀ-ÿ])\s+(\d+[A-Za-z]?(?:\/[A-Za-z0-9]+)?)$/);
+    if (m) return { rua: m[1].trim(), numero: m[2] };
+    return { rua: street, numero: num };
+  }
+
   function collectOrderData() {
     const f = els.form;
     const paisCode = els.paisCode.value;
@@ -2561,21 +2699,25 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     let data;
     let endereco;
     if (isInternational) {
-      const rua = document.getElementById('rua-intl').value.trim();
+      const split = splitIntlStreetNumber(
+        document.getElementById('rua-intl')?.value || '',
+        document.getElementById('numero-intl')?.value || ''
+      );
       const cidade = document.getElementById('cidade-intl').value.trim();
       const provincia = document.getElementById('uf-intl').value.trim();
       const cep = document.getElementById('postal-intl').value.trim();
       data = {
         cep,
-        rua,
-        numero: '',
+        rua: split.rua,
+        numero: split.numero,
         complemento: '',
-        bairro: '',
+        bairro: cidade || '',
         cidade,
         uf: provincia || paisCode
       };
       const linha2 = provincia ? `${cidade}, ${provincia}` : cidade;
-      endereco = `${rua} — ${linha2} — ${paisLabel} ${cep}`;
+      const streetLine = split.numero ? `${split.rua}, ${split.numero}` : split.rua;
+      endereco = `${streetLine} — ${linha2} — ${paisLabel} ${cep}`;
     } else {
       data = {
         cep: f.cep.value.trim(), rua: f.rua.value.trim(), numero: f.numero.value.trim(),
@@ -2723,10 +2865,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       }
     } else {
       const ruaIntl = document.getElementById('rua-intl');
+      const numeroIntl = document.getElementById('numero-intl');
       const cidadeIntl = document.getElementById('cidade-intl');
-      if (!ruaIntl?.value || !cidadeIntl?.value) {
+      const postalIntl = document.getElementById('postal-intl');
+      if (!ruaIntl?.value?.trim() || !numeroIntl?.value?.trim() || !cidadeIntl?.value?.trim() || !postalIntl?.value?.trim()) {
         alert(L('alert.addrIntl'));
-        focusCheckoutField(ruaIntl || cidadeIntl);
+        focusCheckoutField(
+          !ruaIntl?.value?.trim() ? ruaIntl
+            : (!numeroIntl?.value?.trim() ? numeroIntl
+              : (!postalIntl?.value?.trim() ? postalIntl : cidadeIntl))
+        );
         return false;
       }
     }
@@ -3162,7 +3310,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         });
       });
 
-      ['postal-intl', 'rua-intl', 'cidade-intl'].forEach((id) => {
+      ['postal-intl', 'rua-intl', 'numero-intl', 'cidade-intl'].forEach((id) => {
         const input = document.getElementById(id);
         input?.addEventListener('blur', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
         input?.addEventListener('change', () => { if (isInternational) scheduleQuoteShippingIfReady(); });

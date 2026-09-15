@@ -1,6 +1,6 @@
 /**
  * Traduções PT/EN/IT/DE/ES/PL — checkout, loja e UI compartilhada.
- * Ative com ?lang= ou vindo de /en/, /it/, /de/, /es/, /pl/
+ * Ative com ?lang= ou vindo de /en/, /it/, /de/, /es/, /pl/, /sl/, /fr/, /nl/, /sv/, /no/, /fi/
  */
 window.STF_I18N = (function () {
   const STRINGS = {
@@ -90,11 +90,11 @@ window.STF_I18N = (function () {
       'form.city': 'Cidade',
       'form.state': 'UF',
       'form.postal': 'Código postal',
-      'form.streetIntl': 'Endereço (número + rua)',
+      'form.streetIntl': 'Rua / logradouro',
       'form.stateIntl': 'Estado / Província',
       'form.stateIntlPh': 'Opcional',
-      'form.streetIntlPh': '10 Main Street',
-      'form.numberIntlPh': '78',
+      'form.streetIntlPh': 'Main Street',
+      'form.numberIntlPh': '10',
       'form.phonePh': '(11) 99999-9999',
       'form.phoneNationalPh': '4123 456 789',
       'account.logged': 'Olá, {name} — você está logado.',
@@ -302,7 +302,7 @@ window.STF_I18N = (function () {
       'alert.paypalOnlyIntl': 'Neste checkout use PayPal para pagamento internacional.',
       'alert.intlDocNoAggregated': 'Carta/documento internacional envia só a lente do kit — remova películas e pulseiras do carrinho ou escolha envio em encomenda.',
       'alert.addrBr': 'Preencha o endereço brasileiro completo.',
-      'alert.addrIntl': 'Preencha o endereço internacional.',
+      'alert.addrIntl': 'Preencha rua, número, cidade e código postal.',
       'alert.pixIntlCpf': 'Para pagar com PIX no exterior, informe seu CPF (conta bancária no Brasil).',
       'alert.orderError': 'Erro ao processar pedido.',
       'alert.orderInvalid': 'Resposta inválida da API ao registrar pedido.',
@@ -467,11 +467,11 @@ window.STF_I18N = (function () {
       'form.city': 'City',
       'form.state': 'State',
       'form.postal': 'Postal / ZIP code',
-      'form.streetIntl': 'Street address',
+      'form.streetIntl': 'Street',
       'form.stateIntl': 'State / Province',
       'form.stateIntlPh': 'Optional',
-      'form.streetIntlPh': '10 Main Street',
-      'form.numberIntlPh': '78',
+      'form.streetIntlPh': 'Main Street',
+      'form.numberIntlPh': '10',
       'form.phonePh': '+65 9123 4567',
       'form.phoneNationalPh': '4123 456 789',
       'account.logged': 'Hello, {name} — you are signed in.',
@@ -681,7 +681,7 @@ window.STF_I18N = (function () {
       'alert.paypalOnlyIntl': 'On this checkout, use PayPal for international payment.',
       'alert.intlDocNoAggregated': 'International letter mail ships the lens only — remove screen protectors and bands from your cart, or choose parcel shipping.',
       'alert.addrBr': 'Please complete the Brazilian address.',
-      'alert.addrIntl': 'Please complete the international address.',
+      'alert.addrIntl': 'Please fill in street, house number, city and postal code.',
       'alert.pixIntlCpf': 'To pay with PIX abroad, enter your CPF (Brazilian bank account).',
       'alert.orderError': 'Error processing order.',
       'alert.orderInvalid': 'Invalid response when creating order.',
@@ -771,13 +771,18 @@ window.STF_I18N = (function () {
     }
   };
 
-  const PATH_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
+  const PATH_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
   const OVERRIDE_GLOBALS = {
     it: 'STF_I18N_IT',
     de: 'STF_I18N_DE',
     es: 'STF_I18N_ES',
     pl: 'STF_I18N_PL',
-    sl: 'STF_I18N_SL'
+    sl: 'STF_I18N_SL',
+    fr: 'STF_I18N_FR',
+    nl: 'STF_I18N_NL',
+    sv: 'STF_I18N_SV',
+    no: 'STF_I18N_NO',
+    fi: 'STF_I18N_FI'
   };
 
   function ensureExtraStrings() {
@@ -799,7 +804,12 @@ window.STF_I18N = (function () {
       de: 'page.checkoutTitleDe',
       es: 'page.checkoutTitleEs',
       pl: 'page.checkoutTitlePl',
-      sl: 'page.checkoutTitleSl'
+      sl: 'page.checkoutTitleSl',
+      fr: 'page.checkoutTitleFr',
+      nl: 'page.checkoutTitleNl',
+      sv: 'page.checkoutTitleSv',
+      no: 'page.checkoutTitleNo',
+      fi: 'page.checkoutTitleFi'
     };
     return map[lang] || 'page.checkoutTitleEn';
   }
@@ -810,7 +820,12 @@ window.STF_I18N = (function () {
       de: 'page.checkoutDescDe',
       es: 'page.checkoutDescEs',
       pl: 'page.checkoutDescPl',
-      sl: 'page.checkoutDescSl'
+      sl: 'page.checkoutDescSl',
+      fr: 'page.checkoutDescFr',
+      nl: 'page.checkoutDescNl',
+      sv: 'page.checkoutDescSv',
+      no: 'page.checkoutDescNo',
+      fi: 'page.checkoutDescFi'
     };
     return map[lang] || 'page.checkoutDescEn';
   }
@@ -821,7 +836,12 @@ window.STF_I18N = (function () {
       de: 'store.metaDescDe',
       es: 'store.metaDescEs',
       pl: 'store.metaDescPl',
-      sl: 'store.metaDescSl'
+      sl: 'store.metaDescSl',
+      fr: 'store.metaDescFr',
+      nl: 'store.metaDescNl',
+      sv: 'store.metaDescSv',
+      no: 'store.metaDescNo',
+      fi: 'store.metaDescFi'
     };
     return map[lang] || 'store.metaDescEn';
   }
@@ -832,7 +852,12 @@ window.STF_I18N = (function () {
       de: 'ondeComprar.pageTitleDe',
       es: 'ondeComprar.pageTitleEs',
       pl: 'ondeComprar.pageTitlePl',
-      sl: 'ondeComprar.pageTitleSl'
+      sl: 'ondeComprar.pageTitleSl',
+      fr: 'ondeComprar.pageTitleFr',
+      nl: 'ondeComprar.pageTitleNl',
+      sv: 'ondeComprar.pageTitleSv',
+      no: 'ondeComprar.pageTitleNo',
+      fi: 'ondeComprar.pageTitleFi'
     };
     if (lang === 'pt') return 'ondeComprar.pageTitle';
     return map[lang] || 'ondeComprar.pageTitleEn';
@@ -844,7 +869,12 @@ window.STF_I18N = (function () {
       de: 'ondeComprar.metaDescDe',
       es: 'ondeComprar.metaDescEs',
       pl: 'ondeComprar.metaDescPl',
-      sl: 'ondeComprar.metaDescSl'
+      sl: 'ondeComprar.metaDescSl',
+      fr: 'ondeComprar.metaDescFr',
+      nl: 'ondeComprar.metaDescNl',
+      sv: 'ondeComprar.metaDescSv',
+      no: 'ondeComprar.metaDescNo',
+      fi: 'ondeComprar.metaDescFi'
     };
     if (lang === 'pt') return 'ondeComprar.metaDesc';
     return map[lang] || 'ondeComprar.metaDescEn';
@@ -881,7 +911,7 @@ window.STF_I18N = (function () {
 
   function getPathLang() {
     const path = location.pathname;
-    for (const lang of ['it', 'de', 'es', 'pl', 'sl']) {
+    for (const lang of ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']) {
       if (path.includes(`/${lang}/`) || path === `/${lang}`) return lang;
     }
     if (isComHost()) return 'en';
@@ -907,6 +937,11 @@ window.STF_I18N = (function () {
   function isEs() { return getLang() === 'es'; }
   function isPl() { return getLang() === 'pl'; }
   function isSl() { return getLang() === 'sl'; }
+  function isFr() { return getLang() === 'fr'; }
+  function isNl() { return getLang() === 'nl'; }
+  function isSv() { return getLang() === 'sv'; }
+  function isNo() { return getLang() === 'no'; }
+  function isFi() { return getLang() === 'fi'; }
 
   function isLocalized() {
     return getLang() !== 'pt';
@@ -946,7 +981,7 @@ window.STF_I18N = (function () {
   }
 
   function setLang(lang) {
-    const htmlLang = { pt: 'pt-BR', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl' };
+    const htmlLang = { pt: 'pt-BR', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl', fr: 'fr', nl: 'nl', sv: 'sv', no: 'no', fi: 'fi' };
     const l = PATH_LANGS.includes(lang) ? lang : (lang === 'pt' ? 'pt' : 'en');
     try { sessionStorage.setItem('stf_lang', l); } catch (e) { /* ignore */ }
     document.documentElement.lang = htmlLang[l] || l;
@@ -957,7 +992,7 @@ window.STF_I18N = (function () {
     const lang = getLang();
     ensureExtraStrings();
     let s = STRINGS[lang]?.[key];
-    if (!s && ['de', 'es', 'pl', 'sl'].includes(lang)) s = STRINGS.en?.[key];
+    if (!s && ['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].includes(lang)) s = STRINGS.en?.[key];
     if (!s && lang === 'it') s = STRINGS.en?.[key];
     if (!s) s = STRINGS.pt[key] ?? key;
     if (vars) {
@@ -1062,7 +1097,7 @@ window.STF_I18N = (function () {
   }
 
   function inEnDir() {
-    if (isComHost() && !['it', 'de', 'es', 'pl', 'sl'].some((l) => location.pathname.includes(`/${l}/`))) return true;
+    if (isComHost() && !['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].some((l) => location.pathname.includes(`/${l}/`))) return true;
     return location.pathname.includes('/en/');
   }
 
@@ -1076,7 +1111,7 @@ window.STF_I18N = (function () {
 
   function inDirFor(lang) {
     if (lang === 'en' && isComHost()) {
-      return !['it', 'de', 'es', 'pl', 'sl'].some((l) => location.pathname.includes(`/${l}/`));
+      return !['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].some((l) => location.pathname.includes(`/${l}/`));
     }
     return location.pathname.includes(`/${lang}/`);
   }
@@ -1243,6 +1278,7 @@ window.STF_I18N = (function () {
 
     setPlaceholder('[name="telefone"]', 'form.whatsapp');
     setPlaceholder('#rua-intl', 'form.streetIntlPh');
+    setPlaceholder('#numero-intl', 'form.numberIntlPh');
     setPlaceholder('#uf-intl', 'form.stateIntlPh');
     setPlaceholder('#observacoes', 'form.notesPhDefault');
 
@@ -1574,7 +1610,7 @@ window.STF_I18N = (function () {
   });
 
   return {
-    t, getLang, isEn, isIt, isDe, isEs, isPl, isSl, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
+    t, getLang, isEn, isIt, isDe, isEs, isPl, isSl, isFr, isNl, isSv, isNo, isFi, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
     applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom, applyOndeComprarDom, applyShellDom,
     langQuery, lojaHref, STRINGS
   };

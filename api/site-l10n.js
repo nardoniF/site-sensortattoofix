@@ -6,7 +6,7 @@
 
 import homeL10nStatic from './home-content-l10n.json' with { type: 'json' };
 
-export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'];
+export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
 export const LANG_NATIVE = {
   pt: { name: 'português brasileiro', region: 'Brasil' },
@@ -15,7 +15,12 @@ export const LANG_NATIVE = {
   de: { name: 'Deutsch', region: 'Deutschland und Österreich' },
   es: { name: 'español de España', region: 'España' },
   pl: { name: 'polski', region: 'Polska' },
-  sl: { name: 'slovenščina', region: 'Slovenija' }
+  sl: { name: 'slovenščina', region: 'Slovenija' },
+  fr: { name: 'français', region: 'France' },
+  nl: { name: 'Nederlands', region: 'Nederland' },
+  sv: { name: 'svenska', region: 'Sverige' },
+  no: { name: 'norsk bokmål', region: 'Norge' },
+  fi: { name: 'suomi', region: 'Suomi' }
 };
 
 const L10N_MODEL = '@cf/meta/llama-3.1-8b-instruct';
@@ -63,11 +68,24 @@ function systemPrompt(targetLang, kind) {
     ? 'This is a product FAQ for an optical lens that restores smartwatch sensors on tattooed skin. Keep HTML tags (<strong>, <a href="...">) intact. Keep brand names (Sensor Tattoo Fix, Apple Watch, Garmin, Samsung, PayPal). Adapt how locals talk about watches, tattoos, payments and shipping — not a literal translation.'
     : kind === 'review'
       ? 'This is a short customer testimonial. Keep the person\'s name as-is. Sound like a real local review, not marketing copy.'
-      : 'This is a community forum post or reply written by a customer. Keep the original meaning, tone and any product/model names. Write how a native in that country would write a forum comment — informal if the source is informal.';
+      : kind === 'product'
+        ? 'This is a product name and short description. Keep brand names (Sensor Tattoo Fix, SensorTattooFix, Apple Watch, Garmin, Samsung). If the source says "Kit", keep the commercial meaning of a kit; if it says "Lens"/"Lente", keep it as lens-only — never turn a kit into a lens or vice versa. Do not add accessories (liquid, cloth, stick) that are not in the source.'
+        : 'This is a community forum post or reply written by a customer. Keep the original meaning, tone and any product/model names. Write how a native in that country would write a forum comment — informal if the source is informal.';
   return `You are a native ${meta.name} copywriter for Sensor Tattoo Fix (${meta.region}).
 ${kindHint}
 Return ONLY a JSON object with the same keys as the input. No markdown, no commentary.
-Do not invent facts. Do not drop links or @handles.`;
+Do not invent facts. Do not drop links or @handles.
+CRITICAL: write every string value fully in ${meta.name}. Never leave Portuguese (olá, você, então, relógio, adesivo, preciso, quanto tempo) in the output when the target is not Portuguese.`;
+}
+
+/** Detecta se o modelo devolveu PT em vez do idioma alvo. */
+export function looksLikePortugueseLeak(text, targetLang) {
+  if (normalizeSiteLang(targetLang) === 'pt') return false;
+  const s = String(text || '');
+  if (!s.trim()) return false;
+  // Diacríticos típicos do PT que quase não existem em EN e são raros em outros alvos com o mesmo padrão.
+  if (normalizeSiteLang(targetLang) === 'en' && /[áàâãéêíóôõúçÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(s)) return true;
+  return /\b(olá|vocês|você|então|adesivo|relógio|preciso ficar|dura quanto|obrigad[oa]|show de bola)\b/i.test(s);
 }
 
 export function extractAiText(out) {
@@ -103,7 +121,7 @@ export async function localizeFields(env, { sourceLang, fields, targetLang, kind
   if (!keys.length) return {};
   const payload = {};
   keys.forEach((k) => { payload[k] = String(fields[k] || ''); });
-  try {
+  const attempt = async () => {
     const raw = await runLlama(env, [
       { role: 'system', content: systemPrompt(tgt, kind) },
       { role: 'user', content: `Source language: ${LANG_NATIVE[src]?.name || src}\nJSON:\n${JSON.stringify(payload)}` }
@@ -115,10 +133,24 @@ export async function localizeFields(env, { sourceLang, fields, targetLang, kind
       const v = parsed[k];
       out[k] = v != null && String(v).trim() ? String(v) : payload[k];
     });
+    // Rejeita “tradução” que ainda está em português.
+    const joined = keys.map((k) => out[k]).join('\n');
+    if (looksLikePortugueseLeak(joined, tgt)) return null;
     return out;
+  };
+  try {
+    const first = await attempt();
+    if (first) return first;
+    // Uma retentativa: modelo às vezes devolve markdown/lixo na 1ª vez (ex.: sl).
+    return await attempt();
   } catch (err) {
     console.warn('site-l10n: AI failed', tgt, err?.message || err);
-    return null;
+    try {
+      return await attempt();
+    } catch (err2) {
+      console.warn('site-l10n: AI retry failed', tgt, err2?.message || err2);
+      return null;
+    }
   }
 }
 
@@ -143,7 +175,12 @@ export function seedFaqI18nFromLegacy(item) {
     ['de', 'questionDe', 'answerDe'],
     ['es', 'questionEs', 'answerEs'],
     ['pl', 'questionPl', 'answerPl'],
-    ['sl', 'questionSl', 'answerSl']
+    ['sl', 'questionSl', 'answerSl'],
+    ['fr', 'questionFr', 'answerFr'],
+    ['nl', 'questionNl', 'answerNl'],
+    ['sv', 'questionSv', 'answerSv'],
+    ['no', 'questionNo', 'answerNo'],
+    ['fi', 'questionFi', 'answerFi']
   ];
   pairs.forEach(([lang, qk, ak]) => {
     const q = String(item?.[qk] || '').trim();
@@ -155,6 +192,24 @@ export function seedFaqI18nFromLegacy(item) {
     };
   });
   return seedFaqI18nFromStatic(item, i18n);
+}
+
+/** Espelha i18n.en/it/… nos campos legados questionEn/answerEn para o front antigo. */
+export function syncLegacyFaqFieldsFromI18n(item) {
+  if (!item || typeof item !== 'object') return item;
+  const i18n = item.i18n && typeof item.i18n === 'object' ? item.i18n : {};
+  const next = { ...item };
+  const map = [
+    ['en', 'En'], ['it', 'It'], ['de', 'De'], ['es', 'Es'], ['pl', 'Pl'], ['sl', 'Sl'],
+    ['fr', 'Fr'], ['nl', 'Nl'], ['sv', 'Sv'], ['no', 'No'], ['fi', 'Fi']
+  ];
+  map.forEach(([lang, suf]) => {
+    const q = String(i18n[lang]?.question || '').trim();
+    const a = String(i18n[lang]?.answer || '').trim();
+    if (q) next['question' + suf] = q;
+    if (a) next['answer' + suf] = a;
+  });
+  return next;
 }
 
 /** Preenche DE/ES/PL/SL a partir do arquivo estático (mesmas IDs da home). */
@@ -215,7 +270,7 @@ export async function refreshFaqItemI18n(env, item) {
     return !pack || !String(pack.question || '').trim();
   });
   if (item.i18nHash === hash && !missing.length) {
-    return { ...item, i18n: seeded, i18nHash: hash, sourceLang: 'pt' };
+    return syncLegacyFaqFieldsFromI18n({ ...item, i18n: seeded, i18nHash: hash, sourceLang: 'pt' });
   }
   const targets = ptChanged ? otherSiteLangs('pt') : missing;
   const generated = targets.length
@@ -229,7 +284,15 @@ export async function refreshFaqItemI18n(env, item) {
   const i18n = ptChanged
     ? { ...seedFaqI18nFromLegacy({ ...item, i18n: {} }), ...generated }
     : { ...seeded, ...generated };
-  return { ...item, i18n, i18nHash: hash, sourceLang: 'pt' };
+  // Só grava hash se pelo menos EN saiu — senão o próximo save/cron tenta de novo.
+  const hasEn = Boolean(String(i18n.en?.question || '').trim());
+  const next = {
+    ...item,
+    i18n,
+    sourceLang: 'pt',
+    i18nHash: hasEn || !targets.length ? hash : (item.i18nHash || null)
+  };
+  return syncLegacyFaqFieldsFromI18n(next);
 }
 
 function seedReviewI18nFromLegacy(item) {
@@ -310,26 +373,140 @@ export function mergePreservedI18n(incoming, previous) {
   });
 }
 
+/** Sufixo de campo legado no produto: en → En, de → De, … */
+export const PRODUCT_TEXT_LANG_SUFFIX = {
+  en: 'En',
+  it: 'It',
+  de: 'De',
+  es: 'Es',
+  pl: 'Pl',
+  sl: 'Sl'
+};
+
+/**
+ * Textos GLOBAL do produto (nome/descrição PT → nameEn/descriptionEn…).
+ * NÃO toca imagens, preço, markets, markup nem estrutura kit/lente.
+ * Locks: product.textI18nLocks = { en: true } evita sobrescrever um idioma market-specific.
+ */
+export async function refreshProductTextI18n(env, product) {
+  if (!product || typeof product !== 'object') return product;
+  const name = String(product.name || '').trim();
+  const description = String(product.description || '').trim();
+  if (!name && !description) return product;
+
+  const locks = product.textI18nLocks && typeof product.textI18nLocks === 'object'
+    ? product.textI18nLocks
+    : {};
+  const fp = fieldsFingerprint({ name, description });
+  const hash = await hashSource(fp);
+  const ptChanged = Boolean(product.textI18nHash) && product.textI18nHash !== hash;
+
+  const missing = otherSiteLangs('pt').filter((lang) => {
+    if (locks[lang]) return false;
+    const suf = PRODUCT_TEXT_LANG_SUFFIX[lang];
+    if (!suf) return false;
+    return !String(product['name' + suf] || '').trim();
+  });
+
+  if (product.textI18nHash === hash && !missing.length) {
+    return { ...product, textI18nHash: hash, textSourceLang: 'pt' };
+  }
+
+  const targets = (ptChanged ? otherSiteLangs('pt') : missing).filter((lang) => !locks[lang]);
+  const generated = targets.length
+    ? await localizeToAllLangs(env, {
+      sourceLang: 'pt',
+      fields: { name, description },
+      kind: 'product',
+      targets
+    })
+    : {};
+
+  const next = { ...product, textI18nHash: hash, textSourceLang: 'pt' };
+  for (const lang of targets) {
+    const pack = generated[lang];
+    const suf = PRODUCT_TEXT_LANG_SUFFIX[lang];
+    if (!pack || !suf) continue;
+    if (String(pack.name || '').trim()) next['name' + suf] = String(pack.name).trim();
+    if (String(pack.description || '').trim()) next['description' + suf] = String(pack.description).trim();
+  }
+  // Nunca copiar/alterar campos de mercado
+  return next;
+}
+
+/** Atualiza textos GLOBAL de todos os produtos; preserva images/price/markets. */
+export async function refreshProductsTextI18n(env, products, { onProgress } = {}) {
+  const list = Array.isArray(products) ? [...products] : [];
+  for (let i = 0; i < list.length; i += 1) {
+    const before = list[i];
+    const images = Array.isArray(before?.images) ? before.images.slice() : before?.images;
+    const image = before?.image;
+    const markets = Array.isArray(before?.markets) ? before.markets.slice() : before?.markets;
+    const price = before?.price;
+    list[i] = await refreshProductTextI18n(env, before);
+    // Blindagem: mesmo se o modelo falhar, não deixar vazar alteração de market-specific
+    if (images !== undefined) list[i].images = images;
+    if (image !== undefined) list[i].image = image;
+    if (markets !== undefined) list[i].markets = markets;
+    if (price !== undefined) list[i].price = price;
+    if (typeof onProgress === 'function') await onProgress(list);
+  }
+  return list;
+}
+
 /**
  * Gera i18n faltante de FAQ/elogios.
+ * Prioriza: IDs preferidos (acabaram de salvar) → incompletos → resto.
+ * faqLimit limita quantos FAQs *pendentes* processar (evita estourar waitUntil
+ * ao traduzir 11 línguas × N itens numa única request).
  * onProgress(partialConfig) — chamado após cada item (para save incremental no KV).
  */
-export async function refreshHomeContentI18n(env, config, { onProgress } = {}) {
+export async function refreshHomeContentI18n(env, config, {
+  onProgress,
+  faqLimit = 0,
+  preferIds = [],
+  skipReviews = false
+} = {}) {
   const homeFaq = Array.isArray(config?.homeFaq) ? [...config.homeFaq] : [];
   const homeReviews = Array.isArray(config?.homeReviews) ? [...config.homeReviews] : [];
+  const prefer = new Set((preferIds || []).map((id) => String(id || '').trim()).filter(Boolean));
+
+  const faqNeedsWork = (item) => {
+    if (!item || !String(item.question || '').trim()) return false;
+    const seeded = seedFaqI18nFromLegacy(item);
+    return otherSiteLangs('pt').some((lang) => !String(seeded[lang]?.question || '').trim());
+  };
+
+  const order = homeFaq
+    .map((item, index) => ({
+      item,
+      index,
+      pending: faqNeedsWork(item),
+      preferred: prefer.has(String(item?.id || ''))
+    }))
+    .sort((a, b) => (
+      Number(b.preferred) - Number(a.preferred)
+      || Number(b.pending) - Number(a.pending)
+      || a.index - b.index
+    ));
 
   const emit = async () => {
     if (typeof onProgress !== 'function') return;
     await onProgress({ ...config, homeFaq: [...homeFaq], homeReviews: [...homeReviews] });
   };
 
-  for (let i = 0; i < homeFaq.length; i += 1) {
-    homeFaq[i] = await refreshFaqItemI18n(env, homeFaq[i]);
+  let faqDone = 0;
+  for (const { item, index, pending } of order) {
+    if (faqLimit > 0 && pending && faqDone >= faqLimit) continue;
+    homeFaq[index] = await refreshFaqItemI18n(env, item);
+    if (pending) faqDone += 1;
     await emit();
   }
-  for (let i = 0; i < homeReviews.length; i += 1) {
-    homeReviews[i] = await refreshReviewItemI18n(env, homeReviews[i]);
-    await emit();
+  if (!skipReviews) {
+    for (let i = 0; i < homeReviews.length; i += 1) {
+      homeReviews[i] = await refreshReviewItemI18n(env, homeReviews[i]);
+      await emit();
+    }
   }
   return { ...config, homeFaq, homeReviews };
 }
