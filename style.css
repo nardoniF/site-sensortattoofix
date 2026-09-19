@@ -849,6 +849,89 @@ body.stf-feedback-open { overflow: hidden; }
 
 .btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
 
+/* Cross-promo: Sensor Crash Fix (irmã da Tattoo Fix) */
+.crashfix-promo {
+    padding: 28px 0 36px;
+    background:
+        radial-gradient(ellipse 80% 120% at 0% 50%, rgba(255, 193, 7, 0.08), transparent 55%),
+        linear-gradient(180deg, #0c0c0c 0%, #121212 100%);
+    border-top: 1px solid #1e1e1e;
+    border-bottom: 1px solid #1e1e1e;
+}
+.crashfix-promo-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px 28px;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 22px 24px;
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    background: rgba(20, 20, 20, 0.85);
+}
+.crashfix-promo-copy {
+    flex: 1 1 280px;
+    min-width: 0;
+}
+.crashfix-promo-kicker {
+    display: block;
+    font-family: var(--font-nav);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 6px;
+}
+.crashfix-promo-text {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.45;
+    color: #e8e8e8;
+}
+.crashfix-promo-text strong {
+    color: #fff;
+    font-weight: 800;
+}
+.crashfix-promo-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 22px;
+    border-radius: 12px;
+    background: var(--primary);
+    color: #000 !important;
+    font-family: var(--font-nav);
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+.crashfix-promo-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+}
+.crashfix-promo-btn i {
+    font-size: 0.85em;
+    opacity: 0.85;
+}
+@media (max-width: 640px) {
+    .crashfix-promo-inner {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        padding: 20px 18px;
+    }
+    .crashfix-promo-btn {
+        width: 100%;
+    }
+}
+
 #onde-comprar {
     scroll-margin-top: 88px;
     padding: 0 0 32px;
