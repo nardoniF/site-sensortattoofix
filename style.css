@@ -849,7 +849,7 @@ body.stf-feedback-open { overflow: hidden; }
 
 .btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
 
-/* Card Tattoo Fix no grid dos marketplaces (mesmo padrão) */
+/* Card Sensor Crash Fix no grid (logo + cyan da marca) */
 .store-card-logo {
     display: flex;
     align-items: center;
@@ -859,9 +859,9 @@ body.stf-feedback-open { overflow: hidden; }
     margin: 0 auto 14px;
     border-radius: 50%;
     overflow: hidden;
-    background: #000;
-    border: 2px solid #111;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+    background: #0a0a0a;
+    border: 2px solid #5EC8D8;
+    box-shadow: 0 0 0 3px rgba(94, 200, 216, 0.22);
 }
 .store-card-logo img {
     width: 100%;
@@ -869,21 +869,27 @@ body.stf-feedback-open { overflow: hidden; }
     object-fit: cover;
     display: block;
 }
-.store-tattoofix {
-    background: #ffc107 !important;
+.store-crashfix {
+    --crash-cyan: #5EC8D8;
+    background: linear-gradient(165deg, #1a3034 0%, #121c1e 55%, #0e1416 100%) !important;
+    border: 1px solid rgba(94, 200, 216, 0.55) !important;
 }
-.store-tattoofix h3,
-.store-tattoofix p {
-    color: #111 !important;
+.store-crashfix h3 {
+    color: var(--crash-cyan) !important;
 }
-.store-tattoofix .store-card-logo {
-    border-color: #111;
-}
-.store-tattoofix p {
-    font-size: 0.92rem !important;
+.store-crashfix p {
+    color: #d5e6ea !important;
+    font-size: 0.82rem !important;
     font-weight: 600 !important;
     line-height: 1.35 !important;
-    max-width: 16em;
+    max-width: 17em;
+}
+.store-crashfix .store-card-logo {
+    border-color: var(--crash-cyan);
+}
+.store-link--crashfix:hover .store-crashfix {
+    border-color: #5EC8D8 !important;
+    box-shadow: 0 8px 24px rgba(94, 200, 216, 0.18);
 }
 .stores-grid-3--solo {
     margin-top: 14px;
