@@ -869,50 +869,6 @@ body.stf-feedback-open { overflow: hidden; }
     object-fit: cover;
     display: block;
 }
-.store-crashfix {
-    --crash-cyan: #5EC8D8;
-    background: #0a0a0a !important;
-    border: 1.5px solid rgba(94, 200, 216, 0.65) !important;
-}
-.store-crashfix h3 {
-    color: var(--crash-cyan) !important;
-    font-weight: 900 !important;
-    letter-spacing: -0.01em;
-}
-.store-crashfix p {
-    color: var(--crash-cyan) !important;
-    font-size: 0.82rem !important;
-    font-weight: 600 !important;
-    line-height: 1.3 !important;
-    max-width: 14em;
-    opacity: 0.92;
-}
-.store-crashfix .store-card-logo {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 12px;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-}
-.store-crashfix .store-card-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    border: none !important;
-    box-shadow: none !important;
-}
-.store-link--crashfix:hover .store-crashfix {
-    border-color: #5EC8D8 !important;
-    box-shadow: 0 8px 22px rgba(94, 200, 216, 0.2);
-}
-.stores-grid-3--solo {
-    margin-top: 14px;
-    grid-template-columns: minmax(220px, 320px);
-    justify-content: center;
-}
-
 #onde-comprar {
     scroll-margin-top: 88px;
     padding: 0 0 32px;
