@@ -551,7 +551,7 @@
                         <legend class="admin-legend-row"><span><i class="fas fa-share-nodes"></i> Redes e lojas no site</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-channels" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-channels" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Liga ou desliga ícones de redes (header/footer) e cards de marketplace (onde comprar / loja). Itens desligados somem do layout sem deixar buraco.</p>
-                            <p>Em cada rede, cadastre a URL oficial — o site (header, footer e schema) usa o link salvo aqui. Se trocar o canal do YouTube, atualize só este campo e salve.</p>
+                            <p>Em cada rede ou loja, cadastre a URL — o site (header, footer, onde comprar, loja e schema) usa o link salvo aqui. Ao trocar o anúncio no marketplace, atualize só o campo e salve.</p>
                         </div>
                         <p class="admin-meta" style="margin:0 0 10px">Redes sociais</p>
                         <div class="admin-channels-list">
@@ -573,12 +573,27 @@
                             </div>
                         </div>
                         <p class="admin-meta" style="margin:16px 0 10px">Lojas / marketplaces</p>
-                        <div class="admin-channels-grid">
-                            <label class="label-check"><input type="checkbox" name="channelStoreOficial" checked><span>Loja oficial</span></label>
-                            <label class="label-check"><input type="checkbox" name="channelStoreMercadolivre" checked><span>Mercado Livre</span></label>
-                            <label class="label-check"><input type="checkbox" name="channelStoreShopee" checked><span>Shopee</span></label>
-                            <label class="label-check"><input type="checkbox" name="channelStoreTiktokShop" checked><span>TikTok Shop</span></label>
-                            <label class="label-check"><input type="checkbox" name="channelStoreAmazon" checked><span>Amazon</span></label>
+                        <div class="admin-channels-list">
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelStoreOficial" checked><span>Loja oficial</span></label>
+                                <input type="url" name="channelStoreOficialUrl" value="https://www.sensortattoofix.com.br/loja.html" placeholder="https://www.sensortattoofix.com.br/loja.html" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelStoreMercadolivre" checked><span>Mercado Livre</span></label>
+                                <input type="url" name="channelStoreMercadolivreUrl" value="https://produto.mercadolivre.com.br/MLB-6831525504-smartwatch-x-tatuagem-sensor-nao-funciona-lentes-reparadoras-_JM" placeholder="https://produto.mercadolivre.com.br/…" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelStoreShopee" checked><span>Shopee</span></label>
+                                <input type="url" name="channelStoreShopeeUrl" value="https://shopee.com.br/product/479290797/58259628035/" placeholder="https://shopee.com.br/product/…" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelStoreTiktokShop" checked><span>TikTok Shop</span></label>
+                                <input type="url" name="channelStoreTiktokShopUrl" value="https://vt.tiktok.com/ZS9juMxSmKGjN-mns6O/" placeholder="https://vt.tiktok.com/…" autocomplete="off" spellcheck="false">
+                            </div>
+                            <div class="admin-channel-row">
+                                <label class="label-check"><input type="checkbox" name="channelStoreAmazon" checked><span>Amazon</span></label>
+                                <input type="url" name="channelStoreAmazonUrl" value="https://www.amazon.com.br/dp/B0GYVBRGZS" placeholder="https://www.amazon.com.br/dp/…" autocomplete="off" spellcheck="false">
+                            </div>
                         </div>
                     </fieldset>
 
@@ -1352,6 +1367,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=223"></script>
+    <script defer src="js/admin.js?v=224"></script>
 </body>
 </html>

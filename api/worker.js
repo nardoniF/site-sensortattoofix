@@ -421,7 +421,7 @@ const DEFAULT_CONFIG = {
       facebook: { enabled: true, url: 'https://www.facebook.com/profile.php?id=61588858629597' }
     },
     stores: {
-      oficial: { enabled: true },
+      oficial: { enabled: true, url: 'https://www.sensortattoofix.com.br/loja.html' },
       mercadolivre: {
         enabled: true,
         url: 'https://produto.mercadolivre.com.br/MLB-6831525504-smartwatch-x-tatuagem-sensor-nao-funciona-lentes-reparadoras-_JM'
