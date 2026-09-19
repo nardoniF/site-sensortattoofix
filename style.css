@@ -849,61 +849,110 @@ body.stf-feedback-open { overflow: hidden; }
 
 .btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
 
-/* Cross-promo Crash Fix — observação no canto (não mexe no layout das lojas) */
+/* Cross-promo Crash Fix — ícone-loja no canto (absolute; não mexe no layout) */
 #onde-comprar.onde-comprar--crashfix,
 .onde-comprar-landing.onde-comprar--crashfix {
     position: relative;
 }
-.crashfix-corner {
+.crashfix-store {
+    --crash-cyan: #5EC8D8;
     position: absolute;
-    right: max(12px, calc((100% - 1200px) / 2 + 8px));
-    bottom: 14px;
+    right: max(10px, calc((100% - 1200px) / 2 + 4px));
+    bottom: 12px;
     z-index: 3;
-    max-width: 200px;
-    padding: 0;
-    margin: 0;
-    border: none;
-    background: none;
-    box-shadow: none;
-    font-family: var(--font-nav);
-    font-size: 0.72rem;
-    font-weight: 500;
-    line-height: 1.35;
-    text-align: right;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: min(248px, 42vw);
+    padding: 8px 10px 8px 8px;
+    border-radius: 14px;
     text-decoration: none;
-    color: #888 !important;
-    opacity: 0.9;
-    transition: color 0.2s ease, opacity 0.2s ease;
+    color: #e8e8e8 !important;
+    background:
+        linear-gradient(160deg, rgba(94, 200, 216, 0.16), rgba(20, 20, 20, 0.92) 55%),
+        #141414;
+    border: 1px solid rgba(94, 200, 216, 0.45);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+    font-family: var(--font-nav);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.crashfix-corner strong {
-    color: var(--primary);
+.crashfix-store:hover {
+    transform: translateY(-2px);
+    border-color: var(--crash-cyan);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(94, 200, 216, 0.25);
+}
+.crashfix-store-badge {
+    position: relative;
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #0a0a0a;
+    border: 2px solid var(--crash-cyan);
+    box-shadow: 0 0 0 3px rgba(94, 200, 216, 0.18);
+}
+.crashfix-store-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.crashfix-store-badge i {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--crash-cyan);
+    color: #061518;
+    font-size: 0.55rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #0a0a0a;
+}
+.crashfix-store-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    line-height: 1.25;
+}
+.crashfix-store-brand {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--crash-cyan);
+    letter-spacing: 0.01em;
+}
+.crashfix-store-line1 {
+    font-size: 0.7rem;
     font-weight: 700;
+    color: #fff;
 }
-.crashfix-corner:hover {
-    color: #ccc !important;
-    opacity: 1;
-}
-.crashfix-corner:hover strong {
-    text-decoration: underline;
-    text-underline-offset: 2px;
+.crashfix-store-line2 {
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: #9aa;
 }
 
 .crashfix-product-note {
     margin: 14px 0 0;
-    max-width: 280px;
+    max-width: 300px;
     font-size: 0.82rem;
     line-height: 1.4;
     color: #aaa;
     text-align: center;
 }
 .crashfix-product-note a {
-    color: var(--primary);
+    color: #5EC8D8;
     font-weight: 700;
     text-decoration: none;
-    border-bottom: 1px solid rgba(255, 193, 7, 0.35);
+    border-bottom: 1px solid rgba(94, 200, 216, 0.4);
 }
 .crashfix-product-note a:hover {
-    border-bottom-color: var(--primary);
+    border-bottom-color: #5EC8D8;
 }
 #produtos .product-solution-media + .crashfix-product-note,
 #produtos .crashfix-product-note {
@@ -912,13 +961,12 @@ body.stf-feedback-open { overflow: hidden; }
 }
 
 @media (max-width: 720px) {
-    .crashfix-corner {
+    .crashfix-store {
         position: static;
-        display: block;
+        display: flex;
+        width: auto;
         max-width: none;
-        margin: 10px 25px 4px;
-        text-align: center;
-        font-size: 0.7rem;
+        margin: 12px 25px 6px;
     }
 }
 
