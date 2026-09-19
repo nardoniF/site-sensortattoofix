@@ -95,7 +95,6 @@ import {
 } from './sales-money.js';
 import {
   DEFAULT_INTL_CURRENCIES,
-  DEFAULT_INTL_MARKUP_PERCENT,
   normalizeIntlCurrencies,
   activeIntlCurrencies,
   applyMarkupFxToIntlProducts,

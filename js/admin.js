@@ -8265,9 +8265,8 @@ ${worksheets}
       description: 'Lente de correção óptica para smartwatch em pele tatuada.',
       descriptionEn: 'Designed for smartwatch optical sensors on tattooed skin.',
       descriptionIt: 'Progettata per i sensori ottici degli smartwatch su pelle tatuada.',
-      price: 62.9,
-      priceUsd: 12.99,
-      priceEur: 11.99,
+      price: 72.9,
+      intlMarkupPercent: DEFAULT_INTL_MARKUP_PERCENT,
       image: LENS_INTL_IMAGES[0],
       images: LENS_INTL_IMAGES.slice(),
       active: true,
@@ -8281,6 +8280,70 @@ ${worksheets}
     showStatus('Produto .com adicionado. Preencha os campos e clique em Salvar.', 'success', 'save');
     const panel = document.getElementById('admin-products-intl-main');
     panel?.lastElementChild?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  });
+
+  document.getElementById('btn-add-intl-currency')?.addEventListener('click', () => {
+    const all = collectIntlCurrencies();
+    all.push({
+      code: '',
+      label: 'Nova moeda',
+      langs: [],
+      countries: [],
+      decimals: 2,
+      active: true
+    });
+    renderIntlCurrencies(all);
+  });
+
+  document.getElementById('btn-apply-intl-ppp')?.addEventListener('click', async () => {
+    const status = document.getElementById('admin-intl-ppp-status');
+    const currencies = collectIntlCurrencies();
+    const auto = document.getElementById('admin-intl-auto-ppp')?.checked !== false;
+    const rates = await loadAdminFxRates();
+    const products = applyMarkupFxToProductsAdmin(collectProductsFromDom(), currencies, rates);
+    renderProducts(products);
+    if (status) {
+      status.hidden = false;
+      status.textContent = 'Recalculando moedas (R$ + markup + FX)…';
+    }
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const baseUrl = apiBase();
+    if (token && baseUrl) {
+      try {
+        const res = await fetch(baseUrl.replace(/\/$/, '') + '/admin/intl-money/apply-markup-fx', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ intlCurrencies: currencies, intlCurrenciesAutoFx: auto, intlCurrenciesAutoPpp: auto })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Falha ao recalcular moedas.');
+        if (data.products) {
+          const byId = new Map(data.products.map((p) => [p.id, p]));
+          const merged = collectProductsFromDom().map((p) => {
+            const live = byId.get(p.id);
+            return live ? { ...p, ...live } : p;
+          });
+          renderProducts(merged);
+        }
+        if (currentConfig) {
+          currentConfig.intlCurrencies = currencies;
+          currentConfig.intlCurrenciesAutoFx = auto;
+          currentConfig.intlCurrenciesAutoPpp = auto;
+        }
+        showStatus(`Moedas recalculadas em ${data.updated ?? 0} produto(s) .com.`, 'success', 'save');
+        if (status) status.textContent = `Atualizado: ${data.updated ?? 0} produto(s).`;
+        return;
+      } catch (err) {
+        showStatus(err.message || 'Recálculo só na tela — salve para gravar.', 'warning', 'save');
+        if (status) status.textContent = 'Recálculo na tela; salve para gravar no servidor.';
+        return;
+      }
+    }
+    showStatus('Moedas recalculadas na tela. Salve para gravar.', 'success', 'save');
+    if (status) status.textContent = 'Recálculo local — clique em Salvar.';
   });
 
   document.getElementById('btn-refresh-payment-balances')?.addEventListener('click', () => loadPaymentBalances(true));
