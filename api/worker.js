@@ -1390,6 +1390,24 @@ function mergeSiteCatalogSmartwatchMeta(kvMeta, siteMeta) {
   return out;
 }
 
+/**
+ * Detecta FAQ da marca irmã Sensor CrashFix colada por engano no KV da Tattoo.
+ * Permite menção pontual (ex.: faq que redireciona para o Crash), mas rejeita
+ * o pacote típico cujo produto da lente é o CrashFix.
+ */
+function homeFaqLooksLikeForeignCrashBrand(faqs) {
+  if (!Array.isArray(faqs) || !faqs.length) return false;
+  const questions = faqs.map((f) => String(f?.question || '')).join('\n');
+  const blob = faqs.map((f) => `${f?.question || ''} ${f?.answer || ''}`).join('\n');
+  if (/como a lente\s+sensor\s+crash\s*fix/i.test(questions)) return true;
+  if (/depois que o sensor (quebrou|trincou)/i.test(questions) && !/tatuagem|tattoo\s*fix/i.test(questions)) {
+    return true;
+  }
+  const crashLens = (blob.match(/sensor\s+crash\s*fix/gi) || []).length;
+  const tattooLens = (blob.match(/sensor\s+tattoo\s*fix|tattoo\s*fix/gi) || []).length;
+  return crashLens >= 3 && tattooLens === 0;
+}
+
 function mergeSiteCatalog(config, site) {
   if (!site || typeof site !== 'object') return config;
   const next = { ...config };
@@ -1405,8 +1423,10 @@ function mergeSiteCatalog(config, site) {
     site.smartwatchCatalog
   );
   if (Array.isArray(site.homeFaq) && site.homeFaq.length) {
-    next.homeFaq = Array.isArray(config.homeFaq) && config.homeFaq.length
-      ? config.homeFaq
+    const kvFaq = Array.isArray(config.homeFaq) ? config.homeFaq : [];
+    // KV poluído com FAQ da marca irmã (CrashFix) — nunca exibir no site Tattoo.
+    next.homeFaq = kvFaq.length && !homeFaqLooksLikeForeignCrashBrand(kvFaq)
+      ? kvFaq
       : site.homeFaq;
   }
   if (Array.isArray(site.homeReviews) && site.homeReviews.length) {
@@ -1459,7 +1479,20 @@ async function fetchSiteCatalog() {
 async function getPublicConfig(env) {
   const config = await getConfig(env);
   const site = await fetchSiteCatalog();
-  return mergeSiteCatalog(config, site);
+  const merged = mergeSiteCatalog(config, site);
+  // Auto-cura: se o KV tiver FAQ do CrashFix, grava de volta a FAQ do catálogo Tattoo.
+  if (
+    homeFaqLooksLikeForeignCrashBrand(config.homeFaq) &&
+    Array.isArray(site?.homeFaq) &&
+    site.homeFaq.length
+  ) {
+    try {
+      await saveConfig(env, { ...config, homeFaq: site.homeFaq });
+    } catch (err) {
+      console.warn('homeFaq heal:', err?.message || err);
+    }
+  }
+  return merged;
 }
 
 function normalizeApiBaseUrl(api) {
@@ -17629,6 +17662,11 @@ async function handleAdminGetConfig(request, env, origin) {
 async function handlePutConfig(request, env, origin, ctx) {
   if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
   const body = await request.json();
+  if (body.homeFaq != null && homeFaqLooksLikeForeignCrashBrand(body.homeFaq)) {
+    return json({
+      error: 'FAQ rejeitada: conteúdo parece da marca Sensor CrashFix. Salve FAQ de CrashFix só no Admin/API do Crash (api.sensorcrashfix.com.br), não na Tattoo.'
+    }, 400, origin);
+  }
   const current = await getConfig(env);
   const merged = {
     ...current, ...body,
