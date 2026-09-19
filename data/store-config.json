@@ -5843,6 +5843,18 @@
       "answerEn": "Yes. Any smartwatch with an <strong>optical sensor</strong> (green/infrared light) on the back — including <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei and similar brands — can benefit from the lens. What matters is the sensor diameter; in the official store you pick the compatible size/model.",
       "answerIt": "Sì. Qualsiasi smartwatch con <strong>sensore ottico</strong> (luce verde/infrarossa) sul retro — inclusi <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei e marchi simili — può beneficiare della lente. Conta il diametro del sensore; nel negozio ufficiale scegli la misura/modello compatibile.",
       "media": null
+    },
+    {
+      "id": "faq-22",
+      "active": true,
+      "order": 22,
+      "question": "Meu sensor está trincado ou rachado — a lente Tattoo Fix resolve?",
+      "questionEn": "Is my sensor cracked or shattered — does the Tattoo Fix lens help?",
+      "questionIt": "Il mio sensore è incrinato o rotto — la lente Tattoo Fix risolve?",
+      "answer": "Não. O Sensor Tattoo Fix é para pele tatuada (bloqueio da luz do sensor). Se o vidro/sensor do relógio está <strong>trincado ou rachado</strong>, a solução é a lente óptica do <a href=\"https://www.sensorcrashfix.com.br/?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=crosspromo_crashfix&amp;utm_content=faq_sensor_trincado\" target=\"_blank\" rel=\"noopener\">Sensor CrashFix</a> — marca irmã feita para sensores danificados.",
+      "answerEn": "No. Sensor Tattoo Fix is for tattooed skin (sensor light blocked by ink). If your watch glass/sensor is <strong>cracked or shattered</strong>, use the optical lens from <a href=\"https://www.sensorcrashfix.com/?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=crosspromo_crashfix&amp;utm_content=faq_sensor_trincado\" target=\"_blank\" rel=\"noopener\">Sensor CrashFix</a> — our sister brand for damaged sensors.",
+      "answerIt": "No. Sensor Tattoo Fix è per la pelle tatuata (luce del sensore bloccata dall'inchiostro). Se il vetro/sensore dell'orologio è <strong>incrinato o rotto</strong>, usa la lente ottica di <a href=\"https://www.sensorcrashfix.com/it/?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=crosspromo_crashfix&amp;utm_content=faq_sensor_trincado\" target=\"_blank\" rel=\"noopener\">Sensor CrashFix</a> — marchio sorella per sensori danneggiati.",
+      "media": null
     }
   ],
   "homeReviews": [
