@@ -849,19 +849,19 @@ body.stf-feedback-open { overflow: hidden; }
 
 .btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
 
-/* Card Sensor Crash Fix no grid (logo + cyan da marca) */
+/* Card Sensor CrashFix no grid — azul da marca (#5EC8D8), último no grid */
 .store-card-logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 14px;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 10px;
     border-radius: 50%;
     overflow: hidden;
     background: #0a0a0a;
-    border: 2px solid #5EC8D8;
-    box-shadow: 0 0 0 3px rgba(94, 200, 216, 0.22);
+    border: 2px solid #061518;
+    box-shadow: 0 0 0 2px rgba(6, 21, 24, 0.18);
 }
 .store-card-logo img {
     width: 100%;
@@ -871,25 +871,29 @@ body.stf-feedback-open { overflow: hidden; }
 }
 .store-crashfix {
     --crash-cyan: #5EC8D8;
-    background: linear-gradient(165deg, #1a3034 0%, #121c1e 55%, #0e1416 100%) !important;
-    border: 1px solid rgba(94, 200, 216, 0.55) !important;
+    background: var(--crash-cyan) !important;
+    border: 1px solid #4bb7c7 !important;
 }
 .store-crashfix h3 {
-    color: var(--crash-cyan) !important;
+    color: #061518 !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.01em;
 }
 .store-crashfix p {
-    color: #d5e6ea !important;
-    font-size: 0.82rem !important;
+    color: #0a2228 !important;
+    font-size: 0.78rem !important;
     font-weight: 600 !important;
-    line-height: 1.35 !important;
-    max-width: 17em;
+    line-height: 1.25 !important;
+    max-width: 14em;
+    margin: 0 auto;
 }
 .store-crashfix .store-card-logo {
-    border-color: var(--crash-cyan);
+    border-color: #061518;
+    box-shadow: 0 0 0 3px rgba(6, 21, 24, 0.15);
 }
 .store-link--crashfix:hover .store-crashfix {
-    border-color: #5EC8D8 !important;
-    box-shadow: 0 8px 24px rgba(94, 200, 216, 0.18);
+    filter: brightness(1.05);
+    box-shadow: 0 10px 24px rgba(94, 200, 216, 0.35);
 }
 .stores-grid-3--solo {
     margin-top: 14px;
@@ -7364,3 +7368,13 @@ a.conta-forgot-link { display: inline-block; }
 .forum-related-pick span { color: #555; font-size: .88rem; }
 .forum-related-pick small { color: #888; }
 .forum-related-actions { margin-top: .85rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+
+
+/* Onde comprar compacto (1 tela) */
+#onde-comprar .section-title { font-size: clamp(1.55rem, 3vw, 2.1rem); margin-bottom: 6px; }
+#onde-comprar .onde-comprar-intro { margin-bottom: 10px; font-size: 0.92rem; }
+#onde-comprar .stores-grid-3 { gap: 10px; }
+#onde-comprar .store-card { padding: 14px 10px; }
+#onde-comprar .store-card i { font-size: 1.55rem; margin-bottom: 8px; }
+#onde-comprar .store-card h3 { font-size: 0.92rem; }
+#onde-comprar .store-card p { font-size: 0.72rem; }
