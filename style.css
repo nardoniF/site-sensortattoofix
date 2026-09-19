@@ -849,88 +849,43 @@ body.stf-feedback-open { overflow: hidden; }
 
 .btn-whatsapp-inline { background: #25d366; color: white !important; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
 
-/* Cross-promo Crash Fix — chip compacto no Onde comprar + menção em Produtos */
-.onde-comprar-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px 18px;
+/* Cross-promo Crash Fix — observação no canto (não mexe no layout das lojas) */
+#onde-comprar.onde-comprar--crashfix,
+.onde-comprar-landing.onde-comprar--crashfix {
     position: relative;
 }
-.onde-comprar-row > .stores-layout {
-    flex: 1 1 auto;
-    min-width: 0;
-}
-.crashfix-chip {
-    flex: 0 0 auto;
-    align-self: flex-start;
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    max-width: 158px;
-    padding: 11px 13px 11px 12px;
-    border-radius: 12px;
-    text-decoration: none;
-    color: #111 !important;
-    background: linear-gradient(145deg, #ffe082 0%, var(--primary) 55%, #ffb300 100%);
-    box-shadow:
-        0 10px 24px rgba(0, 0, 0, 0.35),
-        0 0 0 1px rgba(255, 255, 255, 0.12) inset;
-    transform: rotate(-7deg);
-    transition: transform 0.22s ease, filter 0.22s ease, box-shadow 0.22s ease;
-    font-family: var(--font-nav);
-    line-height: 1.2;
-    z-index: 2;
-    position: relative;
-}
-.crashfix-chip:hover {
-    transform: rotate(-3deg) translateY(-2px) scale(1.03);
-    filter: brightness(1.05);
-    box-shadow:
-        0 14px 28px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.18) inset;
-}
-.crashfix-chip-q {
-    font-weight: 800;
-    font-size: 0.92rem;
-}
-.crashfix-chip-sub {
-    font-size: 0.68rem;
-    font-weight: 600;
-    opacity: 0.78;
-}
-.crashfix-chip-go {
+.crashfix-corner {
     position: absolute;
-    right: 8px;
-    top: 8px;
-    font-size: 0.7rem;
-    opacity: 0.55;
+    right: max(12px, calc((100% - 1200px) / 2 + 8px));
+    bottom: 14px;
+    z-index: 3;
+    max-width: 200px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    box-shadow: none;
+    font-family: var(--font-nav);
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: right;
+    text-decoration: none;
+    color: #888 !important;
+    opacity: 0.9;
+    transition: color 0.2s ease, opacity 0.2s ease;
 }
-
-#onde-comprar.onde-comprar--crashfix .section-title {
-    font-size: clamp(1.55rem, 3.5vw, 2.1rem);
-    margin-bottom: 6px;
+.crashfix-corner strong {
+    color: var(--primary);
+    font-weight: 700;
 }
-#onde-comprar.onde-comprar--crashfix .onde-comprar-intro {
-    margin-bottom: 12px;
-    font-size: 0.95rem;
+.crashfix-corner:hover {
+    color: #ccc !important;
+    opacity: 1;
 }
-#onde-comprar.onde-comprar--crashfix .store-card {
-    padding: 14px 12px;
-}
-#onde-comprar.onde-comprar--crashfix .store-card h3 {
-    font-size: 0.95rem;
-}
-#onde-comprar.onde-comprar--crashfix .store-card p {
-    font-size: 0.75rem;
-}
-#onde-comprar.onde-comprar--crashfix .stores-grid-3 {
-    gap: 10px;
-}
-#onde-comprar.onde-comprar--crashfix .onde-comprar-marketplaces-label,
-#onde-comprar.onde-comprar--crashfix .onde-comprar-trust {
-    margin: 10px 0 8px;
-    font-size: 0.85rem;
+.crashfix-corner:hover strong {
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .crashfix-product-note {
@@ -950,46 +905,34 @@ body.stf-feedback-open { overflow: hidden; }
 .crashfix-product-note a:hover {
     border-bottom-color: var(--primary);
 }
-#produtos .product-solution-media .crashfix-product-note {
+#produtos .product-solution-media + .crashfix-product-note,
+#produtos .crashfix-product-note {
     margin-left: auto;
     margin-right: auto;
 }
 
-@media (max-width: 820px) {
-    .onde-comprar-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .crashfix-chip {
-        align-self: flex-end;
+@media (max-width: 720px) {
+    .crashfix-corner {
+        position: static;
+        display: block;
         max-width: none;
-        width: fit-content;
-        margin: -4px 4px 0 auto;
-        transform: rotate(-4deg);
-        padding: 10px 14px;
-    }
-    .crashfix-chip:hover {
-        transform: rotate(-2deg) translateY(-1px);
+        margin: 10px 25px 4px;
+        text-align: center;
+        font-size: 0.7rem;
     }
 }
 
 #onde-comprar {
     scroll-margin-top: 88px;
-    padding: 0 0 20px;
+    padding: 0 0 28px;
     min-height: calc(100dvh - 88px);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    display: block;
     background: #121212;
 }
 
-#onde-comprar.onde-comprar--crashfix {
-    min-height: calc(100dvh - 88px);
-}
-
 #onde-comprar.content-section {
-    padding-top: 12px;
-    padding-bottom: 20px;
+    padding-top: 0;
+    padding-bottom: 28px;
 }
 
 #onde-comprar > .container {
