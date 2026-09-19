@@ -888,8 +888,11 @@ body.stf-feedback-open { overflow: hidden; }
     margin: 0 auto;
 }
 .store-crashfix .store-card-logo {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
     border-color: #061518;
-    box-shadow: 0 0 0 3px rgba(6, 21, 24, 0.15);
+    box-shadow: 0 0 0 2px rgba(6, 21, 24, 0.15);
 }
 .store-link--crashfix:hover .store-crashfix {
     filter: brightness(1.05);
