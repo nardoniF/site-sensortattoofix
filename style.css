@@ -888,11 +888,20 @@ body.stf-feedback-open { overflow: hidden; }
     opacity: 0.92;
 }
 .store-crashfix .store-card-logo {
-    width: 40px;
-    height: 40px;
-    margin-bottom: 10px;
-    border-color: var(--crash-cyan);
-    box-shadow: 0 0 0 2px rgba(94, 200, 216, 0.35);
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+.store-crashfix .store-card-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border: none !important;
+    box-shadow: none !important;
 }
 .store-link--crashfix:hover .store-crashfix {
     border-color: #5EC8D8 !important;
