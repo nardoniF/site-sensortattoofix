@@ -419,10 +419,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function intlDisplayCurrency() {
     if (window.STF_MONEY?.visitorDisplayCurrency) {
-      const country = checkoutLocale() === 'it' ? 'IT' : 'US';
-      return window.STF_MONEY.visitorDisplayCurrency(country);
+      return window.STF_MONEY.visitorDisplayCurrency(window.STF_MONEY.visitorCountry?.(), cfg);
     }
-    return checkoutLocale() === 'it' ? 'EUR' : 'USD';
+    if (window.STF_MONEY?.currencyForLang) {
+      return window.STF_MONEY.currencyForLang(checkoutLocale(), cfg);
+    }
+    const loc = checkoutLocale();
+    if (loc === 'sv') return 'SEK';
+    if (loc === 'no') return 'NOK';
+    if (loc === 'pl') return 'PLN';
+    if (['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'].includes(loc)) return 'EUR';
+    return 'USD';
   }
 
   async function refreshDisplayCurrency() {
@@ -442,22 +449,100 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
   }
 
-  function formatCheckoutMoney(v) {
+  function formatCheckoutMoney(v, product, mode) {
     try {
-      if (!isInternational || !window.STF_MONEY || !fxRate || displayCurrency === 'BRL') {
+      if (!isInternational || !window.STF_MONEY || displayCurrency === 'BRL') {
         return formatBRL(v);
       }
       const country = checkoutLocale() === 'it' ? 'IT' : (els.paisCode?.value || window.STF_MONEY.visitorCountry?.() || 'US');
-      if (window.STF_MONEY.isIntlHost?.()) {
-        const foreign = window.STF_MONEY.convertFromBrl(v, fxRate);
-        if (foreign == null) return formatBRL(v);
-        return window.STF_MONEY.formatForeign(foreign, displayCurrency, country);
+      const cur = displayCurrency;
+      const brl = Number(v) || 0;
+      const decimals = (cur === 'SEK' || cur === 'NOK') ? 0 : 2;
+      const factor = 10 ** decimals;
+      const roundFx = (n) => Math.round(Number(n || 0) * factor) / factor;
+
+      function emit(foreign) {
+        if (window.STF_MONEY?.formatForeign) {
+          return window.STF_MONEY.formatForeign(foreign, cur, country);
+        }
+        return formatChargeMoney(foreign, cur);
       }
-      return window.STF_MONEY.formatDual(v, displayCurrency, fxRate, country);
+
+      /** Convert cart line / product using stored list price (R$ + markup → FX already applied). */
+      if (product && window.STF_MONEY?.configuredForeignPrice) {
+        const unitForeign = window.STF_MONEY.configuredForeignPrice(product, cur, cfg);
+        const unitBrl = Number(product.price) || 0;
+        if (unitForeign != null && unitBrl > 0) {
+          const qty = Math.abs(brl - unitBrl) < 0.001 ? 1 : brl / unitBrl;
+          if (Number.isFinite(qty) && qty > 0) {
+            return emit(Math.round(unitForeign * qty * 100) / 100);
+          }
+        }
+      }
+
+      /** Cart product totals / discounts: same list-price basis as line items (never raw FX on R$). */
+      if (mode === 'cart-products' || mode === 'cart-total') {
+        const overrideItems = orderSidebarLocked && orderSidebarSnapshot?.items?.length
+          ? orderSidebarSnapshot.items
+          : null;
+        const parts = cartForeignMoneyParts(cur, overrideItems);
+        if (parts.brlProduct > 0 && parts.foreignProduct > 0) {
+          const scaled = parts.foreignProduct * (brl / parts.brlProduct);
+          if (mode === 'cart-products') return emit(roundFx(scaled));
+          const shipBrl = shippingCost == null
+            ? (orderSidebarLocked ? Number(orderSidebarSnapshot?.frete ?? 0) || 0 : 0)
+            : Number(shippingCost) || 0;
+          const productBrl = Math.max(0, brl - shipBrl);
+          const foreignProd = parts.foreignProduct * (parts.brlProduct > 0 ? productBrl / parts.brlProduct : 0);
+          const foreignShip = (fxRate && shipBrl) ? roundFx(shipBrl * fxRate) : 0;
+          return emit(roundFx(foreignProd + foreignShip));
+        }
+      }
+
+      // Shipping / extras: market FX on BRL.
+      if (fxRate) {
+        if (window.STF_MONEY.isIntlHost?.()) {
+          return emit(roundFx(brl * fxRate));
+        }
+        return window.STF_MONEY.formatDual(brl, displayCurrency, fxRate, country);
+      }
+      return formatBRL(v);
     } catch (e) {
       console.warn('formatCheckoutMoney', e);
       return formatBRL(v);
     }
+  }
+
+  /** Sum cart BRL vs foreign list prices so subtotal matches line items. */
+  function cartForeignMoneyParts(currency, itemsOverride) {
+    const cur = String(currency || displayCurrency || 'USD').toUpperCase();
+    const items = Array.isArray(itemsOverride) ? itemsOverride : (window.STF_CART?.load() || []);
+    let brlProduct = 0;
+    let foreignProduct = 0;
+    const decimals = (cur === 'SEK' || cur === 'NOK') ? 0 : 2;
+    const factor = 10 ** decimals;
+    items.forEach((item) => {
+      const catalog = products.find((x) => x.id === item.productId || x.slug === item.productId);
+      const p = catalog || item;
+      const unitBrl = Number(item.price != null ? item.price : p.price) || 0;
+      const qty = Math.max(1, Number(item.qty) || 1);
+      brlProduct += unitBrl * qty;
+      let unitF = window.STF_MONEY?.configuredForeignPrice?.(p, cur, cfg);
+      if (unitF == null && catalog) {
+        unitF = window.STF_MONEY?.configuredForeignPrice?.(catalog, cur, cfg);
+      }
+      if (unitF == null && fxRate) {
+        const markup = Number(p.intlMarkupPercent ?? catalog?.intlMarkupPercent);
+        const pct = Number.isFinite(markup) && markup >= 0 ? markup : 70;
+        const base = unitBrl * (1 + pct / 100);
+        unitF = Math.round(base * fxRate * factor) / factor;
+      }
+      if (unitF != null) foreignProduct += Number(unitF) * qty;
+    });
+    return {
+      brlProduct: Math.round(brlProduct * 100) / 100,
+      foreignProduct: Math.round(foreignProduct * factor) / factor
+    };
   }
 
   /** Format an amount that is already in USD/EUR (do not convert from BRL). */
@@ -907,7 +992,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           <div class="pelicula-upsell-info">
             <strong>${escapeHtml(title)}</strong>
             ${desc ? `<p class="pelicula-upsell-desc">${escapeHtml(desc)}</p>` : ''}
-            <span class="pelicula-upsell-price">${formatCheckoutMoney(p.price)}</span>
+            <span class="pelicula-upsell-price">${formatCheckoutMoney(p.price, p)}</span>
           </div>
           <button type="button" class="pelicula-upsell-btn" data-pelicula-add="${escapeHtml(p.id)}" data-product-type="${escapeHtml(type)}">${escapeHtml(L(addKey))}</button>
         </div>
@@ -1134,13 +1219,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         const thumb = item.aggregated
           ? renderZoomableThumb(imgFull, imgFull, lineName, imgFull, 'cart-line-img-btn')
           : `<img src="${escapeHtml(imgFull)}" alt="" class="cart-line-img" loading="lazy" onerror="this.onerror=null;this.src='/images/brand/sensortattoofix.jpg'">`;
-        const qtyLabel = item.qty > 1 ? `${item.qty} × ${formatCheckoutMoney(item.price)}` : formatCheckoutMoney(item.price);
+        const qtyLabel = item.qty > 1
+          ? `${item.qty} × ${formatCheckoutMoney(item.price, lineProduct)}`
+          : formatCheckoutMoney(item.price, lineProduct);
         return `
         <div class="cart-line cart-line-locked">
           ${thumb}
           <div class="cart-line-info">
             <strong>${escapeHtml(lineName)}</strong>
-            <span class="cart-line-price">${formatCheckoutMoney(item.price * item.qty)}</span>
+            <span class="cart-line-price">${formatCheckoutMoney(item.price * item.qty, lineProduct)}</span>
             <span class="cart-line-qty-label">${escapeHtml(qtyLabel)}</span>
           </div>
         </div>`;
@@ -1152,7 +1239,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.cartSidebar.innerHTML = '';
     }
     if (snap) {
-      els.summaryProduct.textContent = formatCheckoutMoney(resolveGrossProductTotal(snap));
+      els.summaryProduct.textContent = formatCheckoutMoney(resolveGrossProductTotal(snap), null, 'cart-products');
       const disc = snap.desconto ?? 0;
       if (els.summaryDiscountRow) {
         els.summaryDiscountRow.hidden = !disc;
@@ -1161,12 +1248,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           els.summaryDiscountLabel.textContent = pct != null
             ? L('coupon.discountLabel', { pct })
             : L('summary.discount');
-          els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
+          els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc, null, 'cart-products');
         } else if (els.summaryDiscount) {
           els.summaryDiscount.textContent = '—';
         }
       }
-      els.summaryShipping.textContent = formatCheckoutMoney(snap.frete ?? 0);
+      els.summaryShipping.textContent = formatCheckoutMoney(snap.frete ?? 0, null, 'shipping');
       const totalEl = els.summaryTotal;
       const totalCurrency = (snap.totalCurrency === 'USD' || snap.totalCurrency === 'EUR')
         ? snap.totalCurrency
@@ -1394,7 +1481,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         ${thumb}
         <div class="cart-line-info">
           <strong>${escapeHtml(cartLineName(item))}</strong>
-          <span class="cart-line-price">${formatCheckoutMoney(item.price)}</span>
+          <span class="cart-line-price">${formatCheckoutMoney(item.price, lineProduct)}</span>
           <div class="cart-qty" role="group" aria-label="${escapeHtml(L('cart.qty'))}">
             <button type="button" class="cart-qty-btn" data-delta="-1" aria-label="${escapeHtml(L('cart.decrease'))}">−</button>
             <span class="cart-qty-val">${item.qty}</span>
@@ -2393,29 +2480,29 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const afterDisc = Math.max(0, gross - disc);
       const ship = shippingCost;
       const paypalFee = ship === null ? 0 : currentPayPalFee(afterDisc + ship);
-      if (els.summaryProduct) els.summaryProduct.textContent = formatCheckoutMoney(gross);
+      if (els.summaryProduct) els.summaryProduct.textContent = formatCheckoutMoney(gross, null, 'cart-products');
       if (els.summaryDiscountRow) {
         els.summaryDiscountRow.hidden = !disc;
         if (disc) {
           if (els.summaryDiscountLabel) {
             els.summaryDiscountLabel.textContent = L('coupon.discountLabel', { pct: appliedCoupon.percent });
           }
-          if (els.summaryDiscount) els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc);
+          if (els.summaryDiscount) els.summaryDiscount.textContent = '−' + formatCheckoutMoney(disc, null, 'cart-products');
         } else {
           if (els.summaryDiscountLabel) els.summaryDiscountLabel.textContent = L('summary.discount');
           if (els.summaryDiscount) els.summaryDiscount.textContent = '—';
         }
       }
-      if (els.summaryShipping) els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship);
+      if (els.summaryShipping) els.summaryShipping.textContent = ship === null ? '—' : formatCheckoutMoney(ship, null, 'shipping');
       if (els.summaryPaypalRow) {
         els.summaryPaypalRow.hidden = !paypalFee;
         if (paypalFee === 0) els.summaryPaypalRow.style.display = 'none';
         else els.summaryPaypalRow.style.display = '';
         if (paypalFee && els.summaryPaypal) {
-          els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee);
+          els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee, null, 'shipping');
         }
       }
-      if (els.summaryTotal) els.summaryTotal.textContent = ship === null ? '—' : formatCheckoutMoney(afterDisc + ship + paypalFee);
+      if (els.summaryTotal) els.summaryTotal.textContent = ship === null ? '—' : formatCheckoutMoney(afterDisc + ship + paypalFee, null, 'cart-total');
       if (els.checkoutCoupon) els.checkoutCoupon.hidden = orderSidebarLocked;
     } catch (e) {
       console.warn('updateSummary', e);

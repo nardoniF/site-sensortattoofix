@@ -382,15 +382,18 @@ test('proxy .com: <base href> por idioma (DE/ES/PL/SL não herdam a home EN)', (
   assert.doesNotMatch(src, /originPath\.startsWith\('\/it\/'\) \? `\$\{COM_ORIGIN\}\/it\/`/);
 });
 
-test('admin.js: agregados têm campos i18n editáveis', () => {
+test('admin.js: produtos só PT no Admin; i18n preservado no save (…prev)', () => {
   const src = fs.readFileSync(path.join(jsDir, 'admin.js'), 'utf8');
   const aggBlock = src.match(/const aggregatedFields = isAggregated \? `([\s\S]*?)` : '';/);
   assert.ok(aggBlock, 'aggregatedFields');
   const block = aggBlock[1];
+  assert.match(block, /data-field="filmType"/, 'filmType PT');
   for (const field of ['nameDe', 'nameEs', 'namePl', 'descriptionDe', 'filmTypeDe', 'filmTypeEs', 'filmTypePl', 'filmTypeSl']) {
-    assert.match(block, new RegExp(`data-field="${field}"`), `aggregated ${field}`);
+    assert.doesNotMatch(block, new RegExp(`data-field="${field}"`), `aggregated sem ${field}`);
   }
-  assert.match(src, /if \(nameDe\) product\.nameDe = nameDe/);
-  assert.match(src, /if \(filmTypePl\) product\.filmTypePl = filmTypePl/);
-  assert.match(src, /if \(filmTypeSl\) product\.filmTypeSl = filmTypeSl/);
+  const i18nBlock = src.match(/const i18nFields = !isAggregated \? `([\s\S]*?)` : '';/);
+  assert.ok(i18nBlock, 'i18nFields');
+  assert.doesNotMatch(i18nBlock[1], /data-field="nameEn"/, 'nome EN oculto');
+  assert.match(src, /\.\.\.prev/, 'preserva campos via prev');
+  assert.match(src, /filmType\* i18n: só PT no Admin/);
 });
