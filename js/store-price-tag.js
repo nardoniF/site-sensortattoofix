@@ -60,10 +60,31 @@ window.STF_STORE_PRICE = (function () {
   }
 
   function primaryProduct(config) {
-    if (config.products?.length) {
-      const active = config.products.find((p) => p.active !== false);
-      return active || config.products[0];
+    const list = Array.isArray(config?.products) ? config.products : [];
+    const active = list.filter((p) => p && p.active !== false && !p.aggregated);
+    const marketsOf = (p) => (Array.isArray(p?.markets) ? p.markets.map((m) => String(m).toUpperCase()) : []);
+    const idOf = (p) => String(p?.id || p?.slug || '');
+    if (isLocalized()) {
+      // Official Store hero = smartwatch INT lens (list price already has markup×FX).
+      const optical = active.find((p) => idOf(p) === 'optical-lens-intl');
+      if (optical) return optical;
+      const intlWatch = active.find((p) => {
+        const m = marketsOf(p);
+        return m.includes('INT') && !m.includes('BR') && String(p.deviceType || '') !== 'smartband';
+      });
+      if (intlWatch) return intlWatch;
+      const intl = active.find((p) => {
+        const m = marketsOf(p);
+        return m.includes('INT') && !m.includes('BR');
+      });
+      if (intl) return intl;
     }
+    const br = active.find((p) => marketsOf(p).includes('BR') && String(p.deviceType || '') !== 'smartband');
+    if (br) return br;
+    const brAny = active.find((p) => marketsOf(p).includes('BR'));
+    if (brAny) return brAny;
+    if (active.length) return active[0];
+    if (list.length) return list[0];
     return config.product || null;
   }
 
