@@ -1408,6 +1408,21 @@ function homeFaqLooksLikeForeignCrashBrand(faqs) {
   return crashLens >= 3 && tattooLens === 0;
 }
 
+/** faq-1 / faq-3 genéricas (sem menção a tatuagem) — preferir catálogo do site. */
+function homeFaqMissingTattooContext(faqs) {
+  if (!Array.isArray(faqs) || !faqs.length) return false;
+  const byId = Object.fromEntries(faqs.filter((f) => f && f.id).map((f) => [f.id, f]));
+  const q1 = String(byId['faq-1']?.question || '');
+  const q3 = String(byId['faq-3']?.question || '');
+  if (byId['faq-1'] && !/tatuad|tattoo/i.test(q1)) return true;
+  if (byId['faq-3'] && !/tatuad|tattoo/i.test(q3)) return true;
+  return false;
+}
+
+function shouldReplaceHomeFaqFromCatalog(kvFaq) {
+  return homeFaqLooksLikeForeignCrashBrand(kvFaq) || homeFaqMissingTattooContext(kvFaq);
+}
+
 function mergeSiteCatalog(config, site) {
   if (!site || typeof site !== 'object') return config;
   const next = { ...config };
@@ -1424,8 +1439,7 @@ function mergeSiteCatalog(config, site) {
   );
   if (Array.isArray(site.homeFaq) && site.homeFaq.length) {
     const kvFaq = Array.isArray(config.homeFaq) ? config.homeFaq : [];
-    // KV poluído com FAQ da marca irmã (CrashFix) — nunca exibir no site Tattoo.
-    next.homeFaq = kvFaq.length && !homeFaqLooksLikeForeignCrashBrand(kvFaq)
+    next.homeFaq = kvFaq.length && !shouldReplaceHomeFaqFromCatalog(kvFaq)
       ? kvFaq
       : site.homeFaq;
   }
@@ -1480,9 +1494,9 @@ async function getPublicConfig(env) {
   const config = await getConfig(env);
   const site = await fetchSiteCatalog();
   const merged = mergeSiteCatalog(config, site);
-  // Auto-cura: se o KV tiver FAQ do CrashFix, grava de volta a FAQ do catálogo Tattoo.
+  // Auto-cura: FAQ Crash / perguntas genéricas sem contexto de tatuagem → catálogo do site.
   if (
-    homeFaqLooksLikeForeignCrashBrand(config.homeFaq) &&
+    shouldReplaceHomeFaqFromCatalog(config.homeFaq) &&
     Array.isArray(site?.homeFaq) &&
     site.homeFaq.length
   ) {

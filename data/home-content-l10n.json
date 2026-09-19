@@ -3,7 +3,7 @@
     "reviewsSummary": "5,0 · echte Bewertungen (Google, Mercado Libre, WhatsApp, Shopee, Instagram und mehr)",
     "faq": {
       "faq-1": {
-        "question": "Warum verlangt meine Smartwatch ständig den Code?",
+        "question": "Ich trage die Uhr auf tätowierter Haut. Warum fragt meine Smartwatch ständig nach dem Code?",
         "answer": "Wenn der optische Sensor keinen Blutfluss am Handgelenk erkennt, geht die Uhr davon aus, dass sie abgenommen wurde, und fordert den Code erneut — bei der Apple Watch kann das <strong>alle 10 Sekunden</strong> passieren. Auf tätowierter Haut blockiert die Tinte das Sensorlicht; die Uhr aktiviert die PIN-Sperre und denkt, sie ist nicht mehr am Arm. Die Sensor Tattoo Fix Linse stellt die Messung wieder her und beendet ständige Sperren."
       },
       "faq-2": {
@@ -11,7 +11,7 @@
         "answer": "Der Sensor nutzt Licht zur Messung des Blutflusses. Dichte Tattoos, Narben oder dunkles Pigment blockieren das Rücksignal — die Herzfrequenz zeigt null, ungenaue Werte, fällt mitten im Training aus oder die Uhr stoppt die Überwachung ganz. Die Sensor Tattoo Fix Linse korrigiert die Messung, ohne den Sensor zu deaktivieren."
       },
       "faq-3": {
-        "question": "Warum trennt sich meine Uhr oder verliert sie den Kontakt zum Handgelenk von selbst?",
+        "question": "Beide Arme sind tätowiert. Warum trennt sich meine Uhr ständig oder verliert das Pulssignal?",
         "answer": "Ein verlorenes Sensorsignal lässt die Smartwatch glauben, sie sei vom Arm genommen worden: Sie entsperrt sich, pausiert Workouts, stoppt die Gesundheitsüberwachung oder fordert erneut den Code. Wenn du ein Tattoo dort hast, wo die Uhr sitzt, ist das die häufigste Ursache — und es gibt eine professionelle optische Linsenlösung."
       },
       "faq-4": {
@@ -173,7 +173,7 @@
     "reviewsSummary": "5,0 · reseñas reales (Google, Mercado Libre, WhatsApp, Shopee, Instagram y más)",
     "faq": {
       "faq-1": {
-        "question": "¿Por qué mi smartwatch pide la contraseña todo el tiempo?",
+        "question": "Uso el reloj sobre piel tatuada. ¿Por qué mi smartwatch pide la contraseña todo el tiempo?",
         "answer": "Cuando el sensor óptico no detecta flujo sanguíneo en la muñeca, el reloj asume que se lo quitaste y vuelve a pedir la contraseña — en el Apple Watch puede ocurrir <strong>cada 10 segundos</strong>. En piel tatuada, la tinta bloquea la luz del sensor; el reloj activa el bloqueo por PIN y cree que salió de tu brazo. La lente Sensor Tattoo Fix restaura la lectura y detiene los bloqueos constantes."
       },
       "faq-2": {
@@ -181,7 +181,7 @@
         "answer": "El sensor usa luz para medir el flujo sanguíneo. Tatuajes densos, cicatrices o pigmento oscuro bloquean la señal de retorno — el ritmo cardíaco marca cero, lecturas imprecisas, se corta a mitad del entrenamiento o el reloj deja de monitorizar por completo. La lente Sensor Tattoo Fix corrige la lectura sin desactivar el sensor."
       },
       "faq-3": {
-        "question": "¿Por qué mi reloj se desconecta o pierde el pulso por sí solo?",
+        "question": "Tengo los dos brazos tatuados. ¿Por qué mi reloj se desconecta o pierde el pulso todo el tiempo?",
         "answer": "La pérdida de señal del sensor hace que el smartwatch crea que salió de tu brazo: se desbloquea, pausa entrenamientos, deja de monitorizar la salud o vuelve a pedir la contraseña. Si tienes un tatuaje donde apoya el reloj, esa es la causa más común — y hay una solución profesional con lente óptica."
       },
       "faq-4": {
@@ -343,7 +343,7 @@
     "reviewsSummary": "5,0 · prawdziwe opinie (Google, Mercado Libre, WhatsApp, Shopee, Instagram i inne)",
     "faq": {
       "faq-1": {
-        "question": "Dlaczego mój smartwatch cały czas prosi o kod?",
+        "question": "Noszę zegarek na tatuażowanej skórze. Dlaczego mój smartwatch ciągle prosi o hasło?",
         "answer": "Gdy czujnik optyczny nie wykrywa przepływu krwi na nadgarstku, zegarek zakłada, że został zdjęty, i ponownie prosi o kod — na Apple Watch może to się zdarzać <strong>co 10 sekund</strong>. Na tatuażu tusz blokuje światło czujnika; zegarek włącza blokadę PIN i myśli, że opuścił rękę. Soczewka Sensor Tattoo Fix przywraca odczyt i kończy ciągłe blokady."
       },
       "faq-2": {
@@ -351,7 +351,7 @@
         "answer": "Czujnik używa światła do pomiaru przepływu krwi. Gęste tatuaże, blizny lub ciemny pigment blokują sygnał powrotny — tętno pokazuje zero, nieprecyzyjne odczyty, znika w trakcie treningu albo zegarek w ogóle przestaje monitorować. Soczewka Sensor Tattoo Fix poprawia odczyt bez wyłączania czujnika."
       },
       "faq-3": {
-        "question": "Dlaczego mój zegarek sam się rozłącza lub traci kontakt z nadgarstkiem?",
+        "question": "Mam obie ręce wytatuowane. Dlaczego zegarek ciągle się rozłącza lub traci sygnał nadgarstka?",
         "answer": "Utrata sygnału z czujnika sprawia, że smartwatch myśli, że zszedł z ręki: odblokowuje się, wstrzymuje treningi, przestaje monitorować zdrowie lub ponownie prosi o kod. Jeśli masz tatuaż tam, gdzie opiera się zegarek, to najczęstsza przyczyna — i jest profesjonalne rozwiązanie z soczewką optyczną."
       },
       "faq-4": {
@@ -513,7 +513,7 @@
     "reviewsSummary": "5,0 · prave ocene (Google, Mercado Libre, WhatsApp, Shopee, Instagram in drugo)",
     "faq": {
       "faq-1": {
-        "question": "Zakaj moja pametna ura ves čas zahteva kodo?",
+        "question": "Uro nosim na tetovirani koži. Zakaj moja pametna ura ves čas zahteva geslo?",
         "answer": "Ko optični senzor ne zazna pretoka krvi na zapestju, ura predvideva, da ste jo sneli, in znova zahteva kodo — pri Apple Watchu se to lahko zgodi <strong>vsakih 10 sekund</strong>. Na tetovirani koži tinta blokira svetlobo senzorja; ura aktivira PIN zaklepanje in misli, da ni več na roki. Leča Sensor Tattoo Fix obnovi meritev in konča stalna zaklepanja."
       },
       "faq-2": {
@@ -521,7 +521,7 @@
         "answer": "Senzor uporablja svetlobo za merjenje pretoka krvi. Goste tetovaže, brazgotine ali temen pigment blokirajo povratni signal — pulz kaže ničlo, netočne vrednosti, pade sredi vadbe ali ura popolnoma preneha spremljati. Leča Sensor Tattoo Fix popravi meritev brez izklopa senzorja."
       },
       "faq-3": {
-        "question": "Zakaj se moja ura sama prekine ali izgubi stik z zapestjem?",
+        "question": "Imam obe roki tetovirani. Zakaj se ura ves čas odklopi ali izgubi signal zapestja?",
         "answer": "Izguba signala senzorja naredi pametno uro prepričano, da je bila snjeta z roke: odklene se, ustavi vadbe, preneha spremljati zdravje ali znova zahteva kodo. Če imate tetovažo tam, kjer ura leži, je to najpogostejši vzrok — in obstaja profesionalna rešitev z optično lečo."
       },
       "faq-4": {
