@@ -304,42 +304,26 @@
     });
   }
 
-  /** Square album + CTA: bottom of "Onde comprar" aligns with bottom of benefit cards. */
+  /** Square album = height of the benefit icons grid (CTA overlays inside the frame). */
   function syncProductAlbumToBenefits() {
     const benefits = document.querySelector('#produtos .product-benefits-grid');
     const wraps = document.querySelectorAll('#produtos .product-image-wrap');
     if (!benefits || !wraps.length) return;
     const mediaCol = document.querySelector('#produtos .product-solution-media');
     const mediaW = mediaCol ? mediaCol.getBoundingClientRect().width : 0;
-    const benefitsH = Math.round(benefits.getBoundingClientRect().height);
-    if (benefitsH < 120) return;
-
-    let reservedBelow = 0;
-    if (mediaCol) {
-      const gap = parseFloat(getComputedStyle(mediaCol).gap) || 16;
-      const cta = [...mediaCol.children].find((el) => {
-        if (el.tagName !== 'A') return false;
-        if (wraps[0] && wraps[0].contains(el)) return false;
-        return true;
-      });
-      if (cta) {
-        const cs = getComputedStyle(cta);
-        const mt = parseFloat(cs.marginTop) || 0;
-        const mb = parseFloat(cs.marginBottom) || 0;
-        const ctaH = Math.ceil(cta.getBoundingClientRect().height);
-        reservedBelow = Math.ceil(gap + mt + mb + ctaH);
-      } else {
-        reservedBelow = Math.ceil(gap + 48);
-      }
-    }
-
-    const target = Math.max(140, benefitsH - reservedBelow);
-    const side = Math.min(target, mediaW > 40 ? Math.floor(mediaW) : target);
+    const h = Math.round(benefits.getBoundingClientRect().height);
+    if (h < 120) return;
+    const side = Math.min(h, mediaW > 40 ? Math.floor(mediaW) : h);
     wraps.forEach((wrap) => {
       wrap.style.width = side + 'px';
       wrap.style.height = side + 'px';
       wrap.style.maxWidth = '100%';
       wrap.style.aspectRatio = '1 / 1';
+      const stage = wrap.closest('.product-album-stage');
+      if (stage) {
+        stage.style.width = side + 'px';
+        stage.style.maxWidth = '100%';
+      }
     });
   }
 

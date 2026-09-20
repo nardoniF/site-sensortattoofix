@@ -376,8 +376,14 @@ html[lang="it"] .nav-actions { gap: 6px; }
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 16px;
+    gap: 0;
     min-width: 0;
+}
+#produtos .product-album-stage {
+    position: relative;
+    width: min(100%, 380px);
+    max-width: 100%;
+    margin: 0 auto;
 }
 #produtos .product-image-wrap {
     display: flex;
@@ -387,15 +393,43 @@ html[lang="it"] .nav-actions { gap: 6px; }
     border-radius: 12px;
     border: 1px solid #333;
     background: #1a1a1a;
-    width: min(100%, 380px);
+    width: 100%;
     max-width: 100%;
     aspect-ratio: 1 / 1;
     height: auto;
-    margin: 0 auto;
+    margin: 0;
     box-sizing: border-box;
     overflow: hidden;
 }
-
+#produtos .product-album-cta {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 11px 18px;
+    border-radius: 10px;
+    background: rgba(255, 193, 7, 0.88);
+    color: #000 !important;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+#produtos .product-album-cta:hover,
+#produtos .product-album-cta:focus-visible {
+    background: rgba(255, 193, 7, 0.98);
+    transform: translateY(-1px);
+}
 #produtos .product-image-wrap .btn-primary{
     margin-top:20px;
     width:100%;
