@@ -15,6 +15,12 @@ test('country → lang', () => {
   assert.equal(langFromCountry('DE'), 'de');
   assert.equal(langFromCountry('BR'), 'pt');
   assert.equal(langFromCountry('SI'), 'sl');
+  assert.equal(langFromCountry('FR'), 'fr');
+  assert.equal(langFromCountry('NL'), 'nl');
+  assert.equal(langFromCountry('SE'), 'sv');
+  assert.equal(langFromCountry('NO'), 'no');
+  assert.equal(langFromCountry('FI'), 'fi');
+  assert.equal(langFromCountry('MC'), 'fr');
   assert.equal(langFromCountry('XX'), null);
 });
 
@@ -22,6 +28,11 @@ test('Accept-Language', () => {
   assert.equal(langFromAcceptLanguage('pl-PL,pl;q=0.9,en;q=0.8'), 'pl');
   assert.equal(langFromAcceptLanguage('de-AT,de;q=0.9'), 'de');
   assert.equal(langFromAcceptLanguage('en-US,en;q=0.9'), 'en');
+  assert.equal(langFromAcceptLanguage('fr-FR,fr;q=0.9'), 'fr');
+  assert.equal(langFromAcceptLanguage('nl-NL,nl;q=0.9'), 'nl');
+  assert.equal(langFromAcceptLanguage('sv-SE,sv;q=0.9'), 'sv');
+  assert.equal(langFromAcceptLanguage('nb-NO,nb;q=0.9'), 'no');
+  assert.equal(langFromAcceptLanguage('fi-FI,fi;q=0.9'), 'fi');
 });
 
 test('cookie wins over country', () => {
@@ -49,6 +60,26 @@ test('localeRedirectTarget .com home', () => {
   assert.equal(
     localeRedirectTarget({ ...base, preferred: 'de', search: '?utm=1' }),
     'https://www.sensortattoofix.com/de/?utm=1'
+  );
+  assert.equal(
+    localeRedirectTarget({ ...base, preferred: 'fr' }),
+    'https://www.sensortattoofix.com/fr/'
+  );
+  assert.equal(
+    localeRedirectTarget({ ...base, preferred: 'nl' }),
+    'https://www.sensortattoofix.com/nl/'
+  );
+  assert.equal(
+    localeRedirectTarget({ ...base, preferred: 'sv' }),
+    'https://www.sensortattoofix.com/sv/'
+  );
+  assert.equal(
+    localeRedirectTarget({ ...base, preferred: 'no' }),
+    'https://www.sensortattoofix.com/no/'
+  );
+  assert.equal(
+    localeRedirectTarget({ ...base, preferred: 'fi' }),
+    'https://www.sensortattoofix.com/fi/'
   );
 });
 

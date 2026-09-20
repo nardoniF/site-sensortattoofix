@@ -1,8 +1,8 @@
 /**
  * Storefront proxy — serves pinned GitHub commit via jsDelivr.
- * - .com / www.sensortattoofix.com → EN (/) + IT/DE/ES/PL/SL (/it/, /de/, …)
- * - .com.br → Portuguese (repo root); paths /de|/es|/pl|/sl|/it|/en redirecionam ao .com
- * - First-hit no .com: cookie / CF-IPCountry / Accept-Language → /pl|/de|/es|/it|/sl
+ * - .com / www.sensortattoofix.com → EN (/) + IT/DE/ES/PL/SL/FR/NL/SV/NO/FI (/it/, /de/, …)
+ * - .com.br → Portuguese (repo root); paths intl redirecionam ao .com
+ * - First-hit no .com: cookie / CF-IPCountry / Accept-Language → /pl|/de|/fr|…
  *   (nunca .com↔.com.br: cookies não são compartilhados e geram redirect loop)
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
  */
@@ -14,7 +14,7 @@ import {
   isBotUserAgent
 } from './geo-lang.js';
 
-const COMMIT = 'e5ce0271b3120925eef4ead0fb381cb759dce218';
+const COMMIT = 'PENDING_PIN';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
@@ -80,7 +80,7 @@ const COM_SHARED_ROOT_PAGES = new Set([
   '/google7b1cb2c1f70b0fda.html',
 ]);
 
-const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
+const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
 function mapPathCom(pathname) {
   if (isStaticAsset(pathname)) return pathname;
@@ -290,7 +290,7 @@ export default {
 
     // Intl canônico no .com — consolidar .com.br/{de,es,pl,sl,it,en}/ → .com
     if (br) {
-      const m = url.pathname.match(/^\/(de|es|pl|sl|it)(\/.*)?$/i);
+      const m = url.pathname.match(/^\/(de|es|pl|sl|it|fr|nl|sv|no|fi)(\/.*)?$/i);
       if (m) {
         const dest = new URL(`https://www.sensortattoofix.com/${m[1].toLowerCase()}${m[2] || '/'}`);
         dest.search = url.search;
@@ -314,7 +314,7 @@ export default {
     // First-hit locale: Polônia → /pl/, Alemanha → /de/, etc. (não aplica a bots)
     if (!isBotUserAgent(request.headers.get('user-agent'))) {
       const force = String(url.searchParams.get('stf_lang') || '').toLowerCase();
-      const forcedLang = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl'].includes(force) ? force : null;
+      const forcedLang = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].includes(force) ? force : null;
       if (forcedLang) url.searchParams.delete('stf_lang');
       const preferred = forcedLang || resolvePreferredLang({
         cookieHeader: request.headers.get('cookie'),
