@@ -1784,6 +1784,42 @@ footer,
     margin-left: auto;
     margin-right: auto;
 }
+.footer-crashfix-sign {
+    margin: 20px auto 0;
+    max-width: 34rem;
+    padding: 0 12px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.45;
+}
+.footer-crashfix-sign a {
+    display: inline-block;
+    color: rgba(94, 200, 216, 0.42);
+    text-decoration: none;
+    text-shadow:
+      0 0 6px rgba(94, 200, 216, 0.25),
+      0 0 14px rgba(94, 200, 216, 0.12);
+    animation: stf-neon-sign 3.6s ease-in-out infinite;
+}
+.footer-crashfix-sign a:hover,
+.footer-crashfix-sign a:focus-visible {
+    color: rgba(94, 200, 216, 0.85);
+    text-shadow:
+      0 0 8px rgba(94, 200, 216, 0.45),
+      0 0 18px rgba(94, 200, 216, 0.25);
+    outline: none;
+}
+@keyframes stf-neon-sign {
+    0%, 100% { opacity: 0.38; filter: brightness(0.92); }
+    48% { opacity: 0.72; filter: brightness(1.08); }
+    52% { opacity: 0.55; filter: brightness(1); }
+    70% { opacity: 0.78; filter: brightness(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .footer-crashfix-sign a { animation: none; opacity: 0.55; }
+}
 
 /* RESPONSIVIDADE */
 @media (max-width: 1024px) {
