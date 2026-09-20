@@ -48,7 +48,7 @@ const NAME_PREFIX = {
   sl: [
     ['SensorTattooFix Optical Lens', 'Optična leča SensorTattooFix'],
     ['SensorTattooFix Smartband Lens', 'Leča SensorTattooFix za pametno zapestnico'],
-    ['Sensor Tattoo Fix Lens', 'Optična leča Sensor Tattoo Fix'],
+    ['Sensor TattooFix Lens', 'Optična leča Sensor TattooFix'],
     ['Alpine Loop Braided Nylon Band — ', 'Trak Alpine Loop iz pletenega najlona — '],
     ['Luxury Stainless Steel Link Band — ', 'Luksuzna jeklena zapestnica — '],
     ['Magnetic Milanese Steel Band — ', 'Magnetna milanska jeklena zapestnica — '],
@@ -74,10 +74,10 @@ const DESC_BY_TYPE = {
     sl: 'Udobje in stil v eni pošiljki — primerno za vašo pametno uro.',
   },
   default: {
-    de: 'Offizielles Zubehör von Sensor Tattoo Fix.',
-    es: 'Accesorio oficial de Sensor Tattoo Fix.',
-    pl: 'Oficjalne akcesorium Sensor Tattoo Fix.',
-    sl: 'Uradna oprema Sensor Tattoo Fix.',
+    de: 'Offizielles Zubehör von Sensor TattooFix.',
+    es: 'Accesorio oficial de Sensor TattooFix.',
+    pl: 'Oficjalne akcesorium Sensor TattooFix.',
+    sl: 'Uradna oprema Sensor TattooFix.',
     intlLens: 'Zasnovana za optične senzorje pametnih ur na tetovirani koži.',
   },
 };

@@ -9,7 +9,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** @type {Record<string, Array<[string, string]>>} */
 const RULES = {
   de: [
-    ['content="Official Sensor Tattoo Fix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked shipping in USD."', 'content="Offizieller Sensor Tattoo Fix Checkout — PayPal, Karten, Sendungsverfolgung in USD."'],
+    ['content="Official Sensor TattooFix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked shipping in USD."', 'content="Offizieller Sensor TattooFix Checkout — PayPal, Karten, Sendungsverfolgung in USD."'],
     ['Discount code', 'Rabattcode'],
     ['placeholder="e.g. SAVE10"', 'placeholder="z. B. MARIA10"'],
     ['>Apply</button>', '>Anwenden</button>'],
@@ -79,7 +79,7 @@ const RULES = {
     ['aria-label="Close"', 'aria-label="Schließen"'],
   ],
   es: [
-    ['content="Official Sensor Tattoo Fix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked shipping in USD."', 'content="Checkout oficial Sensor Tattoo Fix — PayPal, tarjetas, envío con seguimiento en USD."'],
+    ['content="Official Sensor TattooFix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked shipping in USD."', 'content="Checkout oficial Sensor TattooFix — PayPal, tarjetas, envío con seguimiento en USD."'],
     ['Discount code', 'Código de descuento'],
     ['placeholder="e.g. SAVE10"', 'placeholder="Ej: MARIA10"'],
     ['>Apply</button>', '>Aplicar</button>'],
@@ -149,7 +149,7 @@ const RULES = {
     ['aria-label="Close"', 'aria-label="Cerrar"'],
   ],
   pl: [
-    ['content="Official Sensor Tattoo Fix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked shipping in USD."', 'content="Oficjalna kasa Sensor Tattoo Fix — PayPal, karty, śledzenie przesyłki w USD."'],
+    ['content="Official Sensor TattooFix checkout — Stripe, PayPal, Apple Pay, Google Pay. Tracked shipping in USD."', 'content="Oficjalna kasa Sensor TattooFix — PayPal, karty, śledzenie przesyłki w USD."'],
     ['Discount code', 'Kod rabatowy'],
     ['placeholder="e.g. SAVE10"', 'placeholder="Np. MARIA10"'],
     ['>Apply</button>', '>Zastosuj</button>'],

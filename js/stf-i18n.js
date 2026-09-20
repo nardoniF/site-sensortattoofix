@@ -120,7 +120,7 @@ window.STF_I18N = (function () {
       'account.loginUnavailable': 'Login indisponível. Tente em Minha Conta.',
       'account.loginFail': 'Não foi possível entrar.',
       'conta.title': 'Minha Conta',
-      'conta.pageTitle': 'Minha Conta | Sensor Tattoo Fix',
+      'conta.pageTitle': 'Minha Conta | Sensor TattooFix',
       'conta.intro': 'Acesse seus pedidos ou crie uma conta para comprar mais rápido.',
       'conta.tabLogin': 'Entrar',
       'conta.tabRegister': 'Criar conta',
@@ -205,12 +205,12 @@ window.STF_I18N = (function () {
       'conta.formStreetIntl': 'Endereço',
       'conta.formAptNumber': 'Apto / número',
       'conta.formStateIntl': 'Estado / província',
-      'ondeComprar.pageTitle': 'Onde Comprar | Sensor Tattoo Fix',
-      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
-      'ondeComprar.metaDesc': 'Relógio pede senha, não lê batimentos ou pausa treino? Compre a lente Sensor Tattoo Fix na loja oficial.',
-      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
-      'ondeComprar.badge': 'Kit Sensor Tattoo Fix',
-      'ondeComprar.badgeIntl': 'Sensor Tattoo Fix Lens',
+      'ondeComprar.pageTitle': 'Onde Comprar | Sensor TattooFix',
+      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor TattooFix — Passcode & Heart Rate Problems',
+      'ondeComprar.metaDesc': 'Relógio pede senha, não lê batimentos ou pausa treino? Compre a lente Sensor TattooFix na loja oficial.',
+      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor TattooFix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.badge': 'Kit Sensor TattooFix',
+      'ondeComprar.badgeIntl': 'Sensor TattooFix Lens',
       'ondeComprar.h1': 'Escolha onde comprar com segurança',
       'ondeComprar.intro': 'Avaliações <strong>5 estrelas</strong> de clientes reais.',
       'ondeComprar.introEn': '<strong>5-star reviews</strong> from verified buyers.',
@@ -376,10 +376,10 @@ window.STF_I18N = (function () {
       'watch.otherBrand': 'Outra / não listada',
       'watch.groupOtherBrands': 'Outras marcas',
       'watch.groupOthers': 'Outros',
-      'page.checkoutTitle': 'Comprar Direto | Sensor Tattoo Fix — Loja Oficial',
-      'page.checkoutDesc': 'Checkout oficial Sensor Tattoo Fix — cartão, PayPal, envio nacional e internacional.',
-      'page.checkoutTitleEn': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.'
+      'page.checkoutTitle': 'Comprar Direto | Sensor TattooFix — Loja Oficial',
+      'page.checkoutDesc': 'Checkout oficial Sensor TattooFix — cartão, PayPal, envio nacional e internacional.',
+      'page.checkoutTitleEn': 'Checkout | Sensor TattooFix — Official Store',
+      'page.checkoutDescEn': 'Official Sensor TattooFix checkout — PayPal, cards, tracked shipping.'
     },
     en: {
       'brand.tagline': 'Peace between ink and silicon',
@@ -497,7 +497,7 @@ window.STF_I18N = (function () {
       'account.loginUnavailable': 'Sign-in unavailable. Try My Account.',
       'account.loginFail': 'Could not sign in.',
       'conta.title': 'My Account',
-      'conta.pageTitle': 'My Account | Sensor Tattoo Fix',
+      'conta.pageTitle': 'My Account | Sensor TattooFix',
       'conta.intro': 'Sign in to see your orders or create an account for faster checkout.',
       'conta.tabLogin': 'Sign in',
       'conta.tabRegister': 'Create account',
@@ -582,12 +582,12 @@ window.STF_I18N = (function () {
       'conta.formStreetIntl': 'Street address',
       'conta.formAptNumber': 'Apt / number',
       'conta.formStateIntl': 'State / province',
-      'ondeComprar.pageTitle': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
-      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
-      'ondeComprar.metaDesc': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
-      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
-      'ondeComprar.badge': 'Sensor Tattoo Fix Lens',
-      'ondeComprar.badgeIntl': 'Sensor Tattoo Fix Lens',
+      'ondeComprar.pageTitle': 'Where to Buy | Sensor TattooFix — Passcode & Heart Rate Problems',
+      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor TattooFix — Passcode & Heart Rate Problems',
+      'ondeComprar.metaDesc': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor TattooFix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor TattooFix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.badge': 'Sensor TattooFix Lens',
+      'ondeComprar.badgeIntl': 'Sensor TattooFix Lens',
       'ondeComprar.h1': 'Official store',
       'ondeComprar.intro': '<strong>5-star reviews</strong> from verified buyers.',
       'ondeComprar.introEn': '<strong>5-star reviews</strong> from verified buyers.',
@@ -642,7 +642,7 @@ window.STF_I18N = (function () {
       'store.priceSuffix': 'Card & PayPal',
       'store.intlSuffix': 'PayPal & cards · Tracked shipping',
       'store.title': 'Official Store',
-      'store.metaDescEn': 'Buy the Sensor Tattoo Fix kit — optical lens when your watch asks for passcode every 10 seconds, won\'t read heart rate, disconnects or pauses workouts (often tattoo ink blocking the sensor). PayPal, cards and tracked shipping.',
+      'store.metaDescEn': 'Buy the Sensor TattooFix kit — optical lens when your watch asks for passcode every 10 seconds, won\'t read heart rate, disconnects or pauses workouts (often tattoo ink blocking the sensor). PayPal, cards and tracked shipping.',
       'store.loading': 'Loading products...',
       'store.empty': 'No products available at the moment.',
       'store.added': 'Added to cart!',
@@ -762,12 +762,12 @@ window.STF_I18N = (function () {
       'watch.otherBrand': 'Other / not listed',
       'watch.groupOtherBrands': 'Other brands',
       'watch.groupOthers': 'Others',
-      'page.checkoutTitle': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDesc': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.',
-      'page.checkoutTitleEn': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.',
-      'page.checkoutTitleIt': 'Checkout | Sensor Tattoo Fix — Negozio ufficiale',
-      'page.checkoutDescIt': 'Checkout ufficiale Sensor Tattoo Fix — PayPal, carte, spedizione tracciata.'
+      'page.checkoutTitle': 'Checkout | Sensor TattooFix — Official Store',
+      'page.checkoutDesc': 'Official Sensor TattooFix checkout — PayPal, cards, tracked shipping.',
+      'page.checkoutTitleEn': 'Checkout | Sensor TattooFix — Official Store',
+      'page.checkoutDescEn': 'Official Sensor TattooFix checkout — PayPal, cards, tracked shipping.',
+      'page.checkoutTitleIt': 'Checkout | Sensor TattooFix — Negozio ufficiale',
+      'page.checkoutDescIt': 'Checkout ufficiale Sensor TattooFix — PayPal, carte, spedizione tracciata.'
     }
   };
 
@@ -1307,7 +1307,7 @@ window.STF_I18N = (function () {
 
   function applyLojaDom() {
     if (!isLocalized()) return;
-    document.title = t('store.title') + ' | Sensor Tattoo Fix';
+    document.title = t('store.title') + ' | Sensor TattooFix';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.content = t(storeMetaDescKey(getLang()));
