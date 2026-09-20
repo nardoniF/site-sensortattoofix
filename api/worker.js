@@ -105,7 +105,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = 'a651740342c5c3c2cb5d381a72787df7fa76060f';
+const SITE_CATALOG_COMMIT = '43a9ea608c07d3a3a3f0c4a32020c972d83fdf38';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -1419,8 +1419,21 @@ function homeFaqMissingTattooContext(faqs) {
   return false;
 }
 
+/** faq-22 desatualizada (sem a cópia Tattoo vs Crash / sob medida). */
+function homeFaqNeedsCrashCompareCopy(faqs) {
+  if (!Array.isArray(faqs) || !faqs.length) return false;
+  const f22 = faqs.find((f) => f && f.id === 'faq-22');
+  if (!f22) return true;
+  const a = String(f22.answer || '');
+  return !/sob medida|cobertura ampliada|vedação completa/i.test(a);
+}
+
 function shouldReplaceHomeFaqFromCatalog(kvFaq) {
-  return homeFaqLooksLikeForeignCrashBrand(kvFaq) || homeFaqMissingTattooContext(kvFaq);
+  return (
+    homeFaqLooksLikeForeignCrashBrand(kvFaq)
+    || homeFaqMissingTattooContext(kvFaq)
+    || homeFaqNeedsCrashCompareCopy(kvFaq)
+  );
 }
 
 function mergeSiteCatalog(config, site) {
