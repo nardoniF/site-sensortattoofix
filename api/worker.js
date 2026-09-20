@@ -105,7 +105,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '3299494b66c054c868ae927cc36d63658d342a46';
+const SITE_CATALOG_COMMIT = 'a03f4453a9a27fc31789a6c1e484162ef9414b63';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -1390,6 +1390,52 @@ function mergeSiteCatalogSmartwatchMeta(kvMeta, siteMeta) {
   return out;
 }
 
+/**
+ * Detecta FAQ da marca irmã Sensor CrashFix colada por engano no KV da Tattoo.
+ * Permite menção pontual (ex.: faq que redireciona para o Crash), mas rejeita
+ * o pacote típico cujo produto da lente é o CrashFix.
+ */
+function homeFaqLooksLikeForeignCrashBrand(faqs) {
+  if (!Array.isArray(faqs) || !faqs.length) return false;
+  const questions = faqs.map((f) => String(f?.question || '')).join('\n');
+  const blob = faqs.map((f) => `${f?.question || ''} ${f?.answer || ''}`).join('\n');
+  if (/como a lente\s+sensor\s+crash\s*fix/i.test(questions)) return true;
+  if (/depois que o sensor (quebrou|trincou)/i.test(questions) && !/tatuagem|tattoo\s*fix/i.test(questions)) {
+    return true;
+  }
+  const crashLens = (blob.match(/sensor\s+crash\s*fix/gi) || []).length;
+  const tattooLens = (blob.match(/sensor\s+tattoo\s*fix|tattoo\s*fix/gi) || []).length;
+  return crashLens >= 3 && tattooLens === 0;
+}
+
+/** faq-1 / faq-3 genéricas (sem menção a tatuagem) — preferir catálogo do site. */
+function homeFaqMissingTattooContext(faqs) {
+  if (!Array.isArray(faqs) || !faqs.length) return false;
+  const byId = Object.fromEntries(faqs.filter((f) => f && f.id).map((f) => [f.id, f]));
+  const q1 = String(byId['faq-1']?.question || '');
+  const q3 = String(byId['faq-3']?.question || '');
+  if (byId['faq-1'] && !/tatuad|tattoo/i.test(q1)) return true;
+  if (byId['faq-3'] && !/tatuad|tattoo/i.test(q3)) return true;
+  return false;
+}
+
+/** faq-22 desatualizada (sem a cópia Tattoo vs Crash / sob medida). */
+function homeFaqNeedsCrashCompareCopy(faqs) {
+  if (!Array.isArray(faqs) || !faqs.length) return false;
+  const f22 = faqs.find((f) => f && f.id === 'faq-22');
+  if (!f22) return true;
+  const a = String(f22.answer || '');
+  return !/sob medida|cobertura ampliada|vedação completa/i.test(a);
+}
+
+function shouldReplaceHomeFaqFromCatalog(kvFaq) {
+  return (
+    homeFaqLooksLikeForeignCrashBrand(kvFaq)
+    || homeFaqMissingTattooContext(kvFaq)
+    || homeFaqNeedsCrashCompareCopy(kvFaq)
+  );
+}
+
 function mergeSiteCatalog(config, site) {
   if (!site || typeof site !== 'object') return config;
   const next = { ...config };
@@ -1405,8 +1451,9 @@ function mergeSiteCatalog(config, site) {
     site.smartwatchCatalog
   );
   if (Array.isArray(site.homeFaq) && site.homeFaq.length) {
-    next.homeFaq = Array.isArray(config.homeFaq) && config.homeFaq.length
-      ? config.homeFaq
+    const kvFaq = Array.isArray(config.homeFaq) ? config.homeFaq : [];
+    next.homeFaq = kvFaq.length && !shouldReplaceHomeFaqFromCatalog(kvFaq)
+      ? kvFaq
       : site.homeFaq;
   }
   if (Array.isArray(site.homeReviews) && site.homeReviews.length) {
@@ -1459,7 +1506,20 @@ async function fetchSiteCatalog() {
 async function getPublicConfig(env) {
   const config = await getConfig(env);
   const site = await fetchSiteCatalog();
-  return mergeSiteCatalog(config, site);
+  const merged = mergeSiteCatalog(config, site);
+  // Auto-cura: FAQ Crash / perguntas genéricas sem contexto de tatuagem → catálogo do site.
+  if (
+    shouldReplaceHomeFaqFromCatalog(config.homeFaq) &&
+    Array.isArray(site?.homeFaq) &&
+    site.homeFaq.length
+  ) {
+    try {
+      await saveConfig(env, { ...config, homeFaq: site.homeFaq });
+    } catch (err) {
+      console.warn('homeFaq heal:', err?.message || err);
+    }
+  }
+  return merged;
 }
 
 function normalizeApiBaseUrl(api) {
@@ -17629,6 +17689,11 @@ async function handleAdminGetConfig(request, env, origin) {
 async function handlePutConfig(request, env, origin, ctx) {
   if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
   const body = await request.json();
+  if (body.homeFaq != null && homeFaqLooksLikeForeignCrashBrand(body.homeFaq)) {
+    return json({
+      error: 'FAQ rejeitada: conteúdo parece da marca Sensor CrashFix. Salve FAQ de CrashFix só no Admin/API do Crash (api.sensorcrashfix.com.br), não na Tattoo.'
+    }, 400, origin);
+  }
   const current = await getConfig(env);
   const merged = {
     ...current, ...body,

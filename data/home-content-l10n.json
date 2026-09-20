@@ -3,7 +3,7 @@
     "reviewsSummary": "5,0 · echte Bewertungen (Google, Mercado Libre, WhatsApp, Shopee, Instagram und mehr)",
     "faq": {
       "faq-1": {
-        "question": "Warum verlangt meine Smartwatch ständig den Code?",
+        "question": "Ich trage die Uhr auf tätowierter Haut. Warum fragt meine Smartwatch ständig nach dem Code?",
         "answer": "Wenn der optische Sensor keinen Blutfluss am Handgelenk erkennt, geht die Uhr davon aus, dass sie abgenommen wurde, und fordert den Code erneut — bei der Apple Watch kann das <strong>alle 10 Sekunden</strong> passieren. Auf tätowierter Haut blockiert die Tinte das Sensorlicht; die Uhr aktiviert die PIN-Sperre und denkt, sie ist nicht mehr am Arm. Die Sensor Tattoo Fix Linse stellt die Messung wieder her und beendet ständige Sperren."
       },
       "faq-2": {
@@ -11,7 +11,7 @@
         "answer": "Der Sensor nutzt Licht zur Messung des Blutflusses. Dichte Tattoos, Narben oder dunkles Pigment blockieren das Rücksignal — die Herzfrequenz zeigt null, ungenaue Werte, fällt mitten im Training aus oder die Uhr stoppt die Überwachung ganz. Die Sensor Tattoo Fix Linse korrigiert die Messung, ohne den Sensor zu deaktivieren."
       },
       "faq-3": {
-        "question": "Warum trennt sich meine Uhr oder verliert sie den Kontakt zum Handgelenk von selbst?",
+        "question": "Beide Arme sind tätowiert. Warum trennt sich meine Uhr ständig oder verliert das Pulssignal?",
         "answer": "Ein verlorenes Sensorsignal lässt die Smartwatch glauben, sie sei vom Arm genommen worden: Sie entsperrt sich, pausiert Workouts, stoppt die Gesundheitsüberwachung oder fordert erneut den Code. Wenn du ein Tattoo dort hast, wo die Uhr sitzt, ist das die häufigste Ursache — und es gibt eine professionelle optische Linsenlösung."
       },
       "faq-4": {
@@ -85,6 +85,10 @@
       "faq-21": {
         "question": "Funktioniert es mit Garmin und anderen Marken außer Apple und Samsung?",
         "answer": "Ja. Jede Smartwatch mit <strong>optischem Sensor</strong> (grünes/Infrarotlicht) auf der Rückseite — inklusive <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei und ähnlichen Marken — kann von der Linse profitieren. Entscheidend ist der Sensordurchmesser; im Offiziellen Shop wählen Sie die passende Größe."
+      },
+      "faq-22": {
+        "question": "Mein Sensor ist gerissen. Hilft Sensor Tattoo Fix bei gerissenen Sensoren, die ihre Funktionen verloren haben?",
+        "answer": "Ja — aber die Anwendung ist anders. Die Linsen von Sensor Tattoo Fix sind <strong>maßgenau</strong> auf den Sensordurchmesser — ideal für die Messung auf tätowierter Haut. Bei einem <strong>gerissenem</strong> Sensor brauchen Sie eine optische Linse, die biometrische Messungen (Puls und Armerkennung) und Induktionsladen wiederherstellt und <strong>über den Sensorbereich hinausreicht</strong>. Diese vollständige Abdichtung über den Rissen stellt den Wasserschutz wieder her und hält Feuchtigkeit vom Gerät fern. Deshalb empfehlen wir bei gerissenen Sensoren <a href=\"https://www.sensorcrashfix.com/de/?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=crosspromo_crashfix&amp;utm_content=faq_sensor_trincado\" target=\"_blank\" rel=\"noopener\">Sensor CrashFix</a>. Beide Linien nutzen hochpräzise optische Linsen mit unterschiedlichen Zielen: <strong>Sensor Tattoo Fix</strong> — biometrische Messung auf tätowierter Haut bis zum Sensorrand. <strong>Sensor CrashFix</strong> — größere Abdecklinse, die den Schaden stoppt, über die Risskanten abdichtet und Funktionen sowie Wasserdichtigkeit zurückbringt."
       }
     },
     "reviews": {
@@ -169,7 +173,7 @@
     "reviewsSummary": "5,0 · reseñas reales (Google, Mercado Libre, WhatsApp, Shopee, Instagram y más)",
     "faq": {
       "faq-1": {
-        "question": "¿Por qué mi smartwatch pide la contraseña todo el tiempo?",
+        "question": "Uso el reloj sobre piel tatuada. ¿Por qué mi smartwatch pide la contraseña todo el tiempo?",
         "answer": "Cuando el sensor óptico no detecta flujo sanguíneo en la muñeca, el reloj asume que se lo quitaste y vuelve a pedir la contraseña — en el Apple Watch puede ocurrir <strong>cada 10 segundos</strong>. En piel tatuada, la tinta bloquea la luz del sensor; el reloj activa el bloqueo por PIN y cree que salió de tu brazo. La lente Sensor Tattoo Fix restaura la lectura y detiene los bloqueos constantes."
       },
       "faq-2": {
@@ -177,7 +181,7 @@
         "answer": "El sensor usa luz para medir el flujo sanguíneo. Tatuajes densos, cicatrices o pigmento oscuro bloquean la señal de retorno — el ritmo cardíaco marca cero, lecturas imprecisas, se corta a mitad del entrenamiento o el reloj deja de monitorizar por completo. La lente Sensor Tattoo Fix corrige la lectura sin desactivar el sensor."
       },
       "faq-3": {
-        "question": "¿Por qué mi reloj se desconecta o pierde el pulso por sí solo?",
+        "question": "Tengo los dos brazos tatuados. ¿Por qué mi reloj se desconecta o pierde el pulso todo el tiempo?",
         "answer": "La pérdida de señal del sensor hace que el smartwatch crea que salió de tu brazo: se desbloquea, pausa entrenamientos, deja de monitorizar la salud o vuelve a pedir la contraseña. Si tienes un tatuaje donde apoya el reloj, esa es la causa más común — y hay una solución profesional con lente óptica."
       },
       "faq-4": {
@@ -251,6 +255,10 @@
       "faq-21": {
         "question": "¿Funciona en Garmin y marcas además de Apple y Samsung?",
         "answer": "Sí. Cualquier smartwatch con <strong>sensor óptico</strong> (luz verde/infrarroja) en la parte trasera — incluidos <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei y similares — puede beneficiarse de la lente. Lo esencial es el diámetro del sensor; en la tienda oficial eliges el tamaño compatible."
+      },
+      "faq-22": {
+        "question": "Mi sensor está agrietado. ¿El Sensor Tattoo Fix funciona en sensores agrietados que perdieron las funciones?",
+        "answer": "Sí — pero la aplicación es distinta. Las lentes de Sensor Tattoo Fix se hacen <strong>a medida</strong> según el diámetro del sensor — ideal para lectura en piel tatuada. Para un sensor <strong>agrietado</strong> hace falta una lente óptica que restaure las lecturas biométricas (ritmo y detección de brazo) y la carga por inducción, y que <strong>vaya más allá del límite del sensor</strong>. Ese sellado completo sobre las fisuras devuelve la protección al agua e impide que la humedad dañe el reloj. Por eso, para sensores agrietados, recomendamos <a href=\"https://www.sensorcrashfix.com/es/?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=crosspromo_crashfix&amp;utm_content=faq_sensor_trincado\" target=\"_blank\" rel=\"noopener\">Sensor CrashFix</a>. Ambas líneas usan lentes ópticas de alta precisión, con objetivos distintos: <strong>Sensor Tattoo Fix</strong> — devolver la lectura biométrica sobre el tatuaje, hasta el borde del sensor. <strong>Sensor CrashFix</strong> — lente de cobertura ampliada para estancar el daño, sellar más allá de la grieta y devolver funciones e impermeabilidad."
       }
     },
     "reviews": {
@@ -335,7 +343,7 @@
     "reviewsSummary": "5,0 · prawdziwe opinie (Google, Mercado Libre, WhatsApp, Shopee, Instagram i inne)",
     "faq": {
       "faq-1": {
-        "question": "Dlaczego mój smartwatch cały czas prosi o kod?",
+        "question": "Noszę zegarek na tatuażowanej skórze. Dlaczego mój smartwatch ciągle prosi o hasło?",
         "answer": "Gdy czujnik optyczny nie wykrywa przepływu krwi na nadgarstku, zegarek zakłada, że został zdjęty, i ponownie prosi o kod — na Apple Watch może to się zdarzać <strong>co 10 sekund</strong>. Na tatuażu tusz blokuje światło czujnika; zegarek włącza blokadę PIN i myśli, że opuścił rękę. Soczewka Sensor Tattoo Fix przywraca odczyt i kończy ciągłe blokady."
       },
       "faq-2": {
@@ -343,7 +351,7 @@
         "answer": "Czujnik używa światła do pomiaru przepływu krwi. Gęste tatuaże, blizny lub ciemny pigment blokują sygnał powrotny — tętno pokazuje zero, nieprecyzyjne odczyty, znika w trakcie treningu albo zegarek w ogóle przestaje monitorować. Soczewka Sensor Tattoo Fix poprawia odczyt bez wyłączania czujnika."
       },
       "faq-3": {
-        "question": "Dlaczego mój zegarek sam się rozłącza lub traci kontakt z nadgarstkiem?",
+        "question": "Mam obie ręce wytatuowane. Dlaczego zegarek ciągle się rozłącza lub traci sygnał nadgarstka?",
         "answer": "Utrata sygnału z czujnika sprawia, że smartwatch myśli, że zszedł z ręki: odblokowuje się, wstrzymuje treningi, przestaje monitorować zdrowie lub ponownie prosi o kod. Jeśli masz tatuaż tam, gdzie opiera się zegarek, to najczęstsza przyczyna — i jest profesjonalne rozwiązanie z soczewką optyczną."
       },
       "faq-4": {
@@ -417,6 +425,10 @@
       "faq-21": {
         "question": "Czy działa z Garmin i markami poza Apple i Samsung?",
         "answer": "Tak. Każdy smartwatch z <strong>optycznym czujnikiem</strong> (zielone/podczerwone światło) z tyłu — w tym <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei i podobne — może skorzystać z soczewki. Liczy się średnica czujnika; w oficjalnym sklepie wybierasz pasujący rozmiar."
+      },
+      "faq-22": {
+        "question": "Mój czujnik jest pęknięty. Czy Sensor Tattoo Fix działa na pękniętych czujnikach, które straciły funkcje?",
+        "answer": "Tak — ale zastosowanie jest inne. Soczewki Sensor Tattoo Fix są robione <strong>na wymiar</strong> według średnicy czujnika — idealne do odczytu na tatuażowanej skórze. Przy <strong>pękniętym</strong> czujniku potrzebna jest soczewka optyczna, która przywraca odczyty biometryczne (tętno i wykrywanie ramienia) oraz ładowanie indukcyjne, a także <strong>wykracza poza obszar czujnika</strong>. Pełne uszczelnienie nad rysami przywraca ochronę przed wodą i chroni zegarek przed wilgocią. Dlatego przy pękniętych czujnikach polecamy <a href=\"https://www.sensorcrashfix.com/pl/?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=crosspromo_crashfix&amp;utm_content=faq_sensor_trincado\" target=\"_blank\" rel=\"noopener\">Sensor CrashFix</a>. Obie linie używają precyzyjnych soczewek optycznych, z różnymi celami: <strong>Sensor Tattoo Fix</strong> — przywrócić odczyt biometryczny na tatuażu, do krawędzi czujnika. <strong>Sensor CrashFix</strong> — większa soczewka pokrywająca, by zatrzymać uszkodzenie, uszczelnić poza krawędzią rysy i przywrócić funkcje oraz wodoszczelność."
       }
     },
     "reviews": {
@@ -501,7 +513,7 @@
     "reviewsSummary": "5,0 · prave ocene (Google, Mercado Libre, WhatsApp, Shopee, Instagram in drugo)",
     "faq": {
       "faq-1": {
-        "question": "Zakaj moja pametna ura ves čas zahteva kodo?",
+        "question": "Uro nosim na tetovirani koži. Zakaj moja pametna ura ves čas zahteva geslo?",
         "answer": "Ko optični senzor ne zazna pretoka krvi na zapestju, ura predvideva, da ste jo sneli, in znova zahteva kodo — pri Apple Watchu se to lahko zgodi <strong>vsakih 10 sekund</strong>. Na tetovirani koži tinta blokira svetlobo senzorja; ura aktivira PIN zaklepanje in misli, da ni več na roki. Leča Sensor Tattoo Fix obnovi meritev in konča stalna zaklepanja."
       },
       "faq-2": {
@@ -509,7 +521,7 @@
         "answer": "Senzor uporablja svetlobo za merjenje pretoka krvi. Goste tetovaže, brazgotine ali temen pigment blokirajo povratni signal — pulz kaže ničlo, netočne vrednosti, pade sredi vadbe ali ura popolnoma preneha spremljati. Leča Sensor Tattoo Fix popravi meritev brez izklopa senzorja."
       },
       "faq-3": {
-        "question": "Zakaj se moja ura sama prekine ali izgubi stik z zapestjem?",
+        "question": "Imam obe roki tetovirani. Zakaj se ura ves čas odklopi ali izgubi signal zapestja?",
         "answer": "Izguba signala senzorja naredi pametno uro prepričano, da je bila snjeta z roke: odklene se, ustavi vadbe, preneha spremljati zdravje ali znova zahteva kodo. Če imate tetovažo tam, kjer ura leži, je to najpogostejši vzrok — in obstaja profesionalna rešitev z optično lečo."
       },
       "faq-4": {
@@ -583,6 +595,10 @@
       "faq-21": {
         "question": "Ali deluje z Garmin in znamkami poleg Apple in Samsung?",
         "answer": "Da. Vsaka pametna ura z <strong>optičnim senzorjem</strong> (zelena/infrardeča svetloba) na hrbtni strani — vključno z <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei in podobnimi — lahko koristi lečo. Pomemben je premer senzorja; v uradni trgovini izberete ustrezno velikost."
+      },
+      "faq-22": {
+        "question": "Moj senzor je razpokan. Ali Sensor Tattoo Fix deluje pri razpokanih senzorjih, ki so izgubili funkcije?",
+        "answer": "Da — a uporaba je drugačna. Leče Sensor Tattoo Fix so narejene <strong>po meri</strong> glede na premer senzorja — idealno za branje na tetovirani koži. Pri <strong>razpokanem</strong> senzorju potrebujete optično lečo, ki obnovi biometrična branja (utrip in zaznavo roke) ter indukcijsko polnjenje, in ki <strong>sega prek omejitve območja senzorja</strong>. Ta popolna zatesnitev nad razpokami vrne zaščito pred vodo in prepreči, da vlaga poškoduje uro. Zato pri razpokanih senzorjih priporočamo <a href=\"https://www.sensorcrashfix.com/sl/?utm_source=sensortattoofix&amp;utm_medium=site&amp;utm_campaign=crosspromo_crashfix&amp;utm_content=faq_sensor_trincado\" target=\"_blank\" rel=\"noopener\">Sensor CrashFix</a>. Obe liniji uporabljata natančne optične leče z različnimi cilji: <strong>Sensor Tattoo Fix</strong> — obnoviti biometrično branje na tetovažu, do roba senzorja. <strong>Sensor CrashFix</strong> — večja leča za pokritje, da ustavi poškodbo, zatesni prek robov razpoke in obnovi funkcije ter vodoodpornost."
       }
     },
     "reviews": {

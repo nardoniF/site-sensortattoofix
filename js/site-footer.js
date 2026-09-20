@@ -25,7 +25,8 @@ window.STF_FOOTER = (function () {
       commissioner: 'Seja comissionado',
       patentLinePrefix: 'Patente Nacional',
       patentLineJoin: 'Internacional',
-      rights: 'Todos os direitos reservados.'
+      rights: 'Todos os direitos reservados.',
+      crashfixSign: 'Conheça também a Sensor CrashFix — para smartwatch com sensor trincado'
     },
     en: {
       socialTitle: 'Follow our official channels',
@@ -35,7 +36,8 @@ window.STF_FOOTER = (function () {
       commissioner: 'Become an affiliate',
       patentLinePrefix: 'National Patent',
       patentLineJoin: 'International',
-      rights: 'All rights reserved.'
+      rights: 'All rights reserved.',
+      crashfixSign: 'Also discover Sensor CrashFix — for smartwatches with a cracked sensor'
     },
     it: {
       socialTitle: 'Segui i nostri canali ufficiali',
@@ -45,7 +47,8 @@ window.STF_FOOTER = (function () {
       commissioner: 'Diventa affiliato',
       patentLinePrefix: 'Brevetto nazionale',
       patentLineJoin: 'Internazionale',
-      rights: 'Tutti i diritti riservati.'
+      rights: 'Tutti i diritti riservati.',
+      crashfixSign: 'Scopri anche Sensor CrashFix — per smartwatch con sensore incrinato'
     },
     de: {
       socialTitle: 'Folgen Sie unseren offiziellen Kanälen',
@@ -55,7 +58,8 @@ window.STF_FOOTER = (function () {
       commissioner: 'Partner werden',
       patentLinePrefix: 'Nationales Patent',
       patentLineJoin: 'International',
-      rights: 'Alle Rechte vorbehalten.'
+      rights: 'Alle Rechte vorbehalten.',
+      crashfixSign: 'Entdecken Sie auch Sensor CrashFix — für Smartwatches mit gerissenem Sensor'
     },
     es: {
       socialTitle: 'Sigue nuestras redes oficiales',
@@ -65,7 +69,8 @@ window.STF_FOOTER = (function () {
       commissioner: 'Sé afiliado',
       patentLinePrefix: 'Patente nacional',
       patentLineJoin: 'Internacional',
-      rights: 'Todos los derechos reservados.'
+      rights: 'Todos los derechos reservados.',
+      crashfixSign: 'Conoce también Sensor CrashFix — para smartwatch con sensor agrietado'
     },
     pl: {
       socialTitle: 'Obserwuj nasze oficjalne kanały',
@@ -75,7 +80,8 @@ window.STF_FOOTER = (function () {
       commissioner: 'Zostań partnerem',
       patentLinePrefix: 'Patent krajowy',
       patentLineJoin: 'Międzynarodowy',
-      rights: 'Wszelkie prawa zastrzeżone.'
+      rights: 'Wszelkie prawa zastrzeżone.',
+      crashfixSign: 'Poznaj też Sensor CrashFix — do smartwatchy z pękniętym czujnikiem'
     },
     sl: {
       socialTitle: 'Sledite našim uradnim kanalom',
@@ -85,7 +91,8 @@ window.STF_FOOTER = (function () {
       commissioner: 'Postanite partner',
       patentLinePrefix: 'Nacionalni patent',
       patentLineJoin: 'Mednarodni',
-      rights: 'Vse pravice pridržane.'
+      rights: 'Vse pravice pridržane.',
+      crashfixSign: 'Spoznajte tudi Sensor CrashFix — za pametne ure z razpokanim senzorjem'
     }
   };
 
@@ -222,12 +229,35 @@ window.STF_FOOTER = (function () {
     `;
   }
 
+  function crashfixHref(lang) {
+    const base = lang === 'pt'
+      ? 'https://www.sensorcrashfix.com.br/'
+      : lang === 'en'
+        ? 'https://www.sensorcrashfix.com/'
+        : `https://www.sensorcrashfix.com/${lang}/`;
+    return `${base}?utm_source=sensortattoofix&utm_medium=site&utm_campaign=crosspromo_crashfix&utm_content=footer_neon_sign`;
+  }
+
+  function crashfixSignBlock(lang) {
+    const s = t(lang);
+    const rotulo = `Footer CrashFix sign${lang !== 'pt' ? ' ' + lang.toUpperCase() : ''}`;
+    return `
+      <p class="footer-crashfix-sign">
+        <a href="${crashfixHref(lang)}"
+           target="_blank"
+           rel="noopener"
+           data-evento="clique_crashfix"
+           data-rotulo="${rotulo}">${s.crashfixSign}</a>
+      </p>
+    `;
+  }
+
   function render(el) {
     const mode = el.dataset.siteFooter || 'compact';
     const lang = detectLang();
     const prefix = prefixFrom(el);
     const social = mode === 'full' ? socialBlock(lang, prefix) : '';
-    el.innerHTML = social + legalBlock(lang);
+    el.innerHTML = social + legalBlock(lang) + crashfixSignBlock(lang);
   }
 
   function refreshAll() {

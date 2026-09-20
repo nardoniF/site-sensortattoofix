@@ -304,7 +304,7 @@
     });
   }
 
-  /** Square album = height of the benefit icons grid (contain, never crop). */
+  /** Square album = height of the benefit icons grid (CTA overlays inside the frame). */
   function syncProductAlbumToBenefits() {
     const benefits = document.querySelector('#produtos .product-benefits-grid');
     const wraps = document.querySelectorAll('#produtos .product-image-wrap');
@@ -319,6 +319,11 @@
       wrap.style.height = side + 'px';
       wrap.style.maxWidth = '100%';
       wrap.style.aspectRatio = '1 / 1';
+      const stage = wrap.closest('.product-album-stage');
+      if (stage) {
+        stage.style.width = side + 'px';
+        stage.style.maxWidth = '100%';
+      }
     });
   }
 
