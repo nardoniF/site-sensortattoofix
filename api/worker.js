@@ -105,7 +105,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = '4ee1f7be7c1b6ad0f4d8285692b23b3980bfd006';
+const SITE_CATALOG_COMMIT = '423ff84f48815fb8b502507b59af0662f2f021a2';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
