@@ -47,12 +47,12 @@ nav,
 }
 
 .logo-area {
-    --logo-h: 88px; /* emblema ≈ quadrado: jargão alinha sob os dizeres com padding = --logo-h */
+    --logo-h: 96px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap: 2px;
+    gap: 0;
     flex-shrink: 0;
     min-width: 0;
 }
@@ -80,7 +80,7 @@ nav,
     border-radius: 0;
 }
 
-/* Wordmark HTML fica no arquivo do logo; no header só o jargão abaixo */
+/* Wordmark + jargão vêm na arte do logo.jpg */
 .logo-text {
     font-size: 1.42rem;
     font-weight: 900;
@@ -90,7 +90,7 @@ nav,
     color: #fff;
 }
 
-.logo-area > .logo-lockup > .logo-text {
+.logo-area > .logo-lockup {
     display: none;
 }
 
@@ -103,10 +103,6 @@ nav,
     flex-direction: column;
     gap: 0;
     min-width: 0;
-    /* Emblema ocupa ~altura do logo na imagem; jargão só sob SENSOR/TATTOOFIX */
-    padding-left: var(--logo-h);
-    box-sizing: border-box;
-    max-width: 100%;
 }
 .logo-tagline {
     margin: 0;
@@ -331,7 +327,7 @@ nav,
     .nav-main a { font-size: 0.73rem; }
     .nav-main { gap: 3px 7px; }
     .logo-text { font-size: 1.2rem; }
-    .logo-area { --logo-h: 78px; }
+    .logo-area { --logo-h: 84px; }
     .site-social { min-width: 96px; padding: 0 12px; }
 }
 
@@ -339,7 +335,7 @@ nav,
 html[lang="it"] .site-nav { gap: 10px; }
 html[lang="it"] .logo-text { font-size: 1.18rem; }
 html[lang="it"] .logo-tagline { font-size: 0.72rem; }
-html[lang="it"] .logo-area { --logo-h: 76px; }
+html[lang="it"] .logo-area { --logo-h: 82px; }
 html[lang="it"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
 html[lang="it"] .nav-actions { gap: 6px; }
 
@@ -1750,7 +1746,7 @@ footer,
     body.home-page #onde-comprar { scroll-margin-top: 64px; }
     .site-nav,
     nav { position: relative; flex-wrap: nowrap; gap: 6px; }
-    .logo-area { flex: 0 0 auto; min-width: 0; gap: 2px; --logo-h: 56px; }
+    .logo-area { flex: 0 0 auto; min-width: 0; gap: 0; --logo-h: 58px; }
     .logo-text { font-size: 0.95rem; }
     .logo-tagline { font-size: 0.62rem; }
 
@@ -1806,33 +1802,26 @@ footer,
         margin-left: 2px;
     }
     .home-page .hero-brand-mobile {
-        --logo-h: 72px;
+        --logo-h: 80px;
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
         width: fit-content;
         max-width: 100%;
         margin: 0 auto 14px;
-        text-align: left;
-        gap: 4px;
+        text-align: center;
+        gap: 0;
     }
     .home-page .hero-brand-mobile .hero-brand-logo {
         display: block;
         height: var(--logo-h);
         width: auto;
-        max-width: min(340px, 92vw);
+        max-width: min(380px, 94vw);
         object-fit: contain;
     }
-    .home-page .hero-brand-mobile .logo-text {
-        display: none;
-    }
+    .home-page .hero-brand-mobile .logo-text,
     .home-page .hero-brand-mobile .logo-tagline {
-        white-space: normal;
-        font-size: 0.78rem;
-        margin: 0;
-        padding-left: var(--logo-h);
-        box-sizing: border-box;
-        max-width: min(340px, 92vw);
+        display: none;
     }
     .home-page .hero {
         min-height: calc(100dvh - 64px);
