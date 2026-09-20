@@ -1297,13 +1297,47 @@ function isEmptyCatalogValue(value) {
   return false;
 }
 
+/** INPI: marca é Sensor TattooFix (Tattoo+Fix juntos). Corrige grafia antiga no KV. */
+function normalizeBrandSpelling(text) {
+  if (typeof text !== 'string') return text;
+  if (!/tattoo\s+fix/i.test(text)) return text;
+  return text
+    .replace(/Tattoo Fix/g, 'TattooFix')
+    .replace(/tattoo fix/g, 'tattoofix')
+    .replace(/TATTOO FIX/g, 'TATTOOFIX');
+}
+
+function normalizeBrandInValue(value) {
+  if (typeof value === 'string') return normalizeBrandSpelling(value);
+  if (Array.isArray(value)) return value.map(normalizeBrandInValue);
+  if (value && typeof value === 'object') {
+    const out = Array.isArray(value) ? [] : {};
+    Object.keys(value).forEach((k) => {
+      out[k] = normalizeBrandInValue(value[k]);
+    });
+    return out;
+  }
+  return value;
+}
+
+function configNeedsBrandHeal(config) {
+  try {
+    return /Tattoo Fix|tattoo fix|TATTOO FIX/.test(JSON.stringify(config || {}));
+  } catch {
+    return false;
+  }
+}
+
 function supplementKitFromSite(kvProduct, siteProduct) {
   const merged = { ...kvProduct };
   if (siteProduct?.image && isLegacyBrokenKitImage(kvProduct?.image)) {
     merged.image = siteProduct.image;
   }
-  ['nameEn', 'nameIt', 'descriptionEn', 'descriptionIt'].forEach((field) => {
-    if (!merged[field] && siteProduct?.[field]) merged[field] = siteProduct[field];
+  ['name', 'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl', 'description', 'descriptionEn', 'descriptionIt'].forEach((field) => {
+    const siteVal = siteProduct?.[field];
+    if (!siteVal) return;
+    const cur = merged[field];
+    if (!cur || /Tattoo Fix|tattoo fix/i.test(String(cur))) merged[field] = siteVal;
   });
   return merged;
 }
@@ -1333,8 +1367,23 @@ function supplementAggregatedFromSite(kvProduct, siteProduct) {
     'priceEur'
   ];
   catalogFields.forEach((field) => {
-    if (!isEmptyCatalogValue(merged[field])) return;
+    if (!isEmptyCatalogValue(merged[field])) {
+      if (
+        typeof merged[field] === 'string' &&
+        /Tattoo Fix|tattoo fix/i.test(merged[field]) &&
+        siteProduct[field] != null
+      ) {
+        merged[field] = siteProduct[field];
+      }
+      return;
+    }
     if (siteProduct[field] != null) merged[field] = siteProduct[field];
+  });
+  ['name', 'nameDe', 'nameEs', 'namePl', 'nameSl', 'description'].forEach((field) => {
+    const siteVal = siteProduct?.[field];
+    if (!siteVal) return;
+    const cur = merged[field];
+    if (!cur || /Tattoo Fix|tattoo fix/i.test(String(cur))) merged[field] = siteVal;
   });
   if (
     Array.isArray(siteProduct.compatibleWatchModels) &&
@@ -1459,7 +1508,7 @@ async function fetchSiteCatalog() {
 async function getPublicConfig(env) {
   const config = await getConfig(env);
   const site = await fetchSiteCatalog();
-  return mergeSiteCatalog(config, site);
+  return normalizeBrandInValue(mergeSiteCatalog(config, site));
 }
 
 function normalizeApiBaseUrl(api) {
@@ -6871,11 +6920,26 @@ async function asaasReadJson(res, step) {
 async function getConfig(env) {
   const raw = await env.STORE_KV.get(CONFIG_KEY);
   if (!raw) return structuredClone(DEFAULT_CONFIG);
-  try { return withConfigDefaults(JSON.parse(raw)); } catch { return structuredClone(DEFAULT_CONFIG); }
+  let config;
+  try {
+    config = withConfigDefaults(JSON.parse(raw));
+  } catch {
+    return structuredClone(DEFAULT_CONFIG);
+  }
+  if (configNeedsBrandHeal(config)) {
+    const healed = normalizeBrandInValue(config);
+    try {
+      await kvPut(env, CONFIG_KEY, JSON.stringify({ ...healed, updatedAt: new Date().toISOString() }));
+    } catch {
+      /* leitura pública ainda devolve healed mesmo se o PUT falhar */
+    }
+    return healed;
+  }
+  return config;
 }
 
 async function saveConfig(env, config) {
-  const normalized = withConfigDefaults(config);
+  const normalized = normalizeBrandInValue(withConfigDefaults(config));
   const toSave = { ...normalized, updatedAt: new Date().toISOString() };
   await kvPut(env, CONFIG_KEY, JSON.stringify(toSave));
   return toSave;
