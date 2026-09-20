@@ -58,7 +58,7 @@ Atualizado em: 2026-06-20
 
 1. **Problema:** relógio não reconhece pulso, pede senha, pausa treino, batimentos zerados
 2. **Inimigo:** paliativos (esparadrapo, resina, desativar sensor)
-3. **Solução:** lente ótica Sensor Tattoo Fix — patente, à prova d’água, sem desligar funções
+3. **Solução:** lente ótica Sensor TattooFix — patente, à prova d’água, sem desligar funções
 4. **Prova:** reviews 5★ (Google, ML, Shopee, Amazon, TikTok, Portugal)
 
 ### 2.2 Formatos a produzir ⬜
@@ -90,7 +90,7 @@ Atualizado em: 2026-06-20
 
 ## 3. Produtos e catálogo
 
-### 3.1 Kit Sensor Tattoo Fix (herói) ✅ catálogo · ⬜ marketing
+### 3.1 Kit Sensor TattooFix (herói) ✅ catálogo · ⬜ marketing
 
 - Preço: R$ 62,90
 - [ ] Fotos lifestyle (pulso tatuado, aplicação, antes/depois na tela do relógio)

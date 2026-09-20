@@ -65,13 +65,13 @@ export function parseModelJson(raw) {
 function systemPrompt(targetLang, kind) {
   const meta = LANG_NATIVE[targetLang] || LANG_NATIVE.en;
   const kindHint = kind === 'faq'
-    ? 'This is a product FAQ for an optical lens that restores smartwatch sensors on tattooed skin. Keep HTML tags (<strong>, <a href="...">) intact. Keep brand names (Sensor Tattoo Fix, Apple Watch, Garmin, Samsung, PayPal). Adapt how locals talk about watches, tattoos, payments and shipping — not a literal translation.'
+    ? 'This is a product FAQ for an optical lens that restores smartwatch sensors on tattooed skin. Keep HTML tags (<strong>, <a href="...">) intact. Keep brand names (Sensor TattooFix, Apple Watch, Garmin, Samsung, PayPal). Adapt how locals talk about watches, tattoos, payments and shipping — not a literal translation.'
     : kind === 'review'
       ? 'This is a short customer testimonial. Keep the person\'s name as-is. Sound like a real local review, not marketing copy.'
       : kind === 'product'
-        ? 'This is a product name and short description. Keep brand names (Sensor Tattoo Fix, SensorTattooFix, Apple Watch, Garmin, Samsung). If the source says "Kit", keep the commercial meaning of a kit; if it says "Lens"/"Lente", keep it as lens-only — never turn a kit into a lens or vice versa. Do not add accessories (liquid, cloth, stick) that are not in the source.'
+        ? 'This is a product name and short description. Keep brand names (Sensor TattooFix, SensorTattooFix, Apple Watch, Garmin, Samsung). If the source says "Kit", keep the commercial meaning of a kit; if it says "Lens"/"Lente", keep it as lens-only — never turn a kit into a lens or vice versa. Do not add accessories (liquid, cloth, stick) that are not in the source.'
         : 'This is a community forum post or reply written by a customer. Keep the original meaning, tone and any product/model names. Write how a native in that country would write a forum comment — informal if the source is informal.';
-  return `You are a native ${meta.name} copywriter for Sensor Tattoo Fix (${meta.region}).
+  return `You are a native ${meta.name} copywriter for Sensor TattooFix (${meta.region}).
 ${kindHint}
 Return ONLY a JSON object with the same keys as the input. No markdown, no commentary.
 Do not invent facts. Do not drop links or @handles.

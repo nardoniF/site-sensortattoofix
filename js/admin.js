@@ -3,14 +3,14 @@
   const bootstrap = window.CONFIG_BOOTSTRAP || {};
 
   const DEFAULT_EMAILS = {
-    from: 'Sensor Tattoo Fix <pedidos@sensortattoofix.com.br>',
+    from: 'Sensor TattooFix <pedidos@sensortattoofix.com.br>',
     shopPaidSubject: 'PAGO — {orderId}',
-    customerOrderSubject: 'Pedido {orderId} registrado — Sensor Tattoo Fix',
-    customerPixSubject: 'PIX do pedido {orderId} — Sensor Tattoo Fix',
+    customerOrderSubject: 'Pedido {orderId} registrado — Sensor TattooFix',
+    customerPixSubject: 'PIX do pedido {orderId} — Sensor TattooFix',
     customerPaidSubject: 'Pagamento confirmado — {orderId}',
     motoboySubject: 'Entrega motoboy — {orderId}',
-    couponSubject: 'Você vendeu com seu cupom — comissão {amount} — Sensor Tattoo Fix',
-    testSubject: 'Teste — Sensor Tattoo Fix',
+    couponSubject: 'Você vendeu com seu cupom — comissão {amount} — Sensor TattooFix',
+    testSubject: 'Teste — Sensor TattooFix',
     testTo: '',
     pendingPaypal: 'Finalize o pagamento no PayPal. Você receberá outro e-mail quando o pagamento for confirmado.',
     pendingCard: 'Finalize o pagamento no link enviado. Você receberá outro e-mail quando o pagamento for confirmado.',
@@ -26,7 +26,7 @@
     abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
     abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
     abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
-    abandonedWeeklyIntro: 'Passou uma semana e seu pedido ainda aguarda pagamento. Se ainda quiser o Sensor Tattoo Fix, é só concluir pelo link.',
+    abandonedWeeklyIntro: 'Passou uma semana e seu pedido ainda aguarda pagamento. Se ainda quiser o Sensor TattooFix, é só concluir pelo link.',
     abandonedCta: 'Finalizar meu pedido',
     pixGreeting: 'Olá, {nome}!',
     pixIntro: 'Seu pedido {orderId} foi registrado. Para concluir a compra, pague o PIX abaixo:',
@@ -6093,7 +6093,7 @@ ${worksheets}
           ...intlMain.map((p) => ({ ...p, markets: ['INT'], aggregated: false }))
         ];
         renderProducts(rebuilt.length ? rebuilt : [{
-          id: 'kit-sensor-tattoofix', slug: 'kit-sensor-tattoofix', name: 'Kit Sensor Tattoo Fix',
+          id: 'kit-sensor-tattoofix', slug: 'kit-sensor-tattoofix', name: 'Kit Sensor TattooFix',
           description: '', price: 62.9, image: '/images/brand/sensortattoofix.jpg', active: true,
           requiresSmartwatch: true, weightGrams: 3, sensorMm: 25, markets: ['BR']
         }]);
@@ -8287,7 +8287,7 @@ ${worksheets}
     all.push({
       id: 'lente-br-' + Date.now(),
       slug: 'lente-br-' + Date.now(),
-      name: 'Nova lente Sensor Tattoo Fix',
+      name: 'Nova lente Sensor TattooFix',
       description: '',
       price: 62.9,
       image: '/images/brand/sensortattoofix.jpg',

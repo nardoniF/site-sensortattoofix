@@ -368,7 +368,7 @@
   }
 
   function applyListSeo() {
-    const title = ft('title') + ' | Sensor Tattoo Fix';
+    const title = ft('title') + ' | Sensor TattooFix';
     document.title = title;
     setMeta('description', document.querySelector('meta[name="description"]')?.content || title);
     setCanonical(location.origin + location.pathname);
@@ -379,7 +379,7 @@
       '@type': 'DiscussionForumPosting',
       name: title,
       url: location.origin + location.pathname,
-      isPartOf: { '@type': 'WebSite', name: 'Sensor Tattoo Fix', url: location.origin + '/' }
+      isPartOf: { '@type': 'WebSite', name: 'Sensor TattooFix', url: location.origin + '/' }
     });
   }
 
@@ -387,7 +387,7 @@
     if (!thread) return;
     const slug = thread.slug || thread.id;
     const url = absoluteThreadUrl(slug);
-    const title = `${thread.title} | ${ft('title')} | Sensor Tattoo Fix`;
+    const title = `${thread.title} | ${ft('title')} | Sensor TattooFix`;
     const description = String(thread.body || thread.excerpt || thread.title || '').replace(/\s+/g, ' ').trim().slice(0, 160);
     document.title = title;
     setMeta('description', description);
@@ -919,7 +919,7 @@
     await ensureForumL10n();
     window.STF_I18N?.applyShellDom?.();
     if (window.STF_I18N?.t) {
-      document.title = `${ft('title')} (beta) | Sensor Tattoo Fix`;
+      document.title = `${ft('title')} (beta) | Sensor TattooFix`;
     }
     const loading = el('forum-root');
     if (loading && loading.querySelector('.fa-spinner')) {

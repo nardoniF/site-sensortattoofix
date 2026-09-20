@@ -1,6 +1,6 @@
 window.STF_ORDER_LABEL = (function () {
   const FALLBACK_SENDER = {
-    brand: 'Sensor Tattoo Fix',
+    brand: 'Sensor TattooFix',
     company: '3N20 Soluções Tecnológicas LTDA',
     cnpj: '29.321.223/0001-32',
     street: 'Rua Engenheiro Roberto Dabus Buazar, 56',
@@ -158,7 +158,7 @@ window.STF_ORDER_LABEL = (function () {
       <p class="dace-legal">
         Declaro, para fins de fiscalização e postagem, que as informações acima são verdadeiras,
         que o conteúdo não é restrito ou proibido pelos Correios e que a mercadoria foi adquirida
-        por meio eletrônico (loja oficial Sensor Tattoo Fix). O destinatário é o comprador indicado.
+        por meio eletrônico (loja oficial Sensor TattooFix). O destinatário é o comprador indicado.
         Documento auxiliar — não substitui Nota Fiscal quando exigida por lei.
       </p>
 
@@ -331,7 +331,7 @@ window.STF_ORDER_LABEL = (function () {
 </head>
 <body>
   <div class="label">
-    <div class="brand">SENSOR TATTOO FIX</div>
+    <div class="brand">SENSOR TATTOOFIX</div>
 
     <div class="block block-sender">
       <div class="block-title">Remetente</div>

@@ -100,7 +100,7 @@ async function localizeFields(token, { sourceLang, fields, targetLang }) {
   const raw = await runAi(token, [
     {
       role: 'system',
-      content: `You are a native ${LANG_NATIVE[targetLang] || targetLang} copywriter for Sensor Tattoo Fix community forum.
+      content: `You are a native ${LANG_NATIVE[targetLang] || targetLang} copywriter for Sensor TattooFix community forum.
 Return ONLY a JSON object with the same keys as the input. No markdown, no commentary.
 Keep product/model names. Write how a native would write a forum post.`
     },
