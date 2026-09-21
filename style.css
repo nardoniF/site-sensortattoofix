@@ -58,6 +58,7 @@ nav,
 }
 
 .logo-img-link {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -68,6 +69,30 @@ nav,
     border-radius: 0;
     overflow: visible;
     background: transparent;
+}
+
+/* Cobre o jargão PT gravado na arte e escreve o da língua (mesmo italic/tamanho) */
+.logo-slogan-cover {
+    position: absolute;
+    left: 37.2%;
+    right: 0;
+    bottom: 0;
+    height: 19.4%;
+    background: #000;
+    color: #d4d4d4;
+    font-family: 'Inter', sans-serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: calc(var(--logo-h, 96px) * 0.066);
+    letter-spacing: 0.01em;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 1.5% 1.1% 1.4%;
+    white-space: nowrap;
+    pointer-events: none;
+    overflow: hidden;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.28);
 }
 
 .main-logo-img {
@@ -117,6 +142,7 @@ nav,
 
 .hero-brand-mobile {
     display: none;
+    position: relative;
 }
 
 .nav-panel {

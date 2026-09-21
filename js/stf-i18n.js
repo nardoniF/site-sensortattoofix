@@ -1578,6 +1578,25 @@ window.STF_I18N = (function () {
     if (footer) footer.dataset.lang = getLang();
   }
 
+  function mountLogoSloganCover() {
+    const lang = getLang();
+    if (!lang || lang === 'pt') return;
+    const text = t('brand.tagline');
+    if (!text) return;
+    document.querySelectorAll('.logo-img-link, .hero-brand-mobile').forEach((host) => {
+      const img = host.querySelector('img');
+      if (!img || /logo-mark/i.test(img.getAttribute('src') || '')) return;
+      let cover = host.querySelector(':scope > .logo-slogan-cover');
+      if (!cover) {
+        cover = document.createElement('span');
+        cover.className = 'logo-slogan-cover';
+        cover.setAttribute('aria-hidden', 'true');
+        host.appendChild(cover);
+      }
+      cover.textContent = text;
+    });
+  }
+
   function init() {
     ensureExtraStrings();
     try {
@@ -1585,6 +1604,7 @@ window.STF_I18N = (function () {
     } catch (e) {
       setLang(getPathLang());
     }
+    mountLogoSloganCover();
     if (document.body?.classList.contains('checkout-page') && !document.body?.classList.contains('conta-page')) applyCheckoutDom();
     if (document.body?.classList.contains('loja-page')) applyLojaDom();
     if (document.body?.classList.contains('conta-page')) applyContaDom();
