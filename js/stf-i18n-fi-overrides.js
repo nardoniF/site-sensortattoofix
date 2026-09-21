@@ -1,6 +1,6 @@
 /** Finnish overrides — merged onto STRINGS.en in stf-i18n.js */
 window.STF_I18N_FI = {
-  'brand.tagline': 'Sopusointu musteen ja piin välillä',
+  'brand.tagline': 'Rauha musteen ja piin välillä',
   'nav.cart': 'Ostoskori',
   'nav.back': 'Takaisin',
   'nav.home': 'Etusivu',

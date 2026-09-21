@@ -1,6 +1,6 @@
 /** French overrides — merged onto STRINGS.en in stf-i18n.js */
 window.STF_I18N_FR = {
-  'brand.tagline': 'Harmonie entre encre et silicium',
+  'brand.tagline': 'La paix entre l'encre et le silicium',
   'nav.cart': 'Panier',
   'nav.back': 'Retour',
   'nav.home': 'Accueil',

@@ -1,6 +1,6 @@
 /** Polish overrides — merged onto STRINGS.en in stf-i18n.js */
 window.STF_I18N_PL = {
-  'brand.tagline': 'Pokój między tuszem a krzemem',
+  'brand.tagline': 'Pokój między tuszem a silikonem',
   'nav.cart': 'Koszyk',
   'nav.back': 'Wstecz',
   'nav.home': 'Strona główna',

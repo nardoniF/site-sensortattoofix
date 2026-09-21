@@ -1,6 +1,6 @@
 /** Swedish overrides — merged onto STRINGS.en in stf-i18n.js */
 window.STF_I18N_SV = {
-  'brand.tagline': 'Harmoni mellan bläck och kisel',
+  'brand.tagline': 'Freden mellan bläck och kisel',
   'nav.cart': 'Varukorg',
   'nav.back': 'Tillbaka',
   'nav.home': 'Hem',

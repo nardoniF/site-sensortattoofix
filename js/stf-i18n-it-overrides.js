@@ -1,6 +1,6 @@
 /** Italian overrides — merged onto STRINGS.en in stf-i18n.js */
 window.STF_I18N_IT = {
-  'brand.tagline': 'Pace tra inchiostro e silicio',
+  'brand.tagline': 'Pace tra l'inchiostro e il silicio',
   'nav.cart': 'Carrello',
   'nav.back': 'Indietro',
   'nav.home': 'Home',

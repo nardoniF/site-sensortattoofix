@@ -1,6 +1,6 @@
 /** Norwegian (Bokmål) overrides — merged onto STRINGS.en in stf-i18n.js */
 window.STF_I18N_NO = {
-  'brand.tagline': 'Harmoni mellom blekk og silisium',
+  'brand.tagline': 'Freden mellom blekk og silisium',
   'nav.cart': 'Handlekurv',
   'nav.back': 'Tilbake',
   'nav.home': 'Hjem',

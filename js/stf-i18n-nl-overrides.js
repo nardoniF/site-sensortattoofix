@@ -1,6 +1,6 @@
 /** Dutch overrides — merged onto STRINGS.en in stf-i18n.js */
 window.STF_I18N_NL = {
-  'brand.tagline': 'Harmonie tussen inkt en silicium',
+  'brand.tagline': 'De vrede tussen inkt en silicon',
   'nav.cart': 'Winkelwagen',
   'nav.back': 'Terug',
   'nav.home': 'Home',

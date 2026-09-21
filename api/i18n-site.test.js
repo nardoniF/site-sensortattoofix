@@ -412,7 +412,7 @@ test('sl/index.html sem blocos alemães óbvios', () => {
   const DE_SNIPPETS = ['Das Problem', 'Jetzt kaufen', 'Über uns', 'Häufig gestellte Fragen', 'Offizieller Shop'];
   const found = DE_SNIPPETS.filter((s) => html.includes(s));
   assert.equal(found.length, 0, `sl/index.html: ${found.join(', ')}`);
-  assert.match(html, /Mir med tinto in silicijem/, 'sl/index tagline');
+  assert.match(html, /Mir med čilom in silicijem/, 'sl/index tagline');
 });
 
 test('hreflang: homes intl canônicas no .com; PT no .com.br', () => {

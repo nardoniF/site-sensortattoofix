@@ -71,61 +71,6 @@ nav,
     background: transparent;
 }
 
-/* Cobre o jargão PT da arte e escreve o da língua no mesmo corpo da arte:
-   Inter Medium Italic ≈ 44px na arte de 411px → 0.107 × --logo-h.
-   content só nas regras por idioma (senão :not([lang]) apaga a frase). */
-html:not([lang="pt"]):not([lang="pt-BR"]):not([lang="pt-br"]) .logo-img-link::after,
-html:not([lang="pt"]):not([lang="pt-BR"]):not([lang="pt-br"]) .hero-brand-mobile::after,
-.logo-slogan-cover {
-    position: absolute;
-    left: 39%;
-    bottom: 6%;
-    height: 14%;
-    width: max-content;
-    min-width: 58%;
-    max-width: none;
-    box-sizing: border-box;
-    background: #000;
-    color: #d5d0c6;
-    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-    font-style: italic;
-    font-weight: 500;
-    letter-spacing: 0;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0 0.2em 0 0;
-    white-space: nowrap;
-    pointer-events: none;
-    overflow: visible;
-    z-index: 2;
-    text-shadow: none;
-}
-/* Mesmo corpo do PT; frases mais longas só encolhem o necessário para caber na faixa. */
-html[lang="en"] .logo-img-link::after,
-html[lang="en"] .hero-brand-mobile::after { content: "Peace between ink and silicon"; font-size: calc(var(--logo-h, 96px) * 0.100); }
-html[lang="it"] .logo-img-link::after,
-html[lang="it"] .hero-brand-mobile::after { content: "Pace tra inchiostro e silicio"; font-size: calc(var(--logo-h, 96px) * 0.107); }
-html[lang="de"] .logo-img-link::after,
-html[lang="de"] .hero-brand-mobile::after { content: "Harmonie zwischen Tinte und Silizium"; font-size: calc(var(--logo-h, 96px) * 0.079); }
-html[lang="es"] .logo-img-link::after,
-html[lang="es"] .hero-brand-mobile::after { content: "Paz entre tinta y silicio"; font-size: calc(var(--logo-h, 96px) * 0.107); }
-html[lang="pl"] .logo-img-link::after,
-html[lang="pl"] .hero-brand-mobile::after { content: "Pokój między tuszem a krzemem"; font-size: calc(var(--logo-h, 96px) * 0.092); }
-html[lang="sl"] .logo-img-link::after,
-html[lang="sl"] .hero-brand-mobile::after { content: "Mir med tinto in silicijem"; font-size: calc(var(--logo-h, 96px) * 0.107); }
-html[lang="fr"] .logo-img-link::after,
-html[lang="fr"] .hero-brand-mobile::after { content: "Harmonie entre encre et silicium"; font-size: calc(var(--logo-h, 96px) * 0.094); }
-html[lang="nl"] .logo-img-link::after,
-html[lang="nl"] .hero-brand-mobile::after { content: "Harmonie tussen inkt en silicium"; font-size: calc(var(--logo-h, 96px) * 0.094); }
-html[lang="sv"] .logo-img-link::after,
-html[lang="sv"] .hero-brand-mobile::after { content: "Harmoni mellan bläck och kisel"; font-size: calc(var(--logo-h, 96px) * 0.097); }
-html[lang="no"] .logo-img-link::after,
-html[lang="no"] .hero-brand-mobile::after { content: "Harmoni mellom blekk og silisium"; font-size: calc(var(--logo-h, 96px) * 0.090); }
-html[lang="fi"] .logo-img-link::after,
-html[lang="fi"] .hero-brand-mobile::after { content: "Sopusointu musteen ja piin välillä"; font-size: calc(var(--logo-h, 96px) * 0.090); }
-
 .main-logo-img {
     width: auto;
     height: 100%;
