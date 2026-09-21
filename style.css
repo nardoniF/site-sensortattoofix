@@ -337,7 +337,7 @@ nav,
 html[lang="it"] .site-nav { gap: 10px; }
 html[lang="it"] .logo-text { font-size: 1.18rem; }
 html[lang="it"] .logo-tagline { font-size: 0.72rem; }
-html[lang="it"] .logo-area { --logo-h: 82px; }
+html[lang="it"] .logo-area { --logo-h: 96px; }
 html[lang="it"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
 html[lang="it"] .nav-actions { gap: 6px; }
 
