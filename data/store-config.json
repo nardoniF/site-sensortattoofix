@@ -1,8 +1,8 @@
 {
   "product": {
-    "name": "Kit Sensor Tattoo Fix",
-    "nameEn": "Sensor Tattoo Fix Lens",
-    "nameIt": "Lente Sensor Tattoo Fix",
+    "name": "Kit Sensor TattooFix",
+    "nameEn": "Sensor TattooFix Lens",
+    "nameIt": "Lente Sensor TattooFix",
     "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
     "descriptionEn": "Optical lens for smartwatches on tattooed skin",
     "descriptionIt": "Lente ottica per smartwatch su pelle tatuata",
@@ -13,9 +13,9 @@
     {
       "id": "kit-sensor-tattoofix",
       "slug": "kit-sensor-tattoofix",
-      "name": "Kit Sensor Tattoo Fix",
-      "nameEn": "Sensor Tattoo Fix Lens",
-      "nameIt": "Lente Sensor Tattoo Fix",
+      "name": "Kit Sensor TattooFix",
+      "nameEn": "Sensor TattooFix Lens",
+      "nameIt": "Lente Sensor TattooFix",
       "description": "Lente ótica para smartwatch em pele tatuada — kit completo",
       "descriptionEn": "Optical lens for smartwatches on tattooed skin",
       "descriptionIt": "Lente ottica per smartwatch su pelle tatuata",
@@ -29,10 +29,24 @@
       "markets": [
         "BR"
       ],
-      "nameDe": "Sensor Tattoo Fix Lens",
-      "nameEs": "Sensor Tattoo Fix Lens",
-      "namePl": "Sensor Tattoo Fix Lens",
-      "nameSl": "Sensor Tattoo Fix Lens"
+      "nameDe": "Sensor TattooFix Lens",
+      "nameEs": "Sensor TattooFix Lens",
+      "namePl": "Sensor TattooFix Lens",
+      "nameSl": "Sensor TattooFix Lens",
+      "nameFr": "Lentille Sensor TattooFix",
+      "descriptionFr": "Lentille optique pour smartwatch sur peau tatouée",
+      "nameNl": "Sensor TattooFix Lens",
+      "descriptionNl": "Optische lens voor smartwatches op getatoeëerde huid",
+      "nameSv": "Sensor TattooFix-lins",
+      "descriptionSv": "Optisk lins för smartklockor på tatuerad hud",
+      "nameNo": "Sensor TattooFix-linse",
+      "descriptionNo": "Optisk linse for smartklokker på tatovert hud",
+      "nameFi": "Sensor TattooFix -linssi",
+      "descriptionFi": "Optinen linssi älykelloille tatuoidulle iholle",
+      "descriptionDe": "Optische Linse für Smartwatches auf tätowierter Haut",
+      "descriptionEs": "Lente óptica para smartwatches en piel tatuada",
+      "descriptionPl": "Soczewka optyczna do smartwatchy na tatuowanej skórze",
+      "descriptionSl": "Optična leča za pametne ure na tetovirani koži"
     },
     {
       "id": "kit-smartband-tattoofix",
@@ -63,7 +77,21 @@
       "nameDe": "Kit Smartband Tattoo Friendly",
       "nameEs": "Kit Smartband Tattoo Friendly",
       "namePl": "Kit Smartband Tattoo Friendly",
-      "nameSl": "Kit Smartband Tattoo Friendly"
+      "nameSl": "Kit Smartband Tattoo Friendly",
+      "nameFr": "Kit Smartband Tattoo Friendly",
+      "descriptionFr": "Lentille optique pour smartband sur peau tatouée — kit complet",
+      "nameNl": "Kit Smartband Tattoo Friendly",
+      "descriptionNl": "Optische lens voor smartbands op getatoeëerde huid — complete kit",
+      "nameSv": "Kit Smartband Tattoo Friendly",
+      "descriptionSv": "Optisk lins för smartbands på tatuerad hud — komplett kit",
+      "nameNo": "Kit Smartband Tattoo Friendly",
+      "descriptionNo": "Optisk linse for smartbånd på tatovert hud — komplett sett",
+      "nameFi": "Kit Smartband Tattoo Friendly",
+      "descriptionFi": "Optinen linssi älyrannekkeille tatuoidulle iholle — täysi paketti",
+      "descriptionDe": "Optische Linse für Smartbands auf tätowierter Haut — komplettes Kit",
+      "descriptionEs": "Lente óptica para smartbands en piel tatuada — kit completo",
+      "descriptionPl": "Soczewka optyczna do opasek na tatuowanej skórze — pełny zestaw",
+      "descriptionSl": "Optična leča za pametne zapestnice na tetovirani koži — komplet"
     },
     {
       "id": "optical-lens-smartband-intl",
@@ -73,17 +101,17 @@
       "nameIt": "Lente Smartband SensorTattooFix",
       "nameDe": "SensorTattooFix Smartband-Linse",
       "nameEs": "Lente Smartband SensorTattooFix",
-      "namePl": "Soczewka Smartband SensorTattooFix",
+      "namePl": "Soczewka SensorTattooFix do opasek",
       "deviceType": "smartband",
       "description": "Lente de correção óptica para smartband em pele tatuada.",
       "descriptionEn": "Designed for smartband optical sensors on tattooed skin.",
       "descriptionIt": "Progettata per i sensori ottici degli smartband su pelle tatuata.",
       "descriptionDe": "Entwickelt für optische Sensoren von Smartbands auf tätowierter Haut.",
       "descriptionEs": "Diseñada para sensores ópticos de smartband en piel tatuada.",
-      "descriptionPl": "Zaprojektowana dla czujników optycznych smartband na tatuowanej skórze.",
+      "descriptionPl": "Zaprojektowana dla czujników optycznych opasek na tatuowanej skórze.",
       "price": 62.9,
-      "priceUsd": 12.99,
-      "priceEur": 11.99,
+      "priceUsd": 20.25,
+      "priceEur": 17.42,
       "image": "/images/smartband/lens-en/01-embalagem.jpg",
       "images": [
         "/images/smartband/lens-en/01-embalagem.jpg",
@@ -100,7 +128,23 @@
       ],
       "aggregated": false,
       "nameSl": "Leča SensorTattooFix za pametno zapestnico",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih zapestnic na tetovirani koži.",
+      "intlMarkupPercent": 65,
+      "intlBaseBrl": 103.79,
+      "priceSek": 194,
+      "priceNok": 188,
+      "pricePln": 75.09,
+      "priceGbp": 14.96,
+      "nameFr": "Lentille Smartband SensorTattooFix",
+      "descriptionFr": "Conçue pour les capteurs optiques de smartband sur peau tatouée.",
+      "nameNl": "SensorTattooFix Smartband-lens",
+      "descriptionNl": "Ontworpen voor optische sensoren van smartbands op getatoeëerde huid.",
+      "nameSv": "SensorTattooFix smartband-lins",
+      "descriptionSv": "Utformad för smartbands optiska sensorer på tatuerad hud.",
+      "nameNo": "SensorTattooFix smartband-linse",
+      "descriptionNo": "Designet for smartbånds optiske sensorer på tatovert hud.",
+      "nameFi": "SensorTattooFix-älyrannekkeen linssi",
+      "descriptionFi": "Suunniteltu älyrannekkeiden optisille antureille tatuoidulle iholle."
     },
     {
       "id": "optical-lens-intl",
@@ -117,9 +161,9 @@
       "descriptionDe": "Entwickelt für optische Sensoren von Smartwatches auf tätowierter Haut.",
       "descriptionEs": "Diseñada para sensores ópticos de smartwatch en piel tatuada.",
       "descriptionPl": "Zaprojektowana dla czujników optycznych smartwatcha na tatuowanej skórze.",
-      "price": 62.9,
-      "priceUsd": 12.99,
-      "priceEur": 11.99,
+      "price": 72.9,
+      "priceUsd": 23.47,
+      "priceEur": 20.19,
       "image": "/images/lens-gallery/01-optical-correction-lens.png",
       "images": [
         "/images/lens-gallery/01-optical-correction-lens.png",
@@ -140,7 +184,23 @@
       ],
       "aggregated": false,
       "nameSl": "Optična leča SensorTattooFix",
-      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži."
+      "descriptionSl": "Zasnovana za optične senzorje pametnih ur na tetovirani koži.",
+      "intlMarkupPercent": 65,
+      "intlBaseBrl": 120.29,
+      "priceSek": 225,
+      "priceNok": 218,
+      "pricePln": 87.03,
+      "priceGbp": 17.34,
+      "nameFr": "Lentille optique SensorTattooFix",
+      "descriptionFr": "Conçue pour les capteurs optiques de smartwatch sur peau tatouée.",
+      "nameNl": "SensorTattooFix Optische Lens",
+      "descriptionNl": "Ontworpen voor optische sensoren van smartwatches op getatoeëerde huid.",
+      "nameSv": "SensorTattooFix optisk lins",
+      "descriptionSv": "Utformad för smartklockors optiska sensorer på tatuerad hud.",
+      "nameNo": "SensorTattooFix optisk linse",
+      "descriptionNo": "Designet for smartklokkers optiske sensorer på tatovert hud.",
+      "nameFi": "SensorTattooFix-optinen linssi",
+      "descriptionFi": "Suunniteltu älykellojen optisille antureille tatuoidulle iholle."
     },
     {
       "id": "pelicula-amazfit-bip-2",
@@ -561,8 +621,8 @@
       "slug": "pelicula-apple-45mm",
       "name": "Película de tela — Apple Watch 45mm",
       "nameEn": "Screen protector — Apple Watch 45mm",
-      "description": "Película de alta qualidade — protege a tela e combina com o envio do seu kit Sensor Tattoo Fix.",
-      "descriptionEn": "High-quality film — protects your screen and ships with your Sensor Tattoo Fix kit.",
+      "description": "Película de alta qualidade — protege a tela e combina com o envio do seu kit Sensor TattooFix.",
+      "descriptionEn": "High-quality film — protects your screen and ships with your Sensor TattooFix kit.",
       "price": 20,
       "image": "/images/produtos/pelicula-apple-45mm.svg",
       "active": true,
@@ -1550,7 +1610,7 @@
     "intlServiceCode": "45128",
     "serviceName": "Mini Envios",
     "sender": {
-      "brand": "Sensor Tattoo Fix",
+      "brand": "Sensor TattooFix",
       "company": "3N20 Soluções Tecnológicas LTDA",
       "cnpj": "29.321.223/0001-32",
       "rua": "Rua Engenheiro Roberto Dabus Buazar",
@@ -3068,7 +3128,7 @@
   },
   "formsubmit": {
     "email": "contato@sensortattoofix.com.br",
-    "subject": "Novo pedido — Loja Oficial Sensor Tattoo Fix"
+    "subject": "Novo pedido — Loja Oficial Sensor TattooFix"
   },
   "whatsapp": "5511913394665",
   "siteUrl": "https://www.sensortattoofix.com.br",
@@ -5563,9 +5623,9 @@
       "question": "Por que meu smartwatch pede senha o tempo todo?",
       "questionEn": "Why does my smartwatch ask for the passcode all the time?",
       "questionIt": "Perché il mio smartwatch chiede il codice di continuo?",
-      "answer": "Quando o sensor ótico não detecta fluxo sanguíneo no pulso, o relógio entende que foi removido e exige a senha de novo — no Apple Watch isso pode ocorrer <strong>a cada 10 segundos</strong>. Em braços tatuados, a tinta bloqueia a luz do sensor; o relógio ativa o bloqueio por PIN e acha que saiu do braço. A lente Sensor Tattoo Fix restaura a leitura e para o bloqueio constante.",
-      "answerEn": "When the optical sensor can't detect blood flow on your wrist, the watch assumes it was removed and asks for the passcode again — on Apple Watch this can happen <strong>every 10 seconds</strong>. On tattooed skin, ink blocks the sensor light; the watch activates PIN lock and thinks it left your arm. The Sensor Tattoo Fix lens restores the reading and stops constant lockouts.",
-      "answerIt": "Quando il sensore ottico non rileva il flusso sanguigno al polso, l'orologio pensa di essere stato rimosso e chiede di nuovo il codice — su Apple Watch può succedere <strong>ogni 10 secondi</strong>. Su pelle tatuata, l'inchiostro blocca la luce del sensore; l'orologio attiva il blocco PIN e pensa di essere uscito dal braccio. La lente Sensor Tattoo Fix ripristina la lettura e ferma i blocchi continui.",
+      "answer": "Quando o sensor ótico não detecta fluxo sanguíneo no pulso, o relógio entende que foi removido e exige a senha de novo — no Apple Watch isso pode ocorrer <strong>a cada 10 segundos</strong>. Em braços tatuados, a tinta bloqueia a luz do sensor; o relógio ativa o bloqueio por PIN e acha que saiu do braço. A lente Sensor TattooFix restaura a leitura e para o bloqueio constante.",
+      "answerEn": "When the optical sensor can't detect blood flow on your wrist, the watch assumes it was removed and asks for the passcode again — on Apple Watch this can happen <strong>every 10 seconds</strong>. On tattooed skin, ink blocks the sensor light; the watch activates PIN lock and thinks it left your arm. The Sensor TattooFix lens restores the reading and stops constant lockouts.",
+      "answerIt": "Quando il sensore ottico non rileva il flusso sanguigno al polso, l'orologio pensa di essere stato rimosso e chiede di nuovo il codice — su Apple Watch può succedere <strong>ogni 10 secondi</strong>. Su pelle tatuata, l'inchiostro blocca la luce del sensore; l'orologio attiva il blocco PIN e pensa di essere uscito dal braccio. La lente Sensor TattooFix ripristina la lettura e ferma i blocchi continui.",
       "media": {
         "type": "instagram",
         "instagramPermalink": "https://www.instagram.com/reel/DYrIqC-F4DM/"
@@ -5578,9 +5638,9 @@
       "question": "Por que meu smartwatch não mede batimentos cardíacos na tatuagem?",
       "questionEn": "Why won't my smartwatch measure heart rate on tattooed skin?",
       "questionIt": "Perché il mio smartwatch non misura la frequenza cardiaca sulla pelle tatuata?",
-      "answer": "O sensor usa luz para medir o fluxo sanguíneo. Tatuagem densa, cicatriz ou pigmentação escura impede o retorno do sinal — batimentos ficam zerados, imprecisos, somem no meio do treino ou o relógio para de monitorar. A lente Sensor Tattoo Fix corrige a leitura sem desativar o sensor.",
-      "answerEn": "The sensor uses light to measure blood flow. Dense tattoos, scars or dark pigment block the return signal — heart rate shows zero, inaccurate readings, drops mid-workout or the watch stops monitoring entirely. The Sensor Tattoo Fix lens fixes the reading without disabling the sensor.",
-      "answerIt": "Il sensore usa la luce per misurare il flusso sanguigno. Tatuaggi densi, cicatrici o pigmento scuro bloccano il segnale — il battito resta a zero, impreciso, scompare a metà allenamento o l'orologio smette di monitorare. La lente Sensor Tattoo Fix corregge la lettura senza disattivare il sensore.",
+      "answer": "O sensor usa luz para medir o fluxo sanguíneo. Tatuagem densa, cicatriz ou pigmentação escura impede o retorno do sinal — batimentos ficam zerados, imprecisos, somem no meio do treino ou o relógio para de monitorar. A lente Sensor TattooFix corrige a leitura sem desativar o sensor.",
+      "answerEn": "The sensor uses light to measure blood flow. Dense tattoos, scars or dark pigment block the return signal — heart rate shows zero, inaccurate readings, drops mid-workout or the watch stops monitoring entirely. The Sensor TattooFix lens fixes the reading without disabling the sensor.",
+      "answerIt": "Il sensore usa la luce per misurare il flusso sanguigno. Tatuaggi densi, cicatrici o pigmento scuro bloccano il segnale — il battito resta a zero, impreciso, scompare a metà allenamento o l'orologio smette di monitorare. La lente Sensor TattooFix corregge la lettura senza disattivare il sensore.",
       "media": {
         "type": "instagram",
         "instagramPermalink": "https://www.instagram.com/p/DYWHV_0M5Bj/"
@@ -5617,9 +5677,9 @@
       "id": "faq-5",
       "active": true,
       "order": 5,
-      "question": "Como a lente da Sensor Tattoo Fix corrige o sensor?",
-      "questionEn": "How does the Sensor Tattoo Fix lens correct the sensor?",
-      "questionIt": "Come la lente Sensor Tattoo Fix corregge il sensore?",
+      "question": "Como a lente da Sensor TattooFix corrige o sensor?",
+      "questionEn": "How does the Sensor TattooFix lens correct the sensor?",
+      "questionIt": "Come la lente Sensor TattooFix corregge il sensore?",
       "answer": "Nossa tecnologia de lente foi desenvolvida especificamente para contornar o bloqueio causado pela tinta da tatuagem. Ela atua como um transmissor de alta precisão que permite que o sensor biométrico realize a leitura através da pele tatuada, mantendo todas as funções do seu relógio (pagamento, saúde e treinos) 100% operacionais.",
       "answerEn": "Our lens technology was developed specifically to bypass the blocking caused by tattoo ink. It acts as a high-precision transmitter that allows the biometric sensor to read through tattooed skin, keeping all watch functions (payments, health and workouts) 100% operational.",
       "answerIt": "La nostra tecnologia della lente è stata sviluppata specificamente per aggirare il blocco causato dall'inchiostro del tatuaggio. Agisce come un trasmettitore ad alta precisione che permette al sensore biometrico di leggere attraverso la pelle tatuata, mantenendo tutte le funzioni dell'orologio (pagamenti, salute e allenamenti) operative al 100%.",
@@ -5632,9 +5692,9 @@
       "question": "Funciona em Apple Watch?",
       "questionEn": "Does it work on Apple Watch?",
       "questionIt": "Funziona su Apple Watch?",
-      "answer": "Sim. A lente Sensor Tattoo Fix funciona em Apple Watch e em praticamente todo smartwatch que usa <strong>sensor ótico</strong> (luz verde ou infravermelho) na parte de trás do relógio — Apple, Samsung, Garmin, Xiaomi e outras marcas. O kit traz lentes nos diâmetros mais comuns. Demonstração antes e depois no Apple Watch:",
-      "answerEn": "Yes. The Sensor Tattoo Fix lens works on Apple Watch and on virtually any smartwatch that uses an <strong>optical sensor</strong> (green or infrared light) on the back — Apple, Samsung, Garmin, Xiaomi and other brands. Common sensor diameters available. Before and after demo on Apple Watch:",
-      "answerIt": "Sì. La lente Sensor Tattoo Fix funziona su Apple Watch e su praticamente tutti gli smartwatch con <strong>sensore ottico</strong> (luce verde o infrarossa) sul retro — Apple, Samsung, Garmin, Xiaomi e altri marchi. Diametri più comuni disponibili. Dimostrazione prima e dopo su Apple Watch:",
+      "answer": "Sim. A lente Sensor TattooFix funciona em Apple Watch e em praticamente todo smartwatch que usa <strong>sensor ótico</strong> (luz verde ou infravermelho) na parte de trás do relógio — Apple, Samsung, Garmin, Xiaomi e outras marcas. O kit traz lentes nos diâmetros mais comuns. Demonstração antes e depois no Apple Watch:",
+      "answerEn": "Yes. The Sensor TattooFix lens works on Apple Watch and on virtually any smartwatch that uses an <strong>optical sensor</strong> (green or infrared light) on the back — Apple, Samsung, Garmin, Xiaomi and other brands. Common sensor diameters available. Before and after demo on Apple Watch:",
+      "answerIt": "Sì. La lente Sensor TattooFix funziona su Apple Watch e su praticamente tutti gli smartwatch con <strong>sensore ottico</strong> (luce verde o infrarossa) sul retro — Apple, Samsung, Garmin, Xiaomi e altri marchi. Diametri più comuni disponibili. Dimostrazione prima e dopo su Apple Watch:",
       "media": {
         "type": "instagram",
         "instagramPermalink": "https://www.instagram.com/reel/DZQp0yqxjK1/"
@@ -5677,15 +5737,15 @@
       "question": "Epóxi ou esparadrapo funcionam? Pelo menos parcialmente?",
       "questionEn": "Do epoxy or medical tape work — even partially?",
       "questionIt": "Resina o cerotto funzionano — almeno in parte?",
-      "answer": "Não de forma confiável. Resina/epóxi solta com suor e água; esparadrapo e látex bloqueiam a luz do sensor e dão leitura falsa. No TikTok, @bruu_schmitt conta anos de gambiarra no Apple Watch — e como passou a usar normalmente com Sensor Tattoo Fix.",
-      "answerEn": "Not reliably. Resin/epoxy peels with sweat and water; tape and latex block the sensor light and cause false readings. In the TikTok below, @bruu_schmitt shares years of DIY hacks on Apple Watch — and how Sensor Tattoo Fix let them use the watch normally.",
-      "answerIt": "Non in modo affidabile. Resina/epoxy si stacca con sudore e acqua; cerotto e lattice bloccano la luce del sensore e danno letture false. Nel TikTok qui sotto, @bruu_schmitt racconta anni di ripieghi sull'Apple Watch — e come con Sensor Tattoo Fix usa di nuovo l'orologio normalmente.",
+      "answer": "Não de forma confiável. Resina/epóxi solta com suor e água; esparadrapo e látex bloqueiam a luz do sensor e dão leitura falsa. No TikTok, @bruu_schmitt conta anos de gambiarra no Apple Watch — e como passou a usar normalmente com Sensor TattooFix.",
+      "answerEn": "Not reliably. Resin/epoxy peels with sweat and water; tape and latex block the sensor light and cause false readings. In the TikTok below, @bruu_schmitt shares years of DIY hacks on Apple Watch — and how Sensor TattooFix let them use the watch normally.",
+      "answerIt": "Non in modo affidabile. Resina/epoxy si stacca con sudore e acqua; cerotto e lattice bloccano la luce del sensore e danno letture false. Nel TikTok qui sotto, @bruu_schmitt racconta anni di ripieghi sull'Apple Watch — e come con Sensor TattooFix usa di nuovo l'orologio normalmente.",
       "media": {
         "type": "tiktok",
         "tiktokId": "7669434564908993799",
         "tiktokHref": "https://www.tiktok.com/@bruu_schmitt/video/7669434564908993799",
         "tiktokHandle": "@bruu_schmitt",
-        "tiktokTitle": "Depoimento TikTok — Apple Watch e Sensor Tattoo Fix"
+        "tiktokTitle": "Depoimento TikTok — Apple Watch e Sensor TattooFix"
       }
     },
     {
@@ -5737,9 +5797,9 @@
       "question": "Tem algum manual de instalação?",
       "questionEn": "Is there an installation manual?",
       "questionIt": "Esiste un manuale di installazione?",
-      "answer": "Sim. Todo kit acompanha um manual impresso com o passo a passo. Você também pode consultar e imprimir a versão completa aqui: <a href=\"docs/manuais/manual-instalacao-sensor-tattoo-fix.html\" target=\"_blank\" rel=\"noopener\">Manual de instalação Sensor Tattoo Fix</a>.",
-      "answerEn": "International orders ship the lens only in a printed letter (no adhesive primer — liquids cannot be sent by international document mail). You receive step-by-step instructions in your checkout language — the same thank-you letter packed with your lens. Preview: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=en\" target=\"_blank\" rel=\"noopener\">Sensor Tattoo Fix installation letter</a>. Brazilian full-kit orders include a separate printed manual with primer.",
-      "answerIt": "Gli ordini internazionali includono solo la lente in una lettera stampata (senza primer — i liquidi non sono ammessi nella spedizione documento). Ricevi le istruzioni passo passo nella lingua del checkout — la stessa lettera di ringraziamento nella busta. Anteprima: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=it\" target=\"_blank\" rel=\"noopener\">Lettera di installazione Sensor Tattoo Fix</a>. I kit completi in Brasile hanno un manuale separato con primer.",
+      "answer": "Sim. Todo kit acompanha um manual impresso com o passo a passo. Você também pode consultar e imprimir a versão completa aqui: <a href=\"docs/manuais/manual-instalacao-sensor-tattoo-fix.html\" target=\"_blank\" rel=\"noopener\">Manual de instalação Sensor TattooFix</a>.",
+      "answerEn": "International orders ship the lens only in a printed letter (no adhesive primer — liquids cannot be sent by international document mail). You receive step-by-step instructions in your checkout language — the same thank-you letter packed with your lens. Preview: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=en\" target=\"_blank\" rel=\"noopener\">Sensor TattooFix installation letter</a>. Brazilian full-kit orders include a separate printed manual with primer.",
+      "answerIt": "Gli ordini internazionali includono solo la lente in una lettera stampata (senza primer — i liquidi non sono ammessi nella spedizione documento). Ricevi le istruzioni passo passo nella lingua del checkout — la stessa lettera di ringraziamento nella busta. Anteprima: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=it\" target=\"_blank\" rel=\"noopener\">Lettera di installazione Sensor TattooFix</a>. I kit completi in Brasile hanno un manuale separato con primer.",
       "media": null
     },
     {
@@ -5749,9 +5809,9 @@
       "question": "Preciso remover alguma película protetora da lente após a colagem?",
       "questionEn": "Do I need to remove a protective film from the lens after sticking it?",
       "questionIt": "Devo rimuovere una pellicola protettiva dalla lente dopo averla applicata?",
-      "answer": "Não. A lente Sensor Tattoo Fix já vem pronta para o uso. Após colá-la e pressionar por 30 segundos, ela está pronta imediatamente. Não existe nenhuma película ou camada no topo da lente para remover; ela já possui a transparência e o acabamento ideal para o funcionamento do sensor.",
-      "answerEn": "No. The Sensor Tattoo Fix lens is ready to use. After sticking and pressing for 30 seconds, it is immediately ready. There is no film or layer on top of the lens to remove; it already has the ideal transparency and finish for sensor operation.",
-      "answerIt": "No. La lente Sensor Tattoo Fix è pronta all'uso. Dopo averla applicata e premuta per 30 secondi, è immediatamente pronta. Non c'è pellicola o strato sopra la lente da rimuovere; ha già la trasparenza e la finitura ideali per il funzionamento del sensore.",
+      "answer": "Não. A lente Sensor TattooFix já vem pronta para o uso. Após colá-la e pressionar por 30 segundos, ela está pronta imediatamente. Não existe nenhuma película ou camada no topo da lente para remover; ela já possui a transparência e o acabamento ideal para o funcionamento do sensor.",
+      "answerEn": "No. The Sensor TattooFix lens is ready to use. After sticking and pressing for 30 seconds, it is immediately ready. There is no film or layer on top of the lens to remove; it already has the ideal transparency and finish for sensor operation.",
+      "answerIt": "No. La lente Sensor TattooFix è pronta all'uso. Dopo averla applicata e premuta per 30 secondi, è immediatamente pronta. Non c'è pellicola o strato sopra la lente da rimuovere; ha già la trasparenza e la finitura ideali per il funzionamento del sensore.",
       "media": null
     },
     {
@@ -5805,7 +5865,7 @@
         "tiktokId": "7642977229512723733",
         "tiktokHref": "https://www.tiktok.com/@sensortattoofixofc/video/7642977229512723733",
         "tiktokHandle": "@sensortattoofixofc",
-        "tiktokTitle": "Como remover a lente Sensor Tattoo Fix"
+        "tiktokTitle": "Como remover a lente Sensor TattooFix"
       }
     },
     {
@@ -5986,9 +6046,9 @@
       "active": true,
       "order": 10,
       "rating": 5,
-      "body": "Encontrei a Sensor Tattoo Fix e resolveu todos os problemas do Apple Watch no braço tatuado.",
-      "bodyEn": "Found Sensor Tattoo Fix and it solved all my Apple Watch problems on tattooed skin.",
-      "bodyIt": "Ho trovato Sensor Tattoo Fix e ha risolto tutti i problemi dell'Apple Watch sul braccio tatuato.",
+      "body": "Encontrei a Sensor TattooFix e resolveu todos os problemas do Apple Watch no braço tatuado.",
+      "bodyEn": "Found Sensor TattooFix and it solved all my Apple Watch problems on tattooed skin.",
+      "bodyIt": "Ho trovato Sensor TattooFix e ha risolto tutti i problemi dell'Apple Watch sul braccio tatuato.",
       "author": "Pri",
       "authorEn": "Pri",
       "authorIt": "Pri",
@@ -6071,5 +6131,100 @@
       "sourceEn": "Shopee · 5★",
       "sourceIt": "Shopee · 5★"
     }
-  ]
+  ],
+  "intlCurrencies": [
+    {
+      "code": "USD",
+      "label": "Dólar (USD)",
+      "langs": [
+        "en"
+      ],
+      "countries": [
+        "US",
+        "CA",
+        "AU",
+        "NZ",
+        "SG",
+        "HK"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "GBP",
+      "label": "Libra (GBP)",
+      "langs": [],
+      "countries": [
+        "GB"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "EUR",
+      "label": "Euro (EUR)",
+      "langs": [
+        "it",
+        "de",
+        "es",
+        "sl",
+        "fr",
+        "nl",
+        "fi"
+      ],
+      "countries": [
+        "IT",
+        "DE",
+        "ES",
+        "SI",
+        "FR",
+        "NL",
+        "FI",
+        "AT",
+        "BE",
+        "PT",
+        "IE"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "PLN",
+      "label": "Złoty (PLN)",
+      "langs": [
+        "pl"
+      ],
+      "countries": [
+        "PL"
+      ],
+      "decimals": 2,
+      "active": true
+    },
+    {
+      "code": "SEK",
+      "label": "Coroa sueca (SEK)",
+      "langs": [
+        "sv"
+      ],
+      "countries": [
+        "SE"
+      ],
+      "decimals": 0,
+      "active": true
+    },
+    {
+      "code": "NOK",
+      "label": "Coroa norueguesa (NOK)",
+      "langs": [
+        "no"
+      ],
+      "countries": [
+        "NO"
+      ],
+      "decimals": 0,
+      "active": true
+    }
+  ],
+  "intlCurrenciesAutoPpp": true,
+  "intlCurrenciesAutoFx": true
 }

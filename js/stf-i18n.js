@@ -1,6 +1,6 @@
 /**
  * Traduções PT/EN/IT/DE/ES/PL — checkout, loja e UI compartilhada.
- * Ative com ?lang= ou vindo de /en/, /it/, /de/, /es/, /pl/
+ * Ative com ?lang= ou vindo de /en/, /it/, /de/, /es/, /pl/, /sl/, /fr/, /nl/, /sv/, /no/, /fi/
  */
 window.STF_I18N = (function () {
   const STRINGS = {
@@ -120,7 +120,7 @@ window.STF_I18N = (function () {
       'account.loginUnavailable': 'Login indisponível. Tente em Minha Conta.',
       'account.loginFail': 'Não foi possível entrar.',
       'conta.title': 'Minha Conta',
-      'conta.pageTitle': 'Minha Conta | Sensor Tattoo Fix',
+      'conta.pageTitle': 'Minha Conta | Sensor TattooFix',
       'conta.intro': 'Acesse seus pedidos ou crie uma conta para comprar mais rápido.',
       'conta.tabLogin': 'Entrar',
       'conta.tabRegister': 'Criar conta',
@@ -205,12 +205,12 @@ window.STF_I18N = (function () {
       'conta.formStreetIntl': 'Endereço',
       'conta.formAptNumber': 'Apto / número',
       'conta.formStateIntl': 'Estado / província',
-      'ondeComprar.pageTitle': 'Onde Comprar | Sensor Tattoo Fix',
-      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
-      'ondeComprar.metaDesc': 'Relógio pede senha, não lê batimentos ou pausa treino? Compre a lente Sensor Tattoo Fix na loja oficial.',
-      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
-      'ondeComprar.badge': 'Kit Sensor Tattoo Fix',
-      'ondeComprar.badgeIntl': 'Sensor Tattoo Fix Lens',
+      'ondeComprar.pageTitle': 'Onde Comprar | Sensor TattooFix',
+      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor TattooFix — Passcode & Heart Rate Problems',
+      'ondeComprar.metaDesc': 'Relógio pede senha, não lê batimentos ou pausa treino? Compre a lente Sensor TattooFix na loja oficial.',
+      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor TattooFix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.badge': 'Kit Sensor TattooFix',
+      'ondeComprar.badgeIntl': 'Sensor TattooFix Lens',
       'ondeComprar.h1': 'Escolha onde comprar com segurança',
       'ondeComprar.intro': 'Avaliações <strong>5 estrelas</strong> de clientes reais.',
       'ondeComprar.introEn': '<strong>5-star reviews</strong> from verified buyers.',
@@ -376,10 +376,10 @@ window.STF_I18N = (function () {
       'watch.otherBrand': 'Outra / não listada',
       'watch.groupOtherBrands': 'Outras marcas',
       'watch.groupOthers': 'Outros',
-      'page.checkoutTitle': 'Comprar Direto | Sensor Tattoo Fix — Loja Oficial',
-      'page.checkoutDesc': 'Checkout oficial Sensor Tattoo Fix — cartão, PayPal, envio nacional e internacional.',
-      'page.checkoutTitleEn': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.'
+      'page.checkoutTitle': 'Comprar Direto | Sensor TattooFix — Loja Oficial',
+      'page.checkoutDesc': 'Checkout oficial Sensor TattooFix — cartão, PayPal, envio nacional e internacional.',
+      'page.checkoutTitleEn': 'Checkout | Sensor TattooFix — Official Store',
+      'page.checkoutDescEn': 'Official Sensor TattooFix checkout — PayPal, cards, tracked shipping.'
     },
     en: {
       'brand.tagline': 'Peace between ink and silicon',
@@ -497,7 +497,7 @@ window.STF_I18N = (function () {
       'account.loginUnavailable': 'Sign-in unavailable. Try My Account.',
       'account.loginFail': 'Could not sign in.',
       'conta.title': 'My Account',
-      'conta.pageTitle': 'My Account | Sensor Tattoo Fix',
+      'conta.pageTitle': 'My Account | Sensor TattooFix',
       'conta.intro': 'Sign in to see your orders or create an account for faster checkout.',
       'conta.tabLogin': 'Sign in',
       'conta.tabRegister': 'Create account',
@@ -582,12 +582,12 @@ window.STF_I18N = (function () {
       'conta.formStreetIntl': 'Street address',
       'conta.formAptNumber': 'Apt / number',
       'conta.formStateIntl': 'State / province',
-      'ondeComprar.pageTitle': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
-      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor Tattoo Fix — Passcode & Heart Rate Problems',
-      'ondeComprar.metaDesc': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
-      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor Tattoo Fix lens on our official store — PayPal, cards and tracked shipping.',
-      'ondeComprar.badge': 'Sensor Tattoo Fix Lens',
-      'ondeComprar.badgeIntl': 'Sensor Tattoo Fix Lens',
+      'ondeComprar.pageTitle': 'Where to Buy | Sensor TattooFix — Passcode & Heart Rate Problems',
+      'ondeComprar.pageTitleEn': 'Where to Buy | Sensor TattooFix — Passcode & Heart Rate Problems',
+      'ondeComprar.metaDesc': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor TattooFix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.metaDescEn': 'Watch asks for passcode, won\'t read heart rate or pauses workouts? Buy the Sensor TattooFix lens on our official store — PayPal, cards and tracked shipping.',
+      'ondeComprar.badge': 'Sensor TattooFix Lens',
+      'ondeComprar.badgeIntl': 'Sensor TattooFix Lens',
       'ondeComprar.h1': 'Official store',
       'ondeComprar.intro': '<strong>5-star reviews</strong> from verified buyers.',
       'ondeComprar.introEn': '<strong>5-star reviews</strong> from verified buyers.',
@@ -642,7 +642,7 @@ window.STF_I18N = (function () {
       'store.priceSuffix': 'Card & PayPal',
       'store.intlSuffix': 'PayPal & cards · Tracked shipping',
       'store.title': 'Official Store',
-      'store.metaDescEn': 'Buy the Sensor Tattoo Fix kit — optical lens when your watch asks for passcode every 10 seconds, won\'t read heart rate, disconnects or pauses workouts (often tattoo ink blocking the sensor). PayPal, cards and tracked shipping.',
+      'store.metaDescEn': 'Buy the Sensor TattooFix kit — optical lens when your watch asks for passcode every 10 seconds, won\'t read heart rate, disconnects or pauses workouts (often tattoo ink blocking the sensor). PayPal, cards and tracked shipping.',
       'store.loading': 'Loading products...',
       'store.empty': 'No products available at the moment.',
       'store.added': 'Added to cart!',
@@ -762,22 +762,27 @@ window.STF_I18N = (function () {
       'watch.otherBrand': 'Other / not listed',
       'watch.groupOtherBrands': 'Other brands',
       'watch.groupOthers': 'Others',
-      'page.checkoutTitle': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDesc': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.',
-      'page.checkoutTitleEn': 'Checkout | Sensor Tattoo Fix — Official Store',
-      'page.checkoutDescEn': 'Official Sensor Tattoo Fix checkout — PayPal, cards, tracked shipping.',
-      'page.checkoutTitleIt': 'Checkout | Sensor Tattoo Fix — Negozio ufficiale',
-      'page.checkoutDescIt': 'Checkout ufficiale Sensor Tattoo Fix — PayPal, carte, spedizione tracciata.'
+      'page.checkoutTitle': 'Checkout | Sensor TattooFix — Official Store',
+      'page.checkoutDesc': 'Official Sensor TattooFix checkout — PayPal, cards, tracked shipping.',
+      'page.checkoutTitleEn': 'Checkout | Sensor TattooFix — Official Store',
+      'page.checkoutDescEn': 'Official Sensor TattooFix checkout — PayPal, cards, tracked shipping.',
+      'page.checkoutTitleIt': 'Checkout | Sensor TattooFix — Negozio ufficiale',
+      'page.checkoutDescIt': 'Checkout ufficiale Sensor TattooFix — PayPal, carte, spedizione tracciata.'
     }
   };
 
-  const PATH_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl'];
+  const PATH_LANGS = ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
   const OVERRIDE_GLOBALS = {
     it: 'STF_I18N_IT',
     de: 'STF_I18N_DE',
     es: 'STF_I18N_ES',
     pl: 'STF_I18N_PL',
-    sl: 'STF_I18N_SL'
+    sl: 'STF_I18N_SL',
+    fr: 'STF_I18N_FR',
+    nl: 'STF_I18N_NL',
+    sv: 'STF_I18N_SV',
+    no: 'STF_I18N_NO',
+    fi: 'STF_I18N_FI'
   };
 
   function ensureExtraStrings() {
@@ -799,7 +804,12 @@ window.STF_I18N = (function () {
       de: 'page.checkoutTitleDe',
       es: 'page.checkoutTitleEs',
       pl: 'page.checkoutTitlePl',
-      sl: 'page.checkoutTitleSl'
+      sl: 'page.checkoutTitleSl',
+      fr: 'page.checkoutTitleFr',
+      nl: 'page.checkoutTitleNl',
+      sv: 'page.checkoutTitleSv',
+      no: 'page.checkoutTitleNo',
+      fi: 'page.checkoutTitleFi'
     };
     return map[lang] || 'page.checkoutTitleEn';
   }
@@ -810,7 +820,12 @@ window.STF_I18N = (function () {
       de: 'page.checkoutDescDe',
       es: 'page.checkoutDescEs',
       pl: 'page.checkoutDescPl',
-      sl: 'page.checkoutDescSl'
+      sl: 'page.checkoutDescSl',
+      fr: 'page.checkoutDescFr',
+      nl: 'page.checkoutDescNl',
+      sv: 'page.checkoutDescSv',
+      no: 'page.checkoutDescNo',
+      fi: 'page.checkoutDescFi'
     };
     return map[lang] || 'page.checkoutDescEn';
   }
@@ -821,7 +836,12 @@ window.STF_I18N = (function () {
       de: 'store.metaDescDe',
       es: 'store.metaDescEs',
       pl: 'store.metaDescPl',
-      sl: 'store.metaDescSl'
+      sl: 'store.metaDescSl',
+      fr: 'store.metaDescFr',
+      nl: 'store.metaDescNl',
+      sv: 'store.metaDescSv',
+      no: 'store.metaDescNo',
+      fi: 'store.metaDescFi'
     };
     return map[lang] || 'store.metaDescEn';
   }
@@ -832,7 +852,12 @@ window.STF_I18N = (function () {
       de: 'ondeComprar.pageTitleDe',
       es: 'ondeComprar.pageTitleEs',
       pl: 'ondeComprar.pageTitlePl',
-      sl: 'ondeComprar.pageTitleSl'
+      sl: 'ondeComprar.pageTitleSl',
+      fr: 'ondeComprar.pageTitleFr',
+      nl: 'ondeComprar.pageTitleNl',
+      sv: 'ondeComprar.pageTitleSv',
+      no: 'ondeComprar.pageTitleNo',
+      fi: 'ondeComprar.pageTitleFi'
     };
     if (lang === 'pt') return 'ondeComprar.pageTitle';
     return map[lang] || 'ondeComprar.pageTitleEn';
@@ -844,7 +869,12 @@ window.STF_I18N = (function () {
       de: 'ondeComprar.metaDescDe',
       es: 'ondeComprar.metaDescEs',
       pl: 'ondeComprar.metaDescPl',
-      sl: 'ondeComprar.metaDescSl'
+      sl: 'ondeComprar.metaDescSl',
+      fr: 'ondeComprar.metaDescFr',
+      nl: 'ondeComprar.metaDescNl',
+      sv: 'ondeComprar.metaDescSv',
+      no: 'ondeComprar.metaDescNo',
+      fi: 'ondeComprar.metaDescFi'
     };
     if (lang === 'pt') return 'ondeComprar.metaDesc';
     return map[lang] || 'ondeComprar.metaDescEn';
@@ -881,7 +911,7 @@ window.STF_I18N = (function () {
 
   function getPathLang() {
     const path = location.pathname;
-    for (const lang of ['it', 'de', 'es', 'pl', 'sl']) {
+    for (const lang of ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']) {
       if (path.includes(`/${lang}/`) || path === `/${lang}`) return lang;
     }
     if (isComHost()) return 'en';
@@ -907,6 +937,11 @@ window.STF_I18N = (function () {
   function isEs() { return getLang() === 'es'; }
   function isPl() { return getLang() === 'pl'; }
   function isSl() { return getLang() === 'sl'; }
+  function isFr() { return getLang() === 'fr'; }
+  function isNl() { return getLang() === 'nl'; }
+  function isSv() { return getLang() === 'sv'; }
+  function isNo() { return getLang() === 'no'; }
+  function isFi() { return getLang() === 'fi'; }
 
   function isLocalized() {
     return getLang() !== 'pt';
@@ -946,7 +981,7 @@ window.STF_I18N = (function () {
   }
 
   function setLang(lang) {
-    const htmlLang = { pt: 'pt-BR', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl' };
+    const htmlLang = { pt: 'pt-BR', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl', fr: 'fr', nl: 'nl', sv: 'sv', no: 'no', fi: 'fi' };
     const l = PATH_LANGS.includes(lang) ? lang : (lang === 'pt' ? 'pt' : 'en');
     try { sessionStorage.setItem('stf_lang', l); } catch (e) { /* ignore */ }
     document.documentElement.lang = htmlLang[l] || l;
@@ -957,7 +992,7 @@ window.STF_I18N = (function () {
     const lang = getLang();
     ensureExtraStrings();
     let s = STRINGS[lang]?.[key];
-    if (!s && ['de', 'es', 'pl', 'sl'].includes(lang)) s = STRINGS.en?.[key];
+    if (!s && ['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].includes(lang)) s = STRINGS.en?.[key];
     if (!s && lang === 'it') s = STRINGS.en?.[key];
     if (!s) s = STRINGS.pt[key] ?? key;
     if (vars) {
@@ -1062,7 +1097,7 @@ window.STF_I18N = (function () {
   }
 
   function inEnDir() {
-    if (isComHost() && !['it', 'de', 'es', 'pl', 'sl'].some((l) => location.pathname.includes(`/${l}/`))) return true;
+    if (isComHost() && !['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].some((l) => location.pathname.includes(`/${l}/`))) return true;
     return location.pathname.includes('/en/');
   }
 
@@ -1076,7 +1111,7 @@ window.STF_I18N = (function () {
 
   function inDirFor(lang) {
     if (lang === 'en' && isComHost()) {
-      return !['it', 'de', 'es', 'pl', 'sl'].some((l) => location.pathname.includes(`/${l}/`));
+      return !['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'].some((l) => location.pathname.includes(`/${l}/`));
     }
     return location.pathname.includes(`/${lang}/`);
   }
@@ -1307,7 +1342,7 @@ window.STF_I18N = (function () {
 
   function applyLojaDom() {
     if (!isLocalized()) return;
-    document.title = t('store.title') + ' | Sensor Tattoo Fix';
+    document.title = t('store.title') + ' | Sensor TattooFix';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.content = t(storeMetaDescKey(getLang()));
@@ -1543,6 +1578,25 @@ window.STF_I18N = (function () {
     if (footer) footer.dataset.lang = getLang();
   }
 
+  function mountLogoSloganCover() {
+    const lang = getLang();
+    if (!lang || lang === 'pt') return;
+    const text = t('brand.tagline');
+    if (!text) return;
+    document.querySelectorAll('.logo-img-link, .hero-brand-mobile').forEach((host) => {
+      const img = host.querySelector('img');
+      if (!img || /logo-mark/i.test(img.getAttribute('src') || '')) return;
+      let cover = host.querySelector(':scope > .logo-slogan-cover');
+      if (!cover) {
+        cover = document.createElement('span');
+        cover.className = 'logo-slogan-cover';
+        cover.setAttribute('aria-hidden', 'true');
+        host.appendChild(cover);
+      }
+      cover.textContent = text;
+    });
+  }
+
   function init() {
     ensureExtraStrings();
     try {
@@ -1550,6 +1604,7 @@ window.STF_I18N = (function () {
     } catch (e) {
       setLang(getPathLang());
     }
+    mountLogoSloganCover();
     if (document.body?.classList.contains('checkout-page') && !document.body?.classList.contains('conta-page')) applyCheckoutDom();
     if (document.body?.classList.contains('loja-page')) applyLojaDom();
     if (document.body?.classList.contains('conta-page')) applyContaDom();
@@ -1574,7 +1629,7 @@ window.STF_I18N = (function () {
   });
 
   return {
-    t, getLang, isEn, isIt, isDe, isEs, isPl, isSl, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
+    t, getLang, isEn, isIt, isDe, isEs, isPl, isSl, isFr, isNl, isSv, isNo, isFi, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
     applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom, applyOndeComprarDom, applyShellDom,
     langQuery, lojaHref, STRINGS
   };
