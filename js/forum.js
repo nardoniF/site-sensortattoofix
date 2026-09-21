@@ -173,12 +173,12 @@
 
   async function ensureForumL10n() {
     const code = lang();
-    if (!['de', 'es', 'pl', 'sl'].includes(code) || STRINGS[code]) {
+    if (!['de','es','pl','sl','fr','nl','sv','no','fi'].includes(code) || STRINGS[code]) {
       forumL10nReady = true;
       return;
     }
     try {
-      const res = await fetch('/data/forum-l10n.json?v=1', { cache: 'no-store' });
+      const res = await fetch('/data/forum-l10n.json?v=2', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data[code]) STRINGS[code] = Object.assign({}, STRINGS.en, data[code]);
@@ -200,7 +200,10 @@
 
   function localeTag() {
     const l = lang();
-    const map = { it: 'it-IT', en: 'en-US', de: 'de-DE', es: 'es-ES', pl: 'pl-PL', sl: 'sl-SI' };
+    const map = {
+      it: 'it-IT', en: 'en-US', de: 'de-DE', es: 'es-ES', pl: 'pl-PL', sl: 'sl-SI',
+      fr: 'fr-FR', nl: 'nl-NL', sv: 'sv-SE', no: 'nb-NO', fi: 'fi-FI'
+    };
     return map[l] || 'pt-BR';
   }
 
@@ -226,7 +229,7 @@
   function forumReturnPath() {
     const file = location.pathname.split('/').pop() || 'comunidade.html';
     const q = location.search || '';
-    for (const code of ['it', 'de', 'es', 'pl', 'sl', 'en']) {
+    for (const code of ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi', 'en']) {
       if (location.pathname.includes(`/${code}/`)) return `${code}/${file}${q}`;
     }
     return file + q;
@@ -365,7 +368,7 @@
   }
 
   function applyListSeo() {
-    const title = ft('title') + ' | Sensor Tattoo Fix';
+    const title = ft('title') + ' | Sensor TattooFix';
     document.title = title;
     setMeta('description', document.querySelector('meta[name="description"]')?.content || title);
     setCanonical(location.origin + location.pathname);
@@ -376,7 +379,7 @@
       '@type': 'DiscussionForumPosting',
       name: title,
       url: location.origin + location.pathname,
-      isPartOf: { '@type': 'WebSite', name: 'Sensor Tattoo Fix', url: location.origin + '/' }
+      isPartOf: { '@type': 'WebSite', name: 'Sensor TattooFix', url: location.origin + '/' }
     });
   }
 
@@ -384,7 +387,7 @@
     if (!thread) return;
     const slug = thread.slug || thread.id;
     const url = absoluteThreadUrl(slug);
-    const title = `${thread.title} | ${ft('title')} | Sensor Tattoo Fix`;
+    const title = `${thread.title} | ${ft('title')} | Sensor TattooFix`;
     const description = String(thread.body || thread.excerpt || thread.title || '').replace(/\s+/g, ' ').trim().slice(0, 160);
     document.title = title;
     setMeta('description', description);
@@ -916,7 +919,7 @@
     await ensureForumL10n();
     window.STF_I18N?.applyShellDom?.();
     if (window.STF_I18N?.t) {
-      document.title = `${ft('title')} (beta) | Sensor Tattoo Fix`;
+      document.title = `${ft('title')} (beta) | Sensor TattooFix`;
     }
     const loading = el('forum-root');
     if (loading && loading.querySelector('.fa-spinner')) {

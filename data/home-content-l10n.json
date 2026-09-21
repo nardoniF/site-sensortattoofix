@@ -4,11 +4,11 @@
     "faq": {
       "faq-1": {
         "question": "Warum verlangt meine Smartwatch ständig den Code?",
-        "answer": "Wenn der optische Sensor keinen Blutfluss am Handgelenk erkennt, geht die Uhr davon aus, dass sie abgenommen wurde, und fordert den Code erneut — bei der Apple Watch kann das <strong>alle 10 Sekunden</strong> passieren. Auf tätowierter Haut blockiert die Tinte das Sensorlicht; die Uhr aktiviert die PIN-Sperre und denkt, sie ist nicht mehr am Arm. Die Sensor Tattoo Fix Linse stellt die Messung wieder her und beendet ständige Sperren."
+        "answer": "Wenn der optische Sensor keinen Blutfluss am Handgelenk erkennt, geht die Uhr davon aus, dass sie abgenommen wurde, und fordert den Code erneut — bei der Apple Watch kann das <strong>alle 10 Sekunden</strong> passieren. Auf tätowierter Haut blockiert die Tinte das Sensorlicht; die Uhr aktiviert die PIN-Sperre und denkt, sie ist nicht mehr am Arm. Die Sensor TattooFix Linse stellt die Messung wieder her und beendet ständige Sperren."
       },
       "faq-2": {
         "question": "Warum misst meine Smartwatch die Herzfrequenz nicht auf tätowierter Haut?",
-        "answer": "Der Sensor nutzt Licht zur Messung des Blutflusses. Dichte Tattoos, Narben oder dunkles Pigment blockieren das Rücksignal — die Herzfrequenz zeigt null, ungenaue Werte, fällt mitten im Training aus oder die Uhr stoppt die Überwachung ganz. Die Sensor Tattoo Fix Linse korrigiert die Messung, ohne den Sensor zu deaktivieren."
+        "answer": "Der Sensor nutzt Licht zur Messung des Blutflusses. Dichte Tattoos, Narben oder dunkles Pigment blockieren das Rücksignal — die Herzfrequenz zeigt null, ungenaue Werte, fällt mitten im Training aus oder die Uhr stoppt die Überwachung ganz. Die Sensor TattooFix Linse korrigiert die Messung, ohne den Sensor zu deaktivieren."
       },
       "faq-3": {
         "question": "Warum trennt sich meine Uhr oder verliert sie den Kontakt zum Handgelenk von selbst?",
@@ -19,12 +19,12 @@
         "answer": "Weil Tätowiertinte das Licht des Sensors blockiert, kann die Uhr deine Herzfrequenz nicht berechnen. Das System interpretiert diesen Signalverlust so, als hättest du das Training unterbrochen oder das Gerät abgenommen, und pausiert die Aktivität automatisch, um Akku zu sparen."
       },
       "faq-5": {
-        "question": "Wie korrigiert die Sensor Tattoo Fix Linse den Sensor?",
+        "question": "Wie korrigiert die Sensor TattooFix Linse den Sensor?",
         "answer": "Unsere Linsentechnologie wurde speziell entwickelt, um die Blockierung durch Tätowiertinte zu umgehen. Sie wirkt als hochpräziser Überträger, der es dem biometrischen Sensor ermöglicht, durch tätowierte Haut zu messen, und hält alle Uhrfunktionen (Zahlungen, Gesundheit und Workouts) zu 100 % einsatzbereit."
       },
       "faq-6": {
         "question": "Funktioniert es mit der Apple Watch?",
-        "answer": "Ja. Die Sensor Tattoo Fix Linse funktioniert mit der Apple Watch und praktisch jeder Smartwatch mit <strong>optischem Sensor</strong> (grünes oder Infrarotlicht) auf der Rückseite — Apple, Samsung, Garmin, Xiaomi und andere Marken. Gängige Sensordurchmesser verfügbar. Vorher-nachher-Demo auf der Apple Watch:"
+        "answer": "Ja. Die Sensor TattooFix Linse funktioniert mit der Apple Watch und praktisch jeder Smartwatch mit <strong>optischem Sensor</strong> (grünes oder Infrarotlicht) auf der Rückseite — Apple, Samsung, Garmin, Xiaomi und andere Marken. Gängige Sensordurchmesser verfügbar. Vorher-nachher-Demo auf der Apple Watch:"
       },
       "faq-7": {
         "question": "Funktioniert es mit der Samsung Galaxy Watch?",
@@ -36,7 +36,7 @@
       },
       "faq-9": {
         "question": "Funktionieren Epoxidharz oder Pflaster — zumindest teilweise?",
-        "answer": "Nicht zuverlässig. Harz/Epoxid löst sich durch Schweiß und Wasser; Pflaster und Latex blockieren das Sensorlicht und verursachen Fehlmessungen. Im TikTok unten erzählt @bruu_schmitt von Jahren DIY-Tricks mit der Apple Watch — und wie er sie mit Sensor Tattoo Fix wieder normal nutzen konnte."
+        "answer": "Nicht zuverlässig. Harz/Epoxid löst sich durch Schweiß und Wasser; Pflaster und Latex blockieren das Sensorlicht und verursachen Fehlmessungen. Im TikTok unten erzählt @bruu_schmitt von Jahren DIY-Tricks mit der Apple Watch — und wie er sie mit Sensor TattooFix wieder normal nutzen konnte."
       },
       "faq-10": {
         "question": "Ermöglicht die Linse kontaktlose Zahlungen (Apple Pay / Google Pay)?",
@@ -52,11 +52,11 @@
       },
       "faq-13": {
         "question": "Gibt es eine Installationsanleitung?",
-        "answer": "International erhalten Sie nur die Linse per Brief — ohne Primer (keine Flüssigkeiten im Dokumentenversand). Im Umschlag liegt ein gedruckter Leitfaden in Ihrer Sprache — dieselbe Dankeskarte mit Schritt-für-Schritt-Anleitung. Vorschau: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=de\" target=\"_blank\" rel=\"noopener\">Installationsbrief Sensor Tattoo Fix</a>."
+        "answer": "International erhalten Sie nur die Linse per Brief — ohne Primer (keine Flüssigkeiten im Dokumentenversand). Im Umschlag liegt ein gedruckter Leitfaden in Ihrer Sprache — dieselbe Dankeskarte mit Schritt-für-Schritt-Anleitung. Vorschau: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=de\" target=\"_blank\" rel=\"noopener\">Installationsbrief Sensor TattooFix</a>."
       },
       "faq-14": {
         "question": "Muss ich nach dem Aufkleben eine Schutzfolie von der Linse entfernen?",
-        "answer": "Nein. Die Sensor Tattoo Fix Linse ist sofort einsatzbereit. Nach dem Aufkleben und 30 Sekunden Druck ist sie sofort fertig. Es gibt keine Folie oder Schicht oben auf der Linse zum Entfernen; sie hat bereits die ideale Transparenz und Oberfläche für den Sensorbetrieb."
+        "answer": "Nein. Die Sensor TattooFix Linse ist sofort einsatzbereit. Nach dem Aufkleben und 30 Sekunden Druck ist sie sofort fertig. Es gibt keine Folie oder Schicht oben auf der Linse zum Entfernen; sie hat bereits die ideale Transparenz und Oberfläche für den Sensorbetrieb."
       },
       "faq-15": {
         "question": "Stört die Linse beim Laden der Uhr?",
@@ -134,7 +134,7 @@
         "source": "Kauf über die Website"
       },
       "review-10": {
-        "body": "Sensor Tattoo Fix gefunden und alle Apple-Watch-Probleme auf tätowierter Haut gelöst.",
+        "body": "Sensor TattooFix gefunden und alle Apple-Watch-Probleme auf tätowierter Haut gelöst.",
         "author": "Pri",
         "source": "Instagram · Video"
       },
@@ -170,11 +170,11 @@
     "faq": {
       "faq-1": {
         "question": "¿Por qué mi smartwatch pide la contraseña todo el tiempo?",
-        "answer": "Cuando el sensor óptico no detecta flujo sanguíneo en la muñeca, el reloj asume que se lo quitaste y vuelve a pedir la contraseña — en el Apple Watch puede ocurrir <strong>cada 10 segundos</strong>. En piel tatuada, la tinta bloquea la luz del sensor; el reloj activa el bloqueo por PIN y cree que salió de tu brazo. La lente Sensor Tattoo Fix restaura la lectura y detiene los bloqueos constantes."
+        "answer": "Cuando el sensor óptico no detecta flujo sanguíneo en la muñeca, el reloj asume que se lo quitaste y vuelve a pedir la contraseña — en el Apple Watch puede ocurrir <strong>cada 10 segundos</strong>. En piel tatuada, la tinta bloquea la luz del sensor; el reloj activa el bloqueo por PIN y cree que salió de tu brazo. La lente Sensor TattooFix restaura la lectura y detiene los bloqueos constantes."
       },
       "faq-2": {
         "question": "¿Por qué mi smartwatch no mide el ritmo cardíaco en piel tatuada?",
-        "answer": "El sensor usa luz para medir el flujo sanguíneo. Tatuajes densos, cicatrices o pigmento oscuro bloquean la señal de retorno — el ritmo cardíaco marca cero, lecturas imprecisas, se corta a mitad del entrenamiento o el reloj deja de monitorizar por completo. La lente Sensor Tattoo Fix corrige la lectura sin desactivar el sensor."
+        "answer": "El sensor usa luz para medir el flujo sanguíneo. Tatuajes densos, cicatrices o pigmento oscuro bloquean la señal de retorno — el ritmo cardíaco marca cero, lecturas imprecisas, se corta a mitad del entrenamiento o el reloj deja de monitorizar por completo. La lente Sensor TattooFix corrige la lectura sin desactivar el sensor."
       },
       "faq-3": {
         "question": "¿Por qué mi reloj se desconecta o pierde el pulso por sí solo?",
@@ -185,12 +185,12 @@
         "answer": "Como la tinta del tatuaje bloquea la luz del sensor, el reloj no puede calcular tu ritmo cardíaco. El sistema interpreta esa pérdida de señal como si hubieras dejado de entrenar o te hubieras quitado el dispositivo, pausando la actividad automáticamente para ahorrar batería."
       },
       "faq-5": {
-        "question": "¿Cómo corrige el sensor la lente Sensor Tattoo Fix?",
+        "question": "¿Cómo corrige el sensor la lente Sensor TattooFix?",
         "answer": "Nuestra tecnología de lente se desarrolló específicamente para sortear el bloqueo causado por la tinta del tatuaje. Actúa como un transmisor de alta precisión que permite al sensor biométrico leer a través de la piel tatuada, manteniendo todas las funciones del reloj (pagos, salud y entrenamientos) operativas al 100 %."
       },
       "faq-6": {
         "question": "¿Funciona en Apple Watch?",
-        "answer": "Sí. La lente Sensor Tattoo Fix funciona en Apple Watch y en prácticamente cualquier smartwatch con <strong>sensor óptico</strong> (luz verde o infrarroja) en la parte trasera — Apple, Samsung, Garmin, Xiaomi y otras marcas. Diámetros de sensor más comunes disponibles. Demostración antes y después en Apple Watch:"
+        "answer": "Sí. La lente Sensor TattooFix funciona en Apple Watch y en prácticamente cualquier smartwatch con <strong>sensor óptico</strong> (luz verde o infrarroja) en la parte trasera — Apple, Samsung, Garmin, Xiaomi y otras marcas. Diámetros de sensor más comunes disponibles. Demostración antes y después en Apple Watch:"
       },
       "faq-7": {
         "question": "¿Funciona en Samsung Galaxy Watch?",
@@ -202,7 +202,7 @@
       },
       "faq-9": {
         "question": "¿Funcionan el epoxi o la cinta adhesiva — al menos parcialmente?",
-        "answer": "No de forma fiable. La resina/epoxi se despega con sudor y agua; la cinta y el látex bloquean la luz del sensor y provocan lecturas falsas. En el TikTok de abajo, @bruu_schmitt cuenta años de trucos caseros con el Apple Watch — y cómo con Sensor Tattoo Fix volvió a usarlo con normalidad."
+        "answer": "No de forma fiable. La resina/epoxi se despega con sudor y agua; la cinta y el látex bloquean la luz del sensor y provocan lecturas falsas. En el TikTok de abajo, @bruu_schmitt cuenta años de trucos caseros con el Apple Watch — y cómo con Sensor TattooFix volvió a usarlo con normalidad."
       },
       "faq-10": {
         "question": "¿La lente permite pagos sin contacto (Apple Pay / Google Pay)?",
@@ -218,11 +218,11 @@
       },
       "faq-13": {
         "question": "¿Hay un manual de instalación?",
-        "answer": "En envíos internacionales recibes solo la lente por carta — sin primer (el envío documento no permite líquidos). En el sobre va una guía impresa en tu idioma: la misma carta de agradecimiento con el paso a paso. Vista previa: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=es\" target=\"_blank\" rel=\"noopener\">Carta de instalación Sensor Tattoo Fix</a>."
+        "answer": "En envíos internacionales recibes solo la lente por carta — sin primer (el envío documento no permite líquidos). En el sobre va una guía impresa en tu idioma: la misma carta de agradecimiento con el paso a paso. Vista previa: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=es\" target=\"_blank\" rel=\"noopener\">Carta de instalación Sensor TattooFix</a>."
       },
       "faq-14": {
         "question": "¿Debo quitar una película protectora de la lente después de pegarla?",
-        "answer": "No. La lente Sensor Tattoo Fix viene lista para usar. Tras pegarla y presionar 30 segundos, está lista de inmediato. No hay película ni capa encima de la lente que quitar; ya tiene la transparencia y el acabado ideales para el funcionamiento del sensor."
+        "answer": "No. La lente Sensor TattooFix viene lista para usar. Tras pegarla y presionar 30 segundos, está lista de inmediato. No hay película ni capa encima de la lente que quitar; ya tiene la transparencia y el acabado ideales para el funcionamiento del sensor."
       },
       "faq-15": {
         "question": "¿La lente interfiere con la carga del reloj?",
@@ -300,7 +300,7 @@
         "source": "Compra en la web"
       },
       "review-10": {
-        "body": "Encontré Sensor Tattoo Fix y resolvió todos mis problemas del Apple Watch en piel tatuada.",
+        "body": "Encontré Sensor TattooFix y resolvió todos mis problemas del Apple Watch en piel tatuada.",
         "author": "Pri",
         "source": "Instagram · vídeo"
       },
@@ -336,11 +336,11 @@
     "faq": {
       "faq-1": {
         "question": "Dlaczego mój smartwatch cały czas prosi o kod?",
-        "answer": "Gdy czujnik optyczny nie wykrywa przepływu krwi na nadgarstku, zegarek zakłada, że został zdjęty, i ponownie prosi o kod — na Apple Watch może to się zdarzać <strong>co 10 sekund</strong>. Na tatuażu tusz blokuje światło czujnika; zegarek włącza blokadę PIN i myśli, że opuścił rękę. Soczewka Sensor Tattoo Fix przywraca odczyt i kończy ciągłe blokady."
+        "answer": "Gdy czujnik optyczny nie wykrywa przepływu krwi na nadgarstku, zegarek zakłada, że został zdjęty, i ponownie prosi o kod — na Apple Watch może to się zdarzać <strong>co 10 sekund</strong>. Na tatuażu tusz blokuje światło czujnika; zegarek włącza blokadę PIN i myśli, że opuścił rękę. Soczewka Sensor TattooFix przywraca odczyt i kończy ciągłe blokady."
       },
       "faq-2": {
         "question": "Dlaczego mój smartwatch nie mierzy tętna na tatuażu?",
-        "answer": "Czujnik używa światła do pomiaru przepływu krwi. Gęste tatuaże, blizny lub ciemny pigment blokują sygnał powrotny — tętno pokazuje zero, nieprecyzyjne odczyty, znika w trakcie treningu albo zegarek w ogóle przestaje monitorować. Soczewka Sensor Tattoo Fix poprawia odczyt bez wyłączania czujnika."
+        "answer": "Czujnik używa światła do pomiaru przepływu krwi. Gęste tatuaże, blizny lub ciemny pigment blokują sygnał powrotny — tętno pokazuje zero, nieprecyzyjne odczyty, znika w trakcie treningu albo zegarek w ogóle przestaje monitorować. Soczewka Sensor TattooFix poprawia odczyt bez wyłączania czujnika."
       },
       "faq-3": {
         "question": "Dlaczego mój zegarek sam się rozłącza lub traci kontakt z nadgarstkiem?",
@@ -351,12 +351,12 @@
         "answer": "Ponieważ tusz tatuażu blokuje światło czujnika, zegarek nie może obliczyć tętna. System interpretuje utratę sygnału tak, jakbyś przerwał ćwiczenia lub zdjął urządzenie, i automatycznie wstrzymuje aktywność, aby oszczędzać baterię."
       },
       "faq-5": {
-        "question": "Jak soczewka Sensor Tattoo Fix koryguje czujnik?",
+        "question": "Jak soczewka Sensor TattooFix koryguje czujnik?",
         "answer": "Nasza technologia soczewek została opracowana specjalnie, aby ominąć blokadę spowodowaną tuszem tatuażu. Działa jak precyzyjny przekaźnik, który pozwala czujnikowi biometrycznemu odczytywać przez tatuażowaną skórę, utrzymując wszystkie funkcje zegarka (płatności, zdrowie i treningi) w 100% sprawnych."
       },
       "faq-6": {
         "question": "Czy działa z Apple Watch?",
-        "answer": "Tak. Soczewka Sensor Tattoo Fix działa z Apple Watch i praktycznie każdym smartwatchem z <strong>czujnikiem optycznym</strong> (zielone lub podczerwone światło) z tyłu — Apple, Samsung, Garmin, Xiaomi i inne marki. Dostępne najpopularniejsze średnice czujników. Demonstracja przed i po na Apple Watch:"
+        "answer": "Tak. Soczewka Sensor TattooFix działa z Apple Watch i praktycznie każdym smartwatchem z <strong>czujnikiem optycznym</strong> (zielone lub podczerwone światło) z tyłu — Apple, Samsung, Garmin, Xiaomi i inne marki. Dostępne najpopularniejsze średnice czujników. Demonstracja przed i po na Apple Watch:"
       },
       "faq-7": {
         "question": "Czy działa z Samsung Galaxy Watch?",
@@ -368,7 +368,7 @@
       },
       "faq-9": {
         "question": "Czy epoksyd lub plaster działają — choćby częściowo?",
-        "answer": "Nie w sposób niezawodny. Żywica/epoksyd odkleja się od potu i wody; plaster i lateks blokują światło czujnika i powodują fałszywe odczyty. W TikToku poniżej @bruu_schmitt opowiada o latach domowych sposobów na Apple Watch — i jak dzięki Sensor Tattoo Fix znów używa go normalnie."
+        "answer": "Nie w sposób niezawodny. Żywica/epoksyd odkleja się od potu i wody; plaster i lateks blokują światło czujnika i powodują fałszywe odczyty. W TikToku poniżej @bruu_schmitt opowiada o latach domowych sposobów na Apple Watch — i jak dzięki Sensor TattooFix znów używa go normalnie."
       },
       "faq-10": {
         "question": "Czy soczewka umożliwia płatności zbliżeniowe (Apple Pay / Google Pay)?",
@@ -384,11 +384,11 @@
       },
       "faq-13": {
         "question": "Czy jest instrukcja montażu?",
-        "answer": "W wysyłkach międzynarodowych otrzymujesz tylko soczewkę w liście — bez primera (przesyłka dokumentowa nie dopuszcza płynów). W kopercie jest drukowany przewodnik w Twoim języku — ta sama karta podziękowania z instrukcją krok po kroku. Podgląd: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=pl\" target=\"_blank\" rel=\"noopener\">List instalacyjny Sensor Tattoo Fix</a>."
+        "answer": "W wysyłkach międzynarodowych otrzymujesz tylko soczewkę w liście — bez primera (przesyłka dokumentowa nie dopuszcza płynów). W kopercie jest drukowany przewodnik w Twoim języku — ta sama karta podziękowania z instrukcją krok po kroku. Podgląd: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=pl\" target=\"_blank\" rel=\"noopener\">List instalacyjny Sensor TattooFix</a>."
       },
       "faq-14": {
         "question": "Czy po przyklejeniu trzeba zdjąć folię ochronną z soczewki?",
-        "answer": "Nie. Soczewka Sensor Tattoo Fix jest gotowa do użycia. Po przyklejeniu i 30 sekundach docisku jest od razu gotowa. Nie ma folii ani warstwy na wierzchu soczewki do zdjęcia; ma już idealną przezroczystość i wykończenie do pracy czujnika."
+        "answer": "Nie. Soczewka Sensor TattooFix jest gotowa do użycia. Po przyklejeniu i 30 sekundach docisku jest od razu gotowa. Nie ma folii ani warstwy na wierzchu soczewki do zdjęcia; ma już idealną przezroczystość i wykończenie do pracy czujnika."
       },
       "faq-15": {
         "question": "Czy soczewka przeszkadza w ładowaniu zegarka?",
@@ -466,7 +466,7 @@
         "source": "Zakup na stronie"
       },
       "review-10": {
-        "body": "Znalazłem Sensor Tattoo Fix i rozwiązało wszystkie problemy Apple Watch na tatuażowanej skórze.",
+        "body": "Znalazłem Sensor TattooFix i rozwiązało wszystkie problemy Apple Watch na tatuażowanej skórze.",
         "author": "Pri",
         "source": "Instagram · wideo"
       },
@@ -502,11 +502,11 @@
     "faq": {
       "faq-1": {
         "question": "Zakaj moja pametna ura ves čas zahteva kodo?",
-        "answer": "Ko optični senzor ne zazna pretoka krvi na zapestju, ura predvideva, da ste jo sneli, in znova zahteva kodo — pri Apple Watchu se to lahko zgodi <strong>vsakih 10 sekund</strong>. Na tetovirani koži tinta blokira svetlobo senzorja; ura aktivira PIN zaklepanje in misli, da ni več na roki. Leča Sensor Tattoo Fix obnovi meritev in konča stalna zaklepanja."
+        "answer": "Ko optični senzor ne zazna pretoka krvi na zapestju, ura predvideva, da ste jo sneli, in znova zahteva kodo — pri Apple Watchu se to lahko zgodi <strong>vsakih 10 sekund</strong>. Na tetovirani koži tinta blokira svetlobo senzorja; ura aktivira PIN zaklepanje in misli, da ni več na roki. Leča Sensor TattooFix obnovi meritev in konča stalna zaklepanja."
       },
       "faq-2": {
         "question": "Zakaj moja pametna ura ne meri pulza na tetovirani koži?",
-        "answer": "Senzor uporablja svetlobo za merjenje pretoka krvi. Goste tetovaže, brazgotine ali temen pigment blokirajo povratni signal — pulz kaže ničlo, netočne vrednosti, pade sredi vadbe ali ura popolnoma preneha spremljati. Leča Sensor Tattoo Fix popravi meritev brez izklopa senzorja."
+        "answer": "Senzor uporablja svetlobo za merjenje pretoka krvi. Goste tetovaže, brazgotine ali temen pigment blokirajo povratni signal — pulz kaže ničlo, netočne vrednosti, pade sredi vadbe ali ura popolnoma preneha spremljati. Leča Sensor TattooFix popravi meritev brez izklopa senzorja."
       },
       "faq-3": {
         "question": "Zakaj se moja ura sama prekine ali izgubi stik z zapestjem?",
@@ -517,12 +517,12 @@
         "answer": "Ker tinta tetovaže blokira svetlobo senzorja, ura ne more izračunati pulza. Sistem izgubo signala interpretira kot da ste prekinili vadbo ali sneli napravo, in samodejno ustavi aktivnost za varčevanje z baterijo."
       },
       "faq-5": {
-        "question": "Kako leča Sensor Tattoo Fix popravi senzor?",
+        "question": "Kako leča Sensor TattooFix popravi senzor?",
         "answer": "Naša tehnologija leč je bila posebej razvita za obhod blokade, ki jo povzroča tinta tetovaže. Deluje kot visoko natančen posrednik, ki biometričnemu senzorju omogoča merjenje skozi tetovirano kožo, in ohranja vse funkcije ure (plačila, zdravje in vadbe) 100-odstotno delujoče."
       },
       "faq-6": {
         "question": "Ali deluje z Apple Watch?",
-        "answer": "Da. Leča Sensor Tattoo Fix deluje z Apple Watch in praktično vsako pametno uro z <strong>optičnim senzorjem</strong> (zelena ali infrardeča svetloba) na hrbtni strani — Apple, Samsung, Garmin, Xiaomi in druge znamke. Na voljo najpogostejši premeri senzorjev. Pred-po predstavitev na Apple Watch:"
+        "answer": "Da. Leča Sensor TattooFix deluje z Apple Watch in praktično vsako pametno uro z <strong>optičnim senzorjem</strong> (zelena ali infrardeča svetloba) na hrbtni strani — Apple, Samsung, Garmin, Xiaomi in druge znamke. Na voljo najpogostejši premeri senzorjev. Pred-po predstavitev na Apple Watch:"
       },
       "faq-7": {
         "question": "Ali deluje s Samsung Galaxy Watch?",
@@ -534,7 +534,7 @@
       },
       "faq-9": {
         "question": "Ali epoksid ali lepilni trak delujeta — vsaj delno?",
-        "answer": "Ne zanesljivo. Smola/epoksid se odlepi zaradi potu in vode; lepilni trak in lateks blokirata svetlobo senzorja in povzročata napačne meritve. V spodnjem TikToku @bruu_schmitt pripoveduje o letih domačih trikov z Apple Watch — in kako je z Sensor Tattoo Fix spet normalno uporabljal uro."
+        "answer": "Ne zanesljivo. Smola/epoksid se odlepi zaradi potu in vode; lepilni trak in lateks blokirata svetlobo senzorja in povzročata napačne meritve. V spodnjem TikToku @bruu_schmitt pripoveduje o letih domačih trikov z Apple Watch — in kako je z Sensor TattooFix spet normalno uporabljal uro."
       },
       "faq-10": {
         "question": "Ali leča omogoča brezstična plačila (Apple Pay / Google Pay)?",
@@ -550,11 +550,11 @@
       },
       "faq-13": {
         "question": "Ali obstaja navodilo za namestitev?",
-        "answer": "Pri mednarodnih pošiljkah prejmete samo lečo po pošti — brez prajmerja (pošiljanje dokumentov ne dovoljuje tekočin). V ovoju je tiskan vodnik v vašem jeziku — ista zahvalno pismo s korak-za-korakom navodili. Predogled: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=sl\" target=\"_blank\" rel=\"noopener\">Namestitveno pismo Sensor Tattoo Fix</a>."
+        "answer": "Pri mednarodnih pošiljkah prejmete samo lečo po pošti — brez prajmerja (pošiljanje dokumentov ne dovoljuje tekočin). V ovoju je tiskan vodnik v vašem jeziku — ista zahvalno pismo s korak-za-korakom navodili. Predogled: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=sl\" target=\"_blank\" rel=\"noopener\">Namestitveno pismo Sensor TattooFix</a>."
       },
       "faq-14": {
         "question": "Ali moram po lepljenju odstraniti zaščitno folijo z leče?",
-        "answer": "Ne. Leča Sensor Tattoo Fix je pripravljena za uporabo. Po lepljenju in 30 sekundah pritiska je takoj pripravljena. Na vrhu leče ni folije ali plasti za odstranitev; že ima idealno prosojnost in površino za delovanje senzorja."
+        "answer": "Ne. Leča Sensor TattooFix je pripravljena za uporabo. Po lepljenju in 30 sekundah pritiska je takoj pripravljena. Na vrhu leče ni folije ali plasti za odstranitev; že ima idealno prosojnost in površino za delovanje senzorja."
       },
       "faq-15": {
         "question": "Ali leča moti polnjenje ure?",
@@ -632,7 +632,7 @@
         "source": "Nakup prek spletne strani"
       },
       "review-10": {
-        "body": "Našel Sensor Tattoo Fix in rešil vse težave Apple Watch na tetovirani koži.",
+        "body": "Našel Sensor TattooFix in rešil vse težave Apple Watch na tetovirani koži.",
         "author": "Pri",
         "source": "Instagram · video"
       },

@@ -29,21 +29,39 @@ window.STF_PRODUCT_MERGE = (function () {
     'nameEs',
     'namePl',
     'nameSl',
+    'nameFr',
+    'nameNl',
+    'nameSv',
+    'nameNo',
+    'nameFi',
     'descriptionEn',
     'descriptionIt',
     'descriptionDe',
     'descriptionEs',
     'descriptionPl',
     'descriptionSl',
+    'descriptionFr',
+    'descriptionNl',
+    'descriptionSv',
+    'descriptionNo',
+    'descriptionFi',
     'markets',
     'images',
     'priceUsd',
-    'priceEur'
+    'priceEur',
+    'priceSek',
+    'priceNok',
+    'pricePln',
+    'priceGbp',
+    'priceCad',
+    'priceAud'
   ];
 
   const I18N_PRODUCT_FIELDS = [
     'nameEn', 'nameIt', 'nameDe', 'nameEs', 'namePl', 'nameSl',
-    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl',
+    'nameFr', 'nameNl', 'nameSv', 'nameNo', 'nameFi',
+    'descriptionEn', 'descriptionIt', 'descriptionDe', 'descriptionEs', 'descriptionPl', 'descriptionSl',
+    'descriptionFr', 'descriptionNl', 'descriptionSv', 'descriptionNo', 'descriptionFi',
     'colorEn', 'filmTypeEn', 'filmTypeDe', 'filmTypeEs', 'filmTypePl', 'filmTypeSl'
   ];
 

@@ -47,36 +47,65 @@ nav,
 }
 
 .logo-area {
+    --logo-h: 96px;
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
     flex-shrink: 0;
     min-width: 0;
 }
 
 .logo-img-link {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 84px;
-    height: 84px;
+    justify-content: flex-start;
+    width: auto;
+    height: var(--logo-h);
     flex-shrink: 0;
     text-decoration: none;
-    border-radius: 50%;
-    overflow: hidden;
+    border-radius: 0;
+    overflow: visible;
     background: transparent;
 }
 
-.main-logo-img {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: cover;
-    object-position: center;
-    border-radius: 50%;
+/* Cobre o jargão PT gravado na arte e escreve o da língua (mesmo italic/tamanho) */
+.logo-slogan-cover {
+    position: absolute;
+    left: 37.2%;
+    right: 0;
+    bottom: 0;
+    height: 19.4%;
+    background: #000;
+    color: #d4d4d4;
+    font-family: 'Inter', sans-serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: calc(var(--logo-h, 96px) * 0.066);
+    letter-spacing: 0.01em;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 1.5% 1.1% 1.4%;
+    white-space: nowrap;
+    pointer-events: none;
+    overflow: hidden;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.28);
 }
 
-/* Lockup do header: junto, só cor diferente — não confundir com textos do site */
+.main-logo-img {
+    width: auto;
+    height: 100%;
+    max-height: var(--logo-h);
+    display: block;
+    object-fit: contain;
+    object-position: left center;
+    border-radius: 0;
+}
+
+/* Wordmark + jargão vêm na arte do logo.jpg */
 .logo-text {
     font-size: 1.42rem;
     font-weight: 900;
@@ -86,6 +115,10 @@ nav,
     color: #fff;
 }
 
+.logo-area > .logo-lockup {
+    display: none;
+}
+
 .logo-text span { color: var(--primary); }
 .logo-text .logo-word { color: #fff; }
 .logo-text .logo-accent { color: var(--primary); }
@@ -93,15 +126,15 @@ nav,
 .logo-lockup {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 0;
     min-width: 0;
 }
 .logo-tagline {
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-style: italic;
     font-weight: 500;
-    line-height: 1.25;
+    line-height: 1.2;
     letter-spacing: 0.04em;
     color: #c4c4c4;
     white-space: nowrap;
@@ -109,6 +142,7 @@ nav,
 
 .hero-brand-mobile {
     display: none;
+    position: relative;
 }
 
 .nav-panel {
@@ -319,15 +353,15 @@ nav,
     .nav-main a { font-size: 0.73rem; }
     .nav-main { gap: 3px 7px; }
     .logo-text { font-size: 1.2rem; }
-    .logo-img-link { width: 76px; height: 76px; }
+    .logo-area { --logo-h: 84px; }
     .site-social { min-width: 96px; padding: 0 12px; }
 }
 
 /* Header IT: rótulos um pouco mais longos — só ajustes de espaço, mesma tipografia do menu */
 html[lang="it"] .site-nav { gap: 10px; }
 html[lang="it"] .logo-text { font-size: 1.18rem; }
-html[lang="it"] .logo-tagline { font-size: 0.74rem; }
-html[lang="it"] .logo-img-link { width: 74px; height: 74px; }
+html[lang="it"] .logo-tagline { font-size: 0.72rem; }
+html[lang="it"] .logo-area { --logo-h: 82px; }
 html[lang="it"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
 html[lang="it"] .nav-actions { gap: 6px; }
 
@@ -1253,6 +1287,7 @@ body.stf-feedback-open { overflow: hidden; }
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: 8% center;
     mix-blend-mode: lighten;
     opacity: 0.95;
 }
@@ -1737,10 +1772,9 @@ footer,
     body.home-page #onde-comprar { scroll-margin-top: 64px; }
     .site-nav,
     nav { position: relative; flex-wrap: nowrap; gap: 6px; }
-    .logo-area { flex: 0 0 auto; min-width: 0; gap: 8px; }
-    .logo-img-link { width: 56px; height: 56px; }
+    .logo-area { flex: 0 0 auto; min-width: 0; gap: 0; --logo-h: 58px; }
     .logo-text { font-size: 0.95rem; }
-    .logo-tagline { font-size: 0.68rem; }
+    .logo-tagline { font-size: 0.62rem; }
 
     /* Home mobile: marca no hero, header compacto + hambúrguer */
     .home-page .logo-area .logo-lockup { display: none; }
@@ -1794,19 +1828,26 @@ footer,
         margin-left: 2px;
     }
     .home-page .hero-brand-mobile {
-        display: block;
-        margin: 0 0 14px;
-        text-align: center;
-    }
-    .home-page .hero-brand-mobile .logo-text {
+        --logo-h: 80px;
         display: flex;
-        justify-content: center;
-        font-size: 1.15rem;
+        flex-direction: column;
+        align-items: center;
+        width: fit-content;
+        max-width: 100%;
+        margin: 0 auto 14px;
+        text-align: center;
+        gap: 0;
     }
+    .home-page .hero-brand-mobile .hero-brand-logo {
+        display: block;
+        height: var(--logo-h);
+        width: auto;
+        max-width: min(380px, 94vw);
+        object-fit: contain;
+    }
+    .home-page .hero-brand-mobile .logo-text,
     .home-page .hero-brand-mobile .logo-tagline {
-        white-space: normal;
-        font-size: 0.78rem;
-        margin-top: 4px;
+        display: none;
     }
     .home-page .hero {
         min-height: calc(100dvh - 64px);
@@ -3123,6 +3164,29 @@ a.stf-tiktok-card:hover {
 .admin-logo-link {
     width: 52px;
     height: 52px;
+}
+/* Admin: emblema circular + rótulo ao lado (não o lockup horizontal do site) */
+.admin-page .logo-area {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+.admin-page .logo-img-link.admin-logo-link {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+.admin-page .admin-logo-link .main-logo-img {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+    object-position: 8% center;
+    border-radius: 50%;
+}
+.admin-page .logo-area > .logo-text {
+    display: block;
 }
 .admin-toolbar {
     margin-left: auto;
@@ -7316,3 +7380,16 @@ a.conta-forgot-link { display: inline-block; }
 .forum-related-pick span { color: #555; font-size: .88rem; }
 .forum-related-pick small { color: #888; }
 .forum-related-actions { margin-top: .85rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+
+/* Admin: readonly intl prices + ≈ R$ base */
+.admin-intl-price-ro input[readonly] {
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: default;
+}
+.admin-intl-base-brl {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
