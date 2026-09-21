@@ -13743,28 +13743,22 @@ const PASSWORD_RESET_TTL = 3600; // 1 hora
 
 function passwordResetLocaleFromRequest(request, bodyLocale) {
   const explicit = String(bodyLocale || '').toLowerCase();
-  if (explicit === 'en' || explicit === 'it' || explicit === 'de' || explicit === 'es' || explicit === 'pl' || explicit === 'sl' || explicit === 'pt') return explicit;
+  const known = ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi', 'pt'];
+  if (known.includes(explicit)) return explicit;
   const lang = (request.headers.get('Accept-Language') || '').toLowerCase();
-  if (lang.startsWith('it')) return 'it';
-  if (lang.startsWith('de')) return 'de';
-  if (lang.startsWith('es')) return 'es';
-  if (lang.startsWith('pl')) return 'pl';
-  if (lang.startsWith('sl')) return 'sl';
-  if (lang.startsWith('en')) return 'en';
+  for (const code of ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi', 'en']) {
+    if (lang.startsWith(code)) return code;
+  }
   const hay = `${request.headers.get('Origin') || ''} ${request.headers.get('Referer') || ''}`.toLowerCase();
-  if (hay.includes('/it/') || hay.includes('lang=it')) return 'it';
-  if (hay.includes('/de/') || hay.includes('lang=de')) return 'de';
-  if (hay.includes('/es/') || hay.includes('lang=es')) return 'es';
-  if (hay.includes('/pl/') || hay.includes('lang=pl')) return 'pl';
-  if (hay.includes('/sl/') || hay.includes('lang=sl')) return 'sl';
+  for (const code of ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']) {
+    if (hay.includes(`/${code}/`) || hay.includes(`lang=${code}`)) return code;
+  }
   if (hay.includes('sensortattoofix.com') && !hay.includes('.com.br')) return 'en';
   return 'pt';
 }
 
 function passwordResetSiteBase(locale, config) {
-  if (locale === 'en' || locale === 'it' || locale === 'de' || locale === 'es' || locale === 'pl' || locale === 'sl') {
-    return 'https://www.sensortattoofix.com';
-  }
+  if (locale && locale !== 'pt') return 'https://www.sensortattoofix.com';
   return String(config?.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
 }
 
@@ -13775,7 +13769,12 @@ function passwordResetUrl(locale, config, token) {
     de: '/de/minha-conta.html',
     es: '/es/minha-conta.html',
     pl: '/pl/minha-conta.html',
-    sl: '/sl/minha-conta.html'
+    sl: '/sl/minha-conta.html',
+    fr: '/fr/minha-conta.html',
+    nl: '/nl/minha-conta.html',
+    sv: '/sv/minha-conta.html',
+    no: '/no/minha-conta.html',
+    fi: '/fi/minha-conta.html'
   };
   const path = pathByLocale[locale] || '/minha-conta.html';
   return `${base}${path}?reset=${encodeURIComponent(token)}`;

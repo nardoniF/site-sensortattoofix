@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&family=Outfit:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&family=Inter:ital,wght@1,500;1,600&family=Outfit:wght@500;600;700&display=swap');
 
 :root {
     --primary: #ffc107;
@@ -47,7 +47,7 @@ nav,
 }
 
 .logo-area {
-    --logo-h: 96px;
+    --logo-h: 136px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -71,29 +71,62 @@ nav,
     background: transparent;
 }
 
-/* Cobre o jargão PT gravado na arte e escreve o da língua (mesmo italic/tamanho) */
+/* Cobre o jargão PT da arte e escreve o da língua por cima.
+   O corpo é maior que o fio gravado no JPG (aquele ficava ilegível no header):
+   espanhol ~0,17× a altura do logo, frases longas um pouco menores para não
+   invadir o menu. ::after pinta no primeiro frame — sem flash de português. */
+html:not([lang="pt"]):not([lang="pt-BR"]):not([lang="pt-br"]) .logo-img-link::after,
+html:not([lang="pt"]):not([lang="pt-BR"]):not([lang="pt-br"]) .hero-brand-mobile::after,
 .logo-slogan-cover {
+    /* content fica só nas regras por idioma — senão os :not([lang]) ganham
+       especificidade e apagam a frase, sobrando a faixa preta vazia. */
     position: absolute;
-    left: 37.2%;
-    right: 0;
-    bottom: 0;
-    height: 19.4%;
+    left: 38.5%;
+    bottom: 1%;
+    height: 21%;
+    width: max-content;
+    min-width: 60%;
+    max-width: none;
+    box-sizing: border-box;
     background: #000;
-    color: #d4d4d4;
-    font-family: 'Inter', sans-serif;
+    color: #e6e1d6;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     font-style: italic;
-    font-weight: 400;
-    font-size: calc(var(--logo-h, 96px) * 0.066);
-    letter-spacing: 0.01em;
+    font-weight: 600;
+    letter-spacing: 0;
     line-height: 1;
     display: flex;
     align-items: center;
-    padding: 0 1.5% 1.1% 1.4%;
+    justify-content: flex-start;
+    padding: 0 0.15em 0 0;
     white-space: nowrap;
     pointer-events: none;
-    overflow: hidden;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.28);
+    overflow: visible;
+    z-index: 2;
+    text-shadow: none;
 }
+html[lang="en"] .logo-img-link::after,
+html[lang="en"] .hero-brand-mobile::after { content: "Peace between ink and silicon"; font-size: calc(var(--logo-h, 136px) * 0.155); }
+html[lang="it"] .logo-img-link::after,
+html[lang="it"] .hero-brand-mobile::after { content: "Pace tra inchiostro e silicio"; font-size: calc(var(--logo-h, 136px) * 0.155); }
+html[lang="de"] .logo-img-link::after,
+html[lang="de"] .hero-brand-mobile::after { content: "Harmonie zwischen Tinte und Silizium"; font-size: calc(var(--logo-h, 136px) * 0.13); }
+html[lang="es"] .logo-img-link::after,
+html[lang="es"] .hero-brand-mobile::after { content: "Paz entre tinta y silicio"; font-size: calc(var(--logo-h, 136px) * 0.17); }
+html[lang="pl"] .logo-img-link::after,
+html[lang="pl"] .hero-brand-mobile::after { content: "Pokój między tuszem a krzemem"; font-size: calc(var(--logo-h, 136px) * 0.145); }
+html[lang="sl"] .logo-img-link::after,
+html[lang="sl"] .hero-brand-mobile::after { content: "Mir med tinto in silicijem"; font-size: calc(var(--logo-h, 136px) * 0.16); }
+html[lang="fr"] .logo-img-link::after,
+html[lang="fr"] .hero-brand-mobile::after { content: "Harmonie entre encre et silicium"; font-size: calc(var(--logo-h, 136px) * 0.145); }
+html[lang="nl"] .logo-img-link::after,
+html[lang="nl"] .hero-brand-mobile::after { content: "Harmonie tussen inkt en silicium"; font-size: calc(var(--logo-h, 136px) * 0.145); }
+html[lang="sv"] .logo-img-link::after,
+html[lang="sv"] .hero-brand-mobile::after { content: "Harmoni mellan bläck och kisel"; font-size: calc(var(--logo-h, 136px) * 0.15); }
+html[lang="no"] .logo-img-link::after,
+html[lang="no"] .hero-brand-mobile::after { content: "Harmoni mellom blekk og silisium"; font-size: calc(var(--logo-h, 136px) * 0.14); }
+html[lang="fi"] .logo-img-link::after,
+html[lang="fi"] .hero-brand-mobile::after { content: "Sopusointu musteen ja piin välillä"; font-size: calc(var(--logo-h, 136px) * 0.14); }
 
 .main-logo-img {
     width: auto;
@@ -353,7 +386,7 @@ nav,
     .nav-main a { font-size: 0.73rem; }
     .nav-main { gap: 3px 7px; }
     .logo-text { font-size: 1.2rem; }
-    .logo-area { --logo-h: 84px; }
+    .logo-area { --logo-h: 118px; }
     .site-social { min-width: 96px; padding: 0 12px; }
 }
 
@@ -361,7 +394,7 @@ nav,
 html[lang="it"] .site-nav { gap: 10px; }
 html[lang="it"] .logo-text { font-size: 1.18rem; }
 html[lang="it"] .logo-tagline { font-size: 0.72rem; }
-html[lang="it"] .logo-area { --logo-h: 82px; }
+html[lang="it"] .logo-area { --logo-h: 128px; }
 html[lang="it"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
 html[lang="it"] .nav-actions { gap: 6px; }
 
@@ -1772,7 +1805,7 @@ footer,
     body.home-page #onde-comprar { scroll-margin-top: 64px; }
     .site-nav,
     nav { position: relative; flex-wrap: nowrap; gap: 6px; }
-    .logo-area { flex: 0 0 auto; min-width: 0; gap: 0; --logo-h: 58px; }
+    .logo-area { flex: 0 0 auto; min-width: 0; gap: 0; --logo-h: 92px; }
     .logo-text { font-size: 0.95rem; }
     .logo-tagline { font-size: 0.62rem; }
 
@@ -1828,7 +1861,7 @@ footer,
         margin-left: 2px;
     }
     .home-page .hero-brand-mobile {
-        --logo-h: 80px;
+        --logo-h: 156px;
         display: flex;
         flex-direction: column;
         align-items: center;

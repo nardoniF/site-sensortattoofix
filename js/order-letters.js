@@ -35,8 +35,11 @@ window.STF_ORDER_LETTERS = (function () {
 
   function lensProfileFor(row, kind) {
     if (kind === 'smartband') {
-      const w = Number(row?.lensWmm) > 0 ? Number(row.lensWmm) : SMARTBAND_LENS.widthMm;
-      const h = Number(row?.lensHmm) > 0 ? Number(row.lensHmm) : SMARTBAND_LENS.heightMm;
+      // 1×1.5 mm no KV (Band 10) não é a lente — faixa real é 17×0,8 mm.
+      const wRaw = Number(row?.lensWmm);
+      const hRaw = Number(row?.lensHmm);
+      const w = wRaw >= 8 && wRaw <= 30 ? wRaw : SMARTBAND_LENS.widthMm;
+      const h = hRaw >= 0.4 && hRaw <= 2.2 ? hRaw : SMARTBAND_LENS.heightMm;
       return { kind, shape: 'rect', widthMm: w, heightMm: h };
     }
     return {

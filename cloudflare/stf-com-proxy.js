@@ -82,7 +82,12 @@ const COM_SHARED_ROOT_PAGES = new Set([
 
 const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
+function rewriteAccountAlias(pathname) {
+  return String(pathname || '').replace(/\/account\.html$/i, '/minha-conta.html');
+}
+
 function mapPathCom(pathname) {
+  pathname = rewriteAccountAlias(pathname);
   if (isStaticAsset(pathname)) return pathname;
   if (COM_SHARED_ROOT_PAGES.has(pathname)) return pathname;
   for (const lang of INTL_LANGS) {
@@ -101,6 +106,7 @@ function mapPathCom(pathname) {
 }
 
 function mapPathBr(pathname) {
+  pathname = rewriteAccountAlias(pathname);
   if (isStaticAsset(pathname)) return pathname;
   if (pathname === '/' || pathname === '') return '/index.html';
   if (pathname.endsWith('/') && pathname.length > 1) return pathname + 'index.html';

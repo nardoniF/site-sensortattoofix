@@ -1143,7 +1143,7 @@ window.STF_I18N = (function () {
   }
 
   function accountHref() {
-    return pageHref('account');
+    return pageHref('minha-conta');
   }
 
   function comprarPageHref() {
@@ -1579,22 +1579,8 @@ window.STF_I18N = (function () {
   }
 
   function mountLogoSloganCover() {
-    const lang = getLang();
-    if (!lang || lang === 'pt') return;
-    const text = t('brand.tagline');
-    if (!text) return;
-    document.querySelectorAll('.logo-img-link, .hero-brand-mobile').forEach((host) => {
-      const img = host.querySelector('img');
-      if (!img || /logo-mark/i.test(img.getAttribute('src') || '')) return;
-      let cover = host.querySelector(':scope > .logo-slogan-cover');
-      if (!cover) {
-        cover = document.createElement('span');
-        cover.className = 'logo-slogan-cover';
-        cover.setAttribute('aria-hidden', 'true');
-        host.appendChild(cover);
-      }
-      cover.textContent = text;
-    });
+    /* Texto já vem do CSS (::after no html[lang]) no primeiro frame.
+       Não injetar span depois — isso piscava português e duplicava o jargão. */
   }
 
   function init() {
