@@ -95,17 +95,16 @@ import {
 } from './sales-money.js';
 import {
   DEFAULT_INTL_CURRENCIES,
-  DEFAULT_INTL_MARKUP_PERCENT,
   normalizeIntlCurrencies,
   activeIntlCurrencies,
   applyMarkupFxToIntlProducts,
   syncOpticalIntlBrlFromBrKit,
   currencyForLocaleFromRegistry,
+  currencyForCountryFromRegistry,
   productListPriceFromRegistry,
-  intlPriceField,
-  intlPriceFieldNames,
-  intlBaseBrl,
-  normalizeMarkupPercent
+  resolveIntlUnitPrice,
+  foreignListLooksRawWithoutMarkup,
+  intlPriceFieldNames
 } from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
@@ -2649,13 +2648,15 @@ function productIntlNok(product) {
   return Number.isFinite(v) && v > 0 ? v : null;
 }
 
-/** List price for charge currency (markup×FX stored on product — not raw Frankfurter on R$). */
-function productIntlListPrice(product, currency, config) {
-  const fromRegistry = productListPriceFromRegistry(
-    product,
-    currency,
-    config?.intlCurrencies || DEFAULT_INTL_CURRENCIES
-  );
+/** List price for charge currency (markup×FX — heals stale raw BRL×FX lists). */
+function productIntlListPrice(product, currency, config, fxRate) {
+  const currencies = config?.intlCurrencies || DEFAULT_INTL_CURRENCIES;
+  const rate = Number(fxRate);
+  if (Number.isFinite(rate) && rate > 0) {
+    const healed = resolveIntlUnitPrice(product, currency, rate, currencies);
+    if (healed != null) return healed;
+  }
+  const fromRegistry = productListPriceFromRegistry(product, currency, currencies);
   if (fromRegistry != null) return fromRegistry;
   const cur = String(currency || 'USD').toUpperCase();
   if (cur === 'EUR') return productIntlEur(product);
@@ -2708,6 +2709,47 @@ async function syncIntlProductPricesFromMarkupFx(env, { force = false } = {}) {
   return { updated: updated + (synced.synced ? 1 : 0), currencies: currencies.map((c) => c.code), fxRates };
 }
 
+/** Detect USD/EUR (etc.) still stored as raw BRL×FX while markup base exists. */
+async function intlListPricesNeedMarkupHeal(env) {
+  const config = await getConfig(env);
+  const currencies = normalizeIntlCurrencies(config.intlCurrencies);
+  const intlRows = (config.products || []).filter(isIntlMarketProductRow);
+  if (!intlRows.length) return false;
+  const fxRates = await fetchFxRatesMap(env, currencies.map((c) => c.code));
+  for (const p of intlRows) {
+    for (const cur of activeIntlCurrencies(currencies)) {
+      const rate = Number(fxRates[cur.code]);
+      if (!(rate > 0)) continue;
+      if (foreignListLooksRawWithoutMarkup(p, cur.code, rate, currencies)) return true;
+    }
+  }
+  return false;
+}
+
+async function maybeHealStaleIntlListPrices(env, ctx) {
+  const lockKey = 'intl:markup-heal-lock';
+  try {
+    const locked = await env.STORE_KV.get(lockKey);
+    if (locked) return;
+  } catch { /* continue */ }
+  let needs = false;
+  try {
+    needs = await intlListPricesNeedMarkupHeal(env);
+  } catch (err) {
+    console.warn('intl markup heal check:', err?.message || err);
+    return;
+  }
+  if (!needs) return;
+  try {
+    await kvPut(env, lockKey, '1', { expirationTtl: 600 });
+  } catch { /* ignore */ }
+  const run = syncIntlProductPricesFromMarkupFx(env, { force: true })
+    .then((r) => console.log('intl markup heal sync', r?.updated, r?.fxRates))
+    .catch((err) => console.warn('intl markup heal sync failed:', err?.message || err));
+  if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run);
+  else await run;
+}
+
 /** @deprecated name — cron used PPP; now markup + FX */
 async function syncIntlProductPricesFromPpp(env, opts) {
   return syncIntlProductPricesFromMarkupFx(env, opts);
@@ -2727,7 +2769,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   let allConfigured = itemList.length > 0;
   for (const item of itemList) {
     const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const price = p ? productIntlListPrice(p, cur, config) : null;
+    const price = p ? productIntlListPrice(p, cur, config, fx.rate) : null;
     if (price == null) { allConfigured = false; break; }
     productForeign += price * (Number(item.qty) || 1);
   }
@@ -2768,6 +2810,17 @@ function intlChargeCurrencyForLocale(locale, config) {
   if (l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
     || l === 'fr' || l === 'nl' || l === 'fi') return 'EUR';
   return 'USD';
+}
+
+/** Prefer country currency (GB→GBP) over site language (en→USD) when both exist. */
+function intlChargeCurrencyForOrder(order, config) {
+  const currencies = config?.intlCurrencies || DEFAULT_INTL_CURRENCIES;
+  const country = String(order?.paisCode || '').trim().toUpperCase();
+  if (country && country !== 'BR') {
+    const byCountry = currencyForCountryFromRegistry(country, currencies);
+    if (byCountry && byCountry !== 'BRL') return byCountry;
+  }
+  return intlChargeCurrencyForLocale(order?.checkoutLocale, config);
 }
 
 function selfTestUsdAmountForOrder(order, billingType) {
@@ -10701,6 +10754,19 @@ async function handleFxRate(request, env, origin) {
   }
 }
 
+/** Batch FX for Admin markup UI: /fx/rates?to=USD,EUR,GBP */
+async function handleFxRates(request, env, origin) {
+  const raw = new URL(request.url).searchParams.get('to') || 'USD,EUR,GBP,PLN,SEK,NOK';
+  const codes = [...new Set(String(raw).split(/[\s,]+/).map((c) => c.trim().toUpperCase()).filter((c) => /^[A-Z]{3}$/.test(c)))];
+  if (!codes.length) return json({ error: 'Informe moedas em ?to=USD,EUR' }, 400, origin);
+  try {
+    const rates = await fetchFxRatesMap(env, codes);
+    return json({ base: 'BRL', rates, fetchedAt: new Date().toISOString() }, 200, origin);
+  } catch (err) {
+    return json({ error: err.message || 'Câmbio indisponível.' }, 502, origin);
+  }
+}
+
 function quoteInternational(config, countryCode) {
   const zones = config.internationalShipping || DEFAULT_CONFIG.internationalShipping;
   const code = String(countryCode || '').toUpperCase();
@@ -13038,7 +13104,7 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   const accessToken = await getPayPalAccessToken(env);
   const checkoutLocale = String(order.checkoutLocale || 'pt').toLowerCase();
   const useForeign = isComSiteRequest(request) && isIntlCheckoutLocale(checkoutLocale);
-  const foreignCur = intlChargeCurrencyForLocale(checkoutLocale);
+  const foreignCur = intlChargeCurrencyForOrder(order, config);
   let currencyCode = 'BRL';
   let amountValue = Number(order.total).toFixed(2);
   let locale = 'pt-BR';
@@ -14469,7 +14535,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
 
   if (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')) {
     try {
-      const foreignCur = intlChargeCurrencyForLocale(checkoutLocale);
+      const foreignCur = intlChargeCurrencyForOrder(order, config);
       const charge = await intlForeignCharge(order, env, config, items, foreignCur);
       order.chargeCurrency = foreignCur;
       order.chargeAmount = charge.amount;
@@ -15625,11 +15691,11 @@ function stripeOrderCharge(order, request, env) {
 
 async function ensureStripeIntlCharge(order, request, env) {
   const chargeCur = String(order.chargeCurrency || '').toUpperCase();
-  if (!(chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) return;
-  let amt = Number(order.chargeAmount);
-  if (Number.isFinite(amt) && amt > 0) return;
+  const knownForeign = ['USD', 'EUR', 'GBP', 'PLN', 'SEK', 'NOK'].includes(chargeCur);
+  if (!(knownForeign || isComSiteRequest(request))) return;
+  if (order.status === 'paid') return;
   const config = await getConfig(env);
-  const foreignCur = intlChargeCurrencyForLocale(order.checkoutLocale);
+  const foreignCur = intlChargeCurrencyForOrder(order, config);
   const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
   order.chargeCurrency = foreignCur;
   order.chargeAmount = charge.amount;
@@ -19057,6 +19123,7 @@ export default {
 
     try {
       if (path === '/config' && request.method === 'GET') {
+        maybeHealStaleIntlListPrices(env, ctx).catch(() => {});
         return json(publicConfigView(await getPublicConfig(env), env), 200, origin);
       }
       if (path === '/visitor/geo' && request.method === 'GET') {
@@ -19254,6 +19321,9 @@ export default {
       }
       if (path === '/fx/rate' && request.method === 'GET') {
         return handleFxRate(request, env, origin);
+      }
+      if (path === '/fx/rates' && request.method === 'GET') {
+        return handleFxRates(request, env, origin);
       }
       if (path === '/shipping/quote' && request.method === 'GET') {
         return handleShippingQuote(request, env, origin, ctx);

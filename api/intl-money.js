@@ -260,6 +260,69 @@ export function productListPriceFromRegistry(product, currency, currencies) {
   return null;
 }
 
+/** BRL base for INT list: stored intlBaseBrl or price × (1 + markup%). */
+export function productIntlBaseBrl(product) {
+  if (!product || typeof product !== 'object') return null;
+  const stored = Number(product.intlBaseBrl);
+  if (Number.isFinite(stored) && stored > 0) return stored;
+  const brl = Number(product.price) || 0;
+  if (!(brl > 0)) return null;
+  const markup = normalizeMarkupPercent(
+    product.intlMarkupPercent != null ? product.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT
+  );
+  return intlBaseBrl(brl, markup);
+}
+
+function currencyDecimals(currency, currencies) {
+  const cur = String(currency || 'USD').toUpperCase();
+  const row = activeIntlCurrencies(currencies).find((c) => c.code === cur);
+  if (row && Number.isFinite(Number(row.decimals))) return Number(row.decimals);
+  if (cur === 'SEK' || cur === 'NOK') return 0;
+  return 2;
+}
+
+/**
+ * True when stored foreign list ≈ raw BRL×FX (missing markup) while base has markup.
+ * Catches live KV regressions where cron/admin left USD/EUR as FX cru.
+ */
+export function foreignListLooksRawWithoutMarkup(product, currency, fxRate, currencies) {
+  const brl = Number(product?.price) || 0;
+  const rate = Number(fxRate);
+  if (!(brl > 0) || !(rate > 0)) return false;
+  const base = productIntlBaseBrl(product);
+  if (!(base > 0) || base <= brl * 1.05) return false; // no meaningful markup
+  const decimals = currencyDecimals(currency, currencies);
+  const stored = productListPriceFromRegistry(product, currency, currencies);
+  if (stored == null) return true;
+  const raw = applyFxAmount(brl, rate, decimals);
+  const expected = applyFxAmount(base, rate, decimals);
+  if (Math.abs(stored - expected) <= 0.05) return false;
+  // Within ~2% of raw FX, or clearly below marked-up list.
+  return Math.abs(stored - raw) <= Math.max(0.05, raw * 0.02) || stored < expected * 0.88;
+}
+
+/**
+ * Authoritative unit list price for charge/display math:
+ * prefer (intlBaseBrl × FX) when rate is known; heal stale raw list prices.
+ */
+export function resolveIntlUnitPrice(product, currency, fxRate, currencies) {
+  const cur = String(currency || 'USD').toUpperCase();
+  const rate = Number(fxRate);
+  const base = productIntlBaseBrl(product);
+  const decimals = currencyDecimals(cur, currencies);
+  const stored = productListPriceFromRegistry(product, cur, currencies);
+  if (base > 0 && rate > 0) {
+    const expected = applyFxAmount(base, rate, decimals);
+    if (stored == null || foreignListLooksRawWithoutMarkup(product, cur, rate, currencies)) {
+      return expected;
+    }
+    // Prefer formula when stored drifted > 2% from markup×FX (FX moved or bad save).
+    if (Math.abs(stored - expected) > Math.max(0.05, expected * 0.02)) return expected;
+    return stored;
+  }
+  return stored;
+}
+
 export function intlPriceFieldNames(currencies) {
   return activeIntlCurrencies(currencies)
     .map((c) => intlPriceField(c.code))

@@ -10,7 +10,11 @@ import {
   applyMarkupFxToIntlProducts,
   syncOpticalIntlBrlFromBrKit,
   currencyForLocaleFromRegistry,
-  normalizeIntlCurrencies
+  currencyForCountryFromRegistry,
+  normalizeIntlCurrencies,
+  resolveIntlUnitPrice,
+  foreignListLooksRawWithoutMarkup,
+  productIntlBaseBrl
 } from './intl-money.js';
 
 const FX = {
@@ -97,4 +101,41 @@ test('normalizeIntlCurrencies drops legacy pppRate requirement', () => {
   assert.ok(usd);
   assert.equal(usd.pppRate, undefined);
   assert.ok(list.find((c) => c.code === 'EUR'));
+});
+
+test('heal: stale USD ≈ raw BRL×FX while markup base exists → use base×FX', () => {
+  // Live bug: smartband priceUsd 12.25 = 62.9×FX, but intlBaseBrl 110.08 (75% markup)
+  const product = {
+    price: 62.9,
+    intlMarkupPercent: 75,
+    intlBaseBrl: 110.08,
+    priceUsd: 12.25,
+    priceGbp: 16.06
+  };
+  const usdRate = 0.19471;
+  assert.equal(productIntlBaseBrl(product), 110.08);
+  assert.equal(foreignListLooksRawWithoutMarkup(product, 'USD', usdRate, DEFAULT_INTL_CURRENCIES), true);
+  const healed = resolveIntlUnitPrice(product, 'USD', usdRate, DEFAULT_INTL_CURRENCIES);
+  assert.equal(healed, applyFxAmount(110.08, usdRate, 2));
+  assert.equal(healed, 21.43);
+  assert.notEqual(healed, 12.25);
+});
+
+test('heal: GBP already marked up stays (or matches formula)', () => {
+  const product = {
+    price: 62.9,
+    intlMarkupPercent: 75,
+    intlBaseBrl: 110.08,
+    priceUsd: 12.25,
+    priceGbp: 16.06
+  };
+  const gbpRate = 0.14591;
+  assert.equal(foreignListLooksRawWithoutMarkup(product, 'GBP', gbpRate, DEFAULT_INTL_CURRENCIES), false);
+  const unit = resolveIntlUnitPrice(product, 'GBP', gbpRate, DEFAULT_INTL_CURRENCIES);
+  assert.equal(unit, applyFxAmount(110.08, gbpRate, 2));
+});
+
+test('currencyForCountryFromRegistry: GB → GBP even when locale would be USD', () => {
+  assert.equal(currencyForCountryFromRegistry('GB', DEFAULT_INTL_CURRENCIES), 'GBP');
+  assert.equal(currencyForLocaleFromRegistry('en', DEFAULT_INTL_CURRENCIES), 'USD');
 });

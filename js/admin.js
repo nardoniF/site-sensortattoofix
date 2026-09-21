@@ -5788,15 +5788,39 @@ ${worksheets}
     }
     const base = (window.CONFIG_BOOTSTRAP?.configApiUrl || currentConfig?.api?.baseUrl || '').replace(/\/$/, '');
     if (!base) return {};
+    const codes = ['USD', 'EUR', 'GBP', 'PLN', 'SEK', 'NOK'];
     try {
-      const res = await fetch(`${base}/fx/rates?to=USD,EUR,GBP,PLN,SEK,NOK`, { cache: 'no-store' });
-      if (!res.ok) return adminFxRatesCache.rates || {};
-      const data = await res.json();
-      adminFxRatesCache = { rates: data.rates || {}, at: Date.now() };
-      return adminFxRatesCache.rates;
-    } catch {
-      return adminFxRatesCache.rates || {};
-    }
+      const batch = await fetch(`${base}/fx/rates?to=${codes.join(',')}`, { cache: 'no-store' });
+      if (batch.ok) {
+        const data = await batch.json();
+        if (data?.rates && typeof data.rates === 'object') {
+          adminFxRatesCache = { rates: data.rates, at: Date.now() };
+          return adminFxRatesCache.rates;
+        }
+      }
+    } catch { /* fall through to per-currency */ }
+    try {
+      const entries = await Promise.all(codes.map(async (code) => {
+        try {
+          const res = await fetch(`${base}/fx/rate?to=${encodeURIComponent(code)}`, { cache: 'no-store' });
+          if (!res.ok) return [code, null];
+          const data = await res.json();
+          const rate = Number(data?.rate);
+          return [code, rate > 0 ? rate : null];
+        } catch {
+          return [code, null];
+        }
+      }));
+      const rates = {};
+      entries.forEach(([code, rate]) => {
+        if (rate > 0) rates[code] = rate;
+      });
+      if (Object.keys(rates).length) {
+        adminFxRatesCache = { rates, at: Date.now() };
+        return rates;
+      }
+    } catch { /* ignore */ }
+    return adminFxRatesCache.rates || {};
   }
 
   function intlBaseFromInputs(price, markup) {
