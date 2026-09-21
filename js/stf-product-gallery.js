@@ -384,8 +384,8 @@
       }
       const imgs = product ? resolveImages(product) : kitAlbum();
       const alt = product
-        ? (window.STF_PELICULA?.productLabel?.(product) || product.nameEn || product.name || 'Sensor Tattoo Fix')
-        : (isLensOnlyMarket() ? 'SensorTattooFix Optical Lens' : 'Sensor Tattoo Fix');
+        ? (window.STF_PELICULA?.productLabel?.(product) || product.nameEn || product.name || 'Sensor TattooFix')
+        : (isLensOnlyMarket() ? 'SensorTattooFix Optical Lens' : 'Sensor TattooFix');
       enhanceExisting('.product-image-wrap', imgs, alt);
       watchProductAlbumSize();
     };

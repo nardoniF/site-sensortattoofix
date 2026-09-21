@@ -305,7 +305,12 @@ const FORUM_SUBMIT_MSG = {
   de: { topic: 'Thema gesendet. Es erscheint nach der Freigabe.', reply: 'Antwort gesendet. Sie erscheint nach der Freigabe.' },
   es: { topic: 'Tema enviado. Aparece tras la aprobación.', reply: 'Respuesta enviada. Aparece tras la aprobación.' },
   pl: { topic: 'Wątek wysłany. Pojawi się po akceptacji.', reply: 'Odpowiedź wysłana. Pojawi się po akceptacji.' },
-  sl: { topic: 'Tema poslana. Prikaže se po odobritvi.', reply: 'Odgovor poslan. Prikaže se po odobritvi.' }
+  sl: { topic: 'Tema poslana. Prikaže se po odobritvi.', reply: 'Odgovor poslan. Prikaže se po odobritvi.' },
+  fr: { topic: 'Sujet envoyé. Il apparaît après validation.', reply: 'Réponse envoyée. Elle apparaît après validation.' },
+  nl: { topic: 'Onderwerp verzonden. Het verschijnt na goedkeuring.', reply: 'Reactie verzonden. Deze verschijnt na goedkeuring.' },
+  sv: { topic: 'Ämne skickat. Det syns efter godkännande.', reply: 'Svar skickat. Det syns efter godkännande.' },
+  no: { topic: 'Tema sendt. Det vises etter godkjenning.', reply: 'Svar sendt. Det vises etter godkjenning.' },
+  fi: { topic: 'Aihe lähetetty. Se näkyy hyväksynnän jälkeen.', reply: 'Vastaus lähetetty. Se näkyy hyväksynnän jälkeen.' }
 };
 
 async function resolveThreadByParam(env, param) {
@@ -385,7 +390,7 @@ async function requireForumWriter(env, deps, request) {
 
 const OFFICIAL_AUTHOR = {
   userId: 'seed-official-stf',
-  nome: 'Sensor Tattoo Fix',
+  nome: 'Sensor TattooFix',
   username: 'sensortattoofix',
   avatarId: 'shield',
   avatarEmoji: '🛡️',
@@ -1010,7 +1015,7 @@ export async function handleForumRoute(request, env, origin, deps) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="index, follow">
-  <title>${esc(loc.title)} | Comunidade | Sensor Tattoo Fix</title>
+  <title>${esc(loc.title)} | Comunidade | Sensor TattooFix</title>
   <meta name="description" content="${desc}">
   <link rel="canonical" href="${esc(pageUrl)}">
   <meta property="og:title" content="${esc(loc.title)}">
@@ -1020,7 +1025,7 @@ export async function handleForumRoute(request, env, origin, deps) {
 </head>
 <body class="checkout-page forum-page">
   <main class="container forum-container">
-    <p><a href="${esc(pageUrl)}">Sensor Tattoo Fix — Comunidade</a></p>
+    <p><a href="${esc(pageUrl)}">Sensor TattooFix — Comunidade</a></p>
     <article>
       <h1>${esc(loc.title)}</h1>
       <p class="admin-meta">@${esc(thread.author?.username || 'anon')} · <time datetime="${esc(thread.createdAt || '')}">${esc(thread.createdAt || '')}</time></p>
@@ -1266,7 +1271,12 @@ export async function handleForumRoute(request, env, origin, deps) {
   }
 
   if (path === '/admin/forum/i18n/refresh' && method === 'POST') {
-    if (!(await deps.isValidSession(env, deps.bearerToken(request)))) {
+    const url = new URL(request.url);
+    const backfillKey = String(env.FORUM_I18N_BACKFILL_KEY || env.BACKFILL_KEY || env.SMOKE_KEY || '');
+    const providedKey = String(url.searchParams.get('key') || '');
+    const authedSession = await deps.isValidSession(env, deps.bearerToken(request));
+    const authedKey = !!(backfillKey && providedKey && providedKey === backfillKey);
+    if (!authedSession && !authedKey) {
       return deps.json({ error: 'Não autorizado.' }, 401, origin);
     }
     const body = await request.json().catch(() => ({}));

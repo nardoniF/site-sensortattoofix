@@ -12,7 +12,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Trocar de braço pra mim não resolveu: os dois têm cobertura na área do sensor.', author: { ...A['seed-bruno'] }, createdAt: iso(60*37), parentRef: 'a1b' },
         { body: 'O Apple Watch usa uma luzinha no fundo pra saber se ainda está no pulso. Tinta densa engole essa luz, ele acha que você tirou e fica pedindo senha — não é bug aleatório.', author: { ...A['seed-chris'] }, createdAt: iso(60*31), ref: 'a1c', parentRef: 'a1' },
         { body: 'Também desativei Desbloquear com iPhone pensando que ajudava. Zero diferença.', author: { ...A['seed-felipe'] }, createdAt: iso(60*24), ref: 'a2' },
-        { ...officialReply('Quando a detecção de pulso oscila, o Apple Watch reforça a segurança e pede senha como se tivesse sido removido. O Sensor Tattoo Fix ajuda o sensor a ler melhor nessa região. Acesse nossos canais e adquira nossas lentes.', iso(60*16)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Quando a detecção de pulso oscila, o Apple Watch reforça a segurança e pede senha como se tivesse sido removido. O Sensor TattooFix ajuda o sensor a ler melhor nessa região. Acesse nossos canais e adquira nossas lentes.', iso(60*16)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -27,7 +27,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Apertei a pulseira pra dormir e acordei com marca vermelha. Continua marcando 1h.', author: { ...A['seed-andre'] }, createdAt: iso(60*69), ref: 'a2' },
         { body: 'Apertar demais atrapalha circulação e piora o sinal. Não é solução.', author: { ...A['seed-marcelo'] }, createdAt: iso(60*62), parentRef: 'a2' },
         { body: 'No Amazfit o mesmo: cochilo de 40 min depois de uma noite inteira. Não é só Apple.', author: { ...A['seed-fernanda'] }, createdAt: iso(60*54), parentRef: 'a1b' },
-        { ...officialReply('O tracking noturno falha quando a leitura do sensor fica irregular por horas. O Sensor Tattoo Fix estabiliza essa leitura no pulso tatuado. Se quiser, Acesse nossos canais e adquira nossas lentes.', iso(60*50)), ref: 'a3', parentRef: 'a1b' }
+        { ...officialReply('O tracking noturno falha quando a leitura do sensor fica irregular por horas. O Sensor TattooFix estabiliza essa leitura no pulso tatuado. Se quiser, Acesse nossos canais e adquira nossas lentes.', iso(60*50)), ref: 'a3', parentRef: 'a1b' }
       ]
     },
     {
@@ -42,7 +42,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Series 9 aqui. Pior que o do meu marido sem tattoo. SE nem experimentei.', author: { ...A['seed-rafa'] }, createdAt: iso(60*101), ref: 'a2' },
         { body: 'Passei do SE pro 9 achando que resolvia. Quase o mesmo drama. Dinheiro jogado.', author: { ...A['seed-henrique'] }, createdAt: iso(60*93), parentRef: 'a2' },
         { body: 'Honestamente: se a tinta cobre o sensor, qualquer geração sofre. Não compre Ultra só por isso.', author: { ...A['seed-carlos'] }, createdAt: iso(60*89), parentRef: 'a1c' },
-        { ...officialReply('A geração muda um pouco o sensor, mas a tinta preta continua atrapalhando. O Sensor Tattoo Fix existe pra esse problema, independente do modelo. Acesse nossos canais e adquira nossas lentes.', iso(60*84)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('A geração muda um pouco o sensor, mas a tinta preta continua atrapalhando. O Sensor TattooFix existe pra esse problema, independente do modelo. Acesse nossos canais e adquira nossas lentes.', iso(60*84)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -57,7 +57,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Achei que era cartão. Removi e recadastrei. Não era.', author: { ...A['seed-daniel'] }, createdAt: iso(60*133), ref: 'a2' },
         { body: 'Resetei o Watch e restaurei backup. Só melhorou no braço sem tinta.', author: { ...A['seed-marina'] }, createdAt: iso(60*129), parentRef: 'a2' },
         { body: 'No Google Wallet do Galaxy acontece parecido. Não é exclusivo da Apple.', author: { ...A['seed-ricardo'] }, createdAt: iso(60*124), parentRef: 'a1c' },
-        { ...officialReply('Pagamento por aproximação costuma ser o primeiro a cair quando a detecção de pulso fica insegura. O Sensor Tattoo Fix melhora essa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*118)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Pagamento por aproximação costuma ser o primeiro a cair quando a detecção de pulso fica insegura. O Sensor TattooFix melhora essa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*118)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -72,7 +72,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Troquei achando vida nova. Continuo com buracos no gráfico. Só troquei o tipo de irritação.', author: { ...A['seed-gustavo'] }, createdAt: iso(60*170), ref: 'a2' },
         { body: 'Discordo um pouco: no 955 a detecção é menos chata. FC falha, mas dá pra viver no dia a dia.', author: { ...A['seed-joao'] }, createdAt: iso(60*165), parentRef: 'a2' },
         { body: 'No Forerunner o auto-pause do treino continua. Não comprem esperando milagre contra a tinta.', author: { ...A['seed-thiago'] }, createdAt: iso(60*159), parentRef: 'a2' },
-        { ...officialReply('Trocar de marca muda telas e bloqueio, mas a tinta continua atrapalhando o sensor. O Sensor Tattoo Fix age nessa leitura no pulso, não só no sintoma de cada marca. Acesse nossos canais e adquira nossas lentes.', iso(60*152)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Trocar de marca muda telas e bloqueio, mas a tinta continua atrapalhando o sensor. O Sensor TattooFix age nessa leitura no pulso, não só no sintoma de cada marca. Acesse nossos canais e adquira nossas lentes.', iso(60*152)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -87,7 +87,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Fiquei no Apple e foquei em melhorar o que fica entre o sensor e a pele. Trocar de marca seria exagero pra mim.', author: { ...A['seed-eduardo'] }, createdAt: iso(60*207), ref: 'a2' },
         { body: 'Concordo. O problema era o pulso, não a logo na caixa.', author: { ...A['seed-vini'] }, createdAt: iso(60*201), parentRef: 'a2' },
         { body: 'Tem gente que jura no Garmin. Eu estou no grupo não mudou nada de verdade.', author: { ...A['seed-gabriel'] }, createdAt: iso(60*194), ref: 'a3' },
-        { ...officialReply('Antes de trocar o ecossistema inteiro, vale olhar a causa: o sensor não lê bem no pulso tatuado. O Sensor Tattoo Fix foi pensado para isso sem forçar você a abandonar Apple ou Garmin. Acesse nossos canais e adquira nossas lentes.', iso(60*186)), ref: 'a4', parentRef: 'a1c' }
+        { ...officialReply('Antes de trocar o ecossistema inteiro, vale olhar a causa: o sensor não lê bem no pulso tatuado. O Sensor TattooFix foi pensado para isso sem forçar você a abandonar Apple ou Garmin. Acesse nossos canais e adquira nossas lentes.', iso(60*186)), ref: 'a4', parentRef: 'a1c' }
       ]
     },
     {
@@ -102,7 +102,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Desativei o auto-pause e ainda assim o gráfico fica furado. Não é só configuração da tela.', author: { ...A['seed-marcos'] }, createdAt: iso(60*239), ref: 'a2' },
         { body: 'Eu troquei a pulseira oficial por uma mais apertada. Ajudou 10%. O resto continua lixo.', author: { ...A['seed-juliana'] }, createdAt: iso(60*232), parentRef: 'a2' },
         { body: 'No peito com cinta Polar a FC fica linda. No pulso tatuado o Galaxy inventa número.', author: { ...A['seed-leo'] }, createdAt: iso(60*224), parentRef: 'a1c' },
-        { ...officialReply('Treino com suor e movimento piora a falha em tinta escura. O Sensor Tattoo Fix estabiliza a leitura no pulso para o sensor voltar a funcionar. Acesse nossos canais e adquira nossas lentes.', iso(60*220)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Treino com suor e movimento piora a falha em tinta escura. O Sensor TattooFix estabiliza a leitura no pulso para o sensor voltar a funcionar. Acesse nossos canais e adquira nossas lentes.', iso(60*220)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -117,7 +117,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'No meu Watch 4 acontecia. Troquei de braço e melhorou. No braço tatuado continua.', author: { ...A['seed-patricia'] }, createdAt: iso(60*271), ref: 'a2' },
         { body: 'Eu não tenho braço livre. Os dois estão cobertos. Travo o dia inteiro.', author: { ...A['seed-fernando'] }, createdAt: iso(60*263), parentRef: 'a2' },
         { body: 'Desativei o bloqueio automático e fiquei sem segurança. Péssima troca.', author: { ...A['seed-jordan'] }, createdAt: iso(60*259), parentRef: 'a1c' },
-        { ...officialReply('Bloqueios repetidos costumam seguir falhas de detecção de pulso, não necessariamente defeito de fábrica. O Sensor Tattoo Fix melhora a estabilidade da leitura nessa área. Acesse nossos canais e adquira nossas lentes.', iso(60*254)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Bloqueios repetidos costumam seguir falhas de detecção de pulso, não necessariamente defeito de fábrica. O Sensor TattooFix melhora a estabilidade da leitura nessa área. Acesse nossos canais e adquira nossas lentes.', iso(60*254)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -131,7 +131,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Huawei GT também mede com luz no fundo do relógio: batimento e oxigênio no sangue (SpO2). Tinta preta continua atrapalhando, independente da bateria de 14 dias.', author: { ...A['seed-chris'] }, createdAt: iso(60*311), ref: 'a1c', parentRef: 'a1' },
         { body: 'Comprei achando que marca chinesa ia magia. Não. Mesmo buraco no gráfico.', author: { ...A['seed-hunt'] }, createdAt: iso(60*303), ref: 'a2' },
         { body: 'A bateria longa me fez ficar. Aceito FC furada no treino, mas irrita.', author: { ...A['seed-writer'] }, createdAt: iso(60*299), parentRef: 'a2' },
-        { ...officialReply('Bateria longa não muda o fato de a tinta atrapalhar o sensor. O Sensor Tattoo Fix ajuda essa leitura no fundo do relógio. Acesse nossos canais e adquira nossas lentes.', iso(60*294)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Bateria longa não muda o fato de a tinta atrapalhar o sensor. O Sensor TattooFix ajuda essa leitura no fundo do relógio. Acesse nossos canais e adquira nossas lentes.', iso(60*294)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -146,7 +146,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Tentei dormir com o relógio no tornozelo. Absurdo e ainda assim inútil.', author: { ...A['seed-moth'] }, createdAt: iso(60*340), ref: 'a2' },
         { body: 'No tornozelo a FC de treino também fica estranha. Não é atalho bom.', author: { ...A['seed-omens'] }, createdAt: iso(60*335), parentRef: 'a2' },
         { body: 'Antes do retoque funcionava. A tinta nova é bem mais saturada na área do sensor.', author: { ...A['seed-syrup'] }, createdAt: iso(60*329), parentRef: 'a1b' },
-        { ...officialReply('Quando o batimento some e volta de madrugada, o app de sono perde a noite. O Sensor Tattoo Fix melhora essa leitura no pulso tatuado. Acesse nossos canais e adquira nossas lentes.', iso(60*322)), ref: 'a3', parentRef: 'a1b' }
+        { ...officialReply('Quando o batimento some e volta de madrugada, o app de sono perde a noite. O Sensor TattooFix melhora essa leitura no pulso tatuado. Acesse nossos canais e adquira nossas lentes.', iso(60*322)), ref: 'a3', parentRef: 'a1b' }
       ]
     },
     {
@@ -161,7 +161,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Eu tenho só linha fina e o Watch quase não reclama. Densidade importa mais que “ter tattoo”.', author: { ...A['seed-malu'] }, createdAt: iso(60*377), ref: 'a2' },
         { body: 'Além da cor, espessura da tinta e cicatriz por baixo também mudam. Dois pretos “iguais” podem ler bem diferente no relógio.', author: { ...A['seed-edu'] }, createdAt: iso(60*371), ref: 'a2b', parentRef: 'a2' },
         { body: 'Aprendi na marra: se o sensor para em cima do preenchimento, FC some. Dois centímetros ao lado, volta.', author: { ...A['seed-pri'] }, createdAt: iso(60*364), parentRef: 'a1b' },
-        { ...officialReply('A interferência depende muito de cor, densidade e posição sob o sensor — não de “ter ou não ter tattoo”. O Sensor Tattoo Fix foi feito para estabilizar a leitura nesses casos. Acesse nossos canais e adquira nossas lentes.', iso(60*356)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('A interferência depende muito de cor, densidade e posição sob o sensor — não de “ter ou não ter tattoo”. O Sensor TattooFix foi feito para estabilizar a leitura nesses casos. Acesse nossos canais e adquira nossas lentes.', iso(60*356)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -175,7 +175,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Eu fiquei paranóico com aquecimento. Meu Ultra esquenta igual no outro braço. O problema é leitura, não temperatura.', author: { ...A['seed-bela'] }, createdAt: iso(60*415), ref: 'a1b', parentRef: 'a1' },
         { body: 'Assistência da Apple me disse que tattoo não anula garantia, mas também não “conserta” detecção.', author: { ...A['seed-marcinha'] }, createdAt: iso(60*409), ref: 'a2' },
         { body: 'A luz do smartwatch é fraquinha. A tinta muda o que volta pro sensor, não a vida útil da luzinha.', author: { ...A['seed-chris'] }, createdAt: iso(60*402), parentRef: 'a2' },
-        { ...officialReply('A tattoo normalmente não danifica o relógio; ela atrapalha a leitura do sensor. O Sensor Tattoo Fix ajuda nessa leitura, sem alterar a tinta. Acesse nossos canais e adquira nossas lentes.', iso(60*394)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('A tattoo normalmente não danifica o relógio; ela atrapalha a leitura do sensor. O Sensor TattooFix ajuda nessa leitura, sem alterar a tinta. Acesse nossos canais e adquira nossas lentes.', iso(60*394)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -190,7 +190,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Esperei cicatrizar três semanas. Não voltou. Não é inchaço temporário.', author: { ...A['seed-nati'] }, createdAt: iso(60*441), ref: 'a2' },
         { body: 'Mesma espera aqui. Cicatrizou, tinta assentou, sensor continua cego no preenchimento.', author: { ...A['seed-raf'] }, createdAt: iso(60*433), parentRef: 'a2' },
         { body: 'Trocar pulseira e resetar não trouxe a leitura antiga. O relógio não “esqueceu”; a pele mudou.', author: { ...A['seed-lu'] }, createdAt: iso(60*429), parentRef: 'a1c' },
-        { ...officialReply('Se o relógio era estável antes e piorou logo após a tattoo, o mais comum é a tinta atrapalhando o sensor. O Sensor Tattoo Fix ajuda o relógio a voltar a ler nessa área. Acesse nossos canais e adquira nossas lentes.', iso(60*424)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Se o relógio era estável antes e piorou logo após a tattoo, o mais comum é a tinta atrapalhando o sensor. O Sensor TattooFix ajuda o relógio a voltar a ler nessa área. Acesse nossos canais e adquira nossas lentes.', iso(60*424)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -205,7 +205,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Sem pele limpa sob o sensor, você depende 100% da leitura funcionar em cima da tinta. Não há braço reserva — o sinal tem que melhorar onde o relógio senta.', author: { ...A['seed-edu'] }, createdAt: iso(60*473), ref: 'a1c', parentRef: 'a1b' },
         { body: 'Pensei em vender o relógio. Ainda não vendi porque quero sono e pagamentos no pulso.', author: { ...A['seed-guga'] }, createdAt: iso(60*469), ref: 'a2' },
         { body: 'Mesmo dilema. Os dois braços tatuados matam a solução barata de só trocar de lado.', author: { ...A['seed-kai'] }, createdAt: iso(60*464), parentRef: 'a2' },
-        { ...officialReply('Com os dois pulsos cobertos, improvisos de trocar de braço deixam de existir. O Sensor Tattoo Fix foi pensado exatamente para quem precisa de leitura estável na área tatuada. Acesse nossos canais e adquira nossas lentes.', iso(60*458)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Com os dois pulsos cobertos, improvisos de trocar de braço deixam de existir. O Sensor TattooFix foi pensado exatamente para quem precisa de leitura estável na área tatuada. Acesse nossos canais e adquira nossas lentes.', iso(60*458)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -220,7 +220,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'No Garmin o auto-pause também me zoava. Não é exclusivo de Apple.', author: { ...A['seed-bruno'] }, createdAt: iso(60*510), ref: 'a2' },
         { body: 'Eu gravei a tela. Dá pra ver o ícone de relógio removido piscando sem eu tocar em nada.', author: { ...A['seed-felipe'] }, createdAt: iso(60*505), parentRef: 'a2' },
         { body: 'Pulseira mais apertada reduziu uns 30% das pausas. O resto continua.', author: { ...A['seed-diego'] }, createdAt: iso(60*499), parentRef: 'a1c' },
-        { ...officialReply('Pausas fantasma em corrida costumam refletir detecção de pulso instável sob tinta, não só configuração de treino. O Sensor Tattoo Fix ajuda a manter a leitura estável. Acesse nossos canais e adquira nossas lentes.', iso(60*492)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Pausas fantasma em corrida costumam refletir detecção de pulso instável sob tinta, não só configuração de treino. O Sensor TattooFix ajuda a manter a leitura estável. Acesse nossos canais e adquira nossas lentes.', iso(60*492)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -235,7 +235,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Eu usei filme de PVC de cozinha. Pior ainda — escorrega e deixa resíduo gorduroso.', author: { ...A['seed-marcelo'] }, createdAt: iso(60*547), ref: 'a2' },
         { body: 'Qualquer gambiarra adesiva no vidro traseiro me deixa com medo de garantia.', author: { ...A['seed-fernanda'] }, createdAt: iso(60*541), parentRef: 'a2' },
         { body: 'Funciona um pouco e depois vira sujeira. Concordo com o SensorGuru: não é solução de verdade.', author: { ...A['seed-camila'] }, createdAt: iso(60*534), parentRef: 'a1c' },
-        { ...officialReply('Fitas e filmes improvisados podem enganar o sensor por pouco tempo, mas degradam com suor e sujeira. O Sensor Tattoo Fix foi feito pra leitura estável, não como gambiarra temporária. Acesse nossos canais e adquira nossas lentes.', iso(60*526)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Fitas e filmes improvisados podem enganar o sensor por pouco tempo, mas degradam com suor e sujeira. O Sensor TattooFix foi feito pra leitura estável, não como gambiarra temporária. Acesse nossos canais e adquira nossas lentes.', iso(60*526)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -250,11 +250,11 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Um amigo jura que o fino quase funcionou. No meu Watch 7 não.', author: { ...A['seed-rafa'] }, createdAt: iso(60*579), ref: 'a2' },
         { body: 'Quase não conta. Quero algo que sobreviva a um treino suado.', author: { ...A['seed-henrique'] }, createdAt: iso(60*572), parentRef: 'a2' },
         { body: 'Ainda por cima deixa marca circular no pulso. Horroroso.', author: { ...A['seed-carlos'] }, createdAt: iso(60*564), parentRef: 'a1c' },
-        { ...officialReply('Espaçadores improvisados costumam afastar o sensor da pele e piorar a FC. O Sensor Tattoo Fix ajuda a leitura sem criar esse vão inútil. Acesse nossos canais e adquira nossas lentes.', iso(60*560)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Espaçadores improvisados costumam afastar o sensor da pele e piorar a FC. O Sensor TattooFix ajuda a leitura sem criar esse vão inútil. Acesse nossos canais e adquira nossas lentes.', iso(60*560)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
-      title: 'Sensor Tattoo Fix é laser?',
+      title: 'Sensor TattooFix é laser?',
       body: 'Vi o nome e fiquei na dúvida: isso remove tinta, usa laser ou altera a tattoo de alguma forma? Não quero mexer no desenho.',
       tags: ["sensor-tattoo-fix", "laser", "duvida", "produto"],
       author: { ...A['seed-patricia'] },
@@ -264,7 +264,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Não é laser nem remoção. É uma lente/interface no sensor: ajuda a luz a passar melhor entre o fundo do relógio e a pele tatuada, sem apagar a tinta.', author: { ...A['seed-edu'] }, createdAt: iso(60*618), ref: 'a1c', parentRef: 'a1' },
         { body: 'Boa, porque eu também assustei com a palavra fix no nome.', author: { ...A['seed-daniel'] }, createdAt: iso(60*611), ref: 'a2' },
         { body: 'Mesma paranoia. Tattoo demorou anos; não quero corrigir ela com luz forte.', author: { ...A['seed-marina'] }, createdAt: iso(60*603), parentRef: 'a2' },
-        { ...officialReply('Sensor Tattoo Fix não é laser e não remove tinta: é uma lente/interface que ajuda o sensor do smartwatch a ler na pele tatuada. Acesse nossos canais e adquira nossas lentes.', iso(60*599)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Sensor TattooFix não é laser e não remove tinta: é uma lente/interface que ajuda o sensor do smartwatch a ler na pele tatuada. Acesse nossos canais e adquira nossas lentes.', iso(60*599)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -279,7 +279,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'A medição de oxigênio no sangue (SpO2) também usa luz pelo pulso e sofre no preto denso, mas a FC contínua costuma cair primeiro.', author: { ...A['seed-leandro'] }, createdAt: iso(60*643), parentRef: 'a1b' },
         { body: 'Por isso artistas que entendem de wearables deixam uma janela sem preenchimento sob o sensor.', author: { ...A['seed-gustavo'] }, createdAt: iso(60*639), ref: 'a2' },
         { body: 'Eu já tinha o preenchimento. Janela agora seria cover-up caro. Preciso de outra saída.', author: { ...A['seed-joao'] }, createdAt: iso(60*634), parentRef: 'a2' },
-        { ...officialReply('Preto denso é o pior cenário para o sensor de batimento, exatamente como você descreveu. O Sensor Tattoo Fix melhora a leitura nessa região sem exigir apagar a arte. Acesse nossos canais e adquira nossas lentes.', iso(60*628)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('Preto denso é o pior cenário para o sensor de batimento, exatamente como você descreveu. O Sensor TattooFix melhora a leitura nessa região sem exigir apagar a arte. Acesse nossos canais e adquira nossas lentes.', iso(60*628)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -294,7 +294,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Sequei o sensor no meio do treino com a camisa. Voltou por dois minutos e morreu de novo.', author: { ...A['seed-lucas'] }, createdAt: iso(60*680), ref: 'a2' },
         { body: 'No bike indoor com menos suor horizontal também falha, só que mais tarde. Não é só corrida.', author: { ...A['seed-eduardo'] }, createdAt: iso(60*675), parentRef: 'a2' },
         { body: 'Água entre sensor e pele confunde ainda mais. Sobre tinta preta você já está no limite — qualquer película faz a leitura sumir.', author: { ...A['seed-chris'] }, createdAt: iso(60*669), parentRef: 'a1c' },
-        { ...officialReply('Suor amplifica a falha em pulsos tatuados porque soma uma película irregular a uma leitura já fraca. O Sensor Tattoo Fix estabiliza essa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*662)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Suor amplifica a falha em pulsos tatuados porque soma uma película irregular a uma leitura já fraca. O Sensor TattooFix estabiliza essa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*662)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -308,7 +308,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Testar nos dois braços é o diagnóstico mais barato: se o relógio falha só sobre tinta, não é defeito — é a tinta atrapalhando o sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60*722), ref: 'a1c', parentRef: 'a1' },
         { body: 'Eu já tinha marcado coleta da assistência. Cancelei depois desse teste.', author: { ...A['seed-vini'] }, createdAt: iso(60*717), ref: 'a2' },
         { body: 'Gráfico de FC furado só num braço também conta. Não precisa abrir o relógio.', author: { ...A['seed-gabriel'] }, createdAt: iso(60*711), parentRef: 'a2' },
-        { ...officialReply('Se o mesmo relógio funciona no braço sem tinta, o mais provável é a tattoo atrapalhando o sensor, não defeito de fábrica. O Sensor Tattoo Fix trata essa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*704)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Se o mesmo relógio funciona no braço sem tinta, o mais provável é a tattoo atrapalhando o sensor, não defeito de fábrica. O Sensor TattooFix trata essa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*704)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -323,7 +323,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Eu adiei o segundo braço por causa disso. Você foi mais corajoso — ou mais teimoso.', author: { ...A['seed-marcos'] }, createdAt: iso(60*749), ref: 'a2' },
         { body: 'Teimoso aqui também. Arte primeiro, wearables depois. Agora pago o preço.', author: { ...A['seed-juliana'] }, createdAt: iso(60*742), parentRef: 'a2' },
         { body: 'Não há atualização de software que invente leitura onde a tinta engoliu a luz. Ou melhora o que fica entre sensor e pele, ou aceita buracos.', author: { ...A['seed-chris'] }, createdAt: iso(60*734), parentRef: 'a1c' },
-        { ...officialReply('Perder o braço reserva deixa clara a causa: a tinta no sensor. O Sensor Tattoo Fix existe para quem precisa ler o sensor sobre a área tatuada. Acesse nossos canais e adquira nossas lentes.', iso(60*730)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Perder o braço reserva deixa clara a causa: a tinta no sensor. O Sensor TattooFix existe para quem precisa ler o sensor sobre a área tatuada. Acesse nossos canais e adquira nossas lentes.', iso(60*730)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -338,7 +338,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Eu testei Apple e Garmin no mesmo braço. Nenhum salvou o treino de força.', author: { ...A['seed-renato'] }, createdAt: iso(60*781), ref: 'a2' },
         { body: 'Huawei ganha em bateria. Sensor continua medíocre sobre preenchimento.', author: { ...A['seed-patricia'] }, createdAt: iso(60*773), parentRef: 'a2' },
         { body: 'Se o que importa é menos spam de senha/PIN, Garmin/Amazfit. Se o que importa é FC limpa sob tinta, nenhuma marca resolve sozinha.', author: { ...A['seed-edu'] }, createdAt: iso(60*769), parentRef: 'a1c' },
-        { ...officialReply('A marca muda a experiência de bloqueio e app, mas tinta escura atrapalha o sensor em todas. O Sensor Tattoo Fix atua nessa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*764)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('A marca muda a experiência de bloqueio e app, mas tinta escura atrapalha o sensor em todas. O Sensor TattooFix atua nessa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*764)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -353,7 +353,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Achei que era GPS. Desliguei GPS e o gráfico de FC continuou furado.', author: { ...A['seed-jordan'] }, createdAt: iso(60*813), ref: 'a2' },
         { body: 'Não é o GPS. É o sensor de batimento no fundo do relógio que se perde na tinta preta.', author: { ...A['seed-chris'] }, createdAt: iso(60*809), parentRef: 'a2' },
         { body: 'Cinta peitoral resolve o gráfico, mas eu quero o relógio funcionando no pulso.', author: { ...A['seed-jeff'] }, createdAt: iso(60*804), parentRef: 'a1c' },
-        { ...officialReply('Buracos e picos fantasmas no gráfico costumam nascer de leituras ruins sob tinta. O Sensor Tattoo Fix melhora a qualidade do sinal na origem. Acesse nossos canais e adquira nossas lentes.', iso(60*798)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Buracos e picos fantasmas no gráfico costumam nascer de leituras ruins sob tinta. O Sensor TattooFix melhora a qualidade do sinal na origem. Acesse nossos canais e adquira nossas lentes.', iso(60*798)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -367,7 +367,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'No meu Ultra a medição de oxigênio trava em calculando… até eu mudar de braço.', author: { ...A['seed-hunt'] }, createdAt: iso(60*854), ref: 'a1b', parentRef: 'a1' },
         { body: 'A FC costuma cair primeiro; o oxigênio no sangue (SpO2) cai depois ou junto, dependendo de quão densa é a tinta.', author: { ...A['seed-edu'] }, createdAt: iso(60*850), parentRef: 'a1b' },
         { body: 'Achei que SpO2 seria imune. Não é. Mesma área preta, mesmo fracasso.', author: { ...A['seed-writer'] }, createdAt: iso(60*845), ref: 'a2' },
-        { ...officialReply('SpO2 (oxigênio no sangue) também depende de boa leitura no pulso; tinta escura atrapalha igual. O Sensor Tattoo Fix melhora essa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*839)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('SpO2 (oxigênio no sangue) também depende de boa leitura no pulso; tinta escura atrapalha igual. O Sensor TattooFix melhora essa leitura. Acesse nossos canais e adquira nossas lentes.', iso(60*839)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -382,7 +382,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Eu comprei mesmo assim pelos apps. FC eu ignoro. Não recomendo essa paz podre.', author: { ...A['seed-moth'] }, createdAt: iso(60*887), ref: 'a2' },
         { body: 'Se o orçamento aperta, resolva a leitura no sensor antes de trocar por um modelo mais novo.', author: { ...A['seed-omens'] }, createdAt: iso(60*881), parentRef: 'a2' },
         { body: 'Compre se o relógio importa pra você — mas planeje algo que ajude o sensor a ler na tinta, não como detalhe.', author: { ...A['seed-chris'] }, createdAt: iso(60*874), parentRef: 'a1c' },
-        { ...officialReply('Smartwatch ainda faz sentido com tattoos se a leitura do sensor for estabilizada. O Sensor Tattoo Fix existe justamente para esse cenário. Acesse nossos canais e adquira nossas lentes.', iso(60*866)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Smartwatch ainda faz sentido com tattoos se a leitura do sensor for estabilizada. O Sensor TattooFix existe justamente para esse cenário. Acesse nossos canais e adquira nossas lentes.', iso(60*866)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -403,7 +403,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Concordo com o TechRunner. Funciona até não funcionar — e sempre quebra outra coisa.', author: { ...A['seed-marcinha'] }, createdAt: iso(60*882), ref: 'a2d', parentRef: 'a2c' },
         { body: 'Tem gente vendendo kit de epóxi no Instagram como solução definitiva. Cuidado.', author: { ...A['seed-rick'] }, createdAt: iso(60*874), ref: 'a2e', parentRef: 'a2d' },
         { body: 'Eu voltei pro braço sem tinta. Epóxi foi só experimento caro e meleca.', author: { ...A['seed-nati'] }, createdAt: iso(60*870), parentRef: 'a2e' },
-        { ...officialReply('Relatos assim são comuns: gambiarra de epóxi pode melhorar a detecção por um tempo e ao mesmo tempo atrapalhar carga, ECG e durabilidade. O Sensor Tattoo Fix foi feito pra ajudar o sensor de verdade, sem esse improviso. Acesse nossos canais e adquira nossas lentes.', iso(60*865)), ref: 'a3', parentRef: 'a2b' }
+        { ...officialReply('Relatos assim são comuns: gambiarra de epóxi pode melhorar a detecção por um tempo e ao mesmo tempo atrapalhar carga, ECG e durabilidade. O Sensor TattooFix foi feito pra ajudar o sensor de verdade, sem esse improviso. Acesse nossos canais e adquira nossas lentes.', iso(60*865)), ref: 'a3', parentRef: 'a2b' }
       ]
     },
     {
@@ -418,7 +418,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Desativei notificações de FC alta pra não pirar. Não resolve a causa.', author: { ...A['seed-lu'] }, createdAt: iso(60*951), ref: 'a2' },
         { body: 'Avisos falsos são o mesmo problema: sinal sujo e o relógio confiante demais num pico errado.', author: { ...A['seed-chris'] }, createdAt: iso(60*943), parentRef: 'a2' },
         { body: 'No outro braço nunca inventou 180. Acabou a teoria da ansiedade.', author: { ...A['seed-rita'] }, createdAt: iso(60*939), parentRef: 'a1c' },
-        { ...officialReply('Leituras absurdas em repouso com buracos no meio costumam vir de sinal confuso sob tinta. O Sensor Tattoo Fix estabiliza a leitura para o relógio parar de inventar picos. Acesse nossos canais e adquira nossas lentes.', iso(60*934)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Leituras absurdas em repouso com buracos no meio costumam vir de sinal confuso sob tinta. O Sensor TattooFix estabiliza a leitura para o relógio parar de inventar picos. Acesse nossos canais e adquira nossas lentes.', iso(60*934)), ref: 'a3', parentRef: 'a1c' }
       ]
     }
   ].map((t) => ({ ...t, lang: 'pt' }));
@@ -435,7 +435,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Switching arms did nothing for me: both have coverage over the sensor area.', author: { ...A['seed-bruno'] }, createdAt: iso(60*37), parentRef: 'a1b' },
         { body: 'Apple Watch uses a little light on the back to know it is still on your wrist. Dense ink eats that light, it thinks you took it off, and keeps asking for the passcode — not a random software bug.', author: { ...A['seed-chris'] }, createdAt: iso(60*31), ref: 'a1c', parentRef: 'a1' },
         { body: 'I also turned off Unlock with iPhone thinking it would help. Zero difference.', author: { ...A['seed-felipe'] }, createdAt: iso(60*24), ref: 'a2' },
-        { ...officialReply('When wrist detection flickers, Apple Watch tightens security and asks for a passcode as if it were removed. Sensor Tattoo Fix helps the sensor read better in that area. Visit our channels and get our lenses.', iso(60*16)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('When wrist detection flickers, Apple Watch tightens security and asks for a passcode as if it were removed. Sensor TattooFix helps the sensor read better in that area. Visit our channels and get our lenses.', iso(60*16)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -450,7 +450,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'I slept with a tighter band and woke with a red mark. Still shows 1h.', author: { ...A['seed-andre'] }, createdAt: iso(60*69), ref: 'a2' },
         { body: 'Overtightening hurts circulation and makes the signal worse. Not a fix.', author: { ...A['seed-marcelo'] }, createdAt: iso(60*62), parentRef: 'a2' },
         { body: 'Same on Amazfit: a 40-minute nap after a full night. Not just Apple.', author: { ...A['seed-fernanda'] }, createdAt: iso(60*54), parentRef: 'a1b' },
-        { ...officialReply('Overnight tracking fails when the sensor reading stays irregular for hours. Sensor Tattoo Fix stabilizes that reading on a tattooed wrist. Visit our channels and get our lenses.', iso(60*50)), ref: 'a3', parentRef: 'a1b' }
+        { ...officialReply('Overnight tracking fails when the sensor reading stays irregular for hours. Sensor TattooFix stabilizes that reading on a tattooed wrist. Visit our channels and get our lenses.', iso(60*50)), ref: 'a3', parentRef: 'a1b' }
       ]
     },
     {
@@ -465,7 +465,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Series 9 here. Worse than my husband\'s without tattoos. Never tried SE.', author: { ...A['seed-rafa'] }, createdAt: iso(60*101), ref: 'a2' },
         { body: 'Went SE to 9 hoping it would fix it. Almost the same drama. Money wasted.', author: { ...A['seed-henrique'] }, createdAt: iso(60*93), parentRef: 'a2' },
         { body: 'Honestly: if ink covers the sensor, every generation struggles. Do not buy Ultra just for that.', author: { ...A['seed-carlos'] }, createdAt: iso(60*89), parentRef: 'a1c' },
-        { ...officialReply('Generations change the sensor a bit, but black ink still gets in the way. Sensor Tattoo Fix exists for that problem, regardless of model. Visit our channels and get our lenses.', iso(60*84)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Generations change the sensor a bit, but black ink still gets in the way. Sensor TattooFix exists for that problem, regardless of model. Visit our channels and get our lenses.', iso(60*84)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -480,7 +480,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Thought it was the card. Removed and re-added it. It was not.', author: { ...A['seed-daniel'] }, createdAt: iso(60*133), ref: 'a2' },
         { body: 'Reset the Watch and restored a backup. Only better on the arm without ink.', author: { ...A['seed-marina'] }, createdAt: iso(60*129), parentRef: 'a2' },
         { body: 'Galaxy Google Wallet does something similar. Not Apple-only.', author: { ...A['seed-ricardo'] }, createdAt: iso(60*124), parentRef: 'a1c' },
-        { ...officialReply('Tap-to-pay is often first to fail when wrist detection gets unsure. Sensor Tattoo Fix improves that reading. Visit our channels and get our lenses.', iso(60*118)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Tap-to-pay is often first to fail when wrist detection gets unsure. Sensor TattooFix improves that reading. Visit our channels and get our lenses.', iso(60*118)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -495,7 +495,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Switched thinking new life. Still holes in the chart. Just traded the kind of annoyance.', author: { ...A['seed-gustavo'] }, createdAt: iso(60*170), ref: 'a2' },
         { body: 'Disagree a bit: on the 955 detection is less annoying. HR fails, but daily life is fine.', author: { ...A['seed-joao'] }, createdAt: iso(60*165), parentRef: 'a2' },
         { body: 'On Forerunner workout auto-pause still happens. Do not buy expecting a miracle against the ink.', author: { ...A['seed-thiago'] }, createdAt: iso(60*159), parentRef: 'a2' },
-        { ...officialReply('Switching brands changes screens and lock behavior, but ink still blocks the sensor. Sensor Tattoo Fix targets that wrist reading, not only each brand\'s symptom. Visit our channels and get our lenses.', iso(60*152)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Switching brands changes screens and lock behavior, but ink still blocks the sensor. Sensor TattooFix targets that wrist reading, not only each brand\'s symptom. Visit our channels and get our lenses.', iso(60*152)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -510,7 +510,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Stayed on Apple and focused on what sits between the sensor and the skin. Switching brands would be overkill for me.', author: { ...A['seed-eduardo'] }, createdAt: iso(60*207), ref: 'a2' },
         { body: 'Agree. The problem was the wrist, not the logo on the box.', author: { ...A['seed-vini'] }, createdAt: iso(60*201), parentRef: 'a2' },
         { body: 'Some swear by Garmin. I am in the nothing really changed camp.', author: { ...A['seed-gabriel'] }, createdAt: iso(60*194), ref: 'a3' },
-        { ...officialReply('Before swapping your whole ecosystem, look at the cause: the sensor does not read well on a tattooed wrist. Sensor Tattoo Fix was designed for that without forcing you off Apple or Garmin. Visit our channels and get our lenses.', iso(60*186)), ref: 'a4', parentRef: 'a1c' }
+        { ...officialReply('Before swapping your whole ecosystem, look at the cause: the sensor does not read well on a tattooed wrist. Sensor TattooFix was designed for that without forcing you off Apple or Garmin. Visit our channels and get our lenses.', iso(60*186)), ref: 'a4', parentRef: 'a1c' }
       ]
     },
     {
@@ -525,7 +525,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Disabled auto-pause and the chart is still full of holes. Not just a screen setting.', author: { ...A['seed-marcos'] }, createdAt: iso(60*239), ref: 'a2' },
         { body: 'Swapped the stock band for a tighter one. Helped maybe 10%. Rest still garbage.', author: { ...A['seed-juliana'] }, createdAt: iso(60*232), parentRef: 'a2' },
         { body: 'Chest strap with Polar looks clean. On the tattooed wrist Galaxy invents numbers.', author: { ...A['seed-leo'] }, createdAt: iso(60*224), parentRef: 'a1c' },
-        { ...officialReply('Sweaty moving workouts make dark-ink failures worse. Sensor Tattoo Fix stabilizes wrist reading so the sensor works again. Visit our channels and get our lenses.', iso(60*220)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Sweaty moving workouts make dark-ink failures worse. Sensor TattooFix stabilizes wrist reading so the sensor works again. Visit our channels and get our lenses.', iso(60*220)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -540,7 +540,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Happened on my Watch 4. Switching arms helped. Tattooed arm still locks.', author: { ...A['seed-patricia'] }, createdAt: iso(60*271), ref: 'a2' },
         { body: 'I have no clear arm. Both are covered. I lock all day.', author: { ...A['seed-fernando'] }, createdAt: iso(60*263), parentRef: 'a2' },
         { body: 'I turned off auto-lock and lost security. Terrible trade.', author: { ...A['seed-jordan'] }, createdAt: iso(60*259), parentRef: 'a1c' },
-        { ...officialReply('Repeated locks usually follow wrist-detection failures, not necessarily a factory defect. Sensor Tattoo Fix improves reading stability in that area. Visit our channels and get our lenses.', iso(60*254)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Repeated locks usually follow wrist-detection failures, not necessarily a factory defect. Sensor TattooFix improves reading stability in that area. Visit our channels and get our lenses.', iso(60*254)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -554,7 +554,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Huawei GT also measures with light on the back: heart rate and blood oxygen (SpO2). Black ink still gets in the way, no matter the 14-day battery.', author: { ...A['seed-chris'] }, createdAt: iso(60*311), ref: 'a1c', parentRef: 'a1' },
         { body: 'Bought thinking a Chinese brand would magic it. Nope. Same holes in the chart.', author: { ...A['seed-hunt'] }, createdAt: iso(60*303), ref: 'a2' },
         { body: 'Long battery made me stay. I accept holey HR in workouts, but it annoys me.', author: { ...A['seed-writer'] }, createdAt: iso(60*299), parentRef: 'a2' },
-        { ...officialReply('Long battery life does not change the fact that ink blocks the sensor. Sensor Tattoo Fix helps that reading on the watch back. Visit our channels and get our lenses.', iso(60*294)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Long battery life does not change the fact that ink blocks the sensor. Sensor TattooFix helps that reading on the watch back. Visit our channels and get our lenses.', iso(60*294)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -569,7 +569,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Tried sleeping with the watch on my ankle. Absurd and still useless.', author: { ...A['seed-moth'] }, createdAt: iso(60*340), ref: 'a2' },
         { body: 'Ankle HR for workouts is weird too. Not a good shortcut.', author: { ...A['seed-omens'] }, createdAt: iso(60*335), parentRef: 'a2' },
         { body: 'Worked before the touch-up. New ink is much more saturated under the sensor.', author: { ...A['seed-syrup'] }, createdAt: iso(60*329), parentRef: 'a1b' },
-        { ...officialReply('When overnight heart rate keeps dropping out, the sleep app loses the night. Sensor Tattoo Fix improves that reading on a tattooed wrist. Visit our channels and get our lenses.', iso(60*322)), ref: 'a3', parentRef: 'a1b' }
+        { ...officialReply('When overnight heart rate keeps dropping out, the sleep app loses the night. Sensor TattooFix improves that reading on a tattooed wrist. Visit our channels and get our lenses.', iso(60*322)), ref: 'a3', parentRef: 'a1b' }
       ]
     },
     {
@@ -584,7 +584,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'I only have fine line work and the Watch barely complains. Density matters more than “having a tattoo”.', author: { ...A['seed-malu'] }, createdAt: iso(60*377), ref: 'a2' },
         { body: 'Beyond color, ink thickness and scar under the ink also change things. Two “same” blacks can read very differently on the watch.', author: { ...A['seed-edu'] }, createdAt: iso(60*371), ref: 'a2b', parentRef: 'a2' },
         { body: 'Learned the hard way: sensor on the fill → HR gone. Two centimeters aside → back.', author: { ...A['seed-pri'] }, createdAt: iso(60*364), parentRef: 'a1b' },
-        { ...officialReply('Interference depends heavily on color, density, and position under the sensor — not simply “having a tattoo”. Sensor Tattoo Fix was built to stabilize the reading in those cases. Visit our channels and get our lenses.', iso(60*356)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('Interference depends heavily on color, density, and position under the sensor — not simply “having a tattoo”. Sensor TattooFix was built to stabilize the reading in those cases. Visit our channels and get our lenses.', iso(60*356)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -598,7 +598,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'I got paranoid about heat. My Ultra warms the same on the other arm. It is a reading issue, not temperature.', author: { ...A['seed-bela'] }, createdAt: iso(60*415), ref: 'a1b', parentRef: 'a1' },
         { body: 'Apple support said tattoos do not void warranty, but also do not “fix” detection.', author: { ...A['seed-marcinha'] }, createdAt: iso(60*409), ref: 'a2' },
         { body: 'Smartwatch lights run at low power. Ink changes what comes back to the sensor, not the usual lifespan of the light.', author: { ...A['seed-chris'] }, createdAt: iso(60*402), parentRef: 'a2' },
-        { ...officialReply('A tattoo usually does not damage the watch; it interferes with the sensor reading. Sensor Tattoo Fix helps that reading without changing the ink. Visit our channels and get our lenses.', iso(60*394)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('A tattoo usually does not damage the watch; it interferes with the sensor reading. Sensor TattooFix helps that reading without changing the ink. Visit our channels and get our lenses.', iso(60*394)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -613,7 +613,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Waited three weeks to heal. Did not come back. Not temporary swelling.', author: { ...A['seed-nati'] }, createdAt: iso(60*441), ref: 'a2' },
         { body: 'Same wait here. Healed, ink settled, sensor still blind on the fill.', author: { ...A['seed-raf'] }, createdAt: iso(60*433), parentRef: 'a2' },
         { body: 'New band and reset did not bring the old reading back. The watch did not forget; the skin changed.', author: { ...A['seed-lu'] }, createdAt: iso(60*429), parentRef: 'a1c' },
-        { ...officialReply('If the watch was stable before and worsened right after the tattoo, the usual cause is ink blocking the sensor. Sensor Tattoo Fix helps the watch read that area again. Visit our channels and get our lenses.', iso(60*424)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('If the watch was stable before and worsened right after the tattoo, the usual cause is ink blocking the sensor. Sensor TattooFix helps the watch read that area again. Visit our channels and get our lenses.', iso(60*424)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -628,7 +628,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'With no clear skin under the sensor, you depend 100% on the reading working over ink. No backup arm — the signal has to improve where the watch sits.', author: { ...A['seed-edu'] }, createdAt: iso(60*473), ref: 'a1c', parentRef: 'a1b' },
         { body: 'Thought about selling the watch. Have not yet because I still want sleep and payments on the wrist.', author: { ...A['seed-guga'] }, createdAt: iso(60*469), ref: 'a2' },
         { body: 'Same dilemma. Both arms tattooed kill the cheap just-switch-sides fix.', author: { ...A['seed-kai'] }, createdAt: iso(60*464), parentRef: 'a2' },
-        { ...officialReply('With both wrists covered, switching-arm workarounds disappear. Sensor Tattoo Fix was designed for people who need stable reading on the tattooed area. Visit our channels and get our lenses.', iso(60*458)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('With both wrists covered, switching-arm workarounds disappear. Sensor TattooFix was designed for people who need stable reading on the tattooed area. Visit our channels and get our lenses.', iso(60*458)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -643,7 +643,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Garmin auto-pause messed with me too. Not Apple-only.', author: { ...A['seed-bruno'] }, createdAt: iso(60*510), ref: 'a2' },
         { body: 'I screen-recorded it. You can see the “watch removed” icon flicker without me touching anything.', author: { ...A['seed-felipe'] }, createdAt: iso(60*505), parentRef: 'a2' },
         { body: 'Tighter band cut pauses by maybe 30%. The rest remains.', author: { ...A['seed-diego'] }, createdAt: iso(60*499), parentRef: 'a1c' },
-        { ...officialReply('Phantom pauses on runs usually reflect unstable wrist detection under ink, not only workout settings. Sensor Tattoo Fix helps keep the reading stable. Visit our channels and get our lenses.', iso(60*492)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Phantom pauses on runs usually reflect unstable wrist detection under ink, not only workout settings. Sensor TattooFix helps keep the reading stable. Visit our channels and get our lenses.', iso(60*492)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -658,7 +658,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'I used kitchen PVC film. Even worse — slips and leaves greasy residue.', author: { ...A['seed-marcelo'] }, createdAt: iso(60*547), ref: 'a2' },
         { body: 'Any sticky hack on the rear glass makes me worry about warranty.', author: { ...A['seed-fernanda'] }, createdAt: iso(60*541), parentRef: 'a2' },
         { body: 'Works a bit then becomes dirt. Agree with SensorGuru: not a real solution.', author: { ...A['seed-camila'] }, createdAt: iso(60*534), parentRef: 'a1c' },
-        { ...officialReply('Improvised tapes and films can fool the sensor briefly, but degrade with sweat and dirt. Sensor Tattoo Fix was built for a stable reading, not a temporary hack. Visit our channels and get our lenses.', iso(60*526)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Improvised tapes and films can fool the sensor briefly, but degrade with sweat and dirt. Sensor TattooFix was built for a stable reading, not a temporary hack. Visit our channels and get our lenses.', iso(60*526)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -673,11 +673,11 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'A friend swears the thin one almost worked. On my Watch 7, no.', author: { ...A['seed-rafa'] }, createdAt: iso(60*579), ref: 'a2' },
         { body: 'Almost does not count. I want something that survives a sweaty workout.', author: { ...A['seed-henrique'] }, createdAt: iso(60*572), parentRef: 'a2' },
         { body: 'Also leaves a circular mark on the wrist. Hideous.', author: { ...A['seed-carlos'] }, createdAt: iso(60*564), parentRef: 'a1c' },
-        { ...officialReply('Improvised spacers usually lift the sensor off the skin and worsen HR. Sensor Tattoo Fix helps the reading without creating that useless gap. Visit our channels and get our lenses.', iso(60*560)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Improvised spacers usually lift the sensor off the skin and worsen HR. Sensor TattooFix helps the reading without creating that useless gap. Visit our channels and get our lenses.', iso(60*560)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
-      title: 'Is Sensor Tattoo Fix a laser?',
+      title: 'Is Sensor TattooFix a laser?',
       body: 'The name confused me: does it remove ink, use a laser, or change the tattoo somehow? I do not want to mess with the art.',
       tags: ["sensor-tattoo-fix", "laser", "question", "product"],
       author: { ...A['seed-patricia'] },
@@ -687,7 +687,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Not a laser and not removal. It is a lens/interface on the sensor: it helps light pass better between the watch back and tattooed skin, without erasing ink.', author: { ...A['seed-edu'] }, createdAt: iso(60*618), ref: 'a1c', parentRef: 'a1' },
         { body: 'Good, because fix in the name scared me too.', author: { ...A['seed-daniel'] }, createdAt: iso(60*611), ref: 'a2' },
         { body: 'Same paranoia. Tattoo took years; I do not want to correct it with strong light.', author: { ...A['seed-marina'] }, createdAt: iso(60*603), parentRef: 'a2' },
-        { ...officialReply('Sensor Tattoo Fix is not a laser and does not remove ink: it is a lens/interface that helps the smartwatch sensor read tattooed skin. Visit our channels and get our lenses.', iso(60*599)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Sensor TattooFix is not a laser and does not remove ink: it is a lens/interface that helps the smartwatch sensor read tattooed skin. Visit our channels and get our lenses.', iso(60*599)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -702,7 +702,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Blood oxygen (SpO2) also uses light through the wrist and suffers on dense black, but continuous HR usually dies first.', author: { ...A['seed-leandro'] }, createdAt: iso(60*643), parentRef: 'a1b' },
         { body: 'That is why artists who get wearables leave an unfilled window under the sensor.', author: { ...A['seed-gustavo'] }, createdAt: iso(60*639), ref: 'a2' },
         { body: 'I already had the fill. A window now would be an expensive cover-up. Need another way out.', author: { ...A['seed-joao'] }, createdAt: iso(60*634), parentRef: 'a2' },
-        { ...officialReply('Dense black is the worst case for the heart-rate sensor, exactly as you described. Sensor Tattoo Fix improves the reading there without requiring you to erase the art. Visit our channels and get our lenses.', iso(60*628)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('Dense black is the worst case for the heart-rate sensor, exactly as you described. Sensor TattooFix improves the reading there without requiring you to erase the art. Visit our channels and get our lenses.', iso(60*628)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -717,7 +717,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Wiped the sensor mid-workout with my shirt. Came back for two minutes then died again.', author: { ...A['seed-lucas'] }, createdAt: iso(60*680), ref: 'a2' },
         { body: 'On the indoor bike with less dripping sweat it also fails, just later. Not only running.', author: { ...A['seed-eduardo'] }, createdAt: iso(60*675), parentRef: 'a2' },
         { body: 'Water between sensor and skin confuses things even more. Over black ink you are already on the edge — any film makes the reading drop out.', author: { ...A['seed-chris'] }, createdAt: iso(60*669), parentRef: 'a1c' },
-        { ...officialReply('Sweat amplifies failure on tattooed wrists by adding an irregular film to an already weak reading. Sensor Tattoo Fix stabilizes that reading. Visit our channels and get our lenses.', iso(60*662)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Sweat amplifies failure on tattooed wrists by adding an irregular film to an already weak reading. Sensor TattooFix stabilizes that reading. Visit our channels and get our lenses.', iso(60*662)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -731,7 +731,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Trying both arms is the cheapest diagnosis: if the watch fails only over ink, it is not a dead unit — the ink is blocking the sensor.', author: { ...A['seed-chris'] }, createdAt: iso(60*722), ref: 'a1c', parentRef: 'a1' },
         { body: 'I had already booked a support pickup. Cancelled after that test.', author: { ...A['seed-vini'] }, createdAt: iso(60*717), ref: 'a2' },
         { body: 'A holey HR chart on only one arm also counts. No need to open the watch.', author: { ...A['seed-gabriel'] }, createdAt: iso(60*711), parentRef: 'a2' },
-        { ...officialReply('If the same watch works on the arm without ink, the tattoo blocking the sensor is more likely than a factory defect. Sensor Tattoo Fix addresses that reading. Visit our channels and get our lenses.', iso(60*704)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('If the same watch works on the arm without ink, the tattoo blocking the sensor is more likely than a factory defect. Sensor TattooFix addresses that reading. Visit our channels and get our lenses.', iso(60*704)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -746,7 +746,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'I delayed the second arm because of this. You were braver — or more stubborn.', author: { ...A['seed-marcos'] }, createdAt: iso(60*749), ref: 'a2' },
         { body: 'Stubborn here too. Art first, wearables later. Now I pay the price.', author: { ...A['seed-juliana'] }, createdAt: iso(60*742), parentRef: 'a2' },
         { body: 'No software update invents a reading where ink swallowed the light. Either improve what sits between sensor and skin, or accept gaps.', author: { ...A['seed-chris'] }, createdAt: iso(60*734), parentRef: 'a1c' },
-        { ...officialReply('Losing the backup arm makes the cause obvious: ink over the sensor. Sensor Tattoo Fix exists for people who need the sensor to read over the tattooed area. Visit our channels and get our lenses.', iso(60*730)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Losing the backup arm makes the cause obvious: ink over the sensor. Sensor TattooFix exists for people who need the sensor to read over the tattooed area. Visit our channels and get our lenses.', iso(60*730)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -761,7 +761,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'I tested Apple and Garmin on the same arm. Neither saved strength workouts.', author: { ...A['seed-renato'] }, createdAt: iso(60*781), ref: 'a2' },
         { body: 'Huawei wins on battery. Sensor still mediocre over fill.', author: { ...A['seed-patricia'] }, createdAt: iso(60*773), parentRef: 'a2' },
         { body: 'If you care about less lock/passcode spam, Garmin/Amazfit. If you care about clean HR under ink, no brand solves it alone.', author: { ...A['seed-edu'] }, createdAt: iso(60*769), parentRef: 'a1c' },
-        { ...officialReply('Brand changes lock/app experience, but dark ink blocks the sensor on all of them. Sensor Tattoo Fix works on that reading. Visit our channels and get our lenses.', iso(60*764)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Brand changes lock/app experience, but dark ink blocks the sensor on all of them. Sensor TattooFix works on that reading. Visit our channels and get our lenses.', iso(60*764)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -776,7 +776,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Thought it was GPS. Turned GPS off and the HR chart stayed holey.', author: { ...A['seed-jordan'] }, createdAt: iso(60*813), ref: 'a2' },
         { body: 'It is not the GPS. It is the heart-rate sensor on the back of the watch getting lost in the black ink.', author: { ...A['seed-chris'] }, createdAt: iso(60*809), parentRef: 'a2' },
         { body: 'A chest strap fixes the chart, but I want the watch working on the wrist.', author: { ...A['seed-jeff'] }, createdAt: iso(60*804), parentRef: 'a1c' },
-        { ...officialReply('Holes and ghost spikes in the chart usually come from bad readings under ink. Sensor Tattoo Fix improves signal quality at the source. Visit our channels and get our lenses.', iso(60*798)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Holes and ghost spikes in the chart usually come from bad readings under ink. Sensor TattooFix improves signal quality at the source. Visit our channels and get our lenses.', iso(60*798)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -790,7 +790,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'On my Ultra oxygen measurement sticks on calculating… until I switch arms.', author: { ...A['seed-hunt'] }, createdAt: iso(60*854), ref: 'a1b', parentRef: 'a1' },
         { body: 'HR usually dies first; blood oxygen (SpO2) dies later or together, depending on how dense the ink is.', author: { ...A['seed-edu'] }, createdAt: iso(60*850), parentRef: 'a1b' },
         { body: 'I thought SpO2 would be immune. It is not. Same black area, same failure.', author: { ...A['seed-writer'] }, createdAt: iso(60*845), ref: 'a2' },
-        { ...officialReply('SpO2 (blood oxygen) also needs a clean wrist reading; dark ink gets in the way the same. Sensor Tattoo Fix improves that reading. Visit our channels and get our lenses.', iso(60*839)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('SpO2 (blood oxygen) also needs a clean wrist reading; dark ink gets in the way the same. Sensor TattooFix improves that reading. Visit our channels and get our lenses.', iso(60*839)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -805,7 +805,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'I bought anyway for the apps. I ignore HR. I do not recommend that rotten peace.', author: { ...A['seed-moth'] }, createdAt: iso(60*887), ref: 'a2' },
         { body: 'If budget is tight, fix the sensor reading before upgrading to a newer model.', author: { ...A['seed-omens'] }, createdAt: iso(60*881), parentRef: 'a2' },
         { body: 'Buy if the watch\'s features matter to you — but plan something that helps the sensor read through ink, not as a footnote.', author: { ...A['seed-chris'] }, createdAt: iso(60*874), parentRef: 'a1c' },
-        { ...officialReply('A smartwatch still makes sense with tattoos if the sensor reading is stabilized. Sensor Tattoo Fix exists exactly for that scenario. Visit our channels and get our lenses.', iso(60*866)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('A smartwatch still makes sense with tattoos if the sensor reading is stabilized. Sensor TattooFix exists exactly for that scenario. Visit our channels and get our lenses.', iso(60*866)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -826,7 +826,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Agree with TechRunner. Works until it does not — and it always breaks something else.', author: { ...A['seed-marcinha'] }, createdAt: iso(60*882), ref: 'a2d', parentRef: 'a2c' },
         { body: 'People sell epoxy kits on Instagram as the definitive fix. Be careful.', author: { ...A['seed-rick'] }, createdAt: iso(60*874), ref: 'a2e', parentRef: 'a2d' },
         { body: 'I went back to the clear arm. Epoxy was just an expensive sticky experiment.', author: { ...A['seed-nati'] }, createdAt: iso(60*870), parentRef: 'a2e' },
-        { ...officialReply('Reports like these are common: epoxy hacks can improve detection for a while while hurting charging, ECG and durability. Sensor Tattoo Fix was made to help the sensor for real, without that improvisation. Visit our channels and get our lenses.', iso(60*865)), ref: 'a3', parentRef: 'a2b' }
+        { ...officialReply('Reports like these are common: epoxy hacks can improve detection for a while while hurting charging, ECG and durability. Sensor TattooFix was made to help the sensor for real, without that improvisation. Visit our channels and get our lenses.', iso(60*865)), ref: 'a3', parentRef: 'a2b' }
       ]
     },
     {
@@ -841,7 +841,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Turned off high HR notifications so I would not freak out. Does not fix the cause.', author: { ...A['seed-lu'] }, createdAt: iso(60*951), ref: 'a2' },
         { body: 'False alerts are the same problem: dirty signal and the watch too confident on a wrong peak.', author: { ...A['seed-chris'] }, createdAt: iso(60*943), parentRef: 'a2' },
         { body: 'On the other arm it never invented 180. So much for the anxiety theory.', author: { ...A['seed-rita'] }, createdAt: iso(60*939), parentRef: 'a1c' },
-        { ...officialReply('Absurd resting readings with gaps in between usually come from a confused signal under ink. Sensor Tattoo Fix stabilizes the reading so the watch stops inventing peaks. Visit our channels and get our lenses.', iso(60*934)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Absurd resting readings with gaps in between usually come from a confused signal under ink. Sensor TattooFix stabilizes the reading so the watch stops inventing peaks. Visit our channels and get our lenses.', iso(60*934)), ref: 'a3', parentRef: 'a1c' }
       ]
     }
   ].map((t) => ({ ...t, lang: 'en' }));
@@ -858,7 +858,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Cambiare braccio non ha risolto: entrambi hanno copertura sulla zona del sensore.', author: { ...A['seed-bruno'] }, createdAt: iso(60*37), parentRef: 'a1b' },
         { body: 'L\'Apple Watch usa una lucina sul fondo per capire se è ancora al polso. L\'inchiostro denso mangia quella luce, pensa che tu l\'abbia tolto e continua a chiedere il codice — non è un bug a caso.', author: { ...A['seed-chris'] }, createdAt: iso(60*31), ref: 'a1c', parentRef: 'a1' },
         { body: 'Ho anche disattivato Sblocca con iPhone pensando aiutasse. Zero differenza.', author: { ...A['seed-felipe'] }, createdAt: iso(60*24), ref: 'a2' },
-        { ...officialReply('Quando il rilevamento del polso oscilli, Apple Watch rafforza la sicurezza e chiede il codice come se fosse stato rimosso. Sensor Tattoo Fix aiuta il sensore a leggere meglio in quella zona. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*16)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Quando il rilevamento del polso oscilli, Apple Watch rafforza la sicurezza e chiede il codice come se fosse stato rimosso. Sensor TattooFix aiuta il sensore a leggere meglio in quella zona. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*16)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -873,7 +873,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Ho dormito col cinturino più stretto e mi sono svegliato col segno rosso. Segna ancora 1h.', author: { ...A['seed-andre'] }, createdAt: iso(60*69), ref: 'a2' },
         { body: 'Stringere troppo peggiora la circolazione e il segnale. Non è una soluzione.', author: { ...A['seed-marcelo'] }, createdAt: iso(60*62), parentRef: 'a2' },
         { body: 'Stesso su Amazfit: pisolino di 40 minuti dopo una notte intera. Non è solo Apple.', author: { ...A['seed-fernanda'] }, createdAt: iso(60*54), parentRef: 'a1b' },
-        { ...officialReply('Il tracking notturno fallisce quando la lettura del sensore resta irregolare per ore. Sensor Tattoo Fix stabilizza quella lettura sul polso tatuato. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*50)), ref: 'a3', parentRef: 'a1b' }
+        { ...officialReply('Il tracking notturno fallisce quando la lettura del sensore resta irregolare per ore. Sensor TattooFix stabilizza quella lettura sul polso tatuato. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*50)), ref: 'a3', parentRef: 'a1b' }
       ]
     },
     {
@@ -888,7 +888,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Series 9 qui. Peggio di quello di mio marito senza tattoo. SE non l\'ho provato.', author: { ...A['seed-rafa'] }, createdAt: iso(60*101), ref: 'a2' },
         { body: 'Da SE a 9 sperando di risolvere. Quasi lo stesso drama. Soldi buttati.', author: { ...A['seed-henrique'] }, createdAt: iso(60*93), parentRef: 'a2' },
         { body: 'Onestamente: se l\'inchiostro copre il sensore, ogni generazione soffre. Non comprare Ultra solo per quello.', author: { ...A['seed-carlos'] }, createdAt: iso(60*89), parentRef: 'a1c' },
-        { ...officialReply('Le generazioni cambiano un po\' il sensore, ma l\'inchiostro nero continua a disturbare. Sensor Tattoo Fix esiste per quel problema, indipendentemente dal modello. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*84)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Le generazioni cambiano un po\' il sensore, ma l\'inchiostro nero continua a disturbare. Sensor TattooFix esiste per quel problema, indipendentemente dal modello. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*84)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -903,7 +903,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Pensavo fosse la carta. Rimossa e rimessa. Non lo era.', author: { ...A['seed-daniel'] }, createdAt: iso(60*133), ref: 'a2' },
         { body: 'Reset del Watch e restore del backup. Meglio solo sul braccio senza inchiostro.', author: { ...A['seed-marina'] }, createdAt: iso(60*129), parentRef: 'a2' },
         { body: 'Anche Google Wallet su Galaxy fa qualcosa di simile. Non è solo Apple.', author: { ...A['seed-ricardo'] }, createdAt: iso(60*124), parentRef: 'a1c' },
-        { ...officialReply('Il pagamento contactless è spesso il primo a cadere quando il rilevamento diventa incerto. Sensor Tattoo Fix migliora quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*118)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Il pagamento contactless è spesso il primo a cadere quando il rilevamento diventa incerto. Sensor TattooFix migliora quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*118)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -918,7 +918,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Ho cambiato pensando a una vita nuova. Ancora buchi nel grafico. Ho solo cambiato tipo di irritazione.', author: { ...A['seed-gustavo'] }, createdAt: iso(60*170), ref: 'a2' },
         { body: 'Non d\'accordo del tutto: sul 955 il rilevamento è meno seccante. La FC fallisce, ma il quotidiano è ok.', author: { ...A['seed-joao'] }, createdAt: iso(60*165), parentRef: 'a2' },
         { body: 'Sul Forerunner l\'auto-pause dell\'allenamento continua. Non comprate aspettando un miracolo contro l\'inchiostro.', author: { ...A['seed-thiago'] }, createdAt: iso(60*159), parentRef: 'a2' },
-        { ...officialReply('Cambiare marca cambia schermi e blocco, ma l\'inchiostro continua a disturbare il sensore. Sensor Tattoo Fix agisce su quella lettura al polso, non solo sul sintomo di ogni marca. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*152)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Cambiare marca cambia schermi e blocco, ma l\'inchiostro continua a disturbare il sensore. Sensor TattooFix agisce su quella lettura al polso, non solo sul sintomo di ogni marca. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*152)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -933,7 +933,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Rimasta su Apple e concentrata su ciò che sta tra sensore e pelle. Cambiare marca sarebbe eccessivo per me.', author: { ...A['seed-eduardo'] }, createdAt: iso(60*207), ref: 'a2' },
         { body: 'D\'accordo. Il problema era il polso, non il logo sulla scatola.', author: { ...A['seed-vini'] }, createdAt: iso(60*201), parentRef: 'a2' },
         { body: 'C\'è chi giura su Garmin. Io sono nel gruppo non è cambiato niente di vero.', author: { ...A['seed-gabriel'] }, createdAt: iso(60*194), ref: 'a3' },
-        { ...officialReply('Prima di cambiare tutto l\'ecosistema, guarda la causa: il sensore non legge bene sul polso tatuato. Sensor Tattoo Fix è pensato per quello senza costringerti a lasciare Apple o Garmin. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*186)), ref: 'a4', parentRef: 'a1c' }
+        { ...officialReply('Prima di cambiare tutto l\'ecosistema, guarda la causa: il sensore non legge bene sul polso tatuato. Sensor TattooFix è pensato per quello senza costringerti a lasciare Apple o Garmin. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*186)), ref: 'a4', parentRef: 'a1c' }
       ]
     },
     {
@@ -948,7 +948,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Disattivato auto-pause e il grafico è ancora bucherellato. Non è solo un\'impostazione dello schermo.', author: { ...A['seed-marcos'] }, createdAt: iso(60*239), ref: 'a2' },
         { body: 'Cambiato il cinturino stock con uno più stretto. Aiuto forse 10%. Il resto resta spazzatura.', author: { ...A['seed-juliana'] }, createdAt: iso(60*232), parentRef: 'a2' },
         { body: 'Fascia Polar al petto è pulita. Sul polso tatuato Galaxy inventa numeri.', author: { ...A['seed-leo'] }, createdAt: iso(60*224), parentRef: 'a1c' },
-        { ...officialReply('Allenamenti con sudore e movimento peggiorano il fallimento su inchiostro scuro. Sensor Tattoo Fix stabilizza la lettura al polso perché il sensore torni a funzionare. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*220)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Allenamenti con sudore e movimento peggiorano il fallimento su inchiostro scuro. Sensor TattooFix stabilizza la lettura al polso perché il sensore torni a funzionare. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*220)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -963,7 +963,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Succedeva sul Watch 4. Cambiare braccio ha aiutato. Il braccio tatuato si blocca ancora.', author: { ...A['seed-patricia'] }, createdAt: iso(60*271), ref: 'a2' },
         { body: 'Non ho un braccio libero. Entrambi coperti. Mi blocco tutto il giorno.', author: { ...A['seed-fernando'] }, createdAt: iso(60*263), parentRef: 'a2' },
         { body: 'Ho disattivato il blocco automatico e perso sicurezza. Scambio pessimo.', author: { ...A['seed-jordan'] }, createdAt: iso(60*259), parentRef: 'a1c' },
-        { ...officialReply('I blocchi ripetuti seguono di solito fallimenti di rilevamento polso, non per forza un difetto di fabbrica. Sensor Tattoo Fix migliora la stabilità della lettura in quella zona. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*254)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('I blocchi ripetuti seguono di solito fallimenti di rilevamento polso, non per forza un difetto di fabbrica. Sensor TattooFix migliora la stabilità della lettura in quella zona. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*254)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -977,7 +977,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Anche Huawei GT misura con luce sul fondo: battito e ossigeno nel sangue (SpO2). Il nero continua a disturbare, batteria da 14 giorni o no.', author: { ...A['seed-chris'] }, createdAt: iso(60*311), ref: 'a1c', parentRef: 'a1' },
         { body: 'Comprato pensando a magia della marca cinese. No. Stessi buchi nel grafico.', author: { ...A['seed-hunt'] }, createdAt: iso(60*303), ref: 'a2' },
         { body: 'La batteria lunga mi ha fatto restare. Accetto FC bucherellata, ma irrita.', author: { ...A['seed-writer'] }, createdAt: iso(60*299), parentRef: 'a2' },
-        { ...officialReply('La batteria lunga non cambia il fatto che l\'inchiostro disturbi il sensore. Sensor Tattoo Fix aiuta quella lettura sul fondo dell\'orologio. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*294)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('La batteria lunga non cambia il fatto che l\'inchiostro disturbi il sensore. Sensor TattooFix aiuta quella lettura sul fondo dell\'orologio. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*294)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -992,7 +992,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Provato a dormire col orologio alla caviglia. Assurdo e comunque inutile.', author: { ...A['seed-moth'] }, createdAt: iso(60*340), ref: 'a2' },
         { body: 'Anche la FC alla caviglia in allenamento è strana. Non è una scorciatoia buona.', author: { ...A['seed-omens'] }, createdAt: iso(60*335), parentRef: 'a2' },
         { body: 'Prima del ritocco andava. L\'inchiostro nuovo è molto più saturo sotto il sensore.', author: { ...A['seed-syrup'] }, createdAt: iso(60*329), parentRef: 'a1b' },
-        { ...officialReply('Quando il battito va e viene di notte, l\'app sonno perde la notte. Sensor Tattoo Fix migliora quella lettura sul polso tatuato. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*322)), ref: 'a3', parentRef: 'a1b' }
+        { ...officialReply('Quando il battito va e viene di notte, l\'app sonno perde la notte. Sensor TattooFix migliora quella lettura sul polso tatuato. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*322)), ref: 'a3', parentRef: 'a1b' }
       ]
     },
     {
@@ -1007,7 +1007,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Ho solo linee sottili e il Watch quasi non si lamenta. Conta la densità, non “avere un tattoo”.', author: { ...A['seed-malu'] }, createdAt: iso(60*377), ref: 'a2' },
         { body: 'Oltre al colore, spessore dell\'inchiostro e cicatrice sotto cambiano le cose. Due neri “uguali” possono leggere molto diverso sull\'orologio.', author: { ...A['seed-edu'] }, createdAt: iso(60*371), ref: 'a2b', parentRef: 'a2' },
         { body: 'Imparato a dure: sensore sul pieno → FC sparisce. Due centimetri di lato → torna.', author: { ...A['seed-pri'] }, createdAt: iso(60*364), parentRef: 'a1b' },
-        { ...officialReply('L\'interferenza dipende molto da colore, densità e posizione sotto il sensore — non dal semplice “avere un tattoo”. Sensor Tattoo Fix è fatto per stabilizzare la lettura in questi casi. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*356)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('L\'interferenza dipende molto da colore, densità e posizione sotto il sensore — non dal semplice “avere un tattoo”. Sensor TattooFix è fatto per stabilizzare la lettura in questi casi. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*356)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -1021,7 +1021,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Ero paranoico sul calore. L\'Ultra si scalda uguale sull\'altro braccio. È lettura, non temperatura.', author: { ...A['seed-bela'] }, createdAt: iso(60*415), ref: 'a1b', parentRef: 'a1' },
         { body: 'L\'assistenza Apple ha detto che i tattoo non annullano la garanzia, ma non “sistemano” il rilevamento.', author: { ...A['seed-marcinha'] }, createdAt: iso(60*409), ref: 'a2' },
         { body: 'La luce dello smartwatch è debole. L\'inchiostro cambia ciò che torna al sensore, non la vita tipica della lucina.', author: { ...A['seed-chris'] }, createdAt: iso(60*402), parentRef: 'a2' },
-        { ...officialReply('Un tatuaggio di solito non danneggia l\'orologio; disturba la lettura del sensore. Sensor Tattoo Fix aiuta quella lettura senza alterare l\'inchiostro. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*394)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('Un tatuaggio di solito non danneggia l\'orologio; disturba la lettura del sensore. Sensor TattooFix aiuta quella lettura senza alterare l\'inchiostro. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*394)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -1036,7 +1036,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Aspettato tre settimane a guarire. Non è tornato. Non è gonfiore temporaneo.', author: { ...A['seed-nati'] }, createdAt: iso(60*441), ref: 'a2' },
         { body: 'Stessa attesa. Guarito, inchiostro assestato, sensore ancora cieco sul pieno.', author: { ...A['seed-raf'] }, createdAt: iso(60*433), parentRef: 'a2' },
         { body: 'Cinturino nuovo e reset non hanno riportato la vecchia lettura. L\'orologio non ha dimenticato; è cambiata la pelle.', author: { ...A['seed-lu'] }, createdAt: iso(60*429), parentRef: 'a1c' },
-        { ...officialReply('Se l\'orologio era stabile e peggiora subito dopo il tatuaggio, la causa tipica è l\'inchiostro che blocca il sensore. Sensor Tattoo Fix aiuta l\'orologio a rileggere quella zona. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*424)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Se l\'orologio era stabile e peggiora subito dopo il tatuaggio, la causa tipica è l\'inchiostro che blocca il sensore. Sensor TattooFix aiuta l\'orologio a rileggere quella zona. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*424)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1051,7 +1051,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Senza pelle pulita sotto il sensore dipendi al 100% dalla lettura sull\'inchiostro. Niente braccio di riserva — il segnale deve migliorare dove poggia l\'orologio.', author: { ...A['seed-edu'] }, createdAt: iso(60*473), ref: 'a1c', parentRef: 'a1b' },
         { body: 'Pensavo di vendere l\'orologio. Non ancora perché voglio sonno e pagamenti al polso.', author: { ...A['seed-guga'] }, createdAt: iso(60*469), ref: 'a2' },
         { body: 'Stesso dilemma. Entrambe tatuate uccidono la scorciatoia di cambiare lato.', author: { ...A['seed-kai'] }, createdAt: iso(60*464), parentRef: 'a2' },
-        { ...officialReply('Con entrambi i polsi coperti, i ripieghi di cambiare braccio spariscono. Sensor Tattoo Fix è pensato per chi serve una lettura stabile sull\'area tatuata. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*458)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Con entrambi i polsi coperti, i ripieghi di cambiare braccio spariscono. Sensor TattooFix è pensato per chi serve una lettura stabile sull\'area tatuata. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*458)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1066,7 +1066,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Anche l\'auto-pause Garmin mi ha fregato. Non è solo Apple.', author: { ...A['seed-bruno'] }, createdAt: iso(60*510), ref: 'a2' },
         { body: 'Ho registrato lo schermo. Si vede l\'icona orologio rimosso lampeggiare senza toccare nulla.', author: { ...A['seed-felipe'] }, createdAt: iso(60*505), parentRef: 'a2' },
         { body: 'Cinturino più stretto ha tagliato forse il 30% delle pause. Il resto resta.', author: { ...A['seed-diego'] }, createdAt: iso(60*499), parentRef: 'a1c' },
-        { ...officialReply('Le pause fantasma in corsa riflettono di solito rilevamento polso instabile sotto inchiostro, non solo impostazioni. Sensor Tattoo Fix aiuta a tenere stabile la lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*492)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Le pause fantasma in corsa riflettono di solito rilevamento polso instabile sotto inchiostro, non solo impostazioni. Sensor TattooFix aiuta a tenere stabile la lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*492)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1081,7 +1081,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Usato pellicola da cucina. Peggio — scivola e lascia residuo grasso.', author: { ...A['seed-marcelo'] }, createdAt: iso(60*547), ref: 'a2' },
         { body: 'Qualsiasi colla sul vetro posteriore mi fa temere per la garanzia.', author: { ...A['seed-fernanda'] }, createdAt: iso(60*541), parentRef: 'a2' },
         { body: 'Funziona un po\' e poi diventa sporco. D\'accordo con SensorGuru: non è una soluzione vera.', author: { ...A['seed-camila'] }, createdAt: iso(60*534), parentRef: 'a1c' },
-        { ...officialReply('Nastri e pellicole improvvisati possono ingannare il sensore per poco, ma degradano con sudore e sporco. Sensor Tattoo Fix è nato per una lettura stabile, non come ripiego temporaneo. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*526)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Nastri e pellicole improvvisati possono ingannare il sensore per poco, ma degradano con sudore e sporco. Sensor TattooFix è nato per una lettura stabile, non come ripiego temporaneo. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*526)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1096,11 +1096,11 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Un amico giura che il sottile quasi funzionasse. Sul mio Watch 7 no.', author: { ...A['seed-rafa'] }, createdAt: iso(60*579), ref: 'a2' },
         { body: 'Quasi non conta. Voglio qualcosa che sopravviva a un allenamento sudato.', author: { ...A['seed-henrique'] }, createdAt: iso(60*572), parentRef: 'a2' },
         { body: 'In più lascia un segno circolare sul polso. Orribile.', author: { ...A['seed-carlos'] }, createdAt: iso(60*564), parentRef: 'a1c' },
-        { ...officialReply('I distanziatori improvvisati di solito allontanano il sensore dalla pelle e peggiorano la FC. Sensor Tattoo Fix aiuta la lettura senza creare quel vuoto inutile. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*560)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('I distanziatori improvvisati di solito allontanano il sensore dalla pelle e peggiorano la FC. Sensor TattooFix aiuta la lettura senza creare quel vuoto inutile. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*560)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
-      title: 'Sensor Tattoo Fix è un laser?',
+      title: 'Sensor TattooFix è un laser?',
       body: 'Il nome mi ha confuso: rimuove inchiostro, usa laser o cambia il tatuaggio? Non voglio toccare il disegno.',
       tags: ["sensor-tattoo-fix", "laser", "domanda", "prodotto"],
       author: { ...A['seed-patricia'] },
@@ -1110,7 +1110,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Non è laser né rimozione. È una lente/interfaccia sul sensore: aiuta la luce a passare meglio tra il fondo dell\'orologio e la pelle tatuata, senza cancellare l\'inchiostro.', author: { ...A['seed-edu'] }, createdAt: iso(60*618), ref: 'a1c', parentRef: 'a1' },
         { body: 'Bene, perché anche fix nel nome mi aveva spaventato.', author: { ...A['seed-daniel'] }, createdAt: iso(60*611), ref: 'a2' },
         { body: 'Stessa paranoia. Il tattoo ci ha messo anni; non voglio correggerlo con luce forte.', author: { ...A['seed-marina'] }, createdAt: iso(60*603), parentRef: 'a2' },
-        { ...officialReply('Sensor Tattoo Fix non è un laser e non rimuove inchiostro: è una lente/interfaccia che aiuta il sensore dello smartwatch a leggere sulla pelle tatuata. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*599)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Sensor TattooFix non è un laser e non rimuove inchiostro: è una lente/interfaccia che aiuta il sensore dello smartwatch a leggere sulla pelle tatuata. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*599)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1125,7 +1125,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'La misurazione di ossigeno nel sangue (SpO2) usa anche luce al polso e soffre sul nero denso, ma la FC continua di solito cade per prima.', author: { ...A['seed-leandro'] }, createdAt: iso(60*643), parentRef: 'a1b' },
         { body: 'Per questo gli artisti che capiscono i wearable lasciano una finestra senza pieno sotto il sensore.', author: { ...A['seed-gustavo'] }, createdAt: iso(60*639), ref: 'a2' },
         { body: 'Avevo già il pieno. Una finestra ora sarebbe un cover-up costoso. Serve un\'altra via.', author: { ...A['seed-joao'] }, createdAt: iso(60*634), parentRef: 'a2' },
-        { ...officialReply('Il nero denso è il caso peggiore per il sensore del battito, proprio come descrivi. Sensor Tattoo Fix migliora la lettura lì senza dover cancellare l\'arte. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*628)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('Il nero denso è il caso peggiore per il sensore del battito, proprio come descrivi. Sensor TattooFix migliora la lettura lì senza dover cancellare l\'arte. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*628)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -1140,7 +1140,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Asciugato il sensore a metà allenamento con la maglia. Tornato due minuti e morto di nuovo.', author: { ...A['seed-lucas'] }, createdAt: iso(60*680), ref: 'a2' },
         { body: 'Sulla bici indoor con meno sudore che cola fallisce anche, solo più tardi. Non è solo corsa.', author: { ...A['seed-eduardo'] }, createdAt: iso(60*675), parentRef: 'a2' },
         { body: 'Acqua tra sensore e pelle confonde ancora di più. Sul nero sei già al limite — qualsiasi pellicola fa sparire la lettura.', author: { ...A['seed-chris'] }, createdAt: iso(60*669), parentRef: 'a1c' },
-        { ...officialReply('Il sudore amplifica il fallimento sui polsi tatuati perché aggiunge una pellicola irregolare a una lettura già debole. Sensor Tattoo Fix stabilizza quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*662)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Il sudore amplifica il fallimento sui polsi tatuati perché aggiunge una pellicola irregolare a una lettura già debole. Sensor TattooFix stabilizza quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*662)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1154,7 +1154,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Provare entrambi i bracci è la diagnosi più economica: se l\'orologio fallisce solo sull\'inchiostro, non è un pezzo rotto — è l\'inchiostro che blocca il sensore.', author: { ...A['seed-chris'] }, createdAt: iso(60*722), ref: 'a1c', parentRef: 'a1' },
         { body: 'Avevo già prenotato il ritiro assistenza. Annullato dopo quel test.', author: { ...A['seed-vini'] }, createdAt: iso(60*717), ref: 'a2' },
         { body: 'Anche i log FC con buchi su un solo braccio contano. Non serve aprire l\'orologio.', author: { ...A['seed-gabriel'] }, createdAt: iso(60*711), parentRef: 'a2' },
-        { ...officialReply('Se lo stesso orologio funziona sul braccio senza inchiostro, è più probabile che il tattoo blocchi il sensore che un difetto di fabbrica. Sensor Tattoo Fix affronta quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*704)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Se lo stesso orologio funziona sul braccio senza inchiostro, è più probabile che il tattoo blocchi il sensore che un difetto di fabbrica. Sensor TattooFix affronta quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*704)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1169,7 +1169,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Ho rimandato il secondo braccio per questo. Sei stato più coraggioso — o più testardo.', author: { ...A['seed-marcos'] }, createdAt: iso(60*749), ref: 'a2' },
         { body: 'Testardo anche io. Arte prima, wearable dopo. Ora pago il prezzo.', author: { ...A['seed-juliana'] }, createdAt: iso(60*742), parentRef: 'a2' },
         { body: 'Nessun aggiornamento software inventa una lettura dove l\'inchiostro ha inghiottito la luce. O migliori ciò che sta tra sensore e pelle, o accetti i buchi.', author: { ...A['seed-chris'] }, createdAt: iso(60*734), parentRef: 'a1c' },
-        { ...officialReply('Perdere il braccio di riserva rende ovvia la causa: l\'inchiostro sul sensore. Sensor Tattoo Fix esiste per chi ha bisogno che il sensore legga sull\'area tatuata. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*730)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Perdere il braccio di riserva rende ovvia la causa: l\'inchiostro sul sensore. Sensor TattooFix esiste per chi ha bisogno che il sensore legga sull\'area tatuata. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*730)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1184,7 +1184,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Ho testato Apple e Garmin sullo stesso braccio. Nessuno ha salvato i pesi.', author: { ...A['seed-renato'] }, createdAt: iso(60*781), ref: 'a2' },
         { body: 'Huawei vince sulla batteria. Sensore ancora mediocre sul pieno.', author: { ...A['seed-patricia'] }, createdAt: iso(60*773), parentRef: 'a2' },
         { body: 'Se conta meno spam di codice/PIN, Garmin/Amazfit. Se conta una FC pulita sotto inchiostro, nessuna marca risolve da sola.', author: { ...A['seed-edu'] }, createdAt: iso(60*769), parentRef: 'a1c' },
-        { ...officialReply('La marca cambia blocco e app, ma l\'inchiostro scuro disturba il sensore su tutte. Sensor Tattoo Fix lavora su quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*764)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('La marca cambia blocco e app, ma l\'inchiostro scuro disturba il sensore su tutte. Sensor TattooFix lavora su quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*764)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1199,7 +1199,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Pensavo fosse il GPS. Spento il GPS e il grafico FC resta bucherellato.', author: { ...A['seed-jordan'] }, createdAt: iso(60*813), ref: 'a2' },
         { body: 'Non è il GPS. È il sensore del battito sul fondo dell\'orologio che si perde nell\'inchiostro nero.', author: { ...A['seed-chris'] }, createdAt: iso(60*809), parentRef: 'a2' },
         { body: 'La fascia petto sistema il grafico, ma voglio l\'orologio funzionante al polso.', author: { ...A['seed-jeff'] }, createdAt: iso(60*804), parentRef: 'a1c' },
-        { ...officialReply('Buchi e picchi fantasma nel grafico nascono di solito da letture scadenti sotto inchiostro. Sensor Tattoo Fix migliora la qualità del segnale alla fonte. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*798)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Buchi e picchi fantasma nel grafico nascono di solito da letture scadenti sotto inchiostro. Sensor TattooFix migliora la qualità del segnale alla fonte. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*798)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1213,7 +1213,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Sul mio Ultra l\'ossigeno resta su calcolo in corso… finché non cambio braccio.', author: { ...A['seed-hunt'] }, createdAt: iso(60*854), ref: 'a1b', parentRef: 'a1' },
         { body: 'La FC di solito muore prima; l\'ossigeno nel sangue (SpO2) dopo o insieme, a seconda di quanto è denso l\'inchiostro.', author: { ...A['seed-edu'] }, createdAt: iso(60*850), parentRef: 'a1b' },
         { body: 'Pensavo che lo SpO2 fosse immune. Non lo è. Stessa area nera, stesso fallimento.', author: { ...A['seed-writer'] }, createdAt: iso(60*845), ref: 'a2' },
-        { ...officialReply('Anche lo SpO2 (ossigeno nel sangue) serve una buona lettura al polso; l\'inchiostro scuro disturba allo stesso modo. Sensor Tattoo Fix migliora quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*839)), ref: 'a3', parentRef: 'a1' }
+        { ...officialReply('Anche lo SpO2 (ossigeno nel sangue) serve una buona lettura al polso; l\'inchiostro scuro disturba allo stesso modo. Sensor TattooFix migliora quella lettura. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*839)), ref: 'a3', parentRef: 'a1' }
       ]
     },
     {
@@ -1228,7 +1228,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Ho comprato lo stesso per le app. Ignoro la FC. Non consiglio questa pace marcia.', author: { ...A['seed-moth'] }, createdAt: iso(60*887), ref: 'a2' },
         { body: 'Se il budget è stretto, sistema la lettura del sensore prima di passare a un modello più nuovo.', author: { ...A['seed-omens'] }, createdAt: iso(60*881), parentRef: 'a2' },
         { body: 'Compra se le funzioni ti interessano — ma pianifica qualcosa che aiuti il sensore a leggere sull\'inchiostro, non come nota a piè.', author: { ...A['seed-chris'] }, createdAt: iso(60*874), parentRef: 'a1c' },
-        { ...officialReply('Uno smartwatch ha ancora senso coi tatuaggi se la lettura del sensore è stabilizzata. Sensor Tattoo Fix esiste proprio per quello scenario. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*866)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Uno smartwatch ha ancora senso coi tatuaggi se la lettura del sensore è stabilizzata. Sensor TattooFix esiste proprio per quello scenario. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*866)), ref: 'a3', parentRef: 'a1c' }
       ]
     },
     {
@@ -1249,7 +1249,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'D\'accordo con TechRunner. Funziona finché non funziona — e rompe sempre qualcos\'altro.', author: { ...A['seed-marcinha'] }, createdAt: iso(60*882), ref: 'a2d', parentRef: 'a2c' },
         { body: 'C\'è chi vende kit epossidici su Instagram come soluzione definitiva. Attenti.', author: { ...A['seed-rick'] }, createdAt: iso(60*874), ref: 'a2e', parentRef: 'a2d' },
         { body: 'Tornato al braccio senza inchiostro. L\'epossidica è stata solo un esperimento costoso e appiccicoso.', author: { ...A['seed-nati'] }, createdAt: iso(60*870), parentRef: 'a2e' },
-        { ...officialReply('Resoconti così sono comuni: ripieghi epossidici possono migliorare il rilevamento per un po\' e al tempo stesso danneggiare carica, ECG e durata. Sensor Tattoo Fix è nato per aiutare il sensore sul serio, senza quell\'improvvisazione. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*865)), ref: 'a3', parentRef: 'a2b' }
+        { ...officialReply('Resoconti così sono comuni: ripieghi epossidici possono migliorare il rilevamento per un po\' e al tempo stesso danneggiare carica, ECG e durata. Sensor TattooFix è nato per aiutare il sensore sul serio, senza quell\'improvvisazione. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*865)), ref: 'a3', parentRef: 'a2b' }
       ]
     },
     {
@@ -1264,7 +1264,7 @@ export function buildForumSeedLangPacks({ A, officialReply, iso }) {
         { body: 'Disattivate le notifiche di FC alta per non impazzire. Non risolve la causa.', author: { ...A['seed-lu'] }, createdAt: iso(60*951), ref: 'a2' },
         { body: 'I falsi allarmi sono lo stesso problema: segnale sporco e orologio troppo fiducioso su un picco sbagliato.', author: { ...A['seed-chris'] }, createdAt: iso(60*943), parentRef: 'a2' },
         { body: 'Sull\'altro braccio non ha mai inventato 180. Addio teoria dell\'ansia.', author: { ...A['seed-rita'] }, createdAt: iso(60*939), parentRef: 'a1c' },
-        { ...officialReply('Letture assurde a riposo con buchi in mezzo nascono di solito da segnale confuso sotto inchiostro. Sensor Tattoo Fix stabilizza la lettura perché l\'orologio smetta di inventare picchi. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*934)), ref: 'a3', parentRef: 'a1c' }
+        { ...officialReply('Letture assurde a riposo con buchi in mezzo nascono di solito da segnale confuso sotto inchiostro. Sensor TattooFix stabilizza la lettura perché l\'orologio smetta di inventare picchi. Accedi ai nostri canali e acquista le nostre lenti.', iso(60*934)), ref: 'a3', parentRef: 'a1c' }
       ]
     }
   ].map((t) => ({ ...t, lang: 'it' }));

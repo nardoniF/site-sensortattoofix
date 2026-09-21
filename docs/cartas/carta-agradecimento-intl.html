@@ -332,16 +332,40 @@
       justify-self: end;
     }
     .lens-target[data-shape="rect"] {
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      width: calc(var(--lens-w-mm) * 1mm);
+      height: auto;
+      min-width: calc(var(--lens-w-mm) * 1mm);
+      min-height: 0;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .lens-target[data-shape="rect"]::before {
+      content: "";
+      display: block;
+      width: 100%;
+      height: calc(var(--lens-h-mm) * 1mm);
+      border: 1.5pt dashed var(--accent);
       border-radius: 0.35mm;
       background: #fff8f2;
+      order: 2;
     }
     .lens-target span {
       font-size: 5.5pt; font-weight: 800; letter-spacing: .06em;
       text-transform: uppercase; color: var(--accent); line-height: 1.15;
     }
-      .lens-target[data-shape="rect"] span {
-      font-size: 4.5pt;
-      line-height: 1.05;
+    .lens-target[data-shape="rect"] span {
+      position: static;
+      order: 1;
+      margin: 0 0 1.2mm;
+      font-size: 7pt;
+      line-height: 1.1;
+      white-space: nowrap;
     }
 
     body.multi-letters { background: #c8c8cc; }
@@ -484,7 +508,7 @@
   </div>
 
   <script src="../js/config-bootstrap.js"></script>
-  <script src="../js/order-letters.js"></script>
+  <script src="../js/order-letters.js?v=8"></script>
   <script>
 (function () {
   const SESSION_KEY = 'stf_admin_token';

@@ -54,13 +54,21 @@ window.STF_INTL_PAY = (function () {
 
   function paypalCurrency() {
     try {
-      const lang = window.STF_I18N?.getLang?.();
-      if (lang === 'it') return 'EUR';
+      if (window.STF_MONEY?.currencyForLang) {
+        const cur = window.STF_MONEY.currencyForLang(window.STF_MONEY.pageLang?.() || window.STF_I18N?.getLang?.());
+        if (cur && cur !== 'BRL') return cur;
+      }
+      const lang = window.STF_I18N?.getLang?.() || window.STF_PAGE_LANG?.get?.();
+      if (lang === 'sv') return 'SEK';
+      if (lang === 'no') return 'NOK';
+      if (lang === 'pl') return 'PLN';
+      if (['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'].includes(lang)) return 'EUR';
     } catch (_) { /* ignore */ }
     const path = String(location.pathname || '');
-    if (path.includes('/it/')) return 'EUR';
-    const htmlLang = String(document.documentElement.lang || '').toLowerCase();
-    if (htmlLang.startsWith('it')) return 'EUR';
+    if (/\/(sv)(\/|$)/.test(path)) return 'SEK';
+    if (/\/(no)(\/|$)/.test(path)) return 'NOK';
+    if (/\/(pl)(\/|$)/.test(path)) return 'PLN';
+    if (/\/(it|de|es|sl|fr|nl|fi)(\/|$)/.test(path)) return 'EUR';
     return 'USD';
   }
 
@@ -71,7 +79,16 @@ window.STF_INTL_PAY = (function () {
     } catch (_) { /* ignore */ }
     const cur = paypalCurrency();
     if (cur === 'EUR') {
-      return '<i class="fas fa-info-circle"></i> Addebito in EUR · spedizione tracciata.';
+      return '<i class="fas fa-info-circle"></i> Charged in EUR · tracked shipping.';
+    }
+    if (cur === 'SEK') {
+      return '<i class="fas fa-info-circle"></i> Debiteras i SEK · spårbar frakt.';
+    }
+    if (cur === 'NOK') {
+      return '<i class="fas fa-info-circle"></i> Belastes i NOK · sporbar frakt.';
+    }
+    if (cur === 'PLN') {
+      return '<i class="fas fa-info-circle"></i> Płatność w PLN · wysyłka śledzona.';
     }
     return '<i class="fas fa-info-circle"></i> Charged in USD · tracked shipping.';
   }
