@@ -1,29 +1,96 @@
 (function () {
+  const ALL_INTL = ['en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
+  const IN_LANGUAGE = {
+    pt: 'pt-BR',
+    en: 'en',
+    it: 'it',
+    de: 'de',
+    es: 'es',
+    pl: 'pl',
+    sl: 'sl',
+    fr: 'fr',
+    nl: 'nl',
+    sv: 'sv',
+    no: 'no',
+    fi: 'fi'
+  };
+  const REVIEW_SUFFIX = {
+    en: 'En', it: 'It', de: 'De', es: 'Es', pl: 'Pl', sl: 'Sl',
+    fr: 'Fr', nl: 'Nl', sv: 'Sv', no: 'No', fi: 'Fi'
+  };
+  const PRODUCT_FALLBACK = {
+    pt: {
+      name: 'Kit Sensor Tattoo Fix',
+      description: 'Kit com lente ótica para smartwatch que pede senha, não mede batimentos ou pausa treino — muitas vezes por tatuagem no pulso. Restaura pulso, batimentos e treinos.'
+    },
+    en: {
+      name: 'SensorTattooFix Optical Lens',
+      description: 'Optical lens kit for smartwatch passcode loops, heart rate failures and paused workouts — often caused by wrist tattoo ink. Restores wrist detection, heart rate and training.'
+    },
+    it: {
+      name: 'Lente ottica SensorTattooFix',
+      description: 'Kit con lente ottica per smartwatch che chiede codice, non misura il battito o interrompe l\'allenamento — spesso per tatuaggio al polso. Ripristina rilevamento al polso, frequenza cardiaca e allenamenti.'
+    },
+    de: {
+      name: 'SensorTattooFix Optische Linse',
+      description: 'Optische Linse für Smartwatches, die den Passcode verlangen, den Puls nicht messen oder das Training abbrechen — oft durch Tattoo-Tinte. Stellt Pulserkennung und Training wieder her.'
+    },
+    es: {
+      name: 'Lente óptica SensorTattooFix',
+      description: 'Kit con lente óptica para smartwatch que pide código, no mide el pulso o pausa el entrenamiento — a menudo por tatuaje en la muñeca. Restaura detección, ritmo cardíaco y entrenamientos.'
+    },
+    pl: {
+      name: 'Soczewka optyczna SensorTattooFix',
+      description: 'Soczewka optyczna do smartwatcha, który prosi o kod, nie mierzy tętna lub przerywa trening — często przez tusz tatuażu. Przywraca wykrywanie nadgarstka, tętno i treningi.'
+    },
+    sl: {
+      name: 'Optična leča SensorTattooFix',
+      description: 'Optična leča za pametno uro, ki zahteva geslo, ne meri utripa ali prekine vadbo — pogosto zaradi črnila tetovaže. Obnovi zaznavanje zapestja, utrip in vadbe.'
+    },
+    fr: {
+      name: 'Lentille optique SensorTattooFix',
+      description: 'Lentille optique pour smartwatch qui demande le code, ne mesure pas le pouls ou interrompt l\'entraînement — souvent à cause d\'un tatouage au poignet. Rétablit détection, fréquence cardiaque et sport.'
+    },
+    nl: {
+      name: 'SensorTattooFix optische lens',
+      description: 'Optische lens voor smartwatches die om de toegangscode vragen, geen hartslag meten of trainingen onderbreken — vaak door tattoo-inkt. Herstelt polsdetectie, hartslag en training.'
+    },
+    sv: {
+      name: 'SensorTattooFix optisk lins',
+      description: 'Optisk lins för smartklockor som ber om lösenkod, inte mäter puls eller avbryter träning — ofta på grund av tatueringsbläck. Återställer handledsdetektering, puls och träning.'
+    },
+    no: {
+      name: 'SensorTattooFix optisk linse',
+      description: 'Optisk linse for smartklokker som ber om passord, ikke måler puls eller avbryter trening — ofte på grunn av tatoveringsblekk. Gjenoppretter håndleddsdeteksjon, puls og trening.'
+    },
+    fi: {
+      name: 'SensorTattooFix optinen linssi',
+      description: 'Optinen linssi älykellolle, joka pyytää salasanaa, ei mittaa sykettä tai keskeyttää treenin — usein tatuointimusteen takia. Palauttaa ranteen tunnistuksen, sykkeen ja treenit.'
+    }
+  };
+
   const isIntlHost = !!(window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname));
   const SITE = isIntlHost ? 'https://www.sensortattoofix.com' : 'https://www.sensortattoofix.com.br';
+
   const pathLang = (() => {
+    if (window.STF_PAGE_LANG?.get) {
+      const l = String(window.STF_PAGE_LANG.get() || '').toLowerCase();
+      if (l === 'pt' || ALL_INTL.includes(l)) return l;
+    }
     const p = location.pathname;
-    if (/\/it\//i.test(p)) return 'it';
-    if (/\/de\//i.test(p)) return 'de';
-    if (/\/es\//i.test(p)) return 'es';
-    if (/\/pl\//i.test(p)) return 'pl';
-    if (/\/sl\//i.test(p)) return 'sl';
-    if (/\/en\//i.test(p)) return 'en';
+    const m = p.match(/\/(it|de|es|pl|sl|fr|nl|sv|no|fi|en)(?:\/|$)/i);
+    if (m) return m[1].toLowerCase();
     if (isIntlHost) return 'en';
     return 'pt';
   })();
-  const isIt = pathLang === 'it';
-  const isDe = pathLang === 'de';
-  const isEs = pathLang === 'es';
-  const isPl = pathLang === 'pl';
-  const isSl = pathLang === 'sl';
-  const isEn = pathLang === 'en';
-  const isIntlCopy = isEn || isIt || isDe || isEs || isPl || isSl;
-  const langPrefix = isIt ? '/it/' : isDe ? '/de/' : isEs ? '/es/' : isPl ? '/pl/' : isSl ? '/sl/' : isEn ? '/en/' : '/';
-  const pageUrl = isIntlHost
-    ? (pathLang === 'en' ? SITE + '/' : SITE + langPrefix)
-    : (pathLang === 'pt' ? SITE + '/' : SITE + langPrefix);
-  const inLanguage = isIt ? 'it' : isDe ? 'de' : isEs ? 'es' : isPl ? 'pl' : isSl ? 'sl' : isEn ? 'en' : 'pt-BR';
+
+  const isIntlCopy = pathLang !== 'pt';
+  const langPrefix = pathLang === 'pt' || pathLang === 'en' ? '/' : `/${pathLang}/`;
+  const pageUrl = pathLang === 'en' || pathLang === 'pt'
+    ? SITE + '/'
+    : SITE + langPrefix;
+  const inLanguage = IN_LANGUAGE[pathLang] || (isIntlHost ? 'en' : 'pt-BR');
+  const offerCurrency = isIntlHost ? 'USD' : 'BRL';
 
   /** Fallback if DOM/config still empty when Googlebot runs (real customer quotes). */
   const FALLBACK_REVIEWS = {
@@ -43,7 +110,7 @@
     if (!row) return '';
     const fromI18n = row.i18n?.[pathLang]?.[field];
     if (fromI18n) return String(fromI18n);
-    const suffix = { en: 'En', it: 'It', de: 'De', es: 'Es', pl: 'Pl', sl: 'Sl' }[pathLang];
+    const suffix = REVIEW_SUFFIX[pathLang];
     if (suffix && row[field + suffix]) return String(row[field + suffix]);
     if (isIntlCopy && row[field + 'En']) return String(row[field + 'En']);
     return String(row[field] || '');
@@ -188,22 +255,23 @@
       '@type': 'OfferShippingDetails',
       shippingDestination: {
         '@type': 'DefinedRegion',
-        addressCountry: ['PT', 'US', 'ES', 'GB', 'DE', 'FR', 'IT', 'CA', 'AR', 'MX', 'SI', 'PL']
+        addressCountry: ['PT', 'US', 'ES', 'GB', 'DE', 'FR', 'IT', 'CA', 'AR', 'MX', 'SI', 'PL', 'NL', 'SE', 'NO', 'FI']
       },
       shippingRate: {
         '@type': 'MonetaryAmount',
-        value: '27.55',
-        currency: 'BRL'
+        value: isIntlHost ? '18.00' : '27.55',
+        currency: offerCurrency
       },
       deliveryTime: deliveryTime(10, 25)
     };
   }
 
   function merchantReturnPolicy() {
-    const year = new Date().getFullYear();
     return {
       '@type': 'MerchantReturnPolicy',
-      applicableCountry: isIntlHost ? ['US', 'GB', 'DE', 'ES', 'IT', 'FR', 'PT', 'PL', 'SI', 'CA'] : 'BR',
+      applicableCountry: isIntlHost
+        ? ['US', 'GB', 'DE', 'ES', 'IT', 'FR', 'PT', 'PL', 'SI', 'CA', 'NL', 'SE', 'NO', 'FI']
+        : 'BR',
       returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
       merchantReturnDays: 7,
       returnMethod: 'https://schema.org/ReturnByMail',
@@ -211,25 +279,24 @@
       returnShippingFeesAmount: {
         '@type': 'MonetaryAmount',
         value: isIntlHost ? '8.00' : '15.00',
-        currency: isIntlHost ? 'USD' : 'BRL'
+        currency: offerCurrency
       },
-      returnPolicyUrl: pageUrl.replace(/\/$/, '/') + '#faq'
+      returnPolicyUrl: pageUrl.replace(/\/?$/, '/') + '#faq'
     };
   }
 
   function buildOffer(productPrice, productId) {
     const year = new Date().getFullYear();
-    const validFrom = `${year}-01-01`;
-    const priceValidUntil = `${year}-12-31`;
+    const buyPath = pathLang === 'en' || pathLang === 'pt'
+      ? '/comprar.html'
+      : `/${pathLang}/comprar.html`;
     return {
       '@type': 'Offer',
-      url: isIntlHost
-        ? (pathLang === 'en' ? SITE + '/comprar.html' : SITE + langPrefix + 'comprar.html')
-        : SITE + '/comprar.html',
-      priceCurrency: 'BRL',
+      url: SITE + buyPath,
+      priceCurrency: offerCurrency,
       price: Number(productPrice).toFixed(2),
-      validFrom,
-      priceValidUntil,
+      validFrom: `${year}-01-01`,
+      priceValidUntil: `${year}-12-31`,
       availability: 'https://schema.org/InStock',
       itemCondition: 'https://schema.org/NewCondition',
       seller: { '@id': SITE + '/#organization' },
@@ -252,17 +319,12 @@
   }
 
   async function run() {
-    let productName = isIt ? 'Lente ottica SensorTattooFix'
-      : isIntlCopy ? 'SensorTattooFix Optical Lens'
-        : 'Kit Sensor Tattoo Fix';
-    let productPrice = 62.9;
+    const fallback = PRODUCT_FALLBACK[pathLang] || PRODUCT_FALLBACK[isIntlCopy ? 'en' : 'pt'];
+    let productName = fallback.name;
+    let productPrice = isIntlHost ? 29.9 : 62.9;
     let productImage = SITE + '/images/brand/sensortattoofix.jpg';
     let productId = isIntlCopy ? 'optical-lens-intl' : 'kit-sensor-tattoofix';
-    let productDescription = isIt
-      ? 'Kit con lente ottica per smartwatch che chiede codice, non misura il battito o interrompe l\'allenamento — spesso per tatuaggio al polso. Ripristina rilevamento al polso, frequenza cardiaca e allenamenti.'
-      : isIntlCopy
-        ? 'Optical lens kit for smartwatch passcode loops, heart rate failures and paused workouts — often caused by wrist tattoo ink. Restores wrist detection, heart rate and training.'
-        : 'Kit com lente ótica para smartwatch que pede senha, não mede batimentos ou pausa treino — muitas vezes por tatuagem no pulso. Restaura pulso, batimentos e treinos.';
+    let productDescription = fallback.description;
 
     let cfg = null;
     if (window.CHECKOUT_CONFIG) cfg = window.CHECKOUT_CONFIG;
@@ -272,12 +334,12 @@
         const p = window.STF_STORE_PRICE?.primaryProduct(cfg) || cfg.product;
         if (p) {
           productName = window.STF_PELICULA?.productLabel?.(p)
-            || (isIt ? (p.nameIt || p.nameEn) : isIntlCopy ? (p.nameEn || p.name) : null)
-            || p.name
+            || p['name' + (REVIEW_SUFFIX[pathLang] || '')]
+            || (isIntlCopy ? (p.nameEn || p.name) : p.name)
             || productName;
           productDescription = window.STF_PELICULA?.productDescription?.(p)
-            || (isIt ? (p.descriptionIt || p.descriptionEn) : isIntlCopy ? (p.descriptionEn || p.description) : null)
-            || (isIntlCopy ? productDescription : p.description)
+            || p['description' + (REVIEW_SUFFIX[pathLang] || '')]
+            || (isIntlCopy ? (p.descriptionEn || p.description) : p.description)
             || productDescription;
           if (p.price != null) productPrice = Number(p.price);
           if (p.image) productImage = p.image.startsWith('http') ? p.image : SITE + '/' + p.image.replace(/^\//, '');
@@ -352,7 +414,6 @@
 
   if (document.getElementById('home-faq-root') || document.getElementById('home-reviews-root')) {
     document.addEventListener('stf-home-content-ready', run);
-    // Fallback if home-content never fires (slow/blocked) — still emit Product with reviews
     setTimeout(() => {
       if (!document.getElementById('stf-seo-schema')) run();
     }, 2500);

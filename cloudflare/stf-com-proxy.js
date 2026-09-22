@@ -1,6 +1,6 @@
 /**
  * Storefront proxy — serves pinned GitHub commit via jsDelivr.
- * - .com / www.sensortattoofix.com → EN (/) + IT/DE/ES/PL/SL (/it/, /de/, …)
+ * - .com / www.sensortattoofix.com → EN (/) + IT/DE/ES/PL/SL/FR/NL/SV/NO/FI (/it/, /de/, …)
  * - .com.br → Portuguese (repo root); paths /de|/es|/pl|/sl|/it|/en redirecionam ao .com
  * - First-hit: cookie / CF-IPCountry / Accept-Language → redirect para idioma nativo
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
@@ -13,7 +13,7 @@ import {
   isBotUserAgent
 } from './geo-lang.js';
 
-const COMMIT = '68291762f54704c561b035c64b4b76341a9d1928';
+const COMMIT = 'c6ef8b0ac98a1d1cef61185d04753a26dc65a5d4';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
@@ -79,7 +79,7 @@ const COM_SHARED_ROOT_PAGES = new Set([
   '/google7b1cb2c1f70b0fda.html',
 ]);
 
-const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl'];
+const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
 function mapPathCom(pathname) {
   if (isStaticAsset(pathname)) return pathname;
