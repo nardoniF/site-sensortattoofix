@@ -1833,20 +1833,21 @@ footer,
     margin: 0;
     padding: 0;
     border: none;
-    border-radius: 0;
-    overflow: visible;
+    border-radius: 50%;
+    overflow: hidden;
     background: transparent;
     box-shadow: none;
+    line-height: 0;
 }
 .footer-crashfix-logo img {
     width: 128px;
     height: 128px;
-    max-width: 100%;
-    object-fit: contain;
+    max-width: none;
+    object-fit: cover;
     object-position: center;
     display: block;
     margin: 0;
-    border-radius: 0;
+    border-radius: 50%;
 }
 .footer-crashfix-tag {
     font-size: 0.82rem;

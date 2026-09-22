@@ -329,7 +329,7 @@ window.STF_FOOTER = (function () {
   function crashfixPromo(lang, prefix) {
     const s = t(lang);
     const href = crashfixHref(lang);
-    const logoSrc = `${prefix}images/partners/sensorcrashfix-icon.png`;
+    const logoSrc = `${prefix}images/partners/sensorcrashfix-icon.png?v=3`;
     const rotulo = `Footer CrashFix${lang !== 'pt' ? ' ' + lang.toUpperCase() : ''}`;
     return `
       <a class="footer-crashfix-promo" href="${href}" target="_blank" rel="noopener" data-evento="clique_crashfix" data-rotulo="${rotulo}" aria-label="Sensor CrashFix — ${s.crashTagline}">
