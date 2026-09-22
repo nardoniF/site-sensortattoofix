@@ -45,5 +45,19 @@ window.STF_PAGE_LANG = (function () {
     return 'BR';
   }
 
-  return { get, LANGS, INTL_PATH_LANGS, isComHost, fromPath, isIntlPath, catalogMarket };
+  const LANG_DEFAULT_COUNTRY = {
+    pt: 'BR', en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
+    fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
+  };
+
+  /** ISO país padrão para checkout/endereço conforme idioma do site. */
+  function defaultCountryForLang(lang) {
+    const l = String(lang || get()).slice(0, 2).toLowerCase();
+    return LANG_DEFAULT_COUNTRY[l] || (l === 'pt' ? 'BR' : 'US');
+  }
+
+  return {
+    get, LANGS, INTL_PATH_LANGS, isComHost, fromPath, isIntlPath, catalogMarket,
+    LANG_DEFAULT_COUNTRY, defaultCountryForLang
+  };
 })();

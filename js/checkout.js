@@ -633,7 +633,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     CL: { flag: '🇨🇱', dial: '56' },
     CO: { flag: '🇨🇴', dial: '57' },
     UY: { flag: '🇺🇾', dial: '598' },
-    PY: { flag: '🇵🇾', dial: '595' }
+    PY: { flag: '🇵🇾', dial: '595' },
+    FI: { flag: '🇫🇮', dial: '358' }
   };
 
   function phoneDialEl() {
@@ -1786,10 +1787,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function intlCountryLocale() {
-    const lang = (document.documentElement.lang || '').toLowerCase();
-    if (lang.startsWith('it')) return 'it';
-    if (lang.startsWith('en')) return 'en';
-    return 'pt-BR';
+    if (!isIntlCheckoutShell()) return 'pt-BR';
+    const lang = checkoutLocale();
+    const map = {
+      en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl',
+      fr: 'fr', nl: 'nl', sv: 'sv', no: 'nb', fi: 'fi'
+    };
+    return map[lang] || 'en';
   }
 
   function intlCountryLabel(code, ptLabel) {
@@ -1803,9 +1807,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function defaultIntlCountry() {
+    if (window.STF_PAGE_LANG?.defaultCountryForLang) {
+      return window.STF_PAGE_LANG.defaultCountryForLang();
+    }
     const lang = (
-      window.STF_PAGE_LANG?.get?.()
-      || window.STF_I18N?.getLang?.()
+      window.STF_I18N?.getLang?.()
       || document.documentElement.lang
       || ''
     ).toLowerCase().slice(0, 2);
@@ -1836,11 +1842,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   async function initializeLocalizedCheckout() {
+    if (orderSidebarLocked) return;
     const def = await resolveDefaultIntlCountry();
     if (!def || !els.paisCode) return;
     const has = [...els.paisCode.options].some((o) => o.value === def);
     if (!has) return;
-    // Sempre alinha ao idioma da página no primeiro load (não deixa US grudado em FR/NL/…).
+    // Alinha ao idioma da página no primeiro load (não deixa US grudado em FR/NL/…).
     if (!els.paisCode.value || els.paisCode.value === 'BR' || els.paisCode.value !== def) {
       els.paisCode.value = def;
       toggleAddressForm();

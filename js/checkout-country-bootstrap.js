@@ -4,11 +4,6 @@
  * Default do país = idioma da página (IT→IT, FR→FR, SV→SE, …).
  */
 (function () {
-  const LANG_COUNTRY = {
-    en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
-    fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
-  };
-
   function pageLang() {
     if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
     if (window.STF_I18N?.getLang) return window.STF_I18N.getLang();
@@ -26,7 +21,14 @@
   }
 
   function defaultCountry() {
-    return LANG_COUNTRY[pageLang()] || 'US';
+    if (window.STF_PAGE_LANG?.defaultCountryForLang) {
+      return window.STF_PAGE_LANG.defaultCountryForLang(pageLang());
+    }
+    const map = {
+      en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
+      fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
+    };
+    return map[pageLang()] || 'US';
   }
 
   function labelFor(code, fallback) {
