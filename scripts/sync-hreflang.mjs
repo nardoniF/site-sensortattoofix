@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Sincroniza canonical + og:url + hreflang em todas as páginas localizadas.
- * Regra: PT → .com.br | EN/IT/DE/ES/PL/SL → .com
+ * Regra: PT → .com.br | EN/IT/DE/ES/PL/SL/FR/NL/SV/NO/FI → .com
  */
 import fs from 'fs';
 import path from 'path';
