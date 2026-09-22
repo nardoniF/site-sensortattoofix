@@ -326,7 +326,7 @@ nav,
     .nav-main a { font-size: 0.73rem; }
     .nav-main { gap: 3px 7px; }
     .logo-text { font-size: 1.2rem; }
-    .logo-img-link { width: 76px; height: 76px; }
+    .logo-area { --logo-h: 84px; }
     .site-social { min-width: 96px; padding: 0 12px; }
 }
 
@@ -334,7 +334,7 @@ nav,
 html[lang="it"] .site-nav { gap: 10px; }
 html[lang="it"] .logo-text { font-size: 1.18rem; }
 html[lang="it"] .logo-tagline { font-size: 0.74rem; }
-html[lang="it"] .logo-img-link { width: 74px; height: 74px; }
+html[lang="it"] .logo-area { --logo-h: 96px; }
 html[lang="it"] .site-social { min-width: 92px; padding: 0 10px; gap: 5px; }
 html[lang="it"] .nav-actions { gap: 6px; }
 
@@ -363,14 +363,14 @@ html[lang="es"] .logo-tagline,
 html[lang="sv"] .logo-tagline,
 html[lang="no"] .logo-tagline,
 html[lang="sl"] .logo-tagline { font-size: 0.74rem; }
-html[lang="fr"] .logo-img-link,
-html[lang="nl"] .logo-img-link,
-html[lang="de"] .logo-img-link,
-html[lang="fi"] .logo-img-link,
-html[lang="es"] .logo-img-link,
-html[lang="sv"] .logo-img-link,
-html[lang="no"] .logo-img-link,
-html[lang="sl"] .logo-img-link { width: 74px; height: 74px; }
+html[lang="fr"] .logo-area,
+html[lang="nl"] .logo-area,
+html[lang="de"] .logo-area,
+html[lang="fi"] .logo-area,
+html[lang="es"] .logo-area,
+html[lang="sv"] .logo-area,
+html[lang="no"] .logo-area,
+html[lang="sl"] .logo-area { --logo-h: 96px; }
 html[lang="fr"] .site-social,
 html[lang="nl"] .site-social,
 html[lang="de"] .site-social,
