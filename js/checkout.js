@@ -1806,6 +1806,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
+  /** País ISO default no checkout INT conforme idioma da página (ES→ES, …). */
+  function applyLangDefaultCountrySelect() {
+    if (!isIntlCheckoutShell() || orderSidebarLocked || !els.paisCode) return;
+    if (els.paisCode.options.length < 2) return;
+    const def = defaultIntlCountry();
+    if (!def) return;
+    if (![...els.paisCode.options].some((o) => o.value === def)) return;
+    const cur = String(els.paisCode.value || '').trim();
+    if (!cur || cur === 'BR' || cur !== def) {
+      els.paisCode.value = def;
+      toggleAddressForm();
+    } else {
+      updatePhoneField();
+    }
+  }
+
   function defaultIntlCountry() {
     if (window.STF_PAGE_LANG?.defaultCountryForLang) {
       return window.STF_PAGE_LANG.defaultCountryForLang();
@@ -1888,6 +1904,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     other.value = 'OTHER';
     other.textContent = L('country.other');
     els.paisCode.appendChild(other);
+    applyLangDefaultCountrySelect();
   }
 
   function populateSelects() {

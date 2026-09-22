@@ -48,9 +48,26 @@
     return labels[pageLang()] || labels.en;
   }
 
+  function ensureDefaultSelected(sel) {
+    if (!sel || sel.options.length < 2) return;
+    const def = defaultCountry();
+    if (!def) return;
+    const cur = String(sel.value || '').trim();
+    if (cur && cur !== 'BR' && cur === def) return;
+    if (![...sel.options].some((o) => o.value === def)) return;
+    if (!cur || cur === 'BR' || cur !== def) {
+      sel.value = def;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+
   async function fillCountries() {
     const sel = document.getElementById('pais-code');
-    if (!sel || sel.options.length > 1) return;
+    if (!sel) return;
+    if (sel.options.length > 1) {
+      ensureDefaultSelected(sel);
+      return;
+    }
     const base = String(window.CONFIG_BOOTSTRAP?.configApiUrl || 'https://api.sensortattoofix.com.br').replace(/\/$/, '');
     const res = await fetch(base + '/config', { cache: 'no-store' });
     if (!res.ok) return;
@@ -86,9 +103,22 @@
     sel.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function scheduleDefaultRetries() {
+    [600, 1800, 3500].forEach((ms) => {
+      setTimeout(() => {
+        const sel = document.getElementById('pais-code');
+        ensureDefaultSelected(sel);
+      }, ms);
+    });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { fillCountries().catch(console.warn); });
+    document.addEventListener('DOMContentLoaded', () => {
+      fillCountries().catch(console.warn);
+      scheduleDefaultRetries();
+    });
   } else {
     fillCountries().catch(console.warn);
+    scheduleDefaultRetries();
   }
 })();
