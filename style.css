@@ -1807,11 +1807,11 @@ footer,
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     text-align: center;
     text-decoration: none;
     color: var(--crash-cyan);
-    max-width: 11.5rem;
+    max-width: 11rem;
     margin: 28px auto 0;
     padding: 4px 6px;
     transition: color 0.25s ease, transform 0.25s ease, opacity 0.25s ease;
@@ -1825,26 +1825,35 @@ footer,
     line-height: 1.2;
 }
 .footer-crashfix-logo {
-    display: block;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: #050505;
-    box-shadow: 0 0 0 1px rgba(94, 200, 216, 0.35), 0 0 18px rgba(94, 200, 216, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 128px;
+    height: 128px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    background: transparent;
+    box-shadow: none;
 }
 .footer-crashfix-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    width: 128px;
+    height: 128px;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: center;
     display: block;
+    margin: 0;
+    border-radius: 0;
 }
 .footer-crashfix-tag {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     font-weight: 700;
     line-height: 1.25;
     color: var(--crash-cyan);
-    max-width: 10.5em;
+    max-width: 11em;
 }
 .footer-crashfix-promo:hover,
 .footer-crashfix-promo:focus-visible {
@@ -1855,9 +1864,9 @@ footer,
 .footer-crashfix-promo:focus-visible .footer-crashfix-see {
     color: rgba(255, 255, 255, 0.85);
 }
-.footer-crashfix-promo:hover .footer-crashfix-logo,
-.footer-crashfix-promo:focus-visible .footer-crashfix-logo {
-    box-shadow: 0 0 0 1px rgba(94, 200, 216, 0.7), 0 0 22px rgba(94, 200, 216, 0.32);
+.footer-crashfix-promo:hover .footer-crashfix-logo img,
+.footer-crashfix-promo:focus-visible .footer-crashfix-logo img {
+    filter: drop-shadow(0 0 14px rgba(94, 200, 216, 0.45));
 }
 @media (min-width: 900px) {
     .site-footer > .container {
@@ -1865,11 +1874,12 @@ footer,
     }
     .footer-crashfix-promo {
         position: absolute;
-        right: 12px;
+        right: 8px;
         top: 50%;
         transform: translateY(-50%);
         margin: 0;
         z-index: 1;
+        max-width: 10.5rem;
     }
     .footer-crashfix-promo:hover,
     .footer-crashfix-promo:focus-visible {
@@ -1877,8 +1887,8 @@ footer,
     }
     /* reserva espaço à direita para o promo não colidir com o legal */
     .footer-main {
-        padding-right: 8.5rem;
-        padding-left: 8.5rem;
+        padding-right: 11.5rem;
+        padding-left: 11.5rem;
         box-sizing: border-box;
     }
 }
@@ -1888,6 +1898,11 @@ footer,
         padding-top: 18px;
         border-top: 1px solid #1a1a1a;
         max-width: none;
+    }
+    .footer-crashfix-logo,
+    .footer-crashfix-logo img {
+        width: 112px;
+        height: 112px;
     }
 }
 

@@ -335,7 +335,7 @@ window.STF_FOOTER = (function () {
       <a class="footer-crashfix-promo" href="${href}" target="_blank" rel="noopener" data-evento="clique_crashfix" data-rotulo="${rotulo}" aria-label="Sensor CrashFix — ${s.crashTagline}">
         <span class="footer-crashfix-see">${s.crashSeeAlso}</span>
         <span class="footer-crashfix-logo" aria-hidden="true">
-          <img src="${logoSrc}" alt="" width="72" height="72" loading="lazy" decoding="async">
+          <img src="${logoSrc}" alt="" width="128" height="128" loading="lazy" decoding="async">
         </span>
         <span class="footer-crashfix-tag">${s.crashTagline}</span>
       </a>
