@@ -25,7 +25,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Seja comissionado',
       patentLinePrefix: 'Patente Nacional',
       patentLineJoin: 'Internacional',
-      rights: 'Todos os direitos reservados.'
+      rights: 'Todos os direitos reservados.',
+      crashSeeAlso: 'Veja também',
+      crashTagline: 'Para sensores trincados'
     },
     en: {
       socialTitle: 'Follow our official channels',
@@ -35,7 +37,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Become an affiliate',
       patentLinePrefix: 'National Patent',
       patentLineJoin: 'International',
-      rights: 'All rights reserved.'
+      rights: 'All rights reserved.',
+      crashSeeAlso: 'See also',
+      crashTagline: 'For cracked sensors'
     },
     it: {
       socialTitle: 'Segui i nostri canali ufficiali',
@@ -45,7 +49,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Diventa affiliato',
       patentLinePrefix: 'Brevetto nazionale',
       patentLineJoin: 'Internazionale',
-      rights: 'Tutti i diritti riservati.'
+      rights: 'Tutti i diritti riservati.',
+      crashSeeAlso: 'Vedi anche',
+      crashTagline: 'Per sensori incrinati'
     },
     de: {
       socialTitle: 'Folgen Sie unseren offiziellen Kanälen',
@@ -55,7 +61,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Partner werden',
       patentLinePrefix: 'Nationales Patent',
       patentLineJoin: 'International',
-      rights: 'Alle Rechte vorbehalten.'
+      rights: 'Alle Rechte vorbehalten.',
+      crashSeeAlso: 'Siehe auch',
+      crashTagline: 'Für gerissene Sensoren'
     },
     es: {
       socialTitle: 'Sigue nuestras redes oficiales',
@@ -65,7 +73,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Sé afiliado',
       patentLinePrefix: 'Patente nacional',
       patentLineJoin: 'Internacional',
-      rights: 'Todos los derechos reservados.'
+      rights: 'Todos los derechos reservados.',
+      crashSeeAlso: 'Ver también',
+      crashTagline: 'Para sensores agrietados'
     },
     pl: {
       socialTitle: 'Obserwuj nasze oficjalne kanały',
@@ -75,7 +85,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Zostań partnerem',
       patentLinePrefix: 'Patent krajowy',
       patentLineJoin: 'Międzynarodowy',
-      rights: 'Wszelkie prawa zastrzeżone.'
+      rights: 'Wszelkie prawa zastrzeżone.',
+      crashSeeAlso: 'Zobacz też',
+      crashTagline: 'Do pękniętych czujników'
     },
     sl: {
       socialTitle: 'Sledite našim uradnim kanalom',
@@ -85,7 +97,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Postanite partner',
       patentLinePrefix: 'Nacionalni patent',
       patentLineJoin: 'Mednarodni',
-      rights: 'Vse pravice pridržane.'
+      rights: 'Vse pravice pridržane.',
+      crashSeeAlso: 'Glej tudi',
+      crashTagline: 'Za razpokane senzorje'
     },
     fr: {
       socialTitle: 'Suivez nos réseaux officiels',
@@ -95,7 +109,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Devenir affilié',
       patentLinePrefix: 'Brevet national',
       patentLineJoin: 'International',
-      rights: 'Tous droits réservés.'
+      rights: 'Tous droits réservés.',
+      crashSeeAlso: 'Voir aussi',
+      crashTagline: 'Pour capteurs fissurés'
     },
     nl: {
       socialTitle: 'Volg onze officiële kanalen',
@@ -105,7 +121,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Word affiliate',
       patentLinePrefix: 'Nationaal patent',
       patentLineJoin: 'Internationaal',
-      rights: 'Alle rechten voorbehouden.'
+      rights: 'Alle rechten voorbehouden.',
+      crashSeeAlso: 'Bekijk ook',
+      crashTagline: 'Voor gebarsten sensoren'
     },
     sv: {
       socialTitle: 'Följ våra officiella kanaler',
@@ -115,7 +133,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Bli partner',
       patentLinePrefix: 'Nationellt patent',
       patentLineJoin: 'Internationellt',
-      rights: 'Alla rättigheter förbehållna.'
+      rights: 'Alla rättigheter förbehållna.',
+      crashSeeAlso: 'Se också',
+      crashTagline: 'För spruckna sensorer'
     },
     no: {
       socialTitle: 'Følg våre offisielle kanaler',
@@ -125,7 +145,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Bli partner',
       patentLinePrefix: 'Nasjonalt patent',
       patentLineJoin: 'Internasjonalt',
-      rights: 'Alle rettigheter reservert.'
+      rights: 'Alle rettigheter reservert.',
+      crashSeeAlso: 'Se også',
+      crashTagline: 'For sprukne sensorer'
     },
     fi: {
       socialTitle: 'Seuraa virallisia kanaviamme',
@@ -135,7 +157,9 @@ window.STF_FOOTER = (function () {
       commissioner: 'Ryhdy kumppaniksi',
       patentLinePrefix: 'Kansallinen patentti',
       patentLineJoin: 'Kansainvälinen',
-      rights: 'Kaikki oikeudet pidätetään.'
+      rights: 'Kaikki oikeudet pidätetään.',
+      crashSeeAlso: 'Katso myös',
+      crashTagline: 'Halkeilleille sensoreille'
     }
   };
 
@@ -183,6 +207,13 @@ window.STF_FOOTER = (function () {
     // .com already lives at / or /de/ /es/ … — same-folder links, no ../
     if (isIntlHost()) return '';
     if (lang !== 'pt') return '../';
+    return '';
+  }
+
+  /** Prefixo para assets em /images — em /es/, /de/… precisa de ../ mesmo no .com */
+  function imagesPrefix(el) {
+    if (el.dataset.prefix) return el.dataset.prefix;
+    if (/^\/(en|it|de|es|pl|sl|fr|nl|sv|no|fi)(\/|$)/.test(location.pathname)) return '../';
     return '';
   }
 
@@ -287,12 +318,42 @@ window.STF_FOOTER = (function () {
     `;
   }
 
+  function crashfixHref(lang) {
+    const utm = 'utm_source=sensortattoofix&utm_medium=site&utm_campaign=crosspromo_crashfix&utm_content=footer_promo';
+    if (lang === 'pt') return `https://www.sensorcrashfix.com.br/?${utm}`;
+    const pathLangs = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
+    if (pathLangs.includes(lang)) return `https://www.sensorcrashfix.com/${lang}/?${utm}`;
+    return `https://www.sensorcrashfix.com/?${utm}`;
+  }
+
+  function crashfixPromo(lang, prefix) {
+    const s = t(lang);
+    const href = crashfixHref(lang);
+    const logoSrc = `${prefix}images/partners/sensorcrashfix-icon.png`;
+    const rotulo = `Footer CrashFix${lang !== 'pt' ? ' ' + lang.toUpperCase() : ''}`;
+    return `
+      <a class="footer-crashfix-promo" href="${href}" target="_blank" rel="noopener" data-evento="clique_crashfix" data-rotulo="${rotulo}" aria-label="Sensor CrashFix — ${s.crashTagline}">
+        <span class="footer-crashfix-see">${s.crashSeeAlso}</span>
+        <span class="footer-crashfix-logo" aria-hidden="true">
+          <img src="${logoSrc}" alt="" width="72" height="72" loading="lazy" decoding="async">
+        </span>
+        <span class="footer-crashfix-tag">${s.crashTagline}</span>
+      </a>
+    `;
+  }
+
   function render(el) {
     const mode = el.dataset.siteFooter || 'compact';
     const lang = el.dataset.lang || detectLang();
     const prefix = prefixFrom(el);
+    const imgPrefix = imagesPrefix(el);
     const social = mode === 'full' ? socialBlock(lang, prefix) : '';
-    el.innerHTML = social + legalBlock(lang);
+    el.innerHTML = `
+      <div class="footer-shell">
+        <div class="footer-main">${social}${legalBlock(lang)}</div>
+        ${crashfixPromo(lang, imgPrefix)}
+      </div>
+    `;
   }
 
   function refreshAll() {

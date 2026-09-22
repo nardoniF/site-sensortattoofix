@@ -1793,6 +1793,104 @@ footer,
     margin-right: auto;
 }
 
+/* Cross-promo Sensor CrashFix — lado direito do rodapé */
+.footer-shell {
+    position: relative;
+    display: block;
+}
+.footer-main {
+    width: 100%;
+}
+.footer-crashfix-promo {
+    --crash-cyan: #5EC8D8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+    text-decoration: none;
+    color: var(--crash-cyan);
+    max-width: 11.5rem;
+    margin: 28px auto 0;
+    padding: 4px 6px;
+    transition: color 0.25s ease, transform 0.25s ease, opacity 0.25s ease;
+}
+.footer-crashfix-see {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.2;
+}
+.footer-crashfix-logo {
+    display: block;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #050505;
+    box-shadow: 0 0 0 1px rgba(94, 200, 216, 0.35), 0 0 18px rgba(94, 200, 216, 0.18);
+}
+.footer-crashfix-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.footer-crashfix-tag {
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--crash-cyan);
+    max-width: 10.5em;
+}
+.footer-crashfix-promo:hover,
+.footer-crashfix-promo:focus-visible {
+    transform: translateY(-2px);
+    outline: none;
+}
+.footer-crashfix-promo:hover .footer-crashfix-see,
+.footer-crashfix-promo:focus-visible .footer-crashfix-see {
+    color: rgba(255, 255, 255, 0.85);
+}
+.footer-crashfix-promo:hover .footer-crashfix-logo,
+.footer-crashfix-promo:focus-visible .footer-crashfix-logo {
+    box-shadow: 0 0 0 1px rgba(94, 200, 216, 0.7), 0 0 22px rgba(94, 200, 216, 0.32);
+}
+@media (min-width: 900px) {
+    .site-footer > .container {
+        position: relative;
+    }
+    .footer-crashfix-promo {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0;
+        z-index: 1;
+    }
+    .footer-crashfix-promo:hover,
+    .footer-crashfix-promo:focus-visible {
+        transform: translateY(calc(-50% - 2px));
+    }
+    /* reserva espaço à direita para o promo não colidir com o legal */
+    .footer-main {
+        padding-right: 8.5rem;
+        padding-left: 8.5rem;
+        box-sizing: border-box;
+    }
+}
+@media (max-width: 899px) {
+    .footer-crashfix-promo {
+        margin-top: 24px;
+        padding-top: 18px;
+        border-top: 1px solid #1a1a1a;
+        max-width: none;
+    }
+}
+
 /* RESPONSIVIDADE */
 @media (max-width: 1024px) {
     .hero h1 { font-size: 2.8rem; }
