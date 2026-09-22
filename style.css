@@ -47,36 +47,39 @@ nav,
 }
 
 .logo-area {
+    --logo-h: 96px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0;
     flex-shrink: 0;
     min-width: 0;
 }
 
 .logo-img-link {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 84px;
-    height: 84px;
+    justify-content: flex-start;
+    width: auto;
+    height: var(--logo-h);
     flex-shrink: 0;
     text-decoration: none;
-    border-radius: 50%;
-    overflow: hidden;
+    border-radius: 0;
+    overflow: visible;
     background: transparent;
 }
 
 .main-logo-img {
-    width: 100%;
+    width: auto;
     height: 100%;
+    max-height: var(--logo-h);
     display: block;
-    object-fit: cover;
-    object-position: center;
-    border-radius: 50%;
+    object-fit: contain;
+    object-position: left center;
+    border-radius: 0;
 }
 
-/* Lockup do header: junto, só cor diferente — não confundir com textos do site */
+/* Wordmark + jargão vêm na arte do logo-{lang}.jpg — lockup HTML fica só pra a11y/SEO */
 .logo-text {
     font-size: 1.42rem;
     font-weight: 900;
@@ -86,6 +89,10 @@ nav,
     color: #fff;
 }
 
+.logo-area > .logo-lockup {
+    display: none;
+}
+
 .logo-text span { color: var(--primary); }
 .logo-text .logo-word { color: #fff; }
 .logo-text .logo-accent { color: var(--primary); }
@@ -93,15 +100,15 @@ nav,
 .logo-lockup {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 0;
     min-width: 0;
 }
 .logo-tagline {
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-style: italic;
     font-weight: 500;
-    line-height: 1.25;
+    line-height: 1.2;
     letter-spacing: 0.04em;
     color: #c4c4c4;
     white-space: nowrap;
@@ -2054,10 +2061,9 @@ footer,
     body.home-page #onde-comprar { scroll-margin-top: 64px; }
     .site-nav,
     nav { position: relative; flex-wrap: nowrap; gap: 6px; }
-    .logo-area { flex: 0 0 auto; min-width: 0; gap: 8px; }
-    .logo-img-link { width: 56px; height: 56px; }
+    .logo-area { flex: 0 0 auto; min-width: 0; gap: 0; --logo-h: 58px; }
     .logo-text { font-size: 0.95rem; }
-    .logo-tagline { font-size: 0.68rem; }
+    .logo-tagline { font-size: 0.62rem; }
 
     /* Home mobile: marca no hero, header compacto + hambúrguer */
     .home-page .logo-area .logo-lockup { display: none; }
@@ -2111,19 +2117,26 @@ footer,
         margin-left: 2px;
     }
     .home-page .hero-brand-mobile {
-        display: block;
-        margin: 0 0 14px;
-        text-align: center;
-    }
-    .home-page .hero-brand-mobile .logo-text {
+        --logo-h: 80px;
         display: flex;
-        justify-content: center;
-        font-size: 1.15rem;
+        flex-direction: column;
+        align-items: center;
+        width: fit-content;
+        max-width: 100%;
+        margin: 0 auto 14px;
+        text-align: center;
+        gap: 0;
     }
+    .home-page .hero-brand-mobile .hero-brand-logo {
+        display: block;
+        height: var(--logo-h);
+        width: auto;
+        max-width: min(380px, 94vw);
+        object-fit: contain;
+    }
+    .home-page .hero-brand-mobile .logo-text,
     .home-page .hero-brand-mobile .logo-tagline {
-        white-space: normal;
-        font-size: 0.78rem;
-        margin-top: 4px;
+        display: none;
     }
     .home-page .hero {
         min-height: calc(100dvh - 64px);
@@ -3438,8 +3451,16 @@ a.stf-tiktok-card:hover {
     justify-content: space-between;
 }
 .admin-logo-link {
-    width: 52px;
-    height: 52px;
+    width: auto !important;
+    height: 52px !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+}
+.admin-logo-link .main-logo-img {
+    width: auto !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    border-radius: 0 !important;
 }
 .admin-toolbar {
     margin-left: auto;
