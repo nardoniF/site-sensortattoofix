@@ -3338,6 +3338,7 @@ a.stf-tiktok-card:hover {
 .btn-checkout-back {
     justify-content: center;
 }
+.btn-secondary[hidden] { display: none !important; }
 .btn-secondary {
     background: transparent;
     color: #fff !important;

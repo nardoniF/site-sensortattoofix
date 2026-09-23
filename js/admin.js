@@ -2787,12 +2787,10 @@ ${worksheets}
     document.getElementById('btn-vendas-loja-refresh')?.addEventListener('click', () => loadLojaSales(true));
     document.getElementById('btn-vendas-ml-refresh')?.addEventListener('click', () => loadMlSales(true));
     document.getElementById('btn-vendas-ml-sync')?.addEventListener('click', () => syncMlSalesFromAdmin());
-    document.getElementById('btn-vendas-ml-auth')?.addEventListener('click', () => authorizeMlFromAdmin());
     document.getElementById('btn-vendas-amz-refresh')?.addEventListener('click', () => loadAmzSales(true));
     document.getElementById('btn-vendas-amz-sync')?.addEventListener('click', () => syncAmzSalesFromAdmin());
     document.getElementById('btn-vendas-shopee-refresh')?.addEventListener('click', () => loadShopeeSales(true));
     document.getElementById('btn-vendas-shopee-sync')?.addEventListener('click', () => syncShopeeSalesFromAdmin());
-    document.getElementById('btn-vendas-shopee-auth')?.addEventListener('click', () => authorizeShopeeFromAdmin());
     document.getElementById('btn-vendas-consol-refresh')?.addEventListener('click', () => loadConsolidatedSales(true));
     document.getElementById('btn-vendas-consol-export')?.addEventListener('click', () => exportConsolidatedSales());
     document.getElementById('btn-vendas-goto-pedidos')?.addEventListener('click', () => {
