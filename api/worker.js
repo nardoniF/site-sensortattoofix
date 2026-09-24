@@ -1308,6 +1308,7 @@ function normalizeSmartwatchCatalogRow(row, brand) {
   const size = row.sizeMm != null && row.sizeMm !== '' ? Number(row.sizeMm) : null;
   const lensW = row.lensWmm != null && row.lensWmm !== '' ? Number(row.lensWmm) : null;
   const lensH = row.lensHmm != null && row.lensHmm !== '' ? Number(row.lensHmm) : null;
+  const thickness = row.thicknessMm != null && row.thicknessMm !== '' ? Number(row.thicknessMm) : null;
   const kinds = Array.isArray(row.kinds) ? [...new Set(row.kinds.filter(Boolean))] : null;
   const out = {
     label,
@@ -1319,6 +1320,7 @@ function normalizeSmartwatchCatalogRow(row, brand) {
   };
   if (Number.isFinite(lensW) && lensW > 0) out.lensWmm = lensW;
   if (Number.isFinite(lensH) && lensH > 0) out.lensHmm = lensH;
+  if (Number.isFinite(thickness) && thickness > 0) out.thicknessMm = thickness;
   if (kinds?.length) out.kinds = kinds;
   return out;
 }
@@ -1347,6 +1349,7 @@ function mergeSmartwatchCatalog(stored, base) {
         sensorMm: norm.sensorMm != null ? norm.sensorMm : (prev.sensorMm ?? null),
         lensWmm: norm.lensWmm != null ? norm.lensWmm : (prev.lensWmm ?? null),
         lensHmm: norm.lensHmm != null ? norm.lensHmm : (prev.lensHmm ?? null),
+        thicknessMm: norm.thicknessMm != null ? norm.thicknessMm : (prev.thicknessMm ?? null),
         ...(norm.kinds?.length ? { kinds: norm.kinds } : prev.kinds?.length ? { kinds: prev.kinds } : {})
       });
     });
@@ -2297,6 +2300,7 @@ function publicProductFields(p, config) {
   if (p.compatibility) row.compatibility = p.compatibility;
   if (p.compatibleWatchModels?.length) row.compatibleWatchModels = p.compatibleWatchModels;
   if (p.sensorMm != null) row.sensorMm = Number(p.sensorMm);
+  if (p.thicknessMm != null) row.thicknessMm = Number(p.thicknessMm);
   if (p.productType) row.productType = p.productType;
   if (p.bandStyle) row.bandStyle = p.bandStyle;
   if (p.color) row.color = p.color;

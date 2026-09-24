@@ -42,8 +42,9 @@ window.STF_ORDER_LETTERS = (function () {
     return {
       kind: 'smartwatch',
       shape: SMARTWATCH_LENS.shape,
-      widthMm: SMARTWATCH_LENS.widthMm,
-      heightMm: SMARTWATCH_LENS.heightMm
+      widthMm: Number(row?.sensorMm) > 0 ? Number(row.sensorMm) : SMARTWATCH_LENS.widthMm,
+      heightMm: Number(row?.sensorMm) > 0 ? Number(row.sensorMm) : SMARTWATCH_LENS.heightMm,
+      thicknessMm: Number(row?.thicknessMm) > 0 ? Number(row.thicknessMm) : null
     };
   }
 
