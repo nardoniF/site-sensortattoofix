@@ -37,7 +37,7 @@
                         <i class="fas fa-circle-question" aria-hidden="true"></i>
                     </button>
                 </div>
-                <p class="admin-intro admin-intro-compact">Cockpit da loja: pedidos, clientes, cliques, saldos, produtos, pagamento, frete, cupons, contato, API e documentação.</p>
+                <p class="admin-intro admin-intro-compact">Cockpit da loja: pedidos, clientes, cliques, produtos, pagamento, frete, cupons, contato, API e documentação.</p>
                 <div id="admin-login-help" class="admin-help-panel" hidden>
                     <p class="admin-help-lead">Cockpit de gestão da loja Sensor Tattoo Fix — por prioridade:</p>
                     <ul class="admin-help-list">
@@ -45,7 +45,6 @@
                         <li><strong>Vendas</strong> — faturamento por canal (loja, Mercado Livre…).</li>
                         <li><strong>Clientes</strong> — contas criadas em Minha Conta.</li>
                         <li><strong>Cliques</strong> — log de visitas e links (ML, TikTok, loja…).</li>
-                        <li><strong>Saldos</strong> — consulta em tempo real: Mercado Pago, PayPal e Stripe (disponível, pendente, status).</li>
                         <li><strong>Produtos</strong> — lentes na vitrine, agregados no checkout e <strong>custo do kit</strong> (BOM) para o líquido real.</li>
                         <li><strong>Pagamento</strong> — cadastro de processadores (cartão, PIX, PayPal internacional e chave PIX reserva).</li>
                         <li><strong>Frete</strong> — remetente, modalidades, motoboy, Correios BR e internacional.</li>
@@ -86,7 +85,7 @@
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="vendas" aria-selected="false" aria-controls="admin-tab-vendas"><i class="fas fa-chart-line"></i> Vendas</button>
                     <button type="button" role="tab" class="admin-tab active" data-admin-tab="pedidos" aria-selected="true" aria-controls="admin-tab-pedidos"><i class="fas fa-list"></i> Pedidos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="cliques" aria-selected="false" aria-controls="admin-tab-cliques"><i class="fas fa-mouse-pointer"></i> Cliques</button>
-                    <button type="button" role="tab" class="admin-tab" data-admin-tab="saldos" aria-selected="false" aria-controls="admin-tab-saldos"><i class="fas fa-wallet"></i> Saldos</button>
+                    <button type="button" role="tab" class="admin-tab" data-admin-tab="saldos" aria-selected="false" aria-controls="admin-tab-saldos" hidden><i class="fas fa-wallet"></i> Saldos</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="api" aria-selected="false" aria-controls="admin-tab-api"><i class="fas fa-server"></i> API</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="clientes" aria-selected="false" aria-controls="admin-tab-clientes"><i class="fas fa-folder-open"></i> Cadastros</button>
                     <button type="button" role="tab" class="admin-tab" data-admin-tab="pesquisa" aria-selected="false" aria-controls="admin-tab-pesquisa"><i class="fas fa-comment-dots"></i> Pesquisa</button>
@@ -1405,6 +1404,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=238"></script>
+    <script defer src="js/admin.js?v=239"></script>
 </body>
 </html>
