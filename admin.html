@@ -1109,7 +1109,7 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Histórico por dia e horário: ano → mês → dia → visitante → caminho da visita. Ao abrir, mostra o <strong>cache local</strong> (leve). Clique <strong>Atualizar</strong> para buscar na API — a árvore lista os dias na hora; as visitas de cada dia só montam quando você abre o dia (evita travar o navegador). Os gráficos cobrem a retenção (~6 meses); a árvore, os últimos ~4000 eventos.</p>
+                            <p>Histórico por dia e horário. Ao abrir: cache leve (sem gráficos). <strong>Atualizar</strong> busca na API. Visitas só montam ao abrir cada dia. Se a aba já tiver travado antes, faça hard refresh — o cache antigo pesado é descartado automaticamente.</p>
                             <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> são o número oficial (sem únicos/bots). <strong>Únicos / repetidos</strong> foca em bots: <strong>hora</strong>, ranking de <strong>estado</strong> e <strong>cidade</strong>, <strong>local no site</strong>, <strong>site</strong> (.com / .com.br) e se a visita é única ou repetida. <strong>Exportar Excel</strong> gera abas oficiais + Unicos (hora, estado, cidade, local, site).</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
@@ -1405,6 +1405,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=236"></script>
+    <script defer src="js/admin.js?v=237"></script>
 </body>
 </html>

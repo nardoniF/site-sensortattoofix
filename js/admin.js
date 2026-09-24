@@ -3236,7 +3236,9 @@ ${worksheets}
   let clicksWhenCache = [];
   let clicksWhenWindow = null;
 
-  const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v1';
+  const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v2';
+  const CLICKS_SNAPSHOT_KEY_LEGACY = 'stf_admin_clicks_snapshot_v1';
+  const CLICKS_SNAPSHOT_MAX = 2000;
   const BALANCES_SNAPSHOT_KEY = 'stf_admin_balances_snapshot_v2';
   const ADMIN_TAB_IDS = new Set(['vendas', 'pedidos', 'cliques', 'saldos', 'api', 'clientes', 'pesquisa', 'comunidade', 'documentacao']);
   let lastBalancesSnapshot = null;
@@ -3255,9 +3257,43 @@ ${worksheets}
     restoreMpAuditSnapshot();
   }
 
+  function slimClickForSnapshot(c) {
+    if (!c || typeof c !== 'object') return c;
+    return {
+      ts: c.ts || c.client_ts || 0,
+      tipo: c.tipo || '',
+      destino: c.destino || '',
+      destino_label: c.destino_label || '',
+      rotulo: c.rotulo || '',
+      pagina: c.pagina || '',
+      secao: c.secao || '',
+      secao_label: c.secao_label || '',
+      visitante_id: c.visitante_id || '',
+      sessao_visita: c.sessao_visita || '',
+      sequencia: c.sequencia || 0,
+      dispositivo: c.dispositivo || '',
+      cidade: c.cidade || '',
+      estado: c.estado || '',
+      pais: c.pais || '',
+      pais_nome: c.pais_nome || '',
+      origem_trafego: c.origem_trafego || '',
+      origem_trafego_label: c.origem_trafego_label || '',
+      referrer: c.referrer || '',
+      utm_source: c.utm_source || '',
+      utm_medium: c.utm_medium || '',
+      utm_campaign: c.utm_campaign || '',
+      ip_prefix: c.ip_prefix || '',
+      cliente_email: c.cliente_email || '',
+      cliente_nome: c.cliente_nome || ''
+    };
+  }
+
   function saveClicksSnapshot(data) {
     if (!data?.clicks?.length) return;
     try {
+      // Snapshot leve: só a árvore (cap), SEM whenClicks (podia ter dezenas de milhares
+      // e congelava o Chrome ao abrir a aba / ao parsear o localStorage).
+      const clicks = data.clicks.slice(0, CLICKS_SNAPSHOT_MAX).map(slimClickForSnapshot);
       localStorage.setItem(CLICKS_SNAPSHOT_KEY, JSON.stringify({
         savedAt: Date.now(),
         meta: {
@@ -3267,36 +3303,42 @@ ${worksheets}
           byDestino: data.byDestino,
           lastClickAt: data.lastClickAt,
           oldestClickAt: data.oldestClickAt,
-          dailyD1: data.dailyD1,
-          withNav: data.withNav,
-          navSessions: data.navSessions
+          dailyD1: data.dailyD1
         },
-        clicks: data.clicks,
-        whenClicks: data.whenClicks?.length ? data.whenClicks : data.clicks,
+        clicks,
         whenWindow: data.capacity || null
       }));
+      try { localStorage.removeItem(CLICKS_SNAPSHOT_KEY_LEGACY); } catch (_) { /* ignore */ }
     } catch (_) { /* quota */ }
   }
 
   function restoreClicksSnapshot() {
     try {
+      try { localStorage.removeItem(CLICKS_SNAPSHOT_KEY_LEGACY); } catch (_) { /* ignore */ }
       const raw = localStorage.getItem(CLICKS_SNAPSHOT_KEY);
       if (!raw) return false;
+      // JSON enorme = freeze; se passar de ~2.5MB, descarta.
+      if (raw.length > 2_500_000) {
+        localStorage.removeItem(CLICKS_SNAPSHOT_KEY);
+        return false;
+      }
       const snap = JSON.parse(raw);
       if (!snap?.clicks?.length) return false;
-      clicksCache = snap.clicks;
-      clicksWhenCache = snap.whenClicks?.length ? snap.whenClicks : clicksCache;
+      clicksCache = Array.isArray(snap.clicks) ? snap.clicks.slice(0, CLICKS_SNAPSHOT_MAX) : [];
+      // Gráficos não vêm do cache — só após Atualizar (evita travar).
+      clicksWhenCache = [];
       clicksWhenWindow = snap.whenWindow || null;
       clicksMetaCache = {
         ...snap.meta,
         clicks: clicksCache,
-        whenClicks: clicksWhenCache,
+        whenClicks: [],
         capacity: snap.meta?.capacity || snap.whenWindow,
         _savedAt: Number(snap.savedAt) || Date.now(),
         _fromCache: true
       };
       return true;
     } catch (_) {
+      try { localStorage.removeItem(CLICKS_SNAPSHOT_KEY); } catch (e) { /* ignore */ }
       return false;
     }
   }
@@ -3511,15 +3553,25 @@ ${worksheets}
       display,
       clicksMetaCache.checkedAt,
       clicksMetaCache.total,
-      openPaths || captureClicksTreeOpenPaths()
+      openPaths || []
     );
     updateClicksCoverageStatus({ fromCache: !!clicksMetaCache?._fromCache });
-    // Gráficos pesados depois do paint da árvore (evita “página sem resposta”).
+    // Gráficos só com whenClicks da API (não do cache) e sempre depois do paint.
+    const chartsOk = !clicksMetaCache._fromCache && Array.isArray(clicksWhenCache) && clicksWhenCache.length > 0;
     window.setTimeout(() => {
       if (!isClicksPanelVisible()) return;
-      renderClicksWhenCharts(clicksWhenCache);
-      renderClicksNoiseStats(clicksWhenCache);
-    }, 0);
+      if (chartsOk) {
+        renderClicksWhenCharts(clicksWhenCache);
+        renderClicksNoiseStats(clicksWhenCache);
+      } else {
+        const charts = document.getElementById('clicks-when-charts');
+        if (charts) {
+          charts.innerHTML = '<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar os gráficos (não entram no cache local, para não travar o navegador).</p>';
+        }
+        const noise = document.getElementById('clicks-noise-charts');
+        if (noise) noise.innerHTML = '';
+      }
+    }, chartsOk ? 120 : 0);
   }
 
   function showPaymentBalancesFromCache() {
@@ -5179,11 +5231,16 @@ ${worksheets}
 
       html += '</div>';
       root.innerHTML = html;
+      // Não auto-abre/hidrata o dia mais recente: isso montava centenas de visitas
+      // e congelava o Chrome. O usuário abre o dia que quiser.
       if (openPaths?.length) {
         restoreClicksTreeOpenPaths(openPaths);
         root.querySelectorAll('details.clicks-tree-day[open]').forEach((el) => hydrateClicksDayElement(el));
       } else {
-        openLatestClicksTreeDay(root);
+        const year = root.querySelector('details.clicks-tree-year');
+        if (year) year.open = true;
+        const month = year?.querySelector('details.clicks-tree-month');
+        if (month) month.open = true;
       }
     }
 
@@ -5460,11 +5517,16 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       clicksCache = data.clicks || [];
-      clicksWhenCache = data.whenClicks?.length ? data.whenClicks : clicksCache;
+      const whenRaw = data.whenClicks?.length ? data.whenClicks : clicksCache;
+      // Cap defensivo: agregação de gráficos com dezenas de milhares trava o main thread.
+      clicksWhenCache = whenRaw.length > 25000
+        ? whenRaw.filter((_, i) => i % Math.ceil(whenRaw.length / 20000) === 0)
+        : whenRaw;
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = { ...data, _savedAt: Date.now(), _fromCache: false };
       saveClicksSnapshot(data);
-      reapplyClicksLocalFilters(openPaths);
+      // Árvore primeiro; gráficos só depois (evita “Página sem resposta”).
+      reapplyClicksLocalFilters([]);
       updateClicksCoverageStatus({ fromCache: false });
       setClicksLoadStatus('Cliques atualizados.', 'success');
       window.setTimeout(() => setClicksLoadStatus(''), 2500);
@@ -8144,15 +8206,25 @@ ${worksheets}
         syncClicksNavOnlyCheckbox();
         if (clicksCache.length && clicksMetaCache) {
           clicksMetaCache = { ...clicksMetaCache, _fromCache: true };
-          // Só pinta o cache. NÃO busca API ao abrir — isso travava o Chrome.
-          reapplyClicksLocalFilters([]);
-          const ageMs = clicksSnapshotAgeMs();
-          if (ageMs != null && ageMs > 15 * 60 * 1000) {
-            setClicksLoadStatus(
-              'Cache antigo — clique Atualizar para buscar na API (a árvore grande pode demorar alguns segundos).',
-              'warning'
-            );
+          const root = document.getElementById('clicks-tree-root');
+          if (root) {
+            root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Preparando log…</p>';
           }
+          setClicksLoadStatus('Preparando árvore leve…');
+          // Cede o frame ao browser antes do trabalho de árvore.
+          window.setTimeout(() => {
+            if (!isClicksPanelVisible()) return;
+            reapplyClicksLocalFilters([]);
+            const ageMs = clicksSnapshotAgeMs();
+            if (ageMs != null && ageMs > 15 * 60 * 1000) {
+              setClicksLoadStatus(
+                'Cache antigo — clique Atualizar para buscar na API.',
+                'warning'
+              );
+            } else {
+              setClicksLoadStatus('');
+            }
+          }, 30);
         } else if (clicksLoading) {
           setClicksLoadStatus('Carregando cliques…');
         } else {
