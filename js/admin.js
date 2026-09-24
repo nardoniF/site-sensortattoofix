@@ -7311,7 +7311,7 @@ ${worksheets}
     const applyBtn = document.getElementById('admin-sw-apply-sensor');
     if (applyBtn) {
       applyBtn.title = isBand
-        ? 'Aplica largura × espessura a todos os modelos smartband da marca filtrada'
+        ? 'Aplica largura × altura a todos os modelos smartband da marca filtrada'
         : 'Aplica diâmetro e espessura (mm) a todos os modelos smartwatch da marca filtrada';
     }
   }
@@ -7328,7 +7328,7 @@ ${worksheets}
     const isBand = kind === 'smartband';
     if (thead) {
       thead.innerHTML = isBand
-        ? '<th>Modelo (checkout)</th><th style="width:96px">Largura (mm)</th><th style="width:96px">Espessura (mm)</th><th style="width:70px"></th>'
+        ? '<th>Modelo (checkout)</th><th style="width:96px">Largura (mm)</th><th style="width:96px">Altura (mm)</th><th style="width:70px"></th>'
         : '<th>Modelo (checkout)</th><th style="width:110px">Diâmetro (mm)</th><th style="width:110px">Espessura (mm)</th><th style="width:70px"></th>';
     }
     const brands = Object.keys(smartwatchCatalogState)
@@ -7484,7 +7484,7 @@ ${worksheets}
         const bulkW = Number(document.getElementById('admin-sw-lensw-bulk')?.value);
         const bulkH = Number(document.getElementById('admin-sw-lensh-bulk')?.value);
         if (!(bulkW > 0) || !(bulkH > 0)) {
-          alert('Informe largura e espessura (mm) para aplicar na lista smartband.');
+          alert('Informe largura e altura (mm) para aplicar na lista smartband.');
           return;
         }
         smartwatchCatalogState[brand].forEach((row) => {

@@ -176,8 +176,8 @@
                             <p>Catálogo usado no checkout (marca → modelo). Filtre por <strong>Smartwatch</strong> ou <strong>Smartband</strong> e pela marca.</p>
                             <p><strong>Nova marca:</strong> escolha o tipo (ex. Smartband), digite o nome em <strong>Nova marca</strong> e clique <strong>Criar marca</strong>. Depois cadastre os modelos abaixo e clique <strong>Salvar</strong> no rodapé.</p>
                             <p><strong>Diâmetro (mm)</strong> em smartwatch = diâmetro do sensor óptico / da lente (círculo, ex.: 25).</p>
-                            <p><strong>Espessura (mm)</strong> = espessura da lente (ex.: 0,2). Pode preencher nos modelos e nos produtos.</p>
-                            <p><strong>Smartband</strong> = retângulo: preencha <strong>Largura (mm)</strong> e <strong>Espessura (mm)</strong> (ex.: Whoop 17 × 0,8). Não use um único campo circular.</p>
+                            <p><strong>Espessura (mm)</strong> = espessura da lente no smartwatch (ex.: 0,2).</p>
+                            <p><strong>Smartband</strong> = retângulo: <strong>Largura (mm)</strong> × <strong>Altura (mm)</strong> (ex.: Whoop 17 × 0,8). Os campos de smartwatch ficam ocultos nesse filtro.</p>
                             <p>A opção “Outro modelo…” continua no checkout automaticamente ao salvar.</p>
                         </div>
                         <div class="admin-sw-filters">
@@ -203,7 +203,7 @@
                             <label class="admin-sw-bulk-band" hidden>Largura marca (mm)
                                 <input type="number" id="admin-sw-lensw-bulk" min="0" step="0.1" placeholder="ex.: 17" inputmode="decimal">
                             </label>
-                            <label class="admin-sw-bulk-band" hidden>Espessura marca (mm)
+                            <label class="admin-sw-bulk-band" hidden>Altura marca (mm)
                                 <input type="number" id="admin-sw-lensh-bulk" min="0" step="0.01" placeholder="ex.: 0.8" inputmode="decimal">
                             </label>
                             <button type="button" id="admin-sw-apply-sensor" class="btn-secondary" title="Aplica os mm a todos os modelos da marca+tipo filtrados">Aplicar mm na lista</button>
@@ -238,7 +238,7 @@
                             <label class="admin-sw-new-band" style="width:100px" hidden>Largura (mm)
                                 <input type="number" id="admin-sw-new-lensw" min="0" step="0.1" placeholder="17" inputmode="decimal">
                             </label>
-                            <label class="admin-sw-new-band" style="width:100px" hidden>Espessura (mm)
+                            <label class="admin-sw-new-band" style="width:100px" hidden>Altura (mm)
                                 <input type="number" id="admin-sw-new-lensh" min="0" step="0.01" placeholder="0.8" inputmode="decimal">
                             </label>
                             <button type="button" id="admin-sw-add" class="btn-secondary"><i class="fas fa-plus"></i> Adicionar</button>
