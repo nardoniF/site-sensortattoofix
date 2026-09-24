@@ -5543,11 +5543,18 @@ ${worksheets}
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = { ...data, _savedAt: Date.now(), _fromCache: false };
       saveClicksSnapshot(data);
-      // Árvore primeiro; gráficos só depois (evita “Página sem resposta”).
-      reapplyClicksLocalFilters([]);
-      updateClicksCoverageStatus({ fromCache: false });
-      setClicksLoadStatus('Cliques atualizados.', 'success');
-      window.setTimeout(() => setClicksLoadStatus(''), 2500);
+      // Cede o main thread antes de montar a árvore (esqueleto lazy).
+      await new Promise((r) => window.setTimeout(r, 0));
+      if (!isClicksPanelVisible() && !preserveOpen) {
+        // Aba saiu — só guarda cache; não monta DOM pesado fora de vista.
+        updateClicksCoverageStatus({ fromCache: false });
+        setClicksLoadStatus('');
+      } else {
+        reapplyClicksLocalFilters(openPaths);
+        updateClicksCoverageStatus({ fromCache: false });
+        setClicksLoadStatus('Cliques atualizados.', 'success');
+        window.setTimeout(() => setClicksLoadStatus(''), 2500);
+      }
     } catch (err) {
       if (isClicksPanelVisible()) {
         root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
