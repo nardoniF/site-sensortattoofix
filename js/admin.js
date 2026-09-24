@@ -6211,15 +6211,18 @@ ${worksheets}
         : '<span class="admin-badge-main">Brasil</span> ');
     const title = p.name ? `${badge}Produto ${i + 1}: ${escAttr(p.name)}` : `${badge}Produto ${i + 1}`;
     const sensorField = !isAggregated ? `
-          <label>Sensor da lente (mm)
-            <span class="stf-help-tip" tabindex="0" aria-label="Como medir o sensor">
+          <label>Diâmetro (mm)
+            <span class="stf-help-tip" tabindex="0" aria-label="Como medir o diâmetro">
               <i class="fas fa-circle-question"></i>
               <span class="stf-help-tip-pop">
                 <img src="images/home/relogio_sensor.jpg" alt="Medir o sensor com régua no relógio">
-                <small>Meça o diâmetro do círculo do sensor no fundo do relógio (em mm).</small>
+                <small>Diâmetro do círculo do sensor / da lente (mm), de ponta a ponta.</small>
               </span>
             </span>
             <input type="number" data-field="sensorMm" step="0.5" min="0" value="${p.sensorMm != null ? p.sensorMm : ''}" placeholder="ex.: 25">
+          </label>
+          <label>Espessura (mm)
+            <input type="number" data-field="thicknessMm" step="0.01" min="0" value="${p.thicknessMm != null ? p.thicknessMm : ''}" placeholder="ex.: 0.2">
           </label>` : '';
     const aggregatedFields = isAggregated ? `
           <label class="full">Nome EN <small class="admin-field-hint">título na loja intl / upsell</small>
@@ -6522,8 +6525,12 @@ ${worksheets}
         const sm = val('sensorMm');
         if (sm) product.sensorMm = Number(sm);
         else delete product.sensorMm;
+        const th = val('thicknessMm');
+        if (th) product.thicknessMm = Number(th);
+        else delete product.thicknessMm;
       } else {
         delete product.sensorMm;
+        delete product.thicknessMm;
         const modelsEl = row.querySelector('[data-field="compatibleWatchModels"]');
         if (modelsEl) {
           const lines = modelsEl.value.split('\n').map((s) => s.trim()).filter(Boolean);
@@ -7245,6 +7252,7 @@ ${worksheets}
       const size = row?.sizeMm != null && row?.sizeMm !== '' ? Number(row.sizeMm) : null;
       const lensW = row?.lensWmm != null && row?.lensWmm !== '' ? Number(row.lensWmm) : null;
       const lensH = row?.lensHmm != null && row?.lensHmm !== '' ? Number(row.lensHmm) : null;
+      const thickness = row?.thicknessMm != null && row?.thicknessMm !== '' ? Number(row.thicknessMm) : null;
       if (!out[b]) out[b] = [];
       const existing = out[b].find((r) => r.label === label);
       const next = {
@@ -7256,6 +7264,7 @@ ${worksheets}
       };
       if (Number.isFinite(lensW) && lensW > 0) next.lensWmm = lensW;
       if (Number.isFinite(lensH) && lensH > 0) next.lensHmm = lensH;
+      if (Number.isFinite(thickness) && thickness > 0) next.thicknessMm = thickness;
       if (Array.isArray(row?.kinds) && row.kinds.length) next.kinds = [...row.kinds];
       if (existing) Object.assign(existing, next);
       else out[b].push(next);
@@ -7303,7 +7312,7 @@ ${worksheets}
     if (applyBtn) {
       applyBtn.title = isBand
         ? 'Aplica largura × altura a todos os modelos smartband da marca filtrada'
-        : 'Aplica o diâmetro (mm) a todos os modelos smartwatch da marca filtrada';
+        : 'Aplica diâmetro e espessura (mm) a todos os modelos smartwatch da marca filtrada';
     }
   }
 
@@ -7320,7 +7329,7 @@ ${worksheets}
     if (thead) {
       thead.innerHTML = isBand
         ? '<th>Modelo (checkout)</th><th style="width:96px">Largura (mm)</th><th style="width:96px">Altura (mm)</th><th style="width:70px"></th>'
-        : '<th>Modelo (checkout)</th><th style="width:110px">Sensor Ø (mm)</th><th style="width:70px"></th>';
+        : '<th>Modelo (checkout)</th><th style="width:110px">Diâmetro (mm)</th><th style="width:110px">Espessura (mm)</th><th style="width:70px"></th>';
     }
     const brands = Object.keys(smartwatchCatalogState)
       .filter((b) => swBrandHasKind(b, kind))
@@ -7340,7 +7349,7 @@ ${worksheets}
         : 'Nenhum modelo neste filtro.';
     }
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="${isBand ? 4 : 3}" class="admin-meta">Nenhum modelo nesta marca/tipo. Adicione abaixo.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="admin-meta">Nenhum modelo nesta marca/tipo. Adicione abaixo.</td></tr>`;
       return;
     }
     tbody.innerHTML = rows.map((row, idx) => {
@@ -7360,6 +7369,8 @@ ${worksheets}
         <td><input type="text" class="admin-sw-label" value="${escapeHtml(row.label)}" data-idx="${idx}"></td>
         <td><input type="number" class="admin-sw-sensor" min="0" step="0.1" inputmode="decimal"
           value="${row.sensorMm != null ? escapeHtml(String(row.sensorMm)) : ''}" placeholder="—" data-idx="${idx}"></td>
+        <td><input type="number" class="admin-sw-thickness" min="0" step="0.01" inputmode="decimal"
+          value="${row.thicknessMm != null ? escapeHtml(String(row.thicknessMm)) : ''}" placeholder="—" data-idx="${idx}"></td>
         <td><button type="button" class="btn-secondary admin-sw-remove" data-label="${escapeHtml(row.label)}" title="Remover">×</button></td>
       </tr>`;
     }).join('');
@@ -7374,7 +7385,7 @@ ${worksheets}
   }
 
   function buildSmartwatchCatalogExportWorkbook() {
-    const rows = [['Tipo', 'Marca', 'Modelo', 'Sensor Ø (mm)', 'Largura (mm)', 'Altura (mm)']];
+    const rows = [['Tipo', 'Marca', 'Modelo', 'Diâmetro (mm)', 'Espessura (mm)', 'Largura (mm)', 'Espessura banda (mm)']];
     Object.keys(smartwatchCatalogState || {})
       .sort((a, b) => a.localeCompare(b, 'pt'))
       .forEach((brand) => {
@@ -7387,6 +7398,9 @@ ${worksheets}
             const sensor = row.sensorMm != null && Number.isFinite(Number(row.sensorMm)) && Number(row.sensorMm) > 0
               ? Number(row.sensorMm)
               : '';
+            const thickness = row.thicknessMm != null && Number.isFinite(Number(row.thicknessMm)) && Number(row.thicknessMm) > 0
+              ? Number(row.thicknessMm)
+              : '';
             const lensW = row.lensWmm != null && Number.isFinite(Number(row.lensWmm)) && Number(row.lensWmm) > 0
               ? Number(row.lensWmm)
               : '';
@@ -7398,6 +7412,7 @@ ${worksheets}
               brand,
               String(row.label || ''),
               sensor,
+              thickness,
               lensW,
               lensH
             ]);
@@ -7478,17 +7493,21 @@ ${worksheets}
             row.lensWmm = bulkW;
             row.lensHmm = bulkH;
             delete row.sensorMm;
+            delete row.thicknessMm;
           }
         });
       } else {
         const bulk = Number(document.getElementById('admin-sw-sensor-bulk')?.value);
-        if (!(bulk > 0)) {
-          alert('Informe o diâmetro do sensor (mm) para aplicar na lista.');
+        const bulkTh = Number(document.getElementById('admin-sw-thickness-bulk')?.value);
+        if (!(bulk > 0) && !(bulkTh > 0)) {
+          alert('Informe o diâmetro e/ou a espessura (mm) para aplicar na lista.');
           return;
         }
         smartwatchCatalogState[brand].forEach((row) => {
           if (isSwBrandPlaceholder(row)) return;
-          if (swRowMatchesKind(row, kind)) row.sensorMm = bulk;
+          if (!swRowMatchesKind(row, kind)) return;
+          if (bulk > 0) row.sensorMm = bulk;
+          if (bulkTh > 0) row.thicknessMm = bulkTh;
         });
       }
       syncSmartwatchModelsTextarea();
@@ -7525,6 +7544,8 @@ ${worksheets}
       }
       const sensorRaw = document.getElementById('admin-sw-new-sensor')?.value;
       const sensor = sensorRaw !== '' && sensorRaw != null ? Number(sensorRaw) : null;
+      const thicknessRaw = document.getElementById('admin-sw-new-thickness')?.value;
+      const thickness = thicknessRaw !== '' && thicknessRaw != null ? Number(thicknessRaw) : null;
       const lensWRaw = document.getElementById('admin-sw-new-lensw')?.value;
       const lensHRaw = document.getElementById('admin-sw-new-lensh')?.value;
       const lensW = lensWRaw !== '' && lensWRaw != null ? Number(lensWRaw) : null;
@@ -7541,8 +7562,9 @@ ${worksheets}
       if (kind === 'smartband') {
         if (Number.isFinite(lensW) && lensW > 0) entry.lensWmm = lensW;
         if (Number.isFinite(lensH) && lensH > 0) entry.lensHmm = lensH;
-      } else if (Number.isFinite(sensor) && sensor > 0) {
-        entry.sensorMm = sensor;
+      } else {
+        if (Number.isFinite(sensor) && sensor > 0) entry.sensorMm = sensor;
+        if (Number.isFinite(thickness) && thickness > 0) entry.thicknessMm = thickness;
       }
       smartwatchCatalogState[brand].push(entry);
       if (kindEl) kindEl.value = kind;
@@ -7552,11 +7574,13 @@ ${worksheets}
       }
       const newLabel = document.getElementById('admin-sw-new-label');
       const newSensor = document.getElementById('admin-sw-new-sensor');
+      const newThickness = document.getElementById('admin-sw-new-thickness');
       const newLensW = document.getElementById('admin-sw-new-lensw');
       const newLensH = document.getElementById('admin-sw-new-lensh');
       const newBrandInput = document.getElementById('admin-sw-new-brand');
       if (newLabel) newLabel.value = '';
       if (newSensor) newSensor.value = '';
+      if (newThickness) newThickness.value = '';
       if (newLensW) newLensW.value = '';
       if (newLensH) newLensH.value = '';
       if (newBrandInput) newBrandInput.value = '';
@@ -7565,6 +7589,7 @@ ${worksheets}
     });
     tbody?.addEventListener('change', (e) => {
       const sensorInp = e.target.closest('.admin-sw-sensor');
+      const thicknessInp = e.target.closest('.admin-sw-thickness');
       const lensWInp = e.target.closest('.admin-sw-lensw');
       const lensHInp = e.target.closest('.admin-sw-lensh');
       const labelInp = e.target.closest('.admin-sw-label');
@@ -7575,6 +7600,17 @@ ${worksheets}
         if (!hit) return;
         const n = sensorInp.value === '' ? null : Number(sensorInp.value);
         hit.row.sensorMm = Number.isFinite(n) && n > 0 ? n : null;
+        syncSmartwatchModelsTextarea();
+        return;
+      }
+      if (thicknessInp) {
+        const tr = thicknessInp.closest('tr');
+        const oldLabel = tr?.getAttribute('data-sw-label');
+        const hit = oldLabel ? findCatalogRow(oldLabel) : null;
+        if (!hit) return;
+        const n = thicknessInp.value === '' ? null : Number(thicknessInp.value);
+        hit.row.thicknessMm = Number.isFinite(n) && n > 0 ? n : null;
+        if (hit.row.thicknessMm == null) delete hit.row.thicknessMm;
         syncSmartwatchModelsTextarea();
         return;
       }

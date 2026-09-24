@@ -7296,6 +7296,12 @@ a.conta-forgot-link { display: inline-block; }
     margin: 0;
     min-width: 140px;
 }
+/* Flex no filtro ignorava [hidden] — só um conjunto (watch OU band) pode aparecer */
+.admin-sw-filters label[hidden],
+.admin-form-actions label.admin-sw-new-watch[hidden],
+.admin-form-actions label.admin-sw-new-band[hidden] {
+    display: none !important;
+}
 .admin-sw-filters select,
 .admin-sw-filters input[type="number"],
 .admin-sw-filters input[type="text"] {

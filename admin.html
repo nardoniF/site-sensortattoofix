@@ -175,8 +175,9 @@
                         <div id="help-smartwatch-catalog" class="admin-help-panel admin-help-panel--fieldset" hidden>
                             <p>Catálogo usado no checkout (marca → modelo). Filtre por <strong>Smartwatch</strong> ou <strong>Smartband</strong> e pela marca.</p>
                             <p><strong>Nova marca:</strong> escolha o tipo (ex. Smartband), digite o nome em <strong>Nova marca</strong> e clique <strong>Criar marca</strong>. Depois cadastre os modelos abaixo e clique <strong>Salvar</strong> no rodapé.</p>
-                            <p><strong>Sensor (mm)</strong> em smartwatch = diâmetro do sensor óptico (círculo, ex.: 25).</p>
-                            <p><strong>Smartband</strong> = retângulo: preencha <strong>Largura (mm)</strong> e <strong>Altura (mm)</strong> (ex.: Whoop 17 × 0,8). Não use um único campo circular.</p>
+                            <p><strong>Diâmetro (mm)</strong> em smartwatch = diâmetro do sensor óptico / da lente (círculo, ex.: 25).</p>
+                            <p><strong>Espessura (mm)</strong> = espessura da lente no smartwatch (ex.: 0,2).</p>
+                            <p><strong>Smartband</strong> = retângulo: <strong>Largura (mm)</strong> × <strong>Altura (mm)</strong> (ex.: Whoop 17 × 0,8). Os campos de smartwatch ficam ocultos nesse filtro.</p>
                             <p>A opção “Outro modelo…” continua no checkout automaticamente ao salvar.</p>
                         </div>
                         <div class="admin-sw-filters">
@@ -193,8 +194,11 @@
                                 <input type="text" id="admin-sw-new-brand" placeholder="Ex.: Whoop" autocomplete="off">
                             </label>
                             <button type="button" id="admin-sw-add-brand" class="btn-secondary" title="Cria a marca para o tipo selecionado"><i class="fas fa-tag"></i> Criar marca</button>
-                            <label class="admin-sw-bulk-watch">Sensor da marca Ø (mm)
+                            <label class="admin-sw-bulk-watch">Diâmetro marca Ø (mm)
                                 <input type="number" id="admin-sw-sensor-bulk" min="0" step="0.1" placeholder="ex.: 25" inputmode="decimal">
+                            </label>
+                            <label class="admin-sw-bulk-watch">Espessura marca (mm)
+                                <input type="number" id="admin-sw-thickness-bulk" min="0" step="0.01" placeholder="ex.: 0.2" inputmode="decimal">
                             </label>
                             <label class="admin-sw-bulk-band" hidden>Largura marca (mm)
                                 <input type="number" id="admin-sw-lensw-bulk" min="0" step="0.1" placeholder="ex.: 17" inputmode="decimal">
@@ -211,7 +215,8 @@
                                 <thead>
                                     <tr id="admin-sw-thead">
                                         <th>Modelo (checkout)</th>
-                                        <th style="width:110px">Sensor (mm)</th>
+                                        <th style="width:110px">Diâmetro (mm)</th>
+                                        <th style="width:110px">Espessura (mm)</th>
                                         <th style="width:70px"></th>
                                     </tr>
                                 </thead>
@@ -224,8 +229,11 @@
                             <label style="flex:1;min-width:220px">Novo modelo
                                 <input type="text" id="admin-sw-new-label" placeholder="Ex.: Apple Watch Series 11 (46mm)" autocomplete="off">
                             </label>
-                            <label class="admin-sw-new-watch" style="width:110px">Sensor Ø (mm)
+                            <label class="admin-sw-new-watch" style="width:110px">Diâmetro Ø (mm)
                                 <input type="number" id="admin-sw-new-sensor" min="0" step="0.1" placeholder="—" inputmode="decimal">
+                            </label>
+                            <label class="admin-sw-new-watch" style="width:110px">Espessura (mm)
+                                <input type="number" id="admin-sw-new-thickness" min="0" step="0.01" placeholder="—" inputmode="decimal">
                             </label>
                             <label class="admin-sw-new-band" style="width:100px" hidden>Largura (mm)
                                 <input type="number" id="admin-sw-new-lensw" min="0" step="0.1" placeholder="17" inputmode="decimal">
@@ -1403,6 +1411,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=240"></script>
+    <script defer src="js/admin.js?v=241"></script>
 </body>
 </html>
