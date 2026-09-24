@@ -4059,6 +4059,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
     transition: 0.2s;
     white-space: nowrap;
 }
+/* display:inline-flex acima anula o atributo HTML hidden */
+.admin-tab[hidden] { display: none !important; }
 .admin-tab i {
     color: var(--gray);
     font-size: 0.9rem;
