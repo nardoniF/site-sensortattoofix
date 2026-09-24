@@ -1,6 +1,7 @@
 # Admin — aba Saldos
 
-- A aba **Saldos** permanece **oculta** no menu do Admin (`hidden` no botão + `ADMIN_HIDDEN_TABS`).
+- A aba **Saldos** permanece **fora do menu** do Admin (botão removido do HTML).
 - **Nunca** reexibir / reativar essa aba sem pedido **explícito** do usuário nesta conversa.
 - Não “restaurar Admin” trazendo Saldos de volta junto com outros fixes.
-- Código e endpoints de saldo podem ficar no repo (comentados/ocultos); o menu não deve mostrar a aba.
+- Código e endpoints de saldo podem ficar no repo; o botão da aba **não** volta ao `admin.html`.
+- Cuidado: `.admin-tab { display: inline-flex }` anula o atributo HTML `hidden` — use `.admin-tab[hidden] { display: none !important; }` ou remova o botão do HTML.
