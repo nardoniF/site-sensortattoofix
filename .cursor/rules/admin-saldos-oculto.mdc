@@ -1,0 +1,6 @@
+# Admin — aba Saldos
+
+- A aba **Saldos** permanece **oculta** no menu do Admin (`hidden` no botão + `ADMIN_HIDDEN_TABS`).
+- **Nunca** reexibir / reativar essa aba sem pedido **explícito** do usuário nesta conversa.
+- Não “restaurar Admin” trazendo Saldos de volta junto com outros fixes.
+- Código e endpoints de saldo podem ficar no repo (comentados/ocultos); o menu não deve mostrar a aba.
