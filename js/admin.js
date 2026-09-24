@@ -3487,7 +3487,7 @@ ${worksheets}
   function showClicksEmptyState() {
     const root = document.getElementById('clicks-tree-root');
     if (root) {
-      root.innerHTML = '<p class="admin-meta">Nenhum clique em cache. Clique <strong>Atualizar</strong> para carregar o histórico.</p>';
+      root.innerHTML = '<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar o histórico completo (ano → mês → dia → visitas).</p>';
     }
     const stats = document.getElementById('clicks-stats');
     if (stats) stats.innerHTML = '';
@@ -4799,7 +4799,7 @@ ${worksheets}
     return d;
   }
 
-  /** Árvore leve: só agrega por dia; visitantes/sessões sob demanda. */
+  /** Árvore completa: agrega por dia e já monta visitantes/sessões (Atualizar traz tudo). */
   function buildClicksTree(clicks) {
     const tree = {};
     (clicks || []).forEach((c) => {
@@ -4818,6 +4818,11 @@ ${worksheets}
       d.count++;
       m.count++;
       y.count++;
+    });
+    Object.values(tree).forEach((y) => {
+      Object.values(y.months).forEach((m) => {
+        Object.values(m.days).forEach((d) => finalizeClicksDay(d));
+      });
     });
     return tree;
   }
@@ -5185,18 +5190,20 @@ ${worksheets}
     const root = document.getElementById('clicks-tree-root');
     const checkedEl = document.getElementById('clicks-checked-at');
     if (!root) return;
-    wireClicksTreeLazyHydrate();
 
     if (!clicks?.length) {
       clicksTreeLive = null;
       root.innerHTML = '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
     } else {
-      // Esqueleto ano→mês→dia só. Visitantes montam ao abrir o dia (lazy).
       const tree = buildClicksTree(clicks);
+      const navOnly = isClicksNavOnlyFilterOn();
+      if (navOnly) pruneUniqueOrRepeatSessions(tree);
       clicksTreeLive = tree;
       const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
       if (!years.length) {
-        root.innerHTML = '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
+        root.innerHTML = navOnly
+          ? '<p class="admin-meta">Nenhuma visita com navegação (2 destinos distintos). Desmarque <strong>Somente navegação</strong> para ver únicos/repetidos.</p>'
+          : '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
         if (checkedEl) {
           updateClicksCoverageStatus({ fromCache: !!clicksMetaCache?._fromCache });
         }
@@ -5220,7 +5227,9 @@ ${worksheets}
             const d = m.days[dateKey];
             const dayPath = `${monthPath}|${dateKey}`;
             const meta = daySkeletonMeta(d);
-            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, meta.extra)}</summary><div class="clicks-tree-children" data-hydrated="0"><p class="admin-meta">Abra o dia para carregar as visitas…</p></div></details>`;
+            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, meta.extra)}</summary><div class="clicks-tree-children">`;
+            html += renderDayVisitorsHtml(d, dayPath);
+            html += '</div></details>';
           });
 
           html += '</div></details>';
@@ -5231,17 +5240,8 @@ ${worksheets}
 
       html += '</div>';
       root.innerHTML = html;
-      // Não auto-abre/hidrata o dia mais recente: isso montava centenas de visitas
-      // e congelava o Chrome. O usuário abre o dia que quiser.
-      if (openPaths?.length) {
-        restoreClicksTreeOpenPaths(openPaths);
-        root.querySelectorAll('details.clicks-tree-day[open]').forEach((el) => hydrateClicksDayElement(el));
-      } else {
-        const year = root.querySelector('details.clicks-tree-year');
-        if (year) year.open = true;
-        const month = year?.querySelector('details.clicks-tree-month');
-        if (month) month.open = true;
-      }
+      if (openPaths?.length) restoreClicksTreeOpenPaths(openPaths);
+      else openLatestClicksTreeDay(root);
     }
 
     if (checkedEl) {
@@ -5258,10 +5258,7 @@ ${worksheets}
     if (!month) return;
     month.open = true;
     const day = month.querySelector('details.clicks-tree-day');
-    if (day) {
-      day.open = true;
-      hydrateClicksDayElement(day);
-    }
+    if (day) day.open = true;
   }
 
   const CLICKS_NAV_ONLY_KEY = 'stf_clicks_nav_only_v2';
@@ -8204,31 +8201,12 @@ ${worksheets}
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'cliques') {
         syncClicksNavOnlyCheckbox();
-        if (clicksCache.length && clicksMetaCache) {
-          clicksMetaCache = { ...clicksMetaCache, _fromCache: true };
-          const root = document.getElementById('clicks-tree-root');
-          if (root) {
-            root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Preparando log…</p>';
-          }
-          setClicksLoadStatus('Preparando árvore leve…');
-          // Cede o frame ao browser antes do trabalho de árvore.
-          window.setTimeout(() => {
-            if (!isClicksPanelVisible()) return;
-            reapplyClicksLocalFilters([]);
-            const ageMs = clicksSnapshotAgeMs();
-            if (ageMs != null && ageMs > 15 * 60 * 1000) {
-              setClicksLoadStatus(
-                'Cache antigo — clique Atualizar para buscar na API.',
-                'warning'
-              );
-            } else {
-              setClicksLoadStatus('');
-            }
-          }, 30);
-        } else if (clicksLoading) {
+        // Ao abrir a aba: não monta árvore. Só Atualizar traz tudo.
+        if (clicksLoading) {
           setClicksLoadStatus('Carregando cliques…');
         } else {
           showClicksEmptyState();
+          setClicksLoadStatus('Clique Atualizar para carregar o log completo.', 'warning');
         }
       } else if (id === 'saldos') {
         restoreMpAuditSnapshot();
