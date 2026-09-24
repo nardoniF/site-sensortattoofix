@@ -3291,7 +3291,9 @@ ${worksheets}
         ...snap.meta,
         clicks: clicksCache,
         whenClicks: clicksWhenCache,
-        capacity: snap.meta?.capacity || snap.whenWindow
+        capacity: snap.meta?.capacity || snap.whenWindow,
+        _savedAt: Number(snap.savedAt) || Date.now(),
+        _fromCache: true
       };
       return true;
     } catch (_) {
@@ -3345,12 +3347,98 @@ ${worksheets}
   }
 
   function showClicksCacheHint() {
+    updateClicksCoverageStatus({ fromCache: true });
+  }
+
+  function clicksSessionKey(row) {
+    const vid = String(row?.visitante_id || '').trim();
+    const sid = String(row?.sessao_visita || '').trim();
+    if (vid && sid) return `v:${vid}|s:${sid}`;
+    if (vid) return `v:${vid}`;
+    if (sid) return `s:${sid}`;
+    const ip = String(row?.ip || row?.ip_prefix || '').trim();
+    const day = row?.ts
+      ? new Date(row.ts).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+      : '';
+    if (ip && day) return `ip:${ip}|d:${day}`;
+    return '';
+  }
+
+  function clicksMatchesDestino(row, destino) {
+    if (!destino) return true;
+    if (destino === 'pageview') return row?.tipo === 'pageview';
+    return row?.destino === destino;
+  }
+
+  function formatClicksCoverageRange(clicks) {
+    if (!clicks?.length) return null;
+    let minTs = Infinity;
+    let maxTs = 0;
+    for (const c of clicks) {
+      const t = Number(c?.ts) || Date.parse(c?.ts) || 0;
+      if (!t) continue;
+      if (t < minTs) minTs = t;
+      if (t > maxTs) maxTs = t;
+    }
+    if (!Number.isFinite(minTs) || maxTs <= 0) return null;
+    const fmt = (ts) => {
+      try {
+        return new Date(ts).toLocaleString('pt-BR', {
+          timeZone: 'America/Sao_Paulo',
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch {
+        return '—';
+      }
+    };
+    return { from: fmt(minTs), to: fmt(maxTs), count: clicks.length };
+  }
+
+  function clicksSnapshotAgeMs() {
+    const saved = Number(clicksMetaCache?._savedAt) || 0;
+    if (saved > 0) return Math.max(0, Date.now() - saved);
+    const checked = clicksMetaCache?.checkedAt ? Date.parse(clicksMetaCache.checkedAt) : 0;
+    if (checked > 0) return Math.max(0, Date.now() - checked);
+    return null;
+  }
+
+  function updateClicksCoverageStatus(opts = {}) {
     const checkedEl = document.getElementById('clicks-checked-at');
     if (!checkedEl) return;
+    const fromCache = !!opts.fromCache;
     const when = clicksMetaCache?.checkedAt
       ? formatFeedbackDate(clicksMetaCache.checkedAt)
       : '—';
-    checkedEl.textContent = `Última atualização: ${when} · cache local (clique Atualizar para buscar na API)`;
+    const cover = formatClicksCoverageRange(clicksCache);
+    const total = Number(clicksMetaCache?.total) || 0;
+    const parts = [];
+    if (fromCache) {
+      const ageMs = clicksSnapshotAgeMs();
+      const ageMin = ageMs != null ? Math.round(ageMs / 60000) : null;
+      const ageTxt = ageMin == null
+        ? ''
+        : ageMin < 1
+          ? ' · há poucos segundos'
+          : ageMin < 60
+            ? ` · há ${ageMin} min`
+            : ` · há ${Math.round(ageMin / 60)} h`;
+      parts.push(`Cache local: ${when}${ageTxt}`);
+    } else {
+      parts.push(`Atualizado em ${when}`);
+    }
+    if (cover) {
+      parts.push(`árvore ${cover.from} → ${cover.to} (${cover.count.toLocaleString('pt-BR')} eventos)`);
+    }
+    if (total > 0) {
+      parts.push(`${total.toLocaleString('pt-BR')} no D1`);
+    }
+    parts.push(fromCache
+      ? 'clique Atualizar para buscar na API'
+      : 'árvore = últimos ~4000; gráficos cobrem a retenção');
+    checkedEl.textContent = parts.join(' · ');
     checkedEl.hidden = false;
   }
 
@@ -3369,14 +3457,31 @@ ${worksheets}
     if (checkedEl) checkedEl.hidden = true;
   }
 
-  function filterClicksLocally(clicks, q, destino) {
+  function filterClicksLocally(clicks, q, destino, withNav) {
     let out = clicks || [];
-    if (destino === 'pageview') out = out.filter((c) => c.tipo === 'pageview');
-    else if (destino) out = out.filter((c) => c.destino === destino);
+    if (destino && withNav) {
+      const keys = new Set();
+      for (const row of out) {
+        if (!clicksMatchesDestino(row, destino)) continue;
+        const key = clicksSessionKey(row);
+        if (key) keys.add(key);
+      }
+      out = out.filter((row) => {
+        const key = clicksSessionKey(row);
+        return key && keys.has(key);
+      });
+    } else if (destino === 'pageview') {
+      out = out.filter((c) => c.tipo === 'pageview');
+    } else if (destino) {
+      out = out.filter((c) => c.destino === destino);
+    }
     if (q) {
       const ql = q.toLowerCase();
       out = out.filter((c) => {
-        const hay = [c.destino, c.rotulo, c.pagina, c.visitante_id, c.secao, c.elemento, c.tipo]
+        const hay = [
+          c.destino, c.rotulo, c.pagina, c.visitante_id, c.secao, c.elemento, c.tipo,
+          c.cidade, c.estado, c.origem_trafego, c.utm_source, c.utm_campaign
+        ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
@@ -3403,18 +3508,14 @@ ${worksheets}
     renderClicksStats(clicksMetaCache);
     renderClicksWhenCharts(clicksWhenCache);
     renderClicksNoiseStats(clicksWhenCache);
-    const display = filterClicksLocally(clicksCache, q, destino);
+    const display = filterClicksLocally(clicksCache, q, destino, withNav);
     renderClicksTree(
       display,
       clicksMetaCache.checkedAt,
       clicksMetaCache.total,
       openPaths || captureClicksTreeOpenPaths()
     );
-    showClicksCacheHint();
-    if (destino && withNav) {
-      setClicksLoadStatus('Navegação completa por visita exige Atualizar (busca na API).', 'warning');
-      window.setTimeout(() => setClicksLoadStatus(''), 4000);
-    }
+    updateClicksCoverageStatus({ fromCache: !!clicksMetaCache?._fromCache });
   }
 
   function showPaymentBalancesFromCache() {
@@ -3875,8 +3976,13 @@ ${worksheets}
         <div class="clicks-stats-row"><dt>Fonte da cota</dt><dd>D1 Analytics</dd></div>
         <div class="clicks-stats-row"><dt>Atualizado</dt><dd>${escapeHtml(refreshed)}</dd></div>
         <div class="clicks-stats-row"><dt>Total no log cliques</dt><dd>${used.toLocaleString('pt-BR')} / ${max.toLocaleString('pt-BR')} · retenção ${escapeHtml(retentionLabel)}</dd></div>
+        <div class="clicks-stats-row"><dt>Árvore (tela)</dt><dd>${escapeHtml((() => {
+          const cover = formatClicksCoverageRange(data?.clicks || clicksCache);
+          if (!cover) return '—';
+          return `${cover.from} → ${cover.to} · ${cover.count.toLocaleString('pt-BR')} eventos (últimos ~4000)`;
+        })())}</dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
-        <div class="clicks-stats-row"><dt>Mais antigo no log</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
+        <div class="clicks-stats-row"><dt>Mais antigo na árvore</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
         <div class="clicks-stats-row"><dt>Renova cota</dt><dd>${escapeHtml(String(resetBr))}</dd></div>
         <div class="clicks-stats-row clicks-stats-row-top"><dt>Mais frequentes</dt><dd>${topList}</dd></div>
       </dl>
@@ -4924,8 +5030,7 @@ ${worksheets}
           ? '<p class="admin-meta">Nenhuma visita com navegação (2 destinos distintos). Desmarque <strong>Somente navegação</strong> para ver únicos/repetidos.</p>'
           : '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
         if (checkedEl) {
-          checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log`;
-          checkedEl.hidden = false;
+          updateClicksCoverageStatus({ fromCache: !!clicksMetaCache?._fromCache });
         }
         return;
       }
@@ -5003,8 +5108,7 @@ ${worksheets}
     }
 
     if (checkedEl) {
-      checkedEl.textContent = `Atualizado em ${formatClickDate(checkedAt ? Date.parse(checkedAt) : Date.now())} · ${clicks?.length || 0} eventos carregados de ${total || 0} no log`;
-      checkedEl.hidden = false;
+      updateClicksCoverageStatus({ fromCache: !!clicksMetaCache?._fromCache });
     }
   }
 
@@ -5242,11 +5346,10 @@ ${worksheets}
 
     wireClicksWhenFilters();
 
-    const q = document.getElementById('clicks-search')?.value?.trim() || '';
-    const destino = document.getElementById('clicks-filter-destino')?.value || '';
     const navEl = document.getElementById('clicks-filter-nav');
-    const withNav = !!navEl?.checked;
+    const destinoEl = document.getElementById('clicks-filter-destino');
     if (navEl) {
+      const destino = destinoEl?.value || '';
       navEl.disabled = !destino;
       navEl.closest('label')?.classList.toggle('is-disabled', !destino);
     }
@@ -5264,11 +5367,9 @@ ${worksheets}
     }
 
     try {
+      // Sempre busca o lote completo (últimos ~4000). Filtros de busca/destino
+      // aplicam só no cliente — evita “congelar” o cache num destino/dia.
       const params = new URLSearchParams({ limit: '4000' });
-      if (q) params.set('q', q);
-      if (destino === 'pageview') params.set('tipo', 'pageview');
-      else if (destino) params.set('destino', destino);
-      if (destino && withNav) params.set('nav', '1');
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
@@ -5278,17 +5379,10 @@ ${worksheets}
       clicksCache = data.clicks || [];
       clicksWhenCache = data.whenClicks?.length ? data.whenClicks : clicksCache;
       clicksWhenWindow = data.capacity || null;
-      clicksMetaCache = data;
+      clicksMetaCache = { ...data, _savedAt: Date.now(), _fromCache: false };
       saveClicksSnapshot(data);
-      renderClicksStats(data);
-      renderClicksWhenCharts(clicksWhenCache);
-      renderClicksNoiseStats(clicksWhenCache);
-      renderClicksTree(clicksCache, data.checkedAt, data.total, openPaths);
-      const checkedEl = document.getElementById('clicks-checked-at');
-      if (checkedEl && data.withNav && destino) {
-        const baseTxt = checkedEl.textContent || '';
-        checkedEl.textContent = `${baseTxt} · navegação completa (${data.navSessions || 0} visita${(data.navSessions || 0) === 1 ? '' : 's'})`;
-      }
+      reapplyClicksLocalFilters(openPaths);
+      updateClicksCoverageStatus({ fromCache: false });
       setClicksLoadStatus('Cliques atualizados.', 'success');
       window.setTimeout(() => setClicksLoadStatus(''), 2500);
     } catch (err) {
@@ -7966,11 +8060,19 @@ ${worksheets}
       if (id === 'cliques') {
         syncClicksNavOnlyCheckbox();
         if (clicksCache.length && clicksMetaCache) {
+          clicksMetaCache = { ...clicksMetaCache, _fromCache: true };
           reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
+          const ageMs = clicksSnapshotAgeMs();
+          // Cache velho (>15 min): atualiza em segundo plano sem travar a aba.
+          if (ageMs == null || ageMs > 15 * 60 * 1000) {
+            setClicksLoadStatus('Cache antigo — atualizando cliques em segundo plano…');
+            startClicksBackgroundLoad({ preserveOpen: true, force: true });
+          }
         } else if (clicksLoading) {
           setClicksLoadStatus('Carregando cliques…');
         } else {
           showClicksEmptyState();
+          startClicksBackgroundLoad({ preserveOpen: false, force: true });
         }
       } else if (id === 'saldos') {
         restoreMpAuditSnapshot();

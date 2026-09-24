@@ -17355,9 +17355,11 @@ async function handleAdminListClicks(request, env, origin) {
 
   const byDestino = {};
   let todayCount = 0;
+  for (const row of loaded) {
+    if (brDateKey(row.ts) === todayKey) todayCount++;
+  }
   const statsSample = loaded.slice(0, 300);
   for (const row of statsSample) {
-    if (brDateKey(row.ts) === todayKey) todayCount++;
     const key = row.destino || row.tipo || 'outro';
     byDestino[key] = (byDestino[key] || 0) + 1;
   }
