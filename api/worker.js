@@ -4814,6 +4814,10 @@ const ML_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
 const ML_SALES_INDEX_MAX = 5000;
 const ML_SYNC_PAGE_LIMIT = 50;
 const ML_SYNC_MAX_PAGES = 40;
+/** Max order IDs to re-check per sync for post-mediation cancel/refund. */
+const ML_STATUS_REFRESH_LIMIT = 40;
+/** Only re-check indexed sales newer than this (days). */
+const ML_STATUS_REFRESH_LOOKBACK_DAYS = 180;
 
 function healMlStoredShipping(sale, flexCfg) {
   if (!sale) return sale;
@@ -5013,6 +5017,37 @@ function mlDateParam(d) {
   return d.toISOString().replace(/\.\d{3}Z$/, '.000-00:00');
 }
 
+/** True when ML order payload means cancel/refund (incl. mediation refund). */
+function mlOrderLooksDropped(order) {
+  if (!order) return false;
+  const st = String(order.status || '').toLowerCase();
+  if (/cancel|invalid|refund/.test(st)) return true;
+  const tags = Array.isArray(order.tags) ? order.tags : [];
+  if (tags.some((t) => /^(cancelled|canceled|invalid|refunded)$/i.test(String(t)))) return true;
+  const payments = Array.isArray(order.payments) ? order.payments : [];
+  if (payments.some((p) => /refund|chargedback|charged_back|cancelled|canceled/i.test(String(p.status || '')))) {
+    return true;
+  }
+  return false;
+}
+
+/** Refund amount from payments, or gross when order is cancelled/invalid. */
+function mlRefundsFromOrder(order, gross) {
+  let refunded = 0;
+  for (const p of order?.payments || []) {
+    const st = String(p.status || '').toLowerCase();
+    if (!/refund|chargedback|charged_back/.test(st)) continue;
+    refunded += Number(p.total_paid_amount ?? p.transaction_amount ?? p.total_paid ?? 0);
+  }
+  if (refunded > 0.009) return Math.round(refunded * 100) / 100;
+  const st = String(order?.status || '').toLowerCase();
+  if (/cancel|invalid/.test(st)) {
+    const g = Number(gross || 0);
+    return g > 0 ? Math.round(g * 100) / 100 : 0;
+  }
+  return 0;
+}
+
 function normalizeMlOrder(order) {
   const items = (Array.isArray(order.order_items) ? order.order_items : []).map((row) => {
     const item = row.item || {};
@@ -5042,15 +5077,21 @@ function normalizeMlOrder(order) {
     marketplaceFee: p.marketplace_fee != null ? Number(p.marketplace_fee) : null
   }));
   const shippingHint = 0;
-  const net = Math.round((gross - fees) * 100) / 100;
   const soldAt = order.date_closed || order.date_created || null;
+  const tags = Array.isArray(order.tags) ? order.tags : [];
+  let status = order.status || null;
+  const refunds = mlRefundsFromOrder(order, gross);
+  if (mlOrderLooksDropped(order) && !/cancel|invalid|refund/i.test(String(status || ''))) {
+    status = 'cancelled';
+  }
+  const net = Math.round((gross - fees - refunds) * 100) / 100;
   return {
     channel: 'mercadolivre',
     externalId: String(order.id),
     packId: order.pack_id != null ? String(order.pack_id) : null,
     soldAt,
-    status: order.status || null,
-    tags: Array.isArray(order.tags) ? order.tags : [],
+    status,
+    tags,
     currency: order.currency_id || 'BRL',
     gross,
     buyerPaid: paidAmount,
@@ -5058,7 +5099,7 @@ function normalizeMlOrder(order) {
     net,
     shippingCost: null,
     shippingSource: 'unresolved',
-    refunds: 0,
+    refunds,
     otherFees: 0,
     buyer: {
       id: order.buyer?.id != null ? String(order.buyer.id) : null,
@@ -5381,6 +5422,78 @@ async function fetchMlOrderById(token, orderId) {
   return data;
 }
 
+/**
+ * Re-fetch indexed ML sales by ID and mark cancel/refund after mediation.
+ * Paid search alone never revisits cancelled orders, so mediated refunds
+ * (e.g. "Mediação finalizada com reembolso") stay stuck as active income
+ * until this refresh runs.
+ */
+async function refreshMlIndexedSaleStatuses(env, token, index, options = {}) {
+  const limit = Math.max(0, Math.min(
+    Number(options.limit != null ? options.limit : ML_STATUS_REFRESH_LIMIT),
+    80
+  ));
+  const lookbackDays = Math.max(1, Number(
+    options.lookbackDays != null ? options.lookbackDays : ML_STATUS_REFRESH_LOOKBACK_DAYS
+  ));
+  const cutoff = Date.now() - lookbackDays * 86400000;
+  let checked = 0;
+  let marked = 0;
+  let skipped = 0;
+  let scanned = 0;
+  const scanCap = Math.max(limit * 4, limit);
+
+  for (const id of index || []) {
+    if (checked >= limit || scanned >= scanCap) break;
+    scanned += 1;
+    const sale = await loadMarketplaceSale(env, 'mercadolivre', id);
+    if (!sale) continue;
+    if (isDroppedMarketplaceSale(sale)) {
+      skipped += 1;
+      continue;
+    }
+    const soldAt = Date.parse(sale.soldAt || sale.dateCreated || '');
+    if (Number.isFinite(soldAt) && soldAt < cutoff) continue;
+
+    checked += 1;
+    let order;
+    try {
+      order = await fetchMlOrderById(token, id);
+    } catch {
+      continue;
+    }
+    if (!order || !mlOrderLooksDropped(order)) continue;
+
+    const fresh = normalizeMlOrder(order);
+    let status = fresh.status;
+    if (!/cancel|invalid|refund/i.test(String(status || ''))) status = 'cancelled';
+    const refunds = Math.max(
+      Number(sale.refunds || 0),
+      Number(fresh.refunds || 0),
+      Number(sale.gross || fresh.gross || 0)
+    );
+    const next = {
+      ...sale,
+      status,
+      tags: fresh.tags?.length ? fresh.tags : sale.tags,
+      refunds,
+      dateLastUpdated: fresh.dateLastUpdated || sale.dateLastUpdated,
+      syncedAt: new Date().toISOString(),
+      cancelledAt: fresh.dateLastUpdated || new Date().toISOString(),
+      mlCancelSynced: true,
+      hasRefund: true
+    };
+    next.net = mlSaleNetFromParts(next, next.shippingCost);
+    if (next.payoutNet != null) {
+      next.payoutNet = Math.max(0, mlMoney(next.payoutNet) - mlMoney(refunds));
+    }
+    await saveMarketplaceSale(env, next);
+    marked += 1;
+  }
+
+  return { checked, marked, skipped };
+}
+
 async function fetchMlShipmentCostsPayload(token, shippingId) {
   if (!token || !shippingId) return null;
   const auth = { Authorization: 'Bearer ' + token, Accept: 'application/json' };
@@ -5501,10 +5614,10 @@ async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
   return { filled, remaining };
 }
 
-async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit }) {
+async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit, status }) {
   const params = new URLSearchParams({
     seller: String(sellerId),
-    'order.status': 'paid',
+    'order.status': status || 'paid',
     sort: 'date_desc',
     offset: String(offset || 0),
     limit: String(limit || ML_SYNC_PAGE_LIMIT)
@@ -5565,71 +5678,112 @@ async function syncMlOrders(env, options = {}) {
     Math.max(1, Number(options.maxPages) || ML_SYNC_MAX_PAGES)
   );
   const to = now;
-  let offset = Math.max(0, Number(options.offset) || 0);
   let pages = 0;
   let imported = 0;
   let updated = 0;
   let unchanged = 0;
   let index = await getMlSalesIndex(env);
   let totalApi = null;
+  let paidNextOffset = 0;
+  let paidHasMore = false;
+  // paid = entradas; cancelled/invalid = cancelamentos/mediações que o search paid nunca traz de volta
+  const statusList = Array.isArray(options.statuses) && options.statuses.length
+    ? options.statuses
+    : ['paid', 'cancelled', 'invalid'];
 
-  while (pages < maxPages) {
-    const data = await fetchMlOrdersPage(env, token, sellerId, {
-      from, to, offset, limit: ML_SYNC_PAGE_LIMIT
-    });
-    if (totalApi == null) totalApi = Number(data.paging?.total ?? 0);
-    const results = Array.isArray(data.results) ? data.results : [];
-    if (!results.length) break;
+  const config = await getConfig(env).catch(() => ({}));
+  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+  let enrichBudget = Math.max(0, Math.min(20, Number(options.enrichBudget != null ? options.enrichBudget : 12)));
 
-    const config = await getConfig(env).catch(() => ({}));
-    const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
-    let enrichBudget = Math.max(0, Math.min(20, Number(options.enrichBudget != null ? options.enrichBudget : 12)));
+  for (const orderStatus of statusList) {
+    let offset = Math.max(0, Number(options.offset) || 0);
+    // offset only applies to the first status pass (paid); cancelled starts at 0
+    if (orderStatus !== statusList[0]) offset = 0;
+    // Cancel/invalid: always scan a wide creation window. Incremental `from`
+    // is only a few days — mediation on an older paid order would be missed.
+    const statusFrom = orderStatus === 'paid'
+      ? from
+      : new Date(now.getTime() - Math.min(400, Math.max(days, ML_STATUS_REFRESH_LOOKBACK_DAYS)) * 86400000);
+    let statusPages = 0;
+    const statusPageCap = orderStatus === 'paid' ? maxPages : Math.min(maxPages, 4);
 
-    for (const order of results) {
-      let sale = normalizeMlOrder(order);
-      let existing = null;
-      if (options.skipExistingRead !== true) {
-        existing = await loadMarketplaceSale(env, 'mercadolivre', sale.externalId);
+    while (statusPages < statusPageCap) {
+      const data = await fetchMlOrdersPage(env, token, sellerId, {
+        from: statusFrom, to, offset, limit: ML_SYNC_PAGE_LIMIT, status: orderStatus
+      });
+      if (orderStatus === 'paid' && totalApi == null) totalApi = Number(data.paging?.total ?? 0);
+      const results = Array.isArray(data.results) ? data.results : [];
+      if (!results.length) break;
+
+      for (const order of results) {
+        let sale = normalizeMlOrder(order);
+        let existing = null;
+        if (options.skipExistingRead !== true) {
+          existing = await loadMarketplaceSale(env, 'mercadolivre', sale.externalId);
+        }
+        const alreadyDropped = isDroppedMarketplaceSale(sale);
+        const alreadyOk = !alreadyDropped
+          && mlHasSettlement(existing)
+          && !mlNeedsPaymentEnrich(existing, flexCost);
+        const needs = !alreadyDropped && !alreadyOk && (
+          !existing || mlNeedsPaymentEnrich(existing || sale, flexCost)
+        );
+        if (needs && enrichBudget > 0 && options.enrichShipping !== false) {
+          sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
+          enrichBudget -= 1;
+        } else if (existing && alreadyOk) {
+          sale = {
+            ...sale,
+            shippingCost: existing.shippingCost,
+            shippingSource: existing.shippingSource,
+            fees: existing.fees,
+            net: existing.payoutNet || existing.net,
+            payoutNet: existing.payoutNet,
+            settlementOk: existing.settlementOk,
+            settlementVersion: existing.settlementVersion,
+            mlFlex: existing.mlFlex,
+            mlEstorno: existing.mlEstorno,
+            mlFlexListCost: existing.mlFlexListCost
+          };
+        } else if (existing && alreadyDropped) {
+          // Keep shipping settlement; status/refunds come from the cancelled payload
+          sale = {
+            ...sale,
+            shippingCost: existing.shippingCost ?? sale.shippingCost,
+            shippingSource: existing.shippingSource || sale.shippingSource,
+            fees: existing.fees ?? sale.fees,
+            mlFlex: existing.mlFlex,
+            mlEstorno: existing.mlEstorno,
+            mlFlexListCost: existing.mlFlexListCost,
+            settlementVersion: existing.settlementVersion,
+            hasRefund: true,
+            mlCancelSynced: true
+          };
+          sale.net = mlSaleNetFromParts(sale, sale.shippingCost);
+        }
+        sale = mergeMlSaleShipping(existing, sale);
+        if (existing && marketplaceSaleUnchanged(existing, sale)) {
+          unchanged += 1;
+          continue;
+        }
+        if (existing) updated += 1;
+        else imported += 1;
+        await saveMarketplaceSale(env, sale);
+        const next = (index || []).filter((id) => id !== sale.externalId);
+        next.unshift(sale.externalId);
+        index = next.slice(0, ML_SALES_INDEX_MAX);
       }
-      const alreadyOk = mlHasSettlement(existing) && !mlNeedsPaymentEnrich(existing, flexCost);
-      const needs = !alreadyOk && (
-        !existing || mlNeedsPaymentEnrich(existing || sale, flexCost)
-      );
-      if (needs && enrichBudget > 0 && options.enrichShipping !== false) {
-        sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
-        enrichBudget -= 1;
-      } else if (existing && alreadyOk) {
-        sale = {
-          ...sale,
-          shippingCost: existing.shippingCost,
-          shippingSource: existing.shippingSource,
-          fees: existing.fees,
-          net: existing.payoutNet || existing.net,
-          payoutNet: existing.payoutNet,
-          settlementOk: existing.settlementOk,
-          settlementVersion: existing.settlementVersion,
-          mlFlex: existing.mlFlex,
-          mlEstorno: existing.mlEstorno,
-          mlFlexListCost: existing.mlFlexListCost
-        };
-      }
-      sale = mergeMlSaleShipping(existing, sale);
-      if (existing && marketplaceSaleUnchanged(existing, sale)) {
-        unchanged += 1;
-        continue;
-      }
-      if (existing) updated += 1;
-      else imported += 1;
-      await saveMarketplaceSale(env, sale);
-      const next = (index || []).filter((id) => id !== sale.externalId);
-      next.unshift(sale.externalId);
-      index = next.slice(0, ML_SALES_INDEX_MAX);
+
+      statusPages += 1;
+      pages += 1;
+      offset += results.length;
+      const pagingTotal = Number(data.paging?.total ?? 0);
+      if (offset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
     }
-
-    pages += 1;
-    offset += results.length;
-    const pagingTotal = Number(data.paging?.total ?? 0);
-    if (offset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
+    if (orderStatus === 'paid') {
+      paidNextOffset = offset;
+      paidHasMore = totalApi != null && offset < totalApi;
+    }
   }
 
   const backfillLimit = Math.max(0, Number(
@@ -5639,6 +5793,17 @@ async function syncMlOrders(env, options = {}) {
     ? await backfillMlZeroShipping(env, token, sellerId, index, backfillLimit)
     : { filled: 0, remaining: 0 };
   const shippingFilled = shippingReport.filled;
+
+  const statusRefreshLimit = Math.max(0, Number(
+    options.statusRefresh != null ? options.statusRefresh : ML_STATUS_REFRESH_LIMIT
+  ));
+  const statusRefresh = statusRefreshLimit > 0
+    ? await refreshMlIndexedSaleStatuses(env, token, index, {
+      limit: statusRefreshLimit,
+      lookbackDays: options.statusRefreshDays || ML_STATUS_REFRESH_LOOKBACK_DAYS
+    })
+    : { checked: 0, marked: 0, skipped: 0 };
+  if (statusRefresh.marked > 0) updated += statusRefresh.marked;
 
   const report = {
     ok: true,
@@ -5654,8 +5819,10 @@ async function syncMlOrders(env, options = {}) {
     indexed: index.length,
     shippingFilled,
     shippingRemaining: shippingReport.remaining,
-    nextOffset: offset,
-    hasMore: totalApi != null && offset < totalApi,
+    statusChecked: statusRefresh.checked,
+    statusCancelled: statusRefresh.marked,
+    nextOffset: paidNextOffset,
+    hasMore: paidHasMore,
     lastSyncedAt: now.toISOString(),
     lastError: null
   };
@@ -5671,11 +5838,13 @@ async function runScheduledMlOrdersSync(env) {
       enrichShipping: false,
       skipExistingRead: false,
       backfillShipping: 0,
+      statusRefresh: 25,
       maxPages: 2
     });
     console.log('ML orders sync cron:', JSON.stringify({
       imported: report.imported,
       updated: report.updated,
+      statusCancelled: report.statusCancelled,
       indexed: report.indexed
     }));
     return report;
@@ -5725,6 +5894,7 @@ async function handleAdminMlSync(request, env, origin, ctx) {
       offset: 0,
       backfillShipping: 30,
       enrichBudget: 12,
+      statusRefresh: 40,
       skipExistingRead: false,
       maxPages: 8
     });
@@ -5743,6 +5913,7 @@ async function handleAdminMlSync(request, env, origin, ctx) {
           offset: report.nextOffset,
           backfillShipping: 30,
           enrichBudget: 12,
+          statusRefresh: 40,
           skipExistingRead: false,
           maxPages: 8
         }).catch(() => {}));
