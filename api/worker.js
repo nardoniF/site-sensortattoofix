@@ -55,6 +55,12 @@ import {
   amzRound2
 } from './amazon-settlement.js';
 import {
+  amzEffectiveStatus,
+  shopeeEffectiveStatus,
+  shopeeOrderSnWorthSyncing,
+  shopeeOrderDetailWorthSaving
+} from './marketplace-cancel.js';
+import {
   CLICKS_CLOSED_MONTHS,
   clicksRetentionWindow,
   spYmd,
@@ -5870,6 +5876,11 @@ const AMZ_SYNC_LOOKBACK_DAYS = 90;
 const AMZ_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
 const AMZ_SALES_INDEX_MAX = 5000;
 const AMZ_SYNC_MAX_PAGES = 40;
+/** Re-check indexed Amazon orders for cancel/refund after shipment. */
+const AMZ_STATUS_REFRESH_LIMIT = 40;
+const AMZ_STATUS_REFRESH_LOOKBACK_DAYS = 180;
+const AMZ_ACTIVE_ORDER_STATUSES = 'Shipped,Unshipped,PartiallyShipped,InvoiceUnconfirmed';
+const AMZ_CANCELED_ORDER_STATUSES = 'Canceled';
 const AMZ_BR_MARKETPLACE = 'A2Q3Y263D00KWC';
 const AMZ_USER_AGENT = 'SensorTattooFix/1.0 (Language=JavaScript; Platform=CloudflareWorkers)';
 
@@ -6077,12 +6088,17 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
   const otherFees = financesFetched && fin ? amzRound2(fin.otherFees || 0) : 0;
   // Líquido = bruto − comissão − frete − estornos − outras taxas
   const net = amzRound2(gross - fees - shippingCost - refunds - otherFees);
+  const status = amzEffectiveStatus(order.OrderStatus, {
+    hasRefund,
+    refunds,
+    gross
+  });
   return {
     channel: 'amazon',
     externalId: String(order.AmazonOrderId || ''),
     packId: null,
     soldAt: order.PurchaseDate || order.LastUpdateDate || null,
-    status: order.OrderStatus || null,
+    status,
     tags: [order.FulfillmentChannel, order.SalesChannel].filter(Boolean),
     currency,
     gross: amzRound2(gross),
@@ -6120,7 +6136,7 @@ async function upsertAmzSale(env, sale, index) {
   return next.slice(0, AMZ_SALES_INDEX_MAX);
 }
 
-async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nextToken }) {
+async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nextToken, orderStatuses }) {
   const params = new URLSearchParams();
   params.set('MarketplaceIds', amzMarketplaceId(env));
   params.set('MaxResultsPerPage', '50');
@@ -6129,7 +6145,7 @@ async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nex
   } else {
     params.set('CreatedAfter', createdAfter);
     if (createdBefore) params.set('CreatedBefore', createdBefore);
-    params.set('OrderStatuses', 'Shipped,Unshipped,PartiallyShipped,InvoiceUnconfirmed');
+    params.set('OrderStatuses', orderStatuses || AMZ_ACTIVE_ORDER_STATUSES);
   }
   const res = await fetch(`${AMZ_API_HOST}/orders/v0/orders?${params}`, {
     headers: {
@@ -6148,6 +6164,23 @@ async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nex
   return data.payload || data;
 }
 
+async function amzFetchOrderById(env, token, orderId) {
+  if (!orderId) return null;
+  const res = await fetch(
+    `${AMZ_API_HOST}/orders/v0/orders/${encodeURIComponent(orderId)}`,
+    {
+      headers: {
+        'x-amz-access-token': token,
+        Accept: 'application/json',
+        'User-Agent': AMZ_USER_AGENT
+      }
+    }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return null;
+  return data.payload || data.Orders?.[0] || data || null;
+}
+
 async function amzFetchOrderItems(env, token, orderId) {
   const res = await fetch(
     `${AMZ_API_HOST}/orders/v0/orders/${encodeURIComponent(orderId)}/orderItems`,
@@ -6162,6 +6195,83 @@ async function amzFetchOrderItems(env, token, orderId) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return [];
   return data.payload?.OrderItems || data.OrderItems || [];
+}
+
+/**
+ * Re-fetch indexed Amazon orders: Canceled status or Finances refund
+ * must update stored status so Admin drops them from active income.
+ */
+async function refreshAmzIndexedSaleStatuses(env, token, index, options = {}) {
+  const limit = Math.max(0, Math.min(
+    Number(options.limit != null ? options.limit : AMZ_STATUS_REFRESH_LIMIT),
+    80
+  ));
+  const lookbackDays = Math.max(1, Number(
+    options.lookbackDays != null ? options.lookbackDays : AMZ_STATUS_REFRESH_LOOKBACK_DAYS
+  ));
+  const cutoff = Date.now() - lookbackDays * 86400000;
+  let checked = 0;
+  let marked = 0;
+  let scanned = 0;
+  const scanCap = Math.max(limit * 4, limit);
+
+  for (const id of index || []) {
+    if (checked >= limit || scanned >= scanCap) break;
+    scanned += 1;
+    const sale = await loadMarketplaceSale(env, 'amazon', id);
+    if (!sale) continue;
+    if (isDroppedMarketplaceSale(sale)) continue;
+    const soldAt = Date.parse(sale.soldAt || sale.dateCreated || '');
+    if (Number.isFinite(soldAt) && soldAt < cutoff) continue;
+
+    checked += 1;
+    let order = null;
+    let fin = null;
+    try {
+      order = await amzFetchOrderById(env, token, id);
+    } catch { /* keep null */ }
+    try {
+      const events = await amzFetchOrderFinancials(env, token, id);
+      fin = summarizeAmzFinancialEvents(events);
+    } catch { /* keep null */ }
+
+    const hasRefund = !!(fin && fin.hasRefund) || !!sale.hasRefund;
+    const refunds = amzRound2(fin ? (fin.refunds || 0) : (sale.refunds || 0));
+    const gross = amzRound2(Number(sale.gross || 0) || (fin && fin.principalSold) || 0);
+    const nextStatus = amzEffectiveStatus(
+      order?.OrderStatus || sale.status,
+      { hasRefund, refunds, gross }
+    );
+    if (!isDroppedMarketplaceSale({ status: nextStatus })) {
+      await new Promise((r) => setTimeout(r, 200));
+      continue;
+    }
+
+    const fees = fin ? amzRound2(fin.commission) : amzRound2(sale.fees || 0);
+    const shippingCost = fin ? amzRound2(fin.shipping) : amzRound2(sale.shippingCost || 0);
+    const otherFees = fin ? amzRound2(fin.otherFees || 0) : amzRound2(sale.otherFees || 0);
+    const next = {
+      ...sale,
+      status: nextStatus,
+      gross,
+      fees,
+      shippingCost,
+      refunds: Math.max(amzRound2(sale.refunds || 0), refunds, hasRefund ? gross : 0),
+      otherFees,
+      hasRefund: true,
+      financesOk: fin ? true : !!sale.financesOk,
+      pocketNet: fin ? amzRound2(fin.net) : sale.pocketNet,
+      dateLastUpdated: order?.LastUpdateDate || sale.dateLastUpdated,
+      syncedAt: new Date().toISOString(),
+      amzCancelSynced: true
+    };
+    next.net = amzRound2(next.gross - next.fees - next.shippingCost - next.refunds - next.otherFees);
+    await saveMarketplaceSale(env, next);
+    marked += 1;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+
+  return { checked, marked };
 }
 
 async function syncAmzOrders(env, options = {}) {
@@ -6190,17 +6300,11 @@ async function syncAmzOrders(env, options = {}) {
   let index = await getAmzSalesIndex(env);
   let apiTotal = 0;
 
-  do {
-    const payload = await amzFetchOrdersPage(env, token, {
-      createdAfter: from.toISOString(),
-      createdBefore: queryEnd.toISOString(),
-      nextToken
-    });
+  async function ingestAmzOrdersPage(payload) {
     const orders = Array.isArray(payload.Orders) ? payload.Orders : [];
     apiTotal += orders.length;
     for (const order of orders) {
       if (!order?.AmazonOrderId) continue;
-      if (String(order.OrderStatus || '').toLowerCase() === 'canceled') continue;
       let items = [];
       try {
         items = await amzFetchOrderItems(env, token, order.AmazonOrderId);
@@ -6223,9 +6327,32 @@ async function syncAmzOrders(env, options = {}) {
       index = await upsertAmzSale(env, sale, index);
       await new Promise((r) => setTimeout(r, 250));
     }
-    pages += 1;
-    nextToken = payload.NextToken || null;
-  } while (nextToken && pages < AMZ_SYNC_MAX_PAGES);
+  }
+
+  // Active statuses (paid-like) + separate Canceled pass (SP-API one OrderStatuses filter).
+  for (const orderStatuses of [AMZ_ACTIVE_ORDER_STATUSES, AMZ_CANCELED_ORDER_STATUSES]) {
+    nextToken = null;
+    let statusPages = 0;
+    const pageCap = orderStatuses === AMZ_CANCELED_ORDER_STATUSES
+      ? Math.min(AMZ_SYNC_MAX_PAGES, 8)
+      : AMZ_SYNC_MAX_PAGES;
+    // Cancelled: always scan a wide window so late cancels of older orders are found.
+    const statusFrom = orderStatuses === AMZ_CANCELED_ORDER_STATUSES
+      ? new Date(queryEnd.getTime() - Math.min(365, Math.max(days, AMZ_STATUS_REFRESH_LOOKBACK_DAYS)) * 86400000)
+      : from;
+    do {
+      const payload = await amzFetchOrdersPage(env, token, {
+        createdAfter: statusFrom.toISOString(),
+        createdBefore: queryEnd.toISOString(),
+        nextToken,
+        orderStatuses
+      });
+      await ingestAmzOrdersPage(payload);
+      statusPages += 1;
+      pages += 1;
+      nextToken = payload.NextToken || null;
+    } while (nextToken && statusPages < pageCap);
+  }
 
   // Atualiza Finances de todos os indexados (full) ou só os que faltam.
   let financesBackfilled = 0;
@@ -6252,6 +6379,7 @@ async function syncAmzOrders(env, options = {}) {
       sale.pocketNet = amzRound2(fin.net);
       sale.financesOk = true;
       sale.hasRefund = hasRefund;
+      sale.status = amzEffectiveStatus(sale.status, { hasRefund, refunds, gross });
       sale.feesNote = null;
       sale.syncedAt = new Date().toISOString();
       await saveMarketplaceSale(env, sale);
@@ -6262,6 +6390,17 @@ async function syncAmzOrders(env, options = {}) {
       console.warn('Amazon finances backfill', id, err.message || err);
     }
   }
+
+  const statusRefreshLimit = Math.max(0, Number(
+    options.statusRefresh != null ? options.statusRefresh : AMZ_STATUS_REFRESH_LIMIT
+  ));
+  const statusRefresh = statusRefreshLimit > 0
+    ? await refreshAmzIndexedSaleStatuses(env, token, index, {
+      limit: statusRefreshLimit,
+      lookbackDays: options.statusRefreshDays || AMZ_STATUS_REFRESH_LOOKBACK_DAYS
+    })
+    : { checked: 0, marked: 0 };
+  if (statusRefresh.marked > 0) updated += statusRefresh.marked;
 
   const report = {
     ok: true,
@@ -6275,6 +6414,8 @@ async function syncAmzOrders(env, options = {}) {
     updated,
     unchanged,
     financesBackfilled,
+    statusChecked: statusRefresh.checked,
+    statusCancelled: statusRefresh.marked,
     indexed: index.length,
     lastSyncedAt: now.toISOString(),
     lastError: null
@@ -6356,9 +6497,9 @@ const SHOPEE_SYNC_LOOKBACK_DAYS = 90;
 const SHOPEE_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
 const SHOPEE_SALES_INDEX_MAX = 5000;
 const SHOPEE_ORDER_WINDOW_SEC = 15 * 86400;
-const SHOPEE_PAID_STATUSES = new Set([
-  'READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED'
-]);
+/** Re-check indexed Shopee orders for CANCELLED / return refund. */
+const SHOPEE_STATUS_REFRESH_LIMIT = 40;
+const SHOPEE_STATUS_REFRESH_LOOKBACK_DAYS = 180;
 
 function shopeePartnerId(env) {
   return String(env.SHOPEE_PARTNER_ID || '').trim();
@@ -6748,11 +6889,12 @@ function normalizeShopeeOrder(detail, escrow) {
   const escrowAmt = rawEscrow != null ? roundMoney(rawEscrow) : null;
   const parts = shopeeReceiptFromEscrow(gross, escrowAmt, refunds);
   const soldAtSec = Number(order.pay_time || order.create_time || 0);
+  const status = shopeeEffectiveStatus(order.order_status, { refunds, gross });
   return {
     channel: 'shopee',
     externalId: String(order.order_sn || ''),
     soldAt: soldAtSec ? new Date(soldAtSec * 1000).toISOString() : null,
-    status: order.order_status || null,
+    status,
     currency: 'BRL',
     gross,
     fees: parts.fees,
@@ -6797,10 +6939,8 @@ async function fetchShopeeOrderSns(env, token, shopId, timeFrom, timeTo, timeRan
     const list = Array.isArray(data.response?.order_list) ? data.response.order_list : [];
     for (const row of list) {
       const status = String(row.order_status || '');
-      if (status && !SHOPEE_PAID_STATUSES.has(status) && status !== 'TO_RETURN' && status !== 'IN_CANCEL') {
-        if (status === 'UNPAID' || status === 'CANCELLED' || status === 'IN_CANCEL') continue;
-      }
-      if (status === 'UNPAID' || status === 'CANCELLED') continue;
+      // Só UNPAID fica de fora — CANCELLED/IN_CANCEL precisam atualizar o índice.
+      if (!shopeeOrderSnWorthSyncing(status)) continue;
       if (row.order_sn) sns.push(String(row.order_sn));
     }
     if (!data.response?.more) break;
@@ -6869,6 +7009,47 @@ async function backfillShopeeIndex(env, limit) {
   return { filled, remaining };
 }
 
+async function refreshShopeeIndexedSaleStatuses(env, token, shopId, index, options = {}) {
+  const limit = Math.max(0, Math.min(
+    Number(options.limit != null ? options.limit : SHOPEE_STATUS_REFRESH_LIMIT),
+    80
+  ));
+  const lookbackDays = Math.max(1, Number(
+    options.lookbackDays != null ? options.lookbackDays : SHOPEE_STATUS_REFRESH_LOOKBACK_DAYS
+  ));
+  const cutoff = Date.now() - lookbackDays * 86400000;
+  let checked = 0;
+  let marked = 0;
+  let scanned = 0;
+  const scanCap = Math.max(limit * 4, limit);
+
+  for (const sn of index || []) {
+    if (checked >= limit || scanned >= scanCap) break;
+    scanned += 1;
+    const sale = await loadMarketplaceSale(env, 'shopee', sn);
+    if (!sale) continue;
+    if (isDroppedMarketplaceSale(sale)) continue;
+    const soldAt = Date.parse(sale.soldAt || sale.dateCreated || '');
+    if (Number.isFinite(soldAt) && soldAt < cutoff) continue;
+
+    checked += 1;
+    const details = await fetchShopeeOrderDetails(env, token, shopId, [sn]);
+    const detail = details[0];
+    if (!detail) continue;
+    const escrow = await fetchShopeeEscrow(env, token, shopId, sn);
+    const next = normalizeShopeeOrder(detail, escrow);
+    if (!next.externalId || !isDroppedMarketplaceSale(next)) continue;
+    await saveMarketplaceSale(env, {
+      ...sale,
+      ...next,
+      shopeeCancelSynced: true
+    });
+    marked += 1;
+  }
+
+  return { checked, marked };
+}
+
 async function syncShopeeOrders(env, options = {}) {
   const tok = await getShopeeAccessToken(env);
   if (!tok?.token || !tok.shopId) throw new Error('Shopee sem token — autorize a loja no Admin.');
@@ -6896,7 +7077,11 @@ async function syncShopeeOrders(env, options = {}) {
     const sns = await fetchShopeeOrderSns(env, token, shopId, start, end, 'create_time');
     allSns.push(...sns);
   }
-  const updateFrom = Math.max(fromSec, nowSec - 14 * 86400);
+  // update_time: pega cancelamentos recentes de pedidos mais antigos
+  const updateFrom = Math.max(
+    nowSec - Math.min(365, Math.max(days, SHOPEE_STATUS_REFRESH_LOOKBACK_DAYS)) * 86400,
+    nowSec - 180 * 86400
+  );
   for (let start = updateFrom; start < nowSec; start += SHOPEE_ORDER_WINDOW_SEC) {
     const end = Math.min(start + SHOPEE_ORDER_WINDOW_SEC, nowSec);
     const sns = await fetchShopeeOrderSns(env, token, shopId, start, end, 'update_time');
@@ -6907,7 +7092,7 @@ async function syncShopeeOrders(env, options = {}) {
 
   for (const detail of details) {
     const status = String(detail.order_status || '');
-    if (status === 'UNPAID' || status === 'CANCELLED' || status === 'IN_CANCEL') continue;
+    if (!shopeeOrderDetailWorthSaving(status)) continue;
     const escrow = detail.order_sn
       ? await fetchShopeeEscrow(env, token, shopId, detail.order_sn)
       : null;
@@ -6920,6 +7105,17 @@ async function syncShopeeOrders(env, options = {}) {
     index = await upsertShopeeSale(env, sale, index);
   }
 
+  const statusRefreshLimit = Math.max(0, Number(
+    options.statusRefresh != null ? options.statusRefresh : SHOPEE_STATUS_REFRESH_LIMIT
+  ));
+  const statusRefresh = statusRefreshLimit > 0
+    ? await refreshShopeeIndexedSaleStatuses(env, token, shopId, index, {
+      limit: statusRefreshLimit,
+      lookbackDays: options.statusRefreshDays || SHOPEE_STATUS_REFRESH_LOOKBACK_DAYS
+    })
+    : { checked: 0, marked: 0 };
+  if (statusRefresh.marked > 0) updated += statusRefresh.marked;
+
   const report = {
     ok: true,
     shopId,
@@ -6930,6 +7126,8 @@ async function syncShopeeOrders(env, options = {}) {
     imported,
     updated,
     unchanged,
+    statusChecked: statusRefresh.checked,
+    statusCancelled: statusRefresh.marked,
     indexed: index.length,
     lastSyncedAt: new Date().toISOString(),
     lastError: null
