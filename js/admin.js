@@ -3506,8 +3506,6 @@ ${worksheets}
       navEl.closest('label')?.classList.toggle('is-disabled', !destino);
     }
     renderClicksStats(clicksMetaCache);
-    renderClicksWhenCharts(clicksWhenCache);
-    renderClicksNoiseStats(clicksWhenCache);
     const display = filterClicksLocally(clicksCache, q, destino, withNav);
     renderClicksTree(
       display,
@@ -3516,6 +3514,12 @@ ${worksheets}
       openPaths || captureClicksTreeOpenPaths()
     );
     updateClicksCoverageStatus({ fromCache: !!clicksMetaCache?._fromCache });
+    // Gráficos pesados depois do paint da árvore (evita “página sem resposta”).
+    window.setTimeout(() => {
+      if (!isClicksPanelVisible()) return;
+      renderClicksWhenCharts(clicksWhenCache);
+      renderClicksNoiseStats(clicksWhenCache);
+    }, 0);
   }
 
   function showPaymentBalancesFromCache() {
@@ -4712,22 +4716,10 @@ ${worksheets}
       Object.keys(y.months).forEach((monthNum) => {
         const m = y.months[monthNum];
         Object.keys(m.days).forEach((dateKey) => {
-          const d = m.days[dateKey];
-          Object.keys(d.visitors).forEach((vKey) => {
-            const v = d.visitors[vKey];
-            Object.keys(v.sessions).forEach((sKey) => {
-              const events = v.sessions[sKey];
-              if (!isUniqueOrRepeatOnlySession(events)) return;
-              const n = events.length;
-              delete v.sessions[sKey];
-              v.count -= n;
-              d.count -= n;
-              m.count -= n;
-              y.count -= n;
-            });
-            if (!Object.keys(v.sessions).length) delete d.visitors[vKey];
-          });
-          if (!Object.keys(d.visitors).length) delete m.days[dateKey];
+          pruneUniqueOrRepeatDay(m.days[dateKey], m, y);
+          if (!Object.keys(m.days[dateKey].visitors || {}).length && !m.days[dateKey]._raw?.length) {
+            delete m.days[dateKey];
+          }
         });
         if (!Object.keys(m.days).length) delete y.months[monthNum];
       });
@@ -4736,21 +4728,56 @@ ${worksheets}
     return tree;
   }
 
+  function pruneUniqueOrRepeatDay(d, m, y) {
+    if (!d?.visitors) return d;
+    Object.keys(d.visitors).forEach((vKey) => {
+      const v = d.visitors[vKey];
+      Object.keys(v.sessions || {}).forEach((sKey) => {
+        const events = v.sessions[sKey];
+        if (!isUniqueOrRepeatOnlySession(events)) return;
+        const n = events.length;
+        delete v.sessions[sKey];
+        v.count -= n;
+        d.count -= n;
+        if (m) m.count -= n;
+        if (y) y.count -= n;
+      });
+      if (!Object.keys(v.sessions || {}).length) delete d.visitors[vKey];
+    });
+    return d;
+  }
+
+  /** Árvore leve: só agrega por dia; visitantes/sessões sob demanda. */
   function buildClicksTree(clicks) {
     const tree = {};
     (clicks || []).forEach((c) => {
       const ts = c.ts || c.client_ts || 0;
       if (!ts) return;
       const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
-      const vKey = visitorKey(c);
       if (!tree[year]) tree[year] = { count: 0, months: {} };
       const y = tree[year];
       if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, days: {} };
       const m = y.months[monthNum];
-      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, visitors: {} };
+      if (!m.days[dateKey]) {
+        m.days[dateKey] = { label: dayLabel, count: 0, visitors: null, _raw: [], _finalized: false };
+      }
       const d = m.days[dateKey];
-      if (!d.visitors[vKey]) d.visitors[vKey] = { meta: c, count: 0, sessions: {} };
-      const v = d.visitors[vKey];
+      d._raw.push(c);
+      d.count++;
+      m.count++;
+      y.count++;
+    });
+    return tree;
+  }
+
+  function finalizeClicksDay(d) {
+    if (!d || d._finalized) return d;
+    const raw = Array.isArray(d._raw) ? d._raw : [];
+    const visitorsAcc = {};
+    raw.forEach((c) => {
+      const vKey = visitorKey(c);
+      if (!visitorsAcc[vKey]) visitorsAcc[vKey] = { meta: c, count: 0, _events: [] };
+      const v = visitorsAcc[vKey];
       if (c.dispositivo && (!v.meta.dispositivo || c.tipo === 'pageview')) {
         v.meta = { ...v.meta, dispositivo: c.dispositivo };
       }
@@ -4766,79 +4793,170 @@ ${worksheets}
           visitante_id: c.visitante_id || v.meta.visitante_id
         };
       }
-      // Acumula todos os eventos do visitante numa lista temporária.
-      // Vamos criar as "visitas lógicas" depois, usando uma janela temporal.
-      if (!v._events) v._events = [];
       v._events.push(c);
       v.count++;
-      d.count++;
-      m.count++;
-      y.count++;
     });
 
-    // Após agregar por visitante, convertemos os eventos acumulados em visitas lógicas
-    Object.values(tree).forEach((y) => {
-      Object.values(y.months).forEach((m) => {
-        Object.values(m.days).forEach((d) => {
-          Object.values(d.visitors).forEach((v) => {
-            // Se existirem eventos acumulados, gerar visitas lógicas (janela: 30 minutos)
-            const tmp = Array.isArray(v._events) ? v._events : [];
-            const visits = buildLogicalVisits(tmp, LOGICAL_VISIT_GAP_MS);
-            v.sessions = {};
-            visits.forEach((events, idx) => {
-              // Ordena cada visita e propaga dispositivo inferido
-              events.sort((a, b) => {
-                const sa = a.sequencia || 0;
-                const sb = b.sequencia || 0;
-                if (sa && sb && sa !== sb) return sa - sb;
-                return (a.ts || 0) - (b.ts || 0);
-              });
-              const dev = events.find((e) => (e.dispositivo && e.dispositivo !== '—') || e.user_agent)?.dispositivo
-                || (events.find((e) => e.user_agent)?.user_agent
-                  ? inferDispositivoFromUa(events.find((e) => e.user_agent).user_agent)
-                  : '');
-              if (dev) {
-                events.forEach((e) => {
-                  if (!e.dispositivo || e.dispositivo === '—') e.dispositivo = dev;
-                });
-              }
-              const key = `visit:${idx + 1}`;
-              v.sessions[key] = events;
-            });
-            // Limpamos o array temporário para não poluir a árvore final
-            delete v._events;
+    Object.values(visitorsAcc).forEach((v) => {
+      const tmp = Array.isArray(v._events) ? v._events : [];
+      const visits = buildLogicalVisits(tmp, LOGICAL_VISIT_GAP_MS);
+      v.sessions = {};
+      visits.forEach((events, idx) => {
+        events.sort((a, b) => {
+          const sa = a.sequencia || 0;
+          const sb = b.sequencia || 0;
+          if (sa && sb && sa !== sb) return sa - sb;
+          return (a.ts || 0) - (b.ts || 0);
+        });
+        const dev = events.find((e) => (e.dispositivo && e.dispositivo !== '—') || e.user_agent)?.dispositivo
+          || (events.find((e) => e.user_agent)?.user_agent
+            ? inferDispositivoFromUa(events.find((e) => e.user_agent).user_agent)
+            : '');
+        if (dev) {
+          events.forEach((e) => {
+            if (!e.dispositivo || e.dispositivo === '—') e.dispositivo = dev;
           });
-          const clusters = [];
-          Object.entries(d.visitors).forEach(([vKey, v]) => {
-            Object.values(v.sessions || {}).forEach((events) => {
-              const range = eventsTimeRange(events);
-              const place = (events || []).map(placeDeviceKey).find(Boolean) || '';
-              clusters.push({
-                events,
-                min: range.min,
-                max: range.max,
-                place,
-                key: vKey,
-                meta: v.meta
-              });
-            });
-          });
-          const next = {};
-          mergeAdjacentVisitClusters(clusters).forEach((cl) => {
-            const vKey = cl.key || visitorKey(cl.events[0] || {});
-            if (!next[vKey]) {
-              next[vKey] = { meta: cl.meta || cl.events[0], count: 0, sessions: {} };
-            }
-            const v = next[vKey];
-            v.count += (cl.events || []).length;
-            const n = Object.keys(v.sessions).length + 1;
-            v.sessions[`visit:${n}`] = cl.events;
-          });
-          d.visitors = next;
+        }
+        v.sessions[`visit:${idx + 1}`] = events;
+      });
+      delete v._events;
+    });
+
+    const clusters = [];
+    Object.entries(visitorsAcc).forEach(([vKey, v]) => {
+      Object.values(v.sessions || {}).forEach((events) => {
+        const range = eventsTimeRange(events);
+        const place = (events || []).map(placeDeviceKey).find(Boolean) || '';
+        clusters.push({
+          events,
+          min: range.min,
+          max: range.max,
+          place,
+          key: vKey,
+          meta: v.meta
         });
       });
     });
-    return tree;
+    const next = {};
+    mergeAdjacentVisitClusters(clusters).forEach((cl) => {
+      const vKey = cl.key || visitorKey(cl.events[0] || {});
+      if (!next[vKey]) {
+        next[vKey] = { meta: cl.meta || cl.events[0], count: 0, sessions: {} };
+      }
+      const v = next[vKey];
+      v.count += (cl.events || []).length;
+      const n = Object.keys(v.sessions).length + 1;
+      v.sessions[`visit:${n}`] = cl.events;
+    });
+    d.visitors = next;
+    d._raw = null;
+    d._finalized = true;
+    return d;
+  }
+
+  function lookupClicksDay(tree, dayPath) {
+    if (!tree || !dayPath) return null;
+    const parts = String(dayPath).split('|');
+    if (parts.length < 3) return null;
+    const [year, monthNum, dateKey] = parts;
+    return tree[year]?.months?.[monthNum]?.days?.[dateKey] || null;
+  }
+
+  function daySkeletonMeta(d) {
+    const raw = Array.isArray(d._raw) ? d._raw : [];
+    let visitorCount = 0;
+    let lastTs = 0;
+    if (d._finalized && d.visitors) {
+      visitorCount = Object.keys(d.visitors).length;
+      lastTs = Math.max(0, ...Object.values(d.visitors).flatMap((v) =>
+        Object.values(v.sessions || {}).flat().map((e) => Number(e.ts) || 0)
+      ));
+    } else {
+      const ids = new Set();
+      for (const c of raw) {
+        ids.add(visitorKey(c));
+        const t = Number(c.ts) || 0;
+        if (t > lastTs) lastTs = t;
+      }
+      visitorCount = ids.size;
+    }
+    const lastHint = lastTs ? ('último ' + formatClickTime(lastTs)) : '';
+    return {
+      visitorCount,
+      extra: visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's') + (lastHint ? ' · ' + lastHint : '')
+    };
+  }
+
+  function renderDayVisitorsHtml(d, dayPath) {
+    if (!d?.visitors || !Object.keys(d.visitors).length) {
+      return '<p class="admin-meta">Nenhum visitante neste dia com o filtro atual.</p>';
+    }
+    let html = '';
+    const visitors = Object.entries(d.visitors).sort((a, b) => {
+      const ta = Math.max(0, ...Object.values(a[1].sessions || {}).flat().map((e) => Number(e.ts) || 0));
+      const tb = Math.max(0, ...Object.values(b[1].sessions || {}).flat().map((e) => Number(e.ts) || 0));
+      return tb - ta;
+    });
+    visitors.forEach(([vKey, v]) => {
+      const sessionCount = Object.keys(v.sessions || {}).length;
+      const visitorPath = `${dayPath}|${escapeHtml(vKey)}`;
+      html += `<details class="clicks-tree-node clicks-tree-visitor" data-tree-path="${visitorPath}"><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
+      const sessions = Object.entries(v.sessions || {}).sort((a, b) => {
+        const ta = Math.max(0, ...a[1].map((e) => Number(e.ts) || 0));
+        const tb = Math.max(0, ...b[1].map((e) => Number(e.ts) || 0));
+        return tb - ta;
+      });
+      sessions.forEach(([sKey, events], si) => {
+        const ordered = [...events].sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
+        const start = formatClickTime(ordered[0]?.ts);
+        const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
+        const entradaEv = ordered.find((e) => e.tipo === 'pageview' || String(e.destino || '').startsWith('entrada_')) || ordered[0];
+        const origem = entradaEv ? clickOrigemLegivel(entradaEv) : null;
+        const passosMeta = origem && origem.label ? `${origemBadgeHtml(origem)} · passos` : 'passos';
+        const sessionPath = `${visitorPath}|${escapeHtml(sKey)}`;
+        html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"><summary>${clicksTreeSummary(pathLabel, ordered.length, passosMeta)}</summary>`;
+        html += '<ol class="clicks-tree-steps">';
+        ordered.forEach((c, idx) => { html += renderClickStep(c, idx); });
+        html += '</ol></details>';
+      });
+      html += '</div></details>';
+    });
+    return html;
+  }
+
+  let clicksTreeLive = null;
+  let clicksTreeHydrateWired = false;
+
+  function wireClicksTreeLazyHydrate() {
+    if (clicksTreeHydrateWired) return;
+    const root = document.getElementById('clicks-tree-root');
+    if (!root) return;
+    clicksTreeHydrateWired = true;
+    root.addEventListener('toggle', (ev) => {
+      const dayEl = ev.target;
+      if (!(dayEl instanceof HTMLDetailsElement)) return;
+      if (!dayEl.classList.contains('clicks-tree-day') || !dayEl.open) return;
+      hydrateClicksDayElement(dayEl);
+    });
+  }
+
+  function hydrateClicksDayElement(dayEl) {
+    const body = dayEl.querySelector(':scope > .clicks-tree-children');
+    if (!body || body.dataset.hydrated === '1') return;
+    const dayPath = dayEl.getAttribute('data-tree-path') || '';
+    const day = lookupClicksDay(clicksTreeLive, dayPath);
+    if (!day) {
+      body.innerHTML = '<p class="admin-meta">Dia não encontrado no cache.</p>';
+      body.dataset.hydrated = '1';
+      return;
+    }
+    body.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Montando visitas do dia…</p>';
+    window.setTimeout(() => {
+      finalizeClicksDay(day);
+      if (isClicksNavOnlyFilterOn()) pruneUniqueOrRepeatDay(day);
+      body.innerHTML = renderDayVisitorsHtml(day, dayPath);
+      body.dataset.hydrated = '1';
+    }, 0);
   }
 
   function clicksTreeSummary(label, count, extra) {
@@ -5015,20 +5133,18 @@ ${worksheets}
     const root = document.getElementById('clicks-tree-root');
     const checkedEl = document.getElementById('clicks-checked-at');
     if (!root) return;
+    wireClicksTreeLazyHydrate();
 
     if (!clicks?.length) {
+      clicksTreeLive = null;
       root.innerHTML = '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
     } else {
-      // Only day → visitor → visit path → steps (by time). No flat “ao vivo” list —
-      // that reused session sequencia across visitors and looked broken.
+      // Esqueleto ano→mês→dia só. Visitantes montam ao abrir o dia (lazy).
       const tree = buildClicksTree(clicks);
-      const navOnly = isClicksNavOnlyFilterOn();
-      if (navOnly) pruneUniqueOrRepeatSessions(tree);
+      clicksTreeLive = tree;
       const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
       if (!years.length) {
-        root.innerHTML = navOnly
-          ? '<p class="admin-meta">Nenhuma visita com navegação (2 destinos distintos). Desmarque <strong>Somente navegação</strong> para ver únicos/repetidos.</p>'
-          : '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
+        root.innerHTML = '<p class="admin-meta">Nenhum evento encontrado com esses filtros.</p>';
         if (checkedEl) {
           updateClicksCoverageStatus({ fromCache: !!clicksMetaCache?._fromCache });
         }
@@ -5050,49 +5166,9 @@ ${worksheets}
           const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
           days.forEach((dateKey) => {
             const d = m.days[dateKey];
-            const visitorCount = Object.keys(d.visitors).length;
             const dayPath = `${monthPath}|${dateKey}`;
-            const lastTs = Math.max(0, ...Object.values(d.visitors).flatMap((v) =>
-              Object.values(v.sessions).flat().map((e) => Number(e.ts) || 0)
-            ));
-            const lastHint = lastTs ? ('último ' + formatClickTime(lastTs)) : '';
-            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, visitorCount + ' visitante' + (visitorCount === 1 ? '' : 's') + (lastHint ? ' · ' + lastHint : ''))}</summary><div class="clicks-tree-children">`;
-
-            const visitors = Object.entries(d.visitors).sort((a, b) => {
-              const ta = Math.max(0, ...Object.values(a[1].sessions).flat().map((e) => Number(e.ts) || 0));
-              const tb = Math.max(0, ...Object.values(b[1].sessions).flat().map((e) => Number(e.ts) || 0));
-              return tb - ta;
-            });
-
-            visitors.forEach(([vKey, v]) => {
-              const sessionCount = Object.keys(v.sessions).length;
-              const visitorPath = `${dayPath}|${escapeHtml(vKey)}`;
-              html += `<details class="clicks-tree-node clicks-tree-visitor" data-tree-path="${visitorPath}"><summary>${clicksTreeSummary(visitorLabel(v.meta), v.count, sessionCount + ' visita' + (sessionCount === 1 ? '' : 's'))}</summary><div class="clicks-tree-children">`;
-
-              const sessions = Object.entries(v.sessions).sort((a, b) => {
-                const ta = Math.max(0, ...a[1].map((e) => Number(e.ts) || 0));
-                const tb = Math.max(0, ...b[1].map((e) => Number(e.ts) || 0));
-                return tb - ta;
-              });
-
-              sessions.forEach(([sKey, events], si) => {
-                const ordered = [...events].sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));
-                const start = formatClickTime(ordered[0]?.ts);
-                const pathLabel = sessionCount > 1 ? `Visita ${si + 1} · ${start}` : `Caminho · ${start}`;
-                const entradaEv = ordered.find((e) => e.tipo === 'pageview' || String(e.destino || '').startsWith('entrada_')) || ordered[0];
-                const origem = entradaEv ? clickOrigemLegivel(entradaEv) : null;
-                const passosMeta = origem && origem.label ? `${origemBadgeHtml(origem)} · passos` : 'passos';
-                const sessionPath = `${visitorPath}|${escapeHtml(sKey)}`;
-                html += `<details class="clicks-tree-node clicks-tree-path" data-tree-path="${sessionPath}"><summary>${clicksTreeSummary(pathLabel, ordered.length, passosMeta)}</summary>`;
-                html += '<ol class="clicks-tree-steps">';
-                ordered.forEach((c, idx) => { html += renderClickStep(c, idx); });
-                html += '</ol></details>';
-              });
-
-              html += '</div></details>';
-            });
-
-            html += '</div></details>';
+            const meta = daySkeletonMeta(d);
+            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, meta.extra)}</summary><div class="clicks-tree-children" data-hydrated="0"><p class="admin-meta">Abra o dia para carregar as visitas…</p></div></details>`;
           });
 
           html += '</div></details>';
@@ -5103,8 +5179,12 @@ ${worksheets}
 
       html += '</div>';
       root.innerHTML = html;
-      if (openPaths?.length) restoreClicksTreeOpenPaths(openPaths);
-      else openLatestClicksTreeDay(root);
+      if (openPaths?.length) {
+        restoreClicksTreeOpenPaths(openPaths);
+        root.querySelectorAll('details.clicks-tree-day[open]').forEach((el) => hydrateClicksDayElement(el));
+      } else {
+        openLatestClicksTreeDay(root);
+      }
     }
 
     if (checkedEl) {
@@ -5121,7 +5201,10 @@ ${worksheets}
     if (!month) return;
     month.open = true;
     const day = month.querySelector('details.clicks-tree-day');
-    if (day) day.open = true;
+    if (day) {
+      day.open = true;
+      hydrateClicksDayElement(day);
+    }
   }
 
   const CLICKS_NAV_ONLY_KEY = 'stf_clicks_nav_only_v2';
@@ -8061,18 +8144,19 @@ ${worksheets}
         syncClicksNavOnlyCheckbox();
         if (clicksCache.length && clicksMetaCache) {
           clicksMetaCache = { ...clicksMetaCache, _fromCache: true };
-          reapplyClicksLocalFilters(captureClicksTreeOpenPaths());
+          // Só pinta o cache. NÃO busca API ao abrir — isso travava o Chrome.
+          reapplyClicksLocalFilters([]);
           const ageMs = clicksSnapshotAgeMs();
-          // Cache velho (>15 min): atualiza em segundo plano sem travar a aba.
-          if (ageMs == null || ageMs > 15 * 60 * 1000) {
-            setClicksLoadStatus('Cache antigo — atualizando cliques em segundo plano…');
-            startClicksBackgroundLoad({ preserveOpen: true, force: true });
+          if (ageMs != null && ageMs > 15 * 60 * 1000) {
+            setClicksLoadStatus(
+              'Cache antigo — clique Atualizar para buscar na API (a árvore grande pode demorar alguns segundos).',
+              'warning'
+            );
           }
         } else if (clicksLoading) {
           setClicksLoadStatus('Carregando cliques…');
         } else {
           showClicksEmptyState();
-          startClicksBackgroundLoad({ preserveOpen: false, force: true });
         }
       } else if (id === 'saldos') {
         restoreMpAuditSnapshot();
