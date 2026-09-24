@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Minha conta — Auto Key Supply POC</title>
+  <meta name="description" content="Área do cliente mock." />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/aks.css" />
+</head>
+<body>
+  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
+        <span class="brand-meta">
+          <span class="brand-name">Auto Key Supply</span>
+          <span class="brand-badge">POC · 3N20</span>
+        </span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Principal">
+        <a href="index.html" class="">Início</a>
+        <a href="loja.html" class="">Loja</a>
+        <a href="carrinho.html" class="">Carrinho</a>
+        <a href="conta.html" class="is-active">Minha conta</a>
+        <a href="sobre.html" class="">Operação</a>
+        <a href="admin/" class="">Admin</a>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-switch" aria-label="Mercado">
+          <button type="button" class="is-on" data-lang="br">BR</button>
+          <button type="button" data-lang="usa">USA</button>
+        </div>
+        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
+        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-hero">
+      <h1>Área do cliente</h1>
+      <p>Pedidos, dados e endereços — tela mock para o comprador B2B.</p>
+    </div>
+    <div class="container account-layout">
+      <div class="panel">
+        <h2>Meus pedidos</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Pedido</th><th>Data</th><th>Status</th><th>Total</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>#AKS-10482</td><td>08/09/2026</td><td><span class="status status-ok">Entregue</span></td><td>R$ 418,40</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — detalhe do pedido">Ver</button></td></tr>
+              <tr><td>#AKS-10461</td><td>02/09/2026</td><td><span class="status status-info">Em trânsito</span></td><td>R$ 189,00</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — rastreio ilustrativo">Rastrear</button></td></tr>
+              <tr><td>#AKS-10412</td><td>21/08/2026</td><td><span class="status status-warn">Aguardando PIX</span></td><td>R$ 312,70</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — pagar pedido">Pagar</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <aside class="panel">
+        <h3>Conta</h3>
+        <p style="margin:0 0 .8rem;color:var(--steel)">Chaveiro Exemplo Ltda<br>contato@chaveiroexemplo.com.br</p>
+        <button class="btn btn-outline btn-block" type="button" data-poc="POC — editar cadastro">Editar cadastro</button>
+        <button class="btn btn-ghost btn-block" style="margin-top:.5rem" type="button" data-poc="POC — endereços salvos">Endereços</button>
+        <a class="btn btn-dark btn-block" style="margin-top:.5rem" href="loja.html">Continuar comprando</a>
+      </aside>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Rodapé">
+        <a href="index.html">Início</a>
+        <a href="loja.html">Loja</a>
+        <a href="checkout.html">Checkout</a>
+        <a href="admin/">Admin</a>
+        <a href="sobre.html">Operação</a>
+        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
+      </nav>
+    </div>
+  </footer>
+  <script src="js/aks.js"></script>
+</body>
+</html>
