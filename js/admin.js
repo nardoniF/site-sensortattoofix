@@ -4801,7 +4801,7 @@ ${worksheets}
     return d;
   }
 
-  /** Árvore completa: agrega por dia e já monta visitantes/sessões (Atualizar traz tudo). */
+  /** Agrega e finaliza visitantes/sessões de todos os dias (feito no Atualizar). */
   function buildClicksTree(clicks) {
     const tree = {};
     (clicks || []).forEach((c) => {
@@ -4984,39 +4984,6 @@ ${worksheets}
   }
 
   let clicksTreeLive = null;
-  let clicksTreeHydrateWired = false;
-
-  function wireClicksTreeLazyHydrate() {
-    if (clicksTreeHydrateWired) return;
-    const root = document.getElementById('clicks-tree-root');
-    if (!root) return;
-    clicksTreeHydrateWired = true;
-    root.addEventListener('toggle', (ev) => {
-      const dayEl = ev.target;
-      if (!(dayEl instanceof HTMLDetailsElement)) return;
-      if (!dayEl.classList.contains('clicks-tree-day') || !dayEl.open) return;
-      hydrateClicksDayElement(dayEl);
-    });
-  }
-
-  function hydrateClicksDayElement(dayEl) {
-    const body = dayEl.querySelector(':scope > .clicks-tree-children');
-    if (!body || body.dataset.hydrated === '1') return;
-    const dayPath = dayEl.getAttribute('data-tree-path') || '';
-    const day = lookupClicksDay(clicksTreeLive, dayPath);
-    if (!day) {
-      body.innerHTML = '<p class="admin-meta">Dia não encontrado no cache.</p>';
-      body.dataset.hydrated = '1';
-      return;
-    }
-    body.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Montando visitas do dia…</p>';
-    window.setTimeout(() => {
-      finalizeClicksDay(day);
-      if (isClicksNavOnlyFilterOn()) pruneUniqueOrRepeatDay(day);
-      body.innerHTML = renderDayVisitorsHtml(day, dayPath);
-      body.dataset.hydrated = '1';
-    }, 0);
-  }
 
   function clicksTreeSummary(label, count, extra) {
     const meta = count != null ? `<span class="clicks-tree-meta">${count} evento${count === 1 ? '' : 's'}${extra ? ' · ' + extra : ''}</span>` : '';
@@ -5242,8 +5209,9 @@ ${worksheets}
 
       html += '</div>';
       root.innerHTML = html;
+      // Só abre o ano — conteúdo dos dias já está no DOM (montado no Atualizar).
       if (openPaths?.length) restoreClicksTreeOpenPaths(openPaths);
-      else openLatestClicksTreeDay(root);
+      else openLatestClicksTreeYear(root);
     }
 
     if (checkedEl) {
@@ -5251,16 +5219,13 @@ ${worksheets}
     }
   }
 
-  /** Abre ano → mês → dia mais recente para ir direto ao log atual. */
-  function openLatestClicksTreeDay(root) {
+  function openLatestClicksTreeYear(root) {
     const year = root?.querySelector('details.clicks-tree-year');
-    if (!year) return;
-    year.open = true;
-    const month = year.querySelector('details.clicks-tree-month');
-    if (!month) return;
-    month.open = true;
-    const day = month.querySelector('details.clicks-tree-day');
-    if (day) day.open = true;
+    if (year) year.open = true;
+  }
+
+  function openLatestClicksTreeDay(root) {
+    openLatestClicksTreeYear(root);
   }
 
   const CLICKS_NAV_ONLY_KEY = 'stf_clicks_nav_only_v2';
@@ -5352,7 +5317,7 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao limpar log');
       clicksCache = [];
-      await startClicksBackgroundLoad({ preserveOpen: true, force: true });
+      await startClicksBackgroundLoad({ preserveOpen: false, force: true });
       const removed = data.removed || 0;
       showStatus(
         isAll
@@ -5445,6 +5410,24 @@ ${worksheets}
     el.hidden = false;
   }
 
+  function setClicksRefreshBusy(busy, label) {
+    const btn = document.getElementById('btn-clicks-refresh');
+    if (!btn) return;
+    if (busy) {
+      if (!btn.dataset.idleHtml) btn.dataset.idleHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ${label || 'Aguarde…'}`;
+    } else {
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      if (btn.dataset.idleHtml) {
+        btn.innerHTML = btn.dataset.idleHtml;
+        delete btn.dataset.idleHtml;
+      }
+    }
+  }
+
   function renderClicksFromCache(openPaths) {
     if (!clicksCache.length || !clicksMetaCache) return;
     renderClicksStats(clicksMetaCache);
@@ -5496,18 +5479,18 @@ ${worksheets}
     clicksLoading = true;
     const openPaths = preserveOpen ? captureClicksTreeOpenPaths() : [];
     const panelVisible = isClicksPanelVisible();
+    setClicksRefreshBusy(true, 'Aguarde…');
     setClicksLoadStatus(
       panelVisible
-        ? 'Carregando histórico de cliques…'
-        : 'Carregando cliques em segundo plano — você pode usar outras abas.'
+        ? 'Buscando e montando o log — a árvore só aparece pronta.'
+        : 'Carregando cliques em segundo plano…'
     );
-    if (panelVisible && !clicksCache.length) {
-      root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
+    if (panelVisible) {
+      root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Aguarde — buscando cliques…</p>';
     }
 
     try {
-      // Sempre busca o lote completo (últimos ~4000). Filtros de busca/destino
-      // aplicam só no cliente — evita “congelar” o cache num destino/dia.
+      setClicksRefreshBusy(true, 'Buscando…');
       const params = new URLSearchParams({ limit: '4000' });
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
         headers: { Authorization: 'Bearer ' + token },
@@ -5517,17 +5500,21 @@ ${worksheets}
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       clicksCache = data.clicks || [];
       const whenRaw = data.whenClicks?.length ? data.whenClicks : clicksCache;
-      // Cap defensivo: agregação de gráficos com dezenas de milhares trava o main thread.
       clicksWhenCache = whenRaw.length > 25000
         ? whenRaw.filter((_, i) => i % Math.ceil(whenRaw.length / 20000) === 0)
         : whenRaw;
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = { ...data, _savedAt: Date.now(), _fromCache: false };
       saveClicksSnapshot(data);
-      // Árvore primeiro; gráficos só depois (evita “Página sem resposta”).
-      reapplyClicksLocalFilters([]);
+
+      setClicksRefreshBusy(true, 'Montando…');
+      if (panelVisible) {
+        root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Aguarde — montando ano → mês → dia → visitas…</p>';
+      }
+      await new Promise((r) => window.setTimeout(r, 0));
+      reapplyClicksLocalFilters(openPaths);
       updateClicksCoverageStatus({ fromCache: false });
-      setClicksLoadStatus('Cliques atualizados.', 'success');
+      setClicksLoadStatus('Cliques atualizados — pode expandir.', 'success');
       window.setTimeout(() => setClicksLoadStatus(''), 2500);
     } catch (err) {
       if (isClicksPanelVisible()) {
@@ -5540,6 +5527,7 @@ ${worksheets}
       if (noise) noise.innerHTML = '';
     } finally {
       clicksLoading = false;
+      setClicksRefreshBusy(false);
     }
   }
 
@@ -8205,9 +8193,9 @@ ${worksheets}
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'cliques') {
         syncClicksNavOnlyCheckbox();
-        // Ao abrir a aba: não monta árvore. Só Atualizar traz tudo.
+        // Aba vazia até Atualizar. Sem aviso amarelo (já tem o cinza).
         if (clicksLoading) {
-          setClicksLoadStatus('Carregando cliques…');
+          setClicksLoadStatus('Montando cliques…');
         } else {
           showClicksEmptyState();
           setClicksLoadStatus('Clique Atualizar para carregar o log completo.', 'warning');
