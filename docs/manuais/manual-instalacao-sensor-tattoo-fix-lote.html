@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Manual de Instalação — Impressão em lote (10/folha)</title>
+    <title>Manual + cupom — 6 por folha A4 (Sensor TattooFix)</title>
     <style>
         @page {
             size: A4 portrait;
@@ -13,26 +13,10 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        :root {
-            --header-bg: #111111;
-            --accent: #ffc107;
-            --kit-bg: #fff3cd;
-            --kit-border: #ffc107;
-            --kit-title: #e65100;
-            --steps-bg: #dbeafe;
-            --steps-border: #42a5f5;
-            --steps-title: #1565c0;
-            --steps-num: #1565c0;
-            --steps-strong: #0d47a1;
-            --important-bg: #fff9c4;
-            --important-border: #ffc107;
-            --duvidas-bg: #eeeeee;
-        }
-
         body {
             font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
-            color: #1a1a1a;
-            background: #ddd;
+            color: #111;
+            background: #e8e8e8;
         }
 
         .no-print {
@@ -43,7 +27,7 @@
             border-bottom: 1px solid #ccc;
         }
 
-        .no-print p { margin-bottom: 8px; color: #444; }
+        .no-print p { margin-bottom: 8px; color: #444; max-width: 640px; margin-left: auto; margin-right: auto; }
 
         .no-print button,
         .no-print a.btn {
@@ -52,8 +36,8 @@
             padding: 10px 16px;
             border: none;
             border-radius: 8px;
-            background: #ffc107;
-            color: #111;
+            background: #111;
+            color: #fff;
             font-weight: 700;
             cursor: pointer;
             text-decoration: none;
@@ -62,6 +46,7 @@
 
         .no-print a.btn.secondary {
             background: #fff;
+            color: #111;
             border: 1px solid #ccc;
         }
 
@@ -80,18 +65,7 @@
                 width: 210mm;
                 height: 297mm;
                 max-height: 297mm;
-                padding: 2mm;
-                page-break-after: always;
-                page-break-inside: avoid;
-                overflow: hidden;
-            }
-            .sheet-cupons {
-                box-shadow: none;
-                margin: 0 !important;
-                width: 210mm;
-                height: 297mm;
-                max-height: 297mm;
-                padding: 0;
+                padding: 3mm;
                 page-break-after: avoid;
                 page-break-inside: avoid;
                 overflow: hidden;
@@ -103,142 +77,112 @@
             }
         }
 
+        /* 6 cartões maiores: 2 colunas × 3 linhas — 1 folha só */
         .sheet-lote {
             width: 210mm;
             height: 297mm;
-            margin: 10px auto;
-            padding: 2mm;
+            margin: 10px auto 24px;
+            padding: 3mm;
             background: #fff;
-            box-shadow: 0 2px 16px rgba(0,0,0,.15);
+            box-shadow: 0 2px 16px rgba(0,0,0,.12);
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: repeat(5, 1fr);
-            gap: 0;
-        }
-
-        .sheet-cupons {
-            width: 210mm;
-            height: 297mm;
-            margin: 10px auto 24px;
-            padding: 0;
-            background: #fff;
-            box-shadow: 0 2px 16px rgba(0,0,0,.15);
-            overflow: hidden;
-        }
-
-        .sheet-cupons img {
-            display: block;
-            width: 210mm;
-            height: 297mm;
-            object-fit: fill;
+            grid-template-rows: repeat(3, 1fr);
+            gap: 2mm;
         }
 
         .tile {
-            border: 0.35pt dashed #bbb;
-            padding: 1mm;
+            border: 0.6pt dashed #999;
+            padding: 2mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 0.5mm;
+            gap: 1.2mm;
             background: #fff;
             min-height: 0;
         }
 
-        /* ── Cabeçalho ── */
         .tile-head {
             display: flex;
             align-items: center;
-            gap: 1.6mm;
-            background: var(--header-bg);
-            border-radius: 3px;
-            padding: 0.9mm 1.2mm;
+            gap: 2mm;
+            border-bottom: 1pt solid #111;
+            padding-bottom: 1.2mm;
             flex-shrink: 0;
         }
 
         .tile-head img {
-            width: 7mm;
-            height: 7mm;
+            width: 11mm;
+            height: 11mm;
             border-radius: 50%;
-            object-fit: cover;
-            border: 0.5pt solid #ffc107;
+            object-fit: contain;
+            background: #000;
+            border: 0.6pt solid #111;
             flex-shrink: 0;
         }
 
         .tile-head h1 {
-            font-size: 7.5pt;
+            font-size: 11pt;
             line-height: 1.05;
             font-weight: 900;
-            color: #fff;
+            color: #111;
             letter-spacing: 0.02em;
         }
 
-        .tile-head h1 span { color: var(--accent); }
+        .tile-head h1 span { font-weight: 800; }
 
         .tile-head p {
-            font-size: 5.2pt;
-            color: #ccc;
-            margin-top: 0.2mm;
+            font-size: 6.5pt;
+            color: #555;
+            margin-top: 0.3mm;
         }
 
-        /* ── Corpo 2 colunas ── */
         .tile-body {
             display: grid;
-            grid-template-columns: 0.88fr 1.12fr;
-            gap: 0.85mm;
+            grid-template-columns: 0.85fr 1.15fr;
+            gap: 1.5mm;
             flex: 1;
             min-height: 0;
             align-items: stretch;
         }
 
         .panel {
-            border-radius: 3px;
-            padding: 0.85mm 1mm;
+            border: 0.5pt solid #ccc;
+            border-radius: 2px;
+            padding: 1.2mm 1.4mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             height: 100%;
             min-height: 0;
-        }
-
-        .panel-kit {
-            background: var(--kit-bg);
-            border: 0.5pt solid var(--kit-border);
-        }
-
-        .panel-steps {
-            background: var(--steps-bg);
-            border: 0.5pt solid var(--steps-border);
+            background: #fff;
         }
 
         h2 {
-            font-size: 6.2pt;
+            font-size: 7.5pt;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            margin-bottom: 0.5mm;
-            padding-bottom: 0.35mm;
-            border-bottom: 0.8pt solid currentColor;
+            margin-bottom: 0.8mm;
+            padding-bottom: 0.4mm;
+            border-bottom: 0.8pt solid #111;
+            color: #111;
             flex-shrink: 0;
         }
 
-        .panel-kit h2 { color: var(--kit-title); border-color: var(--accent); }
-        .panel-steps h2 { color: var(--steps-title); border-color: var(--steps-border); }
-
         .kit {
             list-style: none;
-            font-size: 6.5pt;
-            line-height: 1.28;
+            font-size: 7.2pt;
+            line-height: 1.3;
             flex: 1 1 auto;
             display: flex;
             flex-direction: column;
             justify-content: space-evenly;
             min-height: 0;
-            padding: 0.6mm 0 0.8mm;
         }
 
         .kit li {
-            margin-bottom: 0;
-            padding-left: 3.8mm;
+            padding-left: 4.2mm;
             position: relative;
         }
 
@@ -247,178 +191,234 @@
             position: absolute;
             left: 0;
             font-weight: 900;
-            color: var(--kit-title);
-            font-size: 6.5pt;
+            color: #111;
         }
 
         .steps {
             list-style: none;
             counter-reset: s;
-            font-size: 6.2pt;
-            line-height: 1.26;
+            font-size: 6.8pt;
+            line-height: 1.28;
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-evenly;
             min-height: 0;
-            padding: 0.4mm 0 0.6mm;
         }
 
         .steps li {
             counter-increment: s;
             position: relative;
-            padding-left: 4.2mm;
-            margin-bottom: 0;
+            padding-left: 4.8mm;
         }
 
         .steps li::before {
             content: counter(s);
             position: absolute;
             left: 0;
-            top: 0.1mm;
-            width: 3.6mm;
-            height: 3.6mm;
+            top: 0;
+            width: 3.8mm;
+            height: 3.8mm;
             border-radius: 50%;
-            background: var(--steps-num);
-            color: #fff;
+            border: 0.6pt solid #111;
+            background: #fff;
+            color: #111;
             font-size: 5.8pt;
             font-weight: 900;
             text-align: center;
             line-height: 3.6mm;
         }
 
-        .steps li strong { font-weight: 800; color: var(--steps-strong); }
+        .steps li strong { font-weight: 800; color: #111; }
 
-        /* ── Rodapé full-width (fora das colunas) ── */
         .tile-foot {
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 0.35mm;
+            gap: 0.9mm;
         }
 
-        .importante {
-            background: var(--important-bg);
-            border: 0.8pt solid var(--important-border);
-            border-radius: 3px;
-            padding: 0.5mm 0.9mm;
-            font-size: 5.8pt;
-            line-height: 1.15;
+        .avisos {
+            border: 0.6pt solid #bbb;
+            border-radius: 2px;
+            padding: 0.9mm 1.3mm;
+            background: #fff;
+            font-size: 6.2pt;
+            line-height: 1.2;
+            color: #222;
             display: flex;
             flex-wrap: wrap;
-            align-items: center;
-            gap: 0.6mm 1.8mm;
+            align-items: baseline;
+            gap: 0.4mm 1.6mm;
         }
 
-        .importante-label {
-            font-size: 5.8pt;
+        .avisos-label {
+            font-size: 6.2pt;
             font-weight: 900;
-            color: var(--kit-title);
             text-transform: uppercase;
             letter-spacing: 0.03em;
-            flex-shrink: 0;
+            color: #111;
         }
 
-        .importante-item {
+        .avisos-item {
             position: relative;
-            padding-left: 2mm;
+            padding-left: 2.2mm;
             white-space: nowrap;
         }
 
-        .importante-item::before {
-            content: "✓";
+        .avisos-item::before {
+            content: "•";
             position: absolute;
             left: 0;
-            color: #2e7d32;
             font-weight: 900;
         }
 
-        .duvidas {
-            background: var(--duvidas-bg);
-            border-radius: 3px;
-            padding: 0.5mm 0.9mm;
-            font-size: 5.8pt;
-            color: #444;
+        .cupom {
+            border: 1.2pt dashed #111;
+            border-radius: 2px;
+            padding: 1mm 1.4mm;
+            background: #fff;
             display: flex;
-            align-items: center;
             flex-wrap: wrap;
-            gap: 0.5mm 1.4mm;
+            align-items: baseline;
+            gap: 0.4mm 1.8mm;
             line-height: 1.15;
         }
 
-        .duvidas strong {
+        .cupom-label {
+            font-size: 6pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
             color: #111;
-            font-size: 5.8pt;
         }
 
-        .duvidas a {
-            color: #1565c0;
-            text-decoration: none;
-            font-weight: 600;
+        .cupom-code {
+            font-size: 10pt;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            color: #111;
+        }
+
+        .cupom-desc {
+            font-size: 6.2pt;
+            color: #333;
+            flex: 1 1 100%;
+        }
+
+        .contato {
+            border: 0.8pt solid #111;
+            border-radius: 2px;
+            padding: 1mm 1.3mm;
+            background: #fff;
+            display: grid;
+            grid-template-columns: 1fr 14mm;
+            gap: 1.2mm;
+            align-items: center;
+            font-size: 6pt;
+            color: #222;
+            line-height: 1.2;
+        }
+
+        .contato-copy strong {
+            display: block;
+            color: #111;
+            font-size: 6.6pt;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.4mm;
+        }
+
+        .contato-copy p { margin: 0; }
+
+        .contato .wa {
+            font-weight: 900;
+            font-size: 7.5pt;
+            color: #111;
+            white-space: nowrap;
+        }
+
+        .contato-qr {
+            width: 14mm;
+            height: 14mm;
+            object-fit: contain;
+            display: block;
+            border: 0.4pt solid #ccc;
+        }
+
+        .contato-scan {
+            font-size: 5.4pt;
+            color: #444;
+            margin-top: 0.3mm;
         }
     </style>
 </head>
 <body>
 
     <div class="no-print">
-        <p><strong>Impressão em lote</strong> — 10 manuais por folha A4 + 1 folha de cupons MEUKIT10</p>
-        <p style="font-size:12px;color:#555;max-width:620px;margin:0 auto 10px;">Na impressão: <strong>Escala 100%</strong> · <strong>Margens: Nenhuma</strong> (Chrome) · marque <strong>Gráficos de fundo</strong> · saem <strong>2 páginas</strong> (manuais + cupons). PDF nítido dos cupons: <a href="../cupons/cupons-meukit10-a4.pdf" target="_blank" rel="noopener">cupons-meukit10-a4.pdf</a>.</p>
+        <p><strong>1 folha A4</strong> — 6 cartões (manual + avisos + cupom MEUKIT10 + QR WhatsApp). Sem segunda folha.</p>
+        <p style="font-size:12px;color:#555;">Impressão: <strong>Escala 100%</strong> · <strong>Margens: Nenhuma</strong> · fundo branco (economiza tinta). Recorte nas linhas tracejadas.</p>
         <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
-        <a class="btn secondary" href="../cupons/cupons-meukit10-a4.pdf" target="_blank" rel="noopener">Só cupons (PDF)</a>
         <a class="btn secondary" href="manual-instalacao-sensor-tattoo-fix.html">Versão completa (1 por folha)</a>
     </div>
 
-    <div class="sheet-lote" id="sheet-lote" aria-label="Folha com 10 manuais"></div>
-
-    <div class="sheet-cupons" aria-label="Folha de cupons MEUKIT10">
-        <img src="../../images/docs/cupons/cupons-meukit10-a4.png" alt="Cupons MEUKIT10 — Sensor Tattoo Fix" width="1272" height="1800">
-    </div>
+    <div class="sheet-lote" id="sheet-lote" aria-label="Folha com 6 manuais + cupom + WhatsApp"></div>
 
     <template id="tile-template">
         <article class="tile">
             <header class="tile-head">
-                <img src="../../images/brand/logo.jpg" alt="">
+                <img src="../../images/brand/logo-esfera.png" alt="">
                 <div>
-                    <h1>SENSOR <span>TATTOO FIX</span></h1>
+                    <h1>SENSOR <span>TATTOOFIX</span></h1>
                     <p>Manual de instalação · Tecnologia 3N20</p>
                 </div>
             </header>
 
             <div class="tile-body">
-                <section class="panel panel-kit">
+                <section class="panel">
                     <h2>Kit</h2>
                     <ul class="kit">
                         <li data-n="1">Lenço com álcool isopropílico</li>
-                        <li data-n="2">Lente Sensor Tattoo Fix</li>
+                        <li data-n="2">Lente Sensor TattooFix</li>
                         <li data-n="3">Vidro de potencializador</li>
                         <li data-n="4">Bastão aplicador</li>
-                        <li data-n="5">Manual + folhas de desconto</li>
+                        <li data-n="5">Manual</li>
                     </ul>
                 </section>
-                <section class="panel panel-steps">
+                <section class="panel">
                     <h2>Passo a passo</h2>
                     <ol class="steps">
-                        <li><strong>Limpe</strong> o sensor com o lenço de álcool e aguarde secar <strong>10&nbsp;s</strong> até evaporar.</li>
-                        <li><strong>Retire o liner.</strong> Use a aba; não toque no adesivo.</li>
-                        <li>Passe um pouco do <strong>potencializador</strong> no sensor com o bastão, camada fina.</li>
+                        <li><strong>Limpe</strong> o sensor com o lenço e aguarde secar <strong>10&nbsp;s</strong>.</li>
+                        <li><strong>Retire o liner</strong> pela aba; não toque no adesivo.</li>
+                        <li>Passe <strong>potencializador</strong> fino no sensor com o bastão.</li>
                         <li><strong>Cole</strong> bem no centro do sensor.</li>
-                        <li><strong>Pressão firme e uniforme</strong> por cerca de <strong>30&nbsp;s</strong>.</li>
-                        <li><strong>Cura:</strong> <strong>48&nbsp;h</strong> para atividades físicas · <strong>72&nbsp;h</strong> para molhar.</li>
+                        <li><strong>Pressão firme</strong> por cerca de <strong>30&nbsp;s</strong>.</li>
+                        <li><strong>Cura:</strong> 48&nbsp;h atividade · 72&nbsp;h para molhar.</li>
                     </ol>
                 </section>
             </div>
 
             <footer class="tile-foot">
-                <div class="importante">
-                    <span class="importante-label">Importante:</span>
-                    <span class="importante-item">Ative a detecção de pulso</span>
-                    <span class="importante-item">Sempre use o carregador original</span>
+                <div class="avisos">
+                    <span class="avisos-label">Avisos:</span>
+                    <span class="avisos-item">Ative a detecção de pulso</span>
+                    <span class="avisos-item">Use sempre o carregador original</span>
+                    <span class="avisos-item">Cura 48&nbsp;h atividade · 72&nbsp;h para molhar</span>
                 </div>
-                <div class="duvidas">
-                    <strong>Dúvidas:</strong>
-                    <span><a href="https://www.sensortattoofix.com.br">www.sensortattoofix.com.br</a></span>
-                    <span><a href="https://wa.me/5511913394665">WhatsApp (11) 91339-4665</a></span>
-                    <span style="flex-basis:100%;font-weight:700;color:#222;">Qualquer problema, fale conosco pelo WhatsApp.</span>
+                <div class="cupom">
+                    <span class="cupom-label">Cupom</span>
+                    <span class="cupom-code">MEUKIT10</span>
+                    <span class="cupom-desc">10% de desconto na próxima compra em <strong>www.sensortattoofix.com.br</strong> — digite o código no checkout.</span>
+                </div>
+                <div class="contato">
+                    <div class="contato-copy">
+                        <strong>Antes de abrir uma reclamação</strong>
+                        <p>Dúvida na instalação ou a lente não funcionou? Fale conosco no WhatsApp — resolvemos rápido (reenvio, troca ou orientação).</p>
+                        <p><span class="wa">(11) 91339-4665</span></p>
+                        <p class="contato-scan">Aponte a câmera no QR para abrir o chat.</p>
+                    </div>
+                    <img class="contato-qr" src="../../images/docs/qr-whatsapp-tattoo-fix.png" alt="QR WhatsApp (11) 91339-4665" width="120" height="120">
                 </div>
             </footer>
         </article>
@@ -428,7 +428,7 @@
         (function () {
             var tpl = document.getElementById('tile-template');
             var sheet = document.getElementById('sheet-lote');
-            for (var i = 0; i < 10; i++) {
+            for (var i = 0; i < 6; i++) {
                 sheet.appendChild(tpl.content.cloneNode(true));
             }
         })();
