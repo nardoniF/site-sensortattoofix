@@ -234,23 +234,58 @@
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 1mm;
+            gap: 0.9mm;
+        }
+
+        .avisos {
+            border: 0.6pt solid #bbb;
+            border-radius: 2px;
+            padding: 0.9mm 1.3mm;
+            background: #fff;
+            font-size: 6.2pt;
+            line-height: 1.2;
+            color: #222;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 0.4mm 1.6mm;
+        }
+
+        .avisos-label {
+            font-size: 6.2pt;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #111;
+        }
+
+        .avisos-item {
+            position: relative;
+            padding-left: 2.2mm;
+            white-space: nowrap;
+        }
+
+        .avisos-item::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            font-weight: 900;
         }
 
         .cupom {
             border: 1.2pt dashed #111;
             border-radius: 2px;
-            padding: 1.2mm 1.5mm;
+            padding: 1mm 1.4mm;
             background: #fff;
             display: flex;
             flex-wrap: wrap;
             align-items: baseline;
-            gap: 0.6mm 2mm;
-            line-height: 1.2;
+            gap: 0.4mm 1.8mm;
+            line-height: 1.15;
         }
 
         .cupom-label {
-            font-size: 6.5pt;
+            font-size: 6pt;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.04em;
@@ -258,51 +293,70 @@
         }
 
         .cupom-code {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: 900;
             letter-spacing: 0.06em;
             color: #111;
         }
 
         .cupom-desc {
-            font-size: 6.8pt;
+            font-size: 6.2pt;
             color: #333;
             flex: 1 1 100%;
         }
 
         .contato {
-            border: 0.6pt solid #bbb;
+            border: 0.8pt solid #111;
             border-radius: 2px;
-            padding: 1.2mm 1.5mm;
+            padding: 1mm 1.3mm;
             background: #fff;
-            font-size: 6.6pt;
+            display: grid;
+            grid-template-columns: 1fr 14mm;
+            gap: 1.2mm;
+            align-items: center;
+            font-size: 6pt;
             color: #222;
-            line-height: 1.25;
+            line-height: 1.2;
         }
 
-        .contato strong {
+        .contato-copy strong {
+            display: block;
             color: #111;
-            font-size: 6.8pt;
+            font-size: 6.6pt;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.4mm;
         }
+
+        .contato-copy p { margin: 0; }
 
         .contato .wa {
-            font-weight: 800;
-            font-size: 8pt;
+            font-weight: 900;
+            font-size: 7.5pt;
             color: #111;
             white-space: nowrap;
         }
 
-        .contato a {
-            color: #111;
-            font-weight: 700;
-            text-decoration: underline;
+        .contato-qr {
+            width: 14mm;
+            height: 14mm;
+            object-fit: contain;
+            display: block;
+            border: 0.4pt solid #ccc;
+        }
+
+        .contato-scan {
+            font-size: 5.4pt;
+            color: #444;
+            margin-top: 0.3mm;
         }
     </style>
 </head>
 <body>
 
     <div class="no-print">
-        <p><strong>1 folha A4</strong> — 6 cartões (manual + cupom MEUKIT10 + WhatsApp). Sem segunda folha de cupons.</p>
+        <p><strong>1 folha A4</strong> — 6 cartões (manual + avisos + cupom MEUKIT10 + QR WhatsApp). Sem segunda folha.</p>
         <p style="font-size:12px;color:#555;">Impressão: <strong>Escala 100%</strong> · <strong>Margens: Nenhuma</strong> · fundo branco (economiza tinta). Recorte nas linhas tracejadas.</p>
         <button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
         <a class="btn secondary" href="manual-instalacao-sensor-tattoo-fix.html">Versão completa (1 por folha)</a>
@@ -345,17 +399,25 @@
             </div>
 
             <footer class="tile-foot">
+                <div class="avisos">
+                    <span class="avisos-label">Avisos:</span>
+                    <span class="avisos-item">Ative a detecção de pulso</span>
+                    <span class="avisos-item">Use sempre o carregador original</span>
+                    <span class="avisos-item">Cura 48&nbsp;h atividade · 72&nbsp;h para molhar</span>
+                </div>
                 <div class="cupom">
                     <span class="cupom-label">Cupom</span>
                     <span class="cupom-code">MEUKIT10</span>
                     <span class="cupom-desc">10% de desconto na próxima compra em <strong>www.sensortattoofix.com.br</strong> — digite o código no checkout.</span>
                 </div>
                 <div class="contato">
-                    <strong>Dúvida, problema ou devolução?</strong>
-                    Fale conosco no WhatsApp
-                    <span class="wa">(11) 91339-4665</span>
-                    · ou entre no site e acesse nosso WhatsApp:
-                    <a href="https://www.sensortattoofix.com.br">www.sensortattoofix.com.br</a>
+                    <div class="contato-copy">
+                        <strong>Antes de abrir uma reclamação</strong>
+                        <p>Dúvida na instalação ou a lente não funcionou? Fale conosco no WhatsApp — resolvemos rápido (reenvio, troca ou orientação).</p>
+                        <p><span class="wa">(11) 91339-4665</span></p>
+                        <p class="contato-scan">Aponte a câmera no QR para abrir o chat.</p>
+                    </div>
+                    <img class="contato-qr" src="../../images/docs/qr-whatsapp-tattoo-fix.png" alt="QR WhatsApp (11) 91339-4665" width="120" height="120">
                 </div>
             </footer>
         </article>
