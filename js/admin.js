@@ -1694,108 +1694,111 @@
     </section>`;
   }
 
-  /** Segunda-feira (YYYY-MM-DD, fuso SP) da semana que contém ts. */
-  function brMondayKey(ts) {
-    return brWeekBucket(ts || Date.now()).key;
+  /**
+   * Semanas do calendário do mês (não ISO):
+   * 1ª = dia 1 → primeiro domingo; depois seg→dom; última = seg → último dia do mês.
+   * Ex. set/2026: 1–6, 7–13, 14–20, 21–27, 28–30.
+   */
+  function monthCalendarWeeks(year, monthNum) {
+    const y = String(year);
+    const ym = String(monthNum).padStart(2, '0');
+    const last = daysInCalendarMonth(y, ym);
+    const dow = new Date(Date.UTC(Number(y), Number(ym) - 1, 1, 12, 0, 0)).getUTCDay();
+    const mon0 = dow === 0 ? 6 : dow - 1;
+    const firstEnd = Math.min(mon0 === 6 ? 1 : 1 + (6 - mon0), last);
+    const weeks = [];
+    let start = 1;
+    let end = firstEnd;
+    weeks.push({ index: 1, startDay: start, endDay: end });
+    start = end + 1;
+    while (start <= last) {
+      end = Math.min(start + 6, last);
+      weeks.push({ index: weeks.length + 1, startDay: start, endDay: end });
+      start = end + 1;
+    }
+    return weeks;
   }
 
-  function parseYmdUtcNoon(ymd) {
-    const [y, m, d] = String(ymd || '').split('-').map(Number);
-    return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-  }
-
-  function formatYmdUtc(dt) {
-    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
-  }
-
-  function shiftMondayKey(mondayKey, deltaWeeks) {
-    const dt = parseYmdUtcNoon(mondayKey);
-    dt.setUTCDate(dt.getUTCDate() + (Number(deltaWeeks) || 0) * 7);
-    return formatYmdUtc(dt);
-  }
-
-  /** 0 = segunda … 6 = domingo (calendário SP via brLocalYmd). */
-  function brWeekdayOffsetMon0(ts) {
-    const ymd = brLocalYmd(ts);
-    const [y, m, d] = ymd.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-    const dow = date.getUTCDay();
-    return dow === 0 ? 6 : dow - 1;
-  }
-
-  function formatBrDayMonth(ymd) {
-    const [y, m, d] = String(ymd || '').split('-');
-    if (!y || !m || !d) return '—';
-    return `${d}/${m}`;
-  }
-
-  /** Vendas da semana (seg→throughOffset) no mesmo recorte WTD das outras semanas. */
-  function salesWeekToDate(sales, mondayKey, throughOffsetMon0) {
-    const mon = parseYmdUtcNoon(mondayKey);
-    const end = new Date(mon);
-    end.setUTCDate(mon.getUTCDate() + Math.max(0, Math.min(6, Number(throughOffsetMon0) || 0)));
-    const startKey = mondayKey;
-    const endKey = formatYmdUtc(end);
+  function salesInMonthDayRange(sales, year, monthNum, startDay, endDay) {
+    const y = String(year);
+    const ym = String(monthNum).padStart(2, '0');
+    const from = Math.max(1, Number(startDay) || 1);
+    const to = Math.max(from, Number(endDay) || from);
     return (sales || []).filter((s) => {
       if (!s._ts) return false;
-      const ymd = brLocalYmd(s._ts);
-      return ymd >= startKey && ymd <= endKey;
+      const p = brDateParts(s._ts);
+      if (p.year !== y || p.monthNum !== ym) return false;
+      const d = Number(p.day);
+      return d >= from && d <= to;
     });
   }
 
   function renderConsolidadoWeekCompare(sales) {
-    const nowTs = Date.now();
-    const thisMonday = brMondayKey(nowTs);
-    const through = brWeekdayOffsetMon0(nowTs);
-    const titles = {
-      0: 'Esta semana',
-      '-1': 'Semana passada',
-      '-2': 'Há 2 semanas'
-    };
-    const weeks = [0, -1, -2].map((delta) => {
-      const mondayKey = shiftMondayKey(thisMonday, delta);
-      const subset = salesWeekToDate(sales, mondayKey, through);
-      const endKey = formatYmdUtc((() => {
-        const e = parseYmdUtcNoon(mondayKey);
-        e.setUTCDate(e.getUTCDate() + through);
-        return e;
-      })());
+    const now = brDateParts(Date.now());
+    const dayNum = Number(now.day);
+    const monthSpecs = [
+      { delta: -2 },
+      { delta: -1 },
+      { delta: 0 }
+    ];
+    const months = monthSpecs.map(({ delta }) => {
+      const ym = shiftYearMonth(now.year, now.monthNum, delta);
+      const weeks = monthCalendarWeeks(ym.year, ym.monthNum).map((w) => {
+        const subset = salesInMonthDayRange(sales, ym.year, ym.monthNum, w.startDay, w.endDay);
+        const containsToday = delta === 0 && dayNum >= w.startDay && dayNum <= w.endDay;
+        return {
+          ...w,
+          rangeLabel: `${w.startDay}–${w.endDay}`,
+          name: `${w.index}ª semana`,
+          tot: sumAnnotated(subset),
+          containsToday
+        };
+      });
       return {
         delta,
-        mondayKey,
-        rangeLabel: `${formatBrDayMonth(mondayKey)}–${formatBrDayMonth(endKey)}`,
-        name: titles[String(delta)] || 'Semana',
-        tot: sumAnnotated(subset)
+        year: ym.year,
+        monthNum: ym.monthNum,
+        name: MONTH_LABELS[ym.monthNum] || ym.monthNum,
+        weeks
       };
     });
-    const ordered = [weeks[2], weeks[1], weeks[0]];
-    const prev = ordered[1];
-    const hint = prev
-      ? `${prev.name} · ${formatSalesBRL(prev.tot.net)}`
+    const current = months[2];
+    const hintWeek = current?.weeks?.find((w) => w.containsToday) || current?.weeks?.[current.weeks.length - 1];
+    const hint = current && hintWeek
+      ? `${current.name} · ${hintWeek.name} ${hintWeek.rangeLabel} · ${formatSalesBRL(hintWeek.tot.net)}`
       : '—';
-    const cards = ordered.map((row, i) => {
-      const prevRow = i > 0 ? ordered[i - 1] : null;
-      const netDelta = prevRow ? formatMtdDelta(row.tot.net, prevRow.tot.net) : '';
-      const netClass = prevRow
-        ? (row.tot.net > prevRow.tot.net ? ' is-up' : (row.tot.net < prevRow.tot.net ? ' is-down' : ' is-same'))
-        : '';
-      const countDelta = prevRow ? formatMtdDelta(row.tot.count, prevRow.tot.count) : '';
-      const countClass = prevRow
-        ? (row.tot.count > prevRow.tot.count ? ' is-up' : (row.tot.count < prevRow.tot.count ? ' is-down' : ' is-same'))
-        : '';
-      const isCurrent = row.delta === 0;
-      const netPct = netDelta
-        ? ` <span class="vendas-consol-mtd-pct${netClass}">(${escapeHtml(netDelta)})</span>`
-        : '';
-      const countPct = countDelta
-        ? ` <span class="vendas-consol-mtd-pct${countClass}">(${escapeHtml(countDelta)})</span>`
-        : '';
-      return `<article class="vendas-consol-mtd-card vendas-consol-weeks-card${isCurrent ? ' is-current' : ''}">
-        <h4>${escapeHtml(row.name)}</h4>
-        <p class="vendas-consol-mtd-range">${escapeHtml(row.rangeLabel)}</p>
-        <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${netPct}</p>
-        <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}</p>
-      </article>`;
+    const sections = months.map((month) => {
+      const yearNote = month.year !== now.year ? ` ${month.year}` : '';
+      const cards = month.weeks.map((row, i) => {
+        const prevRow = i > 0 ? month.weeks[i - 1] : null;
+        const netDelta = prevRow ? formatMtdDelta(row.tot.net, prevRow.tot.net) : '';
+        const netClass = prevRow
+          ? (row.tot.net > prevRow.tot.net ? ' is-up' : (row.tot.net < prevRow.tot.net ? ' is-down' : ' is-same'))
+          : '';
+        const countDelta = prevRow ? formatMtdDelta(row.tot.count, prevRow.tot.count) : '';
+        const countClass = prevRow
+          ? (row.tot.count > prevRow.tot.count ? ' is-up' : (row.tot.count < prevRow.tot.count ? ' is-down' : ' is-same'))
+          : '';
+        const netPct = netDelta
+          ? ` <span class="vendas-consol-mtd-pct${netClass}">(${escapeHtml(netDelta)})</span>`
+          : '';
+        const countPct = countDelta
+          ? ` <span class="vendas-consol-mtd-pct${countClass}">(${escapeHtml(countDelta)})</span>`
+          : '';
+        return `<article class="vendas-consol-mtd-card vendas-consol-weeks-card${row.containsToday ? ' is-current' : ''}">
+          <h4>${escapeHtml(row.name)}</h4>
+          <p class="vendas-consol-mtd-range">dias ${escapeHtml(row.rangeLabel)}</p>
+          <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${netPct}</p>
+          <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}</p>
+        </article>`;
+      }).join('');
+      return `<section class="vendas-consol-weeks-month" aria-label="${escapeHtml(month.name)}${escapeHtml(yearNote)}">
+        <header class="vendas-consol-mtd-head">
+          <h3>${escapeHtml(month.name)}${escapeHtml(yearNote)}</h3>
+          <p>${month.weeks.length} semana${month.weeks.length === 1 ? '' : 's'} do mês</p>
+        </header>
+        <div class="vendas-consol-mtd-grid">${cards}</div>
+      </section>`;
     }).join('');
     return `<details class="admin-fold vendas-consol-weeks-fold" id="vendas-consol-weeks-fold" data-fold-key="vendas-semanas">
       <summary class="admin-fold-summary">
@@ -1804,8 +1807,8 @@
         <span class="admin-fold-hint">${escapeHtml(hint)}</span>
       </summary>
       <div class="admin-fold-body">
-        <p class="admin-meta vendas-consol-weeks-note">Mesmo recorte da semana (segunda → hoje), nas 3 semanas — fuso São Paulo.</p>
-        <div class="vendas-consol-mtd-grid">${cards}</div>
+        <p class="admin-meta vendas-consol-weeks-note">Semanas do mês: dia 1 → domingo; depois segunda→domingo; última até o fim do mês. Cobre todos os dias — fuso São Paulo.</p>
+        ${sections}
       </div>
     </details>`;
   }

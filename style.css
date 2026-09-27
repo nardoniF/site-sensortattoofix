@@ -4959,6 +4959,12 @@ body.admin-page.pedidos-login-only #pedidos-login {
   font-size: 0.85rem;
 }
 
+.vendas-consol-weeks-month + .vendas-consol-weeks-month {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .vendas-consol-days-fold {
     margin-top: 12px;
 }

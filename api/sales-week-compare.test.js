@@ -1,5 +1,5 @@
 /**
- * Comparativo de semanas (WTD) — lógica espelhada do Admin consolidado.
+ * Semanas do calendário do mês (1º→domingo; seg→dom; última até fim) — Admin consolidado.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,56 +9,63 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-function parseYmdUtcNoon(ymd) {
-  const [y, m, d] = String(ymd || '').split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+function daysInCalendarMonth(year, monthNum) {
+  return new Date(Date.UTC(Number(year), Number(monthNum), 0)).getUTCDate();
 }
 
-function formatYmdUtc(dt) {
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+function monthCalendarWeeks(year, monthNum) {
+  const y = String(year);
+  const ym = String(monthNum).padStart(2, '0');
+  const last = daysInCalendarMonth(y, ym);
+  const dow = new Date(Date.UTC(Number(y), Number(ym) - 1, 1, 12, 0, 0)).getUTCDay();
+  const mon0 = dow === 0 ? 6 : dow - 1;
+  const firstEnd = Math.min(mon0 === 6 ? 1 : 1 + (6 - mon0), last);
+  const weeks = [];
+  let start = 1;
+  let end = firstEnd;
+  weeks.push({ index: 1, startDay: start, endDay: end });
+  start = end + 1;
+  while (start <= last) {
+    end = Math.min(start + 6, last);
+    weeks.push({ index: weeks.length + 1, startDay: start, endDay: end });
+    start = end + 1;
+  }
+  return weeks;
 }
 
-function shiftMondayKey(mondayKey, deltaWeeks) {
-  const dt = parseYmdUtcNoon(mondayKey);
-  dt.setUTCDate(dt.getUTCDate() + (Number(deltaWeeks) || 0) * 7);
-  return formatYmdUtc(dt);
-}
-
-function salesWeekToDate(sales, mondayKey, throughOffsetMon0) {
-  const mon = parseYmdUtcNoon(mondayKey);
-  const end = new Date(mon);
-  end.setUTCDate(mon.getUTCDate() + Math.max(0, Math.min(6, Number(throughOffsetMon0) || 0)));
-  const startKey = mondayKey;
-  const endKey = formatYmdUtc(end);
-  return (sales || []).filter((s) => {
-    const ymd = String(s.ymd || '');
-    return ymd >= startKey && ymd <= endKey;
+test('setembro/2026: 1–6, 7–13, 14–20, 21–27, 28–30', () => {
+  const weeks = monthCalendarWeeks(2026, '09');
+  assert.deepEqual(
+    weeks.map((w) => [w.startDay, w.endDay]),
+    [
+      [1, 6],
+      [7, 13],
+      [14, 20],
+      [21, 27],
+      [28, 30]
+    ]
+  );
+  // nenhum dia de fora
+  const covered = new Set();
+  weeks.forEach((w) => {
+    for (let d = w.startDay; d <= w.endDay; d += 1) covered.add(d);
   });
-}
-
-test('shiftMondayKey: −1 semana a partir de segunda 22/09/2026', () => {
-  assert.equal(shiftMondayKey('2026-09-22', -1), '2026-09-15');
-  assert.equal(shiftMondayKey('2026-09-22', -2), '2026-09-08');
+  assert.equal(covered.size, 30);
+  for (let d = 1; d <= 30; d += 1) assert.ok(covered.has(d), `dia ${d}`);
 });
 
-test('salesWeekToDate: WTD segunda→quarta (offset 2)', () => {
-  const monday = '2026-09-22';
-  const sales = [
-    { ymd: '2026-09-21', net: 10 }, // domingo anterior — fora
-    { ymd: '2026-09-22', net: 20 },
-    { ymd: '2026-09-23', net: 30 },
-    { ymd: '2026-09-24', net: 40 },
-    { ymd: '2026-09-25', net: 50 } // quinta — fora do WTD até quarta
-  ];
-  const subset = salesWeekToDate(sales, monday, 2);
-  assert.deepEqual(subset.map((s) => s.ymd), ['2026-09-22', '2026-09-23', '2026-09-24']);
+test('mês que começa na segunda: 1ª semana 1–7', () => {
+  // junho/2026 começa na segunda
+  const weeks = monthCalendarWeeks(2026, '06');
+  assert.deepEqual([weeks[0].startDay, weeks[0].endDay], [1, 7]);
 });
 
-test('admin.js expõe fold Comparativo de semanas', () => {
+test('admin.js usa semanas do mês no fold', () => {
   const src = fs.readFileSync(path.join(root, 'js', 'admin.js'), 'utf8');
+  assert.match(src, /function monthCalendarWeeks/);
+  assert.match(src, /function salesInMonthDayRange/);
   assert.match(src, /function renderConsolidadoWeekCompare/);
-  assert.match(src, /function salesWeekToDate/);
   assert.match(src, /Comparativo de semanas/);
   assert.match(src, /data-fold-key="vendas-semanas"/);
-  assert.match(src, /vendas-consol-weeks-fold/);
+  assert.match(src, /dia 1 → domingo/);
 });
