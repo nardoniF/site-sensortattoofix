@@ -1694,112 +1694,124 @@
     </section>`;
   }
 
-  /**
-   * Semanas do calendário do mês (não ISO):
-   * 1ª = dia 1 → primeiro domingo; depois seg→dom; última = seg → último dia do mês.
-   * Ex. set/2026: 1–6, 7–13, 14–20, 21–27, 28–30.
-   */
-  function monthCalendarWeeks(year, monthNum) {
-    const y = String(year);
-    const ym = String(monthNum).padStart(2, '0');
-    const last = daysInCalendarMonth(y, ym);
-    const dow = new Date(Date.UTC(Number(y), Number(ym) - 1, 1, 12, 0, 0)).getUTCDay();
-    const mon0 = dow === 0 ? 6 : dow - 1;
-    const firstEnd = Math.min(mon0 === 6 ? 1 : 1 + (6 - mon0), last);
+  /** Segunda-feira (YYYY-MM-DD) ± N semanas — mesma base de brWeekBucket (seg→dom, atravessa mês). */
+  function shiftMondayKey(mondayKey, deltaWeeks) {
+    const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    dt.setUTCDate(dt.getUTCDate() + (Number(deltaWeeks) || 0) * 7);
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  function weekCardFromMondayKey(mondayKey) {
+    const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+    const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const sun = new Date(mon);
+    sun.setUTCDate(mon.getUTCDate() + 6);
+    const fmt = (dt) => `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}`;
+    return {
+      key: mondayKey,
+      rangeLabel: `${fmt(mon)} – ${fmt(sun)}`,
+      mondayYmd: mondayKey,
+      sundayYmd: `${sun.getUTCFullYear()}-${String(sun.getUTCMonth() + 1).padStart(2, '0')}-${String(sun.getUTCDate()).padStart(2, '0')}`,
+      monthKeys: (() => {
+        const keys = [];
+        const seen = new Set();
+        for (let i = 0; i < 7; i += 1) {
+          const day = new Date(mon);
+          day.setUTCDate(mon.getUTCDate() + i);
+          const mk = `${day.getUTCFullYear()}-${String(day.getUTCMonth() + 1).padStart(2, '0')}`;
+          if (!seen.has(mk)) {
+            seen.add(mk);
+            keys.push(mk);
+          }
+        }
+        return keys;
+      })()
+    };
+  }
+
+  /** Últimas N semanas Mon→Sun (mais antiga → mais recente), incluindo a semana atual. */
+  function lastNBrWeeks(n, nowTs) {
+    const count = Math.max(1, Number(n) || 13);
+    const currentKey = brWeekBucket(nowTs || Date.now()).key;
     const weeks = [];
-    let start = 1;
-    let end = firstEnd;
-    weeks.push({ index: 1, startDay: start, endDay: end });
-    start = end + 1;
-    while (start <= last) {
-      end = Math.min(start + 6, last);
-      weeks.push({ index: weeks.length + 1, startDay: start, endDay: end });
-      start = end + 1;
+    for (let i = count - 1; i >= 0; i -= 1) {
+      weeks.push(weekCardFromMondayKey(shiftMondayKey(currentKey, -i)));
     }
     return weeks;
   }
 
-  function salesInMonthDayRange(sales, year, monthNum, startDay, endDay) {
-    const y = String(year);
-    const ym = String(monthNum).padStart(2, '0');
-    const from = Math.max(1, Number(startDay) || 1);
-    const to = Math.max(from, Number(endDay) || from);
-    return (sales || []).filter((s) => {
-      if (!s._ts) return false;
-      const p = brDateParts(s._ts);
-      if (p.year !== y || p.monthNum !== ym) return false;
-      const d = Number(p.day);
-      return d >= from && d <= to;
-    });
+  function salesInBrWeek(sales, mondayKey) {
+    return (sales || []).filter((s) => s._ts && brWeekBucket(s._ts).key === mondayKey);
+  }
+
+  /** Cor vs média das semanas exibidas: red / yellow / green / green-hot. */
+  function weekPerfTone(net, avgNet) {
+    const n = Number(net || 0);
+    const avg = Number(avgNet || 0);
+    if (!avg) return n > 0 ? 'green' : 'yellow';
+    const ratio = n / avg;
+    if (ratio < 0.7) return 'red';
+    if (ratio < 0.95) return 'yellow';
+    if (ratio >= 1.25) return 'green-hot';
+    return 'green';
   }
 
   function renderConsolidadoWeekCompare(sales) {
-    const now = brDateParts(Date.now());
-    const dayNum = Number(now.day);
-    const monthSpecs = [
-      { delta: -2 },
-      { delta: -1 },
-      { delta: 0 }
-    ];
-    const months = monthSpecs.map(({ delta }) => {
-      const ym = shiftYearMonth(now.year, now.monthNum, delta);
-      const weeks = monthCalendarWeeks(ym.year, ym.monthNum).map((w) => {
-        const subset = salesInMonthDayRange(sales, ym.year, ym.monthNum, w.startDay, w.endDay);
-        const containsToday = delta === 0 && dayNum >= w.startDay && dayNum <= w.endDay;
-        return {
-          ...w,
-          rangeLabel: `${w.startDay}–${w.endDay}`,
-          name: `${w.index}ª semana`,
-          tot: sumAnnotated(subset),
-          containsToday
-        };
-      });
-      return {
-        delta,
-        year: ym.year,
-        monthNum: ym.monthNum,
-        name: MONTH_LABELS[ym.monthNum] || ym.monthNum,
-        weeks
-      };
+    const nowTs = Date.now();
+    const currentKey = brWeekBucket(nowTs).key;
+    const todayYmd = brLocalYmd(nowTs);
+    const weekDefs = lastNBrWeeks(13, nowTs);
+    const rows = weekDefs.map((w) => {
+      const subset = salesInBrWeek(sales, w.key);
+      const tot = sumAnnotated(subset);
+      const isCurrent = w.key === currentKey;
+      let daysForAvg = 7;
+      if (isCurrent) {
+        const [y, m, d] = w.mondayYmd.split('-').map(Number);
+        const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+        const [ty, tm, td] = todayYmd.split('-').map(Number);
+        const today = new Date(Date.UTC(ty, tm - 1, td, 12, 0, 0));
+        daysForAvg = Math.max(1, Math.min(7, Math.round((today - mon) / 86400000) + 1));
+      }
+      const perDay = tot.net / daysForAvg;
+      return { ...w, tot, isCurrent, daysForAvg, perDay };
     });
-    const current = months[2];
-    const hintWeek = current?.weeks?.find((w) => w.containsToday) || current?.weeks?.[current.weeks.length - 1];
-    const hint = current && hintWeek
-      ? `${current.name} · ${hintWeek.name} ${hintWeek.rangeLabel} · ${formatSalesBRL(hintWeek.tot.net)}`
+    const avgNet = rows.length
+      ? rows.reduce((acc, r) => acc + Number(r.tot.net || 0), 0) / rows.length
+      : 0;
+    const latest = rows[rows.length - 1];
+    const hint = latest
+      ? `${latest.rangeLabel} · ${formatSalesBRL(latest.tot.net)}`
       : '—';
-    const sections = months.map((month) => {
-      const yearNote = month.year !== now.year ? ` ${month.year}` : '';
-      const cards = month.weeks.map((row, i) => {
-        const prevRow = i > 0 ? month.weeks[i - 1] : null;
-        const netDelta = prevRow ? formatMtdDelta(row.tot.net, prevRow.tot.net) : '';
-        const netClass = prevRow
-          ? (row.tot.net > prevRow.tot.net ? ' is-up' : (row.tot.net < prevRow.tot.net ? ' is-down' : ' is-same'))
-          : '';
-        const countDelta = prevRow ? formatMtdDelta(row.tot.count, prevRow.tot.count) : '';
-        const countClass = prevRow
-          ? (row.tot.count > prevRow.tot.count ? ' is-up' : (row.tot.count < prevRow.tot.count ? ' is-down' : ' is-same'))
-          : '';
-        const netPct = netDelta
-          ? ` <span class="vendas-consol-mtd-pct${netClass}">(${escapeHtml(netDelta)})</span>`
-          : '';
-        const countPct = countDelta
-          ? ` <span class="vendas-consol-mtd-pct${countClass}">(${escapeHtml(countDelta)})</span>`
-          : '';
-        return `<article class="vendas-consol-mtd-card vendas-consol-weeks-card${row.containsToday ? ' is-current' : ''}">
-          <h4>${escapeHtml(row.name)}</h4>
-          <p class="vendas-consol-mtd-range">dias ${escapeHtml(row.rangeLabel)}</p>
-          <p class="vendas-consol-mtd-net">${formatSalesBRL(row.tot.net)}${netPct}</p>
-          <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}</p>
-        </article>`;
-      }).join('');
-      return `<section class="vendas-consol-weeks-month" aria-label="${escapeHtml(month.name)}${escapeHtml(yearNote)}">
-        <header class="vendas-consol-mtd-head">
-          <h3>${escapeHtml(month.name)}${escapeHtml(yearNote)}</h3>
-          <p>${month.weeks.length} semana${month.weeks.length === 1 ? '' : 's'} do mês</p>
-        </header>
-        <div class="vendas-consol-mtd-grid">${cards}</div>
-      </section>`;
+
+    const monthStripKeys = [];
+    const seenMonth = new Set();
+    rows.forEach((r) => {
+      r.monthKeys.forEach((mk) => {
+        if (!seenMonth.has(mk)) {
+          seenMonth.add(mk);
+          monthStripKeys.push(mk);
+        }
+      });
+    });
+    const monthStrip = monthStripKeys.map((mk) => {
+      const [y, mm] = mk.split('-');
+      const name = (MONTH_LABELS[mm] || mm).toUpperCase();
+      return y !== brDateParts(nowTs).year ? `${name} ${y}` : name;
+    }).join(' → ');
+
+    const cards = rows.map((row) => {
+      const tone = weekPerfTone(row.tot.net, avgNet);
+      const currentClass = row.isCurrent ? ' is-current' : '';
+      return `<article class="vendas-consol-week13-card is-${tone}${currentClass}" title="Média das 13 semanas: ${formatSalesBRL(avgNet)}">
+        <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
+        <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
+        <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
+        <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
+      </article>`;
     }).join('');
+
     return `<details class="admin-fold vendas-consol-weeks-fold" id="vendas-consol-weeks-fold" data-fold-key="vendas-semanas">
       <summary class="admin-fold-summary">
         <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
@@ -1807,8 +1819,12 @@
         <span class="admin-fold-hint">${escapeHtml(hint)}</span>
       </summary>
       <div class="admin-fold-body">
-        <p class="admin-meta vendas-consol-weeks-note">Semanas do mês: dia 1 → domingo; depois segunda→domingo; última até o fim do mês. Cobre todos os dias — fuso São Paulo.</p>
-        ${sections}
+        <header class="vendas-consol-week13-head">
+          <h3>Últimas 13 semanas</h3>
+          <p class="vendas-consol-week13-months">${escapeHtml(monthStrip)}</p>
+          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo (atravessa mês). Cor vs média destas 13 semanas — fuso São Paulo.</p>
+        </header>
+        <div class="vendas-consol-week13-grid">${cards}</div>
       </div>
     </details>`;
   }

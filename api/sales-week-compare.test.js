@@ -1,5 +1,5 @@
 /**
- * Semanas do calendário do mês (1º→domingo; seg→dom; última até fim) — Admin consolidado.
+ * Últimas N semanas Mon→Sun (atravessam mês) — Admin consolidado.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,63 +9,73 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-function daysInCalendarMonth(year, monthNum) {
-  return new Date(Date.UTC(Number(year), Number(monthNum), 0)).getUTCDate();
+function shiftMondayKey(mondayKey, deltaWeeks) {
+  const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  dt.setUTCDate(dt.getUTCDate() + (Number(deltaWeeks) || 0) * 7);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
 }
 
-function monthCalendarWeeks(year, monthNum) {
-  const y = String(year);
-  const ym = String(monthNum).padStart(2, '0');
-  const last = daysInCalendarMonth(y, ym);
-  const dow = new Date(Date.UTC(Number(y), Number(ym) - 1, 1, 12, 0, 0)).getUTCDay();
-  const mon0 = dow === 0 ? 6 : dow - 1;
-  const firstEnd = Math.min(mon0 === 6 ? 1 : 1 + (6 - mon0), last);
+function weekCardFromMondayKey(mondayKey) {
+  const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+  const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  const sun = new Date(mon);
+  sun.setUTCDate(mon.getUTCDate() + 6);
+  const fmt = (dt) => `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}`;
+  return {
+    key: mondayKey,
+    rangeLabel: `${fmt(mon)} – ${fmt(sun)}`,
+    sundayYmd: `${sun.getUTCFullYear()}-${String(sun.getUTCMonth() + 1).padStart(2, '0')}-${String(sun.getUTCDate()).padStart(2, '0')}`
+  };
+}
+
+function lastNBrWeeks(n, currentMondayKey) {
+  const count = Math.max(1, Number(n) || 13);
   const weeks = [];
-  let start = 1;
-  let end = firstEnd;
-  weeks.push({ index: 1, startDay: start, endDay: end });
-  start = end + 1;
-  while (start <= last) {
-    end = Math.min(start + 6, last);
-    weeks.push({ index: weeks.length + 1, startDay: start, endDay: end });
-    start = end + 1;
+  for (let i = count - 1; i >= 0; i -= 1) {
+    weeks.push(weekCardFromMondayKey(shiftMondayKey(currentMondayKey, -i)));
   }
   return weeks;
 }
 
-test('setembro/2026: 1–6, 7–13, 14–20, 21–27, 28–30', () => {
-  const weeks = monthCalendarWeeks(2026, '09');
-  assert.deepEqual(
-    weeks.map((w) => [w.startDay, w.endDay]),
-    [
-      [1, 6],
-      [7, 13],
-      [14, 20],
-      [21, 27],
-      [28, 30]
-    ]
-  );
-  // nenhum dia de fora
-  const covered = new Set();
-  weeks.forEach((w) => {
-    for (let d = w.startDay; d <= w.endDay; d += 1) covered.add(d);
-  });
-  assert.equal(covered.size, 30);
-  for (let d = 1; d <= 30; d += 1) assert.ok(covered.has(d), `dia ${d}`);
+function weekPerfTone(net, avgNet) {
+  const n = Number(net || 0);
+  const avg = Number(avgNet || 0);
+  if (!avg) return n > 0 ? 'green' : 'yellow';
+  const ratio = n / avg;
+  if (ratio < 0.7) return 'red';
+  if (ratio < 0.95) return 'yellow';
+  if (ratio >= 1.25) return 'green-hot';
+  return 'green';
+}
+
+test('semana atravessa mês: 27/07–02/08 e 31/08–06/09', () => {
+  assert.equal(weekCardFromMondayKey('2026-07-27').rangeLabel, '27/07 – 02/08');
+  assert.equal(weekCardFromMondayKey('2026-08-31').rangeLabel, '31/08 – 06/09');
 });
 
-test('mês que começa na segunda: 1ª semana 1–7', () => {
-  // junho/2026 começa na segunda
-  const weeks = monthCalendarWeeks(2026, '06');
-  assert.deepEqual([weeks[0].startDay, weeks[0].endDay], [1, 7]);
+test('lastNBrWeeks: 13 semanas, antiga → recente, inclui atual', () => {
+  const weeks = lastNBrWeeks(13, '2026-09-21');
+  assert.equal(weeks.length, 13);
+  assert.equal(weeks[0].key, '2026-06-29');
+  assert.equal(weeks[weeks.length - 1].key, '2026-09-21');
+  assert.equal(weeks[0].rangeLabel, '29/06 – 05/07');
 });
 
-test('admin.js usa semanas do mês no fold', () => {
+test('weekPerfTone vs média', () => {
+  assert.equal(weekPerfTone(500, 1000), 'red');
+  assert.equal(weekPerfTone(900, 1000), 'yellow');
+  assert.equal(weekPerfTone(1000, 1000), 'green');
+  assert.equal(weekPerfTone(1300, 1000), 'green-hot');
+});
+
+test('admin.js: fold 13 semanas Mon→Sun (sem monthCalendarWeeks)', () => {
   const src = fs.readFileSync(path.join(root, 'js', 'admin.js'), 'utf8');
-  assert.match(src, /function monthCalendarWeeks/);
-  assert.match(src, /function salesInMonthDayRange/);
+  assert.match(src, /function lastNBrWeeks/);
   assert.match(src, /function renderConsolidadoWeekCompare/);
-  assert.match(src, /Comparativo de semanas/);
+  assert.match(src, /Últimas 13 semanas/);
+  assert.match(src, /vendas-consol-week13-grid/);
   assert.match(src, /data-fold-key="vendas-semanas"/);
-  assert.match(src, /dia 1 → domingo/);
+  assert.doesNotMatch(src, /function monthCalendarWeeks/);
+  assert.doesNotMatch(src, /function salesInMonthDayRange/);
 });

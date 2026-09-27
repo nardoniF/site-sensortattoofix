@@ -4955,14 +4955,101 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 
 .vendas-consol-weeks-note {
-  margin: 0 0 0.65rem;
+  margin: 0.35rem 0 0;
   font-size: 0.85rem;
 }
 
-.vendas-consol-weeks-month + .vendas-consol-weeks-month {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+.vendas-consol-week13-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #eee;
+}
+
+.vendas-consol-week13-months {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #9aa;
+}
+
+.vendas-consol-week13-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.vendas-consol-week13-card {
+  border-radius: 10px;
+  padding: 12px 12px 10px;
+  border: 1px solid #2a2a2a;
+  background: #121212;
+  min-height: 118px;
+}
+
+.vendas-consol-week13-card.is-current {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.vendas-consol-week13-card.is-red {
+  background: linear-gradient(180deg, #3a1515 0%, #1a1010 100%);
+  border-color: #8b3a3a;
+}
+
+.vendas-consol-week13-card.is-yellow {
+  background: linear-gradient(180deg, #3a3212 0%, #1a1810 100%);
+  border-color: #8a7a2a;
+}
+
+.vendas-consol-week13-card.is-green {
+  background: linear-gradient(180deg, #143a22 0%, #101a12 100%);
+  border-color: #3a7a4a;
+}
+
+.vendas-consol-week13-card.is-green-hot {
+  background: linear-gradient(180deg, #1a4a28 0%, #102816 100%);
+  border-color: #5cbf72;
+  box-shadow: 0 0 0 1px rgba(92, 191, 114, 0.35);
+}
+
+.vendas-consol-week13-range {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ccc;
+  letter-spacing: 0.02em;
+}
+
+.vendas-consol-week13-net {
+  margin: 10px 0 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #f2f2f2;
+  line-height: 1.15;
+}
+
+.vendas-consol-week13-day {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #aaa;
+}
+
+.vendas-consol-week13-count {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  color: #888;
+}
+
+@media (min-width: 1100px) {
+  .vendas-consol-week13-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
 }
 
 .vendas-consol-days-fold {
