@@ -11,6 +11,7 @@ alwaysApply: true
 - **Implementar** — corrigir e entregar a tarefa pedida com o menor diff sensato.
 - **Commit + push** — ao concluir trabalho útil no repo, commitar e dar push no `main` (ou branch da tarefa), sem esperar “faz commit”.
 - **Deploy do Worker** — se `api/worker.js` (ou config de deploy) mudou, rodar `npx wrangler deploy` em `api/` após push.
+- **Deploy do proxy** — se o site precisa do HTML/JS novo no ar (`sensortattoofix.com.br`), atualizar `COMMIT` em `cloudflare/stf-com-proxy.js` (+ `SITE_CATALOG_COMMIT` em `api/worker.js` quando couber) e `npx wrangler deploy --config ./wrangler.toml --autoconfig=false` em `cloudflare/`.
 
 ## Quando perguntar
 
@@ -23,14 +24,29 @@ Preferir **default seguro + nota no final** em vez de parar no meio.
 - Nunca commitar `.env`, secrets ou arquivos claramente temporários (`.DS_Store`, `tmp-*`, etc.).
 - Nunca `git push --force` em `main`/`master`.
 - Nunca amend de commit já pushado, salvo pedido explícito.
-- Deploy: só `sensortattoofix-payments` (`api.sensortattoofix.com.br`); site estático segue GitHub Pages após push.
+- Deploy API: `sensortattoofix-payments` (`api.sensortattoofix.com.br`).
+- Site: o que o usuário vê vem do **pin `COMMIT` do proxy**, não de “qualquer push”.
+
+## Pin do proxy — regra dura (não foder o que já está no ar)
+
+O `COMMIT` é **um SHA só para o site inteiro**. Trocar o pin sem carregar o que já estava live **derruba** outras features (ex.: conserto de Cliques sumiu ao pinar só o manual).
+
+Antes de mudar `COMMIT` / deployar o proxy:
+
+1. Ler o pin atual: `curl -sI https://www.sensortattoofix.com.br/ | grep -i x-stf-commit`.
+2. O novo SHA **tem que incluir** esse pin (ser descendente / merge / cherry-pick em cima dele). **Proibido** apontar pra um branch paralelo baseado em `main` antigo que não tenha o que já está live.
+3. Depois do deploy, conferir de novo no ar (não só o arquivo da tarefa):
+   - `x-stf-commit` = SHA esperado
+   - marcadores do que já estava no ar (ex.: Cliques sem `Abrindo visitas`, `setClicksRefreshBusy` presente; `thicknessMm` se o cadastro de espessura estiver live; etc.)
+
+Se a tarefa é “só o manual” (ou qualquer pedaço isolado), ainda assim o pin final precisa ser **live atual + essa mudança**, nunca “só essa mudança”.
 
 ## Fluxo típico ao terminar
 
 1. Verificar diff e testes/build quando fizer sentido.
 2. Commit com mensagem clara em português (1–2 frases, o “porquê”).
 3. Push.
-4. Deploy do Worker se aplicável.
+4. Deploy do Worker / proxy se aplicável — **respeitando a regra do pin**.
 5. Resumir o que foi feito (commit, URL/deploy se houver).
 
 Não pedir “quer commit?” no fim — só avisar o que já foi feito.
