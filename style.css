@@ -4950,6 +4950,15 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-weight: 650;
     color: #ddd;
 }
+.vendas-consol-weeks-fold {
+  margin-top: 0.75rem;
+}
+
+.vendas-consol-weeks-note {
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+}
+
 .vendas-consol-days-fold {
     margin-top: 12px;
 }
