@@ -1785,31 +1785,36 @@
       ? `${latest.rangeLabel} · ${formatSalesBRL(latest.tot.net)}`
       : '—';
 
-    const monthStripKeys = [];
-    const seenMonth = new Set();
-    rows.forEach((r) => {
-      r.monthKeys.forEach((mk) => {
-        if (!seenMonth.has(mk)) {
-          seenMonth.add(mk);
-          monthStripKeys.push(mk);
-        }
-      });
+    // Linha = mês do domingo da semana (a que “invade” o mês novo abre a linha).
+    const lineGroups = [];
+    rows.forEach((row) => {
+      const sundayMonthKey = String(row.sundayYmd || '').slice(0, 7);
+      const last = lineGroups[lineGroups.length - 1];
+      if (!last || last.monthKey !== sundayMonthKey) {
+        lineGroups.push({ monthKey: sundayMonthKey, weeks: [row] });
+      } else {
+        last.weeks.push(row);
+      }
     });
-    const monthStrip = monthStripKeys.map((mk) => {
-      const [y, mm] = mk.split('-');
-      const name = (MONTH_LABELS[mm] || mm).toUpperCase();
-      return y !== brDateParts(nowTs).year ? `${name} ${y}` : name;
-    }).join(' → ');
-
-    const cards = rows.map((row) => {
-      const tone = weekPerfTone(row.tot.net, avgNet);
-      const currentClass = row.isCurrent ? ' is-current' : '';
-      return `<article class="vendas-consol-week13-card is-${tone}${currentClass}" title="Média das 13 semanas: ${formatSalesBRL(avgNet)}">
-        <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
-        <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
-        <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
-        <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
-      </article>`;
+    const nowYear = brDateParts(nowTs).year;
+    const lineHtml = lineGroups.map((group) => {
+      const [y, mm] = String(group.monthKey || '').split('-');
+      const monthName = (MONTH_LABELS[mm] || mm || '—').toUpperCase();
+      const monthLabel = y && y !== nowYear ? `${monthName} ${y}` : monthName;
+      const cards = group.weeks.map((row) => {
+        const tone = weekPerfTone(row.tot.net, avgNet);
+        const currentClass = row.isCurrent ? ' is-current' : '';
+        return `<article class="vendas-consol-week13-card is-${tone}${currentClass}" title="Média das 13 semanas: ${formatSalesBRL(avgNet)}">
+          <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
+          <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
+          <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
+          <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
+        </article>`;
+      }).join('');
+      return `<div class="vendas-consol-week13-line">
+        <div class="vendas-consol-week13-line-label">${escapeHtml(monthLabel)}</div>
+        <div class="vendas-consol-week13-line-cards">${cards}</div>
+      </div>`;
     }).join('');
 
     return `<details class="admin-fold vendas-consol-weeks-fold" id="vendas-consol-weeks-fold" data-fold-key="vendas-semanas">
@@ -1821,10 +1826,9 @@
       <div class="admin-fold-body">
         <header class="vendas-consol-week13-head">
           <h3>Últimas 13 semanas</h3>
-          <p class="vendas-consol-week13-months">${escapeHtml(monthStrip)}</p>
-          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo (atravessa mês). Cor vs média destas 13 semanas — fuso São Paulo.</p>
+          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo (atravessa mês). Nova linha quando a semana invade o mês seguinte — fuso São Paulo.</p>
         </header>
-        <div class="vendas-consol-week13-grid">${cards}</div>
+        <div class="vendas-consol-week13-lines">${lineHtml}</div>
       </div>
     </details>`;
   }

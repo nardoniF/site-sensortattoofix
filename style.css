@@ -4968,19 +4968,44 @@ body.admin-page.pedidos-login-only #pedidos-login {
   color: #eee;
 }
 
-.vendas-consol-week13-months {
-  margin: 6px 0 0;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #9aa;
+.vendas-consol-week13-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
 }
 
-.vendas-consol-week13-grid {
+.vendas-consol-week13-line {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.vendas-consol-week13-line-label {
+  padding-top: 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #9aa;
+  text-transform: uppercase;
+  line-height: 1.25;
+}
+
+.vendas-consol-week13-line-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   gap: 10px;
-  margin-top: 12px;
+}
+
+@media (max-width: 700px) {
+  .vendas-consol-week13-line {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .vendas-consol-week13-line-label {
+    padding-top: 0;
+  }
 }
 
 .vendas-consol-week13-card {
@@ -5047,8 +5072,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 
 @media (min-width: 1100px) {
-  .vendas-consol-week13-grid {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+  .vendas-consol-week13-line-cards {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   }
 }
 

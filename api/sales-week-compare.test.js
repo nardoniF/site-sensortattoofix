@@ -69,12 +69,30 @@ test('weekPerfTone vs média', () => {
   assert.equal(weekPerfTone(1300, 1000), 'green-hot');
 });
 
+test('linhas por mês do domingo (invade mês → nova linha)', () => {
+  const weeks = lastNBrWeeks(13, '2026-09-21');
+  const groups = [];
+  weeks.forEach((w) => {
+    const mk = w.sundayYmd.slice(0, 7);
+    const last = groups[groups.length - 1];
+    if (!last || last !== mk) groups.push(mk);
+  });
+  // 29/06–05/07 cai em julho; 27/07–02/08 em agosto; 31/08–06/09 em setembro
+  assert.ok(groups.includes('2026-07'));
+  assert.ok(groups.includes('2026-08'));
+  assert.ok(groups.includes('2026-09'));
+  const jul = weeks.filter((w) => w.sundayYmd.startsWith('2026-07'));
+  assert.equal(jul[0].rangeLabel, '29/06 – 05/07');
+  assert.equal(jul[jul.length - 1].rangeLabel, '20/07 – 26/07');
+});
+
 test('admin.js: fold 13 semanas Mon→Sun (sem monthCalendarWeeks)', () => {
   const src = fs.readFileSync(path.join(root, 'js', 'admin.js'), 'utf8');
   assert.match(src, /function lastNBrWeeks/);
   assert.match(src, /function renderConsolidadoWeekCompare/);
   assert.match(src, /Últimas 13 semanas/);
-  assert.match(src, /vendas-consol-week13-grid/);
+  assert.match(src, /vendas-consol-week13-lines/);
+  assert.match(src, /vendas-consol-week13-line-label/);
   assert.match(src, /data-fold-key="vendas-semanas"/);
   assert.doesNotMatch(src, /function monthCalendarWeeks/);
   assert.doesNotMatch(src, /function salesInMonthDayRange/);
