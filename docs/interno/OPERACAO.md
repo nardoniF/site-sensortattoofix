@@ -52,6 +52,8 @@ Lock opcional por idioma no produto: `textI18nLocks: { "en": true }` — não so
 
 Fontes de verdade: **KV `store-config`** (Admin) > `data/store-config.json` pinado > `DEFAULT_CONFIG`. Proxy `COMMIT` e Worker `SITE_CATALOG_COMMIT` devem acompanhar o mesmo deploy de catálogo.
 
+**Pin seguro:** o `COMMIT` do proxy é um SHA para o site inteiro. Antes de trocar, ler `x-stf-commit` do domínio live e só pinar um SHA que **inclua** esse commit (merge/cherry-pick em cima do que já está no ar). Pinar um branch paralelo “só com a feature nova” derruba o resto (já aconteceu com Cliques ao subir manual).
+
 ---
 
 ## API (Worker)
