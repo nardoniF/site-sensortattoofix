@@ -5035,12 +5035,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
   border-color: #3a7a4a;
 }
 
-.vendas-consol-week13-card.is-green-hot {
-  background: linear-gradient(180deg, #1a4a28 0%, #102816 100%);
-  border-color: #5cbf72;
-  box-shadow: 0 0 0 1px rgba(92, 191, 114, 0.35);
-}
-
 .vendas-consol-week13-range {
   margin: 0;
   font-size: 0.78rem;

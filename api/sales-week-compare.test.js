@@ -38,15 +38,14 @@ function lastNBrWeeks(n, currentMondayKey) {
   return weeks;
 }
 
-function weekPerfTone(net, avgNet) {
+function weekToneInMonth(net, minNet, maxNet) {
   const n = Number(net || 0);
-  const avg = Number(avgNet || 0);
-  if (!avg) return n > 0 ? 'green' : 'yellow';
-  const ratio = n / avg;
-  if (ratio < 0.7) return 'red';
-  if (ratio < 0.95) return 'yellow';
-  if (ratio >= 1.25) return 'green-hot';
-  return 'green';
+  const min = Number(minNet || 0);
+  const max = Number(maxNet || 0);
+  if (min === max) return 'yellow';
+  if (n <= min) return 'red';
+  if (n >= max) return 'green';
+  return 'yellow';
 }
 
 test('semana atravessa mês: 27/07–02/08 e 31/08–06/09', () => {
@@ -62,11 +61,11 @@ test('lastNBrWeeks: 13 semanas, antiga → recente, inclui atual', () => {
   assert.equal(weeks[0].rangeLabel, '29/06 – 05/07');
 });
 
-test('weekPerfTone vs média', () => {
-  assert.equal(weekPerfTone(500, 1000), 'red');
-  assert.equal(weekPerfTone(900, 1000), 'yellow');
-  assert.equal(weekPerfTone(1000, 1000), 'green');
-  assert.equal(weekPerfTone(1300, 1000), 'green-hot');
+test('weekToneInMonth: pior vermelho, melhor verde, resto amarelo', () => {
+  assert.equal(weekToneInMonth(100, 100, 500), 'red');
+  assert.equal(weekToneInMonth(500, 100, 500), 'green');
+  assert.equal(weekToneInMonth(300, 100, 500), 'yellow');
+  assert.equal(weekToneInMonth(200, 200, 200), 'yellow');
 });
 
 test('linhas por mês do domingo (invade mês → nova linha)', () => {

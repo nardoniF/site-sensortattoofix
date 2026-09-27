@@ -1745,16 +1745,15 @@
     return (sales || []).filter((s) => s._ts && brWeekBucket(s._ts).key === mondayKey);
   }
 
-  /** Cor vs média das semanas exibidas: red / yellow / green / green-hot. */
-  function weekPerfTone(net, avgNet) {
+  /** Por linha do mês: pior = red, melhor = green, resto = yellow. */
+  function weekToneInMonth(net, minNet, maxNet) {
     const n = Number(net || 0);
-    const avg = Number(avgNet || 0);
-    if (!avg) return n > 0 ? 'green' : 'yellow';
-    const ratio = n / avg;
-    if (ratio < 0.7) return 'red';
-    if (ratio < 0.95) return 'yellow';
-    if (ratio >= 1.25) return 'green-hot';
-    return 'green';
+    const min = Number(minNet || 0);
+    const max = Number(maxNet || 0);
+    if (min === max) return 'yellow';
+    if (n <= min) return 'red';
+    if (n >= max) return 'green';
+    return 'yellow';
   }
 
   function renderConsolidadoWeekCompare(sales) {
@@ -1777,9 +1776,6 @@
       const perDay = tot.net / daysForAvg;
       return { ...w, tot, isCurrent, daysForAvg, perDay };
     });
-    const avgNet = rows.length
-      ? rows.reduce((acc, r) => acc + Number(r.tot.net || 0), 0) / rows.length
-      : 0;
     const latest = rows[rows.length - 1];
     const hint = latest
       ? `${latest.rangeLabel} · ${formatSalesBRL(latest.tot.net)}`
@@ -1801,10 +1797,13 @@
       const [y, mm] = String(group.monthKey || '').split('-');
       const monthName = (MONTH_LABELS[mm] || mm || '—').toUpperCase();
       const monthLabel = y && y !== nowYear ? `${monthName} ${y}` : monthName;
+      const nets = group.weeks.map((w) => Number(w.tot.net || 0));
+      const minNet = Math.min(...nets);
+      const maxNet = Math.max(...nets);
       const cards = group.weeks.map((row) => {
-        const tone = weekPerfTone(row.tot.net, avgNet);
+        const tone = weekToneInMonth(row.tot.net, minNet, maxNet);
         const currentClass = row.isCurrent ? ' is-current' : '';
-        return `<article class="vendas-consol-week13-card is-${tone}${currentClass}" title="Média das 13 semanas: ${formatSalesBRL(avgNet)}">
+        return `<article class="vendas-consol-week13-card is-${tone}${currentClass}">
           <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
           <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
           <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
@@ -1826,7 +1825,7 @@
       <div class="admin-fold-body">
         <header class="vendas-consol-week13-head">
           <h3>Últimas 13 semanas</h3>
-          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo (atravessa mês). Nova linha quando a semana invade o mês seguinte — fuso São Paulo.</p>
+          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo. Por linha do mês: vermelho = menos vendeu · verde = mais vendeu · amarelo = resto — fuso São Paulo.</p>
         </header>
         <div class="vendas-consol-week13-lines">${lineHtml}</div>
       </div>
