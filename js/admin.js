@@ -1939,7 +1939,8 @@
           count: 0,
           owed: 0,
           bonus: 0,
-          net: 0
+          net: 0,
+          dayCountMap: new Map()
         });
       }
       const row = map.get(key);
@@ -1949,8 +1950,49 @@
       row.owed += owed;
       row.bonus += bonus;
       row.net += roundMoneyLocal(owed - bonus);
+      const day = Number(p.day);
+      if (Number.isFinite(day) && day > 0) {
+        row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+      }
     });
-    return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
+    return Array.from(map.values())
+      .map((r) => {
+        const { dayCountMap, ...rest } = r;
+        const dayEntries = [...dayCountMap.entries()]
+          .map(([day, count]) => ({ day, count }))
+          .sort((a, b) => a.day - b.day);
+        return { ...rest, days: dayEntries.map((e) => e.day), dayEntries };
+      })
+      .sort((a, b) => String(b.key).localeCompare(String(a.key)));
+  }
+
+  function formatFlexDaysWithQty(entries) {
+    const fn = sm().formatFlexDaysWithQty;
+    if (typeof fn === 'function') return fn(entries);
+    const list = (entries || []).map((e) => {
+      if (e && typeof e === 'object') return { day: Number(e.day), count: Number(e.count) || 1 };
+      return { day: Number(e), count: 1 };
+    }).filter((e) => e.day > 0);
+    if (!list.length) return '';
+    const labels = list.map((e) => (e.count > 1 ? `${e.day} (${e.count})` : String(e.day)));
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} e ${labels[1]}`;
+    return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
+  }
+
+  function monthFlexEmptyDays(flexDays, year, monthNum, throughDay) {
+    const fn = sm().monthFlexEmptyDays;
+    if (typeof fn === 'function') return fn(flexDays, year, monthNum, throughDay);
+    const last = Math.min(
+      Math.max(1, Number(throughDay) || 1),
+      daysInCalendarMonth(year, monthNum)
+    );
+    const has = new Set((flexDays || []).map((d) => Number(d)).filter((n) => n > 0));
+    const empty = [];
+    for (let d = 1; d <= last; d += 1) {
+      if (!has.has(d)) empty.push(d);
+    }
+    return empty;
   }
 
   function renderConsolidadoFlexOwed(sales) {
@@ -1965,10 +2007,26 @@
       ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+        const through = m.key === currentKey
+          ? Math.min(Number(now.day), daysInCalendarMonth(m.year, m.monthNum))
+          : daysInCalendarMonth(m.year, m.monthNum);
+        const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+          ? m.dayEntries
+          : (m.days || []).map((d) => ({ day: d, count: 1 }));
+        const withLabel = formatFlexDaysWithQty(dayEntries);
+        const emptyDays = monthFlexEmptyDays(m.days || dayEntries.map((e) => e.day), m.year, m.monthNum, through);
+        const withHtml = withLabel
+          ? `<p class="vendas-consol-flex-days" title="Dias com envio Flex">com: ${escapeHtml(withLabel)}</p>`
+          : '<p class="vendas-consol-flex-days">com: —</p>';
+        const emptyHtml = emptyDays.length
+          ? `<p class="vendas-consol-flex-days vendas-consol-flex-days-empty" title="Dias sem envio Flex">sem: ${escapeHtml(formatDayNumberList(emptyDays))}</p>`
+          : '<p class="vendas-consol-flex-days vendas-consol-flex-days-empty is-ok">sem: nenhum dia zerado</p>';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
+        ${withHtml}
+        ${emptyHtml}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
       }).join('')}</div>`
@@ -1984,9 +2042,26 @@
   }
 
   function buildFlexOwedExportRows(sales) {
-    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
+    const now = brDateParts(Date.now());
+    const currentKey = `${now.year}-${now.monthNum}`;
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias com Flex', 'Dias sem Flex']];
     aggregateFlexOwedByMonth(sales).forEach((m) => {
-      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
+      const through = m.key === currentKey
+        ? Math.min(Number(now.day), daysInCalendarMonth(m.year, m.monthNum))
+        : daysInCalendarMonth(m.year, m.monthNum);
+      const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+        ? m.dayEntries
+        : (m.days || []).map((d) => ({ day: d, count: 1 }));
+      const emptyDays = monthFlexEmptyDays(m.days || dayEntries.map((e) => e.day), m.year, m.monthNum, through);
+      rows.push([
+        `${m.name} ${m.year}`,
+        m.count,
+        m.owed,
+        m.bonus,
+        m.net,
+        formatFlexDaysWithQty(dayEntries),
+        formatDayNumberList(emptyDays)
+      ]);
     });
     return rows;
   }

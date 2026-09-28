@@ -61,3 +61,12 @@ test('admin.js expõe cobertura de dias no consolidado', () => {
   assert.match(src, /data-fold-key="vendas-dias"/);
   assert.match(src, /vendas-consol-days-split/);
 });
+
+test('admin.js lista dias com/sem Flex abaixo do valor (qtd > 1 entre parênteses)', () => {
+  const src = fs.readFileSync(path.join(root, 'js', 'admin.js'), 'utf8');
+  assert.match(src, /function formatFlexDaysWithQty/);
+  assert.match(src, /function monthFlexEmptyDays/);
+  assert.match(src, /com: \$\{escapeHtml\(withLabel\)\}/);
+  assert.match(src, /sem: \$\{escapeHtml\(formatDayNumberList\(emptyDays\)\)\}/);
+  assert.match(src, /e\.count > 1 \? `\$\{e\.day\} \(\$\{e\.count\}\)`/);
+});
