@@ -3700,7 +3700,7 @@ ${worksheets}
   function showClicksEmptyState() {
     const root = document.getElementById('clicks-tree-root');
     if (root) {
-      root.innerHTML = '<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar o histórico completo (ano → mês → dia → visitas).</p>';
+      root.innerHTML = '<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar o histórico (ano → mês → dia; visitas ao expandir o dia).</p>';
     }
     const stats = document.getElementById('clicks-stats');
     if (stats) stats.innerHTML = '';
@@ -5015,7 +5015,7 @@ ${worksheets}
     return d;
   }
 
-  /** Agrega e finaliza visitantes/sessões de todos os dias (feito no Atualizar). */
+  /** Agrega dias em esqueleto (_raw). Visitantes só ao expandir o dia. */
   function buildClicksTree(clicks) {
     const tree = {};
     (clicks || []).forEach((c) => {
@@ -5034,11 +5034,6 @@ ${worksheets}
       d.count++;
       m.count++;
       y.count++;
-    });
-    Object.values(tree).forEach((y) => {
-      Object.values(y.months).forEach((m) => {
-        Object.values(m.days).forEach((d) => finalizeClicksDay(d));
-      });
     });
     return tree;
   }
@@ -5198,6 +5193,49 @@ ${worksheets}
   }
 
   let clicksTreeLive = null;
+  let clicksTreeHydrateWired = false;
+
+  function wireClicksTreeLazyHydrate() {
+    if (clicksTreeHydrateWired) return;
+    const root = document.getElementById('clicks-tree-root');
+    if (!root) return;
+    clicksTreeHydrateWired = true;
+    root.addEventListener('toggle', (ev) => {
+      const dayEl = ev.target;
+      if (!(dayEl instanceof HTMLDetailsElement)) return;
+      if (!dayEl.classList.contains('clicks-tree-day') || !dayEl.open) return;
+      hydrateClicksDayElement(dayEl);
+    });
+  }
+
+  function hydrateClicksDayElement(dayEl) {
+    const body = dayEl.querySelector(':scope > .clicks-tree-children');
+    if (!body || body.dataset.hydrated === '1') return;
+    const dayPath = dayEl.getAttribute('data-tree-path') || '';
+    const day = lookupClicksDay(clicksTreeLive, dayPath);
+    if (!day) {
+      body.innerHTML = '<p class="admin-meta">Dia não encontrado no cache.</p>';
+      body.dataset.hydrated = '1';
+      return;
+    }
+    // Evita marcar hydrated antes do HTML — se o toggle dispara de novo, mostra spinner.
+    if (body.dataset.hydrating === '1') return;
+    body.dataset.hydrating = '1';
+    body.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Montando visitas do dia…</p>';
+    window.setTimeout(() => {
+      try {
+        finalizeClicksDay(day);
+        if (isClicksNavOnlyFilterOn()) pruneUniqueOrRepeatDay(day);
+        body.innerHTML = renderDayVisitorsHtml(day, dayPath);
+        body.dataset.hydrated = '1';
+      } catch (err) {
+        body.innerHTML = `<p class="admin-status-bad">${escapeHtml(err?.message || 'Falha ao montar o dia.')}</p>`;
+        body.dataset.hydrated = '1';
+      } finally {
+        delete body.dataset.hydrating;
+      }
+    }, 0);
+  }
 
   function clicksTreeSummary(label, count, extra) {
     const meta = count != null ? `<span class="clicks-tree-meta">${count} evento${count === 1 ? '' : 's'}${extra ? ' · ' + extra : ''}</span>` : '';
@@ -5373,6 +5411,7 @@ ${worksheets}
     const root = document.getElementById('clicks-tree-root');
     const checkedEl = document.getElementById('clicks-checked-at');
     if (!root) return;
+    wireClicksTreeLazyHydrate();
 
     if (!clicks?.length) {
       clicksTreeLive = null;
@@ -5380,6 +5419,7 @@ ${worksheets}
     } else {
       const tree = buildClicksTree(clicks);
       const navOnly = isClicksNavOnlyFilterOn();
+      // Com "Somente navegação": precisa finalizar+prune. Sem filtro, dia fica lazy.
       if (navOnly) pruneUniqueOrRepeatSessions(tree);
       clicksTreeLive = tree;
       const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
@@ -5410,9 +5450,8 @@ ${worksheets}
             const d = m.days[dateKey];
             const dayPath = `${monthPath}|${dateKey}`;
             const meta = daySkeletonMeta(d);
-            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, meta.extra)}</summary><div class="clicks-tree-children">`;
-            html += renderDayVisitorsHtml(d, dayPath);
-            html += '</div></details>';
+            // Só o esqueleto do dia — visitantes/passos sob demanda no expandir.
+            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, meta.extra)}</summary><div class="clicks-tree-children"></div></details>`;
           });
 
           html += '</div></details>';
@@ -5423,9 +5462,10 @@ ${worksheets}
 
       html += '</div>';
       root.innerHTML = html;
-      // Só abre o ano — conteúdo dos dias já está no DOM (montado no Atualizar).
       if (openPaths?.length) restoreClicksTreeOpenPaths(openPaths);
       else openLatestClicksTreeYear(root);
+      // Se algum dia já veio aberto (restore), hidrata só esses.
+      root.querySelectorAll('details.clicks-tree-day[open]').forEach((el) => hydrateClicksDayElement(el));
     }
 
     if (checkedEl) {
@@ -5723,13 +5763,13 @@ ${worksheets}
 
       setClicksRefreshBusy(true, 'Montando…');
       if (panelVisible) {
-        root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Aguarde — montando ano → mês → dia → visitas…</p>';
+        root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Aguarde — montando ano → mês → dia…</p>';
       }
       await new Promise((r) => window.setTimeout(r, 0));
       reapplyClicksLocalFilters(openPaths);
       updateClicksCoverageStatus({ fromCache: false });
-      setClicksLoadStatus('Cliques atualizados — pode expandir.', 'success');
-      window.setTimeout(() => setClicksLoadStatus(''), 2500);
+      setClicksLoadStatus('Cliques atualizados — ano → mês → dia prontos; visitas ao abrir o dia.', 'success');
+      window.setTimeout(() => setClicksLoadStatus(''), 3500);
     } catch (err) {
       if (isClicksPanelVisible()) {
         root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
