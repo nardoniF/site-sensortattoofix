@@ -91,7 +91,8 @@ import {
   applyOrderFreteAccounting,
   orderNeedsFreteProductRepair,
   saleMoneyParts,
-  storeOrderListedGross
+  storeOrderListedGross,
+  storeOrderSaleMoney
 } from './sales-money.js';
 import {
   DEFAULT_INTL_CURRENCIES,
@@ -119,7 +120,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = 'a5fb76c0dd7f01c0d4ef7c2ce146bb6d9f737b33';
+const SITE_CATALOG_COMMIT = '44edffc7a305b5fda3339d5ae842e194cd3639c0';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -2753,6 +2754,30 @@ async function intlForeignCharge(order, env, config, items, currency) {
     if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
+}
+
+/** Livro BRL do cobrado em moeda estrangeira: total/totalPaid = charge/fx; markup vai pro produto. */
+function applyIntlChargedBrlLedger(order) {
+  if (!order) return order;
+  const cur = String(order.chargeCurrency || order.displayCurrency || '').toUpperCase();
+  const amt = order.chargeAmount != null ? Number(order.chargeAmount) : NaN;
+  const fx = order.chargeFxRate != null ? Number(order.chargeFxRate) : NaN;
+  if (!cur || cur === 'BRL' || !Number.isFinite(amt) || amt < 0 || !Number.isFinite(fx) || fx <= 0) {
+    return order;
+  }
+  const paidBrl = Math.round((amt / fx) * 100) / 100;
+  const frete = Math.round((Number(order.frete) || 0) * 100) / 100;
+  if (order.valorProdutoAtCheckout == null && order.valorProduto != null) {
+    order.valorProdutoAtCheckout = Math.round(Number(order.valorProduto) * 100) / 100;
+  }
+  if (order.totalOriginal == null && order.total != null) {
+    order.totalOriginal = Math.round(Number(order.total) * 100) / 100;
+  }
+  order.totalPaid = paidBrl;
+  order.total = paidBrl;
+  order.valorProduto = Math.round(Math.max(0, paidBrl - frete) * 100) / 100;
+  order.intlChargedBrl = paidBrl;
+  return order;
 }
 
 async function intlUsdCharge(order, env, config, items) {
@@ -13062,6 +13087,7 @@ async function createPayPalCheckout(env, order, config, request, opts) {
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
       order.displayCurrency = foreignCur;
+      applyIntlChargedBrlLedger(order);
     }
   } else if (isSelfTestOrder(order)) {
     amountValue = SELF_TEST_BRL_AMOUNT.toFixed(2);
@@ -14475,6 +14501,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
       order.displayCurrency = foreignCur;
+      applyIntlChargedBrlLedger(order);
     } catch (err) {
       console.warn('Intl charge:', err.message);
     }
@@ -14499,6 +14526,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
   if (intlSelfTestUsd) {
     console.log('Intl self-test USD charge:', order.orderId, order.chargeAmount, billingType);
   }
+  applyIntlChargedBrlLedger(order);
 
   let payment = null;
   const hasAsaas = !!asaasApiKey(env);
@@ -15635,6 +15663,7 @@ async function ensureStripeIntlCharge(order, request, env) {
   order.chargeAmount = charge.amount;
   order.chargeFxRate = charge.fxRate;
   order.displayCurrency = foreignCur;
+  applyIntlChargedBrlLedger(order);
 }
 
 async function handleStripePaymentIntent(request, env, origin, orderId) {
@@ -18347,9 +18376,10 @@ function isDroppedMarketplaceSale(sale) {
 }
 
 function storeOrderToReportSale(order) {
-  const gross = storeOrderListedGross(order);
-  const shippingCost = Math.round(Number(order.frete || order.shippingCost || 0) * 100) / 100;
-  const paypalFee = Math.round(Number(order.paypalFee || 0) * 100) / 100;
+  const money = storeOrderSaleMoney(order);
+  const gross = Number(money.gross || 0);
+  const shippingCost = Number(money.shippingCost || 0);
+  const paypalFee = Number(money.fees || 0);
   const watch = order.smartwatch || order.watchModel || order.modelo || '';
   let qty = Number(order.qty || order.quantity || 0) || 0;
   if (!qty && Array.isArray(order.items) && order.items.length) {
@@ -18362,7 +18392,9 @@ function storeOrderToReportSale(order) {
     externalId: String(order.orderId || ''),
     soldAt: order.paidAt || order.createdAt || null,
     status: order.status || null,
-    currency: order.currency || 'BRL',
+    currency: 'BRL',
+    chargeCurrency: money.chargeCurrency || order.chargeCurrency || null,
+    chargeAmount: money.chargeAmount != null ? money.chargeAmount : null,
     gross,
     fees: paypalFee,
     shippingCost,

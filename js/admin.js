@@ -971,8 +971,20 @@
     const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
     const feesShown = (tagged._fees || 0) + other;
     const shipUnresolved = mlShippingUnresolved(tagged);
+    const chargeCur = String(tagged.chargeCurrency || '').toUpperCase();
+    const chargeAmt = Number(tagged.chargeAmount);
+    const fromCharge = chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt) && chargeAmt > 0;
+    const chargeShown = fromCharge
+      ? `${chargeCur} ${chargeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : '';
+    const priceHint = fromCharge
+      ? `Cobrado ${chargeShown} convertido pra BRL (charge ÷ câmbio do checkout) — não usa total lista BRL`
+      : 'Preço do produto (anúncio / recibo)';
+    const priceTitle = fromCharge
+      ? `${chargeShown} → ${formatSalesBRL(tagged._gross)}`
+      : 'Preço';
     return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('paid', tagged._gross, priceTitle, priceHint, ''),
       salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
       salesMoneyCell('ship', tagged._shipping || 0, 'Frete', shipUnresolved ? 'Frete ainda não identificado no ML' : saleShipHoverHint(tagged), '−', shipUnresolved),
       salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
@@ -1015,19 +1027,6 @@
       case 'amazon': return 'Frete do vendedor (Amazon)';
       default: return 'Frete (custo do vendedor)';
     }
-  }
-
-  function renderSaleMoneyCols(sale, channelHint) {
-    const tagged = sale?.channel ? sale : { ...sale, channel: channelHint };
-    const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
-    const feesShown = (tagged._fees || 0) + other;
-    return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
-      salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
-      salesMoneyCell('ship', tagged._shipping || 0, 'Frete', saleShipHoverHint(tagged), '−'),
-      salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
-      salesMoneyCell('net', tagged._net, 'Líquido', 'Líquido: Preço − Tarifa − Frete − Kit', '=')
-    ].join('');
   }
 
   function isDroppedMarketplaceSale(sale) {
@@ -1294,13 +1293,39 @@
     return SALES_CHANNEL_LABELS[channel] || channel || '—';
   }
 
+  function storeOrderChargeBrlFallback(o) {
+    const cur = String(o?.chargeCurrency || o?.displayCurrency || '').toUpperCase();
+    const amt = o?.chargeAmount != null ? Number(o.chargeAmount) : NaN;
+    const rate = o?.chargeFxRate != null ? Number(o.chargeFxRate) : NaN;
+    if (!cur || cur === 'BRL' || !(amt > 0) || !(rate > 0)) return null;
+    const freteBrl = roundMoneyLocal(Math.max(0, Number(o?.frete) || Number(o?.shippingCost) || 0));
+    let shipForeign = roundMoneyLocal(freteBrl * rate);
+    if (shipForeign > amt) shipForeign = amt;
+    return {
+      gross: roundMoneyLocal(amt / rate),
+      shippingCost: roundMoneyLocal(shipForeign / rate),
+      fees: roundMoneyLocal(Number(o?.paypalFee) || 0),
+      currency: 'BRL',
+      chargeCurrency: cur,
+      chargeAmount: roundMoneyLocal(amt),
+      fromCharge: true
+    };
+  }
+
   function storeOrderToSale(o) {
-    const listed = sm().storeOrderListedGross;
-    const gross = listed
-      ? listed(o)
-      : Math.round(Number(o.total || 0) * 100) / 100;
-    const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
-    const paypalFee = Math.round(Number(o.paypalFee || 0) * 100) / 100;
+    const moneyFn = sm().storeOrderSaleMoney;
+    const money = (moneyFn && moneyFn(o))
+      || storeOrderChargeBrlFallback(o)
+      || {
+          gross: Math.round(Number(o.total || 0) * 100) / 100,
+          shippingCost: Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100,
+          fees: Math.round(Number(o.paypalFee || 0) * 100) / 100,
+          chargeCurrency: null,
+          chargeAmount: null
+        };
+    const gross = Number(money.gross || 0);
+    const shippingCost = Number(money.shippingCost || 0);
+    const paypalFee = Number(money.fees || 0);
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
     let qty = Number(o.qty || o.quantity || 0) || 0;
     if (!qty && Array.isArray(o.items) && o.items.length) {
@@ -1316,7 +1341,9 @@
       externalId: String(o.orderId || ''),
       soldAt: o.paidAt || o.createdAt || null,
       status: o.status || null,
-      currency: o.currency || 'BRL',
+      currency: 'BRL',
+      chargeCurrency: money.chargeCurrency || o.chargeCurrency || null,
+      chargeAmount: money.chargeAmount != null ? money.chargeAmount : (o.chargeAmount != null ? Number(o.chargeAmount) : null),
       gross,
       fees: paypalFee,
       shippingCost,
@@ -1330,7 +1357,7 @@
       items: [{
         title,
         quantity: qty,
-        unitPrice: gross,
+        unitPrice: roundMoneyLocal(Math.max(0, gross - shippingCost)),
         saleFee: 0
       }],
       payments: o.paymentMethod || o.meioPagamento
@@ -1694,6 +1721,144 @@
     </section>`;
   }
 
+  /** Segunda-feira (YYYY-MM-DD) ± N semanas — mesma base de brWeekBucket (seg→dom, atravessa mês). */
+  function shiftMondayKey(mondayKey, deltaWeeks) {
+    const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    dt.setUTCDate(dt.getUTCDate() + (Number(deltaWeeks) || 0) * 7);
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  function weekCardFromMondayKey(mondayKey) {
+    const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+    const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const sun = new Date(mon);
+    sun.setUTCDate(mon.getUTCDate() + 6);
+    const fmt = (dt) => `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}`;
+    return {
+      key: mondayKey,
+      rangeLabel: `${fmt(mon)} – ${fmt(sun)}`,
+      mondayYmd: mondayKey,
+      sundayYmd: `${sun.getUTCFullYear()}-${String(sun.getUTCMonth() + 1).padStart(2, '0')}-${String(sun.getUTCDate()).padStart(2, '0')}`,
+      monthKeys: (() => {
+        const keys = [];
+        const seen = new Set();
+        for (let i = 0; i < 7; i += 1) {
+          const day = new Date(mon);
+          day.setUTCDate(mon.getUTCDate() + i);
+          const mk = `${day.getUTCFullYear()}-${String(day.getUTCMonth() + 1).padStart(2, '0')}`;
+          if (!seen.has(mk)) {
+            seen.add(mk);
+            keys.push(mk);
+          }
+        }
+        return keys;
+      })()
+    };
+  }
+
+  /** Últimas N semanas Mon→Sun (mais antiga → mais recente), incluindo a semana atual. */
+  function lastNBrWeeks(n, nowTs) {
+    const count = Math.max(1, Number(n) || 13);
+    const currentKey = brWeekBucket(nowTs || Date.now()).key;
+    const weeks = [];
+    for (let i = count - 1; i >= 0; i -= 1) {
+      weeks.push(weekCardFromMondayKey(shiftMondayKey(currentKey, -i)));
+    }
+    return weeks;
+  }
+
+  function salesInBrWeek(sales, mondayKey) {
+    return (sales || []).filter((s) => s._ts && brWeekBucket(s._ts).key === mondayKey);
+  }
+
+  /** Por linha do mês: pior = red, melhor = green, resto = yellow. */
+  function weekToneInMonth(net, minNet, maxNet) {
+    const n = Number(net || 0);
+    const min = Number(minNet || 0);
+    const max = Number(maxNet || 0);
+    if (min === max) return 'yellow';
+    if (n <= min) return 'red';
+    if (n >= max) return 'green';
+    return 'yellow';
+  }
+
+  function renderConsolidadoWeekCompare(sales) {
+    const nowTs = Date.now();
+    const currentKey = brWeekBucket(nowTs).key;
+    const todayYmd = brLocalYmd(nowTs);
+    const weekDefs = lastNBrWeeks(13, nowTs);
+    const rows = weekDefs.map((w) => {
+      const subset = salesInBrWeek(sales, w.key);
+      const tot = sumAnnotated(subset);
+      const isCurrent = w.key === currentKey;
+      let daysForAvg = 7;
+      if (isCurrent) {
+        const [y, m, d] = w.mondayYmd.split('-').map(Number);
+        const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+        const [ty, tm, td] = todayYmd.split('-').map(Number);
+        const today = new Date(Date.UTC(ty, tm - 1, td, 12, 0, 0));
+        daysForAvg = Math.max(1, Math.min(7, Math.round((today - mon) / 86400000) + 1));
+      }
+      const perDay = tot.net / daysForAvg;
+      return { ...w, tot, isCurrent, daysForAvg, perDay };
+    });
+    const latest = rows[rows.length - 1];
+    const hint = latest
+      ? `${latest.rangeLabel} · ${formatSalesBRL(latest.tot.net)}`
+      : '—';
+
+    // Linha = mês do domingo da semana (a que “invade” o mês novo abre a linha).
+    const lineGroups = [];
+    rows.forEach((row) => {
+      const sundayMonthKey = String(row.sundayYmd || '').slice(0, 7);
+      const last = lineGroups[lineGroups.length - 1];
+      if (!last || last.monthKey !== sundayMonthKey) {
+        lineGroups.push({ monthKey: sundayMonthKey, weeks: [row] });
+      } else {
+        last.weeks.push(row);
+      }
+    });
+    const nowYear = brDateParts(nowTs).year;
+    const lineHtml = lineGroups.map((group) => {
+      const [y, mm] = String(group.monthKey || '').split('-');
+      const monthName = (MONTH_LABELS[mm] || mm || '—').toUpperCase();
+      const monthLabel = y && y !== nowYear ? `${monthName} ${y}` : monthName;
+      const nets = group.weeks.map((w) => Number(w.tot.net || 0));
+      const minNet = Math.min(...nets);
+      const maxNet = Math.max(...nets);
+      const cards = group.weeks.map((row) => {
+        const tone = weekToneInMonth(row.tot.net, minNet, maxNet);
+        const currentClass = row.isCurrent ? ' is-current' : '';
+        return `<article class="vendas-consol-week13-card is-${tone}${currentClass}">
+          <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
+          <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
+          <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
+          <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
+        </article>`;
+      }).join('');
+      return `<div class="vendas-consol-week13-line">
+        <div class="vendas-consol-week13-line-label">${escapeHtml(monthLabel)}</div>
+        <div class="vendas-consol-week13-line-cards">${cards}</div>
+      </div>`;
+    }).join('');
+
+    return `<details class="admin-fold vendas-consol-weeks-fold" id="vendas-consol-weeks-fold" data-fold-key="vendas-semanas">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Comparativo de semanas</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">
+        <header class="vendas-consol-week13-head">
+          <h3>Últimas 13 semanas</h3>
+          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo. Por linha do mês: vermelho = menos vendeu · verde = mais vendeu · amarelo = resto — fuso São Paulo.</p>
+        </header>
+        <div class="vendas-consol-week13-lines">${lineHtml}</div>
+      </div>
+    </details>`;
+  }
+
   function renderConsolidadoPeriods(sales) {
     const el = document.getElementById('vendas-consol-periods');
     if (!el) return;
@@ -1732,7 +1897,8 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
-    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoWeekCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    wireOneAdminFold(document.getElementById('vendas-consol-weeks-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-days-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-flex-fold'));
   }
@@ -1773,7 +1939,8 @@
           count: 0,
           owed: 0,
           bonus: 0,
-          net: 0
+          net: 0,
+          dayCountMap: new Map()
         });
       }
       const row = map.get(key);
@@ -1783,8 +1950,34 @@
       row.owed += owed;
       row.bonus += bonus;
       row.net += roundMoneyLocal(owed - bonus);
+      const day = Number(p.day);
+      if (Number.isFinite(day) && day > 0) {
+        row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+      }
     });
-    return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
+    return Array.from(map.values())
+      .map((r) => {
+        const { dayCountMap, ...rest } = r;
+        const dayEntries = [...dayCountMap.entries()]
+          .map(([day, count]) => ({ day, count }))
+          .sort((a, b) => a.day - b.day);
+        return { ...rest, days: dayEntries.map((e) => e.day), dayEntries };
+      })
+      .sort((a, b) => String(b.key).localeCompare(String(a.key)));
+  }
+
+  function formatFlexDaysWithQty(entries) {
+    const fn = sm().formatFlexDaysWithQty;
+    if (typeof fn === 'function') return fn(entries);
+    const list = (entries || []).map((e) => {
+      if (e && typeof e === 'object') return { day: Number(e.day), count: Number(e.count) || 1 };
+      return { day: Number(e), count: 1 };
+    }).filter((e) => e.day > 0);
+    if (!list.length) return '';
+    const labels = list.map((e) => (e.count > 1 ? `${e.day} (${e.count})` : String(e.day)));
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} e ${labels[1]}`;
+    return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
   }
 
   function renderConsolidadoFlexOwed(sales) {
@@ -1799,10 +1992,18 @@
       ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+        const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+          ? m.dayEntries
+          : (m.days || []).map((d) => ({ day: d, count: 1 }));
+        const withLabel = formatFlexDaysWithQty(dayEntries);
+        const withHtml = withLabel
+          ? `<p class="vendas-consol-flex-days" title="Dias com envio Flex">com: ${escapeHtml(withLabel)}</p>`
+          : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
+        ${withHtml}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
       }).join('')}</div>`
@@ -1818,9 +2019,19 @@
   }
 
   function buildFlexOwedExportRows(sales) {
-    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias com Flex']];
     aggregateFlexOwedByMonth(sales).forEach((m) => {
-      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
+      const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+        ? m.dayEntries
+        : (m.days || []).map((d) => ({ day: d, count: 1 }));
+      rows.push([
+        `${m.name} ${m.year}`,
+        m.count,
+        m.owed,
+        m.bonus,
+        m.net,
+        formatFlexDaysWithQty(dayEntries)
+      ]);
     });
     return rows;
   }
@@ -4783,7 +4994,10 @@ ${worksheets}
   }
 
   function pruneUniqueOrRepeatDay(d, m, y) {
-    if (!d?.visitors) return d;
+    if (!d) return d;
+    // Finaliza sob demanda (não no build da árvore — isso travava o expandir).
+    finalizeClicksDay(d);
+    if (!d.visitors) return d;
     Object.keys(d.visitors).forEach((vKey) => {
       const v = d.visitors[vKey];
       Object.keys(v.sessions || {}).forEach((sKey) => {
@@ -4801,7 +5015,7 @@ ${worksheets}
     return d;
   }
 
-  /** Árvore completa: agrega por dia e já monta visitantes/sessões (Atualizar traz tudo). */
+  /** Agrega e finaliza visitantes/sessões de todos os dias (feito no Atualizar). */
   function buildClicksTree(clicks) {
     const tree = {};
     (clicks || []).forEach((c) => {
@@ -4984,39 +5198,6 @@ ${worksheets}
   }
 
   let clicksTreeLive = null;
-  let clicksTreeHydrateWired = false;
-
-  function wireClicksTreeLazyHydrate() {
-    if (clicksTreeHydrateWired) return;
-    const root = document.getElementById('clicks-tree-root');
-    if (!root) return;
-    clicksTreeHydrateWired = true;
-    root.addEventListener('toggle', (ev) => {
-      const dayEl = ev.target;
-      if (!(dayEl instanceof HTMLDetailsElement)) return;
-      if (!dayEl.classList.contains('clicks-tree-day') || !dayEl.open) return;
-      hydrateClicksDayElement(dayEl);
-    });
-  }
-
-  function hydrateClicksDayElement(dayEl) {
-    const body = dayEl.querySelector(':scope > .clicks-tree-children');
-    if (!body || body.dataset.hydrated === '1') return;
-    const dayPath = dayEl.getAttribute('data-tree-path') || '';
-    const day = lookupClicksDay(clicksTreeLive, dayPath);
-    if (!day) {
-      body.innerHTML = '<p class="admin-meta">Dia não encontrado no cache.</p>';
-      body.dataset.hydrated = '1';
-      return;
-    }
-    body.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Montando visitas do dia…</p>';
-    window.setTimeout(() => {
-      finalizeClicksDay(day);
-      if (isClicksNavOnlyFilterOn()) pruneUniqueOrRepeatDay(day);
-      body.innerHTML = renderDayVisitorsHtml(day, dayPath);
-      body.dataset.hydrated = '1';
-    }, 0);
-  }
 
   function clicksTreeSummary(label, count, extra) {
     const meta = count != null ? `<span class="clicks-tree-meta">${count} evento${count === 1 ? '' : 's'}${extra ? ' · ' + extra : ''}</span>` : '';
@@ -5242,8 +5423,9 @@ ${worksheets}
 
       html += '</div>';
       root.innerHTML = html;
+      // Só abre o ano — conteúdo dos dias já está no DOM (montado no Atualizar).
       if (openPaths?.length) restoreClicksTreeOpenPaths(openPaths);
-      else openLatestClicksTreeDay(root);
+      else openLatestClicksTreeYear(root);
     }
 
     if (checkedEl) {
@@ -5251,16 +5433,13 @@ ${worksheets}
     }
   }
 
-  /** Abre ano → mês → dia mais recente para ir direto ao log atual. */
-  function openLatestClicksTreeDay(root) {
+  function openLatestClicksTreeYear(root) {
     const year = root?.querySelector('details.clicks-tree-year');
-    if (!year) return;
-    year.open = true;
-    const month = year.querySelector('details.clicks-tree-month');
-    if (!month) return;
-    month.open = true;
-    const day = month.querySelector('details.clicks-tree-day');
-    if (day) day.open = true;
+    if (year) year.open = true;
+  }
+
+  function openLatestClicksTreeDay(root) {
+    openLatestClicksTreeYear(root);
   }
 
   const CLICKS_NAV_ONLY_KEY = 'stf_clicks_nav_only_v2';
@@ -5352,7 +5531,7 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao limpar log');
       clicksCache = [];
-      await startClicksBackgroundLoad({ preserveOpen: true, force: true });
+      await startClicksBackgroundLoad({ preserveOpen: false, force: true });
       const removed = data.removed || 0;
       showStatus(
         isAll
@@ -5445,6 +5624,24 @@ ${worksheets}
     el.hidden = false;
   }
 
+  function setClicksRefreshBusy(busy, label) {
+    const btn = document.getElementById('btn-clicks-refresh');
+    if (!btn) return;
+    if (busy) {
+      if (!btn.dataset.idleHtml) btn.dataset.idleHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ${label || 'Aguarde…'}`;
+    } else {
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      if (btn.dataset.idleHtml) {
+        btn.innerHTML = btn.dataset.idleHtml;
+        delete btn.dataset.idleHtml;
+      }
+    }
+  }
+
   function renderClicksFromCache(openPaths) {
     if (!clicksCache.length || !clicksMetaCache) return;
     renderClicksStats(clicksMetaCache);
@@ -5496,18 +5693,18 @@ ${worksheets}
     clicksLoading = true;
     const openPaths = preserveOpen ? captureClicksTreeOpenPaths() : [];
     const panelVisible = isClicksPanelVisible();
+    setClicksRefreshBusy(true, 'Aguarde…');
     setClicksLoadStatus(
       panelVisible
-        ? 'Carregando histórico de cliques…'
-        : 'Carregando cliques em segundo plano — você pode usar outras abas.'
+        ? 'Buscando e montando o log — a árvore só aparece pronta.'
+        : 'Carregando cliques em segundo plano…'
     );
-    if (panelVisible && !clicksCache.length) {
-      root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
+    if (panelVisible) {
+      root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Aguarde — buscando cliques…</p>';
     }
 
     try {
-      // Sempre busca o lote completo (últimos ~4000). Filtros de busca/destino
-      // aplicam só no cliente — evita “congelar” o cache num destino/dia.
+      setClicksRefreshBusy(true, 'Buscando…');
       const params = new URLSearchParams({ limit: '4000' });
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
         headers: { Authorization: 'Bearer ' + token },
@@ -5517,17 +5714,21 @@ ${worksheets}
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       clicksCache = data.clicks || [];
       const whenRaw = data.whenClicks?.length ? data.whenClicks : clicksCache;
-      // Cap defensivo: agregação de gráficos com dezenas de milhares trava o main thread.
       clicksWhenCache = whenRaw.length > 25000
         ? whenRaw.filter((_, i) => i % Math.ceil(whenRaw.length / 20000) === 0)
         : whenRaw;
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = { ...data, _savedAt: Date.now(), _fromCache: false };
       saveClicksSnapshot(data);
-      // Árvore primeiro; gráficos só depois (evita “Página sem resposta”).
-      reapplyClicksLocalFilters([]);
+
+      setClicksRefreshBusy(true, 'Montando…');
+      if (panelVisible) {
+        root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Aguarde — montando ano → mês → dia → visitas…</p>';
+      }
+      await new Promise((r) => window.setTimeout(r, 0));
+      reapplyClicksLocalFilters(openPaths);
       updateClicksCoverageStatus({ fromCache: false });
-      setClicksLoadStatus('Cliques atualizados.', 'success');
+      setClicksLoadStatus('Cliques atualizados — pode expandir.', 'success');
       window.setTimeout(() => setClicksLoadStatus(''), 2500);
     } catch (err) {
       if (isClicksPanelVisible()) {
@@ -5540,6 +5741,7 @@ ${worksheets}
       if (noise) noise.innerHTML = '';
     } finally {
       clicksLoading = false;
+      setClicksRefreshBusy(false);
     }
   }
 
@@ -6211,15 +6413,18 @@ ${worksheets}
         : '<span class="admin-badge-main">Brasil</span> ');
     const title = p.name ? `${badge}Produto ${i + 1}: ${escAttr(p.name)}` : `${badge}Produto ${i + 1}`;
     const sensorField = !isAggregated ? `
-          <label>Sensor da lente (mm)
-            <span class="stf-help-tip" tabindex="0" aria-label="Como medir o sensor">
+          <label>Diâmetro (mm)
+            <span class="stf-help-tip" tabindex="0" aria-label="Como medir o diâmetro">
               <i class="fas fa-circle-question"></i>
               <span class="stf-help-tip-pop">
                 <img src="images/home/relogio_sensor.jpg" alt="Medir o sensor com régua no relógio">
-                <small>Meça o diâmetro do círculo do sensor no fundo do relógio (em mm).</small>
+                <small>Diâmetro do círculo do sensor / da lente (mm), de ponta a ponta.</small>
               </span>
             </span>
             <input type="number" data-field="sensorMm" step="0.5" min="0" value="${p.sensorMm != null ? p.sensorMm : ''}" placeholder="ex.: 25">
+          </label>
+          <label>Espessura (mm)
+            <input type="number" data-field="thicknessMm" step="0.01" min="0" value="${p.thicknessMm != null ? p.thicknessMm : ''}" placeholder="ex.: 0.2">
           </label>` : '';
     const aggregatedFields = isAggregated ? `
           <label class="full">Nome EN <small class="admin-field-hint">título na loja intl / upsell</small>
@@ -6522,8 +6727,12 @@ ${worksheets}
         const sm = val('sensorMm');
         if (sm) product.sensorMm = Number(sm);
         else delete product.sensorMm;
+        const th = val('thicknessMm');
+        if (th) product.thicknessMm = Number(th);
+        else delete product.thicknessMm;
       } else {
         delete product.sensorMm;
+        delete product.thicknessMm;
         const modelsEl = row.querySelector('[data-field="compatibleWatchModels"]');
         if (modelsEl) {
           const lines = modelsEl.value.split('\n').map((s) => s.trim()).filter(Boolean);
@@ -7245,6 +7454,7 @@ ${worksheets}
       const size = row?.sizeMm != null && row?.sizeMm !== '' ? Number(row.sizeMm) : null;
       const lensW = row?.lensWmm != null && row?.lensWmm !== '' ? Number(row.lensWmm) : null;
       const lensH = row?.lensHmm != null && row?.lensHmm !== '' ? Number(row.lensHmm) : null;
+      const thickness = row?.thicknessMm != null && row?.thicknessMm !== '' ? Number(row.thicknessMm) : null;
       if (!out[b]) out[b] = [];
       const existing = out[b].find((r) => r.label === label);
       const next = {
@@ -7256,6 +7466,7 @@ ${worksheets}
       };
       if (Number.isFinite(lensW) && lensW > 0) next.lensWmm = lensW;
       if (Number.isFinite(lensH) && lensH > 0) next.lensHmm = lensH;
+      if (Number.isFinite(thickness) && thickness > 0) next.thicknessMm = thickness;
       if (Array.isArray(row?.kinds) && row.kinds.length) next.kinds = [...row.kinds];
       if (existing) Object.assign(existing, next);
       else out[b].push(next);
@@ -7303,7 +7514,7 @@ ${worksheets}
     if (applyBtn) {
       applyBtn.title = isBand
         ? 'Aplica largura × altura a todos os modelos smartband da marca filtrada'
-        : 'Aplica o diâmetro (mm) a todos os modelos smartwatch da marca filtrada';
+        : 'Aplica diâmetro e espessura (mm) a todos os modelos smartwatch da marca filtrada';
     }
   }
 
@@ -7320,7 +7531,7 @@ ${worksheets}
     if (thead) {
       thead.innerHTML = isBand
         ? '<th>Modelo (checkout)</th><th style="width:96px">Largura (mm)</th><th style="width:96px">Altura (mm)</th><th style="width:70px"></th>'
-        : '<th>Modelo (checkout)</th><th style="width:110px">Sensor Ø (mm)</th><th style="width:70px"></th>';
+        : '<th>Modelo (checkout)</th><th style="width:110px">Diâmetro (mm)</th><th style="width:110px">Espessura (mm)</th><th style="width:70px"></th>';
     }
     const brands = Object.keys(smartwatchCatalogState)
       .filter((b) => swBrandHasKind(b, kind))
@@ -7340,7 +7551,7 @@ ${worksheets}
         : 'Nenhum modelo neste filtro.';
     }
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="${isBand ? 4 : 3}" class="admin-meta">Nenhum modelo nesta marca/tipo. Adicione abaixo.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="admin-meta">Nenhum modelo nesta marca/tipo. Adicione abaixo.</td></tr>`;
       return;
     }
     tbody.innerHTML = rows.map((row, idx) => {
@@ -7360,6 +7571,8 @@ ${worksheets}
         <td><input type="text" class="admin-sw-label" value="${escapeHtml(row.label)}" data-idx="${idx}"></td>
         <td><input type="number" class="admin-sw-sensor" min="0" step="0.1" inputmode="decimal"
           value="${row.sensorMm != null ? escapeHtml(String(row.sensorMm)) : ''}" placeholder="—" data-idx="${idx}"></td>
+        <td><input type="number" class="admin-sw-thickness" min="0" step="0.01" inputmode="decimal"
+          value="${row.thicknessMm != null ? escapeHtml(String(row.thicknessMm)) : ''}" placeholder="—" data-idx="${idx}"></td>
         <td><button type="button" class="btn-secondary admin-sw-remove" data-label="${escapeHtml(row.label)}" title="Remover">×</button></td>
       </tr>`;
     }).join('');
@@ -7374,7 +7587,7 @@ ${worksheets}
   }
 
   function buildSmartwatchCatalogExportWorkbook() {
-    const rows = [['Tipo', 'Marca', 'Modelo', 'Sensor Ø (mm)', 'Largura (mm)', 'Altura (mm)']];
+    const rows = [['Tipo', 'Marca', 'Modelo', 'Diâmetro (mm)', 'Espessura (mm)', 'Largura (mm)', 'Espessura banda (mm)']];
     Object.keys(smartwatchCatalogState || {})
       .sort((a, b) => a.localeCompare(b, 'pt'))
       .forEach((brand) => {
@@ -7387,6 +7600,9 @@ ${worksheets}
             const sensor = row.sensorMm != null && Number.isFinite(Number(row.sensorMm)) && Number(row.sensorMm) > 0
               ? Number(row.sensorMm)
               : '';
+            const thickness = row.thicknessMm != null && Number.isFinite(Number(row.thicknessMm)) && Number(row.thicknessMm) > 0
+              ? Number(row.thicknessMm)
+              : '';
             const lensW = row.lensWmm != null && Number.isFinite(Number(row.lensWmm)) && Number(row.lensWmm) > 0
               ? Number(row.lensWmm)
               : '';
@@ -7398,6 +7614,7 @@ ${worksheets}
               brand,
               String(row.label || ''),
               sensor,
+              thickness,
               lensW,
               lensH
             ]);
@@ -7478,17 +7695,21 @@ ${worksheets}
             row.lensWmm = bulkW;
             row.lensHmm = bulkH;
             delete row.sensorMm;
+            delete row.thicknessMm;
           }
         });
       } else {
         const bulk = Number(document.getElementById('admin-sw-sensor-bulk')?.value);
-        if (!(bulk > 0)) {
-          alert('Informe o diâmetro do sensor (mm) para aplicar na lista.');
+        const bulkTh = Number(document.getElementById('admin-sw-thickness-bulk')?.value);
+        if (!(bulk > 0) && !(bulkTh > 0)) {
+          alert('Informe o diâmetro e/ou a espessura (mm) para aplicar na lista.');
           return;
         }
         smartwatchCatalogState[brand].forEach((row) => {
           if (isSwBrandPlaceholder(row)) return;
-          if (swRowMatchesKind(row, kind)) row.sensorMm = bulk;
+          if (!swRowMatchesKind(row, kind)) return;
+          if (bulk > 0) row.sensorMm = bulk;
+          if (bulkTh > 0) row.thicknessMm = bulkTh;
         });
       }
       syncSmartwatchModelsTextarea();
@@ -7525,6 +7746,8 @@ ${worksheets}
       }
       const sensorRaw = document.getElementById('admin-sw-new-sensor')?.value;
       const sensor = sensorRaw !== '' && sensorRaw != null ? Number(sensorRaw) : null;
+      const thicknessRaw = document.getElementById('admin-sw-new-thickness')?.value;
+      const thickness = thicknessRaw !== '' && thicknessRaw != null ? Number(thicknessRaw) : null;
       const lensWRaw = document.getElementById('admin-sw-new-lensw')?.value;
       const lensHRaw = document.getElementById('admin-sw-new-lensh')?.value;
       const lensW = lensWRaw !== '' && lensWRaw != null ? Number(lensWRaw) : null;
@@ -7541,8 +7764,9 @@ ${worksheets}
       if (kind === 'smartband') {
         if (Number.isFinite(lensW) && lensW > 0) entry.lensWmm = lensW;
         if (Number.isFinite(lensH) && lensH > 0) entry.lensHmm = lensH;
-      } else if (Number.isFinite(sensor) && sensor > 0) {
-        entry.sensorMm = sensor;
+      } else {
+        if (Number.isFinite(sensor) && sensor > 0) entry.sensorMm = sensor;
+        if (Number.isFinite(thickness) && thickness > 0) entry.thicknessMm = thickness;
       }
       smartwatchCatalogState[brand].push(entry);
       if (kindEl) kindEl.value = kind;
@@ -7552,11 +7776,13 @@ ${worksheets}
       }
       const newLabel = document.getElementById('admin-sw-new-label');
       const newSensor = document.getElementById('admin-sw-new-sensor');
+      const newThickness = document.getElementById('admin-sw-new-thickness');
       const newLensW = document.getElementById('admin-sw-new-lensw');
       const newLensH = document.getElementById('admin-sw-new-lensh');
       const newBrandInput = document.getElementById('admin-sw-new-brand');
       if (newLabel) newLabel.value = '';
       if (newSensor) newSensor.value = '';
+      if (newThickness) newThickness.value = '';
       if (newLensW) newLensW.value = '';
       if (newLensH) newLensH.value = '';
       if (newBrandInput) newBrandInput.value = '';
@@ -7565,6 +7791,7 @@ ${worksheets}
     });
     tbody?.addEventListener('change', (e) => {
       const sensorInp = e.target.closest('.admin-sw-sensor');
+      const thicknessInp = e.target.closest('.admin-sw-thickness');
       const lensWInp = e.target.closest('.admin-sw-lensw');
       const lensHInp = e.target.closest('.admin-sw-lensh');
       const labelInp = e.target.closest('.admin-sw-label');
@@ -7575,6 +7802,17 @@ ${worksheets}
         if (!hit) return;
         const n = sensorInp.value === '' ? null : Number(sensorInp.value);
         hit.row.sensorMm = Number.isFinite(n) && n > 0 ? n : null;
+        syncSmartwatchModelsTextarea();
+        return;
+      }
+      if (thicknessInp) {
+        const tr = thicknessInp.closest('tr');
+        const oldLabel = tr?.getAttribute('data-sw-label');
+        const hit = oldLabel ? findCatalogRow(oldLabel) : null;
+        if (!hit) return;
+        const n = thicknessInp.value === '' ? null : Number(thicknessInp.value);
+        hit.row.thicknessMm = Number.isFinite(n) && n > 0 ? n : null;
+        if (hit.row.thicknessMm == null) delete hit.row.thicknessMm;
         syncSmartwatchModelsTextarea();
         return;
       }
@@ -8205,12 +8443,12 @@ ${worksheets}
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'cliques') {
         syncClicksNavOnlyCheckbox();
-        // Ao abrir a aba: não monta árvore. Só Atualizar traz tudo.
+        // Aba vazia até Atualizar. Sem aviso amarelo (já tem o cinza).
         if (clicksLoading) {
-          setClicksLoadStatus('Carregando cliques…');
+          setClicksLoadStatus('Montando cliques…');
         } else {
           showClicksEmptyState();
-          setClicksLoadStatus('Clique Atualizar para carregar o log completo.', 'warning');
+          setClicksLoadStatus('');
         }
       } else if (id === 'saldos') {
         restoreMpAuditSnapshot();
