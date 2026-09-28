@@ -395,20 +395,6 @@ export function formatFlexDaysWithQty(entries) {
   return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
 }
 
-/** Dias do mês (1…throughDay) sem nenhum envio Flex. */
-export function monthFlexEmptyDays(flexDays, year, monthNum, throughDay) {
-  const last = Math.min(
-    Math.max(1, Number(throughDay) || 1),
-    new Date(Date.UTC(Number(year), Number(monthNum), 0)).getUTCDate()
-  );
-  const has = new Set((flexDays || []).map((d) => Number(d)).filter((n) => n > 0));
-  const empty = [];
-  for (let d = 1; d <= last; d += 1) {
-    if (!has.has(d)) empty.push(d);
-  }
-  return empty;
-}
-
 export function aggregateFlexOwedByMonth(sales, config = null) {
   const map = new Map();
   (sales || []).forEach((s) => {
@@ -478,7 +464,6 @@ const exportsForBrowser = {
   isMlFlexSale,
   flexCompanyOwed,
   formatFlexDaysWithQty,
-  monthFlexEmptyDays,
   aggregateFlexOwedByMonth,
   orderPaypalFee,
   inferCustomerPaidTotal,

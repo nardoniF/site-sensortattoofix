@@ -1980,21 +1980,6 @@
     return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
   }
 
-  function monthFlexEmptyDays(flexDays, year, monthNum, throughDay) {
-    const fn = sm().monthFlexEmptyDays;
-    if (typeof fn === 'function') return fn(flexDays, year, monthNum, throughDay);
-    const last = Math.min(
-      Math.max(1, Number(throughDay) || 1),
-      daysInCalendarMonth(year, monthNum)
-    );
-    const has = new Set((flexDays || []).map((d) => Number(d)).filter((n) => n > 0));
-    const empty = [];
-    for (let d = 1; d <= last; d += 1) {
-      if (!has.has(d)) empty.push(d);
-    }
-    return empty;
-  }
-
   function renderConsolidadoFlexOwed(sales) {
     const months = aggregateFlexOwedByMonth(sales);
     const now = brDateParts(Date.now());
@@ -2007,26 +1992,18 @@
       ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
-        const through = m.key === currentKey
-          ? Math.min(Number(now.day), daysInCalendarMonth(m.year, m.monthNum))
-          : daysInCalendarMonth(m.year, m.monthNum);
         const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
           ? m.dayEntries
           : (m.days || []).map((d) => ({ day: d, count: 1 }));
         const withLabel = formatFlexDaysWithQty(dayEntries);
-        const emptyDays = monthFlexEmptyDays(m.days || dayEntries.map((e) => e.day), m.year, m.monthNum, through);
         const withHtml = withLabel
           ? `<p class="vendas-consol-flex-days" title="Dias com envio Flex">com: ${escapeHtml(withLabel)}</p>`
-          : '<p class="vendas-consol-flex-days">com: —</p>';
-        const emptyHtml = emptyDays.length
-          ? `<p class="vendas-consol-flex-days vendas-consol-flex-days-empty" title="Dias sem envio Flex">sem: ${escapeHtml(formatDayNumberList(emptyDays))}</p>`
-          : '<p class="vendas-consol-flex-days vendas-consol-flex-days-empty is-ok">sem: nenhum dia zerado</p>';
+          : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
         ${withHtml}
-        ${emptyHtml}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
       }).join('')}</div>`
@@ -2042,25 +2019,18 @@
   }
 
   function buildFlexOwedExportRows(sales) {
-    const now = brDateParts(Date.now());
-    const currentKey = `${now.year}-${now.monthNum}`;
-    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias com Flex', 'Dias sem Flex']];
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias com Flex']];
     aggregateFlexOwedByMonth(sales).forEach((m) => {
-      const through = m.key === currentKey
-        ? Math.min(Number(now.day), daysInCalendarMonth(m.year, m.monthNum))
-        : daysInCalendarMonth(m.year, m.monthNum);
       const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
         ? m.dayEntries
         : (m.days || []).map((d) => ({ day: d, count: 1 }));
-      const emptyDays = monthFlexEmptyDays(m.days || dayEntries.map((e) => e.day), m.year, m.monthNum, through);
       rows.push([
         `${m.name} ${m.year}`,
         m.count,
         m.owed,
         m.bonus,
         m.net,
-        formatFlexDaysWithQty(dayEntries),
-        formatDayNumberList(emptyDays)
+        formatFlexDaysWithQty(dayEntries)
       ]);
     });
     return rows;

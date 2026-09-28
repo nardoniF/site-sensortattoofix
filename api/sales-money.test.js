@@ -15,8 +15,7 @@ import {
   storeOrderListedGross,
   storeOrderChargeParts,
   storeOrderSaleMoney,
-  formatFlexDaysWithQty,
-  monthFlexEmptyDays
+  formatFlexDaysWithQty
 } from './sales-money.js';
 
 const config = { mlFlexShippingCost: 11.9 };
@@ -86,8 +85,6 @@ test('aggregateFlexOwedByMonth conta Flex por dia e formata (n) só se n > 1', (
   assert.deepEqual(rows[0].days, [2, 10]);
   assert.deepEqual(rows[0].dayEntries, [{ day: 2, count: 2 }, { day: 10, count: 1 }]);
   assert.equal(formatFlexDaysWithQty(rows[0].dayEntries), '2 (2) e 10');
-  const empty = monthFlexEmptyDays(rows[0].days, 2026, '09', 10);
-  assert.deepEqual(empty, [1, 3, 4, 5, 6, 7, 8, 9]);
 });
 
 test('frete manual cut reallocates leftover onto product and keeps paid total', () => {

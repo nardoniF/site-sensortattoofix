@@ -4857,12 +4857,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
     color: #c8c8c8;
     word-break: break-word;
 }
-.vendas-consol-flex-days-empty {
-    color: #a0a0a0;
-}
-.vendas-consol-flex-days-empty.is-ok {
-    color: #7cb342;
-}
 .vendas-consol-flex-card .vendas-consol-mtd-net {
     color: #ffe082;
 }
