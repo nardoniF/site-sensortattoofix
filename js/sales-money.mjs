@@ -294,15 +294,72 @@ export function applyOrderFreteAccounting(order, newFrete, opts = {}) {
   return order;
 }
 
-export function storeOrderListedGross(order) {
+/**
+ * Pedido intl cobrado em moeda estrangeira: converte o valor cobrado (chargeAmount)
+ * pra BRL com a mesma taxa do checkout (chargeFxRate = estrangeiro por 1 BRL).
+ * BRL = foreign / rate. Não usa order.total (lista BRL) — isso gerava ~R$ 98
+ * pra um cobro de ~US$ 30.
+ */
+export function storeOrderChargeParts(order) {
+  const cur = String(order?.chargeCurrency || '').toUpperCase();
+  const amount = Number(order?.chargeAmount);
+  const rate = Number(order?.chargeFxRate);
+  if (!cur || cur === 'BRL') return null;
+  if (!(amount > 0) || !(rate > 0)) return null;
+  const freteBrl = roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0));
+  let shipForeign = roundMoney(freteBrl * rate);
+  if (shipForeign > amount) shipForeign = amount;
+  const productForeign = roundMoney(Math.max(0, amount - shipForeign));
+  return {
+    currency: cur,
+    chargeAmount: roundMoney(amount),
+    fxRate: rate,
+    productForeign,
+    shipForeign,
+    productBrl: roundMoney(productForeign / rate),
+    shippingBrl: roundMoney(shipForeign / rate),
+    totalBrl: roundMoney(amount / rate)
+  };
+}
+
+/** Dinheiro da venda loja pra relatório/Admin: prioriza cobrança estrangeira convertida. */
+export function storeOrderSaleMoney(order) {
+  const charged = storeOrderChargeParts(order);
+  if (charged) {
+    return {
+      gross: charged.totalBrl,
+      shippingCost: charged.shippingBrl,
+      fees: orderPaypalFee(order),
+      currency: 'BRL',
+      chargeCurrency: charged.currency,
+      chargeAmount: charged.chargeAmount,
+      fromCharge: true
+    };
+  }
   const total = roundMoney(order?.total);
   const grossPaid = roundMoney(order?.totalPaid);
   const fee = orderPaypalFee(order);
+  let gross = total;
   if (total > 0 && grossPaid > 0 && fee > 0.009 && total < grossPaid - 0.05) {
-    return total;
+    gross = total;
+  } else if (total > 0) {
+    gross = total;
+  } else {
+    gross = inferCustomerPaidTotal(order);
   }
-  if (total > 0) return total;
-  return inferCustomerPaidTotal(order);
+  return {
+    gross,
+    shippingCost: roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0)),
+    fees: fee,
+    currency: order?.currency || 'BRL',
+    chargeCurrency: null,
+    chargeAmount: null,
+    fromCharge: false
+  };
+}
+
+export function storeOrderListedGross(order) {
+  return storeOrderSaleMoney(order).gross;
 }
 
 export function aggregateFlexOwedByMonth(sales, config = null) {
@@ -365,6 +422,8 @@ const exportsForBrowser = {
   inferCustomerPaidTotal,
   orderNeedsFreteProductRepair,
   applyOrderFreteAccounting,
+  storeOrderChargeParts,
+  storeOrderSaleMoney,
   storeOrderListedGross,
   MONTH_LABELS,
   DEFAULT_KIT_COST_COMPONENTS,
