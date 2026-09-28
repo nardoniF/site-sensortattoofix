@@ -2756,6 +2756,30 @@ async function intlForeignCharge(order, env, config, items, currency) {
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
 }
 
+/** Livro BRL do cobrado em moeda estrangeira: total/totalPaid = charge/fx; markup vai pro produto. */
+function applyIntlChargedBrlLedger(order) {
+  if (!order) return order;
+  const cur = String(order.chargeCurrency || order.displayCurrency || '').toUpperCase();
+  const amt = order.chargeAmount != null ? Number(order.chargeAmount) : NaN;
+  const fx = order.chargeFxRate != null ? Number(order.chargeFxRate) : NaN;
+  if (!cur || cur === 'BRL' || !Number.isFinite(amt) || amt < 0 || !Number.isFinite(fx) || fx <= 0) {
+    return order;
+  }
+  const paidBrl = Math.round((amt / fx) * 100) / 100;
+  const frete = Math.round((Number(order.frete) || 0) * 100) / 100;
+  if (order.valorProdutoAtCheckout == null && order.valorProduto != null) {
+    order.valorProdutoAtCheckout = Math.round(Number(order.valorProduto) * 100) / 100;
+  }
+  if (order.totalOriginal == null && order.total != null) {
+    order.totalOriginal = Math.round(Number(order.total) * 100) / 100;
+  }
+  order.totalPaid = paidBrl;
+  order.total = paidBrl;
+  order.valorProduto = Math.round(Math.max(0, paidBrl - frete) * 100) / 100;
+  order.intlChargedBrl = paidBrl;
+  return order;
+}
+
 async function intlUsdCharge(order, env, config, items) {
   return intlForeignCharge(order, env, config, items, 'USD');
 }
@@ -13063,6 +13087,7 @@ async function createPayPalCheckout(env, order, config, request, opts) {
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
       order.displayCurrency = foreignCur;
+      applyIntlChargedBrlLedger(order);
     }
   } else if (isSelfTestOrder(order)) {
     amountValue = SELF_TEST_BRL_AMOUNT.toFixed(2);
@@ -14476,6 +14501,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
       order.displayCurrency = foreignCur;
+      applyIntlChargedBrlLedger(order);
     } catch (err) {
       console.warn('Intl charge:', err.message);
     }
@@ -14500,6 +14526,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
   if (intlSelfTestUsd) {
     console.log('Intl self-test USD charge:', order.orderId, order.chargeAmount, billingType);
   }
+  applyIntlChargedBrlLedger(order);
 
   let payment = null;
   const hasAsaas = !!asaasApiKey(env);
@@ -15636,6 +15663,7 @@ async function ensureStripeIntlCharge(order, request, env) {
   order.chargeAmount = charge.amount;
   order.chargeFxRate = charge.fxRate;
   order.displayCurrency = foreignCur;
+  applyIntlChargedBrlLedger(order);
 }
 
 async function handleStripePaymentIntent(request, env, origin, orderId) {

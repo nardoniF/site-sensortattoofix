@@ -206,12 +206,27 @@ export function orderPaypalFee(order) {
   return roundMoney(Number(order?.paypalFee) || 0);
 }
 
+/** BRL equivalente do cobrado em moeda estrangeira (chargeAmount / fx; fx = BRL→moeda). */
+export function storeOrderChargedBrl(order) {
+  const parts = storeOrderChargeParts(order);
+  if (parts) return parts.totalBrl;
+  const cur = String(order?.chargeCurrency || order?.displayCurrency || '').toUpperCase();
+  const amt = order?.chargeAmount != null ? Number(order.chargeAmount) : NaN;
+  const fx = order?.chargeFxRate != null ? Number(order.chargeFxRate) : NaN;
+  if (cur && cur !== 'BRL' && Number.isFinite(amt) && amt >= 0 && Number.isFinite(fx) && fx > 0) {
+    return roundMoney(amt / fx);
+  }
+  return null;
+}
+
 /**
  * What the customer actually paid. Recovers the original total when a previous
  * frete edit shrank `total` to (produto + novo frete) instead of moving the
  * difference onto the product.
  */
 export function inferCustomerPaidTotal(order) {
+  const charged = storeOrderChargedBrl(order);
+  if (charged != null && charged > 0) return charged;
   if (order?.totalPaid != null && Number(order.totalPaid) > 0) {
     return roundMoney(order.totalPaid);
   }
@@ -422,6 +437,7 @@ const exportsForBrowser = {
   inferCustomerPaidTotal,
   orderNeedsFreteProductRepair,
   applyOrderFreteAccounting,
+  storeOrderChargedBrl,
   storeOrderChargeParts,
   storeOrderSaleMoney,
   storeOrderListedGross,
