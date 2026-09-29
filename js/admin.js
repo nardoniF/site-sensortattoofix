@@ -4993,6 +4993,53 @@ ${worksheets}
     return tree;
   }
 
+  /** Filtro leve pra esqueleto (sem finalize de todos os dias — isso congelava o Atualizar). */
+  function dayRawLikelyHasNavigation(d) {
+    if (!d) return false;
+    if (d._finalized && d.visitors) {
+      return Object.values(d.visitors).some((v) =>
+        Object.values(v.sessions || {}).some((ev) => !isUniqueOrRepeatOnlySession(ev))
+      );
+    }
+    const raw = Array.isArray(d._raw) ? d._raw : [];
+    const byVid = new Map();
+    for (let i = 0; i < raw.length; i += 1) {
+      const c = raw[i];
+      const k = visitorKey(c);
+      let set = byVid.get(k);
+      if (!set) {
+        set = new Set();
+        byVid.set(k, set);
+      }
+      set.add(clickSessionStepKey(c));
+      if (set.size >= 2) return true;
+    }
+    return false;
+  }
+
+  function filterClicksTreeNavOnlyLightweight(tree) {
+    Object.keys(tree).forEach((year) => {
+      const y = tree[year];
+      Object.keys(y.months).forEach((monthNum) => {
+        const m = y.months[monthNum];
+        let monthCount = 0;
+        Object.keys(m.days).forEach((dateKey) => {
+          const d = m.days[dateKey];
+          if (!dayRawLikelyHasNavigation(d)) {
+            delete m.days[dateKey];
+            return;
+          }
+          monthCount += Number(d.count) || 0;
+        });
+        m.count = monthCount;
+        if (!Object.keys(m.days).length) delete y.months[monthNum];
+      });
+      y.count = Object.values(y.months).reduce((n, m) => n + (Number(m.count) || 0), 0);
+      if (!Object.keys(y.months).length) delete tree[year];
+    });
+    return tree;
+  }
+
   function pruneUniqueOrRepeatDay(d, m, y) {
     if (!d) return d;
     // Finaliza sob demanda (não no build da árvore — isso travava o expandir).
@@ -5195,46 +5242,68 @@ ${worksheets}
   let clicksTreeLive = null;
   let clicksTreeHydrateWired = false;
 
+  function clicksDayBodyEl(dayEl) {
+    if (!dayEl) return null;
+    for (let i = 0; i < dayEl.children.length; i += 1) {
+      const child = dayEl.children[i];
+      if (child.classList && child.classList.contains('clicks-tree-children')) return child;
+    }
+    return dayEl.querySelector('.clicks-tree-children');
+  }
+
   function wireClicksTreeLazyHydrate() {
-    if (clicksTreeHydrateWired) return;
     const root = document.getElementById('clicks-tree-root');
     if (!root) return;
+    if (clicksTreeHydrateWired) return;
     clicksTreeHydrateWired = true;
-    root.addEventListener('toggle', (ev) => {
-      const dayEl = ev.target;
+    const onMaybeHydrate = (dayEl) => {
       if (!(dayEl instanceof HTMLDetailsElement)) return;
       if (!dayEl.classList.contains('clicks-tree-day') || !dayEl.open) return;
       hydrateClicksDayElement(dayEl);
+    };
+    root.addEventListener('toggle', (ev) => {
+      const t = ev.target;
+      if (t instanceof HTMLDetailsElement) onMaybeHydrate(t);
+    });
+    // Backup: alguns fluxos abrem o <details> sem toggle confiável.
+    root.addEventListener('click', (ev) => {
+      const summary = ev.target instanceof Element
+        ? ev.target.closest('details.clicks-tree-day > summary')
+        : null;
+      if (!summary) return;
+      const dayEl = summary.parentElement;
+      window.requestAnimationFrame(() => onMaybeHydrate(dayEl));
     });
   }
 
   function hydrateClicksDayElement(dayEl) {
-    const body = dayEl.querySelector(':scope > .clicks-tree-children');
-    if (!body || body.dataset.hydrated === '1') return;
+    if (!(dayEl instanceof HTMLDetailsElement)) return;
+    const body = clicksDayBodyEl(dayEl);
+    if (!body || body.dataset.hydrated === '1' || body.dataset.hydrating === '1') return;
     const dayPath = dayEl.getAttribute('data-tree-path') || '';
     const day = lookupClicksDay(clicksTreeLive, dayPath);
-    if (!day) {
-      body.innerHTML = '<p class="admin-meta">Dia não encontrado no cache.</p>';
-      body.dataset.hydrated = '1';
-      return;
-    }
-    // Evita marcar hydrated antes do HTML — se o toggle dispara de novo, mostra spinner.
-    if (body.dataset.hydrating === '1') return;
     body.dataset.hydrating = '1';
-    body.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Montando visitas do dia…</p>';
-    window.setTimeout(() => {
-      try {
-        finalizeClicksDay(day);
-        if (isClicksNavOnlyFilterOn()) pruneUniqueOrRepeatDay(day);
-        body.innerHTML = renderDayVisitorsHtml(day, dayPath);
+    try {
+      if (!day) {
+        body.innerHTML = '<p class="admin-meta">Dia não encontrado no cache — clique Atualizar de novo.</p>';
         body.dataset.hydrated = '1';
-      } catch (err) {
-        body.innerHTML = `<p class="admin-status-bad">${escapeHtml(err?.message || 'Falha ao montar o dia.')}</p>`;
-        body.dataset.hydrated = '1';
-      } finally {
-        delete body.dataset.hydrating;
+        return;
       }
-    }, 0);
+      finalizeClicksDay(day);
+      if (isClicksNavOnlyFilterOn()) {
+        const y = clicksTreeLive?.[dayPath.split('|')[0]];
+        const m = y?.months?.[dayPath.split('|')[1]];
+        pruneUniqueOrRepeatDay(day, m, y);
+      }
+      const html = renderDayVisitorsHtml(day, dayPath);
+      body.innerHTML = html || '<p class="admin-meta">Nenhum visitante neste dia com o filtro atual.</p>';
+      body.dataset.hydrated = '1';
+    } catch (err) {
+      body.innerHTML = `<p class="admin-status-bad">${escapeHtml(err?.message || 'Falha ao montar o dia.')}</p>`;
+      body.dataset.hydrated = '1';
+    } finally {
+      delete body.dataset.hydrating;
+    }
   }
 
   function clicksTreeSummary(label, count, extra) {
@@ -5419,8 +5488,9 @@ ${worksheets}
     } else {
       const tree = buildClicksTree(clicks);
       const navOnly = isClicksNavOnlyFilterOn();
-      // Com "Somente navegação": precisa finalizar+prune. Sem filtro, dia fica lazy.
-      if (navOnly) pruneUniqueOrRepeatSessions(tree);
+      // Nunca finalize todos os dias aqui — congelava o Chrome no Atualizar.
+      // Filtro leve no esqueleto; prune real só ao abrir o dia.
+      if (navOnly) filterClicksTreeNavOnlyLightweight(tree);
       clicksTreeLive = tree;
       const years = Object.keys(tree).sort((a, b) => Number(b) - Number(a));
       if (!years.length) {
@@ -5450,8 +5520,7 @@ ${worksheets}
             const d = m.days[dateKey];
             const dayPath = `${monthPath}|${dateKey}`;
             const meta = daySkeletonMeta(d);
-            // Só o esqueleto do dia — visitantes/passos sob demanda no expandir.
-            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, meta.extra)}</summary><div class="clicks-tree-children"></div></details>`;
+            html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${clicksTreeSummary(d.label, d.count, meta.extra)}</summary><div class="clicks-tree-children"><p class="admin-meta clicks-day-pending">Abrindo o dia carrega as visitas…</p></div></details>`;
           });
 
           html += '</div></details>';
@@ -5464,7 +5533,6 @@ ${worksheets}
       root.innerHTML = html;
       if (openPaths?.length) restoreClicksTreeOpenPaths(openPaths);
       else openLatestClicksTreeYear(root);
-      // Se algum dia já veio aberto (restore), hidrata só esses.
       root.querySelectorAll('details.clicks-tree-day[open]').forEach((el) => hydrateClicksDayElement(el));
     }
 
@@ -5768,8 +5836,8 @@ ${worksheets}
       await new Promise((r) => window.setTimeout(r, 0));
       reapplyClicksLocalFilters(openPaths);
       updateClicksCoverageStatus({ fromCache: false });
-      setClicksLoadStatus('Cliques atualizados — ano → mês → dia prontos; visitas ao abrir o dia.', 'success');
-      window.setTimeout(() => setClicksLoadStatus(''), 3500);
+      setClicksLoadStatus('Cliques atualizados. Abra ano → mês → dia para ver as visitas.', 'success');
+      window.setTimeout(() => setClicksLoadStatus(''), 4000);
     } catch (err) {
       if (isClicksPanelVisible()) {
         root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
