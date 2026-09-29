@@ -8,7 +8,7 @@ alwaysApply: true
 ## Fazer sozinho (sem pedir confirmação)
 
 - **Pesquisar** — ler código, docs, logs, web, testar hipóteses e usar subagentes quando ajudar.
-- **Implementar** — corrigir e entregar a tarefa pedida com o menor diff sensato.
+- **Implementar** — corrigir e entregar a tarefa pedida com o menor diff sensato. Ver regra `nao-mexer-no-pronto`: checar o que já está pronto, não assumir/reescrever, só o que foi pedido.
 - **Commit + push** — ao concluir trabalho útil no repo, commitar e dar push no `main` (ou branch da tarefa), sem esperar “faz commit”.
 - **Deploy do Worker** — se `api/worker.js` (ou config de deploy) mudou, rodar `npx wrangler deploy` em `api/` após push.
 
