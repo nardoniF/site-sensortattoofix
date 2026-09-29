@@ -1,0 +1,28 @@
+---
+description: Ao implementar, não mexer no que já está pronto — só o que foi pedido
+alwaysApply: true
+---
+
+# Não mexer no que já está pronto
+
+Toda vez que o usuário pedir uma implementação:
+
+1. **Checar o que já está lá** — ler o código/live atual (pin `x-stf-commit`, arquivos em uso) antes de editar.
+2. **Deixar do jeito que está** o que já funciona e não foi pedido.
+3. **Só colocar o que foi pedido** — menor diff possível; sem “melhorias” laterais, sem reescrever feature vizinha, sem “aproveitar e limpar”.
+
+## Proibido
+
+- Assumir que algo pronto está errado e “consertar” sem pedido.
+- Voltar / checkout / rebase em **branch antiga paralela** e piná-la no lugar do live (mata o que já estava no ar).
+- Reimplementar do zero o que já existe só porque encontrou um PR/branch antigo com ideia parecida — **ler a ideia, aplicar em cima do live**.
+- Expandir o escopo (“já que estamos aqui…”) sem pedido explícito.
+
+## Pin / deploy
+
+- Novo `COMMIT` / `SITE_CATALOG_COMMIT` tem que ser **descendente do que está live** (incluir o que já está no ar).
+- Nunca pinar tip de branch paralela que não contém o live atual.
+
+## Em dúvida
+
+Default: **não tocar**. Se precisar mudar algo adjacente para a tarefa funcionar, mudar o mínimo e dizer no resumo o que tocou e por quê.

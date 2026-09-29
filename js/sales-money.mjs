@@ -206,12 +206,27 @@ export function orderPaypalFee(order) {
   return roundMoney(Number(order?.paypalFee) || 0);
 }
 
+/** BRL equivalente do cobrado em moeda estrangeira (chargeAmount / fx; fx = BRL→moeda). */
+export function storeOrderChargedBrl(order) {
+  const parts = storeOrderChargeParts(order);
+  if (parts) return parts.totalBrl;
+  const cur = String(order?.chargeCurrency || order?.displayCurrency || '').toUpperCase();
+  const amt = order?.chargeAmount != null ? Number(order.chargeAmount) : NaN;
+  const fx = order?.chargeFxRate != null ? Number(order.chargeFxRate) : NaN;
+  if (cur && cur !== 'BRL' && Number.isFinite(amt) && amt >= 0 && Number.isFinite(fx) && fx > 0) {
+    return roundMoney(amt / fx);
+  }
+  return null;
+}
+
 /**
  * What the customer actually paid. Recovers the original total when a previous
  * frete edit shrank `total` to (produto + novo frete) instead of moving the
  * difference onto the product.
  */
 export function inferCustomerPaidTotal(order) {
+  const charged = storeOrderChargedBrl(order);
+  if (charged != null && charged > 0) return charged;
   if (order?.totalPaid != null && Number(order.totalPaid) > 0) {
     return roundMoney(order.totalPaid);
   }
@@ -294,15 +309,90 @@ export function applyOrderFreteAccounting(order, newFrete, opts = {}) {
   return order;
 }
 
-export function storeOrderListedGross(order) {
+/**
+ * Pedido intl cobrado em moeda estrangeira: converte o valor cobrado (chargeAmount)
+ * pra BRL com a mesma taxa do checkout (chargeFxRate = estrangeiro por 1 BRL).
+ * BRL = foreign / rate. Não usa order.total (lista BRL) — isso gerava ~R$ 98
+ * pra um cobro de ~US$ 30.
+ */
+export function storeOrderChargeParts(order) {
+  const cur = String(order?.chargeCurrency || '').toUpperCase();
+  const amount = Number(order?.chargeAmount);
+  const rate = Number(order?.chargeFxRate);
+  if (!cur || cur === 'BRL') return null;
+  if (!(amount > 0) || !(rate > 0)) return null;
+  const freteBrl = roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0));
+  let shipForeign = roundMoney(freteBrl * rate);
+  if (shipForeign > amount) shipForeign = amount;
+  const productForeign = roundMoney(Math.max(0, amount - shipForeign));
+  return {
+    currency: cur,
+    chargeAmount: roundMoney(amount),
+    fxRate: rate,
+    productForeign,
+    shipForeign,
+    productBrl: roundMoney(productForeign / rate),
+    shippingBrl: roundMoney(shipForeign / rate),
+    totalBrl: roundMoney(amount / rate)
+  };
+}
+
+/** Dinheiro da venda loja pra relatório/Admin: prioriza cobrança estrangeira convertida. */
+export function storeOrderSaleMoney(order) {
+  const charged = storeOrderChargeParts(order);
+  if (charged) {
+    return {
+      gross: charged.totalBrl,
+      shippingCost: charged.shippingBrl,
+      fees: orderPaypalFee(order),
+      currency: 'BRL',
+      chargeCurrency: charged.currency,
+      chargeAmount: charged.chargeAmount,
+      fromCharge: true
+    };
+  }
   const total = roundMoney(order?.total);
   const grossPaid = roundMoney(order?.totalPaid);
   const fee = orderPaypalFee(order);
+  let gross = total;
   if (total > 0 && grossPaid > 0 && fee > 0.009 && total < grossPaid - 0.05) {
-    return total;
+    gross = total;
+  } else if (total > 0) {
+    gross = total;
+  } else {
+    gross = inferCustomerPaidTotal(order);
   }
-  if (total > 0) return total;
-  return inferCustomerPaidTotal(order);
+  return {
+    gross,
+    shippingCost: roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0)),
+    fees: fee,
+    currency: order?.currency || 'BRL',
+    chargeCurrency: null,
+    chargeAmount: null,
+    fromCharge: false
+  };
+}
+
+export function storeOrderListedGross(order) {
+  return storeOrderSaleMoney(order).gross;
+}
+
+/**
+ * Formata dias com Flex: "2, 10 e 15" — com "(n)" só quando n > 1 no mesmo dia.
+ * @param {Array<{day:number,count:number}>|number[]} entries
+ */
+export function formatFlexDaysWithQty(entries) {
+  const list = (entries || []).map((e) => {
+    if (e && typeof e === 'object') {
+      return { day: Number(e.day), count: Number(e.count) || 1 };
+    }
+    return { day: Number(e), count: 1 };
+  }).filter((e) => e.day > 0);
+  if (!list.length) return '';
+  const labels = list.map((e) => (e.count > 1 ? `${e.day} (${e.count})` : String(e.day)));
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} e ${labels[1]}`;
+  return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
 }
 
 export function aggregateFlexOwedByMonth(sales, config = null) {
@@ -320,7 +410,8 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
         count: 0,
         owed: 0,
         bonus: 0,
-        net: 0
+        net: 0,
+        dayCountMap: new Map()
       });
     }
     const row = map.get(key);
@@ -330,14 +421,26 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
     row.owed += owed;
     row.bonus += bonus;
     row.net += roundMoney(owed - bonus);
+    const day = Number(p.day);
+    if (Number.isFinite(day) && day > 0) {
+      row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+    }
   });
   return [...map.values()]
-    .map((r) => ({
-      ...r,
-      owed: roundMoney(r.owed),
-      bonus: roundMoney(r.bonus),
-      net: roundMoney(r.net)
-    }))
+    .map((r) => {
+      const { dayCountMap, ...rest } = r;
+      const dayEntries = [...dayCountMap.entries()]
+        .map(([day, count]) => ({ day, count }))
+        .sort((a, b) => a.day - b.day);
+      return {
+        ...rest,
+        owed: roundMoney(r.owed),
+        bonus: roundMoney(r.bonus),
+        net: roundMoney(r.net),
+        days: dayEntries.map((e) => e.day),
+        dayEntries
+      };
+    })
     .sort((a, b) => String(b.key).localeCompare(String(a.key)));
 }
 
@@ -360,11 +463,15 @@ const exportsForBrowser = {
   saleMoneyParts,
   isMlFlexSale,
   flexCompanyOwed,
+  formatFlexDaysWithQty,
   aggregateFlexOwedByMonth,
   orderPaypalFee,
   inferCustomerPaidTotal,
   orderNeedsFreteProductRepair,
   applyOrderFreteAccounting,
+  storeOrderChargedBrl,
+  storeOrderChargeParts,
+  storeOrderSaleMoney,
   storeOrderListedGross,
   MONTH_LABELS,
   DEFAULT_KIT_COST_COMPONENTS,
