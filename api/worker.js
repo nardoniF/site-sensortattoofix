@@ -119,7 +119,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = 'a5fb76c0dd7f01c0d4ef7c2ce146bb6d9f737b33';
+const SITE_CATALOG_COMMIT = '3094ec4801e9b17b3475d87f83a75372228abaa4';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -506,6 +506,8 @@ const DEFAULT_CONFIG = {
     paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
     customerTrackingSubject: 'Rastreio disponível — {orderId}',
     trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
+    customerDeliveredSubject: 'Pedido entregue — {orderId} · obrigado pela compra!',
+    deliveredMessage: 'Olá{nomeGreeting}!\n\nAgradecemos pela sua compra na Sensor Tattoo Fix.\n\nConfirmamos que o pedido {orderId} foi entregue.\n\nSe puder, grave um vídeo curto do dispositivo funcionando com a lente e marque nosso Instagram @sensortattoofix — isso ajuda outras pessoas a conhecerem o produto.\n\nInstagram: {instagram}\n\nQualquer dúvida, é só responder este e-mail.\n\nObrigado!\nEquipe Sensor Tattoo Fix',
     abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
     abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
     abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
@@ -4044,6 +4046,186 @@ async function notifyTrackingIfNew(env, config, order, previousCode) {
   const next = orderTrackingCode(order);
   if (!next || prev === next) return { skipped: true };
   return maybeNotifyTrackingAvailable(env, config || await getConfig(env), order);
+}
+
+function postSaleInstagramUrl(config) {
+  const socials = config?.channels?.socials || {};
+  return String(socials.instagram?.url || 'https://www.instagram.com/sensortattoofix').trim();
+}
+
+/**
+ * Locale for post-sale / delivered e-mails.
+ * Prefer checkout language; if checkout was EN, use destination country when we have a translation.
+ */
+function postSaleEmailLocale(order) {
+  const supported = new Set(['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']);
+  const raw = String(order?.checkoutLocale || '').trim().toLowerCase();
+  if (raw && raw !== 'en' && supported.has(raw)) return raw;
+
+  const codes = [
+    String(order?.paisCode || '').trim().toUpperCase(),
+    inferPaisCodeFromName(order?.pais) || ''
+  ].filter(Boolean);
+  for (const code of codes) {
+    const langs = COUNTRY_PRIMARY_LANGUAGES[code] || [];
+    for (const lang of langs) {
+      if (supported.has(lang) && lang !== 'en') return lang;
+    }
+  }
+  if (supported.has(raw)) return raw;
+  return orderCheckoutLocale(order) === 'pt' ? 'pt' : 'en';
+}
+
+function buildPostSaleDeliveredCopy(order, config) {
+  const loc = postSaleEmailLocale(order);
+  const orderId = order.orderId;
+  const firstName = String(order.nome || '').trim().split(/\s+/)[0] || '';
+  const ig = postSaleInstagramUrl(config);
+  const nomeGreeting = firstName ? `, ${firstName}` : '';
+  const vars = { orderId, nome: firstName, nomeGreeting, instagram: ig };
+
+  const byLoc = {
+    en: {
+      subject: `Order delivered — ${orderId} · thank you for your purchase!`,
+      message: `Hi${nomeGreeting}!\n\nThank you for your purchase from Sensor Tattoo Fix.\n\nWe're confirming that order ${orderId} has been delivered.\n\nIf you can, please record a short video of the device working with the lens and tag our Instagram @sensortattoofix — it helps other people discover the product.\n\nInstagram: ${ig}\n\nIf you have any questions, just reply to this e-mail.\n\nThank you!\nSensor Tattoo Fix Team`
+    },
+    it: {
+      subject: `Ordine consegnato — ${orderId} · grazie per l'acquisto!`,
+      message: `Ciao${nomeGreeting}!\n\nGrazie per il tuo acquisto da Sensor Tattoo Fix.\n\nConfermiamo che l'ordine ${orderId} è stato consegnato.\n\nSe puoi, registra un breve video del dispositivo che funziona con la lente e tagga il nostro Instagram @sensortattoofix — aiuta altre persone a scoprire il prodotto.\n\nInstagram: ${ig}\n\nPer qualsiasi dubbio, rispondi pure a questa e-mail.\n\nGrazie!\nTeam Sensor Tattoo Fix`
+    },
+    de: {
+      subject: `Bestellung zugestellt — ${orderId} · danke für Ihren Einkauf!`,
+      message: `Hallo${nomeGreeting}!\n\nVielen Dank für Ihren Einkauf bei Sensor Tattoo Fix.\n\nWir bestätigen, dass die Bestellung ${orderId} zugestellt wurde.\n\nWenn Sie können, nehmen Sie bitte ein kurzes Video auf, das das Gerät mit der Linse in Funktion zeigt, und markieren Sie unser Instagram @sensortattoofix — das hilft anderen, das Produkt zu entdecken.\n\nInstagram: ${ig}\n\nBei Fragen antworten Sie einfach auf diese E-Mail.\n\nDanke!\nTeam Sensor Tattoo Fix`
+    },
+    es: {
+      subject: `Pedido entregado — ${orderId} · ¡gracias por tu compra!`,
+      message: `¡Hola${nomeGreeting}!\n\nGracias por tu compra en Sensor Tattoo Fix.\n\nConfirmamos que el pedido ${orderId} ha sido entregado.\n\nSi puedes, graba un vídeo corto del dispositivo funcionando con la lente y etiqueta nuestro Instagram @sensortattoofix — ayuda a otras personas a conocer el producto.\n\nInstagram: ${ig}\n\nSi tienes alguna duda, responde a este correo.\n\n¡Gracias!\nEquipo Sensor Tattoo Fix`
+    },
+    pl: {
+      subject: `Zamówienie doręczone — ${orderId} · dziękujemy za zakup!`,
+      message: `Cześć${nomeGreeting}!\n\nDziękujemy za zakup w Sensor Tattoo Fix.\n\nPotwierdzamy, że zamówienie ${orderId} zostało doręczone.\n\nJeśli możesz, nagraj krótki film urządzenia działającego z soczewką i oznacz nasz Instagram @sensortattoofix — to pomaga innym poznać produkt.\n\nInstagram: ${ig}\n\nW razie pytań po prostu odpowiedz na tę wiadomość.\n\nDziękujemy!\nZespół Sensor Tattoo Fix`
+    },
+    sl: {
+      subject: `Naročilo dostavljeno — ${orderId} · hvala za nakup!`,
+      message: `Živjo${nomeGreeting}!\n\nHvala za nakup pri Sensor Tattoo Fix.\n\nPotrjujemo, da je bilo naročilo ${orderId} dostavljeno.\n\nČe lahko, posnemite kratek video naprave, ki deluje z lečo, in označite naš Instagram @sensortattoofix — to pomaga drugim odkriti izdelek.\n\nInstagram: ${ig}\n\nZa morebitna vprašanja preprosto odgovorite na to e-pošto.\n\nHvala!\nEkipa Sensor Tattoo Fix`
+    },
+    fr: {
+      subject: `Commande livrée — ${orderId} · merci pour votre achat !`,
+      message: `Bonjour${nomeGreeting}!\n\nMerci pour votre achat chez Sensor Tattoo Fix.\n\nNous confirmons que la commande ${orderId} a été livrée.\n\nSi vous le pouvez, enregistrez une courte vidéo de l'appareil qui fonctionne avec la lentille et mentionnez notre Instagram @sensortattoofix — cela aide d'autres personnes à découvrir le produit.\n\nInstagram: ${ig}\n\nPour toute question, répondez simplement à cet e-mail.\n\nMerci !\nÉquipe Sensor Tattoo Fix`
+    },
+    nl: {
+      subject: `Bestelling bezorgd — ${orderId} · bedankt voor je aankoop!`,
+      message: `Hallo${nomeGreeting}!\n\nBedankt voor je aankoop bij Sensor Tattoo Fix.\n\nWe bevestigen dat bestelling ${orderId} is bezorgd.\n\nAls het lukt, maak dan een korte video van het apparaat dat werkt met de lens en tag ons Instagram @sensortattoofix — dat helpt anderen het product te ontdekken.\n\nInstagram: ${ig}\n\nHeb je vragen? Antwoord gerust op deze e-mail.\n\nBedankt!\nTeam Sensor Tattoo Fix`
+    },
+    sv: {
+      subject: `Order levererad — ${orderId} · tack för ditt köp!`,
+      message: `Hej${nomeGreeting}!\n\nTack för ditt köp hos Sensor Tattoo Fix.\n\nVi bekräftar att order ${orderId} har levererats.\n\nOm du kan, spela in en kort video där enheten fungerar med linsen och tagga vårt Instagram @sensortattoofix — det hjälper andra att upptäcka produkten.\n\nInstagram: ${ig}\n\nHar du frågor? Svara bara på det här mejlet.\n\nTack!\nTeam Sensor Tattoo Fix`
+    },
+    no: {
+      subject: `Ordre levert — ${orderId} · takk for kjøpet!`,
+      message: `Hei${nomeGreeting}!\n\nTakk for kjøpet hos Sensor Tattoo Fix.\n\nVi bekrefter at ordre ${orderId} er levert.\n\nHvis du kan, ta en kort video av enheten som fungerer med linsen og tagg Instagram-kontoen vår @sensortattoofix — det hjelper andre å oppdage produktet.\n\nInstagram: ${ig}\n\nHar du spørsmål? Bare svar på denne e-posten.\n\nTakk!\nTeam Sensor Tattoo Fix`
+    },
+    fi: {
+      subject: `Tilaus toimitettu — ${orderId} · kiitos ostoksestasi!`,
+      message: `Hei${nomeGreeting}!\n\nKiitos ostoksestasi Sensor Tattoo Fixiltä.\n\nVahvistamme, että tilaus ${orderId} on toimitettu.\n\nJos voit, kuvaa lyhyt video laitteesta linssin kanssa toimimassa ja merkitse Instagramimme @sensortattoofix — se auttaa muita löytämään tuotteen.\n\nInstagram: ${ig}\n\nJos sinulla on kysyttävää, vastaa tähän sähköpostiin.\n\nKiitos!\nSensor Tattoo Fix -tiimi`
+    }
+  };
+
+  if (byLoc[loc]) return { loc, ...byLoc[loc] };
+
+  return {
+    loc: 'pt',
+    subject: emailSubject(config, 'customerDeliveredSubject', vars)
+      || `Pedido entregue — ${orderId} · obrigado pela compra!`,
+    message: emailMessage(config, 'deliveredMessage', vars)
+      || applyEmailTemplate(DEFAULT_CONFIG.emails.deliveredMessage, vars)
+  };
+}
+
+function postSaleDeliveredHtml(copy) {
+  const loc = copy.loc || 'pt';
+  const body = String(copy.message || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  const site = loc === 'pt' ? 'sensortattoofix.com.br' : 'sensortattoofix.com';
+  return `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222"><p style="margin:0;white-space:pre-wrap">${body}</p><p style="color:#666;font-size:12px;margin-top:16px">Sensor Tattoo Fix — ${site}</p></div>`;
+}
+
+function postSaleDeliveredFields(copy, order) {
+  const fields = {
+    Pedido: order.orderId,
+    Status: 'Entregue',
+    Mensagem: copy.message
+  };
+  if (copy.loc === 'en') {
+    return { Order: order.orderId, Status: 'Delivered', Message: copy.message };
+  }
+  if (copy.loc === 'it') {
+    return { Ordine: order.orderId, Status: 'Consegnato', Messaggio: copy.message };
+  }
+  if (copy.loc === 'de') {
+    return { Bestellung: order.orderId, Status: 'Zugestellt', Nachricht: copy.message };
+  }
+  if (copy.loc === 'es') {
+    return { Pedido: order.orderId, Status: 'Entregado', Mensaje: copy.message };
+  }
+  if (copy.loc === 'pl') {
+    return { Zamówienie: order.orderId, Status: 'Doręczone', Wiadomość: copy.message };
+  }
+  if (copy.loc === 'sl') {
+    return { Naročilo: order.orderId, Status: 'Dostavljeno', Sporočilo: copy.message };
+  }
+  if (copy.loc === 'fr') {
+    return { Commande: order.orderId, Statut: 'Livré', Message: copy.message };
+  }
+  if (copy.loc === 'nl') {
+    return { Bestelling: order.orderId, Status: 'Bezorgd', Bericht: copy.message };
+  }
+  if (copy.loc === 'sv') {
+    return { Order: order.orderId, Status: 'Levererad', Meddelande: copy.message };
+  }
+  if (copy.loc === 'no') {
+    return { Ordre: order.orderId, Status: 'Levert', Melding: copy.message };
+  }
+  if (copy.loc === 'fi') {
+    return { Tilaus: order.orderId, Tila: 'Toimitettu', Viesti: copy.message };
+  }
+  return fields;
+}
+
+/** Send post-sale e-mail when order first becomes delivered (idempotent). */
+async function maybeNotifyDelivered(env, config, order, _previousStatus) {
+  if (!order || order.status !== 'paid') return { skipped: true, reason: 'not_paid' };
+  if (!isTrackingFinalStatus(order.correiosTrackingStatus)) {
+    return { skipped: true, reason: 'not_delivered' };
+  }
+  if (order.deliveredEmailSentAt) return { skipped: true, reason: 'already_sent' };
+
+  const cfg = config || await getConfig(env);
+  const nowIso = new Date().toISOString();
+  order.deliveredEmailSentAt = nowIso;
+  order.deliveredAt = order.deliveredAt || nowIso;
+  order.deliveredEmailError = null;
+  await saveOrder(env, order);
+
+  const copy = buildPostSaleDeliveredCopy(order, cfg);
+  const fields = postSaleDeliveredFields(copy, order);
+  const shopCopy = String(cfg.formsubmit?.email || '').trim();
+  const result = await notifyCustomer(env, cfg, order, copy.subject, fields, {
+    html: postSaleDeliveredHtml(copy),
+    text: copy.message,
+    // Cópia oculta pra loja (Sensor Tattoo Fix).
+    bcc: shopCopy || undefined
+  });
+  if (!result?.ok) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = result?.error || 'send_failed';
+    await saveOrder(env, order);
+    console.error('Post-sale delivered email:', order.orderId, order.deliveredEmailError);
+  }
+  return result;
 }
 
 function fieldsToHtmlLocalized(fields, footerSite) {
@@ -15289,6 +15471,7 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
   const config = await getConfig(env);
   const previousCode = order.correiosTrackingCode;
+  const previousStatus = order.correiosTrackingStatus;
   try {
     applyOrderShippingManualUpdate(order, body);
 
@@ -15319,6 +15502,20 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   } catch (err) {
     return json({ error: err.message }, 400, origin);
   }
+
+  const nowFinal = isTrackingFinalStatus(order.correiosTrackingStatus);
+  const wasFinal = isTrackingFinalStatus(previousStatus);
+  // Sair de Entregue libera reenvio do pós-venda na próxima vez.
+  if (wasFinal && !nowFinal) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = null;
+  }
+  // Reenvio explícito (mesmo já estando Entregue).
+  if (body.resendDeliveredEmail === true && nowFinal) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = null;
+  }
+
   await saveOrder(env, order);
   let trackingEmail = { skipped: true };
   try {
@@ -15326,6 +15523,13 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   } catch (err) {
     console.warn('Tracking email after shipping update:', orderId, err.message);
     trackingEmail = { skipped: true, error: err.message };
+  }
+  let deliveredEmail = { skipped: true };
+  try {
+    deliveredEmail = await maybeNotifyDelivered(env, config, order, previousStatus) || { skipped: true };
+  } catch (err) {
+    console.warn('Delivered email after shipping update:', orderId, err.message);
+    deliveredEmail = { skipped: true, error: err.message };
   }
   return json({
     ok: true,
@@ -15347,7 +15551,12 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     shippingServiceCode: order.shippingServiceCode ?? null,
     trackingEmailSentAt: order.trackingEmailSentAt || null,
     trackingEmailSent: !!(trackingEmail && trackingEmail.ok),
-    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped)
+    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped),
+    deliveredEmailSentAt: order.deliveredEmailSentAt || null,
+    deliveredEmailSent: !!(deliveredEmail && deliveredEmail.ok),
+    deliveredEmailSkipped: !!(deliveredEmail && deliveredEmail.skipped),
+    deliveredEmailSkipReason: deliveredEmail?.reason || null,
+    deliveredEmailLocale: nowFinal ? postSaleEmailLocale(order) : null
   }, 200, origin);
 }
 
@@ -17557,6 +17766,7 @@ async function handleTestEmail(request, env, origin) {
     'customer_order_mp',
     'customer_pix',
     'customer_paid',
+    'customer_delivered',
     'motoboy',
     'coupon'
   ];
@@ -17687,6 +17897,19 @@ async function sendTestEmailByType(env, config, to, type, overrides = {}) {
         Valor: formatBRL(price),
         Mensagem: emailMessage(config, 'paidDefault')
       });
+
+    case 'customer_delivered': {
+      const copy = buildPostSaleDeliveredCopy(
+        { ...order, correiosTrackingStatus: 'Entregue' },
+        config
+      );
+      const shopCopy = String(config.formsubmit?.email || '').trim();
+      return notifyCustomer(env, config, order, copy.subject, postSaleDeliveredFields(copy, order), {
+        html: postSaleDeliveredHtml(copy),
+        text: copy.message,
+        bcc: shopCopy || undefined
+      });
+    }
 
     case 'motoboy':
       return notifyEmail(env, config, to, emailSubject(config, 'motoboySubject', { orderId: order.orderId }), {
@@ -18191,6 +18414,7 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     return Object.keys(payload).length ? payload : null;
   }
 
+  const previousStatus = order.correiosTrackingStatus;
   const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
   const hasApiEvents = Array.isArray(summary?.events) && summary.events.length > 0;
   const hasManual = order.correiosManualUpdatedAt && order.correiosTrackingStatus;
@@ -18204,6 +18428,11 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     order.correiosTrackingUpdatedAt = new Date().toISOString();
   }
   await saveOrder(env, order);
+  try {
+    await maybeNotifyDelivered(env, config, order, previousStatus);
+  } catch (err) {
+    console.warn('Delivered email after Correios sync:', orderId, err.message);
+  }
   return {
     ...(hasApiEvents ? summary : trackingSummaryFromOrder(order) || summary),
     trackingCode: order.correiosTrackingCode,
