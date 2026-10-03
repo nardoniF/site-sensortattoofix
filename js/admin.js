@@ -1276,10 +1276,114 @@
     return tree;
   }
 
-  function salesTreeSummary(label, node) {
+  function salesTreeSummary(label, node, extraMetaHtml = '') {
     const count = node?.count || 0;
-    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}</span>`;
+    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}${extraMetaHtml || ''}</span>`;
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
+  }
+
+  function isCurrentBrYearMonth(year, monthNum) {
+    const now = brDateParts(Date.now());
+    return String(year) === now.year && String(monthNum).padStart(2, '0') === now.monthNum;
+  }
+
+  /** % vs mês anterior — só mês completo (mês corrente sem %). */
+  function completeMonthGrowthHtml(tree, year, monthNum, monthNode) {
+    if (isCurrentBrYearMonth(year, monthNum)) return '';
+    const prev = shiftYearMonth(year, monthNum, -1);
+    const prevNode = tree?.[prev.year]?.months?.[prev.monthNum] || null;
+    const curNet = Number(monthNode?.net || 0);
+    const prevNet = prevNode ? Number(prevNode.net || 0) : 0;
+    const delta = formatMtdDelta(curNet, prevNet);
+    if (delta === 'igual') {
+      return ' <span class="vendas-consol-mtd-pct is-same" title="vs mês anterior">(igual)</span>';
+    }
+    if (delta === 'novo') {
+      return ' <span class="vendas-consol-mtd-pct is-up" title="sem mês anterior">(novo)</span>';
+    }
+    const cls = curNet > prevNet ? ' is-up' : (curNet < prevNet ? ' is-down' : ' is-same');
+    return ` <span class="vendas-consol-mtd-pct${cls}" title="vs mês anterior">(${escapeHtml(delta)})</span>`;
+  }
+
+  /**
+   * Dia campeão do ano: mais vendas e maior líquido.
+   * Se for o mesmo dia, retorna um só em `same`.
+   */
+  function yearChampionDays(sales, year) {
+    const y = String(year);
+    const byDay = new Map();
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const p = brDateParts(s._ts);
+      if (p.year !== y) return;
+      const key = p.dateKey;
+      if (!byDay.has(key)) {
+        byDay.set(key, {
+          dateKey: key,
+          label: p.dayLabel,
+          day: Number(p.day),
+          monthNum: p.monthNum,
+          monthName: p.monthName,
+          count: 0,
+          net: 0
+        });
+      }
+      const row = byDay.get(key);
+      row.count += 1;
+      row.net += Number(s._net != null ? s._net : 0);
+    });
+    const days = [...byDay.values()];
+    if (!days.length) return null;
+    let byCount = days[0];
+    let byNet = days[0];
+    days.forEach((d) => {
+      if (d.count > byCount.count || (d.count === byCount.count && d.net > byCount.net)) byCount = d;
+      if (d.net > byNet.net || (d.net === byNet.net && d.count > byNet.count)) byNet = d;
+    });
+    byCount = { ...byCount, net: Math.round(byCount.net * 100) / 100 };
+    byNet = { ...byNet, net: Math.round(byNet.net * 100) / 100 };
+    if (byCount.dateKey === byNet.dateKey) {
+      return { year: y, same: byCount, byCount: null, byNet: null };
+    }
+    return { year: y, same: null, byCount, byNet };
+  }
+
+  function renderChampionDayCard(day, kindLabel) {
+    if (!day) return '';
+    const title = kindLabel
+      ? `<p class="vendas-consol-champ-kind">${escapeHtml(kindLabel)}</p>`
+      : '';
+    return `<article class="vendas-consol-champ-card">
+      ${title}
+      <h4 class="vendas-consol-champ-day">${escapeHtml(day.label || day.dateKey)}</h4>
+      <p class="vendas-consol-champ-meta">${day.count} venda${day.count === 1 ? '' : 's'} · líquido ${formatSalesBRL(day.net)}</p>
+    </article>`;
+  }
+
+  function renderConsolidadoChampionDays(sales) {
+    const years = [...new Set((sales || []).map((s) => s._ts && brDateParts(s._ts).year).filter(Boolean))]
+      .sort((a, b) => Number(b) - Number(a));
+    if (!years.length) return '';
+    const year = years[0];
+    const champ = yearChampionDays(sales, year);
+    if (!champ) return '';
+    const hint = champ.same
+      ? `${champ.same.count} · ${formatSalesBRL(champ.same.net)}`
+      : `${champ.byCount.count} / ${formatSalesBRL(champ.byNet.net)}`;
+    const body = champ.same
+      ? `<div class="vendas-consol-champ-grid">${renderChampionDayCard(champ.same, 'Vendas e líquido')}</div>`
+      : `<div class="vendas-consol-champ-grid">
+          ${renderChampionDayCard(champ.byCount, 'Mais vendas')}
+          ${renderChampionDayCard(champ.byNet, 'Maior líquido')}
+        </div>`;
+    return `<details class="admin-fold vendas-consol-champ-fold" id="vendas-consol-champ-fold" data-fold-key="vendas-campeao">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Dia campeão ${escapeHtml(String(year))}</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">${body}</div>
+    </details>`;
   }
 
   const SALES_CHANNEL_LABELS = {
@@ -1508,7 +1612,8 @@
       months.forEach((monthNum) => {
         const m = y.months[monthNum];
         const monthPath = `${yearPath}|${monthNum}`;
-        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m)}</summary><div class="clicks-tree-children">`;
+        const growth = completeMonthGrowthHtml(tree, year, monthNum, m);
+        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m, growth)}</summary><div class="clicks-tree-children">`;
         const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
         days.forEach((dateKey) => {
           const d = m.days[dateKey];
@@ -1833,7 +1938,8 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
-    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoWeekCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoChampionDays(sales)}${renderConsolidadoWeekCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    wireOneAdminFold(document.getElementById('vendas-consol-champ-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-weeks-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-days-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-flex-fold'));

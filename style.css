@@ -4857,6 +4857,45 @@ body.admin-page.pedidos-login-only #pedidos-login {
     color: #c8c8c8;
     word-break: break-word;
 }
+.vendas-consol-champ-fold {
+    margin-top: 14px;
+}
+.vendas-consol-champ-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+.vendas-consol-champ-card {
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    background: #121212;
+    padding: 12px 14px;
+}
+.vendas-consol-champ-kind {
+    margin: 0 0 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #888;
+}
+.vendas-consol-champ-day {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 750;
+    color: #f0f0f0;
+    line-height: 1.3;
+}
+.vendas-consol-champ-meta {
+    margin: 6px 0 0;
+    font-size: 0.9rem;
+    color: #c8c8c8;
+    font-variant-numeric: tabular-nums;
+}
+.clicks-tree-meta .vendas-consol-mtd-pct {
+    margin-left: 0.4em;
+}
 .vendas-consol-flex-card .vendas-consol-mtd-net {
     color: #ffe082;
 }
