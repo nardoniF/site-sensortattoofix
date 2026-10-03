@@ -1939,7 +1939,8 @@
           count: 0,
           owed: 0,
           bonus: 0,
-          net: 0
+          net: 0,
+          dayCountMap: new Map()
         });
       }
       const row = map.get(key);
@@ -1949,8 +1950,34 @@
       row.owed += owed;
       row.bonus += bonus;
       row.net += roundMoneyLocal(owed - bonus);
+      const day = Number(p.day);
+      if (Number.isFinite(day) && day > 0) {
+        row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+      }
     });
-    return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
+    return Array.from(map.values())
+      .map((r) => {
+        const { dayCountMap, ...rest } = r;
+        const dayEntries = [...dayCountMap.entries()]
+          .map(([day, count]) => ({ day, count }))
+          .sort((a, b) => a.day - b.day);
+        return { ...rest, days: dayEntries.map((e) => e.day), dayEntries };
+      })
+      .sort((a, b) => String(b.key).localeCompare(String(a.key)));
+  }
+
+  function formatFlexDaysWithQty(entries) {
+    const fn = sm().formatFlexDaysWithQty;
+    if (typeof fn === 'function') return fn(entries);
+    const list = (entries || []).map((e) => {
+      if (e && typeof e === 'object') return { day: Number(e.day), count: Number(e.count) || 1 };
+      return { day: Number(e), count: 1 };
+    }).filter((e) => e.day > 0);
+    if (!list.length) return '';
+    const labels = list.map((e) => (e.count > 1 ? `${e.day} (${e.count})` : String(e.day)));
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} e ${labels[1]}`;
+    return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
   }
 
   /** Só mês atual + 2 anteriores (mesmo recorte do comparativo). */
@@ -1974,7 +2001,9 @@
         count: 0,
         owed: 0,
         bonus: 0,
-        net: 0
+        net: 0,
+        days: [],
+        dayEntries: []
       };
     }).filter((m) => allowed.has(m.key));
   }
@@ -1990,10 +2019,18 @@
     const body = `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+        const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+          ? m.dayEntries
+          : (m.days || []).map((d) => ({ day: d, count: 1 }));
+        const withLabel = formatFlexDaysWithQty(dayEntries);
+        const withHtml = withLabel
+          ? `<p class="vendas-consol-flex-days" title="Dias com envio Flex">com: ${escapeHtml(withLabel)}</p>`
+          : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
+        ${withHtml}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
       }).join('')}</div>`;
@@ -2008,9 +2045,19 @@
   }
 
   function buildFlexOwedExportRows(sales) {
-    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias com Flex']];
     flexOwedLastThreeMonths(sales).forEach((m) => {
-      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
+      const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+        ? m.dayEntries
+        : (m.days || []).map((d) => ({ day: d, count: 1 }));
+      rows.push([
+        `${m.name} ${m.year}`,
+        m.count,
+        m.owed,
+        m.bonus,
+        m.net,
+        formatFlexDaysWithQty(dayEntries)
+      ]);
     });
     return rows;
   }
