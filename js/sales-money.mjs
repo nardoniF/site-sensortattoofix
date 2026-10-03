@@ -51,6 +51,57 @@ export function brDateParts(ts) {
   return { year, monthNum, monthName, day, dateKey, dayLabel: dayLabelCap };
 }
 
+/** Relógio América/São_Paulo (hora 0–23) para cortes de Flex e comparativo. */
+export function brClockParts(ts) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(new Date(ts || Date.now()));
+  const g = (type) => parts.find((p) => p.type === type)?.value;
+  const year = g('year');
+  const monthNum = g('month');
+  const day = g('day');
+  const hour = Number(g('hour'));
+  const minute = Number(g('minute'));
+  const second = Number(g('second'));
+  return {
+    year,
+    monthNum,
+    day,
+    hour,
+    minute,
+    second,
+    minutesOfDay: hour * 60 + minute,
+    dateKey: `${year}-${monthNum}-${day}`
+  };
+}
+
+/** Corte ML Flex: cancelamento no mesmo dia BR antes das 14:00 não gera cobrança de envio. */
+export const FLEX_CANCEL_CUTOFF_HOUR_BR = 14;
+
+export function isMarketplaceSaleDropped(sale) {
+  return /cancel|invalid|refund/i.test(String(sale?.status || ''));
+}
+
+export function saleCancelTs(sale) {
+  const raw = sale?.cancelledAt || sale?.canceledAt || sale?.dateLastUpdated || null;
+  const t = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+
+export function saleSoldTs(sale) {
+  if (Number.isFinite(sale?._ts)) return Number(sale._ts);
+  const raw = sale?.soldAt || sale?.dateCreated || null;
+  const t = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+
 export function mlShippingUnresolved(sale) {
   const ch = String(sale?.channel || '').toLowerCase();
   if (ch !== 'mercadolivre' && ch !== 'ml') return false;
@@ -194,6 +245,34 @@ export function isMlFlexSale(sale) {
   return /flex|self_service/i.test(String(sale?.logisticType || ''));
 }
 
+/**
+ * Flex cobra por envio feito. Compra cancelada pode sumir dos totais,
+ * mas permanece no Flex se o cancelamento NÃO foi no mesmo dia BR antes das 14h.
+ */
+export function saleCountsForFlexOwed(sale, nowTs = Date.now()) {
+  if (!isMlFlexSale(sale)) return false;
+  const soldTs = saleSoldTs(sale);
+  if (soldTs == null) return false;
+  if (!isMarketplaceSaleDropped(sale)) return true;
+
+  const sold = brClockParts(soldTs);
+  const cutoffMin = FLEX_CANCEL_CUTOFF_HOUR_BR * 60;
+  const cancelTs = saleCancelTs(sale);
+
+  if (cancelTs == null) {
+    const now = brClockParts(nowTs);
+    if (now.dateKey > sold.dateKey) return true;
+    if (now.dateKey < sold.dateKey) return false;
+    return now.minutesOfDay >= cutoffMin;
+  }
+
+  const cancel = brClockParts(cancelTs);
+  if (cancel.dateKey !== sold.dateKey) {
+    return cancelTs >= soldTs;
+  }
+  return cancel.minutesOfDay >= cutoffMin;
+}
+
 export function flexCompanyOwed(sale, config = null) {
   const list = Number(sale?.mlFlexListCost || config?.mlFlexShippingCost || 0);
   if (list > 0) return roundMoney(list);
@@ -202,8 +281,81 @@ export function flexCompanyOwed(sale, config = null) {
   return roundMoney(ship + bonus);
 }
 
+/** Minutos do dia (BR) da 1ª venda do dia; null se não houve venda. */
+export function firstSaleMinutesOfDay(sales, year, monthNum, dayNum) {
+  const y = String(year);
+  const ym = String(monthNum).padStart(2, '0');
+  const day = Number(dayNum);
+  let best = null;
+  (sales || []).forEach((s) => {
+    const ts = saleSoldTs(s);
+    if (ts == null) return;
+    const p = brClockParts(ts);
+    if (p.year !== y || p.monthNum !== ym || Number(p.day) !== day) return;
+    if (best == null || p.minutesOfDay < best) best = p.minutesOfDay;
+  });
+  return best;
+}
+
+/**
+ * Inclui venda no MTD: dias 1…N-1 integrais; no dia N corta no relógio asOf (BR).
+ */
+export function saleIncludedInMtd(sale, year, monthNum, throughDay, asOfTs = null) {
+  const ts = saleSoldTs(sale);
+  if (ts == null) return false;
+  const p = brClockParts(ts);
+  const y = String(year);
+  const ym = String(monthNum).padStart(2, '0');
+  if (p.year !== y || p.monthNum !== ym) return false;
+  const day = Number(p.day);
+  const last = Number(throughDay) || 1;
+  if (day < 1 || day > last) return false;
+  if (day < last || asOfTs == null) return true;
+  return p.minutesOfDay <= brClockParts(asOfTs).minutesOfDay;
+}
+
+/**
+ * Dia conta como "sem venda"? No dia corrente do mês atual, só depois do
+ * horário da 1ª venda do mesmo dia no mês de referência (geralmente mês passado).
+ */
+export function dayCountsAsEmptySale(opts) {
+  const {
+    day,
+    throughDay,
+    isCurrentMonth,
+    hasSale,
+    asOfTs = null,
+    refFirstSaleMinutes = null
+  } = opts || {};
+  if (hasSale) return false;
+  const d = Number(day);
+  const through = Number(throughDay);
+  if (
+    isCurrentMonth
+    && d === through
+    && asOfTs != null
+    && refFirstSaleMinutes != null
+  ) {
+    if (brClockParts(asOfTs).minutesOfDay < Number(refFirstSaleMinutes)) return false;
+  }
+  return true;
+}
+
 export function orderPaypalFee(order) {
   return roundMoney(Number(order?.paypalFee) || 0);
+}
+
+/** BRL equivalente do cobrado em moeda estrangeira (chargeAmount / fx; fx = BRL→moeda). */
+export function storeOrderChargedBrl(order) {
+  const parts = storeOrderChargeParts(order);
+  if (parts) return parts.totalBrl;
+  const cur = String(order?.chargeCurrency || order?.displayCurrency || '').toUpperCase();
+  const amt = order?.chargeAmount != null ? Number(order.chargeAmount) : NaN;
+  const fx = order?.chargeFxRate != null ? Number(order.chargeFxRate) : NaN;
+  if (cur && cur !== 'BRL' && Number.isFinite(amt) && amt >= 0 && Number.isFinite(fx) && fx > 0) {
+    return roundMoney(amt / fx);
+  }
+  return null;
 }
 
 /**
@@ -212,6 +364,8 @@ export function orderPaypalFee(order) {
  * difference onto the product.
  */
 export function inferCustomerPaidTotal(order) {
+  const charged = storeOrderChargedBrl(order);
+  if (charged != null && charged > 0) return charged;
   if (order?.totalPaid != null && Number(order.totalPaid) > 0) {
     return roundMoney(order.totalPaid);
   }
@@ -294,22 +448,99 @@ export function applyOrderFreteAccounting(order, newFrete, opts = {}) {
   return order;
 }
 
-export function storeOrderListedGross(order) {
+/**
+ * Pedido intl cobrado em moeda estrangeira: converte o valor cobrado (chargeAmount)
+ * pra BRL com a mesma taxa do checkout (chargeFxRate = estrangeiro por 1 BRL).
+ * BRL = foreign / rate. Não usa order.total (lista BRL) — isso gerava ~R$ 98
+ * pra um cobro de ~US$ 30.
+ */
+export function storeOrderChargeParts(order) {
+  const cur = String(order?.chargeCurrency || '').toUpperCase();
+  const amount = Number(order?.chargeAmount);
+  const rate = Number(order?.chargeFxRate);
+  if (!cur || cur === 'BRL') return null;
+  if (!(amount > 0) || !(rate > 0)) return null;
+  const freteBrl = roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0));
+  let shipForeign = roundMoney(freteBrl * rate);
+  if (shipForeign > amount) shipForeign = amount;
+  const productForeign = roundMoney(Math.max(0, amount - shipForeign));
+  return {
+    currency: cur,
+    chargeAmount: roundMoney(amount),
+    fxRate: rate,
+    productForeign,
+    shipForeign,
+    productBrl: roundMoney(productForeign / rate),
+    shippingBrl: roundMoney(shipForeign / rate),
+    totalBrl: roundMoney(amount / rate)
+  };
+}
+
+/** Dinheiro da venda loja pra relatório/Admin: prioriza cobrança estrangeira convertida. */
+export function storeOrderSaleMoney(order) {
+  const charged = storeOrderChargeParts(order);
+  if (charged) {
+    return {
+      gross: charged.totalBrl,
+      shippingCost: charged.shippingBrl,
+      fees: orderPaypalFee(order),
+      currency: 'BRL',
+      chargeCurrency: charged.currency,
+      chargeAmount: charged.chargeAmount,
+      fromCharge: true
+    };
+  }
   const total = roundMoney(order?.total);
   const grossPaid = roundMoney(order?.totalPaid);
   const fee = orderPaypalFee(order);
+  let gross = total;
   if (total > 0 && grossPaid > 0 && fee > 0.009 && total < grossPaid - 0.05) {
-    return total;
+    gross = total;
+  } else if (total > 0) {
+    gross = total;
+  } else {
+    gross = inferCustomerPaidTotal(order);
   }
-  if (total > 0) return total;
-  return inferCustomerPaidTotal(order);
+  return {
+    gross,
+    shippingCost: roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0)),
+    fees: fee,
+    currency: order?.currency || 'BRL',
+    chargeCurrency: null,
+    chargeAmount: null,
+    fromCharge: false
+  };
 }
 
-export function aggregateFlexOwedByMonth(sales, config = null) {
+export function storeOrderListedGross(order) {
+  return storeOrderSaleMoney(order).gross;
+}
+
+/**
+ * Formata dias com Flex: "2, 10 e 15" — com "(n)" só quando n > 1 no mesmo dia.
+ * @param {Array<{day:number,count:number}>|number[]} entries
+ */
+export function formatFlexDaysWithQty(entries) {
+  const list = (entries || []).map((e) => {
+    if (e && typeof e === 'object') {
+      return { day: Number(e.day), count: Number(e.count) || 1 };
+    }
+    return { day: Number(e), count: 1 };
+  }).filter((e) => e.day > 0);
+  if (!list.length) return '';
+  const labels = list.map((e) => (e.count > 1 ? `${e.day} (${e.count})` : String(e.day)));
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} e ${labels[1]}`;
+  return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
+}
+
+export function aggregateFlexOwedByMonth(sales, config = null, nowTs = Date.now()) {
   const map = new Map();
   (sales || []).forEach((s) => {
-    if (!isMlFlexSale(s) || !s._ts) return;
-    const p = brDateParts(s._ts);
+    if (!saleCountsForFlexOwed(s, nowTs)) return;
+    const soldTs = saleSoldTs(s);
+    if (soldTs == null) return;
+    const p = brDateParts(soldTs);
     const key = `${p.year}-${p.monthNum}`;
     if (!map.has(key)) {
       map.set(key, {
@@ -320,7 +551,8 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
         count: 0,
         owed: 0,
         bonus: 0,
-        net: 0
+        net: 0,
+        dayCountMap: new Map()
       });
     }
     const row = map.get(key);
@@ -330,20 +562,37 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
     row.owed += owed;
     row.bonus += bonus;
     row.net += roundMoney(owed - bonus);
+    const day = Number(p.day);
+    if (Number.isFinite(day) && day > 0) {
+      row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+    }
   });
   return [...map.values()]
-    .map((r) => ({
-      ...r,
-      owed: roundMoney(r.owed),
-      bonus: roundMoney(r.bonus),
-      net: roundMoney(r.net)
-    }))
+    .map((r) => {
+      const { dayCountMap, ...rest } = r;
+      const dayEntries = [...dayCountMap.entries()]
+        .map(([day, count]) => ({ day, count }))
+        .sort((a, b) => a.day - b.day);
+      return {
+        ...rest,
+        owed: roundMoney(r.owed),
+        bonus: roundMoney(r.bonus),
+        net: roundMoney(r.net),
+        days: dayEntries.map((e) => e.day),
+        dayEntries
+      };
+    })
     .sort((a, b) => String(b.key).localeCompare(String(a.key)));
 }
 
 const exportsForBrowser = {
   roundMoney,
   brDateParts,
+  brClockParts,
+  FLEX_CANCEL_CUTOFF_HOUR_BR,
+  isMarketplaceSaleDropped,
+  saleCancelTs,
+  saleSoldTs,
   mlShippingUnresolved,
   saleListedGross,
   saleShippingCost,
@@ -359,12 +608,20 @@ const exportsForBrowser = {
   effectiveSaleNet,
   saleMoneyParts,
   isMlFlexSale,
+  saleCountsForFlexOwed,
   flexCompanyOwed,
+  firstSaleMinutesOfDay,
+  saleIncludedInMtd,
+  dayCountsAsEmptySale,
+  formatFlexDaysWithQty,
   aggregateFlexOwedByMonth,
   orderPaypalFee,
   inferCustomerPaidTotal,
   orderNeedsFreteProductRepair,
   applyOrderFreteAccounting,
+  storeOrderChargedBrl,
+  storeOrderChargeParts,
+  storeOrderSaleMoney,
   storeOrderListedGross,
   MONTH_LABELS,
   DEFAULT_KIT_COST_COMPONENTS,
