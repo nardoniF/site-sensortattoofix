@@ -55,6 +55,12 @@ import {
   amzRound2
 } from './amazon-settlement.js';
 import {
+  amzEffectiveStatus,
+  shopeeEffectiveStatus,
+  shopeeOrderSnWorthSyncing,
+  shopeeOrderDetailWorthSaving
+} from './marketplace-cancel.js';
+import {
   CLICKS_CLOSED_MONTHS,
   clicksRetentionWindow,
   spYmd,
@@ -119,7 +125,7 @@ const ALLOWED_ORIGINS = [
 ];
 const CONFIG_KEY = 'store-config';
 /** Pin igual ao cloudflare/stf-com-proxy.js — catálogo GitHub servido direto ao Worker (evita cache do proxy). */
-const SITE_CATALOG_COMMIT = 'a5fb76c0dd7f01c0d4ef7c2ce146bb6d9f737b33';
+const SITE_CATALOG_COMMIT = '3094ec4801e9b17b3475d87f83a75372228abaa4';
 const SITE_CATALOG_URLS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + SITE_CATALOG_COMMIT + '/data/store-config.json',
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + SITE_CATALOG_COMMIT + '/data/store-config.json',
@@ -506,6 +512,8 @@ const DEFAULT_CONFIG = {
     paidIntlKit: 'Seu kit Prime será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.',
     customerTrackingSubject: 'Rastreio disponível — {orderId}',
     trackingAvailable: 'Seu pedido foi postado. Código de rastreio: {code}. Acompanhe em: {url}',
+    customerDeliveredSubject: 'Pedido entregue — {orderId} · obrigado pela compra!',
+    deliveredMessage: 'Olá{nomeGreeting}!\n\nAgradecemos pela sua compra na Sensor Tattoo Fix.\n\nConfirmamos que o pedido {orderId} foi entregue.\n\nSe puder, grave um vídeo curto do dispositivo funcionando com a lente e marque nosso Instagram @sensortattoofix — isso ajuda outras pessoas a conhecerem o produto.\n\nInstagram: {instagram}\n\nQualquer dúvida, é só responder este e-mail.\n\nObrigado!\nEquipe Sensor Tattoo Fix',
     abandonedSubject: 'Seu pedido {orderId} ainda está reservado — finalize quando quiser',
     abandonedWeeklySubject: 'Lembrete semanal — pedido {orderId} aguardando pagamento',
     abandonedIntro: 'Notamos que seu pedido ficou pendente. Seus itens ainda estão reservados — finalize o pagamento pelo link abaixo.',
@@ -4046,6 +4054,186 @@ async function notifyTrackingIfNew(env, config, order, previousCode) {
   return maybeNotifyTrackingAvailable(env, config || await getConfig(env), order);
 }
 
+function postSaleInstagramUrl(config) {
+  const socials = config?.channels?.socials || {};
+  return String(socials.instagram?.url || 'https://www.instagram.com/sensortattoofix').trim();
+}
+
+/**
+ * Locale for post-sale / delivered e-mails.
+ * Prefer checkout language; if checkout was EN, use destination country when we have a translation.
+ */
+function postSaleEmailLocale(order) {
+  const supported = new Set(['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']);
+  const raw = String(order?.checkoutLocale || '').trim().toLowerCase();
+  if (raw && raw !== 'en' && supported.has(raw)) return raw;
+
+  const codes = [
+    String(order?.paisCode || '').trim().toUpperCase(),
+    inferPaisCodeFromName(order?.pais) || ''
+  ].filter(Boolean);
+  for (const code of codes) {
+    const langs = COUNTRY_PRIMARY_LANGUAGES[code] || [];
+    for (const lang of langs) {
+      if (supported.has(lang) && lang !== 'en') return lang;
+    }
+  }
+  if (supported.has(raw)) return raw;
+  return orderCheckoutLocale(order) === 'pt' ? 'pt' : 'en';
+}
+
+function buildPostSaleDeliveredCopy(order, config) {
+  const loc = postSaleEmailLocale(order);
+  const orderId = order.orderId;
+  const firstName = String(order.nome || '').trim().split(/\s+/)[0] || '';
+  const ig = postSaleInstagramUrl(config);
+  const nomeGreeting = firstName ? `, ${firstName}` : '';
+  const vars = { orderId, nome: firstName, nomeGreeting, instagram: ig };
+
+  const byLoc = {
+    en: {
+      subject: `Order delivered — ${orderId} · thank you for your purchase!`,
+      message: `Hi${nomeGreeting}!\n\nThank you for your purchase from Sensor Tattoo Fix.\n\nWe're confirming that order ${orderId} has been delivered.\n\nIf you can, please record a short video of the device working with the lens and tag our Instagram @sensortattoofix — it helps other people discover the product.\n\nInstagram: ${ig}\n\nIf you have any questions, just reply to this e-mail.\n\nThank you!\nSensor Tattoo Fix Team`
+    },
+    it: {
+      subject: `Ordine consegnato — ${orderId} · grazie per l'acquisto!`,
+      message: `Ciao${nomeGreeting}!\n\nGrazie per il tuo acquisto da Sensor Tattoo Fix.\n\nConfermiamo che l'ordine ${orderId} è stato consegnato.\n\nSe puoi, registra un breve video del dispositivo che funziona con la lente e tagga il nostro Instagram @sensortattoofix — aiuta altre persone a scoprire il prodotto.\n\nInstagram: ${ig}\n\nPer qualsiasi dubbio, rispondi pure a questa e-mail.\n\nGrazie!\nTeam Sensor Tattoo Fix`
+    },
+    de: {
+      subject: `Bestellung zugestellt — ${orderId} · danke für Ihren Einkauf!`,
+      message: `Hallo${nomeGreeting}!\n\nVielen Dank für Ihren Einkauf bei Sensor Tattoo Fix.\n\nWir bestätigen, dass die Bestellung ${orderId} zugestellt wurde.\n\nWenn Sie können, nehmen Sie bitte ein kurzes Video auf, das das Gerät mit der Linse in Funktion zeigt, und markieren Sie unser Instagram @sensortattoofix — das hilft anderen, das Produkt zu entdecken.\n\nInstagram: ${ig}\n\nBei Fragen antworten Sie einfach auf diese E-Mail.\n\nDanke!\nTeam Sensor Tattoo Fix`
+    },
+    es: {
+      subject: `Pedido entregado — ${orderId} · ¡gracias por tu compra!`,
+      message: `¡Hola${nomeGreeting}!\n\nGracias por tu compra en Sensor Tattoo Fix.\n\nConfirmamos que el pedido ${orderId} ha sido entregado.\n\nSi puedes, graba un vídeo corto del dispositivo funcionando con la lente y etiqueta nuestro Instagram @sensortattoofix — ayuda a otras personas a conocer el producto.\n\nInstagram: ${ig}\n\nSi tienes alguna duda, responde a este correo.\n\n¡Gracias!\nEquipo Sensor Tattoo Fix`
+    },
+    pl: {
+      subject: `Zamówienie doręczone — ${orderId} · dziękujemy za zakup!`,
+      message: `Cześć${nomeGreeting}!\n\nDziękujemy za zakup w Sensor Tattoo Fix.\n\nPotwierdzamy, że zamówienie ${orderId} zostało doręczone.\n\nJeśli możesz, nagraj krótki film urządzenia działającego z soczewką i oznacz nasz Instagram @sensortattoofix — to pomaga innym poznać produkt.\n\nInstagram: ${ig}\n\nW razie pytań po prostu odpowiedz na tę wiadomość.\n\nDziękujemy!\nZespół Sensor Tattoo Fix`
+    },
+    sl: {
+      subject: `Naročilo dostavljeno — ${orderId} · hvala za nakup!`,
+      message: `Živjo${nomeGreeting}!\n\nHvala za nakup pri Sensor Tattoo Fix.\n\nPotrjujemo, da je bilo naročilo ${orderId} dostavljeno.\n\nČe lahko, posnemite kratek video naprave, ki deluje z lečo, in označite naš Instagram @sensortattoofix — to pomaga drugim odkriti izdelek.\n\nInstagram: ${ig}\n\nZa morebitna vprašanja preprosto odgovorite na to e-pošto.\n\nHvala!\nEkipa Sensor Tattoo Fix`
+    },
+    fr: {
+      subject: `Commande livrée — ${orderId} · merci pour votre achat !`,
+      message: `Bonjour${nomeGreeting}!\n\nMerci pour votre achat chez Sensor Tattoo Fix.\n\nNous confirmons que la commande ${orderId} a été livrée.\n\nSi vous le pouvez, enregistrez une courte vidéo de l'appareil qui fonctionne avec la lentille et mentionnez notre Instagram @sensortattoofix — cela aide d'autres personnes à découvrir le produit.\n\nInstagram: ${ig}\n\nPour toute question, répondez simplement à cet e-mail.\n\nMerci !\nÉquipe Sensor Tattoo Fix`
+    },
+    nl: {
+      subject: `Bestelling bezorgd — ${orderId} · bedankt voor je aankoop!`,
+      message: `Hallo${nomeGreeting}!\n\nBedankt voor je aankoop bij Sensor Tattoo Fix.\n\nWe bevestigen dat bestelling ${orderId} is bezorgd.\n\nAls het lukt, maak dan een korte video van het apparaat dat werkt met de lens en tag ons Instagram @sensortattoofix — dat helpt anderen het product te ontdekken.\n\nInstagram: ${ig}\n\nHeb je vragen? Antwoord gerust op deze e-mail.\n\nBedankt!\nTeam Sensor Tattoo Fix`
+    },
+    sv: {
+      subject: `Order levererad — ${orderId} · tack för ditt köp!`,
+      message: `Hej${nomeGreeting}!\n\nTack för ditt köp hos Sensor Tattoo Fix.\n\nVi bekräftar att order ${orderId} har levererats.\n\nOm du kan, spela in en kort video där enheten fungerar med linsen och tagga vårt Instagram @sensortattoofix — det hjälper andra att upptäcka produkten.\n\nInstagram: ${ig}\n\nHar du frågor? Svara bara på det här mejlet.\n\nTack!\nTeam Sensor Tattoo Fix`
+    },
+    no: {
+      subject: `Ordre levert — ${orderId} · takk for kjøpet!`,
+      message: `Hei${nomeGreeting}!\n\nTakk for kjøpet hos Sensor Tattoo Fix.\n\nVi bekrefter at ordre ${orderId} er levert.\n\nHvis du kan, ta en kort video av enheten som fungerer med linsen og tagg Instagram-kontoen vår @sensortattoofix — det hjelper andre å oppdage produktet.\n\nInstagram: ${ig}\n\nHar du spørsmål? Bare svar på denne e-posten.\n\nTakk!\nTeam Sensor Tattoo Fix`
+    },
+    fi: {
+      subject: `Tilaus toimitettu — ${orderId} · kiitos ostoksestasi!`,
+      message: `Hei${nomeGreeting}!\n\nKiitos ostoksestasi Sensor Tattoo Fixiltä.\n\nVahvistamme, että tilaus ${orderId} on toimitettu.\n\nJos voit, kuvaa lyhyt video laitteesta linssin kanssa toimimassa ja merkitse Instagramimme @sensortattoofix — se auttaa muita löytämään tuotteen.\n\nInstagram: ${ig}\n\nJos sinulla on kysyttävää, vastaa tähän sähköpostiin.\n\nKiitos!\nSensor Tattoo Fix -tiimi`
+    }
+  };
+
+  if (byLoc[loc]) return { loc, ...byLoc[loc] };
+
+  return {
+    loc: 'pt',
+    subject: emailSubject(config, 'customerDeliveredSubject', vars)
+      || `Pedido entregue — ${orderId} · obrigado pela compra!`,
+    message: emailMessage(config, 'deliveredMessage', vars)
+      || applyEmailTemplate(DEFAULT_CONFIG.emails.deliveredMessage, vars)
+  };
+}
+
+function postSaleDeliveredHtml(copy) {
+  const loc = copy.loc || 'pt';
+  const body = String(copy.message || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  const site = loc === 'pt' ? 'sensortattoofix.com.br' : 'sensortattoofix.com';
+  return `<div style="font-family:Arial,sans-serif;max-width:560px;line-height:1.5;color:#222"><p style="margin:0;white-space:pre-wrap">${body}</p><p style="color:#666;font-size:12px;margin-top:16px">Sensor Tattoo Fix — ${site}</p></div>`;
+}
+
+function postSaleDeliveredFields(copy, order) {
+  const fields = {
+    Pedido: order.orderId,
+    Status: 'Entregue',
+    Mensagem: copy.message
+  };
+  if (copy.loc === 'en') {
+    return { Order: order.orderId, Status: 'Delivered', Message: copy.message };
+  }
+  if (copy.loc === 'it') {
+    return { Ordine: order.orderId, Status: 'Consegnato', Messaggio: copy.message };
+  }
+  if (copy.loc === 'de') {
+    return { Bestellung: order.orderId, Status: 'Zugestellt', Nachricht: copy.message };
+  }
+  if (copy.loc === 'es') {
+    return { Pedido: order.orderId, Status: 'Entregado', Mensaje: copy.message };
+  }
+  if (copy.loc === 'pl') {
+    return { Zamówienie: order.orderId, Status: 'Doręczone', Wiadomość: copy.message };
+  }
+  if (copy.loc === 'sl') {
+    return { Naročilo: order.orderId, Status: 'Dostavljeno', Sporočilo: copy.message };
+  }
+  if (copy.loc === 'fr') {
+    return { Commande: order.orderId, Statut: 'Livré', Message: copy.message };
+  }
+  if (copy.loc === 'nl') {
+    return { Bestelling: order.orderId, Status: 'Bezorgd', Bericht: copy.message };
+  }
+  if (copy.loc === 'sv') {
+    return { Order: order.orderId, Status: 'Levererad', Meddelande: copy.message };
+  }
+  if (copy.loc === 'no') {
+    return { Ordre: order.orderId, Status: 'Levert', Melding: copy.message };
+  }
+  if (copy.loc === 'fi') {
+    return { Tilaus: order.orderId, Tila: 'Toimitettu', Viesti: copy.message };
+  }
+  return fields;
+}
+
+/** Send post-sale e-mail when order first becomes delivered (idempotent). */
+async function maybeNotifyDelivered(env, config, order, _previousStatus) {
+  if (!order || order.status !== 'paid') return { skipped: true, reason: 'not_paid' };
+  if (!isTrackingFinalStatus(order.correiosTrackingStatus)) {
+    return { skipped: true, reason: 'not_delivered' };
+  }
+  if (order.deliveredEmailSentAt) return { skipped: true, reason: 'already_sent' };
+
+  const cfg = config || await getConfig(env);
+  const nowIso = new Date().toISOString();
+  order.deliveredEmailSentAt = nowIso;
+  order.deliveredAt = order.deliveredAt || nowIso;
+  order.deliveredEmailError = null;
+  await saveOrder(env, order);
+
+  const copy = buildPostSaleDeliveredCopy(order, cfg);
+  const fields = postSaleDeliveredFields(copy, order);
+  const shopCopy = String(cfg.formsubmit?.email || '').trim();
+  const result = await notifyCustomer(env, cfg, order, copy.subject, fields, {
+    html: postSaleDeliveredHtml(copy),
+    text: copy.message,
+    // Cópia oculta pra loja (Sensor Tattoo Fix).
+    bcc: shopCopy || undefined
+  });
+  if (!result?.ok) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = result?.error || 'send_failed';
+    await saveOrder(env, order);
+    console.error('Post-sale delivered email:', order.orderId, order.deliveredEmailError);
+  }
+  return result;
+}
+
 function fieldsToHtmlLocalized(fields, footerSite) {
   const rows = Object.entries(fields)
     .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${k}</td><td style="padding:8px;border:1px solid #ddd">${String(v ?? '').replace(/</g, '&lt;')}</td></tr>`)
@@ -4814,6 +5002,10 @@ const ML_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
 const ML_SALES_INDEX_MAX = 5000;
 const ML_SYNC_PAGE_LIMIT = 50;
 const ML_SYNC_MAX_PAGES = 40;
+/** Max order IDs to re-check per sync for post-mediation cancel/refund. */
+const ML_STATUS_REFRESH_LIMIT = 40;
+/** Only re-check indexed sales newer than this (days). */
+const ML_STATUS_REFRESH_LOOKBACK_DAYS = 180;
 
 function healMlStoredShipping(sale, flexCfg) {
   if (!sale) return sale;
@@ -5013,6 +5205,37 @@ function mlDateParam(d) {
   return d.toISOString().replace(/\.\d{3}Z$/, '.000-00:00');
 }
 
+/** True when ML order payload means cancel/refund (incl. mediation refund). */
+function mlOrderLooksDropped(order) {
+  if (!order) return false;
+  const st = String(order.status || '').toLowerCase();
+  if (/cancel|invalid|refund/.test(st)) return true;
+  const tags = Array.isArray(order.tags) ? order.tags : [];
+  if (tags.some((t) => /^(cancelled|canceled|invalid|refunded)$/i.test(String(t)))) return true;
+  const payments = Array.isArray(order.payments) ? order.payments : [];
+  if (payments.some((p) => /refund|chargedback|charged_back|cancelled|canceled/i.test(String(p.status || '')))) {
+    return true;
+  }
+  return false;
+}
+
+/** Refund amount from payments, or gross when order is cancelled/invalid. */
+function mlRefundsFromOrder(order, gross) {
+  let refunded = 0;
+  for (const p of order?.payments || []) {
+    const st = String(p.status || '').toLowerCase();
+    if (!/refund|chargedback|charged_back/.test(st)) continue;
+    refunded += Number(p.total_paid_amount ?? p.transaction_amount ?? p.total_paid ?? 0);
+  }
+  if (refunded > 0.009) return Math.round(refunded * 100) / 100;
+  const st = String(order?.status || '').toLowerCase();
+  if (/cancel|invalid/.test(st)) {
+    const g = Number(gross || 0);
+    return g > 0 ? Math.round(g * 100) / 100 : 0;
+  }
+  return 0;
+}
+
 function normalizeMlOrder(order) {
   const items = (Array.isArray(order.order_items) ? order.order_items : []).map((row) => {
     const item = row.item || {};
@@ -5042,15 +5265,21 @@ function normalizeMlOrder(order) {
     marketplaceFee: p.marketplace_fee != null ? Number(p.marketplace_fee) : null
   }));
   const shippingHint = 0;
-  const net = Math.round((gross - fees) * 100) / 100;
   const soldAt = order.date_closed || order.date_created || null;
+  const tags = Array.isArray(order.tags) ? order.tags : [];
+  let status = order.status || null;
+  const refunds = mlRefundsFromOrder(order, gross);
+  if (mlOrderLooksDropped(order) && !/cancel|invalid|refund/i.test(String(status || ''))) {
+    status = 'cancelled';
+  }
+  const net = Math.round((gross - fees - refunds) * 100) / 100;
   return {
     channel: 'mercadolivre',
     externalId: String(order.id),
     packId: order.pack_id != null ? String(order.pack_id) : null,
     soldAt,
-    status: order.status || null,
-    tags: Array.isArray(order.tags) ? order.tags : [],
+    status,
+    tags,
     currency: order.currency_id || 'BRL',
     gross,
     buyerPaid: paidAmount,
@@ -5058,7 +5287,7 @@ function normalizeMlOrder(order) {
     net,
     shippingCost: null,
     shippingSource: 'unresolved',
-    refunds: 0,
+    refunds,
     otherFees: 0,
     buyer: {
       id: order.buyer?.id != null ? String(order.buyer.id) : null,
@@ -5073,6 +5302,9 @@ function normalizeMlOrder(order) {
     shippingCostsOk: false,
     dateCreated: order.date_created || null,
     dateLastUpdated: order.date_last_updated || order.last_updated || null,
+    cancelledAt: mlOrderLooksDropped(order)
+      ? (order.date_last_updated || order.last_updated || order.date_closed || order.date_created || null)
+      : null,
     syncedAt: new Date().toISOString()
   };
 }
@@ -5381,6 +5613,78 @@ async function fetchMlOrderById(token, orderId) {
   return data;
 }
 
+/**
+ * Re-fetch indexed ML sales by ID and mark cancel/refund after mediation.
+ * Paid search alone never revisits cancelled orders, so mediated refunds
+ * (e.g. "Mediação finalizada com reembolso") stay stuck as active income
+ * until this refresh runs.
+ */
+async function refreshMlIndexedSaleStatuses(env, token, index, options = {}) {
+  const limit = Math.max(0, Math.min(
+    Number(options.limit != null ? options.limit : ML_STATUS_REFRESH_LIMIT),
+    80
+  ));
+  const lookbackDays = Math.max(1, Number(
+    options.lookbackDays != null ? options.lookbackDays : ML_STATUS_REFRESH_LOOKBACK_DAYS
+  ));
+  const cutoff = Date.now() - lookbackDays * 86400000;
+  let checked = 0;
+  let marked = 0;
+  let skipped = 0;
+  let scanned = 0;
+  const scanCap = Math.max(limit * 4, limit);
+
+  for (const id of index || []) {
+    if (checked >= limit || scanned >= scanCap) break;
+    scanned += 1;
+    const sale = await loadMarketplaceSale(env, 'mercadolivre', id);
+    if (!sale) continue;
+    if (isDroppedMarketplaceSale(sale)) {
+      skipped += 1;
+      continue;
+    }
+    const soldAt = Date.parse(sale.soldAt || sale.dateCreated || '');
+    if (Number.isFinite(soldAt) && soldAt < cutoff) continue;
+
+    checked += 1;
+    let order;
+    try {
+      order = await fetchMlOrderById(token, id);
+    } catch {
+      continue;
+    }
+    if (!order || !mlOrderLooksDropped(order)) continue;
+
+    const fresh = normalizeMlOrder(order);
+    let status = fresh.status;
+    if (!/cancel|invalid|refund/i.test(String(status || ''))) status = 'cancelled';
+    const refunds = Math.max(
+      Number(sale.refunds || 0),
+      Number(fresh.refunds || 0),
+      Number(sale.gross || fresh.gross || 0)
+    );
+    const next = {
+      ...sale,
+      status,
+      tags: fresh.tags?.length ? fresh.tags : sale.tags,
+      refunds,
+      dateLastUpdated: fresh.dateLastUpdated || sale.dateLastUpdated,
+      syncedAt: new Date().toISOString(),
+      cancelledAt: fresh.dateLastUpdated || new Date().toISOString(),
+      mlCancelSynced: true,
+      hasRefund: true
+    };
+    next.net = mlSaleNetFromParts(next, next.shippingCost);
+    if (next.payoutNet != null) {
+      next.payoutNet = Math.max(0, mlMoney(next.payoutNet) - mlMoney(refunds));
+    }
+    await saveMarketplaceSale(env, next);
+    marked += 1;
+  }
+
+  return { checked, marked, skipped };
+}
+
 async function fetchMlShipmentCostsPayload(token, shippingId) {
   if (!token || !shippingId) return null;
   const auth = { Authorization: 'Bearer ' + token, Accept: 'application/json' };
@@ -5501,10 +5805,10 @@ async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
   return { filled, remaining };
 }
 
-async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit }) {
+async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit, status }) {
   const params = new URLSearchParams({
     seller: String(sellerId),
-    'order.status': 'paid',
+    'order.status': status || 'paid',
     sort: 'date_desc',
     offset: String(offset || 0),
     limit: String(limit || ML_SYNC_PAGE_LIMIT)
@@ -5565,71 +5869,115 @@ async function syncMlOrders(env, options = {}) {
     Math.max(1, Number(options.maxPages) || ML_SYNC_MAX_PAGES)
   );
   const to = now;
-  let offset = Math.max(0, Number(options.offset) || 0);
   let pages = 0;
   let imported = 0;
   let updated = 0;
   let unchanged = 0;
   let index = await getMlSalesIndex(env);
   let totalApi = null;
+  let paidNextOffset = 0;
+  let paidHasMore = false;
+  // paid = entradas; cancelled/invalid = cancelamentos/mediações que o search paid nunca traz de volta
+  const statusList = Array.isArray(options.statuses) && options.statuses.length
+    ? options.statuses
+    : ['paid', 'cancelled', 'invalid'];
 
-  while (pages < maxPages) {
-    const data = await fetchMlOrdersPage(env, token, sellerId, {
-      from, to, offset, limit: ML_SYNC_PAGE_LIMIT
-    });
-    if (totalApi == null) totalApi = Number(data.paging?.total ?? 0);
-    const results = Array.isArray(data.results) ? data.results : [];
-    if (!results.length) break;
+  const config = await getConfig(env).catch(() => ({}));
+  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+  let enrichBudget = Math.max(0, Math.min(20, Number(options.enrichBudget != null ? options.enrichBudget : 12)));
 
-    const config = await getConfig(env).catch(() => ({}));
-    const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
-    let enrichBudget = Math.max(0, Math.min(20, Number(options.enrichBudget != null ? options.enrichBudget : 12)));
+  for (const orderStatus of statusList) {
+    let offset = Math.max(0, Number(options.offset) || 0);
+    // offset only applies to the first status pass (paid); cancelled starts at 0
+    if (orderStatus !== statusList[0]) offset = 0;
+    // Cancel/invalid: always scan a wide creation window. Incremental `from`
+    // is only a few days — mediation on an older paid order would be missed.
+    const statusFrom = orderStatus === 'paid'
+      ? from
+      : new Date(now.getTime() - Math.min(400, Math.max(days, ML_STATUS_REFRESH_LOOKBACK_DAYS)) * 86400000);
+    let statusPages = 0;
+    const statusPageCap = orderStatus === 'paid' ? maxPages : Math.min(maxPages, 4);
 
-    for (const order of results) {
-      let sale = normalizeMlOrder(order);
-      let existing = null;
-      if (options.skipExistingRead !== true) {
-        existing = await loadMarketplaceSale(env, 'mercadolivre', sale.externalId);
+    while (statusPages < statusPageCap) {
+      const data = await fetchMlOrdersPage(env, token, sellerId, {
+        from: statusFrom, to, offset, limit: ML_SYNC_PAGE_LIMIT, status: orderStatus
+      });
+      if (orderStatus === 'paid' && totalApi == null) totalApi = Number(data.paging?.total ?? 0);
+      const results = Array.isArray(data.results) ? data.results : [];
+      if (!results.length) break;
+
+      for (const order of results) {
+        let sale = normalizeMlOrder(order);
+        let existing = null;
+        if (options.skipExistingRead !== true) {
+          existing = await loadMarketplaceSale(env, 'mercadolivre', sale.externalId);
+        }
+        const alreadyDropped = isDroppedMarketplaceSale(sale);
+        const alreadyOk = !alreadyDropped
+          && mlHasSettlement(existing)
+          && !mlNeedsPaymentEnrich(existing, flexCost);
+        const needs = !alreadyDropped && !alreadyOk && (
+          !existing || mlNeedsPaymentEnrich(existing || sale, flexCost)
+        );
+        if (needs && enrichBudget > 0 && options.enrichShipping !== false) {
+          sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
+          enrichBudget -= 1;
+        } else if (existing && alreadyOk) {
+          sale = {
+            ...sale,
+            shippingCost: existing.shippingCost,
+            shippingSource: existing.shippingSource,
+            fees: existing.fees,
+            net: existing.payoutNet || existing.net,
+            payoutNet: existing.payoutNet,
+            settlementOk: existing.settlementOk,
+            settlementVersion: existing.settlementVersion,
+            mlFlex: existing.mlFlex,
+            mlEstorno: existing.mlEstorno,
+            mlFlexListCost: existing.mlFlexListCost
+          };
+        } else if (existing && alreadyDropped) {
+          // Keep shipping settlement; status/refunds come from the cancelled payload
+          sale = {
+            ...sale,
+            shippingCost: existing.shippingCost ?? sale.shippingCost,
+            shippingSource: existing.shippingSource || sale.shippingSource,
+            fees: existing.fees ?? sale.fees,
+            mlFlex: existing.mlFlex,
+            mlEstorno: existing.mlEstorno,
+            mlFlexListCost: existing.mlFlexListCost,
+            settlementVersion: existing.settlementVersion,
+            cancelledAt: sale.cancelledAt || existing.cancelledAt || sale.dateLastUpdated || null,
+            hasRefund: true,
+            mlCancelSynced: true
+          };
+          sale.net = mlSaleNetFromParts(sale, sale.shippingCost);
+        } else if (alreadyDropped && !sale.cancelledAt) {
+          sale.cancelledAt = sale.dateLastUpdated || sale.soldAt || null;
+        }
+        sale = mergeMlSaleShipping(existing, sale);
+        if (existing && marketplaceSaleUnchanged(existing, sale)) {
+          unchanged += 1;
+          continue;
+        }
+        if (existing) updated += 1;
+        else imported += 1;
+        await saveMarketplaceSale(env, sale);
+        const next = (index || []).filter((id) => id !== sale.externalId);
+        next.unshift(sale.externalId);
+        index = next.slice(0, ML_SALES_INDEX_MAX);
       }
-      const alreadyOk = mlHasSettlement(existing) && !mlNeedsPaymentEnrich(existing, flexCost);
-      const needs = !alreadyOk && (
-        !existing || mlNeedsPaymentEnrich(existing || sale, flexCost)
-      );
-      if (needs && enrichBudget > 0 && options.enrichShipping !== false) {
-        sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
-        enrichBudget -= 1;
-      } else if (existing && alreadyOk) {
-        sale = {
-          ...sale,
-          shippingCost: existing.shippingCost,
-          shippingSource: existing.shippingSource,
-          fees: existing.fees,
-          net: existing.payoutNet || existing.net,
-          payoutNet: existing.payoutNet,
-          settlementOk: existing.settlementOk,
-          settlementVersion: existing.settlementVersion,
-          mlFlex: existing.mlFlex,
-          mlEstorno: existing.mlEstorno,
-          mlFlexListCost: existing.mlFlexListCost
-        };
-      }
-      sale = mergeMlSaleShipping(existing, sale);
-      if (existing && marketplaceSaleUnchanged(existing, sale)) {
-        unchanged += 1;
-        continue;
-      }
-      if (existing) updated += 1;
-      else imported += 1;
-      await saveMarketplaceSale(env, sale);
-      const next = (index || []).filter((id) => id !== sale.externalId);
-      next.unshift(sale.externalId);
-      index = next.slice(0, ML_SALES_INDEX_MAX);
+
+      statusPages += 1;
+      pages += 1;
+      offset += results.length;
+      const pagingTotal = Number(data.paging?.total ?? 0);
+      if (offset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
     }
-
-    pages += 1;
-    offset += results.length;
-    const pagingTotal = Number(data.paging?.total ?? 0);
-    if (offset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
+    if (orderStatus === 'paid') {
+      paidNextOffset = offset;
+      paidHasMore = totalApi != null && offset < totalApi;
+    }
   }
 
   const backfillLimit = Math.max(0, Number(
@@ -5639,6 +5987,17 @@ async function syncMlOrders(env, options = {}) {
     ? await backfillMlZeroShipping(env, token, sellerId, index, backfillLimit)
     : { filled: 0, remaining: 0 };
   const shippingFilled = shippingReport.filled;
+
+  const statusRefreshLimit = Math.max(0, Number(
+    options.statusRefresh != null ? options.statusRefresh : ML_STATUS_REFRESH_LIMIT
+  ));
+  const statusRefresh = statusRefreshLimit > 0
+    ? await refreshMlIndexedSaleStatuses(env, token, index, {
+      limit: statusRefreshLimit,
+      lookbackDays: options.statusRefreshDays || ML_STATUS_REFRESH_LOOKBACK_DAYS
+    })
+    : { checked: 0, marked: 0, skipped: 0 };
+  if (statusRefresh.marked > 0) updated += statusRefresh.marked;
 
   const report = {
     ok: true,
@@ -5654,8 +6013,10 @@ async function syncMlOrders(env, options = {}) {
     indexed: index.length,
     shippingFilled,
     shippingRemaining: shippingReport.remaining,
-    nextOffset: offset,
-    hasMore: totalApi != null && offset < totalApi,
+    statusChecked: statusRefresh.checked,
+    statusCancelled: statusRefresh.marked,
+    nextOffset: paidNextOffset,
+    hasMore: paidHasMore,
     lastSyncedAt: now.toISOString(),
     lastError: null
   };
@@ -5671,11 +6032,13 @@ async function runScheduledMlOrdersSync(env) {
       enrichShipping: false,
       skipExistingRead: false,
       backfillShipping: 0,
+      statusRefresh: 25,
       maxPages: 2
     });
     console.log('ML orders sync cron:', JSON.stringify({
       imported: report.imported,
       updated: report.updated,
+      statusCancelled: report.statusCancelled,
       indexed: report.indexed
     }));
     return report;
@@ -5725,6 +6088,7 @@ async function handleAdminMlSync(request, env, origin, ctx) {
       offset: 0,
       backfillShipping: 30,
       enrichBudget: 12,
+      statusRefresh: 40,
       skipExistingRead: false,
       maxPages: 8
     });
@@ -5743,6 +6107,7 @@ async function handleAdminMlSync(request, env, origin, ctx) {
           offset: report.nextOffset,
           backfillShipping: 30,
           enrichBudget: 12,
+          statusRefresh: 40,
           skipExistingRead: false,
           maxPages: 8
         }).catch(() => {}));
@@ -5870,6 +6235,11 @@ const AMZ_SYNC_LOOKBACK_DAYS = 90;
 const AMZ_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
 const AMZ_SALES_INDEX_MAX = 5000;
 const AMZ_SYNC_MAX_PAGES = 40;
+/** Re-check indexed Amazon orders for cancel/refund after shipment. */
+const AMZ_STATUS_REFRESH_LIMIT = 40;
+const AMZ_STATUS_REFRESH_LOOKBACK_DAYS = 180;
+const AMZ_ACTIVE_ORDER_STATUSES = 'Shipped,Unshipped,PartiallyShipped,InvoiceUnconfirmed';
+const AMZ_CANCELED_ORDER_STATUSES = 'Canceled';
 const AMZ_BR_MARKETPLACE = 'A2Q3Y263D00KWC';
 const AMZ_USER_AGENT = 'SensorTattooFix/1.0 (Language=JavaScript; Platform=CloudflareWorkers)';
 
@@ -6077,12 +6447,17 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
   const otherFees = financesFetched && fin ? amzRound2(fin.otherFees || 0) : 0;
   // Líquido = bruto − comissão − frete − estornos − outras taxas
   const net = amzRound2(gross - fees - shippingCost - refunds - otherFees);
+  const status = amzEffectiveStatus(order.OrderStatus, {
+    hasRefund,
+    refunds,
+    gross
+  });
   return {
     channel: 'amazon',
     externalId: String(order.AmazonOrderId || ''),
     packId: null,
     soldAt: order.PurchaseDate || order.LastUpdateDate || null,
-    status: order.OrderStatus || null,
+    status,
     tags: [order.FulfillmentChannel, order.SalesChannel].filter(Boolean),
     currency,
     gross: amzRound2(gross),
@@ -6120,7 +6495,7 @@ async function upsertAmzSale(env, sale, index) {
   return next.slice(0, AMZ_SALES_INDEX_MAX);
 }
 
-async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nextToken }) {
+async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nextToken, orderStatuses }) {
   const params = new URLSearchParams();
   params.set('MarketplaceIds', amzMarketplaceId(env));
   params.set('MaxResultsPerPage', '50');
@@ -6129,7 +6504,7 @@ async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nex
   } else {
     params.set('CreatedAfter', createdAfter);
     if (createdBefore) params.set('CreatedBefore', createdBefore);
-    params.set('OrderStatuses', 'Shipped,Unshipped,PartiallyShipped,InvoiceUnconfirmed');
+    params.set('OrderStatuses', orderStatuses || AMZ_ACTIVE_ORDER_STATUSES);
   }
   const res = await fetch(`${AMZ_API_HOST}/orders/v0/orders?${params}`, {
     headers: {
@@ -6148,6 +6523,23 @@ async function amzFetchOrdersPage(env, token, { createdAfter, createdBefore, nex
   return data.payload || data;
 }
 
+async function amzFetchOrderById(env, token, orderId) {
+  if (!orderId) return null;
+  const res = await fetch(
+    `${AMZ_API_HOST}/orders/v0/orders/${encodeURIComponent(orderId)}`,
+    {
+      headers: {
+        'x-amz-access-token': token,
+        Accept: 'application/json',
+        'User-Agent': AMZ_USER_AGENT
+      }
+    }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return null;
+  return data.payload || data.Orders?.[0] || data || null;
+}
+
 async function amzFetchOrderItems(env, token, orderId) {
   const res = await fetch(
     `${AMZ_API_HOST}/orders/v0/orders/${encodeURIComponent(orderId)}/orderItems`,
@@ -6162,6 +6554,83 @@ async function amzFetchOrderItems(env, token, orderId) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return [];
   return data.payload?.OrderItems || data.OrderItems || [];
+}
+
+/**
+ * Re-fetch indexed Amazon orders: Canceled status or Finances refund
+ * must update stored status so Admin drops them from active income.
+ */
+async function refreshAmzIndexedSaleStatuses(env, token, index, options = {}) {
+  const limit = Math.max(0, Math.min(
+    Number(options.limit != null ? options.limit : AMZ_STATUS_REFRESH_LIMIT),
+    80
+  ));
+  const lookbackDays = Math.max(1, Number(
+    options.lookbackDays != null ? options.lookbackDays : AMZ_STATUS_REFRESH_LOOKBACK_DAYS
+  ));
+  const cutoff = Date.now() - lookbackDays * 86400000;
+  let checked = 0;
+  let marked = 0;
+  let scanned = 0;
+  const scanCap = Math.max(limit * 4, limit);
+
+  for (const id of index || []) {
+    if (checked >= limit || scanned >= scanCap) break;
+    scanned += 1;
+    const sale = await loadMarketplaceSale(env, 'amazon', id);
+    if (!sale) continue;
+    if (isDroppedMarketplaceSale(sale)) continue;
+    const soldAt = Date.parse(sale.soldAt || sale.dateCreated || '');
+    if (Number.isFinite(soldAt) && soldAt < cutoff) continue;
+
+    checked += 1;
+    let order = null;
+    let fin = null;
+    try {
+      order = await amzFetchOrderById(env, token, id);
+    } catch { /* keep null */ }
+    try {
+      const events = await amzFetchOrderFinancials(env, token, id);
+      fin = summarizeAmzFinancialEvents(events);
+    } catch { /* keep null */ }
+
+    const hasRefund = !!(fin && fin.hasRefund) || !!sale.hasRefund;
+    const refunds = amzRound2(fin ? (fin.refunds || 0) : (sale.refunds || 0));
+    const gross = amzRound2(Number(sale.gross || 0) || (fin && fin.principalSold) || 0);
+    const nextStatus = amzEffectiveStatus(
+      order?.OrderStatus || sale.status,
+      { hasRefund, refunds, gross }
+    );
+    if (!isDroppedMarketplaceSale({ status: nextStatus })) {
+      await new Promise((r) => setTimeout(r, 200));
+      continue;
+    }
+
+    const fees = fin ? amzRound2(fin.commission) : amzRound2(sale.fees || 0);
+    const shippingCost = fin ? amzRound2(fin.shipping) : amzRound2(sale.shippingCost || 0);
+    const otherFees = fin ? amzRound2(fin.otherFees || 0) : amzRound2(sale.otherFees || 0);
+    const next = {
+      ...sale,
+      status: nextStatus,
+      gross,
+      fees,
+      shippingCost,
+      refunds: Math.max(amzRound2(sale.refunds || 0), refunds, hasRefund ? gross : 0),
+      otherFees,
+      hasRefund: true,
+      financesOk: fin ? true : !!sale.financesOk,
+      pocketNet: fin ? amzRound2(fin.net) : sale.pocketNet,
+      dateLastUpdated: order?.LastUpdateDate || sale.dateLastUpdated,
+      syncedAt: new Date().toISOString(),
+      amzCancelSynced: true
+    };
+    next.net = amzRound2(next.gross - next.fees - next.shippingCost - next.refunds - next.otherFees);
+    await saveMarketplaceSale(env, next);
+    marked += 1;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+
+  return { checked, marked };
 }
 
 async function syncAmzOrders(env, options = {}) {
@@ -6190,17 +6659,11 @@ async function syncAmzOrders(env, options = {}) {
   let index = await getAmzSalesIndex(env);
   let apiTotal = 0;
 
-  do {
-    const payload = await amzFetchOrdersPage(env, token, {
-      createdAfter: from.toISOString(),
-      createdBefore: queryEnd.toISOString(),
-      nextToken
-    });
+  async function ingestAmzOrdersPage(payload) {
     const orders = Array.isArray(payload.Orders) ? payload.Orders : [];
     apiTotal += orders.length;
     for (const order of orders) {
       if (!order?.AmazonOrderId) continue;
-      if (String(order.OrderStatus || '').toLowerCase() === 'canceled') continue;
       let items = [];
       try {
         items = await amzFetchOrderItems(env, token, order.AmazonOrderId);
@@ -6223,9 +6686,32 @@ async function syncAmzOrders(env, options = {}) {
       index = await upsertAmzSale(env, sale, index);
       await new Promise((r) => setTimeout(r, 250));
     }
-    pages += 1;
-    nextToken = payload.NextToken || null;
-  } while (nextToken && pages < AMZ_SYNC_MAX_PAGES);
+  }
+
+  // Active statuses (paid-like) + separate Canceled pass (SP-API one OrderStatuses filter).
+  for (const orderStatuses of [AMZ_ACTIVE_ORDER_STATUSES, AMZ_CANCELED_ORDER_STATUSES]) {
+    nextToken = null;
+    let statusPages = 0;
+    const pageCap = orderStatuses === AMZ_CANCELED_ORDER_STATUSES
+      ? Math.min(AMZ_SYNC_MAX_PAGES, 8)
+      : AMZ_SYNC_MAX_PAGES;
+    // Cancelled: always scan a wide window so late cancels of older orders are found.
+    const statusFrom = orderStatuses === AMZ_CANCELED_ORDER_STATUSES
+      ? new Date(queryEnd.getTime() - Math.min(365, Math.max(days, AMZ_STATUS_REFRESH_LOOKBACK_DAYS)) * 86400000)
+      : from;
+    do {
+      const payload = await amzFetchOrdersPage(env, token, {
+        createdAfter: statusFrom.toISOString(),
+        createdBefore: queryEnd.toISOString(),
+        nextToken,
+        orderStatuses
+      });
+      await ingestAmzOrdersPage(payload);
+      statusPages += 1;
+      pages += 1;
+      nextToken = payload.NextToken || null;
+    } while (nextToken && statusPages < pageCap);
+  }
 
   // Atualiza Finances de todos os indexados (full) ou só os que faltam.
   let financesBackfilled = 0;
@@ -6252,6 +6738,7 @@ async function syncAmzOrders(env, options = {}) {
       sale.pocketNet = amzRound2(fin.net);
       sale.financesOk = true;
       sale.hasRefund = hasRefund;
+      sale.status = amzEffectiveStatus(sale.status, { hasRefund, refunds, gross });
       sale.feesNote = null;
       sale.syncedAt = new Date().toISOString();
       await saveMarketplaceSale(env, sale);
@@ -6262,6 +6749,17 @@ async function syncAmzOrders(env, options = {}) {
       console.warn('Amazon finances backfill', id, err.message || err);
     }
   }
+
+  const statusRefreshLimit = Math.max(0, Number(
+    options.statusRefresh != null ? options.statusRefresh : AMZ_STATUS_REFRESH_LIMIT
+  ));
+  const statusRefresh = statusRefreshLimit > 0
+    ? await refreshAmzIndexedSaleStatuses(env, token, index, {
+      limit: statusRefreshLimit,
+      lookbackDays: options.statusRefreshDays || AMZ_STATUS_REFRESH_LOOKBACK_DAYS
+    })
+    : { checked: 0, marked: 0 };
+  if (statusRefresh.marked > 0) updated += statusRefresh.marked;
 
   const report = {
     ok: true,
@@ -6275,6 +6773,8 @@ async function syncAmzOrders(env, options = {}) {
     updated,
     unchanged,
     financesBackfilled,
+    statusChecked: statusRefresh.checked,
+    statusCancelled: statusRefresh.marked,
     indexed: index.length,
     lastSyncedAt: now.toISOString(),
     lastError: null
@@ -6356,9 +6856,9 @@ const SHOPEE_SYNC_LOOKBACK_DAYS = 90;
 const SHOPEE_SYNC_CRON_MIN_INTERVAL_MS = 60 * 60 * 1000;
 const SHOPEE_SALES_INDEX_MAX = 5000;
 const SHOPEE_ORDER_WINDOW_SEC = 15 * 86400;
-const SHOPEE_PAID_STATUSES = new Set([
-  'READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED'
-]);
+/** Re-check indexed Shopee orders for CANCELLED / return refund. */
+const SHOPEE_STATUS_REFRESH_LIMIT = 40;
+const SHOPEE_STATUS_REFRESH_LOOKBACK_DAYS = 180;
 
 function shopeePartnerId(env) {
   return String(env.SHOPEE_PARTNER_ID || '').trim();
@@ -6748,11 +7248,12 @@ function normalizeShopeeOrder(detail, escrow) {
   const escrowAmt = rawEscrow != null ? roundMoney(rawEscrow) : null;
   const parts = shopeeReceiptFromEscrow(gross, escrowAmt, refunds);
   const soldAtSec = Number(order.pay_time || order.create_time || 0);
+  const status = shopeeEffectiveStatus(order.order_status, { refunds, gross });
   return {
     channel: 'shopee',
     externalId: String(order.order_sn || ''),
     soldAt: soldAtSec ? new Date(soldAtSec * 1000).toISOString() : null,
-    status: order.order_status || null,
+    status,
     currency: 'BRL',
     gross,
     fees: parts.fees,
@@ -6797,10 +7298,8 @@ async function fetchShopeeOrderSns(env, token, shopId, timeFrom, timeTo, timeRan
     const list = Array.isArray(data.response?.order_list) ? data.response.order_list : [];
     for (const row of list) {
       const status = String(row.order_status || '');
-      if (status && !SHOPEE_PAID_STATUSES.has(status) && status !== 'TO_RETURN' && status !== 'IN_CANCEL') {
-        if (status === 'UNPAID' || status === 'CANCELLED' || status === 'IN_CANCEL') continue;
-      }
-      if (status === 'UNPAID' || status === 'CANCELLED') continue;
+      // Só UNPAID fica de fora — CANCELLED/IN_CANCEL precisam atualizar o índice.
+      if (!shopeeOrderSnWorthSyncing(status)) continue;
       if (row.order_sn) sns.push(String(row.order_sn));
     }
     if (!data.response?.more) break;
@@ -6869,6 +7368,47 @@ async function backfillShopeeIndex(env, limit) {
   return { filled, remaining };
 }
 
+async function refreshShopeeIndexedSaleStatuses(env, token, shopId, index, options = {}) {
+  const limit = Math.max(0, Math.min(
+    Number(options.limit != null ? options.limit : SHOPEE_STATUS_REFRESH_LIMIT),
+    80
+  ));
+  const lookbackDays = Math.max(1, Number(
+    options.lookbackDays != null ? options.lookbackDays : SHOPEE_STATUS_REFRESH_LOOKBACK_DAYS
+  ));
+  const cutoff = Date.now() - lookbackDays * 86400000;
+  let checked = 0;
+  let marked = 0;
+  let scanned = 0;
+  const scanCap = Math.max(limit * 4, limit);
+
+  for (const sn of index || []) {
+    if (checked >= limit || scanned >= scanCap) break;
+    scanned += 1;
+    const sale = await loadMarketplaceSale(env, 'shopee', sn);
+    if (!sale) continue;
+    if (isDroppedMarketplaceSale(sale)) continue;
+    const soldAt = Date.parse(sale.soldAt || sale.dateCreated || '');
+    if (Number.isFinite(soldAt) && soldAt < cutoff) continue;
+
+    checked += 1;
+    const details = await fetchShopeeOrderDetails(env, token, shopId, [sn]);
+    const detail = details[0];
+    if (!detail) continue;
+    const escrow = await fetchShopeeEscrow(env, token, shopId, sn);
+    const next = normalizeShopeeOrder(detail, escrow);
+    if (!next.externalId || !isDroppedMarketplaceSale(next)) continue;
+    await saveMarketplaceSale(env, {
+      ...sale,
+      ...next,
+      shopeeCancelSynced: true
+    });
+    marked += 1;
+  }
+
+  return { checked, marked };
+}
+
 async function syncShopeeOrders(env, options = {}) {
   const tok = await getShopeeAccessToken(env);
   if (!tok?.token || !tok.shopId) throw new Error('Shopee sem token — autorize a loja no Admin.');
@@ -6896,7 +7436,11 @@ async function syncShopeeOrders(env, options = {}) {
     const sns = await fetchShopeeOrderSns(env, token, shopId, start, end, 'create_time');
     allSns.push(...sns);
   }
-  const updateFrom = Math.max(fromSec, nowSec - 14 * 86400);
+  // update_time: pega cancelamentos recentes de pedidos mais antigos
+  const updateFrom = Math.max(
+    nowSec - Math.min(365, Math.max(days, SHOPEE_STATUS_REFRESH_LOOKBACK_DAYS)) * 86400,
+    nowSec - 180 * 86400
+  );
   for (let start = updateFrom; start < nowSec; start += SHOPEE_ORDER_WINDOW_SEC) {
     const end = Math.min(start + SHOPEE_ORDER_WINDOW_SEC, nowSec);
     const sns = await fetchShopeeOrderSns(env, token, shopId, start, end, 'update_time');
@@ -6907,7 +7451,7 @@ async function syncShopeeOrders(env, options = {}) {
 
   for (const detail of details) {
     const status = String(detail.order_status || '');
-    if (status === 'UNPAID' || status === 'CANCELLED' || status === 'IN_CANCEL') continue;
+    if (!shopeeOrderDetailWorthSaving(status)) continue;
     const escrow = detail.order_sn
       ? await fetchShopeeEscrow(env, token, shopId, detail.order_sn)
       : null;
@@ -6920,6 +7464,17 @@ async function syncShopeeOrders(env, options = {}) {
     index = await upsertShopeeSale(env, sale, index);
   }
 
+  const statusRefreshLimit = Math.max(0, Number(
+    options.statusRefresh != null ? options.statusRefresh : SHOPEE_STATUS_REFRESH_LIMIT
+  ));
+  const statusRefresh = statusRefreshLimit > 0
+    ? await refreshShopeeIndexedSaleStatuses(env, token, shopId, index, {
+      limit: statusRefreshLimit,
+      lookbackDays: options.statusRefreshDays || SHOPEE_STATUS_REFRESH_LOOKBACK_DAYS
+    })
+    : { checked: 0, marked: 0 };
+  if (statusRefresh.marked > 0) updated += statusRefresh.marked;
+
   const report = {
     ok: true,
     shopId,
@@ -6930,6 +7485,8 @@ async function syncShopeeOrders(env, options = {}) {
     imported,
     updated,
     unchanged,
+    statusChecked: statusRefresh.checked,
+    statusCancelled: statusRefresh.marked,
     indexed: index.length,
     lastSyncedAt: new Date().toISOString(),
     lastError: null
@@ -15289,6 +15846,7 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
   const config = await getConfig(env);
   const previousCode = order.correiosTrackingCode;
+  const previousStatus = order.correiosTrackingStatus;
   try {
     applyOrderShippingManualUpdate(order, body);
 
@@ -15319,6 +15877,20 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   } catch (err) {
     return json({ error: err.message }, 400, origin);
   }
+
+  const nowFinal = isTrackingFinalStatus(order.correiosTrackingStatus);
+  const wasFinal = isTrackingFinalStatus(previousStatus);
+  // Sair de Entregue libera reenvio do pós-venda na próxima vez.
+  if (wasFinal && !nowFinal) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = null;
+  }
+  // Reenvio explícito (mesmo já estando Entregue).
+  if (body.resendDeliveredEmail === true && nowFinal) {
+    order.deliveredEmailSentAt = null;
+    order.deliveredEmailError = null;
+  }
+
   await saveOrder(env, order);
   let trackingEmail = { skipped: true };
   try {
@@ -15326,6 +15898,13 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   } catch (err) {
     console.warn('Tracking email after shipping update:', orderId, err.message);
     trackingEmail = { skipped: true, error: err.message };
+  }
+  let deliveredEmail = { skipped: true };
+  try {
+    deliveredEmail = await maybeNotifyDelivered(env, config, order, previousStatus) || { skipped: true };
+  } catch (err) {
+    console.warn('Delivered email after shipping update:', orderId, err.message);
+    deliveredEmail = { skipped: true, error: err.message };
   }
   return json({
     ok: true,
@@ -15347,7 +15926,12 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     shippingServiceCode: order.shippingServiceCode ?? null,
     trackingEmailSentAt: order.trackingEmailSentAt || null,
     trackingEmailSent: !!(trackingEmail && trackingEmail.ok),
-    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped)
+    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped),
+    deliveredEmailSentAt: order.deliveredEmailSentAt || null,
+    deliveredEmailSent: !!(deliveredEmail && deliveredEmail.ok),
+    deliveredEmailSkipped: !!(deliveredEmail && deliveredEmail.skipped),
+    deliveredEmailSkipReason: deliveredEmail?.reason || null,
+    deliveredEmailLocale: nowFinal ? postSaleEmailLocale(order) : null
   }, 200, origin);
 }
 
@@ -17557,6 +18141,7 @@ async function handleTestEmail(request, env, origin) {
     'customer_order_mp',
     'customer_pix',
     'customer_paid',
+    'customer_delivered',
     'motoboy',
     'coupon'
   ];
@@ -17687,6 +18272,19 @@ async function sendTestEmailByType(env, config, to, type, overrides = {}) {
         Valor: formatBRL(price),
         Mensagem: emailMessage(config, 'paidDefault')
       });
+
+    case 'customer_delivered': {
+      const copy = buildPostSaleDeliveredCopy(
+        { ...order, correiosTrackingStatus: 'Entregue' },
+        config
+      );
+      const shopCopy = String(config.formsubmit?.email || '').trim();
+      return notifyCustomer(env, config, order, copy.subject, postSaleDeliveredFields(copy, order), {
+        html: postSaleDeliveredHtml(copy),
+        text: copy.message,
+        bcc: shopCopy || undefined
+      });
+    }
 
     case 'motoboy':
       return notifyEmail(env, config, to, emailSubject(config, 'motoboySubject', { orderId: order.orderId }), {
@@ -18191,6 +18789,7 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     return Object.keys(payload).length ? payload : null;
   }
 
+  const previousStatus = order.correiosTrackingStatus;
   const summary = await fetchCorreiosTrackingSummary(token, order.correiosTrackingCode);
   const hasApiEvents = Array.isArray(summary?.events) && summary.events.length > 0;
   const hasManual = order.correiosManualUpdatedAt && order.correiosTrackingStatus;
@@ -18204,6 +18803,11 @@ async function syncOneOrderCorreiosTracking(env, config, token, orderId, opts = 
     order.correiosTrackingUpdatedAt = new Date().toISOString();
   }
   await saveOrder(env, order);
+  try {
+    await maybeNotifyDelivered(env, config, order, previousStatus);
+  } catch (err) {
+    console.warn('Delivered email after Correios sync:', orderId, err.message);
+  }
   return {
     ...(hasApiEvents ? summary : trackingSummaryFromOrder(order) || summary),
     trackingCode: order.correiosTrackingCode,
