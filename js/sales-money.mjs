@@ -51,6 +51,57 @@ export function brDateParts(ts) {
   return { year, monthNum, monthName, day, dateKey, dayLabel: dayLabelCap };
 }
 
+/** Relógio América/São_Paulo (hora 0–23) para cortes de Flex e comparativo. */
+export function brClockParts(ts) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(new Date(ts || Date.now()));
+  const g = (type) => parts.find((p) => p.type === type)?.value;
+  const year = g('year');
+  const monthNum = g('month');
+  const day = g('day');
+  const hour = Number(g('hour'));
+  const minute = Number(g('minute'));
+  const second = Number(g('second'));
+  return {
+    year,
+    monthNum,
+    day,
+    hour,
+    minute,
+    second,
+    minutesOfDay: hour * 60 + minute,
+    dateKey: `${year}-${monthNum}-${day}`
+  };
+}
+
+/** Corte ML Flex: cancelamento no mesmo dia BR antes das 14:00 não gera cobrança de envio. */
+export const FLEX_CANCEL_CUTOFF_HOUR_BR = 14;
+
+export function isMarketplaceSaleDropped(sale) {
+  return /cancel|invalid|refund/i.test(String(sale?.status || ''));
+}
+
+export function saleCancelTs(sale) {
+  const raw = sale?.cancelledAt || sale?.canceledAt || sale?.dateLastUpdated || null;
+  const t = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+
+export function saleSoldTs(sale) {
+  if (Number.isFinite(sale?._ts)) return Number(sale._ts);
+  const raw = sale?.soldAt || sale?.dateCreated || null;
+  const t = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(t) ? t : null;
+}
+
 export function mlShippingUnresolved(sale) {
   const ch = String(sale?.channel || '').toLowerCase();
   if (ch !== 'mercadolivre' && ch !== 'ml') return false;
@@ -194,12 +245,100 @@ export function isMlFlexSale(sale) {
   return /flex|self_service/i.test(String(sale?.logisticType || ''));
 }
 
+/**
+ * Flex cobra por envio feito. Compra cancelada pode sumir dos totais,
+ * mas permanece no Flex se o cancelamento NÃO foi no mesmo dia BR antes das 14h.
+ */
+export function saleCountsForFlexOwed(sale, nowTs = Date.now()) {
+  if (!isMlFlexSale(sale)) return false;
+  const soldTs = saleSoldTs(sale);
+  if (soldTs == null) return false;
+  if (!isMarketplaceSaleDropped(sale)) return true;
+
+  const sold = brClockParts(soldTs);
+  const cutoffMin = FLEX_CANCEL_CUTOFF_HOUR_BR * 60;
+  const cancelTs = saleCancelTs(sale);
+
+  if (cancelTs == null) {
+    const now = brClockParts(nowTs);
+    if (now.dateKey > sold.dateKey) return true;
+    if (now.dateKey < sold.dateKey) return false;
+    return now.minutesOfDay >= cutoffMin;
+  }
+
+  const cancel = brClockParts(cancelTs);
+  if (cancel.dateKey !== sold.dateKey) {
+    return cancelTs >= soldTs;
+  }
+  return cancel.minutesOfDay >= cutoffMin;
+}
+
 export function flexCompanyOwed(sale, config = null) {
   const list = Number(sale?.mlFlexListCost || config?.mlFlexShippingCost || 0);
   if (list > 0) return roundMoney(list);
   const ship = Number(sale?.shippingCost || sale?._shipping || 0);
   const bonus = Number(sale?.mlEstorno || 0);
   return roundMoney(ship + bonus);
+}
+
+/** Minutos do dia (BR) da 1ª venda do dia; null se não houve venda. */
+export function firstSaleMinutesOfDay(sales, year, monthNum, dayNum) {
+  const y = String(year);
+  const ym = String(monthNum).padStart(2, '0');
+  const day = Number(dayNum);
+  let best = null;
+  (sales || []).forEach((s) => {
+    const ts = saleSoldTs(s);
+    if (ts == null) return;
+    const p = brClockParts(ts);
+    if (p.year !== y || p.monthNum !== ym || Number(p.day) !== day) return;
+    if (best == null || p.minutesOfDay < best) best = p.minutesOfDay;
+  });
+  return best;
+}
+
+/**
+ * Inclui venda no MTD: dias 1…N-1 integrais; no dia N corta no relógio asOf (BR).
+ */
+export function saleIncludedInMtd(sale, year, monthNum, throughDay, asOfTs = null) {
+  const ts = saleSoldTs(sale);
+  if (ts == null) return false;
+  const p = brClockParts(ts);
+  const y = String(year);
+  const ym = String(monthNum).padStart(2, '0');
+  if (p.year !== y || p.monthNum !== ym) return false;
+  const day = Number(p.day);
+  const last = Number(throughDay) || 1;
+  if (day < 1 || day > last) return false;
+  if (day < last || asOfTs == null) return true;
+  return p.minutesOfDay <= brClockParts(asOfTs).minutesOfDay;
+}
+
+/**
+ * Dia conta como "sem venda"? No dia corrente do mês atual, só depois do
+ * horário da 1ª venda do mesmo dia no mês de referência (geralmente mês passado).
+ */
+export function dayCountsAsEmptySale(opts) {
+  const {
+    day,
+    throughDay,
+    isCurrentMonth,
+    hasSale,
+    asOfTs = null,
+    refFirstSaleMinutes = null
+  } = opts || {};
+  if (hasSale) return false;
+  const d = Number(day);
+  const through = Number(throughDay);
+  if (
+    isCurrentMonth
+    && d === through
+    && asOfTs != null
+    && refFirstSaleMinutes != null
+  ) {
+    if (brClockParts(asOfTs).minutesOfDay < Number(refFirstSaleMinutes)) return false;
+  }
+  return true;
 }
 
 export function orderPaypalFee(order) {
@@ -395,11 +534,13 @@ export function formatFlexDaysWithQty(entries) {
   return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
 }
 
-export function aggregateFlexOwedByMonth(sales, config = null) {
+export function aggregateFlexOwedByMonth(sales, config = null, nowTs = Date.now()) {
   const map = new Map();
   (sales || []).forEach((s) => {
-    if (!isMlFlexSale(s) || !s._ts) return;
-    const p = brDateParts(s._ts);
+    if (!saleCountsForFlexOwed(s, nowTs)) return;
+    const soldTs = saleSoldTs(s);
+    if (soldTs == null) return;
+    const p = brDateParts(soldTs);
     const key = `${p.year}-${p.monthNum}`;
     if (!map.has(key)) {
       map.set(key, {
@@ -447,6 +588,11 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
 const exportsForBrowser = {
   roundMoney,
   brDateParts,
+  brClockParts,
+  FLEX_CANCEL_CUTOFF_HOUR_BR,
+  isMarketplaceSaleDropped,
+  saleCancelTs,
+  saleSoldTs,
   mlShippingUnresolved,
   saleListedGross,
   saleShippingCost,
@@ -462,7 +608,11 @@ const exportsForBrowser = {
   effectiveSaleNet,
   saleMoneyParts,
   isMlFlexSale,
+  saleCountsForFlexOwed,
   flexCompanyOwed,
+  firstSaleMinutesOfDay,
+  saleIncludedInMtd,
+  dayCountsAsEmptySale,
   formatFlexDaysWithQty,
   aggregateFlexOwedByMonth,
   orderPaypalFee,

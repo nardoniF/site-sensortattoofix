@@ -5302,6 +5302,9 @@ function normalizeMlOrder(order) {
     shippingCostsOk: false,
     dateCreated: order.date_created || null,
     dateLastUpdated: order.date_last_updated || order.last_updated || null,
+    cancelledAt: mlOrderLooksDropped(order)
+      ? (order.date_last_updated || order.last_updated || order.date_closed || order.date_created || null)
+      : null,
     syncedAt: new Date().toISOString()
   };
 }
@@ -5944,10 +5947,13 @@ async function syncMlOrders(env, options = {}) {
             mlEstorno: existing.mlEstorno,
             mlFlexListCost: existing.mlFlexListCost,
             settlementVersion: existing.settlementVersion,
+            cancelledAt: sale.cancelledAt || existing.cancelledAt || sale.dateLastUpdated || null,
             hasRefund: true,
             mlCancelSynced: true
           };
           sale.net = mlSaleNetFromParts(sale, sale.shippingCost);
+        } else if (alreadyDropped && !sale.cancelledAt) {
+          sale.cancelledAt = sale.dateLastUpdated || sale.soldAt || null;
         }
         sale = mergeMlSaleShipping(existing, sale);
         if (existing && marketplaceSaleUnchanged(existing, sale)) {

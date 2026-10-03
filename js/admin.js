@@ -1542,17 +1542,54 @@
     return { year: String(y), monthNum: String(m).padStart(2, '0') };
   }
 
-  /** Vendas do mês até o dia N (mesmo dia do calendário; corta no último dia do mês se for menor). */
-  function salesMonthToDate(sales, year, monthNum, throughDay) {
+  /**
+   * Vendas do mês até o dia N. No dia N corta no relógio asOf (BR),
+   * para não comparar manhã atual com tarde inteira do mês passado.
+   */
+  function salesMonthToDate(sales, year, monthNum, throughDay, asOfTs = null) {
     const ym = String(monthNum).padStart(2, '0');
     const y = String(year);
     const lastDay = Math.min(Number(throughDay) || 1, daysInCalendarMonth(y, ym));
+    const included = sm().saleIncludedInMtd;
+    if (typeof included === 'function') {
+      return (sales || []).filter((s) => included(s, y, ym, lastDay, asOfTs));
+    }
+    const asOfMin = asOfTs != null ? brClockPartsLocal(asOfTs).minutesOfDay : null;
     return (sales || []).filter((s) => {
       if (!s._ts) return false;
       const p = brDateParts(s._ts);
       if (p.year !== y || p.monthNum !== ym) return false;
-      return Number(p.day) <= lastDay;
+      const day = Number(p.day);
+      if (day < 1 || day > lastDay) return false;
+      if (day < lastDay || asOfMin == null) return true;
+      return brClockPartsLocal(s._ts).minutesOfDay <= asOfMin;
     });
+  }
+
+  function brClockPartsLocal(ts) {
+    const fn = sm().brClockParts;
+    if (typeof fn === 'function') return fn(ts);
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23'
+    }).formatToParts(new Date(ts || Date.now()));
+    const g = (type) => parts.find((p) => p.type === type)?.value;
+    const hour = Number(g('hour'));
+    const minute = Number(g('minute'));
+    return {
+      year: g('year'),
+      monthNum: g('month'),
+      day: g('day'),
+      hour,
+      minute,
+      minutesOfDay: hour * 60 + minute,
+      dateKey: `${g('year')}-${g('month')}-${g('day')}`
+    };
   }
 
   function formatMtdDelta(current, previous) {
@@ -1565,8 +1602,12 @@
     return `${sign}${pct.toLocaleString('pt-BR')}%`;
   }
 
-  /** Dias do calendário (1…throughDay) com ≥1 venda vs dias zerados. */
-  function monthSalesDayCoverage(sales, year, monthNum, throughDay) {
+  /**
+   * Dias 1…throughDay com/sem venda.
+   * No mês atual, o dia de hoje só entra em "sem" depois do horário da
+   * 1ª venda do mesmo dia no mês de referência (mês passado).
+   */
+  function monthSalesDayCoverage(sales, year, monthNum, throughDay, options = {}) {
     const ym = String(monthNum).padStart(2, '0');
     const y = String(year);
     const lastDay = Math.min(
@@ -1582,8 +1623,31 @@
       if (day >= 1 && day <= lastDay) sold.add(day);
     });
     const emptyDays = [];
+    const isCurrentMonth = options.isCurrentMonth === true;
+    const asOfTs = options.asOfTs != null ? options.asOfTs : null;
+    const refSales = options.refSales || null;
+    const dayEmpty = sm().dayCountsAsEmptySale;
+    const firstMinFn = sm().firstSaleMinutesOfDay;
     for (let d = 1; d <= lastDay; d += 1) {
-      if (!sold.has(d)) emptyDays.push(d);
+      const hasSale = sold.has(d);
+      let refFirst = null;
+      if (isCurrentMonth && d === lastDay && refSales && typeof firstMinFn === 'function') {
+        const refYm = options.refYear != null && options.refMonthNum != null
+          ? { year: options.refYear, monthNum: options.refMonthNum }
+          : null;
+        if (refYm) refFirst = firstMinFn(refSales, refYm.year, refYm.monthNum, d);
+      }
+      const countsEmpty = typeof dayEmpty === 'function'
+        ? dayEmpty({
+          day: d,
+          throughDay: lastDay,
+          isCurrentMonth,
+          hasSale,
+          asOfTs,
+          refFirstSaleMinutes: refFirst
+        })
+        : !hasSale;
+      if (countsEmpty) emptyDays.push(d);
     }
     return {
       year: y,
@@ -1604,8 +1668,10 @@
   }
 
   function renderConsolidadoDaysCoverage(sales) {
-    const now = brDateParts(Date.now());
+    const nowTs = Date.now();
+    const now = brDateParts(nowTs);
     const dayNum = Number(now.day);
+    const prevYm = shiftYearMonth(now.year, now.monthNum, -1);
     const specs = [
       { delta: -2, full: true },
       { delta: -1, full: true },
@@ -1616,7 +1682,13 @@
       const through = full
         ? daysInCalendarMonth(ym.year, ym.monthNum)
         : Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
-      const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through);
+      const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through, {
+        isCurrentMonth: delta === 0,
+        asOfTs: delta === 0 ? nowTs : null,
+        refSales: delta === 0 ? sales : null,
+        refYear: prevYm.year,
+        refMonthNum: prevYm.monthNum
+      });
       return {
         delta,
         year: ym.year,
@@ -1668,12 +1740,14 @@
   }
 
   function renderConsolidadoMtdCompare(sales) {
-    const now = brDateParts(Date.now());
+    const nowTs = Date.now();
+    const now = brDateParts(nowTs);
     const dayNum = Number(now.day);
     const months = [0, -1, -2].map((delta) => {
       const ym = shiftYearMonth(now.year, now.monthNum, delta);
       const through = Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
-      const subset = salesMonthToDate(sales, ym.year, ym.monthNum, through);
+      // Mesmo relógio BR em todos os meses: dia N só até "agora".
+      const subset = salesMonthToDate(sales, ym.year, ym.monthNum, through, nowTs);
       const name = MONTH_LABELS[ym.monthNum] || ym.monthNum;
       return {
         delta,
@@ -1912,6 +1986,14 @@
     return /flex|self_service/i.test(String(sale?.logisticType || ''));
   }
 
+  function saleCountsForFlexOwed(sale) {
+    const fn = sm().saleCountsForFlexOwed;
+    if (typeof fn === 'function') return fn(sale);
+    if (!isMlFlexSale(sale)) return false;
+    if (!isDroppedMarketplaceSale(sale)) return true;
+    return false;
+  }
+
   function flexCompanyOwed(sale) {
     const fn = sm().flexCompanyOwed;
     if (typeof fn === 'function') return fn(sale, currentConfig);
@@ -1927,7 +2009,7 @@
     if (typeof fn === 'function') return fn(sales, currentConfig);
     const map = new Map();
     (sales || []).forEach((s) => {
-      if (!isMlFlexSale(s) || !s._ts) return;
+      if (!saleCountsForFlexOwed(s) || !s._ts) return;
       const p = brDateParts(s._ts);
       const key = `${p.year}-${p.monthNum}`;
       if (!map.has(key)) {
@@ -2009,7 +2091,7 @@
   }
 
   function renderConsolidadoFlexOwed(sales) {
-    const months = flexOwedLastThreeMonths(sales);
+    const months = flexOwedLastThreeMonths(consolidatedFlexSalesCache || sales);
     const now = brDateParts(Date.now());
     const currentKey = `${now.year}-${now.monthNum}`;
     const thisMonth = months.find((m) => m.key === currentKey);
@@ -2046,7 +2128,7 @@
 
   function buildFlexOwedExportRows(sales) {
     const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias com Flex']];
-    flexOwedLastThreeMonths(sales).forEach((m) => {
+    flexOwedLastThreeMonths(consolidatedFlexSalesCache || sales).forEach((m) => {
       const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
         ? m.dayEntries
         : (m.days || []).map((d) => ({ day: d, count: 1 }));
@@ -2114,14 +2196,19 @@
     if (!shopeeRes.ok) throw new Error(shopeeData.error || 'Falha ao carregar vendas Shopee');
     const ordersData = await ordersRes.json().catch(() => ({}));
     if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
-    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
+    const mlAll = (Array.isArray(mlData.sales) ? mlData.sales : []).map(annotateSale).filter((s) => s._ts);
+    const amzAll = (Array.isArray(amzData.sales) ? amzData.sales : []).map(annotateSale).filter((s) => s._ts);
+    const shopeeAll = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).map(annotateSale).filter((s) => s._ts);
+    // Totais/árvore: cancelados saem. Flex: mantém envio se passou das 14h no dia.
+    consolidatedFlexSalesCache = mlAll.filter((s) => saleCountsForFlexOwed(s));
+    const mlSales = mlAll.filter((s) => !isDroppedMarketplaceSale(s));
+    const amzSales = amzAll.filter((s) => !isDroppedMarketplaceSale(s));
+    const shopeeSales = shopeeAll.filter((s) => !isDroppedMarketplaceSale(s));
     const storeSales = (Array.isArray(ordersData) ? ordersData : [])
       .filter(isStoreSaleOrder)
-      .map((o) => annotateSale(storeOrderToSale(o)));
+      .map((o) => annotateSale(storeOrderToSale(o)))
+      .filter((s) => s._ts);
     return [...storeSales, ...mlSales, ...amzSales, ...shopeeSales]
-      .filter((s) => s._ts)
       .sort((a, b) => b._ts - a._ts);
   }
 
@@ -2505,6 +2592,8 @@ ${worksheets}
   }
 
   let consolidatedSalesCache = null;
+  /** ML Flex (inclui cancelados que ainda cobram envio após 14h). */
+  let consolidatedFlexSalesCache = null;
   let vendasWhenFiltersWired = false;
 
   function wireVendasWhenFilters() {

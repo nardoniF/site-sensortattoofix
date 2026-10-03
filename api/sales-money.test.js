@@ -15,7 +15,12 @@ import {
   storeOrderListedGross,
   storeOrderChargeParts,
   storeOrderSaleMoney,
-  formatFlexDaysWithQty
+  formatFlexDaysWithQty,
+  saleCountsForFlexOwed,
+  saleIncludedInMtd,
+  dayCountsAsEmptySale,
+  firstSaleMinutesOfDay,
+  brClockParts
 } from './sales-money.js';
 
 const config = { mlFlexShippingCost: 11.9 };
@@ -85,6 +90,59 @@ test('aggregateFlexOwedByMonth conta Flex por dia e formata (n) só se n > 1', (
   assert.deepEqual(rows[0].days, [2, 10]);
   assert.deepEqual(rows[0].dayEntries, [{ day: 2, count: 2 }, { day: 10, count: 1 }]);
   assert.equal(formatFlexDaysWithQty(rows[0].dayEntries), '2 (2) e 10');
+});
+
+test('Flex: cancel antes das 14h no mesmo dia sai; depois das 14h ou outro dia permanece', () => {
+  const sold = Date.parse('2026-09-02T10:00:00-03:00');
+  const base = { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, _ts: sold, status: 'cancelled' };
+  assert.equal(saleCountsForFlexOwed({
+    ...base,
+    cancelledAt: '2026-09-02T12:30:00-03:00'
+  }), false);
+  assert.equal(saleCountsForFlexOwed({
+    ...base,
+    cancelledAt: '2026-09-02T14:00:00-03:00'
+  }), true);
+  assert.equal(saleCountsForFlexOwed({
+    ...base,
+    cancelledAt: '2026-09-03T09:00:00-03:00'
+  }), true);
+  assert.equal(saleCountsForFlexOwed({
+    channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, _ts: sold, status: 'paid'
+  }), true);
+  const rows = aggregateFlexOwedByMonth([
+    { ...base, cancelledAt: '2026-09-02T12:00:00-03:00' },
+    { ...base, externalId: 'keep', cancelledAt: '2026-09-02T16:00:00-03:00' }
+  ], config);
+  assert.equal(rows[0].count, 1);
+  assert.equal(rows[0].owed, 11.9);
+});
+
+test('MTD corta o dia N no relógio asOf (BR)', () => {
+  const morning = { channel: 'loja', _ts: Date.parse('2026-10-03T09:00:00-03:00') };
+  const afternoon = { channel: 'loja', _ts: Date.parse('2026-10-03T16:00:00-03:00') };
+  const asOf = Date.parse('2026-10-03T10:30:00-03:00');
+  assert.equal(saleIncludedInMtd(morning, 2026, '10', 3, asOf), true);
+  assert.equal(saleIncludedInMtd(afternoon, 2026, '10', 3, asOf), false);
+  assert.equal(saleIncludedInMtd(afternoon, 2026, '10', 3, null), true);
+  assert.equal(brClockParts(asOf).hour, 10);
+});
+
+test('sem venda no dia corrente só após 1ª venda do mesmo dia no mês passado', () => {
+  const refSales = [{ _ts: Date.parse('2026-09-03T15:00:00-03:00') }];
+  const first = firstSaleMinutesOfDay(refSales, 2026, '09', 3);
+  assert.equal(first, 15 * 60);
+  const before = Date.parse('2026-10-03T10:00:00-03:00');
+  const after = Date.parse('2026-10-03T16:00:00-03:00');
+  assert.equal(dayCountsAsEmptySale({
+    day: 3, throughDay: 3, isCurrentMonth: true, hasSale: false, asOfTs: before, refFirstSaleMinutes: first
+  }), false);
+  assert.equal(dayCountsAsEmptySale({
+    day: 3, throughDay: 3, isCurrentMonth: true, hasSale: false, asOfTs: after, refFirstSaleMinutes: first
+  }), true);
+  assert.equal(dayCountsAsEmptySale({
+    day: 2, throughDay: 3, isCurrentMonth: true, hasSale: false, asOfTs: before, refFirstSaleMinutes: first
+  }), true);
 });
 
 test('frete manual cut reallocates leftover onto product and keeps paid total', () => {
