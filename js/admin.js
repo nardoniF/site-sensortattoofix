@@ -971,8 +971,20 @@
     const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
     const feesShown = (tagged._fees || 0) + other;
     const shipUnresolved = mlShippingUnresolved(tagged);
+    const chargeCur = String(tagged.chargeCurrency || '').toUpperCase();
+    const chargeAmt = Number(tagged.chargeAmount);
+    const fromCharge = chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt) && chargeAmt > 0;
+    const chargeShown = fromCharge
+      ? `${chargeCur} ${chargeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : '';
+    const priceHint = fromCharge
+      ? `Cobrado ${chargeShown} convertido pra BRL (charge ÷ câmbio do checkout) — não usa total lista BRL`
+      : 'Preço do produto (anúncio / recibo)';
+    const priceTitle = fromCharge
+      ? `${chargeShown} → ${formatSalesBRL(tagged._gross)}`
+      : 'Preço';
     return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('paid', tagged._gross, priceTitle, priceHint, ''),
       salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
       salesMoneyCell('ship', tagged._shipping || 0, 'Frete', shipUnresolved ? 'Frete ainda não identificado no ML' : saleShipHoverHint(tagged), '−', shipUnresolved),
       salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
@@ -1015,19 +1027,6 @@
       case 'amazon': return 'Frete do vendedor (Amazon)';
       default: return 'Frete (custo do vendedor)';
     }
-  }
-
-  function renderSaleMoneyCols(sale, channelHint) {
-    const tagged = sale?.channel ? sale : { ...sale, channel: channelHint };
-    const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
-    const feesShown = (tagged._fees || 0) + other;
-    return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
-      salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
-      salesMoneyCell('ship', tagged._shipping || 0, 'Frete', saleShipHoverHint(tagged), '−'),
-      salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
-      salesMoneyCell('net', tagged._net, 'Líquido', 'Líquido: Preço − Tarifa − Frete − Kit', '=')
-    ].join('');
   }
 
   function isDroppedMarketplaceSale(sale) {
@@ -1294,13 +1293,39 @@
     return SALES_CHANNEL_LABELS[channel] || channel || '—';
   }
 
+  function storeOrderChargeBrlFallback(o) {
+    const cur = String(o?.chargeCurrency || o?.displayCurrency || '').toUpperCase();
+    const amt = o?.chargeAmount != null ? Number(o.chargeAmount) : NaN;
+    const rate = o?.chargeFxRate != null ? Number(o.chargeFxRate) : NaN;
+    if (!cur || cur === 'BRL' || !(amt > 0) || !(rate > 0)) return null;
+    const freteBrl = roundMoneyLocal(Math.max(0, Number(o?.frete) || Number(o?.shippingCost) || 0));
+    let shipForeign = roundMoneyLocal(freteBrl * rate);
+    if (shipForeign > amt) shipForeign = amt;
+    return {
+      gross: roundMoneyLocal(amt / rate),
+      shippingCost: roundMoneyLocal(shipForeign / rate),
+      fees: roundMoneyLocal(Number(o?.paypalFee) || 0),
+      currency: 'BRL',
+      chargeCurrency: cur,
+      chargeAmount: roundMoneyLocal(amt),
+      fromCharge: true
+    };
+  }
+
   function storeOrderToSale(o) {
-    const listed = sm().storeOrderListedGross;
-    const gross = listed
-      ? listed(o)
-      : Math.round(Number(o.total || 0) * 100) / 100;
-    const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
-    const paypalFee = Math.round(Number(o.paypalFee || 0) * 100) / 100;
+    const moneyFn = sm().storeOrderSaleMoney;
+    const money = (moneyFn && moneyFn(o))
+      || storeOrderChargeBrlFallback(o)
+      || {
+          gross: Math.round(Number(o.total || 0) * 100) / 100,
+          shippingCost: Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100,
+          fees: Math.round(Number(o.paypalFee || 0) * 100) / 100,
+          chargeCurrency: null,
+          chargeAmount: null
+        };
+    const gross = Number(money.gross || 0);
+    const shippingCost = Number(money.shippingCost || 0);
+    const paypalFee = Number(money.fees || 0);
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
     let qty = Number(o.qty || o.quantity || 0) || 0;
     if (!qty && Array.isArray(o.items) && o.items.length) {
@@ -1316,7 +1341,9 @@
       externalId: String(o.orderId || ''),
       soldAt: o.paidAt || o.createdAt || null,
       status: o.status || null,
-      currency: o.currency || 'BRL',
+      currency: 'BRL',
+      chargeCurrency: money.chargeCurrency || o.chargeCurrency || null,
+      chargeAmount: money.chargeAmount != null ? money.chargeAmount : (o.chargeAmount != null ? Number(o.chargeAmount) : null),
       gross,
       fees: paypalFee,
       shippingCost,
@@ -1330,7 +1357,7 @@
       items: [{
         title,
         quantity: qty,
-        unitPrice: gross,
+        unitPrice: roundMoneyLocal(Math.max(0, gross - shippingCost)),
         saleFee: 0
       }],
       payments: o.paymentMethod || o.meioPagamento
@@ -1732,9 +1759,148 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
-    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoWeekCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    wireOneAdminFold(document.getElementById('vendas-consol-weeks-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-days-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-flex-fold'));
+  }
+
+  /** Segunda-feira (YYYY-MM-DD) ± N semanas — mesma base de brWeekBucket (seg→dom, atravessa mês). */
+  function shiftMondayKey(mondayKey, deltaWeeks) {
+    const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    dt.setUTCDate(dt.getUTCDate() + (Number(deltaWeeks) || 0) * 7);
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  function weekCardFromMondayKey(mondayKey) {
+    const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+    const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const sun = new Date(mon);
+    sun.setUTCDate(mon.getUTCDate() + 6);
+    const fmt = (dt) => `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}`;
+    return {
+      key: mondayKey,
+      rangeLabel: `${fmt(mon)} – ${fmt(sun)}`,
+      mondayYmd: mondayKey,
+      sundayYmd: `${sun.getUTCFullYear()}-${String(sun.getUTCMonth() + 1).padStart(2, '0')}-${String(sun.getUTCDate()).padStart(2, '0')}`,
+      monthKeys: (() => {
+        const keys = [];
+        const seen = new Set();
+        for (let i = 0; i < 7; i += 1) {
+          const day = new Date(mon);
+          day.setUTCDate(mon.getUTCDate() + i);
+          const mk = `${day.getUTCFullYear()}-${String(day.getUTCMonth() + 1).padStart(2, '0')}`;
+          if (!seen.has(mk)) {
+            seen.add(mk);
+            keys.push(mk);
+          }
+        }
+        return keys;
+      })()
+    };
+  }
+
+  /** Últimas N semanas Mon→Sun (mais antiga → mais recente), incluindo a semana atual. */
+  function lastNBrWeeks(n, nowTs) {
+    const count = Math.max(1, Number(n) || 13);
+    const currentKey = brWeekBucket(nowTs || Date.now()).key;
+    const weeks = [];
+    for (let i = count - 1; i >= 0; i -= 1) {
+      weeks.push(weekCardFromMondayKey(shiftMondayKey(currentKey, -i)));
+    }
+    return weeks;
+  }
+
+  function salesInBrWeek(sales, mondayKey) {
+    return (sales || []).filter((s) => s._ts && brWeekBucket(s._ts).key === mondayKey);
+  }
+
+  /** Por linha do mês: pior = red, melhor = green, resto = yellow. */
+  function weekToneInMonth(net, minNet, maxNet) {
+    const n = Number(net || 0);
+    const min = Number(minNet || 0);
+    const max = Number(maxNet || 0);
+    if (min === max) return 'yellow';
+    if (n <= min) return 'red';
+    if (n >= max) return 'green';
+    return 'yellow';
+  }
+
+  function renderConsolidadoWeekCompare(sales) {
+    const nowTs = Date.now();
+    const currentKey = brWeekBucket(nowTs).key;
+    const todayYmd = brLocalYmd(nowTs);
+    const weekDefs = lastNBrWeeks(13, nowTs);
+    const rows = weekDefs.map((w) => {
+      const subset = salesInBrWeek(sales, w.key);
+      const tot = sumAnnotated(subset);
+      const isCurrent = w.key === currentKey;
+      let daysForAvg = 7;
+      if (isCurrent) {
+        const [y, m, d] = w.mondayYmd.split('-').map(Number);
+        const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+        const [ty, tm, td] = todayYmd.split('-').map(Number);
+        const today = new Date(Date.UTC(ty, tm - 1, td, 12, 0, 0));
+        daysForAvg = Math.max(1, Math.min(7, Math.round((today - mon) / 86400000) + 1));
+      }
+      const perDay = tot.net / daysForAvg;
+      return { ...w, tot, isCurrent, daysForAvg, perDay };
+    });
+    const latest = rows[rows.length - 1];
+    const hint = latest
+      ? `${latest.rangeLabel} · ${formatSalesBRL(latest.tot.net)}`
+      : '—';
+
+    // Linha = mês do domingo da semana (a que “invade” o mês novo abre a linha).
+    const lineGroups = [];
+    rows.forEach((row) => {
+      const sundayMonthKey = String(row.sundayYmd || '').slice(0, 7);
+      const last = lineGroups[lineGroups.length - 1];
+      if (!last || last.monthKey !== sundayMonthKey) {
+        lineGroups.push({ monthKey: sundayMonthKey, weeks: [row] });
+      } else {
+        last.weeks.push(row);
+      }
+    });
+    const nowYear = brDateParts(nowTs).year;
+    const lineHtml = lineGroups.map((group) => {
+      const [y, mm] = String(group.monthKey || '').split('-');
+      const monthName = (MONTH_LABELS[mm] || mm || '—').toUpperCase();
+      const monthLabel = y && y !== nowYear ? `${monthName} ${y}` : monthName;
+      const nets = group.weeks.map((w) => Number(w.tot.net || 0));
+      const minNet = Math.min(...nets);
+      const maxNet = Math.max(...nets);
+      const cards = group.weeks.map((row) => {
+        const tone = weekToneInMonth(row.tot.net, minNet, maxNet);
+        const currentClass = row.isCurrent ? ' is-current' : '';
+        return `<article class="vendas-consol-week13-card is-${tone}${currentClass}">
+          <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
+          <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
+          <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
+          <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
+        </article>`;
+      }).join('');
+      return `<div class="vendas-consol-week13-line">
+        <div class="vendas-consol-week13-line-label">${escapeHtml(monthLabel)}</div>
+        <div class="vendas-consol-week13-line-cards">${cards}</div>
+      </div>`;
+    }).join('');
+
+    return `<details class="admin-fold vendas-consol-weeks-fold" id="vendas-consol-weeks-fold" data-fold-key="vendas-semanas">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Comparativo de semanas</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">
+        <header class="vendas-consol-week13-head">
+          <h3>Últimas 13 semanas</h3>
+          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo. Por linha do mês: vermelho = menos vendeu · verde = mais vendeu · amarelo = resto — fuso São Paulo.</p>
+        </header>
+        <div class="vendas-consol-week13-lines">${lineHtml}</div>
+      </div>
+    </details>`;
   }
 
   function isMlFlexSale(sale) {
@@ -1773,7 +1939,8 @@
           count: 0,
           owed: 0,
           bonus: 0,
-          net: 0
+          net: 0,
+          dayCountMap: new Map()
         });
       }
       const row = map.get(key);
@@ -1783,30 +1950,90 @@
       row.owed += owed;
       row.bonus += bonus;
       row.net += roundMoneyLocal(owed - bonus);
+      const day = Number(p.day);
+      if (Number.isFinite(day) && day > 0) {
+        row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+      }
     });
-    return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
+    return Array.from(map.values())
+      .map((r) => {
+        const { dayCountMap, ...rest } = r;
+        const dayEntries = [...dayCountMap.entries()]
+          .map(([day, count]) => ({ day, count }))
+          .sort((a, b) => a.day - b.day);
+        return { ...rest, days: dayEntries.map((e) => e.day), dayEntries };
+      })
+      .sort((a, b) => String(b.key).localeCompare(String(a.key)));
+  }
+
+  function formatFlexDaysWithQty(entries) {
+    const fn = sm().formatFlexDaysWithQty;
+    if (typeof fn === 'function') return fn(entries);
+    const list = (entries || []).map((e) => {
+      if (e && typeof e === 'object') return { day: Number(e.day), count: Number(e.count) || 1 };
+      return { day: Number(e), count: 1 };
+    }).filter((e) => e.day > 0);
+    if (!list.length) return '';
+    const labels = list.map((e) => (e.count > 1 ? `${e.day} (${e.count})` : String(e.day)));
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} e ${labels[1]}`;
+    return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
+  }
+
+  /** Só mês atual + 2 anteriores (mesmo recorte do comparativo). */
+  function flexOwedLastThreeMonths(sales) {
+    const now = brDateParts(Date.now());
+    const allowed = new Set(
+      [0, -1, -2].map((delta) => {
+        const ym = shiftYearMonth(now.year, now.monthNum, delta);
+        return `${ym.year}-${ym.monthNum}`;
+      })
+    );
+    const byKey = new Map(aggregateFlexOwedByMonth(sales).map((m) => [m.key, m]));
+    return [0, -1, -2].map((delta) => {
+      const ym = shiftYearMonth(now.year, now.monthNum, delta);
+      const key = `${ym.year}-${ym.monthNum}`;
+      return byKey.get(key) || {
+        key,
+        year: ym.year,
+        monthNum: ym.monthNum,
+        name: MONTH_LABELS[ym.monthNum] || ym.monthNum,
+        count: 0,
+        owed: 0,
+        bonus: 0,
+        net: 0,
+        days: [],
+        dayEntries: []
+      };
+    }).filter((m) => allowed.has(m.key));
   }
 
   function renderConsolidadoFlexOwed(sales) {
-    const months = aggregateFlexOwedByMonth(sales);
+    const months = flexOwedLastThreeMonths(sales);
     const now = brDateParts(Date.now());
     const currentKey = `${now.year}-${now.monthNum}`;
     const thisMonth = months.find((m) => m.key === currentKey);
     const hint = thisMonth
       ? `${thisMonth.name} · ${thisMonth.count} · ${formatSalesBRL(thisMonth.owed)}`
       : (months.length ? `${months[0].name} · ${months[0].count} · ${formatSalesBRL(months[0].owed)}` : '—');
-    const body = months.length
-      ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
+    const body = `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+        const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+          ? m.dayEntries
+          : (m.days || []).map((d) => ({ day: d, count: 1 }));
+        const withLabel = formatFlexDaysWithQty(dayEntries);
+        const withHtml = withLabel
+          ? `<p class="vendas-consol-flex-days" title="Dias com envio Flex">com: ${escapeHtml(withLabel)}</p>`
+          : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
+        ${withHtml}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
-      }).join('')}</div>`
-      : '<p class="admin-meta">Nenhum envio Flex no recorte carregado.</p>';
+      }).join('')}</div>`;
     return `<details class="admin-fold vendas-consol-flex-fold" id="vendas-consol-flex-fold" data-fold-key="vendas-flex">
       <summary class="admin-fold-summary">
         <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
@@ -1818,9 +2045,19 @@
   }
 
   function buildFlexOwedExportRows(sales) {
-    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
-    aggregateFlexOwedByMonth(sales).forEach((m) => {
-      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias com Flex']];
+    flexOwedLastThreeMonths(sales).forEach((m) => {
+      const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+        ? m.dayEntries
+        : (m.days || []).map((d) => ({ day: d, count: 1 }));
+      rows.push([
+        `${m.name} ${m.year}`,
+        m.count,
+        m.owed,
+        m.bonus,
+        m.net,
+        formatFlexDaysWithQty(dayEntries)
+      ]);
     });
     return rows;
   }
@@ -2254,7 +2491,9 @@ ${worksheets}
       return byDayMap.get(String(day)) || empty(String(day), `Dia ${day}`, day);
     });
     const byMonthMap = new Map(aggregateSalesWhen(filtered, 'month').map((b) => [b.key, b]));
-    const months = Object.keys(MONTH_LABELS).map((num) => (
+    // Object.keys('01'..'12') no JS coloca 10/11/12 antes de 01–09 (índices inteiros).
+    // Força Janeiro→Dezembro do calendário.
+    const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((num) => (
       byMonthMap.get(num) || empty(num, MONTH_LABELS[num], Number(num))
     ));
     root.innerHTML = [
