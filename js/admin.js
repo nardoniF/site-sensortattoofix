@@ -1535,10 +1535,27 @@
     const sub = opts.subtitle
       ? `<p class="vendas-consol-mchart-sub">${escapeHtml(opts.subtitle)}</p>`
       : '';
+    const forecastRows = Array.isArray(opts.forecastRows) ? opts.forecastRows : [];
+    const forecastList = forecastRows.length
+      ? `<ul class="vendas-consol-mchart-forecast-list" aria-label="Previsão mês a mês">
+          ${forecastRows.map((r) => {
+            const val = metric === 'count'
+              ? `${r.count} venda${r.count === 1 ? '' : 's'}`
+              : formatSalesBRL(r.net);
+            return `<li>
+              <span class="vendas-consol-mchart-forecast-month">${escapeHtml(r.fullLabel || r.label)}</span>
+              <strong class="vendas-consol-mchart-forecast-val">${escapeHtml(val)}</strong>
+            </li>`;
+          }).join('')}
+        </ul>`
+      : '';
+    const maxHtml = forecastRows.length
+      ? ''
+      : `<p class="vendas-consol-mchart-max">máx ${escapeHtml(maxLabel)}</p>`;
     return `<article class="vendas-consol-mchart-card${opts.cardClass ? ` ${opts.cardClass}` : ''}">
       <h4>${escapeHtml(title)}</h4>
       ${sub}
-      <p class="vendas-consol-mchart-max">máx ${escapeHtml(maxLabel)}</p>
+      ${maxHtml}
       <svg class="vendas-consol-mchart-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${escapeHtml(title)}">
         <line class="vendas-consol-mchart-base" x1="${padL}" y1="${padT + innerH}" x2="${padL + innerW}" y2="${padT + innerH}" />
         ${areaPts ? `<polygon class="vendas-consol-mchart-area" points="${areaPts}" />` : ''}
@@ -1547,6 +1564,7 @@
         ${dots}
         ${labels}
       </svg>
+      ${forecastList}
     </article>`;
   }
 
@@ -1589,12 +1607,21 @@
         : `${forecastPack.pctCount > 0 ? '+' : ''}${forecastPack.pctCount.toLocaleString('pt-BR')}%`;
       const subNet = `MTD dia 1–${forecastPack.dayNum} vs mês passado: ${pctNetLabel}`;
       const subCount = `MTD dia 1–${forecastPack.dayNum} vs mês passado: ${pctCountLabel}`;
+      const fRows = forecastPack.forecast;
       forecastBlock = `<div class="vendas-consol-mchart-forecast">
         <h4 class="vendas-consol-mchart-forecast-title">Previsão (3 meses à frente)</h4>
         <p class="admin-meta vendas-consol-mchart-note">Mesmo ritmo do mês corrente até agora (vs mesmos dias do mês passado), composto a partir do último mês fechado.</p>
         <div class="vendas-consol-mchart-grid">
-          ${renderMonthLineChart('Faturamento — previsão', mergedNet, 'net', { subtitle: subNet, cardClass: 'is-forecast-card' })}
-          ${renderMonthLineChart('Quantidade — previsão', mergedCount, 'count', { subtitle: subCount, cardClass: 'is-forecast-card' })}
+          ${renderMonthLineChart('Faturamento — previsão', mergedNet, 'net', {
+            subtitle: subNet,
+            cardClass: 'is-forecast-card',
+            forecastRows: fRows
+          })}
+          ${renderMonthLineChart('Quantidade — previsão', mergedCount, 'count', {
+            subtitle: subCount,
+            cardClass: 'is-forecast-card',
+            forecastRows: fRows
+          })}
         </div>
       </div>`;
     }
