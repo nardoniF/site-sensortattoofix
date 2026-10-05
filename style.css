@@ -4907,13 +4907,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
     line-height: 1.15;
     color: #b8f0c8;
 }
-.vendas-consol-champ-year-big {
-    margin: 4px 0 0;
-    font-size: 1.35rem;
-    font-weight: 800;
-    line-height: 1.15;
-    color: #b8f0c8;
-}
 .vendas-consol-champ-weekday {
     margin: 10px 0 0;
     font-size: 0.82rem;

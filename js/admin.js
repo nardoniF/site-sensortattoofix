@@ -1373,7 +1373,6 @@
       ${kind}
       <p class="vendas-consol-champ-year">${escapeHtml(year)}</p>
       <p class="vendas-consol-champ-date-big">${escapeHtml(dateBig)}</p>
-      <p class="vendas-consol-champ-year-big">de ${escapeHtml(year)}</p>
       <p class="vendas-consol-champ-weekday">${escapeHtml(weekday)}</p>
       <p class="vendas-consol-champ-net">${formatSalesBRL(day.net)}</p>
       <p class="vendas-consol-champ-count">${day.count} venda${day.count === 1 ? '' : 's'}</p>
