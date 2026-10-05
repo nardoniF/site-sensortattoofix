@@ -1441,9 +1441,59 @@
     return rows.map((r) => ({ ...r, net: Math.round(r.net * 100) / 100 }));
   }
 
-  /** Gráfico de linha SVG (sobe/desce) — faturamento ou quantidade por mês. */
-  function renderMonthLineChart(title, rows, metric) {
-    const vals = (rows || []).map((r) => Number(metric === 'count' ? r.count : r.net) || 0);
+  /**
+   * Crescimento MTD (dias 1–N, mesmo relógio BR) vs mês passado →
+   * 3 meses à frente a partir do último mês fechado (composto).
+   */
+  function buildThreeMonthForecast(sales, closedRows, asOfTs = Date.now()) {
+    if (!closedRows?.length) return null;
+    const now = brDateParts(asOfTs);
+    const dayNum = Number(now.day);
+    const prevYm = shiftYearMonth(now.year, now.monthNum, -1);
+    const curMtd = sumAnnotated(salesMonthToDate(sales, now.year, now.monthNum, dayNum, asOfTs));
+    const prevMtd = sumAnnotated(salesMonthToDate(sales, prevYm.year, prevYm.monthNum, dayNum, asOfTs));
+    const growthNet = prevMtd.net > 0.009 ? curMtd.net / prevMtd.net : null;
+    const growthCount = prevMtd.count > 0 ? curMtd.count / prevMtd.count : null;
+    if (growthNet == null && growthCount == null) return null;
+
+    const last = closedRows[closedRows.length - 1];
+    let net = Number(last.net || 0);
+    let count = Number(last.count || 0);
+    const forecast = [];
+    for (let i = 0; i < 3; i += 1) {
+      const ym = shiftYearMonth(now.year, now.monthNum, i);
+      if (growthNet != null) net = Math.round(net * growthNet * 100) / 100;
+      if (growthCount != null) count = Math.max(0, Math.round(count * growthCount));
+      const monthNum = String(ym.monthNum).padStart(2, '0');
+      const name = MONTH_LABELS[monthNum] || monthNum;
+      forecast.push({
+        monthNum,
+        year: ym.year,
+        label: name.slice(0, 3),
+        fullLabel: ym.year !== now.year ? `${name} ${ym.year}` : name,
+        count,
+        net,
+        forecast: true
+      });
+    }
+    const pctNet = growthNet != null ? Math.round((growthNet - 1) * 1000) / 10 : null;
+    const pctCount = growthCount != null ? Math.round((growthCount - 1) * 1000) / 10 : null;
+    return {
+      forecast,
+      growthNet,
+      growthCount,
+      pctNet,
+      pctCount,
+      dayNum,
+      curMtd,
+      prevMtd
+    };
+  }
+
+  /** Gráfico de linha SVG — histórico sólido; previsão tracejada. */
+  function renderMonthLineChart(title, rows, metric, opts = {}) {
+    const list = rows || [];
+    const vals = list.map((r) => Number(metric === 'count' ? r.count : r.net) || 0);
     const max = Math.max(0, ...vals);
     const w = 640;
     const h = 168;
@@ -1459,27 +1509,41 @@
       if (!(max > 0)) return padT + innerH;
       return padT + innerH - (v / max) * innerH;
     };
-    const pts = vals.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
-    const areaPts = `${padL},${(padT + innerH).toFixed(1)} ${pts} ${(padL + innerW).toFixed(1)},${(padT + innerH).toFixed(1)}`;
+    const firstForecast = list.findIndex((r) => r.forecast);
+    const histEnd = firstForecast < 0 ? list.length - 1 : Math.max(0, firstForecast - 1);
+    const histPts = vals.slice(0, histEnd + 1).map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+    const areaPts = histPts
+      ? `${padL},${(padT + innerH).toFixed(1)} ${histPts} ${xAt(histEnd).toFixed(1)},${(padT + innerH).toFixed(1)}`
+      : '';
+    let forecastPts = '';
+    if (firstForecast >= 0) {
+      const from = Math.max(0, firstForecast - 1);
+      forecastPts = vals.slice(from).map((v, j) => `${xAt(from + j).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+    }
     const dots = vals.map((v, i) => {
+      const isF = !!list[i].forecast;
       const tip = metric === 'count'
-        ? `${rows[i].fullLabel}: ${v} venda${v === 1 ? '' : 's'}`
-        : `${rows[i].fullLabel}: ${formatSalesBRL(v)}`;
-      return `<circle class="vendas-consol-mchart-dot" cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="3.5"><title>${escapeHtml(tip)}</title></circle>`;
+        ? `${list[i].fullLabel}: ${v} venda${v === 1 ? '' : 's'}${isF ? ' (previsão)' : ''}`
+        : `${list[i].fullLabel}: ${formatSalesBRL(v)}${isF ? ' (previsão)' : ''}`;
+      const cls = isF ? 'vendas-consol-mchart-dot is-forecast' : 'vendas-consol-mchart-dot';
+      return `<circle class="${cls}" cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="3.5"><title>${escapeHtml(tip)}</title></circle>`;
     }).join('');
-    const labels = (rows || []).map((r, i) => (
-      `<text class="vendas-consol-mchart-xlabel" x="${xAt(i).toFixed(1)}" y="${h - 8}" text-anchor="middle">${escapeHtml(r.label)}</text>`
+    const labels = list.map((r, i) => (
+      `<text class="vendas-consol-mchart-xlabel${r.forecast ? ' is-forecast' : ''}" x="${xAt(i).toFixed(1)}" y="${h - 8}" text-anchor="middle">${escapeHtml(r.label)}</text>`
     )).join('');
-    const maxLabel = metric === 'count'
-      ? String(max)
-      : formatSalesBRL(max);
-    return `<article class="vendas-consol-mchart-card">
+    const maxLabel = metric === 'count' ? String(max) : formatSalesBRL(max);
+    const sub = opts.subtitle
+      ? `<p class="vendas-consol-mchart-sub">${escapeHtml(opts.subtitle)}</p>`
+      : '';
+    return `<article class="vendas-consol-mchart-card${opts.cardClass ? ` ${opts.cardClass}` : ''}">
       <h4>${escapeHtml(title)}</h4>
+      ${sub}
       <p class="vendas-consol-mchart-max">máx ${escapeHtml(maxLabel)}</p>
       <svg class="vendas-consol-mchart-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${escapeHtml(title)}">
         <line class="vendas-consol-mchart-base" x1="${padL}" y1="${padT + innerH}" x2="${padL + innerW}" y2="${padT + innerH}" />
-        <polygon class="vendas-consol-mchart-area" points="${areaPts}" />
-        <polyline class="vendas-consol-mchart-line" points="${pts}" fill="none" />
+        ${areaPts ? `<polygon class="vendas-consol-mchart-area" points="${areaPts}" />` : ''}
+        ${histPts ? `<polyline class="vendas-consol-mchart-line" points="${histPts}" fill="none" />` : ''}
+        ${forecastPts ? `<polyline class="vendas-consol-mchart-line is-forecast" points="${forecastPts}" fill="none" />` : ''}
         ${dots}
         ${labels}
       </svg>
@@ -1507,11 +1571,38 @@
     const totNet = rows.reduce((n, r) => n + r.net, 0);
     const totCount = rows.reduce((n, r) => n + r.count, 0);
     const lastLabel = rows[rows.length - 1]?.fullLabel || '';
-    const hint = `${lastLabel} · ${formatSalesBRL(totNet)} · ${totCount}`;
+    const nowTs = Date.now();
+    const forecastPack = buildThreeMonthForecast(sales, rows, nowTs);
+    const hint = forecastPack
+      ? `${lastLabel} · prev. ${formatSalesBRL(forecastPack.forecast[2]?.net || 0)}`
+      : `${lastLabel} · ${formatSalesBRL(totNet)} · ${totCount}`;
+
+    let forecastBlock = '';
+    if (forecastPack) {
+      const mergedNet = [...rows, ...forecastPack.forecast];
+      const mergedCount = [...rows, ...forecastPack.forecast];
+      const pctNetLabel = forecastPack.pctNet == null
+        ? '—'
+        : `${forecastPack.pctNet > 0 ? '+' : ''}${forecastPack.pctNet.toLocaleString('pt-BR')}%`;
+      const pctCountLabel = forecastPack.pctCount == null
+        ? '—'
+        : `${forecastPack.pctCount > 0 ? '+' : ''}${forecastPack.pctCount.toLocaleString('pt-BR')}%`;
+      const subNet = `MTD dia 1–${forecastPack.dayNum} vs mês passado: ${pctNetLabel}`;
+      const subCount = `MTD dia 1–${forecastPack.dayNum} vs mês passado: ${pctCountLabel}`;
+      forecastBlock = `<div class="vendas-consol-mchart-forecast">
+        <h4 class="vendas-consol-mchart-forecast-title">Previsão (3 meses à frente)</h4>
+        <p class="admin-meta vendas-consol-mchart-note">Mesmo ritmo do mês corrente até agora (vs mesmos dias do mês passado), composto a partir do último mês fechado.</p>
+        <div class="vendas-consol-mchart-grid">
+          ${renderMonthLineChart('Faturamento — previsão', mergedNet, 'net', { subtitle: subNet, cardClass: 'is-forecast-card' })}
+          ${renderMonthLineChart('Quantidade — previsão', mergedCount, 'count', { subtitle: subCount, cardClass: 'is-forecast-card' })}
+        </div>
+      </div>`;
+    }
+
     const body = `<div class="vendas-consol-mchart-grid">
       ${renderMonthLineChart(`Faturamento ${year} (até ${lastLabel})`, rows, 'net')}
       ${renderMonthLineChart(`Quantidade ${year} (até ${lastLabel})`, rows, 'count')}
-    </div>`;
+    </div>${forecastBlock}`;
     return `<details class="admin-fold vendas-consol-mchart-fold" id="vendas-consol-mchart-fold" data-fold-key="vendas-grafico-mes">
       <summary class="admin-fold-summary">
         <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>

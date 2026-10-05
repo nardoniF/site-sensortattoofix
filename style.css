@@ -4976,15 +4976,49 @@ body.admin-page.pedidos-login-only #pedidos-login {
     stroke-linejoin: round;
     stroke-linecap: round;
 }
+.vendas-consol-mchart-line.is-forecast {
+    stroke: #ffe082;
+    stroke-width: 2.5;
+    stroke-dasharray: 6 4;
+}
 .vendas-consol-mchart-dot {
     fill: #b8f0c8;
     stroke: #143a22;
     stroke-width: 1;
 }
+.vendas-consol-mchart-dot.is-forecast {
+    fill: #ffe082;
+    stroke: #3a3212;
+}
 .vendas-consol-mchart-xlabel {
     fill: #888;
     font-size: 11px;
     font-family: inherit;
+}
+.vendas-consol-mchart-xlabel.is-forecast {
+    fill: #c4b06a;
+}
+.vendas-consol-mchart-sub {
+    margin: 4px 0 0;
+    font-size: 0.72rem;
+    color: #aaa;
+}
+.vendas-consol-mchart-forecast {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #2a2a2a;
+}
+.vendas-consol-mchart-forecast-title {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #ffe082;
+}
+.vendas-consol-mchart-card.is-forecast-card {
+    border-color: #5a4a20;
+    background: linear-gradient(180deg, #1a1810 0%, #101010 100%);
 }
 .clicks-tree-meta .vendas-consol-mtd-pct {
     margin-left: 0.4em;

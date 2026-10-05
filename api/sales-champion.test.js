@@ -78,6 +78,9 @@ test('admin.js: % só mês completo + fold dia campeão', () => {
   assert.match(src, /data-fold-key="vendas-grafico-mes"/);
   assert.match(src, /Só meses fechados/);
   assert.match(src, /lastClosed/);
+  assert.match(src, /function buildThreeMonthForecast/);
+  assert.match(src, /Previsão \(3 meses à frente\)/);
+  assert.match(src, /is-forecast/);
   assert.match(src, /renderConsolidadoDaysCoverage\(sales\)\}\$\{renderConsolidadoChampionDays/);
   assert.match(src, /renderConsolidadoMonthCharts\(sales\)\}\$\{renderConsolidadoFlexOwed/);
   assert.match(src, /if \(isCurrentBrYearMonth\(year, monthNum\)\) return '';/);
