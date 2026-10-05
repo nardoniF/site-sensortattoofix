@@ -1406,23 +1406,37 @@
     </details>`;
   }
 
-  function salesByCalendarMonth(sales, year) {
+  /**
+   * Meses do ano para o gráfico — só meses fechados.
+   * No ano corrente: Jan…mês anterior (mês atual só entra quando fechar).
+   */
+  function salesByCalendarMonth(sales, year, asOfTs = Date.now()) {
     const y = String(year);
-    const rows = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((monthNum) => ({
+    const now = brDateParts(asOfTs);
+    const lastClosed = y === now.year
+      ? Number(now.monthNum) - 1
+      : (Number(y) > Number(now.year) ? 0 : 12);
+    if (lastClosed < 1) return [];
+    const monthNums = [];
+    for (let m = 1; m <= lastClosed; m += 1) {
+      monthNums.push(String(m).padStart(2, '0'));
+    }
+    const rows = monthNums.map((monthNum) => ({
       monthNum,
       label: (MONTH_LABELS[monthNum] || monthNum).slice(0, 3),
       fullLabel: MONTH_LABELS[monthNum] || monthNum,
       count: 0,
       net: 0
     }));
+    const byNum = new Map(rows.map((r) => [r.monthNum, r]));
     (sales || []).forEach((s) => {
       if (!s._ts) return;
       const p = brDateParts(s._ts);
       if (p.year !== y) return;
-      const i = Number(p.monthNum) - 1;
-      if (i < 0 || i > 11) return;
-      rows[i].count += 1;
-      rows[i].net += Number(s._net || 0);
+      const row = byNum.get(p.monthNum);
+      if (!row) return;
+      row.count += 1;
+      row.net += Number(s._net || 0);
     });
     return rows.map((r) => ({ ...r, net: Math.round(r.net * 100) / 100 }));
   }
@@ -1476,16 +1490,27 @@
     const years = [...new Set((sales || []).map((s) => s._ts && brDateParts(s._ts).year).filter(Boolean))]
       .sort((a, b) => Number(b) - Number(a));
     if (!years.length) return '';
-    const year = years[0];
-    const rows = salesByCalendarMonth(sales, year);
+    // Prefere o ano mais recente que já tenha mês fechado (ex.: em jan, usa o ano passado).
+    let year = null;
+    let rows = [];
+    for (const y of years) {
+      const candidate = salesByCalendarMonth(sales, y);
+      if (candidate.length) {
+        year = y;
+        rows = candidate;
+        break;
+      }
+    }
+    if (!year || !rows.length) return '';
     const hasAny = rows.some((r) => r.count > 0);
     if (!hasAny) return '';
     const totNet = rows.reduce((n, r) => n + r.net, 0);
     const totCount = rows.reduce((n, r) => n + r.count, 0);
-    const hint = `${formatSalesBRL(totNet)} · ${totCount}`;
+    const lastLabel = rows[rows.length - 1]?.fullLabel || '';
+    const hint = `${lastLabel} · ${formatSalesBRL(totNet)} · ${totCount}`;
     const body = `<div class="vendas-consol-mchart-grid">
-      ${renderMonthLineChart(`Faturamento ${year}`, rows, 'net')}
-      ${renderMonthLineChart(`Quantidade ${year}`, rows, 'count')}
+      ${renderMonthLineChart(`Faturamento ${year} (até ${lastLabel})`, rows, 'net')}
+      ${renderMonthLineChart(`Quantidade ${year} (até ${lastLabel})`, rows, 'count')}
     </div>`;
     return `<details class="admin-fold vendas-consol-mchart-fold" id="vendas-consol-mchart-fold" data-fold-key="vendas-grafico-mes">
       <summary class="admin-fold-summary">
@@ -1493,7 +1518,10 @@
         <span class="admin-fold-title">Gráfico por mês</span>
         <span class="admin-fold-hint">${escapeHtml(hint)}</span>
       </summary>
-      <div class="admin-fold-body">${body}</div>
+      <div class="admin-fold-body">
+        <p class="admin-meta vendas-consol-mchart-note">Só meses fechados — o mês corrente entra quando virar o mês.</p>
+        ${body}
+      </div>
     </details>`;
   }
 
