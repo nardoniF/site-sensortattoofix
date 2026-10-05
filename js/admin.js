@@ -1361,21 +1361,20 @@
 
   function renderChampionDayCard(day, kindLabel) {
     if (!day) return '';
+    const year = String(day.year || String(day.dateKey || '').slice(0, 4));
     const dayNum = Number(day.day) || Number(String(day.dateKey || '').slice(-2)) || '';
     const monthName = String(day.monthName || MONTH_LABELS[day.monthNum] || '').toLowerCase();
     const weekday = brWeekdayLongFromDateKey(day.dateKey);
-    const dateLine = [
-      dayNum ? `${dayNum} de ${monthName}` : (day.label || day.dateKey),
-      weekday
-    ].filter(Boolean).join(' · ');
+    const dateBig = dayNum ? `${dayNum} de ${monthName}` : (day.label || day.dateKey);
     const kind = kindLabel
       ? `<p class="vendas-consol-champ-kind">${escapeHtml(kindLabel)}</p>`
       : '';
     return `<article class="vendas-consol-champ-card is-green">
       ${kind}
-      <p class="vendas-consol-champ-year">${escapeHtml(String(day.year || String(day.dateKey || '').slice(0, 4)))}</p>
-      <p class="vendas-consol-champ-num">${escapeHtml(String(dayNum))}</p>
-      <p class="vendas-consol-champ-date">${escapeHtml(dateLine)}</p>
+      <p class="vendas-consol-champ-year">${escapeHtml(year)}</p>
+      <p class="vendas-consol-champ-date-big">${escapeHtml(dateBig)}</p>
+      <p class="vendas-consol-champ-year-big">de ${escapeHtml(year)}</p>
+      <p class="vendas-consol-champ-weekday">${escapeHtml(weekday)}</p>
       <p class="vendas-consol-champ-net">${formatSalesBRL(day.net)}</p>
       <p class="vendas-consol-champ-count">${day.count} venda${day.count === 1 ? '' : 's'}</p>
     </article>`;
@@ -1388,19 +1387,111 @@
     const year = years[0];
     const champ = yearChampionDays(sales, year);
     if (!champ) return '';
-    const hint = champ.same
-      ? `${champ.same.count} · ${formatSalesBRL(champ.same.net)}`
-      : `${champ.byCount.count} / ${formatSalesBRL(champ.byNet.net)}`;
+    // Um card quando qtd e líquido são o mesmo dia; senão dois (sem selo “elite” no topo).
     const body = champ.same
-      ? `<div class="vendas-consol-champ-grid">${renderChampionDayCard({ ...champ.same, year }, 'Vendas e líquido')}</div>`
+      ? `<div class="vendas-consol-champ-grid is-single">${renderChampionDayCard({ ...champ.same, year })}</div>`
       : `<div class="vendas-consol-champ-grid">
           ${renderChampionDayCard({ ...champ.byCount, year }, 'Mais vendas')}
           ${renderChampionDayCard({ ...champ.byNet, year }, 'Maior líquido')}
         </div>`;
+    const hint = champ.same
+      ? `${champ.same.count} · ${formatSalesBRL(champ.same.net)}`
+      : `${champ.byCount.count} / ${formatSalesBRL(champ.byNet.net)}`;
     return `<details class="admin-fold vendas-consol-champ-fold" id="vendas-consol-champ-fold" data-fold-key="vendas-campeao">
       <summary class="admin-fold-summary">
         <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
         <span class="admin-fold-title">Dia campeão</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">${body}</div>
+    </details>`;
+  }
+
+  function salesByCalendarMonth(sales, year) {
+    const y = String(year);
+    const rows = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((monthNum) => ({
+      monthNum,
+      label: (MONTH_LABELS[monthNum] || monthNum).slice(0, 3),
+      fullLabel: MONTH_LABELS[monthNum] || monthNum,
+      count: 0,
+      net: 0
+    }));
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const p = brDateParts(s._ts);
+      if (p.year !== y) return;
+      const i = Number(p.monthNum) - 1;
+      if (i < 0 || i > 11) return;
+      rows[i].count += 1;
+      rows[i].net += Number(s._net || 0);
+    });
+    return rows.map((r) => ({ ...r, net: Math.round(r.net * 100) / 100 }));
+  }
+
+  /** Gráfico de linha SVG (sobe/desce) — faturamento ou quantidade por mês. */
+  function renderMonthLineChart(title, rows, metric) {
+    const vals = (rows || []).map((r) => Number(metric === 'count' ? r.count : r.net) || 0);
+    const max = Math.max(0, ...vals);
+    const w = 640;
+    const h = 168;
+    const padL = 36;
+    const padR = 12;
+    const padT = 16;
+    const padB = 28;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+    const n = Math.max(1, vals.length);
+    const xAt = (i) => padL + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW);
+    const yAt = (v) => {
+      if (!(max > 0)) return padT + innerH;
+      return padT + innerH - (v / max) * innerH;
+    };
+    const pts = vals.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+    const areaPts = `${padL},${(padT + innerH).toFixed(1)} ${pts} ${(padL + innerW).toFixed(1)},${(padT + innerH).toFixed(1)}`;
+    const dots = vals.map((v, i) => {
+      const tip = metric === 'count'
+        ? `${rows[i].fullLabel}: ${v} venda${v === 1 ? '' : 's'}`
+        : `${rows[i].fullLabel}: ${formatSalesBRL(v)}`;
+      return `<circle class="vendas-consol-mchart-dot" cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="3.5"><title>${escapeHtml(tip)}</title></circle>`;
+    }).join('');
+    const labels = (rows || []).map((r, i) => (
+      `<text class="vendas-consol-mchart-xlabel" x="${xAt(i).toFixed(1)}" y="${h - 8}" text-anchor="middle">${escapeHtml(r.label)}</text>`
+    )).join('');
+    const maxLabel = metric === 'count'
+      ? String(max)
+      : formatSalesBRL(max);
+    return `<article class="vendas-consol-mchart-card">
+      <h4>${escapeHtml(title)}</h4>
+      <p class="vendas-consol-mchart-max">máx ${escapeHtml(maxLabel)}</p>
+      <svg class="vendas-consol-mchart-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${escapeHtml(title)}">
+        <line class="vendas-consol-mchart-base" x1="${padL}" y1="${padT + innerH}" x2="${padL + innerW}" y2="${padT + innerH}" />
+        <polygon class="vendas-consol-mchart-area" points="${areaPts}" />
+        <polyline class="vendas-consol-mchart-line" points="${pts}" fill="none" />
+        ${dots}
+        ${labels}
+      </svg>
+    </article>`;
+  }
+
+  function renderConsolidadoMonthCharts(sales) {
+    const years = [...new Set((sales || []).map((s) => s._ts && brDateParts(s._ts).year).filter(Boolean))]
+      .sort((a, b) => Number(b) - Number(a));
+    if (!years.length) return '';
+    const year = years[0];
+    const rows = salesByCalendarMonth(sales, year);
+    const hasAny = rows.some((r) => r.count > 0);
+    if (!hasAny) return '';
+    const totNet = rows.reduce((n, r) => n + r.net, 0);
+    const totCount = rows.reduce((n, r) => n + r.count, 0);
+    const hint = `${formatSalesBRL(totNet)} · ${totCount}`;
+    const body = `<div class="vendas-consol-mchart-grid">
+      ${renderMonthLineChart(`Faturamento ${year}`, rows, 'net')}
+      ${renderMonthLineChart(`Quantidade ${year}`, rows, 'count')}
+    </div>`;
+    return `<details class="admin-fold vendas-consol-mchart-fold" id="vendas-consol-mchart-fold" data-fold-key="vendas-grafico-mes">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Gráfico por mês</span>
         <span class="admin-fold-hint">${escapeHtml(hint)}</span>
       </summary>
       <div class="admin-fold-body">${body}</div>
@@ -1959,10 +2050,11 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
-    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoChampionDays(sales)}${renderConsolidadoWeekCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
-    wireOneAdminFold(document.getElementById('vendas-consol-champ-fold'));
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoWeekCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoChampionDays(sales)}${renderConsolidadoMonthCharts(sales)}${renderConsolidadoFlexOwed(sales)}`;
     wireOneAdminFold(document.getElementById('vendas-consol-weeks-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-days-fold'));
+    wireOneAdminFold(document.getElementById('vendas-consol-champ-fold'));
+    wireOneAdminFold(document.getElementById('vendas-consol-mchart-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-flex-fold'));
   }
 
