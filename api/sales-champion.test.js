@@ -71,5 +71,9 @@ test('admin.js: % só mês completo + fold dia campeão', () => {
   assert.match(src, /function yearChampionDays/);
   assert.match(src, /function renderConsolidadoChampionDays/);
   assert.match(src, /data-fold-key="vendas-campeao"/);
+  assert.match(src, /admin-fold-title">Dia campeão</);
+  assert.doesNotMatch(src, /admin-fold-title">Dia campeão \$\{/);
   assert.match(src, /if \(isCurrentBrYearMonth\(year, monthNum\)\) return '';/);
+  assert.match(src, /function weekSuccessRanks/);
+  assert.match(src, /vendas-consol-week13-rank/);
 });

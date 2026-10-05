@@ -4867,31 +4867,59 @@ body.admin-page.pedidos-login-only #pedidos-login {
     margin-top: 12px;
 }
 .vendas-consol-champ-card {
+    border-radius: 10px;
+    padding: 14px 14px 12px;
     border: 1px solid #2a2a2a;
-    border-radius: 12px;
     background: #121212;
-    padding: 12px 14px;
+    min-height: 148px;
+}
+.vendas-consol-champ-card.is-green {
+    background: linear-gradient(180deg, #143a22 0%, #101a12 100%);
+    border-color: #3a7a4a;
+    box-shadow: inset 0 0 0 1px rgba(129, 199, 132, 0.18);
 }
 .vendas-consol-champ-kind {
-    margin: 0 0 4px;
+    margin: 0 0 6px;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #888;
+    color: #9ccc9c;
 }
-.vendas-consol-champ-day {
+.vendas-consol-champ-year {
     margin: 0;
-    font-size: 0.98rem;
-    font-weight: 750;
-    color: #f0f0f0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #8a8a8a;
+}
+.vendas-consol-champ-num {
+    margin: 4px 0 0;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #b8f0c8;
+    font-variant-numeric: tabular-nums;
+}
+.vendas-consol-champ-date {
+    margin: 6px 0 0;
+    font-size: 0.88rem;
+    font-weight: 650;
+    color: #ddd;
     line-height: 1.3;
 }
-.vendas-consol-champ-meta {
-    margin: 6px 0 0;
-    font-size: 0.9rem;
-    color: #c8c8c8;
+.vendas-consol-champ-net {
+    margin: 12px 0 0;
+    font-size: 1.15rem;
+    font-weight: 800;
     font-variant-numeric: tabular-nums;
+    color: #f2f2f2;
+    line-height: 1.15;
+}
+.vendas-consol-champ-count {
+    margin: 6px 0 0;
+    font-size: 0.78rem;
+    color: #aaa;
 }
 .clicks-tree-meta .vendas-consol-mtd-pct {
     margin-left: 0.4em;
@@ -5060,6 +5088,43 @@ body.admin-page.pedidos-login-only #pedidos-login {
   border: 1px solid #2a2a2a;
   background: #121212;
   min-height: 118px;
+  position: relative;
+}
+
+.vendas-consol-week13-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vendas-consol-week13-rank {
+  flex: 0 0 auto;
+  min-width: 1.7em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  color: #101010;
+  background: #e0e0e0;
+  font-variant-numeric: tabular-nums;
+}
+
+.vendas-consol-week13-card.is-green .vendas-consol-week13-rank {
+  background: #81c784;
+  color: #0d1a10;
+}
+
+.vendas-consol-week13-card.is-yellow .vendas-consol-week13-rank {
+  background: #ffe082;
+  color: #1a1608;
+}
+
+.vendas-consol-week13-card.is-red .vendas-consol-week13-rank {
+  background: #e57373;
+  color: #1a0c0c;
 }
 
 .vendas-consol-week13-card.is-current {

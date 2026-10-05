@@ -1321,6 +1321,7 @@
         byDay.set(key, {
           dateKey: key,
           label: p.dayLabel,
+          year: p.year,
           day: Number(p.day),
           monthNum: p.monthNum,
           monthName: p.monthName,
@@ -1348,15 +1349,35 @@
     return { year: y, same: null, byCount, byNet };
   }
 
+  function brWeekdayLongFromDateKey(dateKey) {
+    const ts = Date.parse(`${String(dateKey)}T12:00:00-03:00`);
+    if (!Number.isFinite(ts)) return '';
+    const w = new Date(ts).toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'long'
+    });
+    return w ? w.charAt(0).toUpperCase() + w.slice(1) : '';
+  }
+
   function renderChampionDayCard(day, kindLabel) {
     if (!day) return '';
-    const title = kindLabel
+    const dayNum = Number(day.day) || Number(String(day.dateKey || '').slice(-2)) || '';
+    const monthName = String(day.monthName || MONTH_LABELS[day.monthNum] || '').toLowerCase();
+    const weekday = brWeekdayLongFromDateKey(day.dateKey);
+    const dateLine = [
+      dayNum ? `${dayNum} de ${monthName}` : (day.label || day.dateKey),
+      weekday
+    ].filter(Boolean).join(' · ');
+    const kind = kindLabel
       ? `<p class="vendas-consol-champ-kind">${escapeHtml(kindLabel)}</p>`
       : '';
-    return `<article class="vendas-consol-champ-card">
-      ${title}
-      <h4 class="vendas-consol-champ-day">${escapeHtml(day.label || day.dateKey)}</h4>
-      <p class="vendas-consol-champ-meta">${day.count} venda${day.count === 1 ? '' : 's'} · líquido ${formatSalesBRL(day.net)}</p>
+    return `<article class="vendas-consol-champ-card is-green">
+      ${kind}
+      <p class="vendas-consol-champ-year">${escapeHtml(String(day.year || String(day.dateKey || '').slice(0, 4)))}</p>
+      <p class="vendas-consol-champ-num">${escapeHtml(String(dayNum))}</p>
+      <p class="vendas-consol-champ-date">${escapeHtml(dateLine)}</p>
+      <p class="vendas-consol-champ-net">${formatSalesBRL(day.net)}</p>
+      <p class="vendas-consol-champ-count">${day.count} venda${day.count === 1 ? '' : 's'}</p>
     </article>`;
   }
 
@@ -1371,15 +1392,15 @@
       ? `${champ.same.count} · ${formatSalesBRL(champ.same.net)}`
       : `${champ.byCount.count} / ${formatSalesBRL(champ.byNet.net)}`;
     const body = champ.same
-      ? `<div class="vendas-consol-champ-grid">${renderChampionDayCard(champ.same, 'Vendas e líquido')}</div>`
+      ? `<div class="vendas-consol-champ-grid">${renderChampionDayCard({ ...champ.same, year }, 'Vendas e líquido')}</div>`
       : `<div class="vendas-consol-champ-grid">
-          ${renderChampionDayCard(champ.byCount, 'Mais vendas')}
-          ${renderChampionDayCard(champ.byNet, 'Maior líquido')}
+          ${renderChampionDayCard({ ...champ.byCount, year }, 'Mais vendas')}
+          ${renderChampionDayCard({ ...champ.byNet, year }, 'Maior líquido')}
         </div>`;
     return `<details class="admin-fold vendas-consol-champ-fold" id="vendas-consol-champ-fold" data-fold-key="vendas-campeao">
       <summary class="admin-fold-summary">
         <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
-        <span class="admin-fold-title">Dia campeão ${escapeHtml(String(year))}</span>
+        <span class="admin-fold-title">Dia campeão</span>
         <span class="admin-fold-hint">${escapeHtml(hint)}</span>
       </summary>
       <div class="admin-fold-body">${body}</div>
@@ -2007,6 +2028,20 @@
     return 'yellow';
   }
 
+  /** Ranking 1º…Nº por líquido (todas as semanas do bloco); ordem visual permanece cronológica. */
+  function weekSuccessRanks(rows) {
+    const ranked = [...(rows || [])].sort((a, b) => {
+      const dn = Number(b?.tot?.net || 0) - Number(a?.tot?.net || 0);
+      if (dn) return dn;
+      return String(a?.key || '').localeCompare(String(b?.key || ''));
+    });
+    const map = new Map();
+    ranked.forEach((row, i) => {
+      if (row?.key != null) map.set(row.key, i + 1);
+    });
+    return map;
+  }
+
   function renderConsolidadoWeekCompare(sales) {
     const nowTs = Date.now();
     const currentKey = brWeekBucket(nowTs).key;
@@ -2027,6 +2062,7 @@
       const perDay = tot.net / daysForAvg;
       return { ...w, tot, isCurrent, daysForAvg, perDay };
     });
+    const rankByKey = weekSuccessRanks(rows);
     const latest = rows[rows.length - 1];
     const hint = latest
       ? `${latest.rangeLabel} · ${formatSalesBRL(latest.tot.net)}`
@@ -2054,8 +2090,15 @@
       const cards = group.weeks.map((row) => {
         const tone = weekToneInMonth(row.tot.net, minNet, maxNet);
         const currentClass = row.isCurrent ? ' is-current' : '';
+        const rank = rankByKey.get(row.key) || 0;
+        const rankHtml = rank
+          ? `<span class="vendas-consol-week13-rank" title="${rank}ª mais bem-sucedida das 13">${rank}º</span>`
+          : '';
         return `<article class="vendas-consol-week13-card is-${tone}${currentClass}">
-          <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
+          <div class="vendas-consol-week13-top">
+            <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
+            ${rankHtml}
+          </div>
           <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
           <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
           <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
@@ -2076,7 +2119,7 @@
       <div class="admin-fold-body">
         <header class="vendas-consol-week13-head">
           <h3>Últimas 13 semanas</h3>
-          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo. Por linha do mês: vermelho = menos vendeu · verde = mais vendeu · amarelo = resto — fuso São Paulo.</p>
+          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo. Ordem = dias crescentes. Número = ranking de líquido (1º = melhor das 13). Por linha: vermelho = menos · verde = mais · amarelo = resto — fuso São Paulo.</p>
         </header>
         <div class="vendas-consol-week13-lines">${lineHtml}</div>
       </div>
