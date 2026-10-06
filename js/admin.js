@@ -1442,28 +1442,38 @@
   }
 
   /**
-   * Crescimento MTD (dias 1–N, mesmo relógio BR) vs mês passado →
-   * 3 meses à frente a partir do último mês fechado (composto).
+   * Previsão: extrapola o mês corrente pelo % de dias já passados
+   * (dias 1–N → mês cheio), compara com o último mês fechado, e
+   * projeta 3 meses à frente com esse ritmo.
+   * Ex.: +50% no ritmo → Outubro ≈ mês passado × 1,5.
    */
   function buildThreeMonthForecast(sales, closedRows, asOfTs = Date.now()) {
     if (!closedRows?.length) return null;
     const now = brDateParts(asOfTs);
-    const dayNum = Number(now.day);
-    const prevYm = shiftYearMonth(now.year, now.monthNum, -1);
+    const dayNum = Math.max(1, Number(now.day) || 1);
+    const daysInCur = Math.max(1, daysInCalendarMonth(now.year, now.monthNum));
     const curMtd = sumAnnotated(salesMonthToDate(sales, now.year, now.monthNum, dayNum, asOfTs));
-    const prevMtd = sumAnnotated(salesMonthToDate(sales, prevYm.year, prevYm.monthNum, dayNum, asOfTs));
-    const growthNet = prevMtd.net > 0.009 ? curMtd.net / prevMtd.net : null;
-    const growthCount = prevMtd.count > 0 ? curMtd.count / prevMtd.count : null;
+    const last = closedRows[closedRows.length - 1];
+    const lastNet = Number(last.net || 0);
+    const lastCount = Number(last.count || 0);
+    if (!(curMtd.net > 0.009) && !(curMtd.count > 0)) return null;
+
+    // Mês cheio no ritmo atual: (acumulado / dias passados) × dias do mês
+    const projectedNet = Math.round((curMtd.net * daysInCur) / dayNum * 100) / 100;
+    const projectedCount = Math.max(0, Math.round((curMtd.count * daysInCur) / dayNum));
+    const growthNet = lastNet > 0.009 ? projectedNet / lastNet : null;
+    const growthCount = lastCount > 0 ? projectedCount / lastCount : null;
     if (growthNet == null && growthCount == null) return null;
 
-    const last = closedRows[closedRows.length - 1];
-    let net = Number(last.net || 0);
-    let count = Number(last.count || 0);
     const forecast = [];
+    let net = projectedNet;
+    let count = projectedCount;
     for (let i = 0; i < 3; i += 1) {
       const ym = shiftYearMonth(now.year, now.monthNum, i);
-      if (growthNet != null) net = Math.round(net * growthNet * 100) / 100;
-      if (growthCount != null) count = Math.max(0, Math.round(count * growthCount));
+      if (i > 0) {
+        if (growthNet != null) net = Math.round(net * growthNet * 100) / 100;
+        if (growthCount != null) count = Math.max(0, Math.round(count * growthCount));
+      }
       const monthNum = String(ym.monthNum).padStart(2, '0');
       const name = MONTH_LABELS[monthNum] || monthNum;
       forecast.push({
@@ -1485,8 +1495,12 @@
       pctNet,
       pctCount,
       dayNum,
+      daysInCur,
       curMtd,
-      prevMtd
+      projectedNet,
+      projectedCount,
+      lastNet,
+      lastCount
     };
   }
 
