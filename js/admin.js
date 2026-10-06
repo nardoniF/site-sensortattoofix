@@ -1619,12 +1619,12 @@
       const pctCountLabel = forecastPack.pctCount == null
         ? '—'
         : `${forecastPack.pctCount > 0 ? '+' : ''}${forecastPack.pctCount.toLocaleString('pt-BR')}%`;
-      const subNet = `MTD dia 1–${forecastPack.dayNum} vs mês passado: ${pctNetLabel}`;
-      const subCount = `MTD dia 1–${forecastPack.dayNum} vs mês passado: ${pctCountLabel}`;
+      const subNet = `Ritmo dia 1–${forecastPack.dayNum}/${forecastPack.daysInCur} → mês cheio: ${pctNetLabel} vs mês passado`;
+      const subCount = `Ritmo dia 1–${forecastPack.dayNum}/${forecastPack.daysInCur} → mês cheio: ${pctCountLabel} vs mês passado`;
       const fRows = forecastPack.forecast;
       forecastBlock = `<div class="vendas-consol-mchart-forecast">
         <h4 class="vendas-consol-mchart-forecast-title">Previsão (3 meses à frente)</h4>
-        <p class="admin-meta vendas-consol-mchart-note">Mesmo ritmo do mês corrente até agora (vs mesmos dias do mês passado), composto a partir do último mês fechado.</p>
+        <p class="admin-meta vendas-consol-mchart-note">Extrapolação: (vendas até agora ÷ dias passados) × dias do mês. Se o ritmo está +50% vs o mês fechado, Outubro projetado ≈ mês passado × 1,5; Nov/Dez seguem o mesmo fator.</p>
         <div class="vendas-consol-mchart-grid">
           ${renderMonthLineChart('Faturamento — previsão', mergedNet, 'net', {
             subtitle: subNet,
