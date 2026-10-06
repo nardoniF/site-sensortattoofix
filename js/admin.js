@@ -1442,38 +1442,32 @@
   }
 
   /**
-   * Previsão: extrapola o mês corrente pelo % de dias já passados
-   * (dias 1–N → mês cheio), compara com o último mês fechado, e
-   * projeta 3 meses à frente com esse ritmo.
-   * Ex.: +50% no ritmo → Outubro ≈ mês passado × 1,5.
+   * Previsão pelo andamento das vendas: dias 1–N deste mês ÷ mesmos
+   * dias do mês passado. Se +50% até agora, fecha ≈ mês passado × 1,5;
+   * se −50%, fecha ≈ metade. Recalcula sempre com o acumulado de hoje.
    */
   function buildThreeMonthForecast(sales, closedRows, asOfTs = Date.now()) {
     if (!closedRows?.length) return null;
     const now = brDateParts(asOfTs);
     const dayNum = Math.max(1, Number(now.day) || 1);
-    const daysInCur = Math.max(1, daysInCalendarMonth(now.year, now.monthNum));
+    const prevYm = shiftYearMonth(now.year, now.monthNum, -1);
     const curMtd = sumAnnotated(salesMonthToDate(sales, now.year, now.monthNum, dayNum, asOfTs));
+    const prevMtd = sumAnnotated(salesMonthToDate(sales, prevYm.year, prevYm.monthNum, dayNum, asOfTs));
     const last = closedRows[closedRows.length - 1];
     const lastNet = Number(last.net || 0);
     const lastCount = Number(last.count || 0);
-    if (!(curMtd.net > 0.009) && !(curMtd.count > 0)) return null;
 
-    // Mês cheio no ritmo atual: (acumulado / dias passados) × dias do mês
-    const projectedNet = Math.round((curMtd.net * daysInCur) / dayNum * 100) / 100;
-    const projectedCount = Math.max(0, Math.round((curMtd.count * daysInCur) / dayNum));
-    const growthNet = lastNet > 0.009 ? projectedNet / lastNet : null;
-    const growthCount = lastCount > 0 ? projectedCount / lastCount : null;
+    const growthNet = prevMtd.net > 0.009 ? curMtd.net / prevMtd.net : null;
+    const growthCount = prevMtd.count > 0 ? curMtd.count / prevMtd.count : null;
     if (growthNet == null && growthCount == null) return null;
 
     const forecast = [];
-    let net = projectedNet;
-    let count = projectedCount;
+    let net = lastNet;
+    let count = lastCount;
     for (let i = 0; i < 3; i += 1) {
       const ym = shiftYearMonth(now.year, now.monthNum, i);
-      if (i > 0) {
-        if (growthNet != null) net = Math.round(net * growthNet * 100) / 100;
-        if (growthCount != null) count = Math.max(0, Math.round(count * growthCount));
-      }
+      if (growthNet != null) net = Math.round(net * growthNet * 100) / 100;
+      if (growthCount != null) count = Math.max(0, Math.round(count * growthCount));
       const monthNum = String(ym.monthNum).padStart(2, '0');
       const name = MONTH_LABELS[monthNum] || monthNum;
       forecast.push({
@@ -1495,12 +1489,11 @@
       pctNet,
       pctCount,
       dayNum,
-      daysInCur,
       curMtd,
-      projectedNet,
-      projectedCount,
+      prevMtd,
       lastNet,
-      lastCount
+      lastCount,
+      prevMonthLabel: MONTH_LABELS[String(prevYm.monthNum).padStart(2, '0')] || prevYm.monthNum
     };
   }
 
@@ -1619,12 +1612,12 @@
       const pctCountLabel = forecastPack.pctCount == null
         ? '—'
         : `${forecastPack.pctCount > 0 ? '+' : ''}${forecastPack.pctCount.toLocaleString('pt-BR')}%`;
-      const subNet = `Ritmo dia 1–${forecastPack.dayNum}/${forecastPack.daysInCur} → mês cheio: ${pctNetLabel} vs mês passado`;
-      const subCount = `Ritmo dia 1–${forecastPack.dayNum}/${forecastPack.daysInCur} → mês cheio: ${pctCountLabel} vs mês passado`;
+      const subNet = `Dias 1–${forecastPack.dayNum}: ${formatSalesBRL(forecastPack.curMtd.net)} vs ${formatSalesBRL(forecastPack.prevMtd.net)} (${pctNetLabel}) → ${forecastPack.prevMonthLabel} × fator`;
+      const subCount = `Dias 1–${forecastPack.dayNum}: ${forecastPack.curMtd.count} vs ${forecastPack.prevMtd.count} vendas (${pctCountLabel}) → ${forecastPack.prevMonthLabel} × fator`;
       const fRows = forecastPack.forecast;
       forecastBlock = `<div class="vendas-consol-mchart-forecast">
         <h4 class="vendas-consol-mchart-forecast-title">Previsão (3 meses à frente)</h4>
-        <p class="admin-meta vendas-consol-mchart-note">Extrapolação: (vendas até agora ÷ dias passados) × dias do mês. Se o ritmo está +50% vs o mês fechado, Outubro projetado ≈ mês passado × 1,5; Nov/Dez seguem o mesmo fator.</p>
+        <p class="admin-meta vendas-consol-mchart-note">Andamento: dias 1–hoje ÷ mesmos dias do mês passado. +50% até agora ⇒ fecha ~50% acima do mês passado; −50% ⇒ ~metade. Recalcula sempre com o acumulado atual.</p>
         <div class="vendas-consol-mchart-grid">
           ${renderMonthLineChart('Faturamento — previsão', mergedNet, 'net', {
             subtitle: subNet,
