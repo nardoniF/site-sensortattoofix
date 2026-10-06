@@ -971,8 +971,20 @@
     const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
     const feesShown = (tagged._fees || 0) + other;
     const shipUnresolved = mlShippingUnresolved(tagged);
+    const chargeCur = String(tagged.chargeCurrency || '').toUpperCase();
+    const chargeAmt = Number(tagged.chargeAmount);
+    const fromCharge = chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt) && chargeAmt > 0;
+    const chargeShown = fromCharge
+      ? `${chargeCur} ${chargeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : '';
+    const priceHint = fromCharge
+      ? `Cobrado ${chargeShown} convertido pra BRL (charge ÷ câmbio do checkout) — não usa total lista BRL`
+      : 'Preço do produto (anúncio / recibo)';
+    const priceTitle = fromCharge
+      ? `${chargeShown} → ${formatSalesBRL(tagged._gross)}`
+      : 'Preço';
     return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('paid', tagged._gross, priceTitle, priceHint, ''),
       salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
       salesMoneyCell('ship', tagged._shipping || 0, 'Frete', shipUnresolved ? 'Frete ainda não identificado no ML' : saleShipHoverHint(tagged), '−', shipUnresolved),
       salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
@@ -1015,19 +1027,6 @@
       case 'amazon': return 'Frete do vendedor (Amazon)';
       default: return 'Frete (custo do vendedor)';
     }
-  }
-
-  function renderSaleMoneyCols(sale, channelHint) {
-    const tagged = sale?.channel ? sale : { ...sale, channel: channelHint };
-    const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
-    const feesShown = (tagged._fees || 0) + other;
-    return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
-      salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
-      salesMoneyCell('ship', tagged._shipping || 0, 'Frete', saleShipHoverHint(tagged), '−'),
-      salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
-      salesMoneyCell('net', tagged._net, 'Líquido', 'Líquido: Preço − Tarifa − Frete − Kit', '=')
-    ].join('');
   }
 
   function isDroppedMarketplaceSale(sale) {
@@ -1277,10 +1276,378 @@
     return tree;
   }
 
-  function salesTreeSummary(label, node) {
+  function salesTreeSummary(label, node, extraMetaHtml = '') {
     const count = node?.count || 0;
-    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}</span>`;
+    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}${extraMetaHtml || ''}</span>`;
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
+  }
+
+  function isCurrentBrYearMonth(year, monthNum) {
+    const now = brDateParts(Date.now());
+    return String(year) === now.year && String(monthNum).padStart(2, '0') === now.monthNum;
+  }
+
+  /** % vs mês anterior — só mês completo (mês corrente sem %). */
+  function completeMonthGrowthHtml(tree, year, monthNum, monthNode) {
+    if (isCurrentBrYearMonth(year, monthNum)) return '';
+    const prev = shiftYearMonth(year, monthNum, -1);
+    const prevNode = tree?.[prev.year]?.months?.[prev.monthNum] || null;
+    const curNet = Number(monthNode?.net || 0);
+    const prevNet = prevNode ? Number(prevNode.net || 0) : 0;
+    const delta = formatMtdDelta(curNet, prevNet);
+    if (delta === 'igual') {
+      return ' <span class="vendas-consol-mtd-pct is-same" title="vs mês anterior">(igual)</span>';
+    }
+    if (delta === 'novo') {
+      return ' <span class="vendas-consol-mtd-pct is-up" title="sem mês anterior">(novo)</span>';
+    }
+    const cls = curNet > prevNet ? ' is-up' : (curNet < prevNet ? ' is-down' : ' is-same');
+    return ` <span class="vendas-consol-mtd-pct${cls}" title="vs mês anterior">(${escapeHtml(delta)})</span>`;
+  }
+
+  /**
+   * Dia campeão do ano: mais vendas e maior líquido.
+   * Se for o mesmo dia, retorna um só em `same`.
+   */
+  function yearChampionDays(sales, year) {
+    const y = String(year);
+    const byDay = new Map();
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const p = brDateParts(s._ts);
+      if (p.year !== y) return;
+      const key = p.dateKey;
+      if (!byDay.has(key)) {
+        byDay.set(key, {
+          dateKey: key,
+          label: p.dayLabel,
+          year: p.year,
+          day: Number(p.day),
+          monthNum: p.monthNum,
+          monthName: p.monthName,
+          count: 0,
+          net: 0
+        });
+      }
+      const row = byDay.get(key);
+      row.count += 1;
+      row.net += Number(s._net != null ? s._net : 0);
+    });
+    const days = [...byDay.values()];
+    if (!days.length) return null;
+    let byCount = days[0];
+    let byNet = days[0];
+    days.forEach((d) => {
+      if (d.count > byCount.count || (d.count === byCount.count && d.net > byCount.net)) byCount = d;
+      if (d.net > byNet.net || (d.net === byNet.net && d.count > byNet.count)) byNet = d;
+    });
+    byCount = { ...byCount, net: Math.round(byCount.net * 100) / 100 };
+    byNet = { ...byNet, net: Math.round(byNet.net * 100) / 100 };
+    if (byCount.dateKey === byNet.dateKey) {
+      return { year: y, same: byCount, byCount: null, byNet: null };
+    }
+    return { year: y, same: null, byCount, byNet };
+  }
+
+  function brWeekdayLongFromDateKey(dateKey) {
+    const ts = Date.parse(`${String(dateKey)}T12:00:00-03:00`);
+    if (!Number.isFinite(ts)) return '';
+    const w = new Date(ts).toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'long'
+    });
+    return w ? w.charAt(0).toUpperCase() + w.slice(1) : '';
+  }
+
+  function renderChampionDayCard(day, kindLabel) {
+    if (!day) return '';
+    const year = String(day.year || String(day.dateKey || '').slice(0, 4));
+    const dayNum = Number(day.day) || Number(String(day.dateKey || '').slice(-2)) || '';
+    const monthName = String(day.monthName || MONTH_LABELS[day.monthNum] || '').toLowerCase();
+    const weekday = brWeekdayLongFromDateKey(day.dateKey);
+    const dateBig = dayNum ? `${dayNum} de ${monthName}` : (day.label || day.dateKey);
+    const kind = kindLabel
+      ? `<p class="vendas-consol-champ-kind">${escapeHtml(kindLabel)}</p>`
+      : '';
+    return `<article class="vendas-consol-champ-card is-green">
+      ${kind}
+      <p class="vendas-consol-champ-year">${escapeHtml(year)}</p>
+      <p class="vendas-consol-champ-date-big">${escapeHtml(dateBig)}</p>
+      <p class="vendas-consol-champ-weekday">${escapeHtml(weekday)}</p>
+      <p class="vendas-consol-champ-net">${formatSalesBRL(day.net)}</p>
+      <p class="vendas-consol-champ-count">${day.count} venda${day.count === 1 ? '' : 's'}</p>
+    </article>`;
+  }
+
+  function renderConsolidadoChampionDays(sales) {
+    const years = [...new Set((sales || []).map((s) => s._ts && brDateParts(s._ts).year).filter(Boolean))]
+      .sort((a, b) => Number(b) - Number(a));
+    if (!years.length) return '';
+    const year = years[0];
+    const champ = yearChampionDays(sales, year);
+    if (!champ) return '';
+    // Um card quando qtd e líquido são o mesmo dia; senão dois (sem selo “elite” no topo).
+    const body = champ.same
+      ? `<div class="vendas-consol-champ-grid is-single">${renderChampionDayCard({ ...champ.same, year })}</div>`
+      : `<div class="vendas-consol-champ-grid">
+          ${renderChampionDayCard({ ...champ.byCount, year }, 'Mais vendas')}
+          ${renderChampionDayCard({ ...champ.byNet, year }, 'Maior líquido')}
+        </div>`;
+    const hint = champ.same
+      ? `${champ.same.count} · ${formatSalesBRL(champ.same.net)}`
+      : `${champ.byCount.count} / ${formatSalesBRL(champ.byNet.net)}`;
+    return `<details class="admin-fold vendas-consol-champ-fold" id="vendas-consol-champ-fold" data-fold-key="vendas-campeao">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Dia campeão</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">${body}</div>
+    </details>`;
+  }
+
+  /**
+   * Meses do ano para o gráfico — só meses fechados.
+   * No ano corrente: Jan…mês anterior (mês atual só entra quando fechar).
+   */
+  function salesByCalendarMonth(sales, year, asOfTs = Date.now()) {
+    const y = String(year);
+    const now = brDateParts(asOfTs);
+    const lastClosed = y === now.year
+      ? Number(now.monthNum) - 1
+      : (Number(y) > Number(now.year) ? 0 : 12);
+    if (lastClosed < 1) return [];
+    const monthNums = [];
+    for (let m = 1; m <= lastClosed; m += 1) {
+      monthNums.push(String(m).padStart(2, '0'));
+    }
+    const rows = monthNums.map((monthNum) => ({
+      monthNum,
+      label: (MONTH_LABELS[monthNum] || monthNum).slice(0, 3),
+      fullLabel: MONTH_LABELS[monthNum] || monthNum,
+      count: 0,
+      net: 0
+    }));
+    const byNum = new Map(rows.map((r) => [r.monthNum, r]));
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const p = brDateParts(s._ts);
+      if (p.year !== y) return;
+      const row = byNum.get(p.monthNum);
+      if (!row) return;
+      row.count += 1;
+      row.net += Number(s._net || 0);
+    });
+    return rows.map((r) => ({ ...r, net: Math.round(r.net * 100) / 100 }));
+  }
+
+  /**
+   * Previsão pelo andamento das vendas: dias 1–N deste mês ÷ mesmos
+   * dias do mês passado. Se +50% até agora, fecha ≈ mês passado × 1,5;
+   * se −50%, fecha ≈ metade. Recalcula sempre com o acumulado de hoje.
+   */
+  function buildThreeMonthForecast(sales, closedRows, asOfTs = Date.now()) {
+    if (!closedRows?.length) return null;
+    const now = brDateParts(asOfTs);
+    const dayNum = Math.max(1, Number(now.day) || 1);
+    const prevYm = shiftYearMonth(now.year, now.monthNum, -1);
+    const curMtd = sumAnnotated(salesMonthToDate(sales, now.year, now.monthNum, dayNum, asOfTs));
+    const prevMtd = sumAnnotated(salesMonthToDate(sales, prevYm.year, prevYm.monthNum, dayNum, asOfTs));
+    const last = closedRows[closedRows.length - 1];
+    const lastNet = Number(last.net || 0);
+    const lastCount = Number(last.count || 0);
+
+    const growthNet = prevMtd.net > 0.009 ? curMtd.net / prevMtd.net : null;
+    const growthCount = prevMtd.count > 0 ? curMtd.count / prevMtd.count : null;
+    if (growthNet == null && growthCount == null) return null;
+
+    const forecast = [];
+    let net = lastNet;
+    let count = lastCount;
+    for (let i = 0; i < 3; i += 1) {
+      const ym = shiftYearMonth(now.year, now.monthNum, i);
+      if (growthNet != null) net = Math.round(net * growthNet * 100) / 100;
+      if (growthCount != null) count = Math.max(0, Math.round(count * growthCount));
+      const monthNum = String(ym.monthNum).padStart(2, '0');
+      const name = MONTH_LABELS[monthNum] || monthNum;
+      forecast.push({
+        monthNum,
+        year: ym.year,
+        label: name.slice(0, 3),
+        fullLabel: ym.year !== now.year ? `${name} ${ym.year}` : name,
+        count,
+        net,
+        forecast: true
+      });
+    }
+    const pctNet = growthNet != null ? Math.round((growthNet - 1) * 1000) / 10 : null;
+    const pctCount = growthCount != null ? Math.round((growthCount - 1) * 1000) / 10 : null;
+    return {
+      forecast,
+      growthNet,
+      growthCount,
+      pctNet,
+      pctCount,
+      dayNum,
+      curMtd,
+      prevMtd,
+      lastNet,
+      lastCount,
+      prevMonthLabel: MONTH_LABELS[String(prevYm.monthNum).padStart(2, '0')] || prevYm.monthNum
+    };
+  }
+
+  /** Gráfico de linha SVG — histórico sólido; previsão tracejada. */
+  function renderMonthLineChart(title, rows, metric, opts = {}) {
+    const list = rows || [];
+    const vals = list.map((r) => Number(metric === 'count' ? r.count : r.net) || 0);
+    const max = Math.max(0, ...vals);
+    const w = 640;
+    const h = 168;
+    const padL = 36;
+    const padR = 12;
+    const padT = 16;
+    const padB = 28;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+    const n = Math.max(1, vals.length);
+    const xAt = (i) => padL + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW);
+    const yAt = (v) => {
+      if (!(max > 0)) return padT + innerH;
+      return padT + innerH - (v / max) * innerH;
+    };
+    const firstForecast = list.findIndex((r) => r.forecast);
+    const histEnd = firstForecast < 0 ? list.length - 1 : Math.max(0, firstForecast - 1);
+    const histPts = vals.slice(0, histEnd + 1).map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+    const areaPts = histPts
+      ? `${padL},${(padT + innerH).toFixed(1)} ${histPts} ${xAt(histEnd).toFixed(1)},${(padT + innerH).toFixed(1)}`
+      : '';
+    let forecastPts = '';
+    if (firstForecast >= 0) {
+      const from = Math.max(0, firstForecast - 1);
+      forecastPts = vals.slice(from).map((v, j) => `${xAt(from + j).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+    }
+    const dots = vals.map((v, i) => {
+      const isF = !!list[i].forecast;
+      const tip = metric === 'count'
+        ? `${list[i].fullLabel}: ${v} venda${v === 1 ? '' : 's'}${isF ? ' (previsão)' : ''}`
+        : `${list[i].fullLabel}: ${formatSalesBRL(v)}${isF ? ' (previsão)' : ''}`;
+      const cls = isF ? 'vendas-consol-mchart-dot is-forecast' : 'vendas-consol-mchart-dot';
+      return `<circle class="${cls}" cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="3.5"><title>${escapeHtml(tip)}</title></circle>`;
+    }).join('');
+    const labels = list.map((r, i) => (
+      `<text class="vendas-consol-mchart-xlabel${r.forecast ? ' is-forecast' : ''}" x="${xAt(i).toFixed(1)}" y="${h - 8}" text-anchor="middle">${escapeHtml(r.label)}</text>`
+    )).join('');
+    const maxLabel = metric === 'count' ? String(max) : formatSalesBRL(max);
+    const sub = opts.subtitle
+      ? `<p class="vendas-consol-mchart-sub">${escapeHtml(opts.subtitle)}</p>`
+      : '';
+    const forecastRows = Array.isArray(opts.forecastRows) ? opts.forecastRows : [];
+    const forecastList = forecastRows.length
+      ? `<ul class="vendas-consol-mchart-forecast-list" aria-label="Previsão mês a mês">
+          ${forecastRows.map((r) => {
+            const val = metric === 'count'
+              ? `${r.count} venda${r.count === 1 ? '' : 's'}`
+              : formatSalesBRL(r.net);
+            return `<li>
+              <span class="vendas-consol-mchart-forecast-month">${escapeHtml(r.fullLabel || r.label)}</span>
+              <strong class="vendas-consol-mchart-forecast-val">${escapeHtml(val)}</strong>
+            </li>`;
+          }).join('')}
+        </ul>`
+      : '';
+    const maxHtml = forecastRows.length
+      ? ''
+      : `<p class="vendas-consol-mchart-max">máx ${escapeHtml(maxLabel)}</p>`;
+    return `<article class="vendas-consol-mchart-card${opts.cardClass ? ` ${opts.cardClass}` : ''}">
+      <h4>${escapeHtml(title)}</h4>
+      ${sub}
+      ${maxHtml}
+      <svg class="vendas-consol-mchart-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${escapeHtml(title)}">
+        <line class="vendas-consol-mchart-base" x1="${padL}" y1="${padT + innerH}" x2="${padL + innerW}" y2="${padT + innerH}" />
+        ${areaPts ? `<polygon class="vendas-consol-mchart-area" points="${areaPts}" />` : ''}
+        ${histPts ? `<polyline class="vendas-consol-mchart-line" points="${histPts}" fill="none" />` : ''}
+        ${forecastPts ? `<polyline class="vendas-consol-mchart-line is-forecast" points="${forecastPts}" fill="none" />` : ''}
+        ${dots}
+        ${labels}
+      </svg>
+      ${forecastList}
+    </article>`;
+  }
+
+  function renderConsolidadoMonthCharts(sales) {
+    const years = [...new Set((sales || []).map((s) => s._ts && brDateParts(s._ts).year).filter(Boolean))]
+      .sort((a, b) => Number(b) - Number(a));
+    if (!years.length) return '';
+    // Prefere o ano mais recente que já tenha mês fechado (ex.: em jan, usa o ano passado).
+    let year = null;
+    let rows = [];
+    for (const y of years) {
+      const candidate = salesByCalendarMonth(sales, y);
+      if (candidate.length) {
+        year = y;
+        rows = candidate;
+        break;
+      }
+    }
+    if (!year || !rows.length) return '';
+    const hasAny = rows.some((r) => r.count > 0);
+    if (!hasAny) return '';
+    const totNet = rows.reduce((n, r) => n + r.net, 0);
+    const totCount = rows.reduce((n, r) => n + r.count, 0);
+    const lastLabel = rows[rows.length - 1]?.fullLabel || '';
+    const nowTs = Date.now();
+    const forecastPack = buildThreeMonthForecast(sales, rows, nowTs);
+    const hint = forecastPack
+      ? `${lastLabel} · prev. ${formatSalesBRL(forecastPack.forecast[2]?.net || 0)}`
+      : `${lastLabel} · ${formatSalesBRL(totNet)} · ${totCount}`;
+
+    let forecastBlock = '';
+    if (forecastPack) {
+      const mergedNet = [...rows, ...forecastPack.forecast];
+      const mergedCount = [...rows, ...forecastPack.forecast];
+      const pctNetLabel = forecastPack.pctNet == null
+        ? '—'
+        : `${forecastPack.pctNet > 0 ? '+' : ''}${forecastPack.pctNet.toLocaleString('pt-BR')}%`;
+      const pctCountLabel = forecastPack.pctCount == null
+        ? '—'
+        : `${forecastPack.pctCount > 0 ? '+' : ''}${forecastPack.pctCount.toLocaleString('pt-BR')}%`;
+      const subNet = `Dias 1–${forecastPack.dayNum}: ${formatSalesBRL(forecastPack.curMtd.net)} vs ${formatSalesBRL(forecastPack.prevMtd.net)} (${pctNetLabel}) → ${forecastPack.prevMonthLabel} × fator`;
+      const subCount = `Dias 1–${forecastPack.dayNum}: ${forecastPack.curMtd.count} vs ${forecastPack.prevMtd.count} vendas (${pctCountLabel}) → ${forecastPack.prevMonthLabel} × fator`;
+      const fRows = forecastPack.forecast;
+      forecastBlock = `<div class="vendas-consol-mchart-forecast">
+        <h4 class="vendas-consol-mchart-forecast-title">Previsão (3 meses à frente)</h4>
+        <p class="admin-meta vendas-consol-mchart-note">Andamento: dias 1–hoje ÷ mesmos dias do mês passado. +50% até agora ⇒ fecha ~50% acima do mês passado; −50% ⇒ ~metade. Recalcula sempre com o acumulado atual.</p>
+        <div class="vendas-consol-mchart-grid">
+          ${renderMonthLineChart('Faturamento — previsão', mergedNet, 'net', {
+            subtitle: subNet,
+            cardClass: 'is-forecast-card',
+            forecastRows: fRows
+          })}
+          ${renderMonthLineChart('Quantidade — previsão', mergedCount, 'count', {
+            subtitle: subCount,
+            cardClass: 'is-forecast-card',
+            forecastRows: fRows
+          })}
+        </div>
+      </div>`;
+    }
+
+    const body = `<div class="vendas-consol-mchart-grid">
+      ${renderMonthLineChart(`Faturamento ${year} (até ${lastLabel})`, rows, 'net')}
+      ${renderMonthLineChart(`Quantidade ${year} (até ${lastLabel})`, rows, 'count')}
+    </div>${forecastBlock}`;
+    return `<details class="admin-fold vendas-consol-mchart-fold" id="vendas-consol-mchart-fold" data-fold-key="vendas-grafico-mes">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Gráfico por mês</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">
+        <p class="admin-meta vendas-consol-mchart-note">Só meses fechados — o mês corrente entra quando virar o mês.</p>
+        ${body}
+      </div>
+    </details>`;
   }
 
   const SALES_CHANNEL_LABELS = {
@@ -1294,13 +1661,39 @@
     return SALES_CHANNEL_LABELS[channel] || channel || '—';
   }
 
+  function storeOrderChargeBrlFallback(o) {
+    const cur = String(o?.chargeCurrency || o?.displayCurrency || '').toUpperCase();
+    const amt = o?.chargeAmount != null ? Number(o.chargeAmount) : NaN;
+    const rate = o?.chargeFxRate != null ? Number(o.chargeFxRate) : NaN;
+    if (!cur || cur === 'BRL' || !(amt > 0) || !(rate > 0)) return null;
+    const freteBrl = roundMoneyLocal(Math.max(0, Number(o?.frete) || Number(o?.shippingCost) || 0));
+    let shipForeign = roundMoneyLocal(freteBrl * rate);
+    if (shipForeign > amt) shipForeign = amt;
+    return {
+      gross: roundMoneyLocal(amt / rate),
+      shippingCost: roundMoneyLocal(shipForeign / rate),
+      fees: roundMoneyLocal(Number(o?.paypalFee) || 0),
+      currency: 'BRL',
+      chargeCurrency: cur,
+      chargeAmount: roundMoneyLocal(amt),
+      fromCharge: true
+    };
+  }
+
   function storeOrderToSale(o) {
-    const listed = sm().storeOrderListedGross;
-    const gross = listed
-      ? listed(o)
-      : Math.round(Number(o.total || 0) * 100) / 100;
-    const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
-    const paypalFee = Math.round(Number(o.paypalFee || 0) * 100) / 100;
+    const moneyFn = sm().storeOrderSaleMoney;
+    const money = (moneyFn && moneyFn(o))
+      || storeOrderChargeBrlFallback(o)
+      || {
+          gross: Math.round(Number(o.total || 0) * 100) / 100,
+          shippingCost: Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100,
+          fees: Math.round(Number(o.paypalFee || 0) * 100) / 100,
+          chargeCurrency: null,
+          chargeAmount: null
+        };
+    const gross = Number(money.gross || 0);
+    const shippingCost = Number(money.shippingCost || 0);
+    const paypalFee = Number(money.fees || 0);
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
     let qty = Number(o.qty || o.quantity || 0) || 0;
     if (!qty && Array.isArray(o.items) && o.items.length) {
@@ -1316,7 +1709,9 @@
       externalId: String(o.orderId || ''),
       soldAt: o.paidAt || o.createdAt || null,
       status: o.status || null,
-      currency: o.currency || 'BRL',
+      currency: 'BRL',
+      chargeCurrency: money.chargeCurrency || o.chargeCurrency || null,
+      chargeAmount: money.chargeAmount != null ? money.chargeAmount : (o.chargeAmount != null ? Number(o.chargeAmount) : null),
       gross,
       fees: paypalFee,
       shippingCost,
@@ -1330,7 +1725,7 @@
       items: [{
         title,
         quantity: qty,
-        unitPrice: gross,
+        unitPrice: roundMoneyLocal(Math.max(0, gross - shippingCost)),
         saleFee: 0
       }],
       payments: o.paymentMethod || o.meioPagamento
@@ -1481,7 +1876,8 @@
       months.forEach((monthNum) => {
         const m = y.months[monthNum];
         const monthPath = `${yearPath}|${monthNum}`;
-        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m)}</summary><div class="clicks-tree-children">`;
+        const growth = completeMonthGrowthHtml(tree, year, monthNum, m);
+        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m, growth)}</summary><div class="clicks-tree-children">`;
         const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
         days.forEach((dateKey) => {
           const d = m.days[dateKey];
@@ -1515,17 +1911,54 @@
     return { year: String(y), monthNum: String(m).padStart(2, '0') };
   }
 
-  /** Vendas do mês até o dia N (mesmo dia do calendário; corta no último dia do mês se for menor). */
-  function salesMonthToDate(sales, year, monthNum, throughDay) {
+  /**
+   * Vendas do mês até o dia N. No dia N corta no relógio asOf (BR),
+   * para não comparar manhã atual com tarde inteira do mês passado.
+   */
+  function salesMonthToDate(sales, year, monthNum, throughDay, asOfTs = null) {
     const ym = String(monthNum).padStart(2, '0');
     const y = String(year);
     const lastDay = Math.min(Number(throughDay) || 1, daysInCalendarMonth(y, ym));
+    const included = sm().saleIncludedInMtd;
+    if (typeof included === 'function') {
+      return (sales || []).filter((s) => included(s, y, ym, lastDay, asOfTs));
+    }
+    const asOfMin = asOfTs != null ? brClockPartsLocal(asOfTs).minutesOfDay : null;
     return (sales || []).filter((s) => {
       if (!s._ts) return false;
       const p = brDateParts(s._ts);
       if (p.year !== y || p.monthNum !== ym) return false;
-      return Number(p.day) <= lastDay;
+      const day = Number(p.day);
+      if (day < 1 || day > lastDay) return false;
+      if (day < lastDay || asOfMin == null) return true;
+      return brClockPartsLocal(s._ts).minutesOfDay <= asOfMin;
     });
+  }
+
+  function brClockPartsLocal(ts) {
+    const fn = sm().brClockParts;
+    if (typeof fn === 'function') return fn(ts);
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23'
+    }).formatToParts(new Date(ts || Date.now()));
+    const g = (type) => parts.find((p) => p.type === type)?.value;
+    const hour = Number(g('hour'));
+    const minute = Number(g('minute'));
+    return {
+      year: g('year'),
+      monthNum: g('month'),
+      day: g('day'),
+      hour,
+      minute,
+      minutesOfDay: hour * 60 + minute,
+      dateKey: `${g('year')}-${g('month')}-${g('day')}`
+    };
   }
 
   function formatMtdDelta(current, previous) {
@@ -1538,8 +1971,12 @@
     return `${sign}${pct.toLocaleString('pt-BR')}%`;
   }
 
-  /** Dias do calendário (1…throughDay) com ≥1 venda vs dias zerados. */
-  function monthSalesDayCoverage(sales, year, monthNum, throughDay) {
+  /**
+   * Dias 1…throughDay com/sem venda.
+   * No mês atual, o dia de hoje só entra em "sem" depois do horário da
+   * 1ª venda do mesmo dia no mês de referência (mês passado).
+   */
+  function monthSalesDayCoverage(sales, year, monthNum, throughDay, options = {}) {
     const ym = String(monthNum).padStart(2, '0');
     const y = String(year);
     const lastDay = Math.min(
@@ -1555,8 +1992,31 @@
       if (day >= 1 && day <= lastDay) sold.add(day);
     });
     const emptyDays = [];
+    const isCurrentMonth = options.isCurrentMonth === true;
+    const asOfTs = options.asOfTs != null ? options.asOfTs : null;
+    const refSales = options.refSales || null;
+    const dayEmpty = sm().dayCountsAsEmptySale;
+    const firstMinFn = sm().firstSaleMinutesOfDay;
     for (let d = 1; d <= lastDay; d += 1) {
-      if (!sold.has(d)) emptyDays.push(d);
+      const hasSale = sold.has(d);
+      let refFirst = null;
+      if (isCurrentMonth && d === lastDay && refSales && typeof firstMinFn === 'function') {
+        const refYm = options.refYear != null && options.refMonthNum != null
+          ? { year: options.refYear, monthNum: options.refMonthNum }
+          : null;
+        if (refYm) refFirst = firstMinFn(refSales, refYm.year, refYm.monthNum, d);
+      }
+      const countsEmpty = typeof dayEmpty === 'function'
+        ? dayEmpty({
+          day: d,
+          throughDay: lastDay,
+          isCurrentMonth,
+          hasSale,
+          asOfTs,
+          refFirstSaleMinutes: refFirst
+        })
+        : !hasSale;
+      if (countsEmpty) emptyDays.push(d);
     }
     return {
       year: y,
@@ -1577,8 +2037,10 @@
   }
 
   function renderConsolidadoDaysCoverage(sales) {
-    const now = brDateParts(Date.now());
+    const nowTs = Date.now();
+    const now = brDateParts(nowTs);
     const dayNum = Number(now.day);
+    const prevYm = shiftYearMonth(now.year, now.monthNum, -1);
     const specs = [
       { delta: -2, full: true },
       { delta: -1, full: true },
@@ -1589,7 +2051,13 @@
       const through = full
         ? daysInCalendarMonth(ym.year, ym.monthNum)
         : Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
-      const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through);
+      const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through, {
+        isCurrentMonth: delta === 0,
+        asOfTs: delta === 0 ? nowTs : null,
+        refSales: delta === 0 ? sales : null,
+        refYear: prevYm.year,
+        refMonthNum: prevYm.monthNum
+      });
       return {
         delta,
         year: ym.year,
@@ -1641,12 +2109,14 @@
   }
 
   function renderConsolidadoMtdCompare(sales) {
-    const now = brDateParts(Date.now());
+    const nowTs = Date.now();
+    const now = brDateParts(nowTs);
     const dayNum = Number(now.day);
     const months = [0, -1, -2].map((delta) => {
       const ym = shiftYearMonth(now.year, now.monthNum, delta);
       const through = Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
-      const subset = salesMonthToDate(sales, ym.year, ym.monthNum, through);
+      // Mesmo relógio BR em todos os meses: dia N só até "agora".
+      const subset = salesMonthToDate(sales, ym.year, ym.monthNum, through, nowTs);
       const name = MONTH_LABELS[ym.monthNum] || ym.monthNum;
       return {
         delta,
@@ -1732,9 +2202,172 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
-    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoWeekCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoChampionDays(sales)}${renderConsolidadoMonthCharts(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    wireOneAdminFold(document.getElementById('vendas-consol-weeks-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-days-fold'));
+    wireOneAdminFold(document.getElementById('vendas-consol-champ-fold'));
+    wireOneAdminFold(document.getElementById('vendas-consol-mchart-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-flex-fold'));
+  }
+
+  /** Segunda-feira (YYYY-MM-DD) ± N semanas — mesma base de brWeekBucket (seg→dom, atravessa mês). */
+  function shiftMondayKey(mondayKey, deltaWeeks) {
+    const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    dt.setUTCDate(dt.getUTCDate() + (Number(deltaWeeks) || 0) * 7);
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  function weekCardFromMondayKey(mondayKey) {
+    const [y, m, d] = String(mondayKey || '').split('-').map(Number);
+    const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const sun = new Date(mon);
+    sun.setUTCDate(mon.getUTCDate() + 6);
+    const fmt = (dt) => `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}`;
+    return {
+      key: mondayKey,
+      rangeLabel: `${fmt(mon)} – ${fmt(sun)}`,
+      mondayYmd: mondayKey,
+      sundayYmd: `${sun.getUTCFullYear()}-${String(sun.getUTCMonth() + 1).padStart(2, '0')}-${String(sun.getUTCDate()).padStart(2, '0')}`,
+      monthKeys: (() => {
+        const keys = [];
+        const seen = new Set();
+        for (let i = 0; i < 7; i += 1) {
+          const day = new Date(mon);
+          day.setUTCDate(mon.getUTCDate() + i);
+          const mk = `${day.getUTCFullYear()}-${String(day.getUTCMonth() + 1).padStart(2, '0')}`;
+          if (!seen.has(mk)) {
+            seen.add(mk);
+            keys.push(mk);
+          }
+        }
+        return keys;
+      })()
+    };
+  }
+
+  /** Últimas N semanas Mon→Sun (mais antiga → mais recente), incluindo a semana atual. */
+  function lastNBrWeeks(n, nowTs) {
+    const count = Math.max(1, Number(n) || 13);
+    const currentKey = brWeekBucket(nowTs || Date.now()).key;
+    const weeks = [];
+    for (let i = count - 1; i >= 0; i -= 1) {
+      weeks.push(weekCardFromMondayKey(shiftMondayKey(currentKey, -i)));
+    }
+    return weeks;
+  }
+
+  function salesInBrWeek(sales, mondayKey) {
+    return (sales || []).filter((s) => s._ts && brWeekBucket(s._ts).key === mondayKey);
+  }
+
+  /** Por linha do mês: pior = red, melhor = green, resto = yellow. */
+  function weekToneInMonth(net, minNet, maxNet) {
+    const n = Number(net || 0);
+    const min = Number(minNet || 0);
+    const max = Number(maxNet || 0);
+    if (min === max) return 'yellow';
+    if (n <= min) return 'red';
+    if (n >= max) return 'green';
+    return 'yellow';
+  }
+
+  /** Ranking 1º…Nº por líquido (todas as semanas do bloco); ordem visual permanece cronológica. */
+  function weekSuccessRanks(rows) {
+    const ranked = [...(rows || [])].sort((a, b) => {
+      const dn = Number(b?.tot?.net || 0) - Number(a?.tot?.net || 0);
+      if (dn) return dn;
+      return String(a?.key || '').localeCompare(String(b?.key || ''));
+    });
+    const map = new Map();
+    ranked.forEach((row, i) => {
+      if (row?.key != null) map.set(row.key, i + 1);
+    });
+    return map;
+  }
+
+  function renderConsolidadoWeekCompare(sales) {
+    const nowTs = Date.now();
+    const currentKey = brWeekBucket(nowTs).key;
+    const todayYmd = brLocalYmd(nowTs);
+    const weekDefs = lastNBrWeeks(13, nowTs);
+    const rows = weekDefs.map((w) => {
+      const subset = salesInBrWeek(sales, w.key);
+      const tot = sumAnnotated(subset);
+      const isCurrent = w.key === currentKey;
+      let daysForAvg = 7;
+      if (isCurrent) {
+        const [y, m, d] = w.mondayYmd.split('-').map(Number);
+        const mon = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+        const [ty, tm, td] = todayYmd.split('-').map(Number);
+        const today = new Date(Date.UTC(ty, tm - 1, td, 12, 0, 0));
+        daysForAvg = Math.max(1, Math.min(7, Math.round((today - mon) / 86400000) + 1));
+      }
+      const perDay = tot.net / daysForAvg;
+      return { ...w, tot, isCurrent, daysForAvg, perDay };
+    });
+    const rankByKey = weekSuccessRanks(rows);
+    const latest = rows[rows.length - 1];
+    const hint = latest
+      ? `${latest.rangeLabel} · ${formatSalesBRL(latest.tot.net)}`
+      : '—';
+
+    // Linha = mês do domingo da semana (a que “invade” o mês novo abre a linha).
+    const lineGroups = [];
+    rows.forEach((row) => {
+      const sundayMonthKey = String(row.sundayYmd || '').slice(0, 7);
+      const last = lineGroups[lineGroups.length - 1];
+      if (!last || last.monthKey !== sundayMonthKey) {
+        lineGroups.push({ monthKey: sundayMonthKey, weeks: [row] });
+      } else {
+        last.weeks.push(row);
+      }
+    });
+    const nowYear = brDateParts(nowTs).year;
+    const lineHtml = lineGroups.map((group) => {
+      const [y, mm] = String(group.monthKey || '').split('-');
+      const monthName = (MONTH_LABELS[mm] || mm || '—').toUpperCase();
+      const monthLabel = y && y !== nowYear ? `${monthName} ${y}` : monthName;
+      const nets = group.weeks.map((w) => Number(w.tot.net || 0));
+      const minNet = Math.min(...nets);
+      const maxNet = Math.max(...nets);
+      const cards = group.weeks.map((row) => {
+        const tone = weekToneInMonth(row.tot.net, minNet, maxNet);
+        const currentClass = row.isCurrent ? ' is-current' : '';
+        const rank = rankByKey.get(row.key) || 0;
+        const rankHtml = rank
+          ? `<span class="vendas-consol-week13-rank" title="${rank}ª mais bem-sucedida das 13">${rank}º</span>`
+          : '';
+        return `<article class="vendas-consol-week13-card is-${tone}${currentClass}">
+          <div class="vendas-consol-week13-top">
+            <p class="vendas-consol-week13-range">${escapeHtml(row.rangeLabel)}</p>
+            ${rankHtml}
+          </div>
+          <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
+          <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
+          <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
+        </article>`;
+      }).join('');
+      return `<div class="vendas-consol-week13-line">
+        <div class="vendas-consol-week13-line-label">${escapeHtml(monthLabel)}</div>
+        <div class="vendas-consol-week13-line-cards">${cards}</div>
+      </div>`;
+    }).join('');
+
+    return `<details class="admin-fold vendas-consol-weeks-fold" id="vendas-consol-weeks-fold" data-fold-key="vendas-semanas">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Comparativo de semanas</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">
+        <header class="vendas-consol-week13-head">
+          <h3>Últimas 13 semanas</h3>
+          <p class="admin-meta vendas-consol-weeks-note">Semana = segunda → domingo. Ordem = dias crescentes. Número = ranking de líquido (1º = melhor das 13). Por linha: vermelho = menos · verde = mais · amarelo = resto — fuso São Paulo.</p>
+        </header>
+        <div class="vendas-consol-week13-lines">${lineHtml}</div>
+      </div>
+    </details>`;
   }
 
   function isMlFlexSale(sale) {
@@ -1744,6 +2377,14 @@
     if (ch !== 'mercadolivre' && ch !== 'ml') return false;
     if (sale?.mlFlex || sale?.shippingSource === 'flex') return true;
     return /flex|self_service/i.test(String(sale?.logisticType || ''));
+  }
+
+  function saleCountsForFlexOwed(sale) {
+    const fn = sm().saleCountsForFlexOwed;
+    if (typeof fn === 'function') return fn(sale);
+    if (!isMlFlexSale(sale)) return false;
+    if (!isDroppedMarketplaceSale(sale)) return true;
+    return false;
   }
 
   function flexCompanyOwed(sale) {
@@ -1761,7 +2402,7 @@
     if (typeof fn === 'function') return fn(sales, currentConfig);
     const map = new Map();
     (sales || []).forEach((s) => {
-      if (!isMlFlexSale(s) || !s._ts) return;
+      if (!saleCountsForFlexOwed(s) || !s._ts) return;
       const p = brDateParts(s._ts);
       const key = `${p.year}-${p.monthNum}`;
       if (!map.has(key)) {
@@ -1773,7 +2414,8 @@
           count: 0,
           owed: 0,
           bonus: 0,
-          net: 0
+          net: 0,
+          dayCountMap: new Map()
         });
       }
       const row = map.get(key);
@@ -1783,30 +2425,90 @@
       row.owed += owed;
       row.bonus += bonus;
       row.net += roundMoneyLocal(owed - bonus);
+      const day = Number(p.day);
+      if (Number.isFinite(day) && day > 0) {
+        row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+      }
     });
-    return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
+    return Array.from(map.values())
+      .map((r) => {
+        const { dayCountMap, ...rest } = r;
+        const dayEntries = [...dayCountMap.entries()]
+          .map(([day, count]) => ({ day, count }))
+          .sort((a, b) => a.day - b.day);
+        return { ...rest, days: dayEntries.map((e) => e.day), dayEntries };
+      })
+      .sort((a, b) => String(b.key).localeCompare(String(a.key)));
+  }
+
+  function formatFlexDaysWithQty(entries) {
+    const fn = sm().formatFlexDaysWithQty;
+    if (typeof fn === 'function') return fn(entries);
+    const list = (entries || []).map((e) => {
+      if (e && typeof e === 'object') return { day: Number(e.day), count: Number(e.count) || 1 };
+      return { day: Number(e), count: 1 };
+    }).filter((e) => e.day > 0);
+    if (!list.length) return '';
+    const labels = list.map((e) => (e.count > 1 ? `${e.day} (${e.count})` : String(e.day)));
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} e ${labels[1]}`;
+    return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
+  }
+
+  /** Só mês atual + 2 anteriores (mesmo recorte do comparativo). */
+  function flexOwedLastThreeMonths(sales) {
+    const now = brDateParts(Date.now());
+    const allowed = new Set(
+      [0, -1, -2].map((delta) => {
+        const ym = shiftYearMonth(now.year, now.monthNum, delta);
+        return `${ym.year}-${ym.monthNum}`;
+      })
+    );
+    const byKey = new Map(aggregateFlexOwedByMonth(sales).map((m) => [m.key, m]));
+    return [0, -1, -2].map((delta) => {
+      const ym = shiftYearMonth(now.year, now.monthNum, delta);
+      const key = `${ym.year}-${ym.monthNum}`;
+      return byKey.get(key) || {
+        key,
+        year: ym.year,
+        monthNum: ym.monthNum,
+        name: MONTH_LABELS[ym.monthNum] || ym.monthNum,
+        count: 0,
+        owed: 0,
+        bonus: 0,
+        net: 0,
+        days: [],
+        dayEntries: []
+      };
+    }).filter((m) => allowed.has(m.key));
   }
 
   function renderConsolidadoFlexOwed(sales) {
-    const months = aggregateFlexOwedByMonth(sales);
+    const months = flexOwedLastThreeMonths(consolidatedFlexSalesCache || sales);
     const now = brDateParts(Date.now());
     const currentKey = `${now.year}-${now.monthNum}`;
     const thisMonth = months.find((m) => m.key === currentKey);
     const hint = thisMonth
       ? `${thisMonth.name} · ${thisMonth.count} · ${formatSalesBRL(thisMonth.owed)}`
       : (months.length ? `${months[0].name} · ${months[0].count} · ${formatSalesBRL(months[0].owed)}` : '—');
-    const body = months.length
-      ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
+    const body = `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
+        const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+          ? m.dayEntries
+          : (m.days || []).map((d) => ({ day: d, count: 1 }));
+        const withLabel = formatFlexDaysWithQty(dayEntries);
+        const withHtml = withLabel
+          ? `<p class="vendas-consol-flex-days" title="Dias com envio Flex">com: ${escapeHtml(withLabel)}</p>`
+          : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
+        ${withHtml}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
-      }).join('')}</div>`
-      : '<p class="admin-meta">Nenhum envio Flex no recorte carregado.</p>';
+      }).join('')}</div>`;
     return `<details class="admin-fold vendas-consol-flex-fold" id="vendas-consol-flex-fold" data-fold-key="vendas-flex">
       <summary class="admin-fold-summary">
         <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
@@ -1818,9 +2520,19 @@
   }
 
   function buildFlexOwedExportRows(sales) {
-    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
-    aggregateFlexOwedByMonth(sales).forEach((m) => {
-      rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
+    const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido', 'Dias com Flex']];
+    flexOwedLastThreeMonths(consolidatedFlexSalesCache || sales).forEach((m) => {
+      const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
+        ? m.dayEntries
+        : (m.days || []).map((d) => ({ day: d, count: 1 }));
+      rows.push([
+        `${m.name} ${m.year}`,
+        m.count,
+        m.owed,
+        m.bonus,
+        m.net,
+        formatFlexDaysWithQty(dayEntries)
+      ]);
     });
     return rows;
   }
@@ -1877,14 +2589,19 @@
     if (!shopeeRes.ok) throw new Error(shopeeData.error || 'Falha ao carregar vendas Shopee');
     const ordersData = await ordersRes.json().catch(() => ({}));
     if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
-    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
+    const mlAll = (Array.isArray(mlData.sales) ? mlData.sales : []).map(annotateSale).filter((s) => s._ts);
+    const amzAll = (Array.isArray(amzData.sales) ? amzData.sales : []).map(annotateSale).filter((s) => s._ts);
+    const shopeeAll = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).map(annotateSale).filter((s) => s._ts);
+    // Totais/árvore: cancelados saem. Flex: mantém envio se passou das 14h no dia.
+    consolidatedFlexSalesCache = mlAll.filter((s) => saleCountsForFlexOwed(s));
+    const mlSales = mlAll.filter((s) => !isDroppedMarketplaceSale(s));
+    const amzSales = amzAll.filter((s) => !isDroppedMarketplaceSale(s));
+    const shopeeSales = shopeeAll.filter((s) => !isDroppedMarketplaceSale(s));
     const storeSales = (Array.isArray(ordersData) ? ordersData : [])
       .filter(isStoreSaleOrder)
-      .map((o) => annotateSale(storeOrderToSale(o)));
+      .map((o) => annotateSale(storeOrderToSale(o)))
+      .filter((s) => s._ts);
     return [...storeSales, ...mlSales, ...amzSales, ...shopeeSales]
-      .filter((s) => s._ts)
       .sort((a, b) => b._ts - a._ts);
   }
 
@@ -2254,7 +2971,9 @@ ${worksheets}
       return byDayMap.get(String(day)) || empty(String(day), `Dia ${day}`, day);
     });
     const byMonthMap = new Map(aggregateSalesWhen(filtered, 'month').map((b) => [b.key, b]));
-    const months = Object.keys(MONTH_LABELS).map((num) => (
+    // Object.keys('01'..'12') no JS coloca 10/11/12 antes de 01–09 (índices inteiros).
+    // Força Janeiro→Dezembro do calendário.
+    const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((num) => (
       byMonthMap.get(num) || empty(num, MONTH_LABELS[num], Number(num))
     ));
     root.innerHTML = [
@@ -2266,6 +2985,8 @@ ${worksheets}
   }
 
   let consolidatedSalesCache = null;
+  /** ML Flex (inclui cancelados que ainda cobram envio após 14h). */
+  let consolidatedFlexSalesCache = null;
   let vendasWhenFiltersWired = false;
 
   function wireVendasWhenFilters() {
