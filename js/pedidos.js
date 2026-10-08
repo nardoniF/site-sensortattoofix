@@ -15,7 +15,7 @@
     login: $('pedidos-login'),
     panel: embedded ? $('admin-tab-pedidos') : $('pedidos-panel'),
     loginForm: $('pedidos-login-form'),
-    status: $('pedidos-orders-status') || $('pedidos-status'),
+    status: $('pedidos-orders-status') || $('pedidos-manual-status') || $('pedidos-status'),
     tbody: $('pedidos-tbody'),
     count: $('pedidos-count'),
     empty: $('pedidos-empty'),
