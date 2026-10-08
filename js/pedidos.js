@@ -4,6 +4,9 @@
   const embedded = !!document.getElementById('admin-tab-pedidos');
   let allOrders = [];
   let wired = false;
+  let manualCustomersCache = [];
+  let manualCustomersLoaded = false;
+  let manualCustomersLoading = null;
   const selectedOrderIds = new Set();
   let lastRenderedOrders = [];
 
@@ -15,7 +18,7 @@
     login: $('pedidos-login'),
     panel: embedded ? $('admin-tab-pedidos') : $('pedidos-panel'),
     loginForm: $('pedidos-login-form'),
-    status: $('pedidos-orders-status') || $('pedidos-status'),
+    status: $('pedidos-orders-status') || $('pedidos-manual-status') || $('pedidos-status'),
     tbody: $('pedidos-tbody'),
     count: $('pedidos-count'),
     empty: $('pedidos-empty'),
@@ -2131,6 +2134,70 @@
     }
   }
 
+  function fillDatalist(id, values) {
+    const list = $(id);
+    if (!list) return;
+    const uniqueValues = [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+    list.replaceChildren(...uniqueValues.map((value) => {
+      const option = document.createElement('option');
+      option.value = value;
+      return option;
+    }));
+  }
+
+  function loadManualCatalogOptions() {
+    const products = Array.isArray(storeConfigCache?.products) ? storeConfigCache.products : [];
+    const productNames = products.map((product) => product.name || product.namePt || product.slug);
+    const models = Array.isArray(storeConfigCache?.smartwatchModels) ? storeConfigCache.smartwatchModels : [];
+    const modelNames = models.map((model) => typeof model === 'string' ? model : (model?.name || model?.model || model?.label));
+    fillDatalist('pedidos-product-options', productNames);
+    fillDatalist('pedidos-watch-options', modelNames);
+  }
+
+  async function loadManualCustomerOptions() {
+    const select = $('pedidos-manual-form')?.elements?.customerUserId;
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!select || !token || !base || manualCustomersLoaded) return;
+    if (manualCustomersLoading) return manualCustomersLoading;
+
+    const loadingOption = document.createElement('option');
+    loadingOption.value = '';
+    loadingOption.textContent = 'Carregando cadastros...';
+    select.replaceChildren(loadingOption);
+    manualCustomersLoading = (async () => {
+      const res = await fetch(base + '/admin/customers', {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Não foi possível carregar os clientes.');
+      manualCustomersCache = Array.isArray(data.customers) ? data.customers.filter((customer) => customer.userId) : [];
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = 'Novo cliente / sem vínculo';
+      select.replaceChildren(defaultOption);
+      manualCustomersCache.forEach((customer) => {
+        const option = document.createElement('option');
+        option.value = customer.userId;
+        option.textContent = [customer.nome || 'Sem nome', customer.email].filter(Boolean).join(' · ');
+        select.appendChild(option);
+      });
+      manualCustomersLoaded = true;
+    })();
+    try {
+      await manualCustomersLoading;
+    } catch (err) {
+      const fallbackOption = document.createElement('option');
+      fallbackOption.value = '';
+      fallbackOption.textContent = 'Lista indisponível; preencha manualmente';
+      select.replaceChildren(fallbackOption);
+      select.title = err.message || 'Não foi possível carregar os clientes.';
+    } finally {
+      manualCustomersLoading = null;
+    }
+  }
+
   async function refreshCorreiosTracking(orders) {
     const staleMs = 30 * 60 * 1000;
     const now = Date.now();
@@ -2163,6 +2230,8 @@
     if (!token || !base) throw new Error('Faça login na API primeiro.');
 
     await loadStoreConfig();
+    loadManualCatalogOptions();
+    loadManualCustomerOptions().catch(() => {});
 
     const res = await fetch(base + '/orders', {
       headers: { Authorization: 'Bearer ' + token },
@@ -2208,6 +2277,71 @@
   });
 
     $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
+    const manualOrderForm = $('pedidos-manual-form');
+    const saleDateInput = manualOrderForm?.elements?.saleDate;
+    manualOrderForm?.elements?.customerUserId?.addEventListener('change', (event) => {
+      const customer = manualCustomersCache.find((item) => item.userId === event.currentTarget.value);
+      if (!customer) return;
+      const address = customer.address || {};
+      const values = {
+        nome: customer.nome,
+        email: customer.email,
+        telefone: customer.telefone,
+        cpf: customer.cpf,
+        pais: 'Brasil',
+        cep: address.cep,
+        rua: address.rua,
+        numero: address.numero,
+        complemento: address.complemento,
+        bairro: address.bairro,
+        cidade: address.cidade,
+        uf: address.uf
+      };
+      Object.entries(values).forEach(([name, value]) => {
+        const field = manualOrderForm.elements.namedItem(name);
+        if (field) field.value = value || '';
+      });
+    });
+    if (saleDateInput && !saleDateInput.value) {
+      const today = new Date();
+      saleDateInput.value = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+    }
+    manualOrderForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submitButton = manualOrderForm.querySelector('[type="submit"]');
+      const formData = Object.fromEntries(new FormData(manualOrderForm).entries());
+      const [year, month, day] = String(formData.saleDate || '').split('-').map(Number);
+      formData.createdAt = new Date(year, month - 1, day, 12).toISOString();
+      formData.quantidade = Number(formData.quantidade);
+      formData.valorProduto = Number(formData.valorProduto);
+      formData.frete = Number(formData.frete || 0);
+      delete formData.saleDate;
+      if (submitButton) submitButton.disabled = true;
+      showStatus('Registrando venda avulsa...', '');
+      try {
+        const res = await fetch(apiBase() + '/admin/orders/manual', {
+          method: 'POST',
+          headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Não foi possível registrar a venda.');
+        allOrders = [data.order, ...allOrders.filter((order) => order.orderId !== data.order?.orderId)];
+        applyFilters();
+        manualOrderForm.reset();
+        if (saleDateInput) {
+          const now = new Date();
+          saleDateInput.value = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+        }
+        const entry = manualOrderForm.closest('details');
+        if (entry) entry.open = false;
+        showStatus(`Venda registrada como pedido ${data.order.orderId}. Ela já está disponível na contabilidade de Vendas.`, 'success');
+      } catch (err) {
+        showStatus(err.message || 'Não foi possível registrar a venda.', 'error');
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
+    });
     $('btn-delete-selected')?.addEventListener('click', () => {
       deleteSelectedOrders().catch((e) => showStatus(e.message, 'error'));
     });
