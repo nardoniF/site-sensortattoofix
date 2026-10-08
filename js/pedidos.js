@@ -2157,13 +2157,125 @@
     }));
   }
 
+  function manualFormRoot() {
+    return $('pedidos-manual-form');
+  }
+
+  function manualField(name) {
+    return manualFormRoot()?.querySelector(`[name="${name}"]`) || null;
+  }
+
+  function readManualForm() {
+    const root = manualFormRoot();
+    if (!root) return {};
+    const data = {};
+    root.querySelectorAll('input[name], select[name], textarea[name]').forEach((el) => {
+      if (el.disabled) return;
+      data[el.name] = el.value;
+    });
+    return data;
+  }
+
+  function setManualField(name, value) {
+    const field = manualField(name);
+    if (field) field.value = value == null ? '' : String(value);
+  }
+
+  function resetManualForm() {
+    const root = manualFormRoot();
+    if (!root) return;
+    root.querySelectorAll('input[name], select[name], textarea[name]').forEach((el) => {
+      if (el.type === 'hidden') {
+        el.value = '';
+        return;
+      }
+      if (el.tagName === 'SELECT') {
+        el.selectedIndex = 0;
+        return;
+      }
+      if (el.name === 'quantidade') {
+        el.value = '1';
+        return;
+      }
+      if (el.name === 'frete') {
+        el.value = '0';
+        return;
+      }
+      if (el.name === 'pais') {
+        el.value = 'Brasil';
+        return;
+      }
+      el.value = '';
+    });
+  }
+
+  function catalogBrandsAndModels() {
+    const catalog = storeConfigCache?.smartwatchCatalog || {};
+    const brands = Object.keys(catalog || {}).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const byBrand = {};
+    brands.forEach((brand) => {
+      byBrand[brand] = (catalog[brand] || [])
+        .map((row) => (typeof row === 'string' ? row : (row?.label || row?.name || row?.model || '')))
+        .map((label) => String(label || '').trim())
+        .filter((label) => label && !String(label).startsWith('_'));
+    });
+    const flat = Array.isArray(storeConfigCache?.smartwatchModels)
+      ? storeConfigCache.smartwatchModels.map((model) => (
+        typeof model === 'string' ? model : (model?.name || model?.model || model?.label || '')
+      )).map((v) => String(v || '').trim()).filter(Boolean)
+      : [];
+    return { brands, byBrand, flat };
+  }
+
+  function refreshManualWatchOptions() {
+    const { brands, byBrand, flat } = catalogBrandsAndModels();
+    fillDatalist('pedidos-brand-options', brands);
+    const brandRaw = String(manualField('watchBrand')?.value || '').trim();
+    const brandKey = brands.find((b) => customerNameKey(b) === customerNameKey(brandRaw)) || '';
+    let models = brandKey && byBrand[brandKey]?.length
+      ? byBrand[brandKey]
+      : flat;
+    if (brandRaw && !brandKey) {
+      const needle = customerNameKey(brandRaw);
+      models = flat.filter((m) => customerNameKey(m).includes(needle) || customerNameKey(m).startsWith(needle));
+      if (!models.length) {
+        Object.entries(byBrand).forEach(([brand, list]) => {
+          if (customerNameKey(brand).includes(needle)) models.push(...list);
+        });
+      }
+    }
+    if (!models.length) models = flat;
+    fillDatalist('pedidos-watch-options', models);
+  }
+
   function loadManualCatalogOptions() {
     const products = Array.isArray(storeConfigCache?.products) ? storeConfigCache.products : [];
     const productNames = products.map((product) => product.name || product.namePt || product.slug);
-    const models = Array.isArray(storeConfigCache?.smartwatchModels) ? storeConfigCache.smartwatchModels : [];
-    const modelNames = models.map((model) => typeof model === 'string' ? model : (model?.name || model?.model || model?.label));
     fillDatalist('pedidos-product-options', productNames);
-    fillDatalist('pedidos-watch-options', modelNames);
+    refreshManualWatchOptions();
+  }
+
+  function updateManualDateHint() {
+    const hint = $('pedidos-manual-date-hint');
+    const saleDateInput = manualField('saleDate');
+    if (!hint || !saleDateInput) return;
+    const raw = String(saleDateInput.value || '');
+    const [year, month, day] = raw.split('-').map(Number);
+    if (!year || !month || !day) {
+      hint.textContent = '';
+      return;
+    }
+    const dt = new Date(year, month - 1, day, 12);
+    if (!Number.isFinite(dt.getTime())) {
+      hint.textContent = '';
+      return;
+    }
+    hint.textContent = dt.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
   }
 
   function manualCustomerOptionLabel(customer) {
@@ -2174,6 +2286,48 @@
     return String(name || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
+  function parseAddressFromEndereco(endereco) {
+    const text = String(endereco || '').trim();
+    if (!text || text === '—') return {};
+    const parts = text.split(/\s+[—–-]\s+/).map((p) => p.trim()).filter(Boolean);
+    const out = {};
+    if (!parts.length) return out;
+    const street = parts[0] || '';
+    const streetMatch = street.match(/^(.*?)(?:,\s*|\s+)(\d+\w*|[sS]\/[nN])$/);
+    if (streetMatch) {
+      out.rua = streetMatch[1].trim();
+      out.numero = streetMatch[2].trim();
+    } else {
+      out.rua = street;
+    }
+    const cityUf = parts.find((p) => /\//.test(p)) || '';
+    if (cityUf) {
+      const [cidade, uf] = cityUf.split('/').map((s) => s.trim());
+      if (cidade) out.cidade = cidade;
+      if (uf) out.uf = uf;
+    }
+    const cepPart = parts.find((p) => /\d{5}-?\d{3}/.test(p) || /^\d{4,}$/.test(p.replace(/\D/g, '')));
+    if (cepPart) out.cep = cepPart.replace(/[^\d-]/g, '');
+    const known = new Set([parts[0], cityUf, cepPart].filter(Boolean));
+    const extras = parts.filter((p) => !known.has(p) && !/brasil|brazil/i.test(p));
+    if (extras[0] && !out.bairro) out.bairro = extras[0];
+    if (extras[1] && extras[0] !== extras[1]) out.complemento = extras[1];
+    return out;
+  }
+
+  function addressFromOrder(order) {
+    const parsed = parseAddressFromEndereco(order?.endereco);
+    return {
+      cep: order?.cep || parsed.cep || '',
+      rua: order?.rua || parsed.rua || '',
+      numero: order?.numero || parsed.numero || '',
+      complemento: order?.complemento || parsed.complemento || '',
+      bairro: order?.bairro || parsed.bairro || '',
+      cidade: order?.cidade || parsed.cidade || '',
+      uf: order?.uf || parsed.uf || ''
+    };
+  }
+
   function matchManualCustomer(value) {
     const text = String(value || '').trim();
     if (!text) return null;
@@ -2181,6 +2335,60 @@
     if (selectedOption) return selectedOption;
     const exactNameMatches = manualCustomersCache.filter((customer) => customerNameKey(customer.nome) === customerNameKey(text));
     return exactNameMatches.length === 1 ? exactNameMatches[0] : null;
+  }
+
+  function filterManualCustomers(query) {
+    const needle = customerNameKey(query);
+    if (!needle || needle.length < 2) return [];
+    return manualCustomersCache
+      .filter((customer) => {
+        const hay = [
+          customer.nome,
+          customer.email,
+          customer.telefone,
+          customer.orderId,
+          customer.address?.cidade,
+          customer.address?.cep
+        ].map(customerNameKey).join(' ');
+        return hay.includes(needle);
+      })
+      .slice(0, 8);
+  }
+
+  function hideManualCustomerSuggest() {
+    const list = $('pedidos-manual-customer-suggest');
+    if (!list) return;
+    list.hidden = true;
+    list.innerHTML = '';
+  }
+
+  function renderManualCustomerSuggest(query) {
+    const list = $('pedidos-manual-customer-suggest');
+    if (!list) return;
+    const matches = filterManualCustomers(query);
+    if (!matches.length) {
+      hideManualCustomerSuggest();
+      return;
+    }
+    list.replaceChildren(...matches.map((customer) => {
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pedidos-manual-suggest-item';
+      const addr = customer.address || {};
+      const cityLine = [addr.cidade, addr.uf].filter(Boolean).join('/');
+      btn.innerHTML = `<strong>${escapeHtml(customer.nome || 'Sem nome')}</strong>`
+        + `<small>${escapeHtml([customer.telefone || customer.email || '', cityLine, addr.cep].filter(Boolean).join(' · '))}</small>`;
+      btn.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        applyManualCustomer(customer);
+        hideManualCustomerSuggest();
+        showManualOrderStatus(`Dados de ${customer.nome} preenchidos do histórico.`, 'success');
+      });
+      li.appendChild(btn);
+      return li;
+    }));
+    list.hidden = false;
   }
 
   function manualCustomerKey(customer) {
@@ -2194,8 +2402,6 @@
   }
 
   function renderManualCustomerOptions() {
-    const list = $('pedidos-customer-options');
-    if (!list) return;
     const merged = new Map();
 
     // allOrders is newest-first, so the first address for a buyer is the latest purchase address.
@@ -2208,15 +2414,7 @@
         cpf: order.cpf || '',
         orderId: order.orderId || '',
         pais: order.pais || 'Brasil',
-        address: {
-          cep: order.cep,
-          rua: order.rua,
-          numero: order.numero,
-          complemento: order.complemento,
-          bairro: order.bairro,
-          cidade: order.cidade,
-          uf: order.uf
-        }
+        address: addressFromOrder(order)
       };
       if (!customer.nome) return;
       const key = manualCustomerKey(customer);
@@ -2226,7 +2424,10 @@
       const key = manualCustomerKey(account);
       const latestOrder = merged.get(key);
       if (!latestOrder) {
-        merged.set(key, account);
+        merged.set(key, {
+          ...account,
+          address: account.address || {}
+        });
         return;
       }
       const hasOrderAddress = Object.values(latestOrder.address || {}).some(Boolean);
@@ -2234,20 +2435,16 @@
         ...account,
         ...latestOrder,
         userId: account.userId || latestOrder.userId,
-        address: hasOrderAddress ? latestOrder.address : account.address
+        address: hasOrderAddress ? latestOrder.address : (account.address || {})
       });
     });
 
-    manualCustomersCache = [...merged.values()];
-    list.replaceChildren(...manualCustomersCache.map((customer) => {
-      const option = document.createElement('option');
-      option.value = manualCustomerOptionLabel(customer);
-      return option;
-    }));
+    manualCustomersCache = [...merged.values()]
+      .sort((a, b) => customerNameKey(a.nome).localeCompare(customerNameKey(b.nome), 'pt-BR'));
   }
 
   function applyManualCustomer(customer) {
-    const form = $('pedidos-manual-form');
+    const form = manualFormRoot();
     if (!form || !customer) return;
     const address = customer.address || {};
     const values = {
@@ -2264,19 +2461,14 @@
       cidade: address.cidade,
       uf: address.uf
     };
-    Object.entries(values).forEach(([name, value]) => {
-      const field = form.elements.namedItem(name);
-      if (field) field.value = value || '';
-    });
-    const linkedId = form.elements.namedItem('customerUserId');
-    if (linkedId) linkedId.value = customer.userId;
+    Object.entries(values).forEach(([name, value]) => setManualField(name, value || ''));
+    setManualField('customerUserId', customer.userId || '');
   }
 
   async function loadManualCustomerOptions() {
-    const list = $('pedidos-customer-options');
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
-    if (!list || !token || !base || manualCustomersLoaded) return;
+    if (!token || !base || manualCustomersLoaded) return;
     if (manualCustomersLoading) return manualCustomersLoading;
 
     manualCustomersLoading = (async () => {
@@ -2293,10 +2485,100 @@
     try {
       await manualCustomersLoading;
     } catch (err) {
-      const nameInput = $('pedidos-manual-form')?.elements?.nome;
+      const nameInput = manualField('nome');
       if (nameInput) nameInput.title = `${err.message || 'Clientes cadastrados indisponíveis.'} Você ainda pode digitar um cliente novo.`;
+      renderManualCustomerOptions();
     } finally {
       manualCustomersLoading = null;
+    }
+  }
+
+  async function submitManualOrder() {
+    const root = manualFormRoot();
+    const submitButton = $('btn-pedidos-manual-save');
+    if (!root) return;
+    const submitLabel = submitButton?.innerHTML;
+    let manualSubmitTimeout = null;
+    if (submitButton) submitButton.disabled = true;
+    if (submitButton) submitButton.textContent = 'Salvando...';
+    showManualOrderStatus('Salvando venda avulsa...', '');
+    try {
+      const formData = readManualForm();
+      const required = [
+        ['nome', 'nome do cliente'],
+        ['smartwatch', 'modelo / aparelho'],
+        ['produto', 'produto'],
+        ['pagamento', 'forma de pagamento'],
+        ['valorProduto', 'valor dos produtos'],
+        ['saleDate', 'data da venda']
+      ];
+      for (const [name, label] of required) {
+        if (!String(formData[name] || '').trim()) {
+          throw new Error(`Preencha ${label}.`);
+        }
+      }
+      const [year, month, day] = String(formData.saleDate || '').split('-').map(Number);
+      const saleDate = new Date(year, month - 1, day, 12);
+      if (!Number.isFinite(saleDate.getTime())) throw new Error('Informe uma data de venda válida.');
+      formData.createdAt = saleDate.toISOString();
+      formData.quantidade = Number(formData.quantidade);
+      formData.valorProduto = Number(formData.valorProduto);
+      formData.frete = Number(formData.frete || 0);
+      if (formData.watchBrand && formData.smartwatch
+        && !customerNameKey(formData.smartwatch).includes(customerNameKey(formData.watchBrand))) {
+        // keep brand only for filtering UI; model is the source of truth for the order
+      }
+      delete formData.saleDate;
+      delete formData.watchBrand;
+      const base = apiBase();
+      if (!base) throw new Error('A URL da API não está configurada.');
+      const controller = new AbortController();
+      manualSubmitTimeout = setTimeout(() => controller.abort(), 30000);
+      const res = await fetch(base + '/admin/orders/manual', {
+        method: 'POST',
+        headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+        signal: controller.signal
+      });
+      clearTimeout(manualSubmitTimeout);
+      manualSubmitTimeout = null;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `A API recusou o registro (HTTP ${res.status}).`);
+      if (!data.order?.orderId) {
+        throw new Error('A API respondeu sem confirmar o número do pedido. Atualize a lista antes de tentar novamente para evitar duplicidade.');
+      }
+      allOrders = [data.order, ...allOrders.filter((order) => order.orderId !== data.order?.orderId)];
+      renderManualCustomerOptions();
+      applyFilters();
+      resetManualForm();
+      const saleDateInput = manualField('saleDate');
+      if (saleDateInput) {
+        const now = new Date();
+        saleDateInput.value = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+      }
+      updateManualDateHint();
+      refreshManualWatchOptions();
+      hideManualCustomerSuggest();
+      const entry = root.closest('details');
+      if (entry) entry.open = false;
+      const trackNote = data.trackingEmailSent
+        ? ' E-mail de rastreio enviado ao cliente.'
+        : '';
+      showManualOrderStatus(
+        `Venda registrada como pedido ${data.order.orderId}. Já aparece em Pedidos e na contabilidade de Vendas (Loja / Consolidado).${trackNote}`,
+        'success'
+      );
+    } catch (err) {
+      const message = err.name === 'AbortError'
+        ? 'A conexão demorou demais para confirmar. Atualize a lista e confira nome/data antes de reenviar, para evitar duplicidade.'
+        : (err instanceof TypeError
+          ? 'Não consegui confirmar a resposta da API. Atualize a lista e confira nome/data antes de reenviar, para evitar duplicidade.'
+          : `${err.message || 'Não foi possível registrar a venda.'} Seus dados continuam preenchidos.`);
+      showManualOrderStatus(message, 'error');
+    } finally {
+      if (manualSubmitTimeout) clearTimeout(manualSubmitTimeout);
+      if (submitButton) submitButton.disabled = false;
+      if (submitButton && submitLabel) submitButton.innerHTML = submitLabel;
     }
   }
 
@@ -2380,81 +2662,53 @@
   });
 
     $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
-    const manualOrderForm = $('pedidos-manual-form');
-    const saleDateInput = manualOrderForm?.elements?.saleDate;
-    const customerNameInput = manualOrderForm?.elements?.nome;
-    manualOrderForm?.addEventListener('invalid', (event) => {
-      const fieldName = event.target?.labels?.[0]?.textContent?.trim() || 'um campo obrigatório';
-      showManualOrderStatus(`Confira ${fieldName}. O navegador bloqueou o envio porque esse campo está inválido ou vazio.`, 'error');
-    }, true);
-    customerNameInput?.addEventListener('input', (event) => {
-      const customer = matchManualCustomer(event.currentTarget.value);
-      if (customer) {
-        applyManualCustomer(customer);
+    const manualOrderForm = manualFormRoot();
+    const saleDateInput = manualField('saleDate');
+    const customerNameInput = manualField('nome');
+    const brandInput = manualField('watchBrand');
+    // Impede Enter de disparar o submit do admin-config-form (form pai no Admin).
+    manualOrderForm?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.target?.tagName === 'TEXTAREA') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.target?.name === 'nome') {
+        const matches = filterManualCustomers(event.target.value);
+        if (matches.length === 1) {
+          applyManualCustomer(matches[0]);
+          hideManualCustomerSuggest();
+        }
         return;
       }
-      const linkedId = manualOrderForm.elements.namedItem('customerUserId');
-      if (linkedId) linkedId.value = '';
+      submitManualOrder().catch(() => {});
     });
+    customerNameInput?.addEventListener('input', (event) => {
+      setManualField('customerUserId', '');
+      renderManualCustomerSuggest(event.currentTarget.value);
+    });
+    customerNameInput?.addEventListener('blur', () => {
+      setTimeout(hideManualCustomerSuggest, 150);
+    });
+    customerNameInput?.addEventListener('focus', (event) => {
+      renderManualCustomerSuggest(event.currentTarget.value);
+    });
+    brandInput?.addEventListener('input', () => {
+      refreshManualWatchOptions();
+      const model = manualField('smartwatch');
+      if (model && model.value) {
+        const opts = [...($('pedidos-watch-options')?.options || [])].map((o) => o.value);
+        if (opts.length && !opts.includes(model.value)) model.value = '';
+      }
+    });
+    brandInput?.addEventListener('change', () => refreshManualWatchOptions());
+    saleDateInput?.addEventListener('change', updateManualDateHint);
+    saleDateInput?.addEventListener('input', updateManualDateHint);
     if (saleDateInput && !saleDateInput.value) {
       const today = new Date();
       saleDateInput.value = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
     }
-    manualOrderForm?.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const submitButton = manualOrderForm.querySelector('[type="submit"]');
-      const submitLabel = submitButton?.innerHTML;
-      let manualSubmitTimeout = null;
-      if (submitButton) submitButton.disabled = true;
-      if (submitButton) submitButton.textContent = 'Salvando...';
-      showManualOrderStatus('Salvando venda avulsa...', '');
-      try {
-        const formData = Object.fromEntries(new FormData(manualOrderForm).entries());
-        const [year, month, day] = String(formData.saleDate || '').split('-').map(Number);
-        const saleDate = new Date(year, month - 1, day, 12);
-        if (!Number.isFinite(saleDate.getTime())) throw new Error('Informe uma data de venda válida.');
-        formData.createdAt = saleDate.toISOString();
-        formData.quantidade = Number(formData.quantidade);
-        formData.valorProduto = Number(formData.valorProduto);
-        formData.frete = Number(formData.frete || 0);
-        delete formData.saleDate;
-        const base = apiBase();
-        if (!base) throw new Error('A URL da API não está configurada.');
-        const controller = new AbortController();
-        manualSubmitTimeout = setTimeout(() => controller.abort(), 30000);
-        const res = await fetch(base + '/admin/orders/manual', {
-          method: 'POST',
-          headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-          signal: controller.signal
-        });
-        clearTimeout(manualSubmitTimeout);
-        manualSubmitTimeout = null;
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || `A API recusou o registro (HTTP ${res.status}).`);
-        if (!data.order?.orderId) throw new Error('A API respondeu sem confirmar o número do pedido. Atualize a lista antes de tentar novamente para evitar duplicidade.');
-        allOrders = [data.order, ...allOrders.filter((order) => order.orderId !== data.order?.orderId)];
-        applyFilters();
-        manualOrderForm.reset();
-        if (saleDateInput) {
-          const now = new Date();
-          saleDateInput.value = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
-        }
-        const entry = manualOrderForm.closest('details');
-        if (entry) entry.open = false;
-        showManualOrderStatus(`Venda registrada como pedido ${data.order.orderId}. Ela já está disponível na contabilidade de Vendas.`, 'success');
-      } catch (err) {
-        const message = err.name === 'AbortError'
-          ? 'A conexão demorou demais para confirmar. Atualize a lista e confira nome/data antes de reenviar, para evitar duplicidade.'
-          : (err instanceof TypeError
-            ? 'Não consegui confirmar a resposta da API. Atualize a lista e confira nome/data antes de reenviar, para evitar duplicidade.'
-            : `${err.message || 'Não foi possível registrar a venda.'} Seus dados continuam preenchidos.`);
-        showManualOrderStatus(message, 'error');
-      } finally {
-        if (manualSubmitTimeout) clearTimeout(manualSubmitTimeout);
-        if (submitButton) submitButton.disabled = false;
-        if (submitButton && submitLabel) submitButton.innerHTML = submitLabel;
-      }
+    updateManualDateHint();
+    $('btn-pedidos-manual-save')?.addEventListener('click', () => {
+      submitManualOrder().catch((e) => showManualOrderStatus(e.message || 'Falha ao registrar.', 'error'));
     });
     $('btn-delete-selected')?.addEventListener('click', () => {
       deleteSelectedOrders().catch((e) => showStatus(e.message, 'error'));

@@ -5977,6 +5977,52 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .pedidos-manual-entry > .admin-meta { margin: 10px 0; }
 .pedidos-manual-entry .admin-form { margin-top: 14px; }
 .pedidos-manual-entry .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pedidos-manual-entry .form-grid > .full,
+.pedidos-manual-entry .form-grid > .pedidos-manual-customer-wrap { grid-column: 1 / -1; }
+.pedidos-manual-date-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.78rem;
+    color: var(--gray);
+    text-transform: capitalize;
+}
+.pedidos-manual-customer-wrap { position: relative; }
+.pedidos-manual-suggest {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 4px;
+    position: absolute;
+    z-index: 40;
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow: auto;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+.pedidos-manual-suggest-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #eee;
+    text-align: left;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+.pedidos-manual-suggest-item:hover,
+.pedidos-manual-suggest-item:focus {
+    background: #2a2a2a;
+    outline: none;
+}
+.pedidos-manual-suggest-item strong { font-size: 0.9rem; }
+.pedidos-manual-suggest-item small { color: var(--gray); font-size: 0.75rem; }
 @media (max-width: 640px) {
     .pedidos-manual-entry .form-grid { grid-template-columns: 1fr; }
 }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor Tattoo Fix</title>
-    <link rel="stylesheet" href="style.css?v=3.42">
+    <link rel="stylesheet" href="style.css?v=3.43">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -920,18 +920,32 @@
                             </div>
                         </div>
                         <p id="pedidos-orders-status" class="admin-status form-status" hidden></p>
-                        <details class="pedidos-manual-entry">
-                            <summary><i class="fas fa-plus-circle" aria-hidden="true"></i> Lançar venda avulsa</summary>
-                            <p class="admin-meta">Registra uma venda já concluída como pedido pago, sem iniciar cobrança ou alterar estoque.</p>
-                            <form id="pedidos-manual-form" class="admin-form">
+                        <details class="pedidos-manual-entry" id="pedidos-manual-entry">
+                            <summary><i class="fas fa-plus-circle" aria-hidden="true"></i> Lançar venda avulsa / pedido externo</summary>
+                            <p class="admin-meta">Registra uma venda já concluída (WhatsApp etc.) como pedido pago da loja — sem cobrança e sem mexer no estoque. Digite o nome para autocompletar quem já comprou, ou cadastre um cliente novo.</p>
+                            <!-- div (não form): evita form aninhado no admin-config-form, que engolia o submit -->
+                            <div id="pedidos-manual-form" class="admin-form pedidos-manual-form" role="form" aria-labelledby="pedidos-manual-entry">
                                 <div class="form-grid">
-                                    <label>Data da venda<input type="date" name="saleDate" required></label>
+                                    <label>Data da venda
+                                        <input type="date" name="saleDate" required>
+                                        <span class="pedidos-manual-date-hint" id="pedidos-manual-date-hint" aria-live="polite"></span>
+                                    </label>
                                     <label>Canal<select name="salesChannel"><option>WhatsApp</option><option>Instagram</option><option>Telefone</option><option>Presencial</option><option>Outro</option></select></label>
-                                    <label class="full">Nome do cliente<input type="text" name="nome" list="pedidos-customer-options" required maxlength="160" autocomplete="name" placeholder="Digite o nome ou escolha uma sugestão"></label>
+                                    <div class="full pedidos-manual-customer-wrap">
+                                        <label>Nome do cliente
+                                            <input type="text" name="nome" required maxlength="160" autocomplete="off" placeholder="Digite para buscar quem já comprou, ou um nome novo">
+                                        </label>
+                                        <ul id="pedidos-manual-customer-suggest" class="pedidos-manual-suggest" hidden></ul>
+                                    </div>
                                     <label>E-mail<input type="email" name="email" maxlength="254" autocomplete="email"></label>
                                     <label>Telefone / WhatsApp<input type="tel" name="telefone" maxlength="40" autocomplete="tel"></label>
                                     <label>CPF<input type="text" name="cpf" maxlength="24"></label>
-                                    <label>Aparelho / smartwatch<input type="text" name="smartwatch" list="pedidos-watch-options" required maxlength="160"></label>
+                                    <label>Marca
+                                        <input type="search" name="watchBrand" list="pedidos-brand-options" maxlength="80" autocomplete="off" placeholder="Garmin, Apple, Samsung…">
+                                    </label>
+                                    <label>Modelo / aparelho
+                                        <input type="text" name="smartwatch" list="pedidos-watch-options" required maxlength="160" autocomplete="off" placeholder="Filtre pela marca acima">
+                                    </label>
                                     <label>Produto / itens<input type="text" name="produto" list="pedidos-product-options" required maxlength="200"></label>
                                     <label>Quantidade<input type="number" name="quantidade" min="1" max="1000" step="1" value="1" required></label>
                                     <label>Valor dos produtos (R$)<input type="number" name="valorProduto" min="0" step="0.01" required inputmode="decimal"></label>
@@ -940,7 +954,7 @@
                                     <label>Envio / transportadora<input type="text" name="shippingService" placeholder="Correios, motoboy, retirada..." maxlength="120"></label>
                                     <label>Código de rastreio<input type="text" name="trackingCode" maxlength="40"></label>
                                     <label>País<input type="text" name="pais" value="Brasil" maxlength="80" autocomplete="country-name"></label>
-                                    <label>CEP<input type="text" name="cep" maxlength="24" autocomplete="postal-code"></label>
+                                    <label>CEP / caixa postal<input type="text" name="cep" maxlength="24" autocomplete="postal-code"></label>
                                     <label>Rua / endereço<input type="text" name="rua" maxlength="200" autocomplete="street-address"></label>
                                     <label>Número<input type="text" name="numero" maxlength="40"></label>
                                     <label>Complemento<input type="text" name="complemento" maxlength="120"></label>
@@ -949,14 +963,14 @@
                                     <label>Estado / UF<input type="text" name="uf" maxlength="40" autocomplete="address-level1"></label>
                                     <label class="full">Observações<textarea name="observacoes" rows="3" maxlength="2000"></textarea></label>
                                 </div>
+                                <datalist id="pedidos-brand-options"></datalist>
                                 <datalist id="pedidos-watch-options"></datalist>
                                 <datalist id="pedidos-product-options"></datalist>
-                                <datalist id="pedidos-customer-options"></datalist>
                                 <input type="hidden" name="customerUserId" value="">
                                 <div class="admin-form-actions">
-                                    <button type="submit" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Registrar venda</button>
+                                    <button type="button" id="btn-pedidos-manual-save" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Registrar venda</button>
                                 </div>
-                            </form>
+                            </div>
                         </details>
                         <p id="pedidos-manual-status" class="admin-status form-status" hidden aria-live="polite"></p>
                         <div class="pedidos-filters">
@@ -1412,7 +1426,7 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=8"></script>
     <script src="js/correios-label-print.js?v=4"></script>
-    <script src="js/pedidos.js?v=71"></script>
+    <script src="js/pedidos.js?v=72"></script>
     <script src="js/traffic-origin.js?v=1"></script>
     <script>
     (function () {

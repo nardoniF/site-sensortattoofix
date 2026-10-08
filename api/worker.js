@@ -19654,6 +19654,172 @@ async function handleListOrders(request, env, origin) {
   return json(await listOrdersForAdmin(env), 200, origin);
 }
 
+/**
+ * Pedido externo / venda avulsa (WhatsApp etc.): já pago, entra em Pedidos + Vendas.
+ * Não inicia cobrança. Não baixa estoque. Marca paidEmailsSentAt para liberar e-mail de rastreio.
+ */
+async function handleCreateManualOrder(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Dados do pedido inválidos.' }, 400, origin);
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return json({ error: 'Dados do pedido inválidos.' }, 400, origin);
+  }
+
+  const nome = String(body.nome || '').trim();
+  const smartwatch = String(body.smartwatch || '').trim();
+  const produto = String(body.produto || '').trim();
+  const pagamento = String(body.pagamento || '').trim();
+  const customerUserId = String(body.customerUserId || '').trim();
+  const customer = customerUserId ? await getUserById(env, customerUserId) : null;
+  if (customerUserId && !customer) {
+    return json({ error: 'Cliente cadastrado não encontrado. Atualize a página e tente novamente.' }, 404, origin);
+  }
+  const quantidade = Number(body.quantidade);
+  const valorProdutoInput = Number(body.valorProduto);
+  const freteInput = Number(body.frete || 0);
+  const createdAtDate = new Date(body.createdAt);
+  if (!(nome || customer?.nome) || !smartwatch || !produto || !pagamento) {
+    return json({ error: 'Preencha cliente, aparelho, produto e forma de pagamento.' }, 400, origin);
+  }
+  if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 1000
+    || !Number.isFinite(valorProdutoInput) || valorProdutoInput < 0 || valorProdutoInput > 10000000
+    || !Number.isFinite(freteInput) || freteInput < 0 || freteInput > 10000000) {
+    return json({ error: 'Quantidade e valores informados são inválidos.' }, 400, origin);
+  }
+  if (!Number.isFinite(createdAtDate.getTime())) {
+    return json({ error: 'Informe uma data válida para a venda.' }, 400, origin);
+  }
+
+  const createdAt = createdAtDate.toISOString();
+  const valorProduto = Number(valorProdutoInput.toFixed(2));
+  const frete = Number(freteInput.toFixed(2));
+  const pais = String(body.pais || 'Brasil').trim().slice(0, 80);
+  const paisCode = String(body.paisCode || (/^(br|brasil|brazil)$/i.test(pais) ? 'BR' : 'OTHER')).trim().toUpperCase().slice(0, 8);
+  const customerAddress = customer?.address || {};
+  const rua = String(body.rua || customerAddress.rua || '').trim().slice(0, 200);
+  const numero = String(body.numero || customerAddress.numero || '').trim().slice(0, 40);
+  const complemento = String(body.complemento || customerAddress.complemento || '').trim().slice(0, 120);
+  const bairro = String(body.bairro || customerAddress.bairro || '').trim().slice(0, 120);
+  const cidade = String(body.cidade || customerAddress.cidade || '').trim().slice(0, 120);
+  const uf = String(body.uf || customerAddress.uf || '').trim().slice(0, 40);
+  const cep = String(body.cep || customerAddress.cep || '').trim().slice(0, 24);
+  const endereco = [
+    [rua, numero].filter(Boolean).join(', '),
+    complemento,
+    bairro,
+    [cidade, uf].filter(Boolean).join(' / '),
+    cep,
+    pais
+  ].map((part) => String(part || '').trim()).filter(Boolean).join(' — ');
+  const trackingCode = String(body.trackingCode || '').trim().toUpperCase().slice(0, 40);
+  const unitPrice = quantidade > 0 ? Number((valorProduto / quantidade).toFixed(2)) : valorProduto;
+  const order = {
+    orderId: generateOrderId(),
+    accessToken: crypto.randomUUID(),
+    createdAt,
+    paidAt: createdAt,
+    status: 'paid',
+    source: 'manual',
+    salesChannel: String(body.salesChannel || 'WhatsApp').trim().slice(0, 60),
+    userId: customer?.userId || null,
+    nome: String(body.nome || customer?.nome || '').trim().slice(0, 160),
+    email: String(body.email || customer?.email || '').trim().slice(0, 254),
+    telefone: String(body.telefone || customer?.telefone || '').trim().slice(0, 40),
+    cpf: String(body.cpf || customer?.cpf || '').trim().slice(0, 24),
+    smartwatch: smartwatch.slice(0, 160),
+    pais,
+    paisCode,
+    cep,
+    rua,
+    numero,
+    complemento,
+    bairro,
+    cidade,
+    uf,
+    endereco,
+    observacoes: String(body.observacoes || '').trim().slice(0, 2000),
+    items: [{
+      productId: 'manual',
+      id: 'manual',
+      name: produto.slice(0, 200),
+      qty: quantidade,
+      price: unitPrice,
+      requiresSmartwatch: true
+    }],
+    produto: `${quantidade}x ${produto}`.slice(0, 500),
+    valorProduto,
+    frete,
+    total: Number((valorProduto + frete).toFixed(2)),
+    currency: 'BRL',
+    displayCurrency: 'BRL',
+    pagamento: pagamento.slice(0, 80),
+    paymentMethod: pagamento.slice(0, 80),
+    paymentProvider: 'manual',
+    shippingService: String(body.shippingService || 'A combinar').trim().slice(0, 120) || 'A combinar',
+    shippingProvider: null,
+    shippingMethodId: trackingCode ? (inferShippingMethodFromTracking(trackingCode) || null) : null,
+    correiosTrackingCode: trackingCode || undefined,
+    checkoutLocale: 'pt',
+    // Libera e-mail de rastreio / pós-venda sem reenviar “pagamento confirmado” ao cliente.
+    paidEmailsSentAt: createdAt,
+    stockDecremented: true,
+    paymentProof: {
+      provider: 'manual',
+      value: Number((valorProduto + frete).toFixed(2)),
+      confirmedBy: 'admin-manual',
+      confirmedAt: createdAt,
+      salesChannel: String(body.salesChannel || 'WhatsApp').trim().slice(0, 60)
+    }
+  };
+
+  await saveOrder(env, order);
+
+  const config = await getConfig(env);
+  try {
+    await notifyShop(env, config, emailSubject(config, 'shopPaidSubject', { orderId: order.orderId }), {
+      Pedido: order.orderId,
+      Status: 'PAGO (venda avulsa / externa)',
+      Canal: order.salesChannel,
+      Cliente: order.nome,
+      'E-mail': order.email || '—',
+      Telefone: order.telefone || '—',
+      Smartwatch: order.smartwatch,
+      Produto: order.produto,
+      Pagamento: order.pagamento,
+      'Valor produto': formatBRL(order.valorProduto),
+      Frete: formatBRL(order.frete),
+      Total: formatBRL(order.total),
+      Endereço: order.endereco || '—',
+      ...(trackingCode ? { Rastreio: trackingCode } : {})
+    });
+  } catch (err) {
+    console.warn('Manual order shop mail:', order.orderId, err.message);
+  }
+
+  let trackingEmail = { skipped: true };
+  if (trackingCode) {
+    try {
+      trackingEmail = await maybeNotifyTrackingAvailable(env, config, order) || { skipped: true };
+    } catch (err) {
+      console.warn('Manual order tracking mail:', order.orderId, err.message);
+      trackingEmail = { skipped: true, error: err.message };
+    }
+  }
+
+  return json({
+    ok: true,
+    order,
+    trackingEmailSent: !!(trackingEmail && trackingEmail.ok),
+    trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped)
+  }, 201, origin);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const origin = resolveRequestOrigin(request);
@@ -19767,6 +19933,9 @@ export default {
 
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
+      if (path === '/admin/orders/manual' && request.method === 'POST') {
+        return handleCreateManualOrder(request, env, origin);
+      }
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
       if (path === '/admin/report/monthly-clicks' && request.method === 'POST') {
         return handleAdminMonthlyReport(request, env, origin);
