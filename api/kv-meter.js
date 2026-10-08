@@ -114,6 +114,13 @@ export async function markKvWriteQuotaExhausted() {
   } catch (_) { /* ignore */ }
 }
 
+export async function clearKvWriteQuotaExhausted() {
+  const day = utcDayKey();
+  try {
+    await caches.default.delete(exhaustedReq(day));
+  } catch (_) { /* ignore */ }
+}
+
 export async function isKvWriteQuotaExhaustedMarked() {
   try {
     return !!(await caches.default.match(exhaustedReq()));
@@ -122,9 +129,18 @@ export async function isKvWriteQuotaExhaustedMarked() {
   }
 }
 
+/**
+ * Só erros reais de cota KV. Evita falso positivo em mensagens genéricas com "limit"
+ * (ex.: validação, rate-limit de login) que marcavam o dia inteiro como exhausted.
+ */
 export function isKvQuotaError(err) {
   const msg = String(err?.message || err || '').toLowerCase();
-  return /429|quota|limit|put.*exceed|exceed.*put|write.*limit|delete.*exceed/i.test(msg);
+  if (!msg) return false;
+  if (/\b429\b/.test(msg) && /kv|put|write|delete|namespace|store_kv/.test(msg)) return true;
+  if (/quota/.test(msg) && /kv|write|put|delete|storage/.test(msg)) return true;
+  if (/daily.*(write|put|delete).*(limit|exceed|quota)|(write|put|delete).*(limit|exceed).*daily/.test(msg)) return true;
+  if (/put.*exceed|exceed.*put|write.*exceed|exceed.*write|delete.*exceed|exceed.*delete/.test(msg)) return true;
+  return false;
 }
 
 function cfCredentials(env) {
@@ -232,7 +248,12 @@ export async function fetchCloudflareKvUsage(env, { forceRefresh = false } = {})
   const listLimit = KV_FREE_LISTS_PER_DAY;
   const percent = pctOf(writesToday, writeLimit);
   const readPercent = pctOf(readsToday, readLimit);
-  const hardExhausted = await isKvWriteQuotaExhaustedMarked();
+  let hardExhausted = await isKvWriteQuotaExhaustedMarked();
+  // Contador oficial ainda abaixo do free → limpa marca sticky de falso positivo.
+  if (hardExhausted && writesToday < writeLimit) {
+    await clearKvWriteQuotaExhausted();
+    hardExhausted = false;
+  }
   const overFreeLimit = writesToday >= writeLimit;
   const resets = resetFields();
 

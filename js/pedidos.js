@@ -92,7 +92,9 @@
     if (exhausted) {
       flagClass = 'clicks-kv--full';
       icon = 'fa-ban';
-      text = `KV recusou write — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}. Pedido da loja vai no D1; só criar conta ainda usa KV. Renova às ${resetBr}.`;
+      text = wUsed < wMax
+        ? `KV teve recusa pontual de write (alerta do dia). Contador: ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}. Pedidos da loja (incl. venda avulsa) vão no D1 e seguem gravando; conta/sessão ainda usam KV. Renova às ${resetBr}.`
+        : `KV recusou write — ${wUsed.toLocaleString('pt-BR')} / ${wMax.toLocaleString('pt-BR')}. Pedido da loja vai no D1; só criar conta ainda usa KV. Renova às ${resetBr}.`;
     } else if (over || critical) {
       flagClass = over ? 'clicks-kv--warn' : 'clicks-kv--full';
       icon = 'fa-exclamation-triangle';

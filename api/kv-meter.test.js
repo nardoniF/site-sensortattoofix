@@ -28,5 +28,9 @@ test('pctOf caps at 100 and handles zero limit', () => {
 
 test('isKvQuotaError detects quota messages', () => {
   assert.equal(isKvQuotaError(new Error('KV put exceed daily quota')), true);
+  assert.equal(isKvQuotaError(new Error('Exceeded daily write limit for KV')), true);
   assert.equal(isKvQuotaError(new Error('network fail')), false);
+  // "limit" genérico não pode marcar o dia inteiro (falso exhausted com 329/1000).
+  assert.equal(isKvQuotaError(new Error('login rate limit exceeded')), false);
+  assert.equal(isKvQuotaError(new Error('quantity limit is 1000')), false);
 });
