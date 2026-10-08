@@ -5,6 +5,7 @@
   let allOrders = [];
   let wired = false;
   let manualCustomersCache = [];
+  let manualAccountCustomersCache = [];
   let manualCustomersLoaded = false;
   let manualCustomersLoading = null;
   const selectedOrderIds = new Set();
@@ -176,6 +177,17 @@
     els.status.textContent = msg;
     els.status.className = 'admin-status form-status ' + (type || '');
     els.status.hidden = !msg;
+  }
+
+  function showManualOrderStatus(msg, type) {
+    const status = $('pedidos-manual-status');
+    if (!status) {
+      showStatus(msg, type);
+      return;
+    }
+    status.textContent = msg;
+    status.className = 'admin-status form-status ' + (type || '');
+    status.hidden = !msg;
   }
 
   function orderShortLabel(o) {
@@ -2155,7 +2167,7 @@
   }
 
   function manualCustomerOptionLabel(customer) {
-    return [customer.nome || 'Sem nome', customer.email].filter(Boolean).join(' — ');
+    return [customer.nome || 'Sem nome', customer.email || customer.telefone || customer.orderId].filter(Boolean).join(' — ');
   }
 
   function customerNameKey(name) {
@@ -2171,6 +2183,69 @@
     return exactNameMatches.length === 1 ? exactNameMatches[0] : null;
   }
 
+  function manualCustomerKey(customer) {
+    const email = String(customer.email || '').trim().toLocaleLowerCase('pt-BR');
+    if (email) return 'email:' + email;
+    const phone = String(customer.telefone || '').replace(/\D/g, '');
+    if (phone) return 'phone:' + phone;
+    const address = customer.address || {};
+    return ['name', customerNameKey(customer.nome), address.cep, address.rua, address.numero, address.cidade]
+      .map((value) => String(value || '').trim().toLocaleLowerCase('pt-BR')).join(':');
+  }
+
+  function renderManualCustomerOptions() {
+    const list = $('pedidos-customer-options');
+    if (!list) return;
+    const merged = new Map();
+
+    // allOrders is newest-first, so the first address for a buyer is the latest purchase address.
+    allOrders.forEach((order) => {
+      const customer = {
+        userId: order.userId || '',
+        nome: order.nome || '',
+        email: order.email || '',
+        telefone: order.telefone || '',
+        cpf: order.cpf || '',
+        orderId: order.orderId || '',
+        pais: order.pais || 'Brasil',
+        address: {
+          cep: order.cep,
+          rua: order.rua,
+          numero: order.numero,
+          complemento: order.complemento,
+          bairro: order.bairro,
+          cidade: order.cidade,
+          uf: order.uf
+        }
+      };
+      if (!customer.nome) return;
+      const key = manualCustomerKey(customer);
+      if (!merged.has(key)) merged.set(key, customer);
+    });
+    manualAccountCustomersCache.forEach((account) => {
+      const key = manualCustomerKey(account);
+      const latestOrder = merged.get(key);
+      if (!latestOrder) {
+        merged.set(key, account);
+        return;
+      }
+      const hasOrderAddress = Object.values(latestOrder.address || {}).some(Boolean);
+      merged.set(key, {
+        ...account,
+        ...latestOrder,
+        userId: account.userId || latestOrder.userId,
+        address: hasOrderAddress ? latestOrder.address : account.address
+      });
+    });
+
+    manualCustomersCache = [...merged.values()];
+    list.replaceChildren(...manualCustomersCache.map((customer) => {
+      const option = document.createElement('option');
+      option.value = manualCustomerOptionLabel(customer);
+      return option;
+    }));
+  }
+
   function applyManualCustomer(customer) {
     const form = $('pedidos-manual-form');
     if (!form || !customer) return;
@@ -2180,7 +2255,7 @@
       email: customer.email,
       telefone: customer.telefone,
       cpf: customer.cpf,
-      pais: 'Brasil',
+      pais: customer.pais || 'Brasil',
       cep: address.cep,
       rua: address.rua,
       numero: address.numero,
@@ -2211,12 +2286,8 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Não foi possível carregar os clientes.');
-      manualCustomersCache = Array.isArray(data.customers) ? data.customers.filter((customer) => customer.userId) : [];
-      list.replaceChildren(...manualCustomersCache.map((customer) => {
-        const option = document.createElement('option');
-        option.value = manualCustomerOptionLabel(customer);
-        return option;
-      }));
+      manualAccountCustomersCache = Array.isArray(data.customers) ? data.customers.filter((customer) => customer.userId) : [];
+      renderManualCustomerOptions();
       manualCustomersLoaded = true;
     })();
     try {
@@ -2274,6 +2345,7 @@
       throw new Error(data?.error || 'Resposta inválida da API de pedidos.');
     }
     allOrders = data;
+    renderManualCustomerOptions();
     await refreshCorreiosTracking(allOrders);
     applyFilters();
     loadKvQuota().catch(() => {});
@@ -2311,6 +2383,10 @@
     const manualOrderForm = $('pedidos-manual-form');
     const saleDateInput = manualOrderForm?.elements?.saleDate;
     const customerNameInput = manualOrderForm?.elements?.nome;
+    manualOrderForm?.addEventListener('invalid', (event) => {
+      const fieldName = event.target?.labels?.[0]?.textContent?.trim() || 'um campo obrigatório';
+      showManualOrderStatus(`Confira ${fieldName}. O navegador bloqueou o envio porque esse campo está inválido ou vazio.`, 'error');
+    }, true);
     customerNameInput?.addEventListener('input', (event) => {
       const customer = matchManualCustomer(event.currentTarget.value);
       if (customer) {
@@ -2327,23 +2403,36 @@
     manualOrderForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const submitButton = manualOrderForm.querySelector('[type="submit"]');
-      const formData = Object.fromEntries(new FormData(manualOrderForm).entries());
-      const [year, month, day] = String(formData.saleDate || '').split('-').map(Number);
-      formData.createdAt = new Date(year, month - 1, day, 12).toISOString();
-      formData.quantidade = Number(formData.quantidade);
-      formData.valorProduto = Number(formData.valorProduto);
-      formData.frete = Number(formData.frete || 0);
-      delete formData.saleDate;
+      const submitLabel = submitButton?.innerHTML;
+      let manualSubmitTimeout = null;
       if (submitButton) submitButton.disabled = true;
-      showStatus('Registrando venda avulsa...', '');
+      if (submitButton) submitButton.textContent = 'Salvando...';
+      showManualOrderStatus('Salvando venda avulsa...', '');
       try {
-        const res = await fetch(apiBase() + '/admin/orders/manual', {
+        const formData = Object.fromEntries(new FormData(manualOrderForm).entries());
+        const [year, month, day] = String(formData.saleDate || '').split('-').map(Number);
+        const saleDate = new Date(year, month - 1, day, 12);
+        if (!Number.isFinite(saleDate.getTime())) throw new Error('Informe uma data de venda válida.');
+        formData.createdAt = saleDate.toISOString();
+        formData.quantidade = Number(formData.quantidade);
+        formData.valorProduto = Number(formData.valorProduto);
+        formData.frete = Number(formData.frete || 0);
+        delete formData.saleDate;
+        const base = apiBase();
+        if (!base) throw new Error('A URL da API não está configurada.');
+        const controller = new AbortController();
+        manualSubmitTimeout = setTimeout(() => controller.abort(), 30000);
+        const res = await fetch(base + '/admin/orders/manual', {
           method: 'POST',
           headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(formData),
+          signal: controller.signal
         });
+        clearTimeout(manualSubmitTimeout);
+        manualSubmitTimeout = null;
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Não foi possível registrar a venda.');
+        if (!res.ok) throw new Error(data.error || `A API recusou o registro (HTTP ${res.status}).`);
+        if (!data.order?.orderId) throw new Error('A API respondeu sem confirmar o número do pedido. Atualize a lista antes de tentar novamente para evitar duplicidade.');
         allOrders = [data.order, ...allOrders.filter((order) => order.orderId !== data.order?.orderId)];
         applyFilters();
         manualOrderForm.reset();
@@ -2353,11 +2442,18 @@
         }
         const entry = manualOrderForm.closest('details');
         if (entry) entry.open = false;
-        showStatus(`Venda registrada como pedido ${data.order.orderId}. Ela já está disponível na contabilidade de Vendas.`, 'success');
+        showManualOrderStatus(`Venda registrada como pedido ${data.order.orderId}. Ela já está disponível na contabilidade de Vendas.`, 'success');
       } catch (err) {
-        showStatus(err.message || 'Não foi possível registrar a venda.', 'error');
+        const message = err.name === 'AbortError'
+          ? 'A conexão demorou demais para confirmar. Atualize a lista e confira nome/data antes de reenviar, para evitar duplicidade.'
+          : (err instanceof TypeError
+            ? 'Não consegui confirmar a resposta da API. Atualize a lista e confira nome/data antes de reenviar, para evitar duplicidade.'
+            : `${err.message || 'Não foi possível registrar a venda.'} Seus dados continuam preenchidos.`);
+        showManualOrderStatus(message, 'error');
       } finally {
+        if (manualSubmitTimeout) clearTimeout(manualSubmitTimeout);
         if (submitButton) submitButton.disabled = false;
+        if (submitButton && submitLabel) submitButton.innerHTML = submitLabel;
       }
     });
     $('btn-delete-selected')?.addEventListener('click', () => {
