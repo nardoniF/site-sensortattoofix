@@ -2154,17 +2154,56 @@
     fillDatalist('pedidos-watch-options', modelNames);
   }
 
+  function manualCustomerOptionLabel(customer) {
+    return [customer.nome || 'Sem nome', customer.email].filter(Boolean).join(' — ');
+  }
+
+  function customerNameKey(name) {
+    return String(name || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function matchManualCustomer(value) {
+    const text = String(value || '').trim();
+    if (!text) return null;
+    const selectedOption = manualCustomersCache.find((customer) => manualCustomerOptionLabel(customer) === text);
+    if (selectedOption) return selectedOption;
+    const exactNameMatches = manualCustomersCache.filter((customer) => customerNameKey(customer.nome) === customerNameKey(text));
+    return exactNameMatches.length === 1 ? exactNameMatches[0] : null;
+  }
+
+  function applyManualCustomer(customer) {
+    const form = $('pedidos-manual-form');
+    if (!form || !customer) return;
+    const address = customer.address || {};
+    const values = {
+      nome: customer.nome,
+      email: customer.email,
+      telefone: customer.telefone,
+      cpf: customer.cpf,
+      pais: 'Brasil',
+      cep: address.cep,
+      rua: address.rua,
+      numero: address.numero,
+      complemento: address.complemento,
+      bairro: address.bairro,
+      cidade: address.cidade,
+      uf: address.uf
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      const field = form.elements.namedItem(name);
+      if (field) field.value = value || '';
+    });
+    const linkedId = form.elements.namedItem('customerUserId');
+    if (linkedId) linkedId.value = customer.userId;
+  }
+
   async function loadManualCustomerOptions() {
-    const select = $('pedidos-manual-form')?.elements?.customerUserId;
+    const list = $('pedidos-customer-options');
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
-    if (!select || !token || !base || manualCustomersLoaded) return;
+    if (!list || !token || !base || manualCustomersLoaded) return;
     if (manualCustomersLoading) return manualCustomersLoading;
 
-    const loadingOption = document.createElement('option');
-    loadingOption.value = '';
-    loadingOption.textContent = 'Carregando cadastros...';
-    select.replaceChildren(loadingOption);
     manualCustomersLoading = (async () => {
       const res = await fetch(base + '/admin/customers', {
         headers: { Authorization: 'Bearer ' + token },
@@ -2173,26 +2212,18 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Não foi possível carregar os clientes.');
       manualCustomersCache = Array.isArray(data.customers) ? data.customers.filter((customer) => customer.userId) : [];
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = 'Novo cliente / sem vínculo';
-      select.replaceChildren(defaultOption);
-      manualCustomersCache.forEach((customer) => {
+      list.replaceChildren(...manualCustomersCache.map((customer) => {
         const option = document.createElement('option');
-        option.value = customer.userId;
-        option.textContent = [customer.nome || 'Sem nome', customer.email].filter(Boolean).join(' · ');
-        select.appendChild(option);
-      });
+        option.value = manualCustomerOptionLabel(customer);
+        return option;
+      }));
       manualCustomersLoaded = true;
     })();
     try {
       await manualCustomersLoading;
     } catch (err) {
-      const fallbackOption = document.createElement('option');
-      fallbackOption.value = '';
-      fallbackOption.textContent = 'Lista indisponível; preencha manualmente';
-      select.replaceChildren(fallbackOption);
-      select.title = err.message || 'Não foi possível carregar os clientes.';
+      const nameInput = $('pedidos-manual-form')?.elements?.nome;
+      if (nameInput) nameInput.title = `${err.message || 'Clientes cadastrados indisponíveis.'} Você ainda pode digitar um cliente novo.`;
     } finally {
       manualCustomersLoading = null;
     }
@@ -2279,28 +2310,15 @@
     $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
     const manualOrderForm = $('pedidos-manual-form');
     const saleDateInput = manualOrderForm?.elements?.saleDate;
-    manualOrderForm?.elements?.customerUserId?.addEventListener('change', (event) => {
-      const customer = manualCustomersCache.find((item) => item.userId === event.currentTarget.value);
-      if (!customer) return;
-      const address = customer.address || {};
-      const values = {
-        nome: customer.nome,
-        email: customer.email,
-        telefone: customer.telefone,
-        cpf: customer.cpf,
-        pais: 'Brasil',
-        cep: address.cep,
-        rua: address.rua,
-        numero: address.numero,
-        complemento: address.complemento,
-        bairro: address.bairro,
-        cidade: address.cidade,
-        uf: address.uf
-      };
-      Object.entries(values).forEach(([name, value]) => {
-        const field = manualOrderForm.elements.namedItem(name);
-        if (field) field.value = value || '';
-      });
+    const customerNameInput = manualOrderForm?.elements?.nome;
+    customerNameInput?.addEventListener('input', (event) => {
+      const customer = matchManualCustomer(event.currentTarget.value);
+      if (customer) {
+        applyManualCustomer(customer);
+        return;
+      }
+      const linkedId = manualOrderForm.elements.namedItem('customerUserId');
+      if (linkedId) linkedId.value = '';
     });
     if (saleDateInput && !saleDateInput.value) {
       const today = new Date();

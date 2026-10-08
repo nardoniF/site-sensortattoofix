@@ -79,12 +79,9 @@
                     <p class="admin-meta">Registra uma venda já concluída como pedido pago, sem iniciar cobrança ou alterar estoque.</p>
                     <form id="pedidos-manual-form" class="admin-form">
                         <div class="form-grid">
-                            <label class="full">Cliente cadastrado (preenche contato e endereço)
-                                <select name="customerUserId"><option value="">Novo cliente / sem vínculo</option></select>
-                            </label>
                             <label>Data da venda<input type="date" name="saleDate" required></label>
                             <label>Canal<select name="salesChannel"><option>WhatsApp</option><option>Instagram</option><option>Telefone</option><option>Presencial</option><option>Outro</option></select></label>
-                            <label>Nome do cliente<input type="text" name="nome" required maxlength="160" autocomplete="name"></label>
+                            <label class="full">Nome do cliente<input type="text" name="nome" list="pedidos-customer-options" required maxlength="160" autocomplete="name" placeholder="Digite o nome ou escolha uma sugestão"></label>
                             <label>E-mail<input type="email" name="email" maxlength="254" autocomplete="email"></label>
                             <label>Telefone / WhatsApp<input type="tel" name="telefone" maxlength="40" autocomplete="tel"></label>
                             <label>CPF<input type="text" name="cpf" maxlength="24"></label>
@@ -108,6 +105,8 @@
                         </div>
                         <datalist id="pedidos-watch-options"></datalist>
                         <datalist id="pedidos-product-options"></datalist>
+                        <datalist id="pedidos-customer-options"></datalist>
+                        <input type="hidden" name="customerUserId" value="">
                         <div class="admin-form-actions">
                             <button type="submit" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Registrar venda</button>
                         </div>
@@ -157,6 +156,6 @@
     <script src="js/order-letters.js"></script>
     <script src="js/order-label.js?v=8"></script>
     <script src="js/correios-label-print.js?v=4"></script>
-    <script src="js/pedidos.js?v=68"></script>
+    <script src="js/pedidos.js?v=69"></script>
 </body>
 </html>
