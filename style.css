@@ -5603,6 +5603,25 @@ body.admin-page.pedidos-login-only #pedidos-login {
 
 /* PEDIDOS */
 .pedidos-container { max-width: 1280px; }
+.pedidos-manual-entry {
+    margin: 0 0 18px;
+    padding: 12px 14px;
+    border: 1px solid #383838;
+    border-radius: 6px;
+    background: #111;
+}
+.pedidos-manual-entry > summary {
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 700;
+}
+.pedidos-manual-entry > summary i { margin-right: 6px; }
+.pedidos-manual-entry > .admin-meta { margin: 10px 0; }
+.pedidos-manual-entry .admin-form { margin-top: 14px; }
+.pedidos-manual-entry .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 640px) {
+    .pedidos-manual-entry .form-grid { grid-template-columns: 1fr; }
+}
 .pedidos-filters {
     display: flex;
     gap: 12px;

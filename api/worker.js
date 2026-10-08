@@ -19050,6 +19050,97 @@ async function handleListOrders(request, env, origin) {
   return json(await listOrdersForAdmin(env), 200, origin);
 }
 
+async function handleCreateManualOrder(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Dados do pedido inválidos.' }, 400, origin);
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return json({ error: 'Dados do pedido inválidos.' }, 400, origin);
+  }
+
+  const nome = String(body.nome || '').trim();
+  const smartwatch = String(body.smartwatch || '').trim();
+  const produto = String(body.produto || '').trim();
+  const pagamento = String(body.pagamento || '').trim();
+  const quantidade = Number(body.quantidade);
+  const valorProdutoInput = Number(body.valorProduto);
+  const freteInput = Number(body.frete || 0);
+  const createdAtDate = new Date(body.createdAt);
+  if (!nome || !smartwatch || !produto || !pagamento) {
+    return json({ error: 'Preencha cliente, aparelho, produto e forma de pagamento.' }, 400, origin);
+  }
+  if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 1000
+    || !Number.isFinite(valorProdutoInput) || valorProdutoInput < 0 || valorProdutoInput > 10000000
+    || !Number.isFinite(freteInput) || freteInput < 0 || freteInput > 10000000) {
+    return json({ error: 'Quantidade e valores informados são inválidos.' }, 400, origin);
+  }
+  if (!Number.isFinite(createdAtDate.getTime())) {
+    return json({ error: 'Informe uma data válida para a venda.' }, 400, origin);
+  }
+
+  const createdAt = createdAtDate.toISOString();
+  const valorProduto = Number(valorProdutoInput.toFixed(2));
+  const frete = Number(freteInput.toFixed(2));
+  const pais = String(body.pais || 'Brasil').trim().slice(0, 80);
+  const paisCode = String(body.paisCode || (/^(br|brasil|brazil)$/i.test(pais) ? 'BR' : 'OTHER')).trim().toUpperCase().slice(0, 8);
+  const endereco = [
+    [body.rua, body.numero].filter(Boolean).join(', '),
+    body.complemento,
+    body.bairro,
+    [body.cidade, body.uf].filter(Boolean).join(' / '),
+    body.cep,
+    body.pais || 'Brasil'
+  ].map((part) => String(part || '').trim()).filter(Boolean).join(' — ');
+  const order = {
+    orderId: generateOrderId(),
+    accessToken: crypto.randomUUID(),
+    createdAt,
+    paidAt: createdAt,
+    status: 'paid',
+    source: 'manual',
+    salesChannel: String(body.salesChannel || 'WhatsApp').trim().slice(0, 60),
+    nome: nome.slice(0, 160),
+    email: String(body.email || '').trim().slice(0, 254),
+    telefone: String(body.telefone || '').trim().slice(0, 40),
+    cpf: String(body.cpf || '').trim().slice(0, 24),
+    smartwatch: smartwatch.slice(0, 160),
+    pais,
+    paisCode,
+    cep: String(body.cep || '').trim().slice(0, 24),
+    rua: String(body.rua || '').trim().slice(0, 200),
+    numero: String(body.numero || '').trim().slice(0, 40),
+    complemento: String(body.complemento || '').trim().slice(0, 120),
+    bairro: String(body.bairro || '').trim().slice(0, 120),
+    cidade: String(body.cidade || '').trim().slice(0, 120),
+    uf: String(body.uf || '').trim().slice(0, 40),
+    endereco,
+    observacoes: String(body.observacoes || '').trim().slice(0, 2000),
+    items: [{ id: 'manual', name: produto.slice(0, 200), qty: quantidade, price: valorProduto / quantidade }],
+    produto: `${quantidade}x ${produto}`.slice(0, 500),
+    valorProduto,
+    frete,
+    total: Number((valorProduto + frete).toFixed(2)),
+    currency: 'BRL',
+    displayCurrency: 'BRL',
+    pagamento: pagamento.slice(0, 80),
+    paymentMethod: pagamento.slice(0, 80),
+    paymentProvider: 'manual',
+    shippingService: String(body.shippingService || 'A combinar').trim().slice(0, 120),
+    shippingProvider: 'manual',
+    shippingMethodId: 'manual',
+    correiosTrackingCode: String(body.trackingCode || '').trim().toUpperCase().slice(0, 40),
+    checkoutLocale: 'pt'
+  };
+
+  await saveOrder(env, order);
+  return json({ ok: true, order }, 201, origin);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const origin = resolveRequestOrigin(request);
@@ -19163,6 +19254,9 @@ export default {
 
       if (path === '/admin/login' && request.method === 'POST') return handleLogin(request, env, origin);
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
+      if (path === '/admin/orders/manual' && request.method === 'POST') {
+        return handleCreateManualOrder(request, env, origin);
+      }
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
       if (path === '/admin/report/monthly-clicks' && request.method === 'POST') {
         return handleAdminMonthlyReport(request, env, origin);

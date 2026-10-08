@@ -2113,6 +2113,48 @@
   });
 
     $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
+    const manualOrderForm = $('pedidos-manual-form');
+    const saleDateInput = manualOrderForm?.elements?.saleDate;
+    if (saleDateInput && !saleDateInput.value) {
+      const today = new Date();
+      saleDateInput.value = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+    }
+    manualOrderForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submitButton = manualOrderForm.querySelector('[type="submit"]');
+      const formData = Object.fromEntries(new FormData(manualOrderForm).entries());
+      const [year, month, day] = String(formData.saleDate || '').split('-').map(Number);
+      formData.createdAt = new Date(year, month - 1, day, 12).toISOString();
+      formData.quantidade = Number(formData.quantidade);
+      formData.valorProduto = Number(formData.valorProduto);
+      formData.frete = Number(formData.frete || 0);
+      delete formData.saleDate;
+      if (submitButton) submitButton.disabled = true;
+      showStatus('Registrando venda avulsa...', '');
+      try {
+        const res = await fetch(apiBase() + '/admin/orders/manual', {
+          method: 'POST',
+          headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Não foi possível registrar a venda.');
+        allOrders = [data.order, ...allOrders.filter((order) => order.orderId !== data.order?.orderId)];
+        applyFilters();
+        manualOrderForm.reset();
+        if (saleDateInput) {
+          const now = new Date();
+          saleDateInput.value = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+        }
+        const entry = manualOrderForm.closest('details');
+        if (entry) entry.open = false;
+        showStatus(`Venda registrada como pedido ${data.order.orderId}. Ela já está disponível na contabilidade de Vendas.`, 'success');
+      } catch (err) {
+        showStatus(err.message || 'Não foi possível registrar a venda.', 'error');
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
+    });
     $('btn-delete-selected')?.addEventListener('click', () => {
       deleteSelectedOrders().catch((e) => showStatus(e.message, 'error'));
     });
