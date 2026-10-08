@@ -1102,6 +1102,22 @@
       }
     }
     if (o.paidAt) rows.push(detailRow('Pago em', formatDate(o.paidAt)));
+    if (o.status !== 'paid' && !o.paidAt) {
+      if (o.abandonedEmailSentAt) {
+        const weekly = Number(o.abandonedWeeklyCount) || 0;
+        rows.push(detailRow(
+          'E-mail abandono',
+          `Enviado ${formatDate(o.abandonedEmailSentAt)}`
+            + (weekly ? ` · ${weekly} lembrete(s) semanal(is)` : '')
+            + (o.abandonedEmailProvider ? ` · ${escHtml(o.abandonedEmailProvider)}` : '')
+            + ' · cópia BCC na loja'
+        ));
+      } else if (o.abandonedEmailError) {
+        rows.push(detailRow('E-mail abandono', `Falha: ${escHtml(o.abandonedEmailError)}`));
+      } else {
+        rows.push(detailRow('E-mail abandono', 'Ainda não enviado (cron ~15 min após o pedido)'));
+      }
+    }
     if (o.createdAt) rows.push(detailRow('Criado em', formatDate(o.createdAt)));
 
     const acerto = orderFreteEditSection(o);

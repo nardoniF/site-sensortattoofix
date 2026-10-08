@@ -4430,44 +4430,73 @@ async function notifyAbandonedCart(env, config, order, { weekly = false } = {}) 
             : loc === 'it'
             ? { Ordine: order.orderId, Stato: weekly ? 'Promemoria settimanale' : 'Checkout abbandonato', Totale: formatOrderCharge(order), 'Link ordine': mail.resumeUrl }
             : { Pedido: order.orderId, Status: weekly ? 'Lembrete semanal' : 'Checkout abandonado', Total: formatOrderCharge(order), 'Link do pedido': mail.resumeUrl };
+  const shopCopy = String(config.formsubmit?.email || '').trim();
   return notifyCustomer(env, config, order, mail.subject, fields, {
     html: mail.html,
-    text: mail.text
+    text: mail.text,
+    // Cópia oculta pra loja (mesmo padrão do e-mail de rastreio).
+    bcc: shopCopy || undefined
   });
 }
 
-async function runAbandonedCheckoutEmails(env) {
+/** Pedidos pendentes p/ abandono: D1 primeiro (fonte atual); KV index só como fallback. */
+async function listPendingOrdersForAbandonedCron(env) {
+  const fromD1 = await d1ListOrders(env, 2000);
+  if (fromD1.length) {
+    return fromD1
+      .filter((o) => o?.orderId && o.status !== 'paid' && !o.paidEmailsSentAt)
+      .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+  }
   const index = await readOrdersIndex(env);
+  const pending = [];
+  for (const item of index) {
+    if (!item?.orderId || item.status === 'paid') continue;
+    const order = await getOrder(env, item.orderId);
+    if (!order || order.status === 'paid' || order.paidEmailsSentAt) continue;
+    pending.push(order);
+  }
+  pending.sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+  return pending;
+}
+
+async function runAbandonedCheckoutEmails(env) {
+  const pending = await listPendingOrdersForAbandonedCron(env);
   const now = Date.now();
   const config = await getConfig(env);
   let sent = 0;
   let weeklySent = 0;
   let skipped = 0;
-  for (const item of index) {
+  let failed = 0;
+  for (const order of pending) {
     if (sent + weeklySent >= ABANDONED_CHECKOUT_CRON_MAX) break;
-    if (!item?.orderId || item.status === 'paid') continue;
-    const created = Date.parse(item.createdAt || '');
+    if (!order?.orderId || order.status === 'paid' || order.paidEmailsSentAt) continue;
+    const created = Date.parse(order.createdAt || '');
     if (!Number.isFinite(created) || (now - created) < ABANDONED_CHECKOUT_DELAY_MS) {
       skipped += 1;
       continue;
     }
-    const order = await getOrder(env, item.orderId);
-    if (!order || order.status === 'paid' || order.paidEmailsSentAt) continue;
 
-    // First recovery e-mail (~15 min after create)
+    // First recovery e-mail (~15 min after create) — só marca enviado após sucesso.
     if (!order.abandonedEmailSentAt) {
-      order.abandonedEmailSentAt = new Date().toISOString();
-      order.abandonedEmailLastAt = order.abandonedEmailSentAt;
-      order.abandonedWeeklyCount = 0;
-      await saveOrder(env, order);
       try {
         const result = await notifyAbandonedCart(env, config, order, { weekly: false });
         if (!result?.ok) {
+          failed += 1;
+          order.abandonedEmailError = result?.error || result?.resend?.error || 'send_failed';
+          await saveOrder(env, order);
           console.error('Abandoned checkout email failed:', order.orderId, JSON.stringify(result));
         } else {
+          const at = new Date().toISOString();
+          order.abandonedEmailSentAt = at;
+          order.abandonedEmailLastAt = at;
+          order.abandonedWeeklyCount = 0;
+          order.abandonedEmailError = null;
+          order.abandonedEmailProvider = result.provider || null;
+          await saveOrder(env, order);
           sent += 1;
         }
       } catch (err) {
+        failed += 1;
         console.error('Abandoned checkout email:', order.orderId, err.message);
       }
       continue;
@@ -4479,21 +4508,29 @@ async function runAbandonedCheckoutEmails(env) {
     if (!Number.isFinite(lastAt) || (now - lastAt) < ABANDONED_WEEKLY_MS) continue;
     if (weeklyCount >= ABANDONED_WEEKLY_MAX) continue;
 
-    order.abandonedEmailLastAt = new Date().toISOString();
-    order.abandonedWeeklyCount = weeklyCount + 1;
-    await saveOrder(env, order);
     try {
       const result = await notifyAbandonedCart(env, config, order, { weekly: true });
       if (!result?.ok) {
+        failed += 1;
+        order.abandonedEmailError = result?.error || result?.resend?.error || 'weekly_send_failed';
+        await saveOrder(env, order);
         console.error('Abandoned weekly email failed:', order.orderId, JSON.stringify(result));
       } else {
+        order.abandonedEmailLastAt = new Date().toISOString();
+        order.abandonedWeeklyCount = weeklyCount + 1;
+        order.abandonedEmailError = null;
+        order.abandonedEmailProvider = result.provider || null;
+        await saveOrder(env, order);
         weeklySent += 1;
       }
     } catch (err) {
+      failed += 1;
       console.error('Abandoned weekly email:', order.orderId, err.message);
     }
   }
-  return { ok: true, sent, weeklySent, skipped };
+  const summary = { ok: true, sent, weeklySent, skipped, failed, pending: pending.length };
+  console.log('Abandoned checkout cron:', JSON.stringify(summary));
+  return summary;
 }
 
 async function tryCorreiosLabelPdfAttachment(env, order, config) {
@@ -19935,6 +19972,12 @@ export default {
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/orders/manual' && request.method === 'POST') {
         return handleCreateManualOrder(request, env, origin);
+      }
+      if (path === '/admin/abandoned-emails/run' && request.method === 'POST') {
+        if (!(await isValidSession(env, bearerToken(request)))) {
+          return json({ error: 'Não autorizado.' }, 401, origin);
+        }
+        return json(await runAbandonedCheckoutEmails(env), 200, origin);
       }
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
       if (path === '/admin/report/monthly-clicks' && request.method === 'POST') {
