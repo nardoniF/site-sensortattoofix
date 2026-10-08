@@ -13978,6 +13978,7 @@ async function listAllCustomers(env, max = 500) {
         email: user.email,
         telefone: user.telefone,
         cpf: user.cpf || '',
+        address: user.address || null,
         createdAt: user.createdAt || null,
         orderCount: orderIds.length,
         isTester: !!user.isTester,
@@ -19067,11 +19068,14 @@ async function handleCreateManualOrder(request, env, origin) {
   const smartwatch = String(body.smartwatch || '').trim();
   const produto = String(body.produto || '').trim();
   const pagamento = String(body.pagamento || '').trim();
+  const customerUserId = String(body.customerUserId || '').trim();
+  const customer = customerUserId ? await getUserById(env, customerUserId) : null;
+  if (customerUserId && !customer) return json({ error: 'Cliente cadastrado não encontrado. Atualize a página e tente novamente.' }, 404, origin);
   const quantidade = Number(body.quantidade);
   const valorProdutoInput = Number(body.valorProduto);
   const freteInput = Number(body.frete || 0);
   const createdAtDate = new Date(body.createdAt);
-  if (!nome || !smartwatch || !produto || !pagamento) {
+  if (!(nome || customer?.nome) || !smartwatch || !produto || !pagamento) {
     return json({ error: 'Preencha cliente, aparelho, produto e forma de pagamento.' }, 400, origin);
   }
   if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 1000
@@ -19088,12 +19092,13 @@ async function handleCreateManualOrder(request, env, origin) {
   const frete = Number(freteInput.toFixed(2));
   const pais = String(body.pais || 'Brasil').trim().slice(0, 80);
   const paisCode = String(body.paisCode || (/^(br|brasil|brazil)$/i.test(pais) ? 'BR' : 'OTHER')).trim().toUpperCase().slice(0, 8);
+  const customerAddress = customer?.address || {};
   const endereco = [
-    [body.rua, body.numero].filter(Boolean).join(', '),
-    body.complemento,
-    body.bairro,
-    [body.cidade, body.uf].filter(Boolean).join(' / '),
-    body.cep,
+    [body.rua || customerAddress.rua, body.numero || customerAddress.numero].filter(Boolean).join(', '),
+    body.complemento || customerAddress.complemento,
+    body.bairro || customerAddress.bairro,
+    [body.cidade || customerAddress.cidade, body.uf || customerAddress.uf].filter(Boolean).join(' / '),
+    body.cep || customerAddress.cep,
     body.pais || 'Brasil'
   ].map((part) => String(part || '').trim()).filter(Boolean).join(' — ');
   const order = {
@@ -19104,20 +19109,21 @@ async function handleCreateManualOrder(request, env, origin) {
     status: 'paid',
     source: 'manual',
     salesChannel: String(body.salesChannel || 'WhatsApp').trim().slice(0, 60),
-    nome: nome.slice(0, 160),
-    email: String(body.email || '').trim().slice(0, 254),
-    telefone: String(body.telefone || '').trim().slice(0, 40),
-    cpf: String(body.cpf || '').trim().slice(0, 24),
+    userId: customer?.userId || null,
+    nome: String(body.nome || customer?.nome || '').trim().slice(0, 160),
+    email: String(body.email || customer?.email || '').trim().slice(0, 254),
+    telefone: String(body.telefone || customer?.telefone || '').trim().slice(0, 40),
+    cpf: String(body.cpf || customer?.cpf || '').trim().slice(0, 24),
     smartwatch: smartwatch.slice(0, 160),
     pais,
     paisCode,
-    cep: String(body.cep || '').trim().slice(0, 24),
-    rua: String(body.rua || '').trim().slice(0, 200),
-    numero: String(body.numero || '').trim().slice(0, 40),
-    complemento: String(body.complemento || '').trim().slice(0, 120),
-    bairro: String(body.bairro || '').trim().slice(0, 120),
-    cidade: String(body.cidade || '').trim().slice(0, 120),
-    uf: String(body.uf || '').trim().slice(0, 40),
+    cep: String(body.cep || customerAddress.cep || '').trim().slice(0, 24),
+    rua: String(body.rua || customerAddress.rua || '').trim().slice(0, 200),
+    numero: String(body.numero || customerAddress.numero || '').trim().slice(0, 40),
+    complemento: String(body.complemento || customerAddress.complemento || '').trim().slice(0, 120),
+    bairro: String(body.bairro || customerAddress.bairro || '').trim().slice(0, 120),
+    cidade: String(body.cidade || customerAddress.cidade || '').trim().slice(0, 120),
+    uf: String(body.uf || customerAddress.uf || '').trim().slice(0, 40),
     endereco,
     observacoes: String(body.observacoes || '').trim().slice(0, 2000),
     items: [{ id: 'manual', name: produto.slice(0, 200), qty: quantidade, price: valorProduto / quantidade }],

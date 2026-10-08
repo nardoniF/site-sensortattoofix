@@ -79,14 +79,17 @@
                     <p class="admin-meta">Registra uma venda já concluída como pedido pago, sem iniciar cobrança ou alterar estoque.</p>
                     <form id="pedidos-manual-form" class="admin-form">
                         <div class="form-grid">
+                            <label class="full">Cliente cadastrado (preenche contato e endereço)
+                                <select name="customerUserId"><option value="">Novo cliente / sem vínculo</option></select>
+                            </label>
                             <label>Data da venda<input type="date" name="saleDate" required></label>
                             <label>Canal<select name="salesChannel"><option>WhatsApp</option><option>Instagram</option><option>Telefone</option><option>Presencial</option><option>Outro</option></select></label>
                             <label>Nome do cliente<input type="text" name="nome" required maxlength="160" autocomplete="name"></label>
                             <label>E-mail<input type="email" name="email" maxlength="254" autocomplete="email"></label>
                             <label>Telefone / WhatsApp<input type="tel" name="telefone" maxlength="40" autocomplete="tel"></label>
                             <label>CPF<input type="text" name="cpf" maxlength="24"></label>
-                            <label>Aparelho / smartwatch<input type="text" name="smartwatch" required maxlength="160"></label>
-                            <label>Produto / itens<input type="text" name="produto" required maxlength="200"></label>
+                            <label>Aparelho / smartwatch<input type="text" name="smartwatch" list="pedidos-watch-options" required maxlength="160"></label>
+                            <label>Produto / itens<input type="text" name="produto" list="pedidos-product-options" required maxlength="200"></label>
                             <label>Quantidade<input type="number" name="quantidade" min="1" max="1000" step="1" value="1" required></label>
                             <label>Valor dos produtos (R$)<input type="number" name="valorProduto" min="0" step="0.01" required inputmode="decimal"></label>
                             <label>Frete cobrado (R$)<input type="number" name="frete" min="0" step="0.01" value="0" inputmode="decimal"></label>
@@ -103,6 +106,8 @@
                             <label>Estado / UF<input type="text" name="uf" maxlength="40" autocomplete="address-level1"></label>
                             <label class="full">Observações<textarea name="observacoes" rows="3" maxlength="2000"></textarea></label>
                         </div>
+                        <datalist id="pedidos-watch-options"></datalist>
+                        <datalist id="pedidos-product-options"></datalist>
                         <div class="admin-form-actions">
                             <button type="submit" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Registrar venda</button>
                         </div>
@@ -152,6 +157,6 @@
     <script src="js/order-letters.js"></script>
     <script src="js/order-label.js?v=8"></script>
     <script src="js/correios-label-print.js?v=4"></script>
-    <script src="js/pedidos.js?v=67"></script>
+    <script src="js/pedidos.js?v=68"></script>
 </body>
 </html>
