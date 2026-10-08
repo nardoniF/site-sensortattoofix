@@ -26,7 +26,16 @@ test('pctOf caps at 100 and handles zero limit', () => {
   assert.equal(pctOf(10, 0), 0);
 });
 
-test('isKvQuotaError detects quota messages', () => {
+test('isKvQuotaError detects explicit quota rejections', () => {
   assert.equal(isKvQuotaError(new Error('KV put exceed daily quota')), true);
+  assert.equal(isKvQuotaError(new Error('KV put failed: 429 Too Many Requests')), true);
+  assert.equal(isKvQuotaError(Object.assign(new Error('KV write failed'), { status: 429 })), true);
+  assert.equal(isKvQuotaError(new Error('Daily write limit exceeded')), true);
   assert.equal(isKvQuotaError(new Error('network fail')), false);
+});
+
+test('isKvQuotaError ignores unrelated messages that merely mention a limit', () => {
+  assert.equal(isKvQuotaError(new Error('Key length exceeds the allowed limit')), false);
+  assert.equal(isKvQuotaError(new Error('Request limit must be between 1 and 50')), false);
+  assert.equal(isKvQuotaError(new Error('Quota configuration is unavailable')), false);
 });

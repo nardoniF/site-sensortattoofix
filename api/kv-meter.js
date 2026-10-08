@@ -34,11 +34,11 @@ function legacyClickWritesReq(day = utcDayKey()) {
 }
 
 function exhaustedReq(day = utcDayKey()) {
-  return new Request(`https://stf-internal/kv-writes-exhausted/${day}`);
+  return new Request(`https://stf-internal/kv-writes-exhausted-v2/${day}`);
 }
 
 function cfUsageReq(day = utcDayKey()) {
-  return new Request(`https://stf-internal/kv-cf-usage/${day}`);
+  return new Request(`https://stf-internal/kv-cf-usage-v2/${day}`);
 }
 
 function cfD1UsageReq(day = utcDayKey()) {
@@ -123,8 +123,10 @@ export async function isKvWriteQuotaExhaustedMarked() {
 }
 
 export function isKvQuotaError(err) {
+  const status = Number(err?.status || err?.statusCode || err?.response?.status);
+  if (status === 429) return true;
   const msg = String(err?.message || err || '').toLowerCase();
-  return /429|quota|limit|put.*exceed|exceed.*put|write.*limit|delete.*exceed/i.test(msg);
+  return /\b429\b|too many requests|rate limit (?:has been )?exceeded|quota (?:has been )?(?:exceeded|exhausted)|(?:exceeded|exhausted) (?:the )?(?:(?:daily|free[- ]tier) )?(?:kv )?(?:write|delete|request )?quota|(?:daily|free[- ]tier) (?:kv )?(?:write|delete )?quota (?:has been )?(?:exceeded|exhausted)|(?:write|delete) limit (?:has been )?exceeded|(?:limit|maximum) (?:of )?\d* ?(?:kv )?(?:writes?|deletes?) (?:has been )?exceeded|put.*exceed.*(?:daily )?quota/i.test(msg);
 }
 
 function cfCredentials(env) {
