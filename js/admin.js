@@ -2350,16 +2350,41 @@
     return Array.from(map.values()).sort((a, b) => String(b.key).localeCompare(String(a.key)));
   }
 
+  /** Só mês atual + 2 anteriores (mesmo recorte do comparativo Dias 1–N). */
+  function flexOwedLastThreeMonths(sales) {
+    const now = brDateParts(Date.now());
+    const order = [0, -1, -2].map((delta) => {
+      const ym = shiftYearMonth(now.year, now.monthNum, delta);
+      return `${ym.year}-${ym.monthNum}`;
+    });
+    const allowed = new Set(order);
+    const byKey = new Map(aggregateFlexOwedByMonth(sales).map((m) => [m.key, m]));
+    return order.map((key) => {
+      const hit = byKey.get(key);
+      if (hit) return hit;
+      const [year, monthNum] = key.split('-');
+      return {
+        key,
+        year,
+        monthNum,
+        name: MONTH_LABELS[monthNum] || monthNum,
+        count: 0,
+        owed: 0,
+        bonus: 0,
+        net: 0
+      };
+    }).filter((m) => allowed.has(m.key));
+  }
+
   function renderConsolidadoFlexOwed(sales) {
-    const months = aggregateFlexOwedByMonth(sales);
+    const months = flexOwedLastThreeMonths(sales);
     const now = brDateParts(Date.now());
     const currentKey = `${now.year}-${now.monthNum}`;
     const thisMonth = months.find((m) => m.key === currentKey);
     const hint = thisMonth
       ? `${thisMonth.name} · ${thisMonth.count} · ${formatSalesBRL(thisMonth.owed)}`
       : (months.length ? `${months[0].name} · ${months[0].count} · ${formatSalesBRL(months[0].owed)}` : '—');
-    const body = months.length
-      ? `<div class="vendas-consol-mtd-grid">${months.map((m) => {
+    const body = `<div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
@@ -2368,8 +2393,7 @@
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
       </article>`;
-      }).join('')}</div>`
-      : '<p class="admin-meta">Nenhum envio Flex no recorte carregado.</p>';
+      }).join('')}</div>`;
     return `<details class="admin-fold vendas-consol-flex-fold" id="vendas-consol-flex-fold" data-fold-key="vendas-flex">
       <summary class="admin-fold-summary">
         <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
@@ -2382,7 +2406,7 @@
 
   function buildFlexOwedExportRows(sales) {
     const rows = [['Mês', 'Envios Flex', 'A pagar (empresa)', 'Bônus ML', 'Custo líquido']];
-    aggregateFlexOwedByMonth(sales).forEach((m) => {
+    flexOwedLastThreeMonths(sales).forEach((m) => {
       rows.push([`${m.name} ${m.year}`, m.count, m.owed, m.bonus, m.net]);
     });
     return rows;
