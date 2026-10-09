@@ -3944,18 +3944,29 @@ body.admin-page.pedidos-login-only #pedidos-login {
     box-sizing: border-box;
     padding: 12px;
     background: #0a0a0a;
-    border: 1px solid #333;
+    border: 1px solid #222;
     color: #fff;
     border-radius: 8px;
     font-size: 0.95rem;
     font-weight: 400;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.admin-form input:not([type="checkbox"]):not([type="radio"]):focus,
+.admin-form textarea:focus,
+.admin-form select:focus {
+    border-color: #333;
+    outline: none;
+    box-shadow: none;
 }
 .admin-form small { color: var(--gray); font-weight: 400; font-size: 0.78rem; }
 .admin-form fieldset {
-    border: 1px solid #2a2a2a;
+    border: none;
     border-radius: 16px;
     padding: 20px;
     margin: 0;
+    background: transparent;
 }
 .admin-form legend {
     color: var(--primary);
@@ -4154,7 +4165,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .clicks-kv-note strong { color: #ccc; }
 .clicks-stats-details {
-    border: 1px solid #2a2a2a;
+    border: 1px solid #1a1a1a;
     border-radius: 10px;
     background: #101010;
     overflow: hidden;
@@ -4358,18 +4369,27 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .admin-clicks-search input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #333;
+    border: 1px solid #222;
     border-radius: 8px;
     background: #141414;
     color: #eee;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.admin-clicks-search input:focus {
+    border-color: #333;
+    outline: none;
+    box-shadow: none;
 }
 .admin-clicks-toolbar select {
     min-width: 180px;
     padding: 10px 12px;
-    border: 1px solid #333;
+    border: 1px solid #222;
     border-radius: 8px;
     background: #141414;
     color: #eee;
+    outline: none;
 }
 .admin-clicks-table td { font-size: 0.92rem; vertical-align: top; }
 .admin-click-dest {
@@ -5131,7 +5151,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .admin-fold {
     margin: 14px 0 12px;
-    border: 1px solid #2a2a2a;
+    border: 1px solid #1a1a1a;
     border-radius: 12px;
     background: #121212;
     overflow: hidden;
