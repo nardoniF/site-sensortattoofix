@@ -8080,3 +8080,31 @@ a.conta-forgot-link { display: inline-block; }
   font-size: 0.78rem;
   opacity: 0.7;
 }
+
+/* Admin: kill light/white fieldset & search contours (UA groove + #333) */
+body.admin-page .admin-form fieldset,
+body.admin-page fieldset {
+  border: none !important;
+  border-image: none !important;
+  outline: none;
+  box-shadow: none;
+}
+body.admin-page input[type="search"],
+body.admin-page input[type="text"],
+body.admin-page input[type="email"],
+body.admin-page input[type="number"],
+body.admin-page input[type="password"],
+body.admin-page input[type="tel"],
+body.admin-page input[type="url"],
+body.admin-page select,
+body.admin-page textarea {
+  border-color: #222;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+body.admin-page input[type="search"]::-webkit-search-decoration,
+body.admin-page input[type="search"]::-webkit-search-cancel-button,
+body.admin-page input[type="search"]::-webkit-search-results-button {
+  -webkit-appearance: none;
+}
