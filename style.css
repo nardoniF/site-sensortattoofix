@@ -5528,6 +5528,10 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 
 @media (min-width: 1100px) {
+  .vendas-consol-week13-line-cards {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  }
+}
 
 .vendas-when-filters {
     display: flex;
