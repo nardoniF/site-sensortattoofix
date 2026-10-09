@@ -3140,8 +3140,8 @@
   },
   "payments": {
     "paypal": {
-      "internationalEnabled": true,
-      "brazilEnabled": true
+      "internationalEnabled": false,
+      "brazilEnabled": false
     },
     "cardBr": {
       "provider": "asaas",

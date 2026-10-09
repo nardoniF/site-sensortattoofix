@@ -7567,8 +7567,10 @@ ${worksheets}
       f.apiBaseUrl.value = resolveApiBaseUrl((config.api && config.api.baseUrl) || bootstrap.configApiUrl || '');
     }
     const paypalCfg = config.payments?.paypal || {};
-    if (f.paypalIntlEnabled) f.paypalIntlEnabled.checked = paypalCfg.internationalEnabled !== false;
-    if (f.paypalBrEnabled) f.paypalBrEnabled.checked = paypalCfg.brazilEnabled !== false;
+    const paypalIntlEl = f?.querySelector?.('input[name="paypalIntlEnabled"]') || f?.paypalIntlEnabled;
+    const paypalBrEl = f?.querySelector?.('input[name="paypalBrEnabled"]') || f?.paypalBrEnabled;
+    if (paypalIntlEl) paypalIntlEl.checked = paypalCfg.internationalEnabled === true;
+    if (paypalBrEl) paypalBrEl.checked = paypalCfg.brazilEnabled === true;
     if (f.paypalAppLabel) f.paypalAppLabel.value = paypalCfg.appLabel || '';
     const cardBrCfg = config.payments?.cardBr || {};
     if (f.cardBrProvider) {
@@ -7646,6 +7648,14 @@ ${worksheets}
     } catch (err) {
       showStatus(err.message || 'Erro ao buscar CEP.', 'error', 'frete');
     }
+  }
+
+  /** Lê checkbox do form por name (querySelector — mais confiável que form.name.checked). */
+  function formCheckboxChecked(form, name, defaultValue = false) {
+    const el = form?.querySelector?.(`input[type="checkbox"][name="${name}"]`)
+      || document.querySelector(`#admin-config-form input[type="checkbox"][name="${name}"]`);
+    if (!el) return defaultValue;
+    return !!el.checked;
   }
 
   function collectForm() {
@@ -7737,17 +7747,17 @@ ${worksheets}
       },
       payments: {
         paypal: {
-          internationalEnabled: f.paypalIntlEnabled?.checked !== false,
-          brazilEnabled: f.paypalBrEnabled?.checked !== false,
-          appLabel: f.paypalAppLabel?.value.trim().slice(0, 120) || ''
+          internationalEnabled: formCheckboxChecked(f, 'paypalIntlEnabled'),
+          brazilEnabled: formCheckboxChecked(f, 'paypalBrEnabled'),
+          appLabel: (f.querySelector?.('input[name="paypalAppLabel"]') || f.paypalAppLabel)?.value?.trim().slice(0, 120) || ''
         },
         cardBr: {
           provider: f.cardBrProvider?.value === 'mercadopago' ? 'mercadopago' : 'asaas',
-          fallbackToAlternate: f.cardBrFallbackAlt?.checked !== false
+          fallbackToAlternate: formCheckboxChecked(f, 'cardBrFallbackAlt', true)
         },
         pixBr: {
           provider: f.pixBrProvider?.value === 'asaas' ? 'asaas' : 'mercadopago',
-          fallbackToAlternate: f.pixBrFallbackAlt?.checked !== false
+          fallbackToAlternate: formCheckboxChecked(f, 'pixBrFallbackAlt', true)
         }
       },
       smartwatchModels: flatModelsFromAdminCatalog(smartwatchCatalogState),
