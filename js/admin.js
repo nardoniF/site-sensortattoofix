@@ -2412,6 +2412,24 @@
     return rows;
   }
 
+  /** Dias de calendário BR inclusivos da 1ª venda até hoje (mín. 1). */
+  function brDaysSinceFirstSale(sales, asOfTs = Date.now()) {
+    let firstTs = Infinity;
+    (sales || []).forEach((s) => {
+      const t = Number(s._ts || 0);
+      if (t > 0 && t < firstTs) firstTs = t;
+    });
+    if (!Number.isFinite(firstTs) || firstTs === Infinity) {
+      return { days: 0, firstKey: '', firstLabel: '' };
+    }
+    const first = brDateParts(firstTs);
+    const today = brDateParts(asOfTs);
+    const t0 = Date.parse(`${first.dateKey}T12:00:00-03:00`);
+    const t1 = Date.parse(`${today.dateKey}T12:00:00-03:00`);
+    const days = Math.max(1, Math.round((t1 - t0) / 86400000) + 1);
+    return { days, firstKey: first.dateKey, firstLabel: first.dayLabel };
+  }
+
   function renderConsolidadoStats(sales) {
     const el = document.getElementById('vendas-consol-stats');
     if (!el) return;
@@ -2431,17 +2449,40 @@
       .map(([ch, row], i) =>
         `<div class="clicks-stats-row"><dt>${i + 1}º ${escapeHtml(salesChannelLabel(ch))}</dt><dd>${row.count} · ${formatSalesBRL(row.net)}</dd></div>`
       ).join('');
+    const span = brDaysSinceFirstSale(sales);
+    const avgNet = span.days > 0 ? tot.net / span.days : 0;
+    const avgQty = span.days > 0 ? tot.count / span.days : 0;
+    const avgQtyLabel = avgQty.toLocaleString('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+    const daysLabel = span.days.toLocaleString('pt-BR');
     el.innerHTML = `
-      <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${(sales || []).length} vendas</dd></div>
-      <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(tot.gross)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Comissão</dt><dd>${formatSalesBRL(tot.fees)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(tot.shipping || 0)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(tot.refunds || 0)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(tot.otherFees || 0)}</dd></div>
-      <div class="clicks-stats-row"><dt>(=) Líquido marketplace</dt><dd>${formatSalesBRL(tot.marketplace || 0)}</dd></div>
-      <div class="clicks-stats-row"><dt>(−) Custo do kit</dt><dd>${formatSalesBRL(tot.cogs || 0)}</dd></div>
-      <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(tot.net)}</dd></div>
-      ${chRows}`;
+      <div class="vendas-consol-stats-layout">
+        <div class="vendas-consol-stats-main">
+          <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${tot.count} vendas</dd></div>
+          <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(tot.gross)}</dd></div>
+          <div class="clicks-stats-row"><dt>(−) Comissão</dt><dd>${formatSalesBRL(tot.fees)}</dd></div>
+          <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(tot.shipping || 0)}</dd></div>
+          <div class="clicks-stats-row"><dt>(−) Estornos</dt><dd>${formatSalesBRL(tot.refunds || 0)}</dd></div>
+          <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(tot.otherFees || 0)}</dd></div>
+          <div class="clicks-stats-row"><dt>(=) Líquido marketplace</dt><dd>${formatSalesBRL(tot.marketplace || 0)}</dd></div>
+          <div class="clicks-stats-row"><dt>(−) Custo do kit</dt><dd>${formatSalesBRL(tot.cogs || 0)}</dd></div>
+          <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(tot.net)}</dd></div>
+          <div class="vendas-consol-stats-channels">${chRows}</div>
+        </div>
+        <aside class="vendas-consol-stats-side" aria-label="Médias desde a primeira venda">
+          <p class="vendas-consol-avg-kicker">Desde a 1ª venda · ${escapeHtml(daysLabel)} dia${span.days === 1 ? '' : 's'}</p>
+          <div class="vendas-consol-avg-card">
+            <p class="vendas-consol-avg-label">Média líquida / dia</p>
+            <p class="vendas-consol-avg-value">${formatSalesBRL(avgNet)}</p>
+            <p class="vendas-consol-avg-hint">Líquido real ÷ dias de calendário</p>
+          </div>
+          <div class="vendas-consol-avg-card">
+            <p class="vendas-consol-avg-label">Média qtd / dia</p>
+            <p class="vendas-consol-avg-value vendas-consol-avg-value--qty">${escapeHtml(avgQtyLabel)}</p>
+            <p class="vendas-consol-avg-hint">Vendas ÷ dias de calendário</p>
+          </div>
+          ${span.firstLabel ? `<p class="vendas-consol-avg-first">1ª venda: ${escapeHtml(span.firstLabel)}</p>` : ''}
+        </aside>
+      </div>`;
   }
 
   async function fetchConsolidatedSales() {
