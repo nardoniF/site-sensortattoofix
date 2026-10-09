@@ -2841,7 +2841,9 @@ ${worksheets}
       return byDayMap.get(String(day)) || empty(String(day), `Dia ${day}`, day);
     });
     const byMonthMap = new Map(aggregateSalesWhen(filtered, 'month').map((b) => [b.key, b]));
-    const months = Object.keys(MONTH_LABELS).map((num) => (
+    // Object.keys('01'..'12') no JS coloca 10/11/12 antes de 01–09 (índices inteiros).
+    // Força Janeiro→Dezembro do calendário (não é ano fiscal).
+    const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((num) => (
       byMonthMap.get(num) || empty(num, MONTH_LABELS[num], Number(num))
     ));
     root.innerHTML = [
