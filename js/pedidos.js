@@ -2059,8 +2059,37 @@
     fillDatalist('pedidos-watch-options', modelNames);
   }
 
+  function manualField(root, name) {
+    return root?.querySelector?.(`[name="${name}"]`) || null;
+  }
+
+  function manualFormValues(root) {
+    const data = {};
+    root?.querySelectorAll?.('input[name], select[name], textarea[name]')?.forEach((el) => {
+      if (el.disabled) return;
+      if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
+      data[el.name] = el.value;
+    });
+    return data;
+  }
+
+  function resetManualForm(root) {
+    root?.querySelectorAll?.('input, select, textarea')?.forEach((el) => {
+      if (el.disabled || el.type === 'hidden') return;
+      if (el.tagName === 'SELECT') {
+        el.selectedIndex = 0;
+        return;
+      }
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        el.checked = !!el.defaultChecked;
+        return;
+      }
+      el.value = el.defaultValue || '';
+    });
+  }
+
   async function loadManualCustomerOptions() {
-    const select = $('pedidos-manual-form')?.elements?.customerUserId;
+    const select = manualField($('pedidos-manual-form'), 'customerUserId');
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!select || !token || !base || manualCustomersLoaded) return;
@@ -2183,8 +2212,10 @@
 
     $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
     const manualOrderForm = $('pedidos-manual-form');
-    const saleDateInput = manualOrderForm?.elements?.saleDate;
-    manualOrderForm?.elements?.customerUserId?.addEventListener('change', (event) => {
+    const saleDateInput = manualField(manualOrderForm, 'saleDate');
+    const customerSelect = manualField(manualOrderForm, 'customerUserId');
+    const submitButton = $('btn-pedidos-manual-submit') || manualOrderForm?.querySelector?.('#btn-pedidos-manual-submit, [type="submit"]');
+    customerSelect?.addEventListener('change', (event) => {
       const customer = manualCustomersCache.find((item) => item.userId === event.currentTarget.value);
       if (!customer) return;
       const address = customer.address || {};
@@ -2203,7 +2234,7 @@
         uf: address.uf
       };
       Object.entries(values).forEach(([name, value]) => {
-        const field = manualOrderForm.elements.namedItem(name);
+        const field = manualField(manualOrderForm, name);
         if (field) field.value = value || '';
       });
     });
@@ -2211,10 +2242,17 @@
       const today = new Date();
       saleDateInput.value = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
     }
-    manualOrderForm?.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const submitButton = manualOrderForm.querySelector('[type="submit"]');
-      const formData = Object.fromEntries(new FormData(manualOrderForm).entries());
+    const submitManualOrder = async () => {
+      const required = ['saleDate', 'nome', 'smartwatch', 'produto', 'quantidade', 'valorProduto', 'pagamento'];
+      for (const name of required) {
+        const field = manualField(manualOrderForm, name);
+        if (field && !String(field.value || '').trim()) {
+          field.focus();
+          showStatus('Preencha os campos obrigatórios da venda avulsa.', 'error');
+          return;
+        }
+      }
+      const formData = manualFormValues(manualOrderForm);
       const [year, month, day] = String(formData.saleDate || '').split('-').map(Number);
       formData.createdAt = new Date(year, month - 1, day, 12).toISOString();
       formData.quantidade = Number(formData.quantidade);
@@ -2233,7 +2271,7 @@
         if (!res.ok) throw new Error(data.error || 'Não foi possível registrar a venda.');
         allOrders = [data.order, ...allOrders.filter((order) => order.orderId !== data.order?.orderId)];
         applyFilters();
-        manualOrderForm.reset();
+        resetManualForm(manualOrderForm);
         if (saleDateInput) {
           const now = new Date();
           saleDateInput.value = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
@@ -2245,6 +2283,15 @@
         showStatus(err.message || 'Não foi possível registrar a venda.', 'error');
       } finally {
         if (submitButton) submitButton.disabled = false;
+      }
+    };
+    submitButton?.addEventListener('click', () => {
+      submitManualOrder().catch((e) => showStatus(e.message || 'Não foi possível registrar a venda.', 'error'));
+    });
+    manualOrderForm?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && event.target?.tagName !== 'TEXTAREA') {
+        event.preventDefault();
+        submitManualOrder().catch((e) => showStatus(e.message || 'Não foi possível registrar a venda.', 'error'));
       }
     });
     $('btn-delete-selected')?.addEventListener('click', () => {

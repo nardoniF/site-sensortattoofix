@@ -922,7 +922,8 @@
                         <details class="pedidos-manual-entry">
                             <summary><i class="fas fa-plus-circle" aria-hidden="true"></i> Lançar venda avulsa</summary>
                             <p class="admin-meta">Registra uma venda já concluída como pedido pago, sem iniciar cobrança ou alterar estoque.</p>
-                            <form id="pedidos-manual-form" class="admin-form">
+                            <!-- div (não <form>): form aninhado fechava o admin-config-form e o Salvar do rodapé parava de funcionar -->
+                            <div id="pedidos-manual-form" class="admin-form">
                                 <div class="form-grid">
                                     <label class="full">Cliente cadastrado (preenche contato e endereço)
                                         <select name="customerUserId"><option value="">Novo cliente / sem vínculo</option></select>
@@ -954,9 +955,9 @@
                                 <datalist id="pedidos-watch-options"></datalist>
                                 <datalist id="pedidos-product-options"></datalist>
                                 <div class="admin-form-actions">
-                                    <button type="submit" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Registrar venda</button>
+                                    <button type="button" id="btn-pedidos-manual-submit" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i> Registrar venda</button>
                                 </div>
-                            </form>
+                            </div>
                         </details>
                         <div class="pedidos-filters">
                             <input type="search" id="filter-search" placeholder="Buscar nome, pedido, smartwatch…">
@@ -1419,7 +1420,7 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=8"></script>
     <script src="js/correios-label-print.js?v=4"></script>
-    <script src="js/pedidos.js?v=60"></script>
+    <script src="js/pedidos.js?v=61"></script>
     <script src="js/traffic-origin.js?v=1"></script>
     <script>
     (function () {
