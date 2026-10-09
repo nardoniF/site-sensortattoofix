@@ -360,10 +360,29 @@
     };
   }
 
-  function renderCoupons(coupons) {
+  function sortCouponsByName(coupons) {
+    return [...(Array.isArray(coupons) ? coupons : [])].sort((a, b) => {
+      const ca = String(a?.code || '').toUpperCase();
+      const cb = String(b?.code || '').toUpperCase();
+      if (!ca && cb) return 1;
+      if (ca && !cb) return -1;
+      const byCode = ca.localeCompare(cb, 'pt', { sensitivity: 'base' });
+      if (byCode) return byCode;
+      return String(a?.name || '').localeCompare(String(b?.name || ''), 'pt', { sensitivity: 'base' });
+    });
+  }
+
+  function sortProductsByName(products) {
+    return [...(Array.isArray(products) ? products : [])].sort((a, b) =>
+      String(a?.name || '').localeCompare(String(b?.name || ''), 'pt', { sensitivity: 'base' })
+    );
+  }
+
+  function renderCoupons(coupons, opts) {
     const list = document.getElementById('admin-coupons');
     if (!list) return;
-    const rows = Array.isArray(coupons) ? coupons : [];
+    const openId = opts?.openId || '';
+    const rows = sortCouponsByName(coupons);
     if (!rows.length) {
       list.innerHTML = '<p class="admin-meta">Nenhum cupom. Só código + desconto = cupom da loja. Com e-mail = comissionado (recebe e-mail na venda).</p>';
       return;
@@ -371,8 +390,24 @@
     list.innerHTML = rows.map((c, i) => {
       const hasCommissioner = String(c.email || '').includes('@');
       const defaultComm = hasCommissioner ? (c.commissionPercent ?? 20) : 0;
+      const id = c.id || `coupon-${i + 1}`;
+      const title = c.code
+        ? String(c.code).toUpperCase()
+        : (c.name ? String(c.name) : 'Novo cupom');
+      const hintParts = [];
+      if (c.active === false) hintParts.push('Inativo');
+      hintParts.push(`${c.percent ?? 10}% off`);
+      if (hasCommissioner) hintParts.push(c.name || 'Comissionado');
+      else hintParts.push('Loja');
+      const openAttr = openId && id === openId ? ' open' : '';
       return `
-      <div class="admin-coupon-row" data-coupon-index="${i}">
+      <details class="admin-coupon-row" data-coupon-index="${i}" data-coupon-id="${escAttr(id)}"${openAttr}>
+        <summary class="admin-cadastro-summary">
+          <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+          <span class="admin-fold-title">${escapeHtml(title)}</span>
+          <span class="admin-fold-hint">${escapeHtml(hintParts.join(' · '))}</span>
+        </summary>
+        <div class="admin-cadastro-body">
         <div class="admin-coupon-grid">
           <label class="label-check admin-coupon-active">
             <input type="checkbox" data-field="active" ${c.active !== false ? 'checked' : ''}>
@@ -393,11 +428,12 @@
           <label>Comissão do comissionado (%)
             <input type="number" data-field="commissionPercent" min="0" max="100" step="0.01" value="${escAttr(defaultComm)}" title="Use 0 se não houver comissionado">
           </label>
-          <input type="hidden" data-field="id" value="${escAttr(c.id || `coupon-${i + 1}`)}">
+          <input type="hidden" data-field="id" value="${escAttr(id)}">
         </div>
         <p class="admin-meta admin-coupon-kind">${hasCommissioner ? 'Comissionado — e-mail na venda paga' : 'Só desconto (loja) — sem e-mail de comissão'}</p>
         <button type="button" class="btn-secondary btn-remove-coupon" data-index="${i}"><i class="fas fa-trash"></i> Remover</button>
-      </div>
+        </div>
+      </details>
     `;
     }).join('');
 
@@ -6209,7 +6245,11 @@ ${worksheets}
       : (market === 'INT'
         ? '<span class="admin-badge-main">.com</span> '
         : '<span class="admin-badge-main">Brasil</span> ');
-    const title = p.name ? `${badge}Produto ${i + 1}: ${escAttr(p.name)}` : `${badge}Produto ${i + 1}`;
+    const displayName = p.name || 'Novo produto';
+    const openAttr = opts?.open ? ' open' : '';
+    const priceHint = p.active === false
+      ? 'Inativo'
+      : (p.price != null ? formatAdminBrl(p.price) : '');
     const sensorField = !isAggregated ? `
           <label>Sensor da lente (mm)
             <span class="stf-help-tip" tabindex="0" aria-label="Como medir o sensor">
@@ -6289,8 +6329,13 @@ ${worksheets}
             <textarea data-field="images" rows="5" placeholder="/images/lens-gallery/01-….png">${escTextarea((Array.isArray(p.images) ? p.images : []).join('\n'))}</textarea>
           </label>` : '';
     return `
-      <div class="admin-product-row${isAggregated ? ' admin-product-row--aggregated' : ' admin-product-row--main'}" data-product-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}" data-market="${escAttr(market)}">
-        <h4>${title}</h4>
+      <details class="admin-product-row${isAggregated ? ' admin-product-row--aggregated' : ' admin-product-row--main'}" data-product-index="${i}" data-product-id="${escAttr(p.id || p.slug || '')}" data-aggregated="${isAggregated ? '1' : '0'}" data-market="${escAttr(market)}"${openAttr}>
+        <summary class="admin-cadastro-summary">
+          <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+          <span class="admin-fold-title">${badge}${escapeHtml(displayName)}</span>
+          ${priceHint ? `<span class="admin-fold-hint">${escapeHtml(priceHint)}</span>` : ''}
+        </summary>
+        <div class="admin-cadastro-body">
         <div class="form-grid">
           <label class="full">Nome (PT / cadastro)<input type="text" data-field="name" value="${escAttr(p.name)}" required></label>
           <label class="full">Descrição (PT)<textarea data-field="description" rows="2">${escTextarea(p.description)}</textarea></label>
@@ -6330,7 +6375,8 @@ ${worksheets}
           </div>
         </div>
         <button type="button" class="btn-secondary btn-remove-product" data-index="${i}" data-aggregated="${isAggregated ? '1' : '0'}" data-market="${escAttr(market)}" style="margin-top:8px"><i class="fas fa-trash"></i> Remover</button>
-      </div>`;
+        </div>
+      </details>`;
   }
 
   function renderProductList(products, listId, opts) {
@@ -6338,8 +6384,17 @@ ${worksheets}
     if (!list) return;
     const isAggregated = !!opts?.aggregated;
     const market = opts?.market || 'BR';
-    list.innerHTML = products.length
-      ? products.map((p, i) => renderProductRow(p, i, { aggregated: isAggregated, market })).join('')
+    const openId = opts?.openId || '';
+    const sorted = sortProductsByName(products);
+    list.innerHTML = sorted.length
+      ? sorted.map((p, i) => {
+          const pid = p.id || p.slug || '';
+          return renderProductRow(p, i, {
+            aggregated: isAggregated,
+            market,
+            open: !!(openId && pid && pid === openId)
+          });
+        }).join('')
       : `<p class="admin-meta">${isAggregated ? 'Nenhum agregado BR cadastrado.' : (market === 'INT' ? 'Nenhum produto .com cadastrado.' : 'Nenhum produto BR cadastrado.')}</p>`;
 
     list.querySelectorAll('.btn-remove-product').forEach((btn) => {
@@ -6407,8 +6462,9 @@ ${worksheets}
     });
   }
 
-  function renderProducts(products) {
+  function renderProducts(products, opts) {
     const list = products || [];
+    const openId = opts?.openId || '';
     const brMain = list.filter((p) => !p.aggregated && productMarketsOf(p).includes('BR') && !isIntlMarketProduct(p));
     const brAgg = list.filter((p) => p.aggregated);
     const intlMain = list.filter((p) => !p.aggregated && (isIntlMarketProduct(p) || (productMarketsOf(p).includes('INT') && !productMarketsOf(p).includes('BR'))));
@@ -6417,9 +6473,9 @@ ${worksheets}
     if (summary) {
       summary.textContent = `BR ${brMain.length} principal(is) · ${brAgg.length} agregado(s) · .com ${intlMain.length} lente(s)`;
     }
-    renderProductList(brMain, 'admin-products-br-main', { market: 'BR', aggregated: false });
-    renderProductList(brAgg, 'admin-products-br-aggregated', { market: 'BR', aggregated: true });
-    renderProductList(intlMain, 'admin-products-intl-main', { market: 'INT', aggregated: false });
+    renderProductList(brMain, 'admin-products-br-main', { market: 'BR', aggregated: false, openId });
+    renderProductList(brAgg, 'admin-products-br-aggregated', { market: 'BR', aggregated: true, openId });
+    renderProductList(intlMain, 'admin-products-intl-main', { market: 'INT', aggregated: false, openId });
     bindIntlMarkupRecalc(document.getElementById('admin-products-intl-main'));
   }
 
@@ -8577,8 +8633,9 @@ ${worksheets}
 
   document.getElementById('btn-add-coupon')?.addEventListener('click', () => {
     const coupons = collectCoupons();
+    const id = 'coupon-' + Date.now();
     coupons.push({
-      id: 'coupon-' + Date.now(),
+      id,
       active: true,
       code: '',
       name: '',
@@ -8586,14 +8643,17 @@ ${worksheets}
       percent: 10,
       commissionPercent: 0
     });
-    renderCoupons(coupons);
+    renderCoupons(coupons, { openId: id });
+    document.querySelector(`#admin-coupons .admin-coupon-row[open]`)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   });
 
   document.getElementById('btn-add-br-main-product')?.addEventListener('click', () => {
     const all = collectProductsFromDom();
+    const stamp = Date.now();
+    const id = 'lente-br-' + stamp;
     all.push({
-      id: 'lente-br-' + Date.now(),
-      slug: 'lente-br-' + Date.now(),
+      id,
+      slug: id,
       name: 'Nova lente Sensor Tattoo Fix',
       description: '',
       price: 62.9,
@@ -8604,15 +8664,18 @@ ${worksheets}
       sensorMm: 25,
       markets: ['BR']
     });
-    renderProducts(all);
+    renderProducts(all, { openId: id });
     showProductSubtab('br-main');
+    document.querySelector('#admin-products-br-main .admin-product-row[open]')?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   });
 
   document.getElementById('btn-add-br-aggregated-product')?.addEventListener('click', () => {
     const all = collectProductsFromDom();
+    const stamp = Date.now();
+    const id = 'agregado-' + stamp;
     all.push({
-      id: 'agregado-' + Date.now(),
-      slug: 'agregado-' + Date.now(),
+      id,
+      slug: id,
       name: 'Novo produto agregado',
       description: '',
       price: 20,
@@ -8623,8 +8686,9 @@ ${worksheets}
       weightGrams: 1,
       markets: ['BR']
     });
-    renderProducts(all);
+    renderProducts(all, { openId: id });
     showProductSubtab('br-aggregated');
+    document.querySelector('#admin-products-br-aggregated .admin-product-row[open]')?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   });
 
   function addKitCostRow(kind) {
@@ -8685,11 +8749,10 @@ ${worksheets}
       sensorMm: 25,
       markets: ['INT']
     });
-    renderProducts(all);
+    renderProducts(all, { openId: slug });
     showProductSubtab('intl-main');
     showStatus('Produto .com adicionado. Preencha os campos e clique em Salvar.', 'success', 'save');
-    const panel = document.getElementById('admin-products-intl-main');
-    panel?.lastElementChild?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    document.querySelector('#admin-products-intl-main .admin-product-row[open]')?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   });
 
   document.getElementById('btn-add-intl-currency')?.addEventListener('click', () => {

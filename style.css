@@ -2605,9 +2605,34 @@ a.stf-tiktok-card:hover {
 .admin-coupons .admin-coupon-row {
     border: 1px solid #333;
     border-radius: 8px;
-    padding: 12px;
+    padding: 0;
     margin-bottom: 10px;
     background: rgba(255,255,255,0.02);
+    overflow: hidden;
+}
+.admin-cadastro-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    color: #eee;
+}
+.admin-cadastro-summary::-webkit-details-marker { display: none; }
+.admin-cadastro-summary:hover { background: rgba(255, 255, 255, 0.03); }
+.admin-coupon-row[open] > .admin-cadastro-summary .admin-fold-chevron,
+.admin-product-row[open] > .admin-cadastro-summary .admin-fold-chevron {
+    transform: rotate(90deg);
+}
+.admin-cadastro-body {
+    padding: 0 14px 14px;
+    border-top: 1px solid #252525;
+}
+.admin-cadastro-body > .admin-coupon-grid,
+.admin-cadastro-body > .form-grid {
+    margin-top: 12px;
 }
 .admin-coupon-grid {
     display: grid;
@@ -5415,7 +5440,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .admin-product-row--main {
     border-left: 3px solid rgba(96, 165, 250, 0.65);
-    padding-left: 12px;
     border-radius: 8px;
 }
 
@@ -6516,7 +6540,6 @@ body.stf-lightbox-open { overflow: hidden; }
 
 .admin-product-row--aggregated {
     border-left: 3px solid var(--accent, #2dd4bf);
-    padding-left: 12px;
     background: rgba(45, 212, 191, 0.04);
     border-radius: 8px;
 }
@@ -6891,11 +6914,12 @@ a.conta-forgot-link { display: inline-block; }
 .admin-product-row {
     border: 1px solid #333;
     border-radius: 10px;
-    padding: 14px;
+    padding: 0;
     margin-bottom: 12px;
     background: #141414;
+    overflow: hidden;
 }
-.admin-product-row h4 { margin: 0 0 10px; color: var(--primary); }
+.admin-product-row .admin-fold-title { color: var(--primary); }
 .admin-product-row .form-grid { grid-template-columns: 1fr 1fr; }
 .admin-ship-methods-wrap,
 .admin-intl-zones-wrap {
