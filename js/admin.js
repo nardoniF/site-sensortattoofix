@@ -2090,6 +2090,9 @@
   function renderConsolidadoCollapsedFolds(sales) {
     const el = document.getElementById('vendas-consol-folds');
     if (!el) return;
+    // Preserva o fold "Quando vendem" (mesma seção colapsada que as outras).
+    const whenFold = document.getElementById('vendas-when-fold');
+    if (whenFold) whenFold.remove();
     el.innerHTML = [
       renderConsolidadoWeekCompare(sales),
       renderConsolidadoDaysCoverage(sales),
@@ -2097,6 +2100,11 @@
       renderConsolidadoMonthCharts(sales),
       renderConsolidadoFlexOwed(sales)
     ].join('');
+    if (whenFold) {
+      whenFold.open = false;
+      whenFold.removeAttribute('open');
+      el.appendChild(whenFold);
+    }
     [
       'vendas-consol-weeks-fold',
       'vendas-consol-days-fold',
@@ -2104,7 +2112,7 @@
       'vendas-consol-mchart-fold',
       'vendas-consol-flex-fold',
       'vendas-when-fold'
-    ].forEach((id) => wireOneAdminFold(document.getElementById(id)));
+    ].forEach((id) => wireOneAdminFold(document.getElementById(id), { forceClosed: true }));
   }
 
   function collapseConsolidadoCategories(preserveTreePaths) {
@@ -2112,6 +2120,7 @@
     if (!panel) return;
     panel.querySelectorAll('details.admin-fold').forEach((el) => {
       el.open = false;
+      el.removeAttribute('open');
       const key = el.getAttribute('data-fold-key');
       if (!key) return;
       try { localStorage.setItem(`stf_admin_fold_${key}`, '0'); } catch (e) { /* ignore */ }
@@ -5855,17 +5864,24 @@ ${worksheets}
     document.getElementById('clicks-fold-log')?.setAttribute('open', '');
   }
 
-  function wireOneAdminFold(el) {
+  function wireOneAdminFold(el, opts) {
     if (!el || el.dataset.foldWired) return;
     const key = el.getAttribute('data-fold-key');
     if (!key) return;
     el.dataset.foldWired = '1';
     const storageKey = `stf_admin_fold_${key}`;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved === '1') el.open = true;
-      else if (saved === '0') el.open = false;
-    } catch { /* ignore */ }
+    // No Consolidado as seções entram sempre fechadas; não reabrir pelo localStorage.
+    if (!opts?.forceClosed) {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved === '1') el.open = true;
+        else if (saved === '0') el.open = false;
+      } catch { /* ignore */ }
+    } else {
+      el.open = false;
+      el.removeAttribute('open');
+      try { localStorage.setItem(storageKey, '0'); } catch { /* ignore */ }
+    }
     el.addEventListener('toggle', () => {
       try {
         localStorage.setItem(storageKey, el.open ? '1' : '0');
