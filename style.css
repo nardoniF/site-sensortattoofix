@@ -2605,10 +2605,9 @@ a.stf-tiktok-card:hover {
 .admin-coupons .admin-coupon-row {
     border: 1px solid #333;
     border-radius: 8px;
-    padding: 0;
+    padding: 12px;
     margin-bottom: 10px;
     background: rgba(255,255,255,0.02);
-    overflow: hidden;
 }
 .admin-cadastro-summary {
     display: flex;
@@ -5130,16 +5129,11 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-variant-numeric: tabular-nums;
     margin-left: auto;
 }
-.vendas-when {
-    margin: 18px 0 20px;
-    padding: 16px 0 4px;
-    border-top: 1px solid #2a2a2a;
+.vendas-when-fold {
+    margin: 14px 0 12px;
 }
-.vendas-when-title {
-    margin: 0 0 4px;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #eee;
+.vendas-consol-mtd-fold {
+    margin: 14px 0 12px;
 }
 .admin-fold {
     margin: 14px 0 12px;

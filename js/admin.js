@@ -360,29 +360,16 @@
     };
   }
 
-  function sortCouponsByName(coupons) {
-    return [...(Array.isArray(coupons) ? coupons : [])].sort((a, b) => {
-      const ca = String(a?.code || '').toUpperCase();
-      const cb = String(b?.code || '').toUpperCase();
-      if (!ca && cb) return 1;
-      if (ca && !cb) return -1;
-      const byCode = ca.localeCompare(cb, 'pt', { sensitivity: 'base' });
-      if (byCode) return byCode;
-      return String(a?.name || '').localeCompare(String(b?.name || ''), 'pt', { sensitivity: 'base' });
-    });
-  }
-
   function sortProductsByName(products) {
     return [...(Array.isArray(products) ? products : [])].sort((a, b) =>
       String(a?.name || '').localeCompare(String(b?.name || ''), 'pt', { sensitivity: 'base' })
     );
   }
 
-  function renderCoupons(coupons, opts) {
+  function renderCoupons(coupons) {
     const list = document.getElementById('admin-coupons');
     if (!list) return;
-    const openId = opts?.openId || '';
-    const rows = sortCouponsByName(coupons);
+    const rows = Array.isArray(coupons) ? coupons : [];
     if (!rows.length) {
       list.innerHTML = '<p class="admin-meta">Nenhum cupom. Só código + desconto = cupom da loja. Com e-mail = comissionado (recebe e-mail na venda).</p>';
       return;
@@ -390,24 +377,8 @@
     list.innerHTML = rows.map((c, i) => {
       const hasCommissioner = String(c.email || '').includes('@');
       const defaultComm = hasCommissioner ? (c.commissionPercent ?? 20) : 0;
-      const id = c.id || `coupon-${i + 1}`;
-      const title = c.code
-        ? String(c.code).toUpperCase()
-        : (c.name ? String(c.name) : 'Novo cupom');
-      const hintParts = [];
-      if (c.active === false) hintParts.push('Inativo');
-      hintParts.push(`${c.percent ?? 10}% off`);
-      if (hasCommissioner) hintParts.push(c.name || 'Comissionado');
-      else hintParts.push('Loja');
-      const openAttr = openId && id === openId ? ' open' : '';
       return `
-      <details class="admin-coupon-row" data-coupon-index="${i}" data-coupon-id="${escAttr(id)}"${openAttr}>
-        <summary class="admin-cadastro-summary">
-          <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
-          <span class="admin-fold-title">${escapeHtml(title)}</span>
-          <span class="admin-fold-hint">${escapeHtml(hintParts.join(' · '))}</span>
-        </summary>
-        <div class="admin-cadastro-body">
+      <div class="admin-coupon-row" data-coupon-index="${i}">
         <div class="admin-coupon-grid">
           <label class="label-check admin-coupon-active">
             <input type="checkbox" data-field="active" ${c.active !== false ? 'checked' : ''}>
@@ -428,12 +399,11 @@
           <label>Comissão do comissionado (%)
             <input type="number" data-field="commissionPercent" min="0" max="100" step="0.01" value="${escAttr(defaultComm)}" title="Use 0 se não houver comissionado">
           </label>
-          <input type="hidden" data-field="id" value="${escAttr(id)}">
+          <input type="hidden" data-field="id" value="${escAttr(c.id || `coupon-${i + 1}`)}">
         </div>
         <p class="admin-meta admin-coupon-kind">${hasCommissioner ? 'Comissionado — e-mail na venda paga' : 'Só desconto (loja) — sem e-mail de comissão'}</p>
         <button type="button" class="btn-secondary btn-remove-coupon" data-index="${i}"><i class="fas fa-trash"></i> Remover</button>
-        </div>
-      </details>
+      </div>
     `;
     }).join('');
 
@@ -1722,12 +1692,20 @@
         <p class="vendas-consol-mtd-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}${countPct}</p>
       </article>`;
     }).join('');
-    return `<section class="vendas-consol-mtd" aria-label="Comparação dias 1–${dayNum}">
-      <header class="vendas-consol-mtd-head">
-        <h3>Dias 1–${dayNum}</h3>
-      </header>
-      <div class="vendas-consol-mtd-grid">${rows}</div>
-    </section>`;
+    const current = ordered[ordered.length - 1];
+    const hint = current
+      ? `${current.name} · ${formatSalesBRL(current.tot.net)}`
+      : '—';
+    return `<details class="admin-fold vendas-consol-mtd-fold" id="vendas-consol-mtd-fold" data-fold-key="vendas-mtd">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Dias 1–${dayNum}</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">
+        <div class="vendas-consol-mtd-grid">${rows}</div>
+      </div>
+    </details>`;
   }
 
   function renderConsolidadoPeriods(sales) {
@@ -1769,8 +1747,32 @@
       </article>`;
     }).join('');
     el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoDaysCoverage(sales)}${renderConsolidadoFlexOwed(sales)}`;
+    wireOneAdminFold(document.getElementById('vendas-consol-mtd-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-days-fold'));
     wireOneAdminFold(document.getElementById('vendas-consol-flex-fold'));
+  }
+
+  function collapseConsolidadoCategories(preserveTreePaths) {
+    const panel = document.getElementById('admin-vendas-consolidado');
+    if (!panel) return;
+    panel.querySelectorAll('details.admin-fold').forEach((el) => {
+      el.open = false;
+      const key = el.getAttribute('data-fold-key');
+      if (!key) return;
+      try { localStorage.setItem(`stf_admin_fold_${key}`, '0'); } catch (e) { /* ignore */ }
+    });
+    const root = document.getElementById('vendas-consol-tree-root');
+    if (!root) return;
+    if (preserveTreePaths && preserveTreePaths.length) {
+      const want = new Set(preserveTreePaths);
+      root.querySelectorAll('details[data-tree-path]').forEach((el) => {
+        el.open = want.has(el.getAttribute('data-tree-path'));
+      });
+      return;
+    }
+    root.querySelectorAll('details').forEach((el) => {
+      el.open = false;
+    });
   }
 
   function isMlFlexSale(sale) {
@@ -2332,12 +2334,9 @@ ${worksheets}
       renderConsolidadoStats(sales);
       renderConsolidadoWhenCharts(sales);
       root.innerHTML = renderConsolidatedTree(buildConsolidatedSalesTree(sales));
-      if (preserveOpen && openPaths.length) {
-        const want = new Set(openPaths);
-        root.querySelectorAll('details[data-tree-path]').forEach((el) => {
-          if (want.has(el.getAttribute('data-tree-path'))) el.open = true;
-        });
-      }
+      wireOneAdminFold(document.getElementById('vendas-when-fold'));
+      // Ao entrar no Consolidado, categorias e árvore começam fechadas.
+      collapseConsolidadoCategories(preserveOpen ? openPaths : null);
       if (checked) {
         checked.hidden = false;
         checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -8633,9 +8632,8 @@ ${worksheets}
 
   document.getElementById('btn-add-coupon')?.addEventListener('click', () => {
     const coupons = collectCoupons();
-    const id = 'coupon-' + Date.now();
     coupons.push({
-      id,
+      id: 'coupon-' + Date.now(),
       active: true,
       code: '',
       name: '',
@@ -8643,8 +8641,7 @@ ${worksheets}
       percent: 10,
       commissionPercent: 0
     });
-    renderCoupons(coupons, { openId: id });
-    document.querySelector(`#admin-coupons .admin-coupon-row[open]`)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    renderCoupons(coupons);
   });
 
   document.getElementById('btn-add-br-main-product')?.addEventListener('click', () => {
