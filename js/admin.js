@@ -9090,6 +9090,21 @@ ${worksheets}
     }
   });
 
+  document.querySelector('#admin-save-actions button[type="submit"]')?.addEventListener('click', () => {
+    const form = els.configForm;
+    if (!form || form.checkValidity()) return;
+    const bad = form.querySelector(':invalid');
+    const label = bad?.closest('label')?.querySelector('span, :scope')?.textContent
+      || bad?.getAttribute('name')
+      || 'campo obrigatório';
+    const hint = String(label).trim().slice(0, 80);
+    showStatus(
+      `Não salvou: preencha ${hint || 'os campos obrigatórios'} (aba Contato/e-mails costuma bloquear).`,
+      'error',
+      'save'
+    );
+  });
+
   els.configForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     showStatus('Salvando...', '', 'save');
