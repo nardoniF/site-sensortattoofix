@@ -9094,12 +9094,18 @@ ${worksheets}
     const form = els.configForm;
     if (!form || form.checkValidity()) return;
     const bad = form.querySelector(':invalid');
-    const label = bad?.closest('label')?.querySelector('span, :scope')?.textContent
-      || bad?.getAttribute('name')
-      || 'campo obrigatório';
-    const hint = String(label).trim().slice(0, 80);
+    const name = bad?.getAttribute('name') || '';
+    const msg = bad?.validationMessage || 'campo inválido';
+    const panel = bad?.closest('.admin-tab-panel');
+    const tabId = panel?.id?.replace(/^admin-tab-/, '') || '';
+    if (tabId) {
+      document.querySelector(`.admin-tab[data-admin-tab="${tabId}"]`)?.click();
+      const cadBtn = document.querySelector(`#cadastros-hub-nav [data-cadastros-section="${tabId}"]`);
+      cadBtn?.click();
+    }
+    try { bad?.focus({ preventScroll: false }); } catch (_) { /* ignore */ }
     showStatus(
-      `Não salvou: preencha ${hint || 'os campos obrigatórios'} (aba Contato/e-mails costuma bloquear).`,
+      `Não salvou: ${name ? name + ' — ' : ''}${msg}`,
       'error',
       'save'
     );

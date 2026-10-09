@@ -928,18 +928,18 @@
                                     <label class="full">Cliente cadastrado (preenche contato e endereço)
                                         <select name="customerUserId"><option value="">Novo cliente / sem vínculo</option></select>
                                     </label>
-                                    <label>Data da venda<input type="date" name="saleDate" required></label>
+                                    <label>Data da venda<input type="date" name="saleDate"></label>
                                     <label>Canal<select name="salesChannel"><option>WhatsApp</option><option>Instagram</option><option>Telefone</option><option>Presencial</option><option>Outro</option></select></label>
-                                    <label>Nome do cliente<input type="text" name="nome" required maxlength="160" autocomplete="name"></label>
+                                    <label>Nome do cliente<input type="text" name="nome" maxlength="160" autocomplete="name"></label>
                                     <label>E-mail<input type="email" name="email" maxlength="254" autocomplete="email"></label>
                                     <label>Telefone / WhatsApp<input type="tel" name="telefone" maxlength="40" autocomplete="tel"></label>
                                     <label>CPF<input type="text" name="cpf" maxlength="24"></label>
-                                    <label>Aparelho / smartwatch<input type="text" name="smartwatch" list="pedidos-watch-options" required maxlength="160"></label>
-                                    <label>Produto / itens<input type="text" name="produto" list="pedidos-product-options" required maxlength="200"></label>
-                                    <label>Quantidade<input type="number" name="quantidade" min="1" max="1000" step="1" value="1" required></label>
-                                    <label>Valor dos produtos (R$)<input type="number" name="valorProduto" min="0" step="0.01" required inputmode="decimal"></label>
+                                    <label>Aparelho / smartwatch<input type="text" name="smartwatch" list="pedidos-watch-options" maxlength="160"></label>
+                                    <label>Produto / itens<input type="text" name="produto" list="pedidos-product-options" maxlength="200"></label>
+                                    <label>Quantidade<input type="number" name="quantidade" min="1" max="1000" step="1" value="1"></label>
+                                    <label>Valor dos produtos (R$)<input type="number" name="valorProduto" min="0" step="0.01" inputmode="decimal"></label>
                                     <label>Frete cobrado (R$)<input type="number" name="frete" min="0" step="0.01" value="0" inputmode="decimal"></label>
-                                    <label>Forma de pagamento<input type="text" name="pagamento" required placeholder="PIX, dinheiro, cartão..." maxlength="80"></label>
+                                    <label>Forma de pagamento<input type="text" name="pagamento" placeholder="PIX, dinheiro, cartão..." maxlength="80"></label>
                                     <label>Envio / transportadora<input type="text" name="shippingService" placeholder="Correios, motoboy, retirada..." maxlength="120"></label>
                                     <label>Código de rastreio<input type="text" name="trackingCode" maxlength="40"></label>
                                     <label>País<input type="text" name="pais" value="Brasil" maxlength="80" autocomplete="country-name"></label>
@@ -1451,6 +1451,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=6"></script>
-    <script defer src="js/admin.js?v=261"></script>
+    <script defer src="js/admin.js?v=262"></script>
 </body>
 </html>
