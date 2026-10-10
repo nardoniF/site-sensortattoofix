@@ -1841,7 +1841,7 @@
   }
 
   function setLabelButtonsBusy(orderId, busy, triggerBtn) {
-    const htmlBusy = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando…';
+    const htmlBusy = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando etiqueta…';
     document.querySelectorAll('.btn-print-label').forEach((btn) => {
       const id = btn.getAttribute('data-order-id') || '';
       if (id !== orderId && btn !== triggerBtn) return;
@@ -1870,28 +1870,57 @@
     }
   }
 
+  function applySuperfreteLabelResult(order, data) {
+    if (data.cartId) {
+      order.superfreteCartId = data.cartId;
+      order.superfreteCartStatus = data.status || order.superfreteCartStatus;
+      if (data.price != null) order.superfreteCartPrice = data.price;
+    } else if (data.status) {
+      order.superfreteCartStatus = data.status;
+    }
+    if (data.trackingCode) {
+      order.superfreteTrackingCode = data.trackingCode;
+      order.correiosTrackingCode = data.trackingCode;
+      order.correiosTrackingStatus = order.correiosTrackingStatus || 'Pré-postado';
+      order.superfreteCheckoutError = null;
+    }
+    if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
+    else if (data.alreadyExists && data.trackingCode) order.superfreteCheckoutError = null;
+    if (data.cartError) order.superfreteCartError = data.cartError;
+    if (data.skipped) order.superfreteSkipped = data.message;
+    const idx = allOrders.findIndex((x) => x.orderId === order.orderId);
+    if (idx >= 0) {
+      Object.assign(allOrders[idx], {
+        superfreteCartId: order.superfreteCartId,
+        superfreteCartStatus: order.superfreteCartStatus,
+        superfreteCartPrice: order.superfreteCartPrice,
+        superfreteTrackingCode: order.superfreteTrackingCode,
+        correiosTrackingCode: order.correiosTrackingCode,
+        correiosTrackingStatus: order.correiosTrackingStatus,
+        superfreteCheckoutError: order.superfreteCheckoutError,
+        superfreteCartError: order.superfreteCartError,
+        superfreteSkipped: order.superfreteSkipped
+      });
+    }
+    applyFilters();
+    if (orderModalEl && !orderModalEl.hidden
+      && document.getElementById('pedidos-order-modal-title')?.textContent === order.orderId) {
+      renderOrderModal(allOrders.find((x) => x.orderId === order.orderId) || order);
+    }
+  }
+
   async function printOrderLabel(order, triggerBtn) {
     const orderId = order.orderId;
     if (labelInFlight.has(orderId)) {
-      showStatus('Etiqueta deste pedido já está sendo gerada — aguarde.', 'warn');
+      showStatus('Gerando etiqueta… aguarde.', 'warn');
       setLabelButtonsBusy(orderId, true, triggerBtn);
-      return;
-    }
-    // Super Frete com rastreio: não chama create (evita cobrança). Só abre o painel.
-    if (
-      isSuperfreteOrder(order)
-      && (order.superfreteTrackingCode || order.correiosTrackingCode)
-    ) {
-      const track = order.superfreteTrackingCode || order.correiosTrackingCode;
-      showStatus(`Já tem rastreio ${track}. Abrindo painel Super Frete para imprimir.`, 'success');
-      window.open('https://web.superfrete.com/#/minhas-etiquetas', '_blank', 'noopener');
       return;
     }
     // Trava imediatamente (antes de qualquer await) — um clique = uma tentativa.
     labelInFlight.add(orderId);
     setLabelButtonsBusy(orderId, true, triggerBtn);
     try {
-      showStatus('Gerando etiqueta… aguarde, não clique de novo.', '');
+      showStatus('Gerando etiqueta…', '');
       // force=1 só com confirmação explícita se o carrinho morreu (evita 2ª cobrança).
       // Erro de carteira / pending NÃO força recriação (bug Matheus).
       let forceSf = false;
@@ -1949,52 +1978,34 @@
         return;
       }
       if (data.mode === 'superfrete') {
-        if (data.cartId) {
-          order.superfreteCartId = data.cartId;
-          order.superfreteCartStatus = data.status || order.superfreteCartStatus;
-          if (data.price != null) order.superfreteCartPrice = data.price;
-        }
-        if (data.trackingCode) {
-          order.superfreteTrackingCode = data.trackingCode;
-          order.correiosTrackingCode = data.trackingCode;
-          order.correiosTrackingStatus = order.correiosTrackingStatus || 'Pré-postado';
-          order.superfreteCheckoutError = null;
-        }
-        if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
-        else if (data.alreadyExists && data.trackingCode) order.superfreteCheckoutError = null;
-        if (data.cartError) order.superfreteCartError = data.cartError;
-        if (data.skipped) order.superfreteSkipped = data.message;
-        const idx = allOrders.findIndex((x) => x.orderId === order.orderId);
-        if (idx >= 0) Object.assign(allOrders[idx], {
-          superfreteCartId: order.superfreteCartId,
-          superfreteCartStatus: order.superfreteCartStatus,
-          superfreteCartPrice: order.superfreteCartPrice,
-          superfreteTrackingCode: order.superfreteTrackingCode,
-          correiosTrackingCode: order.correiosTrackingCode,
-          correiosTrackingStatus: order.correiosTrackingStatus,
-          superfreteCheckoutError: order.superfreteCheckoutError,
-          superfreteCartError: order.superfreteCartError,
-          superfreteSkipped: order.superfreteSkipped
-        });
-        applyFilters();
+        applySuperfreteLabelResult(order, data);
         const panel = data.panelUrl || 'https://web.superfrete.com/#/minhas-etiquetas';
         const wallet = data.walletUrl || 'https://web.superfrete.com/#/carteira';
-        const msg = data.message || data.error || 'Super Frete';
+        const track = data.trackingCode || order.superfreteTrackingCode || order.correiosTrackingCode || null;
+        const already = !!(data.alreadyExists || data.skippedCreate || data.skipped);
+        let msg = data.message || data.error || 'Super Frete';
+        if (already && track) {
+          msg = data.message || `Etiqueta já gerada. Rastreio ${track} no pedido.`;
+        } else if (!already && track) {
+          msg = data.message || `Etiqueta gerada. Rastreio ${track} colado no pedido.`;
+        }
         const needsPay = !!(data.checkoutError || data.cartError
-          || (data.cartId && data.status && data.status !== 'released' && !data.trackingCode && !data.alreadyExists));
-        const tone = data.skipped || data.alreadyExists
-          ? (data.trackingCode ? 'success' : 'warn')
+          || (data.cartId && data.status && data.status !== 'released' && !track && !already));
+        const tone = already
+          ? (track ? 'success' : 'warn')
           : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success'));
         showStatus(msg, tone);
-        if (!data.skipped) {
-          window.open(needsPay && (data.checkoutError || data.cartError) ? wallet : panel, '_blank', 'noopener');
+        // Já gerada com rastreio: não abre painel de novo (só avisa + cola código).
+        // Primeira geração / falta pagar: abre painel ou carteira.
+        if (!already || needsPay) {
+          if (!data.skipped) {
+            window.open(needsPay && (data.checkoutError || data.cartError) ? wallet : panel, '_blank', 'noopener');
+          }
         }
         if (
           !data.skipped
           && data.cartId
-          && !data.trackingCode
-          && !order.superfreteTrackingCode
-          && !order.correiosTrackingCode
+          && !track
           && !/cancel|reject|fail|expir|gone/i.test(String(data.status || ''))
         ) {
           pollSuperfreteTracking(order, document.getElementById('pedidos-order-modal-body'));
@@ -2067,7 +2078,7 @@
               ? ' disabled aria-busy="true" title="Gerando etiqueta — aguarde"'
               : ' title="Imprimir etiqueta térmica"';
             const busyHtml = busy
-              ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando…'
+              ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando etiqueta…'
               : '<i class="fas fa-print"></i> Etiqueta';
             return `<button type="button" class="btn-print-label" data-order-id="${escHtml(o.orderId)}"${busyAttrs}>${busyHtml}</button>`;
           })() : ''}
@@ -2094,14 +2105,14 @@
         ev.preventDefault();
         const btn = ev.currentTarget;
         if (btn.disabled || labelInFlight.has(o.orderId)) {
-          showStatus('Etiqueta deste pedido já está sendo gerada — aguarde.', 'warn');
+          showStatus('Gerando etiqueta… aguarde.', 'warn');
           return;
         }
         // Desliga no mesmo tick do clique (antes do fetch).
         btn.disabled = true;
         btn.setAttribute('aria-busy', 'true');
         btn.dataset.prevLabel = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando…';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando etiqueta…';
         btn.title = 'Gerando etiqueta — aguarde';
         printOrderLabel(o, btn);
       });

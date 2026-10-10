@@ -10034,9 +10034,27 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     return { skipped: true, reason: 'self_test', message: order.superfreteSkipped };
   }
 
-  // Já tem rastreio (painel SF / colado na mão) — nunca gera outra etiqueta cobrando de novo.
+  // Já tem rastreio — nunca gera outra; devolve o código pra UI colar de novo se precisar.
   const existingTrack = String(order.superfreteTrackingCode || order.correiosTrackingCode || '').trim().toUpperCase();
   if (existingTrack) {
+    // Se ainda há carrinho vivo, refresca status (não cria nada).
+    if (order.superfreteCartId) {
+      try {
+        await refreshSuperfreteCartFromApi(env, order);
+        const live = await syncSuperfreteTrackingForOrder(env, config, order);
+        if (live) {
+          return {
+            ok: true,
+            alreadyExists: true,
+            id: order.superfreteCartId || null,
+            status: order.superfreteCartStatus || 'released',
+            trackingCode: live,
+            skippedCreate: true,
+            message: `Etiqueta já gerada. Rastreio ${live} no pedido.`
+          };
+        }
+      } catch (_) { /* usa o código já salvo */ }
+    }
     return {
       ok: true,
       alreadyExists: true,
@@ -10044,7 +10062,7 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
       status: order.superfreteCartStatus || 'released',
       trackingCode: existingTrack,
       skippedCreate: true,
-      message: `Etiqueta Super Frete já tem rastreio ${existingTrack}. Não gerei outra (evita cobrança duplicada). Imprima no painel Super Frete.`
+      message: `Etiqueta já gerada. Rastreio ${existingTrack} no pedido — não gerei outra.`
     };
   }
 
@@ -10129,12 +10147,17 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
         // Liberação do AV no SF pode demorar; tenta ~20s aqui e o front continua tentando.
         await waitSuperfreteTracking(env, config, order, { attempts: 8, delayMs: 2500 });
       }
+      const trackReleased = order.superfreteTrackingCode || order.correiosTrackingCode || null;
       return {
         ok: true,
         alreadyExists: true,
         id: order.superfreteCartId,
         status: 'released',
-        trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
+        trackingCode: trackReleased,
+        skippedCreate: true,
+        message: trackReleased
+          ? `Etiqueta já gerada. Rastreio ${trackReleased} colado no pedido.`
+          : 'Etiqueta já gerada/liberada no Super Frete. Rastreio ainda não veio na API — tente de novo em instantes.'
       };
     } else if (autoPay) {
       // Ainda pending: tenta pagar; se o carrinho morreu no Super Frete, limpa e recria.
