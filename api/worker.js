@@ -9926,14 +9926,24 @@ function extractSuperfreteTracking(payload) {
     payload.tracking,
     payload.self_tracking,
     payload.tracking_code,
+    payload.trackingCode,
+    payload.codigo_rastreio,
+    payload.codigoRastreio,
     payload.purchase?.orders?.[0]?.tracking,
+    payload.purchase?.orders?.[0]?.self_tracking,
+    payload.purchase?.orders?.[0]?.tracking_code,
     payload.orders?.[0]?.tracking,
-    Array.isArray(payload) ? payload[0]?.tracking : null
+    payload.orders?.[0]?.self_tracking,
+    payload.orders?.[0]?.tracking_code,
+    payload.data?.tracking,
+    payload.data?.self_tracking,
+    Array.isArray(payload) ? payload[0]?.tracking : null,
+    Array.isArray(payload) ? payload[0]?.self_tracking : null
   ];
   for (const c of candidates) {
     const t = String(c || '').trim().toUpperCase();
     if (t && /^[A-Z]{2}\d{9}[A-Z]{2}$/.test(t)) return t;
-    if (t && t.length >= 8) return t;
+    if (t && t.length >= 8 && !/\s/.test(t)) return t;
   }
   return null;
 }
@@ -9965,8 +9975,13 @@ async function syncSuperfreteTrackingForOrder(env, config, order) {
   if (info?.price != null && Number.isFinite(Number(info.price))) {
     order.superfreteCartPrice = Number(info.price);
   }
+  // Pagou no painel SF (cartão/saldo) depois do 409 da API — limpa erro de checkout.
+  if (st === 'released' || st === 'posted' || st === 'delivered' || st === 'in_transit') {
+    order.superfreteCheckoutError = null;
+  }
   const tracking = extractSuperfreteTracking(info);
   if (tracking) {
+    order.superfreteCheckoutError = null;
     await applySuperfreteTrackingToOrder(env, config, order, tracking);
     return tracking;
   }
@@ -15192,12 +15207,17 @@ function applyOrderShippingManualUpdate(order, body) {
     const trackingCode = String(body.trackingCode || '').trim().toUpperCase();
     if (!trackingCode) {
       order.correiosTrackingCode = null;
+      if (isSuperfreteOrder(order)) order.superfreteTrackingCode = null;
       changed = true;
     } else if (!CORREIOS_AV_RE.test(trackingCode)) {
       throw new Error('Código de rastreio inválido.');
     } else {
       order.correiosTrackingCode = trackingCode;
       order.correiosPrePostagemError = null;
+      if (isSuperfreteOrder(order)) {
+        order.superfreteTrackingCode = trackingCode;
+        order.superfreteCheckoutError = null;
+      }
       changed = true;
     }
   }
@@ -15351,7 +15371,9 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   }
   return json({
     ok: true,
-    trackingCode: order.correiosTrackingCode || null,
+    trackingCode: order.correiosTrackingCode || order.superfreteTrackingCode || null,
+    superfreteTrackingCode: order.superfreteTrackingCode || null,
+    superfreteCartStatus: order.superfreteCartStatus || null,
     correiosTrackingStatus: order.correiosTrackingStatus || null,
     shippingMethodId: order.shippingMethodId || null,
     shippingService: order.shippingService || null,
@@ -18979,23 +19001,28 @@ async function runScheduledCorreiosTrackingSync(env) {
     const order = await getOrder(env, item.orderId);
     if (!order) continue;
 
-    // Super Frete liberada sem rastreio — tenta puxar o código (SF às vezes demora).
+    // Super Frete com carrinho e sem rastreio — inclusive pending pago no painel SF.
     if (
       isSuperfreteOrder(order)
       && order.superfreteCartId
-      && String(order.superfreteCartStatus || '').toLowerCase() === 'released'
       && !order.superfreteTrackingCode
       && !order.correiosTrackingCode
       && superfreteConfigured(env)
-      && sfSynced < 15
+      && sfSynced < 20
     ) {
-      try {
-        const t = await syncSuperfreteTrackingForOrder(env, config, order);
-        if (t) sfSynced += 1;
-      } catch (err) {
-        console.warn('Super Frete tracking cron:', order.orderId, err.message);
+      const st = String(order.superfreteCartStatus || '').toLowerCase();
+      // Prioriza released; ainda assim tenta pending (pagamento externo no app/painel).
+      if (st === 'released' || st === 'pending' || st === 'posted' || !st) {
+        try {
+          const t = await syncSuperfreteTrackingForOrder(env, config, order);
+          if (t) sfSynced += 1;
+          else if (st === 'pending') sfSynced += 1; // conta mesmo sem código p/ não martelar muitos pendentes
+        } catch (err) {
+          console.warn('Super Frete tracking cron:', order.orderId, err.message);
+          if (st === 'pending') sfSynced += 1;
+        }
+        continue;
       }
-      continue;
     }
 
     if (!isCorreiosBrOrder(order) && !isCorreiosIntlOrder(order)) continue;
