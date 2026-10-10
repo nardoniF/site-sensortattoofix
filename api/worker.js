@@ -2444,7 +2444,10 @@ function isComSiteRequest(request) {
 
 function isIntlCheckoutLocale(locale) {
   const l = String(locale || '').toLowerCase();
-  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl';
+  // Keep in sync with PATH_LANGS / INTL_PATH_LANGS on the storefront (js/stf-*.js).
+  // Missing fr/nl/sv/no/fi made PayPal charge BRL for FR/NL/… checkouts.
+  return l === 'en' || l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+    || l === 'fr' || l === 'nl' || l === 'sv' || l === 'no' || l === 'fi';
 }
 
 function orderCheckoutLangPath(order) {
@@ -2454,6 +2457,11 @@ function orderCheckoutLangPath(order) {
   if (l === 'es') return '/es';
   if (l === 'pl') return '/pl';
   if (l === 'sl') return '/sl';
+  if (l === 'fr') return '/fr';
+  if (l === 'nl') return '/nl';
+  if (l === 'sv') return '/sv';
+  if (l === 'no') return '/no';
+  if (l === 'fi') return '/fi';
   return '';
 }
 
@@ -13037,8 +13045,21 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   const options = opts || {};
   const accessToken = await getPayPalAccessToken(env);
   const checkoutLocale = String(order.checkoutLocale || 'pt').toLowerCase();
-  const useForeign = isComSiteRequest(request) && isIntlCheckoutLocale(checkoutLocale);
-  const foreignCur = intlChargeCurrencyForLocale(checkoutLocale);
+  // Abroad destination must never create a BRL PayPal order (breaks FR/NL/… when locale
+  // was missing from isIntlCheckoutLocale, or when Origin header looked like .com.br).
+  const abroad = orderLooksInternationalDestination(order)
+    || (() => {
+      const code = String(order.paisCode || '').trim().toUpperCase();
+      return !!(code && code !== 'BR' && code !== 'OTHER' && code !== 'XX' && code !== 'T1');
+    })();
+  const useForeign = abroad || (isComSiteRequest(request) && isIntlCheckoutLocale(checkoutLocale));
+  const foreignCur = (() => {
+    const existing = String(order.chargeCurrency || '').trim().toUpperCase();
+    if (existing && existing !== 'BRL') return existing;
+    const byCountry = currencyForCountryCode(order.paisCode);
+    if (byCountry && byCountry !== 'BRL') return byCountry;
+    return intlChargeCurrencyForLocale(checkoutLocale);
+  })();
   let currencyCode = 'BRL';
   let amountValue = Number(order.total).toFixed(2);
   let locale = 'pt-BR';

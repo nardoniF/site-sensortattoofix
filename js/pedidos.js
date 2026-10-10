@@ -1858,7 +1858,7 @@
             const label = n > 1 ? `Cartas (${n})` : 'Carta';
             return `<button type="button" class="btn-print-letter" title="Cartas thank-you internacionais — ${n} folha(s)"><i class="fas fa-envelope-open-text"></i> ${label}</button>`;
           })() : ''}
-          ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">Confirmar PIX</button>` : ''}
+          ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">${/paypal/i.test(String(o.pagamento || o.paymentProvider || '')) ? 'Marcar pago' : 'Confirmar PIX'}</button>` : ''}
           </div>
         </td>
       `;
