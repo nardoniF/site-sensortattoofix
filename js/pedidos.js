@@ -1840,10 +1840,41 @@
     return data;
   }
 
+  function setLabelButtonsBusy(orderId, busy, triggerBtn) {
+    const htmlBusy = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando…';
+    document.querySelectorAll('.btn-print-label').forEach((btn) => {
+      const id = btn.getAttribute('data-order-id') || '';
+      if (id !== orderId && btn !== triggerBtn) return;
+      if (busy) {
+        if (btn.dataset.prevLabel == null) btn.dataset.prevLabel = btn.innerHTML;
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.innerHTML = htmlBusy;
+        btn.title = 'Gerando etiqueta — aguarde';
+      } else {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        if (btn.dataset.prevLabel != null) {
+          btn.innerHTML = btn.dataset.prevLabel;
+          delete btn.dataset.prevLabel;
+        }
+        btn.title = 'Imprimir etiqueta térmica';
+      }
+    });
+    if (triggerBtn && busy) {
+      if (triggerBtn.dataset.prevLabel == null) triggerBtn.dataset.prevLabel = triggerBtn.innerHTML;
+      triggerBtn.disabled = true;
+      triggerBtn.setAttribute('aria-busy', 'true');
+      triggerBtn.innerHTML = htmlBusy;
+      triggerBtn.title = 'Gerando etiqueta — aguarde';
+    }
+  }
+
   async function printOrderLabel(order, triggerBtn) {
     const orderId = order.orderId;
     if (labelInFlight.has(orderId)) {
       showStatus('Etiqueta deste pedido já está sendo gerada — aguarde.', 'warn');
+      setLabelButtonsBusy(orderId, true, triggerBtn);
       return;
     }
     // Super Frete com rastreio: não chama create (evita cobrança). Só abre o painel.
@@ -1856,25 +1887,11 @@
       window.open('https://web.superfrete.com/#/minhas-etiquetas', '_blank', 'noopener');
       return;
     }
+    // Trava imediatamente (antes de qualquer await) — um clique = uma tentativa.
     labelInFlight.add(orderId);
-    const buttons = document.querySelectorAll(`.btn-print-label`);
-    buttons.forEach((btn) => {
-      const row = btn.closest('tr');
-      const id = row?.querySelector('.pedidos-row-select')?.dataset?.orderId
-        || row?.dataset?.orderId;
-      if (id === orderId || btn === triggerBtn) {
-        btn.disabled = true;
-        btn.dataset.prevLabel = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando…';
-      }
-    });
-    if (triggerBtn && !triggerBtn.dataset.prevLabel) {
-      triggerBtn.disabled = true;
-      triggerBtn.dataset.prevLabel = triggerBtn.innerHTML;
-      triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando…';
-    }
+    setLabelButtonsBusy(orderId, true, triggerBtn);
     try {
-      showStatus('Gerando etiqueta…', '');
+      showStatus('Gerando etiqueta… aguarde, não clique de novo.', '');
       // force=1 só com confirmação explícita se o carrinho morreu (evita 2ª cobrança).
       // Erro de carteira / pending NÃO força recriação (bug Matheus).
       let forceSf = false;
@@ -2003,18 +2020,7 @@
       }
     } finally {
       labelInFlight.delete(orderId);
-      document.querySelectorAll('.btn-print-label').forEach((btn) => {
-        if (btn.dataset.prevLabel != null) {
-          btn.disabled = false;
-          btn.innerHTML = btn.dataset.prevLabel;
-          delete btn.dataset.prevLabel;
-        }
-      });
-      if (triggerBtn?.dataset?.prevLabel != null) {
-        triggerBtn.disabled = false;
-        triggerBtn.innerHTML = triggerBtn.dataset.prevLabel;
-        delete triggerBtn.dataset.prevLabel;
-      }
+      setLabelButtonsBusy(orderId, false, triggerBtn);
     }
   }
 
@@ -2055,7 +2061,16 @@
         <td class="pedidos-actions">
           <div class="pedidos-actions-inner">
           ${statusBadgeHtml(o.status)}
-          ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
+          ${o.status === 'paid' ? (() => {
+            const busy = labelInFlight.has(o.orderId);
+            const busyAttrs = busy
+              ? ' disabled aria-busy="true" title="Gerando etiqueta — aguarde"'
+              : ' title="Imprimir etiqueta térmica"';
+            const busyHtml = busy
+              ? '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando…'
+              : '<i class="fas fa-print"></i> Etiqueta';
+            return `<button type="button" class="btn-print-label" data-order-id="${escHtml(o.orderId)}"${busyAttrs}>${busyHtml}</button>`;
+          })() : ''}
           ${o.status === 'paid' && isCorreiosIntlOrder(o) ? (() => {
             const n = letterCountForOrder(o);
             const label = n > 1 ? `Cartas (${n})` : 'Carta';
@@ -2076,7 +2091,19 @@
 
       tr.querySelector('.btn-print-label')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        printOrderLabel(o, ev.currentTarget);
+        ev.preventDefault();
+        const btn = ev.currentTarget;
+        if (btn.disabled || labelInFlight.has(o.orderId)) {
+          showStatus('Etiqueta deste pedido já está sendo gerada — aguarde.', 'warn');
+          return;
+        }
+        // Desliga no mesmo tick do clique (antes do fetch).
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.dataset.prevLabel = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Gerando…';
+        btn.title = 'Gerando etiqueta — aguarde';
+        printOrderLabel(o, btn);
       });
 
       tr.querySelector('.btn-print-letter')?.addEventListener('click', (ev) => {
