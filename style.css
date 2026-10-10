@@ -6574,17 +6574,43 @@ body.admin-page.pedidos-login-only #pedidos-login {
   font-family: ui-monospace, monospace;
   text-transform: uppercase;
 }
-.btn-save-shipping {
+.pedidos-shipping-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex: 1 1 100%;
+}
+.btn-save-shipping,
+.btn-sync-superfrete {
   padding: 8px 14px;
   border-radius: 8px;
-  border: none;
-  background: #ffc107;
-  color: #111;
   font-weight: 700;
   cursor: pointer;
   flex: 0 0 auto;
+  font-size: 0.85rem;
+  line-height: 1.2;
 }
-.btn-save-shipping:disabled {
+.btn-save-shipping {
+  border: none;
+  background: #ffc107;
+  color: #111;
+}
+.btn-sync-superfrete {
+  border: 1px solid #666;
+  background: #1a1a1a;
+  color: #f0f0f0;
+}
+.btn-sync-superfrete:hover {
+  border-color: #ffc107;
+  color: #ffc107;
+}
+.btn-save-shipping:disabled,
+.btn-sync-superfrete:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.btn-print-label:disabled {
   opacity: 0.65;
   cursor: wait;
 }
