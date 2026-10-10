@@ -2753,11 +2753,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   }
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
-    let minAmt;
-    if (cur === 'EUR') minAmt = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-    else if (cur === 'SEK') minAmt = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
-    else if (cur === 'NOK') minAmt = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
-    else minAmt = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+    const minAmt = selfTestAmountForCurrency(cur, { stripe });
     if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
@@ -2785,23 +2781,19 @@ function selfTestUsdAmountForOrder(order, billingType) {
   return SELF_TEST_USD_AMOUNT;
 }
 
-/** Brazil test → R$ 0.01. Abroad PayPal → US$ 0.01. Abroad Stripe → US$ 0.10. */
+/** Brazil test → R$ 0.01. Abroad → moeda do locale (mínimo Stripe/PayPal). */
 function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (!isSelfTestOrder(order)) return;
   if (intlUsd) {
     const cur = intlChargeCurrencyForLocale(order.checkoutLocale);
     const stripe = billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe';
-    let amount;
-    if (cur === 'EUR') amount = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-    else if (cur === 'SEK') amount = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
-    else if (cur === 'NOK') amount = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
-    else amount = selfTestUsdAmountForOrder(order, billingType);
+    const amount = selfTestAmountForCurrency(cur, { stripe });
     order.chargeCurrency = cur;
     order.chargeAmount = amount;
     order.displayCurrency = cur;
     return;
   }
-  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR' || order.chargeCurrency === 'SEK' || order.chargeCurrency === 'NOK') {
+  if (order.chargeCurrency && order.chargeCurrency !== 'BRL') {
     delete order.chargeCurrency;
     delete order.chargeAmount;
     delete order.chargeFxRate;
@@ -7940,6 +7932,22 @@ const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_EUR_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_SEK_AMOUNT = 10;
 const SELF_TEST_STRIPE_NOK_AMOUNT = 10;
+const SELF_TEST_STRIPE_PLN_AMOUNT = 1;
+const SELF_TEST_STRIPE_GBP_AMOUNT = 0.30;
+const SELF_TEST_PLN_AMOUNT = 1;
+const SELF_TEST_GBP_AMOUNT = 0.01;
+
+/** Stripe/PayPal self-test floor by ISO currency (conta BR + mínimos Stripe). */
+function selfTestAmountForCurrency(currency, { stripe = false } = {}) {
+  const cur = String(currency || 'USD').toUpperCase();
+  if (cur === 'EUR') return stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
+  if (cur === 'SEK') return stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
+  if (cur === 'NOK') return stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
+  if (cur === 'PLN') return stripe ? SELF_TEST_STRIPE_PLN_AMOUNT : SELF_TEST_PLN_AMOUNT;
+  if (cur === 'GBP') return stripe ? SELF_TEST_STRIPE_GBP_AMOUNT : SELF_TEST_GBP_AMOUNT;
+  if (cur === 'BRL') return SELF_TEST_BRL_AMOUNT;
+  return stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+}
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -15611,47 +15619,73 @@ async function handlePayPalCreate(request, env, origin, orderId) {
 }
 
 function stripeOrderCharge(order, request, env) {
-  let amountCents;
-  let currency = 'brl';
-  let amountForeign = null;
   const chargeCur = String(order.chargeCurrency || '').toUpperCase();
-  const intlCharge = chargeCur === 'USD' || chargeCur === 'EUR'
-    || (isComSiteRequest(request) && !chargeCur);
-  if (intlCharge && (chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) {
-    const resolvedCur = chargeCur === 'EUR' ? 'EUR' : 'USD';
-    currency = resolvedCur.toLowerCase();
+  const abroad = orderLooksInternationalDestination(order)
+    || isComSiteRequest(request)
+    || (chargeCur && chargeCur !== 'BRL');
+  // Antes só USD/EUR — PL/SE/NO/GB caíam em BRL (pedido PL via Stripe cobrava real).
+  if (abroad && chargeCur && chargeCur !== 'BRL') {
     let amt = Number(order.chargeAmount);
     if (isSelfTestOrder(order)) {
-      amt = order.selfTestStripe || order.paymentProvider === 'stripe'
-        ? (resolvedCur === 'EUR' ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_STRIPE_USD_AMOUNT)
-        : (resolvedCur === 'EUR' ? SELF_TEST_EUR_AMOUNT : SELF_TEST_USD_AMOUNT);
-      order.chargeCurrency = resolvedCur;
+      amt = selfTestAmountForCurrency(chargeCur, { stripe: true });
+      order.chargeCurrency = chargeCur;
       order.chargeAmount = amt;
       if (order.paymentProvider === 'stripe') order.selfTestStripe = true;
     }
-    if (!Number.isFinite(amt) || amt <= 0) {
-      return null;
-    }
-    const minCents = isSelfTestOrder(order)
-      ? Math.round((resolvedCur === 'EUR' ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_STRIPE_USD_AMOUNT) * 100)
-      : 50;
-    amountCents = Math.max(minCents, Math.round(amt * 100));
-    amountForeign = amt;
-  } else {
-    const brl = isSelfTestOrder(order) ? SELF_TEST_BRL_AMOUNT : Number(order.total);
-    amountCents = Math.max(isSelfTestOrder(order) ? 1 : 50, Math.round(brl * 100));
-    currency = 'brl';
+    if (!Number.isFinite(amt) || amt <= 0) return null;
+    const minAmt = isSelfTestOrder(order)
+      ? selfTestAmountForCurrency(chargeCur, { stripe: true })
+      : 0.5;
+    const amountCents = Math.max(
+      Math.round(minAmt * 100),
+      Math.round(amt * 100)
+    );
+    return {
+      amountCents,
+      currency: chargeCur.toLowerCase(),
+      amountUsd: amt
+    };
   }
-  return { amountCents, currency, amountUsd: amountForeign };
+  if (abroad && isComSiteRequest(request)) {
+    // .com sem chargeCurrency ainda — fallback USD (não BRL).
+    let amt = Number(order.chargeAmount);
+    const resolvedCur = 'USD';
+    if (isSelfTestOrder(order)) {
+      amt = selfTestAmountForCurrency(resolvedCur, { stripe: true });
+      order.chargeCurrency = resolvedCur;
+      order.chargeAmount = amt;
+      order.selfTestStripe = true;
+    }
+    if (!Number.isFinite(amt) || amt <= 0) return null;
+    const minCents = isSelfTestOrder(order)
+      ? Math.round(SELF_TEST_STRIPE_USD_AMOUNT * 100)
+      : 50;
+    return {
+      amountCents: Math.max(minCents, Math.round(amt * 100)),
+      currency: 'usd',
+      amountUsd: amt
+    };
+  }
+  const brl = isSelfTestOrder(order) ? SELF_TEST_BRL_AMOUNT : Number(order.total);
+  return {
+    amountCents: Math.max(isSelfTestOrder(order) ? 1 : 50, Math.round(brl * 100)),
+    currency: 'brl',
+    amountUsd: null
+  };
 }
 
 async function ensureStripeIntlCharge(order, request, env) {
   const chargeCur = String(order.chargeCurrency || '').toUpperCase();
-  if (!(chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) return;
+  const abroad = orderLooksInternationalDestination(order) || isComSiteRequest(request);
+  if (!abroad && !(chargeCur && chargeCur !== 'BRL')) return;
   let amt = Number(order.chargeAmount);
-  if (Number.isFinite(amt) && amt > 0) return;
+  if (chargeCur && chargeCur !== 'BRL' && Number.isFinite(amt) && amt > 0) return;
   const config = await getConfig(env);
-  const foreignCur = intlChargeCurrencyForLocale(order.checkoutLocale);
+  const foreignCur = (chargeCur && chargeCur !== 'BRL')
+    ? chargeCur
+    : (currencyForCountryCode(order.paisCode) !== 'BRL'
+      ? currencyForCountryCode(order.paisCode)
+      : intlChargeCurrencyForLocale(order.checkoutLocale, config));
   const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
   order.chargeCurrency = foreignCur;
   order.chargeAmount = charge.amount;
