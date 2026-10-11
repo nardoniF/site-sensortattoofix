@@ -91,6 +91,7 @@ import {
   applyOrderFreteAccounting,
   orderNeedsFreteProductRepair,
   saleMoneyParts,
+  saleKitQty,
   storeOrderListedGross
 } from './sales-money.js';
 import {
@@ -18642,8 +18643,9 @@ function emptySalesChannelRow(label) {
   };
 }
 
-function addSalePartsToRow(row, parts) {
-  row.count += 1;
+function addSalePartsToRow(row, parts, sale = null) {
+  // Quantidade = itens (kits), não número de pedidos.
+  row.count += sale ? saleKitQty(sale) : 1;
   row.gross += parts.gross;
   row.fees += parts.fees;
   row.shipping += parts.shipping;
@@ -18685,15 +18687,15 @@ async function aggregateMonthlySales(env, year, month) {
 
   for (const sale of mlSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    addSalePartsToRow(byChannel.mercadolivre, saleMoneyParts(sale, config));
+    addSalePartsToRow(byChannel.mercadolivre, saleMoneyParts(sale, config), sale);
   }
   for (const sale of amzSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    addSalePartsToRow(byChannel.amazon, saleMoneyParts(sale, config));
+    addSalePartsToRow(byChannel.amazon, saleMoneyParts(sale, config), sale);
   }
   for (const sale of shopeeSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    addSalePartsToRow(byChannel.shopee, saleMoneyParts(sale, config));
+    addSalePartsToRow(byChannel.shopee, saleMoneyParts(sale, config), sale);
   }
   for (const order of storeOrders) {
     if (!isStorePaidOrder(order)) continue;
@@ -18702,7 +18704,7 @@ async function aggregateMonthlySales(env, year, month) {
     const sale = storeOrderToReportSale(order);
     const parts = saleMoneyParts(sale, config);
     const row = byChannel.loja;
-    addSalePartsToRow(row, parts);
+    addSalePartsToRow(row, parts, sale);
     const disc = orderDiscountMeta(order);
     row.couponCount += disc.count;
     row.couponTotal += disc.total;
