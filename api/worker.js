@@ -91,7 +91,9 @@ import {
   applyOrderFreteAccounting,
   orderNeedsFreteProductRepair,
   saleMoneyParts,
-  storeOrderListedGross
+  saleKitQty,
+  storeOrderListedGross,
+  storeOrderSaleMoney
 } from './sales-money.js';
 import {
   DEFAULT_INTL_CURRENCIES,
@@ -18369,9 +18371,11 @@ function isDroppedMarketplaceSale(sale) {
 }
 
 function storeOrderToReportSale(order) {
-  const gross = storeOrderListedGross(order);
-  const shippingCost = Math.round(Number(order.frete || order.shippingCost || 0) * 100) / 100;
-  const paypalFee = Math.round(Number(order.paypalFee || 0) * 100) / 100;
+  // Só mapeamento de relatório/contabilidade — não altera cobrança/checkout.
+  const money = storeOrderSaleMoney(order);
+  const gross = Number(money.gross || 0);
+  const shippingCost = Number(money.shippingCost || 0);
+  const paypalFee = Number(money.fees || 0);
   const watch = order.smartwatch || order.watchModel || order.modelo || '';
   let qty = Number(order.qty || order.quantity || 0) || 0;
   if (!qty && Array.isArray(order.items) && order.items.length) {
@@ -18384,7 +18388,9 @@ function storeOrderToReportSale(order) {
     externalId: String(order.orderId || ''),
     soldAt: order.paidAt || order.createdAt || null,
     status: order.status || null,
-    currency: order.currency || 'BRL',
+    currency: 'BRL',
+    chargeCurrency: money.chargeCurrency || order.chargeCurrency || null,
+    chargeAmount: money.chargeAmount != null ? money.chargeAmount : null,
     gross,
     fees: paypalFee,
     shippingCost,
@@ -18397,7 +18403,7 @@ function storeOrderToReportSale(order) {
     items: [{
       title,
       quantity: qty,
-      unitPrice: gross,
+      unitPrice: Math.round(Math.max(0, gross - shippingCost) * 100) / 100,
       saleFee: 0
     }]
   };
@@ -18642,8 +18648,9 @@ function emptySalesChannelRow(label) {
   };
 }
 
-function addSalePartsToRow(row, parts) {
-  row.count += 1;
+function addSalePartsToRow(row, parts, sale = null) {
+  // Quantidade = itens (kits), não número de pedidos.
+  row.count += sale ? saleKitQty(sale) : 1;
   row.gross += parts.gross;
   row.fees += parts.fees;
   row.shipping += parts.shipping;
@@ -18685,15 +18692,15 @@ async function aggregateMonthlySales(env, year, month) {
 
   for (const sale of mlSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    addSalePartsToRow(byChannel.mercadolivre, saleMoneyParts(sale, config));
+    addSalePartsToRow(byChannel.mercadolivre, saleMoneyParts(sale, config), sale);
   }
   for (const sale of amzSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    addSalePartsToRow(byChannel.amazon, saleMoneyParts(sale, config));
+    addSalePartsToRow(byChannel.amazon, saleMoneyParts(sale, config), sale);
   }
   for (const sale of shopeeSales) {
     if (isDroppedMarketplaceSale(sale) || !saleInReportMonth(sale, year, month)) continue;
-    addSalePartsToRow(byChannel.shopee, saleMoneyParts(sale, config));
+    addSalePartsToRow(byChannel.shopee, saleMoneyParts(sale, config), sale);
   }
   for (const order of storeOrders) {
     if (!isStorePaidOrder(order)) continue;
@@ -18702,7 +18709,7 @@ async function aggregateMonthlySales(env, year, month) {
     const sale = storeOrderToReportSale(order);
     const parts = saleMoneyParts(sale, config);
     const row = byChannel.loja;
-    addSalePartsToRow(row, parts);
+    addSalePartsToRow(row, parts, sale);
     const disc = orderDiscountMeta(order);
     row.couponCount += disc.count;
     row.couponTotal += disc.total;

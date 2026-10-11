@@ -977,8 +977,18 @@
     const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
     const feesShown = (tagged._fees || 0) + other;
     const shipUnresolved = mlShippingUnresolved(tagged);
+    const chargeCur = String(tagged.chargeCurrency || '').toUpperCase();
+    const chargeAmt = Number(tagged.chargeAmount);
+    const fromCharge = chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt) && chargeAmt > 0;
+    const chargeShown = fromCharge
+      ? `${chargeCur} ${chargeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : '';
+    const priceHint = fromCharge
+      ? `Cobrado ${chargeShown} → BRL (charge ÷ câmbio do checkout) — não usa total lista BRL`
+      : 'Preço do produto (anúncio / recibo)';
+    const priceTitle = fromCharge ? `${chargeShown} → ${formatSalesBRL(tagged._gross)}` : 'Preço';
     return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('paid', tagged._gross, priceTitle, priceHint, ''),
       salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
       salesMoneyCell('ship', tagged._shipping || 0, 'Frete', shipUnresolved ? 'Frete ainda não identificado no ML' : saleShipHoverHint(tagged), '−', shipUnresolved),
       salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
@@ -1021,19 +1031,6 @@
       case 'amazon': return 'Frete do vendedor (Amazon)';
       default: return 'Frete (custo do vendedor)';
     }
-  }
-
-  function renderSaleMoneyCols(sale, channelHint) {
-    const tagged = sale?.channel ? sale : { ...sale, channel: channelHint };
-    const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
-    const feesShown = (tagged._fees || 0) + other;
-    return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
-      salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
-      salesMoneyCell('ship', tagged._shipping || 0, 'Frete', saleShipHoverHint(tagged), '−'),
-      salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
-      salesMoneyCell('net', tagged._net, 'Líquido', 'Líquido: Preço − Tarifa − Frete − Kit', '=')
-    ].join('');
   }
 
   function isDroppedMarketplaceSale(sale) {
@@ -1193,11 +1190,13 @@
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
-    const indexed = meta?.indexed != null && meta.indexed !== (list || []).length
+    const itemCount = (list || []).reduce((n, s) => n + saleKitQty(s), 0);
+    const orderCount = (list || []).length;
+    const indexed = meta?.indexed != null && meta.indexed !== orderCount
       ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas`
       : '';
     return `
-      <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${(list || []).length.toLocaleString('pt-BR')}${indexed}</dd></div>
+      <div class="clicks-stats-row"><dt>Vendas (itens)</dt><dd>${itemCount.toLocaleString('pt-BR')}${indexed}</dd></div>
       <div class="clicks-stats-row"><dt>Preço</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) ${escapeHtml(meta?.feeLabel || 'Tarifa')}</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
@@ -1245,7 +1244,8 @@
       if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, sales: [] };
       const d = m.days[dateKey];
       d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _refunds: refunds, _otherFees: otherFees, _cogs: cogs, _marketplace: marketplace, _net: net });
-      d.count += 1;
+      const qty = saleKitQty(sale);
+      d.count += qty;
       d.gross += gross;
       d.fees += fees;
       d.shipping += shipping;
@@ -1254,7 +1254,7 @@
       d.cogs += cogs;
       d.marketplace += marketplace;
       d.net += net;
-      m.count += 1;
+      m.count += qty;
       m.gross += gross;
       m.fees += fees;
       m.shipping += shipping;
@@ -1263,7 +1263,7 @@
       m.cogs += cogs;
       m.marketplace += marketplace;
       m.net += net;
-      y.count += 1;
+      y.count += qty;
       y.gross += gross;
       y.fees += fees;
       y.shipping += shipping;
@@ -1300,13 +1300,38 @@
     return SALES_CHANNEL_LABELS[channel] || channel || '—';
   }
 
+  /** Fallback se sales-money.mjs ainda não carregou: BRL = chargeAmount / chargeFxRate. */
+  function storeOrderChargeBrlFallback(o) {
+    const cur = String(o?.chargeCurrency || o?.displayCurrency || '').toUpperCase();
+    const amt = o?.chargeAmount != null ? Number(o.chargeAmount) : NaN;
+    const rate = o?.chargeFxRate != null ? Number(o.chargeFxRate) : NaN;
+    if (!cur || cur === 'BRL' || !(amt > 0) || !(rate > 0)) return null;
+    const freteBrl = roundMoneyLocal(Math.max(0, Number(o?.frete) || Number(o?.shippingCost) || 0));
+    return {
+      gross: roundMoneyLocal(amt / rate),
+      shippingCost: freteBrl,
+      fees: roundMoneyLocal(Number(o?.paypalFee) || 0),
+      currency: 'BRL',
+      chargeCurrency: cur,
+      chargeAmount: roundMoneyLocal(amt),
+      fromCharge: true
+    };
+  }
+
   function storeOrderToSale(o) {
-    const listed = sm().storeOrderListedGross;
-    const gross = listed
-      ? listed(o)
-      : Math.round(Number(o.total || 0) * 100) / 100;
-    const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
-    const paypalFee = Math.round(Number(o.paypalFee || 0) * 100) / 100;
+    const moneyFn = sm().storeOrderSaleMoney;
+    const money = (moneyFn && moneyFn(o))
+      || storeOrderChargeBrlFallback(o)
+      || {
+          gross: Math.round(Number(o.total || 0) * 100) / 100,
+          shippingCost: Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100,
+          fees: Math.round(Number(o.paypalFee || 0) * 100) / 100,
+          chargeCurrency: null,
+          chargeAmount: null
+        };
+    const gross = Number(money.gross || 0);
+    const shippingCost = Number(money.shippingCost || 0);
+    const paypalFee = Number(money.fees || 0);
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
     let qty = Number(o.qty || o.quantity || 0) || 0;
     if (!qty && Array.isArray(o.items) && o.items.length) {
@@ -1322,7 +1347,9 @@
       externalId: String(o.orderId || ''),
       soldAt: o.paidAt || o.createdAt || null,
       status: o.status || null,
-      currency: o.currency || 'BRL',
+      currency: 'BRL',
+      chargeCurrency: money.chargeCurrency || o.chargeCurrency || null,
+      chargeAmount: money.chargeAmount != null ? money.chargeAmount : (o.chargeAmount != null ? Number(o.chargeAmount) : null),
       gross,
       fees: paypalFee,
       shippingCost,
@@ -1336,7 +1363,7 @@
       items: [{
         title,
         quantity: qty,
-        unitPrice: gross,
+        unitPrice: roundMoneyLocal(Math.max(0, gross - shippingCost)),
         saleFee: 0
       }],
       payments: o.paymentMethod || o.meioPagamento
@@ -1353,6 +1380,7 @@
   }
 
   async function fetchStoreSales() {
+    await waitSalesMoney();
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
@@ -1437,7 +1465,7 @@
 
   function sumAnnotated(list) {
     return (list || []).reduce((acc, s) => {
-      acc.count += 1;
+      acc.count += saleKitQty(s);
       acc.gross += Number(s._gross || 0);
       acc.fees += Number(s._fees || 0);
       acc.shipping += Number(s._shipping || 0);
@@ -1607,7 +1635,7 @@
         });
       }
       const row = byDay.get(key);
-      row.count += 1;
+      row.count += saleKitQty(s);
       row.net += Number(s._net != null ? s._net : 0);
     });
     const days = [...byDay.values()];
@@ -1712,7 +1740,7 @@
       if (p.year !== y) return;
       const row = byNum.get(p.monthNum);
       if (!row) return;
-      row.count += 1;
+      row.count += saleKitQty(s);
       row.net += Number(s._net || 0);
     });
     return rows.map((r) => ({ ...r, net: Math.round(r.net * 100) / 100 }));
@@ -2062,7 +2090,7 @@
       subset.forEach((s) => {
         const ch = s.channel || 'outro';
         if (!byCh[ch]) byCh[ch] = { count: 0, net: 0 };
-        byCh[ch].count += 1;
+        byCh[ch].count += saleKitQty(s);
         byCh[ch].net += Number(s._net || 0);
       });
       const ranked = Object.entries(byCh).sort((a, b) => b[1].net - a[1].net);
@@ -2274,7 +2302,7 @@
           </div>
           <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
           <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
-          <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
+          <p class="vendas-consol-week13-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}</p>
         </article>`;
       }).join('');
       return `<div class="vendas-consol-week13-line">
@@ -2438,7 +2466,7 @@
     (sales || []).forEach((s) => {
       const ch = s.channel || 'outro';
       if (!byCh[ch]) byCh[ch] = { count: 0, net: 0, gross: 0, fees: 0, shipping: 0 };
-      byCh[ch].count += 1;
+      byCh[ch].count += saleKitQty(s);
       byCh[ch].net += Number(s._net || 0);
       byCh[ch].gross += Number(s._gross || 0);
       byCh[ch].fees += Number(s._fees || 0);
@@ -2486,6 +2514,7 @@
   }
 
   async function fetchConsolidatedSales() {
+    await waitSalesMoney();
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
@@ -2534,12 +2563,13 @@
       }
       const row = buckets.get(bucket.key);
       const ch = s.channel || 'outro';
+      const qty = saleKitQty(s);
       if (!row.byChannel[ch]) row.byChannel[ch] = { count: 0, gross: 0, fees: 0, net: 0 };
-      row.count += 1;
+      row.count += qty;
       row.gross += s._gross;
       row.fees += s._fees;
       row.net += s._net;
-      row.byChannel[ch].count += 1;
+      row.byChannel[ch].count += qty;
       row.byChannel[ch].gross += s._gross;
       row.byChannel[ch].fees += s._fees;
       row.byChannel[ch].net += s._net;
@@ -2745,7 +2775,7 @@ ${worksheets}
         sortKey = Number(clock.monthNum);
       }
       const b = ensure(key, label, sortKey);
-      b.count += 1;
+      b.count += saleKitQty(s);
       b.net += Number(s._net || 0);
       b.gross += Number(s._gross || 0);
     });
