@@ -1297,11 +1297,29 @@
     return SALES_CHANNEL_LABELS[channel] || channel || '—';
   }
 
+  /** Fallback se sales-money.mjs ainda não carregou: BRL = chargeAmount / chargeFxRate. */
+  function storeOrderChargeBrlFallback(o) {
+    const cur = String(o?.chargeCurrency || o?.displayCurrency || '').toUpperCase();
+    const amt = o?.chargeAmount != null ? Number(o.chargeAmount) : NaN;
+    const rate = o?.chargeFxRate != null ? Number(o.chargeFxRate) : NaN;
+    if (!cur || cur === 'BRL' || !(amt > 0) || !(rate > 0)) return null;
+    const freteBrl = roundMoneyLocal(Math.max(0, Number(o?.frete) || Number(o?.shippingCost) || 0));
+    return {
+      gross: roundMoneyLocal(amt / rate),
+      shippingCost: freteBrl,
+      fees: roundMoneyLocal(Number(o?.paypalFee) || 0),
+      currency: 'BRL',
+      chargeCurrency: cur,
+      chargeAmount: roundMoneyLocal(amt),
+      fromCharge: true
+    };
+  }
+
   function storeOrderToSale(o) {
     const moneyFn = sm().storeOrderSaleMoney;
-    const money = moneyFn
-      ? moneyFn(o)
-      : {
+    const money = (moneyFn && moneyFn(o))
+      || storeOrderChargeBrlFallback(o)
+      || {
           gross: Math.round(Number(o.total || 0) * 100) / 100,
           shippingCost: Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100,
           fees: Math.round(Number(o.paypalFee || 0) * 100) / 100,
@@ -1359,6 +1377,7 @@
   }
 
   async function fetchStoreSales() {
+    await waitSalesMoney();
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
@@ -2492,6 +2511,7 @@
   }
 
   async function fetchConsolidatedSales() {
+    await waitSalesMoney();
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
