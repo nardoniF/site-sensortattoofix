@@ -1190,11 +1190,13 @@
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
-    const indexed = meta?.indexed != null && meta.indexed !== (list || []).length
+    const itemCount = (list || []).reduce((n, s) => n + saleKitQty(s), 0);
+    const orderCount = (list || []).length;
+    const indexed = meta?.indexed != null && meta.indexed !== orderCount
       ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas`
       : '';
     return `
-      <div class="clicks-stats-row"><dt>Vendas (lista)</dt><dd>${(list || []).length.toLocaleString('pt-BR')}${indexed}</dd></div>
+      <div class="clicks-stats-row"><dt>Vendas (itens)</dt><dd>${itemCount.toLocaleString('pt-BR')}${indexed}</dd></div>
       <div class="clicks-stats-row"><dt>Preço</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) ${escapeHtml(meta?.feeLabel || 'Tarifa')}</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
@@ -1242,7 +1244,8 @@
       if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, sales: [] };
       const d = m.days[dateKey];
       d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _refunds: refunds, _otherFees: otherFees, _cogs: cogs, _marketplace: marketplace, _net: net });
-      d.count += 1;
+      const qty = saleKitQty(sale);
+      d.count += qty;
       d.gross += gross;
       d.fees += fees;
       d.shipping += shipping;
@@ -1251,7 +1254,7 @@
       d.cogs += cogs;
       d.marketplace += marketplace;
       d.net += net;
-      m.count += 1;
+      m.count += qty;
       m.gross += gross;
       m.fees += fees;
       m.shipping += shipping;
@@ -1260,7 +1263,7 @@
       m.cogs += cogs;
       m.marketplace += marketplace;
       m.net += net;
-      y.count += 1;
+      y.count += qty;
       y.gross += gross;
       y.fees += fees;
       y.shipping += shipping;
@@ -1462,7 +1465,7 @@
 
   function sumAnnotated(list) {
     return (list || []).reduce((acc, s) => {
-      acc.count += 1;
+      acc.count += saleKitQty(s);
       acc.gross += Number(s._gross || 0);
       acc.fees += Number(s._fees || 0);
       acc.shipping += Number(s._shipping || 0);
@@ -1632,7 +1635,7 @@
         });
       }
       const row = byDay.get(key);
-      row.count += 1;
+      row.count += saleKitQty(s);
       row.net += Number(s._net != null ? s._net : 0);
     });
     const days = [...byDay.values()];
@@ -1737,7 +1740,7 @@
       if (p.year !== y) return;
       const row = byNum.get(p.monthNum);
       if (!row) return;
-      row.count += 1;
+      row.count += saleKitQty(s);
       row.net += Number(s._net || 0);
     });
     return rows.map((r) => ({ ...r, net: Math.round(r.net * 100) / 100 }));
@@ -2087,7 +2090,7 @@
       subset.forEach((s) => {
         const ch = s.channel || 'outro';
         if (!byCh[ch]) byCh[ch] = { count: 0, net: 0 };
-        byCh[ch].count += 1;
+        byCh[ch].count += saleKitQty(s);
         byCh[ch].net += Number(s._net || 0);
       });
       const ranked = Object.entries(byCh).sort((a, b) => b[1].net - a[1].net);
@@ -2299,7 +2302,7 @@
           </div>
           <p class="vendas-consol-week13-net">${formatSalesBRL(row.tot.net)}</p>
           <p class="vendas-consol-week13-day">${formatSalesBRL(row.perDay)}/dia</p>
-          <p class="vendas-consol-week13-count">${row.tot.count} pedido${row.tot.count === 1 ? '' : 's'}</p>
+          <p class="vendas-consol-week13-count">${row.tot.count} venda${row.tot.count === 1 ? '' : 's'}</p>
         </article>`;
       }).join('');
       return `<div class="vendas-consol-week13-line">
@@ -2463,7 +2466,7 @@
     (sales || []).forEach((s) => {
       const ch = s.channel || 'outro';
       if (!byCh[ch]) byCh[ch] = { count: 0, net: 0, gross: 0, fees: 0, shipping: 0 };
-      byCh[ch].count += 1;
+      byCh[ch].count += saleKitQty(s);
       byCh[ch].net += Number(s._net || 0);
       byCh[ch].gross += Number(s._gross || 0);
       byCh[ch].fees += Number(s._fees || 0);
@@ -2560,12 +2563,13 @@
       }
       const row = buckets.get(bucket.key);
       const ch = s.channel || 'outro';
+      const qty = saleKitQty(s);
       if (!row.byChannel[ch]) row.byChannel[ch] = { count: 0, gross: 0, fees: 0, net: 0 };
-      row.count += 1;
+      row.count += qty;
       row.gross += s._gross;
       row.fees += s._fees;
       row.net += s._net;
-      row.byChannel[ch].count += 1;
+      row.byChannel[ch].count += qty;
       row.byChannel[ch].gross += s._gross;
       row.byChannel[ch].fees += s._fees;
       row.byChannel[ch].net += s._net;
@@ -2771,7 +2775,7 @@ ${worksheets}
         sortKey = Number(clock.monthNum);
       }
       const b = ensure(key, label, sortKey);
-      b.count += 1;
+      b.count += saleKitQty(s);
       b.net += Number(s._net || 0);
       b.gross += Number(s._gross || 0);
     });

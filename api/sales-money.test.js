@@ -14,7 +14,8 @@ import {
   orderNeedsFreteProductRepair,
   storeOrderListedGross,
   storeOrderChargeParts,
-  storeOrderSaleMoney
+  storeOrderSaleMoney,
+  saleKitQty
 } from './sales-money.js';
 
 const config = { mlFlexShippingCost: 11.9 };
@@ -153,4 +154,29 @@ test('loja BR sem chargeCurrency continua no total BRL', () => {
   assert.equal(money.fromCharge, false);
   assert.equal(money.gross, 89.9);
   assert.equal(money.shippingCost, 20);
+});
+
+test('saleKitQty soma itens — 1 pedido com qty 4 = 4 vendas', () => {
+  assert.equal(saleKitQty({ items: [{ quantity: 4, title: 'Lente' }] }), 4);
+  assert.equal(saleKitQty({
+    items: [
+      { quantity: 2, title: 'A' },
+      { qty: 3, title: 'B' }
+    ]
+  }), 5);
+  assert.equal(saleKitQty({ quantity: 2 }), 2);
+  assert.equal(saleKitQty({ items: [{ quantity: 1 }] }), 1);
+  // Pedido sem qty explícita continua 1 (não zera marcadores).
+  assert.equal(saleKitQty({}), 1);
+});
+
+test('agregar qtd de vendas usa itens, não número de pedidos', () => {
+  const sales = [
+    { items: [{ quantity: 4 }] }, // ML 4 un.
+    { items: [{ quantity: 1 }] }, // loja 1 un.
+    { items: [{ quantity: 2 }, { qty: 1 }] } // 3 un.
+  ];
+  const total = sales.reduce((n, s) => n + saleKitQty(s), 0);
+  assert.equal(sales.length, 3); // 3 pedidos
+  assert.equal(total, 8); // 8 itens = 8 vendas
 });
