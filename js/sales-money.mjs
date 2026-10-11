@@ -305,6 +305,21 @@ export function storeOrderListedGross(order) {
   return inferCustomerPaidTotal(order);
 }
 
+/** Dias com Flex: "2 (2) e 10" — (n) só se n > 1. */
+export function formatFlexDaysWithQty(entries) {
+  const list = (entries || []).map((e) => {
+    if (e && typeof e === 'object') {
+      return { day: Number(e.day), count: Number(e.count) || 1 };
+    }
+    return { day: Number(e), count: 1 };
+  }).filter((e) => e.day > 0);
+  if (!list.length) return '';
+  const labels = list.map((e) => (e.count > 1 ? `${e.day} (${e.count})` : String(e.day)));
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} e ${labels[1]}`;
+  return `${labels.slice(0, -1).join(', ')} e ${labels[labels.length - 1]}`;
+}
+
 export function aggregateFlexOwedByMonth(sales, config = null) {
   const map = new Map();
   (sales || []).forEach((s) => {
@@ -320,7 +335,8 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
         count: 0,
         owed: 0,
         bonus: 0,
-        net: 0
+        net: 0,
+        dayCountMap: new Map()
       });
     }
     const row = map.get(key);
@@ -330,14 +346,26 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
     row.owed += owed;
     row.bonus += bonus;
     row.net += roundMoney(owed - bonus);
+    const day = Number(p.day);
+    if (Number.isFinite(day) && day > 0) {
+      row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+    }
   });
   return [...map.values()]
-    .map((r) => ({
-      ...r,
-      owed: roundMoney(r.owed),
-      bonus: roundMoney(r.bonus),
-      net: roundMoney(r.net)
-    }))
+    .map((r) => {
+      const { dayCountMap, ...rest } = r;
+      const dayEntries = [...dayCountMap.entries()]
+        .map(([day, count]) => ({ day, count }))
+        .sort((a, b) => a.day - b.day);
+      return {
+        ...rest,
+        owed: roundMoney(r.owed),
+        bonus: roundMoney(r.bonus),
+        net: roundMoney(r.net),
+        days: dayEntries.map((e) => e.day),
+        dayEntries
+      };
+    })
     .sort((a, b) => String(b.key).localeCompare(String(a.key)));
 }
 
@@ -360,6 +388,7 @@ const exportsForBrowser = {
   saleMoneyParts,
   isMlFlexSale,
   flexCompanyOwed,
+  formatFlexDaysWithQty,
   aggregateFlexOwedByMonth,
   orderPaypalFee,
   inferCustomerPaidTotal,
