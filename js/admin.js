@@ -977,8 +977,18 @@
     const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
     const feesShown = (tagged._fees || 0) + other;
     const shipUnresolved = mlShippingUnresolved(tagged);
+    const chargeCur = String(tagged.chargeCurrency || '').toUpperCase();
+    const chargeAmt = Number(tagged.chargeAmount);
+    const fromCharge = chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt) && chargeAmt > 0;
+    const chargeShown = fromCharge
+      ? `${chargeCur} ${chargeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : '';
+    const priceHint = fromCharge
+      ? `Cobrado ${chargeShown} → BRL (charge ÷ câmbio do checkout) — não usa total lista BRL`
+      : 'Preço do produto (anúncio / recibo)';
+    const priceTitle = fromCharge ? `${chargeShown} → ${formatSalesBRL(tagged._gross)}` : 'Preço';
     return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('paid', tagged._gross, priceTitle, priceHint, ''),
       salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
       salesMoneyCell('ship', tagged._shipping || 0, 'Frete', shipUnresolved ? 'Frete ainda não identificado no ML' : saleShipHoverHint(tagged), '−', shipUnresolved),
       salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
@@ -1021,19 +1031,6 @@
       case 'amazon': return 'Frete do vendedor (Amazon)';
       default: return 'Frete (custo do vendedor)';
     }
-  }
-
-  function renderSaleMoneyCols(sale, channelHint) {
-    const tagged = sale?.channel ? sale : { ...sale, channel: channelHint };
-    const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
-    const feesShown = (tagged._fees || 0) + other;
-    return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
-      salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
-      salesMoneyCell('ship', tagged._shipping || 0, 'Frete', saleShipHoverHint(tagged), '−'),
-      salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
-      salesMoneyCell('net', tagged._net, 'Líquido', 'Líquido: Preço − Tarifa − Frete − Kit', '=')
-    ].join('');
   }
 
   function isDroppedMarketplaceSale(sale) {
@@ -1301,12 +1298,19 @@
   }
 
   function storeOrderToSale(o) {
-    const listed = sm().storeOrderListedGross;
-    const gross = listed
-      ? listed(o)
-      : Math.round(Number(o.total || 0) * 100) / 100;
-    const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
-    const paypalFee = Math.round(Number(o.paypalFee || 0) * 100) / 100;
+    const moneyFn = sm().storeOrderSaleMoney;
+    const money = moneyFn
+      ? moneyFn(o)
+      : {
+          gross: Math.round(Number(o.total || 0) * 100) / 100,
+          shippingCost: Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100,
+          fees: Math.round(Number(o.paypalFee || 0) * 100) / 100,
+          chargeCurrency: null,
+          chargeAmount: null
+        };
+    const gross = Number(money.gross || 0);
+    const shippingCost = Number(money.shippingCost || 0);
+    const paypalFee = Number(money.fees || 0);
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
     let qty = Number(o.qty || o.quantity || 0) || 0;
     if (!qty && Array.isArray(o.items) && o.items.length) {
@@ -1322,7 +1326,9 @@
       externalId: String(o.orderId || ''),
       soldAt: o.paidAt || o.createdAt || null,
       status: o.status || null,
-      currency: o.currency || 'BRL',
+      currency: 'BRL',
+      chargeCurrency: money.chargeCurrency || o.chargeCurrency || null,
+      chargeAmount: money.chargeAmount != null ? money.chargeAmount : (o.chargeAmount != null ? Number(o.chargeAmount) : null),
       gross,
       fees: paypalFee,
       shippingCost,
@@ -1336,7 +1342,7 @@
       items: [{
         title,
         quantity: qty,
-        unitPrice: gross,
+        unitPrice: roundMoneyLocal(Math.max(0, gross - shippingCost)),
         saleFee: 0
       }],
       payments: o.paymentMethod || o.meioPagamento
