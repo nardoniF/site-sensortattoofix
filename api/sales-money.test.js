@@ -143,7 +143,7 @@ test('intl charge: vendas usam valor cobrado / FX — não order.total BRL', () 
   const money = storeOrderSaleMoney(order);
   assert.equal(money.fromCharge, true);
   assert.equal(money.gross, parts.totalBrl);
-  assert.equal(money.shippingCost, parts.shippingBrl);
+  assert.equal(money.shippingCost, 27.55);
   assert.equal(money.chargeAmount, 28.11);
 });
 

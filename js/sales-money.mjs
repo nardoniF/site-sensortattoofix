@@ -324,9 +324,11 @@ export function storeOrderChargeParts(order) {
 export function storeOrderSaleMoney(order) {
   const charged = storeOrderChargeParts(order);
   if (charged) {
+    // Frete já está em BRL no pedido — não re-derivar via fx (evita drift de 1 centavo).
+    const freteBrl = roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0));
     return {
       gross: charged.totalBrl,
-      shippingCost: charged.shippingBrl,
+      shippingCost: freteBrl,
       fees: orderPaypalFee(order),
       currency: 'BRL',
       chargeCurrency: charged.currency,
