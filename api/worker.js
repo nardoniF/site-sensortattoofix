@@ -91,7 +91,8 @@ import {
   applyOrderFreteAccounting,
   orderNeedsFreteProductRepair,
   saleMoneyParts,
-  storeOrderListedGross
+  storeOrderListedGross,
+  storeOrderSaleMoney
 } from './sales-money.js';
 import {
   DEFAULT_INTL_CURRENCIES,
@@ -18369,9 +18370,11 @@ function isDroppedMarketplaceSale(sale) {
 }
 
 function storeOrderToReportSale(order) {
-  const gross = storeOrderListedGross(order);
-  const shippingCost = Math.round(Number(order.frete || order.shippingCost || 0) * 100) / 100;
-  const paypalFee = Math.round(Number(order.paypalFee || 0) * 100) / 100;
+  // Só mapeamento de relatório/contabilidade — não altera cobrança/checkout.
+  const money = storeOrderSaleMoney(order);
+  const gross = Number(money.gross || 0);
+  const shippingCost = Number(money.shippingCost || 0);
+  const paypalFee = Number(money.fees || 0);
   const watch = order.smartwatch || order.watchModel || order.modelo || '';
   let qty = Number(order.qty || order.quantity || 0) || 0;
   if (!qty && Array.isArray(order.items) && order.items.length) {
@@ -18384,7 +18387,9 @@ function storeOrderToReportSale(order) {
     externalId: String(order.orderId || ''),
     soldAt: order.paidAt || order.createdAt || null,
     status: order.status || null,
-    currency: order.currency || 'BRL',
+    currency: 'BRL',
+    chargeCurrency: money.chargeCurrency || order.chargeCurrency || null,
+    chargeAmount: money.chargeAmount != null ? money.chargeAmount : null,
     gross,
     fees: paypalFee,
     shippingCost,
@@ -18397,7 +18402,7 @@ function storeOrderToReportSale(order) {
     items: [{
       title,
       quantity: qty,
-      unitPrice: gross,
+      unitPrice: Math.round(Math.max(0, gross - shippingCost) * 100) / 100,
       saleFee: 0
     }]
   };

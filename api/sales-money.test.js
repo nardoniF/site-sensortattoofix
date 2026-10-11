@@ -12,7 +12,9 @@ import {
   applyOrderFreteAccounting,
   inferCustomerPaidTotal,
   orderNeedsFreteProductRepair,
-  storeOrderListedGross
+  storeOrderListedGross,
+  storeOrderChargeParts,
+  storeOrderSaleMoney
 } from './sales-money.js';
 
 const config = { mlFlexShippingCost: 11.9 };
@@ -117,4 +119,38 @@ test('manual product acerto stores productAdjust and net total after PayPal fee'
   assert.equal(order.totalPaid, 489.62);
   assert.equal(order.paypalFee, 49.86);
   assert.equal(storeOrderListedGross(order), 439.76);
+});
+
+test('intl charge: vendas usam valor cobrado / FX — não order.total BRL', () => {
+  // Lista BRL ~100,45 (errada na visão antiga); cobrado €28,11.
+  const fx = 0.1783; // BRL→EUR do checkout
+  const order = {
+    total: 100.45,
+    valorProduto: 72.9,
+    frete: 27.55,
+    currency: 'BRL',
+    chargeCurrency: 'EUR',
+    chargeAmount: 28.11,
+    chargeFxRate: fx,
+    paypalFee: 0
+  };
+  const parts = storeOrderChargeParts(order);
+  assert.ok(parts);
+  assert.equal(parts.totalBrl, Math.round((28.11 / fx) * 100) / 100);
+  assert.ok(parts.totalBrl > 150); // ~R$ 157 — não ~R$ 100
+  assert.notEqual(storeOrderListedGross(order), 100.45);
+
+  const money = storeOrderSaleMoney(order);
+  assert.equal(money.fromCharge, true);
+  assert.equal(money.gross, parts.totalBrl);
+  assert.equal(money.shippingCost, 27.55);
+  assert.equal(money.chargeAmount, 28.11);
+});
+
+test('loja BR sem chargeCurrency continua no total BRL', () => {
+  const order = { total: 89.9, frete: 20, valorProduto: 69.9, paypalFee: 0 };
+  const money = storeOrderSaleMoney(order);
+  assert.equal(money.fromCharge, false);
+  assert.equal(money.gross, 89.9);
+  assert.equal(money.shippingCost, 20);
 });
