@@ -1027,8 +1027,18 @@
     const tagged = sale?.channel ? sale : { ...sale, channel: channelHint };
     const other = (tagged._refunds || 0) + (tagged._otherFees || 0);
     const feesShown = (tagged._fees || 0) + other;
+    const chargeCur = String(tagged.chargeCurrency || '').toUpperCase();
+    const chargeAmt = Number(tagged.chargeAmount);
+    const fromCharge = chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt) && chargeAmt > 0;
+    const chargeShown = fromCharge
+      ? `${chargeCur} ${chargeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : '';
+    const priceHint = fromCharge
+      ? `Cobrado ${chargeShown} → BRL (charge ÷ câmbio do checkout) — não usa total lista BRL`
+      : 'Preço do produto (anúncio / recibo)';
+    const priceTitle = fromCharge ? `${chargeShown} → ${formatSalesBRL(tagged._gross)}` : 'Preço';
     return [
-      salesMoneyCell('paid', tagged._gross, 'Preço', 'Preço do produto (anúncio / recibo)', ''),
+      salesMoneyCell('paid', tagged._gross, priceTitle, priceHint, ''),
       salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
       salesMoneyCell('ship', tagged._shipping || 0, 'Frete', saleShipHoverHint(tagged), '−'),
       salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
@@ -1303,13 +1313,38 @@
     return SALES_CHANNEL_LABELS[channel] || channel || '—';
   }
 
+  /** Fallback se sales-money.mjs ainda não carregou: BRL = chargeAmount / chargeFxRate. */
+  function storeOrderChargeBrlFallback(o) {
+    const cur = String(o?.chargeCurrency || o?.displayCurrency || '').toUpperCase();
+    const amt = o?.chargeAmount != null ? Number(o.chargeAmount) : NaN;
+    const rate = o?.chargeFxRate != null ? Number(o.chargeFxRate) : NaN;
+    if (!cur || cur === 'BRL' || !(amt > 0) || !(rate > 0)) return null;
+    const freteBrl = roundMoneyLocal(Math.max(0, Number(o?.frete) || Number(o?.shippingCost) || 0));
+    return {
+      gross: roundMoneyLocal(amt / rate),
+      shippingCost: freteBrl,
+      fees: roundMoneyLocal(Number(o?.paypalFee) || 0),
+      currency: 'BRL',
+      chargeCurrency: cur,
+      chargeAmount: roundMoneyLocal(amt),
+      fromCharge: true
+    };
+  }
+
   function storeOrderToSale(o) {
-    const listed = sm().storeOrderListedGross;
-    const gross = listed
-      ? listed(o)
-      : Math.round(Number(o.total || 0) * 100) / 100;
-    const shippingCost = Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100;
-    const paypalFee = Math.round(Number(o.paypalFee || 0) * 100) / 100;
+    const moneyFn = sm().storeOrderSaleMoney;
+    const money = (moneyFn && moneyFn(o))
+      || storeOrderChargeBrlFallback(o)
+      || {
+          gross: Math.round(Number(o.total || 0) * 100) / 100,
+          shippingCost: Math.round(Number(o.frete || o.shippingCost || 0) * 100) / 100,
+          fees: Math.round(Number(o.paypalFee || 0) * 100) / 100,
+          chargeCurrency: null,
+          chargeAmount: null
+        };
+    const gross = Number(money.gross || 0);
+    const shippingCost = Number(money.shippingCost || 0);
+    const paypalFee = Number(money.fees || 0);
     const watch = o.smartwatch || o.watchModel || o.modelo || '';
     let qty = Number(o.qty || o.quantity || 0) || 0;
     if (!qty && Array.isArray(o.items) && o.items.length) {
@@ -1325,7 +1360,9 @@
       externalId: String(o.orderId || ''),
       soldAt: o.paidAt || o.createdAt || null,
       status: o.status || null,
-      currency: o.currency || 'BRL',
+      currency: 'BRL',
+      chargeCurrency: money.chargeCurrency || o.chargeCurrency || null,
+      chargeAmount: money.chargeAmount != null ? money.chargeAmount : (o.chargeAmount != null ? Number(o.chargeAmount) : null),
       gross,
       fees: paypalFee,
       shippingCost,
@@ -1339,7 +1376,7 @@
       items: [{
         title,
         quantity: qty,
-        unitPrice: gross,
+        unitPrice: roundMoneyLocal(Math.max(0, gross - shippingCost)),
         saleFee: 0
       }],
       payments: o.paymentMethod || o.meioPagamento
@@ -1356,6 +1393,7 @@
   }
 
   async function fetchStoreSales() {
+    await waitSalesMoney();
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
@@ -2536,34 +2574,58 @@
   }
 
   async function fetchConsolidatedSales() {
+    await waitSalesMoney();
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
     const root = base.replace(/\/$/, '');
     const headers = { Authorization: 'Bearer ' + token };
-    const [mlRes, amzRes, shopeeRes, ordersRes] = await Promise.all([
-      fetch(`${root}/admin/ml/sales?limit=400`, { headers, cache: 'no-store' }),
-      fetch(`${root}/admin/amz/sales?limit=5000`, { headers, cache: 'no-store' }),
-      fetch(`${root}/admin/shopee/sales?limit=5000`, { headers, cache: 'no-store' }),
-      fetch(`${root}/orders`, { headers, cache: 'no-store' })
-    ]);
-    const mlData = await mlRes.json().catch(() => ({}));
-    if (!mlRes.ok) throw new Error(mlData.error || 'Falha ao carregar vendas ML');
-    const amzData = await amzRes.json().catch(() => ({}));
-    if (!amzRes.ok) throw new Error(amzData.error || 'Falha ao carregar vendas Amazon');
-    const shopeeData = await shopeeRes.json().catch(() => ({}));
-    if (!shopeeRes.ok) throw new Error(shopeeData.error || 'Falha ao carregar vendas Shopee');
-    const ordersData = await ordersRes.json().catch(() => ({}));
-    if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
-    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const storeSales = (Array.isArray(ordersData) ? ordersData : [])
-      .filter(isStoreSaleOrder)
-      .map((o) => annotateSale(storeOrderToSale(o)));
-    return [...storeSales, ...mlSales, ...amzSales, ...shopeeSales]
+    const jobs = [
+      { key: 'ml', label: 'Mercado Livre', url: `${root}/admin/ml/sales?limit=400` },
+      { key: 'amz', label: 'Amazon', url: `${root}/admin/amz/sales?limit=5000` },
+      { key: 'shopee', label: 'Shopee', url: `${root}/admin/shopee/sales?limit=5000` },
+      { key: 'loja', label: 'Loja', url: `${root}/orders` }
+    ];
+    const settled = await Promise.allSettled(
+      jobs.map((j) => fetch(j.url, { headers, cache: 'no-store' }))
+    );
+    const errors = [];
+    const bags = { ml: [], amz: [], shopee: [], loja: [] };
+
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+      const outcome = settled[i];
+      if (outcome.status !== 'fulfilled') {
+        errors.push(`${job.label}: ${outcome.reason?.message || 'Failed to fetch'}`);
+        continue;
+      }
+      const res = outcome.value;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        errors.push(`${job.label}: ${data?.error || `HTTP ${res.status}`}`);
+        continue;
+      }
+      if (job.key === 'loja') {
+        bags.loja = (Array.isArray(data) ? data : [])
+          .filter(isStoreSaleOrder)
+          .map((o) => annotateSale(storeOrderToSale(o)));
+      } else {
+        bags[job.key] = (Array.isArray(data.sales) ? data.sales : [])
+          .filter((s) => !isDroppedMarketplaceSale(s))
+          .map(annotateSale);
+      }
+    }
+
+    const sales = [...bags.loja, ...bags.ml, ...bags.amz, ...bags.shopee]
       .filter((s) => s._ts)
       .sort((a, b) => b._ts - a._ts);
+    if (!sales.length && errors.length) {
+      throw new Error(errors[0] || 'Falha ao carregar consolidado.');
+    }
+    if (errors.length) {
+      showStatus(`Consolidado parcial — ${errors.join(' · ')}`, 'warning', 'vendas');
+    }
+    return sales;
   }
 
   function aggregateSalesForExport(sales, period) {
