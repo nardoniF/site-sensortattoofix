@@ -13,7 +13,7 @@ import {
   isBotUserAgent
 } from './geo-lang.js';
 
-const COMMIT = '2e89ce8f35feb924a4578d7c3bd037313feaebbe';
+const COMMIT = '5e51647fcdb6c28d323a9edb34ad8cf218b7599d';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
@@ -185,7 +185,8 @@ function patchHtml(html, originPath, br) {
 
 function mimeFor(pathname) {
   if (pathname.endsWith('.css')) return 'text/css; charset=utf-8';
-  if (pathname.endsWith('.js')) return 'application/javascript; charset=utf-8';
+  // .mjs = ES module (ex.: sales-money.mjs). Octet-stream faz o browser bloquear o módulo.
+  if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) return 'application/javascript; charset=utf-8';
   if (pathname.endsWith('.json')) return 'application/json; charset=utf-8';
   if (pathname.endsWith('.xml')) return 'application/xml; charset=utf-8';
   if (pathname.endsWith('.txt')) return 'text/plain; charset=utf-8';
