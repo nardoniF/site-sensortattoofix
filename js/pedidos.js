@@ -221,6 +221,36 @@
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  /** BRL do cobrado: chargeAmount / chargeFxRate (fx = BRL→moeda). o.total é livro sem markup intl. */
+  function orderPaidBrl(o) {
+    const cur = String(o?.chargeCurrency || o?.displayCurrency || '').toUpperCase();
+    const amt = o?.chargeAmount != null ? Number(o.chargeAmount) : null;
+    const fx = o?.chargeFxRate != null ? Number(o.chargeFxRate) : null;
+    if (cur && cur !== 'BRL' && Number.isFinite(amt) && amt >= 0 && Number.isFinite(fx) && fx > 0) {
+      return Math.round((amt / fx) * 100) / 100;
+    }
+    if (o?.totalPaid != null && Number.isFinite(Number(o.totalPaid))) return Number(o.totalPaid);
+    if (o?.total != null && Number.isFinite(Number(o.total))) return Number(o.total);
+    return Math.round((Number(o?.valorProduto || 0) + Number(o?.frete || 0)) * 100) / 100;
+  }
+
+  function orderHasForeignCharge(o) {
+    const cur = String(o?.chargeCurrency || o?.displayCurrency || '').toUpperCase();
+    const amt = o?.chargeAmount != null ? Number(o.chargeAmount) : null;
+    return !!(cur && cur !== 'BRL' && Number.isFinite(amt));
+  }
+
+  /** Lista: moeda cobrada grande + R$ equivalente (charge÷fx) pequeno embaixo. */
+  function orderTotalCell(o) {
+    if (orderHasForeignCharge(o)) {
+      const cur = String(o.chargeCurrency || o.displayCurrency || '').toUpperCase();
+      const amt = Number(o.chargeAmount);
+      const brl = orderPaidBrl(o);
+      return `<span class="pedidos-total-cell" title="${escAttr(formatMoney(amt, cur))} ≈ ${escAttr(formatBRL(brl))}"><strong class="pedidos-total-foreign">${escHtml(formatMoney(amt, cur))}</strong><br><small class="pedidos-total-brl">${formatBRL(brl)}</small></span>`;
+    }
+    return formatBRL(orderPaidBrl(o));
+  }
+
   function statusBadgeHtml(status) {
     if (status === 'paid') {
       return '<span class="status-badge status-paid"><i class="fas fa-check-circle" aria-hidden="true"></i> Pago</span>';
@@ -621,8 +651,8 @@
             <span class="pedidos-shipping-label">Produto / acerto (R$)</span>
             <input type="text" class="pedidos-order-produto" value="${escHtml(productVal)}" placeholder="Ex.: 472,00" inputmode="decimal" />
           </label>
-          <p class="pedidos-detail-muted">Checkout (cliente): <strong>${formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong>${o.paypalFee ? ` · Taxa PayPal: ${formatBRL(o.paypalFee)}` : ''}</p>
-          <p class="pedidos-detail-muted">Entrou na conta: <strong class="pedidos-order-total">${formatBRL(o.total != null ? o.total : (Number(o.valorProduto || 0) + Number(o.frete || 0)))}</strong></p>
+          <p class="pedidos-detail-muted">Checkout (cliente): <strong>${orderHasForeignCharge(o) && Number.isFinite(Number(o.chargeAmount)) ? `${escHtml(formatMoney(Number(o.chargeAmount), String(o.chargeCurrency || '').toUpperCase()))} · ${formatBRL(orderPaidBrl(o))}` : formatBRL(o.totalPaid != null ? o.totalPaid : o.total)}</strong>${o.paypalFee ? ` · Taxa PayPal: ${formatBRL(o.paypalFee)}` : ''}</p>
+          <p class="pedidos-detail-muted">Equivalente cobrado (BRL): <strong class="pedidos-order-total">${formatBRL(orderPaidBrl(o))}</strong></p>
           <button type="button" class="btn-save-order-frete">Salvar acerto</button>
           <p class="pedidos-frete-feedback" hidden></p>
         </div>
@@ -816,7 +846,7 @@
     const totalF = o.chargeAmount != null ? Number(o.chargeAmount) : null;
     const fx = o.chargeFxRate != null ? Number(o.chargeFxRate) : null;
     const freteBrl = Number(o.frete);
-    const totalBrl = Number(o.total);
+    const paidBrl = orderPaidBrl(o);
     const kind = escHtml(shippingKindLabel(o));
     const prazo = shippingDaysLabel(o);
     const rows = [];
@@ -828,9 +858,9 @@
       const prodF = freteF != null ? Math.round((totalF - freteF) * 100) / 100 : null;
       if (prodF != null) rows.push(detailRow('Produto', escHtml(formatMoney(prodF, cur))));
       if (freteF != null) rows.push(detailRow('Frete', escHtml(formatMoney(freteF, cur))));
-      const totalTxt = Number.isFinite(totalBrl)
-        ? `<strong>${escHtml(formatMoney(totalF, cur))}</strong> — ${formatBRL(totalBrl)}`
-        : `<strong>${escHtml(formatMoney(totalF, cur))}</strong>`;
+      const totalTxt = Number.isFinite(paidBrl)
+        ? `<strong class="pedidos-total-foreign">${escHtml(formatMoney(totalF, cur))}</strong><br><small class="pedidos-total-brl">${formatBRL(paidBrl)}</small>`
+        : `<strong class="pedidos-total-foreign">${escHtml(formatMoney(totalF, cur))}</strong>`;
       rows.push(detailRow('Total', totalTxt));
       rows.push(detailRow('Tipo envio', kind));
       if (prazo) rows.push(detailRow('Prazo entrega', prazo));
@@ -975,9 +1005,10 @@
       const prodF = freteF != null ? Math.round((chargeAmt - freteF) * 100) / 100 : null;
       if (prodF != null) rows.push(detailRow('Produto', escHtml(formatMoney(prodF, chargeCur))));
       if (freteF != null) rows.push(detailRow('Frete', escHtml(formatMoney(freteF, chargeCur))));
+      const paidBrl = orderPaidBrl(o);
       rows.push(detailRow(
         'Cobrado do cliente',
-        `<strong>${escHtml(formatMoney(chargeAmt, chargeCur))}</strong>${Number.isFinite(Number(o.total)) ? ` — ${formatBRL(Number(o.total))}` : ''}`
+        `<strong class="pedidos-total-foreign">${escHtml(formatMoney(chargeAmt, chargeCur))}</strong>${Number.isFinite(paidBrl) ? `<br><small class="pedidos-total-brl">${formatBRL(paidBrl)}</small>` : ''}`
       ));
       if (Number.isFinite(fx) && fx > 0) {
         rows.push(detailRow('Câmbio (BRL→moeda)', String(fx)));
@@ -1038,11 +1069,19 @@
     if (o.paypalFee != null && Number(o.paypalFee) > 0) {
       rows.push(detailRow('Taxa PayPal', `− ${formatBRL(o.paypalFee)}`));
     }
-    if (o.totalPaid != null && Number.isFinite(Number(o.totalPaid))) {
-      rows.push(detailRow('Checkout (cliente, BRL)', formatBRL(o.totalPaid)));
-    }
-    if (Number.isFinite(total) && total >= 0) {
-      rows.push(detailRow('Entrou na conta (BRL)', `<strong>${formatBRL(total)}</strong>`));
+    const paidBrlAudit = orderPaidBrl(o);
+    if (orderHasForeignCharge(o)) {
+      rows.push(detailRow('Equivalente cobrado (BRL)', `<strong>${formatBRL(paidBrlAudit)}</strong>`));
+      if (Number.isFinite(total) && total >= 0 && Math.abs(total - paidBrlAudit) > 0.05) {
+        rows.push(detailRow('Livro interno (BRL)', formatBRL(total)));
+      }
+    } else {
+      if (o.totalPaid != null && Number.isFinite(Number(o.totalPaid))) {
+        rows.push(detailRow('Checkout (cliente, BRL)', formatBRL(o.totalPaid)));
+      }
+      if (Number.isFinite(total) && total >= 0) {
+        rows.push(detailRow('Entrou na conta (BRL)', `<strong>${formatBRL(total)}</strong>`));
+      }
     }
     if (o.paidAt) rows.push(detailRow('Pago em', formatDate(o.paidAt)));
     if (o.createdAt) rows.push(detailRow('Criado em', formatDate(o.createdAt)));
@@ -1377,14 +1416,14 @@
         if (idx >= 0) applyShippingOverrideToOrder(allOrders[idx], saved);
         applyFilters();
         const totalEl = body.querySelector('.pedidos-order-total');
-        if (totalEl && (saved.totalPaid != null || saved.total != null)) {
-          totalEl.textContent = formatBRL(saved.totalPaid != null ? saved.totalPaid : saved.total);
+        if (totalEl) {
+          totalEl.textContent = formatBRL(orderPaidBrl(o));
         }
         if (productInput && saved.valorProduto != null) {
           productInput.value = formatFreteInput(saved.valorProduto);
         }
         showFeedback(
-          `Acerto salvo — produto ${formatBRL(saved.valorProduto)} · frete ${formatBRL(saved.frete)} · total pago ${formatBRL(saved.totalPaid != null ? saved.totalPaid : saved.total)}`,
+          `Acerto salvo — produto ${formatBRL(saved.valorProduto)} · frete ${formatBRL(saved.frete)} · total ${formatBRL(orderPaidBrl(o))}`,
           'success'
         );
         showStatus(`Pedido ${o.orderId}: produto ${formatBRL(saved.valorProduto)}, frete ${formatBRL(saved.frete)}`, 'success');
@@ -1846,7 +1885,7 @@
         <td>${escHtml(o.pais || '—')}</td>
         <td class="pedidos-pay">${paymentCellHtml(o)}</td>
         <td>${commissionerCell(o)}</td>
-        <td>${formatBRL(o.total)}</td>
+        <td class="pedidos-total">${orderTotalCell(o)}</td>
         <td class="pedidos-frete">${freteCell(o)}</td>
         <td class="pedidos-entrega">${entregaCell(o)}</td>
         <td class="pedidos-actions">
