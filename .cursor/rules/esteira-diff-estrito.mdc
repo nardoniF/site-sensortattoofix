@@ -1,0 +1,43 @@
+# Esteira: só sobe o que foi pedido
+
+## Regra dura (toda publicação)
+
+Antes de **qualquer** `git push` em `main`, merge, pin de proxy ou `wrangler deploy`:
+
+1. Rodar e **ler** o diff completo do que vai subir (`git diff` / `git diff main...HEAD` / `git show`).
+2. Cada arquivo e cada hunk têm que ser **só** a correção pedida nesta tarefa.
+3. Se aparecer **qualquer** mudança fora do pedido (outra feature, “já que estamos aqui”, reformatação, cache bust alheio, remoção colateral, restore parcial que apaga outra coisa): **NÃO SUBIR**. Parar, separar o diff, ou descartar o que sobra.
+4. Proibido pin/deploy que aponte para um commit cujo tree **não** contenha o que já está no ar + o pedido. Nunca pinar branch antiga por cima do `main` atual.
+5. Mensagem de commit / PR deve listar **apenas** o escopo pedido; se o diff tiver mais, o publish está errado.
+
+## Comparação obrigatória
+
+Antes do push/deploy, conferir mentalmente (e no diff):
+
+- O pedido do usuário está no diff? **Sim.**
+- Tem mais alguma coisa? **Não** — senão não sobe.
+- Algo que já estava no ar foi removido/revertido? **Não** — senão não sobe.
+
+## O que “não sobe”
+
+- Correções de tarefas antigas “de passagem”
+- Refactors, limpeza, renomeações
+- Mudanças em checkout/markup/i18n/pedidos/vendas/Flex **sem** pedido explícito nesta mensagem
+- Pins que voltem `admin.js` / `sales-money.mjs` / `pedidos.js` / `worker.js` a versões sem features já publicadas
+
+## Checklist do que já está no ar (não retirar)
+
+Ao tocar Admin/Vendas/Pedidos/proxy, o diff **não pode remover**:
+
+- Pedidos: moeda cobrada (USD/EUR/…) grande + BRL (charge÷fx) pequeno
+- Vendas/contabilidade loja intl: bruto = `chargeAmount / chargeFxRate` (não `order.total` livro)
+- Contagem de vendas por **itens** (`saleKitQty`), não por pedido
+- Flex: dias `com:` + `(n)` se n>1; a pagar só últimos 3 meses
+- Markup intl / FX no checkout (não voltar a cobrar “preço BR” no exterior)
+- Cancelados fora da contabilidade (filtro atual)
+
+Se a tarefa não for sobre um desses itens, eles têm que **continuar iguais** no diff (zero hunks neles).
+
+## Resposta ao usuário
+
+Se o diff estiver “sujo”, dizer em português: não subi — o pacote tinha mudanças além do pedido — e listar o que sobrou, sem publicar.
