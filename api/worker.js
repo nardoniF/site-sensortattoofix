@@ -5852,7 +5852,7 @@ async function refillMlEnviosBatches(env, maxRounds = 12) {
   return { filled: totalFilled, remaining: last.remaining || 0 };
 }
 
-async function handleAdminMlSales(request, env, origin) {
+async function handleAdminMlSales(request, env, origin, ctx) {
   const url = new URL(request.url);
   const key = url.searchParams.get('key') || '';
   if (!(await isValidSession(env, bearerToken(request)))) {
@@ -5860,7 +5860,10 @@ async function handleAdminMlSales(request, env, origin) {
       return json({ error: 'Não autorizado.' }, 401, origin);
     }
   }
-  await refillPendingMlEnvios(env).catch(() => {});
+  // Não bloquear o GET com backfill ML (subrequests) — isso estourava CPU e virava "Failed to fetch".
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(refillPendingMlEnvios(env).catch(() => {}));
+  }
   const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit')) || 400));
   const sales = await listMarketplaceSales(env, 'mercadolivre', limit);
   const totalIndexed = await d1CountSales(env, 'mercadolivre');
@@ -7011,13 +7014,16 @@ async function handleAdminShopeeSync(request, env, origin) {
   }
 }
 
-async function handleAdminShopeeSales(request, env, origin) {
+async function handleAdminShopeeSales(request, env, origin, ctx) {
   if (!(await isValidSession(env, bearerToken(request)))) {
     return json({ error: 'Não autorizado.' }, 401, origin);
   }
   const url = new URL(request.url);
   const limit = Math.min(5000, Math.max(1, Number(url.searchParams.get('limit')) || 5000));
-  await backfillShopeeIndex(env, 25).catch(() => {});
+  // Backfill em background — não travar a árvore de Vendas/consolidado.
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(backfillShopeeIndex(env, 25).catch(() => {}));
+  }
   const sales = await listMarketplaceSales(env, 'shopee', limit);
   const totalIndexed = await d1CountSales(env, 'shopee');
   const meta = await getShopeeSalesMeta(env);
@@ -19224,7 +19230,7 @@ export default {
         return handleAdminMlSync(request, env, origin, ctx);
       }
       if (path === '/admin/ml/sales' && request.method === 'GET') {
-        return handleAdminMlSales(request, env, origin);
+        return handleAdminMlSales(request, env, origin, ctx);
       }
       if (path === '/admin/amz/sync' && (request.method === 'GET' || request.method === 'POST')) {
         return handleAdminAmzSync(request, env, origin);
@@ -19242,7 +19248,7 @@ export default {
         return handleAdminShopeeSync(request, env, origin);
       }
       if (path === '/admin/shopee/sales' && request.method === 'GET') {
-        return handleAdminShopeeSales(request, env, origin);
+        return handleAdminShopeeSales(request, env, origin, ctx);
       }
       if (path === '/admin/backfill-normalized' && (request.method === 'POST' || request.method === 'GET')) {
         return handleAdminBackfillNormalized(request, env, origin);

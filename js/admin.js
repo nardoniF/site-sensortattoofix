@@ -2580,29 +2580,52 @@
     if (!token || !base) throw new Error('Faça login no admin.');
     const root = base.replace(/\/$/, '');
     const headers = { Authorization: 'Bearer ' + token };
-    const [mlRes, amzRes, shopeeRes, ordersRes] = await Promise.all([
-      fetch(`${root}/admin/ml/sales?limit=400`, { headers, cache: 'no-store' }),
-      fetch(`${root}/admin/amz/sales?limit=5000`, { headers, cache: 'no-store' }),
-      fetch(`${root}/admin/shopee/sales?limit=5000`, { headers, cache: 'no-store' }),
-      fetch(`${root}/orders`, { headers, cache: 'no-store' })
-    ]);
-    const mlData = await mlRes.json().catch(() => ({}));
-    if (!mlRes.ok) throw new Error(mlData.error || 'Falha ao carregar vendas ML');
-    const amzData = await amzRes.json().catch(() => ({}));
-    if (!amzRes.ok) throw new Error(amzData.error || 'Falha ao carregar vendas Amazon');
-    const shopeeData = await shopeeRes.json().catch(() => ({}));
-    if (!shopeeRes.ok) throw new Error(shopeeData.error || 'Falha ao carregar vendas Shopee');
-    const ordersData = await ordersRes.json().catch(() => ({}));
-    if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
-    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const storeSales = (Array.isArray(ordersData) ? ordersData : [])
-      .filter(isStoreSaleOrder)
-      .map((o) => annotateSale(storeOrderToSale(o)));
-    return [...storeSales, ...mlSales, ...amzSales, ...shopeeSales]
+    const jobs = [
+      { key: 'ml', label: 'Mercado Livre', url: `${root}/admin/ml/sales?limit=400` },
+      { key: 'amz', label: 'Amazon', url: `${root}/admin/amz/sales?limit=5000` },
+      { key: 'shopee', label: 'Shopee', url: `${root}/admin/shopee/sales?limit=5000` },
+      { key: 'loja', label: 'Loja', url: `${root}/orders` }
+    ];
+    const settled = await Promise.allSettled(
+      jobs.map((j) => fetch(j.url, { headers, cache: 'no-store' }))
+    );
+    const errors = [];
+    const bags = { ml: [], amz: [], shopee: [], loja: [] };
+
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+      const outcome = settled[i];
+      if (outcome.status !== 'fulfilled') {
+        errors.push(`${job.label}: ${outcome.reason?.message || 'Failed to fetch'}`);
+        continue;
+      }
+      const res = outcome.value;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        errors.push(`${job.label}: ${data?.error || `HTTP ${res.status}`}`);
+        continue;
+      }
+      if (job.key === 'loja') {
+        bags.loja = (Array.isArray(data) ? data : [])
+          .filter(isStoreSaleOrder)
+          .map((o) => annotateSale(storeOrderToSale(o)));
+      } else {
+        bags[job.key] = (Array.isArray(data.sales) ? data.sales : [])
+          .filter((s) => !isDroppedMarketplaceSale(s))
+          .map(annotateSale);
+      }
+    }
+
+    const sales = [...bags.loja, ...bags.ml, ...bags.amz, ...bags.shopee]
       .filter((s) => s._ts)
       .sort((a, b) => b._ts - a._ts);
+    if (!sales.length && errors.length) {
+      throw new Error(errors[0] || 'Falha ao carregar consolidado.');
+    }
+    if (errors.length) {
+      showStatus(`Consolidado parcial — ${errors.join(' · ')}`, 'warning', 'vendas');
+    }
+    return sales;
   }
 
   function aggregateSalesForExport(sales, period) {
