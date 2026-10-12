@@ -1,22 +1,25 @@
 # Esteira: só sobe o que foi pedido
 
-## Regra dura (toda publicação)
+## Regra dura — TODAS as vezes
 
-Antes de **qualquer** `git push` em `main`, merge, pin de proxy ou `wrangler deploy`:
+**Todas as vezes** que for subir qualquer coisa (`git push`, merge em `main`, pin de proxy, `wrangler deploy`):
 
-1. Rodar e **ler** o diff completo do que vai subir (`git diff` / `git diff main...HEAD` / `git show`).
-2. Cada arquivo e cada hunk têm que ser **só** a correção pedida nesta tarefa.
-3. Se aparecer **qualquer** mudança fora do pedido (outra feature, “já que estamos aqui”, reformatação, cache bust alheio, remoção colateral, restore parcial que apaga outra coisa): **NÃO SUBIR**. Parar, separar o diff, ou descartar o que sobra.
+1. **Comparar tudo** que está no pacote que vai subir — não só o arquivo “da tarefa”. Rodar e **ler** o diff completo (`git status`, `git diff`, `git diff --cached`, `git diff main...HEAD`, `git show` do commit).
+2. Cada arquivo e cada hunk tem que ser **só** a correção pedida nesta mensagem/tarefa.
+3. Se aparecer **qualquer** mudança que **não** seja só o que o usuário pediu (outra feature, “já que estamos aqui”, reformatação, cache bust alheio, remoção colateral, restore parcial que apaga outra coisa, arquivo extra): **NÃO SUBIR**. Zero exceções.
 4. Proibido pin/deploy que aponte para um commit cujo tree **não** contenha o que já está no ar + o pedido. Nunca pinar branch antiga por cima do `main` atual.
-5. Mensagem de commit / PR deve listar **apenas** o escopo pedido; se o diff tiver mais, o publish está errado.
+5. Mensagem de commit / PR deve listar **apenas** o escopo pedido; se o diff tiver mais, o publish está errado — **não sobe**.
 
-## Comparação obrigatória
+Pedido do usuário (literal): *“Todas as vezes que cê for subir alguma coisa, compara tudo que você está subindo. Se tiver alguma mudança lá que não for só a que eu pedi, eu não quero que cê suba.”*
 
-Antes do push/deploy, conferir mentalmente (e no diff):
+## Comparação obrigatória (checklist antes do push/deploy)
+
+Responder com evidência do diff (não “de memória”):
 
 - O pedido do usuário está no diff? **Sim.**
-- Tem mais alguma coisa? **Não** — senão não sobe.
-- Algo que já estava no ar foi removido/revertido? **Não** — senão não sobe.
+- Tem mais alguma coisa além do pedido? **Não** — se sim, **não sobe**.
+- Algo que já estava no ar foi removido/revertido? **Não** — se sim, **não sobe**.
+- Lista de arquivos no pacote = lista esperada da tarefa? **Sim** — senão **não sobe**.
 
 ## O que “não sobe”
 
@@ -24,6 +27,7 @@ Antes do push/deploy, conferir mentalmente (e no diff):
 - Refactors, limpeza, renomeações
 - Mudanças em checkout/markup/i18n/pedidos/vendas/Flex **sem** pedido explícito nesta mensagem
 - Pins que voltem `admin.js` / `sales-money.mjs` / `pedidos.js` / `worker.js` a versões sem features já publicadas
+- Qualquer hunk “bônus” junto com o pedido
 
 ## Checklist do que já está no ar (não retirar)
 
