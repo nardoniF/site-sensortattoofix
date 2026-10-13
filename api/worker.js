@@ -3696,9 +3696,7 @@ function buildPendingConsultativeEmail(order, config, env, {
   includePixCode = false
 } = {}) {
   const copy = pendingRecoveryCopy(order, config, env, { paymentKind });
-  const total = (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR') && order.chargeAmount != null
-    ? formatOrderCharge(order)
-    : formatBRL(order.total);
+  const total = formatOrderCharge(order, order.total);
   const copyPaste = order.pixCopyPaste || '';
   const qrImg = hasQrImage
     ? `<img src="cid:${PIX_QR_CID}" width="220" height="220" alt="QR Code PIX" style="display:block;margin:16px auto;border:1px solid #eee;border-radius:8px" />`
@@ -3763,12 +3761,41 @@ function labelPrintUrl(config, orderId) {
   return `${base}/imprimir-etiqueta.html?order=${encodeURIComponent(orderId)}`;
 }
 
+/**
+ * Valor cobrado no e-mail/recibo.
+ * Intl: moeda cobrada + BRL = chargeAmount / chargeFxRate (markup).
+ * Nunca usar order.total livro (~R$100) quando houver cobrança estrangeira.
+ */
 function formatOrderCharge(order, value) {
-  const cur = String(order?.chargeCurrency || '').toUpperCase();
-  const amt = order.chargeAmount != null ? Number(order.chargeAmount) : Number(value ?? order.total);
-  if (cur === 'USD') return `US$ ${Number(amt || 0).toFixed(2)}`;
-  if (cur === 'EUR') {
-    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(Number(amt || 0));
+  const cur = String(order?.chargeCurrency || order?.displayCurrency || '').toUpperCase();
+  const amt = order?.chargeAmount != null ? Number(order.chargeAmount) : NaN;
+  const fx = order?.chargeFxRate != null ? Number(order.chargeFxRate) : NaN;
+  if (cur && cur !== 'BRL' && Number.isFinite(amt) && amt >= 0) {
+    let foreign;
+    try {
+      const zeroDec = cur === 'SEK' || cur === 'NOK' || cur === 'JPY' || cur === 'KRW';
+      foreign = new Intl.NumberFormat(cur === 'EUR' ? 'it-IT' : 'en-US', {
+        style: 'currency',
+        currency: cur,
+        minimumFractionDigits: zeroDec ? 0 : 2,
+        maximumFractionDigits: zeroDec ? 0 : 2
+      }).format(amt);
+    } catch (_) {
+      foreign = `${cur} ${amt.toFixed(2)}`;
+    }
+    let brl = null;
+    if (Number.isFinite(fx) && fx > 0) {
+      brl = Math.round((amt / fx) * 100) / 100;
+    } else {
+      try {
+        const money = storeOrderSaleMoney(order);
+        if (money?.fromCharge && Number(money.gross) > 0) brl = Number(money.gross);
+      } catch (_) { /* ignore */ }
+    }
+    if (brl != null && Number.isFinite(brl)) {
+      return `${foreign} → ${formatBRL(brl)}`;
+    }
+    return foreign;
   }
   return formatBRL(value ?? order?.total);
 }
