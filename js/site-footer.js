@@ -327,19 +327,8 @@ window.STF_FOOTER = (function () {
   }
 
   function crashfixPromo(lang, prefix) {
-    const s = t(lang);
-    const href = crashfixHref(lang);
-    const logoSrc = `${prefix}images/partners/sensorcrashfix-emblem-meio.png?v=5`;
-    const rotulo = `Footer CrashFix${lang !== 'pt' ? ' ' + lang.toUpperCase() : ''}`;
-    return `
-      <a class="footer-crashfix-promo" href="${href}" target="_blank" rel="noopener" data-evento="clique_crashfix" data-rotulo="${rotulo}" aria-label="Sensor CrashFix — ${s.crashTagline}">
-        <span class="footer-crashfix-see">${s.crashSeeAlso}</span>
-        <span class="footer-crashfix-logo" aria-hidden="true">
-          <img src="${logoSrc}" alt="" width="128" height="128" loading="lazy" decoding="async">
-        </span>
-        <span class="footer-crashfix-tag">${s.crashTagline}</span>
-      </a>
-    `;
+    // Oculto: cross-promo CrashFix no rodapé (pedido do admin).
+    return '';
   }
 
   function render(el) {
