@@ -5092,6 +5092,97 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-weight: 650;
     color: #ddd;
 }
+/* Faixa ±3 dias (qty) — fora do quadro MTD, alinhada coluna a coluna */
+.vendas-consol-daywin {
+    margin-top: 4px;
+    padding: 4px 2px 2px;
+}
+.vendas-consol-daywin-head {
+    margin: 0 0 10px;
+}
+.vendas-consol-daywin-head h3 {
+    margin: 0 0 2px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e0e0e0;
+}
+.vendas-consol-daywin-meta {
+    margin: 0;
+    font-size: 0.72rem;
+    color: #888;
+}
+.vendas-consol-daywin-table {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.vendas-consol-daywin-row {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 5.5rem) repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    align-items: center;
+}
+.vendas-consol-daywin-row.is-head .vendas-consol-daywin-cell {
+    color: #999;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: transparent;
+    border-color: transparent;
+}
+.vendas-consol-daywin-lab {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #999;
+    padding-right: 4px;
+}
+.vendas-consol-daywin-year {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #777;
+}
+.vendas-consol-daywin-row.is-current .vendas-consol-daywin-lab {
+    color: #a5d6a7;
+}
+.vendas-consol-daywin-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.1rem;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    background: #161616;
+    font-size: 1.05rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    color: #c8c8c8;
+    line-height: 1;
+}
+.vendas-consol-daywin-cell.has-qty {
+    color: #e8e8e8;
+}
+.vendas-consol-daywin-cell.is-today {
+    border-color: #3a5a3a;
+    background: #141a14;
+    color: #81c784;
+}
+.vendas-consol-daywin-row.is-head .vendas-consol-daywin-cell.is-today {
+    color: #81c784;
+    border-color: transparent;
+    background: transparent;
+}
+.vendas-consol-daywin-cell.is-na,
+.vendas-consol-daywin-cell.is-future {
+    color: #555;
+    font-weight: 600;
+    background: #121212;
+}
 .vendas-consol-days-fold {
     margin-top: 12px;
 }
@@ -5764,9 +5855,26 @@ body.admin-page.pedidos-login-only #pedidos-login {
     .vendas-consol-periods-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .vendas-consol-mtd-grid { grid-template-columns: 1fr; }
     .vendas-when-charts { grid-template-columns: 1fr; }
+    .vendas-consol-daywin-row {
+        grid-template-columns: minmax(3.8rem, 4.5rem) repeat(7, minmax(0, 1fr));
+    }
+    .vendas-consol-daywin-cell {
+        min-height: 1.9rem;
+        font-size: 0.95rem;
+        border-radius: 6px;
+    }
 }
 @media (max-width: 720px) {
     .vendas-consol-periods-grid { grid-template-columns: 1fr; }
+    .vendas-consol-daywin-row {
+        grid-template-columns: minmax(3.2rem, 3.8rem) repeat(7, minmax(0, 1fr));
+        gap: 3px;
+    }
+    .vendas-consol-daywin-cell {
+        min-height: 1.75rem;
+        font-size: 0.88rem;
+        padding: 0 1px;
+    }
     .vendas-when-row {
         grid-template-columns: 3.6rem minmax(0, 1fr) 4.8rem;
     }

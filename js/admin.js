@@ -2049,6 +2049,87 @@
     </section>`;
   }
 
+  /** Qty de itens por dia do mês (1…31) — mesma regra saleKitQty do consolidado. */
+  function monthDayQtyMap(sales, year, monthNum) {
+    const y = String(year);
+    const ym = String(monthNum).padStart(2, '0');
+    const map = Object.create(null);
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const p = brDateParts(s._ts);
+      if (p.year !== y || p.monthNum !== ym) return;
+      const d = Number(p.day);
+      if (d < 1 || d > 31) return;
+      map[d] = (map[d] || 0) + saleKitQty(s);
+    });
+    return map;
+  }
+
+  /**
+   * Faixa ±3 dias em torno do dia de hoje (BR), qty só, alinhada nos 3 meses do MTD.
+   * Fica fora do quadro “Dias 1–N”, dentro do frame preto do consolidado.
+   */
+  function renderConsolidadoDayWindowQty(sales) {
+    const now = brDateParts(Date.now());
+    const center = Math.max(1, Number(now.day) || 1);
+    const dayNums = [];
+    for (let off = -3; off <= 3; off += 1) dayNums.push(center + off);
+
+    const months = [0, -1, -2].map((delta) => {
+      const ym = shiftYearMonth(now.year, now.monthNum, delta);
+      return {
+        delta,
+        year: ym.year,
+        monthNum: ym.monthNum,
+        name: MONTH_LABELS[ym.monthNum] || ym.monthNum,
+        maxDay: daysInCalendarMonth(ym.year, ym.monthNum),
+        qty: monthDayQtyMap(sales, ym.year, ym.monthNum)
+      };
+    });
+    const ordered = [months[2], months[1], months[0]];
+
+    const head = `<div class="vendas-consol-daywin-row is-head" role="row">
+      <span class="vendas-consol-daywin-lab" role="columnheader"></span>
+      ${dayNums.map((d) => {
+        const isToday = d === center;
+        const label = d < 1 || d > 31 ? '—' : String(d);
+        return `<span class="vendas-consol-daywin-cell is-day${isToday ? ' is-today' : ''}" role="columnheader">${escapeHtml(label)}</span>`;
+      }).join('')}
+    </div>`;
+
+    const body = ordered.map((row) => {
+      const isCurrent = row.delta === 0;
+      const yearNote = row.year !== now.year ? ` <span class="vendas-consol-daywin-year">${escapeHtml(row.year)}</span>` : '';
+      const cells = dayNums.map((d) => {
+        const isTodayCol = d === center;
+        if (d < 1 || d > row.maxDay) {
+          return `<span class="vendas-consol-daywin-cell is-na${isTodayCol ? ' is-today' : ''}" role="cell">—</span>`;
+        }
+        if (isCurrent && d > center) {
+          return `<span class="vendas-consol-daywin-cell is-future${isTodayCol ? ' is-today' : ''}" role="cell">—</span>`;
+        }
+        const qty = Number(row.qty[d] || 0);
+        return `<span class="vendas-consol-daywin-cell${isTodayCol ? ' is-today' : ''}${qty > 0 ? ' has-qty' : ''}" role="cell">${qty}</span>`;
+      }).join('');
+      return `<div class="vendas-consol-daywin-row${isCurrent ? ' is-current' : ''}" role="row">
+        <span class="vendas-consol-daywin-lab" role="rowheader">${escapeHtml(row.name)}${yearNote}</span>
+        ${cells}
+      </div>`;
+    }).join('');
+
+    const from = dayNums[0];
+    const to = dayNums[dayNums.length - 1];
+    const rangeLabel = `${from < 1 ? '…' : from}–${to > 31 ? '…' : to}`;
+
+    return `<section class="vendas-consol-daywin" aria-label="Quantidade por dia ${rangeLabel}">
+      <header class="vendas-consol-daywin-head">
+        <h3>Dias ±3 · quantidade</h3>
+        <p class="vendas-consol-daywin-meta">Mesmo dia do calendário nos 3 meses (hoje = ${center})</p>
+      </header>
+      <div class="vendas-consol-daywin-table" role="table">${head}${body}</div>
+    </section>`;
+  }
+
   function renderConsolidadoPeriods(sales) {
     const el = document.getElementById('vendas-consol-periods');
     if (!el) return;
@@ -2087,7 +2168,7 @@
         <ul class="vendas-consol-card-channels">${chLines}</ul>
       </article>`;
     }).join('');
-    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}`;
+    el.innerHTML = `<div class="vendas-consol-periods-grid">${cards}</div>${renderConsolidadoMtdCompare(sales)}${renderConsolidadoDayWindowQty(sales)}`;
   }
 
   function renderConsolidadoCollapsedFolds(sales) {
