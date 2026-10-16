@@ -5097,20 +5097,6 @@ body.admin-page.pedidos-login-only #pedidos-login {
     margin-top: 4px;
     padding: 4px 2px 2px;
 }
-.vendas-consol-daywin-head {
-    margin: 0 0 10px;
-}
-.vendas-consol-daywin-head h3 {
-    margin: 0 0 2px;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #e0e0e0;
-}
-.vendas-consol-daywin-meta {
-    margin: 0;
-    font-size: 0.72rem;
-    color: #888;
-}
 .vendas-consol-daywin-table {
     display: flex;
     flex-direction: column;
