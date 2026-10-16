@@ -84,6 +84,18 @@ test('win/lose: higher qty wins, tie and null skip', () => {
   assert.deepEqual(outcomes(2, null), [null, null]);
 });
 
+test('win/lose only after day closed (d < today); today stays uncolored', () => {
+  const center = 16;
+  function outcomeForDay(d, a, b) {
+    if (d >= center) return [null, null];
+    if (a == null || b == null || a === b) return [null, null];
+    return a > b ? ['win', 'lose'] : ['lose', 'win'];
+  }
+  assert.deepEqual(outcomeForDay(16, 6, 0), [null, null]);
+  assert.deepEqual(outcomeForDay(15, 6, 0), ['win', 'lose']);
+  assert.deepEqual(outcomeForDay(17, 1, 0), [null, null]);
+});
+
 test('Feb short month: day 30/31 are null', () => {
   const center = 28;
   const days = dayWindowAround(center);
