@@ -2089,6 +2089,24 @@
     });
     const ordered = [months[1], months[0]];
 
+    /** Qty comparável no dia (null = — / futuro / dia inválido). */
+    function daywinComparableQty(row, day) {
+      if (day < 1 || day > row.maxDay) return null;
+      if (row.delta === 0 && day > center) return null;
+      return Number(row.qty[day] || 0);
+    }
+
+    /** Por coluna: borda verde no maior, vermelha no menor (empate = sem cor). */
+    const outcomeByDay = Object.create(null);
+    dayNums.forEach((d) => {
+      const vals = ordered.map((row) => daywinComparableQty(row, d));
+      if (vals.some((v) => v == null) || vals[0] === vals[1]) {
+        outcomeByDay[d] = [null, null];
+        return;
+      }
+      outcomeByDay[d] = vals[0] > vals[1] ? ['win', 'lose'] : ['lose', 'win'];
+    });
+
     const head = `<div class="vendas-consol-daywin-row is-head" role="row">
       <span class="vendas-consol-daywin-lab" role="columnheader"></span>
       ${dayNums.map((d) => {
@@ -2098,11 +2116,13 @@
       }).join('')}
     </div>`;
 
-    const body = ordered.map((row) => {
+    const body = ordered.map((row, rowIdx) => {
       const isCurrent = row.delta === 0;
       const yearNote = row.year !== now.year ? ` <span class="vendas-consol-daywin-year">${escapeHtml(row.year)}</span>` : '';
       const cells = dayNums.map((d) => {
         const isTodayCol = d === center;
+        const outcome = outcomeByDay[d]?.[rowIdx];
+        const outcomeCls = outcome === 'win' ? ' is-win' : (outcome === 'lose' ? ' is-lose' : '');
         if (d < 1 || d > row.maxDay) {
           return `<span class="vendas-consol-daywin-cell is-na${isTodayCol ? ' is-today' : ''}" role="cell">—</span>`;
         }
@@ -2110,7 +2130,7 @@
           return `<span class="vendas-consol-daywin-cell is-future${isTodayCol ? ' is-today' : ''}" role="cell">—</span>`;
         }
         const qty = Number(row.qty[d] || 0);
-        return `<span class="vendas-consol-daywin-cell${isTodayCol ? ' is-today' : ''}${qty > 0 ? ' has-qty' : ''}" role="cell">${qty}</span>`;
+        return `<span class="vendas-consol-daywin-cell${isTodayCol ? ' is-today' : ''}${qty > 0 ? ' has-qty' : ''}${outcomeCls}" role="cell">${qty}</span>`;
       }).join('');
       return `<div class="vendas-consol-daywin-row${isCurrent ? ' is-current' : ''}" role="row">
         <span class="vendas-consol-daywin-lab" role="rowheader">${escapeHtml(row.name)}${yearNote}</span>
