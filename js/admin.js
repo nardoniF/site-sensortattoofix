@@ -1588,10 +1588,21 @@
   function monthSalesDayCoverage(sales, year, monthNum, throughDay) {
     const ym = String(monthNum).padStart(2, '0');
     const y = String(year);
+    // throughDay = só dias já fechados (hoje só entra depois da meia-noite).
     const lastDay = Math.min(
-      Math.max(1, Number(throughDay) || 1),
+      Math.max(0, Number(throughDay) || 0),
       daysInCalendarMonth(y, ym)
     );
+    if (lastDay < 1) {
+      return {
+        year: y,
+        monthNum: ym,
+        through: 0,
+        soldDays: 0,
+        emptyDays: [],
+        emptyCount: 0
+      };
+    }
     const sold = new Set();
     (sales || []).forEach((s) => {
       if (!s._ts) return;
@@ -1978,9 +1989,10 @@
     ];
     const months = specs.map(({ delta, full }) => {
       const ym = shiftYearMonth(now.year, now.monthNum, delta);
+      // Mês atual: só dias fechados (hoje − 1). “Sem venda” só depois da meia-noite.
       const through = full
         ? daysInCalendarMonth(ym.year, ym.monthNum)
-        : Math.min(dayNum, daysInCalendarMonth(ym.year, ym.monthNum));
+        : Math.min(Math.max(0, dayNum - 1), daysInCalendarMonth(ym.year, ym.monthNum));
       const cov = monthSalesDayCoverage(sales, ym.year, ym.monthNum, through);
       return {
         delta,
@@ -2133,9 +2145,13 @@
       return Number(row.qty[day] || 0);
     }
 
-    /** Por coluna: borda verde no maior, vermelha no menor (empate = sem cor). */
+    /** Win/lose só depois que o dia fechou (d < hoje). Hoje ainda aberto = sem cor. */
     const outcomeByDay = Object.create(null);
     dayNums.forEach((d) => {
+      if (d >= center) {
+        outcomeByDay[d] = [null, null];
+        return;
+      }
       const vals = ordered.map((row) => daywinComparableQty(row, d));
       if (vals.some((v) => v == null) || vals[0] === vals[1]) {
         outcomeByDay[d] = [null, null];
