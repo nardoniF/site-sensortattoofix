@@ -9,6 +9,7 @@ Antes de **qualquer** `git push` em `main`, merge, pin de proxy ou `wrangler dep
 3. Se aparecer **qualquer** mudança fora do pedido (outra feature, “já que estamos aqui”, reformatação, cache bust alheio, remoção colateral, restore parcial que apaga outra coisa): **NÃO SUBIR**. Parar, separar o diff, ou descartar o que sobra.
 4. Proibido pin/deploy que aponte para um commit cujo tree **não** contenha o que já está no ar + o pedido. Nunca pinar branch antiga por cima do `main` atual.
 5. Mensagem de commit / PR deve listar **apenas** o escopo pedido; se o diff tiver mais, o publish está errado.
+6. **Valor do exterior:** ver `.cursor/rules/nao-mexer-exterior.mdc`. Pin/proxy que derrube `storeOrderSaleMoney` / charge÷fx é regressão — não publicar.
 
 ## Comparação obrigatória
 

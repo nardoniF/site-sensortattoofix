@@ -1,0 +1,19 @@
+# NÃO MEXER NO EXTERIOR / charge÷fx
+
+## Ordem do usuário (dura)
+
+1. **Pediu X → faz só X.** Zero “já que estamos aqui”, zero refactor, zero cache bust alheio, zero pin que arrasta outro arquivo.
+2. **Proibido alterar valor de venda internacional** (bruto/líquido loja intl, `chargeAmount` / `chargeFxRate`, `storeOrderSaleMoney`, `storeOrderChargeParts`, markup/FX do checkout, totais Pedidos intl) **salvo pedido explícito nesta mensagem**.
+3. **Pin de proxy:** o `COMMIT` tem que manter no tree o charge÷fx já no ar (`sales-money.mjs` com `storeOrderSaleMoney`, admin usando charge÷fx). Pinar um `main` sem isso = regressão = proibido.
+4. Antes de push/deploy: se o diff tocar `js/sales-money.mjs`, `storeOrderToSale`, `chargeFx`, `chargeAmount` (cálculo), markup intl ou equivalente **sem** o usuário ter pedido — **NÃO SUBIR**.
+
+## O que é “valor do exterior”
+
+- Bruto/líquido de pedidos loja com `chargeCurrency` ≠ BRL
+- Fórmula correta: **BRL = chargeAmount ÷ chargeFxRate** (não `order.total` livro)
+- UI Pedidos/Vendas/Consolidado que depende disso
+
+## Se o pedido for UI (Dia ±3, cor, título, fold…)
+
+Diff permitido: só o HTML/CSS/JS daquela UI (+ cache bust **só** desses arquivos).  
+Diff **proibido**: `sales-money.mjs`, contabilidade, worker de cobrança, pin que troque `sales-money` por versão sem charge÷fx.
