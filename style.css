@@ -4423,6 +4423,27 @@ body.admin-page.pedidos-login-only #pedidos-login {
     gap: 10px;
     align-items: center;
 }
+/* Cliques: trava o painel enquanto Atualizar não termina (árvore + gráficos). */
+#admin-tab-cliques.is-clicks-busy {
+    position: relative;
+    pointer-events: none;
+    user-select: none;
+}
+#admin-tab-cliques.is-clicks-busy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.42);
+    border-radius: 8px;
+}
+#admin-tab-cliques.is-clicks-busy #btn-clicks-refresh {
+    opacity: 1;
+    color: #ffe082;
+}
+#btn-clicks-refresh[aria-busy="true"] {
+    cursor: wait;
+}
 .admin-vendas-tree-actions {
     margin: 12px 0 6px;
 }
