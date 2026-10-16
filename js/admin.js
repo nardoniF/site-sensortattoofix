@@ -2143,10 +2143,6 @@
     const rangeLabel = `${from < 1 ? '…' : from}–${to > 31 ? '…' : to}`;
 
     return `<section class="vendas-consol-daywin" aria-label="Quantidade por dia ${rangeLabel}">
-      <header class="vendas-consol-daywin-head">
-        <h3>Dias ±3 · quantidade</h3>
-        <p class="vendas-consol-daywin-meta">Mesmo dia do calendário no mês passado e neste mês (hoje = ${center})</p>
-      </header>
       <div class="vendas-consol-daywin-table" role="table">${head}${body}</div>
     </section>`;
   }
