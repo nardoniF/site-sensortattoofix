@@ -73,6 +73,17 @@ test('qty cells: past months show 0; current future days are null; invalid day n
   assert.deepEqual(days.map((d) => qtyCell(d, oct)), [0, 0, 1, 3, null, null, null]);
 });
 
+test('win/lose: higher qty wins, tie and null skip', () => {
+  function outcomes(a, b) {
+    if (a == null || b == null || a === b) return [null, null];
+    return a > b ? ['win', 'lose'] : ['lose', 'win'];
+  }
+  assert.deepEqual(outcomes(6, 2), ['win', 'lose']);
+  assert.deepEqual(outcomes(0, 3), ['lose', 'win']);
+  assert.deepEqual(outcomes(4, 4), [null, null]);
+  assert.deepEqual(outcomes(2, null), [null, null]);
+});
+
 test('Feb short month: day 30/31 are null', () => {
   const center = 28;
   const days = dayWindowAround(center);
