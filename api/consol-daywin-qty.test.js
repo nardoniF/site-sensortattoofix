@@ -44,12 +44,11 @@ test('day window is always 7 slots centered on today', () => {
   assert.deepEqual(dayWindowAround(16), [13, 14, 15, 16, 17, 18, 19]);
 });
 
-test('same calendar days across ago/set/out (shift -2,-1,0)', () => {
+test('daywin shows only last month + current (shift -1,0)', () => {
   const now = { year: '2026', monthNum: '10' };
-  const months = [0, -1, -2].map((delta) => shiftYearMonth(now.year, now.monthNum, delta));
-  const ordered = [months[2], months[1], months[0]];
+  const months = [0, -1].map((delta) => shiftYearMonth(now.year, now.monthNum, delta));
+  const ordered = [months[1], months[0]];
   assert.deepEqual(ordered.map((m) => `${m.year}-${m.monthNum}`), [
-    '2026-08',
     '2026-09',
     '2026-10'
   ]);

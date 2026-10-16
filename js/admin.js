@@ -2075,7 +2075,8 @@
     const dayNums = [];
     for (let off = -3; off <= 3; off += 1) dayNums.push(center + off);
 
-    const months = [0, -1, -2].map((delta) => {
+    // Só mês passado + atual (comparativo curto; Dias 1–N continua com 3 meses).
+    const months = [0, -1].map((delta) => {
       const ym = shiftYearMonth(now.year, now.monthNum, delta);
       return {
         delta,
@@ -2086,7 +2087,7 @@
         qty: monthDayQtyMap(sales, ym.year, ym.monthNum)
       };
     });
-    const ordered = [months[2], months[1], months[0]];
+    const ordered = [months[1], months[0]];
 
     const head = `<div class="vendas-consol-daywin-row is-head" role="row">
       <span class="vendas-consol-daywin-lab" role="columnheader"></span>
@@ -2124,7 +2125,7 @@
     return `<section class="vendas-consol-daywin" aria-label="Quantidade por dia ${rangeLabel}">
       <header class="vendas-consol-daywin-head">
         <h3>Dias ±3 · quantidade</h3>
-        <p class="vendas-consol-daywin-meta">Mesmo dia do calendário nos 3 meses (hoje = ${center})</p>
+        <p class="vendas-consol-daywin-meta">Mesmo dia do calendário no mês passado e neste mês (hoje = ${center})</p>
       </header>
       <div class="vendas-consol-daywin-table" role="table">${head}${body}</div>
     </section>`;
