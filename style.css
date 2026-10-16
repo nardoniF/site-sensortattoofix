@@ -1809,8 +1809,9 @@ footer,
     width: 100%;
 }
 .footer-crashfix-promo {
+    display: none !important; /* oculto — logo CrashFix no rodapé */
     --crash-cyan: #5EC8D8;
-    display: flex;
+    /* display:flex; — restaurar com as linhas abaixo quando reativar promo */
     flex-direction: column;
     align-items: center;
     justify-content: center;
