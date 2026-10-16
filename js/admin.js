@@ -4364,7 +4364,38 @@ ${worksheets}
     return out;
   }
 
-  function reapplyClicksLocalFilters(openPaths) {
+  function paintClicksChartsNow() {
+    const chartsOk = !clicksMetaCache?._fromCache && Array.isArray(clicksWhenCache) && clicksWhenCache.length > 0;
+    if (!isClicksPanelVisible()) return;
+    if (chartsOk) {
+      renderClicksWhenCharts(clicksWhenCache);
+      renderClicksNoiseStats(clicksWhenCache);
+      return;
+    }
+    const charts = document.getElementById('clicks-when-charts');
+    if (charts) {
+      charts.innerHTML = '<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar os gráficos (não entram no cache local, para não travar o navegador).</p>';
+    }
+    const noise = document.getElementById('clicks-noise-charts');
+    if (noise) noise.innerHTML = '';
+  }
+
+  /** Espera 2 frames para a árvore pintar, depois monta gráficos (Atualizar só libera depois). */
+  function paintClicksChartsAfterTree() {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            paintClicksChartsNow();
+          } finally {
+            resolve();
+          }
+        });
+      });
+    });
+  }
+
+  function reapplyClicksLocalFilters(openPaths, opts = {}) {
     if (!clicksCache.length || !clicksMetaCache) {
       showClicksEmptyState();
       return;
@@ -4387,22 +4418,13 @@ ${worksheets}
       openPaths || []
     );
     updateClicksCoverageStatus({ fromCache: !!clicksMetaCache?._fromCache });
-    // Gráficos só com whenClicks da API (não do cache) e sempre depois do paint.
-    const chartsOk = !clicksMetaCache._fromCache && Array.isArray(clicksWhenCache) && clicksWhenCache.length > 0;
-    window.setTimeout(() => {
-      if (!isClicksPanelVisible()) return;
-      if (chartsOk) {
-        renderClicksWhenCharts(clicksWhenCache);
-        renderClicksNoiseStats(clicksWhenCache);
-      } else {
-        const charts = document.getElementById('clicks-when-charts');
-        if (charts) {
-          charts.innerHTML = '<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar os gráficos (não entram no cache local, para não travar o navegador).</p>';
-        }
-        const noise = document.getElementById('clicks-noise-charts');
-        if (noise) noise.innerHTML = '';
-      }
-    }, chartsOk ? 120 : 0);
+    // Atualizar: gráficos no fluxo await. Filtros locais: defer para não travar digitação.
+    if (opts.skipCharts) return;
+    if (opts.syncCharts) {
+      paintClicksChartsNow();
+      return;
+    }
+    window.setTimeout(() => paintClicksChartsNow(), 120);
   }
 
   function showPaymentBalancesFromCache() {
@@ -6281,6 +6303,27 @@ ${worksheets}
     el.hidden = false;
   }
 
+  const CLICKS_REFRESH_IDLE_HTML = '<i class="fas fa-sync-alt"></i> Atualizar';
+
+  /** Botão “Atualizando…” + trava o painel até árvore e gráficos terminarem. */
+  function setClicksRefreshBusy(busy) {
+    const btn = document.getElementById('btn-clicks-refresh');
+    const panel = document.getElementById('admin-tab-cliques');
+    if (btn) {
+      btn.disabled = !!busy;
+      btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+      if (busy) {
+        if (!btn.dataset.idleHtml) btn.dataset.idleHtml = btn.innerHTML || CLICKS_REFRESH_IDLE_HTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Atualizando…';
+      } else {
+        btn.innerHTML = btn.dataset.idleHtml || CLICKS_REFRESH_IDLE_HTML;
+        delete btn.dataset.idleHtml;
+      }
+    }
+    panel?.classList.toggle('is-clicks-busy', !!busy);
+    if (panel) panel.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
   function renderClicksFromCache(openPaths) {
     if (!clicksCache.length || !clicksMetaCache) return;
     renderClicksStats(clicksMetaCache);
@@ -6330,15 +6373,16 @@ ${worksheets}
     }
 
     clicksLoading = true;
+    setClicksRefreshBusy(true);
     const openPaths = preserveOpen ? captureClicksTreeOpenPaths() : [];
     const panelVisible = isClicksPanelVisible();
     setClicksLoadStatus(
       panelVisible
-        ? 'Carregando histórico de cliques…'
+        ? 'Atualizando cliques… aguarde a tela liberar.'
         : 'Carregando cliques em segundo plano — você pode usar outras abas.'
     );
     if (panelVisible && !clicksCache.length) {
-      root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando histórico…</p>';
+      root.innerHTML = '<p class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Atualizando…</p>';
     }
 
     try {
@@ -6360,9 +6404,10 @@ ${worksheets}
       clicksWhenWindow = data.capacity || null;
       clicksMetaCache = { ...data, _savedAt: Date.now(), _fromCache: false };
       saveClicksSnapshot(data);
-      // Árvore primeiro; gráficos só depois (evita “Página sem resposta”).
-      reapplyClicksLocalFilters([]);
+      // Árvore primeiro; gráficos no mesmo “Atualizando…” — só libera quando os dois terminam.
+      reapplyClicksLocalFilters(openPaths, { skipCharts: true });
       updateClicksCoverageStatus({ fromCache: false });
+      await paintClicksChartsAfterTree();
       setClicksLoadStatus('Cliques atualizados.', 'success');
       window.setTimeout(() => setClicksLoadStatus(''), 2500);
     } catch (err) {
@@ -6376,6 +6421,7 @@ ${worksheets}
       if (noise) noise.innerHTML = '';
     } finally {
       clicksLoading = false;
+      setClicksRefreshBusy(false);
     }
   }
 
@@ -9356,6 +9402,7 @@ ${worksheets}
 
   document.getElementById('btn-clicks-test')?.addEventListener('click', () => testClickLog());
   document.getElementById('btn-clicks-refresh')?.addEventListener('click', () => {
+    if (clicksLoading) return;
     startClicksBackgroundLoad({ preserveOpen: true, force: true });
   });
   document.getElementById('btn-clicks-export')?.addEventListener('click', () => exportClicksExcel());
