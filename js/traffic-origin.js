@@ -48,11 +48,13 @@
   }
 
   function isGooglePaid(params, src, med) {
+    // utm_medium=paid + utm_source=ig/fb é Meta — não marcar como Google.
+    if (META_SOURCES.has(src) || META_PAID_SOURCES.has(src) || params.has('fbclid')) return false;
     return (
       params.has('gclid') || params.has('gbraid') || params.has('wbraid') ||
       params.has('gad_source') || params.has('gad_campaignid') ||
       src === 'google' || src === 'google_ads' || src === 'adwords' ||
-      med === 'cpc' || med === 'ppc' || med === 'paid' || med === 'paidsearch'
+      med === 'cpc' || med === 'ppc' || med === 'paidsearch'
     );
   }
 
@@ -116,15 +118,16 @@
     const med = norm(params.get('utm_medium'));
     const ref = norm(referrer);
 
-    if (isGooglePaid(params, src, med)) {
-      return { origem_trafego: 'google_ads', origem_trafego_label: 'Google Ads' };
-    }
-
+    // Meta antes do Google: medium=paid + source=ig era classificado como Google Ads.
     if (isMetaPaid(params, src, med)) {
       if (isInstagram(src, med, ref)) {
         return { origem_trafego: 'meta_ads', origem_trafego_label: 'Meta Ads — Instagram' };
       }
       return { origem_trafego: 'meta_ads', origem_trafego_label: 'Meta Ads — Facebook' };
+    }
+
+    if (isGooglePaid(params, src, med)) {
+      return { origem_trafego: 'google_ads', origem_trafego_label: 'Google Ads' };
     }
 
     const metaOrganic = classifyMetaOrganic(params, src, med, ref);
