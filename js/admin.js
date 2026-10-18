@@ -1033,16 +1033,22 @@
     const chargeShown = fromCharge
       ? `${chargeCur} ${chargeAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : '';
+    const isLoja = saleChannelKey(tagged) === 'loja';
     const priceHint = fromCharge
-      ? `Cobrado ${chargeShown} → BRL (charge ÷ câmbio do checkout) — não usa total lista BRL`
-      : 'Preço do produto (anúncio / recibo)';
-    const priceTitle = fromCharge ? `${chargeShown} → ${formatSalesBRL(tagged._gross)}` : 'Preço';
+      ? `Entrou ${chargeShown} → BRL (charge ÷ câmbio) — não usa total livro BRL`
+      : (isLoja ? 'Entrou na conta (cliente pagou)' : 'Preço do produto (anúncio / recibo)');
+    const priceTitle = fromCharge
+      ? `Entrou ${chargeShown} → ${formatSalesBRL(tagged._gross)}`
+      : (isLoja ? 'Entrou' : 'Preço');
+    const netHint = isLoja
+      ? 'Líquido real: Entrou − Tarifa − Frete − Kit'
+      : 'Líquido: Preço − Tarifa − Frete − Kit';
     return [
       salesMoneyCell('paid', tagged._gross, priceTitle, priceHint, ''),
       salesMoneyCell('fee', feesShown, saleFeeHoverLabel(tagged), saleFeeHoverHint(tagged), '−'),
       salesMoneyCell('ship', tagged._shipping || 0, 'Frete', saleShipHoverHint(tagged), '−'),
       salesMoneyCell('kit', Number(tagged._cogs) || 0, 'Kit', 'Custo do kit (BOM em Produtos)', '−'),
-      salesMoneyCell('net', tagged._net, 'Líquido', 'Líquido: Preço − Tarifa − Frete − Kit', '=')
+      salesMoneyCell('net', tagged._net, 'Líquido', netHint, '=')
     ].join('');
   }
 
