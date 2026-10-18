@@ -320,41 +320,74 @@ export function storeOrderChargeParts(order) {
   };
 }
 
-/** Dinheiro da venda loja pra relatório/Admin: prioriza cobrança estrangeira convertida. */
-export function storeOrderSaleMoney(order) {
+/**
+ * Auditoria financeira do pedido loja (só leitura — não altera markup/checkout).
+ * Entrou = o que o cliente pagou (moeda cobrada; BRL via charge÷fx no intl).
+ * Frete = parcela destinada ao envio.
+ * Líquido = o que sobra na mão antes do custo do kit (Entrou − Frete − taxas gateway).
+ * Não usa order.total “livro” quando há charge estrangeira (evita total sem markup intl).
+ */
+export function storeOrderMoneyBreakdown(order) {
+  const freteBrl = roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0));
+  const feesBrl = orderPaypalFee(order);
   const charged = storeOrderChargeParts(order);
+
   if (charged) {
-    // Frete já está em BRL no pedido — não re-derivar via fx (evita drift de 1 centavo).
-    const freteBrl = roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0));
+    const feeForeign = roundMoney(feesBrl * charged.fxRate);
+    const liquidoForeign = roundMoney(Math.max(0, charged.chargeAmount - charged.shipForeign - feeForeign));
+    const liquidoBrl = roundMoney(Math.max(0, charged.totalBrl - freteBrl - feesBrl));
     return {
-      gross: charged.totalBrl,
-      shippingCost: freteBrl,
-      fees: orderPaypalFee(order),
-      currency: 'BRL',
-      chargeCurrency: charged.currency,
-      chargeAmount: charged.chargeAmount,
-      fromCharge: true
+      fromCharge: true,
+      currency: charged.currency,
+      fxRate: charged.fxRate,
+      entered: { foreign: charged.chargeAmount, brl: charged.totalBrl },
+      frete: { foreign: charged.shipForeign, brl: freteBrl },
+      fees: { foreign: feeForeign, brl: feesBrl },
+      liquido: { foreign: liquidoForeign, brl: liquidoBrl }
     };
   }
+
+  const vp = roundMoney(order?.valorProduto);
   const total = roundMoney(order?.total);
-  const grossPaid = roundMoney(order?.totalPaid);
-  const fee = orderPaypalFee(order);
-  let gross = total;
-  if (total > 0 && grossPaid > 0 && fee > 0.009 && total < grossPaid - 0.05) {
-    gross = total;
-  } else if (total > 0) {
-    gross = total;
-  } else {
-    gross = inferCustomerPaidTotal(order);
+  let enteredBrl = inferCustomerPaidTotal(order);
+  // total ≈ só produto (frete já “sumido” do campo) → reconstruir o que entrou
+  if (
+    enteredBrl > 0
+    && freteBrl > 0.009
+    && Math.abs(enteredBrl - vp) <= 0.05
+    && Math.abs(total - vp) <= 0.05
+    && Math.abs(total - roundMoney(vp + freteBrl)) > 0.05
+  ) {
+    enteredBrl = roundMoney(vp + freteBrl + feesBrl);
+  } else if (!(enteredBrl > 0) && total > 0) {
+    enteredBrl = total;
+  } else if (!(enteredBrl > 0)) {
+    enteredBrl = roundMoney(vp + freteBrl + feesBrl);
   }
+  const liquidoBrl = roundMoney(Math.max(0, enteredBrl - freteBrl - feesBrl));
   return {
-    gross,
-    shippingCost: roundMoney(Math.max(0, Number(order?.frete) || Number(order?.shippingCost) || 0)),
-    fees: fee,
-    currency: order?.currency || 'BRL',
-    chargeCurrency: null,
-    chargeAmount: null,
-    fromCharge: false
+    fromCharge: false,
+    currency: 'BRL',
+    fxRate: null,
+    entered: { foreign: null, brl: enteredBrl },
+    frete: { foreign: null, brl: freteBrl },
+    fees: { foreign: null, brl: feesBrl },
+    liquido: { foreign: null, brl: liquidoBrl }
+  };
+}
+
+/** Dinheiro da venda loja pra relatório/Admin: prioriza cobrança estrangeira convertida. */
+export function storeOrderSaleMoney(order) {
+  const broke = storeOrderMoneyBreakdown(order);
+  return {
+    gross: broke.entered.brl,
+    shippingCost: broke.frete.brl,
+    fees: broke.fees.brl,
+    liquido: broke.liquido.brl,
+    currency: 'BRL',
+    chargeCurrency: broke.fromCharge ? broke.currency : null,
+    chargeAmount: broke.fromCharge ? broke.entered.foreign : null,
+    fromCharge: broke.fromCharge
   };
 }
 
@@ -452,6 +485,7 @@ const exportsForBrowser = {
   orderNeedsFreteProductRepair,
   applyOrderFreteAccounting,
   storeOrderChargeParts,
+  storeOrderMoneyBreakdown,
   storeOrderSaleMoney,
   storeOrderListedGross,
   MONTH_LABELS,
