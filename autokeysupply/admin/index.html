@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Auto Key Supply POC</title>
+  <meta name="description" content="Painel administrativo mock." />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/aks.css" />
+</head>
+<body>
+  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="../index.html">
+        <img src="../assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
+        <span class="brand-meta">
+          <span class="brand-name">Auto Key Supply</span>
+          <span class="brand-badge">POC · 3N20</span>
+        </span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Principal">
+        <a href="../index.html" class="">Início</a>
+        <a href="../loja.html" class="">Loja</a>
+        <a href="../carrinho.html" class="">Carrinho</a>
+        <a href="../conta.html" class="">Minha conta</a>
+        <a href="../sobre.html" class="">Operação</a>
+        <a href="./" class="is-active">Admin</a>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-switch" aria-label="Mercado">
+          <button type="button" class="is-on" data-lang="br">BR</button>
+          <button type="button" data-lang="usa">USA</button>
+        </div>
+        <a class="cart-chip" href="../carrinho.html">Carrinho <strong>3</strong></a>
+        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-hero">
+      <h1>Painel administrativo</h1>
+      <p>Mock operacional — cadastros, estoque, pedidos, frete, pagamentos e integrações.</p>
+    </div>
+    <div class="container admin-shell">
+      <aside class="admin-nav" id="admin-nav">
+        <div class="admin-brand">
+          <strong>AKS Admin</strong>
+          <span>POC · navegação ilustrativa</span>
+        </div>
+        <button type="button" data-admin="produtos" class="is-on">Produtos</button>
+        <button type="button" data-admin="categorias">Categorias</button>
+        <button type="button" data-admin="estoque">Estoque / Preços</button>
+        <button type="button" data-admin="pedidos">Pedidos</button>
+        <button type="button" data-admin="frete">Frete</button>
+        <button type="button" data-admin="pagamentos">Pagamentos</button>
+        <button type="button" data-admin="integracoes">Integrações</button>
+      </aside>
+      <div class="admin-main" id="admin-main">
+        <section class="panel admin-section" id="admin-produtos">
+          <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">
+            <h2 style="margin:0">Produtos</h2>
+            <button class="btn btn-primary btn-sm" type="button" data-poc="POC — novo produto">+ Novo produto</button>
+          </div>
+          <div class="kpi-row" style="margin-top:1rem">
+            <div class="kpi"><span>SKUs</span><strong>10</strong></div>
+            <div class="kpi"><span>Ativos</span><strong>10</strong></div>
+            <div class="kpi"><span>Sem estoque</span><strong>0</strong></div>
+            <div class="kpi"><span>Categorias</span><strong>6</strong></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>SKU</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Status</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel admin-section" id="admin-categorias" hidden>
+          <h2>Categorias</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Categoria</th><th>Produtos</th><th>Ordem</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>Carcaças</td><td>4</td><td>1</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
+                <tr><td>Lâminas</td><td>1</td><td>2</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
+                <tr><td>Chips</td><td>1</td><td>3</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
+                <tr><td>Capas</td><td>1</td><td>4</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
+                <tr><td>Controles</td><td>1</td><td>5</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
+                <tr><td>Acessórios</td><td>2</td><td>6</td><td><span class="status status-info">Rascunho</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <button class="btn btn-outline" style="margin-top:1rem" type="button" data-poc="POC — salvar categorias">Salvar</button>
+        </section>
+
+        <section class="panel admin-section" id="admin-estoque" hidden>
+          <h2>Estoque e preços</h2>
+          <p style="color:var(--steel)">Ajustes em lote — apenas visual. Em produção, grava no banco/KV com histórico.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>SKU</th><th>Estoque</th><th>Custo</th><th>Preço</th><th>Margem</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>AKS-FORD-3B</td><td>142</td><td>R$ 41,00</td><td>R$ 89,90</td><td>54%</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — atualizar preço">Salvar</button></td></tr>
+                <tr><td>AKS-HONDA-4B</td><td>36</td><td>R$ 96,00</td><td>R$ 189,00</td><td>49%</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — atualizar preço">Salvar</button></td></tr>
+                <tr><td>AKS-Y14</td><td>320</td><td>R$ 6,50</td><td>R$ 18,50</td><td>65%</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — atualizar preço">Salvar</button></td></tr>
+                <tr><td>AKS-RFID-125</td><td>480</td><td>R$ 4,20</td><td>R$ 12,90</td><td>67%</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — atualizar preço">Salvar</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel admin-section" id="admin-pedidos" hidden>
+          <h2>Pedidos</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Pedido</th><th>Cliente</th><th>Canal</th><th>Status</th><th>Total</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>#AKS-10482</td><td>Chaveiro Centro</td><td>Loja</td><td><span class="status status-ok">Pago</span></td><td>R$ 418,40</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — ficha do pedido">Abrir</button></td></tr>
+                <tr><td>#AKS-10461</td><td>Auto Lock SP</td><td>Loja</td><td><span class="status status-info">Separação</span></td><td>R$ 189,00</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — ficha do pedido">Abrir</button></td></tr>
+                <tr><td>#AKS-ML-2201</td><td>ML · comprador</td><td>Mercado Livre</td><td><span class="status status-warn">Etiqueta</span></td><td>R$ 256,00</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — imprimir etiqueta">Etiqueta</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel admin-section" id="admin-frete" hidden>
+          <h2>Frete</h2>
+          <div class="ship-options">
+            <div class="option is-on"><div><strong>Correios</strong><span>PAC / Sedex · etiquetas</span></div><span class="status status-ok">Ativo</span></div>
+            <div class="option"><div><strong>Super Frete / Jadlog</strong><span>Cotação ilustrativa</span></div><span class="status status-info">Opcional</span></div>
+            <div class="option"><div><strong>Motoboy / Uber Direct</strong><span>Última milha capital</span></div><span class="status status-info">Opcional</span></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:1rem" type="button" data-poc="POC — salvar regras de frete">Salvar regras</button>
+        </section>
+
+        <section class="panel admin-section" id="admin-pagamentos" hidden>
+          <h2>Pagamentos</h2>
+          <div class="pay-options">
+            <div class="option is-on"><div><strong>PIX</strong><span>QR dinâmico · confirmação webhook</span></div><span class="status status-ok">Ativo</span></div>
+            <div class="option is-on"><div><strong>Cartão</strong><span>Asaas / Mercado Pago</span></div><span class="status status-ok">Ativo</span></div>
+            <div class="option"><div><strong>Boleto atacado</strong><span>Prazo negociado</span></div><span class="status status-info">Mock</span></div>
+          </div>
+          <button class="btn btn-outline" style="margin-top:1rem" type="button" data-poc="POC — configurar gateway">Configurar gateway</button>
+        </section>
+
+        <section class="panel admin-section" id="admin-integracoes" hidden>
+          <h2>Integrações ERP / marketplaces</h2>
+          <p style="color:var(--steel)">Tela ilustrativa do escopo desejado — conexão real fica para a fase de implementação.</p>
+          <div class="integrations">
+            <article class="int-card"><h4>ERP</h4><p>Estoques e pedidos sincronizados via API do parceiro.</p><span class="status status-info">Planejado</span></article>
+            <article class="int-card"><h4>Mercado Livre</h4><p>Anúncios, pedidos e etiquetas no mesmo fluxo operacional.</p><span class="status status-info">Ilustrativo</span></article>
+            <article class="int-card"><h4>Shopee</h4><p>Canal adicional com status espelhado no admin.</p><span class="status status-info">Ilustrativo</span></article>
+            <article class="int-card"><h4>Amazon</h4><p>Catálogo e fulfillment sob demanda.</p><span class="status status-warn">Roadmap</span></article>
+            <article class="int-card"><h4>WhatsApp</h4><p>Atalhos de pedido e atendimento no funil da loja.</p><span class="status status-ok">UI pronta</span></article>
+            <article class="int-card"><h4>E-mail DNS</h4><p>Redirect corporativo sem caixa paga.</p><span class="status status-ok">Incluso</span></article>
+          </div>
+          <button class="btn btn-primary" style="margin-top:1rem" type="button" data-poc="POC — solicitar integração">Solicitar integração</button>
+        </section>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Rodapé">
+        <a href="../index.html">Início</a>
+        <a href="../loja.html">Loja</a>
+        <a href="../checkout.html">Checkout</a>
+        <a href="./">Admin</a>
+        <a href="../sobre.html">Operação</a>
+        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
+      </nav>
+    </div>
+  </footer>
+  <script src="../js/aks.js"></script>
+</body>
+</html>
