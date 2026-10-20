@@ -2121,14 +2121,14 @@
   }
 
   /**
-   * Faixa ±3 dias em torno do dia de hoje (BR), qty só, alinhada nos 3 meses do MTD.
+   * Faixa: 7 dias atrás + hoje + 1 à frente (BR), qty só, alinhada nos meses do MTD.
    * Fica fora do quadro “Dias 1–N”, dentro do frame preto do consolidado.
    */
   function renderConsolidadoDayWindowQty(sales) {
     const now = brDateParts(Date.now());
     const center = Math.max(1, Number(now.day) || 1);
     const dayNums = [];
-    for (let off = -3; off <= 3; off += 1) dayNums.push(center + off);
+    for (let off = -7; off <= 1; off += 1) dayNums.push(center + off);
 
     // Só mês passado + atual (comparativo curto; Dias 1–N continua com 3 meses).
     const months = [0, -1].map((delta) => {
