@@ -5116,7 +5116,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-weight: 650;
     color: #ddd;
 }
-/* Faixa ±3 dias (qty) — fora do quadro MTD, alinhada coluna a coluna */
+/* Faixa 7 atrás + hoje + 1 frente (qty) — fora do quadro MTD */
 .vendas-consol-daywin {
     margin-top: 4px;
     padding: 4px 2px 2px;
@@ -5128,7 +5128,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .vendas-consol-daywin-row {
     display: grid;
-    grid-template-columns: minmax(4.5rem, 5.5rem) repeat(7, minmax(0, 1fr));
+    grid-template-columns: minmax(4.5rem, 5.5rem) repeat(9, minmax(0, 1fr));
     gap: 4px;
     align-items: center;
 }
@@ -5885,7 +5885,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
     .vendas-consol-mtd-grid { grid-template-columns: 1fr; }
     .vendas-when-charts { grid-template-columns: 1fr; }
     .vendas-consol-daywin-row {
-        grid-template-columns: minmax(3.8rem, 4.5rem) repeat(7, minmax(0, 1fr));
+        grid-template-columns: minmax(3.8rem, 4.5rem) repeat(9, minmax(0, 1fr));
     }
     .vendas-consol-daywin-cell {
         min-height: 1.9rem;
@@ -5896,7 +5896,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
 @media (max-width: 720px) {
     .vendas-consol-periods-grid { grid-template-columns: 1fr; }
     .vendas-consol-daywin-row {
-        grid-template-columns: minmax(3.2rem, 3.8rem) repeat(7, minmax(0, 1fr));
+        grid-template-columns: minmax(3.2rem, 3.8rem) repeat(9, minmax(0, 1fr));
         gap: 3px;
     }
     .vendas-consol-daywin-cell {

@@ -1,6 +1,6 @@
 /**
- * Pure helpers mirroring js/admin.js consolidado day-window (±3) qty logic.
- * Keeps the strip aligned: same calendar day across 3 months; future days = null.
+ * Pure helpers mirroring js/admin.js consolidado day-window (7 atrás + hoje + 1 frente).
+ * Keeps the strip aligned: same calendar day across months; future days = null.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -28,7 +28,7 @@ function shiftYearMonth(year, monthNum, delta) {
 function dayWindowAround(center) {
   const c = Math.max(1, Number(center) || 1);
   const days = [];
-  for (let off = -3; off <= 3; off += 1) days.push(c + off);
+  for (let off = -7; off <= 1; off += 1) days.push(c + off);
   return days;
 }
 
@@ -38,10 +38,10 @@ function qtyCell(day, { maxDay, isCurrent, center, qtyMap }) {
   return Number(qtyMap[day] || 0);
 }
 
-test('day window is always 7 slots centered on today', () => {
-  assert.deepEqual(dayWindowAround(15), [12, 13, 14, 15, 16, 17, 18]);
-  assert.deepEqual(dayWindowAround(1), [-2, -1, 0, 1, 2, 3, 4]);
-  assert.deepEqual(dayWindowAround(16), [13, 14, 15, 16, 17, 18, 19]);
+test('day window is 9 slots: 7 back + today + 1 forward', () => {
+  assert.deepEqual(dayWindowAround(15), [8, 9, 10, 11, 12, 13, 14, 15, 16]);
+  assert.deepEqual(dayWindowAround(20), [13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  assert.deepEqual(dayWindowAround(1), [-6, -5, -4, -3, -2, -1, 0, 1, 2]);
 });
 
 test('daywin shows only last month + current (shift -1,0)', () => {
@@ -69,8 +69,9 @@ test('qty cells: past months show 0; current future days are null; invalid day n
     center,
     qtyMap: { 14: 1, 15: 3 }
   };
-  assert.deepEqual(days.map((d) => qtyCell(d, aug)), [2, 0, 0, 5, 0, 0, 0]);
-  assert.deepEqual(days.map((d) => qtyCell(d, oct)), [0, 0, 1, 3, null, null, null]);
+  // days: 8..16 with center 15 → past show qty/0; day 16 future on current = null
+  assert.deepEqual(days.map((d) => qtyCell(d, aug)), [0, 0, 0, 0, 2, 0, 0, 5, 0]);
+  assert.deepEqual(days.map((d) => qtyCell(d, oct)), [0, 0, 0, 0, 0, 0, 1, 3, null]);
 });
 
 test('win/lose: higher qty wins, tie and null skip', () => {
@@ -106,5 +107,6 @@ test('Feb short month: day 30/31 are null', () => {
     qtyMap: { 28: 4 }
   };
   assert.equal(feb.maxDay, 28);
-  assert.deepEqual(days.map((d) => qtyCell(d, feb)), [0, 0, 0, 4, null, null, null]);
+  // 21–27=0, 28=4, 29>maxDay=null
+  assert.deepEqual(days.map((d) => qtyCell(d, feb)), [0, 0, 0, 0, 0, 0, 0, 4, null]);
 });
