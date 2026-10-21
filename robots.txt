@@ -5,6 +5,9 @@ Disallow: /admin.html
 Disallow: /pedidos.html
 Disallow: /minha-conta.html
 Disallow: /comprar.html
+Disallow: /*/minha-conta.html
+Disallow: /*/comprar.html
+Disallow: /account.html
 
 Sitemap: https://www.sensortattoofix.com.br/sitemap.xml
 Sitemap: https://www.sensortattoofix.com/sitemap-com.xml
