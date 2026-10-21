@@ -8480,8 +8480,8 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
 }
 .seo-guide-page .seo-figure {
   display: block;
-  width: min(320px, 78vw);
-  max-width: 320px;
+  width: min(340px, 80vw);
+  max-width: 340px;
   margin: 16px auto 32px;
   padding: 10px;
   border-radius: 16px;
@@ -8500,7 +8500,7 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   width: 100%;
   max-width: 100%;
   height: auto;
-  aspect-ratio: 720 / 1024;
+  aspect-ratio: 720 / 818;
   object-fit: cover;
   object-position: center;
   border-radius: 10px;
