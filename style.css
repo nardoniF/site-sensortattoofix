@@ -8495,17 +8495,36 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   line-height: 0;
   overflow: hidden;
 }
-.seo-guide-page .seo-figure img {
+.seo-guide-page .seo-figure .stf-album,
+.seo-guide-page .seo-figure .seo-figure-album {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+.seo-guide-page .seo-figure img,
+.seo-guide-page .seo-figure .stf-album img {
   display: block;
   width: 100%;
   max-width: 100%;
   height: auto;
   aspect-ratio: 720 / 818;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   border-radius: 10px;
   background: #0a0a0a;
 }
+.seo-guide-page .seo-figure .stf-album-btn {
+  width: 32px;
+  height: 42px;
+  font-size: 1.65rem;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0.95;
+}
+.seo-guide-page .seo-figure .stf-album-prev { left: 6px; }
+.seo-guide-page .seo-figure .stf-album-next { right: 6px; }
 @media (max-width: 600px) {
   .seo-guide-page .seo-figure {
     width: min(260px, 76vw);
@@ -8513,7 +8532,10 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
     padding: 8px;
     border-radius: 14px;
   }
-  .seo-guide-page .seo-figure img {
+  .seo-guide-page .seo-figure img,
+  .seo-guide-page .seo-figure .stf-album img,
+  .seo-guide-page .seo-figure .stf-album,
+  .seo-guide-page .seo-figure .seo-figure-album {
     border-radius: 8px;
   }
 }
