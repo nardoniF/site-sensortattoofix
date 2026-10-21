@@ -8480,7 +8480,8 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   font-weight: 700;
 }
 .seo-guide-page .seo-figure {
-  margin: 0 0 28px;
+  margin: 0 auto 28px;
+  max-width: 360px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #333;
@@ -8488,7 +8489,19 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
 .seo-guide-page .seo-figure img {
   display: block;
   width: 100%;
+  max-height: min(42vh, 420px);
   height: auto;
+  object-fit: contain;
+  margin: 0 auto;
+  background: #0a0a0a;
+}
+@media (max-width: 600px) {
+  .seo-guide-page .seo-figure {
+    max-width: 280px;
+  }
+  .seo-guide-page .seo-figure img {
+    max-height: min(38vh, 340px);
+  }
 }
 .seo-guide-page .seo-buy {
   margin: 40px 0 28px;
