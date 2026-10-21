@@ -81,12 +81,26 @@ const COM_SHARED_ROOT_PAGES = new Set([
 
 const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
+/** Guias SEO existem só em /en/ — /nl|de|…/nome.html e *-tatuagem.html caem na EN. */
+const SEO_GUIDE_EN = {
+  'smartwatch-tattoo.html': '/en/smartwatch-tattoo.html',
+  'apple-watch-tattoo.html': '/en/apple-watch-tattoo.html',
+  'garmin-watch-tattoo.html': '/en/garmin-watch-tattoo.html',
+  'smartwatch-tatuagem.html': '/en/smartwatch-tattoo.html',
+  'apple-watch-tatuagem.html': '/en/apple-watch-tattoo.html',
+  'garmin-watch-tatuagem.html': '/en/garmin-watch-tattoo.html',
+};
+
 function mapPathCom(pathname) {
   if (isStaticAsset(pathname)) return pathname;
   if (COM_SHARED_ROOT_PAGES.has(pathname)) return pathname;
   for (const lang of INTL_LANGS) {
     if (pathname === `/${lang}` || pathname === `/${lang}/`) return `/${lang}/index.html`;
-    if (pathname.startsWith(`/${lang}/`)) return pathname;
+    if (pathname.startsWith(`/${lang}/`)) {
+      const file = pathname.slice(lang.length + 2); // after /{lang}/
+      if (SEO_GUIDE_EN[file]) return SEO_GUIDE_EN[file];
+      return pathname;
+    }
   }
   if (pathname.startsWith('/en/')) {
     const rest = pathname.slice(3) || '/';
@@ -95,7 +109,11 @@ function mapPathCom(pathname) {
   if (pathname === '/en' || pathname === '/en/') return '/en/index.html';
   if (pathname === '/' || pathname === '') return '/en/index.html';
   if (pathname.endsWith('/') && pathname.length > 1) return '/en' + pathname + 'index.html';
-  if (/^\/[^/]+\.html$/.test(pathname)) return '/en' + pathname;
+  if (/^\/[^/]+\.html$/.test(pathname)) {
+    const file = pathname.slice(1);
+    if (SEO_GUIDE_EN[file]) return SEO_GUIDE_EN[file];
+    return '/en' + pathname;
+  }
   return '/en' + pathname;
 }
 

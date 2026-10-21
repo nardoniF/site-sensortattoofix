@@ -8,6 +8,24 @@
   const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
   const ALL_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
+  /** Guias SEO: só PT + EN por enquanto — demais idiomas apontam para a versão EN. */
+  const SEO_GUIDE_TO_EN = {
+    'smartwatch-tatuagem.html': 'smartwatch-tattoo.html',
+    'apple-watch-tatuagem.html': 'apple-watch-tattoo.html',
+    'garmin-watch-tatuagem.html': 'garmin-watch-tattoo.html',
+    'smartwatch-tattoo.html': 'smartwatch-tattoo.html',
+    'apple-watch-tattoo.html': 'apple-watch-tattoo.html',
+    'garmin-watch-tattoo.html': 'garmin-watch-tattoo.html',
+  };
+  const SEO_GUIDE_TO_PT = {
+    'smartwatch-tattoo.html': 'smartwatch-tatuagem.html',
+    'apple-watch-tattoo.html': 'apple-watch-tatuagem.html',
+    'garmin-watch-tattoo.html': 'garmin-watch-tatuagem.html',
+    'smartwatch-tatuagem.html': 'smartwatch-tatuagem.html',
+    'apple-watch-tatuagem.html': 'apple-watch-tatuagem.html',
+    'garmin-watch-tatuagem.html': 'garmin-watch-tatuagem.html',
+  };
+
   const LANG_META = {
     pt: { code: 'PT', flag: 'br', label: 'Português (Brasil)' },
     en: { code: 'EN', flag: 'us', label: 'English' },
@@ -76,6 +94,12 @@
   }
 
   function langUrl(lang) {
+    const f = pageFile();
+    if (SEO_GUIDE_TO_EN[f] || SEO_GUIDE_TO_PT[f]) {
+      if (lang === 'pt') return BR + '/' + (SEO_GUIDE_TO_PT[f] || f);
+      // EN e intl sem tradução local → página EN canônica
+      return COM + '/' + (SEO_GUIDE_TO_EN[f] || f);
+    }
     if (lang === 'pt') return brPtUrl();
     if (lang === 'en') return comEnUrl();
     return isCom() ? comLangUrl(lang) : brLangUrl(lang);
