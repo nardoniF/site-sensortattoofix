@@ -7,6 +7,7 @@
   let manualCustomersCache = [];
   let manualCustomersLoaded = false;
   let manualCustomersLoading = null;
+  let editingManualOrderId = null;
   const selectedOrderIds = new Set();
   let lastRenderedOrders = [];
 
@@ -1239,6 +1240,13 @@
     const hasForeignCharge = chargeCur && chargeCur !== 'BRL' && Number.isFinite(chargeAmt);
 
     body.innerHTML = `
+      ${isManualOrder(o) ? `
+        <div class="pedidos-manual-edit-bar">
+          <span class="pedidos-manual-pill">Venda avulsa</span>
+          <button type="button" class="btn-edit-manual" title="Corrigir este lançamento avulso">
+            <i class="fas fa-edit" aria-hidden="true"></i> Editar avulsa
+          </button>
+        </div>` : ''}
       <div class="pedidos-detail-grid">
         ${detailRow('Data', formatDateCell(o.createdAt))}
         ${detailRow('Cliente', `${escHtml(o.nome)}<br><small>${escHtml(o.email || '—')}</small><br><small>${escHtml(o.telefone || '—')}</small>`)}
@@ -1249,6 +1257,7 @@
         ${detailRow('País', escHtml(o.pais || '—'))}
         ${detailRow('Idioma do site', escHtml(checkoutLocaleLabel(o.checkoutLocale)))}
         ${detailRow('Pagamento', escHtml(paymentProviderLabel(o)))}
+        ${isManualOrder(o) && o.salesChannel ? detailRow('Canal', escHtml(o.salesChannel)) : ''}
         ${detailRow('Comissionado', commissioner)}
         ${hasForeignCharge ? chargeBreakdownRows(o) : freteDetailRows(o)}
       </div>
@@ -1259,6 +1268,12 @@
       )}
       ${orderAuditRows(o)}
     `;
+
+    body.querySelector('.btn-edit-manual')?.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      beginEditManualOrder(o);
+    });
 
     wireManualShippingForm(body, o);
     wireOrderFreteForm(body, o);
@@ -1902,6 +1917,8 @@
         <td class="pedidos-actions">
           <div class="pedidos-actions-inner">
           ${statusBadgeHtml(o.status)}
+          ${isManualOrder(o) ? '<span class="pedidos-manual-pill" title="Lançamento avulso">Avulsa</span>' : ''}
+          ${isManualOrder(o) ? '<button type="button" class="btn-edit-manual" title="Editar venda avulsa"><i class="fas fa-edit" aria-hidden="true"></i> Editar</button>' : ''}
           ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
           ${o.status === 'paid' && isCorreiosIntlOrder(o) ? (() => {
             const n = letterCountForOrder(o);
@@ -1919,6 +1936,11 @@
         else selectedOrderIds.delete(id);
         tr.classList.toggle('is-selected', ev.currentTarget.checked);
         syncSelectAllCheckbox();
+      });
+
+      tr.querySelector('.btn-edit-manual')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        beginEditManualOrder(o);
       });
 
       tr.querySelector('.btn-print-label')?.addEventListener('click', (ev) => {
@@ -2138,6 +2160,130 @@
     });
   }
 
+  function isManualOrder(o) {
+    return String(o?.source || '') === 'manual';
+  }
+
+  function manualProductNameFromOrder(o) {
+    if (Array.isArray(o?.items) && o.items[0]?.name) return String(o.items[0].name);
+    const raw = String(o?.produto || '').trim();
+    const m = raw.match(/^\d+\s*x\s+(.+)$/i);
+    return m ? m[1].trim() : raw;
+  }
+
+  function manualQtyFromOrder(o) {
+    if (Array.isArray(o?.items) && o.items[0]?.qty != null) {
+      const q = Number(o.items[0].qty);
+      if (Number.isFinite(q) && q >= 1) return q;
+    }
+    const m = String(o?.produto || '').match(/^(\d+)\s*x\s+/i);
+    if (m) return Number(m[1]) || 1;
+    return 1;
+  }
+
+  function toDateInputValue(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return '';
+    return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+  }
+
+  function setManualEditUi(active, orderId) {
+    editingManualOrderId = active ? (orderId || null) : null;
+    const form = $('pedidos-manual-form');
+    const entry = form?.closest?.('details');
+    const summary = entry?.querySelector?.('summary');
+    const submitButton = $('btn-pedidos-manual-submit') || form?.querySelector?.('#btn-pedidos-manual-submit, [type="submit"]');
+    const cancelBtn = $('btn-pedidos-manual-cancel-edit');
+    if (summary) {
+      summary.innerHTML = active
+        ? `<i class="fas fa-edit" aria-hidden="true"></i> Editando venda avulsa ${escHtml(editingManualOrderId || '')}`
+        : '<i class="fas fa-plus-circle" aria-hidden="true"></i> Lançar venda avulsa';
+    }
+    if (submitButton) {
+      submitButton.innerHTML = active
+        ? '<i class="fas fa-save" aria-hidden="true"></i> Salvar alterações'
+        : '<i class="fas fa-save" aria-hidden="true"></i> Registrar venda';
+    }
+    if (cancelBtn) cancelBtn.hidden = !active;
+    if (entry && active) entry.open = true;
+  }
+
+  function fillManualFormFromOrder(order) {
+    const form = $('pedidos-manual-form');
+    if (!form || !order) return;
+    const qty = manualQtyFromOrder(order);
+    const values = {
+      customerUserId: order.userId || '',
+      saleDate: toDateInputValue(order.createdAt || order.paidAt),
+      salesChannel: order.salesChannel || 'WhatsApp',
+      nome: order.nome || '',
+      email: order.email || '',
+      telefone: order.telefone || '',
+      cpf: order.cpf || '',
+      smartwatch: order.smartwatch || '',
+      produto: manualProductNameFromOrder(order),
+      quantidade: String(qty),
+      valorProduto: order.valorProduto != null ? String(order.valorProduto) : '',
+      frete: order.frete != null ? String(order.frete) : '0',
+      pagamento: order.pagamento || order.paymentMethod || '',
+      shippingService: order.shippingService || '',
+      trackingCode: order.correiosTrackingCode || '',
+      pais: order.pais || 'Brasil',
+      cep: order.cep || '',
+      rua: order.rua || '',
+      numero: order.numero || '',
+      complemento: order.complemento || '',
+      bairro: order.bairro || '',
+      cidade: order.cidade || '',
+      uf: order.uf || '',
+      observacoes: order.observacoes || ''
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      const field = manualField(form, name);
+      if (!field) return;
+      if (field.tagName === 'SELECT') {
+        const opt = [...field.options].find((o) => o.value === value);
+        if (opt) field.value = value;
+        else if (value) {
+          const custom = document.createElement('option');
+          custom.value = value;
+          custom.textContent = value;
+          field.appendChild(custom);
+          field.value = value;
+        }
+        return;
+      }
+      field.value = value;
+    });
+  }
+
+  function beginEditManualOrder(order) {
+    if (!isManualOrder(order)) {
+      showStatus('Só vendas avulsas podem ser editadas por aqui.', 'warn');
+      return;
+    }
+    fillManualFormFromOrder(order);
+    setManualEditUi(true, order.orderId);
+    closeOrderModal();
+    const form = $('pedidos-manual-form');
+    form?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    manualField(form, 'nome')?.focus?.();
+    showStatus(`Editando venda avulsa ${order.orderId}. Corrija os campos e clique em Salvar alterações.`, 'success');
+  }
+
+  function cancelEditManualOrder() {
+    const form = $('pedidos-manual-form');
+    resetManualForm(form);
+    const saleDateInput = manualField(form, 'saleDate');
+    if (saleDateInput) {
+      const now = new Date();
+      saleDateInput.value = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+    }
+    setManualEditUi(false);
+    showStatus('Edição cancelada.', '');
+  }
+
   async function loadManualCustomerOptions() {
     const select = manualField($('pedidos-manual-form'), 'customerUserId');
     const token = sessionStorage.getItem(SESSION_KEY);
@@ -2309,16 +2455,20 @@
       formData.valorProduto = Number(formData.valorProduto);
       formData.frete = Number(formData.frete || 0);
       delete formData.saleDate;
+      const editingId = editingManualOrderId;
       if (submitButton) submitButton.disabled = true;
-      showStatus('Registrando venda avulsa...', '');
+      showStatus(editingId ? 'Salvando alterações da venda avulsa...' : 'Registrando venda avulsa...', '');
       try {
-        const res = await fetch(apiBase() + '/admin/orders/manual', {
-          method: 'POST',
+        const url = editingId
+          ? apiBase() + '/admin/orders/manual/' + encodeURIComponent(editingId)
+          : apiBase() + '/admin/orders/manual';
+        const res = await fetch(url, {
+          method: editingId ? 'PUT' : 'POST',
           headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Não foi possível registrar a venda.');
+        if (!res.ok) throw new Error(data.error || (editingId ? 'Não foi possível salvar a edição.' : 'Não foi possível registrar a venda.'));
         allOrders = [data.order, ...allOrders.filter((order) => order.orderId !== data.order?.orderId)];
         applyFilters();
         resetManualForm(manualOrderForm);
@@ -2326,16 +2476,28 @@
           const now = new Date();
           saleDateInput.value = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
         }
+        setManualEditUi(false);
         const entry = manualOrderForm.closest('details');
         if (entry) entry.open = false;
-        showStatus(`Venda registrada como pedido ${data.order.orderId}. Ela já está disponível na contabilidade de Vendas.`, 'success');
+        showStatus(
+          editingId
+            ? `Venda avulsa ${data.order.orderId} atualizada.`
+            : `Venda registrada como pedido ${data.order.orderId}. Ela já está disponível na contabilidade de Vendas.`,
+          'success'
+        );
       } catch (err) {
         showStatus(err.message || 'Não foi possível registrar a venda.', 'error');
       } finally {
         if (submitButton) submitButton.disabled = false;
       }
     };
-    submitButton?.addEventListener('click', () => {
+    submitButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      submitManualOrder().catch((e) => showStatus(e.message || 'Não foi possível registrar a venda.', 'error'));
+    });
+    $('btn-pedidos-manual-cancel-edit')?.addEventListener('click', () => cancelEditManualOrder());
+    manualOrderForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
       submitManualOrder().catch((e) => showStatus(e.message || 'Não foi possível registrar a venda.', 'error'));
     });
     manualOrderForm?.addEventListener('keydown', (event) => {

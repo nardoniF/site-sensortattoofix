@@ -19074,17 +19074,9 @@ async function handleListOrders(request, env, origin) {
   return json(await listOrdersForAdmin(env), 200, origin);
 }
 
-async function handleCreateManualOrder(request, env, origin) {
-  if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
-
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: 'Dados do pedido inválidos.' }, 400, origin);
-  }
+async function parseManualOrderPayload(env, body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return json({ error: 'Dados do pedido inválidos.' }, 400, origin);
+    return { error: 'Dados do pedido inválidos.', status: 400 };
   }
 
   const nome = String(body.nome || '').trim();
@@ -19093,21 +19085,23 @@ async function handleCreateManualOrder(request, env, origin) {
   const pagamento = String(body.pagamento || '').trim();
   const customerUserId = String(body.customerUserId || '').trim();
   const customer = customerUserId ? await getUserById(env, customerUserId) : null;
-  if (customerUserId && !customer) return json({ error: 'Cliente cadastrado não encontrado. Atualize a página e tente novamente.' }, 404, origin);
+  if (customerUserId && !customer) {
+    return { error: 'Cliente cadastrado não encontrado. Atualize a página e tente novamente.', status: 404 };
+  }
   const quantidade = Number(body.quantidade);
   const valorProdutoInput = Number(body.valorProduto);
   const freteInput = Number(body.frete || 0);
   const createdAtDate = new Date(body.createdAt);
   if (!(nome || customer?.nome) || !smartwatch || !produto || !pagamento) {
-    return json({ error: 'Preencha cliente, aparelho, produto e forma de pagamento.' }, 400, origin);
+    return { error: 'Preencha cliente, aparelho, produto e forma de pagamento.', status: 400 };
   }
   if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 1000
     || !Number.isFinite(valorProdutoInput) || valorProdutoInput < 0 || valorProdutoInput > 10000000
     || !Number.isFinite(freteInput) || freteInput < 0 || freteInput > 10000000) {
-    return json({ error: 'Quantidade e valores informados são inválidos.' }, 400, origin);
+    return { error: 'Quantidade e valores informados são inválidos.', status: 400 };
   }
   if (!Number.isFinite(createdAtDate.getTime())) {
-    return json({ error: 'Informe uma data válida para a venda.' }, 400, origin);
+    return { error: 'Informe uma data válida para a venda.', status: 400 };
   }
 
   const createdAt = createdAtDate.toISOString();
@@ -19124,50 +19118,111 @@ async function handleCreateManualOrder(request, env, origin) {
     body.cep || customerAddress.cep,
     body.pais || 'Brasil'
   ].map((part) => String(part || '').trim()).filter(Boolean).join(' — ');
+
+  return {
+    fields: {
+      createdAt,
+      paidAt: createdAt,
+      status: 'paid',
+      source: 'manual',
+      salesChannel: String(body.salesChannel || 'WhatsApp').trim().slice(0, 60),
+      userId: customer?.userId || null,
+      nome: String(body.nome || customer?.nome || '').trim().slice(0, 160),
+      email: String(body.email || customer?.email || '').trim().slice(0, 254),
+      telefone: String(body.telefone || customer?.telefone || '').trim().slice(0, 40),
+      cpf: String(body.cpf || customer?.cpf || '').trim().slice(0, 24),
+      smartwatch: smartwatch.slice(0, 160),
+      pais,
+      paisCode,
+      cep: String(body.cep || customerAddress.cep || '').trim().slice(0, 24),
+      rua: String(body.rua || customerAddress.rua || '').trim().slice(0, 200),
+      numero: String(body.numero || customerAddress.numero || '').trim().slice(0, 40),
+      complemento: String(body.complemento || customerAddress.complemento || '').trim().slice(0, 120),
+      bairro: String(body.bairro || customerAddress.bairro || '').trim().slice(0, 120),
+      cidade: String(body.cidade || customerAddress.cidade || '').trim().slice(0, 120),
+      uf: String(body.uf || customerAddress.uf || '').trim().slice(0, 40),
+      endereco,
+      observacoes: String(body.observacoes || '').trim().slice(0, 2000),
+      items: [{ id: 'manual', name: produto.slice(0, 200), qty: quantidade, price: valorProduto / quantidade }],
+      produto: `${quantidade}x ${produto}`.slice(0, 500),
+      valorProduto,
+      frete,
+      total: Number((valorProduto + frete).toFixed(2)),
+      currency: 'BRL',
+      displayCurrency: 'BRL',
+      pagamento: pagamento.slice(0, 80),
+      paymentMethod: pagamento.slice(0, 80),
+      paymentProvider: 'manual',
+      shippingService: String(body.shippingService || 'A combinar').trim().slice(0, 120),
+      shippingProvider: 'manual',
+      shippingMethodId: 'manual',
+      correiosTrackingCode: String(body.trackingCode || '').trim().toUpperCase().slice(0, 40),
+      checkoutLocale: 'pt'
+    }
+  };
+}
+
+async function handleCreateManualOrder(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Dados do pedido inválidos.' }, 400, origin);
+  }
+
+  const parsed = await parseManualOrderPayload(env, body);
+  if (parsed.error) return json({ error: parsed.error }, parsed.status || 400, origin);
+
   const order = {
     orderId: generateOrderId(),
     accessToken: crypto.randomUUID(),
-    createdAt,
-    paidAt: createdAt,
-    status: 'paid',
-    source: 'manual',
-    salesChannel: String(body.salesChannel || 'WhatsApp').trim().slice(0, 60),
-    userId: customer?.userId || null,
-    nome: String(body.nome || customer?.nome || '').trim().slice(0, 160),
-    email: String(body.email || customer?.email || '').trim().slice(0, 254),
-    telefone: String(body.telefone || customer?.telefone || '').trim().slice(0, 40),
-    cpf: String(body.cpf || customer?.cpf || '').trim().slice(0, 24),
-    smartwatch: smartwatch.slice(0, 160),
-    pais,
-    paisCode,
-    cep: String(body.cep || customerAddress.cep || '').trim().slice(0, 24),
-    rua: String(body.rua || customerAddress.rua || '').trim().slice(0, 200),
-    numero: String(body.numero || customerAddress.numero || '').trim().slice(0, 40),
-    complemento: String(body.complemento || customerAddress.complemento || '').trim().slice(0, 120),
-    bairro: String(body.bairro || customerAddress.bairro || '').trim().slice(0, 120),
-    cidade: String(body.cidade || customerAddress.cidade || '').trim().slice(0, 120),
-    uf: String(body.uf || customerAddress.uf || '').trim().slice(0, 40),
-    endereco,
-    observacoes: String(body.observacoes || '').trim().slice(0, 2000),
-    items: [{ id: 'manual', name: produto.slice(0, 200), qty: quantidade, price: valorProduto / quantidade }],
-    produto: `${quantidade}x ${produto}`.slice(0, 500),
-    valorProduto,
-    frete,
-    total: Number((valorProduto + frete).toFixed(2)),
-    currency: 'BRL',
-    displayCurrency: 'BRL',
-    pagamento: pagamento.slice(0, 80),
-    paymentMethod: pagamento.slice(0, 80),
-    paymentProvider: 'manual',
-    shippingService: String(body.shippingService || 'A combinar').trim().slice(0, 120),
-    shippingProvider: 'manual',
-    shippingMethodId: 'manual',
-    correiosTrackingCode: String(body.trackingCode || '').trim().toUpperCase().slice(0, 40),
-    checkoutLocale: 'pt'
+    ...parsed.fields
   };
 
   await saveOrder(env, order);
   return json({ ok: true, order }, 201, origin);
+}
+
+async function handleUpdateManualOrder(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
+
+  const id = String(orderId || '').trim();
+  if (!id) return json({ error: 'Pedido inválido.' }, 400, origin);
+
+  const existing = await getOrder(env, id);
+  if (!existing) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  if (String(existing.source || '') !== 'manual') {
+    return json({ error: 'Só é possível editar vendas avulsas (lançamento manual).' }, 400, origin);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Dados do pedido inválidos.' }, 400, origin);
+  }
+
+  const parsed = await parseManualOrderPayload(env, body);
+  if (parsed.error) return json({ error: parsed.error }, parsed.status || 400, origin);
+
+  const prevUserId = existing.userId || null;
+  const order = {
+    ...existing,
+    ...parsed.fields,
+    orderId: existing.orderId,
+    accessToken: existing.accessToken || crypto.randomUUID(),
+    source: 'manual',
+    status: existing.status || 'paid',
+    updatedAt: new Date().toISOString()
+  };
+
+  await saveOrder(env, order);
+  if (prevUserId && prevUserId !== order.userId) {
+    await unlinkOrderFromUser(env, prevUserId, order.orderId);
+  }
+  return json({ ok: true, order }, 200, origin);
 }
 
 export default {
@@ -19285,6 +19340,12 @@ export default {
       if (path === '/admin/session' && request.method === 'GET') return handleSession(request, env, origin);
       if (path === '/admin/orders/manual' && request.method === 'POST') {
         return handleCreateManualOrder(request, env, origin);
+      }
+      {
+        const manualEditMatch = path.match(/^\/admin\/orders\/manual\/([^/]+)$/);
+        if (manualEditMatch && request.method === 'PUT') {
+          return handleUpdateManualOrder(request, env, origin, decodeURIComponent(manualEditMatch[1]));
+        }
       }
       if (path === '/admin/test-email' && request.method === 'POST') return handleTestEmail(request, env, origin);
       if (path === '/admin/report/monthly-clicks' && request.method === 'POST') {

@@ -6496,6 +6496,47 @@ body.admin-page.pedidos-login-only #pedidos-login {
     border-color: var(--primary);
     color: var(--primary);
 }
+.btn-edit-manual {
+    background: transparent;
+    color: #e6c547;
+    border: 1px solid #b8860b;
+    border-radius: 5px;
+    padding: 4px 7px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.btn-edit-manual:hover {
+    background: rgba(184, 134, 11, 0.18);
+}
+.pedidos-manual-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #e6c547;
+    border: 1px solid rgba(184, 134, 11, 0.55);
+    background: rgba(184, 134, 11, 0.12);
+    white-space: nowrap;
+}
+.pedidos-manual-edit-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+}
+.pedidos-manual-edit-bar .btn-edit-manual {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+}
 
 /* Modal detalhe do pedido */
 .pedidos-order-modal {
