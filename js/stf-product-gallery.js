@@ -377,7 +377,13 @@
           const market = window.STF_SITE?.catalogMarket?.() || (isLensOnlyMarket() ? 'INT' : 'BR');
           const all = cfg.products?.length ? cfg.products : (cfg.product ? [cfg.product] : []);
           const filtered = window.STF_SITE?.filterProductsForMarket?.(all, market) || all;
-          product = filtered.find((p) => p.active !== false && !p.aggregated) || filtered[0] || null;
+          const active = filtered.filter((p) => p.active !== false && !p.aggregated);
+          // Home/#produtos: sempre o kit smartwatch (nunca smartband, mesmo se vier primeiro no catálogo).
+          product = active.find((p) => isKitProduct(p) && !isSmartbandProduct(p))
+            || active.find((p) => isKitProduct(p))
+            || active[0]
+            || filtered[0]
+            || null;
         }
       } catch (err) {
         console.warn('STF_PRODUCT_GALLERY config:', err);
