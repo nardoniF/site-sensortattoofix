@@ -8500,3 +8500,10 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   margin: 0 0 18px;
 }
 
+.seo-guide-page .seo-final-cta {
+  margin-top: 36px;
+  padding-top: 22px;
+  border-top: 1px solid #333;
+}
+.seo-guide-page .seo-final-cta h2 { margin-top: 0; }
+
