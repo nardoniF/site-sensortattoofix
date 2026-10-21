@@ -1852,8 +1852,13 @@
         const needsPay = !!(data.checkoutError || data.cartError
           || (data.cartId && data.status && data.status !== 'released'));
         showStatus(msg, data.skipped ? 'warn' : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success')));
-        if (!data.skipped) {
+        // Etiqueta já existente vinculada: só abre o painel se ainda precisar pagar/imprimir.
+        if (!data.skipped && !data.linked) {
           window.open(needsPay && (data.checkoutError || data.cartError) ? wallet : panel, '_blank', 'noopener');
+        } else if (!data.skipped && data.linked && needsPay) {
+          window.open(wallet, '_blank', 'noopener');
+        } else if (!data.skipped && data.linked && !data.trackingCode) {
+          window.open(panel, '_blank', 'noopener');
         }
         if (!data.skipped && data.status === 'released' && !data.trackingCode && !order.correiosTrackingCode) {
           pollSuperfreteTracking(order, document.getElementById('pedidos-order-modal-body'));
