@@ -8405,7 +8405,6 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
 .seo-guide-page .seo-guide > h2,
 .seo-guide-page .seo-guide > p,
 .seo-guide-page .seo-guide > ul,
-.seo-guide-page .seo-guide > .seo-figure,
 .seo-guide-page .seo-guide > .seo-faq,
 .seo-guide-page .seo-guide > .seo-related {
   max-width: 720px;
@@ -8480,27 +8479,33 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   font-weight: 700;
 }
 .seo-guide-page .seo-figure {
-  margin: 0 auto 28px;
-  max-width: 360px;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #333;
+  display: block;
+  width: min(300px, 72vw);
+  margin: 8px auto 32px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
+  box-shadow: 0 0 0 1px #000, 0 12px 28px rgba(0, 0, 0, 0.55);
+  box-sizing: border-box;
 }
 .seo-guide-page .seo-figure img {
   display: block;
   width: 100%;
-  max-height: min(42vh, 420px);
   height: auto;
-  object-fit: contain;
-  margin: 0 auto;
-  background: #0a0a0a;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 10px;
+  background: transparent;
 }
 @media (max-width: 600px) {
   .seo-guide-page .seo-figure {
-    max-width: 280px;
+    width: min(260px, 78vw);
+    padding: 8px;
+    border-radius: 14px;
   }
   .seo-guide-page .seo-figure img {
-    max-height: min(38vh, 340px);
+    border-radius: 8px;
   }
 }
 .seo-guide-page .seo-buy {
