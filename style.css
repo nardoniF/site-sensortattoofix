@@ -8392,3 +8392,71 @@ body.admin-page input[type="search"]::-webkit-search-cancel-button,
 body.admin-page input[type="search"]::-webkit-search-results-button {
   -webkit-appearance: none;
 }
+
+/* —— SEO guide landings (intenção) —— */
+.seo-guide-page .seo-guide {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 0 40px;
+}
+.seo-guide-page .seo-guide h1 {
+  font-size: clamp(1.55rem, 4vw, 2.15rem);
+  line-height: 1.2;
+  margin: 10px 0 14px;
+}
+.seo-guide-page .seo-guide .seo-lead {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: #ccc;
+  margin: 0 0 28px;
+}
+.seo-guide-page .seo-guide h2 {
+  font-size: 1.25rem;
+  margin: 32px 0 12px;
+}
+.seo-guide-page .seo-guide p,
+.seo-guide-page .seo-guide li {
+  line-height: 1.6;
+  color: #ddd;
+}
+.seo-guide-page .seo-guide ul {
+  margin: 0 0 18px;
+  padding-left: 1.2em;
+}
+.seo-guide-page .seo-guide-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 28px 0 8px;
+}
+.seo-guide-page .seo-guide-cta .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.seo-guide-page .seo-related {
+  margin-top: 36px;
+  padding-top: 22px;
+  border-top: 1px solid #333;
+}
+.seo-guide-page .seo-related ul {
+  list-style: none;
+  padding: 0;
+}
+.seo-guide-page .seo-related li { margin: 8px 0; }
+.seo-guide-page .seo-related a { color: var(--primary); }
+.seo-guide-page .seo-faq details {
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0 0 10px;
+  background: #141414;
+}
+.seo-guide-page .seo-faq summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.seo-guide-page .seo-faq details p {
+  margin: 10px 0 0;
+}
+
