@@ -304,6 +304,62 @@
     });
   }
 
+  /** SEO landings: same ←/→ album as loja, starting with the cropped application photo. */
+  function seoGuideAlbum(lang) {
+    const l = lang || detectLang();
+    const aplicacao = '/images/kit-gallery/kit-03-aplicacao-crop.jpg';
+    if (l === 'en') {
+      return [
+        aplicacao,
+        '/images/kit-gallery/en/kit-01-embalagem.jpg',
+        '/images/kit-gallery/en/kit-02-conteudo.jpg',
+        '/images/kit-gallery/en/kit-05-acompanha.jpg',
+        '/images/kit-gallery/en/kit-06-antes-depois.jpg',
+        '/images/kit-gallery/en/kit-07-beneficios.jpg'
+      ];
+    }
+    if (l === 'it') {
+      return [
+        aplicacao,
+        '/images/kit-gallery/it/kit-01-embalagem.jpg',
+        '/images/kit-gallery/it/kit-02-conteudo.jpg',
+        '/images/kit-gallery/it/kit-05-acompanha.jpg',
+        '/images/kit-gallery/it/kit-06-antes-depois.jpg',
+        '/images/kit-gallery/it/kit-07-beneficios.jpg'
+      ];
+    }
+    return [
+      aplicacao,
+      '/images/kit-gallery/kit-01-embalagem.jpg',
+      '/images/kit-gallery/kit-02-conteudo.jpg',
+      '/images/kit-gallery/kit-05-acompanha.jpg',
+      '/images/kit-gallery/kit-06-antes-depois.jpg',
+      '/images/kit-gallery/kit-07-beneficios.jpg'
+    ];
+  }
+
+  function enhanceSeoFigures() {
+    document.querySelectorAll('.seo-guide-page .seo-figure').forEach((fig) => {
+      if (fig.dataset.stfSeoAlbum === '1') return;
+      const existing = fig.querySelector('img');
+      const label = existing?.alt || '';
+      const imgs = seoGuideAlbum();
+      fig.dataset.stfSeoAlbum = '1';
+      fig.innerHTML = renderMarkup(imgs, label, 'stf-album--fill seo-figure-album');
+      // Keep intrinsic size hint for the first (cropped) slide.
+      const img = fig.querySelector('img');
+      if (img) {
+        img.setAttribute('width', '720');
+        img.setAttribute('height', '818');
+      }
+      const prev = fig.querySelector('.stf-album-prev');
+      const next = fig.querySelector('.stf-album-next');
+      if (prev) prev.setAttribute('aria-label', detectLang() === 'pt' ? 'Foto anterior' : 'Previous photo');
+      if (next) next.setAttribute('aria-label', detectLang() === 'pt' ? 'Próxima foto' : 'Next photo');
+      bind(fig);
+    });
+  }
+
   /** Square album = height of the benefit icons grid (contain, never crop). */
   function syncProductAlbumToBenefits() {
     const benefits = document.querySelector('#produtos .product-benefits-grid');
@@ -356,12 +412,14 @@
     LENS_GALLERY_IT,
     kitAlbum,
     lensAlbum,
+    seoGuideAlbum,
     isLensOnlyMarket,
     resolveImages,
     isKitProduct,
     renderMarkup,
     bind,
     enhanceExisting,
+    enhanceSeoFigures,
     showIndex,
     detectLang,
     syncProductAlbumToBenefits
@@ -369,6 +427,7 @@
 
   function boot() {
     hideKitBoxIfNeeded();
+    enhanceSeoFigures();
     const run = async () => {
       let product = null;
       try {
