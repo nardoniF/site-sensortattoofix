@@ -324,6 +324,7 @@ def render_brand_guide(guide: str, lang: str) -> str:
     <script src="../js/site-feedback.js?v=9"></script>
     <script src="../js/stf-intl-channels.js?v=2"></script>
     <script src="../js/traffic-origin.js?v=2"></script>
+    <script src="../js/stf-product-gallery.js?v=21"></script>
     <script src="../js/analytics.js?v=52"></script>
 </body>
 </html>
@@ -636,6 +637,7 @@ def render_wrist(lang: str) -> str:
     <script src="../js/site-feedback.js?v=9"></script>
     <script src="../js/stf-intl-channels.js?v=2"></script>
     <script src="../js/traffic-origin.js?v=2"></script>
+    <script src="../js/stf-product-gallery.js?v=21"></script>
     <script src="../js/analytics.js?v=52"></script>
 </body>
 </html>
