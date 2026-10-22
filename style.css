@@ -8662,11 +8662,18 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   margin-bottom: 22px;
 }
 .home-guias .home-guias-list {
-  max-width: 640px;
+  max-width: 900px; /* align with FAQ width */
   margin: 0 auto;
   padding: 8px 0 0;
   list-style: none;
   line-height: 1.7;
+}
+.home-guias .home-guias-intro {
+  max-width: 900px;
+  margin: 0 auto 18px;
+  text-align: center;
+  color: #bbb;
+  line-height: 1.55;
 }
 .home-guias .home-guias-list li {
   margin: 0;
@@ -8687,33 +8694,23 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   background: rgba(255, 193, 7, 0.06);
 }
 .home-faq-static {
-  max-width: 800px;
+  max-width: 900px; /* same as .faq-container */
   margin: 0 auto 18px;
+  width: 100%;
 }
-.home-faq-static details {
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 12px;
-  margin-bottom: 15px;
-  overflow: hidden;
-}
-.home-faq-static summary {
-  cursor: pointer;
-  padding: 20px;
-  font-weight: 700;
-  color: #ffc107;
-  list-style: none;
-}
-.home-faq-static summary::-webkit-details-marker {
-  display: none;
-}
-.home-faq-static details p {
-  margin: 0;
-  padding: 0 20px 20px;
-  color: #ccc;
-  line-height: 1.8;
-}
+/* Prefer .faq-item styles when present; keep link color for the static answer. */
 .home-faq-static a { color: var(--primary, #ffc107); }
+#faq,
+#guias,
+#onde-comprar,
+#contato,
+#problema,
+#produtos,
+#quem-somos,
+#avaliacoes,
+#paliativos {
+  scroll-margin-top: 96px;
+}
 
 
 
