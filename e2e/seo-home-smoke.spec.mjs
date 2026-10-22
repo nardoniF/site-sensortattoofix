@@ -37,6 +37,17 @@ test.describe('home + SEO guides smoke', () => {
     await expect(page.locator('#guias .section-title')).toHaveText(/Artigos|Guias/i);
     await expect(page.locator('#guias a')).toHaveCount(4);
 
+    const margins = await page.evaluate(() => {
+      return ['problema','produtos','faq','guias','quem-somos'].map((id) => {
+        const el = document.getElementById(id);
+        return { id, scrollMarginTop: getComputedStyle(el).scrollMarginTop };
+      });
+    });
+    for (const row of margins) {
+      expect(row.scrollMarginTop, `${row.id} got blanket scroll-margin`).not.toBe('96px');
+    }
+
+
     const widths = await page.evaluate(() => {
       const items = [...document.querySelectorAll('#faq .home-faq-static details, #faq .faq-item')];
       return items.slice(0, 5).map((el) => Math.round(el.getBoundingClientRect().width));
