@@ -8525,3 +8525,91 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
 }
 .seo-guide-page .seo-final-cta h2 { margin-top: 0; }
 
+.seo-guide-page .seo-breadcrumb {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+.seo-guide-page .seo-breadcrumb ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.seo-guide-page .seo-breadcrumb li:not(:last-child)::after {
+  content: "›";
+  margin-left: 10px;
+  color: #666;
+}
+.seo-guide-page .seo-breadcrumb a { color: var(--primary, #ffc107); }
+.seo-guide-page .seo-table-wrap {
+  overflow-x: auto;
+  margin: 16px 0 24px;
+}
+.seo-guide-page .seo-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.seo-guide-page .seo-compare-table th,
+.seo-guide-page .seo-compare-table td {
+  border: 1px solid #333;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.seo-guide-page .seo-compare-table th {
+  background: #1a1a1a;
+  color: #ffc107;
+}
+
+.home-guias {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.home-guias .home-guias-intro {
+  max-width: 720px;
+  margin: 0 auto 18px;
+  text-align: center;
+  color: #bbb;
+  font-size: 0.98rem;
+}
+.home-guias .home-guias-list {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-left: 1.2rem;
+  line-height: 1.7;
+}
+.home-guias .home-guias-list a { color: var(--primary, #ffc107); }
+.home-faq-static {
+  max-width: 800px;
+  margin: 0 auto 18px;
+}
+.home-faq-static details {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.home-faq-static summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.home-faq-static details p {
+  margin: 10px 0 0;
+  color: #ccc;
+  line-height: 1.55;
+}
+.home-faq-static a { color: var(--primary, #ffc107); }
+
+
+
+.footer-guias-static {
+  text-align: center;
+  padding: 14px 12px 0;
+  font-size: 0.95rem;
+}
+.footer-guias-static a { color: var(--primary, #ffc107); }

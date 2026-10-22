@@ -1,6 +1,6 @@
 /**
  * Trust line for international storefront (.com and /en/ /it/).
- * One horizontal line beside the hero "3N20 Technology • Patented" badge —
+ * One horizontal line beside the hero "3N20 Technology • Patent pending" badge —
  * never a top bar (that pushed Discover / Where to Buy off the first screen).
  */
 (function () {
