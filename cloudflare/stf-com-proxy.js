@@ -81,14 +81,20 @@ const COM_SHARED_ROOT_PAGES = new Set([
 
 const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
-/** Guias SEO existem só em /en/ — /nl|de|…/nome.html e *-tatuagem.html caem na EN. */
-const SEO_GUIDE_EN = {
+/**
+ * Guias SEO no root do .com → arquivo em /en/.
+ * Prefixo /{lang}/ serve o HTML nativo desse idioma (não reescreve para EN).
+ * Slugs PT no .com redirecionam semanticamente para o par EN.
+ */
+const SEO_GUIDE_ROOT_TO_EN = {
   'smartwatch-tattoo.html': '/en/smartwatch-tattoo.html',
   'apple-watch-tattoo.html': '/en/apple-watch-tattoo.html',
   'garmin-watch-tattoo.html': '/en/garmin-watch-tattoo.html',
+  'disable-wrist-detection-tattoo.html': '/en/disable-wrist-detection-tattoo.html',
   'smartwatch-tatuagem.html': '/en/smartwatch-tattoo.html',
   'apple-watch-tatuagem.html': '/en/apple-watch-tattoo.html',
   'garmin-watch-tatuagem.html': '/en/garmin-watch-tattoo.html',
+  'desativar-deteccao-de-pulso-tatuagem.html': '/en/disable-wrist-detection-tattoo.html',
 };
 
 function mapPathCom(pathname) {
@@ -99,9 +105,8 @@ function mapPathCom(pathname) {
   for (const lang of INTL_LANGS) {
     if (pathname === `/${lang}` || pathname === `/${lang}/`) return `/${lang}/index.html`;
     if (pathname.startsWith(`/${lang}/`)) {
-      const file = pathname.slice(lang.length + 2); // after /{lang}/
-      if (SEO_GUIDE_EN[file]) return SEO_GUIDE_EN[file];
-      return pathname;
+      // Native localized guides and pages live under /{lang}/…
+      return pathname.endsWith('/') ? pathname + 'index.html' : pathname;
     }
   }
   if (pathname.startsWith('/en/')) {
@@ -113,7 +118,7 @@ function mapPathCom(pathname) {
   if (pathname.endsWith('/') && pathname.length > 1) return '/en' + pathname + 'index.html';
   if (/^\/[^/]+\.html$/.test(pathname)) {
     const file = pathname.slice(1);
-    if (SEO_GUIDE_EN[file]) return SEO_GUIDE_EN[file];
+    if (SEO_GUIDE_ROOT_TO_EN[file]) return SEO_GUIDE_ROOT_TO_EN[file];
     return '/en' + pathname;
   }
   return '/en' + pathname;

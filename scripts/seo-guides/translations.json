@@ -2559,34 +2559,34 @@
   },
   "wrist": {
     "en": {
-      "title": "Turn Off Wrist Detection: Worth It with a Tattoo?",
-      "description": "Turning off Wrist Detection so Apple Watch stops asking for a passcode with a tattoo has risks. See what you lose and the alternatives.",
-      "ogTitle": "Turn Off Wrist Detection: Worth It with a Tattoo?",
-      "crumb": "Turn off Wrist Detection",
-      "headline": "Turn Off Wrist Detection Because of a Tattoo: Worth It?",
-      "lead": "Turning off <strong>Wrist Detection</strong> (the feature many people call wrist detection) stops Apple Watch from asking for the passcode on its own, but it also turns off heart rate, sleep, and other automatic measurements, and the watch no longer locks by itself. For most people, another solution is worth trying first.",
+      "title": "Turn Off Wrist Detection for Tattoos? | Sensor Tattoo Fix",
+      "description": "Turning off Wrist Detection so Apple Watch stops asking for a passcode with tattoos has risks. See what you lose and the alternatives.",
+      "ogTitle": "Turn Off Wrist Detection for a Tattoo: Is It Worth It?",
+      "crumb": "Turn Off Wrist Detection",
+      "headline": "Turn Off Wrist Detection because of a tattoo: is it worth it?",
+      "lead": "Turning off Wrist Detection (the feature many call pulse or wrist detection) stops Apple Watch from asking for the passcode on its own, but also turns off heart rate, sleep and other automatic measurements, and the watch no longer locks by itself. For most people, another solution is worth trying first.",
       "h2why": "Why the watch asks for a passcode with a tattoo",
-      "whyBody": "When wrist detection fails, Apple Watch may treat the device as off-wrist and ask for the passcode again. Details and symptoms are in the guide <a href=\"apple-watch-tattoo.html\">Apple Watch keeps asking for a passcode on tattooed skin</a>.",
+      "whyBody": "When wrist detection fails, Apple Watch may treat the device as off-wrist and ask for the passcode again. Details and symptoms are in the guide [[APPLE]]Apple Watch asking for a passcode with a tattoo[[/APPLE]].",
       "h2what": "What Wrist Detection does",
-      "whatBody": "It tells the watch that it is on your arm. With the feature on and a passcode set, Apple Watch locks when it leaves your wrist and only unlocks with the passcode. Apple describes the feature and what changes when you turn it off in the support article <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">If your Apple Watch locks unexpectedly</a>.",
+      "whatBody": "It tells the watch that it is on your arm. With the feature on and a passcode set, Apple Watch locks when it leaves your wrist and only unlocks with the passcode. Apple describes the feature and what changes when you turn it off in the support article [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
       "h2lose": "What you lose when you turn it off",
-      "loseIntro": "According to Apple support, when you turn off Wrist Detection you no longer get, among other things:",
+      "loseIntro": "According to Apple Support, when you turn off Wrist Detection you lose, among others:",
       "loseItems": [
         "Automatic lock and unlock when you take the watch off or put it on",
         "Fall Detection starting Emergency SOS on its own",
-        "Heart-rate tracking and notifications",
+        "Heart rate tracking and notifications",
         "Background blood oxygen and respiratory rate measurements",
         "Sleep tracking",
         "Some Activity measurements",
         "Noise measurement and alerts",
-        "Tap and wrist-rotation gestures"
+        "Tap and wrist-turn gestures"
       ],
-      "loseApplePay": "Apple Pay still works, but it asks for the passcode on every payment (when you double-click the side button to authorize). Official details: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
+      "loseApplePay": "Apple Pay still works, but asks for the passcode on every payment (when you double-press the side button to authorize).",
       "h2alt": "Alternatives",
-      "altIntro": "Apple’s first suggestion when there is a tattoo or scar on the wrist you use is to <strong>move the watch to the other arm</strong>. After that, update the side on the watch itself in <strong>Settings → General → Orientation</strong> (Left or Right).",
+      "altIntro": "Apple’s first recommendation when there is a tattoo or scar on the wrist you use is to move the watch to the other arm. After that, update the side on the watch itself in Settings → General → Orientation (Left or Right).",
       "tableHeaders": [
         "Alternative",
-        "Helps with the passcode?",
+        "Helps with passcode?",
         "Helps with heart rate?",
         "Note"
       ],
@@ -2595,54 +2595,54 @@
           "Wear on the other arm (no tattoo under the sensor)",
           "Yes",
           "Yes",
-          "Apple’s suggestion; adjust Settings → General → Orientation"
+          "Apple’s recommendation; adjust Settings → General → Orientation"
         ],
         [
           "Adjust the band / remove obstacles",
           "Maybe",
           "Maybe",
-          "Firm skin contact, no sleeve or bracelet in the way"
+          "Firm skin contact, no sleeve or bracelet in between"
         ],
         [
           "Turn off Wrist Detection",
-          "Yes (fewer off-wrist prompts)",
+          "Yes (fewer “off-wrist” prompts)",
           "No — Apple turns off HR tracking",
           "Security risks and features listed above"
         ],
         [
           "Adhesive optical lens (Sensor Tattoo Fix)",
-          "May help",
+          "Can help",
           "Made to improve reading conditions",
-          "Stick on at the sensor area; results vary by watch and tattoo"
+          "Stick on the sensor area; results vary by watch and tattoo"
         ]
       ],
-      "h2how": "How to turn it off (if you decide)",
-      "how1": "On Apple Watch: open <strong>Settings → Passcode → Wrist Detection</strong> and turn it off. Confirm with the passcode. On iPhone, the equivalent path is in the Watch app under <strong>Passcode</strong> (the label may vary by system version). Keep the watch passcode on and turn the feature back on when you can.",
-      "how2": "Step-by-step and the official list of affected features: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
+      "h2how": "How to turn it off (if you decide to)",
+      "how1": "On Apple Watch: open Settings → Passcode → Wrist Detection and turn it off. Confirm with your passcode. On iPhone, the equivalent path is in the Watch app, under Passcode (the label may vary by system version). Keep the watch passcode on and re-enable the feature when you can.",
+      "how2": "Step-by-step and the official list of affected features: support.apple.com/en-us/111819.",
       "h2when": "When turning it off makes sense",
-      "whenBody": "As a short-term workaround: briefly, in a safe place, accepting that you must enter the passcode for Apple Pay and losing automatic heart-rate tracking and other features. As a long-term solution, weigh the alternatives above — including the guide on <a href=\"apple-watch-tattoo.html\">Apple Watch and tattoos</a>.",
+      "whenBody": "As a temporary fix: for a short time, in a safe environment, accepting passcode entry for Apple Pay and losing automatic heart-rate tracking and other features. As a long-term solution, it is worth evaluating the alternatives above — including the guide on [[APPLE]]Apple Watch and tattoos[[/APPLE]].",
       "buyH2": "Buy the Sensor Tattoo Fix optical lens",
-      "buyLead": "Official store only — PayPal, card, and tracked shipping. International offering is the optical lens (not the Brazilian kit accessories).",
+      "buyLead": "Want to keep security without turning detection off? Sensor Tattoo Fix is an adhesive optical lens for the sensor area — available in the official store (optical lens only for international orders). Results may vary by watch and tattoo.",
       "faqs": [
         {
-          "q": "Does turning off Wrist Detection erase my data?",
+          "q": "Does turning off Wrist Detection wipe my data?",
           "a": "No. It only changes how the watch decides it is on your arm and which features tied to that detection stay active."
         },
         {
-          "q": "Does Apple Pay work with Wrist Detection off?",
-          "a": "Yes: payment stays available, but you must enter the passcode when you double-click the side button to authorize."
+          "q": "Does Apple Pay work with detection turned off?",
+          "a": "Yes: payment stays available, but you must enter the passcode when you double-press the side button to authorize."
         },
         {
-          "q": "Do light tattoos also cause the problem?",
-          "a": "They usually interfere less. Light, less dense pigments let more sensor light through; still, each skin and design reacts differently."
+          "q": "Can a light tattoo also cause the problem?",
+          "a": "It usually interferes less. Light, low-density pigments let more sensor light through; still, each skin and design reacts differently."
         },
         {
-          "q": "Does this apply to Samsung, Garmin, and other brands?",
-          "a": "The principle of optical sensors is similar, but the feature name and options change by model. This guide is about Apple Watch."
+          "q": "Does this apply to Samsung, Garmin and other brands?",
+          "a": "The principle of optical sensors is similar, but the feature name and options change by model. This guide covers Apple Watch."
         },
         {
-          "q": "Does the lens block charging?",
-          "a": "It is designed not to interfere with inductive charging. Use the charger for your model and wait for the adhesive cure time in the manual before getting it wet."
+          "q": "Does the lens interfere with charging?",
+          "a": "It is designed not to interfere with inductive charging. Use the charger recommended for your model and wait for the adhesive cure time in the manual before getting it wet."
         }
       ],
       "related": [
@@ -2667,23 +2667,25 @@
       "finalBody": "Check the optical lens in the official store. Results may vary by watch and tattoo.",
       "finalGo": "Go to where to buy",
       "finalStore": "Open official store",
-      "finalHome": "See products on the home page"
+      "finalProducts": "See products on the home page",
+      "supportUrl": "https://support.apple.com/en-us/111819",
+      "wristFeatureName": "Wrist Detection"
     },
     "it": {
-      "title": "Disattivare Rilevamento polso: vale con tatuaggio?",
-      "description": "Disattivare Rilevamento polso perché Apple Watch smetta di chiedere il codice con tatuaggio ha rischi. Cosa perdi e le alternative.",
-      "ogTitle": "Disattivare Rilevamento polso: vale con tatuaggio?",
+      "title": "Disattivare Rilevamento polso? | Sensor Tattoo Fix",
+      "description": "Disattivare Rilevamento polso perché Apple Watch smetta di chiedere il codice con un tatuaggio ha rischi. Cosa perdi e le alternative.",
+      "ogTitle": "Disattivare Rilevamento polso per un tatuaggio: vale la pena?",
       "crumb": "Disattivare Rilevamento polso",
       "headline": "Disattivare Rilevamento polso per il tatuaggio: vale la pena?",
-      "lead": "Disattivare <strong>Rilevamento polso</strong> (la funzione che molti chiamano rilevazione del polso) fa smettere ad Apple Watch di chiedere il codice da solo, ma spegne anche frequenza cardiaca, sonno e altre misurazioni automatiche, e l'orologio non si blocca più da solo. Per la maggior parte delle persone, vale provare un'altra soluzione prima.",
-      "h2why": "Perché l'orologio chiede il codice con tatuaggio",
-      "whyBody": "Quando la rilevazione del polso fallisce, Apple Watch può trattare l'apparecchio come fuori polso e chiedere di nuovo il codice. Dettagli e sintomi sono nella guida <a href=\"apple-watch-tattoo.html\">Apple Watch continua a chiedere il codice sulla pelle tatuata</a>.",
+      "lead": "Disattivare Rilevamento polso (la funzione che molti chiamano rilevazione del polso) fa smettere ad Apple Watch di chiedere il codice da solo, ma spegne anche frequenza cardiaca, sonno e altre misurazioni automatiche, e l’orologio non si blocca più da solo. Per la maggior parte delle persone, conviene provare un’altra soluzione prima.",
+      "h2why": "Perché l’orologio chiede il codice con un tatuaggio",
+      "whyBody": "Quando il rilevamento del polso fallisce, Apple Watch può trattare il dispositivo come fuori polso e chiedere di nuovo il codice. Dettagli e sintomi sono nella guida [[APPLE]]Apple Watch che chiede il codice con un tatuaggio[[/APPLE]].",
       "h2what": "Cosa fa Rilevamento polso",
-      "whatBody": "Indica all'orologio che è sul tuo braccio. Con la funzione attiva e un codice impostato, Apple Watch si blocca quando lascia il polso e si sblocca solo con il codice. Apple descrive la funzione e cosa cambia spegnendola nell'articolo di supporto <a href=\"https://support.apple.com/it-it/111819\" target=\"_blank\" rel=\"noopener\">Se l'Apple Watch si blocca inaspettatamente</a>.",
-      "h2lose": "Cosa perdi disattivandola",
-      "loseIntro": "Secondo il supporto Apple, spegnendo Rilevamento polso non hai più, tra le altre cose:",
+      "whatBody": "Indica all’orologio che è sul tuo braccio. Con la funzione attiva e un codice impostato, Apple Watch si blocca quando lascia il polso e si sblocca solo con il codice. Apple descrive la funzione e cosa cambia spegnendola nell’articolo di supporto [[SUPPORT]]Se Apple Watch si blocca inaspettatamente[[/SUPPORT]].",
+      "h2lose": "Cosa perdi se lo disattivi",
+      "loseIntro": "Secondo il supporto Apple, disattivando Rilevamento polso perdi, tra gli altri:",
       "loseItems": [
-        "Blocco e sblocco automatici togliendo o mettendo l'orologio",
+        "Blocco e sblocco automatici quando togli o metti l’orologio",
         "Rilevamento cadute che avvia da solo SOS Emergenza",
         "Monitoraggio e notifiche della frequenza cardiaca",
         "Misurazioni in background di ossigeno nel sangue e frequenza respiratoria",
@@ -2692,18 +2694,18 @@
         "Misurazione e avvisi del rumore",
         "Gesti di tocco e di rotazione del polso"
       ],
-      "loseApplePay": "Apple Pay continua a funzionare, ma chiede il codice a ogni pagamento (premendo due volte il tasto laterale per autorizzare). Dettagli ufficiali: <a href=\"https://support.apple.com/it-it/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/it-it/111819</a>.",
+      "loseApplePay": "Apple Pay continua a funzionare, ma chiede il codice a ogni pagamento (quando premi due volte il pulsante laterale per autorizzare).",
       "h2alt": "Alternative",
-      "altIntro": "La prima opzione indicata da Apple con tatuaggio o cicatrice sul polso usato è <strong>passare l'orologio sull'altro braccio</strong>. Poi aggiorna il lato sull'orologio in <strong>Impostazioni → Generali → Orientamento</strong> (Sinistra o Destra).",
+      "altIntro": "La prima opzione indicata da Apple quando c’è un tatuaggio o una cicatrice sul polso usato è passare l’orologio sull’altro braccio. Poi aggiorna il lato sull’orologio in Impostazioni → Generali → Orientamento (Sinistro o Destro).",
       "tableHeaders": [
         "Alternativa",
         "Aiuta con il codice?",
-        "Aiuta con il battito?",
+        "Aiuta con la frequenza cardiaca?",
         "Nota"
       ],
       "tableRows": [
         [
-          "Usarlo sull'altro braccio (senza tatuaggio sotto il sensore)",
+          "Usare sull’altro braccio (senza tatuaggio sotto il sensore)",
           "Sì",
           "Sì",
           "Indicazione Apple; regola Impostazioni → Generali → Orientamento"
@@ -2723,49 +2725,51 @@
         [
           "Lente ottica adesiva (Sensor Tattoo Fix)",
           "Può aiutare",
-          "Fatta per migliorare le condizioni di lettura",
-          "Si applica sulla zona del sensore; i risultati variano per orologio e tatuaggio"
+          "Pensata per migliorare le condizioni di lettura",
+          "Si applica sulla zona del sensore; i risultati variano con orologio e tatuaggio"
         ]
       ],
-      "h2how": "Come disattivarla (se decidi)",
-      "how1": "Su Apple Watch: apri <strong>Impostazioni → Codice → Rilevamento polso</strong> e disattiva. Conferma con il codice. Su iPhone, il percorso equivalente è nell'app Watch, in <strong>Codice</strong> (l'etichetta può variare con la versione del sistema). Tieni attivo il codice dell'orologio e riattiva la funzione quando puoi.",
-      "how2": "Passo dopo passo e elenco ufficiale delle funzioni interessate: <a href=\"https://support.apple.com/it-it/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/it-it/111819</a>.",
-      "h2when": "Quando ha senso disattivarla",
-      "whenBody": "Come soluzione temporanea: per poco tempo, in un ambiente sicuro, accettando di digitare il codice per Apple Pay e perdendo il monitoraggio automatico della frequenza cardiaca e altre funzioni. Come soluzione a lungo termine, valuta le alternative sopra — inclusa la guida su <a href=\"apple-watch-tattoo.html\">Apple Watch e tatuaggio</a>.",
+      "h2how": "Come disattivarlo (se decidi)",
+      "how1": "Su Apple Watch: apri Impostazioni → Codice → Rilevamento polso e disattiva. Conferma con il codice. Su iPhone, il percorso equivalente è nell’app Watch, in Codice (l’etichetta può variare con la versione del sistema). Mantieni attivo il codice dell’orologio e riattiva la funzione quando puoi.",
+      "how2": "Passo passo e elenco ufficiale delle funzioni interessate: support.apple.com/it-it/111819.",
+      "h2when": "Quando ha senso disattivarlo",
+      "whenBody": "Come soluzione temporanea: per poco tempo, in un ambiente sicuro, accettando di digitare il codice per Apple Pay e perdendo il monitoraggio automatico della frequenza cardiaca e altre funzioni. Come soluzione a lungo termine, conviene valutare le alternative sopra — inclusa la guida su [[APPLE]]Apple Watch e tatuaggio[[/APPLE]].",
+      "buyH2": "Acquista la lente ottica Sensor Tattoo Fix",
+      "buyLead": "Vuoi mantenere la sicurezza senza disattivare il rilevamento? Sensor Tattoo Fix è una lente ottica adesiva per la zona del sensore — nel negozio ufficiale (solo lente ottica per ordini internazionali). I risultati possono variare in base a orologio e tatuaggio.",
       "faqs": [
         {
           "q": "Disattivare Rilevamento polso cancella i miei dati?",
-          "a": "No. Cambia solo come l'orologio decide se è sul tuo braccio e quali funzioni legate a quella rilevazione restano attive."
+          "a": "No. Cambia solo come l’orologio decide se è sul braccio e quali funzioni legate a quel rilevamento restano attive."
         },
         {
-          "q": "Apple Pay funziona con Rilevamento polso spento?",
-          "a": "Sì: il pagamento resta disponibile, ma serve digitare il codice premendo due volte il tasto laterale per autorizzare."
+          "q": "Apple Pay funziona con il rilevamento spento?",
+          "a": "Sì: il pagamento resta disponibile, ma bisogna digitare il codice premendo due volte il pulsante laterale per autorizzare."
         },
         {
           "q": "Anche un tatuaggio chiaro causa il problema?",
-          "a": "Di solito interferisce di meno. Pigmenti chiari e poco densi lasciano passare più luce del sensore; comunque ogni pelle e ogni disegno reagiscono in modo diverso."
+          "a": "Di solito interferisce meno. Pigmenti chiari e poco densi lasciano passare più luce del sensore; comunque ogni pelle e ogni disegno reagiscono in modo diverso."
         },
         {
-          "q": "Vale anche per Samsung, Garmin e altre marche?",
-          "a": "Il principio dei sensori ottici è simile, ma il nome della funzione e le opzioni cambiano per modello. Questa guida tratta Apple Watch."
+          "q": "Vale per Samsung, Garmin e altre marche?",
+          "a": "Il principio dei sensori ottici è simile, ma il nome della funzione e le opzioni cambiano secondo il modello. Questa guida riguarda Apple Watch."
         },
         {
-          "q": "La lente ostacola la ricarica?",
-          "a": "È progettata per non ostacolare la ricarica a induzione. Usa il caricatore indicato per il tuo modello e attendi il tempo di cura dell'adesivo nel manuale prima di bagnarla."
+          "q": "La lente interferisce con la ricarica?",
+          "a": "È progettata per non interferire con la ricarica a induzione. Usa il caricatore indicato per il tuo modello e attendi il tempo di indurimento dell’adesivo descritto nel manuale prima di bagnarlo."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch che chiede il codice con tatuaggio"
+          "text": "Apple Watch che chiede il codice con un tatuaggio"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Smartwatch che non misura il battito con tatuaggio"
+          "text": "Smartwatch che non legge il battito con un tatuaggio"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin che non misura il battito con tatuaggio"
+          "text": "Garmin che non legge il battito con un tatuaggio"
         },
         {
           "href": "index.html#produtos",
@@ -2773,43 +2777,43 @@
         }
       ],
       "finalH2": "Vuoi mantenere la sicurezza senza spegnere nulla?",
-      "finalBody": "Scopri la lente ottica nel negozio ufficiale. I risultati possono variare per orologio e tatuaggio.",
+      "finalBody": "Scopri la lente ottica nel negozio ufficiale. I risultati possono variare in base a orologio e tatuaggio.",
       "finalGo": "Vai a dove acquistare",
       "finalStore": "Apri il negozio ufficiale",
-      "finalHome": "Vedi i prodotti in home",
-      "buyH2": "Acquista la lente ottica Sensor Tattoo Fix",
-      "buyLead": "Solo negozio ufficiale — PayPal, carta e spedizione tracciata. L'offerta internazionale è la lente ottica (non gli accessori del kit brasiliano)."
+      "finalProducts": "Vedi i prodotti in home",
+      "supportUrl": "https://support.apple.com/it-it/111819",
+      "wristFeatureName": "Rilevamento polso"
     },
     "de": {
-      "title": "Handgelenkerkennung aus: lohnt sich bei Tattoo?",
-      "description": "Handgelenkerkennung aus, damit die Apple Watch mit Tattoo nicht nach dem Passcode fragt, hat Risiken. Was Sie verlieren und Alternativen.",
-      "ogTitle": "Handgelenkerkennung aus: lohnt sich bei Tattoo?",
-      "crumb": "Handgelenkerkennung deaktivieren",
-      "headline": "Handgelenkerkennung wegen Tattoo deaktivieren: lohnt sich das?",
-      "lead": "<strong>Handgelenkerkennung</strong> auszuschalten (die Funktion, die viele als Handgelenkerkennung kennen) stoppt Passcode-Aufforderungen der Apple Watch von selbst, schaltet aber auch Puls, Schlaf und andere automatische Messungen ab — und die Uhr sperrt sich nicht mehr selbst. Für die meisten lohnt ein anderer Weg zuerst.",
-      "h2why": "Warum die Uhr bei Tattoo nach dem Passcode fragt",
-      "whyBody": "Wenn die Handgelenkerkennung fehlschlägt, kann die Apple Watch das Gerät als abgenommen behandeln und erneut nach dem Passcode fragen. Details und Symptome stehen im Leitfaden <a href=\"apple-watch-tattoo.html\">Apple Watch fragt bei Tattoo ständig nach dem Passcode</a>.",
-      "h2what": "Was Handgelenkerkennung macht",
-      "whatBody": "Sie zeigt der Uhr, dass sie am Arm ist. Mit aktiver Funktion und gesetztem Code sperrt die Apple Watch beim Abnehmen und entsperrt nur mit Code. Apple beschreibt die Funktion und die Änderungen beim Ausschalten im Support-Artikel <a href=\"https://support.apple.com/de-de/111819\" target=\"_blank\" rel=\"noopener\">Wenn sich die Apple Watch unerwartet sperrt</a>.",
+      "title": "Handgelenkerkennung bei Tattoo aus? | Sensor Tattoo Fix",
+      "description": "Handgelenkerkennung aus, damit die Apple Watch bei Tattoo keinen Code mehr fragt, birgt Risiken. Was Sie verlieren und Alternativen.",
+      "ogTitle": "Handgelenkerkennung wegen Tattoo aus: lohnt es sich?",
+      "crumb": "Handgelenkerkennung ausschalten",
+      "headline": "Handgelenkerkennung wegen eines Tattoos ausschalten: lohnt es sich?",
+      "lead": "Handgelenkerkennung auszuschalten (die Funktion, die viele Puls- oder Handgelenkserkennung nennen) stoppt Passcode-Aufforderungen der Apple Watch von allein, schaltet aber auch Herzfrequenz, Schlaf und andere automatische Messungen ab — und die Uhr sperrt sich nicht mehr selbst. Für die meisten lohnt sich zuerst eine andere Lösung.",
+      "h2why": "Warum die Uhr bei einem Tattoo nach dem Code fragt",
+      "whyBody": "Wenn die Handgelenkerkennung fehlschlägt, kann die Apple Watch das Gerät als abgenommen behandeln und erneut nach dem Code fragen. Details und Symptome stehen im Leitfaden [[APPLE]]Apple Watch fragt bei Tattoo nach dem Passcode[[/APPLE]].",
+      "h2what": "Was die Handgelenkerkennung macht",
+      "whatBody": "Sie sagt der Uhr, dass sie am Arm ist. Mit aktiver Funktion und gesetztem Code sperrt die Apple Watch, wenn sie das Handgelenk verlässt, und entsperrt nur mit dem Code. Apple beschreibt die Funktion und die Änderungen beim Ausschalten im Support-Artikel [[SUPPORT]]Wenn die Apple Watch unerwartet gesperrt wird[[/SUPPORT]].",
       "h2lose": "Was Sie beim Ausschalten verlieren",
-      "loseIntro": "Laut Apple Support haben Sie nach dem Ausschalten von Handgelenkerkennung unter anderem nicht mehr:",
+      "loseIntro": "Laut Apple Support verlieren Sie beim Ausschalten der Handgelenkerkennung unter anderem:",
       "loseItems": [
-        "Automatisches Sperren und Entsperren beim Abnehmen oder Aufsetzen",
+        "Automatisches Sperren und Entsperren beim Abnehmen oder Aufsetzen der Uhr",
         "Sturzerkennung, die den Notruf SOS selbst startet",
-        "Herzfrequenz-Tracking und Benachrichtigungen",
+        "Herzfrequenz-Tracking und -Benachrichtigungen",
         "Hintergrundmessungen von Blutsauerstoff und Atemfrequenz",
         "Schlaftracking",
-        "Teile der Aktivitätsmessungen",
-        "Geräuschmessung und Warnungen",
-        "Tipp- und Handgelenksdrehgesten"
+        "Einige Aktivitätsmessungen",
+        "Geräuschmessung und -warnungen",
+        "Tipp- und Handgelenk-Drehgesten"
       ],
-      "loseApplePay": "Apple Pay funktioniert weiter, verlangt aber bei jeder Zahlung den Code (Doppelklick auf die Seitentaste zum Autorisieren). Offizielle Details: <a href=\"https://support.apple.com/de-de/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/de-de/111819</a>.",
+      "loseApplePay": "Apple Pay funktioniert weiter, fragt aber bei jeder Zahlung nach dem Code (beim Doppeldruck auf die Seitentaste zur Autorisierung).",
       "h2alt": "Alternativen",
-      "altIntro": "Apples erster Hinweis bei Tattoo oder Narbe am genutzten Handgelenk ist, die <strong>Uhr am anderen Arm zu tragen</strong>. Danach die Seite auf der Uhr unter <strong>Einstellungen → Allgemein → Ausrichtung</strong> aktualisieren (Links oder Rechts).",
+      "altIntro": "Apples erste Empfehlung bei Tattoo oder Narbe am genutzten Handgelenk ist, die Uhr am anderen Arm zu tragen. Danach die Seite an der Uhr unter Einstellungen → Allgemein → Ausrichtung (Links oder Rechts) aktualisieren.",
       "tableHeaders": [
         "Alternative",
         "Hilft beim Passcode?",
-        "Hilft beim Puls?",
+        "Hilft bei der Herzfrequenz?",
         "Hinweis"
       ],
       "tableRows": [
@@ -2817,66 +2821,68 @@
           "Am anderen Arm tragen (kein Tattoo unter dem Sensor)",
           "Ja",
           "Ja",
-          "Apple-Hinweis; Einstellungen → Allgemein → Ausrichtung anpassen"
+          "Apple-Empfehlung; Einstellungen → Allgemein → Ausrichtung anpassen"
         ],
         [
-          "Band anpassen / Hindernisse entfernen",
+          "Armband anpassen / Hindernisse entfernen",
           "Vielleicht",
           "Vielleicht",
-          "Fester Hautkontakt, kein Ärmel oder Armband dazwischen"
+          "Fester Hautkontakt, keine Manschette oder kein Armband dazwischen"
         ],
         [
           "Handgelenkerkennung ausschalten",
           "Ja (weniger „abgenommen“-Aufforderungen)",
           "Nein — Apple schaltet HF-Tracking aus",
-          "Sicherheitsrisiken und Funktionen oben"
+          "Sicherheitsrisiken und oben genannte Funktionen"
         ],
         [
-          "Haftende Optiklinse (Sensor Tattoo Fix)",
+          "Selbstklebende Optiklinse (Sensor Tattoo Fix)",
           "Kann helfen",
-          "Für bessere Lesebedingungen gemacht",
-          "Am Sensorbereich anbringen; Ergebnisse variieren nach Uhr und Tattoo"
+          "Soll die Lesebedingungen verbessern",
+          "Auf den Sensorbereich kleben; Ergebnisse variieren nach Uhr und Tattoo"
         ]
       ],
-      "h2how": "So schalten Sie sie aus (falls Sie sich entscheiden)",
-      "how1": "Auf der Apple Watch: öffnen Sie <strong>Einstellungen → Code → Handgelenkerkennung</strong> und deaktivieren Sie sie. Mit dem Code bestätigen. Am iPhone liegt der Weg in der Watch-App unter <strong>Code</strong> (Bezeichnung kann je nach Systemversion variieren). Code der Uhr aktiv lassen und die Funktion wieder einschalten, sobald möglich.",
-      "how2": "Schritt für Schritt und offizielle Liste betroffener Funktionen: <a href=\"https://support.apple.com/de-de/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/de-de/111819</a>.",
+      "h2how": "So schalten Sie es aus (falls Sie sich dafür entscheiden)",
+      "how1": "Auf der Apple Watch: Einstellungen → Code → Handgelenkerkennung öffnen und ausschalten. Mit dem Code bestätigen. Am iPhone liegt der Weg in der Watch-App unter Code (die Bezeichnung kann je nach Systemversion variieren). Code der Uhr aktiv lassen und die Funktion wieder einschalten, sobald möglich.",
+      "how2": "Schritt für Schritt und offizielle Liste betroffener Funktionen: support.apple.com/de-de/111819.",
       "h2when": "Wann Ausschalten Sinn ergibt",
-      "whenBody": "Als kurze Notlösung: kurz, an einem sicheren Ort, mit Code bei Apple Pay und ohne automatisches Puls-Tracking und andere Funktionen. Als Dauerlösung die Alternativen oben prüfen — inkl. Leitfaden zu <a href=\"apple-watch-tattoo.html\">Apple Watch und Tattoo</a>.",
+      "whenBody": "Als Zwischenlösung: kurzzeitig, in sicherer Umgebung, mit Code-Eingabe bei Apple Pay und Verlust von automatischem Herzfrequenz-Tracking und anderen Funktionen. Als Dauerlösung lohnt es sich, die Alternativen oben zu prüfen — inklusive Leitfaden zu [[APPLE]]Apple Watch und Tattoo[[/APPLE]].",
+      "buyH2": "Sensor Tattoo Fix Optiklinse kaufen",
+      "buyLead": "Sicherheit behalten ohne die Erkennung auszuschalten? Sensor Tattoo Fix ist eine selbstklebende Optiklinse für den Sensorbereich — im offiziellen Shop (international nur die Optiklinse). Ergebnisse können je nach Uhr und Tattoo variieren.",
       "faqs": [
         {
-          "q": "Löscht das Ausschalten von Handgelenkerkennung meine Daten?",
-          "a": "Nein. Es ändert nur, wie die Uhr erkennt, ob sie am Arm ist, und welche Funktionen an diese Erkennung gekoppelt bleiben."
+          "q": "Löscht das Ausschalten der Handgelenkerkennung meine Daten?",
+          "a": "Nein. Es ändert nur, wie die Uhr entscheidet, ob sie am Arm ist, und welche Funktionen an dieser Erkennung hängen bleiben."
         },
         {
-          "q": "Funktioniert Apple Pay mit ausgeschalteter Handgelenkerkennung?",
-          "a": "Ja: Zahlung bleibt verfügbar, aber Sie müssen den Code eingeben, wenn Sie die Seitentaste zum Autorisieren doppelt drücken."
+          "q": "Funktioniert Apple Pay bei ausgeschalteter Erkennung?",
+          "a": "Ja: Zahlung bleibt möglich, aber Sie müssen den Code eingeben, wenn Sie die Seitentaste doppelt drücken, um zu autorisieren."
         },
         {
-          "q": "Verursachen helle Tattoos das Problem auch?",
-          "a": "Sie stören meist weniger. Helle, weniger dichte Pigmente lassen mehr Sensorlicht durch; trotzdem reagiert jede Haut und jedes Motiv anders."
+          "q": "Verursacht auch ein helles Tattoo das Problem?",
+          "a": "Es stört meist weniger. Helle, wenig dichte Pigmente lassen mehr Sensorlicht durch; trotzdem reagiert jede Haut und jedes Motiv anders."
         },
         {
-          "q": "Gilt das auch für Samsung, Garmin und andere Marken?",
-          "a": "Das Prinzip optischer Sensoren ist ähnlich, aber Funktionsname und Optionen ändern sich je Modell. Dieser Leitfaden betrifft die Apple Watch."
+          "q": "Gilt das für Samsung, Garmin und andere Marken?",
+          "a": "Das Prinzip optischer Sensoren ist ähnlich, aber Name und Optionen der Funktion ändern sich je Modell. Dieser Leitfaden behandelt die Apple Watch."
         },
         {
-          "q": "Behindert die Linse das Laden?",
-          "a": "Sie ist so konstruiert, dass induktives Laden nicht gestört wird. Nutzen Sie das Ladegerät Ihres Modells und warten Sie die Aushärtezeit des Klebers laut Anleitung, bevor sie nass wird."
+          "q": "Stört die Linse das Laden?",
+          "a": "Sie ist so ausgelegt, dass sie induktives Laden nicht stört. Nutzen Sie das empfohlene Ladegerät und warten Sie die Aushärtezeit des Klebers laut Handbuch ab, bevor Sie es nass werden lassen."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch verlangt Passcode mit Tattoo"
+          "text": "Apple Watch fragt bei Tattoo nach dem Passcode"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Smartwatch misst keinen Puls mit Tattoo"
+          "text": "Smartwatch misst bei Tattoo keinen Puls"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin misst keinen Puls mit Tattoo"
+          "text": "Garmin misst bei Tattoo keinen Puls"
         },
         {
           "href": "index.html#produtos",
@@ -2884,48 +2890,48 @@
         }
       ],
       "finalH2": "Sicherheit behalten, ohne etwas auszuschalten?",
-      "finalBody": "Sehen Sie sich die Optiklinse im offiziellen Shop an. Ergebnisse können je nach Uhr und Tattoo variieren.",
-      "finalGo": "Zu Wo kaufen",
+      "finalBody": "Schauen Sie sich die Optiklinse im offiziellen Shop an. Ergebnisse können je nach Uhr und Tattoo variieren.",
+      "finalGo": "Zur Kaufseite",
       "finalStore": "Offiziellen Shop öffnen",
-      "finalHome": "Produkte auf der Startseite",
-      "buyH2": "Sensor Tattoo Fix Optiklinse kaufen",
-      "buyLead": "Nur offizieller Shop — PayPal, Karte und Sendungsverfolgung. Internationales Angebot ist die Optiklinse (nicht die brasilianischen Kit-Zubehörteile)."
+      "finalProducts": "Produkte auf der Startseite",
+      "supportUrl": "https://support.apple.com/de-de/111819",
+      "wristFeatureName": "Handgelenkerkennung"
     },
     "es": {
-      "title": "Desactivar Detección de Muñeca: ¿vale con tatuaje?",
-      "description": "Desactivar la Detección de Muñeca para que Apple Watch deje de pedir el código con tatuaje tiene riesgos. Qué pierdes y alternativas.",
-      "ogTitle": "Desactivar Detección de Muñeca: ¿vale con tatuaje?",
+      "title": "¿Desactivar Detección de Muñeca? | Sensor Tattoo Fix",
+      "description": "Desactivar Detección de Muñeca para que el Apple Watch deje de pedir el código con tatuaje tiene riesgos. Qué pierdes y las alternativas.",
+      "ogTitle": "Desactivar Detección de Muñeca por un tatuaje: ¿merece la pena?",
       "crumb": "Desactivar Detección de Muñeca",
-      "headline": "Desactivar la Detección de Muñeca por el tatuaje: ¿vale la pena?",
-      "lead": "Desactivar <strong>Detección de Muñeca</strong> (la función que mucha gente llama detección de muñeca) hace que Apple Watch deje de pedir el código solo, pero también apaga frecuencia cardíaca, sueño y otras mediciones automáticas, y el reloj deja de bloquearse solo. Para la mayoría, conviene probar otra solución antes.",
-      "h2why": "Por qué el reloj pide el código con tatuaje",
-      "whyBody": "Cuando falla la detección de muñeca, Apple Watch puede tratar el aparato como fuera de la muñeca y pedir el código otra vez. Detalles y síntomas están en la guía <a href=\"apple-watch-tattoo.html\">Apple Watch pide el código sin parar en piel tatuada</a>.",
+      "headline": "Desactivar Detección de Muñeca por el tatuaje: ¿merece la pena?",
+      "lead": "Desactivar Detección de Muñeca (la función que muchos llaman detección de pulso) hace que el Apple Watch deje de pedir el código solo, pero también apaga frecuencia cardiaca, sueño y otras mediciones automáticas, y el reloj deja de bloquearse solo. Para la mayoría, conviene probar otra solución antes.",
+      "h2why": "Por qué el reloj pide el código con un tatuaje",
+      "whyBody": "Cuando falla la detección de muñeca, el Apple Watch puede tratar el dispositivo como fuera de la muñeca y pedir el código otra vez. Detalles y síntomas están en la guía [[APPLE]]Apple Watch pidiendo código con tatuaje[[/APPLE]].",
       "h2what": "Qué hace Detección de Muñeca",
-      "whatBody": "Indica al reloj que está en tu brazo. Con la función activa y un código definido, Apple Watch se bloquea al salir de la muñeca y solo se desbloquea con el código. Apple describe la función y qué cambia al desactivarla en el artículo de soporte <a href=\"https://support.apple.com/es-es/111819\" target=\"_blank\" rel=\"noopener\">Si el Apple Watch se bloquea de forma inesperada</a>.",
+      "whatBody": "Indica al reloj que está en tu brazo. Con la función activa y un código definido, el Apple Watch se bloquea al dejar la muñeca y solo se desbloquea con el código. Apple describe la función y lo que cambia al desactivarla en el artículo de soporte [[SUPPORT]]Si el Apple Watch se bloquea inesperadamente[[/SUPPORT]].",
       "h2lose": "Qué pierdes al desactivarla",
-      "loseIntro": "Según el soporte de Apple, al desactivar Detección de Muñeca dejas de tener, entre otras cosas:",
+      "loseIntro": "Según el soporte de Apple, al desactivar Detección de Muñeca dejas de tener, entre otros:",
       "loseItems": [
         "Bloqueo y desbloqueo automáticos al quitar o poner el reloj",
-        "Detección de caídas iniciando SOS de Emergencia sola",
-        "Seguimiento y notificaciones de frecuencia cardíaca",
+        "Detección de caídas iniciando SOS de emergencia por sí sola",
+        "Seguimiento y notificaciones de frecuencia cardiaca",
         "Mediciones en segundo plano de oxígeno en sangre y frecuencia respiratoria",
         "Seguimiento del sueño",
         "Parte de las mediciones de Actividad",
         "Medición y avisos de ruido",
-        "Gestos de toque y de rotación de muñeca"
+        "Gestos de toque y de giro de muñeca"
       ],
-      "loseApplePay": "Apple Pay sigue funcionando, pero pide el código en cada pago (al pulsar dos veces el botón lateral para autorizar). Detalles oficiales: <a href=\"https://support.apple.com/es-es/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/es-es/111819</a>.",
+      "loseApplePay": "Apple Pay sigue funcionando, pero pide el código en cada pago (al pulsar dos veces el botón lateral para autorizar).",
       "h2alt": "Alternativas",
-      "altIntro": "La primera opción que indica Apple cuando hay tatuaje o cicatriz en la muñeca usada es <strong>pasar el reloj al otro brazo</strong>. Después, actualiza el lado en el propio reloj en <strong>Ajustes → General → Orientación</strong> (Izquierda o Derecha).",
+      "altIntro": "La primera opción indicada por Apple cuando hay tatuaje o cicatriz en la muñeca usada es pasar el reloj al otro brazo. Después, actualiza el lado en el propio reloj en Ajustes → General → Orientación (Izquierdo o Derecho).",
       "tableHeaders": [
         "Alternativa",
         "¿Ayuda con el código?",
-        "¿Ayuda con el pulso?",
+        "¿Ayuda con la frecuencia cardiaca?",
         "Nota"
       ],
       "tableRows": [
         [
-          "Usarlo en el otro brazo (sin tatuaje bajo el sensor)",
+          "Usar en el otro brazo (sin tatuaje bajo el sensor)",
           "Sí",
           "Sí",
           "Indicación de Apple; ajusta Ajustes → General → Orientación"
@@ -2934,7 +2940,7 @@
           "Ajustar la correa / quitar obstáculos",
           "Quizá",
           "Quizá",
-          "Contacto firme con la piel, sin manga o pulsera en medio"
+          "Contacto firme con la piel, sin manga ni pulsera en medio"
         ],
         [
           "Desactivar Detección de Muñeca",
@@ -2949,31 +2955,33 @@
           "Se pega en la zona del sensor; los resultados varían según reloj y tatuaje"
         ]
       ],
-      "h2how": "Cómo desactivarla (si decides)",
-      "how1": "En Apple Watch: abre <strong>Ajustes → Código → Detección de Muñeca</strong> y desactívala. Confirma con el código. En el iPhone, la ruta equivalente está en la app Watch, en <strong>Código</strong> (la etiqueta puede variar según la versión del sistema). Mantén el código del reloj activo y reactiva la función cuando puedas.",
-      "how2": "Paso a paso y lista oficial de funciones afectadas: <a href=\"https://support.apple.com/es-es/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/es-es/111819</a>.",
+      "h2how": "Cómo desactivarla (si lo decides)",
+      "how1": "En el Apple Watch: abre Ajustes → Código → Detección de Muñeca y desactívala. Confirma con el código. En el iPhone, la ruta equivalente está en la app Watch, en Código (la etiqueta puede variar según la versión del sistema). Mantén el código del reloj activo y reactiva la función cuando puedas.",
+      "how2": "Paso a paso y lista oficial de funciones afectadas: support.apple.com/es-es/111819.",
       "h2when": "Cuándo tiene sentido desactivarla",
-      "whenBody": "Como solución temporal: poco tiempo, en un entorno seguro, aceptando introducir el código en Apple Pay y perdiendo el seguimiento automático de frecuencia cardíaca y otras funciones. Como solución a largo plazo, valora las alternativas de arriba — incluida la guía sobre <a href=\"apple-watch-tattoo.html\">Apple Watch y tatuaje</a>.",
+      "whenBody": "Como solución temporal: poco tiempo, en un entorno seguro, aceptando escribir el código en Apple Pay y perdiendo el seguimiento automático de frecuencia cardiaca y otras funciones. Como solución a largo plazo, conviene valorar las alternativas de arriba — incluida la guía sobre [[APPLE]]Apple Watch y tatuaje[[/APPLE]].",
+      "buyH2": "Compra la lente óptica Sensor Tattoo Fix",
+      "buyLead": "¿Quieres mantener la seguridad sin desactivar la detección? Sensor Tattoo Fix es una lente óptica adhesiva para la zona del sensor — en la tienda oficial (solo lente óptica en pedidos internacionales). Los resultados pueden variar según el reloj y el tatuaje.",
       "faqs": [
         {
           "q": "¿Desactivar Detección de Muñeca borra mis datos?",
           "a": "No. Solo cambia cómo el reloj decide si está en tu brazo y qué funciones ligadas a esa detección siguen activas."
         },
         {
-          "q": "¿Apple Pay funciona con Detección de Muñeca desactivada?",
-          "a": "Sí: el pago sigue disponible, pero hay que introducir el código al pulsar dos veces el botón lateral para autorizar."
+          "q": "¿Apple Pay funciona con la detección desactivada?",
+          "a": "Sí: el pago sigue disponible, pero hay que escribir el código al pulsar dos veces el botón lateral para autorizar."
         },
         {
           "q": "¿Un tatuaje claro también causa el problema?",
-          "a": "Suele interferir menos. Los pigmentos claros y poco densos dejan pasar más luz del sensor; aun así, cada piel y cada diseño reaccionan distinto."
+          "a": "Suele interferir menos. Pigmentos claros y poco densos dejan pasar más luz del sensor; aun así, cada piel y cada diseño reaccionan de forma distinta."
         },
         {
           "q": "¿Vale para Samsung, Garmin y otras marcas?",
           "a": "El principio de los sensores ópticos es parecido, pero el nombre de la función y las opciones cambian según el modelo. Esta guía trata del Apple Watch."
         },
         {
-          "q": "¿La lente estorba la carga?",
-          "a": "Está diseñada para no estorbar la carga por inducción. Usa el cargador indicado para tu modelo y espera el tiempo de curado del adhesivo del manual antes de mojarla."
+          "q": "¿La lente interfiere con la carga?",
+          "a": "Está diseñada para no interferir con la carga por inducción. Usa el cargador indicado para tu modelo y espera el tiempo de curado del adhesivo del manual antes de mojarlo."
         }
       ],
       "related": [
@@ -2994,163 +3002,165 @@
           "text": "Productos Sensor Tattoo Fix"
         }
       ],
-      "finalH2": "¿Quieres mantener la seguridad sin apagar nada?",
+      "finalH2": "¿Quieres mantener la seguridad sin desactivar nada?",
       "finalBody": "Consulta la lente óptica en la tienda oficial. Los resultados pueden variar según el reloj y el tatuaje.",
       "finalGo": "Ir a dónde comprar",
-      "finalStore": "Abrir la tienda oficial",
-      "finalHome": "Ver productos en la home",
-      "buyH2": "Compra la lente óptica Sensor Tattoo Fix",
-      "buyLead": "Solo tienda oficial — PayPal, tarjeta y envío con seguimiento. La oferta internacional es la lente óptica (no los accesorios del kit brasileño)."
+      "finalStore": "Abrir tienda oficial",
+      "finalProducts": "Ver productos en la home",
+      "supportUrl": "https://support.apple.com/es-es/111819",
+      "wristFeatureName": "Detección de Muñeca"
     },
     "pl": {
-      "title": "Wyłączyć Wykrywanie nadgarstka przy tatuażu?",
+      "title": "Wyłączyć wykrywanie nadgarstka? | Sensor Tattoo Fix",
       "description": "Wyłączenie Wykrywania nadgarstka, by Apple Watch przestał prosić o kod przy tatuażu, ma ryzyka. Co tracisz i jakie są alternatywy.",
-      "ogTitle": "Wyłączyć Wykrywanie nadgarstka przy tatuażu?",
-      "crumb": "Wyłączyć Wykrywanie nadgarstka",
+      "ogTitle": "Wyłączyć Wykrywanie nadgarstka z powodu tatuażu: czy warto?",
+      "crumb": "Wyłączyć wykrywanie nadgarstka",
       "headline": "Wyłączyć Wykrywanie nadgarstka z powodu tatuażu: czy warto?",
-      "lead": "Wyłączenie <strong>Wykrywanie nadgarstka</strong> (funkcji, którą wielu nazywa wykrywaniem nadgarstka) sprawia, że Apple Watch przestaje sam prosić o kod, ale wyłącza też tętno, sen i inne automatyczne pomiary, a zegarek nie blokuje się sam. Dla większości warto najpierw spróbować innego rozwiązania.",
+      "lead": "Wyłączenie Wykrywania nadgarstka (funkcji, którą wielu nazywa detekcją tętna lub nadgarstka) sprawia, że Apple Watch przestaje sam prosić o kod, ale wyłącza też tętno, sen i inne automatyczne pomiary, a zegarek nie blokuje się sam. Dla większości osób warto najpierw spróbować innego rozwiązania.",
       "h2why": "Dlaczego zegarek prosi o kod przy tatuażu",
-      "whyBody": "Gdy wykrywanie nadgarstka zawodzi, Apple Watch może traktować urządzenie jako zdjęte i znów prosić o kod. Szczegóły i objawy są w przewodniku <a href=\"apple-watch-tattoo.html\">Apple Watch wciąż prosi o kod na skórze z tatuażem</a>.",
-      "h2what": "Co robi Wykrywanie nadgarstka",
-      "whatBody": "Informuje zegarek, że jest na Twoim ramieniu. Przy włączonej funkcji i ustawionym kodzie Apple Watch blokuje się po zdjęciu z nadgarstka i odblokowuje tylko kodem. Apple opisuje funkcję i zmiany po wyłączeniu w artykule wsparcia <a href=\"https://support.apple.com/pl-pl/111819\" target=\"_blank\" rel=\"noopener\">Jeśli Apple Watch niespodziewanie się blokuje</a>.",
+      "whyBody": "Gdy wykrywanie nadgarstka zawodzi, Apple Watch może traktować urządzenie jako zdjęte z nadgarstka i znów prosić o kod. Szczegóły i objawy są w przewodniku [[APPLE]]Apple Watch prosi o kod przy tatuażu[[/APPLE]].",
+      "h2what": "Do czego służy Wykrywanie nadgarstka",
+      "whatBody": "Informuje zegarek, że jest na ramieniu. Przy włączonej funkcji i ustawionym kodzie Apple Watch blokuje się po zejściu z nadgarstka i odblokowuje się tylko kodem. Apple opisuje funkcję i zmiany po wyłączeniu w artykule wsparcia [[SUPPORT]]Jeśli Apple Watch nieoczekiwanie się blokuje[[/SUPPORT]].",
       "h2lose": "Co tracisz po wyłączeniu",
-      "loseIntro": "Według wsparcia Apple po wyłączeniu Wykrywanie nadgarstka nie masz między innymi:",
+      "loseIntro": "Według wsparcia Apple, po wyłączeniu Wykrywania nadgarstka tracisz między innymi:",
       "loseItems": [
-        "Automatycznej blokady i odblokowania przy zdejmowaniu lub zakładaniu",
-        "Wykrywania upadku uruchamiającego SOS awaryjne samodzielnie",
-        "Śledzenia tętna i powiadomień",
-        "Pomiarów tlenu we krwi i częstości oddechów w tle",
-        "Śledzenia snu",
-        "Części pomiarów Aktywności",
-        "Pomiaru hałasu i alertów",
-        "Gestów stuknięcia i obrotu nadgarstka"
+        "Automatyczne blokowanie i odblokowywanie przy zdejmowaniu lub zakładaniu zegarka",
+        "Wykrywanie upadku samodzielnie uruchamiające SOS awaryjne",
+        "Śledzenie i powiadomienia o tętnie",
+        "Pomiary w tle tlenu we krwi i częstości oddychania",
+        "Monitorowanie snu",
+        "Część pomiarów Aktywności",
+        "Pomiar hałasu i alerty",
+        "Gesty stuknięcia i obracania nadgarstka"
       ],
-      "loseApplePay": "Apple Pay nadal działa, ale prosi o kod przy każdej płatności (po dwukrotnym naciśnięciu bocznego przycisku w celu autoryzacji). Oficjalne szczegóły: <a href=\"https://support.apple.com/pl-pl/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/pl-pl/111819</a>.",
+      "loseApplePay": "Apple Pay nadal działa, ale prosi o kod przy każdej płatności (po dwukrotnym naciśnięciu bocznego przycisku w celu autoryzacji).",
       "h2alt": "Alternatywy",
-      "altIntro": "Pierwsza wskazówka Apple przy tatuażu lub bliznie na używanym nadgarstku to <strong>przenieść zegarek na drugie ramię</strong>. Potem zaktualizuj stronę na zegarku w <strong>Ustawienia → Ogólne → Orientacja</strong> (Lewy lub Prawy).",
+      "altIntro": "Pierwsza opcja wskazana przez Apple przy tatuażu lub bliznie na używanym nadgarstku to przełożenie zegarka na drugie ramię. Potem zaktualizuj stronę na samym zegarku w Ustawienia → Ogólne → Orientacja (Lewa lub Prawa).",
       "tableHeaders": [
         "Alternatywa",
-        "Pomaga z kodem?",
-        "Pomaga z tętnem?",
+        "Pomaga przy kodzie?",
+        "Pomaga przy tętnie?",
         "Uwaga"
       ],
       "tableRows": [
         [
-          "Noszenie na drugim ramieniu (bez tatuażu pod sensorem)",
+          "Noszenie na drugim ramieniu (bez tatuażu pod czujnikiem)",
           "Tak",
           "Tak",
           "Wskazówka Apple; ustaw Ustawienia → Ogólne → Orientacja"
         ],
         [
           "Dopasowanie paska / usunięcie przeszkód",
-          "Być może",
-          "Być może",
-          "Pewny kontakt ze skórą, bez rękawa lub bransoletki po drodze"
+          "Może",
+          "Może",
+          "Mocny kontakt ze skórą, bez rękawa ani bransoletki w międzyczasie"
         ],
         [
-          "Wyłączenie Wykrywanie nadgarstka",
+          "Wyłączenie Wykrywania nadgarstka",
           "Tak (mniej próśb „poza nadgarstkiem”)",
-          "Nie — Apple wyłącza śledzenie HR",
-          "Ryzyka bezpieczeństwa i funkcje powyżej"
+          "Nie — Apple wyłącza śledzenie tętna",
+          "Ryzyka bezpieczeństwa i funkcje wymienione powyżej"
         ],
         [
           "Samoprzylepna soczewka optyczna (Sensor Tattoo Fix)",
           "Może pomóc",
-          "Zrobiona, by poprawić warunki odczytu",
-          "Przyklejana w obszarze sensora; wyniki zależą od zegarka i tatuażu"
+          "Zaprojektowana, by poprawić warunki odczytu",
+          "Przykleja się na obszar czujnika; wyniki zależą od zegarka i tatuażu"
         ]
       ],
-      "h2how": "Jak wyłączyć (jeśli zdecydujesz)",
-      "how1": "Na Apple Watch: otwórz <strong>Ustawienia → Kod → Wykrywanie nadgarstka</strong> i wyłącz. Potwierdź kodem. Na iPhonie równoważna ścieżka jest w aplikacji Watch, w <strong>Kod</strong> (etykieta może zależeć od wersji systemu). Zostaw kod zegarka włączony i włącz funkcję ponownie, gdy możesz.",
-      "how2": "Krok po kroku i oficjalna lista dotkniętych funkcji: <a href=\"https://support.apple.com/pl-pl/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/pl-pl/111819</a>.",
+      "h2how": "Jak wyłączyć (jeśli się zdecydujesz)",
+      "how1": "Na Apple Watch: otwórz Ustawienia → Kod → Wykrywanie nadgarstka i wyłącz. Potwierdź kodem. Na iPhonie równoważna ścieżka jest w aplikacji Watch, w Kod (etykieta może się różnić w zależności od wersji systemu). Zachowaj aktywny kod zegarka i włącz funkcję ponownie, gdy możesz.",
+      "how2": "Krok po kroku i oficjalna lista dotkniętych funkcji: support.apple.com/pl-pl/111819.",
       "h2when": "Kiedy wyłączenie ma sens",
-      "whenBody": "Jako krótkie obejście: na krótko, w bezpiecznym miejscu, z wpisywaniem kodu w Apple Pay i bez automatycznego śledzenia tętna oraz innych funkcji. Jako rozwiązanie długoterminowe rozważ alternatywy powyżej — w tym przewodnik o <a href=\"apple-watch-tattoo.html\">Apple Watch i tatuażu</a>.",
+      "whenBody": "Jako rozwiązanie tymczasowe: na krótko, w bezpiecznym otoczeniu, z wpisywaniem kodu przy Apple Pay i utratą automatycznego śledzenia tętna oraz innych funkcji. Jako rozwiązanie długoterminowe warto rozważyć alternatywy powyżej — w tym przewodnik o [[APPLE]]Apple Watch i tatuażu[[/APPLE]].",
+      "buyH2": "Kup soczewkę optyczną Sensor Tattoo Fix",
+      "buyLead": "Chcesz zachować bezpieczeństwo bez wyłączania wykrywania? Sensor Tattoo Fix to samoprzylepna soczewka optyczna na obszar czujnika — w oficjalnym sklepie (międzynarodowo tylko soczewka optyczna). Wyniki mogą się różnić w zależności od zegarka i tatuażu.",
       "faqs": [
         {
-          "q": "Czy wyłączenie Wykrywanie nadgarstka kasuje moje dane?",
-          "a": "Nie. Zmienia tylko to, jak zegarek decyduje, czy jest na ramieniu, i które funkcje powiązane z tym wykrywaniem pozostają aktywne."
+          "q": "Czy wyłączenie Wykrywania nadgarstka kasuje moje dane?",
+          "a": "Nie. Zmienia tylko to, jak zegarek decyduje, czy jest na ramieniu, oraz które funkcje powiązane z tym wykrywaniem pozostają aktywne."
         },
         {
-          "q": "Czy Apple Pay działa przy wyłączonym Wykrywanie nadgarstka?",
-          "a": "Tak: płatność nadal jest dostępna, ale trzeba wpisać kod po dwukrotnym naciśnięciu bocznego przycisku w celu autoryzacji."
+          "q": "Czy Apple Pay działa przy wyłączonym wykrywaniu?",
+          "a": "Tak: płatność pozostaje dostępna, ale trzeba wpisać kod po dwukrotnym naciśnięciu bocznego przycisku w celu autoryzacji."
         },
         {
           "q": "Czy jasny tatuaż też powoduje problem?",
-          "a": "Zwykle mniej przeszkadza. Jasne, mniej gęste pigmenty przepuszczają więcej światła sensora; mimo to każda skóra i każdy wzór reagują inaczej."
+          "a": "Zwykle mniej przeszkadza. Jasne, mało gęste pigmenty przepuszczają więcej światła czujnika; mimo to każda skóra i każdy wzór reagują inaczej."
         },
         {
-          "q": "Czy to dotyczy Samsung, Garmin i innych marek?",
-          "a": "Zasada sensorów optycznych jest podobna, ale nazwa funkcji i opcje zmieniają się według modelu. Ten przewodnik dotyczy Apple Watch."
+          "q": "Czy to dotyczy Samsunga, Garmina i innych marek?",
+          "a": "Zasada czujników optycznych jest podobna, ale nazwa funkcji i opcje zmieniają się w zależności od modelu. Ten przewodnik dotyczy Apple Watch."
         },
         {
           "q": "Czy soczewka przeszkadza w ładowaniu?",
-          "a": "Jest zaprojektowana tak, by nie przeszkadzać w ładowaniu indukcyjnym. Użyj ładowarki do swojego modelu i odczekaj czas utwardzania kleju z instrukcji przed zamoczeniem."
+          "a": "Została zaprojektowana tak, by nie przeszkadzać w ładowaniu indukcyjnym. Używaj ładowarki zalecanej do swojego modelu i odczekaj czas utwardzania kleju z instrukcji przed zamoczeniem."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch proszący o kod przy tatuażu"
+          "text": "Apple Watch prosi o kod przy tatuażu"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Smartwatch nieczytający tętna przy tatuażu"
+          "text": "Smartwatch nie mierzy tętna przy tatuażu"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin nieczytający tętna przy tatuażu"
+          "text": "Garmin nie mierzy tętna przy tatuażu"
         },
         {
           "href": "index.html#produtos",
           "text": "Produkty Sensor Tattoo Fix"
         }
       ],
-      "finalH2": "Chcesz zachować bezpieczeństwo bez wyłączania niczego?",
-      "finalBody": "Sprawdź soczewkę optyczną w oficjalnym sklepie. Wyniki mogą zależeć od zegarka i tatuażu.",
-      "finalGo": "Przejdź do gdzie kupić",
+      "finalH2": "Chcesz zachować bezpieczeństwo nic nie wyłączając?",
+      "finalBody": "Sprawdź soczewkę optyczną w oficjalnym sklepie. Wyniki mogą się różnić w zależności od zegarka i tatuażu.",
+      "finalGo": "Przejdź do miejsca zakupu",
       "finalStore": "Otwórz oficjalny sklep",
-      "finalHome": "Zobacz produkty na stronie głównej",
-      "buyH2": "Kup soczewkę optyczną Sensor Tattoo Fix",
-      "buyLead": "Tylko oficjalny sklep — PayPal, karta i śledzona wysyłka. Oferta międzynarodowa to soczewka optyczna (bez akcesoriów brazylijskiego zestawu)."
+      "finalProducts": "Zobacz produkty na stronie głównej",
+      "supportUrl": "https://support.apple.com/pl-pl/111819",
+      "wristFeatureName": "Wykrywanie nadgarstka"
     },
     "sl": {
-      "title": "Izklopiti Wrist Detection: vredno pri tattooju?",
-      "description": "Izklop Wrist Detection, da Apple Watch neha zahtevati geslo pri tattooju, ima tveganja. Kaj izgubite in kakšne so alternative.",
-      "ogTitle": "Izklopiti Wrist Detection: vredno pri tattooju?",
+      "title": "Izklopiti Wrist Detection? | Sensor Tattoo Fix",
+      "description": "Izklop Wrist Detection, da Apple Watch neha zahtevati kode pri tetovaži, prinaša tveganja. Kaj izgubite in alternative.",
+      "ogTitle": "Izklopiti Wrist Detection zaradi tetovaže: se splača?",
       "crumb": "Izklopiti Wrist Detection",
-      "headline": "Izklopiti Wrist Detection zaradi tattooja: ali se splača?",
-      "lead": "Izklop <strong>Wrist Detection</strong> (funkcije, ki jo mnogi imenujejo zaznavanje zapestja) ustavi, da Apple Watch sam zahteva geslo, a izklopi tudi srčni utrip, spanec in druge samodejne meritve, ura pa se ne zaklene več sama. Za večino je vredno najprej poskusiti drugo rešitev.",
-      "h2why": "Zakaj ura zahteva geslo pri tattooju",
-      "whyBody": "Ko zaznavanje zapestja odpove, lahko Apple Watch napravo obravnava kot odstranjeno in znova zahteva geslo. Podrobnosti in simptomi so v vodiču <a href=\"apple-watch-tattoo.html\">Apple Watch na tattoo nenehno zahteva geslo</a>.",
-      "h2what": "Kaj počne Wrist Detection",
-      "whatBody": "Sporoči uri, da je na vaši roki. Z vklopljeno funkcijo in nastavljenim geslom se Apple Watch zaklene, ko zapusti zapestje, in se odklene le z geslom. Apple opisuje funkcijo in spremembe ob izklopu v članku podpore <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">If your Apple Watch locks unexpectedly</a>.",
+      "headline": "Izklopiti Wrist Detection zaradi tetovaže: se splača?",
+      "lead": "Izklop Wrist Detection (funkcije, ki jo mnogi imenujejo zaznavanje pulza ali zapestja) ustavi, da Apple Watch sam zahteva kodo, a izklopi tudi srčni utrip, spanje in druge samodejne meritve, ura pa se ne zaklene več sama. Za večino se splača najprej poskusiti drugo rešitev.",
+      "h2why": "Zakaj ura zahteva kodo pri tetovaži",
+      "whyBody": "Ko zaznavanje zapestja odpove, lahko Apple Watch napravo obravnava kot odstranjeno z zapestja in znova zahteva kodo. Podrobnosti in simptomi so v vodniku [[APPLE]]Apple Watch zahteva kodo pri tetovaži[[/APPLE]].",
+      "h2what": "Kaj dela Wrist Detection",
+      "whatBody": "Uro obvesti, da je na vaši roki. Z vklopljeno funkcijo in nastavljeno kodo se Apple Watch zaklene, ko zapusti zapestje, in odklene le s kodo. Apple opisuje funkcijo in spremembe ob izklopu v članku podpore [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
       "h2lose": "Kaj izgubite ob izklopu",
-      "loseIntro": "Po Applovi podpori po izklopu Wrist Detection med drugim nimate več:",
+      "loseIntro": "Po Applovi podpori ob izklopu Wrist Detection med drugim izgubite:",
       "loseItems": [
-        "Samodejnega zaklepa in odklepa ob snemanju ali nameščanju",
-        "Zaznavanja padcev, ki samo zažene SOS nujno",
-        "Sledenja srčnega utripa in obvestil",
-        "Meritev kisika v krvi in frekvence dihanja v ozadju",
-        "Sledenja spanja",
-        "Dela meritev Aktivnosti",
-        "Meritve hrupa in opozoril",
-        "Gest tipov in vrtenja zapestja"
+        "Samodejno zaklepanje in odklepanje ob snemanju ali nameščanju ure",
+        "Zaznavanje padca, ki samo zažene SOS v sili",
+        "Sledenje srčnemu utripu in obvestila",
+        "Meritve kisika v krvi in dihalne frekvence v ozadju",
+        "Spremljanje spanja",
+        "Nekatere meritve Aktivnosti",
+        "Merjenje hrupa in opozorila",
+        "Geste tapkanja in obračanja zapestja"
       ],
-      "loseApplePay": "Apple Pay še vedno deluje, a zahteva geslo pri vsakem plačilu (ob dvojnem pritisku stranskega gumba za avtorizacijo). Uradne podrobnosti: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
+      "loseApplePay": "Apple Pay še vedno deluje, a zahteva kodo pri vsakem plačilu (ob dvojnem pritisku stranskega gumba za avtorizacijo).",
       "h2alt": "Alternative",
-      "altIntro": "Applov prvi predlog pri tattooju ali brazgotini na uporabljenem zapestju je <strong>prestaviti uro na drugo roko</strong>. Nato na uri posodobite stran v <strong>Settings → General → Orientation</strong> (Left ali Right).",
+      "altIntro": "Prva Applova možnost pri tetovaži ali brazgotini na uporabljenem zapestju je premik ure na drugo roko. Nato na uri posodobite stran v Settings → General → Orientation (Left ali Right).",
       "tableHeaders": [
         "Alternativa",
-        "Pomaga pri geslu?",
-        "Pomaga pri utripu?",
+        "Pomaga pri kodi?",
+        "Pomaga pri srčnem utripu?",
         "Opomba"
       ],
       "tableRows": [
         [
-          "Nošenje na drugi roki (brez tattooja pod senzorjem)",
+          "Nošenje na drugi roki (brez tetovaže pod senzorjem)",
           "Da",
           "Da",
-          "Applov predlog; nastavite Settings → General → Orientation"
+          "Applovo priporočilo; nastavite Settings → General → Orientation"
         ],
         [
           "Prilagoditev paščka / odstranitev ovir",
@@ -3160,56 +3170,58 @@
         ],
         [
           "Izklop Wrist Detection",
-          "Da (manj zahtev »brez zapestja«)",
-          "Ne — Apple izklopi sledenje HR",
-          "Varnostna tveganja in funkcije zgoraj"
+          "Da (manj pozivov »off-wrist«)",
+          "Ne — Apple izklopi sledenje UT",
+          "Varnostna tveganja in zgoraj navedene funkcije"
         ],
         [
           "Samolepilna optična leča (Sensor Tattoo Fix)",
           "Lahko pomaga",
           "Narejena za boljše pogoje branja",
-          "Namesti se na območje senzorja; rezultati se razlikujejo glede na uro in tattoo"
+          "Prilepi se na območje senzorja; rezultati se razlikujejo glede na uro in tetovažo"
         ]
       ],
       "h2how": "Kako izklopiti (če se odločite)",
-      "how1": "Na Apple Watch: odprite <strong>Settings → Passcode → Wrist Detection</strong> in izklopite. Potrdite z geslom. Na iPhonu je enakovredna pot v aplikaciji Watch pod <strong>Passcode</strong> (oznaka se lahko razlikuje glede na različico sistema). Geslo ure pustite vklopljeno in funkcijo znova vklopite, ko lahko.",
-      "how2": "Korak za korakom in uradni seznam prizadetih funkcij: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
+      "how1": "Na Apple Watch: odprite Settings → Passcode → Wrist Detection in izklopite. Potrdite s kodo. Na iPhonu je enakovredna pot v aplikaciji Watch, pod Passcode (oznaka se lahko razlikuje glede na različico sistema). Ohranite aktivno kodo ure in funkcijo znova vklopite, ko lahko.",
+      "how2": "Korak za korakom in uradni seznam prizadetih funkcij: support.apple.com/en-us/111819.",
       "h2when": "Kdaj ima izklop smisel",
-      "whenBody": "Kot kratkoročna rešitev: za kratek čas, na varnem mestu, z vnosom gesla za Apple Pay in brez samodejnega sledenja srčnega utripa ter drugih funkcij. Kot dolgoročna rešitev pretehtajte alternative zgoraj — vključno z vodičem o <a href=\"apple-watch-tattoo.html\">Apple Watch in tattooju</a>.",
+      "whenBody": "Kot začasna rešitev: za kratek čas, v varnem okolju, s vpisom kode za Apple Pay in izgubo samodejnega sledenja srčnemu utripu ter drugih funkcij. Kot dolgoročna rešitev je vredno oceniti alternative zgoraj — vključno z vodnikom o [[APPLE]]Apple Watch in tetovaži[[/APPLE]].",
+      "buyH2": "Kupite optično lečo Sensor Tattoo Fix",
+      "buyLead": "Želite ohraniti varnost, ne da bi izklopili zaznavanje? Sensor Tattoo Fix je samolepilna optična leča za območje senzorja — v uradni trgovini (mednarodno samo optična leča). Rezultati se lahko razlikujejo glede na uro in tetovažo.",
       "faqs": [
         {
-          "q": "Ali izklop Wrist Detection zbriše moje podatke?",
-          "a": "Ne. Spremeni le, kako ura odloči, da je na vaši roki, in katere funkcije, vezane na to zaznavanje, ostanejo aktivne."
+          "q": "Ali izklop Wrist Detection izbriše moje podatke?",
+          "a": "Ne. Spremeni le, kako ura odloča, ali je na roki, in katere funkcije, vezane na to zaznavanje, ostanejo aktivne."
         },
         {
-          "q": "Ali Apple Pay deluje z izklopljenim Wrist Detection?",
-          "a": "Da: plačilo ostane na voljo, a morate vnesti geslo ob dvojnem pritisku stranskega gumba za avtorizacijo."
+          "q": "Ali Apple Pay deluje z izklopljenim zaznavanjem?",
+          "a": "Da: plačilo ostane na voljo, a morate vnesti kodo ob dvojnem pritisku stranskega gumba za avtorizacijo."
         },
         {
-          "q": "Ali svetel tattoo tudi povzroča težavo?",
-          "a": "Običajno manj moti. Svetli, manj gosti pigmenti prepustijo več svetlobe senzorja; vseeno vsaka koža in vsak vzorec reagirata drugače."
+          "q": "Ali tudi svetla tetovaža povzroča težavo?",
+          "a": "Običajno manj moti. Svetli, malo gosti pigmenti prepuščajo več svetlobe senzorja; vseeno vsaka koža in vsak vzorec reagirata drugače."
         },
         {
           "q": "Ali to velja za Samsung, Garmin in druge znamke?",
-          "a": "Načelo optičnih senzorjev je podobno, a ime funkcije in možnosti se spreminjata glede na model. Ta vodič obravnava Apple Watch."
+          "a": "Načelo optičnih senzorjev je podobno, a ime funkcije in možnosti se spreminjajo glede na model. Ta vodnik obravnava Apple Watch."
         },
         {
-          "q": "Ali leča ovira polnjenje?",
-          "a": "Zasnovana je tako, da ne ovira induktivnega polnjenja. Uporabite polnilnik za svoj model in počakajte čas strjevanja lepila iz priročnika, preden jo zmočite."
+          "q": "Ali leča moti polnjenje?",
+          "a": "Zasnovana je tako, da ne moti induktivnega polnjenja. Uporabite priporočeni polnilnik za svoj model in počakajte čas strjevanja lepila iz priročnika, preden jo zmočite."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch, ki zahteva geslo pri tattooju"
+          "text": "Apple Watch zahteva kodo pri tetovaži"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Pametna ura, ki ne bere utripa pri tattooju"
+          "text": "Pametna ura ne meri utripa pri tetovaži"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin, ki ne bere utripa pri tattooju"
+          "text": "Garmin ne meri utripa pri tetovaži"
         },
         {
           "href": "index.html#produtos",
@@ -3217,48 +3229,48 @@
         }
       ],
       "finalH2": "Želite ohraniti varnost, ne da bi kaj izklopili?",
-      "finalBody": "Oglejte si optično lečo v uradni trgovini. Rezultati se lahko razlikujejo glede na uro in tattoo.",
-      "finalGo": "Pojdi na kje kupiti",
+      "finalBody": "Oglejte si optično lečo v uradni trgovini. Rezultati se lahko razlikujejo glede na uro in tetovažo.",
+      "finalGo": "Pojdi na nakup",
       "finalStore": "Odpri uradno trgovino",
-      "finalHome": "Oglej izdelke na domači strani",
-      "buyH2": "Kupite optično lečo Sensor Tattoo Fix",
-      "buyLead": "Samo uradna trgovina — PayPal, kartica in sledljiva dostava. Mednarodna ponudba je optična leča (ne dodatki brazilskega kompleta)."
+      "finalProducts": "Oglej izdelke na domači strani",
+      "supportUrl": "https://support.apple.com/en-us/111819",
+      "wristFeatureName": "Wrist Detection"
     },
     "fr": {
-      "title": "Désactiver Détection du poignet : utile avec tatouage ?",
-      "description": "Désactiver la Détection du poignet pour qu'Apple Watch arrête de demander le code avec un tatouage a des risques. Ce que vous perdez et les alternatives.",
-      "ogTitle": "Désactiver Détection du poignet : utile avec tatouage ?",
+      "title": "Désactiver Détection du poignet ? | Sensor Tattoo Fix",
+      "description": "Désactiver la Détection du poignet pour qu’Apple Watch cesse de demander le code avec un tatouage a des risques. Ce que vous perdez et les alternatives.",
+      "ogTitle": "Désactiver la Détection du poignet pour un tatouage : ça vaut le coup ?",
       "crumb": "Désactiver Détection du poignet",
-      "headline": "Désactiver la Détection du poignet à cause du tatouage : ça vaut le coup ?",
-      "lead": "Désactiver <strong>Détection du poignet</strong> (la fonction que beaucoup appellent détection du poignet) empêche Apple Watch de demander le code toute seule, mais coupe aussi fréquence cardiaque, sommeil et autres mesures automatiques, et la montre ne se verrouille plus seule. Pour la plupart des gens, une autre solution mérite d'être essayée d'abord.",
+      "headline": "Désactiver la Détection du poignet à cause d’un tatouage : ça vaut le coup ?",
+      "lead": "Désactiver la Détection du poignet (la fonction que beaucoup appellent détection de pouls) empêche Apple Watch de demander le code toute seule, mais coupe aussi la fréquence cardiaque, le sommeil et d’autres mesures automatiques, et la montre ne se verrouille plus seule. Pour la plupart des gens, une autre solution mérite d’être essayée d’abord.",
       "h2why": "Pourquoi la montre demande le code avec un tatouage",
-      "whyBody": "Quand la détection du poignet échoue, Apple Watch peut traiter l'appareil comme hors poignet et redemander le code. Détails et symptômes sont dans le guide <a href=\"apple-watch-tattoo.html\">Apple Watch demande sans cesse le code sur peau tatouée</a>.",
-      "h2what": "Ce que fait Détection du poignet",
-      "whatBody": "Elle indique à la montre qu'elle est sur votre bras. Avec la fonction activée et un code défini, Apple Watch se verrouille en quittant le poignet et ne se déverrouille qu'avec le code. Apple décrit la fonction et ce qui change en la désactivant dans l'article d'assistance <a href=\"https://support.apple.com/fr-fr/111819\" target=\"_blank\" rel=\"noopener\">Si votre Apple Watch se verrouille de façon inattendue</a>.",
+      "whyBody": "Quand la détection du poignet échoue, Apple Watch peut traiter l’appareil comme hors du poignet et redemander le code. Détails et symptômes sont dans le guide [[APPLE]]Apple Watch qui demande le code avec un tatouage[[/APPLE]].",
+      "h2what": "À quoi sert la Détection du poignet",
+      "whatBody": "Elle indique à la montre qu’elle est sur votre bras. Avec la fonction activée et un code défini, Apple Watch se verrouille en quittant le poignet et ne se déverrouille qu’avec le code. Apple décrit la fonction et ce qui change en la désactivant dans l’article d’assistance [[SUPPORT]]Si votre Apple Watch se verrouille de manière inattendue[[/SUPPORT]].",
       "h2lose": "Ce que vous perdez en la désactivant",
-      "loseIntro": "Selon l'assistance Apple, en désactivant Détection du poignet vous n'avez plus, entre autres :",
+      "loseIntro": "Selon l’assistance Apple, en désactivant la Détection du poignet vous perdez, entre autres :",
       "loseItems": [
         "Verrouillage et déverrouillage automatiques en retirant ou remettant la montre",
-        "Détection de chute lançant seule SOS d'urgence",
+        "Détection des chutes lançant seule le SOS d’urgence",
         "Suivi et notifications de fréquence cardiaque",
-        "Mesures en arrière-plan d'oxygène sanguin et de fréquence respiratoire",
+        "Mesures en arrière-plan d’oxygène sanguin et de fréquence respiratoire",
         "Suivi du sommeil",
-        "Une partie des mesures d'Activité",
-        "Mesure et alertes de bruit",
+        "Une partie des mesures d’Activité",
+        "Mesure du bruit et alertes",
         "Gestes de tapotement et de rotation du poignet"
       ],
-      "loseApplePay": "Apple Pay continue de fonctionner, mais demande le code à chaque paiement (en double-cliquant sur le bouton latéral pour autoriser). Détails officiels : <a href=\"https://support.apple.com/fr-fr/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/fr-fr/111819</a>.",
+      "loseApplePay": "Apple Pay continue de fonctionner, mais demande le code à chaque paiement (en appuyant deux fois sur le bouton latéral pour autoriser).",
       "h2alt": "Alternatives",
-      "altIntro": "La première option indiquée par Apple en cas de tatouage ou cicatrice sur le poignet utilisé est de <strong>passer la montre sur l'autre bras</strong>. Ensuite, mettez à jour le côté sur la montre dans <strong>Réglages → Général → Orientation</strong> (Gauche ou Droite).",
+      "altIntro": "La première option indiquée par Apple en cas de tatouage ou cicatrice sur le poignet utilisé est de passer la montre sur l’autre bras. Ensuite, mettez à jour le côté sur la montre dans Réglages → Général → Orientation (Gauche ou Droite).",
       "tableHeaders": [
         "Alternative",
         "Aide pour le code ?",
-        "Aide pour le pouls ?",
+        "Aide pour la fréquence cardiaque ?",
         "Note"
       ],
       "tableRows": [
         [
-          "Porter sur l'autre bras (pas de tatouage sous le capteur)",
+          "Porter sur l’autre bras (sans tatouage sous le capteur)",
           "Oui",
           "Oui",
           "Indication Apple ; réglez Réglages → Général → Orientation"
@@ -3279,48 +3291,50 @@
           "Lentille optique adhésive (Sensor Tattoo Fix)",
           "Peut aider",
           "Conçue pour améliorer les conditions de lecture",
-          "Se colle sur la zone du capteur ; les résultats varient selon montre et tatouage"
+          "Se colle sur la zone du capteur ; les résultats varient selon la montre et le tatouage"
         ]
       ],
-      "h2how": "Comment la désactiver (si vous décidez)",
-      "how1": "Sur Apple Watch : ouvrez <strong>Réglages → Code → Détection du poignet</strong> et désactivez. Confirmez avec le code. Sur iPhone, le chemin équivalent est dans l'app Watch, sous <strong>Code</strong> (le libellé peut varier selon la version du système). Gardez le code de la montre actif et réactivez la fonction dès que possible.",
-      "how2": "Pas à pas et liste officielle des fonctions concernées : <a href=\"https://support.apple.com/fr-fr/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/fr-fr/111819</a>.",
+      "h2how": "Comment la désactiver (si vous le décidez)",
+      "how1": "Sur Apple Watch : ouvrez Réglages → Code → Détection du poignet et désactivez. Confirmez avec le code. Sur iPhone, le chemin équivalent est dans l’app Watch, sous Code (le libellé peut varier selon la version du système). Gardez le code de la montre actif et réactivez la fonction dès que possible.",
+      "how2": "Pas à pas et liste officielle des fonctions concernées : support.apple.com/fr-fr/111819.",
       "h2when": "Quand désactiver a du sens",
-      "whenBody": "Comme solution temporaire : brièvement, dans un lieu sûr, en acceptant de saisir le code pour Apple Pay et en perdant le suivi automatique de fréquence cardiaque et d'autres fonctions. Comme solution durable, pesez les alternatives ci-dessus — y compris le guide sur <a href=\"apple-watch-tattoo.html\">Apple Watch et tatouage</a>.",
+      "whenBody": "Comme solution temporaire : pour peu de temps, dans un environnement sûr, en acceptant de saisir le code pour Apple Pay et en perdant le suivi automatique de fréquence cardiaque et d’autres fonctions. Comme solution à long terme, il vaut évaluer les alternatives ci-dessus — y compris le guide sur [[APPLE]]Apple Watch et tatouage[[/APPLE]].",
+      "buyH2": "Acheter la lentille optique Sensor Tattoo Fix",
+      "buyLead": "Garder la sécurité sans désactiver la détection ? Sensor Tattoo Fix est une lentille optique adhésive pour la zone du capteur — en boutique officielle (lentille optique seule pour les commandes internationales). Les résultats peuvent varier selon la montre et le tatouage.",
       "faqs": [
         {
-          "q": "Désactiver Détection du poignet efface-t-il mes données ?",
-          "a": "Non. Cela change seulement comment la montre décide qu'elle est sur votre bras et quelles fonctions liées à cette détection restent actives."
+          "q": "Désactiver la Détection du poignet efface-t-il mes données ?",
+          "a": "Non. Elle change seulement comment la montre décide qu’elle est sur votre bras et quelles fonctions liées à cette détection restent actives."
         },
         {
-          "q": "Apple Pay fonctionne-t-il avec Détection du poignet désactivée ?",
-          "a": "Oui : le paiement reste disponible, mais il faut saisir le code en double-cliquant sur le bouton latéral pour autoriser."
+          "q": "Apple Pay fonctionne-t-il avec la détection désactivée ?",
+          "a": "Oui : le paiement reste disponible, mais il faut saisir le code en appuyant deux fois sur le bouton latéral pour autoriser."
         },
         {
-          "q": "Un tatouage clair pose-t-il aussi problème ?",
-          "a": "Il gêne en général moins. Les pigments clairs et peu denses laissent passer plus de lumière du capteur ; néanmoins chaque peau et chaque motif réagissent autrement."
+          "q": "Un tatouage clair cause-t-il aussi le problème ?",
+          "a": "Il gêne en général moins. Les pigments clairs et peu denses laissent passer plus de lumière du capteur ; pourtant chaque peau et chaque dessin réagissent différemment."
         },
         {
-          "q": "Cela vaut-il pour Samsung, Garmin et d'autres marques ?",
-          "a": "Le principe des capteurs optiques est proche, mais le nom de la fonction et les options changent selon le modèle. Ce guide concerne Apple Watch."
+          "q": "Cela vaut-il pour Samsung, Garmin et d’autres marques ?",
+          "a": "Le principe des capteurs optiques est proche, mais le nom de la fonction et les options changent selon le modèle. Ce guide porte sur Apple Watch."
         },
         {
           "q": "La lentille gêne-t-elle la charge ?",
-          "a": "Elle est conçue pour ne pas gêner la charge par induction. Utilisez le chargeur de votre modèle et respectez le temps de prise de l'adhésif du manuel avant de la mouiller."
+          "a": "Elle est conçue pour ne pas gêner la charge par induction. Utilisez le chargeur indiqué pour votre modèle et respectez le temps de durcissement de l’adhésif du manuel avant de mouiller."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch qui demande le code avec tatouage"
+          "text": "Apple Watch qui demande le code avec un tatouage"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Smartwatch qui ne lit pas le pouls avec tatouage"
+          "text": "Montre connectée qui ne lit pas le pouls avec un tatouage"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin qui ne lit pas le pouls avec tatouage"
+          "text": "Garmin qui ne lit pas le pouls avec un tatouage"
         },
         {
           "href": "index.html#produtos",
@@ -3328,39 +3342,39 @@
         }
       ],
       "finalH2": "Garder la sécurité sans rien désactiver ?",
-      "finalBody": "Découvrez la lentille optique dans la boutique officielle. Les résultats peuvent varier selon la montre et le tatouage.",
-      "finalGo": "Aller à où acheter",
+      "finalBody": "Découvrez la lentille optique en boutique officielle. Les résultats peuvent varier selon la montre et le tatouage.",
+      "finalGo": "Aller où acheter",
       "finalStore": "Ouvrir la boutique officielle",
-      "finalHome": "Voir les produits sur l'accueil",
-      "buyH2": "Acheter la lentille optique Sensor Tattoo Fix",
-      "buyLead": "Boutique officielle uniquement — PayPal, carte et livraison suivie. L'offre internationale est la lentille optique (pas les accessoires du kit brésilien)."
+      "finalProducts": "Voir les produits sur l’accueil",
+      "supportUrl": "https://support.apple.com/fr-fr/111819",
+      "wristFeatureName": "Détection du poignet"
     },
     "nl": {
-      "title": "Draagdetectie uitzetten: de moeite waard bij tattoo?",
-      "description": "Draagdetectie uitzetten zodat Apple Watch met tattoo stopt met om de code te vragen heeft risico's. Wat je verliest en de alternatieven.",
-      "ogTitle": "Draagdetectie uitzetten: de moeite waard bij tattoo?",
+      "title": "Draagdetectie uitzetten bij tattoo? | Sensor Tattoo Fix",
+      "description": "Draagdetectie uitzetten zodat Apple Watch bij een tattoo geen code meer vraagt, brengt risico’s. Wat je verliest en de alternatieven.",
+      "ogTitle": "Draagdetectie uitzetten vanwege een tattoo: de moeite waard?",
       "crumb": "Draagdetectie uitzetten",
       "headline": "Draagdetectie uitzetten vanwege een tattoo: de moeite waard?",
-      "lead": "<strong>Draagdetectie</strong> uitzetten (de functie die veel mensen polsdetectie noemen) stopt dat Apple Watch zelf om de code vraagt, maar zet ook hartslag, slaap en andere automatische metingen uit, en het horloge vergrendelt niet meer vanzelf. Voor de meeste mensen is een andere oplossing eerst de moeite waard.",
-      "h2why": "Waarom het horloge bij een tattoo om de code vraagt",
-      "whyBody": "Als draagdetectie faalt, kan Apple Watch het apparaat als van de pols behandelen en opnieuw om de code vragen. Details en symptomen staan in de gids <a href=\"apple-watch-tattoo.html\">Apple Watch vraagt steeds om de code op getatoeëerde huid</a>.",
+      "lead": "Draagdetectie uitzetten (de functie die velen pols- of polserkenning noemen) stopt dat Apple Watch zelf om de code vraagt, maar zet ook hartslag, slaap en andere automatische metingen uit, en het horloge vergrendelt niet meer vanzelf. Voor de meeste mensen loont het om eerst een andere oplossing te proberen.",
+      "h2why": "Waarom het horloge bij een tattoo om een code vraagt",
+      "whyBody": "Als draagdetectie faalt, kan Apple Watch het apparaat als van de pols behandelen en opnieuw om de code vragen. Details en symptomen staan in de gids [[APPLE]]Apple Watch vraagt om een code bij een tattoo[[/APPLE]].",
       "h2what": "Wat Draagdetectie doet",
-      "whatBody": "Het vertelt het horloge dat het op je arm zit. Met de functie aan en een toegangscode ingesteld vergrendelt Apple Watch bij het afdoen en ontgrendelt alleen met de code. Apple beschrijft de functie en wat er verandert bij uitzetten in het supportartikel <a href=\"https://support.apple.com/nl-nl/111819\" target=\"_blank\" rel=\"noopener\">Als je Apple Watch onverwacht vergrendelt</a>.",
-      "h2lose": "Wat je verliest als je hem uitzet",
-      "loseIntro": "Volgens Apple-ondersteuning heb je na het uitzetten van Draagdetectie onder meer niet meer:",
+      "whatBody": "Het geeft het horloge aan dat het op je arm zit. Met de functie aan en een code ingesteld vergrendelt Apple Watch wanneer het de pols verlaat en ontgrendelt alleen met de code. Apple beschrijft de functie en wat verandert bij uitschakelen in het supportartikel [[SUPPORT]]Als je Apple Watch onverwacht wordt vergrendeld[[/SUPPORT]].",
+      "h2lose": "Wat je verliest als je het uitzet",
+      "loseIntro": "Volgens Apple Support verlies je bij het uitzetten van Draagdetectie onder meer:",
       "loseItems": [
-        "Automatisch vergrendelen en ontgrendelen bij af- of opdoen",
-        "Valdetectie die zelf nood-SOS start",
-        "Hartslagtracking en meldingen",
+        "Automatisch vergrendelen en ontgrendelen bij af- of opzetten van het horloge",
+        "Valdetectie die zelf Noodgeval SOS start",
+        "Hartslagtracking en -meldingen",
         "Achtergrondmetingen van bloedzuurstof en ademhalingsfrequentie",
-        "Slaaptracking",
-        "Een deel van Activiteitsmetingen",
-        "Geluidsmeting en waarschuwingen",
-        "Tik- en polsrotatiegebaren"
+        "Slaapmonitoring",
+        "Een deel van de Activiteitsmetingen",
+        "Geluidsmeting en -waarschuwingen",
+        "Tik- en pols-draaigebaren"
       ],
-      "loseApplePay": "Apple Pay blijft werken, maar vraagt bij elke betaling om de code (dubbelklik op de zijknop om te autoriseren). Officiële details: <a href=\"https://support.apple.com/nl-nl/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/nl-nl/111819</a>.",
+      "loseApplePay": "Apple Pay blijft werken, maar vraagt bij elke betaling om de code (als je de zijknop twee keer indrukt om te autoriseren).",
       "h2alt": "Alternatieven",
-      "altIntro": "Apples eerste tip bij een tattoo of litteken op de gebruikte pols is het <strong>horloge naar de andere arm verplaatsen</strong>. Werk daarna de kant bij op het horloge zelf in <strong>Instellingen → Algemeen → Draagpositie</strong> (Links of Rechts).",
+      "altIntro": "De eerste optie van Apple bij een tattoo of litteken op de gebruikte pols is het horloge naar de andere arm verplaatsen. Werk daarna de kant bij op het horloge zelf via Instellingen → Algemeen → Draagpositie (Links of Rechts).",
       "tableHeaders": [
         "Alternatief",
         "Helpt bij de code?",
@@ -3372,10 +3386,10 @@
           "Op de andere arm dragen (geen tattoo onder de sensor)",
           "Ja",
           "Ja",
-          "Apple-tip; stel Instellingen → Algemeen → Draagpositie in"
+          "Advies van Apple; stel Instellingen → Algemeen → Draagpositie in"
         ],
         [
-          "Band afstellen / obstakels verwijderen",
+          "Bandje aanpassen / obstakels weghalen",
           "Misschien",
           "Misschien",
           "Stevig huidcontact, geen mouw of armband ertussen"
@@ -3383,8 +3397,8 @@
         [
           "Draagdetectie uitzetten",
           "Ja (minder ‘van de pols’-vragen)",
-          "Nee — Apple zet HR-tracking uit",
-          "Beveiligingsrisico's en functies hierboven"
+          "Nee — Apple zet HF-tracking uit",
+          "Veiligheidsrisico’s en functies hierboven"
         ],
         [
           "Zelfklevende optische lens (Sensor Tattoo Fix)",
@@ -3393,89 +3407,91 @@
           "Plakt op het sensorgebied; resultaten variëren per horloge en tattoo"
         ]
       ],
-      "h2how": "Hoe uitzetten (als je beslist)",
-      "how1": "Op Apple Watch: open <strong>Instellingen → Toegangscode → Draagdetectie</strong> en zet uit. Bevestig met de code. Op iPhone staat het equivalent in de Watch-app onder <strong>Toegangscode</strong> (het label kan per systeemversie verschillen). Houd de horlogecode aan en zet de functie weer aan wanneer je kunt.",
-      "how2": "Stap voor stap en de officiële lijst met getroffen functies: <a href=\"https://support.apple.com/nl-nl/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/nl-nl/111819</a>.",
+      "h2how": "Hoe uitzetten (als je dat besluit)",
+      "how1": "Op Apple Watch: open Instellingen → Toegangscode → Draagdetectie en zet uit. Bevestig met de code. Op iPhone staat het equivalent in de Watch-app onder Toegangscode (het label kan per systeemversie verschillen). Houd de code van het horloge aan en zet de functie weer aan wanneer je kunt.",
+      "how2": "Stap voor stap en de officiële lijst van getroffen functies: support.apple.com/nl-nl/111819.",
       "h2when": "Wanneer uitzetten zin heeft",
-      "whenBody": "Als tijdelijke oplossing: kort, op een veilige plek, met code invoeren voor Apple Pay en zonder automatische hartslagtracking en andere functies. Als langetermijnoplossing weeg de alternatieven hierboven — inclusief de gids over <a href=\"apple-watch-tattoo.html\">Apple Watch en tattoos</a>.",
+      "whenBody": "Als tijdelijke oplossing: kort, in een veilige omgeving, met code-invoer voor Apple Pay en verlies van automatische hartslagtracking en andere functies. Als langetermijnoplossing loont het de alternatieven hierboven te beoordelen — inclusief de gids over [[APPLE]]Apple Watch en tattoos[[/APPLE]].",
+      "buyH2": "Koop de Sensor Tattoo Fix optische lens",
+      "buyLead": "Beveiliging behouden zonder detectie uit te zetten? Sensor Tattoo Fix is een zelfklevende optische lens voor het sensorgebied — in de officiële winkel (internationaal alleen de optische lens). Resultaten kunnen per horloge en tattoo verschillen.",
       "faqs": [
         {
-          "q": "Wist Draagdetectie uitzetten mijn gegevens?",
-          "a": "Nee. Het verandert alleen hoe het horloge besluit dat het op je arm zit en welke functies die aan die detectie hangen actief blijven."
+          "q": "Wist het uitzetten van Draagdetectie mijn gegevens?",
+          "a": "Nee. Het verandert alleen hoe het horloge beslist of het op je arm zit en welke functies die aan die detectie hangen actief blijven."
         },
         {
-          "q": "Werkt Apple Pay met Draagdetectie uit?",
-          "a": "Ja: betalen blijft beschikbaar, maar je moet de code invoeren bij een dubbelklik op de zijknop om te autoriseren."
+          "q": "Werkt Apple Pay met detectie uitgeschakeld?",
+          "a": "Ja: betalen blijft beschikbaar, maar je moet de code invoeren als je de zijknop twee keer indrukt om te autoriseren."
         },
         {
-          "q": "Veroorzaken lichte tattoos het probleem ook?",
-          "a": "Ze storen meestal minder. Lichte, minder dichte pigmenten laten meer sensorlicht door; toch reageert elke huid en elk ontwerp anders."
+          "q": "Veroorzaakt een lichte tattoo ook het probleem?",
+          "a": "Het stoort meestal minder. Lichte, weinig dichte pigmenten laten meer sensorlicht door; toch reageert elke huid en elk ontwerp anders."
         },
         {
-          "q": "Geldt dit ook voor Samsung, Garmin en andere merken?",
-          "a": "Het principe van optische sensoren lijkt op elkaar, maar de functienaam en opties wisselen per model. Deze gids gaat over Apple Watch."
+          "q": "Geldt dit voor Samsung, Garmin en andere merken?",
+          "a": "Het principe van optische sensoren lijkt op elkaar, maar de functienaam en opties verschillen per model. Deze gids gaat over Apple Watch."
         },
         {
-          "q": "Blokkeert de lens het opladen?",
-          "a": "Hij is zo ontworpen dat inductief opladen niet wordt gestoord. Gebruik de lader van je model en wacht de uithardtijd van de lijm in de handleiding voordat hij nat wordt."
+          "q": "Stoort de lens het opladen?",
+          "a": "Hij is ontworpen om inductief opladen niet te storen. Gebruik de aanbevolen oplader voor je model en wacht de uithardtijd van de lijm in de handleiding af voordat je hem nat maakt."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch die om code vraagt bij tattoo"
+          "text": "Apple Watch vraagt om een code bij een tattoo"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Smartwatch die geen hartslag leest bij tattoo"
+          "text": "Smartwatch meet geen hartslag bij een tattoo"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin die geen hartslag leest bij tattoo"
+          "text": "Garmin meet geen hartslag bij een tattoo"
         },
         {
           "href": "index.html#produtos",
-          "text": "Sensor Tattoo Fix-producten"
+          "text": "Sensor Tattoo Fix producten"
         }
       ],
-      "finalH2": "Beveiliging houden zonder iets uit te zetten?",
+      "finalH2": "Beveiliging behouden zonder iets uit te zetten?",
       "finalBody": "Bekijk de optische lens in de officiële winkel. Resultaten kunnen per horloge en tattoo verschillen.",
       "finalGo": "Ga naar waar te kopen",
-      "finalStore": "Open de officiële winkel",
-      "finalHome": "Bekijk producten op de home",
-      "buyH2": "Koop de Sensor Tattoo Fix optische lens",
-      "buyLead": "Alleen officiële winkel — PayPal, kaart en getraceerde verzending. Het internationale aanbod is de optische lens (niet de Braziliaanse kitaccessoires)."
+      "finalStore": "Open officiële winkel",
+      "finalProducts": "Bekijk producten op de homepage",
+      "supportUrl": "https://support.apple.com/nl-nl/111819",
+      "wristFeatureName": "Draagdetectie"
     },
     "sv": {
-      "title": "Stäng av Handledsigenkänning: värt med tatuering?",
-      "description": "Att stänga av Handledsigenkänning så Apple Watch slutar be om kod med tatuering har risker. Vad du förlorar och alternativen.",
-      "ogTitle": "Stäng av Handledsigenkänning: värt med tatuering?",
-      "crumb": "Stäng av Handledsigenkänning",
+      "title": "Stänga av Handledsigenkänning? | Sensor Tattoo Fix",
+      "description": "Att stänga av Handledsigenkänning så Apple Watch slutar be om kod vid tatuering har risker. Vad du förlorar och alternativen.",
+      "ogTitle": "Stänga av Handledsigenkänning för tatuering: värt det?",
+      "crumb": "Stänga av Handledsigenkänning",
       "headline": "Stänga av Handledsigenkänning på grund av tatuering: värt det?",
-      "lead": "Att stänga av <strong>Handledsigenkänning</strong> (funktionen många kallar handledsigenkänning) får Apple Watch att sluta be om koden själv, men stänger också av puls, sömn och andra automatiska mätningar, och klockan låser sig inte längre själv. För de flesta är en annan lösning värd att prova först.",
+      "lead": "Att stänga av Handledsigenkänning (funktionen många kallar puls- eller handledsigenkänning) får Apple Watch att sluta be om koden själv, men stänger också av hjärtfrekvens, sömn och andra automatiska mätningar, och klockan låser sig inte längre själv. För de flesta är det värt att prova en annan lösning först.",
       "h2why": "Varför klockan ber om kod med tatuering",
-      "whyBody": "När handledsigenkänningen misslyckas kan Apple Watch behandla enheten som avtagen och be om koden igen. Detaljer och symptom finns i guiden <a href=\"apple-watch-tattoo.html\">Apple Watch ber ständigt om koden på tatuerad hud</a>.",
+      "whyBody": "När handledsigenkänning misslyckas kan Apple Watch behandla enheten som avtagen från handleden och be om koden igen. Detaljer och symptom finns i guiden [[APPLE]]Apple Watch ber om kod med tatuering[[/APPLE]].",
       "h2what": "Vad Handledsigenkänning gör",
-      "whatBody": "Den talar om för klockan att den sitter på din arm. Med funktionen på och en lösenkod inställd låser Apple Watch när den lämnar handleden och låser upp bara med koden. Apple beskriver funktionen och vad som ändras när du stänger av den i supportartikeln <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">If your Apple Watch locks unexpectedly</a>.",
+      "whatBody": "Den talar om för klockan att den sitter på armen. Med funktionen på och en lösenkod angiven låser Apple Watch när den lämnar handleden och låser bara upp med koden. Apple beskriver funktionen och vad som ändras när du stänger av den i supportartikeln [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
       "h2lose": "Vad du förlorar när du stänger av den",
-      "loseIntro": "Enligt Apples support har du efter att ha stängt av Handledsigenkänning bland annat inte längre:",
+      "loseIntro": "Enligt Apple Support förlorar du bland annat följande när du stänger av Handledsigenkänning:",
       "loseItems": [
         "Automatisk låsning och upplåsning när du tar av eller sätter på klockan",
-        "Falldetektering som startar nödsamtal SOS själv",
-        "Pulsspårning och aviseringar",
+        "Falldetektering som själv startar Nöd-SOS",
+        "Hjärtfrekvensspårning och aviseringar",
         "Bakgrundsmätningar av blodsyre och andningsfrekvens",
-        "Sömnspårning",
-        "Delar av Aktivitetsmätningar",
+        "Sömnövervakning",
+        "Vissa Aktivitetsmätningar",
         "Ljudmätning och varningar",
         "Tryck- och handledsvridgester"
       ],
-      "loseApplePay": "Apple Pay fungerar fortfarande, men ber om koden vid varje betalning (när du dubbelklickar på sidoknappen för att godkänna). Officiella detaljer: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
+      "loseApplePay": "Apple Pay fungerar fortfarande, men ber om koden vid varje betalning (när du dubbeltrycker sidoknappen för att godkänna).",
       "h2alt": "Alternativ",
-      "altIntro": "Apples första tips när det finns tatuering eller ärr på handleden du använder är att <strong>flytta klockan till andra armen</strong>. Uppdatera sedan sidan på klockan i <strong>Inställningar → Allmänt → Orientering</strong> (Vänster eller Höger).",
+      "altIntro": "Apples första alternativ när det finns tatuering eller ärr på den använda handleden är att flytta klockan till den andra armen. Uppdatera sedan sidan på klockan under Inställningar → Allmänt → Orientering (Vänster eller Höger).",
       "tableHeaders": [
         "Alternativ",
-        "Hjälper med koden?",
-        "Hjälper med pulsen?",
+        "Hjälper med lösenkod?",
+        "Hjälper med hjärtfrekvens?",
         "Anteckning"
       ],
       "tableRows": [
@@ -3483,7 +3499,7 @@
           "Bära på andra armen (ingen tatuering under sensorn)",
           "Ja",
           "Ja",
-          "Apples tips; ställ in Inställningar → Allmänt → Orientering"
+          "Apples rekommendation; justera Inställningar → Allmänt → Orientering"
         ],
         [
           "Justera bandet / ta bort hinder",
@@ -3492,57 +3508,59 @@
           "Fast hudkontakt, ingen ärm eller armband emellan"
         ],
         [
-          "Stäng av Handledsigenkänning",
+          "Stänga av Handledsigenkänning",
           "Ja (färre ”av handleden”-frågor)",
           "Nej — Apple stänger av HF-spårning",
-          "Säkerhetsrisker och funktioner ovan"
+          "Säkerhetsrisker och funktioner listade ovan"
         ],
         [
           "Självhäftande optisk lins (Sensor Tattoo Fix)",
           "Kan hjälpa",
-          "Gjord för att förbättra läsförhållanden",
-          "Fästs vid sensorområdet; resultat varierar efter klocka och tatuering"
+          "Gjordes för att förbättra läsförhållanden",
+          "Fästs på sensorområdet; resultat varierar efter klocka och tatuering"
         ]
       ],
       "h2how": "Hur du stänger av den (om du bestämmer dig)",
-      "how1": "På Apple Watch: öppna <strong>Inställningar → Lösenkod → Handledsigenkänning</strong> och stäng av. Bekräfta med koden. På iPhone finns motsvarande väg i Watch-appen under <strong>Lösenkod</strong> (etiketten kan variera med systemversion). Behåll klockans lösenkod på och slå på funktionen igen när du kan.",
-      "how2": "Steg för steg och officiell lista över berörda funktioner: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
-      "h2when": "När det är vettigt att stänga av",
-      "whenBody": "Som tillfällig lösning: en kort stund, på en säker plats, med kodinmatning för Apple Pay och utan automatisk pulsspårning och andra funktioner. Som långsiktig lösning väg alternativ ovan — inklusive guiden om <a href=\"apple-watch-tattoo.html\">Apple Watch och tatuering</a>.",
+      "how1": "På Apple Watch: öppna Inställningar → Lösenkod → Handledsigenkänning och stäng av. Bekräfta med koden. På iPhone finns motsvarande väg i Watch-appen under Lösenkod (etiketten kan variera med systemversion). Behåll klockans lösenkod aktiv och aktivera funktionen igen när du kan.",
+      "how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/en-us/111819.",
+      "h2when": "När det är rimligt att stänga av",
+      "whenBody": "Som tillfällig lösning: en kort tid, i en säker miljö, med kodinmatning för Apple Pay och förlust av automatisk hjärtfrekvensspårning och andra funktioner. Som långsiktig lösning är det värt att utvärdera alternativen ovan — inklusive guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
+      "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
+      "buyLead": "Vill du behålla säkerheten utan att stänga av igenkänningen? Sensor Tattoo Fix är en självhäftande optisk lins för sensorområdet — i den officiella butiken (internationellt endast den optiska linsen). Resultaten kan variera beroende på klocka och tatuering.",
       "faqs": [
         {
           "q": "Raderar avstängning av Handledsigenkänning mina data?",
-          "a": "Nej. Den ändrar bara hur klockan avgör att den sitter på armen och vilka funktioner kopplade till den igenkänningen förblir aktiva."
+          "a": "Nej. Den ändrar bara hur klockan avgör om den sitter på armen och vilka funktioner kopplade till den igenkänningen förblir aktiva."
         },
         {
-          "q": "Fungerar Apple Pay med Handledsigenkänning av?",
-          "a": "Ja: betalning finns kvar, men du måste ange koden när du dubbelklickar på sidoknappen för att godkänna."
+          "q": "Fungerar Apple Pay med igenkänningen avstängd?",
+          "a": "Ja: betalning finns kvar, men du måste ange koden när du dubbeltrycker sidoknappen för att godkänna."
         },
         {
-          "q": "Orsakar ljusa tatueringar också problemet?",
-          "a": "De stör oftast mindre. Ljusa, mindre täta pigment släpper igenom mer sensorljus; ändå reagerar varje hud och varje motiv olika."
+          "q": "Kan en ljus tatuering också orsaka problemet?",
+          "a": "Den stör oftast mindre. Ljusa, glesa pigment släpper igenom mer sensorljus; ändå reagerar varje hud och varje motiv olika."
         },
         {
           "q": "Gäller detta Samsung, Garmin och andra märken?",
           "a": "Principen för optiska sensorer är liknande, men funktionsnamn och alternativ ändras per modell. Den här guiden handlar om Apple Watch."
         },
         {
-          "q": "Hindrar linsen laddning?",
-          "a": "Den är utformad för att inte störa induktiv laddning. Använd laddaren för din modell och vänta limmets härdningstid i manualen innan den blir blöt."
+          "q": "Stör linsen laddningen?",
+          "a": "Den är utformad för att inte störa induktiv laddning. Använd den rekommenderade laddaren för din modell och vänta limmets härdningstid i manualen innan du blöter den."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch som ber om kod med tatuering"
+          "text": "Apple Watch ber om kod med tatuering"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Smartklocka som inte läser puls med tatuering"
+          "text": "Smartklocka läser inte puls med tatuering"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin som inte läser puls med tatuering"
+          "text": "Garmin läser inte puls med tatuering"
         },
         {
           "href": "index.html#produtos",
@@ -3550,43 +3568,43 @@
         }
       ],
       "finalH2": "Behåll säkerheten utan att stänga av något?",
-      "finalBody": "Titta på den optiska linsen i den officiella butiken. Resultaten kan variera efter klocka och tatuering.",
-      "finalGo": "Gå till var du kan köpa",
-      "finalStore": "Öppna den officiella butiken",
-      "finalHome": "Se produkter på startsidan",
-      "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
-      "buyLead": "Endast officiell butik — PayPal, kort och spårbar frakt. Det internationella erbjudandet är den optiska linsen (inte tillbehören i det brasilianska kitet)."
+      "finalBody": "Se den optiska linsen i den officiella butiken. Resultaten kan variera beroende på klocka och tatuering.",
+      "finalGo": "Gå till köpstället",
+      "finalStore": "Öppna officiell butik",
+      "finalProducts": "Se produkter på startsidan",
+      "supportUrl": "https://support.apple.com/en-us/111819",
+      "wristFeatureName": "Handledsigenkänning"
     },
     "no": {
-      "title": "Slå av Håndleddsregistrering: verdt med tatovering?",
-      "description": "Å slå av Håndleddsregistrering så Apple Watch slutter å be om kode med tatovering har risikoer. Hva du mister og alternativene.",
-      "ogTitle": "Slå av Håndleddsregistrering: verdt med tatovering?",
+      "title": "Slå av Håndleddsregistrering? | Sensor Tattoo Fix",
+      "description": "Å slå av Håndleddsregistrering så Apple Watch slutter å be om kode ved tatovering har risikoer. Hva du mister og alternativene.",
+      "ogTitle": "Slå av Håndleddsregistrering for tatovering: verdt det?",
       "crumb": "Slå av Håndleddsregistrering",
       "headline": "Slå av Håndleddsregistrering på grunn av tatovering: verdt det?",
-      "lead": "Å slå av <strong>Håndleddsregistrering</strong> (funksjonen mange kaller håndleddsregistrering) får Apple Watch til å slutte å be om koden selv, men slår også av puls, søvn og andre automatiske målinger, og klokken låser seg ikke lenger selv. For de fleste er en annen løsning verdt å prøve først.",
+      "lead": "Å slå av Håndleddsregistrering (funksjonen mange kaller puls- eller håndleddsregistrering) får Apple Watch til å slutte å be om koden selv, men slår også av hjertefrekvens, søvn og andre automatiske målinger, og klokken låser seg ikke lenger selv. For de fleste er det verdt å prøve en annen løsning først.",
       "h2why": "Hvorfor klokken ber om kode med tatovering",
-      "whyBody": "Når håndleddsregistreringen feiler, kan Apple Watch behandle enheten som tatt av og be om koden igjen. Detaljer og symptomer finnes i guiden <a href=\"apple-watch-tattoo.html\">Apple Watch ber stadig om koden på tatovert hud</a>.",
+      "whyBody": "Når håndleddsregistrering feiler, kan Apple Watch behandle enheten som tatt av håndleddet og be om koden igjen. Detaljer og symptomer finnes i guiden [[APPLE]]Apple Watch ber om kode med tatovering[[/APPLE]].",
       "h2what": "Hva Håndleddsregistrering gjør",
-      "whatBody": "Den forteller klokken at den er på armen din. Med funksjonen på og en kode satt låser Apple Watch når den forlater håndleddet og låser bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">If your Apple Watch locks unexpectedly</a>.",
+      "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
       "h2lose": "Hva du mister når du slår den av",
-      "loseIntro": "Ifølge Apple-støtte har du etter å ha slått av Håndleddsregistrering blant annet ikke lenger:",
+      "loseIntro": "Ifølge Apple-kundestøtte mister du blant annet følgende når du slår av Håndleddsregistrering:",
       "loseItems": [
         "Automatisk låsing og opplåsing når du tar av eller setter på klokken",
-        "Falldeteksjon som starter nød-SOS selv",
-        "Pulsoppfølging og varsler",
-        "Bakgrunnsmålinger av blodoksygen og respirasjonsfrekvens",
-        "Søvnsporing",
-        "Deler av Aktivitetsmålinger",
+        "Falldeteksjon som selv starter Nød-SOS",
+        "Hjertefrekvenssporing og varsler",
+        "Bakgrunnsmålinger av oksygen i blodet og respirasjonsfrekvens",
+        "Søvnovervåking",
+        "Noen Aktivitetsmålinger",
         "Støymåling og varsler",
-        "Trykk- og håndleddsrotasjonsgester"
+        "Trykk- og håndleddsdreigester"
       ],
-      "loseApplePay": "Apple Pay fungerer fortsatt, men ber om koden ved hver betaling (når du dobbeltklikker sideknappen for å autorisere). Offisielle detaljer: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
+      "loseApplePay": "Apple Pay fungerer fortsatt, men ber om koden ved hver betaling (når du dobbelttrykker sideknappen for å autorisere).",
       "h2alt": "Alternativer",
-      "altIntro": "Apples første tips når det er tatovering eller arr på håndleddet du bruker er å <strong>flytte klokken til den andre armen</strong>. Oppdater deretter siden på klokken i <strong>Innstillinger → Generelt → Orientering</strong> (Venstre eller Høyre).",
+      "altIntro": "Apples første alternativ når det er tatovering eller arr på håndleddet du bruker, er å flytte klokken til den andre armen. Oppdater deretter siden på selve klokken under Innstillinger → Generelt → Orientering (Venstre eller Høyre).",
       "tableHeaders": [
         "Alternativ",
-        "Hjelper med koden?",
-        "Hjelper med pulsen?",
+        "Hjelper med kode?",
+        "Hjelper med hjertefrekvens?",
         "Merknad"
       ],
       "tableRows": [
@@ -3594,66 +3612,68 @@
           "Bruke på den andre armen (ingen tatovering under sensoren)",
           "Ja",
           "Ja",
-          "Apples tips; juster Innstillinger → Generelt → Orientering"
+          "Apples anbefaling; juster Innstillinger → Generelt → Orientering"
         ],
         [
-          "Justere båndet / fjerne hindringer",
+          "Justere remmen / fjerne hindringer",
           "Kanskje",
           "Kanskje",
-          "Fast hudkontakt, ingen erme eller armbånd i veien"
+          "Fast hudkontakt, ingen ermer eller armbånd i mellom"
         ],
         [
           "Slå av Håndleddsregistrering",
           "Ja (færre «av håndleddet»-forespørsler)",
-          "Nei — Apple slår av HR-sporing",
-          "Sikkerhetsrisikoer og funksjoner ovenfor"
+          "Nei — Apple slår av HF-sporing",
+          "Sikkerhetsrisikoer og funksjoner listet ovenfor"
         ],
         [
           "Selvklebende optisk linse (Sensor Tattoo Fix)",
           "Kan hjelpe",
           "Laget for å forbedre leseforhold",
-          "Festes ved sensorområdet; resultater varierer etter klokke og tatovering"
+          "Festes på sensorområdet; resultater varierer etter klokke og tatovering"
         ]
       ],
       "h2how": "Hvordan slå den av (hvis du bestemmer deg)",
-      "how1": "På Apple Watch: åpne <strong>Innstillinger → Kode → Håndleddsregistrering</strong> og slå av. Bekreft med koden. På iPhone ligger tilsvarende sti i Watch-appen under <strong>Kode</strong> (etiketten kan variere med systemversjon). Behold klokkens kode på og slå funksjonen på igjen når du kan.",
-      "how2": "Stegg for steg og offisiell liste over berørte funksjoner: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
+      "how1": "På Apple Watch: åpne Innstillinger → Kode → Håndleddsregistrering og slå av. Bekreft med koden. På iPhone er tilsvarende sti i Watch-appen under Kode (etiketten kan variere med systemversjon). Hold klokkens kode aktiv og aktiver funksjonen igjen når du kan.",
+      "how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/en-us/111819.",
       "h2when": "Når det gir mening å slå av",
-      "whenBody": "Som midlertidig løsning: kort, på et trygt sted, med kodeinntasting for Apple Pay og uten automatisk pulsoppfølging og andre funksjoner. Som langsiktig løsning vurder alternativene ovenfor — inkludert guiden om <a href=\"apple-watch-tattoo.html\">Apple Watch og tatovering</a>.",
+      "whenBody": "Som midlertidig løsning: en kort stund, i et trygt miljø, med kodeinntasting for Apple Pay og tap av automatisk hjertefrekvenssporing og andre funksjoner. Som langsiktig løsning er det verdt å vurdere alternativene ovenfor — inkludert guiden om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
+      "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
+      "buyLead": "Vil du beholde sikkerheten uten å slå av registreringen? Sensor Tattoo Fix er en selvklebende optisk linse for sensorområdet — i den offisielle butikken (internasjonalt kun den optiske linsen). Resultatene kan variere etter klokke og tatovering.",
       "faqs": [
         {
-          "q": "Sletter avslag av Håndleddsregistrering dataene mine?",
-          "a": "Nei. Den endrer bare hvordan klokken avgjør at den er på armen din, og hvilke funksjoner knyttet til den registreringen forblir aktive."
+          "q": "Sletter det å slå av Håndleddsregistrering dataene mine?",
+          "a": "Nei. Den endrer bare hvordan klokken avgjør om den sitter på armen, og hvilke funksjoner knyttet til den registreringen forblir aktive."
         },
         {
-          "q": "Fungerer Apple Pay med Håndleddsregistrering av?",
-          "a": "Ja: betaling er fortsatt tilgjengelig, men du må taste koden når du dobbeltklikker sideknappen for å autorisere."
+          "q": "Fungerer Apple Pay med registreringen avslått?",
+          "a": "Ja: betaling er fortsatt tilgjengelig, men du må taste inn koden når du dobbelttrykker sideknappen for å autorisere."
         },
         {
-          "q": "Forårsaker lyse tatoveringer også problemet?",
-          "a": "De forstyrrer vanligvis mindre. Lyse, mindre tette pigmenter slipper mer sensorlys gjennom; likevel reagerer hver hud og hvert motiv forskjellig."
+          "q": "Kan en lys tatovering også forårsake problemet?",
+          "a": "Den forstyrrer vanligvis mindre. Lyse, lite tette pigmenter slipper gjennom mer sensorlys; likevel reagerer hver hud og hvert motiv ulikt."
         },
         {
           "q": "Gjelder dette Samsung, Garmin og andre merker?",
           "a": "Prinsippet for optiske sensorer er likt, men funksjonsnavn og alternativer endres per modell. Denne guiden handler om Apple Watch."
         },
         {
-          "q": "Hindrer linsen lading?",
-          "a": "Den er laget for ikke å forstyrre induktiv lading. Bruk laderen for din modell og vent limets herdetid i manualen før den blir våt."
+          "q": "Forstyrrer linsen ladingen?",
+          "a": "Den er laget for ikke å forstyrre induktiv lading. Bruk anbefalt lader for din modell og vent limets herdetid i manualen før du gjør den våt."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch som ber om kode med tatovering"
+          "text": "Apple Watch ber om kode med tatovering"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Smartklokke som ikke leser puls med tatovering"
+          "text": "Smartklokke leser ikke puls med tatovering"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin som ikke leser puls med tatovering"
+          "text": "Garmin leser ikke puls med tatovering"
         },
         {
           "href": "index.html#produtos",
@@ -3661,39 +3681,39 @@
         }
       ],
       "finalH2": "Beholde sikkerheten uten å slå av noe?",
-      "finalBody": "Se den optiske linsen i den offisielle butikken. Resultater kan variere etter klokke og tatovering.",
+      "finalBody": "Se den optiske linsen i den offisielle butikken. Resultatene kan variere etter klokke og tatovering.",
       "finalGo": "Gå til hvor du kan kjøpe",
-      "finalStore": "Åpne den offisielle butikken",
-      "finalHome": "Se produkter på forsiden",
-      "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
-      "buyLead": "Kun offisiell butikk — PayPal, kort og sporet frakt. Det internasjonale tilbudet er den optiske linsen (ikke tilbehøret i det brasilianske settet)."
+      "finalStore": "Åpne offisiell butikk",
+      "finalProducts": "Se produkter på forsiden",
+      "supportUrl": "https://support.apple.com/en-us/111819",
+      "wristFeatureName": "Håndleddsregistrering"
     },
     "fi": {
-      "title": "Ranteen tunnistus pois: kannattaako tatuoinnilla?",
-      "description": "Ranteen tunnistuksen poiskytkentä, jotta Apple Watch ei pyydä koodia tatuoinnilla, sisältää riskejä. Mitä menetät ja vaihtoehdot.",
-      "ogTitle": "Ranteen tunnistus pois: kannattaako tatuoinnilla?",
-      "crumb": "Kytke ranteen tunnistus pois",
-      "headline": "Kytke ranteen tunnistus pois tatuoinnin takia: kannattaako?",
-      "lead": "<strong>Ranteen tunnistus</strong> pois kytkeminen (toiminto, jota monet kutsuvat ranteen tunnistukseksi) saa Apple Watchin lopettamaan koodin pyytämisen itsekseen, mutta sammuttaa myös sykkeen, unen ja muut automaattiset mittaukset, eikä kello lukitu enää itsestään. Useimmille kannattaa kokeilla ensin toista ratkaisua.",
-      "h2why": "Miksi kello pyytää koodia tatuoinnilla",
-      "whyBody": "Kun ranteen tunnistus epäonnistuu, Apple Watch voi käsitellä laitteen pois ranteesta ja pyytää koodia uudelleen. Tiedot ja oireet ovat oppaassa <a href=\"apple-watch-tattoo.html\">Apple Watch pyytää koodia jatkuvasti tatuoidulla iholla</a>.",
+      "title": "Sammuttaa Ranteen tunnistus? | Sensor Tattoo Fix",
+      "description": "Ranteen tunnistuksen sammuttaminen, jotta Apple Watch ei kysy koodia tatuoinnin kanssa, sisältää riskejä. Mitä menetät ja vaihtoehdot.",
+      "ogTitle": "Sammuttaa Ranteen tunnistus tatuoinnin takia: kannattaako?",
+      "crumb": "Sammuttaa Ranteen tunnistus",
+      "headline": "Sammuttaa Ranteen tunnistus tatuoinnin takia: kannattaako?",
+      "lead": "Ranteen tunnistuksen sammuttaminen (toiminto, jota monet kutsuvat pulssin tai ranteen tunnistukseksi) lopettaa sen, että Apple Watch pyytää koodia itsestään, mutta sammuttaa myös sykkeen, unen ja muut automaattiset mittaukset, eikä kello lukitu enää itsestään. Useimmille kannattaa kokeilla ensin toista ratkaisua.",
+      "h2why": "Miksi kello pyytää koodia tatuoinnin kanssa",
+      "whyBody": "Kun ranteen tunnistus epäonnistuu, Apple Watch voi käsitellä laitteen ranteelta poistettuna ja pyytää koodia uudelleen. Tiedot ja oireet ovat oppaassa [[APPLE]]Apple Watch pyytää koodia tatuoinnin kanssa[[/APPLE]].",
       "h2what": "Mitä Ranteen tunnistus tekee",
-      "whatBody": "Se kertoo kellolle, että se on kädessäsi. Kun toiminto on päällä ja koodi asetettu, Apple Watch lukittuu lähtiessään ranteesta ja avautuu vain koodilla. Apple kuvaa toiminnon ja muutokset poiskytkennässä tukartikkelissa <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">If your Apple Watch locks unexpectedly</a>.",
-      "h2lose": "Mitä menetät, kun kytket pois",
-      "loseIntro": "Applen tuen mukaan Ranteen tunnistus pois kytkemisen jälkeen sinulla ei ole muun muassa enää:",
+      "whatBody": "Se kertoo kellolle, että se on käsivarressa. Kun toiminto on päällä ja koodi asetettu, Apple Watch lukittuu poistuessaan ranteelta ja avautuu vain koodilla. Apple kuvaa toiminnon ja muutokset sammutettaessa tukartikkelissa [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
+      "h2lose": "Mitä menetät, kun sammutat sen",
+      "loseIntro": "Applen tuen mukaan Ranteen tunnistuksen sammuttaminen poistaa muun muassa:",
       "loseItems": [
-        "Automaattista lukitusta ja avausta kellon pois ottaessa tai päälle laittaessa",
-        "Kaatumisen tunnistusta, joka käynnistää hätä-SOS:n itse",
-        "Syke­seurantaa ja ilmoituksia",
-        "Taustalla olevia veren happi- ja hengitystiheysmittauksia",
-        "Unenseurantaa",
-        "Osaa Aktiviteetti-mittauksista",
-        "Melumittausta ja hälytyksiä",
-        "Napautus- ja rannekääntöeleitä"
+        "Automaattisen lukituksen ja avauksen kellon irrotuksessa tai kiinnityksessä",
+        "Kaatumisen tunnistuksen, joka käynnistää Hätä-SOS:n itse",
+        "Sykeseurannan ja ilmoitukset",
+        "Taustamittaukset veren happitasosta ja hengitystiheydestä",
+        "Unenseurannan",
+        "Osa Aktiivisuus-mittauksista",
+        "Melun mittauksen ja hälytykset",
+        "Napautus- ja ranteenkääntöeleet"
       ],
-      "loseApplePay": "Apple Pay toimii edelleen, mutta pyytää koodin jokaisessa maksussa (kun kaksoisnapsautat sivupainiketta valtuuttaaksesi). Viralliset tiedot: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
+      "loseApplePay": "Apple Pay toimii edelleen, mutta pyytää koodia jokaisessa maksussa (kun painat sivupainiketta kahdesti valtuuttaaksesi).",
       "h2alt": "Vaihtoehdot",
-      "altIntro": "Applen ensimmäinen ohje tatuoinnin tai arven ollessa käytetyssä ranteessa on <strong>siirtää kello toiseen käteen</strong>. Päivitä sitten puoli kellossa kohdassa <strong>Asetukset → Yleiset → Suuntaus</strong> (Vasen tai Oikea).",
+      "altIntro": "Applen ensimmäinen vaihtoehto, kun käytetyssä ranteessa on tatuointi tai arpi, on siirtää kello toiseen käsivarteen. Päivitä sitten puoli kellossa kohdassa Asetukset → Yleiset → Suuntaus (Vasen tai Oikea).",
       "tableHeaders": [
         "Vaihtoehto",
         "Auttaako koodiin?",
@@ -3702,82 +3722,84 @@
       ],
       "tableRows": [
         [
-          "Käyttö toisessa kädessä (ei tatuointia sensorin alla)",
+          "Käyttö toisessa käsivarressa (ei tatuointia sensorin alla)",
           "Kyllä",
           "Kyllä",
-          "Applen ohje; säädä Asetukset → Yleiset → Suuntaus"
+          "Applen suositus; säädä Asetukset → Yleiset → Suuntaus"
         ],
         [
           "Rannekkeen säätö / esteiden poisto",
           "Ehkä",
           "Ehkä",
-          "Luja ihokontakti, ei hihaa tai ranneketta välissä"
+          "Tiivis ihokontakti, ei hihaa tai ranneketta välissä"
         ],
         [
-          "Kytke Ranteen tunnistus pois",
-          "Kyllä (vähemmän “pois ranteesta” -pyyntöjä)",
+          "Ranteen tunnistuksen sammutus",
+          "Kyllä (vähemmän ”pois ranteelta” -pyyntöjä)",
           "Ei — Apple sammuttaa sykeseurannan",
-          "Turvallisuusriskit ja yllä listatut toiminnot"
+          "Turvallisuusriskit ja yllä luetellut toiminnot"
         ],
         [
-          "Tarttuva optinen linssi (Sensor Tattoo Fix)",
+          "Itseliimautuva optinen linssi (Sensor Tattoo Fix)",
           "Voi auttaa",
           "Tehty parantamaan lukemisolosuhteita",
-          "Kiinnitetään sensorialueelle; tulokset vaihtelevat kellon ja tatuoinnin mukaan"
+          "Liimataan sensorialueelle; tulokset vaihtelevat kellon ja tatuoinnin mukaan"
         ]
       ],
-      "h2how": "Miten kytket pois (jos päätät)",
-      "how1": "Apple Watchissa: avaa <strong>Asetukset → Pääsykoodi → Ranteen tunnistus</strong> ja kytke pois. Vahvista koodilla. iPhonessa vastaava polku on Watch-sovelluksessa kohdassa <strong>Pääsykoodi</strong> (nimi voi vaihdella järjestelmäversion mukaan). Pidä kellon koodi päällä ja kytke toiminto takaisin, kun voit.",
-      "how2": "Askel askeleelta ja virallinen lista vaikutetuista toiminnoista: <a href=\"https://support.apple.com/en-us/111819\" target=\"_blank\" rel=\"noopener\">support.apple.com/en-us/111819</a>.",
-      "h2when": "Milloin poiskytkentä kannattaa",
-      "whenBody": "Lyhytaikaisena ratkaisuna: hetkeksi, turvallisessa paikassa, hyväksyen koodin syöttämisen Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkän ajan ratkaisuna punnitse yllä olevat vaihtoehdot — mukaan lukien opas <a href=\"apple-watch-tattoo.html\">Apple Watchista ja tatuoinnista</a>.",
+      "h2how": "Miten sammuttaa (jos päätät)",
+      "how1": "Apple Watchissa: avaa Asetukset → Pääsykoodi → Ranteen tunnistus ja sammuta. Vahvista koodilla. iPhonessa vastaava polku on Watch-sovelluksessa kohdassa Pääsykoodi (nimi voi vaihdella järjestelmäversion mukaan). Pidä kellon koodi päällä ja ota toiminto uudelleen käyttöön, kun voit.",
+      "how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/en-us/111819.",
+      "h2when": "Milloin sammuttaminen on järkevää",
+      "whenBody": "Tilapäisenä ratkaisuna: lyhyeksi aikaa, turvallisessa ympäristössä, hyväksyen koodin syötön Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkäaikaiseksi ratkaisuksi kannattaa arvioida yllä olevat vaihtoehdot — mukaan lukien opas [[APPLE]]Apple Watchista ja tatuoinneista[[/APPLE]].",
+      "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
+      "buyLead": "Haluatko säilyttää turvallisuuden ilman tunnistuksen sammuttamista? Sensor Tattoo Fix on itseliimautuva optinen linssi sensorialueelle — virallisessa kaupassa (kansainvälisesti vain optinen linssi). Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
       "faqs": [
         {
-          "q": "Poistaako Ranteen tunnistus pois kytkeminen tietoni?",
-          "a": "Ei. Se muuttaa vain sitä, miten kello päättää olevansa kädessäsi, ja mitkä tähän tunnistukseen sidotut toiminnot pysyvät aktiivisina."
+          "q": "Poistaako Ranteen tunnistuksen sammutus tietoni?",
+          "a": "Ei. Se muuttaa vain sitä, miten kello päättää olevan käsivarressa, ja mitkä tähän tunnistukseen liittyvät toiminnot pysyvät aktiivisina."
         },
         {
-          "q": "Toimiiko Apple Pay, kun Ranteen tunnistus on pois?",
-          "a": "Kyllä: maksu on edelleen käytettävissä, mutta koodi on syötettävä, kun kaksoisnapsautat sivupainiketta valtuuttaaksesi."
+          "q": "Toimiiko Apple Pay tunnistuksen ollessa pois päältä?",
+          "a": "Kyllä: maksu on edelleen käytettävissä, mutta koodi on syötettävä, kun painat sivupainiketta kahdesti valtuuttaaksesi."
         },
         {
-          "q": "Aiheuttaako vaalea tatuointi myös ongelman?",
-          "a": "Se häiritsee yleensä vähemmän. Vaaleat, harvemmat pigmentit päästävät enemmän sensorin valoa läpi; silti jokainen iho ja kuvio reagoi eri tavalla."
+          "q": "Aiheuttaako myös vaalea tatuointi ongelman?",
+          "a": "Se häiritsee yleensä vähemmän. Vaaleat, harvat pigmentit päästävät enemmän sensorivaloa läpi; silti jokainen iho ja jokainen kuvio reagoi eri tavalla."
         },
         {
-          "q": "Koskeeko tämä Samsungia, Garminta ja muita merkkejä?",
-          "a": "Optisten sensoreiden periaate on samanlainen, mutta toiminnon nimi ja vaihtoehdot vaihtuvat mallin mukaan. Tämä opas koskee Apple Watchia."
+          "q": "Koskeeko tämä Samsungia, Garminia ja muita merkkejä?",
+          "a": "Optisten sensoreiden periaate on samankaltainen, mutta toiminnon nimi ja vaihtoehdot vaihtuvat mallin mukaan. Tämä opas käsittelee Apple Watchia."
         },
         {
-          "q": "Estääkö linssi latauksen?",
-          "a": "Se on suunniteltu olemaan häiritsemättä induktiolatausta. Käytä mallisi laturia ja odota liiman kovettumisaika ohjeen mukaan ennen kastumista."
+          "q": "Häiritseekö linssi latausta?",
+          "a": "Se on suunniteltu niin, ettei se häiritse induktiolatausta. Käytä mallillesi suositeltua laturia ja odota liiman kovettumisaikaa ohjeesta ennen kastamista."
         }
       ],
       "related": [
         {
           "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch, joka pyytää koodia tatuoinnilla"
+          "text": "Apple Watch pyytää koodia tatuoinnin kanssa"
         },
         {
           "href": "smartwatch-tattoo.html",
-          "text": "Älykello, joka ei lue sykettä tatuoinnilla"
+          "text": "Älykello ei lue sykettä tatuoinnin kanssa"
         },
         {
           "href": "garmin-watch-tattoo.html",
-          "text": "Garmin, joka ei lue sykettä tatuoinnilla"
+          "text": "Garmin ei lue sykettä tatuoinnin kanssa"
         },
         {
           "href": "index.html#produtos",
           "text": "Sensor Tattoo Fix -tuotteet"
         }
       ],
-      "finalH2": "Haluatko säilyttää turvallisuuden ilman poiskytkentöjä?",
+      "finalH2": "Säilyttää turvallisuuden ilman mitään sammuttamista?",
       "finalBody": "Tutustu optiseen linssiin virallisessa kaupassa. Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
       "finalGo": "Siirry ostamaan",
       "finalStore": "Avaa virallinen kauppa",
-      "finalHome": "Katso tuotteet etusivulla",
-      "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
-      "buyLead": "Vain virallinen kauppa — PayPal, kortti ja seurattava toimitus. Kansainvälinen tarjonta on optinen linssi (ei Brasilian kitin lisävarusteita)."
+      "finalProducts": "Katso tuotteet etusivulla",
+      "supportUrl": "https://support.apple.com/en-us/111819",
+      "wristFeatureName": "Ranteen tunnistus"
     }
   }
 }
