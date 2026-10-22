@@ -8480,27 +8480,36 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
 }
 .seo-guide-page .seo-figure {
   display: block;
-  width: min(300px, 72vw);
-  margin: 8px auto 32px;
+  width: min(340px, 80vw);
+  max-width: 340px;
+  margin: 16px auto 32px;
   padding: 10px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 193, 7, 0.45);
-  background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
-  box-shadow: 0 0 0 1px #000, 0 12px 28px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 193, 7, 0.65);
+  background: #121212;
+  box-shadow:
+    0 0 0 1px #000,
+    inset 0 0 0 1px rgba(255, 193, 7, 0.12),
+    0 14px 32px rgba(0, 0, 0, 0.55);
   box-sizing: border-box;
+  line-height: 0;
+  overflow: hidden;
 }
 .seo-guide-page .seo-figure img {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
-  max-height: none;
+  aspect-ratio: 720 / 818;
   object-fit: cover;
+  object-position: center;
   border-radius: 10px;
-  background: transparent;
+  background: #0a0a0a;
 }
 @media (max-width: 600px) {
   .seo-guide-page .seo-figure {
-    width: min(260px, 78vw);
+    width: min(260px, 76vw);
+    max-width: 260px;
     padding: 8px;
     border-radius: 14px;
   }
