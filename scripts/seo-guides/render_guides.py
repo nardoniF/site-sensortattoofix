@@ -185,7 +185,7 @@ def render_brand_guide(guide: str, lang: str) -> str:
     <meta property="og:title" content="{html.escape(g['ogTitle'], quote=True)}">
     <meta property="og:description" content="{html.escape(g['description'], quote=True)}">
     <meta property="og:image" content="{BR}/images/kit-gallery/kit-03-aplicacao.jpg">
-    <link rel="stylesheet" href="../style.css?v=3.71">
+    <link rel="stylesheet" href="../style.css?v=3.72">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="../js/ad-landing.js?v=7"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
@@ -491,7 +491,7 @@ def render_wrist(lang: str) -> str:
     <meta property="og:title" content="{html.escape(g['ogTitle'], quote=True)}">
     <meta property="og:description" content="{html.escape(g['description'], quote=True)}">
     <meta property="og:image" content="{BR}/images/kit-gallery/kit-03-aplicacao.jpg">
-    <link rel="stylesheet" href="{'../' if lang != 'en' else '../'}style.css?v=3.71">
+    <link rel="stylesheet" href="{'../' if lang != 'en' else '../'}style.css?v=3.72">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="../js/ad-landing.js?v=7"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>

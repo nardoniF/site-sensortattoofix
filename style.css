@@ -8399,14 +8399,16 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   margin: 0 auto;
   padding: 8px 0 40px;
 }
+/* Below-hero copy uses full article width so it does not leave a void under the carousel. */
 .seo-guide-page .seo-guide > h2,
 .seo-guide-page .seo-guide > p,
 .seo-guide-page .seo-guide > ul,
 .seo-guide-page .seo-guide > .seo-faq,
-.seo-guide-page .seo-guide > .seo-related {
-  max-width: 720px;
-}
-.seo-guide-page .seo-guide > .seo-compare-block {
+.seo-guide-page .seo-guide > .seo-related,
+.seo-guide-page .seo-guide > .seo-compare-block,
+.seo-guide-page .seo-guide > .seo-buy,
+.seo-guide-page .seo-guide > .seo-final-cta,
+.seo-guide-page .seo-guide > .seo-table-wrap {
   max-width: none;
 }
 .seo-guide-page .seo-hero {
@@ -8689,20 +8691,27 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   margin: 0 auto 18px;
 }
 .home-faq-static details {
-  background: rgba(255,255,255,0.03);
+  background: #1a1a1a;
   border: 1px solid #333;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  overflow: hidden;
 }
 .home-faq-static summary {
   cursor: pointer;
-  font-weight: 600;
+  padding: 20px;
+  font-weight: 700;
+  color: #ffc107;
+  list-style: none;
+}
+.home-faq-static summary::-webkit-details-marker {
+  display: none;
 }
 .home-faq-static details p {
-  margin: 10px 0 0;
+  margin: 0;
+  padding: 0 20px 20px;
   color: #ccc;
-  line-height: 1.55;
+  line-height: 1.8;
 }
 .home-faq-static a { color: var(--primary, #ffc107); }
 
