@@ -8693,19 +8693,6 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
 }
 /* Prefer .faq-item styles when present; keep link color for the static answer. */
 .home-faq-static a { color: var(--primary, #ffc107); }
-#faq,
-#guias,
-#onde-comprar,
-#contato,
-#problema,
-#produtos,
-#quem-somos,
-#avaliacoes,
-#paliativos {
-  scroll-margin-top: 96px;
-}
-
-
 
 .footer-guias-static {
   text-align: center;

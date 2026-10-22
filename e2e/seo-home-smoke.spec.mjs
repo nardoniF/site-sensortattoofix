@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:8767';
+/** Relative to playwright.config baseURL (CI webServer on :4173). */
+const BASE = process.env.SMOKE_BASE_URL || '';
 
 const HOME_SECTIONS = [
   'top',
@@ -36,6 +37,17 @@ test.describe('home + SEO guides smoke', () => {
 
     await expect(page.locator('#guias .section-title')).toHaveText(/Artigos|Guias/i);
     await expect(page.locator('#guias a')).toHaveCount(4);
+
+    const margins = await page.evaluate(() => {
+      return ['problema','produtos','faq','guias','quem-somos'].map((id) => {
+        const el = document.getElementById(id);
+        return { id, scrollMarginTop: getComputedStyle(el).scrollMarginTop };
+      });
+    });
+    for (const row of margins) {
+      expect(row.scrollMarginTop, `${row.id} got blanket scroll-margin`).not.toBe('96px');
+    }
+
 
     const widths = await page.evaluate(() => {
       const items = [...document.querySelectorAll('#faq .home-faq-static details, #faq .faq-item')];
