@@ -8566,23 +8566,42 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
 }
 
 .home-guias {
-  padding-top: 8px;
-  padding-bottom: 8px;
+  position: relative;
+  padding: 56px 0 48px;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255, 193, 7, 0.07) 0%, transparent 55%),
+    linear-gradient(180deg, #121212 0%, #0a0a0a 55%, #0e0e0e 100%);
+  border-top: 1px solid rgba(255, 193, 7, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
-.home-guias .home-guias-intro {
-  max-width: 720px;
-  margin: 0 auto 18px;
-  text-align: center;
-  color: #bbb;
-  font-size: 0.98rem;
+.home-guias .section-title {
+  margin-bottom: 22px;
 }
 .home-guias .home-guias-list {
-  max-width: 720px;
+  max-width: 640px;
   margin: 0 auto;
-  padding-left: 1.2rem;
+  padding: 8px 0 0;
+  list-style: none;
   line-height: 1.7;
 }
-.home-guias .home-guias-list a { color: var(--primary, #ffc107); }
+.home-guias .home-guias-list li {
+  margin: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.home-guias .home-guias-list li:last-child {
+  border-bottom: none;
+}
+.home-guias .home-guias-list a {
+  display: block;
+  color: var(--primary, #ffc107);
+  padding: 14px 8px;
+  text-decoration: none;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.home-guias .home-guias-list a:hover {
+  color: #ffd54f;
+  background: rgba(255, 193, 7, 0.06);
+}
 .home-faq-static {
   max-width: 800px;
   margin: 0 auto 18px;
