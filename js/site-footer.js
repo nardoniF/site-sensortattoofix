@@ -35,8 +35,8 @@ window.STF_FOOTER = (function () {
       community: 'Community',
       feedback: 'What was missing?',
       commissioner: 'Become an affiliate',
-      patentLinePrefix: 'National Patent',
-      patentLineJoin: 'International',
+      patentLinePrefix: 'Patent pending · INPI',
+      patentLineJoin: 'PCT',
       rights: 'All rights reserved.',
       crashSeeAlso: 'See also',
       crashTagline: 'For cracked sensors'
@@ -47,8 +47,8 @@ window.STF_FOOTER = (function () {
       community: 'Comunità',
       feedback: 'Cosa mancava sul sito?',
       commissioner: 'Diventa affiliato',
-      patentLinePrefix: 'Brevetto nazionale',
-      patentLineJoin: 'Internazionale',
+      patentLinePrefix: 'Domanda di protezione · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Tutti i diritti riservati.',
       crashSeeAlso: 'Vedi anche',
       crashTagline: 'Per sensori incrinati'
@@ -59,8 +59,8 @@ window.STF_FOOTER = (function () {
       community: 'Community',
       feedback: 'Was hat auf der Website gefehlt?',
       commissioner: 'Partner werden',
-      patentLinePrefix: 'Nationales Patent',
-      patentLineJoin: 'International',
+      patentLinePrefix: 'Schutzanmeldung · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Alle Rechte vorbehalten.',
       crashSeeAlso: 'Siehe auch',
       crashTagline: 'Für gerissene Sensoren'
@@ -71,8 +71,8 @@ window.STF_FOOTER = (function () {
       community: 'Comunidad',
       feedback: '¿Qué faltaba en el sitio?',
       commissioner: 'Sé afiliado',
-      patentLinePrefix: 'Patente nacional',
-      patentLineJoin: 'Internacional',
+      patentLinePrefix: 'Solicitud de protección · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Todos los derechos reservados.',
       crashSeeAlso: 'Ver también',
       crashTagline: 'Para sensores agrietados'
@@ -83,8 +83,8 @@ window.STF_FOOTER = (function () {
       community: 'Społeczność',
       feedback: 'Czego brakowało na stronie?',
       commissioner: 'Zostań partnerem',
-      patentLinePrefix: 'Patent krajowy',
-      patentLineJoin: 'Międzynarodowy',
+      patentLinePrefix: 'Wniosek o ochronę · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Wszelkie prawa zastrzeżone.',
       crashSeeAlso: 'Zobacz też',
       crashTagline: 'Do pękniętych czujników'
@@ -95,8 +95,8 @@ window.STF_FOOTER = (function () {
       community: 'Skupnost',
       feedback: 'Kaj je manjkalo na spletni strani?',
       commissioner: 'Postanite partner',
-      patentLinePrefix: 'Nacionalni patent',
-      patentLineJoin: 'Mednarodni',
+      patentLinePrefix: 'Vloga za zaščito · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Vse pravice pridržane.',
       crashSeeAlso: 'Glej tudi',
       crashTagline: 'Za razpokane senzorje'
@@ -107,8 +107,8 @@ window.STF_FOOTER = (function () {
       community: 'Communauté',
       feedback: 'Qu\'est-ce qui manquait sur le site ?',
       commissioner: 'Devenir affilié',
-      patentLinePrefix: 'Brevet national',
-      patentLineJoin: 'International',
+      patentLinePrefix: 'Demande de protection · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Tous droits réservés.',
       crashSeeAlso: 'Voir aussi',
       crashTagline: 'Pour capteurs fissurés'
@@ -119,8 +119,8 @@ window.STF_FOOTER = (function () {
       community: 'Community',
       feedback: 'Wat ontbrak er op de site?',
       commissioner: 'Word affiliate',
-      patentLinePrefix: 'Nationaal patent',
-      patentLineJoin: 'Internationaal',
+      patentLinePrefix: 'Beschermingsaanvraag · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Alle rechten voorbehouden.',
       crashSeeAlso: 'Bekijk ook',
       crashTagline: 'Voor gebarsten sensoren'
@@ -131,8 +131,8 @@ window.STF_FOOTER = (function () {
       community: 'Gemenskap',
       feedback: 'Vad saknades på sajten?',
       commissioner: 'Bli partner',
-      patentLinePrefix: 'Nationellt patent',
-      patentLineJoin: 'Internationellt',
+      patentLinePrefix: 'Skyddsansökan · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Alla rättigheter förbehållna.',
       crashSeeAlso: 'Se också',
       crashTagline: 'För spruckna sensorer'
@@ -143,8 +143,8 @@ window.STF_FOOTER = (function () {
       community: 'Fellesskap',
       feedback: 'Hva manglet på siden?',
       commissioner: 'Bli partner',
-      patentLinePrefix: 'Nasjonalt patent',
-      patentLineJoin: 'Internasjonalt',
+      patentLinePrefix: 'Beskyttelsessøknad · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Alle rettigheter reservert.',
       crashSeeAlso: 'Se også',
       crashTagline: 'For sprukne sensorer'
@@ -155,8 +155,8 @@ window.STF_FOOTER = (function () {
       community: 'Yhteisö',
       feedback: 'Mitä sivustolta puuttui?',
       commissioner: 'Ryhdy kumppaniksi',
-      patentLinePrefix: 'Kansallinen patentti',
-      patentLineJoin: 'Kansainvälinen',
+      patentLinePrefix: 'Suojahakemus · INPI',
+      patentLineJoin: 'PCT',
       rights: 'Kaikki oikeudet pidätetään.',
       crashSeeAlso: 'Katso myös',
       crashTagline: 'Halkeilleille sensoreille'
@@ -233,17 +233,17 @@ window.STF_FOOTER = (function () {
     const s = t(lang);
     if (isIntlHost()) {
       const intl = {
-        de: `Patentierte Technologie · ${INFO.patentInternational}`,
-        es: `Tecnología patentada · ${INFO.patentInternational}`,
-        pl: `Opatentowana technologia · ${INFO.patentInternational}`,
-        sl: `Patentirana tehnologija · ${INFO.patentInternational}`,
-        it: `Tecnologia brevettata · ${INFO.patentInternational}`,
-        fr: `Technologie brevetée · ${INFO.patentInternational}`,
-        nl: `Gepatenteerde technologie · ${INFO.patentInternational}`,
-        sv: `Patenterad teknik · ${INFO.patentInternational}`,
-        no: `Patentert teknologi · ${INFO.patentInternational}`,
-        fi: `Patentoitu teknologia · ${INFO.patentInternational}`,
-        en: `Patented technology · ${INFO.patentInternational}`
+        de: `Schutzanmeldung · ${INFO.patentInternational}`,
+        es: `Solicitud de protección · ${INFO.patentInternational}`,
+        pl: `Wniosek o ochronę · ${INFO.patentInternational}`,
+        sl: `Vloga za zaščito · ${INFO.patentInternational}`,
+        it: `Domanda di protezione · ${INFO.patentInternational}`,
+        fr: `Demande de protection · ${INFO.patentInternational}`,
+        nl: `Beschermingsaanvraag · ${INFO.patentInternational}`,
+        sv: `Skyddsansökan · ${INFO.patentInternational}`,
+        no: `Beskyttelsessøknad · ${INFO.patentInternational}`,
+        fi: `Suojahakemus · ${INFO.patentInternational}`,
+        en: `Patent pending · ${INFO.patentInternational}`
       };
       return intl[lang] || intl.en;
     }
