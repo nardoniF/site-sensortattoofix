@@ -1762,7 +1762,13 @@ footer,
 .social-icons-footer { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
 .social-link { color: #fff; text-decoration: none; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
 .social-link:hover { color: var(--primary); }
-.footer-faq-link { margin-top: 12px; }
+.footer-faq-link {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.15rem;
+}
 .footer-faq-link a { color: #fff; text-decoration: underline; }
 .footer-faq-link a:hover { color: var(--primary); }
 .footer-legal { padding-top: 28px; border-top: 1px solid #1a1a1a; }
