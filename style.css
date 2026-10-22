@@ -8668,13 +8668,6 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   list-style: none;
   line-height: 1.7;
 }
-.home-guias .home-guias-intro {
-  max-width: 900px;
-  margin: 0 auto 18px;
-  text-align: center;
-  color: #bbb;
-  line-height: 1.55;
-}
 .home-guias .home-guias-list li {
   margin: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
