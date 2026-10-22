@@ -92,6 +92,8 @@ const SEO_GUIDE_EN = {
 };
 
 function mapPathCom(pathname) {
+  // .com /sitemap.xml must not serve the BR urlset — use the intl sitemap.
+  if (pathname === '/sitemap.xml') return '/sitemap-com.xml';
   if (isStaticAsset(pathname)) return pathname;
   if (COM_SHARED_ROOT_PAGES.has(pathname)) return pathname;
   for (const lang of INTL_LANGS) {
