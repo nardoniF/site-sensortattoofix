@@ -565,7 +565,7 @@
       ],
       "symptomsNote": "Nie każdy objaw pochodzi od tatuażu. Luźny lub zbyt ciasny pasek, intensywny ruch, pot i słaby kontakt też mają znaczenie. Sprawdź, czy problemy skupiają się tam, gdzie tusz jest pod czujnikiem.",
       "h2why": "Dlaczego tatuaż może przeszkadzać",
-      "why1": "Optyczne sensory nadgarstka używają światła i detektorów do szacowania tętna i powiązanych metryk. Pigment tatuażu może zmienić, ile światła wraca do czujnika — zwłaszcza gęsty ciemny tusz bezpośrednio pod zegarkiem.",
+      "why1": "Optyczne czujniki nadgarstka używają światła i detektorów do szacowania tętna i powiązanych metryk. Pigment tatuażu może zmienić, ile światła wraca do czujnika — zwłaszcza gęsty ciemny tusz bezpośrednio pod zegarkiem.",
       "why2": "To nie znaczy, że każdy tatuaż powoduje awarię, ani że Apple, Samsung, Garmin i inne marki reagują tak samo. Dopasowanie paska, ruch, pot i nierówny kontakt też mogą przeszkadzać.",
       "h2lens": "Soczewka Sensor Tattoo Fix",
       "lens1": "Sensor Tattoo Fix to soczewka / interfejs optyczny w obszarze czujnika, pomagająca poprawić warunki odczytu na skórze z tatuażem. Nie usuwa tatuażu i nie zastępuje zegarka.",
@@ -3522,60 +3522,60 @@
       ],
       "h2how": "Hur du stänger av den (om du bestämmer dig)",
       "how1": "På Apple Watch: öppna Inställningar → Lösenkod → Handledsigenkänning och stäng av. Bekräfta med koden. På iPhone finns motsvarande väg i Watch-appen under Lösenkod (etiketten kan variera med systemversion). Behåll klockans lösenkod aktiv och aktivera funktionen igen när du kan.",
-      "how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/en-us/111819.",
-      "h2when": "När det är rimligt att stänga av",
-      "whenBody": "Som tillfällig lösning: en kort tid, i en säker miljö, med kodinmatning för Apple Pay och förlust av automatisk hjärtfrekvensspårning och andra funktioner. Som långsiktig lösning är det värt att utvärdera alternativen ovan — inklusive guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
-      "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
-      "buyLead": "Vill du behålla säkerheten utan att stänga av igenkänningen? Sensor Tattoo Fix är en självhäftande optisk lins för sensorområdet — i den officiella butiken (internationellt endast den optiska linsen). Resultaten kan variera beroende på klocka och tatuering.",
-      "faqs": [
-        {
-          "q": "Raderar avstängning av Handledsigenkänning mina data?",
-          "a": "Nej. Den ändrar bara hur klockan avgör om den sitter på armen och vilka funktioner kopplade till den igenkänningen förblir aktiva."
-        },
-        {
-          "q": "Fungerar Apple Pay med igenkänningen avstängd?",
-          "a": "Ja: betalning finns kvar, men du måste ange koden när du dubbeltrycker sidoknappen för att godkänna."
-        },
-        {
-          "q": "Kan en ljus tatuering också orsaka problemet?",
-          "a": "Den stör oftast mindre. Ljusa, glesa pigment släpper igenom mer sensorljus; ändå reagerar varje hud och varje motiv olika."
-        },
-        {
-          "q": "Gäller detta Samsung, Garmin och andra märken?",
-          "a": "Principen för optiska sensorer är liknande, men funktionsnamn och alternativ ändras per modell. Den här guiden handlar om Apple Watch."
-        },
-        {
-          "q": "Stör linsen laddningen?",
-          "a": "Den är utformad för att inte störa induktiv laddning. Använd den rekommenderade laddaren för din modell och vänta limmets härdningstid i manualen innan du blöter den."
-        }
-      ],
-      "related": [
-        {
-          "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch ber om kod med tatuering"
-        },
-        {
-          "href": "smartwatch-tattoo.html",
-          "text": "Smartklocka läser inte puls med tatuering"
-        },
-        {
-          "href": "garmin-watch-tattoo.html",
-          "text": "Garmin läser inte puls med tatuering"
-        },
-        {
-          "href": "index.html#produtos",
-          "text": "Sensor Tattoo Fix-produkter"
-        }
-      ],
-      "finalH2": "Behåll säkerheten utan att stänga av något?",
-      "finalBody": "Se den optiska linsen i den officiella butiken. Resultaten kan variera beroende på klocka och tatuering.",
-      "finalGo": "Gå till köpstället",
-      "finalStore": "Öppna officiell butik",
-      "finalProducts": "Se produkter på startsidan",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Handledsigenkänning"
-    },
-    "no": {
+"how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/sv-se/111819.",
+    "h2when": "När det är rimligt att stänga av",
+    "whenBody": "Som tillfällig lösning: en kort tid, i en säker miljö, med kodinmatning för Apple Pay och förlust av automatisk hjärtfrekvensspårning och andra funktioner. Som långsiktig lösning är det värt att utvärdera alternativen ovan — inklusive guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
+    "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
+    "buyLead": "Vill du behålla säkerheten utan att stänga av igenkänningen? Sensor Tattoo Fix är en självhäftande optisk lins för sensorområdet — i den officiella butiken (internationellt endast den optiska linsen). Resultaten kan variera beroende på klocka och tatuering.",
+    "faqs": [
+      {
+        "q": "Raderar avstängning av Handledsigenkänning mina data?",
+        "a": "Nej. Den ändrar bara hur klockan avgör om den sitter på armen och vilka funktioner kopplade till den igenkänningen förblir aktiva."
+      },
+      {
+        "q": "Fungerar Apple Pay med igenkänningen avstängd?",
+        "a": "Ja: betalning finns kvar, men du måste ange koden när du dubbeltrycker sidoknappen för att godkänna."
+      },
+      {
+        "q": "Kan en ljus tatuering också orsaka problemet?",
+        "a": "Den stör oftast mindre. Ljusa, glesa pigment släpper igenom mer sensorljus; ändå reagerar varje hud och varje motiv olika."
+      },
+      {
+        "q": "Gäller detta Samsung, Garmin och andra märken?",
+        "a": "Principen för optiska sensorer är liknande, men funktionsnamn och alternativ ändras per modell. Den här guiden handlar om Apple Watch."
+      },
+      {
+        "q": "Stör linsen laddningen?",
+        "a": "Den är utformad för att inte störa induktiv laddning. Använd den rekommenderade laddaren för din modell och vänta limmets härdningstid i manualen innan du blöter den."
+      }
+    ],
+    "related": [
+      {
+        "href": "apple-watch-tattoo.html",
+        "text": "Apple Watch ber om kod med tatuering"
+      },
+      {
+        "href": "smartwatch-tattoo.html",
+        "text": "Smartklocka läser inte puls med tatuering"
+      },
+      {
+        "href": "garmin-watch-tattoo.html",
+        "text": "Garmin läser inte puls med tatuering"
+      },
+      {
+        "href": "index.html#produtos",
+        "text": "Sensor Tattoo Fix-produkter"
+      }
+    ],
+    "finalH2": "Behåll säkerheten utan att stänga av något?",
+    "finalBody": "Se den optiska linsen i den officiella butiken. Resultaten kan variera beroende på klocka och tatuering.",
+    "finalGo": "Gå till köpstället",
+    "finalStore": "Öppna officiell butik",
+    "finalProducts": "Se produkter på startsidan",
+    "supportUrl": "https://support.apple.com/sv-se/111819",
+    "wristFeatureName": "Handledsigenkänning"
+  },
+  "no": {
       "title": "Slå av Håndleddsregistrering? | Sensor Tattoo Fix",
       "description": "Å slå av Håndleddsregistrering så Apple Watch slutter å be om kode ved tatovering har risikoer. Hva du mister og alternativene.",
       "ogTitle": "Slå av Håndleddsregistrering for tatovering: verdt det?",
@@ -3585,7 +3585,7 @@
       "h2why": "Hvorfor klokken ber om kode med tatovering",
       "whyBody": "Når håndleddsregistrering feiler, kan Apple Watch behandle enheten som tatt av håndleddet og be om koden igjen. Detaljer og symptomer finnes i guiden [[APPLE]]Apple Watch ber om kode med tatovering[[/APPLE]].",
       "h2what": "Hva Håndleddsregistrering gjør",
-      "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]Hvis Apple Watch låses uventet[[/SUPPORT]].",
+      "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]Hvis Apple Watch låser seg uventet[[/SUPPORT]].",
       "h2lose": "Hva du mister når du slår den av",
       "loseIntro": "Ifølge Apple-kundestøtte mister du blant annet følgende når du slår av Håndleddsregistrering:",
       "loseItems": [
@@ -3635,60 +3635,60 @@
       ],
       "h2how": "Hvordan slå den av (hvis du bestemmer deg)",
       "how1": "På Apple Watch: åpne Innstillinger → Kode → Håndleddsregistrering og slå av. Bekreft med koden. På iPhone er tilsvarende sti i Watch-appen under Kode (etiketten kan variere med systemversjon). Hold klokkens kode aktiv og aktiver funksjonen igjen når du kan.",
-      "how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/en-us/111819.",
-      "h2when": "Når det gir mening å slå av",
-      "whenBody": "Som midlertidig løsning: en kort stund, i et trygt miljø, med kodeinntasting for Apple Pay og tap av automatisk hjertefrekvenssporing og andre funksjoner. Som langsiktig løsning er det verdt å vurdere alternativene ovenfor — inkludert guiden om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
-      "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
-      "buyLead": "Vil du beholde sikkerheten uten å slå av registreringen? Sensor Tattoo Fix er en selvklebende optisk linse for sensorområdet — i den offisielle butikken (internasjonalt kun den optiske linsen). Resultatene kan variere etter klokke og tatovering.",
-      "faqs": [
-        {
-          "q": "Sletter det å slå av Håndleddsregistrering dataene mine?",
-          "a": "Nei. Den endrer bare hvordan klokken avgjør om den sitter på armen, og hvilke funksjoner knyttet til den registreringen forblir aktive."
-        },
-        {
-          "q": "Fungerer Apple Pay med registreringen avslått?",
-          "a": "Ja: betaling er fortsatt tilgjengelig, men du må taste inn koden når du dobbelttrykker sideknappen for å autorisere."
-        },
-        {
-          "q": "Kan en lys tatovering også forårsake problemet?",
-          "a": "Den forstyrrer vanligvis mindre. Lyse, lite tette pigmenter slipper gjennom mer sensorlys; likevel reagerer hver hud og hvert motiv ulikt."
-        },
-        {
-          "q": "Gjelder dette Samsung, Garmin og andre merker?",
-          "a": "Prinsippet for optiske sensorer er likt, men funksjonsnavn og alternativer endres per modell. Denne guiden handler om Apple Watch."
-        },
-        {
-          "q": "Forstyrrer linsen ladingen?",
-          "a": "Den er laget for ikke å forstyrre induktiv lading. Bruk anbefalt lader for din modell og vent limets herdetid i manualen før du gjør den våt."
-        }
-      ],
-      "related": [
-        {
-          "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch ber om kode med tatovering"
-        },
-        {
-          "href": "smartwatch-tattoo.html",
-          "text": "Smartklokke leser ikke puls med tatovering"
-        },
-        {
-          "href": "garmin-watch-tattoo.html",
-          "text": "Garmin leser ikke puls med tatovering"
-        },
-        {
-          "href": "index.html#produtos",
-          "text": "Sensor Tattoo Fix-produkter"
-        }
-      ],
-      "finalH2": "Beholde sikkerheten uten å slå av noe?",
-      "finalBody": "Se den optiske linsen i den offisielle butikken. Resultatene kan variere etter klokke og tatovering.",
-      "finalGo": "Gå til kjøp",
-      "finalStore": "Åpne offisiell butikk",
-      "finalProducts": "Se produkter på forsiden",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Håndleddsregistrering"
-    },
-    "fi": {
+"how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/no-no/111819.",
+    "h2when": "Når det gir mening å slå av",
+    "whenBody": "Som midlertidig løsning: en kort stund, i et trygt miljø, med kodeinntasting for Apple Pay og tap av automatisk hjertefrekvenssporing og andre funksjoner. Som langsiktig løsning er det verdt å vurdere alternativene ovenfor — inkludert guiden om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
+    "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
+    "buyLead": "Vil du beholde sikkerheten uten å slå av registreringen? Sensor Tattoo Fix er en selvklebende optisk linse for sensorområdet — i den offisielle butikken (internasjonalt kun den optiske linsen). Resultatene kan variere etter klokke og tatovering.",
+    "faqs": [
+      {
+        "q": "Sletter det å slå av Håndleddsregistrering dataene mine?",
+        "a": "Nei. Den endrer bare hvordan klokken avgjør om den sitter på armen, og hvilke funksjoner knyttet til den registreringen forblir aktive."
+      },
+      {
+        "q": "Fungerer Apple Pay med registreringen avslått?",
+        "a": "Ja: betaling er fortsatt tilgjengelig, men du må taste inn koden når du dobbelttrykker sideknappen for å autorisere."
+      },
+      {
+        "q": "Kan en lys tatovering også forårsake problemet?",
+        "a": "Den forstyrrer vanligvis mindre. Lyse, lite tette pigmenter slipper gjennom mer sensorlys; likevel reagerer hver hud og hvert motiv ulikt."
+      },
+      {
+        "q": "Gjelder dette Samsung, Garmin og andre merker?",
+        "a": "Prinsippet for optiske sensorer er likt, men funksjonsnavn og alternativer endres per modell. Denne guiden handler om Apple Watch."
+      },
+      {
+        "q": "Forstyrrer linsen ladingen?",
+        "a": "Den er laget for ikke å forstyrre induktiv lading. Bruk anbefalt lader for din modell og vent limets herdetid i manualen før du gjør den våt."
+      }
+    ],
+    "related": [
+      {
+        "href": "apple-watch-tattoo.html",
+        "text": "Apple Watch ber om kode med tatovering"
+      },
+      {
+        "href": "smartwatch-tattoo.html",
+        "text": "Smartklokke leser ikke puls med tatovering"
+      },
+      {
+        "href": "garmin-watch-tattoo.html",
+        "text": "Garmin leser ikke puls med tatovering"
+      },
+      {
+        "href": "index.html#produtos",
+        "text": "Sensor Tattoo Fix-produkter"
+      }
+    ],
+    "finalH2": "Beholde sikkerheten uten å slå av noe?",
+    "finalBody": "Se den optiske linsen i den offisielle butikken. Resultatene kan variere etter klokke og tatovering.",
+    "finalGo": "Gå til kjøp",
+    "finalStore": "Åpne offisiell butikk",
+    "finalProducts": "Se produkter på forsiden",
+    "supportUrl": "https://support.apple.com/no-no/111819",
+    "wristFeatureName": "Håndleddsregistrering"
+  },
+  "fi": {
       "title": "Ranteen tunnistus pois tatuoinnin takia? | Sensor Tattoo Fix",
       "description": "Ranteen tunnistuksen sammuttaminen, jotta Apple Watch ei kysy koodia tatuoinnin kanssa, sisältää riskejä. Mitä menetät ja vaihtoehdot.",
       "ogTitle": "Ranteen tunnistus pois tatuoinnin takia: kannattaako?",
@@ -3748,58 +3748,58 @@
       ],
       "h2how": "Miten sammuttaa (jos päätät)",
       "how1": "Apple Watchissa: avaa Asetukset → Pääsykoodi → Ranteen tunnistus ja sammuta. Vahvista koodilla. iPhonessa vastaava polku on Watch-sovelluksessa kohdassa Pääsykoodi (nimi voi vaihdella järjestelmäversion mukaan). Pidä kellon koodi päällä ja ota toiminto uudelleen käyttöön, kun voit.",
-      "how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/en-us/111819.",
-      "h2when": "Milloin sammuttaminen on järkevää",
-      "whenBody": "Tilapäisenä ratkaisuna: lyhyeksi aikaa, turvallisessa ympäristössä, hyväksyen koodin syötön Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkäaikaiseksi ratkaisuksi kannattaa arvioida yllä olevat vaihtoehdot — mukaan lukien opas [[APPLE]]Apple Watchista ja tatuoinneista[[/APPLE]].",
-      "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
-      "buyLead": "Haluatko säilyttää turvallisuuden ilman tunnistuksen sammuttamista? Sensor Tattoo Fix on itseliimautuva optinen linssi sensorialueelle — virallisessa kaupassa (kansainvälisesti vain optinen linssi). Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
-      "faqs": [
-        {
-          "q": "Poistaako Ranteen tunnistuksen sammutus tietoni?",
-          "a": "Ei. Se muuttaa vain sitä, miten kello päättää olevan käsivarressa, ja mitkä tähän tunnistukseen liittyvät toiminnot pysyvät aktiivisina."
-        },
-        {
-          "q": "Toimiiko Apple Pay tunnistuksen ollessa pois päältä?",
-          "a": "Kyllä: maksu on edelleen käytettävissä, mutta koodi on syötettävä, kun painat sivupainiketta kahdesti valtuuttaaksesi."
-        },
-        {
-          "q": "Aiheuttaako myös vaalea tatuointi ongelman?",
-          "a": "Se häiritsee yleensä vähemmän. Vaaleat, harvat pigmentit päästävät enemmän sensorivaloa läpi; silti jokainen iho ja jokainen kuvio reagoi eri tavalla."
-        },
-        {
-          "q": "Koskeeko tämä Samsungia, Garminia ja muita merkkejä?",
-          "a": "Optisten sensoreiden periaate on samankaltainen, mutta toiminnon nimi ja vaihtoehdot vaihtuvat mallin mukaan. Tämä opas käsittelee Apple Watchia."
-        },
-        {
-          "q": "Häiritseekö linssi latausta?",
-          "a": "Se on suunniteltu niin, ettei se häiritse induktiolatausta. Käytä mallillesi suositeltua laturia ja odota liiman kovettumisaikaa ohjeesta ennen kastamista."
-        }
-      ],
-      "related": [
-        {
-          "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch pyytää koodia tatuoinnin kanssa"
-        },
-        {
-          "href": "smartwatch-tattoo.html",
-          "text": "Älykello ei lue sykettä tatuoinnin kanssa"
-        },
-        {
-          "href": "garmin-watch-tattoo.html",
-          "text": "Garmin ei lue sykettä tatuoinnin kanssa"
-        },
-        {
-          "href": "index.html#produtos",
-          "text": "Sensor Tattoo Fix -tuotteet"
-        }
-      ],
-      "finalH2": "Haluatko säilyttää turvallisuuden ilman mitään sammuttamista?",
-      "finalBody": "Tutustu optiseen linssiin virallisessa kaupassa. Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
-      "finalGo": "Siirry ostamaan",
-      "finalStore": "Avaa virallinen kauppa",
-      "finalProducts": "Katso tuotteet etusivulla",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Ranteen tunnistus"
-    }
+"how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/fi-fi/111819.",
+    "h2when": "Milloin sammuttaminen on järkevää",
+    "whenBody": "Tilapäisenä ratkaisuna: lyhyeksi aikaa, turvallisessa ympäristössä, hyväksyen koodin syötön Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkäaikaiseksi ratkaisuksi kannattaa arvioida yllä olevat vaihtoehdot — mukaan lukien opas [[APPLE]]Apple Watchista ja tatuoinneista[[/APPLE]].",
+    "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
+    "buyLead": "Haluatko säilyttää turvallisuuden ilman tunnistuksen sammuttamista? Sensor Tattoo Fix on itseliimautuva optinen linssi sensorialueelle — virallisessa kaupassa (kansainvälisesti vain optinen linssi). Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
+    "faqs": [
+      {
+        "q": "Poistaako Ranteen tunnistuksen sammutus tietoni?",
+        "a": "Ei. Se muuttaa vain sitä, miten kello päättää olevan käsivarressa, ja mitkä tähän tunnistukseen liittyvät toiminnot pysyvät aktiivisina."
+      },
+      {
+        "q": "Toimiiko Apple Pay tunnistuksen ollessa pois päältä?",
+        "a": "Kyllä: maksu on edelleen käytettävissä, mutta koodi on syötettävä, kun painat sivupainiketta kahdesti valtuuttaaksesi."
+      },
+      {
+        "q": "Aiheuttaako myös vaalea tatuointi ongelman?",
+        "a": "Se häiritsee yleensä vähemmän. Vaaleat, harvat pigmentit päästävät enemmän sensorivaloa läpi; silti jokainen iho ja jokainen kuvio reagoi eri tavalla."
+      },
+      {
+        "q": "Koskeeko tämä Samsungia, Garminia ja muita merkkejä?",
+        "a": "Optisten sensoreiden periaate on samankaltainen, mutta toiminnon nimi ja vaihtoehdot vaihtuvat mallin mukaan. Tämä opas käsittelee Apple Watchia."
+      },
+      {
+        "q": "Häiritseekö linssi latausta?",
+        "a": "Se on suunniteltu niin, ettei se häiritse induktiolatausta. Käytä mallillesi suositeltua laturia ja odota liiman kovettumisaikaa ohjeesta ennen kastamista."
+      }
+    ],
+    "related": [
+      {
+        "href": "apple-watch-tattoo.html",
+        "text": "Apple Watch pyytää koodia tatuoinnin kanssa"
+      },
+      {
+        "href": "smartwatch-tattoo.html",
+        "text": "Älykello ei lue sykettä tatuoinnin kanssa"
+      },
+      {
+        "href": "garmin-watch-tattoo.html",
+        "text": "Garmin ei lue sykettä tatuoinnin kanssa"
+      },
+      {
+        "href": "index.html#produtos",
+        "text": "Sensor Tattoo Fix -tuotteet"
+      }
+    ],
+    "finalH2": "Haluatko säilyttää turvallisuuden ilman mitään sammuttamista?",
+    "finalBody": "Tutustu optiseen linssiin virallisessa kaupassa. Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
+    "finalGo": "Siirry ostamaan",
+    "finalStore": "Avaa virallinen kauppa",
+    "finalProducts": "Katso tuotteet etusivulla",
+    "supportUrl": "https://support.apple.com/fi-fi/111819",
+    "wristFeatureName": "Ranteen tunnistus"
   }
+}
 }

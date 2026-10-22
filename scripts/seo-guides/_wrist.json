@@ -963,7 +963,7 @@
     ],
     "h2how": "Hur du stänger av den (om du bestämmer dig)",
     "how1": "På Apple Watch: öppna Inställningar → Lösenkod → Handledsigenkänning och stäng av. Bekräfta med koden. På iPhone finns motsvarande väg i Watch-appen under Lösenkod (etiketten kan variera med systemversion). Behåll klockans lösenkod aktiv och aktivera funktionen igen när du kan.",
-    "how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/en-us/111819.",
+    "how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/sv-se/111819.",
     "h2when": "När det är rimligt att stänga av",
     "whenBody": "Som tillfällig lösning: en kort tid, i en säker miljö, med kodinmatning för Apple Pay och förlust av automatisk hjärtfrekvensspårning och andra funktioner. Som långsiktig lösning är det värt att utvärdera alternativen ovan — inklusive guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
     "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
@@ -1013,7 +1013,7 @@
     "finalGo": "Gå till köpstället",
     "finalStore": "Öppna officiell butik",
     "finalProducts": "Se produkter på startsidan",
-    "supportUrl": "https://support.apple.com/en-us/111819",
+    "supportUrl": "https://support.apple.com/sv-se/111819",
     "wristFeatureName": "Handledsigenkänning"
   },
   "no": {
@@ -1026,7 +1026,7 @@
     "h2why": "Hvorfor klokken ber om kode med tatovering",
     "whyBody": "Når håndleddsregistrering feiler, kan Apple Watch behandle enheten som tatt av håndleddet og be om koden igjen. Detaljer og symptomer finnes i guiden [[APPLE]]Apple Watch ber om kode med tatovering[[/APPLE]].",
     "h2what": "Hva Håndleddsregistrering gjør",
-    "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]Hvis Apple Watch låses uventet[[/SUPPORT]].",
+    "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]Hvis Apple Watch låser seg uventet[[/SUPPORT]].",
     "h2lose": "Hva du mister når du slår den av",
     "loseIntro": "Ifølge Apple-kundestøtte mister du blant annet følgende når du slår av Håndleddsregistrering:",
     "loseItems": [
@@ -1076,7 +1076,7 @@
     ],
     "h2how": "Hvordan slå den av (hvis du bestemmer deg)",
     "how1": "På Apple Watch: åpne Innstillinger → Kode → Håndleddsregistrering og slå av. Bekreft med koden. På iPhone er tilsvarende sti i Watch-appen under Kode (etiketten kan variere med systemversjon). Hold klokkens kode aktiv og aktiver funksjonen igjen når du kan.",
-    "how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/en-us/111819.",
+    "how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/no-no/111819.",
     "h2when": "Når det gir mening å slå av",
     "whenBody": "Som midlertidig løsning: en kort stund, i et trygt miljø, med kodeinntasting for Apple Pay og tap av automatisk hjertefrekvenssporing og andre funksjoner. Som langsiktig løsning er det verdt å vurdere alternativene ovenfor — inkludert guiden om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
     "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
@@ -1126,7 +1126,7 @@
     "finalGo": "Gå til kjøp",
     "finalStore": "Åpne offisiell butikk",
     "finalProducts": "Se produkter på forsiden",
-    "supportUrl": "https://support.apple.com/en-us/111819",
+    "supportUrl": "https://support.apple.com/no-no/111819",
     "wristFeatureName": "Håndleddsregistrering"
   },
   "fi": {
@@ -1189,7 +1189,7 @@
     ],
     "h2how": "Miten sammuttaa (jos päätät)",
     "how1": "Apple Watchissa: avaa Asetukset → Pääsykoodi → Ranteen tunnistus ja sammuta. Vahvista koodilla. iPhonessa vastaava polku on Watch-sovelluksessa kohdassa Pääsykoodi (nimi voi vaihdella järjestelmäversion mukaan). Pidä kellon koodi päällä ja ota toiminto uudelleen käyttöön, kun voit.",
-    "how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/en-us/111819.",
+    "how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/fi-fi/111819.",
     "h2when": "Milloin sammuttaminen on järkevää",
     "whenBody": "Tilapäisenä ratkaisuna: lyhyeksi aikaa, turvallisessa ympäristössä, hyväksyen koodin syötön Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkäaikaiseksi ratkaisuksi kannattaa arvioida yllä olevat vaihtoehdot — mukaan lukien opas [[APPLE]]Apple Watchista ja tatuoinneista[[/APPLE]].",
     "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
@@ -1239,7 +1239,7 @@
     "finalGo": "Siirry ostamaan",
     "finalStore": "Avaa virallinen kauppa",
     "finalProducts": "Katso tuotteet etusivulla",
-    "supportUrl": "https://support.apple.com/en-us/111819",
+    "supportUrl": "https://support.apple.com/fi-fi/111819",
     "wristFeatureName": "Ranteen tunnistus"
   }
 }
