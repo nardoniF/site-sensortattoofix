@@ -30,8 +30,8 @@
       "relatedAria": "Articoli correlati",
       "nextStep": "Prossimo passo",
       "nextStepBody": "Conferma la misura del sensore nel negozio ufficiale, poi completa l'acquisto con spedizione tracciata. Il blocco acquisto è sopra.",
-      "goBuy": "Vai a dove acquistare",
-      "breadcrumb": "Breadcrumb"
+      "goBuy": "Vai alla sezione Dove acquistare",
+      "breadcrumb": "Percorso di navigazione"
     },
     "de": {
       "langHtml": "de",
@@ -63,8 +63,8 @@
       "relatedAria": "Verwandte Artikel",
       "nextStep": "Nächster Schritt",
       "nextStepBody": "Bestätigen Sie die Sensorgröße im offiziellen Shop und schließen Sie den Kauf mit Sendungsverfolgung ab. Der Kaufblock steht oben.",
-      "goBuy": "Zu Wo kaufen",
-      "breadcrumb": "Brotkrumen"
+      "goBuy": "Zum Kaufbereich",
+      "breadcrumb": "Navigationspfad"
     },
     "es": {
       "langHtml": "es",
@@ -96,8 +96,8 @@
       "relatedAria": "Artículos relacionados",
       "nextStep": "Siguiente paso",
       "nextStepBody": "Confirma el tamaño del sensor en la tienda oficial y completa la compra con envío con seguimiento. El bloque de compra está arriba.",
-      "goBuy": "Ir a dónde comprar",
-      "breadcrumb": "Migas de pan"
+      "goBuy": "Ir a la sección Dónde comprar",
+      "breadcrumb": "Ruta de navegación"
     },
     "pl": {
       "langHtml": "pl",
@@ -112,9 +112,9 @@
       "home": "Start",
       "articles": "Artykuły",
       "kicker": "Przewodnik Sensor Tattoo Fix",
-      "ctaBuy": "Zobacz gdzie kupić",
+      "ctaBuy": "Zobacz, gdzie kupić",
       "ctaStore": "Otwórz oficjalny sklep",
-      "imgAlt": "Nakładanie soczewki Sensor Tattoo Fix na sensor z tyłu smartwatcha",
+      "imgAlt": "Nakładanie soczewki Sensor Tattoo Fix na czujnik z tyłu smartwatcha",
       "whereToBuy": "Gdzie kupić",
       "buyH2": "Kup soczewkę optyczną Sensor Tattoo Fix",
       "buyLead": "Tylko oficjalny sklep — PayPal, karta i śledzona wysyłka. Oferta międzynarodowa to soczewka optyczna (bez akcesoriów brazylijskiego zestawu).",
@@ -128,9 +128,9 @@
       "alsoRead": "Czytaj też",
       "relatedAria": "Powiązane artykuły",
       "nextStep": "Następny krok",
-      "nextStepBody": "Potwierdź rozmiar sensora w oficjalnym sklepie, a następnie dokończ zakup ze śledzoną wysyłką. Blok zakupu jest powyżej.",
-      "goBuy": "Przejdź do gdzie kupić",
-      "breadcrumb": "Okruszki"
+      "nextStepBody": "Potwierdź rozmiar czujnika w oficjalnym sklepie, a następnie dokończ zakup ze śledzoną wysyłką. Blok zakupu jest powyżej.",
+      "goBuy": "Przejdź do strony zakupu",
+      "breadcrumb": "Ścieżka nawigacji"
     },
     "sl": {
       "langHtml": "sl",
@@ -145,7 +145,7 @@
       "home": "Domov",
       "articles": "Članki",
       "kicker": "Vodič Sensor Tattoo Fix",
-      "ctaBuy": "Poglej kje kupiti",
+      "ctaBuy": "Oglejte si, kje kupiti",
       "ctaStore": "Odpri uradno trgovino",
       "imgAlt": "Nameščanje leče Sensor Tattoo Fix na senzor na hrbtni strani pametne ure",
       "whereToBuy": "Kje kupiti",
@@ -162,8 +162,8 @@
       "relatedAria": "Povezani članki",
       "nextStep": "Naslednji korak",
       "nextStepBody": "Potrdite velikost senzorja v uradni trgovini in zaključite nakup s sledljivo dostavo. Blok nakupa je zgoraj.",
-      "goBuy": "Pojdi na kje kupiti",
-      "breadcrumb": "Drobtine"
+      "goBuy": "Pojdi na stran za nakup",
+      "breadcrumb": "Navigacijska pot"
     },
     "fr": {
       "langHtml": "fr",
@@ -195,7 +195,7 @@
       "relatedAria": "Articles associés",
       "nextStep": "Étape suivante",
       "nextStepBody": "Confirmez la taille du capteur dans la boutique officielle, puis finalisez l'achat avec livraison suivie. Le bloc d'achat est ci-dessus.",
-      "goBuy": "Aller à où acheter",
+      "goBuy": "Aller à la section Où acheter",
       "breadcrumb": "Fil d'Ariane"
     },
     "nl": {
@@ -228,8 +228,8 @@
       "relatedAria": "Gerelateerde artikelen",
       "nextStep": "Volgende stap",
       "nextStepBody": "Bevestig je sensorgrootte in de officiële winkel en rond af met getraceerde verzending. Het koopblok staat hierboven.",
-      "goBuy": "Ga naar waar te kopen",
-      "breadcrumb": "Broodkruimels"
+      "goBuy": "Naar aankoop",
+      "breadcrumb": "Kruimelpad"
     },
     "sv": {
       "langHtml": "sv",
@@ -261,8 +261,8 @@
       "relatedAria": "Relaterade artiklar",
       "nextStep": "Nästa steg",
       "nextStepBody": "Bekräfta sensorns storlek i den officiella butiken och slutför köpet med spårbar frakt. Köpet finns ovan.",
-      "goBuy": "Gå till var du kan köpa",
-      "breadcrumb": "Brödsmulor"
+      "goBuy": "Gå till köpstället",
+      "breadcrumb": "Navigeringssökväg"
     },
     "no": {
       "langHtml": "no",
@@ -294,8 +294,8 @@
       "relatedAria": "Relaterte artikler",
       "nextStep": "Neste steg",
       "nextStepBody": "Bekreft sensorstørrelsen i den offisielle butikken, og fullfør kjøpet med sporet frakt. Kjøpsblokken er ovenfor.",
-      "goBuy": "Gå til hvor du kan kjøpe",
-      "breadcrumb": "Brødsmuler"
+      "goBuy": "Gå til kjøp",
+      "breadcrumb": "Navigasjonssti"
     },
     "fi": {
       "langHtml": "fi",
@@ -338,13 +338,13 @@
       "ogTitle": "Lo smartwatch non legge il battito sulla pelle tatuata?",
       "crumb": "Smartwatch + tatuaggio",
       "headline": "Lo smartwatch non legge il battito sulla pelle tatuata?",
-      "lead": "Se l'orologio perde i dati del polso, mostra picchi strani di frequenza cardiaca o mette in pausa gli allenamenti sul polso tatuato, l'inchiostro sotto il sensore ottico può far parte della storia — insieme a vestibilità, movimento e contatto con la pelle.",
+      "lead": "Se l'orologio perde i dati del polso, mostra picchi strani di frequenza cardiaca o mette in pausa gli allenamenti sul polso tatuato, l'inchiostro sotto il sensore ottico può far parte della causa — insieme a vestibilità, movimento e contatto con la pelle.",
       "h2symptoms": "Sintomi tra le marche",
-      "symptomsIntro": "Su molti wearable ottici (Apple Watch, Samsung, Garmin e altri), le persone notano spesso:",
+      "symptomsIntro": "Su molti smartwatch ottici (Apple Watch, Samsung, Garmin e altri), le persone notano spesso:",
       "symptoms": [
         "Lacune, picchi o letture instabili della frequenza cardiaca",
         "Allenamenti che si interrompono o perdono il polso a metà sessione",
-        "Avvisi ripetuti di fuori polso o richieste di sblocco",
+        "Avvisi ripetuti di polso non rilevato o richieste di sblocco",
         "Metriche di sonno, SpO₂ o stress meno stabili del previsto"
       ],
       "symptomsNote": "Non ogni sintomo dipende dal tatuaggio. Un cinturino troppo largo o troppo stretto, il movimento intenso, il sudore e un contatto scarso contano. Controlla se i problemi si concentrano dove l'inchiostro sta sotto il sensore.",
@@ -412,14 +412,14 @@
       "headline": "Smartwatch liest keinen Puls auf tätowierter Haut?",
       "lead": "Wenn Ihre Uhr Pulsdaten verliert, merkwürdige Herzfrequenz-Spitzen zeigt oder Workouts am tätowierten Handgelenk pausiert, kann Tinte unter dem optischen Sensor Teil der Ursache sein — zusammen mit Sitz, Bewegung und Hautkontakt.",
       "h2symptoms": "Symptome über Marken hinweg",
-      "symptomsIntro": "Bei vielen optischen Wearables (Apple Watch, Samsung, Garmin und andere) bemerken Nutzer oft:",
+      "symptomsIntro": "Bei vielen optischen Armbanduhren (Apple Watch, Samsung, Garmin und andere) bemerken Nutzer oft:",
       "symptoms": [
         "Lücken, Spitzen oder instabile Herzfrequenzwerte",
         "Workouts, die pausieren oder mitten in der Einheit den Puls verlieren",
-        "Wiederholte Off-Wrist-Meldungen oder Entsperrungsaufforderungen",
+        "Wiederholte Meldungen „nicht am Handgelenk“ oder Entsperrungsaufforderungen",
         "Schlaf-, SpO₂- oder Stresswerte, die weniger stabil wirken als erwartet"
       ],
-      "symptomsNote": "Nicht jedes Symptom kommt vom Tattoo. Ein zu lockeres oder zu enges Band, starke Bewegung, Schweiß und schlechter Kontakt zählen auch. Prüfen Sie, ob Probleme dort häufen, wo Tinte unter dem Sensor liegt.",
+      "symptomsNote": "Nicht jedes Symptom kommt von der Tätowierung. Ein zu lockeres oder zu enges Band, starke Bewegung, Schweiß und schlechter Kontakt zählen auch. Prüfen Sie, ob Probleme sich dort häufen, wo Tinte unter dem Sensor liegt.",
       "h2why": "Warum ein Tattoo stören kann",
       "why1": "Optische Handgelenksensoren nutzen Licht und Detektoren, um Herzfrequenz und verwandte Werte zu schätzen. Tattoo-Pigment kann ändern, wie viel Licht zum Sensor zurückkehrt — besonders dichtes dunkles Ink direkt unter der Uhr.",
       "why2": "Das bedeutet nicht, dass jedes Tattoo ausfällt oder dass Apple, Samsung, Garmin und andere Marken gleich reagieren. Bandsitz, Bewegung, Schweiß und ungleichmäßiger Hautkontakt können ebenfalls stören.",
@@ -430,7 +430,7 @@
       "compat1": "Die Optiklinse wird nach Sensor-Durchmesser / Geometrie Ihrer Uhr gewählt — nicht allein nach Markenname. Im offiziellen Shop wählen Sie die Option zu Ihrem Modell. Bei Unsicherheit das Modell vor dem Kauf bestätigen.",
       "compatLink": "Shop öffnen und Größe wählen",
       "h2apply": "Anwendung und Erwartungen",
-      "apply1": "Internationale Bestellungen gelten für die Sensor Tattoo Fix Optiklinse. Folgen Sie den Anwendungshinweisen mit Ihrer Bestellung und auf der Produktseite. Wasserfestigkeit, Haftung oder Haltbarkeit nicht über die Angaben im offiziellen Listing hinaus annehmen.",
+      "apply1": "Internationale Bestellungen gelten für die Sensor Tattoo Fix Optiklinse. Folgen Sie den Anwendungshinweisen mit Ihrer Bestellung und auf der Produktseite. Wasserfestigkeit, Haftung oder Haltbarkeit nicht über die Angaben in der offiziellen Produktbeschreibung hinaus annehmen.",
       "faqs": [
         {
           "q": "Wie kann ein Tattoo eine Smartwatch beeinflussen?",
@@ -482,9 +482,9 @@
       "ogTitle": "¿El smartwatch no lee el pulso en piel tatuada?",
       "crumb": "Smartwatch + tatuaje",
       "headline": "¿El smartwatch no lee el pulso en piel tatuada?",
-      "lead": "Si el reloj pierde datos de pulso, muestra picos raros de frecuencia cardíaca o pausa entrenamientos en la muñeca tatuada, la tinta bajo el sensor óptico puede ser parte de la historia — junto con el ajuste, el movimiento y el contacto con la piel.",
+      "lead": "Si el reloj pierde datos de pulso, muestra picos raros de frecuencia cardíaca o pausa entrenamientos en la muñeca tatuada, la tinta bajo el sensor óptico puede ser parte de la causa — junto con el ajuste, el movimiento y el contacto con la piel.",
       "h2symptoms": "Síntomas en distintas marcas",
-      "symptomsIntro": "En muchos wearables ópticos (Apple Watch, Samsung, Garmin y otros), la gente suele notar:",
+      "symptomsIntro": "En muchos relojes inteligentes ópticos (Apple Watch, Samsung, Garmin y otros), la gente suele notar:",
       "symptoms": [
         "Huecos, picos o lecturas inestables de frecuencia cardíaca",
         "Entrenamientos que se pausan o pierden el pulso a mitad de sesión",
@@ -550,47 +550,47 @@
     },
     "pl": {
       "title": "Tętno smartwatcha i tatuaż | Sensor Tattoo Fix",
-      "description": "Smartwatch nie czyta tętna lub przerywa trening na tatuażu? Zobacz, jak atrament wpływa na sensor optyczny i soczewkę Sensor Tattoo Fix.",
+      "description": "Smartwatch nie czyta tętna lub przerywa trening na skórze z tatuażem? Zobacz, jak tusz wpływa na czujnik optyczny i soczewkę Sensor Tattoo Fix.",
       "ogTitle": "Smartwatch nie czyta tętna na skórze z tatuażem?",
       "crumb": "Smartwatch + tatuaż",
       "headline": "Smartwatch nie czyta tętna na skórze z tatuażem?",
-      "lead": "Jeśli zegarek gubi dane tętna, pokazuje dziwne skoki lub pauzuje treningi na tatuażowanym nadgarstku, atrament pod sensorem optycznym może być częścią historii — wraz z dopasowaniem, ruchem i kontaktem ze skórą.",
+      "lead": "Jeśli zegarek gubi dane tętna, pokazuje dziwne skoki lub wstrzymuje treningi na tatuowanym nadgarstku, tusz pod czujnikiem optycznym może być częścią przyczyny — wraz z dopasowaniem, ruchem i kontaktem ze skórą.",
       "h2symptoms": "Objawy w różnych markach",
-      "symptomsIntro": "W wielu optycznych wearables (Apple Watch, Samsung, Garmin i inne) ludzie często zauważają:",
+      "symptomsIntro": "W wielu optycznych urządzeniach noszonych (Apple Watch, Samsung, Garmin i inne) ludzie często zauważają:",
       "symptoms": [
         "Luki, skoki lub niestabilne odczyty tętna",
         "Treningi, które pauzują lub tracą tętno w trakcie sesji",
-        "Powtarzające się alerty poza nadgarstkiem lub prośby o odblokowanie",
+        "Powtarzające się alerty o zdjęciu z nadgarstka lub prośby o odblokowanie",
         "Metryki snu, SpO₂ lub stresu mniej stabilne niż oczekiwano"
       ],
-      "symptomsNote": "Nie każdy objaw pochodzi od tatuażu. Luźny lub zbyt ciasny pasek, intensywny ruch, pot i słaby kontakt też mają znaczenie. Sprawdź, czy problemy skupiają się tam, gdzie atrament jest pod sensorem.",
+      "symptomsNote": "Nie każdy objaw pochodzi od tatuażu. Luźny lub zbyt ciasny pasek, intensywny ruch, pot i słaby kontakt też mają znaczenie. Sprawdź, czy problemy skupiają się tam, gdzie tusz jest pod czujnikiem.",
       "h2why": "Dlaczego tatuaż może przeszkadzać",
-      "why1": "Optyczne sensory nadgarstka używają światła i detektorów do szacowania tętna i powiązanych metryk. Pigment tatuażu może zmienić, ile światła wraca do sensora — zwłaszcza gęsty ciemny atrament bezpośrednio pod zegarkiem.",
+      "why1": "Optyczne czujniki nadgarstka używają światła i detektorów do szacowania tętna i powiązanych metryk. Pigment tatuażu może zmienić, ile światła wraca do czujnika — zwłaszcza gęsty ciemny tusz bezpośrednio pod zegarkiem.",
       "why2": "To nie znaczy, że każdy tatuaż powoduje awarię, ani że Apple, Samsung, Garmin i inne marki reagują tak samo. Dopasowanie paska, ruch, pot i nierówny kontakt też mogą przeszkadzać.",
       "h2lens": "Soczewka Sensor Tattoo Fix",
-      "lens1": "Sensor Tattoo Fix to soczewka / interfejs optyczny w obszarze sensora, pomagająca poprawić warunki odczytu na skórze z tatuażem. Nie usuwa tatuażu i nie zastępuje zegarka.",
-      "lens2": "Wyniki zależą od modelu, atramentu, dopasowania i innych czynników. Nie ma gwarancji, że każdy odczyt wróci w każdym przypadku.",
+      "lens1": "Sensor Tattoo Fix to soczewka / interfejs optyczny w obszarze czujnika, pomagająca poprawić warunki odczytu na skórze z tatuażem. Nie usuwa tatuażu i nie zastępuje zegarka.",
+      "lens2": "Wyniki zależą od modelu, tuszu, dopasowania i innych czynników. Nie ma gwarancji, że każdy odczyt wróci w każdym przypadku.",
       "h2compat": "Kompatybilność",
-      "compat1": "Soczewkę optyczną wybiera się według średnicy / geometrii sensora zegarka — nie tylko nazwy marki. W oficjalnym sklepie wybierz opcję swojego modelu. Jeśli nie jesteś pewien, potwierdź model przed zakupem.",
+      "compat1": "Soczewkę optyczną wybiera się według średnicy / geometrii czujnika zegarka — nie tylko nazwy marki. W oficjalnym sklepie wybierz opcję swojego modelu. Jeśli nie jesteś pewien, potwierdź model przed zakupem.",
       "compatLink": "Otwórz sklep, aby wybrać rozmiar",
-      "h2apply": "Aplikacja i czego oczekiwać",
+      "h2apply": "Zakładanie i czego oczekiwać",
       "apply1": "Zamówienia międzynarodowe dotyczą soczewki optycznej Sensor Tattoo Fix. Postępuj zgodnie z instrukcją dołączoną do zamówienia i na stronie produktu. Nie zakładaj wodoodporności, przyczepności ani trwałości poza oficjalnym opisem.",
       "faqs": [
         {
           "q": "Jak tatuaż może wpływać na smartwatch?",
-          "a": "Pigment może pochłaniać lub zmieniać światło sensora optycznego. Gęsty ciemny atrament pod LED-ami to częsty scenariusz zakłóceń — ale nie każdy tatuaż powoduje problemy."
+          "a": "Pigment może pochłaniać lub zmieniać światło czujnika optycznego. Gęsty ciemny tusz pod LED-ami to częsty scenariusz zakłóceń — ale nie każdy tatuaż powoduje problemy."
         },
         {
           "q": "Czy soczewka działa na każdym modelu?",
-          "a": "Nie deklarujemy uniwersalnej kompatybilności. Rozmiar zależy od średnicy i geometrii sensora. Użyj opcji produktu w oficjalnym sklepie."
+          "a": "Nie deklarujemy uniwersalnej kompatybilności. Rozmiar zależy od średnicy i geometrii czujnika. Użyj opcji produktu w oficjalnym sklepie."
         },
         {
           "q": "Jak potwierdzić kompatybilność?",
-          "a": "Zidentyfikuj model zegarka i wybierz pasującą opcję w sklepie. Jeśli nie jesteś pewien, potwierdź model przed checkoutem."
+          "a": "Sprawdź model zegarka i wybierz pasującą opcję w sklepie. Jeśli nie jesteś pewien, potwierdź model przed finalizacją zakupu."
         },
         {
           "q": "Jak założyć soczewkę?",
-          "a": "Postępuj zgodnie z instrukcją dołączoną do zamówienia i stroną produktu. Soczewka siedzi w obszarze sensora; większość osób zachowuje oryginalny pasek."
+          "a": "Postępuj zgodnie z instrukcją dołączoną do zamówienia i stroną produktu. Soczewka umieszczana jest w obszarze czujnika; większość osób zachowuje oryginalny pasek."
         },
         {
           "q": "Czy odczyty mogą nadal zawodzić z innych powodów?",
@@ -598,7 +598,7 @@
         },
         {
           "q": "Gdzie kupić właściwą soczewkę?",
-          "a": "Przez blok oficjalnego sklepu na tej stronie (oferta międzynarodowa to soczewka optyczna ze śledzoną wysyłką przy checkout)."
+          "a": "Przez blok oficjalnego sklepu na tej stronie (oferta międzynarodowa to soczewka optyczna ze śledzoną wysyłką przy kasie)."
         }
       ],
       "related": [
@@ -621,26 +621,26 @@
       ]
     },
     "sl": {
-      "title": "Srčni utrip pametne ure in tattoo | Sensor Tattoo Fix",
+      "title": "Srčni utrip pametne ure in tetovaža | Sensor Tattoo Fix",
       "description": "Pametna ura ne bere utripa ali prekine vadbo na tetovirani koži? Izvedite, kako črnilo vpliva na optični senzor in lečo Sensor Tattoo Fix.",
       "ogTitle": "Pametna ura ne bere utripa na tetovirani koži?",
-      "crumb": "Smartwatch + tattoo",
+      "crumb": "Pametna ura + tetovaža",
       "headline": "Pametna ura ne bere utripa na tetovirani koži?",
-      "lead": "Če ura izgubi podatke o utripu, pokaže nenavadne vrhove srčnega utripa ali prekine vadbe na tetoviranem zapestju, je lahko črnilo pod optičnim senzorjem del zgodbe — skupaj s prileganjem, gibanjem in stikom s kožo.",
+      "lead": "Če ura izgubi podatke o utripu, pokaže nenavadne vrhove srčnega utripa ali prekine vadbe na tetoviranem zapestju, je lahko črnilo pod optičnim senzorjem del vzroka — skupaj s prileganjem, gibanjem in stikom s kožo.",
       "h2symptoms": "Simptomi pri različnih znamkah",
-      "symptomsIntro": "Pri številnih optičnih wearables (Apple Watch, Samsung, Garmin in drugih) ljudje pogosto opazijo:",
+      "symptomsIntro": "Pri številnih optičnih nosljivih napravah (Apple Watch, Samsung, Garmin in drugih) ljudje pogosto opazijo:",
       "symptoms": [
-        "Vrzeli, vrhove ali nestabilne odčitke srčnega utripa",
+        "Vrzeli, vrhovi ali nestabilni odčitki srčnega utripa",
         "Vadbe, ki se ustavijo ali sredi seje izgubijo utrip",
-        "Ponavljajoča se opozorila o zapestju ali zahteve za odklep",
+        "Ponavljajoča se opozorila, da ura ni na zapestju, ali zahteve za odklep",
         "Metrike spanja, SpO₂ ali stresa, ki so manj stabilne od pričakovanega"
       ],
-      "symptomsNote": "Vsak simptom ne izhaja iz tattooja. Preveč ohlapen ali pretesen pašček, intenzivno gibanje, znoj in slab stik tudi štejejo. Preverite, ali se težave kopičijo tam, kjer je črnilo pod senzorjem.",
-      "h2why": "Zakaj tattoo lahko moti",
-      "why1": "Optični senzorji na zapestju uporabljajo svetlobo in detektorje za oceno srčnega utripa in povezanih metrik. Pigment tattooja lahko spremeni, koliko svetlobe se vrne k senzorju — zlasti gosto temno črnilo neposredno pod uro.",
-      "why2": "To ne pomeni, da vsak tattoo povzroči napako, niti da Apple, Samsung, Garmin in druge znamke reagirajo enako. Prileganje paščka, gibanje, znoj in neenakomeren stik lahko tudi motijo.",
+      "symptomsNote": "Ni vsak simptom posledica tetovaže. Preveč ohlapen ali pretesen pašček, intenzivno gibanje, znoj in slab stik tudi štejejo. Preverite, ali se težave kopičijo tam, kjer je črnilo pod senzorjem.",
+      "h2why": "Zakaj tetovaža lahko moti",
+      "why1": "Optični senzorji na zapestju uporabljajo svetlobo in detektorje za oceno srčnega utripa in povezanih metrik. Pigment tetovaže lahko spremeni, koliko svetlobe se vrne k senzorju — zlasti gosto temno črnilo neposredno pod uro.",
+      "why2": "To ne pomeni, da vsak tetovaža povzroči napako, niti da Apple, Samsung, Garmin in druge znamke reagirajo enako. Prileganje paščka, gibanje, znoj in neenakomeren stik lahko tudi motijo.",
       "h2lens": "Leča Sensor Tattoo Fix",
-      "lens1": "Sensor Tattoo Fix je optična leča / vmesnik na območju senzorja, ki pomaga izboljšati pogoje branja na tetovirani koži. Ne odstrani tattooja in ne nadomesti ure.",
+      "lens1": "Sensor Tattoo Fix je optična leča / vmesnik na območju senzorja, ki pomaga izboljšati pogoje branja na tetovirani koži. Ne odstrani tetovaže in ne nadomesti ure.",
       "lens2": "Rezultati se razlikujejo glede na model, črnilo, prileganje in druge dejavnike. Ni jamstva, da se bo vsak odčitek v vsakem primeru povrnil.",
       "h2compat": "Združljivost",
       "compat1": "Optična leča se izbere po premeru / geometriji senzorja vaše ure — ne le po imenu znamke. V uradni trgovini izberite možnost za svoj model. Če niste prepričani, pred nakupom potrdite model.",
@@ -649,8 +649,8 @@
       "apply1": "Mednarodna naročila veljajo za optično lečo Sensor Tattoo Fix. Sledite navodilom za namestitev, priloženim naročilu in na strani izdelka. Ne predvidevajte vodoodpornosti, oprijema ali trajnosti onkraj uradnega opisa.",
       "faqs": [
         {
-          "q": "Kako lahko tattoo vpliva na pametno uro?",
-          "a": "Pigment lahko absorbira ali spremeni svetlobo optičnega senzorja. Gosto temno črnilo pod LED-i je pogost scenarij motenj — a ne vsak tattoo povzroča težave."
+          "q": "Kako lahko tetovaža vpliva na pametno uro?",
+          "a": "Pigment lahko absorbira ali spremeni svetlobo optičnega senzorja. Gosto temno črnilo pod LED-i je pogost scenarij motenj — a ne vsak tetovaža povzroča težave."
         },
         {
           "q": "Ali leča deluje na vsakem modelu?",
@@ -662,7 +662,7 @@
         },
         {
           "q": "Kako namestim lečo?",
-          "a": "Sledite navodilom, ki pridejo z naročilom, in strani izdelka. Leča sedi na območju senzorja; večina ohrani originalni pašček."
+          "a": "Sledite navodilom, ki pridejo z naročilom, in strani izdelka. Leča se namesti na območje senzorja; večina ohrani originalni pašček."
         },
         {
           "q": "Ali lahko odčitki še vedno odpovejo iz drugih razlogov?",
@@ -675,12 +675,12 @@
       ],
       "related": [
         {
-          "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch + tattoo: geslo in utrip"
+          "href": "apple-watch-tetovaža.html",
+          "text": "Apple Watch + tetovaža: geslo in utrip"
         },
         {
-          "href": "garmin-watch-tattoo.html",
-          "text": "Garmin + tattoo: utrip in trening"
+          "href": "garmin-watch-tetovaža.html",
+          "text": "Garmin + tetovaža: utrip in trening"
         },
         {
           "href": "comunidade.html",
@@ -698,13 +698,13 @@
       "ogTitle": "La smartwatch ne lit pas le pouls sur peau tatouée ?",
       "crumb": "Smartwatch + tatouage",
       "headline": "La smartwatch ne lit pas le pouls sur peau tatouée ?",
-      "lead": "Si votre montre perd les données de pouls, affiche des pics étranges de fréquence cardiaque ou met en pause les séances sur un poignet tatoué, l'encre sous le capteur optique peut faire partie de l'histoire — avec l'ajustement, le mouvement et le contact cutané.",
+      "lead": "Si votre montre perd les données de pouls, affiche des pics étranges de fréquence cardiaque ou met en pause les séances sur un poignet tatoué, l'encre sous le capteur optique peut en être une cause — avec l'ajustement, le mouvement et le contact cutané.",
       "h2symptoms": "Symptômes selon les marques",
-      "symptomsIntro": "Sur de nombreux wearables optiques (Apple Watch, Samsung, Garmin et autres), on remarque souvent :",
+      "symptomsIntro": "Sur de nombreuses montres connectées à capteur optique (Apple Watch, Samsung, Garmin et autres), on remarque souvent :",
       "symptoms": [
         "Trous, pics ou lectures instables de fréquence cardiaque",
         "Séances qui se mettent en pause ou perdent le pouls en cours",
-        "Alertes hors poignet ou demandes de déverrouillage répétées",
+        "Alertes absente du poignet ou demandes de déverrouillage répétées",
         "Mesures de sommeil, SpO₂ ou stress moins stables que prévu"
       ],
       "symptomsNote": "Tout symptôme ne vient pas du tatouage. Un bracelet trop lâche ou trop serré, un mouvement intense, la sueur et un mauvais contact comptent aussi. Vérifiez si les problèmes se concentrent là où l'encre est sous le capteur.",
@@ -772,11 +772,11 @@
       "headline": "Smartwatch leest geen hartslag op getatoeëerde huid?",
       "lead": "Als je horloge polsslagdata verliest, rare hartslagpieken toont of workouts pauzeert op een getatoeëerde pols, kan inkt onder de optische sensor deel van het verhaal zijn — samen met pasvorm, beweging en huidcontact.",
       "h2symptoms": "Symptomen bij verschillende merken",
-      "symptomsIntro": "Op veel optische wearables (Apple Watch, Samsung, Garmin en andere) merken mensen vaak:",
+      "symptomsIntro": "Op veel optische smartwatches (Apple Watch, Samsung, Garmin en andere) merken mensen vaak:",
       "symptoms": [
         "Gaten, pieken of instabiele hartslagmetingen",
         "Workouts die pauzeren of midden in de sessie de pols verliezen",
-        "Herhaalde off-wrist-meldingen of ontgrendelvragen",
+        "Herhaalde niet om de pols-meldingen of ontgrendelvragen",
         "Slaap-, SpO₂- of stressmetingen die minder stabiel lijken dan verwacht"
       ],
       "symptomsNote": "Niet elk symptoom komt van een tattoo. Een te losse of te strakke band, intensieve beweging, zweet en slecht contact tellen ook. Check of problemen zich concentreren waar inkt onder de sensor zit.",
@@ -790,7 +790,7 @@
       "compat1": "De optische lens kies je op basis van de sensor-diameter / geometrie van je horloge — niet alleen de merknaam. Kies in de officiële winkel de optie voor jouw model. Twijfel je, bevestig het model vóór je koopt.",
       "compatLink": "Open de winkel om je maat te kiezen",
       "h2apply": "Aanbrengen en wat te verwachten",
-      "apply1": "Internationale bestellingen betreffen de Sensor Tattoo Fix optische lens. Volg de aanwijzingen bij je bestelling en op de productpagina. Ga niet uit van waterbestendigheid, hechting of duurzaamheid buiten de officiële listing.",
+      "apply1": "Internationale bestellingen betreffen de Sensor Tattoo Fix optische lens. Volg de aanwijzingen bij je bestelling en op de productpagina. Ga niet uit van waterbestendigheid, hechting of duurzaamheid buiten de officiële productbeschrijving.",
       "faqs": [
         {
           "q": "Hoe kan een tattoo een smartwatch beïnvloeden?",
@@ -844,7 +844,7 @@
       "headline": "Smartklockan läser inte puls på tatuerad hud?",
       "lead": "Om klockan tappar pulsdata, visar konstiga puls-toppar eller pausar pass på en tatuerad handled kan bläck under den optiska sensorn vara en del av historien — tillsammans med passform, rörelse och hudkontakt.",
       "h2symptoms": "Symptom över märken",
-      "symptomsIntro": "På många optiska wearables (Apple Watch, Samsung, Garmin m.fl.) märker folk ofta:",
+      "symptomsIntro": "På många optiska smartklockor (Apple Watch, Samsung, Garmin m.fl.) märker folk ofta:",
       "symptoms": [
         "Luckor, toppar eller ostabila pulsavläsningar",
         "Pass som pausar eller tappar pulsen mitt i sessionen",
@@ -856,7 +856,7 @@
       "why1": "Optiska handledssensorer använder ljus och detektorer för att uppskatta puls och relaterade mått. Tatueringspigment kan ändra hur mycket ljus som återvänder till sensorn — särskilt tätt mörkt bläck rakt under klockan.",
       "why2": "Det betyder inte att varje tatuering orsakar fel, eller att Apple, Samsung, Garmin och andra märken reagerar likadant. Bandpassform, rörelse, svett och ojämn hudkontakt kan också störa.",
       "h2lens": "Sensor Tattoo Fix-linsen",
-      "lens1": "Sensor Tattoo Fix är en optisk lins / gränssnitt vid sensorområdet för att hjälpa läsförhållandena på tatuerad hud. Den tar inte bort tatueringen och ersätter inte din klocka.",
+      "lens1": "Sensor Tattoo Fix är en optisk lins / gränssnitt vid sensorområdet för att förbättra läsförhållandena på tatuerad hud. Den tar inte bort tatueringen och ersätter inte din klocka.",
       "lens2": "Resultaten varierar efter modell, bläck, passform och andra faktorer. Det finns ingen garanti att varje avläsning återkommer i varje fall.",
       "h2compat": "Kompatibilitet",
       "compat1": "Den optiska linsen väljs efter din klockas sensordiameter / geometri — inte bara varumärkesnamnet. I den officiella butiken väljer du alternativet för din modell. Är du osäker, bekräfta modellen innan du köper.",
@@ -886,7 +886,7 @@
         },
         {
           "q": "Var köper jag rätt lins?",
-          "a": "Via den officiella butiksblocket på den här sidan (internationellt erbjudande är den optiska linsen med spårbar frakt i kassan)."
+          "a": "Via det officiella butiksblocket på den här sidan (internationellt erbjudande är den optiska linsen med spårbar frakt i kassan)."
         }
       ],
       "related": [
@@ -916,7 +916,7 @@
       "headline": "Smartklokken leser ikke puls på tatovert hud?",
       "lead": "Hvis klokken mister pulsdata, viser rare pulstopper eller pauser økter på et tatovert håndledd, kan blekk under den optiske sensoren være en del av historien — sammen med passform, bevegelse og hudkontakt.",
       "h2symptoms": "Symptomer på tvers av merker",
-      "symptomsIntro": "På mange optiske wearables (Apple Watch, Samsung, Garmin m.fl.) merker folk ofte:",
+      "symptomsIntro": "På mange optiske smartklokker (Apple Watch, Samsung, Garmin m.fl.) merker folk ofte:",
       "symptoms": [
         "Hull, topper eller ustabile pulsavlesninger",
         "Økter som pauser eller mister puls midt i økten",
@@ -928,13 +928,13 @@
       "why1": "Optiske håndleddssensorer bruker lys og detektorer for å anslå puls og relaterte målinger. Tatoveringspigment kan endre hvor mye lys som returnerer til sensoren — spesielt tett mørkt blekk rett under klokken.",
       "why2": "Det betyr ikke at hver tatovering forårsaker feil, eller at Apple, Samsung, Garmin og andre merker reagerer likt. Båndpassform, bevegelse, svette og ujevn hudkontakt kan også forstyrre.",
       "h2lens": "Sensor Tattoo Fix-linsen",
-      "lens1": "Sensor Tattoo Fix er en optisk linse / grensesnitt ved sensorområdet for å hjelpe leseforholdene på tatovert hud. Den fjerner ikke tatoveringen og erstatter ikke klokken.",
+      "lens1": "Sensor Tattoo Fix er en optisk linse / grensesnitt ved sensorområdet for å forbedre leseforholdene på tatovert hud. Den fjerner ikke tatoveringen og erstatter ikke klokken.",
       "lens2": "Resultater varierer etter modell, blekk, passform og andre faktorer. Det er ingen garanti for at hver avlesning kommer tilbake i alle tilfeller.",
       "h2compat": "Kompatibilitet",
       "compat1": "Den optiske linsen velges etter klokkens sensordiameter / geometri — ikke bare merkenavnet. I den offisielle butikken velger du alternativet for din modell. Er du usikker, bekreft modellen før du kjøper.",
       "compatLink": "Åpne butikken for å velge størrelse",
       "h2apply": "Påføring og hva du kan forvente",
-      "apply1": "Internasjonale bestillinger gjelder den optiske linsen Sensor Tattoo Fix. Følg påføringsveiledningen som følger med bestillingen og på produktsiden. Ikke anta vanntetthet, heft eller holdbarhet utover den offisielle listing.",
+      "apply1": "Internasjonale bestillinger gjelder den optiske linsen Sensor Tattoo Fix. Følg påføringsveiledningen som følger med bestillingen og på produktsiden. Ikke anta vanntetthet, heft eller holdbarhet utover den offisielle produktbeskrivelsen.",
       "faqs": [
         {
           "q": "Hvordan kan en tatovering påvirke en smartklokke?",
@@ -988,11 +988,11 @@
       "headline": "Älykello ei lue sykettä tatuoidulla iholla?",
       "lead": "Jos kello pudottaa syketietoja, näyttää outoja sykehuippuja tai keskeyttää treenejä tatuoidulla ranteella, muste optisen sensorin alla voi olla osa tarinaa — yhdessä istuvuuden, liikkeen ja ihokontaktin kanssa.",
       "h2symptoms": "Oireet eri merkeillä",
-      "symptomsIntro": "Monissa optisissa wearables-laitteissa (Apple Watch, Samsung, Garmin ym.) ihmiset huomaavat usein:",
+      "symptomsIntro": "Monissa optisissa älykelloissa (Apple Watch, Samsung, Garmin ym.) ihmiset huomaavat usein:",
       "symptoms": [
         "Aukkoja, huippuja tai epävakaita sykelukemia",
         "Treenejä, jotka keskeytyvät tai menettävät sykkeen kesken session",
-        "Toistuvia ranne-/pois-ranteesta-hälytyksiä tai lukituksen avauspyyntöjä",
+        "Toistuvia ilmoituksia, että kello ei ole ranteessa, tai lukituksen avauspyyntöjä",
         "Uni-, SpO₂- tai stressimittareita, jotka tuntuvat odotettua epävakaammilta"
       ],
       "symptomsNote": "Jokainen oire ei johdu tatuoinnista. Liian löysä tai tiukka ranneke, voimakas liike, hiki ja heikko kontakti vaikuttavat myös. Tarkista, keskittyvätkö ongelmat sinne, missä muste on sensorin alla.",
@@ -1000,7 +1000,7 @@
       "why1": "Optiset rannesensorit käyttävät valoa ja ilmaisimia sykkeen ja liittyvien mittareiden arviointiin. Tatuointipigmentti voi muuttaa, kuinka paljon valoa palaa sensoriin — erityisesti tiheä tumma muste suoraan kellon alla.",
       "why2": "Se ei tarkoita, että jokainen tatuointi aiheuttaa vikaa, tai että Apple, Samsung, Garmin ja muut merkit reagoivat samoin. Rannekkeen istuvuus, liike, hiki ja epätasainen ihokontakti voivat myös häiritä.",
       "h2lens": "Sensor Tattoo Fix -linssi",
-      "lens1": "Sensor Tattoo Fix on optinen linssi / rajapinta sensorialueella, joka auttaa lukemisolosuhteita tatuoidulla iholla. Se ei poista tatuointia eikä korvaa kelloasi.",
+      "lens1": "Sensor Tattoo Fix on optinen linssi / rajapinta sensorialueella, joka auttaa parantamaan lukemisolosuhteita tatuoidulla iholla. Se ei poista tatuointia eikä korvaa kelloasi.",
       "lens2": "Tulokset vaihtelevat mallin, musteen, istuvuuden ja muiden tekijöiden mukaan. Ei ole takuuta, että jokainen lukema palautuu jokaisessa tapauksessa.",
       "h2compat": "Yhteensopivuus",
       "compat1": "Optinen linssi valitaan kellosi sensorin halkaisijan / geometrian mukaan — ei pelkän merkin nimen. Virallisessa kaupassa valitse malliasi vastaava vaihtoehto. Jos et ole varma, vahvista malli ennen ostoa.",
@@ -1070,7 +1070,7 @@
       ],
       "symptomsNote": "Vestibilità del cinturino, movimento, sudore e contatto irregolare contano. Un tatuaggio è un fattore ottico aggiuntivo quando l'inchiostro sta proprio sotto il sensore.",
       "h2why": "Perché un tatuaggio può interferire",
-      "why1": "Su Apple Watch, il sensore ottico e la rilevazione del polso si basano sulla luce riflessa dalla pelle. L'inchiostro scuro sotto il sensore può indebolire quel segnale, così il sistema può trattare l'orologio come fuori polso e chiedere il codice più spesso.",
+      "why1": "Su Apple Watch, il sensore ottico e la rilevazione del polso si basano sulla luce riflessa dalla pelle. L'inchiostro scuro sotto il sensore può indebolire quel segnale, così il sistema può trattare l'orologio come se non fosse al polso e chiedere il codice più spesso.",
       "why2": "Non ogni tatuaggio causa questo, e modelli Series o Ultra diversi possono comportarsi in modo diverso. Un cinturino largo, il movimento e il sudore contano — l'inchiostro è un fattore in più, non l'unica spiegazione.",
       "h2lens": "La lente Sensor Tattoo Fix",
       "lens1": "Sensor Tattoo Fix è una lente ottica per la zona del sensore, pensata per aiutare le condizioni di lettura sulla pelle tatuata. Non è rimozione del tatuaggio e non sostituisce un Apple Watch.",
@@ -1083,7 +1083,7 @@
       "faqs": [
         {
           "q": "Perché Apple Watch continua a chiedere il codice?",
-          "a": "Quando la rilevazione del polso fallisce, il sistema può trattare l'orologio come fuori polso e chiedere il codice. L'inchiostro sotto il sensore può contribuire — insieme a vestibilità, movimento e contatto con la pelle."
+          "a": "Quando la rilevazione del polso fallisce, il sistema può trattare l'orologio come se non fosse al polso e chiedere il codice. L'inchiostro sotto il sensore può contribuire — insieme a vestibilità, movimento e contatto con la pelle."
         },
         {
           "q": "Ogni tatuaggio causa questo?",
@@ -1154,7 +1154,7 @@
       "compat1": "Für Apple Watch folgt die Linsengröße dem Sensor-Durchmesser Ihrer Series oder Ultra — es gibt keine einzige „Apple-Größe“. Nutzen Sie die Optionen im offiziellen Shop für Ihr Modell und bestätigen Sie vor dem Checkout bei Unsicherheit.",
       "compatLink": "Shop öffnen und Größe wählen",
       "h2apply": "Anwendung und Erwartungen",
-      "apply1": "Internationale Bestellungen gelten für die Sensor Tattoo Fix Optiklinse. Folgen Sie den Anwendungshinweisen mit Ihrer Bestellung und auf der Produktseite. Wasserfestigkeit, Haftung oder Haltbarkeit nicht über die Angaben im offiziellen Listing hinaus annehmen.",
+      "apply1": "Internationale Bestellungen gelten für die Sensor Tattoo Fix Optiklinse. Folgen Sie den Anwendungshinweisen mit Ihrer Bestellung und auf der Produktseite. Wasserfestigkeit, Haftung oder Haltbarkeit nicht über die Angaben in der offiziellen Produktbeschreibung hinaus annehmen.",
       "faqs": [
         {
           "q": "Warum fragt die Apple Watch ständig nach dem Passcode?",
@@ -1223,7 +1223,7 @@
       "why1": "En Apple Watch, el sensor óptico y la detección de muñeca se basan en la luz reflejada por la piel. La tinta oscura bajo el sensor puede debilitar esa señal, así que el sistema puede tratar el reloj como fuera de la muñeca y pedir el código más a menudo.",
       "why2": "No todo tatuaje causa esto, y distintos modelos Series o Ultra pueden comportarse distinto. Una correa floja, el movimiento y el sudor importan — la tinta es un factor extra, no la única explicación.",
       "h2lens": "La lente Sensor Tattoo Fix",
-      "lens1": "Sensor Tattoo Fix es una lente óptica para la zona del sensor, pensada para ayudar a las condiciones de lectura en piel tatuada. No es eliminación de tatuaje ni un Apple Watch de recambio.",
+      "lens1": "Sensor Tattoo Fix es una lente óptica para la zona del sensor, pensada para ayudar a las condiciones de lectura en piel tatuada. No elimina el tatuaje ni sustituye a un Apple Watch.",
       "lens2": "No prometemos detener cada petición de código ni restaurar cada lectura en cada modelo Series o Ultra. Elegir el tamaño correcto del sensor forma parte de un buen resultado.",
       "h2compat": "Compatibilidad",
       "compat1": "Para Apple Watch, el tamaño de la lente sigue el diámetro del sensor de tu Series o Ultra — no hay un único “tamaño Apple”. Usa las opciones de la tienda oficial para tu modelo y confirma antes del checkout si no estás seguro.",
@@ -1285,38 +1285,38 @@
       "ogTitle": "Apple Watch wciąż prosi o kod na skórze z tatuażem?",
       "crumb": "Apple Watch + tatuaż",
       "headline": "Apple Watch wciąż prosi o kod na skórze z tatuażem?",
-      "lead": "Na Apple Watch atrament pod sensorem może przyczyniać się do powtarzanych próśb o kod, słabego wykrywania nadgarstka i spadków tętna — wraz z dopasowaniem, ruchem i kontaktem.",
+      "lead": "Na Apple Watch tusz pod czujnikiem może przyczyniać się do powtarzanych próśb o kod, słabego wykrywania nadgarstka i spadków tętna — wraz z dopasowaniem, ruchem i kontaktem.",
       "h2symptoms": "Co możesz zauważyć na Apple Watch",
       "symptoms": [
         "Powtarzane prośby o kod lub odblokowanie w ciągu dnia",
         "Błędy wykrywania nadgarstka (zegarek myśli, że opuścił ramię)",
-        "Przerwane lub dziurawe odczyty tętna",
-        "Funkcje zależne od wykrywania nadgarstka mniej stabilne"
+        "Przerwane lub nieciągłe odczyty tętna",
+        "Funkcje zależne od wykrywania nadgarstka działają mniej stabilnie"
       ],
-      "symptomsNote": "Dopasowanie paska, ruch, pot i nierówny kontakt też mają znaczenie. Tatuaż to dodatkowy czynnik optyczny, gdy atrament leży bezpośrednio pod sensorem.",
+      "symptomsNote": "Dopasowanie paska, ruch, pot i nierówny kontakt też mają znaczenie. Tatuaż to dodatkowy czynnik optyczny, gdy tusz leży bezpośrednio pod czujnikiem.",
       "h2why": "Dlaczego tatuaż może przeszkadzać",
-      "why1": "Na Apple Watch sensor optyczny i wykrywanie nadgarstka opierają się na świetle odbitym od skóry. Ciemny atrament pod sensorem może osłabić ten sygnał, więc system częściej traktuje zegarek jako zdjęty i prosi o kod.",
-      "why2": "Nie każdy tatuaż to powoduje, a różne modele Series lub Ultra mogą zachowywać się inaczej. Luźny pasek, ruch i pot mają znaczenie — atrament to dodatkowy czynnik, nie jedyne wyjaśnienie.",
+      "why1": "Na Apple Watch czujnik optyczny i wykrywanie nadgarstka opierają się na świetle odbitym od skóry. Ciemny tusz pod czujnikiem może osłabić ten sygnał, więc system częściej traktuje zegarek jako zdjęty i prosi o kod.",
+      "why2": "Nie każdy tatuaż to powoduje, a różne modele Series lub Ultra mogą zachowywać się inaczej. Luźny pasek, ruch i pot mają znaczenie — tusz to dodatkowy czynnik, nie jedyne wyjaśnienie.",
       "h2lens": "Soczewka Sensor Tattoo Fix",
-      "lens1": "Sensor Tattoo Fix to soczewka optyczna na obszar sensora, zaprojektowana, by pomagać warunkom odczytu na skórze z tatuażem. To nie usuwanie tatuażu i nie zamiennik Apple Watch.",
-      "lens2": "Nie obiecujemy zatrzymać każdej prośby o kod ani przywrócić każdego odczytu na każdym modelu Series lub Ultra. Dobór właściwego rozmiaru sensora jest częścią dobrego wyniku.",
+      "lens1": "Sensor Tattoo Fix to soczewka optyczna na obszar czujnika, zaprojektowana, by pomagać warunkom odczytu na skórze z tatuażem. To nie usuwanie tatuażu i nie zamiennik Apple Watch.",
+      "lens2": "Nie obiecujemy zatrzymać każdej prośby o kod ani przywrócić każdego odczytu na każdym modelu Series lub Ultra. Dobór właściwego rozmiaru czujnika jest częścią dobrego wyniku.",
       "h2compat": "Kompatybilność",
-      "compat1": "Dla Apple Watch rozmiar soczewki wynika ze średnicy sensora Twojej Series lub Ultra — nie ma jednego „rozmiaru Apple”. Użyj opcji oficjalnego sklepu dla swojego modelu i potwierdź przed checkoutem, jeśli nie jesteś pewien.",
+      "compat1": "Dla Apple Watch rozmiar soczewki wynika ze średnicy czujnika Twojej Series lub Ultra — nie ma jednego „rozmiaru Apple”. Użyj opcji oficjalnego sklepu dla swojego modelu i potwierdź przed finalizacją zakupu, jeśli nie jesteś pewien.",
       "compatLink": "Otwórz sklep, aby wybrać rozmiar",
-      "h2apply": "Aplikacja i czego oczekiwać",
+      "h2apply": "Zakładanie i czego oczekiwać",
       "apply1": "Zamówienia międzynarodowe dotyczą soczewki optycznej Sensor Tattoo Fix. Postępuj zgodnie z instrukcją dołączoną do zamówienia i na stronie produktu. Nie zakładaj wodoodporności, przyczepności ani trwałości poza oficjalnym opisem.",
       "faqs": [
         {
           "q": "Dlaczego Apple Watch wciąż prosi o kod?",
-          "a": "Gdy wykrywanie nadgarstka zawodzi, system może traktować zegarek jako zdjęty i prosić o kod. Atrament pod sensorem może się do tego przyczyniać — wraz z dopasowaniem, ruchem i kontaktem ze skórą."
+          "a": "Gdy wykrywanie nadgarstka zawodzi, system może traktować zegarek jako zdjęty i prosić o kod. Tusz pod czujnikiem może się do tego przyczyniać — wraz z dopasowaniem, ruchem i kontaktem ze skórą."
         },
         {
           "q": "Czy każdy tatuaż to powoduje?",
-          "a": "Nie. Tylko niektóre kolory, gęstości i pozycje atramentu wyraźnie przeszkadzają."
+          "a": "Nie. Tylko niektóre kolory, gęstości i pozycje tuszu wyraźnie przeszkadzają."
         },
         {
           "q": "Czy soczewka działa na każdym Apple Watch?",
-          "a": "Nie deklarujemy uniwersalnej kompatybilności. Dopasuj soczewkę do średnicy sensora swojego modelu w sklepie."
+          "a": "Nie deklarujemy uniwersalnej kompatybilności. Dopasuj soczewkę do średnicy czujnika swojego modelu w sklepie."
         },
         {
           "q": "Jak potwierdzić kompatybilność?",
@@ -1324,7 +1324,7 @@
         },
         {
           "q": "Jak założyć soczewkę?",
-          "a": "Postępuj zgodnie z instrukcją przy zamówieniu. Soczewka działa w obszarze sensora; większość osób zachowuje oryginalny pasek."
+          "a": "Postępuj zgodnie z instrukcją przy zamówieniu. Soczewka działa w obszarze czujnika; większość osób zachowuje oryginalny pasek."
         },
         {
           "q": "Czy kod lub tętno mogą dalej zawodzić z innych powodów?",
@@ -1355,26 +1355,26 @@
       ]
     },
     "sl": {
-      "title": "Geslo Apple Watch in tattoo | Sensor Tattoo Fix",
-      "description": "Apple Watch zahteva geslo ali ne bere utripa na tetovirani koži? Spoznajte zaznavanje zapestja in lečo Sensor Tattoo Fix.",
-      "ogTitle": "Apple Watch na tattoo nenehno zahteva geslo?",
-      "crumb": "Apple Watch + tattoo",
-      "headline": "Apple Watch na tattoo nenehno zahteva geslo?",
-      "lead": "Na Apple Watch lahko črnilo pod senzorjem prispeva k ponavljajočim se zahtevam za geslo, šibkemu zaznavanju zapestja in padcem srčnega utripa — skupaj s prileganjem, gibanjem in stikom.",
+      "title": "Koda Apple Watch in tetovaža | Sensor Tattoo Fix",
+      "description": "Apple Watch zahteva koda ali ne bere utripa na tetovirani koži? Spoznajte zaznavanje zapestja in lečo Sensor Tattoo Fix.",
+      "ogTitle": "Apple Watch pri tetovaži nenehno zahteva kodo?",
+      "crumb": "Apple Watch + tetovaža",
+      "headline": "Apple Watch pri tetovaži nenehno zahteva kodo?",
+      "lead": "Na Apple Watch lahko črnilo pod senzorjem prispeva k ponavljajočim se zahtevam za koda, šibkemu zaznavanju zapestja in padcem srčnega utripa — skupaj s prileganjem, gibanjem in stikom.",
       "h2symptoms": "Kaj lahko opazite na Apple Watch",
       "symptoms": [
-        "Ponavljajoče se zahteve za geslo ali odklep čez dan",
+        "Ponavljajoče se zahteve za koda ali odklep čez dan",
         "Napake zaznavanja zapestja (ura misli, da je zapustila roko)",
         "Prekinjeni ali luknjasti odčitki srčnega utripa",
-        "Funkcije, ki temeljijo na zaznavanju zapestja, manj stabilne"
+        "Funkcije, ki temeljijo na zaznavanju zapestja, delujejo manj stabilno"
       ],
-      "symptomsNote": "Prileganje paščka, gibanje, znoj in neenakomeren stik tudi štejejo. Tattoo je dodaten optični dejavnik, ko je črnilo neposredno pod senzorjem.",
-      "h2why": "Zakaj tattoo lahko moti",
-      "why1": "Na Apple Watch se optični senzor in zaznavanje zapestja zanašata na svetlobo, odbito od kože. Temno črnilo pod senzorjem lahko oslabi ta signal, zato sistem uro pogosteje obravnava kot odstranjeno in zahteva geslo.",
-      "why2": "Ne vsak tattoo povzroči to, in različni modeli Series ali Ultra se lahko obnašajo drugače. Ohlapen pašček, gibanje in znoj štejejo — črnilo je dodaten dejavnik, ne edina razlaga.",
+      "symptomsNote": "Prileganje paščka, gibanje, znoj in neenakomeren stik tudi štejejo. tetovaža je dodaten optični dejavnik, ko je črnilo neposredno pod senzorjem.",
+      "h2why": "Zakaj tetovaža lahko moti",
+      "why1": "Na Apple Watch se optični senzor in zaznavanje zapestja zanašata na svetlobo, odbito od kože. Temno črnilo pod senzorjem lahko oslabi ta signal, zato sistem uro pogosteje obravnava kot odstranjeno in zahteva koda.",
+      "why2": "Ne vsak tetovaža povzroči to, in različni modeli Series ali Ultra se lahko obnašajo drugače. Ohlapen pašček, gibanje in znoj štejejo — črnilo je dodaten dejavnik, ne edina razlaga.",
       "h2lens": "Leča Sensor Tattoo Fix",
-      "lens1": "Sensor Tattoo Fix je optična leča za območje senzorja, zasnovana za pomoč pri pogojih branja na tetovirani koži. To ni odstranjevanje tattooja in ne nadomestilo za Apple Watch.",
-      "lens2": "Ne obljubljamo, da bomo ustavili vsako zahtevo za geslo ali obnovili vsak odčitek na vsakem modelu Series ali Ultra. Izbira prave velikosti senzorja je del dobrega izida.",
+      "lens1": "Sensor Tattoo Fix je optična leča za območje senzorja, zasnovana za pomoč pri pogojih branja na tetovirani koži. To ni odstranjevanje tetovaže in ne nadomestilo za Apple Watch.",
+      "lens2": "Ne obljubljamo, da bomo ustavili vsako zahtevo za koda ali obnovili vsak odčitek na vsakem modelu Series ali Ultra. Izbira prave velikosti senzorja je del dobrega izida.",
       "h2compat": "Združljivost",
       "compat1": "Za Apple Watch velikost leče sledi premeru senzorja vaše Series ali Ultra — ni ene same »Apple velikosti«. Uporabite možnosti uradne trgovine za svoj model in pred blagajno potrdite, če niste prepričani.",
       "compatLink": "Odprite trgovino in izberite velikost",
@@ -1382,11 +1382,11 @@
       "apply1": "Mednarodna naročila veljajo za optično lečo Sensor Tattoo Fix. Sledite navodilom za namestitev, priloženim naročilu in na strani izdelka. Ne predvidevajte vodoodpornosti, oprijema ali trajnosti onkraj uradnega opisa.",
       "faqs": [
         {
-          "q": "Zakaj Apple Watch nenehno zahteva geslo?",
-          "a": "Ko zaznavanje zapestja odpove, lahko sistem uro obravnava kot odstranjeno in zahteva geslo. Črnilo pod senzorjem lahko prispeva — skupaj s prileganjem, gibanjem in stikom s kožo."
+          "q": "Zakaj Apple Watch nenehno zahteva kodo?",
+          "a": "Ko zaznavanje zapestja odpove, lahko sistem uro obravnava kot odstranjeno in zahteva koda. Črnilo pod senzorjem lahko prispeva — skupaj s prileganjem, gibanjem in stikom s kožo."
         },
         {
-          "q": "Ali vsak tattoo to povzroči?",
+          "q": "Ali vsak tetovaža to povzroči?",
           "a": "Ne. Le nekatere barve, gostote in položaji črnila opazno motijo."
         },
         {
@@ -1402,7 +1402,7 @@
           "a": "Sledite navodilom pri naročilu. Leča deluje na območju senzorja; večina ohrani originalni pašček."
         },
         {
-          "q": "Ali lahko geslo ali utrip še naprej odpovesta iz drugih razlogov?",
+          "q": "Ali lahko koda ali utrip še naprej odpovesta iz drugih razlogov?",
           "a": "Da. Prileganje, gibanje, vlaga in omejitve naprave lahko še vedno vplivajo na zaznavanje zapestja."
         },
         {
@@ -1412,12 +1412,12 @@
       ],
       "related": [
         {
-          "href": "smartwatch-tattoo.html",
-          "text": "Smartwatch + tattoo: pregled"
+          "href": "smartwatch-tetovaža.html",
+          "text": "Pametna ura + tetovaža: pregled"
         },
         {
-          "href": "garmin-watch-tattoo.html",
-          "text": "Garmin + tattoo"
+          "href": "garmin-watch-tetovaža.html",
+          "text": "Garmin + tetovaža"
         },
         {
           "href": "onde-comprar.html",
@@ -1445,7 +1445,7 @@
       ],
       "symptomsNote": "L'ajustement du bracelet, le mouvement, la sueur et un contact irrégulier comptent aussi. Un tatouage est un facteur optique supplémentaire lorsque l'encre est juste sous le capteur.",
       "h2why": "Pourquoi un tatouage peut interférer",
-      "why1": "Sur Apple Watch, le capteur optique et la détection du poignet s'appuient sur la lumière réfléchie par la peau. Une encre sombre sous le capteur peut affaiblir ce signal, si bien que le système peut traiter la montre comme hors poignet et demander le code plus souvent.",
+      "why1": "Sur Apple Watch, le capteur optique et la détection du poignet s'appuient sur la lumière réfléchie par la peau. Une encre sombre sous le capteur peut affaiblir ce signal, si bien que le système peut traiter la montre comme absente du poignet et demander le code plus souvent.",
       "why2": "Tout tatouage ne provoque pas cela, et différents modèles Series ou Ultra peuvent se comporter autrement. Un bracelet lâche, le mouvement et la sueur comptent — l'encre est un facteur de plus, pas la seule explication.",
       "h2lens": "La lentille Sensor Tattoo Fix",
       "lens1": "Sensor Tattoo Fix est une lentille optique pour la zone du capteur, conçue pour aider les conditions de lecture sur peau tatouée. Ce n'est pas un retrait de tatouage ni un remplacement d'Apple Watch.",
@@ -1458,7 +1458,7 @@
       "faqs": [
         {
           "q": "Pourquoi Apple Watch demande-t-elle sans cesse le code ?",
-          "a": "Quand la détection du poignet échoue, le système peut traiter la montre comme hors poignet et demander le code. L'encre sous le capteur peut y contribuer — avec l'ajustement, le mouvement et le contact cutané."
+          "a": "Quand la détection du poignet échoue, le système peut traiter la montre comme absente du poignet et demander le code. L'encre sous le capteur peut y contribuer — avec l'ajustement, le mouvement et le contact cutané."
         },
         {
           "q": "Tout tatouage provoque-t-il cela ?",
@@ -1529,7 +1529,7 @@
       "compat1": "Voor Apple Watch volgt de lensmaat de sensordiameter van jouw Series of Ultra — er is geen enkele “Apple-maat”. Gebruik de opties in de officiële winkel voor jouw model en bevestig vóór checkout bij twijfel.",
       "compatLink": "Open de winkel om je maat te kiezen",
       "h2apply": "Aanbrengen en wat te verwachten",
-      "apply1": "Internationale bestellingen betreffen de Sensor Tattoo Fix optische lens. Volg de aanwijzingen bij je bestelling en op de productpagina. Ga niet uit van waterbestendigheid, hechting of duurzaamheid buiten de officiële listing.",
+      "apply1": "Internationale bestellingen betreffen de Sensor Tattoo Fix optische lens. Volg de aanwijzingen bij je bestelling en op de productpagina. Ga niet uit van waterbestendigheid, hechting of duurzaamheid buiten de officiële productbeschrijving.",
       "faqs": [
         {
           "q": "Waarom vraagt Apple Watch steeds om de code?",
@@ -1598,7 +1598,7 @@
       "why1": "På Apple Watch bygger den optiska sensorn och handledsigenkänningen på ljus som reflekteras från huden. Mörkt bläck under sensorn kan försvaga den signalen, så systemet kan oftare behandla klockan som avtagen och be om koden.",
       "why2": "Inte varje tatuering orsakar detta, och olika Series- eller Ultra-modeller kan bete sig olika. Ett löst band, rörelse och svett spelar roll — bläck är en extra faktor, inte den enda förklaringen.",
       "h2lens": "Sensor Tattoo Fix-linsen",
-      "lens1": "Sensor Tattoo Fix är en optisk lins för sensorområdet, tänkt att hjälpa läsförhållandena på tatuerad hud. Det är ingen tatueringsborttagning och ingen ersättning för Apple Watch.",
+      "lens1": "Sensor Tattoo Fix är en optisk lins för sensorområdet, tänkt att förbättra läsförhållandena på tatuerad hud. Det är ingen tatueringsborttagning och ingen ersättning för Apple Watch.",
       "lens2": "Vi lovar inte att stoppa varje kodfråga eller återställa varje avläsning på varje Series- eller Ultra-modell. Att välja rätt sensorstorlek är en del av ett bra resultat.",
       "h2compat": "Kompatibilitet",
       "compat1": "För Apple Watch följer linsstorleken sensordiametern på din Series eller Ultra — det finns ingen enda ”Apple-storlek”. Använd den officiella butikens alternativ för din modell och bekräfta före kassan om du är osäker.",
@@ -1632,7 +1632,7 @@
         },
         {
           "q": "Var köper jag rätt lins?",
-          "a": "Använd den officiella butiksblocket på den här sidan — internationella beställningar gäller den optiska linsen."
+          "a": "Använd det officiella butiksblocket på den här sidan — internationella beställningar gäller den optiska linsen."
         }
       ],
       "related": [
@@ -1673,13 +1673,13 @@
       "why1": "På Apple Watch bygger den optiske sensoren og håndleddsregistreringen på lys som reflekteres fra huden. Mørkt blekk under sensoren kan svekke det signalet, så systemet oftere behandler klokken som tatt av og ber om koden.",
       "why2": "Ikke hver tatovering forårsaker dette, og ulike Series- eller Ultra-modeller kan oppføre seg forskjellig. Et løst bånd, bevegelse og svette betyr noe — blekk er en ekstra faktor, ikke den eneste forklaringen.",
       "h2lens": "Sensor Tattoo Fix-linsen",
-      "lens1": "Sensor Tattoo Fix er en optisk linse for sensorområdet, laget for å hjelpe leseforholdene på tatovert hud. Det er ikke tatoveringsfjerning og ikke en erstatning for Apple Watch.",
+      "lens1": "Sensor Tattoo Fix er en optisk linse for sensorområdet, laget for å forbedre leseforholdene på tatovert hud. Det er ikke tatoveringsfjerning og ikke en erstatning for Apple Watch.",
       "lens2": "Vi lover ikke å stoppe hver kodeforespørsel eller gjenopprette hver avlesning på hver Series- eller Ultra-modell. Å velge riktig sensorstørrelse er en del av et godt resultat.",
       "h2compat": "Kompatibilitet",
       "compat1": "For Apple Watch følger linsestørrelsen sensordiameteren på din Series eller Ultra — det finnes ingen enkelt «Apple-størrelse». Bruk den offisielle butikkens alternativer for din modell, og bekreft før utsjekk hvis du er usikker.",
       "compatLink": "Åpne butikken for å velge størrelse",
       "h2apply": "Påføring og hva du kan forvente",
-      "apply1": "Internasjonale bestillinger gjelder den optiske linsen Sensor Tattoo Fix. Følg påføringsveiledningen som følger med bestillingen og på produktsiden. Ikke anta vanntetthet, heft eller holdbarhet utover den offisielle listing.",
+      "apply1": "Internasjonale bestillinger gjelder den optiske linsen Sensor Tattoo Fix. Følg påføringsveiledningen som følger med bestillingen og på produktsiden. Ikke anta vanntetthet, heft eller holdbarhet utover den offisielle produktbeskrivelsen.",
       "faqs": [
         {
           "q": "Hvorfor ber Apple Watch stadig om koden?",
@@ -1818,7 +1818,7 @@
         "Fallimenti o lacune della frequenza cardiaca nel grafico",
         "Sonno o altre metriche giornaliere inconsistenti che dipendono dalla qualità ottica",
         "Dati interrotti o incompleti durante le attività",
-        "Metriche di allenamento che sembrano off quando il segnale ottico è debole"
+        "Metriche di allenamento che sembrano inattendibili quando il segnale ottico è debole"
       ],
       "symptomsNote": "Non ogni lacuna viene dal tatuaggio. Posizione del cinturino, sudore, movimento e gli algoritmi dell'orologio contano anch'essi.",
       "h2why": "Perché un tatuaggio può interferire",
@@ -1906,7 +1906,7 @@
       "compat1": "Bei Garmin folgt die Größe ebenfalls dem Sensor-Durchmesser / der Geometrie Ihres Forerunner, Fenix, Venu oder anderen gelisteten Modells — nicht allein dem Produktliniennamen. Prüfen Sie die Option im offiziellen Shop vor dem Kauf.",
       "compatLink": "Shop öffnen und Größe wählen",
       "h2apply": "Anwendung und Erwartungen",
-      "apply1": "Internationale Bestellungen gelten für die Sensor Tattoo Fix Optiklinse. Folgen Sie den Anwendungshinweisen mit Ihrer Bestellung und auf der Produktseite. Wasserfestigkeit, Haftung oder Haltbarkeit nicht über die Angaben im offiziellen Listing hinaus annehmen.",
+      "apply1": "Internationale Bestellungen gelten für die Sensor Tattoo Fix Optiklinse. Folgen Sie den Anwendungshinweisen mit Ihrer Bestellung und auf der Produktseite. Wasserfestigkeit, Haftung oder Haltbarkeit nicht über die Angaben in der offiziellen Produktbeschreibung hinaus annehmen.",
       "faqs": [
         {
           "q": "Wie kann ein Tattoo Garmin-Messungen beeinflussen?",
@@ -1914,7 +1914,7 @@
         },
         {
           "q": "Ich habe gehört, Garmin kommt mit Tattoos besser klar — brauche ich trotzdem eine Linse?",
-          "a": "Einige Modelle kommen besser zurecht, aber dichtes Ink unter dem Sensor kann weiterhin stören. Wenn Sie dort bereits anhaltende Lücken sehen, kann die Linse sinnvoll sein."
+          "a": "Einige Modelle kommen besser zurecht, aber dichte Tinte unter dem Sensor kann weiterhin stören. Wenn Sie dort bereits anhaltende Lücken sehen, kann die Linse sinnvoll sein."
         },
         {
           "q": "Funktioniert sie an jedem Forerunner / Fenix / Venu?",
@@ -2037,7 +2037,7 @@
       "ogTitle": "Garmin nie czyta tętna na skórze z tatuażem?",
       "crumb": "Garmin + tatuaż",
       "headline": "Garmin nie czyta tętna na skórze z tatuażem?",
-      "lead": "Na zegarkach Garmin luki tętna, nierówne dane snu lub niepełne metryki aktywności mogą wiązać się z atramentem pod sensorem optycznym — a także z dopasowaniem, ruchem i kontaktem ze skórą.",
+      "lead": "Na zegarkach Garmin luki tętna, nierówne dane snu lub niepełne metryki aktywności mogą wiązać się z tuszem pod czujnikiem optycznym — a także z dopasowaniem, ruchem i kontaktem ze skórą.",
       "h2symptoms": "Typowe objawy Garmin",
       "symptoms": [
         "Awarie lub luki tętna na wykresie",
@@ -2047,32 +2047,32 @@
       ],
       "symptomsNote": "Nie każda luka pochodzi od tatuażu. Pozycja paska, pot, ruch i algorytmy zegarka też mają znaczenie.",
       "h2why": "Dlaczego tatuaż może przeszkadzać",
-      "why1": "Na zegarkach Garmin z optycznym sensorem nadgarstka LED-y i detektory szacują tętno i zasilają metryki treningu oraz regeneracji. Pigment pod zegarkiem może zmniejszyć światło wracające do sensora i tworzyć luki na wykresie.",
-      "why2": "Modele Forerunner, Fenix i Venu nie reagują wszystkie tak samo, i nie każdy atrament powoduje awarię. Pozycja paska, pot i intensywny ruch też wpływają na jakość sygnału optycznego.",
+      "why1": "Na zegarkach Garmin z optycznym czujnikiem nadgarstka LED-y i detektory szacują tętno i zasilają metryki treningu oraz regeneracji. Pigment pod zegarkiem może zmniejszyć światło wracające do czujnika i tworzyć luki na wykresie.",
+      "why2": "Modele Forerunner, Fenix i Venu nie reagują wszystkie tak samo, i nie każdy tusz powoduje awarię. Pozycja paska, pot i intensywny ruch też wpływają na jakość sygnału optycznego.",
       "h2lens": "Soczewka Sensor Tattoo Fix",
-      "lens1": "Soczewka optyczna Sensor Tattoo Fix siedzi w obszarze sensora, by pomagać, gdy pigment utrudnia odczyty. Nie zastępuje pasa na klatkę i nie gwarantuje odzyskania każdej metryki Garmin.",
+      "lens1": "Soczewka optyczna Sensor Tattoo Fix umieszczana jest w obszarze czujnika, by pomagać, gdy pigment utrudnia odczyty. Nie zastępuje pasa na klatkę i nie gwarantuje odzyskania każdego wskaźnika Garmin.",
       "lens2": "Wybierz średnicę pasującą do Twojego Forerunner, Fenix, Venu lub innego wymienionego modelu — nie zakładaj, że każdy Garmin używa tego samego rozmiaru.",
       "h2compat": "Kompatybilność",
-      "compat1": "W Garmin rozmiar też wynika ze średnicy / geometrii sensora Twojego Forerunner, Fenix, Venu lub innego wymienionego modelu — nie tylko z nazwy linii. Sprawdź opcję oficjalnego sklepu przed zakupem.",
+      "compat1": "W Garmin rozmiar też wynika ze średnicy / geometrii czujnika Twojego Forerunner, Fenix, Venu lub innego wymienionego modelu — nie tylko z nazwy linii. Sprawdź opcję oficjalnego sklepu przed zakupem.",
       "compatLink": "Otwórz sklep, aby wybrać rozmiar",
-      "h2apply": "Aplikacja i czego oczekiwać",
+      "h2apply": "Zakładanie i czego oczekiwać",
       "apply1": "Zamówienia międzynarodowe dotyczą soczewki optycznej Sensor Tattoo Fix. Postępuj zgodnie z instrukcją dołączoną do zamówienia i na stronie produktu. Nie zakładaj wodoodporności, przyczepności ani trwałości poza oficjalnym opisem.",
       "faqs": [
         {
           "q": "Jak tatuaż może wpływać na odczyty Garmin?",
-          "a": "Atrament może zmienić, ile światła wraca do optycznego sensora nadgarstka, co może wpływać na tętno i powiązane metryki. To nie jedyny możliwy czynnik."
+          "a": "Tusz może zmienić, ile światła wraca do optycznego czujnika nadgarstka, co może wpływać na tętno i powiązane metryki. To nie jedyny możliwy czynnik."
         },
         {
           "q": "Słyszałem, że Garmin lepiej radzi sobie z tatuażami — czy i tak potrzebuję soczewki?",
-          "a": "Niektóre modele radzą sobie lepiej, ale gęsty atrament pod sensorem nadal może przeszkadzać. Jeśli już widzisz trwałe luki w tym obszarze, ocena soczewki może mieć sens."
+          "a": "Niektóre modele radzą sobie lepiej, ale gęsty tusz pod czujnikiem nadal może przeszkadzać. Jeśli już widzisz trwałe luki w tym obszarze, warto rozważyć soczewkę."
         },
         {
           "q": "Czy działa na każdym Forerunner / Fenix / Venu?",
-          "a": "Nie deklarujemy uniwersalnej kompatybilności. Potwierdź średnicę sensora w oficjalnym sklepie."
+          "a": "Nie deklarujemy uniwersalnej kompatybilności. Potwierdź średnicę czujnika w oficjalnym sklepie."
         },
         {
           "q": "Czy wpływa na GPS?",
-          "a": "Soczewka jest przeznaczona do optycznego sensora nadgarstka, nie do anteny GPS."
+          "a": "Soczewka jest przeznaczona do optycznego czujnika nadgarstka, nie do anteny GPS."
         },
         {
           "q": "Jak założyć soczewkę?",
@@ -2107,10 +2107,10 @@
       ]
     },
     "sl": {
-      "title": "Garmin utrip in tattoo | Sensor Tattoo Fix",
+      "title": "Garmin utrip in tetovaža | Sensor Tattoo Fix",
       "description": "Vrzeli utripa Garmin ali nepopolni podatki vadbe na tetovirani koži? Optične omejitve in leča Sensor Tattoo Fix.",
       "ogTitle": "Garmin ne bere utripa na tetovirani koži?",
-      "crumb": "Garmin + tattoo",
+      "crumb": "Garmin + tetovaža",
       "headline": "Garmin ne bere utripa na tetovirani koži?",
       "lead": "Na urah Garmin lahko vrzeli srčnega utripa, neenakomerni podatki spanja ali nepopolne metrike aktivnosti povezujemo s črnilom pod optičnim senzorjem — ter tudi s prileganjem, gibanjem in stikom s kožo.",
       "h2symptoms": "Tipični simptomi Garmin",
@@ -2118,10 +2118,10 @@
         "Napake ali vrzeli srčnega utripa na grafu",
         "Nekonsistenten spanec ali druge celodnevne metrike, odvisne od optične kakovosti",
         "Prekinjeni ali nepopolni podatki med aktivnostmi",
-        "Trening metrike, ki izgledajo narobe, ko je optični signal šibek"
+        "Metrike treninga, ki izgledajo narobe, ko je optični signal šibek"
       ],
-      "symptomsNote": "Vsaka vrzel ne izhaja iz tattooja. Položaj paščka, znoj, gibanje in algoritmi ure tudi štejejo.",
-      "h2why": "Zakaj tattoo lahko moti",
+      "symptomsNote": "Vsaka vrzel ne izhaja iz tetovaže. Položaj paščka, znoj, gibanje in algoritmi ure tudi štejejo.",
+      "h2why": "Zakaj tetovaža lahko moti",
       "why1": "Na urah Garmin z optičnim senzorjem na zapestju LED-i in detektorji ocenjujejo srčni utrip ter napajajo metrike treninga in okrevanja. Pigment pod uro lahko zmanjša svetlobo, ki se vrne k senzorju, in ustvari vrzeli na grafu.",
       "why2": "Modeli Forerunner, Fenix in Venu se ne odzivajo vsi enako, in ne vsako črnilo povzroči napako. Položaj paščka, znoj in intenzivno gibanje tudi vplivajo na kakovost optičnega signala.",
       "h2lens": "Leča Sensor Tattoo Fix",
@@ -2134,12 +2134,12 @@
       "apply1": "Mednarodna naročila veljajo za optično lečo Sensor Tattoo Fix. Sledite navodilom za namestitev, priloženim naročilu in na strani izdelka. Ne predvidevajte vodoodpornosti, oprijema ali trajnosti onkraj uradnega opisa.",
       "faqs": [
         {
-          "q": "Kako lahko tattoo vpliva na odčitke Garmin?",
+          "q": "Kako lahko tetovaža vpliva na odčitke Garmin?",
           "a": "Črnilo lahko spremeni, koliko svetlobe se vrne k optičnemu senzorju na zapestju, kar lahko vpliva na srčni utrip in povezane metrike. Ni edini možni dejavnik."
         },
         {
-          "q": "Slišal sem, da Garmin bolje prenaša tattooje — ali vseeno potrebujem lečo?",
-          "a": "Nekateri modeli se bolje znajdejo, a gosto črnilo pod senzorjem lahko še vedno moti. Če že vidite trajne vrzeli na tem območju, lahko ocena leče smiselna."
+          "q": "Slišal sem, da Garmin bolje prenaša tetovaže — ali vseeno potrebujem lečo?",
+          "a": "Nekateri modeli se bolje znajdejo, a gosto črnilo pod senzorjem lahko še vedno moti. Če že vidite trajne vrzeli na tem območju, je ocena leče lahko smiselna."
         },
         {
           "q": "Ali deluje na vsakem Forerunner / Fenix / Venu?",
@@ -2164,12 +2164,12 @@
       ],
       "related": [
         {
-          "href": "smartwatch-tattoo.html",
-          "text": "Smartwatch + tattoo: pregled"
+          "href": "smartwatch-tetovaža.html",
+          "text": "Smartwatch + tetovaža: pregled"
         },
         {
-          "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch + tattoo"
+          "href": "apple-watch-tetovaža.html",
+          "text": "Apple Watch + tetovaža"
         },
         {
           "href": "comunidade.html",
@@ -2191,7 +2191,7 @@
       "h2symptoms": "Symptômes typiques sur Garmin",
       "symptoms": [
         "Échecs ou trous de fréquence cardiaque sur le graphique",
-        "Sommeil ou autres métriques quotidiennes inconsistants qui dépendent de la qualité optique",
+        "Sommeil ou autres métriques quotidiennes inconsistantes qui dépendent de la qualité optique",
         "Données interrompues ou incomplètes pendant les activités",
         "Métriques d'entraînement qui semblent fausses quand le signal optique est faible"
       ],
@@ -2266,7 +2266,7 @@
       "h2symptoms": "Typische Garmin-symptomen",
       "symptoms": [
         "Hartslagfouten of gaten in de grafiek",
-        "Inconsistente slaap of andere dagneemwaarden die van optische kwaliteit afhangen",
+        "Inconsistente slaap of andere dagmetingen die van optische kwaliteit afhangen",
         "Onderbroken of onvolledige data tijdens activiteiten",
         "Trainingsmetrics die eruitzien alsof het optische signaal zwak is"
       ],
@@ -2281,7 +2281,7 @@
       "compat1": "Op Garmin volgt de maat ook de sensordiameter / geometrie van je Forerunner, Fenix, Venu of ander vermeld model — niet alleen de productlijnnaam. Check de optie in de officiële winkel vóór je koopt.",
       "compatLink": "Open de winkel om je maat te kiezen",
       "h2apply": "Aanbrengen en wat te verwachten",
-      "apply1": "Internationale bestellingen betreffen de Sensor Tattoo Fix optische lens. Volg de aanwijzingen bij je bestelling en op de productpagina. Ga niet uit van waterbestendigheid, hechting of duurzaamheid buiten de officiële listing.",
+      "apply1": "Internationale bestellingen betreffen de Sensor Tattoo Fix optische lens. Volg de aanwijzingen bij je bestelling en op de productpagina. Ga niet uit van waterbestendigheid, hechting of duurzaamheid buiten de officiële productbeschrijving.",
       "faqs": [
         {
           "q": "Hoe kan een tattoo Garmin-metingen beïnvloeden?",
@@ -2289,7 +2289,7 @@
         },
         {
           "q": "Ik hoorde dat Garmin beter omgaat met tattoos — heb ik toch een lens nodig?",
-          "a": "Sommige modellen redderen zich beter, maar dichte inkt onder de sensor kan nog steeds storen. Als je daar al aanhoudende gaten ziet, kan de lens beoordelen zinvol zijn."
+          "a": "Sommige modellen redden zich beter, maar dichte inkt onder de sensor kan nog steeds storen. Als je daar al aanhoudende gaten ziet, kan het zinvol zijn de lens te beoordelen."
         },
         {
           "q": "Werkt het op elke Forerunner / Fenix / Venu?",
@@ -2384,7 +2384,7 @@
         },
         {
           "q": "Var köper jag rätt lins?",
-          "a": "Använd den officiella butiksblocket på den här sidan (internationellt erbjudande är den optiska linsen)."
+          "a": "Använd det officiella butiksblocket på den här sidan (internationellt erbjudande är den optiska linsen)."
         }
       ],
       "related": [
@@ -2431,7 +2431,7 @@
       "compat1": "På Garmin følger størrelsen også sensordiameter / geometri for din Forerunner, Fenix, Venu eller annen oppført modell — ikke bare produktlinjenavnet. Sjekk den offisielle butikkens alternativ før du kjøper.",
       "compatLink": "Åpne butikken for å velge størrelse",
       "h2apply": "Påføring og hva du kan forvente",
-      "apply1": "Internasjonale bestillinger gjelder den optiske linsen Sensor Tattoo Fix. Følg påføringsveiledningen som følger med bestillingen og på produktsiden. Ikke anta vanntetthet, heft eller holdbarhet utover den offisielle listing.",
+      "apply1": "Internasjonale bestillinger gjelder den optiske linsen Sensor Tattoo Fix. Følg påføringsveiledningen som følger med bestillingen og på produktsiden. Ikke anta vanntetthet, heft eller holdbarhet utover den offisielle produktbeskrivelsen.",
       "faqs": [
         {
           "q": "Hvordan kan en tatovering påvirke Garmin-avlesninger?",
@@ -2679,7 +2679,7 @@
       "headline": "Disattivare Rilevamento polso per il tatuaggio: vale la pena?",
       "lead": "Disattivare Rilevamento polso (la funzione che molti chiamano rilevazione del polso) fa smettere ad Apple Watch di chiedere il codice da solo, ma spegne anche frequenza cardiaca, sonno e altre misurazioni automatiche, e l’orologio non si blocca più da solo. Per la maggior parte delle persone, conviene provare un’altra soluzione prima.",
       "h2why": "Perché l’orologio chiede il codice con un tatuaggio",
-      "whyBody": "Quando il rilevamento del polso fallisce, Apple Watch può trattare il dispositivo come fuori polso e chiedere di nuovo il codice. Dettagli e sintomi sono nella guida [[APPLE]]Apple Watch che chiede il codice con un tatuaggio[[/APPLE]].",
+      "whyBody": "Quando il rilevamento del polso fallisce, Apple Watch può trattare il dispositivo come non al polso e chiedere di nuovo il codice. Dettagli e sintomi sono nella guida [[APPLE]]Apple Watch che chiede il codice con un tatuaggio[[/APPLE]].",
       "h2what": "Cosa fa Rilevamento polso",
       "whatBody": "Indica all’orologio che è sul tuo braccio. Con la funzione attiva e un codice impostato, Apple Watch si blocca quando lascia il polso e si sblocca solo con il codice. Apple descrive la funzione e cosa cambia spegnendola nell’articolo di supporto [[SUPPORT]]Se Apple Watch si blocca inaspettatamente[[/SUPPORT]].",
       "h2lose": "Cosa perdi se lo disattivi",
@@ -2718,7 +2718,7 @@
         ],
         [
           "Disattivare Rilevamento polso",
-          "Sì (meno richieste “fuori polso”)",
+          "Sì (meno richieste “non al polso”)",
           "No — Apple spegne il monitoraggio FC",
           "Rischi di sicurezza e funzioni elencate sopra"
         ],
@@ -2778,7 +2778,7 @@
       ],
       "finalH2": "Vuoi mantenere la sicurezza senza spegnere nulla?",
       "finalBody": "Scopri la lente ottica nel negozio ufficiale. I risultati possono variare in base a orologio e tatuaggio.",
-      "finalGo": "Vai a dove acquistare",
+      "finalGo": "Vai alla sezione Dove acquistare",
       "finalStore": "Apri il negozio ufficiale",
       "finalProducts": "Vedi i prodotti in home",
       "supportUrl": "https://support.apple.com/it-it/111819",
@@ -2903,7 +2903,7 @@
       "ogTitle": "Desactivar Detección de Muñeca por un tatuaje: ¿merece la pena?",
       "crumb": "Desactivar Detección de Muñeca",
       "headline": "Desactivar Detección de Muñeca por el tatuaje: ¿merece la pena?",
-      "lead": "Desactivar Detección de Muñeca (la función que muchos llaman detección de pulso) hace que el Apple Watch deje de pedir el código solo, pero también apaga frecuencia cardiaca, sueño y otras mediciones automáticas, y el reloj deja de bloquearse solo. Para la mayoría, conviene probar otra solución antes.",
+      "lead": "Desactivar Detección de Muñeca (a menudo confundida con la medición del pulso) hace que el Apple Watch deje de pedir el código solo, pero también apaga frecuencia cardíaca, sueño y otras mediciones automáticas, y el reloj deja de bloquearse solo. Para la mayoría, conviene probar otra solución antes.",
       "h2why": "Por qué el reloj pide el código con un tatuaje",
       "whyBody": "Cuando falla la detección de muñeca, el Apple Watch puede tratar el dispositivo como fuera de la muñeca y pedir el código otra vez. Detalles y síntomas están en la guía [[APPLE]]Apple Watch pidiendo código con tatuaje[[/APPLE]].",
       "h2what": "Qué hace Detección de Muñeca",
@@ -2913,7 +2913,7 @@
       "loseItems": [
         "Bloqueo y desbloqueo automáticos al quitar o poner el reloj",
         "Detección de caídas iniciando SOS de emergencia por sí sola",
-        "Seguimiento y notificaciones de frecuencia cardiaca",
+        "Seguimiento y notificaciones de frecuencia cardíaca",
         "Mediciones en segundo plano de oxígeno en sangre y frecuencia respiratoria",
         "Seguimiento del sueño",
         "Parte de las mediciones de Actividad",
@@ -2926,7 +2926,7 @@
       "tableHeaders": [
         "Alternativa",
         "¿Ayuda con el código?",
-        "¿Ayuda con la frecuencia cardiaca?",
+        "¿Ayuda con la frecuencia cardíaca?",
         "Nota"
       ],
       "tableRows": [
@@ -2959,7 +2959,7 @@
       "how1": "En el Apple Watch: abre Ajustes → Código → Detección de Muñeca y desactívala. Confirma con el código. En el iPhone, la ruta equivalente está en la app Watch, en Código (la etiqueta puede variar según la versión del sistema). Mantén el código del reloj activo y reactiva la función cuando puedas.",
       "how2": "Paso a paso y lista oficial de funciones afectadas: support.apple.com/es-es/111819.",
       "h2when": "Cuándo tiene sentido desactivarla",
-      "whenBody": "Como solución temporal: poco tiempo, en un entorno seguro, aceptando escribir el código en Apple Pay y perdiendo el seguimiento automático de frecuencia cardiaca y otras funciones. Como solución a largo plazo, conviene valorar las alternativas de arriba — incluida la guía sobre [[APPLE]]Apple Watch y tatuaje[[/APPLE]].",
+      "whenBody": "Como solución temporal: poco tiempo, en un entorno seguro, aceptando escribir el código en Apple Pay y perdiendo el seguimiento automático de frecuencia cardíaca y otras funciones. Como solución a largo plazo, conviene valorar las alternativas de arriba — incluida la guía sobre [[APPLE]]Apple Watch y tatuaje[[/APPLE]].",
       "buyH2": "Compra la lente óptica Sensor Tattoo Fix",
       "buyLead": "¿Quieres mantener la seguridad sin desactivar la detección? Sensor Tattoo Fix es una lente óptica adhesiva para la zona del sensor — en la tienda oficial (solo lente óptica en pedidos internacionales). Los resultados pueden variar según el reloj y el tatuaje.",
       "faqs": [
@@ -3004,7 +3004,7 @@
       ],
       "finalH2": "¿Quieres mantener la seguridad sin desactivar nada?",
       "finalBody": "Consulta la lente óptica en la tienda oficial. Los resultados pueden variar según el reloj y el tatuaje.",
-      "finalGo": "Ir a dónde comprar",
+      "finalGo": "Ir a la sección Dónde comprar",
       "finalStore": "Abrir tienda oficial",
       "finalProducts": "Ver productos en la home",
       "supportUrl": "https://support.apple.com/es-es/111819",
@@ -3124,18 +3124,18 @@
       "wristFeatureName": "Wykrywanie nadgarstka"
     },
     "sl": {
-      "title": "Izklopiti Wrist Detection? | Sensor Tattoo Fix",
-      "description": "Izklop Wrist Detection, da Apple Watch neha zahtevati kode pri tetovaži, prinaša tveganja. Kaj izgubite in alternative.",
-      "ogTitle": "Izklopiti Wrist Detection zaradi tetovaže: se splača?",
-      "crumb": "Izklopiti Wrist Detection",
-      "headline": "Izklopiti Wrist Detection zaradi tetovaže: se splača?",
-      "lead": "Izklop Wrist Detection (funkcije, ki jo mnogi imenujejo zaznavanje pulza ali zapestja) ustavi, da Apple Watch sam zahteva kodo, a izklopi tudi srčni utrip, spanje in druge samodejne meritve, ura pa se ne zaklene več sama. Za večino se splača najprej poskusiti drugo rešitev.",
+      "title": "Izklop zaznavanja zapestja? | Sensor Tattoo Fix",
+      "description": "Izklop zaznavanja zapestja, da Apple Watch neha zahtevati kode pri tetovaži, prinaša tveganja. Kaj izgubite in alternative.",
+      "ogTitle": "Izklop zaznavanja zapestja zaradi tetovaže: se splača?",
+      "crumb": "Izklop zaznavanja zapestja",
+      "headline": "Izklop zaznavanja zapestja zaradi tetovaže: se splača?",
+      "lead": "Izklop zaznavanja zapestja (funkcije, ki jo mnogi imenujejo zaznavanje pulza ali zapestja) ustavi, da Apple Watch sam zahteva kodo, a izklopi tudi srčni utrip, spanje in druge samodejne meritve, ura pa se ne zaklene več sama. Za večino se splača najprej poskusiti drugo rešitev.",
       "h2why": "Zakaj ura zahteva kodo pri tetovaži",
       "whyBody": "Ko zaznavanje zapestja odpove, lahko Apple Watch napravo obravnava kot odstranjeno z zapestja in znova zahteva kodo. Podrobnosti in simptomi so v vodniku [[APPLE]]Apple Watch zahteva kodo pri tetovaži[[/APPLE]].",
-      "h2what": "Kaj dela Wrist Detection",
+      "h2what": "Kaj dela zaznavanje zapestja",
       "whatBody": "Uro obvesti, da je na vaši roki. Z vklopljeno funkcijo in nastavljeno kodo se Apple Watch zaklene, ko zapusti zapestje, in odklene le s kodo. Apple opisuje funkcijo in spremembe ob izklopu v članku podpore [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
       "h2lose": "Kaj izgubite ob izklopu",
-      "loseIntro": "Po Applovi podpori ob izklopu Wrist Detection med drugim izgubite:",
+      "loseIntro": "Po Applovi podpori ob izklopu zaznavanje zapestja med drugim izgubite:",
       "loseItems": [
         "Samodejno zaklepanje in odklepanje ob snemanju ali nameščanju ure",
         "Zaznavanje padca, ki samo zažene SOS v sili",
@@ -3169,8 +3169,8 @@
           "Trden stik s kožo, brez rokava ali zapestnice vmes"
         ],
         [
-          "Izklop Wrist Detection",
-          "Da (manj pozivov »off-wrist«)",
+          "Izklop zaznavanja zapestja",
+          "Da (manj pozivov »ni na zapestju«)",
           "Ne — Apple izklopi sledenje UT",
           "Varnostna tveganja in zgoraj navedene funkcije"
         ],
@@ -3190,7 +3190,7 @@
       "buyLead": "Želite ohraniti varnost, ne da bi izklopili zaznavanje? Sensor Tattoo Fix je samolepilna optična leča za območje senzorja — v uradni trgovini (mednarodno samo optična leča). Rezultati se lahko razlikujejo glede na uro in tetovažo.",
       "faqs": [
         {
-          "q": "Ali izklop Wrist Detection izbriše moje podatke?",
+          "q": "Ali izklop zaznavanje zapestja izbriše moje podatke?",
           "a": "Ne. Spremeni le, kako ura odloča, ali je na roki, in katere funkcije, vezane na to zaznavanje, ostanejo aktivne."
         },
         {
@@ -3212,15 +3212,15 @@
       ],
       "related": [
         {
-          "href": "apple-watch-tattoo.html",
+          "href": "apple-watch-tetovaža.html",
           "text": "Apple Watch zahteva kodo pri tetovaži"
         },
         {
-          "href": "smartwatch-tattoo.html",
+          "href": "smartwatch-tetovaža.html",
           "text": "Pametna ura ne meri utripa pri tetovaži"
         },
         {
-          "href": "garmin-watch-tattoo.html",
+          "href": "garmin-watch-tetovaža.html",
           "text": "Garmin ne meri utripa pri tetovaži"
         },
         {
@@ -3234,7 +3234,7 @@
       "finalStore": "Odpri uradno trgovino",
       "finalProducts": "Oglej izdelke na domači strani",
       "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Wrist Detection"
+      "wristFeatureName": "Zaznavanje zapestja"
     },
     "fr": {
       "title": "Désactiver Détection du poignet ? | Sensor Tattoo Fix",
@@ -3242,7 +3242,7 @@
       "ogTitle": "Désactiver la Détection du poignet pour un tatouage : ça vaut le coup ?",
       "crumb": "Désactiver Détection du poignet",
       "headline": "Désactiver la Détection du poignet à cause d’un tatouage : ça vaut le coup ?",
-      "lead": "Désactiver la Détection du poignet (la fonction que beaucoup appellent détection de pouls) empêche Apple Watch de demander le code toute seule, mais coupe aussi la fréquence cardiaque, le sommeil et d’autres mesures automatiques, et la montre ne se verrouille plus seule. Pour la plupart des gens, une autre solution mérite d’être essayée d’abord.",
+      "lead": "Désactiver la Détection du poignet (souvent confondue avec la mesure du pouls) empêche Apple Watch de demander le code toute seule, mais coupe aussi la fréquence cardiaque, le sommeil et d’autres mesures automatiques, et la montre ne se verrouille plus seule. Pour la plupart des gens, une autre solution mérite d’être essayée d’abord.",
       "h2why": "Pourquoi la montre demande le code avec un tatouage",
       "whyBody": "Quand la détection du poignet échoue, Apple Watch peut traiter l’appareil comme hors du poignet et redemander le code. Détails et symptômes sont dans le guide [[APPLE]]Apple Watch qui demande le code avec un tatouage[[/APPLE]].",
       "h2what": "À quoi sert la Détection du poignet",
@@ -3283,7 +3283,7 @@
         ],
         [
           "Désactiver Détection du poignet",
-          "Oui (moins de demandes « hors poignet »)",
+          "Oui (moins de demandes « absente du poignet »)",
           "Non — Apple coupe le suivi FC",
           "Risques de sécurité et fonctions listées ci-dessus"
         ],
@@ -3298,13 +3298,13 @@
       "how1": "Sur Apple Watch : ouvrez Réglages → Code → Détection du poignet et désactivez. Confirmez avec le code. Sur iPhone, le chemin équivalent est dans l’app Watch, sous Code (le libellé peut varier selon la version du système). Gardez le code de la montre actif et réactivez la fonction dès que possible.",
       "how2": "Pas à pas et liste officielle des fonctions concernées : support.apple.com/fr-fr/111819.",
       "h2when": "Quand désactiver a du sens",
-      "whenBody": "Comme solution temporaire : pour peu de temps, dans un environnement sûr, en acceptant de saisir le code pour Apple Pay et en perdant le suivi automatique de fréquence cardiaque et d’autres fonctions. Comme solution à long terme, il vaut évaluer les alternatives ci-dessus — y compris le guide sur [[APPLE]]Apple Watch et tatouage[[/APPLE]].",
+      "whenBody": "Comme solution temporaire : pour peu de temps, dans un environnement sûr, en acceptant de saisir le code pour Apple Pay et en perdant le suivi automatique de fréquence cardiaque et d’autres fonctions. Comme solution à long terme, il vaut mieux évaluer les alternatives ci-dessus — y compris le guide sur [[APPLE]]Apple Watch et tatouage[[/APPLE]].",
       "buyH2": "Acheter la lentille optique Sensor Tattoo Fix",
       "buyLead": "Garder la sécurité sans désactiver la détection ? Sensor Tattoo Fix est une lentille optique adhésive pour la zone du capteur — en boutique officielle (lentille optique seule pour les commandes internationales). Les résultats peuvent varier selon la montre et le tatouage.",
       "faqs": [
         {
           "q": "Désactiver la Détection du poignet efface-t-il mes données ?",
-          "a": "Non. Elle change seulement comment la montre décide qu’elle est sur votre bras et quelles fonctions liées à cette détection restent actives."
+          "a": "Non. Cela change seulement la façon dont la montre décide qu’elle est sur votre bras et quelles fonctions liées à cette détection restent actives."
         },
         {
           "q": "Apple Pay fonctionne-t-il avec la détection désactivée ?",
@@ -3343,7 +3343,7 @@
       ],
       "finalH2": "Garder la sécurité sans rien désactiver ?",
       "finalBody": "Découvrez la lentille optique en boutique officielle. Les résultats peuvent varier selon la montre et le tatouage.",
-      "finalGo": "Aller où acheter",
+      "finalGo": "Aller à la section Où acheter",
       "finalStore": "Ouvrir la boutique officielle",
       "finalProducts": "Voir les produits sur l’accueil",
       "supportUrl": "https://support.apple.com/fr-fr/111819",
@@ -3456,7 +3456,7 @@
       ],
       "finalH2": "Beveiliging behouden zonder iets uit te zetten?",
       "finalBody": "Bekijk de optische lens in de officiële winkel. Resultaten kunnen per horloge en tattoo verschillen.",
-      "finalGo": "Ga naar waar te kopen",
+      "finalGo": "Naar aankoop",
       "finalStore": "Open officiële winkel",
       "finalProducts": "Bekijk producten op de homepage",
       "supportUrl": "https://support.apple.com/nl-nl/111819",
@@ -3472,7 +3472,7 @@
       "h2why": "Varför klockan ber om kod med tatuering",
       "whyBody": "När handledsigenkänning misslyckas kan Apple Watch behandla enheten som avtagen från handleden och be om koden igen. Detaljer och symptom finns i guiden [[APPLE]]Apple Watch ber om kod med tatuering[[/APPLE]].",
       "h2what": "Vad Handledsigenkänning gör",
-      "whatBody": "Den talar om för klockan att den sitter på armen. Med funktionen på och en lösenkod angiven låser Apple Watch när den lämnar handleden och låser bara upp med koden. Apple beskriver funktionen och vad som ändras när du stänger av den i supportartikeln [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
+      "whatBody": "Den talar om för klockan att den sitter på armen. Med funktionen på och en lösenkod angiven låser Apple Watch när den lämnar handleden och låser bara upp med koden. Apple beskriver funktionen och vad som ändras när du stänger av den i supportartikeln [[SUPPORT]]Om din Apple Watch låses oväntat[[/SUPPORT]].",
       "h2lose": "Vad du förlorar när du stänger av den",
       "loseIntro": "Enligt Apple Support förlorar du bland annat följande när du stänger av Handledsigenkänning:",
       "loseItems": [
@@ -3522,60 +3522,60 @@
       ],
       "h2how": "Hur du stänger av den (om du bestämmer dig)",
       "how1": "På Apple Watch: öppna Inställningar → Lösenkod → Handledsigenkänning och stäng av. Bekräfta med koden. På iPhone finns motsvarande väg i Watch-appen under Lösenkod (etiketten kan variera med systemversion). Behåll klockans lösenkod aktiv och aktivera funktionen igen när du kan.",
-      "how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/en-us/111819.",
-      "h2when": "När det är rimligt att stänga av",
-      "whenBody": "Som tillfällig lösning: en kort tid, i en säker miljö, med kodinmatning för Apple Pay och förlust av automatisk hjärtfrekvensspårning och andra funktioner. Som långsiktig lösning är det värt att utvärdera alternativen ovan — inklusive guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
-      "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
-      "buyLead": "Vill du behålla säkerheten utan att stänga av igenkänningen? Sensor Tattoo Fix är en självhäftande optisk lins för sensorområdet — i den officiella butiken (internationellt endast den optiska linsen). Resultaten kan variera beroende på klocka och tatuering.",
-      "faqs": [
-        {
-          "q": "Raderar avstängning av Handledsigenkänning mina data?",
-          "a": "Nej. Den ändrar bara hur klockan avgör om den sitter på armen och vilka funktioner kopplade till den igenkänningen förblir aktiva."
-        },
-        {
-          "q": "Fungerar Apple Pay med igenkänningen avstängd?",
-          "a": "Ja: betalning finns kvar, men du måste ange koden när du dubbeltrycker sidoknappen för att godkänna."
-        },
-        {
-          "q": "Kan en ljus tatuering också orsaka problemet?",
-          "a": "Den stör oftast mindre. Ljusa, glesa pigment släpper igenom mer sensorljus; ändå reagerar varje hud och varje motiv olika."
-        },
-        {
-          "q": "Gäller detta Samsung, Garmin och andra märken?",
-          "a": "Principen för optiska sensorer är liknande, men funktionsnamn och alternativ ändras per modell. Den här guiden handlar om Apple Watch."
-        },
-        {
-          "q": "Stör linsen laddningen?",
-          "a": "Den är utformad för att inte störa induktiv laddning. Använd den rekommenderade laddaren för din modell och vänta limmets härdningstid i manualen innan du blöter den."
-        }
-      ],
-      "related": [
-        {
-          "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch ber om kod med tatuering"
-        },
-        {
-          "href": "smartwatch-tattoo.html",
-          "text": "Smartklocka läser inte puls med tatuering"
-        },
-        {
-          "href": "garmin-watch-tattoo.html",
-          "text": "Garmin läser inte puls med tatuering"
-        },
-        {
-          "href": "index.html#produtos",
-          "text": "Sensor Tattoo Fix-produkter"
-        }
-      ],
-      "finalH2": "Behåll säkerheten utan att stänga av något?",
-      "finalBody": "Se den optiska linsen i den officiella butiken. Resultaten kan variera beroende på klocka och tatuering.",
-      "finalGo": "Gå till köpstället",
-      "finalStore": "Öppna officiell butik",
-      "finalProducts": "Se produkter på startsidan",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Handledsigenkänning"
-    },
-    "no": {
+"how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/sv-se/111819.",
+    "h2when": "När det är rimligt att stänga av",
+    "whenBody": "Som tillfällig lösning: en kort tid, i en säker miljö, med kodinmatning för Apple Pay och förlust av automatisk hjärtfrekvensspårning och andra funktioner. Som långsiktig lösning är det värt att utvärdera alternativen ovan — inklusive guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
+    "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
+    "buyLead": "Vill du behålla säkerheten utan att stänga av igenkänningen? Sensor Tattoo Fix är en självhäftande optisk lins för sensorområdet — i den officiella butiken (internationellt endast den optiska linsen). Resultaten kan variera beroende på klocka och tatuering.",
+    "faqs": [
+      {
+        "q": "Raderar avstängning av Handledsigenkänning mina data?",
+        "a": "Nej. Den ändrar bara hur klockan avgör om den sitter på armen och vilka funktioner kopplade till den igenkänningen förblir aktiva."
+      },
+      {
+        "q": "Fungerar Apple Pay med igenkänningen avstängd?",
+        "a": "Ja: betalning finns kvar, men du måste ange koden när du dubbeltrycker sidoknappen för att godkänna."
+      },
+      {
+        "q": "Kan en ljus tatuering också orsaka problemet?",
+        "a": "Den stör oftast mindre. Ljusa, glesa pigment släpper igenom mer sensorljus; ändå reagerar varje hud och varje motiv olika."
+      },
+      {
+        "q": "Gäller detta Samsung, Garmin och andra märken?",
+        "a": "Principen för optiska sensorer är liknande, men funktionsnamn och alternativ ändras per modell. Den här guiden handlar om Apple Watch."
+      },
+      {
+        "q": "Stör linsen laddningen?",
+        "a": "Den är utformad för att inte störa induktiv laddning. Använd den rekommenderade laddaren för din modell och vänta limmets härdningstid i manualen innan du blöter den."
+      }
+    ],
+    "related": [
+      {
+        "href": "apple-watch-tattoo.html",
+        "text": "Apple Watch ber om kod med tatuering"
+      },
+      {
+        "href": "smartwatch-tattoo.html",
+        "text": "Smartklocka läser inte puls med tatuering"
+      },
+      {
+        "href": "garmin-watch-tattoo.html",
+        "text": "Garmin läser inte puls med tatuering"
+      },
+      {
+        "href": "index.html#produtos",
+        "text": "Sensor Tattoo Fix-produkter"
+      }
+    ],
+    "finalH2": "Behåll säkerheten utan att stänga av något?",
+    "finalBody": "Se den optiska linsen i den officiella butiken. Resultaten kan variera beroende på klocka och tatuering.",
+    "finalGo": "Gå till köpstället",
+    "finalStore": "Öppna officiell butik",
+    "finalProducts": "Se produkter på startsidan",
+    "supportUrl": "https://support.apple.com/sv-se/111819",
+    "wristFeatureName": "Handledsigenkänning"
+  },
+  "no": {
       "title": "Slå av Håndleddsregistrering? | Sensor Tattoo Fix",
       "description": "Å slå av Håndleddsregistrering så Apple Watch slutter å be om kode ved tatovering har risikoer. Hva du mister og alternativene.",
       "ogTitle": "Slå av Håndleddsregistrering for tatovering: verdt det?",
@@ -3585,7 +3585,7 @@
       "h2why": "Hvorfor klokken ber om kode med tatovering",
       "whyBody": "Når håndleddsregistrering feiler, kan Apple Watch behandle enheten som tatt av håndleddet og be om koden igjen. Detaljer og symptomer finnes i guiden [[APPLE]]Apple Watch ber om kode med tatovering[[/APPLE]].",
       "h2what": "Hva Håndleddsregistrering gjør",
-      "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
+      "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]Hvis Apple Watch låser seg uventet[[/SUPPORT]].",
       "h2lose": "Hva du mister når du slår den av",
       "loseIntro": "Ifølge Apple-kundestøtte mister du blant annet følgende når du slår av Håndleddsregistrering:",
       "loseItems": [
@@ -3635,70 +3635,70 @@
       ],
       "h2how": "Hvordan slå den av (hvis du bestemmer deg)",
       "how1": "På Apple Watch: åpne Innstillinger → Kode → Håndleddsregistrering og slå av. Bekreft med koden. På iPhone er tilsvarende sti i Watch-appen under Kode (etiketten kan variere med systemversjon). Hold klokkens kode aktiv og aktiver funksjonen igjen når du kan.",
-      "how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/en-us/111819.",
-      "h2when": "Når det gir mening å slå av",
-      "whenBody": "Som midlertidig løsning: en kort stund, i et trygt miljø, med kodeinntasting for Apple Pay og tap av automatisk hjertefrekvenssporing og andre funksjoner. Som langsiktig løsning er det verdt å vurdere alternativene ovenfor — inkludert guiden om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
-      "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
-      "buyLead": "Vil du beholde sikkerheten uten å slå av registreringen? Sensor Tattoo Fix er en selvklebende optisk linse for sensorområdet — i den offisielle butikken (internasjonalt kun den optiske linsen). Resultatene kan variere etter klokke og tatovering.",
-      "faqs": [
-        {
-          "q": "Sletter det å slå av Håndleddsregistrering dataene mine?",
-          "a": "Nei. Den endrer bare hvordan klokken avgjør om den sitter på armen, og hvilke funksjoner knyttet til den registreringen forblir aktive."
-        },
-        {
-          "q": "Fungerer Apple Pay med registreringen avslått?",
-          "a": "Ja: betaling er fortsatt tilgjengelig, men du må taste inn koden når du dobbelttrykker sideknappen for å autorisere."
-        },
-        {
-          "q": "Kan en lys tatovering også forårsake problemet?",
-          "a": "Den forstyrrer vanligvis mindre. Lyse, lite tette pigmenter slipper gjennom mer sensorlys; likevel reagerer hver hud og hvert motiv ulikt."
-        },
-        {
-          "q": "Gjelder dette Samsung, Garmin og andre merker?",
-          "a": "Prinsippet for optiske sensorer er likt, men funksjonsnavn og alternativer endres per modell. Denne guiden handler om Apple Watch."
-        },
-        {
-          "q": "Forstyrrer linsen ladingen?",
-          "a": "Den er laget for ikke å forstyrre induktiv lading. Bruk anbefalt lader for din modell og vent limets herdetid i manualen før du gjør den våt."
-        }
-      ],
-      "related": [
-        {
-          "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch ber om kode med tatovering"
-        },
-        {
-          "href": "smartwatch-tattoo.html",
-          "text": "Smartklokke leser ikke puls med tatovering"
-        },
-        {
-          "href": "garmin-watch-tattoo.html",
-          "text": "Garmin leser ikke puls med tatovering"
-        },
-        {
-          "href": "index.html#produtos",
-          "text": "Sensor Tattoo Fix-produkter"
-        }
-      ],
-      "finalH2": "Beholde sikkerheten uten å slå av noe?",
-      "finalBody": "Se den optiske linsen i den offisielle butikken. Resultatene kan variere etter klokke og tatovering.",
-      "finalGo": "Gå til hvor du kan kjøpe",
-      "finalStore": "Åpne offisiell butikk",
-      "finalProducts": "Se produkter på forsiden",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Håndleddsregistrering"
-    },
-    "fi": {
-      "title": "Sammuttaa Ranteen tunnistus? | Sensor Tattoo Fix",
+"how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/no-no/111819.",
+    "h2when": "Når det gir mening å slå av",
+    "whenBody": "Som midlertidig løsning: en kort stund, i et trygt miljø, med kodeinntasting for Apple Pay og tap av automatisk hjertefrekvenssporing og andre funksjoner. Som langsiktig løsning er det verdt å vurdere alternativene ovenfor — inkludert guiden om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
+    "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
+    "buyLead": "Vil du beholde sikkerheten uten å slå av registreringen? Sensor Tattoo Fix er en selvklebende optisk linse for sensorområdet — i den offisielle butikken (internasjonalt kun den optiske linsen). Resultatene kan variere etter klokke og tatovering.",
+    "faqs": [
+      {
+        "q": "Sletter det å slå av Håndleddsregistrering dataene mine?",
+        "a": "Nei. Den endrer bare hvordan klokken avgjør om den sitter på armen, og hvilke funksjoner knyttet til den registreringen forblir aktive."
+      },
+      {
+        "q": "Fungerer Apple Pay med registreringen avslått?",
+        "a": "Ja: betaling er fortsatt tilgjengelig, men du må taste inn koden når du dobbelttrykker sideknappen for å autorisere."
+      },
+      {
+        "q": "Kan en lys tatovering også forårsake problemet?",
+        "a": "Den forstyrrer vanligvis mindre. Lyse, lite tette pigmenter slipper gjennom mer sensorlys; likevel reagerer hver hud og hvert motiv ulikt."
+      },
+      {
+        "q": "Gjelder dette Samsung, Garmin og andre merker?",
+        "a": "Prinsippet for optiske sensorer er likt, men funksjonsnavn og alternativer endres per modell. Denne guiden handler om Apple Watch."
+      },
+      {
+        "q": "Forstyrrer linsen ladingen?",
+        "a": "Den er laget for ikke å forstyrre induktiv lading. Bruk anbefalt lader for din modell og vent limets herdetid i manualen før du gjør den våt."
+      }
+    ],
+    "related": [
+      {
+        "href": "apple-watch-tattoo.html",
+        "text": "Apple Watch ber om kode med tatovering"
+      },
+      {
+        "href": "smartwatch-tattoo.html",
+        "text": "Smartklokke leser ikke puls med tatovering"
+      },
+      {
+        "href": "garmin-watch-tattoo.html",
+        "text": "Garmin leser ikke puls med tatovering"
+      },
+      {
+        "href": "index.html#produtos",
+        "text": "Sensor Tattoo Fix-produkter"
+      }
+    ],
+    "finalH2": "Beholde sikkerheten uten å slå av noe?",
+    "finalBody": "Se den optiske linsen i den offisielle butikken. Resultatene kan variere etter klokke og tatovering.",
+    "finalGo": "Gå til kjøp",
+    "finalStore": "Åpne offisiell butikk",
+    "finalProducts": "Se produkter på forsiden",
+    "supportUrl": "https://support.apple.com/no-no/111819",
+    "wristFeatureName": "Håndleddsregistrering"
+  },
+  "fi": {
+      "title": "Ranteen tunnistus pois tatuoinnin takia? | Sensor Tattoo Fix",
       "description": "Ranteen tunnistuksen sammuttaminen, jotta Apple Watch ei kysy koodia tatuoinnin kanssa, sisältää riskejä. Mitä menetät ja vaihtoehdot.",
-      "ogTitle": "Sammuttaa Ranteen tunnistus tatuoinnin takia: kannattaako?",
-      "crumb": "Sammuttaa Ranteen tunnistus",
-      "headline": "Sammuttaa Ranteen tunnistus tatuoinnin takia: kannattaako?",
+      "ogTitle": "Ranteen tunnistus pois tatuoinnin takia: kannattaako?",
+      "crumb": "Ranteen tunnistus pois",
+      "headline": "Ranteen tunnistuksen sammuttaminen tatuoinnin takia: kannattaako?",
       "lead": "Ranteen tunnistuksen sammuttaminen (toiminto, jota monet kutsuvat pulssin tai ranteen tunnistukseksi) lopettaa sen, että Apple Watch pyytää koodia itsestään, mutta sammuttaa myös sykkeen, unen ja muut automaattiset mittaukset, eikä kello lukitu enää itsestään. Useimmille kannattaa kokeilla ensin toista ratkaisua.",
       "h2why": "Miksi kello pyytää koodia tatuoinnin kanssa",
       "whyBody": "Kun ranteen tunnistus epäonnistuu, Apple Watch voi käsitellä laitteen ranteelta poistettuna ja pyytää koodia uudelleen. Tiedot ja oireet ovat oppaassa [[APPLE]]Apple Watch pyytää koodia tatuoinnin kanssa[[/APPLE]].",
       "h2what": "Mitä Ranteen tunnistus tekee",
-      "whatBody": "Se kertoo kellolle, että se on käsivarressa. Kun toiminto on päällä ja koodi asetettu, Apple Watch lukittuu poistuessaan ranteelta ja avautuu vain koodilla. Apple kuvaa toiminnon ja muutokset sammutettaessa tukartikkelissa [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
+      "whatBody": "Se kertoo kellolle, että se on käsivarressa. Kun toiminto on päällä ja koodi asetettu, Apple Watch lukittuu poistuessaan ranteelta ja avautuu vain koodilla. Apple kuvaa toiminnon ja muutokset sammutettaessa tukiartikkelissa [[SUPPORT]]Jos Apple Watch lukittuu odottamatta[[/SUPPORT]].",
       "h2lose": "Mitä menetät, kun sammutat sen",
       "loseIntro": "Applen tuen mukaan Ranteen tunnistuksen sammuttaminen poistaa muun muassa:",
       "loseItems": [
@@ -3748,58 +3748,58 @@
       ],
       "h2how": "Miten sammuttaa (jos päätät)",
       "how1": "Apple Watchissa: avaa Asetukset → Pääsykoodi → Ranteen tunnistus ja sammuta. Vahvista koodilla. iPhonessa vastaava polku on Watch-sovelluksessa kohdassa Pääsykoodi (nimi voi vaihdella järjestelmäversion mukaan). Pidä kellon koodi päällä ja ota toiminto uudelleen käyttöön, kun voit.",
-      "how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/en-us/111819.",
-      "h2when": "Milloin sammuttaminen on järkevää",
-      "whenBody": "Tilapäisenä ratkaisuna: lyhyeksi aikaa, turvallisessa ympäristössä, hyväksyen koodin syötön Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkäaikaiseksi ratkaisuksi kannattaa arvioida yllä olevat vaihtoehdot — mukaan lukien opas [[APPLE]]Apple Watchista ja tatuoinneista[[/APPLE]].",
-      "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
-      "buyLead": "Haluatko säilyttää turvallisuuden ilman tunnistuksen sammuttamista? Sensor Tattoo Fix on itseliimautuva optinen linssi sensorialueelle — virallisessa kaupassa (kansainvälisesti vain optinen linssi). Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
-      "faqs": [
-        {
-          "q": "Poistaako Ranteen tunnistuksen sammutus tietoni?",
-          "a": "Ei. Se muuttaa vain sitä, miten kello päättää olevan käsivarressa, ja mitkä tähän tunnistukseen liittyvät toiminnot pysyvät aktiivisina."
-        },
-        {
-          "q": "Toimiiko Apple Pay tunnistuksen ollessa pois päältä?",
-          "a": "Kyllä: maksu on edelleen käytettävissä, mutta koodi on syötettävä, kun painat sivupainiketta kahdesti valtuuttaaksesi."
-        },
-        {
-          "q": "Aiheuttaako myös vaalea tatuointi ongelman?",
-          "a": "Se häiritsee yleensä vähemmän. Vaaleat, harvat pigmentit päästävät enemmän sensorivaloa läpi; silti jokainen iho ja jokainen kuvio reagoi eri tavalla."
-        },
-        {
-          "q": "Koskeeko tämä Samsungia, Garminia ja muita merkkejä?",
-          "a": "Optisten sensoreiden periaate on samankaltainen, mutta toiminnon nimi ja vaihtoehdot vaihtuvat mallin mukaan. Tämä opas käsittelee Apple Watchia."
-        },
-        {
-          "q": "Häiritseekö linssi latausta?",
-          "a": "Se on suunniteltu niin, ettei se häiritse induktiolatausta. Käytä mallillesi suositeltua laturia ja odota liiman kovettumisaikaa ohjeesta ennen kastamista."
-        }
-      ],
-      "related": [
-        {
-          "href": "apple-watch-tattoo.html",
-          "text": "Apple Watch pyytää koodia tatuoinnin kanssa"
-        },
-        {
-          "href": "smartwatch-tattoo.html",
-          "text": "Älykello ei lue sykettä tatuoinnin kanssa"
-        },
-        {
-          "href": "garmin-watch-tattoo.html",
-          "text": "Garmin ei lue sykettä tatuoinnin kanssa"
-        },
-        {
-          "href": "index.html#produtos",
-          "text": "Sensor Tattoo Fix -tuotteet"
-        }
-      ],
-      "finalH2": "Säilyttää turvallisuuden ilman mitään sammuttamista?",
-      "finalBody": "Tutustu optiseen linssiin virallisessa kaupassa. Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
-      "finalGo": "Siirry ostamaan",
-      "finalStore": "Avaa virallinen kauppa",
-      "finalProducts": "Katso tuotteet etusivulla",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Ranteen tunnistus"
-    }
+"how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/fi-fi/111819.",
+    "h2when": "Milloin sammuttaminen on järkevää",
+    "whenBody": "Tilapäisenä ratkaisuna: lyhyeksi aikaa, turvallisessa ympäristössä, hyväksyen koodin syötön Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkäaikaiseksi ratkaisuksi kannattaa arvioida yllä olevat vaihtoehdot — mukaan lukien opas [[APPLE]]Apple Watchista ja tatuoinneista[[/APPLE]].",
+    "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
+    "buyLead": "Haluatko säilyttää turvallisuuden ilman tunnistuksen sammuttamista? Sensor Tattoo Fix on itseliimautuva optinen linssi sensorialueelle — virallisessa kaupassa (kansainvälisesti vain optinen linssi). Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
+    "faqs": [
+      {
+        "q": "Poistaako Ranteen tunnistuksen sammutus tietoni?",
+        "a": "Ei. Se muuttaa vain sitä, miten kello päättää olevan käsivarressa, ja mitkä tähän tunnistukseen liittyvät toiminnot pysyvät aktiivisina."
+      },
+      {
+        "q": "Toimiiko Apple Pay tunnistuksen ollessa pois päältä?",
+        "a": "Kyllä: maksu on edelleen käytettävissä, mutta koodi on syötettävä, kun painat sivupainiketta kahdesti valtuuttaaksesi."
+      },
+      {
+        "q": "Aiheuttaako myös vaalea tatuointi ongelman?",
+        "a": "Se häiritsee yleensä vähemmän. Vaaleat, harvat pigmentit päästävät enemmän sensorivaloa läpi; silti jokainen iho ja jokainen kuvio reagoi eri tavalla."
+      },
+      {
+        "q": "Koskeeko tämä Samsungia, Garminia ja muita merkkejä?",
+        "a": "Optisten sensoreiden periaate on samankaltainen, mutta toiminnon nimi ja vaihtoehdot vaihtuvat mallin mukaan. Tämä opas käsittelee Apple Watchia."
+      },
+      {
+        "q": "Häiritseekö linssi latausta?",
+        "a": "Se on suunniteltu niin, ettei se häiritse induktiolatausta. Käytä mallillesi suositeltua laturia ja odota liiman kovettumisaikaa ohjeesta ennen kastamista."
+      }
+    ],
+    "related": [
+      {
+        "href": "apple-watch-tattoo.html",
+        "text": "Apple Watch pyytää koodia tatuoinnin kanssa"
+      },
+      {
+        "href": "smartwatch-tattoo.html",
+        "text": "Älykello ei lue sykettä tatuoinnin kanssa"
+      },
+      {
+        "href": "garmin-watch-tattoo.html",
+        "text": "Garmin ei lue sykettä tatuoinnin kanssa"
+      },
+      {
+        "href": "index.html#produtos",
+        "text": "Sensor Tattoo Fix -tuotteet"
+      }
+    ],
+    "finalH2": "Haluatko säilyttää turvallisuuden ilman mitään sammuttamista?",
+    "finalBody": "Tutustu optiseen linssiin virallisessa kaupassa. Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
+    "finalGo": "Siirry ostamaan",
+    "finalStore": "Avaa virallinen kauppa",
+    "finalProducts": "Katso tuotteet etusivulla",
+    "supportUrl": "https://support.apple.com/fi-fi/111819",
+    "wristFeatureName": "Ranteen tunnistus"
   }
+}
 }
