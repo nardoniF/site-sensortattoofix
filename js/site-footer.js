@@ -5,7 +5,7 @@ window.STF_FOOTER = (function () {
     company: '3N20 Soluções Tecnológicas',
     cnpj: '29.321.223/0001-32',
     patentNational: 'BR 20 2026 010875 3',
-    patentInternational: 'PCT BR 2026 050304',
+    patentInternational: 'PCT/BR2026/050304',
     city: 'São Paulo, SP'
   };
 
@@ -23,8 +23,8 @@ window.STF_FOOTER = (function () {
       community: 'Comunidade',
       feedback: 'O que faltou no site?',
       commissioner: 'Seja comissionado',
-      patentLinePrefix: 'Patente Nacional',
-      patentLineJoin: 'Internacional',
+      patentLinePrefix: 'Pedido INPI',
+      patentLineJoin: 'PCT',
       rights: 'Todos os direitos reservados.',
       crashSeeAlso: 'Veja também',
       crashTagline: 'Para sensores trincados'
