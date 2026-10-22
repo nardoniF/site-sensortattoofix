@@ -8,22 +8,25 @@
   const INTL_LANGS = ['it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
   const ALL_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi'];
 
-  /** Guias SEO: só PT + EN por enquanto — demais idiomas apontam para a versão EN. */
-  const SEO_GUIDE_TO_EN = {
-    'smartwatch-tatuagem.html': 'smartwatch-tattoo.html',
-    'apple-watch-tatuagem.html': 'apple-watch-tattoo.html',
-    'garmin-watch-tatuagem.html': 'garmin-watch-tattoo.html',
-    'smartwatch-tattoo.html': 'smartwatch-tattoo.html',
-    'apple-watch-tattoo.html': 'apple-watch-tattoo.html',
-    'garmin-watch-tattoo.html': 'garmin-watch-tattoo.html',
-  };
-  const SEO_GUIDE_TO_PT = {
-    'smartwatch-tattoo.html': 'smartwatch-tatuagem.html',
-    'apple-watch-tattoo.html': 'apple-watch-tatuagem.html',
-    'garmin-watch-tattoo.html': 'garmin-watch-tatuagem.html',
-    'smartwatch-tatuagem.html': 'smartwatch-tatuagem.html',
-    'apple-watch-tatuagem.html': 'apple-watch-tatuagem.html',
-    'garmin-watch-tatuagem.html': 'garmin-watch-tatuagem.html',
+  /**
+   * Guias SEO — slug PT no .com.br; slug EN no .com (root) e em /{lang}/.
+   * Chave = qualquer filename conhecido da família da guia.
+   */
+  const SEO_GUIDE_SLUGS = {
+    'smartwatch-tatuagem.html': { pt: 'smartwatch-tatuagem.html', en: 'smartwatch-tattoo.html' },
+    'smartwatch-tattoo.html': { pt: 'smartwatch-tatuagem.html', en: 'smartwatch-tattoo.html' },
+    'apple-watch-tatuagem.html': { pt: 'apple-watch-tatuagem.html', en: 'apple-watch-tattoo.html' },
+    'apple-watch-tattoo.html': { pt: 'apple-watch-tatuagem.html', en: 'apple-watch-tattoo.html' },
+    'garmin-watch-tatuagem.html': { pt: 'garmin-watch-tatuagem.html', en: 'garmin-watch-tattoo.html' },
+    'garmin-watch-tattoo.html': { pt: 'garmin-watch-tatuagem.html', en: 'garmin-watch-tattoo.html' },
+    'desativar-deteccao-de-pulso-tatuagem.html': {
+      pt: 'desativar-deteccao-de-pulso-tatuagem.html',
+      en: 'disable-wrist-detection-tattoo.html'
+    },
+    'disable-wrist-detection-tattoo.html': {
+      pt: 'desativar-deteccao-de-pulso-tatuagem.html',
+      en: 'disable-wrist-detection-tattoo.html'
+    }
   };
 
   const LANG_META = {
@@ -38,7 +41,7 @@
     nl: { code: 'NL', flag: 'nl', label: 'Nederlands' },
     sv: { code: 'SV', flag: 'se', label: 'Svenska' },
     no: { code: 'NO', flag: 'no', label: 'Norsk' },
-    fi: { code: 'FI', flag: 'fi', label: 'Suomi' },
+    fi: { code: 'FI', flag: 'fi', label: 'Suomi' }
   };
 
   function host() {
@@ -93,13 +96,16 @@
     return f === 'index.html' ? `${BR}/${lang}/` : `${BR}/${lang}/${f}`;
   }
 
+  function seoGuideUrl(lang, slugs) {
+    if (lang === 'pt') return BR + '/' + slugs.pt;
+    if (lang === 'en') return COM + '/' + slugs.en;
+    return `${COM}/${lang}/${slugs.en}`;
+  }
+
   function langUrl(lang) {
     const f = pageFile();
-    if (SEO_GUIDE_TO_EN[f] || SEO_GUIDE_TO_PT[f]) {
-      if (lang === 'pt') return BR + '/' + (SEO_GUIDE_TO_PT[f] || f);
-      // EN e intl sem tradução local → página EN canônica
-      return COM + '/' + (SEO_GUIDE_TO_EN[f] || f);
-    }
+    const slugs = SEO_GUIDE_SLUGS[f];
+    if (slugs) return seoGuideUrl(lang, slugs);
     if (lang === 'pt') return brPtUrl();
     if (lang === 'en') return comEnUrl();
     return isCom() ? comLangUrl(lang) : brLangUrl(lang);
