@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:8767';
+/** Relative to playwright.config baseURL (CI webServer on :4173). */
+const BASE = process.env.SMOKE_BASE_URL || '';
 
 const HOME_SECTIONS = [
   'top',
