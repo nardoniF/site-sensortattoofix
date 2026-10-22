@@ -21,6 +21,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Siga nossas redes oficiais',
       faq: 'FAQ',
       community: 'Comunidade',
+      articles: 'Artigos',
       feedback: 'O que faltou no site?',
       commissioner: 'Seja comissionado',
       patentLinePrefix: 'Pedido INPI',
@@ -33,6 +34,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Follow our official channels',
       faq: 'FAQ',
       community: 'Community',
+      articles: 'Articles',
       feedback: 'What was missing?',
       commissioner: 'Become an affiliate',
       patentLinePrefix: 'Patent pending · INPI',
@@ -45,6 +47,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Segui i nostri canali ufficiali',
       faq: 'FAQ',
       community: 'Comunità',
+      articles: 'Articoli',
       feedback: 'Cosa mancava sul sito?',
       commissioner: 'Diventa affiliato',
       patentLinePrefix: 'Domanda di protezione · INPI',
@@ -57,6 +60,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Folgen Sie unseren offiziellen Kanälen',
       faq: 'FAQ',
       community: 'Community',
+      articles: 'Artikel',
       feedback: 'Was hat auf der Website gefehlt?',
       commissioner: 'Partner werden',
       patentLinePrefix: 'Schutzanmeldung · INPI',
@@ -69,6 +73,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Sigue nuestras redes oficiales',
       faq: 'FAQ',
       community: 'Comunidad',
+      articles: 'Artículos',
       feedback: '¿Qué faltaba en el sitio?',
       commissioner: 'Sé afiliado',
       patentLinePrefix: 'Solicitud de protección · INPI',
@@ -81,6 +86,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Obserwuj nasze oficjalne kanały',
       faq: 'FAQ',
       community: 'Społeczność',
+      articles: 'Artykuły',
       feedback: 'Czego brakowało na stronie?',
       commissioner: 'Zostań partnerem',
       patentLinePrefix: 'Wniosek o ochronę · INPI',
@@ -93,6 +99,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Sledite našim uradnim kanalom',
       faq: 'FAQ',
       community: 'Skupnost',
+      articles: 'Članki',
       feedback: 'Kaj je manjkalo na spletni strani?',
       commissioner: 'Postanite partner',
       patentLinePrefix: 'Vloga za zaščito · INPI',
@@ -105,6 +112,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Suivez nos réseaux officiels',
       faq: 'FAQ',
       community: 'Communauté',
+      articles: 'Articles',
       feedback: 'Qu\'est-ce qui manquait sur le site ?',
       commissioner: 'Devenir affilié',
       patentLinePrefix: 'Demande de protection · INPI',
@@ -117,6 +125,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Volg onze officiële kanalen',
       faq: 'FAQ',
       community: 'Community',
+      articles: 'Artikelen',
       feedback: 'Wat ontbrak er op de site?',
       commissioner: 'Word affiliate',
       patentLinePrefix: 'Beschermingsaanvraag · INPI',
@@ -129,6 +138,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Följ våra officiella kanaler',
       faq: 'FAQ',
       community: 'Gemenskap',
+      articles: 'Artiklar',
       feedback: 'Vad saknades på sajten?',
       commissioner: 'Bli partner',
       patentLinePrefix: 'Skyddsansökan · INPI',
@@ -141,6 +151,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Følg våre offisielle kanaler',
       faq: 'FAQ',
       community: 'Fellesskap',
+      articles: 'Artikler',
       feedback: 'Hva manglet på siden?',
       commissioner: 'Bli partner',
       patentLinePrefix: 'Beskyttelsessøknad · INPI',
@@ -153,6 +164,7 @@ window.STF_FOOTER = (function () {
       socialTitle: 'Seuraa virallisia kanaviamme',
       faq: 'FAQ',
       community: 'Yhteisö',
+      articles: 'Artikkelit',
       feedback: 'Mitä sivustolta puuttui?',
       commissioner: 'Ryhdy kumppaniksi',
       patentLinePrefix: 'Suojahakemus · INPI',
@@ -279,7 +291,7 @@ window.STF_FOOTER = (function () {
     if (!enabled.length) {
       return `
       <div class="footer-social">
-        <div class="footer-faq-link"><a href="#faq">${s.faq}</a> · <a href="${prefix}comunidade.html"><i class="fas fa-comments" aria-hidden="true"></i> ${s.community}</a></div>
+        <div class="footer-faq-link"><a href="#faq">${s.faq}</a> · <a href="${prefix}comunidade.html"><i class="fas fa-comments" aria-hidden="true"></i> ${s.community}</a> · <a href="#guias">${s.articles}</a></div>
         <div class="footer-action-links">
           <button type="button" class="footer-action-btn footer-action-btn--feedback stf-feedback-trigger">
             <i class="fas fa-comment-dots" aria-hidden="true"></i>
@@ -302,7 +314,7 @@ window.STF_FOOTER = (function () {
       <div class="footer-social">
         <h4>${s.socialTitle}</h4>
         <div class="social-icons-footer">${links}</div>
-        <div class="footer-faq-link"><a href="#faq">${s.faq}</a> · <a href="${prefix}comunidade.html"><i class="fas fa-comments" aria-hidden="true"></i> ${s.community}</a></div>
+        <div class="footer-faq-link"><a href="#faq">${s.faq}</a> · <a href="${prefix}comunidade.html"><i class="fas fa-comments" aria-hidden="true"></i> ${s.community}</a> · <a href="#guias">${s.articles}</a></div>
         <div class="footer-action-links">
           <button type="button" class="footer-action-btn footer-action-btn--feedback stf-feedback-trigger">
             <i class="fas fa-comment-dots" aria-hidden="true"></i>
