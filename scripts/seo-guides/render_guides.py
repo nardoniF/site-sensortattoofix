@@ -185,7 +185,7 @@ def render_brand_guide(guide: str, lang: str) -> str:
     <meta property="og:title" content="{html.escape(g['ogTitle'], quote=True)}">
     <meta property="og:description" content="{html.escape(g['description'], quote=True)}">
     <meta property="og:image" content="{BR}/images/kit-gallery/kit-03-aplicacao.jpg">
-    <link rel="stylesheet" href="../style.css?v=3.66">
+    <link rel="stylesheet" href="../style.css?v=3.71">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="../js/ad-landing.js?v=7"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
@@ -240,6 +240,8 @@ def render_brand_guide(guide: str, lang: str) -> str:
                     </ol>
                 </nav>
 
+                <div class="seo-hero">
+                <div class="seo-hero-copy">
                 <p class="seo-kicker">{esc(chrome['kicker'])}</p>
                 <h1>{esc(g['headline'])}</h1>
                 <p class="seo-lead">{esc(g['lead'])}</p>
@@ -247,9 +249,11 @@ def render_brand_guide(guide: str, lang: str) -> str:
                     <a href="#buy" class="btn-primary" data-evento="clique_menu_comprar" data-rotulo="Guide — hero buy CTA"><i class="fas fa-shopping-bag" aria-hidden="true"></i> {esc(chrome['ctaBuy'])}</a>
                     <a href="loja.html?utm_source=seo&amp;utm_medium=guide&amp;utm_campaign=intent&amp;utm_content=cta_hero_store" class="btn-secondary">{esc(chrome['ctaStore'])}</a>
                 </p>
+                </div>
                 <figure class="seo-figure">
                     <img src="../images/kit-gallery/kit-03-aplicacao.jpg" alt="{html.escape(chrome['imgAlt'], quote=True)}" width="1200" height="675" loading="lazy">
                 </figure>
+                </div>
 
                 <h2>{esc(g['h2symptoms'])}</h2>
 {symptoms_block}
@@ -487,7 +491,7 @@ def render_wrist(lang: str) -> str:
     <meta property="og:title" content="{html.escape(g['ogTitle'], quote=True)}">
     <meta property="og:description" content="{html.escape(g['description'], quote=True)}">
     <meta property="og:image" content="{BR}/images/kit-gallery/kit-03-aplicacao.jpg">
-    <link rel="stylesheet" href="{'../' if lang != 'en' else '../'}style.css?v=3.66">
+    <link rel="stylesheet" href="{'../' if lang != 'en' else '../'}style.css?v=3.71">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="../js/ad-landing.js?v=7"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
@@ -541,6 +545,8 @@ def render_wrist(lang: str) -> str:
                         <li aria-current="page">{esc(g['crumb'])}</li>
                     </ol>
                 </nav>
+                <div class="seo-hero">
+                <div class="seo-hero-copy">
                 <p class="seo-kicker">{esc(chrome['kicker'])}</p>
                 <h1>{esc(g['headline'])}</h1>
                 <p class="seo-lead">{lead_html}</p>
@@ -548,9 +554,11 @@ def render_wrist(lang: str) -> str:
                     <a href="#buy" class="btn-primary" data-evento="clique_menu_comprar" data-rotulo="Guide — hero buy CTA"><i class="fas fa-shopping-bag" aria-hidden="true"></i> {esc(chrome['ctaBuy'])}</a>
                     <a href="loja.html?utm_source=seo&amp;utm_medium=guide&amp;utm_campaign=intent&amp;utm_content=cta_hero_store" class="btn-secondary">{esc(chrome['ctaStore'])}</a>
                 </p>
+                </div>
                 <figure class="seo-figure">
                     <img src="../images/kit-gallery/kit-03-aplicacao.jpg" alt="{html.escape(chrome['imgAlt'], quote=True)}" width="1200" height="675" loading="lazy">
                 </figure>
+                </div>
 
                 <h2>{esc(g['h2why'])}</h2>
                 <p>{body_html(g['whyBody'])}</p>
@@ -565,9 +573,11 @@ def render_wrist(lang: str) -> str:
                 </ul>
                 <p>{esc(g['loseApplePay'])}</p>
 
+                <div class="seo-compare-block">
                 <h2>{esc(g['h2alt'])}</h2>
                 <p>{esc(g['altIntro'])}</p>
 {table}
+                </div>
 
                 <h2>{esc(g['h2how'])}</h2>
                 <p>{esc(g['how1'])}</p>
