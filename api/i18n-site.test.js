@@ -438,8 +438,10 @@ test('sitemap.xml: só PT no .com.br; sitemap-com.xml intl no .com', () => {
   const comXml = fs.readFileSync(path.join(root, 'sitemap-com.xml'), 'utf8');
   const brLocs = [...brXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   const comLocs = [...comXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-  assert.equal(brLocs.length, 4);
-  assert.equal(comLocs.length, 44);
+  // PT: home + loja + onde-comprar + comunidade + 4 guias SEO
+  assert.equal(brLocs.length, 8);
+  // .com: 8 páginas × 11 idiomas (en + it/de/es/pl/sl/fr/nl/sv/no/fi)
+  assert.equal(comLocs.length, 88);
   for (const loc of brLocs) {
     assert.match(loc, /^https:\/\/www\.sensortattoofix\.com\.br\//, `loc .com.br: ${loc}`);
     assert.doesNotMatch(loc, /\/(de|es|pl|sl|it|fr|nl|sv|no|fi)\//, `PT sitemap sem intl: ${loc}`);

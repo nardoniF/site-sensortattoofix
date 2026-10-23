@@ -78,7 +78,7 @@
       .filter((r) => r && r.active !== false)
       .slice()
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-    root.innerHTML = rows.map((row) => {
+    const html = rows.map((row) => {
       const q = pickL10n('faq', row.id, 'question', lang) || pick(row, 'question', lang);
       const a = pickL10n('faq', row.id, 'answer', lang) || pick(row, 'answer', lang);
       if (!q) return '';
@@ -88,6 +88,13 @@
         ${renderMedia(row.media)}
       </details>`;
     }).join('');
+    // Keep server-rendered FAQ if localized config is empty (no blank flash / no wipe).
+    if (!html.trim()) {
+      if (root.querySelector('.faq-item')) return;
+      root.innerHTML = '';
+      return;
+    }
+    root.innerHTML = html;
   }
 
   function renderReviews(items, lang) {
@@ -144,7 +151,7 @@
   async function loadL10n() {
     if (l10nCache) return l10nCache;
     try {
-      const res = await fetch('/data/home-content-l10n.json?v=3', { cache: 'no-store' });
+      const res = await fetch('/data/home-content-l10n.json?v=4', { cache: 'no-store' });
       if (res.ok) l10nCache = await res.json();
     } catch (e) {
       console.warn('home-content: falha ao carregar l10n', e);

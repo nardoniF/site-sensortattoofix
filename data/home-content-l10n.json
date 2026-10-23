@@ -662,5 +662,450 @@
         "source": "Shopee · 5★"
       }
     }
+  },
+  "fr": {
+    "reviewsSummary": "5,0 · avis réels (Google, Mercado Libre, WhatsApp, Shopee, Instagram et plus)",
+    "faq": {
+      "faq-1": {
+        "question": "Pourquoi mon smartwatch demande-t-il le code tout le temps ?",
+        "answer": "Quand le capteur optique ne détecte pas le flux sanguin au poignet, la montre croit avoir été retirée et redemande le code — sur Apple Watch, cela peut arriver <strong>toutes les 10 secondes</strong>. Sur une peau tatouée, l’encre bloque la lumière du capteur ; la montre active le verrouillage par code et pense avoir quitté votre bras. La lentille Sensor Tattoo Fix rétablit la lecture et arrête les verrouillages constants."
+      },
+      "faq-2": {
+        "question": "Pourquoi mon smartwatch ne mesure-t-il pas la fréquence cardiaque sur une peau tatouée ?",
+        "answer": "Le capteur utilise la lumière pour mesurer le flux sanguin. Un tatouage dense, une cicatrice ou un pigment foncé bloque le signal de retour — la fréquence cardiaque reste à zéro, imprécise, disparaît en plein entraînement ou la montre arrête le suivi. La lentille Sensor Tattoo Fix corrige la lecture sans désactiver le capteur."
+      },
+      "faq-3": {
+        "question": "Pourquoi ma montre se déconnecte-t-elle ou perd-elle le contact avec le poignet toute seule ?",
+        "answer": "La perte de signal du capteur fait croire au smartwatch qu’il a quitté votre bras : il se déverrouille, met l’entraînement en pause, arrête le suivi santé ou redemande le code. Si vous avez un tatouage là où la montre pose, c’est la cause la plus fréquente — et il existe une solution par lentille optique professionnelle."
+      },
+      "faq-4": {
+        "question": "Pourquoi ma montre met-elle en pause les entraînements toute seule sur une peau tatouée ?",
+        "answer": "Parce que l’encre du tatouage bloque la lumière du capteur, la montre ne peut pas calculer votre fréquence cardiaque. Le système interprète cette perte de signal comme si vous aviez arrêté l’exercice ou retiré l’appareil, et met l’activité en pause automatiquement pour économiser la batterie."
+      },
+      "faq-5": {
+        "question": "Comment la lentille Sensor Tattoo Fix corrige-t-elle le capteur ?",
+        "answer": "Notre technologie de lentille a été conçue pour contourner le blocage causé par l’encre du tatouage. Elle agit comme un transmetteur de haute précision qui permet au capteur biométrique de lire à travers la peau tatouée, en gardant les fonctions de la montre (paiements, santé et entraînements) opérationnelles."
+      },
+      "faq-6": {
+        "question": "Est-ce que ça fonctionne sur Apple Watch ?",
+        "answer": "Oui. La lentille Sensor Tattoo Fix fonctionne sur Apple Watch et sur pratiquement tout smartwatch avec un <strong>capteur optique</strong> (lumière verte ou infrarouge) au dos — Apple, Samsung, Garmin, Xiaomi et d’autres marques. Diamètres courants disponibles. Démonstration avant/après sur Apple Watch :"
+      },
+      "faq-7": {
+        "question": "Est-ce que ça fonctionne sur Samsung Galaxy Watch ?",
+        "answer": "Oui. Galaxy Watch et les autres smartwatches Samsung avec capteur biométrique optique sont compatibles. La lentille rétablit la détection du poignet, la fréquence cardiaque et les entraînements sur peau tatouée, comme sur toute marque à lecture optique. Démo sur Galaxy Watch :"
+      },
+      "faq-8": {
+        "question": "Y a-t-il un témoignage client réel avec Galaxy Watch Ultra ?",
+        "answer": "Oui. Un client au bras tatoué a installé la lentille sur une <strong>Galaxy Watch Ultra</strong> et a retrouvé fréquence cardiaque, entraînements et usage quotidien — sans verrouillages ni lectures à zéro. Dans le Reels ci-dessous, il raconte l’expérience : le doute initial, l’installation et le résultat une fois le capteur à nouveau fiable."
+      },
+      "faq-9": {
+        "question": "La résine époxy ou le sparadrap marchent-ils — même partiellement ?",
+        "answer": "Pas de façon fiable. La résine/époxy se décolle avec la sueur et l’eau ; le sparadrap et le latex bloquent la lumière du capteur et faussent les mesures. Dans le TikTok ci-dessous, @bruu_schmitt raconte des années de bricolages sur Apple Watch — et comment Sensor Tattoo Fix lui a permis d’utiliser la montre normalement."
+      },
+      "faq-10": {
+        "question": "La lentille permet-elle les paiements sans contact (Apple Pay / Google Pay) ?",
+        "answer": "Oui. Avec la lentille installée, la montre détecte à nouveau votre poignet — les <strong>paiements NFC sans contact</strong> fonctionnent donc à nouveau, car le smartwatch ne croit plus avoir quitté votre bras. Pas besoin de désactiver la détection du poignet :"
+      },
+      "faq-11": {
+        "question": "Désactiver la détection du poignet résout-il le problème ?",
+        "answer": "Non. Ce n’est pas une bonne solution à long terme. La montre ne se verrouille plus toute seule, Apple coupe le suivi de la fréquence cardiaque et d’autres mesures liées à cette détection, et Apple Pay demande le code à chaque paiement. Pour la plupart des gens, mieux vaut essayer une autre solution d’abord — comme la lentille optique."
+      },
+      "faq-12": {
+        "question": "Comment installe-t-on la lentille ?",
+        "answer": "L’installation est simple et rapide. Nettoyez d’abord le capteur de la montre avec la lingette d’alcool isopropylique fournie. Retirez le film protecteur de l’adhésif très haute adhérence, alignez la lentille au centre du capteur et appuyez doucement pendant 30 secondes pour assurer une adhérence totale."
+      },
+      "faq-13": {
+        "question": "Y a-t-il un manuel d’installation ?",
+        "answer": "À l’international, vous recevez uniquement la lentille par lettre — sans primer (l’envoi document ne permet pas les liquides). Dans l’enveloppe se trouve un guide imprimé dans votre langue — la même carte de remerciement avec le pas à pas. Aperçu : <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=fr\" target=\"_blank\" rel=\"noopener\">Lettre d’installation Sensor Tattoo Fix</a>."
+      },
+      "faq-14": {
+        "question": "Dois-je retirer un film protecteur de la lentille après le collage ?",
+        "answer": "Non. La lentille Sensor Tattoo Fix est prête à l’emploi. Après collage et 30 secondes de pression, elle est immédiatement prête. Il n’y a aucun film ni couche à retirer sur le dessus ; elle a déjà la transparence et la finition idéales pour le capteur."
+      },
+      "faq-15": {
+        "question": "La lentille gêne-t-elle la charge de la montre ?",
+        "answer": "Non. Elle a un design ultrafin — épaisseur minimale — pour ne pas gêner l’emplacement sur le socle de charge. Vous chargez normalement, y compris sans fil, sans retirer la lentille."
+      },
+      "faq-16": {
+        "question": "Combien de temps avant que la lentille se décolle ? Se décolle-t-elle facilement ?",
+        "answer": "Elle est conçue pour rester en place jusqu’à ce que vous décidiez de la retirer. Elle ne se décolle pas à l’entraînement, avec le temps, la sueur, le sauna, la piscine, la douche, le lavage des mains ou dans l’eau — vous pouvez nager et vous entraîner intensément sans crainte. Pour la retirer (vente de la montre, retour à l’état d’origine), tirez simplement à la main."
+      },
+      "faq-17": {
+        "question": "Combien de temps attendre avant de la mouiller ?",
+        "answer": "Après l’installation, nous recommandons d’attendre 72 heures avant d’exposer la montre à l’eau, à la natation ou à une transpiration intense. C’est le temps de durcissement idéal pour que l’adhésif très haute adhérence atteigne sa résistance maximale et assure une étanchéité durable."
+      },
+      "faq-18": {
+        "question": "Puis-je retirer la lentille plus tard si je vends ma montre ?",
+        "answer": "Oui. Tirez simplement à la main — la lentille tient au quotidien, mais se retire quand vous voulez. Tout résidu d’adhésif se nettoie à l’alcool isopropylique, en laissant le capteur d’origine intact."
+      },
+      "faq-19": {
+        "question": "Livrez-vous à l’international ? Comment ça marche ?",
+        "answer": "Oui. Les commandes internationales passent par la boutique officielle avec <strong>PayPal ou carte</strong> et <strong>suivi</strong>. Nous expédions la lentille en lettre/document (sans liquides). Le délai dépend du pays — en général quelques semaines. Vous recevez un e-mail avec le code de suivi à l’expédition."
+      },
+      "faq-20": {
+        "question": "Y a-t-il une garantie ? Et si la lentille ne résout pas mon cas ?",
+        "answer": "Nous concevons la lentille pour rétablir la détection du poignet, la fréquence cardiaque et les entraînements sur peau tatouée. Si le problème continue après une installation correcte, contactez-nous par e-mail ou WhatsApp du site — nous analysons votre cas et vous guidons (compatibilité, diamètre, réinstallation). Les échanges/remboursements suivent les règles de la boutique officielle au checkout."
+      },
+      "faq-21": {
+        "question": "Est-ce que ça marche sur Garmin et d’autres marques qu’Apple et Samsung ?",
+        "answer": "Oui. Tout smartwatch avec un <strong>capteur optique</strong> (lumière verte/infrarouge) au dos — y compris <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei et similaires — peut bénéficier de la lentille. L’essentiel est le diamètre du capteur ; dans la boutique officielle vous choisissez la taille/le modèle compatible."
+      }
+    }
+  },
+  "nl": {
+    "reviewsSummary": "5,0 · echte beoordelingen (Google, Mercado Libre, WhatsApp, Shopee, Instagram en meer)",
+    "faq": {
+      "faq-1": {
+        "question": "Waarom vraagt mijn smartwatch steeds om de code?",
+        "answer": "Als de optische sensor geen bloedstroom op je pols detecteert, denkt het horloge dat het is afgedaan en vraagt opnieuw om de code — op Apple Watch kan dat <strong>elke 10 seconden</strong> gebeuren. Op getatoeëerde huid blokkeert inkt het sensorlicht; het horloge activeert de pincodevergrendeling en denkt dat het van je arm is. De Sensor Tattoo Fix-lens herstelt de meting en stopt constante vergrendelingen."
+      },
+      "faq-2": {
+        "question": "Waarom meet mijn smartwatch geen hartslag op getatoeëerde huid?",
+        "answer": "De sensor gebruikt licht om de bloedstroom te meten. Dichte tattoos, littekens of donker pigment blokkeren het retoursignaal — hartslag blijft op nul, onnauwkeurig, valt weg tijdens training of het horloge stopt met monitoren. De Sensor Tattoo Fix-lens corrigeert de meting zonder de sensor uit te schakelen."
+      },
+      "faq-3": {
+        "question": "Waarom verbreekt mijn horloge zelf de verbinding of verliest het polscontact?",
+        "answer": "Verloren sensorsignaal laat de smartwatch denken dat hij van je arm is: hij ontgrendelt, pauzeert trainingen, stopt gezondheidsmonitoring of vraagt opnieuw om de code. Heb je een tattoo waar het horloge zit, dan is dat de meest voorkomende oorzaak — en er is een professionele optische lensoplossing."
+      },
+      "faq-4": {
+        "question": "Waarom pauzeert mijn horloge trainingen zelf op getatoeëerde huid?",
+        "answer": "Omdat tattoo-inkt het licht van de sensor blokkeert, kan het horloge je hartslag niet berekenen. Het systeem ziet dat signaalverlies alsof je gestopt bent met trainen of het apparaat hebt afgedaan, en pauzeert de activiteit automatisch om batterij te sparen."
+      },
+      "faq-5": {
+        "question": "Hoe corrigeert de Sensor Tattoo Fix-lens de sensor?",
+        "answer": "Onze lenstechnologie is ontwikkeld om de blokkade door tattoo-inkt te omzeilen. Ze werkt als een hoge-precisie-transmitter zodat de biometrische sensor door getatoeëerde huid kan lezen, terwijl horlogefuncties (betalingen, gezondheid en trainingen) operationeel blijven."
+      },
+      "faq-6": {
+        "question": "Werkt het op Apple Watch?",
+        "answer": "Ja. De Sensor Tattoo Fix-lens werkt op Apple Watch en op vrijwel elke smartwatch met een <strong>optische sensor</strong> (groen of infrarood licht) op de achterkant — Apple, Samsung, Garmin, Xiaomi en andere merken. Gangbare sensordiameters beschikbaar. Voor/na-demo op Apple Watch:"
+      },
+      "faq-7": {
+        "question": "Werkt het op Samsung Galaxy Watch?",
+        "answer": "Ja. Galaxy Watch en andere Samsung-smartwatches met optische biometrische sensor zijn compatibel. De lens herstelt draagdetectie, hartslag en trainingen op getatoeëerde huid, zoals bij elk merk met lichtmeting. Demo op Galaxy Watch:"
+      },
+      "faq-8": {
+        "question": "Is er een echt klantverhaal met Galaxy Watch Ultra?",
+        "answer": "Ja. Een klant met een getatoeëerde arm plaatste de lens op een <strong>Galaxy Watch Ultra</strong> en kreeg hartslag, trainingen en dagelijks gebruik terug — zonder vergrendelingen of nullen. In de Reels hieronder deelt hij de ervaring: aanvankelijke twijfel, installatie en het resultaat toen de sensor weer betrouwbaar werkte."
+      },
+      "faq-9": {
+        "question": "Werken epoxy of pleisters — ook maar gedeeltelijk?",
+        "answer": "Niet betrouwbaar. Hars/epoxy laat los door zweet en water; pleisters en latex blokkeren het sensorlicht en geven valse metingen. In de TikTok hieronder vertelt @bruu_schmitt over jaren DIY-trucs op Apple Watch — en hoe Sensor Tattoo Fix het horloge weer normaal bruikbaar maakte."
+      },
+      "faq-10": {
+        "question": "Maakt de lens contactloos betalen mogelijk (Apple Pay / Google Pay)?",
+        "answer": "Ja. Met de lens geplaatst detecteert het horloge je pols weer — dus werken <strong>contactloze NFC-betalingen</strong> opnieuw, omdat de smartwatch niet meer denkt dat hij van je arm is. Je hoeft draagdetectie niet uit te schakelen:"
+      },
+      "faq-11": {
+        "question": "Lost draagdetectie uitschakelen het probleem op?",
+        "answer": "Nee. Het is geen goede oplossing voor de lange termijn. Het horloge vergrendelt niet meer vanzelf, Apple schakelt hartslagmeting en andere aan die detectie gekoppelde metingen uit, en Apple Pay vraagt bij elke betaling om de code. Voor de meesten is het beter eerst een andere oplossing te proberen — zoals de optische lens."
+      },
+      "faq-12": {
+        "question": "Hoe wordt de lens geïnstalleerd?",
+        "answer": "Installatie is eenvoudig en snel. Reinig eerst de sensors van je horloge met het meegeleverde isopropylalcoholdoekje. Verwijder de beschermfolie van de zeer sterke lijm, lijn de lens uit met het midden van de sensor en druk 30 seconden zacht aan voor volledige hechting."
+      },
+      "faq-13": {
+        "question": "Is er een installatiehandleiding?",
+        "answer": "Internationaal ontvang je alleen de lens per brief — zonder primer (documentverzending staat geen vloeistoffen toe). In de envelop zit een gedrukte gids in jouw taal — dezelfde bedankkaart met stapsgewijze instructies. Voorbeeld: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=nl\" target=\"_blank\" rel=\"noopener\">Installatiebrief Sensor Tattoo Fix</a>."
+      },
+      "faq-14": {
+        "question": "Moet ik na het plakken een beschermfolie van de lens verwijderen?",
+        "answer": "Nee. De Sensor Tattoo Fix-lens is klaar voor gebruik. Na plakken en 30 seconden aandrukken is hij meteen klaar. Er zit geen folie of laag bovenop die je moet verwijderen; hij heeft al de ideale transparantie en afwerking voor de sensor."
+      },
+      "faq-15": {
+        "question": "Zit de lens in de weg bij het opladen?",
+        "answer": "Nee. Hij is extra dun ontworpen — minimale dikte — zodat hij het plaatsen op het laadstation niet belemmert. Je laadt normaal, ook draadloos, zonder de lens te verwijderen."
+      },
+      "faq-16": {
+        "question": "Hoe lang blijft de lens zitten? Laat hij makkelijk los?",
+        "answer": "Hij is gemaakt om te blijven zitten tot jij hem verwijdert. Hij laat niet los tijdens training, na verloop van tijd, door zweet, in de sauna, in het zwembad, onder de douche, bij handen wassen of in water — je kunt zwemmen en intens trainen zonder angst. Wil je hem eraf voor verkoop of om de originele staat terug te krijgen, trek hem gewoon met de hand los."
+      },
+      "faq-17": {
+        "question": "Hoe lang moet ik wachten voordat hij nat mag worden?",
+        "answer": "Na installatie raden we aan 72 uur te wachten voordat je het horloge blootstelt aan water, zwemmen of intens zweten. Dat is de ideale uithardtijd zodat de zeer sterke lijm maximale sterkte bereikt en een duurzame afdichting geeft."
+      },
+      "faq-18": {
+        "question": "Kan ik de lens later verwijderen als ik mijn horloge verkoop?",
+        "answer": "Ja. Trek hem gewoon met de hand los — de lens blijft dagelijks zitten, maar komt eraf wanneer jij wilt. Lijmresten reinig je met isopropylalcohol; de originele sensor blijft intact."
+      },
+      "faq-19": {
+        "question": "Verzenden jullie internationaal? Hoe werkt dat?",
+        "answer": "Ja. Internationale bestellingen gaan via de officiële winkel met <strong>PayPal of kaart</strong> en <strong>tracking</strong>. We versturen de lens als brief/document (geen vloeistoffen). De levertijd hangt van het land af — meestal enkele weken. Je krijgt een e-mail met de trackingcode zodra de bestelling verzonden is."
+      },
+      "faq-20": {
+        "question": "Is er garantie? Wat als de lens mijn geval niet oplost?",
+        "answer": "We ontwerpen de lens om draagdetectie, hartslag en trainingen op getatoeëerde huid te herstellen. Blijft het probleem na correcte installatie bestaan, neem contact op via e-mail of WhatsApp op de site — we bekijken je geval en begeleiden je (compatibiliteit, diameter, herinstallatie). Ruil-/terugbetalingsregels volgen de officiële winkel bij checkout."
+      },
+      "faq-21": {
+        "question": "Werkt het op Garmin en andere merken dan Apple en Samsung?",
+        "answer": "Ja. Elke smartwatch met een <strong>optische sensor</strong> (groen/infrarood licht) op de achterkant — inclusief <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei en vergelijkbare merken — kan baat hebben bij de lens. Het belangrijkste is de sensordiameter; in de officiële winkel kies je het compatibele formaat/model."
+      }
+    }
+  },
+  "sv": {
+    "reviewsSummary": "5,0 · riktiga omdömen (Google, Mercado Libre, WhatsApp, Shopee, Instagram med mera)",
+    "faq": {
+      "faq-1": {
+        "question": "Varför ber min smartwatch om koden hela tiden?",
+        "answer": "När den optiska sensorn inte kan känna av blodflödet på handleden tror klockan att den tagits av och ber om koden igen — på Apple Watch kan det hända <strong>var 10:e sekund</strong>. På tatuerad hud blockerar bläcket sensorljuset; klockan aktiverar kodlåset och tror att den lämnat armen. Linsen Sensor Tattoo Fix återställer mätningen och stoppar ständiga låsningar."
+      },
+      "faq-2": {
+        "question": "Varför mäter min smartwatch inte puls på tatuerad hud?",
+        "answer": "Sensorn använder ljus för att mäta blodflöde. Täta tatueringar, ärr eller mörkt pigment blockerar retursignalen — pulsen visar noll, blir felaktig, försvinner mitt i träningen eller klockan slutar övervaka. Linsen Sensor Tattoo Fix korrigerar mätningen utan att stänga av sensorn."
+      },
+      "faq-3": {
+        "question": "Varför kopplar klockan bort sig eller tappar handledskontakten själv?",
+        "answer": "Förlorad sensorsignal får smartwatchen att tro att den lämnat armen: den låser upp, pausar träning, stoppar hälsomätning eller ber om koden igen. Har du en tatuering där klockan sitter är det den vanligaste orsaken — och det finns en professionell optisk linslösning."
+      },
+      "faq-4": {
+        "question": "Varför pausar klockan träningspass själv på tatuerad hud?",
+        "answer": "Eftersom tatueringsbläck blockerar sensorns ljus kan klockan inte beräkna din puls. Systemet tolkar signalbortfallet som att du avbrutit träningen eller tagit av enheten, och pausar aktiviteten automatiskt för att spara batteri."
+      },
+      "faq-5": {
+        "question": "Hur korrigerar Sensor Tattoo Fix-linsen sensorn?",
+        "answer": "Vår linsteknik utvecklades för att kringgå blockeringen från tatueringsbläck. Den fungerar som en högprecisionsöverförare som låter den biometriska sensorn läsa genom tatuerad hud, så att klockans funktioner (betalningar, hälsa och träning) fortsätter fungera."
+      },
+      "faq-6": {
+        "question": "Fungerar det på Apple Watch?",
+        "answer": "Ja. Linsen Sensor Tattoo Fix fungerar på Apple Watch och på i princip alla smartwatches med <strong>optisk sensor</strong> (grönt eller infrarött ljus) på baksidan — Apple, Samsung, Garmin, Xiaomi med flera. Vanliga sensordiametrar finns. Före/efter-demo på Apple Watch:"
+      },
+      "faq-7": {
+        "question": "Fungerar det på Samsung Galaxy Watch?",
+        "answer": "Ja. Galaxy Watch och andra Samsung-smartwatches med optisk biometrisk sensor är kompatibla. Linsen återställer handledsavkänning, puls och träning på tatuerad hud, precis som på andra märken med ljusbaserad mätning. Demo på Galaxy Watch:"
+      },
+      "faq-8": {
+        "question": "Finns det en riktig kundberättelse med Galaxy Watch Ultra?",
+        "answer": "Ja. En kund med tatuerad arm monterade linsen på en <strong>Galaxy Watch Ultra</strong> och fick tillbaka puls, träning och vardagsanvändning — utan låsningar eller nollvärden. I Reels nedan berättar han om upplevelsen: initial skepsis, installationen och resultatet när sensorn fungerade igen."
+      },
+      "faq-9": {
+        "question": "Fungerar epoxi eller plåster — ens delvis?",
+        "answer": "Inte tillförlitligt. Harts/epoxi lossnar av svett och vatten; plåster och latex blockerar sensorljuset och ger felaktiga mätvärden. I TikTok nedan berättar @bruu_schmitt om år av DIY-knep på Apple Watch — och hur Sensor Tattoo Fix lät honom använda klockan normalt."
+      },
+      "faq-10": {
+        "question": "Gör linsen kontaktlösa betalningar möjliga (Apple Pay / Google Pay)?",
+        "answer": "Ja. Med linsen monterad känner klockan av handleden igen — så <strong>kontaktlösa NFC-betalningar</strong> fungerar igen eftersom smartwatchen inte längre tror att den lämnat armen. Du behöver inte stänga av handledsavkänning:"
+      },
+      "faq-11": {
+        "question": "Löser det problemet att stänga av handledsavkänning?",
+        "answer": "Nej. Det är ingen bra långsiktig lösning. Klockan låser sig inte längre själv, Apple stänger av pulsmätning och andra mätningar kopplade till den avkänningen, och Apple Pay begär koden vid varje betalning. För de flesta är det bättre att först prova en annan lösning — till exempel den optiska linsen."
+      },
+      "faq-12": {
+        "question": "Hur monteras linsen?",
+        "answer": "Monteringen är enkel och snabb. Rengör först klockans sensor med den medföljande isopropanolservetten. Dra av skyddsfilmen från det mycket starka limmet, rikta in linsen mot sensorns mitt och tryck försiktigt i 30 sekunder för full vidhäftning."
+      },
+      "faq-13": {
+        "question": "Finns det en installationsmanual?",
+        "answer": "Internationellt får du endast linsen per brev — utan primer (dokumentförsändelser tillåter inte vätskor). I kuvertet ligger en tryckt guide på ditt språk — samma tackkort med steg-för-steg. Förhandsvisning: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=sv\" target=\"_blank\" rel=\"noopener\">Installationsbrev Sensor Tattoo Fix</a>."
+      },
+      "faq-14": {
+        "question": "Behöver jag ta bort en skyddsfilm från linsen efter att jag klistrat den?",
+        "answer": "Nej. Linsen Sensor Tattoo Fix är klar att använda. Efter klistring och 30 sekunders tryck är den genast klar. Det finns ingen film eller ytskikt att ta bort ovanpå; den har redan ideal transparens och yta för sensorn."
+      },
+      "faq-15": {
+        "question": "Är linsen i vägen när klockan laddas?",
+        "answer": "Nej. Den är extra tunn — minimal tjocklek — så den stör inte placeringen på laddningsbasen. Du laddar som vanligt, även trådlöst, utan att ta bort linsen."
+      },
+      "faq-16": {
+        "question": "Hur länge sitter linsen? Lossnar den lätt?",
+        "answer": "Den är gjord för att sitta kvar tills du bestämmer dig för att ta bort den. Den lossnar inte under träning, med tiden, av svett, i bastu, i poolen, i duschen, vid handtvätt eller i vatten — du kan simma och träna hårt utan oro. Vill du ta bort den för att sälja klockan eller återställa originalskicket drar du bara av den för hand."
+      },
+      "faq-17": {
+        "question": "Hur länge ska jag vänta innan den blir blöt?",
+        "answer": "Efter installation rekommenderar vi att vänta 72 timmar innan du utsätter klockan för vatten, simning eller kraftig svettning. Det är den ideala härdningstiden så att det mycket starka limmet når maximal styrka och ger en hållbar tätning."
+      },
+      "faq-18": {
+        "question": "Kan jag ta bort linsen senare om jag säljer klockan?",
+        "answer": "Ja. Dra bara av den för hand — linsen sitter stadigt i vardagen men går att ta bort när du vill. Eventuella limrester rengörs med isopropanol och originalsensorn lämnas intakt."
+      },
+      "faq-19": {
+        "question": "Skickar ni internationellt? Hur fungerar frakten?",
+        "answer": "Ja. Internationella beställningar går via den officiella butiken med <strong>PayPal eller kort</strong> och <strong>spårning</strong>. Vi skickar linsen som brev/dokument (inga vätskor). Leveranstiden beror på landet — oftast några veckor. Du får e-post med spårningskod när ordern skickas."
+      },
+      "faq-20": {
+        "question": "Finns det garanti? Tänk om linsen inte löser mitt fall?",
+        "answer": "Vi utformar linsen för att återställa handledsavkänning, puls och träning på tatuerad hud. Om problemet kvarstår efter korrekt installation, kontakta oss via mejl eller WhatsApp på sajten — vi granskar ditt fall och vägleder dig (kompatibilitet, diameter, ominstallation). Bytes-/återbetalningsregler följer den officiella butiken i kassan."
+      },
+      "faq-21": {
+        "question": "Fungerar det på Garmin och andra märken än Apple och Samsung?",
+        "answer": "Ja. Alla smartwatches med <strong>optisk sensor</strong> (grönt/infrarött ljus) på baksidan — inklusive <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei och liknande — kan dra nytta av linsen. Det viktiga är sensorns diameter; i den officiella butiken väljer du kompatibel storlek/modell."
+      }
+    }
+  },
+  "no": {
+    "reviewsSummary": "5,0 · ekte anmeldelser (Google, Mercado Libre, WhatsApp, Shopee, Instagram med mer)",
+    "faq": {
+      "faq-1": {
+        "question": "Hvorfor ber smartklokken min om koden hele tiden?",
+        "answer": "Når den optiske sensoren ikke registrerer blodstrøm på håndleddet, tror klokken at den er tatt av og ber om koden igjen — på Apple Watch kan det skje <strong>hvert 10. sekund</strong>. På tatovert hud blokkerer blekket sensorlyset; klokken aktiverer PIN-låsen og tror den har forlatt armen. Sensor Tattoo Fix-linsen gjenoppretter målingen og stopper stadige låsinger."
+      },
+      "faq-2": {
+        "question": "Hvorfor måler ikke smartklokken min puls på tatovert hud?",
+        "answer": "Sensoren bruker lys til å måle blodstrøm. Tette tatoveringer, arr eller mørkt pigment blokkerer retursignalet — pulsen viser null, blir unøyaktig, forsvinner midt i økten eller klokken slutter å overvåke. Sensor Tattoo Fix-linsen korrigerer målingen uten å slå av sensoren."
+      },
+      "faq-3": {
+        "question": "Hvorfor kobler klokken fra eller mister håndleddskontakt av seg selv?",
+        "answer": "Tapt sensorsignal får smartklokken til å tro at den har forlatt armen: den låser opp, pauser trening, stopper helseovervåking eller ber om koden igjen. Har du tatovering der klokken sitter, er det den vanligste årsaken — og det finnes en profesjonell optisk linse-løsning."
+      },
+      "faq-4": {
+        "question": "Hvorfor pauser klokken treningsøkter av seg selv på tatovert hud?",
+        "answer": "Fordi tatoveringsblekk blokkerer sensorens lys, kan ikke klokken beregne pulsen din. Systemet tolker signalbortfallet som om du har stoppet treningen eller tatt av enheten, og pauser aktiviteten automatisk for å spare batteri."
+      },
+      "faq-5": {
+        "question": "Hvordan korrigerer Sensor Tattoo Fix-linsen sensoren?",
+        "answer": "Linseteknologien vår er utviklet for å omgå blokkeringen fra tatoveringsblekk. Den fungerer som en høyprecisions-transmitter som lar den biometriske sensoren lese gjennom tatovert hud, slik at klokkens funksjoner (betaling, helse og trening) fortsetter å fungere."
+      },
+      "faq-6": {
+        "question": "Fungerer det på Apple Watch?",
+        "answer": "Ja. Sensor Tattoo Fix-linsen fungerer på Apple Watch og på nesten alle smartklokker med <strong>optisk sensor</strong> (grønt eller infrarødt lys) på baksiden — Apple, Samsung, Garmin, Xiaomi og andre merker. Vanlige sensordiametre er tilgjengelige. Før/etter-demo på Apple Watch:"
+      },
+      "faq-7": {
+        "question": "Fungerer det på Samsung Galaxy Watch?",
+        "answer": "Ja. Galaxy Watch og andre Samsung-smartklokker med optisk biometrisk sensor er kompatible. Linsen gjenoppretter håndleddssensor / deteksjon, puls og trening på tatovert hud, som på andre merker med lysbasert måling. Demo på Galaxy Watch:"
+      },
+      "faq-8": {
+        "question": "Finnes det en ekte kundehistorie med Galaxy Watch Ultra?",
+        "answer": "Ja. En kunde med tatovert arm monterte linsen på en <strong>Galaxy Watch Ultra</strong> og fikk tilbake puls, trening og daglig bruk — uten låsinger eller nullverdier. I Reels under deler han opplevelsen: innledende skepsis, installasjonen og resultatet da sensoren fungerte igjen."
+      },
+      "faq-9": {
+        "question": "Fungerer epoxy eller plaster — i det minste delvis?",
+        "answer": "Ikke pålitelig. Harpiks/epoxy løsner av svette og vann; plaster og latex blokkerer sensorlyset og gir feil målinger. I TikTok under forteller @bruu_schmitt om år med DIY-triks på Apple Watch — og hvordan Sensor Tattoo Fix lot ham bruke klokken normalt."
+      },
+      "faq-10": {
+        "question": "Gjør linsen kontaktløs betaling mulig (Apple Pay / Google Pay)?",
+        "answer": "Ja. Med linsen montert registrerer klokken håndleddet ditt igjen — så <strong>kontaktløse NFC-betalinger</strong> fungerer igjen fordi smartklokken ikke lenger tror den har forlatt armen. Du trenger ikke slå av håndleddssensoren:"
+      },
+      "faq-11": {
+        "question": "Løser det problemet å slå av håndleddssensoren?",
+        "answer": "Nei. Det er ingen god langsiktig løsning. Klokken låser seg ikke lenger selv, Apple slår av pulsmåling og andre målinger knyttet til den sensoren, og Apple Pay ber om koden ved hver betaling. For de fleste er det bedre å prøve en annen løsning først — for eksempel den optiske linsen."
+      },
+      "faq-12": {
+        "question": "Hvordan installeres linsen?",
+        "answer": "Installasjonen er enkel og rask. Rengjør først klokkens sensor med den medfølgende isopropylalkohol-kluten. Trekk av beskyttelsesfilmen fra den svært sterke limen, rett inn linsen mot midten av sensoren og trykk forsiktig i 30 sekunder for full heft."
+      },
+      "faq-13": {
+        "question": "Finnes det en installasjonsmanual?",
+        "answer": "Internasjonalt mottar du bare linsen per brev — uten primer (dokumentforsendelser tillater ikke væsker). I konvolutten ligger en trykt veiledning på ditt språk — samme takkekort med steg-for-steg. Forhåndsvisning: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=no\" target=\"_blank\" rel=\"noopener\">Installasjonsbrev Sensor Tattoo Fix</a>."
+      },
+      "faq-14": {
+        "question": "Må jeg fjerne en beskyttelsesfilm fra linsen etter at jeg har limt den?",
+        "answer": "Nei. Sensor Tattoo Fix-linsen er klar til bruk. Etter liming og 30 sekunders trykk er den umiddelbart klar. Det finnes ingen film eller lag oppå som skal fjernes; den har allerede ideell transparens og overflate for sensoren."
+      },
+      "faq-15": {
+        "question": "Er linsen i veien når klokken lades?",
+        "answer": "Nei. Den er laget ekstra tynn — minimal tykkelse — så den ikke forstyrrer plasseringen på ladestasjonen. Du lader normalt, også trådløst, uten å ta av linsen."
+      },
+      "faq-16": {
+        "question": "Hvor lenge sitter linsen? Løsner den lett?",
+        "answer": "Den er laget for å sitte til du bestemmer deg for å ta den av. Den løsner ikke under trening, over tid, av svette, i badstue, i basseng, i dusjen, ved håndvask eller i vann — du kan svømme og trene hardt uten bekymring. Vil du ta den av for å selge klokken eller gå tilbake til originaltilstand, trekker du den bare av for hånd."
+      },
+      "faq-17": {
+        "question": "Hvor lenge bør jeg vente før den blir våt?",
+        "answer": "Etter installasjon anbefaler vi å vente 72 timer før du utsetter klokken for vann, svømming eller kraftig svetting. Det er den ideelle herdetiden slik at den svært sterke limen når maksimal styrke og gir en varig forsegling."
+      },
+      "faq-18": {
+        "question": "Kan jeg fjerne linsen senere hvis jeg selger klokken?",
+        "answer": "Ja. Trekk den bare av for hånd — linsen sitter godt i hverdagen, men kommer av når du vil. Eventuelle limrester rengjøres med isopropylalkohol, og den originale sensoren blir intakt."
+      },
+      "faq-19": {
+        "question": "Sender dere internasjonalt? Hvordan fungerer frakten?",
+        "answer": "Ja. Internasjonale bestillinger går via den offisielle butikken med <strong>PayPal eller kort</strong> og <strong>sporing</strong>. Vi sender linsen som brev/dokument (uten væsker). Leveringstiden avhenger av landet — vanligvis noen uker. Du får e-post med sporingskode når bestillingen sendes."
+      },
+      "faq-20": {
+        "question": "Finnes det garanti? Hva hvis linsen ikke løser mitt tilfelle?",
+        "answer": "Vi utformer linsen for å gjenopprette håndleddssensor / deteksjon, puls og trening på tatovert hud. Hvis problemet fortsetter etter korrekt installasjon, kontakt oss via e-post eller WhatsApp på nettstedet — vi vurderer saken din og veileder deg (kompatibilitet, diameter, reinstallasjon). Byttes-/refusjonsregler følger den offisielle butikken i kassen."
+      },
+      "faq-21": {
+        "question": "Fungerer det på Garmin og andre merker enn Apple og Samsung?",
+        "answer": "Ja. Alle smartklokker med <strong>optisk sensor</strong> (grønt/infrarødt lys) på baksiden — inkludert <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei og lignende — kan ha nytte av linsen. Det viktigste er sensordiameteren; i den offisielle butikken velger du kompatibel størrelse/modell."
+      }
+    }
+  },
+  "fi": {
+    "reviewsSummary": "5,0 · aitoja arvioita (Google, Mercado Libre, WhatsApp, Shopee, Instagram ja muuta)",
+    "faq": {
+      "faq-1": {
+        "question": "Miksi älykelloni kysyy koodia koko ajan?",
+        "answer": "Kun optinen sensori ei havaitse verenvirtausta ranteessa, kello olettaa sen otetun pois ja pyytää koodia uudelleen — Apple Watchissa tämä voi tapahtua <strong>10 sekunnin välein</strong>. Tatuoidulla iholla muste estää sensorin valoa; kello aktivoi PIN-lukituksen ja luulee poistuneensa käsivarresta. Sensor Tattoo Fix -linssi palauttaa mittauksen ja lopettaa jatkuvat lukitukset."
+      },
+      "faq-2": {
+        "question": "Miksi älykelloni ei mittaa sykettä tatuoidulta iholta?",
+        "answer": "Sensori käyttää valoa verenvirtauksen mittaamiseen. Tiheä tatuointi, arpi tai tumma pigmentti estää paluusignaalin — syke näyttää nollaa, on epätarkka, katoaa treenin aikana tai kello lopettaa seurannan. Sensor Tattoo Fix -linssi korjaa mittauksen ilman sensorin sammuttamista."
+      },
+      "faq-3": {
+        "question": "Miksi kelloni katkaisee yhteyden tai menettää rannekontaktin itsestään?",
+        "answer": "Menetetty sensorsignaali saa älykellon luulemaan, että se on poistunut käsivarresta: se avautuu, keskeyttää treenin, lopettaa terveysseurannan tai pyytää koodia uudelleen. Jos sinulla on tatuointi kohdassa, jossa kello istuu, se on yleisin syy — ja ammattimainen optinen linssi on ratkaisu."
+      },
+      "faq-4": {
+        "question": "Miksi kelloni keskeyttää treenit itsestään tatuoidulla iholla?",
+        "answer": "Koska tatuointimuste estää sensorin valoa, kello ei voi laskea sykettäsi. Järjestelmä tulkitsee signaalin menetyksen niin, että olisit lopettanut liikunnan tai ottanut laitteen pois, ja keskeyttää aktiviteetin automaattisesti akun säästämiseksi."
+      },
+      "faq-5": {
+        "question": "Miten Sensor Tattoo Fix -linssi korjaa sensorin?",
+        "answer": "Linssitekniikkamme on kehitetty kiertämään tatuointimusteen aiheuttamaa estettä. Se toimii tarkkana lähettimenä, jonka avulla biometrinen sensori voi lukea tatuoidun ihon läpi, ja kellon toiminnot (maksut, terveys ja treenit) pysyvät käytössä."
+      },
+      "faq-6": {
+        "question": "Toimiiko se Apple Watchissa?",
+        "answer": "Kyllä. Sensor Tattoo Fix -linssi toimii Apple Watchissa ja lähes kaikissa älykelloissa, joissa on <strong>optinen sensori</strong> (vihreä tai infrapunavalo) takana — Apple, Samsung, Garmin, Xiaomi ja muut merkit. Yleiset sensorihalkaisijat saatavilla. Ennen/jälkeen-demo Apple Watchilla:"
+      },
+      "faq-7": {
+        "question": "Toimiiko se Samsung Galaxy Watchissa?",
+        "answer": "Kyllä. Galaxy Watch ja muut Samsung-älykellot, joissa on optinen biometrinen sensori, ovat yhteensopivia. Linssi palauttaa ranteentunnistuksen, sykkeen ja treenit tatuoidulla iholla, kuten muillakin valoon perustuvilla merkeillä. Demo Galaxy Watchilla:"
+      },
+      "faq-8": {
+        "question": "Onko Galaxy Watch Ultrasta aitoa asiakastarinaa?",
+        "answer": "Kyllä. Tatuoidun käsivarren asiakas asensi linssin <strong>Galaxy Watch Ultraan</strong> ja sai sykkeen, treenit ja arkikäytön takaisin — ilman lukituksia tai nollalukemia. Alla olevassa Reelsissä hän kertoo kokemuksesta: alkuepäröinti, asennus ja tulos, kun sensori toimi taas luotettavasti."
+      },
+      "faq-9": {
+        "question": "Toimiiko epoksi tai laastari — edes osittain?",
+        "answer": "Ei luotettavasti. Hartsi/epoksi irtoaa hikeen ja veden kanssa; laastari ja lateksi estävät sensorin valoa ja aiheuttavat virheellisiä mittauksia. Alla olevassa TikTokissa @bruu_schmitt kertoo vuosien DIY-kikoista Apple Watchilla — ja miten Sensor Tattoo Fix antoi käyttää kelloa normaalisti."
+      },
+      "faq-10": {
+        "question": "Mahdollistaako linssi lähimaksut (Apple Pay / Google Pay)?",
+        "answer": "Kyllä. Linssin kanssa kello tunnistaa ranteesi taas — joten <strong>lähimaksut NFC:llä</strong> toimivat uudelleen, koska älykello ei enää luule poistuneensa käsivarresta. Ranteentunnistusta ei tarvitse sammuttaa:"
+      },
+      "faq-11": {
+        "question": "Ratkaiseeko ranteentunnistuksen sammuttaminen ongelman?",
+        "answer": "Ei. Se ei ole hyvä pitkäaikainen ratkaisu. Kello ei enää lukitu itsestään, Apple poistaa käytöstä sykkeen mittauksen ja muita tunnistukseen sidottuja mittauksia, ja Apple Pay pyytää koodia jokaisessa maksussa. Useimmille kannattaa ensin kokeilla muuta ratkaisua — kuten optista linssiä."
+      },
+      "faq-12": {
+        "question": "Miten linssi asennetaan?",
+        "answer": "Asennus on yksinkertainen ja nopea. Puhdista ensin kellon sensori mukana tulevalla isopropanolipyyhkeellä. Irrota suojakalvo erittäin vahvasta liimasta, kohdista linssi sensorin keskelle ja paina kevyesti 30 sekuntia täyden tartunnan varmistamiseksi."
+      },
+      "faq-13": {
+        "question": "Onko asennusohjetta?",
+        "answer": "Kansainvälisesti saat vain linssin kirjeenä — ilman primeria (asiakirjalähetyksissä ei saa olla nesteitä). Kirjekuoressa on painettu opas kielelläsi — sama kiitoskortti askel askeleelta. Esikatselu: <a href=\"../docs/cartas/carta-agradecimento-intl.html?lang=fi\" target=\"_blank\" rel=\"noopener\">Sensor Tattoo Fix -asennuskirje</a>."
+      },
+      "faq-14": {
+        "question": "Pitääkö linssistä irrottaa suojakalvo liimauksen jälkeen?",
+        "answer": "Ei. Sensor Tattoo Fix -linssi on käyttövalmis. Liimauksen ja 30 sekunnin painamisen jälkeen se on heti valmis. Päällä ei ole kalvoa tai kerrosta irrotettavaksi; siinä on jo ihanteellinen läpinäkyvyys ja pinta sensorille."
+      },
+      "faq-15": {
+        "question": "Häiritseekö linssi kellon latausta?",
+        "answer": "Ei. Se on suunniteltu ultrathiniksi — minimaalinen paksuus — jotta se ei häiritse latausalustalle asettamista. Lataat normaalisti, myös langattomasti, ilman linssin irrottamista."
+      },
+      "faq-16": {
+        "question": "Kuinka kauan linssi pysyy kiinni? Irtoako se helposti?",
+        "answer": "Se on tehty pysymään kunnes päätät irrottaa sen. Se ei irtoa treenissä, ajan myötä, hikeen, saunassa, uima-altaassa, suihkussa, käsienpesussa eikä vedessä — voit uida ja treenata kovaa ilman huolta. Jos haluat irrottaa sen myyntiä tai alkuperäistilaa varten, vedä se irti käsin."
+      },
+      "faq-17": {
+        "question": "Kuinka kauan pitää odottaa ennen kuin linssi saa kastua?",
+        "answer": "Asennuksen jälkeen suosittelemme odottamaan 72 tuntia ennen kuin altistat kellon vedelle, uinnille tai rankalle hikoilulle. Se on ihanteellinen kovettumisaika, jotta erittäin vahva liima saavuttaa maksimaalisen lujuuden ja kestävän tiivistyksen."
+      },
+      "faq-18": {
+        "question": "Voinko irrottaa linssin myöhemmin, jos myyn kelloni?",
+        "answer": "Kyllä. Vedä se vain irti käsin — linssi pysyy arjessa tiukasti, mutta irtoaa kun haluat. Mahdolliset liimajäämät puhdistetaan isopropanolilla; alkuperäinen sensori säilyy ehjänä."
+      },
+      "faq-19": {
+        "question": "Toimitatteko kansainvälisesti? Miten toimitus toimii?",
+        "answer": "Kyllä. Kansainväliset tilaukset kulkevat virallisen kaupan kautta <strong>PayPalilla tai kortilla</strong> ja <strong>seurannalla</strong>. Lähetämme linssin kirjeenä/asiakirjana (ilman nesteitä). Toimitusaika riippuu maasta — yleensä muutama viikko. Saat sähköpostin seurantakoodilla, kun tilaus on lähetetty."
+      },
+      "faq-20": {
+        "question": "Onko takuu? Entä jos linssi ei ratkaise tapaustani?",
+        "answer": "Suunnittelemme linssin palauttamaan ranteentunnistuksen, sykkeen ja treenit tatuoidulla iholla. Jos ongelma jatkuu oikean asennuksen jälkeen, ota yhteyttä sivuston sähköpostilla tai WhatsAppilla — tarkistamme tapauksen ja opastamme (yhteensopivuus, halkaisija, uudelleenasennus). Vaihto-/hyvitysehdot noudattavat virallisen kaupan checkout-sääntöjä."
+      },
+      "faq-21": {
+        "question": "Toimiiko se Garminilla ja muilla merkeillä kuin Applella ja Samsungilla?",
+        "answer": "Kyllä. Mikä tahansa älykello, jossa on <strong>optinen sensori</strong> (vihreä/infrapunavalo) takana — mukaan lukien <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei ja vastaavat — voi hyötyä linssistä. Oleellista on sensorin halkaisija; virallisessa kaupassa valitset yhteensopivan koon/mallin."
+      }
+    }
   }
 }

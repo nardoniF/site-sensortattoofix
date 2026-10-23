@@ -193,7 +193,7 @@
                 <ul class="fail-list">
                     <li><i class="fas fa-times-circle"></i> <div><strong>Domes de Resina e Epóxi:</strong> Possuem baixa aderência. Soltam-se facilmente com o suor, água ou tempo de uso, tornando-se uma solução descartável e frustrante.</div></li>
                     <li><i class="fas fa-times-circle"></i> <div><strong>Esparadrapos e Luvas de Látex:</strong> Materiais opacos que bloqueiam a luz. Além de esteticamente ruins, causam leituras de saúde falsas e irritação na pele.</div></li>
-                    <li><i class="fas fa-shield-virus"></i> <div><strong>Desativar Presença de Braço:</strong> O pior paliativo. O usuário desliga a detecção de braço para parar de digitar a senha, mas torna o relógio inseguro e mata todas as funcionalidades inteligentes do hardware.</div></li>
+                    <li><i class="fas fa-shield-virus"></i> <div><strong>Desativar Detectar Braço:</strong> O pior paliativo. O usuário desliga o Detectar Braço (detecção de pulso) para parar de digitar a senha, mas o relógio deixa de bloquear sozinho e a Apple desliga frequência cardíaca, sono e outros recursos ligados a essa detecção.</div></li>
                 </ul>
             </div>
             <div class="warning-visual">
@@ -388,12 +388,134 @@
 
         <div class="home-faq-static" aria-label="Pergunta relacionada às guias">
             <details class="faq-item">
-                <summary>Desativar a Detecção de Pulso resolve o Apple Watch pedindo senha com tatuagem?</summary>
-                <p>Reduz pedidos de senha ligados à falha de pulso, mas a Apple desliga o rastreamento de frequência cardíaca e outros recursos, e o relógio deixa de bloquear sozinho. Veja o que perde e as alternativas em <a href="desativar-deteccao-de-pulso-tatuagem.html">desativar a Detecção de Pulso: vale a pena com tatuagem?</a></p>
+                <summary>Desativar Detectar Braço (detecção de pulso) resolve o Apple Watch pedindo senha com tatuagem?</summary>
+                <p>Reduz pedidos de senha ligados à falha de pulso, mas a Apple desliga o rastreamento de frequência cardíaca e outros recursos ligados a essa detecção, e o relógio deixa de bloquear sozinho. Veja o que perde e as alternativas em <a href="desativar-deteccao-de-pulso-tatuagem.html">desativar a Detecção de Pulso: vale a pena com tatuagem?</a></p>
             </details>
         </div>
 
-    <div class="faq-container" id="home-faq-root"></div>
+    <div class="faq-container" id="home-faq-root" data-faq-ssr="1">
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-1">
+        <summary>Por que meu smartwatch pede senha o tempo todo?</summary>
+        <p>Quando o sensor ótico não detecta fluxo sanguíneo no pulso, o relógio entende que foi removido e exige a senha de novo — no Apple Watch isso pode ocorrer <strong>a cada 10 segundos</strong>. Em braços tatuados, a tinta bloqueia a luz do sensor; o relógio ativa o bloqueio por PIN e acha que saiu do braço. A lente Sensor Tattoo Fix restaura a leitura e para o bloqueio constante.</p>
+        <div class="faq-media-embed faq-media-embed--instagram">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/DYrIqC-F4DM/" data-instgrm-version="14"></blockquote>
+      </div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-2">
+        <summary>Por que meu smartwatch não mede batimentos cardíacos na tatuagem?</summary>
+        <p>O sensor usa luz para medir o fluxo sanguíneo. Tatuagem densa, cicatriz ou pigmentação escura impede o retorno do sinal — batimentos ficam zerados, imprecisos, somem no meio do treino ou o relógio para de monitorar. A lente Sensor Tattoo Fix corrige a leitura sem desativar o sensor.</p>
+        <div class="faq-media-embed faq-media-embed--instagram">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/p/DYWHV_0M5Bj/" data-instgrm-version="14"></blockquote>
+      </div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-3">
+        <summary>Por que meu relógio desconecta ou perde o pulso sozinho?</summary>
+        <p>Perda de sinal do sensor faz o smartwatch achar que saiu do braço: desbloqueia, pausa treino, para de monitorar saúde ou pede senha de novo. Se você tem tatuagem onde o relógio encosta, essa é a causa mais comum — e tem solução com lente ótica profissional.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-4">
+        <summary>Por que meu relógio pausa os treinos e atividades físicas sozinho na tatuagem?</summary>
+        <p>Como a tinta da tatuagem bloqueia a luz do sensor, o relógio não consegue calcular seus batimentos cardíacos. O sistema entende essa perda de sinal como se você tivesse interrompido o exercício ou tirado o aparelho, pausando a atividade automaticamente para economizar bateria.</p>
+        <div class="faq-media-embed faq-media-embed--instagram">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/DYrIqC-F4DM/" data-instgrm-version="14"></blockquote>
+      </div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-5">
+        <summary>Como a lente da Sensor Tattoo Fix corrige o sensor?</summary>
+        <p>Nossa tecnologia de lente foi desenvolvida especificamente para contornar o bloqueio causado pela tinta da tatuagem. Ela atua como um transmissor de alta precisão que permite que o sensor biométrico realize a leitura através da pele tatuada, mantendo todas as funções do seu relógio (pagamento, saúde e treinos) 100% operacionais.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-6">
+        <summary>Funciona em Apple Watch?</summary>
+        <p>Sim. A lente Sensor Tattoo Fix funciona em Apple Watch e em praticamente todo smartwatch que usa <strong>sensor ótico</strong> (luz verde ou infravermelho) na parte de trás do relógio — Apple, Samsung, Garmin, Xiaomi e outras marcas. O kit traz lentes nos diâmetros mais comuns. Demonstração antes e depois no Apple Watch:</p>
+        <div class="faq-media-embed faq-media-embed--instagram">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/DZQp0yqxjK1/" data-instgrm-version="14"></blockquote>
+      </div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-7">
+        <summary>Funciona em Samsung Galaxy Watch?</summary>
+        <p>Sim. Galaxy Watch e demais smartwatches Samsung com sensor ótico biométrico são compatíveis. A lente restaura pulso, batimentos e treinos sobre pele tatuada, como em qualquer marca com leitura por luz. Veja a demonstração no Galaxy Watch:</p>
+        <div class="faq-media-embed faq-media-embed--instagram">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/DZt08c_AaJn/" data-instgrm-version="14"></blockquote>
+      </div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-8">
+        <summary>Tem depoimento real de cliente no Galaxy Watch Ultra?</summary>
+        <p>Sim. Cliente com braço tatuado instalou a lente no <strong>Galaxy Watch Ultra</strong> e voltou a ter batimentos cardíacos, treinos e uso no dia a dia — sem bloqueios nem leituras zeradas. No Reels abaixo, ele conta a experiência: a desconfiança inicial, a instalação e o resultado depois que o sensor voltou a funcionar 100%.</p>
+        <div class="faq-media-embed faq-media-embed--instagram">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/DZt08c_AaJn/" data-instgrm-version="14"></blockquote>
+      </div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-9">
+        <summary>Epóxi ou esparadrapo funcionam? Pelo menos parcialmente?</summary>
+        <p>Não de forma confiável. Resina/epóxi solta com suor e água; esparadrapo e látex bloqueiam a luz do sensor e dão leitura falsa. No TikTok, @bruu_schmitt conta anos de gambiarra no Apple Watch — e como passou a usar normalmente com Sensor Tattoo Fix.</p>
+        <div class="faq-media-embed faq-media-embed--tiktok" data-tiktok-id="7669434564908993799" data-tiktok-href="https://www.tiktok.com/@bruu_schmitt/video/7669434564908993799" data-tiktok-handle="@bruu_schmitt" data-tiktok-title="Depoimento TikTok — Apple Watch e Sensor Tattoo Fix"></div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-10">
+        <summary>A película permite pagamento por aproximação (Apple Pay / Google Pay)?</summary>
+        <p>Sim. Com a lente instalada, o relógio volta a detectar o pulso corretamente — e o <strong>pagamento por aproximação (NFC)</strong> funciona de novo, porque o smartwatch deixa de achar que saiu do seu braço. Não é preciso desativar a detecção de pulso:</p>
+        <div class="faq-media-embed faq-media-embed--instagram">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/p/DZx0ImVO75A/" data-instgrm-version="14"></blockquote>
+      </div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-11">
+        <summary>Desativar a detecção de pulso resolve o problema?</summary>
+        <p>Não. Desativar a detecção de pulso é a pior solução. Ao fazer isso, você desativa funções essenciais como pagamentos por aproximação (NFC), bloqueio automático de segurança e monitoramento contínuo de saúde. Basicamente, você transforma um smartwatch de última geração em um relógio comum que apenas mostra as horas.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-12">
+        <summary>Como é feita a instalação da lente?</summary>
+        <p>A instalação é simples e rápida. Primeiro, limpe bem o sensor do seu smartwatch com o lenço de álcool isopropílico fornecido. Retire a película protetora do adesivo de fixação muito alta, alinhe a lente com o centro do sensor e pressione suavemente por 30 segundos para garantir a aderência total.</p>
+        <div class="faq-media-embed faq-media-embed--instagram">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/DYC3ybORHMe/" data-instgrm-version="14"></blockquote>
+      </div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-13">
+        <summary>Tem algum manual de instalação?</summary>
+        <p>Sim. Todo kit acompanha um manual impresso com o passo a passo. Você também pode consultar e imprimir a versão completa aqui: <a href="docs/manuais/manual-instalacao-sensor-tattoo-fix.html" target="_blank" rel="noopener">Manual de instalação Sensor Tattoo Fix</a>.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-14">
+        <summary>Preciso remover alguma película protetora da lente após a colagem?</summary>
+        <p>Não. A lente Sensor Tattoo Fix já vem pronta para o uso. Após colá-la e pressionar por 30 segundos, ela está pronta imediatamente. Não existe nenhuma película ou camada no topo da lente para remover; ela já possui a transparência e o acabamento ideal para o funcionamento do sensor.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-15">
+        <summary>A lente atrapalha o carregamento do relógio?</summary>
+        <p>Não. Foi desenvolvida com design ultrafino — espessura mínima — para não comprometer o encaixe na base de carregamento. Você carrega normalmente, com indução, sem precisar retirar a lente.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-16">
+        <summary>Com quanto tempo a lente solta? Ela sai com facilidade?</summary>
+        <p>Foi feita para permanecer fixa até você decidir retirar. Não solta no treino, com o tempo, com suor, na sauna, na piscina, no banho, ao lavar as mãos nem na água — pode nadar e treinar intensamente sem medo de que se solte. Se quiser tirar para vender o relógio ou deixá-lo como era originalmente, basta puxar com a mão.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-17">
+        <summary>Quanto tempo devo esperar antes de entrar na água?</summary>
+        <p>Após a instalação, recomendamos aguardar um período de 72 horas antes de expor o relógio à água, natação ou atividades físicas intensas com suor excessivo. Esse é o tempo de cura ideal para que a colagem do adesivo de fixação muito alta atinja sua resistência máxima, garantindo uma vedação perfeita e duradoura.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-18">
+        <summary>Posso remover a lente quando for vender o relógio?</summary>
+        <p>Sim. Basta puxar com a mão — a lente foi feita para ficar fixa no dia a dia, mas sai quando você quiser. Qualquer resíduo de cola pode ser limpo com álcool isopropílico, deixando o sensor original intacto.</p>
+        <div class="faq-media-embed faq-media-embed--tiktok" data-tiktok-id="7642977229512723733" data-tiktok-href="https://www.tiktok.com/@sensortattoofixofc/video/7642977229512723733" data-tiktok-handle="@sensortattoofixofc" data-tiktok-title="Como remover a lente Sensor Tattoo Fix"></div>
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-19">
+        <summary>Vocês enviam para outros países? Como funciona o frete internacional?</summary>
+        <p>Sim. Pedidos internacionais saem da loja oficial com <strong>PayPal ou cartão</strong> e <strong>rastreio</strong>. O envio é feito como documento/carta com a lente (sem líquidos). O prazo depende do país — em geral algumas semanas. Você recebe e-mail com o código de rastreio quando o pedido for despachado.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-20">
+        <summary>Tem garantia? E se a lente não resolver no meu caso?</summary>
+        <p>Trabalhamos para que a lente resolva detecção de pulso, batimentos e treinos na tatuagem. Se após a instalação correta o problema continuar, fale conosco pelo e-mail ou WhatsApp do site — analisamos o caso e orientamos (compatibilidade, diâmetro, reinstalação). Políticas de troca/reembolso seguem as regras da loja oficial no checkout.</p>
+        
+      </details>
+      <details class="faq-item" data-faq-ssr="1" data-faq-id="faq-21">
+        <summary>Funciona em Garmin e outras marcas além de Apple e Samsung?</summary>
+        <p>Sim. Qualquer smartwatch com <strong>sensor óptico</strong> (luz verde/infravermelho) na parte de trás — incluindo <strong>Garmin</strong>, Xiaomi, Amazfit, Huawei e similares — pode se beneficiar da lente. O essencial é o diâmetro do sensor; na loja oficial você escolhe o modelo/tamanho compatível.</p>
+        
+      </details>
+    </div>
     </div>
 
 </section>
@@ -509,7 +631,7 @@
     <script src="js/mobile-nav.js?v=1"></script>
     <script src="js/home-logo.js?v=1"></script>
     <script src="js/onde-comprar-scroll.js?v=1"></script>
-    <script src="js/home-content.js?v=13"></script>
+    <script src="js/home-content.js?v=16"></script>
     <script src="js/faq-embeds.js?v=4"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
