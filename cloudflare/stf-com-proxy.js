@@ -224,14 +224,21 @@ async function fetchOrigin(originPath, search) {
   const qs = search && search.length > 1 ? search : '?v=' + COMMIT.slice(0, 7);
   const headers = { Accept: '*/*', 'User-Agent': 'stf-com-proxy', 'Cache-Control': 'no-cache' };
   let last = null;
-  for (const origin of ORIGINS) {
-    const useQs = origin.includes('jsdelivr.net') ? qs : '';
-    last = await fetch(origin + originPath + useQs, {
-      method: 'GET',
-      headers,
-      redirect: 'manual',
-    });
-    if (last.ok) return last;
+  // Retry: jsDelivr/raw can 404/5xx briefly; GSC live test then reports "Não encontrado (404)".
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const origin of ORIGINS) {
+      const useQs = origin.includes('jsdelivr.net') ? qs : '';
+      try {
+        last = await fetch(origin + originPath + useQs, {
+          method: 'GET',
+          headers,
+          redirect: 'manual',
+        });
+        if (last && last.ok) return last;
+      } catch {
+        last = null;
+      }
+    }
   }
   return last;
 }
@@ -392,7 +399,13 @@ export default {
     let originPath = br ? mapPathBr(url.pathname) : mapPathCom(url.pathname);
     originPath = rewriteLegacyImagePath(originPath);
     let res = await fetchOrigin(originPath, url.search);
-    if (!res.ok) return new Response('Not found', { status: res.status });
+    if (!res || !res.ok) {
+      const status = res && res.status ? res.status : 502;
+      return new Response('Not found', {
+        status,
+        headers: { 'Cache-Control': 'no-store', 'x-stf-commit': COMMIT },
+      });
+    }
 
     const buf = await res.arrayBuffer();
 
