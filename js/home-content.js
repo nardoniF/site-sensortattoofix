@@ -78,7 +78,7 @@
       .filter((r) => r && r.active !== false)
       .slice()
       .sort((a, b) => (a.order || 0) - (b.order || 0));
-    root.innerHTML = rows.map((row) => {
+    const html = rows.map((row) => {
       const q = pickL10n('faq', row.id, 'question', lang) || pick(row, 'question', lang);
       const a = pickL10n('faq', row.id, 'answer', lang) || pick(row, 'answer', lang);
       if (!q) return '';
@@ -88,6 +88,13 @@
         ${renderMedia(row.media)}
       </details>`;
     }).join('');
+    // Keep server-rendered FAQ if localized config is empty (no blank flash / no wipe).
+    if (!html.trim()) {
+      if (root.querySelector('.faq-item')) return;
+      root.innerHTML = '';
+      return;
+    }
+    root.innerHTML = html;
   }
 
   function renderReviews(items, lang) {

@@ -3124,18 +3124,18 @@
       "wristFeatureName": "Wykrywanie nadgarstka"
     },
     "sl": {
-      "title": "Izklopiti Wrist Detection? | Sensor Tattoo Fix",
-      "description": "Izklop Wrist Detection, da Apple Watch neha zahtevati kode pri tetovaži, prinaša tveganja. Kaj izgubite in alternative.",
-      "ogTitle": "Izklopiti Wrist Detection zaradi tetovaže: se splača?",
-      "crumb": "Izklopiti Wrist Detection",
-      "headline": "Izklopiti Wrist Detection zaradi tetovaže: se splača?",
-      "lead": "Izklop Wrist Detection (funkcije, ki jo mnogi imenujejo zaznavanje pulza ali zapestja) ustavi, da Apple Watch sam zahteva kodo, a izklopi tudi srčni utrip, spanje in druge samodejne meritve, ura pa se ne zaklene več sama. Za večino se splača najprej poskusiti drugo rešitev.",
+      "title": "Izklopiti zaznavanje zapestja? | Sensor Tattoo Fix",
+      "description": "Izklop zaznavanja zapestja, da Apple Watch neha zahtevati kode pri tetovaži, prinaša tveganja. Kaj izgubite in alternative.",
+      "ogTitle": "Izklopiti zaznavanje zapestja zaradi tetovaže: se splača?",
+      "crumb": "Izklopiti zaznavanje zapestja",
+      "headline": "Izklopiti zaznavanje zapestja zaradi tetovaže: se splača?",
+      "lead": "Izklop zaznavanja zapestja (funkcije, ki jo mnogi imenujejo zaznavanje pulza ali zapestja) ustavi, da Apple Watch sam zahteva kodo, a izklopi tudi srčni utrip, spanje in druge samodejne meritve, ura pa se ne zaklene več sama. Za večino se splača najprej poskusiti drugo rešitev.",
       "h2why": "Zakaj ura zahteva kodo pri tetovaži",
       "whyBody": "Ko zaznavanje zapestja odpove, lahko Apple Watch napravo obravnava kot odstranjeno z zapestja in znova zahteva kodo. Podrobnosti in simptomi so v vodniku [[APPLE]]Apple Watch zahteva kodo pri tetovaži[[/APPLE]].",
-      "h2what": "Kaj dela Wrist Detection",
+      "h2what": "Kaj počne zaznavanje zapestja",
       "whatBody": "Uro obvesti, da je na vaši roki. Z vklopljeno funkcijo in nastavljeno kodo se Apple Watch zaklene, ko zapusti zapestje, in odklene le s kodo. Apple opisuje funkcijo in spremembe ob izklopu v članku podpore [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
       "h2lose": "Kaj izgubite ob izklopu",
-      "loseIntro": "Po Applovi podpori ob izklopu Wrist Detection med drugim izgubite:",
+      "loseIntro": "Po Applovi podpori ob izklopu zaznavanja zapestja med drugim izgubite:",
       "loseItems": [
         "Samodejno zaklepanje in odklepanje ob snemanju ali nameščanju ure",
         "Zaznavanje padca, ki samo zažene SOS v sili",
@@ -3169,7 +3169,7 @@
           "Trden stik s kožo, brez rokava ali zapestnice vmes"
         ],
         [
-          "Izklop Wrist Detection",
+          "Izklop zaznavanja zapestja",
           "Da (manj pozivov »off-wrist«)",
           "Ne — Apple izklopi sledenje UT",
           "Varnostna tveganja in zgoraj navedene funkcije"
@@ -3182,15 +3182,15 @@
         ]
       ],
       "h2how": "Kako izklopiti (če se odločite)",
-      "how1": "Na Apple Watch: odprite Settings → Passcode → Wrist Detection in izklopite. Potrdite s kodo. Na iPhonu je enakovredna pot v aplikaciji Watch, pod Passcode (oznaka se lahko razlikuje glede na različico sistema). Ohranite aktivno kodo ure in funkcijo znova vklopite, ko lahko.",
-      "how2": "Korak za korakom in uradni seznam prizadetih funkcij: support.apple.com/en-us/111819.",
+      "how1": "Na Apple Watch: odprite Settings → Passcode → Wrist Detection (zaznavanje zapestja) in izklopite. Potrdite s kodo. Na iPhonu je enakovredna pot v aplikaciji Watch, pod Passcode (oznaka se lahko razlikuje glede na različico sistema). Ohranite aktivno kodo ure in funkcijo znova vklopite, ko lahko.",
+      "how2": "Korak za korakom in uradni seznam prizadetih funkcij: support.apple.com/sl-si/111819.",
       "h2when": "Kdaj ima izklop smisel",
       "whenBody": "Kot začasna rešitev: za kratek čas, v varnem okolju, s vpisom kode za Apple Pay in izgubo samodejnega sledenja srčnemu utripu ter drugih funkcij. Kot dolgoročna rešitev je vredno oceniti alternative zgoraj — vključno z vodnikom o [[APPLE]]Apple Watch in tetovaži[[/APPLE]].",
       "buyH2": "Kupite optično lečo Sensor Tattoo Fix",
       "buyLead": "Želite ohraniti varnost, ne da bi izklopili zaznavanje? Sensor Tattoo Fix je samolepilna optična leča za območje senzorja — v uradni trgovini (mednarodno samo optična leča). Rezultati se lahko razlikujejo glede na uro in tetovažo.",
       "faqs": [
         {
-          "q": "Ali izklop Wrist Detection izbriše moje podatke?",
+          "q": "Ali izklop zaznavanja zapestja izbriše moje podatke?",
           "a": "Ne. Spremeni le, kako ura odloča, ali je na roki, in katere funkcije, vezane na to zaznavanje, ostanejo aktivne."
         },
         {
@@ -3233,8 +3233,8 @@
       "finalGo": "Pojdi na nakup",
       "finalStore": "Odpri uradno trgovino",
       "finalProducts": "Oglej izdelke na domači strani",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Wrist Detection"
+      "supportUrl": "https://support.apple.com/sl-si/111819",
+      "wristFeatureName": "Zaznavanje zapestja"
     },
     "fr": {
       "title": "Désactiver Détection du poignet ? | Sensor Tattoo Fix",
@@ -3463,18 +3463,18 @@
       "wristFeatureName": "Draagdetectie"
     },
     "sv": {
-      "title": "Stänga av Handledsigenkänning? | Sensor Tattoo Fix",
-      "description": "Att stänga av Handledsigenkänning så Apple Watch slutar be om kod vid tatuering har risker. Vad du förlorar och alternativen.",
-      "ogTitle": "Stänga av Handledsigenkänning för tatuering: värt det?",
-      "crumb": "Stänga av Handledsigenkänning",
-      "headline": "Stänga av Handledsigenkänning på grund av tatuering: värt det?",
-      "lead": "Att stänga av Handledsigenkänning (funktionen många kallar puls- eller handledsigenkänning) får Apple Watch att sluta be om koden själv, men stänger också av hjärtfrekvens, sömn och andra automatiska mätningar, och klockan låser sig inte längre själv. För de flesta är det värt att prova en annan lösning först.",
+      "title": "Stänga av Handledsavkänning? | Sensor Tattoo Fix",
+      "description": "Att stänga av Handledsavkänning så Apple Watch slutar be om kod vid tatuering har risker. Vad du förlorar och alternativen.",
+      "ogTitle": "Stänga av Handledsavkänning för tatuering: värt det?",
+      "crumb": "Stänga av Handledsavkänning",
+      "headline": "Stänga av Handledsavkänning på grund av tatuering: värt det?",
+      "lead": "Att stänga av Handledsavkänning (funktionen många kallar puls- eller Handledsavkänning) får Apple Watch att sluta be om koden själv, men stänger också av hjärtfrekvens, sömn och andra automatiska mätningar, och klockan låser sig inte längre själv. För de flesta är det värt att prova en annan lösning först.",
       "h2why": "Varför klockan ber om kod med tatuering",
-      "whyBody": "När handledsigenkänning misslyckas kan Apple Watch behandla enheten som avtagen från handleden och be om koden igen. Detaljer och symptom finns i guiden [[APPLE]]Apple Watch ber om kod med tatuering[[/APPLE]].",
-      "h2what": "Vad Handledsigenkänning gör",
-      "whatBody": "Den talar om för klockan att den sitter på armen. Med funktionen på och en lösenkod angiven låser Apple Watch när den lämnar handleden och låser bara upp med koden. Apple beskriver funktionen och vad som ändras när du stänger av den i supportartikeln [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
+      "whyBody": "När Handledsavkänning misslyckas kan Apple Watch behandla enheten som avtagen från handleden och be om koden igen. Detaljer och symptom finns i guiden [[APPLE]]Apple Watch ber om kod med tatuering[[/APPLE]].",
+      "h2what": "Vad Handledsavkänning gör",
+      "whatBody": "Den talar om för klockan att den sitter på armen. Med funktionen på och en lösenkod angiven låser Apple Watch när den lämnar handleden och låser bara upp med koden. Apple beskriver funktionen och vad som ändras när du stänger av den i supportartikeln [[SUPPORT]]Om din Apple Watch låses oväntat[[/SUPPORT]].",
       "h2lose": "Vad du förlorar när du stänger av den",
-      "loseIntro": "Enligt Apple Support förlorar du bland annat följande när du stänger av Handledsigenkänning:",
+      "loseIntro": "Enligt Apple Support förlorar du bland annat följande när du stänger av Handledsavkänning:",
       "loseItems": [
         "Automatisk låsning och upplåsning när du tar av eller sätter på klockan",
         "Falldetektering som själv startar Nöd-SOS",
@@ -3508,7 +3508,7 @@
           "Fast hudkontakt, ingen ärm eller armband emellan"
         ],
         [
-          "Stänga av Handledsigenkänning",
+          "Stänga av Handledsavkänning",
           "Ja (färre ”av handleden”-frågor)",
           "Nej — Apple stänger av HF-spårning",
           "Säkerhetsrisker och funktioner listade ovan"
@@ -3521,15 +3521,15 @@
         ]
       ],
       "h2how": "Hur du stänger av den (om du bestämmer dig)",
-      "how1": "På Apple Watch: öppna Inställningar → Lösenkod → Handledsigenkänning och stäng av. Bekräfta med koden. På iPhone finns motsvarande väg i Watch-appen under Lösenkod (etiketten kan variera med systemversion). Behåll klockans lösenkod aktiv och aktivera funktionen igen när du kan.",
-      "how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/en-us/111819.",
+      "how1": "På Apple Watch: öppna Inställningar → Lösenkod → Handledsavkänning och stäng av. Bekräfta med koden. På iPhone finns motsvarande väg i Watch-appen under Lösenkod (etiketten kan variera med systemversion). Behåll klockans lösenkod aktiv och aktivera funktionen igen när du kan.",
+      "how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/sv-se/111819.",
       "h2when": "När det är rimligt att stänga av",
       "whenBody": "Som tillfällig lösning: en kort tid, i en säker miljö, med kodinmatning för Apple Pay och förlust av automatisk hjärtfrekvensspårning och andra funktioner. Som långsiktig lösning är det värt att utvärdera alternativen ovan — inklusive guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
       "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
       "buyLead": "Vill du behålla säkerheten utan att stänga av igenkänningen? Sensor Tattoo Fix är en självhäftande optisk lins för sensorområdet — i den officiella butiken (internationellt endast den optiska linsen). Resultaten kan variera beroende på klocka och tatuering.",
       "faqs": [
         {
-          "q": "Raderar avstängning av Handledsigenkänning mina data?",
+          "q": "Raderar avstängning av Handledsavkänning mina data?",
           "a": "Nej. Den ändrar bara hur klockan avgör om den sitter på armen och vilka funktioner kopplade till den igenkänningen förblir aktiva."
         },
         {
@@ -3572,22 +3572,22 @@
       "finalGo": "Gå till köpstället",
       "finalStore": "Öppna officiell butik",
       "finalProducts": "Se produkter på startsidan",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Handledsigenkänning"
+      "supportUrl": "https://support.apple.com/sv-se/111819",
+      "wristFeatureName": "Handledsavkänning"
     },
     "no": {
-      "title": "Slå av Håndleddsregistrering? | Sensor Tattoo Fix",
-      "description": "Å slå av Håndleddsregistrering så Apple Watch slutter å be om kode ved tatovering har risikoer. Hva du mister og alternativene.",
-      "ogTitle": "Slå av Håndleddsregistrering for tatovering: verdt det?",
-      "crumb": "Slå av Håndleddsregistrering",
-      "headline": "Slå av Håndleddsregistrering på grunn av tatovering: verdt det?",
-      "lead": "Å slå av Håndleddsregistrering (funksjonen mange kaller puls- eller håndleddsregistrering) får Apple Watch til å slutte å be om koden selv, men slår også av hjertefrekvens, søvn og andre automatiske målinger, og klokken låser seg ikke lenger selv. For de fleste er det verdt å prøve en annen løsning først.",
+      "title": "Slå av Håndleddssensor? | Sensor Tattoo Fix",
+      "description": "Å slå av Håndleddssensor så Apple Watch slutter å be om kode ved tatovering har risikoer. Hva du mister og alternativene.",
+      "ogTitle": "Slå av Håndleddssensor for tatovering: verdt det?",
+      "crumb": "Slå av Håndleddssensor",
+      "headline": "Slå av Håndleddssensor på grunn av tatovering: verdt det?",
+      "lead": "Å slå av Håndleddssensor (funksjonen mange kaller puls- eller Håndleddssensor) får Apple Watch til å slutte å be om koden selv, men slår også av hjertefrekvens, søvn og andre automatiske målinger, og klokken låser seg ikke lenger selv. For de fleste er det verdt å prøve en annen løsning først.",
       "h2why": "Hvorfor klokken ber om kode med tatovering",
-      "whyBody": "Når håndleddsregistrering feiler, kan Apple Watch behandle enheten som tatt av håndleddet og be om koden igjen. Detaljer og symptomer finnes i guiden [[APPLE]]Apple Watch ber om kode med tatovering[[/APPLE]].",
-      "h2what": "Hva Håndleddsregistrering gjør",
-      "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
+      "whyBody": "Når Håndleddssensor feiler, kan Apple Watch behandle enheten som tatt av håndleddet og be om koden igjen. Detaljer og symptomer finnes i guiden [[APPLE]]Apple Watch ber om kode med tatovering[[/APPLE]].",
+      "h2what": "Hva Håndleddssensor gjør",
+      "whatBody": "Den forteller klokken at den sitter på armen. Med funksjonen på og en kode satt, låser Apple Watch når den forlater håndleddet og låses bare opp med koden. Apple beskriver funksjonen og hva som endres når du slår den av i supportartikkelen [[SUPPORT]]Hvis Apple Watch låser seg uventet[[/SUPPORT]].",
       "h2lose": "Hva du mister når du slår den av",
-      "loseIntro": "Ifølge Apple-kundestøtte mister du blant annet følgende når du slår av Håndleddsregistrering:",
+      "loseIntro": "Ifølge Apple-kundestøtte mister du blant annet følgende når du slår av Håndleddssensor:",
       "loseItems": [
         "Automatisk låsing og opplåsing når du tar av eller setter på klokken",
         "Falldeteksjon som selv starter Nød-SOS",
@@ -3621,7 +3621,7 @@
           "Fast hudkontakt, ingen ermer eller armbånd i mellom"
         ],
         [
-          "Slå av Håndleddsregistrering",
+          "Slå av Håndleddssensor",
           "Ja (færre «av håndleddet»-forespørsler)",
           "Nei — Apple slår av HF-sporing",
           "Sikkerhetsrisikoer og funksjoner listet ovenfor"
@@ -3634,15 +3634,15 @@
         ]
       ],
       "h2how": "Hvordan slå den av (hvis du bestemmer deg)",
-      "how1": "På Apple Watch: åpne Innstillinger → Kode → Håndleddsregistrering og slå av. Bekreft med koden. På iPhone er tilsvarende sti i Watch-appen under Kode (etiketten kan variere med systemversjon). Hold klokkens kode aktiv og aktiver funksjonen igjen når du kan.",
-      "how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/en-us/111819.",
+      "how1": "På Apple Watch: åpne Innstillinger → Kode → Håndleddssensor og slå av. Bekreft med koden. På iPhone er tilsvarende sti i Watch-appen under Kode (etiketten kan variere med systemversjon). Hold klokkens kode aktiv og aktiver funksjonen igjen når du kan.",
+      "how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/no-no/111819.",
       "h2when": "Når det gir mening å slå av",
       "whenBody": "Som midlertidig løsning: en kort stund, i et trygt miljø, med kodeinntasting for Apple Pay og tap av automatisk hjertefrekvenssporing og andre funksjoner. Som langsiktig løsning er det verdt å vurdere alternativene ovenfor — inkludert guiden om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
       "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
       "buyLead": "Vil du beholde sikkerheten uten å slå av registreringen? Sensor Tattoo Fix er en selvklebende optisk linse for sensorområdet — i den offisielle butikken (internasjonalt kun den optiske linsen). Resultatene kan variere etter klokke og tatovering.",
       "faqs": [
         {
-          "q": "Sletter det å slå av Håndleddsregistrering dataene mine?",
+          "q": "Sletter det å slå av Håndleddssensor dataene mine?",
           "a": "Nei. Den endrer bare hvordan klokken avgjør om den sitter på armen, og hvilke funksjoner knyttet til den registreringen forblir aktive."
         },
         {
@@ -3685,20 +3685,20 @@
       "finalGo": "Gå til hvor du kan kjøpe",
       "finalStore": "Åpne offisiell butikk",
       "finalProducts": "Se produkter på forsiden",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Håndleddsregistrering"
+      "supportUrl": "https://support.apple.com/no-no/111819",
+      "wristFeatureName": "Håndleddssensor"
     },
     "fi": {
-      "title": "Sammuttaa Ranteen tunnistus? | Sensor Tattoo Fix",
+      "title": "Sammuttaa Ranteentunnistus? | Sensor Tattoo Fix",
       "description": "Ranteen tunnistuksen sammuttaminen, jotta Apple Watch ei kysy koodia tatuoinnin kanssa, sisältää riskejä. Mitä menetät ja vaihtoehdot.",
-      "ogTitle": "Sammuttaa Ranteen tunnistus tatuoinnin takia: kannattaako?",
-      "crumb": "Sammuttaa Ranteen tunnistus",
-      "headline": "Sammuttaa Ranteen tunnistus tatuoinnin takia: kannattaako?",
+      "ogTitle": "Sammuttaa Ranteentunnistus tatuoinnin takia: kannattaako?",
+      "crumb": "Sammuttaa Ranteentunnistus",
+      "headline": "Sammuttaa Ranteentunnistus tatuoinnin takia: kannattaako?",
       "lead": "Ranteen tunnistuksen sammuttaminen (toiminto, jota monet kutsuvat pulssin tai ranteen tunnistukseksi) lopettaa sen, että Apple Watch pyytää koodia itsestään, mutta sammuttaa myös sykkeen, unen ja muut automaattiset mittaukset, eikä kello lukitu enää itsestään. Useimmille kannattaa kokeilla ensin toista ratkaisua.",
       "h2why": "Miksi kello pyytää koodia tatuoinnin kanssa",
-      "whyBody": "Kun ranteen tunnistus epäonnistuu, Apple Watch voi käsitellä laitteen ranteelta poistettuna ja pyytää koodia uudelleen. Tiedot ja oireet ovat oppaassa [[APPLE]]Apple Watch pyytää koodia tatuoinnin kanssa[[/APPLE]].",
-      "h2what": "Mitä Ranteen tunnistus tekee",
-      "whatBody": "Se kertoo kellolle, että se on käsivarressa. Kun toiminto on päällä ja koodi asetettu, Apple Watch lukittuu poistuessaan ranteelta ja avautuu vain koodilla. Apple kuvaa toiminnon ja muutokset sammutettaessa tukartikkelissa [[SUPPORT]]If your Apple Watch locks unexpectedly[[/SUPPORT]].",
+      "whyBody": "Kun Ranteentunnistus epäonnistuu, Apple Watch voi käsitellä laitteen ranteelta poistettuna ja pyytää koodia uudelleen. Tiedot ja oireet ovat oppaassa [[APPLE]]Apple Watch pyytää koodia tatuoinnin kanssa[[/APPLE]].",
+      "h2what": "Mitä Ranteentunnistus tekee",
+      "whatBody": "Se kertoo kellolle, että se on käsivarressa. Kun toiminto on päällä ja koodi asetettu, Apple Watch lukittuu poistuessaan ranteelta ja avautuu vain koodilla. Apple kuvaa toiminnon ja muutokset sammutettaessa tukartikkelissa [[SUPPORT]]Jos Apple Watch lukittuu odottamatta[[/SUPPORT]].",
       "h2lose": "Mitä menetät, kun sammutat sen",
       "loseIntro": "Applen tuen mukaan Ranteen tunnistuksen sammuttaminen poistaa muun muassa:",
       "loseItems": [
@@ -3747,8 +3747,8 @@
         ]
       ],
       "h2how": "Miten sammuttaa (jos päätät)",
-      "how1": "Apple Watchissa: avaa Asetukset → Pääsykoodi → Ranteen tunnistus ja sammuta. Vahvista koodilla. iPhonessa vastaava polku on Watch-sovelluksessa kohdassa Pääsykoodi (nimi voi vaihdella järjestelmäversion mukaan). Pidä kellon koodi päällä ja ota toiminto uudelleen käyttöön, kun voit.",
-      "how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/en-us/111819.",
+      "how1": "Apple Watchissa: avaa Asetukset → Pääsykoodi → Ranteentunnistus ja sammuta. Vahvista koodilla. iPhonessa vastaava polku on Watch-sovelluksessa kohdassa Pääsykoodi (nimi voi vaihdella järjestelmäversion mukaan). Pidä kellon koodi päällä ja ota toiminto uudelleen käyttöön, kun voit.",
+      "how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/fi-fi/111819.",
       "h2when": "Milloin sammuttaminen on järkevää",
       "whenBody": "Tilapäisenä ratkaisuna: lyhyeksi aikaa, turvallisessa ympäristössä, hyväksyen koodin syötön Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkäaikaiseksi ratkaisuksi kannattaa arvioida yllä olevat vaihtoehdot — mukaan lukien opas [[APPLE]]Apple Watchista ja tatuoinneista[[/APPLE]].",
       "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
@@ -3798,8 +3798,8 @@
       "finalGo": "Siirry ostamaan",
       "finalStore": "Avaa virallinen kauppa",
       "finalProducts": "Katso tuotteet etusivulla",
-      "supportUrl": "https://support.apple.com/en-us/111819",
-      "wristFeatureName": "Ranteen tunnistus"
+      "supportUrl": "https://support.apple.com/fi-fi/111819",
+      "wristFeatureName": "Ranteentunnistus"
     }
   }
 }
