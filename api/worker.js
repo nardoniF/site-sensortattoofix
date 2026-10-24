@@ -7241,17 +7241,28 @@ async function rebuildOrdersIndexFromKv(env) {
 
 async function persistFreteProductRepairs(env, orders) {
   let saved = 0;
-  for (const order of orders || []) {
-    if (saved >= 25) break;
-    if (!orderNeedsFreteProductRepair(order)) continue;
-    applyOrderFreteAccounting(order, Number(order.frete) || 0);
-    await saveOrder(env, order);
-    saved += 1;
+  try {
+    for (const order of orders || []) {
+      if (saved >= 25) break;
+      if (!orderNeedsFreteProductRepair(order)) continue;
+      applyOrderFreteAccounting(order, Number(order.frete) || 0);
+      await saveOrder(env, order);
+      saved += 1;
+    }
+  } catch (err) {
+    console.warn('persistFreteProductRepairs:', err?.message || err);
   }
 }
 
 async function listOrdersForAdmin(env) {
-  const fromD1 = await d1ListOrders(env, 2000);
+  // D1 free pode estourar leitura no dia — nunca derrubar /orders; cai no índice KV.
+  let fromD1 = [];
+  try {
+    fromD1 = await d1ListOrders(env, 2000);
+  } catch (err) {
+    console.warn('listOrdersForAdmin D1:', err?.message || err);
+    fromD1 = [];
+  }
   if (fromD1.length) {
     fromD1.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
     await persistFreteProductRepairs(env, fromD1);
@@ -7292,12 +7303,17 @@ async function listOrdersForAdmin(env) {
 
 async function saveOrder(env, order) {
   const ok = await d1SaveOrder(env, order);
-  if (!ok) {
+  // Sempre espelha no KV: se a cota de LEITURA do D1 estourar no dia, o Admin
+  // ainda lista / abre pedidos pelo índice KV (Failed to fetch / lista vazia).
+  try {
     await kvPut(env, 'order:' + order.orderId, JSON.stringify(order));
     const index = await readOrdersIndex(env);
     const filtered = index.filter((o) => o.orderId !== order.orderId);
     filtered.unshift(buildIndexEntry(order));
     await kvPut(env, ORDERS_INDEX, JSON.stringify(filtered.slice(0, 2000)));
+  } catch (err) {
+    if (!ok) throw err;
+    console.warn('KV mirror after D1 saveOrder:', err?.message || err);
   }
   if (order.userId) await linkOrderToUser(env, order.userId, order.orderId);
 }
@@ -16751,16 +16767,27 @@ async function purgeLegacyClickIndex(env, mode) {
 /** D1 click store — one INSERT per event (no KV blob rewrite, no Cache buffer loss). */
 const CLICKS_D1_MIGRATE_KEY = 'clicks:d1-migrated-v1';
 let clicksD1SchemaReady = false;
+let clicksD1ReadsExhausted = false;
 
 function clicksDb(env) {
+  if (clicksD1ReadsExhausted) return null;
   return env.CLICKS_DB || null;
+}
+
+function noteClicksD1Error(err) {
+  const msg = String(err?.message || err || '');
+  if (/exceeded D1.*(?:read|row read) limit|free tier daily row read/i.test(msg)) {
+    clicksD1ReadsExhausted = true;
+  }
+  console.warn('CLICKS_DB:', msg.slice(0, 240));
 }
 
 async function ensureClicksD1(env) {
   const db = clicksDb(env);
   if (!db) return null;
   if (clicksD1SchemaReady) return db;
-  await db.prepare(`
+  try {
+    await db.prepare(`
     CREATE TABLE IF NOT EXISTS clicks (
       id TEXT PRIMARY KEY NOT NULL,
       ts INTEGER NOT NULL,
@@ -16773,11 +16800,15 @@ async function ensureClicksD1(env) {
       payload TEXT NOT NULL
     )
   `).run();
-  await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_ts ON clicks(ts DESC)').run();
-  await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_destino ON clicks(destino)').run();
-  await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_visitante ON clicks(visitante_id)').run();
-  clicksD1SchemaReady = true;
-  return db;
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_ts ON clicks(ts DESC)').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_destino ON clicks(destino)').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_clicks_visitante ON clicks(visitante_id)').run();
+    clicksD1SchemaReady = true;
+    return db;
+  } catch (err) {
+    noteClicksD1Error(err);
+    return null;
+  }
 }
 
 function isCrawlerClick(entry, request) {
@@ -16829,37 +16860,41 @@ async function trimClicksD1(env) {
 }
 
 async function loadClicksFromD1(env, limit = CLICKS_TREE_MAX, sinceMs = 0) {
-  const db = clicksDb(env);
-  if (!db) return null;
-  await ensureClicksD1(env);
-  const countRow = await db.prepare('SELECT COUNT(*) AS n FROM clicks').first();
-  const total = Number(countRow?.n || 0);
-  const lim = Math.min(CLICKS_TREE_MAX, Math.max(1, limit));
-  const since = Number(sinceMs) > 0 ? Number(sinceMs) : 0;
-  const res = since > 0
-    ? await db.prepare(
-      'SELECT ts, payload FROM clicks WHERE ts >= ? ORDER BY ts DESC LIMIT ?'
-    ).bind(since, lim).all()
-    : await db.prepare(
-      'SELECT ts, payload FROM clicks ORDER BY ts DESC LIMIT ?'
-    ).bind(lim).all();
-  const loaded = [];
-  for (const r of res?.results || []) {
-    try {
-      const row = JSON.parse(r.payload);
-      const ts = Number(row.ts) || Number(r.ts) || 0;
-      loaded.push({ ...row, ts });
-    } catch { /* skip */ }
+  try {
+    const db = await ensureClicksD1(env);
+    if (!db) return null;
+    const countRow = await db.prepare('SELECT COUNT(*) AS n FROM clicks').first();
+    const total = Number(countRow?.n || 0);
+    const lim = Math.min(CLICKS_TREE_MAX, Math.max(1, limit));
+    const since = Number(sinceMs) > 0 ? Number(sinceMs) : 0;
+    const res = since > 0
+      ? await db.prepare(
+        'SELECT ts, payload FROM clicks WHERE ts >= ? ORDER BY ts DESC LIMIT ?'
+      ).bind(since, lim).all()
+      : await db.prepare(
+        'SELECT ts, payload FROM clicks ORDER BY ts DESC LIMIT ?'
+      ).bind(lim).all();
+    const loaded = [];
+    for (const r of res?.results || []) {
+      try {
+        const row = JSON.parse(r.payload);
+        const ts = Number(row.ts) || Number(r.ts) || 0;
+        loaded.push({ ...row, ts });
+      } catch { /* skip */ }
+    }
+    return { loaded, total };
+  } catch (err) {
+    noteClicksD1Error(err);
+    return null;
   }
-  return { loaded, total };
 }
 
 /** Slim rows for retention-window charts — no full payload (keeps Admin fast). */
 async function loadClicksSlimFromD1(env, cutoffMs) {
-  const db = clicksDb(env);
-  if (!db) return [];
-  await ensureClicksD1(env);
-  const res = await db.prepare(`
+  try {
+    const db = await ensureClicksD1(env);
+    if (!db) return [];
+    const res = await db.prepare(`
     SELECT ts, tipo, destino, visitante_id, sessao_visita, pagina, teste, id,
       json_extract(payload, '$.site_host') AS site_host,
       json_extract(payload, '$.idioma') AS idioma,
@@ -16876,26 +16911,30 @@ async function loadClicksSlimFromD1(env, cutoffMs) {
     ORDER BY ts DESC
     LIMIT ?
   `).bind(cutoffMs, CLICKS_MAX).all();
-  return (res?.results || []).map((r) => ({
-    id: r.id,
-    ts: Number(r.ts) || 0,
-    tipo: r.tipo || '',
-    destino: r.destino || '',
-    destino_label: r.destino_label || '',
-    visitante_id: r.visitante_id || '',
-    sessao_visita: r.sessao_visita || '',
-    pagina: r.pagina || '',
-    teste: Number(r.teste) === 1,
-    site_host: r.site_host || '',
-    idioma: r.idioma || '',
-    user_agent: r.user_agent || '',
-    ip: r.ip || '',
-    cidade: r.cidade || '',
-    estado: r.estado || '',
-    pais: r.pais || '',
-    pais_nome: r.pais_nome || '',
-    dispositivo: r.dispositivo || ''
-  }));
+    return (res?.results || []).map((r) => ({
+      id: r.id,
+      ts: Number(r.ts) || 0,
+      tipo: r.tipo || '',
+      destino: r.destino || '',
+      destino_label: r.destino_label || '',
+      visitante_id: r.visitante_id || '',
+      sessao_visita: r.sessao_visita || '',
+      pagina: r.pagina || '',
+      teste: Number(r.teste) === 1,
+      site_host: r.site_host || '',
+      idioma: r.idioma || '',
+      user_agent: r.user_agent || '',
+      ip: r.ip || '',
+      cidade: r.cidade || '',
+      estado: r.estado || '',
+      pais: r.pais || '',
+      pais_nome: r.pais_nome || '',
+      dispositivo: r.dispositivo || ''
+    }));
+  } catch (err) {
+    noteClicksD1Error(err);
+    return [];
+  }
 }
 
 async function clearClicksD1(env, mode) {
