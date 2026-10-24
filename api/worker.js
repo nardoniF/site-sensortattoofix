@@ -28,7 +28,8 @@ import {
   d1CountSales,
   d1GetAppKv,
   d1PutAppKv,
-  isD1ReadsExhausted
+  isD1ReadsExhausted,
+  markD1ReadsExhausted
 } from './d1-store.js';
 import {
   ML_SETTLEMENT_VERSION,
@@ -16798,17 +16799,16 @@ async function purgeLegacyClickIndex(env, mode) {
 /** D1 click store — one INSERT per event (no KV blob rewrite, no Cache buffer loss). */
 const CLICKS_D1_MIGRATE_KEY = 'clicks:d1-migrated-v1';
 let clicksD1SchemaReady = false;
-let clicksD1ReadsExhausted = false;
 
 function clicksDb(env) {
-  if (clicksD1ReadsExhausted) return null;
+  if (isD1ReadsExhausted()) return null;
   return env.CLICKS_DB || null;
 }
 
 function noteClicksD1Error(err) {
   const msg = String(err?.message || err || '');
   if (/exceeded D1.*(?:read|row read) limit|free tier daily row read/i.test(msg)) {
-    clicksD1ReadsExhausted = true;
+    markD1ReadsExhausted();
   }
   console.warn('CLICKS_DB:', msg.slice(0, 240));
 }
