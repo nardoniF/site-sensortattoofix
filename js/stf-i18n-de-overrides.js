@@ -243,7 +243,7 @@ window.STF_I18N_DE = {
   'store.priceSuffix': 'Karte und PayPal',
   'store.intlSuffix': 'PayPal und Karten · Sendungsverfolgung',
   'store.title': 'Offizieller Shop',
-  'store.metaDescDe': 'Sensor TattooFix Kit kaufen — optische Linse, wenn die Uhr alle 10 Sekunden den Code verlangt, der Puls nicht erkannt wird, die Verbindung abbricht oder das Training stoppt (oft wegen Tattoo am Handgelenk). Internationale Karten und weltweiter Versand.',
+  'store.metaDescDe': 'Sensor TattooFix Kit kaufen — optische Linse, wenn die Uhr ständig den Code verlangt, der Puls nicht erkannt wird, die Verbindung abbricht oder das Training stoppt (oft wegen Tattoo am Handgelenk). Internationale Karten und weltweiter Versand.',
   'store.loading': 'Produkte werden geladen…',
   'store.empty': 'Derzeit keine Produkte verfügbar.',
   'store.added': 'Zum Warenkorb hinzugefügt!',

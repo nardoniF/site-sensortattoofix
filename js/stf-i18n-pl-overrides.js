@@ -243,7 +243,7 @@ window.STF_I18N_PL = {
   'store.priceSuffix': 'Karta i PayPal',
   'store.intlSuffix': 'PayPal i karty · Śledzenie przesyłki',
   'store.title': 'Oficjalny Sklep',
-  'store.metaDescPl': 'Kup zestaw Sensor TattooFix — soczewka optyczna, gdy zegarek co 10 sekund prosi o kod, nie mierzy tętna, rozłącza się lub przerywa trening (często przez tatuaż na nadgarstku). Karty międzynarodowe i wysyłka na cały świat.',
+  'store.metaDescPl': 'Kup zestaw Sensor TattooFix — soczewka optyczna, gdy zegarek cały czas prosi o kod, nie mierzy tętna, rozłącza się lub przerywa trening (często przez tatuaż na nadgarstku). Karty międzynarodowe i wysyłka na cały świat.',
   'store.loading': 'Ładowanie produktów…',
   'store.empty': 'Brak dostępnych produktów.',
   'store.added': 'Dodano do koszyka!',

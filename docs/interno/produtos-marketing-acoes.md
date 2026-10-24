@@ -56,7 +56,7 @@ Atualizado em: 2026-06-20
 
 ### 2.1 Pilares de mensagem (já validados no site)
 
-1. **Problema:** relógio não reconhece pulso, pede senha, pausa treino, batimentos zerados
+1. **Problema:** relógio não reconhece pulso, pede senha, pausa treino sozinho, batimentos zerados
 2. **Inimigo:** paliativos (esparadrapo, resina, desativar sensor)
 3. **Solução:** lente ótica Sensor TattooFix — patente, à prova d’água, sem desligar funções
 4. **Prova:** reviews 5★ (Google, ML, Shopee, Amazon, TikTok, Portugal)

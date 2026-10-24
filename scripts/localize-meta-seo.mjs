@@ -13,28 +13,28 @@ const LOJA = {
   de: {
     title: 'Offizieller Shop | Sensor TattooFix — Passcode & Puls bei Tattoo',
     description:
-      'Sensor TattooFix Linse kaufen — optische Linse wenn die Smartwatch alle 10 Sekunden den Passcode verlangt, den Puls nicht misst oder das Training abbricht (oft durch Tattoo-Tinte). PayPal, Karten und Sendungsverfolgung.',
+      'Sensor TattooFix Linse kaufen — optische Linse wenn die Smartwatch ständig den Passcode verlangt, den Puls nicht misst oder das Training abbricht (oft durch Tattoo-Tinte). PayPal, Karten und Sendungsverfolgung.',
     keywords:
       'smartwatch passcode tattoo, pulsmessung tätowierung, apple watch tattoo sensor, sensor TattooFix shop',
   },
   es: {
     title: 'Tienda oficial | Sensor TattooFix — Código y pulso con tatuaje',
     description:
-      'Compra la lente Sensor TattooFix — lente óptica cuando el smartwatch pide el código cada 10 segundos, no mide el pulso o interrumpe el entrenamiento (a menudo por tinta del tatuaje). PayPal, tarjetas y envío con seguimiento.',
+      'Compra la lente Sensor TattooFix — lente óptica cuando el smartwatch pide el código a cada momento, no mide el pulso o interrumpe el entrenamiento (a menudo por tinta del tatuaje). PayPal, tarjetas y envío con seguimiento.',
     keywords:
       'smartwatch pide código tatuaje, sensor pulsera tatuada, apple watch tatuaje, sensor TattooFix tienda',
   },
   pl: {
     title: 'Oficjalny sklep | Sensor TattooFix — kod i tętno przy tatuażu',
     description:
-      'Kup soczewkę Sensor TattooFix — soczewka optyczna, gdy smartwatch prosi o kod co 10 sekund, nie mierzy tętna lub przerywa trening (często przez tusz tatuażu). PayPal, karty i wysyłka ze śledzeniem.',
+      'Kup soczewkę Sensor TattooFix — soczewka optyczna, gdy smartwatch prosi o kod cały czas, nie mierzy tętna lub przerywa trening (często przez tusz tatuażu). PayPal, karty i wysyłka ze śledzeniem.',
     keywords:
       'smartwatch hasło tatuaż, tętno tatuaż, apple watch tatuaż sensor, sensor TattooFix sklep',
   },
   sl: {
     title: 'Uradna trgovina | Sensor TattooFix — geslo in utrip pri tetovaži',
     description:
-      'Kupite lečo Sensor TattooFix — optična leča, ko pametna ura vsakih 10 sekund zahteva geslo, ne meri pulza ali prekine vadbo (pogosto zaradi tinte tetovaže). PayPal, kartice in sledenje pošiljki.',
+      'Kupite lečo Sensor TattooFix — optična leča, ko pametna ura ves čas zahteva geslo, ne meri pulza ali prekine vadbo (pogosto zaradi tinte tetovaže). PayPal, kartice in sledenje pošiljki.',
     keywords:
       'pametna ura tetovaža, merjenje pulza tetovaža, apple watch tetovaža, sensor TattooFix trgovina',
   },
@@ -67,42 +67,42 @@ const HOME = {
   de: {
     title: 'Smartwatch Passcode bei Tattoo? Puls oder Training ausgefallen | Sensor TattooFix',
     description:
-      'Apple Watch, Samsung oder Garmin verlangt alle 10 Sekunden den Passcode, misst den Puls nicht oder bricht das Training ab? Tätowiertinte blockiert oft den Sensor. Optische Linse Sensor TattooFix — 3N20-Technologie.',
+      'Apple Watch, Samsung oder Garmin verlangt ständig den Passcode, misst den Puls nicht oder bricht das Training ab? Tätowiertinte blockiert oft den Sensor. Optische Linse Sensor TattooFix — 3N20-Technologie.',
     ogTitle: 'Smartwatch Passcode oder Puls bei Tattoo? | Sensor TattooFix',
     ogDescription:
-      'Passcode alle 10 Sekunden, keine Pulsmessung oder Training unterbrochen auf tätowierter Haut? Offizielle Lösung — Apple Watch, Samsung, Garmin.',
+      'Passcode ständig, keine Pulsmessung oder Training unterbrochen auf tätowierter Haut? Offizielle Lösung — Apple Watch, Samsung, Garmin.',
   },
   es: {
     title: '¿Smartwatch pide código con tatuaje? Pulso o entrenamiento fallan | Sensor TattooFix',
     description:
-      '¿Apple Watch, Samsung o Garmin pide el código cada 10 segundos, no mide el pulso o interrumpe el entrenamiento? La tinta del tatuaje suele bloquear el sensor. Lente óptica Sensor TattooFix — tecnología 3N20.',
+      '¿Apple Watch, Samsung o Garmin pide el código a cada momento, no mide el pulso o interrumpe el entrenamiento? La tinta del tatuaje suele bloquear el sensor. Lente óptica Sensor TattooFix — tecnología 3N20.',
     ogTitle: '¿Código o pulso fallando con tatuaje? | Sensor TattooFix',
     ogDescription:
-      'Código cada 10 segundos, pulso sin medir o entrenamiento interrumpido en piel tatuada? Solución oficial — Apple Watch, Samsung, Garmin.',
+      'Código a cada momento, pulso sin medir o entrenamiento que se pausa solo en piel tatuada? Solución oficial — Apple Watch, Samsung, Garmin.',
   },
   pl: {
     title: 'Smartwatch prosi o kod przy tatuażu? Brak tętna lub trening | Sensor TattooFix',
     description:
-      'Apple Watch, Samsung lub Garmin prosi o kod co 10 sekund, nie mierzy tętna lub przerywa trening? Tusz tatuażu często blokuje czujnik. Soczewka optyczna Sensor TattooFix — technologia 3N20.',
+      'Apple Watch, Samsung lub Garmin prosi o kod cały czas, nie mierzy tętna lub przerywa trening? Tusz tatuażu często blokuje czujnik. Soczewka optyczna Sensor TattooFix — technologia 3N20.',
     ogTitle: 'Kod lub tętno przy tatuażu? | Sensor TattooFix',
     ogDescription:
-      'Kod co 10 sekund, brak tętna lub przerwany trening na tatuażowanej skórze? Oficjalne rozwiązanie — Apple Watch, Samsung, Garmin.',
+      'Kod cały czas, brak tętna lub trening przerywany sam na tatuażowanej skórze? Oficjalne rozwiązanie — Apple Watch, Samsung, Garmin.',
   },
   sl: {
     title: 'Pametna ura zahteva geslo pri tetovaži? Utrip ali vadba odpove | Sensor TattooFix',
     description:
-      'Apple Watch, Samsung ali Garmin vsakih 10 sekund zahteva geslo, ne meri pulza ali prekine vadbo? Tinta tetovaže pogosto blokira senzor. Optična leča Sensor TattooFix — tehnologija 3N20.',
+      'Apple Watch, Samsung ali Garmin ves čas zahteva geslo, ne meri pulza ali prekine vadbo? Tinta tetovaže pogosto blokira senzor. Optična leča Sensor TattooFix — tehnologija 3N20.',
     ogTitle: 'Geslo ali utrip pri tetovaži? | Sensor TattooFix',
     ogDescription:
-      'Geslo vsakih 10 sekund, merjenje pulza ne deluje ali prekinjena vadba na tetovirani koži? Uradna rešitev — Apple Watch, Samsung, Garmin.',
+      'Geslo ves čas, merjenje pulza ne deluje ali prekinjena vadba na tetovirani koži? Uradna rešitev — Apple Watch, Samsung, Garmin.',
   },
   en: {
     title: 'Smartwatch Passcode on Tattooed Skin? Heart Rate or Workouts Fail | Sensor TattooFix',
     description:
-      'Apple Watch, Samsung or Garmin asks for passcode every 10 seconds, won\'t read heart rate or pauses workouts? Tattoo ink often blocks the optical sensor. Sensor TattooFix lens — 3N20 technology.',
+      'Apple Watch, Samsung or Garmin asks for passcode all the time, won\'t read heart rate or pauses workout on its owns on its own? Tattoo ink often blocks the optical sensor. Sensor TattooFix lens — 3N20 technology.',
     ogTitle: 'Passcode or Heart Rate Failing on Tattoo? | Sensor TattooFix',
     ogDescription:
-      'Passcode every 10 seconds, heart rate failing or workouts pausing on tattooed skin? Official fix — Apple Watch, Samsung, Garmin.',
+      'Passcode all the time, heart rate failing or workouts pausing on tattooed skin? Official fix — Apple Watch, Samsung, Garmin.',
   },
 };
 
