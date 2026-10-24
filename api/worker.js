@@ -27,7 +27,8 @@ import {
   d1ListSales,
   d1CountSales,
   d1GetAppKv,
-  d1PutAppKv
+  d1PutAppKv,
+  isD1ReadsExhausted
 } from './d1-store.js';
 import {
   ML_SETTLEMENT_VERSION,
@@ -7254,6 +7255,32 @@ async function persistFreteProductRepairs(env, orders) {
   }
 }
 
+async function listOrdersFromKvRecent(env, maxAgeMs = 45 * 24 * 3600 * 1000) {
+  let index = await readOrdersIndex(env);
+  if (!index.length) {
+    index = await rebuildOrdersIndexFromKv(env);
+  }
+  const cutoff = Date.now() - maxAgeMs;
+  const recent = (index || []).filter((o) => {
+    const t = Date.parse(o?.createdAt || '');
+    return Number.isFinite(t) && t >= cutoff;
+  });
+  const orders = [];
+  for (const item of recent.slice(0, 500)) {
+    const raw = await env.STORE_KV.get('order:' + item.orderId).catch(() => null);
+    if (raw) {
+      try {
+        orders.push(JSON.parse(raw));
+        continue;
+      } catch { /* fall through */ }
+    }
+    const fallback = orderFromIndexRow(item);
+    if (fallback) orders.push(fallback);
+  }
+  orders.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
+  return orders;
+}
+
 async function listOrdersForAdmin(env) {
   // D1 free pode estourar leitura no dia — nunca derrubar /orders; cai no índice KV.
   let fromD1 = [];
@@ -7267,6 +7294,10 @@ async function listOrdersForAdmin(env) {
     fromD1.sort((a, b) => String(b?.createdAt || '').localeCompare(String(a?.createdAt || '')));
     await persistFreteProductRepairs(env, fromD1);
     return fromD1;
+  }
+  // Sem D1: não devolver índice KV antigo (meses) como se fosse a lista atual.
+  if (isD1ReadsExhausted()) {
+    return listOrdersFromKvRecent(env);
   }
   let index = await readOrdersIndex(env);
   if (!index.length) {
@@ -19191,12 +19222,18 @@ async function handleListOrders(request, env, origin) {
   if (!(await isValidSession(env, bearerToken(request)))) return json({ error: 'Não autorizado.' }, 401, origin);
 
   const format = new URL(request.url).searchParams.get('format') || 'json';
-  const index = await readOrdersIndex(env);
-  const indexForExport = index.length ? index : await rebuildOrdersIndexFromKv(env);
+  const orders = await listOrdersForAdmin(env);
+
+  // Cota D1 esgotada e nada recente no KV (pedidos do dia ainda só no D1).
+  if (!orders.length && isD1ReadsExhausted()) {
+    return json({
+      error: 'Cota diária de leitura do D1 esgotada. Os e-mails de Novo pedido continuam válidos; a lista completa volta ~21:00 Brasília (00:00 UTC).'
+    }, 503, origin);
+  }
 
   if (format === 'csv') {
     const header = 'orderId,createdAt,status,nome,email,telefone,smartwatch,observacoes,modeloRelogio,pais,pagamento,total,frete,couponCode,couponCommissionerName,couponDiscount,couponCommissionPercent,couponCommissionAmount\n';
-    const rows = indexForExport.map((o) =>
+    const rows = orders.map((o) =>
       [o.orderId, o.createdAt, o.status, o.nome, o.email, o.telefone, o.smartwatch, o.observacoes, o.modeloRelogio, o.pais, o.pagamento, o.total, o.frete, o.couponCode, o.couponCommissionerName, o.couponDiscount, o.couponCommissionPercent, o.couponCommissionAmount]
         .map((v) => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')
     ).join('\n');
@@ -19205,7 +19242,7 @@ async function handleListOrders(request, env, origin) {
     });
   }
 
-  return json(await listOrdersForAdmin(env), 200, origin);
+  return json(orders, 200, origin);
 }
 
 async function parseManualOrderPayload(env, body) {

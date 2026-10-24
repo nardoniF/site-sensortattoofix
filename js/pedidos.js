@@ -2367,8 +2367,14 @@
       headers: { Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
-    if (!res.ok) throw new Error('Erro ao carregar pedidos.');
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(
+        (data && data.error) || (res.status === 503
+          ? 'Cota D1 esgotada hoje — veja os e-mails de Novo pedido; lista volta ~21:00 Brasília.'
+          : 'Erro ao carregar pedidos.')
+      );
+    }
     if (!Array.isArray(data)) {
       throw new Error(data?.error || 'Resposta inválida da API de pedidos.');
     }
