@@ -8,7 +8,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** @type {Array<[string, string]>} */
 const RULES = [
-  ['content="Offizieller Sensor Tattoo Fix Checkout — PayPal, Karten, Sendungsverfolgung in USD."', 'content="Uradna blagajna Sensor Tattoo Fix — PayPal, kartice, sledenje pošiljki v USD."'],
+  ['content="Offizieller Sensor TattooFix Checkout — PayPal, Karten, Sendungsverfolgung in USD."', 'content="Uradna blagajna Sensor TattooFix — PayPal, kartice, sledenje pošiljki v USD."'],
   ['Rabattcode', 'Koda za popust'],
   ['placeholder="z. B. MARIA10"', 'placeholder="npr. MARIA10"'],
   ['>Anwenden</button>', '>Uporabi</button>'],

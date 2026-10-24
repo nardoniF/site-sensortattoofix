@@ -8,7 +8,7 @@ for (const lang of ['de', 'es', 'pl', 'sl']) {
     await expect(page.locator('h1.section-title')).not.toHaveText(/Official Store/i);
     await page.waitForFunction(() => {
       const h3 = document.querySelector('.loja-card h3');
-      return h3 && h3.textContent && !/Kit Sensor Tattoo Fix/.test(h3.textContent);
+      return h3 && h3.textContent && !/Kit Sensor TattooFix/.test(h3.textContent);
     }, { timeout: 45_000 });
     const titles = await page.locator('.loja-card h3').allTextContents();
     const joined = titles.join(' | ');

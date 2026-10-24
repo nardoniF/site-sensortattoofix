@@ -390,7 +390,7 @@ async function requireForumWriter(env, deps, request) {
 
 const OFFICIAL_AUTHOR = {
   userId: 'seed-official-stf',
-  nome: 'Sensor Tattoo Fix',
+  nome: 'Sensor TattooFix',
   username: 'sensortattoofix',
   avatarId: 'shield',
   avatarEmoji: '🛡️',
@@ -1015,7 +1015,7 @@ export async function handleForumRoute(request, env, origin, deps) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="index, follow">
-  <title>${esc(loc.title)} | Comunidade | Sensor Tattoo Fix</title>
+  <title>${esc(loc.title)} | Comunidade | Sensor TattooFix</title>
   <meta name="description" content="${desc}">
   <link rel="canonical" href="${esc(pageUrl)}">
   <meta property="og:title" content="${esc(loc.title)}">
@@ -1025,7 +1025,7 @@ export async function handleForumRoute(request, env, origin, deps) {
 </head>
 <body class="checkout-page forum-page">
   <main class="container forum-container">
-    <p><a href="${esc(pageUrl)}">Sensor Tattoo Fix — Comunidade</a></p>
+    <p><a href="${esc(pageUrl)}">Sensor TattooFix — Comunidade</a></p>
     <article>
       <h1>${esc(loc.title)}</h1>
       <p class="admin-meta">@${esc(thread.author?.username || 'anon')} · <time datetime="${esc(thread.createdAt || '')}">${esc(thread.createdAt || '')}</time></p>

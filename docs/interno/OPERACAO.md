@@ -1,4 +1,4 @@
-# Manual de operação — Sensor Tattoo Fix
+# Manual de operação — Sensor TattooFix
 
 Versão para o repositório (espelho de [documentacao.html](../documentacao.html)).
 
