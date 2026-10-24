@@ -254,7 +254,7 @@
   async function run() {
     let productName = isIt ? 'Lente ottica SensorTattooFix'
       : isIntlCopy ? 'SensorTattooFix Optical Lens'
-        : 'Kit Sensor Tattoo Fix';
+        : 'Kit Sensor TattooFix';
     let productPrice = 62.9;
     let productImage = SITE + '/images/brand/sensortattoofix.jpg';
     let productId = isIntlCopy ? 'optical-lens-intl' : 'kit-sensor-tattoofix';
@@ -296,7 +296,7 @@
       name: productName,
       description: productDescription,
       sku: productId,
-      brand: { '@type': 'Brand', name: 'Sensor Tattoo Fix' },
+      brand: { '@type': 'Brand', name: 'Sensor TattooFix' },
       image: productImage,
       offers: buildOffer(productPrice, productId),
       aggregateRating,
@@ -307,7 +307,7 @@
       {
         '@type': 'Organization',
         '@id': SITE + '/#organization',
-        name: 'Sensor Tattoo Fix',
+        name: 'Sensor TattooFix',
         legalName: '3N20 Soluções Tecnológicas',
         url: SITE,
         logo: SITE + '/images/brand/logo.jpg',
@@ -322,7 +322,7 @@
         '@type': 'WebSite',
         '@id': SITE + '/#website',
         url: SITE,
-        name: 'Sensor Tattoo Fix',
+        name: 'Sensor TattooFix',
         inLanguage,
         publisher: { '@id': SITE + '/#organization' }
       },

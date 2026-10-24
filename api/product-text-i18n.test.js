@@ -23,7 +23,7 @@ test('refreshProductTextI18n com lock de idioma não sobrescreve nameEn', async 
   const env = { AI: null };
   const product = {
     id: 'optical-lens-intl',
-    name: 'Lente óptica Sensor Tattoo Fix',
+    name: 'Lente óptica Sensor TattooFix',
     description: 'Só a lente',
     nameEn: 'Custom EN locked',
     textI18nLocks: { en: true },
@@ -46,7 +46,7 @@ test('refreshProductsTextI18n preserva images/markets/price mesmo sem AI', async
   const products = [
     {
       id: 'kit-sensor-tattoofix',
-      name: 'Kit Sensor Tattoo Fix',
+      name: 'Kit Sensor TattooFix',
       description: 'Kit completo',
       nameEn: 'Full Kit EN',
       nameIt: 'Kit IT',
@@ -70,6 +70,6 @@ test('refreshProductsTextI18n preserva images/markets/price mesmo sem AI', async
   assert.equal(out[0].images[0], '/images/kit-gallery/kit-01.jpg');
   assert.deepEqual(out[0].markets, ['BR']);
   assert.equal(out[0].price, 62.9);
-  assert.equal(out[0].name, 'Kit Sensor Tattoo Fix');
+  assert.equal(out[0].name, 'Kit Sensor TattooFix');
   assert.ok(out[0].textI18nHash);
 });

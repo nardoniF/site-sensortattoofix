@@ -78,7 +78,7 @@ function scan(rel, lang, html) {
     }
   }
   if (rel.endsWith('loja.html') || rel.endsWith('onde-comprar.html')) {
-    const META_EN = ['Buy the Sensor Tattoo Fix lens', "Watch asks for passcode, won't read heart rate"];
+    const META_EN = ['Buy the Sensor TattooFix lens', "Watch asks for passcode, won't read heart rate"];
     for (const w of META_EN) {
       if (html.includes(w)) found.push({ src: 'en-meta', w });
     }

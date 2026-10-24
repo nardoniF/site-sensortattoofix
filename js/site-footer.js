@@ -1,7 +1,7 @@
 window.STF_FOOTER = (function () {
   const INFO = {
-    brandPlain: 'Sensor Tattoo Fix',
-    brandTitle: 'Sensor <span class="logo-accent">Tattoo Fix</span>',
+    brandPlain: 'Sensor TattooFix',
+    brandTitle: 'Sensor <span class="logo-accent">TattooFix</span>',
     company: '3N20 Soluções Tecnológicas',
     cnpj: '29.321.223/0001-32',
     patentNational: 'BR 20 2026 010875 3',

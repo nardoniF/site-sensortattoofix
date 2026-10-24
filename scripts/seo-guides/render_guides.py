@@ -159,10 +159,10 @@ def render_brand_guide(guide: str, lang: str) -> str:
         "dateModified": "2026-10-22",
         "mainEntityOfPage": {"@type": "WebPage", "@id": canonical},
         "image": f"{BR}/images/kit-gallery/kit-03-aplicacao.jpg",
-        "author": {"@type": "Organization", "name": "Sensor Tattoo Fix"},
+        "author": {"@type": "Organization", "name": "Sensor TattooFix"},
         "publisher": {
             "@type": "Organization",
-            "name": "Sensor Tattoo Fix",
+            "name": "Sensor TattooFix",
             "logo": {"@type": "ImageObject", "url": f"{BR}/images/brand/logo.jpg"},
         },
     }
@@ -205,9 +205,9 @@ def render_brand_guide(guide: str, lang: str) -> str:
         <nav class="container site-nav">
             <input type="checkbox" id="mobile-menu-toggle" class="mobile-menu-checkbox" aria-hidden="true">
             <div class="logo-area">
-                <a href="index.html" class="logo-img-link"><img src="../images/brand/logo-en.jpg?v=12" alt="Sensor Tattoo Fix" class="main-logo-img"></a>
+                <a href="index.html" class="logo-img-link"><img src="../images/brand/logo-en.jpg?v=12" alt="Sensor TattooFix" class="main-logo-img"></a>
                 <div class="logo-lockup">
-                    <div class="logo-text" aria-hidden="true">SENSOR<span>TATTOO FIX</span></div>
+                    <div class="logo-text" aria-hidden="true">SENSOR<span>TATTOOFIX</span></div>
                 </div>
             </div>
             <div class="nav-panel">
@@ -275,7 +275,7 @@ def render_brand_guide(guide: str, lang: str) -> str:
                     <div class="stores-layout stores-layout--store-first">
                         <a href="loja.html?utm_source=seo&amp;utm_medium=guide&amp;utm_campaign=intent&amp;utm_content=loja_oficial" class="store-official-bar" data-evento="clique_loja_oficial" data-rotulo="Guide — Official store">
                             <span class="store-icon-circle">
-                                <img src="../images/brand/logo-mark.png?v=1" alt="Sensor Tattoo Fix">
+                                <img src="../images/brand/logo-mark.png?v=1" alt="Sensor TattooFix">
                             </span>
                             <span class="store-official-info">
                                 <span class="store-official-head">
@@ -348,12 +348,12 @@ def render_wrist(lang: str) -> str:
         "language": "Language",
         "home": "Home",
         "articles": "Articles",
-        "kicker": "Sensor Tattoo Fix guide",
+        "kicker": "Sensor TattooFix guide",
         "ctaBuy": "See where to buy",
         "ctaStore": "Open the official store",
-        "imgAlt": "Applying the Sensor Tattoo Fix lens on the sensor on the back of the smartwatch",
+        "imgAlt": "Applying the Sensor TattooFix lens on the sensor on the back of the smartwatch",
         "whereToBuy": "Where to buy",
-        "buyH2": "Buy the Sensor Tattoo Fix optical lens",
+        "buyH2": "Buy the Sensor TattooFix optical lens",
         "buyLead": "Official store only — PayPal, card, and tracked shipping. International offering is the optical lens (not the Brazilian kit accessories).",
         "officialStore": "Official Store",
         "payments": "Payment methods",
@@ -462,10 +462,10 @@ def render_wrist(lang: str) -> str:
         "dateModified": "2026-10-22",
         "mainEntityOfPage": {"@type": "WebPage", "@id": canonical},
         "image": f"{BR}/images/kit-gallery/kit-03-aplicacao.jpg",
-        "author": {"@type": "Organization", "name": "Sensor Tattoo Fix"},
+        "author": {"@type": "Organization", "name": "Sensor TattooFix"},
         "publisher": {
             "@type": "Organization",
-            "name": "Sensor Tattoo Fix",
+            "name": "Sensor TattooFix",
             "logo": {"@type": "ImageObject", "url": f"{BR}/images/brand/logo.jpg"},
         },
     }
@@ -511,9 +511,9 @@ def render_wrist(lang: str) -> str:
         <nav class="container site-nav">
             <input type="checkbox" id="mobile-menu-toggle" class="mobile-menu-checkbox" aria-hidden="true">
             <div class="logo-area">
-                <a href="index.html" class="logo-img-link"><img src="../images/brand/logo-en.jpg?v=12" alt="Sensor Tattoo Fix" class="main-logo-img"></a>
+                <a href="index.html" class="logo-img-link"><img src="../images/brand/logo-en.jpg?v=12" alt="Sensor TattooFix" class="main-logo-img"></a>
                 <div class="logo-lockup">
-                    <div class="logo-text" aria-hidden="true">SENSOR<span>TATTOO FIX</span></div>
+                    <div class="logo-text" aria-hidden="true">SENSOR<span>TATTOOFIX</span></div>
                 </div>
             </div>
             <div class="nav-panel">
@@ -592,7 +592,7 @@ def render_wrist(lang: str) -> str:
                     <div class="stores-layout stores-layout--store-first">
                         <a href="loja.html?utm_source=seo&amp;utm_medium=guide&amp;utm_campaign=intent&amp;utm_content=loja_oficial" class="store-official-bar" data-evento="clique_loja_oficial" data-rotulo="Guide — Official store">
                             <span class="store-icon-circle">
-                                <img src="../images/brand/logo-mark.png?v=1" alt="Sensor Tattoo Fix">
+                                <img src="../images/brand/logo-mark.png?v=1" alt="Sensor TattooFix">
                             </span>
                             <span class="store-official-info">
                                 <span class="store-official-head">
