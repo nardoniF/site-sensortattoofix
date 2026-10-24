@@ -17321,10 +17321,10 @@ async function handleAdminListClicks(request, env, origin) {
     || url.searchParams.get('navegacao') === '1';
   const limit = Math.min(CLICKS_TREE_MAX, Math.max(20, parseInt(url.searchParams.get('limit') || String(CLICKS_TREE_MAX), 10) || CLICKS_TREE_MAX));
   const window = clicksRetentionWindow();
-  // days: janela da árvore na tela (padrão 5). days=0 → sem filtro de dias (só limit).
+  // days: janela da árvore. Sem param = legado (só limit). days=0 = só limit. Admin novo manda days=5.
   const daysParam = url.searchParams.get('days');
-  let treeDays = CLICKS_TREE_DAYS_DEFAULT;
-  let treeSinceMs = clicksTreeCutoffMs(treeDays);
+  let treeDays = 0;
+  let treeSinceMs = 0;
   if (daysParam != null && daysParam !== '') {
     const parsed = parseInt(daysParam, 10);
     if (Number.isFinite(parsed) && parsed <= 0) {
@@ -17332,6 +17332,9 @@ async function handleAdminListClicks(request, env, origin) {
       treeSinceMs = 0;
     } else if (Number.isFinite(parsed)) {
       treeDays = Math.min(90, Math.max(1, parsed));
+      treeSinceMs = clicksTreeCutoffMs(treeDays);
+    } else {
+      treeDays = CLICKS_TREE_DAYS_DEFAULT;
       treeSinceMs = clicksTreeCutoffMs(treeDays);
     }
   }
