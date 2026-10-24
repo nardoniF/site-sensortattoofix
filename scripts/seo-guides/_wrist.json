@@ -46,24 +46,24 @@
       ],
       [
         "Turn off Wrist Detection",
-        "Yes (fewer “off-wrist” prompts)",
+        "Yes — but at a high cost",
         "No — Apple turns off HR tracking",
-        "Security risks and features listed above"
+        "Not a safe fix: the watch stops locking on its own and you lose health and security features tied to detection"
       ],
       [
         "Adhesive optical lens (Sensor Tattoo Fix)",
-        "Can help",
-        "Made to improve reading conditions",
-        "Stick on the sensor area; results vary by watch and tattoo"
+        "Yes",
+        "Yes",
+        "Restores sensor reading on tattooed skin without turning the watch’s security off"
       ]
     ],
     "h2how": "How to turn it off (if you decide to)",
     "how1": "On Apple Watch: open Settings → Passcode → Wrist Detection and turn it off. Confirm with your passcode. On iPhone, the equivalent path is in the Watch app, under Passcode (the label may vary by system version). Keep the watch passcode on and re-enable the feature when you can.",
     "how2": "Step-by-step and the official list of affected features: support.apple.com/en-us/111819.",
     "h2when": "When turning it off makes sense",
-    "whenBody": "As a temporary fix: for a short time, in a safe environment, accepting passcode entry for Apple Pay and losing automatic heart-rate tracking and other features. As a long-term solution, it is worth evaluating the alternatives above — including the guide on [[APPLE]]Apple Watch and tattoos[[/APPLE]].",
+    "whenBody": "Only as a short-term workaround, in a safe place, accepting passcode entry for Apple Pay and losing heart-rate tracking and other features. Day to day, turning detection off is the worst trade-off: less security and fewer features. The lens addresses the cause — reading on the tattoo — so you can keep Wrist Detection on. See also the guide on [[APPLE]]Apple Watch and tattoos[[/APPLE]].",
     "buyH2": "Buy the Sensor Tattoo Fix optical lens",
-    "buyLead": "Want to keep security without turning detection off? Sensor Tattoo Fix is an adhesive optical lens for the sensor area — available in the official store (optical lens only for international orders). Results may vary by watch and tattoo.",
+    "buyLead": "Want to keep the watch’s security and features? The Sensor Tattoo Fix lens was made to restore reading on tattooed skin — without turning detection off.",
     "faqs": [
       {
         "q": "Does turning off Wrist Detection wipe my data?",
@@ -105,7 +105,7 @@
       }
     ],
     "finalH2": "Want to keep security without turning anything off?",
-    "finalBody": "Check the optical lens in the official store. Results may vary by watch and tattoo.",
+    "finalBody": "Keep security on and fix the reading with the optical lens in the official store.",
     "finalGo": "Go to where to buy",
     "finalStore": "Open official store",
     "finalProducts": "See products on the home page",
@@ -159,24 +159,24 @@
       ],
       [
         "Disattivare Rilevamento polso",
-        "Sì (meno richieste “fuori polso”)",
-        "No — Apple spegne il monitoraggio FC",
-        "Rischi di sicurezza e funzioni elencate sopra"
+        "Sì — ma a un costo alto",
+        "No — Apple disattiva il monitoraggio FC",
+        "Non è una soluzione sicura: l’orologio non si blocca più da solo e perdi funzioni di salute e sicurezza legate al rilevamento"
       ],
       [
         "Lente ottica adesiva (Sensor Tattoo Fix)",
-        "Può aiutare",
-        "Pensata per migliorare le condizioni di lettura",
-        "Si applica sulla zona del sensore; i risultati variano con orologio e tatuaggio"
+        "Sì",
+        "Sì",
+        "Ripristina la lettura del sensore sul tatuaggio, senza disattivare la sicurezza dell’orologio"
       ]
     ],
     "h2how": "Come disattivarlo (se decidi)",
     "how1": "Su Apple Watch: apri Impostazioni → Codice → Rilevamento polso e disattiva. Conferma con il codice. Su iPhone, il percorso equivalente è nell’app Watch, in Codice (l’etichetta può variare con la versione del sistema). Mantieni attivo il codice dell’orologio e riattiva la funzione quando puoi.",
     "how2": "Passo passo e elenco ufficiale delle funzioni interessate: support.apple.com/it-it/111819.",
     "h2when": "Quando ha senso disattivarlo",
-    "whenBody": "Come soluzione temporanea: per poco tempo, in un ambiente sicuro, accettando di digitare il codice per Apple Pay e perdendo il monitoraggio automatico della frequenza cardiaca e altre funzioni. Come soluzione a lungo termine, conviene valutare le alternative sopra — inclusa la guida su [[APPLE]]Apple Watch e tatuaggio[[/APPLE]].",
+    "whenBody": "Solo come rimedio temporaneo, in un ambiente sicuro, accettando di inserire il codice per Apple Pay e perdendo FC e altre funzioni. Nel quotidiano disattivare il rilevamento è lo scambio peggiore: meno sicurezza e meno funzioni. La lente affronta la causa — la lettura sul tatuaggio — e permette di lasciare attivo il Rilevamento polso. Vedi anche la guida su [[APPLE]]Apple Watch e tatuaggio[[/APPLE]].",
     "buyH2": "Acquista la lente ottica Sensor Tattoo Fix",
-    "buyLead": "Vuoi mantenere la sicurezza senza disattivare il rilevamento? Sensor Tattoo Fix è una lente ottica adesiva per la zona del sensore — nel negozio ufficiale (solo lente ottica per ordini internazionali). I risultati possono variare in base a orologio e tatuaggio.",
+    "buyLead": "Vuoi mantenere sicurezza e funzioni dell’orologio? La lente Sensor Tattoo Fix è pensata per ripristinare la lettura sul tatuaggio — senza disattivare il rilevamento.",
     "faqs": [
       {
         "q": "Disattivare Rilevamento polso cancella i miei dati?",
@@ -218,7 +218,7 @@
       }
     ],
     "finalH2": "Vuoi mantenere la sicurezza senza spegnere nulla?",
-    "finalBody": "Scopri la lente ottica nel negozio ufficiale. I risultati possono variare in base a orologio e tatuaggio.",
+    "finalBody": "Mantieni la sicurezza attiva e risolvi la lettura con la lente ottica nel negozio ufficiale.",
     "finalGo": "Vai a dove acquistare",
     "finalStore": "Apri il negozio ufficiale",
     "finalProducts": "Vedi i prodotti in home",
@@ -271,25 +271,25 @@
         "Fester Hautkontakt, keine Manschette oder kein Armband dazwischen"
       ],
       [
-        "Handgelenkerkennung ausschalten",
-        "Ja (weniger „abgenommen“-Aufforderungen)",
-        "Nein — Apple schaltet HF-Tracking aus",
-        "Sicherheitsrisiken und oben genannte Funktionen"
+        "Armerkennung ausschalten",
+        "Ja — aber zu einem hohen Preis",
+        "Nein — Apple schaltet die HF-Messung ab",
+        "Keine sichere Lösung: die Uhr sperrt nicht mehr von selbst und Sie verlieren Gesundheits- und Sicherheitsfunktionen der Erkennung"
       ],
       [
         "Selbstklebende Optiklinse (Sensor Tattoo Fix)",
-        "Kann helfen",
-        "Soll die Lesebedingungen verbessern",
-        "Auf den Sensorbereich kleben; Ergebnisse variieren nach Uhr und Tattoo"
+        "Ja",
+        "Ja",
+        "Stellt die Sensorablesung auf tätowierter Haut wieder her, ohne die Sicherheit der Uhr abzuschalten"
       ]
     ],
     "h2how": "So schalten Sie es aus (falls Sie sich dafür entscheiden)",
     "how1": "Auf der Apple Watch: Einstellungen → Code → Handgelenkerkennung öffnen und ausschalten. Mit dem Code bestätigen. Am iPhone liegt der Weg in der Watch-App unter Code (die Bezeichnung kann je nach Systemversion variieren). Code der Uhr aktiv lassen und die Funktion wieder einschalten, sobald möglich.",
     "how2": "Schritt für Schritt und offizielle Liste betroffener Funktionen: support.apple.com/de-de/111819.",
     "h2when": "Wann Ausschalten Sinn ergibt",
-    "whenBody": "Als Zwischenlösung: kurzzeitig, in sicherer Umgebung, mit Code-Eingabe bei Apple Pay und Verlust von automatischem Herzfrequenz-Tracking und anderen Funktionen. Als Dauerlösung lohnt es sich, die Alternativen oben zu prüfen — inklusive Leitfaden zu [[APPLE]]Apple Watch und Tattoo[[/APPLE]].",
+    "whenBody": "Nur als kurze Zwischenlösung an einem sicheren Ort, mit Code bei Apple Pay und ohne HF und andere Funktionen. Im Alltag ist das Abschalten der Erkennung der schlechteste Tausch: weniger Sicherheit und weniger Funktionen. Die Linse behandelt die Ursache — die Ablesung auf dem Tattoo — und lässt die Armerkennung an. Siehe auch den Leitfaden zu [[APPLE]]Apple Watch und Tattoo[[/APPLE]].",
     "buyH2": "Sensor Tattoo Fix Optiklinse kaufen",
-    "buyLead": "Sicherheit behalten ohne die Erkennung auszuschalten? Sensor Tattoo Fix ist eine selbstklebende Optiklinse für den Sensorbereich — im offiziellen Shop (international nur die Optiklinse). Ergebnisse können je nach Uhr und Tattoo variieren.",
+    "buyLead": "Sicherheit und Funktionen der Uhr behalten? Die Sensor-Tattoo-Fix-Linse wurde gemacht, um die Ablesung auf dem Tattoo wiederherzustellen — ohne die Erkennung auszuschalten.",
     "faqs": [
       {
         "q": "Löscht das Ausschalten der Handgelenkerkennung meine Daten?",
@@ -331,7 +331,7 @@
       }
     ],
     "finalH2": "Sicherheit behalten, ohne etwas auszuschalten?",
-    "finalBody": "Schauen Sie sich die Optiklinse im offiziellen Shop an. Ergebnisse können je nach Uhr und Tattoo variieren.",
+    "finalBody": "Sicherheit anlassen und die Ablesung mit der Optiklinse im offiziellen Shop beheben.",
     "finalGo": "Zur Kaufseite",
     "finalStore": "Offiziellen Shop öffnen",
     "finalProducts": "Produkte auf der Startseite",
@@ -384,25 +384,25 @@
         "Contacto firme con la piel, sin manga ni pulsera en medio"
       ],
       [
-        "Desactivar Detección de Muñeca",
-        "Sí (menos peticiones “fuera de la muñeca”)",
-        "No — Apple apaga el seguimiento de FC",
-        "Riesgos de seguridad y funciones listadas arriba"
+        "Desactivar Detección de muñeca",
+        "Sí — pero a un costo alto",
+        "No — Apple desactiva el seguimiento de FC",
+        "No es una solución segura: el reloj deja de bloquearse solo y pierdes funciones de salud y seguridad ligadas a la detección"
       ],
       [
         "Lente óptica adhesiva (Sensor Tattoo Fix)",
-        "Puede ayudar",
-        "Hecha para mejorar las condiciones de lectura",
-        "Se pega en la zona del sensor; los resultados varían según reloj y tatuaje"
+        "Sí",
+        "Sí",
+        "Restaura la lectura del sensor en el tatuaje, sin desactivar la seguridad del reloj"
       ]
     ],
     "h2how": "Cómo desactivarla (si lo decides)",
     "how1": "En el Apple Watch: abre Ajustes → Código → Detección de Muñeca y desactívala. Confirma con el código. En el iPhone, la ruta equivalente está en la app Watch, en Código (la etiqueta puede variar según la versión del sistema). Mantén el código del reloj activo y reactiva la función cuando puedas.",
     "how2": "Paso a paso y lista oficial de funciones afectadas: support.apple.com/es-es/111819.",
     "h2when": "Cuándo tiene sentido desactivarla",
-    "whenBody": "Como solución temporal: poco tiempo, en un entorno seguro, aceptando escribir el código en Apple Pay y perdiendo el seguimiento automático de frecuencia cardiaca y otras funciones. Como solución a largo plazo, conviene valorar las alternativas de arriba — incluida la guía sobre [[APPLE]]Apple Watch y tatuaje[[/APPLE]].",
+    "whenBody": "Solo como recurso temporal, en un entorno seguro, aceptando el código en Apple Pay y sin FC ni otras funciones. En el día a día, apagar la detección es el peor intercambio: menos seguridad y menos funciones. La lente trata la causa — la lectura en el tatuaje — y permite dejar la Detección de muñeca activa. Véase también la guía sobre [[APPLE]]Apple Watch y tatuaje[[/APPLE]].",
     "buyH2": "Compra la lente óptica Sensor Tattoo Fix",
-    "buyLead": "¿Quieres mantener la seguridad sin desactivar la detección? Sensor Tattoo Fix es una lente óptica adhesiva para la zona del sensor — en la tienda oficial (solo lente óptica en pedidos internacionales). Los resultados pueden variar según el reloj y el tatuaje.",
+    "buyLead": "¿Quieres mantener la seguridad y las funciones del reloj? La lente Sensor Tattoo Fix está hecha para restaurar la lectura en el tatuaje — sin desactivar la detección.",
     "faqs": [
       {
         "q": "¿Desactivar Detección de Muñeca borra mis datos?",
@@ -444,7 +444,7 @@
       }
     ],
     "finalH2": "¿Quieres mantener la seguridad sin desactivar nada?",
-    "finalBody": "Consulta la lente óptica en la tienda oficial. Los resultados pueden variar según el reloj y el tatuaje.",
+    "finalBody": "Mantén la seguridad activa y corrige la lectura con la lente óptica en la tienda oficial.",
     "finalGo": "Ir a dónde comprar",
     "finalStore": "Abrir tienda oficial",
     "finalProducts": "Ver productos en la home",
@@ -497,25 +497,25 @@
         "Mocny kontakt ze skórą, bez rękawa ani bransoletki w międzyczasie"
       ],
       [
-        "Wyłączenie Wykrywania nadgarstka",
-        "Tak (mniej próśb „poza nadgarstkiem”)",
+        "Wyłączenie wykrywania nadgarstka",
+        "Tak — ale za wysoką cenę",
         "Nie — Apple wyłącza śledzenie tętna",
-        "Ryzyka bezpieczeństwa i funkcje wymienione powyżej"
+        "To nie jest bezpieczne rozwiązanie: zegarek przestaje sam się blokować i tracisz funkcje zdrowia oraz bezpieczeństwa związane z wykrywaniem"
       ],
       [
         "Samoprzylepna soczewka optyczna (Sensor Tattoo Fix)",
-        "Może pomóc",
-        "Zaprojektowana, by poprawić warunki odczytu",
-        "Przykleja się na obszar czujnika; wyniki zależą od zegarka i tatuażu"
+        "Tak",
+        "Tak",
+        "Przywraca odczyt czujnika na tatuażu, bez wyłączania zabezpieczeń zegarka"
       ]
     ],
     "h2how": "Jak wyłączyć (jeśli się zdecydujesz)",
     "how1": "Na Apple Watch: otwórz Ustawienia → Kod → Wykrywanie nadgarstka i wyłącz. Potwierdź kodem. Na iPhonie równoważna ścieżka jest w aplikacji Watch, w Kod (etykieta może się różnić w zależności od wersji systemu). Zachowaj aktywny kod zegarka i włącz funkcję ponownie, gdy możesz.",
     "how2": "Krok po kroku i oficjalna lista dotkniętych funkcji: support.apple.com/pl-pl/111819.",
     "h2when": "Kiedy wyłączenie ma sens",
-    "whenBody": "Jako rozwiązanie tymczasowe: na krótko, w bezpiecznym otoczeniu, z wpisywaniem kodu przy Apple Pay i utratą automatycznego śledzenia tętna oraz innych funkcji. Jako rozwiązanie długoterminowe warto rozważyć alternatywy powyżej — w tym przewodnik o [[APPLE]]Apple Watch i tatuażu[[/APPLE]].",
+    "whenBody": "Tylko jako krótki obejście w bezpiecznym miejscu, z kodem przy Apple Pay i bez tętna oraz innych funkcji. Na co dzień wyłączenie wykrywania to najgorsza wymiana: mniej bezpieczeństwa i mniej funkcji. Soczewka usuwa przyczynę — odczyt na tatuażu — i pozwala zostawić wykrywanie włączone. Zobacz też przewodnik o [[APPLE]]Apple Watch i tatuażu[[/APPLE]].",
     "buyH2": "Kup soczewkę optyczną Sensor Tattoo Fix",
-    "buyLead": "Chcesz zachować bezpieczeństwo bez wyłączania wykrywania? Sensor Tattoo Fix to samoprzylepna soczewka optyczna na obszar czujnika — w oficjalnym sklepie (międzynarodowo tylko soczewka optyczna). Wyniki mogą się różnić w zależności od zegarka i tatuażu.",
+    "buyLead": "Chcesz zachować bezpieczeństwo i funkcje zegarka? Soczewka Sensor Tattoo Fix ma przywracać odczyt na tatuażu — bez wyłączania wykrywania.",
     "faqs": [
       {
         "q": "Czy wyłączenie Wykrywania nadgarstka kasuje moje dane?",
@@ -557,7 +557,7 @@
       }
     ],
     "finalH2": "Chcesz zachować bezpieczeństwo nic nie wyłączając?",
-    "finalBody": "Sprawdź soczewkę optyczną w oficjalnym sklepie. Wyniki mogą się różnić w zależności od zegarka i tatuażu.",
+    "finalBody": "Zostaw bezpieczeństwo włączone i napraw odczyt soczewką optyczną w oficjalnym sklepie.",
     "finalGo": "Przejdź do miejsca zakupu",
     "finalStore": "Otwórz oficjalny sklep",
     "finalProducts": "Zobacz produkty na stronie głównej",
@@ -611,24 +611,24 @@
       ],
       [
         "Izklop zaznavanja zapestja",
-        "Da (manj pozivov »off-wrist«)",
-        "Ne — Apple izklopi sledenje UT",
-        "Varnostna tveganja in zgoraj navedene funkcije"
+        "Da — a z visoko ceno",
+        "Ne — Apple izklopi spremljanje srčnega utripa",
+        "Ni varna rešitev: ura se ne zaklene več sama in izgubite zdravstvene in varnostne funkcije, vezane na zaznavanje"
       ],
       [
         "Samolepilna optična leča (Sensor Tattoo Fix)",
-        "Lahko pomaga",
-        "Narejena za boljše pogoje branja",
-        "Prilepi se na območje senzorja; rezultati se razlikujejo glede na uro in tetovažo"
+        "Da",
+        "Da",
+        "Obnovi branje senzorja na tetovaži, ne da bi izklopili varnost ure"
       ]
     ],
     "h2how": "Kako izklopiti (če se odločite)",
     "how1": "Na Apple Watch: odprite Settings → Passcode → Wrist Detection (zaznavanje zapestja) in izklopite. Potrdite s kodo. Na iPhonu je enakovredna pot v aplikaciji Watch, pod Passcode (oznaka se lahko razlikuje glede na različico sistema). Ohranite aktivno kodo ure in funkcijo znova vklopite, ko lahko.",
     "how2": "Korak za korakom in uradni seznam prizadetih funkcij: support.apple.com/sl-si/111819.",
     "h2when": "Kdaj ima izklop smisel",
-    "whenBody": "Kot začasna rešitev: za kratek čas, v varnem okolju, s vpisom kode za Apple Pay in izgubo samodejnega sledenja srčnemu utripu ter drugih funkcij. Kot dolgoročna rešitev je vredno oceniti alternative zgoraj — vključno z vodnikom o [[APPLE]]Apple Watch in tetovaži[[/APPLE]].",
+    "whenBody": "Samo kot začasna rešitev na varnem mestu, s kodo za Apple Pay in brez srčnega utripa ter drugih funkcij. V vsakdanu je izklop zaznavanja najslabša zamenjava: manj varnosti in manj funkcij. Leča odpravi vzrok — branje na tetovaži — in omogoča, da zaznavanje ostane vklopljeno. Glej tudi vodič o [[APPLE]]Apple Watch in tetovažah[[/APPLE]].",
     "buyH2": "Kupite optično lečo Sensor Tattoo Fix",
-    "buyLead": "Želite ohraniti varnost, ne da bi izklopili zaznavanje? Sensor Tattoo Fix je samolepilna optična leča za območje senzorja — v uradni trgovini (mednarodno samo optična leča). Rezultati se lahko razlikujejo glede na uro in tetovažo.",
+    "buyLead": "Želite obdržati varnost in funkcije ure? Leča Sensor Tattoo Fix je narejena, da obnovi branje na tetovaži — brez izklopa zaznavanja.",
     "faqs": [
       {
         "q": "Ali izklop zaznavanja zapestja izbriše moje podatke?",
@@ -670,7 +670,7 @@
       }
     ],
     "finalH2": "Želite ohraniti varnost, ne da bi kaj izklopili?",
-    "finalBody": "Oglejte si optično lečo v uradni trgovini. Rezultati se lahko razlikujejo glede na uro in tetovažo.",
+    "finalBody": "Varnost pustite vklopljeno in branje popravite z optično lečo v uradni trgovini.",
     "finalGo": "Pojdi na nakup",
     "finalStore": "Odpri uradno trgovino",
     "finalProducts": "Oglej izdelke na domači strani",
@@ -724,24 +724,24 @@
       ],
       [
         "Désactiver Détection du poignet",
-        "Oui (moins de demandes « hors poignet »)",
+        "Oui — mais à un coût élevé",
         "Non — Apple coupe le suivi FC",
-        "Risques de sécurité et fonctions listées ci-dessus"
+        "Ce n’est pas une solution sûre : la montre ne se verrouille plus toute seule et vous perdez des fonctions de santé et de sécurité liées à la détection"
       ],
       [
         "Lentille optique adhésive (Sensor Tattoo Fix)",
-        "Peut aider",
-        "Conçue pour améliorer les conditions de lecture",
-        "Se colle sur la zone du capteur ; les résultats varient selon la montre et le tatouage"
+        "Oui",
+        "Oui",
+        "Rétablit la lecture du capteur sur le tatouage, sans couper la sécurité de la montre"
       ]
     ],
     "h2how": "Comment la désactiver (si vous le décidez)",
     "how1": "Sur Apple Watch : ouvrez Réglages → Code → Détection du poignet et désactivez. Confirmez avec le code. Sur iPhone, le chemin équivalent est dans l’app Watch, sous Code (le libellé peut varier selon la version du système). Gardez le code de la montre actif et réactivez la fonction dès que possible.",
     "how2": "Pas à pas et liste officielle des fonctions concernées : support.apple.com/fr-fr/111819.",
     "h2when": "Quand désactiver a du sens",
-    "whenBody": "Comme solution temporaire : pour peu de temps, dans un environnement sûr, en acceptant de saisir le code pour Apple Pay et en perdant le suivi automatique de fréquence cardiaque et d’autres fonctions. Comme solution à long terme, il vaut évaluer les alternatives ci-dessus — y compris le guide sur [[APPLE]]Apple Watch et tatouage[[/APPLE]].",
+    "whenBody": "Uniquement en dépannage temporaire, dans un lieu sûr, en acceptant le code pour Apple Pay et sans FC ni autres fonctions. Au quotidien, couper la détection est le pire échange : moins de sécurité et moins de fonctions. La lentille traite la cause — la lecture sur le tatouage — et permet de laisser la Détection du poignet active. Voir aussi le guide [[APPLE]]Apple Watch et tatouage[[/APPLE]].",
     "buyH2": "Acheter la lentille optique Sensor Tattoo Fix",
-    "buyLead": "Garder la sécurité sans désactiver la détection ? Sensor Tattoo Fix est une lentille optique adhésive pour la zone du capteur — en boutique officielle (lentille optique seule pour les commandes internationales). Les résultats peuvent varier selon la montre et le tatouage.",
+    "buyLead": "Garder la sécurité et les fonctions de la montre ? La lentille Sensor Tattoo Fix est faite pour rétablir la lecture sur le tatouage — sans désactiver la détection.",
     "faqs": [
       {
         "q": "Désactiver la Détection du poignet efface-t-il mes données ?",
@@ -783,7 +783,7 @@
       }
     ],
     "finalH2": "Garder la sécurité sans rien désactiver ?",
-    "finalBody": "Découvrez la lentille optique en boutique officielle. Les résultats peuvent varier selon la montre et le tatouage.",
+    "finalBody": "Gardez la sécurité active et corrigez la lecture avec la lentille optique en boutique officielle.",
     "finalGo": "Aller où acheter",
     "finalStore": "Ouvrir la boutique officielle",
     "finalProducts": "Voir les produits sur l’accueil",
@@ -836,25 +836,25 @@
         "Stevig huidcontact, geen mouw of armband ertussen"
       ],
       [
-        "Draagdetectie uitzetten",
-        "Ja (minder ‘van de pols’-vragen)",
+        "Polsdetectie uitzetten",
+        "Ja — maar tegen een hoge prijs",
         "Nee — Apple zet HF-tracking uit",
-        "Veiligheidsrisico’s en functies hierboven"
+        "Geen veilige oplossing: het horloge vergrendelt niet meer vanzelf en je verliest gezondheids- en beveiligingsfuncties van de detectie"
       ],
       [
         "Zelfklevende optische lens (Sensor Tattoo Fix)",
-        "Kan helpen",
-        "Gemaakt om leesomstandigheden te verbeteren",
-        "Plakt op het sensorgebied; resultaten variëren per horloge en tattoo"
+        "Ja",
+        "Ja",
+        "Herstelt de sensoruitlezing op de tattoo, zonder de beveiliging van het horloge uit te zetten"
       ]
     ],
     "h2how": "Hoe uitzetten (als je dat besluit)",
     "how1": "Op Apple Watch: open Instellingen → Toegangscode → Draagdetectie en zet uit. Bevestig met de code. Op iPhone staat het equivalent in de Watch-app onder Toegangscode (het label kan per systeemversie verschillen). Houd de code van het horloge aan en zet de functie weer aan wanneer je kunt.",
     "how2": "Stap voor stap en de officiële lijst van getroffen functies: support.apple.com/nl-nl/111819.",
     "h2when": "Wanneer uitzetten zin heeft",
-    "whenBody": "Als tijdelijke oplossing: kort, in een veilige omgeving, met code-invoer voor Apple Pay en verlies van automatische hartslagtracking en andere functies. Als langetermijnoplossing loont het de alternatieven hierboven te beoordelen — inclusief de gids over [[APPLE]]Apple Watch en tattoos[[/APPLE]].",
+    "whenBody": "Alleen als tijdelijke noodgreep op een veilige plek, met code bij Apple Pay en zonder HF en andere functies. Dagelijks is detectie uitzetten de slechtste ruil: minder beveiliging en minder functies. De lens pakt de oorzaak — uitlezing op de tattoo — zodat Polsdetectie aan kan blijven. Zie ook de gids over [[APPLE]]Apple Watch en tattoos[[/APPLE]].",
     "buyH2": "Koop de Sensor Tattoo Fix optische lens",
-    "buyLead": "Beveiliging behouden zonder detectie uit te zetten? Sensor Tattoo Fix is een zelfklevende optische lens voor het sensorgebied — in de officiële winkel (internationaal alleen de optische lens). Resultaten kunnen per horloge en tattoo verschillen.",
+    "buyLead": "Beveiliging en functies van het horloge houden? De Sensor Tattoo Fix-lens is gemaakt om de uitlezing op de tattoo te herstellen — zonder detectie uit te zetten.",
     "faqs": [
       {
         "q": "Wist het uitzetten van Draagdetectie mijn gegevens?",
@@ -896,7 +896,7 @@
       }
     ],
     "finalH2": "Beveiliging behouden zonder iets uit te zetten?",
-    "finalBody": "Bekijk de optische lens in de officiële winkel. Resultaten kunnen per horloge en tattoo verschillen.",
+    "finalBody": "Houd beveiliging aan en herstel de uitlezing met de optische lens in de officiële winkel.",
     "finalGo": "Ga naar waar te kopen",
     "finalStore": "Open officiële winkel",
     "finalProducts": "Bekijk producten op de homepage",
@@ -949,25 +949,25 @@
         "Fast hudkontakt, ingen ärm eller armband emellan"
       ],
       [
-        "Stänga av Handledsavkänning",
-        "Ja (färre ”av handleden”-frågor)",
+        "Stäng av handledsigenkänning",
+        "Ja — men till ett högt pris",
         "Nej — Apple stänger av HF-spårning",
-        "Säkerhetsrisker och funktioner listade ovan"
+        "Ingen säker lösning: klockan låser inte längre av sig själv och du förlorar hälso- och säkerhetsfunktioner kopplade till igenkänningen"
       ],
       [
         "Självhäftande optisk lins (Sensor Tattoo Fix)",
-        "Kan hjälpa",
-        "Gjordes för att förbättra läsförhållanden",
-        "Fästs på sensorområdet; resultat varierar efter klocka och tatuering"
+        "Ja",
+        "Ja",
+        "Återställer sensoravläsningen på tatueringen utan att stänga av klockans säkerhet"
       ]
     ],
     "h2how": "Hur du stänger av den (om du bestämmer dig)",
     "how1": "På Apple Watch: öppna Inställningar → Lösenkod → Handledsavkänning och stäng av. Bekräfta med koden. På iPhone finns motsvarande väg i Watch-appen under Lösenkod (etiketten kan variera med systemversion). Behåll klockans lösenkod aktiv och aktivera funktionen igen när du kan.",
     "how2": "Steg för steg och den officiella listan över berörda funktioner: support.apple.com/sv-se/111819.",
     "h2when": "När det är rimligt att stänga av",
-    "whenBody": "Som tillfällig lösning: en kort tid, i en säker miljö, med kodinmatning för Apple Pay och förlust av automatisk hjärtfrekvensspårning och andra funktioner. Som långsiktig lösning är det värt att utvärdera alternativen ovan — inklusive guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
+    "whenBody": "Bara som tillfällig nödlösning på en säker plats, med kod för Apple Pay och utan HF och andra funktioner. Till vardags är det sämsta bytet att stänga av igenkänningen: mindre säkerhet och färre funktioner. Linsen tar itu med orsaken — avläsning på tatueringen — så handledsigenkänning kan vara kvar. Se även guiden om [[APPLE]]Apple Watch och tatueringar[[/APPLE]].",
     "buyH2": "Köp den optiska linsen Sensor Tattoo Fix",
-    "buyLead": "Vill du behålla säkerheten utan att stänga av igenkänningen? Sensor Tattoo Fix är en självhäftande optisk lins för sensorområdet — i den officiella butiken (internationellt endast den optiska linsen). Resultaten kan variera beroende på klocka och tatuering.",
+    "buyLead": "Behålla klockans säkerhet och funktioner? Sensor Tattoo Fix-linsen är gjord för att återställa avläsningen på tatueringen — utan att stänga av igenkänningen.",
     "faqs": [
       {
         "q": "Raderar avstängning av Handledsavkänning mina data?",
@@ -1009,7 +1009,7 @@
       }
     ],
     "finalH2": "Behåll säkerheten utan att stänga av något?",
-    "finalBody": "Se den optiska linsen i den officiella butiken. Resultaten kan variera beroende på klocka och tatuering.",
+    "finalBody": "Låt säkerheten vara på och åtgärda avläsningen med den optiska linsen i den officiella butiken.",
     "finalGo": "Gå till köpstället",
     "finalStore": "Öppna officiell butik",
     "finalProducts": "Se produkter på startsidan",
@@ -1062,25 +1062,25 @@
         "Fast hudkontakt, ingen ermer eller armbånd i mellom"
       ],
       [
-        "Slå av Håndleddssensor",
-        "Ja (færre «av håndleddet»-forespørsler)",
+        "Slå av håndleddsregistrering",
+        "Ja — men til en høy pris",
         "Nei — Apple slår av HF-sporing",
-        "Sikkerhetsrisikoer og funksjoner listet ovenfor"
+        "Ikke en trygg løsning: klokken låser ikke lenger av seg selv, og du mister helse- og sikkerhetsfunksjoner knyttet til registreringen"
       ],
       [
         "Selvklebende optisk linse (Sensor Tattoo Fix)",
-        "Kan hjelpe",
-        "Laget for å forbedre leseforhold",
-        "Festes på sensorområdet; resultater varierer etter klokke og tatovering"
+        "Ja",
+        "Ja",
+        "Gjenoppretter sensoravlesningen på tatoveringen uten å slå av klokkens sikkerhet"
       ]
     ],
     "h2how": "Hvordan slå den av (hvis du bestemmer deg)",
     "how1": "På Apple Watch: åpne Innstillinger → Kode → Håndleddssensor og slå av. Bekreft med koden. På iPhone er tilsvarende sti i Watch-appen under Kode (etiketten kan variere med systemversjon). Hold klokkens kode aktiv og aktiver funksjonen igjen når du kan.",
     "how2": "Steg for steg og den offisielle listen over berørte funksjoner: support.apple.com/no-no/111819.",
     "h2when": "Når det gir mening å slå av",
-    "whenBody": "Som midlertidig løsning: en kort stund, i et trygt miljø, med kodeinntasting for Apple Pay og tap av automatisk hjertefrekvenssporing og andre funksjoner. Som langsiktig løsning er det verdt å vurdere alternativene ovenfor — inkludert guiden om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
+    "whenBody": "Bare som midlertidig nødløsning på et trygt sted, med kode for Apple Pay og uten HF og andre funksjoner. Til daglig er det å slå av registreringen den dårligste byttehandelen: mindre sikkerhet og færre funksjoner. Linsen tar årsaken — avlesning på tatoveringen — så håndleddsregistrering kan stå på. Se også veiledningen om [[APPLE]]Apple Watch og tatoveringer[[/APPLE]].",
     "buyH2": "Kjøp den optiske linsen Sensor Tattoo Fix",
-    "buyLead": "Vil du beholde sikkerheten uten å slå av registreringen? Sensor Tattoo Fix er en selvklebende optisk linse for sensorområdet — i den offisielle butikken (internasjonalt kun den optiske linsen). Resultatene kan variere etter klokke og tatovering.",
+    "buyLead": "Beholde klokkens sikkerhet og funksjoner? Sensor Tattoo Fix-linsen er laget for å gjenopprette avlesningen på tatoveringen — uten å slå av registreringen.",
     "faqs": [
       {
         "q": "Sletter det å slå av Håndleddssensor dataene mine?",
@@ -1122,7 +1122,7 @@
       }
     ],
     "finalH2": "Beholde sikkerheten uten å slå av noe?",
-    "finalBody": "Se den optiske linsen i den offisielle butikken. Resultatene kan variere etter klokke og tatovering.",
+    "finalBody": "La sikkerheten stå på og fiks avlesningen med den optiske linsen i den offisielle butikken.",
     "finalGo": "Gå til hvor du kan kjøpe",
     "finalStore": "Åpne offisiell butikk",
     "finalProducts": "Se produkter på forsiden",
@@ -1175,25 +1175,25 @@
         "Tiivis ihokontakti, ei hihaa tai ranneketta välissä"
       ],
       [
-        "Ranteen tunnistuksen sammutus",
-        "Kyllä (vähemmän ”pois ranteelta” -pyyntöjä)",
+        "Ranteen tunnistuksen sammuttaminen",
+        "Kyllä — mutta kalliilla hinnalla",
         "Ei — Apple sammuttaa sykeseurannan",
-        "Turvallisuusriskit ja yllä luetellut toiminnot"
+        "Ei ole turvallinen ratkaisu: kello ei lukitu enää itsestään ja menetät tunnistukseen liittyvät terveys- ja turvatoiminnot"
       ],
       [
         "Itseliimautuva optinen linssi (Sensor Tattoo Fix)",
-        "Voi auttaa",
-        "Tehty parantamaan lukemisolosuhteita",
-        "Liimataan sensorialueelle; tulokset vaihtelevat kellon ja tatuoinnin mukaan"
+        "Kyllä",
+        "Kyllä",
+        "Palauttaa anturin lukeman tatuoidulla iholla ilman, että kellon turvallisuus sammutetaan"
       ]
     ],
     "h2how": "Miten sammuttaa (jos päätät)",
     "how1": "Apple Watchissa: avaa Asetukset → Pääsykoodi → Ranteentunnistus ja sammuta. Vahvista koodilla. iPhonessa vastaava polku on Watch-sovelluksessa kohdassa Pääsykoodi (nimi voi vaihdella järjestelmäversion mukaan). Pidä kellon koodi päällä ja ota toiminto uudelleen käyttöön, kun voit.",
     "how2": "Vaiheittain ja virallinen lista vaikutetuista toiminnoista: support.apple.com/fi-fi/111819.",
     "h2when": "Milloin sammuttaminen on järkevää",
-    "whenBody": "Tilapäisenä ratkaisuna: lyhyeksi aikaa, turvallisessa ympäristössä, hyväksyen koodin syötön Apple Payhin ja menettäen automaattisen sykeseurannan sekä muita toimintoja. Pitkäaikaiseksi ratkaisuksi kannattaa arvioida yllä olevat vaihtoehdot — mukaan lukien opas [[APPLE]]Apple Watchista ja tatuoinneista[[/APPLE]].",
+    "whenBody": "Vain tilapäisenä hätäratkaisuna turvallisessa paikassa, hyväksyen koodin Apple Payssa ja ilman sykettä sekä muita toimintoja. Arjessa tunnistuksen sammuttaminen on huonoin vaihto: vähemmän turvallisuutta ja vähemmän toimintoja. Linssi korjaa syyn — lukeman tatuoinnilla — jotta ranteen tunnistus voi jäädä päälle. Katso myös opas [[APPLE]]Apple Watch ja tatuoinnit[[/APPLE]].",
     "buyH2": "Osta Sensor Tattoo Fix -optinen linssi",
-    "buyLead": "Haluatko säilyttää turvallisuuden ilman tunnistuksen sammuttamista? Sensor Tattoo Fix on itseliimautuva optinen linssi sensorialueelle — virallisessa kaupassa (kansainvälisesti vain optinen linssi). Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
+    "buyLead": "Haluatko säilyttää kellon turvallisuuden ja toiminnot? Sensor Tattoo Fix -linssi on tehty palauttamaan lukema tatuoinnilla — ilman tunnistuksen sammuttamista.",
     "faqs": [
       {
         "q": "Poistaako Ranteen tunnistuksen sammutus tietoni?",
@@ -1235,7 +1235,7 @@
       }
     ],
     "finalH2": "Säilyttää turvallisuuden ilman mitään sammuttamista?",
-    "finalBody": "Tutustu optiseen linssiin virallisessa kaupassa. Tulokset voivat vaihdella kellon ja tatuoinnin mukaan.",
+    "finalBody": "Pidä turvallisuus päällä ja korjaa lukema optisella linssillä virallisessa kaupassa.",
     "finalGo": "Siirry ostamaan",
     "finalStore": "Avaa virallinen kauppa",
     "finalProducts": "Katso tuotteet etusivulla",
