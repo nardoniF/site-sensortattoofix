@@ -17338,13 +17338,25 @@ async function handleAdminListClicks(request, env, origin) {
       treeSinceMs = clicksTreeCutoffMs(treeDays);
     }
   }
-  // when=0: só árvore (leve). when_only=1: só slim p/ gráficos/export (retenção longa).
+  // when=0: só árvore (leve). when_only=1: só slim p/ gráficos/export.
+  // when_days=N: slim só dos últimos N dias (tela leve); omitido = retenção (~6 meses). D1 não apaga.
   const includeWhen = url.searchParams.get('when') !== '0';
   const whenOnly = url.searchParams.get('when_only') === '1'
     || url.searchParams.get('charts_only') === '1';
+  const whenDaysRaw = url.searchParams.get('when_days') || url.searchParams.get('chart_days');
+  let whenDays = 0;
+  let whenCutoffMs = window.cutoffMs;
+  if (whenDaysRaw != null && whenDaysRaw !== '') {
+    const parsed = parseInt(whenDaysRaw, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      whenDays = Math.min(365, Math.max(1, parsed));
+      // Mais recente que a retenção → janela menor na tela; nunca abaixo do cutoff de retenção.
+      whenCutoffMs = Math.max(window.cutoffMs, clicksTreeCutoffMs(whenDays));
+    }
+  }
 
   if (whenOnly) {
-    const whenClicks = await loadClicksSlimFromD1(env, window.cutoffMs).catch(() => []);
+    const whenClicks = await loadClicksSlimFromD1(env, whenCutoffMs).catch(() => []);
     const dailyD1 = await buildD1DailyBudget(env);
     const db = clicksDb(env);
     let totalAll = whenClicks.length;
@@ -17383,6 +17395,8 @@ async function handleAdminListClicks(request, env, origin) {
       navSessions: 0,
       treeDays: 0,
       treeCutoffAt: null,
+      whenDays: whenDays || null,
+      whenCutoffAt: new Date(whenCutoffMs).toISOString(),
       whenOnly: true,
       checkedAt: new Date().toISOString()
     }, 200, origin);
@@ -17478,7 +17492,7 @@ async function handleAdminListClicks(request, env, origin) {
   const dailyD1 = await buildD1DailyBudget(env);
   const whenClicks = includeWhen
     ? (fromD1
-      ? await loadClicksSlimFromD1(env, window.cutoffMs).catch(() => [])
+      ? await loadClicksSlimFromD1(env, whenCutoffMs).catch(() => [])
       : clicks.slice())
     : [];
 
@@ -17509,6 +17523,8 @@ async function handleAdminListClicks(request, env, origin) {
     navSessions: navSessionKeys ? navSessionKeys.size : 0,
     treeDays,
     treeCutoffAt: treeSinceMs > 0 ? new Date(treeSinceMs).toISOString() : null,
+    whenDays: whenDays || null,
+    whenCutoffAt: new Date(whenCutoffMs).toISOString(),
     whenOnly: false,
     checkedAt: new Date().toISOString()
   }, 200, origin);

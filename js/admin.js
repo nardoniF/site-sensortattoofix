@@ -4074,9 +4074,13 @@ ${worksheets}
   const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v2';
   const CLICKS_SNAPSHOT_KEY_LEGACY = 'stf_admin_clicks_snapshot_v1';
   const CLICKS_SNAPSHOT_MAX = 2000;
-  /** Árvore na tela: só últimos N dias (relatórios/gráficos usam retenção longa à parte). */
+  /** Árvore na tela: só últimos N dias (retenção D1 continua ~6 meses). */
   const CLICKS_TREE_DAYS = 5;
+  /** Gráficos na tela: janela curta o bastante p/ não congelar o Chrome; Excel usa retenção cheia. */
+  const CLICKS_CHART_DAYS = 90;
+  const CLICKS_CHART_SAMPLE_MAX = 8000;
   let clicksChartsLoadPromise = null;
+  let clicksChartsLazyWired = false;
   const BALANCES_SNAPSHOT_KEY = 'stf_admin_balances_snapshot_v2';
   const ADMIN_TAB_IDS = new Set(['vendas', 'pedidos', 'cliques', 'saldos', 'api', 'clientes', 'pesquisa', 'comunidade', 'documentacao']);
   /** Aba Saldos oculta no menu (código/API intactos — fácil reativar). */
@@ -4320,7 +4324,7 @@ ${worksheets}
     const treeDays = Number(clicksMetaCache?.treeDays) || CLICKS_TREE_DAYS;
     parts.push(fromCache
       ? 'clique Atualizar para buscar na API'
-      : `árvore = últimos ${treeDays} dias; gráficos = retenção (~6 meses)`);
+      : `árvore = ${treeDays} dias; gráficos sob demanda (~${CLICKS_CHART_DAYS} dias); D1/~Excel = retenção`);
     checkedEl.textContent = parts.join(' · ');
     checkedEl.hidden = false;
   }
@@ -4374,6 +4378,24 @@ ${worksheets}
     return out;
   }
 
+  function showClicksChartsPlaceholder(msg) {
+    const text = msg || 'Abra esta seção para carregar os gráficos (não rodam no Atualizar, para não travar o Chrome).';
+    const charts = document.getElementById('clicks-when-charts');
+    if (charts) charts.innerHTML = `<p class="admin-meta">${text}</p>`;
+    const noise = document.getElementById('clicks-noise-charts');
+    if (noise) noise.innerHTML = `<p class="admin-meta">${text}</p>`;
+  }
+
+  function yieldToMain() {
+    return new Promise((resolve) => {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => setTimeout(resolve, 0));
+      } else {
+        setTimeout(resolve, 0);
+      }
+    });
+  }
+
   function paintClicksChartsNow() {
     const chartsOk = !clicksMetaCache?._fromCache && Array.isArray(clicksWhenCache) && clicksWhenCache.length > 0;
     if (!isClicksPanelVisible()) return;
@@ -4382,27 +4404,21 @@ ${worksheets}
       renderClicksNoiseStats(clicksWhenCache);
       return;
     }
-    const charts = document.getElementById('clicks-when-charts');
-    if (charts) {
-      charts.innerHTML = '<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar os gráficos (não entram no cache local, para não travar o navegador).</p>';
-    }
-    const noise = document.getElementById('clicks-noise-charts');
-    if (noise) noise.innerHTML = '';
+    showClicksChartsPlaceholder();
   }
 
-  /** Espera 2 frames para a árvore pintar, depois monta gráficos (Atualizar só libera depois). */
-  function paintClicksChartsAfterTree() {
-    return new Promise((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          try {
-            paintClicksChartsNow();
-          } finally {
-            resolve();
-          }
-        });
-      });
-    });
+  /** Pinta gráficos em 2 turns (when + noise) para o Chrome não marcar “página sem resposta”. */
+  async function paintClicksChartsAfterTree() {
+    if (!isClicksPanelVisible()) return;
+    const chartsOk = !clicksMetaCache?._fromCache && Array.isArray(clicksWhenCache) && clicksWhenCache.length > 0;
+    if (!chartsOk) {
+      showClicksChartsPlaceholder();
+      return;
+    }
+    await yieldToMain();
+    renderClicksWhenCharts(clicksWhenCache);
+    await yieldToMain();
+    renderClicksNoiseStats(clicksWhenCache);
   }
 
   function reapplyClicksLocalFilters(openPaths, opts = {}) {
@@ -6378,46 +6394,81 @@ ${worksheets}
 
   function applyWhenClicksPayload(whenRaw, capacity) {
     const raw = Array.isArray(whenRaw) ? whenRaw : [];
-    // Cap defensivo: agregação de gráficos com dezenas de milhares trava o main thread.
-    clicksWhenCache = raw.length > 25000
-      ? raw.filter((_, i) => i % Math.ceil(raw.length / 20000) === 0)
+    // Cap baixo: listNoiseSessions / agregações em 15k+ congelam o Chrome (“página sem resposta”).
+    const max = CLICKS_CHART_SAMPLE_MAX;
+    clicksWhenCache = raw.length > max
+      ? raw.filter((_, i) => i % Math.ceil(raw.length / max) === 0)
       : raw;
     if (capacity) clicksWhenWindow = capacity;
   }
 
-  /** Gráficos/relatórios: retenção longa, sem travar a árvore. */
+  function wireClicksChartsLazyLoad() {
+    if (clicksChartsLazyWired) return;
+    clicksChartsLazyWired = true;
+    ['clicks-fold-when', 'clicks-fold-noise'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('toggle', () => {
+        if (!el.open) return;
+        if (clicksWhenCache.length) {
+          paintClicksChartsAfterTree();
+          return;
+        }
+        if (!clicksMetaCache || clicksMetaCache._fromCache) {
+          showClicksChartsPlaceholder('Clique <strong>Atualizar</strong> na árvore e depois reabra esta seção.');
+          return;
+        }
+        startClicksChartsBackgroundLoad();
+      });
+    });
+  }
+
+  /** Gráficos sob demanda (fold aberto) — não no Atualizar. */
   function startClicksChartsBackgroundLoad() {
     if (clicksChartsLoadPromise) return clicksChartsLoadPromise;
+    if (clicksWhenCache.length) {
+      return paintClicksChartsAfterTree();
+    }
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) return Promise.resolve();
+    const whenOpen = document.getElementById('clicks-fold-when')?.open;
+    const noiseOpen = document.getElementById('clicks-fold-noise')?.open;
+    if (!whenOpen && !noiseOpen) {
+      showClicksChartsPlaceholder();
+      return Promise.resolve();
+    }
     setClicksChartsBusyHint(true);
-    setClicksLoadStatus('Árvore pronta — carregando gráficos (retenção)…');
+    setClicksLoadStatus(`Carregando gráficos (últimos ${CLICKS_CHART_DAYS} dias)…`);
+    showClicksChartsPlaceholder(`<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Carregando gráficos…`);
     clicksChartsLoadPromise = (async () => {
       try {
-        const params = new URLSearchParams({ when_only: '1' });
+        const params = new URLSearchParams({
+          when_only: '1',
+          when_days: String(CLICKS_CHART_DAYS)
+        });
         const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
           headers: { Authorization: 'Bearer ' + token },
           cache: 'no-store'
         });
+        await yieldToMain();
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Falha ao carregar gráficos');
+        await yieldToMain();
         applyWhenClicksPayload(data.whenClicks || [], data.capacity || null);
         if (clicksMetaCache) {
           clicksMetaCache.capacity = data.capacity || clicksMetaCache.capacity;
           clicksMetaCache.dailyD1 = data.dailyD1 || clicksMetaCache.dailyD1;
           if (data.total != null) clicksMetaCache.total = data.total;
+          clicksMetaCache.whenDays = data.whenDays ?? CLICKS_CHART_DAYS;
         }
         await paintClicksChartsAfterTree();
         updateClicksCoverageStatus({ fromCache: false });
-        setClicksLoadStatus('Cliques e gráficos atualizados.', 'success');
+        setClicksLoadStatus('Gráficos atualizados.', 'success');
         window.setTimeout(() => setClicksLoadStatus(''), 2500);
       } catch (err) {
-        const charts = document.getElementById('clicks-when-charts');
-        if (charts && isClicksPanelVisible()) {
-          charts.innerHTML = `<p class="admin-meta">Gráficos indisponíveis: ${escapeHtml(err.message || 'erro')}</p>`;
-        }
-        setClicksLoadStatus('Árvore ok; gráficos falharam — tente Atualizar de novo.', 'warning');
+        showClicksChartsPlaceholder(`Gráficos indisponíveis: ${escapeHtml(err.message || 'erro')}`);
+        setClicksLoadStatus('Árvore ok; gráficos falharam — abra a seção de novo.', 'warning');
       } finally {
         clicksChartsLoadPromise = null;
         setClicksChartsBusyHint(false);
@@ -6441,6 +6492,7 @@ ${worksheets}
     }
 
     wireClicksWhenFilters();
+    wireClicksChartsLazyLoad();
 
     const navEl = document.getElementById('clicks-filter-nav');
     const destinoEl = document.getElementById('clicks-filter-destino');
@@ -6456,7 +6508,7 @@ ${worksheets}
     const panelVisible = isClicksPanelVisible();
     setClicksLoadStatus(
       panelVisible
-        ? `Atualizando últimos ${CLICKS_TREE_DAYS} dias… a tela libera assim que a árvore montar.`
+        ? `Atualizando últimos ${CLICKS_TREE_DAYS} dias…`
         : 'Carregando cliques em segundo plano — você pode usar outras abas.'
     );
     if (panelVisible && !clicksCache.length) {
@@ -6464,7 +6516,7 @@ ${worksheets}
     }
 
     try {
-      // Árvore leve: só N dias, sem whenClicks. Gráficos vêm depois (retenção).
+      // Só árvore. Gráficos: sob demanda ao abrir o fold (não no Atualizar).
       const params = new URLSearchParams({
         limit: '4000',
         days: String(CLICKS_TREE_DAYS),
@@ -6477,6 +6529,7 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       clicksCache = data.clicks || [];
+      clicksWhenCache = [];
       clicksWhenWindow = data.capacity || clicksWhenWindow;
       clicksMetaCache = {
         ...data,
@@ -6486,21 +6539,25 @@ ${worksheets}
       };
       saveClicksSnapshot(data);
       reapplyClicksLocalFilters(openPaths, { skipCharts: true });
+      showClicksChartsPlaceholder();
       updateClicksCoverageStatus({ fromCache: false });
-      setClicksLoadStatus(`Árvore atualizada (${CLICKS_TREE_DAYS} dias).`, 'success');
-      // Libera overlay/busy já — gráficos não bloqueiam a tela.
+      setClicksLoadStatus(
+        `Árvore ok (${CLICKS_TREE_DAYS} dias). Gráficos: abra “Quando acessam” se precisar.`,
+        'success'
+      );
+      window.setTimeout(() => setClicksLoadStatus(''), 4000);
       clicksLoading = false;
       setClicksRefreshBusy(false);
-      startClicksChartsBackgroundLoad();
+      // Se o fold já estava aberto, carrega gráficos agora (lazy).
+      const whenOpen = document.getElementById('clicks-fold-when')?.open;
+      const noiseOpen = document.getElementById('clicks-fold-noise')?.open;
+      if (whenOpen || noiseOpen) startClicksChartsBackgroundLoad();
     } catch (err) {
       if (isClicksPanelVisible()) {
         root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
       }
       setClicksLoadStatus(err.message || 'Erro ao carregar cliques.', 'error');
-      const charts = document.getElementById('clicks-when-charts');
-      if (charts) charts.innerHTML = '';
-      const noise = document.getElementById('clicks-noise-charts');
-      if (noise) noise.innerHTML = '';
+      showClicksChartsPlaceholder();
       clicksLoading = false;
       setClicksRefreshBusy(false);
     }

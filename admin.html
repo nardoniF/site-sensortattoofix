@@ -1156,7 +1156,7 @@
                     <fieldset>
                         <legend class="admin-legend-row"><span><i class="fas fa-mouse-pointer"></i> Log de cliques e visitas</span><button type="button" class="admin-help-btn admin-help-btn-inline" data-admin-help aria-controls="help-cliques" aria-expanded="false" title="Ajuda"><i class="fas fa-circle-question" aria-hidden="true"></i></button></legend>
                         <div id="help-cliques" class="admin-help-panel admin-help-panel--fieldset" hidden>
-                            <p>Ao abrir a aba, nada é carregado. Clique <strong>Atualizar</strong> para buscar na API: a árvore libera rápido com os <strong>últimos 5 dias</strong> (ano → mês → dia → visitante → visitas). Os gráficos e o Excel usam a retenção longa (~6 meses) em segundo plano, sem travar a tela.</p>
+                            <p>Ao abrir a aba, nada é carregado. Clique <strong>Atualizar</strong> para a árvore dos <strong>últimos 5 dias</strong> (ano → mês → dia → visitante → visitas) — isso não trava a tela. <strong>Quando acessam</strong> / <strong>Únicos</strong> só carregam ao abrir a seção (~90 dias na tela). <strong>Exportar Excel</strong> e o D1 mantêm a retenção longa (~6 meses).</p>
                             <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> são o número oficial (sem únicos/bots). <strong>Únicos / repetidos</strong> foca em bots: <strong>hora</strong>, ranking de <strong>estado</strong> e <strong>cidade</strong>, <strong>local no site</strong>, <strong>site</strong> (.com / .com.br) e se a visita é única ou repetida. <strong>Exportar Excel</strong> gera abas oficiais + Unicos (hora, estado, cidade, local, site).</p>
                         </div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
@@ -1208,7 +1208,7 @@
                                 <span class="admin-fold-hint">gráficos</span>
                             </summary>
                             <div class="admin-fold-body">
-                                <p class="admin-meta">Site (compacto), mês, semana (1ª–5ª, média dos meses), dia da semana, dia do mês e hora. Mais recente em cima no mês. Fuso São Paulo. Estatística sempre exclui únicos/bots.</p>
+                                <p class="admin-meta">Carrega ao abrir esta seção (~90 dias). Site, mês, semana (1ª–5ª), dia da semana, dia do mês e hora. Fuso São Paulo. Exclui únicos/bots. Excel = retenção cheia.</p>
                                 <div class="vendas-when-filters">
                                     <label>Site
                                         <select id="clicks-when-site" aria-label="Filtrar site">
@@ -1452,6 +1452,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=9"></script>
-    <script defer src="js/admin.js?v=279"></script>
+    <script defer src="js/admin.js?v=280"></script>
 </body>
 </html>
