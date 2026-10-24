@@ -4,7 +4,7 @@
     "faq": {
       "faq-1": {
         "question": "Warum verlangt meine Smartwatch ständig den Code?",
-        "answer": "Wenn der optische Sensor keinen Blutfluss am Handgelenk erkennt, geht die Uhr davon aus, dass sie abgenommen wurde, und fordert den Code erneut — bei der Apple Watch kann das <strong>alle 10 Sekunden</strong> passieren. Auf tätowierter Haut blockiert die Tinte das Sensorlicht; die Uhr aktiviert die PIN-Sperre und denkt, sie ist nicht mehr am Arm. Die Sensor TattooFix Linse stellt die Messung wieder her und beendet ständige Sperren."
+        "answer": "Wenn der optische Sensor keinen Blutfluss am Handgelenk erkennt, geht die Uhr davon aus, dass sie abgenommen wurde, und fordert den Code erneut — bei der Apple Watch kann das <strong>ständig</strong> passieren. Auf tätowierter Haut blockiert die Tinte das Sensorlicht; die Uhr aktiviert die PIN-Sperre und denkt, sie ist nicht mehr am Arm. Die Sensor TattooFix Linse stellt die Messung wieder her und beendet ständige Sperren."
       },
       "faq-2": {
         "question": "Warum misst meine Smartwatch die Herzfrequenz nicht auf tätowierter Haut?",
@@ -170,7 +170,7 @@
     "faq": {
       "faq-1": {
         "question": "¿Por qué mi smartwatch pide la contraseña todo el tiempo?",
-        "answer": "Cuando el sensor óptico no detecta flujo sanguíneo en la muñeca, el reloj asume que se lo quitaste y vuelve a pedir la contraseña — en el Apple Watch puede ocurrir <strong>cada 10 segundos</strong>. En piel tatuada, la tinta bloquea la luz del sensor; el reloj activa el bloqueo por PIN y cree que salió de tu brazo. La lente Sensor TattooFix restaura la lectura y detiene los bloqueos constantes."
+        "answer": "Cuando el sensor óptico no detecta flujo sanguíneo en la muñeca, el reloj asume que se lo quitaste y vuelve a pedir la contraseña — en el Apple Watch puede ocurrir <strong>a cada momento</strong>. En piel tatuada, la tinta bloquea la luz del sensor; el reloj activa el bloqueo por PIN y cree que salió de tu brazo. La lente Sensor TattooFix restaura la lectura y detiene los bloqueos constantes."
       },
       "faq-2": {
         "question": "¿Por qué mi smartwatch no mide el ritmo cardíaco en piel tatuada?",
@@ -336,7 +336,7 @@
     "faq": {
       "faq-1": {
         "question": "Dlaczego mój smartwatch cały czas prosi o kod?",
-        "answer": "Gdy czujnik optyczny nie wykrywa przepływu krwi na nadgarstku, zegarek zakłada, że został zdjęty, i ponownie prosi o kod — na Apple Watch może to się zdarzać <strong>co 10 sekund</strong>. Na tatuażu tusz blokuje światło czujnika; zegarek włącza blokadę PIN i myśli, że opuścił rękę. Soczewka Sensor TattooFix przywraca odczyt i kończy ciągłe blokady."
+        "answer": "Gdy czujnik optyczny nie wykrywa przepływu krwi na nadgarstku, zegarek zakłada, że został zdjęty, i ponownie prosi o kod — na Apple Watch może to się zdarzać <strong>cały czas</strong>. Na tatuażu tusz blokuje światło czujnika; zegarek włącza blokadę PIN i myśli, że opuścił rękę. Soczewka Sensor TattooFix przywraca odczyt i kończy ciągłe blokady."
       },
       "faq-2": {
         "question": "Dlaczego mój smartwatch nie mierzy tętna na tatuażu?",
@@ -502,7 +502,7 @@
     "faq": {
       "faq-1": {
         "question": "Zakaj moja pametna ura ves čas zahteva kodo?",
-        "answer": "Ko optični senzor ne zazna pretoka krvi na zapestju, ura predvideva, da ste jo sneli, in znova zahteva kodo — pri Apple Watchu se to lahko zgodi <strong>vsakih 10 sekund</strong>. Na tetovirani koži tinta blokira svetlobo senzorja; ura aktivira PIN zaklepanje in misli, da ni več na roki. Leča Sensor TattooFix obnovi meritev in konča stalna zaklepanja."
+        "answer": "Ko optični senzor ne zazna pretoka krvi na zapestju, ura predvideva, da ste jo sneli, in znova zahteva kodo — pri Apple Watchu se to lahko zgodi <strong>ves čas</strong>. Na tetovirani koži tinta blokira svetlobo senzorja; ura aktivira PIN zaklepanje in misli, da ni več na roki. Leča Sensor TattooFix obnovi meritev in konča stalna zaklepanja."
       },
       "faq-2": {
         "question": "Zakaj moja pametna ura ne meri pulza na tetovirani koži?",

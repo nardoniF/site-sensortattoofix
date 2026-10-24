@@ -243,7 +243,7 @@ window.STF_I18N_ES = {
   'store.priceSuffix': 'Tarjeta y PayPal',
   'store.intlSuffix': 'PayPal y tarjetas · Envío con seguimiento',
   'store.title': 'Tienda Oficial',
-  'store.metaDescEs': 'Compra el kit Sensor TattooFix — lente óptica cuando el reloj pide código cada 10 segundos, no mide el pulso, se desconecta o interrumpe el entrenamiento (a menudo por tatuaje en la muñeca). Tarjetas internacionales y envío a todo el mundo.',
+  'store.metaDescEs': 'Compra el kit Sensor TattooFix — lente óptica cuando el reloj pide código a cada momento, no mide el pulso, se desconecta o interrumpe el entrenamiento (a menudo por tatuaje en la muñeca). Tarjetas internacionales y envío a todo el mundo.',
   'store.loading': 'Cargando productos...',
   'store.empty': 'No hay productos disponibles en este momento.',
   'store.added': '¡Añadido al carrito!',

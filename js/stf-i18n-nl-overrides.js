@@ -247,7 +247,7 @@ window.STF_I18N_NL = {
   'store.priceSuffix': 'Kaart en PayPal',
   'store.intlSuffix': 'PayPal en kaarten · verzendtracking',
   'store.title': 'Officiële winkel',
-  'store.metaDescNl': 'Koop de Sensor TattooFix-kit — optische lens voor wanneer het horloge elke 10 seconden de code vraagt, de hartslag niet herkent, de verbinding verbreekt of het trainen stopt (vaak door een tatoeage op de pols). Internationale kaarten en wereldwijde verzending.',
+  'store.metaDescNl': 'Koop de Sensor TattooFix-kit — optische lens voor wanneer het horloge de hele tijd de code vraagt, de hartslag niet herkent, de verbinding verbreekt of het trainen stopt (vaak door een tatoeage op de pols). Internationale kaarten en wereldwijde verzending.',
   'store.loading': 'Producten worden geladen…',
   'store.empty': 'Momenteel geen producten beschikbaar.',
   'store.added': 'Toegevoegd aan winkelwagen!',

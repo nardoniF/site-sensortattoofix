@@ -247,7 +247,7 @@ window.STF_I18N_SV = {
   'store.priceSuffix': 'Kort och PayPal',
   'store.intlSuffix': 'PayPal och kort · fraktspårning',
   'store.title': 'Officiell butik',
-  'store.metaDescSv': 'Köp Sensor TattooFix-kitet — optisk lins när klockan begär koden var 10 sekunder, inte läser pulsen, tappar anslutningen eller stoppar träningen (ofta på grund av tatuering på handleden). Internationella kort och global frakt.',
+  'store.metaDescSv': 'Köp Sensor TattooFix-kitet — optisk lins när klockan begär koden hela tiden, inte läser pulsen, tappar anslutningen eller stoppar träningen (ofta på grund av tatuering på handleden). Internationella kort och global frakt.',
   'store.loading': 'Laddar produkter…',
   'store.empty': 'Inga produkter tillgängliga för tillfället.',
   'store.added': 'Tillagd i varukorgen!',

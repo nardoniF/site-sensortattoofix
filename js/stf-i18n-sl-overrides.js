@@ -243,7 +243,7 @@ window.STF_I18N_SL = {
   'store.priceSuffix': 'Kartica in PayPal',
   'store.intlSuffix': 'PayPal in kartice · Sledenje pošiljki',
   'store.title': 'Uradna trgovina',
-  'store.metaDescSl': 'Kupite komplet Sensor TattooFix — optična leča, ko ura vsakih 10 sekund zahteva kodo, ne meri pulza, prekine povezavo ali ustavi vadbo (pogosto zaradi tetovaže na zapestju). Mednarodne kartice in pošiljanje po vsem svetu.',
+  'store.metaDescSl': 'Kupite komplet Sensor TattooFix — optična leča, ko ura ves čas zahteva kodo, ne meri pulza, prekine povezavo ali ustavi vadbo (pogosto zaradi tetovaže na zapestju). Mednarodne kartice in pošiljanje po vsem svetu.',
   'store.loading': 'Nalaganje izdelkov…',
   'store.empty': 'Ni razpoložljivih izdelkov.',
   'store.added': 'Dodano v košarico!',

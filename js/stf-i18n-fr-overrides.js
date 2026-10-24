@@ -247,7 +247,7 @@ window.STF_I18N_FR = {
   'store.priceSuffix': 'Carte et PayPal',
   'store.intlSuffix': 'PayPal et cartes · suivi de livraison',
   'store.title': 'Boutique officielle',
-  'store.metaDescFr': 'Achetez le kit Sensor TattooFix — lentille optique lorsque la montre demande le code toutes les 10 secondes, ne détecte pas le pouls, se déconnecte ou interrompt l\u2019entraînement (souvent à cause d\u2019un tatouage au poignet). Cartes internationales et livraison mondiale.',
+  'store.metaDescFr': 'Achetez le kit Sensor TattooFix — lentille optique lorsque la montre demande le code en permanence, ne détecte pas le pouls, se déconnecte ou interrompt l\u2019entraînement (souvent à cause d\u2019un tatouage au poignet). Cartes internationales et livraison mondiale.',
   'store.loading': 'Chargement des produits…',
   'store.empty': 'Aucun produit disponible pour le moment.',
   'store.added': 'Ajouté au panier !',

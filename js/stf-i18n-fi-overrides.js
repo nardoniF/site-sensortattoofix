@@ -247,7 +247,7 @@ window.STF_I18N_FI = {
   'store.priceSuffix': 'Kortti ja PayPal',
   'store.intlSuffix': 'PayPal ja kortit · lähetyksen seuranta',
   'store.title': 'Virallinen kauppa',
-  'store.metaDescFi': 'Osta Sensor TattooFix -sarja — optinen linssi, kun kello kysyy koodia 10 sekunnin välein, ei tunnista sykettä, katkaisee yhteyden tai pysäyttää harjoituksen (usein ranteen tatuoinnin takia). Kansainväliset kortit ja globaali toimitus.',
+  'store.metaDescFi': 'Osta Sensor TattooFix -sarja — optinen linssi, kun kello kysyy koodia koko ajan, ei tunnista sykettä, katkaisee yhteyden tai pysäyttää harjoituksen (usein ranteen tatuoinnin takia). Kansainväliset kortit ja globaali toimitus.',
   'store.loading': 'Ladataan tuotteita…',
   'store.empty': 'Tuotteita ei ole tällä hetkellä saatavilla.',
   'store.added': 'Lisätty ostoskoriin!',
