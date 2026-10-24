@@ -4899,7 +4899,8 @@ ${worksheets}
         <div class="clicks-stats-row"><dt>Árvore (tela)</dt><dd>${escapeHtml((() => {
           const cover = formatClicksCoverageRange(data?.clicks || clicksCache);
           if (!cover) return '—';
-          return `${cover.from} → ${cover.to} · ${cover.count.toLocaleString('pt-BR')} eventos (últimos ~4000)`;
+          const days = Number(data?.treeDays) || CLICKS_TREE_DAYS;
+          return `${cover.from} → ${cover.to} · ${cover.count.toLocaleString('pt-BR')} eventos (últimos ${days} dias)`;
         })())}</dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
         <div class="clicks-stats-row"><dt>Mais antigo na árvore</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
