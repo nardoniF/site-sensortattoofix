@@ -9899,6 +9899,239 @@ function clearSuperfreteCartFields(order, { clearTracking = false } = {}) {
   }
 }
 
+function normalizePersonName(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeSuperfreteOrdersPayload(data) {
+  let rows = [];
+  if (Array.isArray(data)) rows = data;
+  else if (Array.isArray(data?.data)) rows = data.data;
+  else if (Array.isArray(data?.orders)) rows = data.orders;
+  else if (Array.isArray(data?.items)) rows = data.items;
+  else if (Array.isArray(data?.results)) rows = data.results;
+  else if (Array.isArray(data?.data?.data)) rows = data.data.data;
+  // GET /me/orders usa order_id; cart/info usam id — unifica.
+  return rows.map((r) => {
+    if (!r || typeof r !== 'object') return r;
+    const id = r.id || r.order_id || r.protocol || null;
+    return id && !r.id ? { ...r, id: String(id) } : r;
+  });
+}
+
+/** Lista etiquetas da conta SF (painel/API). Tenta query completa e mínima. */
+async function listSuperfreteOrdersPage(env, { status, page = 1, perPage = 50 } = {}) {
+  const builds = [];
+  const full = new URLSearchParams();
+  if (status) full.set('status', status);
+  full.set('page', String(page));
+  full.set('per_page', String(perPage));
+  full.set('order', 'desc');
+  full.set('sort_by', 'created_at');
+  builds.push(`/api/v0/me/orders?${full}`);
+
+  const minimal = new URLSearchParams();
+  if (status) minimal.set('status', status);
+  minimal.set('page', String(page));
+  minimal.set('per_page', String(perPage));
+  builds.push(`/api/v0/me/orders?${minimal}`);
+
+  if (!status && page === 1) {
+    builds.push('/api/v0/me/orders');
+  }
+
+  let lastErr = null;
+  for (const path of builds) {
+    try {
+      const data = await superfreteFetch(env, path, { method: 'GET' });
+      return normalizeSuperfreteOrdersPayload(data);
+    } catch (err) {
+      lastErr = err;
+      console.warn('Super Frete list:', path, err.message);
+    }
+  }
+  if (lastErr) throw lastErr;
+  return [];
+}
+
+function superfreteRowStatus(sfOrder) {
+  return String(sfOrder?.status || sfOrder?.order_status || '').toLowerCase();
+}
+
+function superfreteRowIsCanceled(sfOrder) {
+  return /cancel|reject|fail|expir|void|refund/.test(superfreteRowStatus(sfOrder));
+}
+
+function namesMatchPerson(a, b) {
+  const name = normalizePersonName(a);
+  const sfName = normalizePersonName(b);
+  if (name.length < 5 || sfName.length < 5) return false;
+  if (name === sfName) return true;
+  const nParts = name.split(' ').filter((p) => p.length > 1);
+  const sParts = sfName.split(' ').filter((p) => p.length > 1);
+  return nParts.length >= 2 && sParts.length >= 2
+    && nParts[0] === sParts[0]
+    && nParts[nParts.length - 1] === sParts[sParts.length - 1];
+}
+
+/**
+ * Casa etiqueta SF com o pedido da loja.
+ * Prioridade: tag = orderId → CEP+CPF → CEP+nome → nome exato (só se liberada/com rastreio).
+ */
+function matchSuperfreteOrderToLocal(sfOrder, order) {
+  if (!sfOrder || !order) return null;
+  if (superfreteRowIsCanceled(sfOrder)) return null;
+
+  const orderId = String(order.orderId || '').trim();
+  const tags = Array.isArray(sfOrder.tags) ? sfOrder.tags : [];
+  if (orderId) {
+    for (const t of tags) {
+      const tag = String(t?.tag ?? t ?? '').trim();
+      if (tag && tag === orderId) return 'tag';
+    }
+    if (String(sfOrder.tag || '').trim() === orderId) return 'tag';
+    if (String(sfOrder.order_id || sfOrder.platform_order_id || '').trim() === orderId) return 'tag';
+  }
+
+  const st = superfreteRowStatus(sfOrder);
+  const paidLike = st === 'released' || st === 'posted' || st === 'delivered' || !!extractSuperfreteTracking(sfOrder);
+
+  const cep = onlyDigits(order.cep);
+  const sfCep = onlyDigits(
+    sfOrder.to?.postal_code
+    || sfOrder.to?.postalCode
+    || sfOrder.to?.cep
+    || sfOrder.postal_code
+    || ''
+  );
+
+  const doc = onlyDigits(order.cpf);
+  const sfDoc = onlyDigits(sfOrder.to?.document || sfOrder.document || '');
+
+  if (cep.length === 8 && sfCep === cep) {
+    if (doc.length >= 11 && sfDoc && doc === sfDoc) return 'cep_doc';
+    if (namesMatchPerson(order.nome, sfOrder.to?.name)) return 'cep_name';
+  }
+
+  // Painel/API às vezes lista sem CEP: nome completo + etiqueta já paga/com rastreio.
+  if (paidLike && namesMatchPerson(order.nome, sfOrder.to?.name)) {
+    if (doc.length >= 11 && sfDoc && doc === sfDoc) return 'name_doc';
+    return 'name_paid';
+  }
+
+  return null;
+}
+
+const SUPERFRETE_FIND_STATUS_PRIORITY = [null, 'released', 'posted', 'pending'];
+
+/**
+ * Procura no painel SF uma etiqueta já criada/paga para este pedido e vincula o cartId.
+ * Evita gerar segunda etiqueta quando o usuário efetivou o rascunho direto no Super Frete.
+ */
+async function findAndLinkExistingSuperfreteOrder(env, config, order) {
+  if (!superfreteConfigured(env) || !order?.orderId) return null;
+
+  let best = null;
+  let bestRank = 99;
+  let bestReason = null;
+  const seenIds = new Set();
+
+  for (let si = 0; si < SUPERFRETE_FIND_STATUS_PRIORITY.length; si++) {
+    const status = SUPERFRETE_FIND_STATUS_PRIORITY[si];
+    let rows = [];
+    try {
+      rows = await listSuperfreteOrdersPage(env, {
+        status: status || undefined,
+        page: 1,
+        perPage: 50
+      });
+      // 2ª página se a liberada for antiga
+      if (rows.length >= 50) {
+        try {
+          const more = await listSuperfreteOrdersPage(env, {
+            status: status || undefined,
+            page: 2,
+            perPage: 50
+          });
+          rows = rows.concat(more);
+        } catch (_) { /* ignore */ }
+      }
+    } catch (err) {
+      console.warn('Super Frete me/orders:', status || 'all', err.message);
+      continue;
+    }
+    for (const row of rows) {
+      const id = String(row?.id || '').trim();
+      if (!id || seenIds.has(id)) continue;
+      seenIds.add(id);
+      const reason = matchSuperfreteOrderToLocal(row, order);
+      if (!reason) continue;
+      const st = superfreteRowStatus(row);
+      const statusRank = st === 'released' || st === 'posted' || st === 'delivered'
+        ? 0
+        : (st === 'pending' ? 2 : 1);
+      const reasonRank = reason === 'tag' ? 0
+        : reason === 'cep_doc' || reason === 'name_doc' ? 1
+          : reason === 'cep_name' ? 2
+            : 3;
+      const track = extractSuperfreteTracking(row) ? 0 : 1;
+      const rank = statusRank * 10 + reasonRank + track * 0.1;
+      if (rank < bestRank) {
+        best = row;
+        bestRank = rank;
+        bestReason = reason;
+      }
+    }
+    // Já achou liberada com tag/rastreio — suficiente
+    if (best && bestReason === 'tag' && extractSuperfreteTracking(best)) break;
+    if (best && (superfreteRowStatus(best) === 'released' || superfreteRowStatus(best) === 'posted')
+      && extractSuperfreteTracking(best)) break;
+  }
+
+  if (!best?.id) {
+    console.warn('Super Frete: nenhuma etiqueta existente para', order.orderId, {
+      nome: order.nome,
+      cep: onlyDigits(order.cep),
+      scanned: seenIds.size
+    });
+    return null;
+  }
+
+  const st = String(best.status || best.order_status || '').toLowerCase();
+  order.superfreteCartId = String(best.id || best.order_id || best.protocol || '');
+  if (!order.superfreteCartId) return null;
+  if (st) order.superfreteCartStatus = st;
+  const priceNum = Number(best.price?.total ?? best.price?.amount ?? best.price);
+  if (Number.isFinite(priceNum) && priceNum > 0) {
+    order.superfreteCartPrice = priceNum;
+  }
+  order.superfreteCartAt = order.superfreteCartAt || new Date().toISOString();
+  order.superfreteCartError = null;
+  order.superfreteCheckoutError = null;
+  order.superfreteLinkedFromPanel = true;
+  order.superfreteLinkedReason = bestReason;
+
+  const tracking = extractSuperfreteTracking(best);
+  if (tracking) {
+    await applySuperfreteTrackingToOrder(env, config, order, tracking);
+  } else {
+    await saveOrder(env, order);
+  }
+  console.log('Super Frete: vinculou etiqueta existente', order.orderId, {
+    cartId: order.superfreteCartId,
+    status: order.superfreteCartStatus,
+    reason: bestReason,
+    tracking: tracking || null
+  });
+  return best;
+}
+
 /** Consulta status real no Super Frete (cancelamento no painel não atualiza o pedido sozinho). */
 async function refreshSuperfreteCartFromApi(env, order) {
   const cartId = order?.superfreteCartId;
@@ -9926,15 +10159,24 @@ function extractSuperfreteTracking(payload) {
   const candidates = [
     payload.tracking,
     payload.self_tracking,
+    payload.selfTracking,
     payload.tracking_code,
+    payload.trackingCode,
+    payload.codigo_rastreio,
     payload.purchase?.orders?.[0]?.tracking,
+    payload.purchase?.orders?.[0]?.self_tracking,
     payload.orders?.[0]?.tracking,
-    Array.isArray(payload) ? payload[0]?.tracking : null
+    payload.orders?.[0]?.self_tracking,
+    Array.isArray(payload) ? payload[0]?.tracking : null,
+    Array.isArray(payload) ? payload[0]?.self_tracking : null
   ];
   for (const c of candidates) {
     const t = String(c || '').trim().toUpperCase();
-    if (t && /^[A-Z]{2}\d{9}[A-Z]{2}$/.test(t)) return t;
-    if (t && t.length >= 8) return t;
+    if (!t || t === '-' || t === 'NULL') continue;
+    // Correios AV/AA…BR
+    if (/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(t)) return t;
+    // Loggi / Jadlog / outros (ex.: SLGE5Q0ZAR16C)
+    if (/^[A-Z0-9]{8,32}$/.test(t)) return t;
   }
   return null;
 }
@@ -10022,6 +10264,30 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
   const force = opts.force === true;
   const autoPay = superfreteAutoCheckoutEnabled(env);
 
+  // Painel SF já tem etiqueta liberada deste pedido/cliente? Usa ela (não cria outra).
+  // Cobre: rascunho efetivado no Super Frete, ou 2º rascunho pago lá enquanto o local ficou pending.
+  if (!force) {
+    try {
+      const linked = await findAndLinkExistingSuperfreteOrder(env, config, order);
+      const linkedSt = String(order.superfreteCartStatus || '').toLowerCase();
+      if (linked && (linkedSt === 'released' || linkedSt === 'posted' || linkedSt === 'delivered')) {
+        if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
+          await waitSuperfreteTracking(env, config, order, { attempts: 8, delayMs: 2500 });
+        }
+        return {
+          ok: true,
+          alreadyExists: true,
+          linked: true,
+          id: order.superfreteCartId,
+          status: order.superfreteCartStatus,
+          trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
+        };
+      }
+    } catch (err) {
+      console.warn('Super Frete link existing (early):', order.orderId, err.message);
+    }
+  }
+
   if (order.superfreteCartId && !force) {
     // Cancelou no painel SF? Nosso pedido ainda pode estar "released" — consulta a API.
     await refreshSuperfreteCartFromApi(env, order);
@@ -10080,6 +10346,64 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
   } else if (order.superfreteCartId && force) {
     clearSuperfreteCartFields(order, { clearTracking: true });
     await saveOrder(env, order);
+  }
+
+  // Sem cartId local (ou após limpar carrinho morto): se já existe etiqueta no painel SF
+  // para este pedido/cliente, vincula em vez de gerar a 2ª.
+  if (!order.superfreteCartId) {
+    try {
+      const linked = await findAndLinkExistingSuperfreteOrder(env, config, order);
+      const linkedSt = String(order.superfreteCartStatus || '').toLowerCase();
+      if (linked && (linkedSt === 'released' || linkedSt === 'posted' || linkedSt === 'delivered')) {
+        if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
+          await waitSuperfreteTracking(env, config, order, { attempts: 8, delayMs: 2500 });
+        }
+        return {
+          ok: true,
+          alreadyExists: true,
+          linked: true,
+          id: order.superfreteCartId,
+          status: order.superfreteCartStatus,
+          trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
+        };
+      }
+      if (linked && order.superfreteCartId && linkedSt === 'pending' && autoPay) {
+        try {
+          await checkoutSuperfreteCart(env, config, order, order.superfreteCartId);
+          return {
+            ok: true,
+            alreadyExists: true,
+            linked: true,
+            id: order.superfreteCartId,
+            status: 'released',
+            paid: true,
+            trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
+          };
+        } catch (err) {
+          order.superfreteCheckoutError = humanizeSuperfreteError(err.message);
+          await saveOrder(env, order);
+          return {
+            ok: true,
+            alreadyExists: true,
+            linked: true,
+            id: order.superfreteCartId,
+            status: order.superfreteCartStatus,
+            checkoutError: order.superfreteCheckoutError
+          };
+        }
+      }
+      if (linked && order.superfreteCartId) {
+        return {
+          ok: true,
+          alreadyExists: true,
+          linked: true,
+          id: order.superfreteCartId,
+          status: order.superfreteCartStatus
+        };
+      }
+    } catch (err) {
+      console.warn('Super Frete link existing before create:', order.orderId, err.message);
+    }
   }
 
   const sender = config.shipping?.sender || DEFAULT_CONFIG.shipping.sender;
@@ -10158,6 +10482,28 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     platform: 'SensorTattooFix',
     tag: order.orderId
   };
+
+  // Última trava: NUNCA criar carrinho novo se já existe etiqueta paga/liberada no painel.
+  try {
+    const again = await findAndLinkExistingSuperfreteOrder(env, config, order);
+    const againSt = String(order.superfreteCartStatus || '').toLowerCase();
+    if (again && (againSt === 'released' || againSt === 'posted' || againSt === 'delivered'
+      || order.superfreteTrackingCode || order.correiosTrackingCode)) {
+      if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
+        await waitSuperfreteTracking(env, config, order, { attempts: 6, delayMs: 2000 });
+      }
+      return {
+        ok: true,
+        alreadyExists: true,
+        linked: true,
+        id: order.superfreteCartId,
+        status: order.superfreteCartStatus,
+        trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
+      };
+    }
+  } catch (err) {
+    console.warn('Super Frete pre-create guard:', order.orderId, err.message);
+  }
 
   let data;
   try {
@@ -14942,12 +15288,19 @@ async function handleOrderSuperfreteTracking(request, env, origin, orderId) {
   }
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
-  if (!isSuperfreteOrder(order) || !order.superfreteCartId) {
+  if (!isSuperfreteOrder(order)) {
     return json({ error: 'Pedido sem etiqueta Super Frete.' }, 400, origin);
   }
   const config = await getConfig(env);
   const wait = new URL(request.url).searchParams.get('wait') === '1';
   try {
+    // Sem cartId local: tenta achar a etiqueta já paga no painel (mesmo nome/CEP/tag).
+    if (!order.superfreteCartId) {
+      await findAndLinkExistingSuperfreteOrder(env, config, order);
+    }
+    if (!order.superfreteCartId) {
+      return json({ error: 'Pedido sem etiqueta Super Frete.' }, 400, origin);
+    }
     let tracking = order.superfreteTrackingCode || order.correiosTrackingCode || null;
     if (!tracking) {
       tracking = wait
@@ -14960,7 +15313,8 @@ async function handleOrderSuperfreteTracking(request, env, origin, orderId) {
       cartId: order.superfreteCartId,
       status: order.superfreteCartStatus || null,
       trackingCode: tracking || order.superfreteTrackingCode || order.correiosTrackingCode || null,
-      pending: !(tracking || order.superfreteTrackingCode || order.correiosTrackingCode)
+      pending: !(tracking || order.superfreteTrackingCode || order.correiosTrackingCode),
+      linked: !!order.superfreteLinkedFromPanel
     }, 200, origin);
   } catch (err) {
     return json({ error: humanizeSuperfreteError(err.message) }, 400, origin);
@@ -15002,9 +15356,15 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
         message = checkoutErr;
       } else if (order.superfreteCartId && order.superfreteCartStatus === 'released') {
         const track = order.superfreteTrackingCode || order.correiosTrackingCode;
-        message = track
-          ? `Etiqueta Super Frete liberada. Rastreio: ${track}`
-          : 'Etiqueta Super Frete paga/liberada. Imprima no painel Super Frete (rastreio ainda não disponível na API).';
+        if (created?.linked) {
+          message = track
+            ? `Etiqueta já existente no Super Frete vinculada. Rastreio: ${track}`
+            : 'Etiqueta já existente no Super Frete vinculada. Imprima no painel (rastreio ainda não na API).';
+        } else {
+          message = track
+            ? `Etiqueta Super Frete liberada. Rastreio: ${track}`
+            : 'Etiqueta Super Frete paga/liberada. Imprima no painel Super Frete (rastreio ainda não disponível na API).';
+        }
       } else if (order.superfreteCartId) {
         message = 'Pedido no carrinho Super Frete. Checkout automático só usa SALDO da carteira '
           + '(cartão do painel não paga via API). Recarregue a carteira e clique Etiqueta de novo.';
@@ -15017,6 +15377,7 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
         status: order.superfreteCartStatus || null,
         price: order.superfreteCartPrice ?? null,
         trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || created?.trackingCode || null,
+        linked: !!created?.linked,
         checkoutError: checkoutErr,
         cartError: cartErr,
         panelUrl: 'https://web.superfrete.com/#/minhas-etiquetas',
@@ -16597,6 +16958,70 @@ async function handleAdminCorreiosIntlProbe(request, env, origin) {
     attempts,
     payloadSample: sanePayload
   }, 200, origin);
+}
+
+/** Diagnóstico: lista etiquetas SF e tenta casar com um pedido (nome/q). */
+async function handleAdminSuperfreteOrdersProbe(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  if (!superfreteConfigured(env)) {
+    return json({ error: 'SUPERFRETE_TOKEN não configurado.' }, 400, origin);
+  }
+  const url = new URL(request.url);
+  const q = String(url.searchParams.get('q') || '').trim().toLowerCase();
+  const orderId = String(url.searchParams.get('orderId') || '').trim();
+  const pages = [];
+  for (const status of [null, 'released', 'posted', 'pending']) {
+    try {
+      const rows = await listSuperfreteOrdersPage(env, {
+        status: status || undefined,
+        page: 1,
+        perPage: 30
+      });
+      const mapped = rows.map((r) => ({
+        id: r.id,
+        status: r.status || r.order_status || null,
+        tracking: extractSuperfreteTracking(r),
+        name: r.to?.name || null,
+        cep: r.to?.postal_code || r.to?.postalCode || null,
+        document: r.to?.document || null,
+        price: r.price ?? null,
+        tags: r.tags || null,
+        service_id: r.service_id || r.service?.id || null
+      }));
+      const filtered = q
+        ? mapped.filter((r) => String(r.name || '').toLowerCase().includes(q)
+          || String(r.tracking || '').toLowerCase().includes(q)
+          || String(r.id || '').toLowerCase().includes(q))
+        : mapped;
+      pages.push({ status: status || 'all', ok: true, count: rows.length, rows: filtered.slice(0, 15) });
+    } catch (err) {
+      pages.push({ status: status || 'all', ok: false, error: err.message });
+    }
+  }
+
+  let match = null;
+  if (orderId) {
+    const order = await getOrder(env, orderId);
+    if (order) {
+      const linked = await findAndLinkExistingSuperfreteOrder(env, await getConfig(env), order);
+      match = {
+        orderId,
+        nome: order.nome,
+        cep: order.cep,
+        linked: !!linked,
+        cartId: order.superfreteCartId || null,
+        status: order.superfreteCartStatus || null,
+        tracking: order.superfreteTrackingCode || order.correiosTrackingCode || null,
+        reason: order.superfreteLinkedReason || null
+      };
+    } else {
+      match = { orderId, error: 'Pedido não encontrado' };
+    }
+  }
+
+  return json({ ok: true, pages, match }, 200, origin);
 }
 
 async function handleAdminShippingStatus(request, env, origin) {
@@ -19353,6 +19778,9 @@ export default {
       }
       if (path === '/admin/report/monthly-sales' && request.method === 'POST') {
         return handleAdminMonthlySalesReport(request, env, origin);
+      }
+      if (path === '/admin/superfrete-orders' && request.method === 'GET') {
+        return handleAdminSuperfreteOrdersProbe(request, env, origin);
       }
       if (path === '/admin/shipping-status' && request.method === 'GET') return handleAdminShippingStatus(request, env, origin);
       if (path === '/admin/correios-tracking' && request.method === 'POST') {
