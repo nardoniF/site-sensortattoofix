@@ -12,6 +12,11 @@ export function isD1ReadsExhausted() {
   return d1ReadsExhausted;
 }
 
+/** Same CLICKS_DB — mark when clicks OR store hits free-tier read cap. */
+export function markD1ReadsExhausted() {
+  d1ReadsExhausted = true;
+}
+
 function noteD1Error(err) {
   const msg = String(err?.message || err || '');
   if (/exceeded D1.*(?:read|row read) limit|free tier daily row read|SQLITE_FULL/i.test(msg)) {
