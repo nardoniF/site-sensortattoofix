@@ -2406,7 +2406,15 @@
     }
   });
 
-    $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => showStatus(e.message, 'error')));
+    $('btn-refresh')?.addEventListener('click', () => loadOrders().catch((e) => {
+      const msg = e?.message || String(e || '');
+      showStatus(
+        /failed to fetch|networkerror|load failed/i.test(msg)
+          ? 'Falha de rede/API ao carregar pedidos. Tente de novo em alguns segundos (se persistir: cota D1 do dia).'
+          : msg,
+        'error'
+      );
+    }));
     const manualOrderForm = $('pedidos-manual-form');
     const saleDateInput = manualField(manualOrderForm, 'saleDate');
     const customerSelect = manualField(manualOrderForm, 'customerUserId');
