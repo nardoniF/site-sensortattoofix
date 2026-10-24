@@ -4074,6 +4074,9 @@ ${worksheets}
   const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v2';
   const CLICKS_SNAPSHOT_KEY_LEGACY = 'stf_admin_clicks_snapshot_v1';
   const CLICKS_SNAPSHOT_MAX = 2000;
+  /** Árvore na tela: só últimos N dias (relatórios/gráficos usam retenção longa à parte). */
+  const CLICKS_TREE_DAYS = 5;
+  let clicksChartsLoadPromise = null;
   const BALANCES_SNAPSHOT_KEY = 'stf_admin_balances_snapshot_v2';
   const ADMIN_TAB_IDS = new Set(['vendas', 'pedidos', 'cliques', 'saldos', 'api', 'clientes', 'pesquisa', 'comunidade', 'documentacao']);
   /** Aba Saldos oculta no menu (código/API intactos — fácil reativar). */
@@ -4314,9 +4317,10 @@ ${worksheets}
     if (total > 0) {
       parts.push(`${total.toLocaleString('pt-BR')} no D1`);
     }
+    const treeDays = Number(clicksMetaCache?.treeDays) || CLICKS_TREE_DAYS;
     parts.push(fromCache
       ? 'clique Atualizar para buscar na API'
-      : 'árvore = últimos ~4000; gráficos cobrem a retenção');
+      : `árvore = últimos ${treeDays} dias; gráficos = retenção (~6 meses)`);
     checkedEl.textContent = parts.join(' · ');
     checkedEl.hidden = false;
   }
@@ -4324,7 +4328,7 @@ ${worksheets}
   function showClicksEmptyState() {
     const root = document.getElementById('clicks-tree-root');
     if (root) {
-      root.innerHTML = '<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar o histórico completo (ano → mês → dia → visitas).</p>';
+      root.innerHTML = `<p class="admin-meta">Clique <strong>Atualizar</strong> para carregar os últimos <strong>${CLICKS_TREE_DAYS} dias</strong> (ano → mês → dia → visitas). Gráficos usam a retenção longa.</p>`;
     }
     const stats = document.getElementById('clicks-stats');
     if (stats) stats.innerHTML = '';
@@ -4754,7 +4758,8 @@ ${worksheets}
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) throw new Error('Faça login no admin.');
-    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?limit=4000`, {
+    // Export = retenção longa (slim), não a janela curta da árvore.
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?when_only=1`, {
       headers: { Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
@@ -4894,7 +4899,8 @@ ${worksheets}
         <div class="clicks-stats-row"><dt>Árvore (tela)</dt><dd>${escapeHtml((() => {
           const cover = formatClicksCoverageRange(data?.clicks || clicksCache);
           if (!cover) return '—';
-          return `${cover.from} → ${cover.to} · ${cover.count.toLocaleString('pt-BR')} eventos (últimos ~4000)`;
+          const days = Number(data?.treeDays) || CLICKS_TREE_DAYS;
+          return `${cover.from} → ${cover.to} · ${cover.count.toLocaleString('pt-BR')} eventos (últimos ${days} dias)`;
         })())}</dd></div>
         <div class="clicks-stats-row"><dt>Último gravado</dt><dd>${escapeHtml(ultimo)}</dd></div>
         <div class="clicks-stats-row"><dt>Mais antigo na árvore</dt><dd>${escapeHtml(maisAntigo)}</dd></div>
@@ -6311,7 +6317,7 @@ ${worksheets}
 
   const CLICKS_REFRESH_IDLE_HTML = '<i class="fas fa-sync-alt"></i> Atualizar';
 
-  /** Botão “Atualizando…” + trava o painel até árvore e gráficos terminarem. */
+  /** Botão “Atualizando…” + trava o painel só enquanto a árvore (leve) carrega. */
   function setClicksRefreshBusy(busy) {
     const btn = document.getElementById('btn-clicks-refresh');
     const panel = document.getElementById('admin-tab-cliques');
@@ -6328,6 +6334,22 @@ ${worksheets}
     }
     panel?.classList.toggle('is-clicks-busy', !!busy);
     if (panel) panel.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
+  function setClicksChartsBusyHint(busy) {
+    const btn = document.getElementById('btn-clicks-refresh');
+    if (!btn || clicksLoading) return;
+    if (busy) {
+      btn.setAttribute('aria-busy', 'true');
+      if (!btn.dataset.idleHtml) btn.dataset.idleHtml = btn.innerHTML || CLICKS_REFRESH_IDLE_HTML;
+      btn.innerHTML = '<i class="fas fa-chart-bar" aria-hidden="true"></i> Gráficos…';
+      btn.disabled = true;
+    } else if (!clicksLoading) {
+      btn.innerHTML = btn.dataset.idleHtml || CLICKS_REFRESH_IDLE_HTML;
+      delete btn.dataset.idleHtml;
+      btn.disabled = false;
+      btn.setAttribute('aria-busy', 'false');
+    }
   }
 
   function renderClicksFromCache(openPaths) {
@@ -6352,6 +6374,56 @@ ${worksheets}
       clicksLoadPromise = null;
     });
     return clicksLoadPromise;
+  }
+
+  function applyWhenClicksPayload(whenRaw, capacity) {
+    const raw = Array.isArray(whenRaw) ? whenRaw : [];
+    // Cap defensivo: agregação de gráficos com dezenas de milhares trava o main thread.
+    clicksWhenCache = raw.length > 25000
+      ? raw.filter((_, i) => i % Math.ceil(raw.length / 20000) === 0)
+      : raw;
+    if (capacity) clicksWhenWindow = capacity;
+  }
+
+  /** Gráficos/relatórios: retenção longa, sem travar a árvore. */
+  function startClicksChartsBackgroundLoad() {
+    if (clicksChartsLoadPromise) return clicksChartsLoadPromise;
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) return Promise.resolve();
+    setClicksChartsBusyHint(true);
+    setClicksLoadStatus('Árvore pronta — carregando gráficos (retenção)…');
+    clicksChartsLoadPromise = (async () => {
+      try {
+        const params = new URLSearchParams({ when_only: '1' });
+        const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
+          headers: { Authorization: 'Bearer ' + token },
+          cache: 'no-store'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Falha ao carregar gráficos');
+        applyWhenClicksPayload(data.whenClicks || [], data.capacity || null);
+        if (clicksMetaCache) {
+          clicksMetaCache.capacity = data.capacity || clicksMetaCache.capacity;
+          clicksMetaCache.dailyD1 = data.dailyD1 || clicksMetaCache.dailyD1;
+          if (data.total != null) clicksMetaCache.total = data.total;
+        }
+        await paintClicksChartsAfterTree();
+        updateClicksCoverageStatus({ fromCache: false });
+        setClicksLoadStatus('Cliques e gráficos atualizados.', 'success');
+        window.setTimeout(() => setClicksLoadStatus(''), 2500);
+      } catch (err) {
+        const charts = document.getElementById('clicks-when-charts');
+        if (charts && isClicksPanelVisible()) {
+          charts.innerHTML = `<p class="admin-meta">Gráficos indisponíveis: ${escapeHtml(err.message || 'erro')}</p>`;
+        }
+        setClicksLoadStatus('Árvore ok; gráficos falharam — tente Atualizar de novo.', 'warning');
+      } finally {
+        clicksChartsLoadPromise = null;
+        setClicksChartsBusyHint(false);
+      }
+    })();
+    return clicksChartsLoadPromise;
   }
 
   async function loadClicks(preserveOpen) {
@@ -6384,7 +6456,7 @@ ${worksheets}
     const panelVisible = isClicksPanelVisible();
     setClicksLoadStatus(
       panelVisible
-        ? 'Atualizando cliques… aguarde a tela liberar.'
+        ? `Atualizando últimos ${CLICKS_TREE_DAYS} dias… a tela libera assim que a árvore montar.`
         : 'Carregando cliques em segundo plano — você pode usar outras abas.'
     );
     if (panelVisible && !clicksCache.length) {
@@ -6392,9 +6464,12 @@ ${worksheets}
     }
 
     try {
-      // Sempre busca o lote completo (últimos ~4000). Filtros de busca/destino
-      // aplicam só no cliente — evita “congelar” o cache num destino/dia.
-      const params = new URLSearchParams({ limit: '4000' });
+      // Árvore leve: só N dias, sem whenClicks. Gráficos vêm depois (retenção).
+      const params = new URLSearchParams({
+        limit: '4000',
+        days: String(CLICKS_TREE_DAYS),
+        when: '0'
+      });
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/clicks?${params}`, {
         headers: { Authorization: 'Bearer ' + token },
         cache: 'no-store'
@@ -6402,20 +6477,21 @@ ${worksheets}
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
       clicksCache = data.clicks || [];
-      const whenRaw = data.whenClicks?.length ? data.whenClicks : clicksCache;
-      // Cap defensivo: agregação de gráficos com dezenas de milhares trava o main thread.
-      clicksWhenCache = whenRaw.length > 25000
-        ? whenRaw.filter((_, i) => i % Math.ceil(whenRaw.length / 20000) === 0)
-        : whenRaw;
-      clicksWhenWindow = data.capacity || null;
-      clicksMetaCache = { ...data, _savedAt: Date.now(), _fromCache: false };
+      clicksWhenWindow = data.capacity || clicksWhenWindow;
+      clicksMetaCache = {
+        ...data,
+        treeDays: data.treeDays ?? CLICKS_TREE_DAYS,
+        _savedAt: Date.now(),
+        _fromCache: false
+      };
       saveClicksSnapshot(data);
-      // Árvore primeiro; gráficos no mesmo “Atualizando…” — só libera quando os dois terminam.
       reapplyClicksLocalFilters(openPaths, { skipCharts: true });
       updateClicksCoverageStatus({ fromCache: false });
-      await paintClicksChartsAfterTree();
-      setClicksLoadStatus('Cliques atualizados.', 'success');
-      window.setTimeout(() => setClicksLoadStatus(''), 2500);
+      setClicksLoadStatus(`Árvore atualizada (${CLICKS_TREE_DAYS} dias).`, 'success');
+      // Libera overlay/busy já — gráficos não bloqueiam a tela.
+      clicksLoading = false;
+      setClicksRefreshBusy(false);
+      startClicksChartsBackgroundLoad();
     } catch (err) {
       if (isClicksPanelVisible()) {
         root.innerHTML = `<p class="admin-status-bad">${escapeHtml(err.message)}</p>`;
@@ -6425,7 +6501,6 @@ ${worksheets}
       if (charts) charts.innerHTML = '';
       const noise = document.getElementById('clicks-noise-charts');
       if (noise) noise.innerHTML = '';
-    } finally {
       clicksLoading = false;
       setClicksRefreshBusy(false);
     }
@@ -9123,12 +9198,18 @@ ${worksheets}
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'cliques') {
         syncClicksNavOnlyCheckbox();
-        // Ao abrir a aba: não monta árvore. Só Atualizar traz tudo.
+        // Voltar na aba: restaura o que já tinha (não apaga nem trava de novo).
         if (clicksLoading) {
           setClicksLoadStatus('Carregando cliques…');
+        } else if (clicksCache.length && clicksMetaCache) {
+          renderClicksFromCache(captureClicksTreeOpenPaths());
+          updateClicksCoverageStatus({ fromCache: !!clicksMetaCache._fromCache });
+          if (clicksWhenCache.length) paintClicksChartsNow();
+          else if (clicksChartsLoadPromise) setClicksLoadStatus('Carregando gráficos…');
+          else setClicksLoadStatus('');
         } else {
           showClicksEmptyState();
-          setClicksLoadStatus('Clique Atualizar para carregar o log completo.', 'warning');
+          setClicksLoadStatus(`Clique Atualizar para carregar os últimos ${CLICKS_TREE_DAYS} dias.`, 'warning');
         }
       } else if (id === 'saldos') {
         restoreMpAuditSnapshot();

@@ -56,3 +56,17 @@ export function clicksRetentionWindow(now = Date.now()) {
     currentYm: `${cur.year}-${String(cur.month).padStart(2, '0')}`
   };
 }
+
+/** Default Admin tree window: last N calendar days in America/Sao_Paulo (incl. today). */
+export const CLICKS_TREE_DAYS_DEFAULT = 5;
+
+/**
+ * Midnight SP of (today − (days−1)) — inclusive window of `days` calendar days.
+ * Caps 1…90. Retention/reports use clicksRetentionWindow(), not this.
+ */
+export function clicksTreeCutoffMs(days = CLICKS_TREE_DAYS_DEFAULT, now = Date.now()) {
+  const d = Math.min(90, Math.max(1, Math.floor(Number(days) || CLICKS_TREE_DAYS_DEFAULT)));
+  const cur = spYmd(now);
+  const todayMidnight = spMidnightUtcMs(cur.year, cur.month, cur.day);
+  return todayMidnight - (d - 1) * 24 * 60 * 60 * 1000;
+}

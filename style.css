@@ -4426,7 +4426,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
     gap: 10px;
     align-items: center;
 }
-/* Cliques: trava o painel enquanto Atualizar não termina (árvore + gráficos). */
+/* Cliques: trava o painel só enquanto a árvore (leve) carrega — gráficos não bloqueiam. */
 #admin-tab-cliques.is-clicks-busy {
     position: relative;
     pointer-events: none;
