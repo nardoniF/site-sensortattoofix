@@ -56,7 +56,9 @@ import {
 } from './amazon-settlement.js';
 import {
   CLICKS_CLOSED_MONTHS,
+  CLICKS_TREE_DAYS_DEFAULT,
   clicksRetentionWindow,
+  clicksTreeCutoffMs,
   spYmd,
   spMidnightUtcMs
 } from './clicks-retention.js';
@@ -16826,15 +16828,21 @@ async function trimClicksD1(env) {
   `).bind(CLICKS_MAX - 1).run().catch(() => {});
 }
 
-async function loadClicksFromD1(env, limit = CLICKS_TREE_MAX) {
+async function loadClicksFromD1(env, limit = CLICKS_TREE_MAX, sinceMs = 0) {
   const db = clicksDb(env);
   if (!db) return null;
   await ensureClicksD1(env);
   const countRow = await db.prepare('SELECT COUNT(*) AS n FROM clicks').first();
   const total = Number(countRow?.n || 0);
-  const res = await db.prepare(
-    'SELECT ts, payload FROM clicks ORDER BY ts DESC LIMIT ?'
-  ).bind(Math.min(CLICKS_TREE_MAX, Math.max(1, limit))).all();
+  const lim = Math.min(CLICKS_TREE_MAX, Math.max(1, limit));
+  const since = Number(sinceMs) > 0 ? Number(sinceMs) : 0;
+  const res = since > 0
+    ? await db.prepare(
+      'SELECT ts, payload FROM clicks WHERE ts >= ? ORDER BY ts DESC LIMIT ?'
+    ).bind(since, lim).all()
+    : await db.prepare(
+      'SELECT ts, payload FROM clicks ORDER BY ts DESC LIMIT ?'
+    ).bind(lim).all();
   const loaded = [];
   for (const r of res?.results || []) {
     try {
@@ -17313,8 +17321,71 @@ async function handleAdminListClicks(request, env, origin) {
     || url.searchParams.get('navegacao') === '1';
   const limit = Math.min(CLICKS_TREE_MAX, Math.max(20, parseInt(url.searchParams.get('limit') || String(CLICKS_TREE_MAX), 10) || CLICKS_TREE_MAX));
   const window = clicksRetentionWindow();
+  // days: janela da árvore na tela (padrão 5). days=0 → sem filtro de dias (só limit).
+  const daysParam = url.searchParams.get('days');
+  let treeDays = CLICKS_TREE_DAYS_DEFAULT;
+  let treeSinceMs = clicksTreeCutoffMs(treeDays);
+  if (daysParam != null && daysParam !== '') {
+    const parsed = parseInt(daysParam, 10);
+    if (Number.isFinite(parsed) && parsed <= 0) {
+      treeDays = 0;
+      treeSinceMs = 0;
+    } else if (Number.isFinite(parsed)) {
+      treeDays = Math.min(90, Math.max(1, parsed));
+      treeSinceMs = clicksTreeCutoffMs(treeDays);
+    }
+  }
+  // when=0: só árvore (leve). when_only=1: só slim p/ gráficos/export (retenção longa).
+  const includeWhen = url.searchParams.get('when') !== '0';
+  const whenOnly = url.searchParams.get('when_only') === '1'
+    || url.searchParams.get('charts_only') === '1';
 
-  const fromD1 = await loadClicksFromD1(env, limit);
+  if (whenOnly) {
+    const whenClicks = await loadClicksSlimFromD1(env, window.cutoffMs).catch(() => []);
+    const dailyD1 = await buildD1DailyBudget(env);
+    const db = clicksDb(env);
+    let totalAll = whenClicks.length;
+    if (db) {
+      try {
+        const countRow = await db.prepare('SELECT COUNT(*) AS n FROM clicks').first();
+        totalAll = Number(countRow?.n || 0);
+      } catch { /* keep slim length */ }
+    }
+    return json({
+      clicks: [],
+      whenClicks,
+      total: totalAll,
+      todayCount: 0,
+      byDestino: {},
+      lastClickAt: whenClicks[0]?.ts ? new Date(whenClicks[0].ts).toISOString() : null,
+      oldestClickAt: whenClicks.length && whenClicks[whenClicks.length - 1]?.ts
+        ? new Date(whenClicks[whenClicks.length - 1].ts).toISOString()
+        : null,
+      capacity: {
+        used: totalAll,
+        max: CLICKS_MAX,
+        percent: CLICKS_MAX > 0 ? Math.min(100, Math.round((totalAll / CLICKS_MAX) * 100)) : 0,
+        full: totalAll >= CLICKS_MAX,
+        nearFull: totalAll < CLICKS_MAX && totalAll >= Math.floor(CLICKS_MAX * 0.9),
+        closedMonths: window.closedMonths,
+        totalMonths: window.totalMonths,
+        currentYm: window.currentYm,
+        cutoffAt: new Date(window.cutoffMs).toISOString(),
+        months: window.months,
+        dropsOldestWhenFull: true
+      },
+      dailyD1,
+      store: 'd1',
+      withNav: false,
+      navSessions: 0,
+      treeDays: 0,
+      treeCutoffAt: null,
+      whenOnly: true,
+      checkedAt: new Date().toISOString()
+    }, 200, origin);
+  }
+
+  const fromD1 = await loadClicksFromD1(env, limit, treeSinceMs);
   let loaded = fromD1?.loaded || [];
   let total = fromD1?.total || 0;
 
@@ -17402,9 +17473,11 @@ async function handleAdminListClicks(request, env, origin) {
   const capFull = capUsed >= capMax;
   const capNearFull = !capFull && capUsed >= Math.floor(capMax * 0.9);
   const dailyD1 = await buildD1DailyBudget(env);
-  const whenClicks = fromD1
-    ? await loadClicksSlimFromD1(env, window.cutoffMs).catch(() => [])
-    : clicks.slice();
+  const whenClicks = includeWhen
+    ? (fromD1
+      ? await loadClicksSlimFromD1(env, window.cutoffMs).catch(() => [])
+      : clicks.slice())
+    : [];
 
   return json({
     clicks,
@@ -17431,6 +17504,9 @@ async function handleAdminListClicks(request, env, origin) {
     store: 'd1',
     withNav: !!navSessionKeys,
     navSessions: navSessionKeys ? navSessionKeys.size : 0,
+    treeDays,
+    treeCutoffAt: treeSinceMs > 0 ? new Date(treeSinceMs).toISOString() : null,
+    whenOnly: false,
     checkedAt: new Date().toISOString()
   }, 200, origin);
 }
