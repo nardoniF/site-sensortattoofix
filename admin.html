@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=3.58">
+    <link rel="stylesheet" href="style.css?v=3.59">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -906,6 +906,7 @@
                             <p>Imprimir <strong>etiqueta</strong> (Correios ou fallback), <strong>confirmar PIX</strong> e exportar CSV/JSON. Para excluir: marque os pedidos e use <strong>Excluir</strong> no topo (pede confirmação).</p>
                             <p>A cota <strong>KV</strong> abaixo afeta gravação de pedidos (não o log de cliques — esse usa D1).</p>
                         </div>
+                        <div id="payment-fail-alert-pedidos" class="admin-clicks-stats admin-meta" hidden></div>
                         <div id="pedidos-kv-quota" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-form-actions admin-orders-toolbar admin-toolbar-split">
                             <div class="admin-toolbar-main">
@@ -1159,6 +1160,7 @@
                             <p>Ao abrir a aba, nada é carregado. Clique <strong>Atualizar</strong> para a árvore dos <strong>últimos 5 dias</strong> (ano → mês → dia → visitante → visitas) — isso não trava a tela. <strong>Quando acessam</strong> / <strong>Únicos</strong> só carregam ao abrir a seção (~90 dias na tela). <strong>Exportar Excel</strong> e o D1 mantêm a retenção longa (~6 meses).</p>
                             <p>Use busca e filtro por destino (Mercado Livre, TikTok, FAQ…). Marque <strong>Com navegação</strong> para ver o caminho completo da visita (home → páginas → clique), não só o registro do destino. <strong>Somente navegação</strong> esconde visita única ou repetida no mesmo destino — só home, 3 homes, só loja, etc. (não apaga do log). Os gráficos <strong>Quando acessam</strong> são o número oficial (sem únicos/bots). <strong>Únicos / repetidos</strong> foca em bots: <strong>hora</strong>, ranking de <strong>estado</strong> e <strong>cidade</strong>, <strong>local no site</strong>, <strong>site</strong> (.com / .com.br) e se a visita é única ou repetida. <strong>Exportar Excel</strong> gera abas oficiais + Unicos (hora, estado, cidade, local, site).</p>
                         </div>
+                        <div id="payment-fail-alert" class="admin-clicks-stats admin-meta" hidden></div>
                         <div id="clicks-stats" class="admin-clicks-stats admin-meta"></div>
                         <div class="admin-clicks-filters">
                             <label class="admin-clicks-search">
@@ -1421,7 +1423,7 @@
     <script src="js/order-watch.js"></script>
     <script src="js/order-label.js?v=8"></script>
     <script src="js/correios-label-print.js?v=4"></script>
-    <script src="js/pedidos.js?v=72"></script>
+    <script src="js/pedidos.js?v=73"></script>
     <script src="js/traffic-origin.js?v=2"></script>
     <script>
     (function () {
@@ -1452,6 +1454,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=9"></script>
-    <script defer src="js/admin.js?v=280"></script>
+    <script defer src="js/admin.js?v=281"></script>
 </body>
 </html>
