@@ -147,16 +147,21 @@ window.STF_INTL_PAY = (function () {
   }
 
   function paypalSdkLocale() {
+    const map = {
+      pt: 'pt_BR', en: 'en_US', it: 'it_IT', de: 'de_DE', es: 'es_ES', pl: 'pl_PL',
+      sl: 'en_US', fr: 'fr_FR', nl: 'nl_NL', sv: 'sv_SE', no: 'no_NO', fi: 'en_US'
+    };
     try {
       const lang = window.STF_I18N?.getLang?.();
-      if (lang === 'it') return 'it_IT';
-      if (lang === 'en') return 'en_US';
+      if (lang && map[lang]) return map[lang];
     } catch (_) { /* ignore */ }
     const path = String(location.pathname || '');
-    if (path.includes('/it/')) return 'it_IT';
-    const htmlLang = String(document.documentElement.lang || '').toLowerCase();
-    if (htmlLang.startsWith('it')) return 'it_IT';
-    if (htmlLang.startsWith('en') || /\.sensortattoofix\.com$/i.test(location.hostname)) return 'en_US';
+    for (const [lang, loc] of Object.entries(map)) {
+      if (path.includes('/' + lang + '/')) return loc;
+    }
+    const htmlLang = String(document.documentElement.lang || '').toLowerCase().slice(0, 2);
+    if (map[htmlLang]) return map[htmlLang];
+    if (/\.sensortattoofix\.com$/i.test(location.hostname)) return 'en_US';
     return 'pt_BR';
   }
 
@@ -194,19 +199,20 @@ window.STF_INTL_PAY = (function () {
   }
 
   function stripeLocale() {
+    const map = {
+      pt: 'pt-BR', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl',
+      sl: 'en', fr: 'fr', nl: 'nl', sv: 'sv', no: 'nb', fi: 'fi'
+    };
     try {
       const lang = window.STF_I18N?.getLang?.();
-      if (lang === 'it') return 'it';
-      if (lang === 'en') return 'en';
-      if (lang === 'pt') return 'pt-BR';
+      if (lang && map[lang]) return map[lang];
     } catch (_) { /* ignore */ }
     const path = String(location.pathname || '');
-    if (path.includes('/it/')) return 'it';
-    if (path.includes('/en/') || /\.sensortattoofix\.com$/i.test(location.hostname)) return 'en';
-    const htmlLang = String(document.documentElement.lang || '').toLowerCase();
-    if (htmlLang.startsWith('it')) return 'it';
-    if (htmlLang.startsWith('en')) return 'en';
-    if (htmlLang.startsWith('pt')) return 'pt-BR';
+    for (const [lang, loc] of Object.entries(map)) {
+      if (path.includes('/' + lang + '/')) return loc;
+    }
+    const htmlLang = String(document.documentElement.lang || '').toLowerCase().slice(0, 2);
+    if (map[htmlLang]) return map[htmlLang];
     return 'en';
   }
 

@@ -1103,7 +1103,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const selfTest = !!(data.selfTestPix || data.selfTestPayPal || data.selfTestStripe || data.selfTestTester);
     const chargeCur = String(data.chargeCurrency || '').toUpperCase();
     const chargeAmt = data.chargeAmount != null ? Number(data.chargeAmount) : null;
-    const useForeignTotal = chargeAmt != null && (chargeCur === 'USD' || chargeCur === 'EUR')
+    const intlChargeOk = /^(USD|EUR|SEK|NOK|PLN|GBP)$/.test(chargeCur);
+    const useForeignTotal = chargeAmt != null && intlChargeOk
       && (selfTest || isIntlEmbeddedCheckout() || window.STF_MONEY?.isIntlHost?.());
     return {
       produto: data.produto || '',
@@ -3073,7 +3074,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const selfTest = !!(result.order?.selfTestPix || result.order?.selfTestPayPal || result.order?.selfTestStripe || result.order?.selfTestTester);
       const chargeCur = String(result.order?.chargeCurrency || '').toUpperCase();
       const chargeAmt = result.order?.chargeAmount != null ? Number(result.order.chargeAmount) : null;
-      const useForeignTotal = chargeAmt != null && (chargeCur === 'USD' || chargeCur === 'EUR')
+      const intlChargeOk = /^(USD|EUR|SEK|NOK|PLN|GBP)$/.test(chargeCur);
+      const useForeignTotal = chargeAmt != null && intlChargeOk
         && (selfTest || isIntlEmbeddedCheckout());
       const total = useForeignTotal
         ? (selfTest ? Math.max(0.01, chargeAmt) : chargeAmt)
