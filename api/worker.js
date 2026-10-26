@@ -2758,11 +2758,7 @@ async function intlForeignCharge(order, env, config, items, currency) {
   }
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
-    let minAmt;
-    if (cur === 'EUR') minAmt = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-    else if (cur === 'SEK') minAmt = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
-    else if (cur === 'NOK') minAmt = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
-    else minAmt = stripe ? SELF_TEST_STRIPE_USD_AMOUNT : SELF_TEST_USD_AMOUNT;
+    const minAmt = stripe ? stripeSelfTestAmount(cur) : paypalSelfTestAmount(cur);
     if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
@@ -2778,7 +2774,8 @@ function intlChargeCurrencyForLocale(locale, config) {
   const l = String(locale || '').toLowerCase();
   if (l === 'sv') return 'SEK';
   if (l === 'no') return 'NOK';
-  if (l === 'it' || l === 'de' || l === 'es' || l === 'pl' || l === 'sl'
+  if (l === 'pl') return 'PLN';
+  if (l === 'it' || l === 'de' || l === 'es' || l === 'sl'
     || l === 'fr' || l === 'nl' || l === 'fi') return 'EUR';
   return 'USD';
 }
@@ -2796,17 +2793,13 @@ function applySelfTestChargeCurrency(order, { intlUsd, billingType }) {
   if (intlUsd) {
     const cur = intlChargeCurrencyForLocale(order.checkoutLocale);
     const stripe = billingType === 'STRIPE' || order?.selfTestStripe || order?.paymentProvider === 'stripe';
-    let amount;
-    if (cur === 'EUR') amount = stripe ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_EUR_AMOUNT;
-    else if (cur === 'SEK') amount = stripe ? SELF_TEST_STRIPE_SEK_AMOUNT : SELF_TEST_SEK_AMOUNT;
-    else if (cur === 'NOK') amount = stripe ? SELF_TEST_STRIPE_NOK_AMOUNT : SELF_TEST_NOK_AMOUNT;
-    else amount = selfTestUsdAmountForOrder(order, billingType);
+    const amount = stripe ? stripeSelfTestAmount(cur) : paypalSelfTestAmount(cur);
     order.chargeCurrency = cur;
     order.chargeAmount = amount;
     order.displayCurrency = cur;
     return;
   }
-  if (order.chargeCurrency === 'USD' || order.chargeCurrency === 'EUR' || order.chargeCurrency === 'SEK' || order.chargeCurrency === 'NOK') {
+  if (STRIPE_INTL_CURRENCIES.has(String(order.chargeCurrency || '').toUpperCase())) {
     delete order.chargeCurrency;
     delete order.chargeAmount;
     delete order.chargeFxRate;
@@ -7991,6 +7984,33 @@ const SELF_TEST_STRIPE_USD_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_EUR_AMOUNT = 0.10;
 const SELF_TEST_STRIPE_SEK_AMOUNT = 10;
 const SELF_TEST_STRIPE_NOK_AMOUNT = 10;
+const SELF_TEST_PLN_AMOUNT = 1;
+/** Stripe PL minimum is typically ≥ 2,00 PLN. */
+const SELF_TEST_STRIPE_PLN_AMOUNT = 2;
+const SELF_TEST_GBP_AMOUNT = 0.01;
+const SELF_TEST_STRIPE_GBP_AMOUNT = 0.10;
+/** Currencies Stripe may charge on .com (must match order.chargeCurrency — never remap amount). */
+const STRIPE_INTL_CURRENCIES = new Set(['USD', 'EUR', 'SEK', 'NOK', 'PLN', 'GBP']);
+
+function stripeSelfTestAmount(currency) {
+  const cur = String(currency || '').toUpperCase();
+  if (cur === 'EUR') return SELF_TEST_STRIPE_EUR_AMOUNT;
+  if (cur === 'SEK') return SELF_TEST_STRIPE_SEK_AMOUNT;
+  if (cur === 'NOK') return SELF_TEST_STRIPE_NOK_AMOUNT;
+  if (cur === 'PLN') return SELF_TEST_STRIPE_PLN_AMOUNT;
+  if (cur === 'GBP') return SELF_TEST_STRIPE_GBP_AMOUNT;
+  return SELF_TEST_STRIPE_USD_AMOUNT;
+}
+
+function paypalSelfTestAmount(currency) {
+  const cur = String(currency || '').toUpperCase();
+  if (cur === 'EUR') return SELF_TEST_EUR_AMOUNT;
+  if (cur === 'SEK') return SELF_TEST_SEK_AMOUNT;
+  if (cur === 'NOK') return SELF_TEST_NOK_AMOUNT;
+  if (cur === 'PLN') return SELF_TEST_PLN_AMOUNT;
+  if (cur === 'GBP') return SELF_TEST_GBP_AMOUNT;
+  return SELF_TEST_USD_AMOUNT;
+}
 
 function normalizeAddrPart(value) {
   return String(value || '')
@@ -13115,13 +13135,15 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   let amountValue = Number(order.total).toFixed(2);
   let locale = 'pt-BR';
   if (useForeign) {
+    const paypalLocaleByLang = {
+      pt: 'pt-BR', en: 'en-US', it: 'it-IT', de: 'de-DE', es: 'es-ES', pl: 'pl-PL',
+      sl: 'en-US', fr: 'fr-FR', nl: 'nl-NL', sv: 'sv-SE', no: 'no-NO', fi: 'en-US'
+    };
+    locale = paypalLocaleByLang[checkoutLocale] || 'en-US';
     if (isSelfTestOrder(order)) {
       currencyCode = foreignCur;
-      const testAmt = foreignCur === 'EUR'
-        ? SELF_TEST_EUR_AMOUNT
-        : SELF_TEST_USD_AMOUNT;
+      const testAmt = paypalSelfTestAmount(foreignCur);
       amountValue = testAmt.toFixed(2);
-      locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
       order.chargeCurrency = foreignCur;
       order.chargeAmount = testAmt;
       order.displayCurrency = foreignCur;
@@ -13129,7 +13151,6 @@ async function createPayPalCheckout(env, order, config, request, opts) {
       const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
       currencyCode = foreignCur;
       amountValue = Number(charge.amount).toFixed(2);
-      locale = checkoutLocale === 'it' ? 'it-IT' : 'en-US';
       order.chargeCurrency = foreignCur;
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
@@ -15666,16 +15687,18 @@ function stripeOrderCharge(order, request, env) {
   let currency = 'brl';
   let amountForeign = null;
   const chargeCur = String(order.chargeCurrency || '').toUpperCase();
-  const intlCharge = chargeCur === 'USD' || chargeCur === 'EUR'
-    || (isComSiteRequest(request) && !chargeCur);
-  if (intlCharge && (chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) {
-    const resolvedCur = chargeCur === 'EUR' ? 'EUR' : 'USD';
+  let resolvedCur = STRIPE_INTL_CURRENCIES.has(chargeCur) ? chargeCur : '';
+  if (!resolvedCur && isComSiteRequest(request)) {
+    const fromLocale = String(intlChargeCurrencyForLocale(order.checkoutLocale) || '').toUpperCase();
+    resolvedCur = STRIPE_INTL_CURRENCIES.has(fromLocale) ? fromLocale : 'USD';
+  }
+  if (resolvedCur) {
+    // Cobrar na moeda do pedido — NÃO remapar SEK/NOK/PLN → USD com o mesmo número.
     currency = resolvedCur.toLowerCase();
     let amt = Number(order.chargeAmount);
     if (isSelfTestOrder(order)) {
-      amt = order.selfTestStripe || order.paymentProvider === 'stripe'
-        ? (resolvedCur === 'EUR' ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_STRIPE_USD_AMOUNT)
-        : (resolvedCur === 'EUR' ? SELF_TEST_EUR_AMOUNT : SELF_TEST_USD_AMOUNT);
+      const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
+      amt = stripe ? stripeSelfTestAmount(resolvedCur) : paypalSelfTestAmount(resolvedCur);
       order.chargeCurrency = resolvedCur;
       order.chargeAmount = amt;
       if (order.paymentProvider === 'stripe') order.selfTestStripe = true;
@@ -15684,7 +15707,7 @@ function stripeOrderCharge(order, request, env) {
       return null;
     }
     const minCents = isSelfTestOrder(order)
-      ? Math.round((resolvedCur === 'EUR' ? SELF_TEST_STRIPE_EUR_AMOUNT : SELF_TEST_STRIPE_USD_AMOUNT) * 100)
+      ? Math.round(stripeSelfTestAmount(resolvedCur) * 100)
       : 50;
     amountCents = Math.max(minCents, Math.round(amt * 100));
     amountForeign = amt;
@@ -15698,9 +15721,9 @@ function stripeOrderCharge(order, request, env) {
 
 async function ensureStripeIntlCharge(order, request, env) {
   const chargeCur = String(order.chargeCurrency || '').toUpperCase();
-  if (!(chargeCur === 'USD' || chargeCur === 'EUR' || isComSiteRequest(request))) return;
+  if (!(STRIPE_INTL_CURRENCIES.has(chargeCur) || isComSiteRequest(request))) return;
   let amt = Number(order.chargeAmount);
-  if (Number.isFinite(amt) && amt > 0) return;
+  if (Number.isFinite(amt) && amt > 0 && STRIPE_INTL_CURRENCIES.has(chargeCur)) return;
   const config = await getConfig(env);
   const foreignCur = intlChargeCurrencyForLocale(order.checkoutLocale);
   const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
