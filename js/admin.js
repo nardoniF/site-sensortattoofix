@@ -4071,14 +4071,38 @@ ${worksheets}
   let clicksWhenCache = [];
   let clicksWhenWindow = null;
 
-  const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v2';
-  const CLICKS_SNAPSHOT_KEY_LEGACY = 'stf_admin_clicks_snapshot_v1';
+  const CLICKS_SNAPSHOT_KEY = 'stf_admin_clicks_snapshot_v3';
+  const CLICKS_SNAPSHOT_KEY_LEGACY = 'stf_admin_clicks_snapshot_v2';
+  const CLICKS_SNAPSHOT_KEY_LEGACY_V1 = 'stf_admin_clicks_snapshot_v1';
   const CLICKS_SNAPSHOT_MAX = 2000;
   /** Árvore na tela: só últimos N dias (retenção D1 continua ~6 meses). */
   const CLICKS_TREE_DAYS = 5;
   /** Gráficos na tela: janela curta o bastante p/ não congelar o Chrome; Excel usa retenção cheia. */
   const CLICKS_CHART_DAYS = 90;
   const CLICKS_CHART_SAMPLE_MAX = 8000;
+
+  /** Meia-noite SP de (hoje − days+1) em ms UTC — espelha api/clicks-retention.js. */
+  function clicksTreeCutoffClientMs(days = CLICKS_TREE_DAYS, now = Date.now()) {
+    const d = Math.min(90, Math.max(1, Math.floor(Number(days) || CLICKS_TREE_DAYS)));
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date(now));
+    const get = (t) => Number(parts.find((p) => p.type === t)?.value);
+    const todayMidnight = Date.UTC(get('year'), get('month') - 1, get('day'), 3, 0, 0);
+    return todayMidnight - (d - 1) * 24 * 60 * 60 * 1000;
+  }
+
+  function trimClicksToTreeWindow(clicks, days = CLICKS_TREE_DAYS) {
+    const cutoff = clicksTreeCutoffClientMs(days);
+    const list = Array.isArray(clicks) ? clicks : [];
+    return list.filter((c) => {
+      const t = Number(c?.ts) || Number(c?.client_ts) || Date.parse(c?.ts) || 0;
+      return t >= cutoff;
+    });
+  }
   let clicksChartsLoadPromise = null;
   let clicksChartsLazyWired = false;
   const BALANCES_SNAPSHOT_KEY = 'stf_admin_balances_snapshot_v2';
@@ -4159,6 +4183,7 @@ ${worksheets}
   function restoreClicksSnapshot() {
     try {
       try { localStorage.removeItem(CLICKS_SNAPSHOT_KEY_LEGACY); } catch (_) { /* ignore */ }
+      try { localStorage.removeItem(CLICKS_SNAPSHOT_KEY_LEGACY_V1); } catch (_) { /* ignore */ }
       const raw = localStorage.getItem(CLICKS_SNAPSHOT_KEY);
       if (!raw) return false;
       // JSON enorme = freeze; se passar de ~2.5MB, descarta.
@@ -4168,7 +4193,16 @@ ${worksheets}
       }
       const snap = JSON.parse(raw);
       if (!snap?.clicks?.length) return false;
-      clicksCache = Array.isArray(snap.clicks) ? snap.clicks.slice(0, CLICKS_SNAPSHOT_MAX) : [];
+      // Cache antigo (pré–5 dias) ou fora da janela → não pintar Outubro/12 “do nada”.
+      const trimmed = trimClicksToTreeWindow(
+        Array.isArray(snap.clicks) ? snap.clicks.slice(0, CLICKS_SNAPSHOT_MAX) : [],
+        CLICKS_TREE_DAYS
+      );
+      if (!trimmed.length) {
+        localStorage.removeItem(CLICKS_SNAPSHOT_KEY);
+        return false;
+      }
+      clicksCache = trimmed;
       // Gráficos não vêm do cache — só após Atualizar (evita travar).
       clicksWhenCache = [];
       clicksWhenWindow = snap.whenWindow || null;
@@ -4176,6 +4210,7 @@ ${worksheets}
         ...snap.meta,
         clicks: clicksCache,
         whenClicks: [],
+        treeDays: CLICKS_TREE_DAYS,
         capacity: snap.meta?.capacity || snap.whenWindow,
         _savedAt: Number(snap.savedAt) || Date.now(),
         _fromCache: true
@@ -6370,9 +6405,19 @@ ${worksheets}
 
   function renderClicksFromCache(openPaths) {
     if (!clicksCache.length || !clicksMetaCache) return;
+    // Re-corta na janela de 5 dias (cache pode ter envelhecido desde o último Atualizar).
+    const trimmed = trimClicksToTreeWindow(clicksCache, CLICKS_TREE_DAYS);
+    if (trimmed.length !== clicksCache.length) {
+      clicksCache = trimmed;
+      if (clicksMetaCache) clicksMetaCache.clicks = clicksCache;
+    }
+    if (!clicksCache.length) {
+      showClicksEmptyState();
+      return;
+    }
     renderClicksStats(clicksMetaCache);
-    renderClicksWhenCharts(clicksWhenCache);
-    renderClicksNoiseStats(clicksWhenCache);
+    // Não recalcular gráficos no restore — placeholder até Atualizar / abrir o fold.
+    showClicksChartsPlaceholder();
     renderClicksTree(
       clicksCache,
       clicksMetaCache.checkedAt,
@@ -6528,16 +6573,18 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao carregar cliques');
-      clicksCache = data.clicks || [];
+      // Cinto de segurança: API já filtra days=5; se vier lixo antigo, corta no cliente.
+      clicksCache = trimClicksToTreeWindow(data.clicks || [], CLICKS_TREE_DAYS);
       clicksWhenCache = [];
       clicksWhenWindow = data.capacity || clicksWhenWindow;
       clicksMetaCache = {
         ...data,
+        clicks: clicksCache,
         treeDays: data.treeDays ?? CLICKS_TREE_DAYS,
         _savedAt: Date.now(),
         _fromCache: false
       };
-      saveClicksSnapshot(data);
+      saveClicksSnapshot({ ...data, clicks: clicksCache, treeDays: CLICKS_TREE_DAYS });
       reapplyClicksLocalFilters(openPaths, { skipCharts: true });
       showClicksChartsPlaceholder();
       updateClicksCoverageStatus({ fromCache: false });
