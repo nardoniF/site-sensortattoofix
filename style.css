@@ -6433,6 +6433,9 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .status-badge.paid { background: rgba(37,211,102,0.15); color: #25d366; }
 .status-badge.status-pending,
 .status-badge.pending_payment { background: rgba(255,193,7,0.15); color: var(--primary); }
+.status-badge.status-cancelled,
+.status-badge.cancelled,
+.status-badge.refunded { background: rgba(198, 40, 40, 0.18); color: #ff8a80; }
 .status-badge i { font-size: 0.62rem; }
 .pedidos-page .admin-panel-actions {
     display: flex;
@@ -6465,6 +6468,19 @@ body.admin-page.pedidos-login-only #pedidos-login {
   max-height: 4.2rem;
   overflow: hidden;
 }
+.btn-admin-cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid #8b1e1e;
+    background: transparent;
+    color: #ff8a80;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+.btn-admin-cancel:hover { background: rgba(198, 40, 40, 0.15); }
 .btn-confirm-pay {
     background: #25d366;
     color: #000;

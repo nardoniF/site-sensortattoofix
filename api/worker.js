@@ -15614,6 +15614,65 @@ async function handleConfirmOrder(request, env, origin, orderId) {
   return json(await getOrder(env, orderId), 200, origin);
 }
 
+/**
+ * Admin: marca pedido da loja como cancelado/devolvido (soft).
+ * Não estorna gateway — só status p/ Vendas (risco + R$ 0 no saldo).
+ */
+async function handleAdminCancelOrder(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const st = String(order.status || '').toLowerCase();
+  if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'cancelled_by_user') {
+    return json({ ok: true, order: publicOrderView(order), already: true }, 200, origin);
+  }
+  if (st !== 'paid' && st !== 'shipped' && st !== 'delivered' && st !== 'fulfilled') {
+    return json({
+      error: 'Só pedidos pagos (ou já enviados) podem ser marcados cancelados aqui. Pendente: use exclusão ou o cancelamento do cliente.'
+    }, 400, origin);
+  }
+  const body = await request.json().catch(() => ({}));
+  const note = String(body.note || body.reason || '').trim().slice(0, 500);
+  const refundRaw = body.refundAmount != null ? Number(body.refundAmount) : Number(order.total);
+  const refundAmount = Number.isFinite(refundRaw) && refundRaw >= 0
+    ? Math.round(refundRaw * 100) / 100
+    : Math.round(Number(order.total || 0) * 100) / 100;
+  const returnCostRaw = body.returnCost != null ? Number(body.returnCost) : 0;
+  const returnCost = Number.isFinite(returnCostRaw) && returnCostRaw > 0
+    ? Math.round(returnCostRaw * 100) / 100
+    : 0;
+
+  order.cancelPreviousStatus = order.status;
+  order.status = 'cancelled';
+  order.cancelledAt = new Date().toISOString();
+  order.cancelledBy = 'admin';
+  order.cancelReason = note || 'admin_cancel';
+  order.cancelReasonNote = note || null;
+  order.refundAmount = refundAmount;
+  order.refunds = refundAmount;
+  if (returnCost > 0) order.returnCost = returnCost;
+  await saveOrder(env, order);
+
+  try {
+    const config = await getConfig(env);
+    await notifyShop(env, config, `Cancelado no Admin — ${order.orderId}`, {
+      Pedido: order.orderId,
+      Status: 'cancelled',
+      Cliente: order.nome,
+      Email: order.email,
+      'Valor devolvido': refundAmount,
+      'Custo devolução': returnCost || '—',
+      Nota: note || '—'
+    });
+  } catch (err) {
+    console.warn('Admin cancel shop email:', order.orderId, err.message);
+  }
+
+  return json({ ok: true, order: publicOrderView(order) }, 200, origin);
+}
+
 /** Reenvia e-mail consultivo de pedido pendente (PIX / cartão / PayPal). */
 async function handleResendPendingEmail(request, env, origin, orderId) {
   if (!(await isValidSession(env, bearerToken(request)))) {
@@ -19835,6 +19894,10 @@ export default {
       const confirmMatch = path.match(/^\/orders\/([^/]+)\/confirm$/);
       if (confirmMatch && request.method === 'POST') {
         return handleConfirmOrder(request, env, origin, confirmMatch[1]);
+      }
+      const adminCancelMatch = path.match(/^\/orders\/([^/]+)\/admin-cancel$/);
+      if (adminCancelMatch && request.method === 'POST') {
+        return handleAdminCancelOrder(request, env, origin, adminCancelMatch[1]);
       }
       const labelMatch = path.match(/^\/orders\/([^/]+)\/shipping-label$/);
       if (labelMatch && request.method === 'POST') {

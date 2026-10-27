@@ -223,10 +223,58 @@
   }
 
   function statusBadgeHtml(status) {
-    if (status === 'paid') {
+    const st = String(status || '').toLowerCase();
+    if (st === 'paid') {
       return '<span class="status-badge status-paid"><i class="fas fa-check-circle" aria-hidden="true"></i> Pago</span>';
     }
+    if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'cancelled_by_user') {
+      return '<span class="status-badge status-cancelled"><i class="fas fa-ban" aria-hidden="true"></i> Cancelado</span>';
+    }
     return '<span class="status-badge status-pending"><i class="fas fa-clock" aria-hidden="true"></i> Aguardando</span>';
+  }
+
+  async function adminCancelOrder(order) {
+    if (!order?.orderId) return;
+    const st = String(order.status || '').toLowerCase();
+    if (st !== 'paid' && st !== 'shipped' && st !== 'delivered' && st !== 'fulfilled') {
+      showStatus('Só dá pra cancelar pedido já pago.', 'error');
+      return;
+    }
+    const defaultRefund = Number(order.total || 0);
+    const refundStr = window.prompt(
+      `Cancelar/devolver ${order.orderId}?\n\nIsso NÃO estorna no Stripe/PayPal/MP automaticamente — só marca na loja (risco + R$ 0 nas Vendas).\n\nValor devolvido ao cliente (R$):`,
+      String(defaultRefund)
+    );
+    if (refundStr == null) return;
+    const refundAmount = Number(String(refundStr).replace(',', '.'));
+    if (!Number.isFinite(refundAmount) || refundAmount < 0) {
+      showStatus('Valor de devolução inválido.', 'error');
+      return;
+    }
+    const returnStr = window.prompt(
+      'Custo extra da devolução (frete de retorno etc.), em R$ — ou 0:',
+      '0'
+    );
+    if (returnStr == null) return;
+    const returnCost = Number(String(returnStr).replace(',', '.')) || 0;
+    const note = window.prompt('Motivo / nota (opcional):', '') || '';
+    if (!window.confirm(
+      `Confirma marcar ${order.orderId} como CANCELADO?\nDevolvido: ${formatBRL(refundAmount)}\nCusto extra: ${formatBRL(returnCost)}`
+    )) return;
+    try {
+      showStatus('Marcando cancelado…', '');
+      const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(order.orderId) + '/admin-cancel', {
+        method: 'POST',
+        headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refundAmount, returnCost, note })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao cancelar');
+      showStatus('Pedido marcado como cancelado (aparece riscado em Vendas).', 'success');
+      await loadOrders();
+    } catch (err) {
+      showStatus(err.message || 'Erro ao cancelar', 'error');
+    }
   }
 
   function watchModel(o) {
@@ -1925,7 +1973,12 @@
             const label = n > 1 ? `Cartas (${n})` : 'Carta';
             return `<button type="button" class="btn-print-letter" title="Cartas thank-you internacionais — ${n} folha(s)"><i class="fas fa-envelope-open-text"></i> ${label}</button>`;
           })() : ''}
-          ${o.status !== 'paid' ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">${/paypal/i.test(String(o.pagamento || o.paymentProvider || '')) ? 'Marcar pago' : 'Confirmar PIX'}</button>` : ''}
+          ${o.status === 'paid' || o.status === 'shipped' || o.status === 'delivered' || o.status === 'fulfilled'
+            ? `<button type="button" class="btn-admin-cancel" title="Marcar cancelado/devolvido — risco nas Vendas, R$ 0 no saldo (não estorna gateway)"><i class="fas fa-ban"></i> Cancelar</button>`
+            : ''}
+          ${o.status !== 'paid' && !/cancel|refund/i.test(String(o.status || ''))
+            ? `<button type="button" class="btn-confirm-pay" data-order-id="${o.orderId}">${/paypal/i.test(String(o.pagamento || o.paymentProvider || '')) ? 'Marcar pago' : 'Confirmar PIX'}</button>`
+            : ''}
           </div>
         </td>
       `;
@@ -1964,6 +2017,11 @@
         } catch (err) {
           showStatus(err.message, 'error');
         }
+      });
+
+      tr.querySelector('.btn-admin-cancel')?.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        adminCancelOrder(o);
       });
 
       tr.addEventListener('click', () => showOrderDetails(o));

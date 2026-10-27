@@ -1409,8 +1409,8 @@
       gross,
       fees: paypalFee,
       shippingCost,
-      refunds: 0,
-      otherFees: 0,
+      refunds: Number(o.refundAmount ?? o.refunds ?? 0) || 0,
+      otherFees: Number(o.returnCost || 0) || 0,
       // líquido calculado na UI: bruto − frete (− comissão/estornos se houver)
       buyer: {
         id: o.userId || null,
@@ -1431,7 +1431,9 @@
   function isStoreSaleOrder(o) {
     if (!o) return false;
     const st = String(o.status || '').toLowerCase();
-    if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'abandoned') return false;
+    if (st === 'abandoned' || st === 'test' || st === 'pending_payment') return false;
+    // Pagos + cancelados/devolvidos (aparecem com risco; saldo 0 via isCancelledMarketplaceSale)
+    if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'cancelled_by_user') return true;
     return st === 'paid' || st === 'shipped' || st === 'delivered' || st === 'fulfilled';
   }
 
