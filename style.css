@@ -4936,6 +4936,35 @@ body.admin-page.pedidos-login-only #pedidos-login {
     background: #121212;
     font-size: 0.84rem;
 }
+.sales-tree-row--cancelled {
+    opacity: 0.72;
+    border-color: #5a3030;
+    background: #1a1010;
+}
+.sales-tree-row--cancelled .sales-tree-time,
+.sales-tree-row--cancelled .sales-tree-id,
+.sales-tree-row--cancelled .sales-tree-buyer,
+.sales-tree-row--cancelled .sales-tree-title,
+.sales-tree-row--cancelled .sales-tree-channel,
+.sales-tree-row--cancelled .sales-tree-money,
+.sales-tree-row--cancelled .sales-tree-net {
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+}
+.sales-tree-cancel-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #8b1e1e;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-decoration: none !important;
+    vertical-align: middle;
+    text-transform: uppercase;
+}
 .sales-tree-time { color: #aaa; font-variant-numeric: tabular-nums; }
 .sales-tree-id { color: #ccc; font-family: ui-monospace, monospace; font-size: 0.78rem; }
 .sales-tree-buyer { color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
