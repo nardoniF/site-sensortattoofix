@@ -12150,11 +12150,22 @@ async function fetchMercadoPagoBalance(token, userId, env, opts = {}) {
   return reportResult;
 }
 
+/** Saldo PayPal exige Transaction Search — não afeta checkout/Live auth. */
+function isOptionalGatewayBalanceError(gatewayId, rawError) {
+  const low = String(rawError || '').toLowerCase();
+  if (gatewayId === 'paypal') {
+    return low.includes('insufficient permissions')
+      || low.includes('authorization failed')
+      || (low.includes('permission') && !low.includes('client authentication'));
+  }
+  return false;
+}
+
 function humanizePaymentBalanceError(gatewayId, rawError) {
   const msg = String(rawError || '').trim();
   const low = msg.toLowerCase();
   if (gatewayId === 'paypal') {
-    if (low.includes('insufficient permissions') || low.includes('authorization failed') || low.includes('permission')) {
+    if (isOptionalGatewayBalanceError('paypal', msg)) {
       return 'Sem permissão de saldo no app PayPal (checkout funciona; saldo é permissão extra).';
     }
   }
@@ -12200,12 +12211,17 @@ function paymentBalanceFixHint(gatewayId, rawError) {
   return null;
 }
 
-function paymentBalanceStatus(check) {
+function paymentBalanceStatus(check, gatewayId) {
   if (!check?.configured) return 'off';
   if (!check.authOk) return 'error';
   if (check.sandbox || check.mode === 'sandbox' || check.mode === 'test') return 'warn';
   if (check.balance?.pending) return 'warn';
-  if (check.balance && check.balance.ok === false) return 'warn';
+  if (check.balance && check.balance.ok === false) {
+    if (check.balance.optional || isOptionalGatewayBalanceError(gatewayId, check.balance.error)) {
+      return 'ok';
+    }
+    return 'warn';
+  }
   return 'ok';
 }
 
@@ -12233,21 +12249,25 @@ function buildPaymentBalanceCard(id, label, check) {
   const statusLabel = check.sandbox || check.mode === 'sandbox'
     ? 'Sandbox'
     : (check.mode === 'test' ? 'Teste' : 'Produção');
+  const optionalBal = check.balance?.optional || isOptionalGatewayBalanceError(id, check.balance?.error);
   const lines = check.balance?.lines?.length
     ? [...check.balance.lines]
     : [humanizePaymentBalanceError(id, check.balance?.error) || 'Conta OK — saldo indisponível via API.'];
   const fixHint = check.balance?.fixHint || paymentBalanceFixHint(id, check.balance?.error);
-  if (fixHint && !check.balance?.lines?.length) lines.push('Como resolver: ' + fixHint);
+  if (fixHint && !check.balance?.lines?.length && !optionalBal) lines.push('Como resolver: ' + fixHint);
+  else if (fixHint && optionalBal && !check.balance?.lines?.length) {
+    lines.push('Opcional: ' + fixHint);
+  }
   return {
     id,
     label,
-    status: paymentBalanceStatus(check),
+    status: paymentBalanceStatus(check, id),
     statusLabel,
     lines,
     amounts: check.balance?.amounts || [],
     fixHint,
     asOf: check.balance?.asOf || null,
-    error: check.balance?.error || null
+    error: optionalBal ? null : (check.balance?.error || null)
   };
 }
 
@@ -12297,12 +12317,15 @@ function buildPaymentBalancesSummary(cards) {
   return { currencies, rows };
 }
 
-function appendBalanceDetailLines(check, detailLines) {
+function appendBalanceDetailLines(check, detailLines, gatewayId) {
   const lines = [...(detailLines || [])];
   if (check?.balance?.lines?.length) {
     check.balance.lines.forEach((l) => lines.push(`Saldo · ${l}`));
   } else if (check?.balance?.error) {
-    lines.push(`Saldo · ${check.balance.error}`);
+    if (check.balance.optional || isOptionalGatewayBalanceError(gatewayId, check.balance.error)) {
+      return lines.length ? lines : undefined;
+    }
+    lines.push(`Saldo · ${humanizePaymentBalanceError(gatewayId, check.balance.error)}`);
   }
   return lines.length ? lines : undefined;
 }
@@ -12398,34 +12421,54 @@ async function checkPayPalIntegration(env) {
     const accessToken = tokenMeta.accessToken;
     const grantedScope = tokenMeta.scope || '';
     let balance = { ok: false, lines: [], amounts: [], error: null };
-    try {
-      const balRes = await fetch(`${paypalBase(env)}/v1/reporting/balances`, {
-        headers: {
-          Authorization: 'Bearer ' + accessToken,
-          Accept: 'application/json',
-          'Accept-Language': 'en_US',
-          'Content-Type': 'application/json'
+    const hasBalanceScope = /\bbalances\/read\b/.test(grantedScope);
+    // Sem scope de saldo: não gasta subrequest — checkout Live já autenticou.
+    if (!hasBalanceScope) {
+      const errMsg = 'Authorization failed due to insufficient permissions.';
+      balance = {
+        ok: false,
+        optional: true,
+        lines: [],
+        amounts: [],
+        error: errMsg,
+        fixHint: (paymentBalanceFixHint('paypal', errMsg) || '')
+          + ' Token ainda sem scope balances/read — confira Transaction Search no app Live certo e aguarde até 9h.'
+      };
+    } else {
+      try {
+        const balRes = await fetch(`${paypalBase(env)}/v1/reporting/balances`, {
+          headers: {
+            Authorization: 'Bearer ' + accessToken,
+            Accept: 'application/json',
+            'Accept-Language': 'en_US',
+            'Content-Type': 'application/json'
+          }
+        });
+        const balData = await balRes.json().catch(() => ({}));
+        if (balRes.ok) balance = parsePayPalBalancePayload(balData);
+        else {
+          const errMsg = balData.message || balData.error_description || balData.details?.[0]?.issue || `HTTP ${balRes.status}`;
+          const optional = isOptionalGatewayBalanceError('paypal', errMsg);
+          balance = {
+            ok: false,
+            optional,
+            lines: [],
+            amounts: [],
+            error: errMsg,
+            fixHint: paymentBalanceFixHint('paypal', errMsg)
+          };
         }
-      });
-      const balData = await balRes.json().catch(() => ({}));
-      if (balRes.ok) balance = parsePayPalBalancePayload(balData);
-      else {
-        const errMsg = balData.message || balData.error_description || balData.details?.[0]?.issue || `HTTP ${balRes.status}`;
-        let fixHint = paymentBalanceFixHint('paypal', errMsg);
-        if (!/\bbalances\/read\b/.test(grantedScope)) {
-          fixHint = (fixHint ? fixHint + ' ' : '')
-            + 'Token ainda sem scope balances/read — confira Transaction Search no app Live certo e aguarde até 9h.';
-        }
+      } catch (err) {
+        const optional = isOptionalGatewayBalanceError('paypal', err.message);
         balance = {
           ok: false,
+          optional,
           lines: [],
           amounts: [],
-          error: errMsg,
-          fixHint
+          error: err.message,
+          fixHint: paymentBalanceFixHint('paypal', err.message)
         };
       }
-    } catch (err) {
-      balance = { ok: false, lines: [], amounts: [], error: err.message, fixHint: paymentBalanceFixHint('paypal', err.message) };
     }
     return {
       configured: true,
@@ -12818,13 +12861,16 @@ function buildIntegrationRows(env, config, checks) {
     let detail = `${paypal.mode === 'sandbox' ? 'Sandbox' : 'Live'} conectado`;
     const paypalAppLabel = String(config.payments?.paypal?.appLabel || '').trim();
     if (paypalAppLabel) detail += ` · ${paypalAppLabel}`;
+    const paypalBalWarn = paypal.balance?.ok === false
+      && !paypal.balance?.optional
+      && !isOptionalGatewayBalanceError('paypal', paypal.balance?.error);
     rows.push({
       id: 'paypal',
       label: 'PayPal',
       description: 'Pagamentos internacionais',
-      status: paypal.sandbox ? 'warn' : (paypal.balance?.ok === false ? 'warn' : 'ok'),
+      status: paypal.sandbox ? 'warn' : (paypalBalWarn ? 'warn' : 'ok'),
       detail,
-      detailLines: appendBalanceDetailLines(paypal)
+      detailLines: appendBalanceDetailLines(paypal, undefined, 'paypal')
     });
   }
 
