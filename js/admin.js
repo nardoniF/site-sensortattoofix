@@ -1057,6 +1057,22 @@
     return /cancel|invalid|refund/.test(st);
   }
 
+  /** Alias: cancelada fica na lista (risco), mas saldo/qtd dos totais = 0. */
+  function isCancelledMarketplaceSale(sale) {
+    return isDroppedMarketplaceSale(sale);
+  }
+
+  function saleRowCancelledClass(sale) {
+    return sale?._cancelled || isCancelledMarketplaceSale(sale)
+      ? ' sales-tree-row--cancelled'
+      : '';
+  }
+
+  function saleCancelBadgeHtml(sale) {
+    if (!(sale?._cancelled || isCancelledMarketplaceSale(sale))) return '';
+    return '<span class="sales-tree-cancel-badge" title="Cancelada / reembolsada — não entra no saldo">Cancelada</span>';
+  }
+
   function saleListedGross(sale) {
     const fn = sm().saleListedGross;
     if (typeof fn === 'function') return fn(sale);
@@ -1194,7 +1210,9 @@
   }
 
   function renderSalesMoneyStats(list, meta, extraRowsHtml) {
-    const parts = (list || []).reduce((acc, x) => {
+    const active = (list || []).filter((x) => !isCancelledMarketplaceSale(x));
+    const cancelledCount = (list || []).length - active.length;
+    const parts = active.reduce((acc, x) => {
       const p = saleMoneyParts(x);
       acc.gross += p.gross;
       acc.fees += p.fees;
@@ -1209,13 +1227,17 @@
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
-    const itemCount = (list || []).reduce((n, s) => n + saleKitQty(s), 0);
-    const orderCount = (list || []).length;
+    const itemCount = active.reduce((n, s) => n + saleKitQty(s), 0);
+    const orderCount = active.length;
     const indexed = meta?.indexed != null && meta.indexed !== orderCount
       ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas`
       : '';
+    const cancelRow = cancelledCount > 0
+      ? `<div class="clicks-stats-row"><dt>Canceladas (lista)</dt><dd>${cancelledCount.toLocaleString('pt-BR')} · R$ 0 no saldo</dd></div>`
+      : '';
     return `
       <div class="clicks-stats-row"><dt>Vendas (itens)</dt><dd>${itemCount.toLocaleString('pt-BR')}${indexed}</dd></div>
+      ${cancelRow}
       <div class="clicks-stats-row"><dt>Preço</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) ${escapeHtml(meta?.feeLabel || 'Tarifa')}</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
@@ -1248,6 +1270,7 @@
       const ts = saleSoldTs(sale);
       if (!ts) return;
       const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
+      const cancelled = isCancelledMarketplaceSale(sale);
       const gross = saleListedGross(sale);
       const fees = Number(sale.fees || 0);
       const shipping = saleShippingCost(sale);
@@ -1262,7 +1285,21 @@
       const m = y.months[monthNum];
       if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, sales: [] };
       const d = m.days[dateKey];
-      d.sales.push({ ...sale, _ts: ts, _gross: gross, _fees: fees, _shipping: shipping, _refunds: refunds, _otherFees: otherFees, _cogs: cogs, _marketplace: marketplace, _net: net });
+      d.sales.push({
+        ...sale,
+        _ts: ts,
+        _cancelled: cancelled,
+        _gross: gross,
+        _fees: fees,
+        _shipping: shipping,
+        _refunds: refunds,
+        _otherFees: otherFees,
+        _cogs: cogs,
+        _marketplace: marketplace,
+        _net: net
+      });
+      // Cancelada: fica na lista, mas não soma qtd/saldo
+      if (cancelled) return;
       const qty = saleKitQty(sale);
       d.count += qty;
       d.gross += gross;
@@ -1372,8 +1409,8 @@
       gross,
       fees: paypalFee,
       shippingCost,
-      refunds: 0,
-      otherFees: 0,
+      refunds: Number(o.refundAmount ?? o.refunds ?? 0) || 0,
+      otherFees: Number(o.returnCost || 0) || 0,
       // líquido calculado na UI: bruto − frete (− comissão/estornos se houver)
       buyer: {
         id: o.userId || null,
@@ -1394,7 +1431,9 @@
   function isStoreSaleOrder(o) {
     if (!o) return false;
     const st = String(o.status || '').toLowerCase();
-    if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'abandoned') return false;
+    if (st === 'abandoned' || st === 'test' || st === 'pending_payment') return false;
+    // Pagos + cancelados/devolvidos (aparecem com risco; saldo 0 via isCancelledMarketplaceSale)
+    if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'cancelled_by_user') return true;
     return st === 'paid' || st === 'shipped' || st === 'delivered' || st === 'fulfilled';
   }
 
@@ -1467,9 +1506,11 @@
   function annotateSale(sale) {
     const ts = saleSoldTs(sale);
     const p = saleMoneyParts(sale);
+    const cancelled = isCancelledMarketplaceSale(sale);
     return {
       ...sale,
       _ts: ts,
+      _cancelled: cancelled,
       _gross: p.gross,
       _fees: p.fees,
       _shipping: p.shipping,
@@ -1483,6 +1524,7 @@
 
   function sumAnnotated(list) {
     return (list || []).reduce((acc, s) => {
+      if (s?._cancelled || isCancelledMarketplaceSale(s)) return acc;
       acc.count += saleKitQty(s);
       acc.gross += Number(s._gross || 0);
       acc.fees += Number(s._fees || 0);
@@ -1509,9 +1551,9 @@
     const title = sale.items?.[0]?.title || 'Venda';
     const buyer = sale.buyer?.nickname || '—';
     const channel = salesChannelLabel(sale.channel);
-    return `<li class="sales-tree-row sales-tree-row--consol">
+    return `<li class="sales-tree-row sales-tree-row--consol${saleRowCancelledClass(sale)}">
       <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
-      <span class="sales-tree-channel">${escapeHtml(channel)}</span>
+      <span class="sales-tree-channel">${escapeHtml(channel)}${saleCancelBadgeHtml(sale)}</span>
       <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
       <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
       <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
@@ -2643,6 +2685,7 @@
     const tot = sumAnnotated(sales);
     const byCh = {};
     (sales || []).forEach((s) => {
+      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
       const ch = s.channel || 'outro';
       if (!byCh[ch]) byCh[ch] = { count: 0, net: 0, gross: 0, fees: 0, shipping: 0 };
       byCh[ch].count += saleKitQty(s);
@@ -2712,9 +2755,9 @@
     if (!shopeeRes.ok) throw new Error(shopeeData.error || 'Falha ao carregar vendas Shopee');
     const ordersData = await ordersRes.json().catch(() => ({}));
     if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
-    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
-    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
+    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).map(annotateSale);
+    const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).map(annotateSale);
+    const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).map(annotateSale);
     const storeSales = (Array.isArray(ordersData) ? ordersData : [])
       .filter(isStoreSaleOrder)
       .map((o) => annotateSale(storeOrderToSale(o)));
@@ -2727,6 +2770,7 @@
     const buckets = new Map();
     (sales || []).forEach((s) => {
       if (!s._ts) return;
+      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
       const bucket = clicksPeriodBucket(s._ts, period);
       if (!buckets.has(bucket.key)) {
         buckets.set(bucket.key, {
@@ -2931,6 +2975,7 @@ ${worksheets}
     };
     (sales || []).forEach((s) => {
       if (!s._ts) return;
+      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
       const clock = brSaleClockParts(s._ts);
       let key;
       let label;
@@ -3209,9 +3254,9 @@ ${worksheets}
           d.sales.forEach((sale) => {
             const title = sale.items?.[0]?.title || fallbackTitle;
             const buyer = sale.buyer?.nickname || '—';
-            html += `<li class="sales-tree-row">
+            html += `<li class="sales-tree-row${saleRowCancelledClass(sale)}">
               <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
-              <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
+              <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}${saleCancelBadgeHtml(sale)}</span>
               <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
               <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
               ${renderSaleMoneyCols(sale, channel)}
@@ -3275,7 +3320,7 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = (Array.isArray(data.sales) ? data.sales : []).filter((s) => !isDroppedMarketplaceSale(s));
+      const sales = Array.isArray(data.sales) ? data.sales : [];
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       renderMlSalesStats(sales, meta);
       root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'mercadolivre' });
@@ -3334,7 +3379,7 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = (Array.isArray(data.sales) ? data.sales : []).filter((s) => !isDroppedMarketplaceSale(s));
+      const sales = Array.isArray(data.sales) ? data.sales : [];
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       renderAmzSalesStats(sales, meta);
       root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'amazon' });
@@ -3399,7 +3444,7 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = (Array.isArray(data.sales) ? data.sales : []).filter((s) => !isDroppedMarketplaceSale(s));
+      const sales = Array.isArray(data.sales) ? data.sales : [];
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
       const statsEl = document.getElementById('vendas-shopee-stats');
       if (statsEl) statsEl.innerHTML = renderSalesMoneyStats(sales, { ...meta, feeLabel: 'Tarifa Shopee' });

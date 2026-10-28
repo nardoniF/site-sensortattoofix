@@ -57,6 +57,14 @@ import {
   amzRound2
 } from './amazon-settlement.js';
 import {
+  isCancelledMarketplaceStatus,
+  mlOrderLooksCancelled,
+  mlRefundAmountFromOrder,
+  mlEffectiveSaleStatus,
+  amzEffectiveStatus,
+  shopeeEffectiveStatus
+} from './marketplace-cancel-status.js';
+import {
   CLICKS_CLOSED_MONTHS,
   CLICKS_TREE_DAYS_DEFAULT,
   clicksRetentionWindow,
@@ -5048,14 +5056,16 @@ function normalizeMlOrder(order) {
     marketplaceFee: p.marketplace_fee != null ? Number(p.marketplace_fee) : null
   }));
   const shippingHint = 0;
-  const net = Math.round((gross - fees) * 100) / 100;
+  const status = mlEffectiveSaleStatus(order, order.status || null);
+  const refunds = mlRefundAmountFromOrder(order, gross);
+  const net = Math.round((gross - fees - refunds) * 100) / 100;
   const soldAt = order.date_closed || order.date_created || null;
   return {
     channel: 'mercadolivre',
     externalId: String(order.id),
     packId: order.pack_id != null ? String(order.pack_id) : null,
     soldAt,
-    status: order.status || null,
+    status,
     tags: Array.isArray(order.tags) ? order.tags : [],
     currency: order.currency_id || 'BRL',
     gross,
@@ -5064,7 +5074,7 @@ function normalizeMlOrder(order) {
     net,
     shippingCost: null,
     shippingSource: 'unresolved',
-    refunds: 0,
+    refunds,
     otherFees: 0,
     buyer: {
       id: order.buyer?.id != null ? String(order.buyer.id) : null,
@@ -5507,10 +5517,10 @@ async function backfillMlZeroShipping(env, token, sellerId, index, limit) {
   return { filled, remaining };
 }
 
-async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit }) {
+async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit, status }) {
   const params = new URLSearchParams({
     seller: String(sellerId),
-    'order.status': 'paid',
+    'order.status': status || 'paid',
     sort: 'date_desc',
     offset: String(offset || 0),
     limit: String(limit || ML_SYNC_PAGE_LIMIT)
@@ -5528,6 +5538,54 @@ async function fetchMlOrdersPage(env, token, sellerId, { from, to, offset, limit
     throw err;
   }
   return data;
+}
+
+const ML_STATUS_REFRESH_LIMIT = 40;
+const ML_STATUS_REFRESH_LOOKBACK_DAYS = 180;
+
+/**
+ * Reconsulta pedidos já indexados: mediação/cancel no ML não volta no search paid.
+ * Só atualiza status/refunds — mantém frete/settlement já gravados.
+ */
+async function refreshMlIndexedSaleStatuses(env, token, index, options = {}) {
+  const limit = Math.min(80, Math.max(0, Number(options.limit != null ? options.limit : ML_STATUS_REFRESH_LIMIT)));
+  const lookbackDays = Math.min(
+    400,
+    Math.max(30, Number(options.lookbackDays != null ? options.lookbackDays : ML_STATUS_REFRESH_LOOKBACK_DAYS))
+  );
+  const cutoff = Date.now() - lookbackDays * 86400000;
+  let checked = 0;
+  let marked = 0;
+  for (const id of index || []) {
+    if (checked >= limit) break;
+    const existing = await loadMarketplaceSale(env, 'mercadolivre', id);
+    if (!existing) continue;
+    if (isCancelledMarketplaceStatus(existing.status)) continue;
+    const soldMs = Date.parse(existing.soldAt || existing.dateCreated || '') || 0;
+    if (soldMs && soldMs < cutoff) continue;
+    checked += 1;
+    const order = await fetchMlOrderById(token, id);
+    if (!order || !mlOrderLooksCancelled(order)) continue;
+    const fresh = normalizeMlOrder(order);
+    const next = {
+      ...existing,
+      status: fresh.status || 'cancelled',
+      tags: fresh.tags?.length ? fresh.tags : existing.tags,
+      payments: fresh.payments?.length ? fresh.payments : existing.payments,
+      refunds: Math.max(Number(existing.refunds || 0), Number(fresh.refunds || 0)),
+      dateLastUpdated: fresh.dateLastUpdated || existing.dateLastUpdated,
+      cancelledAt: fresh.dateLastUpdated || new Date().toISOString(),
+      syncedAt: new Date().toISOString()
+    };
+    if (Number(next.refunds || 0) > 0.009) {
+      const g = Number(next.gross || 0);
+      const fees = Number(next.fees || 0);
+      next.net = Math.round((g - fees - Number(next.refunds)) * 100) / 100;
+    }
+    await saveMarketplaceSale(env, next);
+    marked += 1;
+  }
+  return { checked, marked };
 }
 
 /**
@@ -5579,47 +5637,55 @@ async function syncMlOrders(env, options = {}) {
   let index = await getMlSalesIndex(env);
   let totalApi = null;
 
-  while (pages < maxPages) {
-    const data = await fetchMlOrdersPage(env, token, sellerId, {
-      from, to, offset, limit: ML_SYNC_PAGE_LIMIT
-    });
-    if (totalApi == null) totalApi = Number(data.paging?.total ?? 0);
-    const results = Array.isArray(data.results) ? data.results : [];
-    if (!results.length) break;
+  const config = await getConfig(env).catch(() => ({}));
+  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+  let enrichBudget = Math.max(0, Math.min(20, Number(options.enrichBudget != null ? options.enrichBudget : 12)));
 
-    const config = await getConfig(env).catch(() => ({}));
-    const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
-    let enrichBudget = Math.max(0, Math.min(20, Number(options.enrichBudget != null ? options.enrichBudget : 12)));
-
+  async function ingestMlOrderResults(results, { enrich }) {
     for (const order of results) {
       let sale = normalizeMlOrder(order);
       let existing = null;
       if (options.skipExistingRead !== true) {
         existing = await loadMarketplaceSale(env, 'mercadolivre', sale.externalId);
       }
-      const alreadyOk = mlHasSettlement(existing) && !mlNeedsPaymentEnrich(existing, flexCost);
-      const needs = !alreadyOk && (
-        !existing || mlNeedsPaymentEnrich(existing || sale, flexCost)
-      );
-      if (needs && enrichBudget > 0 && options.enrichShipping !== false) {
-        sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
-        enrichBudget -= 1;
-      } else if (existing && alreadyOk) {
+      const cancelled = isCancelledMarketplaceStatus(sale.status);
+      if (cancelled && existing) {
+        // Mantém settlement; só status/refunds do payload cancelado
         sale = {
-          ...sale,
-          shippingCost: existing.shippingCost,
-          shippingSource: existing.shippingSource,
-          fees: existing.fees,
-          net: existing.payoutNet || existing.net,
-          payoutNet: existing.payoutNet,
-          settlementOk: existing.settlementOk,
-          settlementVersion: existing.settlementVersion,
-          mlFlex: existing.mlFlex,
-          mlEstorno: existing.mlEstorno,
-          mlFlexListCost: existing.mlFlexListCost
+          ...existing,
+          status: sale.status,
+          tags: sale.tags?.length ? sale.tags : existing.tags,
+          payments: sale.payments?.length ? sale.payments : existing.payments,
+          refunds: Math.max(Number(existing.refunds || 0), Number(sale.refunds || 0)),
+          dateLastUpdated: sale.dateLastUpdated || existing.dateLastUpdated,
+          cancelledAt: sale.dateLastUpdated || new Date().toISOString(),
+          syncedAt: new Date().toISOString()
         };
+      } else if (!cancelled) {
+        const alreadyOk = mlHasSettlement(existing) && !mlNeedsPaymentEnrich(existing, flexCost);
+        const needs = enrich && !alreadyOk && (
+          !existing || mlNeedsPaymentEnrich(existing || sale, flexCost)
+        );
+        if (needs && enrichBudget > 0 && options.enrichShipping !== false) {
+          sale = await enrichMlSaleShippingCost(env, token, sale, sellerId);
+          enrichBudget -= 1;
+        } else if (existing && alreadyOk) {
+          sale = {
+            ...sale,
+            shippingCost: existing.shippingCost,
+            shippingSource: existing.shippingSource,
+            fees: existing.fees,
+            net: existing.payoutNet || existing.net,
+            payoutNet: existing.payoutNet,
+            settlementOk: existing.settlementOk,
+            settlementVersion: existing.settlementVersion,
+            mlFlex: existing.mlFlex,
+            mlEstorno: existing.mlEstorno,
+            mlFlexListCost: existing.mlFlexListCost
+          };
+        }
+        sale = mergeMlSaleShipping(existing, sale);
       }
-      sale = mergeMlSaleShipping(existing, sale);
       if (existing && marketplaceSaleUnchanged(existing, sale)) {
         unchanged += 1;
         continue;
@@ -5631,11 +5697,43 @@ async function syncMlOrders(env, options = {}) {
       next.unshift(sale.externalId);
       index = next.slice(0, ML_SALES_INDEX_MAX);
     }
+  }
 
+  while (pages < maxPages) {
+    const data = await fetchMlOrdersPage(env, token, sellerId, {
+      from, to, offset, limit: ML_SYNC_PAGE_LIMIT, status: 'paid'
+    });
+    if (totalApi == null) totalApi = Number(data.paging?.total ?? 0);
+    const results = Array.isArray(data.results) ? data.results : [];
+    if (!results.length) break;
+    await ingestMlOrderResults(results, { enrich: true });
     pages += 1;
     offset += results.length;
     const pagingTotal = Number(data.paging?.total ?? 0);
     if (offset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
+  }
+
+  // Cancelados/invalid: janela larga (search paid nunca traz de volta após mediação)
+  const cancelFrom = new Date(now.getTime() - Math.min(400, Math.max(days, ML_STATUS_REFRESH_LOOKBACK_DAYS)) * 86400000);
+  for (const cancelStatus of ['cancelled', 'invalid']) {
+    let cOffset = 0;
+    for (let cPage = 0; cPage < 3; cPage++) {
+      let data;
+      try {
+        data = await fetchMlOrdersPage(env, token, sellerId, {
+          from: cancelFrom, to, offset: cOffset, limit: ML_SYNC_PAGE_LIMIT, status: cancelStatus
+        });
+      } catch (err) {
+        console.warn('ML cancel search', cancelStatus, err.message || err);
+        break;
+      }
+      const results = Array.isArray(data.results) ? data.results : [];
+      if (!results.length) break;
+      await ingestMlOrderResults(results, { enrich: false });
+      cOffset += results.length;
+      const pagingTotal = Number(data.paging?.total ?? 0);
+      if (cOffset >= pagingTotal || results.length < ML_SYNC_PAGE_LIMIT) break;
+    }
   }
 
   const backfillLimit = Math.max(0, Number(
@@ -5646,6 +5744,17 @@ async function syncMlOrders(env, options = {}) {
     : { filled: 0, remaining: 0 };
   const shippingFilled = shippingReport.filled;
 
+  const statusRefreshLimit = Math.max(0, Number(
+    options.statusRefresh != null ? options.statusRefresh : ML_STATUS_REFRESH_LIMIT
+  ));
+  const statusRefresh = statusRefreshLimit > 0
+    ? await refreshMlIndexedSaleStatuses(env, token, index, {
+      limit: statusRefreshLimit,
+      lookbackDays: options.statusRefreshDays || ML_STATUS_REFRESH_LOOKBACK_DAYS
+    })
+    : { checked: 0, marked: 0 };
+  if (statusRefresh.marked > 0) updated += statusRefresh.marked;
+
   const report = {
     ok: true,
     sellerId,
@@ -5654,6 +5763,8 @@ async function syncMlOrders(env, options = {}) {
     to: to.toISOString(),
     pages,
     apiTotal: totalApi,
+    statusChecked: statusRefresh.checked,
+    statusCancelled: statusRefresh.marked,
     imported,
     updated,
     unchanged,
@@ -6083,12 +6194,13 @@ function normalizeAmzOrder(order, items, financeSummary, financesFetched) {
   const otherFees = financesFetched && fin ? amzRound2(fin.otherFees || 0) : 0;
   // Líquido = bruto − comissão − frete − estornos − outras taxas
   const net = amzRound2(gross - fees - shippingCost - refunds - otherFees);
+  const status = amzEffectiveStatus(order.OrderStatus, { hasRefund, refunds, gross });
   return {
     channel: 'amazon',
     externalId: String(order.AmazonOrderId || ''),
     packId: null,
     soldAt: order.PurchaseDate || order.LastUpdateDate || null,
-    status: order.OrderStatus || null,
+    status,
     tags: [order.FulfillmentChannel, order.SalesChannel].filter(Boolean),
     currency,
     gross: amzRound2(gross),
@@ -6206,7 +6318,10 @@ async function syncAmzOrders(env, options = {}) {
     apiTotal += orders.length;
     for (const order of orders) {
       if (!order?.AmazonOrderId) continue;
-      if (String(order.OrderStatus || '').toLowerCase() === 'canceled') continue;
+      const existing = await loadMarketplaceSale(env, 'amazon', order.AmazonOrderId);
+      const isCanceled = String(order.OrderStatus || '').toLowerCase() === 'canceled';
+      // Cancelado novo não entra; cancelado já indexado atualiza status (fica na lista zerado).
+      if (isCanceled && !existing) continue;
       let items = [];
       try {
         items = await amzFetchOrderItems(env, token, order.AmazonOrderId);
@@ -6220,9 +6335,16 @@ async function syncAmzOrders(env, options = {}) {
       } catch (err) {
         console.warn('Amazon finances', order.AmazonOrderId, err.message || err);
       }
-      const sale = normalizeAmzOrder(order, items, financeSummary, financesFetched);
+      let sale = normalizeAmzOrder(order, items, financeSummary, financesFetched);
       if (!sale.externalId) continue;
-      const existing = await loadMarketplaceSale(env, 'amazon', sale.externalId);
+      if (isCanceled && existing) {
+        sale = {
+          ...existing,
+          ...sale,
+          status: sale.status || 'Canceled',
+          cancelledAt: sale.dateLastUpdated || new Date().toISOString()
+        };
+      }
       if (existing && marketplaceSaleUnchanged(existing, sale)) unchanged += 1;
       else if (existing) updated += 1;
       else imported += 1;
@@ -6258,6 +6380,10 @@ async function syncAmzOrders(env, options = {}) {
       sale.pocketNet = amzRound2(fin.net);
       sale.financesOk = true;
       sale.hasRefund = hasRefund;
+      sale.status = amzEffectiveStatus(sale.status, { hasRefund, refunds, gross });
+      if (isCancelledMarketplaceStatus(sale.status) && !sale.cancelledAt) {
+        sale.cancelledAt = new Date().toISOString();
+      }
       sale.feesNote = null;
       sale.syncedAt = new Date().toISOString();
       await saveMarketplaceSale(env, sale);
@@ -6758,7 +6884,7 @@ function normalizeShopeeOrder(detail, escrow) {
     channel: 'shopee',
     externalId: String(order.order_sn || ''),
     soldAt: soldAtSec ? new Date(soldAtSec * 1000).toISOString() : null,
-    status: order.order_status || null,
+    status: shopeeEffectiveStatus(order.order_status || null, { refunds, gross }),
     currency: 'BRL',
     gross,
     fees: parts.fees,
@@ -6803,10 +6929,8 @@ async function fetchShopeeOrderSns(env, token, shopId, timeFrom, timeTo, timeRan
     const list = Array.isArray(data.response?.order_list) ? data.response.order_list : [];
     for (const row of list) {
       const status = String(row.order_status || '');
-      if (status && !SHOPEE_PAID_STATUSES.has(status) && status !== 'TO_RETURN' && status !== 'IN_CANCEL') {
-        if (status === 'UNPAID' || status === 'CANCELLED' || status === 'IN_CANCEL') continue;
-      }
-      if (status === 'UNPAID' || status === 'CANCELLED') continue;
+      // UNPAID nunca; CANCELLED/IN_CANCEL entram pra atualizar indexados (lista com risco).
+      if (status === 'UNPAID') continue;
       if (row.order_sn) sns.push(String(row.order_sn));
     }
     if (!data.response?.more) break;
@@ -6913,13 +7037,25 @@ async function syncShopeeOrders(env, options = {}) {
 
   for (const detail of details) {
     const status = String(detail.order_status || '');
-    if (status === 'UNPAID' || status === 'CANCELLED' || status === 'IN_CANCEL') continue;
+    if (status === 'UNPAID') continue;
+    const existing = await loadMarketplaceSale(env, 'shopee', detail.order_sn);
+    const isCancel = status === 'CANCELLED' || status === 'IN_CANCEL'
+      || isCancelledMarketplaceStatus(status);
+    // Cancelado novo não importa; cancelado já indexado atualiza status.
+    if (isCancel && !existing) continue;
     const escrow = detail.order_sn
       ? await fetchShopeeEscrow(env, token, shopId, detail.order_sn)
       : null;
-    const sale = normalizeShopeeOrder(detail, escrow);
+    let sale = normalizeShopeeOrder(detail, escrow);
     if (!sale.externalId) continue;
-    const existing = await loadMarketplaceSale(env, 'shopee', sale.externalId);
+    if (isCancel && existing) {
+      sale = {
+        ...existing,
+        ...sale,
+        status: sale.status || status || 'CANCELLED',
+        cancelledAt: new Date().toISOString()
+      };
+    }
     if (existing && marketplaceSaleUnchanged(existing, sale)) unchanged += 1;
     else if (existing) updated += 1;
     else imported += 1;
@@ -15524,6 +15660,65 @@ async function handleConfirmOrder(request, env, origin, orderId) {
   return json(await getOrder(env, orderId), 200, origin);
 }
 
+/**
+ * Admin: marca pedido da loja como cancelado/devolvido (soft).
+ * Não estorna gateway — só status p/ Vendas (risco + R$ 0 no saldo).
+ */
+async function handleAdminCancelOrder(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+  const st = String(order.status || '').toLowerCase();
+  if (st === 'cancelled' || st === 'canceled' || st === 'refunded' || st === 'cancelled_by_user') {
+    return json({ ok: true, order: publicOrderView(order), already: true }, 200, origin);
+  }
+  if (st !== 'paid' && st !== 'shipped' && st !== 'delivered' && st !== 'fulfilled') {
+    return json({
+      error: 'Só pedidos pagos (ou já enviados) podem ser marcados cancelados aqui. Pendente: use exclusão ou o cancelamento do cliente.'
+    }, 400, origin);
+  }
+  const body = await request.json().catch(() => ({}));
+  const note = String(body.note || body.reason || '').trim().slice(0, 500);
+  const refundRaw = body.refundAmount != null ? Number(body.refundAmount) : Number(order.total);
+  const refundAmount = Number.isFinite(refundRaw) && refundRaw >= 0
+    ? Math.round(refundRaw * 100) / 100
+    : Math.round(Number(order.total || 0) * 100) / 100;
+  const returnCostRaw = body.returnCost != null ? Number(body.returnCost) : 0;
+  const returnCost = Number.isFinite(returnCostRaw) && returnCostRaw > 0
+    ? Math.round(returnCostRaw * 100) / 100
+    : 0;
+
+  order.cancelPreviousStatus = order.status;
+  order.status = 'cancelled';
+  order.cancelledAt = new Date().toISOString();
+  order.cancelledBy = 'admin';
+  order.cancelReason = note || 'admin_cancel';
+  order.cancelReasonNote = note || null;
+  order.refundAmount = refundAmount;
+  order.refunds = refundAmount;
+  if (returnCost > 0) order.returnCost = returnCost;
+  await saveOrder(env, order);
+
+  try {
+    const config = await getConfig(env);
+    await notifyShop(env, config, `Cancelado no Admin — ${order.orderId}`, {
+      Pedido: order.orderId,
+      Status: 'cancelled',
+      Cliente: order.nome,
+      Email: order.email,
+      'Valor devolvido': refundAmount,
+      'Custo devolução': returnCost || '—',
+      Nota: note || '—'
+    });
+  } catch (err) {
+    console.warn('Admin cancel shop email:', order.orderId, err.message);
+  }
+
+  return json({ ok: true, order: publicOrderView(order) }, 200, origin);
+}
+
 /** Reenvia e-mail consultivo de pedido pendente (PIX / cartão / PayPal). */
 async function handleResendPendingEmail(request, env, origin, orderId) {
   if (!(await isValidSession(env, bearerToken(request)))) {
@@ -19745,6 +19940,10 @@ export default {
       const confirmMatch = path.match(/^\/orders\/([^/]+)\/confirm$/);
       if (confirmMatch && request.method === 'POST') {
         return handleConfirmOrder(request, env, origin, confirmMatch[1]);
+      }
+      const adminCancelMatch = path.match(/^\/orders\/([^/]+)\/admin-cancel$/);
+      if (adminCancelMatch && request.method === 'POST') {
+        return handleAdminCancelOrder(request, env, origin, adminCancelMatch[1]);
       }
       const labelMatch = path.match(/^\/orders\/([^/]+)\/shipping-label$/);
       if (labelMatch && request.method === 'POST') {
