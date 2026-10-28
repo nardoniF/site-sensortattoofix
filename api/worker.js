@@ -2583,6 +2583,20 @@ function hydrateIntlOrderFields(order) {
       }
     }
   }
+
+  // Checkout antigo: país sem zona de frete gravava o rótulo genérico "Internacional".
+  const iso = String(order.paisCode || '').trim().toUpperCase();
+  if (iso && iso !== 'BR' && iso !== 'OTHER' && iso !== 'XX' && iso !== 'T1') {
+    const proper = countryLabelPt(iso);
+    if (proper && /^internacional$/i.test(String(order.pais || '').trim())) {
+      order.pais = proper;
+      changed = true;
+    }
+    if (proper && /\bInternacional\b/i.test(String(order.endereco || ''))) {
+      order.endereco = String(order.endereco).replace(/\bInternacional\b/gi, proper);
+      changed = true;
+    }
+  }
   return { changed };
 }
 
