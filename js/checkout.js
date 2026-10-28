@@ -2692,11 +2692,29 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     throw new Error(L('shipping.cepInvalid'));
   }
 
+  /** Nome do país no pedido — nunca o fallback genérico "Internacional". */
+  function resolveOrderPaisLabel(paisCode) {
+    const code = String(paisCode || '').trim().toUpperCase();
+    if (!code || code === 'BR') return 'Brasil';
+    const zones = cfg.internationalShipping || {};
+    if (code === 'OTHER' || code === 'XX' || code === 'T1') {
+      return zones.OTHER?.label || 'Outro país';
+    }
+    const fromZone = zones[code]?.label;
+    if (fromZone && String(fromZone).trim() && !/^internacional$/i.test(fromZone)) {
+      return String(fromZone).trim();
+    }
+    try {
+      return new Intl.DisplayNames(['pt-BR'], { type: 'region' }).of(code) || code;
+    } catch {
+      return code;
+    }
+  }
+
   function collectOrderData() {
     const f = els.form;
     const paisCode = els.paisCode.value;
-    const intlZones = cfg.internationalShipping || {};
-    const paisLabel = paisCode === 'BR' ? 'Brasil' : (intlZones[paisCode]?.label || 'Internacional');
+    const paisLabel = resolveOrderPaisLabel(paisCode);
 
     let data;
     let endereco;
