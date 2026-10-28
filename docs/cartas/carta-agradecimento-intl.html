@@ -455,6 +455,7 @@
         <div class="section-bar" data-i18n="sectionNotes">Important usage notes</div>
         <ul>
           <li data-i18n="noteCharge">Wireless charging: Your Sensor TattooFix® lens is fully compatible with original OEM magnetic chargers. You do not need to remove the lens to charge.</li>
+          <li data-i18n="noteDualThickness">Two lenses? If your package includes two lenses of different thicknesses, start with the thicker 1 mm lens. Switch to the thinner 0.5 mm lens only if charging fails — the thicker lens works better with tattoos, so we try it first.</li>
           <li data-i18n="noteCure">Following the curing timeline above guarantees long-lasting adhesion even during high-intensity training.</li>
         </ul>
       </div>
@@ -539,6 +540,7 @@
       noteCharge: '<strong>Wireless charging:</strong> Your Sensor TattooFix® lens is fully compatible with original OEM magnetic chargers. You do not need to remove the lens to charge.',
       noteChargeWhoop: '<strong>Charging:</strong> Your Sensor TattooFix® lens is fully compatible with your Whoop battery pack — you do not need to remove the lens when charging.',
       noteChargeBand: '<strong>Charging:</strong> Follow your device maker\'s charging instructions — the lens is designed to stay in place during normal charging.',
+      noteDualThickness: '<strong>Two lenses?</strong> If your package includes two lenses of different thicknesses, start with the thicker 1&nbsp;mm lens. Switch to the thinner 0.5&nbsp;mm lens only if charging fails — the thicker lens works better with tattoos, so we try it first.',
       noteCure: 'Following the curing timeline above guarantees long-lasting adhesion even during high-intensity training.',
       support: 'If you have any questions or need assistance, feel free to contact us anytime at <strong>support@sensortattoofix.com</strong>.',
       signRegards: 'Best regards,',
@@ -587,6 +589,7 @@
       cure72h: '72 ore', cure72hCat: 'Esposizione all\'acqua', cure72hNote: 'Indurimento completo per nuoto o doccia.',
       sectionNotes: 'Note importanti',
       noteCharge: '<strong>Ricarica wireless:</strong> La lente Sensor TattooFix® è compatibile con i caricabatterie magnetici originali. Non serve rimuoverla per caricare.',
+      noteDualThickness: '<strong>Due lenti?</strong> Se nel pacco trovi due lenti di spessore diverso, inizia con quella da 1&nbsp;mm (più spessa). Passa a quella da 0,5&nbsp;mm solo se la ricarica non funziona — la lente più spessa funziona meglio con i tatuaggi, per questo la proviamo per prima.',
       noteCure: 'Rispettare i tempi di indurimento garantisce un\'adesione duratura anche durante allenamenti intensi.',
       support: 'Per domande o assistenza, contattaci in qualsiasi momento a <strong>support@sensortattoofix.com</strong>.',
       signRegards: 'Cordiali saluti,',
@@ -632,6 +635,7 @@
       cure72h: '72 ur', cure72hCat: 'Stik z vodo', cure72hNote: 'Polno strjevanje pred plavanjem ali tuširanjem.',
       sectionNotes: 'Pomembne opombe',
       noteCharge: '<strong>Brezžično polnjenje:</strong> Leča Sensor TattooFix® je popolnoma združljiva z originalnimi magnetnimi polnilci. Leče ni treba odstraniti za polnjenje.',
+      noteDualThickness: '<strong>Dve leči?</strong> Če sta v paketu dve leči različne debeline, najprej uporabite debelejšo 1&nbsp;mm. Na tanjšo 0,5&nbsp;mm preklopite le, če polnjenje ne deluje — debelejša bolje deluje s tetovažami, zato jo preizkusimo najprej.',
       noteCure: 'Upoštevanje časov strjevanja zagotavlja dolgotrajno oprijem tudi pri intenzivnem treningu.',
       support: 'Za vprašanja ali pomoč nas kadar koli kontaktirajte na <strong>support@sensortattoofix.com</strong>.',
       signRegards: 'Lep pozdrav,',
@@ -651,13 +655,13 @@
     }
   };
 
-  const HTML_I18N_KEYS = new Set(['noteCharge', 'noteCure', 'support', 'pocketPaste', 'body1Addon']);
+  const HTML_I18N_KEYS = new Set(['noteCharge', 'noteDualThickness', 'noteCure', 'support', 'pocketPaste', 'body1Addon']);
 
   let letterLocalesReady = false;
   async function ensureLetterLocales() {
     if (letterLocalesReady) return;
     try {
-      const res = await fetch('../data/letter-l10n.json?v=1', { cache: 'no-store' });
+      const res = await fetch('../data/letter-l10n.json?v=2', { cache: 'no-store' });
       if (res.ok) Object.assign(LETTER_COPY, await res.json());
     } catch (_) { /* ignore */ }
     letterLocalesReady = true;
