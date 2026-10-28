@@ -413,6 +413,32 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return ((cfg?.api?.baseUrl) || window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
   }
 
+  /** Reporta falha de pagamento ao Worker (e-mail + log admin). Nunca bloqueia o UX. */
+  function reportPaymentFailure(payload) {
+    try {
+      const base = apiBase();
+      if (!base) return;
+      const body = {
+        provider: payload?.provider || 'unknown',
+        stage: payload?.stage || 'other',
+        message: String(payload?.message || payload?.error || 'Falha de pagamento').slice(0, 500),
+        orderId: payload?.orderId || null,
+        currency: payload?.currency || displayCurrency || null,
+        lang: (typeof checkoutLocale === 'function' ? checkoutLocale() : null) || window.STF_I18N?.getLang?.() || null,
+        email: (els.email && els.email.value) || null,
+        nome: (els.nome && els.nome.value) || null,
+        href: location.pathname + location.search,
+        source: payload?.source || 'checkout'
+      };
+      fetch(base + '/payments/failure-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        keepalive: true
+      }).catch(() => {});
+    } catch (_) { /* ignore */ }
+  }
+
   function formatBRL(v) {
     return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
@@ -3218,6 +3244,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       showSelfTestSkip(result.order, orderId, accessToken, total);
       showStep(3);
     } catch (err) {
+      reportPaymentFailure({
+        provider: lastPaymentMethod === 'paypal' ? 'paypal'
+          : (lastPaymentMethod === 'credit_card' ? 'card' : (lastPaymentMethod === 'pix' ? 'pix' : 'order')),
+        stage: 'create',
+        message: err.message || L('alert.orderError'),
+        source: 'checkout-processPayment'
+      });
       await restoreCheckoutAfterPaymentAbort();
       alert(err.message || L('alert.orderError'));
     } finally {
@@ -3371,6 +3404,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (!mpState) return false;
 
     if (mpState === 'failure') {
+      reportPaymentFailure({
+        provider: 'mp',
+        stage: 'return',
+        message: L('alert.mpFail'),
+        orderId: params.get('orderId'),
+        source: 'checkout-mp-failure'
+      });
       alert(L('alert.mpFail'));
       history.replaceState({}, '', location.pathname);
       return true;
@@ -3476,6 +3516,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       return true;
     } catch (err) {
       history.replaceState({}, '', location.pathname);
+      reportPaymentFailure({
+        provider: 'paypal',
+        stage: 'capture',
+        message: err.message || L('alert.paypalConfirmError'),
+        orderId,
+        source: 'checkout-paypal-capture'
+      });
       const restored = await restoreCheckoutAfterPaymentAbort(orderId, accessToken);
       alert(restored ? `${err.message || L('alert.paypalConfirmError')}\n\n${L('alert.paypalCancelRetry')}` : (err.message || L('alert.paypalConfirmError')));
       return restored;

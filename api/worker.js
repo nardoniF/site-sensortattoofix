@@ -57,6 +57,10 @@ import {
   amzRound2
 } from './amazon-settlement.js';
 import {
+  recordPaymentFailure,
+  listPaymentFailures
+} from './payment-failures.js';
+import {
   CLICKS_CLOSED_MONTHS,
   CLICKS_TREE_DAYS_DEFAULT,
   clicksRetentionWindow,
@@ -13584,6 +13588,56 @@ async function notifyShop(env, config, subject, fields, content) {
   return notifyEmail(env, config, config.formsubmit?.email, subject, fields, null, content);
 }
 
+/** Log + e-mail (com cooldown) quando pagamento falha. Nunca lança. */
+async function alertPaymentFailure(env, request, payload, source = 'server') {
+  try {
+    const config = await getConfig(env);
+    return await recordPaymentFailure(
+      env,
+      config,
+      payload,
+      {
+        ip: clientIp(request),
+        host: request.headers.get('Host') || '',
+        source
+      },
+      notifyShop
+    );
+  } catch (err) {
+    console.warn('payment-fail alert:', err?.message || err);
+    return { ok: false, error: err?.message || 'fail' };
+  }
+}
+
+async function handlePaymentFailureReport(request, env, origin) {
+  const body = await request.json().catch(() => ({}));
+  const ip = clientIp(request);
+  const gateKey = `payment_fail:rl:${ip}`;
+  try {
+    const prev = await env.STORE_KV?.get(gateKey, 'json');
+    const count = Number(prev?.n) || 0;
+    if (count >= 20) {
+      return json({ ok: false, error: 'rate_limited' }, 429, origin);
+    }
+    await env.STORE_KV?.put(gateKey, JSON.stringify({ n: count + 1, at: Date.now() }), {
+      expirationTtl: 60 * 60
+    });
+  } catch (_) { /* ignore RL errors */ }
+
+  const result = await alertPaymentFailure(env, request, body, body?.source || 'client');
+  return json({ ok: !!result.ok, id: result.id || null, emailed: !!result.emailed }, result.ok ? 200 : 503, origin);
+}
+
+async function handleAdminPaymentFailures(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const url = new URL(request.url);
+  const limit = Number(url.searchParams.get('limit')) || 40;
+  const data = await listPaymentFailures(env, { limit });
+  return json({ ok: true, ...data }, 200, origin);
+}
+
 async function notifyCustomer(env, config, order, subject, fields, content) {
   const loc = orderCheckoutLocale(order);
   const nameKey = customerFieldLabel(loc);
@@ -15724,6 +15778,17 @@ async function handlePayPalCreate(request, env, origin, orderId) {
       approveUrl: payment.approveUrl || null
     }, 200, origin);
   } catch (err) {
+    await alertPaymentFailure(env, request, {
+      orderId,
+      provider: 'paypal',
+      stage: 'create',
+      message: err.message,
+      email: order.email,
+      nome: order.nome,
+      currency: order.chargeCurrency || order.displayCurrency || null,
+      lang: order.checkoutLocale || null,
+      source: 'server-paypal-create'
+    });
     return json({ error: err.message }, 400, origin);
   }
 }
@@ -15819,6 +15884,17 @@ async function handleStripePaymentIntent(request, env, origin, orderId) {
       returnUrl: `${returnBase}/comprar.html?stripe=return&orderId=${encodeURIComponent(order.orderId)}&accessToken=${encodeURIComponent(order.accessToken)}`
     }, 200, origin);
   } catch (err) {
+    await alertPaymentFailure(env, request, {
+      orderId,
+      provider: 'stripe',
+      stage: 'intent',
+      message: err.message,
+      email: order.email,
+      nome: order.nome,
+      currency: charge.currency || order.chargeCurrency || null,
+      lang: order.checkoutLocale || null,
+      source: 'server-stripe-pi'
+    });
     return json({ error: err.message }, 400, origin);
   }
 }
@@ -15887,6 +15963,17 @@ async function handleStripeCheckoutSession(request, env, origin, orderId) {
       sessionId: session.id
     }, 200, origin);
   } catch (err) {
+    await alertPaymentFailure(env, request, {
+      orderId,
+      provider: 'stripe',
+      stage: 'create',
+      message: err.message,
+      email: order.email,
+      nome: order.nome,
+      currency: charge.currency || order.chargeCurrency || null,
+      lang: order.checkoutLocale || null,
+      source: 'server-stripe-session'
+    });
     return json({ error: err.message }, 400, origin);
   }
 }
@@ -15987,9 +16074,31 @@ async function handlePayPalCapture(request, env, origin, orderId) {
         value: Number(result.value) || order.total
       });
     } else {
+      await alertPaymentFailure(env, request, {
+        orderId,
+        provider: 'paypal',
+        stage: 'capture',
+        message: `PayPal status ${result.status || 'unknown'}`,
+        email: order.email,
+        nome: order.nome,
+        currency: order.chargeCurrency || order.displayCurrency || null,
+        lang: order.checkoutLocale || null,
+        source: 'server-paypal-capture'
+      });
       return json({ error: 'Pagamento PayPal não concluído.', status: result.status }, 400, origin);
     }
   } catch (err) {
+    await alertPaymentFailure(env, request, {
+      orderId,
+      provider: 'paypal',
+      stage: 'capture',
+      message: err.message,
+      email: order.email,
+      nome: order.nome,
+      currency: order.chargeCurrency || order.displayCurrency || null,
+      lang: order.checkoutLocale || null,
+      source: 'server-paypal-capture'
+    });
     return json({ error: err.message }, 400, origin);
   }
 
@@ -19651,6 +19760,12 @@ export default {
         }
         const dailyWrites = await buildKvDailyWriteBudget(env);
         return json({ ok: true, dailyWrites, checkedAt: new Date().toISOString() }, 200, origin);
+      }
+      if (path === '/payments/failure-report' && request.method === 'POST') {
+        return handlePaymentFailureReport(request, env, origin);
+      }
+      if (path === '/admin/payment-failures' && request.method === 'GET') {
+        return handleAdminPaymentFailures(request, env, origin);
       }
       if ((path === '/admin/clicks/clear' && request.method === 'POST') ||
         (path === '/admin/clicks' && request.method === 'DELETE')) {

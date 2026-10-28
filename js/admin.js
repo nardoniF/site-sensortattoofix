@@ -116,6 +116,85 @@
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
 
+  function formatPayFailWhen(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    } catch {
+      return String(iso);
+    }
+  }
+
+  function renderPaymentFailAlert(data) {
+    const targets = [
+      document.getElementById('payment-fail-alert'),
+      document.getElementById('payment-fail-alert-pedidos')
+    ].filter(Boolean);
+    const last24h = Number(data?.last24h) || 0;
+    const items = Array.isArray(data?.items) ? data.items : [];
+    const tabBtn = document.querySelector('[data-admin-tab="cliques"]');
+    let badge = tabBtn?.querySelector('.admin-pay-fail-badge');
+    if (tabBtn) {
+      if (last24h > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'admin-pay-fail-badge';
+          badge.setAttribute('aria-label', 'Falhas de pagamento nas últimas 24h');
+          tabBtn.appendChild(badge);
+        }
+        badge.textContent = String(last24h > 99 ? '99+' : last24h);
+        badge.hidden = false;
+      } else if (badge) {
+        badge.hidden = true;
+      }
+    }
+    if (!targets.length) return;
+    if (last24h <= 0 && items.length === 0) {
+      targets.forEach((el) => {
+        el.hidden = true;
+        el.innerHTML = '';
+      });
+      return;
+    }
+    const by = data?.byProvider || {};
+    const byLine = Object.keys(by).length
+      ? Object.entries(by).map(([k, v]) => `${escapeHtml(k)}: ${v}`).join(' · ')
+      : '—';
+    const recent = items.slice(0, 12).map((it) => {
+      const who = [it.nome, it.email].filter(Boolean).join(' · ') || '—';
+      return `<li><strong>${escapeHtml(formatPayFailWhen(it.at))}</strong> — ${escapeHtml(it.provider)}/${escapeHtml(it.stage)}: ${escapeHtml(it.message)} <span class="admin-meta">(${escapeHtml(who)}${it.orderId ? ' · ' + escapeHtml(it.orderId) : ''})</span></li>`;
+    }).join('');
+    const html = `<div class="clicks-kv-flag clicks-kv--full" role="alert">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        <span><strong>Falha de pagamento:</strong> ${last24h} nas últimas 24h (${byLine}). E-mail enviado para a loja (com intervalo anti-spam).</span>
+      </div>
+      <details class="clicks-stats-details" ${last24h > 0 ? 'open' : ''}>
+        <summary class="clicks-stats-summary"><i class="fas fa-chevron-right clicks-stats-chevron" aria-hidden="true"></i> Log de falhas (${items.length})</summary>
+        <ul class="admin-pay-fail-list">${recent || '<li class="admin-meta">Sem registros recentes.</li>'}</ul>
+      </details>`;
+    targets.forEach((el) => {
+      el.hidden = false;
+      el.innerHTML = html;
+    });
+  }
+
+  async function loadPaymentFailures() {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) return;
+    try {
+      const res = await fetch(base.replace(/\/$/, '') + '/admin/payment-failures?limit=40', {
+        headers: { Authorization: 'Bearer ' + token },
+        cache: 'no-store'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Falha ao carregar alertas');
+      renderPaymentFailAlert(data);
+    } catch (err) {
+      console.warn('payment-failures:', err.message || err);
+    }
+  }
+
   function statusEl(target) {
     if (target === 'panel' || target === 'save') return els.statusPanel;
     if (target === 'top') return els.statusTop;
@@ -9254,6 +9333,7 @@ ${worksheets}
       if (saveActions) saveActions.hidden = !ADMIN_SAVE_TABS.has(id);
       try { localStorage.setItem('stf_admin_tab', id); } catch (e) { /* ignore */ }
       if (id === 'cliques') {
+        loadPaymentFailures().catch(() => {});
         syncClicksNavOnlyCheckbox();
         // Voltar na aba: restaura o que já tinha (não apaga nem trava de novo).
         if (clicksLoading) {
@@ -9279,6 +9359,7 @@ ${worksheets}
       else if (id === 'vendas') initVendasSubtabs();
       else if (id === 'pesquisa') loadFeedback();
       else if (id === 'pedidos') {
+        loadPaymentFailures().catch(() => {});
         window.STF_PEDIDOS?.refresh?.().catch((err) => {
           const st = document.getElementById('pedidos-orders-status');
           if (st) {
@@ -9439,6 +9520,7 @@ ${worksheets}
       wireSenderCepLookup();
       wireShippingUi();
       await loadShippingStatus();
+      loadPaymentFailures().catch(() => {});
       const vendasPanel = document.getElementById('admin-tab-vendas');
       if (vendasPanel && !vendasPanel.hidden) {
         loadMlSales(true).catch(() => {});

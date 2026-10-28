@@ -332,9 +332,38 @@ window.STF_INTL_PAY = (function () {
     return s.generic;
   }
 
-  function showStripeError(err) {
+  function reportPaymentFailure(payload) {
+    try {
+      const base = apiBase();
+      if (!base) return;
+      const body = {
+        provider: payload?.provider || 'unknown',
+        stage: payload?.stage || 'other',
+        message: String(payload?.message || payload?.error || 'Payment failed').slice(0, 500),
+        orderId: payload?.orderId || null,
+        lang: window.STF_I18N?.getLang?.() || null,
+        href: location.pathname + location.search,
+        source: payload?.source || 'checkout-intl'
+      };
+      fetch(base + '/payments/failure-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        keepalive: true
+      }).catch(() => {});
+    } catch (_) { /* ignore */ }
+  }
+
+  function showStripeError(err, orderId) {
     const box = document.getElementById('stripe-pay-error');
     const msg = friendlyPayMessage(err);
+    reportPaymentFailure({
+      provider: 'stripe',
+      stage: 'confirm',
+      message: String(err?.message || msg).slice(0, 500),
+      orderId: orderId || null,
+      source: 'intl-stripe-confirm'
+    });
     if (!box) { alert(msg); return; }
     box.textContent = msg;
     box.hidden = false;
@@ -395,6 +424,13 @@ window.STF_INTL_PAY = (function () {
         },
         onError: function (err) {
           console.error('PayPal:', err);
+          reportPaymentFailure({
+            provider: 'paypal',
+            stage: 'sdk',
+            message: String(err?.message || err || 'PayPal SDK error').slice(0, 500),
+            orderId,
+            source: 'intl-paypal-onError'
+          });
         }
       });
 
@@ -440,7 +476,7 @@ window.STF_INTL_PAY = (function () {
             }
           } catch (err) {
             console.error('Stripe:', err);
-            showStripeError(err);
+            showStripeError(err, orderId);
             confirmBtn.disabled = false;
           }
         };
