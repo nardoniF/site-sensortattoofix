@@ -1828,9 +1828,12 @@
           order.superfreteTrackingCode = data.trackingCode;
           order.correiosTrackingCode = data.trackingCode;
           order.correiosTrackingStatus = order.correiosTrackingStatus || 'Pré-postado';
+          order.superfreteCheckoutError = null;
+          order.superfreteCartError = null;
+        } else {
+          if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
+          if (data.cartError) order.superfreteCartError = data.cartError;
         }
-        if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
-        if (data.cartError) order.superfreteCartError = data.cartError;
         if (data.skipped) order.superfreteSkipped = data.message;
         const idx = allOrders.findIndex((x) => x.orderId === order.orderId);
         if (idx >= 0) Object.assign(allOrders[idx], {
@@ -1848,13 +1851,14 @@
         const panel = data.panelUrl || 'https://web.superfrete.com/#/minhas-etiquetas';
         const wallet = data.walletUrl || 'https://web.superfrete.com/#/carteira';
         const msg = data.message || data.error || 'Super Frete';
-        const needsPay = !!(data.checkoutError || data.cartError
+        const hasTrack = !!(data.trackingCode || order.superfreteTrackingCode || order.correiosTrackingCode);
+        const needsPay = !hasTrack && !!(data.checkoutError || data.cartError
           || (data.cartId && data.status && data.status !== 'released'));
-        showStatus(msg, data.skipped ? 'warn' : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success')));
-        if (!data.skipped) {
+        showStatus(msg, data.skipped ? 'warn' : (hasTrack ? 'success' : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success')));
+        if (!data.skipped && !hasTrack) {
           window.open(needsPay && (data.checkoutError || data.cartError) ? wallet : panel, '_blank', 'noopener');
         }
-        if (!data.skipped && data.status === 'released' && !data.trackingCode && !order.correiosTrackingCode) {
+        if (!data.skipped && !hasTrack && data.cartId) {
           pollSuperfreteTracking(order, document.getElementById('pedidos-order-modal-body'));
         }
         return;
