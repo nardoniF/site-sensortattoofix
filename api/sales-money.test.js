@@ -73,18 +73,21 @@ test('aggregateFlexOwedByMonth groups by BR month', () => {
   assert.equal(rows[0].bonus, 1.1);
   assert.equal(rows[0].net, 10.8);
   assert.deepEqual(rows[0].days, [15]);
-  assert.deepEqual(rows[0].dayEntries, [{ day: 15, count: 1 }]);
+  assert.deepEqual(rows[0].dayEntries, [{ day: 15, count: 1, bonus: 1.1, owed: 11.9 }]);
 });
 
 test('aggregateFlexOwedByMonth conta Flex por dia e formata (n) só se n > 1', () => {
   const rows = aggregateFlexOwedByMonth([
-    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-02T12:00:00-03:00') },
-    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-02T18:00:00-03:00') },
+    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 1.79, _ts: Date.parse('2026-09-02T12:00:00-03:00') },
+    { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 1.79, _ts: Date.parse('2026-09-02T18:00:00-03:00') },
     { channel: 'ml', mlFlex: true, mlFlexListCost: 11.9, mlEstorno: 0, _ts: Date.parse('2026-09-10T10:00:00-03:00') }
   ], config);
   assert.equal(rows[0].count, 3);
   assert.deepEqual(rows[0].days, [2, 10]);
-  assert.deepEqual(rows[0].dayEntries, [{ day: 2, count: 2 }, { day: 10, count: 1 }]);
+  assert.deepEqual(rows[0].dayEntries, [
+    { day: 2, count: 2, bonus: 3.58, owed: 23.8 },
+    { day: 10, count: 1, bonus: 0, owed: 11.9 }
+  ]);
   assert.equal(formatFlexDaysWithQty(rows[0].dayEntries), '2 (2) e 10');
 });
 
