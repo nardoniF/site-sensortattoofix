@@ -438,14 +438,23 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
     row.net += roundMoney(owed - bonus);
     const day = Number(p.day);
     if (Number.isFinite(day) && day > 0) {
-      row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+      const prev = row.dayCountMap.get(day) || { day, count: 0, bonus: 0, owed: 0 };
+      prev.count += 1;
+      prev.bonus = roundMoney(prev.bonus + bonus);
+      prev.owed = roundMoney(prev.owed + owed);
+      row.dayCountMap.set(day, prev);
     }
   });
   return [...map.values()]
     .map((r) => {
       const { dayCountMap, ...rest } = r;
-      const dayEntries = [...dayCountMap.entries()]
-        .map(([day, count]) => ({ day, count }))
+      const dayEntries = [...dayCountMap.values()]
+        .map((e) => ({
+          day: e.day,
+          count: e.count,
+          bonus: roundMoney(e.bonus),
+          owed: roundMoney(e.owed)
+        }))
         .sort((a, b) => a.day - b.day);
       return {
         ...rest,

@@ -5016,6 +5016,51 @@ body.admin-page.pedidos-login-only #pedidos-login {
     color: #c8c8c8;
     word-break: break-word;
 }
+.vendas-consol-flex-days-fold {
+    margin-top: 8px;
+    border-top: 1px solid #2a2a2a;
+    padding-top: 6px;
+}
+.vendas-consol-flex-days-fold > summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.72rem;
+    color: #aaa;
+    user-select: none;
+}
+.vendas-consol-flex-days-fold > summary::-webkit-details-marker { display: none; }
+.vendas-consol-flex-days-fold > summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.12s ease;
+}
+.vendas-consol-flex-days-fold[open] > summary::before { transform: rotate(90deg); }
+.vendas-consol-flex-day-table {
+    margin-top: 6px;
+    display: grid;
+    gap: 2px;
+}
+.vendas-consol-flex-day-row {
+    display: grid;
+    grid-template-columns: minmax(3.2rem, 1fr) 2.2rem minmax(4rem, 1.2fr) minmax(4rem, 1.2fr);
+    gap: 6px;
+    align-items: baseline;
+    font-size: 0.7rem;
+    color: #c8c8c8;
+}
+.vendas-consol-flex-day-row.is-head {
+    color: #888;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.vendas-consol-flex-day-q { text-align: right; font-variant-numeric: tabular-nums; }
+.vendas-consol-flex-day-b,
+.vendas-consol-flex-day-v {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
 .vendas-consol-flex-card .vendas-consol-mtd-net {
     color: #ffe082;
 }

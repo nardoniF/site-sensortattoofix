@@ -2509,14 +2509,23 @@
       row.net += roundMoneyLocal(owed - bonus);
       const day = Number(p.day);
       if (Number.isFinite(day) && day > 0) {
-        row.dayCountMap.set(day, (row.dayCountMap.get(day) || 0) + 1);
+        const prev = row.dayCountMap.get(day) || { day, count: 0, bonus: 0, owed: 0 };
+        prev.count += 1;
+        prev.bonus = roundMoneyLocal(prev.bonus + bonus);
+        prev.owed = roundMoneyLocal(prev.owed + owed);
+        row.dayCountMap.set(day, prev);
       }
     });
     return Array.from(map.values())
       .map((r) => {
         const { dayCountMap, ...rest } = r;
-        const dayEntries = [...dayCountMap.entries()]
-          .map(([day, count]) => ({ day, count }))
+        const dayEntries = [...dayCountMap.values()]
+          .map((e) => ({
+            day: e.day,
+            count: e.count,
+            bonus: roundMoneyLocal(e.bonus),
+            owed: roundMoneyLocal(e.owed)
+          }))
           .sort((a, b) => a.day - b.day);
         return { ...rest, days: dayEntries.map((e) => e.day), dayEntries };
       })
@@ -2578,17 +2587,38 @@
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
         const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
           ? m.dayEntries
-          : (m.days || []).map((d) => ({ day: d, count: 1 }));
-        const withLabel = formatFlexDaysWithQty(dayEntries);
-        const daysLine = withLabel
-          ? `<p class="vendas-consol-flex-days" title="Dias com envio Flex">com: ${escapeHtml(withLabel)}</p>`
+          : (m.days || []).map((d) => ({ day: d, count: 1, bonus: 0, owed: 0 }));
+        const dayRows = dayEntries.map((e) => {
+          const qty = Number(e.count) || 0;
+          const bonus = Number(e.bonus) || 0;
+          const owed = Number(e.owed) || 0;
+          return `<div class="vendas-consol-flex-day-row" role="row">
+            <span class="vendas-consol-flex-day-d" role="cell">dia ${escapeHtml(String(e.day))}</span>
+            <span class="vendas-consol-flex-day-q" role="cell">${qty}</span>
+            <span class="vendas-consol-flex-day-b" role="cell">${formatSalesBRL(bonus)}</span>
+            <span class="vendas-consol-flex-day-v" role="cell">${formatSalesBRL(owed)}</span>
+          </div>`;
+        }).join('');
+        const daysFold = dayEntries.length
+          ? `<details class="vendas-consol-flex-days-fold">
+              <summary>Por dia · ${dayEntries.length} dia${dayEntries.length === 1 ? '' : 's'}</summary>
+              <div class="vendas-consol-flex-day-table" role="table" aria-label="Flex por dia">
+                <div class="vendas-consol-flex-day-row is-head" role="row">
+                  <span role="columnheader">Dia</span>
+                  <span role="columnheader">Qtd</span>
+                  <span role="columnheader">Bônus</span>
+                  <span role="columnheader">Cobrado</span>
+                </div>
+                ${dayRows}
+              </div>
+            </details>`
           : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
         <p class="vendas-consol-mtd-count">${m.count}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
-        ${daysLine}
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
+        ${daysFold}
       </article>`;
       }).join('')}</div>`;
     return `<details class="admin-fold vendas-consol-flex-fold" id="vendas-consol-flex-fold" data-fold-key="vendas-flex">
