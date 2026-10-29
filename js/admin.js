@@ -2547,6 +2547,13 @@
   }
 
   /** Só mês atual + 2 anteriores (mesmo recorte do comparativo Dias 1–N). */
+  function salesForFlexOwed(sales) {
+    // Receita continua sem cancelados; cobrado Flex inclui Flex cancelado (ainda se paga).
+    const extra = Array.isArray(consolidatedFlexCancelledCache) ? consolidatedFlexCancelledCache : [];
+    if (!extra.length) return sales || [];
+    return [...(sales || []), ...extra];
+  }
+
   function flexOwedLastThreeMonths(sales) {
     const now = brDateParts(Date.now());
     const order = [0, -1, -2].map((delta) => {
@@ -2554,7 +2561,7 @@
       return `${ym.year}-${ym.monthNum}`;
     });
     const allowed = new Set(order);
-    const byKey = new Map(aggregateFlexOwedByMonth(sales).map((m) => [m.key, m]));
+    const byKey = new Map(aggregateFlexOwedByMonth(salesForFlexOwed(sales)).map((m) => [m.key, m]));
     return order.map((key) => {
       const hit = byKey.get(key);
       if (hit) return hit;
@@ -2742,7 +2749,13 @@
     if (!shopeeRes.ok) throw new Error(shopeeData.error || 'Falha ao carregar vendas Shopee');
     const ordersData = await ordersRes.json().catch(() => ({}));
     if (!ordersRes.ok) throw new Error(ordersData?.error || 'Falha ao carregar pedidos da loja');
-    const mlSales = (Array.isArray(mlData.sales) ? mlData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
+    const mlRaw = Array.isArray(mlData.sales) ? mlData.sales : [];
+    const mlSales = mlRaw.filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
+    // Só para o fold Flex: cancelado ainda gera cobrado. Não entra em receita/árvore/gráficos.
+    consolidatedFlexCancelledCache = mlRaw
+      .filter((s) => isDroppedMarketplaceSale(s) && isMlFlexSale(s))
+      .map(annotateSale)
+      .filter((s) => s._ts);
     const amzSales = (Array.isArray(amzData.sales) ? amzData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
     const shopeeSales = (Array.isArray(shopeeData.sales) ? shopeeData.sales : []).filter((s) => !isDroppedMarketplaceSale(s)).map(annotateSale);
     const storeSales = (Array.isArray(ordersData) ? ordersData : [])
@@ -3134,6 +3147,8 @@ ${worksheets}
   }
 
   let consolidatedSalesCache = null;
+  /** Flex cancelados: fora da receita/árvore, só entram no fold “a pagar” Flex. */
+  let consolidatedFlexCancelledCache = [];
   let vendasWhenFiltersWired = false;
 
   function wireVendasWhenFilters() {

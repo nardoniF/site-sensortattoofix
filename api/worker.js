@@ -4839,12 +4839,17 @@ function healMlStoredShipping(sale, flexCfg) {
   if (!sale) return sale;
   const ch = String(sale.channel || 'mercadolivre').toLowerCase();
   if (ch !== 'mercadolivre' && ch !== 'ml') return sale;
-  const flexList = mlMoney(sale.mlFlexListCost) || mlMoney(flexCfg);
+  // Só cura Flex já marcado (flag / source / logistic). Nunca inferir Flex por
+  // frete ≈ config — Array.map(heal) já passou o índice como flexCfg e inventou Flex.
+  const listed = mlMoney(sale.mlFlexListCost);
+  const flexList = listed > 0 ? listed : mlMoney(flexCfg);
   const shipRaw = sale.shippingCost;
   const ship = shipRaw == null || shipRaw === '' ? null : mlMoney(shipRaw);
-  const isFlex = sale.mlFlex
+  const isFlex = !!(
+    sale.mlFlex
+    || sale.shippingSource === 'flex'
     || /flex|self_service/i.test(String(sale.logisticType || ''))
-    || (flexList > 0 && ship != null && Math.abs(ship - flexList) <= 0.06);
+  );
   if (isFlex && flexList > 0) {
     const est = mlMoney(sale.mlEstorno);
     const nextShip = flexSellerCost(flexList, est);
@@ -4946,14 +4951,15 @@ async function loadMarketplaceSale(env, channel, saleId) {
 
 async function saveMarketplaceSale(env, sale) {
   if (!sale?.externalId) return false;
-  sale = healMlStoredShipping(sale);
+  const config = await getConfig(env).catch(() => ({}));
+  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+  sale = healMlStoredShipping(sale, flexCost);
   // Normalizar e anexar `payload.normalized` sem sobrescrever
   try {
     const [{ normalizeMarketplaceSale }, { calculateOrderFinancials }] = await Promise.all([
       import('./order-normalizer.js'),
       import('./order-financials.js')
     ]);
-    const config = await getConfig(env).catch(() => ({}));
     const normalized = normalizeMarketplaceSale(sale, config) || {};
     // enrich with financials
     try {
@@ -4984,9 +4990,12 @@ async function listMarketplaceSales(env, channel, limit) {
   const cap = Math.min(5000, Math.max(1, Number(limit) || 500));
   const fromD1 = await d1ListSales(env, channel, cap);
   if (fromD1.length) {
-    return String(channel).toLowerCase() === 'mercadolivre'
-      ? fromD1.map(healMlStoredShipping)
-      : fromD1;
+    const ch = String(channel).toLowerCase();
+    if (ch !== 'mercadolivre' && ch !== 'ml') return fromD1;
+    // NÃO usar .map(healMlStoredShipping): o 2º arg do map é o índice, não a config.
+    const config = await getConfig(env).catch(() => ({}));
+    const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+    return fromD1.map((sale) => healMlStoredShipping(sale, flexCost));
   }
   const idxKey = channel === 'mercadolivre'
     ? ML_SALES_INDEX_KEY
