@@ -9944,8 +9944,9 @@ function superfreteAutoCheckoutEnabled(env) {
 
 function isSuperfreteCartTerminalFailure(order) {
   const st = String(order?.superfreteCartStatus || '').toLowerCase();
+  // Só status morto no SF. Erro de checkout (ex.: sem saldo) NÃO mata o carrinho —
+  // a etiqueta pode ter sido paga no painel com cartão; recriar gerava duplicata.
   if (/cancel|reject|fail|expir|void|refund/.test(st)) return true;
-  if (order?.superfreteCheckoutError) return true;
   return false;
 }
 
@@ -9993,6 +9994,16 @@ async function refreshSuperfreteCartFromApi(env, order) {
     if (st) order.superfreteCartStatus = st;
     if (info?.price != null && Number.isFinite(Number(info.price))) {
       order.superfreteCartPrice = Number(info.price);
+    }
+    // Pago no painel: order/info já traz rastreio mesmo se o status local ainda era pending.
+    const tracking = extractSuperfreteTracking(info);
+    if (tracking) {
+      order.superfreteTrackingCode = tracking;
+      if (!order.correiosTrackingCode) order.correiosTrackingCode = tracking;
+      order.correiosTrackingStatus = order.correiosTrackingStatus || 'Pré-postado';
+      order.superfreteCheckoutError = null;
+      order.superfreteCartError = null;
+      if (!st || st === 'pending') order.superfreteCartStatus = 'released';
     }
     return info;
   } catch (err) {
@@ -10106,6 +10117,18 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
   const force = opts.force === true;
   const autoPay = superfreteAutoCheckoutEnabled(env);
 
+  // Já tem rastreio → só reconsultar; nunca POST /cart de novo.
+  const existingTrack = String(order.superfreteTrackingCode || order.correiosTrackingCode || '').trim();
+  if (!force && existingTrack) {
+    return {
+      ok: true,
+      alreadyExists: true,
+      id: order.superfreteCartId || null,
+      status: order.superfreteCartStatus || 'released',
+      trackingCode: existingTrack.toUpperCase()
+    };
+  }
+
   if (order.superfreteCartId && !force) {
     // Cancelou no painel SF? Nosso pedido ainda pode estar "released" — consulta a API.
     await refreshSuperfreteCartFromApi(env, order);
@@ -10123,17 +10146,28 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     if (isSuperfreteCartTerminalFailure(order) || mismatch) {
       clearSuperfreteCartFields(order, { clearTracking: true });
       await saveOrder(env, order);
-    } else if (st === 'released') {
-      // Checkout às vezes libera sem devolver o AV na hora — busca no order/info.
+    } else if (
+      order.superfreteTrackingCode
+      || order.correiosTrackingCode
+      || st === 'released'
+      || st === 'posted'
+      || st === 'delivered'
+      || st === 'completed'
+    ) {
+      // Pago no painel (cartão) ou API: limpa erro de saldo e busca rastreio.
+      order.superfreteCheckoutError = null;
+      order.superfreteCartError = null;
       if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
         // Liberação do AV no SF pode demorar; tenta ~20s aqui e o front continua tentando.
         await waitSuperfreteTracking(env, config, order, { attempts: 8, delayMs: 2500 });
+      } else {
+        await saveOrder(env, order);
       }
       return {
         ok: true,
         alreadyExists: true,
         id: order.superfreteCartId,
-        status: 'released',
+        status: order.superfreteCartStatus || 'released',
         trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
       };
     } else if (autoPay) {
