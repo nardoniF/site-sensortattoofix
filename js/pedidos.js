@@ -1778,10 +1778,9 @@
   async function printOrderLabel(order) {
     try {
       showStatus('Gerando etiqueta…', '');
-      const forceSf = !!(order.superfreteCheckoutError || order.superfreteCartError
-        || /cancel|reject|fail|expir/i.test(String(order.superfreteCartStatus || '')));
-      // Após cancelar no painel SF o status local ainda pode ser "released" — o Worker
-      // consulta a API e recria; force=1 só quando já sabemos que a etiqueta morreu.
+      // force=1 só se a etiqueta no SF morreu de verdade. Erro de saldo/checkout NÃO força
+      // recriação — senão paga/gera de novo em cima da etiqueta já feita no painel.
+      const forceSf = /cancel|reject|fail|expir|void|refund/i.test(String(order.superfreteCartStatus || ''));
       const labelUrl = apiBase() + '/orders/' + encodeURIComponent(order.orderId) + '/shipping-label'
         + (forceSf ? '?force=1' : '');
       const res = await fetch(labelUrl, {
@@ -1829,9 +1828,12 @@
           order.superfreteTrackingCode = data.trackingCode;
           order.correiosTrackingCode = data.trackingCode;
           order.correiosTrackingStatus = order.correiosTrackingStatus || 'Pré-postado';
+          order.superfreteCheckoutError = null;
+          order.superfreteCartError = null;
+        } else {
+          if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
+          if (data.cartError) order.superfreteCartError = data.cartError;
         }
-        if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
-        if (data.cartError) order.superfreteCartError = data.cartError;
         if (data.skipped) order.superfreteSkipped = data.message;
         const idx = allOrders.findIndex((x) => x.orderId === order.orderId);
         if (idx >= 0) Object.assign(allOrders[idx], {
@@ -1849,13 +1851,14 @@
         const panel = data.panelUrl || 'https://web.superfrete.com/#/minhas-etiquetas';
         const wallet = data.walletUrl || 'https://web.superfrete.com/#/carteira';
         const msg = data.message || data.error || 'Super Frete';
-        const needsPay = !!(data.checkoutError || data.cartError
+        const hasTrack = !!(data.trackingCode || order.superfreteTrackingCode || order.correiosTrackingCode);
+        const needsPay = !hasTrack && !!(data.checkoutError || data.cartError
           || (data.cartId && data.status && data.status !== 'released'));
-        showStatus(msg, data.skipped ? 'warn' : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success')));
-        if (!data.skipped) {
+        showStatus(msg, data.skipped ? 'warn' : (hasTrack ? 'success' : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success')));
+        if (!data.skipped && !hasTrack) {
           window.open(needsPay && (data.checkoutError || data.cartError) ? wallet : panel, '_blank', 'noopener');
         }
-        if (!data.skipped && data.status === 'released' && !data.trackingCode && !order.correiosTrackingCode) {
+        if (!data.skipped && !hasTrack && data.cartId) {
           pollSuperfreteTracking(order, document.getElementById('pedidos-order-modal-body'));
         }
         return;
