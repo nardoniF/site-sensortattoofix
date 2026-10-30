@@ -1,6 +1,7 @@
 (function () {
   const SESSION_KEY = 'stf_admin_token';
   const bootstrap = window.CONFIG_BOOTSTRAP || {};
+  const LEGACY_API_BASE = 'https://sensortattoofix-payments.sensortattoofix.workers.dev';
   const embedded = !!document.getElementById('admin-tab-pedidos');
   let allOrders = [];
   let wired = false;
@@ -27,11 +28,17 @@
     filterStatus: $('filter-status')
   };
 
+  function resolveApiBaseUrl(raw) {
+    const canonical = (bootstrap.configApiUrl || 'https://api.sensortattoofix.com.br').replace(/\/$/, '');
+    const url = String(raw || '').trim().replace(/\/$/, '');
+    if (!url || url === LEGACY_API_BASE) return canonical;
+    return url;
+  }
+
   function apiBase() {
-    const token = sessionStorage.getItem(SESSION_KEY);
-    const fromForm = document.querySelector('#admin-config-form [name="apiBaseUrl"]')?.value?.trim();
-    if (token && fromForm) return fromForm.replace(/\/$/, '');
-    return (bootstrap.configApiUrl || '').replace(/\/$/, '');
+    const loggedIn = !!sessionStorage.getItem(SESSION_KEY);
+    const fromForm = document.querySelector('#admin-config-form [name="apiBaseUrl"]')?.value;
+    return resolveApiBaseUrl((loggedIn && fromForm) || bootstrap.configApiUrl || '');
   }
 
   function showLoginView() {
