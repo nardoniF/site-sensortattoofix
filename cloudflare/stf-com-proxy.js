@@ -13,7 +13,7 @@ import {
   isBotUserAgent
 } from './geo-lang.js';
 
-const COMMIT = '70cc37099660ef4cc877dc5c0c3b388e8a28024e';
+const COMMIT = 'ef912b0da6dbe56e4b195a7fcf8ada0dcccc4ff6';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
