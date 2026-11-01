@@ -83,11 +83,13 @@ export function saleShippingCost(sale, config = null) {
   const s = roundMoney(sale?.shippingCost || 0);
   const ch = String(sale?.channel || '').toLowerCase();
   const isMl = ch === 'mercadolivre' || ch === 'ml';
+  const source = String(sale?.shippingSource || '');
+  const hasExplicitNonFlexSource = source === 'envios' || source === 'payment_fallback';
   const flexList = Number(sale?.mlFlexListCost || config?.mlFlexShippingCost || 0);
   const estorno = Number(sale?.mlEstorno || 0);
-  const isFlex = sale?.mlFlex
+  const isFlex = !hasExplicitNonFlexSource && (sale?.mlFlex
     || /flex|self_service/i.test(String(sale?.logisticType || ''))
-    || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06);
+    || (isMl && flexList > 0 && Math.abs(s - flexList) <= 0.06));
   if (isMl && isFlex && flexList > 0) {
     return roundMoney(Math.max(0, flexList - estorno));
   }
@@ -190,6 +192,7 @@ export function saleMoneyParts(sale, config = null) {
 export function isMlFlexSale(sale) {
   const ch = String(sale?.channel || '').toLowerCase();
   if (ch !== 'mercadolivre' && ch !== 'ml') return false;
+  if (sale?.shippingSource === 'envios' || sale?.shippingSource === 'payment_fallback') return false;
   if (sale?.mlFlex || sale?.shippingSource === 'flex') return true;
   return /flex|self_service/i.test(String(sale?.logisticType || ''));
 }
