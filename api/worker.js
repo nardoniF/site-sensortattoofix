@@ -4835,6 +4835,10 @@ const ML_SALES_INDEX_MAX = 5000;
 const ML_SYNC_PAGE_LIMIT = 50;
 const ML_SYNC_MAX_PAGES = 40;
 
+function hasExplicitNonFlexShippingSource(sale) {
+  return sale?.shippingSource === 'envios' || sale?.shippingSource === 'payment_fallback';
+}
+
 function healMlStoredShipping(sale, flexCfg) {
   if (!sale) return sale;
   const ch = String(sale.channel || 'mercadolivre').toLowerCase();
@@ -4842,9 +4846,9 @@ function healMlStoredShipping(sale, flexCfg) {
   const flexList = mlMoney(sale.mlFlexListCost) || mlMoney(flexCfg);
   const shipRaw = sale.shippingCost;
   const ship = shipRaw == null || shipRaw === '' ? null : mlMoney(shipRaw);
-  const isFlex = sale.mlFlex
+  const isFlex = !hasExplicitNonFlexShippingSource(sale) && (sale.mlFlex
     || /flex|self_service/i.test(String(sale.logisticType || ''))
-    || (flexList > 0 && ship != null && Math.abs(ship - flexList) <= 0.06);
+    || (flexList > 0 && ship != null && Math.abs(ship - flexList) <= 0.06));
   if (isFlex && flexList > 0) {
     const est = mlMoney(sale.mlEstorno);
     const nextShip = flexSellerCost(flexList, est);
@@ -5464,9 +5468,9 @@ async function upsertMlSale(env, sale, index) {
 function mlLooksFlexSale(sale, flexCost) {
   const list = mlMoney(sale?.mlFlexListCost) || mlMoney(flexCost);
   const ship = mlMoney(sale?.shippingCost);
-  return !!(sale?.mlFlex
+  return !!(!hasExplicitNonFlexShippingSource(sale) && (sale?.mlFlex
     || /flex|self_service/i.test(String(sale?.logisticType || ''))
-    || (list > 0 && Math.abs(ship - list) <= 0.06));
+    || (list > 0 && Math.abs(ship - list) <= 0.06)));
 }
 
 function mlNeedsPaymentEnrich(sale, flexCost) {
@@ -5801,10 +5805,10 @@ async function refillMlFlexBonus(env, sales, flexCost) {
   for (const sale of sales || []) {
     let s = healMlStoredShipping(sale, listCost);
     const list = mlMoney(s.mlFlexListCost) || listCost;
-    const looksFlex = s.mlFlex
+    const looksFlex = !hasExplicitNonFlexShippingSource(s) && (s.mlFlex
       || /flex|self_service/i.test(String(s.logisticType || ''))
       || (list > 0 && Math.abs(mlMoney(s.shippingCost) - list) <= 0.06)
-      || (list > 0 && Math.abs(mlMoney(sale.shippingCost) - list) <= 0.06);
+      || (list > 0 && Math.abs(mlMoney(sale.shippingCost) - list) <= 0.06));
     if (
       looksFlex
       && list > 0

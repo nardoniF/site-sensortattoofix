@@ -42,6 +42,25 @@ test('Flex: list − estorno and company owed uses list price', () => {
   assert.equal(isMlFlexSale(sale), true);
 });
 
+test('Envios com frete próximo ao custo Flex mantém origem Envios', () => {
+  const sale = {
+    channel: 'mercadolivre',
+    gross: 91,
+    fees: 16.38,
+    shippingCost: 12.95,
+    shippingSource: 'envios',
+    mlFlex: false,
+    mlEstorno: 12.95,
+    mlFlexListCost: null,
+    logisticType: null,
+    _ts: Date.parse('2026-10-20T20:55:30-03:00')
+  };
+  assert.equal(saleShippingCost(sale, { mlFlexShippingCost: 13 }), 12.95);
+  assert.equal(marketplaceSaleNet(sale, { mlFlexShippingCost: 13 }), 61.67);
+  assert.equal(isMlFlexSale(sale), false);
+  assert.equal(aggregateFlexOwedByMonth([sale], { mlFlexShippingCost: 13 }).length, 0);
+});
+
 test('Amazon-style sale: Bruto − Comissão − Frete − Outras = marketplace', () => {
   const sale = {
     channel: 'amazon',

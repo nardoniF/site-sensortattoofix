@@ -37,6 +37,7 @@ jobs:
           npx wrangler@latest deploy --config wrangler.toml
 
       - name: Backfill normalized (MercadoLivre)
+        if: ${{ !contains(github.event.head_commit.message || '', '[skip-backfill]') }}
         env:
           BACKFILL_KEY: ${{ secrets.BACKFILL_KEY }}
         run: |
