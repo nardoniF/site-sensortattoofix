@@ -211,6 +211,7 @@ function patchHtml(html, originPath, br) {
 function mimeFor(pathname) {
   if (pathname.endsWith('.css')) return 'text/css; charset=utf-8';
   if (pathname.endsWith('.js')) return 'application/javascript; charset=utf-8';
+  if (pathname.endsWith('.mjs')) return 'application/javascript; charset=utf-8';
   if (pathname.endsWith('.json')) return 'application/json; charset=utf-8';
   if (pathname.endsWith('.xml')) return 'application/xml; charset=utf-8';
   if (pathname.endsWith('.txt')) return 'text/plain; charset=utf-8';
