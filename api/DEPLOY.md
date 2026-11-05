@@ -142,6 +142,13 @@ Copie a URL (ex: `https://sensortattoofix-payments.xxx.workers.dev`) em:
 
 - `js/config-bootstrap.js` → `configApiUrl`
 
+### Deploy automático pelo GitHub Actions
+
+O workflow `Deploy & Backfill` usa Node.js 22 e precisa dos secrets de repositório
+`CF_API_TOKEN` e `CF_ACCOUNT_ID` (Cloudflare API Token com permissão de deploy e o
+ID da conta). Configure-os em **Settings → Secrets and variables → Actions**; não
+adicione os valores ao repositório.
+
 ## 6. Webhook Mercado Pago (PIX + cartão internacional)
 
 O mesmo webhook confirma PIX e pagamentos do **Checkout Pro** (cartão internacional no exterior).
