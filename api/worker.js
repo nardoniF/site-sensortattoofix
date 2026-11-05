@@ -86,6 +86,8 @@ import {
   isParticularDeliveryOrder,
   isSuperfreteMethod,
   isSuperfreteOrder,
+  normalizeSuperfreteTrackingCode,
+  superfreteTrackingUrl,
   isUberMethod,
   isUberOrder,
   normalizeCouponCode,
@@ -2895,7 +2897,15 @@ function generateOrderId() {
 }
 
 function orderTrackingCode(order) {
-  return String(order?.correiosTrackingCode || order?.superfreteTrackingCode || '').trim().toUpperCase() || null;
+  const code = isSuperfreteOrder(order)
+    ? order?.superfreteTrackingCode || order?.correiosTrackingCode
+    : order?.correiosTrackingCode || order?.superfreteTrackingCode;
+  return String(code || '').trim().toUpperCase() || null;
+}
+
+function trackingUrlForOrder(order, trackingCode, storeBase) {
+  if (isSuperfreteOrder(order)) return superfreteTrackingUrl(trackingCode);
+  return correiosTrackingUrl(trackingCode, storeBase);
 }
 
 function publicOrderView(order, { includePayment = false, includeResumeToken = false } = {}) {
@@ -2930,7 +2940,7 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     trackingCode,
     trackingStatus: order.status === 'paid' ? (order.correiosTrackingStatus || null) : null,
     trackingUrl: trackingCode
-      ? correiosTrackingUrl(trackingCode, customerSiteBase(order, DEFAULT_CONFIG))
+      ? trackingUrlForOrder(order, trackingCode, customerSiteBase(order, DEFAULT_CONFIG))
       : null,
     uberTrackingUrl: order.status === 'paid' ? (order.uberTrackingUrl || null) : null,
     canCancel: customerCanCancelOrder(order),
@@ -3807,9 +3817,9 @@ function paidReceiptCopy(order, config, message) {
         Status: 'BEZAHLT',
         Betrag: amount,
         Nachricht: message,
-        ...(order.correiosTrackingCode ? {
-          Sendungsverfolgung: order.correiosTrackingCode,
-          'Sendung verfolgen': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        ...(orderTrackingCode(order) ? {
+          Sendungsverfolgung: orderTrackingCode(order),
+          'Sendung verfolgen': trackingUrlForOrder(order, orderTrackingCode(order), customerSiteBase(order, config))
         } : {})
       },
       footerSite: 'sensortattoofix.com'
@@ -3824,9 +3834,9 @@ function paidReceiptCopy(order, config, message) {
         Estado: 'PAGADO',
         Importe: amount,
         Mensaje: message,
-        ...(order.correiosTrackingCode ? {
-          'Seguimiento de envío': order.correiosTrackingCode,
-          'Rastrear envío': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        ...(orderTrackingCode(order) ? {
+          'Seguimiento de envío': orderTrackingCode(order),
+          'Rastrear envío': trackingUrlForOrder(order, orderTrackingCode(order), customerSiteBase(order, config))
         } : {})
       },
       footerSite: 'sensortattoofix.com'
@@ -3841,9 +3851,9 @@ function paidReceiptCopy(order, config, message) {
         Status: 'OPŁACONE',
         Kwota: amount,
         Wiadomość: message,
-        ...(order.correiosTrackingCode ? {
-          'Śledzenie przesyłki': order.correiosTrackingCode,
-          'Śledź przesyłkę': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        ...(orderTrackingCode(order) ? {
+          'Śledzenie przesyłki': orderTrackingCode(order),
+          'Śledź przesyłkę': trackingUrlForOrder(order, orderTrackingCode(order), customerSiteBase(order, config))
         } : {})
       },
       footerSite: 'sensortattoofix.com'
@@ -3858,9 +3868,9 @@ function paidReceiptCopy(order, config, message) {
         Status: 'PLAČANO',
         Znesek: amount,
         Sporočilo: message,
-        ...(order.correiosTrackingCode ? {
-          'Sledenje pošiljke': order.correiosTrackingCode,
-          'Sledi pošiljki': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        ...(orderTrackingCode(order) ? {
+          'Sledenje pošiljke': orderTrackingCode(order),
+          'Sledi pošiljki': trackingUrlForOrder(order, orderTrackingCode(order), customerSiteBase(order, config))
         } : {})
       },
       footerSite: 'sensortattoofix.com'
@@ -3876,9 +3886,9 @@ function paidReceiptCopy(order, config, message) {
         Amount: amount,
         Message: message,
         ...(order.uberTrackingUrl ? { 'Uber tracking': order.uberTrackingUrl } : {}),
-        ...(order.correiosTrackingCode ? {
-          'Correios tracking': order.correiosTrackingCode,
-          'Track shipment': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        ...(orderTrackingCode(order) ? {
+          'Tracking code': orderTrackingCode(order),
+          'Track shipment': trackingUrlForOrder(order, orderTrackingCode(order), customerSiteBase(order, config))
         } : {})
       },
       footerSite: 'sensortattoofix.com'
@@ -3894,9 +3904,9 @@ function paidReceiptCopy(order, config, message) {
         Importo: amount,
         Messaggio: message,
         ...(order.uberTrackingUrl ? { 'Tracking Uber': order.uberTrackingUrl } : {}),
-        ...(order.correiosTrackingCode ? {
-          'Tracking Correios': order.correiosTrackingCode,
-          'Segui spedizione': correiosTrackingUrl(order.correiosTrackingCode, customerSiteBase(order, config))
+        ...(orderTrackingCode(order) ? {
+          'Codice tracking': orderTrackingCode(order),
+          'Segui spedizione': trackingUrlForOrder(order, orderTrackingCode(order), customerSiteBase(order, config))
         } : {})
       },
       footerSite: 'sensortattoofix.com'
@@ -3911,9 +3921,9 @@ function paidReceiptCopy(order, config, message) {
       Valor: amount,
       Mensagem: message,
       ...(order.uberTrackingUrl ? { 'Rastreio Uber': order.uberTrackingUrl } : {}),
-      ...(order.correiosTrackingCode ? {
-        'Rastreio Correios': order.correiosTrackingCode,
-        'Acompanhar envio': correiosTrackingUrl(order.correiosTrackingCode, config.siteUrl)
+      ...(orderTrackingCode(order) ? {
+        'Rastreio': orderTrackingCode(order),
+        'Acompanhar envio': trackingUrlForOrder(order, orderTrackingCode(order), config.siteUrl)
       } : {})
     },
     footerSite: 'sensortattoofix.com.br'
@@ -3965,12 +3975,14 @@ async function maybeNotifyTrackingAvailable(env, config, order) {
   if (!code || !orderWantsTrackingEmail(order) || order.trackingEmailSentAt) {
     return { skipped: true };
   }
-  if (!order.paidEmailsSentAt) return { skipped: true, reason: 'paid_email_pending' };
+  if (!order.paidEmailsSentAt && order.source !== 'manual') {
+    return { skipped: true, reason: 'paid_email_pending' };
+  }
 
   order.trackingEmailSentAt = new Date().toISOString();
   await saveOrder(env, order);
 
-  const trackUrl = correiosTrackingUrl(code, customerSiteBase(order, config));
+  const trackUrl = trackingUrlForOrder(order, code, customerSiteBase(order, config));
   const loc = orderCheckoutLocale(order);
   let subject;
   let message;
@@ -15325,14 +15337,21 @@ function applyOrderShippingManualUpdate(order, body) {
   let changed = false;
 
   if (body.trackingCode !== undefined) {
-    const trackingCode = String(body.trackingCode || '').trim().toUpperCase();
-    if (!trackingCode) {
+    const rawTrackingCode = String(body.trackingCode || '').trim();
+    const trackingCode = isSuperfreteOrder(order)
+      ? normalizeSuperfreteTrackingCode(rawTrackingCode)
+      : rawTrackingCode.toUpperCase();
+    if (!rawTrackingCode) {
       order.correiosTrackingCode = null;
+      if (isSuperfreteOrder(order)) order.superfreteTrackingCode = null;
       changed = true;
-    } else if (!CORREIOS_AV_RE.test(trackingCode)) {
+    } else if (!trackingCode || (isSuperfreteOrder(order)
+      ? !/^\d{14}$/.test(trackingCode)
+      : !CORREIOS_AV_RE.test(trackingCode))) {
       throw new Error('Código de rastreio inválido.');
     } else {
       order.correiosTrackingCode = trackingCode;
+      if (isSuperfreteOrder(order)) order.superfreteTrackingCode = trackingCode;
       order.correiosPrePostagemError = null;
       changed = true;
     }
@@ -15446,7 +15465,7 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
   const config = await getConfig(env);
-  const previousCode = order.correiosTrackingCode;
+  const previousCode = orderTrackingCode(order);
   try {
     applyOrderShippingManualUpdate(order, body);
 
@@ -15487,7 +15506,7 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
   }
   return json({
     ok: true,
-    trackingCode: order.correiosTrackingCode || null,
+    trackingCode: orderTrackingCode(order),
     correiosTrackingStatus: order.correiosTrackingStatus || null,
     shippingMethodId: order.shippingMethodId || null,
     shippingService: order.shippingService || null,

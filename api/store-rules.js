@@ -108,6 +108,24 @@ export function correiosTrackingUrl(trackingCode, storeBase) {
   return `${base}/rastreio.html?codigo=${encodeURIComponent(code)}`;
 }
 
+export function normalizeSuperfreteTrackingCode(value) {
+  const raw = String(value || '').trim();
+  if (/^\d{14}$/.test(raw)) return raw;
+  try {
+    const url = new URL(raw);
+    if (url.hostname.toLowerCase() !== 'rastreamento.superfrete.com') return '';
+    const code = url.hash.slice(1).trim();
+    return /^\d{14}$/.test(code) ? code : '';
+  } catch {
+    return '';
+  }
+}
+
+export function superfreteTrackingUrl(trackingCode) {
+  const code = normalizeSuperfreteTrackingCode(trackingCode);
+  return code ? `https://rastreamento.superfrete.com/#${code}` : '';
+}
+
 export function correiosOfficialTrackingUrl(trackingCode) {
   const code = String(trackingCode || '').trim().toUpperCase();
   if (!code) return 'https://rastreamento.correios.com.br/app/index.php';

@@ -20,7 +20,9 @@ import {
   isSuperfreteMethod,
   isUberOrder,
   normalizeCouponCode,
-  slugCouponId
+  slugCouponId,
+  normalizeSuperfreteTrackingCode,
+  superfreteTrackingUrl
 } from './store-rules.js';
 
 test('normalizeCouponCode strips junk and uppercases', () => {
@@ -81,6 +83,17 @@ test('Correios tracking URLs', () => {
     'https://www.sensortattoofix.com.br/rastreio.html?codigo=AA123BR'
   );
   assert.match(correiosOfficialTrackingUrl('AA123BR'), /objeto=AA123BR/);
+});
+
+test('SuperFrete accepts 14-digit codes and its tracking URL', () => {
+  const code = '13191900873048';
+  const url = `http://rastreamento.superfrete.com/#${code}`;
+  assert.equal(normalizeSuperfreteTrackingCode(code), code);
+  assert.equal(normalizeSuperfreteTrackingCode(url), code);
+  assert.equal(normalizeSuperfreteTrackingCode('https://example.com/#' + code), '');
+  assert.equal(normalizeSuperfreteTrackingCode('12345'), '');
+  assert.equal(superfreteTrackingUrl(code), `https://rastreamento.superfrete.com/#${code}`);
+  assert.equal(superfreteTrackingUrl(url), `https://rastreamento.superfrete.com/#${code}`);
 });
 
 test('externalTrackingLinks: nacional = Correios; internacional = 17TRACK + ParcelsApp', () => {
