@@ -335,6 +335,22 @@
     return false;
   }
 
+  function isManualIntlOrder(o) {
+    if (!isManualOrder(o)) return false;
+    const countryCode = String(o.paisCode || '').trim().toUpperCase();
+    const countryName = String(o.pais || '').trim().toLowerCase();
+    const service = String(o.shippingService || '');
+    const shipmentType = String(o.shipmentType || '');
+    const cepDigits = String(o.cep || '').replace(/\D/g, '');
+    return /internacional|international|exporta\s*f[aá]cil|documento\s+intern/i.test(service)
+      || shipmentType === 'documento'
+      || shipmentType === 'encomenda'
+      || !!o.internationalLensOnly
+      || (countryCode !== '' && countryCode !== 'BR')
+      || (countryName !== '' && !/^(br|brasil|brazil)$/i.test(countryName))
+      || (cepDigits !== '' && cepDigits.length !== 8);
+  }
+
   function isCorreiosLabelOrder(o) {
     return isCorreiosBrOrder(o) || isCorreiosIntlOrder(o);
   }
@@ -1920,7 +1936,7 @@
           ${isManualOrder(o) ? '<span class="pedidos-manual-pill" title="Lançamento avulso">Avulsa</span>' : ''}
           ${isManualOrder(o) ? '<button type="button" class="btn-edit-manual" title="Editar venda avulsa"><i class="fas fa-edit" aria-hidden="true"></i> Editar</button>' : ''}
           ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
-          ${o.status === 'paid' && isCorreiosIntlOrder(o) ? (() => {
+          ${o.status === 'paid' && (isCorreiosIntlOrder(o) || isManualIntlOrder(o)) ? (() => {
             const n = letterCountForOrder(o);
             const label = n > 1 ? `Cartas (${n})` : 'Carta';
             return `<button type="button" class="btn-print-letter" title="Cartas thank-you internacionais — ${n} folha(s)"><i class="fas fa-envelope-open-text"></i> ${label}</button>`;
