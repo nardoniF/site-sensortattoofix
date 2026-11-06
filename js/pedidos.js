@@ -9,6 +9,7 @@
   let manualCustomersLoading = null;
   let editingManualOrderId = null;
   const selectedOrderIds = new Set();
+  const printingLabelOrderIds = new Set();
   let lastRenderedOrders = [];
 
   function $(id) {
@@ -1853,19 +1854,21 @@
   }
 
   async function printOrderLabel(order) {
+    const orderId = String(order?.orderId || '');
+    if (!orderId || printingLabelOrderIds.has(orderId)) return;
+    printingLabelOrderIds.add(orderId);
     try {
       showStatus('Gerando etiqueta…', '');
-      const forceSf = !!(order.superfreteCheckoutError || order.superfreteCartError
-        || /cancel|reject|fail|expir/i.test(String(order.superfreteCartStatus || '')));
-      // Após cancelar no painel SF o status local ainda pode ser "released" — o Worker
-      // consulta a API e recria; force=1 só quando já sabemos que a etiqueta morreu.
       const labelUrl = apiBase() + '/orders/' + encodeURIComponent(order.orderId) + '/shipping-label'
-        + (forceSf ? '?force=1' : '');
       const res = await fetch(labelUrl, {
         method: 'POST',
         headers: adminAuthHeaders()
       });
       const data = await res.json().catch(() => ({}));
+      if (data.duplicateLabel) {
+        showStatus(data.error || data.message || 'Já existe etiqueta para esta pessoa. Nenhuma nova etiqueta foi criada.', 'warn');
+        return;
+      }
       if (data.mode === 'pdf' && data.pdfBase64) {
         openPdfBase64(data.pdfBase64, 'etiqueta-' + order.orderId + '.pdf');
         let trackingCode = data.trackingCode ? String(data.trackingCode).trim().toUpperCase() : null;
@@ -1954,6 +1957,8 @@
       } else {
         showStatus(humanizeCorreiosMsg(err.message || 'Erro ao gerar etiqueta', order), 'error');
       }
+    } finally {
+      printingLabelOrderIds.delete(orderId);
     }
   }
 

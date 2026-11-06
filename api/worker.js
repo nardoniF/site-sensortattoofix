@@ -18,6 +18,7 @@ import {
   d1SaveOrder,
   d1GetOrder,
   d1ListOrders,
+  d1FindOrdersWithShippingLabelForRecipient,
   d1DeleteOrder,
   d1OrdersForUser,
   d1OrderIdByTracking,
@@ -31,6 +32,12 @@ import {
   isD1ReadsExhausted,
   markD1ReadsExhausted
 } from './d1-store.js';
+import {
+  findExistingShippingLabel,
+  hasExistingShippingLabel,
+  sameShippingRecipient,
+  shippingLabelDuplicateMessage
+} from './shipping-label-guard.js';
 import {
   ML_SETTLEMENT_VERSION,
   mlMoney,
@@ -7218,6 +7225,11 @@ function buildIndexEntry(order) {
     nome: order.nome,
     email: order.email,
     telefone: order.telefone,
+    cep: order.cep,
+    rua: order.rua,
+    numero: order.numero,
+    cidade: order.cidade,
+    uf: order.uf,
     frete: order.frete,
     smartwatch: order.smartwatch,
     observacoes: trimObs(order) || null,
@@ -9406,6 +9418,26 @@ async function syncCorreiosTrackingCodeFromPrePostagem(token, order, env, opts =
   return code;
 }
 
+async function findExistingShippingLabelForRecipient(env, order) {
+  const storedOrders = await d1FindOrdersWithShippingLabelForRecipient(env, order);
+  const existing = findExistingShippingLabel(storedOrders, order);
+  if (existing) return existing;
+
+  let index = await readOrdersIndex(env);
+  if (!index.length) index = await rebuildOrdersIndexFromKv(env);
+  for (const item of index) {
+    if (!item?.orderId || item.orderId === order?.orderId || !sameShippingRecipient(item, order)) continue;
+    const candidate = await getOrder(env, item.orderId);
+    if (candidate && hasExistingShippingLabel(candidate) && sameShippingRecipient(candidate, order)) {
+      return candidate;
+    }
+  }
+  if (isD1ReadsExhausted()) {
+    throw new Error('Não foi possível confirmar todas as etiquetas anteriores; nenhuma nova etiqueta foi criada.');
+  }
+  return null;
+}
+
 async function ensureCorreiosPrePostagemForOrder(env, order, config) {
   if (orderLooksInternationalDestination(order) || isCorreiosIntlOrder(order)) {
     const hydrated = hydrateIntlOrderFields(order);
@@ -9436,6 +9468,26 @@ async function ensureCorreiosPrePostagemForOrder(env, order, config) {
       prePostagemId: order.correiosPrePostagemId,
       trackingCode: order.correiosTrackingCode || null,
       correiosFreteEstimado: order.correiosFreteEstimado ?? null
+    };
+  }
+  if (hasExistingShippingLabel(order)) {
+    return {
+      skipped: true,
+      reason: 'existing_order_label',
+      message: 'Este pedido já tem etiqueta ou rastreio registrado. Nenhuma nova etiqueta foi criada.'
+    };
+  }
+  const duplicate = await findExistingShippingLabelForRecipient(env, order);
+  if (duplicate) {
+    const message = shippingLabelDuplicateMessage(duplicate);
+    order.shippingLabelDuplicateOf = duplicate.orderId;
+    order.correiosPrePostagemError = message;
+    await saveOrder(env, order);
+    return {
+      skipped: true,
+      reason: 'existing_recipient_label',
+      existingOrderId: duplicate.orderId,
+      message
     };
   }
   const token = await getCorreiosToken(env);
@@ -9978,27 +10030,6 @@ async function superfreteCartMismatchPaidFrete(env, config, order) {
   return !!(expected && cartSvc && expected !== cartSvc);
 }
 
-function clearSuperfreteCartFields(order, { clearTracking = false } = {}) {
-  order.superfreteCartId = null;
-  order.superfreteCartStatus = null;
-  order.superfreteCartPrice = null;
-  order.superfreteCartAt = null;
-  order.superfreteCartError = null;
-  order.superfreteCheckoutError = null;
-  order.superfreteCheckout = null;
-  if (clearTracking) {
-    const sfTrack = String(order.superfreteTrackingCode || '').trim().toUpperCase();
-    const av = String(order.correiosTrackingCode || '').trim().toUpperCase();
-    order.superfreteTrackingCode = null;
-    if (sfTrack && av && sfTrack === av) {
-      order.correiosTrackingCode = null;
-      if (/pré-?postado|pre-?postado/i.test(String(order.correiosTrackingStatus || ''))) {
-        order.correiosTrackingStatus = null;
-      }
-    }
-  }
-}
-
 /** Consulta status real no Super Frete (cancelamento no painel não atualiza o pedido sozinho). */
 async function refreshSuperfreteCartFromApi(env, order) {
   const cartId = order?.superfreteCartId;
@@ -10109,7 +10140,7 @@ async function checkoutSuperfreteCart(env, config, order, cartId) {
   return paid;
 }
 
-async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
+async function createSuperfreteCartForOrder(env, config, order) {
   if (!isSuperfreteOrder(order) || !superfreteConfigured(env)) {
     return { skipped: true, reason: 'not_superfrete' };
   }
@@ -10119,11 +10150,9 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
     return { skipped: true, reason: 'self_test', message: order.superfreteSkipped };
   }
 
-  const force = opts.force === true;
   const autoPay = superfreteAutoCheckoutEnabled(env);
 
-  if (order.superfreteCartId && !force) {
-    // Cancelou no painel SF? Nosso pedido ainda pode estar "released" — consulta a API.
+  if (order.superfreteCartId) {
     await refreshSuperfreteCartFromApi(env, order);
     await saveOrder(env, order);
 
@@ -10137,8 +10166,13 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
       });
     }
     if (isSuperfreteCartTerminalFailure(order) || mismatch) {
-      clearSuperfreteCartFields(order, { clearTracking: true });
-      await saveOrder(env, order);
+      return {
+        skipped: true,
+        reason: 'existing_order_label',
+        id: order.superfreteCartId,
+        status: order.superfreteCartStatus,
+        message: 'Já existe uma etiqueta/carrinho para este pedido, mesmo com status de falha ou cancelamento. Nenhuma nova etiqueta foi criada.'
+      };
     } else if (st === 'released') {
       // Checkout às vezes libera sem devolver o AV na hora — busca no order/info.
       if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
@@ -10153,33 +10187,43 @@ async function createSuperfreteCartForOrder(env, config, order, opts = {}) {
         trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
       };
     } else if (autoPay) {
-      // Ainda pending: tenta pagar; se o carrinho morreu no Super Frete, limpa e recria.
       try {
         await checkoutSuperfreteCart(env, config, order, order.superfreteCartId);
         return { ok: true, alreadyExists: true, id: order.superfreteCartId, status: 'released', paid: true };
       } catch (err) {
-        const raw = String(err.message || '');
-        if (/cancel|404|not.?found|não.?encontr|nao.?encontr|invalid.?order|expired|gone/i.test(raw)) {
-          clearSuperfreteCartFields(order, { clearTracking: true });
-          await saveOrder(env, order);
-        } else {
-          order.superfreteCheckoutError = humanizeSuperfreteError(raw);
-          await saveOrder(env, order);
-          return {
-            ok: true,
-            alreadyExists: true,
-            id: order.superfreteCartId,
-            status: order.superfreteCartStatus,
-            checkoutError: order.superfreteCheckoutError
-          };
-        }
+        order.superfreteCheckoutError = humanizeSuperfreteError(err.message || '');
+        await saveOrder(env, order);
+        return {
+          ok: true,
+          alreadyExists: true,
+          id: order.superfreteCartId,
+          status: order.superfreteCartStatus,
+          checkoutError: order.superfreteCheckoutError
+        };
       }
-    } else if (order.superfreteCartId) {
+    } else {
       return { ok: true, alreadyExists: true, id: order.superfreteCartId, status: order.superfreteCartStatus };
     }
-  } else if (order.superfreteCartId && force) {
-    clearSuperfreteCartFields(order, { clearTracking: true });
+  }
+  if (hasExistingShippingLabel(order)) {
+    return {
+      skipped: true,
+      reason: 'existing_order_label',
+      message: 'Este pedido já tem etiqueta ou rastreio registrado. Nenhuma nova etiqueta foi criada.'
+    };
+  }
+  const duplicate = await findExistingShippingLabelForRecipient(env, order);
+  if (duplicate) {
+    const message = shippingLabelDuplicateMessage(duplicate);
+    order.shippingLabelDuplicateOf = duplicate.orderId;
+    order.superfreteCartError = message;
     await saveOrder(env, order);
+    return {
+      skipped: true,
+      reason: 'existing_recipient_label',
+      existingOrderId: duplicate.orderId,
+      message
+    };
   }
 
   const sender = config.shipping?.sender || DEFAULT_CONFIG.shipping.sender;
@@ -15128,13 +15172,14 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   }
   if (isSuperfreteOrder(order)) {
     const config = await getConfig(env);
-    const force = new URL(request.url).searchParams.get('force') === '1';
     try {
-      const created = await createSuperfreteCartForOrder(env, config, order, { force });
-      if (created?.skipped && created.reason === 'self_test') {
+      const created = await createSuperfreteCartForOrder(env, config, order);
+      if (created?.skipped) {
         return json({
           mode: 'superfrete',
           skipped: true,
+          duplicateLabel: created.reason === 'existing_recipient_label' || created.reason === 'existing_order_label',
+          existingOrderId: created.existingOrderId || null,
           panelUrl: 'https://web.superfrete.com/#/minhas-etiquetas',
           walletUrl: 'https://web.superfrete.com/#/carteira',
           message: created.message || order.superfreteSkipped
@@ -15153,8 +15198,7 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
           ? `Etiqueta Super Frete liberada. Rastreio: ${track}`
           : 'Etiqueta Super Frete paga/liberada. Imprima no painel Super Frete (rastreio ainda não disponível na API).';
       } else if (order.superfreteCartId) {
-        message = 'Pedido no carrinho Super Frete. Checkout automático só usa SALDO da carteira '
-          + '(cartão do painel não paga via API). Recarregue a carteira e clique Etiqueta de novo.';
+        message = created?.message || `Já existe etiqueta no carrinho Super Frete (status: ${order.superfreteCartStatus || 'pendente'}). Nenhuma nova etiqueta foi criada.`;
       } else {
         message = 'Não foi possível criar a etiqueta Super Frete.';
       }
@@ -15190,15 +15234,6 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
 
   const config = await getConfig(env);
   const ensureOnly = new URL(request.url).searchParams.get('ensure') === '1';
-  const token = await getCorreiosToken(env);
-  if (!token) {
-    return json({
-      error: 'Correios não configurado no Worker.',
-      mode: 'html_fallback',
-      useClient: true
-    }, 503, origin);
-  }
-
   try {
     const cachedPdf = await getCachedLabelPdf(env, orderId);
     if (cachedPdf) {
@@ -15213,7 +15248,25 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
       }, 200, origin);
     }
 
-    await ensureCorreiosPrePostagemForOrder(env, order, config);
+    const ensured = await ensureCorreiosPrePostagemForOrder(env, order, config);
+    if (ensured?.skipped && ensured.reason === 'existing_recipient_label') {
+      return json({
+        error: ensured.message,
+        duplicateLabel: true,
+        existingOrderId: ensured.existingOrderId
+      }, 409, origin);
+    }
+    if (ensured?.skipped && ensured.reason === 'existing_order_label') {
+      return json({ error: ensured.message, duplicateLabel: true }, 409, origin);
+    }
+    const token = await getCorreiosToken(env);
+    if (!token) {
+      return json({
+        error: 'Correios não configurado no Worker.',
+        mode: 'html_fallback',
+        useClient: true
+      }, 503, origin);
+    }
     const prePostagemId = order.correiosPrePostagemId;
     if (!prePostagemId) throw new Error('Pré-postagem não criada');
 

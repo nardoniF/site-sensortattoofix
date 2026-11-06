@@ -132,6 +132,58 @@ export async function d1ListOrders(env, limit = 2000) {
   }
 }
 
+export async function d1FindOrdersWithShippingLabelForRecipient(env, recipient) {
+  try {
+    const db = await ensureStoreD1(env);
+    if (!db) {
+      if (storeDb(env) && !d1ReadsExhausted) {
+        throw new Error('D1 indisponível para verificar etiquetas existentes.');
+      }
+      return [];
+    }
+
+    const clauses = [];
+    const values = [];
+    const email = String(recipient?.email || '').trim().toLowerCase();
+    const cpf = String(recipient?.cpf || '').replace(/\D/g, '');
+    const phone = String(recipient?.telefone || '').replace(/\D/g, '');
+    const jsonDigits = (path) => ['.', '-', '/', '(', ')', ' ', '+']
+      .reduce((expr, char) => `REPLACE(${expr}, '${char}', '')`, `json_extract(payload, '${path}')`);
+
+    if (email) {
+      clauses.push("lower(trim(json_extract(payload, '$.email'))) = ?");
+      values.push(email);
+    }
+    if (cpf.length === 11 || cpf.length === 14) {
+      clauses.push(`${jsonDigits('$.cpf')} = ?`);
+      values.push(cpf);
+    }
+    if (phone.length >= 10) {
+      clauses.push(`substr(${jsonDigits('$.telefone')}, -11) = ?`);
+      values.push(phone.slice(-11));
+    }
+    if (!clauses.length) return [];
+
+    const labels = [
+      'correiosPrePostagemId',
+      'superfreteCartId',
+      'correiosTrackingCode',
+      'superfreteTrackingCode',
+      'correiosLabelCachedAt'
+    ].map((field) => `COALESCE(json_extract(payload, '$.${field}'), '') <> ''`).join(' OR ');
+    const result = await db.prepare(`
+      SELECT payload FROM store_orders
+      WHERE (${clauses.join(' OR ')}) AND (${labels})
+      ORDER BY created_at DESC
+      LIMIT 50
+    `).bind(...values).all();
+    return (result.results || []).map((row) => parsePayload(row.payload)).filter(Boolean);
+  } catch (err) {
+    noteD1Error(err);
+    throw err;
+  }
+}
+
 export async function d1DeleteOrder(env, orderId) {
   try {
     const db = await ensureStoreD1(env);

@@ -6,6 +6,7 @@ import {
   d1GetAppKv,
   d1GetOrder,
   d1GetSale,
+  d1FindOrdersWithShippingLabelForRecipient,
   d1ListOrders,
   d1ListSaleIds,
   d1OrderIdByTracking,
@@ -83,6 +84,32 @@ function createMemoryD1() {
               return null;
             },
             async all() {
+              if (s.includes('FROM store_orders') && s.includes('correiosPrePostagemId')) {
+                let matches = [...orders.values()].map((row) => JSON.parse(row.payload));
+                let arg = 0;
+                const recipientMatches = [];
+                if (s.includes("lower(trim(json_extract(payload, '$.email')))")) {
+                  const email = String(a[arg++]).toLowerCase();
+                  recipientMatches.push((order) => String(order.email || '').trim().toLowerCase() === email);
+                }
+                if (s.includes("json_extract(payload, '$.cpf')")) {
+                  const cpf = String(a[arg++]);
+                  recipientMatches.push((order) => String(order.cpf || '').replace(/\D/g, '') === cpf);
+                }
+                if (s.includes("json_extract(payload, '$.telefone')")) {
+                  const phone = String(a[arg++]);
+                  recipientMatches.push((order) => String(order.telefone || '').replace(/\D/g, '').slice(-11) === phone);
+                }
+                matches = matches.filter((order) => recipientMatches.some((matchesRecipient) => matchesRecipient(order)));
+                matches = matches.filter((order) => [
+                  order.correiosPrePostagemId,
+                  order.superfreteCartId,
+                  order.correiosTrackingCode,
+                  order.superfreteTrackingCode,
+                  order.correiosLabelCachedAt
+                ].some(Boolean));
+                return { results: matches.map((payload) => ({ payload: JSON.stringify(payload) })) };
+              }
               if (s.includes('FROM store_orders WHERE user_id')) {
                 const rows = [...orders.values()]
                   .filter((r) => r.user_id === a[0])
@@ -136,6 +163,26 @@ test('d1 order save/get/list/delete/user/tracking', async () => {
   assert.equal(await d1GetOrder(env, 'ORD-1'), null);
 });
 
+test('d1 finds recipient labels without filtering shipment status', async () => {
+  const env = { CLICKS_DB: createMemoryD1() };
+  await d1SaveOrder(env, {
+    orderId: 'old-order',
+    status: 'cancelled',
+    email: 'cliente@example.com',
+    superfreteCartId: 'sf-old',
+    superfreteCartStatus: 'cancelled'
+  });
+  await d1SaveOrder(env, {
+    orderId: 'unlabeled-order',
+    status: 'paid',
+    email: 'cliente@example.com'
+  });
+  const matches = await d1FindOrdersWithShippingLabelForRecipient(env, {
+    email: 'CLIENTE@example.com'
+  });
+  assert.deepEqual(matches.map((order) => order.orderId), ['old-order']);
+});
+
 test('d1 sales save/get/ids/count and app kv', async () => {
   const env = { CLICKS_DB: createMemoryD1() };
   const sale = { channel: 'ML', externalId: '123', soldAt: '2026-08-01', gross: 80 };
@@ -155,5 +202,6 @@ test('d1 helpers no-op without database', async () => {
   assert.equal(await d1SaveOrder(env, { orderId: 'x' }), false);
   assert.equal(await d1GetOrder(env, 'x'), null);
   assert.deepEqual(await d1ListOrders(env), []);
+  assert.deepEqual(await d1FindOrdersWithShippingLabelForRecipient(env, { email: 'x@example.com' }), []);
   assert.equal(await d1CountSales(env, 'ml'), 0);
 });
