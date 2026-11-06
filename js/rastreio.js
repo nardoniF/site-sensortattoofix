@@ -21,6 +21,15 @@
     const c = normalizeCode(code);
     if (!c) return [];
     const q = encodeURIComponent(c);
+    if (/^\d{14}$/.test(c)) {
+      return [
+        {
+          id: 'superfrete',
+          label: 'SuperFrete',
+          url: `https://rastreamento.superfrete.com/#${c}`
+        }
+      ];
+    }
     if (isIntlTrackingCode(c)) {
       return [
         { id: '17track', label: '17TRACK', url: `https://www.17track.net/pt/track?nums=${q}` },

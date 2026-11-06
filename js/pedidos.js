@@ -431,6 +431,7 @@
   function entregaCell(o) {
     if (o.status !== 'paid') return '<small class="pedidos-track-muted">—</small>';
 
+    const superfreteCode = normalizeSuperfreteTrackingCode(o.superfreteTrackingCode || o.correiosTrackingCode);
     if (isUberOrder(o)) {
       const status = escHtml(o.uberDeliveryStatus || 'Solicitado');
       if (o.uberTrackingUrl) {
@@ -444,11 +445,11 @@
       return `<small class="pedidos-track-status">Motoboy</small><br><small>${notified}</small>`;
     }
 
-    if (isSuperfreteOrder(o)) {
+    if (isSuperfreteOrder(o) || superfreteCode) {
       if (o.superfreteSkipped) {
         return `<small class="pedidos-track-muted" title="${escAttr(o.superfreteSkipped)}">Teste — sem etiqueta SF</small>`;
       }
-      const track = o.superfreteTrackingCode || o.correiosTrackingCode;
+      const track = superfreteCode || o.superfreteTrackingCode || o.correiosTrackingCode;
       if (track) {
         const url = superfreteTrackingPageUrl(track);
         const tracking = url
@@ -560,10 +561,11 @@
 
   function manualShippingSection(o) {
     if (o.status !== 'paid') return '';
-    const isSuperfrete = isSuperfreteOrder(o);
+    if (isUberOrder(o) || isMotoboyOrder(o)) return '';
+    const currentTrackingCode = o.superfreteTrackingCode || o.correiosTrackingCode || '';
+    const isSuperfrete = isSuperfreteOrder(o) || !!normalizeSuperfreteTrackingCode(currentTrackingCode);
     const isBr = isCorreiosBrOrder(o);
     const isIntl = isCorreiosIntlOrder(o);
-    if (!isBr && !isIntl && !isSuperfrete) return '';
     const currentStatus = String(o.correiosTrackingStatus || '').trim();
     const statusOpts = CORREIOS_STATUS_OPTIONS.map((opt) => {
       const selected = opt.value && opt.value === currentStatus ? ' selected' : '';
@@ -583,12 +585,12 @@
     const manualAt = o.correiosManualUpdatedAt
       ? `<p class="pedidos-detail-muted">Última atualização manual: ${formatDate(o.correiosManualUpdatedAt)}</p>`
       : '';
-    const heading = isSuperfrete ? 'Atualizar rastreio SuperFrete' : isIntl ? 'Atualizar rastreio' : 'Atualização manual';
+    const heading = isSuperfrete ? 'Atualizar rastreio SuperFrete' : isIntl ? 'Atualizar rastreio internacional' : 'Rastreio manual do envio';
     const hint = isSuperfrete
       ? 'Cole o código de 14 dígitos ou o link do SuperFrete. Ao salvar, o código fica no pedido e o e-mail de rastreio é enviado à cliente.'
       : isIntl
         ? 'Cole o código completo dos Correios (13 caracteres, ex.: RN000689771BR). O e-mail de rastreio só é enviado na primeira vez que um código válido é salvo — cliques repetidos não reenviam.'
-      : 'Use quando a API Correios falhar ou o envio foi feito fora do contrato (ex.: PAC no balcão). O e-mail de rastreio só sai na primeira vez que o código é salvo.';
+      : 'Use quando a busca automática falhar ou o envio tiver sido feito fora da API. Aceita código Correios (13 caracteres), código SuperFrete (14 dígitos) ou o link SuperFrete.';
     const trackPlaceholder = isSuperfrete ? 'Ex.: 13191900873048 ou link SuperFrete'
       : isIntl ? 'Ex.: RN000689771BR' : 'Ex.: AP170797068BR';
     const brOnlyFields = isBr ? `
@@ -611,7 +613,7 @@
         <div class="pedidos-shipping-manual">
           <label class="pedidos-shipping-field">
             <span class="pedidos-shipping-label">Código rastreio</span>
-            <input type="text" class="pedidos-shipping-tracking" value="${trackingVal}" placeholder="${trackPlaceholder}" maxlength="${isSuperfrete ? 120 : 13}" />
+            <input type="text" class="pedidos-shipping-tracking" value="${trackingVal}" placeholder="${trackPlaceholder}" maxlength="120" />
           </label>
           <label class="pedidos-shipping-field">
             <span class="pedidos-shipping-label">Status entrega</span>
@@ -1364,19 +1366,18 @@
         feedbackEl.hidden = !msg;
       };
 
-      const isSuperfrete = isSuperfreteOrder(o);
-      const code = isSuperfrete
-        ? normalizeSuperfreteTrackingCode(trackingInput?.value)
-        : normalizeTrackingCode(trackingInput?.value);
-      if (isSuperfrete && String(trackingInput?.value || '').trim() && !code) {
+      const rawTracking = String(trackingInput?.value || '').trim();
+      const superfreteCode = normalizeSuperfreteTrackingCode(rawTracking);
+      const isSuperfrete = isSuperfreteOrder(o) || !!superfreteCode;
+      const code = isSuperfrete ? superfreteCode : normalizeTrackingCode(rawTracking);
+      if (isSuperfrete && rawTracking && !code) {
         showFeedback('Código SuperFrete inválido. Informe os 14 dígitos ou cole o link completo.', 'error');
         return;
       }
       if (trackingInput && code && code !== trackingInput.value) trackingInput.value = code;
       const payload = {};
-      const existingCode = isSuperfrete
-        ? normalizeSuperfreteTrackingCode(o.superfreteTrackingCode || o.correiosTrackingCode)
-        : normalizeTrackingCode(o.correiosTrackingCode);
+      const existingCode = normalizeSuperfreteTrackingCode(o.superfreteTrackingCode || o.correiosTrackingCode)
+        || normalizeTrackingCode(o.correiosTrackingCode);
       if (code !== existingCode) {
         if (!code) {
           showFeedback('Informe o código de rastreio.', 'error');
@@ -1541,7 +1542,9 @@
     if (!order || !data) return;
     if (data.trackingCode) {
       order.correiosTrackingCode = data.trackingCode;
-      if (isSuperfreteOrder(order)) order.superfreteTrackingCode = data.trackingCode;
+      if (isSuperfreteOrder(order) || normalizeSuperfreteTrackingCode(data.trackingCode)) {
+        order.superfreteTrackingCode = data.trackingCode;
+      }
       order.correiosPrePostagemError = null;
     }
     if (data.correiosTrackingStatus) order.correiosTrackingStatus = data.correiosTrackingStatus;

@@ -2904,14 +2904,16 @@ function generateOrderId() {
 }
 
 function orderTrackingCode(order) {
-  const code = isSuperfreteOrder(order)
+  const code = isSuperfreteOrder(order) || normalizeSuperfreteTrackingCode(order?.superfreteTrackingCode || order?.correiosTrackingCode)
     ? order?.superfreteTrackingCode || order?.correiosTrackingCode
     : order?.correiosTrackingCode || order?.superfreteTrackingCode;
   return String(code || '').trim().toUpperCase() || null;
 }
 
 function trackingUrlForOrder(order, trackingCode, storeBase) {
-  if (isSuperfreteOrder(order)) return superfreteTrackingUrl(trackingCode);
+  if (isSuperfreteOrder(order) || normalizeSuperfreteTrackingCode(trackingCode)) {
+    return superfreteTrackingUrl(trackingCode);
+  }
   return correiosTrackingUrl(trackingCode, storeBase);
 }
 
@@ -15391,20 +15393,20 @@ function applyOrderShippingManualUpdate(order, body) {
 
   if (body.trackingCode !== undefined) {
     const rawTrackingCode = String(body.trackingCode || '').trim();
-    const trackingCode = isSuperfreteOrder(order)
-      ? normalizeSuperfreteTrackingCode(rawTrackingCode)
-      : rawTrackingCode.toUpperCase();
+    const superfreteCode = normalizeSuperfreteTrackingCode(rawTrackingCode);
+    const isSuperfreteTracking = isSuperfreteOrder(order) || !!superfreteCode;
+    const trackingCode = isSuperfreteTracking ? superfreteCode : rawTrackingCode.toUpperCase();
     if (!rawTrackingCode) {
       order.correiosTrackingCode = null;
       if (isSuperfreteOrder(order)) order.superfreteTrackingCode = null;
       changed = true;
-    } else if (!trackingCode || (isSuperfreteOrder(order)
+    } else if (!trackingCode || (isSuperfreteTracking
       ? !/^\d{14}$/.test(trackingCode)
       : !CORREIOS_AV_RE.test(trackingCode))) {
       throw new Error('Código de rastreio inválido.');
     } else {
       order.correiosTrackingCode = trackingCode;
-      if (isSuperfreteOrder(order)) order.superfreteTrackingCode = trackingCode;
+      if (isSuperfreteTracking) order.superfreteTrackingCode = trackingCode;
       order.correiosPrePostagemError = null;
       changed = true;
     }
