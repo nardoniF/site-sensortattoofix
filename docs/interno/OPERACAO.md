@@ -186,6 +186,11 @@ Implementado. Painel: https://direct.uber.com · docs: https://developer.uber.co
 
 Implementado (só BR). Token: https://web.superfrete.com/#/integrations · docs: https://superfrete.readme.io/
 
+- Ao confirmar a compra, o Worker cria e registra um carrinho pendente; o checkout/pagamento é manual no painel.
+- No Admin, “Etiqueta” consulta por GET um carrinho já registrado; cria somente quando ainda não existe ID.
+- A criação usa lock persistente por pedido e preserva os detalhes de erro da API. O número do destinatário é limitado a 10 caracteres no payload.
+- Endereço pode ser corrigido no detalhe do pedido pelo Admin; a edição não altera um carrinho que já exista no painel Super Frete.
+
 ---
 
 ## Backup e recuperação

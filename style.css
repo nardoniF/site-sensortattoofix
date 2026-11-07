@@ -6798,7 +6798,14 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .pedidos-shipping-tracking,
 .pedidos-shipping-status,
 .pedidos-shipping-method,
-.pedidos-shipping-note {
+.pedidos-shipping-note,
+.pedidos-address-cep,
+.pedidos-address-rua,
+.pedidos-address-numero,
+.pedidos-address-complemento,
+.pedidos-address-bairro,
+.pedidos-address-cidade,
+.pedidos-address-uf {
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid #444;
@@ -6810,7 +6817,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
   font-family: ui-monospace, monospace;
   text-transform: uppercase;
 }
-.btn-save-shipping {
+.btn-save-shipping,
+.btn-save-order-address {
   padding: 8px 14px;
   border-radius: 8px;
   border: none;
@@ -6820,7 +6828,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
   cursor: pointer;
   flex: 0 0 auto;
 }
-.btn-save-shipping:disabled {
+.btn-save-shipping:disabled,
+.btn-save-order-address:disabled {
   opacity: 0.65;
   cursor: wait;
 }

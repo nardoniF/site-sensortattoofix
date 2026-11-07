@@ -457,8 +457,8 @@
           : escHtml(track);
         return `<small class="pedidos-track-status">${escHtml(o.shippingService || 'Super Frete')}</small><br><small>${tracking}</small>`;
       }
-      if (o.superfreteCartError || o.superfreteCheckoutError) {
-        const tip = o.superfreteCheckoutError || o.superfreteCartError;
+      if (o.superfreteCartError) {
+        const tip = o.superfreteCartError;
         return `<small class="pedidos-track-warn" title="${escAttr(tip)}">Falha SuperFrete — passe o mouse</small>`;
       }
       if (o.superfreteCartId) {
@@ -931,6 +931,39 @@
     return rows.join('');
   }
 
+  function addressEditSection(o) {
+    const field = (label, className, value, maxLength, placeholder = '') => `
+      <label class="pedidos-shipping-field">
+        <span class="pedidos-shipping-label">${label}</span>
+        <input type="text" class="pedidos-address-${className}" value="${escHtml(value || '')}"
+          maxlength="${maxLength}" placeholder="${placeholder}" />
+      </label>`;
+    const superfrete = isSuperfreteOrder(o);
+    return `
+      <details class="pedidos-fold pedidos-fold--address">
+        <summary class="pedidos-fold-summary">
+          <span>Corrigir endereço de entrega</span>
+          <i class="fas fa-chevron-down pedidos-fold-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="pedidos-fold-body pedidos-shipping-block">
+          ${superfrete && o.superfreteCartId
+            ? '<p class="pedidos-track-warn">Já existe um carrinho na Super Frete. Alterar este endereço atualiza o pedido, mas não altera o carrinho existente; corrija também no painel da transportadora.</p>'
+            : ''}
+          <div class="pedidos-shipping-manual">
+            ${field('CEP / Código postal', 'cep', o.cep || o.postalCode || o.postal, 24)}
+            ${field('Rua / Endereço', 'rua', o.rua, 200)}
+            ${field('Número', 'numero', o.numero, superfrete ? 10 : 40, superfrete ? 'Máximo 10 caracteres' : '')}
+            ${field('Complemento', 'complemento', o.complemento, 120)}
+            ${field('Bairro / Distrito', 'bairro', o.bairro, 120)}
+            ${field('Cidade', 'cidade', o.cidade, 120)}
+            ${field('Estado / UF / Região', 'uf', o.uf || o.estado || o.state, 40)}
+            <button type="button" class="btn-save-order-address">Salvar endereço</button>
+            <p class="pedidos-address-feedback pedidos-shipping-feedback" hidden></p>
+          </div>
+        </div>
+      </details>`;
+  }
+
   function chargeBreakdownRows(o) {
     const b = moneyBreakdown(o);
     const kind = escHtml(shippingKindLabel(o));
@@ -1325,6 +1358,7 @@
         ${detailRow('Comissionado', commissioner)}
         ${hasForeignCharge ? chargeBreakdownRows(o) : freteDetailRows(o)}
       </div>
+      ${addressEditSection(o)}
       ${foldSection(
         'Entrega e rastreio',
         `${deliveryDetailBlock(o)}${manualShippingSection(o)}`,
@@ -1337,6 +1371,54 @@
       ev.preventDefault();
       ev.stopPropagation();
       beginEditManualOrder(o);
+    });
+
+    body.querySelector('.btn-save-order-address')?.addEventListener('click', async () => {
+      const feedback = body.querySelector('.pedidos-address-feedback');
+      const saveButton = body.querySelector('.btn-save-order-address');
+      const showFeedback = (message, type) => {
+        feedback.textContent = message;
+        feedback.className = 'pedidos-address-feedback pedidos-shipping-feedback form-status ' + (type || '');
+        feedback.hidden = !message;
+      };
+      const fields = ['cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf'];
+      const payload = Object.fromEntries(fields.map((name) => [
+        name,
+        String(body.querySelector(`.pedidos-address-${name}`)?.value || '').trim()
+      ]));
+      if (isSuperfreteOrder(o) && payload.numero.length > 10) {
+        showFeedback('A Super Frete aceita no máximo 10 caracteres no número. Corrija o campo antes de salvar.', 'error');
+        return;
+      }
+
+      if (saveButton) saveButton.disabled = true;
+      showFeedback('', '');
+      try {
+        const saved = await saveOrderAddress(o.orderId, payload);
+        if (!saved || saved.error) {
+          showFeedback(saved?.error || 'Não foi possível salvar o endereço.', 'error');
+          return;
+        }
+        for (const field of [...fields, 'endereco', 'addressUpdatedAt']) {
+          o[field] = saved[field] ?? null;
+        }
+        const index = allOrders.findIndex((item) => item.orderId === o.orderId);
+        if (index >= 0) {
+          for (const field of [...fields, 'endereco', 'addressUpdatedAt']) {
+            allOrders[index][field] = saved[field] ?? null;
+          }
+        }
+        applyFilters();
+        renderOrderModal(o);
+        body.querySelector('.pedidos-fold--address')?.setAttribute('open', '');
+        showStatus(saved.existingSuperfreteCart
+          ? 'Endereço do pedido atualizado. O carrinho Super Frete já criado não foi alterado; ajuste-o também no painel Super Frete.'
+          : 'Endereço do pedido atualizado.', saved.existingSuperfreteCart ? 'warn' : 'success');
+      } catch (error) {
+        showFeedback(error?.message || 'Não foi possível salvar o endereço.', 'error');
+      } finally {
+        if (saveButton) saveButton.disabled = false;
+      }
     });
 
     wireManualShippingForm(body, o);
@@ -1856,12 +1938,24 @@
     return data;
   }
 
-  async function printOrderLabel(order) {
+  async function saveOrderAddress(orderId, payload) {
+    const res = await fetch(apiBase() + '/orders/' + encodeURIComponent(orderId) + '/address', {
+      method: 'PATCH',
+      headers: { ...adminAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: data.error || 'Não foi possível salvar o endereço.' };
+    return data;
+  }
+
+  async function printOrderLabel(order, button) {
     const orderId = String(order?.orderId || '');
     if (!orderId || printingLabelOrderIds.has(orderId)) return;
     printingLabelOrderIds.add(orderId);
+    if (button) button.disabled = true;
     try {
-      showStatus('Gerando etiqueta…', '');
+      showStatus('Consultando / preparando carrinho Super Frete…', '');
       const labelUrl = apiBase() + '/orders/' + encodeURIComponent(order.orderId) + '/shipping-label'
       const res = await fetch(labelUrl, {
         method: 'POST',
@@ -1908,13 +2002,14 @@
           order.superfreteCartStatus = data.status || order.superfreteCartStatus;
           if (data.price != null) order.superfreteCartPrice = data.price;
         }
-        if (data.trackingCode) {
-          order.superfreteTrackingCode = data.trackingCode;
-          order.correiosTrackingCode = data.trackingCode;
+        const tracking = data.tracking || data.trackingCode;
+        if (tracking) {
+          order.superfreteTrackingCode = tracking;
+          order.correiosTrackingCode = tracking;
           order.correiosTrackingStatus = order.correiosTrackingStatus || 'Pré-postado';
         }
-        if (data.checkoutError) order.superfreteCheckoutError = data.checkoutError;
-        if (data.cartError) order.superfreteCartError = data.cartError;
+        if (data.error) order.superfreteCartError = data.error;
+        else if (!data.skipped) order.superfreteCartError = null;
         if (data.skipped) order.superfreteSkipped = data.message;
         const idx = allOrders.findIndex((x) => x.orderId === order.orderId);
         if (idx >= 0) Object.assign(allOrders[idx], {
@@ -1924,21 +2019,22 @@
           superfreteTrackingCode: order.superfreteTrackingCode,
           correiosTrackingCode: order.correiosTrackingCode,
           correiosTrackingStatus: order.correiosTrackingStatus,
-          superfreteCheckoutError: order.superfreteCheckoutError,
           superfreteCartError: order.superfreteCartError,
           superfreteSkipped: order.superfreteSkipped
         });
         applyFilters();
-        const panel = data.panelUrl || 'https://web.superfrete.com/#/minhas-etiquetas';
-        const wallet = data.walletUrl || 'https://web.superfrete.com/#/carteira';
-        const msg = data.message || data.error || 'Super Frete';
-        const needsPay = !!(data.checkoutError || data.cartError
-          || (data.cartId && data.status && data.status !== 'released'));
-        showStatus(msg, data.skipped ? 'warn' : (data.checkoutError || data.cartError || data.error ? 'error' : (needsPay ? 'warn' : 'success')));
-        if (!data.skipped) {
-          window.open(needsPay && (data.checkoutError || data.cartError) ? wallet : panel, '_blank', 'noopener');
+        const freshOrder = allOrders.find((item) => item.orderId === order.orderId) || order;
+        if (orderModalEl && !orderModalEl.hidden
+          && document.getElementById('pedidos-order-modal-title')?.textContent === order.orderId) {
+          renderOrderModal(freshOrder);
         }
-        if (!data.skipped && data.status === 'released' && !data.trackingCode && !order.correiosTrackingCode) {
+        const panel = data.openUrl || data.panelUrl || 'https://web.superfrete.com/#/minhas-etiquetas';
+        const msg = data.message || data.error || 'Super Frete';
+        showStatus(msg, data.skipped ? 'warn' : (data.error ? 'error' : (data.status !== 'released' ? 'warn' : 'success')));
+        if (!data.skipped) {
+          window.open(panel, '_blank', 'noopener');
+        }
+        if (!data.skipped && data.status === 'released' && !tracking && !order.correiosTrackingCode) {
           pollSuperfreteTracking(order, document.getElementById('pedidos-order-modal-body'));
         }
         return;
@@ -1962,6 +2058,7 @@
       }
     } finally {
       printingLabelOrderIds.delete(orderId);
+      if (button) button.disabled = false;
     }
   }
 
@@ -2030,7 +2127,7 @@
 
       tr.querySelector('.btn-print-label')?.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        printOrderLabel(o);
+        printOrderLabel(o, ev.currentTarget);
       });
 
       tr.querySelector('.btn-print-letter')?.addEventListener('click', (ev) => {

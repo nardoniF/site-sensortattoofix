@@ -61,6 +61,14 @@ export async function ensureStoreD1(env) {
         v TEXT NOT NULL,
         updated_at TEXT
       )
+    `),
+      db.prepare(`
+      CREATE TABLE IF NOT EXISTS superfrete_cart_operations (
+        order_id TEXT PRIMARY KEY NOT NULL,
+        cart_id TEXT,
+        state TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
     `)
     ]);
     schemaReady = true;
@@ -78,6 +86,78 @@ function parsePayload(raw) {
   } catch {
     return null;
   }
+}
+
+async function superfreteCartOperationsDb(env) {
+  const db = await ensureStoreD1(env);
+  if (!db) throw new Error('D1 indisponível: não é seguro criar carrinho Super Frete sem lock persistente.');
+  return db;
+}
+
+export async function d1ClaimSuperfreteCartCreation(env, orderId) {
+  const db = await superfreteCartOperationsDb(env);
+  const id = String(orderId || '').trim();
+  if (!id) throw new Error('Pedido sem identificador para lock do carrinho Super Frete.');
+  const result = await db.prepare(`
+    INSERT OR IGNORE INTO superfrete_cart_operations (order_id, cart_id, state, updated_at)
+    VALUES (?, NULL, 'creating', ?)
+  `).bind(id, new Date().toISOString()).run();
+  const acquired = Number(result?.meta?.changes || 0) > 0;
+  if (acquired) return true;
+  return false;
+}
+
+export async function d1GetSuperfreteCartOperation(env, orderId) {
+  const db = await superfreteCartOperationsDb(env);
+  const row = await db.prepare(`
+    SELECT cart_id AS cartId, state FROM superfrete_cart_operations WHERE order_id = ?
+  `).bind(String(orderId || '')).first();
+  return row || null;
+}
+
+export async function d1RecordSuperfreteCartId(env, orderId, cartId) {
+  const db = await superfreteCartOperationsDb(env);
+  const id = String(orderId);
+  const cart = String(cartId);
+  const result = await db.prepare(`
+    UPDATE superfrete_cart_operations
+    SET cart_id = ?, state = 'created', updated_at = ?
+    WHERE order_id = ? AND state = 'creating' AND cart_id IS NULL
+  `).bind(cart, new Date().toISOString(), id).run();
+  if (Number(result?.meta?.changes || 0) === 1) return;
+
+  const existing = await db.prepare(`
+    SELECT cart_id AS cartId FROM superfrete_cart_operations WHERE order_id = ?
+  `).bind(id).first();
+  if (String(existing?.cartId || '') === cart) return;
+  if (existing) throw new Error('Já existe outro ID registrado para o lock deste pedido; nenhum carrinho novo será criado.');
+
+  const recovered = await db.prepare(`
+    INSERT OR IGNORE INTO superfrete_cart_operations (order_id, cart_id, state, updated_at)
+    VALUES (?, ?, 'created', ?)
+  `).bind(id, cart, new Date().toISOString()).run();
+  if (Number(recovered?.meta?.changes || 0) !== 1) {
+    throw new Error('O lock persistente do carrinho Super Frete foi perdido; ID não registrado.');
+  }
+}
+
+export async function d1CompleteSuperfreteCartOperation(env, orderId, cartId) {
+  const db = await superfreteCartOperationsDb(env);
+  const result = await db.prepare(`
+    UPDATE superfrete_cart_operations
+    SET state = 'ready', updated_at = ?
+    WHERE order_id = ? AND cart_id = ?
+  `).bind(new Date().toISOString(), String(orderId), String(cartId)).run();
+  if (Number(result?.meta?.changes || 0) !== 1) {
+    throw new Error('Não foi possível concluir o registro do carrinho Super Frete.');
+  }
+}
+
+export async function d1ReleaseSuperfreteCartCreation(env, orderId) {
+  const db = await superfreteCartOperationsDb(env);
+  await db.prepare(`
+    DELETE FROM superfrete_cart_operations WHERE order_id = ? AND cart_id IS NULL
+  `).bind(String(orderId)).run();
 }
 
 export async function d1SaveOrder(env, order) {

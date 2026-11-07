@@ -1,3 +1,17 @@
+export function superfreteRecipientNumber(numberValue, complementValue = '') {
+  const rawNumber = String(numberValue || '').trim();
+  const number = rawNumber.slice(0, 10);
+  const overflow = rawNumber.slice(10).trim();
+  const complementParts = [
+    overflow ? `Nº: ${overflow}` : '',
+    String(complementValue || '').trim()
+  ].filter(Boolean);
+  return {
+    number,
+    complement: complementParts.join(' / ').slice(0, 20)
+  };
+}
+
 function messageFromErrorEntry(entry, fieldHint = '') {
   if (typeof entry === 'string') {
     return [fieldHint, entry.trim()].filter(Boolean).join(': ');

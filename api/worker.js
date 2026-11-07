@@ -17,6 +17,11 @@ import {
 import {
   d1SaveOrder,
   d1GetOrder,
+  d1ClaimSuperfreteCartCreation,
+  d1GetSuperfreteCartOperation,
+  d1RecordSuperfreteCartId,
+  d1CompleteSuperfreteCartOperation,
+  d1ReleaseSuperfreteCartCreation,
   d1ListOrders,
   d1FindOrdersWithShippingLabelForRecipient,
   d1DeleteOrder,
@@ -38,7 +43,12 @@ import {
   sameShippingRecipient,
   shippingLabelDuplicateMessage
 } from './shipping-label-guard.js';
-import { superfreteApiErrorDetails } from './superfrete-utils.js';
+import { runSuperfreteCartAction } from './superfrete-cart.js';
+import { updateOrderAddress } from './order-address.js';
+import {
+  superfreteApiErrorDetails,
+  superfreteRecipientNumber
+} from './superfrete-utils.js';
 import {
   ML_SETTLEMENT_VERSION,
   mlMoney,
@@ -9988,70 +9998,6 @@ async function quoteSuperfreteOptions(env, config, destCep, opts = {}) {
   }
 }
 
-function humanizeSuperfreteError(raw) {
-  const msg = String(raw || '').trim();
-  const low = msg.toLowerCase();
-  const panel = 'https://web.superfrete.com/#/minhas-etiquetas';
-  const wallet = 'https://web.superfrete.com/#/carteira';
-  if (!msg) {
-    return `Não foi possível gerar/pagar a etiqueta no Super Frete. Painel: ${panel}`;
-  }
-  // A API de checkout automático só debita SALDO da carteira — cartão cadastrado no painel
-  // não entra nesse endpoint. Mensagem antiga ("cadastre um cartão") era enganosa.
-  if (/saldo|balance|insufficient|crédito|credito|funds|carteira|wallet|payment.?method|cart[aã]o|card|cobran|pagamento|payment.?required|402|unpaid|não.?paga|nao.?paga/i.test(low)) {
-    return `Super Frete não pagou a etiqueta automaticamente: a API só usa SALDO da carteira `
-      + `(cartão cadastrado no painel NÃO entra no checkout automático). `
-      + `Recarregue a carteira em ${wallet} e clique Etiqueta de novo. Painel: ${panel}. Detalhe: ${msg}`;
-  }
-  if (/token|unauthorized|401|403|forbidden|invalid.?token/i.test(low)) {
-    return `Token Super Frete inválido ou expirado. Gere um novo em Integrações no painel Super Frete e atualize o secret SUPERFRETE_TOKEN.`;
-  }
-  if (/sandbox/i.test(low)) {
-    return `Super Frete em modo sandbox. Confira SUPERFRETE_SANDBOX e o token de produção. Detalhe: ${msg}`;
-  }
-  return `Super Frete: ${msg}. Painel: ${panel}`;
-}
-
-function superfreteAutoCheckoutEnabled(env) {
-  const raw = String(env.SUPERFRETE_AUTO_CHECKOUT ?? 'true').trim().toLowerCase();
-  return raw !== 'false' && raw !== '0' && raw !== 'no' && raw !== 'off';
-}
-
-/** Carrinho SF divergente do frete pago: não paga nem cria outra etiqueta automaticamente. */
-async function superfreteCartMismatchPaidFrete(env, config, order) {
-  const paidFrete = Number(order?.frete);
-  if (!(Number.isFinite(paidFrete) && paidFrete > 0)) return false;
-  const cartPrice = Number(order?.superfreteCartPrice);
-  if (Number.isFinite(cartPrice) && cartPrice > 0 && Math.abs(cartPrice - paidFrete) > 1.5) {
-    return true;
-  }
-  const expected = await resolveSuperfreteServiceForOrder(env, config, order);
-  const cartSvc = asSuperfreteServiceId(order?.superfreteService);
-  return !!(expected && cartSvc && expected !== cartSvc);
-}
-
-/** Consulta status real no Super Frete (cancelamento no painel não atualiza o pedido sozinho). */
-async function refreshSuperfreteCartFromApi(env, order) {
-  const cartId = order?.superfreteCartId;
-  if (!cartId || !superfreteConfigured(env)) return null;
-  try {
-    const info = await superfreteFetch(env, `/api/v0/order/info/${encodeURIComponent(cartId)}`, { method: 'GET' });
-    const st = String(info?.status || info?.order_status || '').toLowerCase();
-    if (st) order.superfreteCartStatus = st;
-    if (info?.price != null && Number.isFinite(Number(info.price))) {
-      order.superfreteCartPrice = Number(info.price);
-    }
-    return info;
-  } catch (err) {
-    const raw = String(err.message || '');
-    if (/404|not.?found|não.?encontr|nao.?encontr|cancel|expir|gone/i.test(raw)) {
-      order.superfreteCartStatus = 'canceled';
-    }
-    console.warn('Super Frete order/info:', order.orderId, raw);
-    return null;
-  }
-}
-
 function extractSuperfreteTracking(payload) {
   if (!payload || typeof payload !== 'object') return null;
   const candidates = [
@@ -10121,26 +10067,7 @@ async function waitSuperfreteTracking(env, config, order, { attempts = 8, delayM
   return order.superfreteTrackingCode || order.correiosTrackingCode || null;
 }
 
-async function checkoutSuperfreteCart(env, config, order, cartId) {
-  const paid = await superfreteFetch(env, '/api/v0/checkout', {
-    method: 'POST',
-    body: JSON.stringify({ orders: [cartId] })
-  });
-  order.superfreteCheckout = paid;
-  order.superfreteCartStatus = 'released';
-  order.superfreteCheckoutError = null;
-  order.superfreteCartError = null;
-  let tracking = extractSuperfreteTracking(paid);
-  if (tracking) {
-    await applySuperfreteTrackingToOrder(env, config, order, tracking);
-  } else {
-    await saveOrder(env, order);
-    tracking = await waitSuperfreteTracking(env, config, order);
-  }
-  return paid;
-}
-
-async function createSuperfreteCartForOrder(env, config, order) {
+async function createSuperfreteCartForOrder(env, config, order, { refreshExisting = false } = {}) {
   if (!isSuperfreteOrder(order) || !superfreteConfigured(env)) {
     return { skipped: true, reason: 'not_superfrete' };
   }
@@ -10150,60 +10077,76 @@ async function createSuperfreteCartForOrder(env, config, order) {
     return { skipped: true, reason: 'self_test', message: order.superfreteSkipped };
   }
 
-  const autoPay = superfreteAutoCheckoutEnabled(env);
-
-  if (order.superfreteCartId) {
-    await refreshSuperfreteCartFromApi(env, order);
-    await saveOrder(env, order);
-
-    const st = String(order.superfreteCartStatus || '').toLowerCase();
-    const mismatch = await superfreteCartMismatchPaidFrete(env, config, order);
-    if (mismatch) {
-      console.warn('Super Frete: carrinho diverge do frete pago', order?.orderId, {
-        frete: order.frete,
-        cartPrice: order.superfreteCartPrice,
-        superfreteService: order.superfreteService
+  const previousTracking = order.superfreteTrackingCode || order.correiosTrackingCode || null;
+  let payload = null;
+  const runAction = () => runSuperfreteCartAction({
+    orderId: order.orderId,
+    refreshExisting,
+    loadOrder: async (id) => (await getOrder(env, id)) || order,
+    loadClaim: (id) => d1GetSuperfreteCartOperation(env, id),
+    claimCreation: (id) => d1ClaimSuperfreteCartCreation(env, id),
+    // The cart API call includes the order tag, but no tag-search endpoint is verified here.
+    findByOrderReference: async () => null,
+    createCart: async () => {
+      if (!payload) throw new Error('Dados do carrinho não preparados; nenhuma etiqueta foi criada.');
+      const created = await superfreteFetch(env, '/api/v0/cart', {
+        method: 'POST',
+        body: JSON.stringify(payload)
       });
-    }
-    if (mismatch) {
       return {
-        skipped: true,
-        reason: 'existing_order_label',
-        id: order.superfreteCartId,
-        status: order.superfreteCartStatus,
-        message: 'Já existe um carrinho Super Frete com valor ou serviço diferente do pedido. Nenhuma nova etiqueta foi criada; confira o carrinho no painel Super Frete.'
+        ...created,
+        orderFields: {
+          superfreteService: service,
+          shippingServiceCode: String(service),
+          ...(svcLabel ? { shippingService: svcLabel } : {}),
+          ...(methodForSvc?.id ? { shippingMethodId: methodForSvc.id } : {})
+        }
       };
-    } else if (st === 'released') {
-      // Checkout às vezes libera sem devolver o AV na hora — busca no order/info.
-      if (!order.superfreteTrackingCode && !order.correiosTrackingCode) {
-        // Liberação do AV no SF pode demorar; tenta ~20s aqui e o front continua tentando.
-        await waitSuperfreteTracking(env, config, order, { attempts: 8, delayMs: 2500 });
+    },
+    getCart: (cartId) => superfreteFetch(
+      env,
+      `/api/v0/order/info/${encodeURIComponent(cartId)}`,
+      { method: 'GET' }
+    ),
+    persistCartId: (id, cartId) => d1RecordSuperfreteCartId(env, id, cartId),
+    saveOrder: (targetOrder) => saveOrder(env, targetOrder),
+    completeClaim: (id, cartId) => d1CompleteSuperfreteCartOperation(env, id, cartId),
+    releaseClaim: (id) => d1ReleaseSuperfreteCartCreation(env, id),
+    applyRemoteCart: async (targetOrder, remote) => {
+      const status = String(remote?.status || remote?.order_status || '').toLowerCase();
+      if (status) targetOrder.superfreteCartStatus = status;
+      if (remote?.price != null && Number.isFinite(Number(remote.price))) {
+        targetOrder.superfreteCartPrice = Number(remote.price);
       }
-      return {
-        ok: true,
-        alreadyExists: true,
-        id: order.superfreteCartId,
-        status: 'released',
-        trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
-      };
-    } else if (autoPay) {
+      const tracking = extractSuperfreteTracking(remote);
+      if (tracking) {
+        targetOrder.superfreteTrackingCode = tracking;
+        targetOrder.correiosTrackingCode = tracking;
+        targetOrder.correiosTrackingStatus = targetOrder.correiosTrackingStatus || 'Pré-postado';
+        targetOrder.correiosTrackingUpdatedAt = new Date().toISOString();
+      }
+    }
+  });
+
+  const storedOperation = order.superfreteCartId
+    ? null
+    : await d1GetSuperfreteCartOperation(env, order.orderId);
+  if (order.superfreteCartId || storedOperation) {
+    const result = await runAction();
+    const freshOrder = await getOrder(env, order.orderId);
+    if (freshOrder) Object.assign(order, freshOrder);
+    if (result?.tracking && result.tracking !== previousTracking) {
       try {
-        await checkoutSuperfreteCart(env, config, order, order.superfreteCartId);
-        return { ok: true, alreadyExists: true, id: order.superfreteCartId, status: 'released', paid: true };
+        await notifyTrackingIfNew(env, config, order, previousTracking);
       } catch (err) {
-        order.superfreteCheckoutError = humanizeSuperfreteError(err.message || '');
-        await saveOrder(env, order);
-        return {
-          ok: true,
-          alreadyExists: true,
-          id: order.superfreteCartId,
-          status: order.superfreteCartStatus,
-          checkoutError: order.superfreteCheckoutError
-        };
+        console.warn('Tracking email after Super Frete sync:', order.orderId, err.message);
       }
-    } else {
-      return { ok: true, alreadyExists: true, id: order.superfreteCartId, status: order.superfreteCartStatus };
     }
+    return {
+      ...result,
+      id: result?.cartId || result?.id,
+      trackingCode: result?.tracking || result?.trackingCode || null
+    };
   }
   if (hasExistingShippingLabel(order)) {
     return {
@@ -10259,12 +10202,14 @@ async function createSuperfreteCartForOrder(env, config, order) {
 
   const phoneDigits = onlyDigits(order.telefone).slice(-11);
   const storeBase = String(config.storeUrlBr || config.storeUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '');
-  const payload = {
+  const fromAddressNumber = superfreteRecipientNumber(sender.numero, sender.complemento);
+  const toAddressNumber = superfreteRecipientNumber(order.numero, order.complemento);
+  payload = {
     from: {
       name: personNameForSuperfrete(sender.company || sender.brand),
       address: String(sender.rua || '').slice(0, 50),
-      complement: String(sender.complemento || '').slice(0, 20),
-      number: String(sender.numero || ''),
+      complement: fromAddressNumber.complement,
+      number: fromAddressNumber.number,
       district: String(sender.bairro || 'NA').slice(0, 60),
       city: String(sender.cidade || '').slice(0, 50),
       state_abbr: String(sender.uf || 'SP').toUpperCase(),
@@ -10274,8 +10219,8 @@ async function createSuperfreteCartForOrder(env, config, order) {
     to: {
       name: personNameForSuperfrete(order.nome, 'Cliente SensorTattooFix'),
       address: String(order.rua || '').slice(0, 50),
-      complement: String(order.complemento || '').slice(0, 20),
-      number: String(order.numero || ''),
+      complement: toAddressNumber.complement,
+      number: toAddressNumber.number,
       district: String(order.bairro || 'NA').slice(0, 50),
       city: String(order.cidade || '').slice(0, 50),
       state_abbr: String(order.uf || '').toUpperCase(),
@@ -10303,35 +10248,21 @@ async function createSuperfreteCartForOrder(env, config, order) {
     tag: order.orderId
   };
 
-  let data;
-  try {
-    data = await superfreteFetch(env, '/api/v0/cart', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-  } catch (err) {
-    const friendly = humanizeSuperfreteError(err.message);
-    order.superfreteCartError = friendly;
-    await saveOrder(env, order);
-    throw new Error(friendly);
-  }
-  order.superfreteCartId = data.id;
-  order.superfreteCartStatus = data.status || 'pending';
-  order.superfreteCartPrice = data.price;
-  order.superfreteCartAt = new Date().toISOString();
-  order.superfreteCartError = null;
-  order.superfreteCheckoutError = null;
-  await saveOrder(env, order);
-
-  if (autoPay && data.id) {
+  const result = await runAction();
+  const freshOrder = await getOrder(env, order.orderId);
+  if (freshOrder) Object.assign(order, freshOrder);
+  if (result?.tracking && result.tracking !== previousTracking) {
     try {
-      await checkoutSuperfreteCart(env, config, order, data.id);
+      await notifyTrackingIfNew(env, config, order, previousTracking);
     } catch (err) {
-      order.superfreteCheckoutError = humanizeSuperfreteError(err.message);
-      await saveOrder(env, order);
+      console.warn('Tracking email after Super Frete sync:', order.orderId, err.message);
     }
   }
-  return { ok: true, id: data.id, status: order.superfreteCartStatus };
+  return {
+    ...result,
+    id: result?.cartId || result?.id,
+    trackingCode: result?.tracking || result?.trackingCode || null
+  };
 }
 
 async function quoteCorreiosOptions(env, config, destCep, opts = {}) {
@@ -14907,7 +14838,7 @@ async function handlePaymentConfirmed(env, order, payment) {
         await createSuperfreteCartForOrder(env, config, order);
       } catch (err) {
         console.error('Super Frete cart:', order.orderId, err.message);
-        order.superfreteCartError = humanizeSuperfreteError(err.message);
+        order.superfreteCartError = err.message || 'Falha ao criar carrinho Super Frete.';
         await saveOrder(env, order);
       }
     }
@@ -15154,7 +15085,7 @@ async function handleOrderSuperfreteTracking(request, env, origin, orderId) {
       pending: !(tracking || order.superfreteTrackingCode || order.correiosTrackingCode)
     }, 200, origin);
   } catch (err) {
-    return json({ error: humanizeSuperfreteError(err.message) }, 400, origin);
+    return json({ error: err.message || 'Falha ao consultar o rastreio Super Frete.' }, 400, origin);
   }
 }
 
@@ -15173,53 +15104,35 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   if (isSuperfreteOrder(order)) {
     const config = await getConfig(env);
     try {
-      const created = await createSuperfreteCartForOrder(env, config, order);
+      const created = await createSuperfreteCartForOrder(env, config, order, { refreshExisting: true });
       if (created?.skipped) {
         return json({
           mode: 'superfrete',
           skipped: true,
           duplicateLabel: created.reason === 'existing_recipient_label' || created.reason === 'existing_order_label',
           existingOrderId: created.existingOrderId || null,
-          panelUrl: 'https://web.superfrete.com/#/minhas-etiquetas',
-          walletUrl: 'https://web.superfrete.com/#/carteira',
+          openUrl: 'https://web.superfrete.com/#/minhas-etiquetas',
           message: created.message || order.superfreteSkipped
         }, 200, origin);
       }
-      const checkoutErr = order.superfreteCheckoutError || created?.checkoutError || null;
-      const cartErr = order.superfreteCartError || null;
-      let message;
-      if (cartErr) {
-        message = cartErr;
-      } else if (checkoutErr) {
-        message = checkoutErr;
-      } else if (order.superfreteCartId && order.superfreteCartStatus === 'released') {
-        const track = order.superfreteTrackingCode || order.correiosTrackingCode;
-        message = track
-          ? `Etiqueta Super Frete liberada. Rastreio: ${track}`
-          : 'Etiqueta Super Frete paga/liberada. Imprima no painel Super Frete (rastreio ainda não disponível na API).';
-      } else if (order.superfreteCartId) {
-        message = created?.message || `Já existe etiqueta no carrinho Super Frete (status: ${order.superfreteCartStatus || 'pendente'}). Nenhuma nova etiqueta foi criada.`;
-      } else {
-        message = 'Não foi possível criar a etiqueta Super Frete.';
-      }
+      const tracking = created?.tracking || order.superfreteTrackingCode || order.correiosTrackingCode || null;
+      const status = created?.status || order.superfreteCartStatus || 'pending';
       return json({
         mode: 'superfrete',
-        cartId: order.superfreteCartId || created.id || null,
-        status: order.superfreteCartStatus || null,
+        cartId: created?.cartId || created?.id || order.superfreteCartId || null,
+        status,
+        tracking,
         price: order.superfreteCartPrice ?? null,
-        trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || created?.trackingCode || null,
-        checkoutError: checkoutErr,
-        cartError: cartErr,
-        panelUrl: 'https://web.superfrete.com/#/minhas-etiquetas',
-        walletUrl: 'https://web.superfrete.com/#/carteira',
-        message
+        openUrl: created?.openUrl || 'https://web.superfrete.com/#/minhas-etiquetas',
+        message: tracking
+          ? `Carrinho Super Frete ${status}; rastreio ${tracking}.`
+          : `Carrinho Super Frete ${status}.`
       }, 200, origin);
     } catch (err) {
       return json({
-        error: humanizeSuperfreteError(err.message),
+        error: err.message || 'Falha ao consultar ou preparar carrinho Super Frete.',
         mode: 'superfrete',
-        panelUrl: 'https://web.superfrete.com/#/minhas-etiquetas',
-        walletUrl: 'https://web.superfrete.com/#/carteira'
+        openUrl: 'https://web.superfrete.com/#/minhas-etiquetas'
       }, 400, origin);
     }
   }
@@ -15578,6 +15491,33 @@ async function handleOrderShippingUpdate(request, env, origin, orderId) {
     trackingEmailSentAt: order.trackingEmailSentAt || null,
     trackingEmailSent: !!(trackingEmail && trackingEmail.ok),
     trackingEmailSkipped: !!(trackingEmail && trackingEmail.skipped)
+  }, 200, origin);
+}
+
+async function handleOrderAddressUpdate(request, env, origin, orderId) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  const body = await request.json().catch(() => ({}));
+  const order = await getOrder(env, orderId);
+  if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
+
+  try {
+    const updatedAddress = updateOrderAddress(order, body, {
+      superfrete: isSuperfreteOrder(order)
+    });
+    Object.assign(order, updatedAddress);
+    await saveOrder(env, order);
+  } catch (err) {
+    return json({ error: err.message || 'Não foi possível salvar o endereço.' }, 400, origin);
+  }
+
+  return json({
+    ok: true,
+    ...Object.fromEntries([
+      'cep', 'rua', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'endereco', 'addressUpdatedAt'
+    ].map((field) => [field, order[field] ?? null])),
+    existingSuperfreteCart: !!order.superfreteCartId
   }, 200, origin);
 }
 
@@ -19847,6 +19787,10 @@ export default {
       const correiosAvMatch = path.match(/^\/orders\/([^/]+)\/correios-av$/);
       if (correiosAvMatch && request.method === 'PATCH') {
         return handleOrderCorreiosAv(request, env, origin, correiosAvMatch[1]);
+      }
+      const addressMatch = path.match(/^\/orders\/([^/]+)\/address$/);
+      if (addressMatch && request.method === 'PATCH') {
+        return handleOrderAddressUpdate(request, env, origin, addressMatch[1]);
       }
       const shippingMatch = path.match(/^\/orders\/([^/]+)\/shipping$/);
       if (shippingMatch && request.method === 'PATCH') {
