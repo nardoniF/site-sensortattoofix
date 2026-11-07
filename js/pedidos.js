@@ -2050,7 +2050,9 @@
       }
       throw new Error(data.error || data.detail || 'Falha ao gerar etiqueta');
     } catch (err) {
-      if (window.STF_ORDER_LABEL) {
+      if (isSuperfreteOrder(order)) {
+        showStatus(err.message || 'Falha ao consultar ou preparar carrinho Super Frete.', 'error');
+      } else if (window.STF_ORDER_LABEL) {
         window.STF_ORDER_LABEL.print(order);
         showStatus('Correios oficial falhou — abri etiqueta local. ' + humanizeCorreiosMsg(err.message || 'Erro', order), 'warn');
       } else {
