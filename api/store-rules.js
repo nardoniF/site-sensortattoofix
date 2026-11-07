@@ -143,11 +143,8 @@ export function normalizeSuperfreteCarrierTrackingCode(value) {
 }
 
 export function superfreteTrackingUrl(trackingCode) {
-  const code = normalizeSuperfreteTrackingCode(trackingCode);
-  if (code) return `https://rastreamento.superfrete.com/#${code}`;
-  const carrierCode = String(trackingCode || '').trim().toUpperCase();
-  if (!/^[A-Z0-9-]{5,40}$/.test(carrierCode)) return '';
-  return `https://www.17track.net/pt/track?nums=${encodeURIComponent(carrierCode)}`;
+  const code = normalizeSuperfreteCarrierTrackingCode(trackingCode);
+  return code ? `https://rastreamento.superfrete.com/#${code}` : '';
 }
 
 export function correiosOfficialTrackingUrl(trackingCode) {

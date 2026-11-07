@@ -97,7 +97,7 @@ test('SuperFrete accepts 14-digit codes and its tracking URL', () => {
   assert.equal(superfreteTrackingUrl(url), `https://rastreamento.superfrete.com/#${code}`);
 });
 
-test('SuperFrete carrier tracking codes get a universal tracking link', () => {
+test('SuperFrete carrier tracking codes use the official SuperFrete tracking link', () => {
   const carrierCode = 'SLGE1KTNI2SVF';
   const carrierUrl = `https://rastreamento.superfrete.com/#${carrierCode}`;
   assert.equal(normalizeSuperfreteCarrierTrackingCode(carrierCode), carrierCode);
@@ -106,8 +106,9 @@ test('SuperFrete carrier tracking codes get a universal tracking link', () => {
   assert.equal(normalizeSuperfreteCarrierTrackingCode('https://example.com/#' + carrierCode), '');
   assert.equal(
     superfreteTrackingUrl(carrierCode),
-    `https://www.17track.net/pt/track?nums=${carrierCode}`
+    carrierUrl
   );
+  assert.equal(superfreteTrackingUrl(carrierUrl), carrierUrl);
   assert.equal(superfreteTrackingUrl(''), '');
   assert.equal(superfreteTrackingUrl('javascript:alert(1)'), '');
 });
