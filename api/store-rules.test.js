@@ -21,6 +21,7 @@ import {
   isUberOrder,
   normalizeCouponCode,
   slugCouponId,
+  normalizeSuperfreteCarrierTrackingCode,
   normalizeSuperfreteTrackingCode,
   superfreteTrackingUrl
 } from './store-rules.js';
@@ -97,9 +98,15 @@ test('SuperFrete accepts 14-digit codes and its tracking URL', () => {
 });
 
 test('SuperFrete carrier tracking codes get a universal tracking link', () => {
+  const carrierCode = 'SLGE1KTNI2SVF';
+  const carrierUrl = `https://rastreamento.superfrete.com/#${carrierCode}`;
+  assert.equal(normalizeSuperfreteCarrierTrackingCode(carrierCode), carrierCode);
+  assert.equal(normalizeSuperfreteCarrierTrackingCode(carrierUrl), carrierCode);
+  assert.equal(normalizeSuperfreteCarrierTrackingCode('12345'), '');
+  assert.equal(normalizeSuperfreteCarrierTrackingCode('https://example.com/#' + carrierCode), '');
   assert.equal(
-    superfreteTrackingUrl('SLGE1KTNI2SVF'),
-    'https://www.17track.net/pt/track?nums=SLGE1KTNI2SVF'
+    superfreteTrackingUrl(carrierCode),
+    `https://www.17track.net/pt/track?nums=${carrierCode}`
   );
   assert.equal(superfreteTrackingUrl(''), '');
   assert.equal(superfreteTrackingUrl('javascript:alert(1)'), '');

@@ -121,6 +121,27 @@ export function normalizeSuperfreteTrackingCode(value) {
   }
 }
 
+export function normalizeSuperfreteCarrierTrackingCode(value) {
+  const raw = String(value || '').trim();
+  const numericCode = normalizeSuperfreteTrackingCode(raw);
+  if (numericCode) return numericCode;
+
+  let code = raw;
+  try {
+    const url = new URL(raw);
+    if (url.hostname.toLowerCase() !== 'rastreamento.superfrete.com') return '';
+    code = url.hash.slice(1).trim();
+  } catch {
+    // A plain carrier tracking code is also accepted below.
+  }
+
+  const normalized = code.toUpperCase();
+  if (/^\d{14}$/.test(normalized)) return normalized;
+  return /^[A-Z0-9-]{5,40}$/.test(normalized) && /[A-Z]/.test(normalized) && /\d/.test(normalized)
+    ? normalized
+    : '';
+}
+
 export function superfreteTrackingUrl(trackingCode) {
   const code = normalizeSuperfreteTrackingCode(trackingCode);
   if (code) return `https://rastreamento.superfrete.com/#${code}`;

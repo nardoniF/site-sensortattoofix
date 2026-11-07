@@ -104,6 +104,7 @@ import {
   isParticularDeliveryOrder,
   isSuperfreteMethod,
   isSuperfreteOrder,
+  normalizeSuperfreteCarrierTrackingCode,
   normalizeSuperfreteTrackingCode,
   superfreteTrackingUrl,
   isUberMethod,
@@ -15306,13 +15307,15 @@ function applyOrderShippingManualUpdate(order, body) {
     const rawTrackingCode = String(body.trackingCode || '').trim();
     const superfreteCode = normalizeSuperfreteTrackingCode(rawTrackingCode);
     const isSuperfreteTracking = isSuperfreteOrder(order) || !!superfreteCode;
-    const trackingCode = isSuperfreteTracking ? superfreteCode : rawTrackingCode.toUpperCase();
+    const trackingCode = isSuperfreteTracking
+      ? normalizeSuperfreteCarrierTrackingCode(rawTrackingCode)
+      : rawTrackingCode.toUpperCase();
     if (!rawTrackingCode) {
       order.correiosTrackingCode = null;
       if (isSuperfreteOrder(order)) order.superfreteTrackingCode = null;
       changed = true;
     } else if (!trackingCode || (isSuperfreteTracking
-      ? !/^\d{14}$/.test(trackingCode)
+      ? !normalizeSuperfreteCarrierTrackingCode(trackingCode)
       : !CORREIOS_AV_RE.test(trackingCode))) {
       throw new Error('Código de rastreio inválido.');
     } else {

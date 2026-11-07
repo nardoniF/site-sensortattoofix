@@ -587,11 +587,11 @@
       : '';
     const heading = isSuperfrete ? 'Atualizar rastreio SuperFrete' : isIntl ? 'Atualizar rastreio internacional' : 'Rastreio manual do envio';
     const hint = isSuperfrete
-      ? 'Cole o código de 14 dígitos ou o link do SuperFrete. Ao salvar, o código fica no pedido e o e-mail de rastreio é enviado à cliente.'
+      ? 'Cole o código de rastreio da transportadora ou o link do SuperFrete. Ao salvar, o código fica no pedido e o e-mail de rastreio é enviado à cliente.'
       : isIntl
         ? 'Cole o código completo dos Correios (13 caracteres, ex.: RN000689771BR). O e-mail de rastreio só é enviado na primeira vez que um código válido é salvo — cliques repetidos não reenviam.'
-      : 'Use quando a busca automática falhar ou o envio tiver sido feito fora da API. Aceita código Correios (13 caracteres), código SuperFrete (14 dígitos) ou o link SuperFrete.';
-    const trackPlaceholder = isSuperfrete ? 'Ex.: 13191900873048 ou link SuperFrete'
+      : 'Use quando a busca automática falhar ou o envio tiver sido feito fora da API. Aceita código Correios (13 caracteres), código SuperFrete (14 dígitos ou código da transportadora) ou link SuperFrete.';
+    const trackPlaceholder = isSuperfrete ? 'Ex.: SLGE1KTNI2SVF ou link SuperFrete'
       : isIntl ? 'Ex.: RN000689771BR' : 'Ex.: AP170797068BR';
     const brOnlyFields = isBr ? `
           <label class="pedidos-shipping-field">
@@ -625,7 +625,7 @@
             <input type="text" class="pedidos-shipping-note" value="${noteVal}" placeholder="${isIntl ? 'Ex.: postado documento intl' : 'Ex.: postado PAC balcão SP'}" maxlength="200" />
           </label>
           <button type="button" class="btn-save-shipping">Salvar envio</button>
-          <p class="pedidos-shipping-feedback" hidden></p>
+          <p class="pedidos-shipping-feedback pedidos-shipping-save-feedback" hidden></p>
         </div>
         ${manualAt}
       </div>`;
@@ -1218,6 +1218,27 @@
     }
   }
 
+  function normalizeSuperfreteCarrierTrackingCode(raw) {
+    const text = String(raw || '').trim();
+    const numericCode = normalizeSuperfreteTrackingCode(text);
+    if (numericCode) return numericCode;
+
+    let code = text;
+    try {
+      const url = new URL(text);
+      if (url.hostname.toLowerCase() !== 'rastreamento.superfrete.com') return '';
+      code = url.hash.slice(1).trim();
+    } catch {
+      // Plain carrier codes are validated below.
+    }
+
+    const normalized = code.toUpperCase();
+    if (/^\d{14}$/.test(normalized)) return normalized;
+    return /^[A-Z0-9-]{5,40}$/.test(normalized) && /[A-Z]/.test(normalized) && /\d/.test(normalized)
+      ? normalized
+      : '';
+  }
+
   function inferMethodFromTracking(code) {
     const c = normalizeTrackingCode(code);
     if (c.startsWith('AP')) return 'correios-manual-pac';
@@ -1439,21 +1460,21 @@
       const priceInput = body.querySelector('.pedidos-shipping-price');
       const daysInput = body.querySelector('.pedidos-shipping-days');
       const noteInput = body.querySelector('.pedidos-shipping-note');
-      const feedbackEl = body.querySelector('.pedidos-shipping-feedback');
+      const feedbackEl = body.querySelector('.pedidos-shipping-save-feedback');
       const saveBtn = body.querySelector('.btn-save-shipping');
       const showFeedback = (msg, type) => {
         if (!feedbackEl) return;
         feedbackEl.textContent = msg;
-        feedbackEl.className = 'pedidos-shipping-feedback form-status ' + (type || '');
+        feedbackEl.className = 'pedidos-shipping-feedback pedidos-shipping-save-feedback form-status ' + (type || '');
         feedbackEl.hidden = !msg;
       };
 
       const rawTracking = String(trackingInput?.value || '').trim();
-      const superfreteCode = normalizeSuperfreteTrackingCode(rawTracking);
+      const superfreteCode = normalizeSuperfreteCarrierTrackingCode(rawTracking);
       const isSuperfrete = isSuperfreteOrder(o) || !!superfreteCode;
       const code = isSuperfrete ? superfreteCode : normalizeTrackingCode(rawTracking);
       if (isSuperfrete && rawTracking && !code) {
-        showFeedback('Código SuperFrete inválido. Informe os 14 dígitos ou cole o link completo.', 'error');
+        showFeedback('Código SuperFrete inválido. Informe o código da transportadora ou cole o link completo.', 'error');
         return;
       }
       if (trackingInput && code && code !== trackingInput.value) trackingInput.value = code;
@@ -1465,8 +1486,8 @@
           showFeedback('Informe o código de rastreio.', 'error');
           return;
         }
-        if (isSuperfrete && !/^\d{14}$/.test(code)) {
-          showFeedback('Código SuperFrete inválido. Informe os 14 dígitos ou cole o link completo.', 'error');
+        if (isSuperfrete && !normalizeSuperfreteCarrierTrackingCode(code)) {
+          showFeedback('Código SuperFrete inválido. Informe o código da transportadora ou cole o link completo.', 'error');
           return;
         }
         if (!isSuperfrete && !/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(code)) {
