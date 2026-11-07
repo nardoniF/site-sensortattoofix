@@ -1,3 +1,7 @@
+export function shouldAutoCheckoutSuperfrete({ autoPay, skipCheckout } = {}) {
+  return autoPay === true && skipCheckout !== true;
+}
+
 function messageFromErrorEntry(entry, fieldHint = '') {
   if (typeof entry === 'string') {
     return [fieldHint, entry.trim()].filter(Boolean).join(': ');

@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { superfreteApiErrorDetails } from './superfrete-utils.js';
+import {
+  shouldAutoCheckoutSuperfrete,
+  superfreteApiErrorDetails
+} from './superfrete-utils.js';
+
+test('manual label action leaves the cart unpaid for the user to pay', () => {
+  assert.equal(shouldAutoCheckoutSuperfrete({ autoPay: true, skipCheckout: true }), false);
+  assert.equal(shouldAutoCheckoutSuperfrete({ autoPay: true }), true);
+  assert.equal(shouldAutoCheckoutSuperfrete({ autoPay: false }), false);
+});
 
 test('SuperFrete validation details are surfaced without dumping the entire response', () => {
   assert.equal(

@@ -38,7 +38,10 @@ import {
   sameShippingRecipient,
   shippingLabelDuplicateMessage
 } from './shipping-label-guard.js';
-import { superfreteApiErrorDetails } from './superfrete-utils.js';
+import {
+  shouldAutoCheckoutSuperfrete,
+  superfreteApiErrorDetails
+} from './superfrete-utils.js';
 import {
   ML_SETTLEMENT_VERSION,
   mlMoney,
@@ -10140,7 +10143,7 @@ async function checkoutSuperfreteCart(env, config, order, cartId) {
   return paid;
 }
 
-async function createSuperfreteCartForOrder(env, config, order) {
+async function createSuperfreteCartForOrder(env, config, order, { skipCheckout = false } = {}) {
   if (!isSuperfreteOrder(order) || !superfreteConfigured(env)) {
     return { skipped: true, reason: 'not_superfrete' };
   }
@@ -10186,7 +10189,7 @@ async function createSuperfreteCartForOrder(env, config, order) {
         status: 'released',
         trackingCode: order.superfreteTrackingCode || order.correiosTrackingCode || null
       };
-    } else if (autoPay) {
+    } else if (shouldAutoCheckoutSuperfrete({ autoPay, skipCheckout })) {
       try {
         await checkoutSuperfreteCart(env, config, order, order.superfreteCartId);
         return { ok: true, alreadyExists: true, id: order.superfreteCartId, status: 'released', paid: true };
@@ -10202,7 +10205,13 @@ async function createSuperfreteCartForOrder(env, config, order) {
         };
       }
     } else {
-      return { ok: true, alreadyExists: true, id: order.superfreteCartId, status: order.superfreteCartStatus };
+      return {
+        ok: true,
+        alreadyExists: true,
+        id: order.superfreteCartId,
+        status: order.superfreteCartStatus,
+        ...(skipCheckout ? { message: 'Carrinho SuperFrete pronto para pagamento manual; nenhuma cobrança foi feita.' } : {})
+      };
     }
   }
   if (hasExistingShippingLabel(order)) {
@@ -10323,7 +10332,7 @@ async function createSuperfreteCartForOrder(env, config, order) {
   order.superfreteCheckoutError = null;
   await saveOrder(env, order);
 
-  if (autoPay && data.id) {
+  if (shouldAutoCheckoutSuperfrete({ autoPay, skipCheckout }) && data.id) {
     try {
       await checkoutSuperfreteCart(env, config, order, data.id);
     } catch (err) {
@@ -10331,7 +10340,14 @@ async function createSuperfreteCartForOrder(env, config, order) {
       await saveOrder(env, order);
     }
   }
-  return { ok: true, id: data.id, status: order.superfreteCartStatus };
+  return {
+    ok: true,
+    id: data.id,
+    status: order.superfreteCartStatus,
+    ...(!shouldAutoCheckoutSuperfrete({ autoPay, skipCheckout })
+      ? { message: 'Carrinho SuperFrete criado para pagamento manual; nenhuma cobrança foi feita.' }
+      : {})
+  };
 }
 
 async function quoteCorreiosOptions(env, config, destCep, opts = {}) {
@@ -15173,7 +15189,7 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   if (isSuperfreteOrder(order)) {
     const config = await getConfig(env);
     try {
-      const created = await createSuperfreteCartForOrder(env, config, order);
+      const created = await createSuperfreteCartForOrder(env, config, order, { skipCheckout: true });
       if (created?.skipped) {
         return json({
           mode: 'superfrete',
@@ -15185,10 +15201,13 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
           message: created.message || order.superfreteSkipped
         }, 200, origin);
       }
-      const checkoutErr = order.superfreteCheckoutError || created?.checkoutError || null;
-      const cartErr = order.superfreteCartError || null;
+      const manualCartReady = !!(created?.message && created?.id);
+      const checkoutErr = manualCartReady ? null : order.superfreteCheckoutError || created?.checkoutError || null;
+      const cartErr = manualCartReady ? null : order.superfreteCartError || null;
       let message;
-      if (cartErr) {
+      if (manualCartReady) {
+        message = created.message;
+      } else if (cartErr) {
         message = cartErr;
       } else if (checkoutErr) {
         message = checkoutErr;
