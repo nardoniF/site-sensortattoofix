@@ -459,7 +459,7 @@
       }
       if (o.superfreteCartError || o.superfreteCheckoutError) {
         const tip = o.superfreteCheckoutError || o.superfreteCartError;
-        return `<small class="pedidos-track-warn" title="${escAttr(tip)}">SF: pague saldo/cartão — passe o mouse</small>`;
+        return `<small class="pedidos-track-warn" title="${escAttr(tip)}">Falha SuperFrete — passe o mouse</small>`;
       }
       if (o.superfreteCartId) {
         const st = o.superfreteCartStatus === 'released' ? 'Liberada' : 'No carrinho SF — pague lá';

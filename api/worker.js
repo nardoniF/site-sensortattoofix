@@ -38,6 +38,7 @@ import {
   sameShippingRecipient,
   shippingLabelDuplicateMessage
 } from './shipping-label-guard.js';
+import { superfreteApiErrorDetails } from './superfrete-utils.js';
 import {
   ML_SETTLEMENT_VERSION,
   mlMoney,
@@ -9908,7 +9909,11 @@ async function superfreteFetch(env, path, opts = {}) {
   }
   if (!res.ok) {
     const msg = data?.message || data?.error || data?.raw || text || res.statusText;
-    throw new Error(`Super Frete ${res.status}: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`);
+    const details = superfreteApiErrorDetails(data?.errors || data?.details);
+    throw new Error(
+      `Super Frete ${res.status}: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`
+      + (details ? ` Detalhes: ${details}` : '')
+    );
   }
   return data;
 }
@@ -10012,14 +10017,7 @@ function superfreteAutoCheckoutEnabled(env) {
   return raw !== 'false' && raw !== '0' && raw !== 'no' && raw !== 'off';
 }
 
-function isSuperfreteCartTerminalFailure(order) {
-  const st = String(order?.superfreteCartStatus || '').toLowerCase();
-  if (/cancel|reject|fail|expir|void|refund/.test(st)) return true;
-  if (order?.superfreteCheckoutError) return true;
-  return false;
-}
-
-/** Carrinho SF com preço/serviço diferente do frete pago no pedido — descarta e recria. */
+/** Carrinho SF divergente do frete pago: não paga nem cria outra etiqueta automaticamente. */
 async function superfreteCartMismatchPaidFrete(env, config, order) {
   const paidFrete = Number(order?.frete);
   if (!(Number.isFinite(paidFrete) && paidFrete > 0)) return false;
@@ -10167,13 +10165,13 @@ async function createSuperfreteCartForOrder(env, config, order) {
         superfreteService: order.superfreteService
       });
     }
-    if (isSuperfreteCartTerminalFailure(order) || mismatch) {
+    if (mismatch) {
       return {
         skipped: true,
         reason: 'existing_order_label',
         id: order.superfreteCartId,
         status: order.superfreteCartStatus,
-        message: 'Já existe uma etiqueta/carrinho para este pedido, mesmo com status de falha ou cancelamento. Nenhuma nova etiqueta foi criada.'
+        message: 'Já existe um carrinho Super Frete com valor ou serviço diferente do pedido. Nenhuma nova etiqueta foi criada; confira o carrinho no painel Super Frete.'
       };
     } else if (st === 'released') {
       // Checkout às vezes libera sem devolver o AV na hora — busca no order/info.
