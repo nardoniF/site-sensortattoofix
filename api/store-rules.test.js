@@ -96,6 +96,15 @@ test('SuperFrete accepts 14-digit codes and its tracking URL', () => {
   assert.equal(superfreteTrackingUrl(url), `https://rastreamento.superfrete.com/#${code}`);
 });
 
+test('SuperFrete carrier tracking codes get a universal tracking link', () => {
+  assert.equal(
+    superfreteTrackingUrl('SLGE1KTNI2SVF'),
+    'https://www.17track.net/pt/track?nums=SLGE1KTNI2SVF'
+  );
+  assert.equal(superfreteTrackingUrl(''), '');
+  assert.equal(superfreteTrackingUrl('javascript:alert(1)'), '');
+});
+
 test('externalTrackingLinks: nacional = Correios; internacional = 17TRACK + ParcelsApp', () => {
   const nat = externalTrackingLinks('AP170797068BR');
   assert.equal(nat.length, 1);

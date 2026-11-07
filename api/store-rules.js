@@ -123,7 +123,10 @@ export function normalizeSuperfreteTrackingCode(value) {
 
 export function superfreteTrackingUrl(trackingCode) {
   const code = normalizeSuperfreteTrackingCode(trackingCode);
-  return code ? `https://rastreamento.superfrete.com/#${code}` : '';
+  if (code) return `https://rastreamento.superfrete.com/#${code}`;
+  const carrierCode = String(trackingCode || '').trim().toUpperCase();
+  if (!/^[A-Z0-9-]{5,40}$/.test(carrierCode)) return '';
+  return `https://www.17track.net/pt/track?nums=${encodeURIComponent(carrierCode)}`;
 }
 
 export function correiosOfficialTrackingUrl(trackingCode) {
