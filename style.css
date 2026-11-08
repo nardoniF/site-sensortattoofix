@@ -2773,6 +2773,9 @@ a.stf-tiktok-card:hover {
     grid-template-columns: 1fr 1.4fr;
     gap: 12px;
 }
+.checkout-watch-fields[hidden] {
+    display: none !important;
+}
 .checkout-watch-product + .checkout-watch-product {
     margin-top: 16px;
     padding-top: 16px;

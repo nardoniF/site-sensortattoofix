@@ -1485,7 +1485,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function cartModelSummaryContent(item) {
     const models = Array.isArray(item.models) ? item.models : [];
     return models
-      .map((model, index) => model ? `Lente ${index + 1}: ${escapeHtml(model)}` : '')
+      .map((model, index) => model ? `${L('form.watchModel')} ${index + 1}: ${escapeHtml(model)}` : '')
       .filter(Boolean)
       .join('<br>');
   }
