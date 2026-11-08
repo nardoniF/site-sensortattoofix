@@ -5,6 +5,7 @@
 
 import { generateCommissionerStoryBanners } from './commissioner-banners.js';
 import { handleForumRoute } from './forum.js';
+import { orderDeviceModelsText, resolveOrderItemModels } from './order-models.js';
 import { refreshHomeContentI18n, refreshProductsTextI18n, mergePreservedI18n, homeContentI18nStatus } from './site-l10n.js';
 import {
   bumpKvWriteCounter,
@@ -1929,6 +1930,7 @@ function resolveOrderItems(config, body) {
         name: p.name,
         price: Number(p.price) || 0,
         qty,
+        models: resolveOrderItemModels(p, qty, item.models, body.smartwatch, config),
         aggregated: p.aggregated === true,
         requiresSmartwatch: p.requiresSmartwatch !== false,
         deviceType: p.deviceType || null,
@@ -1944,6 +1946,7 @@ function resolveOrderItems(config, body) {
       name: p.name,
       price: Number(p.price) || 0,
       qty: Math.max(1, Math.min(10, Number(body.qty) || 1)),
+      models: resolveOrderItemModels(p, Math.max(1, Math.min(10, Number(body.qty) || 1)), body.models, body.smartwatch, config),
       aggregated: p.aggregated === true,
       requiresSmartwatch: p.requiresSmartwatch !== false,
       deviceType: p.deviceType || null,
@@ -2945,6 +2948,23 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
     totalOriginal: order.totalOriginal ?? null,
     produto: order.produto || null,
     smartwatch: order.smartwatch || null,
+    items: Array.isArray(order.items) ? order.items.map((item) => ({
+      productId: item.productId,
+      slug: item.slug || item.productId,
+      name: item.name,
+      price: item.price,
+      qty: item.qty,
+      image: item.image,
+      models: Array.isArray(item.models) ? item.models.map((model) => String(model || '')) : [],
+      requiresSmartwatch: item.requiresSmartwatch !== false,
+      deviceType: item.deviceType || null,
+      aggregated: item.aggregated === true,
+      productType: item.productType,
+      bandStyle: item.bandStyle,
+      color: item.color,
+      compatibility: item.compatibility,
+      weightGrams: item.weightGrams
+    })) : [],
     observacoes: trimObs(order) || null,
     modeloRelogio: formatOrderSmartwatch(order),
     pagamento: order.pagamento,
@@ -2992,6 +3012,7 @@ function publicOrderView(order, { includePayment = false, includeResumeToken = f
         price: item.price,
         qty: item.qty,
         image: item.image,
+        models: Array.isArray(item.models) ? item.models.map((model) => String(model || '')) : [],
         requiresSmartwatch: item.requiresSmartwatch !== false,
         deviceType: item.deviceType || null,
         aggregated: item.aggregated === true,
@@ -3093,6 +3114,8 @@ function isPlaceholderWatchModel(s) {
 
 /** Modelo final para produção/envio — usa observações quando for "Outro modelo". */
 function formatOrderSmartwatch(order) {
+  const perUnitModels = orderDeviceModelsText(order?.items);
+  if (perUnitModels) return perUnitModels;
   const model = String(order?.smartwatch || '').trim();
   const obs = trimObs(order);
   if (!model || isPlaceholderWatchModel(model)) return obs || model || 'N/A';
@@ -3107,12 +3130,22 @@ function orderIntlProductFields(order) {
 function orderWatchEmailFields(order) {
   const model = String(order?.smartwatch || '').trim();
   const obs = trimObs(order);
+  const perUnitModels = orderDeviceModelsText(order?.items);
+  if (perUnitModels) {
+    return {
+      'Modelo do relógio': formatOrderSmartwatch(order),
+      'Modelos por produto e unidade': perUnitModels,
+      ...(obs ? { Observações: obs } : {})
+    };
+  }
   if (!model && !obs) return {};
   if (!model || model === 'N/A') return obs ? { 'Modelo do relógio': obs } : {};
   return { 'Modelo do relógio': formatOrderSmartwatch(order) };
 }
 
 function watchWhatsAppBlock(order) {
+  const perUnitModels = orderDeviceModelsText(order?.items);
+  if (perUnitModels) return `⌚ ${perUnitModels}${trimObs(order) ? `\n📝 ${trimObs(order)}` : ''}`;
   const model = String(order?.smartwatch || '').trim();
   const obs = trimObs(order);
   if (!model || isPlaceholderWatchModel(model)) return obs ? `⌚ ${obs}` : (model ? `⌚ ${model}` : '');
@@ -10865,6 +10898,9 @@ async function createAsaasPayment(env, order, config, billingType) {
   const base = asaasBase(env);
   const customerId = await createAsaasCustomer(base, apiKey, order);
   const due = new Date().toISOString().slice(0, 10);
+  const paymentModels = orderDeviceModelsText(order.items).replace(/\n/g, ' | ');
+  const modelDescription = paymentModels || formatOrderSmartwatch(order);
+  const description = `${config.product.name} — ${order.orderId}${modelDescription ? ` — ${modelDescription}` : ''}`.slice(0, 500);
 
   const res = await fetch(base + '/payments', {
     method: 'POST',
@@ -10874,7 +10910,7 @@ async function createAsaasPayment(env, order, config, billingType) {
       billingType,
       value: Number(order.total.toFixed(2)),
       dueDate: due,
-      description: `${config.product.name} — ${formatOrderSmartwatch(order)} — ${order.orderId}`.slice(0, 500),
+      description,
       externalReference: order.orderId
     })
   });
@@ -13215,7 +13251,8 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   if (!(Number(amountValue) > 0)) {
     throw new Error('PayPal amount must be greater than zero.');
   }
-  const description = `Sensor TattooFix — ${order.orderId}`.slice(0, 127);
+  const paymentModels = orderDeviceModelsText(order.items).replace(/\n/g, ' | ');
+  const description = `Sensor TattooFix — ${order.orderId}${paymentModels ? ` — ${paymentModels}` : ''}`.slice(0, 127);
   const payload = {
     intent: 'CAPTURE',
     purchase_units: [{
@@ -13337,11 +13374,16 @@ async function createMercadoPagoPixPayment(env, order, config) {
   }
 
   const notificationUrl = (env.MP_WEBHOOK_URL || '').trim() || undefined;
+  const paymentModels = orderDeviceModelsText(order.items);
   const body = {
     transaction_amount: Number(order.total.toFixed(2)),
-    description: `${config.product?.name || 'Kit Sensor TattooFix'} — ${order.orderId}`.slice(0, 200),
+    description: `${config.product?.name || 'Kit Sensor TattooFix'} — ${order.orderId}${paymentModels ? ` — ${paymentModels.replace(/\n/g, ' | ')}` : ''}`.slice(0, 200),
     payment_method_id: 'pix',
     external_reference: order.orderId,
+    metadata: {
+      orderId: order.orderId,
+      deviceModels: paymentModels.slice(0, 500)
+    },
     payer
   };
   if (notificationUrl) body.notification_url = notificationUrl;
@@ -13387,10 +13429,11 @@ async function createMercadoPagoCheckoutPro(env, order, config, request) {
     mp: 'pending', orderId: order.orderId, accessToken: order.accessToken
   });
   const notificationUrl = (env.MP_WEBHOOK_URL || '').trim() || undefined;
+  const paymentModels = orderDeviceModelsText(order.items);
 
   const body = {
     items: [{
-      title: String(order.produto || config.product?.name || 'Sensor TattooFix').slice(0, 256),
+      title: `${order.produto || config.product?.name || 'Sensor TattooFix'}${paymentModels ? ` — ${paymentModels.replace(/\n/g, ' | ')}` : ''}`.slice(0, 256),
       quantity: 1,
       unit_price: Number(order.total.toFixed(2)),
       currency_id: 'BRL'
@@ -13400,6 +13443,10 @@ async function createMercadoPagoCheckoutPro(env, order, config, request) {
       name: String(order.nome || 'Cliente').slice(0, 100)
     },
     external_reference: order.orderId,
+    metadata: {
+      orderId: order.orderId,
+      deviceModels: paymentModels.slice(0, 500)
+    },
     back_urls: {
       success: `${base}/comprar.html?${successParams}`,
       failure: `${base}/loja.html`,
@@ -14556,7 +14603,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
     email: body.email,
     telefone: body.telefone,
     cpf: body.cpf,
-    smartwatch: needsWatch ? (body.smartwatch || 'Não informado') : 'N/A',
+    smartwatch: needsWatch
+      ? (items.flatMap((item) => item.models || []).find(Boolean) || body.smartwatch || 'Não informado')
+      : 'N/A',
     pais: body.pais || (isIntl ? 'Internacional' : 'Brasil'),
     paisCode,
     cep: body.cep || '',
@@ -15840,7 +15889,8 @@ async function handleStripePaymentIntent(request, env, origin, orderId) {
       customer: customerId,
       'automatic_payment_methods[enabled]': 'true',
       'metadata[orderId]': order.orderId,
-      description: `Sensor TattooFix — ${order.orderId}`.slice(0, 500),
+      'metadata[deviceModels]': orderDeviceModelsText(order.items).slice(0, 500),
+      description: `Sensor TattooFix — ${order.orderId} — ${orderDeviceModelsText(order.items).replace(/\n/g, ' | ')}`.slice(0, 500),
       receipt_email: String(order.email || '').slice(0, 500)
     });
     order.stripePaymentIntentId = pi.id;
@@ -15909,8 +15959,10 @@ async function handleStripeCheckoutSession(request, env, origin, orderId) {
       'line_items[0][price_data][unit_amount]': String(charge.amountCents),
       'line_items[0][price_data][product_data][name]': productLabel,
       'metadata[orderId]': order.orderId,
+      'metadata[deviceModels]': orderDeviceModelsText(order.items).slice(0, 500),
       'payment_intent_data[metadata][orderId]': order.orderId,
-      'payment_intent_data[description]': `Sensor TattooFix — ${order.orderId}`.slice(0, 500)
+      'payment_intent_data[metadata][deviceModels]': orderDeviceModelsText(order.items).slice(0, 500),
+      'payment_intent_data[description]': `Sensor TattooFix — ${order.orderId} — ${orderDeviceModelsText(order.items).replace(/\n/g, ' | ')}`.slice(0, 500)
     });
     order.stripeCheckoutSessionId = session.id;
     order.paymentProvider = 'stripe';

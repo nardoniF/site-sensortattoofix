@@ -1094,7 +1094,13 @@
       const price = Number(item.price);
       const priceTxt = Number.isFinite(price) ? ` · ${formatBRL(price)}` : '';
       const id = item.productId || item.slug ? ` <code>${escHtml(item.productId || item.slug)}</code>` : '';
-      return `<li>${escHtml(String(qty))}× ${escHtml(name)}${priceTxt}${id}</li>`;
+      const models = Array.isArray(item.models)
+        ? item.models.map((model, index) => model ? `${index + 1}. ${model}` : '').filter(Boolean)
+        : [];
+      const modelsTxt = models.length
+        ? `<br><small>Modelos: ${escHtml(models.join('; '))}</small>`
+        : '';
+      return `<li>${escHtml(String(qty))}× ${escHtml(name)}${priceTxt}${id}${modelsTxt}</li>`;
     }).join('');
     return detailRow('Itens pedidos', `<ul class="pedidos-audit-items">${list}</ul>`);
   }

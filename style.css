@@ -2773,6 +2773,19 @@ a.stf-tiktok-card:hover {
     grid-template-columns: 1fr 1.4fr;
     gap: 12px;
 }
+.checkout-watch-product + .checkout-watch-product {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 193, 7, 0.28);
+}
+.checkout-watch-product h4 {
+    margin: 0 0 10px;
+    color: var(--primary);
+    font-size: 1rem;
+}
+.checkout-watch-models .checkout-watch-fields {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
 @media (max-width: 640px) {
     .checkout-watch-fields { grid-template-columns: 1fr; }
 }
@@ -2802,6 +2815,13 @@ a.stf-tiktok-card:hover {
 }
 .checkout-watch-block select.invalid {
     border-color: var(--danger);
+}
+.cart-line-models {
+    display: block;
+    margin-top: 5px;
+    color: #ddd;
+    font-size: 0.82rem;
+    line-height: 1.4;
 }
 .checkout-watch-hint {
     margin: 10px 0 0;

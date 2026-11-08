@@ -39,17 +39,24 @@ window.STF_CART = (function () {
       || (window.STF_I18N?.isLocalized?.() ? 'Product' : 'Produto');
   }
 
+  function modelsForQty(models, qty) {
+    const saved = Array.isArray(models) ? models : [];
+    return Array.from({ length: qty }, (_, index) => String(saved[index] || '').trim());
+  }
+
   function normalize(product, qty) {
     const id = product.id || product.slug || 'produto';
     const cap = maxQtyFor(product);
     const stock = product.stock != null && product.stock !== '' ? Math.max(0, Math.floor(Number(product.stock) || 0)) : null;
+    const normalizedQty = Math.max(1, Math.min(cap, Math.floor(Number(qty) || 1)));
     return {
       productId: id,
       slug: product.slug || id,
       name: localizedName(product),
       price: Number(product.price) || 0,
       image: assetUrl(product.image, product),
-      qty: Math.max(1, Math.min(cap, Number(qty) || 1)),
+      qty: normalizedQty,
+      models: modelsForQty(product.models, normalizedQty),
       stock,
       requiresSmartwatch: product.requiresSmartwatch !== false,
       deviceType: product.deviceType
@@ -76,7 +83,12 @@ window.STF_CART = (function () {
     const idx = items.findIndex((i) => i.productId === line.productId);
     const cap = maxQtyFor(product);
     if (idx >= 0) {
-      items[idx].qty = Math.min(cap, items[idx].qty + line.qty);
+      const current = items[idx];
+      const currentModels = modelsForQty(current.models, current.qty);
+      const currentQty = Math.min(cap, current.qty);
+      const addedQty = Math.min(line.qty, Math.max(0, cap - currentQty));
+      current.qty = currentQty + addedQty;
+      current.models = modelsForQty([...currentModels.slice(0, currentQty), ...line.models.slice(0, addedQty)], current.qty);
     } else {
       items.push(line);
     }
@@ -86,15 +98,27 @@ window.STF_CART = (function () {
 
   function setQty(productId, qty, product) {
     let items = load();
-    const n = Number(qty) || 0;
+    const n = Math.floor(Number(qty) || 0);
     const cap = product ? maxQtyFor(product) : MAX_QTY;
     if (n <= 0) {
       items = items.filter((i) => i.productId !== productId);
     } else {
       items = items.map((i) => (
-        i.productId === productId ? { ...i, qty: Math.min(cap, n) } : i
+        i.productId === productId
+          ? { ...i, qty: Math.min(cap, n), models: modelsForQty(i.models, Math.min(cap, n)) }
+          : i
       ));
     }
+    save(items);
+    return items;
+  }
+
+  function setModels(productId, models) {
+    const items = load().map((item) => (
+      item.productId === productId
+        ? { ...item, models: modelsForQty(models, item.qty) }
+        : item
+    ));
     save(items);
     return items;
   }
@@ -169,6 +193,7 @@ window.STF_CART = (function () {
     load,
     add,
     setQty,
+    setModels,
     remove,
     hasProduct,
     clear,
