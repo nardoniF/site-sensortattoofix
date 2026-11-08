@@ -554,7 +554,13 @@
     const list = items.map((item) => {
       const qty = Number(item.qty) || 1;
       const name = item.name || item.nome || item.productId || 'Item';
-      return `<li>${escHtml(String(qty))}× ${escHtml(name)}</li>`;
+      const models = Array.isArray(item.models)
+        ? item.models.map((model, index) => model ? `Modelo ${index + 1}: ${model}` : '').filter(Boolean)
+        : [];
+      const modelsHtml = models.length
+        ? `<br><small>${escHtml(models.join(' · '))}</small>`
+        : '';
+      return `<li>${escHtml(String(qty))}× ${escHtml(name)}${modelsHtml}</li>`;
     }).join('');
     return detailRow('Pedido', `<ul class="pedidos-audit-items">${list}</ul>`);
   }
