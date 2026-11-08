@@ -85,3 +85,26 @@ test('store-price-tag primaryProduct on .com prefers optical-lens-intl, not BR k
   assert.equal(primary.id, 'optical-lens-intl');
   assert.equal(primary.priceUsd, 20.65);
 });
+
+test('accountHref targets the existing account page on English and localized routes', () => {
+  const code = fs.readFileSync(path.join(jsDir, 'stf-i18n.js'), 'utf8');
+  for (const route of [
+    { hostname: 'www.sensortattoofix.com', pathname: '/', expected: 'minha-conta.html' },
+    { hostname: 'www.sensortattoofix.com', pathname: '/it/index.html', expected: 'minha-conta.html' },
+    { hostname: 'www.sensortattoofix.com.br', pathname: '/', expected: 'minha-conta.html' }
+  ]) {
+    const location = { ...route, search: '' };
+    const document = { readyState: 'loading', addEventListener: () => {} };
+    const window = { location, document, addEventListener: () => {} };
+    vm.runInNewContext(code, {
+      window,
+      document,
+      location,
+      console,
+      URLSearchParams,
+      URL,
+      sessionStorage: { getItem: () => null, setItem: () => {} }
+    }, { filename: 'stf-i18n.js' });
+    assert.equal(window.STF_I18N.accountHref(), route.expected, route.pathname);
+  }
+});

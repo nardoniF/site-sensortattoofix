@@ -1143,7 +1143,7 @@ window.STF_I18N = (function () {
   }
 
   function accountHref() {
-    return pageHref('account');
+    return pageHref('minha-conta');
   }
 
   function comprarPageHref() {
