@@ -1,0 +1,2946 @@
+From 6f06227d6f52ea68d22638bee791b7d0ddb9175b Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 14 Sep 2026 10:23:10 +0000
+Subject: [PATCH] =?UTF-8?q?POC=20visual=20Auto=20Key=20Supply=20em=20/auto?=
+ =?UTF-8?q?keysupply=20para=20apresenta=C3=A7=C3=A3o=20comercial?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Mini-site estático navegável (loja, checkout, conta, admin e operação) com link opcional no portfólio e na página de e-commerce da 3N20.
+---
+ autokeysupply/admin/index.html    | 185 +++++++
+ autokeysupply/assets/logo-aks.jpg | Bin 0 -> 20092 bytes
+ autokeysupply/assets/p1.svg       |  19 +
+ autokeysupply/assets/p10.svg      |  19 +
+ autokeysupply/assets/p2.svg       |  19 +
+ autokeysupply/assets/p3.svg       |  19 +
+ autokeysupply/assets/p4.svg       |  19 +
+ autokeysupply/assets/p5.svg       |  19 +
+ autokeysupply/assets/p6.svg       |  19 +
+ autokeysupply/assets/p7.svg       |  19 +
+ autokeysupply/assets/p8.svg       |  19 +
+ autokeysupply/assets/p9.svg       |  19 +
+ autokeysupply/carrinho.html       |  78 +++
+ autokeysupply/checkout.html       | 123 +++++
+ autokeysupply/conta.html          |  90 +++
+ autokeysupply/css/aks.css         | 874 ++++++++++++++++++++++++++++++
+ autokeysupply/index.html          | 146 +++++
+ autokeysupply/js/aks.js           | 419 ++++++++++++++
+ autokeysupply/loja.html           |  74 +++
+ autokeysupply/produto.html        |  68 +++
+ autokeysupply/sobre.html          |  94 ++++
+ ecommerce/index.html              |   1 +
+ index.html                        |   7 +
+ 23 files changed, 2349 insertions(+)
+ create mode 100644 autokeysupply/admin/index.html
+ create mode 100644 autokeysupply/assets/logo-aks.jpg
+ create mode 100644 autokeysupply/assets/p1.svg
+ create mode 100644 autokeysupply/assets/p10.svg
+ create mode 100644 autokeysupply/assets/p2.svg
+ create mode 100644 autokeysupply/assets/p3.svg
+ create mode 100644 autokeysupply/assets/p4.svg
+ create mode 100644 autokeysupply/assets/p5.svg
+ create mode 100644 autokeysupply/assets/p6.svg
+ create mode 100644 autokeysupply/assets/p7.svg
+ create mode 100644 autokeysupply/assets/p8.svg
+ create mode 100644 autokeysupply/assets/p9.svg
+ create mode 100644 autokeysupply/carrinho.html
+ create mode 100644 autokeysupply/checkout.html
+ create mode 100644 autokeysupply/conta.html
+ create mode 100644 autokeysupply/css/aks.css
+ create mode 100644 autokeysupply/index.html
+ create mode 100644 autokeysupply/js/aks.js
+ create mode 100644 autokeysupply/loja.html
+ create mode 100644 autokeysupply/produto.html
+ create mode 100644 autokeysupply/sobre.html
+
+diff --git a/autokeysupply/admin/index.html b/autokeysupply/admin/index.html
+new file mode 100644
+index 0000000..988a7f3
+--- /dev/null
++++ b/autokeysupply/admin/index.html
+@@ -0,0 +1,185 @@
++<!DOCTYPE html>
++<html lang="pt-BR">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Admin — Auto Key Supply POC</title>
++  <meta name="description" content="Painel administrativo mock." />
++  <meta name="robots" content="noindex,nofollow" />
++  <meta name="theme-color" content="#0b1220" />
++  <link rel="preconnect" href="https://fonts.googleapis.com" />
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
++  <link rel="stylesheet" href="../css/aks.css" />
++</head>
++<body>
++  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
++  <header class="site-header">
++    <div class="container header-inner">
++      <a class="brand" href="../index.html">
++        <img src="../assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
++        <span class="brand-meta">
++          <span class="brand-name">Auto Key Supply</span>
++          <span class="brand-badge">POC · 3N20</span>
++        </span>
++      </a>
++      <nav class="nav" id="nav" aria-label="Principal">
++        <a href="../index.html" class="">Início</a>
++        <a href="../loja.html" class="">Loja</a>
++        <a href="../carrinho.html" class="">Carrinho</a>
++        <a href="../conta.html" class="">Minha conta</a>
++        <a href="../sobre.html" class="">Operação</a>
++        <a href="./" class="is-active">Admin</a>
++      </nav>
++      <div class="header-actions">
++        <div class="lang-switch" aria-label="Mercado">
++          <button type="button" class="is-on" data-lang="br">BR</button>
++          <button type="button" data-lang="usa">USA</button>
++        </div>
++        <a class="cart-chip" href="../carrinho.html">Carrinho <strong>3</strong></a>
++        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
++      </div>
++    </div>
++  </header>
++
++  <main>
++    <div class="container page-hero">
++      <h1>Painel administrativo</h1>
++      <p>Mock operacional — cadastros, estoque, pedidos, frete, pagamentos e integrações.</p>
++    </div>
++    <div class="container admin-shell">
++      <aside class="admin-nav" id="admin-nav">
++        <div class="admin-brand">
++          <strong>AKS Admin</strong>
++          <span>POC · navegação ilustrativa</span>
++        </div>
++        <button type="button" data-admin="produtos" class="is-on">Produtos</button>
++        <button type="button" data-admin="categorias">Categorias</button>
++        <button type="button" data-admin="estoque">Estoque / Preços</button>
++        <button type="button" data-admin="pedidos">Pedidos</button>
++        <button type="button" data-admin="frete">Frete</button>
++        <button type="button" data-admin="pagamentos">Pagamentos</button>
++        <button type="button" data-admin="integracoes">Integrações</button>
++      </aside>
++      <div class="admin-main" id="admin-main">
++        <section class="panel admin-section" id="admin-produtos">
++          <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">
++            <h2 style="margin:0">Produtos</h2>
++            <button class="btn btn-primary btn-sm" type="button" data-poc="POC — novo produto">+ Novo produto</button>
++          </div>
++          <div class="kpi-row" style="margin-top:1rem">
++            <div class="kpi"><span>SKUs</span><strong>10</strong></div>
++            <div class="kpi"><span>Ativos</span><strong>10</strong></div>
++            <div class="kpi"><span>Sem estoque</span><strong>0</strong></div>
++            <div class="kpi"><span>Categorias</span><strong>6</strong></div>
++          </div>
++          <div class="table-wrap">
++            <table>
++              <thead><tr><th>SKU</th><th>Produto</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Status</th><th></th></tr></thead>
++              <tbody></tbody>
++            </table>
++          </div>
++        </section>
++
++        <section class="panel admin-section" id="admin-categorias" hidden>
++          <h2>Categorias</h2>
++          <div class="table-wrap">
++            <table>
++              <thead><tr><th>Categoria</th><th>Produtos</th><th>Ordem</th><th>Status</th><th></th></tr></thead>
++              <tbody>
++                <tr><td>Carcaças</td><td>4</td><td>1</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
++                <tr><td>Lâminas</td><td>1</td><td>2</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
++                <tr><td>Chips</td><td>1</td><td>3</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
++                <tr><td>Capas</td><td>1</td><td>4</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
++                <tr><td>Controles</td><td>1</td><td>5</td><td><span class="status status-ok">Visível</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
++                <tr><td>Acessórios</td><td>2</td><td>6</td><td><span class="status status-info">Rascunho</span></td><td><button class="btn btn-sm btn-ghost" data-poc="POC — editar categoria">Editar</button></td></tr>
++              </tbody>
++            </table>
++          </div>
++          <button class="btn btn-outline" style="margin-top:1rem" type="button" data-poc="POC — salvar categorias">Salvar</button>
++        </section>
++
++        <section class="panel admin-section" id="admin-estoque" hidden>
++          <h2>Estoque e preços</h2>
++          <p style="color:var(--steel)">Ajustes em lote — apenas visual. Em produção, grava no banco/KV com histórico.</p>
++          <div class="table-wrap">
++            <table>
++              <thead><tr><th>SKU</th><th>Estoque</th><th>Custo</th><th>Preço</th><th>Margem</th><th></th></tr></thead>
++              <tbody>
++                <tr><td>AKS-FORD-3B</td><td>142</td><td>R$ 41,00</td><td>R$ 89,90</td><td>54%</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — atualizar preço">Salvar</button></td></tr>
++                <tr><td>AKS-HONDA-4B</td><td>36</td><td>R$ 96,00</td><td>R$ 189,00</td><td>49%</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — atualizar preço">Salvar</button></td></tr>
++                <tr><td>AKS-Y14</td><td>320</td><td>R$ 6,50</td><td>R$ 18,50</td><td>65%</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — atualizar preço">Salvar</button></td></tr>
++                <tr><td>AKS-RFID-125</td><td>480</td><td>R$ 4,20</td><td>R$ 12,90</td><td>67%</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — atualizar preço">Salvar</button></td></tr>
++              </tbody>
++            </table>
++          </div>
++        </section>
++
++        <section class="panel admin-section" id="admin-pedidos" hidden>
++          <h2>Pedidos</h2>
++          <div class="table-wrap">
++            <table>
++              <thead><tr><th>Pedido</th><th>Cliente</th><th>Canal</th><th>Status</th><th>Total</th><th></th></tr></thead>
++              <tbody>
++                <tr><td>#AKS-10482</td><td>Chaveiro Centro</td><td>Loja</td><td><span class="status status-ok">Pago</span></td><td>R$ 418,40</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — ficha do pedido">Abrir</button></td></tr>
++                <tr><td>#AKS-10461</td><td>Auto Lock SP</td><td>Loja</td><td><span class="status status-info">Separação</span></td><td>R$ 189,00</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — ficha do pedido">Abrir</button></td></tr>
++                <tr><td>#AKS-ML-2201</td><td>ML · comprador</td><td>Mercado Livre</td><td><span class="status status-warn">Etiqueta</span></td><td>R$ 256,00</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — imprimir etiqueta">Etiqueta</button></td></tr>
++              </tbody>
++            </table>
++          </div>
++        </section>
++
++        <section class="panel admin-section" id="admin-frete" hidden>
++          <h2>Frete</h2>
++          <div class="ship-options">
++            <div class="option is-on"><div><strong>Correios</strong><span>PAC / Sedex · etiquetas</span></div><span class="status status-ok">Ativo</span></div>
++            <div class="option"><div><strong>Super Frete / Jadlog</strong><span>Cotação ilustrativa</span></div><span class="status status-info">Opcional</span></div>
++            <div class="option"><div><strong>Motoboy / Uber Direct</strong><span>Última milha capital</span></div><span class="status status-info">Opcional</span></div>
++          </div>
++          <button class="btn btn-primary" style="margin-top:1rem" type="button" data-poc="POC — salvar regras de frete">Salvar regras</button>
++        </section>
++
++        <section class="panel admin-section" id="admin-pagamentos" hidden>
++          <h2>Pagamentos</h2>
++          <div class="pay-options">
++            <div class="option is-on"><div><strong>PIX</strong><span>QR dinâmico · confirmação webhook</span></div><span class="status status-ok">Ativo</span></div>
++            <div class="option is-on"><div><strong>Cartão</strong><span>Asaas / Mercado Pago</span></div><span class="status status-ok">Ativo</span></div>
++            <div class="option"><div><strong>Boleto atacado</strong><span>Prazo negociado</span></div><span class="status status-info">Mock</span></div>
++          </div>
++          <button class="btn btn-outline" style="margin-top:1rem" type="button" data-poc="POC — configurar gateway">Configurar gateway</button>
++        </section>
++
++        <section class="panel admin-section" id="admin-integracoes" hidden>
++          <h2>Integrações ERP / marketplaces</h2>
++          <p style="color:var(--steel)">Tela ilustrativa do escopo desejado — conexão real fica para a fase de implementação.</p>
++          <div class="integrations">
++            <article class="int-card"><h4>ERP</h4><p>Estoques e pedidos sincronizados via API do parceiro.</p><span class="status status-info">Planejado</span></article>
++            <article class="int-card"><h4>Mercado Livre</h4><p>Anúncios, pedidos e etiquetas no mesmo fluxo operacional.</p><span class="status status-info">Ilustrativo</span></article>
++            <article class="int-card"><h4>Shopee</h4><p>Canal adicional com status espelhado no admin.</p><span class="status status-info">Ilustrativo</span></article>
++            <article class="int-card"><h4>Amazon</h4><p>Catálogo e fulfillment sob demanda.</p><span class="status status-warn">Roadmap</span></article>
++            <article class="int-card"><h4>WhatsApp</h4><p>Atalhos de pedido e atendimento no funil da loja.</p><span class="status status-ok">UI pronta</span></article>
++            <article class="int-card"><h4>E-mail DNS</h4><p>Redirect corporativo sem caixa paga.</p><span class="status status-ok">Incluso</span></article>
++          </div>
++          <button class="btn btn-primary" style="margin-top:1rem" type="button" data-poc="POC — solicitar integração">Solicitar integração</button>
++        </section>
++      </div>
++    </div>
++  </main>
++  <footer class="site-footer">
++    <div class="container footer-inner">
++      <div>
++        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
++      </div>
++      <nav class="footer-nav" aria-label="Rodapé">
++        <a href="../index.html">Início</a>
++        <a href="../loja.html">Loja</a>
++        <a href="../checkout.html">Checkout</a>
++        <a href="./">Admin</a>
++        <a href="../sobre.html">Operação</a>
++        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
++      </nav>
++    </div>
++  </footer>
++  <script src="../js/aks.js"></script>
++</body>
++</html>
+diff --git a/autokeysupply/assets/logo-aks.jpg b/autokeysupply/assets/logo-aks.jpg
+new file mode 100644
+index 0000000000000000000000000000000000000000..7c9d2f2a4fa0452310b3d5efac31b7e2893786aa
+GIT binary patch
+literal 20092
+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
+I?bE6M0MxdCmH+?%
+
+literal 0
+HcmV?d00001
+
+diff --git a/autokeysupply/assets/p1.svg b/autokeysupply/assets/p1.svg
+new file mode 100644
+index 0000000..8bd59c5
+--- /dev/null
++++ b/autokeysupply/assets/p1.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#1e8fd5"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">CANIVETE</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p10.svg b/autokeysupply/assets/p10.svg
+new file mode 100644
+index 0000000..c751d35
+--- /dev/null
++++ b/autokeysupply/assets/p10.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#0f766e"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">JEEP</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p2.svg b/autokeysupply/assets/p2.svg
+new file mode 100644
+index 0000000..2fe57ec
+--- /dev/null
++++ b/autokeysupply/assets/p2.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#0c4a6e"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">FIAT</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p3.svg b/autokeysupply/assets/p3.svg
+new file mode 100644
+index 0000000..0d0967b
+--- /dev/null
++++ b/autokeysupply/assets/p3.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#334155"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">HONDA</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p4.svg b/autokeysupply/assets/p4.svg
+new file mode 100644
+index 0000000..1762a41
+--- /dev/null
++++ b/autokeysupply/assets/p4.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#0ea5e9"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">SILICONE</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p5.svg b/autokeysupply/assets/p5.svg
+new file mode 100644
+index 0000000..c68bc62
+--- /dev/null
++++ b/autokeysupply/assets/p5.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#64748b"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">LAMINA</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p6.svg b/autokeysupply/assets/p6.svg
+new file mode 100644
+index 0000000..4db01ab
+--- /dev/null
++++ b/autokeysupply/assets/p6.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#0369a1"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">BORRACHA</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p7.svg b/autokeysupply/assets/p7.svg
+new file mode 100644
+index 0000000..e524068
+--- /dev/null
++++ b/autokeysupply/assets/p7.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#1e293b"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">CHIP</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p8.svg b/autokeysupply/assets/p8.svg
+new file mode 100644
+index 0000000..5a33bfc
+--- /dev/null
++++ b/autokeysupply/assets/p8.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#0284c7"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">POSITRON</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/assets/p9.svg b/autokeysupply/assets/p9.svg
+new file mode 100644
+index 0000000..25e7f5a
+--- /dev/null
++++ b/autokeysupply/assets/p9.svg
+@@ -0,0 +1,19 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
++  <defs>
++    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#475569"/>
++      <stop offset="100%" stop-color="#0b1220"/>
++    </linearGradient>
++  </defs>
++  <rect width="640" height="480" fill="#0b1220"/>
++  <rect x="40" y="40" width="560" height="400" rx="28" fill="url(#g)" opacity=".35"/>
++  <g fill="none" stroke="#e8f4fc" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
++    <circle cx="230" cy="240" r="70"/>
++    <circle cx="230" cy="240" r="28"/>
++    <path d="M300 240 H470"/>
++    <path d="M430 240 V200"/>
++    <path d="M470 240 V285"/>
++    <path d="M400 240 V205"/>
++  </g>
++  <text x="320" y="420" text-anchor="middle" fill="#9ec9e8" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">RFID</text>
++</svg>
+\ No newline at end of file
+diff --git a/autokeysupply/carrinho.html b/autokeysupply/carrinho.html
+new file mode 100644
+index 0000000..d70367c
+--- /dev/null
++++ b/autokeysupply/carrinho.html
+@@ -0,0 +1,78 @@
++<!DOCTYPE html>
++<html lang="pt-BR">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Carrinho — Auto Key Supply POC</title>
++  <meta name="description" content="Carrinho mock." />
++  <meta name="robots" content="noindex,nofollow" />
++  <meta name="theme-color" content="#0b1220" />
++  <link rel="preconnect" href="https://fonts.googleapis.com" />
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
++  <link rel="stylesheet" href="css/aks.css" />
++</head>
++<body>
++  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
++  <header class="site-header">
++    <div class="container header-inner">
++      <a class="brand" href="index.html">
++        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
++        <span class="brand-meta">
++          <span class="brand-name">Auto Key Supply</span>
++          <span class="brand-badge">POC · 3N20</span>
++        </span>
++      </a>
++      <nav class="nav" id="nav" aria-label="Principal">
++        <a href="index.html" class="">Início</a>
++        <a href="loja.html" class="">Loja</a>
++        <a href="carrinho.html" class="is-active">Carrinho</a>
++        <a href="conta.html" class="">Minha conta</a>
++        <a href="sobre.html" class="">Operação</a>
++        <a href="admin/" class="">Admin</a>
++      </nav>
++      <div class="header-actions">
++        <div class="lang-switch" aria-label="Mercado">
++          <button type="button" class="is-on" data-lang="br">BR</button>
++          <button type="button" data-lang="usa">USA</button>
++        </div>
++        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
++        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
++      </div>
++    </div>
++  </header>
++
++  <main>
++    <div class="container page-hero">
++      <h1>Carrinho</h1>
++      <p>Itens de demonstração — quantidades e totais são ilustrativos.</p>
++    </div>
++    <div class="container cart-layout">
++      <div class="panel">
++        <h2>Itens</h2>
++        <div id="cart-lines"></div>
++      </div>
++      <aside class="panel">
++        <h3>Resumo</h3>
++        <div id="cart-summary"></div>
++      </aside>
++    </div>
++  </main>
++  <footer class="site-footer">
++    <div class="container footer-inner">
++      <div>
++        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
++      </div>
++      <nav class="footer-nav" aria-label="Rodapé">
++        <a href="index.html">Início</a>
++        <a href="loja.html">Loja</a>
++        <a href="checkout.html">Checkout</a>
++        <a href="admin/">Admin</a>
++        <a href="sobre.html">Operação</a>
++        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
++      </nav>
++    </div>
++  </footer>
++  <script src="js/aks.js"></script>
++</body>
++</html>
+diff --git a/autokeysupply/checkout.html b/autokeysupply/checkout.html
+new file mode 100644
+index 0000000..6c0a8c9
+--- /dev/null
++++ b/autokeysupply/checkout.html
+@@ -0,0 +1,123 @@
++<!DOCTYPE html>
++<html lang="pt-BR">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Checkout — Auto Key Supply POC</title>
++  <meta name="description" content="Checkout mock em 3 passos." />
++  <meta name="robots" content="noindex,nofollow" />
++  <meta name="theme-color" content="#0b1220" />
++  <link rel="preconnect" href="https://fonts.googleapis.com" />
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
++  <link rel="stylesheet" href="css/aks.css" />
++</head>
++<body>
++  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
++  <header class="site-header">
++    <div class="container header-inner">
++      <a class="brand" href="index.html">
++        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
++        <span class="brand-meta">
++          <span class="brand-name">Auto Key Supply</span>
++          <span class="brand-badge">POC · 3N20</span>
++        </span>
++      </a>
++      <nav class="nav" id="nav" aria-label="Principal">
++        <a href="index.html" class="">Início</a>
++        <a href="loja.html" class="">Loja</a>
++        <a href="carrinho.html" class="is-active">Carrinho</a>
++        <a href="conta.html" class="">Minha conta</a>
++        <a href="sobre.html" class="">Operação</a>
++        <a href="admin/" class="">Admin</a>
++      </nav>
++      <div class="header-actions">
++        <div class="lang-switch" aria-label="Mercado">
++          <button type="button" class="is-on" data-lang="br">BR</button>
++          <button type="button" data-lang="usa">USA</button>
++        </div>
++        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
++        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
++      </div>
++    </div>
++  </header>
++
++  <main>
++    <div class="container page-hero">
++      <h1>Checkout</h1>
++      <p>Fluxo ilustrativo em três etapas — nada é cobrado ou enviado.</p>
++    </div>
++    <div class="container checkout-layout" id="checkout-root">
++      <div class="panel">
++        <div class="steps" aria-label="Etapas">
++          <div class="step is-active">1 · Endereço</div>
++          <div class="step">2 · Frete</div>
++          <div class="step">3 · Pagamento</div>
++        </div>
++
++        <div class="step-panel" data-panel="0">
++          <h2>Endereço de entrega</h2>
++          <div class="form-grid">
++            <div class="field full"><label>Nome / razão social</label><input value="Chaveiro Exemplo Ltda" readonly /></div>
++            <div class="field"><label>CEP</label><input value="01310-100" readonly /></div>
++            <div class="field"><label>Cidade</label><input value="São Paulo / SP" readonly /></div>
++            <div class="field full"><label>Endereço</label><input value="Av. Paulista, 1000 — sala 12" readonly /></div>
++          </div>
++          <div class="hero-actions" style="margin-top:1rem">
++            <button class="btn btn-primary" type="button" data-step-next>Continuar para frete</button>
++          </div>
++        </div>
++
++        <div class="step-panel" data-panel="1" hidden>
++          <h2>Opções de frete</h2>
++          <div class="ship-options">
++            <div class="option is-on"><div><strong>Correios PAC</strong><span>Prazo ilustrativo · etiqueta no admin</span></div><strong>R$ 24,90</strong></div>
++            <div class="option"><div><strong>Sedex</strong><span>Mais rápido · mock</span></div><strong>R$ 39,90</strong></div>
++            <div class="option"><div><strong>Transportadora / motoboy</strong><span>Região metropolitana</span></div><strong>Sob consulta</strong></div>
++          </div>
++          <div class="hero-actions" style="margin-top:1rem">
++            <button class="btn btn-outline" type="button" data-step-prev>Voltar</button>
++            <button class="btn btn-primary" type="button" data-step-next>Continuar para pagamento</button>
++          </div>
++        </div>
++
++        <div class="step-panel" data-panel="2" hidden>
++          <h2>Meios de pagamento</h2>
++          <div class="pay-options">
++            <div class="option is-on"><div><strong>PIX</strong><span>Confirmação rápida · QR ilustrativo</span></div><span class="pill">Preferencial</span></div>
++            <div class="option"><div><strong>Cartão de crédito</strong><span>Gateway nacional (Asaas / MP)</span></div><span class="pill">Mock</span></div>
++            <div class="option"><div><strong>Boleto</strong><span>Para CNPJ / atacado</span></div><span class="pill">Mock</span></div>
++          </div>
++          <div class="hero-actions" style="margin-top:1rem">
++            <button class="btn btn-outline" type="button" data-step-prev>Voltar</button>
++            <button class="btn btn-primary" type="button" data-poc="POC — pagamento ilustrativo. Nada foi cobrado.">Pagar agora</button>
++          </div>
++        </div>
++      </div>
++      <aside class="panel">
++        <h3>Pedido mock</h3>
++        <div class="summary-row"><span>3 itens</span><span>R$ 292,20</span></div>
++        <div class="summary-row"><span>Frete</span><span>R$ 24,90</span></div>
++        <div class="summary-row total"><span>Total</span><span>R$ 317,10</span></div>
++        <p style="color:var(--steel);font-size:.85rem;margin:1rem 0 0">Valores apenas para apresentação. Não constituem proposta comercial.</p>
++      </aside>
++    </div>
++  </main>
++  <footer class="site-footer">
++    <div class="container footer-inner">
++      <div>
++        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
++      </div>
++      <nav class="footer-nav" aria-label="Rodapé">
++        <a href="index.html">Início</a>
++        <a href="loja.html">Loja</a>
++        <a href="checkout.html">Checkout</a>
++        <a href="admin/">Admin</a>
++        <a href="sobre.html">Operação</a>
++        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
++      </nav>
++    </div>
++  </footer>
++  <script src="js/aks.js"></script>
++</body>
++</html>
+diff --git a/autokeysupply/conta.html b/autokeysupply/conta.html
+new file mode 100644
+index 0000000..2381881
+--- /dev/null
++++ b/autokeysupply/conta.html
+@@ -0,0 +1,90 @@
++<!DOCTYPE html>
++<html lang="pt-BR">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Minha conta — Auto Key Supply POC</title>
++  <meta name="description" content="Área do cliente mock." />
++  <meta name="robots" content="noindex,nofollow" />
++  <meta name="theme-color" content="#0b1220" />
++  <link rel="preconnect" href="https://fonts.googleapis.com" />
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
++  <link rel="stylesheet" href="css/aks.css" />
++</head>
++<body>
++  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
++  <header class="site-header">
++    <div class="container header-inner">
++      <a class="brand" href="index.html">
++        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
++        <span class="brand-meta">
++          <span class="brand-name">Auto Key Supply</span>
++          <span class="brand-badge">POC · 3N20</span>
++        </span>
++      </a>
++      <nav class="nav" id="nav" aria-label="Principal">
++        <a href="index.html" class="">Início</a>
++        <a href="loja.html" class="">Loja</a>
++        <a href="carrinho.html" class="">Carrinho</a>
++        <a href="conta.html" class="is-active">Minha conta</a>
++        <a href="sobre.html" class="">Operação</a>
++        <a href="admin/" class="">Admin</a>
++      </nav>
++      <div class="header-actions">
++        <div class="lang-switch" aria-label="Mercado">
++          <button type="button" class="is-on" data-lang="br">BR</button>
++          <button type="button" data-lang="usa">USA</button>
++        </div>
++        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
++        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
++      </div>
++    </div>
++  </header>
++
++  <main>
++    <div class="container page-hero">
++      <h1>Área do cliente</h1>
++      <p>Pedidos, dados e endereços — tela mock para o comprador B2B.</p>
++    </div>
++    <div class="container account-layout">
++      <div class="panel">
++        <h2>Meus pedidos</h2>
++        <div class="table-wrap">
++          <table>
++            <thead><tr><th>Pedido</th><th>Data</th><th>Status</th><th>Total</th><th></th></tr></thead>
++            <tbody>
++              <tr><td>#AKS-10482</td><td>08/09/2026</td><td><span class="status status-ok">Entregue</span></td><td>R$ 418,40</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — detalhe do pedido">Ver</button></td></tr>
++              <tr><td>#AKS-10461</td><td>02/09/2026</td><td><span class="status status-info">Em trânsito</span></td><td>R$ 189,00</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — rastreio ilustrativo">Rastrear</button></td></tr>
++              <tr><td>#AKS-10412</td><td>21/08/2026</td><td><span class="status status-warn">Aguardando PIX</span></td><td>R$ 312,70</td><td><button class="btn btn-sm btn-ghost" data-poc="POC — pagar pedido">Pagar</button></td></tr>
++            </tbody>
++          </table>
++        </div>
++      </div>
++      <aside class="panel">
++        <h3>Conta</h3>
++        <p style="margin:0 0 .8rem;color:var(--steel)">Chaveiro Exemplo Ltda<br>contato@chaveiroexemplo.com.br</p>
++        <button class="btn btn-outline btn-block" type="button" data-poc="POC — editar cadastro">Editar cadastro</button>
++        <button class="btn btn-ghost btn-block" style="margin-top:.5rem" type="button" data-poc="POC — endereços salvos">Endereços</button>
++        <a class="btn btn-dark btn-block" style="margin-top:.5rem" href="loja.html">Continuar comprando</a>
++      </aside>
++    </div>
++  </main>
++  <footer class="site-footer">
++    <div class="container footer-inner">
++      <div>
++        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
++      </div>
++      <nav class="footer-nav" aria-label="Rodapé">
++        <a href="index.html">Início</a>
++        <a href="loja.html">Loja</a>
++        <a href="checkout.html">Checkout</a>
++        <a href="admin/">Admin</a>
++        <a href="sobre.html">Operação</a>
++        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
++      </nav>
++    </div>
++  </footer>
++  <script src="js/aks.js"></script>
++</body>
++</html>
+diff --git a/autokeysupply/css/aks.css b/autokeysupply/css/aks.css
+new file mode 100644
+index 0000000..2deca1a
+--- /dev/null
++++ b/autokeysupply/css/aks.css
+@@ -0,0 +1,874 @@
++:root {
++  --ink: #0b1220;
++  --ink-soft: #1a2436;
++  --steel: #5b6b7c;
++  --line: #d7dee7;
++  --paper: #f3f6f9;
++  --surface: #ffffff;
++  --accent: #1e8fd5;
++  --accent-deep: #0c5f96;
++  --accent-soft: #e7f4fc;
++  --ok: #0f766e;
++  --warn: #b45309;
++  --danger: #b91c1c;
++  --shadow: 0 18px 50px rgba(11, 18, 32, .08);
++  --radius: 16px;
++  --font: "Figtree", system-ui, sans-serif;
++  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
++  --max: 1120px;
++  --ease: cubic-bezier(.22, 1, .36, 1);
++}
++
++*, *::before, *::after { box-sizing: border-box; }
++html { scroll-behavior: smooth; }
++body {
++  margin: 0;
++  font-family: var(--font);
++  color: var(--ink);
++  background:
++    radial-gradient(1200px 500px at 10% -10%, rgba(30, 143, 213, .16), transparent 60%),
++    radial-gradient(900px 420px at 100% 0%, rgba(15, 118, 110, .08), transparent 55%),
++    linear-gradient(180deg, #eef3f8 0%, var(--paper) 38%, #e9eef4 100%);
++  line-height: 1.55;
++  min-height: 100vh;
++  -webkit-font-smoothing: antialiased;
++}
++img { max-width: 100%; display: block; }
++a { color: inherit; text-decoration: none; }
++button, input, select, textarea { font: inherit; }
++.container { width: min(var(--max), calc(100% - 2rem)); margin: 0 auto; }
++
++.poc-banner {
++  background: linear-gradient(90deg, #0b1220, #12324a 55%, #0c5f96);
++  color: #dceaf5;
++  font-size: .78rem;
++  letter-spacing: .04em;
++  text-align: center;
++  padding: .55rem 1rem;
++}
++.poc-banner strong { color: #fff; font-weight: 700; }
++
++.site-header {
++  position: sticky;
++  top: 0;
++  z-index: 40;
++  backdrop-filter: blur(14px);
++  background: rgba(243, 246, 249, .88);
++  border-bottom: 1px solid rgba(215, 222, 231, .9);
++}
++.header-inner {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 1rem;
++  min-height: 72px;
++}
++.brand {
++  display: inline-flex;
++  align-items: center;
++  gap: .75rem;
++  min-width: 0;
++}
++.brand img {
++  height: 34px;
++  width: auto;
++  object-fit: contain;
++}
++.brand-meta {
++  display: flex;
++  flex-direction: column;
++  gap: .1rem;
++  line-height: 1.1;
++}
++.brand-name {
++  font-family: var(--display);
++  font-size: 1.35rem;
++  font-weight: 700;
++  letter-spacing: .02em;
++  text-transform: uppercase;
++}
++.brand-badge {
++  font-size: .65rem;
++  font-weight: 700;
++  letter-spacing: .14em;
++  text-transform: uppercase;
++  color: var(--accent-deep);
++}
++.nav {
++  display: flex;
++  align-items: center;
++  gap: 1.1rem;
++}
++.nav a {
++  font-size: .82rem;
++  font-weight: 600;
++  color: var(--steel);
++  letter-spacing: .02em;
++  transition: color .2s;
++}
++.nav a:hover, .nav a.is-active { color: var(--ink); }
++.header-actions {
++  display: flex;
++  align-items: center;
++  gap: .65rem;
++}
++.lang-switch {
++  display: inline-flex;
++  border: 1px solid var(--line);
++  border-radius: 999px;
++  overflow: hidden;
++  background: var(--surface);
++}
++.lang-switch button {
++  border: 0;
++  background: transparent;
++  padding: .35rem .6rem;
++  font-size: .7rem;
++  font-weight: 700;
++  letter-spacing: .08em;
++  color: var(--steel);
++  cursor: pointer;
++}
++.lang-switch button.is-on {
++  background: var(--ink);
++  color: #fff;
++}
++.menu-btn {
++  display: none;
++  border: 1px solid var(--line);
++  background: var(--surface);
++  border-radius: 10px;
++  width: 42px;
++  height: 42px;
++  cursor: pointer;
++}
++.cart-chip {
++  display: inline-flex;
++  align-items: center;
++  gap: .35rem;
++  border: 1px solid var(--line);
++  background: var(--surface);
++  border-radius: 999px;
++  padding: .4rem .75rem;
++  font-size: .78rem;
++  font-weight: 700;
++}
++
++.btn {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  gap: .4rem;
++  border-radius: 12px;
++  padding: .75rem 1.1rem;
++  font-weight: 700;
++  font-size: .9rem;
++  border: 1px solid transparent;
++  cursor: pointer;
++  transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s;
++}
++.btn:hover { transform: translateY(-1px); }
++.btn-primary {
++  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
++  color: #fff;
++  box-shadow: 0 10px 24px rgba(12, 95, 150, .28);
++}
++.btn-dark {
++  background: var(--ink);
++  color: #fff;
++}
++.btn-outline {
++  background: transparent;
++  border-color: var(--line);
++  color: var(--ink);
++}
++.btn-ghost {
++  background: var(--accent-soft);
++  color: var(--accent-deep);
++}
++.btn-sm { padding: .45rem .75rem; font-size: .78rem; border-radius: 10px; }
++.btn-block { width: 100%; }
++
++.hero {
++  position: relative;
++  overflow: hidden;
++  padding: 2.5rem 0 2rem;
++}
++.hero-panel {
++  display: grid;
++  grid-template-columns: 1.15fr .85fr;
++  gap: 1.5rem;
++  align-items: stretch;
++}
++.hero-copy {
++  padding: 1.5rem 0;
++  animation: rise .7s var(--ease) both;
++}
++.eyebrow {
++  display: inline-flex;
++  align-items: center;
++  gap: .5rem;
++  font-size: .72rem;
++  font-weight: 700;
++  letter-spacing: .16em;
++  text-transform: uppercase;
++  color: var(--accent-deep);
++  margin: 0 0 .9rem;
++}
++.hero h1 {
++  margin: 0;
++  font-family: var(--display);
++  font-size: clamp(2.4rem, 6vw, 4.2rem);
++  line-height: .95;
++  letter-spacing: .01em;
++  text-transform: uppercase;
++  max-width: 12ch;
++}
++.hero-lead {
++  margin: 1rem 0 1.4rem;
++  color: var(--steel);
++  font-size: 1.05rem;
++  max-width: 38ch;
++}
++.hero-actions { display: flex; flex-wrap: wrap; gap: .7rem; }
++.hero-visual {
++  position: relative;
++  min-height: 320px;
++  border-radius: 28px;
++  overflow: hidden;
++  background:
++    linear-gradient(145deg, rgba(30,143,213,.35), rgba(11,18,32,.92)),
++    radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 45%),
++    #0b1220;
++  box-shadow: var(--shadow);
++  animation: fadeIn 1s var(--ease) both;
++}
++.hero-visual::after {
++  content: "";
++  position: absolute;
++  inset: auto -10% -20% 20%;
++  height: 70%;
++  background: radial-gradient(circle, rgba(30,143,213,.45), transparent 65%);
++  filter: blur(20px);
++}
++.hero-key {
++  position: absolute;
++  inset: 0;
++  display: grid;
++  place-items: center;
++  color: #e8f4fc;
++  z-index: 1;
++}
++.hero-key svg { width: min(70%, 280px); height: auto; opacity: .92; }
++.hero-stat {
++  position: absolute;
++  left: 1rem;
++  bottom: 1rem;
++  z-index: 2;
++  background: rgba(255,255,255,.1);
++  border: 1px solid rgba(255,255,255,.18);
++  backdrop-filter: blur(10px);
++  color: #fff;
++  border-radius: 14px;
++  padding: .8rem 1rem;
++  font-size: .85rem;
++  max-width: 220px;
++}
++.hero-stat strong { display: block; font-size: 1.1rem; }
++
++.section { padding: 2.5rem 0; }
++.section-head {
++  display: flex;
++  justify-content: space-between;
++  align-items: end;
++  gap: 1rem;
++  margin-bottom: 1.25rem;
++}
++.section-head h2 {
++  margin: 0;
++  font-family: var(--display);
++  font-size: clamp(1.7rem, 3vw, 2.3rem);
++  letter-spacing: .02em;
++  text-transform: uppercase;
++  line-height: 1;
++}
++.section-head p { margin: .4rem 0 0; color: var(--steel); max-width: 46ch; }
++
++.cat-grid {
++  display: grid;
++  grid-template-columns: repeat(4, 1fr);
++  gap: .85rem;
++}
++.cat-card {
++  background: var(--surface);
++  border: 1px solid var(--line);
++  border-radius: var(--radius);
++  padding: 1rem;
++  min-height: 110px;
++  display: flex;
++  flex-direction: column;
++  justify-content: space-between;
++  transition: transform .25s var(--ease), border-color .25s, box-shadow .25s;
++}
++.cat-card:hover {
++  transform: translateY(-3px);
++  border-color: #b9d8ee;
++  box-shadow: var(--shadow);
++}
++.cat-card span {
++  font-size: .72rem;
++  font-weight: 700;
++  letter-spacing: .12em;
++  text-transform: uppercase;
++  color: var(--accent-deep);
++}
++.cat-card strong {
++  font-family: var(--display);
++  font-size: 1.35rem;
++  letter-spacing: .03em;
++  text-transform: uppercase;
++}
++
++.product-grid {
++  display: grid;
++  grid-template-columns: repeat(4, 1fr);
++  gap: 1rem;
++}
++.product-card {
++  background: var(--surface);
++  border: 1px solid var(--line);
++  border-radius: 18px;
++  overflow: hidden;
++  display: flex;
++  flex-direction: column;
++  transition: transform .25s var(--ease), box-shadow .25s;
++}
++.product-card:hover {
++  transform: translateY(-4px);
++  box-shadow: var(--shadow);
++}
++.product-media {
++  aspect-ratio: 4/3;
++  background: #0b1220;
++  overflow: hidden;
++}
++.product-media img {
++  width: 100%;
++  height: 100%;
++  object-fit: cover;
++  transition: transform .45s var(--ease);
++}
++.product-card:hover .product-media img { transform: scale(1.04); }
++.product-body { padding: .95rem 1rem 1.1rem; display: grid; gap: .45rem; flex: 1; }
++.product-body .tag {
++  font-size: .68rem;
++  font-weight: 700;
++  letter-spacing: .1em;
++  text-transform: uppercase;
++  color: var(--steel);
++}
++.product-body h3 {
++  margin: 0;
++  font-size: 1rem;
++  line-height: 1.25;
++}
++.price {
++  font-family: var(--display);
++  font-size: 1.35rem;
++  font-weight: 700;
++  letter-spacing: .02em;
++}
++.price small {
++  font-family: var(--font);
++  font-size: .75rem;
++  font-weight: 600;
++  color: var(--steel);
++  margin-left: .25rem;
++}
++.product-actions {
++  display: flex;
++  gap: .45rem;
++  margin-top: auto;
++  padding-top: .35rem;
++}
++
++.ops-strip {
++  display: grid;
++  grid-template-columns: repeat(3, 1fr);
++  gap: 1rem;
++}
++.ops-card {
++  background: linear-gradient(180deg, #fff, #f7fafc);
++  border: 1px solid var(--line);
++  border-radius: 18px;
++  padding: 1.2rem;
++}
++.ops-card h3 {
++  margin: 0 0 .4rem;
++  font-family: var(--display);
++  font-size: 1.35rem;
++  text-transform: uppercase;
++  letter-spacing: .03em;
++}
++.ops-card p { margin: 0; color: var(--steel); font-size: .92rem; }
++
++.page-hero {
++  padding: 1.6rem 0 0.4rem;
++}
++.page-hero h1 {
++  margin: 0;
++  font-family: var(--display);
++  font-size: clamp(2rem, 4vw, 2.8rem);
++  text-transform: uppercase;
++  letter-spacing: .02em;
++  line-height: 1;
++}
++.page-hero p { color: var(--steel); margin: .55rem 0 0; max-width: 54ch; }
++
++.toolbar {
++  display: flex;
++  flex-wrap: wrap;
++  gap: .6rem;
++  margin: 1rem 0 1.2rem;
++}
++.chip, .filter {
++  border: 1px solid var(--line);
++  background: var(--surface);
++  border-radius: 999px;
++  padding: .45rem .8rem;
++  font-size: .78rem;
++  font-weight: 700;
++  color: var(--steel);
++  cursor: pointer;
++}
++.chip.is-on, .filter.is-on {
++  background: var(--ink);
++  border-color: var(--ink);
++  color: #fff;
++}
++
++.detail-grid {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  gap: 1.5rem;
++  align-items: start;
++  padding-bottom: 2rem;
++}
++.detail-media {
++  border-radius: 22px;
++  overflow: hidden;
++  background: #0b1220;
++  border: 1px solid var(--line);
++}
++.detail-copy h1 {
++  margin: 0 0 .6rem;
++  font-family: var(--display);
++  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
++  text-transform: uppercase;
++  line-height: .98;
++}
++.meta-row {
++  display: flex;
++  flex-wrap: wrap;
++  gap: .5rem;
++  margin: .8rem 0 1rem;
++}
++.pill {
++  background: var(--accent-soft);
++  color: var(--accent-deep);
++  border-radius: 999px;
++  padding: .3rem .65rem;
++  font-size: .72rem;
++  font-weight: 700;
++}
++.spec-list {
++  margin: 1rem 0;
++  padding: 0;
++  list-style: none;
++  display: grid;
++  gap: .45rem;
++}
++.spec-list li {
++  display: flex;
++  justify-content: space-between;
++  gap: 1rem;
++  padding: .55rem 0;
++  border-bottom: 1px dashed var(--line);
++  font-size: .92rem;
++}
++.spec-list span { color: var(--steel); }
++
++.cart-layout, .checkout-layout, .account-layout {
++  display: grid;
++  grid-template-columns: 1.4fr .8fr;
++  gap: 1rem;
++  padding-bottom: 2.5rem;
++}
++.panel {
++  background: var(--surface);
++  border: 1px solid var(--line);
++  border-radius: 18px;
++  padding: 1rem;
++}
++.panel h2, .panel h3 {
++  margin: 0 0 .8rem;
++  font-family: var(--display);
++  text-transform: uppercase;
++  letter-spacing: .03em;
++}
++.line-item {
++  display: grid;
++  grid-template-columns: 72px 1fr auto;
++  gap: .8rem;
++  align-items: center;
++  padding: .8rem 0;
++  border-bottom: 1px solid var(--line);
++}
++.line-item:last-child { border-bottom: 0; }
++.line-thumb {
++  width: 72px;
++  height: 72px;
++  border-radius: 12px;
++  overflow: hidden;
++  background: #0b1220;
++}
++.line-thumb img { width: 100%; height: 100%; object-fit: cover; }
++.summary-row {
++  display: flex;
++  justify-content: space-between;
++  gap: 1rem;
++  padding: .45rem 0;
++  color: var(--steel);
++  font-size: .92rem;
++}
++.summary-row.total {
++  color: var(--ink);
++  font-weight: 800;
++  font-size: 1.1rem;
++  border-top: 1px solid var(--line);
++  margin-top: .5rem;
++  padding-top: .8rem;
++}
++
++.steps {
++  display: flex;
++  gap: .5rem;
++  flex-wrap: wrap;
++  margin: 0 0 1rem;
++}
++.step {
++  flex: 1;
++  min-width: 120px;
++  border: 1px solid var(--line);
++  border-radius: 12px;
++  padding: .7rem .8rem;
++  background: #f8fafc;
++  color: var(--steel);
++  font-size: .8rem;
++  font-weight: 700;
++}
++.step.is-active {
++  background: var(--ink);
++  border-color: var(--ink);
++  color: #fff;
++}
++.step.is-done {
++  background: var(--accent-soft);
++  border-color: #b9d8ee;
++  color: var(--accent-deep);
++}
++.step-panel[hidden] { display: none !important; }
++.form-grid {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  gap: .7rem;
++}
++.field { display: grid; gap: .3rem; }
++.field.full { grid-column: 1 / -1; }
++.field label {
++  font-size: .75rem;
++  font-weight: 700;
++  letter-spacing: .04em;
++  text-transform: uppercase;
++  color: var(--steel);
++}
++.field input, .field select, .field textarea {
++  border: 1px solid var(--line);
++  border-radius: 10px;
++  padding: .7rem .8rem;
++  background: #fff;
++}
++.pay-options, .ship-options {
++  display: grid;
++  gap: .6rem;
++}
++.option {
++  border: 1px solid var(--line);
++  border-radius: 12px;
++  padding: .85rem 1rem;
++  display: flex;
++  justify-content: space-between;
++  gap: 1rem;
++  align-items: center;
++  cursor: pointer;
++  background: #fff;
++}
++.option.is-on {
++  border-color: var(--accent);
++  box-shadow: 0 0 0 3px rgba(30,143,213,.12);
++}
++.option strong { display: block; }
++.option span { color: var(--steel); font-size: .85rem; }
++
++.table-wrap { overflow: auto; }
++table {
++  width: 100%;
++  border-collapse: collapse;
++  font-size: .9rem;
++}
++th, td {
++  text-align: left;
++  padding: .7rem .55rem;
++  border-bottom: 1px solid var(--line);
++  white-space: nowrap;
++}
++th {
++  font-size: .72rem;
++  letter-spacing: .08em;
++  text-transform: uppercase;
++  color: var(--steel);
++}
++.status {
++  display: inline-flex;
++  border-radius: 999px;
++  padding: .2rem .55rem;
++  font-size: .72rem;
++  font-weight: 700;
++}
++.status-ok { background: #d1fae5; color: #065f46; }
++.status-warn { background: #ffedd5; color: #9a3412; }
++.status-info { background: var(--accent-soft); color: var(--accent-deep); }
++
++.admin-shell {
++  display: grid;
++  grid-template-columns: 230px 1fr;
++  gap: 1rem;
++  padding-bottom: 2rem;
++  min-height: 70vh;
++}
++.admin-nav {
++  background: var(--ink);
++  color: #dce7f2;
++  border-radius: 18px;
++  padding: 1rem .8rem;
++  display: flex;
++  flex-direction: column;
++  gap: .25rem;
++  height: fit-content;
++  position: sticky;
++  top: 88px;
++}
++.admin-nav .admin-brand {
++  padding: .5rem .7rem 1rem;
++  border-bottom: 1px solid rgba(255,255,255,.1);
++  margin-bottom: .5rem;
++}
++.admin-nav .admin-brand strong {
++  display: block;
++  font-family: var(--display);
++  font-size: 1.2rem;
++  text-transform: uppercase;
++  color: #fff;
++}
++.admin-nav .admin-brand span {
++  font-size: .72rem;
++  color: rgba(255,255,255,.55);
++}
++.admin-nav button {
++  text-align: left;
++  border: 0;
++  background: transparent;
++  color: inherit;
++  padding: .7rem .75rem;
++  border-radius: 10px;
++  cursor: pointer;
++  font-weight: 600;
++  font-size: .88rem;
++}
++.admin-nav button.is-on,
++.admin-nav button:hover {
++  background: rgba(30,143,213,.22);
++  color: #fff;
++}
++.admin-main .panel { min-height: 520px; }
++.admin-section[hidden] { display: none !important; }
++.kpi-row {
++  display: grid;
++  grid-template-columns: repeat(4, 1fr);
++  gap: .7rem;
++  margin-bottom: 1rem;
++}
++.kpi {
++  background: #f8fafc;
++  border: 1px solid var(--line);
++  border-radius: 14px;
++  padding: .85rem;
++}
++.kpi span { display: block; color: var(--steel); font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
++.kpi strong { font-family: var(--display); font-size: 1.6rem; }
++
++.integrations {
++  display: grid;
++  grid-template-columns: repeat(3, 1fr);
++  gap: .8rem;
++}
++.int-card {
++  border: 1px solid var(--line);
++  border-radius: 14px;
++  padding: 1rem;
++  background: #f8fafc;
++}
++.int-card h4 { margin: 0 0 .35rem; }
++.int-card p { margin: 0; color: var(--steel); font-size: .85rem; }
++
++.about-grid {
++  display: grid;
++  grid-template-columns: 1.2fr .8fr;
++  gap: 1rem;
++  padding-bottom: 2rem;
++}
++.about-list {
++  margin: 0;
++  padding: 0;
++  list-style: none;
++  display: grid;
++  gap: .8rem;
++}
++.about-list li {
++  background: var(--surface);
++  border: 1px solid var(--line);
++  border-radius: 14px;
++  padding: 1rem;
++}
++.about-list strong {
++  display: block;
++  font-family: var(--display);
++  text-transform: uppercase;
++  letter-spacing: .03em;
++  font-size: 1.15rem;
++  margin-bottom: .25rem;
++}
++
++.site-footer {
++  border-top: 1px solid var(--line);
++  background: rgba(255,255,255,.7);
++  padding: 1.4rem 0 2rem;
++  margin-top: 1rem;
++}
++.footer-inner {
++  display: flex;
++  flex-wrap: wrap;
++  justify-content: space-between;
++  gap: 1rem;
++  align-items: start;
++}
++.footer-nav {
++  display: flex;
++  flex-wrap: wrap;
++  gap: .8rem 1.1rem;
++}
++.footer-nav a {
++  font-size: .82rem;
++  font-weight: 600;
++  color: var(--steel);
++}
++.footer-note {
++  font-size: .8rem;
++  color: var(--steel);
++  max-width: 42ch;
++}
++.footer-note strong { color: var(--ink); }
++
++.toast {
++  position: fixed;
++  left: 50%;
++  bottom: 1.2rem;
++  transform: translateX(-50%) translateY(120%);
++  background: var(--ink);
++  color: #fff;
++  padding: .85rem 1.1rem;
++  border-radius: 999px;
++  font-size: .85rem;
++  font-weight: 600;
++  box-shadow: 0 16px 40px rgba(0,0,0,.28);
++  z-index: 80;
++  opacity: 0;
++  transition: transform .3s var(--ease), opacity .3s;
++  max-width: min(92vw, 420px);
++  text-align: center;
++}
++.toast.is-on {
++  opacity: 1;
++  transform: translateX(-50%) translateY(0);
++}
++
++@keyframes rise {
++  from { opacity: 0; transform: translateY(18px); }
++  to { opacity: 1; transform: none; }
++}
++@keyframes fadeIn {
++  from { opacity: 0; transform: scale(.98); }
++  to { opacity: 1; transform: none; }
++}
++
++@media (max-width: 980px) {
++  .hero-panel,
++  .detail-grid,
++  .cart-layout,
++  .checkout-layout,
++  .account-layout,
++  .about-grid,
++  .admin-shell {
++    grid-template-columns: 1fr;
++  }
++  .product-grid { grid-template-columns: repeat(2, 1fr); }
++  .cat-grid { grid-template-columns: repeat(2, 1fr); }
++  .ops-strip { grid-template-columns: 1fr; }
++  .kpi-row { grid-template-columns: repeat(2, 1fr); }
++  .integrations { grid-template-columns: 1fr 1fr; }
++  .nav {
++    display: none;
++    position: absolute;
++    left: 1rem;
++    right: 1rem;
++    top: calc(100% + .4rem);
++    background: #fff;
++    border: 1px solid var(--line);
++    border-radius: 14px;
++    padding: .7rem;
++    flex-direction: column;
++    align-items: stretch;
++    gap: .2rem;
++    box-shadow: var(--shadow);
++  }
++  .nav.is-open { display: flex; }
++  .nav a { padding: .65rem .7rem; border-radius: 10px; }
++  .nav a:hover { background: var(--accent-soft); }
++  .menu-btn { display: inline-grid; place-items: center; }
++  .site-header { position: sticky; }
++  .header-inner { position: relative; }
++  .admin-nav { position: static; }
++  .brand-meta { display: none; }
++}
++
++@media (max-width: 560px) {
++  .product-grid,
++  .integrations,
++  .form-grid { grid-template-columns: 1fr; }
++  .cat-grid { grid-template-columns: 1fr 1fr; }
++  .hero-actions .btn,
++  .product-actions .btn { width: 100%; }
++  .line-item { grid-template-columns: 56px 1fr; }
++  .line-item .price { grid-column: 2; }
++  .brand img { height: 28px; }
++}
+diff --git a/autokeysupply/index.html b/autokeysupply/index.html
+new file mode 100644
+index 0000000..4e3de62
+--- /dev/null
++++ b/autokeysupply/index.html
+@@ -0,0 +1,146 @@
++<!DOCTYPE html>
++<html lang="pt-BR">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Auto Key Supply — POC e-commerce · 3N20</title>
++  <meta name="description" content="Protótipo visual de e-commerce Auto Key Supply desenvolvido pela 3N20." />
++  <meta name="robots" content="noindex,nofollow" />
++  <meta name="theme-color" content="#0b1220" />
++  <link rel="preconnect" href="https://fonts.googleapis.com" />
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
++  <link rel="stylesheet" href="css/aks.css" />
++</head>
++<body>
++  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
++  <header class="site-header">
++    <div class="container header-inner">
++      <a class="brand" href="index.html">
++        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
++        <span class="brand-meta">
++          <span class="brand-name">Auto Key Supply</span>
++          <span class="brand-badge">POC · 3N20</span>
++        </span>
++      </a>
++      <nav class="nav" id="nav" aria-label="Principal">
++        <a href="index.html" class="is-active">Início</a>
++        <a href="loja.html" class="">Loja</a>
++        <a href="carrinho.html" class="">Carrinho</a>
++        <a href="conta.html" class="">Minha conta</a>
++        <a href="sobre.html" class="">Operação</a>
++        <a href="admin/" class="">Admin</a>
++      </nav>
++      <div class="header-actions">
++        <div class="lang-switch" aria-label="Mercado">
++          <button type="button" class="is-on" data-lang="br">BR</button>
++          <button type="button" data-lang="usa">USA</button>
++        </div>
++        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
++        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
++      </div>
++    </div>
++  </header>
++
++  <main>
++    <section class="hero">
++      <div class="container hero-panel">
++        <div class="hero-copy">
++          <p class="eyebrow">Distribuição · chaveiro profissional</p>
++          <h1>Chaves, carcaças e acessórios com operação digital completa.</h1>
++          <p class="hero-lead">Vitrine B2B moderna para Auto Key Supply — catálogo, checkout, área do cliente e painel admin. Protótipo visual da 3N20 para apresentar o e-commerce sob medida.</p>
++          <div class="hero-actions">
++            <a class="btn btn-primary" href="loja.html">Ver catálogo</a>
++            <a class="btn btn-dark" href="admin/">Abrir admin mock</a>
++            <a class="btn btn-outline" href="sobre.html">Como funciona</a>
++          </div>
++        </div>
++        <div class="hero-visual" aria-hidden="true">
++          <div class="hero-key">
++            <svg viewBox="0 0 280 180" fill="none" xmlns="http://www.w3.org/2000/svg">
++              <circle cx="90" cy="90" r="48" stroke="white" stroke-width="10"/>
++              <circle cx="90" cy="90" r="18" stroke="white" stroke-width="8"/>
++              <path d="M138 90 H250" stroke="white" stroke-width="10" stroke-linecap="round"/>
++              <path d="M210 90 V62" stroke="white" stroke-width="10" stroke-linecap="round"/>
++              <path d="M250 90 V118" stroke="white" stroke-width="10" stroke-linecap="round"/>
++              <path d="M180 90 V68" stroke="white" stroke-width="10" stroke-linecap="round"/>
++            </svg>
++          </div>
++          <div class="hero-stat"><strong>10 produtos mock</strong>Carcaças, lâminas, chips e capas</div>
++        </div>
++      </div>
++    </section>
++
++    <section class="section">
++      <div class="container">
++        <div class="section-head">
++          <div>
++            <h2>Categorias</h2>
++            <p>Atalhos da vitrine — o mesmo catálogo que o cliente percorre no celular.</p>
++          </div>
++          <a class="btn btn-outline btn-sm" href="loja.html">Abrir loja</a>
++        </div>
++        <div class="cat-grid">
++          <a class="cat-card" href="loja.html"><span>Linha</span><strong>Carcaças</strong></a>
++          <a class="cat-card" href="loja.html"><span>Linha</span><strong>Lâminas</strong></a>
++          <a class="cat-card" href="loja.html"><span>Linha</span><strong>Chips</strong></a>
++          <a class="cat-card" href="loja.html"><span>Linha</span><strong>Capas</strong></a>
++        </div>
++      </div>
++    </section>
++
++    <section class="section" style="padding-top:0">
++      <div class="container">
++        <div class="section-head">
++          <div>
++            <h2>Destaques da vitrine</h2>
++            <p>Itens fictícios realistas — nomes e faixas alinhados ao mix atual da Auto Key Supply.</p>
++          </div>
++        </div>
++        <div class="product-grid" id="home-grid"></div>
++      </div>
++    </section>
++
++    <section class="section" style="padding-top:0">
++      <div class="container">
++        <div class="section-head">
++          <div>
++            <h2>O que esta POC mostra</h2>
++            <p>Telas navegáveis do pedido do cliente — sem pagamento real, frete real ou ERP.</p>
++          </div>
++        </div>
++        <div class="ops-strip">
++          <article class="ops-card">
++            <h3>Loja + checkout</h3>
++            <p>Listagem, detalhe, carrinho e checkout em 3 passos (endereço → frete → pagamento).</p>
++          </article>
++          <article class="ops-card">
++            <h3>Admin operacional</h3>
++            <p>Produtos, categorias, estoque/preços, pedidos, frete, pagamentos e integrações.</p>
++          </article>
++          <article class="ops-card">
++            <h3>Infra enxuta</h3>
++            <p>SEO, e-mails no domínio via redirect e hospedagem de baixo custo — ver Operação.</p>
++          </article>
++        </div>
++      </div>
++    </section>
++  </main>
++  <footer class="site-footer">
++    <div class="container footer-inner">
++      <div>
++        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
++      </div>
++      <nav class="footer-nav" aria-label="Rodapé">
++        <a href="index.html">Início</a>
++        <a href="loja.html">Loja</a>
++        <a href="checkout.html">Checkout</a>
++        <a href="admin/">Admin</a>
++        <a href="sobre.html">Operação</a>
++        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
++      </nav>
++    </div>
++  </footer>
++  <script src="js/aks.js"></script>
++</body>
++</html>
+diff --git a/autokeysupply/js/aks.js b/autokeysupply/js/aks.js
+new file mode 100644
+index 0000000..e9a0a6a
+--- /dev/null
++++ b/autokeysupply/js/aks.js
+@@ -0,0 +1,419 @@
++(function () {
++  'use strict';
++
++  const PRODUCTS = [
++    {
++      id: 'p1',
++      name: 'Carcaça canivete Ford 3 botões',
++      category: 'Carcaças',
++      brand: 'Ford',
++      price: 89.9,
++      stock: 142,
++      sku: 'AKS-FORD-3B',
++      image: 'assets/p1.svg',
++      blurb: 'Cabeça flip com slot para circuito 433/315 MHz. Ideal para chaveiro e reposição rápida.',
++      specs: [
++        ['Material', 'ABS + metal'],
++        ['Botões', '3 (porta · trava · porta-malas)'],
++        ['Compatibilidade', 'Focus / Ranger (adaptação)'],
++        ['Inclui lâmina', 'Não']
++      ]
++    },
++    {
++      id: 'p2',
++      name: 'Carcaça Fiat PX52 2 botões azul',
++      category: 'Carcaças',
++      brand: 'Fiat',
++      price: 64.5,
++      stock: 88,
++      sku: 'AKS-FIAT-PX52',
++      image: 'assets/p2.svg',
++      blurb: 'Cabeça removível azul para linha Palio/Siena. Acabamento fosco, encaixe preciso.',
++      specs: [
++        ['Cor', 'Azul'],
++        ['Botões', '2'],
++        ['Modelo', 'PX52'],
++        ['Uso', 'Reposição de carcaça']
++      ]
++    },
++    {
++      id: 'p3',
++      name: 'Chave inteligente Honda 4 botões',
++      category: 'Smart key',
++      brand: 'Honda',
++      price: 189.0,
++      stock: 36,
++      sku: 'AKS-HONDA-4B',
++      image: 'assets/p3.svg',
++      blurb: 'Case smart key com logo e botão de pânico. Para adaptação e programação profissional.',
++      specs: [
++        ['Tipo', 'Smart / proximity'],
++        ['Botões', '4'],
++        ['Logo', 'Honda'],
++        ['Emergência', 'Lâmina interna']
++      ]
++    },
++    {
++      id: 'p4',
++      name: 'Capa silicone Toyota / Lexus',
++      category: 'Capas',
++      brand: 'Toyota',
++      price: 29.9,
++      stock: 210,
++      sku: 'AKS-SIL-TY',
++      image: 'assets/p4.svg',
++      blurb: 'Proteção flexível contra impactos e sujeira. Textura antiderrapante, fácil de limpar.',
++      specs: [
++        ['Material', 'Silicone'],
++        ['Toque', 'Soft-touch'],
++        ['Cores', 'Preto / vermelho / azul'],
++        ['Acesso', 'Botões e lâmina livres']
++      ]
++    },
++    {
++      id: 'p5',
++      name: 'Lâmina Y-14 Renault / Peugeot',
++      category: 'Lâminas',
++      brand: 'Renault',
++      price: 18.5,
++      stock: 320,
++      sku: 'AKS-Y14',
++      image: 'assets/p5.svg',
++      blurb: 'Lâmina de reposição NE73/NE72. Corte em máquina e encaixe em carcaças compatíveis.',
++      specs: [
++        ['Código', 'Y-14'],
++        ['Perfis', 'NE72 / NE73'],
++        ['Acabamento', 'Níquel'],
++        ['Unidade', 'Peça']
++      ]
++    },
++    {
++      id: 'p6',
++      name: 'Borracha botões Hyundai 3 botões',
++      category: 'Borrachas',
++      brand: 'Hyundai',
++      price: 22.0,
++      stock: 175,
++      sku: 'AKS-HY-PAD',
++      image: 'assets/p6.svg',
++      blurb: 'Pad de borracha para telecomando. Restaura o toque sem trocar a carcaça inteira.',
++      specs: [
++        ['Botões', '3'],
++        ['Linha', 'Hyundai / Kia'],
++        ['Material', 'Borracha técnica'],
++        ['Instalação', 'Encaixe']
++      ]
++    },
++    {
++      id: 'p7',
++      name: 'Chip transponder ID46 / ID48',
++      category: 'Chips',
++      brand: 'Universal',
++      price: 45.0,
++      stock: 96,
++      sku: 'AKS-CHIP-46',
++      image: 'assets/p7.svg',
++      blurb: 'Chip para clonagem e programação em bancada. Embalagem unitária identificada.',
++      specs: [
++        ['Família', 'ID46 / ID48'],
++        ['Formato', 'Glass / carbon'],
++        ['Uso', 'Programação'],
++        ['Lote', 'Rastreável']
++      ]
++    },
++    {
++      id: 'p8',
++      name: 'Carcaça alarme Positron 4 botões',
++      category: 'Controles',
++      brand: 'Positron',
++      price: 54.9,
++      stock: 67,
++      sku: 'AKS-PXN52',
++      image: 'assets/p8.svg',
++      blurb: 'Shell PXN52 para controle de alarme. Visual limpo, botões bem definidos.',
++      specs: [
++        ['Linha', 'Brasil Positron'],
++        ['Botões', '4'],
++        ['Modelo', 'PXN52'],
++        ['Circuito', 'Não incluso']
++      ]
++    },
++    {
++      id: 'p9',
++      name: 'Tag RFID 125 kHz regravável',
++      category: 'Acessórios',
++      brand: 'Universal',
++      price: 12.9,
++      stock: 480,
++      sku: 'AKS-RFID-125',
++      image: 'assets/p9.svg',
++      blurb: 'Tag EM4305 para cópia e controle de acesso. Formato chaveiro, leitura estável.',
++      specs: [
++        ['Frequência', '125 kHz'],
++        ['Chip', 'EM4305'],
++        ['Formato', 'Keyfob'],
++        ['Gravação', 'Regravável']
++      ]
++    },
++    {
++      id: 'p10',
++      name: 'Carcaça canivete Jeep 4 botões',
++      category: 'Carcaças',
++      brand: 'Jeep',
++      price: 99.0,
++      stock: 41,
++      sku: 'AKS-JEEP-4B',
++      image: 'assets/p10.svg',
++      blurb: 'Canivete com logo e quatro funções. Acabamento premium para linha Jeep.',
++      specs: [
++        ['Botões', '4'],
++        ['Logo', 'Jeep'],
++        ['Tipo', 'Flip key'],
++        ['Cor', 'Preto']
++      ]
++    }
++  ];
++
++  const CART = [
++    { id: 'p1', qty: 2 },
++    { id: 'p5', qty: 5 },
++    { id: 'p4', qty: 1 }
++  ];
++
++  function money(v) {
++    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
++  }
++
++  function byId(id) {
++    return PRODUCTS.find((p) => p.id === id);
++  }
++
++  function assetPath(path) {
++    const inAdmin = /\/admin\/?$|\/admin\//.test(location.pathname);
++    if (!inAdmin) return path;
++    if (path.startsWith('../')) return path;
++    if (path.startsWith('assets/')) return '../' + path;
++    return path;
++  }
++
++  function toast(msg) {
++    let el = document.getElementById('aks-toast');
++    if (!el) {
++      el = document.createElement('div');
++      el.id = 'aks-toast';
++      el.className = 'toast';
++      el.setAttribute('role', 'status');
++      document.body.appendChild(el);
++    }
++    el.textContent = msg || 'POC — demonstração visual';
++    el.classList.add('is-on');
++    clearTimeout(toast._t);
++    toast._t = setTimeout(() => el.classList.remove('is-on'), 2600);
++  }
++
++  function bindPocActions(root) {
++    (root || document).querySelectorAll('[data-poc]').forEach((el) => {
++      el.addEventListener('click', (e) => {
++        e.preventDefault();
++        toast(el.getAttribute('data-poc') || 'POC — demonstração visual');
++      });
++    });
++  }
++
++  function initNav() {
++    const btn = document.getElementById('menu-btn');
++    const nav = document.getElementById('nav');
++    if (btn && nav) {
++      btn.addEventListener('click', () => {
++        const open = nav.classList.toggle('is-open');
++        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
++      });
++    }
++    document.querySelectorAll('.lang-switch button').forEach((b) => {
++      b.addEventListener('click', () => {
++        document.querySelectorAll('.lang-switch button').forEach((x) => x.classList.remove('is-on'));
++        b.classList.add('is-on');
++        toast(b.dataset.lang === 'usa' ? 'Vista USA — seletor visual (sem i18n)' : 'Vista BR — mercado Brasil');
++      });
++    });
++  }
++
++  function productCard(p) {
++    return `
++      <article class="product-card">
++        <a class="product-media" href="produto.html?id=${p.id}" aria-label="${p.name}">
++          <img src="${assetPath(p.image)}" alt="">
++        </a>
++        <div class="product-body">
++          <div class="tag">${p.category} · ${p.brand}</div>
++          <h3><a href="produto.html?id=${p.id}">${p.name}</a></h3>
++          <div class="price">${money(p.price)} <small>mock</small></div>
++          <div class="product-actions">
++            <a class="btn btn-outline btn-sm" href="produto.html?id=${p.id}">Ver</a>
++            <button class="btn btn-primary btn-sm" type="button" data-poc="POC — item adicionado (mock)">Comprar</button>
++          </div>
++        </div>
++      </article>`;
++  }
++
++  function renderProductGrid(selector, list) {
++    const el = document.querySelector(selector);
++    if (!el) return;
++    el.innerHTML = (list || PRODUCTS).map(productCard).join('');
++    bindPocActions(el);
++  }
++
++  function renderProductDetail() {
++    const mount = document.getElementById('product-detail');
++    if (!mount) return;
++    const id = new URLSearchParams(location.search).get('id') || 'p1';
++    const p = byId(id) || PRODUCTS[0];
++    mount.innerHTML = `
++      <div class="detail-media">
++        <img src="${assetPath(p.image)}" alt="${p.name}">
++      </div>
++      <div class="detail-copy">
++        <p class="eyebrow">${p.category} · SKU ${p.sku}</p>
++        <h1>${p.name}</h1>
++        <div class="price">${money(p.price)} <small>preço ilustrativo</small></div>
++        <div class="meta-row">
++          <span class="pill">${p.brand}</span>
++          <span class="pill">Estoque mock: ${p.stock}</span>
++          <span class="pill">Entrega sob consulta</span>
++        </div>
++        <p>${p.blurb}</p>
++        <ul class="spec-list">
++          ${p.specs.map(([k, v]) => `<li><span>${k}</span><strong>${v}</strong></li>`).join('')}
++        </ul>
++        <div class="hero-actions">
++          <button class="btn btn-primary" type="button" data-poc="POC — adicionar ao carrinho">Adicionar ao carrinho</button>
++          <a class="btn btn-outline" href="carrinho.html">Ver carrinho</a>
++        </div>
++      </div>`;
++    bindPocActions(mount);
++  }
++
++  function renderCart() {
++    const list = document.getElementById('cart-lines');
++    const summary = document.getElementById('cart-summary');
++    if (!list || !summary) return;
++    let sub = 0;
++    list.innerHTML = CART.map((row) => {
++      const p = byId(row.id);
++      const total = p.price * row.qty;
++      sub += total;
++      return `
++        <div class="line-item">
++          <div class="line-thumb"><img src="${assetPath(p.image)}" alt=""></div>
++          <div>
++            <strong>${p.name}</strong>
++            <div style="color:var(--steel);font-size:.85rem">Qtd ${row.qty} · ${money(p.price)}</div>
++          </div>
++          <div class="price">${money(total)}</div>
++        </div>`;
++    }).join('');
++    const frete = 24.9;
++    summary.innerHTML = `
++      <div class="summary-row"><span>Subtotal</span><span>${money(sub)}</span></div>
++      <div class="summary-row"><span>Frete (ilustrativo)</span><span>${money(frete)}</span></div>
++      <div class="summary-row total"><span>Total mock</span><span>${money(sub + frete)}</span></div>
++      <a class="btn btn-primary btn-block" style="margin-top:1rem" href="checkout.html">Ir ao checkout</a>
++      <button class="btn btn-outline btn-block" style="margin-top:.5rem" type="button" data-poc="POC — cupom visual">Aplicar cupom</button>`;
++    bindPocActions(summary);
++  }
++
++  function initCheckout() {
++    const root = document.getElementById('checkout-root');
++    if (!root) return;
++    const steps = [...root.querySelectorAll('.step')];
++    const panels = [...root.querySelectorAll('.step-panel')];
++    let current = 0;
++
++    function show(i) {
++      current = Math.max(0, Math.min(panels.length - 1, i));
++      panels.forEach((p, idx) => { p.hidden = idx !== current; });
++      steps.forEach((s, idx) => {
++        s.classList.toggle('is-active', idx === current);
++        s.classList.toggle('is-done', idx < current);
++      });
++    }
++
++    root.querySelectorAll('[data-step-next]').forEach((btn) => {
++      btn.addEventListener('click', () => show(current + 1));
++    });
++    root.querySelectorAll('[data-step-prev]').forEach((btn) => {
++      btn.addEventListener('click', () => show(current - 1));
++    });
++    root.querySelectorAll('.option').forEach((opt) => {
++      opt.addEventListener('click', () => {
++        const group = opt.parentElement;
++        group.querySelectorAll('.option').forEach((o) => o.classList.remove('is-on'));
++        opt.classList.add('is-on');
++      });
++    });
++    show(0);
++    bindPocActions(root);
++  }
++
++  function initAdmin() {
++    const nav = document.getElementById('admin-nav');
++    if (!nav) return;
++    const buttons = [...nav.querySelectorAll('button[data-admin]')];
++    const sections = [...document.querySelectorAll('.admin-section')];
++    function open(id) {
++      buttons.forEach((b) => b.classList.toggle('is-on', b.dataset.admin === id));
++      sections.forEach((s) => { s.hidden = s.id !== 'admin-' + id; });
++      if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
++    }
++    buttons.forEach((b) => b.addEventListener('click', () => open(b.dataset.admin)));
++    const hash = (location.hash || '#produtos').replace('#', '');
++    open(buttons.some((b) => b.dataset.admin === hash) ? hash : 'produtos');
++
++    const prodBody = document.querySelector('#admin-produtos tbody');
++    if (prodBody) {
++      prodBody.innerHTML = PRODUCTS.map((p) => `
++        <tr>
++          <td>${p.sku}</td>
++          <td>${p.name}</td>
++          <td>${p.category}</td>
++          <td>${money(p.price)}</td>
++          <td>${p.stock}</td>
++          <td><span class="status status-ok">Ativo</span></td>
++          <td><button class="btn btn-sm btn-ghost" type="button" data-poc="POC — editar produto">Editar</button></td>
++        </tr>`).join('');
++    }
++    bindPocActions(document.getElementById('admin-main'));
++  }
++
++  function initFilters() {
++    const bar = document.getElementById('loja-filters');
++    if (!bar) return;
++    const cats = ['Todas', ...Array.from(new Set(PRODUCTS.map((p) => p.category)))];
++    bar.innerHTML = cats.map((c, i) =>
++      `<button type="button" class="filter${i === 0 ? ' is-on' : ''}" data-cat="${c}">${c}</button>`
++    ).join('');
++    bar.addEventListener('click', (e) => {
++      const btn = e.target.closest('.filter');
++      if (!btn) return;
++      bar.querySelectorAll('.filter').forEach((b) => b.classList.remove('is-on'));
++      btn.classList.add('is-on');
++      const cat = btn.dataset.cat;
++      const list = cat === 'Todas' ? PRODUCTS : PRODUCTS.filter((p) => p.category === cat);
++      renderProductGrid('#loja-grid', list);
++    });
++  }
++
++  document.addEventListener('DOMContentLoaded', () => {
++    initNav();
++    bindPocActions(document);
++    initFilters();
++    if (document.getElementById('home-grid')) renderProductGrid('#home-grid', PRODUCTS.slice(0, 8));
++    if (document.getElementById('loja-grid')) renderProductGrid('#loja-grid', PRODUCTS);
++    renderProductDetail();
++    renderCart();
++    initCheckout();
++    initAdmin();
++  });
++
++  window.AKS = { PRODUCTS, money, toast };
++})();
+diff --git a/autokeysupply/loja.html b/autokeysupply/loja.html
+new file mode 100644
+index 0000000..140f7e0
+--- /dev/null
++++ b/autokeysupply/loja.html
+@@ -0,0 +1,74 @@
++<!DOCTYPE html>
++<html lang="pt-BR">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Loja — Auto Key Supply POC</title>
++  <meta name="description" content="Listagem de produtos mock." />
++  <meta name="robots" content="noindex,nofollow" />
++  <meta name="theme-color" content="#0b1220" />
++  <link rel="preconnect" href="https://fonts.googleapis.com" />
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
++  <link rel="stylesheet" href="css/aks.css" />
++</head>
++<body>
++  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
++  <header class="site-header">
++    <div class="container header-inner">
++      <a class="brand" href="index.html">
++        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
++        <span class="brand-meta">
++          <span class="brand-name">Auto Key Supply</span>
++          <span class="brand-badge">POC · 3N20</span>
++        </span>
++      </a>
++      <nav class="nav" id="nav" aria-label="Principal">
++        <a href="index.html" class="">Início</a>
++        <a href="loja.html" class="is-active">Loja</a>
++        <a href="carrinho.html" class="">Carrinho</a>
++        <a href="conta.html" class="">Minha conta</a>
++        <a href="sobre.html" class="">Operação</a>
++        <a href="admin/" class="">Admin</a>
++      </nav>
++      <div class="header-actions">
++        <div class="lang-switch" aria-label="Mercado">
++          <button type="button" class="is-on" data-lang="br">BR</button>
++          <button type="button" data-lang="usa">USA</button>
++        </div>
++        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
++        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
++      </div>
++    </div>
++  </header>
++
++  <main>
++    <div class="container page-hero">
++      <h1>Loja</h1>
++      <p>Catálogo mock responsivo — filtre por categoria e abra o detalhe do produto.</p>
++      <div class="toolbar" id="loja-filters"></div>
++    </div>
++    <section class="section" style="padding-top:0">
++      <div class="container">
++        <div class="product-grid" id="loja-grid"></div>
++      </div>
++    </section>
++  </main>
++  <footer class="site-footer">
++    <div class="container footer-inner">
++      <div>
++        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
++      </div>
++      <nav class="footer-nav" aria-label="Rodapé">
++        <a href="index.html">Início</a>
++        <a href="loja.html">Loja</a>
++        <a href="checkout.html">Checkout</a>
++        <a href="admin/">Admin</a>
++        <a href="sobre.html">Operação</a>
++        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
++      </nav>
++    </div>
++  </footer>
++  <script src="js/aks.js"></script>
++</body>
++</html>
+diff --git a/autokeysupply/produto.html b/autokeysupply/produto.html
+new file mode 100644
+index 0000000..e677eb2
+--- /dev/null
++++ b/autokeysupply/produto.html
+@@ -0,0 +1,68 @@
++<!DOCTYPE html>
++<html lang="pt-BR">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Produto — Auto Key Supply POC</title>
++  <meta name="description" content="Detalhe de produto mock." />
++  <meta name="robots" content="noindex,nofollow" />
++  <meta name="theme-color" content="#0b1220" />
++  <link rel="preconnect" href="https://fonts.googleapis.com" />
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
++  <link rel="stylesheet" href="css/aks.css" />
++</head>
++<body>
++  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
++  <header class="site-header">
++    <div class="container header-inner">
++      <a class="brand" href="index.html">
++        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
++        <span class="brand-meta">
++          <span class="brand-name">Auto Key Supply</span>
++          <span class="brand-badge">POC · 3N20</span>
++        </span>
++      </a>
++      <nav class="nav" id="nav" aria-label="Principal">
++        <a href="index.html" class="">Início</a>
++        <a href="loja.html" class="is-active">Loja</a>
++        <a href="carrinho.html" class="">Carrinho</a>
++        <a href="conta.html" class="">Minha conta</a>
++        <a href="sobre.html" class="">Operação</a>
++        <a href="admin/" class="">Admin</a>
++      </nav>
++      <div class="header-actions">
++        <div class="lang-switch" aria-label="Mercado">
++          <button type="button" class="is-on" data-lang="br">BR</button>
++          <button type="button" data-lang="usa">USA</button>
++        </div>
++        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
++        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
++      </div>
++    </div>
++  </header>
++
++  <main>
++    <div class="container" style="padding-top:1.5rem">
++      <p class="eyebrow"><a href="loja.html">← Voltar à loja</a></p>
++      <div class="detail-grid" id="product-detail"></div>
++    </div>
++  </main>
++  <footer class="site-footer">
++    <div class="container footer-inner">
++      <div>
++        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
++      </div>
++      <nav class="footer-nav" aria-label="Rodapé">
++        <a href="index.html">Início</a>
++        <a href="loja.html">Loja</a>
++        <a href="checkout.html">Checkout</a>
++        <a href="admin/">Admin</a>
++        <a href="sobre.html">Operação</a>
++        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
++      </nav>
++    </div>
++  </footer>
++  <script src="js/aks.js"></script>
++</body>
++</html>
+diff --git a/autokeysupply/sobre.html b/autokeysupply/sobre.html
+new file mode 100644
+index 0000000..1aeb07e
+--- /dev/null
++++ b/autokeysupply/sobre.html
+@@ -0,0 +1,94 @@
++<!DOCTYPE html>
++<html lang="pt-BR">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <title>Operação — Auto Key Supply POC</title>
++  <meta name="description" content="Como funciona a operação digital." />
++  <meta name="robots" content="noindex,nofollow" />
++  <meta name="theme-color" content="#0b1220" />
++  <link rel="preconnect" href="https://fonts.googleapis.com" />
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
++  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
++  <link rel="stylesheet" href="css/aks.css" />
++</head>
++<body>
++  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
++  <header class="site-header">
++    <div class="container header-inner">
++      <a class="brand" href="index.html">
++        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
++        <span class="brand-meta">
++          <span class="brand-name">Auto Key Supply</span>
++          <span class="brand-badge">POC · 3N20</span>
++        </span>
++      </a>
++      <nav class="nav" id="nav" aria-label="Principal">
++        <a href="index.html" class="">Início</a>
++        <a href="loja.html" class="">Loja</a>
++        <a href="carrinho.html" class="">Carrinho</a>
++        <a href="conta.html" class="">Minha conta</a>
++        <a href="sobre.html" class="is-active">Operação</a>
++        <a href="admin/" class="">Admin</a>
++      </nav>
++      <div class="header-actions">
++        <div class="lang-switch" aria-label="Mercado">
++          <button type="button" class="is-on" data-lang="br">BR</button>
++          <button type="button" data-lang="usa">USA</button>
++        </div>
++        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
++        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
++      </div>
++    </div>
++  </header>
++
++  <main>
++    <div class="container page-hero">
++      <h1>Como a operação funciona</h1>
++      <p>Tom 3N20 entregando para Auto Key Supply: loja rápida, admin no dia a dia e infra enxuta.</p>
++    </div>
++    <div class="container about-grid">
++      <div>
++        <ul class="about-list">
++          <li><strong>Vitrine responsiva</strong>Desktop e mobile — o cliente navega no celular na call e no notebook no balcão.</li>
++          <li><strong>Admin sob medida</strong>Produtos, categorias, preços, estoque, pedidos, frete e pagamentos em um painel só.</li>
++          <li><strong>SEO &amp; e-mails no domínio</strong>Páginas indexáveis e e-mails corporativos via redirecionamento DNS — sem mensalidade de caixa de e-mail.</li>
++          <li><strong>Infra de baixo custo</strong>Arquitetura serverless (Cloudflare Workers + KV/D1): performance alta e custo de hospedagem perto de zero.</li>
++          <li><strong>Segurança &amp; suporte</strong>HTTPS, acessos separados loja/admin, backups e suporte pós go-live sob contrato.</li>
++          <li><strong>Integrações</strong>ERP e marketplaces sob demanda, conforme API do parceiro — tela ilustrativa no admin.</li>
++        </ul>
++      </div>
++      <aside class="panel">
++        <h3>Segurança · hospedagem · suporte</h3>
++        <p style="color:var(--steel)">Camada institucional curta da POC: a loja fica em domínio próprio, com certificado, monitoramento e canal de suporte 3N20. Código-fonte e acessos ficam com o cliente — sem lock-in de plataforma fechada.</p>
++        <div class="meta-row" style="margin-top:1rem">
++          <span class="pill">HTTPS</span>
++          <span class="pill">Workers</span>
++          <span class="pill">DNS e-mail</span>
++          <span class="pill">Suporte</span>
++        </div>
++        <div class="hero-actions" style="margin-top:1.2rem;flex-direction:column">
++          <a class="btn btn-primary btn-block" href="admin/">Ver painel admin</a>
++          <a class="btn btn-outline btn-block" href="https://3n20.com.br/ecommerce/" target="_blank" rel="noopener">Oferta e-commerce 3N20</a>
++        </div>
++      </aside>
++    </div>
++  </main>
++  <footer class="site-footer">
++    <div class="container footer-inner">
++      <div>
++        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
++      </div>
++      <nav class="footer-nav" aria-label="Rodapé">
++        <a href="index.html">Início</a>
++        <a href="loja.html">Loja</a>
++        <a href="checkout.html">Checkout</a>
++        <a href="admin/">Admin</a>
++        <a href="sobre.html">Operação</a>
++        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
++      </nav>
++    </div>
++  </footer>
++  <script src="js/aks.js"></script>
++</body>
++</html>
+diff --git a/ecommerce/index.html b/ecommerce/index.html
+index bd0ca50..7cd120e 100644
+--- a/ecommerce/index.html
++++ b/ecommerce/index.html
+@@ -56,6 +56,7 @@
+                 <div class="hero-actions">
+                     <a href="#orcamento" class="btn btn-primary">Solicitar orçamento</a>
+                     <a href="https://www.sensortattoofix.com.br/loja.html" class="btn btn-outline" target="_blank" rel="noopener">Ver case no ar</a>
++                    <a href="../autokeysupply/" class="btn btn-outline">Ver POC Auto Key Supply</a>
+                 </div>
+             </div>
+         </div>
+diff --git a/index.html b/index.html
+index c7a549c..e12113f 100644
+--- a/index.html
++++ b/index.html
+@@ -209,6 +209,13 @@
+                     <div class="channels"><span>PDF</span><span>Word · PDF</span><span>Groq free</span><span>Web</span><span>3n20/harvey</span></div>
+                     <a href="/harvey/" class="btn btn-primary">Abrir Harvey.ai</a>
+                 </article>
++                <article class="portfolio-card portfolio-featured">
++                    <p class="label">POC · e-commerce · cliente</p>
++                    <h3>Auto Key Supply</h3>
++                    <p>Protótipo visual de e-commerce B2B para chaveiro/autopeças: vitrine, checkout, área do cliente e admin mock (produtos, estoque, frete, pagamentos e integrações). Sem backend — só navegação para reunião comercial.</p>
++                    <div class="channels"><span>Vitrine</span><span>Checkout</span><span>Admin</span><span>Mobile</span><span>POC</span></div>
++                    <a href="/autokeysupply/" class="btn btn-primary">Ver POC</a>
++                </article>
+                 <article class="portfolio-card portfolio-featured portfolio-squads">
+                     <p class="label">Gestão · enterprise</p>
+                     <h3>Sistema de gestão de squads</h3>
+-- 
+2.43.0
+
