@@ -234,6 +234,12 @@
     return window.STF_ORDER_WATCH?.formatModel(o) || o.smartwatch || '—';
   }
 
+  function hasPerUnitModels(o) {
+    return Array.isArray(o?.items) && o.items.some((item) =>
+      Array.isArray(item?.models) && item.models.some((model) => String(model || '').trim())
+    );
+  }
+
   function commissionerCell(o) {
     if (!o.couponCode) return '—';
     const name = o.couponCommissionerName || o.couponCode;
@@ -261,6 +267,7 @@
   }
 
   function watchModelOnly(o) {
+    if (hasPerUnitModels(o)) return 'Ver nos itens';
     const model = String(o?.modeloRelogio || o?.smartwatch || '').trim();
     const obs = String(o?.observacoes ?? '').trim();
     if (o?.modeloRelogio) return o.modeloRelogio;
@@ -273,7 +280,9 @@
     const model = watchModelOnly(o);
     const obs = String(o?.observacoes ?? '').trim();
     const full = watchModel(o);
-    const tip = full && full !== model ? full : (obs ? `${model} — ${obs}` : model);
+    const tip = hasPerUnitModels(o)
+      ? 'Modelos detalhados nos itens do pedido'
+      : (full && full !== model ? full : (obs ? `${model} — ${obs}` : model));
     let inner = `<span class="pedidos-watch-model">${escHtml(model)}</span>`;
     if (obs) {
       inner += `<br><small class="pedidos-watch-obs">${escHtml(obs)}</small>`;
@@ -1153,7 +1162,7 @@
 
     const itemsRow = orderItemsAuditHtml(o);
     if (itemsRow) rows.push(itemsRow);
-    if (o.smartwatch || o.modeloRelogio) {
+    if (!hasPerUnitModels(o) && (o.smartwatch || o.modeloRelogio)) {
       rows.push(detailRow('Smartwatch', escHtml(watchModel(o))));
     }
     if (o.observacoes) rows.push(detailRow('Observações', escHtml(o.observacoes)));
@@ -1357,7 +1366,6 @@
 
     title.textContent = o.orderId;
 
-    const watch = escHtml(watchModel(o));
     const commissioner = o.couponCode
       ? escHtml(o.couponCommissionerName || o.couponCode) +
         (o.couponCommissionAmount != null
@@ -1381,7 +1389,7 @@
         ${detailRow('Data', formatDateCell(o.createdAt))}
         ${detailRow('Cliente', `${escHtml(o.nome)}<br><small>${escHtml(o.email || '—')}</small><br><small>${escHtml(o.telefone || '—')}</small>`)}
         ${o.cpf ? detailRow('CPF', escHtml(o.cpf)) : ''}
-        ${detailRow('Smartwatch', watch)}
+        ${hasPerUnitModels(o) ? '' : detailRow('Smartwatch', escHtml(watchModel(o)))}
         ${orderItemsSummaryHtml(o)}
         ${orderAddressRows(o)}
         ${detailRow('País', escHtml(o.pais || '—'))}
