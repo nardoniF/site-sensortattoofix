@@ -1483,10 +1483,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function cartModelSummaryContent(item) {
-    const models = Array.isArray(item.models) ? item.models : [];
-    return models
-      .map((model, index) => model ? `${L('form.watchModel')} ${index + 1}: ${escapeHtml(model)}` : '')
-      .filter(Boolean)
+    const counts = new Map();
+    (Array.isArray(item.models) ? item.models : []).forEach((model) => {
+      const name = String(model || '').trim();
+      if (name) counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return [...counts]
+      .map(([model, quantity]) => `${quantity}× ${escapeHtml(model)}`)
       .join('<br>');
   }
 
@@ -1717,6 +1720,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     mount.setAttribute('aria-describedby', 'smartwatch-hint smartwatch-error');
     legacyFields.before(mount);
     legacyFields.hidden = true;
+    els.checkoutWatchBlock?.classList.add('checkout-watch-block--per-product');
     els.watchModelFields = mount;
     return mount;
   }
@@ -1777,6 +1781,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const models = modelsForDeviceKind(src, kind);
       const section = document.createElement('section');
       section.className = 'checkout-watch-product';
+      section.setAttribute('aria-label', `${cartLineName(item)} — ${item.qty}×`);
       const title = document.createElement('h4');
       title.textContent = `${cartLineName(item)} — ${item.qty}×`;
       section.appendChild(title);

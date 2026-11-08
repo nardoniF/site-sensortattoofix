@@ -574,11 +574,14 @@
     const list = items.map((item) => {
       const qty = Number(item.qty) || 1;
       const name = item.name || item.nome || item.productId || 'Item';
-      const models = Array.isArray(item.models)
-        ? item.models.map((model, index) => model ? `Modelo ${index + 1}: ${model}` : '').filter(Boolean)
-        : [];
+      const modelCounts = new Map();
+      (Array.isArray(item.models) ? item.models : []).forEach((model) => {
+        const name = String(model || '').trim();
+        if (name) modelCounts.set(name, (modelCounts.get(name) || 0) + 1);
+      });
+      const models = [...modelCounts].map(([model, quantity]) => `${quantity}× ${model}`);
       const modelsHtml = models.length
-        ? `<br><small>${escHtml(models.join(' · '))}</small>`
+        ? `<br><small>${escHtml(models.join('\n')).replace(/\n/g, '<br>')}</small>`
         : '';
       return `<li>${escHtml(String(qty))}× ${escHtml(name)}${modelsHtml}</li>`;
     }).join('');
@@ -1120,11 +1123,14 @@
       const price = Number(item.price);
       const priceTxt = Number.isFinite(price) ? ` · ${formatBRL(price)}` : '';
       const id = item.productId || item.slug ? ` <code>${escHtml(item.productId || item.slug)}</code>` : '';
-      const models = Array.isArray(item.models)
-        ? item.models.map((model, index) => model ? `${index + 1}. ${model}` : '').filter(Boolean)
-        : [];
+      const modelCounts = new Map();
+      (Array.isArray(item.models) ? item.models : []).forEach((model) => {
+        const name = String(model || '').trim();
+        if (name) modelCounts.set(name, (modelCounts.get(name) || 0) + 1);
+      });
+      const models = [...modelCounts].map(([model, quantity]) => `${quantity}× ${model}`);
       const modelsTxt = models.length
-        ? `<br><small>Modelos: ${escHtml(models.join('; '))}</small>`
+        ? `<br><small>Modelos:<br>${escHtml(models.join('\n')).replace(/\n/g, '<br>')}</small>`
         : '';
       return `<li>${escHtml(String(qty))}× ${escHtml(name)}${priceTxt}${id}${modelsTxt}</li>`;
     }).join('');
