@@ -14996,16 +14996,17 @@ async function handlePaymentConfirmed(env, order, payment) {
 
   const paidCustomerMessage = paidMessageForOrder(order, config);
   const receipt = paidReceiptCopy(order, config, paidCustomerMessage);
-  await notifyCustomer(env, config, order, receipt.subject, {
+  const receiptFields = {
+    [receipt.customerLabel]: order.nome,
     ...receipt.fields,
     ...orderWatchEmailFields(order),
     ...orderIntlProductFields(order)
+  };
+  await notifyCustomer(env, config, order, receipt.subject, {
+    ...receiptFields
   }, {
-    html: fieldsToHtmlLocalized(
-      { [receipt.customerLabel]: order.nome, ...receipt.fields, ...orderWatchEmailFields(order), ...orderIntlProductFields(order) },
-      receipt.footerSite
-    ),
-    text: fieldsToText({ [receipt.customerLabel]: order.nome, ...receipt.fields })
+    html: fieldsToHtmlLocalized(receiptFields, receipt.footerSite),
+    text: fieldsToText(receiptFields)
   });
 
   // Paid receipt already included tracking — skip the follow-up e-mail.

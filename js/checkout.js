@@ -2765,7 +2765,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           const name = String(model || '').trim();
           if (name) counts.set(name, (counts.get(name) || 0) + 1);
         });
-        return `${item.name || item.productId} (${item.qty || item.models.length}): ${
+        return `${item.name || item.productId} (${item.qty || item.models.length}):\n${
           [...counts].map(([model, quantity]) => `${quantity}× ${model}`).join('\n')
         }`;
       })

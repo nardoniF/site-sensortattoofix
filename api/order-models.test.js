@@ -61,8 +61,8 @@ test('supports the legacy single-lens model and records mixed product quantities
   ];
   assert.equal(
     orderDeviceModelsText(items),
-    'Lente Smartwatch (2): 1× Apple Watch Ultra 2\n1× Samsung Galaxy Watch 7\n'
-      + 'Lente Smartband (3): 2× Xiaomi Smart Band 9\n1× Huawei Band 9'
+    'Lente Smartwatch (2):\n1× Apple Watch Ultra 2\n1× Samsung Galaxy Watch 7\n'
+      + 'Lente Smartband (3):\n2× Xiaomi Smart Band 9\n1× Huawei Band 9'
   );
   assert.deepEqual(JSON.parse(JSON.stringify({ items })).items.map((item) => item.models), [
     ['Apple Watch Ultra 2', 'Samsung Galaxy Watch 7'],

@@ -93,7 +93,7 @@ export function orderDeviceModelsText(items) {
       const models = [...counts]
         .map(([model, quantity]) => `${quantity}× ${model}`)
         .join('\n');
-      return `${item.name || item.productId || 'Produto'} (${item.qty || item.models.length}): ${models}`;
+      return `${item.name || item.productId || 'Produto'} (${item.qty || item.models.length}):\n${models}`;
     })
     .join('\n');
 }
