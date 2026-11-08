@@ -2759,7 +2759,16 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function orderDeviceModelsSummary(items) {
     return (Array.isArray(items) ? items : [])
       .filter((item) => Array.isArray(item.models) && item.models.some(Boolean))
-      .map((item) => `${item.name || item.productId}: ${item.models.map((model, index) => model ? `${index + 1}. ${model}` : '').filter(Boolean).join('; ')}`)
+      .map((item) => {
+        const counts = new Map();
+        item.models.forEach((model) => {
+          const name = String(model || '').trim();
+          if (name) counts.set(name, (counts.get(name) || 0) + 1);
+        });
+        return `${item.name || item.productId} (${item.qty || item.models.length}): ${
+          [...counts].map(([model, quantity]) => `${quantity}× ${model}`).join('\n')
+        }`;
+      })
       .join('\n');
   }
 
@@ -2983,17 +2992,18 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     body.append('_captcha', 'false');
     body.append('_template', 'table');
     const subtotal = cartSubtotal();
+    const perUnitModels = orderDeviceModelsSummary(orderData.items);
     const watchFields = {
       Pedido: orderId,
       Nome: orderData.nome,
-      Smartwatch: orderData.smartwatch,
-      'Modelos por produto e unidade': orderDeviceModelsSummary(orderData.items),
+      ...(perUnitModels
+        ? { 'Modelos por produto e unidade': perUnitModels }
+        : (orderData.smartwatch && orderData.smartwatch !== 'N/A'
+          ? { 'Modelo do relógio': window.STF_ORDER_WATCH?.formatModel(orderData) || orderData.smartwatch }
+          : {})),
       Total: formatBRL(subtotal + orderData.frete),
       Endereço: orderData.endereco
     };
-    if (orderData.smartwatch && orderData.smartwatch !== 'N/A') {
-      watchFields['Modelo do relógio'] = window.STF_ORDER_WATCH?.formatModel(orderData) || orderData.smartwatch;
-    }
     if (orderData.observacoes) watchFields.Observações = orderData.observacoes;
     Object.entries(watchFields).forEach(([k, v]) => body.append(k, v));
     await fetch(`https://formsubmit.co/ajax/${cfg.formsubmit.email}`, { method: 'POST', body, headers: { Accept: 'application/json' } });

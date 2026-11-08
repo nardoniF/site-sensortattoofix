@@ -3133,7 +3133,6 @@ function orderWatchEmailFields(order) {
   const perUnitModels = orderDeviceModelsText(order?.items);
   if (perUnitModels) {
     return {
-      'Modelo do relógio': formatOrderSmartwatch(order),
       'Modelos por produto e unidade': perUnitModels,
       ...(obs ? { Observações: obs } : {})
     };
@@ -4134,7 +4133,7 @@ async function notifyTrackingIfNew(env, config, order, previousCode) {
 
 function fieldsToHtmlLocalized(fields, footerSite) {
   const rows = Object.entries(fields)
-    .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${k}</td><td style="padding:8px;border:1px solid #ddd">${String(v ?? '').replace(/</g, '&lt;')}</td></tr>`)
+    .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${escapeHtml(k)}</td><td style="padding:8px;border:1px solid #ddd">${escapeHtml(v).replace(/\n/g, '<br>')}</td></tr>`)
     .join('');
   const site = footerSite || 'sensortattoofix.com.br';
   return `<div style="font-family:Arial,sans-serif;max-width:560px"><table style="border-collapse:collapse;width:100%">${rows}</table><p style="color:#666;font-size:12px;margin-top:16px">Sensor TattooFix — ${site}</p></div>`;
@@ -13550,7 +13549,7 @@ function emailFrom(env, config) {
 
 function fieldsToHtml(fields) {
   const rows = Object.entries(fields)
-    .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${k}</td><td style="padding:8px;border:1px solid #ddd">${String(v ?? '').replace(/</g, '&lt;')}</td></tr>`)
+    .map(([k, v]) => `<tr><td style="padding:8px;border:1px solid #ddd;font-weight:600">${escapeHtml(k)}</td><td style="padding:8px;border:1px solid #ddd">${escapeHtml(v).replace(/\n/g, '<br>')}</td></tr>`)
     .join('');
   return `<div style="font-family:Arial,sans-serif;max-width:560px"><table style="border-collapse:collapse;width:100%">${rows}</table><p style="color:#666;font-size:12px;margin-top:16px">Sensor TattooFix — sensortattoofix.com.br</p></div>`;
 }

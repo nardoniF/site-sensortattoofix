@@ -85,10 +85,14 @@ export function orderDeviceModelsText(items) {
   return (Array.isArray(items) ? items : [])
     .filter((item) => Array.isArray(item?.models) && item.models.some(Boolean))
     .map((item) => {
-      const models = item.models
-        .map((model, index) => model ? `${index + 1}. ${model}` : '')
-        .filter(Boolean)
-        .join('; ');
+      const counts = new Map();
+      item.models.forEach((model) => {
+        const name = String(model || '').trim();
+        if (name) counts.set(name, (counts.get(name) || 0) + 1);
+      });
+      const models = [...counts]
+        .map(([model, quantity]) => `${quantity}× ${model}`)
+        .join('\n');
       return `${item.name || item.productId || 'Produto'} (${item.qty || item.models.length}): ${models}`;
     })
     .join('\n');
