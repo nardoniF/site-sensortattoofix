@@ -234,10 +234,19 @@
     return window.STF_ORDER_WATCH?.formatModel(o) || o.smartwatch || '—';
   }
 
+  function perUnitModels(o) {
+    return (Array.isArray(o?.items) ? o.items : [])
+      .flatMap((item) => Array.isArray(item?.models) ? item.models : [])
+      .map((model) => String(model || '').trim())
+      .filter(Boolean);
+  }
+
   function hasPerUnitModels(o) {
-    return Array.isArray(o?.items) && o.items.some((item) =>
-      Array.isArray(item?.models) && item.models.some((model) => String(model || '').trim())
-    );
+    return perUnitModels(o).length > 0;
+  }
+
+  function hasMultiplePerUnitModels(o) {
+    return perUnitModels(o).length > 1;
   }
 
   function commissionerCell(o) {
@@ -267,7 +276,9 @@
   }
 
   function watchModelOnly(o) {
-    if (hasPerUnitModels(o)) return 'Ver nos itens';
+    const models = perUnitModels(o);
+    if (models.length > 1) return 'Ver nos itens';
+    if (models.length === 1) return models[0];
     const model = String(o?.modeloRelogio || o?.smartwatch || '').trim();
     const obs = String(o?.observacoes ?? '').trim();
     if (o?.modeloRelogio) return o.modeloRelogio;
@@ -280,9 +291,9 @@
     const model = watchModelOnly(o);
     const obs = String(o?.observacoes ?? '').trim();
     const full = watchModel(o);
-    const tip = hasPerUnitModels(o)
+    const tip = hasMultiplePerUnitModels(o)
       ? 'Modelos detalhados nos itens do pedido'
-      : (full && full !== model ? full : (obs ? `${model} — ${obs}` : model));
+      : (full && full !== model && !hasPerUnitModels(o) ? full : (obs ? `${model} — ${obs}` : model));
     let inner = `<span class="pedidos-watch-model">${escHtml(model)}</span>`;
     if (obs) {
       inner += `<br><small class="pedidos-watch-obs">${escHtml(obs)}</small>`;
