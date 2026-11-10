@@ -5015,14 +5015,15 @@ async function loadMarketplaceSale(env, channel, saleId) {
 
 async function saveMarketplaceSale(env, sale) {
   if (!sale?.externalId) return false;
-  sale = healMlStoredShipping(sale);
+  const config = await getConfig(env).catch(() => ({}));
+  const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+  sale = healMlStoredShipping(sale, flexCost);
   // Normalizar e anexar `payload.normalized` sem sobrescrever
   try {
     const [{ normalizeMarketplaceSale }, { calculateOrderFinancials }] = await Promise.all([
       import('./order-normalizer.js'),
       import('./order-financials.js')
     ]);
-    const config = await getConfig(env).catch(() => ({}));
     const normalized = normalizeMarketplaceSale(sale, config) || {};
     // enrich with financials
     try {
@@ -5053,9 +5054,12 @@ async function listMarketplaceSales(env, channel, limit) {
   const cap = Math.min(5000, Math.max(1, Number(limit) || 500));
   const fromD1 = await d1ListSales(env, channel, cap);
   if (fromD1.length) {
-    return String(channel).toLowerCase() === 'mercadolivre'
-      ? fromD1.map(healMlStoredShipping)
-      : fromD1;
+    const ch = String(channel).toLowerCase();
+    if (ch !== 'mercadolivre' && ch !== 'ml') return fromD1;
+    // Array.map(fn) passa o índice como 2º argumento — isso virava "preço Flex".
+    const config = await getConfig(env).catch(() => ({}));
+    const flexCost = Number(config?.mlFlexShippingCost) > 0 ? Number(config.mlFlexShippingCost) : 0;
+    return fromD1.map((sale) => healMlStoredShipping(sale, flexCost));
   }
   const idxKey = channel === 'mercadolivre'
     ? ML_SALES_INDEX_KEY
