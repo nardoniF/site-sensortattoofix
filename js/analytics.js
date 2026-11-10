@@ -136,34 +136,49 @@
     return true;
   }
 
+  function rotuloEmPortugues(raw) {
+    const text = normalizarTexto(raw);
+    if (!text) return '';
+    try {
+      const fn = window.STF_CLICK_LABELS_PT?.toPt;
+      if (typeof fn === 'function') {
+        const pt = fn(text);
+        if (pt) return normalizarTexto(pt);
+      }
+    } catch (_) { /* ignore */ }
+    return text;
+  }
+
   function rotuloElemento(el) {
     const fixo = el.getAttribute('data-rotulo');
-    if (fixo) return normalizarTexto(fixo);
+    if (fixo) return rotuloEmPortugues(fixo);
 
     const evento = el.getAttribute('data-evento');
-    if (evento) return normalizarTexto(evento.replace(/^clique_/, '').replace(/_/g, ' '));
+    if (evento) return rotuloEmPortugues(evento.replace(/^clique_/, '').replace(/_/g, ' '));
 
     const aria = el.getAttribute('aria-label');
-    if (aria) return normalizarTexto(aria);
+    if (aria) return rotuloEmPortugues(aria);
 
     const title = el.getAttribute('title');
-    if (title) return normalizarTexto(title);
+    if (title) return rotuloEmPortugues(title);
 
-    if (el.classList.contains('nav-lang')) return 'Troca idioma';
+    if (el.classList.contains('nav-lang')) return 'Troca de idioma';
     if (el.classList.contains('logo-img-link')) return 'Logo';
     if (el.classList.contains('whatsapp-float')) return 'WhatsApp flutuante';
     if (el.classList.contains('cart-nav-link')) return 'Carrinho';
     if (el.classList.contains('loja-btn-buy')) return 'Comprar produto';
     if (el.classList.contains('loja-btn-add')) return 'Adicionar ao carrinho';
-    if (el.classList.contains('store-link')) return normalizarTexto(el.querySelector('h3')?.textContent || el.textContent);
+    if (el.classList.contains('store-link')) {
+      return rotuloEmPortugues(el.querySelector('h3')?.textContent || el.textContent);
+    }
     if (el.classList.contains('store-official-bar')) return 'Loja oficial';
-    if (el.classList.contains('social-link')) return normalizarTexto(el.textContent);
-    if (el.closest('summary')) return normalizarTexto(el.closest('summary')?.textContent);
+    if (el.classList.contains('social-link')) return rotuloEmPortugues(el.textContent);
+    if (el.closest('summary')) return rotuloEmPortugues(el.closest('summary')?.textContent);
 
     const slug = el.getAttribute('data-slug');
-    if (slug) return normalizarTexto(slug);
+    if (slug) return rotuloEmPortugues(slug);
 
-    return normalizarTexto(el.textContent);
+    return rotuloEmPortugues(el.textContent);
   }
 
   function payloadBase(el, extras) {
