@@ -1038,15 +1038,17 @@ async function notifyMotoboyCouriers(env, config, order) {
 
 function orderCouponEmailFields(order) {
   if (!order?.couponCode) return {};
+  const parts = orderChargeMoneyParts(order);
   const fields = {
     Cupom: order.couponCode,
     Comissionado: order.couponCommissionerName || order.couponCommissionerEmail || '—',
-    'Desconto cupom': formatBRL(order.couponDiscount || 0)
+    'Desconto cupom': formatCurrencyAmount(parts.discount || 0, parts.currency)
   };
   if (order.couponCommissionPercent != null) {
     fields['Comissão (%)'] = `${order.couponCommissionPercent}%`;
   }
   if (order.couponCommissionAmount != null) {
+    // Commission is always settled in BRL with commissioners.
     fields['Comissão a pagar'] = formatBRL(order.couponCommissionAmount);
   }
   return fields;
@@ -2783,23 +2785,40 @@ async function intlForeignCharge(order, env, config, items, currency) {
     productForeign += price * (Number(item.qty) || 1);
   }
   let amount;
+  let productAmount = 0;
+  let shippingAmount = 0;
   if (allConfigured && itemList.length) {
     const brlProducts = itemList.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
     const couponDisc = Number(order.couponDiscount) || 0;
     const ratio = brlProducts > 0 ? Math.max(0, (brlProducts - couponDisc) / brlProducts) : 1;
-    amount = Math.round(productForeign * ratio * 100) / 100;
+    productAmount = Math.round(productForeign * ratio * 100) / 100;
     const frete = Number(order.frete) || 0;
-    if (frete > 0) amount = Math.round((amount + frete * fx.rate) * 100) / 100;
+    shippingAmount = frete > 0 ? Math.round(frete * fx.rate * 100) / 100 : 0;
+    amount = Math.round((productAmount + shippingAmount) * 100) / 100;
   } else {
     const brl = Number(order.total) || 0;
     amount = Math.round(brl * fx.rate * 100) / 100;
+    const frete = Number(order.frete) || 0;
+    shippingAmount = frete > 0 ? Math.round(frete * fx.rate * 100) / 100 : 0;
+    productAmount = Math.max(0, Math.round((amount - shippingAmount) * 100) / 100);
   }
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
     const minAmt = stripe ? stripeSelfTestAmount(cur) : paypalSelfTestAmount(cur);
-    if (amount < minAmt) amount = minAmt;
+    if (amount < minAmt) {
+      amount = minAmt;
+      productAmount = amount;
+      shippingAmount = 0;
+    }
   }
-  return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
+  return {
+    currency: cur,
+    amount,
+    amountCents: Math.round(amount * 100),
+    fxRate: fx.rate,
+    productAmount,
+    shippingAmount
+  };
 }
 
 async function intlUsdCharge(order, env, config, items) {
@@ -3836,14 +3855,105 @@ function labelPrintUrl(config, orderId) {
   return `${base}/imprimir-etiqueta.html?order=${encodeURIComponent(orderId)}`;
 }
 
-function formatOrderCharge(order, value) {
+/** Format an amount already in the given ISO currency (not BRL→FX). */
+function formatCurrencyAmount(amount, currency) {
+  const cur = String(currency || 'BRL').toUpperCase();
+  const n = Number(amount || 0);
+  if (cur === 'BRL' || !cur) return formatBRL(n);
+  if (cur === 'USD') return `US$ ${n.toFixed(2)}`;
+  try {
+    const locale = cur === 'EUR' ? 'it-IT'
+      : cur === 'SEK' ? 'sv-SE'
+        : cur === 'NOK' ? 'nb-NO'
+          : cur === 'PLN' ? 'pl-PL'
+            : cur === 'GBP' ? 'en-GB'
+              : 'en-US';
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: cur }).format(n);
+  } catch {
+    return `${cur} ${n.toFixed(2)}`;
+  }
+}
+
+function orderHasForeignCharge(order) {
   const cur = String(order?.chargeCurrency || '').toUpperCase();
-  const amt = order.chargeAmount != null ? Number(order.chargeAmount) : Number(value ?? order.total);
-  if (cur === 'USD') return `US$ ${Number(amt || 0).toFixed(2)}`;
-  if (cur === 'EUR') {
-    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(Number(amt || 0));
+  return !!(cur && cur !== 'BRL' && order?.chargeAmount != null && Number.isFinite(Number(order.chargeAmount)));
+}
+
+/**
+ * Product / shipping / total in the currency the customer was charged
+ * (same FX/list math as intlForeignCharge). Falls back to BRL fields.
+ */
+function orderChargeMoneyParts(order) {
+  if (!orderHasForeignCharge(order)) {
+    return {
+      currency: 'BRL',
+      product: Number(order?.valorProdutoOriginal ?? order?.valorProduto) || 0,
+      productNet: Number(order?.valorProduto) || 0,
+      shipping: Number(order?.frete) || 0,
+      discount: Number(order?.couponDiscount) || 0,
+      fee: Number(order?.paypalFee) || 0,
+      total: Number(order?.total) || 0
+    };
+  }
+  const currency = String(order.chargeCurrency).toUpperCase();
+  const total = Number(order.chargeAmount) || 0;
+  const rate = Number(order.chargeFxRate);
+  const freteBrl = Number(order.frete) || 0;
+  const shipping = (Number.isFinite(rate) && rate > 0 && freteBrl > 0)
+    ? Math.round(freteBrl * rate * 100) / 100
+    : (Number(order.chargeShippingAmount) || 0);
+  let productNet = Number(order.chargeProductAmount);
+  if (!Number.isFinite(productNet) || productNet < 0) {
+    productNet = Math.round((total - shipping) * 100) / 100;
+    if (productNet < 0) productNet = total;
+  }
+  // Gross product (before coupon) — approximate with BRL ratio when needed.
+  let product = productNet;
+  const discBrl = Number(order.couponDiscount) || 0;
+  const prodBrl = Number(order.valorProduto) || 0;
+  const prodOrigBrl = Number(order.valorProdutoOriginal ?? order.valorProduto) || 0;
+  if (discBrl > 0 && prodBrl > 0 && prodOrigBrl > prodBrl) {
+    const ratio = prodOrigBrl / prodBrl;
+    product = Math.round(productNet * ratio * 100) / 100;
+  }
+  const discount = Math.max(0, Math.round((product - productNet) * 100) / 100);
+  const fee = 0;
+  return { currency, product, productNet, shipping, discount, fee, total };
+}
+
+function formatOrderCharge(order, value) {
+  if (orderHasForeignCharge(order) && (value == null || Number(value) === Number(order.total))) {
+    return formatCurrencyAmount(order.chargeAmount, order.chargeCurrency);
+  }
+  const cur = String(order?.chargeCurrency || '').toUpperCase();
+  if (cur && cur !== 'BRL' && value != null && Number.isFinite(Number(order?.chargeFxRate)) && Number(order.chargeFxRate) > 0) {
+    const amt = Math.round(Number(value || 0) * Number(order.chargeFxRate) * 100) / 100;
+    return formatCurrencyAmount(amt, cur);
+  }
+  if (cur === 'USD') {
+    return `US$ ${Number(value ?? order?.chargeAmount ?? order?.total ?? 0).toFixed(2)}`;
+  }
+  if (cur && cur !== 'BRL') {
+    return formatCurrencyAmount(value ?? order?.chargeAmount ?? order?.total ?? 0, cur);
   }
   return formatBRL(value ?? order?.total);
+}
+
+/** Shop “Novo pedido” money fields in charge currency when abroad. */
+function orderShopNotifyMoneyFields(order) {
+  const parts = orderChargeMoneyParts(order);
+  const fmt = (n) => formatCurrencyAmount(n, parts.currency);
+  const fields = {
+    Produto: fmt(parts.product),
+    Frete: fmt(parts.shipping),
+    Total: fmt(parts.total)
+  };
+  if (parts.discount > 0) {
+    fields['Desconto cupom'] = fmt(parts.discount);
+    fields['Produto c/ desconto'] = fmt(parts.productNet);
+  }
+  if (parts.fee > 0) fields['Taxa PayPal'] = fmt(parts.fee);
+  return fields;
 }
 
 function orderRefLabel(order) {
@@ -7501,15 +7611,16 @@ function pixCustomerHint(order, shopPhone) {
 
 async function notifyWhatsApp(env, config, order, type) {
   const shopPhone = config.whatsapp || env.SHOP_WHATSAPP;
+  const totalLabel = formatOrderCharge(order, order.total);
   const msgs = {
-    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
-    order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n${watchWhatsAppBlock(order)}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
+    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${totalLabel}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
+    order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n${watchWhatsAppBlock(order)}\n🌍 ${order.pais}\n💰 ${totalLabel}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
     paid_customer: shouldDispatchUberDelivery(order)
       ? `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago.\n\n🚗 Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em instantes.\n\nSensor TattooFix`
       : `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.\n\nSensor TattooFix`,
     paid_shop: shouldDispatchUberDelivery(order)
-      ? `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n🚗 Uber Direct — ${order.shippingService}\n📍 ${order.endereco}${order.uberTrackingUrl ? `\n🔗 ${order.uberTrackingUrl}` : ''}`
-      : `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
+      ? `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${totalLabel}\n${watchWhatsAppBlock(order)}\n\n🚗 Uber Direct — ${order.shippingService}\n📍 ${order.endereco}${order.uberTrackingUrl ? `\n🔗 ${order.uberTrackingUrl}` : ''}`
+      : `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${totalLabel}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
   };
 
   const customerMsg = msgs[type + '_customer'];
@@ -13241,6 +13352,8 @@ async function createPayPalCheckout(env, order, config, request, opts) {
       order.chargeCurrency = foreignCur;
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
+      order.chargeProductAmount = charge.productAmount;
+      order.chargeShippingAmount = charge.shippingAmount;
       order.displayCurrency = foreignCur;
     }
   } else if (isSelfTestOrder(order)) {
@@ -13655,7 +13768,7 @@ async function notifyCustomerPendingPix(env, config, order) {
   });
   const fields = {
     Pedido: order.orderId,
-    Total: formatBRL(order.total),
+    Total: formatOrderCharge(order, order.total),
     'Link do pedido': mail.resumeUrl,
     ...orderWatchEmailFields(order)
   };
@@ -14668,6 +14781,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
       order.chargeCurrency = foreignCur;
       order.chargeAmount = charge.amount;
       order.chargeFxRate = charge.fxRate;
+      order.chargeProductAmount = charge.productAmount;
+      order.chargeShippingAmount = charge.shippingAmount;
       order.displayCurrency = foreignCur;
     } catch (err) {
       console.warn('Intl charge:', err.message);
@@ -14750,14 +14865,11 @@ async function handleCreateOrder(request, env, origin, ctx) {
       Pedido: order.orderId, Status: order.status, Nome: order.nome,
       'E-mail': order.email, Telefone: order.telefone,
       País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
-      Produto: formatBRL(order.valorProdutoOriginal ?? order.valorProduto),
-      ...(order.couponDiscount ? {
-        'Desconto cupom': formatBRL(order.couponDiscount),
-        'Produto c/ desconto': formatBRL(order.valorProduto)
+      ...orderShopNotifyMoneyFields(order),
+      ...(orderHasForeignCharge(order) ? {
+        'Total (BRL ref.)': formatBRL(order.total),
+        Moeda: String(order.chargeCurrency || '').toUpperCase()
       } : {}),
-      Frete: formatBRL(order.frete),
-      ...(order.paypalFee ? { 'Taxa PayPal': formatBRL(order.paypalFee) } : {}),
-      Total: formatBRL(order.total),
       Envio: order.shippingService || '—',
       ...orderCouponEmailFields(order),
       ...orderIntlProductFields(order),
@@ -14766,8 +14878,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...(order.selfTestPayPal ? {
-        'Teste PayPal produção': order.chargeCurrency === 'USD'
-          ? `US$ ${SELF_TEST_USD_AMOUNT.toFixed(2)} — pedido internacional`
+        'Teste PayPal produção': orderHasForeignCharge(order)
+          ? `${formatOrderCharge(order)} — pedido internacional`
           : `R$ ${SELF_TEST_BRL_AMOUNT.toFixed(2)} — pedido Brasil`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
@@ -14776,8 +14888,8 @@ async function handleCreateOrder(request, env, origin, ctx) {
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
       ...(order.selfTestTester && !order.selfTestPayPal && !order.selfTestStripe && !order.selfTestPix ? {
-        'Teste conta testadora': order.chargeCurrency === 'USD'
-          ? `US$ ${Number(order.chargeAmount || SELF_TEST_USD_AMOUNT).toFixed(2)} — pedido internacional`
+        'Teste conta testadora': orderHasForeignCharge(order)
+          ? `${formatOrderCharge(order)} — pedido internacional`
           : `R$ ${SELF_TEST_BRL_AMOUNT.toFixed(2)} — pedido Brasil`,
         'Total original': formatBRL(order.totalOriginal || 0)
       } : {}),
@@ -15858,6 +15970,8 @@ async function ensureStripeIntlCharge(order, request, env) {
   order.chargeCurrency = foreignCur;
   order.chargeAmount = charge.amount;
   order.chargeFxRate = charge.fxRate;
+  order.chargeProductAmount = charge.productAmount;
+  order.chargeShippingAmount = charge.shippingAmount;
   order.displayCurrency = foreignCur;
 }
 
