@@ -2,9 +2,10 @@ Cartão de visita Sensor TattooFix
 =================================
 Arquivo: SensorTattooFix-cartao-visita.pdf
 
-Corte: 9 × 5 cm | Sangria: 4 mm | PDF: 98 × 58 mm | 600 DPI
+Corte final (TrimBox): 9 × 5 cm (90 × 50 mm)
+Sangria: 4 mm em todos os lados (frente e verso)
+PDF (MediaBox/BleedBox): 98 × 58 mm
+Resolução: 600 DPI
 
-Verso (fundo preto):
-- Em cima: sensortattoofix.com.br
-- Esquerda: 🛒 72,90 + QR PIX
-- Direita: WhatsApp + Suporte + QR
+Na frente a arte preenche a sangria; textos/logo ficam dentro da área de corte
+(com margem segura) para o site vertical não ser guilhotinado.
