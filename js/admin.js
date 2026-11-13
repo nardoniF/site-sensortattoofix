@@ -4849,6 +4849,29 @@ ${worksheets}
     return CLICK_DESTINO_LABELS[destino] || fallback || destino || '—';
   }
 
+  function clickRotuloPt(rotulo) {
+    const raw = String(rotulo || '').trim();
+    if (!raw) return '';
+    try {
+      const fn = window.STF_CLICK_LABELS_PT?.toPt;
+      if (typeof fn === 'function') {
+        const pt = fn(raw);
+        if (pt) return String(pt).trim();
+      }
+    } catch (_) { /* ignore */ }
+    return raw;
+  }
+
+  function clickStepLabelPt(c) {
+    const destKey = c?.destino || 'outro';
+    const isEntrada = c?.tipo === 'pageview' || String(destKey).startsWith('entrada_');
+    const destFallback = clickRotuloPt(c?.destino_label) || clickDestinoLabel(destKey);
+    if (isEntrada) return destFallback;
+    const rotuloPt = clickRotuloPt(c?.rotulo);
+    if (rotuloPt) return rotuloPt;
+    return destFallback;
+  }
+
   function renderClicksStats(data) {
     const el = document.getElementById('clicks-stats');
     if (!el) return;
@@ -5309,7 +5332,7 @@ ${worksheets}
         destKey,
         destLabel: destKey === 'home'
           ? 'Home'
-          : (clickDestinoLabel(first.destino || destKey, first.destino_label) || destKey),
+          : (clickStepLabelPt(first) || clickDestinoLabel(first.destino || destKey, first.destino_label) || destKey),
         origemKey: origem?.slug || 'direto',
         origemLabel: origem?.label || 'Acesso direto',
         site: clickSiteHost(first),
@@ -6057,17 +6080,17 @@ ${worksheets}
 
   function renderClickStep(c, idx) {
     const destKey = c.destino || 'outro';
-    const destFallback = c.destino_label || clickDestinoLabel(destKey);
+    const destFallback = clickRotuloPt(c.destino_label) || clickDestinoLabel(destKey);
     const isEntrada = c.tipo === 'pageview' || String(destKey).startsWith('entrada_');
-    const dest = (c.rotulo && !isEntrada) ? c.rotulo : destFallback;
+    const dest = clickStepLabelPt(c);
     const origem = clickOrigemLegivel(c);
     let detalhe = '';
     if (isEntrada) {
       detalhe = origem.label;
-    } else if (c.rotulo && c.rotulo !== destFallback) {
-      detalhe = c.secao_label || humanizarPaginaLog(c.pagina) || c.pagina || '—';
+    } else if (c.rotulo && clickRotuloPt(c.rotulo) !== destFallback) {
+      detalhe = clickRotuloPt(c.secao_label) || humanizarPaginaLog(c.pagina) || c.pagina || '—';
     } else {
-      detalhe = c.secao_label || humanizarPaginaLog(c.pagina) || '—';
+      detalhe = clickRotuloPt(c.secao_label) || humanizarPaginaLog(c.pagina) || '—';
     }
     const hora = formatClickTime(c.ts);
     // Step index only within this visit path (1, 2, 3…) — never c.sequencia
