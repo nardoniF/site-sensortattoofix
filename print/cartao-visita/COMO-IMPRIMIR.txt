@@ -8,10 +8,6 @@ Sangria: 4 mm em todos os lados
 Tamanho do PDF (com sangria): 98 × 58 mm
 Resolução: 600 DPI
 
-Caixas PDF:
-- MediaBox / BleedBox = 98 × 58 mm (arte completa)
-- TrimBox = 90 × 50 mm (área de corte, inset 4 mm)
-
 Verso:
-- QR esquerdo = PIX R$ 72,90
-- QR direito  = WhatsApp https://wa.me/5511913394665
+- Esquerda: Compra — PIX R$ 72,90
+- Direita: Suporte — WhatsApp
