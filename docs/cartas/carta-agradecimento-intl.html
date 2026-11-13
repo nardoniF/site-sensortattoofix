@@ -661,7 +661,8 @@
   async function ensureLetterLocales() {
     if (letterLocalesReady) return;
     try {
-      const res = await fetch('../data/letter-l10n.json?v=2', { cache: 'no-store' });
+      // From docs/cartas/ → repo root data/ (NOT docs/data/, which 404s)
+      const res = await fetch('../../data/letter-l10n.json?v=3', { cache: 'no-store' });
       if (res.ok) Object.assign(LETTER_COPY, await res.json());
     } catch (_) { /* ignore */ }
     letterLocalesReady = true;
