@@ -8,6 +8,6 @@ Sangria: 4 mm em todos os lados
 Tamanho do PDF (com sangria): 98 × 58 mm
 Resolução: 600 DPI
 
-Verso:
-- Esquerda: Compra — PIX R$ 72,90
-- Direita: Suporte — WhatsApp
+Verso (fundo preto):
+- Em cima: sensortattoofix.com.br
+- Embaixo: Compra (PIX R$ 72,90) | Suporte (WhatsApp)
