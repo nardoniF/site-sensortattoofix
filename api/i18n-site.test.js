@@ -194,10 +194,10 @@ test('STF_PELICULA: /es/ usa nameEn em vez de name PT', () => {
   assert.equal(p.productDescription(product), 'English product description');
 });
 
-test('letter-l10n.json cobre DE/ES/PL com chaves da carta EN', () => {
+test('letter-l10n.json cobre DE/ES/PL/SL/FR/NL/SV/NO/FI com chaves da carta EN', () => {
   const data = JSON.parse(fs.readFileSync(path.join(root, 'data/letter-l10n.json'), 'utf8'));
-  const required = ['thanksTitle', 'sectionSteps', 'step1Text', 'body2', 'pocketTitle', 'toolbarFilled'];
-  for (const lang of ['de', 'es', 'pl']) {
+  const required = ['thanksTitle', 'sectionSteps', 'step1Text', 'body2', 'pocketTitle', 'toolbarFilled', 'noteDualThickness'];
+  for (const lang of ['de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']) {
     for (const key of required) {
       assert.ok(data[lang]?.[key], `${lang}.${key}`);
     }
