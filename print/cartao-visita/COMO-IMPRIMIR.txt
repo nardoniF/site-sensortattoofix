@@ -1,13 +1,17 @@
 Cartão de visita Sensor TattooFix
 =================================
 Arquivo: SensorTattooFix-cartao-visita.pdf
-Tamanho: 90 × 50 mm (padrão BR)
 Páginas: 1 = frente · 2 = verso
+
+Tamanho final (corte): 9 × 5 cm  (90 × 50 mm)
+Sangria: 4 mm em todos os lados
+Tamanho do PDF (com sangria): 98 × 58 mm
 Resolução: 600 DPI
 
-Verso:
-- QR esquerdo = PIX R$ 72,90 (mesmo payload da arte)
-- QR direito  = WhatsApp https://wa.me/5511913394665
+Caixas PDF:
+- MediaBox / BleedBox = 98 × 58 mm (arte completa)
+- TrimBox = 90 × 50 mm (área de corte, inset 4 mm)
 
-Dica gráfica: imprimir frente/verso, sangria 0 se a gráfica cortar no tamanho exato;
-se pedirem sangria 2 mm, avise que reexportamos.
+Verso:
+- QR esquerdo = PIX R$ 72,90
+- QR direito  = WhatsApp https://wa.me/5511913394665
