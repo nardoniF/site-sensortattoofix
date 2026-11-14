@@ -1053,8 +1053,20 @@
   }
 
   function isDroppedMarketplaceSale(sale) {
-    const st = String(sale?.status || '').toLowerCase();
-    return /cancel|invalid|refund/.test(st);
+    if (!sale) return false;
+    if (sale.cancelledAt || sale._cancelled) return true;
+    const st = String(sale.status || '').toLowerCase();
+    if (/cancel|invalid|refund/.test(st)) return true;
+    const gross = Number(sale.gross || sale._gross || 0);
+    const refunds = Number(sale.refunds || sale._refunds || 0);
+    if (refunds > 0.009 && (gross <= 0.009 || refunds >= gross * 0.5)) return true;
+    const payments = Array.isArray(sale.payments) ? sale.payments : [];
+    if (payments.some((p) => /refund|chargedback|charged_back|cancelled|canceled/i.test(String(p?.status || '')))) {
+      return true;
+    }
+    const tags = Array.isArray(sale.tags) ? sale.tags : [];
+    if (tags.some((t) => /^(cancelled|canceled|invalid|refunded)$/i.test(String(t)))) return true;
+    return false;
   }
 
   /** Alias: cancelada fica na lista (risco), mas saldo/qtd dos totais = 0. */
@@ -1187,12 +1199,25 @@
   }
 
   function effectiveSaleNet(sale) {
+    if (isCancelledMarketplaceSale(sale)) return 0;
     const fn = sm().effectiveSaleNet;
     if (typeof fn === 'function') return fn(sale, currentConfig);
     return roundMoneyLocal(marketplaceSaleNet(sale) - saleProductCost(sale));
   }
 
   function saleMoneyParts(sale) {
+    if (isCancelledMarketplaceSale(sale)) {
+      return {
+        gross: 0,
+        fees: 0,
+        shipping: 0,
+        refunds: 0,
+        otherFees: 0,
+        cogs: 0,
+        marketplace: 0,
+        net: 0
+      };
+    }
     const fn = sm().saleMoneyParts;
     if (typeof fn === 'function') return fn(sale, currentConfig);
     const marketplace = marketplaceSaleNet(sale);
@@ -1271,14 +1296,14 @@
       if (!ts) return;
       const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
       const cancelled = isCancelledMarketplaceSale(sale);
-      const gross = saleListedGross(sale);
-      const fees = Number(sale.fees || 0);
-      const shipping = saleShippingCost(sale);
-      const refunds = Number(sale.refunds || 0);
-      const otherFees = Number(sale.otherFees || 0);
-      const cogs = saleProductCost(sale);
-      const net = effectiveSaleNet(sale);
-      const marketplace = Math.round((gross - fees - shipping - refunds - otherFees) * 100) / 100;
+      const gross = cancelled ? 0 : saleListedGross(sale);
+      const fees = cancelled ? 0 : Number(sale.fees || 0);
+      const shipping = cancelled ? 0 : saleShippingCost(sale);
+      const refunds = cancelled ? 0 : Number(sale.refunds || 0);
+      const otherFees = cancelled ? 0 : Number(sale.otherFees || 0);
+      const cogs = cancelled ? 0 : saleProductCost(sale);
+      const net = cancelled ? 0 : effectiveSaleNet(sale);
+      const marketplace = cancelled ? 0 : Math.round((gross - fees - shipping - refunds - otherFees) * 100) / 100;
       if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, months: {} };
       const y = tree[year];
       if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, days: {} };

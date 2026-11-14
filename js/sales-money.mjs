@@ -98,7 +98,23 @@ export function saleShippingCost(sale, config = null) {
   return s;
 }
 
+function saleLooksCancelledLocal(sale) {
+  if (!sale) return false;
+  if (sale.cancelledAt || sale._cancelled) return true;
+  const st = String(sale.status || '').toLowerCase();
+  if (/cancel|invalid|refund/.test(st)) return true;
+  const g = Number(sale.gross || 0) || saleListedGross(sale);
+  const r = Number(sale.refunds || 0);
+  if (r > 0.009 && (g <= 0.009 || r >= g * 0.5)) return true;
+  const payments = Array.isArray(sale.payments) ? sale.payments : [];
+  if (payments.some((p) => /refund|chargedback|charged_back|cancelled|canceled/i.test(String(p?.status || '')))) {
+    return true;
+  }
+  return false;
+}
+
 export function marketplaceSaleNet(sale, config = null) {
+  if (saleLooksCancelledLocal(sale)) return 0;
   const g = saleListedGross(sale);
   const f = Number(sale?.fees || 0);
   const sh = saleShippingCost(sale, config);

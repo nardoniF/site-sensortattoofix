@@ -77,6 +77,8 @@ import {
 } from './amazon-settlement.js';
 import {
   isCancelledMarketplaceStatus,
+  saleLooksCancelled,
+  healCancelledMarketplaceSale,
   mlOrderLooksCancelled,
   mlRefundAmountFromOrder,
   mlEffectiveSaleStatus,
@@ -5061,9 +5063,10 @@ async function listMarketplaceSales(env, channel, limit) {
   const cap = Math.min(5000, Math.max(1, Number(limit) || 500));
   const fromD1 = await d1ListSales(env, channel, cap);
   if (fromD1.length) {
+    const healed = fromD1.map((s) => healCancelledMarketplaceSale(s));
     return String(channel).toLowerCase() === 'mercadolivre'
-      ? fromD1.map(healMlStoredShipping)
-      : fromD1;
+      ? healed.map(healMlStoredShipping).map(healCancelledMarketplaceSale)
+      : healed;
   }
   const idxKey = channel === 'mercadolivre'
     ? ML_SALES_INDEX_KEY
@@ -18820,8 +18823,7 @@ function isStorePaidOrder(order) {
 }
 
 function isDroppedMarketplaceSale(sale) {
-  const st = String(sale?.status || '').toLowerCase();
-  return /cancel|invalid|refund/.test(st);
+  return saleLooksCancelled(sale);
 }
 
 function storeOrderToReportSale(order) {

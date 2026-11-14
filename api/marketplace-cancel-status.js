@@ -9,6 +9,53 @@ export function isCancelledMarketplaceStatus(status) {
   return /cancel|invalid|refund/i.test(String(status || ''));
 }
 
+/** Estorno material (≥50% do bruto listado). */
+export function hasMaterialMarketplaceRefund(sale) {
+  if (!sale) return false;
+  const g = Number(sale.gross || saleListedGrossFallback(sale) || 0);
+  const r = Number(sale.refunds || 0);
+  if (!(r > 0.009)) return false;
+  if (g <= 0.009) return true;
+  return r >= g * MARKETPLACE_FULL_REFUND_RATIO;
+}
+
+function saleListedGrossFallback(sale) {
+  const items = sale?.items;
+  if (!Array.isArray(items) || !items.length) return 0;
+  return items.reduce((n, i) => {
+    const qty = Number(i.quantity || i.qty || 0);
+    const unit = Number(i.unitPrice || i.unit_price || 0);
+    return n + unit * (qty > 0 ? qty : 0);
+  }, 0);
+}
+
+/**
+ * Venda marketplace cancelada/estornada para saldo Admin.
+ * Status, cancelledAt, tags, payments ou estorno material.
+ */
+export function saleLooksCancelled(sale) {
+  if (!sale) return false;
+  if (sale.cancelledAt) return true;
+  if (isCancelledMarketplaceStatus(sale.status)) return true;
+  if (hasMaterialMarketplaceRefund(sale)) return true;
+  return mlOrderLooksCancelled(sale);
+}
+
+/** Normaliza payload na leitura: status cancelled + líquido 0. */
+export function healCancelledMarketplaceSale(sale) {
+  if (!sale || !saleLooksCancelled(sale)) return sale;
+  const gross = Number(sale.gross || saleListedGrossFallback(sale) || 0);
+  const refunds = Math.max(Number(sale.refunds || 0), gross > 0 ? gross : 0);
+  return {
+    ...sale,
+    status: isCancelledMarketplaceStatus(sale.status) ? sale.status : 'cancelled',
+    cancelledAt: sale.cancelledAt || sale.dateLastUpdated || new Date().toISOString(),
+    refunds,
+    net: 0,
+    payoutNet: 0
+  };
+}
+
 /** ML: status, tags ou payments apontam cancel/refund. */
 export function mlOrderLooksCancelled(order) {
   if (!order) return false;
