@@ -1126,18 +1126,18 @@
     const amt = won ? saleMediationAmount(sale) : '';
     const amtAttr = won ? String(amt) : '';
     const badge = won
-      ? `<span class="sales-mediation-badge" title="Valor que ficou após mediação — entra no caixa">Mediação ${formatSalesBRL(amt)}</span>`
-      : '';
-    return `<span class="sales-tree-mediation" data-mediation-channel="${escapeHtml(ch)}" data-mediation-id="${escapeHtml(id)}">
+      ? `<span class="sales-mediation-badge" title="Valor que ficou após mediação — entra no caixa">No caixa ${formatSalesBRL(amt)}</span>`
+      : '<span class="sales-mediation-hint">Cancelada no marketplace — se você ganhou a mediação, informe o valor:</span>';
+    return `<div class="sales-tree-mediation-bar" data-mediation-channel="${escapeHtml(ch)}" data-mediation-id="${escapeHtml(id)}">
       ${badge}
-      <button type="button" class="sales-mediation-toggle" data-mediation-action="edit" title="Informar valor que entrou na mediação">${won ? 'Editar' : 'Mediação'}</button>
+      <button type="button" class="sales-mediation-toggle" data-mediation-action="edit">${won ? 'Editar valor' : 'Mediação ganha'}</button>
       <span class="sales-mediation-form" hidden>
         <label>R$ <input type="number" class="sales-mediation-amount" step="0.01" min="0" inputmode="decimal" value="${escapeHtml(amtAttr)}" placeholder="0,00"></label>
         <button type="button" class="sales-mediation-save" data-mediation-action="save">Salvar</button>
         ${won ? '<button type="button" class="sales-mediation-clear" data-mediation-action="clear">Limpar</button>' : ''}
         <button type="button" class="sales-mediation-cancel" data-mediation-action="cancel">✕</button>
       </span>
-    </span>`;
+    </div>`;
   }
 
   function saleListedGross(sale) {
@@ -1756,13 +1756,15 @@
     const title = sale.items?.[0]?.title || 'Venda';
     const buyer = sale.buyer?.nickname || '—';
     const channel = salesChannelLabel(sale.channel);
-    return `<li class="sales-tree-row sales-tree-row--consol${saleRowCancelledClass(sale)}${saleHasMediationCash(sale) ? ' sales-tree-row--mediation' : ''}">
+    const mediationBar = saleMediationControlsHtml(sale);
+    return `<li class="sales-tree-row sales-tree-row--consol${saleRowCancelledClass(sale)}${saleHasMediationCash(sale) ? ' sales-tree-row--mediation' : ''}${mediationBar ? ' sales-tree-row--has-mediation' : ''}">
       <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
-      <span class="sales-tree-channel">${escapeHtml(channel)}${saleCancelBadgeHtml(sale)}${saleMediationControlsHtml(sale)}</span>
+      <span class="sales-tree-channel">${escapeHtml(channel)}${saleCancelBadgeHtml(sale)}</span>
       <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
       <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
       <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
       ${renderSaleMoneyCols(sale)}
+      ${mediationBar}
     </li>`;
   }
 
@@ -3748,7 +3750,7 @@ ${worksheets}
     root.addEventListener('click', async (ev) => {
       const btn = ev.target.closest('[data-mediation-action]');
       if (!btn) return;
-      const wrap = btn.closest('.sales-tree-mediation');
+      const wrap = btn.closest('.sales-tree-mediation-bar, .sales-tree-mediation');
       if (!wrap) return;
       const action = btn.getAttribute('data-mediation-action');
       const channel = wrap.getAttribute('data-mediation-channel');
@@ -3913,12 +3915,14 @@ ${worksheets}
           d.sales.forEach((sale) => {
             const title = sale.items?.[0]?.title || fallbackTitle;
             const buyer = sale.buyer?.nickname || '—';
-            html += `<li class="sales-tree-row${saleRowCancelledClass(sale)}${saleHasMediationCash(sale) ? ' sales-tree-row--mediation' : ''}">
+            const mediationBar = saleMediationControlsHtml(sale);
+            html += `<li class="sales-tree-row${saleRowCancelledClass(sale)}${saleHasMediationCash(sale) ? ' sales-tree-row--mediation' : ''}${mediationBar ? ' sales-tree-row--has-mediation' : ''}">
               <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
-              <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}${saleCancelBadgeHtml(sale)}${saleMediationControlsHtml(sale)}</span>
+              <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}${saleCancelBadgeHtml(sale)}</span>
               <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
               <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
               ${renderSaleMoneyCols(sale, channel)}
+              ${mediationBar}
             </li>`;
           });
           html += '</ul></div></details>';
