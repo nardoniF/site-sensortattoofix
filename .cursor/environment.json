@@ -1,5 +1,8 @@
 {
   "name": "Sensor TattooFix (3N20)",
-  "install": "npm i -g wrangler@4\ncd api && (npm ci --prefer-offline --no-audit --no-fund 2>/dev/null || true)",
-  "start": "chmod +x scripts/cloud-deploy.sh 2>/dev/null || true"
+  "install": "npm i -g wrangler@4\ncd api && (npm ci --prefer-offline --no-audit --no-fund 2>/dev/null || true)\nchmod +x scripts/cloud-deploy.sh 2>/dev/null || true",
+  "start": "chmod +x scripts/cloud-deploy.sh 2>/dev/null || true",
+  "env": {
+    "CLOUDFLARE_ACCOUNT_ID": "80ab4f6ff1553d2ee530c0880edce594"
+  }
 }

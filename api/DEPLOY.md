@@ -144,10 +144,21 @@ Copie a URL (ex: `https://sensortattoofix-payments.xxx.workers.dev`) em:
 
 ### Deploy automático pelo GitHub Actions
 
-O workflow `Deploy & Backfill` usa Node.js 22 e precisa dos secrets de repositório
-`CF_API_TOKEN` e `CF_ACCOUNT_ID` (Cloudflare API Token com permissão de deploy e o
-ID da conta). Configure-os em **Settings → Secrets and variables → Actions**; não
-adicione os valores ao repositório.
+O workflow `Deploy & Backfill` sobe `api/` + `cloudflare/` em todo push em `main`
+que altere esses paths. Precisa só do secret **`CF_API_TOKEN`** (Workers Scripts
+Edit + KV + D1) em **Settings → Secrets and variables → Actions**. O account id
+já tem fallback no workflow (`80ab4f6ff1553d2ee530c0880edce594`).
+
+### Deploy pelo Cloud Agent / local
+
+```bash
+export CLOUDFLARE_API_TOKEN=…   # mesmo token
+./scripts/cloud-deploy.sh       # api + proxy
+# ou: cd api && npx wrangler@4 deploy
+```
+
+Sem esse token, “Connected Cloudflare” no MCP só consulta a API — não substitui
+o Wrangler para publicar o Worker (~700KB).
 
 ## 6. Webhook Mercado Pago (PIX + cartão internacional)
 
