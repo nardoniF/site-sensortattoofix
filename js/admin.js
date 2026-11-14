@@ -1085,6 +1085,61 @@
     return '<span class="sales-tree-cancel-badge" title="Cancelada / reembolsada — não entra no saldo">Cancelada</span>';
   }
 
+  function saleHasMediationCash(sale) {
+    if (!(sale?.mediationWon === true || sale?._mediationWon === true)) return false;
+    const amt = Number(sale.mediationAmount ?? sale._mediationAmount ?? 0);
+    return Number.isFinite(amt) && amt > 0.009;
+  }
+
+  /** Cancelada sem mediação — fora do caixa / gráficos de venda. */
+  function isCashExcludedCancelled(sale) {
+    return !!(sale?._cancelled || isCancelledMarketplaceSale(sale)) && !saleHasMediationCash(sale);
+  }
+
+  function saleMediationAmount(sale) {
+    if (!saleHasMediationCash(sale)) return 0;
+    return Math.round(Number(sale.mediationAmount ?? sale._mediationAmount ?? 0) * 100) / 100;
+  }
+
+  function mediationCashParts(sale) {
+    const amt = saleMediationAmount(sale);
+    return {
+      gross: amt,
+      fees: 0,
+      shipping: 0,
+      refunds: 0,
+      otherFees: 0,
+      cogs: 0,
+      marketplace: amt,
+      net: amt
+    };
+  }
+
+  function saleMediationControlsHtml(sale) {
+    const cancelled = !!(sale?._cancelled || isCancelledMarketplaceSale(sale));
+    if (!cancelled) return '';
+    const ch = saleChannelKey(sale);
+    if (ch !== 'mercadolivre' && ch !== 'amazon' && ch !== 'shopee') return '';
+    const id = String(sale.externalId || '');
+    if (!id) return '';
+    const won = saleHasMediationCash(sale);
+    const amt = won ? saleMediationAmount(sale) : '';
+    const amtAttr = won ? String(amt) : '';
+    const badge = won
+      ? `<span class="sales-mediation-badge" title="Valor que ficou após mediação — entra no caixa">Mediação ${formatSalesBRL(amt)}</span>`
+      : '';
+    return `<span class="sales-tree-mediation" data-mediation-channel="${escapeHtml(ch)}" data-mediation-id="${escapeHtml(id)}">
+      ${badge}
+      <button type="button" class="sales-mediation-toggle" data-mediation-action="edit" title="Informar valor que entrou na mediação">${won ? 'Editar' : 'Mediação'}</button>
+      <span class="sales-mediation-form" hidden>
+        <label>R$ <input type="number" class="sales-mediation-amount" step="0.01" min="0" inputmode="decimal" value="${escapeHtml(amtAttr)}" placeholder="0,00"></label>
+        <button type="button" class="sales-mediation-save" data-mediation-action="save">Salvar</button>
+        ${won ? '<button type="button" class="sales-mediation-clear" data-mediation-action="clear">Limpar</button>' : ''}
+        <button type="button" class="sales-mediation-cancel" data-mediation-action="cancel">✕</button>
+      </span>
+    </span>`;
+  }
+
   function saleListedGross(sale) {
     const fn = sm().saleListedGross;
     if (typeof fn === 'function') return fn(sale);
@@ -1272,6 +1327,8 @@
     const all = Array.isArray(list) ? list : [];
     const cancelledList = all.filter((x) => isCancelledMarketplaceSale(x));
     const active = all.filter((x) => !isCancelledMarketplaceSale(x));
+    const mediationList = cancelledList.filter((x) => saleHasMediationCash(x));
+    const mediationNet = mediationList.reduce((n, x) => n + saleMediationAmount(x), 0);
     const focus = mode === 'cancelled' ? cancelledList : active;
     const parts = focus.reduce((acc, x) => {
       const p = saleEconomicParts(x);
@@ -1285,10 +1342,16 @@
       acc.net += p.net;
       return acc;
     }, { gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0 });
+    if (mode !== 'cancelled' && mediationNet > 0) {
+      parts.gross += mediationNet;
+      parts.marketplace += mediationNet;
+      parts.net += mediationNet;
+    }
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
-    const itemCount = focus.reduce((n, s) => n + saleKitQty(s), 0);
+    const itemCount = focus.reduce((n, s) => n + saleKitQty(s), 0)
+      + (mode !== 'cancelled' ? mediationList.reduce((n, s) => n + saleKitQty(s), 0) : 0);
     const orderCount = focus.length;
     const indexed = meta?.indexed != null && meta.indexed !== orderCount
       ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas`
@@ -1299,8 +1362,11 @@
       acc.gross += p.gross;
       return acc;
     }, { net: 0, gross: 0 });
+    const mediationRow = mediationList.length > 0
+      ? `<div class="clicks-stats-row"><dt>Mediação ganha</dt><dd>${mediationList.length.toLocaleString('pt-BR')} · ${formatSalesBRL(mediationNet)} <span class="sales-tree-cancel-hint">(no caixa)</span></dd></div>`
+      : '';
     const cancelRow = mode === 'cancelled'
-      ? `<div class="clicks-stats-row"><dt>Fora do caixa</dt><dd>valores abaixo não entram no saldo</dd></div>`
+      ? `<div class="clicks-stats-row"><dt>Fora do caixa</dt><dd>valores abaixo não entram no saldo (exceto mediação)</dd></div>`
       : (cancelledList.length > 0
         ? `<div class="clicks-stats-row"><dt>Canceladas</dt><dd>${cancelledList.length.toLocaleString('pt-BR')} · ${formatSalesBRL(cancParts.net)} <span class="sales-tree-cancel-hint">(fora do caixa)</span></dd></div>`
         : '');
@@ -1312,6 +1378,7 @@
       ${kicker}
       <div class="clicks-stats-row"><dt>Vendas (itens)</dt><dd>${itemCount.toLocaleString('pt-BR')}${indexed}</dd></div>
       ${cancelRow}
+      ${mediationRow}
       <div class="clicks-stats-row"><dt>Preço</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) ${escapeHtml(meta?.feeLabel || 'Tarifa')}</dt><dd>${formatSalesBRL(parts.fees)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
@@ -1409,10 +1476,13 @@
       const m = y.months[monthNum];
       if (!m.days[dateKey]) m.days[dateKey] = emptySalesTreeNode({ label: dayLabel, sales: [] });
       const d = m.days[dateKey];
+      const mediationWon = saleHasMediationCash(sale);
       const tagged = {
         ...sale,
         _ts: ts,
         _cancelled: cancelled,
+        _mediationWon: mediationWon || sale.mediationWon === true,
+        _mediationAmount: Number(sale.mediationAmount || sale._mediationAmount || 0),
         _gross: parts.gross,
         _fees: parts.fees,
         _shipping: parts.shipping,
@@ -1432,6 +1502,11 @@
           addSaleMoneyToNode(d, parts, qty);
           addSaleMoneyToNode(m, parts, qty);
           addSaleMoneyToNode(y, parts, qty);
+        } else if (mediationWon) {
+          const med = mediationCashParts(sale);
+          addSaleMoneyToNode(d, med, qty);
+          addSaleMoneyToNode(m, med, qty);
+          addSaleMoneyToNode(y, med, qty);
         }
         return;
       }
@@ -1624,10 +1699,14 @@
     const ts = saleSoldTs(sale);
     const p = saleMoneyParts(sale);
     const cancelled = isCancelledMarketplaceSale(sale);
+    const mediationWon = sale?.mediationWon === true;
+    const mediationAmount = Math.round(Number(sale?.mediationAmount || 0) * 100) / 100;
     return {
       ...sale,
       _ts: ts,
       _cancelled: cancelled,
+      _mediationWon: mediationWon,
+      _mediationAmount: mediationAmount,
       _gross: p.gross,
       _fees: p.fees,
       _shipping: p.shipping,
@@ -1641,7 +1720,16 @@
 
   function sumAnnotated(list) {
     return (list || []).reduce((acc, s) => {
-      if (s?._cancelled || isCancelledMarketplaceSale(s)) return acc;
+      const cancelled = !!(s?._cancelled || isCancelledMarketplaceSale(s));
+      if (cancelled) {
+        if (!saleHasMediationCash(s)) return acc;
+        const med = mediationCashParts(s);
+        acc.count += saleKitQty(s);
+        acc.gross += med.gross;
+        acc.marketplace += med.marketplace;
+        acc.net += med.net;
+        return acc;
+      }
       acc.count += saleKitQty(s);
       acc.gross += Number(s._gross || 0);
       acc.fees += Number(s._fees || 0);
@@ -1668,9 +1756,9 @@
     const title = sale.items?.[0]?.title || 'Venda';
     const buyer = sale.buyer?.nickname || '—';
     const channel = salesChannelLabel(sale.channel);
-    return `<li class="sales-tree-row sales-tree-row--consol${saleRowCancelledClass(sale)}">
+    return `<li class="sales-tree-row sales-tree-row--consol${saleRowCancelledClass(sale)}${saleHasMediationCash(sale) ? ' sales-tree-row--mediation' : ''}">
       <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
-      <span class="sales-tree-channel">${escapeHtml(channel)}${saleCancelBadgeHtml(sale)}</span>
+      <span class="sales-tree-channel">${escapeHtml(channel)}${saleCancelBadgeHtml(sale)}${saleMediationControlsHtml(sale)}</span>
       <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}</span>
       <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
       <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
@@ -1775,7 +1863,7 @@
     const sold = new Set();
     (sales || []).forEach((s) => {
       if (!s._ts) return;
-      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
+      if (isCashExcludedCancelled(s)) return;
       const p = brDateParts(s._ts);
       if (p.year !== y || p.monthNum !== ym) return;
       const day = Number(p.day);
@@ -1812,7 +1900,7 @@
     const byDay = new Map();
     (sales || []).forEach((s) => {
       if (!s._ts) return;
-      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
+      if (isCashExcludedCancelled(s)) return;
       const p = brDateParts(s._ts);
       if (p.year !== y) return;
       const key = p.dateKey;
@@ -1830,7 +1918,8 @@
       }
       const row = byDay.get(key);
       row.count += saleKitQty(s);
-      row.net += Number(s._net != null ? s._net : 0);
+      const cancelled = !!(s._cancelled || isCancelledMarketplaceSale(s));
+      row.net += cancelled ? saleMediationAmount(s) : Number(s._net != null ? s._net : 0);
     });
     const days = [...byDay.values()];
     if (!days.length) return null;
@@ -1930,13 +2019,14 @@
     const byNum = new Map(rows.map((r) => [r.monthNum, r]));
     (sales || []).forEach((s) => {
       if (!s._ts) return;
-      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
+      if (isCashExcludedCancelled(s)) return;
       const p = brDateParts(s._ts);
       if (p.year !== y) return;
       const row = byNum.get(p.monthNum);
       if (!row) return;
       row.count += saleKitQty(s);
-      row.net += Number(s._net || 0);
+      const cancelled = !!(s._cancelled || isCancelledMarketplaceSale(s));
+      row.net += cancelled ? saleMediationAmount(s) : Number(s._net || 0);
     });
     return rows.map((r) => ({ ...r, net: Math.round(r.net * 100) / 100 }));
   }
@@ -2383,7 +2473,7 @@
     const map = Object.create(null);
     (sales || []).forEach((s) => {
       if (!s._ts) return;
-      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
+      if (isCashExcludedCancelled(s)) return;
       const p = brDateParts(s._ts);
       if (p.year !== y || p.monthNum !== ym) return;
       const d = Number(p.day);
@@ -2493,11 +2583,12 @@
       const tot = sumAnnotated(subset);
       const byCh = {};
       subset.forEach((s) => {
-        if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
+        const cancelled = !!(s?._cancelled || isCancelledMarketplaceSale(s));
+        if (cancelled && !saleHasMediationCash(s)) return;
         const ch = s.channel || 'outro';
         if (!byCh[ch]) byCh[ch] = { count: 0, net: 0 };
         byCh[ch].count += saleKitQty(s);
-        byCh[ch].net += Number(s._net || 0);
+        byCh[ch].net += cancelled ? saleMediationAmount(s) : Number(s._net || 0);
       });
       const ranked = Object.entries(byCh).sort((a, b) => b[1].net - a[1].net);
       const chLines = ranked.length
@@ -2955,40 +3046,59 @@
     const byCh = {};
     (sales || []).forEach((s) => {
       const cancelled = !!(s?._cancelled || isCancelledMarketplaceSale(s));
-      if (mode === 'cancelled' ? !cancelled : cancelled) return;
+      if (mode === 'cancelled') {
+        if (!cancelled) return;
+      } else if (cancelled && !saleHasMediationCash(s)) {
+        return;
+      } else if (cancelled && mode === 'active') {
+        return;
+      }
       const ch = s.channel || 'outro';
       if (!byCh[ch]) byCh[ch] = { count: 0, net: 0, gross: 0, fees: 0, shipping: 0 };
       byCh[ch].count += saleKitQty(s);
-      byCh[ch].net += Number(s._net || 0);
-      byCh[ch].gross += Number(s._gross || 0);
-      byCh[ch].fees += Number(s._fees || 0);
-      byCh[ch].shipping += Number(s._shipping || 0);
+      if (cancelled && mode !== 'cancelled') {
+        const med = saleMediationAmount(s);
+        byCh[ch].net += med;
+        byCh[ch].gross += med;
+      } else {
+        byCh[ch].net += Number(s._net || 0);
+        byCh[ch].gross += Number(s._gross || 0);
+        byCh[ch].fees += Number(s._fees || 0);
+        byCh[ch].shipping += Number(s._shipping || 0);
+      }
     });
     const chRows = Object.entries(byCh)
       .sort((a, b) => b[1].net - a[1].net)
       .map(([ch, row], i) =>
         `<div class="clicks-stats-row"><dt>${i + 1}º ${escapeHtml(salesChannelLabel(ch))}</dt><dd>${row.count} · ${formatSalesBRL(row.net)}</dd></div>`
       ).join('');
+    const mediationCash = (sales || []).filter((s) => saleHasMediationCash(s));
+    const mediationNetTot = mediationCash.reduce((n, s) => n + saleMediationAmount(s), 0);
     const spanSales = mode === 'cancelled'
       ? (sales || []).filter((s) => s?._cancelled || isCancelledMarketplaceSale(s))
-      : (sales || []).filter((s) => !(s?._cancelled || isCancelledMarketplaceSale(s)));
+      : (sales || []).filter((s) => !(s?._cancelled || isCancelledMarketplaceSale(s)) || saleHasMediationCash(s));
     const span = brDaysSinceFirstSale(spanSales);
     const avgNet = span.days > 0 ? tot.net / span.days : 0;
     const avgQty = span.days > 0 ? tot.count / span.days : 0;
     const avgQtyLabel = avgQty.toLocaleString('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
     const daysLabel = span.days.toLocaleString('pt-BR');
+    const mediationBlock = mediationCash.length > 0 && mode !== 'cancelled'
+      ? `<div class="clicks-stats-row"><dt>Mediação ganha</dt><dd>${mediationCash.length.toLocaleString('pt-BR')} · ${formatSalesBRL(mediationNetTot)} <span class="sales-tree-cancel-hint">(no caixa)</span></dd></div>`
+      : '';
     const cancelBlock = mode === 'cancelled'
       ? `<div class="vendas-consol-cancel-stats" aria-label="Taxa de cancelamento">
           <div class="clicks-stats-row"><dt>Taxa vs ativas</dt><dd>${rate.toLocaleString('pt-BR')}% · ${cash.count.toLocaleString('pt-BR')} ativas no período</dd></div>
+          ${mediationBlock}
         </div>`
-      : (canc.count > 0
+      : (canc.count > 0 || mediationCash.length
         ? `<div class="vendas-consol-cancel-stats" aria-label="Canceladas">
             <div class="clicks-stats-row"><dt>Canceladas</dt><dd>${canc.count.toLocaleString('pt-BR')} · ${rate.toLocaleString('pt-BR')}% do total</dd></div>
             <div class="clicks-stats-row"><dt>Bruto cancelado</dt><dd>${formatSalesBRL(canc.gross)}</dd></div>
             <div class="clicks-stats-row"><dt>Líquido que seria</dt><dd>${formatSalesBRL(canc.net)} <span class="sales-tree-cancel-hint">(fora do caixa)</span></dd></div>
+            ${mediationBlock}
           </div>`
         : '');
-    const cashTitle = mode === 'cancelled' ? 'Só canceladas (fora do caixa)' : 'Caixa (ativas)';
+    const cashTitle = mode === 'cancelled' ? 'Só canceladas (fora do caixa)' : 'Caixa (ativas + mediação)';
     const netLabel = mode === 'cancelled' ? '(=) Líquido que seria' : '(=) Líquido real';
     const avgHint = mode === 'cancelled' ? 'Cancelado ÷ dias de calendário' : 'Líquido real ÷ dias de calendário';
     el.innerHTML = `
@@ -3059,7 +3169,7 @@
     const buckets = new Map();
     (sales || []).forEach((s) => {
       if (!s._ts) return;
-      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
+      if (isCashExcludedCancelled(s)) return;
       const bucket = clicksPeriodBucket(s._ts, period);
       if (!buckets.has(bucket.key)) {
         buckets.set(bucket.key, {
@@ -3075,15 +3185,19 @@
       const row = buckets.get(bucket.key);
       const ch = s.channel || 'outro';
       const qty = saleKitQty(s);
+      const med = saleHasMediationCash(s);
+      const gross = med ? saleMediationAmount(s) : Number(s._gross || 0);
+      const fees = med ? 0 : Number(s._fees || 0);
+      const net = med ? saleMediationAmount(s) : Number(s._net || 0);
       if (!row.byChannel[ch]) row.byChannel[ch] = { count: 0, gross: 0, fees: 0, net: 0 };
       row.count += qty;
-      row.gross += s._gross;
-      row.fees += s._fees;
-      row.net += s._net;
+      row.gross += gross;
+      row.fees += fees;
+      row.net += net;
       row.byChannel[ch].count += qty;
-      row.byChannel[ch].gross += s._gross;
-      row.byChannel[ch].fees += s._fees;
-      row.byChannel[ch].net += s._net;
+      row.byChannel[ch].gross += gross;
+      row.byChannel[ch].fees += fees;
+      row.byChannel[ch].net += net;
     });
     return [...buckets.values()].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
   }
@@ -3247,7 +3361,7 @@ ${worksheets}
     const channel = channelEl ? channelEl.value : '';
     const range = rangeEl ? rangeEl.value : 'all';
     let list = Array.isArray(sales) ? sales.slice() : [];
-    list = list.filter((s) => !(s?._cancelled || isCancelledMarketplaceSale(s)));
+    list = list.filter((s) => !isCashExcludedCancelled(s));
     if (channel) list = list.filter((s) => s.channel === channel);
     if (range === '90' || range === '365') {
       const days = Number(range);
@@ -3265,7 +3379,7 @@ ${worksheets}
     };
     (sales || []).forEach((s) => {
       if (!s._ts) return;
-      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
+      if (isCashExcludedCancelled(s)) return;
       const clock = brSaleClockParts(s._ts);
       let key;
       let label;
@@ -3289,8 +3403,14 @@ ${worksheets}
       }
       const b = ensure(key, label, sortKey);
       b.count += saleKitQty(s);
-      b.net += Number(s._net || 0);
-      b.gross += Number(s._gross || 0);
+      if (saleHasMediationCash(s)) {
+        const med = saleMediationAmount(s);
+        b.net += med;
+        b.gross += med;
+      } else {
+        b.net += Number(s._net || 0);
+        b.gross += Number(s._gross || 0);
+      }
     });
     return [...buckets.values()].sort((a, b) => a.sortKey - b.sortKey);
   }
@@ -3550,12 +3670,167 @@ ${worksheets}
     vendasCancelFiltersWired = true;
   }
 
+  function parseMediationAmountInput(raw) {
+    let s = String(raw || '').trim();
+    if (!s) return NaN;
+    if (s.includes(',') && s.includes('.')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (s.includes(',')) {
+      s = s.replace(',', '.');
+    }
+    return Number(s);
+  }
+
+  function patchSaleMediationInCaches(channel, externalId, patch) {
+    const id = String(externalId);
+    const ch = String(channel);
+    const apply = (sale) => {
+      if (!sale) return sale;
+      if (String(sale.externalId) !== id) return sale;
+      if (saleChannelKey(sale) !== ch && String(sale.channel || '') !== ch) return sale;
+      return annotateSale({ ...sale, ...patch });
+    };
+    if (Array.isArray(mlSalesCache) && ch === 'mercadolivre') {
+      mlSalesCache = mlSalesCache.map(apply);
+    }
+    if (Array.isArray(amzSalesCache) && ch === 'amazon') {
+      amzSalesCache = amzSalesCache.map(apply);
+    }
+    if (Array.isArray(shopeeSalesCache) && ch === 'shopee') {
+      shopeeSalesCache = shopeeSalesCache.map(apply);
+    }
+    if (Array.isArray(consolidatedSalesCache)) {
+      consolidatedSalesCache = consolidatedSalesCache.map(apply);
+    }
+  }
+
+  async function saveSaleMediation({ channel, externalId, won, amount }) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) throw new Error('Faça login no admin.');
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/marketplace/mediation`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({ channel, externalId, won, amount }),
+      cache: 'no-store'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  function refreshVendasViewsAfterMediation(channel) {
+    const map = {
+      mercadolivre: 'mercadolivre',
+      amazon: 'amazon',
+      shopee: 'shopee'
+    };
+    const ch = map[channel] || channel;
+    if (document.getElementById('admin-vendas-' + (ch === 'mercadolivre' ? 'mercadolivre' : ch))?.hidden === false) {
+      applyChannelCancelView(ch, true);
+    }
+    if (document.getElementById('admin-vendas-consolidado') && !document.getElementById('admin-vendas-consolidado').hidden) {
+      applyConsolidadoCancelView(true);
+    } else if (consolidatedSalesCache) {
+      // Mantém cache coerente mesmo com painel fechado.
+    }
+  }
+
+  let vendasMediationWired = false;
+  function wireVendasMediationControls() {
+    if (vendasMediationWired) return;
+    const root = document.getElementById('admin-tab-vendas');
+    if (!root) return;
+    root.addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('[data-mediation-action]');
+      if (!btn) return;
+      const wrap = btn.closest('.sales-tree-mediation');
+      if (!wrap) return;
+      const action = btn.getAttribute('data-mediation-action');
+      const channel = wrap.getAttribute('data-mediation-channel');
+      const externalId = wrap.getAttribute('data-mediation-id');
+      const form = wrap.querySelector('.sales-mediation-form');
+      if (action === 'edit') {
+        if (form) {
+          form.hidden = false;
+          form.querySelector('.sales-mediation-amount')?.focus();
+        }
+        return;
+      }
+      if (action === 'cancel') {
+        if (form) form.hidden = true;
+        return;
+      }
+      if (action === 'clear') {
+        btn.disabled = true;
+        try {
+          const data = await saveSaleMediation({ channel, externalId, won: false, amount: 0 });
+          const patch = {
+            mediationWon: false,
+            mediationAmount: 0,
+            mediationWonAt: null,
+            mediationNote: null
+          };
+          if (data?.sale) Object.assign(patch, {
+            mediationWon: !!data.sale.mediationWon,
+            mediationAmount: Number(data.sale.mediationAmount || 0),
+            mediationWonAt: data.sale.mediationWonAt || null,
+            mediationNote: data.sale.mediationNote || null
+          });
+          patchSaleMediationInCaches(channel, externalId, patch);
+          refreshVendasViewsAfterMediation(channel);
+          showStatus('Mediação removida — valor fora do caixa.', 'success', 'vendas');
+        } catch (err) {
+          showStatus(err.message || 'Falha ao limpar mediação.', 'error', 'vendas');
+        } finally {
+          btn.disabled = false;
+        }
+        return;
+      }
+      if (action !== 'save') return;
+      const input = wrap.querySelector('.sales-mediation-amount');
+      const amount = parseMediationAmountInput(input?.value);
+      if (!(amount > 0.009)) {
+        showStatus('Informe o valor (R$) que entrou na mediação.', 'error', 'vendas');
+        input?.focus();
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const data = await saveSaleMediation({ channel, externalId, won: true, amount });
+        const patch = {
+          mediationWon: true,
+          mediationAmount: amount,
+          mediationWonAt: new Date().toISOString()
+        };
+        if (data?.sale) {
+          patch.mediationWon = !!data.sale.mediationWon;
+          patch.mediationAmount = Number(data.sale.mediationAmount || amount);
+          patch.mediationWonAt = data.sale.mediationWonAt || patch.mediationWonAt;
+        }
+        patchSaleMediationInCaches(channel, externalId, patch);
+        refreshVendasViewsAfterMediation(channel);
+        showStatus(`Mediação salva: ${formatSalesBRL(patch.mediationAmount)} no caixa.`, 'success', 'vendas');
+      } catch (err) {
+        showStatus(err.message || 'Falha ao salvar mediação.', 'error', 'vendas');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    vendasMediationWired = true;
+  }
+
   async function loadConsolidatedSales(preserveOpen) {
     const root = document.getElementById('vendas-consol-tree-root');
     const checked = document.getElementById('vendas-consol-checked-at');
     if (!root) return;
     wireVendasWhenFilters();
     wireVendasCancelFilters();
+    wireVendasMediationControls();
     root.innerHTML = '<p class="admin-meta">Carregando consolidado…</p>';
     try {
       await ensureSalesConfig();
@@ -3638,9 +3913,9 @@ ${worksheets}
           d.sales.forEach((sale) => {
             const title = sale.items?.[0]?.title || fallbackTitle;
             const buyer = sale.buyer?.nickname || '—';
-            html += `<li class="sales-tree-row${saleRowCancelledClass(sale)}">
+            html += `<li class="sales-tree-row${saleRowCancelledClass(sale)}${saleHasMediationCash(sale) ? ' sales-tree-row--mediation' : ''}">
               <span class="sales-tree-time">${escapeHtml(formatSaleTime(sale._ts))}</span>
-              <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}${saleCancelBadgeHtml(sale)}</span>
+              <span class="sales-tree-id">#${escapeHtml(String(sale.externalId || ''))}${saleCancelBadgeHtml(sale)}${saleMediationControlsHtml(sale)}</span>
               <span class="sales-tree-buyer">${escapeHtml(buyer)}</span>
               <span class="sales-tree-title" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
               ${renderSaleMoneyCols(sale, channel)}
@@ -3695,6 +3970,7 @@ ${worksheets}
       return;
     }
     wireVendasCancelFilters();
+    wireVendasMediationControls();
     await ensureSalesConfig();
     root.innerHTML = '<p class="admin-meta">Carregando vendas ML…</p>';
     try {
@@ -3754,6 +4030,7 @@ ${worksheets}
       return;
     }
     wireVendasCancelFilters();
+    wireVendasMediationControls();
     await ensureSalesConfig();
     root.innerHTML = '<p class="admin-meta">Carregando vendas Amazon…</p>';
     try {
@@ -3817,6 +4094,7 @@ ${worksheets}
       return;
     }
     wireVendasCancelFilters();
+    wireVendasMediationControls();
     await ensureSalesConfig();
     root.innerHTML = '<p class="admin-meta">Carregando vendas Shopee…</p>';
     try {

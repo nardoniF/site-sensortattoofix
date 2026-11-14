@@ -86,6 +86,12 @@ import {
   shopeeEffectiveStatus
 } from './marketplace-cancel-status.js';
 import {
+  preserveMediationFields,
+  normalizeMediationPatch,
+  normalizeMarketplaceChannel,
+  saleHasMediationCash
+} from './marketplace-mediation.js';
+import {
   CLICKS_CLOSED_MONTHS,
   CLICKS_TREE_DAYS_DEFAULT,
   clicksRetentionWindow,
@@ -5023,9 +5029,14 @@ async function loadMarketplaceSale(env, channel, saleId) {
   return null;
 }
 
-async function saveMarketplaceSale(env, sale) {
+async function saveMarketplaceSale(env, sale, opts = {}) {
   if (!sale?.externalId) return false;
   sale = healMlStoredShipping(sale);
+  const existing = await d1GetSale(env, sale.channel, sale.externalId).catch(() => null);
+  // Mediação ganha é manual — sync não pode apagar.
+  if (opts.preserveMediation !== false) {
+    sale = preserveMediationFields(existing, sale);
+  }
   // Normalizar e anexar `payload.normalized` sem sobrescrever
   try {
     const [{ normalizeMarketplaceSale }, { calculateOrderFinancials }] = await Promise.all([
@@ -5044,10 +5055,12 @@ async function saveMarketplaceSale(env, sale) {
 
     sale.payload = sale.payload || {};
     // idempotência: se já existir e for igual, evitar regravar
-    const existing = await d1GetSale(env, sale.channel, sale.externalId).catch(() => null);
     const newNormalizedStr = JSON.stringify(normalized);
     const existingNormalizedStr = existing?.payload?.normalized ? JSON.stringify(existing.payload.normalized) : null;
-    if (existing && existingNormalizedStr === newNormalizedStr) {
+    const mediationSame = !!existing
+      && existing.mediationWon === sale.mediationWon
+      && Number(existing.mediationAmount || 0) === Number(sale.mediationAmount || 0);
+    if (existing && existingNormalizedStr === newNormalizedStr && mediationSame) {
       return true;
     }
 
@@ -5057,6 +5070,45 @@ async function saveMarketplaceSale(env, sale) {
   }
 
   return d1SaveSale(env, sale);
+}
+
+async function handleAdminMarketplaceMediation(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const channel = normalizeMarketplaceChannel(body.channel || body.canal);
+  const externalId = String(body.externalId || body.id || '').trim();
+  if (!channel || !externalId) {
+    return json({ error: 'Informe channel e externalId.' }, 400, origin);
+  }
+  const parsed = normalizeMediationPatch(body);
+  if (!parsed.ok) return json({ error: parsed.error }, 400, origin);
+  const existing = await loadMarketplaceSale(env, channel, externalId);
+  if (!existing) return json({ error: 'Venda não encontrada.' }, 404, origin);
+  if (!saleLooksCancelled(existing) && parsed.patch.mediationWon) {
+    return json({ error: 'Mediação só se aplica a vendas canceladas.' }, 400, origin);
+  }
+  const next = {
+    ...existing,
+    ...parsed.patch,
+    channel,
+    externalId,
+    syncedAt: existing.syncedAt || new Date().toISOString()
+  };
+  await saveMarketplaceSale(env, next, { preserveMediation: false });
+  const saved = await loadMarketplaceSale(env, channel, externalId);
+  return json({
+    ok: true,
+    sale: saved,
+    mediationWon: !!(saved && saleHasMediationCash(saved)),
+    mediationAmount: saved?.mediationAmount || 0
+  }, 200, origin);
 }
 
 async function listMarketplaceSales(env, channel, limit) {
@@ -19738,6 +19790,9 @@ export default {
       }
       if (path === '/admin/ml/sales' && request.method === 'GET') {
         return handleAdminMlSales(request, env, origin);
+      }
+      if (path === '/admin/marketplace/mediation' && request.method === 'POST') {
+        return handleAdminMarketplaceMediation(request, env, origin);
       }
       if (path === '/admin/amz/sync' && (request.method === 'GET' || request.method === 'POST')) {
         return handleAdminAmzSync(request, env, origin);
