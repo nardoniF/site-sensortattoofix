@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=3.60">
+    <link rel="stylesheet" href="style.css?v=3.61">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -1036,6 +1036,13 @@
                                 <div class="admin-toolbar-main">
                                     <button type="button" id="btn-vendas-ml-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
                                     <button type="button" id="btn-vendas-ml-sync" class="btn-primary"><i class="fas fa-cloud-download-alt"></i> Atualizar ML</button>
+                                    <label class="vendas-cancel-filter-label">Lista
+                                        <select id="vendas-ml-cancel-filter" aria-label="Filtrar canceladas no ML">
+                                            <option value="all" selected>Todas (caixa = ativas)</option>
+                                            <option value="active">Só ativas</option>
+                                            <option value="cancelled">Só canceladas</option>
+                                        </select>
+                                    </label>
                                 </div>
                             </div>
                             <div id="vendas-ml-stats" class="admin-clicks-stats admin-meta"></div>
@@ -1056,6 +1063,13 @@
                                 <div class="admin-toolbar-main">
                                     <button type="button" id="btn-vendas-shopee-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
                                     <button type="button" id="btn-vendas-shopee-sync" class="btn-primary"><i class="fas fa-cloud-download-alt"></i> Atualizar Shopee</button>
+                                    <label class="vendas-cancel-filter-label">Lista
+                                        <select id="vendas-shopee-cancel-filter" aria-label="Filtrar canceladas na Shopee">
+                                            <option value="all" selected>Todas (caixa = ativas)</option>
+                                            <option value="active">Só ativas</option>
+                                            <option value="cancelled">Só canceladas</option>
+                                        </select>
+                                    </label>
                                 </div>
                             </div>
                             <div id="vendas-shopee-stats" class="admin-clicks-stats admin-meta"></div>
@@ -1076,6 +1090,13 @@
                                 <div class="admin-toolbar-main">
                                     <button type="button" id="btn-vendas-amz-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
                                     <button type="button" id="btn-vendas-amz-sync" class="btn-primary"><i class="fas fa-cloud-download-alt"></i> Atualizar Amazon</button>
+                                    <label class="vendas-cancel-filter-label">Lista
+                                        <select id="vendas-amz-cancel-filter" aria-label="Filtrar canceladas na Amazon">
+                                            <option value="all" selected>Todas (caixa = ativas)</option>
+                                            <option value="active">Só ativas</option>
+                                            <option value="cancelled">Só canceladas</option>
+                                        </select>
+                                    </label>
                                 </div>
                             </div>
                             <div id="vendas-amz-stats" class="admin-clicks-stats admin-meta"></div>
@@ -1096,6 +1117,13 @@
                                 <div class="admin-toolbar-main">
                                     <button type="button" id="btn-vendas-consol-refresh" class="btn-secondary"><i class="fas fa-sync-alt"></i> Recarregar</button>
                                     <button type="button" id="btn-vendas-consol-export" class="btn-secondary"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+                                    <label class="vendas-cancel-filter-label">Lista
+                                        <select id="vendas-consol-cancel-filter" aria-label="Filtrar canceladas no consolidado">
+                                            <option value="all" selected>Todas (caixa = ativas)</option>
+                                            <option value="active">Só ativas</option>
+                                            <option value="cancelled">Só canceladas</option>
+                                        </select>
+                                    </label>
                                 </div>
                             </div>
                             <div id="vendas-consol-periods" class="vendas-consol-periods"></div>
@@ -1452,6 +1480,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=11"></script>
-    <script defer src="js/admin.js?v=283"></script>
+    <script defer src="js/admin.js?v=285"></script>
 </body>
 </html>

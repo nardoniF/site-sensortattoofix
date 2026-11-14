@@ -4991,6 +4991,15 @@ body.admin-page.pedidos-login-only #pedidos-login {
     text-decoration: line-through;
     text-decoration-thickness: 1px;
 }
+/* Em “só canceladas” o valor precisa ser legível (não soma no caixa). */
+.sales-tree--cancel-focus .sales-tree-row--cancelled .sales-tree-id,
+.sales-tree--cancel-focus .sales-tree-row--cancelled .sales-tree-buyer,
+.sales-tree--cancel-focus .sales-tree-row--cancelled .sales-tree-title,
+.sales-tree--cancel-focus .sales-tree-row--cancelled .sales-tree-channel,
+.sales-tree--cancel-focus .sales-tree-row--cancelled .sales-tree-money,
+.sales-tree--cancel-focus .sales-tree-row--cancelled .sales-tree-net {
+    text-decoration: none;
+}
 .sales-tree-cancel-badge {
     display: inline-block;
     margin-left: 6px;
@@ -5004,6 +5013,31 @@ body.admin-page.pedidos-login-only #pedidos-login {
     text-decoration: none !important;
     vertical-align: middle;
     text-transform: uppercase;
+}
+.sales-tree-cancel-hint {
+    color: #c9a27a;
+    font-weight: 500;
+}
+.vendas-cancel-filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: 0.35rem;
+    color: #bbb;
+    font-size: 0.82rem;
+}
+.vendas-cancel-filter-label select {
+    background: #1a1a1a;
+    color: #eee;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 0.28rem 0.45rem;
+    font-size: 0.82rem;
+}
+.vendas-consol-cancel-stats {
+    margin-top: 0.65rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed #5a3a2a;
 }
 .sales-tree-time { color: #aaa; font-variant-numeric: tabular-nums; }
 .sales-tree-id { color: #ccc; font-family: ui-monospace, monospace; font-size: 0.78rem; }
