@@ -29,16 +29,17 @@ jobs:
       - name: Deploy Worker (wrangler)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          # Conta pública no wrangler.toml — secret CF_ACCOUNT_ID opcional
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID || '80ab4f6ff1553d2ee530c0880edce594' }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error::Configure os secrets CF_API_TOKEN e CF_ACCOUNT_ID para publicar os Workers."
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Configure o secret CF_API_TOKEN (Workers Scripts Edit + KV + D1) em Settings → Secrets → Actions."
             exit 1
           fi
           cd api
-          npx wrangler@latest deploy --config wrangler.toml
+          npx wrangler@4 deploy --config wrangler.toml
           cd ../cloudflare
-          npx wrangler@latest deploy --config wrangler.toml
+          npx wrangler@4 deploy --config wrangler.toml
 
       - name: Backfill normalized (MercadoLivre)
         if: ${{ !contains(github.event.head_commit.message || '', '[skip-backfill]') }}
