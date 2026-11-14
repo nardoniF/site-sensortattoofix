@@ -1198,47 +1198,83 @@
     return roundMoneyLocal(kitUnitCostFromConfig(config || currentConfig, sale) * saleKitQty(sale));
   }
 
-  function effectiveSaleNet(sale) {
-    if (isCancelledMarketplaceSale(sale)) return 0;
-    const fn = sm().effectiveSaleNet;
-    if (typeof fn === 'function') return fn(sale, currentConfig);
-    return roundMoneyLocal(marketplaceSaleNet(sale) - saleProductCost(sale));
-  }
-
-  function saleMoneyParts(sale) {
-    if (isCancelledMarketplaceSale(sale)) {
-      return {
-        gross: 0,
-        fees: 0,
-        shipping: 0,
-        refunds: 0,
-        otherFees: 0,
-        cogs: 0,
-        marketplace: 0,
-        net: 0
-      };
-    }
-    const fn = sm().saleMoneyParts;
-    if (typeof fn === 'function') return fn(sale, currentConfig);
-    const marketplace = marketplaceSaleNet(sale);
+  /**
+   * Economia “como vendida” (bruto − tarifa − frete − kit), sem zerar por cancel
+   * nem abater estorno — serve pra ver o valor das canceladas sem misturar no caixa.
+   */
+  function saleEconomicParts(sale) {
+    const gross = saleListedGross(sale);
+    const fees = Number(sale?.fees || 0);
+    const shipping = saleShippingCost(sale);
+    const refunds = Number(sale?.refunds || 0);
+    const otherFees = Number(sale?.otherFees || 0);
     const cogs = saleProductCost(sale);
+    const marketplace = roundMoneyLocal(gross - fees - shipping - otherFees);
     return {
-      gross: saleListedGross(sale),
-      fees: Number(sale?.fees || 0),
-      shipping: saleShippingCost(sale),
-      refunds: Number(sale?.refunds || 0),
-      otherFees: Number(sale?.otherFees || 0),
+      gross,
+      fees,
+      shipping,
+      refunds,
+      otherFees,
       cogs,
       marketplace,
       net: roundMoneyLocal(marketplace - cogs)
     };
   }
 
+  function effectiveSaleNet(sale) {
+    return saleEconomicParts(sale).net;
+  }
+
+  function saleMoneyParts(sale) {
+    return saleEconomicParts(sale);
+  }
+
+  function getVendasCancelFilter(selectId) {
+    const el = document.getElementById(selectId || 'vendas-consol-cancel-filter');
+    const v = el ? String(el.value || 'all') : 'all';
+    return v === 'active' || v === 'cancelled' ? v : 'all';
+  }
+
+  function filterSalesByCancelMode(sales, mode) {
+    const list = Array.isArray(sales) ? sales : [];
+    if (mode === 'active') return list.filter((s) => !(s?._cancelled || isCancelledMarketplaceSale(s)));
+    if (mode === 'cancelled') return list.filter((s) => s?._cancelled || isCancelledMarketplaceSale(s));
+    return list;
+  }
+
+  function sumCancelledAnnotated(list) {
+    return (list || []).reduce((acc, s) => {
+      if (!(s?._cancelled || isCancelledMarketplaceSale(s))) return acc;
+      acc.count += saleKitQty(s);
+      acc.gross += Number(s._gross || 0);
+      acc.fees += Number(s._fees || 0);
+      acc.shipping += Number(s._shipping || 0);
+      acc.refunds += Number(s._refunds || 0);
+      acc.otherFees += Number(s._otherFees || 0);
+      acc.cogs += Number(s._cogs || 0);
+      acc.marketplace += Number(s._marketplace || 0);
+      acc.net += Number(s._net || 0);
+      return acc;
+    }, { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0 });
+  }
+
+  function cancelRatePct(cancelledCount, activeCount) {
+    const total = Number(cancelledCount || 0) + Number(activeCount || 0);
+    if (!(total > 0)) return 0;
+    return Math.round((Number(cancelledCount || 0) / total) * 1000) / 10;
+  }
+
   function renderSalesMoneyStats(list, meta, extraRowsHtml) {
-    const active = (list || []).filter((x) => !isCancelledMarketplaceSale(x));
-    const cancelledCount = (list || []).length - active.length;
-    const parts = active.reduce((acc, x) => {
-      const p = saleMoneyParts(x);
+    const mode = meta?.cancelMode === 'active' || meta?.cancelMode === 'cancelled'
+      ? meta.cancelMode
+      : 'all';
+    const all = Array.isArray(list) ? list : [];
+    const cancelledList = all.filter((x) => isCancelledMarketplaceSale(x));
+    const active = all.filter((x) => !isCancelledMarketplaceSale(x));
+    const focus = mode === 'cancelled' ? cancelledList : active;
+    const parts = focus.reduce((acc, x) => {
+      const p = saleEconomicParts(x);
       acc.gross += p.gross;
       acc.fees += p.fees;
       acc.shipping += p.shipping;
@@ -1252,15 +1288,28 @@
     const synced = meta?.lastSyncedAt
       ? new Date(meta.lastSyncedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : '—';
-    const itemCount = active.reduce((n, s) => n + saleKitQty(s), 0);
-    const orderCount = active.length;
+    const itemCount = focus.reduce((n, s) => n + saleKitQty(s), 0);
+    const orderCount = focus.length;
     const indexed = meta?.indexed != null && meta.indexed !== orderCount
       ? ` / ${Number(meta.indexed).toLocaleString('pt-BR')} indexadas`
       : '';
-    const cancelRow = cancelledCount > 0
-      ? `<div class="clicks-stats-row"><dt>Canceladas (lista)</dt><dd>${cancelledCount.toLocaleString('pt-BR')} · R$ 0 no saldo</dd></div>`
+    const cancParts = cancelledList.reduce((acc, x) => {
+      const p = saleEconomicParts(x);
+      acc.net += p.net;
+      acc.gross += p.gross;
+      return acc;
+    }, { net: 0, gross: 0 });
+    const cancelRow = mode === 'cancelled'
+      ? `<div class="clicks-stats-row"><dt>Fora do caixa</dt><dd>valores abaixo não entram no saldo</dd></div>`
+      : (cancelledList.length > 0
+        ? `<div class="clicks-stats-row"><dt>Canceladas</dt><dd>${cancelledList.length.toLocaleString('pt-BR')} · ${formatSalesBRL(cancParts.net)} <span class="sales-tree-cancel-hint">(fora do caixa)</span></dd></div>`
+        : '');
+    const netLabel = mode === 'cancelled' ? '(=) Líquido que seria' : '(=) Líquido';
+    const kicker = mode === 'cancelled'
+      ? `<div class="clicks-stats-row"><dt>Visão</dt><dd>Só canceladas</dd></div>`
       : '';
     return `
+      ${kicker}
       <div class="clicks-stats-row"><dt>Vendas (itens)</dt><dd>${itemCount.toLocaleString('pt-BR')}${indexed}</dd></div>
       ${cancelRow}
       <div class="clicks-stats-row"><dt>Preço</dt><dd>${formatSalesBRL(parts.gross)}</dd></div>
@@ -1268,7 +1317,7 @@
       <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(parts.shipping)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Estornos / outras</dt><dd>${formatSalesBRL(parts.refunds + parts.otherFees)}</dd></div>
       <div class="clicks-stats-row"><dt>(−) Kit</dt><dd>${formatSalesBRL(parts.cogs)}</dd></div>
-      <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
+      <div class="clicks-stats-row clicks-stats-row--net"><dt>${escapeHtml(netLabel)}</dt><dd>${formatSalesBRL(parts.net)}</dd></div>
       ${extraRowsHtml || ''}
       <div class="clicks-stats-row"><dt>Último sync</dt><dd>${escapeHtml(synced)}</dd></div>`;
   }
@@ -1289,70 +1338,106 @@
     });
   }
 
-  function buildSalesTree(sales) {
+  function emptySalesTreeNode(extra) {
+    return {
+      count: 0,
+      gross: 0,
+      fees: 0,
+      shipping: 0,
+      refunds: 0,
+      otherFees: 0,
+      cogs: 0,
+      marketplace: 0,
+      net: 0,
+      cancelCount: 0,
+      cancelGross: 0,
+      cancelNet: 0,
+      ...extra
+    };
+  }
+
+  function addSaleMoneyToNode(node, parts, qty) {
+    node.count += qty;
+    node.gross += parts.gross;
+    node.fees += parts.fees;
+    node.shipping += parts.shipping;
+    node.refunds += parts.refunds;
+    node.otherFees += parts.otherFees;
+    node.cogs += parts.cogs;
+    node.marketplace += parts.marketplace;
+    node.net += parts.net;
+  }
+
+  function addCancelMoneyToNode(node, parts, qty) {
+    node.cancelCount += qty;
+    node.cancelGross += parts.gross;
+    node.cancelNet += parts.net;
+  }
+
+  /**
+   * @param {object[]} sales
+   * @param {{ mode?: 'all'|'active'|'cancelled' }} [opts]
+   * mode=all: lista tudo; caixa = só ativas; meta mostra canc.
+   * mode=active: só ativas no caixa e na lista.
+   * mode=cancelled: só canceladas; totais = valor cancelado (não é caixa).
+   */
+  function buildSalesTree(sales, opts = {}) {
+    const mode = opts.mode === 'active' || opts.mode === 'cancelled' ? opts.mode : 'all';
     const tree = {};
     (sales || []).forEach((sale) => {
-      const ts = saleSoldTs(sale);
+      const ts = saleSoldTs(sale) || sale._ts;
       if (!ts) return;
       const { year, monthNum, monthName, dateKey, dayLabel } = brDateParts(ts);
-      const cancelled = isCancelledMarketplaceSale(sale);
-      const gross = cancelled ? 0 : saleListedGross(sale);
-      const fees = cancelled ? 0 : Number(sale.fees || 0);
-      const shipping = cancelled ? 0 : saleShippingCost(sale);
-      const refunds = cancelled ? 0 : Number(sale.refunds || 0);
-      const otherFees = cancelled ? 0 : Number(sale.otherFees || 0);
-      const cogs = cancelled ? 0 : saleProductCost(sale);
-      const net = cancelled ? 0 : effectiveSaleNet(sale);
-      const marketplace = cancelled ? 0 : Math.round((gross - fees - shipping - refunds - otherFees) * 100) / 100;
-      if (!tree[year]) tree[year] = { count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, months: {} };
+      const cancelled = !!(sale._cancelled || isCancelledMarketplaceSale(sale));
+      if (mode === 'active' && cancelled) return;
+      if (mode === 'cancelled' && !cancelled) return;
+      const parts = sale._gross != null
+        ? {
+          gross: Number(sale._gross || 0),
+          fees: Number(sale._fees || 0),
+          shipping: Number(sale._shipping || 0),
+          refunds: Number(sale._refunds || 0),
+          otherFees: Number(sale._otherFees || 0),
+          cogs: Number(sale._cogs || 0),
+          marketplace: Number(sale._marketplace || 0),
+          net: Number(sale._net || 0)
+        }
+        : saleEconomicParts(sale);
+      if (!tree[year]) tree[year] = emptySalesTreeNode({ months: {} });
       const y = tree[year];
-      if (!y.months[monthNum]) y.months[monthNum] = { name: monthName, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, days: {} };
+      if (!y.months[monthNum]) y.months[monthNum] = emptySalesTreeNode({ name: monthName, days: {} });
       const m = y.months[monthNum];
-      if (!m.days[dateKey]) m.days[dateKey] = { label: dayLabel, count: 0, gross: 0, fees: 0, shipping: 0, refunds: 0, otherFees: 0, cogs: 0, marketplace: 0, net: 0, sales: [] };
+      if (!m.days[dateKey]) m.days[dateKey] = emptySalesTreeNode({ label: dayLabel, sales: [] });
       const d = m.days[dateKey];
-      d.sales.push({
+      const tagged = {
         ...sale,
         _ts: ts,
         _cancelled: cancelled,
-        _gross: gross,
-        _fees: fees,
-        _shipping: shipping,
-        _refunds: refunds,
-        _otherFees: otherFees,
-        _cogs: cogs,
-        _marketplace: marketplace,
-        _net: net
-      });
-      // Cancelada: fica na lista, mas não soma qtd/saldo
-      if (cancelled) return;
+        _gross: parts.gross,
+        _fees: parts.fees,
+        _shipping: parts.shipping,
+        _refunds: parts.refunds,
+        _otherFees: parts.otherFees,
+        _cogs: parts.cogs,
+        _marketplace: parts.marketplace,
+        _net: parts.net
+      };
+      d.sales.push(tagged);
       const qty = saleKitQty(sale);
-      d.count += qty;
-      d.gross += gross;
-      d.fees += fees;
-      d.shipping += shipping;
-      d.refunds += refunds;
-      d.otherFees += otherFees;
-      d.cogs += cogs;
-      d.marketplace += marketplace;
-      d.net += net;
-      m.count += qty;
-      m.gross += gross;
-      m.fees += fees;
-      m.shipping += shipping;
-      m.refunds += refunds;
-      m.otherFees += otherFees;
-      m.cogs += cogs;
-      m.marketplace += marketplace;
-      m.net += net;
-      y.count += qty;
-      y.gross += gross;
-      y.fees += fees;
-      y.shipping += shipping;
-      y.refunds += refunds;
-      y.otherFees += otherFees;
-      y.cogs += cogs;
-      y.marketplace += marketplace;
-      y.net += net;
+      if (cancelled) {
+        addCancelMoneyToNode(d, parts, qty);
+        addCancelMoneyToNode(m, parts, qty);
+        addCancelMoneyToNode(y, parts, qty);
+        if (mode === 'cancelled') {
+          addSaleMoneyToNode(d, parts, qty);
+          addSaleMoneyToNode(m, parts, qty);
+          addSaleMoneyToNode(y, parts, qty);
+        }
+        return;
+      }
+      addSaleMoneyToNode(d, parts, qty);
+      addSaleMoneyToNode(m, parts, qty);
+      addSaleMoneyToNode(y, parts, qty);
     });
     Object.values(tree).forEach((y) => {
       Object.values(y.months).forEach((m) => {
@@ -1364,9 +1449,18 @@
     return tree;
   }
 
-  function salesTreeSummary(label, node) {
+  function salesTreeSummary(label, node, mode = 'all') {
+    const cancelN = node?.cancelCount || 0;
+    if (mode === 'cancelled') {
+      const count = node?.count || cancelN;
+      const meta = `<span class="clicks-tree-meta">${count} cancelada${count === 1 ? '' : 's'} · ${formatSalesBRL(node?.net || node?.cancelNet || 0)} <span class="sales-tree-cancel-hint">(fora do caixa)</span></span>`;
+      return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
+    }
     const count = node?.count || 0;
-    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}</span>`;
+    const cancelHint = cancelN > 0
+      ? ` · <span class="sales-tree-cancel-hint">${cancelN} canc. ${formatSalesBRL(node?.cancelNet || 0)}</span>`
+      : '';
+    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}${cancelHint}</span>`;
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
@@ -1566,8 +1660,8 @@
     return (sales || []).filter((s) => s._ts && clicksPeriodBucket(s._ts, period).key === nowKey);
   }
 
-  function buildConsolidatedSalesTree(sales) {
-    return buildSalesTree(sales);
+  function buildConsolidatedSalesTree(sales, opts) {
+    return buildSalesTree(sales, opts);
   }
 
   function renderConsolidatedSaleRow(sale) {
@@ -1584,26 +1678,30 @@
     </li>`;
   }
 
-  function renderConsolidatedTree(tree) {
+  function renderConsolidatedTree(tree, opts = {}) {
+    const mode = opts.mode === 'active' || opts.mode === 'cancelled' ? opts.mode : 'all';
     const years = Object.keys(tree || {}).sort((a, b) => Number(b) - Number(a));
     if (!years.length) {
-      return '<p class="admin-meta">Nenhuma venda paga encontrada (loja + ML + Amazon + Shopee).</p>';
+      return mode === 'cancelled'
+        ? '<p class="admin-meta">Nenhuma venda cancelada neste filtro.</p>'
+        : '<p class="admin-meta">Nenhuma venda paga encontrada (loja + ML + Amazon + Shopee).</p>';
     }
-    let html = '<div class="clicks-tree sales-tree">';
+    const modeClass = mode === 'cancelled' ? ' sales-tree--cancel-focus' : '';
+    let html = `<div class="clicks-tree sales-tree${modeClass}">`;
     years.forEach((year) => {
       const y = tree[year];
       const yearPath = `c|${year}`;
-      html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"><summary>${salesTreeSummary(year, y)}</summary><div class="clicks-tree-children">`;
+      html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"><summary>${salesTreeSummary(year, y, mode)}</summary><div class="clicks-tree-children">`;
       const months = Object.keys(y.months).sort((a, b) => Number(b) - Number(a));
       months.forEach((monthNum) => {
         const m = y.months[monthNum];
         const monthPath = `${yearPath}|${monthNum}`;
-        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m)}</summary><div class="clicks-tree-children">`;
+        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m, mode)}</summary><div class="clicks-tree-children">`;
         const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
         days.forEach((dateKey) => {
           const d = m.days[dateKey];
           const dayPath = `${monthPath}|${dateKey}`;
-          html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${salesTreeSummary(d.label, d)}</summary><div class="clicks-tree-children">`;
+          html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${salesTreeSummary(d.label, d, mode)}</summary><div class="clicks-tree-children">`;
           html += '<ul class="sales-tree-list">';
           d.sales.forEach((sale) => {
             html += renderConsolidatedSaleRow(sale);
@@ -1677,6 +1775,7 @@
     const sold = new Set();
     (sales || []).forEach((s) => {
       if (!s._ts) return;
+      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
       const p = brDateParts(s._ts);
       if (p.year !== y || p.monthNum !== ym) return;
       const day = Number(p.day);
@@ -1713,6 +1812,7 @@
     const byDay = new Map();
     (sales || []).forEach((s) => {
       if (!s._ts) return;
+      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
       const p = brDateParts(s._ts);
       if (p.year !== y) return;
       const key = p.dateKey;
@@ -1830,6 +1930,7 @@
     const byNum = new Map(rows.map((r) => [r.monthNum, r]));
     (sales || []).forEach((s) => {
       if (!s._ts) return;
+      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
       const p = brDateParts(s._ts);
       if (p.year !== y) return;
       const row = byNum.get(p.monthNum);
@@ -1838,6 +1939,112 @@
       row.net += Number(s._net || 0);
     });
     return rows.map((r) => ({ ...r, net: Math.round(r.net * 100) / 100 }));
+  }
+
+  /** Cancelamentos por mês fechado do ano mais recente com dados. */
+  function salesCancelByCalendarMonth(sales, year, asOfTs = Date.now()) {
+    const y = String(year);
+    const now = brDateParts(asOfTs);
+    const lastClosed = y === now.year
+      ? Number(now.monthNum) - 1
+      : (Number(y) > Number(now.year) ? 0 : 12);
+    if (lastClosed < 1) return [];
+    const rows = [];
+    for (let m = 1; m <= lastClosed; m += 1) {
+      const monthNum = String(m).padStart(2, '0');
+      rows.push({
+        monthNum,
+        label: (MONTH_LABELS[monthNum] || monthNum).slice(0, 3),
+        fullLabel: MONTH_LABELS[monthNum] || monthNum,
+        count: 0,
+        activeCount: 0,
+        cancelCount: 0,
+        cancelGross: 0,
+        cancelNet: 0,
+        rate: 0,
+        net: 0
+      });
+    }
+    const byNum = new Map(rows.map((r) => [r.monthNum, r]));
+    (sales || []).forEach((s) => {
+      if (!s._ts) return;
+      const p = brDateParts(s._ts);
+      if (p.year !== y) return;
+      const row = byNum.get(p.monthNum);
+      if (!row) return;
+      const qty = saleKitQty(s);
+      const cancelled = !!(s._cancelled || isCancelledMarketplaceSale(s));
+      if (cancelled) {
+        row.cancelCount += qty;
+        row.cancelGross += Number(s._gross || 0);
+        row.cancelNet += Number(s._net || 0);
+      } else {
+        row.activeCount += qty;
+      }
+    });
+    return rows.map((r) => {
+      const rate = cancelRatePct(r.cancelCount, r.activeCount);
+      return {
+        ...r,
+        count: r.cancelCount,
+        net: Math.round(r.cancelNet * 100) / 100,
+        rate,
+        cancelGross: Math.round(r.cancelGross * 100) / 100,
+        cancelNet: Math.round(r.cancelNet * 100) / 100
+      };
+    });
+  }
+
+  function renderConsolidadoCancelCharts(sales) {
+    const years = [...new Set((sales || []).map((s) => s._ts && brDateParts(s._ts).year).filter(Boolean))]
+      .sort((a, b) => Number(b) - Number(a));
+    if (!years.length) return '';
+    let year = null;
+    let rows = [];
+    for (const y of years) {
+      const candidate = salesCancelByCalendarMonth(sales, y);
+      if (candidate.some((r) => r.cancelCount > 0 || r.activeCount > 0)) {
+        year = y;
+        rows = candidate;
+        break;
+      }
+    }
+    if (!year || !rows.length) return '';
+    const totCancel = rows.reduce((n, r) => n + r.cancelCount, 0);
+    const totActive = rows.reduce((n, r) => n + r.activeCount, 0);
+    const totGross = rows.reduce((n, r) => n + r.cancelGross, 0);
+    const totNet = rows.reduce((n, r) => n + r.cancelNet, 0);
+    const rate = cancelRatePct(totCancel, totActive);
+    const rateRows = rows.map((r) => ({
+      ...r,
+      count: r.rate,
+      net: r.rate,
+      label: r.label,
+      fullLabel: r.fullLabel
+    }));
+    const hint = `${totCancel} canc. · ${rate.toLocaleString('pt-BR')}% · ${formatSalesBRL(totNet)}`;
+    const body = `<div class="vendas-consol-mchart-grid">
+      ${renderMonthLineChart(`Canceladas ${year} (qtd)`, rows, 'count')}
+      ${renderMonthLineChart(`Taxa de cancelamento ${year} (%)`, rateRows, 'count', {
+        subtitle: `${rate.toLocaleString('pt-BR')}% no ano (canc. ÷ ativas+canc.)`
+      })}
+      ${renderMonthLineChart(`Bruto cancelado ${year}`, rows.map((r) => ({ ...r, net: r.cancelGross, count: r.cancelGross })), 'net')}
+      ${renderMonthLineChart(`Líquido que seria ${year}`, rows.map((r) => ({ ...r, net: r.cancelNet, count: r.cancelNet })), 'net', {
+        subtitle: 'Fora do caixa — valor econômico da venda cancelada'
+      })}
+    </div>
+    <p class="admin-meta vendas-consol-mchart-note">Totais ${year}: ${totCancel} cancelada${totCancel === 1 ? '' : 's'} (${rate.toLocaleString('pt-BR')}%) · bruto ${formatSalesBRL(totGross)} · líquido que seria ${formatSalesBRL(totNet)}.</p>`;
+    return `<details class="admin-fold vendas-consol-mchart-fold" id="vendas-consol-cancel-fold" data-fold-key="vendas-cancelamentos">
+      <summary class="admin-fold-summary">
+        <i class="fas fa-chevron-right admin-fold-chevron" aria-hidden="true"></i>
+        <span class="admin-fold-title">Cancelamentos</span>
+        <span class="admin-fold-hint">${escapeHtml(hint)}</span>
+      </summary>
+      <div class="admin-fold-body">
+        <p class="admin-meta vendas-consol-mchart-note">Meses fechados. A taxa é canceladas ÷ (ativas + canceladas) do mês. Valores cancelados não entram no líquido do caixa.</p>
+        ${body}
+      </div>
+    </details>`;
   }
 
   /**
@@ -2176,6 +2383,7 @@
     const map = Object.create(null);
     (sales || []).forEach((s) => {
       if (!s._ts) return;
+      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
       const p = brDateParts(s._ts);
       if (p.year !== y || p.monthNum !== ym) return;
       const d = Number(p.day);
@@ -2285,6 +2493,7 @@
       const tot = sumAnnotated(subset);
       const byCh = {};
       subset.forEach((s) => {
+        if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
         const ch = s.channel || 'outro';
         if (!byCh[ch]) byCh[ch] = { count: 0, net: 0 };
         byCh[ch].count += saleKitQty(s);
@@ -2323,6 +2532,7 @@
       renderConsolidadoDaysCoverage(sales),
       renderConsolidadoChampionDays(sales),
       renderConsolidadoMonthCharts(sales),
+      renderConsolidadoCancelCharts(sales),
       renderConsolidadoFlexOwed(sales)
     ].join('');
     if (whenFold) {
@@ -2335,6 +2545,7 @@
       'vendas-consol-days-fold',
       'vendas-consol-champ-fold',
       'vendas-consol-mchart-fold',
+      'vendas-consol-cancel-fold',
       'vendas-consol-flex-fold',
       'vendas-when-fold'
     ].forEach((id) => wireOneAdminFold(document.getElementById(id), { forceClosed: true }));
@@ -2545,10 +2756,11 @@
   }
 
   function aggregateFlexOwedByMonth(sales) {
+    const active = (sales || []).filter((s) => !(s?._cancelled || isCancelledMarketplaceSale(s)));
     const fn = sm().aggregateFlexOwedByMonth;
-    if (typeof fn === 'function') return fn(sales, currentConfig);
+    if (typeof fn === 'function') return fn(active, currentConfig);
     const map = new Map();
-    (sales || []).forEach((s) => {
+    active.forEach((s) => {
       if (!isMlFlexSale(s) || !s._ts) return;
       const p = brDateParts(s._ts);
       const key = `${p.year}-${p.monthNum}`;
@@ -2735,10 +2947,15 @@
   function renderConsolidadoStats(sales) {
     const el = document.getElementById('vendas-consol-stats');
     if (!el) return;
-    const tot = sumAnnotated(sales);
+    const mode = getVendasCancelFilter('vendas-consol-cancel-filter');
+    const cash = sumAnnotated(sales);
+    const canc = sumCancelledAnnotated(sales);
+    const tot = mode === 'cancelled' ? canc : cash;
+    const rate = cancelRatePct(canc.count, cash.count);
     const byCh = {};
     (sales || []).forEach((s) => {
-      if (s?._cancelled || isCancelledMarketplaceSale(s)) return;
+      const cancelled = !!(s?._cancelled || isCancelledMarketplaceSale(s));
+      if (mode === 'cancelled' ? !cancelled : cancelled) return;
       const ch = s.channel || 'outro';
       if (!byCh[ch]) byCh[ch] = { count: 0, net: 0, gross: 0, fees: 0, shipping: 0 };
       byCh[ch].count += saleKitQty(s);
@@ -2752,15 +2969,33 @@
       .map(([ch, row], i) =>
         `<div class="clicks-stats-row"><dt>${i + 1}º ${escapeHtml(salesChannelLabel(ch))}</dt><dd>${row.count} · ${formatSalesBRL(row.net)}</dd></div>`
       ).join('');
-    const span = brDaysSinceFirstSale(sales);
+    const spanSales = mode === 'cancelled'
+      ? (sales || []).filter((s) => s?._cancelled || isCancelledMarketplaceSale(s))
+      : (sales || []).filter((s) => !(s?._cancelled || isCancelledMarketplaceSale(s)));
+    const span = brDaysSinceFirstSale(spanSales);
     const avgNet = span.days > 0 ? tot.net / span.days : 0;
     const avgQty = span.days > 0 ? tot.count / span.days : 0;
     const avgQtyLabel = avgQty.toLocaleString('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
     const daysLabel = span.days.toLocaleString('pt-BR');
+    const cancelBlock = mode === 'cancelled'
+      ? `<div class="vendas-consol-cancel-stats" aria-label="Taxa de cancelamento">
+          <div class="clicks-stats-row"><dt>Taxa vs ativas</dt><dd>${rate.toLocaleString('pt-BR')}% · ${cash.count.toLocaleString('pt-BR')} ativas no período</dd></div>
+        </div>`
+      : (canc.count > 0
+        ? `<div class="vendas-consol-cancel-stats" aria-label="Canceladas">
+            <div class="clicks-stats-row"><dt>Canceladas</dt><dd>${canc.count.toLocaleString('pt-BR')} · ${rate.toLocaleString('pt-BR')}% do total</dd></div>
+            <div class="clicks-stats-row"><dt>Bruto cancelado</dt><dd>${formatSalesBRL(canc.gross)}</dd></div>
+            <div class="clicks-stats-row"><dt>Líquido que seria</dt><dd>${formatSalesBRL(canc.net)} <span class="sales-tree-cancel-hint">(fora do caixa)</span></dd></div>
+          </div>`
+        : '');
+    const cashTitle = mode === 'cancelled' ? 'Só canceladas (fora do caixa)' : 'Caixa (ativas)';
+    const netLabel = mode === 'cancelled' ? '(=) Líquido que seria' : '(=) Líquido real';
+    const avgHint = mode === 'cancelled' ? 'Cancelado ÷ dias de calendário' : 'Líquido real ÷ dias de calendário';
     el.innerHTML = `
       <div class="vendas-consol-stats-layout">
         <div class="vendas-consol-stats-main">
-          <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${tot.count} vendas</dd></div>
+          <p class="vendas-consol-stats-kicker">${escapeHtml(cashTitle)}</p>
+          <div class="clicks-stats-row"><dt>Total consolidado</dt><dd>${tot.count} venda${tot.count === 1 ? '' : 's'}</dd></div>
           <div class="clicks-stats-row"><dt>Bruto</dt><dd>${formatSalesBRL(tot.gross)}</dd></div>
           <div class="clicks-stats-row"><dt>(−) Comissão</dt><dd>${formatSalesBRL(tot.fees)}</dd></div>
           <div class="clicks-stats-row"><dt>(−) Frete</dt><dd>${formatSalesBRL(tot.shipping || 0)}</dd></div>
@@ -2768,7 +3003,8 @@
           <div class="clicks-stats-row"><dt>(−) Outras taxas</dt><dd>${formatSalesBRL(tot.otherFees || 0)}</dd></div>
           <div class="clicks-stats-row"><dt>(=) Líquido marketplace</dt><dd>${formatSalesBRL(tot.marketplace || 0)}</dd></div>
           <div class="clicks-stats-row"><dt>(−) Custo do kit</dt><dd>${formatSalesBRL(tot.cogs || 0)}</dd></div>
-          <div class="clicks-stats-row clicks-stats-row--net"><dt>(=) Líquido real</dt><dd>${formatSalesBRL(tot.net)}</dd></div>
+          <div class="clicks-stats-row clicks-stats-row--net"><dt>${escapeHtml(netLabel)}</dt><dd>${formatSalesBRL(tot.net)}</dd></div>
+          ${cancelBlock}
           <div class="vendas-consol-stats-channels">${chRows}</div>
         </div>
         <aside class="vendas-consol-stats-side" aria-label="Médias desde a primeira venda">
@@ -2776,7 +3012,7 @@
           <div class="vendas-consol-avg-card">
             <p class="vendas-consol-avg-label">Média líquida / dia</p>
             <p class="vendas-consol-avg-value">${formatSalesBRL(avgNet)}</p>
-            <p class="vendas-consol-avg-hint">Líquido real ÷ dias de calendário</p>
+            <p class="vendas-consol-avg-hint">${escapeHtml(avgHint)}</p>
           </div>
           <div class="vendas-consol-avg-card">
             <p class="vendas-consol-avg-label">Média qtd / dia</p>
@@ -3011,6 +3247,7 @@ ${worksheets}
     const channel = channelEl ? channelEl.value : '';
     const range = rangeEl ? rangeEl.value : 'all';
     let list = Array.isArray(sales) ? sales.slice() : [];
+    list = list.filter((s) => !(s?._cancelled || isCancelledMarketplaceSale(s)));
     if (channel) list = list.filter((s) => s.channel === channel);
     if (range === '90' || range === '365') {
       const days = Number(range);
@@ -3202,7 +3439,14 @@ ${worksheets}
   }
 
   let consolidatedSalesCache = null;
+  let mlSalesCache = null;
+  let mlSalesMetaCache = null;
+  let amzSalesCache = null;
+  let amzSalesMetaCache = null;
+  let shopeeSalesCache = null;
+  let shopeeSalesMetaCache = null;
   let vendasWhenFiltersWired = false;
+  let vendasCancelFiltersWired = false;
 
   function wireVendasWhenFilters() {
     if (vendasWhenFiltersWired) return;
@@ -3215,26 +3459,109 @@ ${worksheets}
     vendasWhenFiltersWired = true;
   }
 
+  function applyConsolidadoCancelView(preserveOpen) {
+    const root = document.getElementById('vendas-consol-tree-root');
+    const sales = consolidatedSalesCache;
+    if (!root || !sales) return;
+    const mode = getVendasCancelFilter('vendas-consol-cancel-filter');
+    const openPaths = preserveOpen
+      ? [...root.querySelectorAll('details[open][data-tree-path]')].map((el) => el.getAttribute('data-tree-path')).filter(Boolean)
+      : [];
+    // Períodos/gráficos de caixa sempre sem canceladas; fold Cancelamentos usa a lista completa.
+    renderConsolidadoPeriods(sales);
+    renderConsolidadoStats(sales);
+    renderConsolidadoCollapsedFolds(sales);
+    renderConsolidadoWhenCharts(sales);
+    root.innerHTML = renderConsolidatedTree(buildConsolidatedSalesTree(sales, { mode }), { mode });
+    collapseConsolidadoCategories(preserveOpen ? openPaths : null);
+  }
+
+  function applyChannelCancelView(channel, preserveOpen) {
+    const cfg = {
+      mercadolivre: {
+        filterId: 'vendas-ml-cancel-filter',
+        rootId: 'vendas-ml-tree-root',
+        getSales: () => mlSalesCache,
+        getMeta: () => mlSalesMetaCache,
+        renderStats: renderMlSalesStats,
+        capture: captureSalesTreeOpenPaths,
+        restore: restoreSalesTreeOpenPaths
+      },
+      amazon: {
+        filterId: 'vendas-amz-cancel-filter',
+        rootId: 'vendas-amz-tree-root',
+        getSales: () => amzSalesCache,
+        getMeta: () => amzSalesMetaCache,
+        renderStats: renderAmzSalesStats,
+        capture: captureAmzSalesTreeOpenPaths,
+        restore: restoreAmzSalesTreeOpenPaths
+      },
+      shopee: {
+        filterId: 'vendas-shopee-cancel-filter',
+        rootId: 'vendas-shopee-tree-root',
+        getSales: () => shopeeSalesCache,
+        getMeta: () => shopeeSalesMetaCache,
+        renderStats: (sales, meta) => {
+          const el = document.getElementById('vendas-shopee-stats');
+          if (el) el.innerHTML = renderSalesMoneyStats(sales, { ...meta, feeLabel: 'Tarifa Shopee' });
+        },
+        capture: () => {
+          const root = document.getElementById('vendas-shopee-tree-root');
+          if (!root) return [];
+          return [...root.querySelectorAll('details[open][data-tree-path]')]
+            .map((el) => el.getAttribute('data-tree-path'))
+            .filter(Boolean);
+        },
+        restore: (paths) => {
+          const root = document.getElementById('vendas-shopee-tree-root');
+          if (!root || !paths?.length) return;
+          const want = new Set(paths);
+          root.querySelectorAll('details[data-tree-path]').forEach((el) => {
+            if (want.has(el.getAttribute('data-tree-path'))) el.open = true;
+          });
+        }
+      }
+    }[channel];
+    if (!cfg) return;
+    const sales = cfg.getSales();
+    const root = document.getElementById(cfg.rootId);
+    if (!sales || !root) return;
+    const mode = getVendasCancelFilter(cfg.filterId);
+    const openPaths = preserveOpen ? cfg.capture() : [];
+    cfg.renderStats(sales, { ...(cfg.getMeta() || {}), cancelMode: mode });
+    root.innerHTML = renderSalesTree(buildSalesTree(sales, { mode }), { channel, mode });
+    if (preserveOpen) cfg.restore(openPaths);
+  }
+
+  function wireVendasCancelFilters() {
+    if (vendasCancelFiltersWired) return;
+    document.getElementById('vendas-consol-cancel-filter')?.addEventListener('change', () => {
+      applyConsolidadoCancelView(true);
+    });
+    document.getElementById('vendas-ml-cancel-filter')?.addEventListener('change', () => {
+      applyChannelCancelView('mercadolivre', true);
+    });
+    document.getElementById('vendas-amz-cancel-filter')?.addEventListener('change', () => {
+      applyChannelCancelView('amazon', true);
+    });
+    document.getElementById('vendas-shopee-cancel-filter')?.addEventListener('change', () => {
+      applyChannelCancelView('shopee', true);
+    });
+    vendasCancelFiltersWired = true;
+  }
+
   async function loadConsolidatedSales(preserveOpen) {
     const root = document.getElementById('vendas-consol-tree-root');
     const checked = document.getElementById('vendas-consol-checked-at');
     if (!root) return;
     wireVendasWhenFilters();
-    const openPaths = preserveOpen
-      ? [...root.querySelectorAll('details[open][data-tree-path]')].map((el) => el.getAttribute('data-tree-path')).filter(Boolean)
-      : [];
+    wireVendasCancelFilters();
     root.innerHTML = '<p class="admin-meta">Carregando consolidado…</p>';
     try {
       await ensureSalesConfig();
       const sales = await fetchConsolidatedSales();
       consolidatedSalesCache = sales;
-      renderConsolidadoPeriods(sales);
-      renderConsolidadoStats(sales);
-      renderConsolidadoCollapsedFolds(sales);
-      renderConsolidadoWhenCharts(sales);
-      root.innerHTML = renderConsolidatedTree(buildConsolidatedSalesTree(sales));
-      // Ao entrar: topo aberto; folds + árvore fechados (antes do detalhe por ano/mês).
-      collapseConsolidadoCategories(preserveOpen ? openPaths : null);
+      applyConsolidadoCancelView(!!preserveOpen);
       if (checked) {
         checked.hidden = false;
         checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -3270,13 +3597,16 @@ ${worksheets}
 
   function renderSalesTree(tree, options = {}) {
     const channel = options.channel || 'mercadolivre';
-    const emptyHint = channel === 'amazon'
-      ? 'Nenhuma venda Amazon indexada. Use <strong>Atualizar Amazon</strong>.'
-      : channel === 'shopee'
-        ? 'Nenhuma venda Shopee indexada. Autorize a loja e use <strong>Atualizar Shopee</strong>.'
-        : channel === 'loja'
-          ? 'Nenhuma venda paga na loja oficial.'
-          : 'Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.';
+    const mode = options.mode === 'active' || options.mode === 'cancelled' ? options.mode : 'all';
+    const emptyHint = mode === 'cancelled'
+      ? 'Nenhuma venda cancelada neste filtro.'
+      : channel === 'amazon'
+        ? 'Nenhuma venda Amazon indexada. Use <strong>Atualizar Amazon</strong>.'
+        : channel === 'shopee'
+          ? 'Nenhuma venda Shopee indexada. Autorize a loja e use <strong>Atualizar Shopee</strong>.'
+          : channel === 'loja'
+            ? 'Nenhuma venda paga na loja oficial.'
+            : 'Nenhuma venda ML indexada. Use <strong>Atualizar ML</strong>.';
     const fallbackTitle = channel === 'amazon'
       ? 'Pedido Amazon'
       : channel === 'shopee'
@@ -3288,21 +3618,22 @@ ${worksheets}
     if (!years.length) {
       return `<p class="admin-meta">${emptyHint}</p>`;
     }
-    let html = '<div class="clicks-tree sales-tree">';
+    const modeClass = mode === 'cancelled' ? ' sales-tree--cancel-focus' : '';
+    let html = `<div class="clicks-tree sales-tree${modeClass}">`;
     years.forEach((year) => {
       const y = tree[year];
       const yearPath = String(year);
-      html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"><summary>${salesTreeSummary(year, y)}</summary><div class="clicks-tree-children">`;
+      html += `<details class="clicks-tree-node clicks-tree-year" data-tree-path="${escapeHtml(yearPath)}"><summary>${salesTreeSummary(year, y, mode)}</summary><div class="clicks-tree-children">`;
       const months = Object.keys(y.months).sort((a, b) => Number(b) - Number(a));
       months.forEach((monthNum) => {
         const m = y.months[monthNum];
         const monthPath = `${yearPath}|${monthNum}`;
-        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m)}</summary><div class="clicks-tree-children">`;
+        html += `<details class="clicks-tree-node clicks-tree-month" data-tree-path="${escapeHtml(monthPath)}"><summary>${salesTreeSummary(m.name, m, mode)}</summary><div class="clicks-tree-children">`;
         const days = Object.keys(m.days).sort((a, b) => b.localeCompare(a));
         days.forEach((dateKey) => {
           const d = m.days[dateKey];
           const dayPath = `${monthPath}|${dateKey}`;
-          html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${salesTreeSummary(d.label, d)}</summary><div class="clicks-tree-children">`;
+          html += `<details class="clicks-tree-node clicks-tree-day" data-tree-path="${escapeHtml(dayPath)}"><summary>${salesTreeSummary(d.label, d, mode)}</summary><div class="clicks-tree-children">`;
           html += '<ul class="sales-tree-list">';
           d.sales.forEach((sale) => {
             const title = sale.items?.[0]?.title || fallbackTitle;
@@ -3363,8 +3694,8 @@ ${worksheets}
       showStatus('Faça login no admin.', 'error', 'vendas');
       return;
     }
+    wireVendasCancelFilters();
     await ensureSalesConfig();
-    const openPaths = preserveOpen ? captureSalesTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas ML…</p>';
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/ml/sales?limit=400`, {
@@ -3373,11 +3704,11 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const sales = (Array.isArray(data.sales) ? data.sales : []).map(annotateSale);
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
-      renderMlSalesStats(sales, meta);
-      root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'mercadolivre' });
-      if (preserveOpen) restoreSalesTreeOpenPaths(openPaths);
+      mlSalesCache = sales;
+      mlSalesMetaCache = meta;
+      applyChannelCancelView('mercadolivre', !!preserveOpen);
       if (checked) {
         checked.hidden = false;
         checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -3422,8 +3753,8 @@ ${worksheets}
       showStatus('Faça login no admin.', 'error', 'vendas');
       return;
     }
+    wireVendasCancelFilters();
     await ensureSalesConfig();
-    const openPaths = preserveOpen ? captureAmzSalesTreeOpenPaths() : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas Amazon…</p>';
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/amz/sales?limit=5000`, {
@@ -3432,11 +3763,11 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const sales = (Array.isArray(data.sales) ? data.sales : []).map(annotateSale);
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
-      renderAmzSalesStats(sales, meta);
-      root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'amazon' });
-      if (preserveOpen) restoreAmzSalesTreeOpenPaths(openPaths);
+      amzSalesCache = sales;
+      amzSalesMetaCache = meta;
+      applyChannelCancelView('amazon', !!preserveOpen);
       if (checked) {
         checked.hidden = false;
         checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -3485,10 +3816,8 @@ ${worksheets}
       showStatus('Faça login no admin.', 'error', 'vendas');
       return;
     }
+    wireVendasCancelFilters();
     await ensureSalesConfig();
-    const openPaths = preserveOpen
-      ? [...root.querySelectorAll('details[open][data-tree-path]')].map((el) => el.getAttribute('data-tree-path')).filter(Boolean)
-      : [];
     root.innerHTML = '<p class="admin-meta">Carregando vendas Shopee…</p>';
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/shopee/sales?limit=5000`, {
@@ -3497,17 +3826,11 @@ ${worksheets}
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const sales = Array.isArray(data.sales) ? data.sales : [];
+      const sales = (Array.isArray(data.sales) ? data.sales : []).map(annotateSale);
       const meta = { ...(data.meta || {}), indexed: data.totalIndexed };
-      const statsEl = document.getElementById('vendas-shopee-stats');
-      if (statsEl) statsEl.innerHTML = renderSalesMoneyStats(sales, { ...meta, feeLabel: 'Tarifa Shopee' });
-      root.innerHTML = renderSalesTree(buildSalesTree(sales), { channel: 'shopee' });
-      if (preserveOpen && openPaths.length) {
-        const want = new Set(openPaths);
-        root.querySelectorAll('details[data-tree-path]').forEach((el) => {
-          if (want.has(el.getAttribute('data-tree-path'))) el.open = true;
-        });
-      }
+      shopeeSalesCache = sales;
+      shopeeSalesMetaCache = meta;
+      applyChannelCancelView('shopee', !!preserveOpen);
       if (checked) {
         checked.hidden = false;
         checked.textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
