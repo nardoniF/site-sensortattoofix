@@ -5039,6 +5039,70 @@ body.admin-page.pedidos-login-only #pedidos-login {
     padding-top: 0.55rem;
     border-top: 1px dashed #5a3a2a;
 }
+.sales-tree-mediation {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+.sales-mediation-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #1e5a3a;
+    color: #dff5e8;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-decoration: none !important;
+    text-transform: uppercase;
+}
+.sales-mediation-toggle,
+.sales-mediation-save,
+.sales-mediation-clear,
+.sales-mediation-cancel {
+    background: #222;
+    color: #ddd;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 0.12rem 0.4rem;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+.sales-mediation-toggle:hover,
+.sales-mediation-save:hover {
+    border-color: #7a9;
+    color: #fff;
+}
+.sales-mediation-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    color: #ccc;
+}
+.sales-mediation-form[hidden] {
+    display: none !important;
+}
+.sales-mediation-amount {
+    width: 5.2rem;
+    background: #111;
+    color: #eee;
+    border: 1px solid #555;
+    border-radius: 3px;
+    padding: 0.12rem 0.3rem;
+    font-size: 0.72rem;
+}
+.sales-tree-row--mediation .sales-tree-money,
+.sales-tree-row--mediation .sales-tree-net,
+.sales-tree-row--mediation .sales-tree-id,
+.sales-tree-row--mediation .sales-tree-buyer,
+.sales-tree-row--mediation .sales-tree-title,
+.sales-tree-row--mediation .sales-tree-channel {
+    text-decoration: none;
+}
 .sales-tree-time { color: #aaa; font-variant-numeric: tabular-nums; }
 .sales-tree-id { color: #ccc; font-family: ui-monospace, monospace; font-size: 0.78rem; }
 .sales-tree-buyer { color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
