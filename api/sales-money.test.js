@@ -43,6 +43,25 @@ test('Flex: list − estorno and company owed uses list price', () => {
   assert.equal(isMlFlexSale(sale), true);
 });
 
+test('Flex cancelada continua no a pagar (entrega existiu)', () => {
+  const cancelledFlex = {
+    channel: 'ml',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 1.1,
+    _cancelled: true,
+    cancelledAt: '2026-11-10T12:00:00.000Z',
+    _ts: Date.parse('2026-11-10T12:00:00-03:00')
+  };
+  assert.equal(isMlFlexSale(cancelledFlex), true);
+  assert.equal(flexCompanyOwed(cancelledFlex, config), 11.9);
+  const rows = aggregateFlexOwedByMonth([cancelledFlex], config);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].count, 1);
+  assert.equal(rows[0].owed, 11.9);
+  assert.equal(rows[0].dayEntries[0].day, 10);
+});
+
 test('Flex self-delivered: continua Flex, owed 0, some do a pagar do dia', () => {
   const mine = {
     channel: 'ml',
