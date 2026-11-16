@@ -2856,11 +2856,12 @@
   }
 
   function aggregateFlexOwedByMonth(sales) {
-    const active = (sales || []).filter((s) => !(s?._cancelled || isCancelledMarketplaceSale(s)));
+    // Cancelada some do caixa/consolidado, mas NÃO do Flex a pagar: a entrega existiu.
+    const list = sales || [];
     const fn = sm().aggregateFlexOwedByMonth;
-    if (typeof fn === 'function') return fn(active, currentConfig);
+    if (typeof fn === 'function') return fn(list, currentConfig);
     const map = new Map();
-    active.forEach((s) => {
+    list.forEach((s) => {
       if (!isMlFlexSale(s) || !s._ts) return;
       const p = brDateParts(s._ts);
       const key = `${p.year}-${p.monthNum}`;
@@ -2969,7 +2970,7 @@
     const hint = thisMonth
       ? `${thisMonth.name} · ${thisMonth.count} · ${formatSalesBRL(thisMonth.owed)}${selfHint}`
       : (months.length ? `${months[0].name} · ${months[0].count} · ${formatSalesBRL(months[0].owed)}` : '—');
-    const body = `<p class="vendas-consol-flex-help">Dias em que <strong>você</strong> entregou (sem turbo): marque “Eu entreguei” — some do valor a pagar à transportadora, mas continua Flex.</p>
+    const body = `<p class="vendas-consol-flex-help">Dias em que <strong>você</strong> entregou (sem turbo): marque “Eu entreguei” — some do a pagar à transportadora. Cancelada no ML <strong>continua</strong> no Flex (houve entrega); só some do caixa se não houver mediação ganha.</p>
       <div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
