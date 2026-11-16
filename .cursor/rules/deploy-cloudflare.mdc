@@ -1,0 +1,33 @@
+---
+description: Deploy Cloudflare via GitHub Actions — nunca pedir token ao usuário
+alwaysApply: true
+---
+
+# Deploy Cloudflare — sem pedir token
+
+## Onde está o token
+
+- Já configurado nos **secrets do GitHub** do repo: `CF_API_TOKEN`, `CF_ACCOUNT_ID` (e `BACKFILL_KEY` no backfill).
+- Workflow: `.github/workflows/deploy-backfill.yml` — dispara no **push em `main`** quando mudam `api/**` ou `cloudflare/**`.
+- Site estático: GitHub Pages no push (não precisa Wrangler local).
+
+## O que o agente DEVE fazer
+
+1. Commit + push (branch/PR ou `main`, conforme o fluxo da tarefa).
+2. Se a API/Worker mudou e o merge foi para `main`, o deploy **já roda sozinho** no Actions.
+3. Confirmar com `gh run list` / `gh run view` o job **Deploy & Backfill** (success).
+4. Smoke opcional na API (ex.: rota nova responde `401` sem auth = rota no ar).
+
+## O que o agente NUNCA deve fazer
+
+- Pedir ao usuário `CLOUDFLARE_API_TOKEN`, `CF_API_TOKEN`, login Wrangler ou “validar Cloudflare”.
+- Chamar autenticação do MCP **Cloudflare** (`mcp_auth`) só para deploy — não é necessário.
+- Rodar `npx wrangler deploy` / `scripts/cloud-deploy.sh` neste VM **se** não houver token já injetado no ambiente; preferir o Actions.
+- Tratar “token ausente no Cloud Agent” como bloqueio — **não é bloqueio**; o token vive no GitHub Actions.
+- Incluir secrets Cloudflare em `request-environment-setup-actions`, setup de ambiente, ou “Secrets” do Cursor para este repo, salvo o usuário pedir **explicitamente** outro fluxo.
+
+## Se o Actions falhar
+
+- Ler o log do run (`gh run view --log` / falha do step Deploy Worker).
+- Corrigir código/config no repo e dar push de novo.
+- Só mencionar secrets do GitHub se o log disser claramente que `CF_API_TOKEN` / `CF_ACCOUNT_ID` estão vazios no Actions (problema no repo settings, não no chat).
