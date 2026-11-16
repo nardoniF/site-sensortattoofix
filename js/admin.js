@@ -2838,9 +2838,16 @@
     return /flex|self_service/i.test(String(sale?.logisticType || ''));
   }
 
+  function isFlexSelfDelivered(sale) {
+    const fn = sm().isFlexSelfDelivered;
+    if (typeof fn === 'function') return fn(sale);
+    return !!(sale && (sale.flexSelfDelivered === true || sale._flexSelfDelivered === true));
+  }
+
   function flexCompanyOwed(sale) {
     const fn = sm().flexCompanyOwed;
     if (typeof fn === 'function') return fn(sale, currentConfig);
+    if (isFlexSelfDelivered(sale)) return 0;
     const list = Number(sale?.mlFlexListCost || currentConfig?.mlFlexShippingCost || 0);
     if (list > 0) return roundMoneyLocal(list);
     const ship = Number(sale?.shippingCost || sale?._shipping || 0);
@@ -2864,6 +2871,7 @@
           monthNum: p.monthNum,
           name: (sm().MONTH_LABELS || {})[p.monthNum] || p.monthName,
           count: 0,
+          selfCount: 0,
           owed: 0,
           bonus: 0,
           net: 0,
@@ -2871,16 +2879,19 @@
         });
       }
       const row = map.get(key);
+      const self = isFlexSelfDelivered(s);
       const owed = flexCompanyOwed(s);
       const bonus = roundMoneyLocal(Number(s.mlEstorno || 0));
       row.count += 1;
+      if (self) row.selfCount += 1;
       row.owed += owed;
       row.bonus += bonus;
-      row.net += roundMoneyLocal(owed - bonus);
+      row.net += self ? 0 : roundMoneyLocal(owed - bonus);
       const day = Number(p.day);
       if (Number.isFinite(day) && day > 0) {
-        const prev = row.dayCountMap.get(day) || { day, count: 0, bonus: 0, owed: 0 };
+        const prev = row.dayCountMap.get(day) || { day, count: 0, selfCount: 0, bonus: 0, owed: 0 };
         prev.count += 1;
+        if (self) prev.selfCount += 1;
         prev.bonus = roundMoneyLocal(prev.bonus + bonus);
         prev.owed = roundMoneyLocal(prev.owed + owed);
         row.dayCountMap.set(day, prev);
@@ -2893,6 +2904,8 @@
           .map((e) => ({
             day: e.day,
             count: e.count,
+            selfCount: e.selfCount || 0,
+            selfDelivered: (e.selfCount || 0) > 0 && e.selfCount === e.count,
             bonus: roundMoneyLocal(e.bonus),
             owed: roundMoneyLocal(e.owed)
           }))
@@ -2935,6 +2948,7 @@
         monthNum,
         name: MONTH_LABELS[monthNum] || monthNum,
         count: 0,
+        selfCount: 0,
         owed: 0,
         bonus: 0,
         net: 0,
@@ -2949,43 +2963,65 @@
     const now = brDateParts(Date.now());
     const currentKey = `${now.year}-${now.monthNum}`;
     const thisMonth = months.find((m) => m.key === currentKey);
+    const selfHint = thisMonth?.selfCount
+      ? ` · eu ${thisMonth.selfCount}`
+      : '';
     const hint = thisMonth
-      ? `${thisMonth.name} · ${thisMonth.count} · ${formatSalesBRL(thisMonth.owed)}`
+      ? `${thisMonth.name} · ${thisMonth.count} · ${formatSalesBRL(thisMonth.owed)}${selfHint}`
       : (months.length ? `${months[0].name} · ${months[0].count} · ${formatSalesBRL(months[0].owed)}` : '—');
-    const body = `<div class="vendas-consol-mtd-grid">${months.map((m) => {
+    const body = `<p class="vendas-consol-flex-help">Dias em que <strong>você</strong> entregou (sem turbo): marque “Eu entreguei” — some do valor a pagar à transportadora, mas continua Flex.</p>
+      <div class="vendas-consol-mtd-grid">${months.map((m) => {
         const isCurrent = m.key === currentKey ? ' is-current' : '';
         const yearNote = m.year !== now.year ? ` ${m.year}` : '';
         const dayEntries = Array.isArray(m.dayEntries) && m.dayEntries.length
           ? m.dayEntries
-          : (m.days || []).map((d) => ({ day: d, count: 1, bonus: 0, owed: 0 }));
+          : (m.days || []).map((d) => ({ day: d, count: 1, bonus: 0, owed: 0, selfCount: 0 }));
         const dayRows = dayEntries.map((e) => {
           const qty = Number(e.count) || 0;
           const bonus = Number(e.bonus) || 0;
           const owed = Number(e.owed) || 0;
-          return `<div class="vendas-consol-flex-day-row" role="row">
-            <span class="vendas-consol-flex-day-d" role="cell">dia ${escapeHtml(String(e.day))}</span>
+          const selfCount = Number(e.selfCount) || 0;
+          const allSelf = selfCount > 0 && selfCount === qty;
+          const partial = selfCount > 0 && !allSelf;
+          const rowClass = allSelf ? ' is-self' : (partial ? ' is-self-partial' : '');
+          const btnLabel = allSelf ? 'Tirar (eu)' : 'Eu entreguei';
+          const btnTitle = allSelf
+            ? 'Voltar a contar no pagamento da transportadora'
+            : 'Marcar que você entregou neste dia — tira do a pagar';
+          return `<div class="vendas-consol-flex-day-row${rowClass}" role="row" data-flex-year="${escapeHtml(String(m.year))}" data-flex-month="${escapeHtml(String(m.monthNum))}" data-flex-day="${escapeHtml(String(e.day))}">
+            <span class="vendas-consol-flex-day-d" role="cell">dia ${escapeHtml(String(e.day))}${allSelf ? ' · eu' : (partial ? ` · eu ${selfCount}/${qty}` : '')}</span>
             <span class="vendas-consol-flex-day-q" role="cell">${qty}</span>
             <span class="vendas-consol-flex-day-b" role="cell">${formatSalesBRL(bonus)}</span>
             <span class="vendas-consol-flex-day-v" role="cell">${formatSalesBRL(owed)}</span>
+            <span class="vendas-consol-flex-day-act" role="cell">
+              <button type="button" class="vendas-consol-flex-self-btn${allSelf ? ' is-on' : ''}"
+                data-flex-self-day="1"
+                data-self-delivered="${allSelf ? '1' : '0'}"
+                title="${escapeHtml(btnTitle)}">${escapeHtml(btnLabel)}</button>
+            </span>
           </div>`;
         }).join('');
         const daysFold = dayEntries.length
-          ? `<details class="vendas-consol-flex-days-fold">
+          ? `<details class="vendas-consol-flex-days-fold" open>
               <summary>Por dia · ${dayEntries.length} dia${dayEntries.length === 1 ? '' : 's'}</summary>
               <div class="vendas-consol-flex-day-table" role="table" aria-label="Flex por dia">
                 <div class="vendas-consol-flex-day-row is-head" role="row">
                   <span role="columnheader">Dia</span>
                   <span role="columnheader">Qtd</span>
                   <span role="columnheader">Bônus</span>
-                  <span role="columnheader">Cobrado</span>
+                  <span role="columnheader">A pagar</span>
+                  <span role="columnheader">Entrega</span>
                 </div>
                 ${dayRows}
               </div>
             </details>`
           : '';
+        const selfNote = m.selfCount
+          ? ` · <span class="vendas-consol-flex-self-note">eu ${m.selfCount}</span>`
+          : '';
         return `<article class="vendas-consol-mtd-card vendas-consol-flex-card${isCurrent}">
         <h4>${escapeHtml(m.name)}${escapeHtml(yearNote)}</h4>
-        <p class="vendas-consol-mtd-count">${m.count}</p>
+        <p class="vendas-consol-mtd-count">${m.count}${selfNote}</p>
         <p class="vendas-consol-mtd-net">${formatSalesBRL(m.owed)}</p>
         <p class="vendas-consol-flex-bonus">bônus ML ${formatSalesBRL(m.bonus)} · líquido ${formatSalesBRL(m.net)}</p>
         ${daysFold}
@@ -3826,6 +3862,95 @@ ${worksheets}
     vendasMediationWired = true;
   }
 
+  function patchSaleFlexSelfInCaches(ids, patch) {
+    const idSet = new Set((ids || []).map((id) => String(id)));
+    if (!idSet.size) return;
+    const apply = (s) => {
+      if (!s) return s;
+      const sid = String(s.externalId || s.id || '');
+      if (!idSet.has(sid)) return s;
+      return { ...s, ...patch, _flexSelfDelivered: !!patch.flexSelfDelivered };
+    };
+    if (Array.isArray(mlSalesCache)) mlSalesCache = mlSalesCache.map(apply);
+    if (Array.isArray(consolidatedSalesCache)) {
+      consolidatedSalesCache = consolidatedSalesCache.map(apply);
+    }
+  }
+
+  async function saveFlexSelfDay({ year, month, day, selfDelivered }) {
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!token || !base) throw new Error('Faça login no admin.');
+    const res = await fetch(`${base.replace(/\/$/, '')}/admin/marketplace/flex-self-day`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({ year, month, day, selfDelivered }),
+      cache: 'no-store'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  let vendasFlexSelfWired = false;
+  function wireVendasFlexSelfControls() {
+    if (vendasFlexSelfWired) return;
+    const root = document.getElementById('admin-tab-vendas');
+    if (!root) return;
+    root.addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('[data-flex-self-day]');
+      if (!btn) return;
+      const row = btn.closest('.vendas-consol-flex-day-row');
+      if (!row) return;
+      const year = row.getAttribute('data-flex-year');
+      const month = row.getAttribute('data-flex-month');
+      const day = Number(row.getAttribute('data-flex-day'));
+      const currentlySelf = btn.getAttribute('data-self-delivered') === '1';
+      const nextSelf = !currentlySelf;
+      btn.disabled = true;
+      try {
+        const data = await saveFlexSelfDay({
+          year,
+          month,
+          day,
+          selfDelivered: nextSelf
+        });
+        const patch = nextSelf
+          ? {
+            flexSelfDelivered: true,
+            flexSelfDeliveredAt: new Date().toISOString()
+          }
+          : {
+            flexSelfDelivered: false,
+            flexSelfDeliveredAt: null,
+            flexSelfDeliveredNote: null
+          };
+        patchSaleFlexSelfInCaches(data.ids || [], patch);
+        if (document.getElementById('admin-vendas-consolidado')
+          && !document.getElementById('admin-vendas-consolidado').hidden) {
+          applyConsolidadoCancelView(true);
+        }
+        const n = Number(data.updated || 0);
+        showStatus(
+          nextSelf
+            ? `Dia ${day}: ${n} Flex marcado(s) como você entregou — fora do a pagar.`
+            : `Dia ${day}: ${n} Flex de volta no a pagar da transportadora.`,
+          'success',
+          'vendas'
+        );
+      } catch (err) {
+        showStatus(err.message || 'Falha ao marcar Flex.', 'error', 'vendas');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    vendasFlexSelfWired = true;
+  }
+
   async function loadConsolidatedSales(preserveOpen) {
     const root = document.getElementById('vendas-consol-tree-root');
     const checked = document.getElementById('vendas-consol-checked-at');
@@ -3833,6 +3958,7 @@ ${worksheets}
     wireVendasWhenFilters();
     wireVendasCancelFilters();
     wireVendasMediationControls();
+    wireVendasFlexSelfControls();
     root.innerHTML = '<p class="admin-meta">Carregando consolidado…</p>';
     try {
       await ensureSalesConfig();

@@ -213,7 +213,13 @@ export function isMlFlexSale(sale) {
   return /flex|self_service/i.test(String(sale?.logisticType || ''));
 }
 
+/** Vendedor entregou o Flex (sem turbo) — some do a pagar à transportadora. */
+export function isFlexSelfDelivered(sale) {
+  return !!(sale && (sale.flexSelfDelivered === true || sale._flexSelfDelivered === true));
+}
+
 export function flexCompanyOwed(sale, config = null) {
+  if (isFlexSelfDelivered(sale)) return 0;
   const list = Number(sale?.mlFlexListCost || config?.mlFlexShippingCost || 0);
   if (list > 0) return roundMoney(list);
   const ship = Number(sale?.shippingCost || sale?._shipping || 0);
@@ -442,6 +448,7 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
         monthNum: p.monthNum,
         name: MONTH_LABELS[p.monthNum] || p.monthName,
         count: 0,
+        selfCount: 0,
         owed: 0,
         bonus: 0,
         net: 0,
@@ -449,16 +456,22 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
       });
     }
     const row = map.get(key);
+    const self = isFlexSelfDelivered(s);
     const owed = flexCompanyOwed(s, config);
     const bonus = roundMoney(Number(s.mlEstorno || 0));
     row.count += 1;
+    if (self) row.selfCount += 1;
     row.owed += owed;
     row.bonus += bonus;
-    row.net += roundMoney(owed - bonus);
+    // Self: não paga transportadora e não abate bônus do líquido a pagar.
+    row.net += self ? 0 : roundMoney(owed - bonus);
     const day = Number(p.day);
     if (Number.isFinite(day) && day > 0) {
-      const prev = row.dayCountMap.get(day) || { day, count: 0, bonus: 0, owed: 0 };
+      const prev = row.dayCountMap.get(day) || {
+        day, count: 0, selfCount: 0, bonus: 0, owed: 0
+      };
       prev.count += 1;
+      if (self) prev.selfCount += 1;
       prev.bonus = roundMoney(prev.bonus + bonus);
       prev.owed = roundMoney(prev.owed + owed);
       row.dayCountMap.set(day, prev);
@@ -471,12 +484,15 @@ export function aggregateFlexOwedByMonth(sales, config = null) {
         .map((e) => ({
           day: e.day,
           count: e.count,
+          selfCount: e.selfCount || 0,
+          selfDelivered: (e.selfCount || 0) > 0 && e.selfCount === e.count,
           bonus: roundMoney(e.bonus),
           owed: roundMoney(e.owed)
         }))
         .sort((a, b) => a.day - b.day);
       return {
         ...rest,
+        selfCount: r.selfCount || 0,
         owed: roundMoney(r.owed),
         bonus: roundMoney(r.bonus),
         net: roundMoney(r.net),
@@ -505,6 +521,7 @@ const exportsForBrowser = {
   effectiveSaleNet,
   saleMoneyParts,
   isMlFlexSale,
+  isFlexSelfDelivered,
   flexCompanyOwed,
   formatFlexDaysWithQty,
   aggregateFlexOwedByMonth,

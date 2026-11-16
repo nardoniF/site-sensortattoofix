@@ -5222,11 +5222,17 @@ body.admin-page.pedidos-login-only #pedidos-login {
     display: grid;
     gap: 2px;
 }
+.vendas-consol-flex-help {
+    margin: 0 0 10px;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: #b0b0b0;
+}
 .vendas-consol-flex-day-row {
     display: grid;
-    grid-template-columns: minmax(3.2rem, 1fr) 2.2rem minmax(4rem, 1.2fr) minmax(4rem, 1.2fr);
+    grid-template-columns: minmax(3.2rem, 1fr) 2.2rem minmax(4rem, 1.2fr) minmax(4rem, 1.2fr) minmax(5.5rem, auto);
     gap: 6px;
-    align-items: baseline;
+    align-items: center;
     font-size: 0.7rem;
     color: #c8c8c8;
 }
@@ -5241,6 +5247,42 @@ body.admin-page.pedidos-login-only #pedidos-login {
 .vendas-consol-flex-day-v {
     text-align: right;
     font-variant-numeric: tabular-nums;
+}
+.vendas-consol-flex-day-act {
+    text-align: right;
+}
+.vendas-consol-flex-self-btn {
+    appearance: none;
+    border: 1px solid #555;
+    background: #1a1a1a;
+    color: #ddd;
+    font-size: 0.65rem;
+    line-height: 1.2;
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.vendas-consol-flex-self-btn:hover {
+    border-color: #888;
+    color: #fff;
+}
+.vendas-consol-flex-self-btn.is-on {
+    border-color: #c9a227;
+    color: #ffe082;
+    background: #2a2410;
+}
+.vendas-consol-flex-day-row.is-self .vendas-consol-flex-day-v {
+    color: #8bc34a;
+    text-decoration: line-through;
+    text-decoration-color: #555;
+}
+.vendas-consol-flex-day-row.is-self-partial .vendas-consol-flex-day-d {
+    color: #ffe082;
+}
+.vendas-consol-flex-self-note {
+    color: #ffe082;
+    font-weight: 500;
 }
 .vendas-consol-flex-card .vendas-consol-mtd-net {
     color: #ffe082;

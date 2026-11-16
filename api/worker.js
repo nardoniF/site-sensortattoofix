@@ -92,6 +92,12 @@ import {
   saleHasMediationCash
 } from './marketplace-mediation.js';
 import {
+  preserveFlexSelfFields,
+  normalizeFlexSelfPatch,
+  isFlexSelfDelivered,
+  matchesFlexSelfDay
+} from './marketplace-flex-self.js';
+import {
   CLICKS_CLOSED_MONTHS,
   CLICKS_TREE_DAYS_DEFAULT,
   clicksRetentionWindow,
@@ -134,7 +140,9 @@ import {
   orderNeedsFreteProductRepair,
   saleMoneyParts,
   saleKitQty,
-  storeOrderListedGross
+  storeOrderListedGross,
+  brDateParts,
+  isMlFlexSale
 } from './sales-money.js';
 import {
   DEFAULT_INTL_CURRENCIES,
@@ -5037,6 +5045,10 @@ async function saveMarketplaceSale(env, sale, opts = {}) {
   if (opts.preserveMediation !== false) {
     sale = preserveMediationFields(existing, sale);
   }
+  // Flex “eu entreguei” é manual — sync não pode apagar.
+  if (opts.preserveFlexSelf !== false) {
+    sale = preserveFlexSelfFields(existing, sale);
+  }
   // Normalizar e anexar `payload.normalized` sem sobrescrever
   try {
     const [{ normalizeMarketplaceSale }, { calculateOrderFinancials }] = await Promise.all([
@@ -5060,7 +5072,9 @@ async function saveMarketplaceSale(env, sale, opts = {}) {
     const mediationSame = !!existing
       && existing.mediationWon === sale.mediationWon
       && Number(existing.mediationAmount || 0) === Number(sale.mediationAmount || 0);
-    if (existing && existingNormalizedStr === newNormalizedStr && mediationSame) {
+    const flexSelfSame = !!existing
+      && !!existing.flexSelfDelivered === !!sale.flexSelfDelivered;
+    if (existing && existingNormalizedStr === newNormalizedStr && mediationSame && flexSelfSame) {
       return true;
     }
 
@@ -5108,6 +5122,102 @@ async function handleAdminMarketplaceMediation(request, env, origin) {
     sale: saved,
     mediationWon: !!(saved && saleHasMediationCash(saved)),
     mediationAmount: saved?.mediationAmount || 0
+  }, 200, origin);
+}
+
+async function handleAdminMarketplaceFlexSelf(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const channel = normalizeMarketplaceChannel(body.channel || body.canal || 'mercadolivre');
+  const externalId = String(body.externalId || body.id || '').trim();
+  if (!channel || !externalId) {
+    return json({ error: 'Informe channel e externalId.' }, 400, origin);
+  }
+  const parsed = normalizeFlexSelfPatch(body);
+  if (!parsed.ok) return json({ error: parsed.error }, 400, origin);
+  const existing = await loadMarketplaceSale(env, channel, externalId);
+  if (!existing) return json({ error: 'Venda não encontrada.' }, 404, origin);
+  if (!isMlFlexSale(existing)) {
+    return json({ error: 'Só vendas Flex do Mercado Livre.' }, 400, origin);
+  }
+  const next = {
+    ...existing,
+    ...parsed.patch,
+    channel,
+    externalId,
+    syncedAt: existing.syncedAt || new Date().toISOString()
+  };
+  await saveMarketplaceSale(env, next, { preserveFlexSelf: false });
+  const saved = await loadMarketplaceSale(env, channel, externalId);
+  return json({
+    ok: true,
+    sale: saved,
+    flexSelfDelivered: isFlexSelfDelivered(saved)
+  }, 200, origin);
+}
+
+/** Marca/limpa todas as vendas Flex do dia (calendário BR) — “eu entreguei”. */
+async function handleAdminMarketplaceFlexSelfDay(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const year = String(body.year || '').trim();
+  const month = String(body.month || body.monthNum || '').trim();
+  const day = Number(body.day);
+  if (!year || !month || !(day > 0)) {
+    return json({ error: 'Informe year, month e day.' }, 400, origin);
+  }
+  const parsed = normalizeFlexSelfPatch(body);
+  if (!parsed.ok) return json({ error: parsed.error }, 400, origin);
+
+  const channel = 'mercadolivre';
+  const sales = await listMarketplaceSales(env, channel, 5000);
+  const targets = (sales || []).filter((s) => {
+    if (!isMlFlexSale(s)) return false;
+    const withTs = {
+      ...s,
+      _ts: s._ts || Date.parse(s.soldAt || s.dateCreated || s.date_created || '') || 0
+    };
+    return matchesFlexSelfDay(withTs, year, month, day, brDateParts);
+  });
+
+  let updated = 0;
+  const ids = [];
+  for (const sale of targets) {
+    const next = {
+      ...sale,
+      ...parsed.patch,
+      channel,
+      externalId: sale.externalId || sale.id,
+      syncedAt: sale.syncedAt || new Date().toISOString()
+    };
+    await saveMarketplaceSale(env, next, { preserveFlexSelf: false });
+    updated += 1;
+    ids.push(String(next.externalId));
+  }
+
+  return json({
+    ok: true,
+    year,
+    month,
+    day,
+    selfDelivered: parsed.patch.flexSelfDelivered === true,
+    matched: targets.length,
+    updated,
+    ids
   }, 200, origin);
 }
 
@@ -19793,6 +19903,12 @@ export default {
       }
       if (path === '/admin/marketplace/mediation' && request.method === 'POST') {
         return handleAdminMarketplaceMediation(request, env, origin);
+      }
+      if (path === '/admin/marketplace/flex-self' && request.method === 'POST') {
+        return handleAdminMarketplaceFlexSelf(request, env, origin);
+      }
+      if (path === '/admin/marketplace/flex-self-day' && request.method === 'POST') {
+        return handleAdminMarketplaceFlexSelfDay(request, env, origin);
       }
       if (path === '/admin/amz/sync' && (request.method === 'GET' || request.method === 'POST')) {
         return handleAdminAmzSync(request, env, origin);
