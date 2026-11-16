@@ -5230,17 +5230,18 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .vendas-consol-flex-day-row {
     display: grid;
-    grid-template-columns: minmax(3.2rem, 1fr) 2.2rem minmax(4rem, 1.2fr) minmax(4rem, 1.2fr) minmax(5.5rem, auto);
-    gap: 6px;
+    grid-template-columns: 1.35rem minmax(2.8rem, 1fr) 2rem minmax(3.6rem, 1.1fr) minmax(3.6rem, 1.1fr);
+    gap: 4px 6px;
     align-items: center;
     font-size: 0.7rem;
     color: #c8c8c8;
 }
 .vendas-consol-flex-day-row.is-head {
     color: #888;
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
+    align-items: end;
 }
 .vendas-consol-flex-day-q { text-align: right; font-variant-numeric: tabular-nums; }
 .vendas-consol-flex-day-b,
@@ -5249,28 +5250,30 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-variant-numeric: tabular-nums;
 }
 .vendas-consol-flex-day-act {
-    text-align: right;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
-.vendas-consol-flex-self-btn {
-    appearance: none;
-    border: 1px solid #555;
-    background: #1a1a1a;
-    color: #ddd;
-    font-size: 0.65rem;
-    line-height: 1.2;
-    padding: 3px 6px;
-    border-radius: 4px;
+.vendas-consol-flex-self-head {
+    display: block;
+    max-width: 3.2rem;
+    line-height: 1.15;
+    text-align: center;
+    white-space: normal;
+    font-weight: 600;
+    color: #c9a227;
+}
+.vendas-consol-flex-self-check {
+    width: 0.95rem;
+    height: 0.95rem;
+    margin: 0;
+    accent-color: #c9a227;
     cursor: pointer;
-    white-space: nowrap;
 }
-.vendas-consol-flex-self-btn:hover {
-    border-color: #888;
-    color: #fff;
-}
-.vendas-consol-flex-self-btn.is-on {
-    border-color: #c9a227;
-    color: #ffe082;
-    background: #2a2410;
+.vendas-consol-flex-self-check:disabled {
+    opacity: 0.55;
+    cursor: wait;
 }
 .vendas-consol-flex-day-row.is-self .vendas-consol-flex-day-v {
     color: #8bc34a;

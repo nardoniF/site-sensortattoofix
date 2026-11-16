@@ -2984,21 +2984,24 @@
           const allSelf = selfCount > 0 && selfCount === qty;
           const partial = selfCount > 0 && !allSelf;
           const rowClass = allSelf ? ' is-self' : (partial ? ' is-self-partial' : '');
-          const btnLabel = allSelf ? 'Tirar (eu)' : 'Eu entreguei';
-          const btnTitle = allSelf
-            ? 'Voltar a contar no pagamento da transportadora'
-            : 'Marcar que você entregou neste dia — tira do a pagar';
+          const chkTitle = allSelf
+            ? 'Desmarcar: volta a contar no pagamento da transportadora'
+            : 'Marcar: você entregou neste dia — tira do a pagar';
+          const chkIndeterminate = partial ? ' data-indeterminate="1"' : '';
           return `<div class="vendas-consol-flex-day-row${rowClass}" role="row" data-flex-year="${escapeHtml(String(m.year))}" data-flex-month="${escapeHtml(String(m.monthNum))}" data-flex-day="${escapeHtml(String(e.day))}">
-            <span class="vendas-consol-flex-day-d" role="cell">dia ${escapeHtml(String(e.day))}${allSelf ? ' · eu' : (partial ? ` · eu ${selfCount}/${qty}` : '')}</span>
+            <span class="vendas-consol-flex-day-act" role="cell">
+              <input type="checkbox" class="vendas-consol-flex-self-check"
+                data-flex-self-day="1"
+                data-self-delivered="${allSelf ? '1' : '0'}"
+                ${allSelf ? 'checked' : ''}
+                ${chkIndeterminate}
+                title="${escapeHtml(chkTitle)}"
+                aria-label="${escapeHtml(chkTitle)}">
+            </span>
+            <span class="vendas-consol-flex-day-d" role="cell">dia ${escapeHtml(String(e.day))}${partial ? ` · eu ${selfCount}/${qty}` : ''}</span>
             <span class="vendas-consol-flex-day-q" role="cell">${qty}</span>
             <span class="vendas-consol-flex-day-b" role="cell">${formatSalesBRL(bonus)}</span>
             <span class="vendas-consol-flex-day-v" role="cell">${formatSalesBRL(owed)}</span>
-            <span class="vendas-consol-flex-day-act" role="cell">
-              <button type="button" class="vendas-consol-flex-self-btn${allSelf ? ' is-on' : ''}"
-                data-flex-self-day="1"
-                data-self-delivered="${allSelf ? '1' : '0'}"
-                title="${escapeHtml(btnTitle)}">${escapeHtml(btnLabel)}</button>
-            </span>
           </div>`;
         }).join('');
         const daysFold = dayEntries.length
@@ -3006,11 +3009,11 @@
               <summary>Por dia · ${dayEntries.length} dia${dayEntries.length === 1 ? '' : 's'}</summary>
               <div class="vendas-consol-flex-day-table" role="table" aria-label="Flex por dia">
                 <div class="vendas-consol-flex-day-row is-head" role="row">
+                  <span class="vendas-consol-flex-day-act" role="columnheader"><span class="vendas-consol-flex-self-head">Eu entreguei</span></span>
                   <span role="columnheader">Dia</span>
                   <span role="columnheader">Qtd</span>
                   <span role="columnheader">Bônus</span>
                   <span role="columnheader">A pagar</span>
-                  <span role="columnheader">Entrega</span>
                 </div>
                 ${dayRows}
               </div>
@@ -3901,17 +3904,19 @@ ${worksheets}
     if (vendasFlexSelfWired) return;
     const root = document.getElementById('admin-tab-vendas');
     if (!root) return;
-    root.addEventListener('click', async (ev) => {
-      const btn = ev.target.closest('[data-flex-self-day]');
-      if (!btn) return;
-      const row = btn.closest('.vendas-consol-flex-day-row');
+    const applyIndeterminate = () => {
+      root.querySelectorAll('.vendas-consol-flex-self-check[data-indeterminate="1"]').forEach((el) => {
+        el.indeterminate = true;
+      });
+    };
+    const onToggle = async (chk) => {
+      const row = chk.closest('.vendas-consol-flex-day-row');
       if (!row) return;
       const year = row.getAttribute('data-flex-year');
       const month = row.getAttribute('data-flex-month');
       const day = Number(row.getAttribute('data-flex-day'));
-      const currentlySelf = btn.getAttribute('data-self-delivered') === '1';
-      const nextSelf = !currentlySelf;
-      btn.disabled = true;
+      const nextSelf = !!chk.checked;
+      chk.disabled = true;
       try {
         const data = await saveFlexSelfDay({
           year,
@@ -3933,6 +3938,7 @@ ${worksheets}
         if (document.getElementById('admin-vendas-consolidado')
           && !document.getElementById('admin-vendas-consolidado').hidden) {
           applyConsolidadoCancelView(true);
+          applyIndeterminate();
         }
         const n = Number(data.updated || 0);
         showStatus(
@@ -3943,11 +3949,22 @@ ${worksheets}
           'vendas'
         );
       } catch (err) {
+        chk.checked = !nextSelf;
         showStatus(err.message || 'Falha ao marcar Flex.', 'error', 'vendas');
       } finally {
-        btn.disabled = false;
+        chk.disabled = false;
       }
+    };
+    root.addEventListener('change', (ev) => {
+      const chk = ev.target.closest?.('input.vendas-consol-flex-self-check[data-flex-self-day]');
+      if (!chk) return;
+      onToggle(chk);
     });
+    // Após re-render do consolidado
+    const obsTarget = document.getElementById('vendas-consol-folds') || root;
+    const mo = new MutationObserver(() => applyIndeterminate());
+    mo.observe(obsTarget, { childList: true, subtree: true });
+    applyIndeterminate();
     vendasFlexSelfWired = true;
   }
 
