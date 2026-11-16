@@ -5,6 +5,7 @@ import {
   marketplaceSaleNet,
   saleMoneyParts,
   isMlFlexSale,
+  isFlexSelfDelivered,
   flexCompanyOwed,
   aggregateFlexOwedByMonth,
   formatFlexDaysWithQty,
@@ -40,6 +41,44 @@ test('Flex: list − estorno and company owed uses list price', () => {
   assert.equal(saleShippingCost(sale, config), 10.8);
   assert.equal(flexCompanyOwed(sale, config), 11.9);
   assert.equal(isMlFlexSale(sale), true);
+});
+
+test('Flex self-delivered: continua Flex, owed 0, some do a pagar do dia', () => {
+  const mine = {
+    channel: 'ml',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 1.1,
+    flexSelfDelivered: true,
+    _ts: Date.parse('2026-11-14T15:00:00-03:00')
+  };
+  const theirs = {
+    channel: 'ml',
+    mlFlex: true,
+    mlFlexListCost: 11.9,
+    mlEstorno: 0,
+    _ts: Date.parse('2026-11-14T18:00:00-03:00')
+  };
+  assert.equal(isFlexSelfDelivered(mine), true);
+  assert.equal(isMlFlexSale(mine), true);
+  assert.equal(flexCompanyOwed(mine, config), 0);
+
+  const rows = aggregateFlexOwedByMonth([mine, theirs], config);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].count, 2);
+  assert.equal(rows[0].selfCount, 1);
+  assert.equal(rows[0].owed, 11.9);
+  assert.equal(rows[0].net, 11.9);
+  const day14 = rows[0].dayEntries.find((e) => e.day === 14);
+  assert.equal(day14.count, 2);
+  assert.equal(day14.selfCount, 1);
+  assert.equal(day14.selfDelivered, false);
+  assert.equal(day14.owed, 11.9);
+
+  const onlyMine = aggregateFlexOwedByMonth([mine], config);
+  assert.equal(onlyMine[0].owed, 0);
+  assert.equal(onlyMine[0].net, 0);
+  assert.equal(onlyMine[0].dayEntries[0].selfDelivered, true);
 });
 
 test('Envios com frete próximo ao custo Flex mantém origem Envios', () => {
@@ -92,7 +131,10 @@ test('aggregateFlexOwedByMonth groups by BR month', () => {
   assert.equal(rows[0].bonus, 1.1);
   assert.equal(rows[0].net, 10.8);
   assert.deepEqual(rows[0].days, [15]);
-  assert.deepEqual(rows[0].dayEntries, [{ day: 15, count: 1, bonus: 1.1, owed: 11.9 }]);
+  assert.equal(rows[0].selfCount, 0);
+  assert.deepEqual(rows[0].dayEntries, [
+    { day: 15, count: 1, selfCount: 0, selfDelivered: false, bonus: 1.1, owed: 11.9 }
+  ]);
 });
 
 test('aggregateFlexOwedByMonth conta Flex por dia e formata (n) só se n > 1', () => {
@@ -104,8 +146,8 @@ test('aggregateFlexOwedByMonth conta Flex por dia e formata (n) só se n > 1', (
   assert.equal(rows[0].count, 3);
   assert.deepEqual(rows[0].days, [2, 10]);
   assert.deepEqual(rows[0].dayEntries, [
-    { day: 2, count: 2, bonus: 3.58, owed: 23.8 },
-    { day: 10, count: 1, bonus: 0, owed: 11.9 }
+    { day: 2, count: 2, selfCount: 0, selfDelivered: false, bonus: 3.58, owed: 23.8 },
+    { day: 10, count: 1, selfCount: 0, selfDelivered: false, bonus: 0, owed: 11.9 }
   ]);
   assert.equal(formatFlexDaysWithQty(rows[0].dayEntries), '2 (2) e 10');
 });
