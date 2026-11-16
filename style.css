@@ -5230,39 +5230,41 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .vendas-consol-flex-day-row {
     display: grid;
-    grid-template-columns: 1.35rem minmax(2.8rem, 1fr) 2rem minmax(3.6rem, 1.1fr) minmax(3.6rem, 1.1fr);
-    gap: 4px 6px;
+    grid-template-columns: 4.2rem 2.4rem 2.2rem minmax(4rem, 1fr);
+    gap: 0 8px;
     align-items: center;
     font-size: 0.7rem;
     color: #c8c8c8;
+    min-height: 1.35rem;
 }
 .vendas-consol-flex-day-row.is-head {
-    color: #888;
-    font-size: 0.58rem;
+    color: #9a9a9a;
+    font-size: 0.62rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.02em;
-    align-items: end;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 4px;
+    margin-bottom: 2px;
 }
+.vendas-consol-flex-day-row.is-head > span {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.vendas-consol-flex-day-d { text-align: left; font-variant-numeric: tabular-nums; }
 .vendas-consol-flex-day-q { text-align: right; font-variant-numeric: tabular-nums; }
-.vendas-consol-flex-day-b,
 .vendas-consol-flex-day-v {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
 .vendas-consol-flex-day-act {
-    text-align: center;
+    text-align: left;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
-}
-.vendas-consol-flex-self-head {
-    display: block;
-    max-width: 3.2rem;
-    line-height: 1.15;
-    text-align: center;
-    white-space: normal;
-    font-weight: 600;
-    color: #c9a227;
 }
 .vendas-consol-flex-self-check {
     width: 0.95rem;
@@ -5270,6 +5272,7 @@ body.admin-page.pedidos-login-only #pedidos-login {
     margin: 0;
     accent-color: #c9a227;
     cursor: pointer;
+    flex-shrink: 0;
 }
 .vendas-consol-flex-self-check:disabled {
     opacity: 0.55;
