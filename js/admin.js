@@ -2979,7 +2979,6 @@
           : (m.days || []).map((d) => ({ day: d, count: 1, bonus: 0, owed: 0, selfCount: 0 }));
         const dayRows = dayEntries.map((e) => {
           const qty = Number(e.count) || 0;
-          const bonus = Number(e.bonus) || 0;
           const owed = Number(e.owed) || 0;
           const selfCount = Number(e.selfCount) || 0;
           const allSelf = selfCount > 0 && selfCount === qty;
@@ -2989,6 +2988,9 @@
             ? 'Desmarcar: volta a contar no pagamento da transportadora'
             : 'Marcar: você entregou neste dia — tira do a pagar';
           const chkIndeterminate = partial ? ' data-indeterminate="1"' : '';
+          const dayLabel = partial
+            ? `${escapeHtml(String(e.day))} · eu ${selfCount}/${qty}`
+            : escapeHtml(String(e.day));
           return `<div class="vendas-consol-flex-day-row${rowClass}" role="row" data-flex-year="${escapeHtml(String(m.year))}" data-flex-month="${escapeHtml(String(m.monthNum))}" data-flex-day="${escapeHtml(String(e.day))}">
             <span class="vendas-consol-flex-day-act" role="cell">
               <input type="checkbox" class="vendas-consol-flex-self-check"
@@ -2999,9 +3001,8 @@
                 title="${escapeHtml(chkTitle)}"
                 aria-label="${escapeHtml(chkTitle)}">
             </span>
-            <span class="vendas-consol-flex-day-d" role="cell">dia ${escapeHtml(String(e.day))}${partial ? ` · eu ${selfCount}/${qty}` : ''}</span>
+            <span class="vendas-consol-flex-day-d" role="cell">${dayLabel}</span>
             <span class="vendas-consol-flex-day-q" role="cell">${qty}</span>
-            <span class="vendas-consol-flex-day-b" role="cell">${formatSalesBRL(bonus)}</span>
             <span class="vendas-consol-flex-day-v" role="cell">${formatSalesBRL(owed)}</span>
           </div>`;
         }).join('');
@@ -3010,11 +3011,10 @@
               <summary>Por dia · ${dayEntries.length} dia${dayEntries.length === 1 ? '' : 's'}</summary>
               <div class="vendas-consol-flex-day-table" role="table" aria-label="Flex por dia">
                 <div class="vendas-consol-flex-day-row is-head" role="row">
-                  <span class="vendas-consol-flex-day-act" role="columnheader"><span class="vendas-consol-flex-self-head">Eu entreguei</span></span>
-                  <span role="columnheader">Dia</span>
-                  <span role="columnheader">Qtd</span>
-                  <span role="columnheader">Bônus</span>
-                  <span role="columnheader">A pagar</span>
+                  <span class="vendas-consol-flex-day-act" role="columnheader">Entreguei</span>
+                  <span class="vendas-consol-flex-day-d" role="columnheader">Dia</span>
+                  <span class="vendas-consol-flex-day-q" role="columnheader">Qtd</span>
+                  <span class="vendas-consol-flex-day-v" role="columnheader">A pagar</span>
                 </div>
                 ${dayRows}
               </div>
