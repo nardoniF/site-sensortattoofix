@@ -93,11 +93,11 @@
 
         .tile {
             border: 0.6pt dashed #999;
-            padding: 2mm;
+            padding: 1.8mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 1.2mm;
+            gap: 1mm;
             background: #fff;
             min-height: 0;
         }
@@ -150,7 +150,7 @@
             border: 0.5pt solid #ccc;
             border-radius: 2px;
             padding: 1.2mm 1.4mm;
-            overflow: hidden;
+            overflow: visible;
             display: flex;
             flex-direction: column;
             height: 100%;
@@ -197,19 +197,22 @@
         .steps {
             list-style: none;
             counter-reset: s;
-            font-size: 6.8pt;
-            line-height: 1.28;
-            flex: 1;
+            font-size: 6.4pt;
+            line-height: 1.22;
+            flex: 1 1 auto;
             display: flex;
             flex-direction: column;
-            justify-content: space-evenly;
+            justify-content: flex-start;
+            gap: 0.55mm;
             min-height: 0;
+            overflow: visible;
         }
 
         .steps li {
             counter-increment: s;
             position: relative;
             padding-left: 4.8mm;
+            flex: 0 0 auto;
         }
 
         .steps li::before {
@@ -217,16 +220,16 @@
             position: absolute;
             left: 0;
             top: 0;
-            width: 3.8mm;
-            height: 3.8mm;
+            width: 3.6mm;
+            height: 3.6mm;
             border-radius: 50%;
             border: 0.6pt solid #111;
             background: #fff;
             color: #111;
-            font-size: 5.8pt;
+            font-size: 5.5pt;
             font-weight: 900;
             text-align: center;
-            line-height: 3.6mm;
+            line-height: 3.4mm;
         }
 
         .steps li strong { font-weight: 800; color: #111; }
@@ -410,8 +413,7 @@
                     <span class="avisos-label">Avisos:</span>
                     <span class="avisos-item">Ative a detecção de pulso</span>
                     <span class="avisos-item">Use sempre o carregador original</span>
-                    <span class="avisos-item">Cura 48&nbsp;h atividade · 72&nbsp;h para molhar</span>
-                    <span class="avisos-item avisos-item--wrap">Duas lentes? Use primeiro a de <strong>1&nbsp;mm</strong> (mais grossa); só troque pela de <strong>0,5&nbsp;mm</strong> se houver problema no carregamento.</span>
+                    <span class="avisos-item avisos-item--wrap">Duas lentes? Instale primeiro a de <strong>1&nbsp;mm</strong> (mais grossa) — funciona melhor nas tatuagens. Se der problema no carregamento, troque pela de <strong>0,5&nbsp;mm</strong> (mais fina).</span>
                 </div>
                 <div class="cupom">
                     <span class="cupom-label">Cupom</span>
