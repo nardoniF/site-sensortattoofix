@@ -29,6 +29,9 @@ LABELS = [
     "Smart bands",
     "15 mm × 0,5 mm",
     "15 mm × 1,0 mm",
+    "Envio Flex",
+    "Processo manual",
+    "Envio Flex — processo manual",
 ]
 
 
@@ -45,18 +48,21 @@ def register_font() -> str:
     return "Helvetica-Bold"
 
 
-def draw_label(c: canvas.Canvas, x: float, y: float, text: str, font: str) -> None:
+def draw_label(c: canvas.Canvas, x: float, y: float, text: str | None, font: str) -> None:
     c.setStrokeColorRGB(0.15, 0.15, 0.15)
     c.setLineWidth(0.6)
     c.setDash(1.2, 1.2)
     c.rect(x, y, LABEL_W, LABEL_H, stroke=1, fill=0)
     c.setDash()
 
+    if not text:
+        return
+
     c.setFillColorRGB(0.05, 0.05, 0.05)
     # Duas linhas se tiver "—"
     if " — " in text:
         main, tag = text.split(" — ", 1)
-        c.setFont(font, 13)
+        c.setFont(font, 12)
         c.drawCentredString(x + LABEL_W / 2, y + LABEL_H / 2 + 2.2 * mm, main)
         c.setFont(font, 10)
         c.drawCentredString(x + LABEL_W / 2, y + LABEL_H / 2 - 4.2 * mm, tag)
@@ -72,15 +78,19 @@ def build_pdf(out: Path) -> None:
     c.setTitle("Etiquetas estoque 90x25 em folha 145x100")
 
     per_page = 4
-    for i, text in enumerate(LABELS):
+    # Completa a última página com slots vazios (só tracejado) para corte alinhado
+    total = len(LABELS)
+    pages = (total + per_page - 1) // per_page
+    slots = pages * per_page
+
+    for i in range(slots):
         if i and i % per_page == 0:
             c.showPage()
         slot = i % per_page
-        # de cima para baixo
         y = PAGE_H - (slot + 1) * LABEL_H
+        text = LABELS[i] if i < total else None
         draw_label(c, MARGIN_X, y, text, font)
 
-        # rodapé discreto só na 1ª etiqueta da página (métricas)
         if slot == 0:
             c.setFont("Helvetica", 5.5)
             c.setFillColorRGB(0.45, 0.45, 0.45)
