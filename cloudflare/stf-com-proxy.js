@@ -4,6 +4,7 @@
  * - .com.br → Portuguese (repo root); paths /de|/es|/pl|/sl|/it|/fr|/nl|/sv|/no|/fi|/en redirecionam ao .com
  * - First-hit: cookie / CF-IPCountry / Accept-Language → redirect para idioma nativo
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
+ * REDEPLOY: ensure pin wins after parallel Deploy race.
  */
 import {
   resolvePreferredLang,
