@@ -164,12 +164,8 @@ export function externalTrackingLinks(trackingCode) {
   if (!code) return [];
   const q = encodeURIComponent(code);
   if (isIntlTrackingCode(code)) {
+    // 17TRACK não devolve mais Correios BR — só ParcelsApp.
     return [
-      {
-        id: '17track',
-        label: '17TRACK',
-        url: `https://www.17track.net/pt/track?nums=${q}`
-      },
       {
         id: 'parcelsapp',
         label: 'ParcelsApp',
