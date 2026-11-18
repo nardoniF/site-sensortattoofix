@@ -31,8 +31,8 @@
       ];
     }
     if (isIntlTrackingCode(c)) {
+      // 17TRACK não devolve mais Correios BR — só ParcelsApp.
       return [
-        { id: '17track', label: '17TRACK', url: `https://www.17track.net/pt/track?nums=${q}` },
         { id: 'parcelsapp', label: 'ParcelsApp', url: `https://parcelsapp.com/en/tracking/${q}` }
       ];
     }

@@ -113,18 +113,16 @@ test('SuperFrete carrier tracking codes use the official SuperFrete tracking lin
   assert.equal(superfreteTrackingUrl('javascript:alert(1)'), '');
 });
 
-test('externalTrackingLinks: nacional = Correios; internacional = 17TRACK + ParcelsApp', () => {
+test('externalTrackingLinks: nacional = Correios; internacional = só ParcelsApp', () => {
   const nat = externalTrackingLinks('AP170797068BR');
   assert.equal(nat.length, 1);
   assert.equal(nat[0].id, 'correios');
   assert.match(nat[0].url, /objeto=AP170797068BR/);
 
   const intl = externalTrackingLinks('RN000899371BR');
-  assert.equal(intl.length, 2);
-  assert.equal(intl[0].id, '17track');
-  assert.equal(intl[1].id, 'parcelsapp');
-  assert.match(intl[0].url, /nums=RN000899371BR/);
-  assert.match(intl[1].url, /tracking\/RN000899371BR/);
+  assert.equal(intl.length, 1);
+  assert.equal(intl[0].id, 'parcelsapp');
+  assert.match(intl[0].url, /tracking\/RN000899371BR/);
   assert.deepEqual(externalTrackingLinks(''), []);
 });
 
