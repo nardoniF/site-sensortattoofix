@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Loja — Auto Key Supply POC</title>
+  <meta name="description" content="Listagem de produtos mock." />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/aks.css" />
+</head>
+<body>
+  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
+        <span class="brand-meta">
+          <span class="brand-name">Auto Key Supply</span>
+          <span class="brand-badge">POC · 3N20</span>
+        </span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Principal">
+        <a href="index.html" class="">Início</a>
+        <a href="loja.html" class="is-active">Loja</a>
+        <a href="carrinho.html" class="">Carrinho</a>
+        <a href="conta.html" class="">Minha conta</a>
+        <a href="sobre.html" class="">Operação</a>
+        <a href="admin/" class="">Admin</a>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-switch" aria-label="Mercado">
+          <button type="button" class="is-on" data-lang="br">BR</button>
+          <button type="button" data-lang="usa">USA</button>
+        </div>
+        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
+        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-hero">
+      <h1>Loja</h1>
+      <p>Catálogo mock responsivo — filtre por categoria e abra o detalhe do produto.</p>
+      <div class="toolbar" id="loja-filters"></div>
+    </div>
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="product-grid" id="loja-grid"></div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Rodapé">
+        <a href="index.html">Início</a>
+        <a href="loja.html">Loja</a>
+        <a href="checkout.html">Checkout</a>
+        <a href="admin/">Admin</a>
+        <a href="sobre.html">Operação</a>
+        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
+      </nav>
+    </div>
+  </footer>
+  <script src="js/aks.js"></script>
+</body>
+</html>

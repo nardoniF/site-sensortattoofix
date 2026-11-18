@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checkout — Auto Key Supply POC</title>
+  <meta name="description" content="Checkout mock em 3 passos." />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/aks.css" />
+</head>
+<body>
+  <div class="poc-banner"><strong>POC · 3N20</strong> — protótipo visual para Auto Key Supply · sem backend</div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html">
+        <img src="assets/logo-aks.jpg" alt="Auto Key Supply" width="180" height="22" />
+        <span class="brand-meta">
+          <span class="brand-name">Auto Key Supply</span>
+          <span class="brand-badge">POC · 3N20</span>
+        </span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Principal">
+        <a href="index.html" class="">Início</a>
+        <a href="loja.html" class="">Loja</a>
+        <a href="carrinho.html" class="is-active">Carrinho</a>
+        <a href="conta.html" class="">Minha conta</a>
+        <a href="sobre.html" class="">Operação</a>
+        <a href="admin/" class="">Admin</a>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-switch" aria-label="Mercado">
+          <button type="button" class="is-on" data-lang="br">BR</button>
+          <button type="button" data-lang="usa">USA</button>
+        </div>
+        <a class="cart-chip" href="carrinho.html">Carrinho <strong>3</strong></a>
+        <button class="menu-btn" id="menu-btn" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container page-hero">
+      <h1>Checkout</h1>
+      <p>Fluxo ilustrativo em três etapas — nada é cobrado ou enviado.</p>
+    </div>
+    <div class="container checkout-layout" id="checkout-root">
+      <div class="panel">
+        <div class="steps" aria-label="Etapas">
+          <div class="step is-active">1 · Endereço</div>
+          <div class="step">2 · Frete</div>
+          <div class="step">3 · Pagamento</div>
+        </div>
+
+        <div class="step-panel" data-panel="0">
+          <h2>Endereço de entrega</h2>
+          <div class="form-grid">
+            <div class="field full"><label>Nome / razão social</label><input value="Chaveiro Exemplo Ltda" readonly /></div>
+            <div class="field"><label>CEP</label><input value="01310-100" readonly /></div>
+            <div class="field"><label>Cidade</label><input value="São Paulo / SP" readonly /></div>
+            <div class="field full"><label>Endereço</label><input value="Av. Paulista, 1000 — sala 12" readonly /></div>
+          </div>
+          <div class="hero-actions" style="margin-top:1rem">
+            <button class="btn btn-primary" type="button" data-step-next>Continuar para frete</button>
+          </div>
+        </div>
+
+        <div class="step-panel" data-panel="1" hidden>
+          <h2>Opções de frete</h2>
+          <div class="ship-options">
+            <div class="option is-on"><div><strong>Correios PAC</strong><span>Prazo ilustrativo · etiqueta no admin</span></div><strong>R$ 24,90</strong></div>
+            <div class="option"><div><strong>Sedex</strong><span>Mais rápido · mock</span></div><strong>R$ 39,90</strong></div>
+            <div class="option"><div><strong>Transportadora / motoboy</strong><span>Região metropolitana</span></div><strong>Sob consulta</strong></div>
+          </div>
+          <div class="hero-actions" style="margin-top:1rem">
+            <button class="btn btn-outline" type="button" data-step-prev>Voltar</button>
+            <button class="btn btn-primary" type="button" data-step-next>Continuar para pagamento</button>
+          </div>
+        </div>
+
+        <div class="step-panel" data-panel="2" hidden>
+          <h2>Meios de pagamento</h2>
+          <div class="pay-options">
+            <div class="option is-on"><div><strong>PIX</strong><span>Confirmação rápida · QR ilustrativo</span></div><span class="pill">Preferencial</span></div>
+            <div class="option"><div><strong>Cartão de crédito</strong><span>Gateway nacional (Asaas / MP)</span></div><span class="pill">Mock</span></div>
+            <div class="option"><div><strong>Boleto</strong><span>Para CNPJ / atacado</span></div><span class="pill">Mock</span></div>
+          </div>
+          <div class="hero-actions" style="margin-top:1rem">
+            <button class="btn btn-outline" type="button" data-step-prev>Voltar</button>
+            <button class="btn btn-primary" type="button" data-poc="POC — pagamento ilustrativo. Nada foi cobrado.">Pagar agora</button>
+          </div>
+        </div>
+      </div>
+      <aside class="panel">
+        <h3>Pedido mock</h3>
+        <div class="summary-row"><span>3 itens</span><span>R$ 292,20</span></div>
+        <div class="summary-row"><span>Frete</span><span>R$ 24,90</span></div>
+        <div class="summary-row total"><span>Total</span><span>R$ 317,10</span></div>
+        <p style="color:var(--steel);font-size:.85rem;margin:1rem 0 0">Valores apenas para apresentação. Não constituem proposta comercial.</p>
+      </aside>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <p class="footer-note"><strong>Protótipo visual desenvolvido pela 3N20 para Auto Key Supply · sem backend.</strong> Navegação e telas ilustrativas para reunião comercial — preços, frete e pagamentos não são proposta fechada.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Rodapé">
+        <a href="index.html">Início</a>
+        <a href="loja.html">Loja</a>
+        <a href="checkout.html">Checkout</a>
+        <a href="admin/">Admin</a>
+        <a href="sobre.html">Operação</a>
+        <a href="https://3n20.com.br/" target="_blank" rel="noopener">3n20.com.br</a>
+      </nav>
+    </div>
+  </footer>
+  <script src="js/aks.js"></script>
+</body>
+</html>
