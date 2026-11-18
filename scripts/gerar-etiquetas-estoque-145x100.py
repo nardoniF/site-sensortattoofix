@@ -29,9 +29,9 @@ LABELS = [
     "Smart bands",
     "15 mm × 0,5 mm",
     "15 mm × 1,0 mm",
-    "Envio Flex",
+    "Envio",
+    "Flex",
     "Processo manual",
-    "Envio Flex — processo manual",
 ]
 
 
