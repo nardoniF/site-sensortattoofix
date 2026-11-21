@@ -152,11 +152,14 @@ import {
   applyMarkupFxToIntlProducts,
   syncOpticalIntlBrlFromBrKit,
   currencyForLocaleFromRegistry,
+  currencyForCountryFromRegistry,
   productListPriceFromRegistry,
   intlPriceField,
   intlPriceFieldNames,
   intlBaseBrl,
-  normalizeMarkupPercent
+  normalizeMarkupPercent,
+  resolveIntlForeignUnitPrice,
+  resolveIntlMarkedBrl
 } from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
@@ -2797,33 +2800,44 @@ async function intlForeignCharge(order, env, config, items, currency) {
   const cur = String(currency || 'USD').toUpperCase();
   const fx = await fetchFxRate(env, cur);
   const itemList = items || order.items || [];
-  const products = getActiveProducts(config || await getConfig(env));
+  // Cobrança sempre olha o KV completo (markup/list price). Nunca cair em BRL×FX cru.
+  const fullConfig = await getConfig(env);
+  const products = getActiveProducts(fullConfig);
+  const currencies = fullConfig.intlCurrencies || config?.intlCurrencies || DEFAULT_INTL_CURRENCIES;
   let productForeign = 0;
-  let allConfigured = itemList.length > 0;
+  let brlProducts = 0;
   for (const item of itemList) {
-    const p = products.find((x) => x.id === item.productId || x.slug === item.productId);
-    const price = p ? productIntlListPrice(p, cur, config) : null;
-    if (price == null) { allConfigured = false; break; }
-    productForeign += price * (Number(item.qty) || 1);
+    const p = products.find((x) => x.id === item.productId || x.slug === item.productId) || null;
+    const qty = Math.max(1, Number(item.qty) || 1);
+    const unitBrl = Number(item.price) || Number(p?.price) || 0;
+    brlProducts += unitBrl * qty;
+    const unitF = resolveIntlForeignUnitPrice(p, unitBrl, cur, fx.rate, currencies);
+    productForeign += unitF * qty;
   }
-  let amount;
-  if (allConfigured && itemList.length) {
-    const brlProducts = itemList.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
-    const couponDisc = Number(order.couponDiscount) || 0;
-    const ratio = brlProducts > 0 ? Math.max(0, (brlProducts - couponDisc) / brlProducts) : 1;
-    amount = Math.round(productForeign * ratio * 100) / 100;
-    const frete = Number(order.frete) || 0;
-    if (frete > 0) amount = Math.round((amount + frete * fx.rate) * 100) / 100;
-  } else {
-    const brl = Number(order.total) || 0;
-    amount = Math.round(brl * fx.rate * 100) / 100;
-  }
+  const couponDisc = Number(order.couponDiscount) || 0;
+  const ratio = brlProducts > 0 ? Math.max(0, (brlProducts - couponDisc) / brlProducts) : 1;
+  let amount = Math.round(productForeign * ratio * 100) / 100;
+  const frete = Number(order.frete) || 0;
+  if (frete > 0) amount = Math.round((amount + frete * fx.rate) * 100) / 100;
   if (isSelfTestOrder(order)) {
     const stripe = order.selfTestStripe || order.paymentProvider === 'stripe';
     const minAmt = stripe ? stripeSelfTestAmount(cur) : paypalSelfTestAmount(cur);
     if (amount < minAmt) amount = minAmt;
   }
   return { currency: cur, amount, amountCents: Math.round(amount * 100), fxRate: fx.rate };
+}
+
+function resolveAbroadChargeCurrency(order, config) {
+  const byCountry = currencyForCountryFromRegistry(
+    order?.paisCode,
+    config?.intlCurrencies || DEFAULT_INTL_CURRENCIES,
+    FX_CURRENCY_MAP
+  );
+  if (byCountry && byCountry !== 'BRL') return byCountry;
+  const mapped = currencyForCountryCode(order?.paisCode);
+  if (mapped && mapped !== 'BRL') return mapped;
+  const loc = intlChargeCurrencyForLocale(order?.checkoutLocale, config);
+  return loc && loc !== 'BRL' ? loc : 'USD';
 }
 
 async function intlUsdCharge(order, env, config, items) {
@@ -13515,9 +13529,7 @@ async function createPayPalCheckout(env, order, config, request, opts) {
   const foreignCur = (() => {
     const existing = String(order.chargeCurrency || '').trim().toUpperCase();
     if (existing && existing !== 'BRL') return existing;
-    const byCountry = currencyForCountryCode(order.paisCode);
-    if (byCountry && byCountry !== 'BRL') return byCountry;
-    return intlChargeCurrencyForLocale(checkoutLocale);
+    return resolveAbroadChargeCurrency(order, config);
   })();
   let currencyCode = 'BRL';
   let amountValue = Number(order.total).toFixed(2);
@@ -14962,16 +14974,43 @@ async function handleCreateOrder(request, env, origin, ctx) {
     checkoutLocale
   };
 
-  if (intlEmbeddedCheckout && (billingType === 'PAYPAL' || billingType === 'STRIPE')) {
+  // Destino fora do BR: sempre markup do Admin (list price ou BRL×(1+markup%)×FX).
+  // Nunca cobrar só conversão do preço nacional.
+  if (isIntl) {
     try {
-      const foreignCur = intlChargeCurrencyForLocale(checkoutLocale);
-      const charge = await intlForeignCharge(order, env, config, items, foreignCur);
-      order.chargeCurrency = foreignCur;
-      order.chargeAmount = charge.amount;
-      order.chargeFxRate = charge.fxRate;
-      order.displayCurrency = foreignCur;
+      const fullConfig = await getConfig(env);
+      if (billingType === 'PAYPAL' || billingType === 'STRIPE') {
+        const foreignCur = resolveAbroadChargeCurrency(
+          { ...order, checkoutLocale, paisCode },
+          fullConfig
+        );
+        const charge = await intlForeignCharge(order, env, fullConfig, items, foreignCur);
+        order.chargeCurrency = foreignCur;
+        order.chargeAmount = charge.amount;
+        order.chargeFxRate = charge.fxRate;
+        order.displayCurrency = foreignCur;
+      } else {
+        // PIX / MP / cartão BR com destino abroad: total em BRL já com markup.
+        const products = getActiveProducts(fullConfig);
+        let markedBrl = 0;
+        let baseBrl = 0;
+        for (const item of items) {
+          const p = products.find((x) => x.id === item.productId || x.slug === item.productId) || null;
+          const qty = Math.max(1, Number(item.qty) || 1);
+          const unit = Number(item.price) || Number(p?.price) || 0;
+          baseBrl += unit * qty;
+          markedBrl += resolveIntlMarkedBrl(p, unit) * qty;
+        }
+        const ratio = baseBrl > 0 ? Math.max(0, valorProduto / baseBrl) : 1;
+        const markedProduct = Math.round(markedBrl * ratio * 100) / 100;
+        order.valorProduto = markedProduct;
+        order.intlMarkupApplied = true;
+        order.intlMarkupPercentApplied = true;
+        order.total = markedProduct + frete + paypalFee;
+        order.displayCurrency = 'BRL';
+      }
     } catch (err) {
-      console.warn('Intl charge:', err.message);
+      console.warn('Intl charge/markup:', err.message);
     }
   }
 
@@ -16150,11 +16189,12 @@ function stripeOrderCharge(order, request, env) {
 
 async function ensureStripeIntlCharge(order, request, env) {
   const chargeCur = String(order.chargeCurrency || '').toUpperCase();
-  if (!(STRIPE_INTL_CURRENCIES.has(chargeCur) || isComSiteRequest(request))) return;
+  const abroad = orderLooksInternationalDestination(order) || isComSiteRequest(request);
+  if (!(STRIPE_INTL_CURRENCIES.has(chargeCur) || abroad)) return;
   let amt = Number(order.chargeAmount);
   if (Number.isFinite(amt) && amt > 0 && STRIPE_INTL_CURRENCIES.has(chargeCur)) return;
   const config = await getConfig(env);
-  const foreignCur = intlChargeCurrencyForLocale(order.checkoutLocale);
+  const foreignCur = resolveAbroadChargeCurrency(order, config);
   const charge = await intlForeignCharge(order, env, config, order.items, foreignCur);
   order.chargeCurrency = foreignCur;
   order.chargeAmount = charge.amount;

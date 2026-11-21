@@ -260,6 +260,36 @@ export function productListPriceFromRegistry(product, currency, currencies) {
   return null;
 }
 
+/**
+ * Unit foreign price for charge/display.
+ * 1) Stored list price (markup×FX already on product)
+ * 2) Else (BRL × (1+markup%)) × FX — NEVER bare BRL×FX
+ */
+export function resolveIntlForeignUnitPrice(product, unitBrl, currency, fxRate, currencies) {
+  const cur = String(currency || 'USD').toUpperCase();
+  const listed = productListPriceFromRegistry(product, cur, currencies);
+  if (listed != null) return listed;
+  const brl = Math.max(0, Number(unitBrl) || Number(product?.price) || 0);
+  const markup = normalizeMarkupPercent(
+    product?.intlMarkupPercent != null ? product.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT
+  );
+  const base = intlBaseBrl(brl, markup);
+  const row = activeIntlCurrencies(currencies).find((c) => c.code === cur);
+  const decimals = row && Number.isFinite(Number(row.decimals))
+    ? Number(row.decimals)
+    : (cur === 'SEK' || cur === 'NOK' ? 0 : 2);
+  return applyFxAmount(base, fxRate, decimals);
+}
+
+/** Marked-up BRL for abroad paid in BRL (PIX/MP) — never national list alone. */
+export function resolveIntlMarkedBrl(product, unitBrl) {
+  const brl = Math.max(0, Number(unitBrl) || Number(product?.price) || 0);
+  const markup = normalizeMarkupPercent(
+    product?.intlMarkupPercent != null ? product.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT
+  );
+  return intlBaseBrl(brl, markup);
+}
+
 export function intlPriceFieldNames(currencies) {
   return activeIntlCurrencies(currencies)
     .map((c) => intlPriceField(c.code))

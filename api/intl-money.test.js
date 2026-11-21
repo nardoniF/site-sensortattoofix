@@ -10,7 +10,9 @@ import {
   applyMarkupFxToIntlProducts,
   syncOpticalIntlBrlFromBrKit,
   currencyForLocaleFromRegistry,
-  normalizeIntlCurrencies
+  normalizeIntlCurrencies,
+  resolveIntlForeignUnitPrice,
+  resolveIntlMarkedBrl
 } from './intl-money.js';
 
 const FX = {
@@ -97,4 +99,33 @@ test('normalizeIntlCurrencies drops legacy pppRate requirement', () => {
   assert.ok(usd);
   assert.equal(usd.pppRate, undefined);
   assert.ok(list.find((c) => c.code === 'EUR'));
+});
+
+test('resolveIntlForeignUnitPrice never uses bare BRL×FX without markup', () => {
+  const withList = resolveIntlForeignUnitPrice(
+    { price: 72.9, priceEur: 28.68, intlMarkupPercent: 150 },
+    72.9,
+    'EUR',
+    0.15324,
+    DEFAULT_INTL_CURRENCIES
+  );
+  assert.equal(withList, 28.68);
+
+  const noList = resolveIntlForeignUnitPrice(
+    { price: 72.9, intlMarkupPercent: 150 },
+    72.9,
+    'EUR',
+    0.15324,
+    DEFAULT_INTL_CURRENCIES
+  );
+  const rawFx = applyFxAmount(72.9, 0.15324, 2);
+  const marked = applyFxAmount(intlBaseBrl(72.9, 150), 0.15324, 2);
+  assert.equal(noList, marked);
+  assert.ok(noList > rawFx * 1.5);
+  assert.notEqual(noList, rawFx);
+});
+
+test('resolveIntlMarkedBrl applies admin markup on BRL', () => {
+  assert.equal(resolveIntlMarkedBrl({ intlMarkupPercent: 150 }, 72.9), 182.25);
+  assert.equal(resolveIntlMarkedBrl({}, 72.9), intlBaseBrl(72.9, DEFAULT_INTL_MARKUP_PERCENT));
 });

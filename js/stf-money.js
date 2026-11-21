@@ -205,7 +205,11 @@ window.STF_MONEY = (function () {
     const cur = visitorDisplayCurrency(country, config);
     const fixed = configuredForeignPrice(product, cur, config);
     if (fixed != null) return formatForeign(fixed, cur, country);
-    return formatForVisitor(Number(product?.price) || 0, config, countryCode);
+    // Sem list price: aplicar markup do Admin antes do FX — nunca BRL cru × câmbio.
+    const markupRaw = Number(product?.intlMarkupPercent);
+    const pct = Number.isFinite(markupRaw) && markupRaw >= 0 ? markupRaw : 65;
+    const baseBrl = Math.round((Number(product?.price) || 0) * (1 + pct / 100) * 100) / 100;
+    return formatForVisitor(baseBrl, config, countryCode);
   }
 
   async function formatForVisitor(amountBrl, config, countryCode) {
