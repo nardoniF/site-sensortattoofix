@@ -4,7 +4,6 @@
  * - .com.br → Portuguese (repo root); paths /de|/es|/pl|/sl|/it|/fr|/nl|/sv|/no|/fi|/en redirecionam ao .com
  * - First-hit: cookie / CF-IPCountry / Accept-Language → redirect para idioma nativo
  * IMPORTANT: pin COMMIT after each push so domains are not stuck on stale @main cache.
- * REDEPLOY: ensure pin wins after parallel Deploy race.
  */
 import {
   resolvePreferredLang,
@@ -14,7 +13,7 @@ import {
   isBotUserAgent
 } from './geo-lang.js';
 
-const COMMIT = '1b1db77738a4f176b0b7e98a7bc617ba88d45fdc';
+const COMMIT = '391fa914a4cae24b9a4c72debf9f117bca2c588d';
 const ORIGINS = [
   'https://cdn.jsdelivr.net/gh/nardoniF/site-sensortattoofix@' + COMMIT,
   'https://raw.githubusercontent.com/nardoniF/site-sensortattoofix/' + COMMIT,
