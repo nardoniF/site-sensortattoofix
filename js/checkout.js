@@ -3070,6 +3070,19 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         return false;
       }
     }
+    // Aba "Já tenho conta": não ir ao pagamento com usuário/senha sem Entrar.
+    if (!getCustomerUser() && els.checkoutAccountLogin && !els.checkoutAccountLogin.hidden && !els.accountGuestWrap?.hidden) {
+      const loginEmail = (els.checkoutLoginEmail?.value || '').trim();
+      const loginSenha = els.checkoutLoginSenha?.value || '';
+      if (loginEmail || loginSenha) {
+        if (!loginEmail || !loginSenha) {
+          showCheckoutLoginStatus(L('account.loginNeedCreds'), 'error');
+          focusCheckoutField(loginEmail ? els.checkoutLoginSenha : els.checkoutLoginEmail);
+          return false;
+        }
+        return { needsLogin: true };
+      }
+    }
     return true;
   }
 
@@ -3535,7 +3548,15 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         input?.addEventListener('change', () => { if (isInternational) scheduleQuoteShippingIfReady(); });
       });
 
-      els.btnNext?.addEventListener('click', () => { if (validateStep1()) showStep(2); });
+      els.btnNext?.addEventListener('click', async () => {
+        const ok = validateStep1();
+        if (!ok) return;
+        if (ok && ok.needsLogin) {
+          await checkoutLogin();
+          if (!getCustomerUser()) return;
+        }
+        showStep(2);
+      });
       els.btnBack?.addEventListener('click', () => { goBackFromCheckout(); });
       els.btnPay?.addEventListener('click', processPayment);
 
@@ -3543,6 +3564,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         els.senhaWrap.hidden = !els.criarConta.checked;
         els.criarConta.addEventListener('change', () => {
           els.senhaWrap.hidden = !els.criarConta.checked;
+          // Sem "Criar conta" ligada: limpa senha pra não parecer que conta foi criada.
+          if (!els.criarConta.checked && els.checkoutSenha) els.checkoutSenha.value = '';
         });
       }
 

@@ -111,6 +111,7 @@ window.STF_I18N_IT = {
   'account.loginEntering': 'Accesso in corso...',
   'account.loginOk': 'Accesso effettuato!',
   'account.loginNeedCreds': 'Inserisci email e password.',
+  'account.loginBeforeContinue': 'Accedi con email e password prima di continuare, oppure svuota i campi per proseguire come ospite.',
   'account.loginUnavailable': 'Accesso non disponibile. Prova Il mio account.',
   'account.loginFail': 'Impossibile accedere.',
   'conta.title': 'Il mio account',
