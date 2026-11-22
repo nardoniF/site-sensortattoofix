@@ -422,6 +422,21 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   let displayCurrency = 'BRL';
 
   function intlDisplayCurrency() {
+    // Destino abroad no .com.br: moeda do PAÍS (PT/RO→EUR), não do idioma da página (pt→BRL).
+    // Senão o carrinho fica em R$ nacional e o markup some da tela.
+    const pais = String(els.paisCode?.value || '').trim().toUpperCase();
+    if (pais && pais !== 'BR' && pais !== 'OTHER' && pais !== 'XX') {
+      if (window.STF_MONEY?.currencyForCountry) {
+        const byCountry = window.STF_MONEY.currencyForCountry(pais, cfg);
+        if (byCountry && byCountry !== 'BRL') return byCountry;
+      }
+      const FALLBACK_COUNTRY_CUR = {
+        PT: 'EUR', RO: 'EUR', ES: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR', NL: 'EUR',
+        BE: 'EUR', AT: 'EUR', IE: 'EUR', FI: 'EUR', SI: 'EUR', PL: 'PLN', SE: 'SEK',
+        NO: 'NOK', GB: 'GBP', US: 'USD', CA: 'CAD', AU: 'AUD'
+      };
+      if (FALLBACK_COUNTRY_CUR[pais]) return FALLBACK_COUNTRY_CUR[pais];
+    }
     if (window.STF_MONEY?.visitorDisplayCurrency) {
       return window.STF_MONEY.visitorDisplayCurrency(window.STF_MONEY.visitorCountry?.(), cfg);
     }
