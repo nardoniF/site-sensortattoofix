@@ -421,27 +421,53 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   let fxRate = null;
   let displayCurrency = 'BRL';
 
+  /** Moedas que o Admin ativa para preço intl (tem list price / FX estável). */
+  function activeCheckoutCurrencies() {
+    const list = Array.isArray(cfg?.intlCurrencies) ? cfg.intlCurrencies : [];
+    const codes = list
+      .filter((c) => c && c.active !== false && c.code)
+      .map((c) => String(c.code).toUpperCase())
+      .filter((c) => c && c !== 'BRL');
+    return codes.length ? codes : ['USD', 'EUR', 'GBP', 'PLN', 'SEK', 'NOK'];
+  }
+
+  function registryCurrencyForCountry(pais) {
+    const code = String(pais || '').toUpperCase();
+    const list = Array.isArray(cfg?.intlCurrencies) ? cfg.intlCurrencies : [];
+    for (const row of list) {
+      if (!row || row.active === false) continue;
+      const cur = String(row.code || '').toUpperCase();
+      if (!cur || cur === 'BRL') continue;
+      const countries = (row.countries || []).map((x) => String(x).toUpperCase());
+      if (countries.includes(code)) return cur;
+    }
+    return null;
+  }
+
   function intlDisplayCurrency() {
-    // Destino abroad no .com.br: moeda do PAÍS (PT/RO→EUR), não do idioma da página (pt→BRL).
-    // Senão o carrinho fica em R$ nacional e o markup some da tela.
+    // Destino abroad: só moedas do registro Admin (USD/EUR/…).
+    // CL/CO/AR/MX etc. NÃO têm câmbio estável → USD (nunca R$ nacional).
     const pais = String(els.paisCode?.value || '').trim().toUpperCase();
-    if (pais && pais !== 'BR' && pais !== 'OTHER' && pais !== 'XX') {
-      if (window.STF_MONEY?.currencyForCountry) {
-        const byCountry = window.STF_MONEY.currencyForCountry(pais, cfg);
-        if (byCountry && byCountry !== 'BRL') return byCountry;
-      }
+    if (pais && pais !== 'BR') {
+      const fromRegistry = registryCurrencyForCountry(pais);
+      if (fromRegistry) return fromRegistry;
       const FALLBACK_COUNTRY_CUR = {
         PT: 'EUR', RO: 'EUR', ES: 'EUR', FR: 'EUR', DE: 'EUR', IT: 'EUR', NL: 'EUR',
         BE: 'EUR', AT: 'EUR', IE: 'EUR', FI: 'EUR', SI: 'EUR', PL: 'PLN', SE: 'SEK',
-        NO: 'NOK', GB: 'GBP', US: 'USD', CA: 'CAD', AU: 'AUD'
+        NO: 'NOK', GB: 'GBP', US: 'USD', CA: 'USD', AU: 'USD', NZ: 'USD',
+        HK: 'USD', SG: 'USD'
       };
-      if (FALLBACK_COUNTRY_CUR[pais]) return FALLBACK_COUNTRY_CUR[pais];
+      const fb = FALLBACK_COUNTRY_CUR[pais];
+      if (fb && activeCheckoutCurrencies().includes(fb)) return fb;
+      return 'USD';
     }
     if (window.STF_MONEY?.visitorDisplayCurrency) {
-      return window.STF_MONEY.visitorDisplayCurrency(window.STF_MONEY.visitorCountry?.(), cfg);
+      const v = window.STF_MONEY.visitorDisplayCurrency(window.STF_MONEY.visitorCountry?.(), cfg);
+      if (v && v !== 'BRL' && activeCheckoutCurrencies().includes(String(v).toUpperCase())) return v;
     }
     if (window.STF_MONEY?.currencyForLang) {
-      return window.STF_MONEY.currencyForLang(checkoutLocale(), cfg);
+      const v = window.STF_MONEY.currencyForLang(checkoutLocale(), cfg);
+      if (v && v !== 'BRL' && activeCheckoutCurrencies().includes(String(v).toUpperCase())) return v;
     }
     const loc = checkoutLocale();
     if (loc === 'sv') return 'SEK';
@@ -457,7 +483,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       return;
     }
     isInternational = true;
-    displayCurrency = intlDisplayCurrency() || 'USD';
+    let cur = intlDisplayCurrency() || 'USD';
+    if (!cur || cur === 'BRL' || !activeCheckoutCurrencies().includes(String(cur).toUpperCase())) {
+      cur = 'USD';
+    }
+    displayCurrency = cur;
   }
 
   async function refreshDisplayCurrency() {
@@ -469,6 +499,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     syncIntlDisplayCurrency();
     if (window.STF_MONEY?.loadRate) {
       fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
+      // CLP/COP/ARS etc. quebram o FX → cai em USD, nunca em R$ cru.
+      if (!fxRate && displayCurrency !== 'USD') {
+        displayCurrency = 'USD';
+        fxRate = await window.STF_MONEY.loadRate(apiBase(), 'USD');
+      }
     }
   }
 
@@ -533,10 +568,25 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
       // Shipping / extras: market FX on BRL.
       if (fxRate) return emit(roundFx(brl * fxRate));
-      return formatBRL(v);
+      // Abroad sem FX da moeda pedida: tenta list price USD (Admin) — nunca R$ nacional.
+      if (onIntl && product) {
+        const priced = window.STF_MONEY?.resolveProductForIntlPricing?.(product, cfg) || product;
+        const unitBrl = Number(product.price) || Number(priced.price) || 0;
+        const qty = unitBrl > 0 && Math.abs(brl - unitBrl) >= 0.001 ? (brl / unitBrl) : 1;
+        const usd = window.STF_MONEY?.configuredForeignPrice?.(priced, 'USD', cfg);
+        if (usd != null && Number.isFinite(qty) && qty > 0) {
+          const foreign = Math.round(usd * qty * 100) / 100;
+          if (window.STF_MONEY?.formatForeign) {
+            return window.STF_MONEY.formatForeign(foreign, 'USD', country);
+          }
+          return formatChargeMoney(foreign, 'USD');
+        }
+      }
+      return onIntl ? formatChargeMoney(brl, cur === 'BRL' ? 'USD' : cur) : formatBRL(v);
     } catch (e) {
       console.warn('formatCheckoutMoney', e);
-      return formatBRL(v);
+      const abroad = isInternational || isIntlCheckoutShell() || window.STF_MONEY?.isIntlHost?.();
+      return abroad ? formatChargeMoney(Number(v) || 0, 'USD') : formatBRL(v);
     }
   }
 

@@ -14,7 +14,8 @@ import {
   resolveIntlForeignUnitPrice,
   resolveIntlMarkedBrl,
   resolveProductForIntlPricing,
-  intlPricingTwinId
+  intlPricingTwinId,
+  currencyForCountryFromRegistry
 } from './intl-money.js';
 
 const FX = {
@@ -130,6 +131,16 @@ test('resolveIntlForeignUnitPrice never uses bare BRL×FX without markup', () =>
 test('resolveIntlMarkedBrl applies admin markup on BRL', () => {
   assert.equal(resolveIntlMarkedBrl({ intlMarkupPercent: 150 }, 72.9), 182.25);
   assert.equal(resolveIntlMarkedBrl({}, 72.9), intlBaseBrl(72.9, DEFAULT_INTL_MARKUP_PERCENT));
+});
+
+test('LatAm countries without registry currency fall back to USD (not CLP/COP/BRL)', () => {
+  assert.equal(currencyForCountryFromRegistry('CL', DEFAULT_INTL_CURRENCIES, null), 'USD');
+  assert.equal(currencyForCountryFromRegistry('CO', DEFAULT_INTL_CURRENCIES, null), 'USD');
+  assert.equal(currencyForCountryFromRegistry('AR', DEFAULT_INTL_CURRENCIES, null), 'USD');
+  assert.equal(currencyForCountryFromRegistry('MX', DEFAULT_INTL_CURRENCIES, null), 'USD');
+  assert.equal(currencyForCountryFromRegistry('PT', DEFAULT_INTL_CURRENCIES, null), 'EUR');
+  assert.equal(currencyForCountryFromRegistry('US', DEFAULT_INTL_CURRENCIES, null), 'USD');
+  assert.equal(currencyForCountryFromRegistry('BR', DEFAULT_INTL_CURRENCIES, null), 'BRL');
 });
 
 test('BR kit maps to INT twin for Admin markup (not default 65%)', () => {

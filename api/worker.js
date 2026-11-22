@@ -2832,16 +2832,22 @@ async function intlForeignCharge(order, env, config, items, currency) {
 }
 
 function resolveAbroadChargeCurrency(order, config) {
+  // Só moedas do registro Admin (USD/EUR/GBP/PLN/SEK/NOK).
+  // CL/CO/AR/MX etc. não têm FX estável (CLP/COP) — cobra USD com list price, nunca BRL cru.
   const byCountry = currencyForCountryFromRegistry(
     order?.paisCode,
     config?.intlCurrencies || DEFAULT_INTL_CURRENCIES,
-    FX_CURRENCY_MAP
+    null
   );
   if (byCountry && byCountry !== 'BRL') return byCountry;
+  const active = new Set(
+    activeIntlCurrencies(config?.intlCurrencies || DEFAULT_INTL_CURRENCIES).map((c) => c.code)
+  );
   const mapped = currencyForCountryCode(order?.paisCode);
-  if (mapped && mapped !== 'BRL') return mapped;
+  if (mapped && mapped !== 'BRL' && active.has(mapped)) return mapped;
   const loc = intlChargeCurrencyForLocale(order?.checkoutLocale, config);
-  return loc && loc !== 'BRL' ? loc : 'USD';
+  if (loc && loc !== 'BRL' && active.has(loc)) return loc;
+  return 'USD';
 }
 
 async function intlUsdCharge(order, env, config, items) {
