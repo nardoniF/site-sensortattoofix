@@ -493,14 +493,20 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         return formatChargeMoney(foreign, cur);
       }
 
-      /** Convert cart line / product using stored list price (R$ + markup → FX already applied). */
-      if (product && window.STF_MONEY?.configuredForeignPrice) {
-        const unitForeign = window.STF_MONEY.configuredForeignPrice(product, cur, cfg);
+      /** Linha do carrinho: list price (markup×FX) ou BRL×(1+markup%)×FX — nunca FX cru no nacional. */
+      if (product) {
         const unitBrl = Number(product.price) || 0;
-        if (unitForeign != null && unitBrl > 0) {
-          const qty = Math.abs(brl - unitBrl) < 0.001 ? 1 : brl / unitBrl;
-          if (Number.isFinite(qty) && qty > 0) {
+        const qty = unitBrl > 0 && Math.abs(brl - unitBrl) >= 0.001 ? (brl / unitBrl) : 1;
+        if (Number.isFinite(qty) && qty > 0) {
+          const unitForeign = window.STF_MONEY?.configuredForeignPrice?.(product, cur, cfg);
+          if (unitForeign != null && unitBrl > 0) {
             return emit(Math.round(unitForeign * qty * 100) / 100);
+          }
+          if (fxRate && unitBrl > 0) {
+            const markupRaw = Number(product.intlMarkupPercent);
+            const pct = Number.isFinite(markupRaw) && markupRaw >= 0 ? markupRaw : 65;
+            const base = unitBrl * (1 + pct / 100);
+            return emit(roundFx(base * fxRate * qty));
           }
         }
       }
