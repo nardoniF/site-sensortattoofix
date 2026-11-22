@@ -420,6 +420,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   let fxRate = null;
   let displayCurrency = 'BRL';
+  /** Invalida FX async ao trocar país — evita carrinho preso em US$/€ depois de voltar ao BR. */
+  let displayCurrencyEpoch = 0;
+
+  function destinationIsBrazil() {
+    if (isIntlCheckoutShell() || window.STF_MONEY?.isIntlHost?.()) return false;
+    const dest = String(els.paisCode?.value || '').trim().toUpperCase();
+    return !dest || dest === 'BR';
+  }
 
   /** Moedas que o Admin ativa para preço intl (tem list price / FX estável). */
   function activeCheckoutCurrencies() {
@@ -478,7 +486,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function syncIntlDisplayCurrency() {
-    if (!isInternational && !isIntlCheckoutShell()) {
+    if (destinationIsBrazil() || (!isInternational && !isIntlCheckoutShell())) {
       displayCurrency = 'BRL';
       return;
     }
@@ -491,29 +499,44 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   async function refreshDisplayCurrency() {
-    if (!isInternational && !isIntlCheckoutShell()) {
+    const epoch = ++displayCurrencyEpoch;
+    if (destinationIsBrazil() || (!isInternational && !isIntlCheckoutShell())) {
       fxRate = null;
       displayCurrency = 'BRL';
-      return;
+      return epoch;
     }
     syncIntlDisplayCurrency();
+    const wanted = displayCurrency;
     if (window.STF_MONEY?.loadRate) {
-      fxRate = await window.STF_MONEY.loadRate(apiBase(), displayCurrency);
+      const rate = await window.STF_MONEY.loadRate(apiBase(), wanted);
+      if (epoch !== displayCurrencyEpoch) return epoch;
+      if (destinationIsBrazil()) {
+        fxRate = null;
+        displayCurrency = 'BRL';
+        isInternational = false;
+        return epoch;
+      }
+      fxRate = rate;
       // CLP/COP/ARS etc. quebram o FX → cai em USD, nunca em R$ cru.
-      if (!fxRate && displayCurrency !== 'USD') {
+      if (!fxRate && wanted !== 'USD') {
         displayCurrency = 'USD';
         fxRate = await window.STF_MONEY.loadRate(apiBase(), 'USD');
+        if (epoch !== displayCurrencyEpoch) return epoch;
+        if (destinationIsBrazil()) {
+          fxRate = null;
+          displayCurrency = 'BRL';
+          isInternational = false;
+          return epoch;
+        }
       }
     }
+    return epoch;
   }
 
   function formatCheckoutMoney(v, product, mode) {
     try {
-      const dest = String(els.paisCode?.value || '').trim().toUpperCase();
-      // Destino BR (ou sem país no shell nacional): sempre R$ — nunca list price EUR/USD da lente INT.
-      if (!isIntlCheckoutShell() && (!dest || dest === 'BR') && !window.STF_MONEY?.isIntlHost?.()) {
-        return formatBRL(v);
-      }
+      // Destino BR: sempre R$ — cobre € e US$ presos (lente INT / FX async atrasado).
+      if (destinationIsBrazil()) return formatBRL(v);
       const onIntl = isInternational || isIntlCheckoutShell() || window.STF_MONEY?.isIntlHost?.();
       if (!onIntl) return formatBRL(v);
       if (!displayCurrency || displayCurrency === 'BRL') syncIntlDisplayCurrency();
@@ -2224,14 +2247,18 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     shippingOptions = [];
     clearShippingOptions();
     if (isInternational) {
-      refreshDisplayCurrency().then(() => {
+      refreshDisplayCurrency().then((epoch) => {
+        if (epoch !== displayCurrencyEpoch) return;
+        if (destinationIsBrazil()) return;
         updateSummary();
         if (!orderSidebarLocked) renderCartSidebar();
       });
     } else {
-      // Voltar ao Brasil: zerar FX e redesenhar linhas do carrinho (senão fica €/US$ preso).
+      // Voltar ao Brasil: invalida FX async (US$/€) e redesenha linhas do carrinho.
+      displayCurrencyEpoch += 1;
       fxRate = null;
       displayCurrency = 'BRL';
+      isInternational = false;
       updateSummary();
       if (!orderSidebarLocked) renderCartSidebar();
     }
