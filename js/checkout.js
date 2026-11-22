@@ -493,19 +493,20 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         return formatChargeMoney(foreign, cur);
       }
 
-      /** Linha do carrinho: list price (markup×FX) ou BRL×(1+markup%)×FX — nunca FX cru no nacional. */
+      /** Linha do carrinho: list price Admin (INT twin) ou BRL×(1+markup%)×FX — nunca FX cru. */
       if (product) {
-        const unitBrl = Number(product.price) || 0;
+        const priced = window.STF_MONEY?.resolveProductForIntlPricing?.(product, cfg) || product;
+        const unitBrl = Number(product.price) || Number(priced.price) || 0;
         const qty = unitBrl > 0 && Math.abs(brl - unitBrl) >= 0.001 ? (brl / unitBrl) : 1;
         if (Number.isFinite(qty) && qty > 0) {
-          const unitForeign = window.STF_MONEY?.configuredForeignPrice?.(product, cur, cfg);
+          const unitForeign = window.STF_MONEY?.configuredForeignPrice?.(priced, cur, cfg);
           if (unitForeign != null && unitBrl > 0) {
             return emit(Math.round(unitForeign * qty * 100) / 100);
           }
           if (fxRate && unitBrl > 0) {
-            const markupRaw = Number(product.intlMarkupPercent);
-            const pct = Number.isFinite(markupRaw) && markupRaw >= 0 ? markupRaw : 65;
-            const base = unitBrl * (1 + pct / 100);
+            const pct = window.STF_MONEY?.intlMarkupPercentFor?.(priced, cfg);
+            const markupPct = Number.isFinite(Number(pct)) ? Number(pct) : 65;
+            const base = unitBrl * (1 + markupPct / 100);
             return emit(roundFx(base * fxRate * qty));
           }
         }
@@ -549,18 +550,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const factor = 10 ** decimals;
     items.forEach((item) => {
       const catalog = products.find((x) => x.id === item.productId || x.slug === item.productId);
-      const p = catalog || item;
-      const unitBrl = Number(item.price != null ? item.price : p.price) || 0;
+      const raw = catalog || item;
+      // BR kit no .com.br → gêmeo INT com markup do Admin (priceUsd/EUR).
+      const p = window.STF_MONEY?.resolveProductForIntlPricing?.(raw, cfg) || raw;
+      const unitBrl = Number(item.price != null ? item.price : raw.price) || 0;
       const qty = Math.max(1, Number(item.qty) || 1);
       brlProduct += unitBrl * qty;
       let unitF = window.STF_MONEY?.configuredForeignPrice?.(p, cur, cfg);
-      if (unitF == null && catalog) {
-        unitF = window.STF_MONEY?.configuredForeignPrice?.(catalog, cur, cfg);
-      }
       if (unitF == null && fxRate) {
-        const markup = Number(p.intlMarkupPercent ?? catalog?.intlMarkupPercent);
-        const pct = Number.isFinite(markup) && markup >= 0 ? markup : 65;
-        const base = unitBrl * (1 + pct / 100);
+        const pct = window.STF_MONEY?.intlMarkupPercentFor?.(p, cfg);
+        const markupPct = Number.isFinite(Number(pct)) ? Number(pct) : 65;
+        const base = unitBrl * (1 + markupPct / 100);
         unitF = Math.round(base * fxRate * factor) / factor;
       }
       if (unitF != null) foreignProduct += Number(unitF) * qty;

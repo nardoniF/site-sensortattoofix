@@ -260,18 +260,73 @@ export function productListPriceFromRegistry(product, currency, currencies) {
   return null;
 }
 
+/** BR kit id → INT lens id (Admin markup + list prices live on INT only). */
+export const BR_KIT_TO_INTL_LENS_ID = {
+  'kit-sensor-tattoofix': 'optical-lens-intl',
+  kit: 'optical-lens-intl',
+  'kit-smartband-tattoofix': 'optical-lens-smartband-intl'
+};
+
+export function intlPricingTwinId(productOrId) {
+  const id = typeof productOrId === 'string'
+    ? productOrId
+    : String(productOrId?.id || productOrId?.slug || '');
+  return BR_KIT_TO_INTL_LENS_ID[id] || null;
+}
+
+function marketsOf(product) {
+  return Array.isArray(product?.markets)
+    ? product.markets.map((m) => String(m).toUpperCase())
+    : [];
+}
+
+/**
+ * .com.br carts keep BR kit ids; Admin markup/% list prices are on INT twins.
+ * Prefer the INT twin whenever the BR row has no intl pricing fields.
+ */
+export function resolveProductForIntlPricing(product, catalog) {
+  if (!product || typeof product !== 'object') return product || null;
+  const markets = marketsOf(product);
+  const hasList = !!(
+    productListPriceFromRegistry(product, 'USD')
+    || productListPriceFromRegistry(product, 'EUR')
+    || (product.intlMarkupPercent != null && Number.isFinite(Number(product.intlMarkupPercent)))
+  );
+  if (markets.includes('INT') && !markets.includes('BR')) return product;
+  if (hasList) return product;
+
+  const list = Array.isArray(catalog) ? catalog : [];
+  const twinId = intlPricingTwinId(product);
+  if (twinId) {
+    const twin = list.find((p) => p && (p.id === twinId || p.slug === twinId));
+    if (twin) return twin;
+  }
+  const brl = Number(product.price) || 0;
+  if (brl > 0) {
+    const byPrice = list.find((p) => {
+      const m = marketsOf(p);
+      return m.includes('INT') && !m.includes('BR')
+        && Math.abs((Number(p.price) || 0) - brl) < 0.05;
+    });
+    if (byPrice) return byPrice;
+  }
+  return product;
+}
+
 /**
  * Unit foreign price for charge/display.
  * 1) Stored list price (markup×FX already on product)
  * 2) Else (BRL × (1+markup%)) × FX — NEVER bare BRL×FX
+ * Optional catalog: BR kit → INT twin (Admin markup).
  */
-export function resolveIntlForeignUnitPrice(product, unitBrl, currency, fxRate, currencies) {
+export function resolveIntlForeignUnitPrice(product, unitBrl, currency, fxRate, currencies, catalog) {
+  const priced = resolveProductForIntlPricing(product, catalog) || product;
   const cur = String(currency || 'USD').toUpperCase();
-  const listed = productListPriceFromRegistry(product, cur, currencies);
+  const listed = productListPriceFromRegistry(priced, cur, currencies);
   if (listed != null) return listed;
-  const brl = Math.max(0, Number(unitBrl) || Number(product?.price) || 0);
+  const brl = Math.max(0, Number(unitBrl) || Number(priced?.price) || Number(product?.price) || 0);
   const markup = normalizeMarkupPercent(
-    product?.intlMarkupPercent != null ? product.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT
+    priced?.intlMarkupPercent != null ? priced.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT
   );
   const base = intlBaseBrl(brl, markup);
   const row = activeIntlCurrencies(currencies).find((c) => c.code === cur);
@@ -282,10 +337,11 @@ export function resolveIntlForeignUnitPrice(product, unitBrl, currency, fxRate, 
 }
 
 /** Marked-up BRL for abroad paid in BRL (PIX/MP) — never national list alone. */
-export function resolveIntlMarkedBrl(product, unitBrl) {
-  const brl = Math.max(0, Number(unitBrl) || Number(product?.price) || 0);
+export function resolveIntlMarkedBrl(product, unitBrl, catalog) {
+  const priced = resolveProductForIntlPricing(product, catalog) || product;
+  const brl = Math.max(0, Number(unitBrl) || Number(priced?.price) || Number(product?.price) || 0);
   const markup = normalizeMarkupPercent(
-    product?.intlMarkupPercent != null ? product.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT
+    priced?.intlMarkupPercent != null ? priced.intlMarkupPercent : DEFAULT_INTL_MARKUP_PERCENT
   );
   return intlBaseBrl(brl, markup);
 }

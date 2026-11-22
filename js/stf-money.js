@@ -184,31 +184,84 @@ window.STF_MONEY = (function () {
     return 'price' + cur[0] + cur.slice(1).toLowerCase();
   }
 
-  /** List prices from product (markup×FX already applied on save). */
+  /** BR kit → INT lens (Admin markup + list prices live only on INT). */
+  const BR_KIT_TO_INTL_LENS_ID = {
+    'kit-sensor-tattoofix': 'optical-lens-intl',
+    kit: 'optical-lens-intl',
+    'kit-smartband-tattoofix': 'optical-lens-smartband-intl'
+  };
+
+  function marketsOf(product) {
+    return Array.isArray(product?.markets)
+      ? product.markets.map((m) => String(m).toUpperCase())
+      : [];
+  }
+
+  function pickForeignListPrice(product, currency) {
+    if (!product) return null;
+    const field = priceFieldForCurrency(currency);
+    if (!field) return null;
+    const n = Number(product[field]);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  /**
+   * .com.br carts keep BR kit ids; Admin markup lives on INT twins.
+   * Prefer INT twin when BR row has no intl pricing fields.
+   */
+  function resolveProductForIntlPricing(product, config) {
+    if (!product || typeof product !== 'object') return product || null;
+    const markets = marketsOf(product);
+    const hasList = !!(
+      pickForeignListPrice(product, 'USD')
+      || pickForeignListPrice(product, 'EUR')
+      || (product.intlMarkupPercent != null && Number.isFinite(Number(product.intlMarkupPercent)))
+    );
+    if (markets.includes('INT') && !markets.includes('BR')) return product;
+    if (hasList) return product;
+
+    const list = Array.isArray(config?.products) ? config.products : [];
+    const id = String(product.id || product.slug || '');
+    const twinId = BR_KIT_TO_INTL_LENS_ID[id] || null;
+    if (twinId) {
+      const twin = list.find((p) => p && (p.id === twinId || p.slug === twinId));
+      if (twin) return twin;
+    }
+    const brl = Number(product.price) || 0;
+    if (brl > 0) {
+      const byPrice = list.find((p) => {
+        const m = marketsOf(p);
+        return m.includes('INT') && !m.includes('BR')
+          && Math.abs((Number(p.price) || 0) - brl) < 0.05;
+      });
+      if (byPrice) return byPrice;
+    }
+    return product;
+  }
+
+  /** List prices from product (markup×FX already applied on save). Uses INT twin when needed. */
   function configuredForeignPrice(product, currency, config) {
     if (!product) return null;
+    const priced = resolveProductForIntlPricing(product, config) || product;
     const cur = String(currency || 'USD').toUpperCase();
-    const pick = (key) => {
-      const n = Number(product[key]);
-      return Number.isFinite(n) && n > 0 ? n : null;
-    };
-    const field = priceFieldForCurrency(cur);
-    if (field) {
-      const direct = pick(field);
-      if (direct != null) return direct;
-    }
-    return null;
+    return pickForeignListPrice(priced, cur);
+  }
+
+  function intlMarkupPercentFor(product, config) {
+    const priced = resolveProductForIntlPricing(product, config) || product;
+    const markupRaw = Number(priced?.intlMarkupPercent);
+    return Number.isFinite(markupRaw) && markupRaw >= 0 ? markupRaw : 65;
   }
 
   async function formatProductForVisitor(product, config, countryCode) {
     const country = String(countryCode || visitorCountry()).toUpperCase();
     const cur = visitorDisplayCurrency(country, config);
-    const fixed = configuredForeignPrice(product, cur, config);
+    const priced = resolveProductForIntlPricing(product, config) || product;
+    const fixed = configuredForeignPrice(priced, cur, config);
     if (fixed != null) return formatForeign(fixed, cur, country);
     // Sem list price: aplicar markup do Admin antes do FX — nunca BRL cru × câmbio.
-    const markupRaw = Number(product?.intlMarkupPercent);
-    const pct = Number.isFinite(markupRaw) && markupRaw >= 0 ? markupRaw : 65;
-    const baseBrl = Math.round((Number(product?.price) || 0) * (1 + pct / 100) * 100) / 100;
+    const pct = intlMarkupPercentFor(priced, config);
+    const baseBrl = Math.round((Number(priced?.price) || Number(product?.price) || 0) * (1 + pct / 100) * 100) / 100;
     return formatForVisitor(baseBrl, config, countryCode);
   }
 
@@ -272,6 +325,8 @@ window.STF_MONEY = (function () {
     formatPrimary,
     visitorDisplayCurrency,
     configuredForeignPrice,
+    resolveProductForIntlPricing,
+    intlMarkupPercentFor,
     formatProductForVisitor,
     formatForVisitor,
     formatPrimaryForVisitor,

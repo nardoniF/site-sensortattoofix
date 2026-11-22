@@ -12,7 +12,9 @@ import {
   currencyForLocaleFromRegistry,
   normalizeIntlCurrencies,
   resolveIntlForeignUnitPrice,
-  resolveIntlMarkedBrl
+  resolveIntlMarkedBrl,
+  resolveProductForIntlPricing,
+  intlPricingTwinId
 } from './intl-money.js';
 
 const FX = {
@@ -128,4 +130,32 @@ test('resolveIntlForeignUnitPrice never uses bare BRL×FX without markup', () =>
 test('resolveIntlMarkedBrl applies admin markup on BRL', () => {
   assert.equal(resolveIntlMarkedBrl({ intlMarkupPercent: 150 }, 72.9), 182.25);
   assert.equal(resolveIntlMarkedBrl({}, 72.9), intlBaseBrl(72.9, DEFAULT_INTL_MARKUP_PERCENT));
+});
+
+test('BR kit maps to INT twin for Admin markup (not default 65%)', () => {
+  assert.equal(intlPricingTwinId('kit-smartband-tattoofix'), 'optical-lens-smartband-intl');
+  assert.equal(intlPricingTwinId('kit-sensor-tattoofix'), 'optical-lens-intl');
+  const catalog = [
+    { id: 'kit-smartband-tattoofix', markets: ['BR'], price: 62.9 },
+    {
+      id: 'optical-lens-smartband-intl',
+      markets: ['INT'],
+      price: 62.9,
+      intlMarkupPercent: 150,
+      priceUsd: 26.48,
+      priceEur: 24.1
+    }
+  ];
+  const brKit = catalog[0];
+  const twin = resolveProductForIntlPricing(brKit, catalog);
+  assert.equal(twin.id, 'optical-lens-smartband-intl');
+  assert.equal(
+    resolveIntlForeignUnitPrice(brKit, 62.9, 'USD', 0.16841, DEFAULT_INTL_CURRENCIES, catalog),
+    26.48
+  );
+  assert.equal(resolveIntlMarkedBrl(brKit, 62.9, catalog), intlBaseBrl(62.9, 150));
+  // Without catalog twin, BR kit alone must not pretend to be list-priced.
+  const bare = resolveIntlForeignUnitPrice(brKit, 62.9, 'USD', 0.16841, DEFAULT_INTL_CURRENCIES);
+  assert.equal(bare, applyFxAmount(intlBaseBrl(62.9, DEFAULT_INTL_MARKUP_PERCENT), 0.16841, 2));
+  assert.notEqual(bare, 26.48);
 });

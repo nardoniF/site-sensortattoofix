@@ -159,7 +159,8 @@ import {
   intlBaseBrl,
   normalizeMarkupPercent,
   resolveIntlForeignUnitPrice,
-  resolveIntlMarkedBrl
+  resolveIntlMarkedBrl,
+  resolveProductForIntlPricing
 } from './intl-money.js';
 
 const ALLOWED_ORIGINS = [
@@ -2807,11 +2808,14 @@ async function intlForeignCharge(order, env, config, items, currency) {
   let productForeign = 0;
   let brlProducts = 0;
   for (const item of itemList) {
-    const p = products.find((x) => x.id === item.productId || x.slug === item.productId) || null;
+    const raw = products.find((x) => x.id === item.productId || x.slug === item.productId)
+      || { id: item.productId, price: item.price };
+    // .com.br cart = BR kit; Admin markup/list prices live on INT twin.
+    const p = resolveProductForIntlPricing(raw, products) || raw;
     const qty = Math.max(1, Number(item.qty) || 1);
-    const unitBrl = Number(item.price) || Number(p?.price) || 0;
+    const unitBrl = Number(item.price) || Number(raw?.price) || Number(p?.price) || 0;
     brlProducts += unitBrl * qty;
-    const unitF = resolveIntlForeignUnitPrice(p, unitBrl, cur, fx.rate, currencies);
+    const unitF = resolveIntlForeignUnitPrice(p, unitBrl, cur, fx.rate, currencies, products);
     productForeign += unitF * qty;
   }
   const couponDisc = Number(order.couponDiscount) || 0;
@@ -14995,11 +14999,13 @@ async function handleCreateOrder(request, env, origin, ctx) {
         let markedBrl = 0;
         let baseBrl = 0;
         for (const item of items) {
-          const p = products.find((x) => x.id === item.productId || x.slug === item.productId) || null;
+          const raw = products.find((x) => x.id === item.productId || x.slug === item.productId)
+            || { id: item.productId, price: item.price };
+          const p = resolveProductForIntlPricing(raw, products) || raw;
           const qty = Math.max(1, Number(item.qty) || 1);
-          const unit = Number(item.price) || Number(p?.price) || 0;
+          const unit = Number(item.price) || Number(raw?.price) || Number(p?.price) || 0;
           baseBrl += unit * qty;
-          markedBrl += resolveIntlMarkedBrl(p, unit) * qty;
+          markedBrl += resolveIntlMarkedBrl(p, unit, products) * qty;
         }
         const ratio = baseBrl > 0 ? Math.max(0, valorProduto / baseBrl) : 1;
         const markedProduct = Math.round(markedBrl * ratio * 100) / 100;
