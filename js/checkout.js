@@ -509,6 +509,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function formatCheckoutMoney(v, product, mode) {
     try {
+      const dest = String(els.paisCode?.value || '').trim().toUpperCase();
+      // Destino BR (ou sem país no shell nacional): sempre R$ — nunca list price EUR/USD da lente INT.
+      if (!isIntlCheckoutShell() && (!dest || dest === 'BR') && !window.STF_MONEY?.isIntlHost?.()) {
+        return formatBRL(v);
+      }
       const onIntl = isInternational || isIntlCheckoutShell() || window.STF_MONEY?.isIntlHost?.();
       if (!onIntl) return formatBRL(v);
       if (!displayCurrency || displayCurrency === 'BRL') syncIntlDisplayCurrency();
@@ -2224,9 +2229,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         if (!orderSidebarLocked) renderCartSidebar();
       });
     } else {
+      // Voltar ao Brasil: zerar FX e redesenhar linhas do carrinho (senão fica €/US$ preso).
       fxRate = null;
       displayCurrency = 'BRL';
       updateSummary();
+      if (!orderSidebarLocked) renderCartSidebar();
     }
     if (isInternational) quoteShipping();
     else scheduleQuoteShippingIfReady();
