@@ -662,18 +662,39 @@
     if (letterLocalesReady) return;
     try {
       // From docs/cartas/ → repo root data/ (NOT docs/data/, which 404s)
-      const res = await fetch('../../data/letter-l10n.json?v=3', { cache: 'no-store' });
+      const res = await fetch('../../data/letter-l10n.json?v=4', { cache: 'no-store' });
       if (res.ok) Object.assign(LETTER_COPY, await res.json());
     } catch (_) { /* ignore */ }
     letterLocalesReady = true;
   }
 
+  /** País do destinatário → idioma da carta (quando temos cópia). */
+  const LETTER_COUNTRY_LANG = {
+    BR: 'pt', PT: 'pt', AO: 'pt', MZ: 'pt', CV: 'pt', GW: 'pt', ST: 'pt', TL: 'pt',
+    IT: 'it', SM: 'it', VA: 'it',
+    DE: 'de', AT: 'de', LI: 'de',
+    ES: 'es', MX: 'es', AR: 'es', CL: 'es', CO: 'es', PE: 'es', UY: 'es', PY: 'es',
+    BO: 'es', EC: 'es', VE: 'es',
+    FR: 'fr', MC: 'fr',
+    NL: 'nl',
+    PL: 'pl',
+    SI: 'sl',
+    SE: 'sv',
+    NO: 'no',
+    FI: 'fi'
+  };
+
   function resolveLetterLocale(order) {
     if (langOverride && LETTER_COPY[langOverride]) return langOverride;
-    const checkout = String(order?.checkoutLocale || '').toLowerCase();
-    if (LETTER_COPY[checkout]) return checkout;
+    const checkout = String(order?.checkoutLocale || '').toLowerCase().split(/[-_]/)[0];
     const country = String(order?.paisCode || '').toUpperCase();
-    if (country === 'SI' && LETTER_COPY.sl) return 'sl';
+    const fromCountry = LETTER_COUNTRY_LANG[country];
+    // Destino com idioma próprio (ex.: PT→pt): não deixar o EN genérico do .com ganhar.
+    if (fromCountry && LETTER_COPY[fromCountry] && (!checkout || checkout === 'en')) {
+      return fromCountry;
+    }
+    if (checkout && LETTER_COPY[checkout]) return checkout;
+    if (fromCountry && LETTER_COPY[fromCountry]) return fromCountry;
     return 'en';
   }
 

@@ -14,6 +14,8 @@ test('country → lang', () => {
   assert.equal(langFromCountry('PL'), 'pl');
   assert.equal(langFromCountry('DE'), 'de');
   assert.equal(langFromCountry('BR'), 'pt');
+  assert.equal(langFromCountry('PT'), 'pt');
+  assert.equal(langFromCountry('AO'), 'pt');
   assert.equal(langFromCountry('SI'), 'sl');
   assert.equal(langFromCountry('FR'), 'fr');
   assert.equal(langFromCountry('NL'), 'nl');

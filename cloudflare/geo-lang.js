@@ -9,6 +9,13 @@ export const SITE_LANGS = ['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl',
 /** País ISO → idioma do site (só mapeamentos claros). */
 export const COUNTRY_LANG = {
   BR: 'pt',
+  PT: 'pt',
+  AO: 'pt',
+  MZ: 'pt',
+  CV: 'pt',
+  GW: 'pt',
+  ST: 'pt',
+  TL: 'pt',
   PL: 'pl',
   SI: 'sl',
   IT: 'it',
