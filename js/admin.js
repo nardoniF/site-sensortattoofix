@@ -7752,8 +7752,10 @@ ${worksheets}
         throw new Error(data.error || 'Falha ao enviar promo');
       }
       const code = data.coupon?.code || 'SENSORTATTOOFIX10';
+      const langs = [...new Set((data.results || []).filter((r) => r.ok && r.locale).map((r) => r.locale))];
+      const langNote = langs.length ? ` Idioma(s): ${langs.join(', ')}.` : '';
       showCustomersPromoStatus(
-        `Promo enviada: ${data.sent || 0} ok · ${data.failed || 0} falha(s). Cupom ${code} (${data.coupon?.percent || 10}%).`,
+        `Promo enviada: ${data.sent || 0} ok · ${data.failed || 0} falha(s). Cupom ${code} (${data.coupon?.percent || 10}%). Cópia BCC na caixa da loja.${langNote}`,
         data.failed ? 'warning' : 'success'
       );
     } catch (err) {

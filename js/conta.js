@@ -11,9 +11,7 @@
   }
 
   function langCode() {
-    const lang = window.STF_I18N?.getLang?.() || 'pt';
-    if (lang === 'it' || lang === 'en') return lang;
-    return 'pt';
+    return window.STF_I18N?.getLang?.() || 'pt';
   }
 
   function lojaHref() {
@@ -399,7 +397,8 @@
           email: f.email.value.trim(),
           telefone: f.telefone.value.trim(),
           cpf: f.cpf?.value?.trim() || '',
-          senha: f.password.value
+          senha: f.password.value,
+          locale: langCode()
         });
         showStatus('', '');
         if (redirectAfterAuthIfNeeded()) return;

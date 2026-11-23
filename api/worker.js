@@ -2207,6 +2207,7 @@ function publicUserView(user) {
     email: user.email,
     telefone: user.telefone,
     cpf: user.cpf || '',
+    locale: normalizePromoLocale(user.locale || user.preferredLang || 'pt'),
     address: user.address || null,
     username: user.username || '',
     avatarId: user.avatarId || '',
@@ -14093,7 +14094,7 @@ async function handleShippingQuote(request, env, origin, ctx) {
   return json({ options, country, weightGrams }, 200, origin);
 }
 
-async function registerCustomerUser(env, { nome, email, telefone, cpf, senha }) {
+async function registerCustomerUser(env, { nome, email, telefone, cpf, senha, locale, preferredLang, checkoutLocale }) {
   const normalized = normalizeEmail(email);
   if (!normalized || !senha || senha.length < 6) {
     throw new Error('Informe e-mail e senha com pelo menos 6 caracteres.');
@@ -14102,12 +14103,14 @@ async function registerCustomerUser(env, { nome, email, telefone, cpf, senha }) 
     throw new Error('Já existe uma conta com este e-mail. Faça login em Minha Conta.');
   }
   const creds = await hashPassword(senha);
+  const lang = normalizePromoLocale(locale || preferredLang || checkoutLocale || 'pt');
   const user = {
     userId: crypto.randomUUID(),
     nome: String(nome || '').trim(),
     email: normalized,
     telefone: String(telefone || '').trim(),
     cpf: String(cpf || '').trim(),
+    locale: lang,
     passwordSalt: creds.salt,
     passwordHash: creds.hash,
     createdAt: new Date().toISOString()
@@ -14611,56 +14614,205 @@ async function ensureStorePromoCoupon(env) {
   return created;
 }
 
-function buildStorePromoEmail(config, customer, coupon) {
-  const site = String(config?.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '');
+function normalizePromoLocale(raw) {
+  const l = String(raw || '').toLowerCase().split(/[-_]/)[0];
+  const allowed = new Set(['pt', 'en', 'it', 'de', 'es', 'pl', 'sl', 'fr', 'nl', 'sv', 'no', 'fi']);
+  return allowed.has(l) ? l : 'pt';
+}
+
+function storePromoCopy(locale, { nome, percent, code }) {
+  const loc = normalizePromoLocale(locale);
+  const name = String(nome || '').trim();
+  const pct = String(percent);
+  const copies = {
+    pt: {
+      subject: `Sensor TattooFix 10 — ${pct}% de desconto na sua lente`,
+      greeting: name ? `Olá, ${name}!` : 'Olá!',
+      headline: `Sua lente com ${pct}% off`,
+      body: 'Você criou sua conta e ainda não levou a lente. O Sensor TattooFix corrige a leitura óptica do sensor no relógio/smartband em pele tatuada — treino e batimentos de novo no ritmo certo.',
+      badge: 'Cupom exclusivo',
+      discount: `<strong>${pct}% de desconto</strong> no valor das lentes no checkout`,
+      ctaShop: 'Ver a loja oficial',
+      ctaCheckout: 'Ir ao checkout com o cupom já aplicado →',
+      footer: 'Dúvidas? Responda este e-mail ou fale no WhatsApp da loja. Válido na loja oficial sensortattoofix.com.br.',
+      textBody: 'Você criou sua conta e ainda não levou a lente Sensor TattooFix.',
+      textDiscount: `Cupom ${code}: ${pct}% de desconto nas lentes.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com.br'
+    },
+    en: {
+      subject: `Sensor TattooFix 10 — ${pct}% off your lens`,
+      greeting: name ? `Hi ${name},` : 'Hi,',
+      headline: `Your lens with ${pct}% off`,
+      body: 'You created an account and haven’t got your lens yet. Sensor TattooFix fixes optical sensor readings on tattooed skin — heart rate and workouts back on track.',
+      badge: 'Exclusive coupon',
+      discount: `<strong>${pct}% off</strong> lens products at checkout`,
+      ctaShop: 'Visit the official store',
+      ctaCheckout: 'Go to checkout with the coupon applied →',
+      footer: 'Questions? Reply to this email or message us on WhatsApp. Valid on the official store sensortattoofix.com.',
+      textBody: 'You created an account and haven’t got your Sensor TattooFix lens yet.',
+      textDiscount: `Coupon ${code}: ${pct}% off lenses.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    it: {
+      subject: `Sensor TattooFix 10 — ${pct}% di sconto sulla lente`,
+      greeting: name ? `Ciao ${name},` : 'Ciao,',
+      headline: `La tua lente con il ${pct}% di sconto`,
+      body: 'Hai creato un account e non hai ancora preso la lente. Sensor TattooFix corregge la lettura ottica del sensore su pelle tatuata — allenamento e battito di nuovo a posto.',
+      badge: 'Coupon esclusivo',
+      discount: `<strong>${pct}% di sconto</strong> sulle lenti al checkout`,
+      ctaShop: 'Vai al negozio ufficiale',
+      ctaCheckout: 'Vai al checkout con il coupon già applicato →',
+      footer: 'Dubbi? Rispondi a questa email o scrivici su WhatsApp. Valido sul negozio ufficiale sensortattoofix.com.',
+      textBody: 'Hai creato un account e non hai ancora la lente Sensor TattooFix.',
+      textDiscount: `Coupon ${code}: ${pct}% di sconto sulle lenti.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    de: {
+      subject: `Sensor TattooFix 10 — ${pct}% Rabatt auf Ihre Linse`,
+      greeting: name ? `Hallo ${name},` : 'Hallo,',
+      headline: `Ihre Linse mit ${pct}% Rabatt`,
+      body: 'Sie haben ein Konto erstellt und noch keine Linse. Sensor TattooFix korrigiert die optische Sensorablesung auf tätowierter Haut — Training und Puls wieder im Takt.',
+      badge: 'Exklusiver Gutschein',
+      discount: `<strong>${pct}% Rabatt</strong> auf Linsen im Checkout`,
+      ctaShop: 'Zum offiziellen Shop',
+      ctaCheckout: 'Zum Checkout mit angewandtem Gutschein →',
+      footer: 'Fragen? Antworten Sie auf diese E-Mail oder schreiben Sie uns auf WhatsApp. Gültig im offiziellen Shop sensortattoofix.com.',
+      textBody: 'Sie haben ein Konto erstellt und noch keine Sensor TattooFix-Linse.',
+      textDiscount: `Gutschein ${code}: ${pct}% Rabatt auf Linsen.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    es: {
+      subject: `Sensor TattooFix 10 — ${pct}% de descuento en tu lente`,
+      greeting: name ? `Hola, ${name}!` : '¡Hola!',
+      headline: `Tu lente con ${pct}% off`,
+      body: 'Creaste una cuenta y aún no llevaste la lente. Sensor TattooFix corrige la lectura óptica del sensor en piel tatuada — entrenamiento y ritmo otra vez en marcha.',
+      badge: 'Cupón exclusivo',
+      discount: `<strong>${pct}% de descuento</strong> en lentes al pagar`,
+      ctaShop: 'Ver la tienda oficial',
+      ctaCheckout: 'Ir al checkout con el cupón aplicado →',
+      footer: '¿Dudas? Responde este correo o escríbenos por WhatsApp. Válido en la tienda oficial sensortattoofix.com.',
+      textBody: 'Creaste una cuenta y aún no tienes la lente Sensor TattooFix.',
+      textDiscount: `Cupón ${code}: ${pct}% de descuento en lentes.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    fr: {
+      subject: `Sensor TattooFix 10 — ${pct}% de réduction sur votre lentille`,
+      greeting: name ? `Bonjour ${name},` : 'Bonjour,',
+      headline: `Votre lentille à -${pct}%`,
+      body: 'Vous avez créé un compte et n’avez pas encore pris la lentille. Sensor TattooFix corrige la lecture optique du capteur sur peau tatouée — entraînement et rythme cardiaque de nouveau fiables.',
+      badge: 'Coupon exclusif',
+      discount: `<strong>${pct}% de réduction</strong> sur les lentilles au paiement`,
+      ctaShop: 'Voir la boutique officielle',
+      ctaCheckout: 'Aller au paiement avec le coupon appliqué →',
+      footer: 'Des questions ? Répondez à cet e-mail ou contactez-nous sur WhatsApp. Valable sur la boutique officielle sensortattoofix.com.',
+      textBody: 'Vous avez créé un compte et n’avez pas encore la lentille Sensor TattooFix.',
+      textDiscount: `Coupon ${code} : ${pct}% de réduction sur les lentilles.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    pl: {
+      subject: `Sensor TattooFix 10 — ${pct}% zniżki na soczewkę`,
+      greeting: name ? `Cześć ${name},` : 'Cześć,',
+      headline: `Twoja soczewka z ${pct}% zniżki`,
+      body: 'Założyłeś konto, a jeszcze nie masz soczewki. Sensor TattooFix poprawia odczyt optyczny czujnika na tatuażu — trening i tętno znów działają.',
+      badge: 'Ekskluzywny kupon',
+      discount: `<strong>${pct}% zniżki</strong> na soczewki przy płatności`,
+      ctaShop: 'Zobacz oficjalny sklep',
+      ctaCheckout: 'Przejdź do kasy z zastosowanym kuponem →',
+      footer: 'Pytania? Odpowiedz na tę wiadomość lub napisz na WhatsApp. Ważne w oficjalnym sklepie sensortattoofix.com.',
+      textBody: 'Założyłeś konto i nie masz jeszcze soczewki Sensor TattooFix.',
+      textDiscount: `Kupon ${code}: ${pct}% zniżki na soczewki.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    }
+  };
+  // Fallback chain for langs without dedicated copy
+  if (copies[loc]) return { ...copies[loc], locale: loc };
+  if (['nl', 'sv', 'no', 'fi', 'sl'].includes(loc)) return { ...copies.en, locale: loc };
+  return { ...copies.pt, locale: 'pt' };
+}
+
+function buildStorePromoEmail(config, customer, coupon, locale) {
   const code = normalizeCouponCode(coupon?.code || STORE_PROMO_COUPON.code);
   const percent = Math.min(100, Math.max(0, Number(coupon?.percent) || 10));
-  const nome = String(customer?.nome || '').trim();
-  const greeting = nome ? `Olá, ${nome}!` : 'Olá!';
-  const lojaUrl = `${site}/loja.html`;
-  const checkoutUrl = `${site}/comprar.html?cupom=${encodeURIComponent(code)}`;
-  const subject = `Sensor TattooFix 10 — ${percent}% de desconto na sua lente`;
+  const copy = storePromoCopy(locale, { nome: customer?.nome, percent, code });
+  const isPt = copy.locale === 'pt';
+  // Prefer language home for intl hosts; keep .com.br for PT.
+  const shopBase = isPt
+    ? String(config?.siteUrl || DEFAULT_CONFIG.siteUrl || 'https://www.sensortattoofix.com.br').replace(/\/$/, '')
+    : 'https://www.sensortattoofix.com';
+  const langPrefix = isPt ? '' : `/${copy.locale}`;
+  const shopUrl = `${shopBase}${langPrefix}/loja.html`;
+  const checkoutUrl = `${shopBase}${langPrefix}/comprar.html?cupom=${encodeURIComponent(code)}`;
+
   const html = `<div style="margin:0;padding:0;background:#0d0d0d">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#0d0d0d;padding:28px 12px">
     <tr><td align="center">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#161616;border:1px solid #2a2a2a;border-radius:16px;overflow:hidden">
         <tr><td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif">
           <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#ffc107;font-weight:700">Sensor TattooFix</p>
-          <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;color:#f5f5f5;font-weight:800">Sua lente com ${percent}% off</h1>
-          <p style="margin:0 0 18px;font-size:16px;line-height:1.55;color:#d0d0d0">${escapeHtml(greeting)}</p>
-          <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#bdbdbd">Você criou sua conta e ainda não levou a lente. O Sensor TattooFix corrige a leitura óptica do sensor no relógio/smartband em pele tatuada — treino e batimentos de novo no ritmo certo.</p>
+          <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;color:#f5f5f5;font-weight:800">${escapeHtml(copy.headline)}</h1>
+          <p style="margin:0 0 18px;font-size:16px;line-height:1.55;color:#d0d0d0">${escapeHtml(copy.greeting)}</p>
+          <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#bdbdbd">${escapeHtml(copy.body)}</p>
         </td></tr>
         <tr><td style="padding:0 28px 8px;font-family:Arial,Helvetica,sans-serif">
           <div style="background:#1f1a0a;border:1px solid #5c4a14;border-radius:12px;padding:18px 20px;text-align:center">
-            <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#c9a227">Cupom exclusivo</p>
+            <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#c9a227">${escapeHtml(copy.badge)}</p>
             <p style="margin:0 0 8px;font-size:28px;font-weight:800;letter-spacing:0.06em;color:#ffc107">${escapeHtml(code)}</p>
-            <p style="margin:0;font-size:15px;color:#e8e0c8"><strong>${percent}% de desconto</strong> no valor das lentes no checkout</p>
+            <p style="margin:0;font-size:15px;color:#e8e0c8">${copy.discount}</p>
           </div>
         </td></tr>
         <tr><td style="padding:22px 28px 8px;font-family:Arial,Helvetica,sans-serif" align="center">
-          <a href="${escapeHtml(lojaUrl)}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:800;font-size:15px;padding:14px 26px;border-radius:10px">Ver a loja oficial</a>
+          <a href="${escapeHtml(shopUrl)}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:800;font-size:15px;padding:14px 26px;border-radius:10px">${escapeHtml(copy.ctaShop)}</a>
         </td></tr>
         <tr><td style="padding:8px 28px 24px;font-family:Arial,Helvetica,sans-serif" align="center">
-          <a href="${escapeHtml(checkoutUrl)}" style="display:inline-block;color:#ffc107;font-size:13px;font-weight:700;text-decoration:underline">Ir ao checkout com o cupom já aplicado →</a>
+          <a href="${escapeHtml(checkoutUrl)}" style="display:inline-block;color:#ffc107;font-size:13px;font-weight:700;text-decoration:underline">${escapeHtml(copy.ctaCheckout)}</a>
         </td></tr>
         <tr><td style="padding:0 28px 28px;font-family:Arial,Helvetica,sans-serif">
-          <p style="margin:0;font-size:13px;line-height:1.55;color:#888">Dúvidas? Responda este e-mail ou fale no WhatsApp da loja. Válido na loja oficial sensortattoofix.com.br.</p>
+          <p style="margin:0;font-size:13px;line-height:1.55;color:#888">${escapeHtml(copy.footer)}</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </div>`;
   const text = [
-    greeting,
+    copy.greeting,
     '',
-    `Você criou sua conta e ainda não levou a lente Sensor TattooFix.`,
-    `Cupom ${code}: ${percent}% de desconto nas lentes.`,
-    `Loja: ${lojaUrl}`,
-    `Checkout com cupom: ${checkoutUrl}`,
+    copy.textBody,
+    copy.textDiscount,
+    `Shop: ${shopUrl}`,
+    `Checkout: ${checkoutUrl}`,
     '',
-    'Sensor TattooFix — sensortattoofix.com.br'
+    copy.siteLabel
   ].join('\n');
-  return { subject, html, text, lojaUrl, checkoutUrl, code, percent };
+  return {
+    subject: copy.subject,
+    html,
+    text,
+    lojaUrl: shopUrl,
+    checkoutUrl,
+    code,
+    percent,
+    locale: copy.locale
+  };
+}
+
+async function resolveCustomerPromoLocale(env, user) {
+  if (user?.locale || user?.preferredLang) {
+    return normalizePromoLocale(user.locale || user.preferredLang);
+  }
+  try {
+    const fromD1 = await d1OrdersForUser(env, user.userId);
+    for (const o of fromD1 || []) {
+      if (o?.checkoutLocale) return normalizePromoLocale(o.checkoutLocale);
+    }
+  } catch (_) { /* ignore */ }
+  try {
+    const ids = JSON.parse((await env.STORE_KV.get('user:' + user.userId + ':orders')) || '[]');
+    for (const orderId of ids || []) {
+      const o = await getOrder(env, orderId);
+      if (o?.checkoutLocale) return normalizePromoLocale(o.checkoutLocale);
+    }
+  } catch (_) { /* ignore */ }
+  return 'pt';
 }
 
 async function handleAdminCustomersPromoEmail(request, env, origin) {
@@ -14687,6 +14839,8 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
   let sent = 0;
   let failed = 0;
 
+  const shopCopy = String(config.formsubmit?.email || '').trim();
+
   for (const userId of uniqueIds) {
     const user = await getUserById(env, userId);
     if (!user?.email) {
@@ -14694,7 +14848,8 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
       failed += 1;
       continue;
     }
-    const mail = buildStorePromoEmail(config, user, coupon);
+    const locale = await resolveCustomerPromoLocale(env, user);
+    const mail = buildStorePromoEmail(config, user, coupon, locale);
     const res = await notifyEmail(
       env,
       config,
@@ -14704,20 +14859,34 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
         Cliente: user.nome || '',
         Cupom: mail.code,
         Desconto: `${mail.percent}%`,
+        Idioma: mail.locale,
         Loja: mail.lojaUrl
       },
-      config.formsubmit?.email,
-      { html: mail.html, text: mail.text }
+      shopCopy || undefined,
+      {
+        html: mail.html,
+        text: mail.text,
+        // Cópia oculta pra loja (formsubmit.email = gmail da loja no ar).
+        bcc: shopCopy || undefined
+      }
     );
     if (res.ok) {
       sent += 1;
-      results.push({ userId, email: user.email, ok: true, provider: res.provider || null });
+      results.push({
+        userId,
+        email: user.email,
+        ok: true,
+        locale: mail.locale,
+        provider: res.provider || null,
+        bcc: shopCopy || null
+      });
     } else {
       failed += 1;
       results.push({
         userId,
         email: user.email,
         ok: false,
+        locale: mail.locale,
         error: res.error || res.resend?.error || 'Falha no envio'
       });
     }
@@ -14818,7 +14987,8 @@ async function resolveCheckoutUser(env, request, body) {
       email: body.email,
       telefone: body.telefone,
       cpf: body.cpf,
-      senha: body.senha
+      senha: body.senha,
+      locale: body.checkoutLocale || body.locale
     });
     userId = user.userId;
     newToken = await createCustomerSession(env, userId);
