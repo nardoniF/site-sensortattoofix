@@ -14707,7 +14707,109 @@ function localeFromUserHints(user) {
   return null;
 }
 
-function storePromoCopy(locale, { nome, percent, code }) {
+function normalizePromoVariant(raw) {
+  const v = String(raw || '').toLowerCase().trim();
+  if (v === 'promo' || v === 'promotion' || v === 'geral' || v === 'customers' || v === 'clientes') {
+    return 'promo';
+  }
+  return 'signup';
+}
+
+/** Overlay do modelo “Promoção” (mesmo cupom; texto genérico, não “cadastrou e não comprou”). */
+function storePromoCopyPromoOverlay(locale, { nome, percent, code }) {
+  const loc = normalizePromoLocale(locale);
+  const name = String(nome || '').trim();
+  const pct = String(percent);
+  const overlays = {
+    pt: {
+      subject: `Sensor TattooFix 10 — promoção ${pct}% off na lente`,
+      greeting: name ? `Olá, ${name}!` : 'Olá!',
+      headline: `Promoção: ${pct}% off na lente`,
+      body: 'Promoção Sensor TattooFix: use o cupom abaixo e leve a lente com desconto. Ela corrige a leitura óptica do sensor no relógio/smartband em pele tatuada — treino e batimentos no ritmo certo.',
+      textBody: 'Promoção Sensor TattooFix: cupom com desconto nas lentes.'
+    },
+    en: {
+      subject: `Sensor TattooFix 10 — ${pct}% off lens promo`,
+      greeting: name ? `Hi ${name},` : 'Hi,',
+      headline: `Promo: ${pct}% off your lens`,
+      body: 'Sensor TattooFix promo: use the coupon below and get your lens at a discount. It fixes optical sensor readings on tattooed skin — heart rate and workouts back on track.',
+      textBody: 'Sensor TattooFix promo: coupon discount on lenses.'
+    },
+    it: {
+      subject: `Sensor TattooFix 10 — promo ${pct}% sulla lente`,
+      greeting: name ? `Ciao ${name},` : 'Ciao,',
+      headline: `Promo: ${pct}% di sconto sulla lente`,
+      body: 'Promo Sensor TattooFix: usa il coupon qui sotto e prendi la lente in sconto. Corregge la lettura ottica del sensore su pelle tatuata — allenamento e battito di nuovo a posto.',
+      textBody: 'Promo Sensor TattooFix: coupon sconto sulle lenti.'
+    },
+    de: {
+      subject: `Sensor TattooFix 10 — Aktion ${pct}% auf die Linse`,
+      greeting: name ? `Hallo ${name},` : 'Hallo,',
+      headline: `Aktion: ${pct}% Rabatt auf die Linse`,
+      body: 'Sensor TattooFix Aktion: nutzen Sie den Gutschein unten und holen Sie die Linse mit Rabatt. Sie korrigiert die optische Sensorablesung auf tätowierter Haut — Training und Puls wieder im Takt.',
+      textBody: 'Sensor TattooFix Aktion: Gutschein-Rabatt auf Linsen.'
+    },
+    es: {
+      subject: `Sensor TattooFix 10 — promo ${pct}% en tu lente`,
+      greeting: name ? `Hola, ${name}!` : '¡Hola!',
+      headline: `Promo: ${pct}% off en la lente`,
+      body: 'Promo Sensor TattooFix: usa el cupón de abajo y lleva la lente con descuento. Corrige la lectura óptica del sensor en piel tatuada — entrenamiento y ritmo otra vez en marcha.',
+      textBody: 'Promo Sensor TattooFix: cupón de descuento en lentes.'
+    },
+    fr: {
+      subject: `Sensor TattooFix 10 — promo −${pct}% sur la lentille`,
+      greeting: name ? `Bonjour ${name},` : 'Bonjour,',
+      headline: `Promo : −${pct}% sur la lentille`,
+      body: 'Promo Sensor TattooFix : utilisez le coupon ci-dessous et profitez de la lentille en réduction. Elle corrige la lecture optique du capteur sur peau tatouée — entraînement et rythme cardiaque de nouveau fiables.',
+      textBody: 'Promo Sensor TattooFix : coupon de réduction sur les lentilles.'
+    },
+    pl: {
+      subject: `Sensor TattooFix 10 — promocja ${pct}% na soczewkę`,
+      greeting: name ? `Cześć ${name},` : 'Cześć,',
+      headline: `Promocja: ${pct}% zniżki na soczewkę`,
+      body: 'Promocja Sensor TattooFix: użyj kuponu poniżej i weź soczewkę ze zniżką. Poprawia odczyt optyczny czujnika na tatuażu — trening i tętno znów działają.',
+      textBody: 'Promocja Sensor TattooFix: kupon ze zniżką na soczewki.'
+    },
+    nl: {
+      subject: `Sensor TattooFix 10 — actie ${pct}% op je lens`,
+      greeting: name ? `Hoi ${name},` : 'Hoi,',
+      headline: `Actie: ${pct}% korting op de lens`,
+      body: 'Sensor TattooFix-actie: gebruik de coupon hieronder en haal je lens met korting. Corrigeert de optische sensoruitlezing op getatoeëerde huid — training en hartslag weer op peil.',
+      textBody: 'Sensor TattooFix-actie: couponkorting op lenzen.'
+    },
+    sv: {
+      subject: `Sensor TattooFix 10 — kampanj ${pct}% på linsen`,
+      greeting: name ? `Hej ${name},` : 'Hej,',
+      headline: `Kampanj: ${pct}% rabatt på linsen`,
+      body: 'Sensor TattooFix-kampanj: använd kupongen nedan och hämta linsen med rabatt. Den korrigerar den optiska sensoravläsningen på tatuerad hud — träning och puls i fas igen.',
+      textBody: 'Sensor TattooFix-kampanj: kupongrabatt på linser.'
+    },
+    no: {
+      subject: `Sensor TattooFix 10 — kampanje ${pct}% på linsen`,
+      greeting: name ? `Hei ${name},` : 'Hei,',
+      headline: `Kampanje: ${pct}% rabatt på linsen`,
+      body: 'Sensor TattooFix-kampanje: bruk kupongen under og hent linsen med rabatt. Den retter den optiske sensoravlesningen på tatovert hud — trening og puls på plass igjen.',
+      textBody: 'Sensor TattooFix-kampanje: kupongrabatt på linser.'
+    },
+    fi: {
+      subject: `Sensor TattooFix 10 — kampanja ${pct}% linssistä`,
+      greeting: name ? `Hei ${name},` : 'Hei,',
+      headline: `Kampanja: ${pct}% alennus linssistä`,
+      body: 'Sensor TattooFix -kampanja: käytä alla olevaa kuponkia ja ota linssi alennuksella. Se korjaa optisen sensorin lukeman tatuoidulla iholla — treeni ja syke taas kohdallaan.',
+      textBody: 'Sensor TattooFix -kampanja: kuponkialennus linsseistä.'
+    },
+    sl: {
+      subject: `Sensor TattooFix 10 — akcija ${pct}% na lečo`,
+      greeting: name ? `Živjo ${name},` : 'Živjo,',
+      headline: `Akcija: ${pct}% popusta na lečo`,
+      body: 'Akcija Sensor TattooFix: uporabi kupon spodaj in vzemi lečo s popustom. Popravi optično branje senzorja na tetovirani koži — trening in utrip spet v ritmu.',
+      textBody: 'Akcija Sensor TattooFix: kupon s popustom na leče.'
+    }
+  };
+  return overlays[loc] || overlays.en;
+}
+
+function storePromoCopy(locale, { nome, percent, code, variant }) {
   const loc = normalizePromoLocale(locale);
   const name = String(nome || '').trim();
   const pct = String(percent);
@@ -14881,14 +14983,19 @@ function storePromoCopy(locale, { nome, percent, code }) {
       siteLabel: 'Sensor TattooFix — sensortattoofix.com'
     }
   };
-  if (copies[loc]) return { ...copies[loc], locale: loc };
-  return { ...copies.pt, locale: 'pt' };
+  const base = copies[loc] ? { ...copies[loc], locale: loc } : { ...copies.pt, locale: 'pt' };
+  const kind = normalizePromoVariant(variant);
+  if (kind === 'promo') {
+    Object.assign(base, storePromoCopyPromoOverlay(base.locale, { nome, percent, code }));
+  }
+  base.variant = kind;
+  return base;
 }
 
-function buildStorePromoEmail(config, customer, coupon, locale) {
+function buildStorePromoEmail(config, customer, coupon, locale, variant) {
   const code = normalizeCouponCode(coupon?.code || STORE_PROMO_COUPON.code);
   const percent = Math.min(100, Math.max(0, Number(coupon?.percent) || 10));
-  const copy = storePromoCopy(locale, { nome: customer?.nome, percent, code });
+  const copy = storePromoCopy(locale, { nome: customer?.nome, percent, code, variant });
   const isPt = copy.locale === 'pt';
   // Prefer language home for intl hosts; keep .com.br for PT.
   const shopBase = isPt
@@ -14946,7 +15053,8 @@ function buildStorePromoEmail(config, customer, coupon, locale) {
     checkoutUrl,
     code,
     percent,
-    locale: copy.locale
+    locale: copy.locale,
+    variant: copy.variant || normalizePromoVariant(variant)
   };
 }
 
@@ -15021,6 +15129,7 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
     return json({ error: 'Selecione ao menos um cliente.' }, 400, origin);
   }
 
+  const variant = normalizePromoVariant(body?.variant);
   const coupon = await ensureStorePromoCoupon(env);
   const config = await getConfig(env);
   const results = [];
@@ -15038,7 +15147,7 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
     }
     const locale = await resolveCustomerPromoLocale(env, user);
     await persistCustomerLocaleIfMissing(env, user, locale);
-    const mail = buildStorePromoEmail(config, user, coupon, locale);
+    const mail = buildStorePromoEmail(config, user, coupon, locale, variant);
     const res = await notifyEmail(
       env,
       config,
@@ -15049,6 +15158,7 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
         Cupom: mail.code,
         Desconto: `${mail.percent}%`,
         Idioma: mail.locale,
+        Modelo: mail.variant,
         Loja: mail.lojaUrl
       },
       shopCopy || undefined,
@@ -15066,6 +15176,7 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
         email: user.email,
         ok: true,
         locale: mail.locale,
+        variant: mail.variant,
         provider: res.provider || null,
         bcc: shopCopy || null
       });
@@ -15076,6 +15187,7 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
         email: user.email,
         ok: false,
         locale: mail.locale,
+        variant: mail.variant,
         error: res.error || res.resend?.error || 'Falha no envio'
       });
     }
@@ -15083,6 +15195,7 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
 
   return json({
     ok: failed === 0,
+    variant,
     coupon: {
       code: normalizeCouponCode(coupon.code),
       name: coupon.name || STORE_PROMO_COUPON.name,

@@ -6735,6 +6735,21 @@ body.admin-page.pedidos-login-only #pedidos-login {
   font-size: 0.82rem;
   padding: 0.45rem 0.75rem;
 }
+.customers-promo-variant-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+.customers-promo-variant-label select {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #1a1a1a;
+  color: #eee;
+}
 .customers-col-check {
   width: 2rem;
   text-align: center;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=3.68">
+    <link rel="stylesheet" href="style.css?v=3.69">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -1369,7 +1369,7 @@
                             <p><strong>Clientes:</strong> contas reais da loja.</p>
                             <p><strong>Usuários de teste:</strong> flag tester — R$ 0,01 no checkout + acesso à comunidade beta.</p>
                             <p><strong>Adm:</strong> login do painel (não é conta de cliente).</p>
-                            <p><strong>Promo Sensor TattooFix 10:</strong> marca quem cadastrou e não comprou, dispara e-mail com cupom <code>SENSORTATTOOFIX10</code> (10% nas lentes) e link da loja.</p>
+                            <p><strong>Promo Sensor TattooFix 10:</strong> e-mail com cupom <code>SENSORTATTOOFIX10</code> (10% nas lentes). Dois modelos: <em>Cadastro sem compra</em> ou <em>Promoção</em> (texto genérico pra quem já é cliente). Mesmo cupom nos dois.</p>
                         </div>
                         <nav class="admin-product-subtabs" role="tablist" aria-label="Tipos de pessoas" id="customers-subtabs">
                             <button type="button" role="tab" class="admin-product-subtab active" data-customers-subtab="clientes" aria-selected="true"><i class="fas fa-user"></i> Clientes <span id="customers-count-clientes" class="admin-meta"></span></button>
@@ -1383,11 +1383,21 @@
                                 <button type="button" class="btn-secondary" id="btn-customers-select-no-orders" title="Marca quem cadastrou e ainda não tem pedido">
                                     <i class="fas fa-user-clock"></i> Marcar sem compra
                                 </button>
+                                <button type="button" class="btn-secondary" id="btn-customers-select-with-orders" title="Marca quem já tem pedido">
+                                    <i class="fas fa-bag-shopping"></i> Marcar com compra
+                                </button>
                                 <button type="button" class="btn-secondary" id="btn-customers-clear-selection">
                                     <i class="fas fa-times"></i> Limpar seleção
                                 </button>
+                                <label class="admin-meta customers-promo-variant-label" for="customers-promo-variant">
+                                    E-mail
+                                    <select id="customers-promo-variant" title="Modelo do e-mail">
+                                        <option value="signup">Cadastro sem compra</option>
+                                        <option value="promo">Promoção</option>
+                                    </select>
+                                </label>
                                 <button type="button" class="btn-primary" id="btn-customers-send-promo">
-                                    <i class="fas fa-paper-plane"></i> Enviar promo Sensor TattooFix 10
+                                    <i class="fas fa-paper-plane"></i> Enviar Sensor TattooFix 10
                                 </button>
                                 <span id="customers-promo-selected" class="admin-meta">0 selecionado(s)</span>
                             </div>
@@ -1495,6 +1505,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=12"></script>
-    <script defer src="js/admin.js?v=294"></script>
+    <script defer src="js/admin.js?v=295"></script>
 </body>
 </html>

@@ -7567,8 +7567,11 @@ ${worksheets}
       : `<td>${orders}</td>`;
     const cols = selectable ? 8 : 7;
     void cols;
+    const rowClass = selectable
+      ? (noBuy ? ' customers-row-no-orders' : ' customers-row-has-orders')
+      : '';
     return `
-      <tr data-user-id="${escapeHtml(c.userId || '')}"${noBuy && selectable ? ' class="customers-row-no-orders"' : ''}>
+      <tr data-user-id="${escapeHtml(c.userId || '')}"${rowClass ? ` class="${rowClass.trim()}"` : ''}>
         ${checkCell}
         <td>${escapeHtml(c.nome || '—')}</td>
         <td>${escapeHtml(c.email || '—')}</td>
@@ -7706,6 +7709,18 @@ ${worksheets}
         if (!box) return;
         box.checked = row.classList.contains('customers-row-no-orders');
       });
+      const variant = document.getElementById('customers-promo-variant');
+      if (variant) variant.value = 'signup';
+      updateCustomersPromoSelectionUi();
+    });
+    document.getElementById('btn-customers-select-with-orders')?.addEventListener('click', () => {
+      document.querySelectorAll('#admin-customers-tbody-clientes tr[data-user-id]').forEach((row) => {
+        const box = row.querySelector('[data-customer-select]');
+        if (!box) return;
+        box.checked = row.classList.contains('customers-row-has-orders');
+      });
+      const variant = document.getElementById('customers-promo-variant');
+      if (variant) variant.value = 'promo';
       updateCustomersPromoSelectionUi();
     });
     document.getElementById('btn-customers-clear-selection')?.addEventListener('click', () => {
@@ -7726,6 +7741,9 @@ ${worksheets}
   async function sendCustomersPromoEmail() {
     const userIds = selectedCustomerIds();
     const btn = document.getElementById('btn-customers-send-promo');
+    const variantEl = document.getElementById('customers-promo-variant');
+    const variant = String(variantEl?.value || 'signup') === 'promo' ? 'promo' : 'signup';
+    const variantLabel = variant === 'promo' ? 'Promoção' : 'Cadastro sem compra';
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!userIds.length) {
@@ -7737,15 +7755,15 @@ ${worksheets}
       return;
     }
     if (!confirm(
-      `Enviar e-mail da promo Sensor TattooFix 10 (cupom SENSORTATTOOFIX10 · 10%) para ${userIds.length} cliente(s)?\n\nIdeal para quem cadastrou e ainda não comprou.`
+      `Enviar e-mail “${variantLabel}” (cupom SENSORTATTOOFIX10 · 10%) para ${userIds.length} cliente(s)?\n\nMesmo cupom nos dois modelos; muda só o texto.`
     )) return;
     if (btn) btn.disabled = true;
-    showCustomersPromoStatus(`Enviando para ${userIds.length}…`, '');
+    showCustomersPromoStatus(`Enviando “${variantLabel}” para ${userIds.length}…`, '');
     try {
       const res = await fetch(`${base.replace(/\/$/, '')}/admin/customers/promo-email`, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds })
+        body: JSON.stringify({ userIds, variant })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok && !(data.sent > 0)) {
@@ -7755,7 +7773,7 @@ ${worksheets}
       const langs = [...new Set((data.results || []).filter((r) => r.ok && r.locale).map((r) => r.locale))];
       const langNote = langs.length ? ` Idioma(s): ${langs.join(', ')}.` : '';
       showCustomersPromoStatus(
-        `Promo enviada: ${data.sent || 0} ok · ${data.failed || 0} falha(s). Cupom ${code} (${data.coupon?.percent || 10}%). Cópia BCC na caixa da loja.${langNote}`,
+        `${variantLabel}: ${data.sent || 0} ok · ${data.failed || 0} falha(s). Cupom ${code} (${data.coupon?.percent || 10}%). Cópia BCC na caixa da loja.${langNote}`,
         data.failed ? 'warning' : 'success'
       );
     } catch (err) {
