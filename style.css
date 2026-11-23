@@ -5014,8 +5014,12 @@ body.admin-page.pedidos-login-only #pedidos-login {
     vertical-align: middle;
     text-transform: uppercase;
 }
+.sales-tree-cash-hint {
+    color: #6bcf8e;
+    font-weight: 600;
+}
 .sales-tree-cancel-hint {
-    color: #c9a27a;
+    color: #888;
     font-weight: 500;
 }
 .vendas-cancel-filter-label {

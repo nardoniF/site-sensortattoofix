@@ -1535,7 +1535,7 @@
     const cancelHint = cancelN > 0
       ? ` · <span class="sales-tree-cancel-hint">${cancelN} canc. ${formatSalesBRL(node?.cancelNet || 0)}</span>`
       : '';
-    const meta = `<span class="clicks-tree-meta">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}${cancelHint}</span>`;
+    const meta = `<span class="clicks-tree-meta"><span class="sales-tree-cash-hint">${count} venda${count === 1 ? '' : 's'} · líquido ${formatSalesBRL(node?.net || 0)}</span>${cancelHint}</span>`;
     return `<i class="fas fa-chevron-right clicks-tree-chevron" aria-hidden="true"></i><span class="clicks-tree-label">${escapeHtml(label)}</span>${meta}`;
   }
 
