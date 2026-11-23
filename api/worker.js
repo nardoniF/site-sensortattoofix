@@ -27,6 +27,7 @@ import {
   d1FindOrdersWithShippingLabelForRecipient,
   d1DeleteOrder,
   d1OrdersForUser,
+  d1OrdersByEmail,
   d1OrderIdByTracking,
   d1SaveSale,
   d1GetSale,
@@ -14496,6 +14497,7 @@ async function listAllCustomers(env, max = 500) {
         email: user.email,
         telefone: user.telefone,
         cpf: user.cpf || '',
+        locale: user.locale || user.preferredLang || localeFromUserHints(user) || null,
         address: user.address || null,
         createdAt: user.createdAt || null,
         orderCount: orderIds.length,
@@ -14620,6 +14622,91 @@ function normalizePromoLocale(raw) {
   return allowed.has(l) ? l : 'pt';
 }
 
+/** ISO país → idioma do site (promo / e-mails). */
+function localeFromCountryCode(code) {
+  const c = String(code || '').trim().toUpperCase();
+  if (!c || c === 'OTHER' || c === 'XX') return null;
+  const map = {
+    BR: 'pt', PT: 'pt',
+    IT: 'it',
+    DE: 'de', AT: 'de', CH: 'de',
+    ES: 'es', MX: 'es', AR: 'es', CL: 'es', CO: 'es', UY: 'es', PY: 'es', PE: 'es', EC: 'es',
+    FR: 'fr', BE: 'fr',
+    NL: 'nl',
+    PL: 'pl',
+    SI: 'sl',
+    SE: 'sv',
+    NO: 'no',
+    FI: 'fi',
+    US: 'en', GB: 'en', IE: 'en', AU: 'en', NZ: 'en', CA: 'en', ZA: 'en',
+    SG: 'en', HK: 'en', AE: 'en', JP: 'en', KR: 'en', DK: 'en', CZ: 'en', IN: 'en'
+  };
+  return map[c] || null;
+}
+
+/** Telefone E.164 / DDI → idioma (prefixos longos primeiro). */
+function localeFromPhone(telefone) {
+  const raw = String(telefone || '').trim();
+  if (!raw) return null;
+  let digits = raw.replace(/\D/g, '');
+  if (!digits) return null;
+  // DDI conhecidos (ordem: mais longos antes de '1'/'55')
+  const dials = [
+    ['598', 'es'], ['595', 'es'], ['358', 'fi'], ['386', 'sl'], ['353', 'en'], ['351', 'pt'],
+    ['852', 'en'], ['971', 'en'], ['420', 'en'],
+    ['55', 'pt'], ['54', 'es'], ['56', 'es'], ['57', 'es'], ['52', 'es'],
+    ['49', 'de'], ['48', 'pl'], ['47', 'no'], ['46', 'sv'], ['45', 'en'], ['44', 'en'],
+    ['43', 'de'], ['41', 'de'], ['39', 'it'], ['34', 'es'], ['33', 'fr'], ['32', 'fr'], ['31', 'nl'],
+    ['27', 'en'], ['61', 'en'], ['64', 'en'], ['81', 'en'], ['82', 'en'], ['65', 'en'],
+    ['1', 'en']
+  ];
+  const explicitIntl = raw.startsWith('+') || raw.startsWith('00');
+  if (raw.startsWith('00')) digits = digits.replace(/^00/, '');
+  if (explicitIntl) {
+    for (const [dial, loc] of dials) {
+      if (digits.startsWith(dial)) return loc;
+    }
+    return 'en';
+  }
+  // Sem +: 10–11 dígitos = celular BR nacional (não confundir com +1 NANP).
+  if (digits.length >= 10 && digits.length <= 11) return 'pt';
+  // 12+ dígitos sem + → provavelmente DDI colado (ex.: 35840…)
+  if (digits.length >= 12) {
+    for (const [dial, loc] of dials) {
+      if (digits.startsWith(dial)) return loc;
+    }
+  }
+  return null;
+}
+
+function localeFromEmailTld(email) {
+  const m = String(email || '').trim().toLowerCase().match(/\.([a-z]{2})$/);
+  if (!m) return null;
+  const tld = m[1];
+  const map = {
+    br: 'pt', pt: 'pt',
+    it: 'it', de: 'de', es: 'es', fr: 'fr', nl: 'nl', pl: 'pl', si: 'sl',
+    se: 'sv', no: 'no', fi: 'fi',
+    uk: 'en', us: 'en', au: 'en', nz: 'en', ie: 'en'
+  };
+  return map[tld] || null;
+}
+
+function localeFromUserHints(user) {
+  const cpf = String(user?.cpf || '').replace(/\D/g, '');
+  if (cpf.length === 11 || cpf.length === 14) return 'pt';
+  const fromPhone = localeFromPhone(user?.telefone);
+  if (fromPhone) return fromPhone;
+  const addr = user?.address || {};
+  const fromCountry = localeFromCountryCode(
+    addr.paisCode || addr.countryCode || addr.pais || addr.country
+  );
+  if (fromCountry) return fromCountry;
+  const fromTld = localeFromEmailTld(user?.email);
+  if (fromTld) return fromTld;
+  return null;
+}
+
 function storePromoCopy(locale, { nome, percent, code }) {
   const loc = normalizePromoLocale(locale);
   const name = String(nome || '').trim();
@@ -14722,11 +14809,79 @@ function storePromoCopy(locale, { nome, percent, code }) {
       textBody: 'Założyłeś konto i nie masz jeszcze soczewki Sensor TattooFix.',
       textDiscount: `Kupon ${code}: ${pct}% zniżki na soczewki.`,
       siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    nl: {
+      subject: `Sensor TattooFix 10 — ${pct}% korting op je lens`,
+      greeting: name ? `Hoi ${name},` : 'Hoi,',
+      headline: `Jouw lens met ${pct}% korting`,
+      body: 'Je hebt een account aangemaakt en nog geen lens. Sensor TattooFix corrigeert de optische sensoruitlezing op getatoeëerde huid — training en hartslag weer op peil.',
+      badge: 'Exclusieve coupon',
+      discount: `<strong>${pct}% korting</strong> op lenzen bij checkout`,
+      ctaShop: 'Naar de officiële shop',
+      ctaCheckout: 'Naar checkout met coupon →',
+      footer: 'Vragen? Beantwoord deze e-mail of WhatsApp. Geldig in de officiële shop sensortattoofix.com.',
+      textBody: 'Je hebt een account aangemaakt en hebt nog geen Sensor TattooFix-lens.',
+      textDiscount: `Coupon ${code}: ${pct}% korting op lenzen.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    sv: {
+      subject: `Sensor TattooFix 10 — ${pct}% rabatt på din lins`,
+      greeting: name ? `Hej ${name},` : 'Hej,',
+      headline: `Din lins med ${pct}% rabatt`,
+      body: 'Du skapade ett konto men har inte hämtat linsen ännu. Sensor TattooFix korrigerar den optiska sensoravläsningen på tatuerad hud — träning och puls i fas igen.',
+      badge: 'Exklusiv kupong',
+      discount: `<strong>${pct}% rabatt</strong> på linser i kassan`,
+      ctaShop: 'Till den officiella butiken',
+      ctaCheckout: 'Till kassan med kupongen →',
+      footer: 'Frågor? Svara på mejlet eller WhatsApp. Gäller i den officiella butiken sensortattoofix.com.',
+      textBody: 'Du skapade ett konto och har ännu ingen Sensor TattooFix-lins.',
+      textDiscount: `Kupong ${code}: ${pct}% rabatt på linser.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    no: {
+      subject: `Sensor TattooFix 10 — ${pct}% rabatt på linsen din`,
+      greeting: name ? `Hei ${name},` : 'Hei,',
+      headline: `Linsen din med ${pct}% rabatt`,
+      body: 'Du opprettet en konto og har ikke hentet linsen ennå. Sensor TattooFix retter den optiske sensoravlesningen på tatovert hud — trening og puls på plass igjen.',
+      badge: 'Eksklusiv kupong',
+      discount: `<strong>${pct}% rabatt</strong> på linser i kassen`,
+      ctaShop: 'Til den offisielle butikken',
+      ctaCheckout: 'Til kassen med kupongen →',
+      footer: 'Spørsmål? Svar på e-posten eller WhatsApp. Gyldig i den offisielle butikken sensortattoofix.com.',
+      textBody: 'Du opprettet en konto og har ikke Sensor TattooFix-linsen ennå.',
+      textDiscount: `Kupong ${code}: ${pct}% rabatt på linser.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    fi: {
+      subject: `Sensor TattooFix 10 — ${pct}% alennus linssistäsi`,
+      greeting: name ? `Hei ${name},` : 'Hei,',
+      headline: `Linssisi ${pct}% alennuksella`,
+      body: 'Loit tilin etkä ole vielä ottanut linssiä. Sensor TattooFix korjaa optisen sensorin lukeman tatuoidulla iholla — treeni ja syke taas kohdallaan.',
+      badge: 'Eksklusiivinen kuponki',
+      discount: `<strong>${pct}% alennus</strong> linsseistä kassalla`,
+      ctaShop: 'Viralliseen kauppaan',
+      ctaCheckout: 'Kassalle kuponki valmiina →',
+      footer: 'Kysymyksiä? Vastaa tähän sähköpostiin tai WhatsApp. Voimassa virallisessa kaupassa sensortattoofix.com.',
+      textBody: 'Loit tilin etkä ole vielä saanut Sensor TattooFix -linssiä.',
+      textDiscount: `Kuponki ${code}: ${pct}% alennus linsseistä.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
+    },
+    sl: {
+      subject: `Sensor TattooFix 10 — ${pct}% popusta na lečo`,
+      greeting: name ? `Živjo ${name},` : 'Živjo,',
+      headline: `Tvoja leča s ${pct}% popusta`,
+      body: 'Ustvaril/a si račun in še nimaš leče. Sensor TattooFix popravi optično branje senzorja na tetovirani koži — trening in utrip spet v ritmu.',
+      badge: 'Ekskluzivni kupon',
+      discount: `<strong>${pct}% popusta</strong> na leče pri plačilu`,
+      ctaShop: 'V uradno trgovino',
+      ctaCheckout: 'Na blagajno s kuponom →',
+      footer: 'Vprašanja? Odgovori na to e-pošto ali WhatsApp. Velja v uradni trgovini sensortattoofix.com.',
+      textBody: 'Ustvaril/a si račun in še nimaš leče Sensor TattooFix.',
+      textDiscount: `Kupon ${code}: ${pct}% popusta na leče.`,
+      siteLabel: 'Sensor TattooFix — sensortattoofix.com'
     }
   };
-  // Fallback chain for langs without dedicated copy
   if (copies[loc]) return { ...copies[loc], locale: loc };
-  if (['nl', 'sv', 'no', 'fi', 'sl'].includes(loc)) return { ...copies.en, locale: loc };
   return { ...copies.pt, locale: 'pt' };
 }
 
@@ -14799,20 +14954,53 @@ async function resolveCustomerPromoLocale(env, user) {
   if (user?.locale || user?.preferredLang) {
     return normalizePromoLocale(user.locale || user.preferredLang);
   }
-  try {
-    const fromD1 = await d1OrdersForUser(env, user.userId);
-    for (const o of fromD1 || []) {
+  const pickFromOrders = (orders) => {
+    for (const o of orders || []) {
       if (o?.checkoutLocale) return normalizePromoLocale(o.checkoutLocale);
+      const fromPais = localeFromCountryCode(o?.paisCode || o?.pais);
+      if (fromPais) return fromPais;
     }
+    return null;
+  };
+  try {
+    const fromUserOrders = pickFromOrders(await d1OrdersForUser(env, user.userId));
+    if (fromUserOrders) return fromUserOrders;
   } catch (_) { /* ignore */ }
   try {
     const ids = JSON.parse((await env.STORE_KV.get('user:' + user.userId + ':orders')) || '[]');
+    const kvOrders = [];
     for (const orderId of ids || []) {
       const o = await getOrder(env, orderId);
-      if (o?.checkoutLocale) return normalizePromoLocale(o.checkoutLocale);
+      if (o) kvOrders.push(o);
     }
+    const fromKv = pickFromOrders(kvOrders);
+    if (fromKv) return fromKv;
   } catch (_) { /* ignore */ }
+  // Conta criada sem compra: ainda pode ter pedido abandonado / guest no mesmo e-mail.
+  try {
+    const fromEmailOrders = pickFromOrders(await d1OrdersByEmail(env, user.email, 20));
+    if (fromEmailOrders) return fromEmailOrders;
+  } catch (_) { /* ignore */ }
+  const hinted = localeFromUserHints(user);
+  if (hinted) return hinted;
+  // Sem sinal intl → PT (loja BR). Telefone com +DDI desconhecido → EN.
+  const digits = String(user?.telefone || '').replace(/\D/g, '');
+  if (String(user?.telefone || '').trim().startsWith('+') && digits && !digits.startsWith('55')) {
+    return 'en';
+  }
   return 'pt';
+}
+
+async function persistCustomerLocaleIfMissing(env, user, locale) {
+  if (!user?.userId || user.locale || user.preferredLang) return user;
+  const loc = normalizePromoLocale(locale);
+  if (!loc) return user;
+  user.locale = loc;
+  user.updatedAt = new Date().toISOString();
+  try {
+    await saveUser(env, user);
+  } catch (_) { /* ignore */ }
+  return user;
 }
 
 async function handleAdminCustomersPromoEmail(request, env, origin) {
@@ -14849,6 +15037,7 @@ async function handleAdminCustomersPromoEmail(request, env, origin) {
       continue;
     }
     const locale = await resolveCustomerPromoLocale(env, user);
+    await persistCustomerLocaleIfMissing(env, user, locale);
     const mail = buildStorePromoEmail(config, user, coupon, locale);
     const res = await notifyEmail(
       env,

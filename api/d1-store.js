@@ -290,6 +290,24 @@ export async function d1OrdersForUser(env, userId) {
   }
 }
 
+/** Pedidos pelo e-mail (conta sem userId no pedido / abandonado antes do login). */
+export async function d1OrdersByEmail(env, email, limit = 30) {
+  try {
+    const db = await ensureStoreD1(env);
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!db || !normalized) return [];
+    const res = await db.prepare(
+      `SELECT payload FROM store_orders
+       WHERE lower(trim(json_extract(payload, '$.email'))) = ?
+       ORDER BY created_at DESC LIMIT ?`
+    ).bind(normalized, Math.min(100, Math.max(1, Number(limit) || 30))).all();
+    return (res.results || []).map((r) => parsePayload(r.payload)).filter(Boolean);
+  } catch (err) {
+    noteD1Error(err);
+    return [];
+  }
+}
+
 export async function d1OrderIdByTracking(env, code) {
   try {
     const db = await ensureStoreD1(env);
