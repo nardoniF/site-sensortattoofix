@@ -109,6 +109,7 @@ import {
   COMMISSIONER_COMMISSION_PERCENT,
   COMMISSIONER_DISCOUNT_PERCENT,
   RESERVED_COUPON_CODES,
+  STORE_PROMO_COUPON,
   calcMotoboyPrice,
   commissionerAttachmentLabel,
   computeCouponCommission,
@@ -592,7 +593,7 @@ const DEFAULT_CONFIG = {
       amazon: { enabled: true, url: 'https://www.amazon.com.br/dp/B0GYVBRGZS' }
     }
   },
-  coupons: [],
+  coupons: [{ ...STORE_PROMO_COUPON }],
   mlFlexShippingCost: 0,
   kitCostVersion: 3,
   kitCost: {
@@ -14581,6 +14582,161 @@ async function handleAdminCustomers(request, env, origin) {
   }, 200, origin);
 }
 
+/** Garante cupom Sensor TattooFix 10 (10%) no KV — cria se faltar. */
+async function ensureStorePromoCoupon(env) {
+  const config = await getConfig(env);
+  const code = normalizeCouponCode(STORE_PROMO_COUPON.code);
+  const coupons = getCoupons(config);
+  const existing = coupons.find((c) => normalizeCouponCode(c.code) === code);
+  if (existing) {
+    const next = {
+      ...existing,
+      name: existing.name || STORE_PROMO_COUPON.name,
+      percent: Number(existing.percent) > 0 ? Number(existing.percent) : 10,
+      active: existing.active !== false
+    };
+    if (
+      next.name !== existing.name
+      || next.percent !== existing.percent
+      || next.active !== existing.active
+    ) {
+      const list = coupons.map((c) => (normalizeCouponCode(c.code) === code ? next : c));
+      await saveConfig(env, { ...config, coupons: list });
+      return next;
+    }
+    return existing;
+  }
+  const created = { ...STORE_PROMO_COUPON };
+  await saveConfig(env, { ...config, coupons: [...coupons, created] });
+  return created;
+}
+
+function buildStorePromoEmail(config, customer, coupon) {
+  const site = String(config?.siteUrl || DEFAULT_CONFIG.siteUrl).replace(/\/$/, '');
+  const code = normalizeCouponCode(coupon?.code || STORE_PROMO_COUPON.code);
+  const percent = Math.min(100, Math.max(0, Number(coupon?.percent) || 10));
+  const nome = String(customer?.nome || '').trim();
+  const greeting = nome ? `Olá, ${nome}!` : 'Olá!';
+  const lojaUrl = `${site}/loja.html`;
+  const checkoutUrl = `${site}/comprar.html?cupom=${encodeURIComponent(code)}`;
+  const subject = `Sensor TattooFix 10 — ${percent}% de desconto na sua lente`;
+  const html = `<div style="margin:0;padding:0;background:#0d0d0d">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#0d0d0d;padding:28px 12px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#161616;border:1px solid #2a2a2a;border-radius:16px;overflow:hidden">
+        <tr><td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif">
+          <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#ffc107;font-weight:700">Sensor TattooFix</p>
+          <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;color:#f5f5f5;font-weight:800">Sua lente com ${percent}% off</h1>
+          <p style="margin:0 0 18px;font-size:16px;line-height:1.55;color:#d0d0d0">${escapeHtml(greeting)}</p>
+          <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#bdbdbd">Você criou sua conta e ainda não levou a lente. O Sensor TattooFix corrige a leitura óptica do sensor no relógio/smartband em pele tatuada — treino e batimentos de novo no ritmo certo.</p>
+        </td></tr>
+        <tr><td style="padding:0 28px 8px;font-family:Arial,Helvetica,sans-serif">
+          <div style="background:#1f1a0a;border:1px solid #5c4a14;border-radius:12px;padding:18px 20px;text-align:center">
+            <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#c9a227">Cupom exclusivo</p>
+            <p style="margin:0 0 8px;font-size:28px;font-weight:800;letter-spacing:0.06em;color:#ffc107">${escapeHtml(code)}</p>
+            <p style="margin:0;font-size:15px;color:#e8e0c8"><strong>${percent}% de desconto</strong> no valor das lentes no checkout</p>
+          </div>
+        </td></tr>
+        <tr><td style="padding:22px 28px 8px;font-family:Arial,Helvetica,sans-serif" align="center">
+          <a href="${escapeHtml(lojaUrl)}" style="display:inline-block;background:#ffc107;color:#111;text-decoration:none;font-weight:800;font-size:15px;padding:14px 26px;border-radius:10px">Ver a loja oficial</a>
+        </td></tr>
+        <tr><td style="padding:8px 28px 24px;font-family:Arial,Helvetica,sans-serif" align="center">
+          <a href="${escapeHtml(checkoutUrl)}" style="display:inline-block;color:#ffc107;font-size:13px;font-weight:700;text-decoration:underline">Ir ao checkout com o cupom já aplicado →</a>
+        </td></tr>
+        <tr><td style="padding:0 28px 28px;font-family:Arial,Helvetica,sans-serif">
+          <p style="margin:0;font-size:13px;line-height:1.55;color:#888">Dúvidas? Responda este e-mail ou fale no WhatsApp da loja. Válido na loja oficial sensortattoofix.com.br.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</div>`;
+  const text = [
+    greeting,
+    '',
+    `Você criou sua conta e ainda não levou a lente Sensor TattooFix.`,
+    `Cupom ${code}: ${percent}% de desconto nas lentes.`,
+    `Loja: ${lojaUrl}`,
+    `Checkout com cupom: ${checkoutUrl}`,
+    '',
+    'Sensor TattooFix — sensortattoofix.com.br'
+  ].join('\n');
+  return { subject, html, text, lojaUrl, checkoutUrl, code, percent };
+}
+
+async function handleAdminCustomersPromoEmail(request, env, origin) {
+  if (!(await isValidSession(env, bearerToken(request)))) {
+    return json({ error: 'Não autorizado.' }, 401, origin);
+  }
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'JSON inválido.' }, 400, origin);
+  }
+  const ids = Array.isArray(body?.userIds)
+    ? body.userIds.map((id) => String(id || '').trim()).filter(Boolean)
+    : [];
+  const uniqueIds = [...new Set(ids)].slice(0, 40);
+  if (!uniqueIds.length) {
+    return json({ error: 'Selecione ao menos um cliente.' }, 400, origin);
+  }
+
+  const coupon = await ensureStorePromoCoupon(env);
+  const config = await getConfig(env);
+  const results = [];
+  let sent = 0;
+  let failed = 0;
+
+  for (const userId of uniqueIds) {
+    const user = await getUserById(env, userId);
+    if (!user?.email) {
+      results.push({ userId, ok: false, error: 'Cliente sem e-mail' });
+      failed += 1;
+      continue;
+    }
+    const mail = buildStorePromoEmail(config, user, coupon);
+    const res = await notifyEmail(
+      env,
+      config,
+      user.email,
+      mail.subject,
+      {
+        Cliente: user.nome || '',
+        Cupom: mail.code,
+        Desconto: `${mail.percent}%`,
+        Loja: mail.lojaUrl
+      },
+      config.formsubmit?.email,
+      { html: mail.html, text: mail.text }
+    );
+    if (res.ok) {
+      sent += 1;
+      results.push({ userId, email: user.email, ok: true, provider: res.provider || null });
+    } else {
+      failed += 1;
+      results.push({
+        userId,
+        email: user.email,
+        ok: false,
+        error: res.error || res.resend?.error || 'Falha no envio'
+      });
+    }
+  }
+
+  return json({
+    ok: failed === 0,
+    coupon: {
+      code: normalizeCouponCode(coupon.code),
+      name: coupon.name || STORE_PROMO_COUPON.name,
+      percent: Number(coupon.percent) || 10
+    },
+    sent,
+    failed,
+    total: uniqueIds.length,
+    results
+  }, failed && !sent ? 502 : 200, origin);
+}
+
 async function handleCustomerOrders(request, env, origin) {
   const userId = await getCustomerUserId(env, bearerToken(request));
   if (!userId) return json({ error: 'Não autorizado.' }, 401, origin);
@@ -20078,6 +20234,9 @@ export default {
       }
       if (path === '/admin/customers' && request.method === 'GET') {
         return handleAdminCustomers(request, env, origin);
+      }
+      if (path === '/admin/customers/promo-email' && request.method === 'POST') {
+        return handleAdminCustomersPromoEmail(request, env, origin);
       }
       if (path === '/notify/click' && request.method === 'POST') {
         return handleLogClick(request, env, origin, ctx);

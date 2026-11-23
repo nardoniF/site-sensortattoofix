@@ -7553,9 +7553,23 @@ ${worksheets}
   let customersSubtab = 'clientes';
   let customersSubtabsWired = false;
 
-  function customerRowHtml(c) {
+  function customerRowHtml(c, { selectable = false } = {}) {
+    const orders = Number(c.orderCount) || 0;
+    const noBuy = orders === 0;
+    const checkCell = selectable
+      ? `<td class="customers-col-check">
+          <input type="checkbox" data-customer-select value="${escapeHtml(c.userId || '')}"
+            aria-label="Selecionar ${escapeHtml(c.email || c.nome || 'cliente')}">
+        </td>`
+      : '';
+    const ordersCell = noBuy && selectable
+      ? `<td><span class="customers-no-orders-badge" title="Cadastrou e ainda não comprou">0 · sem compra</span></td>`
+      : `<td>${orders}</td>`;
+    const cols = selectable ? 8 : 7;
+    void cols;
     return `
-      <tr data-user-id="${escapeHtml(c.userId || '')}">
+      <tr data-user-id="${escapeHtml(c.userId || '')}"${noBuy && selectable ? ' class="customers-row-no-orders"' : ''}>
+        ${checkCell}
         <td>${escapeHtml(c.nome || '—')}</td>
         <td>${escapeHtml(c.email || '—')}</td>
         <td>${escapeHtml(c.telefone || '—')}</td>
@@ -7564,7 +7578,7 @@ ${worksheets}
               <input type="checkbox" data-tester-toggle ${c.isTester ? 'checked' : ''} aria-label="Usuário de teste">
             </label>
         </td>
-        <td>${Number(c.orderCount) || 0}</td>
+        ${ordersCell}
         <td>${escapeHtml(formatCustomerDate(c.createdAt))}</td>
         <td>
           <button type="button" class="btn-danger-outline" data-customer-delete title="Excluir cadastro">
@@ -7574,6 +7588,37 @@ ${worksheets}
       </tr>`;
   }
 
+  function selectedCustomerIds() {
+    const tbody = document.getElementById('admin-customers-tbody-clientes');
+    if (!tbody) return [];
+    return [...tbody.querySelectorAll('[data-customer-select]:checked')]
+      .map((el) => String(el.value || '').trim())
+      .filter(Boolean);
+  }
+
+  function updateCustomersPromoSelectionUi() {
+    const ids = selectedCustomerIds();
+    const label = document.getElementById('customers-promo-selected');
+    if (label) label.textContent = `${ids.length} selecionado(s)`;
+    const selectAll = document.getElementById('customers-select-all');
+    const boxes = [...document.querySelectorAll('#admin-customers-tbody-clientes [data-customer-select]')];
+    if (selectAll && boxes.length) {
+      selectAll.checked = boxes.every((b) => b.checked);
+      selectAll.indeterminate = boxes.some((b) => b.checked) && !selectAll.checked;
+    } else if (selectAll) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+    }
+  }
+
+  function showCustomersPromoStatus(msg, type) {
+    const el = document.getElementById('customers-promo-status');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.className = 'admin-status form-status ' + (type || '');
+    el.hidden = !msg;
+  }
+
   function bindCustomerRowActions(tbody) {
     if (!tbody) return;
     tbody.querySelectorAll('[data-tester-toggle]').forEach((input) => {
@@ -7581,6 +7626,9 @@ ${worksheets}
     });
     tbody.querySelectorAll('[data-customer-delete]').forEach((btn) => {
       btn.addEventListener('click', () => deleteCustomer(btn));
+    });
+    tbody.querySelectorAll('[data-customer-select]').forEach((input) => {
+      input.addEventListener('change', () => updateCustomersPromoSelectionUi());
     });
   }
 
@@ -7598,13 +7646,14 @@ ${worksheets}
     const tbodyTesters = document.getElementById('admin-customers-tbody-teste');
     if (tbodyClients) {
       tbodyClients.innerHTML = clients.length
-        ? clients.map(customerRowHtml).join('')
-        : '<tr><td colspan="7" class="admin-meta">Nenhum cliente (não-teste) cadastrado.</td></tr>';
+        ? clients.map((c) => customerRowHtml(c, { selectable: true })).join('')
+        : '<tr><td colspan="8" class="admin-meta">Nenhum cliente (não-teste) cadastrado.</td></tr>';
       bindCustomerRowActions(tbodyClients);
+      updateCustomersPromoSelectionUi();
     }
     if (tbodyTesters) {
       tbodyTesters.innerHTML = testers.length
-        ? testers.map(customerRowHtml).join('')
+        ? testers.map((c) => customerRowHtml(c, { selectable: false })).join('')
         : '<tr><td colspan="7" class="admin-meta">Nenhum usuário de teste. Marque a flag Teste em um cliente.</td></tr>';
       bindCustomerRowActions(tbodyTesters);
     }
@@ -7644,6 +7693,74 @@ ${worksheets}
     document.querySelectorAll('[data-customers-subtab]').forEach((tab) => {
       tab.addEventListener('click', () => showCustomersSubtab(tab.getAttribute('data-customers-subtab')));
     });
+    document.getElementById('customers-select-all')?.addEventListener('change', (e) => {
+      const on = !!e.target.checked;
+      document.querySelectorAll('#admin-customers-tbody-clientes [data-customer-select]').forEach((box) => {
+        box.checked = on;
+      });
+      updateCustomersPromoSelectionUi();
+    });
+    document.getElementById('btn-customers-select-no-orders')?.addEventListener('click', () => {
+      document.querySelectorAll('#admin-customers-tbody-clientes tr[data-user-id]').forEach((row) => {
+        const box = row.querySelector('[data-customer-select]');
+        if (!box) return;
+        box.checked = row.classList.contains('customers-row-no-orders');
+      });
+      updateCustomersPromoSelectionUi();
+    });
+    document.getElementById('btn-customers-clear-selection')?.addEventListener('click', () => {
+      document.querySelectorAll('#admin-customers-tbody-clientes [data-customer-select]').forEach((box) => {
+        box.checked = false;
+      });
+      const selectAll = document.getElementById('customers-select-all');
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      }
+      updateCustomersPromoSelectionUi();
+      showCustomersPromoStatus('', '');
+    });
+    document.getElementById('btn-customers-send-promo')?.addEventListener('click', () => sendCustomersPromoEmail());
+  }
+
+  async function sendCustomersPromoEmail() {
+    const userIds = selectedCustomerIds();
+    const btn = document.getElementById('btn-customers-send-promo');
+    const token = sessionStorage.getItem(SESSION_KEY);
+    const base = apiBase();
+    if (!userIds.length) {
+      showCustomersPromoStatus('Selecione ao menos um cliente.', 'error');
+      return;
+    }
+    if (!token || !base) {
+      showCustomersPromoStatus('Faça login no admin.', 'error');
+      return;
+    }
+    if (!confirm(
+      `Enviar e-mail da promo Sensor TattooFix 10 (cupom SENSORTATTOOFIX10 · 10%) para ${userIds.length} cliente(s)?\n\nIdeal para quem cadastrou e ainda não comprou.`
+    )) return;
+    if (btn) btn.disabled = true;
+    showCustomersPromoStatus(`Enviando para ${userIds.length}…`, '');
+    try {
+      const res = await fetch(`${base.replace(/\/$/, '')}/admin/customers/promo-email`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok && !(data.sent > 0)) {
+        throw new Error(data.error || 'Falha ao enviar promo');
+      }
+      const code = data.coupon?.code || 'SENSORTATTOOFIX10';
+      showCustomersPromoStatus(
+        `Promo enviada: ${data.sent || 0} ok · ${data.failed || 0} falha(s). Cupom ${code} (${data.coupon?.percent || 10}%).`,
+        data.failed ? 'warning' : 'success'
+      );
+    } catch (err) {
+      showCustomersPromoStatus(err.message || 'Erro ao enviar.', 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   async function toggleCustomerTester(input) {
@@ -7705,14 +7822,16 @@ ${worksheets}
     const token = sessionStorage.getItem(SESSION_KEY);
     const base = apiBase();
     if (!token || !base) {
-      tbodyClients.innerHTML = '<tr><td colspan="7" class="admin-meta">Faça login no admin.</td></tr>';
+      tbodyClients.innerHTML = '<tr><td colspan="8" class="admin-meta">Faça login no admin.</td></tr>';
       return;
     }
 
     customersLoading = true;
-    tbodyClients.innerHTML = '<tr><td colspan="7" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando…</td></tr>';
+    tbodyClients.innerHTML = '<tr><td colspan="8" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando…</td></tr>';
     const tbodyTesters = document.getElementById('admin-customers-tbody-teste');
-    if (tbodyTesters) tbodyTesters.innerHTML = tbodyClients.innerHTML;
+    if (tbodyTesters) {
+      tbodyTesters.innerHTML = '<tr><td colspan="7" class="admin-meta"><i class="fas fa-spinner fa-spin"></i> Carregando…</td></tr>';
+    }
 
     try {
       const res = await fetch(base.replace(/\/$/, '') + '/admin/customers', {
@@ -7729,7 +7848,7 @@ ${worksheets}
       renderCustomersTables();
       showCustomersSubtab(customersSubtab || 'clientes');
     } catch (err) {
-      tbodyClients.innerHTML = `<tr><td colspan="7" class="admin-status-bad">${escapeHtml(err.message)}</td></tr>`;
+      tbodyClients.innerHTML = `<tr><td colspan="8" class="admin-status-bad">${escapeHtml(err.message)}</td></tr>`;
     } finally {
       customersLoading = false;
     }

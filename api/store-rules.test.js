@@ -20,6 +20,7 @@ import {
   isSuperfreteMethod,
   isUberOrder,
   normalizeCouponCode,
+  STORE_PROMO_COUPON,
   slugCouponId,
   normalizeSuperfreteCarrierTrackingCode,
   normalizeSuperfreteTrackingCode,
@@ -29,6 +30,14 @@ import {
 test('normalizeCouponCode strips junk and uppercases', () => {
   assert.equal(normalizeCouponCode(' meu-kit 10 '), 'MEUKIT10');
   assert.equal(normalizeCouponCode(''), '');
+});
+
+test('STORE_PROMO_COUPON is Sensor TattooFix 10 at 10%', () => {
+  assert.equal(normalizeCouponCode(STORE_PROMO_COUPON.code), 'SENSORTATTOOFIX10');
+  assert.equal(normalizeCouponCode('Sensor TattooFix 10'), 'SENSORTATTOOFIX10');
+  assert.equal(STORE_PROMO_COUPON.percent, 10);
+  assert.equal(STORE_PROMO_COUPON.active, true);
+  assert.ok(findActiveCoupon({ coupons: [STORE_PROMO_COUPON] }, 'SENSORTATTOOFIX10'));
 });
 
 test('findActiveCoupon ignores BRASIL20 and inactive codes', () => {

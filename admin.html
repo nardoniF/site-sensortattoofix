@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin — Sensor TattooFix</title>
-    <link rel="stylesheet" href="style.css?v=3.67">
+    <link rel="stylesheet" href="style.css?v=3.68">
     <style>
       .clicks-device-badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
       .clicks-device--mobile{background:rgba(76,175,80,.14);color:#81c784}
@@ -1369,6 +1369,7 @@
                             <p><strong>Clientes:</strong> contas reais da loja.</p>
                             <p><strong>Usuários de teste:</strong> flag tester — R$ 0,01 no checkout + acesso à comunidade beta.</p>
                             <p><strong>Adm:</strong> login do painel (não é conta de cliente).</p>
+                            <p><strong>Promo Sensor TattooFix 10:</strong> marca quem cadastrou e não comprou, dispara e-mail com cupom <code>SENSORTATTOOFIX10</code> (10% nas lentes) e link da loja.</p>
                         </div>
                         <nav class="admin-product-subtabs" role="tablist" aria-label="Tipos de pessoas" id="customers-subtabs">
                             <button type="button" role="tab" class="admin-product-subtab active" data-customers-subtab="clientes" aria-selected="true"><i class="fas fa-user"></i> Clientes <span id="customers-count-clientes" class="admin-meta"></span></button>
@@ -1378,10 +1379,24 @@
                         <p id="customers-checked-at" class="admin-meta" hidden></p>
 
                         <div id="customers-panel-clientes" class="customers-subpanel" data-customers-panel="clientes">
+                            <div class="customers-promo-toolbar" id="customers-promo-toolbar">
+                                <button type="button" class="btn-secondary" id="btn-customers-select-no-orders" title="Marca quem cadastrou e ainda não tem pedido">
+                                    <i class="fas fa-user-clock"></i> Marcar sem compra
+                                </button>
+                                <button type="button" class="btn-secondary" id="btn-customers-clear-selection">
+                                    <i class="fas fa-times"></i> Limpar seleção
+                                </button>
+                                <button type="button" class="btn-primary" id="btn-customers-send-promo">
+                                    <i class="fas fa-paper-plane"></i> Enviar promo Sensor TattooFix 10
+                                </button>
+                                <span id="customers-promo-selected" class="admin-meta">0 selecionado(s)</span>
+                            </div>
+                            <p id="customers-promo-status" class="admin-status form-status" hidden aria-live="polite"></p>
                             <div class="admin-table-wrap">
                                 <table class="admin-table admin-doc-table">
                                     <thead>
                                         <tr>
+                                            <th class="customers-col-check"><input type="checkbox" id="customers-select-all" title="Selecionar todos" aria-label="Selecionar todos"></th>
                                             <th>Nome</th>
                                             <th>E-mail</th>
                                             <th>WhatsApp</th>
@@ -1392,7 +1407,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="admin-customers-tbody-clientes">
-                                        <tr><td colspan="7" class="admin-meta">Abra esta aba para carregar.</td></tr>
+                                        <tr><td colspan="8" class="admin-meta">Abra esta aba para carregar.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -1480,6 +1495,6 @@
     })();
     </script>
     <script type="module" src="js/sales-money.mjs?v=12"></script>
-    <script defer src="js/admin.js?v=292"></script>
+    <script defer src="js/admin.js?v=293"></script>
 </body>
 </html>

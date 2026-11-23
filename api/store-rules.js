@@ -4,6 +4,17 @@ export const COMMISSIONER_DISCOUNT_PERCENT = 10;
 export const COMMISSIONER_COMMISSION_PERCENT = 20;
 export const RESERVED_COUPON_CODES = new Set(['BRASIL20', 'TESTE', 'TEST', 'ADMIN', 'SENSOR', 'STF']);
 
+/** Cupom da loja: promo cadastro sem compra — 10% no valor dos produtos (lentes/kits). */
+export const STORE_PROMO_COUPON = {
+  id: 'coupon-sensortattoofix10',
+  code: 'SENSORTATTOOFIX10',
+  name: 'Sensor TattooFix 10',
+  percent: 10,
+  active: true,
+  email: '',
+  commissionPercent: 0
+};
+
 export function normalizeCouponCode(code) {
   return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
