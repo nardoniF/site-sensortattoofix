@@ -4,20 +4,27 @@
  * Default do país = idioma da página (IT→IT, FR→FR, SV→SE, …).
  */
 (function () {
+  function isComBrHost() {
+    return /\.sensortattoofix\.com\.br$/i.test(location.hostname);
+  }
+
   function pageLang() {
     if (window.STF_PAGE_LANG?.get) return window.STF_PAGE_LANG.get();
     if (window.STF_I18N?.getLang) return window.STF_I18N.getLang();
-    const lang = String(document.documentElement.lang || 'en').toLowerCase().slice(0, 2);
-    return lang || 'en';
+    const htmlLang = String(document.documentElement.lang || '').toLowerCase().slice(0, 2);
+    if (htmlLang) return htmlLang;
+    // .com.br sem lang explícito = PT (nunca assumir EN → US)
+    if (isComBrHost()) return 'pt';
+    return 'en';
   }
 
   function locale() {
     const lang = pageLang();
     const map = {
-      en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl',
+      pt: 'pt', en: 'en', it: 'it', de: 'de', es: 'es', pl: 'pl', sl: 'sl',
       fr: 'fr', nl: 'nl', sv: 'sv', no: 'nb', fi: 'fi'
     };
-    return map[lang] || 'en';
+    return map[lang] || (isComBrHost() ? 'pt' : 'en');
   }
 
   function defaultCountry() {
@@ -25,10 +32,10 @@
       return window.STF_PAGE_LANG.defaultCountryForLang(pageLang());
     }
     const map = {
-      en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
+      pt: 'BR', en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
       fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
     };
-    return map[pageLang()] || 'US';
+    return map[pageLang()] || (isComBrHost() ? 'BR' : 'US');
   }
 
   function labelFor(code, fallback) {
@@ -50,6 +57,9 @@
 
   function ensureDefaultSelected(sel) {
     if (!sel || sel.options.length < 2) return;
+    // Checkout BR (.com.br PT): não sobrescrever destino — o checkout.js aplica geo/BR.
+    const market = String(document.body?.dataset?.checkoutMarket || '').toLowerCase();
+    if (market === 'br' || (isComBrHost() && pageLang() === 'pt')) return;
     const def = defaultCountry();
     if (!def) return;
     const cur = String(sel.value || '').trim();

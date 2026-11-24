@@ -13948,6 +13948,15 @@ async function notifyEmail(env, config, to, subject, fields, replyTo, content) {
     const resend = await sendViaResend(env, config, to, subject, fields, replyTo, content);
     if (resend.ok) return { ok: true, provider: 'resend', id: resend.id };
 
+    // FormSubmit não envia anexos — não usar como “sucesso” quando há PNG/PDF.
+    if (content?.attachments?.length) {
+      return {
+        ok: false,
+        resend,
+        error: resend.error || 'Anexos exigem Resend (FormSubmit não anexa arquivos).'
+      };
+    }
+
     const formsubmit = await sendViaFormSubmit(to, subject, fields);
     if (formsubmit.ok) return { ok: true, provider: 'formsubmit' };
 

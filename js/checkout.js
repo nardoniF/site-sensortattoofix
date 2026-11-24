@@ -1977,41 +1977,70 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       || ''
     ).toLowerCase().slice(0, 2);
     const map = {
-      en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
+      pt: 'BR', en: 'US', it: 'IT', de: 'DE', es: 'ES', pl: 'PL', sl: 'SI',
       fr: 'FR', nl: 'NL', sv: 'SE', no: 'NO', fi: 'FI'
     };
     return map[lang] || null;
   }
 
-  async function resolveDefaultIntlCountry() {
-    // País = idioma/site de entrada (IT→Itália, FR→França, SV→Suécia…).
-    // Geo IP só como fallback se o idioma não mapear.
+  async function fetchVisitorCountryCode() {
+    const base = apiBase() || (window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
+    if (!base) return null;
+    try {
+      const res = await fetch(`${base}/visitor/geo`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const code = String(data.country || '').trim().toUpperCase();
+      if (!code || code === 'XX' || code === 'T1' || code === 'OTHER') return null;
+      return code;
+    } catch {
+      return null;
+    }
+  }
+
+  async function resolveDefaultCheckoutCountry() {
+    // .com.br (mercado BR): geo do visitante; se não der, BR. Nunca US por fallback.
+    if (!isIntlCheckoutShell()) {
+      const geo = await fetchVisitorCountryCode();
+      if (geo) return geo;
+      return 'BR';
+    }
+    // Shell intl: idioma da página (IT→IT, FR→FR…), depois geo, depois US.
     const fromLang = defaultIntlCountry();
     if (fromLang) return fromLang;
-    const base = apiBase() || (window.CONFIG_BOOTSTRAP?.configApiUrl || '').replace(/\/$/, '');
-    if (base) {
-      try {
-        const res = await fetch(`${base}/visitor/geo`, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          const code = String(data.country || '').trim().toUpperCase();
-          if (code && code !== 'BR' && code !== 'XX' && code !== 'T1') return code;
-        }
-      } catch { /* geo indisponível */ }
-    }
+    const geo = await fetchVisitorCountryCode();
+    if (geo && geo !== 'BR') return geo;
     return 'US';
   }
 
   async function initializeLocalizedCheckout() {
-    if (orderSidebarLocked) return;
-    const def = await resolveDefaultIntlCountry();
-    if (!def || !els.paisCode) return;
-    const has = [...els.paisCode.options].some((o) => o.value === def);
-    if (!has) return;
-    // Alinha ao idioma da página no primeiro load (não deixa US grudado em FR/NL/…).
-    if (!els.paisCode.value || els.paisCode.value === 'BR' || els.paisCode.value !== def) {
+    if (orderSidebarLocked || !els.paisCode) return;
+    const def = await resolveDefaultCheckoutCountry();
+    if (!def) return;
+    // Garante opção do país (BR já vem no HTML; abroad precisa da lista intl).
+    if (def !== 'BR' && ![...els.paisCode.options].some((o) => o.value === def)) {
+      try { populateCountrySelect(cfg || window.CHECKOUT_CONFIG); } catch (_) { /* ignore */ }
+    }
+    if (def !== 'BR' && ![...els.paisCode.options].some((o) => o.value === def)) return;
+    const cur = String(els.paisCode.value || '').trim();
+    // Mercado BR: se ainda está no default BR/US/vazio, aplica geo/BR — não pisa escolha manual.
+    if (!isIntlCheckoutShell()) {
+      if (!cur || cur === 'BR' || cur === 'US') {
+        if (cur !== def) {
+          els.paisCode.value = def;
+          toggleAddressForm();
+        } else {
+          updatePhoneField();
+        }
+      }
+      return;
+    }
+    // Shell intl: alinha ao idioma (não deixa US grudado em FR/NL/…).
+    if (!cur || cur === 'BR' || cur !== def) {
       els.paisCode.value = def;
       toggleAddressForm();
+    } else {
+      updatePhoneField();
     }
   }
 
