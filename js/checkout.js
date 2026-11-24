@@ -1999,13 +1999,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   async function resolveDefaultCheckoutCountry() {
-    // .com.br (mercado BR): geo do visitante; se não der, BR. Nunca US por fallback.
-    if (!isIntlCheckoutShell()) {
-      const geo = await fetchVisitorCountryCode();
-      if (geo) return geo;
-      return 'BR';
-    }
-    // Shell intl: idioma da página (IT→IT, FR→FR…), depois geo, depois US.
+    // .com.br (mercado BR): sempre Brasil no primeiro load.
+    // Se o cara trocar pra EUA/outro país no select, aí sim dólar/moeda estrangeira.
+    if (!isIntlCheckoutShell()) return 'BR';
+    // Shell intl (.com /en/it/…): idioma da página, depois geo, depois US.
     const fromLang = defaultIntlCountry();
     if (fromLang) return fromLang;
     const geo = await fetchVisitorCountryCode();
@@ -2023,15 +2020,14 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
     if (def !== 'BR' && ![...els.paisCode.options].some((o) => o.value === def)) return;
     const cur = String(els.paisCode.value || '').trim();
-    // Mercado BR: se ainda está no default BR/US/vazio, aplica geo/BR — não pisa escolha manual.
+    // Mercado BR (.com.br): força BR no boot se ainda está vazio/US (bug antigo).
+    // Não pisa se o usuário já escolheu outro país (ex.: EUA → dólar).
     if (!isIntlCheckoutShell()) {
-      if (!cur || cur === 'BR' || cur === 'US') {
-        if (cur !== def) {
-          els.paisCode.value = def;
-          toggleAddressForm();
-        } else {
-          updatePhoneField();
-        }
+      if (!cur || cur === 'US') {
+        els.paisCode.value = 'BR';
+        toggleAddressForm();
+      } else {
+        updatePhoneField();
       }
       return;
     }
