@@ -7928,6 +7928,59 @@ body.stf-lightbox-open { overflow: hidden; }
 .stf-album:hover .stf-album-btn { opacity: 1; }
 .stf-album-prev { left: 8px; }
 .stf-album-next { right: 8px; }
+.stf-album-img {
+  cursor: zoom-in;
+}
+.stf-album-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.stf-album-dot {
+  pointer-events: auto;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.stf-album-dot.is-active {
+  background: var(--primary);
+  transform: scale(1.15);
+}
+.stf-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 48px;
+  height: 56px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.stf-lightbox-nav:hover { background: rgba(255, 255, 255, 0.22); }
+.stf-lightbox-prev { left: 12px; }
+.stf-lightbox-next { right: 12px; }
+@media (max-width: 600px) {
+  .stf-lightbox-prev { left: 6px; }
+  .stf-lightbox-next { right: 6px; }
+  .stf-lightbox-nav { width: 42px; height: 48px; font-size: 1.7rem; }
+}
 
 .checkout-product-album {
   margin: 0 0 14px;
