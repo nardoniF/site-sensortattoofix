@@ -151,11 +151,11 @@ nav,
 
 .nav-main a {
     font-family: var(--font-nav-main);
-    font-size: 0.98rem;
+    font-size: 1.12rem;
     font-weight: 600;
-    letter-spacing: 0.01em;
-    line-height: 1.1;
-    padding: 8px 2px;
+    letter-spacing: 0.015em;
+    line-height: 1.05;
+    padding: 10px 3px;
     border-radius: 8px;
     transition: color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -325,12 +325,12 @@ nav,
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 999px;
-    border: 1px solid #2a2a2a;
-    background: #121212;
-    color: #f2f2f2;
+    border: 1px solid #3a3a3a;
+    background: #1a1a1a;
+    color: #fff;
     text-decoration: none;
     box-sizing: border-box;
     transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.2s ease;
@@ -338,7 +338,7 @@ nav,
 
 .social-header a i,
 .site-social a i {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     color: inherit;
     line-height: 1;
     transition: none;
@@ -358,11 +358,11 @@ nav,
 .site-social a:hover i { color: inherit; }
 
 @media (max-width: 1280px) {
-    .nav-main a { font-size: 0.9rem; }
-    .nav-main { gap: 3px 7px; }
+    .nav-main a { font-size: 1.02rem; }
+    .nav-main { gap: 3px 6px; }
     .logo-text { font-size: 1.2rem; }
     .logo-area { --logo-h: 84px; }
-    .site-social { min-width: 108px; padding: 0 10px; }
+    .site-social { min-width: 112px; padding: 0 10px; }
 }
 
 /* Header IT: rótulos um pouco mais longos — só ajustes de espaço, mesma tipografia do menu */
