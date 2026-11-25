@@ -92,11 +92,16 @@
                             <tr><td>Detecção de mercado</td><td colspan="3"><code>catalogMarket()</code> em <code>js/stf-site.js</code> — <code>/en|it|de|es|pl/</code> → catálogo internacional</td></tr>
                         </tbody>
                     </table>
-                    <p><strong>Manuais e carta internacional:</strong></p>
+                    <p><strong>Manuais e cartas:</strong></p>
                     <ul>
                         <li><strong>Brasil (kit completo):</strong> manual em <code>docs/manuais/</code> — inclui passo do <em>primer</em> (potencializador). Só para envio nacional.</li>
                         <li><strong>Exterior (só lente, documento internacional):</strong> não vai o manual BR — vai a <strong>carta</strong> impressa no envelope (<code>docs/cartas/carta-agradecimento-intl.html</code>), com passo a passo sem primer. Idioma = país do destinatário (ex. PT→português) quando o checkout veio em EN genérico do .com; senão <code>checkoutLocale</code> (EN/IT/DE/ES/PL/PT/…).</li>
                         <li>Traduções da carta intl: <code>data/letter-l10n.json</code> (PT/DE/ES/PL/SL/FR/NL/SV/NO/FI; EN/IT no HTML). Preview: <code>?lang=pt</code> etc. Fetch em <code>docs/cartas/</code>: <code>../../data/letter-l10n.json</code>.</li>
+                        <li><strong>Envio gratuito (criadores / parceria):</strong>
+                          <code>docs/cartas/carta-envio-criador-problema.html</code> (viu o problema no vídeo) e
+                          <code>docs/cartas/carta-envio-neutra-indicacao.html</code> (indicação, sem obrigação).
+                          Também nos botões de Documentação no Admin. Nome via campo ou <code>?nome=</code>.
+                        </li>
                     </ul>
                     <p><strong>Testes automáticos:</strong> <code>node --test api/i18n-site.test.js</code> (bundles, overrides, FAQ/elogios, <code>catalogMarket</code>). <strong>Auditoria:</strong> <code>node scripts/audit-i18n-shell.mjs</code> (scripts obrigatórios nas pastas de idioma; avisa HTML estático EN e manuais só PT).</p>
                     <p>Páginas internas (<code>admin.html</code>, <code>pedidos.html</code>, <code>documentacao.html</code>) permanecem só em português.</p>
@@ -249,6 +254,16 @@
                                 <td>Carta thank-you (internacional)</td>
                                 <td>Template com <code>{{placeholders}}</code>. Para imprimir preenchida: Pedidos → botão <strong>Carta</strong>, ou abra com <code>?order=ID_DO_PEDIDO</code> (login admin).</td>
                                 <td><a href="docs/cartas/carta-agradecimento-intl.html" target="_blank" rel="noopener">docs/cartas/carta-agradecimento-intl.html</a></td>
+                            </tr>
+                            <tr>
+                                <td>Carta envio — criador (problema)</td>
+                                <td>Para quem postou vídeo sobre o smartwatch falhando na tatuagem. Tom de presente + pedido humilde de divulgação se gostar. Campo nome / <code>?nome=</code>.</td>
+                                <td><a href="docs/cartas/carta-envio-criador-problema.html" target="_blank" rel="noopener">docs/cartas/carta-envio-criador-problema.html</a></td>
+                            </tr>
+                            <tr>
+                                <td>Carta envio — neutra (indicação)</td>
+                                <td>Para quem talvez não tenha o problema. Parceria: indicar alguém tatuado; vídeo só se quiser, sem obrigação.</td>
+                                <td><a href="docs/cartas/carta-envio-neutra-indicacao.html" target="_blank" rel="noopener">docs/cartas/carta-envio-neutra-indicacao.html</a></td>
                             </tr>
                             <tr>
                                 <td>Mensagem marketplace (medida da lente)</td>

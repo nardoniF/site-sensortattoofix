@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Carta envio — neutra / indicação — Sensor TattooFix</title>
+  <style>
+    @page { size: A4 portrait; margin: 14mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #111;
+      --muted: #444;
+      --accent: #ffc107;
+      --line: #e8e8e8;
+    }
+    body {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+      color: var(--ink);
+      background: #e8e8e8;
+    }
+    .toolbar {
+      position: sticky; top: 0; z-index: 5;
+      background: #111; color: #fff;
+      padding: 10px 14px;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      font-size: 13px;
+    }
+    .toolbar button, .toolbar a {
+      font: inherit; cursor: pointer;
+      padding: 8px 14px; border-radius: 8px; border: none;
+      background: var(--accent); color: #111; font-weight: 700; text-decoration: none;
+    }
+    .toolbar .ghost { background: #333; color: #fff; }
+    .toolbar .meta { color: #bbb; flex: 1; min-width: 200px; }
+    .toolbar label { display: inline-flex; align-items: center; gap: 8px; color: #ddd; }
+    .toolbar input[type="text"] {
+      font: inherit; padding: 7px 10px; border-radius: 6px; border: 1px solid #444;
+      background: #1a1a1a; color: #fff; min-width: 180px;
+    }
+
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 16px auto;
+      padding: 16mm 18mm;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,.14);
+    }
+
+    @media print {
+      body { background: #fff; }
+      .toolbar, .no-print { display: none !important; }
+      .sheet { margin: 0; box-shadow: none; width: auto; min-height: auto; padding: 0; }
+      .ph {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+      }
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 14px; margin-bottom: 18px;
+      border-bottom: 2px solid var(--accent);
+    }
+    .brand img {
+      width: 48px; height: 48px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--accent);
+    }
+    .brand h1 { font-size: 14pt; font-weight: 900; line-height: 1.15; }
+    .brand h1 span { color: #b8860b; }
+    .brand p { font-size: 9pt; color: #666; margin-top: 2px; }
+
+    .greeting { margin-bottom: 14px; }
+    .ph {
+      display: inline;
+      background: #fff8e1;
+      border-bottom: 1px dashed #e0a800;
+      padding: 0 2px;
+      font-weight: 700;
+    }
+
+    p { margin-bottom: 11px; color: var(--muted); }
+    p strong { color: var(--ink); }
+
+    h2 {
+      font-size: 11.5pt;
+      margin: 16px 0 8px;
+      color: var(--ink);
+    }
+
+    ul {
+      margin: 0 0 14px 1.1em;
+      color: var(--muted);
+    }
+    ul li { margin-bottom: 5px; }
+
+    .sign {
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+    .sign .name { font-weight: 800; color: var(--ink); margin-bottom: 2px; }
+    .sign .role { color: #666; font-size: 10pt; margin-bottom: 8px; }
+    .sign .links { font-size: 10pt; color: #555; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="toolbar no-print">
+    <span class="meta">Carta <strong>neutra</strong> — quem talvez não tenha o problema (indicação / parceria)</span>
+    <label>Nome <input type="text" id="nome" placeholder="Nome da pessoa" autocomplete="name"></label>
+    <button type="button" id="btn-print">Imprimir</button>
+    <a class="ghost" href="../../admin.html#documentacao">Voltar ao Admin</a>
+  </div>
+
+  <article class="sheet" id="carta">
+    <header class="brand">
+      <img src="../../images/brand/logo.jpg" alt="Sensor TattooFix">
+      <div>
+        <h1>SENSOR<span>TATTOOFIX</span></h1>
+        <p>Carta de apresentação — envio gratuito</p>
+      </div>
+    </header>
+
+    <p class="greeting">Olá, <span class="ph" data-ph="nome">[Nome da Pessoa]</span>! Tudo bem?</p>
+
+    <p>
+      Admiramos muito o seu trabalho e a forma como você se conecta com a sua audiência.
+      Por isso, tomamos a liberdade de enviar este presente para você conhecer de perto o nosso projeto.
+    </p>
+
+    <h2>O que é a Sensor TattooFix?</h2>
+    <p>
+      Muitas pessoas tatuadas no pulso enfrentam um problema pouco falado, mas muito frustrante:
+      os sensores ópticos dos smartwatches não conseguem ler os dados através da tinta da tatuagem —
+      o relógio trava, pede senha o tempo todo ou falha no monitoramento de treinos e saúde.
+    </p>
+    <p>
+      A Sensor TattooFix nasceu para resolver exatamente isso.
+      Desenvolvemos uma lente óptica que permite a leitura normal dos sensores do smartwatch sobre qualquer tatuagem:
+    </p>
+
+    <ul>
+      <li>Compatível com qualquer marca, modelo e tamanho de smartwatch;</li>
+      <li>Resistente à água, ao suor e ao uso diário;</li>
+      <li>Alta durabilidade para ficar fixa no relógio no dia a dia (uma vez removida, ela não deve ser reaplicada).</li>
+    </ul>
+
+    <p>
+      Como sabemos que você talvez não passe por essa dificuldade pessoalmente, enviamos este kit em tom de parceria e amizade.
+      Se você conhecer algum amigo, familiar ou seguidor tatuado que sofre com o smartwatch falhando no pulso,
+      fique totalmente à vontade para presentear ou testar junto com essa pessoa.
+    </p>
+
+    <p>
+      E, claro, se depois de ver funcionando na prática você sentir vontade de comentar sobre a solução ou mostrar no seu perfil,
+      será uma honra imensa para nós — <strong>sem nenhuma obrigação</strong>, apenas como uma dica útil para quem precisa.
+    </p>
+
+    <p>Muito obrigado pela atenção e conte sempre com a gente.</p>
+
+    <div class="sign">
+      <p>Um grande abraço,</p>
+      <p class="name">Fábio Nardoni</p>
+      <p class="role">Fundador — Sensor TattooFix</p>
+      <p class="links">
+        Site: sensortattoofix.com.br<br>
+        Instagram: @sensortattoofix
+      </p>
+    </div>
+  </article>
+
+  <script>
+    (function () {
+      var input = document.getElementById('nome');
+      var ph = document.querySelector('[data-ph="nome"]');
+      var params = new URLSearchParams(location.search);
+      var fromUrl = (params.get('nome') || params.get('name') || '').trim();
+      if (fromUrl) input.value = fromUrl;
+
+      function sync() {
+        var v = (input.value || '').trim();
+        ph.textContent = v || '[Nome da Pessoa]';
+      }
+      input.addEventListener('input', sync);
+      sync();
+
+      document.getElementById('btn-print').addEventListener('click', function () {
+        window.print();
+      });
+    })();
+  </script>
+</body>
+</html>
