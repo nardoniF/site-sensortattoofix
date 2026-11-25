@@ -99,7 +99,7 @@ const HOME = {
   en: {
     title: 'Smartwatch Passcode on Tattooed Skin? Heart Rate or Workouts Fail | Sensor TattooFix',
     description:
-      'Apple Watch, Samsung or Garmin asks for passcode all the time, won\'t read heart rate or pauses workout on its owns on its own? Tattoo ink often blocks the optical sensor. Sensor TattooFix lens — 3N20 technology.',
+      'Apple Watch, Samsung or Garmin asks for passcode all the time, won\'t read heart rate or pauses workout on its own? Tattoo ink often blocks the optical sensor. Sensor TattooFix lens — 3N20 technology.',
     ogTitle: 'Passcode or Heart Rate Failing on Tattoo? | Sensor TattooFix',
     ogDescription:
       'Passcode all the time, heart rate failing or workouts pausing on tattooed skin? Official fix — Apple Watch, Samsung, Garmin.',
