@@ -221,20 +221,59 @@
     return kitAlbum();
   }
 
+  function albumUiCopy() {
+    const lang = detectLang();
+    if (lang === 'pt') {
+      return {
+        prev: 'Foto anterior',
+        next: 'Próxima foto',
+        open: 'Ampliar foto',
+        close: 'Fechar',
+        photo: (n, total) => `Foto ${n} de ${total}`
+      };
+    }
+    if (lang === 'it') {
+      return {
+        prev: 'Foto precedente',
+        next: 'Foto successiva',
+        open: 'Ingrandisci foto',
+        close: 'Chiudi',
+        photo: (n, total) => `Foto ${n} di ${total}`
+      };
+    }
+    return {
+      prev: 'Previous photo',
+      next: 'Next photo',
+      open: 'Enlarge photo',
+      close: 'Close',
+      photo: (n, total) => `Photo ${n} of ${total}`
+    };
+  }
+
   function renderMarkup(images, alt, extraClass) {
     const imgs = uniqueUrls(images);
     if (!imgs.length) imgs.push(kitAlbum()[0]);
     const multi = imgs.length > 1;
+    const copy = albumUiCopy();
     const cls = ['stf-album', extraClass || ''].filter(Boolean).join(' ');
     const nav = multi
-      ? `<button type="button" class="stf-album-btn stf-album-prev" aria-label="Previous photo"><span aria-hidden="true">‹</span></button>
-         <button type="button" class="stf-album-btn stf-album-next" aria-label="Next photo"><span aria-hidden="true">›</span></button>`
+      ? `<button type="button" class="stf-album-btn stf-album-prev" aria-label="${escapeAttr(copy.prev)}"><span aria-hidden="true">‹</span></button>
+         <button type="button" class="stf-album-btn stf-album-next" aria-label="${escapeAttr(copy.next)}"><span aria-hidden="true">›</span></button>`
+      : '';
+    const dots = multi
+      ? `<div class="stf-album-dots" role="tablist" aria-label="${escapeAttr(copy.photo(1, imgs.length))}">${
+          imgs.map((_, i) =>
+            `<button type="button" class="stf-album-dot${i === 0 ? ' is-active' : ''}" role="tab" aria-selected="${i === 0 ? 'true' : 'false'}" aria-label="${escapeAttr(copy.photo(i + 1, imgs.length))}" data-index="${i}"></button>`
+          ).join('')
+        }</div>`
       : '';
     const fallback = escapeAttr(kitAlbum()[0]);
     return `<div class="${cls}" data-stf-album data-index="0" data-images="${escapeAttr(JSON.stringify(imgs))}">
-      <img src="${escapeAttr(imgs[0])}" alt="${escapeAttr(alt || '')}" loading="lazy"
+      <img src="${escapeAttr(imgs[0])}" alt="${escapeAttr(alt || '')}" loading="lazy" decoding="async"
+           class="stf-album-img" role="button" tabindex="0" aria-label="${escapeAttr(copy.open)}"
            onerror="this.onerror=null;this.src='${fallback}'">
       ${nav}
+      ${dots}
     </div>`;
   }
 
@@ -245,20 +284,163 @@
       .replace(/</g, '&lt;');
   }
 
-  function showIndex(album, index) {
-    let images;
+  function parseAlbumImages(album) {
     try {
-      images = JSON.parse(album.getAttribute('data-images') || '[]');
+      return JSON.parse(album.getAttribute('data-images') || '[]');
     } catch (_) {
-      images = [];
+      return [];
     }
+  }
+
+  function showIndex(album, index) {
+    const images = parseAlbumImages(album);
     if (!images.length) return;
     const i = ((index % images.length) + images.length) % images.length;
     album.setAttribute('data-index', String(i));
-    const img = album.querySelector('img');
-    if (img) {
-      img.src = images[i];
+    const img = album.querySelector('img.stf-album-img, img');
+    if (img) img.src = images[i];
+    album.querySelectorAll('.stf-album-dot').forEach((dot, di) => {
+      const on = di === i;
+      dot.classList.toggle('is-active', on);
+      dot.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    if (lbState.album === album) syncLightboxToIndex(i);
+  }
+
+  let lbEls = null;
+  let lbState = { album: null, images: [], index: 0 };
+
+  function ensureLightbox() {
+    if (lbEls) return lbEls;
+    let root = document.getElementById('stf-product-lightbox');
+    const copy = albumUiCopy();
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'stf-product-lightbox';
+      root.className = 'stf-product-lightbox';
+      root.hidden = true;
+      root.setAttribute('aria-hidden', 'true');
+      root.setAttribute('role', 'dialog');
+      root.setAttribute('aria-modal', 'true');
+      root.setAttribute('aria-labelledby', 'stf-lightbox-caption');
+      root.innerHTML = `
+        <button type="button" class="stf-lightbox-close" aria-label="${escapeAttr(copy.close)}">&times;</button>
+        <button type="button" class="stf-lightbox-nav stf-lightbox-prev" aria-label="${escapeAttr(copy.prev)}"><span aria-hidden="true">‹</span></button>
+        <button type="button" class="stf-lightbox-nav stf-lightbox-next" aria-label="${escapeAttr(copy.next)}"><span aria-hidden="true">›</span></button>
+        <figure class="stf-lightbox-figure">
+          <img id="stf-lightbox-img" src="" alt="">
+          <figcaption id="stf-lightbox-caption"></figcaption>
+        </figure>`;
+      document.body.appendChild(root);
+    } else {
+      if (!root.querySelector('.stf-lightbox-prev')) {
+        const prev = document.createElement('button');
+        prev.type = 'button';
+        prev.className = 'stf-lightbox-nav stf-lightbox-prev';
+        prev.setAttribute('aria-label', copy.prev);
+        prev.innerHTML = '<span aria-hidden="true">‹</span>';
+        const next = document.createElement('button');
+        next.type = 'button';
+        next.className = 'stf-lightbox-nav stf-lightbox-next';
+        next.setAttribute('aria-label', copy.next);
+        next.innerHTML = '<span aria-hidden="true">›</span>';
+        root.insertBefore(prev, root.querySelector('.stf-lightbox-figure') || null);
+        root.insertBefore(next, root.querySelector('.stf-lightbox-figure') || null);
+      }
     }
+    lbEls = {
+      root,
+      img: root.querySelector('#stf-lightbox-img') || document.getElementById('stf-lightbox-img'),
+      caption: root.querySelector('#stf-lightbox-caption') || document.getElementById('stf-lightbox-caption'),
+      close: root.querySelector('.stf-lightbox-close'),
+      prev: root.querySelector('.stf-lightbox-prev'),
+      next: root.querySelector('.stf-lightbox-next')
+    };
+    lbEls.close?.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeLightbox();
+    });
+    lbEls.prev?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stepLightbox(-1);
+    });
+    lbEls.next?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stepLightbox(1);
+    });
+    root.addEventListener('click', (e) => {
+      if (e.target === root) closeLightbox();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!root || root.hidden) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') stepLightbox(-1);
+      if (e.key === 'ArrowRight') stepLightbox(1);
+    });
+    let ltx = 0;
+    root.addEventListener('touchstart', (e) => {
+      ltx = e.changedTouches?.[0]?.clientX || 0;
+    }, { passive: true });
+    root.addEventListener('touchend', (e) => {
+      const x = e.changedTouches?.[0]?.clientX || 0;
+      const d = x - ltx;
+      if (Math.abs(d) < 40) return;
+      stepLightbox(d < 0 ? 1 : -1);
+    }, { passive: true });
+    return lbEls;
+  }
+
+  function syncLightboxToIndex(i) {
+    if (!lbEls || !lbState.images.length) return;
+    const idx = ((i % lbState.images.length) + lbState.images.length) % lbState.images.length;
+    lbState.index = idx;
+    const src = lbState.images[idx];
+    const copy = albumUiCopy();
+    if (lbEls.img) {
+      lbEls.img.src = src;
+      lbEls.img.alt = copy.photo(idx + 1, lbState.images.length);
+    }
+    if (lbEls.caption) lbEls.caption.textContent = copy.photo(idx + 1, lbState.images.length);
+    const multi = lbState.images.length > 1;
+    if (lbEls.prev) lbEls.prev.hidden = !multi;
+    if (lbEls.next) lbEls.next.hidden = !multi;
+  }
+
+  let lastLightboxOpenAt = 0;
+
+  function openLightbox(album) {
+    const now = Date.now();
+    if (now - lastLightboxOpenAt < 450) return;
+    lastLightboxOpenAt = now;
+    const lb = ensureLightbox();
+    if (!lb || !album) return;
+    const images = parseAlbumImages(album);
+    if (!images.length) return;
+    const index = Number(album.getAttribute('data-index') || 0);
+    lbState = { album, images, index };
+    syncLightboxToIndex(index);
+    lb.root.hidden = false;
+    lb.root.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('stf-lightbox-open');
+    lb.close?.focus();
+  }
+
+  function closeLightbox() {
+    const lb = ensureLightbox();
+    if (!lb) return;
+    lb.root.hidden = true;
+    lb.root.setAttribute('aria-hidden', 'true');
+    if (lb.img) lb.img.removeAttribute('src');
+    if (lb.caption) lb.caption.textContent = '';
+    document.body.classList.remove('stf-lightbox-open');
+    lbState = { album: null, images: [], index: 0 };
+  }
+
+  function stepLightbox(delta) {
+    if (!lbState.album || !lbState.images.length) return;
+    showIndex(lbState.album, lbState.index + delta);
   }
 
   function bind(root) {
@@ -268,7 +450,6 @@
       album.dataset.stfAlbumBound = '1';
       const prev = album.querySelector('.stf-album-prev');
       const next = album.querySelector('.stf-album-next');
-      if (!prev && !next) return;
       prev?.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -279,15 +460,46 @@
         e.stopPropagation();
         showIndex(album, Number(album.getAttribute('data-index') || 0) + 1);
       });
+      album.querySelectorAll('.stf-album-dot').forEach((dot) => {
+        dot.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showIndex(album, Number(dot.getAttribute('data-index') || 0));
+        });
+      });
+      const img = album.querySelector('img.stf-album-img, img');
+      const openFromImg = (e) => {
+        if (e.target.closest?.('.stf-album-btn, .stf-album-dot')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openLightbox(album);
+      };
+      img?.addEventListener('click', openFromImg);
+      img?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openLightbox(album);
+        }
+      });
       let tx = 0;
+      let moved = false;
       album.addEventListener('touchstart', (e) => {
         tx = e.changedTouches?.[0]?.clientX || 0;
+        moved = false;
+      }, { passive: true });
+      album.addEventListener('touchmove', (e) => {
+        const x = e.changedTouches?.[0]?.clientX || 0;
+        if (Math.abs(x - tx) > 12) moved = true;
       }, { passive: true });
       album.addEventListener('touchend', (e) => {
+        if (e.target.closest?.('.stf-album-btn, .stf-album-dot')) return;
         const x = e.changedTouches?.[0]?.clientX || 0;
         const d = x - tx;
-        if (Math.abs(d) < 40) return;
-        showIndex(album, Number(album.getAttribute('data-index') || 0) + (d < 0 ? 1 : -1));
+        if (Math.abs(d) >= 40) {
+          showIndex(album, Number(album.getAttribute('data-index') || 0) + (d < 0 ? 1 : -1));
+          return;
+        }
+        if (!moved) openLightbox(album);
       }, { passive: true });
     });
   }
@@ -420,6 +632,8 @@
     enhanceExisting,
     enhanceSeoFigures,
     showIndex,
+    openLightbox,
+    closeLightbox,
     detectLang,
     syncProductAlbumToBenefits
   };
