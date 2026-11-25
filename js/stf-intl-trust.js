@@ -19,8 +19,8 @@
   function injectTrustLine() {
     if (document.querySelector('.site-trust-inline, .site-trust-bar')) return;
 
-    const heroText = document.querySelector('.hero-text');
-    if (!heroText) return;
+    const host = document.querySelector('.hero-fullbleed-copy, .hero-text');
+    if (!host) return;
 
     const row = document.createElement('div');
     row.className = 'hero-trust-row site-trust-inline hero-trust-row--below-cta hero-trust-row--compact';
@@ -35,11 +35,11 @@
       '<span class="site-trust-bar-item"><i class="fas fa-truck" aria-hidden="true"></i> ' + copy.shipping + '</span>';
     row.appendChild(line);
 
-    const btns = heroText.querySelector('.hero-btns');
+    const btns = host.querySelector('.hero-btns');
     if (btns) {
       btns.insertAdjacentElement('afterend', row);
     } else {
-      heroText.appendChild(row);
+      host.appendChild(row);
     }
   }
 
