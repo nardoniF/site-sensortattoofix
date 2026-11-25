@@ -2612,9 +2612,26 @@ a.stf-tiktok-card:hover {
 }
 
 /* CHECKOUT — Loja Oficial */
+.checkout-page,
+.checkout-page main,
+.checkout-page .checkout-main {
+    overflow-x: clip;
+    max-width: 100%;
+}
 .checkout-page header { min-height: 80px; }
 .checkout-nav { margin-left: auto; }
 .checkout-main { padding: 40px 0 80px; }
+.checkout-page .checkout-content,
+.checkout-page .checkout-sidebar,
+.checkout-page .form-grid,
+.checkout-page input,
+.checkout-page select,
+.checkout-page textarea,
+.checkout-page .checkout-actions {
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
 @media (max-width: 768px) {
     /* Mesmo respiro do menu das outras telas (header fixed + conteúdo) + sticky Total/Continuar */
     .checkout-page .checkout-main { padding: 72px 0 120px; }
@@ -2782,9 +2799,14 @@ a.stf-tiktok-card:hover {
 }
 .checkout-coupon-row .btn-secondary {
     flex: 0 0 auto;
-    padding: 8px 12px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 14px;
     font-size: 0.85rem;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .checkout-coupon-msg {
     margin: 8px 0 0;
@@ -3007,15 +3029,26 @@ a.stf-tiktok-card:hover {
 }
 .checkout-watch-block select {
     width: 100%;
-    padding: 14px 12px;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 12px 36px 12px 12px;
     background: #111;
     border: 2px solid rgba(255, 193, 7, 0.45);
     color: #fff;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.92rem;
     font-weight: 500;
     font-family: inherit;
+    line-height: 1.35;
     min-height: 48px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.checkout-watch-block select option {
+    font-size: 0.92rem;
+    white-space: normal;
+    line-height: 1.35;
 }
 .checkout-watch-block select:focus {
     outline: 2px solid var(--primary);
@@ -3117,14 +3150,16 @@ a.stf-tiktok-card:hover {
 }
 .checkout-password-toggle {
     position: absolute;
-    right: 4px;
+    right: 2px;
     top: 50%;
     transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
     color: #aaa;
     cursor: pointer;
@@ -3356,7 +3391,7 @@ a.stf-tiktok-card:hover {
 .checkout-notice i { color: var(--primary); margin-top: 2px; }
 .checkout-notice a { color: #7ecbf0; text-decoration: underline; text-underline-offset: 2px; }
 
-/* EN / international trust — single horizontal line beside hero badge (not a top bar) */
+/* EN / international trust — below hero CTA (keeps badge + H1 + buy in first viewport) */
 .hero-trust-row {
     display: flex;
     flex-wrap: wrap;
@@ -3366,11 +3401,15 @@ a.stf-tiktok-card:hover {
     max-width: 100%;
     min-width: 0;
 }
+.hero-trust-row--below-cta {
+    margin-top: 14px;
+    justify-content: flex-start;
+}
 .hero-trust-row .badge {
     margin: 0;
     flex: 0 1 auto;
     max-width: 100%;
-    white-space: normal;
+    white-space: nowrap;
     text-align: center;
     line-height: 1.25;
 }
@@ -3499,6 +3538,9 @@ a.stf-tiktok-card:hover {
         margin-bottom: 2px;
         width: 100%;
     }
+    .hero-trust-row--below-cta {
+        margin-top: 12px;
+    }
     .site-trust-inline-main {
         justify-content: center;
         font-size: 0.72rem;
@@ -3506,12 +3548,15 @@ a.stf-tiktok-card:hover {
         width: 100%;
         max-width: 100%;
     }
-    /* Long email was the main width bomber on phones */
+    /* Long email was the main width bomber on phones — hide under CTA on narrow */
+    .hero-trust-row--below-cta .site-trust-bar-contact {
+        display: none;
+    }
     .site-trust-inline-main .site-trust-bar-contact a {
         font-size: 0.7rem;
     }
     .hero-text:has(.hero-trust-row) > h1 {
-        margin: 10px 0 10px;
+        margin: 14px 0 12px;
         font-size: clamp(1.85rem, 8vw, 2.35rem);
         overflow-wrap: anywhere;
     }
@@ -8075,8 +8120,10 @@ body.stf-lightbox-open { overflow: hidden; }
   top: 50%;
   transform: translateY(-50%);
   z-index: 2;
-  width: 36px;
+  width: 44px;
   height: 48px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border: none;
   border-radius: 8px;
@@ -8334,12 +8381,16 @@ a.conta-forgot-link { display: inline-block; }
 .account-nav-login {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     color: #fff;
     text-decoration: none;
     font-weight: 600;
     font-size: 0.9rem;
-    padding: 6px 10px;
+    padding: 8px 10px;
+    min-width: 44px;
+    min-height: 44px;
+    box-sizing: border-box;
     border-radius: 8px;
     border: 1px solid transparent;
 }
@@ -8348,12 +8399,16 @@ a.conta-forgot-link { display: inline-block; }
 .account-nav-summary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     cursor: pointer;
     color: #fff;
     font-weight: 600;
     font-size: 0.9rem;
-    padding: 6px 10px;
+    padding: 8px 10px;
+    min-width: 44px;
+    min-height: 44px;
+    box-sizing: border-box;
     border-radius: 8px;
     list-style: none;
     border: 1px solid #444;
