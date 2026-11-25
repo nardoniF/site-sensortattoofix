@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&family=Outfit:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Caveat:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;1,400;1,500&family=Outfit:wght@500;600;700&display=swap');
 
 :root {
     --primary: #ffc107;
@@ -8,6 +8,8 @@
     --gray: #888;
     --danger: #ff4444;
     --font-nav: 'Outfit', system-ui, -apple-system, sans-serif;
+    /* Condensada: sobe o “peso” visual do menu sem alargar nas laterais */
+    --font-nav-main: 'Barlow Condensed', 'Outfit', system-ui, sans-serif;
 }
 
 html { scroll-behavior: smooth; scroll-padding-top: 70px; overflow-x: hidden; overflow-x: clip; }
@@ -47,7 +49,7 @@ nav,
 }
 
 .logo-area {
-    --logo-h: 96px;
+    --logo-h: 88px;
     display: flex;
     align-items: center;
     gap: 0;
@@ -148,11 +150,12 @@ nav,
 }
 
 .nav-main a {
-    font-family: var(--font-nav);
-    font-size: 0.76rem;
+    font-family: var(--font-nav-main);
+    font-size: 1.02rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
-    padding: 4px 2px;
+    letter-spacing: 0.01em;
+    line-height: 1.05;
+    padding: 9px 2px;
     border-radius: 8px;
     transition: color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -314,23 +317,52 @@ nav,
 .site-social {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
 }
 
-.social-header a i {
-    font-size: 0.95rem;
+.social-header a,
+.site-social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid #3a3a3a;
+    background: #1a1a1a;
     color: #fff;
-    transition: 0.3s;
+    text-decoration: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
-.social-header a:hover i { color: var(--primary); }
+.social-header a i,
+.site-social a i {
+    font-size: 1rem;
+    color: inherit;
+    line-height: 1;
+    transition: none;
+}
+
+.social-header a:hover,
+.social-header a:focus-visible,
+.site-social a:hover,
+.site-social a:focus-visible {
+    border-color: var(--primary);
+    background: rgba(255, 193, 7, 0.1);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.social-header a:hover i,
+.site-social a:hover i { color: inherit; }
 
 @media (max-width: 1280px) {
-    .nav-main a { font-size: 0.73rem; }
-    .nav-main { gap: 3px 7px; }
+    .nav-main a { font-size: 0.94rem; }
+    .nav-main { gap: 2px 6px; }
     .logo-text { font-size: 1.2rem; }
-    .logo-area { --logo-h: 84px; }
-    .site-social { min-width: 96px; padding: 0 12px; }
+    .logo-area { --logo-h: 78px; }
+    .site-social { min-width: 104px; padding: 0 8px; }
 }
 
 /* Header IT: rótulos um pouco mais longos — só ajustes de espaço, mesma tipografia do menu */
@@ -2468,6 +2500,10 @@ footer,
         min-width: 0;
         padding: 0 4px;
         gap: 5px;
+    }
+    .site-social a {
+        width: 32px;
+        height: 32px;
     }
     .site-social a i { font-size: 0.88rem; }
     .nav-actions {
