@@ -106,6 +106,11 @@
             <h3>${escapeHtml(label)}</h3>
             <p>${escapeHtml(desc)}</p>
             <strong class="loja-price" data-product-id="${escapeHtml(slug)}" data-price-brl="${p.price}">${formatBRL(p.price)} + ${frete}</strong>
+            <span class="store-rating" aria-label="${escapeHtml(L('store.ratingAria'))}">
+              <span class="store-rating-stars" aria-hidden="true">★★★★★</span>
+              <strong class="store-rating-score">${escapeHtml(L('store.ratingScore'))}</strong>
+              <span class="store-rating-count">${escapeHtml(L('store.ratingCount'))}</span>
+            </span>
             <div class="loja-card-actions">
               <button type="button" class="btn-secondary loja-btn-add" data-slug="${escapeHtml(slug)}">
                 <i class="fas fa-cart-plus"></i> ${escapeHtml(L('store.add'))}

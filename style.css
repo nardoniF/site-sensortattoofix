@@ -1543,10 +1543,41 @@ body.stf-feedback-open { overflow: hidden; }
     color: var(--primary);
     flex-shrink: 0;
 }
-.store-official-info span:not(.store-official-price):not(.store-official-shipping):not(.store-official-payments):not(.store-official-head):not(.store-pay-item):not(.store-pay-label) {
+.store-official-info span:not(.store-official-price):not(.store-official-shipping):not(.store-official-payments):not(.store-official-head):not(.store-pay-item):not(.store-pay-label):not(.store-rating):not(.store-rating-stars):not(.store-rating-score):not(.store-rating-count) {
     color: var(--primary);
     font-size: 0.95rem;
     font-weight: 600;
+}
+.store-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1.2;
+}
+.store-rating-stars {
+    letter-spacing: 0.06em;
+    font-size: 0.92rem;
+    color: var(--primary);
+}
+.store-rating-score { font-weight: 800; }
+.store-rating-count { opacity: 0.85; font-weight: 600; }
+#onde-comprar .store-official-bar .store-rating,
+.onde-comprar-page .store-official-bar .store-rating,
+#onde-comprar .store-official-bar .store-rating-stars,
+.onde-comprar-page .store-official-bar .store-rating-stars {
+    color: #111;
+}
+.loja-card .store-rating {
+    display: flex;
+    margin: 6px 0 10px;
+}
+.loja-hero .store-rating {
+    display: flex;
+    margin: 8px 0 0;
 }
 .store-official-arrow {
     color: var(--primary);
