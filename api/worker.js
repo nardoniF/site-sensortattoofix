@@ -15293,16 +15293,36 @@ async function resolveCheckoutUser(env, request, body) {
   let newToken = null;
 
   if (!userId && body.criarConta && body.senha) {
-    const user = await registerCustomerUser(env, {
-      nome: body.nome,
-      email: body.email,
-      telefone: body.telefone,
-      cpf: body.cpf,
-      senha: body.senha,
-      locale: body.checkoutLocale || body.locale
-    });
-    userId = user.userId;
-    newToken = await createCustomerSession(env, userId);
+    const senha = String(body.senha || '');
+    const email = normalizeEmail(body.email);
+    const existing = email ? await getUserByEmail(env, email) : null;
+
+    // E-mail já cadastrado: se a senha bater, loga e segue o pedido (não manda sair do checkout).
+    if (existing) {
+      if (!(await verifyPassword(senha, existing.passwordSalt, existing.passwordHash))) {
+        const err = new Error(
+          'Este e-mail já tem conta. Senha incorreta — tente de novo ou use “Esqueci minha senha”.'
+        );
+        err.code = 'ACCOUNT_EXISTS_BAD_PASSWORD';
+        throw err;
+      }
+      userId = existing.userId;
+      newToken = await createCustomerSession(env, userId);
+      try {
+        await ensureTesterFlagFromEmail(env, existing);
+      } catch (_) { /* ignore */ }
+    } else {
+      const user = await registerCustomerUser(env, {
+        nome: body.nome,
+        email: body.email,
+        telefone: body.telefone,
+        cpf: body.cpf,
+        senha: body.senha,
+        locale: body.checkoutLocale || body.locale
+      });
+      userId = user.userId;
+      newToken = await createCustomerSession(env, userId);
+    }
   }
 
   return { userId, newToken };
@@ -15549,7 +15569,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
   try {
     checkoutUser = await resolveCheckoutUser(env, request, body);
   } catch (err) {
-    return json({ error: err.message }, 400, origin);
+    const payload = { error: err.message || 'Não foi possível criar ou entrar na conta.' };
+    if (err.code) payload.code = err.code;
+    return json(payload, 400, origin);
   }
 
   const order = {
