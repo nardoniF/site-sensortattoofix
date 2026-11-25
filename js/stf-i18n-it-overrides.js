@@ -201,6 +201,8 @@ window.STF_I18N_IT = {
   'conta.formAptNumber': 'Interno / numero',
   'conta.formStateIntl': 'Stato / provincia',
   'nav.whereBuy': 'Dove acquistare',
+  'nav.store': 'Negozio',
+  'nav.cart': 'Carrello',
   'nav.langEn': 'EN',
   'nav.langPt': 'PT',
   'pay.pix': 'PIX',

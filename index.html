@@ -31,7 +31,7 @@
     <meta name="twitter:title" content="Smartwatch Pede Senha com Tatuagem? | Sensor TattooFix">
     <meta name="twitter:description" content="Relógio pede senha toda hora, não lê batimentos ou pausa o treino sozinho? Pode ser a tatuagem bloqueando o sensor. Veja a solução Sensor TattooFix.">
     <meta name="twitter:image" content="https://www.sensortattoofix.com.br/images/home/relogio_home.jpg">
-    <link rel="stylesheet" href="style.css?v=3.81">
+    <link rel="stylesheet" href="style.css?v=3.82">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-TFLZHJG9RN"></script>
     <script src="js/gtag-init.js"></script>
@@ -102,6 +102,7 @@
                     <li><a href="#quem-somos">Quem Somos</a></li>
                     <li><a href="#faq">FAQ</a></li>
                     <li><a href="#guias">Artigos</a></li>
+                    <li><a href="loja.html" data-evento="clique_menu_loja" data-rotulo="Menu loja pt">Loja</a></li>
                     <li><a href="#contato">Contato</a></li>
                 </ul>
             </div>
@@ -112,7 +113,7 @@
             </ul>
             <ul class="nav-links nav-actions">
                 <li data-account-nav></li>
-                <li><a href="#onde-comprar" class="btn-nav btn-nav-comprar" title="Onde comprar" aria-label="Onde comprar" data-evento="clique_menu_comprar" data-rotulo="Menu onde comprar"><i class="fas fa-shopping-bag" aria-hidden="true"></i><span class="btn-nav-label">Comprar</span></a></li>
+                <li><a href="loja.html" class="btn-nav btn-nav-comprar home-cart-nav" data-home-cart-nav data-loja-href="loja.html" data-cart-href="comprar.html" data-label-empty="Loja" data-label-cart="Carrinho" data-title-empty="Loja" data-title-cart="Carrinho" title="Loja" aria-label="Loja" data-evento="clique_menu_carrinho" data-rotulo="Menu carrinho pt"><i class="fas fa-shopping-bag" aria-hidden="true"></i><span class="btn-nav-label">Loja</span><span data-cart-badge class="cart-badge" hidden>0</span></a></li>
                 <li class="nav-lang-stack" aria-label="Idioma"></li>
             </ul>
             <label for="mobile-menu-toggle" class="mobile-menu-icon" aria-label="Abrir menu">
@@ -624,6 +625,7 @@
     <script src="js/stf-product-gallery.js?v=22"></script>
     <script src="js/site-footer.js?v=26"></script>
     <script src="js/site-feedback.js?v=9"></script>
+    <script src="js/cart.js?v=13"></script>
     <script src="js/account-nav.js"></script>
     <script src="js/traffic-origin.js?v=2"></script>
     <script src="js/analytics.js?v=52"></script>
@@ -642,5 +644,7 @@
             });
         });
     </script>
+
+    <script>document.addEventListener('DOMContentLoaded',function(){try{window.STF_CART&&window.STF_CART.initBadges();}catch(e){}});</script>
 </body>
 </html>   

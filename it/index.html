@@ -31,7 +31,7 @@
     <meta name="twitter:title" content="Smartwatch chiede codice con tatuaggio? | Sensor TattooFix">
     <meta name="twitter:description" content="L&#39;orologio chiede il codice, non legge i battiti o interrompe l&#39;allenamento? Può essere il tatuaggio sul sensore. Scopri Sensor TattooFix.">
     <meta name="twitter:image" content="https://www.sensortattoofix.com.br/images/home/relogio_home.jpg">
-    <link rel="stylesheet" href="../style.css?v=3.81">
+    <link rel="stylesheet" href="../style.css?v=3.82">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
@@ -105,6 +105,7 @@
                     <li><a href="#quem-somos">Chi siamo</a></li>
                     <li><a href="#faq">FAQ</a></li>
                     <li><a href="#guias">Articoli</a></li>
+                    <li><a href="loja.html" data-evento="clique_menu_loja" data-rotulo="Menu loja it">Negozio</a></li>
                     <li><a href="#contato">Contatti</a></li>
                 </ul>
             </div>
@@ -115,7 +116,7 @@
             </ul>
             <ul class="nav-links nav-actions">
                 <li data-account-nav></li>
-                <li><a href="comprar.html?produto=optical-lens-intl&amp;comprar=1" class="btn-nav btn-nav-comprar" title="Acquista ora" aria-label="Acquista ora" data-evento="clique_buy_now" data-rotulo="Menu buy now IT"><i class="fas fa-shopping-bag" aria-hidden="true"></i><span class="btn-nav-label">Acquista ora</span></a></li>
+                <li><a href="loja.html" class="btn-nav btn-nav-comprar home-cart-nav" data-home-cart-nav data-loja-href="loja.html" data-cart-href="comprar.html" data-label-empty="Negozio" data-label-cart="Carrello" data-title-empty="Negozio" data-title-cart="Carrello" title="Negozio" aria-label="Negozio" data-evento="clique_menu_carrinho" data-rotulo="Menu carrinho it"><i class="fas fa-shopping-bag" aria-hidden="true"></i><span class="btn-nav-label">Negozio</span><span data-cart-badge class="cart-badge" hidden>0</span></a></li>
                 <li class="nav-lang-stack">
                     <a href="../index.html" class="nav-lang" title="Versione in portoghese" aria-label="Versione in portoghese">
                         <img src="https://flagcdn.com/w20/br.png" width="20" height="15" alt=""> <span>PT</span>
@@ -594,6 +595,7 @@
     <script src="../js/stf-product-gallery.js?v=22"></script>
     <script src="../js/site-footer.js?v=26"></script>
     <script src="../js/site-feedback.js?v=9"></script>
+    <script src="../js/cart.js?v=13"></script>
     <script src="../js/account-nav.js"></script>
     <script src="../js/traffic-origin.js?v=2"></script>
     <script src="../js/analytics.js?v=52"></script>
@@ -613,5 +615,7 @@
             });
         });
     </script>
+
+    <script>document.addEventListener('DOMContentLoaded',function(){try{window.STF_CART&&window.STF_CART.initBadges();}catch(e){}});</script>
 </body>
 </html>
