@@ -272,6 +272,9 @@ window.STF_I18N = (function () {
       'store.empty': 'Nenhum produto disponível no momento.',
       'store.added': 'Adicionado ao carrinho!',
       'store.addedName': '{name} adicionado ao carrinho!',
+      'store.addedBtn': 'Adicionado',
+      'store.modelSearch': 'Buscar modelo…',
+      'store.modelPick': 'Escolher modelo',
       'store.outOfStock': 'Produto esgotado no momento.',
       'store.errorLoad': 'Erro ao carregar a loja.',
       'store.frete': 'frete',
@@ -659,6 +662,9 @@ window.STF_I18N = (function () {
       'store.empty': 'No products available at the moment.',
       'store.added': 'Added to cart!',
       'store.addedName': '{name} added to cart!',
+      'store.addedBtn': 'Added',
+      'store.modelSearch': 'Search model…',
+      'store.modelPick': 'Choose model',
       'store.outOfStock': 'This item is currently out of stock.',
       'store.errorLoad': 'Error loading store.',
       'store.frete': 'shipping',
@@ -1177,7 +1183,7 @@ window.STF_I18N = (function () {
       const count = badge ? badge.textContent : '0';
       const hidden = badge ? badge.hidden : true;
       cartLink.href = comprarPageHref();
-      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i> ${t('nav.cart')} <span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
+      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i><span class="nav-ico-label">${t('nav.cart')}</span><span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
       cartLink.setAttribute('aria-label', t('nav.cart'));
       cartLink.setAttribute('title', t('nav.cart'));
       window.STF_CART?.initBadges?.();
@@ -1190,7 +1196,7 @@ window.STF_I18N = (function () {
     const backLink = document.querySelector('.checkout-nav a[href*="index"]:not([href*="#"])');
     if (backLink) {
       backLink.href = pageHref('index');
-      backLink.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i> ${t('nav.home')}`;
+      backLink.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i><span class="nav-ico-label">${t('nav.home')}</span>`;
       backLink.setAttribute('aria-label', t('nav.home'));
       backLink.setAttribute('title', t('nav.home'));
     }
@@ -1217,7 +1223,7 @@ window.STF_I18N = (function () {
       const count = badge ? badge.textContent : '0';
       const hidden = badge ? badge.hidden : true;
       cartLink.href = comprarPageHref();
-      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i> ${t('nav.cart')} <span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
+      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i><span class="nav-ico-label">${t('nav.cart')}</span><span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
       cartLink.setAttribute('aria-label', t('nav.cart'));
       cartLink.setAttribute('title', t('nav.cart'));
       window.STF_CART?.initBadges?.();
@@ -1227,7 +1233,7 @@ window.STF_I18N = (function () {
     const backLink = document.querySelector('.checkout-nav a[href*="index"]');
     if (backLink) {
       backLink.href = pageHref('index');
-      backLink.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i> ${t('nav.back')}`;
+      backLink.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i><span class="nav-ico-label">${t('nav.back')}</span>`;
       backLink.setAttribute('aria-label', t('nav.back'));
       backLink.setAttribute('title', t('nav.back'));
     }
@@ -1390,7 +1396,7 @@ window.STF_I18N = (function () {
     if (cartLink) {
       const badge = cartLink.querySelector('[data-cart-badge]');
       cartLink.href = comprarPageHref();
-      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i> ${t('nav.cart')} `;
+      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i><span class="nav-ico-label">${t('nav.cart')}</span>`;
       cartLink.setAttribute('aria-label', t('nav.cart'));
       cartLink.setAttribute('title', t('nav.cart'));
       if (badge) {
@@ -1410,7 +1416,7 @@ window.STF_I18N = (function () {
     const back = document.querySelector('.nav-links a[href*="index"]');
     if (back) {
       back.href = pageHref('index');
-      back.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i> ${t('nav.home')}`;
+      back.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i><span class="nav-ico-label">${t('nav.home')}</span>`;
       back.setAttribute('aria-label', t('nav.home'));
       back.setAttribute('title', t('nav.home'));
     }

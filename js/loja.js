@@ -169,9 +169,16 @@
           return;
         }
         window.STF_CART.add(p, 1);
-        const label = window.STF_PELICULA?.productLabel?.(p)
-          || (window.STF_I18N?.isLocalized?.() ? (p.nameEn || p.name) : p.name);
-        flash(L('store.addedName', { name: label }));
+        const prev = btn.innerHTML;
+        btn.classList.add('is-added');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-check" aria-hidden="true"></i> ${escapeHtml(L('store.addedBtn'))}`;
+        clearTimeout(btn._addedT);
+        btn._addedT = setTimeout(() => {
+          btn.classList.remove('is-added');
+          btn.disabled = false;
+          btn.innerHTML = prev;
+        }, 1600);
         refreshBuyButtons();
       });
     });

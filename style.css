@@ -3050,6 +3050,118 @@ a.stf-tiktok-card:hover {
     white-space: normal;
     line-height: 1.35;
 }
+.checkout-watch-model-select--native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+.model-picker {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+}
+.model-picker-trigger {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 48px;
+    padding: 12px 40px 12px 12px;
+    background: #111;
+    border: 2px solid rgba(255, 193, 7, 0.45);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    position: relative;
+}
+.model-picker-trigger::after {
+    content: '▾';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #bbb;
+    pointer-events: none;
+}
+.model-picker-trigger.is-placeholder { color: #aaa; }
+.model-picker-trigger.is-invalid,
+.model-picker.is-open .model-picker-trigger {
+    border-color: var(--primary);
+}
+.model-picker-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 40;
+    background: #141414;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    max-height: min(280px, 50vh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.model-picker-panel[hidden] { display: none !important; }
+.model-picker-search {
+    width: 100%;
+    box-sizing: border-box;
+    border: 0;
+    border-bottom: 1px solid #333;
+    border-radius: 0;
+    background: #1a1a1a;
+    color: #fff;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    min-height: 44px;
+}
+.model-picker-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    overflow-y: auto;
+    max-height: 220px;
+}
+.model-picker-option {
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.92rem;
+    line-height: 1.35;
+    color: #eee;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.model-picker-option:hover,
+.model-picker-option:focus {
+    background: rgba(255, 193, 7, 0.12);
+    color: #fff;
+}
+.model-picker-option.is-selected {
+    background: rgba(255, 193, 7, 0.2);
+    color: var(--primary);
+    font-weight: 700;
+}
+.model-picker-empty {
+    padding: 12px;
+    color: #777;
+    text-align: center;
+}
 .checkout-watch-block select:focus {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
@@ -3405,6 +3517,24 @@ a.stf-tiktok-card:hover {
     margin-top: 14px;
     justify-content: flex-start;
 }
+.hero-trust-row--compact {
+    margin-top: 10px;
+}
+.hero-trust-row--compact .site-trust-inline-main {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 6px 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #9aa8b5;
+}
+.hero-trust-row--compact .site-trust-bar-item {
+    white-space: nowrap;
+}
+.hero-trust-row--compact .site-trust-bar-item i {
+    color: #6eb5d9;
+    font-size: 0.85em;
+}
 .hero-trust-row .badge {
     margin: 0;
     flex: 0 1 auto;
@@ -3539,7 +3669,7 @@ a.stf-tiktok-card:hover {
         width: 100%;
     }
     .hero-trust-row--below-cta {
-        margin-top: 12px;
+        margin-top: 10px;
     }
     .site-trust-inline-main {
         justify-content: center;
@@ -3548,7 +3678,12 @@ a.stf-tiktok-card:hover {
         width: 100%;
         max-width: 100%;
     }
-    /* Long email was the main width bomber on phones — hide under CTA on narrow */
+    .hero-trust-row--compact .site-trust-inline-main {
+        justify-content: center;
+        flex-wrap: wrap;
+        font-size: 0.72rem;
+        color: #9aa8b5;
+    }
     .hero-trust-row--below-cta .site-trust-bar-contact {
         display: none;
     }
@@ -3881,43 +4016,61 @@ body.checkout-page:not(.forum-page):not(.conta-page) .whatsapp-float {
         gap: 4px;
         align-items: center;
     }
+    /* Ícone + palavra curta (descoberta) sem estourar 390px */
     .loja-page .checkout-nav .cart-nav-link,
     .checkout-page .checkout-nav .cart-nav-link {
-        font-size: 0;
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         position: relative;
         min-width: 44px;
         min-height: 44px;
-        padding: 8px;
-        gap: 0;
+        padding: 4px 6px;
+        gap: 1px;
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        line-height: 1.05;
+        text-align: center;
     }
     .loja-page .checkout-nav .cart-nav-link i,
     .checkout-page .checkout-nav .cart-nav-link i {
-        font-size: 1.1rem;
+        font-size: 1rem;
         line-height: 1;
+    }
+    .loja-page .checkout-nav .cart-nav-link .nav-ico-label,
+    .checkout-page .checkout-nav .cart-nav-link .nav-ico-label {
+        max-width: 4.6rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .loja-page .checkout-nav .cart-nav-link .cart-badge,
     .checkout-page .checkout-nav .cart-nav-link .cart-badge {
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         position: absolute;
-        top: 2px;
+        top: 0;
         right: 0;
     }
     .loja-page .checkout-nav > li > a[href*="index"]:not(.nav-lang),
     .checkout-page .checkout-nav > li > a[href*="index"]:not(.nav-lang) {
-        font-size: 0;
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         min-width: 44px;
         min-height: 44px;
-        padding: 8px;
+        padding: 4px 6px;
+        gap: 1px;
+        font-size: 0.58rem;
+        font-weight: 700;
+        line-height: 1.05;
+        text-align: center;
     }
     .loja-page .checkout-nav > li > a[href*="index"] i,
     .checkout-page .checkout-nav > li > a[href*="index"] i {
-        font-size: 1.1rem;
+        font-size: 1rem;
         line-height: 1;
     }
     .loja-page .checkout-nav .nav-lang span { display: none; }
@@ -7648,6 +7801,11 @@ body.admin-page.pedidos-login-only #pedidos-login {
     padding: 10px 12px;
     position: relative;
     z-index: 1;
+}
+.loja-btn-add.is-added {
+    border-color: #25d366;
+    color: #25d366;
+    background: rgba(37, 211, 102, 0.1);
 }
 .loja-toast {
     position: fixed;
