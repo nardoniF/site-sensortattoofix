@@ -1951,20 +1951,21 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     }
   }
 
-  /** País ISO default no checkout INT conforme idioma da página (ES→ES, …). */
+  /** Fallback de país no select INT — não pisa geo já aplicado (ex.: FI em página EN). */
   function applyLangDefaultCountrySelect() {
     if (!isIntlCheckoutShell() || orderSidebarLocked || !els.paisCode) return;
     if (els.paisCode.options.length < 2) return;
+    const cur = String(els.paisCode.value || '').trim();
+    // País válido já escolhido/geo (FI, DE, …) — não forçar idioma (EN→US).
+    if (cur && cur !== 'BR' && [...els.paisCode.options].some((o) => o.value === cur)) {
+      updatePhoneField();
+      return;
+    }
     const def = defaultIntlCountry();
     if (!def) return;
     if (![...els.paisCode.options].some((o) => o.value === def)) return;
-    const cur = String(els.paisCode.value || '').trim();
-    if (!cur || cur === 'BR' || cur !== def) {
-      els.paisCode.value = def;
-      toggleAddressForm();
-    } else {
-      updatePhoneField();
-    }
+    els.paisCode.value = def;
+    toggleAddressForm();
   }
 
   function defaultIntlCountry() {
@@ -2002,11 +2003,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     // .com.br (mercado BR): sempre Brasil no primeiro load.
     // Se o cara trocar pra EUA/outro país no select, aí sim dólar/moeda estrangeira.
     if (!isIntlCheckoutShell()) return 'BR';
-    // Shell intl (.com /en/it/…): idioma da página, depois geo, depois US.
-    const fromLang = defaultIntlCountry();
-    if (fromLang) return fromLang;
+    // Shell intl (.com /en/it/fi/…): país do visitante (geo) primeiro.
+    // Senão EN no Google da Finlândia virava EUA/US$ e matava o checkout.
+    // Sem geo: idioma da página (IT→IT, FI→FI, EN→US…), depois US.
     const geo = await fetchVisitorCountryCode();
     if (geo && geo !== 'BR') return geo;
+    const fromLang = defaultIntlCountry();
+    if (fromLang) return fromLang;
     return 'US';
   }
 
