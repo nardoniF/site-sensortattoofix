@@ -405,6 +405,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   };
 
   let currentStep = 1;
+  let shippingQuotePending = false;
   let orderSidebarLocked = false;
   let orderSidebarSnapshot = null;
   let appliedCoupon = null;
@@ -2371,18 +2372,46 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     renderPeliculaUpsell();
   }
 
+  function setContinueLabel(key) {
+    const label = els.btnNext?.querySelector('.btn-checkout-label');
+    if (label) label.textContent = L(key);
+    else if (els.btnNext) els.btnNext.textContent = L(key);
+  }
+
   function updateContinueButtonVisibility() {
     if (!els.btnNext) return;
+    const onStep1 = currentStep === 1;
     const ready = shippingCost !== null && !!shippingInfo;
-    const show = currentStep === 1 && ready;
-    const wasHidden = els.btnNext.style.display === 'none' || !els.btnNext.style.display;
-    els.btnNext.style.display = show ? 'inline-flex' : 'none';
     const actions = els.btnNext.closest('.checkout-actions');
-    if (actions) actions.classList.toggle('checkout-actions--sticky', show);
-    if (show && wasHidden) {
-      requestAnimationFrame(() => {
-        try { els.btnNext.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { /* ignore */ }
-      });
+
+    // Fora do passo 1: esconde Continuar (Pagamento usa Finalizar).
+    if (!onStep1) {
+      els.btnNext.style.display = 'none';
+      els.btnNext.disabled = true;
+      els.btnNext.removeAttribute('aria-disabled');
+      if (actions) actions.classList.remove('checkout-actions--sticky');
+      return;
+    }
+
+    // Passo 1: sempre visível — disabled até o frete estar escolhido (evita sensação de tela “travada”).
+    const wasDisabled = els.btnNext.disabled;
+    els.btnNext.style.display = 'inline-flex';
+    els.btnNext.hidden = false;
+    if (ready) {
+      els.btnNext.disabled = false;
+      els.btnNext.removeAttribute('aria-disabled');
+      setContinueLabel('btn.continue');
+      if (actions) actions.classList.add('checkout-actions--sticky');
+      if (wasDisabled) {
+        requestAnimationFrame(() => {
+          try { els.btnNext.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { /* ignore */ }
+        });
+      }
+    } else {
+      els.btnNext.disabled = true;
+      els.btnNext.setAttribute('aria-disabled', 'true');
+      setContinueLabel(shippingQuotePending ? 'shipping.calculating' : 'btn.continueNeedShipping');
+      if (actions) actions.classList.toggle('checkout-actions--sticky', !!shippingQuotePending);
     }
   }
 
@@ -2574,6 +2603,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   async function quoteShipping() {
     shippingCost = null;
     shippingInfo = null;
+    shippingQuotePending = true;
     updateContinueButtonVisibility();
     const base = apiBase();
     els.shippingHint.hidden = false;
@@ -2617,7 +2647,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         await refreshDisplayCurrency();
       } else {
         const cep = onlyDigits(els.cep.value);
-        if (cep.length !== 8) return;
+        if (cep.length !== 8) {
+          shippingQuotePending = false;
+          updateContinueButtonVisibility();
+          return;
+        }
         if (base) {
           const valor = cartSubtotal();
           const addr = brAddressQuoteParams();
@@ -2694,6 +2728,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         }
         try { updateSummary(); } catch (_) { /* ignore */ }
       }
+    } finally {
+      shippingQuotePending = false;
+      updateContinueButtonVisibility();
     }
   }
 
