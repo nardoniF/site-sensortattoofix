@@ -3123,8 +3123,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         body: JSON.stringify(orderData)
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || L('alert.orderError'));
+        const errBody = await res.json().catch(() => ({}));
+        const err = new Error(errBody.error || L('alert.orderError'));
+        if (errBody.code) err.code = errBody.code;
+        throw err;
       }
       return res.json();
     }
@@ -3459,7 +3461,27 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       showStep(3);
     } catch (err) {
       await restoreCheckoutAfterPaymentAbort();
-      alert(err.message || L('alert.orderError'));
+      const msg = err.message || L('alert.orderError');
+      const badPw = err.code === 'ACCOUNT_EXISTS_BAD_PASSWORD'
+        || /já (tem|existe) (uma )?conta/i.test(msg)
+        || /already (has|exists).*account/i.test(msg);
+      if (badPw) {
+        // Mantém o usuário no checkout: aba Login + erro inline (sem alert / sem Minha Conta).
+        showStep(1);
+        const emailVal = (els.form?.querySelector('[name=email]')?.value || '').trim();
+        const senhaVal = els.checkoutSenha?.value || '';
+        setCheckoutAccountTab('login');
+        if (els.checkoutLoginEmail && emailVal) els.checkoutLoginEmail.value = emailVal;
+        if (els.checkoutLoginSenha && senhaVal) els.checkoutLoginSenha.value = senhaVal;
+        showCheckoutLoginStatus(L('alert.accountExistsBadPassword') || msg, 'error');
+        setTimeout(() => {
+          try { els.checkoutLoginSenha?.focus?.({ preventScroll: true }); } catch (_) {
+            els.checkoutLoginSenha?.focus?.();
+          }
+        }, 280);
+      } else {
+        alert(msg);
+      }
     } finally {
       els.btnPay.disabled = false;
       setPayBtnLabel('btn.pay');

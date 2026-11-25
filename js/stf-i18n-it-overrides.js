@@ -278,6 +278,7 @@ window.STF_I18N_IT = {
   'alert.band': 'Seleziona marca e modello della tua smartband.',
   'alert.bandNotes': 'Inserisci il modello della smartband nel campo note.',
   'alert.password': 'Crea una password di almeno 6 caratteri o deseleziona "Crea account".',
+  'alert.accountExistsBadPassword': 'Questa email ha già un account. Password errata — riprova o usa “Password dimenticata”.',
   'alert.shippingWait': 'Attendi i preventivi di spedizione e scegli un\'opzione.',
   'alert.shippingPick': 'Seleziona un\'opzione di spedizione.',
   'alert.paypalOnlyIntl': 'In questo checkout usa PayPal per il pagamento internazionale.',
