@@ -1007,6 +1007,137 @@ body.stf-feedback-open { overflow: hidden; }
     margin-bottom: 0;
 }
 
+/* #onde-comprar / landing: Loja Oficial dominante + marketplaces em chips (~1 viewport) */
+#onde-comprar .store-official-bar,
+.onde-comprar-page .store-official-bar {
+    background: var(--primary);
+    border: 2px solid var(--primary);
+    padding: 16px 18px;
+    gap: 16px;
+    box-shadow: 0 10px 28px rgba(255, 193, 7, 0.22);
+}
+#onde-comprar .store-official-bar:hover,
+.onde-comprar-page .store-official-bar:hover {
+    background: #ffd54f;
+    box-shadow: 0 12px 32px rgba(255, 193, 7, 0.3);
+    transform: translateY(-2px);
+}
+#onde-comprar .store-icon-circle,
+.onde-comprar-page .store-icon-circle {
+    width: 72px;
+    height: 72px;
+    border-color: #111;
+    background: #fff;
+}
+#onde-comprar .store-official-info strong,
+.onde-comprar-page .store-official-info strong {
+    color: #111;
+    font-size: 1.22rem;
+}
+#onde-comprar .store-official-price,
+.onde-comprar-page .store-official-price {
+    color: #111;
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+}
+#onde-comprar .store-official-shipping,
+.onde-comprar-page .store-official-shipping {
+    color: #333;
+    font-size: 0.78rem;
+}
+#onde-comprar .store-pay-item,
+.onde-comprar-page .store-pay-item {
+    color: #222;
+}
+#onde-comprar .store-official-payments i,
+.onde-comprar-page .store-official-payments i {
+    color: #111;
+}
+#onde-comprar .store-official-arrow,
+.onde-comprar-page .store-official-arrow {
+    color: #111;
+    font-size: 1.35rem;
+}
+#onde-comprar .onde-comprar-marketplaces-label,
+.onde-comprar-page .onde-comprar-marketplaces-label {
+    margin: 14px 0 10px;
+    font-size: 0.82rem;
+}
+#onde-comprar .stores-grid-3,
+.onde-comprar-page .stores-grid-3 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    align-items: stretch;
+}
+#onde-comprar .stores-grid-3 .store-link,
+.onde-comprar-page .stores-grid-3 .store-link {
+    flex: 1 1 calc(50% - 8px);
+    max-width: calc(50% - 4px);
+    height: auto;
+    min-width: 0;
+}
+#onde-comprar .stores-grid-3 .store-card,
+.onde-comprar-page .stores-grid-3 .store-card {
+    min-height: 48px !important;
+    height: auto;
+    padding: 11px 14px !important;
+    flex-direction: row;
+    gap: 8px;
+    border-radius: 12px !important;
+    justify-content: center;
+}
+#onde-comprar .stores-grid-3 .store-card i,
+.onde-comprar-page .stores-grid-3 .store-card i {
+    font-size: 1.15rem !important;
+    margin-bottom: 0 !important;
+}
+#onde-comprar .stores-grid-3 .store-card h3,
+.onde-comprar-page .stores-grid-3 .store-card h3 {
+    font-size: 0.88rem !important;
+    margin: 0 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#onde-comprar .stores-grid-3 .store-card p,
+.onde-comprar-page .stores-grid-3 .store-card p {
+    display: none !important;
+}
+@media (min-width: 700px) {
+    #onde-comprar .stores-grid-3 .store-link,
+    .onde-comprar-page .stores-grid-3 .store-link {
+        flex: 1 1 0;
+        max-width: none;
+    }
+}
+@media (max-width: 768px) {
+    #onde-comprar .store-pay-label,
+    .onde-comprar-page .store-pay-label { display: none; }
+    #onde-comprar .store-official-shipping,
+    .onde-comprar-page .store-official-shipping {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    #onde-comprar .store-icon-circle,
+    .onde-comprar-page .store-icon-circle {
+        width: 56px;
+        height: 56px;
+    }
+    #onde-comprar .store-official-price,
+    .onde-comprar-page .store-official-price { font-size: 1.25rem; }
+    #onde-comprar .store-official-info strong,
+    .onde-comprar-page .store-official-info strong { font-size: 1.05rem; }
+    #onde-comprar.content-section {
+        padding-top: 28px;
+        padding-bottom: 28px;
+    }
+}
+
 .onde-comprar-marketplaces-label {
     display: flex;
     align-items: center;
