@@ -1927,11 +1927,122 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         });
         select.value = String(item.models?.[index] || '');
         label.appendChild(select);
+        enhanceModelSelect(select);
         fields.appendChild(label);
       }
       section.appendChild(fields);
       mount.appendChild(section);
     });
+  }
+
+  /** Searchable model picker over a native <select> (keeps form value in sync). */
+  function enhanceModelSelect(select) {
+    if (!select || select.dataset.pickerReady === '1') return;
+    select.dataset.pickerReady = '1';
+    select.classList.add('checkout-watch-model-select--native');
+
+    const wrap = document.createElement('div');
+    wrap.className = 'model-picker';
+    select.parentNode.insertBefore(wrap, select);
+    wrap.appendChild(select);
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'model-picker-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const panel = document.createElement('div');
+    panel.className = 'model-picker-panel';
+    panel.hidden = true;
+
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'model-picker-search';
+    search.placeholder = L('store.modelSearch');
+    search.setAttribute('autocomplete', 'off');
+    search.setAttribute('aria-label', L('store.modelSearch'));
+
+    const list = document.createElement('ul');
+    list.className = 'model-picker-list';
+    list.setAttribute('role', 'listbox');
+
+    panel.appendChild(search);
+    panel.appendChild(list);
+    wrap.appendChild(trigger);
+    wrap.appendChild(panel);
+
+    function selectedLabel() {
+      const opt = select.selectedOptions?.[0];
+      if (opt && opt.value) return opt.textContent;
+      const ph = select.querySelector('option[value=""]');
+      return (ph && ph.textContent) || L('store.modelPick');
+    }
+
+    function syncTrigger() {
+      const has = !!select.value;
+      trigger.textContent = selectedLabel();
+      trigger.classList.toggle('is-placeholder', !has);
+      trigger.classList.toggle('is-invalid', select.classList.contains('invalid') && !has);
+    }
+
+    function closePanel() {
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      wrap.classList.remove('is-open');
+    }
+
+    function openPanel() {
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      wrap.classList.add('is-open');
+      search.value = '';
+      renderList('');
+      requestAnimationFrame(() => search.focus());
+    }
+
+    function renderList(query) {
+      const q = String(query || '').trim().toLowerCase();
+      list.innerHTML = '';
+      const options = [...select.querySelectorAll('option')].filter((o) => o.value);
+      options.forEach((opt) => {
+        const text = opt.textContent || opt.value;
+        if (q && !text.toLowerCase().includes(q) && !opt.value.toLowerCase().includes(q)) return;
+        const li = document.createElement('li');
+        li.setAttribute('role', 'option');
+        li.className = 'model-picker-option';
+        li.dataset.value = opt.value;
+        li.textContent = text;
+        if (opt.value === select.value) {
+          li.setAttribute('aria-selected', 'true');
+          li.classList.add('is-selected');
+        }
+        li.addEventListener('click', () => {
+          select.value = opt.value;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          syncTrigger();
+          closePanel();
+        });
+        list.appendChild(li);
+      });
+      if (!list.children.length) {
+        const empty = document.createElement('li');
+        empty.className = 'model-picker-empty';
+        empty.textContent = '—';
+        list.appendChild(empty);
+      }
+    }
+
+    trigger.addEventListener('click', () => {
+      if (panel.hidden) openPanel();
+      else closePanel();
+    });
+    search.addEventListener('input', () => renderList(search.value));
+    document.addEventListener('click', (ev) => {
+      if (!wrap.contains(ev.target)) closePanel();
+    });
+    select.addEventListener('change', syncTrigger);
+    syncTrigger();
   }
 
   function intlCountryLocale() {
