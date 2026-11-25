@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Preview — Hero full-bleed (não publicado)</title>
-  <link rel="stylesheet" href="style.css?v=preview-hero">
+  <title>Preview — Hero com os 3 problemas (não publicado)</title>
+  <link rel="stylesheet" href="style.css?v=preview-hero-pains">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    /* Preview-only: proposed mobile hero. Not wired into production index. */
     body.preview-hero-page { margin: 0; background: #0a0a0a; }
     .preview-banner {
       position: sticky; top: 0; z-index: 2000;
@@ -16,19 +15,25 @@
       padding: 8px 12px; text-align: center;
       border-bottom: 1px solid rgba(255,193,7,.35);
     }
-    .preview-compare {
-      display: grid; gap: 0;
-    }
-    @media (min-width: 900px) {
-      .preview-compare { grid-template-columns: 1fr 1fr; }
+    .preview-compare { display: grid; gap: 0; }
+    @media (min-width: 1100px) {
+      .preview-compare { grid-template-columns: 1fr 1fr 1fr; }
       .preview-pane { border-right: 1px solid #333; }
     }
     .preview-pane-label {
       font: 700 0.7rem/1 var(--font-nav, Outfit, sans-serif);
       letter-spacing: .08em; text-transform: uppercase;
-      color: #888; padding: 10px 14px 0;
+      color: #888; padding: 10px 14px 6px;
     }
-    /* —— Proposed full-bleed hero (mobile composition) —— */
+    .preview-pane-note {
+      color: #666;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      padding: 0 14px 8px;
+      margin: 0;
+    }
+
+    /* Shared full-bleed shell */
     .hero-fullbleed {
       position: relative;
       min-height: calc(100dvh - 52px);
@@ -38,10 +43,7 @@
       overflow: hidden;
       background: #0a0a0a;
     }
-    .hero-fullbleed-media {
-      position: absolute; inset: 0;
-      z-index: 0;
-    }
+    .hero-fullbleed-media { position: absolute; inset: 0; z-index: 0; }
     .hero-fullbleed-media img {
       width: 100%; height: 100%;
       object-fit: cover;
@@ -51,12 +53,12 @@
     .hero-fullbleed-scrim {
       position: absolute; inset: 0;
       background:
-        linear-gradient(180deg, rgba(10,10,10,.55) 0%, rgba(10,10,10,.15) 32%, rgba(10,10,10,.2) 55%, rgba(10,10,10,.92) 100%);
+        linear-gradient(180deg, rgba(10,10,10,.5) 0%, rgba(10,10,10,.12) 30%, rgba(10,10,10,.25) 52%, rgba(10,10,10,.94) 100%);
       pointer-events: none;
     }
     .hero-fullbleed-copy {
       position: relative; z-index: 1;
-      padding: 20px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+      padding: 18px 20px calc(24px + env(safe-area-inset-bottom, 0px));
       max-width: 420px;
       margin: 0 auto;
       width: 100%;
@@ -66,34 +68,35 @@
     .hero-fullbleed-brand {
       font-family: var(--font-nav, Outfit, sans-serif);
       font-weight: 800;
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: #ffc107;
-      margin: 0 0 10px;
+      margin: 0 0 8px;
     }
     .hero-fullbleed-brand span { color: #fff; }
     .hero-fullbleed h1 {
       font-family: var(--font-nav, Outfit, sans-serif);
-      font-size: clamp(1.45rem, 6.2vw, 1.85rem);
+      font-size: clamp(1.35rem, 5.8vw, 1.75rem);
       font-weight: 800;
       line-height: 1.18;
       color: #fff;
-      margin: 0 0 8px;
-      max-width: 18ch;
+      margin: 0 0 12px;
+      max-width: 20ch;
     }
     .hero-fullbleed-lead {
-      margin: 0 0 18px;
+      margin: 0 0 14px;
       color: #c8c8c8;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       line-height: 1.4;
-      max-width: 32ch;
+      max-width: 34ch;
     }
     .hero-fullbleed-actions {
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      gap: 4px;
+      gap: 2px;
+      margin-top: 4px;
     }
     .hero-fullbleed .btn-primary {
       width: 100% !important;
@@ -106,7 +109,6 @@
     .hero-fullbleed-secondary {
       display: inline-flex;
       align-self: flex-start;
-      margin-top: 4px;
       color: #ccc;
       font-weight: 700;
       text-decoration: underline;
@@ -114,32 +116,73 @@
       min-height: 44px;
       align-items: center;
     }
-    /* Current (simplified snapshot for side-by-side) */
+
+    /* Pain list — identificação de feira, sem parágrafo SEO */
+    .hero-pains {
+      list-style: none;
+      margin: 0 0 14px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .hero-pains li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: #f2f2f2;
+      font-family: var(--font-nav, Outfit, sans-serif);
+      font-weight: 700;
+      font-size: 0.98rem;
+      line-height: 1.25;
+    }
+    .hero-pains li i {
+      color: #ffc107;
+      margin-top: 2px;
+      width: 1.1em;
+      text-align: center;
+      flex: 0 0 auto;
+    }
+    .hero-pains-caption {
+      margin: 0 0 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #a8a8a8;
+    }
+    .hero-resolve {
+      margin: 0 0 16px;
+      color: #d7d7d7;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .hero-resolve strong { color: #ffc107; font-weight: 700; }
+
+    /* Current snap */
     .hero-current-snap {
       padding: 16px 16px 28px;
       background: #0a0a0a;
       min-height: calc(100dvh - 52px);
       box-sizing: border-box;
     }
-    .hero-current-snap .badge {
-      display: inline-block;
-      margin-bottom: 12px;
-    }
+    .hero-current-snap .badge { display: inline-block; margin-bottom: 12px; }
     .hero-current-snap h1 {
-      font-size: 1.55rem;
+      font-size: 1.45rem;
       line-height: 1.15;
       margin: 0 0 12px;
       font-weight: 900;
     }
     .hero-current-snap p {
       color: #888;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       margin: 0 0 18px;
       line-height: 1.45;
     }
     .hero-current-snap .btn-primary {
       width: 100%;
       min-width: 0;
+      max-width: none !important;
       justify-content: center;
       margin-bottom: 10px;
     }
@@ -152,22 +195,26 @@
   </style>
 </head>
 <body class="preview-hero-page home-page">
-  <div class="preview-banner">PREVIEW — não está no site ao vivo. Só para você comparar o hero.</div>
+  <div class="preview-banner">PREVIEW — não está no site ao vivo. Compare as 3 versões do hero.</div>
   <div class="preview-compare">
+
     <div class="preview-pane">
-      <p class="preview-pane-label">Hoje (aproximado)</p>
+      <p class="preview-pane-label">A · Hoje</p>
+      <p class="preview-pane-note">Texto longo + foto só depois do scroll. Muita informação, pouco produto na 1ª tela.</p>
       <div class="hero-current-snap">
         <span class="badge">3N20 · Patente pedida</span>
         <h1>Smartwatch pede senha, não mede batimentos ou pausa o treino sozinho?</h1>
         <p>Pede <strong>senha a todo momento</strong>, <strong>não lê batimentos</strong>, <strong>desconecta</strong> ou <strong>pausa treinos sozinho</strong>? Em braços tatuados, a tinta bloqueia o sensor ótico…</p>
         <a class="btn-primary" href="#">Comprar — 62,90 + frete</a>
         <a class="hero-cta-secondary" href="#" style="color:#ccc">Como funciona</a>
-        <img src="images/home/relogio_home.jpg" alt="Produto (só depois do texto, no mobile atual)">
+        <img src="images/home/relogio_home.jpg" alt="">
       </div>
     </div>
+
     <div class="preview-pane">
-      <p class="preview-pane-label">Proposta (full-bleed)</p>
-      <section class="hero-fullbleed" aria-label="Proposta de hero">
+      <p class="preview-pane-label">B · Curto demais</p>
+      <p class="preview-pane-note">Bonito, mas sem os gatilhos que o público da feira reconhece na hora.</p>
+      <section class="hero-fullbleed" aria-label="Proposta curta">
         <div class="hero-fullbleed-media" aria-hidden="true">
           <img src="images/home/relogio_home.jpg" alt="">
           <div class="hero-fullbleed-scrim"></div>
@@ -183,6 +230,33 @@
         </div>
       </section>
     </div>
+
+    <div class="preview-pane">
+      <p class="preview-pane-label">C · Meio-termo (recomendado)</p>
+      <p class="preview-pane-note">Foto full-bleed + os 3 problemas da feira em lista curta — sem parágrafo SEO.</p>
+      <section class="hero-fullbleed" aria-label="Proposta com problemas">
+        <div class="hero-fullbleed-media" aria-hidden="true">
+          <img src="images/home/relogio_home.jpg" alt="">
+          <div class="hero-fullbleed-scrim"></div>
+        </div>
+        <div class="hero-fullbleed-copy">
+          <p class="hero-fullbleed-brand">SENSOR<span>TATTOOFIX</span></p>
+          <h1>Smartwatch × tatuagem?</h1>
+          <p class="hero-pains-caption">Se o relógio…</p>
+          <ul class="hero-pains">
+            <li><i class="fas fa-lock" aria-hidden="true"></i><span>Pede senha o tempo todo</span></li>
+            <li><i class="fas fa-heartbeat" aria-hidden="true"></i><span>Não mede os batimentos</span></li>
+            <li><i class="fas fa-running" aria-hidden="true"></i><span>Pausa os treinos sozinho</span></li>
+          </ul>
+          <p class="hero-resolve">A <strong>lente ótica</strong> restaura o sensor — sem desligar a detecção de pulso.</p>
+          <div class="hero-fullbleed-actions">
+            <a class="btn-primary" href="loja.html">Comprar — 62,90 + frete</a>
+            <a class="hero-fullbleed-secondary" href="#produtos">Como funciona</a>
+          </div>
+        </div>
+      </section>
+    </div>
+
   </div>
 </body>
 </html>
