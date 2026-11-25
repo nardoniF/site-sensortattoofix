@@ -463,6 +463,140 @@ html[lang="sl"] .nav-main a { font-size: 0.72rem; padding: 4px 1px; }
 .btn-primary { background: var(--primary); color: #000 !important; padding: 16px 26px; border-radius: 12px; text-decoration: none; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; text-align: center; border: none; min-width: 220px; cursor: pointer; }
 .product-img { width: 100%; border-radius: 20px; border: 1px solid #222; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
 
+/* Home hero — full-bleed product + short pains (feira) */
+.home-page .hero.hero--fullbleed {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: stretch;
+    min-height: calc(100dvh - 100px);
+    padding: 0;
+    overflow: hidden;
+    background: #0a0a0a;
+}
+.hero--fullbleed .hero-fullbleed-media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+.hero--fullbleed .hero-fullbleed-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 28%;
+    display: block;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+.hero--fullbleed .hero-fullbleed-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgba(10, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.12) 30%, rgba(10, 10, 10, 0.28) 52%, rgba(10, 10, 10, 0.94) 100%);
+    pointer-events: none;
+}
+.hero--fullbleed .hero-fullbleed-copy {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 28px 25px calc(36px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    text-align: left;
+}
+.hero--fullbleed .hero-fullbleed-brand {
+    font-family: var(--font-nav);
+    font-weight: 800;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin: 0 0 10px;
+}
+.hero--fullbleed .hero-fullbleed-brand span { color: #fff; }
+.hero--fullbleed h1 {
+    font-family: var(--font-nav);
+    font-size: clamp(1.55rem, 4vw, 2.35rem);
+    font-weight: 800;
+    line-height: 1.15;
+    color: #fff;
+    margin: 0 0 14px;
+    max-width: 16ch;
+}
+.hero--fullbleed .hero-pains-caption {
+    margin: 0 0 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #a8a8a8;
+}
+.hero--fullbleed .hero-pains {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+.hero--fullbleed .hero-pains li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #f2f2f2;
+    font-family: var(--font-nav);
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.25;
+}
+.hero--fullbleed .hero-pains li i {
+    color: var(--primary);
+    margin-top: 2px;
+    width: 1.1em;
+    text-align: center;
+    flex: 0 0 auto;
+}
+.hero--fullbleed .hero-resolve {
+    margin: 0 0 18px;
+    color: #d7d7d7;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    max-width: 36ch;
+}
+.hero--fullbleed .hero-btns {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+}
+.hero--fullbleed .hero-btns .btn-primary {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    justify-content: center;
+    box-sizing: border-box;
+}
+.hero--fullbleed .hero-cta-secondary {
+    align-self: flex-start;
+    min-height: 44px;
+    text-align: left;
+}
+@media (max-width: 640px) {
+    .home-page .hero.hero--fullbleed ~ * .whatsapp-float,
+    body.home-page:has(.hero--fullbleed) .whatsapp-float {
+        bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+    body.home-page:has(.hero--fullbleed) .stf-feedback-fab {
+        bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+}
+.hero--fullbleed .hero-trust-row--below-cta,
+.hero--fullbleed .hero-trust-row--compact {
+    margin-top: 10px;
+}
+
 #produtos .product-solution-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -2306,7 +2440,20 @@ footer,
         padding-top: 16px;
         padding-bottom: 32px;
     }
+    .home-page .hero.hero--fullbleed {
+        min-height: calc(100dvh - 64px);
+        padding: 0;
+        align-items: flex-end;
+    }
     .home-page .hero-grid { padding-top: 0; }
+    .hero--fullbleed .hero-fullbleed-copy {
+        padding: 18px 16px calc(22px + env(safe-area-inset-bottom, 0px));
+    }
+    .hero--fullbleed h1 {
+        font-size: clamp(1.4rem, 6.2vw, 1.85rem);
+        max-width: 14ch;
+    }
+    .hero--fullbleed .hero-pains li { font-size: 0.95rem; }
 
     .site-social {
         border-left: none;
@@ -9766,3 +9913,15 @@ body.admin-page input[type="search"]::-webkit-search-results-button {
   font-size: 0.95rem;
 }
 .footer-guias-static a { color: var(--primary, #ffc107); }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
