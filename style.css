@@ -437,7 +437,21 @@ html[lang="sl"] .nav-main a { font-size: 0.72rem; padding: 4px 1px; }
 .home-page .hero > .container { width: 100%; max-width: 100%; }
 .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 55px; align-items: center; min-width: 0; }
 .hero-text { min-width: 0; max-width: 100%; }
-.badge { color: var(--primary); font-weight: 800; text-transform: uppercase; border: 1px solid var(--primary); padding: 6px 14px; border-radius: 50px; font-size: 0.9rem; }
+.badge {
+    color: var(--primary);
+    font-weight: 800;
+    text-transform: uppercase;
+    border: 1px solid var(--primary);
+    padding: 5px 12px;
+    border-radius: 50px;
+    font-size: clamp(0.68rem, 2.6vw, 0.9rem);
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
 .hero h1 { font-size: 3.5rem; font-weight: 900; line-height: 1.05; margin: 28px 0; }
 .hero p { font-size: 1.1rem; color: var(--gray); margin-bottom: 38px; }
 .hero-btns { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
@@ -3813,6 +3827,60 @@ body.checkout-page:not(.forum-page):not(.conta-page) .whatsapp-float {
     .checkout-sticky-total strong { font-size: 1.05rem; }
     /* Header checkout: esconde idioma para caber Carrinho + conta + Voltar */
     .checkout-page .checkout-nav .nav-lang-stack { display: none; }
+
+    /* P2-2: loja/checkout — ícones só; Início/Voltar = seta (logo = home) */
+    .loja-page .logo-area .logo-lockup,
+    .checkout-page .logo-area .logo-lockup { display: none; }
+    .loja-page .checkout-nav,
+    .checkout-page .checkout-nav {
+        gap: 4px;
+        align-items: center;
+    }
+    .loja-page .checkout-nav .cart-nav-link,
+    .checkout-page .checkout-nav .cart-nav-link {
+        font-size: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px;
+        gap: 0;
+    }
+    .loja-page .checkout-nav .cart-nav-link i,
+    .checkout-page .checkout-nav .cart-nav-link i {
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+    .loja-page .checkout-nav .cart-nav-link .cart-badge,
+    .checkout-page .checkout-nav .cart-nav-link .cart-badge {
+        font-size: 0.65rem;
+        position: absolute;
+        top: 2px;
+        right: 0;
+    }
+    .loja-page .checkout-nav > li > a[href*="index"]:not(.nav-lang),
+    .checkout-page .checkout-nav > li > a[href*="index"]:not(.nav-lang) {
+        font-size: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px;
+    }
+    .loja-page .checkout-nav > li > a[href*="index"] i,
+    .checkout-page .checkout-nav > li > a[href*="index"] i {
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+    .loja-page .checkout-nav .nav-lang span { display: none; }
+    .loja-page .checkout-nav .nav-lang {
+        padding: 8px;
+        min-width: 44px;
+        min-height: 44px;
+    }
 }
 
 /* ADMIN PANEL */
@@ -7538,9 +7606,10 @@ body.admin-page.pedidos-login-only #pedidos-login {
 }
 .loja-toast {
     position: fixed;
-    bottom: 24px;
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    bottom: auto;
     left: 50%;
-    transform: translateX(-50%) translateY(20px);
+    transform: translateX(-50%) translateY(-12px);
     background: #222;
     color: #fff;
     border: 1px solid var(--primary);
@@ -7550,6 +7619,8 @@ body.admin-page.pedidos-login-only #pedidos-login {
     pointer-events: none;
     transition: opacity .2s, transform .2s;
     z-index: 9999;
+    max-width: calc(100vw - 32px);
+    text-align: center;
 }
 .loja-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -7601,7 +7672,8 @@ body.loja-has-sticky-cart .stf-feedback-fab {
     bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 body.loja-has-sticky-cart .loja-toast.show {
-    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    top: calc(72px + env(safe-area-inset-top, 0px));
+    bottom: auto;
 }
 @media (max-width: 640px) {
     body.loja-has-sticky-cart .whatsapp-float,
