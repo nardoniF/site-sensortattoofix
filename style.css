@@ -114,9 +114,7 @@ nav,
     white-space: nowrap;
 }
 
-.hero-brand-mobile {
-    display: none;
-}
+/* hero-brand-mobile removido — marca só no header (evita logo duplicada no 1º viewport) */
 
 .nav-panel {
     display: flex;
@@ -196,13 +194,17 @@ nav,
 .nav-lang {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
     font-size: 0.72rem;
     font-weight: 700;
     padding: 6px 8px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 8px;
     border: 1px solid #333;
     background: #111;
+    box-sizing: border-box;
 }
 
 .nav-lang:hover { border-color: var(--primary); color: var(--primary); }
@@ -215,11 +217,12 @@ nav,
 }
 
 .nav-lang-stack .nav-lang {
-    padding: 3px 6px;
-    font-size: 0.62rem;
-    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.72rem;
+    border-radius: 8px;
     line-height: 1;
-    min-width: 42px;
+    min-width: 44px;
+    min-height: 44px;
     justify-content: center;
 }
 
@@ -2225,8 +2228,9 @@ footer,
         align-items: center;
     }
     .nav-lang-stack .nav-lang {
-        padding: 5px 6px;
-        min-width: 0;
+        padding: 8px 10px;
+        min-width: 44px;
+        min-height: 44px;
     }
     .nav-lang-toggle span {
         display: inline;
@@ -2251,28 +2255,6 @@ footer,
     .home-page .mobile-menu-icon {
         order: 99;
         margin-left: 2px;
-    }
-    .home-page .hero-brand-mobile {
-        --logo-h: 80px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: fit-content;
-        max-width: 100%;
-        margin: 0 auto 14px;
-        text-align: center;
-        gap: 0;
-    }
-    .home-page .hero-brand-mobile .hero-brand-logo {
-        display: block;
-        height: var(--logo-h);
-        width: auto;
-        max-width: min(380px, 94vw);
-        object-fit: contain;
-    }
-    .home-page .hero-brand-mobile .logo-text,
-    .home-page .hero-brand-mobile .logo-tagline {
-        display: none;
     }
     .home-page .hero {
         min-height: calc(100dvh - 64px);
@@ -7866,14 +7848,20 @@ body.stf-lightbox-open { overflow: hidden; }
 .cart-line-price { font-size: 0.8rem; color: var(--gray); }
 .cart-qty { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; }
 .cart-qty-btn {
-    width: 26px; height: 26px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border: 1px solid #444;
     background: #1a1a1a;
     color: #fff;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 1.15rem;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .cart-remove {
     border: none;
@@ -7882,7 +7870,14 @@ body.stf-lightbox-open { overflow: hidden; }
     font-size: 1.4rem;
     cursor: pointer;
     line-height: 1;
-    padding: 0 4px;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .cart-remove:hover { color: #f66; }
 .cart-add-more {
