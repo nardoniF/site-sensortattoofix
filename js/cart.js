@@ -176,13 +176,34 @@ window.STF_CART = (function () {
     return items;
   }
 
+  function syncHomeCartNav() {
+    const n = count();
+    document.querySelectorAll('[data-home-cart-nav]').forEach((link) => {
+      const lojaHref = link.getAttribute('data-loja-href') || 'loja.html';
+      const cartHref = link.getAttribute('data-cart-href') || 'comprar.html';
+      link.setAttribute('href', n > 0 ? cartHref : lojaHref);
+      const label = link.querySelector('.btn-nav-label');
+      const emptyLabel = link.getAttribute('data-label-empty');
+      const filledLabel = link.getAttribute('data-label-cart');
+      if (label && emptyLabel && filledLabel) {
+        label.textContent = n > 0 ? filledLabel : emptyLabel;
+      }
+      const title = n > 0
+        ? (link.getAttribute('data-title-cart') || filledLabel || 'Carrinho')
+        : (link.getAttribute('data-title-empty') || emptyLabel || 'Loja');
+      link.setAttribute('title', title);
+      link.setAttribute('aria-label', title);
+    });
+  }
+
   function notify() {
     window.dispatchEvent(new CustomEvent('stf-cart-updated', { detail: { count: count() } }));
+    const n = count();
     document.querySelectorAll('[data-cart-badge]').forEach((el) => {
-      const n = count();
       el.textContent = String(n);
       el.hidden = n === 0;
     });
+    syncHomeCartNav();
   }
 
   function initBadges() {

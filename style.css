@@ -300,7 +300,7 @@ nav,
 }
 
 .btn-nav i { font-size: 0.95rem; }
-.btn-nav-comprar { gap: 5px; }
+.btn-nav-comprar { position: relative; gap: 5px; }
 .btn-nav-comprar .btn-nav-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.02em; }
 
 .mobile-menu-checkbox { display: none; }
@@ -7552,6 +7552,17 @@ body.admin-page.pedidos-login-only #pedidos-login {
     font-size: 11px;
     font-weight: 800;
     margin-left: 4px;
+}
+.cart-badge[hidden] { display: none !important; }
+.btn-nav-comprar .cart-badge {
+    position: absolute;
+    top: -5px;
+    right: -6px;
+    margin-left: 0;
+    min-width: 16px;
+    height: 16px;
+    font-size: 10px;
+    pointer-events: none;
 }
 .cart-sidebar-title { font-size: 1.1rem; margin: 0 0 12px; color: var(--primary); }
 .cart-sidebar-items { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
