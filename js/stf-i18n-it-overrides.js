@@ -261,6 +261,8 @@ window.STF_I18N_IT = {
   'store.shippingChannelsIntl': 'Spedizione tracciata · prezzo al checkout',
   'store.add': 'Aggiungi',
   'store.buy': 'Acquista',
+  'store.stickyCart': 'Carrello ({n})',
+  'store.stickyCheckout': 'Vai al pagamento',
   'store.ratingScore': '5,0',
   'store.ratingCount': '(15)',
   'store.ratingAria': 'Valutazione 5,0 su 5 basata su 15 recensioni',
