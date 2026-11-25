@@ -1974,7 +1974,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
     function selectedLabel() {
       const opt = select.selectedOptions?.[0];
-      return (opt && opt.value) ? opt.textContent : (select.getAttribute('aria-label') || L('store.modelPick'));
+      if (opt && opt.value) return opt.textContent;
+      const ph = select.querySelector('option[value=""]');
+      return (ph && ph.textContent) || L('store.modelPick');
     }
 
     function syncTrigger() {

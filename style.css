@@ -3106,8 +3106,9 @@ a.stf-tiktok-card:hover {
     position: absolute;
     left: 0;
     right: 0;
-    top: calc(100% + 4px);
-    z-index: 40;
+    bottom: calc(100% + 4px);
+    top: auto;
+    z-index: 1100;
     background: #141414;
     border: 1px solid #333;
     border-radius: 10px;
