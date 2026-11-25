@@ -470,7 +470,8 @@ html[lang="sl"] .nav-main a { font-size: 0.72rem; padding: 4px 1px; }
     align-items: flex-end;
     justify-content: stretch;
     min-height: calc(100dvh - 100px);
-    padding: 0;
+    /* Espaço sob o copy: sobe o bloco e libera FABs (Sugestões / WhatsApp) */
+    padding: 0 0 calc(72px + env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     background: #0a0a0a;
 }
@@ -493,9 +494,9 @@ html[lang="sl"] .nav-main a { font-size: 0.72rem; padding: 4px 1px; }
 .hero--fullbleed .hero-fullbleed-scrim {
     position: absolute;
     inset: 0;
-    /* Scrim leve no topo — escurece só a faixa do texto */
+    /* Faixa escura sobe junto com o copy */
     background:
-        linear-gradient(180deg, rgba(10, 10, 10, 0.18) 0%, rgba(10, 10, 10, 0.05) 38%, rgba(10, 10, 10, 0.35) 62%, rgba(10, 10, 10, 0.92) 100%);
+        linear-gradient(180deg, rgba(10, 10, 10, 0.16) 0%, rgba(10, 10, 10, 0.04) 32%, rgba(10, 10, 10, 0.42) 52%, rgba(10, 10, 10, 0.9) 78%, rgba(10, 10, 10, 0.72) 100%);
     pointer-events: none;
 }
 .hero--fullbleed .hero-fullbleed-copy {
@@ -504,7 +505,7 @@ html[lang="sl"] .nav-main a { font-size: 0.72rem; padding: 4px 1px; }
     width: 100%;
     max-width: 520px;
     margin: 0 auto;
-    padding: 18px 25px calc(28px + env(safe-area-inset-bottom, 0px));
+    padding: 18px 25px 8px;
     box-sizing: border-box;
     text-align: left;
 }
@@ -516,11 +517,14 @@ html[lang="sl"] .nav-main a { font-size: 0.72rem; padding: 4px 1px; }
     margin-right: auto;
 }
 @media (min-width: 900px) {
+    .home-page .hero.hero--fullbleed {
+        padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    }
     /* Texto à esquerda — braço/relógio respiram à direita no portal */
     .home-page .hero.hero--fullbleed > .container.hero-fullbleed-copy {
         margin-left: max(40px, calc((100% - 1200px) / 2));
         margin-right: auto;
-        padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: 8px;
     }
     .hero--fullbleed .hero-fullbleed-media img {
         object-position: center 16%;
@@ -2438,12 +2442,12 @@ footer,
     }
     .home-page .hero.hero--fullbleed {
         min-height: calc(100dvh - 64px);
-        padding: 0;
+        padding: 0 0 calc(80px + env(safe-area-inset-bottom, 0px));
         align-items: flex-end;
     }
     .home-page .hero-grid { padding-top: 0; }
     .hero--fullbleed .hero-fullbleed-copy {
-        padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+        padding: 14px 16px 6px;
     }
     .hero--fullbleed h1 {
         font-size: clamp(1.4rem, 6.2vw, 1.85rem);
