@@ -1177,7 +1177,9 @@ window.STF_I18N = (function () {
       const count = badge ? badge.textContent : '0';
       const hidden = badge ? badge.hidden : true;
       cartLink.href = comprarPageHref();
-      cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} <span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
+      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i> ${t('nav.cart')} <span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
+      cartLink.setAttribute('aria-label', t('nav.cart'));
+      cartLink.setAttribute('title', t('nav.cart'));
       window.STF_CART?.initBadges?.();
     }
     const shopLink = document.querySelector('.checkout-nav a[href*="loja"]:not(.cart-nav-link)');
@@ -1188,7 +1190,9 @@ window.STF_I18N = (function () {
     const backLink = document.querySelector('.checkout-nav a[href*="index"]:not([href*="#"])');
     if (backLink) {
       backLink.href = pageHref('index');
-      backLink.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.home')}`;
+      backLink.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i> ${t('nav.home')}`;
+      backLink.setAttribute('aria-label', t('nav.home'));
+      backLink.setAttribute('title', t('nav.home'));
     }
     const footer = document.querySelector('[data-site-footer]');
     if (footer) footer.dataset.lang = getLang();
@@ -1213,7 +1217,9 @@ window.STF_I18N = (function () {
       const count = badge ? badge.textContent : '0';
       const hidden = badge ? badge.hidden : true;
       cartLink.href = comprarPageHref();
-      cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} <span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
+      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i> ${t('nav.cart')} <span data-cart-badge class="cart-badge"${hidden ? ' hidden' : ''}>${count}</span>`;
+      cartLink.setAttribute('aria-label', t('nav.cart'));
+      cartLink.setAttribute('title', t('nav.cart'));
       window.STF_CART?.initBadges?.();
     }
     const addMore = document.querySelector('.cart-add-more');
@@ -1221,7 +1227,9 @@ window.STF_I18N = (function () {
     const backLink = document.querySelector('.checkout-nav a[href*="index"]');
     if (backLink) {
       backLink.href = pageHref('index');
-      backLink.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.back')}`;
+      backLink.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i> ${t('nav.back')}`;
+      backLink.setAttribute('aria-label', t('nav.back'));
+      backLink.setAttribute('title', t('nav.back'));
     }
 
     const cartTitle = document.querySelector('.cart-sidebar-title');
@@ -1382,7 +1390,9 @@ window.STF_I18N = (function () {
     if (cartLink) {
       const badge = cartLink.querySelector('[data-cart-badge]');
       cartLink.href = comprarPageHref();
-      cartLink.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t('nav.cart')} `;
+      cartLink.innerHTML = `<i class="fas fa-shopping-cart" aria-hidden="true"></i> ${t('nav.cart')} `;
+      cartLink.setAttribute('aria-label', t('nav.cart'));
+      cartLink.setAttribute('title', t('nav.cart'));
       if (badge) {
         cartLink.appendChild(badge);
       } else {
@@ -1400,7 +1410,9 @@ window.STF_I18N = (function () {
     const back = document.querySelector('.nav-links a[href*="index"]');
     if (back) {
       back.href = pageHref('index');
-      back.innerHTML = `<i class="fas fa-arrow-left"></i> ${t('nav.home')}`;
+      back.innerHTML = `<i class="fas fa-arrow-left" aria-hidden="true"></i> ${t('nav.home')}`;
+      back.setAttribute('aria-label', t('nav.home'));
+      back.setAttribute('title', t('nav.home'));
     }
     const grid = document.getElementById('loja-grid');
     if (grid?.querySelector('.fa-spinner')) {
