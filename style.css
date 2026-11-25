@@ -1047,8 +1047,10 @@ body.stf-feedback-open { overflow: hidden; }
     font-size: 0.78rem;
 }
 #onde-comprar .store-pay-item,
-.onde-comprar-page .store-pay-item {
-    color: #222;
+.onde-comprar-page .store-pay-item,
+#onde-comprar .store-pay-label,
+.onde-comprar-page .store-pay-label {
+    color: #111;
 }
 #onde-comprar .store-official-payments i,
 .onde-comprar-page .store-official-payments i {
@@ -1538,7 +1540,7 @@ body.stf-feedback-open { overflow: hidden; }
     color: var(--primary);
     flex-shrink: 0;
 }
-.store-official-info span:not(.store-official-price):not(.store-official-shipping):not(.store-official-payments):not(.store-official-head) {
+.store-official-info span:not(.store-official-price):not(.store-official-shipping):not(.store-official-payments):not(.store-official-head):not(.store-pay-item):not(.store-pay-label) {
     color: var(--primary);
     font-size: 0.95rem;
     font-weight: 600;
