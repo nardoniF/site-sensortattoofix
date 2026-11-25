@@ -1223,6 +1223,7 @@ window.STF_I18N = (function () {
     }
     applyText('.checkout-summary .summary-row:nth-child(1) > span:first-child', 'summary.subtotal');
     applyText('.checkout-summary .summary-row.total > span:first-child', 'summary.total');
+    applyText('.checkout-sticky-total-label', 'summary.total');
     applyText('#summary-shipping-label', 'summary.shipping');
     applyText('#summary-paypal-label', 'summary.paypalFee');
     if (window.STF_SITE?.isIntlHost?.() || /\.sensortattoofix\.com$/i.test(location.hostname)) {

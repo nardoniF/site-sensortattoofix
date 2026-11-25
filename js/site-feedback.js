@@ -257,7 +257,8 @@
   }
 
   function shouldShow() {
-    if (/admin\.html|pedidos\.html|documentacao\.html|imprimir-etiqueta/i.test(location.pathname)) return false;
+    // Esconde no checkout de compra (barra sticky Total+Continuar / thumb zone).
+    if (/admin\.html|pedidos\.html|documentacao\.html|imprimir-etiqueta|comprar\.html/i.test(location.pathname)) return false;
     return true;
   }
 

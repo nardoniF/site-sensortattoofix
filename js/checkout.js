@@ -349,6 +349,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     summaryPaypalRow: document.getElementById('summary-paypal-row'),
     summaryPaypal: document.getElementById('summary-paypal'),
     summaryTotal: document.getElementById('summary-total'),
+    stickyTotal: document.getElementById('checkout-sticky-total'),
+    stickyTotalValue: document.getElementById('checkout-sticky-total-value'),
     shippingHint: document.getElementById('shipping-hint'),
     shippingOptionsWrap: document.getElementById('shipping-options-wrap'),
     shippingOptionsEl: document.getElementById('shipping-options'),
@@ -2381,15 +2383,19 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function updateContinueButtonVisibility() {
     if (!els.btnNext) return;
     const onStep1 = currentStep === 1;
+    const onStep2 = currentStep === 2;
     const ready = shippingCost !== null && !!shippingInfo;
     const actions = els.btnNext.closest('.checkout-actions');
+
+    // Sticky com Total nos passos Dados e Pagamento (thumb zone).
+    if (actions) actions.classList.toggle('checkout-actions--sticky', onStep1 || onStep2);
+    if (els.stickyTotal) els.stickyTotal.hidden = !(onStep1 || onStep2);
 
     // Fora do passo 1: esconde Continuar (Pagamento usa Finalizar).
     if (!onStep1) {
       els.btnNext.style.display = 'none';
       els.btnNext.disabled = true;
       els.btnNext.removeAttribute('aria-disabled');
-      if (actions) actions.classList.remove('checkout-actions--sticky');
       return;
     }
 
@@ -2401,7 +2407,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.btnNext.disabled = false;
       els.btnNext.removeAttribute('aria-disabled');
       setContinueLabel('btn.continue');
-      if (actions) actions.classList.add('checkout-actions--sticky');
       if (wasDisabled) {
         requestAnimationFrame(() => {
           try { els.btnNext.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) { /* ignore */ }
@@ -2411,7 +2416,6 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.btnNext.disabled = true;
       els.btnNext.setAttribute('aria-disabled', 'true');
       setContinueLabel(shippingQuotePending ? 'shipping.calculating' : 'btn.continueNeedShipping');
-      if (actions) actions.classList.toggle('checkout-actions--sticky', !!shippingQuotePending);
     }
   }
 
@@ -2763,10 +2767,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           els.summaryPaypal.textContent = formatCheckoutMoney(paypalFee, null, 'shipping');
         }
       }
-      if (els.summaryTotal) {
-        els.summaryTotal.textContent = ship === null
+      {
+        const totalText = ship === null
           ? '—'
           : formatCheckoutMoney(afterDisc + ship + paypalFee, null, 'cart-total');
+        if (els.summaryTotal) els.summaryTotal.textContent = totalText;
+        if (els.stickyTotalValue) els.stickyTotalValue.textContent = totalText;
       }
       if (els.checkoutCoupon) els.checkoutCoupon.hidden = orderSidebarLocked;
     } catch (e) {
@@ -3945,6 +3951,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       els.summaryProduct = document.getElementById('summary-product') || els.summaryProduct;
       els.summaryShipping = document.getElementById('summary-shipping') || els.summaryShipping;
       els.summaryTotal = document.getElementById('summary-total') || els.summaryTotal;
+      els.stickyTotal = document.getElementById('checkout-sticky-total') || els.stickyTotal;
+      els.stickyTotalValue = document.getElementById('checkout-sticky-total-value') || els.stickyTotalValue;
       els.checkoutSidebar = document.querySelector('.checkout-sidebar') || els.checkoutSidebar;
       els.shippingHint = document.getElementById('shipping-hint') || els.shippingHint;
       els.shippingOptionsWrap = document.getElementById('shipping-options-wrap') || els.shippingOptionsWrap;
