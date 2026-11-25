@@ -227,6 +227,7 @@ window.STF_I18N_IT = {
   'pay.paypalHintUsd': 'Saldo PayPal, carta o debito · EUR',
   'alert.intlDocNoAggregated': 'La spedizione come lettera/documento invia solo la lente — rimuovi pellicole e cinturini dal carrello, oppure scegli spedizione come pacco.',
   'btn.continue': 'Continua',
+  'btn.continueNeedShipping': 'Calcola la spedizione per continuare',
   'btn.back': 'Indietro',
   'btn.pay': 'Effettua ordine',
   'btn.processing': 'Elaborazione in corso...',

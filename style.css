@@ -2271,6 +2271,15 @@ footer,
         min-width: 0;
         box-sizing: border-box;
     }
+    .hero-btns > .hero-cta-loja {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+    .hero-btns > .hero-cta-secondary {
+        width: 100%;
+        justify-content: center;
+    }
     .btn-primary { width: auto; min-width: unset; max-width: 220px; }
     .btn-primary, .btn-secondary { margin-left: auto; margin-right: auto; }
     #produtos .product-solution-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
@@ -3381,6 +3390,25 @@ a.stf-tiktok-card:hover {
     font-size: 1rem;
     letter-spacing: 0.01em;
 }
+.btn-checkout-next:disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+    box-shadow: none;
+    filter: saturate(0.75);
+}
+.hero-cta-secondary {
+    color: #ccc;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    padding: 10px 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+}
+.hero-cta-secondary:hover { color: #fff; }
+.hero-cta-loja .hero-cta-price { font-weight: 800; white-space: nowrap; }
 .btn-checkout-icon {
     display: inline-flex;
     align-items: center;
