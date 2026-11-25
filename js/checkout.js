@@ -2388,7 +2388,10 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const actions = els.btnNext.closest('.checkout-actions');
 
     // Sticky com Total nos passos Dados e Pagamento (thumb zone).
-    if (actions) actions.classList.toggle('checkout-actions--sticky', onStep1 || onStep2);
+    if (actions) {
+      actions.classList.toggle('checkout-actions--sticky', onStep1 || onStep2);
+      actions.classList.toggle('checkout-actions--with-back', onStep2);
+    }
     if (els.stickyTotal) els.stickyTotal.hidden = !(onStep1 || onStep2);
 
     // Fora do passo 1: esconde Continuar (Pagamento usa Finalizar).
