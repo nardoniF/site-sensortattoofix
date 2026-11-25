@@ -1,7 +1,7 @@
 /**
  * Trust line for international storefront (.com and /en/ /it/).
- * One horizontal line beside the hero "3N20 Technology • Patent pending" badge —
- * never a top bar (that pushed Discover / Where to Buy off the first screen).
+ * Placed BELOW the hero CTA so badge + H1 + buy stay in the first viewport
+ * (was beside the badge and pushed CTAs down on mobile).
  */
 (function () {
   function isIntlPage() {
@@ -21,16 +21,13 @@
   function injectTrustLine() {
     if (document.querySelector('.site-trust-inline, .site-trust-bar')) return;
 
-    const badge = document.querySelector('.hero-text > .badge, .hero-text .badge');
-    if (!badge || !badge.parentElement) return;
+    const heroText = document.querySelector('.hero-text');
+    if (!heroText) return;
 
     const row = document.createElement('div');
-    row.className = 'hero-trust-row site-trust-inline';
+    row.className = 'hero-trust-row site-trust-inline hero-trust-row--below-cta';
     row.setAttribute('role', 'note');
     row.setAttribute('aria-label', copy.label);
-
-    badge.replaceWith(row);
-    row.appendChild(badge);
 
     const line = document.createElement('p');
     line.className = 'site-trust-inline-main';
@@ -43,6 +40,13 @@
         '<a href="mailto:' + EMAIL + '">' + EMAIL + '</a>' +
       '</span>';
     row.appendChild(line);
+
+    const btns = heroText.querySelector('.hero-btns');
+    if (btns) {
+      btns.insertAdjacentElement('afterend', row);
+    } else {
+      heroText.appendChild(row);
+    }
   }
 
   if (document.readyState === 'loading') {
