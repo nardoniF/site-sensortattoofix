@@ -1079,6 +1079,8 @@ function orderCouponEmailFields(order) {
   if (order.couponCommissionAmount != null) {
     fields['Comissão a pagar'] = formatBRL(order.couponCommissionAmount);
   }
+  const pix = String(order.couponCommissionerPix || '').trim();
+  if (pix) fields['PIX do comissionado'] = pix;
   return fields;
 }
 
@@ -1111,6 +1113,8 @@ async function notifyCouponCommissioner(env, config, order) {
   if (order.couponCommissionAmount != null) {
     fields['Comissão a receber'] = formatBRL(order.couponCommissionAmount);
   }
+  const pix = String(order.couponCommissionerPix || '').trim();
+  if (pix) fields['Seu PIX cadastrado'] = pix;
   fields.Pagamento = 'Comissões somadas até o dia 30 de cada mês.';
   const res = await notifyEmail(env, config, to, subject, fields, config.formsubmit?.email);
   if (!res.ok) console.error('E-mail comissionado cupom:', to, JSON.stringify(res));
@@ -1140,8 +1144,9 @@ function commissionerWelcomeHtml(config, coupon, name, attachmentCount) {
       <li><strong>10% de desconto</strong> para quem comprar com seu cupom</li>
       <li><strong>20% de comissão</strong> para você em cada venda paga</li>
       <li>Você recebe <strong>e-mail a cada compra</strong> com o valor da comissão</li>
-      <li>Pagamento das comissões no <strong>dia 30 de cada mês</strong></li>
+      <li>Pagamento das comissões no <strong>dia 30 de cada mês</strong> via PIX</li>
     </ul>
+    ${coupon.pix ? `<p><strong>PIX cadastrado:</strong> ${esc(coupon.pix)}</p>` : ''}
     <p><strong>Link para seus clientes:</strong><br><a href="${esc(buyUrl)}">${esc(buyUrl)}</a></p>
     ${storiesNote}
     <p style="color:#666;font-size:13px">Dúvidas: contato@sensortattoofix.com.br · Sensor TattooFix — sensortattoofix.com.br</p>
@@ -1157,7 +1162,8 @@ function commissionerWelcomeText(coupon, name, attachmentCount) {
     '- 10% de desconto para o cliente',
     '- 20% de comissão para você',
     '- E-mail a cada venda',
-    '- Pagamento no dia 30 de cada mês',
+    '- Pagamento no dia 30 de cada mês via PIX',
+    coupon.pix ? `- PIX cadastrado: ${coupon.pix}` : null,
     '',
     `Link: comprar.html?cupom=${code}`,
     '',
@@ -1168,7 +1174,7 @@ function commissionerWelcomeText(coupon, name, attachmentCount) {
     '2. Poste nos Stories ou em qualquer outra rede social ou publicação',
     `3. Com a ferramenta de TEXTO, escreva ${code} no espaço vazio da área "USE O CUPOM"`,
     '4. Fonte clara, grande e centralizada'
-  ].join('\n');
+  ].filter((line) => line != null).join('\n');
 }
 
 async function notifyCommissionerWelcome(env, config, coupon, name) {
@@ -1191,6 +1197,20 @@ async function notifyCommissionerWelcome(env, config, coupon, name) {
   return { ...result, attachmentCount: banners.attachments.length };
 }
 
+function normalizeCommissionerPix(raw) {
+  return String(raw || '').trim().replace(/\s+/g, '').slice(0, 120);
+}
+
+function isValidCommissionerPix(pix) {
+  if (!pix || pix.length < 8 || pix.length > 120) return false;
+  if (pix.includes('@')) return /^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(pix);
+  const digits = pix.replace(/\D/g, '');
+  if (digits.length === 11 || digits.length === 14) return true;
+  if (/^\+?\d{10,15}$/.test(pix.replace(/[().-]/g, ''))) return true;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pix)) return true;
+  return /^[A-Za-z0-9.@_+-]{8,120}$/.test(pix);
+}
+
 async function handleCommissionerRegister(request, env, origin) {
   let body;
   try {
@@ -1202,9 +1222,13 @@ async function handleCommissionerRegister(request, env, origin) {
   const name = String(body.name || '').trim().slice(0, 80);
   const email = normalizeEmail(body.email);
   const code = normalizeCouponCode(body.code || body.coupon || '');
+  const pix = normalizeCommissionerPix(body.pix || body.pixKey || body.chavePix || '');
 
   if (!name || name.length < 2) return json({ error: 'Informe seu nome.' }, 400, origin);
   if (!email || !email.includes('@')) return json({ error: 'Informe um e-mail válido.' }, 400, origin);
+  if (!isValidCommissionerPix(pix)) {
+    return json({ error: 'Informe uma chave PIX válida (CPF, e-mail, celular ou chave aleatória).' }, 400, origin);
+  }
   if (code.length < 4 || code.length > 20) {
     return json({ error: 'O cupom deve ter entre 4 e 20 letras/números (ex.: JOAO10).' }, 400, origin);
   }
@@ -1235,6 +1259,7 @@ async function handleCommissionerRegister(request, env, origin) {
     code,
     name,
     email,
+    pix,
     percent: COMMISSIONER_DISCOUNT_PERCENT,
     commissionPercent: COMMISSIONER_COMMISSION_PERCENT,
     active: true,
@@ -7616,6 +7641,7 @@ function buildIndexEntry(order) {
     couponCode: order.couponCode || null,
     couponCommissionerName: order.couponCommissionerName || null,
     couponCommissionerEmail: order.couponCommissionerEmail || null,
+    couponCommissionerPix: order.couponCommissionerPix || null,
     couponDiscount: order.couponDiscount ?? null,
     couponCommissionPercent: order.couponCommissionPercent ?? null,
     couponCommissionAmount: order.couponCommissionAmount ?? null
@@ -15608,6 +15634,9 @@ async function handleCreateOrder(request, env, origin, ctx) {
     couponCommissionerEmail: couponRecord ? String(couponRecord.email || '').trim().toLowerCase() : undefined,
     couponCommissionerName: couponRecord
       ? (String(couponRecord.name || '').trim() || normalizeCouponCode(couponRecord.code))
+      : undefined,
+    couponCommissionerPix: couponRecord
+      ? (normalizeCommissionerPix(couponRecord.pix || couponRecord.pixKey || '') || undefined)
       : undefined,
     couponCommissionPercent: couponRecord ? couponCommissionPercent : undefined,
     couponCommissionAmount: couponRecord ? couponCommissionAmount : undefined,

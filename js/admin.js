@@ -393,6 +393,9 @@
           <label>E-mail do comissionado <span class="admin-field-hint">(opcional)</span>
             <input type="email" data-field="email" value="${escAttr(c.email || '')}" placeholder="Vazio = sem e-mail de comissão">
           </label>
+          <label>PIX do comissionado <span class="admin-field-hint">(opcional)</span>
+            <input type="text" data-field="pix" value="${escAttr(c.pix || '')}" placeholder="CPF, e-mail, celular ou chave" maxlength="120" autocomplete="off">
+          </label>
           <label>Desconto ao cliente (%)
             <input type="number" data-field="percent" min="0" max="100" step="0.01" value="${escAttr(c.percent ?? 10)}">
           </label>
@@ -432,12 +435,16 @@
       const hasCommissioner = email.includes('@');
       let commissionPercent = Math.min(100, Math.max(0, parseFloat(val('commissionPercent')) || 0));
       if (!hasCommissioner) commissionPercent = 0;
+      const pix = hasCommissioner
+        ? String(val('pix') || '').trim().replace(/\s+/g, '').slice(0, 120)
+        : '';
       return {
         id: String(val('id') || `coupon-${i + 1}`).trim(),
         active: val('active') !== false,
         code,
         name: hasCommissioner ? String(val('name') || '').trim() : '',
         email: hasCommissioner ? email : '',
+        pix: hasCommissioner ? pix : '',
         percent,
         commissionPercent
       };
@@ -10647,6 +10654,7 @@ ${worksheets}
       code: '',
       name: '',
       email: '',
+      pix: '',
       percent: 10,
       commissionPercent: 0
     });

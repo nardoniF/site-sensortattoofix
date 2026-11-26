@@ -38,6 +38,12 @@
     const name = String(fd.get('name') || '').trim();
     const email = String(fd.get('email') || '').trim();
     const code = normalizeCode(fd.get('code'));
+    const pix = String(fd.get('pix') || '').trim().replace(/\s+/g, '');
+
+    if (!pix || pix.length < 8) {
+      setStatus('Informe sua chave PIX (CPF, e-mail, celular ou chave aleatória).', 'error');
+      return;
+    }
 
     if (submitBtn) submitBtn.disabled = true;
 
@@ -45,7 +51,7 @@
       const res = await fetch(`${apiBase()}/commissioners/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, code })
+        body: JSON.stringify({ name, email, code, pix })
       });
       const data = await res.json().catch(() => ({}));
 
@@ -62,6 +68,7 @@
           <p>Seu código:</p>
           <code>${escHtml(data.code)}</code>
           <p>10% de desconto para clientes · 20% de comissão para você.</p>
+          <p>PIX cadastrado: <strong>${escHtml(pix)}</strong></p>
           <p>Link para compartilhar:<br>
             <a href="${escHtml(data.buyUrl)}" target="_blank" rel="noopener">${escHtml(data.buyUrl)}</a>
           </p>
