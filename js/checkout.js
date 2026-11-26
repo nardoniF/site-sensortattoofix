@@ -228,8 +228,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function localizeWatchModelLabel(model) {
     const raw = String(model || '');
     if (!raw) return raw;
-    if (!isLocalizedSite()) return raw;
-    const lang = checkoutLocale();
+    // Prefer active UI lang (path, ?lang=, host) — not only intl shell host.
+    const lang = (
+      window.STF_I18N?.getLang?.()
+      || window.STF_PAGE_LANG?.get?.()
+      || (isLocalizedSite() ? checkoutLocale() : 'pt')
+    ).toLowerCase().slice(0, 2);
+    if (!lang || lang === 'pt') return raw;
     const ordinalEn = (n) => {
       const v = Number(n);
       if (v === 1) return '1st';
@@ -242,6 +247,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         .replace(/(\d+)\s*ª\s*Geração/gi, (_, n) => `${n}ª generazione`)
         .replace(/\bGeração\b/gi, 'generazione');
     }
+    // en + other intl langs: English generation labels
     return raw
       .replace(/(\d+)\s*ª\s*Geração/gi, (_, n) => `${ordinalEn(n)} Generation`)
       .replace(/\bGeração\b/gi, 'Generation');
