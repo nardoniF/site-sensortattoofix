@@ -110,7 +110,7 @@ window.STF_STORE_PRICE = (function () {
   async function buildPriceFreteLine(config) {
     const price = productPrice(config);
     const frete = t('store.frete');
-    if (!isLocalized() || !window.STF_MONEY) {
+    if (!isLocalized() || !window.STF_MONEY || window.STF_SITE?.isBrHost?.()) {
       return buildPriceFreteLineSync(config);
     }
     try {

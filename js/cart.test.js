@@ -8,17 +8,32 @@ async function createCart() {
   const window = {
     dispatchEvent() {},
     STF_PELICULA: null,
-    STF_I18N: { isLocalized: () => false }
+    STF_I18N: { isLocalized: () => false, getLang: () => 'pt' },
+    STF_SITE: { isBrHost: () => false, COM_ORIGIN: 'https://www.sensortattoofix.com' }
   };
   const context = {
     window,
-    document: { querySelectorAll: () => [] },
+    document: {
+      querySelectorAll: () => [],
+      readyState: 'complete',
+      addEventListener() {}
+    },
+    location: { pathname: '/loja.html', search: '', hash: '', hostname: 'www.sensortattoofix.com.br' },
+    history: { replaceState() {} },
     localStorage: {
       getItem: (key) => storage.get(key) || null,
       setItem: (key, value) => storage.set(key, value),
       removeItem: (key) => storage.delete(key)
     },
-    CustomEvent: class CustomEvent {}
+    CustomEvent: class CustomEvent {},
+    btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
+    atob: (s) => Buffer.from(s, 'base64').toString('binary'),
+    escape,
+    unescape,
+    encodeURIComponent,
+    decodeURIComponent,
+    URL,
+    URLSearchParams
   };
   vm.runInNewContext(await readFile(new URL('./cart.js', import.meta.url), 'utf8'), context);
   return window.STF_CART;
@@ -55,4 +70,17 @@ test('appends empty model slots when adding more units of an existing product', 
   cart.add(watch, 2);
   assert.equal(cart.load()[0].qty, 3);
   assert.deepEqual(Array.from(cart.load()[0].models), ['Apple Watch Ultra 2', '', '']);
+});
+
+test('encode/decode hop payload round-trips cart ids and qty', async () => {
+  const cart = await createCart();
+  cart.add({ id: 'optical-lens-intl', name: 'Lens', price: 10 }, 2);
+  cart.add({ id: 'optical-lens-smartband-intl', name: 'Band', price: 8 }, 1);
+  const encoded = cart.encodeHopPayload();
+  assert.ok(encoded.length > 8);
+  const decoded = cart.decodeHopPayload(encoded);
+  assert.equal(JSON.stringify(decoded), JSON.stringify([
+    { id: 'optical-lens-intl', q: 2 },
+    { id: 'optical-lens-smartband-intl', q: 1 }
+  ]));
 });
