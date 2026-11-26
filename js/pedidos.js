@@ -1386,7 +1386,8 @@
       ? escHtml(o.couponCommissionerName || o.couponCode) +
         (o.couponCommissionAmount != null
           ? ` — ${formatBRL(o.couponCommissionAmount)}${o.couponCommissionPercent != null ? ` (${o.couponCommissionPercent}%)` : ''}`
-          : o.couponDiscount ? ` — desc. −${formatBRL(o.couponDiscount)}` : '')
+          : o.couponDiscount ? ` — desc. −${formatBRL(o.couponDiscount)}` : '') +
+        (o.couponCommissionerPix ? `<br><small>PIX: ${escHtml(o.couponCommissionerPix)}</small>` : '')
       : '—';
 
     const chargeCur = String(o.chargeCurrency || '').toUpperCase();

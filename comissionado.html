@@ -71,6 +71,11 @@
           <input type="text" name="code" required maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="Ex.: JOAO10">
           <span class="comissionado-hint">4–20 letras ou números, sem espaços. Seus clientes digitam isso no checkout.</span>
         </label>
+        <label>
+          Chave PIX
+          <input type="text" name="pix" required maxlength="120" autocomplete="off" placeholder="CPF, e-mail, celular ou chave aleatória">
+          <span class="comissionado-hint">Para pagar sua comissão no dia 30. Use a chave que você recebe no banco.</span>
+        </label>
         <button type="submit" class="btn-primary" id="comissionado-submit">
           <i class="fas fa-ticket-alt"></i> Criar meu cupom
         </button>
@@ -82,6 +87,6 @@
     <div data-site-footer="compact" data-lang="pt"></div>
   </main>
   <script src="js/site-footer.js?v=26"></script>
-  <script src="js/comissionado.js?v=1"></script>
+  <script src="js/comissionado.js?v=2"></script>
 </body>
 </html>
