@@ -825,10 +825,23 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     wrap?.classList.add('has-dial');
   }
 
+  function stripLeadingDialDigits(digits, dial) {
+    let d = String(digits || '');
+    const code = String(dial || '');
+    if (!d || !code) return d;
+    // Colapsa DDI duplicado (+358358… → 358…) e remove um prefixo se o usuário colou intl completo
+    while (d.startsWith(code + code)) d = d.slice(code.length);
+    if (d.startsWith(code) && d.length > code.length + 4) d = d.slice(code.length);
+    return d;
+  }
+
   function formatPhoneInput(v, intl) {
     if (intl) {
       // National digits only — country dial is shown on the flag badge
-      return onlyDigits(v).slice(0, 15);
+      let d = onlyDigits(v).slice(0, 18);
+      const info = currentPhoneDial();
+      if (info?.dial) d = stripLeadingDialDigits(d, info.dial);
+      return d.slice(0, 15);
     }
     return maskPhone(v);
   }
@@ -836,11 +849,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function phoneForSubmit() {
     const raw = String(els.form?.telefone?.value || '').trim();
     if (!isInternational) return raw;
-    const digits = onlyDigits(raw);
+    let digits = onlyDigits(raw);
     if (!digits) return raw;
     const info = currentPhoneDial();
-    if (!info) return digits.startsWith('+') ? raw : `+${digits}`;
+    if (!info) return `+${digits}`;
     const dial = info.dial;
+    digits = stripLeadingDialDigits(digits, dial);
+    // Ainda começa com o DDI (número nacional curto que coincide) → não prefixar de novo
     if (digits.startsWith(dial)) return `+${digits}`;
     return `+${dial}${digits}`;
   }

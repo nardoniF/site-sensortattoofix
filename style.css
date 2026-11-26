@@ -3458,6 +3458,11 @@ a.stf-tiktok-card:hover {
     gap: 8px;
     margin-top: 12px;
 }
+/* display:flex acima vence [hidden] nativo — senha some até “criar conta” */
+#senha-wrap[hidden],
+.checkout-account-block .checkout-field[hidden] {
+    display: none !important;
+}
 .checkout-account-block .account-check + .checkout-field {
     margin-top: 14px;
 }
@@ -4042,18 +4047,10 @@ a.stf-tiktok-card:hover {
         "total next"
         "back back";
 }
-/* Checkout compra: FAB feedback some; WhatsApp sobe acima da barra sticky */
-body.checkout-page:not(.forum-page):not(.conta-page) .stf-feedback-fab {
-    display: none !important;
-}
+/* Checkout compra: FABs fora da thumb zone — sticky Continuar/Pagar sem concorrência */
+body.checkout-page:not(.forum-page):not(.conta-page) .stf-feedback-fab,
 body.checkout-page:not(.forum-page):not(.conta-page) .whatsapp-float {
-    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
-}
-@media (max-width: 640px) {
-    body.checkout-page:not(.forum-page):not(.conta-page) .whatsapp-float {
-        bottom: calc(92px + env(safe-area-inset-bottom, 0px));
-        right: 16px;
-    }
+    display: none !important;
 }
 .btn-checkout-next,
 .btn-checkout-pay,
@@ -4298,17 +4295,31 @@ body.checkout-page:not(.forum-page):not(.conta-page) .whatsapp-float {
         justify-content: center;
         min-width: 44px;
         min-height: 44px;
+        max-width: 3.6rem;
         padding: 4px 6px;
         gap: 1px;
         font-size: 0.58rem;
         font-weight: 700;
         line-height: 1.05;
         text-align: center;
+        overflow: hidden;
     }
     .loja-page .checkout-nav > li > a[href*="index"] i,
     .checkout-page .checkout-nav > li > a[href*="index"] i {
         font-size: 1rem;
         line-height: 1;
+    }
+    /* Labels longos (ex.: Indietro) → ícone + aria; evita “Indie…” truncado */
+    .loja-page .checkout-nav > li > a[href*="index"] .nav-ico-label,
+    .checkout-page .checkout-nav > li > a[href*="index"] .nav-ico-label {
+        max-width: 3.4rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    html[lang="it"] .loja-page .checkout-nav > li > a[href*="index"] .nav-ico-label,
+    html[lang="it"] .checkout-page .checkout-nav > li > a[href*="index"] .nav-ico-label {
+        display: none;
     }
     .loja-page .checkout-nav .nav-lang span { display: none; }
     .loja-page .checkout-nav .nav-lang {
@@ -8107,23 +8118,23 @@ body.admin-page.pedidos-login-only #pedidos-login {
 body.loja-page.loja-has-sticky-cart .loja-main {
     padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
-body.loja-has-sticky-cart .whatsapp-float,
+/* Com sticky do carrinho: esconde Sugestões; WA sobe e fica abaixo do z-index do sticky */
 body.loja-has-sticky-cart .stf-feedback-fab {
-    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    display: none !important;
+}
+body.loja-has-sticky-cart .whatsapp-float {
+    bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+    z-index: 1001; /* sticky cart = 1002 */
 }
 body.loja-has-sticky-cart .loja-toast.show {
     top: calc(72px + env(safe-area-inset-top, 0px));
     bottom: auto;
 }
 @media (max-width: 640px) {
-    body.loja-has-sticky-cart .whatsapp-float,
-    body.loja-has-sticky-cart .stf-feedback-fab {
-        bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    body.loja-has-sticky-cart .whatsapp-float {
+        bottom: calc(108px + env(safe-area-inset-bottom, 0px));
         right: 16px;
-    }
-    body.loja-has-sticky-cart .stf-feedback-fab {
-        left: 16px;
-        right: auto;
+        z-index: 1001;
     }
 }
 .cart-badge {
