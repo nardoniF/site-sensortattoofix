@@ -102,16 +102,26 @@ window.STF_STORE_PRICE = (function () {
     return primaryProduct(config)?.price ?? config.product?.price ?? 62.9;
   }
 
-  function buildPriceFreteLineSync(config) {
-    const price = productPrice(config);
-    return `${formatBRLAmount(price)} ${t('store.frete')}`;
+  function freteSuffix(el) {
+    const fromAttr = el?.getAttribute?.('data-store-price-frete-line');
+    if (fromAttr && fromAttr.trim()) return fromAttr.trim();
+    const raw = String(t('store.frete') || '').trim();
+    if (!raw) return '+ shipping';
+    // Guard: never show bare "shipping" / "spedizione" without "+"
+    if (!/^\+/.test(raw)) return `+ ${raw}`;
+    return raw;
   }
 
-  async function buildPriceFreteLine(config) {
+  function buildPriceFreteLineSync(config, el) {
     const price = productPrice(config);
-    const frete = t('store.frete');
+    return `${formatBRLAmount(price)} ${freteSuffix(el)}`;
+  }
+
+  async function buildPriceFreteLine(config, el) {
+    const price = productPrice(config);
+    const frete = freteSuffix(el);
     if (!isLocalized() || !window.STF_MONEY || window.STF_SITE?.isBrHost?.()) {
-      return buildPriceFreteLineSync(config);
+      return buildPriceFreteLineSync(config, el);
     }
     try {
       const prod = primaryProduct(config);
@@ -120,7 +130,7 @@ window.STF_STORE_PRICE = (function () {
         : await window.STF_MONEY.formatForVisitor(price, config);
       return `${text} ${frete}`;
     } catch {
-      return buildPriceFreteLineSync(config);
+      return buildPriceFreteLineSync(config, el);
     }
   }
 
@@ -146,7 +156,7 @@ window.STF_STORE_PRICE = (function () {
 
   function buildLine(config, el) {
     if (el?.getAttribute('data-store-price-layout') === 'split-price') {
-      return buildPriceFreteLineSync(config);
+      return buildPriceFreteLineSync(config, el);
     }
     const price = productPrice(config);
     const freteLine = el?.getAttribute('data-store-price-frete-line') || t('store.freteLine');
@@ -167,7 +177,7 @@ window.STF_STORE_PRICE = (function () {
 
   function buildLocalizedLine(config, el, priceText) {
     if (el?.getAttribute('data-store-price-layout') === 'split-price') {
-      const frete = t('store.frete');
+      const frete = freteSuffix(el);
       const primary = priceText.includes(' (') ? priceText.split(' (')[0] : priceText;
       return `${primary} ${frete}`;
     }
@@ -183,7 +193,7 @@ window.STF_STORE_PRICE = (function () {
     const price = productPrice(config);
     const linePromise = isLocalized() && window.STF_MONEY
       ? (el?.getAttribute('data-store-price-layout') === 'split-price'
-          ? buildPriceFreteLine(config)
+          ? buildPriceFreteLine(config, el)
           : (primaryProduct(config) && window.STF_MONEY.formatProductForVisitor
               ? window.STF_MONEY.formatProductForVisitor(primaryProduct(config), config)
               : window.STF_MONEY.formatForVisitor(price, config))

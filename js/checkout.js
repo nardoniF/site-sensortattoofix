@@ -196,6 +196,63 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     return raw || opt.service || L('shipping.intlDefault');
   }
 
+  /** Distinct Standard vs Express labels when lens-only quotes share a generic title. */
+  function lensOnlyShippingTitle(opt, list) {
+    const options = Array.isArray(list) ? list.filter(Boolean) : [];
+    if (options.length < 2) return L('shipping.standard') || L('shipping.lensOnlyTitle');
+    const prices = options.map((o) => Number(o.price)).filter((n) => Number.isFinite(n));
+    const days = options.map((o) => Number(o.days)).filter((n) => Number.isFinite(n) && n > 0);
+    const price = Number(opt?.price);
+    const optDays = Number(opt?.days);
+    if (prices.length >= 2) {
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      if (min !== max && Number.isFinite(price)) {
+        return price <= min ? L('shipping.standard') : L('shipping.express');
+      }
+    }
+    if (days.length >= 2 && Number.isFinite(optDays)) {
+      const minDays = Math.min(...days);
+      const maxDays = Math.max(...days);
+      if (minDays !== maxDays) {
+        return optDays <= minDays ? L('shipping.express') : L('shipping.standard');
+      }
+    }
+    // Fallback: cheaper index → standard (list already sorted by API)
+    const idx = options.indexOf(opt);
+    if (idx <= 0) return L('shipping.standard');
+    return L('shipping.express');
+  }
+
+  /** Display label for watch models — translate PT leftovers like "1ª Geração". */
+  function localizeWatchModelLabel(model) {
+    const raw = String(model || '');
+    if (!raw) return raw;
+    // Prefer active UI lang (path, ?lang=, host) — not only intl shell host.
+    const lang = (
+      window.STF_I18N?.getLang?.()
+      || window.STF_PAGE_LANG?.get?.()
+      || (isLocalizedSite() ? checkoutLocale() : 'pt')
+    ).toLowerCase().slice(0, 2);
+    if (!lang || lang === 'pt') return raw;
+    const ordinalEn = (n) => {
+      const v = Number(n);
+      if (v === 1) return '1st';
+      if (v === 2) return '2nd';
+      if (v === 3) return '3rd';
+      return `${v}th`;
+    };
+    if (lang === 'it') {
+      return raw
+        .replace(/(\d+)\s*ª\s*Geração/gi, (_, n) => `${n}ª generazione`)
+        .replace(/\bGeração\b/gi, 'generazione');
+    }
+    // en + other intl langs: English generation labels
+    return raw
+      .replace(/(\d+)\s*ª\s*Geração/gi, (_, n) => `${ordinalEn(n)} Generation`)
+      .replace(/\bGeração\b/gi, 'Generation');
+  }
+
   function lojaHref() {
     return window.STF_I18N?.lojaHref?.() || 'loja.html';
   }
@@ -902,10 +959,20 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     if (user) prefillCustomer(user);
   }
 
+  function syncModelPickerInvalid(select) {
+    const trigger = select?.closest?.('.model-picker')?.querySelector('.model-picker-trigger');
+    if (!trigger) return;
+    const invalid = select.classList.contains('invalid') && !select.value;
+    trigger.classList.toggle('is-invalid', invalid);
+  }
+
   function clearWatchFieldError() {
     els.smartwatchBrandSelect?.classList.remove('invalid');
     els.smartwatchSelect?.classList.remove('invalid');
     els.watchModelFields?.querySelectorAll('.invalid').forEach((el) => el.classList.remove('invalid'));
+    els.watchModelFields?.querySelectorAll('.model-picker-trigger.is-invalid').forEach((el) => {
+      el.classList.remove('is-invalid');
+    });
     if (els.checkoutWatchBlock) els.checkoutWatchBlock.classList.remove('checkout-watch-block--error');
     if (els.smartwatchError) {
       els.smartwatchError.hidden = true;
@@ -915,14 +982,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function showWatchFieldError(msg) {
     const firstEmpty = watchModelSelects().find((select) => !select.value);
-    if (firstEmpty) firstEmpty.classList.add('invalid');
-    else els.smartwatchSelect?.classList.add('invalid');
+    if (firstEmpty) {
+      firstEmpty.classList.add('invalid');
+      syncModelPickerInvalid(firstEmpty);
+    } else {
+      els.smartwatchSelect?.classList.add('invalid');
+      syncModelPickerInvalid(els.smartwatchSelect);
+    }
     if (els.checkoutWatchBlock) {
       els.checkoutWatchBlock.hidden = false;
       els.checkoutWatchBlock.classList.add('checkout-watch-block--error');
       els.checkoutWatchBlock.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-    (firstEmpty || els.smartwatchSelect)?.focus();
+    const focusEl = firstEmpty?.closest('.model-picker')?.querySelector('.model-picker-trigger')
+      || firstEmpty
+      || els.smartwatchSelect;
+    focusEl?.focus?.();
     if (els.smartwatchError) {
       els.smartwatchError.textContent = msg;
       els.smartwatchError.hidden = false;
@@ -1920,7 +1995,9 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           groupModels.forEach((model) => {
             const option = document.createElement('option');
             option.value = model;
-            option.textContent = model === OUTRO_MODELO ? L('watch.otherModel') : model;
+            option.textContent = model === OUTRO_MODELO
+              ? L('watch.otherModel')
+              : localizeWatchModelLabel(model);
             group.appendChild(option);
           });
           select.appendChild(group);
@@ -1955,6 +2032,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const panel = document.createElement('div');
     panel.className = 'model-picker-panel';
     panel.hidden = true;
+
+    const brandFilter = document.createElement('select');
+    brandFilter.className = 'model-picker-brand';
+    brandFilter.setAttribute('aria-label', L('store.modelBrandFilter'));
+    const allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.textContent = L('store.modelBrandAll');
+    brandFilter.appendChild(allOpt);
+    const brandNames = [...select.querySelectorAll('optgroup')].map((g) => g.label).filter(Boolean);
+    brandNames.forEach((name) => {
+      const o = document.createElement('option');
+      o.value = name;
+      o.textContent = name;
+      brandFilter.appendChild(o);
+    });
+    if (brandNames.length > 1) panel.appendChild(brandFilter);
 
     const search = document.createElement('input');
     search.type = 'search';
@@ -1997,35 +2090,64 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       trigger.setAttribute('aria-expanded', 'true');
       wrap.classList.add('is-open');
       search.value = '';
-      renderList('');
+      renderList();
       requestAnimationFrame(() => search.focus());
     }
 
-    function renderList(query) {
-      const q = String(query || '').trim().toLowerCase();
+    function renderList() {
+      const q = String(search.value || '').trim().toLowerCase();
+      const brand = String(brandFilter.value || '');
       list.innerHTML = '';
-      const options = [...select.querySelectorAll('option')].filter((o) => o.value);
-      options.forEach((opt) => {
-        const text = opt.textContent || opt.value;
-        if (q && !text.toLowerCase().includes(q) && !opt.value.toLowerCase().includes(q)) return;
-        const li = document.createElement('li');
-        li.setAttribute('role', 'option');
-        li.className = 'model-picker-option';
-        li.dataset.value = opt.value;
-        li.textContent = text;
-        if (opt.value === select.value) {
-          li.setAttribute('aria-selected', 'true');
-          li.classList.add('is-selected');
-        }
-        li.addEventListener('click', () => {
-          select.value = opt.value;
-          select.dispatchEvent(new Event('change', { bubbles: true }));
-          syncTrigger();
-          closePanel();
+      const groups = [...select.querySelectorAll('optgroup')];
+      const flat = groups.length
+        ? groups
+        : [{ label: '', options: [...select.querySelectorAll('option')].filter((o) => o.value) }];
+
+      let matched = 0;
+      flat.forEach((group) => {
+        const groupLabel = group.label || '';
+        if (brand && groupLabel && groupLabel !== brand) return;
+        const options = [...(group.options || group.querySelectorAll?.('option') || [])]
+          .filter((o) => o.value);
+        const hits = options.filter((opt) => {
+          const text = opt.textContent || opt.value;
+          const loc = localizeWatchModelLabel(opt.value);
+          if (!q) return true;
+          return text.toLowerCase().includes(q)
+            || opt.value.toLowerCase().includes(q)
+            || loc.toLowerCase().includes(q);
         });
-        list.appendChild(li);
+        if (!hits.length) return;
+        if (groupLabel) {
+          const header = document.createElement('li');
+          header.className = 'model-picker-group';
+          header.textContent = groupLabel;
+          header.setAttribute('aria-hidden', 'true');
+          list.appendChild(header);
+        }
+        hits.forEach((opt) => {
+          const text = opt.textContent || localizeWatchModelLabel(opt.value);
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.className = 'model-picker-option';
+          li.dataset.value = opt.value;
+          li.textContent = text;
+          if (opt.value === select.value) {
+            li.setAttribute('aria-selected', 'true');
+            li.classList.add('is-selected');
+          }
+          li.addEventListener('click', () => {
+            select.value = opt.value;
+            select.classList.remove('invalid');
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            syncTrigger();
+            closePanel();
+          });
+          list.appendChild(li);
+          matched += 1;
+        });
       });
-      if (!list.children.length) {
+      if (!matched) {
         const empty = document.createElement('li');
         empty.className = 'model-picker-empty';
         empty.textContent = '—';
@@ -2037,7 +2159,12 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       if (panel.hidden) openPanel();
       else closePanel();
     });
-    search.addEventListener('input', () => renderList(search.value));
+    search.addEventListener('input', () => renderList());
+    brandFilter.addEventListener('change', () => {
+      search.value = '';
+      renderList();
+      search.focus();
+    });
     document.addEventListener('click', (ev) => {
       if (!wrap.contains(ev.target)) closePanel();
     });
@@ -2636,6 +2763,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       const checked = i === defaultIdx ? 'checked' : '';
       if (lensOnlyUi) {
         const arrival = formatArrivalDate(opt.days);
+        const title = lensOnlyShippingTitle(opt, shippingOptions);
         return `
         <label class="shipping-option" for="${inputId}">
           <input type="radio" name="shippingOption" id="${inputId}" value="${opt.id}" ${checked}
@@ -2643,7 +2771,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
           <div class="shipping-card shipping-card--lens-only">
             <div class="shipping-card-row">
               <div class="shipping-card-main">
-                <strong>${escapeHtml(L('shipping.lensOnlyTitle'))}</strong>
+                <strong>${escapeHtml(title)}</strong>
                 <small>${escapeHtml(L('shipping.arrivesBy', { date: arrival }))}</small>
               </div>
               <span class="shipping-card-price">${formatCheckoutMoney(opt.price)}</span>
@@ -3210,6 +3338,57 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
+  function ensureValidationBanner() {
+    let banner = document.getElementById('checkout-validation-banner');
+    if (banner) return banner;
+    const step = els.form?.querySelector('.checkout-step[data-step="1"]');
+    if (!step) return null;
+    banner = document.createElement('p');
+    banner.id = 'checkout-validation-banner';
+    banner.className = 'checkout-validation-banner field-error';
+    banner.setAttribute('role', 'alert');
+    banner.hidden = true;
+    const head = step.querySelector('.checkout-step-head');
+    if (head?.nextSibling) head.after(banner);
+    else step.prepend(banner);
+    return banner;
+  }
+
+  function clearStep1InlineErrors() {
+    clearWatchFieldError();
+    clearObservacoesFieldError();
+    els.form?.querySelectorAll('.invalid').forEach((el) => el.classList.remove('invalid'));
+    els.form?.querySelectorAll('.model-picker-trigger.is-invalid').forEach((el) => {
+      el.classList.remove('is-invalid');
+    });
+    const banner = document.getElementById('checkout-validation-banner');
+    if (banner) {
+      banner.hidden = true;
+      banner.textContent = '';
+    }
+  }
+
+  function showStep1InlineError(el, msg, opts = {}) {
+    if (el) {
+      el.classList.add('invalid');
+      syncModelPickerInvalid(el);
+      if (opts.extra) {
+        (Array.isArray(opts.extra) ? opts.extra : [opts.extra]).forEach((node) => {
+          if (node) node.classList.add('invalid');
+        });
+      }
+    }
+    const banner = ensureValidationBanner();
+    if (banner) {
+      banner.textContent = msg || L('form.fieldError') || L('alert.required');
+      banner.hidden = false;
+    }
+    const focusTarget = el?.closest?.('.model-picker')?.querySelector('.model-picker-trigger') || el;
+    if (focusTarget) focusCheckoutField(focusTarget);
+    else if (banner) banner.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return false;
+  }
+
   function cartModelsAreValid() {
     const src = cfg || window.CHECKOUT_CONFIG;
     return (window.STF_CART?.load() || []).every((item) => {
@@ -3225,90 +3404,83 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function validateStep1() {
     const f = els.form;
-    clearWatchFieldError();
-    clearObservacoesFieldError();
+    clearStep1InlineErrors();
 
     if (window.STF_CART?.isEmpty()) {
-      alert(L('alert.cartEmpty')); return false;
+      return showStep1InlineError(null, L('alert.cartEmpty'));
     }
     const needsWatch = window.STF_CART?.requiresSmartwatch();
     if (!f.nome.value) {
-      alert(L('alert.required'));
-      focusCheckoutField(f.nome);
-      return false;
+      return showStep1InlineError(f.nome, L('alert.required'));
     }
     if (!f.email.value) {
-      alert(L('alert.required'));
-      focusCheckoutField(f.email);
-      return false;
+      return showStep1InlineError(f.email, L('alert.required'));
     }
     if (!f.telefone?.value) {
-      alert(L('alert.required'));
-      focusCheckoutField(f.telefone);
-      return false;
+      return showStep1InlineError(f.telefone, L('alert.required'));
     }
     const phoneDigits = onlyDigits(f.telefone?.value || '');
     if (isInternational) {
       if (phoneDigits.length < 8) {
-        alert(L('alert.phoneIntl'));
-        focusCheckoutField(f.telefone);
-        return false;
+        return showStep1InlineError(f.telefone, L('alert.phoneIntl'));
       }
     } else if (phoneDigits.length < 10) {
-      alert(L('alert.phoneBr'));
-      focusCheckoutField(f.telefone);
-      return false;
+      return showStep1InlineError(f.telefone, L('alert.phoneBr'));
     }
     if (!isInternational && !f.cpf.value) {
-      alert(L('alert.cpf'));
-      focusCheckoutField(f.cpf);
-      return false;
+      return showStep1InlineError(f.cpf, L('alert.cpf'));
     }
     if (needsWatch && !cartModelsAreValid()) {
       showWatchFieldError(L(cartDeviceKind() === 'smartband' ? 'alert.band' : 'alert.watch'));
+      const banner = ensureValidationBanner();
+      if (banner) {
+        banner.textContent = L(cartDeviceKind() === 'smartband' ? 'alert.band' : 'alert.watch');
+        banner.hidden = false;
+      }
       return false;
     }
     if (needsWatch && watchModelSelects().some((select) => isOutroModelo(select.value)) && !(f.observacoes?.value || '').trim()) {
       showObservacoesFieldError(L(cartDeviceKind() === 'smartband' ? 'alert.bandNotes' : 'alert.watchNotes'));
-      focusCheckoutField(f.observacoes);
       return false;
     }
     if (isRegisterAccountMode() && els.criarConta?.checked && !getCustomerUser() && !els.accountGuestWrap?.hidden) {
       const senha = els.checkoutSenha?.value || '';
       if (senha.length < 6) {
-        alert(L('alert.password'));
-        focusCheckoutField(els.checkoutSenha);
-        return false;
+        return showStep1InlineError(els.checkoutSenha, L('alert.password'));
       }
     }
     if (shippingCost === null || !shippingInfo) {
-      alert(L('alert.shippingWait'));
-      focusCheckoutField(els.paisCode);
-      return false;
+      return showStep1InlineError(els.paisCode, L('alert.shippingWait'));
     }
     if (isIntlDocumentShipping() && cartHasAggregated()) {
-      alert(L('alert.intlDocNoAggregated'));
-      return false;
+      return showStep1InlineError(els.shippingOptionsWrap, L('alert.intlDocNoAggregated'));
     }
     const selectedRadio = els.shippingOptionsEl?.querySelector('input[name="shippingOption"]:checked');
     if (els.shippingOptionsWrap && !els.shippingOptionsWrap.hidden && !selectedRadio) {
-      alert(L('alert.shippingPick'));
-      els.shippingOptionsWrap.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      return false;
+      els.shippingOptionsWrap.classList.add('invalid');
+      return showStep1InlineError(els.shippingOptionsWrap, L('alert.shippingPick'));
     }
     if (!isInternational) {
-      if (onlyDigits(f.cep.value).length !== 8 || !f.rua.value || !f.numero.value || !f.bairro.value || !f.cidade.value || !f.uf.value) {
-        alert(L('alert.addrBr'));
-        focusCheckoutField(f.cep || f.rua);
-        return false;
+      const missingBr = [];
+      if (onlyDigits(f.cep.value).length !== 8) missingBr.push(f.cep);
+      if (!f.rua.value) missingBr.push(f.rua);
+      if (!f.numero.value) missingBr.push(f.numero);
+      if (!f.bairro.value) missingBr.push(f.bairro);
+      if (!f.cidade.value) missingBr.push(f.cidade);
+      if (!f.uf.value) missingBr.push(f.uf);
+      if (missingBr.length) {
+        missingBr.forEach((node) => node.classList.add('invalid'));
+        return showStep1InlineError(missingBr[0], L('alert.addrBr'));
       }
     } else {
       const ruaIntl = document.getElementById('rua-intl');
       const cidadeIntl = document.getElementById('cidade-intl');
-      if (!ruaIntl?.value || !cidadeIntl?.value) {
-        alert(L('alert.addrIntl'));
-        focusCheckoutField(ruaIntl || cidadeIntl);
-        return false;
+      const missingIntl = [];
+      if (!ruaIntl?.value) missingIntl.push(ruaIntl);
+      if (!cidadeIntl?.value) missingIntl.push(cidadeIntl);
+      if (missingIntl.length) {
+        missingIntl.forEach((node) => node?.classList.add('invalid'));
+        return showStep1InlineError(missingIntl[0], L('alert.addrIntl'));
       }
     }
     // Aba "Já tenho conta": não ir ao pagamento com usuário/senha sem Entrar.
@@ -3776,6 +3948,18 @@ window.STF_MONEY = window.STF_MONEY || (function () {
         }
       });
       els.observacoes?.addEventListener('input', clearObservacoesFieldError);
+      els.form?.addEventListener('input', (e) => {
+        const t = e.target;
+        if (!t || !t.classList?.contains('invalid')) return;
+        if (!/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+        t.classList.remove('invalid');
+        syncModelPickerInvalid(t);
+        const banner = document.getElementById('checkout-validation-banner');
+        if (banner && !els.form.querySelector('.invalid')) {
+          banner.hidden = true;
+          banner.textContent = '';
+        }
+      });
       els.cep?.addEventListener('input', (e) => {
         e.target.value = maskCep(e.target.value);
         const cep = onlyDigits(e.target.value);

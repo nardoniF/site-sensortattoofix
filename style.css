@@ -3288,9 +3288,12 @@ a.stf-tiktok-card:hover {
     pointer-events: none;
 }
 .model-picker-trigger.is-placeholder { color: #aaa; }
-.model-picker-trigger.is-invalid,
 .model-picker.is-open .model-picker-trigger {
     border-color: var(--primary);
+}
+.model-picker-trigger.is-invalid {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 1px var(--danger);
 }
 .model-picker-panel {
     position: absolute;
@@ -3303,12 +3306,25 @@ a.stf-tiktok-card:hover {
     border: 1px solid #333;
     border-radius: 10px;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-    max-height: min(280px, 50vh);
+    max-height: min(340px, 55vh);
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 .model-picker-panel[hidden] { display: none !important; }
+.model-picker-brand {
+    width: 100%;
+    box-sizing: border-box;
+    border: 0;
+    border-bottom: 1px solid #333;
+    border-radius: 0;
+    background: #111;
+    color: #fff;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    min-height: 44px;
+    font-family: inherit;
+}
 .model-picker-search {
     width: 100%;
     box-sizing: border-box;
@@ -3328,6 +3344,15 @@ a.stf-tiktok-card:hover {
     overflow-y: auto;
     max-height: 220px;
 }
+.model-picker-group {
+    padding: 8px 12px 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #888;
+    pointer-events: none;
+}
 .model-picker-option {
     padding: 10px 12px;
     border-radius: 8px;
@@ -3337,6 +3362,27 @@ a.stf-tiktok-card:hover {
     color: #eee;
     white-space: normal;
     overflow-wrap: anywhere;
+}
+.checkout-validation-banner {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    background: rgba(220, 53, 69, 0.12);
+}
+.form-grid input.invalid,
+.form-grid select.invalid,
+.checkout-form input.invalid,
+.checkout-form select.invalid,
+.checkout-form textarea.invalid {
+    border-color: var(--danger) !important;
+    outline: 2px solid rgba(220, 53, 69, 0.35);
+    outline-offset: 1px;
+}
+.shipping-options-wrap.invalid {
+    outline: 2px solid var(--danger);
+    outline-offset: 4px;
+    border-radius: 10px;
 }
 .model-picker-option:hover,
 .model-picker-option:focus {
