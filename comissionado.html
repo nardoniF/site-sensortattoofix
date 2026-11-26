@@ -28,6 +28,13 @@
     }
     .comissionado-form input:focus { outline: none; border-color: var(--primary); }
     .comissionado-hint { font-size: 0.78rem; color: #888; margin-top: 4px; }
+    .comissionado-field-error {
+      display: block; margin-top: 6px; font-size: 0.82rem; color: #f88; font-weight: 600;
+    }
+    .comissionado-form input.is-invalid {
+      border-color: #e55 !important;
+      box-shadow: 0 0 0 1px rgba(238, 85, 85, 0.35);
+    }
     .comissionado-status { margin-top: 14px; font-size: 0.9rem; }
     .comissionado-status.error { color: #f88; }
     .comissionado-status.ok { color: #9cf59c; }
@@ -73,8 +80,9 @@
         </label>
         <label>
           Chave PIX
-          <input type="text" name="pix" required maxlength="120" autocomplete="off" placeholder="CPF, e-mail, celular ou chave aleatória">
-          <span class="comissionado-hint">Para pagar sua comissão no dia 30. Use a chave que você recebe no banco.</span>
+          <input type="text" id="comissionado-pix" name="pix" required maxlength="120" autocomplete="off" placeholder="CPF, e-mail, celular ou chave aleatória" aria-describedby="comissionado-pix-hint comissionado-pix-error">
+          <span id="comissionado-pix-hint" class="comissionado-hint">Para pagar sua comissão no dia 30. Use a chave que você recebe no banco.</span>
+          <span id="comissionado-pix-error" class="comissionado-field-error" hidden role="alert"></span>
         </label>
         <button type="submit" class="btn-primary" id="comissionado-submit">
           <i class="fas fa-ticket-alt"></i> Criar meu cupom
@@ -87,6 +95,6 @@
     <div data-site-footer="compact" data-lang="pt"></div>
   </main>
   <script src="js/site-footer.js?v=26"></script>
-  <script src="js/comissionado.js?v=2"></script>
+  <script src="js/comissionado.js?v=3"></script>
 </body>
 </html>

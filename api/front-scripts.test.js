@@ -63,6 +63,30 @@ test('película compat: case mm, Apple squircle, other model skipped', () => {
   assert.equal(STF_PELICULA.findCompatible('Outro modelo', []).length, 0);
 });
 
+test('loja price line does not double the + before frete/shipping', () => {
+  const code = fs.readFileSync(path.join(jsDir, 'loja.js'), 'utf8');
+  assert.match(code, /function freteSuffix\s*\(/);
+  assert.match(code, /function priceWithFrete\s*\(/);
+  assert.match(code, /\/\^\\?\+\//); // strips duplicate "+" from store.frete
+  // Regression: old template was `${formatBRL(price)} + ${frete}` with frete="+ frete"
+  assert.doesNotMatch(code, /formatBRL\([^)]+\)\} \+ \$\{frete\}/);
+  assert.doesNotMatch(code, /\$\{text\} \+ \$\{frete\}/);
+});
+
+test('mobile header clamps logo height for IT/EU langs (specificity over desktop lang rules)', () => {
+  const css = fs.readFileSync(path.join(jsDir, '..', 'style.css'), 'utf8');
+  assert.match(css, /html\[lang="it"\] \.logo-area/);
+  assert.match(css, /--logo-h:\s*44px/);
+  assert.match(css, /max-width:\s*min\(42vw,\s*148px\)/);
+});
+
+test('checkout brand group never exposes raw __outro__ sentinel', () => {
+  const code = fs.readFileSync(path.join(jsDir, 'checkout.js'), 'utf8');
+  assert.match(code, /function brandGroupLabel\s*\(/);
+  assert.match(code, /return '__other__'/);
+  assert.match(code, /brand === '__outro__'/);
+});
+
 test('store-price-tag primaryProduct on .com prefers optical-lens-intl, not BR kit', () => {
   const code = fs.readFileSync(path.join(jsDir, 'store-price-tag.js'), 'utf8');
   const location = { hostname: 'www.sensortattoofix.com', pathname: '/' };
