@@ -1,6 +1,7 @@
 window.STF_CART = (function () {
   const KEY = 'stf_cart';
   const MAX_QTY = 10;
+  const HOP_PARAM = 'stf_cart';
 
   function load() {
     try {
@@ -15,6 +16,120 @@ window.STF_CART = (function () {
   function save(items) {
     localStorage.setItem(KEY, JSON.stringify(items));
     notify();
+  }
+
+  /** Compact cart payload for .com.br → .com hop (localStorage does not cross hosts). */
+  function encodeHopPayload(items) {
+    const list = (items || load())
+      .map((i) => ({
+        id: String(i.productId || i.slug || '').trim(),
+        q: Math.max(1, Math.min(MAX_QTY, Math.floor(Number(i.qty) || 1)))
+      }))
+      .filter((i) => i.id);
+    if (!list.length) return '';
+    try {
+      const json = JSON.stringify(list);
+      return btoa(unescape(encodeURIComponent(json)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/g, '');
+    } catch {
+      return '';
+    }
+  }
+
+  function decodeHopPayload(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return [];
+    try {
+      const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+      const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+      const json = decodeURIComponent(escape(atob(b64 + pad)));
+      const list = JSON.parse(json);
+      if (!Array.isArray(list)) return [];
+      return list
+        .map((row) => ({
+          id: String(row.id || row.productId || row.slug || '').trim(),
+          q: Math.max(1, Math.min(MAX_QTY, Math.floor(Number(row.q || row.qty) || 1)))
+        }))
+        .filter((row) => row.id);
+    } catch {
+      return [];
+    }
+  }
+
+  function consumeHopFromUrl() {
+    let params;
+    try { params = new URLSearchParams(location.search); } catch { return false; }
+    const raw = params.get(HOP_PARAM);
+    if (!raw) return false;
+    const hopped = decodeHopPayload(raw);
+    if (hopped.length) {
+      const items = load();
+      hopped.forEach((row) => {
+        const existing = items.find((i) => i.productId === row.id || i.slug === row.id);
+        if (existing) {
+          existing.qty = Math.min(MAX_QTY, Math.max(existing.qty, row.q));
+        } else {
+          items.push({
+            productId: row.id,
+            slug: row.id,
+            name: row.id,
+            price: 0,
+            image: 'images/brand/sensortattoofix.jpg',
+            qty: row.q,
+            models: Array.from({ length: row.q }, () => ''),
+            requiresSmartwatch: true,
+            deviceType: 'smartwatch'
+          });
+        }
+      });
+      save(items);
+    }
+    params.delete(HOP_PARAM);
+    const q = params.toString();
+    try {
+      history.replaceState({}, '', location.pathname + (q ? '?' + q : '') + (location.hash || ''));
+    } catch (_) { /* ignore */ }
+    return hopped.length > 0;
+  }
+
+  /**
+   * .com.br?lang=en|it|… → hop to .com with cart, avoiding mixed BRL/USD and lost cart.
+   */
+  function maybeHopBrLocalizedToCom() {
+    try {
+      if (!window.STF_SITE?.isBrHost?.()) return false;
+      const lang = String(window.STF_I18N?.getLang?.() || 'pt').toLowerCase().slice(0, 2);
+      if (!lang || lang === 'pt') return false;
+      const leaf = String(location.pathname.split('/').pop() || '');
+      if (!/^(loja|comprar)\.html$/i.test(leaf)) return false;
+      const com = window.STF_SITE.COM_ORIGIN || 'https://www.sensortattoofix.com';
+      const path = lang === 'en' ? `/${leaf}` : `/${lang}/${leaf}`;
+      const u = new URL(path, com);
+      const cur = new URLSearchParams(location.search);
+      ['produto', 'comprar'].forEach((k) => {
+        const v = cur.get(k);
+        if (v) u.searchParams.set(k, v);
+      });
+      const payload = encodeHopPayload();
+      if (payload) u.searchParams.set(HOP_PARAM, payload);
+      location.replace(u.toString());
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function bootCrossHostCart() {
+    if (maybeHopBrLocalizedToCom()) return;
+    consumeHopFromUrl();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootCrossHostCart);
+  } else {
+    bootCrossHostCart();
   }
 
   function assetUrl(image, product) {
@@ -224,6 +339,10 @@ window.STF_CART = (function () {
     totalWeight,
     requiresSmartwatch,
     syncPrices,
-    initBadges
+    initBadges,
+    encodeHopPayload,
+    decodeHopPayload,
+    consumeHopFromUrl,
+    maybeHopBrLocalizedToCom
   };
 })();

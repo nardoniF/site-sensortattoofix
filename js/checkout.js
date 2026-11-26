@@ -2066,15 +2066,32 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   /** País ISO default no checkout INT conforme idioma da página (ES→ES, …). */
+  function countrySelectTouched() {
+    return !!(window.__stfCountryUserTouched || els.paisCode?.dataset?.stfUserTouched === '1');
+  }
+
+  function markCountrySelectTouched() {
+    window.__stfCountryUserTouched = true;
+    if (els.paisCode) els.paisCode.dataset.stfUserTouched = '1';
+  }
+
   function applyLangDefaultCountrySelect() {
     if (!isIntlCheckoutShell() || orderSidebarLocked || !els.paisCode) return;
     if (els.paisCode.options.length < 2) return;
+    // Não sobrescrever se o usuário já escolheu (race com boot async / retries).
+    if (countrySelectTouched()) {
+      updatePhoneField();
+      return;
+    }
     const def = defaultIntlCountry();
     if (!def) return;
     if (![...els.paisCode.options].some((o) => o.value === def)) return;
     const cur = String(els.paisCode.value || '').trim();
-    if (!cur || cur === 'BR' || cur !== def) {
+    // Só aplica default quando vazio/BR — nunca força de volta (ex.: FI → US).
+    if (!cur || cur === 'BR') {
+      els.paisCode.dataset.stfProgrammatic = '1';
       els.paisCode.value = def;
+      delete els.paisCode.dataset.stfProgrammatic;
       toggleAddressForm();
     } else {
       updatePhoneField();
@@ -2137,17 +2154,29 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     // Mercado BR (.com.br): força BR no boot se ainda está vazio/US (bug antigo).
     // Não pisa se o usuário já escolheu outro país (ex.: EUA → dólar).
     if (!isIntlCheckoutShell()) {
+      if (countrySelectTouched()) {
+        updatePhoneField();
+        return;
+      }
       if (!cur || cur === 'US') {
+        els.paisCode.dataset.stfProgrammatic = '1';
         els.paisCode.value = 'BR';
+        delete els.paisCode.dataset.stfProgrammatic;
         toggleAddressForm();
       } else {
         updatePhoneField();
       }
       return;
     }
-    // Shell intl: alinha ao idioma (não deixa US grudado em FR/NL/…).
-    if (!cur || cur === 'BR' || cur !== def) {
+    // Shell intl: default do idioma só se vazio/BR — nunca reverter FI/IT/… para US.
+    if (countrySelectTouched()) {
+      updatePhoneField();
+      return;
+    }
+    if (!cur || cur === 'BR') {
+      els.paisCode.dataset.stfProgrammatic = '1';
       els.paisCode.value = def;
+      delete els.paisCode.dataset.stfProgrammatic;
       toggleAddressForm();
     } else {
       updatePhoneField();
@@ -2157,6 +2186,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   function populateCountrySelect(config) {
     const src = config || cfg || window.CHECKOUT_CONFIG;
     if (!els.paisCode || !src) return;
+    const keep = String(els.paisCode.value || '').trim();
     const intl = src.internationalShipping || {};
     if (isLocalizedSite()) {
       const brOpt = els.paisCode.querySelector('option[value="BR"]');
@@ -2188,6 +2218,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     other.value = 'OTHER';
     other.textContent = L('country.other');
     els.paisCode.appendChild(other);
+    if (keep && [...els.paisCode.options].some((o) => o.value === keep)) {
+      els.paisCode.dataset.stfProgrammatic = '1';
+      els.paisCode.value = keep;
+      delete els.paisCode.dataset.stfProgrammatic;
+      updatePhoneField();
+      return;
+    }
     applyLangDefaultCountrySelect();
   }
 
@@ -2274,17 +2311,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
   }
 
   function isPayPalIntlAvailable() {
-    const paypal = cfg.payments?.paypal || {};
+    const paypal = cfg?.payments?.paypal || {};
     return paypal.internationalEnabled !== false;
   }
 
   function isPayPalBrAvailable() {
-    const paypal = cfg.payments?.paypal || {};
+    const paypal = cfg?.payments?.paypal || {};
     return paypal.brazilEnabled !== false;
   }
 
   function isCardBrMercadoPago() {
-    return cfg.payments?.cardBr?.provider === 'mercadopago';
+    return cfg?.payments?.cardBr?.provider === 'mercadopago';
   }
 
   function updateCardBrPaymentHint() {
@@ -2292,6 +2329,22 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     const small = cardOpt?.querySelector('small');
     if (small) {
       small.textContent = L(isCardBrMercadoPago() ? 'pay.cardBrHintMp' : 'pay.cardBrHint');
+    }
+  }
+
+  /** Alinha hints Stripe/PayPal à moeda realmente cobrada (não “USD” fixo com total em EUR). */
+  function applyIntlPayCurrencyCopy() {
+    if (!isInternational && !isIntlCheckoutShell()) return;
+    const cur = (displayCurrency && displayCurrency !== 'BRL')
+      ? String(displayCurrency).toUpperCase()
+      : String(intlDisplayCurrency() || 'USD').toUpperCase();
+    window.STF_I18N?.applyPayCurrencyCopy?.(cur);
+    const stripeSmall = els.paymentOptionsIntl?.querySelector('.payment-option-stripe small');
+    if (stripeSmall) stripeSmall.textContent = L('pay.stripeHint', { currency: cur });
+    const paypalSmall = els.paymentOptionsIntl?.querySelector('.payment-option-paypal small');
+    if (paypalSmall) {
+      paypalSmall.textContent = L('pay.paypalHintUsd', { currency: cur })
+        || L('pay.paypalHint', { currency: cur });
     }
   }
 
@@ -2334,8 +2387,13 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       else if (intlEmbedded && !stripeReady) noticeKey = 'pay.noticeIntlPaypalOnly';
       else if (paypalOnlyIntl) noticeKey = 'pay.noticeIntlPaypalOnly';
       else if (!paypalIntl) noticeKey = 'pay.noticeIntlNoPaypal';
-      els.paymentNoticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${L(noticeKey)}`;
+      const chargeCur = (displayCurrency && displayCurrency !== 'BRL')
+        ? displayCurrency
+        : (intlDisplayCurrency() || 'USD');
+      els.paymentNoticeIntl.dataset.stfNoticeKey = noticeKey;
+      els.paymentNoticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${L(noticeKey, { currency: chargeCur })}`;
     }
+    applyIntlPayCurrencyCopy();
     els.form?.querySelectorAll('input[name="pagamento"]').forEach((r) => { r.checked = false; });
     if (isInternational) {
       const stripe = els.paymentOptionsIntl?.querySelector('input[value="STRIPE"]');
@@ -2389,6 +2447,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
       refreshDisplayCurrency().then((epoch) => {
         if (epoch !== displayCurrencyEpoch) return;
         if (destinationIsBrazil()) return;
+        applyIntlPayCurrencyCopy();
         updateSummary();
         if (!orderSidebarLocked) renderCartSidebar();
       });
@@ -3672,6 +3731,7 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     try {
       bindPasswordToggles();
       els.paisCode?.addEventListener('change', () => {
+        if (els.paisCode?.dataset?.stfProgrammatic !== '1') markCountrySelectTouched();
         toggleAddressForm();
         window.STF_ADDRESS_AUTOCOMPLETE?.rebind?.();
       });

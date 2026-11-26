@@ -243,12 +243,12 @@ window.STF_I18N = (function () {
       'pay.noticeIntl': 'Valores aproximados na sua moeda; cobrança em reais (BRL) via PayPal ou cartão.',
       'pay.noticeIntlAll': 'Valores aproximados na sua moeda; cobrança em BRL via PayPal ou cartão internacional.',
       'pay.noticeIntlNoPaypal': 'Valores aproximados na sua moeda; cobrança em BRL via cartão internacional.',
-      'pay.noticeIntlPaypalOnly': 'Pagamento seguro via PayPal · envio internacional rastreado.',
-      'pay.noticeIntlEmbedded': 'Cobrança em USD · PayPal ou cartão/Apple Pay/Google Pay via Stripe · envio rastreado.',
-      'pay.noticeIntlEmbeddedStripe': 'Cartão, Apple Pay, Google Pay ou PayPal · cobrança em USD · envio rastreado.',
-      'pay.noticeIntlEmbeddedPaypal': 'Pagamento seguro via PayPal · cobrança em USD · envio rastreado.',
-      'pay.stripeHint': 'Pagamento seguro via Stripe · cobrança em USD',
-      'pay.paypalHintUsd': 'Saldo PayPal, cartão ou débito · USD',
+      'pay.noticeIntlPaypalOnly': 'Pagamento seguro via PayPal · cobrança em {currency} · envio internacional rastreado.',
+      'pay.noticeIntlEmbedded': 'Cobrança em {currency} · PayPal ou cartão/Apple Pay/Google Pay via Stripe · envio rastreado.',
+      'pay.noticeIntlEmbeddedStripe': 'Cartão, Apple Pay, Google Pay ou PayPal · cobrança em {currency} · envio rastreado.',
+      'pay.noticeIntlEmbeddedPaypal': 'Pagamento seguro via PayPal · cobrança em {currency} · envio rastreado.',
+      'pay.stripeHint': 'Pagamento seguro via Stripe · cobrança em {currency}',
+      'pay.paypalHintUsd': 'Saldo PayPal, cartão ou débito · {currency}',
       'btn.continue': 'Continuar',
       'btn.continueNeedShipping': 'Calcule o frete para continuar',
       'btn.back': 'Voltar',
@@ -625,19 +625,19 @@ window.STF_I18N = (function () {
       'pay.intlCardHint': 'Visa, Mastercard, Amex — charged in BRL; your bank converts',
       'pay.paypal': 'PayPal',
       'pay.stripe': 'Card / Apple Pay / Google Pay',
-      'pay.paypalHint': 'Card, debit or PayPal balance · USD',
+      'pay.paypalHint': 'Card, debit or PayPal balance · {currency}',
       'pay.pixIntl': 'PIX',
       'pay.pixIntlHint': 'If you have a Brazilian bank account (even abroad)',
       'pay.noticeBr': 'After payment, confirmation is automatic on this page and by email.',
       'pay.noticeIntl': 'Approximate prices in your currency; charged in BRL via PayPal or card.',
       'pay.noticeIntlAll': 'Approximate prices in your currency; charged in BRL via PayPal or international card.',
       'pay.noticeIntlNoPaypal': 'Approximate prices in your currency; charged in BRL via international card.',
-      'pay.noticeIntlPaypalOnly': 'Secure PayPal checkout · tracked international shipping.',
-      'pay.noticeIntlEmbedded': 'Charged in USD · PayPal or card/Apple Pay/Google Pay via Stripe · tracked shipping.',
-      'pay.noticeIntlEmbeddedStripe': 'Card, Apple Pay, Google Pay or PayPal · charged in USD · tracked shipping.',
-      'pay.noticeIntlEmbeddedPaypal': 'Secure PayPal checkout · charged in USD · tracked shipping.',
-      'pay.stripeHint': 'Secure payment via Stripe · charged in USD',
-      'pay.paypalHintUsd': 'PayPal balance, card or debit · USD',
+      'pay.noticeIntlPaypalOnly': 'Secure PayPal checkout · charged in {currency} · tracked international shipping.',
+      'pay.noticeIntlEmbedded': 'Charged in {currency} · PayPal or card/Apple Pay/Google Pay via Stripe · tracked shipping.',
+      'pay.noticeIntlEmbeddedStripe': 'Card, Apple Pay, Google Pay or PayPal · charged in {currency} · tracked shipping.',
+      'pay.noticeIntlEmbeddedPaypal': 'Secure PayPal checkout · charged in {currency} · tracked shipping.',
+      'pay.stripeHint': 'Secure payment via Stripe · charged in {currency}',
+      'pay.paypalHintUsd': 'PayPal balance, card or debit · {currency}',
       'btn.continue': 'Continue',
       'btn.continueNeedShipping': 'Calculate shipping to continue',
       'btn.back': 'Back',
@@ -1206,6 +1206,50 @@ window.STF_I18N = (function () {
     if (window.STF_ACCOUNT?.initNav) window.STF_ACCOUNT.initNav();
   }
 
+  function resolveCheckoutChargeCurrency() {
+    try {
+      const pais = String(document.getElementById('pais-code')?.value || '').trim().toUpperCase();
+      if (pais && pais !== 'BR' && window.STF_MONEY?.currencyForCountry) {
+        const fromCountry = window.STF_MONEY.currencyForCountry(pais);
+        if (fromCountry && fromCountry !== 'BRL') return String(fromCountry).toUpperCase();
+      }
+      if (window.STF_MONEY?.currencyForLang) {
+        const fromLang = window.STF_MONEY.currencyForLang(getLang());
+        if (fromLang && fromLang !== 'BRL') return String(fromLang).toUpperCase();
+      }
+    } catch (_) { /* ignore */ }
+    const lang = getLang();
+    if (lang === 'sv') return 'SEK';
+    if (lang === 'no') return 'NOK';
+    if (lang === 'pl') return 'PLN';
+    if (['it', 'de', 'es', 'sl', 'fr', 'nl', 'fi'].includes(lang)) return 'EUR';
+    return 'USD';
+  }
+
+  /** Atualiza copy de cobrança Stripe/PayPal para a moeda exibida no total. */
+  function applyPayCurrencyCopy(currency) {
+    const cur = String(currency || resolveCheckoutChargeCurrency() || 'USD').toUpperCase();
+    const intlStripe = document.querySelector('.payment-option-stripe');
+    if (intlStripe) {
+      const small = intlStripe.querySelector('small');
+      if (small) small.textContent = t('pay.stripeHint', { currency: cur });
+    }
+    const intlPaypal = document.querySelector('#payment-options-intl .payment-option-paypal')
+      || document.querySelector('.payment-option-paypal');
+    if (intlPaypal) {
+      const small = intlPaypal.querySelector('small');
+      if (small) {
+        small.textContent = t('pay.paypalHintUsd', { currency: cur }) || t('pay.paypalHint', { currency: cur });
+      }
+    }
+    const noticeIntl = document.getElementById('payment-notice-intl');
+    if (noticeIntl && !noticeIntl.hidden && !noticeIntl.dataset.stfLocked) {
+      const key = noticeIntl.dataset.stfNoticeKey || 'pay.noticeIntlEmbedded';
+      noticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${t(key, { currency: cur })}`;
+    }
+    return cur;
+  }
+
   function applyCheckoutDom() {
     applyCheckoutFormPlaceholders();
 
@@ -1320,33 +1364,42 @@ window.STF_I18N = (function () {
     const watchSelect = document.getElementById('smartwatch-select');
     if (watchSelect?.options[0]) watchSelect.options[0].textContent = t(band ? 'form.bandSelect' : 'form.watchSelect');
 
+    const payCur = resolveCheckoutChargeCurrency();
     const payBrCard = document.querySelector('#payment-options-br .payment-option');
     if (payBrCard) {
-      payBrCard.querySelector('strong').textContent = t('pay.cardBr');
-      payBrCard.querySelector('small').textContent = t('pay.cardBrHint');
+      const strong = payBrCard.querySelector('strong');
+      const small = payBrCard.querySelector('small');
+      if (strong) strong.textContent = t('pay.cardBr');
+      if (small) small.textContent = t('pay.cardBrHint');
     }
     const intlCard = document.querySelector('.payment-option-intl-card');
     if (intlCard) {
-      intlCard.querySelector('strong').textContent = t('pay.intlCard');
-      intlCard.querySelector('small').textContent = t('pay.intlCardHint');
+      const strong = intlCard.querySelector('strong');
+      const small = intlCard.querySelector('small');
+      if (strong) strong.textContent = t('pay.intlCard');
+      if (small) small.textContent = t('pay.intlCardHint');
     }
     const intlStripe = document.querySelector('.payment-option-stripe');
     if (intlStripe) {
       const strong = intlStripe.querySelector('strong');
       const small = intlStripe.querySelector('small');
       if (strong) strong.textContent = t('pay.stripe') || strong.textContent;
-      if (small) small.textContent = t('pay.stripeHint');
+      if (small) small.textContent = t('pay.stripeHint', { currency: payCur });
     }
     const intlPaypal = document.querySelector('.payment-option-paypal');
     if (intlPaypal) {
-      intlPaypal.querySelector('strong').textContent = t('pay.paypal');
-      intlPaypal.querySelector('small').textContent = t('pay.paypalHint');
+      const strong = intlPaypal.querySelector('strong');
+      const small = intlPaypal.querySelector('small');
+      if (strong) strong.textContent = t('pay.paypal');
+      if (small) small.textContent = t('pay.paypalHintUsd', { currency: payCur }) || t('pay.paypalHint', { currency: payCur });
     }
 
     const noticeBr = document.getElementById('payment-notice-br');
     if (noticeBr) noticeBr.innerHTML = `<i class="fas fa-info-circle"></i> ${t('pay.noticeBr')}`;
     const noticeIntl = document.getElementById('payment-notice-intl');
-    if (noticeIntl) noticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${t('pay.noticeIntl')}`;
+    if (noticeIntl) {
+      noticeIntl.innerHTML = `<i class="fas fa-info-circle"></i> ${t('pay.noticeIntlEmbedded', { currency: payCur })}`;
+    }
 
     const orderLabel = document.querySelector('.pix-amount-label');
     if (orderLabel) orderLabel.childNodes[0].textContent = t('summary.totalLabel') + ' ';
@@ -1647,7 +1700,8 @@ window.STF_I18N = (function () {
 
   return {
     t, getLang, isEn, isIt, isDe, isEs, isPl, isSl, isFr, isNl, isSv, isNo, isFi, isLocalized, checkoutMarket, isIntlCheckoutShell, setLang, inEnDir, inItDir, inLangDir, assetPrefix, pageHref, accountHref, comprarPageHref,
-    applyCheckoutDom, applyCheckoutFormPlaceholders, applyLojaDom, applyContaDom, applyOndeComprarDom, applyShellDom,
+    applyCheckoutDom, applyCheckoutFormPlaceholders, applyPayCurrencyCopy, resolveCheckoutChargeCurrency,
+    applyLojaDom, applyContaDom, applyOndeComprarDom, applyShellDom,
     langQuery, lojaHref, STRINGS
   };
 })();

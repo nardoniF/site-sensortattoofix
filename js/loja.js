@@ -28,7 +28,8 @@
     const product = productOrPrice && typeof productOrPrice === 'object' ? productOrPrice : null;
     const price = product ? (Number(product.price) || 0) : Number(productOrPrice) || 0;
     const frete = L('store.frete');
-    if (!window.STF_I18N?.isLocalized?.() || !window.STF_MONEY) {
+    // .com.br is always BRL catalog — even with ?lang=en (hop to .com handles EN storefront).
+    if (!window.STF_I18N?.isLocalized?.() || !window.STF_MONEY || window.STF_SITE?.isBrHost?.()) {
       return `${formatBRL(price)} + ${frete}`;
     }
     try {

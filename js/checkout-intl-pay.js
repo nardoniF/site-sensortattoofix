@@ -54,6 +54,14 @@ window.STF_INTL_PAY = (function () {
 
   function paypalCurrency() {
     try {
+      const pais = String(document.getElementById('pais-code')?.value || '').trim().toUpperCase();
+      if (pais && pais !== 'BR' && window.STF_MONEY?.currencyForCountry) {
+        const fromCountry = window.STF_MONEY.currencyForCountry(pais);
+        if (fromCountry && fromCountry !== 'BRL') return String(fromCountry).toUpperCase();
+      }
+      if (window.STF_I18N?.resolveCheckoutChargeCurrency) {
+        return window.STF_I18N.resolveCheckoutChargeCurrency();
+      }
       if (window.STF_MONEY?.currencyForLang) {
         const cur = window.STF_MONEY.currencyForLang(window.STF_MONEY.pageLang?.() || window.STF_I18N?.getLang?.());
         if (cur && cur !== 'BRL') return cur;
@@ -73,24 +81,12 @@ window.STF_INTL_PAY = (function () {
   }
 
   function payNoticeHtml(key) {
+    const cur = paypalCurrency();
     try {
-      const t = window.STF_I18N?.t?.(key);
+      const t = window.STF_I18N?.t?.(key, { currency: cur });
       if (t) return `<i class="fas fa-info-circle"></i> ${t}`;
     } catch (_) { /* ignore */ }
-    const cur = paypalCurrency();
-    if (cur === 'EUR') {
-      return '<i class="fas fa-info-circle"></i> Charged in EUR · tracked shipping.';
-    }
-    if (cur === 'SEK') {
-      return '<i class="fas fa-info-circle"></i> Debiteras i SEK · spårbar frakt.';
-    }
-    if (cur === 'NOK') {
-      return '<i class="fas fa-info-circle"></i> Belastes i NOK · sporbar frakt.';
-    }
-    if (cur === 'PLN') {
-      return '<i class="fas fa-info-circle"></i> Płatność w PLN · wysyłka śledzona.';
-    }
-    return '<i class="fas fa-info-circle"></i> Charged in USD · tracked shipping.';
+    return `<i class="fas fa-info-circle"></i> Charged in ${cur} · tracked shipping.`;
   }
 
   async function initUi() {
@@ -116,13 +112,16 @@ window.STF_INTL_PAY = (function () {
       }
     }
     if (hasStripe && notice && !notice.dataset.stfLocked) {
+      notice.dataset.stfNoticeKey = 'pay.noticeIntlEmbeddedStripe';
       notice.innerHTML = payNoticeHtml('pay.noticeIntlEmbeddedStripe');
     } else if (!hasStripe && hasPaypal && paypalInput) {
       paypalInput.checked = true;
       if (notice && !notice.dataset.stfLocked) {
+        notice.dataset.stfNoticeKey = 'pay.noticeIntlEmbeddedPaypal';
         notice.innerHTML = payNoticeHtml('pay.noticeIntlEmbeddedPaypal');
       }
     }
+    try { window.STF_I18N?.applyPayCurrencyCopy?.(paypalCurrency()); } catch (_) { /* ignore */ }
     if (!hasStripe && !hasPaypal && notice) {
       notice.innerHTML = '<i class="fas fa-info-circle"></i> Online payment is not configured yet. Card and PayPal will appear here after Stripe/PayPal API keys are added to the server.';
     }

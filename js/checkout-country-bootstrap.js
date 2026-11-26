@@ -55,29 +55,59 @@
     return labels[pageLang()] || labels.en;
   }
 
+  function countryUserTouched(sel) {
+    return !!(window.__stfCountryUserTouched || sel?.dataset?.stfUserTouched === '1');
+  }
+
+  function markCountryUserTouched(sel) {
+    window.__stfCountryUserTouched = true;
+    if (sel) sel.dataset.stfUserTouched = '1';
+  }
+
+  function bindCountryUserTouch(sel) {
+    if (!sel || sel.dataset.stfTouchBound === '1') return;
+    sel.dataset.stfTouchBound = '1';
+    const mark = () => {
+      if (sel.dataset.stfProgrammatic === '1') return;
+      markCountryUserTouched(sel);
+    };
+    sel.addEventListener('change', mark);
+    sel.addEventListener('input', mark);
+  }
+
+  function setCountryProgrammatic(sel, code) {
+    if (!sel || !code) return;
+    sel.dataset.stfProgrammatic = '1';
+    sel.value = code;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    delete sel.dataset.stfProgrammatic;
+  }
+
   function ensureDefaultSelected(sel) {
     if (!sel || sel.options.length < 2) return;
+    bindCountryUserTouch(sel);
     // Checkout BR (.com.br PT): não sobrescrever destino — o checkout.js aplica geo/BR.
     const market = String(document.body?.dataset?.checkoutMarket || '').toLowerCase();
     if (market === 'br' || (isComBrHost() && pageLang() === 'pt')) return;
+    // Nunca pisar escolha do usuário (race dos retries 0.6/1.8/3.5s).
+    if (countryUserTouched(sel)) return;
     const def = defaultCountry();
     if (!def) return;
     const cur = String(sel.value || '').trim();
-    if (cur && cur !== 'BR' && cur === def) return;
+    if (cur && cur !== 'BR') return;
     if (![...sel.options].some((o) => o.value === def)) return;
-    if (!cur || cur === 'BR' || cur !== def) {
-      sel.value = def;
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    setCountryProgrammatic(sel, def);
   }
 
   async function fillCountries() {
     const sel = document.getElementById('pais-code');
     if (!sel) return;
+    bindCountryUserTouch(sel);
     if (sel.options.length > 1) {
       ensureDefaultSelected(sel);
       return;
     }
+    const keep = String(sel.value || '').trim();
     const base = String(window.CONFIG_BOOTSTRAP?.configApiUrl || 'https://api.sensortattoofix.com.br').replace(/\/$/, '');
     const res = await fetch(base + '/config', { cache: 'no-store' });
     if (!res.ok) return;
@@ -106,11 +136,17 @@
     other.value = 'OTHER';
     other.textContent = otherCountryLabel();
     sel.appendChild(other);
-    if (!sel.value) {
-      const def = defaultCountry();
-      if ([...sel.options].some((o) => o.value === def)) sel.value = def;
+    if (keep && [...sel.options].some((o) => o.value === keep)) {
+      setCountryProgrammatic(sel, keep);
+      return;
     }
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    if (!countryUserTouched(sel) && !sel.value) {
+      const def = defaultCountry();
+      if ([...sel.options].some((o) => o.value === def)) setCountryProgrammatic(sel, def);
+      else sel.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   }
 
   function scheduleDefaultRetries() {

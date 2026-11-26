@@ -170,6 +170,8 @@ window.STF_MONEY = (function () {
   }
 
   function visitorDisplayCurrency(countryCode, config) {
+    // Host .com.br = mercado BR em BRL (evita cards USD + sidebar R$ com ?lang=en).
+    if (window.STF_SITE?.isBrHost?.()) return 'BRL';
     if (isIntlHost() || isVisitorLocalized()) {
       return currencyForLang(pageLang(), config);
     }
