@@ -114,7 +114,11 @@ window.STF_STORE_PRICE = (function () {
 
   function buildPriceFreteLineSync(config, el) {
     const price = productPrice(config);
-    return `${formatBRLAmount(price)} ${freteSuffix(el)}`;
+    // PT hero/CTA: include R$ (audit P2-B). Localized paths keep amount-only until FX fills in.
+    const amount = (!isLocalized() || window.STF_SITE?.isBrHost?.())
+      ? formatBRL(price)
+      : formatBRLAmount(price);
+    return `${amount} ${freteSuffix(el)}`;
   }
 
   async function buildPriceFreteLine(config, el) {

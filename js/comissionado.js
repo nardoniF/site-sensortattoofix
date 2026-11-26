@@ -19,6 +19,8 @@
   const statusEl = document.getElementById('comissionado-status');
   const successEl = document.getElementById('comissionado-success');
   const submitBtn = document.getElementById('comissionado-submit');
+  const pixInput = form?.querySelector('[name="pix"]');
+  const pixError = document.getElementById('comissionado-pix-error');
 
   if (!form) return;
 
@@ -29,19 +31,50 @@
     statusEl.className = 'comissionado-status' + (type ? ` ${type}` : '');
   }
 
+  function setPixInvalid(msg) {
+    if (pixInput) {
+      pixInput.classList.toggle('is-invalid', !!msg);
+      pixInput.setAttribute('aria-invalid', msg ? 'true' : 'false');
+      try {
+        pixInput.setCustomValidity(msg || '');
+      } catch (_) { /* ignore */ }
+    }
+    if (pixError) {
+      pixError.hidden = !msg;
+      pixError.textContent = msg || '';
+    }
+  }
+
+  function validatePix(raw) {
+    const pix = String(raw || '').trim().replace(/\s+/g, '');
+    if (!pix || pix.length < 8) {
+      return {
+        ok: false,
+        value: pix,
+        message: 'Informe sua chave PIX (CPF, e-mail, celular ou chave aleatória).'
+      };
+    }
+    return { ok: true, value: pix, message: '' };
+  }
+
+  form.setAttribute('novalidate', '');
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     setStatus('');
+    setPixInvalid('');
     if (successEl) successEl.hidden = true;
 
     const fd = new FormData(form);
     const name = String(fd.get('name') || '').trim();
     const email = String(fd.get('email') || '').trim();
     const code = normalizeCode(fd.get('code'));
-    const pix = String(fd.get('pix') || '').trim().replace(/\s+/g, '');
+    const pixCheck = validatePix(fd.get('pix'));
 
-    if (!pix || pix.length < 8) {
-      setStatus('Informe sua chave PIX (CPF, e-mail, celular ou chave aleatória).', 'error');
+    if (!pixCheck.ok) {
+      setPixInvalid(pixCheck.message);
+      setStatus(pixCheck.message, 'error');
+      pixInput?.focus();
       return;
     }
 
@@ -51,12 +84,17 @@
       const res = await fetch(`${apiBase()}/commissioners/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, code, pix })
+        body: JSON.stringify({ name, email, code, pix: pixCheck.value })
       });
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setStatus(data.error || 'Não foi possível criar o cupom. Tente novamente.', 'error');
+        const errMsg = data.error || 'Não foi possível criar o cupom. Tente novamente.';
+        if (/pix/i.test(errMsg)) {
+          setPixInvalid(errMsg);
+          pixInput?.focus();
+        }
+        setStatus(errMsg, 'error');
         return;
       }
 
@@ -68,7 +106,7 @@
           <p>Seu código:</p>
           <code>${escHtml(data.code)}</code>
           <p>10% de desconto para clientes · 20% de comissão para você.</p>
-          <p>PIX cadastrado: <strong>${escHtml(pix)}</strong></p>
+          <p>PIX cadastrado: <strong>${escHtml(pixCheck.value)}</strong></p>
           <p>Link para compartilhar:<br>
             <a href="${escHtml(data.buyUrl)}" target="_blank" rel="noopener">${escHtml(data.buyUrl)}</a>
           </p>
@@ -92,6 +130,15 @@
       const pos = codeInput.selectionStart;
       codeInput.value = normalizeCode(codeInput.value);
       codeInput.setSelectionRange(pos, pos);
+    });
+  }
+
+  if (pixInput) {
+    pixInput.addEventListener('input', () => setPixInvalid(''));
+    pixInput.addEventListener('blur', () => {
+      if (!pixInput.value.trim()) return;
+      const check = validatePix(pixInput.value);
+      if (!check.ok) setPixInvalid(check.message);
     });
   }
 })();

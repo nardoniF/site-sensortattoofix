@@ -843,47 +843,91 @@ async function googlePlacesAddressSuggest(apiKey, query, country) {
   return suggestions;
 }
 
-async function photonAddressSuggest(query, country) {
+/** Prefer capitals / major cities when Photon ranks a secondary city first (e.g. FI→Mikkeli). */
+const ADDRESS_CITY_BOOST = {
+  FI: ['helsinki', 'helsingfors', 'espoo', 'tampere', 'turku', 'oulu', 'vantaa'],
+  IT: ['roma', 'rome', 'milano', 'milan', 'napoli', 'torino', 'florence', 'firenze'],
+  DE: ['berlin', 'hamburg', 'munich', 'münchen', 'koeln', 'köln', 'frankfurt'],
+  FR: ['paris', 'lyon', 'marseille', 'toulouse', 'nice'],
+  ES: ['madrid', 'barcelona', 'valencia', 'sevilla', 'seville'],
+  NL: ['amsterdam', 'rotterdam', 'den haag', 'the hague', 'utrecht'],
+  SE: ['stockholm', 'göteborg', 'goteborg', 'malmö', 'malmo'],
+  NO: ['oslo', 'bergen', 'trondheim'],
+  PL: ['warszawa', 'warsaw', 'kraków', 'krakow', 'wrocław', 'wroclaw'],
+  SI: ['ljubljana', 'maribor'],
+  US: ['new york', 'los angeles', 'chicago', 'houston', 'miami'],
+  GB: ['london', 'manchester', 'birmingham', 'edinburgh'],
+  PT: ['lisboa', 'lisbon', 'porto']
+};
+
+function addressCityBoostScore(city, country) {
+  const list = ADDRESS_CITY_BOOST[String(country || '').toUpperCase()] || [];
+  if (!list.length) return 0;
+  const c = String(city || '').trim().toLowerCase();
+  if (!c) return 0;
+  const idx = list.findIndex((name) => c === name || c.includes(name) || name.includes(c));
+  if (idx < 0) return 0;
+  return 100 - idx;
+}
+
+function rankAddressSuggestions(items, country) {
+  return [...(items || [])].sort((a, b) => {
+    const sb = addressCityBoostScore(b.city, country);
+    const sa = addressCityBoostScore(a.city, country);
+    if (sb !== sa) return sb - sa;
+    return String(a.label || '').localeCompare(String(b.label || ''));
+  });
+}
+
+async function photonAddressSuggest(query, country, lang) {
+  const photonLang = ['de', 'en', 'fr', 'it'].includes(String(lang || '').slice(0, 2).toLowerCase())
+    ? String(lang).slice(0, 2).toLowerCase()
+    : 'en';
   const res = await fetch(`https://photon.komoot.io/api/?${new URLSearchParams({
     q: query,
-    limit: '10',
-    lang: 'en'
+    limit: '12',
+    lang: photonLang
   })}`);
   if (!res.ok) throw new Error(`Photon ${res.status}`);
   const data = await res.json();
   const cc = String(country || '').toUpperCase();
-  return (data.features || [])
+  const mapped = (data.features || [])
     .filter((f) => {
       if (!cc || cc === 'OTHER') return true;
       return String(f.properties?.countrycode || '').toUpperCase() === cc;
     })
-    .slice(0, 6)
     .map((f) => {
       const p = f.properties || {};
       const streetName = p.street || p.name || '';
-      const label = [[p.housenumber, streetName].filter(Boolean).join(' '), p.city || p.locality, p.state, p.country].filter(Boolean).join(', ');
+      const city = p.city || p.locality || '';
+      const label = [[p.housenumber, streetName].filter(Boolean).join(' '), city, p.state, p.country].filter(Boolean).join(', ');
       return addressSuggestItem({
         label,
         street: streetName,
         number: p.housenumber || '',
-        city: p.city || p.locality || '',
+        city,
         state: p.state || '',
         postal: p.postcode || ''
       });
     })
     .filter((item) => item.label);
+  return rankAddressSuggestions(mapped, cc).slice(0, 6);
 }
 
 async function handleAddressSuggest(request, env, origin) {
   const url = new URL(request.url);
   const query = String(url.searchParams.get('q') || '').trim();
   const country = String(url.searchParams.get('country') || '').trim().toUpperCase();
+  const lang = String(url.searchParams.get('lang') || '').trim().toLowerCase();
   if (query.length < 3) return json({ suggestions: [], source: 'none' }, 200, origin);
 
   const googleKey = String(env.GOOGLE_PLACES_API_KEY || '').trim();
   if (googleKey && country && country !== 'OTHER') {
     try {
-      const suggestions = await googlePlacesAddressSuggest(googleKey, query, country);
+      const suggestions = rankAddressSuggestions(
+        await googlePlacesAddressSuggest(googleKey, query, country),
+        country
+      );
       if (suggestions.length) {
         return json({ suggestions, source: 'google' }, 200, origin);
       }
@@ -893,7 +937,7 @@ async function handleAddressSuggest(request, env, origin) {
   }
 
   try {
-    const suggestions = await photonAddressSuggest(query, country);
+    const suggestions = await photonAddressSuggest(query, country, lang);
     return json({ suggestions, source: 'photon' }, 200, origin);
   } catch (err) {
     console.warn('Photon suggest:', err.message);

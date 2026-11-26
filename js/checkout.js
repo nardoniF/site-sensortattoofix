@@ -1868,7 +1868,8 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function smartwatchBrandOf(model) {
     const m = String(model || '');
-    if (!m || m === OUTRO_MODELO || isOutroModelo(m)) return '__outro__';
+    // Single sentinel — never leak "__outro__" into optgroup / brand filter UI.
+    if (!m || m === OUTRO_MODELO || isOutroModelo(m)) return '__other__';
     if (m.startsWith('Apple')) return 'Apple';
     if (m.startsWith('Samsung')) return 'Samsung';
     if (m.startsWith('Garmin')) return 'Garmin';
@@ -1895,6 +1896,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
   function smartwatchGroup(model) {
     return smartwatchBrandOf(model);
+  }
+
+  function brandGroupLabel(brand) {
+    if (brand === '__other__' || brand === '__outro__') return L('watch.otherBrand');
+    return brand;
   }
 
   function watchModelSelects() {
@@ -2000,17 +2006,17 @@ window.STF_MONEY = window.STF_MONEY || (function () {
 
         const groups = new Map();
         models.forEach((model) => {
-          const brand = model === OUTRO_MODELO ? '__other__' : smartwatchGroup(model);
+          const brand = isOutroModelo(model) ? '__other__' : smartwatchGroup(model);
           if (!groups.has(brand)) groups.set(brand, []);
           groups.get(brand).push(model);
         });
         groups.forEach((groupModels, brand) => {
           const group = document.createElement('optgroup');
-          group.label = brand === '__other__' ? L('watch.otherBrand') : brand;
+          group.label = brandGroupLabel(brand);
           groupModels.forEach((model) => {
             const option = document.createElement('option');
             option.value = model;
-            option.textContent = model === OUTRO_MODELO
+            option.textContent = isOutroModelo(model)
               ? L('watch.otherModel')
               : localizeWatchModelLabel(model);
             group.appendChild(option);
@@ -2055,8 +2061,11 @@ window.STF_MONEY = window.STF_MONEY || (function () {
     allOpt.value = '';
     allOpt.textContent = L('store.modelBrandAll');
     brandFilter.appendChild(allOpt);
-    const brandNames = [...select.querySelectorAll('optgroup')].map((g) => g.label).filter(Boolean);
-    brandNames.forEach((name) => {
+    const brandNames = [...select.querySelectorAll('optgroup')]
+      .map((g) => brandGroupLabel(g.label))
+      .filter(Boolean);
+    // Dedupe after normalizing sentinels (__outro__/__other__ → translated label)
+    [...new Set(brandNames)].forEach((name) => {
       const o = document.createElement('option');
       o.value = name;
       o.textContent = name;

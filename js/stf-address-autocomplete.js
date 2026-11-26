@@ -22,6 +22,13 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
     return code;
   }
 
+  function pageLang() {
+    if (window.STF_I18N?.getLang) return String(window.STF_I18N.getLang() || 'en').slice(0, 2);
+    if (window.STF_PAGE_LANG?.get) return String(window.STF_PAGE_LANG.get() || 'en').slice(0, 2);
+    const htmlLang = String(document.documentElement.lang || 'en').slice(0, 2).toLowerCase();
+    return htmlLang || 'en';
+  }
+
   function field(id) {
     return document.getElementById(id);
   }
@@ -125,7 +132,11 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
       return;
     }
     try {
-      const params = new URLSearchParams({ q: query, country: cc });
+      const params = new URLSearchParams({
+        q: query,
+        country: cc,
+        lang: pageLang()
+      });
       const res = await fetch(`${apiBase}/address/suggest?${params}`, { cache: 'no-store' });
       if (!res.ok) return hideList();
       const data = await res.json();
@@ -191,6 +202,18 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
     setTimeout(hideList, 180);
   }
 
+  function bindCloseOnSiblingFocus() {
+    ['cidade-intl', 'postal-intl', 'uf-intl'].forEach((id) => {
+      const el = field(id);
+      if (!el || el.dataset.stfSuggestCloseBound === '1') return;
+      el.dataset.stfSuggestCloseBound = '1';
+      el.addEventListener('focus', hideList);
+      el.addEventListener('input', () => {
+        if (el.value.trim()) hideList();
+      });
+    });
+  }
+
   function bind() {
     unbind();
     const input = streetInput();
@@ -204,6 +227,7 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
     input.addEventListener('focus', onFocus);
     input.addEventListener('keydown', onKeydown);
     input.addEventListener('blur', onBlur);
+    bindCloseOnSiblingFocus();
   }
 
   function init(config) {
@@ -211,5 +235,5 @@ window.STF_ADDRESS_AUTOCOMPLETE = (function () {
     bind();
   }
 
-  return { init, bind, rebind: bind };
+  return { init, bind, rebind: bind, hide: hideList };
 })();

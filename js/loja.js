@@ -24,22 +24,32 @@
     return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  /** store.frete already includes "+" ("+ frete") — never prefix another "+". */
+  function freteSuffix() {
+    const frete = String(L('store.frete') || '+ frete').trim();
+    if (!frete) return '+ frete';
+    return /^\+/.test(frete) ? frete : `+ ${frete}`;
+  }
+
+  function priceWithFrete(priceText) {
+    return `${priceText} ${freteSuffix()}`;
+  }
+
   async function localizedPriceLine(productOrPrice) {
     const product = productOrPrice && typeof productOrPrice === 'object' ? productOrPrice : null;
     const price = product ? (Number(product.price) || 0) : Number(productOrPrice) || 0;
-    const frete = L('store.frete');
     // .com.br is always BRL catalog — even with ?lang=en (hop to .com handles EN storefront).
     if (!window.STF_I18N?.isLocalized?.() || !window.STF_MONEY || window.STF_SITE?.isBrHost?.()) {
-      return `${formatBRL(price)} + ${frete}`;
+      return priceWithFrete(formatBRL(price));
     }
     try {
       const cfg = await StoreConfig.load();
       const text = product && window.STF_MONEY.formatProductForVisitor
         ? await window.STF_MONEY.formatProductForVisitor(product, cfg)
         : await window.STF_MONEY.formatForVisitor(price, cfg);
-      return `${text} + ${frete}`;
+      return priceWithFrete(text);
     } catch {
-      return `${formatBRL(price)} + ${frete}`;
+      return priceWithFrete(formatBRL(price));
     }
   }
 
@@ -133,14 +143,13 @@
       const media = window.STF_PRODUCT_GALLERY?.renderMarkup
         ? window.STF_PRODUCT_GALLERY.renderMarkup(albumImgs, label, 'loja-card-album')
         : `<img src="${escapeHtml(img)}" alt="${escapeHtml(label)}" loading="lazy" onerror="this.onerror=null;this.src='/images/brand/sensortattoofix.jpg'">`;
-      const frete = L('store.frete');
       return `
-        <article class="loja-card">
+        <article class="loja-card" data-product-slug="${escapeHtml(slug)}" id="loja-produto-${escapeHtml(slug)}">
           ${media}
           <div class="loja-card-body">
             <h3>${escapeHtml(label)}</h3>
             <p>${escapeHtml(desc)}</p>
-            <strong class="loja-price" data-product-id="${escapeHtml(slug)}" data-price-brl="${p.price}">${formatBRL(p.price)} + ${frete}</strong>
+            <strong class="loja-price" data-product-id="${escapeHtml(slug)}" data-price-brl="${p.price}">${escapeHtml(priceWithFrete(formatBRL(p.price)))}</strong>
             <span class="store-rating" aria-label="${escapeHtml(L('store.ratingAria'))}">
               <span class="store-rating-stars" aria-hidden="true">★★★★★</span>
               <strong class="store-rating-score">${escapeHtml(L('store.ratingScore'))}</strong>
@@ -212,25 +221,77 @@
     refreshStickyCart();
   }
 
+  function isSmartbandProduct(p) {
+    if (window.STF_PRODUCT_GALLERY?.isSmartbandProduct) {
+      return window.STF_PRODUCT_GALLERY.isSmartbandProduct(p);
+    }
+    const id = String(p?.id || p?.slug || '');
+    return /smartband/i.test(id + ' ' + (p?.name || ''));
+  }
+
+  function isFlagshipProduct(p) {
+    const id = String(p?.id || p?.slug || '');
+    if (isSmartbandProduct(p)) return false;
+    return id === 'kit-sensor-tattoofix' || id === 'kit' || id === 'optical-lens-intl'
+      || /optical.?lens/i.test(id);
+  }
+
+  /** Hero CTA price = Optical Lens / kit smartwatch — keep that card first in the grid. */
+  function sortFlagshipFirst(list) {
+    return [...(list || [])].sort((a, b) => {
+      const af = isFlagshipProduct(a) ? 0 : (isSmartbandProduct(a) ? 2 : 1);
+      const bf = isFlagshipProduct(b) ? 0 : (isSmartbandProduct(b) ? 2 : 1);
+      return af - bf;
+    });
+  }
+
   /** Never mix INT (.com) products into BR (.com.br) — and vice versa. */
   function filterStorefront(all) {
-    if (window.STF_PELICULA?.listStorefront) return window.STF_PELICULA.listStorefront(all);
-    const market = window.STF_SITE?.catalogMarket?.() || window.STF_PAGE_LANG?.catalogMarket?.() || 'BR';
-    if (window.STF_SITE?.filterProductsForMarket) {
-      return window.STF_SITE.filterProductsForMarket(all, market)
-        .filter((p) => p.active !== false && p.inStock !== false && p.aggregated !== true);
+    let list;
+    if (window.STF_PELICULA?.listStorefront) {
+      list = window.STF_PELICULA.listStorefront(all);
+    } else {
+      const market = window.STF_SITE?.catalogMarket?.() || window.STF_PAGE_LANG?.catalogMarket?.() || 'BR';
+      if (window.STF_SITE?.filterProductsForMarket) {
+        list = window.STF_SITE.filterProductsForMarket(all, market)
+          .filter((p) => p.active !== false && p.inStock !== false && p.aggregated !== true);
+      } else {
+        const isIntl = market === 'INT';
+        list = (all || []).filter((p) => {
+          if (p.active === false || p.inStock === false || p.aggregated === true) return false;
+          const markets = Array.isArray(p.markets)
+            ? p.markets.map((m) => String(m || '').toUpperCase()).filter(Boolean)
+            : [];
+          const id = String(p.id || p.slug || '');
+          if (markets.length) return isIntl ? markets.includes('INT') : markets.includes('BR');
+          if (/optical.?lens|lens-intl/i.test(id)) return isIntl;
+          if (id === 'kit-sensor-tattoofix' || id === 'kit') return !isIntl;
+          return !isIntl;
+        });
+      }
     }
-    const isIntl = market === 'INT';
-    return (all || []).filter((p) => {
-      if (p.active === false || p.inStock === false || p.aggregated === true) return false;
-      const markets = Array.isArray(p.markets)
-        ? p.markets.map((m) => String(m || '').toUpperCase()).filter(Boolean)
-        : [];
-      const id = String(p.id || p.slug || '');
-      if (markets.length) return isIntl ? markets.includes('INT') : markets.includes('BR');
-      if (/optical.?lens|lens-intl/i.test(id)) return isIntl;
-      if (id === 'kit-sensor-tattoofix' || id === 'kit') return !isIntl;
-      return !isIntl;
+    return sortFlagshipFirst(list);
+  }
+
+  function featuredSlugFromUrl() {
+    try {
+      return String(new URLSearchParams(location.search).get('produto') || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  function highlightFeaturedProduct() {
+    const slug = featuredSlugFromUrl();
+    if (!slug) return;
+    const card = document.getElementById(`loja-produto-${slug}`)
+      || document.querySelector(`[data-product-slug="${CSS.escape(slug)}"]`);
+    if (!card) return;
+    card.classList.add('loja-card--featured');
+    requestAnimationFrame(() => {
+      try {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (_) { /* ignore */ }
     });
   }
 
@@ -244,6 +305,7 @@
       window.STF_CART?.initBadges();
       window.STF_STORE_PRICE?.apply(cfg);
       renderGrid();
+      highlightFeaturedProduct();
       refreshStickyCart();
       window.addEventListener('stf-cart-updated', refreshBuyButtons);
       applyLocalizedPrices(products);

@@ -2411,7 +2411,39 @@ footer,
     body.home-page #onde-comprar { scroll-margin-top: 64px; }
     .site-nav,
     nav { position: relative; flex-wrap: nowrap; gap: 6px; }
-    .logo-area { flex: 0 0 auto; min-width: 0; gap: 0; --logo-h: 58px; }
+    .logo-area { flex: 0 1 auto; min-width: 0; gap: 0; --logo-h: 48px; max-width: min(48vw, 168px); }
+    .logo-img-link {
+        max-width: 100%;
+        height: var(--logo-h);
+        overflow: hidden;
+    }
+    .main-logo-img {
+        max-width: 100%;
+        width: auto;
+        height: 100%;
+        max-height: var(--logo-h);
+        object-fit: contain;
+        object-position: left center;
+    }
+    /* IT/EU: lang rules usam --logo-h:96px com especificidade maior — forçar clamp no mobile */
+    html[lang="it"] .logo-area,
+    html[lang="fr"] .logo-area,
+    html[lang="nl"] .logo-area,
+    html[lang="de"] .logo-area,
+    html[lang="fi"] .logo-area,
+    html[lang="es"] .logo-area,
+    html[lang="sv"] .logo-area,
+    html[lang="no"] .logo-area,
+    html[lang="sl"] .logo-area,
+    html[lang="pl"] .logo-area {
+        --logo-h: 44px;
+        max-width: min(42vw, 148px);
+    }
+    .nav-actions {
+        flex: 0 0 auto;
+        flex-shrink: 0;
+        min-width: 0;
+    }
     .logo-text { font-size: 0.95rem; }
     .logo-tagline { font-size: 0.62rem; }
 
@@ -3634,8 +3666,17 @@ a.stf-tiktok-card:hover {
     border: 1px solid #444;
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0,0,0,.45);
-    max-height: 220px;
+    max-height: min(220px, 36vh);
     overflow-y: auto;
+}
+/* Keep suggest above following postal/city fields without covering the whole form */
+#address-intl .stf-address-suggest-wrap {
+    z-index: 5;
+}
+.loja-card--featured {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 14px;
 }
 .stf-address-suggest-item {
     padding: 10px 12px;
