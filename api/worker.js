@@ -3966,6 +3966,43 @@ function formatOrderCharge(order, value) {
   return formatBRL(value ?? order?.total);
 }
 
+/** True when the customer is/was charged in a foreign currency (not BRL ledger). */
+function orderHasForeignCharge(order) {
+  const cur = String(order?.chargeCurrency || '').toUpperCase();
+  return !!(cur && cur !== 'BRL' && order.chargeAmount != null);
+}
+
+/**
+ * Admin “novo pedido” e-mail: livro is always BRL; when abroad PayPal/Stripe
+ * also show what the customer is actually charged (EUR/USD/…).
+ */
+function orderShopPendingMoneyFields(order) {
+  const ledger = orderHasForeignCharge(order) ? ' (livro BRL)' : '';
+  const fields = {
+    ['Produto' + ledger]: formatBRL(order.valorProdutoOriginal ?? order.valorProduto),
+    ...(order.couponDiscount ? {
+      'Desconto cupom': formatBRL(order.couponDiscount),
+      ['Produto c/ desconto' + ledger]: formatBRL(order.valorProduto)
+    } : {}),
+    ['Frete' + ledger]: formatBRL(order.frete),
+    ...(order.paypalFee ? { 'Taxa PayPal': formatBRL(order.paypalFee) } : {}),
+    ['Total' + ledger]: formatBRL(order.total)
+  };
+  if (orderHasForeignCharge(order)) {
+    fields['Cobrado do cliente'] = formatOrderCharge(order);
+    fields['Moeda cobrança'] = String(order.chargeCurrency).toUpperCase();
+    if (order.chargeFxRate != null) {
+      fields['Câmbio BRL→' + String(order.chargeCurrency).toUpperCase()] = String(order.chargeFxRate);
+    }
+  }
+  return fields;
+}
+
+function formatOrderMoneyForWhatsApp(order) {
+  if (!orderHasForeignCharge(order)) return formatBRL(order.total);
+  return `${formatOrderCharge(order)} (livro ${formatBRL(order.total)})`;
+}
+
 function orderRefLabel(order) {
   const loc = orderCheckoutLocale(order);
   if (loc === 'en') return 'Order';
@@ -7899,15 +7936,16 @@ function pixCustomerHint(order, shopPhone) {
 
 async function notifyWhatsApp(env, config, order, type) {
   const shopPhone = config.whatsapp || env.SHOP_WHATSAPP;
+  const moneyLine = formatOrderMoneyForWhatsApp(order);
   const msgs = {
-    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${formatBRL(order.total)}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
-    order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n${watchWhatsAppBlock(order)}\n🌍 ${order.pais}\n💰 ${formatBRL(order.total)}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
+    order_customer: `✅ *Sensor TattooFix*\n\nOlá ${order.nome}!\n\nPedido: *${order.orderId}*\n${watchWhatsAppBlock(order)}\nTotal: ${moneyLine}\nPagamento: ${order.pagamento}\n\n${pixCustomerHint(order, shopPhone)}\n\nObrigado!`,
+    order_shop: `🛒 *NOVO PEDIDO*\n\n${order.orderId}\n${order.nome}\n📱 ${order.telefone}\n${watchWhatsAppBlock(order)}\n🌍 ${order.pais}\n💰 ${moneyLine}\n📦 ${order.shippingService}\n📍 ${order.endereco}`,
     paid_customer: shouldDispatchUberDelivery(order)
       ? `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago.\n\n🚗 Entrega Uber solicitada. Você receberá o link de rastreio por e-mail em instantes.\n\nSensor TattooFix`
       : `✅ *Pagamento confirmado!*\n\nPedido *${order.orderId}* pago com sucesso.\n\nSeu kit será postado em até 2 dias úteis. Você receberá o rastreio por e-mail.\n\nSensor TattooFix`,
     paid_shop: shouldDispatchUberDelivery(order)
-      ? `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n🚗 Uber Direct — ${order.shippingService}\n📍 ${order.endereco}${order.uberTrackingUrl ? `\n🔗 ${order.uberTrackingUrl}` : ''}`
-      : `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${formatBRL(order.total)}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
+      ? `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${moneyLine}\n${watchWhatsAppBlock(order)}\n\n🚗 Uber Direct — ${order.shippingService}\n📍 ${order.endereco}${order.uberTrackingUrl ? `\n🔗 ${order.uberTrackingUrl}` : ''}`
+      : `💰 *PAGAMENTO CONFIRMADO*\n\n${order.orderId}\nCliente: ${order.nome}\nValor: ${moneyLine}\n${watchWhatsAppBlock(order)}\n\n📮 Postar via ${order.shippingService}\n📍 ${order.endereco}`
   };
 
   const customerMsg = msgs[type + '_customer'];
@@ -15834,14 +15872,7 @@ async function handleCreateOrder(request, env, origin, ctx) {
       Pedido: order.orderId, Status: order.status, Nome: order.nome,
       'E-mail': order.email, Telefone: order.telefone,
       País: order.pais, Endereço: order.endereco, Pagamento: order.pagamento,
-      Produto: formatBRL(order.valorProdutoOriginal ?? order.valorProduto),
-      ...(order.couponDiscount ? {
-        'Desconto cupom': formatBRL(order.couponDiscount),
-        'Produto c/ desconto': formatBRL(order.valorProduto)
-      } : {}),
-      Frete: formatBRL(order.frete),
-      ...(order.paypalFee ? { 'Taxa PayPal': formatBRL(order.paypalFee) } : {}),
-      Total: formatBRL(order.total),
+      ...orderShopPendingMoneyFields(order),
       Envio: order.shippingService || '—',
       ...orderCouponEmailFields(order),
       ...orderIntlProductFields(order),
