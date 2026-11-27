@@ -110,3 +110,21 @@ test('Feb short month: day 30/31 are null', () => {
   // 21–27=0, 28=4, 29>maxDay=null
   assert.deepEqual(days.map((d) => qtyCell(d, feb)), [0, 0, 0, 0, 0, 0, 0, 4, null]);
 });
+
+function weekdayShortBr(year, monthNum, day) {
+  const y = Number(year);
+  const m = Number(monthNum);
+  const d = Number(day);
+  if (!y || !m || !d || d < 1 || d > 31) return '';
+  const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00-03:00`;
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return '';
+  const raw = dt.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' });
+  return String(raw || '').replace(/\./g, '').toLowerCase().slice(0, 3);
+}
+
+test('prev-month cells get weekday short (26/out/2026 = seg)', () => {
+  assert.equal(weekdayShortBr(2026, 10, 26), 'seg');
+  assert.equal(weekdayShortBr(2026, 10, 27), 'ter');
+  assert.equal(weekdayShortBr(2026, 11, 26), 'qui');
+});
