@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  canGenerateShippingLabel,
   findExistingShippingLabel,
   hasExistingShippingLabel,
   shippingLabelDuplicateMessage
@@ -69,4 +70,14 @@ test('does not match the same order, recipients without shared identity, or orde
     status: 'paid'
   }], target), null);
   assert.equal(hasExistingShippingLabel({ status: 'paid' }), false);
+});
+
+test('canGenerateShippingLabel allows paid and pending payment, blocks cancelled/refunded', () => {
+  assert.equal(canGenerateShippingLabel({ status: 'paid' }), true);
+  assert.equal(canGenerateShippingLabel({ status: 'pending_payment' }), true);
+  assert.equal(canGenerateShippingLabel({ status: 'pending' }), true);
+  assert.equal(canGenerateShippingLabel({ status: 'PENDING_PAYMENT' }), true);
+  assert.equal(canGenerateShippingLabel({ status: 'cancelled' }), false);
+  assert.equal(canGenerateShippingLabel({ status: 'refunded' }), false);
+  assert.equal(canGenerateShippingLabel({}), false);
 });

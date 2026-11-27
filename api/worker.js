@@ -40,6 +40,7 @@ import {
   markD1ReadsExhausted
 } from './d1-store.js';
 import {
+  canGenerateShippingLabel,
   findExistingShippingLabel,
   hasExistingShippingLabel,
   sameShippingRecipient,
@@ -16260,8 +16261,9 @@ async function handleOrderShippingLabel(request, env, origin, orderId) {
   }
   const order = await getOrder(env, orderId);
   if (!order) return json({ error: 'Pedido não encontrado.' }, 404, origin);
-  if (order.status !== 'paid') {
-    return json({ error: 'Só é possível gerar etiqueta de pedido PAGO.' }, 400, origin);
+  // Pago ou aguardando: permite carta/etiqueta de envio gratuito / parceria antes do PIX.
+  if (!canGenerateShippingLabel(order)) {
+    return json({ error: 'Só é possível gerar etiqueta de pedido pago ou aguardando pagamento.' }, 400, origin);
   }
   if (isParticularDeliveryOrder(order)) {
     return json({ mode: 'html', useClient: true, message: 'Use etiqueta local para motoboy/Uber.' }, 200, origin);

@@ -43,6 +43,12 @@ export function hasExistingShippingLabel(order) {
   );
 }
 
+/** Admin: etiqueta/carta em pago ou aguardando (envio gratuito / parceria antes do PIX). */
+export function canGenerateShippingLabel(order) {
+  const st = String(order?.status || '').toLowerCase();
+  return st === 'paid' || st === 'pending_payment' || st === 'pending';
+}
+
 export function sameShippingRecipient(first, second) {
   const firstKeys = recipientKeys(first);
   for (const key of recipientKeys(second)) {

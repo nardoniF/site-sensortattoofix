@@ -230,6 +230,12 @@
     return '<span class="status-badge status-pending"><i class="fas fa-clock" aria-hidden="true"></i> Aguardando</span>';
   }
 
+  /** Etiqueta/Carta: pago ou aguardando (envio gratuito / parceria antes do PIX). */
+  function canPrintLabelOrLetter(o) {
+    const st = String(o?.status || '').toLowerCase();
+    return st === 'paid' || st === 'pending_payment' || st === 'pending';
+  }
+
   function watchModel(o) {
     return window.STF_ORDER_WATCH?.formatModel(o) || o.smartwatch || '—';
   }
@@ -2161,8 +2167,8 @@
           ${statusBadgeHtml(o.status)}
           ${isManualOrder(o) ? '<span class="pedidos-manual-pill" title="Lançamento avulso">Avulsa</span>' : ''}
           ${isManualOrder(o) ? '<button type="button" class="btn-edit-manual" title="Editar venda avulsa"><i class="fas fa-edit" aria-hidden="true"></i> Editar</button>' : ''}
-          ${o.status === 'paid' ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
-          ${o.status === 'paid' && (isCorreiosIntlOrder(o) || isManualIntlOrder(o)) ? (() => {
+          ${canPrintLabelOrLetter(o) ? `<button type="button" class="btn-print-label" title="Imprimir etiqueta térmica"><i class="fas fa-print"></i> Etiqueta</button>` : ''}
+          ${canPrintLabelOrLetter(o) && (isCorreiosIntlOrder(o) || isManualIntlOrder(o)) ? (() => {
             const n = letterCountForOrder(o);
             const label = n > 1 ? `Cartas (${n})` : 'Carta';
             return `<button type="button" class="btn-print-letter" title="Cartas thank-you internacionais — ${n} folha(s)"><i class="fas fa-envelope-open-text"></i> ${label}</button>`;

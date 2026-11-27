@@ -107,8 +107,9 @@
     await loadShippingConfig();
     const order = await fetchOrder(orderId, token);
 
-    if (order.status !== 'paid') {
-      throw new Error('Só é possível imprimir etiqueta de pedido PAGO.');
+    const st = String(order.status || '').toLowerCase();
+    if (st !== 'paid' && st !== 'pending_payment' && st !== 'pending') {
+      throw new Error('Só é possível imprimir etiqueta de pedido pago ou aguardando pagamento.');
     }
 
     showStatus('Gerando etiqueta…', '');
