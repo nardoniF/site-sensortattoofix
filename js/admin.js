@@ -2492,9 +2492,22 @@
     return map;
   }
 
+  /** Dia da semana curto (pt-BR / SP) p/ dia civil YYYY-MM-DD — ex.: seg, ter. */
+  function weekdayShortBr(year, monthNum, day) {
+    const y = Number(year);
+    const m = Number(monthNum);
+    const d = Number(day);
+    if (!y || !m || !d || d < 1 || d > 31) return '';
+    const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00-03:00`;
+    const dt = new Date(iso);
+    if (Number.isNaN(dt.getTime())) return '';
+    const raw = dt.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'America/Sao_Paulo' });
+    return String(raw || '').replace(/\./g, '').toLowerCase().slice(0, 3);
+  }
+
   /**
    * Faixa: 7 dias atrás + hoje + 1 à frente (BR), qty só, alinhada nos meses do MTD.
-   * Fica fora do quadro “Dias 1–N”, dentro do frame preto do consolidado.
+   * Mês passado: qty + dia da semana (seg/ter/…). Fica fora do quadro “Dias 1–N”.
    */
   function renderConsolidadoDayWindowQty(sales) {
     const now = brDateParts(Date.now());
@@ -2561,6 +2574,14 @@
           return `<span class="vendas-consol-daywin-cell is-future${isTodayCol ? ' is-today' : ''}" role="cell">—</span>`;
         }
         const qty = Number(row.qty[d] || 0);
+        // Mês passado: marca dia da semana sob a qty (ex.: 5 / seg).
+        if (!isCurrent) {
+          const dow = weekdayShortBr(row.year, row.monthNum, d);
+          const title = dow
+            ? `${d}/${row.monthNum}/${row.year} · ${dow}`
+            : `${d}/${row.monthNum}/${row.year}`;
+          return `<span class="vendas-consol-daywin-cell has-dow${isTodayCol ? ' is-today' : ''}${qty > 0 ? ' has-qty' : ''}${outcomeCls}" role="cell" title="${escapeHtml(title)}"><span class="vendas-consol-daywin-qty">${qty}</span>${dow ? `<span class="vendas-consol-daywin-dow">${escapeHtml(dow)}</span>` : ''}</span>`;
+        }
         return `<span class="vendas-consol-daywin-cell${isTodayCol ? ' is-today' : ''}${qty > 0 ? ' has-qty' : ''}${outcomeCls}" role="cell">${qty}</span>`;
       }).join('');
       return `<div class="vendas-consol-daywin-row${isCurrent ? ' is-current' : ''}" role="row">
